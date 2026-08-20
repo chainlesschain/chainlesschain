@@ -4921,3 +4921,50 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 统一合同已升级为 roadmap manifest `1.9.41`，新增 `p1-context-permission` case，并把 P1-5/P2-4 的自动化范围与企业/人工外部尾项分开记录；`--contract-only` 回读为 **16 cases / 110 referenced test files**，明确 runtime evidence 与 release readiness 未被评估。roadmap verifier/journey 为 **37/37**，P1-4/P1-5/P2-4 三项矩阵合同为 **15/15**，本期改动涉及的十份 workflow 全部通过 `actionlint`；任务 JS ESLint 为 0 error，仅保留仓库根 `type` 未声明的既有 Node warning。
 
 因此，第七十四节要求的**本期仓库实现与可由 GitHub Actions 验证的门已完成并可合并**；Q0 与 Q3 继续整体列入下期，其他路线项只把表中明确的人工、凭据、专有宿主、分布式 authority、物理故障和长期运行尾项列入下期。由于当前尚未把合并后的 exact head 推送并回读 required Actions，本节不把十项外部证据标为通过，不减少 **12/19 尚未关闭、7/19 完成**，整体发布结论继续为 **NO-GO**。
+
+## 八十五、2026-08-21 合并后 exact-head Actions 回读与本期/下期最终收口
+
+本节只追加回读结论，不改写历史章节。所有运行均绑定本期实现提交 `609d87c9e6f53f15098bbc5525afdab0972e082e`；后续承载本节的提交只修改本文档，因此不会改变被验证的产品代码、workflow、fixture 或测试字节。旧 SHA、被新提交替代后取消的运行和设计性 skip 均不计作通过。
+
+### Exact-head Actions 证据表
+
+| Actions 门 | Run | 终态/回读 | 本期结论 |
+| --- | ---: | --- | --- |
+| CLI macOS MCP Launcher Release Gate | [32396266345](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266345) | `success`；未签名 x64/arm64 两格通过；签名/tag 格因当前是 `main` 分支按合同跳过 | native policy 与未签名 launcher 本期门通过；签名、公证和受保护 tag 留到下期 |
+| CI Tests | [32396266222](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266222) | `success` | 本期通用回归通过 |
+| Full Test Automation with Diagnostics | [32396266338](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266338) | `success` | 本期诊断回归通过 |
+| CLI CI | [32396266619](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266619) | `success`；52 个 job 成功；仅 push 场景不适用的 `dry-run-publish` 按设计跳过 | 三 OS unit/integration/E2E 与 CLI 收口门通过 |
+| IDE Roadmap Execution Location | [32396266608](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266608) | `success`；WSL、declared container、strict SSH 各 100 次及 trusted aggregate 全部通过 | Q4a/P1-2 可由 Actions 构造的 300-run 位置矩阵通过 |
+| Code Quality & Security | [32396266312](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266312) | `success` | 代码质量与安全门通过 |
+| E2E Tests | [32396266527](https://github.com/chainlesschain/chainlesschain/actions/runs/32396266527) | `success`；三 OS producer 与 summary 通过 | 通用 E2E 门通过 |
+| IDE Roadmap Context Permission | [32396619318](https://github.com/chainlesschain/chainlesschain/actions/runs/32396619318) | `success`；三 OS producer 与 aggregate 通过 | P1-4 并发、故障、七入口与防泄漏矩阵通过 |
+| IDE Roadmap Host Recovery | [32396623534](https://github.com/chainlesschain/chainlesschain/actions/runs/32396623534) | `success` | Q4b/P1-1/P1-2 可承载的重启、重连与恢复门通过 |
+| CLI Reliability Soak | [32396628412](https://github.com/chainlesschain/chainlesschain/actions/runs/32396628412) | `success`；9 个正式 producer 每格至少运行 7,200 秒，scheduler 与 MCP security 两个 fail-closed aggregate 通过，11/11 job 成功 | Q4b/P1-1 可由 Actions 承载的正式长时可靠性门通过 |
+| IDE Roadmap Live Provider Trajectory | [32396633013](https://github.com/chainlesschain/chainlesschain/actions/runs/32396633013) | `failure`；Windows/Linux/macOS production loopback producer 与 aggregate 通过；10/10 real-provider 分片因 `CC_LLM_API_KEY`、`CC_LLM_PROVIDER`、`CC_LLM_MODEL` 均为空而以 `missing_live_provider` fail closed，并各自上传约 506–507 byte 的 content-free 诊断 artifact | workflow、100-run loopback、真实 provider 拒绝与失败证据本期验证完成；真实 provider 账号、密钥、模型与费用额度是下期外部条件，不能伪造绿色结果 |
+| IDE Roadmap Marketplace Supply Chain | [32396637883](https://github.com/chainlesschain/chainlesschain/actions/runs/32396637883) | `success`；三 OS × 四网络环境 12 格及 aggregate 全部通过 | P1-5 可重复供应链矩阵通过 |
+| IDE Roadmap Accessibility Performance | [32396642517](https://github.com/chainlesschain/chainlesschain/actions/runs/32396642517) | `success`；三 OS producer 与 aggregate 通过 | P2-4 自动化可访问性与固定规模性能门通过 |
+| IDE Roadmap Safety Matrix | [32396646733](https://github.com/chainlesschain/chainlesschain/actions/runs/32396646733) | `success`；三 OS producer 与 aggregate 通过 | S0-1/S0-2 可自动化安全故障矩阵通过 |
+| IDE ARM64 Host Validation | [32396651185](https://github.com/chainlesschain/chainlesschain/actions/runs/32396651185) | `success`；全部 producer 与 11-cell aggregate 通过 | ARM64 可用宿主门通过 |
+| iOS App Remote Session Recovery | [32396655755](https://github.com/chainlesschain/chainlesschain/actions/runs/32396655755) | `success` | S0-1 iOS transient resume/recovery 自动化门通过 |
+| CLI Strict Sandbox | [32396660422](https://github.com/chainlesschain/chainlesschain/actions/runs/32396660422) | `success`；Ubuntu、Windows、macOS 全部通过 | S0-2 native/MCP policy 与严格 sandbox 门通过 |
+| IDE Extensions | [32396665615](https://github.com/chainlesschain/chainlesschain/actions/runs/32396665615) | `success`；VS Code 三 OS、Remote-SSH container、JetBrains 2024.2/2025.2 三 OS、immutable candidate、aggregate 与 JetBrains build/publish contract 通过；仅不具备 tag/publish 条件的公开渠道 post-publish 回读跳过 | 双 IDE 可安装候选与真实宿主门通过；公开渠道发布/fresh-profile 仍需外部发布 authority |
+| iOS CI/CD Pipeline | [32396670411](https://github.com/chainlesschain/chainlesschain/actions/runs/32396670411) | `success`；SwiftLint、SPM、security 与 unsigned release 通过 | iOS 自动化构建门通过；签名/真机仍属下期外部条件 |
+
+### 未完成任务本期/下期判定
+
+| 路线项 | 本期已完成、可由仓库或 Actions 证明的范围 | 下期保留的外部条件 | 判定 |
+| --- | --- | --- | --- |
+| S0-1 | iOS transient resume、不可召回 effect 裁决投影、三 OS 安全故障注入及 iOS 自动化门 | 真机、物理断电、跨设备持久化、真实外部 effect 召回和人工裁决 | 本期工程包完成，整项仍部分完成 |
+| S0-2 | native/shared-library policy、二次身份核验、三 OS strict sandbox 与未签名 macOS launcher | 签名/公证后的 macOS 原生执行、远端即时撤权、长期恶意矩阵 | 本期工程包完成，整项仍部分完成 |
+| S0-3 | structured handoff、100-run loopback、live-provider fail-closed workflow 与脱敏失败 artifact | 真实 provider 账号/密钥/模型、费用额度和专有宿主长期轨迹 | 仓库与 Actions 能力完成；真实 provider 尾项下期 |
+| Q0 | 已验证 VSIX、发布合同和 fail-closed readback 保持有效 | Microsoft Marketplace publisher authority、`VSCE_PAT`、公开发布与 stock VS Code fresh-profile | 整体下期 |
+| Q3 | production adapter、runner 与退出合同保持有效 | 受保护仓库审批/required checks/真实 merge authority 与独立 WORM | 整体下期 |
+| Q4a | WSL、declared container、strict SSH、网络/重启/重放和 300-run trusted aggregate | Codespaces、JetBrains Gateway、无权访问的真实远端与长期网络退化 | 本期工程包完成，专有基础设施下期 |
+| Q4b | immutable candidate、双 IDE 真实宿主、Bridge/CLI restart、host recovery 与可承载 soak | Microsoft/作者/Developer ID/公证凭据、公开渠道发布后的人工 fresh-profile、连续 8 小时专有宿主 | 本期自动化工程包完成；发布/人工/专有尾项下期 |
+| P1-1 | canonical Workbench、双 IDE 控制、恢复扫描/policy/backoff/batch dry-run、可构造宿主恢复矩阵 | provider 独立 receipt/计费、WORM、不可取消 provider 的物理中断与专有宿主 | 本期工程包完成，外部 authority 尾项下期 |
+| P1-2 | Artifact recovery/workbench、双 IDE/Desktop 审阅裁决、WSL/Container/SSH result-return 位置矩阵 | Cloud/专有远端、shared/NFS/object-store fencing、组织 retention/WORM、物理擦除 | 本期工程包完成，分布式/物理尾项下期 |
+| P1-4 | 三 OS 并发、七入口 projection、进程/网络故障、secret/完整命令扫描与 fail-closed aggregate | 企业凭据/副作用系统、专有远端与长期人工 IDE 旅程 | 本期自动化矩阵完成，企业尾项下期 |
+| P1-5 | 三 OS × 四网络环境 × 每格 100 次、24 类故障、缓存/签名/rollback aggregate | 第三方企业 registry/代理、独立 transparency/trust distribution、组织 key rotation、共享存储和物理断电 | 本期自动化矩阵完成，企业/物理尾项下期 |
+| P2-4 | 三 OS 键盘/焦点/AX tree、固定规模性能/资源、JetBrains Swing、NVDA/Orca process probe | 真人 VoiceOver/NVDA/Orca 听测、交互式真机与连续 8 小时专有 IDE soak | 本期自动化矩阵完成，人工/专有长时尾项下期 |
+
+Reliability Soak 已以 9 个至少 7,200 秒的正式 producer 和 2 个 aggregate、合计 **11/11 job 成功**收口。19 个 exact-head workflow 中 **18 个终态成功**；唯一非成功的 Live Provider workflow 已准确证明剩余条件是仓库外部 provider authority，而不是代码故障，也没有以 loopback 或 skip 冒充真实 provider。因此，第七十四节列出的本期仓库实现、可由 GitHub Actions 构造的矩阵、长时门、artifact 与 aggregate 回读已经完成；Q0、Q3 及表中明确的凭据、人工、专有宿主、分布式 authority、物理故障和真实 provider 尾项转入下期。原始 19 项口径仍为 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**；本期工程包完成不等于含外部尾项的原始路线整项关闭。
