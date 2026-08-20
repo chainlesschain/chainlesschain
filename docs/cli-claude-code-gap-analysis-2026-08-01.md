@@ -1922,3 +1922,19 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 | GitHub Actions 路由 | **已覆盖，远端 exact-SHA 待运行** | `CLI Strict Sandbox` 已监听并显式执行 `agent-core` Plugin bin 测试；仍以最终远端 SHA 的三平台终态为准 |
 
 该修复完成的是“对仓库目前不能安全承诺的平台路径明确拒绝”，不是实现 Windows/macOS broad shared-library closure。R4 的仓库内安全边界因此更清晰，但总体状态仍为 **部分完成 / NO-GO**；只有下期外部签名实机子门和仍未实现的能力各自取得严格证据后，才允许升级相应声明。
+
+### 20.7 R4 加载机制、可写来源、递归上限与动态代码终审矩阵
+
+第 19.2 节要求能力声明不能只停留在平台名称或单一布尔值。以下矩阵按实际加载机制复核当前源码常量、Broker admission 与 fail-closed 路由；它是本期 repository-local R4 切片的最终声明范围。
+
+| 平台/执行面 | 加载机制 | 可写来源口径 | 递归/规模口径 | 动态代码口径 | 本期结论 |
+| --- | --- | --- | --- | --- | --- |
+| Linux strict dynamic-native Plugin | kernel `PT_INTERP`、递归 `DT_NEEDED`，以及 libc `dlopen` 的 **pathname-visible regular-file** 输入 | 最终 bwrap synthetic root 与所有 descriptor-pinned mount 均只读；唯一用于遮蔽 supervisor staging 的 `/run` tmpfs 在 target 启动前 remount read-only；`/tmp`、`/var/tmp`、HOME、procfs、devfs 无可写挂载；seccomp 拒绝 SCM_RIGHTS、跨进程/handle 取 FD 与 nested user/mount namespace 引入新输入 | 启动 ELF 图最多 **256 files / 1024 edges / 512 MiB**；完整 runtime pathname load set 最多 **512 files / 1 GiB**，每个成员均前后 `fstat`、SHA-256、descriptor 与 policy digest 绑定 | 只承诺 kernel/libc pathname resolution；anonymous JIT、Wasm/V8 machine code 和恶意 custom in-process ELF loader 均不在闭包内 | **窄支持**；`sharedLibraryClosure=false` 继续保持，不能外推为任意机器码闭包 |
+| Linux materialized MCP npm capsule | single bundled CJS；静态 Node builtin allowlist；package `.node` 与 `process.dlopen` 禁止 | capsule/materialization byte identity 固定；package 不能携带 `.node`，运行前安装不可改写的 `process.dlopen` guard | native-addon dependency recursion 为 **0**；发现 `.node` 或运行期 addon 请求立即拒绝 | Node/V8 自身 JIT、Wasm 与 host runtime library 属于明确记录的 runtime TCB，不由本能力禁止 | **支持 `native-addon-loading` 拒绝保证**，但不宣称 OS shared-library closure |
+| Windows strict native Plugin | PE/DLL、delay-load、`LoadLibrary` | 不尝试通过通用 AppContainer 推导安全动态库来源 | **不解析、不接受**任何 native dependency graph | native entry 在任何 Broker/native spawn 前以 `ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED` 拒绝 | **fail closed / unsupported**；未来实现必须新增 Windows 专属原子加载合同与实机矩阵 |
+| Windows materialized MCP npm capsule | 与上面的 MCP bundled-CJS/native-addon policy 相同 | package native addon 无可接受可写来源 | native-addon recursion 为 **0** | Node runtime TCB 明示保留 | **支持 package addon 拒绝**；不等于 DLL broad closure |
+| macOS strict native Plugin | Mach-O、dyld、`@rpath`、`dlopen` | 未取得签名/root helper 的原子 snapshot/exec 合同时，不接受任意来源 | **不解析、不接受**任何 native dependency graph | 在 spawn 前使用与 Windows 相同的 typed rejection | **fail closed / unsupported**；签名 x64/arm64 root live 子门转下一期 |
+| macOS materialized MCP npm capsule | bundled-CJS/native-addon policy；候选 signed-root helper 仍受独立 release contract 约束 | 无有效 Developer ID/notary/root install contract 时公共 pathname exec 继续 `macos_atomic_runtime_exec_unavailable` | package native-addon recursion 为 **0** | Node runtime TCB 明示保留；unsigned contract 不计 signed live | **仓库合同已完成、生产实机门未完成** |
+| 所有平台的 anonymous executable memory/custom loader | JIT、Wasm runtime、手写 in-process loader 或非 pathname byte loader | 不能由只读 pathname mount 推导其代码来源闭包 | 不设置虚假的“无限递归已验证”声明 | policy 明确记录 `anonymousExecutableMemory=node-runtime-tcb`，general native 路径继续不支持该保证 | **明确排除 / NO-GO**；不得将 `native-addon-loading` 或 Linux pathname closure 改写为此能力 |
+
+据此，本期 R4 设计验收中的四个维度均有明确值：加载机制不是“任意 shared library”；可写来源在 Linux 支持路径上收敛为零，在不支持平台上不尝试推导；递归与字节数都有硬上限或为零；动态代码不被错误计入 pathname/native-addon 声明。代码继续以 typed rejection 和 `sharedLibraryClosure=false` 表达未关闭范围。
