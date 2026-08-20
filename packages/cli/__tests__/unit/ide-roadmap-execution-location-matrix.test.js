@@ -195,8 +195,16 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(linuxRunner).toContain(
       '"$run_root/target-node/bin/npm" install --omit=optional --ignore-scripts --no-package-lock --no-save',
     );
+    expect(linuxRunner).toContain(
+      'export PATH="$run_root/target-node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"',
+    );
+    expect(linuxRunner).toContain("UsePAM yes");
+    expect(linuxRunner).not.toContain("UsePAM no");
     expect(wslRunner).toContain(
       'Invoke-Matrix "campaign" @("--iterations", "99")',
+    );
+    expect(wslRunner).toContain(
+      "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     );
   });
 
