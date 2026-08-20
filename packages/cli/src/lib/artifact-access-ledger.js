@@ -3,11 +3,15 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
+<<<<<<< HEAD
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
   withTrustedFileParentSync,
 } from "./secure-file-identity.js";
+=======
+import { sameFileStatIdentity } from "./secure-file-identity.js";
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
 import { withFileLock } from "./with-file-lock.js";
 
 export const ARTIFACT_ACCESS_EVENT_SCHEMA = "cc-artifact-content-access/v1";
@@ -163,6 +167,7 @@ function ledgerPath(store) {
   return path.join(path.resolve(store.dir), "content-access.jsonl");
 }
 
+<<<<<<< HEAD
 function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
   return withTrustedFileParentSync(
     runtimeFs,
@@ -214,6 +219,52 @@ function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
     },
     { runtime },
   );
+=======
+function readLedgerBytes(filePath, runtimeFs) {
+  let before;
+  try {
+    before = runtimeFs.lstatSync(filePath, { bigint: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return Buffer.alloc(0);
+    throw error;
+  }
+  if (
+    before.isSymbolicLink() ||
+    !before.isFile() ||
+    Number(before.nlink) !== 1 ||
+    Number(before.size) > MAX_LEDGER_BYTES
+  ) {
+    throw new Error("artifact access ledger identity is invalid");
+  }
+  let descriptor = null;
+  try {
+    descriptor = runtimeFs.openSync(
+      filePath,
+      runtimeFs.constants.O_RDONLY |
+        Number(runtimeFs.constants.O_NOFOLLOW || 0),
+    );
+    const opened = runtimeFs.fstatSync(descriptor, { bigint: true });
+    if (
+      !opened.isFile() ||
+      Number(opened.nlink) !== 1 ||
+      !sameFileStatIdentity(before, opened)
+    ) {
+      throw new Error("artifact access ledger handle is invalid");
+    }
+    const bytes = runtimeFs.readFileSync(descriptor);
+    const after = runtimeFs.fstatSync(descriptor, { bigint: true });
+    if (
+      bytes.length > MAX_LEDGER_BYTES ||
+      Number(after.size) !== bytes.length ||
+      !sameFileStatIdentity(opened, after)
+    ) {
+      throw new Error("artifact access ledger changed while reading");
+    }
+    return bytes;
+  } finally {
+    if (descriptor !== null) runtimeFs.closeSync(descriptor);
+  }
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
 }
 
 function parseLedger(bytes) {
@@ -249,9 +300,13 @@ export function readArtifactAccessLedger(store, options = {}) {
     throw new TypeError("artifact access ledger requires an ArtifactStore");
   }
   const runtimeFs = options.fs || fs;
+<<<<<<< HEAD
   const events = parseLedger(
     readLedgerBytes(ledgerPath(store), runtimeFs, options.runtime),
   );
+=======
+  const events = parseLedger(readLedgerBytes(ledgerPath(store), runtimeFs));
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
   return Object.freeze({
     schema: ARTIFACT_ACCESS_LEDGER_SCHEMA,
     eventCount: events.length,
@@ -371,11 +426,15 @@ export function authorizeArtifactContentAccess(
     (options.withFileLock || withFileLock)(
       filePath,
       () => {
+<<<<<<< HEAD
         const ledgerBytes = readLedgerBytes(
           filePath,
           runtimeFs,
           options.runtime,
         );
+=======
+        const ledgerBytes = readLedgerBytes(filePath, runtimeFs);
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
         const events = parseLedger(ledgerBytes);
         const prior = events.find(
           (event) => event.accessId === request.accessId,

@@ -8,7 +8,11 @@
  *   cc artifacts show <id> [--json]        public metadata + integrity
  *   cc artifacts open <id>                 audit access, then print local path
  *   cc artifacts remove <id>               settle managed-copy removal
+<<<<<<< HEAD
  *   cc artifacts clean [--cleanup-id <id>] settle expired-artifact batch
+=======
+ *   cc artifacts clean [--json]            drop expired artifacts (TTL)
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
  */
 
 import chalk from "chalk";
@@ -30,10 +34,13 @@ import {
   settleArtifactDeletion,
 } from "../lib/artifact-deletion-ledger.js";
 import {
+<<<<<<< HEAD
   readArtifactCleanupLedger,
   settleArtifactCleanup,
 } from "../lib/artifact-cleanup-ledger.js";
 import {
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
   assessDeliveryEvidence,
   createDeliveryEvidenceRecord,
   DELIVERY_EVIDENCE_SCHEMA,

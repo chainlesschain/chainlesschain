@@ -3520,7 +3520,11 @@ P1-2、P1-4、P1-5 或 P2-4 的状态。
   `input_requested`，通过已有 effect settlement barrier 后才成为 `needs_input`。因此回答前不会为该阶段调用 task/provider，已经 terminal 的前序 effect
   保持可缓存重放。
 - **精确 revision/request 回答。** `cc cowork workflow runtime-reply <run-id> <request-id> <response-file>
+<<<<<<< HEAD
 --expected-revision <n>` 只读取 bounded、regular、single-link JSON 文件，接受精确 `{"answer": ...}`。自由文本和选项回答均有大小/数量限制并经过
+=======
+  --expected-revision <n>` 只读取 bounded、regular、single-link JSON 文件，接受精确 `{"answer": ...}`。自由文本和选项回答均有大小/数量限制并经过
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
   secret-shaped scan；option mismatch、stale revision、错误 request id、第二次回答与 ordinary resume bypass 全部拒绝。
 - **回答 lineage 与安全恢复。** accepted response 以 digest 绑定 request，写入 `input-answered` hash lineage 并把 run 恢复为 `ready`；再次用同一
   durable run id 执行时，前序 settled effect 不重放，回答以明确的 bound-input 段进入 gated stage message。request spec 漂移、state/response digest 篡改

@@ -367,7 +367,7 @@ describe("cc artifacts command runners (injected store)", () => {
       matchedEventCount: 2,
       filtered: true,
     });
-    logs = [];
+logs = [];
     expect(
       runArtifactsClean(
         { cleanupId: "command-cleanup", client: "cli", json: true },

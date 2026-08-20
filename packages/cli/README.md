@@ -467,6 +467,7 @@ it is local explicit-delete storage, not WORM retention. Result collection
 still does not provide a distributed writer fence, Cloud transport, or
 automatic source application.
 
+<<<<<<< HEAD
 ### Artifact access, deletion, and TTL cleanup settlement
 
 The repository candidate adds explicit, content-free audit and recovery for
@@ -502,6 +503,8 @@ tag predates these Artifact audit/settlement commands. Keep `0.165.2` for
 existing stable surfaces; use the new commands only after a subsequent exact-
 gated CLI release includes them.
 
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
 Durable budget recovery stores a canonical local receipt for each operator
 adjudication. Ordinary budget status shows only chain and coverage metadata;
 `budget receipts` is the explicit detailed reader for provider/model/token

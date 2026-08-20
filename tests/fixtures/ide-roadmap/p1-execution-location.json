@@ -1,7 +1,11 @@
 {
   "schemaVersion": 1,
   "case": "p1-execution-location",
+<<<<<<< HEAD
   "description": "A session handoff must bind source authority, transfer evidence, a configured target profile, target-side ambient facts, exact CLI and Git identity, canonical session-store continuity, lifecycle control, result return, audited official artifact-content authorization, serialized ArtifactStore index generations, recoverable explicit managed-copy deletion, and stable frozen-scope TTL cleanup settlement to the same exact release commit without credential disclosure or host-key bypass.",
+=======
+  "description": "A session handoff must bind source authority, transfer evidence, a configured target profile, target-side ambient facts, exact CLI and Git identity, canonical session-store continuity, lifecycle control, result return, audited official artifact-content authorization, serialized ArtifactStore index generations, and recoverable explicit managed-copy deletion settlement to the same exact release commit without credential disclosure or host-key bypass.",
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
   "inputs": {
     "requiredJourneys": [
       "preview-handoff",
@@ -23,7 +27,10 @@
       "authorize-and-audit-official-artifact-content-access",
       "serialize-artifact-index-generation-across-publish-remove-clean-and-access",
       "settle-and-recover-explicit-artifact-managed-copy-deletion",
+<<<<<<< HEAD
       "settle-and-recover-expired-artifact-cleanup-batch",
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
       "reserve-reviewed-result-apply",
       "apply-reviewed-diff-in-managed-transaction",
       "settle-result-apply-terminal-authority",
@@ -65,7 +72,10 @@
       "artifact-access-id-event-chain-and-current-byte-authority",
       "strict-artifact-index-generation-lock-and-atomic-rewrite",
       "deletion-id-prepared-terminal-events-and-index-generations",
+<<<<<<< HEAD
       "cleanup-id-cutoff-scope-and-per-item-deletion-settlements",
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
       "exact-source-git-root-and-head",
       "result-apply-reservation-event",
       "managed-workspace-transaction-checkpoint-digest",
@@ -150,6 +160,7 @@
       "artifact-deletion-ledger-truncated-tail",
       "artifact-deletion-managed-path-reappearance",
       "artifact-deletion-hardlink-external-retention",
+<<<<<<< HEAD
       "artifact-cleanup-partial-item-crash",
       "artifact-cleanup-terminal-append-response-loss",
       "artifact-cleanup-id-input-collision",
@@ -158,6 +169,8 @@
       "artifact-cleanup-overlapping-pending-batch",
       "artifact-cleanup-managed-path-reappearance",
       "artifact-cleanup-late-expiry-scope-drift",
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
       "result-apply-review-digest-drift",
       "result-apply-source-git-root-or-head-drift",
       "result-apply-without-session-reservation",
@@ -243,12 +256,15 @@
     "artifactDeletionLedgerTamperAcceptanceCount": 0,
     "artifactDeletionReceiptContentLeakCount": 0,
     "artifactDeletionManagedPathReappearanceAcceptanceCount": 0,
+<<<<<<< HEAD
     "unsettledExpiredArtifactCleanupCount": 0,
     "duplicateArtifactCleanupReplayCount": 0,
     "artifactCleanupScopeDriftAcceptanceCount": 0,
     "artifactCleanupLedgerTamperAcceptanceCount": 0,
     "artifactCleanupReceiptContentLeakCount": 0,
     "artifactCleanupManagedPathReappearanceAcceptanceCount": 0,
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
     "resultApplyReviewDigestMismatchAcceptanceCount": 0,
     "sourceGitDriftResultApplyCount": 0,
     "unreservedResultApplyCount": 0,

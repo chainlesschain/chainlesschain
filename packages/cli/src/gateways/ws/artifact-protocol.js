@@ -29,7 +29,10 @@ import { readFileSync, statSync } from "node:fs";
 import { publicArtifactMetadata } from "../../lib/artifact-store.js";
 import { authorizeArtifactContentAccess } from "../../lib/artifact-access-ledger.js";
 import { settleArtifactDeletion } from "../../lib/artifact-deletion-ledger.js";
+<<<<<<< HEAD
 import { settleArtifactCleanup } from "../../lib/artifact-cleanup-ledger.js";
+=======
+>>>>>>> feature/durable-workflow-checkpoint-adjudication
 
 /** Text preview cap (utf8 chars ≈ bytes for the common case). */
 export const TEXT_PREVIEW_CAP = 256 * 1024;
