@@ -4724,3 +4724,179 @@ retry/timeout、强制取消或完整 P1-1 已关闭。候选位于本地主分�
 P1-1 整项仍为**部分完成**，完整 exactly-once/durable resume/needs-input 能力不得据此标为完成。总计数保持
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 七十四、2026-08-20 未完成任务外部依赖与本期排期分析
+
+本节以第十七节确认的 **12/19 项尚未关闭、7/19 项完成**为计数基线，并纳入第十八至七十三节已经关闭的仓库内子门；
+历史章节不回写。本表中的“本期完成”是排期要求，不是完成证据。只有实现、定向回归、exact-head required checks 与对应
+readback 均满足原退出条件后，才允许把状态改为“完成”。当前未提交工作树中的候选改动也不计作已完成。
+
+“受外部条件限制”统一指 GitHub Actions 也无法独立提供的发布/签名凭据或组织审批、真实企业 provider/registry/WORM
+authority、物理设备/断电、多主机共享存储或交互式人工验收。GitHub-hosted/self-hosted runner、service container、可在 workflow
+中构造的 WSL/container/SSH、网络故障和长时矩阵均视为本期可用资源；不得仅因本机缺少对应 OS 或环境而延期。能在仓库内或
+exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读关闭的内容必须在本期完成，不因同一整项还含外部尾项而整体延期。
+
+| # | 路线项 | 最新未完成主边界 | 本期完成的仓库内范围 | 下期处理的外部条件范围 | 排期结论 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | S0-1：Plan、权限与运行时正确性 | 跨宿主 distributed revoke/人工裁决、真实物理断电与跨设备 fsync、强篡改者、iOS transient resume/生产 UI 及长期安全矩阵 | 完成 iOS transient-resume 状态/UI 与仓库内恢复测试；对已经 dispatch 且无法召回的 effect 统一投影 `needs-adjudication`；用 Actions 执行三 OS 进程终止/fsync fault 与 macOS iOS simulator 矩阵，并保证撤权、重启和恢复异常 fail closed | 外部 effect 的真实召回/人工裁决、任意断电、跨设备持久化、同 UID 强攻击者、iOS 真机及跨宿主长期对抗矩阵 | **拆分：iOS/裁决产品与 Actions 故障矩阵本期完成；物理与跨宿主证据下期** |
+| 2 | S0-2：Skill/MCP 信任边界 | 任意 native/shared-library 递归闭包、macOS 原子 `exec/open`、distributed authority、动态撤销/进程树与长期恶意矩阵 | 完成 native code/shared-library 闭包策略、materialization 到 broker/OS 的二次身份核验、动态撤销与进程树 fail-closed 测试，并取得当前 exact-head 的适用安全门 | 签名后的 macOS 原生执行、远端即时撤权及多平台长期对抗矩阵 | **拆分：策略与实现本期完成；签名平台/远端证据下期** |
+| 3 | S0-3：持久状态、语义压缩与 handoff | 同一 exact SHA 至少 100 次真实 provider 长会话、structured handoff/live trajectory 与全宿主长期一致性 | 用 Actions 执行 live-provider workflow、100-run 分片、structured handoff 验证、跨 OS artifact aggregate 与 exact-head 回读；skip、loopback 或旧 SHA 不计通过 | 仓库未配置且无法在本期取得的 provider 账号/凭据、费用额度，以及 Actions 无法覆盖的真实专有宿主 | **拆分：Actions 可执行轨迹本期完成；缺失 provider authority 才下期** |
+| 4 | Q0：可信入口与 Microsoft Marketplace | Microsoft Marketplace 发布 authority、exact publisher/version/digest 回读及 stock VS Code fresh-profile 升级/回滚 | 保持已验证 VSIX、发布合同与 fail-closed readback，不另造替代渠道 | `VSCE_PAT`/发布者权限、Marketplace 发布与公开传播、stock VS Code 干净环境旅程 | **整体下期：外部凭据与公开渠道阻塞** |
+| 5 | Q3：Evidence-Driven Delivery Loop | exact-head 生产 gates→preview→review→fix→rerun→PR/CI→受控 merge→外部 WORM archive | production adapter、runner 与退出合同已经关闭；本期不以 fake adapter、人工 PR 或普通 artifact 补证 | GitHub 仓库保护/审批权限、required checks、真实 PR/merge 和独立 WORM 写入及回读 | **整体下期：真实生产 authority 阻塞** |
+| 6 | Q4a：真实宿主验收基础设施 | WSL、devcontainer、Codespaces、JetBrains Gateway、更多 SSH/Remote、网络故障、失败 artifact 与可重放矩阵 | 用 Actions 完成 WSL、devcontainer、容器化 Remote-SSH、网络抖动/断线/重放、失败 artifact capture 及 trusted aggregate；GitHub-hosted runner 不足时可使用已授权 self-hosted runner | 需要独立账号/许可的 Codespaces、JetBrains Gateway 和仓库无权访问的真实远端基础设施 | **拆分：Actions 可构造矩阵本期完成；专有远端资源下期** |
+| 7 | Q4b：完整发布与用户旅程门 | Microsoft Marketplace、JetBrains/Desktop/native 签名公证、公开渠道升降级/回滚、重连、8 小时 IDE soak 与 nightly live-provider trajectory | 用 Actions 完成已公开 Open VSX/JetBrains 渠道的 fresh-profile 旅程、网络抖动/Bridge/CLI restart、可承载的 soak 分片和 nightly trajectory；全部 artifact 绑定 exact head | Microsoft Marketplace authority、作者/Developer ID/公证凭据、必须连续占用专有真机的 8 小时场景及缺失 provider authority | **拆分：公开渠道与 Actions 旅程本期完成；签名/专有长时资源下期** |
+| 8 | P1-1：Dynamic Workflow façade | 自动恢复 policy、outer-result/current-workspace 边界、Workbench/双 IDE 控制面与 plugin 分发；真实 provider receipt/native idempotency 和全宿主矩阵 | 完成启动/定时恢复扫描、风险分级、通知/审批、backoff、batch dry-run、restart/current restore 边界、Workbench/双 IDE UI 和可安装插件包；用 Actions 完成可构造的 Local/WSL/SSH/Container × 三 OS/双 IDE 重放矩阵 | provider 独立 receipt/计费回读、不可取消 provider 的物理中断、WORM，以及 Cloud/专有宿主或缺失 provider authority 的矩阵 | **拆分：产品、恢复与 Actions 宿主矩阵本期完成；provider/专有宿主下期** |
+| 9 | P1-2：一等 Execution Location | caller-driven recovery、orphan/GC/管理员裁决和完整产品审阅面；分布式 store、secure erase/off-box audit 与真实位置矩阵 | 完成启动 reconcile、orphan inventory/GC、超时告警、管理员 adjudication、IDE/Desktop 创建与 returned-result 产品面；用 Actions 完成 WSL/container/SSH launch、resume、reconnect、双 IDE 和网络故障矩阵 | Cloud/专有远端、多主机 shared/NFS/object-store lease/fencing、非协作 writer、组织 WORM/retention 与物理擦除 | **拆分：自动恢复、产品面与 Actions 位置矩阵本期完成；专有位置/分布式 authority 下期** |
+| 10 | P1-4：Context 与 Permission Center | 长期并发、真实宿主、故障注入与跨入口矩阵；证明 secret/完整命令不泄露且外部副作用不误报可回滚 | 用 Actions 执行三 OS 可用宿主的并发、重启、网络/进程故障和跨入口矩阵，扫描 artifact/log 是否泄露 secret/完整命令，并验证 checkpoint 不扩大恢复声明 | 需要真实企业凭据/副作用系统或专有远端宿主的长期验证 | **拆分：Actions 故障与泄漏矩阵本期完成；企业系统下期** |
+| 11 | P1-5：Marketplace 发现与组织治理 | 物理断电/多主机持久化、干净企业 registry/代理/宿主、独立 trust distribution/transparency log、key rotation 与每格 100 次供应链矩阵 | 在 Actions 中以 TLS registry、proxy/PAC/custom CA 与 service container 完成三 OS × 四 transport 的 12-cell、每格 100 次故障矩阵，并回读 cache、transaction、rollback 与脱敏 artifact | 真实企业 registry/代理、独立 trust distribution/transparency log、组织 key rotation、物理断电/共享存储和真实事故演练 | **拆分：可重复供应链矩阵本期完成；企业 authority/物理故障下期** |
+| 12 | P2-4：可访问性与性能 | NVDA/VoiceOver/Orca 键盘与语音全旅程，真实 diff/log/128-session 的延迟、内存、句柄和 8 小时稳定性 | 用 Actions 完成键盘路径、accessibility tree、焦点恢复、2,000-message、16 MiB diff、64 MiB log、128-session 的 P50/P95/P99、RSS/heap、FD/handle 与 orphan 测量；可自动化的 NVDA/Orca cell 也在本期 | 必须人工听测的 VoiceOver/NVDA/Orca 语音质量、交互式真机以及 Actions 无法连续承载的 8 小时宿主 | **拆分：自动化可访问性/性能本期完成；人工辅助技术与专有长时宿主下期** |
+
+### 排期汇总
+
+| 排期类别 | 数量 | 路线项 | 本期/下期交付口径 |
+| --- | ---: | --- | --- |
+| 本期有仓库内或 GitHub Actions 工作 | 10 | S0-1、S0-2、S0-3、Q4a、Q4b、P1-1、P1-2、P1-4、P1-5、P2-4 | 本期完成表中列出的实现、故障注入、Actions 矩阵、artifact aggregate 和 exact-head 回读；不得因本机环境不足而延期 |
+| 当前剩余全部依赖 Actions 外部 authority | 2 | Q0、Q3 | 下期取得 Marketplace 发布 authority，以及真实受保护仓库/独立 WORM authority；本期不以模拟结果替代 |
+| 仍未关闭的原始路线项 | 12 | 上述全部 | 本期工程包完成后，如外部退出条件尚未满足，整项仍保持“部分完成”，总发布结论仍为 **NO-GO** |
+
+### 本期执行顺序与验收
+
+| 顺序 | 本期工作包 | 最低验收条件 |
+| ---: | --- | --- |
+| 1 | S0-1、S0-2 安全与正确性 | authority-bearing error 全部 fail closed；进程崩溃/重启、身份漂移、撤销竞态和 native-code 绕过有负向回归；相关 CLI/宿主测试通过 |
+| 2 | S0-3、Q4a、Q4b Actions 验收 | 所有 required cell 在同一 exact head 终态成功；producer、aggregate、candidate bytes 与公开 readback 一致；skip/cancel/旧 SHA 不计通过 |
+| 3 | P1-1 durable workflow 产品与恢复面 | 自动扫描/人工裁决边界明确，revision/digest/replay 约束不放宽；Workbench 与双 IDE 只消费同一 canonical 状态和控制 authority |
+| 4 | P1-2 execution-location 恢复与产品面 | orphan/cleanup 可发现、可审阅、可重试且不重复删除/应用；viewer/download/delete/access history 绑定 exact session/review/result lineage |
+| 5 | P1-4、P1-5、P2-4 Actions 矩阵 | 三 OS/transport/IDE 的合同 cell、次数、时长和 measurement 齐全；失败 artifact 仍上传且不泄露 secret；aggregate 缺一项即 fail closed |
+| 6 | 本期统一收口 | 更新 roadmap manifest/fixture 与引用测试，运行格式、lint、聚焦回归及适用的三平台 required checks；仅在 exact-head evidence 回读后更新完成状态 |
+
+截至本节写入时，当前工作树已有 MCP/native execution、Artifact access/deletion/cleanup 与 VS Code approval/relay 相关的未提交候选，
+分别与 S0-2、P1-2、S0-1 的本期包存在重叠。应先复核并复用这些改动，避免平行实现；在提交、测试和 exact-head 证据完成前，
+它们仍只是在途候选，不改变 **12/19 尚未关闭、7/19 完成**及整体 **NO-GO** 结论。
+
+## 七十五、2026-08-20 P1-1 Dynamic Workflow Workbench 产品子门执行记录
+
+本节记录第七十四节“本期执行顺序”第 3 项的产品控制面实现，不把它外推为 P1-1 整项完成，也不替代 exact-head GitHub Actions 证据。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| canonical 状态发现 | `cc session projection --cwd <project> --json` 现在以有界目录扫描读取 `.chainlesschain/cowork/workflow-runs`；目录符号链接、超量目录、非单链接/损坏/身份漂移状态继续 fail closed，单个坏状态只产生 content-free 计数，不反射路径或内容 | 仓库内实现与负向单测完成 |
+| Workbench 投影 | session projection 升级为 `chainlesschain.session-projection/v2`，同时保留双 IDE 对 v1 的只读兼容；dynamic workflow row 只暴露 phase、agent/effect 计数、token/USD/time budget readback、artifact/checkpoint 计数、最近 step/tool/result digest 状态和 recovery 计数，不暴露 prompt、tool argv、provider output、result body 或 checkpoint 路径 | canonical、content-free 产品合同完成 |
+| revision-gated 控制 | CLI 权威投影只在当前状态允许时提供固定 `peek/pause/resume/stop/recover` argv，并同时绑定 item digest、runtime revision 与显式 project cwd；VS Code 与 JetBrains 均在重新拉取 canonical projection、核对 item revision 后执行，dynamic workflow 写操作增加显式确认，IDE 不直接读写 runtime state | 双 IDE 产品接线完成 |
+| runtime 可观测性 | 新建 run 持久化 definition-bound execution budget；Workbench 回读预算上限、已观测 token/USD/time、within/unknown/exceeded、phase/transition、任务结算及最近 tool/result 状态；旧 run 没有预算字段时兼容读取但明确投影为 unknown | 预算与最近活动回读完成 |
+| 本地回归 | Dynamic runtime、session projection、VS Code Workbench 三个聚焦文件 **89/89**；Commander runtime command **6/6**；真实 `cc session projection --json --cwd ...` 输出 v2 且 dynamic source 状态可回读；任务文件 ESLint **0 error**（保留 4 个既有 warning） | Node/CLI 本地门通过 |
+| JetBrains 验证边界 | Java parser、Swing 按钮、v1/v2 兼容与 dynamic workflow 测试已经写入；当前 Windows 机器只有 Java 8，Gradle 在测试编译前因缺少项目要求的 JDK 21 停止 | 由 exact-head GitHub Actions 的 JDK 21 IDE matrix 验证；本地环境不足不延期实现，也不冒充通过 |
+
+本节关闭的是 **P1-1 的 canonical Workbench/双 IDE 产品消费子门**。启动/定时自动恢复策略、风险分级通知、backoff、batch dry-run、outer-result/current-workspace 恢复边界以及 Local/WSL/SSH/Container × 三 OS/双 IDE 的完整重放矩阵仍需按第七十四节在本期继续完成；provider 独立 receipt/native idempotency、WORM 与专有宿主 authority 仍按表列入下期。因此总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十六、2026-08-20 P1-1 自动恢复 policy 与 batch dry-run 子门执行记录
+
+本节继续第七十五节，关闭“自动发现与策略建议”而不是放宽外部 effect 的 exactly-once 权限边界。自动扫描不等于自动重放；任何 durable state 写操作仍须经人工确认和 CLI revision CAS。
+
+- **启动/定时扫描：** VS Code 与 JetBrains Sessions Workbench 在首次打开和可见期间每 15 秒重新调用同一 `session projection`；CLI 每次重新安全读取 run state 和 terminal checkpoint store，不复用 IDE 推断或旧按钮。
+- **canonical 风险分级：** `cc-dynamic-workflow-recovery-policy/v1` 区分 `terminal_checkpoint_recovery`、`input_required`、`operator_adjudication_required`、`settlement_barrier_pending`、`restart_ready` 与 `none`，输出 severity、推荐动作、是否需审批、是否具备仓库内自动执行条件，并固定 `unattendedMutationAllowed=false`。terminal child checkpoint recovery 不会被外推为 outer provider/result 已结算。
+- **通知与 backoff：** 每个通知键绑定 `runId + runtime revision + stateDigest + risk + action`；状态 digest 变化即重置。canonical backoff 为 15 秒、60 秒、5 分钟、15 分钟；VS Code 以该序列去重系统通知，JetBrains 在定时刷新状态行中显示需关注计数，二者都明确没有执行无人值守 mutation。
+- **批次 dry-run：** 新增 `cc cowork workflow runtime-recovery-plan --cwd <project> --json`，输出 content-free `cc-dynamic-workflow-recovery-plan/v1`、project digest、稳定 plan digest、全 run revision/state digest、风险、推荐动作与汇总计数。VS Code 和 JetBrains Workbench 都有 Recovery dry-run 入口；计划本身只读，不是授权 token，也不能绕过逐 run 的 `recover/resume/reply/reconcile` 审批。
+- **回归：** dynamic runtime、session projection、VS Code Workbench 与 production Commander command 四个聚焦文件 **95/95**；VS Code Workbench host/delivery 回归 **6/6**；任务文件 ESLint **0 error**（4 个既有 warning）。真实 CLI dry-run 在当前项目输出 v1 计划和稳定 digest。JetBrains JDK 21 测试仍交由 exact-head Actions，当前机器只有 Java 8，不能据此记为本地通过。
+
+本节关闭 P1-1 的 **启动/周期安全扫描、风险分级、通知退避和双 IDE batch dry-run 子门**。仍未关闭的是 outer-result/current-workspace restore 的权威边界、可安装包的 exact-head 双 IDE readback，以及 Local/WSL/SSH/Container × 三 OS/双 IDE 重放矩阵；provider 独立 receipt/native idempotency、WORM 和专有宿主 authority 继续列入下期。因此 P1-1 整项仍为**部分完成**，总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十七、2026-08-20 P1-2 Artifact 启动恢复与双 IDE 审阅子门执行记录
+
+本节继续第七十三节的 caller-driven cleanup settlement，补齐启动发现、超时风险和显式管理员裁决；不把本机 managed-copy 删除外推为 secure erase、分布式 store authority 或完整 Execution Location 产品矩阵。
+
+- **只读启动 reconcile：** 新 `cc artifacts recovery-plan --json` 对 verified access/deletion/cleanup/orphan-GC 账本、当前 index generation 和 `files/` 目录执行有界盘点。它区分 pending cleanup、pending deletion、pending orphan GC、未索引 managed copy、缺失 managed copy、非法 index row 与不安全目录项；超时阈值默认 15 分钟，输出 content-free risk、稳定 item/plan digest，并固定 `unattendedMutationAllowed=false`。目录超过 10,000 项、symlink/hardlink、超量文件、文件身份漂移或账本 tamper/truncated tail 均 fail closed。
+- **原 authority 重试与管理员裁决：** `cc artifacts recovery-adjudicate <item> --plan-digest ... --decision ... --approve --json` 在重新扫描后只允许重放 prepared event 已冻结的原 cleanup/deletion stable id、client、reason 和 scope；不会选择新过期项。真正未索引的 managed copy 使用独立 `cc-artifact-orphan-gc-settlement/v1` prepared/terminal 哈希链，绑定文件 basename、打开句柄身份、size/content digest、plan/item/adjudication id；删除后响应丢失可返回同一 terminal，文件重新被 index 引用或字节漂移时拒绝。
+- **canonical 产品投影：** 新 `cc artifacts workbench --json` 统一返回 `cc-artifact-workbench/v1`：公开 artifact metadata、returned-result 的 exact session/request/review/item/source/record lineage、每项 access 计数/最新事件、最近 200 个 content-free access/deletion/cleanup/orphan-GC 事件以及 recovery plan。投影不含正文、base64、source/stored absolute path 或 provider output。
+- **双 IDE 审阅面：** VS Code Artifacts drawer 改为启动和可见期间每 15 秒读取 canonical workbench，展示恢复风险、verified history 与 returned-result lineage；恢复按钮只使用当前投影中的推荐 decision 和 plan digest，弹出 modal 后才生成 stable adjudication id。JetBrains Artifacts dialog 同样只解析 v1 canonical 投影，显示 recovery/history 汇总与 returned-result request/review/record，并通过相同 argv 显式确认首个待裁决项；两个 IDE 都不直接扫描或删除 store。
+- **仓库内回归：** recovery/workbench、ArtifactStore 三账本与 VS Code drawer 七个聚焦文件为 **75/75**；其中新增 recovery **7/7**、workbench **2/2**，覆盖 prepared deletion、partial cleanup、orphan GC、terminal response loss、plan/file drift、tamper、显式 `--approve`、正文/绝对路径零泄漏和返回结果 lineage。真实 CLI smoke 已输出稳定空计划、v1 workbench 与新命令帮助。任务 JS ESLint 为 **0 error**；JetBrains Java/JDK 21 编译仍由 exact-head Actions 验证，本机 Java 8 不冒充通过。
+
+本节关闭 P1-2 的 **Artifact 启动发现、prepared-only 超时告警、stable retry、orphan inventory/显式 GC、管理员裁决与双 IDE returned-result/history 审阅子门**。仍未关闭的是 Desktop 创建/审阅入口、WSL/container/SSH 的 launch/resume/reconnect/网络故障矩阵及同一 exact-head 双 IDE产品包回读；Cloud/专有远端、shared/NFS/object-store fencing、组织 WORM/retention 和物理擦除继续列入下期。因此 P1-2 整项仍为**部分完成**，总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十八、2026-08-20 P1-2 Desktop 返回产物工作台子门执行记录
+
+本节继续第七十七节，把同一 `cc-artifact-workbench/v1` 权威投影接入 Desktop 产品入口；Desktop 不直接读取 ArtifactStore、账本或绝对路径，也不在 renderer 内执行文件系统 mutation。本节不替代 WSL/container/SSH 的 exact-head Actions 矩阵或正式安装包回读。
+
+| 子门                     | 本次实现与证据                                                                                                                                                                                                                                                                                                           | 当前结论                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Desktop canonical reader | 新 `ArtifactWorkbenchClient` 只通过已安装的 Desktop process broker，以 `process.execPath + pinned CLI entry + argv array + shell=false` 调用 `artifacts workbench/access/remove/recovery-adjudicate`；stdout/stderr 各限制 4 MiB、20 秒超时、非零退出/非法 JSON/错误 schema 全部 fail closed                             | 主进程不另造 ArtifactStore reader 或第二份恢复规则                         |
+| IPC 与路径边界           | preload 新增五个窄 IPC；renderer 只能取得 canonical workbench 和 content-free receipt。打开/下载先由 CLI 写入 `desktop` access authority，绝对 managed path 只在 main process 内交给 `shell.openPath` 或 `copyFile`；错误响应、删除与恢复 receipt 均不回传 stored/source path、文件正文或底层 ledger 对象                | 路径与字节未跨 renderer 边界，访问历史可审计                               |
+| 幂等删除与恢复           | Desktop deletion id 由 exact artifact id domain-separated 派生；recovery adjudication id 由 exact item/plan/decision 派生。IPC 响应丢失后的同输入重试复用同一 stable id，底层 prepared/terminal settlement 返回原 terminal；plan、item、字节或 index generation 漂移继续拒绝                                             | 不因重复点击或响应丢失重复删除/重复应用                                    |
+| 产品审阅面               | AI Chat 的 Agent toolbar 新增“返回产物”抽屉；打开时及可见期间每 15 秒刷新，显示公开 metadata、session/request/review/item/source/record lineage、访问计数、最近 200 条 verified activity 和恢复风险。删除及每个推荐 recovery decision 均需显式 modal，modal 捕获被审阅的 plan digest，后台刷新不会替换确认中的 authority | Desktop viewer/download/delete/access-history/recovery 产品入口完成        |
+| 账本兼容与恢复回执       | access/deletion ledger 显式接受 `desktop` client；orphan-GC ledger readback 使用 trusted parent、单链接/身份/严格 UTF-8 校验；delete-orphan 首次结算和 terminal replay 都返回统一 `cc-artifact-recovery-adjudication/v1` 顶层绑定                                                                                        | Desktop 与双 IDE 共用同一 durable settlement 语义                          |
+| 仓库内验证               | Desktop client、IPC、renderer shaping 三文件 **49/49**；Artifact recovery/workbench/access/deletion 四文件 **27/27**，合计 **76/76**。Desktop 专用 ESLint `--max-warnings 0`、`vue-tsc --noEmit` 与 `build:main` 通过                                                                                                    | Node/Vue/主进程本地门通过                                                  |
+| 构建环境边界             | 本机 `build:renderer` 在载入未完整安装的既有依赖时停止：`@vitejs/plugin-vue` 解析为截断模块，`confbox/dist/json5.mjs` 缺失；错误发生在 Vite config dependency import，未进入本次 Vue 编译。类型检查已经通过，renderer/package build 仍必须由干净依赖的 exact-head Actions 复验                                           | 不把损坏的本机 `node_modules` 记为产品失败，也不冒充 renderer build 已通过 |
+
+本节关闭 P1-2 的 **Desktop returned-result 创建后审阅、打开、下载、删除、访问历史和显式恢复裁决入口**。P1-2 本期尚需完成 WSL/container/SSH launch、resume、reconnect、网络故障、双 IDE 及 Desktop/IDE 安装包的 exact-head GitHub Actions 回读；Cloud/专有远端、shared/NFS/object-store fencing、组织 WORM/retention 与物理擦除仍按第七十四节列入下期。因此 P1-2 整项继续为**部分完成**，总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十九、2026-08-20 Q4a/P1-2 strict-SSH host recovery matrix 子门执行记录
+
+本节把 `.github/workflows/ide-roadmap-host-recovery.yml` 从 WSL/devcontainer 两格扩展为 WSL/devcontainer/SSH 三格；它记录的是可由 GitHub Actions 在本期执行的 workflow 与 fail-closed aggregate 合同，尚未把未推送提交或本地测试冒充 exact-head Actions 成功。
+
+- **真实 SSH producer：** Ubuntu runner 启动真实 `sshd`，生成本次 run 专用 Ed25519 client key，通过 `ssh-keyscan` 建立本次 endpoint 的 known-hosts 文件，并固定 `BatchMode=yes`、`IdentitiesOnly=yes`、`StrictHostKeyChecking=yes` 和显式 `UserKnownHostsFile`。生产 recovery harness 必须在 sshd 创建的会话内观察到 `SSH_CONNECTION` 与 `CC_IDE_ROADMAP_TRANSPORT=ssh`；仅在 runner 本地直接执行或关闭 host-key 校验不能形成该 cell。
+- **同一故障轨迹：** SSH cell 与 genuine WSL、declared devcontainer 使用同一受测 harness，依次证明未授权请求拒绝、首次 durable checkpoint、客户端连接中断后 Bridge 仍可服务、Bridge 进程强杀、旧 listener 不可达、Bridge restart 和第二 checkpoint 无丢失/重复。SSH connection tuple 只作为 SHA-256 投影，不把地址/端口原文写入 evidence。
+- **三格 trusted aggregate：** aggregate 现在显式 `needs` 三个 producer，任一 skipped/cancelled/failed 都不能执行成功聚合；它从同一 run 下载三个 artifact，重算 manifest 内每个文件的 byte digest/size，核对 exact release commit、workflow provenance、transport 环境和全部零失败计数，输出 `requiredCells=[wsl,devcontainer,ssh]`。
+- **仓库内验证：** workflow contract、aggregate fail-closed contract 和本机真实 Bridge disconnect/kill/restart 三项测试 **3/3**；任务 CJS 严格 ESLint 为 0 warning，workflow YAML 可解析且 Prettier 无漂移。
+
+本节关闭 Q4a/P1-2 的 **strict-SSH Bridge 断线与进程重启 producer/aggregate 实现子门**。提交只有在到达 GitHub 并由该 workflow 对同一 exact head 生成三格成功 artifact 后，才可记录为运行证据；它也不等同于 Execution Location CLI 的完整 handoff/result-return 100-run 矩阵或双 IDE 安装包回读。P1-2 与 Q4a/Q4b 因此继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十、2026-08-20 P1-2 Execution Location 真实目标与返回结果矩阵实现记录
+
+本节继续第七十九节，把 Bridge 恢复和 Execution Location CLI 分开验收；前者证明 IDE transport 可恢复，后者必须证明 session authority、handoff、目标端 resume 和返回结果审阅在真实位置中形成闭环。本节记录仓库实现与本机缩小轨迹，不把尚未产生的 exact-head Actions artifact 记为通过。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 真实目标命令 | 新 workflow `.github/workflows/ide-roadmap-execution-location.yml` 分别建立 WSL、独立 Ubuntu Container 和 strict SSH 三个 target；每个 target 使用独立 clean checkout、Linux Node 22.12.0、独立 `CHAINLESSCHAIN_HOME`/machine anchor 和固定无 shell 插值的 CLI wrapper。源端使用生产 `projectExecutionLocationHandoff`、`projectExecutionLocationTargetAttestation`、`resumeSessionAtExecutionLocation`、`collectSessionExecutionLocationResult`、review/import；目标端实际执行 `cc session location current/prepare/show/result-pack` 与 `cc session resume` | 不是 loopback adapter 或只测 argv 的 mock；目标 session store、Git/data boundary 和 target process 均独立 |
+| 真实时间漂移修复 | 本机 WSL 首次实跑发现 source `attest` 与 target `prepare` 的 `observedAt` 必然不同，旧协议却要求二者 attestation digest 相等，导致真实 replica 稳定失败。修复后 source 仍锁定不含时间的 exact target-facts digest；target prepare 以当次 fresh binding 生成新 attestation，source 重算 receipt 后立即读取 canonical target projection，核对 session/profile/evidence/facts/handoff/target head 全链；只删除不可能满足的跨进程时间摘要相等条件 | 真实位置可运行，同时没有放宽 commit、profile、evidence、facts、session predecessor 或 canonical readback |
+| 100-run 与故障轨迹 | 每格由 1 条 reconnect 轨迹和 99 条普通轨迹组成；每条都完成 launch/handoff/resume/result collect/review/ArtifactStore import。reconnect 轨迹在首次 resume 后使 target/transport 不可用，要求 probe 非零且 content-free，再恢复同一 target，以同一 handoff 重试并证明 `handoffAppended=false`、不重复 settlement；Container 使用 stop/start，SSH 使用 sshd stop/start，WSL 使用 distro terminate/restart 加固定 target executable outage。已有 `ide-roadmap-host-recovery.yml` 另行覆盖三种环境的 Bridge disconnect/kill/restart | 每格 100、总计 300 的合同实现完成；网络/目标不可用不能静默回退 Local |
+| evidence 与 aggregate | producer 只上传 content-free digest/count/provenance；failure 也先写 bootstrap 或 diagnostic digest。manifest 固定文件全集并记录每个文件 byte length/SHA-256；`if: always()` aggregate 先显式拒绝 skipped/cancelled/failed producer，再下载三格、逐文件重算、核对 exact commit/workflow/job/artifact provenance，并要求 300 条轨迹、301 次 resume、3 次 fail-closed outage、0 secret transfer/silent fallback/duplicate handoff/duplicate settlement/orphan | 缺任一 producer、旧 SHA、改写 artifact 或部分次数均不能聚合成功 |
+| 仓库与本机验证 | 新矩阵合同 **4/4**；Execution Location target/Commander/replica 相关聚焦回归合计 **43/43**（并行负载下一个既有 5 秒用例曾超时，单文件 30 秒预算复跑 **11/11**）；任务 JS ESLint `--max-warnings 0`、YAML、Bash 与 PowerShell parser 全部通过。本机无 Docker daemon，但真实 WSL 1 已完成 1 条 reconnect 轨迹和 1 条普通 campaign：实际 CLI `prepare/show/resume/result-pack`、target outage 拒绝、恢复重试、collect/review/import 全部成功且未调用 provider | 本机证据验证了真实跨进程协议修复；Container/SSH 及 100-run 数量仍必须由干净 exact-head Actions 产生运行证据 |
+
+本节关闭 P1-2 的 **真实 WSL/Container/SSH launch/resume/handoff/result-return 300-run workflow、故障注入、content-free producer 与 fail-closed aggregate 实现子门**，并关闭真实运行发现的跨进程 attestation 时间漂移缺陷。它尚不替代该 workflow 在提交后对同一 exact head 的三格成功 readback，也不替代双 IDE/Desktop 可安装产品包回读；Cloud/专有远端、shared/NFS/object-store fencing、组织 WORM/retention 与物理擦除仍按第七十四节列入下期。因此 P1-2 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十一、2026-08-20 P1-4 Context/Permission 三宿主并发与跨入口矩阵实现记录
+
+本节执行第七十四节列入本期的 P1-4 剩余矩阵。它把既有 Context Center、scoped permission authority 与 Permission/Side-effect Center 的生产实现接入可复核的三宿主 Actions，不把 synthetic fixture、未提交工作树或尚未运行的 workflow 记为发布通过。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 三宿主并发 authority | `.github/workflows/ide-roadmap-context-permission.yml` 在 Ubuntu 24.04、macOS 15、Windows 2025 上分别以 20 个真实 Node 子进程执行 100 次 scoped rule add，再以 20 个子进程执行 100 次 CAS revoke；要求 generation 精确为 200、100 条规则全部撤销、无 lost update/duplicate id/stale revision acceptance。随后加入 active allow 与 managed deny，要求最终 generation 201 且 allow 被 `suppressed-by-managed-policy` | 每宿主 200 次并发 mutation 的 workflow 与 fail-closed 断言已实现；不是单进程伪并发 |
+| 故障与恢复诚实性 | 每格复制后破坏 canonical authority JSON，要求生产 store 拒绝；启动独立 sleeper 后真实终止进程，要求 authority digest 不漂移且无孤儿。每个投影都同时携带 file、network、process 与 credential 标识，本地 checkpoint 只允许覆盖 file，network/process/credential 必须保持 uncovered/partial | 损坏 authority、进程终止和外部副作用 rollback overclaim 均有明确零容忍计数 |
+| 七入口矩阵 | REPL、headless、stream、WebSocket、VS Code、JetBrains、Desktop 各执行 100 次独立 permission projection，总计每宿主 700 次；同一批 64 个 context candidates 正序/逆序必须生成完全相同的 `priority-stable-v1` authority，4096-token 上限必须被准确保留且实际分配不得越界 | 三宿主合计 2100 个跨入口 projection 的合同已实现；七入口共同消费同一生产投影而非各自复制规则 |
+| 凭据与完整命令防泄露 | 每次注入唯一 token、带 credential URL、环境变量和完整 `npm publish` 命令，生产 resource collector/side-effect center 输出序列化后不得包含 secret、`--token` 或完整命令尾标；producer/failure artifact 只保留 digest、计数、host/provenance 和 content-free diagnostic digest | verifier 要求 credential/full-command leak、managed deny relaxation、checkpoint overclaim、corrupt acceptance、orphan process 全为 0 |
+| exact-head aggregate | 每格 manifest 固定七份证据文件的 byte length/SHA-256；aggregate 在 `if: always()` 下先拒绝任一 skipped/cancelled/failed producer，再逐文件重算，绑定 exact commit、workflow/job/run/artifact provenance、三种 OS、600 次 mutation 与 2100 次 projection | 缺格、旧 SHA、artifact 被改写或次数不足均不能聚合成功 |
+| 仓库内验证 | 本机 Windows 实际 campaign **1/1** 通过，真实完成 200 次并发 mutation、1 次 corrupt-state rejection、1 次 process termination 与 700 次投影；矩阵合同 **4/4**，scoped permission、side-effect、VS Code Context/Policy 回归 **51/51**；任务 JS ESLint `--max-warnings 0` 与 workflow YAML 解析通过。Actions 使用 Node 22.12.0、JDK 21，并在每个 OS 追加 JetBrains `ContextCenterTest`/`PolicyViewerTest` | 仓库内实现与 Windows 实跑通过；三宿主 exact-head Actions artifact 尚待提交后运行和回读 |
+
+本节关闭 P1-4 的 **三宿主并发/进程故障/跨七入口/凭据与完整命令防泄露/本地 checkpoint 不误报外部回滚能力的自动化矩阵实现子门**。因当前尚无该候选 exact head 的三宿主成功 artifact，且长期真实 IDE 人工交互、组织策略环境与更长 soak 仍未形成外部证据，P1-4 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十二、2026-08-20 P1-5 Marketplace 三宿主十二格供应链矩阵实现记录
+
+本节执行第七十四节列入本期的 P1-5 自动化矩阵。它复用生产 Marketplace network、remote artifact、immutable cache、publisher trust 与 plugin lifecycle 模块，在 GitHub Actions 可用的真实 OS runner 内建立受控私有服务；受控 loopback 私有 CA 不外推为第三方组织 registry、生产证书或跨主机共享存储证据。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 3 OS × 4 环境 | `.github/workflows/ide-roadmap-marketplace-supply-chain.yml` 明列 Ubuntu 24.04、macOS 15、Windows 2025 × `private-registry-tls`、`explicit-proxy`、`pac`、`air-gapped-cache` 共 12 格。每格运行 100 次独立 journey；所有在线格均启动真实私有 CA HTTPS registry、bearer auth 和按需 CONNECT proxy，PAC 在 bounded worker 中解析；air-gapped 格只在线播种一次，随后关闭 registry/proxy 再回放 | 不是以单一 Linux/mock fetch 代替平台与网络差异；每格 minimum 100 写入 verifier 硬门 |
+| 五层 immutable cache | registry document、detached signature、SPKI public-key document、canonical payload SBOM 与 source-package 分别通过生产缓存写入和逐次 digest/authority 回读。每轮离线回读前后比较服务器请求计数；每格要求 500 次缓存 readback、100 次 source cache readback、100 次 offline replay、0 offline network request | air-gapped/cache miss、歧义历史、digest 漂移和破坏缓存不能激活候选 |
+| trust 与生命周期 | 每格使用真实 Ed25519 manifest signature，100 次 install、100 次 upgrade、100 次 transactional rollback；两次安装均要求签名/SPKI/document digest 验证，rollback 必须精确恢复 v1 且无 cleanup debt。组织 trust root 绑定 publisher、organization、plugin、registry origin 与 signing key；同一 key 进入 revocation policy 后必须在 authority 构建时拒绝 | 每格 300 个生命周期操作、200 次 signed activation；publisher revocation 与 transaction recovery 由生产入口执行 |
+| 24 类故障 | 每格逐项执行 fixture 中 24 类故障：registry 401/403/5xx/timeout/document drift、持续 proxy disconnect、PAC timeout、CA mismatch、redirect origin change、signature/SPKI/SBOM/semantic payload mismatch、三种 cache corruption、dependency missing/version/cycle、same-version source conflict、未批准 source switch、publisher key revoke、activation crash、rollback crash。最后两项真实启动并终止 child process，再以 `recoverPluginTransaction(..., rollback)` 回读 v1 | 每格 24 次、十二格合计 288 次 rejection；任一 unexpected acceptance、recovery failure 或 failure artifact 缺失均失败闭合 |
+| credential 与 evidence | bearer token、proxy password、私钥和 query secret 只存在于 runner 临时状态；producer 只上传 exact commit、OS/environment、计数、摘要和 provenance，failure 也只写 diagnostic digest。manifest 固定八份 evidence 文件的 byte length/SHA-256 | aggregate 重新计算每个文件并要求所有 leak/unauthorized fallback/unverified or stale activation/dependency conflict/source-switch/revoked-key/offline-network/rollback-failure 计数为 0 |
+| exact-head aggregate | `if: always()` aggregate 先显式拒绝 skipped/cancelled/failed matrix，再下载 12 个 artifact，绑定 workflow/job/run/artifact provenance、三种 OS、四环境、1200 次 journey、3600 个生命周期操作、6000 次缓存回读与 288 次故障拒绝 | 缺一格、旧提交、次数不足或 producer artifact 被改写均不能生成可信 aggregate |
+| 仓库与本机验证 | 四环境 Windows 缩小 campaign **7/7**，每种均实际跑完 24 类故障和两轮完整生命周期；另以 private TLS 完成一格 **100/100**，对应 100 install + 100 upgrade + 100 rollback + 500 cache readback。Marketplace network/remote artifact/source cache/publisher trust/install/process/command 聚焦回归合计 **195/195**；任务 JS ESLint `--max-warnings 0`、12-cell YAML 解析通过 | 本机覆盖协议和完整单格数量；其余 11 格及 exact-head aggregate 仍须提交后由 Actions 产生并回读 |
+
+本节关闭 P1-5 的 **三宿主十二格 workflow、每格 100 次认证/代理/PAC/断网缓存旅程、签名 install/upgrade/rollback、24 类供应链故障、content-free producer 与 fail-closed aggregate 实现子门**。真实第三方 private registry、组织生产 trust root/key revocation、企业 PAC/custom CA、共享/NFS/object-store fencing、物理断电与长期外部宿主仍按第七十四节的外部依赖边界处理；且当前尚无本候选 exact head 的十二格成功 artifact。因此 P1-5 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十三、2026-08-20 P2-4 可访问性与固定规模性能矩阵实现记录
+
+本节执行第七十四节列入本期的 P2-4 自动化范围，使用生产 VS Code Webview、Sessions Workbench 与 JetBrains Swing 组件测量，不把可访问性树的语义投影冒充真人听测，也不把本地临时辅助技术探针记为外部运行证据。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 键盘与焦点生命周期 | VS Code 会话标签重绘前记录当前 tab identity，重绘后恢复同一 tab，缺失时回退到 active tab；approval card 增加命名 group 语义，键盘激活并禁用按钮后把焦点送回输入框。Chromium campaign 用真实键盘执行 ArrowRight/End/Home、Tab 到 approval、Enter 批准和重绘恢复，并记录 6 段 focus transition | 要求 keyboard unreachable、trap、invisible focus、focus restore failure 全为 0；聚焦合同回归 **19/19** |
+| 可访问语义与辅助技术边界 | campaign 通过 Chromium CDP 抓取完整 accessibility tree，拒绝未命名交互控件和必需语义缺失；Linux 安装并独立进程探测 Orca，Windows 安装并探测 NVDA 签名二进制/version，macOS 验证 VoiceOver binary 并明确标记 semantic-only。所有版本只写 SHA-256，不记录宿主路径或语音内容 | Orca/NVDA 的可自动化 binary/process cell 属于本期；三种辅助技术的真人语音质量、VoiceOver 交互式控制与真机听测继续保留为外部人工尾项 |
+| 固定规模输入 | 每个 producer 固定 2,000 条消息、16 MiB diff、64 MiB log 和 128 sessions；生产 transcript 必须只保留最新 800 个节点，大输入必须保留 head/tail 和可见 omission marker，并验证嵌入 middle 的唯一 credential 与完整命令均不可见。上传 evidence 只包含尺寸、计数和原始输入摘要 | scale、截断可见性、无静默丢失与 content-free 证据合同完成 |
+| 延迟与资源测量 | 每格采集 100 个 input-to-paint 和 100 个 scroll-to-paint 样本并输出 P50/P95/P99/max；另测 diff/log/Workbench paint、Node RSS、Chromium renderer heap、DOM counters、FD/handle 与浏览器进程快照。退出后重新读取系统进程，要求 orphan 为 0；增长阈值和所有零容忍计数由 producer 与 aggregate 双重校验 | 本机真实 Chromium 固定规模 campaign 通过：input P99 **67.1 ms**、scroll P99 **17.9 ms**、diff **80.6 ms**、log **101.1 ms**、Workbench **74.1 ms**；本地辅助技术与 JetBrains 输入为结构占位，仅用于验证 harness，不作为其通过证据 |
+| JetBrains 原生面 | 新 JUnit 在 EDT 上驱动生产 `ChatTranscript`、`TranscriptCap` 和 `SessionsWorkbench`，执行同一 2,000/16 MiB/64 MiB/128 固定规模，采集 Swing paint percentile、heap 与 Unix FD，并验证 transcript bound、omission marker、accessible name/description、focusable 与 session projection | 当前机器只有 JDK 8，不能编译项目要求的 JDK 21；三 OS Actions 以 Temurin 21 运行并回读 content-free native evidence，本地不冒充 Java 通过 |
+| exact-head 三宿主 aggregate | `.github/workflows/ide-roadmap-accessibility-performance.yml` 明列 Ubuntu 24.04、macOS 15、Windows 2025，安装 Node 22.12、JDK 21 与精确 Playwright Chromium。每格 manifest 固定 12 份 evidence 的 byte length/SHA-256；`if: always()` aggregate 先拒绝任一 skipped/cancelled/failed cell，再重算全部文件并绑定 exact commit、workflow/job/run/artifact provenance 和双 IDE host 集合 | 缺任一 OS、任一 host、任一测量、旧提交或改写 artifact 均不能生成可信 aggregate；该 workflow 尚需在提交后的同一 exact head 实际运行并回读 |
+| 仓库内回归 | P2 campaign/verifier 单测 **4/4**，VS Code/Workbench 回归 **19/19**，任务 JS ESLint **0 error**，workflow YAML 解析与 Prettier 通过。真实 Chromium 固定规模 campaign 已在 Windows 本机执行；Java 21、Orca/NVDA 和其余 OS 由 Actions 验证 | 仓库实现和本机可执行门通过，外部 Actions artifact 尚未产生 |
+
+本节关闭 P2-4 的 **键盘路径、accessibility tree、焦点恢复、2,000-message/16 MiB diff/64 MiB log/128-session 固定规模、P50/P95/P99、RSS/heap/FD/handle/orphan 与三宿主 fail-closed aggregate 实现子门**。必须真人听测的 VoiceOver/NVDA/Orca 语音质量、交互式真机和 Actions 无法连续承载的 8 小时 IDE soak 按第七十四节列入下期；当前提交也尚未取得同一 exact head 的三宿主成功 artifact。因此 P2-4 整项继续为**部分完成**，整体结论保持 **NO-GO**。

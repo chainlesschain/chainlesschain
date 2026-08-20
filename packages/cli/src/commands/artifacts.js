@@ -34,6 +34,13 @@ import {
   settleArtifactCleanup,
 } from "../lib/artifact-cleanup-ledger.js";
 import {
+  ARTIFACT_RECOVERY_DECISIONS,
+  adjudicateArtifactRecovery,
+  buildArtifactRecoveryPlan,
+  readArtifactOrphanGcLedger,
+} from "../lib/artifact-recovery.js";
+import { buildArtifactWorkbenchProjection } from "../lib/artifact-workbench-projection.js";
+import {
   assessDeliveryEvidence,
   createDeliveryEvidenceRecord,
   DELIVERY_EVIDENCE_SCHEMA,
@@ -165,6 +172,56 @@ export function registerArtifactsCommand(program) {
     .option("--json", "Machine-readable verified ledger projection")
     .action((options) => {
       process.exitCode = runArtifactsCleanupLog(options);
+    });
+
+  cmd
+    .command("recovery-plan")
+    .description(
+      "Inventory pending settlements and orphaned managed copies without mutating them",
+    )
+    .option(
+      "--timeout-ms <ms>",
+      "Age after which a pending settlement is reported as timed out",
+    )
+    .option("--json", "Machine-readable content-free recovery plan")
+    .action((options) => {
+      process.exitCode = runArtifactsRecoveryPlan(options);
+    });
+
+  cmd
+    .command("workbench")
+    .description(
+      "Project artifacts, returned-result lineage, history, and recovery risk for product clients",
+    )
+    .option("--json", "Machine-readable canonical workbench projection")
+    .action((options) => {
+      process.exitCode = runArtifactsWorkbench(options);
+    });
+
+  cmd
+    .command("recovery-adjudicate <item>")
+    .description(
+      "Apply one explicit, plan-bound administrator recovery decision",
+    )
+    .requiredOption("--plan-digest <digest>", "Exact recovery plan digest")
+    .requiredOption(
+      "--decision <decision>",
+      `Decision (${ARTIFACT_RECOVERY_DECISIONS.join("|")})`,
+    )
+    .option("--adjudication-id <id>", "Stable id for response-loss recovery")
+    .option("--approve", "Confirm the reviewed recovery mutation")
+    .option("--json", "Machine-readable adjudication receipt")
+    .action((item, options) => {
+      process.exitCode = runArtifactsRecoveryAdjudicate(item, options);
+    });
+
+  cmd
+    .command("orphan-gc-log")
+    .description("Verify and display the content-free orphan GC ledger")
+    .option("--adjudication <id>", "Only events for one adjudication id")
+    .option("--json", "Machine-readable verified ledger projection")
+    .action((options) => {
+      process.exitCode = runArtifactsOrphanGcLog(options);
     });
 
   cmd
@@ -607,6 +664,184 @@ export function runArtifactsCleanupLog(options = {}, deps = {}) {
       );
     } else {
       console.error(chalk.red(`Artifact cleanup log failed: ${error.message}`));
+    }
+    return 1;
+  }
+}
+
+export function runArtifactsRecoveryPlan(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const parsedTimeout =
+      options.timeoutMs == null ? undefined : Number(options.timeoutMs);
+    const plan = (deps.buildArtifactRecoveryPlan || buildArtifactRecoveryPlan)(
+      store,
+      {
+        ...(parsedTimeout == null ? {} : { timeoutMs: parsedTimeout }),
+        ...(deps.recoveryOptions || {}),
+      },
+    );
+    if (options.json) {
+      console.log(JSON.stringify(plan, null, 2));
+    } else if (plan.items.length === 0) {
+      console.log(
+        chalk.dim(`Artifact recovery is clear (${plan.planDigest}).`),
+      );
+    } else {
+      console.log(
+        chalk.yellow(
+          `Artifact recovery requires review: ${plan.summary.itemCount} item(s), ${plan.summary.criticalCount} critical (${plan.planDigest}).`,
+        ),
+      );
+      for (const item of plan.items) {
+        console.log(
+          `${item.severity}\t${item.kind}\t${item.recommendedDecision}\t${item.itemId}`,
+        );
+      }
+    }
+    return plan.summary.itemCount > 0 ? 2 : 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-recovery-plan-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(`Artifact recovery inventory failed: ${error.message}`),
+      );
+    }
+    return 1;
+  }
+}
+
+export function runArtifactsWorkbench(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const projection = (
+      deps.buildArtifactWorkbenchProjection || buildArtifactWorkbenchProjection
+    )(store, deps.workbenchOptions || {});
+    if (options.json) {
+      console.log(JSON.stringify(projection, null, 2));
+    } else {
+      console.log(
+        `${projection.artifacts.length} artifact(s); ${projection.recovery.summary.itemCount} recovery item(s); ${projection.history.totalEventCount} history event(s).`,
+      );
+      console.log(chalk.dim(projection.recovery.planDigest));
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-workbench-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(`Artifact workbench projection failed: ${error.message}`),
+      );
+    }
+    return 1;
+  }
+}
+
+export function runArtifactsRecoveryAdjudicate(item, options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    if (options.decision !== "defer" && options.approve !== true) {
+      throw new Error("recovery mutation requires explicit --approve");
+    }
+    const result = (
+      deps.adjudicateArtifactRecovery || adjudicateArtifactRecovery
+    )(
+      store,
+      {
+        itemId: item,
+        planDigest: options.planDigest,
+        decision: options.decision,
+        adjudicationId: options.adjudicationId,
+      },
+      deps.recoveryOptions || {},
+    );
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(
+        result.settled
+          ? chalk.green(
+              `Artifact recovery adjudication ${result.adjudicationId || options.adjudicationId || ""} settled.`,
+            )
+          : chalk.dim("Artifact recovery item was deferred without mutation."),
+      );
+    }
+    return result.settled || options.decision === "defer" ? 0 : 1;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-recovery-adjudication-error/v1",
+          itemId: String(item),
+          settled: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(`Artifact recovery adjudication failed: ${error.message}`),
+      );
+    }
+    return 1;
+  }
+}
+
+export function runArtifactsOrphanGcLog(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const ledger = (
+      deps.readArtifactOrphanGcLedger || readArtifactOrphanGcLedger
+    )(store, deps.recoveryOptions || {});
+    const events = ledger.events.filter(
+      (event) =>
+        !options.adjudication ||
+        event.adjudicationId === String(options.adjudication),
+    );
+    const projection = {
+      ...ledger,
+      filtered: Boolean(options.adjudication),
+      matchedEventCount: events.length,
+      events,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(projection, null, 2));
+    } else if (events.length === 0) {
+      console.log(chalk.dim("No artifact orphan GC settlement events."));
+    } else {
+      for (const event of events) {
+        console.log(
+          `${event.sequence}\t${event.phase}\t${event.outcome}\t${event.adjudicationId}\t${event.eventDigest}`,
+        );
+      }
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-orphan-gc-ledger-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(`Artifact orphan GC log failed: ${error.message}`),
+      );
     }
     return 1;
   }

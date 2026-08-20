@@ -245,6 +245,13 @@
             >
               {{ planActionLabel }}
             </a-button>
+            <a-button
+              v-if="agentMode"
+              size="small"
+              @click="artifactWorkbenchVisible = true"
+            >
+              返回产物
+            </a-button>
             <RemoteSessionPanel
               v-if="agentMode"
               :session-id="codingAgentStore.currentSessionId"
@@ -1168,6 +1175,7 @@
       @navigate="handleNavigateHarnessTask"
       @clear-selection="handleClearBackgroundTaskSelection"
     />
+    <ArtifactWorkbenchDrawer v-model:open="artifactWorkbenchVisible" />
   </div>
 </template>
 
@@ -1193,6 +1201,7 @@ import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
 import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import RemoteSessionPanel from "@/components/chat/RemoteSessionPanel.vue";
+import ArtifactWorkbenchDrawer from "@/components/chat/ArtifactWorkbenchDrawer.vue";
 import CodingAgentElicitationPanel from "@/components/CodingAgentElicitationPanel.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
@@ -1259,6 +1268,7 @@ const savingConversation = ref(false);
 
 // Agent mode state
 const agentMode = ref(false);
+const artifactWorkbenchVisible = ref(false);
 const codingAgentSessionMap = ref({});
 const agentMessageByRequestId = ref({});
 const processedCodingAgentEventIds = new Set();

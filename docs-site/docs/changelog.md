@@ -5,15 +5,27 @@
 
 ## [Unreleased]
 
-#### Fixed — 未发布源码增量：Marketplace payload 与激活生命周期加固
+#### Added — 2026-08-20 发布后源码增量
 
-> PR #215 的 Marketplace source increment 已在 exact head `89c498cc46` 完成门禁，并以 merge commit `089336992d` 合入主线；实现主提交为 `7592c0d5bd`。这些代码不属于已发布的 `chainlesschain@0.165.1`，后续版本仍须在自身 exact SHA 重新完成发布门才能进入稳定安装契约。
+> 本次代码核对基线 `f2fbf331da46` 晚于不可变 `v-npm-0-165-4`，以下能力尚未取得新的 npm/IDE/Desktop/iOS 公开发布授权；其中 P1-5 Marketplace 三宿主十二格供应链矩阵已提交实现，但 exact-head Actions aggregate 尚待回读。
 
-- **语义 payload 证据**：远程与已安装制品使用 canonical payload SBOM、source metadata 与 catalog authority 重新绑定；partial、降级或漂移证据不能沿用旧审批。
-- **统一激活门**：`plugin use`、卸载 fallback、普通与 pointer-only update 均验证安全目录、manifest name/version、严格 provenance、fresh semantic payload、source switch 与 downgrade 审批。
-- **恢复状态失败闭合**：`.install-*` / `.uninstall-*` 阻断 runtime，inventory/doctor 显示 `runtimeBlocked`、inspection version 与 recovery path；已提交事务先退役为 inert `.cleanup-*` 再 best-effort 删除。
-- **精确 rollback**：恢复会核对 pointer generation、candidate/predecessor payload 与 source digest，组合 I/O 失败时保留可重试 topology；无法安全判断时以整名卸载后从可信来源重装为显式修复边界。
-- **未关闭边界**：跨进程 OS lock/durable journal/CAS、跨 scope effective authority、legacy provenance migration、publisher/组织 trust root、private registry 与长期外部故障矩阵仍未完成。
+- **原生执行失败闭合**：MCP materialized npm capsule 拒绝 package `.node` / `process.dlopen`；Windows/macOS strict native plugin 在 loader closure 不可证明时于 spawn 前类型化拒绝。
+- **多端恢复**：IDE 源码新增 durable workflow control、pending interaction 与 orphan Artifact recovery；Desktop 新增 returned-artifact review workbench；iOS 新增 transient remote session recovery。
+- **边界**：Scheduler campaign 只记录到第三段；签名 native、跨宿主 revoke、外部 Marketplace 产品化与上述多端市场/应用发布仍须各自 exact-SHA 门。
+
+#### Fixed — CLI 0.165.4 正式发布：可移植首次安装与耐久运行时收口
+
+> `chainlesschain@0.165.4` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-165-4` 精确指向 [`86abb5f65e`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466808)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466552)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466545)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32377326843)均成功。公网 tarball SHA-1 为 `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`。
+
+- **无工具链首次安装**：PDH `0.4.59` 把 native SQLite addon 改为 optional；禁用预构建且没有 Python/node-gyp 编译链时，npm 仍能完成全局安装，CLI 使用内置 `sql.js` WASM fallback。
+- **耐久 workflow 与预算**：provider/tool/child call、stage input、checkpoint、REPL/headless/WS 预算与恢复 receipt 均进入不可变 tarball；未知 usage 或 outcome 要求显式裁决，不盲目 replay。
+- **返回结果与 Artifact**：远端 result bundle 先持久验证、content-free review，再显式 preview/import/apply；Artifact access、deletion 与 TTL cleanup 使用稳定 id 和 hash-chained settlement ledger 支持 response-loss 重试。
+- **插件与 keeper**：`0.165.2` 的 governed plugin transaction/provenance 与 `0.165.3` 的 keeper retirement/lock reclaim 均由 `0.165.4` 承接。
+
+#### Added — IDE 公开版：Open VSX 0.37.58 / JetBrains 0.4.93
+
+- 双端只通过 CLI-owned `artifacts access` 暴露预览/打开/复制路径，并为删除使用可恢复 deletion id；LLM API key 通过 `cc config set-secret` stdin/OS store 保存。
+- VS Code `0.37.58` 另修复 interactive approval 的 pending interaction 恢复；Open VSX 已回读 26,000+ 下载，JetBrains Marketplace `0.4.93` 为 listed/approved。
 
 #### Added — CLI 0.165.1 正式发布：运行准入、远程权威与后台任务收口
 

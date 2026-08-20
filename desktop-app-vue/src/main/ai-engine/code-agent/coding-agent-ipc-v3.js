@@ -1,5 +1,9 @@
-const { ipcMain } = require("electron");
+const fs = require("fs");
+const path = require("path");
+const { createHash, randomUUID } = require("crypto");
+const { ipcMain, shell, dialog } = require("electron");
 const { logger } = require("../../utils/logger.js");
+const { ArtifactWorkbenchClient } = require("./artifact-workbench-client.js");
 const {
   runWorkflowCommand,
   isWorkflowCommand,
@@ -60,16 +64,38 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:get-status",
   "coding-agent:run-workflow-command",
   "coding-agent:check-workflow-command",
+  "coding-agent:get-artifact-workbench",
+  "coding-agent:open-artifact",
+  "coding-agent:download-artifact",
+  "coding-agent:remove-artifact",
+  "coding-agent:adjudicate-artifact-recovery",
 ];
+
+function stableDesktopArtifactOperationId(prefix, material) {
+  const digest = createHash("sha256")
+    .update("chainlesschain.desktop.artifact-operation.v1\0", "utf8")
+    .update(JSON.stringify(material), "utf8")
+    .digest("hex");
+  return `${prefix}_${digest}`;
+}
 
 function registerCodingAgentIPCV3(options = {}) {
   const { service, ipcMain: injectedIpcMain } = options;
 
-  const ipc = injectedIpcMain || ipcMain;
-
   if (!service) {
     throw new Error("registerCodingAgentIPCV3 requires a service instance");
   }
+
+  const ipc = injectedIpcMain || ipcMain;
+  const artifactClient =
+    options.artifactClient ||
+    new ArtifactWorkbenchClient({
+      repoRoot: service.repoRoot,
+      cliEntry: service.bridge?.cliEntry,
+    });
+  const electronShell = options.shell || shell;
+  const electronDialog = options.dialog || dialog;
+  const runtimeFs = options.fs || fs;
 
   logger.info("[CodingAgentIPCV3] Registering coding agent IPC handlers...");
 
@@ -108,6 +134,142 @@ function registerCodingAgentIPCV3(options = {}) {
       return { success: false, error: error.message };
     }
   });
+
+  ipc.handle("coding-agent:get-artifact-workbench", async () => {
+    try {
+      const workbench = await artifactClient.workbench();
+      return { success: true, workbench };
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] artifact workbench failed:", error);
+      return { success: false, error: "Artifact workbench is unavailable" };
+    }
+  });
+
+  ipc.handle("coding-agent:open-artifact", async (_event, payload = {}) => {
+    try {
+      const authorization = await artifactClient.access({
+        artifactId: payload.artifactId,
+        action: "preview",
+        accessId: `access_desktop_${randomUUID().replaceAll("-", "")}`,
+      });
+      if (!authorization.storedPath || !electronShell?.openPath) {
+        throw new Error("artifact open authority is unavailable");
+      }
+      const openError = await electronShell.openPath(authorization.storedPath);
+      if (openError) {
+        throw new Error("desktop shell rejected artifact open");
+      }
+      return {
+        success: true,
+        artifactId: authorization.access.artifactId,
+        eventDigest: authorization.access.eventDigest,
+      };
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] artifact open failed:", error);
+      return { success: false, error: "Artifact open was not authorized" };
+    }
+  });
+
+  ipc.handle("coding-agent:download-artifact", async (_event, payload = {}) => {
+    try {
+      const authorization = await artifactClient.access({
+        artifactId: payload.artifactId,
+        action: "download",
+        accessId: `access_desktop_${randomUUID().replaceAll("-", "")}`,
+      });
+      if (!authorization.storedPath || !electronDialog?.showSaveDialog) {
+        throw new Error("artifact download authority is unavailable");
+      }
+      const selected = await electronDialog.showSaveDialog({
+        title: "Download reviewed artifact",
+        defaultPath: path.basename(authorization.storedPath),
+      });
+      if (selected.canceled || !selected.filePath) {
+        return { success: true, canceled: true };
+      }
+      await runtimeFs.promises.copyFile(
+        authorization.storedPath,
+        selected.filePath,
+      );
+      return {
+        success: true,
+        canceled: false,
+        artifactId: authorization.access.artifactId,
+        eventDigest: authorization.access.eventDigest,
+      };
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] artifact download failed:", error);
+      return { success: false, error: "Artifact download was not authorized" };
+    }
+  });
+
+  ipc.handle("coding-agent:remove-artifact", async (_event, payload = {}) => {
+    try {
+      const result = await artifactClient.remove({
+        artifactId: payload.artifactId,
+        deletionId: stableDesktopArtifactOperationId("delete_desktop", {
+          artifactId: payload.artifactId,
+        }),
+      });
+      return {
+        success: result.settled === true,
+        receipt: {
+          schema: result.schema,
+          artifactId: result.artifactId,
+          deletionId: result.deletionId,
+          found: result.found === true,
+          settled: result.settled === true,
+          recorded: result.recorded === true,
+          eventDigest: result.deletion?.eventDigest || null,
+        },
+      };
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] artifact removal failed:", error);
+      return { success: false, error: "Artifact removal was not settled" };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:adjudicate-artifact-recovery",
+    async (_event, payload = {}) => {
+      try {
+        const result = await artifactClient.adjudicate({
+          itemId: payload.itemId,
+          planDigest: payload.planDigest,
+          decision: payload.decision,
+          adjudicationId: stableDesktopArtifactOperationId(
+            "artifact_adjudication_desktop",
+            {
+              itemId: payload.itemId,
+              planDigest: payload.planDigest,
+              decision: payload.decision,
+            },
+          ),
+        });
+        return {
+          success: result.settled === true || payload.decision === "defer",
+          receipt: {
+            schema: result.schema,
+            adjudicationId: result.adjudicationId,
+            itemId: result.itemId,
+            planDigest: result.planDigest,
+            decision: result.decision,
+            settled: result.settled === true,
+            recorded: result.recorded === true,
+            mutationPerformed: result.mutationPerformed === true,
+            eventDigest:
+              result.gc?.eventDigest ||
+              result.result?.deletion?.eventDigest ||
+              result.result?.cleanup?.eventDigest ||
+              null,
+          },
+        };
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] artifact recovery failed:", error);
+        return { success: false, error: "Artifact recovery was not settled" };
+      }
+    },
+  );
 
   ipc.handle("coding-agent:get-permission-rules", async () => {
     try {

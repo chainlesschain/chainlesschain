@@ -237,6 +237,7 @@ import { message } from 'ant-design-vue'
 import { useProvidersStore } from '../stores/providers.js'
 import { useWsStore } from '../stores/ws.js'
 import { parseLlmConfigOutput } from '../utils/parsers.js'
+import { saveLlmApiKey } from '../utils/llm-config.js'
 
 const providersStore = useProvidersStore()
 const ws = useWsStore()
@@ -360,7 +361,7 @@ async function saveConfig() {
 
     if (configForm.apiKey && configForm.apiKey !== loadedConfig.apiKey) {
       try {
-        await ws.execute(`config set llm.apiKey ${configForm.apiKey}`, 10000)
+        await saveLlmApiKey(ws, configForm.apiKey)
         saved.push('apiKey')
       } catch (e) {
         errors.push(`apiKey: ${e.message}`)

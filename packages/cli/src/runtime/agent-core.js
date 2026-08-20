@@ -5712,6 +5712,18 @@ async function executeToolInner(
             { cwd },
           );
           if (
+            pluginBinInvocation.runtime === "native" &&
+            backgroundPlatform !== "linux"
+          ) {
+            const unsupportedNativeError = new Error(
+              `strict native Plugin bins require the Linux descriptor-bound ELF loader closure; ${backgroundPlatform} native loading is unsupported`,
+            );
+            unsupportedNativeError.code =
+              "ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED";
+            unsupportedNativeError.pluginBinFailClosed = true;
+            throw unsupportedNativeError;
+          }
+          if (
             backgroundPlatform === "linux" ||
             (backgroundPlatform === "win32" &&
               pluginBinInvocation.runtime === "node")

@@ -43,6 +43,9 @@ const ARTIFACT_KINDS = Object.keys(ARTIFACT_KIND_META);
 function buildArtifactsListArgs() {
   return ["artifacts", "list", "--json"];
 }
+function buildArtifactsWorkbenchArgs() {
+  return ["artifacts", "workbench", "--json"];
+}
 function buildArtifactsShowArgs(id) {
   return ["artifacts", "show", String(id), "--json"];
 }
@@ -67,6 +70,26 @@ function buildArtifactsRemoveArgs(id, deletionId = null) {
     "--client",
     "vscode",
     ...(deletionId ? ["--deletion-id", String(deletionId)] : []),
+    "--json",
+  ];
+}
+
+function buildArtifactsRecoveryAdjudicateArgs(
+  itemId,
+  planDigest,
+  decision,
+  adjudicationId,
+) {
+  return [
+    "artifacts",
+    "recovery-adjudicate",
+    String(itemId),
+    "--plan-digest",
+    String(planDigest),
+    "--decision",
+    String(decision),
+    ...(adjudicationId ? ["--adjudication-id", String(adjudicationId)] : []),
+    ...(decision === "defer" ? [] : ["--approve"]),
     "--json",
   ];
 }
@@ -191,10 +214,82 @@ function shapeArtifact(entry) {
     sessionId: typeof entry.sessionId === "string" ? entry.sessionId : null,
     createdAt: toEpoch(entry.createdAt),
     expiresAt: toEpoch(entry.expiresAt),
+    immutable: entry.immutable === true,
+    recordDigest:
+      typeof entry.recordDigest === "string" ? entry.recordDigest : null,
+    returnedResult:
+      entry.returnedResult && typeof entry.returnedResult === "object"
+        ? {
+            sessionId: String(entry.returnedResult.sessionId || ""),
+            requestId: String(entry.returnedResult.requestId || ""),
+            reviewDigest: String(entry.returnedResult.reviewDigest || ""),
+            item: String(entry.returnedResult.item || ""),
+            kind: String(entry.returnedResult.kind || ""),
+            sourceDigest: String(entry.returnedResult.sourceDigest || ""),
+          }
+        : null,
+    history: {
+      accessCount: Number(entry.history?.accessCount || 0),
+      latestAccess:
+        entry.history?.latestAccess &&
+        typeof entry.history.latestAccess === "object"
+          ? {
+              action: String(entry.history.latestAccess.action || ""),
+              client: String(entry.history.latestAccess.client || ""),
+              authorizedAt: toEpoch(entry.history.latestAccess.authorizedAt),
+              eventDigest: String(entry.history.latestAccess.eventDigest || ""),
+            }
+          : null,
+    },
     preview,
   };
   row.actions = deriveArtifactActions(row);
   return row;
+}
+
+function shapeArtifactWorkbench(payload) {
+  if (
+    !payload ||
+    payload.schema !== "cc-artifact-workbench/v1" ||
+    !payload.recovery ||
+    !Array.isArray(payload.recovery.items) ||
+    !payload.history ||
+    !Array.isArray(payload.history.activity)
+  ) {
+    return null;
+  }
+  const recoveryItems = payload.recovery.items
+    .filter(
+      (item) =>
+        item &&
+        typeof item.itemId === "string" &&
+        typeof item.kind === "string" &&
+        typeof item.recommendedDecision === "string",
+    )
+    .map((item) => ({
+      itemId: item.itemId,
+      kind: item.kind,
+      severity: String(item.severity || "warning"),
+      timedOut: item.timedOut === true,
+      recommendedDecision: item.recommendedDecision,
+    }));
+  return {
+    rows: shapeArtifacts(payload),
+    recovery: {
+      planDigest: String(payload.recovery.planDigest || ""),
+      summary: {
+        itemCount: Number(payload.recovery.summary?.itemCount || 0),
+        criticalCount: Number(payload.recovery.summary?.criticalCount || 0),
+        timedOutCount: Number(payload.recovery.summary?.timedOutCount || 0),
+      },
+      items: recoveryItems,
+    },
+    history: {
+      totalEventCount: Number(payload.history.totalEventCount || 0),
+      truncated: payload.history.truncated === true,
+      activity: payload.history.activity.slice(0, 200),
+    },
+  };
 }
 
 /**
@@ -250,11 +345,32 @@ const ACTION_LABELS = {
  * injects on every `{type:"rows"}` message. Metadata only — never file
  * bodies. `opts.errors` renders warning rows (failure tolerance).
  */
-function renderArtifactsHtml(rows, { now = Date.now(), errors = [] } = {}) {
+function renderArtifactsHtml(
+  rows,
+  { now = Date.now(), errors = [], recovery = null, history = null } = {},
+) {
   const parts = [];
   for (const e of errors || []) {
     parts.push(
       `<div class="warn">⚠ ${escapeHtml(e.source || "source")} unavailable: ${escapeHtml(e.message || "unknown error")}</div>`,
+    );
+  }
+  if (recovery?.summary?.itemCount > 0) {
+    parts.push(
+      `<section class="recovery"><strong>Recovery review required</strong> · ${escapeHtml(recovery.summary.itemCount)} item(s), ${escapeHtml(recovery.summary.criticalCount)} critical, ${escapeHtml(recovery.summary.timedOutCount)} timed out<div class="muted">plan ${escapeHtml(String(recovery.planDigest || "").slice(0, 24))}… · startup scan never mutates unattended</div>`,
+    );
+    for (const item of recovery.items || []) {
+      const decision = item.recommendedDecision;
+      const mutable = decision === "retry" || decision === "delete-orphan";
+      parts.push(
+        `<div class="recovery-item">${escapeHtml(item.severity)} · ${escapeHtml(item.kind)}${item.timedOut ? " · timed out" : ""}<button class="sec" data-recovery="${escapeHtml(decision)}" data-item="${escapeHtml(item.itemId)}">${mutable ? escapeHtml(decision) : "Acknowledge"}</button></div>`,
+      );
+    }
+    parts.push("</section>");
+  }
+  if (history) {
+    parts.push(
+      `<div class="muted history-summary">Verified history: ${escapeHtml(history.totalEventCount || 0)} event(s)${history.truncated ? " · showing latest 200" : ""}</div>`,
     );
   }
   const list = Array.isArray(rows) ? rows : [];
@@ -275,6 +391,16 @@ function renderArtifactsHtml(rows, { now = Date.now(), errors = [] } = {}) {
       const meta = [
         r.id,
         r.sessionId ? `session ${r.sessionId}` : "",
+        r.returnedResult?.requestId
+          ? `returned ${r.returnedResult.kind} · request ${r.returnedResult.requestId}`
+          : "",
+        r.returnedResult?.reviewDigest
+          ? `review ${r.returnedResult.reviewDigest.slice(0, 20)}…`
+          : "",
+        r.recordDigest ? `record ${r.recordDigest.slice(0, 20)}…` : "",
+        r.history?.accessCount
+          ? `${r.history.accessCount} audited access${r.history.accessCount === 1 ? "" : "es"}`
+          : "",
         r.sha256 ? `sha256 ${r.sha256.slice(0, 12)}…` : "",
       ]
         .filter(Boolean)
@@ -302,15 +428,18 @@ module.exports = {
   ARTIFACT_KIND_META,
   ACTION_LABELS,
   buildArtifactsListArgs,
+  buildArtifactsWorkbenchArgs,
   buildArtifactsShowArgs,
   buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
+  buildArtifactsRecoveryAdjudicateArgs,
   defaultArtifactsDir,
   formatSize,
   previewKindForMime,
   deriveArtifactActions,
   shapeArtifact,
   shapeArtifacts,
+  shapeArtifactWorkbench,
   filterArtifacts,
   escapeHtml,
   renderArtifactsHtml,

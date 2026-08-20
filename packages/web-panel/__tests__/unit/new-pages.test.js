@@ -492,6 +492,18 @@ describe('Providers config parsing (parseLlmConfigOutput)', () => {
     expect(result.apiKey).toBeUndefined()
   })
 
+  it.each(['null', '[REDACTED]', '<configured>', '********'])('treats %s as a hidden or unset apiKey', value => {
+    const output = ['llm:', '  provider: openai', `  apiKey: ${value}`].join('\n')
+    expect(parseLlmConfigOutput(output).apiKey).toBeUndefined()
+  })
+
+  it('does not expose null or redacted apiKey values from JSON output', () => {
+    expect(parseLlmConfigOutput(JSON.stringify({ llm: { apiKey: null } })).apiKey).toBeUndefined()
+    expect(
+      parseLlmConfigOutput(JSON.stringify({ llm: { apiKey: '[REDACTED]' } })).apiKey,
+    ).toBeUndefined()
+  })
+
   it('accepts unmasked apiKey via flat llm.<key> form', () => {
     const output = 'llm.apiKey: sk-1234567890abcdef'
     const result = parseLlmConfigOutput(output)

@@ -430,7 +430,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(result.identity.fileCount).toBeGreaterThanOrEqual(7);
     expect(result.identity.closureDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v4",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v5",
       relativePath: "capsule/server.cjs",
       builder: "esbuild-wasm",
       builderVersion: "0.28.1",
@@ -445,6 +445,18 @@ describe("MCP stdio fixed npm package materialization", () => {
         allowedBuiltins: [],
         executionContextBuiltins: [],
         transitiveIsolation: "not-required",
+      },
+      nativeCodePolicy: {
+        schema: "chainlesschain.mcp-stdio-native-code-policy/v1",
+        contractVersion: 1,
+        mode: "deny-package-native-addons",
+        capsuleFormat: "single-bundled-cjs",
+        nativeAddonLoading: "denied",
+        nativeAddonDenialMechanism:
+          "immutable-process-dlopen-guard-plus-bundled-js-only-v1",
+        hostRuntimeSharedLibraries: "platform-runtime-tcb",
+        anonymousExecutableMemory: "node-runtime-tcb",
+        sharedLibraryClosure: false,
       },
     });
     expect(result.identity.capsule.builderWasmSha256).toMatch(/^[a-f0-9]{64}$/);
@@ -525,6 +537,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         realPath: prepared.args[0],
         sha256: result.identity.capsule.sha256,
       },
+      nativeCodePolicy: result.identity.capsule.nativeCodePolicy,
     });
     const sandboxProvenance = {
       origin: "mcp:server:package-server",
@@ -707,7 +720,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
 
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v4",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v5",
       inputCount: 3,
     });
     expect(divergentPathStats).toBeGreaterThan(0);
@@ -1220,6 +1233,8 @@ if (operation === "allowed") {
   process.binding("fs");
 } else if (operation === "linked-binding") {
   process._linkedBinding("fs");
+} else if (operation === "dlopen") {
+  process.dlopen({}, process.argv[3] || "forged.node");
 }
 `,
         "utf8",
@@ -1249,11 +1264,12 @@ if (operation === "allowed") {
     });
     expect(allowed).toMatchObject({ status: 0, stdout: "allowed" });
 
-    for (const [operation, extraArgs] of [
-      ["unlisted", []],
-      ["unlisted-require", ["node:fs"]],
-      ["binding", []],
-      ["linked-binding", []],
+    for (const [operation, extraArgs, expectedCode] of [
+      ["unlisted", [], "CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED"],
+      ["unlisted-require", ["node:fs"], "CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED"],
+      ["binding", [], "CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED"],
+      ["linked-binding", [], "CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED"],
+      ["dlopen", [], "CC_MCP_STDIO_NATIVE_MODULE_BLOCKED"],
     ]) {
       const denied = spawnSync(
         process.execPath,
@@ -1261,7 +1277,7 @@ if (operation === "allowed") {
         { encoding: "utf8" },
       );
       expect(denied.status).not.toBe(0);
-      expect(denied.stderr).toContain("CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED");
+      expect(denied.stderr, operation).toContain(expectedCode);
     }
   }, 30_000);
 

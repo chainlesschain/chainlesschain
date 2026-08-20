@@ -144,7 +144,7 @@ function currentProjection(
 }
 
 function sessionProjection(attestation, receipt) {
-  const binding = currentProjection("container").binding;
+  const binding = attestation.binding;
   return {
     schema: "cc-session-execution-location-authority/v1",
     authority: "verified-session-location-handoff",
@@ -259,13 +259,49 @@ describe("execution location target launch and resume", () => {
         spawnSync: () => success(JSON.stringify(currentProjection())),
       },
     );
-    const prepared = handoffReceipt(initial);
+    const resumedAttestation = attestExecutionLocationTarget(
+      { profile, handoff: handoff() },
+      {
+        spawnSync: () =>
+          success(
+            JSON.stringify(
+              currentProjection("container", "2026-08-18T07:01:00.000Z"),
+            ),
+          ),
+      },
+    );
+    const prepareAttestation = attestExecutionLocationTarget(
+      { profile, handoff: handoff() },
+      {
+        spawnSync: () =>
+          success(
+            JSON.stringify(
+              currentProjection("container", "2026-08-18T07:02:00.000Z"),
+            ),
+          ),
+      },
+    );
+    expect(resumedAttestation.targetFactsDigest).toBe(
+      initial.targetFactsDigest,
+    );
+    expect(prepareAttestation.attestationDigest).not.toBe(
+      resumedAttestation.attestationDigest,
+    );
+    const prepared = handoffReceipt(prepareAttestation);
     const spawnSync = vi
       .fn()
-      .mockReturnValueOnce(success(JSON.stringify(currentProjection())))
+      .mockReturnValueOnce(
+        success(
+          JSON.stringify(
+            currentProjection("container", "2026-08-18T07:01:00.000Z"),
+          ),
+        ),
+      )
       .mockReturnValueOnce(success(JSON.stringify(prepared)))
       .mockReturnValueOnce(
-        success(JSON.stringify(sessionProjection(initial, prepared))),
+        success(
+          JSON.stringify(sessionProjection(prepareAttestation, prepared)),
+        ),
       )
       .mockReturnValueOnce(success());
 

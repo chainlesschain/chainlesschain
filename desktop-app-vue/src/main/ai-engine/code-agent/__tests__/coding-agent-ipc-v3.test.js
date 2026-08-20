@@ -935,6 +935,176 @@ describe("registerCodingAgentIPCV3", () => {
     expect(result).toEqual({ success: false, error: "send failed" });
   });
 
+  it("serves the artifact workbench and keeps managed paths in the main process", async () => {
+    const storedPath = "C:/private/artifacts/files/artifact-1.txt";
+    const artifactClient = {
+      workbench: vi.fn().mockResolvedValue({
+        schema: "cc-artifact-workbench/v1",
+        artifacts: [],
+        recovery: { items: [] },
+        history: { activity: [] },
+      }),
+      access: vi.fn().mockResolvedValue({
+        schema: "cc-artifact-content-access-authorization/v1",
+        storedPath,
+        access: {
+          artifactId: "artifact-1",
+          eventDigest: `sha256:${"a".repeat(64)}`,
+        },
+      }),
+      remove: vi.fn().mockResolvedValue({
+        schema: "cc-artifact-deletion-receipt/v1",
+        deletionId: "delete-1",
+        artifactId: "artifact-1",
+        found: true,
+        settled: true,
+        recorded: true,
+        deletion: {
+          storedFile: "artifact-1.txt",
+          eventDigest: `sha256:${"b".repeat(64)}`,
+        },
+      }),
+      adjudicate: vi.fn().mockResolvedValue({
+        schema: "cc-artifact-recovery-adjudication/v1",
+        adjudicationId: "adjudication-1",
+        itemId: "item-1",
+        planDigest: `sha256:${"c".repeat(64)}`,
+        decision: "retry",
+        settled: true,
+        mutationPerformed: true,
+        result: { storedPath },
+      }),
+    };
+    const shell = { openPath: vi.fn().mockResolvedValue("") };
+    const dialog = {
+      showSaveDialog: vi.fn().mockResolvedValue({
+        canceled: false,
+        filePath: "C:/downloads/artifact-1.txt",
+      }),
+    };
+    const fs = { promises: { copyFile: vi.fn().mockResolvedValue() } };
+    registerCodingAgentIPCV3({
+      service,
+      ipcMain: ipcMainMock,
+      artifactClient,
+      shell,
+      dialog,
+      fs,
+    });
+
+    const workbench = await ipcMainMock.handlers[
+      "coding-agent:get-artifact-workbench"
+    ]({});
+    const opened = await ipcMainMock.handlers["coding-agent:open-artifact"](
+      {},
+      { artifactId: "artifact-1", action: "reveal" },
+    );
+    const downloaded = await ipcMainMock.handlers[
+      "coding-agent:download-artifact"
+    ]({}, { artifactId: "artifact-1" });
+    const removed = await ipcMainMock.handlers["coding-agent:remove-artifact"](
+      {},
+      { artifactId: "artifact-1" },
+    );
+    const recovered = await ipcMainMock.handlers[
+      "coding-agent:adjudicate-artifact-recovery"
+    ](
+      {},
+      {
+        itemId: "item-1",
+        planDigest: `sha256:${"c".repeat(64)}`,
+        decision: "retry",
+      },
+    );
+    await ipcMainMock.handlers["coding-agent:remove-artifact"](
+      {},
+      { artifactId: "artifact-1" },
+    );
+    await ipcMainMock.handlers["coding-agent:adjudicate-artifact-recovery"](
+      {},
+      {
+        itemId: "item-1",
+        planDigest: `sha256:${"c".repeat(64)}`,
+        decision: "retry",
+      },
+    );
+
+    expect(workbench.success).toBe(true);
+    expect(artifactClient.access.mock.calls[0][0]).toMatchObject({
+      artifactId: "artifact-1",
+      action: "preview",
+    });
+    expect(artifactClient.access.mock.calls[0][0].accessId).toMatch(
+      /^access_desktop_[a-f0-9]{32}$/u,
+    );
+    expect(shell.openPath).toHaveBeenCalledWith(storedPath);
+    expect(fs.promises.copyFile).toHaveBeenCalledWith(
+      storedPath,
+      "C:/downloads/artifact-1.txt",
+    );
+    expect(artifactClient.remove.mock.calls[0][0].deletionId).toMatch(
+      /^delete_desktop_[a-f0-9]{64}$/u,
+    );
+    expect(artifactClient.remove.mock.calls[1][0].deletionId).toBe(
+      artifactClient.remove.mock.calls[0][0].deletionId,
+    );
+    expect(artifactClient.adjudicate.mock.calls[0][0].adjudicationId).toMatch(
+      /^artifact_adjudication_desktop_[a-f0-9]{64}$/u,
+    );
+    expect(artifactClient.adjudicate.mock.calls[1][0].adjudicationId).toBe(
+      artifactClient.adjudicate.mock.calls[0][0].adjudicationId,
+    );
+    expect(
+      JSON.stringify({ opened, downloaded, removed, recovered }),
+    ).not.toContain("C:/private");
+    expect(removed.receipt).not.toHaveProperty("deletion");
+    expect(recovered.receipt).not.toHaveProperty("result");
+  });
+
+  it("returns content-free artifact errors when authorization fails", async () => {
+    const artifactClient = {
+      workbench: vi.fn().mockRejectedValue(new Error("C:/secret/index")),
+      access: vi.fn().mockRejectedValue(new Error("C:/secret/file")),
+      remove: vi.fn().mockRejectedValue(new Error("C:/secret/file")),
+      adjudicate: vi.fn().mockRejectedValue(new Error("C:/secret/ledger")),
+    };
+    registerCodingAgentIPCV3({
+      service,
+      ipcMain: ipcMainMock,
+      artifactClient,
+    });
+
+    const workbench = await ipcMainMock.handlers[
+      "coding-agent:get-artifact-workbench"
+    ]({});
+    const opened = await ipcMainMock.handlers["coding-agent:open-artifact"](
+      {},
+      { artifactId: "artifact-1" },
+    );
+    const removed = await ipcMainMock.handlers["coding-agent:remove-artifact"](
+      {},
+      { artifactId: "artifact-1" },
+    );
+
+    expect({ workbench, opened, removed }).toEqual({
+      workbench: {
+        success: false,
+        error: "Artifact workbench is unavailable",
+      },
+      opened: {
+        success: false,
+        error: "Artifact open was not authorized",
+      },
+      removed: {
+        success: false,
+        error: "Artifact removal was not settled",
+      },
+    });
+    expect(JSON.stringify({ workbench, opened, removed })).not.toContain(
+      "C:/secret",
+    );
+  });
+
   it("registers workflow command channels", () => {
     registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
 

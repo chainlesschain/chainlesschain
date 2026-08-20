@@ -5,6 +5,7 @@ import {
   buildExecutionLocationCatalog,
   buildExecutionLocationHandoffPreview,
   computeExecutionLocationTargetFactsDigest,
+  createExecutionLocationTargetAttestation,
 } from "../lib/execution-location-contract.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import {
@@ -333,6 +334,24 @@ export function prepareSessionReplicaHandoff(sessionId, options, deps = {}) {
   if (targetFactsDigest !== String(options.expectedTargetFactsDigest || "")) {
     throw new Error("target facts changed before location handoff append");
   }
+  if (!/^sha256:[a-f0-9]{64}$/u.test(String(options.attestationDigest || ""))) {
+    throw new Error("source target attestation digest is invalid");
+  }
+  // observedAt is intentionally excluded from targetFactsDigest but included
+  // in attestationDigest. The source-side probe and this target-side prepare
+  // are separate process invocations, so a real target can never reproduce
+  // the source probe's timestamp. Bind the handoff event to this fresh target
+  // observation; the source rehashes its receipt and immediately verifies the
+  // canonical target projection before it is allowed to resume.
+  const targetAttestation = createExecutionLocationTargetAttestation({
+    profileDigest: options.profileDigest,
+    sourceSessionId: sessionId,
+    sourceHeadHash: options.expectedHeadHash,
+    sourceEventCount: Number(options.expectedEventCount),
+    targetEvidenceId: options.targetEvidenceId,
+    baseCommit: binding.source.git.commit,
+    binding,
+  });
   return (
     deps.installSessionReplicaWithLocationHandoff ||
     installSessionReplicaWithLocationHandoff
@@ -348,7 +367,7 @@ export function prepareSessionReplicaHandoff(sessionId, options, deps = {}) {
       profileDigest: options.profileDigest,
       targetEvidenceId: options.targetEvidenceId,
       targetFactsDigest,
-      attestationDigest: options.attestationDigest,
+      attestationDigest: targetAttestation.attestationDigest,
       binding,
     },
   );

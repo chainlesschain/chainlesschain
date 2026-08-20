@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-17）：产品 v5.0.3.135 / 推荐 CLI 0.165.1（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含动态运行准入、远程成员权威、canonical 执行边界与 keeper 加固；PR #215 exact head `89c498cc46` 的插件激活生命周期已完成门禁并合入主线，仍是未发布源码增量。**
+> **当前版本边界（2026-08-20）：产品 v5.0.3.135 / 推荐 CLI 0.165.4（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含耐久 workflow authority、会话预算、远端结果审阅/应用、Artifact 审计结算与无原生工具链首次安装；`HEAD@f2fbf331da46` 的 native-addon policy、多端恢复能力与 P1-5 Marketplace 十二格供应链矩阵仍是发布后源码增量，后者尚待 exact-head Actions aggregate 回读。**
 
 ## 概述
 
@@ -409,7 +409,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.165.1` 已发布 Cowork 动态运行准入、远程审批/relay membership epoch、canonical workspace/delivery authority、后台 keeper 与依赖安全修复，并承接 `0.164.0` 的原生 `/paste-image`、作用域权限、受治理插件市场与 MCP capsule。精确 SHA `1a10ed7c8f` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；当前主线的 Marketplace payload/activation lifecycle 加固按已合入但未发布的源码增量说明。
+> `0.165.4` 已发布受治理插件事务、provider/tool/child-call 耐久回执、stage input/checkpoint、REPL/headless/WS 预算、远端 result bundle 收集/审阅/导入/事务应用、Artifact access/deletion/cleanup settlement 与可移植首次安装，并承接 `0.165.1` 的动态运行准入、远程权威和 canonical 执行边界。精确 SHA `86abb5f65e` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读。
 
 ---
 

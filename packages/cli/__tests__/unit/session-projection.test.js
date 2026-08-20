@@ -143,7 +143,7 @@ describe("canonical session projection", () => {
     }
   });
 
-  it("maps input, approval/recovery and terminal lifecycle without inventing pause/resume/rollback", () => {
+  it("maps input, approval/recovery and terminal lifecycle without advertising unsupported controls", () => {
     const projection = sample({
       background: [
         { id: "input", status: "running", phase: "needs_input" },
@@ -167,12 +167,109 @@ describe("canonical session projection", () => {
       failed: "failed",
       stopped: "stopped",
     });
-    const actionIds = projection.sessions.flatMap((item) =>
-      item.actions.map((action) => action.id),
-    );
-    for (const invented of ["pause", "resume", "rollback"]) {
-      expect(actionIds).not.toContain(invented);
+    for (const item of projection.sessions.filter(
+      (entry) => entry.kind === "background",
+    )) {
+      expect(item.capabilities).not.toContain("pause");
+      expect(item.capabilities).not.toContain("resume");
+      expect(item.actions.map((action) => action.id)).not.toContain("rollback");
     }
+  });
+
+  it("projects revision-bound durable workflow controls and content-free observability", () => {
+    const base = {
+      schema: "cc-dynamic-workflow-workbench-state/v1",
+      workflowId: "release-review",
+      definitionDigest: `sha256:${"a".repeat(64)}`,
+      admissionDigest: `sha256:${"b".repeat(64)}`,
+      stateDigest: `sha256:${"c".repeat(64)}`,
+      executionAuthoritySessionId: "session-authority",
+      cwd: "C:/repo",
+      createdAt: generatedAt,
+      updatedAt: generatedAt,
+      phase: { status: "paused", transition: "run-paused", at: generatedAt },
+      agents: { requested: 2, settled: 2, pending: 0, completed: 2, failed: 0 },
+      input: { requested: 0, pending: 0 },
+      budget: {
+        limits: { maxTokens: 1000, maxUsd: 1, maxDurationMs: 10000 },
+        observed: { tokens: 20, usd: 0.01, durationMs: 2000 },
+        status: { tokens: "within", usd: "within", duration: "within" },
+        overall: "within",
+      },
+      artifacts: { count: 1 },
+      checkpoints: { count: 1 },
+      recovery: { prepared: 1, terminal: 1, pending: 0, unavailable: 0 },
+      recoveryPolicy: {
+        risk: "terminal_checkpoint_recovery",
+        severity: "warning",
+        recommendedAction: "recover",
+        requiresApproval: true,
+        automaticallyExecutable: true,
+        unattendedMutationAllowed: false,
+        notification: {
+          key: `sha256:${"f".repeat(64)}`,
+          backoffMs: [15000, 60000, 300000, 900000],
+        },
+      },
+      recent: {
+        effectId: `sha256:${"d".repeat(64)}`,
+        stepId: "review",
+        status: "settled",
+        taskStatus: "completed",
+        requestedAt: generatedAt,
+        settledAt: generatedAt,
+        resultDigest: `sha256:${"e".repeat(64)}`,
+        call: { name: "read_file", status: "completed" },
+      },
+    };
+    const projection = sample({
+      dynamicWorkflow: [
+        { ...base, runId: "paused-run", status: "paused", revision: 7 },
+        {
+          ...base,
+          runId: "running-run",
+          status: "running",
+          revision: 3,
+          phase: { ...base.phase, status: "running" },
+          agents: { ...base.agents, settled: 1, pending: 1 },
+          recovery: { ...base.recovery, terminal: 0, pending: 1 },
+        },
+      ],
+    });
+    const paused = projection.sessions.find(
+      (item) => item.sourceId === "paused-run",
+    );
+    const running = projection.sessions.find(
+      (item) => item.sourceId === "running-run",
+    );
+    expect(paused.kind).toBe("dynamic_workflow");
+    expect(paused.capabilities).toEqual(["peek", "stop", "resume", "recover"]);
+    expect(paused.workflow).toMatchObject({
+      runtimeRevision: 7,
+      agents: { requested: 2, settled: 2 },
+      budget: { overall: "within" },
+      recovery: { terminal: 1 },
+      recoveryPolicy: {
+        risk: "terminal_checkpoint_recovery",
+        recommendedAction: "recover",
+      },
+      recent: { stepId: "review", call: { name: "read_file" } },
+    });
+    expect(
+      paused.actions.find((action) => action.id === "resume").preview.argv,
+    ).toEqual([
+      "cowork",
+      "workflow",
+      "runtime-resume",
+      "paused-run",
+      "--expected-revision",
+      "7",
+      "--cwd",
+      "C:/repo",
+      "--json",
+    ]);
+    expect(running.capabilities).toEqual(["peek", "stop", "pause"]);
+    expect(JSON.stringify(projection)).not.toContain("tool arguments");
   });
 
   it("advertises only actions backed by existing control-plane routes", () => {
@@ -365,9 +462,16 @@ describe("canonical session projection", () => {
       "remote",
       "local",
     ]);
-    expect(fixture.sessions[0].actions.map((item) => item.id)).toEqual(
-      PROJECTION_ACTIONS,
-    );
+    expect(fixture.sessions[0].actions.map((item) => item.id)).toEqual([
+      "dispatch",
+      "peek",
+      "reply",
+      "attach",
+      "detach",
+      "stop",
+      "checkpoint",
+      "archive",
+    ]);
     for (const session of fixture.sessions) {
       const content = { ...session };
       delete content.revision;

@@ -1,0 +1,196 @@
+name: IDE Roadmap Marketplace Supply Chain
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - "packages/cli/src/lib/plugin-runtime/install.js"
+      - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
+      - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
+      - "packages/cli/src/lib/plugin-runtime/remote-source.js"
+      - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - "packages/cli/src/lib/plugin-runtime/install.js"
+      - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
+      - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
+      - "packages/cli/src/lib/plugin-runtime/remote-source.js"
+      - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
+  schedule:
+    - cron: "17 5 * * 3"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  SUPPLY_CHAIN_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  supply-chain:
+    name: Supply chain ${{ matrix.suffix }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            os_suffix: linux
+            environment: private-registry-tls
+            suffix: linux-private-registry-tls
+          - os: ubuntu-24.04
+            os_suffix: linux
+            environment: explicit-proxy
+            suffix: linux-explicit-proxy
+          - os: ubuntu-24.04
+            os_suffix: linux
+            environment: pac
+            suffix: linux-pac
+          - os: ubuntu-24.04
+            os_suffix: linux
+            environment: air-gapped-cache
+            suffix: linux-air-gapped-cache
+          - os: macos-15
+            os_suffix: macos
+            environment: private-registry-tls
+            suffix: macos-private-registry-tls
+          - os: macos-15
+            os_suffix: macos
+            environment: explicit-proxy
+            suffix: macos-explicit-proxy
+          - os: macos-15
+            os_suffix: macos
+            environment: pac
+            suffix: macos-pac
+          - os: macos-15
+            os_suffix: macos
+            environment: air-gapped-cache
+            suffix: macos-air-gapped-cache
+          - os: windows-2025
+            os_suffix: windows
+            environment: private-registry-tls
+            suffix: windows-private-registry-tls
+          - os: windows-2025
+            os_suffix: windows
+            environment: explicit-proxy
+            suffix: windows-explicit-proxy
+          - os: windows-2025
+            os_suffix: windows
+            environment: pac
+            suffix: windows-pac
+          - os: windows-2025
+            os_suffix: windows
+            environment: air-gapped-cache
+            suffix: windows-air-gapped-cache
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CC_SC_ARTIFACT: ide-marketplace-supply-chain-${{ matrix.suffix }}-${{ github.run_attempt }}
+      CC_SC_ARTIFACT_DIR: ${{ github.workspace }}/.roadmap-evidence/marketplace-supply-chain/${{ matrix.suffix }}
+      CC_SC_STATE_DIR: ${{ github.workspace }}/.roadmap-evidence/marketplace-supply-chain-state/${{ matrix.suffix }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.SUPPLY_CHAIN_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Seed content-free failure artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CC_SC_ARTIFACT_DIR"
+          printf '{"schema":"chainlesschain.marketplace-supply-chain-bootstrap.v1","releaseCommit":"%s","cell":"%s"}\n' "$SUPPLY_CHAIN_COMMIT" "${{ matrix.suffix }}" > "$CC_SC_ARTIFACT_DIR/bootstrap.json"
+      - name: Install focused CLI dependencies
+        shell: bash
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Run authenticated supply-chain campaign
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs
+          --mode campaign
+          --release-commit "$SUPPLY_CHAIN_COMMIT"
+          --environment "${{ matrix.environment }}"
+          --artifact-dir "$CC_SC_ARTIFACT_DIR"
+          --artifact-name "$CC_SC_ARTIFACT"
+          --state-dir "$CC_SC_STATE_DIR"
+      - name: Upload content-free producer evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_SC_ARTIFACT }}
+          path: ${{ env.CC_SC_ARTIFACT_DIR }}/
+          if-no-files-found: error
+
+  trusted-supply-chain-aggregate:
+    name: Trusted three-OS twelve-cell supply-chain aggregate
+    needs: [supply-chain]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Fail closed unless every matrix cell succeeded
+        env:
+          MATRIX_RESULT: ${{ needs.supply-chain.result }}
+        run: test "$MATRIX_RESULT" = success
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.SUPPLY_CHAIN_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install verifier dependencies
+        shell: bash
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Download all producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: ide-marketplace-supply-chain-*-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/marketplace-supply-chain-download
+      - name: Normalize producer directories
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/marketplace-supply-chain-evidence"
+          for os in linux macos windows; do
+            for environment in private-registry-tls explicit-proxy pac air-gapped-cache; do
+              suffix="$os-$environment"
+              source="$RUNNER_TEMP/marketplace-supply-chain-download/ide-marketplace-supply-chain-$suffix-$GITHUB_RUN_ATTEMPT"
+              test -d "$source"
+              mv "$source" "$RUNNER_TEMP/marketplace-supply-chain-evidence/$suffix"
+            done
+          done
+      - name: Rehash all exact producers and 1200 journeys
+        run: >-
+          node packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs
+          --evidence-root "$RUNNER_TEMP/marketplace-supply-chain-evidence"
+          --release-commit "$SUPPLY_CHAIN_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --event-name "$GITHUB_EVENT_NAME"
+          --output "$RUNNER_TEMP/marketplace-supply-chain-aggregate.json"
+      - name: Upload trusted aggregate
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ide-marketplace-supply-chain-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/marketplace-supply-chain-aggregate.json
+          if-no-files-found: error

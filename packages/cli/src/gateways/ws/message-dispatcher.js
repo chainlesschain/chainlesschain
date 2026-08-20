@@ -76,6 +76,61 @@ async function executeWithIdempotency(server, id, ws, message, stream) {
   return outcome;
 }
 
+/**
+ * Persist a schema-declared secret received over the authenticated WS
+ * connection without ever placing it in a CLI command string or process argv.
+ *
+ * `server._setSecretConfigValue` is an injection seam for focused protocol
+ * tests. Production servers lazily load the same config manager used by
+ * `cc config set-secret`, so desktop web-shell and standalone `cc ui` share
+ * one storage implementation.
+ */
+export async function handleConfigSetSecret(server, id, ws, message) {
+  const key = message?.key;
+  const value = message?.value;
+
+  if (typeof key !== "string" || !key) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "CONFIG_SECRET_INVALID_KEY",
+      message: "A schema-declared secret key is required",
+    });
+    return;
+  }
+  if (typeof value !== "string" || value.length === 0) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "CONFIG_SECRET_EMPTY",
+      message: "Secret input was empty; configuration was not changed",
+    });
+    return;
+  }
+
+  try {
+    const setSecretConfigValue =
+      server._setSecretConfigValue ||
+      (await import("../../lib/config-manager.js")).setSecretConfigValue;
+    const result = setSecretConfigValue(key, value, { storage: "auto" });
+    server._send(ws, {
+      id,
+      type: "config-set-secret-result",
+      success: true,
+      key,
+      storage: result.storage,
+      backend: result.backend ?? null,
+    });
+  } catch (error) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: error?.code || "CONFIG_SECRET_WRITE_FAILED",
+      message: error?.message || "Could not save configuration secret",
+    });
+  }
+}
+
 export function createWsMessageDispatcher(server) {
   return {
     async dispatch(clientId, ws, message) {
@@ -123,6 +178,8 @@ export function createWsMessageDispatcher(server) {
         "permission-rules-get": () => server._handlePermissionRulesGet(id, ws),
         "permission-rules-set": () =>
           server._handlePermissionRulesSet(id, ws, message),
+        "config-set-secret": () =>
+          handleConfigSetSecret(server, id, ws, message),
         "slash-command": () => server._handleSlashCommand(id, ws, message),
         "session-answer": () => server._handleSessionAnswer(id, ws, message),
         "remote-session-create": () =>

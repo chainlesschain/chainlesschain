@@ -309,4 +309,96 @@ final class RemoteSessionClientTests: XCTestCase {
         XCTAssertEqual(client.status, .disconnected)
         XCTAssertEqual(socket.closeCode, 1000)
     }
+
+    func testTransientDropReconnectsExactPairedIdentityAndCancelsStaleRetry() throws {
+        let host = RemoteSessionCrypto(sessionId: remoteSessionId, localPeerId: hostPeerId)
+        var sockets: [FakeWebSocket] = []
+        var scheduled: [(TimeInterval, () -> Void)] = []
+        let client = RemoteSessionClient(
+            webSocketFactory: { _, listener in
+                let socket = FakeWebSocket()
+                socket.listener = listener
+                sockets.append(socket)
+                return socket
+            },
+            peerIdFactory: { "ios-stable-peer" },
+            reconnectPolicy: .init(
+                maximumAttempts: 3,
+                initialDelaySeconds: 2,
+                maximumDelaySeconds: 8
+            ),
+            reconnectScheduler: { delay, action in scheduled.append((delay, action)) }
+        )
+
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        let first = try XCTUnwrap(sockets.first)
+        first.listener?.webSocketDidOpen(first)
+        first.listener?.webSocket(first, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(first, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: first)
+
+        first.listener?.webSocket(first, didCloseWithCode: 1006, reason: "transient")
+        XCTAssertEqual(client.status, .reconnecting)
+        XCTAssertEqual(scheduled.count, 1)
+        XCTAssertEqual(scheduled[0].0, 2)
+        scheduled[0].1()
+
+        let second = try XCTUnwrap(sockets.last)
+        XCTAssertFalse(second === first)
+        second.listener?.webSocketDidOpen(second)
+        let register = try XCTUnwrap(second.message(ofType: "register"))
+        XCTAssertEqual(register["peerId"] as? String, "ios-stable-peer")
+        second.listener?.webSocket(second, didReceiveText: #"{"type":"registered"}"#)
+        XCTAssertEqual(client.status, .connected)
+        XCTAssertNil(second.payload(ofType: "remote-session.pair"))
+
+        second.listener?.webSocket(second, didFailWithError: URLError(.networkConnectionLost))
+        XCTAssertEqual(client.status, .reconnecting)
+        XCTAssertEqual(scheduled.count, 2)
+        client.disconnect()
+        scheduled[1].1()
+        XCTAssertEqual(sockets.count, 2, "explicit disconnect must invalidate a queued retry")
+        XCTAssertEqual(client.status, .disconnected)
+    }
+
+    func testReconnectExhaustionRequiresExplicitResumeAndRevocationCannotResume() throws {
+        let host = RemoteSessionCrypto(sessionId: remoteSessionId, localPeerId: hostPeerId)
+        var sockets: [FakeWebSocket] = []
+        var scheduled: [() -> Void] = []
+        let client = RemoteSessionClient(
+            webSocketFactory: { _, listener in
+                let socket = FakeWebSocket()
+                socket.listener = listener
+                sockets.append(socket)
+                return socket
+            },
+            reconnectPolicy: .init(
+                maximumAttempts: 1,
+                initialDelaySeconds: 0,
+                maximumDelaySeconds: 0
+            ),
+            reconnectScheduler: { _, action in scheduled.append(action) }
+        )
+
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        let first = try XCTUnwrap(sockets.first)
+        first.listener?.webSocket(first, didFailWithError: URLError(.timedOut))
+        XCTAssertEqual(client.status, .reconnecting)
+        scheduled.removeFirst()()
+        let second = try XCTUnwrap(sockets.last)
+        second.listener?.webSocket(second, didFailWithError: URLError(.timedOut))
+        XCTAssertEqual(client.status, .error)
+
+        XCTAssertTrue(client.resumeAfterTransientFailure())
+        XCTAssertEqual(client.status, .reconnecting)
+        scheduled.removeFirst()()
+        let third = try XCTUnwrap(sockets.last)
+        third.listener?.webSocketDidOpen(third)
+        third.listener?.webSocket(third, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(third, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: third)
+        try deliverEncrypted(["type": "session.revoked"], from: host, to: third)
+        XCTAssertEqual(client.status, .revoked)
+        XCTAssertFalse(client.resumeAfterTransientFailure())
+    }
 }

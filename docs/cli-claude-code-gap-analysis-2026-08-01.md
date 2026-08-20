@@ -1769,3 +1769,191 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 - P2-4 仍固定 `v-npm-0-165-2@775d5667bc7bdcf8fed3f834d3ba2eda43526128`、campaign `p2-4-scheduler-long-soak-775d5667bc7b`、seed `1592598566`。真实 schedule dispatcher [run `32216915161`](https://github.com/chainlesschain/chainlesschain/actions/runs/32216915161) 在 `2026-08-19T05:19:26Z` 启动并成功完成，因仍早于第 2 段最早允许时间 `2026-08-19T09:07:09Z` 而保持 **1/4**，没有提前派发。后续 segment 仍须满足相邻启动 24 至 30 小时及总覆盖至少 72 小时。
 
 因此本节关闭的是 native workflow 解析缺陷并重新确认剩余权限/数据边界，不改变完成统计：原始 15 项仍为 **11 完成 / 4 部分完成 / 0 完全未开始**，六项产品任务仍为 **3 完成 / 3 未完成**，去重实施队列仍为 **4 个工作包**。其中 P2-4 是时间门控；native、alias 与 Skill/MCP 的上述部分边界需要仓库外生产身份、获批真实数据或新的完整平台隔离设计，任何缺失项都继续失败关闭。
+
+## 19. 2026-08-20 未完成任务表格化分析与分期建议
+
+> 复核快照：2026-08-20 17:01 +08:00。本节以第 18.34～18.35 节为当前判定基线，并核对当时远端 `main@43d622519fc3692205065632714cfddab072eb00`、GitHub Actions 终态、仓库 environment/variable/secret 名称以及当前源码中的失败关闭标志。工作区所在分支及未提交改动不作为完成证据。
+>
+> 分期原则：**不需要新增组织授权、生产凭据或真实用户数据的工作留在本期；依赖这些外部输入的退出门转入下一期。** 转入下一期只改变排期，不改变安全判定；在权威退出证据形成前，相关任务仍为部分完成或 NO-GO。
+
+### 19.1 四个剩余工作包总表
+
+| 编号 | 去重后的工作包 | 对应原始/产品项 | 2026-08-20 当前状态 | 外部条件分类 | 分期建议 | 判定依据 |
+| --- | --- | --- | --- | --- | --- | --- |
+| R1 | Native 签名、可信更新与公开发行链 | P0-3、P1-5、产品任务 4 | **部分完成 / NO-GO** | **外部条件主导** | **下一期** | 仓库内构建、签名校验、安装/升级/回滚失败关闭和公网回读合同已具备；但当前可见 environment 仍只有 `pypi`，没有 `native-production`，可见 secret/variable 也没有 CLI 的 Ed25519、Authenticode、Developer ID/notary 和公开渠道生产身份。 |
+| R2 | Alias telemetry 与最终删除决策 | P1-1、产品任务 5 | **部分完成 / NO-GO；25/25 保留** | **外部条件主导** | **下一期** | DELTA exporter、公开版本锚和报告器已完成；`REPOSITORY_APPROVAL_PUBLIC_KEYS` 仍为空，缺获批 Collector/cohort export、三平台非零 coverage、accepted points、sample rate 和逐命令 legacy/replacement usage。 |
+| R3 | Scheduler kernel 72 小时 campaign | P2-4 | **部分完成，已由 1/4 更新为 2/4** | **无需新增外部条件；仅受时间门控** | **本期继续** | 固定 `v-npm-0-165-2@775d5667bc7bdcf8fed3f834d3ba2eda43526128` 的第 1 段 run `32118985094` 与第 2 段 run `32238907233` 均为三平台加 aggregate 4/4 success；自动派发变量已配置。 |
+| R4 | Skill/MCP 完整安全闭环 | 产品任务 3 | **部分完成 / NO-GO** | **混合型** | **仓库内实现本期做；签名实机证据下一期** | 三平台长期恶意重复矩阵已成功，但 aggregate 仍明确为 `completeSkillMcpSecurityClosure=false`；运行时仍保留 `sharedLibraryClosure=false`，macOS 公共 API 路径仍以 `macos_atomic_runtime_exec_unavailable` 失败关闭。 |
+
+当前总数仍为：原始 15 项 **11 完成 / 4 部分完成 / 0 完全未开始**，六项产品任务 **3 完成 / 3 未完成**，去重后 **4 个工作包未完全关闭**。R3 从 `1/4` 到 `2/4` 是进度变化，尚不足以把 P2-4 标记为完成。
+
+### 19.2 本期可推进：不需要新增外部条件
+
+| 顺序 | 可立即执行的任务 | 当前基础 | 本期动作 | 本期验收口径 | 工作量/风险 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 完成 R3 的 scheduler campaign | 两个同 SHA formal segment 已成功；自动 dispatcher、4 段上限、24 小时最小间隔和 verifier 均已配置 | 不改 pinned ref/SHA/campaign/seed；让自动控制面派发第 3、4 段；每段结束后回读三平台与 aggregate；第 4 段后运行 campaign verifier 并归档 artifact digest | 恰好 4 个同 SHA 成功 segment；相邻启动间隔 24～30 小时；首末启动覆盖至少 72 小时；最终 verifier success；0 duplicate execution、0 invariant violation | **S**；工程工作少，主要是等待和证据复核。任一段失败时保持 NO-GO，只修失败根因后按正式合同决定是否重开 campaign |
+| 2 | 明确 R4 的可支持安全声明 | Linux 已覆盖 descriptor-pinned pathname loader input；macOS/Windows 仍有明确失败关闭边界 | 先形成平台能力表：Linux `dlopen` pathname、Windows DLL/delay-load/`LoadLibrary`、macOS dyld/`@rpath`/`dlopen`、匿名 JIT/custom loader 分别是“支持、失败关闭或明确不支持”；避免以“任意 shared library”这种不可验证的总称作为单一布尔目标 | 每个平台、加载机制、可写来源、递归深度和动态代码路径均有可测试声明；不支持路径继续失败关闭；不得只把 `sharedLibraryClosure` 常量改为 `true` | **M**；属于设计收敛，可完全在仓库内完成 |
+| 3 | 实现并测试 R4 的仓库内 native/shared-library 边界 | Process Broker、Linux bwrap descriptor namespace、macOS helper candidate 和 formal soak 框架已存在 | 按能力表补齐可承诺范围的快照、哈希、只读挂载/受控加载和 race 测试；增加 Linux、Windows、macOS 的 unit/contract/host 测试；对不可能形成原子绑定的路径给出 typed rejection | 同一 clean exact SHA 的 CLI CI、CLI Strict Sandbox 和受影响安全门通过；报告字段只在对应能力真正闭环时升级；unsupported/JIT/custom-loader 路径仍为显式 NO-GO | **L / 高风险**；可本期开发，但完整产品关闭仍受下一期签名 macOS live evidence 约束 |
+| 4 | 为本期结果补齐审计记录 | 本文已有 exact-SHA、run、artifact 与失败关闭记录格式 | R3 每个终态、R4 每个能力切片都记录 exact SHA、测试范围、artifact digest、未覆盖边界和是否改变统计 | 文档不使用旧 SHA、局部成功、PR smoke 或 unsigned contract 外推正式完成 | **S** |
+
+R3 的时间窗口按已完成 run 推算如下；这是最早允许时间，不是成功承诺：
+
+| Segment | Run / 状态 | workflow 启动时间 | 最早后继启动时间（北京时间） | 备注 |
+| --- | --- | --- | --- | --- |
+| 1 | `32118985094` / success | 2026-08-18 16:56:41 +08:00 | 已完成 | 三平台与 aggregate 4/4 success |
+| 2 | `32238907233` / success | 2026-08-19 17:41:39 +08:00 | Segment 3 不早于 2026-08-20 17:41:39 | 三平台与 aggregate 4/4 success |
+| 3 | 待自动派发 | 不早于上表时间 | Segment 4 不早于 Segment 3 启动后 24 小时 | 相邻间隔不得超过 30 小时 |
+| 4 | 待自动派发 | 预计不早于 2026-08-21 17:41:39 +08:00 | 完成后触发 verifier | 还必须满足相对 Segment 1 至少 72 小时覆盖 |
+
+### 19.3 下一期处理：需要外部条件
+
+| 下一期工作包 | 本期不应伪造或替代的外部条件 | 外部责任方 | 条件到位后的执行动作 | 正式退出证据 |
+| --- | --- | --- | --- | --- |
+| R1 Native 签名与公开发行 | 创建受保护的 `native-production`；配置 updater Ed25519 私钥/公钥；Windows Authenticode 证书、密码、发布者和时间戳策略；macOS Developer ID、notary 凭据和团队/指定要求；CLI native tag 保护；Homebrew、WinGet 等公开渠道发布权限 | 仓库管理员、安全/发布负责人、Apple/Microsoft 账号与包管理渠道维护者 | 从一个最终 exact SHA 创建受保护 native tag；构建六目标；执行签名/notarization/Sigstore；完成 signed fresh install、upgrade、rollback；发布版本化与 stable 资产；发布 Homebrew/WinGet；匿名回读公网字节 | 同一 exact SHA 的 native release 全矩阵成功；Windows/macOS/Linux 平台签名有效；安装/升级/回滚成功；公开渠道可安装；版本化/stable/包管理器资产逐字节、checksum、SBOM、provenance 和签名回读一致 |
+| R2 Alias telemetry 与删除决策 | 组织批准的 lifecycle Ed25519 公钥；获批且具代表性的 Collector/cohort export；Linux/macOS/Windows 连续 reporting coverage；非零 accepted points；可信 sample rate；逐命令 legacy/replacement usage | 产品、数据治理/隐私、安全审批和 telemetry 平台负责人 | 固定审批信任根；从 `0.163.4` 公开锚开始校验连续数据；运行正式 reporter；逐命令形成 `retain`/`remove` 建议；经产品评审后才修改 manifest | 报告不再是 `approval-signature-trust-unavailable` 或 `insufficient-data`；每个 alias 都有覆盖、样本和偏差说明；移除项通过兼容迁移、文档、测试和发布门。条件未到位时继续 25/25 retain |
+| R4 的 macOS 签名实机子门 | 创建受保护的 `cli-macos-mcp-launcher-production`；Developer ID 签名、notary Accepted、root-owned pkg 安装能力；x64/arm64 真实 runner 与受保护 tag/SHA | 仓库管理员、macOS 发布/安全负责人 | 对本期完成的 helper/broker 能力运行签名后的 x64/arm64 root live race、lifeline、signal、fork、path replacement 与 cleanup 矩阵，并聚合回读 | exact-SHA release gate、protected tag、signed-root live 和 aggregate 全部 success；此前只成功的 unsigned contract 不能替代此证据 |
+
+R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/notary、受保护 environment 和真实 macOS 发布授权，避免重复走两套审批。R2 的数据与隐私审批独立，不应阻塞 R1/R4，也不能用 npm 下载量或版本增长替代逐命令 adoption evidence。
+
+### 19.4 建议后的本期/下期任务池
+
+| 期次 | 纳入项 | 不纳入项 | 期末可达到的最佳状态 |
+| --- | --- | --- | --- |
+| 本期 | R3 完成剩余两段与 verifier；R4 完成平台能力声明和可在仓库内实现的 native/shared-library 边界；同步 exact-SHA 审计记录 | 不等待组织签名凭据，不采集未经批准的用户 telemetry，不发布 unsigned native 资产 | 若 R3 全绿，可正式关闭 P2-4；R4 可缩小剩余边界，但在 signed macOS live 子门完成前仍为部分完成 |
+| 下一期 | R1 完整签名 native 发行；R2 代表性 telemetry 与 alias 决策；R4 macOS 签名实机子门 | 不以本地测试、unsigned contract、npm provenance、版本增长或单平台结果代替外部证据 | 外部条件全部满足并通过相应 exact-SHA 门后，才允许关闭 R1、R2、R4，并重新计算总体完成数 |
+
+### 19.5 管理结论
+
+| 决策 | 结论 |
+| --- | --- |
+| 本期立即继续 | **R3 scheduler campaign**；**R4 的仓库内安全边界设计、实现与测试** |
+| 下一期再做 | **R1 native 签名/公开渠道全链**；**R2 真实 telemetry/alias 删除决策**；**R4 的签名 macOS root live 最终证据** |
+| 当前是否可宣称完整产品 GO | **否**。R3 尚为 2/4，R1/R2/R4 的正式退出门未关闭 |
+| 当前兼容策略 | **继续保留 25/25 alias；native 与不完整 Skill/MCP 路径继续失败关闭** |
+| 最短可关闭项 | **R3**。它不需要新增外部授权，只需现有自动控制面按时间合同完成后两段与 verifier |
+
+## 20. 2026-08-20 本期实施进展与 GitHub Actions 口径补充
+
+> 复核快照：2026-08-20 18:09 +08:00。本节继续遵守第 19 节的分期原则，并补充一条执行口径：**仓库已经具备、可由现有 GitHub-hosted runner 验证、且不要求新增生产凭据、受保护 environment 或真实用户数据的 Action，可以纳入本期。** 仅存在 workflow 文件并不等于外部条件已经满足；需要签名身份、生产 environment、渠道权限或获批 telemetry 的 job 仍转入下一期。
+
+### 20.1 GitHub Actions 是否纳入本期的判定表
+
+| 验证类型 | 是否需要新增外部条件 | 分期 | 本期口径 |
+| --- | --- | --- | --- |
+| `CLI CI` 三平台普通单元、集成与 E2E 矩阵 | 否；使用仓库现有 GitHub-hosted runner | **本期** | 新提交进入远端分支/PR 后，以该 exact SHA 的完整 Linux、Windows、macOS 矩阵为准 |
+| `CLI Strict Sandbox` 三平台安全合同 | 否；当前合同使用现有 runner 与仓库脚本 | **本期** | native-addon policy 单测已加入显式执行列表；不得用本地单平台结果替代三平台终态 |
+| `CLI Reliability Soak` 的 unsigned/formal MCP host-race 矩阵 | 否；workflow 已支持 `workflow_dispatch` 的 exact SHA 与 7200 秒正式 profile | **本期** | 可在代码进入远端后运行；PR smoke 仍是 non-qualifying，只有 formal aggregate 可作为长期证据 |
+| `CLI macOS MCP Launcher Release Gate` 的 unsigned compile/contract job | 否；使用现有 x64/arm64 macOS runner | **本期** | 只验证编译与合同，不得外推为 signed/root live 成功 |
+| 同一 workflow 中依赖 Developer ID、notary、root-owned pkg、受保护 tag/environment 的 release/live job | 是 | **下一期** | 即使 workflow 已存在，也必须等生产身份和受保护环境到位后才能形成退出证据 |
+| Alias telemetry reporter | 是；缺获批 cohort、签名信任根和真实代表性数据 | **下一期** | GitHub Actions 只能验证 reporter 代码，不能生成或替代获批用户数据 |
+
+本地 Git commit 是后续 Action 的输入，不是 Action 成功证据。本节记录的 `409240ab2b` 与 `30a0c4f6eb` 尚未以本节快照证明存在于远端，也尚无绑定这两个 SHA 的完整 Action 终态，因此当前只能记为“仓库实现与本地验证完成、远端 exact-SHA 门待运行”。
+
+### 20.2 R4 仓库内能力切片：MCP package native addon 拒绝
+
+本期没有把 `sharedLibraryClosure` 直接改成 `true`，而是先关闭一个跨平台、可测试且不依赖签名凭据的窄边界：materialized MCP npm capsule 不允许包携带或在运行期加载 Node native addon。实现提交为 `409240ab2bf64357d8d581e00ad13ba41c389a7b`，CI 路由提交为 `30a0c4f6eb5394cb5b29bbff52c96cf6a8ec86e1`。
+
+| 加载/执行面 | 本期声明 | 实现与证据 | 明确保留的边界 |
+| --- | --- | --- | --- |
+| npm package 中的 `.node` native addon | **拒绝 / fail closed** | immutable VFS resolver 在构建期拒绝 native addon；capsule 固定为 single bundled CJS，外部依赖只允许静态 Node builtin 集 | 不把拒绝 package addon 外推为任意 OS shared-library closure |
+| `process.dlopen` | **拒绝 / fail closed** | package 代码执行前，以 non-writable、non-configurable guard 替换；新增 adversarial child-process 断言要求 `CC_MCP_STDIO_NATIVE_MODULE_BLOCKED` | Node 自身启动时加载的系统库仍属于 runtime TCB |
+| `process.binding` / `process._linkedBinding` 与未列入静态集合的 builtin | **拒绝 / fail closed** | 继续由 immutable capsule prelude 阻断，策略与 capsule byte identity 一起进入 materialization generation | 不声明能阻止 Node/V8 自身的内部实现或已信任 runtime 行为 |
+| Broker 跨平台 admission 与审计 | **支持 `native-addon-loading` 边界** | 版本化 exact policy 被绑定到 materialization、一次性 execution contract、Linux/macOS/Windows sandbox plan binding 和 runtime probe；缺失、额外字段、摘要不匹配或伪造 guarantee 均拒绝 | `sharedLibraryClosure` 必须保持 `false`；审计同时记录 host runtime library 与 anonymous executable memory 为 TCB |
+| Linux general native Plugin 的 pathname loader input | **维持既有窄支持** | 继续使用 descriptor-pinned runtime pathname loader closure candidate | 不覆盖 anonymous JIT、可执行动态生成代码或 custom in-process loader |
+| Windows 任意 DLL/delay-load/`LoadLibrary`、macOS 任意 dyld/`@rpath`/`dlopen` | **未声明完整闭包** | materialized MCP capsule 的 package addon 已被拒绝；general native Plugin 的任意递归动态库闭包仍未关闭 | Windows/macOS broad closure 继续 NO-GO；macOS signed/root atomic live 仍需下一期外部条件 |
+| WebAssembly、V8 JIT、anonymous executable memory | **不在本切片承诺内** | policy 明确记录 `anonymousExecutableMemory=node-runtime-tcb` | 不得使用 `native-addon-loading` guarantee 宣称“禁止所有非 JS 机器码执行” |
+
+本切片把一个此前只存在于 resolver/prelude 实现中的限制升级为版本化、摘要绑定、可审计且由 Broker 强制核对的 capability。它缩小 R4 剩余面，但不会把 R4 或完整产品改判为 GO。
+
+### 20.3 本地验证与 Action 路由结果
+
+| 检查项 | 结果 | 证据口径 |
+| --- | --- | --- |
+| MCP policy、capsule contract、client、macOS fail-closed、materialization、Broker、live contract、resolver/builder 定向回归 | **9 files / 437 passed / 4 platform-condition skipped** | skip 仅为当前主机不满足对应平台 live 条件，不计该平台正式成功 |
+| 完整 Process Broker 平台单测 | **334/334 passed** | 覆盖 Linux/macOS/Windows plan、伪造 probe、typed rejection 与 evidence/guarantee 一致性 |
+| materialization 全文件 | **59/59 passed** | 包含 `.node` 构建期拒绝与 `process.dlopen` 运行期拒绝 |
+| ESLint | **0 errors / 8 existing warnings** | warnings 位于既有 Broker 文件的未使用变量，不由本切片新增 |
+| Prettier、Node syntax、`git diff --check` | **通过** | 仅覆盖本切片相关文件 |
+| workflow 格式与静态合同 | **Prettier、actionlint 通过；3 files / 34 tests passed** | Strict Sandbox 显式运行 policy test；Reliability Soak 与 macOS launcher gate 将 policy 文件纳入 paths |
+| 远端 exact-SHA GitHub Actions | **待运行** | 当前本地 commit 尚不能替代 `CLI CI`、`CLI Strict Sandbox`、formal reliability 或 unsigned macOS contract 的远端终态 |
+
+### 20.4 R3 scheduler campaign 最新状态
+
+| Segment | Run | 本节快照状态 | exact SHA | 时间合同判定 |
+| --- | --- | --- | --- | --- |
+| 1 | `32118985094` | success，4/4 | `775d5667bc7bdcf8fed3f834d3ba2eda43526128` | 已计入正式 campaign |
+| 2 | `32238907233` | success，4/4 | 同上 | 已计入正式 campaign |
+| 3 | `32356640096` | **queued**；2026-08-20 17:59:02 +08:00 由 `workflow_dispatch` 创建 | 同上 | 相对 Segment 2 workflow 启动间隔约 24 小时 17 分，未提前；是否计入仍须等三平台与 aggregate 成功并读取 artifact 中的平台起始时间 |
+| 4 | 尚未派发 | pending | 必须同上 | 只能在 Segment 3 正式起始时间后满足 24～30 小时间隔时派发；完成后仍须 campaign verifier success |
+
+第 3 段进入队列是进度，不是完成证据。R3 当前仍为 **2/4 已完成、1 queued、1 未派发**；在第 3、4 段及 verifier 全部成功前，P2-4 继续保持部分完成。
+
+### 20.5 更新后的本期/下一期执行结论
+
+| 期次 | 任务 | 当前进度与退出条件 |
+| --- | --- | --- |
+| 本期 | R3 自动完成 Segment 3、4 与 verifier | Segment 3 已 queued；继续由自动控制面执行，不改变 pinned tag/SHA/campaign/seed |
+| 本期 | R4 repository-local native/shared-library capability 切片 | native-addon policy 实现、本地回归和 Action 路由已提交；代码进入远端后补齐 exact-SHA `CLI CI`、`CLI Strict Sandbox`、formal reliability 与 unsigned macOS contract 终态 |
+| 本期 | 其他无需新增凭据、可由现有 GitHub Actions 证明的修复或安全合同 | 可以继续纳入，但必须绑定最终 exact SHA，且不得把 smoke、skip、旧 SHA 或单平台结果外推为正式退出证据 |
+| 下一期 | R1 native production signing/channel、R2 representative telemetry、R4 signed macOS root live | 继续等待生产身份、受保护 environment、渠道权限或获批真实数据；workflow 存在不消除这些外部前置 |
+
+因此，本期可独立完成的仓库代码切片已经提交，但本期整体尚未终态：R3 受真实时间合同约束，R4 的远端 exact-SHA Actions 还需在提交进入远端后执行。完整产品仍为 **NO-GO**，`sharedLibraryClosure=false`、`completeSkillMcpSecurityClosure=false` 和 25/25 alias retain 均继续有效。
+
+### 20.6 R4 unsupported native Plugin 平台失败关闭
+
+在 `409240ab2b` 的 MCP package native-addon policy 之外，本期继续审计 general native Plugin 的入口，发现严格策略虽然只为 Linux 建立了 descriptor-bound ELF loader contract，但 macOS/Windows 路径此前可能在没有该 contract 时继续进入通用 sandbox。`f296c420fe59ae755761222add11fe62363e8a02` 将该缺口改为显式失败关闭。
+
+| 平台与入口 | 本期最终处理 | 失败关闭/支持证据 | 未承诺边界 |
+| --- | --- | --- | --- |
+| Linux strict native Plugin | **保留窄支持** | 继续要求既有 descriptor-bound ELF 启动与 runtime pathname loader closure candidate；由 Linux execution contract/Broker 路径执行 | `sharedLibraryClosure=false`；不覆盖 JIT、匿名可执行内存、custom in-process loader 或任意非 pathname 加载 |
+| Windows strict native Plugin | **拒绝 / fail closed** | 在任何 Broker/native spawn 前抛出 `ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED`；测试断言无 native spawn 且无伪造 Broker audit | 不宣称已经关闭 DLL、delay-load 或 `LoadLibrary` 的递归依赖图；未来如实现，必须新增平台专属原子加载合同与实机证据 |
+| macOS strict native Plugin | **拒绝 / fail closed** | 与 Windows 使用相同 typed rejection，在通用 sandbox 不能提供 dyld 原子闭包时拒绝执行 | unsigned compile/contract 不等于 signed/root live；Developer ID、notary 与 x64/arm64 root 实机门仍在下一期 |
+| materialized MCP npm capsule | **跨平台拒绝 package native addon** | 继续由 `409240ab2b` 的版本化 policy、capsule identity、runtime `process.dlopen` guard 和 Broker evidence binding 保证 | Node/V8 runtime TCB、Wasm/JIT 与 host runtime shared libraries 不在该保证内 |
+
+本次定向验证结果如下：
+
+| 检查项 | 结果 | 判定 |
+| --- | --- | --- |
+| `plugin-runtime-bin-agent-core.test.js` 完整文件 | **13 passed / 2 platform-condition skipped** | 新增 Windows/macOS typed denial 均通过；skip 不外推为对应平台 live 成功 |
+| `plugin-runtime-bin.test.js` 完整文件 | **40/40 passed** | Plugin bin 解析、固定与拒绝规则未回退 |
+| native platform/Broker 定向过滤 | **6 passed / 368 filtered skipped** | 只用于核对受影响 native 路由，不替代完整 Broker 矩阵 |
+| ESLint | **0 errors / 21 existing warnings** | warnings 位于既有 `agent-core.js`，本补丁未新增 lint error |
+| Prettier、Node syntax、`git diff --check` | **通过** | 覆盖本提交的两处文件 |
+| GitHub Actions 路由 | **已覆盖，远端 exact-SHA 待运行** | `CLI Strict Sandbox` 已监听并显式执行 `agent-core` Plugin bin 测试；仍以最终远端 SHA 的三平台终态为准 |
+
+该修复完成的是“对仓库目前不能安全承诺的平台路径明确拒绝”，不是实现 Windows/macOS broad shared-library closure。R4 的仓库内安全边界因此更清晰，但总体状态仍为 **部分完成 / NO-GO**；只有下期外部签名实机子门和仍未实现的能力各自取得严格证据后，才允许升级相应声明。
+
+### 20.7 R4 加载机制、可写来源、递归上限与动态代码终审矩阵
+
+第 19.2 节要求能力声明不能只停留在平台名称或单一布尔值。以下矩阵按实际加载机制复核当前源码常量、Broker admission 与 fail-closed 路由；它是本期 repository-local R4 切片的最终声明范围。
+
+| 平台/执行面 | 加载机制 | 可写来源口径 | 递归/规模口径 | 动态代码口径 | 本期结论 |
+| --- | --- | --- | --- | --- | --- |
+| Linux strict dynamic-native Plugin | kernel `PT_INTERP`、递归 `DT_NEEDED`，以及 libc `dlopen` 的 **pathname-visible regular-file** 输入 | 最终 bwrap synthetic root 与所有 descriptor-pinned mount 均只读；唯一用于遮蔽 supervisor staging 的 `/run` tmpfs 在 target 启动前 remount read-only；`/tmp`、`/var/tmp`、HOME、procfs、devfs 无可写挂载；seccomp 拒绝 SCM_RIGHTS、跨进程/handle 取 FD 与 nested user/mount namespace 引入新输入 | 启动 ELF 图最多 **256 files / 1024 edges / 512 MiB**；完整 runtime pathname load set 最多 **512 files / 1 GiB**，每个成员均前后 `fstat`、SHA-256、descriptor 与 policy digest 绑定 | 只承诺 kernel/libc pathname resolution；anonymous JIT、Wasm/V8 machine code 和恶意 custom in-process ELF loader 均不在闭包内 | **窄支持**；`sharedLibraryClosure=false` 继续保持，不能外推为任意机器码闭包 |
+| Linux materialized MCP npm capsule | single bundled CJS；静态 Node builtin allowlist；package `.node` 与 `process.dlopen` 禁止 | capsule/materialization byte identity 固定；package 不能携带 `.node`，运行前安装不可改写的 `process.dlopen` guard | native-addon dependency recursion 为 **0**；发现 `.node` 或运行期 addon 请求立即拒绝 | Node/V8 自身 JIT、Wasm 与 host runtime library 属于明确记录的 runtime TCB，不由本能力禁止 | **支持 `native-addon-loading` 拒绝保证**，但不宣称 OS shared-library closure |
+| Windows strict native Plugin | PE/DLL、delay-load、`LoadLibrary` | 不尝试通过通用 AppContainer 推导安全动态库来源 | **不解析、不接受**任何 native dependency graph | native entry 在任何 Broker/native spawn 前以 `ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED` 拒绝 | **fail closed / unsupported**；未来实现必须新增 Windows 专属原子加载合同与实机矩阵 |
+| Windows materialized MCP npm capsule | 与上面的 MCP bundled-CJS/native-addon policy 相同 | package native addon 无可接受可写来源 | native-addon recursion 为 **0** | Node runtime TCB 明示保留 | **支持 package addon 拒绝**；不等于 DLL broad closure |
+| macOS strict native Plugin | Mach-O、dyld、`@rpath`、`dlopen` | 未取得签名/root helper 的原子 snapshot/exec 合同时，不接受任意来源 | **不解析、不接受**任何 native dependency graph | 在 spawn 前使用与 Windows 相同的 typed rejection | **fail closed / unsupported**；签名 x64/arm64 root live 子门转下一期 |
+| macOS materialized MCP npm capsule | bundled-CJS/native-addon policy；候选 signed-root helper 仍受独立 release contract 约束 | 无有效 Developer ID/notary/root install contract 时公共 pathname exec 继续 `macos_atomic_runtime_exec_unavailable` | package native-addon recursion 为 **0** | Node runtime TCB 明示保留；unsigned contract 不计 signed live | **仓库合同已完成、生产实机门未完成** |
+| 所有平台的 anonymous executable memory/custom loader | JIT、Wasm runtime、手写 in-process loader 或非 pathname byte loader | 不能由只读 pathname mount 推导其代码来源闭包 | 不设置虚假的“无限递归已验证”声明 | policy 明确记录 `anonymousExecutableMemory=node-runtime-tcb`，general native 路径继续不支持该保证 | **明确排除 / NO-GO**；不得将 `native-addon-loading` 或 Linux pathname closure 改写为此能力 |
+
+据此，本期 R4 设计验收中的四个维度均有明确值：加载机制不是“任意 shared library”；可写来源在 Linux 支持路径上收敛为零，在不支持平台上不尝试推导；递归与字节数都有硬上限或为零；动态代码不被错误计入 pathname/native-addon 声明。代码继续以 typed rejection 和 `sharedLibraryClosure=false` 表达未关闭范围。
+
+在包含实现提交 `409240ab2b`、CI 路由 `30a0c4f6eb` 与 unsupported-platform 修复 `f296c420fe` 的当前代码树上，2026-08-20 18:25 +08:00 又完整运行 native-code policy、capsule contract、materialization、Process Broker platform sandbox、Plugin Agent Core route 与 Plugin bin 六个核心测试文件，结果为 **6 files / 450 passed / 2 platform-condition skipped**，总 wall time 88.05 秒。该结果证明本期 repository-local 路径没有回退；两个 skip 仍不作为对应平台 live 成功，远端 exact-SHA 三平台门也仍需代码进入远端后独立完成。
+
+### 20.8 R3 Segment 3 正式终态与 artifact 复验
+
+[CLI Scheduler Kernel Soak `32356640096`](https://github.com/chainlesschain/chainlesschain/actions/runs/32356640096) 已于 2026-08-20 20:22:31 +08:00 完成，Linux、macOS、Windows 与 aggregate **4/4 jobs success**。source workflow 的 `run_started_at` 为 2026-08-20 17:59:02 +08:00，绑定 exact SHA `775d5667bc7bdcf8fed3f834d3ba2eda43526128`、seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-775d5667bc7b`。
+
+| Artifact | ID | GitHub archive digest | 内容级结果 |
+| --- | ---: | --- | --- |
+| aggregate | `9406196618` | `sha256:830651d81223eda49a09df18470e6fac4390452bfb728a92d91cc9e5bff0f41f` | `result=passed`；三平台总覆盖 7526.987 秒；300 rounds、3000 steady occurrences、600 hard kills、3603 effects |
+| Linux | `9406123594` | `sha256:b91df77fd547ac45c825c9277d1ed1c5bb8ab295b5177f62d2a5a742478fad72` | 7221.001 秒；raw SHA-256 `258d1e04dce13458a8a5d772633622a4fbb20b691b09f22d8b7ad9cc40e7757a` |
+| macOS | `9405974645` | `sha256:ab11aeffd71624aa6fe43adb0bb2e14834ce5f96aab8fb3fb18b46177174adc1` | 7221.401 秒；raw SHA-256 `a72dd377c832d9ab4d91c9b59770e343f7fc810583ce98b1f0e0e3942c703521` |
+| Windows | `9405965517` | `sha256:a4b5cb6489b1e386217b7c01ea7d52f0fe82cd0f69833dd53a7535f0266e7751` | 7222.683 秒；raw SHA-256 `ef33e7778d55abbdf0b1e677c071f35de0c369a80536a1cd38d2ceec645198fd` |
+
+三份原始证据均为 `status=passed`、`exactShaVerified=true`、formal 7200 秒 profile、100 rounds、1000 steady occurrences、200 hard kills、1201 effects、零 violations；two-worker contention、higher fence、stale settlement rejection、dead-letter/no-replay、heartbeat renewal、DST/backlog、SQLite quick check、process retirement 与 resource trend 均通过。三平台 cleanup 均在 10 秒 deadline 内完成且两个 Worker 都以 code 0 graceful 退休。
+
+为避免用当前分支后来演进的 verifier 误读旧合同，复验在临时 detached worktree 中使用证据自身绑定的 `775d5667bc7bdcf8fed3f834d3ba2eda43526128` 版本，并注入原 aggregate job 的完整 `CC_SCHEDULER_SOAK_*` formal 环境。仓库 verifier 重新聚合为 `passed`；重聚合结果与下载 aggregate 除独立 `verifiedAt` 时钟外语义完全一致，三个 raw SHA-256 逐项匹配 aggregate evidence。
+
+因此 R3 更新为 **3/4 segments 已完成、Segment 4 待派发、campaign verifier 待运行**。Segment 3 source start 相对 Segment 2 为约 24 小时 17 分，满足下限；Segment 4 的允许 source-start 窗口为 **2026-08-21 17:59:02～23:59:02 +08:00**。在 Segment 4 与最终 72 小时 verifier 都成功前，P2-4 仍保持部分完成，不因本段成功提前关闭。

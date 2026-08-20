@@ -70,10 +70,25 @@ public final class Artifacts {
         public final long createdAt;
         /** Epoch ms; 0 when unknown. */
         public final long expiresAt;
+        public final boolean immutable;
+        public final String recordDigest;
+        public final String returnedRequestId;
+        public final String returnedReviewDigest;
+        public final String returnedKind;
+        public final long accessCount;
 
         public Row(String id, String title, String kind, String mime, long size,
                 String sha256, String sourcePath, String file, String sessionId,
                 long createdAt, long expiresAt) {
+            this(id, title, kind, mime, size, sha256, sourcePath, file, sessionId,
+                    createdAt, expiresAt, false, "", "", "", "", 0L);
+        }
+
+        public Row(String id, String title, String kind, String mime, long size,
+                String sha256, String sourcePath, String file, String sessionId,
+                long createdAt, long expiresAt, boolean immutable, String recordDigest,
+                String returnedRequestId, String returnedReviewDigest,
+                String returnedKind, long accessCount) {
             this.id = nz(id);
             this.title = nz(title);
             this.kind = nz(kind);
@@ -85,6 +100,54 @@ public final class Artifacts {
             this.sessionId = nz(sessionId);
             this.createdAt = createdAt;
             this.expiresAt = expiresAt;
+            this.immutable = immutable;
+            this.recordDigest = nz(recordDigest);
+            this.returnedRequestId = nz(returnedRequestId);
+            this.returnedReviewDigest = nz(returnedReviewDigest);
+            this.returnedKind = nz(returnedKind);
+            this.accessCount = Math.max(0L, accessCount);
+        }
+    }
+
+    /** Content-free recovery row from the canonical workbench projection. */
+    public static final class RecoveryItem {
+        public final String itemId;
+        public final String kind;
+        public final String severity;
+        public final boolean timedOut;
+        public final String recommendedDecision;
+
+        public RecoveryItem(String itemId, String kind, String severity,
+                boolean timedOut, String recommendedDecision) {
+            this.itemId = nz(itemId);
+            this.kind = nz(kind);
+            this.severity = nz(severity);
+            this.timedOut = timedOut;
+            this.recommendedDecision = nz(recommendedDecision);
+        }
+    }
+
+    /** One exact canonical product projection; payload bodies are absent. */
+    public static final class Workbench {
+        public final List<Row> rows;
+        public final String planDigest;
+        public final long recoveryCount;
+        public final long criticalCount;
+        public final long timedOutCount;
+        public final long historyCount;
+        public final List<RecoveryItem> recoveryItems;
+
+        public Workbench(List<Row> rows, String planDigest, long recoveryCount,
+                long criticalCount, long timedOutCount, long historyCount,
+                List<RecoveryItem> recoveryItems) {
+            this.rows = rows == null ? List.of() : Collections.unmodifiableList(rows);
+            this.planDigest = nz(planDigest);
+            this.recoveryCount = Math.max(0L, recoveryCount);
+            this.criticalCount = Math.max(0L, criticalCount);
+            this.timedOutCount = Math.max(0L, timedOutCount);
+            this.historyCount = Math.max(0L, historyCount);
+            this.recoveryItems = recoveryItems == null
+                    ? List.of() : Collections.unmodifiableList(recoveryItems);
         }
     }
 
@@ -92,6 +155,10 @@ public final class Artifacts {
 
     public static List<String> buildListArgs() {
         return Arrays.asList("artifacts", "list", "--json");
+    }
+
+    public static List<String> buildWorkbenchArgs() {
+        return Arrays.asList("artifacts", "workbench", "--json");
     }
 
     public static List<String> buildShowArgs(String id) {
@@ -108,6 +175,17 @@ public final class Artifacts {
                 "--client", "jetbrains", "--deletion-id", String.valueOf(deletionId), "--json");
     }
 
+    public static List<String> buildRecoveryAdjudicateArgs(String itemId,
+            String planDigest, String decision, String adjudicationId) {
+        List<String> out = new ArrayList<String>(Arrays.asList(
+                "artifacts", "recovery-adjudicate", nz(itemId),
+                "--plan-digest", nz(planDigest), "--decision", nz(decision),
+                "--adjudication-id", nz(adjudicationId)));
+        if (!"defer".equals(decision)) out.add("--approve");
+        out.add("--json");
+        return Collections.unmodifiableList(out);
+    }
+
     // --------------------------------------------------------------- parse
 
     /**
@@ -116,30 +194,77 @@ public final class Artifacts {
      * Rows without an id are skipped; result is newest-created first.
      */
     public static List<Row> parseList(String stdout) {
-        List<Row> out = new ArrayList<Row>();
         Object parsed;
         try {
             parsed = MiniJson.parse(stdout == null ? "" : stdout.trim());
         } catch (RuntimeException e) {
-            return out;
+            return new ArrayList<Row>();
         }
         Object arr = parsed;
         if (parsed instanceof Map) arr = ((Map<?, ?>) parsed).get("artifacts");
+        return parseRows(arr);
+    }
+
+    private static List<Row> parseRows(Object arr) {
+        List<Row> out = new ArrayList<Row>();
         if (!(arr instanceof List)) return out;
         for (Object o : (List<?>) arr) {
             if (!(o instanceof Map)) continue;
             Map<?, ?> m = (Map<?, ?>) o;
             String id = str(m.get("id"));
             if (id.isEmpty()) continue;
+            Map<?, ?> returned = m.get("returnedResult") instanceof Map
+                    ? (Map<?, ?>) m.get("returnedResult") : Map.of();
+            Map<?, ?> history = m.get("history") instanceof Map
+                    ? (Map<?, ?>) m.get("history") : Map.of();
             out.add(new Row(id, str(m.get("title")), str(m.get("kind")),
                     str(m.get("mime")), num(m.get("size")), str(m.get("sha256")),
                     str(m.get("sourcePath")), str(m.get("file")),
                     str(m.get("sessionId")),
                     SessionsWorkbench.parseTimestamp(str(m.get("createdAt"))),
-                    SessionsWorkbench.parseTimestamp(str(m.get("expiresAt")))));
+                    SessionsWorkbench.parseTimestamp(str(m.get("expiresAt"))),
+                    Boolean.TRUE.equals(m.get("immutable")), str(m.get("recordDigest")),
+                    str(returned.get("requestId")), str(returned.get("reviewDigest")),
+                    str(returned.get("kind")), num(history.get("accessCount"))));
         }
         out.sort(ROW_ORDER);
         return out;
+    }
+
+    /** Parse only the exact {@code cc-artifact-workbench/v1} projection. */
+    public static Workbench parseWorkbench(String stdout) {
+        Object parsed;
+        try {
+            parsed = MiniJson.parse(stdout == null ? "" : stdout.trim());
+        } catch (RuntimeException e) {
+            return null;
+        }
+        if (!(parsed instanceof Map)) return null;
+        Map<?, ?> root = (Map<?, ?>) parsed;
+        if (!"cc-artifact-workbench/v1".equals(str(root.get("schema")))) return null;
+        if (!(root.get("recovery") instanceof Map)
+                || !(root.get("history") instanceof Map)) return null;
+        Map<?, ?> recovery = (Map<?, ?>) root.get("recovery");
+        Map<?, ?> summary = recovery.get("summary") instanceof Map
+                ? (Map<?, ?>) recovery.get("summary") : Map.of();
+        Map<?, ?> history = (Map<?, ?>) root.get("history");
+        List<RecoveryItem> items = new ArrayList<RecoveryItem>();
+        if (recovery.get("items") instanceof List) {
+            for (Object raw : (List<?>) recovery.get("items")) {
+                if (!(raw instanceof Map)) continue;
+                Map<?, ?> item = (Map<?, ?>) raw;
+                String itemId = str(item.get("itemId"));
+                String decision = str(item.get("recommendedDecision"));
+                if (itemId.isEmpty() || decision.isEmpty()) continue;
+                items.add(new RecoveryItem(itemId, str(item.get("kind")),
+                        str(item.get("severity")), Boolean.TRUE.equals(item.get("timedOut")),
+                        decision));
+            }
+        }
+        return new Workbench(parseRows(root.get("artifacts")),
+                str(recovery.get("planDigest")), num(summary.get("itemCount")),
+                num(summary.get("criticalCount")), num(summary.get("timedOutCount")),
+                num(history.get("totalEventCount")), items);
     }
 
     /** Newest createdAt first; id breaks the tie deterministically. */
@@ -312,6 +437,15 @@ public final class Artifacts {
         if (!r.sha256.isEmpty()) sb.append("sha256: ").append(r.sha256).append('\n');
         if (!r.sourcePath.isEmpty()) sb.append("source: ").append(r.sourcePath).append('\n');
         if (!r.sessionId.isEmpty()) sb.append("session: ").append(r.sessionId).append('\n');
+        if (!r.returnedRequestId.isEmpty()) {
+            sb.append("returned result: ").append(r.returnedKind)
+                    .append("  request: ").append(r.returnedRequestId).append('\n');
+        }
+        if (!r.returnedReviewDigest.isEmpty()) {
+            sb.append("review: ").append(r.returnedReviewDigest).append('\n');
+        }
+        if (!r.recordDigest.isEmpty()) sb.append("record: ").append(r.recordDigest).append('\n');
+        if (r.accessCount > 0) sb.append("audited accesses: ").append(r.accessCount).append('\n');
         String rel = SessionsWorkbench.formatRelativeTime(nowMs, r.createdAt);
         if (!rel.isEmpty()) sb.append("created: ").append(rel).append('\n');
         if (r.expiresAt > 0) {

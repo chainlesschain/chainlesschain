@@ -19,15 +19,22 @@ public final class SessionProjection {
 
     private SessionProjection() {}
 
-    public static final String SCHEMA = "chainlesschain.session-projection/v1";
-    public static final int SCHEMA_VERSION = 1;
+    public static final String SCHEMA = "chainlesschain.session-projection/v2";
+    public static final int SCHEMA_VERSION = 2;
+    public static final String LEGACY_SCHEMA = "chainlesschain.session-projection/v1";
 
     public static final List<String> ACTIONS = List.of(
             "dispatch", "peek", "reply", "attach", "detach", "stop",
-            "checkpoint", "archive");
+            "checkpoint", "archive", "pause", "resume", "recover");
     private static final Set<String> ACTION_SET =
             Collections.unmodifiableSet(new LinkedHashSet<String>(ACTIONS));
+    private static final Set<String> LEGACY_ACTION_SET = Set.of(
+            "dispatch", "peek", "reply", "attach", "detach", "stop",
+            "checkpoint", "archive");
     private static final Set<String> KINDS = Set.of(
+            "local", "background", "remote", "team", "workflow",
+            "dynamic_workflow");
+    private static final Set<String> LEGACY_KINDS = Set.of(
             "local", "background", "remote", "team", "workflow");
     private static final Set<String> STATES = Set.of(
             "working", "needs_input", "blocked", "done", "failed", "stopped");
@@ -138,8 +145,10 @@ public final class SessionProjection {
         String revision = str(root.get("revision"));
         Map<String, Object> sources = root.get("sources") instanceof Map
                 ? (Map<String, Object>) root.get("sources") : Map.of();
-        if (!SCHEMA.equals(str(root.get("schema")))
-                || number(root.get("schemaVersion")) != SCHEMA_VERSION
+        boolean legacy = LEGACY_SCHEMA.equals(str(root.get("schema")))
+                && number(root.get("schemaVersion")) == 1;
+        if ((!legacy && (!SCHEMA.equals(str(root.get("schema")))
+                || number(root.get("schemaVersion")) != SCHEMA_VERSION))
                 || !"cli".equals(str(root.get("authority")))) {
             return disconnected("unsupported or non-CLI session projection",
                     false, revision, sources);
@@ -159,6 +168,8 @@ public final class SessionProjection {
         }
 
         List<Item> sessions = new ArrayList<Item>();
+        Set<String> actionSet = legacy ? LEGACY_ACTION_SET : ACTION_SET;
+        Set<String> kindSet = legacy ? LEGACY_KINDS : KINDS;
         try {
             for (Object value : (List<Object>) root.get("sessions")) {
                 if (!(value instanceof Map)) throw new IllegalArgumentException();
@@ -168,7 +179,7 @@ public final class SessionProjection {
                 String kind = str(item.get("kind"));
                 String state = str(item.get("state"));
                 String itemRevision = str(item.get("revision"));
-                if (id.isEmpty() || sourceId.isEmpty() || !KINDS.contains(kind)
+                if (id.isEmpty() || sourceId.isEmpty() || !kindSet.contains(kind)
                         || !STATES.contains(state) || itemRevision.isEmpty()
                         || !(item.get("actions") instanceof List)) {
                     throw new IllegalArgumentException();
@@ -183,7 +194,7 @@ public final class SessionProjection {
                     if (!(rawAction instanceof Map)) continue;
                     Map<String, Object> action = (Map<String, Object>) rawAction;
                     String actionId = str(action.get("id"));
-                    if (!ACTION_SET.contains(actionId)) continue;
+                    if (!actionSet.contains(actionId)) continue;
                     seenActions.add(actionId);
                     if (Boolean.TRUE.equals(action.get("available"))) {
                         ActionPreview preview = parsePreview(action.get("preview"));
@@ -197,7 +208,7 @@ public final class SessionProjection {
                         unavailable.put(actionId, str(action.get("reason")));
                     }
                 }
-                if (seenActions.size() != ACTIONS.size()) {
+                if (seenActions.size() != actionSet.size()) {
                     throw new IllegalArgumentException();
                 }
                 Map<String, Object> environment = item.get("environment") instanceof Map
@@ -344,6 +355,49 @@ public final class SessionProjection {
             String state = str(latestPr.get("state"));
             parts.add("PR " + (number.isEmpty() ? prCount : "#" + number)
                     + (state.isEmpty() ? "" : " " + state));
+        }
+        Map<String, Object> workflow = item.get("workflow") instanceof Map
+                ? (Map<String, Object>) item.get("workflow") : Map.of();
+        if (!workflow.isEmpty()) {
+            Map<String, Object> phase = workflow.get("phase") instanceof Map
+                    ? (Map<String, Object>) workflow.get("phase") : Map.of();
+            Map<String, Object> agents = workflow.get("agents") instanceof Map
+                    ? (Map<String, Object>) workflow.get("agents") : Map.of();
+            Map<String, Object> budget = workflow.get("budget") instanceof Map
+                    ? (Map<String, Object>) workflow.get("budget") : Map.of();
+            parts.add("phase " + fallback(str(phase.get("status")), "unknown"));
+            parts.add("agents " + number(agents.get("settled")) + "/"
+                    + number(agents.get("requested")));
+            parts.add("budget " + fallback(str(budget.get("overall")), "unknown"));
+
+            Map<String, Object> recent = workflow.get("recent") instanceof Map
+                    ? (Map<String, Object>) workflow.get("recent") : Map.of();
+            Map<String, Object> call = recent.get("call") instanceof Map
+                    ? (Map<String, Object>) recent.get("call") : Map.of();
+            if (!str(call.get("name")).isEmpty()) {
+                parts.add("recent tool " + str(call.get("name")) + ":"
+                        + fallback(str(call.get("status")), "unknown"));
+            } else if (!str(recent.get("taskStatus")).isEmpty()) {
+                parts.add("recent result " + str(recent.get("taskStatus")));
+            }
+            Map<String, Object> recovery = workflow.get("recovery") instanceof Map
+                    ? (Map<String, Object>) workflow.get("recovery") : Map.of();
+            long recoverable = number(recovery.get("terminal"));
+            if (recoverable > 0) {
+                parts.add("recoverable checkpoints " + recoverable);
+            }
+            Map<String, Object> recoveryPolicy =
+                    workflow.get("recoveryPolicy") instanceof Map
+                            ? (Map<String, Object>) workflow.get("recoveryPolicy")
+                            : Map.of();
+            String risk = str(recoveryPolicy.get("risk"));
+            if (!risk.isEmpty() && !"none".equals(risk)) {
+                parts.add("recovery "
+                        + fallback(str(recoveryPolicy.get("severity")), "info")
+                        + ":" + risk + " -> "
+                        + fallback(str(recoveryPolicy.get("recommendedAction")),
+                                "review"));
+            }
         }
         return String.join(" · ", parts);
     }

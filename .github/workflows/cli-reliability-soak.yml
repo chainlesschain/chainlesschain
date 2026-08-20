@@ -20,6 +20,7 @@ on:
       - "packages/cli/src/lib/session-persistence-failure.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
+      - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/src/lib/automation-center-incidents.js"
@@ -58,6 +59,7 @@ on:
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AutomationCenterTest.java"
       - "packages/cli/__tests__/unit/repair-node-pty.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-native-code-policy.test.js"
   schedule:
     - cron: "17 2 * * 3"
   workflow_dispatch:

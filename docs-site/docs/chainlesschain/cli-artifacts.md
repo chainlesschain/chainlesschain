@@ -1,6 +1,6 @@
 # Artifacts 交付物（cc artifacts / publish_artifact）
 
-> **版本: Artifacts v1（cli `0.162.157`，2026-07-10；web-panel 预览面板与浏览器下载随批 24/25 增强）| 状态: ✅ 生产可用 | 命令数 172→173 | AGENT_TOOLS 23→24 | ~31 专项测试**
+> **当前稳定版：CLI `0.165.4`（2026-08-20）| Artifacts v1 + access/deletion/cleanup settlement + recovery workbench | 状态：✅ 生产可用**
 >
 > agent 干完活产出的**交付物**（报告 / 补丁 / 截图 / 日志 / 数据文件）不再散落在工作目录里靠翻聊天记录找——`publish_artifact` 工具把成品拷进持久化的个人交付物库，**只有元数据进会话转录**（文件本体绝不膨胀上下文），随后用 `cc artifacts` 命令或 web-panel「交付物」视图浏览、预览、下载、清理。
 
@@ -9,7 +9,7 @@
 跑完一个 headless 任务，agent 生成的分析报告在哪？上周让它导出的数据 CSV 呢？此前答案是"在当时的 cwd 里，自己找"。Artifacts v1 给交付物一个**统一的家**：
 
 - **agent 侧**：任务收尾时调用 `publish_artifact` 工具，把成品文件拷贝进 `~/.chainlesschain/artifacts/`，登记标题 / 类型 / TTL；工具返回元数据 + 提示语，**文件内容不进上下文**。
-- **用户侧**：`cc artifacts list/show/open/remove/clean` 五个子命令管理；web-panel「交付物」视图提供表格浏览、按类型过滤、**Markdown / 图片 / 文本在线预览**（DOMPurify 消毒渲染）、**浏览器完整下载**、删除与过期清理。
+- **用户侧**：`cc artifacts list/show/open/access/remove/clean` 管理内容，`access-log/deletion-log/cleanup-log` 验证 content-free 结算账本，`recovery-plan/workbench/recovery-adjudicate/orphan-gc-log` 处理不确定结果与孤儿副本；web-panel 和 IDE 只通过这些 CLI authority 暴露预览、下载、删除与清理动作。
 - **生命周期**：每个交付物带 TTL（默认 30 天），过期后 `cc artifacts clean` 一键回收，库不会无限膨胀。
 
 ## 核心特性
@@ -23,6 +23,9 @@
 - 📝 **Markdown 在线预览**: `text/markdown` 走面板既有 MarkdownRenderer（marked + DOMPurify + hljs），非 Markdown 文本回退 `<pre>`
 - ⬇️ **浏览器完整下载**: WS 预览有体积上限，下载走独立 HTTP 端点流式传输**完整原件**，token 走 Bearer 头不进 URL
 - 🔒 **纵深防御**: 100MB 发布上限、路径穿越双闸、常数时间 token 比较、`Content-Disposition` 注入清洗、`nosniff`
+- 🧾 **访问审计**：官方客户端在预览、打开、复制路径、reveal 或下载前调用 `artifacts access`；CLI 复核唯一当前索引行、安全 managed filename、regular single-link bytes、大小、SHA-256 与 lineage，再写入不含内容的 hash-chained access ledger
+- ♻️ **幂等删除/清理**：单项删除使用稳定 `deletion-id`，TTL 批量清理使用稳定 `cleanup-id`；prepared/terminal ledger 允许网络或进程响应丢失后按同一 id 恢复，不重复发起副作用
+- 🧰 **恢复工作台**：`recovery-plan` 只读盘点 pending settlement 与 orphan managed copy，`recovery-adjudicate` 必须绑定刚读取的 plan digest、显式 decision 与 `--approve`
 
 ## 系统架构
 
@@ -35,7 +38,9 @@ ArtifactStore (src/lib/artifact-store.js)
       ├── index.jsonl          每交付物一行元数据（坏行跳过）
       └── files/<id><ext>      字节级拷贝副本
     │
-    ├──── cc artifacts list/show/open/remove/clean   (CLI)
+    ├──── cc artifacts list/show/open/access/remove/clean   (CLI)
+    ├──── access/deletion/cleanup/orphan-gc hash-chained ledgers
+    ├──── recovery-plan / workbench / recovery-adjudicate
     │
     └──── WS gateway (artifact-protocol.js)
             artifact-list / show / content / remove / clean
@@ -56,15 +61,42 @@ ArtifactStore (src/lib/artifact-store.js)
 
 别名 `cc artifact`，无子命令时默认 `list`。
 
-| 子命令                | 参数 / 选项                               | 说明                                                              |
-| --------------------- | ----------------------------------------- | ----------------------------------------------------------------- |
-| `list`（默认）        | `--session <id>` `--kind <kind>` `--json` | 列出交付物（旧→新）：id、标题、[类型]、MIME、大小、时间、所属会话 |
-| `show <id>`           | `--json`                                  | 全部元数据 + `storedPath`（副本绝对路径）                         |
-| `open <id>`           | —                                         | 只打印副本绝对路径（便于管道 / 交给系统打开）                     |
-| `remove <id>`（`rm`） | `--json`                                  | 删除副本 + 索引行                                                 |
-| `clean`               | `--json`                                  | 删除所有**已过期**（`expiresAt` 早于现在）的交付物，打印数量      |
+| 子命令                         | 参数 / 选项                                                                 | 说明                                                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `list`（默认）                 | `--session <id>` `--kind <kind>` `--json`                                   | 列出交付物：id、标题、类型、MIME、大小、时间、所属会话                                                |
+| `show <id>`                    | `--json`                                                                    | 读取元数据；不代表已经授权官方客户端暴露内容                                                          |
+| `open <id>`                    | —                                                                           | 为兼容 CLI 流程授权本地内容访问并打印副本绝对路径                                                     |
+| `access <id>`                  | `--client <client>` `--action <action>` `[--access-id <id>]` `[--json]`      | 复核 managed bytes 后记录 content-free access lineage；同一 access id 可恢复响应丢失                  |
+| `access-log`                   | `[--artifact <id>]` `[--json]`                                               | 验证并显示访问审计链                                                                                  |
+| `remove <id>`（`rm`）          | `[--client <client>]` `[--deletion-id <id>]` `[--json]`                      | 以 prepared/terminal settlement 删除 managed copy；同一 deletion id 幂等恢复                          |
+| `deletion-log`                 | `[--artifact <id>]` `[--deletion <id>]` `[--json]`                           | 验证并显示删除结算链                                                                                  |
+| `clean`                        | `[--client <client>]` `[--cleanup-id <id>]` `[--json]`                       | 冻结一批已过期项并结算删除；同一 cleanup id 不会重选新批次                                            |
+| `cleanup-log`                  | `[--cleanup <id>]` `[--artifact <id>]` `[--json]`                            | 验证并显示 TTL 清理结算链                                                                             |
+| `recovery-plan`                | `[--timeout-ms <ms>]` `[--json]`                                             | 只读盘点 pending settlement 与孤儿 managed copy                                                       |
+| `workbench`                    | `--json`                                                                    | 投影 Artifact、returned-result lineage、历史和恢复风险，供 Desktop/IDE/Web 产品面消费                 |
+| `recovery-adjudicate <item>`   | `--plan-digest <digest>` `--decision <decision>` `[--adjudication-id <id>]` `--approve` | 按已审 plan 做一次显式管理员恢复；plan 漂移或无确认时失败闭合                              |
+| `orphan-gc-log`                | `[--adjudication <id>]` `[--json]`                                           | 验证并显示孤儿副本回收账本                                                                            |
 
-找不到 id 时 exit 1（`--json` 模式返回 `{ found: false }`）。
+找不到 id、字节身份漂移、账本损坏或 recovery plan 过期时 exit 1。删除只承诺 ChainlessChain 管理副本最终不存在，不等于对外部硬链接、备份、文件系统快照或已下载副本做安全擦除。
+
+### 官方客户端访问与响应丢失恢复
+
+```bash
+# IDE/Web/Desktop 在暴露字节或路径前使用稳定 access id
+cc artifacts access <artifact-id> \
+  --client vscode --action preview \
+  --access-id access_<stable-id> --json
+
+# 删除/清理使用调用方生成并持久化的稳定 id；超时后原样重试
+cc artifacts remove <artifact-id> \
+  --client vscode --deletion-id deletion_<stable-id> --json
+cc artifacts deletion-log --deletion deletion_<stable-id> --json
+
+cc artifacts clean --client cli --cleanup-id cleanup_<stable-id> --json
+cc artifacts cleanup-log --cleanup cleanup_<stable-id> --json
+```
+
+不要在超时后换新 id：新 id 代表新请求。先用相应 `*-log` 回读结算；若仍不明确，再读取 `recovery-plan --json`，人工审阅后才执行带 exact plan digest 的 `recovery-adjudicate --approve`。
 
 ## `publish_artifact` 工具（agent 侧）
 
@@ -114,11 +146,11 @@ ArtifactStore (src/lib/artifact-store.js)
 | list      | 单文件 JSONL 顺序读，坏行跳过不中断                                    |
 | WS 预览   | 文本 ≤256KB / 图片 ≤8MB 限额，超限直接拒载不灌 socket                  |
 | HTTP 下载 | 流式传输完整原件，`Content-Length` 精确、`no-store` 不缓存             |
-| 清理      | 只扫索引行比对 `expiresAt`，文件删除 best-effort（索引为准）           |
+| 清理      | 冻结过期批次，逐项结算 managed copy 缺失，再写 terminal cleanup receipt |
 
 ## 测试覆盖
 
-~31 项专项测试，全部无宿主可跑：
+当前测试覆盖 Store、访问/删除/清理账本、恢复规划、工作台投影、WS、Web 下载与 IDE 客户端；核心纯函数可无宿主执行，真实产品面另有集成/宿主门：
 
 | 测试文件                                              | 覆盖                                                                    |
 | ----------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -137,6 +169,8 @@ ArtifactStore (src/lib/artifact-store.js)
 - **Markdown 消毒**：面板预览经 DOMPurify，绝不裸插 HTML。
 - **无外发**：工具只写用户自己的配置目录；MIME 仅按扩展名推断，不嗅探内容。
 - **Plan 模式禁用**：规划阶段不允许发布（写副作用）。
+- **账本不含内容**：access/deletion/cleanup/orphan-gc 账本只记录稳定 id、摘要、阶段与 lineage，不写 Artifact 正文、工具参数或凭据。
+- **安全删除边界**：`remove`/`clean` 只删除 managed copy；外部 hardlink、备份、快照、浏览器下载与第三方缓存不在擦除承诺内。
 
 ## 故障排除
 
@@ -154,8 +188,13 @@ ArtifactStore (src/lib/artifact-store.js)
 
 | 文件                                                        | 作用                                             |
 | ----------------------------------------------------------- | ------------------------------------------------ |
-| `packages/cli/src/commands/artifacts.js`                    | `cc artifacts` 五个子命令                        |
+| `packages/cli/src/commands/artifacts.js`                    | `cc artifacts` 管理、审计、结算、恢复与工作台命令 |
 | `packages/cli/src/lib/artifact-store.js`                    | ArtifactStore：发布 / 索引 / TTL / 清理          |
+| `packages/cli/src/lib/artifact-access-ledger.js`            | content-free 访问审计链                          |
+| `packages/cli/src/lib/artifact-deletion-ledger.js`          | 单项删除 prepared/terminal 结算                  |
+| `packages/cli/src/lib/artifact-cleanup-ledger.js`           | TTL 批处理清理结算                               |
+| `packages/cli/src/lib/artifact-recovery.js`                 | recovery plan、显式裁决与 orphan GC              |
+| `packages/cli/src/lib/artifact-workbench-projection.js`     | 产品面只读工作台投影                             |
 | `packages/cli/src/runtime/coding-agent-contract-shared.cjs` | `publish_artifact` 工具 schema                   |
 | `packages/cli/src/runtime/agent-core.js`                    | 工具 dispatch                                    |
 | `packages/cli/src/gateways/ws/artifact-protocol.js`         | 五个 WS 路由 + 预览分级策略                      |

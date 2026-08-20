@@ -387,6 +387,65 @@ export interface CodingAgentHarnessStatus {
   };
 }
 
+export interface CodingAgentArtifactWorkbench {
+  schema: "cc-artifact-workbench/v1";
+  observedAt: string;
+  artifacts: Array<{
+    id: string;
+    title?: string;
+    kind?: string;
+    mime?: string;
+    size?: number;
+    sha256?: string;
+    sessionId?: string | null;
+    createdAt?: string | number;
+    expiresAt?: string | number | null;
+    immutable?: boolean;
+    recordDigest?: string | null;
+    returnedResult?: {
+      sessionId: string;
+      requestId: string;
+      reviewDigest: string;
+      item: string;
+      kind: string;
+      mediaType: string;
+      byteLength: number;
+      sourceDigest: string;
+    } | null;
+    history?: {
+      accessCount?: number;
+      latestAccess?: {
+        action?: string;
+        client?: string;
+        authorizedAt?: string;
+        eventDigest?: string;
+      } | null;
+    };
+  }>;
+  recovery: {
+    planDigest: string;
+    summary?: {
+      itemCount?: number;
+      criticalCount?: number;
+      timedOutCount?: number;
+    };
+    policy?: { unattendedMutationAllowed?: boolean };
+    items: Array<{
+      itemId: string;
+      kind: string;
+      severity?: string;
+      timedOut?: boolean;
+      recommendedDecision: "retry" | "delete-orphan" | "defer";
+    }>;
+  };
+  history: {
+    totalEventCount: number;
+    returnedEventCount?: number;
+    truncated?: boolean;
+    activity: Array<Record<string, unknown>>;
+  };
+}
+
 export interface CodingAgentAPI {
   createSession(options?: any): Promise<any>;
   startSession(options?: any): Promise<any>;
@@ -711,6 +770,38 @@ export interface CodingAgentAPI {
     tools?: CodingAgentToolDescriptor[];
     toolSummary?: CodingAgentToolSummary | null;
     permissionPolicy?: CodingAgentPermissionPolicy | null;
+  }>;
+  getArtifactWorkbench(): Promise<{
+    success: boolean;
+    workbench?: CodingAgentArtifactWorkbench;
+    error?: string;
+  }>;
+  openArtifact(payload: { artifactId: string }): Promise<{
+    success: boolean;
+    artifactId?: string;
+    eventDigest?: string;
+    error?: string;
+  }>;
+  downloadArtifact(payload: { artifactId: string }): Promise<{
+    success: boolean;
+    canceled?: boolean;
+    artifactId?: string;
+    eventDigest?: string;
+    error?: string;
+  }>;
+  removeArtifact(payload: { artifactId: string }): Promise<{
+    success: boolean;
+    receipt?: Record<string, unknown>;
+    error?: string;
+  }>;
+  adjudicateArtifactRecovery(payload: {
+    itemId: string;
+    planDigest: string;
+    decision: "retry" | "delete-orphan" | "defer";
+  }): Promise<{
+    success: boolean;
+    receipt?: Record<string, unknown>;
+    error?: string;
   }>;
   // Canonical workflow commands ($deep-interview / $ralplan / $ralph / $team)
   checkWorkflowCommand(text: string): Promise<{

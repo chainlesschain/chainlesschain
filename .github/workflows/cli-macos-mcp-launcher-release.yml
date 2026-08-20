@@ -9,6 +9,7 @@ on:
       - "packages/cli/src/lib/process-execution-broker/mcp-fd-entry-bootstrap.js"
       - "packages/cli/src/lib/process-execution-broker/platform-sandbox.js"
       - "packages/cli/src/lib/process-execution-broker/index.js"
+      - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
       - "packages/cli/src/lib/packer/pkg-config-generator.js"
       - "packages/cli/scripts/macos-mcp-launcher-*.mjs"
       - "packages/cli/scripts/macos-mcp-launcher-*.sh"

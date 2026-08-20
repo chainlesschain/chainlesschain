@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-17）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.165.1`，PDH 为 `0.4.58`；Open VSX 为 `0.37.55`，JetBrains Marketplace 为 `0.4.91`。`0.165.1` 已公开动态 workflow 运行准入、远程成员权威、canonical 执行边界、后台 keeper 与依赖安全修复；PR #215 的 Marketplace payload/activation lifecycle 加固已在 exact head `89c498cc46` 完成门禁并合入主线，按未发布源码增量单独标注。
+> 当前文档快照（2026-08-20）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.165.4`，PDH 为 `0.4.59`；Open VSX 为 `0.37.58`，JetBrains Marketplace 为 `0.4.93`。`0.165.4` 已公开耐久 workflow authority、会话预算、远端结果审阅应用、Artifact 审计结算和无原生工具链首次安装；`HEAD@f2fbf331da46` 的 native-addon policy、IDE/桌面/iOS 恢复能力与 P1-5 Marketplace 十二格供应链矩阵按发布后源码增量单独标注，后者仍待 exact-head Actions aggregate 回读。
 
 ## 📚 文档内容
 

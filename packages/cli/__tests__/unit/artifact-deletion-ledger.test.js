@@ -113,6 +113,19 @@ describe("artifact deletion settlement ledger", () => {
     );
   });
 
+  it("settles Desktop product deletion with the same durable protocol", () => {
+    const result = settle({
+      deletionId: "delete-desktop-1",
+      client: "desktop",
+    });
+
+    expect(result).toMatchObject({
+      deletionId: "delete-desktop-1",
+      settled: true,
+      deletion: { client: "desktop", artifactId: entry.id },
+    });
+  });
+
   it("recovers a prepared deletion after managed-copy removal failed", () => {
     const storedPath = store.storedPath(entry);
     const failingFs = overrideFs({

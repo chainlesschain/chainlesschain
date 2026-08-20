@@ -68,6 +68,36 @@ class ArtifactsTest {
         assertEquals(1L, rows.get(0).size); // Double size truncates safely
     }
 
+    @Test
+    void parseCanonicalWorkbenchCarriesLineageHistoryAndRecovery() {
+        String json = "{\"schema\":\"cc-artifact-workbench/v1\"," +
+                "\"artifacts\":[{\"id\":\"art_returned\",\"title\":\"Returned summary\"," +
+                "\"kind\":\"report\",\"mime\":\"text/plain\",\"size\":4," +
+                "\"file\":\"art_returned.txt\",\"sessionId\":\"session-1\"," +
+                "\"immutable\":true,\"recordDigest\":\"sha256:record\"," +
+                "\"returnedResult\":{\"requestId\":\"collect-1\"," +
+                "\"reviewDigest\":\"sha256:review\",\"kind\":\"summary\"}," +
+                "\"history\":{\"accessCount\":2}}]," +
+                "\"recovery\":{\"planDigest\":\"sha256:plan\"," +
+                "\"summary\":{\"itemCount\":1,\"criticalCount\":1,\"timedOutCount\":1}," +
+                "\"items\":[{\"itemId\":\"recovery_1\",\"kind\":\"pending-deletion\"," +
+                "\"severity\":\"critical\",\"timedOut\":true," +
+                "\"recommendedDecision\":\"retry\"}]}," +
+                "\"history\":{\"totalEventCount\":7}}";
+        Artifacts.Workbench workbench = Artifacts.parseWorkbench(json);
+        assertTrue(workbench != null);
+        assertEquals(1, workbench.rows.size());
+        assertEquals("collect-1", workbench.rows.get(0).returnedRequestId);
+        assertEquals("sha256:review", workbench.rows.get(0).returnedReviewDigest);
+        assertEquals(2L, workbench.rows.get(0).accessCount);
+        assertEquals(1L, workbench.recoveryCount);
+        assertEquals(7L, workbench.historyCount);
+        assertEquals("retry", workbench.recoveryItems.get(0).recommendedDecision);
+        assertTrue(workbench.recoveryItems.get(0).timedOut);
+        assertNull(Artifacts.parseWorkbench("{}"));
+        assertNull(Artifacts.parseWorkbench("not-json"));
+    }
+
     // ---------------------------------------------------------------- filter
 
     @Test
@@ -198,6 +228,8 @@ class ArtifactsTest {
     @Test
     void ccArgsMatchTheCliSurface() {
         assertEquals(List.of("artifacts", "list", "--json"), Artifacts.buildListArgs());
+        assertEquals(List.of("artifacts", "workbench", "--json"),
+                Artifacts.buildWorkbenchArgs());
         assertEquals(List.of("artifacts", "show", "art_a", "--json"),
                 Artifacts.buildShowArgs("art_a"));
         assertEquals(List.of("artifacts", "access", "art_a", "--client", "jetbrains",
@@ -206,5 +238,10 @@ class ArtifactsTest {
         assertEquals(List.of("artifacts", "remove", "art_a", "--client", "jetbrains",
                         "--deletion-id", "delete-a", "--json"),
                 Artifacts.buildRemoveArgs("art_a", "delete-a"));
+        assertEquals(List.of("artifacts", "recovery-adjudicate", "recovery_1",
+                        "--plan-digest", "sha256:plan", "--decision", "retry",
+                        "--adjudication-id", "admin-1", "--approve", "--json"),
+                Artifacts.buildRecoveryAdjudicateArgs(
+                        "recovery_1", "sha256:plan", "retry", "admin-1"));
     }
 }

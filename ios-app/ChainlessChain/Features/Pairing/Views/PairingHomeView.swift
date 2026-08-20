@@ -12,6 +12,7 @@ import SwiftUI
 struct PairingHomeView: View {
     @EnvironmentObject var deps: PairingDependencies
     @State private var selectedTab: Tab = .scan
+    @State private var remoteSessionURI = ""
 
     enum Tab: Int, CaseIterable, Identifiable {
         case scan = 0
@@ -51,6 +52,8 @@ struct PairingHomeView: View {
                 }
             }
 
+            Divider()
+            remoteSessionRecoveryPanel
             Spacer(minLength: 0)
         }
         .navigationTitle("桌面配对")
@@ -63,6 +66,61 @@ struct PairingHomeView: View {
                     Image(systemName: "list.bullet")
                 }
             }
+        }
+    }
+    private var remoteSessionRecoveryPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Encrypted Remote Session").font(.headline)
+            TextField("chainlesschain://remote-session/pair#...", text: $remoteSessionURI)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Remote Session pairing link")
+            HStack {
+                Button("Connect") {
+                    _ = deps.connectRemoteSession(uri: remoteSessionURI)
+                }
+                .disabled(remoteSessionURI.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if deps.remoteSessionStatus == .reconnecting || deps.remoteSessionStatus == .error {
+                    Button("Retry exact session") { _ = deps.resumeRemoteSession() }
+                        .accessibilityHint("Reconnects with the existing encrypted pairing identity")
+                }
+                if deps.remoteSessionStatus != .idle && deps.remoteSessionStatus != .disconnected {
+                    Button("Disconnect", role: .destructive) {
+                        deps.disconnectRemoteSession()
+                    }
+                }
+            }
+            Label(remoteSessionStatusText, systemImage: remoteSessionStatusIcon)
+                .font(.footnote)
+                .accessibilityIdentifier("remote-session-status")
+            if let error = deps.remoteSessionError, !error.isEmpty {
+                Text(error).font(.footnote).foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    private var remoteSessionStatusText: String {
+        switch deps.remoteSessionStatus {
+        case .idle: return "Not connected"
+        case .connecting: return "Connecting"
+        case .pairing: return "Verifying encrypted pairing"
+        case .connected: return "Connected"
+        case .reconnecting: return "Connection interrupted; retrying safely"
+        case .disconnected: return "Disconnected"
+        case .revoked: return "Access revoked by host"
+        case .error: return "Automatic recovery stopped"
+        }
+    }
+
+    private var remoteSessionStatusIcon: String {
+        switch deps.remoteSessionStatus {
+        case .connected: return "checkmark.shield.fill"
+        case .connecting, .pairing, .reconnecting: return "arrow.triangle.2.circlepath"
+        case .revoked, .error: return "exclamationmark.shield.fill"
+        default: return "network.slash"
         }
     }
 }

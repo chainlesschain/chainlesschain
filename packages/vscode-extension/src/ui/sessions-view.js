@@ -39,6 +39,7 @@ let _deliveryError = "";
 let _hostDomToken = null;
 let _hostDomReady = false;
 const _hostDomPending = new Map();
+const _workflowNotices = new Map();
 let _snapshot = {
   connected: false,
   revision: null,
@@ -113,6 +114,55 @@ function postRows() {
 function projectionArgs(vscode) {
   const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || null;
   return buildWorkbenchArgs({ cwd }).sessionProjection;
+}
+
+function recoveryPlanArgs(vscode) {
+  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || null;
+  const args = ["cowork", "workflow", "runtime-recovery-plan", "--json"];
+  if (cwd) args.push("--cwd", cwd);
+  return args;
+}
+
+function notifyWorkflowRecoveryRisks(vscode) {
+  const now = Date.now();
+  const active = new Set();
+  for (const row of _rows) {
+    const policy = row.workflow?.recoveryPolicy;
+    const key = policy?.notification?.key;
+    if (!key || policy.risk === "none") continue;
+    active.add(key);
+    const prior = _workflowNotices.get(key) || { attempt: 0, nextAt: 0 };
+    if (now < prior.nextAt) continue;
+    const schedule = Array.isArray(policy.notification.backoffMs)
+      ? policy.notification.backoffMs
+      : [60_000];
+    const delay = Number(
+      schedule[Math.min(prior.attempt, schedule.length - 1)],
+    );
+    _workflowNotices.set(key, {
+      attempt: prior.attempt + 1,
+      nextAt: now + (Number.isFinite(delay) && delay > 0 ? delay : 60_000),
+    });
+    const show =
+      policy.severity === "critical"
+        ? vscode.window.showErrorMessage
+        : vscode.window.showWarningMessage;
+    Promise.resolve(
+      show.call(
+        vscode.window,
+        `Dynamic workflow ${row.sourceId}: ${policy.risk}; recommended action ${policy.recommendedAction}. No unattended mutation was performed.`,
+        "Review Workbench",
+      ),
+    ).then(
+      (choice) => {
+        if (choice === "Review Workbench" && _panel) _panel.reveal();
+      },
+      () => {},
+    );
+  }
+  for (const key of _workflowNotices.keys()) {
+    if (!active.has(key)) _workflowNotices.delete(key);
+  }
 }
 
 async function readProjection(vscode) {
@@ -251,6 +301,14 @@ async function loadData(vscode) {
     }
   }
   postRows();
+  notifyWorkflowRecoveryRisks(vscode);
+}
+
+async function showWorkflowRecoveryPlan(vscode) {
+  const result = await runCliJson(vscode, recoveryPlanArgs(vscode), {
+    timeoutMs: 30_000,
+  });
+  await showCliOutput(vscode, "Dynamic workflow recovery dry-run", result);
 }
 
 function terminalToken(value) {
@@ -332,6 +390,14 @@ async function runAction(vscode, msg) {
     post({ type: "info", text: "Action input is missing or invalid." });
     return;
   }
+  if (checked.row.kind === "dynamic_workflow" && route.mutates) {
+    const confirmed = await vscode.window.showWarningMessage(
+      `${request.action} dynamic workflow ${checked.row.sourceId}? The CLI will re-check runtime revision ${checked.row.workflow?.runtimeRevision ?? "unknown"} before changing durable state.`,
+      { modal: true },
+      "Run exact action",
+    );
+    if (confirmed !== "Run exact action") return;
+  }
 
   if (route.executor === "host") {
     if (
@@ -411,6 +477,9 @@ async function handleMessage(vscode, msg) {
       _query = String(msg.query || "");
       postRows();
       return;
+    case "workflow-recovery-plan":
+      await showWorkflowRecoveryPlan(vscode);
+      return;
     case "action":
       await runAction(vscode, msg);
       return;
@@ -473,6 +542,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
       rows: [],
       error: "disposed",
     };
+    _workflowNotices.clear();
   });
   loadData(vscode);
   postDelivery();
@@ -599,6 +669,7 @@ function renderPageHtml(hostDomToken = null) {
     <label class="sr-only" for="q">Filter sessions</label>
     <input id="q" aria-label="Filter sessions" placeholder="Filter by title / workspace / id" />
     <button id="refresh" class="sec" type="button">Refresh</button>
+    <button id="workflow-recovery-plan" class="sec" type="button">Recovery dry-run</button>
   </div>
   <div id="info" role="status" aria-live="polite" aria-atomic="true"></div>
   <section id="delivery" role="region" aria-label="Delivery flow">${renderDeliveryHtml(null)}</section>
@@ -609,6 +680,9 @@ function renderPageHtml(hostDomToken = null) {
   document.getElementById('refresh').addEventListener('click', ()=>{
     document.getElementById('list').setAttribute('aria-busy','true');
     vscode.postMessage({command:'refresh'});
+  });
+  document.getElementById('workflow-recovery-plan').addEventListener('click', ()=>{
+    vscode.postMessage({command:'workflow-recovery-plan'});
   });
   document.getElementById('q').addEventListener('input', (e)=>vscode.postMessage({command:'filter', query: e.target.value}));
   document.getElementById('list').addEventListener('click', (e)=>{
