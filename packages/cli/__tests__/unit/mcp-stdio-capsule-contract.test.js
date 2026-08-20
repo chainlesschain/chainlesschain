@@ -159,6 +159,7 @@ describe("MCP stdio capsule host boundary floor", () => {
       "filesystem",
       "network",
       "process-tree",
+      "native-addon-loading",
     ]);
     expect(Object.isFrozen(MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES)).toBe(true);
 
@@ -174,6 +175,19 @@ describe("MCP stdio capsule host boundary floor", () => {
     expect(acceptedContract.runtimeIdentity.mtimeMs).toBe(
       fs.statSync(acceptedContract.runtimeIdentity.realPath).mtimeMs,
     );
+    expect(acceptedContract.nativeCodePolicy).toEqual({
+      schema: "chainlesschain.mcp-stdio-native-code-policy/v1",
+      contractVersion: 1,
+      mode: "deny-package-native-addons",
+      capsuleFormat: "single-bundled-cjs",
+      nativeAddonLoading: "denied",
+      nativeAddonDenialMechanism:
+        "immutable-process-dlopen-guard-plus-bundled-js-only-v1",
+      hostRuntimeSharedLibraries: "platform-runtime-tcb",
+      anonymousExecutableMemory: "node-runtime-tcb",
+      sharedLibraryClosure: false,
+    });
+    expect(Object.isFrozen(acceptedContract.nativeCodePolicy)).toBe(true);
     expect(
       consumeMcpStdioCapsuleSandboxExecutionContract(
         acceptedContract,

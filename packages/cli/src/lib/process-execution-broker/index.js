@@ -71,6 +71,10 @@ import {
   consumeMcpStdioExecutableIdentityAuthority,
   MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
 } from "../mcp-stdio-executable-identity.js";
+import {
+  isMcpStdioCapsuleNativeCodePolicy,
+  mcpStdioCapsuleNativeCodePolicyDigest,
+} from "../mcp-stdio-native-code-policy.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
@@ -1193,6 +1197,7 @@ class ProcessExecutionBroker extends EventEmitter {
       "rootIdentity",
       "entryIdentity",
       "runtimeIdentity",
+      "nativeCodePolicy",
     ]);
     const unsupportedKey = Object.keys(raw).find(
       (key) => !supportedKeys.has(key),
@@ -1212,6 +1217,15 @@ class ProcessExecutionBroker extends EventEmitter {
       ].includes(raw.kind)
     ) {
       return invalid("unsupported sandboxExecutionContract kind or version");
+    }
+    if (
+      (mcpCapsule &&
+        !isMcpStdioCapsuleNativeCodePolicy(raw.nativeCodePolicy)) ||
+      (!mcpCapsule && raw.nativeCodePolicy !== undefined)
+    ) {
+      return invalid(
+        "sandboxExecutionContract native-code policy is invalid for this contract kind",
+      );
     }
     if (
       options.shell !== false ||
@@ -1303,6 +1317,11 @@ class ProcessExecutionBroker extends EventEmitter {
       rootIdentity,
       entryIdentity: this._freezeExecutableIdentity(entryIdentity),
       runtimeIdentity: this._freezeExecutableIdentity(runtimeIdentity),
+      ...(mcpCapsule
+        ? {
+            nativeCodePolicy: Object.freeze({ ...raw.nativeCodePolicy }),
+          }
+        : {}),
     });
   }
 
@@ -1789,6 +1808,13 @@ class ProcessExecutionBroker extends EventEmitter {
         "helperTeamIdentifier",
         "helperPackageIdentifier",
         "helperPackageVersion",
+        "nativeCodePolicySchema",
+        "nativeCodePolicyMode",
+        "capsuleNativeCodeFormat",
+        "nativeAddonLoading",
+        "nativeAddonDenialMechanism",
+        "hostRuntimeSharedLibraries",
+        "anonymousExecutableMemory",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1842,6 +1868,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "processForkExplicitlyDenied",
         "sandboxExecLiveGateContract",
         "globalLaunchSerialization",
+        "nativeCodePolicyBound",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1890,6 +1917,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "helperDesignatedRequirementSha256",
         "installAttestationDigest",
         "planBindingDigest",
+        "nativeCodePolicyDigest",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -2345,6 +2373,75 @@ class ProcessExecutionBroker extends EventEmitter {
         throw this._sandboxError(
           "invalid_sandbox_plan",
           "Successful dynamic ELF evidence requires a runtime pathname shared-library closure",
+        );
+      }
+      const nativeCodeEvidenceFields = [
+        "nativeCodePolicyBound",
+        "nativeCodePolicySchema",
+        "nativeCodePolicyDigest",
+        "nativeCodePolicyMode",
+        "capsuleNativeCodeFormat",
+        "nativeAddonLoading",
+        "nativeAddonDenialMechanism",
+        "hostRuntimeSharedLibraries",
+        "anonymousExecutableMemory",
+      ];
+      const nativeAddonLoadingGuaranteed = guarantees.includes(
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      );
+      const capsuleExecutionContract = launchContext.executionContract;
+      const expectedNativeCodePolicy =
+        capsuleExecutionContract?.nativeCodePolicy;
+      const nativeCodePolicyEvidenceValid =
+        nativeAddonLoadingGuaranteed &&
+        guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) &&
+        capsuleExecutionContract?.kind ===
+          MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND &&
+        isMcpStdioCapsuleNativeCodePolicy(expectedNativeCodePolicy) &&
+        plan.runtimeProbe.nativeCodePolicyBound === true &&
+        plan.runtimeProbe.nativeCodePolicySchema ===
+          expectedNativeCodePolicy.schema &&
+        plan.runtimeProbe.nativeCodePolicyDigest ===
+          mcpStdioCapsuleNativeCodePolicyDigest(expectedNativeCodePolicy) &&
+        plan.runtimeProbe.nativeCodePolicyMode ===
+          expectedNativeCodePolicy.mode &&
+        plan.runtimeProbe.capsuleNativeCodeFormat ===
+          expectedNativeCodePolicy.capsuleFormat &&
+        plan.runtimeProbe.nativeAddonLoading ===
+          expectedNativeCodePolicy.nativeAddonLoading &&
+        plan.runtimeProbe.nativeAddonDenialMechanism ===
+          expectedNativeCodePolicy.nativeAddonDenialMechanism &&
+        plan.runtimeProbe.hostRuntimeSharedLibraries ===
+          expectedNativeCodePolicy.hostRuntimeSharedLibraries &&
+        plan.runtimeProbe.anonymousExecutableMemory ===
+          expectedNativeCodePolicy.anonymousExecutableMemory &&
+        plan.runtimeProbe.sharedLibraryClosure === false;
+      if (nativeAddonLoadingGuaranteed && !nativeCodePolicyEvidenceValid) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Native-addon loading guarantee requires the exact deny-native-addons capsule policy",
+        );
+      }
+      if (
+        !nativeAddonLoadingGuaranteed &&
+        nativeCodeEvidenceFields.some(
+          (field) => plan.runtimeProbe[field] !== undefined,
+        )
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Native-addon policy evidence requires its sandbox guarantee",
+        );
+      }
+      if (
+        capsuleExecutionContract?.kind ===
+          MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND &&
+        guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) &&
+        !nativeCodePolicyEvidenceValid
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "MCP capsule code snapshots require a bound native-addon denial policy",
         );
       }
       const codeSnapshotGuaranteed = guarantees.includes(
@@ -3099,6 +3196,21 @@ class ProcessExecutionBroker extends EventEmitter {
             }
           : {}),
       };
+      for (const field of [
+        "nativeCodePolicyBound",
+        "nativeCodePolicySchema",
+        "nativeCodePolicyDigest",
+        "nativeCodePolicyMode",
+        "capsuleNativeCodeFormat",
+        "nativeAddonLoading",
+        "nativeAddonDenialMechanism",
+        "hostRuntimeSharedLibraries",
+        "anonymousExecutableMemory",
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
       for (const field of [
         "pluginTreeContentSnapshot",
         ...pluginTreeEvidenceFields,

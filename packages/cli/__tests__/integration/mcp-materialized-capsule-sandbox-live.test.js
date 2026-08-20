@@ -2301,7 +2301,7 @@ describe.runIf(LIVE && SUPPORTED)(
         transport: "stdio",
         policy: "allow",
         // Deliberately weak source input: the trusted client must still add
-        // the immutable four-boundary capsule floor.
+        // the immutable five-boundary capsule floor.
         sandboxPolicy: { requiredBoundaries: [] },
       };
       const materialized = await materializeProbe({
@@ -2317,7 +2317,7 @@ describe.runIf(LIVE && SUPPORTED)(
         nonce: probeNonce,
       });
       expect(materialized.identity.capsule).toMatchObject({
-        schema: "chainlesschain.mcp-stdio-node-capsule/v4",
+        schema: "chainlesschain.mcp-stdio-node-capsule/v5",
         builder: "esbuild-wasm",
         builderVersion: "0.28.1",
         builtinPolicy: {
@@ -2327,6 +2327,12 @@ describe.runIf(LIVE && SUPPORTED)(
             "node:worker_threads",
           ],
           transitiveIsolation: "required-mcp-os-sandbox-boundaries-v1",
+        },
+        nativeCodePolicy: {
+          schema: "chainlesschain.mcp-stdio-native-code-policy/v1",
+          mode: "deny-package-native-addons",
+          nativeAddonLoading: "denied",
+          sharedLibraryClosure: false,
         },
       });
 

@@ -9,6 +9,7 @@ import {
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
 
 const temporaryRoots = [];
 
@@ -103,6 +104,7 @@ describe("MCP inherited-FD entry bootstrap and macOS fail-closed policy", () => 
         pluginRoot: root,
         workingDirectory: root,
         runtimePath: runtime.realPath,
+        nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
         rootIdentity: rootIdentity(root),
         entryIdentity: entry,
         runtimeIdentity: runtime,
@@ -115,6 +117,7 @@ describe("MCP inherited-FD entry bootstrap and macOS fail-closed policy", () => 
           profileName: "strict",
           requiredBoundaries: [
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
             SANDBOX_BOUNDARIES.FILESYSTEM,
             SANDBOX_BOUNDARIES.NETWORK,
           ],

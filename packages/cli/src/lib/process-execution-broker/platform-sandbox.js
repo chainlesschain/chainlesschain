@@ -48,6 +48,11 @@ import {
   macosMcpLauncherPolicyDigest,
   verifyMacosMcpLauncherInstallContract,
 } from "./macos-mcp-launcher-contract.js";
+import {
+  isMcpStdioCapsuleNativeCodePolicy,
+  mcpStdioCapsuleNativeCodeEvidence,
+  mcpStdioCapsuleNativeCodePolicyDigest,
+} from "../mcp-stdio-native-code-policy.js";
 
 export {
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
@@ -68,6 +73,7 @@ export const SANDBOX_BOUNDARIES = Object.freeze({
   PROCESS_TREE: "process-tree",
   RESOURCE_LIMITS: "resource-limits",
   PRIVILEGE_REDUCTION: "privilege-reduction",
+  NATIVE_ADDON_LOADING: "native-addon-loading",
 });
 
 /**
@@ -1663,6 +1669,7 @@ function validateMacMcpCapsuleContract(
   if (
     contract?.kind !== MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND ||
     contract.contractVersion !== 1 ||
+    !isMcpStdioCapsuleNativeCodePolicy(contract.nativeCodePolicy) ||
     (sync !== true && sync !== false) ||
     spawnOpts?.shell !== false ||
     !linuxStdioIsNarrow(spawnOpts?.stdio) ||
@@ -1774,6 +1781,9 @@ function applyMacMcpCapsuleCodeSnapshot(
     });
   }
 
+  const nativeCodeEvidence = mcpStdioCapsuleNativeCodeEvidence(
+    contract.nativeCodePolicy,
+  );
   const protocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
   const legacyUnavailable = () =>
     unavailable("macos_atomic_runtime_exec_unavailable", {
@@ -1894,6 +1904,7 @@ function applyMacMcpCapsuleCodeSnapshot(
           entryFd: entryPin.fd,
           capsuleRootFd: capsulePin.fd,
           callerLifelineFd: protocol.callerLifelineFd,
+          nativeCodePolicyDigest: nativeCodeEvidence.nativeCodePolicyDigest,
         }),
       )
       .digest("hex");
@@ -1940,6 +1951,7 @@ function applyMacMcpCapsuleCodeSnapshot(
       entrySnapshotBootstrapSha256:
         MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
       sharedLibraryClosure: false,
+      ...nativeCodeEvidence,
       rootProtectedRuntimeSnapshot: true,
       entryRootOwnedAnonymousSnapshot: true,
       entrySourcePrePostStat: true,
@@ -1996,6 +2008,7 @@ function applyMacMcpCapsuleCodeSnapshot(
         SANDBOX_BOUNDARIES.PROCESS_EXEC,
         SANDBOX_BOUNDARIES.PROCESS_TREE,
         SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       ],
       cleanup,
     });
@@ -4040,6 +4053,15 @@ function windowsPluginNodeEntrySnapshot(invocation, sandboxOpts, spawnOpts) {
     };
   }
   if (
+    capsuleContract &&
+    !isMcpStdioCapsuleNativeCodePolicy(contract.nativeCodePolicy)
+  ) {
+    return {
+      locks: null,
+      reason: "windows_mcp_native_code_policy_invalid",
+    };
+  }
+  if (
     (!capsuleContract && sandboxOpts.sync !== true) ||
     spawnOpts?.detached === true
   ) {
@@ -4189,6 +4211,9 @@ function windowsAppContainerPolicyDigest({
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              nativeCodePolicyDigest: mcpStdioCapsuleNativeCodePolicyDigest(
+                executionContract.nativeCodePolicy,
+              ),
             }
           : {}),
         launchPathLocks: snapshotLocks,
@@ -4241,6 +4266,7 @@ export function applyWindowsSandbox(
   const appContainerSupportedBoundaries = [
     ...appContainerGuarantees,
     SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+    SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
   ];
   const base = {
     platform: runtime.platform,
@@ -4859,6 +4885,9 @@ export function applyWindowsSandbox(
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              ...mcpStdioCapsuleNativeCodeEvidence(
+                sandboxOpts.executionContract.nativeCodePolicy,
+              ),
               planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
               planBindingDigest: windowsMcpPlanBinding.planBindingDigest,
             }
@@ -4884,7 +4913,10 @@ export function applyWindowsSandbox(
       ...(entrySnapshot.locks &&
       sandboxOpts.executionContract?.kind ===
         MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
-        ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT]
+        ? [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+          ]
         : []),
     ],
     command: helperInvocation.command,
@@ -5401,6 +5433,12 @@ function validateLinuxPluginContract(
     (!nodeContract && !nativeContract)
   ) {
     return { ok: false, reason: "execution_contract_missing" };
+  }
+  if (
+    capsuleContract &&
+    !isMcpStdioCapsuleNativeCodePolicy(contract.nativeCodePolicy)
+  ) {
+    return { ok: false, reason: "mcp_native_code_policy_invalid" };
   }
   if (
     (sync !== true && sync !== false) ||
@@ -6173,6 +6211,9 @@ function applyLinuxMcpCapsuleCodeSnapshot(
     entrySnapshotSha256: entrySnapshot.attestation.sha256,
     entrySnapshotBytes: entrySnapshot.attestation.bytes,
   });
+  const nativeCodeEvidence = mcpStdioCapsuleNativeCodeEvidence(
+    contract.nativeCodePolicy,
+  );
   const policyDigest = sha256(
     JSON.stringify({
       version: 1,
@@ -6186,6 +6227,7 @@ function applyLinuxMcpCapsuleCodeSnapshot(
       entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
       runtimeLaunchMechanism: "inherited-executable-fd-v1",
       passthroughArgsDigest: sha256(JSON.stringify(invocation.args.slice(1))),
+      nativeCodePolicyDigest: nativeCodeEvidence.nativeCodePolicyDigest,
     }),
   );
   let closed = false;
@@ -6218,10 +6260,14 @@ function applyLinuxMcpCapsuleCodeSnapshot(
       runtimeLaunchMechanism: "inherited-executable-fd-v1",
       entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
       sharedLibraryClosure: false,
+      ...nativeCodeEvidence,
       ...snapshotIdentity,
     },
     reason: null,
-    guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+    guarantees: [
+      SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+    ],
     command: `/proc/self/fd/${runtimeFd}`,
     args: [
       "-e",
@@ -9694,6 +9740,9 @@ export function applyLinuxSandbox(
             runtimeLaunchMechanism:
               "bwrap-descriptor-mount-node-runtime-exec-v1",
             sharedLibraryClosure: false,
+            ...mcpStdioCapsuleNativeCodeEvidence(
+              validation.contract.nativeCodePolicy,
+            ),
             runtimeSnapshotSha256: validation.contract.runtimeIdentity.sha256,
             runtimeSnapshotBytes: validation.contract.runtimeIdentity.bytes,
             entrySnapshotSha256: entrySnapshot.attestation.sha256,
@@ -9749,7 +9798,12 @@ export function applyLinuxSandbox(
           SANDBOX_BOUNDARIES.FILESYSTEM,
           SANDBOX_BOUNDARIES.NETWORK,
           SANDBOX_BOUNDARIES.PROCESS_TREE,
-          ...(capsuleContract ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT] : []),
+          ...(capsuleContract
+            ? [
+                SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+                SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+              ]
+            : []),
         ],
         command: invocation.command,
         args: invocation.args,
