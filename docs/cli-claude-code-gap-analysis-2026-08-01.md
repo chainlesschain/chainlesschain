@@ -1769,3 +1769,65 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 - P2-4 仍固定 `v-npm-0-165-2@775d5667bc7bdcf8fed3f834d3ba2eda43526128`、campaign `p2-4-scheduler-long-soak-775d5667bc7b`、seed `1592598566`。真实 schedule dispatcher [run `32216915161`](https://github.com/chainlesschain/chainlesschain/actions/runs/32216915161) 在 `2026-08-19T05:19:26Z` 启动并成功完成，因仍早于第 2 段最早允许时间 `2026-08-19T09:07:09Z` 而保持 **1/4**，没有提前派发。后续 segment 仍须满足相邻启动 24 至 30 小时及总覆盖至少 72 小时。
 
 因此本节关闭的是 native workflow 解析缺陷并重新确认剩余权限/数据边界，不改变完成统计：原始 15 项仍为 **11 完成 / 4 部分完成 / 0 完全未开始**，六项产品任务仍为 **3 完成 / 3 未完成**，去重实施队列仍为 **4 个工作包**。其中 P2-4 是时间门控；native、alias 与 Skill/MCP 的上述部分边界需要仓库外生产身份、获批真实数据或新的完整平台隔离设计，任何缺失项都继续失败关闭。
+
+## 19. 2026-08-20 未完成任务表格化分析与分期建议
+
+> 复核快照：2026-08-20 17:01 +08:00。本节以第 18.34～18.35 节为当前判定基线，并核对当时远端 `main@43d622519fc3692205065632714cfddab072eb00`、GitHub Actions 终态、仓库 environment/variable/secret 名称以及当前源码中的失败关闭标志。工作区所在分支及未提交改动不作为完成证据。
+>
+> 分期原则：**不需要新增组织授权、生产凭据或真实用户数据的工作留在本期；依赖这些外部输入的退出门转入下一期。** 转入下一期只改变排期，不改变安全判定；在权威退出证据形成前，相关任务仍为部分完成或 NO-GO。
+
+### 19.1 四个剩余工作包总表
+
+| 编号 | 去重后的工作包 | 对应原始/产品项 | 2026-08-20 当前状态 | 外部条件分类 | 分期建议 | 判定依据 |
+| --- | --- | --- | --- | --- | --- | --- |
+| R1 | Native 签名、可信更新与公开发行链 | P0-3、P1-5、产品任务 4 | **部分完成 / NO-GO** | **外部条件主导** | **下一期** | 仓库内构建、签名校验、安装/升级/回滚失败关闭和公网回读合同已具备；但当前可见 environment 仍只有 `pypi`，没有 `native-production`，可见 secret/variable 也没有 CLI 的 Ed25519、Authenticode、Developer ID/notary 和公开渠道生产身份。 |
+| R2 | Alias telemetry 与最终删除决策 | P1-1、产品任务 5 | **部分完成 / NO-GO；25/25 保留** | **外部条件主导** | **下一期** | DELTA exporter、公开版本锚和报告器已完成；`REPOSITORY_APPROVAL_PUBLIC_KEYS` 仍为空，缺获批 Collector/cohort export、三平台非零 coverage、accepted points、sample rate 和逐命令 legacy/replacement usage。 |
+| R3 | Scheduler kernel 72 小时 campaign | P2-4 | **部分完成，已由 1/4 更新为 2/4** | **无需新增外部条件；仅受时间门控** | **本期继续** | 固定 `v-npm-0-165-2@775d5667bc7bdcf8fed3f834d3ba2eda43526128` 的第 1 段 run `32118985094` 与第 2 段 run `32238907233` 均为三平台加 aggregate 4/4 success；自动派发变量已配置。 |
+| R4 | Skill/MCP 完整安全闭环 | 产品任务 3 | **部分完成 / NO-GO** | **混合型** | **仓库内实现本期做；签名实机证据下一期** | 三平台长期恶意重复矩阵已成功，但 aggregate 仍明确为 `completeSkillMcpSecurityClosure=false`；运行时仍保留 `sharedLibraryClosure=false`，macOS 公共 API 路径仍以 `macos_atomic_runtime_exec_unavailable` 失败关闭。 |
+
+当前总数仍为：原始 15 项 **11 完成 / 4 部分完成 / 0 完全未开始**，六项产品任务 **3 完成 / 3 未完成**，去重后 **4 个工作包未完全关闭**。R3 从 `1/4` 到 `2/4` 是进度变化，尚不足以把 P2-4 标记为完成。
+
+### 19.2 本期可推进：不需要新增外部条件
+
+| 顺序 | 可立即执行的任务 | 当前基础 | 本期动作 | 本期验收口径 | 工作量/风险 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 完成 R3 的 scheduler campaign | 两个同 SHA formal segment 已成功；自动 dispatcher、4 段上限、24 小时最小间隔和 verifier 均已配置 | 不改 pinned ref/SHA/campaign/seed；让自动控制面派发第 3、4 段；每段结束后回读三平台与 aggregate；第 4 段后运行 campaign verifier 并归档 artifact digest | 恰好 4 个同 SHA 成功 segment；相邻启动间隔 24～30 小时；首末启动覆盖至少 72 小时；最终 verifier success；0 duplicate execution、0 invariant violation | **S**；工程工作少，主要是等待和证据复核。任一段失败时保持 NO-GO，只修失败根因后按正式合同决定是否重开 campaign |
+| 2 | 明确 R4 的可支持安全声明 | Linux 已覆盖 descriptor-pinned pathname loader input；macOS/Windows 仍有明确失败关闭边界 | 先形成平台能力表：Linux `dlopen` pathname、Windows DLL/delay-load/`LoadLibrary`、macOS dyld/`@rpath`/`dlopen`、匿名 JIT/custom loader 分别是“支持、失败关闭或明确不支持”；避免以“任意 shared library”这种不可验证的总称作为单一布尔目标 | 每个平台、加载机制、可写来源、递归深度和动态代码路径均有可测试声明；不支持路径继续失败关闭；不得只把 `sharedLibraryClosure` 常量改为 `true` | **M**；属于设计收敛，可完全在仓库内完成 |
+| 3 | 实现并测试 R4 的仓库内 native/shared-library 边界 | Process Broker、Linux bwrap descriptor namespace、macOS helper candidate 和 formal soak 框架已存在 | 按能力表补齐可承诺范围的快照、哈希、只读挂载/受控加载和 race 测试；增加 Linux、Windows、macOS 的 unit/contract/host 测试；对不可能形成原子绑定的路径给出 typed rejection | 同一 clean exact SHA 的 CLI CI、CLI Strict Sandbox 和受影响安全门通过；报告字段只在对应能力真正闭环时升级；unsupported/JIT/custom-loader 路径仍为显式 NO-GO | **L / 高风险**；可本期开发，但完整产品关闭仍受下一期签名 macOS live evidence 约束 |
+| 4 | 为本期结果补齐审计记录 | 本文已有 exact-SHA、run、artifact 与失败关闭记录格式 | R3 每个终态、R4 每个能力切片都记录 exact SHA、测试范围、artifact digest、未覆盖边界和是否改变统计 | 文档不使用旧 SHA、局部成功、PR smoke 或 unsigned contract 外推正式完成 | **S** |
+
+R3 的时间窗口按已完成 run 推算如下；这是最早允许时间，不是成功承诺：
+
+| Segment | Run / 状态 | workflow 启动时间 | 最早后继启动时间（北京时间） | 备注 |
+| --- | --- | --- | --- | --- |
+| 1 | `32118985094` / success | 2026-08-18 16:56:41 +08:00 | 已完成 | 三平台与 aggregate 4/4 success |
+| 2 | `32238907233` / success | 2026-08-19 17:41:39 +08:00 | Segment 3 不早于 2026-08-20 17:41:39 | 三平台与 aggregate 4/4 success |
+| 3 | 待自动派发 | 不早于上表时间 | Segment 4 不早于 Segment 3 启动后 24 小时 | 相邻间隔不得超过 30 小时 |
+| 4 | 待自动派发 | 预计不早于 2026-08-21 17:41:39 +08:00 | 完成后触发 verifier | 还必须满足相对 Segment 1 至少 72 小时覆盖 |
+
+### 19.3 下一期处理：需要外部条件
+
+| 下一期工作包 | 本期不应伪造或替代的外部条件 | 外部责任方 | 条件到位后的执行动作 | 正式退出证据 |
+| --- | --- | --- | --- | --- |
+| R1 Native 签名与公开发行 | 创建受保护的 `native-production`；配置 updater Ed25519 私钥/公钥；Windows Authenticode 证书、密码、发布者和时间戳策略；macOS Developer ID、notary 凭据和团队/指定要求；CLI native tag 保护；Homebrew、WinGet 等公开渠道发布权限 | 仓库管理员、安全/发布负责人、Apple/Microsoft 账号与包管理渠道维护者 | 从一个最终 exact SHA 创建受保护 native tag；构建六目标；执行签名/notarization/Sigstore；完成 signed fresh install、upgrade、rollback；发布版本化与 stable 资产；发布 Homebrew/WinGet；匿名回读公网字节 | 同一 exact SHA 的 native release 全矩阵成功；Windows/macOS/Linux 平台签名有效；安装/升级/回滚成功；公开渠道可安装；版本化/stable/包管理器资产逐字节、checksum、SBOM、provenance 和签名回读一致 |
+| R2 Alias telemetry 与删除决策 | 组织批准的 lifecycle Ed25519 公钥；获批且具代表性的 Collector/cohort export；Linux/macOS/Windows 连续 reporting coverage；非零 accepted points；可信 sample rate；逐命令 legacy/replacement usage | 产品、数据治理/隐私、安全审批和 telemetry 平台负责人 | 固定审批信任根；从 `0.163.4` 公开锚开始校验连续数据；运行正式 reporter；逐命令形成 `retain`/`remove` 建议；经产品评审后才修改 manifest | 报告不再是 `approval-signature-trust-unavailable` 或 `insufficient-data`；每个 alias 都有覆盖、样本和偏差说明；移除项通过兼容迁移、文档、测试和发布门。条件未到位时继续 25/25 retain |
+| R4 的 macOS 签名实机子门 | 创建受保护的 `cli-macos-mcp-launcher-production`；Developer ID 签名、notary Accepted、root-owned pkg 安装能力；x64/arm64 真实 runner 与受保护 tag/SHA | 仓库管理员、macOS 发布/安全负责人 | 对本期完成的 helper/broker 能力运行签名后的 x64/arm64 root live race、lifeline、signal、fork、path replacement 与 cleanup 矩阵，并聚合回读 | exact-SHA release gate、protected tag、signed-root live 和 aggregate 全部 success；此前只成功的 unsigned contract 不能替代此证据 |
+
+R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/notary、受保护 environment 和真实 macOS 发布授权，避免重复走两套审批。R2 的数据与隐私审批独立，不应阻塞 R1/R4，也不能用 npm 下载量或版本增长替代逐命令 adoption evidence。
+
+### 19.4 建议后的本期/下期任务池
+
+| 期次 | 纳入项 | 不纳入项 | 期末可达到的最佳状态 |
+| --- | --- | --- | --- |
+| 本期 | R3 完成剩余两段与 verifier；R4 完成平台能力声明和可在仓库内实现的 native/shared-library 边界；同步 exact-SHA 审计记录 | 不等待组织签名凭据，不采集未经批准的用户 telemetry，不发布 unsigned native 资产 | 若 R3 全绿，可正式关闭 P2-4；R4 可缩小剩余边界，但在 signed macOS live 子门完成前仍为部分完成 |
+| 下一期 | R1 完整签名 native 发行；R2 代表性 telemetry 与 alias 决策；R4 macOS 签名实机子门 | 不以本地测试、unsigned contract、npm provenance、版本增长或单平台结果代替外部证据 | 外部条件全部满足并通过相应 exact-SHA 门后，才允许关闭 R1、R2、R4，并重新计算总体完成数 |
+
+### 19.5 管理结论
+
+| 决策 | 结论 |
+| --- | --- |
+| 本期立即继续 | **R3 scheduler campaign**；**R4 的仓库内安全边界设计、实现与测试** |
+| 下一期再做 | **R1 native 签名/公开渠道全链**；**R2 真实 telemetry/alias 删除决策**；**R4 的签名 macOS root live 最终证据** |
+| 当前是否可宣称完整产品 GO | **否**。R3 尚为 2/4，R1/R2/R4 的正式退出门未关闭 |
+| 当前兼容策略 | **继续保留 25/25 alias；native 与不完整 Skill/MCP 路径继续失败关闭** |
+| 最短可关闭项 | **R3**。它不需要新增外部授权，只需现有自动控制面按时间合同完成后两段与 verifier |
