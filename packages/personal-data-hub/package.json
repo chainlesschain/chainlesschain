@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/personal-data-hub",
-  "version": "0.4.58",
+  "version": "0.4.59",
   "description": "Personal Data Hub — UnifiedSchema + validators + KG ingest helpers for the data-back-to-the-individual middleware",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -110,10 +110,10 @@
     "directory": "packages/personal-data-hub"
   },
   "dependencies": {
-    "better-sqlite3-multiple-ciphers": "^12.5.0",
     "mailparser": "^3.7.1"
   },
   "optionalDependencies": {
+    "better-sqlite3-multiple-ciphers": "^12.5.0",
     "imapflow": "^1.0.183",
     "adm-zip": "^0.6.0",
     "iconv-lite": "^0.6.3",

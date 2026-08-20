@@ -594,6 +594,10 @@ test("standalone CLI dependency install vendors exact checkout packages", () => 
     testWorkflow,
     /name: Global install from tarball \(exercises postinstall\)[\s\S]*?npm install -g "\$RUNNER_TEMP\/cli-global-install-candidates\/"\*\.tgz/,
   );
+  assert.match(
+    testWorkflow,
+    /name: Global install from tarball \(exercises postinstall\)[\s\S]*?npm_config_build_from_source: "true"[\s\S]*?NODE_GYP_FORCE_PYTHON:/,
+  );
 });
 
 test("workflow uses step outcomes and a final non-zero verdict", () => {
