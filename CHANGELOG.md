@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.165.5: governed recovery and native add-on policy
+
+> `chainlesschain` **0.165.4 -> 0.165.5** (candidate; not yet published,
+> 2026-08-20).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Recoverable Artifact workflows**: inspect and settle orphaned Artifact
+  writes through a bounded CLI-owned recovery projection, retain exact
+  access/deletion evidence, and surface workbench state without letting IDE
+  clients derive storage mutations.
+- **Durable workflow recovery**: plan and resume interrupted workflow stages
+  through persisted authority and checkpoint evidence, with tighter session
+  and execution-location projections for CLI, WebSocket, and IDE consumers.
+- **Native MCP add-on policy**: admit only supported native loader shapes and
+  validated executable/package identities. Unsupported or ambiguous native
+  add-ons now return typed fail-closed rejections instead of crossing the
+  strict process boundary.
+- **Release-candidate gates**: add cross-host Marketplace, accessibility,
+  execution-location, context/permission, and live-provider campaigns while
+  keeping CI dependency installation clean and deterministic.
+- **Release status**: publication requires this exact candidate commit to pass
+  the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
+  matrices. The immutable npm tag and registry readback will be recorded only
+  after those gates succeed.
+
 ### Fixed - cc CLI 0.165.4: first install without a native build toolchain
 
 > `chainlesschain` **0.165.3 -> 0.165.4** (published from exact SHA

@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.94] - Durable workflow and Artifact recovery (2026-08-20)
+
+- Surface CLI-owned durable workflow controls and recovery state while keeping
+  every mutation bound to refreshed, revision-checked CLI arguments.
+- Recover orphaned Artifact operations through a bounded projection and retain
+  exact access/deletion settlement before opening, revealing, copying, or
+  removing managed bytes.
+- Preserve bounded session/workbench rendering for incomplete recovery
+  evidence and fail closed on malformed, stale, or cross-paired projections.
+- Re-certify the native views with accessibility, scale, unit, pure-logic,
+  plugin-structure, compatibility, and real-host release gates.
+
 ## [0.4.93] - Audited artifact access and deletion settlement (2026-08-19)
 
 - Recommend the fully gated public CLI `chainlesschain@0.165.2` for existing

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.5",
+      "cliVersions": ["0.165.4", "0.165.5"],
+      "date": "2026-08-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.165.5: governed recovery and native add-on policy",
+          "body": "> `chainlesschain` **0.165.4 -> 0.165.5** (candidate; not yet published,\n> 2026-08-20).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Recoverable Artifact workflows**: inspect and settle orphaned Artifact\n  writes through a bounded CLI-owned recovery projection, retain exact\n  access/deletion evidence, and surface workbench state without letting IDE\n  clients derive storage mutations.\n- **Durable workflow recovery**: plan and resume interrupted workflow stages\n  through persisted authority and checkpoint evidence, with tighter session\n  and execution-location projections for CLI, WebSocket, and IDE consumers.\n- **Native MCP add-on policy**: admit only supported native loader shapes and\n  validated executable/package identities. Unsupported or ambiguous native\n  add-ons now return typed fail-closed rejections instead of crossing the\n  strict process boundary.\n- **Release-candidate gates**: add cross-host Marketplace, accessibility,\n  execution-location, context/permission, and live-provider campaigns while\n  keeping CI dependency installation clean and deterministic.\n- **Release status**: publication requires this exact candidate commit to pass\n  the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`\n  matrices. The immutable npm tag and registry readback will be recorded only\n  after those gates succeed."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.4",
       "cliVersions": ["0.165.3", "0.165.4"],
       "date": "2026-08-20",
