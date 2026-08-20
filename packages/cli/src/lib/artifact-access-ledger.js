@@ -4,14 +4,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
   withTrustedFileParentSync,
 } from "./secure-file-identity.js";
+<<<<<<< HEAD
 =======
 import { sameFileStatIdentity } from "./secure-file-identity.js";
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 import { withFileLock } from "./with-file-lock.js";
 
 export const ARTIFACT_ACCESS_EVENT_SCHEMA = "cc-artifact-content-access/v1";
@@ -168,6 +174,9 @@ function ledgerPath(store) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
   return withTrustedFileParentSync(
     runtimeFs,
@@ -219,6 +228,7 @@ function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
     },
     { runtime },
   );
+<<<<<<< HEAD
 =======
 function readLedgerBytes(filePath, runtimeFs) {
   let before;
@@ -265,6 +275,8 @@ function readLedgerBytes(filePath, runtimeFs) {
     if (descriptor !== null) runtimeFs.closeSync(descriptor);
   }
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 }
 
 function parseLedger(bytes) {
@@ -301,12 +313,18 @@ export function readArtifactAccessLedger(store, options = {}) {
   }
   const runtimeFs = options.fs || fs;
 <<<<<<< HEAD
+<<<<<<< HEAD
   const events = parseLedger(
     readLedgerBytes(ledgerPath(store), runtimeFs, options.runtime),
   );
 =======
   const events = parseLedger(readLedgerBytes(ledgerPath(store), runtimeFs));
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+  const events = parseLedger(
+    readLedgerBytes(ledgerPath(store), runtimeFs, options.runtime),
+  );
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
   return Object.freeze({
     schema: ARTIFACT_ACCESS_LEDGER_SCHEMA,
     eventCount: events.length,
@@ -427,14 +445,20 @@ export function authorizeArtifactContentAccess(
       filePath,
       () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
         const ledgerBytes = readLedgerBytes(
           filePath,
           runtimeFs,
           options.runtime,
         );
+<<<<<<< HEAD
 =======
         const ledgerBytes = readLedgerBytes(filePath, runtimeFs);
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
         const events = parseLedger(ledgerBytes);
         const prior = events.find(
           (event) => event.accessId === request.accessId,

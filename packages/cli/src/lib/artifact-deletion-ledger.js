@@ -4,14 +4,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
   withTrustedFileParentSync,
 } from "./secure-file-identity.js";
+<<<<<<< HEAD
 =======
 import { sameFileStatIdentity } from "./secure-file-identity.js";
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 import { withFileLock } from "./with-file-lock.js";
 
 export const ARTIFACT_DELETION_EVENT_SCHEMA =
@@ -216,6 +222,9 @@ function ledgerPath(store) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
   return withTrustedFileParentSync(
     runtimeFs,
@@ -267,6 +276,7 @@ function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
     },
     { runtime },
   );
+<<<<<<< HEAD
 =======
 function readLedgerBytes(filePath, runtimeFs) {
   let before;
@@ -313,6 +323,8 @@ function readLedgerBytes(filePath, runtimeFs) {
     if (descriptor !== null) runtimeFs.closeSync(descriptor);
   }
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
 }
 
 function parseLedger(bytes) {
@@ -349,10 +361,14 @@ export function readArtifactDeletionLedger(store, options = {}) {
   }
   const events = parseLedger(
 <<<<<<< HEAD
+<<<<<<< HEAD
     readLedgerBytes(ledgerPath(store), options.fs || fs, options.runtime),
 =======
     readLedgerBytes(ledgerPath(store), options.fs || fs),
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+    readLedgerBytes(ledgerPath(store), options.fs || fs, options.runtime),
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
   );
   return Object.freeze({
     schema: ARTIFACT_DELETION_LEDGER_SCHEMA,
@@ -575,14 +591,20 @@ export function settleArtifactDeletion(store, input = {}, options = {}) {
         filePath,
         () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
           let ledgerBytes = readLedgerBytes(
             filePath,
             runtimeFs,
             options.runtime,
           );
+<<<<<<< HEAD
 =======
           let ledgerBytes = readLedgerBytes(filePath, runtimeFs);
 >>>>>>> feature/durable-workflow-checkpoint-adjudication
+=======
+>>>>>>> github/feature/artifact-ttl-cleanup-settlement
           const events = parseLedger(ledgerBytes);
           const requestEvents = events.filter(
             (event) => event.deletionId === request.deletionId,

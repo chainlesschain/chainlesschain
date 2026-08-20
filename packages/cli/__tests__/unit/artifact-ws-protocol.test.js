@@ -237,7 +237,7 @@ describe("artifact-remove / artifact-clean", () => {
     new ArtifactStore({
       now: () => Date.now() - 40 * 24 * 60 * 60 * 1000,
     }).publish({ filePath: p, ttlDays: 1 });
-await handleArtifactClean(server, "4", {}, { cleanupId: "ws-cleanup" });
+    await handleArtifactClean(server, "4", {}, { cleanupId: "ws-cleanup" });
     expect(server.sent[3]).toMatchObject({
       type: "artifact-clean",
       cleanupId: "ws-cleanup",
