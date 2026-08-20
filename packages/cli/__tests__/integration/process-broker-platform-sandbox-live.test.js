@@ -27,6 +27,7 @@ import {
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
 
 const LIVE = process.env.CC_SANDBOX_LIVE === "1";
 const SUPPORTED = ["linux", "darwin", "win32"].includes(process.platform);
@@ -1065,6 +1066,7 @@ describe.runIf(LIVE && SUPPORTED)(
             SANDBOX_BOUNDARIES.NETWORK,
             SANDBOX_BOUNDARIES.PROCESS_TREE,
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           ];
           plan = applyWindowsSandbox(
             runtimePath,
@@ -1083,6 +1085,7 @@ describe.runIf(LIVE && SUPPORTED)(
               sync: true,
               executionContract: {
                 kind: "strict-mcp-node-capsule",
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 runtimePath,
                 runtimeIdentity: fileIdentity(runtimePath),
                 entryIdentity: fileIdentity(canonicalEntry),
@@ -1546,9 +1549,11 @@ describe.runIf(LIVE && SUPPORTED)(
               requiredBoundaries: [
                 SANDBOX_BOUNDARIES.PROCESS_TREE,
                 SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+                SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
               ],
               executionContract: {
                 kind: "strict-mcp-node-capsule",
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 runtimePath: canonicalRuntime,
                 runtimeIdentity: fileIdentity(canonicalRuntime),
                 entryIdentity: fileIdentity(canonicalEntry),
@@ -1568,6 +1573,7 @@ describe.runIf(LIVE && SUPPORTED)(
             guarantees: expect.arrayContaining([
               SANDBOX_BOUNDARIES.PROCESS_TREE,
               SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+              SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
             ]),
             runtimeProbe: {
               contentSnapshot: true,
@@ -1723,6 +1729,7 @@ describe.runIf(LIVE && SUPPORTED)(
           const entryIdentity = fileIdentity(entryPath);
           const requiredBoundaries = [
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
             SANDBOX_BOUNDARIES.FILESYSTEM,
             SANDBOX_BOUNDARIES.NETWORK,
           ];
@@ -1742,6 +1749,7 @@ describe.runIf(LIVE && SUPPORTED)(
               executionContract: {
                 contractVersion: 1,
                 kind: "strict-mcp-node-capsule",
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 pluginRoot: capsuleRoot,
                 workingDirectory: capsuleRoot,
                 runtimePath: runtimeIdentity.realPath,
@@ -1767,6 +1775,7 @@ describe.runIf(LIVE && SUPPORTED)(
               SANDBOX_BOUNDARIES.NETWORK,
               SANDBOX_BOUNDARIES.PROCESS_TREE,
               SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+              SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
             ],
             runtimeProbe: {
               runnable: true,
