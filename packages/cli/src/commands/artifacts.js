@@ -8,7 +8,7 @@
  *   cc artifacts show <id> [--json]        public metadata + integrity
  *   cc artifacts open <id>                 audit access, then print local path
  *   cc artifacts remove <id>               settle managed-copy removal
- *   cc artifacts clean [--json]            drop expired artifacts (TTL)
+ *   cc artifacts clean [--cleanup-id <id>] settle expired-artifact batch
  */
 
 import chalk from "chalk";
@@ -29,6 +29,10 @@ import {
   readArtifactDeletionLedger,
   settleArtifactDeletion,
 } from "../lib/artifact-deletion-ledger.js";
+import {
+  readArtifactCleanupLedger,
+  settleArtifactCleanup,
+} from "../lib/artifact-cleanup-ledger.js";
 import {
   assessDeliveryEvidence,
   createDeliveryEvidenceRecord,
@@ -139,10 +143,28 @@ export function registerArtifactsCommand(program) {
 
   cmd
     .command("clean")
-    .description("Remove expired artifacts (past their TTL)")
+    .description("Settle and audit one frozen batch of expired artifacts")
+    .option(
+      "--client <client>",
+      `Declared client (${ARTIFACT_DELETION_CLIENTS.join("|")})`,
+      "cli",
+    )
+    .option("--cleanup-id <id>", "Stable batch id for response-loss recovery")
     .option("--json", "Machine-readable JSON output")
     .action((options) => {
       process.exitCode = runArtifactsClean(options);
+    });
+
+  cmd
+    .command("cleanup-log")
+    .description(
+      "Verify and display the content-free cleanup settlement ledger",
+    )
+    .option("--cleanup <id>", "Only events for one cleanup id")
+    .option("--artifact <id>", "Only batches containing one artifact id")
+    .option("--json", "Machine-readable verified ledger projection")
+    .action((options) => {
+      process.exitCode = runArtifactsCleanupLog(options);
     });
 
   cmd
@@ -496,17 +518,98 @@ export function runArtifactsDeletionLog(options = {}, deps = {}) {
 
 export function runArtifactsClean(options = {}, deps = {}) {
   const store = deps.store || new ArtifactStore();
-  const { removed } = store.cleanupExpired();
-  if (options.json) {
-    console.log(JSON.stringify({ removed }));
-    return 0;
-  }
-  console.log(
-    removed > 0
-      ? chalk.green(`Removed ${removed} expired artifact(s).`)
-      : chalk.dim("Nothing expired."),
+  const cleanupId = String(
+    options.cleanupId || `cleanup_${randomUUID().replaceAll("-", "")}`,
   );
-  return 0;
+  try {
+    const result = (deps.settleArtifactCleanup || settleArtifactCleanup)(
+      store,
+      {
+        cleanupId,
+        client: options.client || "cli",
+      },
+      deps.cleanupOptions || {},
+    );
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return 0;
+    }
+    console.log(
+      result.removed > 0
+        ? chalk.green(
+            `Settled cleanup ${cleanupId}: removed ${result.removed} expired artifact(s).`,
+          )
+        : chalk.dim(`Settled cleanup ${cleanupId}: nothing expired.`),
+    );
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-cleanup-error/v1",
+          cleanupId: error.cleanupId || cleanupId,
+          settled: false,
+          ...(error.cleanup ? { cleanup: error.cleanup } : {}),
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(
+          `Artifact cleanup ${error.cleanupId || cleanupId} is not settled: ${error.message}`,
+        ),
+      );
+    }
+    return 1;
+  }
+}
+
+export function runArtifactsCleanupLog(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const ledger = (
+      deps.readArtifactCleanupLedger || readArtifactCleanupLedger
+    )(store, deps.cleanupOptions || {});
+    const events = ledger.events.filter(
+      (event) =>
+        (!options.cleanup || event.cleanupId === String(options.cleanup)) &&
+        (!options.artifact ||
+          event.items.some(
+            (item) => item.artifactId === String(options.artifact),
+          )),
+    );
+    const projection = {
+      ...ledger,
+      filtered: Boolean(options.cleanup || options.artifact),
+      matchedEventCount: events.length,
+      events,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(projection, null, 2));
+    } else if (events.length === 0) {
+      console.log(chalk.dim("No artifact cleanup settlement events."));
+    } else {
+      for (const event of events) {
+        console.log(
+          `${event.sequence}\t${event.phase}\t${event.itemCount}\t${event.cleanupId}\t${event.eventDigest}`,
+        );
+      }
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-cleanup-ledger-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(chalk.red(`Artifact cleanup log failed: ${error.message}`));
+    }
+    return 1;
+  }
 }
 
 function readJsonFile(inputPath, deps = {}) {

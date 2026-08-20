@@ -111,7 +111,9 @@ describe("execution-location controlled result apply", () => {
       { broker, workspaceRoot: root },
     );
     expect(source).toMatchObject({
-      workspaceRoot: fs.realpathSync(root),
+      // Match the production canonicalization on Windows, where os.tmpdir()
+      // can use an 8.3 alias such as RUNNER~1 on GitHub-hosted runners.
+      workspaceRoot: (fs.realpathSync.native || fs.realpathSync)(root),
       sourceGit: { commit: "a".repeat(40) },
     });
     expect(source.sourceGit.rootDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
