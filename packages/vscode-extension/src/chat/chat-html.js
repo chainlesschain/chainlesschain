@@ -732,6 +732,22 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     input.value = "";
     turnTokens = null; // fresh tally for the new turn
     status.textContent = "thinking…";
+    // Arm the send-acknowledgement timeout: if no event arrives within 30
+    // seconds, the agent likely failed to start (wrong cc binary, spawn error,
+    // or C compiler waiting on stdin). The user gets a visible error instead of
+    // an eternal "thinking…" spinner.
+    clearSendTimer();
+    sendTimer = setTimeout(() => {
+      sendTimer = null;
+      log.setAttribute("aria-busy", "false");
+      status.textContent = "no response";
+      add("error",
+        "No response from the agent after 30s. The cc CLI may not be installed " +
+        "(npm i -g chainlesschain), or 'cc' on your PATH may be a different " +
+        "tool (e.g., a C compiler). Check the Output panel (ChainlessChain) " +
+        "for details, or set chainlesschain.cli.path in settings."
+      );
+    }, 30000);
   }
   document.getElementById("send").addEventListener("click", send);
   document.getElementById("stop").addEventListener("click", () => {
@@ -750,6 +766,16 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (imeComposing || e.isComposing || e.keyCode === 229) return;
     vscode.postMessage({ type: "interrupt" });
   });
+  // Send timeout guard: if no response event arrives within 30 seconds after
+  // sending, surface a diagnostic error so the user isn't left on "thinking…"
+  // forever (e.g., spawn failed, wrong `cc` binary, or C compiler hung on stdin).
+  let sendTimer = null;
+  function clearSendTimer() {
+    if (sendTimer !== null) { clearTimeout(sendTimer); sendTimer = null; }
+  }
+  // Reset the send timer on any incoming event that proves the agent is alive.
+  function acceptAgentSignal() { clearSendTimer(); }
+
   // Ctrl/Cmd+O — expand/collapse all reasoning blocks (Claude-Code parity).
   // Only swallow the key when there is something to toggle, so the IDE's own
   // Ctrl+O (Open File) still works in an empty transcript.
@@ -989,6 +1015,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       return;
     }
     switch (m.kind) {
+      // Any event from the host proves the agent (or at least the extension)
+      // is alive — cancel the send timeout so "thinking…" doesn't fire a
+      // false positive when the agent is merely slow.
+      default: acceptAgentSignal(); break;
       case "init":
         status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
         break;

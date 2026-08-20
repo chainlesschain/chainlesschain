@@ -13,6 +13,7 @@
  *   info       { text }                    compaction / misc one-liners
  *   turn_end   { isError, text|null, usage } text only when nothing streamed
  *   error      { text }                    session-level failure
+ *   session_error { text }                agent child process failed to start
  */
 
 /** One-line argument summary for the tool trace (mirrors the CLI's trace). */
