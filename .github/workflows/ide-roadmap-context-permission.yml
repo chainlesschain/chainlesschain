@@ -64,8 +64,8 @@ jobs:
     timeout-minutes: 60
     env:
       CC_CP_ARTIFACT: ide-context-permission-${{ matrix.suffix }}-${{ github.run_attempt }}
-      CC_CP_ARTIFACT_DIR: ${{ runner.temp }}/context-permission/${{ matrix.suffix }}
-      CC_CP_STATE_DIR: ${{ runner.temp }}/context-permission-state/${{ matrix.suffix }}
+      CC_CP_ARTIFACT_DIR: ${{ github.workspace }}/.roadmap-evidence/context-permission/${{ matrix.suffix }}
+      CC_CP_STATE_DIR: ${{ github.workspace }}/.roadmap-evidence/context-permission-state/${{ matrix.suffix }}
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
