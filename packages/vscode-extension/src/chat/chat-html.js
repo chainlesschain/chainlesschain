@@ -342,6 +342,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   }
 
   function renderTabBar(tabs, activeId) {
+    const previouslyFocusedTab = document.activeElement?.closest?.('[role="tab"]');
+    const restoreTabFocus = Boolean(
+      previouslyFocusedTab && tabsEl.contains(previouslyFocusedTab),
+    );
+    const previouslyFocusedTabId = restoreTabFocus
+      ? previouslyFocusedTab.getAttribute("data-tab-id")
+      : null;
     tabsEl.textContent = "";
     if (!Array.isArray(tabs) || tabs.length === 0) return;
     for (let tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
@@ -352,6 +359,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       tab.type = "button";
       tab.id = "cc-chat-tab-" + tabIndex;
       tab.setAttribute("role", "tab");
+      tab.setAttribute("data-tab-id", t.id);
       tab.setAttribute("aria-controls", "log");
       tab.setAttribute("aria-selected", t.id === activeId ? "true" : "false");
       tab.tabIndex = t.id === activeId ? 0 : -1;
@@ -427,6 +435,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     plus.setAttribute("aria-label", "New conversation");
     plus.addEventListener("click", () => vscode.postMessage({ type: "newTab" }));
     tabsEl.appendChild(plus);
+    if (restoreTabFocus) {
+      const escapedTabId = CSS.escape(String(previouslyFocusedTabId || ""));
+      const target =
+        tabsEl.querySelector('[data-tab-id="' + escapedTabId + '"]') ||
+        tabsEl.querySelector('[role="tab"][aria-selected="true"]');
+      target?.focus();
+    }
   }
 
   // Drop the oldest top-level nodes once #log exceeds the cap. The active stream
@@ -1327,7 +1342,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         const card = document.createElement("div");
         card.className = "approval";
         card.id = "appr-" + m.id;
+        card.setAttribute("role", "group");
         const q = document.createElement("div");
+        q.id = "appr-label-" + m.id;
+        card.setAttribute("aria-labelledby", q.id);
         q.className = "q" + (m.risk === "high" ? " risk-high" : "");
         // NOTE: this whole page is built inside a template literal — escape
         // sequences like \\n must be DOUBLE-escaped or they break the
@@ -1353,6 +1371,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
               : {}),
           });
           yes.disabled = no.disabled = true;
+          // A keyboard activation must not strand focus on a newly disabled
+          // control while the host settles the approval asynchronously.
+          input.focus();
         };
         yes.addEventListener("click", () => answer(true));
         no.addEventListener("click", () => answer(false));
