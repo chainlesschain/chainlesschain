@@ -122,9 +122,14 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      # Retry the whole shard once only when Vitest itself reports a forks
+      # worker exit AND its JUnit report proves that recorded assertions had no
+      # failures/errors. Assertion failures, missing reports, and a failed retry
+      # remain hard failures. This contains the hosted-runner false red seen in
+      # run 32362763916 without weakening the test gate.
       - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only __tests__/integration/
+        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only __tests__/integration/
       - name: Upload failed integration report
         if: failure()
         uses: actions/upload-artifact@v4
