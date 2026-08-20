@@ -4853,3 +4853,18 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 | 仓库与本机验证 | 新矩阵合同 **4/4**；Execution Location target/Commander/replica 相关聚焦回归合计 **43/43**（并行负载下一个既有 5 秒用例曾超时，单文件 30 秒预算复跑 **11/11**）；任务 JS ESLint `--max-warnings 0`、YAML、Bash 与 PowerShell parser 全部通过。本机无 Docker daemon，但真实 WSL 1 已完成 1 条 reconnect 轨迹和 1 条普通 campaign：实际 CLI `prepare/show/resume/result-pack`、target outage 拒绝、恢复重试、collect/review/import 全部成功且未调用 provider | 本机证据验证了真实跨进程协议修复；Container/SSH 及 100-run 数量仍必须由干净 exact-head Actions 产生运行证据 |
 
 本节关闭 P1-2 的 **真实 WSL/Container/SSH launch/resume/handoff/result-return 300-run workflow、故障注入、content-free producer 与 fail-closed aggregate 实现子门**，并关闭真实运行发现的跨进程 attestation 时间漂移缺陷。它尚不替代该 workflow 在提交后对同一 exact head 的三格成功 readback，也不替代双 IDE/Desktop 可安装产品包回读；Cloud/专有远端、shared/NFS/object-store fencing、组织 WORM/retention 与物理擦除仍按第七十四节列入下期。因此 P1-2 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十一、2026-08-20 P1-4 Context/Permission 三宿主并发与跨入口矩阵实现记录
+
+本节执行第七十四节列入本期的 P1-4 剩余矩阵。它把既有 Context Center、scoped permission authority 与 Permission/Side-effect Center 的生产实现接入可复核的三宿主 Actions，不把 synthetic fixture、未提交工作树或尚未运行的 workflow 记为发布通过。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 三宿主并发 authority | `.github/workflows/ide-roadmap-context-permission.yml` 在 Ubuntu 24.04、macOS 15、Windows 2025 上分别以 20 个真实 Node 子进程执行 100 次 scoped rule add，再以 20 个子进程执行 100 次 CAS revoke；要求 generation 精确为 200、100 条规则全部撤销、无 lost update/duplicate id/stale revision acceptance。随后加入 active allow 与 managed deny，要求最终 generation 201 且 allow 被 `suppressed-by-managed-policy` | 每宿主 200 次并发 mutation 的 workflow 与 fail-closed 断言已实现；不是单进程伪并发 |
+| 故障与恢复诚实性 | 每格复制后破坏 canonical authority JSON，要求生产 store 拒绝；启动独立 sleeper 后真实终止进程，要求 authority digest 不漂移且无孤儿。每个投影都同时携带 file、network、process 与 credential 标识，本地 checkpoint 只允许覆盖 file，network/process/credential 必须保持 uncovered/partial | 损坏 authority、进程终止和外部副作用 rollback overclaim 均有明确零容忍计数 |
+| 七入口矩阵 | REPL、headless、stream、WebSocket、VS Code、JetBrains、Desktop 各执行 100 次独立 permission projection，总计每宿主 700 次；同一批 64 个 context candidates 正序/逆序必须生成完全相同的 `priority-stable-v1` authority，4096-token 上限必须被准确保留且实际分配不得越界 | 三宿主合计 2100 个跨入口 projection 的合同已实现；七入口共同消费同一生产投影而非各自复制规则 |
+| 凭据与完整命令防泄露 | 每次注入唯一 token、带 credential URL、环境变量和完整 `npm publish` 命令，生产 resource collector/side-effect center 输出序列化后不得包含 secret、`--token` 或完整命令尾标；producer/failure artifact 只保留 digest、计数、host/provenance 和 content-free diagnostic digest | verifier 要求 credential/full-command leak、managed deny relaxation、checkpoint overclaim、corrupt acceptance、orphan process 全为 0 |
+| exact-head aggregate | 每格 manifest 固定七份证据文件的 byte length/SHA-256；aggregate 在 `if: always()` 下先拒绝任一 skipped/cancelled/failed producer，再逐文件重算，绑定 exact commit、workflow/job/run/artifact provenance、三种 OS、600 次 mutation 与 2100 次 projection | 缺格、旧 SHA、artifact 被改写或次数不足均不能聚合成功 |
+| 仓库内验证 | 本机 Windows 实际 campaign **1/1** 通过，真实完成 200 次并发 mutation、1 次 corrupt-state rejection、1 次 process termination 与 700 次投影；矩阵合同 **4/4**，scoped permission、side-effect、VS Code Context/Policy 回归 **51/51**；任务 JS ESLint `--max-warnings 0` 与 workflow YAML 解析通过。Actions 使用 Node 22.12.0、JDK 21，并在每个 OS 追加 JetBrains `ContextCenterTest`/`PolicyViewerTest` | 仓库内实现与 Windows 实跑通过；三宿主 exact-head Actions artifact 尚待提交后运行和回读 |
+
+本节关闭 P1-4 的 **三宿主并发/进程故障/跨七入口/凭据与完整命令防泄露/本地 checkpoint 不误报外部回滚能力的自动化矩阵实现子门**。因当前尚无该候选 exact head 的三宿主成功 artifact，且长期真实 IDE 人工交互、组织策略环境与更长 soak 仍未形成外部证据，P1-4 整项继续为**部分完成**，整体结论保持 **NO-GO**。
