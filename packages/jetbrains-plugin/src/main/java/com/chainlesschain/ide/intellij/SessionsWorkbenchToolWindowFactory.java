@@ -97,6 +97,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private final JButton pauseBtn = new JButton("Pause workflow");
         private final JButton workflowResumeBtn = new JButton("Resume workflow");
         private final JButton recoverBtn = new JButton("Recover checkpoints");
+        private final JButton recoveryPlanBtn = new JButton("Recovery dry-run");
 
         /** Last full (unfiltered) aggregate — filter re-applies locally. */
         private List<SessionsWorkbench.Row> all = new ArrayList<>();
@@ -144,6 +145,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             actions.add(pauseBtn);
             actions.add(workflowResumeBtn);
             actions.add(recoverBtn);
+            actions.add(recoveryPlanBtn);
 
             JPanel top = new JPanel(new BorderLayout(6, 6));
             top.add(search, BorderLayout.CENTER);
@@ -195,6 +197,9 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                     SessionsWorkbench.ACT_RECOVER, "Recover checkpoints"));
             recoverBtn.getAccessibleContext().setAccessibleName(
                     "Recover selected dynamic workflow checkpoints");
+            recoveryPlanBtn.addActionListener(ev -> onRecoveryPlan());
+            recoveryPlanBtn.getAccessibleContext().setAccessibleName(
+                    "Preview dynamic workflow recovery plan");
             syncButtons();
 
             JPanel deliveryPanel = new JPanel(new BorderLayout(6, 6));
@@ -295,8 +300,14 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                     }
                 }
             }
-            note.setText(CcBundle.message("sessions.wb.count",
-                    model.rows.size(), all.size()));
+            long recoveryAttention = all.stream()
+                    .filter(row -> row.detail.contains("recovery ")).count();
+            String count = CcBundle.message("sessions.wb.count",
+                    model.rows.size(), all.size());
+            note.setText(recoveryAttention > 0
+                    ? count + " · " + recoveryAttention
+                            + " workflow recovery notice(s); no unattended mutation"
+                    : count);
             syncButtons();
         }
 
@@ -581,6 +592,27 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             if (answer == Messages.YES) {
                 cliPreviewAction(r, action, null, false);
             }
+        }
+
+        private void onRecoveryPlan() {
+            final File cwd = projectDirectory();
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                try {
+                    List<String> args = new ArrayList<String>(List.of(
+                            "cowork", "workflow", "runtime-recovery-plan", "--json"));
+                    if (project.getBasePath() != null) {
+                        args.add("--cwd");
+                        args.add(project.getBasePath());
+                    }
+                    String out = AgentChatSession.runCapture(
+                            args, cwd, CLI_TIMEOUT_MS);
+                    ApplicationManager.getApplication().invokeLater(() ->
+                            showTextDialog("Dynamic workflow recovery dry-run",
+                                    out == null || out.isEmpty() ? "Unavailable" : out));
+                } catch (Throwable error) {
+                    afterAction("Recovery dry-run failed: " + error.getMessage());
+                }
+            });
         }
 
         // -------------------------------------------------------- helpers

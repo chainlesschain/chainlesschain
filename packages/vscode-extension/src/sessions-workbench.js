@@ -737,6 +737,11 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
             `recoverable checkpoints ${escapeHtml(workflow.recovery.terminal)}`,
           );
         }
+        if (workflow.recoveryPolicy?.risk !== "none") {
+          details.push(
+            `recovery ${escapeHtml(workflow.recoveryPolicy?.severity || "info")}:${escapeHtml(workflow.recoveryPolicy.risk)} → ${escapeHtml(workflow.recoveryPolicy.recommendedAction || "review")}`,
+          );
+        }
       }
       return (
         `<tr data-session-row><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +

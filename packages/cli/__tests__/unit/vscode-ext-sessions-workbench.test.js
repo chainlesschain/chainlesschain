@@ -549,6 +549,15 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
         agents: { requested: 2, settled: 2, pending: 0 },
         budget: { overall: "within" },
         recovery: { terminal: 1 },
+        recoveryPolicy: {
+          risk: "terminal_checkpoint_recovery",
+          severity: "warning",
+          recommendedAction: "recover",
+          notification: {
+            key: `sha256:${"7".repeat(64)}`,
+            backoffMs: [15000, 60000, 300000, 900000],
+          },
+        },
         recent: { call: { name: "read_file", status: "completed" } },
       },
       lastEvent: { type: "state:blocked", at: "2026-08-01T00:10:00Z" },
@@ -612,6 +621,9 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     expect(html).toContain("budget within");
     expect(html).toContain("recent tool read_file:completed");
     expect(html).toContain("recoverable checkpoints 1");
+    expect(html).toContain(
+      "recovery warning:terminal_checkpoint_recovery → recover",
+    );
   });
 
   it("clears every row/action on disconnect, malformed data or stale revision", () => {

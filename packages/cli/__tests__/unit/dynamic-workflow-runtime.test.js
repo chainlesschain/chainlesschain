@@ -16,6 +16,7 @@ import {
   SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA,
 } from "../../src/lib/dynamic-workflow-facade.js";
 import {
+  buildDynamicWorkflowRecoveryPlan,
   DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
   dynamicWorkflowRunStatePath,
   executeDurableDynamicWorkflow,
@@ -459,6 +460,17 @@ describe("durable dynamic workflow runtime", () => {
     const discovered = listDynamicWorkflowWorkbenchStates(projectRoot);
     expect(discovered.invalidCount).toBe(0);
     expect(discovered.runs.map((run) => run.runId)).toEqual(["run-complete"]);
+    const recoveryPlan = buildDynamicWorkflowRecoveryPlan(projectRoot, {
+      now: "2026-08-18T06:00:00.000Z",
+    });
+    expect(recoveryPlan).toMatchObject({
+      schema: "cc-dynamic-workflow-recovery-plan/v1",
+      authority: "cli",
+      mode: "dry-run",
+      summary: { total: 1, attention: 0, approvalRequired: 0 },
+      policy: { unattendedMutationAllowed: false },
+    });
+    expect(recoveryPlan.planDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
     writeFileSync(
       join(
         projectRoot,
@@ -3543,6 +3555,35 @@ describe("durable dynamic workflow runtime", () => {
     expect(state.status).toBe("paused");
     expect(state.effects).toMatchObject([{ status: "settled" }]);
     expect(runTask).toHaveBeenCalledTimes(1);
+    const pausedProjection = projectDynamicWorkflowWorkbenchState(state);
+    expect(pausedProjection.recoveryPolicy).toMatchObject({
+      risk: "restart_ready",
+      severity: "warning",
+      recommendedAction: "resume",
+      requiresApproval: true,
+      automaticallyExecutable: true,
+      unattendedMutationAllowed: false,
+      notification: {
+        backoffMs: [15_000, 60_000, 300_000, 900_000],
+        resetOnStateDigestChange: true,
+      },
+    });
+    const plan = buildDynamicWorkflowRecoveryPlan(projectRoot, {
+      now: "2026-08-18T06:00:00.000Z",
+    });
+    expect(plan.summary).toMatchObject({
+      total: 1,
+      attention: 1,
+      approvalRequired: 1,
+      automaticallyExecutable: 1,
+    });
+    expect(plan.items[0]).toMatchObject({
+      runId: "run-pause",
+      revision: state.revision,
+      stateDigest: state.stateDigest,
+      risk: "restart_ready",
+      recommendedAction: "resume",
+    });
 
     state = prepareDurableWorkflowResume(statePath, state.revision, {
       now: runtimeClock,

@@ -4788,3 +4788,15 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 | JetBrains 验证边界 | Java parser、Swing 按钮、v1/v2 兼容与 dynamic workflow 测试已经写入；当前 Windows 机器只有 Java 8，Gradle 在测试编译前因缺少项目要求的 JDK 21 停止 | 由 exact-head GitHub Actions 的 JDK 21 IDE matrix 验证；本地环境不足不延期实现，也不冒充通过 |
 
 本节关闭的是 **P1-1 的 canonical Workbench/双 IDE 产品消费子门**。启动/定时自动恢复策略、风险分级通知、backoff、batch dry-run、outer-result/current-workspace 恢复边界以及 Local/WSL/SSH/Container × 三 OS/双 IDE 的完整重放矩阵仍需按第七十四节在本期继续完成；provider 独立 receipt/native idempotency、WORM 与专有宿主 authority 仍按表列入下期。因此总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十六、2026-08-20 P1-1 自动恢复 policy 与 batch dry-run 子门执行记录
+
+本节继续第七十五节，关闭“自动发现与策略建议”而不是放宽外部 effect 的 exactly-once 权限边界。自动扫描不等于自动重放；任何 durable state 写操作仍须经人工确认和 CLI revision CAS。
+
+- **启动/定时扫描：** VS Code 与 JetBrains Sessions Workbench 在首次打开和可见期间每 15 秒重新调用同一 `session projection`；CLI 每次重新安全读取 run state 和 terminal checkpoint store，不复用 IDE 推断或旧按钮。
+- **canonical 风险分级：** `cc-dynamic-workflow-recovery-policy/v1` 区分 `terminal_checkpoint_recovery`、`input_required`、`operator_adjudication_required`、`settlement_barrier_pending`、`restart_ready` 与 `none`，输出 severity、推荐动作、是否需审批、是否具备仓库内自动执行条件，并固定 `unattendedMutationAllowed=false`。terminal child checkpoint recovery 不会被外推为 outer provider/result 已结算。
+- **通知与 backoff：** 每个通知键绑定 `runId + runtime revision + stateDigest + risk + action`；状态 digest 变化即重置。canonical backoff 为 15 秒、60 秒、5 分钟、15 分钟；VS Code 以该序列去重系统通知，JetBrains 在定时刷新状态行中显示需关注计数，二者都明确没有执行无人值守 mutation。
+- **批次 dry-run：** 新增 `cc cowork workflow runtime-recovery-plan --cwd <project> --json`，输出 content-free `cc-dynamic-workflow-recovery-plan/v1`、project digest、稳定 plan digest、全 run revision/state digest、风险、推荐动作与汇总计数。VS Code 和 JetBrains Workbench 都有 Recovery dry-run 入口；计划本身只读，不是授权 token，也不能绕过逐 run 的 `recover/resume/reply/reconcile` 审批。
+- **回归：** dynamic runtime、session projection、VS Code Workbench 与 production Commander command 四个聚焦文件 **95/95**；VS Code Workbench host/delivery 回归 **6/6**；任务文件 ESLint **0 error**（4 个既有 warning）。真实 CLI dry-run 在当前项目输出 v1 计划和稳定 digest。JetBrains JDK 21 测试仍交由 exact-head Actions，当前机器只有 Java 8，不能据此记为本地通过。
+
+本节关闭 P1-1 的 **启动/周期安全扫描、风险分级、通知退避和双 IDE batch dry-run 子门**。仍未关闭的是 outer-result/current-workspace restore 的权威边界、可安装包的 exact-head 双 IDE readback，以及 Local/WSL/SSH/Container × 三 OS/双 IDE 重放矩阵；provider 独立 receipt/native idempotency、WORM 和专有宿主 authority 继续列入下期。因此 P1-1 整项仍为**部分完成**，总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。

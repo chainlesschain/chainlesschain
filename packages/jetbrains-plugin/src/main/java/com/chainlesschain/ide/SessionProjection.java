@@ -386,6 +386,18 @@ public final class SessionProjection {
             if (recoverable > 0) {
                 parts.add("recoverable checkpoints " + recoverable);
             }
+            Map<String, Object> recoveryPolicy =
+                    workflow.get("recoveryPolicy") instanceof Map
+                            ? (Map<String, Object>) workflow.get("recoveryPolicy")
+                            : Map.of();
+            String risk = str(recoveryPolicy.get("risk"));
+            if (!risk.isEmpty() && !"none".equals(risk)) {
+                parts.add("recovery "
+                        + fallback(str(recoveryPolicy.get("severity")), "info")
+                        + ":" + risk + " -> "
+                        + fallback(str(recoveryPolicy.get("recommendedAction")),
+                                "review"));
+            }
         }
         return String.join(" · ", parts);
     }

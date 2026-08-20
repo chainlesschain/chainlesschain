@@ -6125,6 +6125,89 @@ function observedBudgetStatus(observed, limit, complete) {
   return observed > limit ? "exceeded" : "within";
 }
 
+const WORKFLOW_RECOVERY_BACKOFF_MS = Object.freeze([
+  15_000,
+  60_000,
+  5 * 60_000,
+  15 * 60_000,
+]);
+
+function dynamicWorkflowRecoveryPolicy(state, recovery) {
+  const pendingInput = runtimeInputRequests(state).filter(
+    (request) => request.status === "pending",
+  ).length;
+  const pendingEffects = state.effects.filter(
+    (effect) => effect.status === "pending",
+  );
+  const uncertainEffects = pendingEffects.filter(
+    (effect) => !isKnownUndispatched(effect),
+  ).length;
+  let risk = "none";
+  let severity = "info";
+  let recommendedAction = "none";
+  let requiresApproval = false;
+  let automaticallyExecutable = false;
+
+  if (recovery.terminal > 0) {
+    risk = "terminal_checkpoint_recovery";
+    severity = "warning";
+    recommendedAction = "recover";
+    requiresApproval = true;
+    automaticallyExecutable = true;
+  } else if (pendingInput > 0) {
+    risk = "input_required";
+    severity = "warning";
+    recommendedAction = "reply";
+    requiresApproval = true;
+  } else if (uncertainEffects > 0) {
+    risk = "operator_adjudication_required";
+    severity = "critical";
+    recommendedAction = "reconcile";
+    requiresApproval = true;
+  } else if (state.status === "pause_requested") {
+    risk = "settlement_barrier_pending";
+    severity = "info";
+    recommendedAction = "wait";
+  } else if (
+    ["paused", "failed", "blocked"].includes(state.status) &&
+    pendingEffects.length === 0
+  ) {
+    risk = "restart_ready";
+    severity = "warning";
+    recommendedAction = "resume";
+    requiresApproval = true;
+    automaticallyExecutable = true;
+  }
+
+  const notificationKey = digest(
+    "chainlesschain.dynamic-workflow.recovery-notification.v1\0",
+    {
+      runId: state.runId,
+      revision: state.revision,
+      stateDigest: state.stateDigest,
+      risk,
+      recommendedAction,
+    },
+  );
+  return Object.freeze({
+    schema: "cc-dynamic-workflow-recovery-policy/v1",
+    risk,
+    severity,
+    recommendedAction,
+    requiresApproval,
+    automaticallyExecutable,
+    unattendedMutationAllowed: false,
+    pendingInput,
+    pendingEffects: pendingEffects.length,
+    uncertainEffects,
+    notification: Object.freeze({
+      key: notificationKey,
+      backoffMs: WORKFLOW_RECOVERY_BACKOFF_MS,
+      resetOnStateDigestChange: true,
+    }),
+  });
+}
+
 /**
  * Bounded, content-free view used by the cross-IDE Sessions Workbench. Tool
  * arguments, prompts, provider output, result bodies, and filesystem bindings
@@ -6140,6 +6223,7 @@ export function projectDynamicWorkflowWorkbenchState(
       : verifyDynamicWorkflowRuntimeState(stateOrPath);
   const observability = projectDynamicWorkflowObservability(state);
   const recovery = checkpointRecoverySummary(state, options);
+  const recoveryPolicy = dynamicWorkflowRecoveryPolicy(state, recovery);
   const recentEffect = state.effects.at(-1) || null;
   const recentCall = recentEffect?.calls?.at(-1) || null;
   const lastTransition = state.lineage.at(-1) || null;
@@ -6222,6 +6306,7 @@ export function projectDynamicWorkflowWorkbenchState(
     artifacts: Object.freeze({ count: observability.artifacts.count }),
     checkpoints: Object.freeze({ count: observability.checkpoints.count }),
     recovery,
+    recoveryPolicy,
     recent: recentEffect
       ? Object.freeze({
           effectId: recentEffect.id,
@@ -6253,6 +6338,9 @@ export function projectDynamicWorkflowWorkbenchState(
 /** Securely discover durable workflow state files below one project root. */
 export function listDynamicWorkflowWorkbenchStates(cwd, options = {}) {
   const limit = Math.max(1, Math.min(256, Number(options.limit) || 100));
+  const projectionOptions = Object.hasOwn(options, "checkpointStore")
+    ? options
+    : { ...options, checkpointStore: new WorkspaceTransactionManager() };
   const directory = path.join(
     path.resolve(cwd),
     ".chainlesschain",
@@ -6290,7 +6378,7 @@ export function listDynamicWorkflowWorkbenchStates(cwd, options = {}) {
       const statePath = dynamicWorkflowRunStatePath(cwd, runId);
       const state = readDynamicWorkflowRuntimeState(statePath);
       if (state.runId !== runId) throw new Error("run identity mismatch");
-      runs.push(projectDynamicWorkflowWorkbenchState(state, options));
+      runs.push(projectDynamicWorkflowWorkbenchState(state, projectionOptions));
     } catch {
       invalidCount += 1;
     }
@@ -6303,5 +6391,64 @@ export function listDynamicWorkflowWorkbenchStates(cwd, options = {}) {
   return Object.freeze({
     runs: Object.freeze(runs.slice(0, limit)),
     invalidCount,
+  });
+}
+
+/** Deterministic, non-mutating batch inventory for startup/periodic recovery. */
+export function buildDynamicWorkflowRecoveryPlan(cwd, options = {}) {
+  const discovered = listDynamicWorkflowWorkbenchStates(cwd, options);
+  const policy = Object.freeze({
+    schema: "cc-dynamic-workflow-recovery-policy-set/v1",
+    unattendedMutationAllowed: false,
+    approvalRequiredFor: Object.freeze([
+      "recover",
+      "resume",
+      "reply",
+      "reconcile",
+    ]),
+    backoffMs: WORKFLOW_RECOVERY_BACKOFF_MS,
+  });
+  const items = discovered.runs.map((run) =>
+    Object.freeze({
+      runId: run.runId,
+      workflowId: run.workflowId,
+      revision: run.revision,
+      stateDigest: run.stateDigest,
+      status: run.status,
+      updatedAt: run.updatedAt,
+      risk: run.recoveryPolicy.risk,
+      severity: run.recoveryPolicy.severity,
+      recommendedAction: run.recoveryPolicy.recommendedAction,
+      requiresApproval: run.recoveryPolicy.requiresApproval,
+      automaticallyExecutable: run.recoveryPolicy.automaticallyExecutable,
+      notificationKey: run.recoveryPolicy.notification.key,
+      recovery: run.recovery,
+    }),
+  );
+  const summary = Object.freeze({
+    total: items.length,
+    invalid: discovered.invalidCount,
+    attention: items.filter((item) => item.risk !== "none").length,
+    critical: items.filter((item) => item.severity === "critical").length,
+    approvalRequired: items.filter((item) => item.requiresApproval).length,
+    automaticallyExecutable: items.filter(
+      (item) => item.automaticallyExecutable,
+    ).length,
+  });
+  const planMaterial = { policy, summary, items };
+  return Object.freeze({
+    schema: "cc-dynamic-workflow-recovery-plan/v1",
+    authority: "cli",
+    mode: "dry-run",
+    generatedAt: isoNow(options.now),
+    projectDigest: digest(
+      "chainlesschain.dynamic-workflow.recovery-project.v1\0",
+      path.resolve(cwd),
+    ),
+    planDigest: digest(
+      "chainlesschain.dynamic-workflow.recovery-plan.v1\0",
+      planMaterial,
+    ),
+    ...planMaterial,
   });
 }

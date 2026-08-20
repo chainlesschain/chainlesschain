@@ -1059,6 +1059,46 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       }
     });
 
+  workflow
+    .command("runtime-recovery-plan")
+    .description(
+      "Dry-run the bounded startup/periodic recovery policy for this project",
+    )
+    .option("--cwd <path>", "Project root containing durable runs")
+    .option("-n, --limit <n>", "Maximum durable runs to inspect", "100")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const plan = runtime.buildDynamicWorkflowRecoveryPlan(
+          options.cwd || process.cwd(),
+          {
+            limit: Math.max(1, parseInt(options.limit) || 100),
+            ...(Object.hasOwn(commandDeps, "workflowCheckpointStore")
+              ? { checkpointStore: commandDeps.workflowCheckpointStore }
+              : {}),
+          },
+        );
+        if (options.json) {
+          console.log(JSON.stringify(plan, null, 2));
+          return;
+        }
+        logger.log(
+          `${plan.summary.attention}/${plan.summary.total} durable runs need attention; plan ${plan.planDigest}`,
+        );
+        for (const item of plan.items.filter(
+          (entry) => entry.risk !== "none",
+        )) {
+          logger.log(
+            `  ${item.runId}  ${item.risk}  action=${item.recommendedAction}  revision=${item.revision}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`WORKFLOW_RUNTIME_RECOVERY_PLAN_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
   for (const action of ["pause", "stop", "resume"]) {
     workflow
       .command(`runtime-${action} <run-id>`)

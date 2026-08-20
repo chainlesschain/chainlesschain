@@ -550,6 +550,7 @@ function dynamicWorkflowSummary(source) {
     artifacts: source.artifacts,
     checkpoints: source.checkpoints,
     recovery: source.recovery,
+    recoveryPolicy: source.recoveryPolicy,
     recent: source.recent,
     definitionDigest: source.definitionDigest,
     admissionDigest: source.admissionDigest,

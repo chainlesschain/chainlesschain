@@ -113,6 +113,10 @@ class SessionProjectionTest {
                 "agents", Map.of("requested", 2L, "settled", 2L, "pending", 0L),
                 "budget", Map.of("overall", "within"),
                 "recovery", Map.of("terminal", 1L),
+                "recoveryPolicy", Map.of(
+                        "risk", "terminal_checkpoint_recovery",
+                        "severity", "warning",
+                        "recommendedAction", "recover"),
                 "recent", Map.of("call", Map.of(
                         "name", "read_file", "status", "completed"))));
         dynamic.put("lastEvent", Map.of("at", "2026-08-01T00:10:00Z"));
@@ -155,6 +159,8 @@ class SessionProjectionTest {
         assertTrue(item.detail.contains("budget within"));
         assertTrue(item.detail.contains("recent tool read_file:completed"));
         assertTrue(item.detail.contains("recoverable checkpoints 1"));
+        assertTrue(item.detail.contains(
+                "recovery warning:terminal_checkpoint_recovery -> recover"));
         assertEquals(List.of("cowork", "workflow", "runtime-resume", "wf-run",
                         "--expected-revision", "7", "--cwd", "C:/repo", "--json"),
                 SessionProjection.preview(snapshot, item.id, "resume",

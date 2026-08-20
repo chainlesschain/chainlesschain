@@ -199,6 +199,18 @@ describe("canonical session projection", () => {
       artifacts: { count: 1 },
       checkpoints: { count: 1 },
       recovery: { prepared: 1, terminal: 1, pending: 0, unavailable: 0 },
+      recoveryPolicy: {
+        risk: "terminal_checkpoint_recovery",
+        severity: "warning",
+        recommendedAction: "recover",
+        requiresApproval: true,
+        automaticallyExecutable: true,
+        unattendedMutationAllowed: false,
+        notification: {
+          key: `sha256:${"f".repeat(64)}`,
+          backoffMs: [15000, 60000, 300000, 900000],
+        },
+      },
       recent: {
         effectId: `sha256:${"d".repeat(64)}`,
         stepId: "review",
@@ -237,6 +249,10 @@ describe("canonical session projection", () => {
       agents: { requested: 2, settled: 2 },
       budget: { overall: "within" },
       recovery: { terminal: 1 },
+      recoveryPolicy: {
+        risk: "terminal_checkpoint_recovery",
+        recommendedAction: "recover",
+      },
       recent: { stepId: "review", call: { name: "read_file" } },
     });
     expect(
