@@ -1,0 +1,204 @@
+name: IDE Roadmap Execution Location
+
+on:
+  pull_request:
+    paths:
+      - ".github/scripts/ide-roadmap-execution-location-target.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
+      - ".github/workflows/ide-roadmap-execution-location.yml"
+      - "packages/cli/src/commands/session-location.js"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/lib/execution-location-*.js"
+      - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-execution-location.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-execution-location-matrix.test.js"
+  push:
+    branches: [main]
+    paths:
+      - ".github/scripts/ide-roadmap-execution-location-target.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
+      - ".github/workflows/ide-roadmap-execution-location.yml"
+      - "packages/cli/src/commands/session-location.js"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/lib/execution-location-*.js"
+      - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-execution-location.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-execution-location-matrix.test.js"
+  schedule:
+    - cron: "17 2 * * 4"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  EXECUTION_LOCATION_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  wsl-execution-location:
+    name: WSL production location trajectory x100
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      CC_LOCATION_ARTIFACT: ide-execution-location-wsl-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact execution-location candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXECUTION_LOCATION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install source CLI dependencies without lifecycle scripts
+        shell: pwsh
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Run genuine WSL launch, outage, reconnect, and result-return matrix
+        shell: pwsh
+        run: >-
+          ./.github/scripts/run-ide-roadmap-execution-location-wsl.ps1
+          -ReleaseCommit "$env:EXECUTION_LOCATION_COMMIT"
+          -ArtifactDirectory "$env:RUNNER_TEMP/execution-location/wsl"
+          -ArtifactName "$env:CC_LOCATION_ARTIFACT"
+      - name: Upload WSL evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_LOCATION_ARTIFACT }}
+          path: ${{ runner.temp }}/execution-location/wsl/
+          if-no-files-found: error
+
+  container-execution-location:
+    name: Container production location trajectory x100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CC_LOCATION_ARTIFACT: ide-execution-location-container-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact execution-location candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXECUTION_LOCATION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install source CLI dependencies without lifecycle scripts
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Run genuine Container launch, outage, reconnect, and result-return matrix
+        run: >-
+          bash .github/scripts/run-ide-roadmap-execution-location-linux.sh
+          container "$EXECUTION_LOCATION_COMMIT"
+          "$RUNNER_TEMP/execution-location/container"
+          "$CC_LOCATION_ARTIFACT"
+      - name: Upload Container evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_LOCATION_ARTIFACT }}
+          path: ${{ runner.temp }}/execution-location/container/
+          if-no-files-found: error
+
+  ssh-execution-location:
+    name: Strict SSH production location trajectory x100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CC_LOCATION_ARTIFACT: ide-execution-location-ssh-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact execution-location candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXECUTION_LOCATION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install source CLI dependencies and isolated sshd
+        run: |
+          npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-server
+      - name: Run strict SSH launch, outage, reconnect, and result-return matrix
+        run: >-
+          bash .github/scripts/run-ide-roadmap-execution-location-linux.sh
+          ssh "$EXECUTION_LOCATION_COMMIT"
+          "$RUNNER_TEMP/execution-location/ssh"
+          "$CC_LOCATION_ARTIFACT"
+      - name: Upload SSH evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_LOCATION_ARTIFACT }}
+          path: ${{ runner.temp }}/execution-location/ssh/
+          if-no-files-found: error
+
+  trusted-execution-location-aggregate:
+    name: Trusted WSL/Container/SSH location aggregate
+    needs:
+      - wsl-execution-location
+      - container-execution-location
+      - ssh-execution-location
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Fail closed when any required producer is incomplete
+        env:
+          WSL_RESULT: ${{ needs.wsl-execution-location.result }}
+          CONTAINER_RESULT: ${{ needs.container-execution-location.result }}
+          SSH_RESULT: ${{ needs.ssh-execution-location.result }}
+        run: |
+          set -euo pipefail
+          test "$WSL_RESULT" = success
+          test "$CONTAINER_RESULT" = success
+          test "$SSH_RESULT" = success
+      - name: Checkout exact execution-location candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXECUTION_LOCATION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download WSL producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-wsl-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/wsl
+      - name: Download Container producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-container-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/container
+      - name: Download SSH producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-ssh-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/ssh
+      - name: Rehash every producer and require all 300 trajectories
+        run: >-
+          node packages/cli/scripts/verify-ide-roadmap-execution-location.mjs
+          --evidence-root "$RUNNER_TEMP/execution-location"
+          --release-commit "$EXECUTION_LOCATION_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --event-name "$GITHUB_EVENT_NAME"
+          --output "$RUNNER_TEMP/execution-location-aggregate.json"
+      - name: Upload trusted execution-location aggregate
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ide-execution-location-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location-aggregate.json
+          if-no-files-found: error

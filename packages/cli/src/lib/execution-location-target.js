@@ -814,9 +814,11 @@ function transferTargetSessionStore(
     receipt.targetFactsDigest !== receiptMaterial.targetFactsDigest ||
     receipt.profileDigest !== receiptMaterial.profileDigest ||
     receipt.targetEvidenceId !== receiptMaterial.targetEvidenceId ||
+    // Target prepare records a fresh observedAt, so its attestation digest is
+    // expected to differ from the earlier source-side probe. The receipt is
+    // rehashed here and the next target `location show` validates that digest
+    // against the canonical handoff binding before resume.
     !SHA256_RE.test(receipt.attestationDigest || "") ||
-    (receipt.handoffAppended === true &&
-      receipt.attestationDigest !== attestation.attestationDigest) ||
     typeof receipt.replicaInstalled !== "boolean" ||
     typeof receipt.handoffAppended !== "boolean" ||
     receipt.receiptDigest !== expectedReceiptDigest
