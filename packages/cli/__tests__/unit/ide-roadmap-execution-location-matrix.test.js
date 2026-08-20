@@ -179,6 +179,9 @@ describe("IDE roadmap execution-location matrix", () => {
       "utf8",
     );
     expect(linuxRunner).toContain("run_matrix campaign --iterations 99");
+    expect(linuxRunner).toContain(
+      "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    );
     expect(wslRunner).toContain(
       'Invoke-Matrix "campaign" @("--iterations", "99")',
     );

@@ -20,6 +20,7 @@ on:
       - "ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionClient.swift"
       - "ios-app/Modules/CoreP2P/Sources/Pairing/URLSessionRemoteSessionWebSocket.swift"
       - "ios-app/Tests/CoreP2PTests/RemoteSessionClientTests.swift"
+      - "packages/cli/__tests__/unit/ide-roadmap-ios-recovery.test.js"
       - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
       - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
   push:
@@ -32,6 +33,7 @@ on:
       - "ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionClient.swift"
       - "ios-app/Modules/CoreP2P/Sources/Pairing/URLSessionRemoteSessionWebSocket.swift"
       - "ios-app/Tests/CoreP2PTests/RemoteSessionClientTests.swift"
+      - "packages/cli/__tests__/unit/ide-roadmap-ios-recovery.test.js"
       - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
       - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
   workflow_dispatch:
@@ -58,7 +60,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout exact recovery candidate
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.IOS_RECOVERY_COMMIT }}
 
@@ -116,7 +118,7 @@ jobs:
 
       - name: Upload xcodebuild log (diagnostics, always)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ios-remote-session-recovery-logs-${{ env.IOS_RECOVERY_COMMIT }}-${{ github.run_attempt }}
           path: |
@@ -146,7 +148,7 @@ jobs:
           ls -la ../../../../output/
 
       - name: Upload simulator zip (test artifact)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ios-simulator-recovery-build-${{ env.IOS_RECOVERY_COMMIT }}-${{ github.run_attempt }}
           path: ios-app/build/output/*.zip

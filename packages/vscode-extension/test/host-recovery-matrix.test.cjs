@@ -44,6 +44,8 @@ test("host recovery workflow uses genuine WSL, devcontainer, and strict-SSH prod
   assert.match(workflow, /@devcontainers\/cli@0\.80\.3/u);
   assert.match(workflow, /devcontainer up/u);
   assert.match(workflow, /devcontainer exec/u);
+  assert.match(workflow, /Normalize devcontainer artifact ownership/u);
+  assert.match(workflow, /sudo chown -R "\$\(id -u\):\$\(id -g\)"/u);
   assert.match(workflow, /--environment-check devcontainer/u);
   assert.match(workflow, /ssh-host-recovery:/u);
   assert.match(workflow, /openssh-server/u);

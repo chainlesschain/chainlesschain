@@ -4,7 +4,8 @@ import PackageDescription
 let package = Package(
     name: "ChainlessChain",
     platforms: [
-        .iOS(.v16)
+        .iOS(.v16),
+        .macOS(.v12)
     ],
     products: [
         .library(
