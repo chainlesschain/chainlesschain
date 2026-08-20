@@ -460,6 +460,38 @@ describe("agent-core strict plugin bin route", () => {
     },
   );
 
+  it.each(["win32", "darwin"])(
+    "fails a strict native Plugin bin closed on unsupported %s loader boundaries",
+    async (platform) => {
+      installStrictNativeBin();
+      _backgroundProcessDeps.platform = () => platform;
+      const nativeSpawnSync = vi.fn();
+      executionBroker._native = { spawnSync: nativeSpawnSync };
+
+      const result = await executeTool(
+        "run_shell",
+        { command: "strict-native-tool --label denied" },
+        { cwd },
+      );
+
+      expect(result).toMatchObject({
+        policy: {
+          decision: "deny",
+          via: "plugin-bin-direct-invocation",
+          reason: "ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED",
+        },
+      });
+      expect(result.error).toContain(
+        "strict native Plugin bins require the Linux descriptor-bound ELF loader closure",
+      );
+      expect(result.error).toContain(
+        `${platform} native loading is unsupported`,
+      );
+      expect(nativeSpawnSync).not.toHaveBeenCalled();
+      expect(executionBroker.getAuditLog()).toEqual([]);
+    },
+  );
+
   it("rejects a strict compound command before any Broker native spawn", async () => {
     installStrictNodeBin();
     const nativeSpawnSync = vi.fn();
