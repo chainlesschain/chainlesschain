@@ -95,7 +95,7 @@ jobs:
         # Vitest 4 loads Rolldown through its platform-specific optional
         # package. Omitting optional dependencies makes the focused suite fail
         # before test collection on clean Linux/macOS/Windows runners.
-        run: npm install --include=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
       - name: Run production concurrency and cross-entry campaign
         shell: bash
         run: >-

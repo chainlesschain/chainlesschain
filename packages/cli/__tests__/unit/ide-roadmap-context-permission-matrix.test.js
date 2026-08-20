@@ -160,7 +160,7 @@ describe("context/permission Actions matrix", () => {
     expect(workflow).toContain("ContextCenterTest");
     expect(workflow).toContain("PolicyViewerTest");
     expect(workflow).toContain(
-      "npm install --include=optional --ignore-scripts --no-package-lock --prefix packages/cli",
+      "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",
     );
     expect(workflow).not.toMatch(/npm install[^\n]*--omit=optional/u);
     expect(workflow).toContain("if: always()");
