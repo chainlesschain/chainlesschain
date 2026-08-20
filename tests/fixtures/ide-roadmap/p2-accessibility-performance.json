@@ -35,6 +35,20 @@
       "rss-and-heap-trajectory",
       "fd-or-handle-delta",
       "orphan-process-count"
+    ],
+    "automatedScope": [
+      "chromium-keyboard-and-focus-lifecycle",
+      "chromium-cdp-accessibility-tree",
+      "nvda-and-orca-binary-process-probes",
+      "jetbrains-headless-swing-product-components",
+      "fixed-scale-latency-and-resource-trajectories",
+      "three-operating-system-fail-closed-aggregate"
+    ],
+    "manualExternalTail": [
+      "assistive-technology-speech-quality",
+      "voiceover-interactive-control",
+      "physical-host-human-journey",
+      "continuous-eight-hour-ide-soak"
     ]
   },
   "expectedOutcome": {
@@ -49,6 +63,8 @@
     "uiHangCount": 0,
     "credentialLeakCount": 0,
     "orphanProcessCount": 0,
+    "manualSpeechQualityPending": true,
+    "continuousEightHourHostSoakPending": true,
     "requiredMeasurementsComplete": true,
     "exactCommitBound": true
   }

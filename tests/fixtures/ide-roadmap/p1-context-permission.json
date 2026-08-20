@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "case": "p1-context-permission",
+  "description": "Context and permission release evidence must exercise concurrent canonical mutations, managed-policy precedence, seven production entry projections, process and authority faults, recovery honesty, and content-free artifacts on all three operating systems.",
+  "inputs": {
+    "independentProjectionRunsPerEntrypoint": 100,
+    "concurrentAddsPerCell": 100,
+    "concurrentRevokesPerCell": 100,
+    "entrypoints": [
+      "repl",
+      "headless",
+      "stream",
+      "websocket",
+      "vscode",
+      "jetbrains",
+      "desktop"
+    ],
+    "faults": [
+      "corrupt-canonical-authority",
+      "real-process-termination",
+      "stale-revision",
+      "managed-deny-relaxation",
+      "external-side-effect-checkpoint-overclaim",
+      "credential-and-full-command-disclosure"
+    ],
+    "externalConditions": [
+      "enterprise-credential-and-side-effect-systems",
+      "proprietary-remote-hosts",
+      "long-duration-human-ide-journeys"
+    ]
+  },
+  "expectedOutcome": {
+    "credentialLeakCount": 0,
+    "fullCommandLeakCount": 0,
+    "managedDenyRelaxationCount": 0,
+    "checkpointRecoveryOverclaimCount": 0,
+    "corruptAuthorityAcceptanceCount": 0,
+    "lostUpdateCount": 0,
+    "staleRevisionAcceptanceCount": 0,
+    "orphanProcessCount": 0,
+    "failureArtifactsComplete": true,
+    "requiredMeasurementsComplete": true,
+    "exactCommitBound": true
+  }
+}

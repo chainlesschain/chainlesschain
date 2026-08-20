@@ -64,8 +64,6 @@ jobs:
     timeout-minutes: 60
     env:
       CC_CP_ARTIFACT: ide-context-permission-${{ matrix.suffix }}-${{ github.run_attempt }}
-      CC_CP_ARTIFACT_DIR: ${{ github.workspace }}/.roadmap-evidence/context-permission/${{ matrix.suffix }}
-      CC_CP_STATE_DIR: ${{ github.workspace }}/.roadmap-evidence/context-permission-state/${{ matrix.suffix }}
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -78,6 +76,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Configure runner-temporary evidence paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then root="$(cygpath -m "$root")"; fi
+          printf 'CC_CP_ARTIFACT_DIR=%s/context-permission/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_CP_STATE_DIR=%s/context-permission-state/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |
