@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          swift test --filter RemoteSessionClientTests 2>&1 | tee build-swift-test.log
+          CC_IOS_REMOTE_SESSION_TESTS_ONLY=1 swift test --filter RemoteSessionClientTests 2>&1 | tee build-swift-test.log
 
       - name: Build iOS app for Simulator (unsigned)
         working-directory: ios-app
