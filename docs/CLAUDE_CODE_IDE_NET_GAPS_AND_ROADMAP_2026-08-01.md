@@ -4900,3 +4900,24 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 | 仓库内回归 | P2 campaign/verifier 单测 **4/4**，VS Code/Workbench 回归 **19/19**，任务 JS ESLint **0 error**，workflow YAML 解析与 Prettier 通过。真实 Chromium 固定规模 campaign 已在 Windows 本机执行；Java 21、Orca/NVDA 和其余 OS 由 Actions 验证 | 仓库实现和本机可执行门通过，外部 Actions artifact 尚未产生 |
 
 本节关闭 P2-4 的 **键盘路径、accessibility tree、焦点恢复、2,000-message/16 MiB diff/64 MiB log/128-session 固定规模、P50/P95/P99、RSS/heap/FD/handle/orphan 与三宿主 fail-closed aggregate 实现子门**。必须真人听测的 VoiceOver/NVDA/Orca 语音质量、交互式真机和 Actions 无法连续承载的 8 小时 IDE soak 按第七十四节列入下期；当前提交也尚未取得同一 exact head 的三宿主成功 artifact。因此 P2-4 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十四、2026-08-20 本期仓库实现统一收口与外部证据边界
+
+本节复核第七十四节列出的十个本期工程包。这里的“实现已提交”只表示产品代码、故障注入、workflow、producer/verifier 和 fail-closed aggregate 已进入 Git 历史；需要 GitHub authority 的条目必须在合并后的同一 exact head 实际运行并回读，才能把外部证据状态改为成功。
+
+| 路线项 | 本期仓库实现收口 | 尚未取得、不得冒充的证据 |
+| --- | --- | --- |
+| S0-1 | iOS transient resume、pending interaction 恢复与需要人工裁决的不可召回 effect 投影已实现；iOS/CLI 适用 Actions 门已接线 | iOS 真机、物理断电、跨设备持久化和真实外部 effect 召回/裁决 |
+| S0-2 | MCP native/shared-library policy、materialization/broker 二次身份核验、unsupported native loader 拒绝与 macOS launcher 门已实现 | 签名后 macOS 原生执行、远端即时撤权和长期恶意矩阵 |
+| S0-3 | live-provider workflow 固定 100 条独立 trajectory、structured handoff、exact-head producer/aggregate 与 skip/fallback 拒绝已实现 | 仓库 provider secret/额度缺失时的真实运行 artifact，以及专有宿主长期轨迹 |
+| Q4a | WSL、declared devcontainer、strict SSH 的 Bridge 断线/重启矩阵，以及 Execution Location 三目标 300-run workflow、失败 artifact 与 aggregate 已实现 | Codespaces、JetBrains Gateway、仓库无权访问的远端基础设施和长期真实网络退化 |
+| Q4b | 已有公开渠道合同与回读基础上，本期补齐 live-provider 100-run、Bridge/CLI restart、可承载的 host recovery/soak 分片和 exact-head aggregate 接线 | Microsoft Marketplace、作者/Developer ID/公证凭据、公开渠道人工 fresh-profile 全旅程和连续 8 小时专有宿主 |
+| P1-1 | canonical Workbench、双 IDE durable workflow 控制、启动/周期恢复扫描、风险/backoff、batch dry-run 和恢复 authority 已实现 | provider 独立 receipt/计费、WORM、不可取消 provider 的物理中断和专有宿主 |
+| P1-2 | Artifact recovery/workbench、双 IDE/Desktop 审阅与显式裁决、真实 WSL/Container/SSH handoff/result-return 300-run workflow 已实现 | Cloud/专有远端、distributed/shared-store fencing、组织 retention/WORM 和物理擦除 |
+| P1-4 | 三 OS 并发 mutation、七入口 projection、进程/authority 故障、secret/完整命令扫描和 recovery overclaim 拒绝矩阵已实现 | 企业凭据/副作用系统、专有远端和长期人工 IDE 旅程 |
+| P1-5 | 三 OS × 四网络环境 × 每格 100 次供应链 journey、24 类故障、五层缓存与签名生命周期 aggregate 已实现 | 第三方企业 registry/代理、独立 transparency/trust distribution、组织 key rotation、共享存储和物理断电 |
+| P2-4 | 三 OS 键盘/焦点/AX tree、固定规模延迟与资源、JetBrains Swing、NVDA/Orca process probe 和 aggregate 已实现 | 真人语音质量、VoiceOver 交互式控制、真机人工旅程和连续 8 小时 IDE soak |
+
+统一合同已升级为 roadmap manifest `1.9.41`，新增 `p1-context-permission` case，并把 P1-5/P2-4 的自动化范围与企业/人工外部尾项分开记录；`--contract-only` 回读为 **16 cases / 110 referenced test files**，明确 runtime evidence 与 release readiness 未被评估。roadmap verifier/journey 为 **37/37**，P1-4/P1-5/P2-4 三项矩阵合同为 **15/15**，本期改动涉及的十份 workflow 全部通过 `actionlint`；任务 JS ESLint 为 0 error，仅保留仓库根 `type` 未声明的既有 Node warning。
+
+因此，第七十四节要求的**本期仓库实现与可由 GitHub Actions 验证的门已完成并可合并**；Q0 与 Q3 继续整体列入下期，其他路线项只把表中明确的人工、凭据、专有宿主、分布式 authority、物理故障和长期运行尾项列入下期。由于当前尚未把合并后的 exact head 推送并回读 required Actions，本节不把十项外部证据标为通过，不减少 **12/19 尚未关闭、7/19 完成**，整体发布结论继续为 **NO-GO**。
