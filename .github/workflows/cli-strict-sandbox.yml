@@ -29,6 +29,7 @@ on:
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs"
       - "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs"
@@ -98,6 +99,7 @@ on:
       - "packages/cli/__tests__/unit/session-host-lease.test.js"
       - "packages/cli/__tests__/unit/mcp-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-capsule-contract.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-native-code-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
@@ -175,6 +177,7 @@ on:
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs"
       - "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs"
@@ -244,6 +247,7 @@ on:
       - "packages/cli/__tests__/unit/session-host-lease.test.js"
       - "packages/cli/__tests__/unit/mcp-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-capsule-contract.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-native-code-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
@@ -369,6 +373,7 @@ jobs:
           __tests__/unit/session-host-lease.test.js
           __tests__/unit/mcp-sandbox-policy.test.js
           __tests__/unit/mcp-stdio-capsule-contract.test.js
+          __tests__/unit/mcp-stdio-native-code-policy.test.js
           __tests__/unit/mcp-stdio-execution-authority.test.js
           __tests__/unit/mcp-stdio-executable-identity.test.js
           __tests__/unit/mcp-stdio-package-materialization.test.js
