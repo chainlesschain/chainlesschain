@@ -75,9 +75,8 @@ function renderWorkflowPreflight(preflight) {
 }
 
 async function loadCoworkWorkflowRecord(cwd, id, definitionDigest) {
-  const { getWorkflowRecord, getWorkflowVersion } = await import(
-    "../lib/cowork-workflow.js"
-  );
+  const { getWorkflowRecord, getWorkflowVersion } =
+    await import("../lib/cowork-workflow.js");
   return definitionDigest
     ? getWorkflowVersion(cwd, id, definitionDigest)
     : getWorkflowRecord(cwd, id);
@@ -135,9 +134,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--model <name>", "LLM model to use")
     .option("--json", "Output as JSON")
     .action(async (target, options) => {
-      const { startDebate, DEFAULT_PERSPECTIVES } = await import(
-        "../lib/cowork/debate-review-cli.js"
-      );
+      const { startDebate, DEFAULT_PERSPECTIVES } =
+        await import("../lib/cowork/debate-review-cli.js");
 
       const perspectives = options.perspectives
         .split(",")
@@ -346,9 +344,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
         let result;
 
         if (options.type === "style") {
-          const { analyzeProjectStyle } = await import(
-            "../lib/cowork/project-style-analyzer-cli.js"
-          );
+          const { analyzeProjectStyle } =
+            await import("../lib/cowork/project-style-analyzer-cli.js");
           const llmOptions = {};
           if (options.provider) llmOptions.provider = options.provider;
           if (options.model) llmOptions.model = options.model;
@@ -357,14 +354,12 @@ export function registerCoworkCommand(program, commandDeps = {}) {
             llmOptions,
           });
         } else if (options.type === "knowledge-graph") {
-          const { buildKnowledgeGraph } = await import(
-            "../lib/cowork/code-knowledge-graph-cli.js"
-          );
+          const { buildKnowledgeGraph } =
+            await import("../lib/cowork/code-knowledge-graph-cli.js");
           result = await buildKnowledgeGraph({ targetPath: resolved });
         } else if (options.type === "decisions") {
-          const { extractDecisions } = await import(
-            "../lib/cowork/decision-kb-cli.js"
-          );
+          const { extractDecisions } =
+            await import("../lib/cowork/decision-kb-cli.js");
           const llmOptions = {};
           if (options.provider) llmOptions.provider = options.provider;
           if (options.model) llmOptions.model = options.model;
@@ -413,9 +408,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--limit <n>", "Max results", "20")
     .option("--json", "Output as JSON")
     .action(async (query, options) => {
-      const { searchTemplatesInHub } = await import(
-        "../lib/cowork-evomap-adapter.js"
-      );
+      const { searchTemplatesInHub } =
+        await import("../lib/cowork-evomap-adapter.js");
       try {
         const results = await searchTemplatesInHub(query || "", {
           hubUrl: options.hub,
@@ -461,9 +455,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       (value, prev) => (prev ? [...prev, value] : [value]),
     )
     .action(async (geneId, options) => {
-      const { installTemplateFromHub } = await import(
-        "../lib/cowork-evomap-adapter.js"
-      );
+      const { installTemplateFromHub } =
+        await import("../lib/cowork-evomap-adapter.js");
       try {
         const template = await installTemplateFromHub(process.cwd(), geneId, {
           hubUrl: options.hub,
@@ -486,9 +479,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .description("List locally installed Cowork templates")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { listUserTemplates } = await import(
-        "../lib/cowork-template-marketplace.js"
-      );
+      const { listUserTemplates } =
+        await import("../lib/cowork-template-marketplace.js");
       const templates = listUserTemplates(process.cwd());
       if (options.json) {
         console.log(JSON.stringify(templates, null, 2));
@@ -511,9 +503,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .command("remove <id>")
     .description("Remove an installed Cowork template")
     .action(async (id) => {
-      const { removeUserTemplate } = await import(
-        "../lib/cowork-template-marketplace.js"
-      );
+      const { removeUserTemplate } =
+        await import("../lib/cowork-template-marketplace.js");
       if (removeUserTemplate(process.cwd(), id)) {
         logger.log(chalk.green(`✓ Removed '${id}'`));
       } else {
@@ -937,9 +928,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
               : {}),
           });
         }
-        const { generateDynamicWorkflowDraft } = await import(
-          "../lib/dynamic-workflow-draft.js"
-        );
+        const { generateDynamicWorkflowDraft } =
+          await import("../lib/dynamic-workflow-draft.js");
         const draft = await generateDynamicWorkflowDraft(
           { prompt, provider, model },
           { chat },
@@ -1019,12 +1009,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
   workflow
     .command("runtime-status <run-id>")
     .description("Read a durable workflow run without invoking a task provider")
+    .option("--cwd <path>", "Project root containing the durable run")
     .option("--json", "Machine-readable JSON output")
     .action(async (runId, options) => {
       try {
         const runtime = await import("../lib/dynamic-workflow-runtime.js");
         const statePath = runtime.dynamicWorkflowRunStatePath(
-          process.cwd(),
+          options.cwd || process.cwd(),
           runId,
         );
         const projection = runtime.projectDynamicWorkflowRuntime(statePath, {
@@ -1068,6 +1059,46 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       }
     });
 
+  workflow
+    .command("runtime-recovery-plan")
+    .description(
+      "Dry-run the bounded startup/periodic recovery policy for this project",
+    )
+    .option("--cwd <path>", "Project root containing durable runs")
+    .option("-n, --limit <n>", "Maximum durable runs to inspect", "100")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const plan = runtime.buildDynamicWorkflowRecoveryPlan(
+          options.cwd || process.cwd(),
+          {
+            limit: Math.max(1, parseInt(options.limit) || 100),
+            ...(Object.hasOwn(commandDeps, "workflowCheckpointStore")
+              ? { checkpointStore: commandDeps.workflowCheckpointStore }
+              : {}),
+          },
+        );
+        if (options.json) {
+          console.log(JSON.stringify(plan, null, 2));
+          return;
+        }
+        logger.log(
+          `${plan.summary.attention}/${plan.summary.total} durable runs need attention; plan ${plan.planDigest}`,
+        );
+        for (const item of plan.items.filter(
+          (entry) => entry.risk !== "none",
+        )) {
+          logger.log(
+            `  ${item.runId}  ${item.risk}  action=${item.recommendedAction}  revision=${item.revision}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`WORKFLOW_RUNTIME_RECOVERY_PLAN_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
   for (const action of ["pause", "stop", "resume"]) {
     workflow
       .command(`runtime-${action} <run-id>`)
@@ -1078,12 +1109,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
         "--expected-revision <n>",
         "Exact runtime revision shown by runtime-status",
       )
+      .option("--cwd <path>", "Project root containing the durable run")
       .option("--json", "Machine-readable JSON output")
       .action(async (runId, options) => {
         try {
           const runtime = await import("../lib/dynamic-workflow-runtime.js");
           const statePath = runtime.dynamicWorkflowRunStatePath(
-            process.cwd(),
+            options.cwd || process.cwd(),
             runId,
           );
           const operation =
@@ -1119,12 +1151,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       "--expected-revision <n>",
       "Exact runtime revision shown by runtime-status",
     )
+    .option("--cwd <path>", "Project root containing the durable run")
     .option("--json", "Machine-readable JSON output")
     .action(async (runId, callRecordId, options) => {
       try {
         const runtime = await import("../lib/dynamic-workflow-runtime.js");
         const statePath = runtime.dynamicWorkflowRunStatePath(
-          process.cwd(),
+          options.cwd || process.cwd(),
           runId,
         );
         const state = runtime.recoverDurableWorkflowCheckpointCall(
@@ -1162,12 +1195,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       "--expected-revision <n>",
       "Exact runtime revision shown by runtime-status",
     )
+    .option("--cwd <path>", "Project root containing the durable run")
     .option("--json", "Machine-readable JSON output")
     .action(async (runId, options) => {
       try {
         const runtime = await import("../lib/dynamic-workflow-runtime.js");
         const statePath = runtime.dynamicWorkflowRunStatePath(
-          process.cwd(),
+          options.cwd || process.cwd(),
           runId,
         );
         const state = runtime.recoverDurableWorkflowCheckpointCalls(
@@ -1202,12 +1236,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       "--expected-revision <n>",
       "Exact runtime revision shown by runtime-status",
     )
+    .option("--cwd <path>", "Project root containing the durable run")
     .option("--json", "Machine-readable JSON output")
     .action(async (runId, requestId, responseFile, options) => {
       try {
         const runtime = await import("../lib/dynamic-workflow-runtime.js");
         const statePath = runtime.dynamicWorkflowRunStatePath(
-          process.cwd(),
+          options.cwd || process.cwd(),
           runId,
         );
         const answer =
@@ -1240,12 +1275,13 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       "--expected-revision <n>",
       "Exact runtime revision shown by runtime-status",
     )
+    .option("--cwd <path>", "Project root containing the durable run")
     .option("--json", "Machine-readable JSON output")
     .action(async (runId, effectId, resultFile, options) => {
       try {
         const runtime = await import("../lib/dynamic-workflow-runtime.js");
         const statePath = runtime.dynamicWorkflowRunStatePath(
-          process.cwd(),
+          options.cwd || process.cwd(),
           runId,
         );
         const result = runtime.readDynamicWorkflowEffectResultFile(resultFile);
@@ -1311,9 +1347,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--json", "Machine-readable JSON output")
     .action(async (id, options) => {
       try {
-        const { listWorkflowVersions } = await import(
-          "../lib/cowork-workflow.js"
-        );
+        const { listWorkflowVersions } =
+          await import("../lib/cowork-workflow.js");
         const versions = listWorkflowVersions(process.cwd(), id);
         if (options.json) {
           console.log(JSON.stringify(versions, null, 2));
@@ -1558,9 +1593,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
             getVerifiedSessionExecutionLocationAuthority: descriptor.value,
           });
         } else {
-          workflowExecutionAuthorityModule = import(
-            "../harness/jsonl-session-store.js"
-          );
+          workflowExecutionAuthorityModule =
+            import("../harness/jsonl-session-store.js");
         }
         let workflowRunTaskModule;
         if (Object.hasOwn(commandDeps, "workflowRunTask")) {
@@ -1662,9 +1696,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
                   runTask: runCoworkTask,
                 });
               }
-              const runtime = await import(
-                "../lib/dynamic-workflow-runtime.js"
-              );
+              const runtime =
+                await import("../lib/dynamic-workflow-runtime.js");
               return runtime.executeDurableDynamicWorkflow(
                 {
                   statePath: runtime.dynamicWorkflowRunStatePath(
@@ -1829,9 +1862,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .description("Per-template aggregate stats across all runs")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { loadHistory, computeTemplateStats } = await import(
-        "../lib/cowork-learning.js"
-      );
+      const { loadHistory, computeTemplateStats } =
+        await import("../lib/cowork-learning.js");
       const stats = computeTemplateStats(loadHistory(process.cwd()));
       if (options.json) {
         console.log(JSON.stringify(stats, null, 2));
@@ -1864,9 +1896,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--min-runs <n>", "Only consider templates with ≥N past runs", "1")
     .option("--json", "Output as JSON")
     .action(async (messageParts, options) => {
-      const { loadHistory, recommendTemplate } = await import(
-        "../lib/cowork-learning.js"
-      );
+      const { loadHistory, recommendTemplate } =
+        await import("../lib/cowork-learning.js");
       const message = messageParts.join(" ");
       const rec = recommendTemplate(message, loadHistory(process.cwd()), {
         minRuns: parseInt(options.minRuns, 10) || 1,
@@ -1895,9 +1926,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--limit <n>", "Max examples per template", "3")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { loadHistory, summarizeFailures } = await import(
-        "../lib/cowork-learning.js"
-      );
+      const { loadHistory, summarizeFailures } =
+        await import("../lib/cowork-learning.js");
       const out = summarizeFailures(loadHistory(process.cwd()), {
         limit: parseInt(options.limit, 10) || 3,
       });
@@ -1924,9 +1954,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .description("Suggest systemPromptExtension patches from failure history")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { loadHistory, suggestPromptPatch } = await import(
-        "../lib/cowork-learning.js"
-      );
+      const { loadHistory, suggestPromptPatch } =
+        await import("../lib/cowork-learning.js");
       const patches = suggestPromptPatch(loadHistory(process.cwd()));
       if (options.json) {
         console.log(JSON.stringify(patches, null, 2));

@@ -118,6 +118,20 @@ describe("artifact content access ledger", () => {
     expect(ledger.headDigest).toBe(second.access.eventDigest);
   });
 
+  it("accepts the Desktop product surface as an audited client", () => {
+    const result = authorize({
+      accessId: "access-desktop-1",
+      client: "desktop",
+      action: "download",
+    });
+
+    expect(result.access).toMatchObject({
+      client: "desktop",
+      action: "download",
+      artifactId: entry.id,
+    });
+  });
+
   it("holds the index generation lock while it verifies bytes and appends authority", () => {
     let generationLockDepth = 0;
     const lockedStore = new ArtifactStore({

@@ -416,6 +416,39 @@ describe("cowork durable workflow runtime commands", () => {
       "cc",
       "cowork",
       "workflow",
+      "runtime-recovery-plan",
+      "--cwd",
+      projectRoot,
+      "--json",
+    ]);
+    expect(process.exitCode).toBeUndefined();
+    expect(latestJsonOutput()).toMatchObject({
+      schema: "cc-dynamic-workflow-recovery-plan/v1",
+      mode: "dry-run",
+      summary: {
+        total: 1,
+        attention: 1,
+        approvalRequired: 1,
+        automaticallyExecutable: 1,
+      },
+      items: [
+        {
+          runId,
+          revision: state.revision,
+          risk: "terminal_checkpoint_recovery",
+          recommendedAction: "recover",
+          requiresApproval: true,
+        },
+      ],
+    });
+
+    process.exitCode = undefined;
+    logSpy.mockClear();
+    await command({ workflowCheckpointStore: checkpointStore }).parseAsync([
+      "node",
+      "cc",
+      "cowork",
+      "workflow",
       "runtime-recover-checkpoints",
       runId,
       "--expected-revision",

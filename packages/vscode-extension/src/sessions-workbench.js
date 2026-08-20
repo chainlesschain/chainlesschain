@@ -25,14 +25,16 @@ const { isBlockingPhase } = require("./phase-attention");
 
 const KINDS = ["chat", "ide", "background", "remote"];
 const WORKBENCH_SESSION_LIMIT = 256;
-const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v1";
-const SESSION_PROJECTION_VERSION = 1;
+const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v2";
+const SESSION_PROJECTION_VERSION = 2;
+const LEGACY_SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v1";
 const PROJECTION_KINDS = new Set([
   "local",
   "background",
   "remote",
   "team",
   "workflow",
+  "dynamic_workflow",
 ]);
 const PROJECTION_STATES = new Set([
   "working",
@@ -43,6 +45,19 @@ const PROJECTION_STATES = new Set([
   "stopped",
 ]);
 const PROJECTION_ACTIONS = new Set([
+  "dispatch",
+  "peek",
+  "reply",
+  "attach",
+  "detach",
+  "stop",
+  "checkpoint",
+  "archive",
+  "pause",
+  "resume",
+  "recover",
+]);
+const LEGACY_PROJECTION_ACTIONS = new Set([
   "dispatch",
   "peek",
   "reply",
@@ -134,11 +149,15 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         `last ${codePoint(raw.codePointAt(Math.max(0, raw.length - 1)))})`,
     };
   }
+  const legacy =
+    root?.schema === LEGACY_SESSION_PROJECTION_SCHEMA &&
+    root?.schemaVersion === 1;
   if (
     !root ||
     typeof root !== "object" ||
-    root.schema !== SESSION_PROJECTION_SCHEMA ||
-    root.schemaVersion !== SESSION_PROJECTION_VERSION ||
+    (!legacy &&
+      (root.schema !== SESSION_PROJECTION_SCHEMA ||
+        root.schemaVersion !== SESSION_PROJECTION_VERSION)) ||
     root.authority !== "cli"
   ) {
     return {
@@ -173,6 +192,12 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
   }
 
   const rows = [];
+  const actionSet = legacy ? LEGACY_PROJECTION_ACTIONS : PROJECTION_ACTIONS;
+  const kindSet = legacy
+    ? new Set(
+        [...PROJECTION_KINDS].filter((kind) => kind !== "dynamic_workflow"),
+      )
+    : PROJECTION_KINDS;
   for (const item of root.sessions) {
     if (
       !item ||
@@ -181,7 +206,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       !item.id ||
       typeof item.sourceId !== "string" ||
       !item.sourceId ||
-      !PROJECTION_KINDS.has(item.kind) ||
+      !kindSet.has(item.kind) ||
       !PROJECTION_STATES.has(item.state) ||
       typeof item.revision !== "string" ||
       !Array.isArray(item.actions)
@@ -197,11 +222,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
     }
     const actionAvailability = {};
     for (const action of item.actions) {
-      if (
-        action &&
-        typeof action.id === "string" &&
-        PROJECTION_ACTIONS.has(action.id)
-      ) {
+      if (action && typeof action.id === "string" && actionSet.has(action.id)) {
         const available = action.available === true;
         const preview = parseActionPreview(action.preview);
         if ((available && !preview) || (!available && action.preview != null)) {
@@ -224,7 +245,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         };
       }
     }
-    if (Object.keys(actionAvailability).length !== PROJECTION_ACTIONS.size) {
+    if (Object.keys(actionAvailability).length !== actionSet.size) {
       return {
         connected: false,
         stale: false,
@@ -234,7 +255,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         error: "incomplete session action availability",
       };
     }
-    const actions = [...PROJECTION_ACTIONS].filter(
+    const actions = [...actionSet].filter(
       (id) => actionAvailability[id]?.available === true,
     );
     rows.push({
@@ -268,6 +289,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       artifact: item.artifact || null,
       approval: item.approval || null,
       pr: item.pr || null,
+      workflow: item.workflow || null,
     });
   }
   return {
@@ -616,7 +638,9 @@ const ACTION_LABELS = {
   detach: "Detach",
   checkpoint: "Checkpoint",
   archive: "Archive",
+  pause: "Pause",
   resume: "Resume",
+  recover: "Recover",
   continue: "Continue",
   stop: "Stop",
   rename: "Rename",
@@ -691,6 +715,33 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
         details.push(
           `PR ${latest.number ? `#${escapeHtml(latest.number)}` : escapeHtml(r.pr.count)}${latest.state ? ` ${escapeHtml(latest.state)}` : ""}`,
         );
+      }
+      if (r.workflow) {
+        const workflow = r.workflow;
+        details.push(
+          `phase ${escapeHtml(workflow.phase?.status || r.status)}`,
+          `agents ${escapeHtml(workflow.agents?.settled || 0)}/${escapeHtml(workflow.agents?.requested || 0)}`,
+          `budget ${escapeHtml(workflow.budget?.overall || "unknown")}`,
+        );
+        if (workflow.recent?.call?.name) {
+          details.push(
+            `recent tool ${escapeHtml(workflow.recent.call.name)}:${escapeHtml(workflow.recent.call.status || "unknown")}`,
+          );
+        } else if (workflow.recent?.taskStatus) {
+          details.push(
+            `recent result ${escapeHtml(workflow.recent.taskStatus)}`,
+          );
+        }
+        if (Number(workflow.recovery?.terminal) > 0) {
+          details.push(
+            `recoverable checkpoints ${escapeHtml(workflow.recovery.terminal)}`,
+          );
+        }
+        if (workflow.recoveryPolicy?.risk !== "none") {
+          details.push(
+            `recovery ${escapeHtml(workflow.recoveryPolicy?.severity || "info")}:${escapeHtml(workflow.recoveryPolicy.risk)} → ${escapeHtml(workflow.recoveryPolicy.recommendedAction || "review")}`,
+          );
+        }
       }
       return (
         `<tr data-session-row><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +

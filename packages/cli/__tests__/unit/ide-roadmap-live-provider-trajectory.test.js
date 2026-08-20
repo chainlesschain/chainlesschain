@@ -415,7 +415,8 @@ describe("IDE roadmap live-provider trajectory", () => {
   it("keeps real-provider execution manual/scheduled and secrets out of arguments", () => {
     const workflow = fs.readFileSync(WORKFLOW_PATH, "utf8");
     expect(workflow).toContain('LOOPBACK_RUNS: "100"');
-    expect(workflow).toContain('LIVE_PROVIDER_RUNS: "1"');
+    expect(workflow).toContain('LIVE_PROVIDER_RUNS_PER_SHARD: "10"');
+    expect(workflow).toContain("shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
     expect(workflow).toContain(
       "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
     );
@@ -424,7 +425,11 @@ describe("IDE roadmap live-provider trajectory", () => {
       "--expected-operating-systems linux,windows,macos",
     );
     expect(workflow).toContain("--expected-mode live");
-    expect(workflow).toContain("without claiming the 100-run gate");
+    expect(workflow).toContain("--minimum-runs 100");
+    expect(workflow).toContain("--require-manifest-coverage");
+    expect(workflow).toContain("--case s0-live-provider-trajectory");
+    expect(workflow).toContain("merge-multiple: true");
+    expect(workflow).not.toContain("without claiming the 100-run gate");
     expect(workflow).not.toMatch(/--api-key|--base-url/);
 
     const liveProviderJob = workflow.slice(

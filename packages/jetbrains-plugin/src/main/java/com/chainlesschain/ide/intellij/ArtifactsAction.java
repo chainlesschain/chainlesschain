@@ -25,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
@@ -76,12 +77,14 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
 
         final List<Artifacts.Row>[] all = uncheckedRowsRef();
         all[0] = new ArrayList<>();
+        final Artifacts.Workbench[] workbench = new Artifacts.Workbench[] { null };
 
         final JButton refreshBtn = new JButton(CcBundle.message("artifacts.refresh"));
         final JButton openBtn = new JButton(CcBundle.message("artifacts.open"));
         final JButton revealBtn = new JButton(CcBundle.message("artifacts.reveal"));
         final JButton copyBtn = new JButton(CcBundle.message("artifacts.copyPath"));
         final JButton removeBtn = new JButton(CcBundle.message("artifacts.remove"));
+        final JButton recoveryBtn = new JButton("Recovery review");
 
         Runnable syncButtons = () -> {
             Artifacts.Row r = selected(table, model);
@@ -91,6 +94,8 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
             revealBtn.setEnabled(acts.contains(Artifacts.ACT_REVEAL));
             copyBtn.setEnabled(acts.contains(Artifacts.ACT_COPY_PATH));
             removeBtn.setEnabled(acts.contains(Artifacts.ACT_REMOVE));
+            recoveryBtn.setEnabled(workbench[0] != null
+                    && !workbench[0].recoveryItems.isEmpty());
         };
 
         Runnable applyFilter = () -> {
@@ -105,18 +110,28 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
         /* Load the metadata list off-EDT; a failure degrades to a note line. */
         Runnable load = () -> ApplicationManager.getApplication().executeOnPooledThread(() -> {
             String out = AgentChatSession.runCapture(
-                    Artifacts.buildListArgs(), cwd, CLI_TIMEOUT_MS);
-            final List<Artifacts.Row> rows =
-                    out == null ? null : Artifacts.parseList(out);
+                    Artifacts.buildWorkbenchArgs(), cwd, CLI_TIMEOUT_MS);
+            final Artifacts.Workbench projected =
+                    out == null ? null : Artifacts.parseWorkbench(out);
             ApplicationManager.getApplication().invokeLater(() -> {
-                if (rows == null) {
+                if (projected == null) {
                     note.setText(CcBundle.message("artifacts.loadFailed"));
                     return;
                 }
-                all[0] = rows;
+                workbench[0] = projected;
+                all[0] = projected.rows;
                 applyFilter.run();
-                if (rows.isEmpty()) {
+                if (projected.recoveryCount > 0) {
+                    note.setText("⚠ recovery review: " + projected.recoveryCount
+                            + " item(s), " + projected.criticalCount + " critical, "
+                            + projected.timedOutCount + " timed out · verified history "
+                            + projected.historyCount + " event(s)");
+                } else if (projected.rows.isEmpty()) {
                     note.setText(CcBundle.message("artifacts.empty"));
+                } else {
+                    note.setText(CcBundle.message("artifacts.count",
+                            projected.rows.size(), projected.rows.size())
+                            + " · verified history " + projected.historyCount + " event(s)");
                 }
             });
         });
@@ -185,6 +200,34 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
                 });
             });
         });
+        recoveryBtn.addActionListener(ev -> {
+            Artifacts.Workbench current = workbench[0];
+            if (current == null || current.recoveryItems.isEmpty()) return;
+            Artifacts.RecoveryItem item = current.recoveryItems.get(0);
+            String decision = item.recommendedDecision;
+            int yes = Messages.showYesNoDialog(project,
+                    "Review " + item.severity + " " + item.kind
+                            + (item.timedOut ? " (timed out)" : "") + "\n"
+                            + "Decision: " + decision + "\n"
+                            + "Item: " + item.itemId + "\n\n"
+                            + "The CLI will reject this action if the displayed plan changed.",
+                    "Artifact recovery adjudication", null);
+            if (yes != Messages.YES) return;
+            String adjudicationId = "artifact_adjudication_jetbrains_"
+                    + UUID.randomUUID().toString().replace("-", "");
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                String out = AgentChatSession.runCapture(
+                        Artifacts.buildRecoveryAdjudicateArgs(item.itemId,
+                                current.planDigest, decision, adjudicationId),
+                        cwd, CLI_TIMEOUT_MS);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    note.setText(out == null || out.isEmpty()
+                            ? "✕ recovery not settled: " + adjudicationId
+                            : "→ " + out.trim());
+                    load.run();
+                });
+            });
+        });
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         buttons.add(refreshBtn);
@@ -192,6 +235,7 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
         buttons.add(revealBtn);
         buttons.add(copyBtn);
         buttons.add(removeBtn);
+        buttons.add(recoveryBtn);
         buttons.add(kind);
 
         JPanel top = new JPanel(new BorderLayout(6, 6));
@@ -208,12 +252,15 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
 
         syncButtons.run();
         load.run();
+        Timer recoveryPoll = new Timer(15_000, ev -> load.run());
+        recoveryPoll.start();
 
         DialogBuilder builder = new DialogBuilder(project);
         builder.setTitle(CcBundle.message("artifacts.title"));
         builder.setCenterPanel(root);
         builder.addCloseButton();
         builder.show();
+        recoveryPoll.stop();
     }
 
     // ------------------------------------------------------------- helpers

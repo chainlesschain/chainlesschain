@@ -51,7 +51,7 @@ concurrency:
 env:
   LIVE_TRAJECTORY_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
   LOOPBACK_RUNS: "100"
-  LIVE_PROVIDER_RUNS: "1"
+  LIVE_PROVIDER_RUNS_PER_SHARD: "10"
 
 jobs:
   loopback:
@@ -153,10 +153,14 @@ jobs:
           retention-days: 90
 
   live-provider:
-    name: Manual or scheduled real-provider trajectory
+    name: "Real-provider trajectory (shard ${{ matrix.shard }})"
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - name: Refuse a workflow-dispatch commit override
         if: github.event_name == 'workflow_dispatch'
@@ -206,21 +210,21 @@ jobs:
         run: |
           node packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs \
             --mode live \
-            --runs "${LIVE_PROVIDER_RUNS}" \
+            --runs "${LIVE_PROVIDER_RUNS_PER_SHARD}" \
             --release-commit "${LIVE_TRAJECTORY_COMMIT}" \
-            --output "${RUNNER_TEMP}/live-provider-trajectory-live-linux.json"
+            --output "${RUNNER_TEMP}/live-provider-trajectory-live-linux-shard-${{ matrix.shard }}.json"
 
       - name: Upload success or sanitized failure evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: live-provider-trajectory-live-linux-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/live-provider-trajectory-live-linux.json
+          name: live-provider-trajectory-live-linux-shard-${{ matrix.shard }}-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/live-provider-trajectory-live-linux-shard-${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 90
 
   live-provider-verify:
-    name: Verify real-provider trajectory (partial release coverage)
+    name: Verify 100-run real-provider trajectory
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && needs.live-provider.result == 'success'
     needs: live-provider
     runs-on: ubuntu-latest
@@ -239,10 +243,11 @@ jobs:
 
       - uses: actions/download-artifact@v7
         with:
-          name: live-provider-trajectory-live-linux-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}
+          pattern: live-provider-trajectory-live-linux-shard-*-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/live-provider-trajectory-live-evidence
+          merge-multiple: true
 
-      - name: Verify live evidence without claiming the 100-run gate
+      - name: Verify all shards and require the 100-run manifest gate
         shell: bash
         run: |
           set -euo pipefail
@@ -251,17 +256,16 @@ jobs:
             --release-commit "${LIVE_TRAJECTORY_COMMIT}" \
             --expected-mode live \
             --expected-operating-systems linux \
-            --minimum-runs "${LIVE_PROVIDER_RUNS}" \
+            --minimum-runs 100 \
+            --require-manifest-coverage \
             --output "${RUNNER_TEMP}/live-provider-trajectory-live-aggregate.json"
 
-          if [ "${LIVE_PROVIDER_RUNS}" -ge 100 ]; then
-            node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
-              --verify-runtime-evidence-dir "${RUNNER_TEMP}/live-provider-trajectory-live-evidence" \
-              --release-commit "${LIVE_TRAJECTORY_COMMIT}" \
-              --case s0-live-provider-trajectory
-          fi
+          node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
+            --verify-runtime-evidence-dir "${RUNNER_TEMP}/live-provider-trajectory-live-evidence" \
+            --release-commit "${LIVE_TRAJECTORY_COMMIT}" \
+            --case s0-live-provider-trajectory
 
-      - name: Upload structurally verified live aggregate
+      - name: Upload complete live-provider aggregate
         uses: actions/upload-artifact@v6
         with:
           name: live-provider-trajectory-live-aggregate-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}

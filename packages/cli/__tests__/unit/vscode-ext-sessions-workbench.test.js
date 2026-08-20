@@ -463,6 +463,109 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
   );
   const fixtureText = readFileSync(fixturePath, "utf8");
 
+  function v2Fixture() {
+    const root = JSON.parse(fixtureText);
+    root.schema = "chainlesschain.session-projection/v2";
+    root.schemaVersion = 2;
+    root.revision = `sha256:${"9".repeat(64)}`;
+    root.sources.dynamicWorkflow = { ok: true, count: 1, error: null };
+    for (const item of root.sessions) {
+      item.workflow = null;
+      for (const id of ["pause", "resume", "recover"]) {
+        item.actions.push({
+          id,
+          available: false,
+          reason: "unsupported for this row",
+          preview: null,
+        });
+      }
+    }
+    const actions = [
+      "dispatch",
+      "peek",
+      "reply",
+      "attach",
+      "detach",
+      "stop",
+      "checkpoint",
+      "archive",
+      "pause",
+      "resume",
+      "recover",
+    ].map((id) => ({
+      id,
+      available: ["peek", "stop", "resume", "recover"].includes(id),
+      reason: ["peek", "stop", "resume", "recover"].includes(id)
+        ? null
+        : "unsupported for this row",
+      preview: ["peek", "stop", "resume", "recover"].includes(id)
+        ? {
+            executor: "cli",
+            argv:
+              id === "peek"
+                ? [
+                    "cowork",
+                    "workflow",
+                    "runtime-status",
+                    "wf-run",
+                    "--cwd",
+                    "C:/repo",
+                    "--json",
+                  ]
+                : [
+                    "cowork",
+                    "workflow",
+                    `runtime-${id === "recover" ? "recover-checkpoints" : id}`,
+                    "wf-run",
+                    "--expected-revision",
+                    "7",
+                    "--cwd",
+                    "C:/repo",
+                    "--json",
+                  ],
+            mutates: id !== "peek",
+            input: null,
+          }
+        : null,
+    }));
+    root.sessions.unshift({
+      id: "dynamic_workflow:wf-run",
+      sourceId: "wf-run",
+      kind: "dynamic_workflow",
+      state: "blocked",
+      title: "Dynamic workflow release-review",
+      capabilities: ["peek", "stop", "resume", "recover"],
+      actions,
+      linkedSessionId: "authority-session",
+      owner: { type: "local-user", id: null },
+      environment: { cwd: "C:/repo", host: null, port: null, mode: null },
+      worktree: null,
+      artifact: { count: 1, latest: null },
+      approval: { pending: true, type: "recovery", count: 1 },
+      pr: { count: 0, latest: null },
+      workflow: {
+        runtimeRevision: 7,
+        phase: { status: "paused", transition: "run-paused" },
+        agents: { requested: 2, settled: 2, pending: 0 },
+        budget: { overall: "within" },
+        recovery: { terminal: 1 },
+        recoveryPolicy: {
+          risk: "terminal_checkpoint_recovery",
+          severity: "warning",
+          recommendedAction: "recover",
+          notification: {
+            key: `sha256:${"7".repeat(64)}`,
+            backoffMs: [15000, 60000, 300000, 900000],
+          },
+        },
+        recent: { call: { name: "read_file", status: "completed" } },
+      },
+      lastEvent: { type: "state:blocked", at: "2026-08-01T00:10:00Z" },
+      revision: `sha256:${"8".repeat(64)}`,
+    });
+    return root;
+  }
+
   it("consumes the shared five-kind fixture without IDE-side joins", () => {
     const snapshot = parseSessionProjection(fixtureText);
     expect(snapshot.connected).toBe(true);
@@ -486,6 +589,41 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     expect(snapshot.rows[1].sourceId).toBe("bg-fixture");
     expect(snapshot.rows[3].port).toBe(18800);
     expect(snapshot.rows[2].actions).toEqual([]);
+  });
+
+  it("renders and revision-gates the v2 dynamic workflow controls", () => {
+    const snapshot = parseSessionProjection(v2Fixture());
+    expect(snapshot.connected).toBe(true);
+    const row = snapshot.rows.find((item) => item.sourceId === "wf-run");
+    expect(row.actions).toEqual(["peek", "stop", "resume", "recover"]);
+    expect(row.workflow).toMatchObject({
+      runtimeRevision: 7,
+      phase: { status: "paused" },
+      budget: { overall: "within" },
+    });
+    expect(
+      previewProjectionAction(snapshot, {
+        id: row.id,
+        action: "resume",
+        revision: snapshot.revision,
+        itemRevision: row.revision,
+      }),
+    ).toMatchObject({
+      ok: true,
+      preview: {
+        argv: expect.arrayContaining(["runtime-resume", "7", "C:/repo"]),
+        mutates: true,
+      },
+    });
+    const html = renderWorkbenchHtml([row], { now: NOW });
+    expect(html).toContain("phase paused");
+    expect(html).toContain("agents 2/2");
+    expect(html).toContain("budget within");
+    expect(html).toContain("recent tool read_file:completed");
+    expect(html).toContain("recoverable checkpoints 1");
+    expect(html).toContain(
+      "recovery warning:terminal_checkpoint_recovery → recover",
+    );
   });
 
   it("clears every row/action on disconnect, malformed data or stale revision", () => {

@@ -1,0 +1,183 @@
+name: IDE Roadmap Context Permission
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ide-roadmap-context-permission.yml"
+      - "packages/cli/src/lib/context-*.js"
+      - "packages/cli/src/lib/permission-*.js"
+      - "packages/cli/src/lib/scoped-permission-store.js"
+      - "packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-context-permission.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-context-permission-matrix.test.js"
+      - "packages/vscode-extension/src/context-center.js"
+      - "packages/vscode-extension/src/ui/context-center-view.js"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextCenter.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PolicyViewer.java"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ide-roadmap-context-permission.yml"
+      - "packages/cli/src/lib/context-*.js"
+      - "packages/cli/src/lib/permission-*.js"
+      - "packages/cli/src/lib/scoped-permission-store.js"
+      - "packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-context-permission.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-context-permission-matrix.test.js"
+      - "packages/vscode-extension/src/context-center.js"
+      - "packages/vscode-extension/src/ui/context-center-view.js"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextCenter.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PolicyViewer.java"
+  schedule:
+    - cron: "43 4 * * 2"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  CONTEXT_PERMISSION_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  context-permission:
+    name: Context/Permission ${{ matrix.suffix }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            suffix: linux
+          - os: macos-15
+            suffix: macos
+          - os: windows-2025
+            suffix: windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      CC_CP_ARTIFACT: ide-context-permission-${{ matrix.suffix }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CONTEXT_PERMISSION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Configure runner-temporary evidence paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then root="$(cygpath -m "$root")"; fi
+          printf 'CC_CP_ARTIFACT_DIR=%s/context-permission/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_CP_STATE_DIR=%s/context-permission-state/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
+      - name: Seed content-free failure artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CC_CP_ARTIFACT_DIR"
+          printf '{"schema":"chainlesschain.context-permission-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$CONTEXT_PERMISSION_COMMIT" "${{ matrix.suffix }}" > "$CC_CP_ARTIFACT_DIR/bootstrap.json"
+      - name: Install focused CLI test dependencies
+        shell: bash
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Run production concurrency and cross-entry campaign
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs
+          --mode campaign
+          --release-commit "$CONTEXT_PERMISSION_COMMIT"
+          --artifact-dir "$CC_CP_ARTIFACT_DIR"
+          --artifact-name "$CC_CP_ARTIFACT"
+          --state-dir "$CC_CP_STATE_DIR"
+      - name: Run focused CLI and VS Code regressions
+        shell: bash
+        run: >-
+          node packages/cli/node_modules/vitest/vitest.mjs run
+          packages/cli/__tests__/unit/scoped-permission-store.test.js
+          packages/cli/__tests__/unit/permission-side-effect-center.test.js
+          packages/cli/__tests__/unit/vscode-ext-context-center.test.js
+          packages/cli/__tests__/unit/vscode-ext-policy-viewer.test.js
+          --testTimeout=30000
+      - name: Run JetBrains contract twins on JDK 21
+        shell: pwsh
+        working-directory: packages/jetbrains-plugin
+        run: |
+          if ($env:RUNNER_OS -eq "Windows") {
+            & .\gradlew.bat test --tests com.chainlesschain.ide.ContextCenterTest --tests com.chainlesschain.ide.PolicyViewerTest --no-daemon --stacktrace
+          } else {
+            chmod +x ./gradlew
+            & ./gradlew test --tests com.chainlesschain.ide.ContextCenterTest --tests com.chainlesschain.ide.PolicyViewerTest --no-daemon --stacktrace
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload content-free producer evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_CP_ARTIFACT }}
+          path: ${{ env.CC_CP_ARTIFACT_DIR }}/
+          if-no-files-found: error
+
+  trusted-context-permission-aggregate:
+    name: Trusted Context/Permission three-OS aggregate
+    needs: [context-permission]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Fail closed unless every matrix cell succeeded
+        env:
+          MATRIX_RESULT: ${{ needs.context-permission.result }}
+        run: test "$MATRIX_RESULT" = success
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CONTEXT_PERMISSION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download all producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: ide-context-permission-*-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/context-permission-download
+      - name: Normalize producer directories
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/context-permission-evidence"
+          for suffix in linux macos windows; do
+            source="$RUNNER_TEMP/context-permission-download/ide-context-permission-$suffix-$GITHUB_RUN_ATTEMPT"
+            test -d "$source"
+            mv "$source" "$RUNNER_TEMP/context-permission-evidence/$suffix"
+          done
+      - name: Rehash exact producers and all cross-entry runs
+        run: >-
+          node packages/cli/scripts/verify-ide-roadmap-context-permission.mjs
+          --evidence-root "$RUNNER_TEMP/context-permission-evidence"
+          --release-commit "$CONTEXT_PERMISSION_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --event-name "$GITHUB_EVENT_NAME"
+          --output "$RUNNER_TEMP/context-permission-aggregate.json"
+      - name: Upload trusted aggregate
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ide-context-permission-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/context-permission-aggregate.json
+          if-no-files-found: error

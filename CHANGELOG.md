@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.165.4: first install without a native build toolchain
 
-> `chainlesschain` **0.165.3 -> 0.165.4** (candidate; not yet published,
-> 2026-08-20).
+> `chainlesschain` **0.165.3 -> 0.165.4** (published from exact SHA
+> `86abb5f65e39f0dd553040fbfce07277336dfeeb`, 2026-08-20).
 > CLI release includes `@chainlesschain/personal-data-hub` **0.4.59**;
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -23,16 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deliberately disables native prebuilds and points node-gyp at a nonexistent
   Python executable. The packed candidate must still install and both `cc` and
   `chainlesschain` must start without `--ignore-scripts`.
-- **Release status**: this is source-level candidate evidence only. Publication
-  still requires the exact release commit to pass the complete Linux, Windows,
-  and macOS `CLI CI` and `CLI Strict Sandbox` matrices before the coordinated
-  PDH and CLI packages are published and independently read back.
+- **Published release evidence**: immutable tag `v-npm-0-165-4`, three-OS
+  `CLI CI` (`32375466808`), `CLI Strict Sandbox` (`32375466552`), npm release
+  (`32375466545`), and independent registry readback (`32377326843`) all bind
+  exact SHA `86abb5f65e`. npm reports `latest=0.165.4`; the public tarball
+  SHA-1 is `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`.
 
 ### Fixed — cc CLI 0.165.3: durable background keeper retirement
 
-> `chainlesschain` **0.165.2 -> 0.165.3** (candidate; not yet published,
-> 2026-08-19).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**
+> `chainlesschain` **0.165.2 -> 0.165.3** (published from exact SHA
+> `7d3eb9ea8046330e2b264bf2309337ebbbbcbacc`, 2026-08-19).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.58**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Durable keeper retirement evidence**: a Worker accepts a lost keeper
@@ -50,17 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Idempotent bootstrap release**: a matching bootstrap release can be replayed
   after READY, and the Worker retransmits it when READY is repeated. Nonce,
   generation, attempt, wrapper PID, and runtime PID mismatches remain rejected.
-- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
-  provenance, package digests, and registry readback remain intentionally
-  absent until the exact `0.165.3` candidate passes complete `CLI CI`,
-  `CLI Strict Sandbox`, and the dedicated cross-platform keeper soak, followed
-  by the npm release and independent public readback workflows.
+- **Release status**: immutable tag `v-npm-0-165-3` and the public npm package
+  bind exact SHA `7d3eb9ea80`. Its push `CLI CI` (`32212502595`),
+  `CLI Strict Sandbox` (`32212502463`), and npm release (`32212502480`) passed;
+  it is now superseded by the fully read-back `0.165.4` production baseline.
 
 ### Fixed — cc CLI 0.165.2: governed plugins and keeper handoff reliability
 
-> `chainlesschain` **0.165.1 → 0.165.2** (candidate; not yet published,
-> 2026-08-18).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**
+> `chainlesschain` **0.165.1 → 0.165.2** (published from exact SHA
+> `775d5667bc7bdcf8fed3f834d3ba2eda43526128`, 2026-08-18).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.58**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Governed plugin transactions and provenance**: marketplace payload,
@@ -88,13 +88,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   POSIX fsync-failure fixtures match the actual read mode; registry cache tests
   follow immutable URL-plus-digest semantics; and macOS marketplace replay uses
   isolated local scope instead of leaking state through the runner user home.
-- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
-  provenance, package digests, and registry readback remain intentionally
-  absent until the final `0.165.2` merge SHA passes complete `CLI CI` and
-  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
-  dedicated npm release and independent public readback workflows. The active
-  two-hour Keeper/reliability runs and the 72-hour scheduler campaign are not
-  claimed as completed release evidence here.
+- **Release status**: immutable tag `v-npm-0-165-2` and the public npm package
+  bind exact SHA `775d5667bc`. Its `CLI CI` (`32110231013`),
+  `CLI Strict Sandbox` (`32110230842`), and npm release (`32114134884`) passed.
+  Later releases supersede it; the 72-hour scheduler campaign and signed native
+  distribution remain separate evidence boundaries.
 
 ### Added — cc CLI 0.165.1: runtime admission, remote authority, and background containment
 

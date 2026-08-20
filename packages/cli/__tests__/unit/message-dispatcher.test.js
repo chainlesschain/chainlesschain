@@ -19,6 +19,7 @@ function createServerStub() {
     _handleSessionAnswer: vi.fn(),
     _handlePermissionRulesGet: vi.fn(),
     _handlePermissionRulesSet: vi.fn(),
+    _setSecretConfigValue: vi.fn(),
     _handleHostToolResult: vi.fn(),
     _handleOrchestrate: vi.fn(),
     _handleTasksList: vi.fn(),
@@ -138,6 +139,66 @@ describe("ws message dispatcher", () => {
       "perm-set",
       ws,
       set,
+    );
+  });
+
+  it("stores configuration secrets without putting them in a command", async () => {
+    const server = createServerStub();
+    server._setSecretConfigValue.mockReturnValue({
+      key: "llm.apiKey",
+      storage: "keychain",
+      backend: "dpapi",
+    });
+    const dispatcher = createWsMessageDispatcher(server);
+    const ws = {};
+    const message = {
+      id: "secret-1",
+      type: "config-set-secret",
+      key: "llm.apiKey",
+      value: "sk-first-run-key",
+    };
+
+    await dispatcher.dispatch("client-1", ws, message);
+
+    expect(server._setSecretConfigValue).toHaveBeenCalledWith(
+      "llm.apiKey",
+      "sk-first-run-key",
+      { storage: "auto" },
+    );
+    expect(server._executeCommand).not.toHaveBeenCalled();
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "secret-1",
+      type: "config-set-secret-result",
+      success: true,
+      key: "llm.apiKey",
+      storage: "keychain",
+      backend: "dpapi",
+    });
+    expect(JSON.stringify(server._send.mock.calls)).not.toContain(
+      "sk-first-run-key",
+    );
+  });
+
+  it("rejects an empty configuration secret without changing storage", async () => {
+    const server = createServerStub();
+    const dispatcher = createWsMessageDispatcher(server);
+    const ws = {};
+
+    await dispatcher.dispatch("client-1", ws, {
+      id: "secret-empty",
+      type: "config-set-secret",
+      key: "llm.apiKey",
+      value: "",
+    });
+
+    expect(server._setSecretConfigValue).not.toHaveBeenCalled();
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        id: "secret-empty",
+        type: "error",
+        code: "CONFIG_SECRET_EMPTY",
+      }),
     );
   });
 

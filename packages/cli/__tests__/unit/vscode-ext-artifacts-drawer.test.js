@@ -10,15 +10,18 @@ import { fileURLToPath } from "node:url";
 import {
   ARTIFACT_KINDS,
   buildArtifactsListArgs,
+  buildArtifactsWorkbenchArgs,
   buildArtifactsShowArgs,
   buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
+  buildArtifactsRecoveryAdjudicateArgs,
   defaultArtifactsDir,
   formatSize,
   previewKindForMime,
   deriveArtifactActions,
   shapeArtifact,
   shapeArtifacts,
+  shapeArtifactWorkbench,
   filterArtifacts,
   escapeHtml,
   renderArtifactsHtml,
@@ -44,6 +47,11 @@ const entry = (over = {}) => ({
 describe("build*Args", () => {
   it("returns the exact cc argv arrays the panel spawns", () => {
     expect(buildArtifactsListArgs()).toEqual(["artifacts", "list", "--json"]);
+    expect(buildArtifactsWorkbenchArgs()).toEqual([
+      "artifacts",
+      "workbench",
+      "--json",
+    ]);
     expect(buildArtifactsShowArgs("art_1")).toEqual([
       "artifacts",
       "show",
@@ -74,6 +82,26 @@ describe("build*Args", () => {
     expect(buildArtifactsRemoveArgs("art_1", "stable-delete")).toContain(
       "stable-delete",
     );
+    expect(
+      buildArtifactsRecoveryAdjudicateArgs(
+        "recovery_1",
+        `sha256:${"a".repeat(64)}`,
+        "retry",
+        "adjudication_1",
+      ),
+    ).toEqual([
+      "artifacts",
+      "recovery-adjudicate",
+      "recovery_1",
+      "--plan-digest",
+      `sha256:${"a".repeat(64)}`,
+      "--decision",
+      "retry",
+      "--adjudication-id",
+      "adjudication_1",
+      "--approve",
+      "--json",
+    ]);
   });
 });
 
@@ -205,6 +233,61 @@ describe("shapeArtifact / shapeArtifacts", () => {
   });
 });
 
+describe("shapeArtifactWorkbench", () => {
+  it("projects returned-result lineage, access history, and recovery controls", () => {
+    const shaped = shapeArtifactWorkbench({
+      schema: "cc-artifact-workbench/v1",
+      artifacts: [
+        entry({
+          immutable: true,
+          recordDigest: `sha256:${"b".repeat(64)}`,
+          returnedResult: {
+            sessionId: "sess-1",
+            requestId: "collect-1",
+            reviewDigest: `sha256:${"c".repeat(64)}`,
+            item: "summary",
+            kind: "summary",
+            sourceDigest: `sha256:${"d".repeat(64)}`,
+          },
+          history: {
+            accessCount: 2,
+            latestAccess: {
+              action: "download",
+              client: "vscode",
+              authorizedAt: "2026-07-11T11:30:00Z",
+              eventDigest: `sha256:${"e".repeat(64)}`,
+            },
+          },
+        }),
+      ],
+      recovery: {
+        planDigest: `sha256:${"f".repeat(64)}`,
+        summary: { itemCount: 1, criticalCount: 1, timedOutCount: 1 },
+        items: [
+          {
+            itemId: "recovery_1",
+            kind: "pending-deletion",
+            severity: "critical",
+            timedOut: true,
+            recommendedDecision: "retry",
+          },
+        ],
+      },
+      history: { totalEventCount: 2, truncated: false, activity: [] },
+    });
+    expect(shaped.rows[0]).toMatchObject({
+      immutable: true,
+      returnedResult: { requestId: "collect-1", kind: "summary" },
+      history: { accessCount: 2, latestAccess: { action: "download" } },
+    });
+    expect(shaped.recovery.items[0]).toMatchObject({
+      itemId: "recovery_1",
+      recommendedDecision: "retry",
+    });
+    expect(shapeArtifactWorkbench({})).toBeNull();
+  });
+});
+
 describe("filterArtifacts", () => {
   const rows = shapeArtifacts([
     entry({ id: "art_a", title: "Fix login bug", kind: "report" }),
@@ -262,6 +345,46 @@ describe("renderArtifactsHtml (escaping!)", () => {
     expect(html).toContain("sha256 deadbeefcafe…");
     expect(html).toContain("2.0 KB");
     expect(html).toContain("1h ago");
+  });
+
+  it("renders exact returned-result lineage, access counts, and recovery review", () => {
+    const rows = shapeArtifacts([
+      entry({
+        recordDigest: `sha256:${"a".repeat(64)}`,
+        returnedResult: {
+          sessionId: "sess-1",
+          requestId: "collect-1",
+          reviewDigest: `sha256:${"b".repeat(64)}`,
+          item: "summary",
+          kind: "summary",
+          sourceDigest: `sha256:${"c".repeat(64)}`,
+        },
+        history: { accessCount: 2, latestAccess: null },
+      }),
+    ]);
+    const html = renderArtifactsHtml(rows, {
+      now: NOW,
+      recovery: {
+        planDigest: `sha256:${"d".repeat(64)}`,
+        summary: { itemCount: 1, criticalCount: 1, timedOutCount: 1 },
+        items: [
+          {
+            itemId: "recovery_1",
+            kind: "pending-deletion",
+            severity: "critical",
+            timedOut: true,
+            recommendedDecision: "retry",
+          },
+        ],
+      },
+      history: { totalEventCount: 7, truncated: false },
+    });
+    expect(html).toContain("returned summary · request collect-1");
+    expect(html).toContain("review sha256:bbbbbbbbbbbbb");
+    expect(html).toContain("2 audited accesses");
+    expect(html).toContain("Verified history: 7 event(s)");
+    expect(html).toContain('data-recovery="retry" data-item="recovery_1"');
+    expect(html).toContain("startup scan never mutates unattended");
   });
 
   it("emits action buttons with data attributes from the derived actions", () => {

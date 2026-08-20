@@ -369,13 +369,35 @@ export function parseLlmConfigOutput(output) {
   const result = {}
   if (!output) return result
 
+  // `cc config list` intentionally never returns a secret. Older releases
+  // printed `****`; the typed-config implementation prints `[REDACTED]`, and
+  // an unset key is rendered as `null`. None of those values belongs in the
+  // password input or in a subsequent save request.
+  const visibleApiKey = (value) => {
+    if (typeof value !== 'string') return null
+    const normalized = value.trim()
+    if (!normalized) return null
+    const lower = normalized.toLowerCase()
+    if (
+      lower === 'null' ||
+      lower === 'undefined' ||
+      lower === '[redacted]' ||
+      lower === '<configured>' ||
+      normalized.includes('***')
+    ) {
+      return null
+    }
+    return normalized
+  }
+
   // Try JSON parse first
   try {
     const json = JSON.parse(output.trim())
     const llm = json.llm || json
     if (llm.provider) result.provider = llm.provider
     if (llm.model) result.model = llm.model
-    if (llm.apiKey) result.apiKey = llm.apiKey
+    const apiKey = visibleApiKey(llm.apiKey)
+    if (apiKey) result.apiKey = apiKey
     if (llm.baseUrl) result.baseUrl = llm.baseUrl
     if (llm.temperature !== undefined) result.temperature = Number(llm.temperature)
     if (llm.maxTokens !== undefined) result.maxTokens = Number(llm.maxTokens)
@@ -392,10 +414,8 @@ export function parseLlmConfigOutput(output) {
     } else if (keyLower === 'model' && value) {
       result.model = value
     } else if (keyLower === 'apikey' && value) {
-      // Don't overwrite with masked values
-      if (!value.includes('***')) {
-        result.apiKey = value
-      }
+      const apiKey = visibleApiKey(value)
+      if (apiKey) result.apiKey = apiKey
     } else if (keyLower === 'baseurl') {
       result.baseUrl = value
     } else if (keyLower === 'temperature') {

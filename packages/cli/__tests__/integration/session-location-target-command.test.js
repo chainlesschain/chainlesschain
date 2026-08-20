@@ -8,6 +8,7 @@ import {
   EXECUTION_LOCATION_HANDOFF_FACTS_SCHEMA,
   computeExecutionLocationTargetFactsDigest,
   createExecutionLocationBinding,
+  createExecutionLocationTargetAttestation,
 } from "../../src/lib/execution-location-contract.js";
 import {
   EXECUTION_LOCATION_PROFILE_SCHEMA,
@@ -287,6 +288,15 @@ describe("session location target command routes", () => {
     });
     const targetFactsDigest =
       computeExecutionLocationTargetFactsDigest(targetBinding);
+    const targetAttestation = createExecutionLocationTargetAttestation({
+      profileDigest: DIGEST,
+      sourceSessionId: "session-command-1",
+      sourceHeadHash: HEAD_HASH,
+      sourceEventCount: 5,
+      targetEvidenceId: "container-evidence-1",
+      baseCommit: COMMIT,
+      binding: targetBinding,
+    });
     const receipt = {
       schema: "chainlesschain.session-execution-location-handoff-install/v1",
       sessionId: "session-command-1",
@@ -337,7 +347,7 @@ describe("session location target command routes", () => {
         profileDigest: DIGEST,
         targetEvidenceId: "container-evidence-1",
         targetFactsDigest,
-        attestationDigest: DIGEST,
+        attestationDigest: targetAttestation.attestationDigest,
         binding: targetBinding,
       },
     );

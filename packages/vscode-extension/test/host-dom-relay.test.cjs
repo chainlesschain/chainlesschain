@@ -229,12 +229,21 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
   assert.match(html, /e\.key === "Home"/u);
   assert.match(html, /e\.key === "End"/u);
   assert.match(html, /e\.key === "Delete"/u);
+  assert.match(html, /data-tab-id/u);
+  assert.match(html, /restoreTabFocus/u);
   assert.match(html, /id="suggest" role="listbox"/u);
   assert.match(html, /row\.setAttribute\("role", "option"\)/u);
   assert.match(html, /aria-autocomplete="list" aria-expanded="false"/u);
   assert.match(html, /input\.setAttribute\("aria-activedescendant"/u);
   assert.match(html, /id="status" role="status" aria-live="polite"/u);
   assert.match(html, /log\.setAttribute\("aria-busy", "true"\)/u);
+  assert.match(html, /card\.setAttribute\("role", "group"\)/u);
+  assert.match(html, /card\.setAttribute\("aria-labelledby", q\.id\)/u);
+  assert.match(html, /yes\.disabled = no\.disabled = true;/u);
+  assert.match(
+    html,
+    /control while the host settles[\s\S]{0,160}input\.focus\(\)/u,
+  );
   assert.match(html, /:focus-visible \{ outline:2px solid/u);
 });
 
