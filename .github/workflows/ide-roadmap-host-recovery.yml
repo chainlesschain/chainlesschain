@@ -1,0 +1,153 @@
+name: IDE Roadmap Host Recovery
+
+on:
+  pull_request:
+    paths:
+      - ".devcontainer/ide-roadmap/**"
+      - ".github/scripts/run-ide-roadmap-wsl.ps1"
+      - ".github/workflows/ide-roadmap-host-recovery.yml"
+      - "packages/vscode-extension/src/mcp-http-server.js"
+      - "packages/vscode-extension/test/host-recovery-matrix/**"
+      - "packages/vscode-extension/test/host-recovery-matrix.test.cjs"
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/ide-roadmap/**"
+      - ".github/scripts/run-ide-roadmap-wsl.ps1"
+      - ".github/workflows/ide-roadmap-host-recovery.yml"
+      - "packages/vscode-extension/src/mcp-http-server.js"
+      - "packages/vscode-extension/test/host-recovery-matrix/**"
+      - "packages/vscode-extension/test/host-recovery-matrix.test.cjs"
+  schedule:
+    - cron: "31 3 * * 3"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  IDE_HOST_RECOVERY_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  NODE_ARCHIVE_URL: https://nodejs.org/dist/v22.12.0/node-v22.12.0-linux-x64.tar.gz
+  NODE_ARCHIVE_SHA256: e05a4d65232ae2b27b3d77da2e368522fb46b923335b8e0d5f77624c32484044
+
+jobs:
+  wsl-host-recovery:
+    name: Genuine WSL bridge recovery
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      CC_HOST_RECOVERY_ARTIFACT: ide-host-recovery-wsl-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact recovery candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_HOST_RECOVERY_COMMIT }}
+      - name: Run production Bridge recovery inside imported WSL1
+        shell: pwsh
+        run: >-
+          ./.github/scripts/run-ide-roadmap-wsl.ps1
+          -ReleaseCommit "$env:IDE_HOST_RECOVERY_COMMIT"
+          -ArtifactDirectory "$env:GITHUB_WORKSPACE/build/reports/ide-host-recovery/wsl"
+          -ArtifactName "$env:CC_HOST_RECOVERY_ARTIFACT"
+      - name: Upload WSL diagnostics and evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_HOST_RECOVERY_ARTIFACT }}
+          path: build/reports/ide-host-recovery/wsl/
+          if-no-files-found: error
+
+  devcontainer-host-recovery:
+    name: Genuine devcontainer bridge recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CC_HOST_RECOVERY_ARTIFACT: ide-host-recovery-devcontainer-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact recovery candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_HOST_RECOVERY_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install exact Dev Container CLI
+        run: npm install --global @devcontainers/cli@0.80.3
+      - name: Start declared devcontainer
+        run: >-
+          devcontainer up
+          --workspace-folder "$GITHUB_WORKSPACE"
+          --config .devcontainer/ide-roadmap/devcontainer.json
+      - name: Download and verify exact Linux Node runtime
+        run: |
+          mkdir -p build/reports/ide-host-recovery/bootstrap
+          curl --fail --location --silent --show-error "$NODE_ARCHIVE_URL" --output build/reports/ide-host-recovery/bootstrap/node.tar.gz
+          echo "$NODE_ARCHIVE_SHA256  build/reports/ide-host-recovery/bootstrap/node.tar.gz" | sha256sum --check --strict
+      - name: Install Node inside devcontainer and run production Bridge recovery
+        run: |
+          devcontainer exec --workspace-folder "$GITHUB_WORKSPACE" --config .devcontainer/ide-roadmap/devcontainer.json bash -lc 'mkdir -p /opt/node-22.12.0 && tar -xzf build/reports/ide-host-recovery/bootstrap/node.tar.gz --strip-components=1 -C /opt/node-22.12.0'
+          devcontainer exec --workspace-folder "$GITHUB_WORKSPACE" --config .devcontainer/ide-roadmap/devcontainer.json env GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_WORKFLOW_REF="$GITHUB_WORKFLOW_REF" GITHUB_WORKFLOW_SHA="$GITHUB_WORKFLOW_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" GITHUB_JOB="$GITHUB_JOB" GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" /opt/node-22.12.0/bin/node packages/vscode-extension/test/host-recovery-matrix/run.cjs --release-commit "$IDE_HOST_RECOVERY_COMMIT" --transport devcontainer --environment-check devcontainer --artifact-dir build/reports/ide-host-recovery/devcontainer --artifact-name "$CC_HOST_RECOVERY_ARTIFACT"
+      - name: Upload devcontainer diagnostics and evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_HOST_RECOVERY_ARTIFACT }}
+          path: build/reports/ide-host-recovery/devcontainer/
+          if-no-files-found: error
+
+  trusted-host-recovery-aggregate:
+    name: Trusted WSL/devcontainer aggregate
+    needs: [wsl-host-recovery, devcontainer-host-recovery]
+    if: >-
+      ${{
+        always() &&
+        needs.wsl-host-recovery.result == 'success' &&
+        needs.devcontainer-host-recovery.result == 'success'
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact recovery candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_HOST_RECOVERY_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download WSL producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-host-recovery-wsl-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/host-recovery/wsl
+      - name: Download devcontainer producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-host-recovery-devcontainer-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/host-recovery/devcontainer
+      - name: Rehash both exact producer envelopes
+        run: >-
+          node packages/vscode-extension/test/host-recovery-matrix/verify.cjs
+          --evidence-root "$RUNNER_TEMP/host-recovery"
+          --release-commit "$IDE_HOST_RECOVERY_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --event-name "$GITHUB_EVENT_NAME"
+          --output "$RUNNER_TEMP/host-recovery-aggregate.json"
+      - name: Upload trusted host recovery aggregate
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ide-host-recovery-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/host-recovery-aggregate.json
+          if-no-files-found: error
