@@ -18,6 +18,7 @@ export const ARTIFACT_ACCESS_CLIENTS = Object.freeze([
   "cli",
   "vscode",
   "jetbrains",
+  "desktop",
   "websocket",
   "web",
 ]);

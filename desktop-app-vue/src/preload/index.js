@@ -373,6 +373,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getTaskGraph: (payload) =>
       ipcRenderer.invoke("coding-agent:get-task-graph", payload),
     getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
+    getArtifactWorkbench: () =>
+      ipcRenderer.invoke("coding-agent:get-artifact-workbench"),
+    openArtifact: (payload) =>
+      ipcRenderer.invoke("coding-agent:open-artifact", payload),
+    downloadArtifact: (payload) =>
+      ipcRenderer.invoke("coding-agent:download-artifact", payload),
+    removeArtifact: (payload) =>
+      ipcRenderer.invoke("coding-agent:remove-artifact", payload),
+    adjudicateArtifactRecovery: (payload) =>
+      ipcRenderer.invoke("coding-agent:adjudicate-artifact-recovery", payload),
     // Canonical workflow commands ($deep-interview / $ralplan / $ralph / $team)
     checkWorkflowCommand: (text) =>
       ipcRenderer.invoke("coding-agent:check-workflow-command", text),

@@ -21,6 +21,7 @@ export const ARTIFACT_DELETION_CLIENTS = Object.freeze([
   "cli",
   "vscode",
   "jetbrains",
+  "desktop",
   "websocket",
   "system",
 ]);

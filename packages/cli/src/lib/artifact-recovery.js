@@ -699,8 +699,14 @@ function settleOrphanGc(store, request, options) {
           }
           if (terminal)
             return Object.freeze({
+              schema: "cc-artifact-recovery-adjudication/v1",
+              adjudicationId: request.adjudicationId,
+              itemId: request.itemId,
+              planDigest: request.planDigest,
+              decision: "delete-orphan",
               settled: true,
               recorded: false,
+              mutationPerformed: true,
               gc: terminal,
             });
         } else {
@@ -819,7 +825,17 @@ function settleOrphanGc(store, request, options) {
         };
         const settled = gcEvent(terminalMaterial, previous);
         appendGcEvent(filePath, settled, bytes.length, runtimeFs);
-        return Object.freeze({ settled: true, recorded: true, gc: settled });
+        return Object.freeze({
+          schema: "cc-artifact-recovery-adjudication/v1",
+          adjudicationId: request.adjudicationId,
+          itemId: request.itemId,
+          planDigest: request.planDigest,
+          decision: "delete-orphan",
+          settled: true,
+          recorded: true,
+          mutationPerformed: true,
+          gc: settled,
+        });
       },
       {
         failIfUnavailable: true,
