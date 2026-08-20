@@ -11,6 +11,7 @@ import { MCPClient } from "../src/harness/mcp-client.js";
 import { createMcpCallLedger } from "../src/lib/mcp-call-ledger.js";
 import { mcpEffectDescriptorFields } from "../src/lib/mcp-effect-contract.js";
 import { issueMcpStdioExecutionAuthority } from "../src/lib/mcp-stdio-execution-authority.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../src/lib/mcp-stdio-native-code-policy.js";
 import {
   applySandbox,
   SANDBOX_BOUNDARIES,
@@ -159,6 +160,7 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
   const contract = Object.freeze({
     contractVersion: 1,
     kind: "strict-mcp-node-capsule",
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
     pluginRoot: root,
     workingDirectory: root,
     runtimePath: runtimeIdentity.realPath,
@@ -172,7 +174,10 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
     { cwd: root, shell: false, stdio: "pipe" },
     {
       profile: "default",
-      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      ],
       executionContract: contract,
       sync: true,
     },
@@ -246,6 +251,7 @@ function runMacCodeSnapshotFailClosedProbe(workspace) {
   const contract = Object.freeze({
     contractVersion: 1,
     kind: "strict-mcp-node-capsule",
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
     pluginRoot: root,
     workingDirectory: root,
     runtimePath: runtimeIdentity.realPath,
@@ -261,6 +267,7 @@ function runMacCodeSnapshotFailClosedProbe(workspace) {
       profile: "strict",
       requiredBoundaries: [
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
       ],
