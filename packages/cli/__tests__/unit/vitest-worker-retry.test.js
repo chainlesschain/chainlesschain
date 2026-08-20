@@ -151,15 +151,30 @@ describe("Vitest worker infrastructure retry", () => {
     expect(repeatedFailure).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the integration workflow sharded and preserves all reporter safeguards", () => {
+  it("keeps unit and integration shards behind the strict worker retry", () => {
     const workflow = fs.readFileSync(
       path.join(repositoryRoot, ".github/workflows/_cli-test.yml"),
       "utf8",
+    );
+    const unitStep = workflow.slice(
+      workflow.indexOf("- name: vitest unit shard"),
+      workflow.indexOf("- name: Upload failed unit report"),
     );
     const integrationStep = workflow.slice(
       workflow.indexOf("- name: vitest integration shard"),
       workflow.indexOf("- name: Upload failed integration report"),
     );
+    expect(unitStep).toContain(
+      "node scripts/run-vitest-with-worker-retry.mjs -- run",
+    );
+    expect(unitStep).toContain("--shard=${{ matrix.shard }}/${{ inputs.shards }}");
+    expect(unitStep).toContain("--reporter=default --reporter=junit");
+    expect(unitStep).toContain(
+      "--outputFile.junit=test-results/unit-${{ matrix.shard }}.xml",
+    );
+    expect(unitStep).toContain("--silent=passed-only");
+    expect(unitStep).toContain("__tests__/unit/");
+    expect(unitStep).not.toContain("continue-on-error");
     expect(integrationStep).toContain(
       "node scripts/run-vitest-with-worker-retry.mjs -- run",
     );

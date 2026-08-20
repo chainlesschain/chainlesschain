@@ -76,9 +76,13 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      # A unit shard can complete every recorded assertion and still lose a
+      # hosted forks worker during teardown. Retry once only when the Vitest
+      # worker signature and a clean, non-empty JUnit report both prove that
+      # exact infrastructure failure; assertion failures remain hard failures.
       - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
+        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
       - name: Upload failed unit report
         if: failure()
         uses: actions/upload-artifact@v4
