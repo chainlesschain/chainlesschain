@@ -7,7 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,6 +36,91 @@ class SessionProjectionTest {
         }
     }
 
+    private static Map<String, Object> action(String id, boolean available,
+            List<String> argv) {
+        Map<String, Object> action = MiniJson.obj();
+        action.put("id", id);
+        action.put("available", available);
+        action.put("reason", available ? null : "unsupported for this row");
+        if (available) {
+            Map<String, Object> preview = MiniJson.obj();
+            preview.put("executor", "cli");
+            preview.put("argv", argv);
+            preview.put("mutates", !"peek".equals(id));
+            preview.put("input", null);
+            action.put("preview", preview);
+        } else {
+            action.put("preview", null);
+        }
+        return action;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String v2Fixture() {
+        Map<String, Object> root = MiniJson.parseObject(fixture());
+        root.put("schema", SessionProjection.SCHEMA);
+        root.put("schemaVersion", SessionProjection.SCHEMA_VERSION);
+        root.put("revision", "sha256:" + "9".repeat(64));
+        Map<String, Object> sources = (Map<String, Object>) root.get("sources");
+        Map<String, Object> sourceStatus = MiniJson.obj();
+        sourceStatus.put("ok", true);
+        sourceStatus.put("count", 1L);
+        sourceStatus.put("error", null);
+        sources.put("dynamicWorkflow", sourceStatus);
+        List<Object> sessions = (List<Object>) root.get("sessions");
+        for (Object value : sessions) {
+            Map<String, Object> item = (Map<String, Object>) value;
+            item.put("workflow", null);
+            List<Object> actions = (List<Object>) item.get("actions");
+            actions.add(action("pause", false, List.of()));
+            actions.add(action("resume", false, List.of()));
+            actions.add(action("recover", false, List.of()));
+        }
+
+        List<Object> actions = new ArrayList<>();
+        for (String id : SessionProjection.ACTIONS) {
+            boolean available = List.of("peek", "stop", "resume", "recover")
+                    .contains(id);
+            List<String> argv = "peek".equals(id)
+                    ? List.of("cowork", "workflow", "runtime-status", "wf-run",
+                            "--cwd", "C:/repo", "--json")
+                    : List.of("cowork", "workflow",
+                            "runtime-" + ("recover".equals(id)
+                                    ? "recover-checkpoints" : id),
+                            "wf-run", "--expected-revision", "7",
+                            "--cwd", "C:/repo", "--json");
+            actions.add(action(id, available, argv));
+        }
+        Map<String, Object> dynamic = MiniJson.obj();
+        dynamic.put("id", "dynamic_workflow:wf-run");
+        dynamic.put("sourceId", "wf-run");
+        dynamic.put("kind", "dynamic_workflow");
+        dynamic.put("state", "blocked");
+        dynamic.put("title", "Dynamic workflow release-review");
+        dynamic.put("capabilities", List.of("peek", "stop", "resume", "recover"));
+        dynamic.put("actions", actions);
+        dynamic.put("linkedSessionId", "authority-session");
+        dynamic.put("owner", Map.of("type", "local-user", "id", ""));
+        dynamic.put("environment", Map.of("cwd", "C:/repo"));
+        dynamic.put("worktree", null);
+        dynamic.put("artifact", Map.of("count", 1L));
+        dynamic.put("approval", Map.of(
+                "pending", true, "type", "recovery", "count", 1L));
+        dynamic.put("pr", Map.of("count", 0L));
+        dynamic.put("workflow", Map.of(
+                "runtimeRevision", 7L,
+                "phase", Map.of("status", "paused"),
+                "agents", Map.of("requested", 2L, "settled", 2L, "pending", 0L),
+                "budget", Map.of("overall", "within"),
+                "recovery", Map.of("terminal", 1L),
+                "recent", Map.of("call", Map.of(
+                        "name", "read_file", "status", "completed"))));
+        dynamic.put("lastEvent", Map.of("at", "2026-08-01T00:10:00Z"));
+        dynamic.put("revision", "sha256:" + "8".repeat(64));
+        sessions.add(0, dynamic);
+        return MiniJson.stringify(root);
+    }
+
     @Test
     void consumesTheSharedFiveKindProjection() {
         SessionProjection.Snapshot snapshot = SessionProjection.parse(fixture());
@@ -53,6 +140,25 @@ class SessionProjectionTest {
         assertTrue(rows.get(1).detail.contains("owner local-user:alice"));
         assertTrue(rows.get(1).detail.contains("artifacts 1 · report.md"));
         assertTrue(rows.get(1).detail.contains("PR #42 open"));
+    }
+
+    @Test
+    void consumesV2DynamicWorkflowSummaryAndExactControls() {
+        SessionProjection.Snapshot snapshot = SessionProjection.parse(v2Fixture());
+        assertTrue(snapshot.connected);
+        SessionProjection.Item item = snapshot.sessions.stream()
+                .filter(row -> "dynamic_workflow".equals(row.kind))
+                .findFirst().orElseThrow();
+        assertEquals(List.of("peek", "stop", "resume", "recover"), item.actions);
+        assertTrue(item.detail.contains("phase paused"));
+        assertTrue(item.detail.contains("agents 2/2"));
+        assertTrue(item.detail.contains("budget within"));
+        assertTrue(item.detail.contains("recent tool read_file:completed"));
+        assertTrue(item.detail.contains("recoverable checkpoints 1"));
+        assertEquals(List.of("cowork", "workflow", "runtime-resume", "wf-run",
+                        "--expected-revision", "7", "--cwd", "C:/repo", "--json"),
+                SessionProjection.preview(snapshot, item.id, "resume",
+                        snapshot.revision, item.revision).argv);
     }
 
     @Test

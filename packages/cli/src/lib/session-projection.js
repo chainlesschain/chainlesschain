@@ -14,8 +14,8 @@ import {
   SESSION_STATES,
 } from "./session-lifecycle.js";
 
-export const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v1";
-export const SESSION_PROJECTION_VERSION = 1;
+export const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v2";
+export const SESSION_PROJECTION_VERSION = 2;
 
 export const PROJECTION_KINDS = Object.freeze([
   "local",
@@ -23,6 +23,7 @@ export const PROJECTION_KINDS = Object.freeze([
   "remote",
   "team",
   "workflow",
+  "dynamic_workflow",
 ]);
 
 export const PROJECTION_STATES = Object.freeze([
@@ -43,6 +44,9 @@ export const PROJECTION_ACTIONS = Object.freeze([
   "stop",
   "checkpoint",
   "archive",
+  "pause",
+  "resume",
+  "recover",
 ]);
 
 export const PROJECTION_ACTION_EXECUTORS = Object.freeze([
@@ -115,6 +119,7 @@ function sourceSessionId(source, fallback = null) {
     asText(source?.sessionId) ||
     asText(source?.agentSessionId) ||
     asText(source?.remoteSessionId) ||
+    asText(source?.executionAuthoritySessionId) ||
     fallback
   );
 }
@@ -214,6 +219,22 @@ function mapWorkflowState(source) {
   return "working";
 }
 
+function mapDynamicWorkflowState(source) {
+  const status = String(source?.status || "")
+    .trim()
+    .toLowerCase();
+  if (status === "completed") return "done";
+  if (status === "stopped") return "stopped";
+  if (status === "failed") return "failed";
+  if (["input_requested", "needs_input"].includes(status)) {
+    return "needs_input";
+  }
+  if (["pause_requested", "paused", "blocked"].includes(status)) {
+    return "blocked";
+  }
+  return ["ready", "running"].includes(status) ? "working" : "failed";
+}
+
 function preview(executor, argv, { mutates = false, input = null } = {}) {
   return {
     executor,
@@ -290,6 +311,49 @@ function actionPreviews(kind, state, source, sourceId, linkedSessionId) {
       "--cwd",
       cwd,
     ]);
+  } else if (kind === "dynamic_workflow" && cwd) {
+    const expectedRevision = String(source?.revision || "");
+    const runtimeArgs = (action) => [
+      "cowork",
+      "workflow",
+      `runtime-${action}`,
+      sourceId,
+      "--expected-revision",
+      expectedRevision,
+      "--cwd",
+      cwd,
+      "--json",
+    ];
+    routes.peek = preview("cli", [
+      "cowork",
+      "workflow",
+      "runtime-status",
+      sourceId,
+      "--cwd",
+      cwd,
+      "--json",
+    ]);
+    if (
+      !TERMINAL_PROJECTION_STATES.has(state) &&
+      !["paused", "input_requested", "needs_input"].includes(source?.status)
+    ) {
+      routes.pause = preview("cli", runtimeArgs("pause"), { mutates: true });
+    }
+    if (
+      ["paused", "failed", "blocked"].includes(source?.status) &&
+      Number(source?.agents?.pending || 0) === 0 &&
+      Number(source?.input?.pending || 0) === 0
+    ) {
+      routes.resume = preview("cli", runtimeArgs("resume"), { mutates: true });
+    }
+    if (!["completed", "stopped"].includes(source?.status)) {
+      routes.stop = preview("cli", runtimeArgs("stop"), { mutates: true });
+    }
+    if (Number(source?.recovery?.terminal || 0) > 0) {
+      routes.recover = preview("cli", runtimeArgs("recover-checkpoints"), {
+        mutates: true,
+      });
+    }
   }
 
   if (checkpointAvailable) {
@@ -356,6 +420,18 @@ function actionAvailability(kind, state, source, sourceId, linkedSessionId) {
         : kind === "workflow"
           ? "coding workflow state has no non-destructive archive route"
           : "no non-destructive session archive capability is available",
+    pause:
+      kind === "dynamic_workflow"
+        ? "workflow run cannot be paused in its current state"
+        : "pause is only supported by durable dynamic workflow runs",
+    resume:
+      kind === "dynamic_workflow"
+        ? "workflow run has pending input/effects or is not resumable"
+        : "resume is only supported by durable dynamic workflow runs",
+    recover:
+      kind === "dynamic_workflow"
+        ? "no terminal checkpoint recovery is currently available"
+        : "recovery is only supported by durable dynamic workflow runs",
   };
 
   return PROJECTION_ACTIONS.map((id) => {
@@ -464,6 +540,23 @@ function artifactSummary(sessionIds, artifacts) {
   };
 }
 
+function dynamicWorkflowSummary(source) {
+  if (source?.schema !== "cc-dynamic-workflow-workbench-state/v1") return null;
+  return {
+    runtimeRevision: source.revision,
+    phase: source.phase,
+    agents: source.agents,
+    budget: source.budget,
+    artifacts: source.artifacts,
+    checkpoints: source.checkpoints,
+    recovery: source.recovery,
+    recent: source.recent,
+    definitionDigest: source.definitionDigest,
+    admissionDigest: source.admissionDigest,
+    stateDigest: source.stateDigest,
+  };
+}
+
 function prSummary(sessionIds, prLinks) {
   const linked = [];
   for (const sessionId of Array.isArray(sessionIds)
@@ -501,16 +594,22 @@ function approvalSummary(source, state) {
       0,
     );
   }
+  if (source?.schema === "cc-dynamic-workflow-workbench-state/v1") {
+    count +=
+      asCount(source?.input?.pending) + asCount(source?.recovery?.terminal);
+  }
   const needsInput = state === "needs_input";
   return {
     pending: needsInput || state === "blocked" || count > 0,
     type: needsInput
       ? "input"
-      : Array.isArray(source?.units) && count > 0
-        ? "adjudication"
-        : count > 0
-          ? "approval"
-          : null,
+      : source?.schema === "cc-dynamic-workflow-workbench-state/v1" && count > 0
+        ? "recovery"
+        : Array.isArray(source?.units) && count > 0
+          ? "adjudication"
+          : count > 0
+            ? "approval"
+            : null,
     count,
   };
 }
@@ -552,7 +651,9 @@ function projectOne(kind, source, { artifacts, prLinks }) {
   if (kind === "local") state = "stopped";
   else if (kind === "team") state = mapTeamState(source);
   else if (kind === "workflow") state = mapWorkflowState(source);
-  else if (kind === "remote") {
+  else if (kind === "dynamic_workflow") {
+    state = mapDynamicWorkflowState(source);
+  } else if (kind === "remote") {
     state = source?.invalid ? "failed" : source?.alive ? "working" : "stopped";
   } else state = mapLifecycleState(source);
 
@@ -583,7 +684,9 @@ function projectOne(kind, source, { artifacts, prLinks }) {
           ? `Team run ${sourceId}`
           : kind === "workflow"
             ? `Workflow ${sourceId}`
-            : `${kind} ${sourceId}`),
+            : kind === "dynamic_workflow"
+              ? `Dynamic workflow ${source?.workflowId || sourceId}`
+              : `${kind} ${sourceId}`),
     capabilities: actions
       .filter((action) => action.available)
       .map((action) => action.id),
@@ -592,9 +695,13 @@ function projectOne(kind, source, { artifacts, prLinks }) {
     owner: ownerSummary(source, kind),
     environment: environmentSummary(source, kind),
     worktree: worktreeSummary(source),
-    artifact: artifactSummary(linkedSessionIds, artifacts),
+    artifact:
+      kind === "dynamic_workflow"
+        ? { count: asCount(source?.artifacts?.count), latest: null }
+        : artifactSummary(linkedSessionIds, artifacts),
     approval: approvalSummary(source, state),
     pr: prSummary(linkedSessionIds, prLinks),
+    workflow: dynamicWorkflowSummary(source),
     lastEvent: lastEventFor(source, state),
   };
   return { ...projected, revision: projectionRevision(projected) };
@@ -615,6 +722,7 @@ export function buildSessionProjection({
   remote = [],
   team = [],
   workflow = [],
+  dynamicWorkflow = [],
   artifacts = [],
   prLinks = {},
   sourceErrors = {},
@@ -636,6 +744,9 @@ export function buildSessionProjection({
     ),
     ...(Array.isArray(workflow) ? workflow : []).map((source) =>
       projectOne("workflow", source, context),
+    ),
+    ...(Array.isArray(dynamicWorkflow) ? dynamicWorkflow : []).map((source) =>
+      projectOne("dynamic_workflow", source, context),
     ),
   ].sort((left, right) => {
     const priority = { needs_input: 0, blocked: 1, working: 2 };
@@ -668,6 +779,10 @@ export function buildSessionProjection({
     workflow: sourceStatus(
       Array.isArray(workflow) ? workflow.length : 0,
       sourceErrors.workflow,
+    ),
+    dynamicWorkflow: sourceStatus(
+      Array.isArray(dynamicWorkflow) ? dynamicWorkflow.length : 0,
+      sourceErrors.dynamicWorkflow,
     ),
   };
   const revision = projectionRevision({

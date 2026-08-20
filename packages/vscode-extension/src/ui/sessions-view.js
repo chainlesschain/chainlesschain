@@ -332,6 +332,14 @@ async function runAction(vscode, msg) {
     post({ type: "info", text: "Action input is missing or invalid." });
     return;
   }
+  if (checked.row.kind === "dynamic_workflow" && route.mutates) {
+    const confirmed = await vscode.window.showWarningMessage(
+      `${request.action} dynamic workflow ${checked.row.sourceId}? The CLI will re-check runtime revision ${checked.row.workflow?.runtimeRevision ?? "unknown"} before changing durable state.`,
+      { modal: true },
+      "Run exact action",
+    );
+    if (confirmed !== "Run exact action") return;
+  }
 
   if (route.executor === "host") {
     if (

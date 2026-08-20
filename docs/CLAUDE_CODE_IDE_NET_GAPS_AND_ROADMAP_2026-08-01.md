@@ -4773,3 +4773,18 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 截至本节写入时，当前工作树已有 MCP/native execution、Artifact access/deletion/cleanup 与 VS Code approval/relay 相关的未提交候选，
 分别与 S0-2、P1-2、S0-1 的本期包存在重叠。应先复核并复用这些改动，避免平行实现；在提交、测试和 exact-head 证据完成前，
 它们仍只是在途候选，不改变 **12/19 尚未关闭、7/19 完成**及整体 **NO-GO** 结论。
+
+## 七十五、2026-08-20 P1-1 Dynamic Workflow Workbench 产品子门执行记录
+
+本节记录第七十四节“本期执行顺序”第 3 项的产品控制面实现，不把它外推为 P1-1 整项完成，也不替代 exact-head GitHub Actions 证据。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| canonical 状态发现 | `cc session projection --cwd <project> --json` 现在以有界目录扫描读取 `.chainlesschain/cowork/workflow-runs`；目录符号链接、超量目录、非单链接/损坏/身份漂移状态继续 fail closed，单个坏状态只产生 content-free 计数，不反射路径或内容 | 仓库内实现与负向单测完成 |
+| Workbench 投影 | session projection 升级为 `chainlesschain.session-projection/v2`，同时保留双 IDE 对 v1 的只读兼容；dynamic workflow row 只暴露 phase、agent/effect 计数、token/USD/time budget readback、artifact/checkpoint 计数、最近 step/tool/result digest 状态和 recovery 计数，不暴露 prompt、tool argv、provider output、result body 或 checkpoint 路径 | canonical、content-free 产品合同完成 |
+| revision-gated 控制 | CLI 权威投影只在当前状态允许时提供固定 `peek/pause/resume/stop/recover` argv，并同时绑定 item digest、runtime revision 与显式 project cwd；VS Code 与 JetBrains 均在重新拉取 canonical projection、核对 item revision 后执行，dynamic workflow 写操作增加显式确认，IDE 不直接读写 runtime state | 双 IDE 产品接线完成 |
+| runtime 可观测性 | 新建 run 持久化 definition-bound execution budget；Workbench 回读预算上限、已观测 token/USD/time、within/unknown/exceeded、phase/transition、任务结算及最近 tool/result 状态；旧 run 没有预算字段时兼容读取但明确投影为 unknown | 预算与最近活动回读完成 |
+| 本地回归 | Dynamic runtime、session projection、VS Code Workbench 三个聚焦文件 **89/89**；Commander runtime command **6/6**；真实 `cc session projection --json --cwd ...` 输出 v2 且 dynamic source 状态可回读；任务文件 ESLint **0 error**（保留 4 个既有 warning） | Node/CLI 本地门通过 |
+| JetBrains 验证边界 | Java parser、Swing 按钮、v1/v2 兼容与 dynamic workflow 测试已经写入；当前 Windows 机器只有 Java 8，Gradle 在测试编译前因缺少项目要求的 JDK 21 停止 | 由 exact-head GitHub Actions 的 JDK 21 IDE matrix 验证；本地环境不足不延期实现，也不冒充通过 |
+
+本节关闭的是 **P1-1 的 canonical Workbench/双 IDE 产品消费子门**。启动/定时自动恢复策略、风险分级通知、backoff、batch dry-run、outer-result/current-workspace 恢复边界以及 Local/WSL/SSH/Container × 三 OS/双 IDE 的完整重放矩阵仍需按第七十四节在本期继续完成；provider 独立 receipt/native idempotency、WORM 与专有宿主 authority 仍按表列入下期。因此总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。

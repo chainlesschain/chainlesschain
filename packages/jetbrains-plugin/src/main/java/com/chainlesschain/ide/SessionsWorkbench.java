@@ -68,6 +68,9 @@ public final class SessionsWorkbench {
     public static final String ACT_DETACH = "detach";
     public static final String ACT_CHECKPOINT = "checkpoint";
     public static final String ACT_ARCHIVE = "archive";
+    public static final String ACT_PAUSE = "pause";
+    public static final String ACT_WORKFLOW_RESUME = "resume";
+    public static final String ACT_RECOVER = "recover";
 
     /** One unified row — field names match the VS Code twin's model. */
     public static final class Row {

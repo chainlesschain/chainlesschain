@@ -94,6 +94,9 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private final JButton stopBtn = new JButton(CcBundle.message("sessions.wb.stop"));
         private final JButton logsBtn = new JButton("Peek");
         private final JButton checkpointBtn = new JButton("Checkpoint");
+        private final JButton pauseBtn = new JButton("Pause workflow");
+        private final JButton workflowResumeBtn = new JButton("Resume workflow");
+        private final JButton recoverBtn = new JButton("Recover checkpoints");
 
         /** Last full (unfiltered) aggregate — filter re-applies locally. */
         private List<SessionsWorkbench.Row> all = new ArrayList<>();
@@ -138,6 +141,9 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             actions.add(stopBtn);
             actions.add(logsBtn);
             actions.add(checkpointBtn);
+            actions.add(pauseBtn);
+            actions.add(workflowResumeBtn);
+            actions.add(recoverBtn);
 
             JPanel top = new JPanel(new BorderLayout(6, 6));
             top.add(search, BorderLayout.CENTER);
@@ -177,6 +183,18 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             checkpointBtn.addActionListener(ev -> onCheckpoint());
             checkpointBtn.getAccessibleContext().setAccessibleName(
                     "Checkpoint selected session");
+            pauseBtn.addActionListener(ev -> onDynamicWorkflowAction(
+                    SessionsWorkbench.ACT_PAUSE, "Pause workflow"));
+            pauseBtn.getAccessibleContext().setAccessibleName(
+                    "Pause selected dynamic workflow");
+            workflowResumeBtn.addActionListener(ev -> onDynamicWorkflowAction(
+                    SessionsWorkbench.ACT_WORKFLOW_RESUME, "Resume workflow"));
+            workflowResumeBtn.getAccessibleContext().setAccessibleName(
+                    "Resume selected dynamic workflow");
+            recoverBtn.addActionListener(ev -> onDynamicWorkflowAction(
+                    SessionsWorkbench.ACT_RECOVER, "Recover checkpoints"));
+            recoverBtn.getAccessibleContext().setAccessibleName(
+                    "Recover selected dynamic workflow checkpoints");
             syncButtons();
 
             JPanel deliveryPanel = new JPanel(new BorderLayout(6, 6));
@@ -474,6 +492,10 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             stopBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_STOP));
             logsBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_PEEK));
             checkpointBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_CHECKPOINT));
+            pauseBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_PAUSE));
+            workflowResumeBtn.setEnabled(
+                    acts.contains(SessionsWorkbench.ACT_WORKFLOW_RESUME));
+            recoverBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_RECOVER));
             sessionDetail.setText(r == null ? "Select a session to inspect its "
                     + "canonical owner, worktree, input, artifact and PR bindings."
                     : SessionsWorkbench.describe(r, System.currentTimeMillis()));
@@ -545,6 +567,19 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             SessionsWorkbench.Row r = selectedFor(SessionsWorkbench.ACT_CHECKPOINT);
             if (r != null) {
                 cliPreviewAction(r, SessionsWorkbench.ACT_CHECKPOINT, null, false);
+            }
+        }
+
+        private void onDynamicWorkflowAction(String action, String label) {
+            SessionsWorkbench.Row r = selectedFor(action);
+            if (r == null) return;
+            int answer = Messages.showYesNoDialog(project,
+                    label + " for " + r.sourceId + " at runtime revision "
+                            + r.itemRevision + "? The CLI will re-check the exact "
+                            + "runtime revision before changing durable state.",
+                    label, null);
+            if (answer == Messages.YES) {
+                cliPreviewAction(r, action, null, false);
             }
         }
 

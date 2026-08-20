@@ -19,8 +19,10 @@ import {
   DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
   dynamicWorkflowRunStatePath,
   executeDurableDynamicWorkflow,
+  listDynamicWorkflowWorkbenchStates,
   prepareDurableWorkflowResume,
   projectDynamicWorkflowRuntime,
+  projectDynamicWorkflowWorkbenchState,
   readDynamicWorkflowEffectResultFile,
   readDynamicWorkflowInputResponseFile,
   readDynamicWorkflowRuntimeState,
@@ -432,6 +434,44 @@ describe("durable dynamic workflow runtime", () => {
       pendingEffects: [],
       finalRecordStatus: "completed",
     });
+    expect(state.executionBudget).toEqual({
+      maxExpandedTasks: 8,
+      maxParallel: 2,
+      maxTokens: 1000,
+      maxUsd: 1,
+      maxDurationMs: 10000,
+    });
+    const workbench = projectDynamicWorkflowWorkbenchState(state);
+    expect(workbench).toMatchObject({
+      schema: "cc-dynamic-workflow-workbench-state/v1",
+      runId: "run-complete",
+      status: "completed",
+      revision: state.revision,
+      phase: { status: "completed" },
+      agents: { requested: 2, settled: 2, pending: 0 },
+      budget: {
+        limits: { maxTokens: 1000, maxUsd: 1, maxDurationMs: 10000 },
+        observed: { tokens: 20 },
+      },
+      recovery: { prepared: 0, terminal: 0, pending: 0, unavailable: 0 },
+      recent: { stepId: "review", taskStatus: "completed" },
+    });
+    const discovered = listDynamicWorkflowWorkbenchStates(projectRoot);
+    expect(discovered.invalidCount).toBe(0);
+    expect(discovered.runs.map((run) => run.runId)).toEqual(["run-complete"]);
+    writeFileSync(
+      join(
+        projectRoot,
+        ".chainlesschain",
+        "cowork",
+        "workflow-runs",
+        "bad.json",
+      ),
+      "{}",
+    );
+    const withInvalid = listDynamicWorkflowWorkbenchStates(projectRoot);
+    expect(withInvalid.invalidCount).toBe(1);
+    expect(withInvalid.runs).toHaveLength(1);
     expect(projection.observability.providerReceipts).toMatchObject({
       authority: "runtime-state-hash-chain-fsync",
       receiptSemantics: "provider-returned-trace-only",
