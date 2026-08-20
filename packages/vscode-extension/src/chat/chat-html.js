@@ -768,7 +768,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   });
   // Send timeout guard: if no response event arrives within 30 seconds after
   // sending, surface a diagnostic error so the user isn't left on "thinking…"
-  // forever (e.g., spawn failed, wrong `cc` binary, or C compiler hung on stdin).
+  // forever (e.g., spawn failed, wrong cc binary, or C compiler hung on stdin).
   let sendTimer = null;
   function clearSendTimer() {
     if (sendTimer !== null) { clearTimeout(sendTimer); sendTimer = null; }
