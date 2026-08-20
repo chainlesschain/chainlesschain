@@ -1,5 +1,50 @@
 // swift-tools-version: 5.9
+import Foundation
 import PackageDescription
+
+let coreP2PTests = Target.testTarget(
+    name: "CoreP2PTests",
+    dependencies: ["CoreP2P"],
+    path: "Tests/CoreP2PTests"
+)
+
+let remoteSessionRecoveryTests = Target.testTarget(
+    name: "RemoteSessionRecoveryTests",
+    dependencies: ["CoreP2P"],
+    path: "Tests/CoreP2PTests",
+    sources: ["RemoteSessionClientTests.swift"]
+)
+
+let packageTestTargets: [Target] = ProcessInfo.processInfo.environment["CC_IOS_REMOTE_SESSION_TESTS_ONLY"] == "1"
+    ? [remoteSessionRecoveryTests]
+    : [
+        .testTarget(
+            name: "CoreCommonTests",
+            dependencies: ["CoreCommon"],
+            path: "Tests/CoreCommonTests"
+        ),
+        .testTarget(
+            name: "CoreSecurityTests",
+            dependencies: ["CoreSecurity"],
+            path: "Tests/CoreSecurityTests"
+        ),
+        .testTarget(
+            name: "CoreDatabaseTests",
+            dependencies: ["CoreDatabase"],
+            path: "Tests/CoreDatabaseTests"
+        ),
+        .testTarget(
+            name: "CoreDIDTests",
+            dependencies: ["CoreDID"],
+            path: "Tests/CoreDIDTests"
+        ),
+        .testTarget(
+            name: "CoreE2EETests",
+            dependencies: ["CoreE2EE"],
+            path: "Tests/CoreE2EETests"
+        ),
+        coreP2PTests,
+    ]
 
 let package = Package(
     name: "ChainlessChain",
@@ -140,43 +185,5 @@ let package = Package(
             ],
             path: "Modules/CoreP2P"
         ),
-
-        // MARK: - Test Targets
-
-        .testTarget(
-            name: "CoreCommonTests",
-            dependencies: ["CoreCommon"],
-            path: "Tests/CoreCommonTests"
-        ),
-
-        .testTarget(
-            name: "CoreSecurityTests",
-            dependencies: ["CoreSecurity"],
-            path: "Tests/CoreSecurityTests"
-        ),
-
-        .testTarget(
-            name: "CoreDatabaseTests",
-            dependencies: ["CoreDatabase"],
-            path: "Tests/CoreDatabaseTests"
-        ),
-
-        .testTarget(
-            name: "CoreDIDTests",
-            dependencies: ["CoreDID"],
-            path: "Tests/CoreDIDTests"
-        ),
-
-        .testTarget(
-            name: "CoreE2EETests",
-            dependencies: ["CoreE2EE"],
-            path: "Tests/CoreE2EETests"
-        ),
-
-        .testTarget(
-            name: "CoreP2PTests",
-            dependencies: ["CoreP2P"],
-            path: "Tests/CoreP2PTests"
-        ),
-    ]
+    ] + packageTestTargets
 )

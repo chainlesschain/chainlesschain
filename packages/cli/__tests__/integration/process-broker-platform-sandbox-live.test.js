@@ -19,9 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
-import {
-  MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
-} from "../../src/lib/mcp-stdio-native-code-policy.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
 import { executeBackgroundTaskCommand } from "../../src/harness/background-task-command-runner.js";
 import {
   applySandbox,

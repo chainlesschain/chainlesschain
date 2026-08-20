@@ -24,6 +24,7 @@ import {
   MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
   prepareMcpStdioExecutableIdentity,
 } from "../src/lib/mcp-stdio-executable-identity.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../src/lib/mcp-stdio-native-code-policy.js";
 import {
   _deps as materializationDeps,
   materializeMcpStdioNpmPackage,
@@ -35,6 +36,7 @@ const requiredBoundaries = Object.freeze([
   SANDBOX_BOUNDARIES.FILESYSTEM,
   SANDBOX_BOUNDARIES.NETWORK,
   SANDBOX_BOUNDARIES.PROCESS_TREE,
+  SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
 ]);
 const safeEnvironment = Object.freeze({
   PATH: "/usr/bin:/bin",
@@ -144,6 +146,7 @@ function normalizedCapsuleContract(
   return Object.freeze({
     contractVersion: 1,
     kind: "strict-mcp-node-capsule",
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
     pluginRoot: root,
     workingDirectory: root,
     runtimePath: runtimeIdentity.realPath,
