@@ -14,7 +14,8 @@ describe("IDE roadmap iOS remote-session recovery gate", () => {
     expect(manifest).toContain(".iOS(.v16)");
     expect(manifest).toContain(".macOS(.v12)");
     expect(manifest).toContain('environment["CC_IOS_REMOTE_SESSION_TESTS_ONLY"]');
-    expect(manifest).toContain("? [coreP2PTests]");
+    expect(manifest).toContain("? [remoteSessionRecoveryTests]");
+    expect(manifest).toContain('sources: ["RemoteSessionClientTests.swift"]');
   });
 
   it("binds the simulator build and recovery tests to one exact commit", () => {

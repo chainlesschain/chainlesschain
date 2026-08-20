@@ -8,8 +8,15 @@ let coreP2PTests = Target.testTarget(
     path: "Tests/CoreP2PTests"
 )
 
+let remoteSessionRecoveryTests = Target.testTarget(
+    name: "RemoteSessionRecoveryTests",
+    dependencies: ["CoreP2P"],
+    path: "Tests/CoreP2PTests",
+    sources: ["RemoteSessionClientTests.swift"]
+)
+
 let packageTestTargets: [Target] = ProcessInfo.processInfo.environment["CC_IOS_REMOTE_SESSION_TESTS_ONLY"] == "1"
-    ? [coreP2PTests]
+    ? [remoteSessionRecoveryTests]
     : [
         .testTarget(
             name: "CoreCommonTests",
