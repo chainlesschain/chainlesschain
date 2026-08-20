@@ -11,7 +11,8 @@
  *                                                 mime, encoding, content, size,
  *                                                 truncated, previewable}
  *   artifact-remove  {artifactId}              → {type:"artifact-remove", removed, found}
- *   artifact-clean   {}                        → {type:"artifact-clean", removed}
+ *   artifact-clean   {cleanupId?}              → {type:"artifact-clean", cleanupId,
+ *                                                 removed, settled, cleanup}
  *
  * Preview policy: text mimes stream as utf8 (capped, `truncated` flagged);
  * images as base64 (hard cap — an oversized image reports previewable:false
@@ -28,6 +29,7 @@ import { readFileSync, statSync } from "node:fs";
 import { publicArtifactMetadata } from "../../lib/artifact-store.js";
 import { authorizeArtifactContentAccess } from "../../lib/artifact-access-ledger.js";
 import { settleArtifactDeletion } from "../../lib/artifact-deletion-ledger.js";
+import { settleArtifactCleanup } from "../../lib/artifact-cleanup-ledger.js";
 
 /** Text preview cap (utf8 chars ≈ bytes for the common case). */
 export const TEXT_PREVIEW_CAP = 256 * 1024;
@@ -251,9 +253,31 @@ export async function handleArtifactRemove(server, id, ws, message) {
 export async function handleArtifactClean(server, id, ws, message) {
   try {
     const store = await loadStore();
-    const { removed } = store.cleanupExpired();
-    server._send(ws, { id, type: "artifact-clean", removed });
+    const cleanup = settleArtifactCleanup(store, {
+      cleanupId: message.cleanupId,
+      client: "websocket",
+    });
+    server._send(ws, {
+      id,
+      type: "artifact-clean",
+      cleanupId: cleanup.cleanupId,
+      removed: cleanup.removed,
+      removedNow: cleanup.removedNow,
+      alreadyAbsent: cleanup.alreadyAbsent,
+      selected: cleanup.selected,
+      settled: cleanup.settled,
+      recorded: cleanup.recorded,
+      cleanup: cleanup.cleanup,
+      items: cleanup.items,
+    });
   } catch (err) {
-    sendError(server, id, ws, "ARTIFACT_CLEAN_FAILED", err.message);
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "ARTIFACT_CLEAN_FAILED",
+      message: err.message,
+      cleanupId: err.cleanupId || message.cleanupId || null,
+      ...(err.cleanup ? { cleanup: err.cleanup } : {}),
+    });
   }
 }
