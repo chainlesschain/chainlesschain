@@ -1038,6 +1038,25 @@ describe("CLI release workflow contracts", () => {
       ),
       "utf8",
     );
+    const capsuleContractStart = liveGate.indexOf(
+      "function normalizedCapsuleContract(",
+    );
+    const capsuleContractEnd = liveGate.indexOf(
+      "\nfunction ",
+      capsuleContractStart + 1,
+    );
+    expect(capsuleContractStart).toBeGreaterThan(0);
+    expect(capsuleContractEnd).toBeGreaterThan(capsuleContractStart);
+    expect(liveGate.slice(capsuleContractStart, capsuleContractEnd)).toContain(
+      "nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY",
+    );
+    const boundaryStart = liveGate.indexOf("const requiredBoundaries =");
+    const boundaryEnd = liveGate.indexOf("]);", boundaryStart) + 3;
+    expect(boundaryStart).toBeGreaterThan(0);
+    expect(boundaryEnd).toBeGreaterThan(boundaryStart);
+    expect(liveGate.slice(boundaryStart, boundaryEnd)).toContain(
+      "SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING",
+    );
     const probeStart = liveGate.indexOf(
       "function verifyInstalledProbeClosesInheritedSentinelFd()",
     );
