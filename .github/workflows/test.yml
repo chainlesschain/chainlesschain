@@ -226,6 +226,12 @@ jobs:
 
       - name: Global install from tarball (exercises postinstall)
         shell: bash
+        env:
+          # Reproduce a first install on a machine without Python/build tools.
+          # Every native dependency must be optional so node-gyp failures do
+          # not prevent the portable sql.js-backed CLI from installing.
+          npm_config_build_from_source: "true"
+          NODE_GYP_FORCE_PYTHON: ${{ runner.temp }}/chainlesschain-no-python
         run: npm install -g "$RUNNER_TEMP/cli-global-install-candidates/"*.tgz
 
       - name: Verify CLI executable

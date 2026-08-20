@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.165.4: first install without a native build toolchain
+
+> `chainlesschain` **0.165.3 -> 0.165.4** (candidate; not yet published,
+> 2026-08-20).
+> CLI release includes `@chainlesschain/personal-data-hub` **0.4.59**;
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Portable first install**: Personal Data Hub now declares
+  `better-sqlite3-multiple-ciphers` as an optional dependency. If a prebuilt
+  binary cannot be downloaded, npm may skip the failed `node-gyp` fallback
+  instead of aborting `npm install -g chainlesschain`; the CLI remains usable
+  through its bundled `sql.js` WASM fallback.
+- **No-toolchain install gate**: the Windows and Linux global-install smoke
+  deliberately disables native prebuilds and points node-gyp at a nonexistent
+  Python executable. The packed candidate must still install and both `cc` and
+  `chainlesschain` must start without `--ignore-scripts`.
+- **Release status**: this is source-level candidate evidence only. Publication
+  still requires the exact release commit to pass the complete Linux, Windows,
+  and macOS `CLI CI` and `CLI Strict Sandbox` matrices before the coordinated
+  PDH and CLI packages are published and independently read back.
+
 ### Fixed — cc CLI 0.165.3: durable background keeper retirement
 
 > `chainlesschain` **0.165.2 -> 0.165.3** (candidate; not yet published,
