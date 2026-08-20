@@ -768,7 +768,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   });
   // Send timeout guard: if no response event arrives within 30 seconds after
   // sending, surface a diagnostic error so the user isn't left on "thinking…"
-  // forever (e.g., spawn failed, wrong `cc` binary, or C compiler hung on stdin).
+  // forever (e.g., spawn failed, wrong cc binary, or C compiler hung on stdin).
   let sendTimer = null;
   function clearSendTimer() {
     if (sendTimer !== null) { clearTimeout(sendTimer); sendTimer = null; }
@@ -1014,11 +1014,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       });
       return;
     }
+    // Any event from the host proves the agent (or at least the extension)
+    // is alive — cancel the send timeout so "thinking…" doesn't fire a
+    // false positive when the agent is merely slow. This must run before the
+    // switch: the default branch only handles unknown kinds, not every case.
+    acceptAgentSignal();
     switch (m.kind) {
-      // Any event from the host proves the agent (or at least the extension)
-      // is alive — cancel the send timeout so "thinking…" doesn't fire a
-      // false positive when the agent is merely slow.
-      default: acceptAgentSignal(); break;
+      default:
+        break;
       case "init":
         status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
         break;
@@ -1074,6 +1077,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         // text input — and reply {type:"answer",id,answer} (null = Skip).
         flushStream(); // finalize any streamed text before the question card
         streamEl = null;
+        const existing = document.getElementById("q-" + m.id);
+        if (existing) {
+          existing.scrollIntoView({ block: "nearest" });
+          break;
+        }
         const card = document.createElement("div");
         card.className = "approval"; // reuse the card styling
         card.id = "q-" + m.id;
@@ -1311,6 +1319,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "approval": {
         flushStream(); // finalize any streamed text before the approval card
         streamEl = null;
+        const existing = document.getElementById("appr-" + m.id);
+        if (existing) {
+          existing.scrollIntoView({ block: "nearest" });
+          break;
+        }
         const card = document.createElement("div");
         card.className = "approval";
         card.id = "appr-" + m.id;
@@ -1331,7 +1344,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         no.textContent = "Deny";
         no.className = "secondary";
         const answer = (approve) => {
-          vscode.postMessage({ type: "approval", id: m.id, approve });
+          vscode.postMessage({
+            type: "approval",
+            id: m.id,
+            approve,
+            ...(typeof m.binding === "string" && m.binding
+              ? { binding: m.binding }
+              : {}),
+          });
           yes.disabled = no.disabled = true;
         };
         yes.addEventListener("click", () => answer(true));
