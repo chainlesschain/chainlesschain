@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "case": "p1-execution-location",
-  "description": "A session handoff must bind source authority, transfer evidence, a configured target profile, target-side ambient facts, exact CLI and Git identity, canonical session-store continuity, lifecycle control, result return, audited official artifact-content authorization, serialized ArtifactStore index generations, recoverable explicit managed-copy deletion, and stable frozen-scope TTL cleanup settlement to the same exact release commit without credential disclosure or host-key bypass.",
+  "description": "A session handoff must bind source authority, transfer evidence, a configured target profile, target-side ambient facts, exact CLI and Git identity, canonical session-store continuity, lifecycle control, result return, audited official artifact-content authorization, serialized ArtifactStore index generations, and recoverable explicit managed-copy deletion settlement to the same exact release commit without credential disclosure or host-key bypass.",
   "inputs": {
     "requiredJourneys": [
       "preview-handoff",
@@ -23,7 +23,6 @@
       "authorize-and-audit-official-artifact-content-access",
       "serialize-artifact-index-generation-across-publish-remove-clean-and-access",
       "settle-and-recover-explicit-artifact-managed-copy-deletion",
-      "settle-and-recover-expired-artifact-cleanup-batch",
       "reserve-reviewed-result-apply",
       "apply-reviewed-diff-in-managed-transaction",
       "settle-result-apply-terminal-authority",
@@ -65,14 +64,6 @@
       "artifact-access-id-event-chain-and-current-byte-authority",
       "strict-artifact-index-generation-lock-and-atomic-rewrite",
       "deletion-id-prepared-terminal-events-and-index-generations",
-<<<<<<< HEAD
-<<<<<<< HEAD
-      "cleanup-id-cutoff-scope-and-per-item-deletion-settlements",
-=======
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
-      "cleanup-id-cutoff-scope-and-per-item-deletion-settlements",
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
       "exact-source-git-root-and-head",
       "result-apply-reservation-event",
       "managed-workspace-transaction-checkpoint-digest",
@@ -157,23 +148,6 @@
       "artifact-deletion-ledger-truncated-tail",
       "artifact-deletion-managed-path-reappearance",
       "artifact-deletion-hardlink-external-retention",
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
-      "artifact-cleanup-partial-item-crash",
-      "artifact-cleanup-terminal-append-response-loss",
-      "artifact-cleanup-id-input-collision",
-      "artifact-cleanup-ledger-byte-or-chain-tamper",
-      "artifact-cleanup-ledger-truncated-tail",
-      "artifact-cleanup-overlapping-pending-batch",
-      "artifact-cleanup-managed-path-reappearance",
-      "artifact-cleanup-late-expiry-scope-drift",
-<<<<<<< HEAD
-=======
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
       "result-apply-review-digest-drift",
       "result-apply-source-git-root-or-head-drift",
       "result-apply-without-session-reservation",
@@ -259,21 +233,6 @@
     "artifactDeletionLedgerTamperAcceptanceCount": 0,
     "artifactDeletionReceiptContentLeakCount": 0,
     "artifactDeletionManagedPathReappearanceAcceptanceCount": 0,
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
-    "unsettledExpiredArtifactCleanupCount": 0,
-    "duplicateArtifactCleanupReplayCount": 0,
-    "artifactCleanupScopeDriftAcceptanceCount": 0,
-    "artifactCleanupLedgerTamperAcceptanceCount": 0,
-    "artifactCleanupReceiptContentLeakCount": 0,
-    "artifactCleanupManagedPathReappearanceAcceptanceCount": 0,
-<<<<<<< HEAD
-=======
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
     "resultApplyReviewDigestMismatchAcceptanceCount": 0,
     "sourceGitDriftResultApplyCount": 0,
     "unreservedResultApplyCount": 0,

@@ -3,21 +3,7 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
-import {
-  sameFileStatIdentity,
-  samePathHandleFileIdentity,
-  withTrustedFileParentSync,
-} from "./secure-file-identity.js";
-<<<<<<< HEAD
-=======
 import { sameFileStatIdentity } from "./secure-file-identity.js";
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
 import { withFileLock } from "./with-file-lock.js";
 
 export const ARTIFACT_DELETION_EVENT_SCHEMA =
@@ -221,63 +207,6 @@ function ledgerPath(store) {
   return path.join(path.resolve(store.dir), "deletion-settlements.jsonl");
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
-function readLedgerBytes(filePath, runtimeFs, runtime = undefined) {
-  return withTrustedFileParentSync(
-    runtimeFs,
-    filePath,
-    ({ canonicalPath, parentDevice }) => {
-      let before;
-      try {
-        before = runtimeFs.lstatSync(canonicalPath, { bigint: true });
-      } catch (error) {
-        if (error?.code === "ENOENT") return Buffer.alloc(0);
-        throw error;
-      }
-      if (
-        before.isSymbolicLink() ||
-        !before.isFile() ||
-        Number(before.nlink) !== 1 ||
-        Number(before.size) > MAX_LEDGER_BYTES
-      ) {
-        throw new Error("artifact deletion ledger identity is invalid");
-      }
-      let descriptor = null;
-      try {
-        descriptor = runtimeFs.openSync(
-          canonicalPath,
-          runtimeFs.constants.O_RDONLY |
-            Number(runtimeFs.constants.O_NOFOLLOW || 0),
-        );
-        const opened = runtimeFs.fstatSync(descriptor, { bigint: true });
-        if (
-          !opened.isFile() ||
-          Number(opened.nlink) !== 1 ||
-          !samePathHandleFileIdentity(before, opened, parentDevice, runtime)
-        ) {
-          throw new Error("artifact deletion ledger handle is invalid");
-        }
-        const bytes = runtimeFs.readFileSync(descriptor);
-        const after = runtimeFs.fstatSync(descriptor, { bigint: true });
-        if (
-          bytes.length > MAX_LEDGER_BYTES ||
-          Number(after.size) !== bytes.length ||
-          !sameFileStatIdentity(opened, after)
-        ) {
-          throw new Error("artifact deletion ledger changed while reading");
-        }
-        return bytes;
-      } finally {
-        if (descriptor !== null) runtimeFs.closeSync(descriptor);
-      }
-    },
-    { runtime },
-  );
-<<<<<<< HEAD
-=======
 function readLedgerBytes(filePath, runtimeFs) {
   let before;
   try {
@@ -322,9 +251,6 @@ function readLedgerBytes(filePath, runtimeFs) {
   } finally {
     if (descriptor !== null) runtimeFs.closeSync(descriptor);
   }
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
 }
 
 function parseLedger(bytes) {
@@ -360,15 +286,7 @@ export function readArtifactDeletionLedger(store, options = {}) {
     throw new TypeError("artifact deletion ledger requires an ArtifactStore");
   }
   const events = parseLedger(
-<<<<<<< HEAD
-<<<<<<< HEAD
-    readLedgerBytes(ledgerPath(store), options.fs || fs, options.runtime),
-=======
     readLedgerBytes(ledgerPath(store), options.fs || fs),
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
-    readLedgerBytes(ledgerPath(store), options.fs || fs, options.runtime),
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
   );
   return Object.freeze({
     schema: ARTIFACT_DELETION_LEDGER_SCHEMA,
@@ -590,21 +508,7 @@ export function settleArtifactDeletion(store, input = {}, options = {}) {
       (options.withFileLock || withFileLock)(
         filePath,
         () => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
-          let ledgerBytes = readLedgerBytes(
-            filePath,
-            runtimeFs,
-            options.runtime,
-          );
-<<<<<<< HEAD
-=======
           let ledgerBytes = readLedgerBytes(filePath, runtimeFs);
->>>>>>> feature/durable-workflow-checkpoint-adjudication
-=======
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
           const events = parseLedger(ledgerBytes);
           const requestEvents = events.filter(
             (event) => event.deletionId === request.deletionId,

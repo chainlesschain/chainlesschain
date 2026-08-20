@@ -538,7 +538,7 @@ describe("IDE roadmap fixture contract", () => {
 
     expect(result).toMatchObject({
       schemaVersion: 1,
-      manifestVersion: "1.9.40",
+      manifestVersion: "1.9.39",
       caseCount: 15,
       releaseReadiness: { status: "not-evaluated" },
     });
@@ -571,11 +571,7 @@ describe("IDE roadmap fixture contract", () => {
       /schemaVersion must equal supported version 1/,
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
-<<<<<<< HEAD
-/manifestVersion must equal supported version "1\.9\.40"/,
-=======
-      /manifestVersion must equal supported version "1\.9\.40"/,
->>>>>>> github/feature/artifact-ttl-cleanup-settlement
+      /manifestVersion must equal supported version "1\.9\.39"/,
     );
   });
 
