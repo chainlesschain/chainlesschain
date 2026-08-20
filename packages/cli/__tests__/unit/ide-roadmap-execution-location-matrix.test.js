@@ -164,6 +164,11 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain('test "$WSL_RESULT" = success');
     expect(workflow).toContain("require all 300 trajectories");
+    expect(
+      workflow.match(
+        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+      ),
+    ).toHaveLength(3);
     const linuxRunner = fs.readFileSync(
       path.resolve(
         import.meta.dirname,
@@ -179,6 +184,17 @@ describe("IDE roadmap execution-location matrix", () => {
       "utf8",
     );
     expect(linuxRunner).toContain("run_matrix campaign --iterations 99");
+    expect(linuxRunner).toContain(
+      "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    );
+    expect(
+      linuxRunner.match(
+        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save/gu,
+      ),
+    ).toHaveLength(1);
+    expect(linuxRunner).toContain(
+      '"$run_root/target-node/bin/npm" install --omit=optional --ignore-scripts --no-package-lock --no-save',
+    );
     expect(wslRunner).toContain(
       'Invoke-Matrix "campaign" @("--iterations", "99")',
     );

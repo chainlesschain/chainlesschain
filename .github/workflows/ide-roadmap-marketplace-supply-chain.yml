@@ -124,7 +124,7 @@ jobs:
           printf '{"schema":"chainlesschain.marketplace-supply-chain-bootstrap.v1","releaseCommit":"%s","cell":"%s"}\n' "$SUPPLY_CHAIN_COMMIT" "${{ matrix.suffix }}" > "$CC_SC_ARTIFACT_DIR/bootstrap.json"
       - name: Install focused CLI dependencies
         shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
       - name: Run authenticated supply-chain campaign
         shell: bash
         run: >-
@@ -163,7 +163,7 @@ jobs:
           node-version: "22.12.0"
       - name: Install verifier dependencies
         shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
       - name: Download all producer evidence
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:

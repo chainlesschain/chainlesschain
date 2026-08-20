@@ -62,7 +62,7 @@ jobs:
           node-version: "22.12.0"
       - name: Install source CLI dependencies without lifecycle scripts
         shell: pwsh
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
       - name: Run genuine WSL launch, outage, reconnect, and result-return matrix
         shell: pwsh
         run: >-
@@ -93,7 +93,7 @@ jobs:
         with:
           node-version: "22.12.0"
       - name: Install source CLI dependencies without lifecycle scripts
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
       - name: Run genuine Container launch, outage, reconnect, and result-return matrix
         run: >-
           bash .github/scripts/run-ide-roadmap-execution-location-linux.sh
@@ -124,7 +124,7 @@ jobs:
           node-version: "22.12.0"
       - name: Install source CLI dependencies and isolated sshd
         run: |
-          npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+          npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-server
       - name: Run strict SSH launch, outage, reconnect, and result-return matrix

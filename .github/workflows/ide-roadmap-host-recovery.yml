@@ -96,6 +96,16 @@ jobs:
         run: |
           devcontainer exec --workspace-folder "$GITHUB_WORKSPACE" --config .devcontainer/ide-roadmap/devcontainer.json bash -lc 'mkdir -p /opt/node-22.12.0 && tar -xzf build/reports/ide-host-recovery/bootstrap/node.tar.gz --strip-components=1 -C /opt/node-22.12.0'
           devcontainer exec --workspace-folder "$GITHUB_WORKSPACE" --config .devcontainer/ide-roadmap/devcontainer.json env GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_WORKFLOW_REF="$GITHUB_WORKFLOW_REF" GITHUB_WORKFLOW_SHA="$GITHUB_WORKFLOW_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" GITHUB_JOB="$GITHUB_JOB" GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" /opt/node-22.12.0/bin/node packages/vscode-extension/test/host-recovery-matrix/run.cjs --release-commit "$IDE_HOST_RECOVERY_COMMIT" --transport devcontainer --environment-check devcontainer --artifact-dir build/reports/ide-host-recovery/devcontainer --artifact-name "$CC_HOST_RECOVERY_ARTIFACT"
+      - name: Normalize devcontainer artifact ownership
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir=build/reports/ide-host-recovery/devcontainer
+          if [ -d "$artifact_dir" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$artifact_dir"
+            chmod -R u+rwX "$artifact_dir"
+          fi
       - name: Upload devcontainer diagnostics and evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

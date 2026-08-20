@@ -101,7 +101,9 @@ jobs:
           printf '{"schema":"chainlesschain.accessibility-performance-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$ACCESSIBILITY_PERFORMANCE_COMMIT" "${{ matrix.suffix }}" > "$CC_P2_ARTIFACT_DIR/bootstrap.json"
       - name: Install focused CLI browser dependencies
         shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        run: |
+          npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+          npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1
       - name: Install exact Playwright Chromium
         shell: pwsh
         run: |

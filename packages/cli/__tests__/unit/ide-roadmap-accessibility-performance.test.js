@@ -257,6 +257,9 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("windows-2025");
     expect(workflow).toContain("AccessibilityPerformanceEvidenceTest");
     expect(workflow).toContain("host-dom-relay.test.cjs");
+    expect(workflow).toContain(
+      "npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1",
+    );
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain("needs.accessibility-performance.result");
   });
