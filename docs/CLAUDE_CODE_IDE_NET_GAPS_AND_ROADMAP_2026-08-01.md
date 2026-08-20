@@ -4884,3 +4884,19 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 | 仓库与本机验证 | 四环境 Windows 缩小 campaign **7/7**，每种均实际跑完 24 类故障和两轮完整生命周期；另以 private TLS 完成一格 **100/100**，对应 100 install + 100 upgrade + 100 rollback + 500 cache readback。Marketplace network/remote artifact/source cache/publisher trust/install/process/command 聚焦回归合计 **195/195**；任务 JS ESLint `--max-warnings 0`、12-cell YAML 解析通过 | 本机覆盖协议和完整单格数量；其余 11 格及 exact-head aggregate 仍须提交后由 Actions 产生并回读 |
 
 本节关闭 P1-5 的 **三宿主十二格 workflow、每格 100 次认证/代理/PAC/断网缓存旅程、签名 install/upgrade/rollback、24 类供应链故障、content-free producer 与 fail-closed aggregate 实现子门**。真实第三方 private registry、组织生产 trust root/key revocation、企业 PAC/custom CA、共享/NFS/object-store fencing、物理断电与长期外部宿主仍按第七十四节的外部依赖边界处理；且当前尚无本候选 exact head 的十二格成功 artifact。因此 P1-5 整项继续为**部分完成**，整体结论保持 **NO-GO**。
+
+## 八十三、2026-08-20 P2-4 可访问性与固定规模性能矩阵实现记录
+
+本节执行第七十四节列入本期的 P2-4 自动化范围，使用生产 VS Code Webview、Sessions Workbench 与 JetBrains Swing 组件测量，不把可访问性树的语义投影冒充真人听测，也不把本地临时辅助技术探针记为外部运行证据。
+
+| 子门 | 本次实现与证据 | 当前结论 |
+| --- | --- | --- |
+| 键盘与焦点生命周期 | VS Code 会话标签重绘前记录当前 tab identity，重绘后恢复同一 tab，缺失时回退到 active tab；approval card 增加命名 group 语义，键盘激活并禁用按钮后把焦点送回输入框。Chromium campaign 用真实键盘执行 ArrowRight/End/Home、Tab 到 approval、Enter 批准和重绘恢复，并记录 6 段 focus transition | 要求 keyboard unreachable、trap、invisible focus、focus restore failure 全为 0；聚焦合同回归 **19/19** |
+| 可访问语义与辅助技术边界 | campaign 通过 Chromium CDP 抓取完整 accessibility tree，拒绝未命名交互控件和必需语义缺失；Linux 安装并独立进程探测 Orca，Windows 安装并探测 NVDA 签名二进制/version，macOS 验证 VoiceOver binary 并明确标记 semantic-only。所有版本只写 SHA-256，不记录宿主路径或语音内容 | Orca/NVDA 的可自动化 binary/process cell 属于本期；三种辅助技术的真人语音质量、VoiceOver 交互式控制与真机听测继续保留为外部人工尾项 |
+| 固定规模输入 | 每个 producer 固定 2,000 条消息、16 MiB diff、64 MiB log 和 128 sessions；生产 transcript 必须只保留最新 800 个节点，大输入必须保留 head/tail 和可见 omission marker，并验证嵌入 middle 的唯一 credential 与完整命令均不可见。上传 evidence 只包含尺寸、计数和原始输入摘要 | scale、截断可见性、无静默丢失与 content-free 证据合同完成 |
+| 延迟与资源测量 | 每格采集 100 个 input-to-paint 和 100 个 scroll-to-paint 样本并输出 P50/P95/P99/max；另测 diff/log/Workbench paint、Node RSS、Chromium renderer heap、DOM counters、FD/handle 与浏览器进程快照。退出后重新读取系统进程，要求 orphan 为 0；增长阈值和所有零容忍计数由 producer 与 aggregate 双重校验 | 本机真实 Chromium 固定规模 campaign 通过：input P99 **67.1 ms**、scroll P99 **17.9 ms**、diff **80.6 ms**、log **101.1 ms**、Workbench **74.1 ms**；本地辅助技术与 JetBrains 输入为结构占位，仅用于验证 harness，不作为其通过证据 |
+| JetBrains 原生面 | 新 JUnit 在 EDT 上驱动生产 `ChatTranscript`、`TranscriptCap` 和 `SessionsWorkbench`，执行同一 2,000/16 MiB/64 MiB/128 固定规模，采集 Swing paint percentile、heap 与 Unix FD，并验证 transcript bound、omission marker、accessible name/description、focusable 与 session projection | 当前机器只有 JDK 8，不能编译项目要求的 JDK 21；三 OS Actions 以 Temurin 21 运行并回读 content-free native evidence，本地不冒充 Java 通过 |
+| exact-head 三宿主 aggregate | `.github/workflows/ide-roadmap-accessibility-performance.yml` 明列 Ubuntu 24.04、macOS 15、Windows 2025，安装 Node 22.12、JDK 21 与精确 Playwright Chromium。每格 manifest 固定 12 份 evidence 的 byte length/SHA-256；`if: always()` aggregate 先拒绝任一 skipped/cancelled/failed cell，再重算全部文件并绑定 exact commit、workflow/job/run/artifact provenance 和双 IDE host 集合 | 缺任一 OS、任一 host、任一测量、旧提交或改写 artifact 均不能生成可信 aggregate；该 workflow 尚需在提交后的同一 exact head 实际运行并回读 |
+| 仓库内回归 | P2 campaign/verifier 单测 **4/4**，VS Code/Workbench 回归 **19/19**，任务 JS ESLint **0 error**，workflow YAML 解析与 Prettier 通过。真实 Chromium 固定规模 campaign 已在 Windows 本机执行；Java 21、Orca/NVDA 和其余 OS 由 Actions 验证 | 仓库实现和本机可执行门通过，外部 Actions artifact 尚未产生 |
+
+本节关闭 P2-4 的 **键盘路径、accessibility tree、焦点恢复、2,000-message/16 MiB diff/64 MiB log/128-session 固定规模、P50/P95/P99、RSS/heap/FD/handle/orphan 与三宿主 fail-closed aggregate 实现子门**。必须真人听测的 VoiceOver/NVDA/Orca 语音质量、交互式真机和 Actions 无法连续承载的 8 小时 IDE soak 按第七十四节列入下期；当前提交也尚未取得同一 exact head 的三宿主成功 artifact。因此 P2-4 整项继续为**部分完成**，整体结论保持 **NO-GO**。

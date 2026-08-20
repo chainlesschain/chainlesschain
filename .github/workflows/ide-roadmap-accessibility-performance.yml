@@ -1,0 +1,230 @@
+name: IDE Roadmap Accessibility Performance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
+      - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/test/host-dom-relay.test.cjs"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
+      - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/test/host-dom-relay.test.cjs"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
+  schedule:
+    - cron: "17 5 * * 3"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  ACCESSIBILITY_PERFORMANCE_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  accessibility-performance:
+    name: Accessibility/Performance ${{ matrix.suffix }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            suffix: linux
+          - os: macos-15
+            suffix: macos
+          - os: windows-2025
+            suffix: windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CC_P2_ARTIFACT: ide-accessibility-performance-${{ matrix.suffix }}-${{ github.run_attempt }}
+      CC_P2_ARTIFACT_DIR: ${{ github.workspace }}/.p2-evidence/accessibility-performance/${{ matrix.suffix }}
+      CC_P2_AT_PROBE: ${{ github.workspace }}/.p2-evidence/accessibility-performance-input/${{ matrix.suffix }}/assistive-technology.json
+      CC_P2_JETBRAINS_EVIDENCE: ${{ github.workspace }}/.p2-evidence/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-native.json
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Seed content-free failure artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CC_P2_ARTIFACT_DIR"
+          printf '{"schema":"chainlesschain.accessibility-performance-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$ACCESSIBILITY_PERFORMANCE_COMMIT" "${{ matrix.suffix }}" > "$CC_P2_ARTIFACT_DIR/bootstrap.json"
+      - name: Install focused CLI browser dependencies
+        shell: bash
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+      - name: Install exact Playwright Chromium
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq "Linux") {
+            & node packages/cli/node_modules/playwright/cli.js install --with-deps chromium
+          } else {
+            & node packages/cli/node_modules/playwright/cli.js install chromium
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Probe Orca executable in an isolated process
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y orca
+          version="$(orca --version 2>&1)"
+          mkdir -p "$(dirname "$CC_P2_AT_PROBE")"
+          CC_P2_AT_VERSION="$version" node -e 'const c=require("node:crypto"),f=require("node:fs");const v=process.env.CC_P2_AT_VERSION;f.writeFileSync(process.env.CC_P2_AT_PROBE,JSON.stringify({schema:"chainlesschain.assistive-technology-probe.v1",technology:"orca",probeScope:"binary-version-process",binaryPresent:true,automatedProcessProbeComplete:true,externalManualRequired:false,speechQualityAssessed:false,versionDigest:"sha256:"+c.createHash("sha256").update(v).digest("hex")})+"\n")'
+      - name: Probe NVDA executable in an isolated process
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nvda -y --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\NVDA\nvda.exe",
+            "$env:ProgramFiles\NVDA\nvda.exe"
+          )
+          $binary = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if (-not $binary) { throw "NVDA executable is unavailable after installation" }
+          $version = (Get-Item -LiteralPath $binary).VersionInfo.FileVersion
+          if (-not $version) { throw "NVDA version metadata is unavailable" }
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $env:CC_P2_AT_PROBE) | Out-Null
+          $env:CC_P2_AT_VERSION = $version
+          node -e 'const c=require("node:crypto"),f=require("node:fs");const v=process.env.CC_P2_AT_VERSION;f.writeFileSync(process.env.CC_P2_AT_PROBE,JSON.stringify({schema:"chainlesschain.assistive-technology-probe.v1",technology:"nvda",probeScope:"signed-binary-version-process",binaryPresent:true,automatedProcessProbeComplete:true,externalManualRequired:false,speechQualityAssessed:false,versionDigest:"sha256:"+c.createHash("sha256").update(v).digest("hex")})+"\n")'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Record VoiceOver semantic-only boundary
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary='/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOver'
+          test -x "$binary"
+          version="$(mdls -raw -name kMDItemVersion /System/Library/CoreServices/VoiceOver.app)"
+          mkdir -p "$(dirname "$CC_P2_AT_PROBE")"
+          CC_P2_AT_VERSION="$version" node -e 'const c=require("node:crypto"),f=require("node:fs");const v=process.env.CC_P2_AT_VERSION;f.writeFileSync(process.env.CC_P2_AT_PROBE,JSON.stringify({schema:"chainlesschain.assistive-technology-probe.v1",technology:"voiceover",probeScope:"binary-presence-semantic-contract",binaryPresent:true,automatedProcessProbeComplete:false,externalManualRequired:true,speechQualityAssessed:false,versionDigest:"sha256:"+c.createHash("sha256").update(v).digest("hex")})+"\n")'
+      - name: Run VS Code keyboard, transcript, and scale regressions
+        shell: bash
+        run: node --test packages/vscode-extension/test/host-dom-relay.test.cjs packages/vscode-extension/test/sessions-view-delivery.test.cjs
+      - name: Measure JetBrains native Swing product surfaces
+        shell: pwsh
+        working-directory: packages/jetbrains-plugin
+        run: |
+          if ($env:RUNNER_OS -eq "Windows") {
+            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+          } else {
+            chmod +x ./gradlew
+            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path -LiteralPath $env:CC_P2_JETBRAINS_EVIDENCE)) {
+            throw "JetBrains native evidence was not written"
+          }
+      - name: Run fixed-scale Chromium and evidence campaign
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ide-roadmap-accessibility-performance.mjs
+          --release-commit "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --artifact-dir "$CC_P2_ARTIFACT_DIR"
+          --artifact-name "$CC_P2_ARTIFACT"
+          --at-probe "$CC_P2_AT_PROBE"
+          --jetbrains-evidence "$CC_P2_JETBRAINS_EVIDENCE"
+      - name: Upload content-free producer evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_P2_ARTIFACT }}
+          path: ${{ env.CC_P2_ARTIFACT_DIR }}/
+          if-no-files-found: error
+
+  trusted-accessibility-performance-aggregate:
+    name: Trusted Accessibility/Performance three-OS aggregate
+    needs: [accessibility-performance]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Fail closed unless every matrix cell succeeded
+        env:
+          MATRIX_RESULT: ${{ needs.accessibility-performance.result }}
+        run: test "$MATRIX_RESULT" = success
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download all producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: ide-accessibility-performance-*-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/accessibility-performance-download
+      - name: Normalize producer directories
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/accessibility-performance-evidence"
+          for suffix in linux macos windows; do
+            source="$RUNNER_TEMP/accessibility-performance-download/ide-accessibility-performance-$suffix-$GITHUB_RUN_ATTEMPT"
+            test -d "$source"
+            mv "$source" "$RUNNER_TEMP/accessibility-performance-evidence/$suffix"
+          done
+      - name: Rehash exact producers and required measurements
+        run: >-
+          node packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs
+          --evidence-root "$RUNNER_TEMP/accessibility-performance-evidence"
+          --release-commit "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --event-name "$GITHUB_EVENT_NAME"
+          --output "$RUNNER_TEMP/accessibility-performance-aggregate.json"
+      - name: Upload trusted aggregate
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ide-accessibility-performance-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/accessibility-performance-aggregate.json
+          if-no-files-found: error
