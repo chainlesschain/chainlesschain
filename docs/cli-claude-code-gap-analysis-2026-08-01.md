@@ -1898,3 +1898,27 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 | 下一期 | R1 native production signing/channel、R2 representative telemetry、R4 signed macOS root live | 继续等待生产身份、受保护 environment、渠道权限或获批真实数据；workflow 存在不消除这些外部前置 |
 
 因此，本期可独立完成的仓库代码切片已经提交，但本期整体尚未终态：R3 受真实时间合同约束，R4 的远端 exact-SHA Actions 还需在提交进入远端后执行。完整产品仍为 **NO-GO**，`sharedLibraryClosure=false`、`completeSkillMcpSecurityClosure=false` 和 25/25 alias retain 均继续有效。
+
+### 20.6 R4 unsupported native Plugin 平台失败关闭
+
+在 `409240ab2b` 的 MCP package native-addon policy 之外，本期继续审计 general native Plugin 的入口，发现严格策略虽然只为 Linux 建立了 descriptor-bound ELF loader contract，但 macOS/Windows 路径此前可能在没有该 contract 时继续进入通用 sandbox。`f296c420fe59ae755761222add11fe62363e8a02` 将该缺口改为显式失败关闭。
+
+| 平台与入口 | 本期最终处理 | 失败关闭/支持证据 | 未承诺边界 |
+| --- | --- | --- | --- |
+| Linux strict native Plugin | **保留窄支持** | 继续要求既有 descriptor-bound ELF 启动与 runtime pathname loader closure candidate；由 Linux execution contract/Broker 路径执行 | `sharedLibraryClosure=false`；不覆盖 JIT、匿名可执行内存、custom in-process loader 或任意非 pathname 加载 |
+| Windows strict native Plugin | **拒绝 / fail closed** | 在任何 Broker/native spawn 前抛出 `ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED`；测试断言无 native spawn 且无伪造 Broker audit | 不宣称已经关闭 DLL、delay-load 或 `LoadLibrary` 的递归依赖图；未来如实现，必须新增平台专属原子加载合同与实机证据 |
+| macOS strict native Plugin | **拒绝 / fail closed** | 与 Windows 使用相同 typed rejection，在通用 sandbox 不能提供 dyld 原子闭包时拒绝执行 | unsigned compile/contract 不等于 signed/root live；Developer ID、notary 与 x64/arm64 root 实机门仍在下一期 |
+| materialized MCP npm capsule | **跨平台拒绝 package native addon** | 继续由 `409240ab2b` 的版本化 policy、capsule identity、runtime `process.dlopen` guard 和 Broker evidence binding 保证 | Node/V8 runtime TCB、Wasm/JIT 与 host runtime shared libraries 不在该保证内 |
+
+本次定向验证结果如下：
+
+| 检查项 | 结果 | 判定 |
+| --- | --- | --- |
+| `plugin-runtime-bin-agent-core.test.js` 完整文件 | **13 passed / 2 platform-condition skipped** | 新增 Windows/macOS typed denial 均通过；skip 不外推为对应平台 live 成功 |
+| `plugin-runtime-bin.test.js` 完整文件 | **40/40 passed** | Plugin bin 解析、固定与拒绝规则未回退 |
+| native platform/Broker 定向过滤 | **6 passed / 368 filtered skipped** | 只用于核对受影响 native 路由，不替代完整 Broker 矩阵 |
+| ESLint | **0 errors / 21 existing warnings** | warnings 位于既有 `agent-core.js`，本补丁未新增 lint error |
+| Prettier、Node syntax、`git diff --check` | **通过** | 覆盖本提交的两处文件 |
+| GitHub Actions 路由 | **已覆盖，远端 exact-SHA 待运行** | `CLI Strict Sandbox` 已监听并显式执行 `agent-core` Plugin bin 测试；仍以最终远端 SHA 的三平台终态为准 |
+
+该修复完成的是“对仓库目前不能安全承诺的平台路径明确拒绝”，不是实现 Windows/macOS broad shared-library closure。R4 的仓库内安全边界因此更清晰，但总体状态仍为 **部分完成 / NO-GO**；只有下期外部签名实机子门和仍未实现的能力各自取得严格证据后，才允许升级相应声明。
