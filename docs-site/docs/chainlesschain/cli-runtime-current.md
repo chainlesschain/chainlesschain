@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.165.1）
+# CLI Runtime 当前实现（0.165.4）
 
-> 更新时间：2026-08-17。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.1`。稳定能力以不可变 tag `v-npm-0-165-1` 的精确 SHA [`1a10ed7c8f`](https://github.com/chainlesschain/chainlesschain/commit/1a10ed7c8fd14d12f7760e948ff8efe36c766602) 为准。PR #215 exact head `89c498cc46` 的 Marketplace payload/activation lifecycle 加固已完成门禁并以 `089336992d` 合入主线，但不属于该不可变 tarball；本文继续区分稳定安装契约、未发布源码增量、IDE 市场与 native 发布证据。
+> 更新时间：2026-08-20。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.4`。稳定能力以不可变 tag `v-npm-0-165-4` 的精确 SHA [`86abb5f65e`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb) 为准。本次代码核对基线 `f2fbf331da46` 还包含 tag 之后的安全、多端恢复与 P1-5 Marketplace 十二格供应链矩阵增量；本文继续区分稳定安装契约、发布后源码、IDE 市场与 native 发布证据。
 
 ## 概述
 
@@ -10,19 +10,19 @@
 
 | 用途                 | 版本                                                   | 说明                                                                                                                    |
 | -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用  | `0.165.1`                                              | `v-npm-0-165-1` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门                      |
-| npm `latest`         | `0.165.1`                                              | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                                           |
-| IDE 工作台           | CLI `0.165.1` + VS Code `0.37.55` / JetBrains `0.4.91` | Context/Side-effect/Automation Center；本轮维护版复验 Remote-SSH、真实宿主、ARM64 与市场回读                            |
-| Runtime / Agent Team | `0.165.1`                                              | 动态运行准入、远程成员权威、canonical 执行边界、keeper、merge review 与 MCP templates 已发布                            |
-| 未发布源码增量       | PR #215 exact head `89c498cc46`                        | Marketplace payload/activation lifecycle；已完成门禁并合入主线，不属于 `0.165.1` tarball，跨进程与跨 scope 权威仍未关闭 |
+| 生产 / 日常稳定使用  | `0.165.4`                                              | `v-npm-0-165-4` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门                      |
+| npm `latest`         | `0.165.4`                                              | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                                           |
+| IDE 工作台           | CLI `0.165.4` + VS Code `0.37.58` / JetBrains `0.4.93` | Artifact 审计/删除结算、安全 secret 配置、Context/Side-effect/Automation Center；VS Code 恢复 pending approval         |
+| Runtime / Agent Team | `0.165.4`                                              | 耐久 workflow、会话预算、远端结果审阅应用、governed plugin、keeper 与 MCP templates 已发布                              |
+| 发布后源码增量       | `HEAD@f2fbf331da46`                                    | MCP native-addon policy、IDE/桌面/iOS 恢复与 P1-5 Marketplace 十二格矩阵；不属于 `0.165.4` 或当前 IDE 市场制品          |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.165.1
+npm i -g chainlesschain@0.165.4
 ```
 
-已安装 `0.165.1` 的用户就是当前生产推荐版。`0.164.0` 是上一完整门禁基线；失败的 `v-npm-0-165-0` tag 保持不可变且未写入 registry，不移动或复用。
+已安装旧版的用户可固定升级到 `0.165.4`。`0.165.1` 是上一轮文档基线；失败的 `v-npm-0-165-0` tag 保持不可变且未写入 registry，不移动或复用。
 
 ## 核心特性
 
@@ -60,7 +60,12 @@ npm i -g chainlesschain@0.165.1
 - `0.165.1` 动态准入与远程权威：Cowork workflow 在 dispatch 时重新核验 definition digest、execution-authority session、权限、sandbox、规模与成本门；CLI-hosted 审批和 relay membership/reconnect 绑定 durable epoch，过期或已撤销权威失败闭合。
 - `0.165.1` canonical 执行与 keeper：后台 `run_shell`、plugin-bin 与 delivery push 复核 canonical workspace/repository authority；supervisor lock、zombie/PID 复用、POSIX group、Worker loss、持久清理证据和 socket/path 上限完成三平台发布门。
 - `0.165.1` 依赖安全：CLI 固定修复后的 `js-yaml` 3.15.1 线，PDH 0.4.58 使用 `adm-zip` 0.6.0，避免恶意归档在适配器入口校验前触发已披露的 4 GB 分配路径。
-- PR #215 exact head `89c498cc46` 的未发布源码增量：Marketplace semantic payload evidence 与同 name/scope 串行 activation lifecycle 统一 use/fallback/update、事务恢复、runtime block 和 doctor/inventory；该增量已完成门禁并合入主线，但不属于 `0.165.1` tarball。
+- `0.165.2` 耐久工作流与插件：Marketplace semantic payload/activation lifecycle 正式进入 tarball；provider/tool/child-call、timeout、semantic compaction 与 stage input 使用 durable receipt/checkpoint，response loss 不盲目 replay。
+- `0.165.2–0.165.4` 会话预算与结果回收：REPL/headless/WS 共享 turn/token/USD/tool-time/wall-time authority；`cc session budget status|recover|receipts` 处理未知 usage。execution-location result bundle 先持久验证与 content-free review，再显式 preview/import/apply。
+- `0.165.2–0.165.4` Artifact 结算：`artifacts access|access-log` 在暴露路径前复核文件身份/大小/SHA-256/lineage；`remove --deletion-id` 与 `clean --cleanup-id` 用 hash-chained ledger 支持 response-loss 重试。
+- `0.165.3` keeper retirement：持久退役 evidence、dead-owner lock reclaim、bootstrap release replay 与有界 Windows health probe 进入稳定版。
+- `0.165.4` 可移植首次安装：PDH `0.4.59` 的 native SQLite addon 为 optional；没有 Python、编译器或 native prebuild 时仍可安装，并回退内置 `sql.js` WASM。
+- 发布后 `HEAD@f2fbf331da46`：MCP package native addon 与 unsupported strict-native loader 失败闭合、IDE durable workflow/orphan Artifact recovery、Desktop returned-artifact workbench、iOS transient remote-session recovery 与 P1-5 Marketplace 十二格供应链矩阵仍只属于源码快照；P1-5 exact-head aggregate 尚待 Actions 回读。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -210,7 +215,7 @@ cc cowork workflow preflight <workflow-id> --definition-digest sha256:<digest> -
 cc cowork workflow run <workflow-id> --definition-digest sha256:<digest> --execution-authority-session <session-id>
 ```
 
-`0.165.1` 会在真正 dispatch 前重新验证保存的 definition digest、执行权威、权限、sandbox、规模与成本门；旧 preflight 不再被当作持续授权。
+`0.165.4` 会在真正 dispatch 前重新验证保存的 definition digest、执行权威、权限、sandbox、规模与成本门；旧 preflight 不再被当作持续授权，并以 durable receipt 记录 provider/tool/child-call settlement 与 checkpoint 状态。
 
 ## 受治理插件市场
 
@@ -316,7 +321,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.55`，JetBrains Marketplace 当前公开 `0.4.91`。生产建议搭配 CLI `0.165.1`：
+Open VSX 当前公开 VS Code `0.37.58`，JetBrains Marketplace 当前公开 `0.4.93`。生产建议搭配 CLI `0.165.4`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -325,7 +330,7 @@ Open VSX 当前公开 VS Code `0.37.55`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.55` / JetBrains `0.4.91` 公开维护版延续 Context Center 与权限/副作用证据，并从同一主线重新认证 Automation Center、local/background/remote/team/workflow 五类 canonical session、Remote-SSH、ARM64、artifact/PR 回读、独立 IDE 进程重启恢复及真实宿主聚合。
+- VS Code `0.37.58` / JetBrains `0.4.93` 延续 Context Center、权限/副作用证据与 Automation Center，并新增经 CLI authority 的 Artifact access/deletion settlement 与安全 LLM secret 配置；VS Code 还恢复 pending interactive approval。当前源码中的 durable workflow/orphan Artifact 控制仍等待下一轮市场发布。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -433,7 +438,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.165.1` 的权威发布提交为 [`1a10ed7c8fd14d12f7760e948ff8efe36c766602`](https://github.com/chainlesschain/chainlesschain/commit/1a10ed7c8fd14d12f7760e948ff8efe36c766602)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32038591204)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32038590960)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32038590940)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32039659372)均成功。npm 公网回读为 `latest=0.165.1`，tarball SHA-1 为 `51ce645bebbe63ae168386cb8b6122a67c7d0813`，SHA-256 为 `5806d34b6659dcc632dad31db3acdc2f4fa07fb924b7d93de1d22637a3186241`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
+`0.165.4` 的权威发布提交为 [`86abb5f65e39f0dd553040fbfce07277336dfeeb`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466808)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466552)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466545)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32377326843)均成功。npm 公网回读为 `latest=0.165.4`，tarball SHA-1 为 `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
 
 ## 相关文档
 

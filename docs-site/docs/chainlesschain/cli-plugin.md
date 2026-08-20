@@ -2,7 +2,7 @@
 
 > **CLI 0.165.1 | Headless 命令 | 受治理多 Registry 候选选择、升级影响与制品回读**
 >
-> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 自 `0.164.0` 起进入稳定契约，当前生产推荐版为 `0.165.1`。PR #215 exact head `89c498cc46` 的 payload/activation lifecycle 加固已完成门禁并合入主线，仍不属于 `0.165.1` npm tarball。
+> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 自 `0.164.0` 起进入稳定契约；payload/activation lifecycle、事务恢复与 provenance 已由 `0.165.2+` 正式承接，当前生产推荐版为 `0.165.4`。`HEAD@f2fbf331da46` 的 MCP native-addon policy、unsupported strict-native typed rejection 与 P1-5 Marketplace 十二格供应链矩阵仍是发布后源码增量，P1-5 exact-head aggregate 尚待 Actions 回读。
 
 ## 核心特性
 

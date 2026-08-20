@@ -632,13 +632,13 @@ const packs = [
           P2-16 Agent Teams 以本地 state v6 为权威，并为受支持的共享文件系统提供独立 distributed queue v1；queue authority digest、lease、CAS 与 wall-clock fence 阻止过期 worker 或迟到结果提交。10,000-task DAG / 最多 64 local workers 是单个本地 runner 的已验证调度边界；共享文件系统队列不是共识系统，也不承诺网络分区容错。
         </p>
         <p class="mt-4 text-lg text-muted">
-          当前 CLI 搭载 PDH 0.4.58：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；bounded ZIP adapter 已升级到 adm-zip 0.6.0，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
+          当前 CLI 搭载 PDH 0.4.59：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 已改为 optional，无 Python/编译器/native prebuild 时首次安装回退内置 sql.js WASM，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
           稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 正式加入动态 workflow 运行准入、远程审批与 relay membership epoch/reconnect reconciliation、canonical workspace/delivery authority、后台 keeper 的 zombie/PID 复用与持久清理证据，以及 CLI/PDH 依赖安全修复；同一精确 SHA <code class="font-mono text-sm">1a10ed7c8f</code> 的三平台 CLI/Strict、npm 发布与独立回读均成功。
         </p>
         <p class="mt-4 text-lg text-muted">
-          PR #215 的 Marketplace semantic payload 与同 name/scope 串行 activation lifecycle 已在 exact head <code class="font-mono text-sm">89c498cc46</code> 完成门禁并合入主线，但不属于 npm <code class="font-mono text-sm">{CLI_VERSION}</code> 不可变 tarball。跨进程 plugin journal/CAS、跨 scope effective authority、legacy migration、三平台 Scheduler campaign 与签名 native 证据仍未完成。
+          npm <code class="font-mono text-sm">{CLI_VERSION}</code> 已包含 governed plugin transaction、durable workflow/session budget、远端 result bundle review/apply 与 Artifact settlement。发布后 <code class="font-mono text-sm">HEAD@f2fbf331da46</code> 的 MCP native-addon policy、多端恢复增量与 P1-5 Marketplace 十二格供应链矩阵仍须新的 exact-SHA 发布门，且 P1-5 aggregate 尚待 Actions 回读；完整 Scheduler campaign 与签名 native 证据仍未完成。
         </p>
       </div>
     </div>
