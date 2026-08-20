@@ -4724,3 +4724,52 @@ retry/timeout、强制取消或完整 P1-1 已关闭。候选位于本地主分�
 P1-1 整项仍为**部分完成**，完整 exactly-once/durable resume/needs-input 能力不得据此标为完成。总计数保持
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 七十四、2026-08-20 未完成任务外部依赖与本期排期分析
+
+本节以第十七节确认的 **12/19 项尚未关闭、7/19 项完成**为计数基线，并纳入第十八至七十三节已经关闭的仓库内子门；
+历史章节不回写。本表中的“本期完成”是排期要求，不是完成证据。只有实现、定向回归、exact-head required checks 与对应
+readback 均满足原退出条件后，才允许把状态改为“完成”。当前未提交工作树中的候选改动也不计作已完成。
+
+“受外部条件限制”统一指 GitHub Actions 也无法独立提供的发布/签名凭据或组织审批、真实企业 provider/registry/WORM
+authority、物理设备/断电、多主机共享存储或交互式人工验收。GitHub-hosted/self-hosted runner、service container、可在 workflow
+中构造的 WSL/container/SSH、网络故障和长时矩阵均视为本期可用资源；不得仅因本机缺少对应 OS 或环境而延期。能在仓库内或
+exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读关闭的内容必须在本期完成，不因同一整项还含外部尾项而整体延期。
+
+| # | 路线项 | 最新未完成主边界 | 本期完成的仓库内范围 | 下期处理的外部条件范围 | 排期结论 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | S0-1：Plan、权限与运行时正确性 | 跨宿主 distributed revoke/人工裁决、真实物理断电与跨设备 fsync、强篡改者、iOS transient resume/生产 UI 及长期安全矩阵 | 完成 iOS transient-resume 状态/UI 与仓库内恢复测试；对已经 dispatch 且无法召回的 effect 统一投影 `needs-adjudication`；用 Actions 执行三 OS 进程终止/fsync fault 与 macOS iOS simulator 矩阵，并保证撤权、重启和恢复异常 fail closed | 外部 effect 的真实召回/人工裁决、任意断电、跨设备持久化、同 UID 强攻击者、iOS 真机及跨宿主长期对抗矩阵 | **拆分：iOS/裁决产品与 Actions 故障矩阵本期完成；物理与跨宿主证据下期** |
+| 2 | S0-2：Skill/MCP 信任边界 | 任意 native/shared-library 递归闭包、macOS 原子 `exec/open`、distributed authority、动态撤销/进程树与长期恶意矩阵 | 完成 native code/shared-library 闭包策略、materialization 到 broker/OS 的二次身份核验、动态撤销与进程树 fail-closed 测试，并取得当前 exact-head 的适用安全门 | 签名后的 macOS 原生执行、远端即时撤权及多平台长期对抗矩阵 | **拆分：策略与实现本期完成；签名平台/远端证据下期** |
+| 3 | S0-3：持久状态、语义压缩与 handoff | 同一 exact SHA 至少 100 次真实 provider 长会话、structured handoff/live trajectory 与全宿主长期一致性 | 用 Actions 执行 live-provider workflow、100-run 分片、structured handoff 验证、跨 OS artifact aggregate 与 exact-head 回读；skip、loopback 或旧 SHA 不计通过 | 仓库未配置且无法在本期取得的 provider 账号/凭据、费用额度，以及 Actions 无法覆盖的真实专有宿主 | **拆分：Actions 可执行轨迹本期完成；缺失 provider authority 才下期** |
+| 4 | Q0：可信入口与 Microsoft Marketplace | Microsoft Marketplace 发布 authority、exact publisher/version/digest 回读及 stock VS Code fresh-profile 升级/回滚 | 保持已验证 VSIX、发布合同与 fail-closed readback，不另造替代渠道 | `VSCE_PAT`/发布者权限、Marketplace 发布与公开传播、stock VS Code 干净环境旅程 | **整体下期：外部凭据与公开渠道阻塞** |
+| 5 | Q3：Evidence-Driven Delivery Loop | exact-head 生产 gates→preview→review→fix→rerun→PR/CI→受控 merge→外部 WORM archive | production adapter、runner 与退出合同已经关闭；本期不以 fake adapter、人工 PR 或普通 artifact 补证 | GitHub 仓库保护/审批权限、required checks、真实 PR/merge 和独立 WORM 写入及回读 | **整体下期：真实生产 authority 阻塞** |
+| 6 | Q4a：真实宿主验收基础设施 | WSL、devcontainer、Codespaces、JetBrains Gateway、更多 SSH/Remote、网络故障、失败 artifact 与可重放矩阵 | 用 Actions 完成 WSL、devcontainer、容器化 Remote-SSH、网络抖动/断线/重放、失败 artifact capture 及 trusted aggregate；GitHub-hosted runner 不足时可使用已授权 self-hosted runner | 需要独立账号/许可的 Codespaces、JetBrains Gateway 和仓库无权访问的真实远端基础设施 | **拆分：Actions 可构造矩阵本期完成；专有远端资源下期** |
+| 7 | Q4b：完整发布与用户旅程门 | Microsoft Marketplace、JetBrains/Desktop/native 签名公证、公开渠道升降级/回滚、重连、8 小时 IDE soak 与 nightly live-provider trajectory | 用 Actions 完成已公开 Open VSX/JetBrains 渠道的 fresh-profile 旅程、网络抖动/Bridge/CLI restart、可承载的 soak 分片和 nightly trajectory；全部 artifact 绑定 exact head | Microsoft Marketplace authority、作者/Developer ID/公证凭据、必须连续占用专有真机的 8 小时场景及缺失 provider authority | **拆分：公开渠道与 Actions 旅程本期完成；签名/专有长时资源下期** |
+| 8 | P1-1：Dynamic Workflow façade | 自动恢复 policy、outer-result/current-workspace 边界、Workbench/双 IDE 控制面与 plugin 分发；真实 provider receipt/native idempotency 和全宿主矩阵 | 完成启动/定时恢复扫描、风险分级、通知/审批、backoff、batch dry-run、restart/current restore 边界、Workbench/双 IDE UI 和可安装插件包；用 Actions 完成可构造的 Local/WSL/SSH/Container × 三 OS/双 IDE 重放矩阵 | provider 独立 receipt/计费回读、不可取消 provider 的物理中断、WORM，以及 Cloud/专有宿主或缺失 provider authority 的矩阵 | **拆分：产品、恢复与 Actions 宿主矩阵本期完成；provider/专有宿主下期** |
+| 9 | P1-2：一等 Execution Location | caller-driven recovery、orphan/GC/管理员裁决和完整产品审阅面；分布式 store、secure erase/off-box audit 与真实位置矩阵 | 完成启动 reconcile、orphan inventory/GC、超时告警、管理员 adjudication、IDE/Desktop 创建与 returned-result 产品面；用 Actions 完成 WSL/container/SSH launch、resume、reconnect、双 IDE 和网络故障矩阵 | Cloud/专有远端、多主机 shared/NFS/object-store lease/fencing、非协作 writer、组织 WORM/retention 与物理擦除 | **拆分：自动恢复、产品面与 Actions 位置矩阵本期完成；专有位置/分布式 authority 下期** |
+| 10 | P1-4：Context 与 Permission Center | 长期并发、真实宿主、故障注入与跨入口矩阵；证明 secret/完整命令不泄露且外部副作用不误报可回滚 | 用 Actions 执行三 OS 可用宿主的并发、重启、网络/进程故障和跨入口矩阵，扫描 artifact/log 是否泄露 secret/完整命令，并验证 checkpoint 不扩大恢复声明 | 需要真实企业凭据/副作用系统或专有远端宿主的长期验证 | **拆分：Actions 故障与泄漏矩阵本期完成；企业系统下期** |
+| 11 | P1-5：Marketplace 发现与组织治理 | 物理断电/多主机持久化、干净企业 registry/代理/宿主、独立 trust distribution/transparency log、key rotation 与每格 100 次供应链矩阵 | 在 Actions 中以 TLS registry、proxy/PAC/custom CA 与 service container 完成三 OS × 四 transport 的 12-cell、每格 100 次故障矩阵，并回读 cache、transaction、rollback 与脱敏 artifact | 真实企业 registry/代理、独立 trust distribution/transparency log、组织 key rotation、物理断电/共享存储和真实事故演练 | **拆分：可重复供应链矩阵本期完成；企业 authority/物理故障下期** |
+| 12 | P2-4：可访问性与性能 | NVDA/VoiceOver/Orca 键盘与语音全旅程，真实 diff/log/128-session 的延迟、内存、句柄和 8 小时稳定性 | 用 Actions 完成键盘路径、accessibility tree、焦点恢复、2,000-message、16 MiB diff、64 MiB log、128-session 的 P50/P95/P99、RSS/heap、FD/handle 与 orphan 测量；可自动化的 NVDA/Orca cell 也在本期 | 必须人工听测的 VoiceOver/NVDA/Orca 语音质量、交互式真机以及 Actions 无法连续承载的 8 小时宿主 | **拆分：自动化可访问性/性能本期完成；人工辅助技术与专有长时宿主下期** |
+
+### 排期汇总
+
+| 排期类别 | 数量 | 路线项 | 本期/下期交付口径 |
+| --- | ---: | --- | --- |
+| 本期有仓库内或 GitHub Actions 工作 | 10 | S0-1、S0-2、S0-3、Q4a、Q4b、P1-1、P1-2、P1-4、P1-5、P2-4 | 本期完成表中列出的实现、故障注入、Actions 矩阵、artifact aggregate 和 exact-head 回读；不得因本机环境不足而延期 |
+| 当前剩余全部依赖 Actions 外部 authority | 2 | Q0、Q3 | 下期取得 Marketplace 发布 authority，以及真实受保护仓库/独立 WORM authority；本期不以模拟结果替代 |
+| 仍未关闭的原始路线项 | 12 | 上述全部 | 本期工程包完成后，如外部退出条件尚未满足，整项仍保持“部分完成”，总发布结论仍为 **NO-GO** |
+
+### 本期执行顺序与验收
+
+| 顺序 | 本期工作包 | 最低验收条件 |
+| ---: | --- | --- |
+| 1 | S0-1、S0-2 安全与正确性 | authority-bearing error 全部 fail closed；进程崩溃/重启、身份漂移、撤销竞态和 native-code 绕过有负向回归；相关 CLI/宿主测试通过 |
+| 2 | S0-3、Q4a、Q4b Actions 验收 | 所有 required cell 在同一 exact head 终态成功；producer、aggregate、candidate bytes 与公开 readback 一致；skip/cancel/旧 SHA 不计通过 |
+| 3 | P1-1 durable workflow 产品与恢复面 | 自动扫描/人工裁决边界明确，revision/digest/replay 约束不放宽；Workbench 与双 IDE 只消费同一 canonical 状态和控制 authority |
+| 4 | P1-2 execution-location 恢复与产品面 | orphan/cleanup 可发现、可审阅、可重试且不重复删除/应用；viewer/download/delete/access history 绑定 exact session/review/result lineage |
+| 5 | P1-4、P1-5、P2-4 Actions 矩阵 | 三 OS/transport/IDE 的合同 cell、次数、时长和 measurement 齐全；失败 artifact 仍上传且不泄露 secret；aggregate 缺一项即 fail closed |
+| 6 | 本期统一收口 | 更新 roadmap manifest/fixture 与引用测试，运行格式、lint、聚焦回归及适用的三平台 required checks；仅在 exact-head evidence 回读后更新完成状态 |
+
+截至本节写入时，当前工作树已有 MCP/native execution、Artifact access/deletion/cleanup 与 VS Code approval/relay 相关的未提交候选，
+分别与 S0-2、P1-2、S0-1 的本期包存在重叠。应先复核并复用这些改动，避免平行实现；在提交、测试和 exact-head 证据完成前，
+它们仍只是在途候选，不改变 **12/19 尚未关闭、7/19 完成**及整体 **NO-GO** 结论。
