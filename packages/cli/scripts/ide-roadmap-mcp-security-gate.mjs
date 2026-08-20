@@ -11,6 +11,7 @@ import { MCPClient } from "../src/harness/mcp-client.js";
 import { createMcpCallLedger } from "../src/lib/mcp-call-ledger.js";
 import { mcpEffectDescriptorFields } from "../src/lib/mcp-effect-contract.js";
 import { issueMcpStdioExecutionAuthority } from "../src/lib/mcp-stdio-execution-authority.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../src/lib/mcp-stdio-native-code-policy.js";
 import {
   applySandbox,
   SANDBOX_BOUNDARIES,
@@ -43,6 +44,16 @@ const expectedUnapprovedEffects = Object.freeze({
   unknown_mutation: "unknown",
   declared_write: "write",
 });
+export const MCP_CODE_SNAPSHOT_REQUIRED_BOUNDARIES = Object.freeze([
+  SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+  SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+]);
+export const MCP_MAC_CODE_SNAPSHOT_REQUIRED_BOUNDARIES = Object.freeze([
+  SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+  SANDBOX_BOUNDARIES.FILESYSTEM,
+  SANDBOX_BOUNDARIES.NETWORK,
+  SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+]);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -84,6 +95,24 @@ function directoryIdentity(directoryPath) {
       dev: String(stat.dev),
       ino: String(stat.ino),
     }),
+  });
+}
+
+export function createCodeSnapshotExecutionContract(
+  root,
+  runtimeIdentity,
+  entryIdentity,
+) {
+  return Object.freeze({
+    contractVersion: 1,
+    kind: "strict-mcp-node-capsule",
+    pluginRoot: root,
+    workingDirectory: root,
+    runtimePath: runtimeIdentity.realPath,
+    rootIdentity: directoryIdentity(root),
+    entryIdentity,
+    runtimeIdentity,
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
   });
 }
 
@@ -156,23 +185,18 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
   );
   const runtimeIdentity = executableIdentity(process.execPath);
   const entryIdentity = executableIdentity(entryPath);
-  const contract = Object.freeze({
-    contractVersion: 1,
-    kind: "strict-mcp-node-capsule",
-    pluginRoot: root,
-    workingDirectory: root,
-    runtimePath: runtimeIdentity.realPath,
-    rootIdentity: directoryIdentity(root),
-    entryIdentity,
+  const contract = createCodeSnapshotExecutionContract(
+    root,
     runtimeIdentity,
-  });
+    entryIdentity,
+  );
   const plan = applySandbox(
     runtimeIdentity.realPath,
     [entryIdentity.realPath],
     { cwd: root, shell: false, stdio: "pipe" },
     {
       profile: "default",
-      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      requiredBoundaries: MCP_CODE_SNAPSHOT_REQUIRED_BOUNDARIES,
       executionContract: contract,
       sync: true,
     },
@@ -181,6 +205,7 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
     if (
       plan.applied !== true ||
       !plan.guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) ||
+      !plan.guarantees.includes(SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING) ||
       plan.runtimeProbe?.handleAtomic !== true ||
       plan.runtimeProbe?.entrySnapshotAtomic !== true ||
       plan.runtimeProbe?.runtimeLaunchAtomic !== true ||
@@ -243,27 +268,18 @@ function runMacCodeSnapshotFailClosedProbe(workspace) {
   fs.writeFileSync(entryPath, 'process.stdout.write("must-not-execute\\n");\n');
   const runtimeIdentity = executableIdentity(process.execPath);
   const entryIdentity = executableIdentity(entryPath);
-  const contract = Object.freeze({
-    contractVersion: 1,
-    kind: "strict-mcp-node-capsule",
-    pluginRoot: root,
-    workingDirectory: root,
-    runtimePath: runtimeIdentity.realPath,
-    rootIdentity: directoryIdentity(root),
-    entryIdentity,
+  const contract = createCodeSnapshotExecutionContract(
+    root,
     runtimeIdentity,
-  });
+    entryIdentity,
+  );
   const plan = applySandbox(
     runtimeIdentity.realPath,
     [entryIdentity.realPath],
     { cwd: root, shell: false, stdio: "pipe" },
     {
       profile: "strict",
-      requiredBoundaries: [
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
+      requiredBoundaries: MCP_MAC_CODE_SNAPSHOT_REQUIRED_BOUNDARIES,
       executionContract: contract,
       sync: true,
     },

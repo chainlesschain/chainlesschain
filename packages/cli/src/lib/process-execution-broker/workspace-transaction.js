@@ -102,6 +102,8 @@ const WORKSPACE_LOCK_OWNER_KEYS = Object.freeze([
 const WORKSPACE_LOCK_RETENTION_REQUEST = Symbol(
   "workspace-lock-retention-request",
 );
+const WORKSPACE_COORDINATION_TOKEN_PATTERN = /^[A-Za-z0-9-]{16,128}$/;
+const WORKSPACE_COORDINATION_RECLAIM_TOKENS_PATTERN = /^[A-Za-z0-9-]{33,257}$/;
 const TERMINAL_STATES = new Set([
   WORKSPACE_TRANSACTION_STATE.COMMITTED,
   WORKSPACE_TRANSACTION_STATE.ROLLED_BACK,
@@ -1669,6 +1671,24 @@ function workspacesOverlap(left, right) {
   return isPathInside(left, right) || isPathInside(right, left);
 }
 
+function isWorkspaceCoordinationDebris(name) {
+  for (const lifecycle of ["acquire", "release"]) {
+    const prefix = `coordination.lock.${lifecycle}-`;
+    if (name.startsWith(prefix)) {
+      return WORKSPACE_COORDINATION_TOKEN_PATTERN.test(
+        name.slice(prefix.length),
+      );
+    }
+  }
+  const reclaimedPrefix = "coordination.lock.reclaimed-";
+  return (
+    name.startsWith(reclaimedPrefix) &&
+    WORKSPACE_COORDINATION_RECLAIM_TOKENS_PATTERN.test(
+      name.slice(reclaimedPrefix.length),
+    )
+  );
+}
+
 function assertNoOverlappingWorkspaceLock(
   lockDir,
   workspaceRoot,
@@ -1695,6 +1715,12 @@ function assertNoOverlappingWorkspaceLock(
         { path: candidate },
       );
     }
+    // withFileLock atomically detaches its private coordination directory
+    // before recursive cleanup. Windows can temporarily retain that uniquely
+    // tokened directory after the coordination lock itself is already free.
+    // It contains state-lock ownership, not workspace ownership, and therefore
+    // must not be interpreted as an overlapping workspace lease.
+    if (isWorkspaceCoordinationDebris(name)) continue;
     const owner = readLockOwner(candidate);
     if (!owner) {
       throw codedError(
