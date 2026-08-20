@@ -25,6 +25,10 @@ import {
   writeSecurityStore,
 } from "./durable-security-store.js";
 import { sanitizeMcpStdioHostEnvironment } from "./mcp-stdio-environment.js";
+import {
+  isMcpStdioCapsuleNativeCodePolicy,
+  MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+} from "./mcp-stdio-native-code-policy.js";
 
 export const MCP_STDIO_PACKAGE_MATERIALIZATION_REQUIRED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_REQUIRED";
@@ -36,9 +40,9 @@ export const MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED";
 
 const MATERIALIZATION_SCHEMA =
-  "chainlesschain.mcp-stdio-package-materialization/v5";
-const MATERIALIZATION_VERSION = 5;
-const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v4";
+  "chainlesschain.mcp-stdio-package-materialization/v6";
+const MATERIALIZATION_VERSION = 6;
+const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v5";
 const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
 const CAPSULE_BUILDER = "esbuild-wasm";
 const CAPSULE_BUILDER_VERSION = "0.28.1";
@@ -1504,6 +1508,7 @@ async function buildCapsule({
           ? CAPSULE_EXECUTION_CONTEXT_ISOLATION
           : "not-required",
     }),
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
   });
 }
 
@@ -1563,6 +1568,7 @@ function validateManifest(manifest) {
     ) ||
     manifest.capsule?.builtinPolicy?.schema !== CAPSULE_BUILTIN_POLICY_SCHEMA ||
     manifest.capsule?.builtinPolicy?.mode !== "static-external-only" ||
+    !isMcpStdioCapsuleNativeCodePolicy(manifest.capsule?.nativeCodePolicy) ||
     !Array.isArray(manifest.capsule?.builtinPolicy?.allowedBuiltins) ||
     manifest.capsule.builtinPolicy.allowedBuiltins.some(
       (name) => typeof name !== "string" || !NODE_BUILTINS.has(name),
@@ -1742,6 +1748,9 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
           executionContextBuiltins: Object.freeze([
             ...manifest.capsule.builtinPolicy.executionContextBuiltins,
           ]),
+        }),
+        nativeCodePolicy: Object.freeze({
+          ...manifest.capsule.nativeCodePolicy,
         }),
       }),
       closureDigest: manifest.closureDigest,

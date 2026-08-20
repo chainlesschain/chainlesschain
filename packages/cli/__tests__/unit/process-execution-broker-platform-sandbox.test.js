@@ -35,6 +35,10 @@ import {
   parseLinuxBwrapDescriptorScrubbedLaunch,
 } from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import {
+  MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+  mcpStdioCapsuleNativeCodeEvidence,
+} from "../../src/lib/mcp-stdio-native-code-policy.js";
 import { installWindowsSandboxAdapterTestRoot } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
 
 const windowsSandboxSource = readFileSync(
@@ -1488,15 +1492,19 @@ function createLinuxStrongHarness({
       attestation: "realpath-file-id-sha256",
     });
   };
+  const kind =
+    contractKind ||
+    (nativeStatic
+      ? entryRuntime === "native-dynamic-elf"
+        ? "strict-plugin-native-elf-bin"
+        : "strict-plugin-native-static-elf-bin"
+      : "strict-plugin-node-bin");
   const contract = Object.freeze({
     contractVersion: 1,
-    kind:
-      contractKind ||
-      (nativeStatic
-        ? entryRuntime === "native-dynamic-elf"
-          ? "strict-plugin-native-elf-bin"
-          : "strict-plugin-native-static-elf-bin"
-        : "strict-plugin-node-bin"),
+    kind,
+    ...(kind === "strict-mcp-node-capsule"
+      ? { nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY }
+      : {}),
     pluginRoot: "/plugin",
     workingDirectory: "/plugin",
     runtimePath: "/runtime/node",
@@ -1621,10 +1629,14 @@ function applyLinuxStrongNodeHarness(harness, args = ["--label", "ready"]) {
 }
 
 function applyLinuxMcpCapsuleHarness(harness, args = ["--label", "ready"]) {
-  const requiredBoundaries = [SANDBOX_BOUNDARIES.CODE_SNAPSHOT];
+  const requiredBoundaries = [
+    SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+    SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+  ];
   const contract = Object.freeze({
     ...harness.contract,
     kind: "strict-mcp-node-capsule",
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
   });
   return applySandbox(
     "/runtime/node",
@@ -1971,6 +1983,7 @@ function normalizedMcpCapsuleContract({
     pluginRoot,
     workingDirectory: pluginRoot,
     runtimePath,
+    nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
     rootIdentity: Object.freeze({
       realPath: pluginRoot,
       fileId: Object.freeze({ dev: "1", ino: "1" }),
@@ -2126,6 +2139,7 @@ function appliedMacSignedRootMcpPlan(
         SANDBOX_BOUNDARIES.PROCESS_EXEC,
         SANDBOX_BOUNDARIES.PROCESS_TREE,
         SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       ],
       runtimeProbe: {
         kind: "darwin-mcp-capsule-code-snapshot-v2",
@@ -2156,6 +2170,7 @@ function appliedMacSignedRootMcpPlan(
         entrySnapshotBootstrapSha256:
           MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
         sharedLibraryClosure: false,
+        ...mcpStdioCapsuleNativeCodeEvidence(contract.nativeCodePolicy),
         rootProtectedRuntimeSnapshot: true,
         entryRootOwnedAnonymousSnapshot: true,
         entrySourcePrePostStat: true,
@@ -2499,7 +2514,10 @@ describe("platform sandbox adapter contract", () => {
       backend: "linux-fd-code-snapshot",
       enforcement: "linux-fd-code-snapshot",
       policyAttested: true,
-      guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      guarantees: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      ],
       command: "/proc/self/fd/3",
       args: ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--label", "ready"],
       runtimeProbe: {
@@ -3076,6 +3094,7 @@ describe("platform sandbox adapter contract", () => {
     });
     const requiredBoundaries = [
       SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       SANDBOX_BOUNDARIES.FILESYSTEM,
       SANDBOX_BOUNDARIES.NETWORK,
     ];
@@ -3112,6 +3131,7 @@ describe("platform sandbox adapter contract", () => {
         SANDBOX_BOUNDARIES.NETWORK,
         SANDBOX_BOUNDARIES.PROCESS_TREE,
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       ],
       runtimeProbe: {
         kind: "linux-bwrap-plugin-node-policy-v1",
@@ -7197,11 +7217,13 @@ describe("platform sandbox adapter contract", () => {
         requiredBoundaries: [
           SANDBOX_BOUNDARIES.PROCESS_TREE,
           SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
         ],
         sync: false,
         executionContract: {
           kind: "strict-mcp-node-capsule",
           runtimePath,
+          nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
           runtimeIdentity: {
             realPath: runtimePath,
             bytes: 91_234_567,
@@ -7233,6 +7255,7 @@ describe("platform sandbox adapter contract", () => {
       guarantees: expect.arrayContaining([
         SANDBOX_BOUNDARIES.PROCESS_TREE,
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       ]),
       runtimeProbe: {
         runnable: true,
@@ -7246,6 +7269,10 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
+        nativeCodePolicyBound: true,
+        nativeCodePolicyDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+        nativeCodePolicyMode: "deny-package-native-addons",
+        nativeAddonLoading: "denied",
         planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
         planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
@@ -7311,6 +7338,7 @@ describe("platform sandbox adapter contract", () => {
         requiredBoundaries: [
           SANDBOX_BOUNDARIES.PROCESS_TREE,
           SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           SANDBOX_BOUNDARIES.FILESYSTEM,
           SANDBOX_BOUNDARIES.NETWORK,
         ],
@@ -7318,6 +7346,7 @@ describe("platform sandbox adapter contract", () => {
         executionContract: {
           kind: "strict-mcp-node-capsule",
           runtimePath,
+          nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
           runtimeIdentity: {
             realPath: runtimePath,
             bytes: 91_234_567,
@@ -7354,6 +7383,7 @@ describe("platform sandbox adapter contract", () => {
         SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
         SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
       ],
       runtimeProbe: {
         kind: "windows-appcontainer-launch-attestation-v1",
@@ -7364,6 +7394,10 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
+        nativeCodePolicyBound: true,
+        nativeCodePolicyDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+        nativeCodePolicyMode: "deny-package-native-addons",
+        nativeAddonLoading: "denied",
         planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
         planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
@@ -12892,7 +12926,10 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         candidateBackend: null,
         policyAttested: true,
         policyDigest: "9".repeat(64),
-        guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        guarantees: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+        ],
         cleanup,
         runtimeProbe: {
           kind: "linux-mcp-capsule-code-snapshot-v1",
@@ -12911,6 +12948,9 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
           runtimeLaunchMechanism: "inherited-executable-fd-v1",
           entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
           sharedLibraryClosure: false,
+          ...mcpStdioCapsuleNativeCodeEvidence(
+            MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+          ),
           runtimeSnapshotSha256: "a".repeat(64),
           runtimeSnapshotBytes: 100,
           entrySnapshotSha256: "b".repeat(64),
@@ -12923,7 +12963,10 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       args: [entryPath, "--stdio"],
       shell: false,
       executionContract,
-      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      ],
     });
     expect(
       executionBroker._validateSandboxPlan(validPlan, launchContext),
@@ -12947,7 +12990,10 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         origin: "test:mcp-code-snapshot",
         policy: "allow",
         shell: false,
-        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+        ],
         sandboxExecutionContract: Object.freeze({}),
       }),
     ).toThrow(
@@ -13021,6 +13067,9 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       runtimeLaunchAtomic: true,
       runtimeLaunchMechanism: "bwrap-descriptor-mount-node-runtime-exec-v1",
       sharedLibraryClosure: false,
+      ...mcpStdioCapsuleNativeCodeEvidence(
+        MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+      ),
       runtimeSnapshotSha256: "a".repeat(64),
       runtimeSnapshotBytes: 100,
       entrySnapshotSha256: "b".repeat(64),
@@ -13039,6 +13088,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             SANDBOX_BOUNDARIES.NETWORK,
             SANDBOX_BOUNDARIES.PROCESS_TREE,
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           ],
           runtimeProbe: probe,
           cleanup,
@@ -13053,6 +13103,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       executionContract,
       requiredBoundaries: [
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
       ],
@@ -13634,6 +13685,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
             SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           ],
           runtimeProbe: {
             kind: "windows-appcontainer-launch-attestation-v1",
@@ -13656,6 +13708,9 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             runtimeLaunchMechanism:
               "filter-oplock-locked-createprocess-suspended-image-v1",
             sharedLibraryClosure: false,
+            ...mcpStdioCapsuleNativeCodeEvidence(
+              MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+            ),
             planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
             planBindingDigest: "9".repeat(64),
           },
@@ -13674,6 +13729,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         shell: false,
         requiredBoundaries: [
           SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           SANDBOX_BOUNDARIES.FILESYSTEM,
           SANDBOX_BOUNDARIES.NETWORK,
         ],

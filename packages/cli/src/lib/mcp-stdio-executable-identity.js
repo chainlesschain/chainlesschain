@@ -25,6 +25,10 @@ import {
   resolveMcpStdioPackageMaterialization,
 } from "./mcp-stdio-package-materialization.js";
 import {
+  isMcpStdioCapsuleNativeCodePolicy,
+  mcpStdioCapsuleNativeCodePolicyDigest,
+} from "./mcp-stdio-native-code-policy.js";
+import {
   isMcpStdioCodeInjectionEnvironmentKey,
   sanitizeMcpStdioHostEnvironment,
 } from "./mcp-stdio-environment.js";
@@ -48,11 +52,13 @@ export const MCP_STDIO_RUNTIME_KIND_INVALID_CODE =
 export const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND =
   "strict-mcp-node-capsule";
 export const MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY = "code-snapshot";
+export const MCP_STDIO_CAPSULE_NATIVE_ADDON_BOUNDARY = "native-addon-loading";
 export const MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES = Object.freeze([
   MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
   "filesystem",
   "network",
   "process-tree",
+  MCP_STDIO_CAPSULE_NATIVE_ADDON_BOUNDARY,
 ]);
 
 const STORE_LABEL = "MCP stdio executable identity";
@@ -852,6 +858,10 @@ function issueCapsuleSandboxExecutionContract({
   materialization,
 }) {
   if (!materialization) return null;
+  const nativeCodePolicy = materialization.identity?.capsule?.nativeCodePolicy;
+  if (!isMcpStdioCapsuleNativeCodePolicy(nativeCodePolicy)) {
+    throw new Error("MCP materialized capsule native-code policy is invalid");
+  }
   const capsuleRoot = attestCapsuleRoot(materialization.capsuleRoot);
   const entryIdentity = attestation.identity.entrypoints.find(
     (entry) => entry.argIndex === 0,
@@ -878,6 +888,7 @@ function issueCapsuleSandboxExecutionContract({
       attestation.identity.command,
       path.resolve(process.execPath),
     ),
+    nativeCodePolicy: Object.freeze({ ...nativeCodePolicy }),
   });
   issuedCapsuleSandboxContracts.set(
     contract,
@@ -888,6 +899,8 @@ function issueCapsuleSandboxExecutionContract({
       cwd: capsuleRoot.realPath,
       identityDigest: attestation.identityDigest,
       requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
+      nativeCodePolicyDigest:
+        mcpStdioCapsuleNativeCodePolicyDigest(nativeCodePolicy),
     }),
   );
   return contract;
@@ -918,6 +931,9 @@ export function consumeMcpStdioCapsuleSandboxExecutionContract(
     issued.requiredBoundaries.every((boundary) =>
       requiredBoundaries.includes(boundary),
     ) &&
+    isMcpStdioCapsuleNativeCodePolicy(contract.nativeCodePolicy) &&
+    mcpStdioCapsuleNativeCodePolicyDigest(contract.nativeCodePolicy) ===
+      issued.nativeCodePolicyDigest &&
     args.length === issued.args.length &&
     args.every((value, index) => value === issued.args[index])
   );
