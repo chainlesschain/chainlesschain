@@ -39,7 +39,20 @@
       "activation-crash",
       "rollback-crash"
     ],
-    "requiredJourney": ["install", "upgrade", "rollback", "offline-replay"]
+    "requiredJourney": ["install", "upgrade", "rollback", "offline-replay"],
+    "automatedMatrix": {
+      "operatingSystems": 3,
+      "networkEnvironments": 4,
+      "totalCells": 12,
+      "journeysPerCell": 100,
+      "faultsPerCell": 24
+    },
+    "externalConditions": [
+      "third-party-enterprise-registry-and-proxy",
+      "independent-trust-distribution-and-transparency-log",
+      "organization-key-rotation",
+      "physical-power-loss-and-shared-storage"
+    ]
   },
   "expectedOutcome": {
     "credentialLeakCount": 0,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.40",
+  "manifestVersion": "1.9.41",
   "baselineCommit": "e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -39,17 +39,9 @@
       "seed": 2026080101,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
       },
       "expectedOutcome": {
         "mutationCount": 0,
@@ -77,17 +69,9 @@
       "seed": 2026080102,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
       },
       "expectedOutcome": {
         "authorityFailuresBlock": true,
@@ -115,18 +99,9 @@
       "seed": 2026080103,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local",
-          "stdio-mcp"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "stdio-mcp"]
       },
       "expectedOutcome": {
         "directHandlerImports": 0,
@@ -172,17 +147,9 @@
       "seed": 2026080104,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
       },
       "expectedOutcome": {
         "effectsBeforeInstructionDelivery": 0,
@@ -209,20 +176,9 @@
       "seed": 2026080105,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli",
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local",
-          "websocket"
-        ]
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "websocket"]
       },
       "expectedOutcome": {
         "stateConsistencyRate": 1,
@@ -252,18 +208,9 @@
       "seed": 2026080106,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local-provider",
-          "offline-fallback"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local-provider", "offline-fallback"]
       },
       "expectedOutcome": {
         "frozenFactRetentionRate": 1,
@@ -292,15 +239,9 @@
       "seed": 2026080109,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli-agent-loop"
-        ],
-        "operatingSystems": [
-          "linux"
-        ],
-        "transports": [
-          "external-live-provider"
-        ]
+        "hosts": ["cli-agent-loop"],
+        "operatingSystems": ["linux"],
+        "transports": ["external-live-provider"]
       },
       "expectedOutcome": {
         "semanticCompactionCount": 2,
@@ -335,18 +276,9 @@
       "seed": 2026080107,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local-ide-bridge"
-        ]
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local-ide-bridge"]
       },
       "expectedOutcome": {
         "missingRequiredArtifactsFail": true,
@@ -380,18 +312,9 @@
       "seed": 2026080108,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "remote"
-        ]
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["remote"]
       },
       "expectedOutcome": {
         "missingRequiredArtifactsFail": true,
@@ -425,15 +348,9 @@
       "seed": 2026080110,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "vscode"
-        ],
-        "operatingSystems": [
-          "linux"
-        ],
-        "transports": [
-          "remote-ssh-container"
-        ]
+        "hosts": ["vscode"],
+        "operatingSystems": ["linux"],
+        "transports": ["remote-ssh-container"]
       },
       "expectedOutcome": {
         "missingRequiredArtifactsFail": true,
@@ -471,15 +388,9 @@
       "seed": 2026080113,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "linux"
-        ],
-        "transports": [
-          "github-production"
-        ]
+        "hosts": ["cli"],
+        "operatingSystems": ["linux"],
+        "transports": ["github-production"]
       },
       "expectedOutcome": {
         "productionProviderInvoked": true,
@@ -531,23 +442,9 @@
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli",
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "local",
-          "wsl",
-          "ssh",
-          "container",
-          "cloud"
-        ]
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "wsl", "ssh", "container", "cloud"]
       },
       "expectedOutcome": {
         "modelDraftDirectExecutionCount": 0,
@@ -777,22 +674,9 @@
       "seed": 2026080115,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli",
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "wsl",
-          "ssh",
-          "container",
-          "cloud"
-        ]
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["wsl", "ssh", "container", "cloud"]
       },
       "expectedOutcome": {
         "unattestedLaunchCount": 0,
@@ -923,24 +807,73 @@
       ]
     },
     {
+      "id": "p1-context-permission",
+      "priority": "P1",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "The three-operating-system workflow, concurrent mutation campaign, seven-entry projection matrix, failure artifacts, and fail-closed aggregate are implemented. Release evidence remains external until every exact-head producer and the same-run aggregate succeed; enterprise systems and long human IDE journeys remain separate external conditions.",
+      "fixture": "tests/fixtures/ide-roadmap/p1-context-permission.json",
+      "fixtureDigest": "sha256:a3c759f2af9676789a52ad5221a713967c0bb09b50f59eb5f590b821e7e7d199",
+      "seed": 2026080114,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": [
+          "repl",
+          "headless",
+          "stream",
+          "websocket",
+          "vscode",
+          "jetbrains",
+          "desktop"
+        ],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local-process-concurrency", "canonical-projection"]
+      },
+      "expectedOutcome": {
+        "credentialLeakCount": 0,
+        "fullCommandLeakCount": 0,
+        "managedDenyRelaxationCount": 0,
+        "checkpointRecoveryOverclaimCount": 0,
+        "corruptAuthorityAcceptanceCount": 0,
+        "lostUpdateCount": 0,
+        "staleRevisionAcceptanceCount": 0,
+        "orphanProcessCount": 0,
+        "failureArtifactsComplete": true,
+        "requiredMeasurementsComplete": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/ide-roadmap-context-permission-matrix.test.js",
+        "packages/cli/__tests__/unit/scoped-permission-store.test.js",
+        "packages/cli/__tests__/unit/permission-side-effect-center.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-context-center.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-policy-viewer.test.js",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextCenterTest.java",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PolicyViewerTest.java"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "concurrency-authority",
+        "fault-injection",
+        "cross-entry-projections",
+        "redaction-and-recovery",
+        "outcome-observations"
+      ]
+    },
+    {
       "id": "p1-marketplace-supply-chain",
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish fail-closed implementation coverage, but release readiness requires exact-commit evidence for 100 independent runs of every declared OS/transport cell against clean external hosts.",
+      "evidenceNotes": "The three-operating-system, four-network-environment workflow now implements 12 exact-head cells with 100 journeys and 24 fault classes per cell plus a fail-closed aggregate. Release evidence remains external until all same-run artifacts succeed; third-party enterprise authority, independent transparency, key rotation, shared storage, and physical power loss remain separate external conditions.",
       "fixture": "tests/fixtures/ide-roadmap/p1-marketplace-supply-chain.json",
-      "fixtureDigest": "sha256:df9085e12b8c736185bfcf0a77f4748e2e3d126f63abcc6da936296c6d2ee1b4",
+      "fixtureDigest": "sha256:216f883eca4c2d6e4d5e9c08cd403c65c821e3b50dacec3c049ca5498d07a641",
       "seed": 2026080111,
       "minimumIndependentRuns": 100,
       "matrix": {
-        "hosts": [
-          "cli"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
         "transports": [
           "private-registry-tls",
           "explicit-proxy",
@@ -969,19 +902,17 @@
         "packages/cli/__tests__/unit/plugin-marketplace-source-cache.test.js",
         "packages/cli/__tests__/unit/plugin-marketplace-catalog.test.js",
         "packages/cli/__tests__/unit/plugin-runtime-publisher-trust.test.js",
+        "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js",
         "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
       ],
       "requiredArtifacts": [
         "exact-commit",
         "host-environment",
-        "network-authority",
-        "fault-injection-record",
-        "redacted-diagnostics",
-        "registry-document-digest",
-        "artifact-digests",
-        "source-cache-authority",
-        "transaction-journal",
-        "rollback-evidence",
+        "network-journeys",
+        "lifecycle-journeys",
+        "fault-injection",
+        "cache-authority",
+        "redaction",
         "outcome-observations"
       ]
     },
@@ -990,26 +921,15 @@
       "priority": "P2",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish bounded rendering and semantic accessibility coverage only. Release readiness requires exact-commit evidence from real VS Code and JetBrains hosts using each operating system's declared assistive technology, scale inputs, and eight-hour run.",
+      "evidenceNotes": "The three-operating-system workflow now automates product keyboard/focus paths, Chromium accessibility trees, fixed-scale latency/resources, JetBrains Swing components, Orca/NVDA process probes, and a fail-closed aggregate. Release evidence remains external until the exact-head matrix succeeds; human speech-quality review, interactive VoiceOver control, physical-host journeys, and continuous eight-hour soak remain separate manual conditions.",
       "fixture": "tests/fixtures/ide-roadmap/p2-accessibility-performance.json",
-      "fixtureDigest": "sha256:d8f5045f41e34086b75f8ed09802723be86eeb2ee6105e79e64e751cb1cbad4d",
+      "fixtureDigest": "sha256:bc2f3ef9f70ef41549b2d868422e591a480dff13f81ea6ff2f557f7da7311627",
       "seed": 2026080112,
       "minimumIndependentRuns": 1,
       "matrix": {
-        "hosts": [
-          "vscode",
-          "jetbrains"
-        ],
-        "operatingSystems": [
-          "windows",
-          "linux",
-          "macos"
-        ],
-        "transports": [
-          "keyboard-only",
-          "screen-reader",
-          "long-session-scale"
-        ]
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["keyboard-only", "screen-reader", "long-session-scale"]
       },
       "expectedOutcome": {
         "keyboardUnreachableActionCount": 0,
@@ -1023,6 +943,8 @@
         "uiHangCount": 0,
         "credentialLeakCount": 0,
         "orphanProcessCount": 0,
+        "manualSpeechQualityPending": true,
+        "continuousEightHourHostSoakPending": true,
         "requiredMeasurementsComplete": true,
         "exactCommitBound": true
       },
@@ -1031,9 +953,11 @@
         "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js",
         "packages/vscode-extension/test/host-dom-relay.test.cjs",
         "packages/vscode-extension/test/sessions-view-delivery.test.cjs",
+        "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js",
         "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java",
         "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
-        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
       ],
       "requiredArtifacts": [
         "exact-commit",
@@ -1046,7 +970,7 @@
         "large-input-digests",
         "performance-samples",
         "resource-trajectory",
-        "redacted-diagnostics",
+        "jetbrains-native",
         "outcome-observations"
       ]
     }
