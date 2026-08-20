@@ -1938,3 +1938,5 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 | 所有平台的 anonymous executable memory/custom loader | JIT、Wasm runtime、手写 in-process loader 或非 pathname byte loader | 不能由只读 pathname mount 推导其代码来源闭包 | 不设置虚假的“无限递归已验证”声明 | policy 明确记录 `anonymousExecutableMemory=node-runtime-tcb`，general native 路径继续不支持该保证 | **明确排除 / NO-GO**；不得将 `native-addon-loading` 或 Linux pathname closure 改写为此能力 |
 
 据此，本期 R4 设计验收中的四个维度均有明确值：加载机制不是“任意 shared library”；可写来源在 Linux 支持路径上收敛为零，在不支持平台上不尝试推导；递归与字节数都有硬上限或为零；动态代码不被错误计入 pathname/native-addon 声明。代码继续以 typed rejection 和 `sharedLibraryClosure=false` 表达未关闭范围。
+
+在包含实现提交 `409240ab2b`、CI 路由 `30a0c4f6eb` 与 unsupported-platform 修复 `f296c420fe` 的当前代码树上，2026-08-20 18:25 +08:00 又完整运行 native-code policy、capsule contract、materialization、Process Broker platform sandbox、Plugin Agent Core route 与 Plugin bin 六个核心测试文件，结果为 **6 files / 450 passed / 2 platform-condition skipped**，总 wall time 88.05 秒。该结果证明本期 repository-local 路径没有回退；两个 skip 仍不作为对应平台 live 成功，远端 exact-SHA 三平台门也仍需代码进入远端后独立完成。
