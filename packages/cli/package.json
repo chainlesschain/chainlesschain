@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.165.3",
+  "version": "0.165.4",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -86,7 +86,7 @@
     "@chainlesschain/core-infra": "0.1.1",
     "@chainlesschain/core-mtc": "0.2.3",
     "@chainlesschain/core-multisig": "0.1.4",
-    "@chainlesschain/personal-data-hub": "0.4.58",
+    "@chainlesschain/personal-data-hub": "0.4.59",
     "@chainlesschain/session-core": "0.3.5",
     "@chainlesschain/shared-logger": "0.1.1",
     "@inquirer/prompts": "^7.2.0",
