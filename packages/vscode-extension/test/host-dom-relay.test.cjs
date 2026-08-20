@@ -15,6 +15,7 @@ const {
   trimOldestLogNodes,
 } = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
+const { ConversationManager } = require("../src/chat/conversation-manager");
 const {
   HOST_DOM_COMMAND,
   HOST_DOM_DRIVER_COMMAND,
@@ -84,6 +85,128 @@ test("chat HTML keeps the relay inert without a valid launch token", () => {
   for (const [, source] of scripts) {
     assert.doesNotThrow(() => new vm.Script(source));
   }
+});
+
+test("chat HTML accepts agent activity before routing every known event", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+  const listener = html.indexOf('window.addEventListener("message"');
+  const routing = html.indexOf("switch (m.kind)", listener);
+  const signal = html.lastIndexOf("acceptAgentSignal();", routing);
+
+  assert.ok(listener >= 0, "message listener is missing");
+  assert.ok(routing > listener, "agent event switch is missing");
+  assert.ok(
+    signal > listener && signal < routing,
+    "known agent events must clear the send timeout before routing",
+  );
+});
+
+test("conversation manager retains and resolves multiple interactive cards", () => {
+  const conversations = new ConversationManager();
+  const foreground = conversations.create();
+  const background = conversations.create({ activate: false });
+  conversations.setPendingApproval(background.id, {
+    kind: "approval",
+    id: "approval-1",
+  });
+  conversations.setPendingApproval(background.id, {
+    kind: "question",
+    id: "question-1",
+  });
+  conversations.markNeedsApproval(background.id);
+
+  assert.deepEqual(
+    conversations.pendingInteractions(background.id).map(({ kind, id }) => ({
+      kind,
+      id,
+    })),
+    [
+      { kind: "approval", id: "approval-1" },
+      { kind: "question", id: "question-1" },
+    ],
+  );
+  conversations.clearApproval(background.id, "approval-1");
+  assert.equal(
+    conversations.get(background.id).pendingApproval.id,
+    "question-1",
+  );
+  assert.equal(conversations.get(background.id).needsApproval, true);
+
+  conversations.switchTo(background.id);
+  assert.equal(conversations.get(background.id).needsApproval, false);
+  assert.equal(conversations.get(foreground.id).needsApproval, false);
+  conversations.clearApproval(background.id, "question-1");
+  assert.deepEqual(conversations.pendingInteractions(background.id), []);
+});
+
+test("ChatViewProvider rehydrates questions and preserves approval bindings", () => {
+  const posted = [];
+  const sent = [];
+  const vscode = {
+    commands: { executeCommand() {} },
+    window: {},
+    workspace: {
+      workspaceFolders: [{ uri: { fsPath: "C:\\workspace" } }],
+      getConfiguration: () => ({ get: () => undefined }),
+    },
+  };
+  const provider = new ChatViewProvider(vscode, {});
+  provider.view = {
+    webview: {
+      postMessage(message) {
+        posted.push(message);
+        return Promise.resolve(true);
+      },
+    },
+  };
+  provider._handleMessage({ type: "ready" });
+  const conversation = provider._convs.active();
+  provider.session = {
+    sendEvent(event) {
+      sent.push(event);
+      return true;
+    },
+  };
+  const onEvent = provider._makeOnEvent(conversation.id);
+  onEvent({
+    type: "question_request",
+    id: "question-reload",
+    question: "Continue?",
+  });
+
+  posted.length = 0;
+  provider._handleMessage({ type: "ready" });
+  assert.deepEqual(
+    posted
+      .filter((message) => message.kind === "question")
+      .map((message) => message.id),
+    ["question-reload"],
+  );
+
+  provider._handleMessage({
+    type: "approval",
+    id: "approval-bound",
+    approve: true,
+    binding: "sha256:exact-call",
+  });
+  assert.deepEqual(sent.at(-1), {
+    type: "approval",
+    id: "approval-bound",
+    approve: true,
+    binding: "sha256:exact-call",
+  });
+
+  onEvent({ type: "question_resolved", id: "question-reload", via: "timeout" });
+  posted.length = 0;
+  provider._handleMessage({ type: "ready" });
+  assert.equal(
+    posted.some((message) => message.kind === "question"),
+    false,
+  );
 });
 
 test("chat HTML exposes keyboard and screen-reader semantics", () => {

@@ -24,12 +24,37 @@ describe("ConversationManager — approval flags", () => {
     const b = cm.create({ activate: false });
     cm.markNeedsApproval(b.id);
     cm.setPendingApproval(b.id, { kind: "approval", id: "x1" });
-    expect(cm.get(b.id).pendingApproval).toEqual({ kind: "approval", id: "x1" });
+    expect(cm.get(b.id).pendingApproval).toEqual({
+      kind: "approval",
+      id: "x1",
+    });
     expect(cm.clearApproval(b.id)?.id).toBe(b.id);
     expect(cm.get(b.id).needsApproval).toBe(false);
     expect(cm.get(b.id).pendingApproval).toBe(null);
     // clearApproval on an already-clear conv returns null (nothing to update)
     expect(cm.clearApproval(a.id)).toBe(null);
+  });
+
+  it("queues independent approval and question requests until each resolves", () => {
+    const cm = new ConversationManager({});
+    cm.create({});
+    const b = cm.create({ activate: false });
+    cm.setPendingApproval(b.id, { kind: "approval", id: "a1" });
+    cm.setPendingApproval(b.id, { kind: "question", id: "q1" });
+    cm.markNeedsApproval(b.id);
+
+    expect(cm.pendingInteractions(b.id)).toEqual([
+      { kind: "approval", id: "a1" },
+      { kind: "question", id: "q1" },
+    ]);
+    cm.clearApproval(b.id, "a1");
+    expect(cm.pendingInteractions(b.id)).toEqual([
+      { kind: "question", id: "q1" },
+    ]);
+    expect(cm.get(b.id).needsApproval).toBe(true);
+    cm.clearApproval(b.id, "q1");
+    expect(cm.pendingInteractions(b.id)).toEqual([]);
+    expect(cm.get(b.id).needsApproval).toBe(false);
   });
 
   it("switchTo clears the dot but keeps pendingApproval (for re-surfacing)", () => {
@@ -46,7 +71,10 @@ describe("ConversationManager — approval flags", () => {
 
 function makeMemento() {
   const m = new Map();
-  return { get: (k) => (m.has(k) ? m.get(k) : null), update: (k, v) => m.set(k, v) };
+  return {
+    get: (k) => (m.has(k) ? m.get(k) : null),
+    update: (k, v) => m.set(k, v),
+  };
 }
 
 function makeProvider() {
@@ -91,9 +119,9 @@ describe("ChatViewProvider — pending-approval dot", () => {
       kind: "approval",
       id: "a1",
     });
-    expect(lastOf(posted, "tabs").tabs.find((t) => t.id === conv1.id).needsApproval).toBe(
-      true,
-    );
+    expect(
+      lastOf(posted, "tabs").tabs.find((t) => t.id === conv1.id).needsApproval,
+    ).toBe(true);
   });
 
   it("does not flag the active tab (its card shows live)", () => {
@@ -104,7 +132,7 @@ describe("ChatViewProvider — pending-approval dot", () => {
     expect(provider._convs.get(active).needsApproval).toBe(false);
   });
 
-  it("re-surfaces the card and clears the flag on switching to the tab", () => {
+  it("re-surfaces the card and retains it for Webview recovery", () => {
     const { provider, posted } = makeProvider();
     provider._handleMessage({ type: "ready" });
     const conv1 = provider._convs.list()[0];
@@ -113,8 +141,27 @@ describe("ChatViewProvider — pending-approval dot", () => {
 
     provider._handleMessage({ type: "switchTab", id: conv1.id });
     expect(lastOf(posted, "approval")).toMatchObject({ id: "a3" });
-    expect(provider._convs.get(conv1.id).pendingApproval).toBe(null);
+    expect(provider._convs.get(conv1.id).pendingApproval).toMatchObject({
+      id: "a3",
+    });
     expect(provider._convs.get(conv1.id).needsApproval).toBe(false);
+  });
+
+  it("rehydrates an active question after the Webview becomes ready again", () => {
+    const { provider, posted } = makeProvider();
+    provider._handleMessage({ type: "ready" });
+    const active = provider._convs.activeId();
+    const onEvent = provider._makeOnEvent(active);
+    onEvent({ type: "question_request", id: "q1", question: "Continue?" });
+
+    posted.length = 0;
+    provider._handleMessage({ type: "ready" });
+    expect(lastOf(posted, "question")).toMatchObject({ id: "q1" });
+
+    onEvent({ type: "question_resolved", id: "q1", via: "user-answer" });
+    posted.length = 0;
+    provider._handleMessage({ type: "ready" });
+    expect(lastOf(posted, "question")).toBeUndefined();
   });
 
   it("clears the flag when the approval resolves", () => {

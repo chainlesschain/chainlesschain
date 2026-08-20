@@ -8,7 +8,7 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
-| VS Code extension         | **0.37.57**; immutable tag-gated Open VSX release            |
+| VS Code extension         | **0.37.58**; immutable tag-gated Open VSX release            |
 | Recommended CLI           | **`chainlesschain@0.165.2`** (fully gated stable release)    |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
@@ -16,7 +16,7 @@ coordination, and a localhost IDE bridge.
 
 The recommended CLI `0.165.2` includes the governed Automation/Routine commands,
 the released Automation Center v3 projection, scoped permission and side-effect
-authority, and shared permission/budget enforcement. Version `0.37.57` accepts
+authority, and shared permission/budget enforcement. Version `0.37.58` accepts
 only the exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and
 cross-paired versions fail closed. With v3 it shows sanitized run incidents and
 bounded live scheduler occurrences. Incident retry/cancel and cooperative
@@ -24,7 +24,7 @@ occurrence pause/resume appear only when the CLI supplies an exact
 revision/fence-gated action preview. The extension refreshes the projection and
 rechecks that preview before execution; it never derives argv from display data.
 
-Version `0.37.57` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.37.58` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -38,7 +38,7 @@ remains the recommended stable pairing for existing surfaces and the new
 Artifact content/removal actions fail closed instead of bypassing the CLI.
 
 The immutable publication tag for this package is
-[`ide-vscode-v0.37.57`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.57).
+[`ide-vscode-v0.37.58`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.58).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. Registry availability can be checked on the
@@ -272,7 +272,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.57.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.58.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

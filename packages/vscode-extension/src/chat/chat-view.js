@@ -557,7 +557,7 @@ class ChatViewProvider {
   _stopSession(conv) {
     if (!conv) return false;
     const session = conv.session;
-    const pendingApproval = conv.pendingApproval;
+    const pendingInteractions = this._convs.pendingInteractions(conv.id);
     conv._sessionToken = null;
     conv.sessionSlashCommands = null;
     conv.unconfirmedSessionSlashCommands = [];
@@ -568,13 +568,15 @@ class ChatViewProvider {
     this._planReviews.delete(conv.id);
     this._convs.setSession(conv.id, null);
     session?.stop?.();
-    if (pendingApproval?.kind === "approval" && pendingApproval.id) {
-      this._postFrom(conv.id, {
-        kind: "approval_done",
-        id: pendingApproval.id,
-        approved: false,
-        via: "session-stopped",
-      });
+    for (const pendingApproval of pendingInteractions) {
+      if (pendingApproval?.kind === "approval" && pendingApproval.id) {
+        this._postFrom(conv.id, {
+          kind: "approval_done",
+          id: pendingApproval.id,
+          approved: false,
+          via: "session-stopped",
+        });
+      }
     }
     if (clearedApproval) this._postTabs();
     if (session) this._indexConversation(conv, "stopped");
@@ -712,8 +714,14 @@ class ChatViewProvider {
           this._notifyApprovalPending(conv);
         }
       } else if (ui?.kind === "approval_done") {
-        this._indexConversation(conv, "running");
-        if (this._convs.clearApproval(convId)) this._postTabs();
+        const changed = this._convs.clearApproval(convId, ui.id);
+        this._indexConversation(
+          conv,
+          this._convs.pendingInteractions(convId).length
+            ? "waiting_approval"
+            : "running",
+        );
+        if (changed) this._postTabs();
       } else if (ui?.kind === "question") {
         // The agent called ask_user_question and is BLOCKED on the user. The
         // question renders as an IN-PANEL card (chat-html) with clickable options
@@ -722,20 +730,28 @@ class ChatViewProvider {
         // posted to the webview by _postFrom above IF this is the active tab; the
         // answer returns as a {type:"answer"} message (handled below).
         //
-        // If the question landed in a BACKGROUND tab, _postFrom dropped it — so
-        // route it through the same pending-approval machinery (dot + toast +
-        // re-surface on switch) instead of letting the agent hang until its
-        // user_timeout with no visible prompt anywhere.
-        if (this._convs.activeId() !== convId) {
-          this._convs.setPendingApproval(convId, ui);
-          if (this._convs.markNeedsApproval(convId)) {
-            this._postTabs();
-            this._notifyApprovalPending(conv);
-          }
+        // Retain active and background questions alike. Active questions need
+        // rehydration if VS Code recreates the Webview while the CLI is blocked;
+        // background questions additionally get a tab dot and notification.
+        this._convs.setPendingApproval(convId, ui);
+        if (this._convs.markNeedsApproval(convId)) {
+          this._postTabs();
+          this._notifyApprovalPending(conv);
         }
         this._indexConversation(conv, "waiting_approval");
       }
+      if (evt?.type === "question_resolved" && evt.id) {
+        const changed = this._convs.clearApproval(convId, evt.id);
+        this._indexConversation(
+          conv,
+          this._convs.pendingInteractions(convId).length
+            ? "waiting_approval"
+            : "running",
+        );
+        if (changed) this._postTabs();
+      }
       if (evt?.type === "result") {
+        if (this._convs.clearApproval(convId)) this._postTabs();
         conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
         // The turn is done — the CLI inlined any pasted images at turn start,
@@ -3027,6 +3043,9 @@ class ChatViewProvider {
         type: "approval",
         id: String(m.id || ""),
         approve: m.approve === true,
+        ...(typeof m.binding === "string" && m.binding
+          ? { binding: m.binding }
+          : {}),
       });
     } else if (m.type === "answer") {
       // The in-panel question card's answer (option / text / multi-select, or
@@ -3121,6 +3140,12 @@ class ChatViewProvider {
       // record — no child spawn until the first message).
       const conv = this._activeConv();
       this._postTabs();
+      // A Webview can be recreated while the long-lived CLI child is blocked
+      // on an approval/question. Rehydrate every unresolved card immediately;
+      // the renderer deduplicates cards when VS Code retained the old DOM.
+      for (const pending of this._convs.pendingInteractions(conv.id)) {
+        this._post(pending);
+      }
       if (conv.plan?.active) {
         this._syncPlanReviewEditor(conv.id, conv.plan).catch(() => {});
       }
@@ -3156,11 +3181,11 @@ class ChatViewProvider {
       if (conv) {
         this._rememberSessionId(conv.sessionId);
         this._postTabs();
-        // A pending approval was gated out while this tab was backgrounded —
-        // re-post the card now (once; it then lives in the tab's buffer).
-        if (conv.pendingApproval) {
-          this._post(conv.pendingApproval);
-          this._convs.setPendingApproval(conv.id, null);
+        // Re-post every unresolved interaction that was gated out while this
+        // tab was backgrounded. They remain host-owned until a resolved event,
+        // so a later Webview recreation can recover them again.
+        for (const pending of this._convs.pendingInteractions(conv.id)) {
+          this._post(pending);
         }
         if (conv.plan) {
           this._syncPlanReviewEditor(conv.id, conv.plan).catch(() => {});

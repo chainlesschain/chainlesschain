@@ -46,8 +46,13 @@ class ConversationManager {
       session: null, // opaque AgentChatSession handle (set by chat-view)
       turnState: this._createTurnState(),
       unread: false, // a turn finished while this tab was in the background
-      needsApproval: false, // an approval is pending in this background tab
-      pendingApproval: null, // the approval card payload (to re-surface on switch)
+      needsApproval: false, // an interaction is pending in this background tab
+      // Unresolved approval/question cards. Keep them until the CLI emits the
+      // matching resolved event so a Webview reload or tab switch cannot make
+      // a blocked interaction unreachable. pendingApproval remains a
+      // back-compat alias for the first entry.
+      pendingInteractions: [],
+      pendingApproval: null,
       mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
       thinking: "off", // extended thinking (off | on | ultra)
       goalCondition: "", // optional --goal-condition applied on next spawn
@@ -100,13 +105,17 @@ class ConversationManager {
   switchTo(id) {
     if (!this._conversations.has(id)) return null;
     this._activeId = id;
-    const c = this.get(id);
-    if (c) {
-      c.unread = false;
-      c.needsApproval = false; // you're now looking at it (pendingApproval kept
-      // so chat-view can re-surface the card; cleared when the approval resolves)
+    for (const conversation of this._conversations.values()) {
+      if (conversation.id === id) {
+        conversation.unread = false;
+        conversation.needsApproval = false;
+      } else {
+        conversation.needsApproval =
+          Array.isArray(conversation.pendingInteractions) &&
+          conversation.pendingInteractions.length > 0;
+      }
     }
-    return c;
+    return this.get(id);
   }
 
   /**
@@ -134,20 +143,58 @@ class ConversationManager {
     return c || null;
   }
 
-  /** Remember the approval card payload so a tab switch can re-surface it. */
+  /** Remember an interaction card so tab switches/Webview reloads can recover it. */
   setPendingApproval(id, payload) {
     const c = this.get(id);
-    if (c) c.pendingApproval = payload || null;
-    return c || null;
+    if (!c) return null;
+    if (!payload) {
+      c.pendingInteractions = [];
+      c.pendingApproval = null;
+      c.needsApproval = false;
+      return c;
+    }
+    if (!Array.isArray(c.pendingInteractions)) c.pendingInteractions = [];
+    const requestId = String(payload.id || "");
+    const index = c.pendingInteractions.findIndex(
+      (entry) =>
+        entry?.kind === payload.kind && String(entry?.id || "") === requestId,
+    );
+    if (index >= 0) c.pendingInteractions[index] = payload;
+    else c.pendingInteractions.push(payload);
+    c.pendingApproval = c.pendingInteractions[0] || null;
+    return c;
   }
 
-  /** The approval resolved (or was acted on) — clear both flag and payload. */
-  clearApproval(id) {
+  /** Snapshot unresolved cards in arrival order (callers must not mutate it). */
+  pendingInteractions(id) {
+    const c = this.get(id);
+    return c && Array.isArray(c.pendingInteractions)
+      ? c.pendingInteractions.slice()
+      : [];
+  }
+
+  /** Clear one resolved interaction, or every interaction when id is omitted. */
+  clearApproval(id, requestId = null) {
     const c = this.get(id);
     if (!c) return null;
-    const had = c.needsApproval || c.pendingApproval;
-    c.needsApproval = false;
-    c.pendingApproval = null;
+    if (!Array.isArray(c.pendingInteractions)) c.pendingInteractions = [];
+    const before = c.pendingInteractions.length;
+    if (requestId == null) {
+      c.pendingInteractions = [];
+    } else {
+      const wanted = String(requestId);
+      c.pendingInteractions = c.pendingInteractions.filter(
+        (entry) => String(entry?.id || "") !== wanted,
+      );
+    }
+    const changed = before !== c.pendingInteractions.length;
+    const had =
+      requestId == null
+        ? before > 0 || c.needsApproval || Boolean(c.pendingApproval)
+        : changed;
+    c.pendingApproval = c.pendingInteractions[0] || null;
+    c.needsApproval =
+      c.id !== this._activeId && c.pendingInteractions.length > 0;
     return had ? c : null;
   }
 

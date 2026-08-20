@@ -198,6 +198,9 @@ function mapAgentEvent(evt, state) {
         risk: evt.risk || null,
         rule: evt.rule || null,
         reason: evt.reason || null,
+        // Echo the CLI's exact-call binding with the verdict. Newer CLIs use
+        // it to reject stale or cross-tool approvals; older CLIs ignore it.
+        binding: typeof evt.binding === "string" ? evt.binding : null,
       };
     case "approval_resolved":
       return {

@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.58] - Restore interactive approvals and questions (2026-08-20)
+
+- Repair the generated chat Webview script so authorization and
+  `ask_user_question` cards load again instead of leaving the CLI blocked on an
+  invisible prompt.
+- Treat every routed agent event as activity before dispatch, preventing the
+  startup-response timer from reporting a false timeout during a long turn.
+- Keep every unresolved approval/question in host-owned arrival order until
+  the CLI emits the matching resolved event. Tab switches and Webview rebuilds
+  now rehydrate the cards without duplicating them or losing parallel prompts.
+- Echo the CLI's exact approval binding through the Webview verdict so newer
+  CLIs can reject stale, cross-tool, or parameter-substituted approvals without
+  breaking the IDE interaction flow.
+
 ## [0.37.57] - Audited artifact access and deletion settlement (2026-08-19)
 
 - Recommend the fully gated public CLI `chainlesschain@0.165.2` for existing

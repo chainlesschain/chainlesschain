@@ -641,6 +641,7 @@ describe("approval routing plumbing (P1)", async () => {
           tool: "run_shell",
           command: "npm test",
           risk: "medium",
+          binding: "sha256:exact-call",
         },
         st,
       ),
@@ -650,6 +651,7 @@ describe("approval routing plumbing (P1)", async () => {
       tool: "run_shell",
       command: "npm test",
       risk: "medium",
+      binding: "sha256:exact-call",
     });
     expect(
       mapA(
@@ -675,6 +677,7 @@ describe("approval routing plumbing (P1)", async () => {
     const page = htmlA({ cspSource: "x:", nonce: "N" });
     expect(page).toContain('case "approval"');
     expect(page).toContain('case "approval_done"');
+    expect(page).toContain('typeof m.binding === "string"');
     expect(page).toContain("Approve");
   });
 });
