@@ -76,6 +76,10 @@ function verifyCell(directory, expected) {
   if (expected.transport === "wsl") assert.equal(host.isWsl, true);
   if (expected.transport === "devcontainer")
     assert.equal(host.isContainer, true);
+  if (expected.transport === "ssh") {
+    assert.equal(host.isSsh, true);
+    assert.match(host.sshConnectionDigest || "", /^sha256:[a-f0-9]{64}$/u);
+  }
   const restart = documents["bridge-restart.json"];
   assert.deepEqual(restart.phases, REQUIRED_PHASES);
   assert.equal(restart.initialGeneration, 1);
@@ -138,6 +142,11 @@ function main() {
       job: "devcontainer-host-recovery",
       artifactName: `ide-host-recovery-devcontainer-${options.runAttempt}`,
     },
+    {
+      transport: "ssh",
+      job: "ssh-host-recovery",
+      artifactName: `ide-host-recovery-ssh-${options.runAttempt}`,
+    },
   ].map((cell) =>
     verifyCell(path.join(evidenceRoot, cell.transport), {
       transport: cell.transport,
@@ -149,7 +158,7 @@ function main() {
     schema: "chainlesschain.ide-host-recovery-aggregate.v1",
     releaseCommit: options.releaseCommit,
     exactCommitBound: true,
-    requiredCells: ["wsl", "devcontainer"],
+    requiredCells: ["wsl", "devcontainer", "ssh"],
     cells,
   };
   fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });

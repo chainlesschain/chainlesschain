@@ -104,14 +104,64 @@ jobs:
           path: build/reports/ide-host-recovery/devcontainer/
           if-no-files-found: error
 
+  ssh-host-recovery:
+    name: Genuine strict-SSH bridge recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CC_HOST_RECOVERY_ARTIFACT: ide-host-recovery-ssh-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact recovery candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_HOST_RECOVERY_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Start an isolated strict SSH endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-server
+          ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/ide-roadmap-ssh"
+          install -d -m 700 "$HOME/.ssh"
+          install -m 600 "$RUNNER_TEMP/ide-roadmap-ssh.pub" "$HOME/.ssh/authorized_keys"
+          sudo install -d -m 755 /run/sshd
+          sudo /usr/sbin/sshd -p 2222 -o ListenAddress=127.0.0.1 -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o PermitRootLogin=no
+          ssh-keyscan -p 2222 127.0.0.1 > "$RUNNER_TEMP/ide-roadmap-known-hosts"
+          chmod 600 "$RUNNER_TEMP/ide-roadmap-known-hosts"
+      - name: Run production Bridge recovery through strict SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_binary="$(node -p 'process.execPath')"
+          ssh \
+            -i "$RUNNER_TEMP/ide-roadmap-ssh" \
+            -p 2222 \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ide-roadmap-known-hosts" \
+            "$(whoami)@127.0.0.1" \
+            "cd '$GITHUB_WORKSPACE' && env GITHUB_REPOSITORY='$GITHUB_REPOSITORY' GITHUB_WORKFLOW_REF='$GITHUB_WORKFLOW_REF' GITHUB_WORKFLOW_SHA='$GITHUB_WORKFLOW_SHA' GITHUB_RUN_ID='$GITHUB_RUN_ID' GITHUB_RUN_ATTEMPT='$GITHUB_RUN_ATTEMPT' GITHUB_JOB='$GITHUB_JOB' GITHUB_EVENT_NAME='$GITHUB_EVENT_NAME' CC_IDE_ROADMAP_TRANSPORT=ssh '$node_binary' packages/vscode-extension/test/host-recovery-matrix/run.cjs --release-commit '$IDE_HOST_RECOVERY_COMMIT' --transport ssh --environment-check ssh --artifact-dir build/reports/ide-host-recovery/ssh --artifact-name '$CC_HOST_RECOVERY_ARTIFACT'"
+      - name: Upload SSH diagnostics and evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_HOST_RECOVERY_ARTIFACT }}
+          path: build/reports/ide-host-recovery/ssh/
+          if-no-files-found: error
+
   trusted-host-recovery-aggregate:
-    name: Trusted WSL/devcontainer aggregate
-    needs: [wsl-host-recovery, devcontainer-host-recovery]
+    name: Trusted WSL/devcontainer/SSH aggregate
+    needs: [wsl-host-recovery, devcontainer-host-recovery, ssh-host-recovery]
     if: >-
       ${{
         always() &&
         needs.wsl-host-recovery.result == 'success' &&
-        needs.devcontainer-host-recovery.result == 'success'
+        needs.devcontainer-host-recovery.result == 'success' &&
+        needs.ssh-host-recovery.result == 'success'
       }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -133,7 +183,12 @@ jobs:
         with:
           name: ide-host-recovery-devcontainer-${{ github.run_attempt }}
           path: ${{ runner.temp }}/host-recovery/devcontainer
-      - name: Rehash both exact producer envelopes
+      - name: Download SSH producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-host-recovery-ssh-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/host-recovery/ssh
+      - name: Rehash all exact producer envelopes
         run: >-
           node packages/vscode-extension/test/host-recovery-matrix/verify.cjs
           --evidence-root "$RUNNER_TEMP/host-recovery"

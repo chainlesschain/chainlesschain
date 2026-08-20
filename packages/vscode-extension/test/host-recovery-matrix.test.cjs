@@ -12,7 +12,7 @@ const { verifyCell } = require("./host-recovery-matrix/verify.cjs");
 const ROOT = path.resolve(__dirname, "../../..");
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), "utf8");
 
-test("host recovery workflow uses genuine WSL and devcontainer producers", () => {
+test("host recovery workflow uses genuine WSL, devcontainer, and strict-SSH producers", () => {
   const workflow = read(".github/workflows/ide-roadmap-host-recovery.yml");
   const wsl = read(".github/scripts/run-ide-roadmap-wsl.ps1");
   const config = JSON.parse(
@@ -45,19 +45,27 @@ test("host recovery workflow uses genuine WSL and devcontainer producers", () =>
   assert.match(workflow, /devcontainer up/u);
   assert.match(workflow, /devcontainer exec/u);
   assert.match(workflow, /--environment-check devcontainer/u);
+  assert.match(workflow, /ssh-host-recovery:/u);
+  assert.match(workflow, /openssh-server/u);
+  assert.match(workflow, /StrictHostKeyChecking=yes/u);
+  assert.match(workflow, /UserKnownHostsFile=/u);
+  assert.match(workflow, /CC_IDE_ROADMAP_TRANSPORT=ssh/u);
+  assert.match(workflow, /--environment-check ssh/u);
+  assert.doesNotMatch(workflow, /StrictHostKeyChecking=no/u);
 });
 
-test("aggregate fails closed unless both exact-head producers succeed", () => {
+test("aggregate fails closed unless all exact-head producers succeed", () => {
   const workflow = read(".github/workflows/ide-roadmap-host-recovery.yml");
   assert.match(
     workflow,
-    /needs: \[wsl-host-recovery, devcontainer-host-recovery\]/u,
+    /needs: \[wsl-host-recovery, devcontainer-host-recovery, ssh-host-recovery\]/u,
   );
   assert.match(workflow, /needs\.wsl-host-recovery\.result == 'success'/u);
   assert.match(
     workflow,
     /needs\.devcontainer-host-recovery\.result == 'success'/u,
   );
+  assert.match(workflow, /needs\.ssh-host-recovery\.result == 'success'/u);
   assert.match(
     workflow,
     /Upload WSL diagnostics and evidence\n\s+if: always\(\)/u,
@@ -65,6 +73,10 @@ test("aggregate fails closed unless both exact-head producers succeed", () => {
   assert.match(
     workflow,
     /Upload devcontainer diagnostics and evidence\n\s+if: always\(\)/u,
+  );
+  assert.match(
+    workflow,
+    /Upload SSH diagnostics and evidence\n\s+if: always\(\)/u,
   );
   assert.match(workflow, /--workflow-sha "\$GITHUB_WORKFLOW_SHA"/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);

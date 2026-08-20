@@ -126,6 +126,10 @@ function environmentEvidence(transport, expectedCommit, check) {
     process.platform === "linux" &&
     (fs.existsSync("/.dockerenv") ||
       /docker|containerd|kubepods/iu.test(version));
+  const isSsh =
+    process.platform === "linux" &&
+    typeof process.env.SSH_CONNECTION === "string" &&
+    process.env.SSH_CONNECTION.trim().length > 0;
   if (check === "wsl") {
     assert.equal(transport, "wsl");
     assert.equal(isWsl, true, "the WSL cell did not run inside WSL");
@@ -137,6 +141,10 @@ function environmentEvidence(transport, expectedCommit, check) {
       "the devcontainer cell did not run in a container",
     );
     assert.equal(process.env.CC_IDE_ROADMAP_TRANSPORT, "devcontainer");
+  } else if (check === "ssh") {
+    assert.equal(transport, "ssh");
+    assert.equal(isSsh, true, "the SSH cell did not run through sshd");
+    assert.equal(process.env.CC_IDE_ROADMAP_TRANSPORT, "ssh");
   } else if (check !== "local") {
     throw new Error(`unsupported environment check: ${check}`);
   }
@@ -150,6 +158,10 @@ function environmentEvidence(transport, expectedCommit, check) {
     version,
     isWsl,
     isContainer,
+    isSsh,
+    sshConnectionDigest: isSsh
+      ? sha256(Buffer.from(process.env.SSH_CONNECTION, "utf8"))
+      : null,
     wslDistro: isWsl ? process.env.WSL_DISTRO_NAME || "detected" : null,
     nodeVersion: process.version,
     exactCommitBound: true,
@@ -341,7 +353,7 @@ async function runParent(options) {
   const artifactDir = path.resolve(options.artifactDir || "");
   const artifactName = String(options.artifactName || "local-host-recovery");
   assert.match(releaseCommit, SHA_RE);
-  assert.match(transport, /^(?:wsl|devcontainer|local)$/u);
+  assert.match(transport, /^(?:wsl|devcontainer|ssh|local)$/u);
   if (fs.existsSync(artifactDir) && fs.readdirSync(artifactDir).length > 0) {
     throw new Error(`artifact directory must be fresh: ${artifactDir}`);
   }

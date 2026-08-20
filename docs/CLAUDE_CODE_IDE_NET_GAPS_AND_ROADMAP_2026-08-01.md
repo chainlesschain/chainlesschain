@@ -4828,3 +4828,14 @@ exact-head Actions 中通过代码、fixture、故障注入和 artifact 回读�
 | 构建环境边界             | 本机 `build:renderer` 在载入未完整安装的既有依赖时停止：`@vitejs/plugin-vue` 解析为截断模块，`confbox/dist/json5.mjs` 缺失；错误发生在 Vite config dependency import，未进入本次 Vue 编译。类型检查已经通过，renderer/package build 仍必须由干净依赖的 exact-head Actions 复验                                           | 不把损坏的本机 `node_modules` 记为产品失败，也不冒充 renderer build 已通过 |
 
 本节关闭 P1-2 的 **Desktop returned-result 创建后审阅、打开、下载、删除、访问历史和显式恢复裁决入口**。P1-2 本期尚需完成 WSL/container/SSH launch、resume、reconnect、网络故障、双 IDE 及 Desktop/IDE 安装包的 exact-head GitHub Actions 回读；Cloud/专有远端、shared/NFS/object-store fencing、组织 WORM/retention 与物理擦除仍按第七十四节列入下期。因此 P1-2 整项继续为**部分完成**，总计数仍保持 **12/19 尚未关闭、7/19 完成**，整体发布结论仍为 **NO-GO**。
+
+## 七十九、2026-08-20 Q4a/P1-2 strict-SSH host recovery matrix 子门执行记录
+
+本节把 `.github/workflows/ide-roadmap-host-recovery.yml` 从 WSL/devcontainer 两格扩展为 WSL/devcontainer/SSH 三格；它记录的是可由 GitHub Actions 在本期执行的 workflow 与 fail-closed aggregate 合同，尚未把未推送提交或本地测试冒充 exact-head Actions 成功。
+
+- **真实 SSH producer：** Ubuntu runner 启动真实 `sshd`，生成本次 run 专用 Ed25519 client key，通过 `ssh-keyscan` 建立本次 endpoint 的 known-hosts 文件，并固定 `BatchMode=yes`、`IdentitiesOnly=yes`、`StrictHostKeyChecking=yes` 和显式 `UserKnownHostsFile`。生产 recovery harness 必须在 sshd 创建的会话内观察到 `SSH_CONNECTION` 与 `CC_IDE_ROADMAP_TRANSPORT=ssh`；仅在 runner 本地直接执行或关闭 host-key 校验不能形成该 cell。
+- **同一故障轨迹：** SSH cell 与 genuine WSL、declared devcontainer 使用同一受测 harness，依次证明未授权请求拒绝、首次 durable checkpoint、客户端连接中断后 Bridge 仍可服务、Bridge 进程强杀、旧 listener 不可达、Bridge restart 和第二 checkpoint 无丢失/重复。SSH connection tuple 只作为 SHA-256 投影，不把地址/端口原文写入 evidence。
+- **三格 trusted aggregate：** aggregate 现在显式 `needs` 三个 producer，任一 skipped/cancelled/failed 都不能执行成功聚合；它从同一 run 下载三个 artifact，重算 manifest 内每个文件的 byte digest/size，核对 exact release commit、workflow provenance、transport 环境和全部零失败计数，输出 `requiredCells=[wsl,devcontainer,ssh]`。
+- **仓库内验证：** workflow contract、aggregate fail-closed contract 和本机真实 Bridge disconnect/kill/restart 三项测试 **3/3**；任务 CJS 严格 ESLint 为 0 warning，workflow YAML 可解析且 Prettier 无漂移。
+
+本节关闭 Q4a/P1-2 的 **strict-SSH Bridge 断线与进程重启 producer/aggregate 实现子门**。提交只有在到达 GitHub 并由该 workflow 对同一 exact head 生成三格成功 artifact 后，才可记录为运行证据；它也不等同于 Execution Location CLI 的完整 handoff/result-return 100-run 矩阵或双 IDE 安装包回读。P1-2 与 Q4a/Q4b 因此继续为**部分完成**，整体结论保持 **NO-GO**。
