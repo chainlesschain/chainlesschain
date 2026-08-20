@@ -1940,3 +1940,20 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 据此，本期 R4 设计验收中的四个维度均有明确值：加载机制不是“任意 shared library”；可写来源在 Linux 支持路径上收敛为零，在不支持平台上不尝试推导；递归与字节数都有硬上限或为零；动态代码不被错误计入 pathname/native-addon 声明。代码继续以 typed rejection 和 `sharedLibraryClosure=false` 表达未关闭范围。
 
 在包含实现提交 `409240ab2b`、CI 路由 `30a0c4f6eb` 与 unsupported-platform 修复 `f296c420fe` 的当前代码树上，2026-08-20 18:25 +08:00 又完整运行 native-code policy、capsule contract、materialization、Process Broker platform sandbox、Plugin Agent Core route 与 Plugin bin 六个核心测试文件，结果为 **6 files / 450 passed / 2 platform-condition skipped**，总 wall time 88.05 秒。该结果证明本期 repository-local 路径没有回退；两个 skip 仍不作为对应平台 live 成功，远端 exact-SHA 三平台门也仍需代码进入远端后独立完成。
+
+### 20.8 R3 Segment 3 正式终态与 artifact 复验
+
+[CLI Scheduler Kernel Soak `32356640096`](https://github.com/chainlesschain/chainlesschain/actions/runs/32356640096) 已于 2026-08-20 20:22:31 +08:00 完成，Linux、macOS、Windows 与 aggregate **4/4 jobs success**。source workflow 的 `run_started_at` 为 2026-08-20 17:59:02 +08:00，绑定 exact SHA `775d5667bc7bdcf8fed3f834d3ba2eda43526128`、seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-775d5667bc7b`。
+
+| Artifact | ID | GitHub archive digest | 内容级结果 |
+| --- | ---: | --- | --- |
+| aggregate | `9406196618` | `sha256:830651d81223eda49a09df18470e6fac4390452bfb728a92d91cc9e5bff0f41f` | `result=passed`；三平台总覆盖 7526.987 秒；300 rounds、3000 steady occurrences、600 hard kills、3603 effects |
+| Linux | `9406123594` | `sha256:b91df77fd547ac45c825c9277d1ed1c5bb8ab295b5177f62d2a5a742478fad72` | 7221.001 秒；raw SHA-256 `258d1e04dce13458a8a5d772633622a4fbb20b691b09f22d8b7ad9cc40e7757a` |
+| macOS | `9405974645` | `sha256:ab11aeffd71624aa6fe43adb0bb2e14834ce5f96aab8fb3fb18b46177174adc1` | 7221.401 秒；raw SHA-256 `a72dd377c832d9ab4d91c9b59770e343f7fc810583ce98b1f0e0e3942c703521` |
+| Windows | `9405965517` | `sha256:a4b5cb6489b1e386217b7c01ea7d52f0fe82cd0f69833dd53a7535f0266e7751` | 7222.683 秒；raw SHA-256 `ef33e7778d55abbdf0b1e677c071f35de0c369a80536a1cd38d2ceec645198fd` |
+
+三份原始证据均为 `status=passed`、`exactShaVerified=true`、formal 7200 秒 profile、100 rounds、1000 steady occurrences、200 hard kills、1201 effects、零 violations；two-worker contention、higher fence、stale settlement rejection、dead-letter/no-replay、heartbeat renewal、DST/backlog、SQLite quick check、process retirement 与 resource trend 均通过。三平台 cleanup 均在 10 秒 deadline 内完成且两个 Worker 都以 code 0 graceful 退休。
+
+为避免用当前分支后来演进的 verifier 误读旧合同，复验在临时 detached worktree 中使用证据自身绑定的 `775d5667bc7bdcf8fed3f834d3ba2eda43526128` 版本，并注入原 aggregate job 的完整 `CC_SCHEDULER_SOAK_*` formal 环境。仓库 verifier 重新聚合为 `passed`；重聚合结果与下载 aggregate 除独立 `verifiedAt` 时钟外语义完全一致，三个 raw SHA-256 逐项匹配 aggregate evidence。
+
+因此 R3 更新为 **3/4 segments 已完成、Segment 4 待派发、campaign verifier 待运行**。Segment 3 source start 相对 Segment 2 为约 24 小时 17 分，满足下限；Segment 4 的允许 source-start 窗口为 **2026-08-21 17:59:02～23:59:02 +08:00**。在 Segment 4 与最终 72 小时 verifier 都成功前，P2-4 仍保持部分完成，不因本段成功提前关闭。
