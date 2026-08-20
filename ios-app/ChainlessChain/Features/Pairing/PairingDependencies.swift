@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import CoreP2P
 
 /// DI container — Phase 1.1 决策 Q2：禁 `static let shared` 单例，所有 protocol
@@ -22,6 +23,10 @@ public final class PairingDependencies: ObservableObject {
     public let deviceInfoProvider: PairingDeviceInfoProvider?
     public let clock: PairingClock
     public let currentDIDProvider: () -> String?
+    public let remoteSessionClient: RemoteSessionClient
+
+    @Published public private(set) var remoteSessionStatus: RemoteSessionStatus = .idle
+    @Published public private(set) var remoteSessionError: String?
 
     public init(
         signalClient: SignalClient? = nil,
@@ -31,6 +36,7 @@ public final class PairingDependencies: ObservableObject {
         signalingConfig: SignalingConfig = SignalingConfig(),
         deviceInfoProvider: PairingDeviceInfoProvider? = IOSPairingDeviceInfoProvider(),
         clock: PairingClock = SystemPairingClock(),
+        remoteSessionClient: RemoteSessionClient? = nil,
         currentDIDProvider: @escaping () -> String? = { nil }
     ) {
         let resolvedClient: SignalClient = signalClient ?? WebSocketSignalClient(
@@ -45,5 +51,43 @@ public final class PairingDependencies: ObservableObject {
         self.deviceInfoProvider = deviceInfoProvider
         self.clock = clock
         self.currentDIDProvider = currentDIDProvider
+        let resolvedRemoteSessionClient = remoteSessionClient ?? RemoteSessionClient(
+            webSocketFactory: URLSessionRemoteSessionWebSocket.factory()
+        )
+        self.remoteSessionClient = resolvedRemoteSessionClient
+        resolvedRemoteSessionClient.onStatusChange = { [weak self] status in
+            DispatchQueue.main.async {
+                self?.remoteSessionStatus = status
+                if status == .connected { self?.remoteSessionError = nil }
+            }
+        }
+        resolvedRemoteSessionClient.onError = { [weak self] message in
+            DispatchQueue.main.async { self?.remoteSessionError = message }
+        }
+    }
+
+    @discardableResult
+    public func connectRemoteSession(uri: String) -> Bool {
+        do {
+            try remoteSessionClient.connect(uri)
+            remoteSessionError = nil
+            return true
+        } catch {
+            remoteSessionError = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    public func resumeRemoteSession() -> Bool {
+        let resumed = remoteSessionClient.resumeAfterTransientFailure()
+        if !resumed {
+            remoteSessionError = "No recoverable Remote Session is available."
+        }
+        return resumed
+    }
+
+    public func disconnectRemoteSession() {
+        remoteSessionClient.disconnect()
     }
 }

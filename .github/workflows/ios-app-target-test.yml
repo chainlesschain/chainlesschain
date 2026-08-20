@@ -1,4 +1,4 @@
-name: iOS App Target Test Build (Manual)
+name: iOS App Remote Session Recovery
 
 # 一次性 / 偶尔用 — workflow_dispatch trigger，跑 xcodebuild app target
 # unsigned simulator build，验证 commit 159fc2403 加进 pbxproj 的 SPM
@@ -11,21 +11,66 @@ name: iOS App Target Test Build (Manual)
 # 等下次真发版（release.yml）确认能产 .ipa/.zip 后，这个 workflow 可删。
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/ios-app-target-test.yml"
+      - "ios-app/Package.swift"
+      - "ios-app/Package.resolved"
+      - "ios-app/ChainlessChain.xcodeproj/**"
+      - "ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionClient.swift"
+      - "ios-app/Modules/CoreP2P/Sources/Pairing/URLSessionRemoteSessionWebSocket.swift"
+      - "ios-app/Tests/CoreP2PTests/RemoteSessionClientTests.swift"
+      - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
+      - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ios-app-target-test.yml"
+      - "ios-app/Package.swift"
+      - "ios-app/Package.resolved"
+      - "ios-app/ChainlessChain.xcodeproj/**"
+      - "ios-app/Modules/CoreP2P/Sources/Pairing/RemoteSessionClient.swift"
+      - "ios-app/Modules/CoreP2P/Sources/Pairing/URLSessionRemoteSessionWebSocket.swift"
+      - "ios-app/Tests/CoreP2PTests/RemoteSessionClientTests.swift"
+      - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
+      - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  IOS_RECOVERY_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   test-app-target-build:
-    name: xcodebuild app target (unsigned simulator)
+    name: Remote Session tests + unsigned simulator app
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout main
+      - name: Checkout exact recovery candidate
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ env.IOS_RECOVERY_COMMIT }}
+
+      - name: Verify exact candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          if [ "${actual}" != "${IOS_RECOVERY_COMMIT}" ]; then
+            echo "::error::Checkout ${actual} does not match ${IOS_RECOVERY_COMMIT}"
+            exit 1
+          fi
 
       - name: Show toolchain version
         run: |
@@ -41,6 +86,13 @@ jobs:
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
             -clonedSourcePackagesDirPath .spm-cache
+
+      - name: Test transient resume, retry exhaustion, and revocation
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          swift test --filter RemoteSessionClientTests 2>&1 | tee build-swift-test.log
 
       - name: Build iOS app for Simulator (unsigned)
         working-directory: ios-app
@@ -66,8 +118,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-app-target-test-xcodebuild-log
-          path: ios-app/build/xcodebuild-build-unsigned.log
+          name: ios-remote-session-recovery-logs-${{ env.IOS_RECOVERY_COMMIT }}-${{ github.run_attempt }}
+          path: |
+            ios-app/build-swift-test.log
+            ios-app/build/xcodebuild-build-unsigned.log
           if-no-files-found: ignore
           retention-days: 7
 
@@ -94,7 +148,7 @@ jobs:
       - name: Upload simulator zip (test artifact)
         uses: actions/upload-artifact@v6
         with:
-          name: ios-simulator-test-build
+          name: ios-simulator-recovery-build-${{ env.IOS_RECOVERY_COMMIT }}-${{ github.run_attempt }}
           path: ios-app/build/output/*.zip
           if-no-files-found: error
           retention-days: 7

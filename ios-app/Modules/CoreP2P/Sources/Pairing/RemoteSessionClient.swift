@@ -18,6 +18,36 @@ public enum RemoteSessionStatus: String, Sendable, Equatable {
     case error
 }
 
+public struct RemoteSessionReconnectPolicy: Sendable, Equatable {
+    public let maximumAttempts: Int
+    public let initialDelaySeconds: TimeInterval
+    public let maximumDelaySeconds: TimeInterval
+
+    public init(
+        maximumAttempts: Int = 5,
+        initialDelaySeconds: TimeInterval = 1,
+        maximumDelaySeconds: TimeInterval = 30
+    ) {
+        precondition(maximumAttempts >= 0)
+        precondition(initialDelaySeconds >= 0)
+        precondition(maximumDelaySeconds >= initialDelaySeconds)
+        self.maximumAttempts = maximumAttempts
+        self.initialDelaySeconds = initialDelaySeconds
+        self.maximumDelaySeconds = maximumDelaySeconds
+    }
+
+    fileprivate func delay(forAttempt attempt: Int) -> TimeInterval {
+        guard attempt > 1 else { return initialDelaySeconds }
+        return min(
+            maximumDelaySeconds,
+            initialDelaySeconds * pow(2, Double(attempt - 1))
+        )
+    }
+}
+
+public typealias RemoteSessionReconnectScheduler =
+    (_ delaySeconds: TimeInterval, _ action: @escaping () -> Void) -> Void
+
 /// A decrypted inbound Remote Session event. `json` is the raw decrypted JSON so
 /// callers can decode whatever fields the event type carries.
 public struct RemoteSessionEvent: Sendable, Equatable {
@@ -55,6 +85,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
 
     private let webSocketFactory: RemoteSessionWebSocketFactory
     private let peerIdFactory: () -> String
+    private let reconnectPolicy: RemoteSessionReconnectPolicy
+    private let reconnectScheduler: RemoteSessionReconnectScheduler
 
     public var onStatusChange: ((RemoteSessionStatus) -> Void)?
     public var onEvent: ((RemoteSessionEvent) -> Void)?
@@ -70,6 +102,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     private var peerId: String?
     private var paired = false
     private var closedExplicitly = false
+    private var reconnectAttempt = 0
+    private var reconnectGeneration = 0
 
     // Optional vendor-push credentials — ride in the encrypted pair.join so the
     // host can wake this device while backgrounded (sourced by the app layer via
@@ -82,10 +116,16 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
 
     public init(
         webSocketFactory: @escaping RemoteSessionWebSocketFactory,
-        peerIdFactory: @escaping () -> String = { "ios-\(UUID().uuidString)" }
+        peerIdFactory: @escaping () -> String = { "ios-\(UUID().uuidString)" },
+        reconnectPolicy: RemoteSessionReconnectPolicy = .init(),
+        reconnectScheduler: @escaping RemoteSessionReconnectScheduler = { delay, action in
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
+        }
     ) {
         self.webSocketFactory = webSocketFactory
         self.peerIdFactory = peerIdFactory
+        self.reconnectPolicy = reconnectPolicy
+        self.reconnectScheduler = reconnectScheduler
     }
 
     // MARK: Push credentials
@@ -124,6 +164,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
         peerId = mobilePeerId
         paired = false
         closedExplicitly = false
+        reconnectAttempt = 0
+        reconnectGeneration += 1
         status = .connecting
         openSocket()
     }
@@ -131,6 +173,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     public func disconnect() {
         closedExplicitly = true
         paired = false
+        reconnectAttempt = 0
+        reconnectGeneration += 1
         socket?.close(code: 1000, reason: "iOS Remote Session closed")
         socket = nil
         status = .disconnected
@@ -139,6 +183,41 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     private func openSocket() {
         guard let pairing else { return }
         socket = webSocketFactory(pairing.relayUrl, self)
+    }
+
+    /// Retry an exhausted or interrupted transient connection without creating a
+    /// second pairing identity. Reconnect retains the exact E2EE context and peer.
+    @discardableResult
+    public func resumeAfterTransientFailure() -> Bool {
+        guard pairing != nil, crypto != nil, peerId != nil, status != .revoked else {
+            return false
+        }
+        closedExplicitly = false
+        reconnectAttempt = 0
+        reconnectGeneration += 1
+        scheduleReconnect(immediate: true)
+        return true
+    }
+
+    private func scheduleReconnect(immediate: Bool = false) {
+        guard !closedExplicitly, pairing != nil else { return }
+        guard reconnectAttempt < reconnectPolicy.maximumAttempts else {
+            status = .error
+            return
+        }
+        reconnectAttempt += 1
+        reconnectGeneration += 1
+        let generation = reconnectGeneration
+        let delay = immediate ? 0 : reconnectPolicy.delay(forAttempt: reconnectAttempt)
+        status = .reconnecting
+        reconnectScheduler(delay) { [weak self] in
+            guard let self,
+                  !self.closedExplicitly,
+                  self.reconnectGeneration == generation,
+                  self.socket == nil
+            else { return }
+            self.openSocket()
+        }
     }
 
     // MARK: Control messages
@@ -253,7 +332,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
         switch message["type"] as? String {
         case "registered":
             if paired {
-                // Reconnected after a transient drop — shared secret still valid.
+                // The exact peer/E2EE identity survives a transient relay drop.
+                reconnectAttempt = 0
                 status = .connected
             } else {
                 status = .pairing
@@ -281,10 +361,13 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             switch type {
             case "pair.accepted":
                 paired = true
+                reconnectAttempt = 0
                 status = .connected
             case "session.revoked":
                 closedExplicitly = true
                 paired = false
+                reconnectAttempt = 0
+                reconnectGeneration += 1
                 socket?.close(code: 1000, reason: "Revoked by host")
                 socket = nil
                 status = .revoked
@@ -321,14 +404,21 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     public func webSocket(_ socket: RemoteSessionWebSocket, didCloseWithCode code: Int, reason: String) {
         guard socket === self.socket else { return }
         self.socket = nil
-        // Auto-reconnect lands in the next slice; for now a drop ends the session.
-        status = .disconnected
+        if closedExplicitly {
+            status = .disconnected
+        } else {
+            scheduleReconnect()
+        }
     }
 
     public func webSocket(_ socket: RemoteSessionWebSocket, didFailWithError error: Error?) {
         guard socket === self.socket else { return }
         self.socket = nil
         onError?(error?.localizedDescription ?? "Remote Session relay failed")
-        status = closedExplicitly ? .error : .disconnected
+        if closedExplicitly {
+            status = .error
+        } else {
+            scheduleReconnect()
+        }
     }
 }
