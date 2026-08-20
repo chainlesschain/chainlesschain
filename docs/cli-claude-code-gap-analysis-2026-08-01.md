@@ -1847,11 +1847,11 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 | 同一 workflow 中依赖 Developer ID、notary、root-owned pkg、受保护 tag/environment 的 release/live job | 是 | **下一期** | 即使 workflow 已存在，也必须等生产身份和受保护环境到位后才能形成退出证据 |
 | Alias telemetry reporter | 是；缺获批 cohort、签名信任根和真实代表性数据 | **下一期** | GitHub Actions 只能验证 reporter 代码，不能生成或替代获批用户数据 |
 
-本地 Git commit 是后续 Action 的输入，不是 Action 成功证据。本节记录的 `409240ab2b` 与 `30a0c4f6eb` 尚未以本节快照证明存在于远端，也尚无绑定这两个 SHA 的完整 Action 终态，因此当前只能记为“仓库实现与本地验证完成、远端 exact-SHA 门待运行”。
+本地 Git commit 是后续 Action 的输入，不是 Action 成功证据。原工作树中的实现提交 `409240ab2b` 与 CI 路由提交 `30a0c4f6eb` 已在隔离分支基于 `github/main@86abb5f65e39` 无冲突重放为 `aa7a86b202` 与 `5382aa985d`；提交存在于远端仍不等于完整 Action 终态，因此在绑定隔离分支最终 exact SHA 的矩阵成功前，只能记为“仓库实现与本地验证完成、远端 exact-SHA 门待运行”。
 
 ### 20.2 R4 仓库内能力切片：MCP package native addon 拒绝
 
-本期没有把 `sharedLibraryClosure` 直接改成 `true`，而是先关闭一个跨平台、可测试且不依赖签名凭据的窄边界：materialized MCP npm capsule 不允许包携带或在运行期加载 Node native addon。实现提交为 `409240ab2bf64357d8d581e00ad13ba41c389a7b`，CI 路由提交为 `30a0c4f6eb5394cb5b29bbff52c96cf6a8ec86e1`。
+本期没有把 `sharedLibraryClosure` 直接改成 `true`，而是先关闭一个跨平台、可测试且不依赖签名凭据的窄边界：materialized MCP npm capsule 不允许包携带或在运行期加载 Node native addon。隔离分支中的实现提交为 `aa7a86b202ac118799383aa0edff9bc9a2fed89a`，CI 路由提交为 `5382aa985dea8290d56be63082e96c7550849695`。
 
 | 加载/执行面 | 本期声明 | 实现与证据 | 明确保留的边界 |
 | --- | --- | --- | --- |
@@ -1901,14 +1901,14 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 
 ### 20.6 R4 unsupported native Plugin 平台失败关闭
 
-在 `409240ab2b` 的 MCP package native-addon policy 之外，本期继续审计 general native Plugin 的入口，发现严格策略虽然只为 Linux 建立了 descriptor-bound ELF loader contract，但 macOS/Windows 路径此前可能在没有该 contract 时继续进入通用 sandbox。`f296c420fe59ae755761222add11fe62363e8a02` 将该缺口改为显式失败关闭。
+在 `aa7a86b202` 的 MCP package native-addon policy 之外，本期继续审计 general native Plugin 的入口，发现严格策略虽然只为 Linux 建立了 descriptor-bound ELF loader contract，但 macOS/Windows 路径此前可能在没有该 contract 时继续进入通用 sandbox。隔离分支提交 `be7025059ce567c4184f4d44228904099a553e08` 将该缺口改为显式失败关闭。
 
 | 平台与入口 | 本期最终处理 | 失败关闭/支持证据 | 未承诺边界 |
 | --- | --- | --- | --- |
 | Linux strict native Plugin | **保留窄支持** | 继续要求既有 descriptor-bound ELF 启动与 runtime pathname loader closure candidate；由 Linux execution contract/Broker 路径执行 | `sharedLibraryClosure=false`；不覆盖 JIT、匿名可执行内存、custom in-process loader 或任意非 pathname 加载 |
 | Windows strict native Plugin | **拒绝 / fail closed** | 在任何 Broker/native spawn 前抛出 `ERR_PLUGIN_NATIVE_SANDBOX_PLATFORM_UNSUPPORTED`；测试断言无 native spawn 且无伪造 Broker audit | 不宣称已经关闭 DLL、delay-load 或 `LoadLibrary` 的递归依赖图；未来如实现，必须新增平台专属原子加载合同与实机证据 |
 | macOS strict native Plugin | **拒绝 / fail closed** | 与 Windows 使用相同 typed rejection，在通用 sandbox 不能提供 dyld 原子闭包时拒绝执行 | unsigned compile/contract 不等于 signed/root live；Developer ID、notary 与 x64/arm64 root 实机门仍在下一期 |
-| materialized MCP npm capsule | **跨平台拒绝 package native addon** | 继续由 `409240ab2b` 的版本化 policy、capsule identity、runtime `process.dlopen` guard 和 Broker evidence binding 保证 | Node/V8 runtime TCB、Wasm/JIT 与 host runtime shared libraries 不在该保证内 |
+| materialized MCP npm capsule | **跨平台拒绝 package native addon** | 继续由 `aa7a86b202` 的版本化 policy、capsule identity、runtime `process.dlopen` guard 和 Broker evidence binding 保证 | Node/V8 runtime TCB、Wasm/JIT 与 host runtime shared libraries 不在该保证内 |
 
 本次定向验证结果如下：
 
@@ -1939,7 +1939,7 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 
 据此，本期 R4 设计验收中的四个维度均有明确值：加载机制不是“任意 shared library”；可写来源在 Linux 支持路径上收敛为零，在不支持平台上不尝试推导；递归与字节数都有硬上限或为零；动态代码不被错误计入 pathname/native-addon 声明。代码继续以 typed rejection 和 `sharedLibraryClosure=false` 表达未关闭范围。
 
-在包含实现提交 `409240ab2b`、CI 路由 `30a0c4f6eb` 与 unsupported-platform 修复 `f296c420fe` 的当前代码树上，2026-08-20 18:25 +08:00 又完整运行 native-code policy、capsule contract、materialization、Process Broker platform sandbox、Plugin Agent Core route 与 Plugin bin 六个核心测试文件，结果为 **6 files / 450 passed / 2 platform-condition skipped**，总 wall time 88.05 秒。该结果证明本期 repository-local 路径没有回退；两个 skip 仍不作为对应平台 live 成功，远端 exact-SHA 三平台门也仍需代码进入远端后独立完成。
+在包含实现提交 `aa7a86b202`、CI 路由 `5382aa985d` 与 unsupported-platform 修复 `be7025059c` 的当前代码树上，2026-08-20 18:25 +08:00 又完整运行 native-code policy、capsule contract、materialization、Process Broker platform sandbox、Plugin Agent Core route 与 Plugin bin 六个核心测试文件，结果为 **6 files / 450 passed / 2 platform-condition skipped**，总 wall time 88.05 秒。该结果证明本期 repository-local 路径没有回退；两个 skip 仍不作为对应平台 live 成功，远端 exact-SHA 三平台门也仍需代码进入远端后独立完成。
 
 ### 20.8 R3 Segment 3 正式终态与 artifact 复验
 
