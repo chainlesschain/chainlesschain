@@ -159,6 +159,10 @@ describe("context/permission Actions matrix", () => {
     expect(workflow).toContain("windows-2025");
     expect(workflow).toContain("ContextCenterTest");
     expect(workflow).toContain("PolicyViewerTest");
+    expect(workflow).toContain(
+      "npm install --include=optional --ignore-scripts --no-package-lock --prefix packages/cli",
+    );
+    expect(workflow).not.toMatch(/npm install[^\n]*--omit=optional/u);
     expect(workflow).toContain("if: always()");
   });
 

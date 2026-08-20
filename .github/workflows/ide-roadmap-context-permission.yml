@@ -92,7 +92,10 @@ jobs:
           printf '{"schema":"chainlesschain.context-permission-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$CONTEXT_PERMISSION_COMMIT" "${{ matrix.suffix }}" > "$CC_CP_ARTIFACT_DIR/bootstrap.json"
       - name: Install focused CLI test dependencies
         shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --prefix packages/cli
+        # Vitest 4 loads Rolldown through its platform-specific optional
+        # package. Omitting optional dependencies makes the focused suite fail
+        # before test collection on clean Linux/macOS/Windows runners.
+        run: npm install --include=optional --ignore-scripts --no-package-lock --prefix packages/cli
       - name: Run production concurrency and cross-entry campaign
         shell: bash
         run: >-
