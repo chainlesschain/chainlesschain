@@ -23,11 +23,12 @@ const { randomUUID } = require("crypto");
 const fs = require("fs");
 const { hardenedEnv } = require("../hardened-env");
 const {
-  buildArtifactsListArgs,
+  buildArtifactsWorkbenchArgs,
   buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
+  buildArtifactsRecoveryAdjudicateArgs,
   defaultArtifactsDir,
-  shapeArtifacts,
+  shapeArtifactWorkbench,
   filterArtifacts,
   renderArtifactsHtml,
   ARTIFACT_KINDS,
@@ -41,6 +42,9 @@ let _rows = [];
 let _errors = [];
 let _query = "";
 let _kind = "all";
+let _recovery = null;
+let _history = null;
+let _pollTimer = null;
 
 function cliCommand(vscode) {
   const { getResolvedCli } = require("../cli-binary");
@@ -95,22 +99,77 @@ function postRows() {
     type: "rows",
     html: renderArtifactsHtml(
       filterArtifacts(_rows, { query: _query, kind: _kind }),
-      { now: Date.now(), errors: _errors },
+      {
+        now: Date.now(),
+        errors: _errors,
+        recovery: _recovery,
+        history: _history,
+      },
     ),
     total: _rows.length,
   });
 }
 
 async function loadData(vscode) {
-  const res = await runCliJson(vscode, buildArtifactsListArgs());
+  const res = await runCliJson(vscode, buildArtifactsWorkbenchArgs());
   if (res.ok) {
-    _rows = shapeArtifacts(res.json);
-    _errors = [];
+    const shaped = shapeArtifactWorkbench(res.json);
+    if (shaped) {
+      _rows = shaped.rows;
+      _recovery = shaped.recovery;
+      _history = shaped.history;
+      _errors = [];
+    } else {
+      _rows = [];
+      _recovery = null;
+      _history = null;
+      _errors = [
+        {
+          source: "cc artifacts workbench",
+          message: "unsupported canonical projection",
+        },
+      ];
+    }
   } else {
     _rows = [];
-    _errors = [{ source: "cc artifacts list", message: res.error }];
+    _recovery = null;
+    _history = null;
+    _errors = [{ source: "cc artifacts workbench", message: res.error }];
   }
   postRows();
+}
+
+async function runRecoveryAction(vscode, msg) {
+  const itemId = String(msg.itemId || "");
+  const item = _recovery?.items?.find(
+    (candidate) => candidate.itemId === itemId,
+  );
+  if (!item || !SAFE_ID.test(itemId)) return;
+  const decision = item.recommendedDecision;
+  const label = decision === "defer" ? "Acknowledge" : decision;
+  const proceed = await vscode.window.showWarningMessage(
+    `${label} artifact recovery item ${item.kind}? The action is bound to the currently displayed plan and will fail if store authority changed.`,
+    { modal: true },
+    label,
+  );
+  if (proceed !== label) return;
+  const adjudicationId = `artifact_adjudication_vscode_${randomUUID().replaceAll("-", "")}`;
+  const result = await runCliJson(
+    vscode,
+    buildArtifactsRecoveryAdjudicateArgs(
+      item.itemId,
+      _recovery.planDigest,
+      decision,
+      adjudicationId,
+    ),
+  );
+  if (!result.ok) {
+    post({
+      type: "info",
+      text: `recovery not settled: ${result.error} (adjudication ${adjudicationId})`,
+    });
+  }
+  await loadData(vscode);
 }
 
 /** Audited stored-file path for one explicit host action. */
@@ -234,6 +293,9 @@ async function handleMessage(vscode, msg) {
     case "action":
       await runAction(vscode, msg);
       return;
+    case "recovery":
+      await runRecoveryAction(vscode, msg);
+      return;
     default:
   }
 }
@@ -258,13 +320,20 @@ function openArtifactsDrawer(vscode) {
   _panel.webview.html = renderPageHtml(_panel.webview.cspSource);
   _panel.webview.onDidReceiveMessage((msg) => handleMessage(vscode, msg));
   _panel.onDidDispose(() => {
+    if (_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = null;
     _panel = null;
     _rows = [];
     _errors = [];
     _query = "";
     _kind = "all";
+    _recovery = null;
+    _history = null;
   });
   loadData(vscode);
+  _pollTimer = setInterval(() => {
+    if (_panel?.visible) loadData(vscode);
+  }, 15_000);
   return _panel;
 }
 
@@ -299,6 +368,10 @@ function renderPageHtml(cspSource) {
   .kind { opacity:.85; font-size:11px; white-space:nowrap; }
   .muted { opacity:.55; }
   .warn { color: var(--vscode-editorWarning-foreground, orange); margin-bottom:6px; }
+  .recovery { border:1px solid var(--vscode-editorWarning-foreground, orange); border-radius:4px; padding:8px; margin-bottom:10px; }
+  .recovery-item { display:flex; align-items:center; gap:8px; margin-top:5px; }
+  .recovery-item button { margin-left:auto; }
+  .history-summary { margin-bottom:8px; }
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; padding:3px 10px; border-radius:4px; cursor:pointer; margin:0 4px 3px 0; }
   button:hover { background: var(--vscode-button-hoverBackground); }
@@ -331,6 +404,11 @@ function renderPageHtml(cspSource) {
     document.getElementById('pImg').removeAttribute('src');
   });
   document.getElementById('list').addEventListener('click', (e)=>{
+    const recovery = e.target.closest('button[data-recovery]');
+    if (recovery) {
+      vscode.postMessage({ command:'recovery', itemId: recovery.getAttribute('data-item') });
+      return;
+    }
     const b = e.target.closest('button[data-act]');
     if (!b) return;
     vscode.postMessage({ command:'action', act: b.getAttribute('data-act'), id: b.getAttribute('data-id') });
