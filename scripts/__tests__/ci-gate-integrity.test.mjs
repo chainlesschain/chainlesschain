@@ -734,6 +734,24 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
   }
 });
 
+test("PDH workflow bounds native test concurrency on Windows", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test.yml"),
+    "utf8",
+  );
+  const pdhWorkflow = workflow.slice(
+    workflow.indexOf("  pdh-tests:"),
+    workflow.indexOf("  full-tests:"),
+  );
+
+  assert.match(pdhWorkflow, /if \[\[ "\$RUNNER_OS" == "Windows" \]\]; then/);
+  assert.match(pdhWorkflow, /VITEST_ARGS\+=\(--pool=forks --maxWorkers=2\)/);
+  assert.match(
+    pdhWorkflow,
+    /npx vitest run --reporter=default "\$\{VITEST_ARGS\[@\]\}"/,
+  );
+});
+
 test("legacy Linux release builds the embedded web panel before packaging", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "release-linux-packages.yml"),

@@ -331,7 +331,16 @@ jobs:
           # skip the vault tests and report a false green.
           node -e "new (require('better-sqlite3-multiple-ciphers'))(':memory:').close(); console.log('bs3mc OK, ABI '+process.versions.modules)"
           node -e "new (require('better-sqlite3'))(':memory:').close(); console.log('better-sqlite3 OK')"
-          npx vitest run --reporter=default
+          VITEST_ARGS=()
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Native SQLite tests perform many short-lived database and temp-file
+            # operations. On shared Windows runners, the default worker count can
+            # amplify Defender/filesystem contention until an otherwise sub-second
+            # test hits the finite 60s hang guard. Two isolated forks keep the full
+            # suite parallel without starving an individual native test.
+            VITEST_ARGS+=(--pool=forks --maxWorkers=2)
+          fi
+          npx vitest run --reporter=default "${VITEST_ARGS[@]}"
 
   # 完整测试（可选，手动触发或定时运行）
   full-tests:
