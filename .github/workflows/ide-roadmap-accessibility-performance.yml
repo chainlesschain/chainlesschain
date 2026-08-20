@@ -72,9 +72,6 @@ jobs:
     timeout-minutes: 90
     env:
       CC_P2_ARTIFACT: ide-accessibility-performance-${{ matrix.suffix }}-${{ github.run_attempt }}
-      CC_P2_ARTIFACT_DIR: ${{ github.workspace }}/.p2-evidence/accessibility-performance/${{ matrix.suffix }}
-      CC_P2_AT_PROBE: ${{ github.workspace }}/.p2-evidence/accessibility-performance-input/${{ matrix.suffix }}/assistive-technology.json
-      CC_P2_JETBRAINS_EVIDENCE: ${{ github.workspace }}/.p2-evidence/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-native.json
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -87,6 +84,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Configure runner-temporary evidence paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then root="$(cygpath -m "$root")"; fi
+          printf 'CC_P2_ARTIFACT_DIR=%s/accessibility-performance/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_P2_AT_PROBE=%s/accessibility-performance-input/${{ matrix.suffix }}/assistive-technology.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_P2_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-native.json\n' "$root" >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |

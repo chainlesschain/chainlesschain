@@ -100,8 +100,6 @@ jobs:
     timeout-minutes: 90
     env:
       CC_SC_ARTIFACT: ide-marketplace-supply-chain-${{ matrix.suffix }}-${{ github.run_attempt }}
-      CC_SC_ARTIFACT_DIR: ${{ github.workspace }}/.roadmap-evidence/marketplace-supply-chain/${{ matrix.suffix }}
-      CC_SC_STATE_DIR: ${{ github.workspace }}/.roadmap-evidence/marketplace-supply-chain-state/${{ matrix.suffix }}
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -110,6 +108,14 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
+      - name: Configure runner-temporary evidence paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then root="$(cygpath -m "$root")"; fi
+          printf 'CC_SC_ARTIFACT_DIR=%s/marketplace-supply-chain/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_SC_STATE_DIR=%s/marketplace-supply-chain-state/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |
