@@ -1847,7 +1847,7 @@ R1 与 R4 的 macOS 子门应在下一期合并申请同一组 Developer ID/nota
 | 同一 workflow 中依赖 Developer ID、notary、root-owned pkg、受保护 tag/environment 的 release/live job | 是 | **下一期** | 即使 workflow 已存在，也必须等生产身份和受保护环境到位后才能形成退出证据 |
 | Alias telemetry reporter | 是；缺获批 cohort、签名信任根和真实代表性数据 | **下一期** | GitHub Actions 只能验证 reporter 代码，不能生成或替代获批用户数据 |
 
-本地 Git commit 是后续 Action 的输入，不是 Action 成功证据。本节记录的 `409240ab2b` 与 `30a0c4f6eb` 尚未以本节快照证明存在于远端，也尚无绑定这两个 SHA 的完整 Action 终态，因此当前只能记为“仓库实现与本地验证完成、远端 exact-SHA 门待运行”。
+本地 Git commit 是后续 Action 的输入，不是 Action 成功证据。实现提交 `409240ab2b` 与 CI 路由提交 `30a0c4f6eb` 已进入 `github/main@e9c1d0e0e6dd`；PR #244 的后续合同修复也必须以同步主线后的最终 exact SHA 重新运行完整矩阵，因此在该 SHA 的门禁终态成功前，仍只能记为“仓库实现与本地验证完成、远端 exact-SHA 门待运行”。
 
 ### 20.2 R4 仓库内能力切片：MCP package native addon 拒绝
 
