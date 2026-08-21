@@ -142,10 +142,41 @@ jobs:
           script: |
             const date = new Date().toISOString().split('T')[0];
             const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const testedSha = context.payload.pull_request?.head?.sha || context.sha;
+            const failureScope = context.payload.pull_request
+              ? `pull-request-${context.payload.pull_request.number}`
+              : context.ref;
+            const scopeLabel = context.payload.pull_request
+              ? `PR #${context.payload.pull_request.number}`
+              : context.ref.replace(/^refs\/heads\//, '');
+            const dedupeMarker = `<!-- automated-test-failure:${context.workflow}:${failureScope} -->`;
+            const occurrence = `- [${date} run #${process.env.GITHUB_RUN_NUMBER} attempt ${process.env.GITHUB_RUN_ATTEMPT}](${workflowUrl}) — commit \`${testedSha}\`, actor \`${context.actor}\``;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'automated-detection,test-failure',
+              per_page: 100
+            });
+            const existingIssue = openIssues.find((issue) =>
+              (issue.body || '').includes(dedupeMarker)
+            );
+
+            if (existingIssue) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `${dedupeMarker}\n## 再次发生\n\n${occurrence}\n\n同一故障范围已有打开的 Issue，本次运行已合并记录，不再重复建单。`
+              });
+              core.notice(`Recorded repeated failure in issue #${existingIssue.number}`);
+              return;
+            }
+
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `自动测试失败 - ${date}`,
-              body: `## 自动测试失败报告\n\n**工作流运行**: [查看详情](${workflowUrl})\n**分支**: ${context.ref}\n**提交**: ${context.sha}\n**触发者**: ${context.actor}\n\n首轮综合测试失败；无变更重跑只用于复现和诊断，不能替代首轮门禁。诊断器不会执行自动修复，请查看工作流日志和诊断报告。\n\n### 下一步行动\n1. 查看测试日志\n2. 查看 \`test-results/auto-fix-report.json\`（仅诊断）\n3. 对比 \`test-report.json\` 与 \`test-report-retry.json\`\n4. 本地运行 \`npm run test:all\`\n5. 修复问题后重新提交`,
+              title: `自动测试失败 - ${scopeLabel} - ${date}`,
+              body: `${dedupeMarker}\n## 自动测试失败报告\n\n**工作流运行**: [查看详情](${workflowUrl})\n**故障范围**: ${scopeLabel}\n**分支**: ${context.ref}\n**测试提交**: ${testedSha}\n**触发者**: ${context.actor}\n\n### 发生记录\n${occurrence}\n\n首轮综合测试失败；无变更重跑只用于复现和诊断，不能替代首轮门禁。诊断器不会执行自动修复，请查看工作流日志和诊断报告。相同工作流及分支/PR 的后续失败会追加到本 Issue，不会重复建单。\n\n### 下一步行动\n1. 查看测试日志\n2. 查看 \`test-results/auto-fix-report.json\`（仅诊断）\n3. 对比 \`test-report.json\` 与 \`test-report-retry.json\`\n4. 本地运行 \`npm run test:all\`\n5. 修复问题后重新提交`,
               labels: ['bug', 'automated-detection', 'test-failure', 'needs-triage']
             });
