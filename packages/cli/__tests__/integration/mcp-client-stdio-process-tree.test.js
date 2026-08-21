@@ -194,12 +194,10 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
         const client = new MCPClient();
         const connectionConfig = {
           command: process.execPath,
-          args: [fixturePath],
-          env: {
-            ...process.env,
-            CC_MCP_HEADERS_HELPER_TREE_MARKER: markerPath,
-            CC_MCP_HEADERS_HELPER_TREE_NONCE: nonce,
-          },
+          // The shared fixture also runs behind the headersHelper environment
+          // sanitizer, so pass its test-only marker identity as explicit argv.
+          args: [fixturePath, markerPath, nonce],
+          env: process.env,
           requestTimeoutMs: process.platform === "win32" ? 8_000 : 2_000,
           processTreeGraceMs: 50,
           processTreeCleanupTimeoutMs: 2_000,
