@@ -15,8 +15,41 @@ const DEFAULT_MAP_PATH = path.join(
   "fixtures",
   "claude-2.1.221-238-security-map.json",
 );
+const COMMITMENT_ID = "SEC-DELTA";
+const FRAGMENT_SCHEMA =
+  "chainlesschain.claude-code-increment-audit-fragment.v1";
+const PROFILE_VERSION = "sec-delta-v2";
 const SHA_RE = /^[a-f0-9]{40}$/u;
 const DIGEST_RE = /^sha256:[a-f0-9]{64}$/u;
+const JOB_ID_RE = /^[A-Za-z0-9_.-]+$/u;
+const FRAGMENT_KEYS = Object.freeze([
+  "commitmentId",
+  "disposition",
+  "headSha",
+  "measurements",
+  "os",
+  "outcome",
+  "producerDigests",
+  "profileVersion",
+  "runtime",
+  "schema",
+  "source",
+  "testIds",
+  "thresholds",
+]);
+const MEASUREMENT_KEYS = Object.freeze([
+  "failedMappedRows",
+  "mappedRows",
+  "missingMappedRows",
+  "passedMappedRows",
+  "reportDurationMs",
+  "reportFailedTests",
+  "reportPassedTests",
+  "requiredGroupCount",
+  "testReportDigest",
+  "upstreamRevertedParitySuccess",
+  "upstreamRevertedRows",
+]);
 const ALLOWED_DISPOSITIONS = new Set([
   "existing-test",
   "new-test",
@@ -74,6 +107,22 @@ const REVERTED_IDS = new Set([
   "cc-2.1.233-cygwin-symlink-permission",
   "cc-2.1.233-input-redirection-permission",
 ]);
+const THRESHOLDS = Object.freeze({
+  failedMappedRowsMax: 0,
+  mappedRowsMin: REQUIRED_DELTA_IDS.length,
+  missingMappedRowsMax: 0,
+  reportFailedTestsMax: 0,
+  requiredGroupCountMin: REQUIRED_GROUPS.length,
+  upstreamRevertedParitySuccessMax: 0,
+});
+const EVIDENCE_PRODUCER_PATHS = Object.freeze([
+  ".github/workflows/cli-ci.yml",
+  ".github/workflows/cli-strict-sandbox.yml",
+  ".github/workflows/ide-roadmap-safety.yml",
+  "packages/cli/scripts/run-claude-security-map-tests.mjs",
+  "packages/cli/scripts/verify-claude-security-map.mjs",
+  "tests/fixtures/claude-2.1.221-238-security-map.json",
+]);
 
 function parseArgs(argv) {
   const options = {};
@@ -92,8 +141,9 @@ function sha256(bytes) {
   return `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+function readJsonBytes(filePath) {
+  const bytes = fs.readFileSync(filePath);
+  return { bytes, value: JSON.parse(bytes.toString("utf8")) };
 }
 
 function writeJson(filePath, value) {
@@ -112,7 +162,7 @@ function currentHead() {
   return execFileSync("git", ["rev-parse", "HEAD"], {
     cwd: REPOSITORY_ROOT,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
+    stdio: ["ignore", "pipe", "pipe"],
   })
     .trim()
     .toLowerCase();
@@ -121,6 +171,7 @@ function currentHead() {
 function producerPath(relativePath) {
   assert.equal(typeof relativePath, "string");
   assert.ok(relativePath.length > 0);
+  assert.equal(relativePath, relativePath.replaceAll("\\", "/"));
   const resolved = path.resolve(REPOSITORY_ROOT, relativePath);
   const relative = path.relative(REPOSITORY_ROOT, resolved);
   assert.ok(
@@ -129,11 +180,38 @@ function producerPath(relativePath) {
   return resolved;
 }
 
+function gitBlobDigest(headSha, relativePath) {
+  const bytes = execFileSync(
+    "git",
+    ["cat-file", "blob", `${headSha}:${relativePath}`],
+    {
+      cwd: REPOSITORY_ROOT,
+      encoding: "buffer",
+      maxBuffer: 16 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  return sha256(bytes);
+}
+
+function sourceDigest(relativePath, headSha, verifyGitHead) {
+  const bytes = fs.readFileSync(producerPath(relativePath));
+  const digest = sha256(bytes);
+  if (verifyGitHead) {
+    assert.equal(
+      gitBlobDigest(headSha, relativePath),
+      digest,
+      `${relativePath}/Git blob`,
+    );
+  }
+  return digest;
+}
+
 function validateSecurityMap(mapPath = DEFAULT_MAP_PATH) {
   const resolvedMapPath = path.resolve(mapPath);
-  const map = readJson(resolvedMapPath);
+  const { bytes, value: map } = readJsonBytes(resolvedMapPath);
   assert.equal(map.schema, "chainlesschain.claude-security-map.v1");
-  assert.equal(map.profileVersion, 1);
+  assert.equal(map.profileVersion, 2);
   assert.deepEqual(map.upstreamRange, { from: "2.1.221", to: "2.1.238" });
   assert.deepEqual(map.requiredGates, REQUIRED_GATES);
   assert.deepEqual(map.requiredOperatingSystems, REQUIRED_OPERATING_SYSTEMS);
@@ -159,8 +237,7 @@ function validateSecurityMap(mapPath = DEFAULT_MAP_PATH) {
     assert.ok(row.testId.length >= 8, `${row.id}/testId`);
     assert.equal(typeof row.producer?.path, "string");
     assert.match(row.producer?.sha256 || "", DIGEST_RE);
-    const sourcePath = producerPath(row.producer.path);
-    const source = fs.readFileSync(sourcePath);
+    const source = fs.readFileSync(producerPath(row.producer.path));
     assert.equal(
       sha256(source),
       row.producer.sha256,
@@ -179,8 +256,24 @@ function validateSecurityMap(mapPath = DEFAULT_MAP_PATH) {
     if (row.disposition === "not-applicable+reason") {
       assert.equal(typeof row.reason, "string", `${row.id}/reason`);
       assert.ok(row.reason.length >= 24, `${row.id}/reason`);
+      assert.equal(
+        typeof row.productBoundary,
+        "string",
+        `${row.id}/productBoundary`,
+      );
+      assert.ok(row.productBoundary.length >= 12, `${row.id}/productBoundary`);
+      assert.notEqual(
+        row.testId,
+        "requires reasons for non-applicable rows and rejects stale producer digests",
+        `${row.id}/placeholder test`,
+      );
     } else {
       assert.equal(row.reason, undefined, `${row.id}/unexpected reason`);
+      assert.equal(
+        row.productBoundary,
+        undefined,
+        `${row.id}/unexpected productBoundary`,
+      );
     }
     if (REVERTED_IDS.has(row.id)) {
       assert.equal(row.disposition, "upstream-reverted", `${row.id}/rollback`);
@@ -195,63 +288,234 @@ function validateSecurityMap(mapPath = DEFAULT_MAP_PATH) {
       assert.equal(row.paritySuccess, undefined, `${row.id}/paritySuccess`);
     }
   }
-  return {
-    map,
-    mapPath: resolvedMapPath,
-    mapDigest: sha256(fs.readFileSync(resolvedMapPath)),
-  };
+  return { map, mapPath: resolvedMapPath, mapDigest: sha256(bytes) };
 }
 
-function evidenceProjection(validated, releaseCommit, operatingSystem) {
-  return {
-    schema: "chainlesschain.claude-security-map-evidence.v1",
-    headSha: releaseCommit,
-    operatingSystem,
-    runtime: {
-      node: process.version,
-      architecture: process.arch,
-    },
-    profileVersion: validated.map.profileVersion,
-    upstreamRange: validated.map.upstreamRange,
-    disposition: "required",
-    mapDigest: validated.mapDigest,
-    rows: validated.map.rows.map((row) => ({
-      id: row.id,
-      group: row.group,
-      disposition: row.disposition,
-      testId: row.testId,
-      producerDigest: row.producer.sha256,
-      paritySuccess: row.paritySuccess ?? null,
-    })),
+function canonicalTestPath(value) {
+  const resolved = path.resolve(String(value || ""));
+  const normalized = path.normalize(resolved);
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function evaluateMappedReport(validated, testReportPath) {
+  assert.equal(typeof testReportPath, "string");
+  const resolved = path.resolve(testReportPath);
+  const { bytes, value: report } = readJsonBytes(resolved);
+  assert.ok(
+    Array.isArray(report.testResults),
+    "Vitest report is missing testResults",
+  );
+  const files = new Map(
+    report.testResults.map((result) => [
+      canonicalTestPath(result.name),
+      result,
+    ]),
+  );
+  const rows = validated.map.rows.map((row) => {
+    const result = files.get(
+      canonicalTestPath(producerPath(row.producer.path)),
+    );
+    const matches = (result?.assertionResults || []).filter(
+      (assertion) => assertion.title === row.testId,
+    );
+    const passed =
+      matches.length > 0 && matches.every((match) => match.status === "passed");
+    const failed = matches.some((match) => match.status === "failed");
+    return { id: row.id, passed, failed, missing: matches.length === 0 };
+  });
+  const durations = report.testResults.flatMap((result) =>
+    (result.assertionResults || []).map(
+      (assertion) => Number(assertion.duration) || 0,
+    ),
+  );
+  const measurements = {
+    failedMappedRows: rows.filter((row) => row.failed).length,
+    mappedRows: rows.length,
+    missingMappedRows: rows.filter((row) => row.missing).length,
+    passedMappedRows: rows.filter((row) => row.passed).length,
+    reportDurationMs: Math.round(
+      durations.reduce((sum, value) => sum + value, 0),
+    ),
+    reportFailedTests: Number(report.numFailedTests) || 0,
+    reportPassedTests: Number(report.numPassedTests) || 0,
+    requiredGroupCount: new Set(validated.map.rows.map((row) => row.group))
+      .size,
+    testReportDigest: sha256(bytes),
+    upstreamRevertedParitySuccess: validated.map.rows.filter(
+      (row) =>
+        row.disposition === "upstream-reverted" && row.paritySuccess === true,
+    ).length,
+    upstreamRevertedRows: validated.map.rows.filter(
+      (row) => row.disposition === "upstream-reverted",
+    ).length,
   };
+  const passed =
+    report.success === true &&
+    measurements.failedMappedRows <= THRESHOLDS.failedMappedRowsMax &&
+    measurements.mappedRows >= THRESHOLDS.mappedRowsMin &&
+    measurements.missingMappedRows <= THRESHOLDS.missingMappedRowsMax &&
+    measurements.passedMappedRows === measurements.mappedRows &&
+    measurements.reportFailedTests <= THRESHOLDS.reportFailedTestsMax &&
+    measurements.requiredGroupCount >= THRESHOLDS.requiredGroupCountMin &&
+    measurements.upstreamRevertedParitySuccess <=
+      THRESHOLDS.upstreamRevertedParitySuccessMax;
+  return { measurements, passed };
+}
+
+function normalizeSource(source = {}) {
+  exactKeys(
+    source,
+    ["artifactName", "jobId", "runId", "workflowId"],
+    "fragment source",
+  );
+  const normalized = {
+    workflowId: String(
+      source.workflowId || process.env.GITHUB_WORKFLOW_REF || "",
+    ),
+    runId: String(source.runId || process.env.GITHUB_RUN_ID || ""),
+    jobId: String(source.jobId || process.env.GITHUB_JOB || ""),
+    artifactName: String(source.artifactName || ""),
+  };
+  assert.match(
+    normalized.workflowId,
+    /^[^/\s]+\/[^/\s]+\/\.github\/workflows\/[^@\s]+@[^\s]+$/u,
+  );
+  assert.match(normalized.runId, /^[1-9][0-9]*$/u);
+  assert.match(normalized.jobId, JOB_ID_RE);
+  assert.ok(
+    normalized.artifactName.length > 0 && normalized.artifactName.length <= 255,
+  );
+  assert.ok(!/[\\/]/u.test(normalized.artifactName));
+  return normalized;
+}
+
+function evidenceProducerDigests(validated, headSha, verifyGitHead) {
+  const paths = [
+    ...new Set([
+      ...EVIDENCE_PRODUCER_PATHS,
+      ...validated.map.rows.map((row) => row.producer.path),
+    ]),
+  ].sort();
+  return Object.fromEntries(
+    paths.map((relativePath) => [
+      relativePath,
+      sourceDigest(relativePath, headSha, verifyGitHead),
+    ]),
+  );
 }
 
 function produceEvidence({
   mapPath = DEFAULT_MAP_PATH,
   releaseCommit,
   output,
+  testReport,
   platform = process.platform,
+  disposition,
+  source,
   verifyGitHead = true,
 }) {
   const normalizedCommit = String(releaseCommit || "").toLowerCase();
   assert.match(normalizedCommit, SHA_RE);
+  assert.ok(disposition === "required" || disposition === "advisory");
   if (verifyGitHead) assert.equal(currentHead(), normalizedCommit);
   const validated = validateSecurityMap(mapPath);
-  const evidence = evidenceProjection(
-    validated,
-    normalizedCommit,
-    normalizeOperatingSystem(platform),
+  const report = evaluateMappedReport(validated, testReport);
+  const fragment = {
+    schema: FRAGMENT_SCHEMA,
+    commitmentId: COMMITMENT_ID,
+    headSha: normalizedCommit,
+    os: normalizeOperatingSystem(platform),
+    runtime: { name: "node", version: process.version, arch: process.arch },
+    profileVersion: PROFILE_VERSION,
+    thresholds: { ...THRESHOLDS },
+    measurements: report.measurements,
+    testIds: [...new Set(validated.map.rows.map((row) => row.testId))].sort(),
+    producerDigests: evidenceProducerDigests(
+      validated,
+      normalizedCommit,
+      verifyGitHead,
+    ),
+    disposition,
+    source: normalizeSource(source),
+    outcome: report.passed ? "passed" : "failed",
+  };
+  if (output) writeJson(path.resolve(output), fragment);
+  assert.equal(
+    fragment.outcome,
+    "passed",
+    "mapped security test report did not pass",
   );
-  if (output) writeJson(path.resolve(output), evidence);
-  return evidence;
+  return fragment;
 }
 
-function evidenceFiles(directory) {
+function exactKeys(value, expected, scope) {
+  assert.ok(value && typeof value === "object" && !Array.isArray(value), scope);
+  assert.deepEqual(
+    Object.keys(value).sort(),
+    [...expected].sort(),
+    `${scope}/keys`,
+  );
+}
+
+function validateFragment(fragment, validated, releaseCommit, verifyGitHead) {
+  exactKeys(fragment, FRAGMENT_KEYS, "fragment");
+  assert.equal(fragment.schema, FRAGMENT_SCHEMA);
+  assert.equal(fragment.commitmentId, COMMITMENT_ID);
+  assert.equal(fragment.headSha, releaseCommit);
+  assert.ok(REQUIRED_OPERATING_SYSTEMS.includes(fragment.os));
+  exactKeys(fragment.runtime, ["arch", "name", "version"], "fragment runtime");
+  assert.equal(fragment.runtime.name, "node");
+  assert.equal(typeof fragment.runtime.version, "string");
+  assert.equal(typeof fragment.runtime.arch, "string");
+  assert.equal(fragment.profileVersion, PROFILE_VERSION);
+  assert.deepEqual(fragment.thresholds, THRESHOLDS);
+  assert.ok(
+    fragment.disposition === "required" || fragment.disposition === "advisory",
+  );
+  assert.ok(fragment.outcome === "passed" || fragment.outcome === "failed");
+  if (fragment.disposition === "required") {
+    assert.equal(fragment.outcome, "passed");
+  }
+  normalizeSource(fragment.source);
+  const expectedIds = [
+    ...new Set(validated.map.rows.map((row) => row.testId)),
+  ].sort();
+  assert.deepEqual(fragment.testIds, expectedIds);
+  assert.deepEqual(
+    fragment.producerDigests,
+    evidenceProducerDigests(validated, releaseCommit, verifyGitHead),
+  );
+  const measurement = fragment.measurements || {};
+  exactKeys(measurement, MEASUREMENT_KEYS, "fragment measurements");
+  assert.match(measurement.testReportDigest || "", DIGEST_RE);
+  if (fragment.outcome === "passed") {
+    assert.equal(measurement.mappedRows, REQUIRED_DELTA_IDS.length);
+    assert.equal(measurement.passedMappedRows, measurement.mappedRows);
+    assert.equal(measurement.failedMappedRows, 0);
+    assert.equal(measurement.missingMappedRows, 0);
+    assert.equal(measurement.reportFailedTests, 0);
+    assert.equal(measurement.requiredGroupCount, REQUIRED_GROUPS.length);
+    assert.equal(measurement.upstreamRevertedParitySuccess, 0);
+  }
+  return fragment;
+}
+
+function evidenceFiles(directory, state = { count: 0 }) {
   const found = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const candidate = path.join(directory, entry.name);
-    if (entry.isDirectory()) found.push(...evidenceFiles(candidate));
-    else if (entry.name.endsWith(".json")) found.push(candidate);
+    if (entry.isSymbolicLink())
+      throw new Error(`evidence symlink rejected: ${candidate}`);
+    if (entry.isDirectory()) found.push(...evidenceFiles(candidate, state));
+    else if (entry.isFile() && entry.name.endsWith(".json")) {
+      state.count += 1;
+      assert.ok(state.count <= 512, "too many security evidence JSON files");
+      assert.ok(
+        fs.statSync(candidate).size <= 16 * 1024 * 1024,
+        `security evidence file too large: ${candidate}`,
+      );
+      found.push(candidate);
+    }
   }
   return found;
 }
@@ -267,50 +531,82 @@ function verifyEvidenceSet({
   assert.match(normalizedCommit, SHA_RE);
   if (verifyGitHead) assert.equal(currentHead(), normalizedCommit);
   const validated = validateSecurityMap(mapPath);
-  const byOperatingSystem = new Map();
+  const records = [];
+  const otherDigests = new Set();
   for (const filePath of evidenceFiles(path.resolve(evidenceDir))) {
-    const candidate = readJson(filePath);
-    if (candidate.schema !== "chainlesschain.claude-security-map-evidence.v1") {
-      continue;
+    const { bytes, value } = readJsonBytes(filePath);
+    if (
+      value?.schema === FRAGMENT_SCHEMA ||
+      value?.commitmentId === COMMITMENT_ID
+    ) {
+      records.push({
+        filePath,
+        bytes,
+        value: validateFragment(
+          value,
+          validated,
+          normalizedCommit,
+          verifyGitHead,
+        ),
+      });
+    } else {
+      otherDigests.add(sha256(bytes));
     }
+  }
+  const required = records.filter(
+    (record) => record.value.disposition === "required",
+  );
+  const advisory = records.filter(
+    (record) => record.value.disposition === "advisory",
+  );
+  const byOperatingSystem = new Map();
+  for (const record of required) {
     assert.ok(
-      !byOperatingSystem.has(candidate.operatingSystem),
-      `duplicate ${candidate.operatingSystem} security-map evidence`,
+      record.value.source.workflowId.includes(
+        "/.github/workflows/ide-roadmap-safety.yml@",
+      ),
+      `${record.value.os}/required source`,
     );
-    byOperatingSystem.set(candidate.operatingSystem, candidate);
-  }
-  assert.deepEqual([...byOperatingSystem.keys()].sort(), [
-    "linux",
-    "macos",
-    "windows",
-  ]);
-  for (const operatingSystem of REQUIRED_OPERATING_SYSTEMS) {
-    const actual = byOperatingSystem.get(operatingSystem);
-    const expected = evidenceProjection(
-      validated,
-      normalizedCommit,
-      operatingSystem,
+    assert.ok(
+      !byOperatingSystem.has(record.value.os),
+      `duplicate ${record.value.os} required SEC-DELTA evidence`,
     );
-    assert.deepEqual(actual, expected, `${operatingSystem}/evidence`);
+    assert.ok(
+      otherDigests.has(record.value.measurements.testReportDigest),
+      `${record.value.os}/test report artifact missing`,
+    );
+    byOperatingSystem.set(record.value.os, record);
   }
+  assert.deepEqual(
+    [...byOperatingSystem.keys()].sort(),
+    [...REQUIRED_OPERATING_SYSTEMS].sort(),
+  );
+  assert.equal(
+    new Set(required.map((record) => record.value.profileVersion)).size,
+    1,
+  );
+  assert.equal(
+    new Set(required.map((record) => JSON.stringify(record.value.thresholds)))
+      .size,
+    1,
+  );
   const aggregate = {
-    schema: "chainlesschain.claude-security-map-aggregate.v1",
+    schema: "chainlesschain.claude-security-map-aggregate.v2",
+    commitmentId: COMMITMENT_ID,
     headSha: normalizedCommit,
-    profileVersion: validated.map.profileVersion,
-    upstreamRange: validated.map.upstreamRange,
-    operatingSystems: [...REQUIRED_OPERATING_SYSTEMS],
-    requiredGates: [...REQUIRED_GATES],
-    rowCount: validated.map.rows.length,
-    producerDigests: Object.fromEntries(
-      validated.map.rows.map((row) => [row.id, row.producer.sha256]),
+    profileVersion: PROFILE_VERSION,
+    thresholds: { ...THRESHOLDS },
+    requiredOperatingSystems: [...REQUIRED_OPERATING_SYSTEMS],
+    requiredFragmentDigests: Object.fromEntries(
+      required
+        .sort((left, right) => left.value.os.localeCompare(right.value.os))
+        .map((record) => [record.value.os, sha256(record.bytes)]),
     ),
-    producerEvidenceDigests: Object.fromEntries(
-      [...byOperatingSystem].map(([operatingSystem, evidence]) => [
-        operatingSystem,
-        sha256(Buffer.from(JSON.stringify(evidence))),
-      ]),
-    ),
-    disposition: "required",
+    advisoryFragmentCount: advisory.length,
+    failedAdvisoryFragmentCount: advisory.filter(
+      (record) => record.value.outcome === "failed",
+    ).length,
+    requiredFragmentCount: required.length,
     result: "passed",
   };
   if (output) writeJson(path.resolve(output), aggregate);
@@ -332,6 +628,14 @@ async function main() {
     mapPath: options.map,
     releaseCommit: options.releaseCommit,
     output: options.output,
+    testReport: options.testReport,
+    disposition: options.disposition,
+    source: {
+      workflowId: options.workflowId,
+      runId: options.runId,
+      jobId: options.jobId,
+      artifactName: options.artifactName,
+    },
   });
 }
 
@@ -349,12 +653,16 @@ if (
 
 export {
   ALLOWED_DISPOSITIONS,
+  COMMITMENT_ID,
   DEFAULT_MAP_PATH,
+  FRAGMENT_SCHEMA,
+  PROFILE_VERSION,
   REQUIRED_DELTA_IDS,
   REQUIRED_GATES,
   REQUIRED_GROUPS,
   REQUIRED_OPERATING_SYSTEMS,
   REVERTED_IDS,
+  THRESHOLDS,
   produceEvidence,
   validateSecurityMap,
   verifyEvidenceSet,

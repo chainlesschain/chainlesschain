@@ -14,6 +14,9 @@
  *
  * @returns {string} the prompt header (no styling, no trailing "Proceed?")
  */
+import { normalizePermissionRequest } from "../lib/permission-request.js";
+import { redactSecrets } from "../lib/secret-scan.js";
+
 export function visualizePermissionText(value) {
   return String(value ?? "").replace(
     /[\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0]/gu,
@@ -27,23 +30,18 @@ export function visualizePermissionText(value) {
 }
 
 export function buildPermissionPrompt({ tool, args, rule, reason } = {}) {
-  const visibleTool = visualizePermissionText(tool);
-  const command = typeof args?.command === "string" ? args.command : "";
-  const source = args?.path ?? args?.file_path ?? args?.source ?? "";
-  const destination = args?.destination ?? args?.new_path ?? args?.to ?? "";
-  const rawDetail = command
-    ? command
-    : source && destination
-      ? `${source} -> ${destination}`
-      : source || destination;
-  const detail = rawDetail ? ` ${visualizePermissionText(rawDetail)}` : "";
+  const request = normalizePermissionRequest({ tool, args });
+  const visibleTool = visualizePermissionText(request.tool);
+  const rawDetail = request.detail;
+  const visibleDetail = visualizePermissionText(redactSecrets(rawDetail));
+  const detail = rawDetail ? ` ${visibleDetail}` : "";
   if (rule) {
-    return `[Permission] rule "${visualizePermissionText(rule)}" asks before ${visibleTool}:${detail}`;
+    return `[Permission] rule "${visualizePermissionText(redactSecrets(String(rule)))}" asks before ${visibleTool}:${detail}`;
   }
   if (reason) {
     const reasonText = String(reason);
     const missingTarget = rawDetail && !reasonText.includes(String(rawDetail));
-    return `[Permission] ${visualizePermissionText(reasonText)}${missingTarget ? `:${detail}` : ""}`;
+    return `[Permission] ${visualizePermissionText(redactSecrets(reasonText))}${missingTarget ? `:${detail}` : ""}`;
   }
   return `[Permission] confirm ${visibleTool}:${detail}`;
 }

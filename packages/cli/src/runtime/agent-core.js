@@ -516,6 +516,45 @@ export const _gitProcessDeps = {
   run: gitProcessRunner,
 };
 
+function canonicalGitMetadataPath(value) {
+  const resolved = path.resolve(String(value || "").trim());
+  try {
+    const real = fs.realpathSync.native(resolved);
+    return process.platform === "win32" ? real.toLowerCase() : real;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Distinguish the primary checkout from a linked worktree using Git's own
+ * metadata paths. Unknown/non-repository locations are deliberately not
+ * treated as linked worktrees.
+ */
+export function classifyGitCheckout(cwd) {
+  const query = (argument) => {
+    const result = _gitProcessDeps.run(
+      "git",
+      ["rev-parse", "--path-format=absolute", argument],
+      {
+        cwd,
+        encoding: "utf8",
+        timeout: 10000,
+        windowsHide: true,
+        origin: "agent-core:git-checkout-authority",
+        policy: "allow",
+        scope: "agent-core",
+      },
+    );
+    if (result?.error || result?.status !== 0) return null;
+    return canonicalGitMetadataPath(result.stdout);
+  };
+  const gitDirectory = query("--git-dir");
+  const commonDirectory = query("--git-common-dir");
+  if (!gitDirectory || !commonDirectory) return "unknown";
+  return gitDirectory === commonDirectory ? "primary" : "linked";
+}
+
 function _killTask(task) {
   const child = task?.child;
   if (!child || child.killed || task?.status !== "running") return false;
@@ -3253,25 +3292,35 @@ export async function executeTool(name, args, context = {}) {
   // command unguarded in auto mode — including `reset --hard`, `clean -fd`,
   // `restore .`, `push --force`, `branch -D`, `rebase`, `reflog expire` —
   // which irrecoverably discard work. An explicit settings `allow`/confirmed
-  // `ask` (ruleAllowed) pre-authorizes; headless without a confirmer fails
-  // closed. Plan mode already blocks non-read-only git below.
+  // A confirmed `ask` pre-authorizes. A static `allow` only pre-authorizes a
+  // linked worktree; primary/unknown checkout identity still needs a live
+  // confirmation. Plan mode already blocks non-read-only git below.
   if (
     name === "git" &&
-    !ruleAllowed &&
     !planManager.isActive() &&
     isDangerousGitCommand(args?.command)
   ) {
-    const ok = await requestInteractivePermission(name, args, context, cwd, {
-      tool: name,
-      args,
-      rule: null,
-      reason: `destructive git command: git ${normalizeGitCommand(args.command)}`,
-    });
-    if (!ok) {
-      return {
-        error: `[Destructive Git] "git ${normalizeGitCommand(args.command)}" discards work irrecoverably and requires confirmation — denied. Add a settings allow rule to pre-authorize.`,
-        policy: { decision: "ask", via: "destructive-git" },
-      };
+    const checkout = classifyGitCheckout(args?.cwd || cwd);
+    const settingsAskWasConfirmed =
+      settingsVerdict.decision === "ask" && ruleAllowed;
+    const linkedWorktreeWasAllowed = checkout === "linked" && ruleAllowed;
+    if (!settingsAskWasConfirmed && !linkedWorktreeWasAllowed) {
+      const ok = await requestInteractivePermission(name, args, context, cwd, {
+        tool: name,
+        args,
+        rule: null,
+        reason: `destructive git command in ${checkout} checkout: git ${normalizeGitCommand(args.command)}`,
+      });
+      if (!ok) {
+        return {
+          error: `[Destructive Git] "git ${normalizeGitCommand(args.command)}" targets the ${checkout} checkout, discards work irrecoverably, and requires live confirmation — denied.`,
+          policy: {
+            decision: "ask",
+            via: "destructive-git",
+            checkout,
+          },
+        };
+      }
     }
   }
 

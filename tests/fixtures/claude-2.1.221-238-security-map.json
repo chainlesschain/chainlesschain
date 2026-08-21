@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.claude-security-map.v1",
-  "profileVersion": 1,
+  "profileVersion": 2,
   "upstreamRange": { "from": "2.1.221", "to": "2.1.238" },
   "requiredGates": [
     "CLI CI",
@@ -28,12 +28,11 @@
       "upstreamVersion": "2.1.221",
       "group": "shell/path",
       "upstreamFix": "Correct zsh conditional parsing in the upstream shell permission parser.",
-      "disposition": "not-applicable+reason",
-      "reason": "ChainlessChain does not emulate the upstream zsh permission parser; full shell segments remain subject to the broker and approval gate.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "disposition": "new-test",
+      "testId": "keeps zsh conditional commands behind destructive safety classification",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/auto-mode-safety-classifier.test.js",
+        "sha256": "sha256:0dfdb07b5fff7a180f71498c1b3e43a4fb4ef2dbdb67a26d8600baf9e30c00d5"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -43,11 +42,11 @@
       "upstreamVersion": "2.1.221",
       "group": "shell/path",
       "upstreamFix": "Keep quoted PowerShell path and destination parsing aligned with the approval target.",
-      "disposition": "existing-test",
-      "testId": "keeps the positional PowerShell destination before options: %s",
+      "disposition": "new-test",
+      "testId": "detects a quoted PowerShell destination outside the workspace",
       "producer": {
         "path": "packages/cli/__tests__/unit/auto-mode-safety-classifier.test.js",
-        "sha256": "sha256:1382b883e4a7273dcaca89fa423271db40803d2a0409c2994646c7b78fb060b1"
+        "sha256": "sha256:0dfdb07b5fff7a180f71498c1b3e43a4fb4ef2dbdb67a26d8600baf9e30c00d5"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -57,12 +56,11 @@
       "upstreamVersion": "2.1.221",
       "group": "shell/path",
       "upstreamFix": "Correct upstream PowerShell variable-write permission classification.",
-      "disposition": "not-applicable+reason",
-      "reason": "ChainlessChain does not mint persistent grants from PowerShell variable assignments; the complete command stays behind shell policy and approval.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "disposition": "new-test",
+      "testId": "fails closed on a PowerShell variable write target",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/auto-mode-safety-classifier.test.js",
+        "sha256": "sha256:0dfdb07b5fff7a180f71498c1b3e43a4fb4ef2dbdb67a26d8600baf9e30c00d5"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -72,11 +70,11 @@
       "upstreamVersion": "2.1.222",
       "group": "sandbox/worktree/socket",
       "upstreamFix": "Prevent unintended destructive Git operations from modifying the main checkout.",
-      "disposition": "existing-test",
-      "testId": "fails closed for a destructive git command with no confirmer (headless)",
+      "disposition": "new-test",
+      "testId": "requires live confirmation for destructive Git in the primary checkout despite a settings allow",
       "producer": {
         "path": "packages/cli/__tests__/unit/agent-core-destructive-git.test.js",
-        "sha256": "sha256:2645cb5d648fa2831a518926e4f6c4b194bac0ad09d9b22ed2b945f895f4a7c4"
+        "sha256": "sha256:ea583c30344bd59fc190df6bc05f21de4e1085bbcafef1ad67e6d4f173da9403"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -100,12 +98,11 @@
       "upstreamVersion": "2.1.222",
       "group": "shell/path",
       "upstreamFix": "Render approval diffs safely when the upstream input is a raw Git blob.",
-      "disposition": "not-applicable+reason",
-      "reason": "ChainlessChain IDE diff approval is file-proposal based and does not accept raw Git blob objects as an approval input type.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "disposition": "new-test",
+      "testId": "rejects raw Git blob or object approval input before contacting the IDE",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/ide-diff-approval.test.js",
+        "sha256": "sha256:7b34f2483e9a1f849c5bcd34035676e0fa39f2340417d9b527c497dbbc07044d"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -133,7 +130,7 @@
       "testId": "makes tabs and invisible Unicode explicit without changing the executed arguments",
       "producer": {
         "path": "packages/cli/__tests__/unit/permission-prompt.test.js",
-        "sha256": "sha256:5881da8dfaa5cb5a450cf422541833002503a7fae2130c48ac70456f4ccf3cfb"
+        "sha256": "sha256:fd3900e1f1701d8116bd9d8bc0fb1bf2ee605cfb667011696e92a5b710636873"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -145,10 +142,11 @@
       "upstreamFix": "Reject crafted workflow dynamic import and Bash injection inputs.",
       "disposition": "not-applicable+reason",
       "reason": "ChainlessChain does not embed the upstream claude-code-action workflow parser or execute workflow-supplied dynamic imports and Bash templates.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "productBoundary": "No claude-code-action workflow parser or Bash template executor is shipped.",
+      "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -186,11 +184,11 @@
       "upstreamVersion": "2.1.224",
       "group": "approval/redaction",
       "upstreamFix": "Detect and redact JWT and AWS credential shapes from evidence surfaces.",
-      "disposition": "existing-test",
-      "testId": "detects every category",
+      "disposition": "new-test",
+      "testId": "redacts JWT and AWS credentials while preserving the complete approval target",
       "producer": {
-        "path": "packages/cli/__tests__/unit/secret-scan.test.js",
-        "sha256": "sha256:5e010246a60dfeaaba343fce36c6afac3e1d7bf1d82d65dcc810164c0a2f500d"
+        "path": "packages/cli/__tests__/unit/permission-prompt.test.js",
+        "sha256": "sha256:fd3900e1f1701d8116bd9d8bc0fb1bf2ee605cfb667011696e92a5b710636873"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -200,11 +198,11 @@
       "upstreamVersion": "2.1.225",
       "group": "trust/authority",
       "upstreamFix": "Treat the nearest nested repository as an independent workspace authority.",
-      "disposition": "existing-test",
-      "testId": "setupAgentWorktree from an inner repo roots the worktree at the inner repo",
+      "disposition": "new-test",
+      "testId": "isolates permission authority at the nearest nested repository",
       "producer": {
-        "path": "packages/cli/__tests__/integration/worktree-stability-edges.test.js",
-        "sha256": "sha256:49a06c0d8d1f5a10b0e6dab3483d54117c51e73d0a1b924f82cb4fcf12803d02"
+        "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js",
+        "sha256": "sha256:6effd6e825ad2713186f456f93857a5c5865ab0e10b5f0eec3d0acb49b0fdf49"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -216,10 +214,11 @@
       "upstreamFix": "Honor allowed_non_write_users on GitHub-hosted claude-code-action runners.",
       "disposition": "not-applicable+reason",
       "reason": "ChainlessChain does not ship or invoke the upstream claude-code-action Bash runner and has no allowed_non_write_users input contract.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "productBoundary": "No claude-code-action runner or allowed_non_write_users input is shipped.",
+      "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -245,10 +244,11 @@
       "upstreamFix": "Prevent Remote Control resume from leaking transcript history across projects.",
       "disposition": "not-applicable+reason",
       "reason": "ChainlessChain Remote Control carries control and approval envelopes only; it does not transfer transcript history during resume.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "productBoundary": "Remote Control resume has no transcript-history transfer channel.",
+      "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -260,10 +260,11 @@
       "upstreamFix": "Fence server lifecycle hooks in the upstream hosted-runner authority.",
       "disposition": "not-applicable+reason",
       "reason": "ChainlessChain has no Claude-style hosted runner server hook surface; location post-session hooks are a separate local target contract.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "productBoundary": "No Claude hosted-runner server lifecycle hook authority is shipped.",
+      "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -287,12 +288,11 @@
       "upstreamVersion": "2.1.232",
       "group": "sandbox/worktree/socket",
       "upstreamFix": "Reject pre-positioned symlinks or foreign ownership around a shared temporary socket.",
-      "disposition": "not-applicable+reason",
-      "reason": "ChainlessChain does not use Claude's fixed shared temporary socket; its local transports use private state roots or Windows named pipes.",
-      "testId": "requires reasons for non-applicable rows and rejects stale producer digests",
+      "disposition": "new-test",
+      "testId": "rejects pre-positioned POSIX socket paths and authenticates Windows named pipes",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/background-session-transport.test.js",
+        "sha256": "sha256:8f99757ba181920ccf28f67d69564454bca3fb7eb3cbfa29394a77914f1e58c5"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -305,10 +305,10 @@
       "disposition": "upstream-reverted",
       "revertedBy": "2.1.233",
       "paritySuccess": false,
-      "testId": "keeps reverted Cygwin symlink and input redirection changes out of parity success",
+      "testId": "keeps device-namespace rejection while Cygwin symlink parity remains reverted",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/paths.test.js",
+        "sha256": "sha256:23b673adffeff67b5d2274a0fd88bccf3b35fa8b811aa1bcb1a97b649726f1f0"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -321,10 +321,10 @@
       "disposition": "upstream-reverted",
       "revertedBy": "2.1.233",
       "paritySuccess": false,
-      "testId": "keeps reverted Cygwin symlink and input redirection changes out of parity success",
+      "testId": "keeps input redirection behind the shell approval gate",
       "producer": {
-        "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:36b3c15604027f4b4594e54865f3a2e94ed19d760b78a48747fcea4e418e38b3"
+        "path": "packages/cli/__tests__/unit/shell-approval.test.js",
+        "sha256": "sha256:d57864fdc8791dc5fc15c929475e2f32e01f7d392efc133fafe9edb331eac45f"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -338,7 +338,7 @@
       "testId": "refuses filesystem, drive, UNC-share, and user-home roots",
       "producer": {
         "path": "packages/cli/__tests__/unit/paths.test.js",
-        "sha256": "sha256:64921a5c4fa0dc87952daa4f99d44949e46caa14a77f25b548182fde9fdade2b"
+        "sha256": "sha256:23b673adffeff67b5d2274a0fd88bccf3b35fa8b811aa1bcb1a97b649726f1f0"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -366,7 +366,7 @@
       "testId": "falls back to terminal confirm when the IDE dies mid-review",
       "producer": {
         "path": "packages/cli/__tests__/unit/ide-diff-approval.test.js",
-        "sha256": "sha256:3854261111989c4b61ee166790298d5a4686898435bd20700eb56203e10a7b64"
+        "sha256": "sha256:7b34f2483e9a1f849c5bcd34035676e0fa39f2340417d9b527c497dbbc07044d"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -377,10 +377,10 @@
       "group": "trust/authority",
       "upstreamFix": "Bind mid-turn approval resolution to an exact authority revision and operation fingerprint.",
       "disposition": "existing-test",
-      "testId": "uses a record revision as a compare-and-swap token",
+      "testId": "binds mid-turn approval to operation fingerprint and record revision",
       "producer": {
         "path": "packages/cli/__tests__/unit/approval-authority-store.test.js",
-        "sha256": "sha256:1532d0039a48c860a8093b2444880de491e07bb0f04442ed2ad31d1730cc7660"
+        "sha256": "sha256:fa9ab159d5ad114576b5112d3757884d0dbfdbee4d5613ee18dbbe773ba92534"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -391,10 +391,10 @@
       "group": "approval/redaction",
       "upstreamFix": "Redact secrets from MCP diagnostics and every persisted evidence surface.",
       "disposition": "existing-test",
-      "testId": "measures every surface independently",
+      "testId": "suppresses stderr content and coalesces bounded diagnostics",
       "producer": {
-        "path": "packages/cli/__tests__/unit/secret-scan.test.js",
-        "sha256": "sha256:5e010246a60dfeaaba343fce36c6afac3e1d7bf1d82d65dcc810164c0a2f500d"
+        "path": "packages/cli/__tests__/unit/mcp-client-stdin-error.test.js",
+        "sha256": "sha256:ca6356a11b004130145b8e6370cc99b355c7c2c12701efed290a419652225e17"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -408,7 +408,7 @@
       "testId": "keeps the complete source and destination visible in the grant",
       "producer": {
         "path": "packages/cli/__tests__/unit/permission-prompt.test.js",
-        "sha256": "sha256:5881da8dfaa5cb5a450cf422541833002503a7fae2130c48ac70456f4ccf3cfb"
+        "sha256": "sha256:fd3900e1f1701d8116bd9d8bc0fb1bf2ee605cfb667011696e92a5b710636873"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -422,7 +422,7 @@
       "testId": "uses the rule name for settings/hook ask rules",
       "producer": {
         "path": "packages/cli/__tests__/unit/permission-prompt.test.js",
-        "sha256": "sha256:5881da8dfaa5cb5a450cf422541833002503a7fae2130c48ac70456f4ccf3cfb"
+        "sha256": "sha256:fd3900e1f1701d8116bd9d8bc0fb1bf2ee605cfb667011696e92a5b710636873"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -446,11 +446,11 @@
       "upstreamVersion": "2.1.236",
       "group": "shell/path",
       "upstreamFix": "Keep Git status and monitor checks deterministic when untracked-file display is disabled.",
-      "disposition": "existing-test",
-      "testId": "succeeds against a clean exact-SHA controlled source fixture",
+      "disposition": "new-test",
+      "testId": "detects untracked work when status.showUntrackedFiles is disabled",
       "producer": {
-        "path": "packages/cli/__tests__/integration/team-distributed-soak.test.js",
-        "sha256": "sha256:53ec98e66342d8918c1e19796845d7c4901c2c96e4ee6a89797723706b150a3a"
+        "path": "packages/cli/__tests__/unit/agent-worktree.test.js",
+        "sha256": "sha256:717a21a01ac9d7fd1a8613e18c54641e9b767d35b4968e3e2fc2e0030485d757"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]

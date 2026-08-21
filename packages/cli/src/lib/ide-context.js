@@ -569,10 +569,23 @@ export function normalizeDiffReviewAudit(value, binding = {}) {
  */
 export async function requestIdeDiffApproval(mcp, req = {}) {
   if (!hasIdeOpenDiff(mcp)) return null;
-  if (!req.path || typeof req.modifiedText !== "string") return null;
+  // The IDE bridge accepts a workspace path, never a Git object/blob-shaped
+  // value. Reject malformed paths before contacting the privileged bridge.
+  if (
+    typeof req.path !== "string" ||
+    req.path.trim().length === 0 ||
+    typeof req.modifiedText !== "string"
+  ) {
+    return null;
+  }
   const operation = req.operation || "modify";
   if (!DIFF_REVIEW_OPERATIONS.has(operation)) return null;
-  if (operation === "rename" && !req.targetPath) return null;
+  if (
+    operation === "rename" &&
+    (typeof req.targetPath !== "string" || req.targetPath.trim().length === 0)
+  ) {
+    return null;
+  }
   const exec = mcp.externalToolExecutors.mcp__ide__openDiff;
   const reviewContext = Object.fromEntries(
     Object.entries({

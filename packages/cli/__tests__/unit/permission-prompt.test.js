@@ -10,6 +10,8 @@ import {
   questionWithIdleTimeout,
   visualizePermissionText,
 } from "../../src/repl/permission-prompt.js";
+import { normalizePermissionRequest } from "../../src/lib/permission-request.js";
+import { classifyAutoModeSafety } from "../../src/lib/auto-mode-safety-classifier.js";
 
 describe("buildPermissionPrompt", () => {
   it("makes tabs and invisible Unicode explicit without changing the executed arguments", () => {
@@ -31,6 +33,43 @@ describe("buildPermissionPrompt", () => {
         reason: "workspace mutation",
       }),
     ).toBe("[Permission] workspace mutation: src/a.txt -> release/a.txt");
+  });
+
+  it("redacts JWT and AWS credentials while preserving the complete approval target", () => {
+    const jwt =
+      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+    const aws = "AKIAIOSFODNN7EXAMPLE";
+    const prompt = buildPermissionPrompt({
+      tool: "move_file",
+      args: {
+        path: `src/宽字符📦-${jwt}.txt`,
+        destination: `release/完整目标-${aws}.txt`,
+      },
+      reason: "workspace mutation",
+    });
+
+    expect(prompt).toContain("src/宽字符📦-");
+    expect(prompt).toContain("release/完整目标-");
+    expect(prompt).not.toContain(jwt);
+    expect(prompt).not.toContain(aws);
+    expect(prompt.match(/\[REDACTED\]/gu)).toHaveLength(2);
+  });
+
+  it("uses the same normalized command for safety classification and approval preview", () => {
+    const request = {
+      tool: "run_shell",
+      args: { argv: ["zsh", "-c", "[[ -n x ]] && rm -rf /tmp/outside"] },
+    };
+    const normalized = normalizePermissionRequest(request);
+    const preview = buildPermissionPrompt(request);
+    const fromArgv = classifyAutoModeSafety(request);
+    const fromCommand = classifyAutoModeSafety({
+      tool: request.tool,
+      args: { command: normalized.command },
+    });
+
+    expect(preview).toContain(normalized.command);
+    expect(fromArgv.reasonCodes).toEqual(fromCommand.reasonCodes);
   });
 
   it("uses the rule name for settings/hook ask rules", () => {

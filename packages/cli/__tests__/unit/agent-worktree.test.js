@@ -162,6 +162,23 @@ describe("finishAgentWorktree", { timeout: 30_000 }, () => {
     expect(fs.existsSync(info.path)).toBe(true);
   });
 
+  it("detects untracked work when status.showUntrackedFiles is disabled", () => {
+    const info = setupAgentWorktree({ cwd: repo });
+    git("config status.showUntrackedFiles no", info.path);
+    fs.writeFileSync(
+      path.join(info.path, "hidden-by-config.txt"),
+      "work",
+      "utf8",
+    );
+
+    const fin = finishAgentWorktree(info);
+
+    expect(fin).toMatchObject({ kept: true, reason: "uncommitted changes" });
+    expect(fs.existsSync(path.join(info.path, "hidden-by-config.txt"))).toBe(
+      true,
+    );
+  });
+
   it("keeps the worktree when the session committed", () => {
     const info = setupAgentWorktree({ cwd: repo });
     fs.writeFileSync(path.join(info.path, "done.txt"), "x", "utf-8");
