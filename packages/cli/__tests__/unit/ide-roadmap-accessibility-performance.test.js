@@ -291,6 +291,10 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("AccessibilityPerformanceEvidenceTest");
     expect(workflow).toContain("host-dom-relay.test.cjs");
     expect(workflow).toContain(
+      "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",
+    );
+    expect(workflow).not.toMatch(/npm install[^\n]*--omit=optional/u);
+    expect(workflow).toContain(
       "npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1",
     );
     expect(workflow).toContain("if: always()");

@@ -120,7 +120,8 @@ jobs:
       - name: Install focused CLI browser dependencies
         shell: bash
         run: |
-          npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+          # Vitest 4 loads Rolldown through a platform-specific optional binding.
+          npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
           npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1
       - name: Install exact Playwright Chromium
         shell: pwsh
