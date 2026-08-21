@@ -10,13 +10,12 @@
  *   cc remote-control status [--json]
  *   cc remote-control stop [--port N]
  *
- * `start` boots the WS server IN-PROCESS, then opens a loopback client that
- * acts as the remote session HOST (the registry closes a remote session when
- * its host disconnects, so this client stays open for the server's lifetime).
+ * `start` boots the WS server IN-PROCESS, then opens a loopback client backed
+ * by durable possession-proof membership. A crash detaches transport without
+ * silently transferring host authority.
  * With a relay configured you get the E2EE `chainlesschain://remote-session/…`
- * URI; without one you get a direct-LAN pairing URI embedding ws://<lan-ip>.
- * Devices join with observe/prompt/approve/interrupt scopes — the same wire
- * contract the web-panel and Android client already speak.
+ * URI. Without one, the safe default is a loopback-only direct pairing URI;
+ * LAN binding, approval, and interruption are separate explicit opt-ins.
  */
 
 import chalk from "chalk";
@@ -24,8 +23,8 @@ import { logger } from "../lib/logger.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { WsRpcClient } from "../lib/ws-rpc-client.js";
+import { RemoteApprovalBridge } from "../lib/remote-approval-bridge.js";
 import {
-  buildDirectPairingUri,
   pickLanAddress,
   readRemoteControlStates,
   removeRemoteControlState,
@@ -33,6 +32,11 @@ import {
   resolveRemoteControlOptions,
   writeRemoteControlState,
 } from "../lib/remote-control.js";
+
+function websocketHost(host) {
+  const value = String(host || "127.0.0.1");
+  return value.includes(":") && !value.startsWith("[") ? `[${value}]` : value;
+}
 
 export function registerRemoteControlCommand(program) {
   const cmd = program
@@ -48,17 +52,23 @@ export function registerRemoteControlCommand(program) {
       "Start the remote-control host (WS server + remote session) and print the pairing URI/QR",
     )
     .option("-p, --port <port>", "WS server port (default 18800)")
-    .option("--host <host>", "Bind host (default 0.0.0.0)")
+    .option("--host <host>", "Bind host (default 127.0.0.1)")
+    .option(
+      "--allow-lan",
+      "DANGEROUS: allow a private/LAN listener (defaults host to 0.0.0.0)",
+    )
     .option("--token <token>", "Server auth token (default: auto-generated)")
     .option(
       "--relay-url <url>",
-      "Signaling relay URL for E2EE pairing (falls back to direct LAN pairing when unset)",
+      "Signaling relay URL for outbound E2EE pairing",
     )
     .option("--peer-id <id>", "Stable relay peer ID for this host")
     .option(
       "--scopes <csv>",
-      "Granted device scopes (observe,prompt,approve,interrupt)",
+      "Base device scopes (default observe,prompt; privileged scopes need their opt-ins)",
     )
+    .option("--allow-approve", "Grant paired devices the approve scope")
+    .option("--allow-interrupt", "Grant paired devices the interrupt scope")
     .option("--name <name>", "Remote session display name")
     .option(
       "--session <agentSessionId>",
@@ -114,6 +124,9 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
       flags: {
         port: options.port,
         host: options.host,
+        allowLan: options.allowLan,
+        allowApprove: options.allowApprove,
+        allowInterrupt: options.allowInterrupt,
         token: options.token,
         relayUrl: options.relayUrl,
         peerId: options.peerId,
@@ -127,6 +140,13 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     errLog(err.message);
     return { code: 4 };
   }
+  const localControlHost =
+    resolved.host === "0.0.0.0"
+      ? "127.0.0.1"
+      : resolved.host === "::"
+        ? "::1"
+        : resolved.host;
+  const localControlUrl = `ws://${websocketHost(localControlHost)}:${resolved.port}`;
 
   // Refuse to double-start on a port that already has a LIVE host.
   const existing = readRemoteControlStates({ dir: stateDir }).find(
@@ -150,7 +170,7 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
             port: resolved.port,
             host: resolved.host,
             token: resolved.token,
-            allowRemote: resolved.host !== "127.0.0.1",
+            allowRemote: resolved.exposesLan,
             remoteSessionRelayUrl: resolved.relayUrl,
             remoteSessionPeerId: resolved.peerId,
           })
@@ -161,19 +181,19 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     return { code: 1 };
   }
 
-  // Loopback HOST connection — must stay open, its disconnect closes the
-  // remote session (registry semantics).
-  const client =
-    _deps.createClient?.(resolved) ||
-    new WsRpcClient({ url: `ws://127.0.0.1:${resolved.port}` });
-  let remoteSession;
-  let pairing;
+  // Create an agent session first when the caller did not select one. This
+  // bootstrap client is not the Remote Session host and never receives pairing
+  // authority.
+  let sessionClient = null;
   let agentSessionId = options.session || null;
   try {
-    await client.connect();
-    await client.auth(resolved.token);
     if (!agentSessionId) {
-      const created = await client.request("session-create", {
+      sessionClient = new WsRpcClient({
+        url: localControlUrl,
+      });
+      await sessionClient.connect();
+      await sessionClient.auth(resolved.token);
+      const created = await sessionClient.request("session-create", {
         sessionType: "agent",
         projectRoot: _deps.cwd || process.cwd(),
       });
@@ -186,16 +206,41 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
         throw new Error("session-create returned no sessionId");
       }
     }
-    const createdRemote = await client.request("remote-session-create", {
-      sessionId: agentSessionId,
-      name: resolved.name,
-      scopes: resolved.scopes,
-    });
-    remoteSession = createdRemote.session;
-    pairing = createdRemote.pairing;
   } catch (err) {
-    errLog(`Failed to create remote session: ${err.message}`);
-    client.close();
+    errLog(`Failed to create agent session: ${err.message}`);
+    sessionClient?.close();
+    try {
+      await server.stop?.();
+    } catch {
+      // best-effort teardown
+    }
+    return { code: 1 };
+  } finally {
+    sessionClient?.close();
+  }
+
+  // Standalone start uses the same durable, possession-proof membership host
+  // as headless/REPL approvals. A crash detaches the transport; restarting with
+  // the same agent session resumes or re-enables the durable membership.
+  const createBridge =
+    _deps.createBridge ||
+    ((bridgeOptions) => new RemoteApprovalBridge(bridgeOptions));
+  const bridge = createBridge({
+    wsUrl: localControlUrl,
+    token: resolved.token,
+    agentSessionId,
+    name: resolved.name,
+    scopes: resolved.scopes,
+    approvalStateFile: _deps.approvalStateFile,
+    membershipHostStateFile: _deps.membershipHostStateFile,
+    membershipHostWitnessFile: _deps.membershipHostWitnessFile,
+    membershipHostAuthorityLockFile: _deps.membershipHostAuthorityLockFile,
+  });
+  try {
+    await bridge.start();
+  } catch (err) {
+    errLog(`Failed to create durable remote session: ${err.message}`);
+    await bridge.close?.().catch(() => undefined);
     try {
       await server.stop?.();
     } catch {
@@ -203,29 +248,33 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     }
     return { code: 1 };
   }
+  const client = bridge.client;
+  const pairing = bridge.pairing;
+  const remoteSession = {
+    sessionId: bridge.remoteSessionId,
+  };
 
   const relayMode = Boolean(pairing?.uri);
-  const lanAddress = _deps.lanAddress || pickLanAddress() || "127.0.0.1";
+  const lanAddress = resolved.exposesLan
+    ? resolved.host === "0.0.0.0" || resolved.host === "::"
+      ? _deps.lanAddress || pickLanAddress() || "127.0.0.1"
+      : resolved.host
+    : "127.0.0.1";
   const wsUrl = `ws://${lanAddress}:${resolved.port}`;
-  const pairingUri = relayMode
-    ? pairing.uri
-    : buildDirectPairingUri({
-        wsUrl,
-        serverToken: resolved.token,
-        remoteSessionId: remoteSession.sessionId,
-        agentSessionId,
-        pairingToken: pairing.token,
-        scopes: pairing.scopes,
-        expiresAt: pairing.expiresAt,
-      });
+  const pairingInfo = bridge.pairingInfo({ lanWsUrl: wsUrl });
+  const pairingUri = pairingInfo.uri;
 
   const state = {
     pid: process.pid,
     port: resolved.port,
     host: resolved.host,
     wsUrl,
-    token: resolved.token,
     mode: relayMode ? "relay" : "direct",
+    exposure: relayMode
+      ? "outbound-relay"
+      : resolved.exposesLan
+        ? "direct-lan"
+        : "loopback",
     relayUrl: resolved.relayUrl || null,
     peerId: resolved.peerId || null,
     agentSessionId,
@@ -267,7 +316,13 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     log(chalk.bold("  Remote Control ready"));
     log("");
     log(
-      `  Mode:        ${state.mode === "relay" ? chalk.cyan("relay (E2EE)") : chalk.cyan("direct LAN")}`,
+      `  Mode:        ${
+        state.mode === "relay"
+          ? chalk.cyan("relay (E2EE, outbound)")
+          : state.exposure === "direct-lan"
+            ? chalk.yellow("direct LAN (explicit opt-in)")
+            : chalk.cyan("direct loopback")
+      }`,
     );
     log(`  WS server:   ${chalk.cyan(wsUrl)}`);
     log(`  Agent sess:  ${agentSessionId}`);
@@ -304,7 +359,7 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     log("");
   }
 
-  return { code: 0, client, server, state, pairingUri };
+  return { code: 0, client, bridge, server, state, pairingUri };
 }
 
 export function runRemoteControlStatus(options = {}, _deps = {}) {
@@ -320,8 +375,8 @@ export function runRemoteControlStatus(options = {}, _deps = {}) {
   if (options.json) {
     log(
       JSON.stringify(
-        // The token stays in the 0600 state file — status output may be pasted
-        // into issues/chat, so redact it here.
+        // Defense in depth for legacy state files written before tokens were
+        // removed from discovery state.
         states.map(({ token: _token, ...rest }) => rest),
         null,
         2,

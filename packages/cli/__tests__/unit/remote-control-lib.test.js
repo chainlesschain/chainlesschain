@@ -45,7 +45,9 @@ describe("resolveRemoteControlOptions", () => {
       config: {},
     });
     expect(opts.port).toBe(REMOTE_CONTROL_DEFAULT_PORT);
-    expect(opts.host).toBe("0.0.0.0");
+    expect(opts.host).toBe("127.0.0.1");
+    expect(opts.allowLan).toBe(false);
+    expect(opts.exposesLan).toBe(false);
     expect(opts.token).toMatch(/^[0-9a-f]{32}$/);
     expect(opts.relayUrl).toBeNull();
     expect(opts.peerId).toBeNull();
@@ -61,13 +63,97 @@ describe("resolveRemoteControlOptions", () => {
         CC_REMOTE_SESSION_RELAY_URL: "wss://env-relay.example",
       },
       config: {
-        remoteControl: { port: 17777, token: "config-token" },
+        remoteControl: {
+          port: 17777,
+          host: "0.0.0.0",
+          token: "config-token",
+          scopes: ["approve", "interrupt"],
+        },
         remoteSession: { relayUrl: "wss://config-relay.example" },
       },
     });
     expect(opts.port).toBe(19999);
     expect(opts.token).toBe("flag-token");
     expect(opts.relayUrl).toBe("wss://env-relay.example");
+    expect(opts.host).toBe("127.0.0.1");
+    expect(opts.scopes).toEqual(["observe", "prompt"]);
+  });
+
+  it("requires independent explicit LAN and privileged-scope opt-ins", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: {
+        allowLan: true,
+        allowApprove: true,
+        allowInterrupt: true,
+      },
+      env: {},
+      config: {},
+    });
+    expect(opts.host).toBe("0.0.0.0");
+    expect(opts.allowLan).toBe(true);
+    expect(opts.exposesLan).toBe(true);
+    expect(opts.scopes).toEqual([
+      "observe",
+      "prompt",
+      "approve",
+      "interrupt",
+    ]);
+  });
+
+  it("fails closed for widened hosts or scopes without their opt-ins", () => {
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "0.0.0.0" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/--allow-lan/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { allowLan: true, host: "203.0.113.10" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/public Remote Control bind host/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { scopes: "observe,approve" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/--allow-approve/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { scopes: "interrupt" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/--allow-interrupt/);
+  });
+
+  it("lets configuration disable Remote Control but never widen it", () => {
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: {},
+        env: {},
+        config: { remoteControl: { enabled: false } },
+      }),
+    ).toThrow(/disabled by configuration/);
+    const safe = resolveRemoteControlOptions({
+      flags: {},
+      env: {},
+      config: {
+        remoteControl: {
+          enabled: true,
+          host: "0.0.0.0",
+          token: "project-secret",
+          scopes: "approve,interrupt",
+        },
+      },
+    });
+    expect(safe.host).toBe("127.0.0.1");
+    expect(safe.token).not.toBe("project-secret");
+    expect(safe.scopes).toEqual(["observe", "prompt"]);
   });
 
   it("auto-derives a peer id only when a relay is configured", () => {
@@ -216,7 +302,14 @@ describe("state files", () => {
 
   it("writes, reads (with liveness) and removes a record", () => {
     writeRemoteControlState(
-      { pid: process.pid, port: 18800, mode: "direct", token: "t" },
+      {
+        pid: process.pid,
+        port: 18800,
+        mode: "direct",
+        token: "server-secret",
+        pairingToken: "pairing-secret",
+        pairingUri: "chainlesschain://secret",
+      },
       { dir },
     );
     const states = readRemoteControlStates({ dir });
@@ -226,6 +319,12 @@ describe("state files", () => {
       port: 18800,
       alive: true,
     });
+    expect(states[0]).not.toHaveProperty("token");
+    expect(states[0]).not.toHaveProperty("pairingToken");
+    expect(states[0]).not.toHaveProperty("pairingUri");
+    expect(fs.readFileSync(path.join(dir, "18800.json"), "utf8")).not.toMatch(
+      /server-secret|pairing-secret|chainlesschain:\/\/secret/,
+    );
     expect(removeRemoteControlState(18800, { dir })).toBe(true);
     expect(readRemoteControlStates({ dir })).toHaveLength(0);
   });

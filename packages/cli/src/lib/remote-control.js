@@ -6,14 +6,13 @@
  * already exists under src/gateways + src/harness; this module only composes
  * it into one entry point:
  *
- *   - resolveRemoteControlOptions()  flags > env > config > defaults
+ *   - resolveRemoteControlOptions()  explicit authority > safe defaults
  *   - buildDirectPairingUri()        LAN pairing descriptor (no relay needed)
  *   - parseDirectPairingUri()        inverse, used by clients + tests
  *   - pickLanAddress()               best-effort non-internal IPv4
  *   - state file read/write          ~/.chainlesschain/remote-control/<port>.json
  *     so `cc remote-control status/stop` can discover a running host process.
- *     The file is 0600 and CONTAINS THE SERVER TOKEN — same local trust model
- *     as ~/.chainlesschain/ide/<port>.json (readable only by the OS user).
+ *     The file is 0600 and deliberately contains no bearer/pairing token.
  *   - renderQrCode()                 lazy OPTIONAL `qrcode` import; returns
  *     null when the package is not installed (URI printing is the contract,
  *     the QR is progressive enhancement — no hard dependency, trap #6/#27).
@@ -32,8 +31,6 @@ export const REMOTE_CONTROL_PAIRING_SCHEME =
 export const REMOTE_CONTROL_DEFAULT_SCOPES = Object.freeze([
   "observe",
   "prompt",
-  "approve",
-  "interrupt",
 ]);
 
 function b64url(value) {
@@ -63,21 +60,37 @@ export function parseScopes(raw) {
 }
 
 /**
- * Resolve effective start options. Precedence: explicit flags > environment >
- * config (`remoteControl` / legacy `remoteSession` blocks) > defaults. A
+ * Resolve effective start options. Remote Control is always command/flag
+ * activated by its caller; repository/project configuration is only allowed
+ * to disable it. In particular, checked-in config cannot widen the bind host,
+ * grant approve/interrupt, select a relay, or install a long-lived token.
+ *
+ * Direct LAN and privileged scopes are distinct command-line authorities. A
  * missing token is AUTO-GENERATED (32 hex chars) — the WS server must never
- * come up unauthenticated on the unified entry, even on loopback, because the
- * pairing URI embeds the token and pairing is the whole point.
+ * come up unauthenticated, even on loopback.
  */
 export function resolveRemoteControlOptions({
   flags = {},
   env = process.env,
   config = {},
 } = {}) {
-  const rc = config.remoteControl || {};
-  const legacy = config.remoteSession || {};
+  const rc =
+    config.remoteControl && typeof config.remoteControl === "object"
+      ? config.remoteControl
+      : {};
+  const legacy =
+    config.remoteSession && typeof config.remoteSession === "object"
+      ? config.remoteSession
+      : {};
+  if (
+    config.remoteControl === false ||
+    rc.enabled === false ||
+    legacy.remoteControlEnabled === false
+  ) {
+    throw new Error("Remote Control is disabled by configuration");
+  }
   const port = Number(
-    flags.port ?? env.CC_REMOTE_CONTROL_PORT ?? rc.port ?? undefined,
+    flags.port ?? env.CC_REMOTE_CONTROL_PORT ?? undefined,
   );
   const resolvedPort =
     Number.isFinite(port) && port >= 1 && port <= 65535
@@ -86,30 +99,63 @@ export function resolveRemoteControlOptions({
   const token =
     flags.token ||
     env.CC_REMOTE_CONTROL_TOKEN ||
-    rc.token ||
     randomBytes(16).toString("hex");
   const relayUrl =
     flags.relayUrl ||
     env.CC_REMOTE_SESSION_RELAY_URL ||
-    rc.relayUrl ||
-    legacy.relayUrl ||
     null;
   const peerId =
     flags.peerId ||
     env.CC_REMOTE_SESSION_PEER_ID ||
-    rc.peerId ||
-    legacy.peerId ||
     (relayUrl
       ? `cc-host-${os.hostname()}-${randomBytes(4).toString("hex")}`
       : null);
+  const allowLan = flags.allowLan === true;
+  const host = flags.host || (allowLan ? "0.0.0.0" : "127.0.0.1");
+  const normalizedHost = extractHost(host);
+  const loopback =
+    normalizedHost === "localhost" ||
+    normalizedHost === "::1" ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalizedHost || "");
+  if (!loopback && !allowLan) {
+    throw new Error(
+      `Refusing non-loopback Remote Control host "${host}" without explicit --allow-lan`,
+    );
+  }
+  if (!loopback && !isPrivateHost(normalizedHost)) {
+    throw new Error(
+      `Refusing public Remote Control bind host "${host}"; --allow-lan is limited to private/LAN addresses`,
+    );
+  }
+
+  const requestedScopes = parseScopes(flags.scopes ?? null);
+  if (requestedScopes.includes("approve") && flags.allowApprove !== true) {
+    throw new Error(
+      'Remote Control scope "approve" requires explicit --allow-approve',
+    );
+  }
+  if (requestedScopes.includes("interrupt") && flags.allowInterrupt !== true) {
+    throw new Error(
+      'Remote Control scope "interrupt" requires explicit --allow-interrupt',
+    );
+  }
+  const scopes = [...requestedScopes];
+  if (flags.allowApprove === true && !scopes.includes("approve")) {
+    scopes.push("approve");
+  }
+  if (flags.allowInterrupt === true && !scopes.includes("interrupt")) {
+    scopes.push("interrupt");
+  }
   return {
     port: resolvedPort,
-    host: flags.host || rc.host || "0.0.0.0",
+    host,
+    allowLan,
+    exposesLan: !loopback,
     token,
     relayUrl,
     peerId,
-    scopes: parseScopes(flags.scopes ?? rc.scopes ?? null),
-    name: flags.name || rc.name || `remote-control @ ${os.hostname()}`,
+    scopes,
+    name: flags.name || `remote-control @ ${os.hostname()}`,
   };
 }
 
@@ -226,14 +272,22 @@ function stateFilePath(dir, port) {
 }
 
 /**
- * Persist a running host's discovery record (0600 file, 0700 dir). Contains
- * the server token — local-user trust domain only, mirroring the IDE bridge.
+ * Persist a running host's non-secret discovery record (0600 file, 0700 dir).
+ * Pairing/server tokens are intentionally rejected so status, crash recovery,
+ * diagnostics, and uploaded state artifacts cannot disclose them.
  */
 export function writeRemoteControlState(state, { dir } = {}) {
   const stateDir = dir || remoteControlStateDir();
   fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
   const file = stateFilePath(stateDir, state.port);
-  fs.writeFileSync(file, JSON.stringify(state, null, 2), {
+  const {
+    token: _token,
+    serverToken: _serverToken,
+    pairingToken: _pairingToken,
+    pairingUri: _pairingUri,
+    ...safeState
+  } = state;
+  fs.writeFileSync(file, JSON.stringify(safeState, null, 2), {
     encoding: "utf-8",
     mode: 0o600,
   });

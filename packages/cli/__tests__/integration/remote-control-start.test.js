@@ -18,6 +18,12 @@ import {
   runRemoteControlStop,
 } from "../../src/commands/remote-control.js";
 import { parseDirectPairingUri } from "../../src/lib/remote-control.js";
+import {
+  createRemoteMembershipPrincipalCredential,
+  signRemoteMembershipAuthenticationChallenge,
+} from "../../src/lib/remote-membership-coordinator.js";
+
+vi.setConfig({ testTimeout: 15_000 });
 
 const TEST_PORT = 18930 + Math.floor(Math.random() * 50);
 const TOKEN = "rc-integration-token";
@@ -34,7 +40,7 @@ describe("remote-control unified entry (integration)", () => {
   afterEach(async () => {
     for (const handle of handles) {
       try {
-        handle.close?.();
+        await handle.close?.();
       } catch {
         // already closed
       }
@@ -56,6 +62,7 @@ describe("remote-control unified entry (integration)", () => {
         token: TOKEN,
         session: "agent-int-1",
         scopes: "observe,prompt,approve",
+        allowApprove: true,
         json,
         qr: false,
       },
@@ -66,18 +73,34 @@ describe("remote-control unified entry (integration)", () => {
         lanAddress: "127.0.0.1",
         log: (m) => logs.push(m),
         err: (m) => errs.push(m),
+        approvalStateFile: path.join(stateDir, "approval", "state.json"),
+        membershipHostStateFile: path.join(stateDir, "host", "state.json"),
+        membershipHostWitnessFile: path.join(
+          stateDir,
+          "host",
+          "witness.json",
+        ),
         startServer: async (resolved) => {
           server = new ChainlessChainWSServer({
             port: resolved.port,
-            host: "127.0.0.1",
+            host: resolved.host,
             token: resolved.token,
+            remoteMembershipCoordinatorOptions: {
+              stateFile: path.join(stateDir, "coordinator", "state.json"),
+              keyFile: path.join(stateDir, "coordinator", "key.json"),
+              witnessFile: path.join(
+                stateDir,
+                "coordinator",
+                "witness.json",
+              ),
+            },
           });
           await server.start();
           return server;
         },
       },
     );
-    if (result.client) handles.push(result.client);
+    if (result.bridge) handles.push(result.bridge);
     return { result, logs, errs };
   }
 
@@ -88,6 +111,7 @@ describe("remote-control unified entry (integration)", () => {
 
     const output = JSON.parse(logs.join("\n"));
     expect(output.mode).toBe("direct");
+    expect(output.wsUrl).toBe(`ws://127.0.0.1:${TEST_PORT}`);
     expect(output.agentSessionId).toBe("agent-int-1");
     expect(output.remoteSessionId).toBeTruthy();
 
@@ -99,6 +123,7 @@ describe("remote-control unified entry (integration)", () => {
       remoteSessionId: output.remoteSessionId,
       agentSessionId: "agent-int-1",
       scopes: ["observe", "prompt", "approve"],
+      durableMembership: true,
     });
     expect(payload.wsUrl).toBe(`ws://127.0.0.1:${TEST_PORT}`);
 
@@ -107,22 +132,35 @@ describe("remote-control unified entry (integration)", () => {
     handles.push(device);
     await device.connect();
     await device.auth(payload.serverToken);
-    const joined = await device.request("remote-session-join", {
+    const credential = createRemoteMembershipPrincipalCredential();
+    const challenged = await device.request("remote-session-join-challenge", {
       remoteSessionId: payload.remoteSessionId,
       token: payload.pairingToken,
+      credentialPublicKey: credential.publicKey,
+      capabilities: ["approval-binding-v1"],
+    });
+    const joined = await device.request("remote-session-join", {
+      remoteSessionId: payload.remoteSessionId,
+      challengeId: challenged.challenge.challengeId,
+      signature: signRemoteMembershipAuthenticationChallenge(
+        challenged.challenge,
+        credential.privateKeyPkcs8,
+      ),
     });
     expect(joined.type).toBe("remote-session-joined");
-    expect(joined.member.scopes).toEqual(["observe", "prompt", "approve"]);
+    expect(joined.member.scopes).toEqual(["approve", "observe", "prompt"]);
 
-    // The one-time token is consumed — a second join must fail.
+    // The one-time token is consumed — a second challenge must fail.
     const thief = new WsRpcClient({ url: payload.wsUrl });
     handles.push(thief);
     await thief.connect();
     await thief.auth(payload.serverToken);
     await expect(
-      thief.request("remote-session-join", {
+      thief.request("remote-session-join-challenge", {
         remoteSessionId: payload.remoteSessionId,
         token: payload.pairingToken,
+        credentialPublicKey:
+          createRemoteMembershipPrincipalCredential().publicKey,
       }),
     ).rejects.toThrow(/missing or expired|Invalid pairing token/);
 
@@ -138,10 +176,12 @@ describe("remote-control unified entry (integration)", () => {
       port: TEST_PORT,
       alive: true,
       mode: "direct",
+      exposure: "loopback",
       agentSessionId: "agent-int-1",
     });
     // …and never leaks the server token through status output.
     expect(states[0].token).toBeUndefined();
+    expect(fs.readFileSync(states[0].stateFile, "utf8")).not.toContain(TOKEN);
 
     // stop() with an injected kill cleans the record without killing vitest.
     const kill = vi.fn();

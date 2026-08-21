@@ -44,7 +44,6 @@ import {
 } from "./remote-membership-host-store.js";
 import {
   buildDirectPairingUri,
-  pickLanAddress,
   renderQrCode,
   resolveRemoteControlOptions,
 } from "./remote-control.js";
@@ -1311,7 +1310,13 @@ export async function startHeadlessRemoteApproval({
 } = {}) {
   const { ChainlessChainWSServer } =
     deps.serverModule || (await import("../gateways/ws/ws-server.js"));
-  const resolved = resolveRemoteControlOptions({ flags: {}, env, config });
+  // `--remote-control` is itself an explicit request to let a paired device
+  // answer approvals, but it is not an opt-in to expose a LAN listener.
+  const resolved = resolveRemoteControlOptions({
+    flags: { allowApprove: true },
+    env,
+    config,
+  });
   const server = new ChainlessChainWSServer({
     port: 0,
     host: resolved.host,
@@ -1333,9 +1338,8 @@ export async function startHeadlessRemoteApproval({
     await server.stop().catch(() => undefined);
     throw err;
   }
-  const lanAddress = deps.lanAddress || pickLanAddress() || "127.0.0.1";
   const pairing = bridge.pairingInfo({
-    lanWsUrl: `ws://${lanAddress}:${server.port}`,
+    lanWsUrl: `ws://127.0.0.1:${server.port}`,
   });
   if (isText) {
     writeErr(
