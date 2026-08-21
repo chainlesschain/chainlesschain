@@ -87,8 +87,10 @@ const REQUIRED_FILES = Object.freeze([
   "ide-input-performance.json",
   "outcome-observations.json",
 ]);
+const ACCESSIBILITY_WORKFLOW_PATH =
+  ".github/workflows/ide-roadmap-accessibility-performance.yml";
 const GATE_SOURCE_PATHS = Object.freeze([
-  ".github/workflows/ide-roadmap-accessibility-performance.yml",
+  ACCESSIBILITY_WORKFLOW_PATH,
   "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs",
   "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs",
   "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js",
@@ -327,6 +329,47 @@ function assertExactCheckout(releaseCommit) {
     gitSucceeds("diff", "--quiet", "HEAD", "--", ...GATE_SOURCE_PATHS),
     "accessibility/performance gate sources differ from exact HEAD",
   );
+}
+
+function readGitBlob(commit, filePath) {
+  return execFileSync("git", ["show", `${commit}:${filePath}`], {
+    cwd: REPOSITORY_ROOT,
+    maxBuffer: 8 * MIB,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function verifyAccessibilityWorkflowAuthority({
+  releaseCommit,
+  workflowSha,
+  workflowRef,
+  required = false,
+  githubActions = process.env.GITHUB_ACTIONS,
+  producerReader = readGitBlob,
+}) {
+  assert.match(releaseCommit, SHA_RE);
+  if (!required) return null;
+  assert.equal(githubActions, "true", "required evidence must run in Actions");
+  assert.match(workflowSha || "", SHA_RE, "workflow SHA");
+  assert.match(
+    workflowRef || "",
+    new RegExp(
+      `^[^/]+/[^/]+/${ACCESSIBILITY_WORKFLOW_PATH.replaceAll(".", "\\.")}@`,
+      "u",
+    ),
+    "workflow ref",
+  );
+  const candidateBytes = producerReader(
+    releaseCommit,
+    ACCESSIBILITY_WORKFLOW_PATH,
+  );
+  const executedBytes = producerReader(workflowSha, ACCESSIBILITY_WORKFLOW_PATH);
+  assert.equal(
+    digest(executedBytes),
+    digest(candidateBytes),
+    "executed workflow bytes differ from the exact release commit",
+  );
+  return digest(candidateBytes);
 }
 
 function platformSuffix(platform = process.platform) {
@@ -1102,6 +1145,12 @@ async function mainCampaign(options, dependencies = {}) {
   const exactCheckout = dependencies.assertExactCheckout || assertExactCheckout;
   exactCheckout(releaseCommit);
   const provenance = provenanceFromEnvironment(artifactName);
+  verifyAccessibilityWorkflowAuthority({
+    releaseCommit,
+    workflowSha: provenance.workflowSha,
+    workflowRef: provenance.workflowRef,
+    required: options.required === "true",
+  });
   const atProbe = validateAtProbe(
     readJson(path.resolve(options.atProbe)),
     dependencies.platform || process.platform,
@@ -1556,6 +1605,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 }
 
 export {
+  ACCESSIBILITY_WORKFLOW_PATH,
   DIAGNOSTIC_PRODUCER_PATHS,
   DIAGNOSTICS_PROFILE,
   GATE_SOURCE_PATHS,
@@ -1569,4 +1619,5 @@ export {
   validateAtProbe,
   validateInputPerformanceEvidence,
   validateJetBrainsEvidence,
+  verifyAccessibilityWorkflowAuthority,
 };

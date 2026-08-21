@@ -4,12 +4,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  ACCESSIBILITY_WORKFLOW_PATH,
   DIAGNOSTIC_PRODUCER_PATHS,
   DIAGNOSTICS_PROFILE,
   PROFILE,
   REQUIRED_FILES,
   summarizeSamples,
   validateAtProbe,
+  verifyAccessibilityWorkflowAuthority,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
 import { appendAxTranscriptFragments } from "../../scripts/ax-transcript-audit-fragment.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-performance.mjs";
@@ -373,6 +375,49 @@ afterEach(() => {
 });
 
 describe("P2-4 accessibility/performance matrix", () => {
+  it("binds the executed workflow bytes to the exact release commit", () => {
+    const workflowSha = "c".repeat(40);
+    const workflowRef =
+      `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`;
+    const matchingReader = () => Buffer.from("identical workflow bytes");
+
+    expect(
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha,
+        workflowRef,
+        required: true,
+        githubActions: "true",
+        producerReader: matchingReader,
+      }),
+    ).toMatch(/^sha256:/u);
+
+    expect(() =>
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha,
+        workflowRef,
+        required: true,
+        githubActions: "true",
+        producerReader: (commit) => Buffer.from(commit),
+      }),
+    ).toThrow(/workflow bytes differ/u);
+  });
+
+  it("rejects required workflow provenance outside GitHub Actions", () => {
+    expect(() =>
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha: "c".repeat(40),
+        workflowRef:
+          `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`,
+        required: true,
+        githubActions: "false",
+        producerReader: () => Buffer.from("same"),
+      }),
+    ).toThrow(/must run in Actions/u);
+  });
+
   it("fixes the exact automated scale and percentile requirements", () => {
     expect(PROFILE).toMatchObject({
       messagesPerSession: 2_000,

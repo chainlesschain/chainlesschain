@@ -13,6 +13,7 @@ import {
   validateAtProbe,
   validateInputPerformanceEvidence,
   validateJetBrainsEvidence,
+  verifyAccessibilityWorkflowAuthority,
 } from "./ide-roadmap-accessibility-performance.mjs";
 import { THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS } from "./ide-input-performance-profile.mjs";
 import {
@@ -479,6 +480,12 @@ function verifyCell(directory, expected) {
 function main() {
   const options = parseArgs(process.argv.slice(2));
   assert.match(options.releaseCommit || "", SHA_RE);
+  verifyAccessibilityWorkflowAuthority({
+    releaseCommit: options.releaseCommit,
+    workflowSha: options.workflowSha,
+    workflowRef: options.workflowRef,
+    required: true,
+  });
   const shared = {
     repository: options.repository,
     workflowRef: options.workflowRef,

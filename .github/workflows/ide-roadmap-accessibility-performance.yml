@@ -137,6 +137,10 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+          fetch-depth: 0
+      - name: Fetch executed workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
@@ -272,6 +276,7 @@ jobs:
           --at-probe "$CC_P2_AT_PROBE"
           --jetbrains-evidence "$CC_P2_JETBRAINS_EVIDENCE"
           --input-performance-evidence "$CC_IDE_INPUT_PERF_EVIDENCE"
+          --required true
       - name: Bind canonical AX transcript required and advisory fragments
         shell: bash
         run: >-
@@ -302,6 +307,10 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+          fetch-depth: 0
+      - name: Fetch executed workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
