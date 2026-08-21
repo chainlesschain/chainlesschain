@@ -256,12 +256,8 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
           {
             command: `node ${localFixtureName}`,
             cwd: workspace,
-            env: {
-              ...process.env,
-              CC_MCP_HEADERS_HELPER_TREE_MARKER: markerPath,
-              CC_MCP_HEADERS_HELPER_TREE_NONCE: nonce,
-            },
-            serverName: "real-process-tree",
+            env: process.env,
+            serverName: nonce,
           },
           {
             cleanupTimeoutMs: 2_000,

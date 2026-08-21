@@ -2,8 +2,11 @@ import { spawn } from "node:child_process";
 import { renameSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const markerPath = process.env.CC_MCP_HEADERS_HELPER_TREE_MARKER;
-const nonce = process.env.CC_MCP_HEADERS_HELPER_TREE_NONCE;
+// Keep the fixture on the same sanitized environment contract as a real
+// headersHelper. The helper's copied location determines the marker path and
+// the supported server context carries the per-test nonce.
+const markerPath = fileURLToPath(new URL("./tree.json", import.meta.url));
+const nonce = process.env.CLAUDE_CODE_MCP_SERVER_NAME;
 const mode = process.argv[2];
 
 if (mode === "grandchild") {
