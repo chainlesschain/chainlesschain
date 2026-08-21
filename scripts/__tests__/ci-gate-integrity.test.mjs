@@ -51,6 +51,30 @@ function runNodeVerdict(source, environment) {
   });
 }
 
+function extractYamlScript(workflow, anchor) {
+  const anchoredWorkflow = workflow.slice(workflow.indexOf(anchor));
+  const lines = anchoredWorkflow.split(/\r?\n/);
+  const scriptLineIndex = lines.findIndex((line) => line.trim() === "script: |");
+  assert.notEqual(scriptLineIndex, -1, `Unable to find script block for ${anchor}`);
+
+  const scriptIndent = lines[scriptLineIndex].match(/^\s*/)[0].length;
+  const contentIndent = scriptIndent + 2;
+  const scriptLines = [];
+
+  for (const line of lines.slice(scriptLineIndex + 1)) {
+    if (line.trim() === "") {
+      scriptLines.push("");
+      continue;
+    }
+    if (line.match(/^\s*/)[0].length <= scriptIndent) {
+      break;
+    }
+    scriptLines.push(line.slice(contentIndent));
+  }
+
+  return scriptLines.join("\n");
+}
+
 test("root compatibility entry points fail loudly instead of passing", () => {
   for (const scriptName of [
     "cowork-ci-test-selector.js",
@@ -656,6 +680,22 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
     /RETRY_TEST_OUTCOME: \$\{\{ steps\.retry-tests\.outcome \}\}/,
   );
   assert.match(workflow, /process\.exit\(1\)/);
+  assert.match(
+    workflow,
+    /const dedupeMarker = `<!-- automated-test-failure:/,
+  );
+  assert.match(
+    workflow,
+    /github\.paginate\(github\.rest\.issues\.listForRepo/,
+  );
+  assert.match(workflow, /labels: 'automated-detection,test-failure'/);
+  assert.match(workflow, /state: 'open'/);
+  assert.match(workflow, /issues\.createComment\(/);
+  assert.match(workflow, /Recorded repeated failure in issue/);
+  assert.doesNotMatch(
+    workflow,
+    /title: `自动测试失败 - \$\{date\}`/,
+  );
 
   const verdict = extractNodeVerdict(
     workflow,
@@ -677,6 +717,73 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
       1,
     );
   }
+});
+
+test("failure issue reporter updates an existing scope instead of duplicating it", async () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test-automation-full.yml"),
+    "utf8",
+  );
+  const script = extractYamlScript(workflow, "name: Create Issue on Failure");
+  const runReporter = new Function(
+    "github",
+    "context",
+    "core",
+    `return (async () => { ${script} })();`,
+  );
+  const marker =
+    "<!-- automated-test-failure:Full Test Automation with Diagnostics:refs/heads/main -->";
+  const context = {
+    serverUrl: "https://github.com",
+    repo: { owner: "chainlesschain", repo: "chainlesschain" },
+    runId: 12345,
+    ref: "refs/heads/main",
+    sha: "abc123",
+    actor: "chainlesschain",
+    workflow: "Full Test Automation with Diagnostics",
+    payload: {},
+  };
+
+  async function execute(openIssues) {
+    const calls = { create: [], createComment: [], list: [], notices: [] };
+    const listForRepo = () => {};
+    const github = {
+      paginate: async (endpoint, options) => {
+        assert.equal(endpoint, listForRepo);
+        calls.list.push(options);
+        return openIssues;
+      },
+      rest: {
+        issues: {
+          listForRepo,
+          create: async (options) => calls.create.push(options),
+          createComment: async (options) => calls.createComment.push(options),
+        },
+      },
+    };
+    await runReporter(github, context, {
+      notice: (message) => calls.notices.push(message),
+    });
+    return calls;
+  }
+
+  const repeated = await execute([{ number: 247, body: marker }]);
+  assert.equal(repeated.create.length, 0);
+  assert.equal(repeated.createComment.length, 1);
+  assert.equal(repeated.createComment[0].issue_number, 247);
+  assert.match(repeated.createComment[0].body, /不再重复建单/);
+  assert.match(repeated.notices[0], /issue #247/);
+
+  const firstOccurrence = await execute([]);
+  assert.equal(firstOccurrence.createComment.length, 0);
+  assert.equal(firstOccurrence.create.length, 1);
+  assert.equal(firstOccurrence.list[0].state, "open");
+  assert.equal(
+    firstOccurrence.list[0].labels,
+    "automated-detection,test-failure",
+  );
+  assert.match(firstOccurrence.create[0].title, /main/);
+  assert.match(firstOccurrence.create[0].body, /automated-test-failure/);
 });
 
 test("unit workflow distinguishes selected-test failures from fail-closed fallback", () => {
