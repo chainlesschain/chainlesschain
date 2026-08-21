@@ -9,6 +9,12 @@ import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  PROFILE_VERSION as INPUT_PERFORMANCE_PROFILE_VERSION,
+  SOURCE_PATHS as INPUT_PERFORMANCE_SOURCE_PATHS,
+  THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS,
+  canonicalOs,
+} from "./ide-input-performance-profile.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = path.resolve(SCRIPT_DIR, "../../..");
@@ -78,6 +84,7 @@ const REQUIRED_FILES = Object.freeze([
   "resource-trajectory.json",
   "diagnostics-scale.json",
   "jetbrains-native.json",
+  "ide-input-performance.json",
   "outcome-observations.json",
 ]);
 const GATE_SOURCE_PATHS = Object.freeze([
@@ -85,7 +92,12 @@ const GATE_SOURCE_PATHS = Object.freeze([
   "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs",
   "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs",
   "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js",
+  "packages/cli/scripts/ide-input-performance-profile.mjs",
+  "packages/cli/__tests__/unit/ide-input-performance.test.js",
+  "packages/vscode-extension/src/chat/workspace-mention-index.js",
+  "packages/vscode-extension/src/chat/chat-view.js",
   "packages/vscode-extension/src/chat/chat-html.js",
+  "packages/vscode-extension/src/chat/symbol-mentions.js",
   "packages/vscode-extension/src/sessions-workbench.js",
   "packages/vscode-extension/src/diagnostics-scheduler.js",
   "packages/vscode-extension/src/vscode-facade.js",
@@ -97,6 +109,9 @@ const GATE_SOURCE_PATHS = Object.freeze([
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java",
@@ -104,6 +119,9 @@ const GATE_SOURCE_PATHS = Object.freeze([
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java",
+  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java",
+  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java",
+  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java",
   "tests/fixtures/ide-roadmap/p2-accessibility-performance.json",
 ]);
 const DIAGNOSTIC_PRODUCER_PATHS = Object.freeze([
@@ -402,6 +420,99 @@ function validateJetBrainsEvidence(evidence) {
     diagnostics?.heapGrowthBytes <=
       DIAGNOSTICS_PROFILE.thresholds.rendererHeapGrowthBytes,
   );
+  return evidence;
+}
+
+function validateInputPerformanceEvidence(
+  evidence,
+  releaseCommit,
+  platform,
+  expectedSource,
+) {
+  assert.equal(
+    evidence.schema,
+    "chainlesschain.claude-code-increment-audit-fragment.v1",
+  );
+  assert.equal(evidence.commitmentId, "IDE-INPUT-PERF");
+  assert.equal(evidence.headSha, releaseCommit);
+  assert.equal(evidence.os, canonicalOs(platform));
+  assert.equal(evidence.profileVersion, INPUT_PERFORMANCE_PROFILE_VERSION);
+  assert.deepEqual(evidence.thresholds, INPUT_PERFORMANCE_THRESHOLDS);
+  assert.equal(evidence.disposition, "required");
+  assert.equal(evidence.outcome, "passed");
+  assert.equal(evidence.runtime?.name, "node+java");
+  const runtimeVersions = String(evidence.runtime?.version || "").split(";");
+  assert.equal(runtimeVersions.length, 2);
+  assert.ok(runtimeVersions.every((version) => version.length > 0));
+  assert.ok(String(evidence.runtime?.arch || "").length > 0);
+  assert.ok(Array.isArray(evidence.testIds) && evidence.testIds.length >= 2);
+  for (const host of ["vscode", "jetbrains"]) {
+    const measurement = evidence.measurements?.[host];
+    assert.equal(
+      measurement?.pathCount,
+      INPUT_PERFORMANCE_THRESHOLDS.pathCount,
+    );
+    assert.equal(
+      measurement?.consecutiveQueries,
+      INPUT_PERFORMANCE_THRESHOLDS.consecutiveQueries,
+    );
+    assert.equal(
+      measurement?.rapidQueries,
+      INPUT_PERFORMANCE_THRESHOLDS.rapidQueries,
+    );
+    assert.equal(
+      measurement?.samplesMs?.length,
+      INPUT_PERFORMANCE_THRESHOLDS.consecutiveQueries,
+    );
+    assert.ok(
+      measurement.samplesMs.every(
+        (sample) => Number.isFinite(sample) && sample >= 0,
+      ),
+    );
+    assert.ok(
+      Number.isFinite(measurement.p50Ms) &&
+        measurement.p50Ms <= measurement.p95Ms &&
+        measurement.p95Ms <= measurement.p99Ms,
+    );
+    assert.ok(measurement?.p95Ms <= INPUT_PERFORMANCE_THRESHOLDS.p95Ms);
+    assert.ok(
+      measurement?.maxCandidates <= INPUT_PERFORMANCE_THRESHOLDS.maxCandidates,
+    );
+    assert.equal(measurement?.staleCommitCount, 0);
+    assert.ok(
+      measurement?.cancellationCount >=
+        INPUT_PERFORMANCE_THRESHOLDS.rapidQueries - 1,
+    );
+    assert.ok(
+      measurement?.discardedQueryCount >=
+        INPUT_PERFORMANCE_THRESHOLDS.rapidQueries - 1,
+    );
+    assert.ok(measurement?.deniedPathCount >= 2);
+    assert.equal(measurement?.leakCount, 0);
+    assert.equal(measurement?.contentReadCount, 0);
+    assert.equal(measurement?.symbolObserved, true);
+    assert.equal(measurement?.workspaceTrustEnforced, true);
+  }
+  assert.deepEqual(
+    Object.keys(evidence.producerDigests || {}).sort(),
+    [...INPUT_PERFORMANCE_SOURCE_PATHS].sort(),
+  );
+  for (const sourcePath of INPUT_PERFORMANCE_SOURCE_PATHS) {
+    const bytes = fs.readFileSync(path.join(REPOSITORY_ROOT, sourcePath));
+    assert.equal(evidence.producerDigests[sourcePath], digest(bytes));
+  }
+  for (const field of ["workflowId", "runId", "jobId", "artifactName"]) {
+    assert.ok(String(evidence.source?.[field] || "").length > 0);
+    if (expectedSource) {
+      assert.equal(evidence.source[field], expectedSource[field]);
+    }
+  }
+  if (process.env.GITHUB_ACTIONS === "true") {
+    assert.notEqual(evidence.source.workflowId, "local");
+    assert.notEqual(evidence.source.runId, "local");
+    assert.notEqual(evidence.source.jobId, "local");
+    assert.notEqual(evidence.source.artifactName, "local");
+  }
   return evidence;
 }
 
@@ -990,12 +1101,24 @@ async function mainCampaign(options, dependencies = {}) {
   fs.mkdirSync(artifactDir, { recursive: true });
   const exactCheckout = dependencies.assertExactCheckout || assertExactCheckout;
   exactCheckout(releaseCommit);
+  const provenance = provenanceFromEnvironment(artifactName);
   const atProbe = validateAtProbe(
     readJson(path.resolve(options.atProbe)),
     dependencies.platform || process.platform,
   );
   const jetBrainsSource = path.resolve(options.jetbrainsEvidence);
   const jetBrains = validateJetBrainsEvidence(readJson(jetBrainsSource));
+  const inputPerformance = validateInputPerformanceEvidence(
+    readJson(path.resolve(options.inputPerformanceEvidence)),
+    releaseCommit,
+    dependencies.platform || process.platform,
+    {
+      workflowId: provenance.workflowRef,
+      runId: provenance.runId,
+      jobId: provenance.job,
+      artifactName: provenance.artifactName,
+    },
+  );
   const testSecret = `cc-p2-secret-${crypto.randomBytes(24).toString("hex")}`;
   const descriptorOrHandleBefore = countOwnDescriptorsOrHandles();
   const browserProcessesBefore = browserProcessIds();
@@ -1148,8 +1271,10 @@ async function mainCampaign(options, dependencies = {}) {
       measurementSurfaces: [
         "chromium-vscode-product-webview",
         "headless-swing-jetbrains-product-components",
+        "metadata-only-vscode-workspace-mention-index",
+        "metadata-only-jetbrains-workspace-mention-index",
       ],
-      provenance: provenanceFromEnvironment(artifactName),
+      provenance,
     };
     const keyboard = {
       actions: chromium.keyboardActions,
@@ -1336,6 +1461,7 @@ async function mainCampaign(options, dependencies = {}) {
       pageErrorCount: chromium.pageErrors.length,
       requiredMeasurementsComplete: true,
       exactCommitBound: true,
+      ideInputPerformanceRequiredPassed: inputPerformance.outcome === "passed",
       automatedAssistiveTechnologyProcessProbeComplete:
         atProbe.automatedProcessProbeComplete,
       manualSpeechQualityPending: true,
@@ -1357,6 +1483,7 @@ async function mainCampaign(options, dependencies = {}) {
       outcome.credentialLeakCount === 0 &&
       outcome.orphanProcessCount === 0 &&
       outcome.pageErrorCount === 0 &&
+      outcome.ideInputPerformanceRequiredPassed === true &&
       chromium.approvalPosted === true &&
       chromium.transcript.renderedNodes === 800 &&
       !chromium.transcript.firstText.includes("scale-message-0000") &&
@@ -1378,6 +1505,7 @@ async function mainCampaign(options, dependencies = {}) {
       "resource-trajectory.json": resources,
       "diagnostics-scale.json": diagnosticsEvidence,
       "jetbrains-native.json": jetBrains,
+      "ide-input-performance.json": inputPerformance,
       "outcome-observations.json": outcome,
     };
     for (const [file, document] of Object.entries(documents)) {
@@ -1439,5 +1567,6 @@ export {
   runDiagnosticsScaleProfile,
   summarizeSamples,
   validateAtProbe,
+  validateInputPerformanceEvidence,
   validateJetBrainsEvidence,
 };

@@ -11,8 +11,10 @@ import {
   PROFILE,
   REQUIRED_FILES,
   validateAtProbe,
+  validateInputPerformanceEvidence,
   validateJetBrainsEvidence,
 } from "./ide-roadmap-accessibility-performance.mjs";
+import { THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS } from "./ide-input-performance-profile.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 
@@ -370,6 +372,17 @@ function verifyCell(directory, expected) {
     performance.workbenchPaintMs <= PROFILE.thresholds.workbenchPaintMs,
   );
   validateJetBrainsEvidence(documents["jetbrains-native.json"]);
+  validateInputPerformanceEvidence(
+    documents["ide-input-performance.json"],
+    expected.releaseCommit,
+    expected.operatingSystem,
+    {
+      workflowId: expected.provenance.workflowRef,
+      runId: expected.provenance.runId,
+      jobId: expected.provenance.job,
+      artifactName: expected.provenance.artifactName,
+    },
+  );
 
   const resources = documents["resource-trajectory.json"];
   assert.equal(resources.nodeRssTrajectory.length, 2);
@@ -397,6 +410,7 @@ function verifyCell(directory, expected) {
   assert.equal(outcome.success, true);
   assert.equal(outcome.requiredMeasurementsComplete, true);
   assert.equal(outcome.exactCommitBound, true);
+  assert.equal(outcome.ideInputPerformanceRequiredPassed, true);
   assert.equal(outcome.manualSpeechQualityPending, true);
   assert.equal(outcome.continuousEightHourHostSoakPending, true);
   requireZeroFields(
@@ -428,6 +442,9 @@ function verifyCell(directory, expected) {
     ),
     outcomeDigest: digest(
       fs.readFileSync(path.join(directory, "outcome-observations.json")),
+    ),
+    ideInputPerformanceDigest: digest(
+      fs.readFileSync(path.join(directory, "ide-input-performance.json")),
     ),
   };
 }
@@ -469,6 +486,12 @@ function main() {
       sessionCount: PROFILE.sessionCount,
       diagnosticsRequired: DIAGNOSTICS_PROFILE.requiredCount,
       diagnosticsAdvisory: DIAGNOSTICS_PROFILE.advisoryCount,
+    },
+    ideInputPerformance: {
+      commitmentId: "IDE-INPUT-PERF",
+      profileVersion: "ide-input-perf/v1",
+      disposition: "required",
+      ...INPUT_PERFORMANCE_THRESHOLDS,
     },
     manualExternalTail: [
       "assistive-technology-speech-quality",

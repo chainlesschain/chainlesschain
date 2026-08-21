@@ -12,6 +12,10 @@ import {
   validateAtProbe,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-performance.mjs";
+import {
+  SOURCE_PATHS as INPUT_PERFORMANCE_SOURCE_PATHS,
+  THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS,
+} from "../../scripts/ide-input-performance-profile.mjs";
 
 const COMMIT = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
@@ -90,6 +94,60 @@ function diagnosticsProfile(host) {
           snapshotDigest: DIGEST,
         }
       : { maxWorkSliceMs: 5, edtMaxMs: 0, heapGrowthBytes: 1_000 }),
+  };
+}
+
+function inputPerformanceEvidence(provenance) {
+  const measurement = {
+    pathCount: 100_000,
+    consecutiveQueries: 20,
+    rapidQueries: 20,
+    samplesMs: Array(20).fill(1),
+    p50Ms: 1,
+    p95Ms: 1,
+    p99Ms: 1,
+    maxCandidates: 200,
+    workspaceRevision: 2,
+    queryGeneration: 40,
+    cancellationCount: 19,
+    discardedQueryCount: 19,
+    deniedPathCount: 2,
+    staleCommitCount: 0,
+    leakCount: 0,
+    contentReadCount: 0,
+    symbolObserved: true,
+    workspaceTrustEnforced: true,
+  };
+  const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
+  const producerDigests = Object.fromEntries(
+    INPUT_PERFORMANCE_SOURCE_PATHS.map((sourcePath) => {
+      const bytes = fs.readFileSync(path.join(repositoryRoot, sourcePath));
+      return [sourcePath, digest(bytes)];
+    }),
+  );
+  return {
+    schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+    commitmentId: "IDE-INPUT-PERF",
+    headSha: COMMIT,
+    os: "linux",
+    runtime: {
+      name: "node+java",
+      version: `${process.version};21`,
+      arch: process.arch,
+    },
+    profileVersion: "ide-input-perf/v1",
+    thresholds: INPUT_PERFORMANCE_THRESHOLDS,
+    measurements: { vscode: measurement, jetbrains: measurement },
+    testIds: ["vscode-profile", "jetbrains-profile"],
+    producerDigests,
+    disposition: "required",
+    source: {
+      workflowId: provenance.workflowRef,
+      runId: provenance.runId,
+      jobId: provenance.job,
+      artifactName: provenance.artifactName,
+    },
+    outcome: "passed",
   };
 }
 
@@ -254,6 +312,7 @@ function createCell() {
       outcome: "passed",
     },
     "jetbrains-native.json": jetbrainsEvidence(),
+    "ide-input-performance.json": inputPerformanceEvidence(provenance),
     "outcome-observations.json": {
       success: true,
       keyboardUnreachableActionCount: 0,
@@ -273,6 +332,7 @@ function createCell() {
       pageErrorCount: 0,
       requiredMeasurementsComplete: true,
       exactCommitBound: true,
+      ideInputPerformanceRequiredPassed: true,
       manualSpeechQualityPending: true,
       continuousEightHourHostSoakPending: true,
     },

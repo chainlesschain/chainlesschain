@@ -5,7 +5,9 @@ on:
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-input-performance.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
       - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/src/lib/session-runtime-retention.js"
@@ -16,6 +18,9 @@ on:
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/chat/chat-view.js"
+      - "packages/vscode-extension/src/chat/workspace-mention-index.js"
+      - "packages/vscode-extension/src/chat/symbol-mentions.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
       - "packages/vscode-extension/src/diagnostics-scheduler.js"
       - "packages/vscode-extension/src/vscode-facade.js"
@@ -27,6 +32,9 @@ on:
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
@@ -34,13 +42,18 @@ on:
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
   push:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-input-performance.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
       - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/src/lib/session-runtime-retention.js"
@@ -51,6 +64,9 @@ on:
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/chat/chat-view.js"
+      - "packages/vscode-extension/src/chat/workspace-mention-index.js"
+      - "packages/vscode-extension/src/chat/symbol-mentions.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
       - "packages/vscode-extension/src/diagnostics-scheduler.js"
       - "packages/vscode-extension/src/vscode-facade.js"
@@ -62,6 +78,9 @@ on:
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
@@ -69,6 +88,9 @@ on:
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
   schedule:
     - cron: "17 5 * * 3"
@@ -127,6 +149,8 @@ jobs:
           printf 'CC_P2_ARTIFACT_DIR=%s/accessibility-performance/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_P2_AT_PROBE=%s/accessibility-performance-input/${{ matrix.suffix }}/assistive-technology.json\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_P2_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-native.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-input-performance.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_IDE_INPUT_PERF_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/ide-input-performance.json\n' "$root" >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |
@@ -210,15 +234,30 @@ jobs:
         working-directory: packages/jetbrains-plugin
         run: |
           if ($env:RUNNER_OS -eq "Windows") {
-            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.WorkspaceMentionIndexTest --tests com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           } else {
             chmod +x ./gradlew
-            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.WorkspaceMentionIndexTest --tests com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath $env:CC_P2_JETBRAINS_EVIDENCE)) {
             throw "JetBrains native evidence was not written"
           }
+          if (-not (Test-Path -LiteralPath $env:CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE)) {
+            throw "JetBrains IDE-INPUT-PERF evidence was not written"
+          }
+      - name: Measure VS Code index and standardize IDE-INPUT-PERF evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ide-input-performance-profile.mjs
+          --head-sha "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --jetbrains-evidence "$CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE"
+          --os "${{ matrix.suffix }}"
+          --workflow-id "$GITHUB_WORKFLOW_REF"
+          --run-id "$GITHUB_RUN_ID"
+          --job-id "$GITHUB_JOB"
+          --artifact-name "$CC_P2_ARTIFACT"
+          --output "$CC_IDE_INPUT_PERF_EVIDENCE"
       - name: Run fixed-scale Chromium and evidence campaign
         shell: bash
         run: >-
@@ -228,6 +267,7 @@ jobs:
           --artifact-name "$CC_P2_ARTIFACT"
           --at-probe "$CC_P2_AT_PROBE"
           --jetbrains-evidence "$CC_P2_JETBRAINS_EVIDENCE"
+          --input-performance-evidence "$CC_IDE_INPUT_PERF_EVIDENCE"
       - name: Upload content-free producer evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
