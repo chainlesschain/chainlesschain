@@ -678,11 +678,14 @@ describe("remote approval bridge (integration)", () => {
         message.type === "remote-session-event" &&
         message.event?.type === "permission.request",
     );
+    // Keep this card pending while the real membership-snapshot RPC and
+    // cross-server revoke complete. It is explicitly denied below after the
+    // revoked frame is proved unable to mutate it, so no wall-clock expiry is
+    // part of the security race.
     const lateDecision = bridge.requestDecision({
       tool: "run_shell",
       detail: "echo late-result",
       operationArgs: { command: "echo late-result" },
-      timeoutMs: 250,
     });
     const lateRequest = await lateAskSeen;
 
@@ -734,9 +737,24 @@ describe("remote approval bridge (integration)", () => {
         event: approvalResolveEvent(lateRequest, true),
       }),
     ).rejects.toThrow(/membership coordinator denied|revoked|not paired/i);
+    // The rejected device frame must not settle or mutate the host's pending
+    // approval. Deny it explicitly so cleanup is driven by a terminal event,
+    // rather than by another wall-clock race.
+    expect(bridge._pending.has(lateRequest.event.requestId)).toBe(true);
+    expect(
+      bridge._approvalStore.getRequest(lateRequest.event.requestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      status: "pending",
+      revision: lateRequest.event.revision,
+    });
+    expect(bridge.resolveLocally(lateRequest.event.requestId, false)).toBe(
+      true,
+    );
     await expect(lateDecision).resolves.toMatchObject({
       approved: false,
-      via: "timeout",
+      via: "local",
     });
   });
 });
