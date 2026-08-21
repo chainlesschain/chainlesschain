@@ -9,6 +9,7 @@ on:
     paths:
       - "packages/cli/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
+      - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
       # extension sources (and its manifest / l10n bundles) directly — an
@@ -28,6 +29,7 @@ on:
     paths:
       - "packages/cli/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
+      - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/package.json"

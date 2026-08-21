@@ -1,0 +1,29 @@
+{
+  "schema": "chainlesschain.claude-code-increment-audit-contract.v1",
+  "contractVersion": "2026-08-21.1",
+  "requiredCommitments": [
+    "RC-DEFAULT",
+    "SEC-DELTA",
+    "XSESSION",
+    "AX-TRANSCRIPT",
+    "SESSION-UX",
+    "DIAG-SCALE",
+    "IDE-INPUT-PERF",
+    "MCP-LIFECYCLE",
+    "SESSION-RUNTIME",
+    "PLUGIN-SOURCE",
+    "LOCATION-DRAIN",
+    "BROWSER-EVIDENCE"
+  ],
+  "requiredOperatingSystems": ["linux", "macos", "windows"],
+  "requiredDisposition": "required",
+  "requiredOutcome": "passed",
+  "profilePolicy": {
+    "requireSameProfileVersionAcrossOperatingSystems": true,
+    "requireSameThresholdsAcrossOperatingSystems": true
+  },
+  "sourcePolicy": {
+    "requireGitHubActions": true
+  },
+  "lockedProfiles": {}
+}
