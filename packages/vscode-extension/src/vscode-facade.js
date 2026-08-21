@@ -12,6 +12,10 @@ const {
   REASON_DISK_DRIFTED,
 } = require("./diff-apply-guard");
 const { buildIdeContextV2 } = require("./ide-context-v2");
+const {
+  DiagnosticsSnapshotScheduler,
+  formatDiagnosticsSnapshotForContext,
+} = require("./diagnostics-scheduler");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
 const IDE_QUALITY_SCHEMA = "cc-ide-quality/v1";
@@ -189,6 +193,74 @@ function createVscodeEditorFacade(vscode, opts = {}) {
   const { TerminalCapture } = require("./terminal-capture");
   const _terminalCapture = new TerminalCapture();
   const _terminalDisposables = [];
+  const _diagnosticDisposables = [];
+  const diagnosticsScheduler = new DiagnosticsSnapshotScheduler({
+    ...(opts.diagnosticsScheduler || {}),
+  });
+
+  const diagnosticDocument = (uri) =>
+    (vscode.workspace?.textDocuments || []).find(
+      (document) => document?.uri?.toString?.() === uri?.toString?.(),
+    ) || null;
+  const diagnosticUpdate = (uri, initialDiagnostics) => {
+    const document = diagnosticDocument(uri);
+    return {
+      uri: uriText(uri),
+      file: uri?.fsPath || "",
+      documentVersion:
+        document && Number.isFinite(Number(document.version))
+          ? Number(document.version)
+          : null,
+      isDirty: document ? Boolean(document.isDirty) : null,
+      read: () => {
+        if (initialDiagnostics !== undefined) return initialDiagnostics;
+        return vscode.languages?.getDiagnostics?.(uri) || [];
+      },
+      normalize: (diagnostic, context) => ({
+        file: context.file,
+        documentUri: context.uri,
+        documentVersion: context.documentVersion,
+        isDirty: context.isDirty,
+        severity:
+          SEVERITY[diagnostic?.severity] ?? String(diagnostic?.severity),
+        message: String(diagnostic?.message || "").slice(
+          0,
+          context.maxMessageChars,
+        ),
+        line: diagnostic?.range?.start?.line,
+        character: diagnostic?.range?.start?.character,
+        source: diagnostic?.source,
+        code:
+          diagnostic?.code && typeof diagnostic.code === "object"
+            ? diagnostic.code.value
+            : diagnostic?.code,
+      }),
+    };
+  };
+  const bootstrapDiagnostics = () => {
+    if (typeof vscode.languages?.getDiagnostics !== "function") return;
+    let entries = [];
+    try {
+      entries = vscode.languages.getDiagnostics() || [];
+    } catch {
+      return;
+    }
+    diagnosticsScheduler.schedule(
+      entries.map(([uri, diagnostics]) =>
+        diagnosticUpdate(uri, diagnostics || []),
+      ),
+      { replaceAll: true },
+    );
+  };
+  bootstrapDiagnostics();
+  if (typeof vscode.languages?.onDidChangeDiagnostics === "function") {
+    _diagnosticDisposables.push(
+      vscode.languages.onDidChangeDiagnostics((event) => {
+        const uris = Array.isArray(event?.uris) ? event.uris : [];
+        diagnosticsScheduler.schedule(uris.map((uri) => diagnosticUpdate(uri)));
+      }),
+    );
+  }
   if (
     vscode.window.onDidStartTerminalShellExecution &&
     vscode.window.onDidEndTerminalShellExecution
@@ -356,31 +428,15 @@ function createVscodeEditorFacade(vscode, opts = {}) {
     },
 
     async getDiagnostics({ path } = {}) {
-      const out = [];
-      for (const [uri, diags] of vscode.languages.getDiagnostics()) {
-        const fsPath = uri.fsPath;
-        if (path && fsPath !== path) continue;
-        const document = (vscode.workspace.textDocuments || []).find(
-          (doc) => doc?.uri?.toString() === uri?.toString(),
-        );
-        for (const d of diags) {
-          out.push({
-            file: fsPath,
-            documentUri: uriText(uri),
-            documentVersion:
-              document && Number.isFinite(Number(document.version))
-                ? Number(document.version)
-                : null,
-            isDirty: document ? Boolean(document.isDirty) : null,
-            severity: SEVERITY[d.severity] ?? String(d.severity),
-            message: d.message,
-            line: d.range?.start?.line,
-            character: d.range?.start?.character,
-            source: d.source,
-          });
-        }
-      }
-      return out;
+      const snapshot = await diagnosticsScheduler.flushNow();
+      return snapshot.diagnostics.filter(
+        (diagnostic) => !path || diagnostic.file === path,
+      );
+    },
+
+    /** Complete, immutable diagnostics state; never exposes an in-flight burst. */
+    async getDiagnosticsSnapshot() {
+      return diagnosticsScheduler.flushNow();
     },
 
     async getOpenEditors() {
@@ -1467,21 +1523,28 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         );
       }
 
-      const diagnostics = await safe(() => facade.getDiagnostics());
-      if (Array.isArray(diagnostics) && diagnostics.length) {
-        add(
-          "diagnostics",
-          "Diagnostics",
-          "vscode.languages.getDiagnostics",
-          "workspace-diagnostics",
-          diagnostics
-            .map(
-              (item) =>
-                `${item.severity || "diagnostic"} ${item.file || ""}:${Number(item.line) + 1 || "?"}:${Number(item.character) + 1 || "?"} ${item.message || ""}`,
-            )
-            .join("\n"),
-          { autoReason: "live errors or warnings are present" },
-        );
+      const diagnosticsSnapshot = await safe(() =>
+        facade.getDiagnosticsSnapshot(),
+      );
+      if (
+        diagnosticsSnapshot?.stable === true &&
+        diagnosticsSnapshot.summary?.total > 0
+      ) {
+        const diagnosticsContent =
+          formatDiagnosticsSnapshotForContext(diagnosticsSnapshot);
+        if (diagnosticsContent) {
+          add(
+            "diagnostics",
+            "Diagnostics",
+            "vscode.languages.onDidChangeDiagnostics",
+            "workspace-diagnostics",
+            diagnosticsContent,
+            {
+              state: "stable-snapshot",
+              autoReason: "stable diagnostics snapshot is available",
+            },
+          );
+        }
       }
 
       const terminal = await safe(() => facade.getTerminalOutput({ limit: 3 }));
@@ -1719,6 +1782,15 @@ function createVscodeEditorFacade(vscode, opts = {}) {
         }
       }
       _terminalDisposables.length = 0;
+      for (const disposable of _diagnosticDisposables) {
+        try {
+          disposable?.dispose?.();
+        } catch {
+          /* best-effort */
+        }
+      }
+      _diagnosticDisposables.length = 0;
+      diagnosticsScheduler.dispose();
     },
   };
   return facade;

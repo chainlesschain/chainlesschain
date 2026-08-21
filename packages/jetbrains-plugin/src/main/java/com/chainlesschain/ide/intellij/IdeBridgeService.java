@@ -95,6 +95,9 @@ public final class IdeBridgeService implements Disposable {
             server.stop();
             server = null;
         }
+        if (facade != null) {
+            facade.close();
+        }
         facade = null;
         BridgeStatusBarWidgetFactory.refresh(project);
     }

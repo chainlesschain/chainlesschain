@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  DIAGNOSTIC_PRODUCER_PATHS,
+  DIAGNOSTICS_PROFILE,
   PROFILE,
   REQUIRED_FILES,
   summarizeSamples,
@@ -14,6 +16,7 @@ import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-perfo
 const COMMIT = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
 const roots = [];
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
 
 function digest(bytes) {
   return `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
@@ -50,6 +53,43 @@ function jetbrainsEvidence() {
     heapBeforeBytes: 1_000,
     heapAfterBytes: 2_000,
     openFileDescriptorCount: 10,
+    javaVersion: "21.0.1",
+    javaArch: "x64",
+    diagnosticsScaleRequired: diagnosticsProfile("jetbrains"),
+    diagnosticsScaleAdvisory: null,
+  };
+}
+
+function diagnosticsProfile(host) {
+  return {
+    host,
+    disposition: "required",
+    inputCount: DIAGNOSTICS_PROFILE.requiredCount,
+    maxDiagnostics: DIAGNOSTICS_PROFILE.requiredCount,
+    publishedCount: DIAGNOSTICS_PROFILE.requiredCount,
+    truncatedCount: 0,
+    lostCount: 0,
+    duplicateCount: 0,
+    staleVersionCount: 0,
+    canceledGenerationCount: 20,
+    stableSnapshot: {
+      samples: DIAGNOSTICS_PROFILE.requiredSamples,
+      p50Ms: 10,
+      p95Ms: 20,
+      p99Ms: 25,
+      maxMs: 30,
+    },
+    ...(host === "vscode"
+      ? {
+          eventLoopMaxMs: 5,
+          nodeRssGrowthBytes: 1_000,
+          nodeHeapGrowthBytes: 500,
+          rendererHeapGrowthBytes: 0,
+          rendererHeapMeasurement:
+            "chromium-product-journey-peak-minus-baseline",
+          snapshotDigest: DIGEST,
+        }
+      : { maxWorkSliceMs: 5, edtMaxMs: 0, heapGrowthBytes: 1_000 }),
   };
 }
 
@@ -180,6 +220,39 @@ function createCell() {
       descriptorOrHandleDelta: 1,
       orphanProcessCount: 0,
     },
+    "diagnostics-scale.json": {
+      schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+      commitmentId: "DIAG-SCALE",
+      headSha: COMMIT,
+      os: "linux",
+      runtime: { name: "node+java", version: "v22;21", arch: "x64" },
+      profileVersion: DIAGNOSTICS_PROFILE.profileVersion,
+      thresholds: DIAGNOSTICS_PROFILE.thresholds,
+      measurements: {
+        profiles: [
+          diagnosticsProfile("vscode"),
+          diagnosticsProfile("jetbrains"),
+        ],
+      },
+      testIds: [
+        "DIAG-SCALE/vscode-10k-stable-snapshot",
+        "DIAG-SCALE/jetbrains-10k-stable-snapshot",
+      ],
+      producerDigests: Object.fromEntries(
+        DIAGNOSTIC_PRODUCER_PATHS.map((sourcePath) => [
+          sourcePath,
+          digest(fs.readFileSync(path.join(REPOSITORY_ROOT, sourcePath))),
+        ]),
+      ),
+      disposition: "required",
+      source: {
+        workflowId: provenance.workflowRef,
+        runId: provenance.runId,
+        jobId: provenance.job,
+        artifactName: provenance.artifactName,
+      },
+      outcome: "passed",
+    },
     "jetbrains-native.json": jetbrainsEvidence(),
     "outcome-observations.json": {
       success: true,
@@ -289,6 +362,8 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("macos-15");
     expect(workflow).toContain("windows-2025");
     expect(workflow).toContain("AccessibilityPerformanceEvidenceTest");
+    expect(workflow).toContain("DiagnosticsSnapshotSchedulerTest");
+    expect(workflow).toContain("vscode-ext-diagnostics-scheduler.test.js");
     expect(workflow).toContain("host-dom-relay.test.cjs");
     expect(workflow).toContain(
       "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",

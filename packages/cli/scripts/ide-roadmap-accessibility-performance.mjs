@@ -24,6 +24,9 @@ const { buildChatHtml, TRANSCRIPT_ENTRY_MAX_CHARS } = requireFromRoot(
 const { renderWorkbenchHtml, WORKBENCH_SESSION_LIMIT } = requireFromRoot(
   "./packages/vscode-extension/src/sessions-workbench.js",
 );
+const { DiagnosticsSnapshotScheduler } = requireFromRoot(
+  "./packages/vscode-extension/src/diagnostics-scheduler.js",
+);
 
 const SHA_RE = /^[a-f0-9]{40}$/u;
 const DIGEST_RE = /^sha256:[a-f0-9]{64}$/u;
@@ -46,6 +49,22 @@ const PROFILE = Object.freeze({
     descriptorOrHandleGrowth: 32,
   }),
 });
+const DIAGNOSTICS_PROFILE = Object.freeze({
+  profileVersion: "diagnostics-scale/v1",
+  requiredCount: 10_000,
+  advisoryCount: 50_000,
+  requiredSamples: 20,
+  advisorySamples: 5,
+  thresholds: Object.freeze({
+    stableSnapshotP95Ms: 1_000,
+    eventLoopOrEdtMaxMs: 200,
+    nodeRssGrowthBytes: 512 * MIB,
+    rendererHeapGrowthBytes: 256 * MIB,
+    lostCount: 0,
+    duplicateCount: 0,
+    staleVersionCount: 0,
+  }),
+});
 const REQUIRED_FILES = Object.freeze([
   "exact-commit.json",
   "host-environment.json",
@@ -57,6 +76,7 @@ const REQUIRED_FILES = Object.freeze([
   "large-input-digests.json",
   "performance-samples.json",
   "resource-trajectory.json",
+  "diagnostics-scale.json",
   "jetbrains-native.json",
   "outcome-observations.json",
 ]);
@@ -67,16 +87,34 @@ const GATE_SOURCE_PATHS = Object.freeze([
   "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js",
   "packages/vscode-extension/src/chat/chat-html.js",
   "packages/vscode-extension/src/sessions-workbench.js",
+  "packages/vscode-extension/src/diagnostics-scheduler.js",
+  "packages/vscode-extension/src/vscode-facade.js",
   "packages/vscode-extension/test/host-dom-relay.test.cjs",
+  "packages/cli/__tests__/unit/vscode-ext-diagnostics-scheduler.test.js",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java",
+  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java",
   "tests/fixtures/ide-roadmap/p2-accessibility-performance.json",
+]);
+const DIAGNOSTIC_PRODUCER_PATHS = Object.freeze([
+  "packages/vscode-extension/src/diagnostics-scheduler.js",
+  "packages/vscode-extension/src/vscode-facade.js",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java",
+  "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs",
+  "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs",
 ]);
 
 function parseArgs(argv) {
@@ -154,6 +192,86 @@ function summarizeSamples(values) {
     p99Ms: percentile(values, 99),
     maxMs: Math.max(...values),
   };
+}
+
+function diagnosticsUpdate(count, version, prefix) {
+  const uri = "file:///workspace/diagnostics-scale.js";
+  return {
+    uri,
+    file: "/workspace/diagnostics-scale.js",
+    documentVersion: version,
+    isDirty: false,
+    read: () =>
+      Array.from({ length: count }, (_, index) => ({
+        documentUri: uri,
+        documentVersion: version,
+        severity: ["error", "warning", "information", "hint"][index % 4],
+        message: `${prefix} diagnostic ${index}`,
+        line: index,
+        character: 0,
+        source: "diagnostics-scale-fixture",
+      })),
+  };
+}
+
+async function runDiagnosticsScaleProfile({
+  count,
+  samples,
+  disposition,
+  maxDiagnostics = DIAGNOSTICS_PROFILE.requiredCount,
+}) {
+  const rssBefore = process.memoryUsage().rss;
+  const heapBefore = process.memoryUsage().heapUsed;
+  const scheduler = new DiagnosticsSnapshotScheduler({
+    debounceMs: 0,
+    maxDiagnostics,
+  });
+  const durations = [];
+  let snapshot = scheduler.getSnapshot();
+  try {
+    for (let sample = 0; sample < samples; sample += 1) {
+      const oldVersion = sample * 2 + 1;
+      const finalVersion = oldVersion + 1;
+      scheduler.schedule([
+        diagnosticsUpdate(count, oldVersion, "old-generation"),
+      ]);
+      const started = performance.now();
+      scheduler.schedule([
+        diagnosticsUpdate(count, finalVersion, "stable-generation"),
+      ]);
+      snapshot = await scheduler.flushNow();
+      durations.push(performance.now() - started);
+    }
+    const stats = scheduler.getStats();
+    const rssAfter = process.memoryUsage().rss;
+    const heapAfter = process.memoryUsage().heapUsed;
+    const truncatedCount = snapshot.summary.truncatedCount;
+    return {
+      host: "vscode",
+      disposition,
+      inputCount: count,
+      maxDiagnostics,
+      publishedCount: snapshot.summary.total,
+      truncatedCount,
+      lostCount: Math.max(0, count - snapshot.summary.total - truncatedCount),
+      duplicateCount: stats.publishedDuplicateCount,
+      staleVersionCount: stats.publishedStaleVersionCount,
+      canceledGenerationCount: stats.canceledGenerationCount,
+      stableSnapshot: summarizeSamples(durations),
+      eventLoopMaxMs: stats.maxWorkSliceMs,
+      nodeRssGrowthBytes: Math.max(0, rssAfter - rssBefore),
+      nodeHeapGrowthBytes: Math.max(0, heapAfter - heapBefore),
+      snapshotDigest: digest(
+        JSON.stringify({
+          generation: snapshot.generation,
+          summary: snapshot.summary,
+          versions: snapshot.versions,
+        }),
+      ),
+    };
+  } finally {
+    scheduler.dispose();
+  }
 }
 
 function git(...args) {
@@ -255,6 +373,35 @@ function validateJetBrainsEvidence(evidence) {
   }
   assert.equal(evidence.inputToPaintSamplesMs?.length, 100);
   assert.equal(evidence.scrollToPaintSamplesMs?.length, 100);
+  assert.equal(typeof evidence.javaVersion, "string");
+  assert.equal(typeof evidence.javaArch, "string");
+  const diagnostics = evidence.diagnosticsScaleRequired;
+  assert.equal(diagnostics?.inputCount, DIAGNOSTICS_PROFILE.requiredCount);
+  assert.equal(diagnostics?.publishedCount, DIAGNOSTICS_PROFILE.requiredCount);
+  assert.equal(diagnostics?.truncatedCount, 0);
+  assert.equal(diagnostics?.lostCount, 0);
+  assert.equal(diagnostics?.duplicateCount, 0);
+  assert.equal(diagnostics?.staleVersionCount, 0);
+  assert.ok(diagnostics?.canceledGenerationCount > 0);
+  assert.equal(
+    diagnostics?.stableSnapshot?.samples,
+    DIAGNOSTICS_PROFILE.requiredSamples,
+  );
+  assert.ok(
+    diagnostics?.stableSnapshot?.p95Ms <=
+      DIAGNOSTICS_PROFILE.thresholds.stableSnapshotP95Ms,
+  );
+  assert.ok(
+    diagnostics?.maxWorkSliceMs <=
+      DIAGNOSTICS_PROFILE.thresholds.eventLoopOrEdtMaxMs,
+  );
+  assert.ok(
+    diagnostics?.edtMaxMs <= DIAGNOSTICS_PROFILE.thresholds.eventLoopOrEdtMaxMs,
+  );
+  assert.ok(
+    diagnostics?.heapGrowthBytes <=
+      DIAGNOSTICS_PROFILE.thresholds.rendererHeapGrowthBytes,
+  );
   return evidence;
 }
 
@@ -855,6 +1002,35 @@ async function mainCampaign(options, dependencies = {}) {
   const rssBefore = process.memoryUsage().rss;
   const started = performance.now();
   try {
+    const vscodeDiagnosticsRequired = await runDiagnosticsScaleProfile({
+      count: DIAGNOSTICS_PROFILE.requiredCount,
+      samples: DIAGNOSTICS_PROFILE.requiredSamples,
+      disposition: "required",
+    });
+    const diagnosticsProfiles = [
+      vscodeDiagnosticsRequired,
+      {
+        host: "jetbrains",
+        disposition: "required",
+        ...jetBrains.diagnosticsScaleRequired,
+      },
+    ];
+    if ((process.env.GITHUB_EVENT_NAME || "") === "schedule") {
+      diagnosticsProfiles.push(
+        await runDiagnosticsScaleProfile({
+          count: DIAGNOSTICS_PROFILE.advisoryCount,
+          samples: DIAGNOSTICS_PROFILE.advisorySamples,
+          disposition: "advisory",
+        }),
+      );
+      if (jetBrains.diagnosticsScaleAdvisory) {
+        diagnosticsProfiles.push({
+          host: "jetbrains",
+          disposition: "advisory",
+          ...jetBrains.diagnosticsScaleAdvisory,
+        });
+      }
+    }
     const chromium = await runChromiumJourney({
       browserExecutable: options.browserExecutable || null,
       testSecret,
@@ -871,6 +1047,17 @@ async function mainCampaign(options, dependencies = {}) {
     const rendererHeapPeak = Math.max(
       ...chromium.heapTrajectory.map((entry) => entry.usedSize),
     );
+    const rendererHeapGrowthBytes = Math.max(
+      0,
+      rendererHeapPeak - rendererHeapBefore,
+    );
+    for (const profile of diagnosticsProfiles) {
+      if (profile.host === "vscode") {
+        profile.rendererHeapGrowthBytes = rendererHeapGrowthBytes;
+        profile.rendererHeapMeasurement =
+          "chromium-product-journey-peak-minus-baseline";
+      }
+    }
     const keyboardUnreachableActionCount =
       chromium.keyboardActions.filter((entry) =>
         entry.expected === "input"
@@ -901,16 +1088,51 @@ async function mainCampaign(options, dependencies = {}) {
       thresholdViolations.push("workbench-paint");
     if (rssAfter - rssBefore > PROFILE.thresholds.nodeRssGrowthBytes)
       thresholdViolations.push("node-rss-growth");
-    if (
-      rendererHeapPeak - rendererHeapBefore >
-      PROFILE.thresholds.rendererHeapGrowthBytes
-    )
+    if (rendererHeapGrowthBytes > PROFILE.thresholds.rendererHeapGrowthBytes)
       thresholdViolations.push("renderer-heap-growth");
     if (
       chromium.descriptorOrHandleSettled - chromium.descriptorOrHandleBaseline >
       PROFILE.thresholds.descriptorOrHandleGrowth
     )
       thresholdViolations.push("descriptor-or-handle-growth");
+    const diagnosticsRequiredProfiles = diagnosticsProfiles.filter(
+      (profile) => profile.disposition === "required",
+    );
+    for (const profile of diagnosticsRequiredProfiles) {
+      const stable = profile.stableSnapshot;
+      const eventLoopOrEdt = Math.max(
+        Number(profile.eventLoopMaxMs || profile.maxWorkSliceMs || 0),
+        Number(profile.edtMaxMs || 0),
+      );
+      if (stable?.p95Ms > DIAGNOSTICS_PROFILE.thresholds.stableSnapshotP95Ms) {
+        thresholdViolations.push(`diagnostics-${profile.host}-stable-p95`);
+      }
+      if (eventLoopOrEdt > DIAGNOSTICS_PROFILE.thresholds.eventLoopOrEdtMaxMs) {
+        thresholdViolations.push(`diagnostics-${profile.host}-event-loop-edt`);
+      }
+      if (
+        Number(profile.nodeRssGrowthBytes || 0) >
+        DIAGNOSTICS_PROFILE.thresholds.nodeRssGrowthBytes
+      ) {
+        thresholdViolations.push(`diagnostics-${profile.host}-rss`);
+      }
+      if (
+        Number(
+          profile.rendererHeapGrowthBytes || profile.heapGrowthBytes || 0,
+        ) > DIAGNOSTICS_PROFILE.thresholds.rendererHeapGrowthBytes
+      ) {
+        thresholdViolations.push(`diagnostics-${profile.host}-heap`);
+      }
+      for (const field of [
+        "lostCount",
+        "duplicateCount",
+        "staleVersionCount",
+      ]) {
+        if (Number(profile[field] || 0) !== 0) {
+          thresholdViolations.push(`diagnostics-${profile.host}-${field}`);
+        }
+      }
+    }
 
     const exact = {
       releaseCommit,
@@ -1045,6 +1267,42 @@ async function mainCampaign(options, dependencies = {}) {
       jetbrainsHeapAfterBytes: jetBrains.heapAfterBytes,
       jetbrainsOpenFileDescriptorCount: jetBrains.openFileDescriptorCount,
     };
+    const diagnosticsEvidence = {
+      schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+      commitmentId: "DIAG-SCALE",
+      headSha: releaseCommit,
+      os: platformSuffix(dependencies.platform || process.platform),
+      runtime: {
+        name: "node+java",
+        version: `${process.version};${jetBrains.javaVersion}`,
+        arch: process.arch,
+      },
+      profileVersion: DIAGNOSTICS_PROFILE.profileVersion,
+      thresholds: DIAGNOSTICS_PROFILE.thresholds,
+      measurements: { profiles: diagnosticsProfiles },
+      testIds: [
+        "DIAG-SCALE/vscode-10k-stable-snapshot",
+        "DIAG-SCALE/jetbrains-10k-stable-snapshot",
+      ],
+      producerDigests: Object.fromEntries(
+        DIAGNOSTIC_PRODUCER_PATHS.map((sourcePath) => [
+          sourcePath,
+          digest(fs.readFileSync(path.join(REPOSITORY_ROOT, sourcePath))),
+        ]),
+      ),
+      disposition: "required",
+      source: {
+        workflowId: process.env.GITHUB_WORKFLOW_REF || "local",
+        runId: process.env.GITHUB_RUN_ID || "local",
+        jobId: process.env.GITHUB_JOB || "local",
+        artifactName,
+      },
+      outcome: thresholdViolations.some((value) =>
+        value.startsWith("diagnostics-"),
+      )
+        ? "failed"
+        : "passed",
+    };
     const outcome = {
       success: false,
       keyboardUnreachableActionCount,
@@ -1118,6 +1376,7 @@ async function mainCampaign(options, dependencies = {}) {
       "large-input-digests.json": largeInputs,
       "performance-samples.json": performanceEvidence,
       "resource-trajectory.json": resources,
+      "diagnostics-scale.json": diagnosticsEvidence,
       "jetbrains-native.json": jetBrains,
       "outcome-observations.json": outcome,
     };
@@ -1169,12 +1428,15 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 }
 
 export {
+  DIAGNOSTIC_PRODUCER_PATHS,
+  DIAGNOSTICS_PROFILE,
   GATE_SOURCE_PATHS,
   PROFILE,
   REQUIRED_FILES,
   digest,
   mainCampaign,
   platformSuffix,
+  runDiagnosticsScaleProfile,
   summarizeSamples,
   validateAtProbe,
   validateJetBrainsEvidence,

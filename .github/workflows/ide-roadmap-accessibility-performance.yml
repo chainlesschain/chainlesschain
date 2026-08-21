@@ -17,13 +17,21 @@ on:
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/src/diagnostics-scheduler.js"
+      - "packages/vscode-extension/src/vscode-facade.js"
+      - "packages/cli/__tests__/unit/vscode-ext-diagnostics-scheduler.test.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
@@ -44,13 +52,21 @@ on:
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/src/diagnostics-scheduler.js"
+      - "packages/vscode-extension/src/vscode-facade.js"
+      - "packages/cli/__tests__/unit/vscode-ext-diagnostics-scheduler.test.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
@@ -173,6 +189,17 @@ jobs:
       - name: Run VS Code keyboard, transcript, and scale regressions
         shell: bash
         run: node --test packages/vscode-extension/test/host-dom-relay.test.cjs packages/vscode-extension/test/sessions-view-delivery.test.cjs
+      - name: Run VS Code diagnostics scheduler contract
+        shell: bash
+        working-directory: packages/cli
+        run: |
+          set -euo pipefail
+          vitest=node_modules/vitest/vitest.mjs
+          if [ ! -f "$vitest" ]; then
+            vitest=../../node_modules/vitest/vitest.mjs
+          fi
+          test -f "$vitest"
+          node "$vitest" run __tests__/unit/vscode-ext-diagnostics-scheduler.test.js --config vitest.config.js
       - name: Run long-session live-state retention profile
         shell: bash
         run: >-
@@ -183,10 +210,10 @@ jobs:
         working-directory: packages/jetbrains-plugin
         run: |
           if ($env:RUNNER_OS -eq "Windows") {
-            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           } else {
             chmod +x ./gradlew
-            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath $env:CC_P2_JETBRAINS_EVIDENCE)) {

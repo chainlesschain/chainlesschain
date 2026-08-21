@@ -37,6 +37,7 @@ public final class ContextCenterAction extends AnAction implements DumbAware {
         if (project == null) return;
         IdeBridgeService service = IdeBridgeService.getInstance(project);
         IntellijEditorFacade facade = service.getFacade();
+        boolean ownsFacade = facade == null;
         if (facade == null) facade = new IntellijEditorFacade(project);
         final IntellijEditorFacade editor = facade;
 
@@ -166,7 +167,11 @@ public final class ContextCenterAction extends AnAction implements DumbAware {
         dialog.setTitle("ChainlessChain — Context Center");
         dialog.setCenterPanel(root);
         dialog.addCloseButton();
-        dialog.show();
+        try {
+            dialog.show();
+        } finally {
+            if (ownsFacade) editor.close();
+        }
     }
 
     private static void mutateSelected(Project project, JList<String> list,
