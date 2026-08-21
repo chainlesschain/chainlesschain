@@ -625,8 +625,8 @@ describe("managed plugin policy", () => {
     );
     if (process.platform === "win32") {
       for (const aliased of [
-        "file:///C:/PROGRA~1/review.git",
-        "C:\\PROGRA~1\\review.git",
+        "file:///C:/NOTEXI~1/review.git",
+        "C:\\NOTEXI~1\\review.git",
         "C:\\trusted.\\review.git",
       ]) {
         expect(() => canonicalizePluginSource(aliased)).toThrowError(
@@ -645,6 +645,17 @@ describe("managed plugin policy", () => {
             canonicalizePluginSource(expandedRoot, {
               kindHint: "directory",
             }).key,
+          );
+          expect(
+            canonicalizePluginSource(
+              `${existingShortRoot}\\cc-nonexistent-review.git`,
+              { kindHint: "directory" },
+            ).key,
+          ).toBe(
+            canonicalizePluginSource(
+              `${expandedRoot}\\cc-nonexistent-review.git`,
+              { kindHint: "directory" },
+            ).key,
           );
         }
       }

@@ -434,6 +434,25 @@ function fromPath(raw, ref, subpath, cwd = process.cwd()) {
   };
 }
 
+function expandWindowsShortNameAncestors(value) {
+  let ancestor = path.normalize(value);
+  const suffix = [];
+  while (true) {
+    try {
+      return path.join(fs.realpathSync.native(ancestor), ...suffix);
+    } catch {
+      const parent = path.dirname(ancestor);
+      if (parent === ancestor) {
+        throw invalid(
+          "Windows short-name and trailing-dot/space path aliases are not supported",
+        );
+      }
+      suffix.unshift(path.basename(ancestor));
+      ancestor = parent;
+    }
+  }
+}
+
 function normalizeLocalIdentityPath(value) {
   const raw = String(value);
   if (
@@ -451,19 +470,12 @@ function normalizeLocalIdentityPath(value) {
       );
     }
     if (segments.some((segment) => /~[0-9]+(?:\.[^.]*)?$/iu.test(segment))) {
-      try {
-        // Hosted Windows runners and some managed profiles expose TEMP through
-        // a legitimate 8.3 parent (for example RUNNER~1). Resolve an existing
-        // source as a whole so its policy identity uses the long spelling. A
-        // caller-supplied alias that does not resolve exactly still fails
-        // closed, and realpath also prevents two spellings from producing two
-        // authorities for the same existing directory.
-        identityPath = fs.realpathSync.native(raw);
-      } catch {
-        throw invalid(
-          "Windows short-name and trailing-dot/space path aliases are not supported",
-        );
-      }
+      // Hosted Windows runners and some managed profiles expose TEMP through
+      // a legitimate 8.3 parent (for example RUNNER~1). Resolve the longest
+      // existing ancestor and rebuild any not-yet-created safe suffix from its
+      // long spelling. An alias in a nonexistent suffix remains visible below
+      // and fails closed, while real aliases cannot mint a second authority.
+      identityPath = expandWindowsShortNameAncestors(raw);
       const resolvedSegments = identityPath
         .replace(/^[a-z]:/iu, "")
         .split(/[\\/]/u);
