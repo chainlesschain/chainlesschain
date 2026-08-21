@@ -292,6 +292,33 @@ describe("withWorkspaceLockSync", () => {
     transaction.rollback();
   });
 
+  it("ignores uniquely tokened coordination cleanup debris on Windows-style release", () => {
+    const input = fixture();
+    const lockDir = path.join(input.root, "locks");
+    const releaseDebris = path.join(
+      lockDir,
+      "coordination.lock.release-70000000-0000-4000-8000-000000000001",
+    );
+    fs.mkdirSync(releaseDebris, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(
+      path.join(releaseDebris, "owner.json"),
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: 1,
+        token: "70000000-0000-4000-8000-000000000001",
+      }),
+      { mode: 0o600 },
+    );
+
+    expect(
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "release-debris" }),
+        () => "completed",
+      ),
+    ).toBe("completed");
+    expect(fs.existsSync(releaseDebris)).toBe(true);
+  });
+
   it("surfaces exact ownership loss even when the callback also throws", () => {
     const input = fixture();
     const callbackError = new Error("body failed after ownership loss");

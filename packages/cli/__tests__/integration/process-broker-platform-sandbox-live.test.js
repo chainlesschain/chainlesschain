@@ -19,6 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
 import { executeBackgroundTaskCommand } from "../../src/harness/background-task-command-runner.js";
 import {
   applySandbox,
@@ -27,7 +28,6 @@ import {
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
-import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
 
 const LIVE = process.env.CC_SANDBOX_LIVE === "1";
 const SUPPORTED = ["linux", "darwin", "win32"].includes(process.platform);
@@ -1085,10 +1085,10 @@ describe.runIf(LIVE && SUPPORTED)(
               sync: true,
               executionContract: {
                 kind: "strict-mcp-node-capsule",
-                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 runtimePath,
                 runtimeIdentity: fileIdentity(runtimePath),
                 entryIdentity: fileIdentity(canonicalEntry),
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
               },
             },
             { platform: "win32" },
@@ -1116,6 +1116,9 @@ describe.runIf(LIVE && SUPPORTED)(
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              nativeCodePolicyBound: true,
+              nativeCodePolicyMode: "deny-package-native-addons",
+              nativeAddonLoading: "denied",
             },
           });
 
@@ -1553,10 +1556,10 @@ describe.runIf(LIVE && SUPPORTED)(
               ],
               executionContract: {
                 kind: "strict-mcp-node-capsule",
-                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 runtimePath: canonicalRuntime,
                 runtimeIdentity: fileIdentity(canonicalRuntime),
                 entryIdentity: fileIdentity(canonicalEntry),
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
               },
             },
             {
@@ -1583,6 +1586,9 @@ describe.runIf(LIVE && SUPPORTED)(
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              nativeCodePolicyBound: true,
+              nativeCodePolicyMode: "deny-package-native-addons",
+              nativeAddonLoading: "denied",
             },
           });
 
@@ -1729,9 +1735,9 @@ describe.runIf(LIVE && SUPPORTED)(
           const entryIdentity = fileIdentity(entryPath);
           const requiredBoundaries = [
             SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
             SANDBOX_BOUNDARIES.FILESYSTEM,
             SANDBOX_BOUNDARIES.NETWORK,
+            SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
           ];
           plan = applySandbox(
             runtimeIdentity.realPath,
@@ -1749,7 +1755,6 @@ describe.runIf(LIVE && SUPPORTED)(
               executionContract: {
                 contractVersion: 1,
                 kind: "strict-mcp-node-capsule",
-                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
                 pluginRoot: capsuleRoot,
                 workingDirectory: capsuleRoot,
                 runtimePath: runtimeIdentity.realPath,
@@ -1762,6 +1767,7 @@ describe.runIf(LIVE && SUPPORTED)(
                 },
                 entryIdentity,
                 runtimeIdentity,
+                nativeCodePolicy: MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
               },
             },
           );
@@ -1783,6 +1789,9 @@ describe.runIf(LIVE && SUPPORTED)(
               entrySnapshotAtomic: true,
               runtimeLaunchAtomic: true,
               sharedLibraryClosure: false,
+              nativeCodePolicyBound: true,
+              nativeCodePolicyMode: "deny-package-native-addons",
+              nativeAddonLoading: "denied",
             },
           });
           const result = nativeSpawnSync(plan.command, plan.args, {

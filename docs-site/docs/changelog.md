@@ -5,13 +5,14 @@
 
 ## [Unreleased]
 
-#### Added — 2026-08-20 发布后源码增量
+#### Added — CLI 0.165.5 与 IDE 补丁发布
 
-> 本次代码核对基线 `f2fbf331da46` 晚于不可变 `v-npm-0-165-4`，以下能力尚未取得新的 npm/IDE/Desktop/iOS 公开发布授权；其中 P1-5 Marketplace 三宿主十二格供应链矩阵已提交实现，但 exact-head Actions aggregate 尚待回读。
+> `chainlesschain@0.165.5` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-165-5` 精确指向 [`11aef634aa`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582642)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582490)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314006)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32429710720)均成功。公网 tarball SHA-1 为 `c2cc7fb18ea572749d747de02355c6a0a5aef357`。
 
-- **原生执行失败闭合**：MCP materialized npm capsule 拒绝 package `.node` / `process.dlopen`；Windows/macOS strict native plugin 在 loader closure 不可证明时于 spawn 前类型化拒绝。
-- **多端恢复**：IDE 源码新增 durable workflow control、pending interaction 与 orphan Artifact recovery；Desktop 新增 returned-artifact review workbench；iOS 新增 transient remote session recovery。
-- **边界**：Scheduler campaign 只记录到第三段；签名 native、跨宿主 revoke、外部 Marketplace 产品化与上述多端市场/应用发布仍须各自 exact-SHA 门。
+- **原生执行失败闭合**：MCP materialized npm capsule 拒绝不受支持的 package `.node` / `process.dlopen` 形态；Windows/macOS strict native plugin 在 loader closure 不可证明时于 spawn 前类型化拒绝。
+- **耐久恢复**：CLI 公开 durable workflow stage recovery 与 orphan Artifact bounded projection；VS Code `0.37.59` 已在 Open VSX 公开并增加 pending interaction/焦点连续性。
+- **JetBrains 状态**：`0.4.94` 已通过六宿主矩阵并上传成功，但 Marketplace 仍在人工审核，当前公开版为 `0.4.93`。
+- **边界**：Desktop returned-artifact workbench 与 iOS transient session recovery 仍是对应源码能力；Scheduler campaign、签名 native 与跨宿主 revoke 继续按独立证据门处理。
 
 #### Fixed — CLI 0.165.4 正式发布：可移植首次安装与耐久运行时收口
 

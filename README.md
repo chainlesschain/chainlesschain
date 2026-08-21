@@ -2,30 +2,30 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.165.4`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.165.5`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.165.4 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.165.5 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-20 当前主线 — **v5.0.3.135 / CLI 0.165.4 / PDH 0.4.59 / Open VSX 0.37.58 / JetBrains 0.4.93**
+## 2026-08-21 当前主线 — **v5.0.3.135 / CLI 0.165.5 / PDH 0.4.59 / Open VSX 0.37.59 / JetBrains 0.4.93（0.4.94 待审）**
 
-> **发布口径**：`chainlesschain@0.165.4` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-165-4` 精确指向提交 [`86abb5f65e`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466808)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466552)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466545)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32377326843)均成功；npm registry 已回读 `latest=0.165.4`，公开 tarball SHA-1 为 `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`。
+> **发布口径**：`chainlesschain@0.165.5` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-165-5` 精确指向提交 [`11aef634aa`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582642)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582490)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314006)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32429710720)均成功；npm registry 已回读 `latest=0.165.5`，公开 tarball SHA-1 为 `c2cc7fb18ea572749d747de02355c6a0a5aef357`。
 >
-> **CLI 0.165.4**：在 `0.165.1` 的动态准入与远程权威基础上，正式承接受治理插件事务、provider/tool/child-call 耐久回执、阶段输入与 checkpoint 恢复、REPL/headless/WS 会话预算、远端执行结果的收集/审阅/导入/事务应用，以及 Artifact 访问、删除与 TTL 清理的可审计结算。`0.165.3` 的 keeper 退役/锁回收加固也已包含；`0.165.4` 进一步让无 Python、编译器或原生预构建的首次全局安装可退回 `sql.js` WASM，不再因可选 SQLite native addon 构建失败而中止。
+> **CLI 0.165.5**：完整承接 `0.165.4` 的可移植首次安装，并把孤儿 Artifact 的有界恢复投影、耐久 workflow 阶段恢复，以及 MCP package native-addon 的严格准入/类型化失败闭合纳入公开安装契约；IDE、WebSocket 与 CLI 消费方继续只使用 CLI 持久权威和 checkpoint 证据，不自行重建存储变更。
 >
-> **IDE 公开版**：Open VSX `0.37.58` 与 JetBrains Marketplace `0.4.93` 已回读公开。两端新增只经 CLI authority 暴露字节的 Artifact 预览/打开/复制路径与可恢复删除结算，并把 LLM API key 改为通过 `cc config set-secret` 的 stdin/OS 凭据库路径保存；VS Code `0.37.58` 另修复交互审批卡在通信恢复后的继续裁决。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名仍未完成。
+> **IDE 发布状态**：Open VSX `0.37.59` 已由 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314362) 发布并回读可下载，公开耐久 workflow 控制、孤儿 Artifact 恢复与编辑器交互连续性。JetBrains `0.4.94` 已由[同 SHA 的六宿主发布矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314072)上传成功，Marketplace 尚在人工审核，因此当前公开版仍是 `0.4.93`。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名仍未配置。
 >
-> **发布后源码边界**：本次代码核对基线 `f2fbf331da46` 在 `0.165.4` 之后继续加入 MCP package native-addon 拒绝策略、Windows/macOS strict native plugin 的类型化失败闭合、IDE 耐久 workflow 控制与孤儿 Artifact 恢复、桌面端返回产物工作台、iOS 临时远程会话恢复，以及 P1-5 Marketplace 三宿主十二格供应链矩阵实现。这些是源码快照，不反向写入 `0.165.4` tarball、Open VSX `0.37.58` 或 JetBrains `0.4.93` 的公开契约；P1-5 exact-head aggregate 尚待 Actions 回读，签名 native、跨宿主 revoke 与完整长期 campaign 仍按独立证据门处理。
+> **发布与源码边界**：CLI `0.165.5`、Open VSX `0.37.59` 与待审 JetBrains `0.4.94` 均绑定 `11aef634aa`；P1-5 Marketplace 三宿主矩阵和 ARM64 宿主矩阵也已在该 exact SHA 全绿。桌面端返回产物工作台与 iOS 临时远程会话恢复仍只是仓库源码能力，不因本轮 npm/IDE 发布而变成 Desktop/iOS 已发行功能；签名 native、跨宿主 revoke 与完整长期 campaign 继续使用独立证据门。
 >
 > **原生与长期证据边界**：npm 发布不等于 Desktop/native 签名发行。72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据，以及 Linux/Windows/macOS 签名、notarization/updater 与公开 fresh install/upgrade/rollback 回读仍未全部闭环；25 个兼容 alias 因缺少代表性遥测继续保留。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **发布链闭环**：`0.165.4` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance、registry 与独立公网回读已闭环；“registry 有版本”仍不等于“发布来源已验证”。PDH 已为 `0.4.59`（native SQLite 改为可选，保留 `sql.js` fallback），Agent SDK 仍为 `0.1.7`。
+> **发布链闭环**：`0.165.5` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance、registry 与独立公网回读已闭环；“registry 有版本”仍不等于“发布来源已验证”。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback），Agent SDK 保持 `0.1.7`。
 >
 > 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[检查点恢复指南](docs-site/docs/chainlesschain/checkpoint.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[IDE 桥接设计](docs/design/modules/98_IDE桥接对标方案.md)及[更新日志](CHANGELOG.md)。
 
@@ -2793,7 +2793,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.165.4-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.165.5-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**

@@ -3,8 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { verifyMcpSecurityEvidenceSet } from "../../scripts/ide-roadmap-mcp-security-gate.mjs";
+import {
+  createCodeSnapshotExecutionContract,
+  MCP_CODE_SNAPSHOT_REQUIRED_BOUNDARIES,
+  MCP_MAC_CODE_SNAPSHOT_REQUIRED_BOUNDARIES,
+  verifyMcpSecurityEvidenceSet,
+} from "../../scripts/ide-roadmap-mcp-security-gate.mjs";
 import { IDE_ROADMAP_MANIFEST_VERSION } from "../../scripts/verify-ide-roadmap-fixtures.mjs";
+import { MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY } from "../../src/lib/mcp-stdio-native-code-policy.js";
+import { SANDBOX_BOUNDARIES } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..", "..");
 const releaseCommit = "a".repeat(40);
@@ -198,6 +205,34 @@ function evidenceFor(operatingSystem) {
 }
 
 describe("IDE roadmap MCP security evidence verifier", () => {
+  it("binds native-addon denial into every code-snapshot probe contract", () => {
+    const root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-contract-test-")),
+    );
+    try {
+      const identity = {
+        realPath: path.join(root, "entry.cjs"),
+      };
+      const contract = createCodeSnapshotExecutionContract(
+        root,
+        identity,
+        identity,
+      );
+
+      expect(contract.nativeCodePolicy).toBe(
+        MCP_STDIO_CAPSULE_NATIVE_CODE_POLICY,
+      );
+      expect(MCP_CODE_SNAPSHOT_REQUIRED_BOUNDARIES).toEqual([
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      ]);
+      expect(MCP_MAC_CODE_SNAPSHOT_REQUIRED_BOUNDARIES).toContain(
+        SANDBOX_BOUNDARIES.NATIVE_ADDON_LOADING,
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
   let evidenceDir;
 
   beforeEach(() => {

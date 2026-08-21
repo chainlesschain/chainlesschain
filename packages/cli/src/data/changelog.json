@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.5",
+      "cliVersions": ["0.165.4", "0.165.5"],
+      "date": "2026-08-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.165.5: governed recovery and native add-on policy",
+          "body": "> `chainlesschain` **0.165.4 -> 0.165.5** (published from exact SHA\n> `11aef634aa3ab88994698eca0ce2f5cfa65faf48`, 2026-08-21).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Recoverable Artifact workflows**: inspect and settle orphaned Artifact\n  writes through a bounded CLI-owned recovery projection, retain exact\n  access/deletion evidence, and surface workbench state without letting IDE\n  clients derive storage mutations.\n- **Durable workflow recovery**: plan and resume interrupted workflow stages\n  through persisted authority and checkpoint evidence, with tighter session\n  and execution-location projections for CLI, WebSocket, and IDE consumers.\n- **Native MCP add-on policy**: admit only supported native loader shapes and\n  validated executable/package identities. Unsupported or ambiguous native\n  add-ons now return typed fail-closed rejections instead of crossing the\n  strict process boundary.\n- **Release gates**: add cross-host Marketplace, accessibility,\n  execution-location, context/permission, and live-provider campaigns while\n  keeping CI dependency installation clean and deterministic.\n- **Published release evidence**: immutable tag `v-npm-0-165-5`, three-OS\n  `CLI CI` (`32413582642`), `CLI Strict Sandbox` (`32413582490`), npm release\n  (`32428314006`), and independent registry/provenance readback\n  (`32429710720`) all bind exact SHA `11aef634aa`. npm reports\n  `latest=0.165.5`; the public tarball SHA-1 is\n  `c2cc7fb18ea572749d747de02355c6a0a5aef357`."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.4",
       "cliVersions": ["0.165.3", "0.165.4"],
       "date": "2026-08-20",

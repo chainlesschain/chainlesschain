@@ -1,11 +1,11 @@
-# CLI Runtime 当前实现核对（稳定版 0.165.4）
+# CLI Runtime 当前实现核对（稳定版 0.165.5）
 
-> 更新时间：2026-08-20。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.4`；公开 CLI 能力绑定不可变 tag `v-npm-0-165-4` 的精确 SHA `86abb5f65e39f0dd553040fbfce07277336dfeeb`。本次代码核对基线 `f2fbf331da46` 还包含该 tag 之后的多端安全、恢复与 P1-5 Marketplace 十二格供应链矩阵增量，本文继续把 npm/CLI、发布后源码、IDE 市场与 Desktop/native 签名发行的证据边界分开记录。
+> 更新时间：2026-08-21。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.5`；公开 CLI 能力绑定不可变 tag `v-npm-0-165-5` 的精确 SHA `11aef634aa3ab88994698eca0ce2f5cfa65faf48`。Open VSX `0.37.59` 绑定同一 SHA 并已公开，JetBrains `0.4.94` 已上传待审；本文继续把 npm/CLI、IDE 市场、Desktop/iOS 源码与签名 native 发行的证据边界分开记录。
 
 ## 版本与证据边界
 
-- `0.165.4` 是当前生产推荐基线。`v-npm-0-165-4` 精确指向 `86abb5f65e39f0dd553040fbfce07277336dfeeb`；同一 SHA 的 `CLI CI` `32375466808`、`CLI Strict Sandbox` `32375466552` Linux/Windows/macOS、专用 npm 发布 `32375466545`、Trusted Publishing、签名 provenance 与独立 registry readback `32377326843` 均成功。npm 公网回读为 `latest=0.165.4`，tarball SHA-1 为 `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`。
-- `0.165.1` 是上一轮文档基线；其动态准入、远程成员权威、canonical 执行边界和 keeper 加固现由 `0.165.4` 完整承接。
+- `0.165.5` 是当前生产推荐基线。`v-npm-0-165-5` 精确指向 `11aef634aa3ab88994698eca0ce2f5cfa65faf48`；同一 SHA 的 `CLI CI` `32413582642`、`CLI Strict Sandbox` `32413582490` Linux/Windows/macOS、专用 npm 发布 `32428314006`、Trusted Publishing、签名 provenance 与独立 registry readback `32429710720` 均成功。npm 公网回读为 `latest=0.165.5`，tarball SHA-1 为 `c2cc7fb18ea572749d747de02355c6a0a5aef357`。
+- `0.165.4` 是上一轮文档基线；其无原生工具链首次安装和此前的耐久运行时能力现由 `0.165.5` 完整承接。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -14,9 +14,9 @@
 - `0.163.7` 正式公开 outcome-unknown 人工裁决、五域 migration journal 与受治理回滚、因果交付报告、call-ledger 预算和后台恢复权威加固。裁决与回滚均依赖精确证据/CAS；它们不扩张为跨独立存储的原子事务或语义因果证明。
 - `0.163.8` 正式承接确定性 scheduler disk-fault matrix、checkpoint-aware Automation pause/resume、incident retry/cancel、受治理多 Agent merge review、只读 MCP resource templates 与 transaction-time lease clock。首个 formal soak run `31807830251` 因 Windows worker 提前退出而无效；后继 exact-main run `31821080101` 三平台及 aggregate 全部成功并定义新 `T0`，正式计数为 `1/4`，其余三个 segment 与 72 小时 campaign verifier 尚未完成。
 - `0.164.0` 正式包含原生 `/paste-image`、作用域权限/副作用证据、执行位置与 workflow definition identity、受治理插件市场、后台 keeper 与 MCP capsule 证据加固。Linux dynamic-native 与 macOS signed launcher 仍是有限声明/禁用候选，不外推为任意 shared-library closure 或签名 native 发行闭环。
-- `0.165.4` 正式包含受治理插件事务与 provenance、durable provider/tool/child-call receipts、stage input/checkpoint recovery、会话预算、返回结果收集/审阅/应用、Artifact access/deletion/cleanup settlement，以及无原生构建工具链的首次安装 fallback。
-- IDE 当前公开版本为 Open VSX `0.37.58` 与 JetBrains Marketplace `0.4.93`。双端公开 Artifact 访问审计、可恢复删除结算与安全 LLM secret 配置；VS Code `0.37.58` 另修复交互审批恢复。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
-- `HEAD@f2fbf331da46` 的 MCP package native-addon 拒绝、unsupported strict-native typed rejection、IDE/桌面/iOS 恢复与 P1-5 Marketplace 十二格供应链矩阵增量尚未形成新的不可变公开版本，不能继承 `0.165.4` 的发布授权；P1-5 exact-head aggregate 尚待 Actions 回读。
+- `0.165.5` 正式包含 `0.165.4` 的既有能力，以及孤儿 Artifact 有界恢复、durable workflow 阶段恢复、MCP package native-addon 拒绝与 unsupported strict-native typed rejection。
+- IDE 当前公开版本为 Open VSX `0.37.59`；JetBrains `0.4.94` 已通过六宿主矩阵并上传成功，但 Marketplace 人工审核未完成，公开版仍为 `0.4.93`。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- `11aef634aa` 的 P1-5 Marketplace 三宿主矩阵与 ARM64 host aggregate 均成功。Desktop 返回产物工作台和 iOS transient session recovery 仍按源码能力记录，不能继承 npm/IDE 的发布授权；签名 native 与长期 campaign 继续独立取证。
 
 ## 当前边界
 
@@ -228,6 +228,11 @@ outcome-unknown dead letter
 - P1-5 新增 Ubuntu 24.04、macOS 15、Windows 2025 × private-registry TLS、explicit proxy、PAC、air-gapped cache 的十二格 Marketplace 供应链 workflow；实现把每格 100 次 journey、签名 install/upgrade/rollback、24 类故障拒绝和 content-free aggregate 写成硬门。本机缩小 campaign 与单格 100/100 已记录，但 `f2fbf331da46` 尚无十二格 exact-head Actions aggregate，整体继续为部分完成 / NO-GO。
 - Scheduler campaign 已记录到第三段，但未完成最终 72 小时/全部 segment verifier；签名 native、跨宿主 revoke 和外部 Marketplace 产品化继续开放。
 
+### 2026-08-21 发布闭环
+
+- 上述 CLI native-addon policy、durable workflow/orphan Artifact recovery 已由 `v-npm-0-165-5` 与 Open VSX `0.37.59` 的 exact SHA `11aef634aa` 正式承接；JetBrains `0.4.94` 同 SHA 上传成功并等待 Marketplace 审核。
+- 同一 SHA 的 P1-5 Marketplace 三系统十二格矩阵与 IDE ARM64 host aggregate 已成功，因此 `f2fbf331da46` 时点的 aggregate NO-GO 已关闭。Desktop/iOS 应用发行、签名 native、跨宿主 revoke 与完整 Scheduler campaign 不随本闭环外推。
+
 ## 已落地能力
 
 ### 1. 命令分发
@@ -318,10 +323,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE `0.37.58` / `0.4.93` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE `0.37.59` / JetBrains `0.4.94` 提交件只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.58`，JetBrains Marketplace 当前公开 `0.4.93`。双端延续 Context Center、权限/副作用证据与 Automation Center，并新增 Artifact access/deletion settlement 与安全 LLM secret 配置；VS Code 还恢复断线后的 pending interaction。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- Open VSX 当前公开 `0.37.59`；JetBrains `0.4.94` 已通过六宿主矩阵并上传待审，Marketplace 当前公开 `0.4.93`。双端延续 Context Center、权限/副作用证据与 Automation Center，并加入 durable workflow/orphan Artifact recovery；VS Code 还强化焦点与 pending interaction 连续性。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -369,8 +374,8 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.165.4` 的精确正式发布提交为 [`86abb5f65e39f0dd553040fbfce07277336dfeeb`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb)。该提交的 [CLI CI run 32375466808](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466808)、[CLI Strict Sandbox run 32375466552](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466552)、[npm publish run 32375466545](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466545)与[独立公网回读 run 32377326843](https://github.com/chainlesschain/chainlesschain/actions/runs/32377326843)均成功；npm `latest` 已回读为 `0.165.4`，公开 tarball SHA-1 为 `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`。
+`0.165.5` 的精确正式发布提交为 [`11aef634aa3ab88994698eca0ce2f5cfa65faf48`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48)。该提交的 [CLI CI run 32413582642](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582642)、[CLI Strict Sandbox run 32413582490](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582490)、[npm publish run 32428314006](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314006)与[独立公网回读 run 32429710720](https://github.com/chainlesschain/chainlesschain/actions/runs/32429710720)均成功；npm `latest` 已回读为 `0.165.5`，公开 tarball SHA-1 为 `c2cc7fb18ea572749d747de02355c6a0a5aef357`。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；`HEAD@f2fbf331da46` 的发布后源码增量不能继承 `v-npm-0-165-4` 的发布授权。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；`11aef634aa` 之后的源码增量不能继承 `v-npm-0-165-5` 的发布授权。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

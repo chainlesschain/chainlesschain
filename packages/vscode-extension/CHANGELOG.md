@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.59] - Durable recovery and editor continuity (2026-08-20)
+
+- Surface CLI-owned durable workflow controls and session recovery state
+  without reconstructing authority or executable arguments in the extension.
+- Recover orphaned Artifact operations through bounded CLI projections and
+  keep preview, open, reveal, download, and removal actions bound to refreshed
+  access/deletion evidence.
+- Restore keyboard focus across chat and workbench transitions, and rehydrate
+  pending interactions after host or Webview recovery without duplicating an
+  approval or answering a stale prompt.
+- Add deterministic Remote-SSH and dev-container host-recovery coverage while
+  preserving exact extension-host, transport, workspace, and release-commit
+  evidence.
+
 ## [0.37.58] - Restore interactive approvals and questions (2026-08-20)
 
 - Repair the generated chat Webview script so authorization and
