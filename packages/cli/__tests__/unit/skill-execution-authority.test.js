@@ -15,6 +15,7 @@ const fixtureUrl = new URL(
   "../fixtures/skill-execution-authority-host.mjs",
   import.meta.url,
 );
+const CONCURRENT_REVOCATION_TIMEOUT_MS = 15000;
 const roots = [];
 const hosts = new Set();
 
@@ -94,10 +95,33 @@ function waitForMessage(host, predicate, timeoutMs = 6000) {
     };
     const fixtureResult = (message) => {
       if (message?.type !== "error") return message;
+      const diagnosticParts = [];
+      if (typeof message.causeCode === "string") {
+        diagnosticParts.push(`causeCode=${message.causeCode}`);
+      }
+      if (Number.isSafeInteger(message.causeAttempts)) {
+        diagnosticParts.push(`causeAttempts=${message.causeAttempts}`);
+      }
+      if (typeof message.causeCommitState === "string") {
+        diagnosticParts.push(`causeCommitState=${message.causeCommitState}`);
+      }
+      const diagnosticSuffix =
+        diagnosticParts.length > 0 ? ` [${diagnosticParts.join(", ")}]` : "";
       const error = new Error(
-        message.message || "Skill authority fixture failed",
+        `${message.message || "Skill authority fixture failed"}${diagnosticSuffix}`,
       );
       if (message.code) error.code = message.code;
+      if (message.causeCode) {
+        const cause = new Error(`Fixture cause: ${message.causeCode}`);
+        cause.code = message.causeCode;
+        if (Number.isSafeInteger(message.causeAttempts)) {
+          cause.attempts = message.causeAttempts;
+        }
+        if (message.causeCommitState) {
+          cause.commitState = message.causeCommitState;
+        }
+        error.cause = cause;
+      }
       return error;
     };
     const settle = (handler, value) => {
@@ -306,7 +330,11 @@ describe("durable Skill execution authority", () => {
     const results = await Promise.all(
       Array.from({ length: 6 }, () => {
         const child = spawnChild(filePath, "revoke");
-        return waitForMessage(child, (message) => message?.type === "revoked");
+        return waitForMessage(
+          child,
+          (message) => message?.type === "revoked",
+          CONCURRENT_REVOCATION_TIMEOUT_MS,
+        );
       }),
     );
     expect(
@@ -321,5 +349,40 @@ describe("durable Skill execution authority", () => {
       generation: "6",
       previousGeneration: "5",
     });
+  });
+
+  it("reports a redacted structured cause when strict lock admission times out", async () => {
+    const filePath = createAuthorityPath();
+    const ownerToken = "diagnostic-owner-token-1234";
+    fs.mkdirSync(`${filePath}.lock`, { recursive: true });
+    fs.writeFileSync(
+      path.join(`${filePath}.lock`, "owner.json"),
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: Date.now(),
+        token: ownerToken,
+      }),
+      "utf8",
+    );
+
+    const child = spawnChild(filePath, "revoke-lock-timeout");
+    let failure;
+    try {
+      await waitForMessage(child, (message) => message?.type === "revoked");
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({
+      code: SKILL_EXECUTION_AUTHORITY_UNAVAILABLE_CODE,
+      cause: {
+        code: "STATE_LOCK_UNAVAILABLE",
+        commitState: "not-committed",
+      },
+    });
+    expect(failure.cause.attempts).toBeGreaterThan(0);
+    expect(failure.message).toContain("causeCode=STATE_LOCK_UNAVAILABLE");
+    expect(failure.message).not.toContain(filePath);
+    expect(failure.message).not.toContain(ownerToken);
   });
 });

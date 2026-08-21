@@ -33,6 +33,75 @@ const REQUIRED_FILES = Object.freeze([
   "redaction-and-recovery.json",
   "outcome-observations.json",
 ]);
+// Each child performs five mutations through the production 2s strict lock.
+// Three shared retries cap it at eight lock windows (16s plus <250ms backoff),
+// below the 30s child deadline even if every retry consumes its full window.
+const SAFE_CONTENTION_RETRIES_PER_WORKER = 3;
+const MAX_DIAGNOSTIC_BYTES = 16 * 1024;
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createSafeContentionBudget() {
+  return { remaining: SAFE_CONTENTION_RETRIES_PER_WORKER, used: 0 };
+}
+
+async function runSafeContentionMutation(
+  operation,
+  {
+    budget = createSafeContentionBudget(),
+    sleep = delay,
+    random = Math.random,
+  } = {},
+) {
+  for (;;) {
+    try {
+      return operation();
+    } catch (error) {
+      const canRetry =
+        error?.code === "STATE_LOCK_UNAVAILABLE" &&
+        error?.commitState === "not-committed" &&
+        budget.remaining > 0;
+      // Never replay a committed or ambiguous security mutation. The durable
+      // store attaches `not-committed` only when the callback/write did not
+      // commit, so this retry cannot duplicate a grant or hide a revocation.
+      if (!canRetry) throw error;
+      const retryIndex = budget.used;
+      budget.remaining -= 1;
+      budget.used += 1;
+      const backoffMs = Math.min(200, 25 * 2 ** retryIndex);
+      const jitterMs = Math.floor(Math.max(0, Math.min(1, random())) * 25);
+      await sleep(backoffMs + jitterMs);
+    }
+  }
+}
+
+function summarizeWorkerDiagnostics(text, outputBytes, diagnosticDigest) {
+  const errorCode = [
+    "STATE_LOCK_UNAVAILABLE",
+    "DURABLE_SECURITY_STORE_PREPARE_FAILED",
+    "DURABLE_SECURITY_STORE_READ_FAILED",
+    "DURABLE_SECURITY_STORE_CORRUPT_FAILED",
+    "DURABLE_SECURITY_STORE_WRITE_FAILED",
+    "CC_SCOPED_PERMISSION_INVALID",
+    "CC_SCOPED_PERMISSION_CONFLICT",
+    "CC_SCOPED_PERMISSION_NOT_FOUND",
+    "CC_SCOPED_PERMISSION_CORRUPT",
+  ].find((candidate) => text.includes(candidate));
+  const commitState = text.match(
+    /commitState:\s*['"](not-committed|committed|unknown)['"]/u,
+  )?.[1];
+  return [
+    `diagnosticBytes=${outputBytes}`,
+    `diagnosticDigest=${diagnosticDigest}`,
+    errorCode ? `errorCode=${errorCode}` : null,
+    commitState ? `commitState=${commitState}` : null,
+    outputBytes > MAX_DIAGNOSTIC_BYTES ? "diagnosticCapture=truncated" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
 
 function parseArgs(argv) {
   const options = {};
@@ -107,6 +176,7 @@ async function loadProduction() {
 
 async function workerAdd(options) {
   const { scoped } = await loadProduction();
+  const contentionBudget = createSafeContentionBudget();
   const store = new scoped.ScopedPermissionStore({
     cwd: path.resolve(options.workspace),
     filePath: path.resolve(options.stateFile),
@@ -115,17 +185,22 @@ async function workerAdd(options) {
   const count = Number(options.count);
   for (let index = 0; index < count; index += 1) {
     const id = start + index;
-    store.add({
-      decision: id % 3 === 0 ? "deny" : id % 3 === 1 ? "ask" : "allow",
-      rule: `Read(file-${String(id).padStart(3, "0")})`,
-      expiresAt: Date.now() + 3_600_000,
-      reason: `matrix-rule-${id}`,
-    });
+    await runSafeContentionMutation(
+      () =>
+        store.add({
+          decision: id % 3 === 0 ? "deny" : id % 3 === 1 ? "ask" : "allow",
+          rule: `Read(file-${String(id).padStart(3, "0")})`,
+          expiresAt: Date.now() + 3_600_000,
+          reason: `matrix-rule-${id}`,
+        }),
+      { budget: contentionBudget },
+    );
   }
 }
 
 async function workerRevoke(options) {
   const { scoped } = await loadProduction();
+  const contentionBudget = createSafeContentionBudget();
   const store = new scoped.ScopedPermissionStore({
     cwd: path.resolve(options.workspace),
     filePath: path.resolve(options.stateFile),
@@ -134,7 +209,10 @@ async function workerRevoke(options) {
   const start = Number(options.start);
   const count = Number(options.count);
   for (let index = 0; index < count; index += 1) {
-    store.revoke({ id: ids[start + index], expectedRevision: 1 });
+    await runSafeContentionMutation(
+      () => store.revoke({ id: ids[start + index], expectedRevision: 1 }),
+      { budget: contentionBudget },
+    );
   }
 }
 
@@ -147,21 +225,22 @@ function sleeper(options) {
 }
 
 function waitForExit(child, timeoutMs = 30_000) {
-  if (child.exitCode !== null) return Promise.resolve(child.exitCode);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error("matrix child exit timeout")),
       timeoutMs,
     );
-    child.once("exit", (code) => {
+    // `close` follows both process exit and stdio closure, so zero-output
+    // assertions cannot miss diagnostics that arrive after the exit event.
+    child.once("close", (code) => {
       clearTimeout(timer);
       resolve(code);
     });
   });
 }
 
-function runWorkers(mode, common, count = 20, perWorker = 5) {
-  return Promise.all(
+async function runWorkers(mode, common, count = 20, perWorker = 5) {
+  const outcomes = await Promise.allSettled(
     Array.from({ length: count }, (_, workerIndex) => {
       const args = [
         SCRIPT_PATH,
@@ -183,18 +262,47 @@ function runWorkers(mode, common, count = 20, perWorker = 5) {
         windowsHide: true,
       });
       let outputBytes = 0;
-      child.stdout.on("data", (chunk) => {
+      let capturedBytes = 0;
+      const diagnostics = [];
+      const diagnosticHash = crypto.createHash("sha256");
+      const recordDiagnostic = (chunk) => {
         outputBytes += chunk.length;
-      });
-      child.stderr.on("data", (chunk) => {
-        outputBytes += chunk.length;
-      });
+        diagnosticHash.update(chunk);
+        if (capturedBytes < MAX_DIAGNOSTIC_BYTES) {
+          const retained = chunk.subarray(
+            0,
+            MAX_DIAGNOSTIC_BYTES - capturedBytes,
+          );
+          diagnostics.push(retained);
+          capturedBytes += retained.length;
+        }
+      };
+      child.stdout.on("data", recordDiagnostic);
+      child.stderr.on("data", recordDiagnostic);
       return waitForExit(child).then((code) => {
-        assert.equal(code, 0, `${mode} worker ${workerIndex} failed`);
-        assert.equal(outputBytes, 0, `${mode} worker emitted diagnostics`);
+        const diagnosticText = Buffer.concat(diagnostics)
+          .toString("utf8")
+          .trim();
+        const diagnosticSummary = summarizeWorkerDiagnostics(
+          diagnosticText,
+          outputBytes,
+          `sha256:${diagnosticHash.digest("hex")}`,
+        );
+        assert.equal(
+          code,
+          0,
+          `${mode} worker ${workerIndex} failed: ${diagnosticSummary}`,
+        );
+        assert.equal(
+          outputBytes,
+          0,
+          `${mode} worker emitted diagnostics: ${diagnosticSummary}`,
+        );
       });
     }),
   );
+  const failed = outcomes.find((outcome) => outcome.status === "rejected");
+  if (failed) throw failed.reason;
 }
 
 function contextCandidates() {
@@ -560,4 +668,12 @@ async function main() {
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
 
-export { ENTRYPOINTS, REQUIRED_FILES, canonicalJson, digest, mainCampaign };
+export {
+  ENTRYPOINTS,
+  REQUIRED_FILES,
+  canonicalJson,
+  digest,
+  mainCampaign,
+  runSafeContentionMutation,
+  summarizeWorkerDiagnostics,
+};
