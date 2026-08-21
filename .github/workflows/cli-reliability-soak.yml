@@ -14,6 +14,10 @@ on:
       - "packages/cli/scripts/repair-node-pty.mjs"
       - "packages/cli/src/runtime/headless-*.js"
       - "packages/cli/src/runtime/output-backpressure.js"
+      - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/src/lib/session-runtime-retention.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
       - "packages/cli/src/runtime/cleanup-deadline.js"
       - "packages/cli/src/runtime/pipe-safety.js"
       - "packages/cli/src/harness/jsonl-session-store.js"
@@ -48,6 +52,7 @@ on:
       - "packages/cli/scripts/verify-mcp-lifecycle-increments.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-message-fabric.mjs"
+      - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
@@ -62,6 +67,9 @@ on:
       - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs"
       - "packages/cli/__tests__/unit/scheduler-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/session-message-fabric.test.js"
+      - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
+      - "packages/cli/__tests__/unit/background-session-transport.test.js"
+      - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/cli/__tests__/unit/session-projection.test.js"
       - "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
@@ -197,6 +205,11 @@ jobs:
           CC_CLI_RELIABILITY_OUTPUT: ${{ runner.temp }}/cli-reliability-result.json
         run: npm run test:cli-reliability-soak
 
+      - name: Run bounded long-session retention profile
+        env:
+          CC_SESSION_RUNTIME_OUTPUT: ${{ runner.temp }}/session-runtime-retention.json
+        run: npm run test:cli-session-runtime
+
       - name: Unmount reliability disk fixtures
         if: always() && runner.os == 'Linux'
         shell: bash
@@ -211,7 +224,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: cli-reliability-${{ matrix.os }}-${{ env.CC_CLI_RELIABILITY_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/cli-reliability-result.json
+          path: |
+            ${{ runner.temp }}/cli-reliability-result.json
+            ${{ runner.temp }}/session-runtime-retention.json
           if-no-files-found: error
           retention-days: 30
 

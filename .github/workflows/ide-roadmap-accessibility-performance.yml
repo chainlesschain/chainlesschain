@@ -7,6 +7,14 @@ on:
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
+      - "packages/cli/scripts/verify-session-runtime-retention.mjs"
+      - "packages/cli/src/lib/session-runtime-retention.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
+      - "packages/cli/__tests__/unit/background-session-transport.test.js"
+      - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
@@ -26,6 +34,14 @@ on:
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
+      - "packages/cli/scripts/verify-session-runtime-retention.mjs"
+      - "packages/cli/src/lib/session-runtime-retention.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
+      - "packages/cli/__tests__/unit/background-session-transport.test.js"
+      - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
@@ -156,6 +172,11 @@ jobs:
       - name: Run VS Code keyboard, transcript, and scale regressions
         shell: bash
         run: node --test packages/vscode-extension/test/host-dom-relay.test.cjs packages/vscode-extension/test/sessions-view-delivery.test.cjs
+      - name: Run long-session live-state retention profile
+        shell: bash
+        run: >-
+          CC_SESSION_RUNTIME_OUTPUT="$CC_P2_ARTIFACT_DIR/session-runtime-retention.json"
+          npm run test:cli-session-runtime
       - name: Measure JetBrains native Swing product surfaces
         shell: pwsh
         working-directory: packages/jetbrains-plugin

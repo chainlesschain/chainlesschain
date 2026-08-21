@@ -33,6 +33,10 @@ import {
 
 const HELLO_TIMEOUT_MS = 5000;
 const MAX_LINE_BYTES = 1024 * 1024;
+export const BACKGROUND_SESSION_BACKLOG_LIMITS = Object.freeze({
+  messages: 256,
+  bytes: 1024 * 1024,
+});
 
 /** Pipe endpoint for a session id (Windows named pipe / POSIX socket file). */
 export function transportPipePath(id, dir, options = {}) {
@@ -70,14 +74,128 @@ export function createNdjsonReader(onMessage, onError = () => {}) {
   };
 }
 
-function writeMessage(socket, message) {
-  if (!socket || socket.destroyed) return false;
-  try {
-    socket.write(`${JSON.stringify(message)}\n`);
-    return true;
-  } catch {
+/**
+ * A socket writer with an application-level queue above Node's native write
+ * buffer. Once `socket.write()` reports backpressure, later messages wait for
+ * `drain`; a consumer that exceeds either cap is disconnected instead of
+ * retaining an unbounded event history in the worker.
+ */
+export function createBoundedSocketWriter(socket, configured = {}) {
+  const maxMessages = Math.max(
+    1,
+    Number.isFinite(configured.messages)
+      ? Math.floor(configured.messages)
+      : BACKGROUND_SESSION_BACKLOG_LIMITS.messages,
+  );
+  const maxBytes = Math.max(
+    1024,
+    Number.isFinite(configured.bytes)
+      ? Math.floor(configured.bytes)
+      : BACKGROUND_SESSION_BACKLOG_LIMITS.bytes,
+  );
+  const queue = [];
+  let queuedBytes = 0;
+  let waitingForDrain = false;
+  let closed = false;
+  let overflowed = false;
+
+  const nativeBufferedBytes = () =>
+    Number.isFinite(socket?.writableLength)
+      ? Math.max(0, socket.writableLength)
+      : 0;
+  const clear = () => {
+    queue.length = 0;
+    queuedBytes = 0;
+    waitingForDrain = false;
+  };
+  const overflow = () => {
+    if (overflowed) return false;
+    overflowed = true;
+    closed = true;
+    clear();
+    try {
+      configured.onOverflow?.({ maxMessages, maxBytes });
+    } catch {
+      /* observer errors do not change the fail-closed outcome */
+    }
+    try {
+      socket?.destroy();
+    } catch {
+      /* already closed */
+    }
     return false;
-  }
+  };
+  const writePayload = (payload) => {
+    try {
+      if (socket.write(payload) === false) waitingForDrain = true;
+      return true;
+    } catch {
+      closed = true;
+      clear();
+      return false;
+    }
+  };
+  const flush = () => {
+    if (closed || socket?.destroyed) {
+      closed = true;
+      clear();
+      return;
+    }
+    waitingForDrain = false;
+    while (queue.length > 0 && !waitingForDrain) {
+      const next = queue.shift();
+      queuedBytes -= next.bytes;
+      if (!writePayload(next.payload)) break;
+    }
+  };
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    clear();
+    socket?.removeListener?.("drain", flush);
+  };
+
+  socket?.on?.("drain", flush);
+  socket?.once?.("close", close);
+  socket?.once?.("error", close);
+
+  return Object.freeze({
+    write(message) {
+      if (closed || !socket || socket.destroyed) return false;
+      let payload;
+      try {
+        payload = `${JSON.stringify(message)}\n`;
+      } catch {
+        return false;
+      }
+      const bytes = Buffer.byteLength(payload, "utf8");
+      if (bytes > maxBytes) return overflow();
+      if (waitingForDrain || queue.length > 0) {
+        if (
+          queue.length + 1 > maxMessages ||
+          nativeBufferedBytes() + queuedBytes + bytes > maxBytes
+        ) {
+          return overflow();
+        }
+        queue.push({ payload, bytes });
+        queuedBytes += bytes;
+        return true;
+      }
+      if (nativeBufferedBytes() + bytes > maxBytes) return overflow();
+      return writePayload(payload);
+    },
+    close,
+    state: () => ({
+      queuedMessages: queue.length,
+      queuedBytes,
+      nativeBufferedBytes: nativeBufferedBytes(),
+      waitingForDrain,
+      overflowed,
+      closed,
+      maxMessages,
+      maxBytes,
+    }),
+  });
 }
 
 /**
@@ -117,7 +235,7 @@ export function startBackgroundSessionServer(opts) {
       /* fine — usually ENOENT */
     }
   }
-  const clients = new Set();
+  const clients = new Map();
   const notifyClients = () => {
     try {
       onClientChange?.(clients.size);
@@ -128,6 +246,8 @@ export function startBackgroundSessionServer(opts) {
 
   const server = net.createServer((socket) => {
     let authed = false;
+    const writer = createBoundedSocketWriter(socket);
+    const send = (message) => writer.write(message);
     const helloTimer = setTimeout(() => {
       if (!authed) socket.destroy();
     }, HELLO_TIMEOUT_MS);
@@ -141,8 +261,8 @@ export function startBackgroundSessionServer(opts) {
             if (message.type === "hello" && message.token === token) {
               authed = true;
               clearTimeout(helloTimer);
-              clients.add(socket);
-              writeMessage(socket, {
+              clients.set(socket, writer);
+              send({
                 type: "hello",
                 ...(getStatus ? getStatus() : { id }),
               });
@@ -156,7 +276,7 @@ export function startBackgroundSessionServer(opts) {
             case "prompt": {
               const text = String(message.text || "").trim();
               if (!text) {
-                writeMessage(socket, {
+                send({
                   type: "error",
                   message: "prompt text is empty",
                 });
@@ -164,12 +284,12 @@ export function startBackgroundSessionServer(opts) {
               }
               try {
                 const result = onPrompt(text);
-                writeMessage(socket, {
+                send({
                   type: "accepted",
                   queued: result?.queued ?? 1,
                 });
               } catch (error) {
-                writeMessage(socket, {
+                send({
                   type: "error",
                   message: error?.message || String(error),
                 });
@@ -177,7 +297,7 @@ export function startBackgroundSessionServer(opts) {
               return;
             }
             case "status": {
-              writeMessage(socket, {
+              send({
                 type: "status",
                 ...(getStatus ? getStatus() : { id }),
               });
@@ -186,9 +306,9 @@ export function startBackgroundSessionServer(opts) {
             case "stop": {
               try {
                 onStop?.();
-                writeMessage(socket, { type: "stopping" });
+                send({ type: "stopping" });
               } catch (error) {
-                writeMessage(socket, {
+                send({
                   type: "error",
                   message: error?.message || String(error),
                 });
@@ -206,7 +326,7 @@ export function startBackgroundSessionServer(opts) {
                   message;
                 const resolvedId = requestId || intId;
                 if (!resolvedId) {
-                  writeMessage(socket, {
+                  send({
                     type: "error",
                     message: "interaction_response requires requestId or intId",
                   });
@@ -219,7 +339,7 @@ export function startBackgroundSessionServer(opts) {
                   answer: answer ?? result,
                   error,
                 });
-                writeMessage(socket, {
+                send({
                   type: "received",
                   requestId: resolvedId,
                   accepted:
@@ -232,7 +352,7 @@ export function startBackgroundSessionServer(opts) {
                       : false,
                 });
               } catch (err) {
-                writeMessage(socket, {
+                send({
                   type: "error",
                   message: err?.message || String(err),
                 });
@@ -240,7 +360,7 @@ export function startBackgroundSessionServer(opts) {
               return;
             }
             default:
-              writeMessage(socket, {
+              send({
                 type: "error",
                 message: `unknown message type: ${message.type}`,
               });
@@ -256,6 +376,7 @@ export function startBackgroundSessionServer(opts) {
 
     const drop = () => {
       clearTimeout(helloTimer);
+      writer.close();
       if (clients.delete(socket)) notifyClients();
     };
     socket.on("close", drop);
@@ -281,11 +402,11 @@ export function startBackgroundSessionServer(opts) {
         pipePath,
         clientCount: () => clients.size,
         broadcast: (message) => {
-          for (const socket of clients) writeMessage(socket, message);
+          for (const writer of clients.values()) writer.write(message);
         },
         broadcastInteractionRequest: (intId, payload, binding = null) => {
-          for (const socket of clients)
-            writeMessage(socket, {
+          for (const writer of clients.values())
+            writer.write({
               type: "interaction_request",
               intId,
               requestId: intId,
@@ -302,7 +423,10 @@ export function startBackgroundSessionServer(opts) {
         },
         close: () =>
           new Promise((done) => {
-            for (const socket of clients) socket.destroy();
+            for (const [socket, writer] of clients) {
+              writer.close();
+              socket.destroy();
+            }
             clients.clear();
             server.close(() => {
               if (process.platform !== "win32") {
@@ -341,6 +465,7 @@ export function connectBackgroundSession(opts) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const socket = net.connect(pipePath);
+    const writer = createBoundedSocketWriter(socket);
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
@@ -367,7 +492,7 @@ export function connectBackgroundSession(opts) {
             socket.unref?.();
             resolve({
               hello: message,
-              send: (msg) => writeMessage(socket, msg),
+              send: (msg) => writer.write(msg),
               close: () => {
                 // Best-effort graceful detach, then HARD destroy so the client
                 // handle is released synchronously. `socket.end()` alone leaves
@@ -380,10 +505,11 @@ export function connectBackgroundSession(opts) {
                 // the worker sees the socket close and finalizes the same as it
                 // would on an explicit detach.
                 try {
-                  writeMessage(socket, { type: "detach" });
+                  writer.write({ type: "detach" });
                 } catch {
                   /* peer already gone */
                 }
+                writer.close();
                 socket.destroy();
               },
             });
@@ -398,7 +524,7 @@ export function connectBackgroundSession(opts) {
       }),
     );
     socket.on("connect", () => {
-      writeMessage(socket, { type: "hello", token });
+      writer.write({ type: "hello", token });
     });
     socket.on("error", (error) => {
       if (!settled) {

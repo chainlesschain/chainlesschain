@@ -62,6 +62,14 @@ function seedTokenBloat() {
   return messages;
 }
 
+function seedRuntimeResultBloat() {
+  return Array.from({ length: 34 }, (_, index) => ({
+    role: "tool",
+    tool_call_id: `result-${index}`,
+    content: `${index}:`.padEnd(32 * 1024, "x"),
+  }));
+}
+
 function tokenBloatCompactor() {
   return {
     compress: vi.fn(),
@@ -139,6 +147,36 @@ describe("agentLoop compaction self-persist", () => {
     expect(events.some((event) => event.type === "micro-compaction")).toBe(
       true,
     );
+  });
+
+  it("persists runtime result retention before replacing live messages", async () => {
+    const messages = seedRuntimeResultBloat();
+    const expectedMessages = messages.map((message) => ({ ...message }));
+
+    const events = await drain(
+      agentLoop(messages, {
+        autoCompact: false,
+        chatFn: finalReplyChatFn(),
+        sessionId: "runtime-retention-session",
+      }),
+    );
+
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    const [sid, payload, authorityExpectedMessages] =
+      store.appendCompactEventIfMessagesMatch.mock.calls[0];
+    expect(sid).toBe("runtime-retention-session");
+    expect(payload).toMatchObject({
+      trigger: "runtime-retention",
+      strategy: "session-runtime-retention",
+      released: 2,
+    });
+    expect(payload.messages).toHaveLength(expectedMessages.length);
+    expect(payload.messages[0].content.length).toBeLessThanOrEqual(512);
+    expect(payload.messages.at(-1).content).toHaveLength(32 * 1024);
+    expect(authorityExpectedMessages).toEqual(expectedMessages);
+    expect(
+      events.some((event) => event.type === "session-runtime-retention"),
+    ).toBe(true);
   });
 
   it("does NOT persist when the session file does not exist (one-shot)", async () => {

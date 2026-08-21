@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   LOG_TRUNCATION_NOTICE,
+  MAX_BACKGROUND_LOG_DELTA_BYTES,
   buildBackgroundDispatchArgs,
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
@@ -288,6 +289,56 @@ describe("readLogFromOffset — follow truncation/rotation (Gap 3)", () => {
     const second = readLogFromOffset(file, first.offset);
     expect(second.text).toBe("world");
     expect(second.truncated).toBeUndefined();
+  });
+
+  it("preserves the cursor while a rotated file is temporarily absent", () => {
+    expect(readLogFromOffset(file, 12_345)).toEqual({
+      text: "",
+      offset: 12_345,
+    });
+  });
+
+  it("tracks UTF-8 byte offsets without rescanning the prefix", () => {
+    writeFileSync(file, "你🙂", "utf8");
+    const first = readLogFromOffset(file, 0);
+    expect(first.text).toBe("你🙂");
+    expect(first.offset).toBe(Buffer.byteLength("你🙂", "utf8"));
+
+    writeFileSync(file, "你🙂\n好", "utf8");
+    const second = readLogFromOffset(file, first.offset);
+    expect(second).toEqual({
+      text: "\n好",
+      offset: Buffer.byteLength("你🙂\n好", "utf8"),
+    });
+  });
+
+  it("caps each growth read and advances the byte cursor", () => {
+    writeFileSync(
+      file,
+      "z".repeat(MAX_BACKGROUND_LOG_DELTA_BYTES + 17),
+      "utf8",
+    );
+    const first = readLogFromOffset(file, 0);
+    expect(Buffer.byteLength(first.text, "utf8")).toBe(
+      MAX_BACKGROUND_LOG_DELTA_BYTES,
+    );
+    expect(first.offset).toBe(MAX_BACKGROUND_LOG_DELTA_BYTES);
+
+    const second = readLogFromOffset(file, first.offset);
+    expect(second.text).toBe("z".repeat(17));
+    expect(second.offset).toBe(MAX_BACKGROUND_LOG_DELTA_BYTES + 17);
+  });
+
+  it("does not split a UTF-8 code point at the growth cap", () => {
+    const prefix = "a".repeat(MAX_BACKGROUND_LOG_DELTA_BYTES - 1);
+    writeFileSync(file, `${prefix}你tail`, "utf8");
+
+    const first = readLogFromOffset(file, 0);
+    expect(first.text).toBe(prefix);
+    expect(first.offset).toBe(MAX_BACKGROUND_LOG_DELTA_BYTES - 1);
+
+    const second = readLogFromOffset(file, first.offset);
+    expect(second.text).toBe("你tail");
   });
 
   it("on truncation emits a marker and resumes from the tail — NOT the whole file", () => {

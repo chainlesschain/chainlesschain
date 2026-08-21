@@ -21,6 +21,14 @@ on:
       - "packages/cli/src/lib/secure-fs.js"
       - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/scripts/session-scale-gate.mjs"
+      - "packages/cli/scripts/verify-session-runtime-retention.mjs"
+      - "packages/cli/src/lib/session-runtime-retention.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
+      - "packages/cli/__tests__/unit/background-session-transport.test.js"
+      - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/cli/__tests__/fixtures/session-concurrency-writer.mjs"
       - "packages/cli/__tests__/fixtures/session-scale-*.mjs"
       - "packages/cli/__tests__/unit/jsonl-session-store.test.js"
@@ -82,11 +90,18 @@ jobs:
           CC_SESSION_SCALE_OUTPUT: ${{ runner.temp }}/cli-session-scale-result.json
         run: npm run test:cli-session-scale
 
+      - name: Run long-session result retention profile
+        env:
+          CC_SESSION_RUNTIME_OUTPUT: ${{ runner.temp }}/session-runtime-retention.json
+        run: npm run test:cli-session-runtime
+
       - name: Upload exact-SHA session scale evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: cli-session-scale-${{ matrix.os }}-${{ env.CC_SESSION_SCALE_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/cli-session-scale-result.json
+          path: |
+            ${{ runner.temp }}/cli-session-scale-result.json
+            ${{ runner.temp }}/session-runtime-retention.json
           if-no-files-found: error
           retention-days: 30

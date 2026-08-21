@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { closeSync, openSync, readSync, statSync } from "node:fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { readPrLinkLedger } from "../lib/pr-link-ledger.js";
@@ -350,22 +350,112 @@ export async function retryBackgroundNeedsInputNotification(
 export const LOG_TRUNCATION_NOTICE =
   "--- log truncated/rotated, resuming from tail ---";
 const TRUNCATION_RESUME_TAIL_BYTES = 4096;
+export const MAX_BACKGROUND_LOG_DELTA_BYTES = 1024 * 1024;
+
+function backgroundLogSize(file) {
+  try {
+    return statSync(file).size;
+  } catch {
+    return null;
+  }
+}
+
+function completeUtf8PrefixLength(buffer) {
+  if (buffer.length === 0) return 0;
+  let leadIndex = buffer.length - 1;
+  let continuationBytes = 0;
+  while (
+    leadIndex >= 0 &&
+    (buffer[leadIndex] & 0xc0) === 0x80 &&
+    continuationBytes < 3
+  ) {
+    continuationBytes += 1;
+    leadIndex -= 1;
+  }
+  if (leadIndex < 0) return buffer.length;
+  const lead = buffer[leadIndex];
+  const expectedBytes =
+    (lead & 0x80) === 0
+      ? 1
+      : (lead & 0xe0) === 0xc0
+        ? 2
+        : (lead & 0xf0) === 0xe0
+          ? 3
+          : (lead & 0xf8) === 0xf0
+            ? 4
+            : 1;
+  return buffer.length - leadIndex < expectedBytes ? leadIndex : buffer.length;
+}
+
+function readBackgroundLogRange(
+  file,
+  start,
+  length,
+  preserveTrailingUtf8 = false,
+) {
+  if (length <= 0) return { text: "", bytesRead: 0 };
+  let fd;
+  try {
+    fd = openSync(file, "r");
+    const buffer = Buffer.allocUnsafe(length);
+    let bytesRead = 0;
+    while (bytesRead < length) {
+      const count = readSync(
+        fd,
+        buffer,
+        bytesRead,
+        length - bytesRead,
+        start + bytesRead,
+      );
+      if (count === 0) break;
+      bytesRead += count;
+    }
+    const completeBytes = preserveTrailingUtf8
+      ? completeUtf8PrefixLength(buffer.subarray(0, bytesRead))
+      : bytesRead;
+    return {
+      text: buffer.subarray(0, completeBytes).toString("utf8"),
+      bytesRead: completeBytes,
+    };
+  } catch {
+    return { text: "", bytesRead: 0 };
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
 
 export function readLogFromOffset(file, offset) {
-  if (!existsSync(file)) return { text: "", offset };
-  const text = readFileSync(file, "utf8");
-  if (offset > text.length) {
+  const normalizedOffset = Number.isSafeInteger(offset)
+    ? Math.max(0, offset)
+    : 0;
+  const size = backgroundLogSize(file);
+  if (size === null) return { text: "", offset: normalizedOffset };
+  if (normalizedOffset > size) {
     // Gap 3: the log shrank under us (rotation/truncation). Resetting the
     // offset to 0 used to REPLAY the entire new file into the follow stream;
     // resume from the current tail instead, with an explicit marker.
-    const from = Math.max(0, text.length - TRUNCATION_RESUME_TAIL_BYTES);
+    const from = Math.max(0, size - TRUNCATION_RESUME_TAIL_BYTES);
+    const tail = readBackgroundLogRange(file, from, size - from);
     return {
-      text: `\n${LOG_TRUNCATION_NOTICE}\n${text.slice(from)}`,
-      offset: text.length,
+      text: `\n${LOG_TRUNCATION_NOTICE}\n${tail.text}`,
+      offset: from + tail.bytesRead,
       truncated: true,
     };
   }
-  return { text: text.slice(offset), offset: text.length };
+  const length = Math.min(
+    size - normalizedOffset,
+    MAX_BACKGROUND_LOG_DELTA_BYTES,
+  );
+  const delta = readBackgroundLogRange(
+    file,
+    normalizedOffset,
+    length,
+    normalizedOffset + length < size,
+  );
+  return {
+    text: delta.text,
+    offset: normalizedOffset + delta.bytesRead,
+  };
 }
 
 /** Content-free JSONL authority exposed at the real background attach seam. */
@@ -390,7 +480,7 @@ async function followBackgroundAgent(id, options = {}) {
   const initial = readBackgroundAgentLog(id, { lines });
   if (initial)
     process.stdout.write(initial.endsWith("\n") ? initial : `${initial}\n`);
-  let offset = existsSync(logFile) ? readFileSync(logFile, "utf8").length : 0;
+  let offset = backgroundLogSize(logFile) ?? 0;
 
   if (options.follow === false || state.status !== "running") {
     return state;
@@ -597,7 +687,7 @@ export async function interactiveAttach(id, state, options = {}) {
   if (initial)
     process.stdout.write(initial.endsWith("\n") ? initial : `${initial}\n`);
   const logFile = logPath(id);
-  let offset = existsSync(logFile) ? readFileSync(logFile, "utf8").length : 0;
+  let offset = backgroundLogSize(logFile) ?? 0;
   logger.log(
     chalk.gray(
       `Attached to ${id} (interactive). Type a prompt to continue the session; /stop · /status · Ctrl-C detaches.`,

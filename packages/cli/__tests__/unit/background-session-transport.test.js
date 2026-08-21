@@ -8,12 +8,41 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { EventEmitter } from "node:events";
 import {
+  BACKGROUND_SESSION_BACKLOG_LIMITS,
   connectBackgroundSession,
+  createBoundedSocketWriter,
   createNdjsonReader,
   startBackgroundSessionServer,
   transportPipePath,
 } from "../../src/lib/background-session-transport.js";
+
+class BackpressuredSocket extends EventEmitter {
+  constructor(writeResults = []) {
+    super();
+    this.destroyed = false;
+    this.writableLength = 0;
+    this.writes = [];
+    this.writeResults = [...writeResults];
+  }
+
+  write(payload) {
+    this.writes.push(payload);
+    this.writableLength += Buffer.byteLength(payload, "utf8");
+    return this.writeResults.length > 0 ? this.writeResults.shift() : true;
+  }
+
+  removeListener(event, listener) {
+    return super.removeListener(event, listener);
+  }
+
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.emit("close");
+  }
+}
 
 describe("createNdjsonReader", () => {
   it("reassembles messages split across chunk boundaries", () => {
@@ -35,6 +64,67 @@ describe("createNdjsonReader", () => {
     feed('{"type":"a"}\r\n\r\nnot-json\n{"type":"b"}\n');
     expect(seen).toEqual([{ type: "a" }, { type: "b" }]);
     expect(errors).toHaveLength(1);
+  });
+});
+
+describe("createBoundedSocketWriter", () => {
+  it("queues after backpressure and flushes in order on drain", () => {
+    const socket = new BackpressuredSocket([false, true, true]);
+    const writer = createBoundedSocketWriter(socket, {
+      messages: 4,
+      bytes: 4096,
+    });
+
+    expect(writer.write({ sequence: 1 })).toBe(true);
+    expect(writer.write({ sequence: 2 })).toBe(true);
+    expect(writer.write({ sequence: 3 })).toBe(true);
+    expect(writer.state()).toMatchObject({
+      queuedMessages: 2,
+      waitingForDrain: true,
+      overflowed: false,
+    });
+
+    socket.writableLength = 0;
+    socket.emit("drain");
+    expect(socket.writes.map((line) => JSON.parse(line).sequence)).toEqual([
+      1, 2, 3,
+    ]);
+    expect(writer.state()).toMatchObject({
+      queuedMessages: 0,
+      queuedBytes: 0,
+      waitingForDrain: false,
+    });
+  });
+
+  it("disconnects a slow consumer at the message cap", () => {
+    const socket = new BackpressuredSocket([false]);
+    const onOverflow = vi.fn();
+    const writer = createBoundedSocketWriter(socket, {
+      messages: 2,
+      bytes: 4096,
+      onOverflow,
+    });
+
+    expect(writer.write({ sequence: 1 })).toBe(true);
+    expect(writer.write({ sequence: 2 })).toBe(true);
+    expect(writer.write({ sequence: 3 })).toBe(true);
+    expect(writer.write({ sequence: 4 })).toBe(false);
+    expect(socket.destroyed).toBe(true);
+    expect(onOverflow).toHaveBeenCalledOnce();
+    expect(writer.state()).toMatchObject({ overflowed: true, closed: true });
+  });
+
+  it("counts native and application buffers against the byte cap", () => {
+    const socket = new BackpressuredSocket([false]);
+    const writer = createBoundedSocketWriter(socket, {
+      messages: BACKGROUND_SESSION_BACKLOG_LIMITS.messages,
+      bytes: 1024,
+    });
+
+    expect(writer.write({ body: "x".repeat(700) })).toBe(true);
+    expect(writer.write({ body: "y".repeat(400) })).toBe(false);
+    expect(socket.destroyed).toBe(true);
+    expect(writer.state().overflowed).toBe(true);
   });
 });
 

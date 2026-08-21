@@ -136,6 +136,7 @@ import {
 } from "../harness/structured-handoff.js";
 import { isMcpRpcError } from "../harness/mcp-client.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+import { releaseOldLiveSessionResults } from "../lib/session-runtime-retention.js";
 import {
   pathMatchesOpenedFileIdentitySync,
   sameOpenedFileIdentity,
@@ -12571,6 +12572,7 @@ async function _settleAutomaticCompaction({
   compacted,
   stats,
   options,
+  trigger = "auto",
 }) {
   if (!_sameMessageSnapshot(messages, liveExpectedMessages)) {
     throw _compactionSettlementError(
@@ -12590,7 +12592,7 @@ async function _settleAutomaticCompaction({
     settlement = options.onCompaction(stats, compacted, {
       expectedMessages: authorityExpectedMessages,
       liveExpectedMessages,
-      trigger: "auto",
+      trigger,
     });
   } else if (options.sessionId && options.persistCompaction !== false) {
     const store = await import("../harness/jsonl-session-store.js");
@@ -12605,7 +12607,7 @@ async function _settleAutomaticCompaction({
         options.sessionId,
         {
           ...stats,
-          trigger: "auto",
+          trigger,
           messages: projectCanonicalResumeMessages(compacted, { strict: true }),
         },
         authorityExpectedMessages,
@@ -13178,6 +13180,53 @@ export async function* agentLoop(messages, options) {
         message: budget.toWarningMessage(),
         budget: budget.toSummary(),
       };
+    }
+
+    // Release result bodies that have left the recent display window before
+    // every provider admission, independent of the semantic-compaction token
+    // threshold. Settlement persists a bounded resume checkpoint before the
+    // live array changes; the earlier hash-chained result events remain the
+    // durable evidence for audit/recovery.
+    if (options.runtimeResultRetention !== false && messages.length > 32) {
+      const retentionConfig =
+        options.runtimeResultRetention &&
+        typeof options.runtimeResultRetention === "object"
+          ? options.runtimeResultRetention
+          : options.runtimeResultRetentionOptions;
+      const retained = releaseOldLiveSessionResults(messages, retentionConfig);
+      if (
+        retained.stats.released > 0 &&
+        !_sameMessageSnapshot(retained.messages, messages)
+      ) {
+        const authorityExpectedMessages = [...messages];
+        const liveExpectedMessages = [...messages];
+        try {
+          await _settleAutomaticCompaction({
+            messages,
+            liveExpectedMessages,
+            authorityExpectedMessages,
+            compacted: retained.messages,
+            stats: retained.stats,
+            options,
+            trigger: "runtime-retention",
+          });
+          yield {
+            type: "session-runtime-retention",
+            runId,
+            stats: retained.stats,
+          };
+        } catch (error) {
+          yield {
+            type: "session-runtime-retention-degraded",
+            runId,
+            reason:
+              error?.code === "SESSION_REVISION_STALE"
+                ? "session_messages_changed_during_retention"
+                : "canonical_retention_settlement_failed",
+            code: error?.code || "CC_SESSION_RETENTION_SETTLEMENT_FAILED",
+          };
+        }
+      }
     }
 
     // Headless auto-compaction (Claude-Code `--print` parity). Keeps long
