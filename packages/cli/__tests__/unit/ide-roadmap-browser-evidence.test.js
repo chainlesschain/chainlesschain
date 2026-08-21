@@ -82,6 +82,8 @@ describe("browser evidence aggregate input discovery", () => {
         "123",
         "--run-attempt",
         "2",
+        "--workflow-ref",
+        "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/heads/main",
         "--output",
         "build/aggregate.json",
       ]),
@@ -90,6 +92,8 @@ describe("browser evidence aggregate input discovery", () => {
       "head-sha": "b".repeat(40),
       "run-id": "123",
       "run-attempt": "2",
+      "workflow-ref":
+        "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/heads/main",
       output: "build/aggregate.json",
     });
     const root = temporaryRoot();

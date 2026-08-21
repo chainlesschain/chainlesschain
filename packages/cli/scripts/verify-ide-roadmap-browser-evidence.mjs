@@ -101,6 +101,7 @@ function parseArgs(argv) {
     "output",
     "run-id",
     "run-attempt",
+    "workflow-ref",
   ]) {
     if (!options[key]) throw new Error(`--${key} is required`);
   }
@@ -260,6 +261,7 @@ export function verifyBrowserEvidenceAggregate(options) {
   const headSha = String(options["head-sha"] || "").toLowerCase();
   const trustedRunId = String(options["run-id"] || "");
   const trustedRunAttempt = String(options["run-attempt"] || "");
+  const trustedWorkflowRef = String(options["workflow-ref"] || "");
   if (!EXACT_SHA_RE.test(headSha)) {
     throw new Error("browser evidence aggregate requires an exact head SHA");
   }
@@ -268,6 +270,13 @@ export function verifyBrowserEvidenceAggregate(options) {
     !/^[1-9][0-9]*$/u.test(trustedRunAttempt)
   ) {
     throw new Error("browser evidence aggregate run authority is invalid");
+  }
+  if (
+    !/^[^/\s]+\/[^/\s]+\/\.github\/workflows\/ide-extensions\.yml@(?:refs\/[^\s]+|[a-f0-9]{40})$/u.test(
+      trustedWorkflowRef,
+    )
+  ) {
+    throw new Error("browser evidence aggregate workflow authority is invalid");
   }
   assertExactHeadSources(root, headSha);
   const inputDir = path.resolve(root, options["input-dir"]);
@@ -373,7 +382,7 @@ export function verifyBrowserEvidenceAggregate(options) {
       fragment.source?.artifactName || "",
     );
     if (
-      fragment.source?.workflowId !== "ide-extensions" ||
+      fragment.source?.workflowId !== trustedWorkflowRef ||
       !fragment.source?.runId ||
       fragment.source?.jobId !== `browser-evidence-producer-${fragment.os}` ||
       path.basename(producerDir) !== fragment.source?.artifactName ||

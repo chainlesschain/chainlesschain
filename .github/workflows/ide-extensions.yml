@@ -191,7 +191,7 @@ jobs:
           --base-sha ${{ github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
           --os ${{ matrix.slug }}
           --artifact-name browser-evidence-${{ matrix.slug }}-${{ github.run_attempt }}
-          --workflow-id ide-extensions
+          --workflow-id "$GITHUB_WORKFLOW_REF"
           --run-id ${{ github.run_id }}
           --run-attempt ${{ github.run_attempt }}
           --job-id browser-evidence-producer-${{ matrix.slug }}
@@ -227,6 +227,7 @@ jobs:
           --head-sha ${{ env.IDE_RELEASE_COMMIT }}
           --run-id ${{ github.run_id }}
           --run-attempt ${{ github.run_attempt }}
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
           --output build/reports/browser-evidence-aggregate.json
       - name: Upload required browser evidence aggregate
         uses: actions/upload-artifact@v6
