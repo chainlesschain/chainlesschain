@@ -21,6 +21,11 @@ import {
   REQUIRED_FRAGMENT_FILE,
   verifyAxTranscriptFragments,
 } from "./ax-transcript-audit-fragment.mjs";
+import {
+  SESSION_UX_FRAGMENT_FILE,
+  SESSION_UX_INPUT_FILES,
+  verifySessionUxFragment,
+} from "./session-ux-audit-fragment.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 
@@ -33,6 +38,8 @@ const REQUIRED_CELLS = Object.freeze([
 ]);
 const EXPECTED_MANIFEST_FILES = Object.freeze([
   ...REQUIRED_FILES,
+  ...SESSION_UX_INPUT_FILES,
+  SESSION_UX_FRAGMENT_FILE,
   REQUIRED_FRAGMENT_FILE,
   ADVISORY_FRAGMENT_FILE,
 ]);
@@ -275,6 +282,24 @@ function verifyCell(directory, expected) {
   for (const [key, value] of Object.entries(expected.provenance)) {
     assert.equal(host.provenance[key], value, `${expected.suffix}/${key}`);
   }
+  const sessionUx = verifySessionUxFragment({
+    artifactDir: directory,
+    releaseCommit: expected.releaseCommit,
+    artifactName: expected.provenance.artifactName,
+    expectedPlatform: expected.operatingSystem,
+    expectedSource: {
+      workflowId: expected.provenance.workflowRef,
+      runId: expected.provenance.runId,
+      jobId: expected.provenance.job,
+      artifactName: expected.provenance.artifactName,
+    },
+    ...(expected.repositoryRoot
+      ? { repositoryRoot: expected.repositoryRoot }
+      : {}),
+    ...(expected.producerReader
+      ? { producerReader: expected.producerReader }
+      : {}),
+  });
   const axFragments = verifyAxTranscriptFragments({
     artifactDir: directory,
     releaseCommit: expected.releaseCommit,
@@ -468,6 +493,9 @@ function verifyCell(directory, expected) {
     ideInputPerformanceDigest: digest(
       fs.readFileSync(path.join(directory, "ide-input-performance.json")),
     ),
+    diagnosticsScale: documents["diagnostics-scale.json"],
+    ideInputPerformance: documents["ide-input-performance.json"],
+    sessionUx,
     axTranscript: {
       required: axFragments.required,
       requiredDigest: axFragments.requiredDigest,
@@ -540,6 +568,21 @@ function main() {
   if (fragmentOutputDir) {
     fs.mkdirSync(fragmentOutputDir, { recursive: true });
     for (const cell of cells) {
+      fs.writeFileSync(
+        path.join(fragmentOutputDir, `diag-scale-${cell.suffix}.json`),
+        `${JSON.stringify(cell.diagnosticsScale, null, 2)}\n`,
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(fragmentOutputDir, `ide-input-perf-${cell.suffix}.json`),
+        `${JSON.stringify(cell.ideInputPerformance, null, 2)}\n`,
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(fragmentOutputDir, `session-ux-${cell.suffix}.json`),
+        `${JSON.stringify(cell.sessionUx.required, null, 2)}\n`,
+        "utf8",
+      );
       fs.writeFileSync(
         path.join(fragmentOutputDir, `ax-transcript-${cell.suffix}.json`),
         `${JSON.stringify(cell.axTranscript.required, null, 2)}\n`,

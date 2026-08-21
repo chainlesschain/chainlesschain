@@ -964,4 +964,5 @@ module.exports = {
   openSessionsWorkbench,
   isSessionsWorkbenchOpen,
   runSessionsWorkbenchHostDomCommand,
+  renderPageHtml,
 };

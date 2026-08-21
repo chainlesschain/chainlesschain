@@ -14,6 +14,11 @@ import {
   verifyAccessibilityWorkflowAuthority,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
 import { appendAxTranscriptFragments } from "../../scripts/ax-transcript-audit-fragment.mjs";
+import {
+  appendSessionUxFragment,
+  buildSessionUxNodeEvidence,
+  measureSessionUxProjectionSurfaces,
+} from "../../scripts/session-ux-audit-fragment.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-performance.mjs";
 import {
   SOURCE_PATHS as INPUT_PERFORMANCE_SOURCE_PATHS,
@@ -152,6 +157,92 @@ function inputPerformanceEvidence(provenance) {
     },
     outcome: "passed",
   };
+}
+
+function appendSessionUxFixture(directory, provenance, producerReader) {
+  const input = fs.mkdtempSync(path.join(os.tmpdir(), "cc-p2-session-ux-"));
+  roots.push(input);
+  const measured = measureSessionUxProjectionSurfaces({
+    stateFile: path.join(input, "session-workbench.json"),
+  });
+  const projectionPath = path.join(input, "projection.json");
+  writeJson(input, "projection.json", measured.projection);
+  const projectionBytes = fs.readFileSync(projectionPath);
+  const source = {
+    workflowId: provenance.workflowRef,
+    runId: provenance.runId,
+    jobId: provenance.job,
+    artifactName: provenance.artifactName,
+  };
+  const nodeEvidencePath = path.join(input, "node.json");
+  writeJson(
+    input,
+    "node.json",
+    buildSessionUxNodeEvidence({
+      headSha: COMMIT,
+      platform: "linux",
+      source,
+      projectionBytes,
+      projectionRevision: measured.projection.revision,
+      groupRevision: measured.projection.groups.revision,
+      cli: measured.cli,
+      vscode: {
+        ...measured.vscode,
+        selectedSessionCount: 128,
+        postedMoveSessionCount: 128,
+        postedMoveRevisionPreserved: true,
+        thinkingExpandedWhileStreaming: true,
+        thinkingCollapsedAfterTool: true,
+        thinkingCollapsedAfterTurnEnd: true,
+        thinkingCollapseFailureCount: 0,
+      },
+    }),
+  );
+  const jetbrainsEvidencePath = path.join(input, "jetbrains.json");
+  writeJson(input, "jetbrains.json", {
+    schema: "chainlesschain.session-ux-jetbrains-evidence.v1",
+    headSha: COMMIT,
+    platform: "linux",
+    javaVersion: "21.0.8",
+    javaArch: "amd64",
+    source,
+    projectionDigest: digest(projectionBytes),
+    projectionRevision: measured.projection.revision,
+    groupRevision: measured.projection.groups.revision,
+    measurements: {
+      projectionConnected: true,
+      sessionCount: 128,
+      groupCount: 1,
+      groupRevisionPreserved: true,
+      groupedSessionCount: 128,
+      focusRowCount: 1,
+      pendingQuestionPreserved: true,
+      settledAnswerPreserved: true,
+      reasoningExpandedBeforeSettlement: true,
+      reasoningCollapsedAfterSettlement: true,
+      reasoningRestoredAfterToggle: true,
+      thinkingCollapseFailureCount: 0,
+    },
+  });
+  appendSessionUxFragment({
+    artifactDir: directory,
+    releaseCommit: COMMIT,
+    artifactName: provenance.artifactName,
+    projectionPath,
+    nodeEvidencePath,
+    jetbrainsEvidencePath,
+    environment: {
+      GITHUB_ACTIONS: "true",
+      GITHUB_WORKFLOW_REF: provenance.workflowRef,
+      GITHUB_RUN_ID: provenance.runId,
+      GITHUB_JOB: provenance.job,
+      CC_P2_ARTIFACT: provenance.artifactName,
+    },
+    platform: "linux",
+    producerReader,
+    requireWorkingTreeMatch: false,
+    headReader: () => COMMIT,
+  });
 }
 
 function createCell() {
@@ -358,6 +449,7 @@ function createCell() {
     files,
   });
   const producerReader = () => Buffer.from("exact AX producer fixture");
+  appendSessionUxFixture(directory, provenance, producerReader);
   appendAxTranscriptFragments({
     artifactDir: directory,
     releaseCommit: COMMIT,
@@ -491,8 +583,24 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain("needs.accessibility-performance.result");
     expect(workflow).toContain("ax-transcript-audit-fragment.mjs");
+    expect(workflow).toContain("session-ux-audit-fragment.mjs");
     expect(workflow).toContain("--fragment-output-dir");
     expect(workflow).toContain("accessibility-performance-aggregate/fragments");
+    const verifier = fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "../../scripts/verify-ide-roadmap-accessibility-performance.mjs",
+      ),
+      "utf8",
+    );
+    for (const output of [
+      "diag-scale-${cell.suffix}.json",
+      "ide-input-perf-${cell.suffix}.json",
+      "session-ux-${cell.suffix}.json",
+      "ax-transcript-${cell.suffix}.json",
+    ]) {
+      expect(verifier).toContain(output);
+    }
   });
 
   it("rehashes the complete zero-failure producer cell", () => {
