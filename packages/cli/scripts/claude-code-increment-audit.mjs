@@ -226,13 +226,41 @@ function deepEqual(left, right) {
 }
 
 function validateLockedProfile(profile, scope) {
-  assertExactKeys(profile, ["profileVersion", "thresholds"], scope);
+  assertExactKeys(
+    profile,
+    ["producerPaths", "profileVersion", "testIds", "thresholds"],
+    scope,
+  );
   assertToken(profile.profileVersion, `${scope}.profileVersion`);
   assertPlainObject(profile.thresholds, `${scope}.thresholds`);
   if (Object.keys(profile.thresholds).length === 0) {
     fail(`${scope}.thresholds must not be empty`);
   }
   assertJsonTree(profile.thresholds, `${scope}.thresholds`);
+  if (!Array.isArray(profile.testIds) || profile.testIds.length === 0) {
+    fail(`${scope}.testIds must be a non-empty array`);
+  }
+  profile.testIds.forEach((testId, index) =>
+    assertSafeText(testId, `${scope}.testIds[${index}]`, { maxLength: 500 }),
+  );
+  if (new Set(profile.testIds).size !== profile.testIds.length) {
+    fail(`${scope}.testIds must not contain duplicates`);
+  }
+  if (
+    !Array.isArray(profile.producerPaths) ||
+    profile.producerPaths.length === 0
+  ) {
+    fail(`${scope}.producerPaths must be a non-empty array`);
+  }
+  const producerPaths = profile.producerPaths.map((producerPath, index) =>
+    normalizeProducerPath(producerPath, `${scope}.producerPaths[${index}]`),
+  );
+  if (new Set(producerPaths).size !== producerPaths.length) {
+    fail(`${scope}.producerPaths must not contain duplicates`);
+  }
+  if (!deepEqual(producerPaths, [...producerPaths].sort())) {
+    fail(`${scope}.producerPaths must use stable sorted order`);
+  }
 }
 
 function validateContract(contract) {
@@ -699,6 +727,17 @@ function enforceCoverage(fragments, contract, releaseCommit) {
         }
         if (!deepEqual(fragment.thresholds, locked.thresholds)) {
           fail(`${commitmentId} relaxes or changes its locked thresholds`);
+        }
+        if (!deepEqual(fragment.testIds, locked.testIds)) {
+          fail(`${commitmentId} changes its locked required test IDs`);
+        }
+        if (
+          !deepEqual(
+            Object.keys(fragment.producerDigests),
+            locked.producerPaths,
+          )
+        ) {
+          fail(`${commitmentId} changes its locked producer path set`);
         }
       }
     }

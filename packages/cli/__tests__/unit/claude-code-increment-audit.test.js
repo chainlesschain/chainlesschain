@@ -335,12 +335,46 @@ describe("Claude Code increment unified audit", () => {
     contract.lockedProfiles["RC-DEFAULT"] = {
       profileVersion: profileVersion("RC-DEFAULT"),
       thresholds: { ...thresholds("RC-DEFAULT"), maximumFailureCount: 1 },
+      testIds: ["RC-DEFAULT/repository-contract"],
+      producerPaths: ["package.json"],
     };
     const contractPath = path.join(locked.root, "locked-contract.json");
     writeJson(contractPath, contract);
     expect(() => aggregateFixture(locked, { contractPath })).toThrow(
       /relaxes or changes its locked thresholds/u,
     );
+  });
+
+  it("rejects locked required test or producer coverage shrinkage", () => {
+    const fixture = buildFixture();
+    const contract = structuredClone(loadContract().value);
+    contract.lockedProfiles["RC-DEFAULT"] = {
+      profileVersion: profileVersion("RC-DEFAULT"),
+      thresholds: thresholds("RC-DEFAULT"),
+      testIds: ["RC-DEFAULT/expected-release-test"],
+      producerPaths: ["package.json"],
+    };
+    const testLockPath = path.join(fixture.root, "test-lock-contract.json");
+    writeJson(testLockPath, contract);
+    expect(() => aggregateFixture(fixture, { contractPath: testLockPath })).toThrow(
+      /locked required test IDs/u,
+    );
+
+    contract.lockedProfiles["RC-DEFAULT"].testIds = [
+      "RC-DEFAULT/repository-contract",
+    ];
+    contract.lockedProfiles["RC-DEFAULT"].producerPaths = [
+      "package-lock.json",
+      "package.json",
+    ];
+    const producerLockPath = path.join(
+      fixture.root,
+      "producer-lock-contract.json",
+    );
+    writeJson(producerLockPath, contract);
+    expect(() =>
+      aggregateFixture(fixture, { contractPath: producerLockPath }),
+    ).toThrow(/locked producer path set/u);
   });
 
   it("rehashes copied fragments and rejects manifest disposition tampering", () => {
