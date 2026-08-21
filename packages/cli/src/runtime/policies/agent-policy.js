@@ -90,6 +90,7 @@ export function resolveAgentPolicy({
     fallbackModels: overrides.fallbackModels,
     pdh: overrides.pdh,
     outputStyle: overrides.outputStyle,
+    settingsFile: overrides.settingsFile || null,
     disableSlashCommands: overrides.disableSlashCommands === true,
     // --remote-control also applies interactively: the REPL starts the
     // paired-device approval bridge at startup (批26).

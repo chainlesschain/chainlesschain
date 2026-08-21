@@ -339,6 +339,35 @@ describe("readBooleanSetting — dotted nested path (autoMode.classifyAllShell)"
   });
 });
 
+describe("readStringSetting — layered string values", () => {
+  const { readStringSetting } = loader;
+
+  it("returns undefined when no layer sets the key", () => {
+    setFile(userFile, { permissions: { allow: ["Read"] } });
+    expect(readStringSetting("keybindingFlavor", { cwd: CWD })).toBeUndefined();
+  });
+
+  it("uses the closest non-blank string value", () => {
+    setFile(userFile, { keybindingFlavor: "classic" });
+    setFile(projFile, { keybindingFlavor: "readline" });
+    setFile(localFile, { keybindingFlavor: "  " });
+    expect(readStringSetting("keybindingFlavor", { cwd: CWD })).toBe(
+      "readline",
+    );
+  });
+
+  it("lets managed settings override project layers", () => {
+    setFile(projFile, { keybindingFlavor: "readline" });
+    setFile(managedFile, { keybindingFlavor: "classic" });
+    expect(
+      readStringSetting("keybindingFlavor", {
+        cwd: CWD,
+        managedSettingsFile: managedFile,
+      }),
+    ).toBe("classic");
+  });
+});
+
 describe("readStringArraySetting — instructionExcludes (union across layers)", () => {
   const { readStringArraySetting } = loader;
 

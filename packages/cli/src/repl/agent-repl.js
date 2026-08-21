@@ -185,6 +185,11 @@ import {
   createPromptInteractionSurface,
   mergeClipboardImageChips,
 } from "./prompt-interactions.js";
+import {
+  isReadlineWordRuboutKey,
+  readlineWordRubout,
+  resolveReplKeybindingFlavor,
+} from "./repl-keybindings.js";
 import { createSystemClipboardImageBinding } from "./clipboard-image.js";
 import {
   buildPermissionPrompt,
@@ -3187,6 +3192,7 @@ async function startAgentReplInWorkspaceOwned(
   let _visionModel;
   let _promptInteractionConfig = {};
   let _persistPromptSuggestionsEnabled = null;
+  let _keybindingFlavor = "classic";
   // Hard stream inactivity timeout override (config.llm.streamStallTimeoutMs,
   // ms): a stream silent that long is aborted + retried instead of hanging.
   // Unset → agent-core's 180s default (matches cc chat/ask). Set to 0 to
@@ -3217,6 +3223,23 @@ async function startAgentReplInWorkspaceOwned(
     if (raw != null && Number.isFinite(t) && t >= 0) _streamStallTimeoutMs = t;
   } catch {
     /* optional — resolveVisionLlm falls back to DEFAULT_VISION_MODEL */
+  }
+  try {
+    const { readStringSetting } = await import("../lib/settings-loader.cjs");
+    const configuredFlavor = readStringSetting("keybindingFlavor", {
+      cwd: process.cwd(),
+      settingsFile: options.settingsFile || null,
+      managedSettingsFile: options.managedSettingsFile || null,
+      onWarn: (message) => logger.warn(message),
+    });
+    const resolvedFlavor = resolveReplKeybindingFlavor(configuredFlavor);
+    _keybindingFlavor = resolvedFlavor.flavor;
+    if (resolvedFlavor.error) {
+      logger.warn(`settings: ${resolvedFlavor.error}; using classic`);
+    }
+  } catch (error) {
+    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
+    logger.warn(`settings: could not load keybindingFlavor (${error.message})`);
   }
   // Extra workspace roots (--add-dir): advertised in the system prompt and
   // spanned by search_files.
@@ -5201,6 +5224,25 @@ async function startAgentReplInWorkspaceOwned(
         return;
       }
 
+      // 1.875) The opt-in readline flavor makes Ctrl+W a whitespace-delimited
+      // unix-word-rubout. Classic stays byte-identical and lets Node readline
+      // own the chord; Vim NORMAL mode continues to use the existing engine.
+      if (
+        !_turnAbort &&
+        (!_vimEnabled || !_vim) &&
+        _keybindingFlavor === "readline" &&
+        isReadlineWordRuboutKey(_str, k)
+      ) {
+        _consumeReadlineKeypress(key);
+        const next = readlineWordRubout(rl.line, rl.cursor);
+        if (next.changed) {
+          rl.line = next.line;
+          rl.cursor = next.cursor;
+          rl._refreshLine?.();
+        }
+        return;
+      }
+
       // 2) Vim mode: modal editing on the current input line.
       if (_vimEnabled && !_turnAbort) {
         if (!_vim) {
@@ -5625,7 +5667,7 @@ async function startAgentReplInWorkspaceOwned(
         `  ${chalk.cyan("/voice")}      Speech dictation — local-first STT (/voice hold|tap|off)`,
       );
       logger.log(
-        `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
+        `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; concise/explanatory/learning built-in)`,
       );
       logger.log(
         `  ${chalk.cyan("/editor")}     Edit a draft prompt in an external editor`,
