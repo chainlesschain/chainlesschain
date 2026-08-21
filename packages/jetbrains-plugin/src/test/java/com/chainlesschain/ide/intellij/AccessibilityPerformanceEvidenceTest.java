@@ -47,8 +47,8 @@ class AccessibilityPerformanceEvidenceTest {
         assertEquals(LOG_BYTES, evidence.logBytes);
         assertEquals(SESSION_COUNT, evidence.sessionCount);
         assertTrue(evidence.renderedChars <= TranscriptCap.DEFAULT_MAX_CHARS);
-        assertTrue(evidence.diffMarkerVisible);
-        assertTrue(evidence.logMarkerVisible);
+        assertTrue(evidence.diffMarkerVisible, evidence.toJson());
+        assertTrue(evidence.logMarkerVisible, evidence.toJson());
         assertTrue(evidence.accessibleNamePresent);
         assertTrue(evidence.accessibleDescriptionPresent);
         assertTrue(evidence.focusable);
@@ -94,7 +94,7 @@ class AccessibilityPerformanceEvidenceTest {
             transcript.finalizeAssistantRun();
             pane.paint(graphics);
             double diffPaintMs = elapsedMillis(diffPaintStarted);
-            String diff = pane.getText();
+            String diff = pane.getText().replace("\r\n", "\n");
 
             transcript.clear();
             long logPaintStarted = System.nanoTime();
@@ -104,7 +104,7 @@ class AccessibilityPerformanceEvidenceTest {
             transcript.finalizeAssistantRun();
             pane.paint(graphics);
             double logPaintMs = elapsedMillis(logPaintStarted);
-            String log = pane.getText();
+            String log = pane.getText().replace("\r\n", "\n");
 
             List<Double> scrollToPaint = new ArrayList<>();
             int documentLength = pane.getDocument().getLength();

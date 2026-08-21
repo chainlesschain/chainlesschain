@@ -30,8 +30,10 @@ final class ChatTranscript {
     private final SimpleAttributeSet styleCode = new SimpleAttributeSet();
     private final SimpleAttributeSet styleBold = new SimpleAttributeSet();
     private final SimpleAttributeSet styleDim = new SimpleAttributeSet(); // extended-thinking
-    // The active assistant markdown run: [assistantRunStart, doc end) is plain
-    // streamed text that gets re-styled as markdown when the run finalizes.
+    // The active assistant turn keeps its stable heading at
+    // [assistantHeadingStart, assistantRunStart) and its streamed markdown at
+    // [assistantRunStart, doc end). Both ranges are protected until finalize.
+    private int assistantHeadingStart = -1;
     private int assistantRunStart = -1;
     private boolean inAssistantRun = false;
     private TranscriptCap.BoundedEntry assistantEntry;
@@ -105,7 +107,10 @@ final class ChatTranscript {
         if (turnNumber == 0) turnNumber = 1;
         if (assistantHeadingAdded) return;
         assistantHeadingAdded = true;
-        insertStyled("Turn " + turnNumber + ", Assistant response\n", styleBold);
+        String heading = "Turn " + turnNumber + ", Assistant response\n";
+        insertStyled(heading, styleBold);
+        assistantHeadingStart = Math.max(
+                0, pane.getStyledDocument().getLength() - heading.length());
     }
 
     /** Emit a categorized and deduplicated accessibility event. Streaming
@@ -172,8 +177,11 @@ final class ChatTranscript {
             ensureAssistantHeading();
             assistantRunStart = pane.getStyledDocument().getLength();
             inAssistantRun = true;
+            int headingChars = assistantHeadingStart >= 0
+                    ? Math.max(0, assistantRunStart - assistantHeadingStart)
+                    : 0;
             assistantEntry = new TranscriptCap.BoundedEntry(
-                    TranscriptCap.DEFAULT_MAX_CHARS);
+                    Math.max(0, TranscriptCap.DEFAULT_MAX_CHARS - headingChars));
         }
         boolean wasTruncated = assistantEntry.truncated();
         assistantEntry.append(s);
@@ -279,6 +287,7 @@ final class ChatTranscript {
         int start = assistantRunStart;
         int end = d.getLength();
         inAssistantRun = false;
+        assistantHeadingStart = -1;
         assistantRunStart = -1;
         assistantEntry = null;
         if (start < 0 || end <= start) return;
@@ -303,6 +312,7 @@ final class ChatTranscript {
     /** Wipe the transcript and reset the run state (tab reset / resume). */
     void clear() {
         inAssistantRun = false;
+        assistantHeadingStart = -1;
         assistantRunStart = -1;
         assistantEntry = null;
         activeThinkingBlock = null;
@@ -324,9 +334,9 @@ final class ChatTranscript {
                     s, TranscriptCap.DEFAULT_MAX_CHARS);
             d.insertString(d.getLength(), bounded, style);
             // Bound long-session memory: drop the oldest text once the document
-            // exceeds the cap, never trimming into the active assistant run (whose
-            // absolute offset is shifted by whatever is removed). Mirrors the VS
-            // Code panel's transcript node cap (chainlesschain-ide 0.36.5).
+            // exceeds the cap, never trimming into the active assistant heading
+            // or run (whose absolute offsets shift with removed history). Mirrors
+            // the VS Code panel's transcript node cap (chainlesschain-ide 0.36.5).
             trimDocumentToCap(d);
             stickToBottomIfFollowing(following);
         } catch (BadLocationException ignored) {
@@ -350,13 +360,20 @@ final class ChatTranscript {
 
     private void trimDocumentToCap(StyledDocument document)
             throws BadLocationException {
+        int protectedStart = inAssistantRun && assistantHeadingStart >= 0
+                ? assistantHeadingStart : assistantRunStart;
         int removeLen = TranscriptCap.removeCount(
-                document.getLength(), assistantRunStart, inAssistantRun,
+                document.getLength(), protectedStart, inAssistantRun,
                 TranscriptCap.DEFAULT_MAX_CHARS);
         if (removeLen <= 0) return;
         trimThinkingBlocks(removeLen);
         document.remove(0, removeLen);
-        if (assistantRunStart >= 0) assistantRunStart -= removeLen;
+        if (assistantHeadingStart >= 0) {
+            assistantHeadingStart = Math.max(0, assistantHeadingStart - removeLen);
+        }
+        if (assistantRunStart >= 0) {
+            assistantRunStart = Math.max(0, assistantRunStart - removeLen);
+        }
     }
 
     /** Shift tracked reasoning ranges when the transcript evicts its prefix. */
