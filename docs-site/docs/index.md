@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.165.4 | Open VSX 0.37.58 · JetBrains 0.4.93 | 耐久工作流 · 产物治理"
+  tagline: "v5.0.3.135 | CLI 0.165.5 | Open VSX 0.37.59 · JetBrains 0.4.94 待审 | 耐久恢复 · 产物治理"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -28,7 +28,7 @@ features:
     details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
   - icon: 🧑‍💻
     title: 双 IDE 会话与交付
-    details: Open VSX 0.37.58 下载已突破 2.6 万，JetBrains Marketplace 0.4.93 已公开；双端新增经 CLI authority 的 Artifact 访问/删除结算与安全 LLM secret 配置，VS Code 还恢复交互审批续接。
+    details: Open VSX 0.37.59 已公开 durable workflow、孤儿 Artifact 恢复与交互连续性；JetBrains 0.4.94 已通过六宿主矩阵并上传待审，Marketplace 当前公开版为 0.4.93。
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
@@ -37,10 +37,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.165.4 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；耐久工作流/预算、远端结果审阅、Artifact 结算与可移植首次安装进入公开契约。
+    details: CLI 0.165.5 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；workflow/Artifact 恢复与 MCP native-addon policy 进入公开契约。
 ---
 
-> **2026-08-20 部署快照**：桌面、Android 与 iOS 产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.165.4`，PDH 为 `0.4.59`。exact SHA `86abb5f65e` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读，公开受治理插件事务、耐久 workflow 回执/阶段输入/checkpoint/预算、远端结果收集/审阅/应用、Artifact access/deletion/cleanup settlement 与无 native toolchain 首次安装。Open VSX `0.37.58` 与 JetBrains `0.4.93` 也已公开。`HEAD@f2fbf331da46` 的 MCP native-addon policy、IDE/桌面/iOS 恢复能力与 P1-5 Marketplace 十二格供应链矩阵仍是发布后源码增量，P1-5 exact-head aggregate 尚待 Actions 回读；正式 Scheduler campaign、签名 native 与跨宿主 revoke 证据尚未闭环。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Artifacts](/chainlesschain/cli-artifacts)、[插件市场](/chainlesschain/cli-plugin)、[Agent Team](/chainlesschain/cli-team)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
+> **2026-08-21 部署快照**：桌面、Android 与 iOS 产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.165.5`，PDH 为 `0.4.59`。exact SHA `11aef634aa` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读，公开耐久 workflow/Artifact 恢复、MCP native-addon policy 与既有运行时契约。Open VSX `0.37.59` 已公开；JetBrains `0.4.94` 已上传待审，Marketplace 当前公开版为 `0.4.93`。Desktop/iOS、正式 Scheduler campaign、签名 native 与跨宿主 revoke 继续按独立发行证据处理。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Artifacts](/chainlesschain/cli-artifacts)、[插件市场](/chainlesschain/cli-plugin)、[Agent Team](/chainlesschain/cli-team)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

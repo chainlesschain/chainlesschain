@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-08-20）：CLI `0.165.4` + VS Code 扩展 `0.37.58`（Open VSX）+ JetBrains 插件 `0.4.93`（JetBrains Marketplace）。IDE 双端提供 Context/Side-effect/Automation Center、Artifact 访问审计与删除结算、安全 LLM secret 配置；CLI 的稳定契约以 `v-npm-0-165-4` 的精确 SHA 为准。**
+> **当前推荐组合（2026-08-21）：CLI `0.165.5` + VS Code 扩展 `0.37.59`（Open VSX）+ JetBrains 插件 `0.4.93`（Marketplace 当前公开；`0.4.94` 已上传待审）。IDE 双端提供 Context/Side-effect/Automation Center、Artifact 访问审计与孤儿恢复、安全 LLM secret 配置；CLI 的稳定契约以 `v-npm-0-165-5` 的精确 SHA 为准。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.58` 与 JetBrains Marketplace `0.4.93` 均已公开回读，Open VSX 累计下载已超过 **2.6 万**。双端的 Artifact 操作必须先通过 CLI authority，LLM key 不进入 argv/IDE 设置；VS Code `0.37.58` 另恢复断线后的交互审批。npm `latest` CLI `0.165.4` 已完成三平台完整门禁、发布与独立 registry 回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+> **发布提示**：Open VSX `0.37.59` 已公开回读且可下载，新增 durable workflow/orphan Artifact recovery 与编辑器交互连续性。JetBrains `0.4.94` 已通过六宿主矩阵并上传成功，但 Marketplace 仍在人工审核，公开版暂为 `0.4.93`。npm `latest` CLI `0.165.5` 已完成三平台完整门禁、发布与独立 registry 回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 
 ## 概述
 
@@ -22,7 +22,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.165.4  # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.165.5  # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -44,7 +44,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.58` 的不可变 tag 指向 [`f53a18de20`](https://github.com/chainlesschain/chainlesschain/commit/f53a18de20a7e07787c2f1b8fae6b52461774ddb)，JetBrains `0.4.93` 的 tag 指向 [`662e717e4f`](https://github.com/chainlesschain/chainlesschain/commit/662e717e4fcde9bb24242c0ea1875e01e1d5f922)；两者已分别从 Open VSX 与 JetBrains Marketplace 公开回读。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
+当前 VS Code `0.37.59` 与 JetBrains 提交件 `0.4.94` 的不可变 tag 均指向 [`11aef634aa`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48)。VS Code 已从 Open VSX 公开回读；JetBrains 上传已被接受但仍待审核，当前公开版为 `0.4.93`。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
 
 ### 3. 配置大模型（首次）
 

@@ -2,30 +2,30 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.165.4` (current fully gated build; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.165.5` (current fully gated build; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.165.4 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.165.5 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-08-20 Current mainline — **v5.0.3.135 / CLI 0.165.4 / PDH 0.4.59 / Open VSX 0.37.58 / JetBrains 0.4.93**
+## 2026-08-21 Current mainline — **v5.0.3.135 / CLI 0.165.5 / PDH 0.4.59 / Open VSX 0.37.59 / JetBrains 0.4.93 (0.4.94 pending)**
 
-> **Release status:** `chainlesschain@0.165.4` is the current npm `latest` and production recommendation. Immutable tag `v-npm-0-165-4` resolves to exact commit [`86abb5f65e`](https://github.com/chainlesschain/chainlesschain/commit/86abb5f65e39f0dd553040fbfce07277336dfeeb); that SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466808), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466552), the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/32375466545), and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/32377326843). npm reports `latest=0.165.4`; the public tarball SHA-1 is `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`.
+> **Release status:** `chainlesschain@0.165.5` is the current npm `latest` and production recommendation. Immutable tag `v-npm-0-165-5` resolves to exact commit [`11aef634aa`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48); that SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582642), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582490), the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314006), and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/32429710720). npm reports `latest=0.165.5`; the public tarball SHA-1 is `c2cc7fb18ea572749d747de02355c6a0a5aef357`.
 >
-> **CLI 0.165.4:** on top of `0.165.1` runtime admission and remote authority, this release line ships governed plugin transactions; durable provider, tool, and child-call receipts; stage-input/checkpoint recovery; REPL/headless/WS session budgets; reviewed remote-result collection/import/transactional apply; and auditable Artifact access, deletion, and TTL-cleanup settlement. It includes `0.165.3` keeper-retirement and lock-reclaim hardening. `0.165.4` also lets a first global install fall back to `sql.js` WASM when Python, a compiler, native prebuilds, or the optional native SQLite addon are unavailable.
+> **CLI 0.165.5:** this release carries forward `0.165.4` portable first-install behavior and adds bounded orphaned-Artifact recovery projections, durable workflow-stage recovery, and strict MCP package native-addon admission with typed fail-closed results. IDE, WebSocket, and CLI consumers continue to use persisted CLI authority and checkpoint evidence instead of reconstructing storage mutations.
 >
-> **Public IDE builds:** Open VSX `0.37.58` and JetBrains Marketplace `0.4.93` are publicly listed. Both expose Artifact preview/open/copy-path only through CLI-owned access authority, add recoverable deletion settlement, and route LLM API keys through `cc config set-secret` over stdin and the OS credential store. VS Code `0.37.58` additionally restores interactive approval continuation after transport recovery. Microsoft VS Code Marketplace and JetBrains author signing remain open.
+> **IDE release status:** Open VSX `0.37.59` was published and read back as downloadable by the [IDE Extensions workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314362), shipping durable workflow controls, orphaned-Artifact recovery, and editor-interaction continuity. JetBrains `0.4.94` passed the [six-host release matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314072) and was accepted for upload, but is pending Marketplace review, so `0.4.93` remains the public listing. Microsoft VS Code Marketplace and JetBrains author signing remain open.
 >
-> **Post-release source boundary:** this documentation audits code baseline `f2fbf331da46`, which adds MCP package native-addon rejection, typed fail-closed behavior for unsupported Windows/macOS strict-native plugins, durable-workflow controls and orphaned-Artifact recovery in the IDE, a returned-artifact workbench in Desktop, transient remote-session recovery on iOS, and the P1-5 three-OS/twelve-cell Marketplace supply-chain matrix implementation after `0.165.4`. These are source-snapshot claims, not retroactive contents of the `0.165.4` tarball, Open VSX `0.37.58`, or JetBrains `0.4.93`. The P1-5 exact-head aggregate still requires Actions readback; signed native distribution, cross-host revocation, and the remaining long-running campaign evidence stay separately gated.
+> **Release and source boundary:** CLI `0.165.5`, Open VSX `0.37.59`, and pending JetBrains `0.4.94` all bind exact SHA `11aef634aa`; the P1-5 Marketplace and ARM64 host matrices also passed at that exact SHA. The Desktop returned-artifact workbench and iOS transient remote-session recovery remain repository source capabilities, not Desktop/iOS releases created by this npm/IDE publication. Signed native distribution, cross-host revocation, and the remaining long-running campaign evidence stay separately gated.
 >
 > **Native and long-running evidence boundary:** npm publication is not a signed Desktop/native release. The 72-hour Scheduler campaign, three-OS keeper formal aggregate, full protected macOS-helper proof, platform signing/notarization/updater evidence, and public fresh-install/upgrade/rollback readback remain incomplete. All 25 compatibility aliases remain because representative telemetry is still missing.
 >
 > **Checkpoint recovery:** direct and timeline restores now share a hash-chained CAS saga bound to workspace prestate, lifetime locks, immutable Git/copy targets, and safety checkpoints. `cc checkpoint recovery list|show|abort|resume|rollback|release` mutates state only after validating live-owner or verified-owner-absence authority, exact sequence/head fences, and action eligibility. `resume` only settles an already-completed verified restore, while `rollback --yes` only reverses a verified partial file mutation. This is a narrow file-recovery closure, not general multi-resource atomicity, power-loss proof, or external-side-effect rollback.
 >
-> **Release-chain closure:** `0.165.4` has a closed chain of tag identity, three-OS CLI CI/Strict matrices, immutable artifacts, Trusted Publishing, signed provenance, registry, and independent public readback. Registry presence alone is not release authority. PDH is now `0.4.59` (optional native SQLite with a `sql.js` fallback), and Agent SDK remains `0.1.7`.
+> **Release-chain closure:** `0.165.5` has a closed chain of tag identity, three-OS CLI CI/Strict matrices, immutable artifacts, Trusted Publishing, signed provenance, registry, and independent public readback. Registry presence alone is not release authority. PDH remains `0.4.59` (optional native SQLite with a `sql.js` fallback), and Agent SDK remains `0.1.7`.
 >
 > See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [checkpoint recovery guide](docs-site/docs/chainlesschain/checkpoint.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [runtime design check](docs/design/cli-runtime-current.md), [IDE bridge design](docs/design/modules/98_IDE桥接对标方案.md), and [changelog](CHANGELOG.md).
 
@@ -2507,7 +2507,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.165.4-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.165.5-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

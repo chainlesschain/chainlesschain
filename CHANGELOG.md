@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - cc CLI 0.165.5: governed recovery and native add-on policy
 
-> `chainlesschain` **0.165.4 -> 0.165.5** (candidate; not yet published,
-> 2026-08-20).
+> `chainlesschain` **0.165.4 -> 0.165.5** (published from exact SHA
+> `11aef634aa3ab88994698eca0ce2f5cfa65faf48`, 2026-08-21).
 > CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -25,13 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validated executable/package identities. Unsupported or ambiguous native
   add-ons now return typed fail-closed rejections instead of crossing the
   strict process boundary.
-- **Release-candidate gates**: add cross-host Marketplace, accessibility,
+- **Release gates**: add cross-host Marketplace, accessibility,
   execution-location, context/permission, and live-provider campaigns while
   keeping CI dependency installation clean and deterministic.
-- **Release status**: publication requires this exact candidate commit to pass
-  the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
-  matrices. The immutable npm tag and registry readback will be recorded only
-  after those gates succeed.
+- **Published release evidence**: immutable tag `v-npm-0-165-5`, three-OS
+  `CLI CI` (`32413582642`), `CLI Strict Sandbox` (`32413582490`), npm release
+  (`32428314006`), and independent registry/provenance readback
+  (`32429710720`) all bind exact SHA `11aef634aa`. npm reports
+  `latest=0.165.5`; the public tarball SHA-1 is
+  `c2cc7fb18ea572749d747de02355c6a0a5aef357`.
 
 ### Fixed - cc CLI 0.165.4: first install without a native build toolchain
 
