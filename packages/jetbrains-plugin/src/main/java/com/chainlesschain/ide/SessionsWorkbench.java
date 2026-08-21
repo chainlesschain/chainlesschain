@@ -98,6 +98,11 @@ public final class SessionsWorkbench {
         public final long port;
         /** Bounded projection summary shown in the right/detail surface. */
         public final String detail;
+        public final String groupId;
+        public final String groupName;
+        public final SessionProjection.AttentionSummary attention;
+        public final SessionProjection.FocusSummary focus;
+        public final SessionProjection.LocationSummary location;
 
         Row(String id, String kind, String title, String workspace, String status,
                 long lastActivity, boolean waitingApproval, List<String> actions,
@@ -113,6 +118,21 @@ public final class SessionsWorkbench {
                 String itemRevision, long port,
                 Map<String, SessionProjection.ActionPreview> actionPreviews,
                 String detail) {
+            this(id, kind, title, workspace, status, lastActivity,
+                    waitingApproval, actions, sessionId, sourceId,
+                    projectionRevision, itemRevision, port, actionPreviews,
+                    detail, "", "", null, null, null);
+        }
+
+        Row(String id, String kind, String title, String workspace, String status,
+                long lastActivity, boolean waitingApproval, List<String> actions,
+                String sessionId, String sourceId, String projectionRevision,
+                String itemRevision, long port,
+                Map<String, SessionProjection.ActionPreview> actionPreviews,
+                String detail, String groupId, String groupName,
+                SessionProjection.AttentionSummary attention,
+                SessionProjection.FocusSummary focus,
+                SessionProjection.LocationSummary location) {
             this.id = id == null ? "" : id;
             this.kind = kind == null ? "" : kind;
             this.title = title == null ? "" : title;
@@ -131,6 +151,11 @@ public final class SessionsWorkbench {
                     new LinkedHashMap<String, SessionProjection.ActionPreview>(
                             actionPreviews == null ? Map.of() : actionPreviews));
             this.detail = detail == null ? "" : detail;
+            this.groupId = groupId == null ? "" : groupId;
+            this.groupName = groupName == null ? "" : groupName;
+            this.attention = attention;
+            this.focus = focus;
+            this.location = location;
         }
     }
 
@@ -159,6 +184,10 @@ public final class SessionsWorkbench {
     /** Rows from the one CLI-owned projection; disconnected snapshots are empty. */
     public static List<Row> projectionRows(SessionProjection.Snapshot snapshot) {
         if (snapshot == null || !snapshot.connected) return List.of();
+        Map<String, String> groupNames = new LinkedHashMap<String, String>();
+        for (SessionProjection.Group group : snapshot.groups) {
+            groupNames.put(group.id, group.name);
+        }
         List<Row> rows = new ArrayList<Row>();
         for (SessionProjection.Item item : snapshot.sessions) {
             rows.add(new Row(
@@ -176,7 +205,12 @@ public final class SessionsWorkbench {
                     item.revision,
                     item.port,
                     item.previews,
-                    item.detail));
+                    item.detail,
+                    item.groupId,
+                    groupNames.getOrDefault(item.groupId, ""),
+                    item.attention,
+                    item.focus,
+                    item.location));
         }
         return Collections.unmodifiableList(rows);
     }
@@ -367,9 +401,34 @@ public final class SessionsWorkbench {
             if (q.isEmpty()
                     || r.title.toLowerCase().contains(q)
                     || r.workspace.toLowerCase().contains(q)
-                    || r.id.toLowerCase().contains(q)) {
+                    || r.id.toLowerCase().contains(q)
+                    || r.groupName.toLowerCase().contains(q)
+                    || (r.focus != null && (r.focus.latestTodo.toLowerCase().contains(q)
+                    || r.focus.pendingQuestion.toLowerCase().contains(q)
+                    || r.focus.settledAnswer.toLowerCase().contains(q)
+                    || r.focus.liveTool.toLowerCase().contains(q)))) {
                 out.add(r);
             }
+        }
+        return out;
+    }
+
+    /** Focus View keeps active rows and the latest bounded hand-off context. */
+    public static List<Row> focusRows(List<Row> rows) {
+        List<Row> out = new ArrayList<Row>();
+        if (rows == null) return out;
+        for (Row row : rows) {
+            if (row == null) continue;
+            boolean attention = row.attention != null
+                    && (row.attention.unread > 0
+                    || row.attention.needsApproval
+                    || row.attention.pendingInteractions > 0);
+            boolean context = row.focus != null
+                    && (row.focus.active || !row.focus.liveTool.isEmpty()
+                    || !row.focus.latestTodo.isEmpty()
+                    || !row.focus.pendingQuestion.isEmpty()
+                    || !row.focus.settledAnswer.isEmpty());
+            if (attention || context) out.add(row);
         }
         return out;
     }
@@ -442,9 +501,15 @@ public final class SessionsWorkbench {
         if (r == null) return new String[] { "", "", "", "", "" };
         String status = r.status.isEmpty() ? "-" : r.status;
         if (r.waitingApproval) status = status + " ⚠ approval";
+        if (r.location != null && !"local".equals(r.location.kind)) {
+            status = status + " · " + r.location.kind + "/" + r.location.status;
+        } else if (r.location != null && "offline".equals(r.location.status)) {
+            status = status + " · offline";
+        }
         return new String[] {
                 r.kind,
-                r.title.isEmpty() ? r.id : r.title,
+                (r.title.isEmpty() ? r.id : r.title)
+                        + (r.groupName.isEmpty() ? "" : " [" + r.groupName + "]"),
                 status,
                 r.workspace,
                 formatRelativeTime(nowMs, r.lastActivity),
@@ -463,6 +528,29 @@ public final class SessionsWorkbench {
         sb.append('\n');
         if (!r.workspace.isEmpty()) sb.append("workspace: ").append(r.workspace).append('\n');
         if (!r.sessionId.isEmpty()) sb.append("session: ").append(r.sessionId).append('\n');
+        if (!r.groupName.isEmpty()) sb.append("group: ").append(r.groupName).append('\n');
+        if (r.location != null) {
+            sb.append("location: ").append(r.location.kind).append('/')
+                    .append(r.location.status).append('\n');
+        }
+        if (r.attention != null) {
+            sb.append("attention: unread=").append(r.attention.unread)
+                    .append(", approval=").append(r.attention.needsApproval)
+                    .append(", pending=").append(r.attention.pendingInteractions)
+                    .append('\n');
+        }
+        if (r.focus != null) {
+            if (!r.focus.liveTool.isEmpty()) sb.append("live tool: ")
+                    .append(r.focus.liveTool)
+                    .append(r.focus.liveToolStatus.isEmpty() ? ""
+                            : ":" + r.focus.liveToolStatus).append('\n');
+            if (!r.focus.latestTodo.isEmpty()) sb.append("latest todo: ")
+                    .append(r.focus.latestTodo).append('\n');
+            if (!r.focus.pendingQuestion.isEmpty()) sb.append("pending question: ")
+                    .append(r.focus.pendingQuestion).append('\n');
+            if (!r.focus.settledAnswer.isEmpty()) sb.append("settled answer: ")
+                    .append(r.focus.settledAnswer).append('\n');
+        }
         String rel = formatRelativeTime(nowMs, r.lastActivity);
         if (!rel.isEmpty()) sb.append("last activity: ").append(rel).append('\n');
         if (!r.detail.isEmpty()) sb.append(r.detail).append('\n');

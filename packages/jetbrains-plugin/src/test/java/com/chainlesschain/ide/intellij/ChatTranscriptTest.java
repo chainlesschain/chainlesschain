@@ -118,6 +118,24 @@ class ChatTranscriptTest {
     }
 
     @Test
+    void thinkingOnlyTurnCollapsesAutomaticallyWhenCompletionSettles() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            ChatTranscript transcript = new ChatTranscript();
+            transcript.beginTurn();
+            transcript.appendReasoning("private chain of thought\n");
+            transcript.collapseCompletedReasoning();
+
+            assertTrue(normalizedText(transcript).contains(
+                    "thinking (collapsed)\n"));
+            assertFalse(normalizedText(transcript).contains(
+                    "private chain of thought"));
+            assertTrue(transcript.toggleAllReasoning());
+            assertTrue(normalizedText(transcript).contains(
+                    "private chain of thought\n"));
+        });
+    }
+
+    @Test
     void expandReportsNoBlocksAfterClear() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             ChatTranscript transcript = new ChatTranscript();

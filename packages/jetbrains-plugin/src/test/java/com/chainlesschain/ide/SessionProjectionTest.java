@@ -186,6 +186,59 @@ class SessionProjectionTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void consumesCliOwnedGroupsFocusAttentionAndCloudOfflineStatus() {
+        Map<String, Object> root = MiniJson.parseObject(v2Fixture());
+        root.put("groups", Map.of(
+                "authority", "cli",
+                "connected", true,
+                "revision", "sha256:" + "6".repeat(64),
+                "generation", 4L,
+                "items", List.of(Map.of(
+                        "id", "group-release",
+                        "name", "Release",
+                        "order", 0L)),
+                "assignments", List.of()));
+        Map<String, Object> item = (Map<String, Object>)
+                ((List<Object>) root.get("sessions")).get(0);
+        item.put("groupId", "group-release");
+        item.put("attention", Map.of(
+                "unread", 2L,
+                "needsApproval", true,
+                "pendingInteractions", 3L));
+        item.put("focus", Map.of(
+                "active", true,
+                "liveTool", Map.of("name", "read_file", "status", "running"),
+                "latestTodo", "Run the matrix",
+                "pendingQuestion", "Publish now?",
+                "settledAnswer", "Wait for all checks"));
+        item.put("location", Map.of("kind", "cloud", "status", "offline"));
+
+        SessionProjection.Snapshot snapshot = SessionProjection.parse(
+                MiniJson.stringify(root));
+        assertTrue(snapshot.connected);
+        assertTrue(snapshot.groupsConnected);
+        assertEquals("sha256:" + "6".repeat(64), snapshot.groupRevision);
+        assertEquals("Release", snapshot.groups.get(0).name);
+        SessionProjection.Item parsed = snapshot.sessions.get(0);
+        assertEquals("group-release", parsed.groupId);
+        assertEquals(2L, parsed.attention.unread);
+        assertEquals(3L, parsed.attention.pendingInteractions);
+        assertEquals("read_file", parsed.focus.liveTool);
+        assertEquals("Run the matrix", parsed.focus.latestTodo);
+        assertEquals("Publish now?", parsed.focus.pendingQuestion);
+        assertEquals("Wait for all checks", parsed.focus.settledAnswer);
+        assertEquals("cloud", parsed.location.kind);
+        assertEquals("offline", parsed.location.status);
+
+        SessionsWorkbench.Row row = SessionsWorkbench.projectionRows(snapshot).get(0);
+        assertEquals("Release", row.groupName);
+        assertTrue(SessionsWorkbench.focusRows(List.of(row)).contains(row));
+        assertTrue(SessionsWorkbench.describe(row, System.currentTimeMillis())
+                .contains("settled answer: Wait for all checks"));
+    }
+
+    @Test
     void disconnectedMalformedAndStaleSnapshotsClearAllRows() {
         String disconnected = fixture().replace(
                 "\"connected\": true", "\"connected\": false");

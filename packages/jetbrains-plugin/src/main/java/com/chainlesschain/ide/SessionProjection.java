@@ -106,6 +106,61 @@ public final class SessionProjection {
         }
     }
 
+    public static final class Group {
+        public final String id;
+        public final String name;
+        public final long order;
+
+        private Group(String id, String name, long order) {
+            this.id = id;
+            this.name = name;
+            this.order = order;
+        }
+    }
+
+    public static final class AttentionSummary {
+        public final long unread;
+        public final boolean needsApproval;
+        public final long pendingInteractions;
+
+        private AttentionSummary(long unread, boolean needsApproval,
+                long pendingInteractions) {
+            this.unread = unread;
+            this.needsApproval = needsApproval;
+            this.pendingInteractions = pendingInteractions;
+        }
+    }
+
+    public static final class FocusSummary {
+        public final boolean active;
+        public final String liveTool;
+        public final String liveToolStatus;
+        public final String latestTodo;
+        public final String pendingQuestion;
+        public final String settledAnswer;
+
+        private FocusSummary(boolean active, String liveTool,
+                String liveToolStatus, String latestTodo,
+                String pendingQuestion, String settledAnswer) {
+            this.active = active;
+            this.liveTool = liveTool;
+            this.liveToolStatus = liveToolStatus;
+            this.latestTodo = latestTodo;
+            this.pendingQuestion = pendingQuestion;
+            this.settledAnswer = settledAnswer;
+        }
+    }
+
+    public static final class LocationSummary {
+        public final String kind;
+        public final String status;
+
+        private LocationSummary(String kind, String status) {
+            this.kind = kind;
+            this.status = status;
+        }
+    }
+
     public static final class Item {
         public final String id;
         public final String sourceId;
@@ -121,6 +176,10 @@ public final class SessionProjection {
         public final Map<String, String> unavailableReasons;
         public final Map<String, ActionPreview> previews;
         public final MessagingSummary messaging;
+        public final String groupId;
+        public final AttentionSummary attention;
+        public final FocusSummary focus;
+        public final LocationSummary location;
         /** Bounded, content-free owner/worktree/artifact/approval/PR summary. */
         public final String detail;
 
@@ -129,7 +188,9 @@ public final class SessionProjection {
                 String lastEventAt, String revision, List<String> actions,
                 Map<String, String> unavailableReasons,
                 Map<String, ActionPreview> previews,
-                MessagingSummary messaging, String detail) {
+                MessagingSummary messaging, String groupId,
+                AttentionSummary attention, FocusSummary focus,
+                LocationSummary location, String detail) {
             this.id = id;
             this.sourceId = sourceId;
             this.kind = kind;
@@ -146,6 +207,10 @@ public final class SessionProjection {
             this.previews = Collections.unmodifiableMap(
                     new LinkedHashMap<String, ActionPreview>(previews));
             this.messaging = messaging;
+            this.groupId = groupId == null ? "" : groupId;
+            this.attention = attention;
+            this.focus = focus;
+            this.location = location;
             this.detail = detail == null ? "" : detail;
         }
     }
@@ -157,9 +222,14 @@ public final class SessionProjection {
         public final String error;
         public final List<Item> sessions;
         public final Map<String, Object> sources;
+        public final boolean groupsConnected;
+        public final String groupRevision;
+        public final List<Group> groups;
 
         private Snapshot(boolean connected, boolean stale, String revision,
-                String error, List<Item> sessions, Map<String, Object> sources) {
+                String error, List<Item> sessions, Map<String, Object> sources,
+                boolean groupsConnected, String groupRevision,
+                List<Group> groups) {
             this.connected = connected;
             this.stale = stale;
             this.revision = revision == null ? "" : revision;
@@ -168,6 +238,10 @@ public final class SessionProjection {
                     new ArrayList<Item>(sessions == null ? List.of() : sessions));
             this.sources = Collections.unmodifiableMap(
                     new LinkedHashMap<String, Object>(sources == null ? Map.of() : sources));
+            this.groupsConnected = groupsConnected;
+            this.groupRevision = groupRevision == null ? "" : groupRevision;
+            this.groups = Collections.unmodifiableList(
+                    new ArrayList<Group>(groups == null ? List.of() : groups));
         }
     }
 
@@ -208,6 +282,16 @@ public final class SessionProjection {
             return disconnected("stale session projection revision",
                     true, revision, sources);
         }
+
+        final GroupProjection groups;
+        try {
+            groups = parseGroups(root.get("groups"));
+        } catch (RuntimeException error) {
+            return disconnected("malformed session group projection",
+                    false, revision, sources);
+        }
+        Map<String, String> groupNames = new LinkedHashMap<String, String>();
+        for (Group group : groups.items) groupNames.put(group.id, group.name);
 
         List<Item> sessions = new ArrayList<Item>();
         Set<String> actionSet = legacy ? LEGACY_ACTION_SET : ACTION_SET;
@@ -257,6 +341,10 @@ public final class SessionProjection {
                         ? (Map<String, Object>) item.get("environment") : Map.of();
                 Map<String, Object> lastEvent = item.get("lastEvent") instanceof Map
                         ? (Map<String, Object>) item.get("lastEvent") : Map.of();
+                String groupId = str(item.get("groupId"));
+                if (!groupId.isEmpty() && !groupNames.containsKey(groupId)) {
+                    throw new IllegalArgumentException();
+                }
                 sessions.add(new Item(
                         id, sourceId, kind, state,
                         fallback(str(item.get("title")), sourceId),
@@ -269,13 +357,18 @@ public final class SessionProjection {
                         unavailable,
                         previews,
                         parseMessaging(item.get("messaging")),
+                        groupId,
+                        parseAttention(item.get("attention")),
+                        parseFocus(item.get("focus"), state),
+                        parseLocation(item.get("location")),
                         projectionDetail(item)));
             }
         } catch (RuntimeException error) {
             return disconnected("malformed session projection row",
                     false, revision, sources);
         }
-        return new Snapshot(true, false, revision, "", sessions, sources);
+        return new Snapshot(true, false, revision, "", sessions, sources,
+                groups.connected, groups.revision, groups.items);
     }
 
     /** Authority + envelope revision + item revision + capability gate. */
@@ -321,6 +414,130 @@ public final class SessionProjection {
             }
         }
         return null;
+    }
+
+    private static final class GroupProjection {
+        final boolean connected;
+        final String revision;
+        final List<Group> items;
+
+        GroupProjection(boolean connected, String revision, List<Group> items) {
+            this.connected = connected;
+            this.revision = revision == null ? "" : revision;
+            this.items = items;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static GroupProjection parseGroups(Object value) {
+        if (value == null) return new GroupProjection(false, "", List.of());
+        if (!(value instanceof Map)) throw new IllegalArgumentException();
+        Map<String, Object> groups = (Map<String, Object>) value;
+        if (!"cli".equals(str(groups.get("authority")))
+                || !(groups.get("connected") instanceof Boolean)
+                || !(groups.get("items") instanceof List)) {
+            throw new IllegalArgumentException();
+        }
+        if (!Boolean.TRUE.equals(groups.get("connected"))) {
+            return new GroupProjection(false, "", List.of());
+        }
+        String revision = str(groups.get("revision"));
+        if (revision.isEmpty() || !(groups.get("generation") instanceof Number)
+                || number(groups.get("generation")) < 0) {
+            throw new IllegalArgumentException();
+        }
+        List<Object> rawItems = (List<Object>) groups.get("items");
+        if (rawItems.size() > 128) throw new IllegalArgumentException();
+        Set<String> ids = new LinkedHashSet<String>();
+        List<Group> items = new ArrayList<Group>();
+        for (Object raw : rawItems) {
+            if (!(raw instanceof Map)) throw new IllegalArgumentException();
+            Map<String, Object> item = (Map<String, Object>) raw;
+            String id = str(item.get("id"));
+            String name = str(item.get("name"));
+            long order = number(item.get("order"));
+            if (!id.matches("group-[a-zA-Z0-9_-]+") || name.isEmpty()
+                    || name.length() > 80 || !(item.get("order") instanceof Number)
+                    || order < 0 || !ids.add(id)) {
+                throw new IllegalArgumentException();
+            }
+            items.add(new Group(id, name, order));
+        }
+        items.sort((left, right) -> {
+            int order = Long.compare(left.order, right.order);
+            return order != 0 ? order : left.name.compareTo(right.name);
+        });
+        return new GroupProjection(true, revision, items);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static AttentionSummary parseAttention(Object value) {
+        if (value == null) return new AttentionSummary(0L, false, 0L);
+        if (!(value instanceof Map)) throw new IllegalArgumentException();
+        Map<String, Object> attention = (Map<String, Object>) value;
+        if (!(attention.get("unread") instanceof Number)
+                || !(attention.get("needsApproval") instanceof Boolean)
+                || !(attention.get("pendingInteractions") instanceof Number)) {
+            throw new IllegalArgumentException();
+        }
+        long unread = number(attention.get("unread"));
+        long pending = number(attention.get("pendingInteractions"));
+        if (unread < 0 || pending < 0 || pending > 1_000) {
+            throw new IllegalArgumentException();
+        }
+        return new AttentionSummary(unread,
+                Boolean.TRUE.equals(attention.get("needsApproval")), pending);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static FocusSummary parseFocus(Object value, String state) {
+        if (value == null) {
+            return new FocusSummary(Set.of("working", "needs_input", "blocked")
+                    .contains(state), "", "", "", "", "");
+        }
+        if (!(value instanceof Map)) throw new IllegalArgumentException();
+        Map<String, Object> focus = (Map<String, Object>) value;
+        if (!(focus.get("active") instanceof Boolean)) {
+            throw new IllegalArgumentException();
+        }
+        String liveTool = "";
+        String liveToolStatus = "";
+        if (focus.get("liveTool") != null) {
+            if (!(focus.get("liveTool") instanceof Map)) {
+                throw new IllegalArgumentException();
+            }
+            Map<String, Object> tool = (Map<String, Object>) focus.get("liveTool");
+            liveTool = bounded(tool.get("name"), 96);
+            liveToolStatus = bounded(tool.get("status"), 48);
+            if (liveTool.isEmpty()) throw new IllegalArgumentException();
+        }
+        return new FocusSummary(Boolean.TRUE.equals(focus.get("active")),
+                liveTool, liveToolStatus,
+                bounded(focus.get("latestTodo"), 240),
+                bounded(focus.get("pendingQuestion"), 240),
+                bounded(focus.get("settledAnswer"), 240));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static LocationSummary parseLocation(Object value) {
+        if (value == null) return new LocationSummary("local", "local");
+        if (!(value instanceof Map)) throw new IllegalArgumentException();
+        Map<String, Object> location = (Map<String, Object>) value;
+        String kind = str(location.get("kind"));
+        String status = str(location.get("status"));
+        if (!Set.of("local", "remote", "cloud").contains(kind)
+                || !Set.of("local", "online", "offline").contains(status)) {
+            throw new IllegalArgumentException();
+        }
+        return new LocationSummary(kind, status);
+    }
+
+    private static String bounded(Object value, int max) {
+        if (value == null) return "";
+        if (!(value instanceof String)) throw new IllegalArgumentException();
+        String text = (String) value;
+        if (text.length() > max) throw new IllegalArgumentException();
+        return text;
     }
 
     @SuppressWarnings("unchecked")
@@ -507,7 +724,8 @@ public final class SessionProjection {
 
     private static Snapshot disconnected(String error, boolean stale,
             String revision, Map<String, Object> sources) {
-        return new Snapshot(false, stale, revision, error, List.of(), sources);
+        return new Snapshot(false, stale, revision, error, List.of(), sources,
+                false, "", List.of());
     }
 
     private static String fallback(String first, String second) {

@@ -42,7 +42,7 @@ final class ChatTranscript {
     // compact placeholder and later restore the exact text.
     private final List<ThinkingBlock> thinkingBlocks = new ArrayList<>();
     private ThinkingBlock activeThinkingBlock;
-    private boolean thinkingExpanded = true;
+    private int turnThinkingStart = 0;
     private int turnNumber = 0;
     private boolean assistantHeadingAdded = false;
     private String lastFinalizedAssistantText = "";
@@ -91,6 +91,7 @@ final class ChatTranscript {
         closeThinkingBlock();
         finalizeAssistantRun();
         turnNumber += 1;
+        turnThinkingStart = thinkingBlocks.size();
         assistantHeadingAdded = false;
         insertStyled("\nTurn " + turnNumber + ", User message\n", styleBold);
     }
@@ -207,23 +208,11 @@ final class ChatTranscript {
             int start = document.getLength();
             activeThinkingBlock = new ThinkingBlock(start, start);
             thinkingBlocks.add(activeThinkingBlock);
-            if (!thinkingExpanded) {
-                activeThinkingBlock.hiddenText = "";
-                activeThinkingBlock.end =
-                        start + THINKING_PLACEHOLDER.length();
-                insertStyled(THINKING_PLACEHOLDER, styleDim);
-            }
         }
-        if (thinkingExpanded) {
-            activeThinkingBlock.end = document.getLength() + s.length();
-            insertStyled(s, styleDim);
-            if (activeThinkingBlock != null) {
-                activeThinkingBlock.end =
-                        pane.getStyledDocument().getLength();
-            }
-        } else {
-            activeThinkingBlock.hiddenText += s;
-            trimHiddenReasoning();
+        activeThinkingBlock.end = document.getLength() + s.length();
+        insertStyled(s, styleDim);
+        if (activeThinkingBlock != null) {
+            activeThinkingBlock.end = pane.getStyledDocument().getLength();
         }
     }
 
@@ -237,32 +226,34 @@ final class ChatTranscript {
         if (thinkingBlocks.isEmpty()) return false;
         StyledDocument document = pane.getStyledDocument();
         final boolean following = isFollowingBottom();
+        final boolean expand = thinkingBlocks.stream()
+                .anyMatch(block -> block.hiddenText != null);
         try {
             for (int i = thinkingBlocks.size() - 1; i >= 0; i--) {
                 ThinkingBlock block = thinkingBlocks.get(i);
                 int length = Math.max(0, block.end - block.start);
-                if (thinkingExpanded) {
+                int delta = 0;
+                if (!expand && block.hiddenText == null) {
                     block.hiddenText = document.getText(block.start, length);
                     document.remove(block.start, length);
                     document.insertString(
                             block.start, THINKING_PLACEHOLDER, styleDim);
                     block.end = block.start + THINKING_PLACEHOLDER.length();
-                } else {
+                    delta = (block.end - block.start) - length;
+                } else if (expand && block.hiddenText != null) {
                     document.remove(block.start, length);
-                    String text = block.hiddenText == null
-                            ? "" : block.hiddenText;
+                    String text = block.hiddenText;
                     document.insertString(block.start, text, styleDim);
                     block.end = block.start + text.length();
                     block.hiddenText = null;
+                    delta = (block.end - block.start) - length;
                 }
-                int delta = (block.end - block.start) - length;
                 for (int j = i + 1; j < thinkingBlocks.size(); j++) {
                     ThinkingBlock later = thinkingBlocks.get(j);
                     later.start += delta;
                     later.end += delta;
                 }
             }
-            thinkingExpanded = !thinkingExpanded;
             stickToBottomIfFollowing(following);
             pane.revalidate();
             pane.repaint();
@@ -274,6 +265,35 @@ final class ChatTranscript {
 
     private void closeThinkingBlock() {
         activeThinkingBlock = null;
+    }
+
+    /** Collapse every reasoning-only block produced by the completed turn. */
+    void collapseCompletedReasoning() {
+        closeThinkingBlock();
+        StyledDocument document = pane.getStyledDocument();
+        final boolean following = isFollowingBottom();
+        try {
+            for (int i = thinkingBlocks.size() - 1;
+                    i >= Math.min(turnThinkingStart, thinkingBlocks.size()); i--) {
+                ThinkingBlock block = thinkingBlocks.get(i);
+                if (block.hiddenText != null) continue;
+                int length = Math.max(0, block.end - block.start);
+                block.hiddenText = document.getText(block.start, length);
+                document.remove(block.start, length);
+                document.insertString(block.start, THINKING_PLACEHOLDER, styleDim);
+                block.end = block.start + THINKING_PLACEHOLDER.length();
+                int delta = (block.end - block.start) - length;
+                for (int j = i + 1; j < thinkingBlocks.size(); j++) {
+                    ThinkingBlock later = thinkingBlocks.get(j);
+                    later.start += delta;
+                    later.end += delta;
+                }
+            }
+            stickToBottomIfFollowing(following);
+            trimHiddenReasoning();
+        } catch (BadLocationException ignored) {
+            /* retain visible reasoning if the document changed unexpectedly */
+        }
     }
 
     /** Re-render the just-streamed assistant run as markdown (code → monospace
@@ -317,7 +337,7 @@ final class ChatTranscript {
         assistantEntry = null;
         activeThinkingBlock = null;
         thinkingBlocks.clear();
-        thinkingExpanded = true;
+        turnThinkingStart = 0;
         turnNumber = 0;
         assistantHeadingAdded = false;
         lastFinalizedAssistantText = "";
@@ -383,11 +403,14 @@ final class ChatTranscript {
             if (block.end <= removeLen) {
                 if (activeThinkingBlock == block) activeThinkingBlock = null;
                 thinkingBlocks.remove(i);
+                if (i < turnThinkingStart) turnThinkingStart -= 1;
                 continue;
             }
             block.start = Math.max(0, block.start - removeLen);
             block.end -= removeLen;
         }
+        turnThinkingStart = Math.max(0,
+                Math.min(turnThinkingStart, thinkingBlocks.size()));
     }
 
     /** Keep hidden reasoning within the same bound as the visible transcript. */

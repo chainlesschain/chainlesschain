@@ -1617,6 +1617,7 @@ final class ConversationView {
             // null and we just finalize the streamed run.)
             if (text != null) appendAssistantDelta(String.valueOf(text));
             transcript.finalizeAssistantRun();
+            transcript.collapseCompletedReasoning();
             transcript.announce("Assistant response", transcript.lastAssistantText(),
                     "turn-end:" + transcript.currentTurnNumber());
             transcript.announce("Status", "ready",

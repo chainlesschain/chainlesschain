@@ -121,6 +121,60 @@ function sample(overrides = {}) {
 }
 
 describe("canonical session projection", () => {
+  it("projects CLI-owned groups, bounded attention, Focus View context and offline/cloud state", () => {
+    const projection = sample({
+      background: [
+        {
+          id: "bg-1",
+          status: "running",
+          sessionId: "s/1",
+          executionLocation: "cloud",
+          online: false,
+          pendingInteractions: [{ kind: "approval" }, { kind: "question" }],
+          pendingQuestion: { question: `Choose ${"x".repeat(500)}` },
+          latestTodo: { title: "Ship the release" },
+          settledAnswer: { answer: "Use the signed artifact" },
+          liveTool: { name: "run_tests", status: "running" },
+        },
+      ],
+      sessionWorkbench: {
+        authority: "cli",
+        connected: true,
+        revision: `sha256:${"a".repeat(64)}`,
+        generation: 9,
+        items: [{ id: "group-release", name: "Release", order: 0 }],
+        assignments: [
+          { sessionId: "background:bg-1", groupId: "group-release" },
+        ],
+      },
+    });
+    const row = projection.sessions.find(
+      (item) => item.id === "background:bg-1",
+    );
+
+    expect(projection.groups).toEqual({
+      authority: "cli",
+      connected: true,
+      revision: `sha256:${"a".repeat(64)}`,
+      generation: 9,
+      items: [{ id: "group-release", name: "Release", order: 0 }],
+      assignments: [{ sessionId: "background:bg-1", groupId: "group-release" }],
+    });
+    expect(row.groupId).toBe("group-release");
+    expect(row.attention).toMatchObject({
+      needsApproval: true,
+      pendingInteractions: 3,
+    });
+    expect(row.focus).toMatchObject({
+      active: true,
+      liveTool: { name: "run_tests", status: "running" },
+      latestTodo: "Ship the release",
+      settledAnswer: "Use the signed artifact",
+    });
+    expect(row.focus.pendingQuestion.length).toBeLessThanOrEqual(240);
+    expect(row.location).toEqual({ kind: "cloud", status: "offline" });
+  });
+
   it("binds CLI-owned cross-session inbox state to every linked IDE row", () => {
     const projection = sample({
       sessionMessageFabric: {
