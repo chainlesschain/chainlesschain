@@ -544,6 +544,7 @@ final class ConversationView {
                                 + "PATH?): " + err + "\n");
                     } else if (ok) {
                         turnActive = true;
+                        transcript.beginTurn();
                         if (!text.isEmpty()) lastSentPrompt = text; // for /retry
                         String tag = imgs.isEmpty() ? ""
                                 : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
@@ -1544,6 +1545,7 @@ final class ConversationView {
         {
             indexConversation("stopped");
             append("\n── agent exited (" + code + ") — next message restarts ──\n");
+            transcript.announce("Status", "stopped", "status:stopped:" + code);
         });
 
         AgentChatSession session = new AgentChatSession(o);
@@ -1557,6 +1559,7 @@ final class ConversationView {
         String kind = String.valueOf(ui.get("kind"));
         if ("init".equals(kind)) {
             append("── " + ui.get("model") + " · " + ui.get("provider") + " ──\n");
+            transcript.announce("Status", "connected", "status:connected");
         } else if ("pre".equals(kind)) {
             String text = String.valueOf(ui.get("text"));
             append(text + (text.endsWith("\n") ? "" : "\n"));
@@ -1568,8 +1571,13 @@ final class ConversationView {
             String summary = String.valueOf(ui.get("summary"));
             append("\n→ " + ui.get("tool") + (summary.isEmpty() ? "" : " " + summary) + "\n");
         } else if ("tool_done".equals(kind)) {
-            append((Boolean.TRUE.equals(ui.get("isError")) ? "✗ " : "✓ ")
-                    + ui.get("tool") + "\n");
+            boolean toolError = Boolean.TRUE.equals(ui.get("isError"));
+            append((toolError ? "✗ " : "✓ ") + ui.get("tool") + "\n");
+            if (toolError) {
+                transcript.announce("Tool error", ui.get("tool") + " failed",
+                        "tool-error:" + transcript.currentTurnNumber() + ":"
+                                + ui.get("tool"));
+            }
             Object note = ui.get("note");
             if (note instanceof String && !((String) note).isEmpty()) {
                 appendThinking("ℹ " + ui.get("tool") + ":" + note + "\n");
@@ -1609,6 +1617,10 @@ final class ConversationView {
             // null and we just finalize the streamed run.)
             if (text != null) appendAssistantDelta(String.valueOf(text));
             transcript.finalizeAssistantRun();
+            transcript.announce("Assistant response", transcript.lastAssistantText(),
+                    "turn-end:" + transcript.currentTurnNumber());
+            transcript.announce("Status", "ready",
+                    "status:ready:" + transcript.currentTurnNumber());
             append("\n");
             // Authoritative turn total replaces the live tally until the async
             // context probe repaints the ⊟ indicator.
@@ -1629,6 +1641,9 @@ final class ConversationView {
         } else if ("approval_done".equals(kind)) {
             indexConversation("running");
             resolveApprovalCard(ui);
+            transcript.announce("Permission request",
+                    Boolean.TRUE.equals(ui.get("approved")) ? "approved" : "denied",
+                    "permission-done:" + ui.get("id"));
         } else if ("question".equals(kind)) {
             indexConversation("waiting_approval");
             if (Boolean.TRUE.equals(ui.get("elicitation"))) askElicitation(ui);
@@ -1638,6 +1653,12 @@ final class ConversationView {
             Object text = ui.get("text");
             String body = String.valueOf(text != null ? text : kind);
             append(("error".equals(kind) ? "⚠ " : "ℹ ") + body + "\n");
+            if ("error".equals(kind)) {
+                transcript.announce("Tool error", body,
+                        "error:" + transcript.currentTurnNumber() + ":" + body);
+                transcript.announce("Status", "error",
+                        "status:error:" + transcript.currentTurnNumber());
+            }
             // Nudge toward the LLM wizard when the failure looks like a
             // missing/expired key or wrong provider (401/403/api key…).
             if ("error".equals(kind) && LlmConfig.looksLikeLlmConfigError(body)) {
@@ -1981,6 +2002,7 @@ final class ConversationView {
         q.append("?");
         if (ui.get("risk") != null) q.append("  [risk: ").append(ui.get("risk")).append("]");
         if (ui.get("reason") != null) q.append("\n").append(ui.get("reason"));
+        transcript.announce("Permission request", q.toString(), "permission:" + id);
 
         JPanel card = new JPanel(new BorderLayout(4, 4));
         card.setBorder(BorderFactory.createLineBorder(WARN));
@@ -2009,6 +2031,8 @@ final class ConversationView {
         indexConversation("running");
         removeApprovalCard(id);
         append("ℹ " + (approve ? "approved" : "denied") + " (" + id + ")\n");
+        transcript.announce("Permission request", approve ? "approved" : "denied",
+                "permission-done:" + id);
     }
 
     private void resolveApprovalCard(Map<String, Object> ui) {

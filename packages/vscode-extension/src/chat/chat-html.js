@@ -138,6 +138,38 @@ function appendBoundedTranscriptText(previous, value, maxChars = 200_000) {
   };
 }
 
+function formatTranscriptAnnouncement(
+  kind,
+  value,
+  turnNumber = 0,
+  maxChars = 4_000,
+) {
+  const labels = {
+    assistant: "Assistant response",
+    permission: "Permission request",
+    error: "Tool error",
+    status: "Status",
+  };
+  const label = labels[kind];
+  if (!label) return "";
+  const normalized = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "";
+  const cap = Number.isSafeInteger(maxChars) && maxChars > 0 ? maxChars : 4_000;
+  const prefix =
+    Number.isSafeInteger(turnNumber) && turnNumber > 0
+      ? "Turn " + turnNumber + ", "
+      : "";
+  const lead = prefix + label + ": ";
+  const budget = Math.max(0, cap - lead.length);
+  const body =
+    normalized.length > budget
+      ? normalized.slice(0, Math.max(0, budget - 1)) + "…"
+      : normalized;
+  return (lead + body).slice(0, cap);
+}
+
 function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const safeHostDomToken =
     typeof hostDomToken === "string" && /^[a-f0-9]{64}$/u.test(hostDomToken)
@@ -156,6 +188,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   :focus-visible { outline:2px solid var(--vscode-focusBorder); outline-offset:2px; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
              overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .turn-heading { margin:10px 0 2px; font-size:.82em; font-weight:600; opacity:.72; }
   #log { flex:1; overflow-y:auto; padding:8px; }
   .msg { margin:6px 0; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
   .thinking { opacity:.6; font-size:.92em;
@@ -263,8 +296,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 <script nonce="${nonce}">${ELICITATION_SCHEMA_SOURCE}</script>
 <script nonce="${nonce}">${ELICITATION_FORM_SOURCE}</script>
   <div id="tabs" role="tablist" aria-label="Conversation tabs"></div>
-  <div id="log" role="log" aria-live="polite" aria-relevant="additions"
-       aria-label="Conversation transcript" aria-busy="false" tabindex="0"></div>
+  <div id="log" role="region"
+        aria-label="Conversation transcript" aria-busy="false" tabindex="0"></div>
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"
+       aria-atomic="true" aria-label="Conversation announcements"></div>
   <div id="plan" role="region" aria-labelledby="planHeading">
     <h4 id="planHeading">Plan <span id="planState"></span></h4>
     <ul id="planItems"></ul>
@@ -273,7 +308,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       <button id="planReject" class="secondary">Reject</button>
     </div>
   </div>
-  <div id="status" role="status" aria-live="polite" aria-atomic="true">not started — send a message to launch cc agent</div>
+  <div id="status" aria-label="Agent status">not started — send a message to launch cc agent</div>
   <div id="ctxbar" role="status" aria-live="polite" aria-atomic="true" aria-label="Context window"></div>
   <div id="attach" role="status" aria-live="polite" aria-label="Attachments"></div>
   <div id="suggest" role="listbox" aria-label="Composer suggestions"></div>
@@ -293,6 +328,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const CC_HOST_DOM_TOKEN = ${JSON.stringify(safeHostDomToken)};
   const CC_L10N = ${JSON.stringify(l10n || {})};
   const log = document.getElementById("log");
+  const announcer = document.getElementById("announcer");
   const input = document.getElementById("input");
   const status = document.getElementById("status");
   const ctxbar = document.getElementById("ctxbar");
@@ -306,6 +342,79 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   let thinkingTextState = null; // bounded reasoning block state
   const lastSentByTab = {}; // per-tab last user prompt, for /retry (regenerate)
   const tabKey = () => activeTabId || "_"; // stable key before the first tab bar
+  ${formatTranscriptAnnouncement.toString()}
+  const turnStateByTab = {};
+  const seenAnnouncementKeys = new Set();
+  const announcementQueue = [];
+  let announcementTimer = null;
+  let headingSerial = 0;
+  function currentTurnState() {
+    const key = tabKey();
+    if (!turnStateByTab[key]) {
+      turnStateByTab[key] = { number: 0, assistantHeading: false };
+    }
+    return turnStateByTab[key];
+  }
+  function addTurnHeading(label) {
+    const state = currentTurnState();
+    const heading = document.createElement("h3");
+    heading.id = "cc-turn-heading-" + (++headingSerial);
+    heading.className = "turn-heading";
+    heading.tabIndex = -1;
+    heading.textContent = "Turn " + state.number + ", " + label;
+    log.appendChild(heading);
+    trimLog();
+    return heading;
+  }
+  function beginTurn() {
+    const state = currentTurnState();
+    state.number += 1;
+    state.assistantHeading = false;
+    addTurnHeading("User message");
+  }
+  function ensureAssistantHeading() {
+    const state = currentTurnState();
+    if (state.number === 0) state.number = 1;
+    if (state.assistantHeading) return;
+    state.assistantHeading = true;
+    addTurnHeading("Assistant response");
+  }
+  function drainAnnouncementQueue() {
+    if (announcementTimer !== null || announcementQueue.length === 0) return;
+    const next = announcementQueue.shift();
+    announcer.textContent = next.text;
+    announcementTimer = setTimeout(() => {
+      announcer.textContent = "";
+      announcementTimer = null;
+      drainAnnouncementQueue();
+    }, 120);
+  }
+  function announceTranscript(kind, text, eventKey) {
+    const state = currentTurnState();
+    const formatted = formatTranscriptAnnouncement(kind, text, state.number);
+    if (!formatted) return false;
+    const key = tabKey() + "|" + (eventKey || formatted);
+    if (seenAnnouncementKeys.has(key)) return false;
+    seenAnnouncementKeys.add(key);
+    if (seenAnnouncementKeys.size > 256) {
+      seenAnnouncementKeys.delete(seenAnnouncementKeys.values().next().value);
+    }
+    if (announcementQueue.length >= 32) {
+      if (kind === "status") return false;
+      const statusIndex = announcementQueue.findIndex((entry) => entry.kind === "status");
+      if (statusIndex >= 0) announcementQueue.splice(statusIndex, 1);
+      else announcementQueue.shift();
+    }
+    announcementQueue.push({ kind, text: formatted });
+    drainAnnouncementQueue();
+    return true;
+  }
+  function updateStatus(text, shouldAnnounce = true) {
+    const next = String(text || "");
+    if (status.textContent === next) return;
+    status.textContent = next;
+    if (shouldAnnounce) announceTranscript("status", next);
+  }
   ${migrateBootstrapLastSent.toString()}
   let turnTokens = null; // live per-turn token tally from token_usage events
   const tokfmt = (n) =>
@@ -460,8 +569,15 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       tool: "Tool activity",
       error: "Error",
       info: "Status message",
+      "tool err": "Tool error",
     };
-    if (accessibleLabels[cls]) el.setAttribute("aria-label", accessibleLabels[cls]);
+    if (accessibleLabels[cls]) {
+      const turn = currentTurnState().number;
+      el.setAttribute(
+        "aria-label",
+        (turn > 0 ? "Turn " + turn + ", " : "") + accessibleLabels[cls],
+      );
+    }
     const bounded = appendBoundedTranscriptText(null, text, MAX_ENTRY_CHARS);
     el.textContent = bounded.text;
     if (bounded.truncated) el.dataset.truncated = "true";
@@ -472,6 +588,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   }
   function ensureStream() {
     if (!streamEl) {
+      ensureAssistantHeading();
       streamEl = add("assistant", "");
       streamEl.setAttribute("aria-busy", "true");
       streamRaw = "";
@@ -738,6 +855,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     pendingImages = [];
     renderAttach();
     lastSentByTab[tabKey()] = text; // remember for /retry (per this tab)
+    beginTurn();
     add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
     streamEl = null;
     log.setAttribute("aria-busy", "true");
@@ -746,7 +864,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     );
     input.value = "";
     turnTokens = null; // fresh tally for the new turn
-    status.textContent = "thinking…";
+    updateStatus("thinking…");
     // Arm the send-acknowledgement timeout: if no event arrives within 30
     // seconds, the agent likely failed to start (wrong cc binary, spawn error,
     // or C compiler waiting on stdin). The user gets a visible error instead of
@@ -755,7 +873,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     sendTimer = setTimeout(() => {
       sendTimer = null;
       log.setAttribute("aria-busy", "false");
-      status.textContent = "no response";
+      updateStatus("no response");
       add("error",
         "No response from the agent after 30s. The cc CLI may not be installed " +
         "(npm i -g chainlesschain), or 'cc' on your PATH may be a different " +
@@ -1038,7 +1156,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       default:
         break;
       case "init":
-        status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
+        updateStatus(m.model ? (m.provider + " · " + m.model) : "connected");
         break;
       case "delta": {
         ensureStream();
@@ -1067,13 +1185,18 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         break;
       }
       case "tool":
+        ensureAssistantHeading();
         flushStream(); // finalize streamed text before the tool block lands below it
         streamEl = null;
         closeThinking(); // collapse the reasoning that led to this action
         add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
         break;
       case "tool_done":
-        if (m.isError) add("tool err", "✗ " + m.tool + " failed");
+        if (m.isError) {
+          const toolError = "✗ " + m.tool + " failed";
+          add("tool err", toolError);
+          announceTranscript("error", toolError, "tool-error:" + currentTurnState().number + ":" + m.tool);
+        }
         else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);
         if (m.permissionDecision && m.permissionDecision.decision !== "allow") {
           const d = m.permissionDecision;
@@ -1263,7 +1386,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         // so a successful command is never perceived as "no response".
         add("info", m.text || "(no output)");
         break;
-      case "turn_end":
+      case "turn_end": {
+        ensureAssistantHeading();
+        const assistantAnnouncement = m.text || streamRaw;
         if (m.text) {
           if (m.isError) {
             add("error", m.text); // errors stay plain text
@@ -1284,11 +1409,19 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         streamEl = null;
         log.setAttribute("aria-busy", "false");
         closeThinking(); // tuck the reasoning away now that the answer is in
-        status.textContent = m.usage
+        if (assistantAnnouncement) {
+          announceTranscript(
+            m.isError ? "error" : "assistant",
+            assistantAnnouncement,
+            "turn-end:" + currentTurnState().number,
+          );
+        }
+        updateStatus(m.usage
           ? "ready · " + tokfmt(m.usage.input_tokens||0) + "→" + tokfmt(m.usage.output_tokens||0) + " tokens"
-          : "ready";
+          : "ready");
         turnTokens = null;
         break;
+      }
       case "usage": {
         // Live per-turn token tally: token_usage fires once per LLM call while
         // the agent works; accumulate and show on the status line. turn_end
@@ -1317,13 +1450,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       }
       case "error":
         add("error", m.text);
+        announceTranscript("error", m.text, "error:" + currentTurnState().number + ":" + String(m.code || m.text));
         log.setAttribute("aria-busy", "false");
-        status.textContent = "error";
+        updateStatus("error");
         break;
       case "exited":
         add("info", "agent exited (code " + m.code + ") — next message restarts it");
         log.setAttribute("aria-busy", "false");
-        status.textContent = "stopped";
+        updateStatus("stopped");
         flushStream(); // render whatever streamed before the crash/exit
         streamEl = null;
         break;
@@ -1354,6 +1488,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           (m.command ? ": " + m.command : "") +
           (m.risk ? "  [" + m.risk + "]" : "") +
           (m.reason ? "\\n" + m.reason : "");
+        announceTranscript("permission", q.textContent, "permission:" + m.id);
         const btns = document.createElement("div");
         btns.className = "buttons";
         const yes = document.createElement("button");
@@ -1394,6 +1529,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           card.appendChild(note);
           for (const b of card.querySelectorAll("button")) b.disabled = true;
         }
+        announceTranscript(
+          "permission",
+          (m.approved ? "approved" : "denied") +
+            (m.via ? " via " + m.via : ""),
+          "permission-done:" + m.id,
+        );
         break;
       }
       case "plan":
@@ -1462,7 +1603,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         thinkingBody = null;
         thinkingTextState = null;
         planBox.style.display = "none";
-        status.textContent = "new conversation — send a message to start";
+        delete turnStateByTab[tabKey()];
+        updateStatus("new conversation — send a message to start");
         ctxbar.textContent = ""; // drop the previous conversation's context line
         hideSug();
         pendingImages = [];
@@ -1503,6 +1645,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         for (const k of Object.keys(lastSentByTab)) {
           if (k !== "_" && !live.has(k)) delete lastSentByTab[k];
         }
+        for (const k of Object.keys(turnStateByTab)) {
+          if (k !== "_" && !live.has(k)) delete turnStateByTab[k];
+        }
         break;
       }
     }
@@ -1523,5 +1668,6 @@ module.exports = {
   TRANSCRIPT_ENTRY_MAX_CHARS,
   migrateBootstrapLastSent,
   appendBoundedTranscriptText,
+  formatTranscriptAnnouncement,
   trimOldestLogNodes,
 };

@@ -89,6 +89,18 @@ function createCell() {
     "keyboard-action-ledger.json": {
       actions: Array.from({ length: 6 }, (_, index) => ({ index })),
       approvalTraversal: [{ label: "Approve" }],
+      headingActions: [
+        {
+          action: "heading-focus",
+          expected: "turn-user",
+          observation: { id: "turn-user", visible: true },
+        },
+        {
+          action: "heading-focus",
+          expected: "turn-assistant",
+          observation: { id: "turn-assistant", visible: true },
+        },
+      ],
       keyboardUnreachableActionCount: 0,
       keyboardTrapCount: 0,
       invisibleFocusCount: 0,
@@ -102,6 +114,24 @@ function createCell() {
     "screen-reader-transcript.json": {
       capture: "semantic-live-region-and-accessible-name-projection",
       announcements: [{ role: "log", name: "Conversation transcript" }],
+      eventAnnouncements: [
+        "Turn 1, Status: thinking",
+        "Turn 1, Tool error: run_shell failed",
+        "Turn 1, Permission request: run_shell",
+        "Turn 1, Permission request: denied",
+        "Turn 1, Assistant response: Hello world",
+        "Turn 1, Status: ready",
+      ],
+      visualTranscriptLiveRegion: false,
+      visualTranscriptRole: "region",
+      classifiedEventRegion: {
+        role: "status",
+        live: "polite",
+        atomic: "true",
+      },
+      announcementDuplicateCount: 0,
+      streamingTokenReplayCount: 0,
+      turnHeadings: ["Turn 1, User message", "Turn 1, Assistant response"],
       speechAudioCaptured: false,
       speechQualityAssessed: false,
       externalManualSpeechReviewRequired: true,
@@ -159,6 +189,9 @@ function createCell() {
       focusRestoreFailureCount: 0,
       unnamedInteractiveControlCount: 0,
       criticalAnnouncementMissCount: 0,
+      announcementDuplicateCount: 0,
+      streamingTokenReplayCount: 0,
+      turnHeadingMissCount: 0,
       unboundedTranscriptGrowthCount: 0,
       silentDiffOrLogTruncationCount: 0,
       uiHangCount: 0,

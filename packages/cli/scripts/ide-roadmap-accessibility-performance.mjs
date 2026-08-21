@@ -71,6 +71,7 @@ const GATE_SOURCE_PATHS = Object.freeze([
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java",
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java",
   "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
@@ -331,6 +332,8 @@ function semanticAxTree(nodes) {
     "group",
     "listbox",
     "region",
+    "heading",
+    "article",
   ]);
   return nodes
     .map((node) => ({
@@ -367,6 +370,23 @@ async function runChromiumJourney({ browserExecutable, testSecret }) {
     '<body><script nonce="p2nonce">window.__posted=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__posted.push(m)});</script>',
   );
   await page.setContent(html, { waitUntil: "load" });
+  await page.evaluate(() => {
+    window.__semanticAnnouncements = [];
+    const announcer = document.getElementById("announcer");
+    let last = "";
+    new MutationObserver(() => {
+      const text = announcer?.textContent?.trim() || "";
+      if (text && text !== last) {
+        window.__semanticAnnouncements.push(text);
+        last = text;
+      }
+      if (!text) last = "";
+    }).observe(announcer, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
 
   const dispatch = (kind, payload = {}) =>
     page.evaluate(
@@ -398,24 +418,6 @@ async function runChromiumJourney({ browserExecutable, testSecret }) {
 
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Accessibility.enable");
-  const rawTree = await cdp.send("Accessibility.getFullAXTree");
-  const accessibilityTree = semanticAxTree(rawTree.nodes || []);
-  const unnamedInteractiveControlCount = accessibilityTree.filter(
-    (node) => ["button", "textbox", "tab"].includes(node.role) && !node.name,
-  ).length;
-  const requiredAx = [
-    ["log", "Conversation transcript"],
-    ["textbox", "Message the agent"],
-    ["tablist", "Conversation tabs"],
-    ["button", "Approve"],
-    ["button", "Deny"],
-  ];
-  const criticalAnnouncementMissCount = requiredAx.filter(
-    ([role, name]) =>
-      !accessibilityTree.some(
-        (node) => node.role === role && node.name.includes(name),
-      ),
-  ).length;
 
   const keyboardActions = [];
   const active = () =>
@@ -496,6 +498,130 @@ async function runChromiumJourney({ browserExecutable, testSecret }) {
         message.approve === true,
     ),
   );
+
+  // Drive one complete semantic turn. Streaming tokens update only the visual
+  // transcript; the dedicated live region receives one settled reply plus
+  // independently classified permission/error/status events.
+  await page.locator("#input").fill("semantic announcement fixture");
+  await page.locator("#send").click();
+  await dispatch("delta", { text: "Hello " });
+  await dispatch("delta", { text: "world" });
+  await dispatch("tool_done", { tool: "run_shell", isError: true });
+  await dispatch("tool_done", { tool: "run_shell", isError: true });
+  await dispatch("approval", {
+    id: "approval-announcement",
+    tool: "run_shell",
+    command: "npm test",
+    risk: "high",
+    reason: "Review exact command",
+  });
+  await dispatch("approval", {
+    id: "approval-announcement",
+    tool: "run_shell",
+    command: "npm test",
+    risk: "high",
+    reason: "Review exact command",
+  });
+  await dispatch("approval_done", {
+    id: "approval-announcement",
+    approved: false,
+    via: "user",
+  });
+  await dispatch("turn_end", {});
+  await page.waitForTimeout(1_200);
+
+  const semanticProjection = await page.evaluate(() => ({
+    headings: [...document.querySelectorAll("#log .turn-heading")].map(
+      (node) => node.textContent?.trim() || "",
+    ),
+    articleLabels: [...document.querySelectorAll('#log [role="article"]')].map(
+      (node) => node.getAttribute("aria-label") || "",
+    ),
+    announcements: [...window.__semanticAnnouncements],
+    logAriaLive: document.getElementById("log")?.getAttribute("aria-live"),
+    logRole: document.getElementById("log")?.getAttribute("role"),
+    announcerRole: document.getElementById("announcer")?.getAttribute("role"),
+    announcerLive: document
+      .getElementById("announcer")
+      ?.getAttribute("aria-live"),
+    announcerAtomic: document
+      .getElementById("announcer")
+      ?.getAttribute("aria-atomic"),
+  }));
+  const headingKeyboardActions = [];
+  for (const label of ["Turn 1, User message", "Turn 1, Assistant response"]) {
+    const heading = page.getByRole("heading", { name: label, exact: true });
+    await heading.focus();
+    headingKeyboardActions.push({
+      action: "heading-focus",
+      expected: await heading.getAttribute("id"),
+      observation: await active(),
+    });
+  }
+
+  const rawTree = await cdp.send("Accessibility.getFullAXTree");
+  const accessibilityTree = semanticAxTree(rawTree.nodes || []);
+  const unnamedInteractiveControlCount = accessibilityTree.filter(
+    (node) => ["button", "textbox", "tab"].includes(node.role) && !node.name,
+  ).length;
+  const requiredAx = [
+    ["region", "Conversation transcript"],
+    ["status", "Conversation announcements"],
+    ["textbox", "Message the agent"],
+    ["tablist", "Conversation tabs"],
+    ["button", "Approve"],
+    ["button", "Deny"],
+    ["heading", "Turn 1, User message"],
+    ["heading", "Turn 1, Assistant response"],
+    ["article", "Turn 1, Tool error"],
+  ];
+  const axSemanticMissCount = requiredAx.filter(
+    ([role, name]) =>
+      !accessibilityTree.some(
+        (node) => node.role === role && node.name.includes(name),
+      ),
+  ).length;
+  const assistantAnnouncements = semanticProjection.announcements.filter(
+    (text) => text.includes("Assistant response"),
+  );
+  const toolErrorAnnouncements = semanticProjection.announcements.filter(
+    (text) => text.includes("Tool error"),
+  );
+  const permissionAnnouncements = semanticProjection.announcements.filter(
+    (text) => text.includes("Permission request"),
+  );
+  const statusAnnouncements = semanticProjection.announcements.filter((text) =>
+    text.includes("Status"),
+  );
+  const announcementDuplicateCount =
+    semanticProjection.announcements.length -
+    new Set(semanticProjection.announcements).size;
+  const turnHeadingMissCount = [
+    "Turn 1, User message",
+    "Turn 1, Assistant response",
+  ].filter((heading) => !semanticProjection.headings.includes(heading)).length;
+  const streamingTokenReplayCount =
+    assistantAnnouncements.length === 1 &&
+    assistantAnnouncements[0].includes("Hello world")
+      ? 0
+      : Math.max(1, assistantAnnouncements.length);
+  const semanticAnnouncementMissCount = [
+    semanticProjection.logAriaLive === null,
+    semanticProjection.logRole === "region",
+    semanticProjection.announcerRole === "status",
+    semanticProjection.announcerLive === "polite",
+    semanticProjection.announcerAtomic === "true",
+    assistantAnnouncements.length === 1,
+    toolErrorAnnouncements.length === 1,
+    permissionAnnouncements.length >= 3,
+    statusAnnouncements.some((text) => text.includes("thinking")),
+    statusAnnouncements.some((text) => text.includes("ready")),
+    announcementDuplicateCount === 0,
+    turnHeadingMissCount === 0,
+    streamingTokenReplayCount === 0,
+  ].filter((passed) => !passed).length;
+  const criticalAnnouncementMissCount =
+    axSemanticMissCount + semanticAnnouncementMissCount;
 
   const heapTrajectory = [];
   heapTrajectory.push({
@@ -657,22 +783,33 @@ async function runChromiumJourney({ browserExecutable, testSecret }) {
   await browser.close();
   const descriptorOrHandleSettled = countOwnDescriptorsOrHandles();
 
-  const focusFailures = keyboardActions.filter(
-    (entry) =>
-      (entry.expected === "input"
-        ? entry.observation.id !== "input"
-        : entry.observation.tabId !== entry.expected) ||
-      entry.observation.visible !== true,
-  ).length;
+  const focusFailures =
+    keyboardActions.filter(
+      (entry) =>
+        (entry.expected === "input"
+          ? entry.observation.id !== "input"
+          : entry.observation.tabId !== entry.expected) ||
+        entry.observation.visible !== true,
+    ).length +
+    headingKeyboardActions.filter(
+      (entry) =>
+        entry.observation.id !== entry.expected ||
+        entry.observation.visible !== true,
+    ).length;
   return {
     accessibilityTree,
     unnamedInteractiveControlCount,
     criticalAnnouncementMissCount,
     keyboardActions,
+    headingKeyboardActions,
     approvalTraversal,
     approvalReached,
     approvalPosted,
     focusFailures,
+    semanticProjection,
+    announcementDuplicateCount,
+    turnHeadingMissCount,
+    streamingTokenReplayCount,
     transcript,
     largeInputs,
     workbench,
@@ -739,10 +876,18 @@ async function mainCampaign(options, dependencies = {}) {
         entry.expected === "input"
           ? entry.observation.id !== "input"
           : entry.observation.tabId !== entry.expected,
-      ).length + (chromium.approvalReached ? 0 : 1);
-    const invisibleFocusCount = chromium.keyboardActions.filter(
-      (entry) => entry.observation.visible !== true,
-    ).length;
+      ).length +
+      (chromium.approvalReached ? 0 : 1) +
+      chromium.headingKeyboardActions.filter(
+        (entry) => entry.observation.id !== entry.expected,
+      ).length;
+    const invisibleFocusCount =
+      chromium.keyboardActions.filter(
+        (entry) => entry.observation.visible !== true,
+      ).length +
+      chromium.headingKeyboardActions.filter(
+        (entry) => entry.observation.visible !== true,
+      ).length;
     const thresholdViolations = [];
     if (inputToPaint.p99Ms > PROFILE.thresholds.inputToPaintP99Ms)
       thresholdViolations.push("input-to-paint-p99");
@@ -787,6 +932,7 @@ async function mainCampaign(options, dependencies = {}) {
     const keyboard = {
       actions: chromium.keyboardActions,
       approvalTraversal: chromium.approvalTraversal,
+      headingActions: chromium.headingKeyboardActions,
       keyboardUnreachableActionCount,
       keyboardTrapCount: chromium.approvalReached ? 0 : 1,
       invisibleFocusCount,
@@ -801,8 +947,23 @@ async function mainCampaign(options, dependencies = {}) {
       capture: "semantic-live-region-and-accessible-name-projection",
       assistiveTechnology: atProbe,
       announcements: chromium.accessibilityTree
-        .filter((node) => ["log", "status", "group"].includes(node.role))
+        .filter((node) =>
+          ["region", "status", "group", "heading"].includes(node.role),
+        )
         .map((node) => ({ role: node.role, name: node.name })),
+      eventAnnouncements: chromium.semanticProjection.announcements,
+      visualTranscriptLiveRegion:
+        chromium.semanticProjection.logAriaLive !== null ||
+        chromium.semanticProjection.logRole === "log",
+      visualTranscriptRole: chromium.semanticProjection.logRole,
+      classifiedEventRegion: {
+        role: chromium.semanticProjection.announcerRole,
+        live: chromium.semanticProjection.announcerLive,
+        atomic: chromium.semanticProjection.announcerAtomic,
+      },
+      announcementDuplicateCount: chromium.announcementDuplicateCount,
+      streamingTokenReplayCount: chromium.streamingTokenReplayCount,
+      turnHeadings: chromium.semanticProjection.headings,
       speechAudioCaptured: false,
       speechQualityAssessed: false,
       externalManualSpeechReviewRequired: true,
@@ -892,6 +1053,9 @@ async function mainCampaign(options, dependencies = {}) {
       focusRestoreFailureCount: chromium.focusFailures,
       unnamedInteractiveControlCount: chromium.unnamedInteractiveControlCount,
       criticalAnnouncementMissCount: chromium.criticalAnnouncementMissCount,
+      announcementDuplicateCount: chromium.announcementDuplicateCount,
+      streamingTokenReplayCount: chromium.streamingTokenReplayCount,
+      turnHeadingMissCount: chromium.turnHeadingMissCount,
       unboundedTranscriptGrowthCount:
         chromium.transcript.renderedNodes <= 800 &&
         jetBrains.renderedChars <= TRANSCRIPT_ENTRY_MAX_CHARS
@@ -926,6 +1090,9 @@ async function mainCampaign(options, dependencies = {}) {
       outcome.focusRestoreFailureCount === 0 &&
       outcome.unnamedInteractiveControlCount === 0 &&
       outcome.criticalAnnouncementMissCount === 0 &&
+      outcome.announcementDuplicateCount === 0 &&
+      outcome.streamingTokenReplayCount === 0 &&
+      outcome.turnHeadingMissCount === 0 &&
       outcome.unboundedTranscriptGrowthCount === 0 &&
       outcome.silentDiffOrLogTruncationCount === 0 &&
       outcome.uiHangCount === 0 &&

@@ -4,6 +4,7 @@ import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.TranscriptCap;
 
 import javax.swing.JTextPane;
+import javax.accessibility.AccessibleContext;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -11,7 +12,9 @@ import javax.swing.text.StyledDocument;
 import java.awt.Color;
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The chat transcript pane: styled streaming text with the markdown
@@ -38,8 +41,14 @@ final class ChatTranscript {
     private final List<ThinkingBlock> thinkingBlocks = new ArrayList<>();
     private ThinkingBlock activeThinkingBlock;
     private boolean thinkingExpanded = true;
+    private int turnNumber = 0;
+    private boolean assistantHeadingAdded = false;
+    private String lastFinalizedAssistantText = "";
+    private String lastAnnouncementText = "";
+    private final Set<String> announcementKeys = new LinkedHashSet<>();
 
     private static final String THINKING_PLACEHOLDER = "thinking (collapsed)\n";
+    private static final int MAX_ANNOUNCEMENT_CHARS = 4_000;
 
     private static final class ThinkingBlock {
         int start;
@@ -74,6 +83,63 @@ final class ChatTranscript {
         return pane;
     }
 
+    /** Start a user turn with a stable heading in the visual and accessible
+     * transcript. */
+    void beginTurn() {
+        closeThinkingBlock();
+        finalizeAssistantRun();
+        turnNumber += 1;
+        assistantHeadingAdded = false;
+        insertStyled("\nTurn " + turnNumber + ", User message\n", styleBold);
+    }
+
+    int currentTurnNumber() {
+        return turnNumber;
+    }
+
+    String lastAssistantText() {
+        return lastFinalizedAssistantText;
+    }
+
+    private void ensureAssistantHeading() {
+        if (turnNumber == 0) turnNumber = 1;
+        if (assistantHeadingAdded) return;
+        assistantHeadingAdded = true;
+        insertStyled("Turn " + turnNumber + ", Assistant response\n", styleBold);
+    }
+
+    /** Emit a categorized and deduplicated accessibility event. Streaming
+     * deltas never call this method; only settled semantic events do. */
+    boolean announce(String category, String text, String eventKey) {
+        String normalized = String.valueOf(text == null ? "" : text)
+                .replaceAll("\\s+", " ").trim();
+        if (normalized.isEmpty()) return false;
+        String prefix = (turnNumber > 0 ? "Turn " + turnNumber + ", " : "")
+                + category + ": ";
+        int budget = Math.max(0, MAX_ANNOUNCEMENT_CHARS - prefix.length());
+        String body = normalized;
+        if (body.length() > budget) {
+            body = body.substring(0, Math.max(0, budget - 1)) + "…";
+        }
+        String announcement = prefix + body;
+        if (announcement.length() > MAX_ANNOUNCEMENT_CHARS) {
+            announcement = announcement.substring(0, MAX_ANNOUNCEMENT_CHARS);
+        }
+        String key = eventKey == null || eventKey.isEmpty()
+                ? announcement : eventKey;
+        if (announcementKeys.contains(key)) return false;
+        announcementKeys.add(key);
+        if (announcementKeys.size() > 256) {
+            announcementKeys.remove(announcementKeys.iterator().next());
+        }
+        String previous = lastAnnouncementText;
+        lastAnnouncementText = announcement;
+        pane.getAccessibleContext().firePropertyChange(
+                AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                previous, announcement);
+        return true;
+    }
+
     /** True when the viewport is at (or within a line of) the bottom — i.e. the
      *  user is following the live output. When they've scrolled up to read, this
      *  is false and we must NOT yank them back down on the next insert. Defaults
@@ -103,6 +169,7 @@ final class ChatTranscript {
     void appendAssistantDelta(String s) {
         closeThinkingBlock();
         if (!inAssistantRun) {
+            ensureAssistantHeading();
             assistantRunStart = pane.getStyledDocument().getLength();
             inAssistantRun = true;
             assistantEntry = new TranscriptCap.BoundedEntry(
@@ -218,6 +285,7 @@ final class ChatTranscript {
         final boolean following = isFollowingBottom();
         try {
             String text = d.getText(start, end - start);
+            lastFinalizedAssistantText = text;
             d.remove(start, end - start);
             for (MarkdownLite.Span span : MarkdownLite.parse(text)) {
                 javax.swing.text.AttributeSet st =
@@ -240,6 +308,11 @@ final class ChatTranscript {
         activeThinkingBlock = null;
         thinkingBlocks.clear();
         thinkingExpanded = true;
+        turnNumber = 0;
+        assistantHeadingAdded = false;
+        lastFinalizedAssistantText = "";
+        lastAnnouncementText = "";
+        announcementKeys.clear();
         pane.setText("");
     }
 

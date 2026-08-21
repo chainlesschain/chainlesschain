@@ -142,10 +142,10 @@ class AccessibilityPerformanceEvidenceTest {
                     rendered.length() <= TranscriptCap.DEFAULT_MAX_CHARS
                             && newestVisible
                             && oldestRemoved,
-                    diff.startsWith("DIFF_HEAD")
+                    diff.contains("Turn 1, Assistant response\nDIFF_HEAD")
                             && diff.contains("characters omitted")
                             && diff.endsWith("DIFF_TAIL"),
-                    log.startsWith("LOG_HEAD")
+                    log.contains("Turn 1, Assistant response\nLOG_HEAD")
                             && log.contains("characters omitted")
                             && log.endsWith("LOG_TAIL"),
                     "Conversation transcript".equals(

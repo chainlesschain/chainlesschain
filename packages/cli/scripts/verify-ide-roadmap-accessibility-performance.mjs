@@ -100,6 +100,12 @@ function verifyCell(directory, expected) {
   const keyboard = documents["keyboard-action-ledger.json"];
   assert.equal(keyboard.actions.length, 6);
   assert.ok(keyboard.approvalTraversal.length > 0);
+  assert.equal(keyboard.headingActions.length, 2);
+  for (const heading of keyboard.headingActions) {
+    assert.equal(heading.action, "heading-focus");
+    assert.equal(heading.observation.id, heading.expected);
+    assert.equal(heading.observation.visible, true);
+  }
   requireZeroFields(
     keyboard,
     [
@@ -120,6 +126,31 @@ function verifyCell(directory, expected) {
     "semantic-live-region-and-accessible-name-projection",
   );
   assert.ok(screenReader.announcements.length > 0);
+  assert.ok(screenReader.eventAnnouncements.length >= 5);
+  for (const category of [
+    "Assistant response",
+    "Tool error",
+    "Permission request",
+    "Status",
+  ]) {
+    assert.ok(
+      screenReader.eventAnnouncements.some((entry) => entry.includes(category)),
+      `screen-reader/${category}`,
+    );
+  }
+  assert.equal(screenReader.visualTranscriptLiveRegion, false);
+  assert.equal(screenReader.visualTranscriptRole, "region");
+  assert.deepEqual(screenReader.classifiedEventRegion, {
+    role: "status",
+    live: "polite",
+    atomic: "true",
+  });
+  assert.equal(screenReader.announcementDuplicateCount, 0);
+  assert.equal(screenReader.streamingTokenReplayCount, 0);
+  assert.deepEqual(screenReader.turnHeadings, [
+    "Turn 1, User message",
+    "Turn 1, Assistant response",
+  ]);
   assert.equal(screenReader.speechAudioCaptured, false);
   assert.equal(screenReader.speechQualityAssessed, false);
   assert.equal(screenReader.externalManualSpeechReviewRequired, true);
@@ -206,6 +237,9 @@ function verifyCell(directory, expected) {
       "focusRestoreFailureCount",
       "unnamedInteractiveControlCount",
       "criticalAnnouncementMissCount",
+      "announcementDuplicateCount",
+      "streamingTokenReplayCount",
+      "turnHeadingMissCount",
       "unboundedTranscriptGrowthCount",
       "silentDiffOrLogTruncationCount",
       "uiHangCount",

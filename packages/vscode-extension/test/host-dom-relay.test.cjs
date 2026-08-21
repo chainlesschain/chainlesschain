@@ -12,6 +12,7 @@ const {
   TRANSCRIPT_ENTRY_MAX_CHARS,
   migrateBootstrapLastSent,
   appendBoundedTranscriptText,
+  formatTranscriptAnnouncement,
   trimOldestLogNodes,
 } = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
@@ -216,10 +217,21 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
     l10n: {},
   });
 
+  assert.match(html, /id="log" role="region"/u);
+  assert.doesNotMatch(html, /id="log"[^>]*aria-live/u);
   assert.match(
     html,
-    /id="log" role="log" aria-live="polite" aria-relevant="additions"/u,
+    /id="announcer" class="sr-only" role="status" aria-live="polite"/u,
   );
+  assert.match(html, /function announceTranscript\(kind, text, eventKey\)/u);
+  assert.match(html, /seenAnnouncementKeys\.has\(key\)/u);
+  assert.match(html, /announcementQueue\.length >= 32/u);
+  assert.match(html, /heading\.textContent = "Turn " \+ state\.number/u);
+  assert.match(
+    html,
+    /ensureAssistantHeading\(\);[\s\S]{0,160}const assistantAnnouncement/u,
+  );
+  assert.match(html, /"tool err": "Tool error"/u);
   assert.match(html, /aria-label="Conversation transcript"/u);
   assert.match(html, /id="tabs" role="tablist"/u);
   assert.match(html, /tab\.setAttribute\("role", "tab"\)/u);
@@ -235,7 +247,7 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
   assert.match(html, /row\.setAttribute\("role", "option"\)/u);
   assert.match(html, /aria-autocomplete="list" aria-expanded="false"/u);
   assert.match(html, /input\.setAttribute\("aria-activedescendant"/u);
-  assert.match(html, /id="status" role="status" aria-live="polite"/u);
+  assert.match(html, /id="status" aria-label="Agent status"/u);
   assert.match(html, /log\.setAttribute\("aria-busy", "true"\)/u);
   assert.match(html, /card\.setAttribute\("role", "group"\)/u);
   assert.match(html, /card\.setAttribute\("aria-labelledby", q\.id\)/u);
@@ -245,6 +257,22 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
     /control while the host settles[\s\S]{0,160}input\.focus\(\)/u,
   );
   assert.match(html, /:focus-visible \{ outline:2px solid/u);
+});
+
+test("transcript announcements are classified, whitespace-normalized, and bounded", () => {
+  assert.equal(
+    formatTranscriptAnnouncement("assistant", "  hello\n  world  ", 12),
+    "Turn 12, Assistant response: hello world",
+  );
+  assert.equal(
+    formatTranscriptAnnouncement("permission", "run shell", 3),
+    "Turn 3, Permission request: run shell",
+  );
+  assert.equal(formatTranscriptAnnouncement("unknown", "ignored", 1), "");
+  const bounded = formatTranscriptAnnouncement("error", "x".repeat(10_000), 7);
+  assert.ok(bounded.length <= 4_000);
+  assert.match(bounded, /^Turn 7, Tool error: /u);
+  assert.match(bounded, /…$/u);
 });
 
 test("chat transcript retains only the newest 800 of 2,000 message nodes", () => {
