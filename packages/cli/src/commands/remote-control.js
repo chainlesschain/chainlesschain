@@ -280,22 +280,23 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
   const createBridge =
     _deps.createBridge ||
     ((bridgeOptions) => new RemoteApprovalBridge(bridgeOptions));
-  const bridge = createBridge({
-    wsUrl: localControlUrl,
-    token: resolved.token,
-    agentSessionId,
-    name: resolved.name,
-    scopes: resolved.scopes,
-    approvalStateFile: _deps.approvalStateFile,
-    membershipHostStateFile: _deps.membershipHostStateFile,
-    membershipHostWitnessFile: _deps.membershipHostWitnessFile,
-    membershipHostAuthorityLockFile: _deps.membershipHostAuthorityLockFile,
-  });
+  let bridge;
   try {
+    bridge = createBridge({
+      wsUrl: localControlUrl,
+      token: resolved.token,
+      agentSessionId,
+      name: resolved.name,
+      scopes: resolved.scopes,
+      approvalStateFile: _deps.approvalStateFile,
+      membershipHostStateFile: _deps.membershipHostStateFile,
+      membershipHostWitnessFile: _deps.membershipHostWitnessFile,
+      membershipHostAuthorityLockFile: _deps.membershipHostAuthorityLockFile,
+    });
     await bridge.start();
   } catch (err) {
     errLog(`Failed to create durable remote session: ${err.message}`);
-    await bridge.close?.().catch(() => undefined);
+    await bridge?.close?.().catch(() => undefined);
     try {
       await server.stop?.();
     } catch {
@@ -480,10 +481,18 @@ export function runRemoteControlStatus(options = {}, _deps = {}) {
       JSON.stringify(
         // Defense in depth for legacy state files written before tokens were
         // removed from discovery state.
-        states.map(({ token: _token, ...rest }) => ({
-          ...rest,
-          relayUrl: redactStatusUrl(rest.relayUrl),
-        })),
+        states.map(
+          ({
+            token: _token,
+            serverToken: _serverToken,
+            pairingToken: _pairingToken,
+            pairingUri: _pairingUri,
+            ...rest
+          }) => ({
+            ...rest,
+            relayUrl: redactStatusUrl(rest.relayUrl),
+          }),
+        ),
         null,
         2,
       ),

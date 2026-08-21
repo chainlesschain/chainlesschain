@@ -348,6 +348,34 @@ describe("remote-control unified entry (integration)", () => {
     expect(stop).toHaveBeenCalledOnce();
   });
 
+  it("tears down a live listener when the durable bridge constructor fails", async () => {
+    const stop = vi.fn(async () => {});
+    const errs = [];
+    const result = await runRemoteControlStart(
+      {
+        port: String(TEST_PORT),
+        token: TOKEN,
+        session: "agent-int-1",
+        json: true,
+      },
+      {
+        stateDir,
+        env: {},
+        loadConfig: () => ({}),
+        startServer: async () => ({ stop }),
+        createBridge: () => {
+          throw new Error("bridge constructor unavailable");
+        },
+        log: () => {},
+        warn: () => {},
+        err: (message) => errs.push(message),
+      },
+    );
+    expect(result.code).toBe(1);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(errs.join("\n")).toMatch(/bridge constructor unavailable/);
+  });
+
   it("keeps relay pairing on the default loopback listener", async () => {
     const logs = [];
     const warns = [];
@@ -425,5 +453,35 @@ describe("remote-control unified entry (integration)", () => {
     );
     expect(second.code).toBe(2);
     expect(errs.join("\n")).toMatch(/already running/);
+  });
+
+  it("redacts every legacy credential field from status output", () => {
+    fs.writeFileSync(
+      path.join(stateDir, `${TEST_PORT}.json`),
+      JSON.stringify({
+        pid: process.pid,
+        port: TEST_PORT,
+        host: "127.0.0.1",
+        token: "legacy-token",
+        serverToken: "legacy-server-token",
+        pairingToken: "legacy-pairing-token",
+        pairingUri: "chainlesschain://legacy-secret",
+        relayUrl:
+          "wss://alice:relay-secret@relay.example/path?token=query-secret",
+      }),
+      "utf8",
+    );
+    const logs = [];
+    expect(
+      runRemoteControlStatus(
+        { json: true },
+        { stateDir, log: (m) => logs.push(m) },
+      ),
+    ).toBe(0);
+    const output = logs.join("\n");
+    expect(output).not.toMatch(
+      /legacy-token|legacy-server-token|legacy-pairing-token|legacy-secret|alice|relay-secret|query-secret/,
+    );
+    expect(JSON.parse(output)[0]).not.toHaveProperty("pairingUri");
   });
 });

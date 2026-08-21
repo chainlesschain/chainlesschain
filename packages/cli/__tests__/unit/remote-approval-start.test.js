@@ -145,8 +145,24 @@ describe("startHeadlessRemoteApproval exposure boundary", () => {
         config: {},
         deps: fallbackRuntime.deps,
       }),
-    ).rejects.toThrow(/refusing to fall back to LAN/i);
+    ).rejects.toThrow(/refusing to fall back to direct pairing/i);
     expect(fallbackRuntime.bridge.close).toHaveBeenCalled();
     expect(fallbackRuntime.server.stop).toHaveBeenCalled();
+
+    const lanFallbackRuntime = fakeRuntime({ pairingMode: "direct" });
+    await expect(
+      startHeadlessRemoteApproval({
+        agentSessionId: "agent-3",
+        allowLan: true,
+        env: { CC_REMOTE_SESSION_RELAY_URL: "wss://relay.example" },
+        config: {},
+        deps: {
+          ...lanFallbackRuntime.deps,
+          lanAddress: "192.168.50.20",
+        },
+      }),
+    ).rejects.toThrow(/refusing to fall back to direct pairing/i);
+    expect(lanFallbackRuntime.bridge.close).toHaveBeenCalled();
+    expect(lanFallbackRuntime.server.stop).toHaveBeenCalled();
   });
 });

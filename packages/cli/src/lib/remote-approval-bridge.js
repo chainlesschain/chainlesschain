@@ -1390,9 +1390,18 @@ export async function startHeadlessRemoteApproval({
       { lanAddress },
     );
     const pairing = bridge.pairingInfo({ lanWsUrl });
-    if (pairing?.mode !== "relay" && !resolved.lanAccessible) {
+    if (resolved.relayUrl && pairing?.mode !== "relay") {
       throw new Error(
-        "the configured relay did not provide a pairing URI; refusing to fall back to LAN without explicit allowLan",
+        "the configured relay did not provide a pairing URI; refusing to fall back to direct pairing",
+      );
+    }
+    if (
+      !resolved.relayUrl &&
+      pairing?.mode !== "relay" &&
+      !resolved.lanAccessible
+    ) {
+      throw new Error(
+        "direct remote approval requires explicit allowLan on a trusted network",
       );
     }
     if (pairing?.mode === "direct") {
