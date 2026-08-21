@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.62] - Scalable IDE sessions and evidence (2026-08-21)
+
+- Add durable session groups, keyboard multi-selection and bulk moves, plus a
+  Focus View that keeps pending questions, live tools, todos, and settled
+  answers visible without reconstructing CLI authority in the extension.
+- Keep diagnostics and workspace mentions responsive with versioned,
+  cancellable snapshots and bounded 100k-path metadata indexes.
+- Bind local browser actions, origins, DOM, console/network observations,
+  screenshots, downloads, replay state, and secret scans into canonical
+  session/revision/diff/test evidence.
+
 ## [0.37.61] - Marketplace changelog repair (2026-08-21)
 
 - Republish the exact 0.37.60 runtime with its omitted release notes included

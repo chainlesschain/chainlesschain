@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.96] - Scalable IDE sessions and evidence (2026-08-21)
+
+- Add durable session groups, native multi-selection and bulk moves, plus a
+  Focus View that preserves pending questions, live tools, todos, and settled
+  answers while keeping CLI authority outside the plugin.
+- Keep diagnostics and workspace mentions responsive with versioned,
+  cancellable snapshots and bounded 100k-path metadata indexes.
+- Re-certify transcript accessibility, long-stream bounds, and the canonical
+  three-OS session, diagnostics, input-performance, and browser evidence gates.
+
 ## [0.4.95] - Secure remote control, messaging, and transcript access (2026-08-21)
 
 - Keep Remote Control loopback-only by default, require an explicit LAN
