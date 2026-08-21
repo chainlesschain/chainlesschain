@@ -1216,17 +1216,21 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should filter by timestamp since", () => {
-      const now = Date.now();
-      const past = now - 10000;
-
       securityPolicy._logAudit("ALLOWED", "server1", "tool1", {}, "OK");
 
-      // Wait a tiny bit to ensure timestamp difference
-      const futureLog = securityPolicy.getAuditLog({ since: now + 1 });
-      const pastLog = securityPolicy.getAuditLog({ since: past });
+      // Derive the boundaries from the timestamp that was actually recorded.
+      // Comparing against Date.now() captured before _logAudit() is racy: under
+      // load the clock can advance by 1ms before the entry is created.
+      const entryTimestamp = securityPolicy.auditLog[0].timestamp;
+      const futureLog = securityPolicy.getAuditLog({
+        since: entryTimestamp + 1,
+      });
+      const inclusiveLog = securityPolicy.getAuditLog({
+        since: entryTimestamp,
+      });
 
       expect(futureLog.length).toBe(0);
-      expect(pastLog.length).toBeGreaterThan(0);
+      expect(inclusiveLog.length).toBe(1);
     });
 
     it("should filter by multiple criteria", () => {
