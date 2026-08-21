@@ -24,8 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registry-resolution identities before target I/O or process spawn. Clone
   execution is isolated from ambient Git/SSH configuration, and cache
   provenance remains bound to the approved source and registry document.
+- **Digest-pinned Marketplace archives**: registry install and update can
+  materialize same-origin, catalog-bound `tgz`/`tar.gz` sources only after
+  candidate preflight. SHA-256 verification and bounded extraction reject
+  traversal, links, special entries, case collisions, and expansion bombs;
+  archive and extracted-payload digest authority are revalidated for offline
+  cache replay. Dynamic command and headers-helper sources remain disabled by
+  product policy.
 - **Cross-platform policy enforcement**: Windows runner temporary roots are
-  canonicalized without probing caller-controlled targets, while forged 8.3
+  canonicalized without probing caller-controlled targets. Other existing 8.3
+  spellings resolve to their long-path authority, while unresolved or forged
   aliases remain rejected. Linux, Windows, and macOS Marketplace campaigns
   exercise air-gapped cache, proxy, PAC, and private-registry boundaries.
 - **Durable session and MCP lifecycle**: cross-session messaging, bounded
