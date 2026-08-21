@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - "packages/cli/src/commands/plugin.js"
       - "packages/cli/src/lib/plugin-runtime/install.js"
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
       - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
@@ -11,10 +12,13 @@ on:
       - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-archive-source.test.js"
+      - "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
   push:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - "packages/cli/src/commands/plugin.js"
       - "packages/cli/src/lib/plugin-runtime/install.js"
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
       - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
@@ -22,6 +26,8 @@ on:
       - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-archive-source.test.js"
+      - "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
   schedule:
     - cron: "17 5 * * 3"
   workflow_dispatch:

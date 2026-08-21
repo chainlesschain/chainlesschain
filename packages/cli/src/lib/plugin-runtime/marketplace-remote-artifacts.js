@@ -21,6 +21,7 @@ export const MAX_MARKETPLACE_ARTIFACT_REDIRECTS = 3;
 export const DEFAULT_MARKETPLACE_ARTIFACT_TIMEOUT_MS = 15_000;
 export const MAX_MARKETPLACE_ARTIFACT_URL_LENGTH = 4096;
 export const MARKETPLACE_REMOTE_ARTIFACT_LIMITS = Object.freeze({
+  archive: 64 * 1024 * 1024,
   signature: 16 * 1024,
   publicKey: 64 * 1024,
   sbom: 16 * 1024 * 1024,

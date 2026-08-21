@@ -16,6 +16,7 @@ import {
 import { describeCapabilities, normalizeCapabilities } from "./capabilities.js";
 import { normalizePublisherDeclaration } from "./publisher-trust.js";
 import { normalizeMarketplaceNetworkAuthority } from "./marketplace-network.js";
+import { normalizeMarketplacePackageSource } from "./marketplace-source-adapter.js";
 
 export const PLUGIN_MARKETPLACE_CATALOG_SCHEMA =
   "cc-plugin-marketplace-catalog/v1";
@@ -461,21 +462,49 @@ function normalizeCandidate(entry, context) {
       ? boundedString(raw.version, 128) || null
       : null;
   const description = boundedString(raw.description, 2048);
-  const sourceValue =
-    typeof raw.source === "string" ? boundedString(raw.source, 4096) : "";
-  const sourceUrl = sanitizeUrl(sourceValue) || sourceValue || null;
-  const ref = boundedString(raw.ref, 256) || null;
   const blockers = [];
   const warnings = [];
+  let packageSource = null;
+  try {
+    packageSource = normalizeMarketplacePackageSource(raw);
+  } catch (error) {
+    blockers.push(issue(error?.code || "INVALID_PACKAGE_SOURCE"));
+  }
+  if (packageSource?.type === "dynamic-disabled") {
+    blockers.push(
+      issue("DYNAMIC_SOURCE_DISABLED", packageSource.requestedType),
+    );
+  }
+  const sourceValue =
+    packageSource?.type === "archive"
+      ? packageSource.url
+      : packageSource?.type === "git"
+        ? packageSource.source
+        : "";
+  const sourceUrl = sanitizeUrl(sourceValue) || sourceValue || null;
+  const ref = packageSource?.type === "git" ? packageSource.ref : null;
 
   if (!rawName || !/^[a-zA-Z0-9._@/-]+$/.test(rawName)) {
     blockers.push(issue("INVALID_NAME"));
   }
   if (!version || !semver.valid(version))
     blockers.push(issue("INVALID_VERSION"));
-  if (!sourceValue) blockers.push(issue("MISSING_PACKAGE_SOURCE"));
+  if (!sourceValue && packageSource?.type !== "dynamic-disabled") {
+    blockers.push(issue("MISSING_PACKAGE_SOURCE"));
+  }
   if (hasUrlCredentials(sourceValue)) {
     blockers.push(issue("SOURCE_CREDENTIALS_EMBEDDED"));
+  }
+  if (packageSource?.type === "archive") {
+    try {
+      if (
+        new URL(packageSource.url).origin !== new URL(context.source.url).origin
+      ) {
+        blockers.push(issue("ARCHIVE_SOURCE_ORIGIN_MISMATCH"));
+      }
+    } catch {
+      blockers.push(issue("ARCHIVE_SOURCE_ORIGIN_MISMATCH"));
+    }
   }
 
   const integrity = normalizeIntegrity(raw, blockers, warnings);
@@ -601,7 +630,24 @@ function normalizeCandidate(entry, context) {
         ? { networkAuthority: context.source.networkAuthority }
         : {}),
     },
-    package: { source: sourceUrl, ref },
+    package:
+      packageSource?.type === "archive"
+        ? {
+            type: "archive",
+            source: sourceUrl,
+            ref: null,
+            archiveSha256: packageSource.sha256,
+            format: packageSource.format,
+          }
+        : packageSource?.type === "dynamic-disabled"
+          ? {
+              type: "dynamic-disabled",
+              source: null,
+              ref: null,
+              requestedType: packageSource.requestedType,
+              enabled: false,
+            }
+          : { source: sourceUrl, ref },
     integrity,
     license,
     capabilities: {

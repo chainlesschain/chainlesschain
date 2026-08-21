@@ -77,6 +77,18 @@ function verifyCell(directory, expected) {
   assert.equal(network.registryTls, "private-ca");
   assert.equal(network.authentication, "bearer");
   assert.equal(network.offlineNetworkRequestCount, 0);
+  assert.equal(network.archiveTransport, "same-origin-https");
+  assert.equal(network.archivePreflightCandidateBytesFetched, false);
+  assert.match(network.archivePreflightRevision, /^[a-f0-9]{64}$/u);
+  assert.equal(network.sourcePrecedence, "whole-entry-priority");
+  assert.equal(network.selectedSourcePriority, 0);
+  assert.equal(network.dynamicSourceStatus, "default-disabled");
+  assert.equal(network.dynamicSourceProcessStartCount, 0);
+  assert.equal(
+    network.archiveOnlineFetchCount,
+    expected.environment === "air-gapped-cache" ? 0 : 100,
+  );
+  assert.ok(network.archiveRequestCount >= network.archiveOnlineFetchCount + 2);
   if (expected.environment === "air-gapped-cache") {
     assert.ok(network.authenticatedRequestCount >= 4);
   } else {
@@ -95,6 +107,11 @@ function verifyCell(directory, expected) {
   assert.equal(lifecycle.signatureVerifiedInstallCount, 200);
   assert.equal(lifecycle.rollbackFailureCount, 0);
   assert.equal(lifecycle.unverifiedActivationCount, 0);
+  assert.equal(lifecycle.archiveSourceInstallCount, 100);
+  assert.equal(
+    lifecycle.archiveMaterializationCount,
+    expected.environment === "air-gapped-cache" ? 102 : 202,
+  );
   const faults = documents["fault-injection.json"];
   assert.deepEqual([...faults.faultsExercised].sort(), [...FAULTS].sort());
   assert.equal(faults.rejectionCount, FAULTS.length);
@@ -108,11 +125,16 @@ function verifyCell(directory, expected) {
     "signature",
     "public-key",
     "sbom",
+    "archive-binary",
+    "archive-source",
     "source-package",
   ]);
   assert.equal(cache.offlineReplayCount, 100);
-  assert.equal(cache.immutableCacheReadCount, 500);
+  assert.equal(cache.immutableCacheReadCount, 600);
   assert.equal(cache.sourceCacheReadCount, 100);
+  assert.equal(cache.archiveCacheReadCount, 100);
+  assert.equal(cache.archiveSourceReadCount, 100);
+  assert.equal(cache.archiveCrashRecoveryCount, 1);
   assert.equal(cache.corruptCacheActivationCount, 0);
   assert.equal(cache.unauthorizedCacheFallbackCount, 0);
   const redaction = documents["redaction.json"];
@@ -121,6 +143,7 @@ function verifyCell(directory, expected) {
     "credentialLeakCount",
     "privateKeyLeakCount",
     "querySecretLeakCount",
+    "dynamicSourceSecretLeakCount",
   ]) {
     assert.equal(redaction[field], 0);
   }
@@ -140,6 +163,9 @@ function verifyCell(directory, expected) {
     "revokedKeyActivationCount",
     "offlineNetworkRequestCount",
     "rollbackFailureCount",
+    "archiveDigestMismatchAcceptanceCount",
+    "dynamicSourceExecutionCount",
+    "archivePreflightBypassCount",
   ]) {
     assert.equal(outcome[field], 0);
   }
@@ -193,7 +219,7 @@ function main() {
     cellCount: cells.length,
     totalIndependentRuns: cells.length * 100,
     totalInstallUpgradeRollbackOperations: cells.length * 300,
-    totalImmutableCacheReadbacks: cells.length * 500,
+    totalImmutableCacheReadbacks: cells.length * 600,
     totalFaultRejections: cells.length * FAULTS.length,
     cells,
   };

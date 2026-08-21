@@ -7,6 +7,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { gzipSync } from "node:zlib";
 import { registerPluginCommand } from "../../src/commands/plugin.js";
 import {
   getActiveVersion,
@@ -66,9 +67,56 @@ let sbomSha256;
 let legacyPayloadSha256;
 let canonicalPayloadSha256;
 let signingPrivateKey;
+let archiveBytes;
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function tarField(header, offset, length, value) {
+  Buffer.from(value, "utf8").copy(header, offset, 0, length);
+}
+
+function tarOctal(header, offset, length, value) {
+  tarField(
+    header,
+    offset,
+    length,
+    `${value.toString(8).padStart(length - 1, "0")}\0`,
+  );
+}
+
+function tarEntry(name, content = Buffer.alloc(0), type = "0") {
+  const bytes = Buffer.isBuffer(content) ? content : Buffer.from(content);
+  const header = Buffer.alloc(512);
+  tarField(header, 0, 100, name);
+  tarOctal(header, 100, 8, type === "5" ? 0o755 : 0o644);
+  tarOctal(header, 108, 8, 0);
+  tarOctal(header, 116, 8, 0);
+  tarOctal(header, 124, 12, bytes.length);
+  tarOctal(header, 136, 12, 0);
+  header.fill(0x20, 148, 156);
+  tarField(header, 156, 1, type);
+  tarField(header, 257, 6, "ustar\0");
+  tarField(header, 263, 2, "00");
+  let checksum = 0;
+  for (const byte of header) checksum += byte;
+  tarField(header, 148, 8, `${checksum.toString(8).padStart(6, "0")}\0 `);
+  return Buffer.concat([
+    header,
+    bytes,
+    Buffer.alloc(Math.ceil(bytes.length / 512) * 512 - bytes.length),
+  ]);
+}
+
+function pluginArchive(manifest) {
+  return gzipSync(
+    Buffer.concat([
+      tarEntry("package/", Buffer.alloc(0), "5"),
+      tarEntry("package/plugin.json", manifest),
+      Buffer.alloc(1024),
+    ]),
+  );
 }
 
 function makeProgram() {
@@ -255,6 +303,7 @@ beforeEach(async () => {
   publisherDeclaration = false;
   _resetPolicyCache();
   prepareRegistryVersion(PLUGIN_VERSION);
+  archiveBytes = null;
   requestUrls = [];
 
   server = http.createServer((request, response) => {
@@ -274,6 +323,10 @@ beforeEach(async () => {
     }
     if (pathname === "/artifacts/plugin.cdx.json") {
       send(response, sbomBytes, "application/vnd.cyclonedx+json");
+      return;
+    }
+    if (pathname === "/artifacts/plugin.tgz" && archiveBytes) {
+      send(response, archiveBytes, "application/gzip");
       return;
     }
     response.writeHead(404, { "Content-Type": "text/plain" });
@@ -315,6 +368,80 @@ afterEach(async () => {
 });
 
 describe("cc plugin remote marketplace artifact journey", () => {
+  it("installs a preflight-bound same-origin archive and replays it offline without persisting query secrets", async () => {
+    archiveBytes = pluginArchive(manifestBytes);
+    registrySource = {
+      type: "archive",
+      url: `${baseUrl}/artifacts/plugin.tgz?download_token=must-not-persist#download`,
+      sha256: sha256(archiveBytes),
+    };
+    const documentSha256 = sha256(
+      Buffer.from(JSON.stringify(registryDocument())),
+    );
+
+    const onlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(onlineRun.exitCode, onlineRun.stderr).toBe(0);
+    const onlinePaths = requestedPathnames();
+    expect(onlinePaths).toContain("/artifacts/plugin.tgz");
+    expect(onlinePaths.indexOf("/artifacts/plugin.tgz")).toBeGreaterThan(
+      onlinePaths.indexOf("/registry.json"),
+    );
+    const [onlineInstalled] = listInstalled({ cwd, scopes: ["project"] });
+    expect(onlineInstalled.source).toMatchObject({
+      resolvedSource: `${baseUrl}/artifacts/plugin.tgz`,
+      catalogAuthority: {
+        archiveSource: {
+          status: "digest-verified-and-extracted",
+          archiveSha256: sha256(archiveBytes),
+          fromCache: false,
+        },
+      },
+    });
+    expect(JSON.stringify(onlineInstalled.source)).not.toContain(
+      "must-not-persist",
+    );
+
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+    requestUrls = [];
+    const offlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--registry-digest",
+      `${registryUrl}=${documentSha256}`,
+      "--offline",
+      "--scope",
+      "local",
+      "--json",
+    );
+    expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
+    expect(requestUrls).toEqual([]);
+    const [offlineInstalled] = listInstalled({ cwd, scopes: ["local"] });
+    expect(offlineInstalled.source).toMatchObject({
+      offline: true,
+      resolvedSource: `${baseUrl}/artifacts/plugin.tgz`,
+      catalogAuthority: {
+        archiveSource: {
+          archiveSha256: sha256(archiveBytes),
+          fromCache: true,
+        },
+      },
+    });
+    expect(JSON.stringify(offlineInstalled.source)).not.toContain(
+      "must-not-persist",
+    );
+  });
+
   it("replays a pinned registry and all declared artifacts offline without a network request", async () => {
     const documentSha256 = sha256(
       Buffer.from(JSON.stringify(registryDocument())),

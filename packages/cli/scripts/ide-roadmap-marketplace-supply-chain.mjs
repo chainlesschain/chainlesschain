@@ -10,6 +10,7 @@ import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { gzipSync } from "node:zlib";
 import {
   buildMarketplacePayloadSbom,
   buildRemoteSbomPayloadComparison,
@@ -26,9 +27,17 @@ import {
 } from "../src/lib/plugin-runtime/marketplace-source-cache.js";
 import { resolveMarketplacePac } from "../src/lib/plugin-runtime/marketplace-network.js";
 import {
+  buildPluginMarketplaceCandidateSelection,
   buildPluginMarketplaceCatalog,
   buildPluginMarketplaceInstallPreflight,
+  buildPluginMarketplaceInstallPreflightFromSelection,
 } from "../src/lib/plugin-runtime/marketplace-catalog.js";
+import { fetchAndMaterializeMarketplaceArchive } from "../src/lib/plugin-runtime/marketplace-archive-source.js";
+import {
+  assertMarketplaceSourceExecutable,
+  MARKETPLACE_DYNAMIC_SOURCE_DISABLED_CODE,
+  normalizeMarketplacePackageSource,
+} from "../src/lib/plugin-runtime/marketplace-source-adapter.js";
 import { buildPluginMarketplaceUpdateImpact } from "../src/lib/plugin-runtime/marketplace-impact.js";
 import { buildManagedPublisherAuthority } from "../src/lib/plugin-runtime/publisher-trust.js";
 import {
@@ -41,6 +50,7 @@ import {
 import {
   fetchRegistry,
   registryCachePath,
+  resolveRegistryEntrySource,
 } from "../src/lib/plugin-runtime/remote-source.js";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -66,6 +76,7 @@ const FAULTS = Object.freeze([
   "pac-timeout",
   "custom-ca-mismatch",
   "artifact-redirect-origin-change",
+  "archive-digest-mismatch",
   "signature-digest-mismatch",
   "public-key-spki-mismatch",
   "sbom-document-digest-mismatch",
@@ -81,6 +92,7 @@ const FAULTS = Object.freeze([
   "publisher-key-revocation",
   "activation-crash",
   "rollback-crash",
+  "dynamic-source-disabled",
 ]);
 const REQUIRED_FILES = Object.freeze([
   "exact-commit.json",
@@ -121,6 +133,51 @@ function canonicalJson(value) {
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function writeTarText(header, offset, length, value) {
+  Buffer.from(value, "utf8").copy(header, offset, 0, length);
+}
+
+function writeTarOctal(header, offset, length, value) {
+  const text = value
+    .toString(8)
+    .padStart(length - 1, "0")
+    .slice(-(length - 1));
+  writeTarText(header, offset, length, `${text}\0`);
+}
+
+function tarEntry(name, content = Buffer.alloc(0), type = "0") {
+  const data = Buffer.isBuffer(content) ? content : Buffer.from(content);
+  const header = Buffer.alloc(512);
+  writeTarText(header, 0, 100, name);
+  writeTarOctal(header, 100, 8, type === "5" ? 0o755 : 0o644);
+  writeTarOctal(header, 108, 8, 0);
+  writeTarOctal(header, 116, 8, 0);
+  writeTarOctal(header, 124, 12, data.length);
+  writeTarOctal(header, 136, 12, 0);
+  header.fill(0x20, 148, 156);
+  writeTarText(header, 156, 1, type);
+  writeTarText(header, 257, 6, "ustar\0");
+  writeTarText(header, 263, 2, "00");
+  let checksum = 0;
+  for (const byte of header) checksum += byte;
+  writeTarText(header, 148, 8, `${checksum.toString(8).padStart(6, "0")}\0 `);
+  return Buffer.concat([
+    header,
+    data,
+    Buffer.alloc(Math.ceil(data.length / 512) * 512 - data.length),
+  ]);
+}
+
+function packageArchive(manifest) {
+  return gzipSync(
+    Buffer.concat([
+      tarEntry("package/", Buffer.alloc(0), "5"),
+      tarEntry("package/plugin.json", manifest),
+      Buffer.alloc(1024),
+    ]),
+  );
 }
 
 function evidenceDigest(value) {
@@ -231,6 +288,8 @@ async function createNetworkFixture(stateDir, environment) {
     }),
   );
   fs.writeFileSync(path.join(sourceDir, "plugin.json"), manifest);
+  const archive = packageArchive(manifest);
+  const dynamicSecret = `dynamic-source-secret-${crypto.randomBytes(18).toString("hex")}`;
   const signature = crypto.sign(null, manifest, keys.privateKey);
   const payloadSbom = buildMarketplacePayloadSbom(sourceDir, {
     schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
@@ -241,6 +300,7 @@ async function createNetworkFixture(stateDir, environment) {
     registryFault: null,
     registryRequests: 0,
     artifactRequests: 0,
+    archiveRequests: 0,
     authenticatedRequests: 0,
     proxyConnects: 0,
     proxyAuthenticatedConnects: 0,
@@ -256,7 +316,10 @@ async function createNetworkFixture(stateDir, environment) {
       const url = new URL(request.url, origin);
       const isRegistry = url.pathname === "/registry.json";
       if (isRegistry) state.registryRequests += 1;
-      else state.artifactRequests += 1;
+      else {
+        state.artifactRequests += 1;
+        if (url.pathname === "/archive.tgz") state.archiveRequests += 1;
+      }
       if (request.headers.authorization !== `Bearer ${token}`) {
         send(response, 401, "unauthorized", "text/plain");
         return;
@@ -284,6 +347,8 @@ async function createNetworkFixture(stateDir, environment) {
         send(response, 200, publicKeyPem, "application/x-pem-file");
       } else if (url.pathname === "/sbom") {
         send(response, 200, sbom, "application/json");
+      } else if (url.pathname === "/archive.tgz") {
+        send(response, 200, archive, "application/gzip");
       } else {
         send(response, 404, "not found", "text/plain");
       }
@@ -297,8 +362,37 @@ async function createNetworkFixture(stateDir, environment) {
       {
         name: "marketplace-matrix-network-plugin",
         version: "1.0.0",
-        source: "https://source.example.invalid/matrix.git",
+        description: "priority archive entry",
+        source: {
+          type: "archive",
+          url: `${origin}/archive.tgz`,
+          sha256: sha256(archive),
+        },
+        sha256: sha256(manifest),
+        signature: {
+          algorithm: "ed25519",
+          url: `${origin}/signature`,
+          documentSha256: sha256(signature),
+          publicKeyUrl: `${origin}/public-key`,
+          publicKeySha256,
+          publicKeyDocumentSha256: sha256(publicKeyPem),
+        },
+        sbom: {
+          format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+          url: `${origin}/sbom`,
+          payloadSha256: payloadSbom.digest,
+          documentSha256: sha256(sbom),
+        },
+        license: "Apache-2.0",
+        permissions: {},
+        dependencies: {},
+        compatibility: { cc: ">=0.165.0 <1.0.0" },
         publisher: { id: "matrix-publisher", organizationId: "matrix-org" },
+      },
+      {
+        name: "marketplace-dynamic-disabled",
+        version: "1.0.0",
+        source: { type: "command", command: dynamicSecret },
       },
     ],
   };
@@ -311,6 +405,8 @@ async function createNetworkFixture(stateDir, environment) {
     publicKeySha256,
     sourceDir,
     manifest,
+    archive,
+    dynamicSecret,
     signature,
     sbom,
     payloadSbom,
@@ -406,6 +502,19 @@ function remoteArtifactOptions(fixture, cacheDir, extra = {}) {
       digest: sha256(fixture.sbom),
       format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
     },
+    ...extra,
+  };
+}
+
+function archiveSourceOptions(fixture, directories, network, extra = {}) {
+  return {
+    registryUrl: fixture.registryUrl,
+    url: `${fixture.origin}/archive.tgz`,
+    sha256: sha256(fixture.archive),
+    token: fixture.token,
+    artifactCacheDir: directories.cache,
+    sourceCacheDir: directories.archiveSource,
+    ...network,
     ...extra,
   };
 }
@@ -642,6 +751,18 @@ async function exerciseFaults(fixture, directories, networkOptions) {
     /origin|target|URL/iu,
   );
   rejected.push("artifact-redirect-origin-change");
+  await expectReject(
+    () =>
+      fetchAndMaterializeMarketplaceArchive(
+        archiveSourceOptions(fixture, directories, networkOptions, {
+          sha256: "0".repeat(64),
+          artifactCacheDir: path.join(directories.faultCache, "archive-digest"),
+          sourceCacheDir: path.join(directories.faultRoot, "archive-digest"),
+        }),
+      ),
+    /SHA-256 mismatch/iu,
+  );
+  rejected.push("archive-digest-mismatch");
   await expectReject(() =>
     fetchPluginMarketplaceRemoteArtifacts(
       remoteArtifactOptions(fixture, directories.faultCache, {
@@ -890,6 +1011,17 @@ async function exerciseFaults(fixture, directories, networkOptions) {
     "rollback",
   );
   rejected.push("rollback-crash");
+  const dynamicEntry = {
+    source: { type: "command", command: fixture.dynamicSecret },
+  };
+  const disabled = normalizeMarketplacePackageSource(dynamicEntry);
+  assert.equal(disabled.enabled, false);
+  assert.equal(disabled.code, MARKETPLACE_DYNAMIC_SOURCE_DISABLED_CODE);
+  assert.throws(
+    () => assertMarketplaceSourceExecutable(dynamicEntry),
+    (error) => error?.code === MARKETPLACE_DYNAMIC_SOURCE_DISABLED_CODE,
+  );
+  rejected.push("dynamic-source-disabled");
   assert.deepEqual([...rejected].sort(), [...FAULTS].sort());
   return rejected;
 }
@@ -922,12 +1054,14 @@ function signSource(directory, keys, signatureRoot) {
   };
 }
 
-function runLifecycleJourney(root, iteration, keys) {
+function runLifecycleJourney(root, iteration, keys, archiveSource) {
   const cwd = path.join(root, `journey-${String(iteration).padStart(3, "0")}`);
   const sourceRoot = path.join(cwd, "sources");
   const signatures = path.join(cwd, "signatures");
   fs.mkdirSync(signatures, { recursive: true });
-  const name = `marketplace-matrix-${String(iteration).padStart(3, "0")}`;
+  const name = JSON.parse(
+    fs.readFileSync(path.join(archiveSource, "plugin.json"), "utf8"),
+  ).name;
   const makeSource = (version) => {
     const directory = path.join(sourceRoot, version);
     fs.mkdirSync(directory, { recursive: true });
@@ -937,7 +1071,7 @@ function runLifecycleJourney(root, iteration, keys) {
     );
     return directory;
   };
-  const first = makeSource("1.0.0");
+  const first = archiveSource;
   const second = makeSource("2.0.0");
   const installed = installFromDirectory(first, {
     scope: "project",
@@ -989,6 +1123,7 @@ async function mainCampaign(options, dependencies = {}) {
   const directories = {
     cache: path.join(stateDir, "immutable-cache"),
     sourceCache: path.join(stateDir, "source-cache"),
+    archiveSource: path.join(stateDir, "archive-source-cache"),
     faultCache: path.join(stateDir, "fault-cache"),
     faultRoot: path.join(stateDir, "faults"),
     lifecycle: path.join(stateDir, "lifecycle"),
@@ -1007,6 +1142,111 @@ async function mainCampaign(options, dependencies = {}) {
       ...network,
     });
     assert.equal(registrySeed.fromCache, false);
+    const archiveEntry = registrySeed.registry.plugins.find(
+      (entry) => entry.name === "marketplace-matrix-network-plugin",
+    );
+    assert.ok(archiveEntry);
+    const archiveCatalog = buildPluginMarketplaceCatalog({
+      sources: [
+        {
+          url: fixture.registryUrl,
+          registry: registrySeed.registry,
+          documentSha256: registrySeed.documentSha256,
+          networkAuthority: registrySeed.networkAuthority,
+        },
+      ],
+      hostVersion: "0.165.4",
+      strict: true,
+    });
+    const dynamicCandidate = archiveCatalog.candidates.find(
+      (candidate) => candidate.name === "marketplace-dynamic-disabled",
+    );
+    assert.ok(
+      dynamicCandidate.installability.blockers.some(
+        (blocker) => blocker.code === "DYNAMIC_SOURCE_DISABLED",
+      ),
+    );
+    assert.equal(
+      canonicalJson(archiveCatalog).includes(fixture.dynamicSecret),
+      false,
+    );
+    const archiveSelection = buildPluginMarketplaceCandidateSelection({
+      catalog: archiveCatalog,
+      name: archiveEntry.name,
+    });
+    const archivePreflight =
+      buildPluginMarketplaceInstallPreflightFromSelection({
+        catalog: archiveCatalog,
+        selection: archiveSelection,
+      }).preflight;
+    assert.equal(archivePreflight.status, "allowed");
+    assert.equal(archivePreflight.claims.pluginBytesFetched, false);
+    assert.equal(archivePreflight.package.type, "archive");
+    const archiveRequestsBeforePreflight = fixture.state.archiveRequests;
+    const archiveSeed = await resolveRegistryEntrySource(
+      fixture.registryUrl,
+      archiveEntry,
+      {
+        token: fixture.token,
+        artifactCacheDir: directories.cache,
+        archiveSourceCacheDir: directories.archiveSource,
+        ...network,
+      },
+    );
+    assert.equal(
+      fixture.state.archiveRequests,
+      archiveRequestsBeforePreflight + 1,
+    );
+    assert.equal(archiveSeed.sourceType, "archive");
+    assert.equal(
+      archiveSeed.archiveAuthority.archiveSha256,
+      archivePreflight.package.archiveSha256,
+    );
+    assert.equal(
+      archiveSeed.archiveAuthority.url,
+      archivePreflight.package.source,
+    );
+    const precedenceCatalog = buildPluginMarketplaceCatalog({
+      sources: [
+        {
+          url: `${fixture.origin}/priority.json`,
+          registry: { plugins: [archiveEntry] },
+        },
+        {
+          url: `${fixture.origin}/lower.json`,
+          registry: {
+            plugins: [
+              { ...archiveEntry, description: "lower priority archive entry" },
+            ],
+          },
+        },
+      ],
+      hostVersion: "0.165.4",
+      strict: true,
+    });
+    const precedenceSelection = buildPluginMarketplaceCandidateSelection({
+      catalog: precedenceCatalog,
+      name: archiveEntry.name,
+    });
+    assert.equal(precedenceSelection.status, "allowed");
+    assert.equal(precedenceSelection.selected.registry.priority, 0);
+    assert.equal(
+      precedenceSelection.selected.description,
+      archiveEntry.description,
+    );
+
+    fs.mkdirSync(path.join(directories.archiveSource, ".tmp-crashed-source"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(path.dirname(archiveSeed.source), "authority.json"),
+      '{"truncated":true}\n',
+    );
+    const archiveCrashRecovery = await fetchAndMaterializeMarketplaceArchive(
+      archiveSourceOptions(fixture, directories, network, { offline: true }),
+    );
+    assert.equal(archiveCrashRecovery.dir, archiveSeed.source);
+    assert.equal(archiveCrashRecovery.authority.fromCache, true);
     const artifactsSeed = await fetchPluginMarketplaceRemoteArtifacts(
       remoteArtifactOptions(fixture, directories.cache, network),
     );
@@ -1032,6 +1272,8 @@ async function mainCampaign(options, dependencies = {}) {
 
     let offlineReplayCount = 0;
     let sourceCacheReadCount = 0;
+    let archiveOfflineReplayCount = 0;
+    let archiveOnlineFetchCount = 0;
     let offlineNetworkRequestCount = 0;
     for (let iteration = 0; iteration < independentRuns; iteration += 1) {
       if (environment !== "air-gapped-cache") {
@@ -1051,6 +1293,15 @@ async function mainCampaign(options, dependencies = {}) {
         );
         assert.equal(onlineArtifacts.authority.signature.fromCache, false);
         onlineArtifacts.cleanup();
+        const onlineArchive = await fetchAndMaterializeMarketplaceArchive(
+          archiveSourceOptions(fixture, directories, network),
+        );
+        assert.equal(onlineArchive.authority.fromCache, false);
+        assert.equal(
+          onlineArchive.authority.archiveSha256,
+          archivePreflight.package.archiveSha256,
+        );
+        archiveOnlineFetchCount += 1;
       }
 
       const beforeOffline =
@@ -1072,6 +1323,15 @@ async function mainCampaign(options, dependencies = {}) {
       );
       assert.equal(cachedArtifacts.authority.sbom.fromCache, true);
       cachedArtifacts.cleanup();
+      const cachedArchive = await fetchAndMaterializeMarketplaceArchive(
+        archiveSourceOptions(fixture, directories, network, { offline: true }),
+      );
+      assert.equal(cachedArchive.authority.fromCache, true);
+      assert.equal(
+        cachedArchive.authority.payloadSha256,
+        archiveSeed.archiveAuthority.payloadSha256,
+      );
+      archiveOfflineReplayCount += 1;
       const cachedSource = readMarketplaceSourceCache(sourceMetadata, {
         cacheDir: directories.sourceCache,
         remoteSbomBytes: fixture.sbom,
@@ -1082,7 +1342,12 @@ async function mainCampaign(options, dependencies = {}) {
         fixture.state.registryRequests + fixture.state.artifactRequests;
       offlineNetworkRequestCount += afterOffline - beforeOffline;
       offlineReplayCount += 1;
-      runLifecycleJourney(directories.lifecycle, iteration, fixture.keys);
+      runLifecycleJourney(
+        directories.lifecycle,
+        iteration,
+        fixture.keys,
+        archiveSeed.source,
+      );
     }
     assert.equal(offlineNetworkRequestCount, 0);
 
@@ -1126,11 +1391,20 @@ async function mainCampaign(options, dependencies = {}) {
             : environment,
         registryRequestCount: fixture.state.registryRequests,
         artifactRequestCount: fixture.state.artifactRequests,
+        archiveRequestCount: fixture.state.archiveRequests,
         authenticatedRequestCount: fixture.state.authenticatedRequests,
         proxyConnectCount: fixture.state.proxyConnects,
         proxyAuthenticatedConnectCount:
           fixture.state.proxyAuthenticatedConnects,
         offlineNetworkRequestCount,
+        archiveTransport: "same-origin-https",
+        archiveOnlineFetchCount,
+        archivePreflightCandidateBytesFetched: false,
+        archivePreflightRevision: archivePreflight.candidateDigest,
+        sourcePrecedence: "whole-entry-priority",
+        selectedSourcePriority: precedenceSelection.selected.registry.priority,
+        dynamicSourceStatus: "default-disabled",
+        dynamicSourceProcessStartCount: 0,
       },
       "lifecycle-journeys.json": {
         schema: "chainlesschain.marketplace-supply-chain-lifecycle.v1",
@@ -1140,6 +1414,9 @@ async function mainCampaign(options, dependencies = {}) {
         signatureVerifiedInstallCount: independentRuns * 2,
         rollbackFailureCount: 0,
         unverifiedActivationCount: 0,
+        archiveMaterializationCount:
+          2 + archiveOnlineFetchCount + archiveOfflineReplayCount,
+        archiveSourceInstallCount: independentRuns,
       },
       "fault-injection.json": {
         schema: "chainlesschain.marketplace-supply-chain-faults.v1",
@@ -1157,11 +1434,16 @@ async function mainCampaign(options, dependencies = {}) {
           "signature",
           "public-key",
           "sbom",
+          "archive-binary",
+          "archive-source",
           "source-package",
         ],
         offlineReplayCount,
-        immutableCacheReadCount: independentRuns * 5,
+        immutableCacheReadCount: independentRuns * 6,
         sourceCacheReadCount,
+        archiveCacheReadCount: archiveOfflineReplayCount,
+        archiveSourceReadCount: archiveOfflineReplayCount,
+        archiveCrashRecoveryCount: 1,
         corruptCacheActivationCount: 0,
         unauthorizedCacheFallbackCount: 0,
       },
@@ -1171,6 +1453,7 @@ async function mainCampaign(options, dependencies = {}) {
         credentialLeakCount: 0,
         privateKeyLeakCount: 0,
         querySecretLeakCount: 0,
+        dynamicSourceSecretLeakCount: 0,
       },
       "outcome-observations.json": {
         schema: "chainlesschain.marketplace-supply-chain-outcome.v1",
@@ -1187,6 +1470,9 @@ async function mainCampaign(options, dependencies = {}) {
         revokedKeyActivationCount: 0,
         offlineNetworkRequestCount,
         rollbackFailureCount: 0,
+        archiveDigestMismatchAcceptanceCount: 0,
+        dynamicSourceExecutionCount: 0,
+        archivePreflightBypassCount: 0,
         failureArtifactsComplete: true,
         exactCommitBound: true,
       },
@@ -1194,6 +1480,7 @@ async function mainCampaign(options, dependencies = {}) {
     const serialized = canonicalJson(documents);
     assert.equal(serialized.includes(fixture.token), false);
     assert.equal(serialized.includes(fixture.proxyPassword), false);
+    assert.equal(serialized.includes(fixture.dynamicSecret), false);
     assert.equal(serialized.includes("BEGIN PRIVATE KEY"), false);
     for (const [file, value] of Object.entries(documents)) {
       writeJson(path.join(artifactDir, file), value);

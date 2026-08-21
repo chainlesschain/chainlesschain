@@ -52,10 +52,19 @@ function createCell() {
     authentication: "bearer",
     registryRequestCount: 100,
     artifactRequestCount: 300,
+    archiveRequestCount: 102,
     authenticatedRequestCount: 400,
     proxyConnectCount: 0,
     proxyAuthenticatedConnectCount: 0,
     offlineNetworkRequestCount: 0,
+    archiveTransport: "same-origin-https",
+    archiveOnlineFetchCount: 100,
+    archivePreflightCandidateBytesFetched: false,
+    archivePreflightRevision: "b".repeat(64),
+    sourcePrecedence: "whole-entry-priority",
+    selectedSourcePriority: 0,
+    dynamicSourceStatus: "default-disabled",
+    dynamicSourceProcessStartCount: 0,
   });
   writeJson(directory, "lifecycle-journeys.json", {
     installCount: 100,
@@ -64,6 +73,8 @@ function createCell() {
     signatureVerifiedInstallCount: 200,
     rollbackFailureCount: 0,
     unverifiedActivationCount: 0,
+    archiveMaterializationCount: 202,
+    archiveSourceInstallCount: 100,
   });
   writeJson(directory, "fault-injection.json", {
     faultsExercised: FAULTS,
@@ -74,10 +85,21 @@ function createCell() {
     failureArtifactsComplete: true,
   });
   writeJson(directory, "cache-authority.json", {
-    layers: ["registry", "signature", "public-key", "sbom", "source-package"],
+    layers: [
+      "registry",
+      "signature",
+      "public-key",
+      "sbom",
+      "archive-binary",
+      "archive-source",
+      "source-package",
+    ],
     offlineReplayCount: 100,
-    immutableCacheReadCount: 500,
+    immutableCacheReadCount: 600,
     sourceCacheReadCount: 100,
+    archiveCacheReadCount: 100,
+    archiveSourceReadCount: 100,
+    archiveCrashRecoveryCount: 1,
     corruptCacheActivationCount: 0,
     unauthorizedCacheFallbackCount: 0,
   });
@@ -86,6 +108,7 @@ function createCell() {
     credentialLeakCount: 0,
     privateKeyLeakCount: 0,
     querySecretLeakCount: 0,
+    dynamicSourceSecretLeakCount: 0,
   });
   writeJson(directory, "outcome-observations.json", {
     success: true,
@@ -100,6 +123,9 @@ function createCell() {
     revokedKeyActivationCount: 0,
     offlineNetworkRequestCount: 0,
     rollbackFailureCount: 0,
+    archiveDigestMismatchAcceptanceCount: 0,
+    dynamicSourceExecutionCount: 0,
+    archivePreflightBypassCount: 0,
     failureArtifactsComplete: true,
     exactCommitBound: true,
   });

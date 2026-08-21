@@ -258,7 +258,7 @@ async function buildRegistrySetSelection(
     caFile,
   } = {},
 ) {
-  const { fetchRegistry, resolveRegistryToken } =
+  const { fetchRegistry, resolveRegistryToken, inspectRegistryEntrySource } =
     await import("../lib/plugin-runtime/remote-source.js");
   const {
     buildPluginMarketplaceCatalog,
@@ -327,21 +327,73 @@ async function buildRegistrySetSelection(
       "selected registry entry no longer matches catalog authority",
     );
   }
+  const registryUrl = registryUrls[sourceIndex];
+  const selectedSource = inspectRegistryEntrySource(entry);
   return {
     catalog,
     selection,
     preflight,
     resolved: {
-      registryUrl: registryUrls[sourceIndex],
-      source: entry.ref ? `${entry.source}#${entry.ref}` : entry.source,
-      ref: entry.ref || null,
-      sha256: entry.sha256 || null,
+      registryUrl,
+      ...selectedSource,
       entry,
       fromCache: source.fromCache === true,
       documentSha256: source.documentSha256 || null,
       networkAuthority: source.networkAuthority || null,
     },
   };
+}
+
+async function materializeRegistrySelection(
+  url,
+  resolved,
+  options,
+  marketplacePreflight,
+) {
+  const {
+    inspectRegistryEntrySource,
+    resolveRegistryEntrySource,
+    resolveRegistryToken,
+  } = await import("../lib/plugin-runtime/remote-source.js");
+  const inspected = inspectRegistryEntrySource(resolved.entry);
+  const expectedType = marketplacePreflight.package?.type || "git";
+  const sourceAuthority = (value) => {
+    try {
+      const parsed = new URL(String(value));
+      parsed.username = "";
+      parsed.password = "";
+      parsed.search = "";
+      parsed.hash = "";
+      return parsed.toString();
+    } catch {
+      return value;
+    }
+  };
+  if (
+    inspected.sourceType !== resolved.sourceType ||
+    inspected.sourceIdentity !== resolved.sourceIdentity ||
+    inspected.ref !== resolved.ref ||
+    inspected.sourceType !== expectedType ||
+    sourceAuthority(inspected.sourceIdentity) !==
+      marketplacePreflight.package?.source ||
+    inspected.ref !== (marketplacePreflight.package?.ref || null) ||
+    (inspected.sourceType === "archive" &&
+      inspected.archiveSpec.sha256 !==
+        marketplacePreflight.package?.archiveSha256)
+  ) {
+    throw new Error(
+      "registry candidate preflight revision changed before source fetch",
+    );
+  }
+  if (resolved.sourceType !== "archive") return resolved;
+  const config = await loadOptionalPluginConfig();
+  const materialized = await resolveRegistryEntrySource(url, resolved.entry, {
+    token: resolveRegistryToken(url, { token: options.token, config }),
+    allowInsecure: options.allowInsecureRegistry === true,
+    offline: options.offline === true,
+    ...registryNetworkOptions(options),
+  });
+  return { ...resolved, ...materialized };
 }
 
 async function buildRegistryInstallPreflight(url, resolved, cwd) {
@@ -364,6 +416,7 @@ function catalogAuthorityFromPreflight(
   preflight,
   impact = null,
   remoteArtifactEvidence = null,
+  archiveSource = null,
 ) {
   return {
     catalogDigest: preflight.catalogDigest,
@@ -417,6 +470,7 @@ function catalogAuthorityFromPreflight(
       : {}),
     ...(impact ? { updateImpactDigest: impact.impactDigest } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
+    ...(archiveSource ? { archiveSource } : {}),
   };
 }
 
@@ -475,6 +529,10 @@ async function installedCatalogAuthorityMatches(
       (!remoteArtifactEvidence ||
         authority?.remoteArtifactEvidence?.evidenceDigest ===
           remoteArtifactEvidence.evidenceDigest) &&
+      (preflight.package?.type !== "archive" ||
+        (authority?.archiveSource?.url === preflight.package.source &&
+          authority?.archiveSource?.archiveSha256 ===
+            preflight.package.archiveSha256)) &&
       remoteSbomComparisonAuthorityMatches(
         authority,
         remoteArtifactEvidence,
@@ -1582,6 +1640,7 @@ export function registerPluginCommand(program) {
       let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
+      let archiveSourceAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -1643,6 +1702,7 @@ export function registerPluginCommand(program) {
               allowInsecure: options.allowInsecureRegistry === true,
               offline: options.offline === true,
               expectedSha256: registryDigestPins.get(url),
+              materialize: false,
               ...registryNetworkOptions(options),
             });
             marketplacePreflight = await buildRegistryInstallPreflight(
@@ -1651,7 +1711,6 @@ export function registerPluginCommand(program) {
               process.cwd(),
             );
           }
-          installSource = resolved.source;
           integritySha = resolved.sha256;
           if (registryManifestDigestConflict(integritySha, options.sha256)) {
             throw new Error(
@@ -1708,6 +1767,14 @@ export function registerPluginCommand(program) {
               "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; pass --allow-downgrade after reviewing cc plugin impact",
             );
           }
+          resolved = await materializeRegistrySelection(
+            url,
+            resolved,
+            options,
+            marketplacePreflight,
+          );
+          installSource = resolved.source;
+          archiveSourceAuthority = resolved.archiveAuthority || null;
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -1728,7 +1795,7 @@ export function registerPluginCommand(program) {
             source: url,
             registry: url,
             package: name || source,
-            resolvedSource: resolved.source,
+            resolvedSource: resolved.sourceIdentity || resolved.source,
             ref:
               (typeof resolved.source === "string" &&
                 resolved.source.includes("#") &&
@@ -1738,6 +1805,8 @@ export function registerPluginCommand(program) {
             catalogAuthority: catalogAuthorityFromPreflight(
               marketplacePreflight,
               marketplaceImpact,
+              null,
+              archiveSourceAuthority,
             ),
           };
           if (resolved.fromCache) {
@@ -1790,6 +1859,7 @@ export function registerPluginCommand(program) {
               marketplacePreflight,
               marketplaceImpact,
               remoteArtifacts.authority,
+              archiveSourceAuthority,
             );
           }
         }
@@ -3330,6 +3400,7 @@ export function registerPluginCommand(program) {
       let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
+      let archiveSourceAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -3391,6 +3462,7 @@ export function registerPluginCommand(program) {
               allowInsecure: options.allowInsecureRegistry === true,
               offline: options.offline === true,
               expectedSha256: registryDigestPins.get(url),
+              materialize: false,
               ...registryNetworkOptions(options),
             });
             marketplacePreflight = await buildRegistryInstallPreflight(
@@ -3399,7 +3471,6 @@ export function registerPluginCommand(program) {
               process.cwd(),
             );
           }
-          installSource = resolved.source;
           integritySha = resolved.sha256;
           if (registryManifestDigestConflict(integritySha, options.sha256)) {
             throw new Error(
@@ -3472,6 +3543,14 @@ export function registerPluginCommand(program) {
               `registry candidate preflight blocked: UPDATE_IMPACT_DIGEST_MISMATCH (expected ${options.expectedImpactDigest}, actual ${marketplaceImpact.impactDigest})`,
             );
           }
+          resolved = await materializeRegistrySelection(
+            url,
+            resolved,
+            options,
+            marketplacePreflight,
+          );
+          installSource = resolved.source;
+          archiveSourceAuthority = resolved.archiveAuthority || null;
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -3492,7 +3571,7 @@ export function registerPluginCommand(program) {
             source: url,
             registry: url,
             package: name || source,
-            resolvedSource: resolved.source,
+            resolvedSource: resolved.sourceIdentity || resolved.source,
             ref:
               (typeof resolved.source === "string" &&
                 resolved.source.includes("#") &&
@@ -3502,6 +3581,8 @@ export function registerPluginCommand(program) {
             catalogAuthority: catalogAuthorityFromPreflight(
               marketplacePreflight,
               marketplaceImpact,
+              null,
+              archiveSourceAuthority,
             ),
           };
           if (resolved.fromCache && !options.json) {
@@ -3554,6 +3635,7 @@ export function registerPluginCommand(program) {
               marketplacePreflight,
               marketplaceImpact,
               remoteArtifacts.authority,
+              archiveSourceAuthority,
             );
           }
         }

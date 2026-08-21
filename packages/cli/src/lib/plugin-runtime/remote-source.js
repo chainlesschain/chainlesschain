@@ -16,11 +16,12 @@
  *   2. Single-plugin manifest — one plugin, no selection needed:
  *      { "name": "toml-tools", "source": "https://github.com/x/toml.git", "ref": "v1.0.0" }
  *
- * The remote layer is an INDIRECTION: it resolves a name → a git source string
- * that the existing installer (`installFromSource`) already knows how to clone.
- * This keeps the sync install core untouched and avoids bundling a tarball
- * extractor. Downloaded registry JSON is cached content-addressed so browsing /
- * installing works OFFLINE, and a bearer token can gate a PRIVATE registry.
+ * The remote layer is an INDIRECTION: it resolves a name to a static package
+ * source that the existing installer (`installFromSource`) can consume.
+ * Static git and digest-bound archive sources both reuse the existing install
+ * core. Downloaded registry JSON and archives are cached content-addressed so
+ * browsing / installing works OFFLINE, while bearer tokens never become
+ * persisted source authority.
  */
 
 import fs from "fs";
@@ -29,6 +30,11 @@ import path from "path";
 import crypto from "crypto";
 import { getElectronUserDataDir } from "../paths.js";
 import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
+import { fetchAndMaterializeMarketplaceArchive } from "./marketplace-archive-source.js";
+import {
+  assertMarketplaceSourceExecutable,
+  normalizeMarketplacePackageSource,
+} from "./marketplace-source-adapter.js";
 
 export const _deps = {
   // Node 22+ global fetch; injectable for tests.
@@ -480,16 +486,23 @@ export function validateRegistry(doc, url = "") {
   }
   if (Array.isArray(doc.plugins)) {
     for (const p of doc.plugins) {
-      if (!p || typeof p !== "object" || !p.name || !p.source) {
+      if (
+        !p ||
+        typeof p !== "object" ||
+        !p.name ||
+        (!p.source && p.command == null && p.headersHelper == null)
+      ) {
         throw new Error(
           `registry at ${url} has a plugin entry missing name/source`,
         );
       }
+      normalizeMarketplacePackageSource(p);
     }
     return doc;
   }
   // Single-plugin manifest.
-  if (doc.source) {
+  if (doc.source || doc.command || doc.headersHelper) {
+    normalizeMarketplacePackageSource(doc);
     return { plugins: [doc] };
   }
   throw new Error(
@@ -499,13 +512,26 @@ export function validateRegistry(doc, url = "") {
 
 /** List installable entries from a registry (for `cc plugin search`). */
 export function listRegistryPlugins(registry) {
-  return (registry.plugins || []).map((p) => ({
-    name: p.name,
-    version: p.version || null,
-    source: p.source,
-    ref: p.ref || null,
-    description: p.description || "",
-  }));
+  return (registry.plugins || []).map((p) => {
+    const source = normalizeMarketplacePackageSource(p);
+    return {
+      name: p.name,
+      version: p.version || null,
+      source:
+        source.type === "archive"
+          ? source.url
+          : source.type === "git"
+            ? source.source
+            : null,
+      sourceType: source.type,
+      ref: source.type === "git" ? source.ref : null,
+      description: p.description || "",
+      enabled: source.type !== "dynamic-disabled",
+      ...(source.type === "dynamic-disabled"
+        ? { disabledReason: source.reason }
+        : {}),
+    };
+  });
 }
 
 /**
@@ -550,18 +576,76 @@ export async function resolveRemoteSource(url, opts = {}) {
       token,
     });
   const entry = resolvePluginEntry(registry, opts.name);
-  // Carry a `#ref` on the source string so installFromSource pins the checkout,
-  // matching its existing `owner/repo#ref` / `url#ref` convention.
-  const source = entry.ref ? `${entry.source}#${entry.ref}` : entry.source;
+  const resolvedSource =
+    opts.materialize === false
+      ? inspectRegistryEntrySource(entry)
+      : await resolveRegistryEntrySource(url, entry, {
+          ...opts,
+          token,
+        });
   return {
-    source,
-    ref: entry.ref || null,
-    sha256: entry.sha256 || null,
+    ...resolvedSource,
     entry,
     fromCache,
     documentSha256,
     ...(networkAuthority ? { networkAuthority } : {}),
   };
+}
+
+/** Inspect one selected entry without fetching any candidate source bytes. */
+export function inspectRegistryEntrySource(entry) {
+  const packageSource = assertMarketplaceSourceExecutable(entry);
+  if (packageSource.type === "archive") {
+    return {
+      source: null,
+      sourceIdentity: packageSource.url,
+      sourceType: "archive",
+      ref: null,
+      sha256: entry.sha256 || null,
+      archiveSpec: packageSource,
+    };
+  }
+  // Carry a `#ref` on the source string so installFromSource pins the checkout,
+  // matching its existing `owner/repo#ref` / `url#ref` convention.
+  const source = packageSource.ref
+    ? `${packageSource.source}#${packageSource.ref}`
+    : packageSource.source;
+  return {
+    source,
+    sourceIdentity: packageSource.source,
+    sourceType: "git",
+    ref: packageSource.ref || null,
+    sha256: entry.sha256 || null,
+  };
+}
+
+/** Materialize one already-selected, preflight-approved registry entry. */
+export async function resolveRegistryEntrySource(url, entry, opts = {}) {
+  const inspected = inspectRegistryEntrySource(entry);
+  if (inspected.sourceType === "archive") {
+    const archive = await fetchAndMaterializeMarketplaceArchive({
+      registryUrl: url,
+      url: inspected.archiveSpec.requestUrl || inspected.archiveSpec.url,
+      sha256: inspected.archiveSpec.sha256,
+      token: opts.token,
+      allowInsecure: opts.allowInsecure === true,
+      offline: opts.offline === true,
+      artifactCacheDir: opts.artifactCacheDir,
+      sourceCacheDir: opts.archiveSourceCacheDir,
+      timeoutMs: opts.timeoutMs,
+      fetchImpl: opts.archiveFetchImpl,
+      resolveHostname: opts.resolveHostname,
+      proxyUrl: opts.proxyUrl,
+      pacFile: opts.pacFile,
+      caFile: opts.caFile,
+    });
+    return {
+      ...inspected,
+      source: archive.dir,
+      archiveAuthority: archive.authority,
+    };
+  }
+  return inspected;
 }
 
 /** Best-effort local temp dir helper (kept here so tests can stub fs deps). */

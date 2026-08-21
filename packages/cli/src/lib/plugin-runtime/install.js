@@ -3243,7 +3243,36 @@ function normalizeSourceMetadata(value) {
     );
   }
   assertCatalogRemoteArtifactBindings(metadata);
+  assertCatalogArchiveSourceBindings(metadata);
   return metadata;
+}
+
+function assertCatalogArchiveSourceBindings(metadata) {
+  const archive = metadata.catalogAuthority?.archiveSource;
+  if (!archive) return;
+  if (
+    metadata.type !== "registry" ||
+    !metadata.registry ||
+    !metadata.resolvedSource
+  ) {
+    throw new Error(
+      "marketplace archive authority requires registry and resolved source metadata",
+    );
+  }
+  let registryOrigin;
+  try {
+    registryOrigin = new URL(metadata.registry).origin;
+  } catch {
+    throw new Error("marketplace archive registry URL is invalid");
+  }
+  if (
+    archive.registryOrigin !== registryOrigin ||
+    archive.url !== metadata.resolvedSource
+  ) {
+    throw new Error(
+      "marketplace archive authority does not match the selected registry and source",
+    );
+  }
 }
 
 function normalizeMigrationIssuedAt(value) {
@@ -3545,6 +3574,7 @@ function normalizeCatalogAuthority(value) {
   const remoteArtifactEvidence = normalizeRemoteArtifactEvidence(
     value.remoteArtifactEvidence,
   );
+  const archiveSource = normalizeArchiveSourceAuthority(value.archiveSource);
   const remoteSbomPayloadComparison = assertRemoteSbomPayloadComparison(
     value.remoteSbomPayloadComparison,
     {
@@ -3651,6 +3681,7 @@ function normalizeCatalogAuthority(value) {
     ...(registryNetworkAuthority ? { registryNetworkAuthority } : {}),
     ...(artifactExpectations ? { artifactExpectations } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
+    ...(archiveSource ? { archiveSource } : {}),
     ...(remoteSbomPayloadComparison ? { remoteSbomPayloadComparison } : {}),
     ...(publisherDeclaration ? { publisherDeclaration } : {}),
     ...(publisherAuthority ? { publisherAuthority } : {}),
@@ -3658,6 +3689,72 @@ function normalizeCatalogAuthority(value) {
     governanceStatus,
     registryStatus,
     versionAuthority,
+  };
+}
+
+function normalizeArchiveSourceAuthority(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("catalogAuthority.archiveSource must be an object");
+  }
+  const url = cleanBounded(value.url, 4096);
+  const registryOrigin = cleanBounded(value.registryOrigin, 4096);
+  const archiveSha256 = cleanBounded(value.archiveSha256, 64);
+  const payloadSha256 = cleanBounded(value.payloadSha256, 64);
+  let archiveUrl;
+  let selectedOrigin;
+  try {
+    archiveUrl = new URL(url);
+    selectedOrigin = new URL(registryOrigin).origin;
+  } catch {
+    throw new Error("catalogAuthority.archiveSource URL authority is invalid");
+  }
+  if (
+    archiveUrl.origin !== selectedOrigin ||
+    archiveUrl.username ||
+    archiveUrl.password
+  ) {
+    throw new Error(
+      "catalogAuthority.archiveSource must use the selected registry origin",
+    );
+  }
+  if (
+    value.schemaVersion !== "cc-plugin-marketplace-archive-source/v1" ||
+    value.status !== "digest-verified-and-extracted" ||
+    !/^[a-f0-9]{64}$/u.test(archiveSha256 || "") ||
+    !/^[a-f0-9]{64}$/u.test(payloadSha256 || "")
+  ) {
+    throw new Error(
+      "catalogAuthority.archiveSource digest authority is invalid",
+    );
+  }
+  const compressedBytes = Number(value.compressedBytes);
+  const fileCount = Number(value.fileCount);
+  const totalBytes = Number(value.totalBytes);
+  if (
+    !Number.isSafeInteger(compressedBytes) ||
+    compressedBytes <= 0 ||
+    compressedBytes > 64 * 1024 * 1024 ||
+    !Number.isSafeInteger(fileCount) ||
+    fileCount <= 0 ||
+    fileCount > 10_000 ||
+    !Number.isSafeInteger(totalBytes) ||
+    totalBytes <= 0 ||
+    totalBytes > 256 * 1024 * 1024
+  ) {
+    throw new Error("catalogAuthority.archiveSource size authority is invalid");
+  }
+  return {
+    schemaVersion: value.schemaVersion,
+    status: value.status,
+    url: archiveUrl.href,
+    registryOrigin: selectedOrigin,
+    archiveSha256,
+    payloadSha256,
+    compressedBytes,
+    fileCount,
+    totalBytes,
+    fromCache: value.fromCache === true,
   };
 }
 
