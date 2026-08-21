@@ -35,7 +35,7 @@ const VSCODE_PROJECTION_PATH =
   "packages/vscode-extension/src/sessions-workbench.js";
 const JETBRAINS_PROJECTION_PATH =
   "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java";
-const REQUIRED_THRESHOLDS = Object.freeze({
+export const REQUIRED_THRESHOLDS = Object.freeze({
   processCount: REQUIRED_PROCESS_COUNT,
   maxPendingPerRecipient: SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
   maxMessageBytes: SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
@@ -48,7 +48,7 @@ const REQUIRED_THRESHOLDS = Object.freeze({
   duplicateDeliveries: 0,
   projectionRejects: 0,
 });
-const SOURCE_FILES = Object.freeze([
+export const SOURCE_FILES = Object.freeze([
   "packages/cli/scripts/verify-session-message-fabric.mjs",
   "packages/cli/src/lib/session-message-fabric.js",
   "packages/cli/src/lib/session-projection.js",
@@ -60,7 +60,7 @@ const SOURCE_FILES = Object.freeze([
   ".github/workflows/cli-ci.yml",
   ".github/workflows/cli-reliability-soak.yml",
 ]);
-const TEST_IDS = Object.freeze([
+export const TEST_IDS = Object.freeze([
   "xsession/32-process-admission",
   "xsession/queue-101-full",
   "xsession/256-kib-plus-one-rejected",

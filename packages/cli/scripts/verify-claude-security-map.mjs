@@ -115,7 +115,7 @@ const THRESHOLDS = Object.freeze({
   requiredGroupCountMin: REQUIRED_GROUPS.length,
   upstreamRevertedParitySuccessMax: 0,
 });
-const EVIDENCE_PRODUCER_PATHS = Object.freeze([
+export const EVIDENCE_PRODUCER_PATHS = Object.freeze([
   ".github/workflows/cli-ci.yml",
   ".github/workflows/cli-strict-sandbox.yml",
   ".github/workflows/ide-roadmap-safety.yml",

@@ -28,7 +28,9 @@ import {
 import { scanSecrets } from "../src/lib/secret-scan.js";
 
 const EXACT_SHA_RE = /^[a-f0-9]{40}$/u;
-const SOURCE_PATHS = Object.freeze([
+export const BROWSER_EVIDENCE_PROFILE_VERSION =
+  "browser-evidence-local-two-origin-v1";
+export const BROWSER_EVIDENCE_PRODUCER_PATHS = Object.freeze([
   ".github/workflows/ide-extensions.yml",
   "package-lock.json",
   "packages/cli/package.json",
@@ -57,7 +59,7 @@ const KNOWN_JOURNEY_SECRETS = Object.freeze([
   "opaque-upload-secret",
   "abcdefghijklmnop",
 ]);
-const TEST_IDS = Object.freeze([
+export const BROWSER_EVIDENCE_TEST_IDS = Object.freeze([
   "browser-evidence.local-two-origin",
   "browser-evidence.origin-revision-enforcement",
   "browser-evidence.login-redaction",
@@ -66,6 +68,20 @@ const TEST_IDS = Object.freeze([
   "browser-evidence.screenshot-diff",
   "browser-evidence.session-replay",
 ]);
+export const BROWSER_EVIDENCE_THRESHOLDS = Object.freeze({
+  origins: 2,
+  crossOriginDenied: 1,
+  revisionDenied: 1,
+  uploadCount: 1,
+  downloadCount: 1,
+  consoleErrorsMin: 1,
+  networkErrorsMin: 1,
+  screenshotDiffs: 1,
+  replayCount: 1,
+  loginFieldRedactions: 1,
+  queryValueRedactions: 1,
+  secretScanHits: 0,
+});
 const PLATFORM_OS = Object.freeze({
   linux: "linux",
   darwin: "macos",
@@ -140,7 +156,7 @@ function resolveBaseSha(root, headSha, requested) {
 
 function producerDigests(root, headSha) {
   return Object.fromEntries(
-    SOURCE_PATHS.map((sourcePath) => {
+    BROWSER_EVIDENCE_PRODUCER_PATHS.map((sourcePath) => {
       const headDigest = browserEvidenceDigest(
         gitBytes(root, ["cat-file", "blob", `${headSha}:${sourcePath}`]),
       );
@@ -781,7 +797,7 @@ export async function runBrowserEvidenceJourney(options) {
       attachments,
       evidenceDigests,
       measurements,
-      tests: TEST_IDS,
+      tests: BROWSER_EVIDENCE_TEST_IDS,
     };
     const summaryPath = path.join(
       artifactDir,
@@ -804,21 +820,8 @@ export async function runBrowserEvidenceJourney(options) {
         version: process.version.replace(/^v/u, ""),
         arch: process.arch,
       },
-      profileVersion: "browser-evidence-local-two-origin-v1",
-      thresholds: {
-        origins: 2,
-        crossOriginDenied: 1,
-        revisionDenied: 1,
-        uploadCount: 1,
-        downloadCount: 1,
-        consoleErrorsMin: 1,
-        networkErrorsMin: 1,
-        screenshotDiffs: 1,
-        replayCount: 1,
-        loginFieldRedactions: 1,
-        queryValueRedactions: 1,
-        secretScanHits: 0,
-      },
+      profileVersion: BROWSER_EVIDENCE_PROFILE_VERSION,
+      thresholds: BROWSER_EVIDENCE_THRESHOLDS,
       measurements,
       testIds: summary.tests,
       producerDigests: exactProducerDigests,

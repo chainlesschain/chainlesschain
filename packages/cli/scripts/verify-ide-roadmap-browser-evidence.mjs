@@ -13,6 +13,12 @@ import {
   verifyBrowserEvidenceEnvelope,
 } from "../src/lib/browser-evidence.js";
 import { scanSecrets } from "../src/lib/secret-scan.js";
+import {
+  BROWSER_EVIDENCE_PRODUCER_PATHS,
+  BROWSER_EVIDENCE_PROFILE_VERSION,
+  BROWSER_EVIDENCE_TEST_IDS,
+  BROWSER_EVIDENCE_THRESHOLDS,
+} from "./ide-roadmap-browser-evidence.mjs";
 
 const REQUIRED_OS = Object.freeze(["linux", "macos", "windows"]);
 const EXACT_SHA_RE = /^[a-f0-9]{40}$/u;
@@ -22,52 +28,9 @@ const KNOWN_JOURNEY_SECRETS = Object.freeze([
   "opaque-upload-secret",
   "abcdefghijklmnop",
 ]);
-const EXPECTED_PRODUCER_PATHS = Object.freeze([
-  ".github/workflows/ide-extensions.yml",
-  "package-lock.json",
-  "packages/cli/package.json",
-  "packages/cli/src/lib/browser-evidence.js",
-  "packages/cli/src/lib/chrome-connector.js",
-  "packages/cli/src/lib/artifact-store.js",
-  "packages/cli/src/lib/secret-scan.js",
-  "packages/cli/src/lib/credential-guard.js",
-  "packages/cli/src/lib/with-file-lock.js",
-  "packages/cli/src/runtime/agent-core.js",
-  "packages/cli/src/runtime/coding-agent-contract-shared.cjs",
-  "packages/cli/scripts/ide-roadmap-browser-evidence.mjs",
-  "packages/cli/scripts/verify-ide-roadmap-browser-evidence.mjs",
-  "packages/cli/__tests__/unit/browser-evidence.test.js",
-  "packages/cli/__tests__/unit/ide-roadmap-browser-evidence.test.js",
-  "packages/cli/__tests__/unit/chrome-connector-actions.test.js",
-  "packages/cli/__tests__/unit/browser-act-tool.test.js",
-  "packages/cli/__tests__/unit/browser-state-tool.test.js",
-  "packages/cli/__tests__/unit/chrome-connector.test.js",
-  "packages/cli/__tests__/unit/artifact-store.test.js",
-  "packages/cli/__tests__/unit/coding-agent-contract.test.js",
-]);
-const EXPECTED_TEST_IDS = Object.freeze([
-  "browser-evidence.local-two-origin",
-  "browser-evidence.origin-revision-enforcement",
-  "browser-evidence.login-redaction",
-  "browser-evidence.upload-download",
-  "browser-evidence.console-network-failure",
-  "browser-evidence.screenshot-diff",
-  "browser-evidence.session-replay",
-]);
-const EXPECTED_THRESHOLDS = Object.freeze({
-  origins: 2,
-  crossOriginDenied: 1,
-  revisionDenied: 1,
-  uploadCount: 1,
-  downloadCount: 1,
-  consoleErrorsMin: 1,
-  networkErrorsMin: 1,
-  screenshotDiffs: 1,
-  replayCount: 1,
-  loginFieldRedactions: 1,
-  queryValueRedactions: 1,
-  secretScanHits: 0,
-});
+const EXPECTED_PRODUCER_PATHS = BROWSER_EVIDENCE_PRODUCER_PATHS;
+const EXPECTED_TEST_IDS = BROWSER_EVIDENCE_TEST_IDS;
+const EXPECTED_THRESHOLDS = BROWSER_EVIDENCE_THRESHOLDS;
 const EXPECTED_ACTIONS = Object.freeze([
   "screenshot",
   "upload",
@@ -325,7 +288,7 @@ export function verifyBrowserEvidenceAggregate(options) {
         `${fragment.os} browser evidence fragment is not release-ready`,
       );
     }
-    if (fragment.profileVersion !== "browser-evidence-local-two-origin-v1") {
+    if (fragment.profileVersion !== BROWSER_EVIDENCE_PROFILE_VERSION) {
       throw new Error(
         `${fragment.os} browser evidence profile version mismatch`,
       );
