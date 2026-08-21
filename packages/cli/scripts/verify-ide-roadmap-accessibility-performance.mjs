@@ -15,6 +15,11 @@ import {
   validateJetBrainsEvidence,
 } from "./ide-roadmap-accessibility-performance.mjs";
 import { THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS } from "./ide-input-performance-profile.mjs";
+import {
+  ADVISORY_FRAGMENT_FILE,
+  REQUIRED_FRAGMENT_FILE,
+  verifyAxTranscriptFragments,
+} from "./ax-transcript-audit-fragment.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 
@@ -24,6 +29,11 @@ const REQUIRED_CELLS = Object.freeze([
   Object.freeze({ suffix: "linux", operatingSystem: "linux" }),
   Object.freeze({ suffix: "macos", operatingSystem: "darwin" }),
   Object.freeze({ suffix: "windows", operatingSystem: "win32" }),
+]);
+const EXPECTED_MANIFEST_FILES = Object.freeze([
+  ...REQUIRED_FILES,
+  REQUIRED_FRAGMENT_FILE,
+  ADVISORY_FRAGMENT_FILE,
 ]);
 
 function parseArgs(argv) {
@@ -244,7 +254,7 @@ function verifyCell(directory, expected) {
   assert.equal(manifest.operatingSystem, expected.operatingSystem);
   assert.deepEqual(
     Object.keys(manifest.files).sort(),
-    [...REQUIRED_FILES].sort(),
+    [...EXPECTED_MANIFEST_FILES].sort(),
   );
   const documents = {};
   for (const file of REQUIRED_FILES) {
@@ -264,6 +274,17 @@ function verifyCell(directory, expected) {
   for (const [key, value] of Object.entries(expected.provenance)) {
     assert.equal(host.provenance[key], value, `${expected.suffix}/${key}`);
   }
+  const axFragments = verifyAxTranscriptFragments({
+    artifactDir: directory,
+    releaseCommit: expected.releaseCommit,
+    artifactName: expected.provenance.artifactName,
+    ...(expected.repositoryRoot
+      ? { repositoryRoot: expected.repositoryRoot }
+      : {}),
+    ...(expected.producerReader
+      ? { producerReader: expected.producerReader }
+      : {}),
+  });
 
   validateAtProbe(
     documents["assistive-technology.json"],
@@ -446,6 +467,12 @@ function verifyCell(directory, expected) {
     ideInputPerformanceDigest: digest(
       fs.readFileSync(path.join(directory, "ide-input-performance.json")),
     ),
+    axTranscript: {
+      required: axFragments.required,
+      requiredDigest: axFragments.requiredDigest,
+      advisory: axFragments.advisory,
+      advisoryDigest: axFragments.advisoryDigest,
+    },
   };
 }
 
@@ -500,6 +527,27 @@ function main() {
     ],
     cells,
   };
+  const fragmentOutputDir = options.fragmentOutputDir
+    ? path.resolve(options.fragmentOutputDir)
+    : null;
+  if (fragmentOutputDir) {
+    fs.mkdirSync(fragmentOutputDir, { recursive: true });
+    for (const cell of cells) {
+      fs.writeFileSync(
+        path.join(fragmentOutputDir, `ax-transcript-${cell.suffix}.json`),
+        `${JSON.stringify(cell.axTranscript.required, null, 2)}\n`,
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(
+          fragmentOutputDir,
+          `ax-transcript-${cell.suffix}-advisory.json`,
+        ),
+        `${JSON.stringify(cell.axTranscript.advisory, null, 2)}\n`,
+        "utf8",
+      );
+    }
+  }
   fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });
   fs.writeFileSync(
     path.resolve(options.output),
@@ -510,4 +558,4 @@ function main() {
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
-export { REQUIRED_CELLS, verifyCell };
+export { EXPECTED_MANIFEST_FILES, REQUIRED_CELLS, verifyCell };

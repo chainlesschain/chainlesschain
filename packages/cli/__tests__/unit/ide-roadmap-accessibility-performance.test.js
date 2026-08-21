@@ -11,6 +11,7 @@ import {
   summarizeSamples,
   validateAtProbe,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
+import { appendAxTranscriptFragments } from "../../scripts/ax-transcript-audit-fragment.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-performance.mjs";
 import {
   SOURCE_PATHS as INPUT_PERFORMANCE_SOURCE_PATHS,
@@ -172,6 +173,8 @@ function createCell() {
     "host-environment.json": {
       releaseCommit: COMMIT,
       operatingSystem: "linux",
+      architecture: "x64",
+      nodeVersion: process.version,
       hosts: ["vscode", "jetbrains"],
       provenance,
     },
@@ -352,7 +355,15 @@ function createCell() {
     operatingSystem: "linux",
     files,
   });
-  return { directory, provenance };
+  const producerReader = () => Buffer.from("exact AX producer fixture");
+  appendAxTranscriptFragments({
+    artifactDir: directory,
+    releaseCommit: COMMIT,
+    artifactName: provenance.artifactName,
+    producerReader,
+    requireWorkingTreeMatch: false,
+  });
+  return { directory, producerReader, provenance };
 }
 
 afterEach(() => {
@@ -434,16 +445,20 @@ describe("P2-4 accessibility/performance matrix", () => {
     );
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain("needs.accessibility-performance.result");
+    expect(workflow).toContain("ax-transcript-audit-fragment.mjs");
+    expect(workflow).toContain("--fragment-output-dir");
+    expect(workflow).toContain("accessibility-performance-aggregate/fragments");
   });
 
   it("rehashes the complete zero-failure producer cell", () => {
-    const { directory, provenance } = createCell();
+    const { directory, producerReader, provenance } = createCell();
     expect(
       verifyCell(directory, {
         suffix: "linux",
         operatingSystem: "linux",
         releaseCommit: COMMIT,
         provenance,
+        producerReader,
       }),
     ).toMatchObject({ suffix: "linux" });
     fs.appendFileSync(path.join(directory, "performance-samples.json"), " ");
@@ -453,6 +468,7 @@ describe("P2-4 accessibility/performance matrix", () => {
         operatingSystem: "linux",
         releaseCommit: COMMIT,
         provenance,
+        producerReader,
       }),
     ).toThrow();
   });
