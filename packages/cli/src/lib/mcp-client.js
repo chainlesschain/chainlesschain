@@ -23,5 +23,7 @@ export {
   isMcpAuthenticationError,
   isMcpRpcError,
   isTransientMcpError,
+  SUPPORTED_MCP_PROTOCOL_VERSIONS,
+  assertSupportedMcpProtocolVersion,
   _deps,
 } from "../harness/mcp-client.js";

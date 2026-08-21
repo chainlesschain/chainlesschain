@@ -18,7 +18,11 @@ function fakeProcess() {
     const message = JSON.parse(String(data).trim());
     proc.written.push(message);
     const results = {
-      initialize: { serverInfo: {}, capabilities: {} },
+      initialize: {
+        protocolVersion: message.params?.protocolVersion,
+        serverInfo: {},
+        capabilities: {},
+      },
       "tools/list": { tools: [] },
       "resources/list": { resources: [] },
       "resources/templates/list": { resourceTemplates: [] },

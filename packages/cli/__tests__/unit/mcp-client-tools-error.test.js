@@ -45,7 +45,11 @@ const initResponse = (capabilities) =>
     body: JSON.stringify({
       jsonrpc: "2.0",
       id: 1,
-      result: { serverInfo: { name: "srv", version: "1" }, capabilities },
+      result: {
+        protocolVersion: "2025-11-25",
+        serverInfo: { name: "srv", version: "1" },
+        capabilities,
+      },
     }),
     sessionId: "sess-1",
   });

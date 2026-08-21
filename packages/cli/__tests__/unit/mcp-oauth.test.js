@@ -63,6 +63,34 @@ describe("generatePkce", () => {
   });
 });
 
+describe("resolveOAuthLoopbackRedirect", () => {
+  it("preserves an exact pre-registered IPv4-loopback callback", () => {
+    expect(
+      oauth.resolveOAuthLoopbackRedirect({
+        redirectUri: "http://127.0.0.1:43119/oauth/callback",
+      }),
+    ).toEqual({
+      redirectUri: "http://127.0.0.1:43119/oauth/callback",
+      host: "127.0.0.1",
+      port: 43119,
+      redirectPath: "/oauth/callback",
+    });
+  });
+
+  it.each([
+    "https://127.0.0.1:43119/callback",
+    "http://localhost:43119/callback",
+    "http://127.0.0.1.evil.test:43119/callback",
+    "http://127.0.0.1:43119/callback?code=forged",
+    "http://127.0.0.1:43119/callback#fragment",
+    "http://user@127.0.0.1:43119/callback",
+  ])("rejects a non-canonical or non-loopback callback: %s", (redirectUri) => {
+    expect(() => oauth.resolveOAuthLoopbackRedirect({ redirectUri })).toThrow(
+      /exact canonical/i,
+    );
+  });
+});
+
 describe("discoverAuthMetadata", () => {
   it("follows protected-resource → authorization-server", async () => {
     _deps.fetch = fetchStub({

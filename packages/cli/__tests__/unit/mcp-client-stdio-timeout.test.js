@@ -33,6 +33,7 @@ function handshakeResult(method) {
   switch (method) {
     case "initialize":
       return {
+        protocolVersion: "2025-11-25",
         serverInfo: { name: "fake", version: "1" },
         capabilities: { tools: {} },
       };

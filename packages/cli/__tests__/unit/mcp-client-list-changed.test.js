@@ -49,6 +49,7 @@ function makeFakeProc(state) {
     switch (msg.method) {
       case "initialize":
         result = {
+          protocolVersion: "2025-11-25",
           serverInfo: { name: "fake", version: "1" },
           capabilities: { tools: {}, resources: {} },
         };

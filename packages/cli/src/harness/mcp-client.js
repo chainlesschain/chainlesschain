@@ -45,6 +45,11 @@ import {
   prepareMcpStdioExecutableIdentity,
 } from "../lib/mcp-stdio-executable-identity.js";
 import { resolveMcpStdioSandboxContext } from "../lib/mcp-stdio-workspace-authority.js";
+import {
+  closeMcpTlsDispatcher,
+  createMcpTlsDispatcher,
+  loadMcpTlsMaterial,
+} from "../lib/mcp-tls.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -63,6 +68,9 @@ export const _deps = {
   verifyMcpStdioApprovedWorkingDirectory,
   prepareMcpStdioExecutableIdentity,
   resolveMcpStdioSandboxContext,
+  loadMcpTlsMaterial,
+  createMcpTlsDispatcher,
+  closeMcpTlsDispatcher,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -230,6 +238,24 @@ const MCP_HTTP_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
  */
 const STDIO_REQUEST_TIMEOUT_MS = 30000;
 const MCP_PROTOCOL_VERSION = "2025-11-25";
+export const SUPPORTED_MCP_PROTOCOL_VERSIONS = Object.freeze([
+  "2024-11-05",
+  "2025-03-26",
+  "2025-06-18",
+  MCP_PROTOCOL_VERSION,
+]);
+const supportedMcpProtocolVersions = new Set(SUPPORTED_MCP_PROTOCOL_VERSIONS);
+
+export function assertSupportedMcpProtocolVersion(value) {
+  if (typeof value !== "string" || !supportedMcpProtocolVersions.has(value)) {
+    const error = new Error(
+      "MCP server selected an unsupported protocol version",
+    );
+    error.code = "CC_MCP_PROTOCOL_VERSION_UNSUPPORTED";
+    throw error;
+  }
+  return value;
+}
 const URL_ELICITATION_REQUIRED = -32042;
 const MCP_RPC_ERROR_CODE = "CC_MCP_RPC_ERROR";
 const mcpRpcControlData = new WeakMap();
@@ -2082,6 +2108,17 @@ export class MCPClient extends EventEmitter {
         };
       }
     }
+    let tlsMaterial = null;
+    if (sourceConfig.tls != null) {
+      if (transportKind !== "https" && transportKind !== "wss") {
+        throw mcpTransportError(
+          "CC_MCP_TLS_TRANSPORT_REQUIRED",
+          `MCP TLS configuration requires https or wss (server "${name}")`,
+          { transport: transportKind, url: sourceConfig.url },
+        );
+      }
+      tlsMaterial = _deps.loadMcpTlsMaterial(sourceConfig.tls);
+    }
     const connectionHeaders = await this._connectionHeaders(
       name,
       sourceConfig,
@@ -2104,6 +2141,8 @@ export class MCPClient extends EventEmitter {
       _httpRequestControllers: new Set(),
       _httpDiscardControllers: new Set(),
       _httpDiscardStopping: false,
+      _httpDispatcher: null,
+      _tlsIdentityDigest: tlsMaterial?.identityDigest || null,
       _disconnectPromise: null,
       _webSocketPayloadError: null,
       _webSocketInboundError: null,
@@ -2157,6 +2196,9 @@ export class MCPClient extends EventEmitter {
         }
         entry.httpUrl = config.url;
         entry.httpHeaders = connectionHeaders;
+        entry._httpDispatcher = tlsMaterial
+          ? _deps.createMcpTlsDispatcher(tlsMaterial)
+          : null;
       } else if (isWebSocketTransport(transportKind)) {
         if (!config.url) {
           throw mcpTransportError(
@@ -2203,6 +2245,7 @@ export class MCPClient extends EventEmitter {
           ...(transportKind === "wss" && config.rejectUnauthorized === false
             ? { rejectUnauthorized: false }
             : {}),
+          ...(tlsMaterial?.connectOptions || {}),
         });
         entry.socket = socket;
 
@@ -2680,8 +2723,8 @@ export class MCPClient extends EventEmitter {
         clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
       });
 
-      entry.protocolVersion = String(
-        initResult?.protocolVersion || this._protocolVersion,
+      entry.protocolVersion = assertSupportedMcpProtocolVersion(
+        initResult?.protocolVersion,
       );
       // Send initialized notification
       this._sendNotification(name, "notifications/initialized", {});
@@ -2831,6 +2874,12 @@ export class MCPClient extends EventEmitter {
           // teardown is best-effort
         }
       }
+      try {
+        await _deps.closeMcpTlsDispatcher(entry._httpDispatcher);
+      } catch {
+        // Preserve the connection failure; dispatcher cleanup is best-effort.
+      }
+      entry._httpDispatcher = null;
       this._releaseToolInventory(entry);
       this.servers.delete(name);
       if (
@@ -2906,6 +2955,12 @@ export class MCPClient extends EventEmitter {
         }
         return true;
       } finally {
+        try {
+          await _deps.closeMcpTlsDispatcher(entry._httpDispatcher);
+        } catch {
+          // Transport teardown remains best-effort.
+        }
+        entry._httpDispatcher = null;
         entry.state = ServerState.DISCONNECTED;
         this._releaseToolInventory(entry);
         // A future connection may reuse the same name. Never let a delayed
@@ -3173,6 +3228,9 @@ export class MCPClient extends EventEmitter {
       try {
         const currentEntry = this.servers.get(name) || null;
         const currentConfig = currentEntry?.config || null;
+        const resourceSubscriptions = [
+          ...(currentEntry?.resourceSubscriptions || []),
+        ];
         const resolver = this._reconnectors.get(name);
         const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
@@ -3195,6 +3253,14 @@ export class MCPClient extends EventEmitter {
           reconnectConfig,
           options.connectAuthRetryUsed === true,
         );
+        try {
+          for (const uri of resourceSubscriptions) {
+            await this.subscribeResource(name, uri);
+          }
+        } catch (error) {
+          await this.disconnect(name).catch(() => {});
+          throw error;
+        }
         this.emit("server-reconnected", { name, url: fresh.url || null });
         return true;
       } catch {
@@ -3752,6 +3818,9 @@ export class MCPClient extends EventEmitter {
                 ...(stream.controller
                   ? { signal: stream.controller.signal }
                   : {}),
+                ...(entry._httpDispatcher
+                  ? { dispatcher: entry._httpDispatcher }
+                  : {}),
               }),
               stream.controller?.signal,
             );
@@ -3997,6 +4066,9 @@ export class MCPClient extends EventEmitter {
             headers,
             body,
             ...(controller ? { signal: controller.signal } : {}),
+            ...(entry._httpDispatcher
+              ? { dispatcher: entry._httpDispatcher }
+              : {}),
           });
         },
       );
@@ -4729,6 +4801,7 @@ async function _fetchAndDiscardHttpResponse(entry, options) {
     const response = await _deps.fetch(entry.httpUrl, {
       ...options,
       ...(controller ? { signal: controller.signal } : {}),
+      ...(entry._httpDispatcher ? { dispatcher: entry._httpDispatcher } : {}),
     });
     _cancelHttpResponseBody(response);
     if (timedOut) {

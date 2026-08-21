@@ -633,6 +633,10 @@ export function registerMcpCommand(program) {
       "Use a pre-registered client_id instead of dynamic registration",
     )
     .option(
+      "--redirect-uri <url>",
+      "Exact pre-registered http://127.0.0.1:<port>/<path> callback URI",
+    )
+    .option(
       "--port <n>",
       "Localhost callback port",
       (v) => parseInt(v, 10),
@@ -662,6 +666,7 @@ export function registerMcpCommand(program) {
         const rec = await oauth.authorizeInteractive(url, {
           scope: options.scope,
           clientId: options.clientId,
+          redirectUri: options.redirectUri,
           port: options.port,
           writeOut: (s) => process.stdout.write(s),
         });

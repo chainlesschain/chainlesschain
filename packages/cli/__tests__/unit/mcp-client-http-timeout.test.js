@@ -33,7 +33,11 @@ function makeResponse({ body = "", sessionId = "s1" } = {}) {
 function handshakeResult(method) {
   switch (method) {
     case "initialize":
-      return { serverInfo: { name: "h" }, capabilities: {} };
+      return {
+        protocolVersion: "2025-11-25",
+        serverInfo: { name: "h" },
+        capabilities: {},
+      };
     case "tools/list":
       return { tools: [] };
     case "resources/list":

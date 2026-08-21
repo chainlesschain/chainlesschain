@@ -5,6 +5,10 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  MCP_HEADERS_HELPER_MAX_HEADER_COUNT,
+  MCP_HEADERS_HELPER_MAX_HEADER_VALUE_BYTES,
+  MCP_HEADERS_HELPER_MAX_OUTPUT_BYTES,
+  MCP_HEADERS_HELPER_TIMEOUT_MS,
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
   runMcpHeadersHelper,
@@ -131,6 +135,20 @@ describe("MCP headersHelper runner", () => {
       expect(error.code).toBe("CC_MCP_HEADERS_HELPER_OUTPUT_INVALID");
       expect(error.message).not.toContain(stdout);
     }
+  });
+
+  it("keeps the 10s/64KiB/128-header/16KiB-value hard limits", () => {
+    expect(MCP_HEADERS_HELPER_TIMEOUT_MS).toBe(10_000);
+    expect(MCP_HEADERS_HELPER_MAX_OUTPUT_BYTES).toBe(64 * 1024);
+    expect(MCP_HEADERS_HELPER_MAX_HEADER_COUNT).toBe(128);
+    expect(MCP_HEADERS_HELPER_MAX_HEADER_VALUE_BYTES).toBe(16 * 1024);
+    const tooMany = Object.fromEntries(
+      Array.from({ length: 129 }, (_, index) => [`X-Limit-${index}`, "ok"]),
+    );
+    expect(() => mergeMcpHeaders({}, tooMany)).toThrow(/entry count/i);
+    expect(() =>
+      mergeMcpHeaders({}, { "X-Oversized": "x".repeat(16 * 1024 + 1) }),
+    ).toThrow(/invalid name or value/i);
   });
 
   it("bounds stdout and terminates the helper process group", async () => {

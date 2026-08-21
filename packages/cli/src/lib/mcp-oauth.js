@@ -52,6 +52,56 @@ export const _deps = {
   withStoreLock,
 };
 
+/**
+ * Resolve the exact IPv4-loopback redirect used by both the listener and the
+ * OAuth wire exchange. Pre-registered clients need byte-for-byte redirect URI
+ * stability, so explicit values are accepted only in canonical form.
+ */
+export function resolveOAuthLoopbackRedirect({
+  redirectUri,
+  host = "127.0.0.1",
+  port = 53682,
+  redirectPath = "/callback",
+} = {}) {
+  if (redirectUri != null && typeof redirectUri !== "string") {
+    throw new Error("OAuth redirectUri must be a string");
+  }
+  const candidate =
+    redirectUri == null ? `http://${host}:${port}${redirectPath}` : redirectUri;
+  let parsed;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error("OAuth redirectUri must be a valid loopback URL");
+  }
+  const parsedPort = Number(parsed.port);
+  const canonical = `http://127.0.0.1:${parsed.port}${parsed.pathname}`;
+  if (
+    parsed.protocol !== "http:" ||
+    parsed.hostname !== "127.0.0.1" ||
+    !parsed.port ||
+    !Number.isInteger(parsedPort) ||
+    parsedPort < 1 ||
+    parsedPort > 65535 ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    !parsed.pathname.startsWith("/") ||
+    candidate !== canonical
+  ) {
+    throw new Error(
+      "OAuth redirectUri must be an exact canonical http://127.0.0.1:<port>/<path> URL",
+    );
+  }
+  return {
+    redirectUri: candidate,
+    host: "127.0.0.1",
+    port: parsedPort,
+    redirectPath: parsed.pathname,
+  };
+}
+
 /** Discovery/token requests retry ONCE after a transient error (CC 2.1.191). */
 const MCP_OAUTH_RETRY_BACKOFF_MS = 300;
 
@@ -794,23 +844,22 @@ export function waitForCallback({
  * Run the full interactive Authorization Code + PKCE flow and persist the token.
  *
  * @param {string} serverUrl
- * @param {object} [opts] { scope, clientId, port=53682, host, redirectPath,
- *                          timeout, writeOut }
+ * @param {object} [opts] { scope, clientId, redirectUri, port=53682, host,
+ *                          redirectPath, timeout, writeOut }
  * @returns {Promise<{server, access_token, ...}>}  the stored record
  */
 export async function authorizeInteractive(serverUrl, opts = {}) {
   const {
     scope,
     clientId: cfgClientId,
-    port = 53682,
-    host = "127.0.0.1",
-    redirectPath = "/callback",
     timeout = 300_000,
     writeOut = (s) => process.stdout.write(s),
   } = opts;
 
+  const { redirectUri, host, port, redirectPath } =
+    resolveOAuthLoopbackRedirect(opts);
+
   const metadata = await discoverAuthMetadata(serverUrl);
-  const redirectUri = `http://${host}:${port}${redirectPath}`;
 
   let clientId = cfgClientId;
   let clientSecret = null;

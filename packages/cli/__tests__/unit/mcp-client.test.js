@@ -685,6 +685,7 @@ describe("MCP Client", () => {
             jsonrpc: "2.0",
             id: 1,
             result: {
+              protocolVersion: "2025-11-25",
               serverInfo: { name: "remote", version: "1" },
               capabilities: {},
             },
@@ -738,7 +739,7 @@ describe("MCP Client", () => {
         "",
         'data: {"jsonrpc":"2.0","method":"notifications/elicitation/complete","params":{"elicitationId":"unknown-is-ignored"}}',
         "",
-        'data: {"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"sse"}}}',
+        'data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","serverInfo":{"name":"sse"}}}',
         "",
         "",
       ].join("\n");
@@ -896,7 +897,11 @@ describe("MCP Client", () => {
       // connect
       fetchQueue.push(
         makeResponse({
-          body: JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} }),
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { protocolVersion: "2025-11-25" },
+          }),
           sessionId: "sess-del",
         }),
       );
@@ -933,7 +938,11 @@ describe("MCP Client", () => {
     it("callTool on an HTTP server returns the result payload", async () => {
       fetchQueue.push(
         makeResponse({
-          body: JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} }),
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { protocolVersion: "2025-11-25" },
+          }),
           sessionId: "s-call",
         }),
       );
@@ -976,7 +985,11 @@ describe("MCP Client", () => {
     it("forwards custom headers on every request", async () => {
       fetchQueue.push(
         makeResponse({
-          body: JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} }),
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { protocolVersion: "2025-11-25" },
+          }),
         }),
       );
       fetchQueue.push(makeResponse({ body: "" }));

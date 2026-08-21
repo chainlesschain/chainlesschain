@@ -17,8 +17,8 @@ const { buildExplicitHookShellInvocation } = hookShellCommand;
 export const MCP_HEADERS_HELPER_TIMEOUT_MS = 10_000;
 export const MCP_HEADERS_HELPER_MAX_OUTPUT_BYTES = 64 * 1024;
 const MAX_HELPER_COMMAND_BYTES = 32 * 1024;
-const MAX_HEADER_COUNT = 128;
-const MAX_HEADER_VALUE_BYTES = 16 * 1024;
+export const MCP_HEADERS_HELPER_MAX_HEADER_COUNT = 128;
+export const MCP_HEADERS_HELPER_MAX_HEADER_VALUE_BYTES = 16 * 1024;
 const HEADER_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const TRANSPORT_OWNED_HEADERS = new Set([
   "accept",
@@ -189,7 +189,7 @@ function normalizeHeaderMap(value, source) {
     );
   }
   const entries = Object.entries(value);
-  if (entries.length > MAX_HEADER_COUNT) {
+  if (entries.length > MCP_HEADERS_HELPER_MAX_HEADER_COUNT) {
     throw helperError(
       "CC_MCP_HEADERS_HELPER_OUTPUT_INVALID",
       `MCP ${source} headers exceed the allowed entry count`,
@@ -201,7 +201,8 @@ function normalizeHeaderMap(value, source) {
       !HEADER_NAME.test(name) ||
       typeof headerValue !== "string" ||
       hasInvalidHeaderValueCharacter(headerValue) ||
-      Buffer.byteLength(headerValue, "utf8") > MAX_HEADER_VALUE_BYTES ||
+      Buffer.byteLength(headerValue, "utf8") >
+        MCP_HEADERS_HELPER_MAX_HEADER_VALUE_BYTES ||
       (source === "dynamic" && TRANSPORT_OWNED_HEADERS.has(name.toLowerCase()))
     ) {
       throw helperError(

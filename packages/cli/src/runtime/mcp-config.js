@@ -51,6 +51,7 @@ import {
   normalizeMcpSandboxPolicy,
   readMcpStdioCwd,
 } from "../lib/mcp-sandbox-policy.js";
+import { normalizeMcpTlsConfig } from "../lib/mcp-tls.js";
 
 function invalidSandboxPolicy(message) {
   const error = new TypeError(message);
@@ -210,6 +211,7 @@ export function parseMcpServers(raw) {
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
+      ...(cfg.tls != null ? { tls: normalizeMcpTlsConfig(cfg.tls) } : {}),
     };
   }
   return out;

@@ -26,6 +26,13 @@ on:
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
+      - "packages/cli/src/harness/mcp-client.js"
+      - "packages/cli/src/commands/mcp.js"
+      - "packages/cli/src/lib/mcp-client.js"
+      - "packages/cli/src/lib/mcp-oauth.js"
+      - "packages/cli/src/lib/mcp-tls.js"
+      - "packages/cli/src/lib/mcp-headers-helper.js"
+      - "packages/cli/src/runtime/mcp-config.js"
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/src/lib/automation-center-incidents.js"
       - "packages/cli/src/lib/automation-center-runtime.js"
@@ -38,11 +45,18 @@ on:
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/scripts/cli-mcp-security-soak.mjs"
+      - "packages/cli/scripts/verify-mcp-lifecycle-increments.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-message-fabric.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
+      - "packages/cli/__tests__/unit/mcp-lifecycle-increments.test.js"
+      - "packages/cli/__tests__/unit/mcp-oauth.test.js"
+      - "packages/cli/__tests__/unit/mcp-client-headers-helper.test.js"
+      - "packages/cli/__tests__/unit/mcp-client-rpc-error-sanitization.test.js"
+      - "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js"
+      - "packages/cli/__tests__/unit/ide-hot-reconnect.test.js"
       - "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js"
       - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs"
       - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs"
@@ -424,6 +438,13 @@ jobs:
           CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_DIR: ${{ runner.temp }}/cli-mcp-execution-context-live-${{ runner.os }}
         run: npm run test:cli-mcp-security-soak
 
+      - name: Run exact-SHA MCP lifecycle compatibility matrix
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+
       - name: Upload repeated materialized capsule execution-context evidence
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v6
@@ -439,6 +460,15 @@ jobs:
         with:
           name: cli-mcp-security-soak-${{ runner.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload exact-SHA MCP lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mcp-lifecycle-${{ runner.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
           if-no-files-found: error
           retention-days: 90
 
@@ -475,6 +505,13 @@ jobs:
           path: ${{ runner.temp }}/cli-mcp-security-soak-evidence
           merge-multiple: true
 
+      - name: Download exact-SHA MCP lifecycle evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: mcp-lifecycle-*-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mcp-lifecycle-evidence
+          merge-multiple: true
+
       - name: Download materialized capsule execution-context evidence
         if: github.event_name != 'pull_request'
         uses: actions/download-artifact@v7
@@ -505,10 +542,26 @@ jobs:
             --allow-smoke \
             --output "${RUNNER_TEMP}/cli-mcp-security-soak-aggregate.json"
 
+      - name: Verify complete MCP lifecycle platform matrix
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          --verify-evidence-dir "${RUNNER_TEMP}/mcp-lifecycle-evidence"
+          --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-aggregate.json"
+
       - name: Upload immutable MCP security soak aggregate
         uses: actions/upload-artifact@v6
         with:
           name: cli-mcp-security-soak-${{ github.event_name == 'pull_request' && 'smoke-non-qualifying' || 'formal-aggregate' }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/cli-mcp-security-soak-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload immutable MCP lifecycle aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: mcp-lifecycle-aggregate-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mcp-lifecycle-aggregate.json
           if-no-files-found: error
           retention-days: 90

@@ -114,6 +114,19 @@ jobs:
           name: session-message-fabric-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
           if-no-files-found: error
+      - name: Verify MCP lifecycle compatibility increments
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+      - name: Upload MCP lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
+          if-no-files-found: error
       - name: Verify CLI --version
         working-directory: packages/cli
         run: node bin/chainlesschain.js --version

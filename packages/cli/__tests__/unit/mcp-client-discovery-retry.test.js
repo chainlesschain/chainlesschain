@@ -37,7 +37,11 @@ function jsonResponse(id, result, { status = 200, ok = true } = {}) {
 function handshakeResult(method) {
   switch (method) {
     case "initialize":
-      return { serverInfo: { name: "h" }, capabilities: { tools: {} } };
+      return {
+        protocolVersion: "2025-11-25",
+        serverInfo: { name: "h" },
+        capabilities: { tools: {} },
+      };
     case "tools/list":
       return { tools: [{ name: "t1" }] };
     default:
