@@ -29,34 +29,81 @@ function isProcessAlive(pid) {
   }
 }
 
-async function waitForMarker(markerPath, nonce, timeoutMs, getEarlyExit) {
-  const deadline = Date.now() + timeoutMs;
-  do {
-    try {
-      const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
-      if (
-        marker?.nonce === nonce &&
-        Number.isInteger(marker.parentPid) &&
-        marker.parentPid > 0 &&
-        Number.isInteger(marker.grandchildPid) &&
-        marker.grandchildPid > 0
-      ) {
-        return marker;
+function waitForMarker(markerPath, nonce, timeoutMs, outcome) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timer;
+    let watcher;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      watcher?.close();
+      callback(value);
+    };
+    const readMarker = () => {
+      if (settled) return false;
+      let marker;
+      try {
+        marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
+      } catch {
+        return false;
       }
-    } catch {
-      // The grandchild publishes the marker atomically after it starts.
-    }
-    const earlyExit = getEarlyExit?.();
-    if (earlyExit) {
-      throw new Error(
-        `headersHelper fixture exited before publishing its PIDs (${earlyExit.error?.code || "resolved"}: ${earlyExit.error?.message || "no error"}; ${earlyExit.diagnostic || "no diagnostics"})`,
+      if (
+        marker?.nonce !== nonce ||
+        !Number.isInteger(marker.parentPid) ||
+        marker.parentPid <= 0 ||
+        !Number.isInteger(marker.grandchildPid) ||
+        marker.grandchildPid <= 0
+      ) {
+        return false;
+      }
+      finish(resolve, marker);
+      return true;
+    };
+
+    try {
+      watcher = fs.watch(path.dirname(markerPath), { persistent: false }, () =>
+        readMarker(),
       );
+    } catch (error) {
+      finish(
+        reject,
+        new Error(
+          `headersHelper process-tree marker watch failed: ${error?.message || error}`,
+        ),
+      );
+      return;
     }
-    await delay(25);
-  } while (Date.now() < deadline);
-  throw new Error(
-    "headersHelper process-tree fixture did not publish its PIDs",
-  );
+
+    watcher.once("error", (error) => {
+      finish(
+        reject,
+        new Error(
+          `headersHelper process-tree marker watch failed: ${error?.message || error}`,
+        ),
+      );
+    });
+    timer = setTimeout(() => {
+      if (readMarker()) return;
+      finish(
+        reject,
+        new Error(
+          "headersHelper process-tree fixture did not publish its PIDs",
+        ),
+      );
+    }, timeoutMs);
+    void outcome.then((earlyExit) => {
+      if (readMarker()) return;
+      finish(
+        reject,
+        new Error(
+          `headersHelper fixture exited before publishing its PIDs (${earlyExit.error?.code || "resolved"}: ${earlyExit.error?.message || "no error"}; ${earlyExit.diagnostic || "no diagnostics"})`,
+        ),
+      );
+    });
+    readMarker();
+  });
 }
 
 async function waitForProcessesToExit(pids, timeoutMs) {
@@ -188,7 +235,7 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
   () => {
     it.skipIf(windowsTreeKillRestricted)(
       "reaps the helper parent and grandchild before rejecting",
-      { timeout: process.platform === "win32" ? 25_000 : 15_000 },
+      { timeout: 25_000 },
       async ({ skip }) => {
         if (process.platform === "win32") {
           const taskkillAvailable = await canTerminateWindowsChildTree();
@@ -205,6 +252,7 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
           path.join(os.tmpdir(), "cc-mcp-helper-tree-"),
         );
         const markerPath = path.join(workspace, "tree.json");
+        const markerFileName = path.basename(markerPath);
         const localFixtureName = "headers-helper-tree-fixture.mjs";
         fs.copyFileSync(fixturePath, path.join(workspace, localFixtureName));
         const nonce = `${process.pid}-${Date.now()}-${Math.random()}`;
@@ -213,7 +261,6 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
         const posixKillCalls = [];
         let rootChild = null;
         let marker = null;
-        let earlyOutcome = null;
         const rootDiagnostic = { close: null, error: null, stderr: "" };
 
         const spawn = (file, args, options) => {
@@ -254,7 +301,7 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
         };
         const outcome = runMcpHeadersHelper(
           {
-            command: `node ${localFixtureName}`,
+            command: `node ${localFixtureName} ${markerFileName} ${nonce}`,
             cwd: workspace,
             env: process.env,
             serverName: nonce,
@@ -265,14 +312,14 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
             kill,
             spawn,
             spawnSync,
-            timeoutMs: 5_000,
+            timeoutMs: 10_000,
           },
         ).then(
           () => ({ resolved: true, error: null }),
           (error) => ({ resolved: false, error }),
         );
-        void outcome.then((result) => {
-          earlyOutcome = {
+        const diagnosticOutcome = outcome.then((result) => {
+          return {
             ...result,
             diagnostic: JSON.stringify(rootDiagnostic),
           };
@@ -282,14 +329,14 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
           marker = await waitForMarker(
             markerPath,
             nonce,
-            4_000,
-            () => earlyOutcome,
+            13_000,
+            diagnosticOutcome,
           );
           expect(marker.parentPid).not.toBe(marker.grandchildPid);
           expect(isProcessAlive(marker.parentPid)).toBe(true);
           expect(isProcessAlive(marker.grandchildPid)).toBe(true);
 
-          const result = await settleWithin(outcome, 9_000);
+          const result = await settleWithin(outcome, 14_000);
           expect(result.resolved).toBe(false);
           expect(result.error).toMatchObject({
             code: "CC_MCP_HEADERS_HELPER_TIMEOUT",

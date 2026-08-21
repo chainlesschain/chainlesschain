@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.165.6: safer remote sessions and governed plugin sources
+
+> `chainlesschain` **0.165.5 -> 0.165.6** (candidate; not yet published,
+> 2026-08-21).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Remote Control safe defaults**: direct sessions bind to loopback by
+  default. Trusted-LAN exposure requires explicit command authority, preserves
+  the selected bind address, fails closed on relay/direct fallback, and keeps
+  IDE pairing surfaces from presenting loopback endpoints as phone-ready QR
+  links.
+- **Governed plugin source identity**: managed Marketplace policy now evaluates
+  canonical Git, registry, file, alias, ref, path, host, port, principal, and
+  registry-resolution identities before target I/O or process spawn. Clone
+  execution is isolated from ambient Git/SSH configuration, and cache
+  provenance remains bound to the approved source and registry document.
+- **Digest-pinned Marketplace archives**: registry install and update can
+  materialize same-origin, catalog-bound `tgz`/`tar.gz` sources only after
+  candidate preflight. SHA-256 verification and bounded extraction reject
+  traversal, links, special entries, case collisions, and expansion bombs;
+  archive and extracted-payload digest authority are revalidated for offline
+  cache replay. Dynamic command and headers-helper sources remain disabled by
+  product policy.
+- **Cross-platform policy enforcement**: Windows runner temporary roots are
+  canonicalized without probing caller-controlled targets. Other existing 8.3
+  spellings resolve to their long-path authority, while unresolved or forged
+  aliases remain rejected. Linux, Windows, and macOS Marketplace campaigns
+  exercise air-gapped cache, proxy, PAC, and private-registry boundaries.
+- **Durable session and MCP lifecycle**: cross-session messaging, bounded
+  long-running live state, MCP reconnect subscription recovery, lifecycle
+  compatibility, and structured headless observability now share explicit
+  identity, cleanup, and backpressure contracts.
+- **Focused terminal ergonomics**: the `concise` output style and persisted
+  `classic`/`readline` keybinding flavor extend interactive use without
+  changing existing default behavior.
+- **Release status**: publication requires the final candidate commit to pass
+  the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
+  matrices. The immutable npm tag, provenance, and registry readback will be
+  recorded only after those exact-SHA gates succeed.
+
 ### Added - cc CLI 0.165.5: governed recovery and native add-on policy
 
 > `chainlesschain` **0.165.4 -> 0.165.5** (published from exact SHA

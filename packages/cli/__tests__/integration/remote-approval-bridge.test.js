@@ -539,29 +539,54 @@ describe("remote approval bridge (integration)", () => {
       .leases.find((lease) => lease.status === "acked");
     expect(ackedBefore).toBeDefined();
 
-    const pendingSeen = waitForEvent(
-      device,
-      (message) =>
-        message.type === "remote-session-event" &&
-        message.event?.type === "permission.request",
-    );
+    let lostPendingRequestId = null;
     const lostPending = bridge.requestDecision({
       tool: "run_shell",
       detail: "echo lost-pending",
       operationArgs: { command: "echo lost-pending" },
       timeoutMs: 200,
+      onRequestId: (requestId) => {
+        lostPendingRequestId = requestId;
+      },
     });
-    await pendingSeen;
+    // The durable issue callback is synchronous and precedes the asynchronous
+    // membership refresh/publish. Assert that exact pending card instead of
+    // racing its 200 ms expiry against delivery to the device on a loaded CI
+    // runner. Other cases above cover the full publish/resolve path; this case
+    // specifically crashes the transport with a real durable card in flight.
+    expect(lostPendingRequestId).toMatch(/^ra-/);
+    expect(
+      bridge._approvalStore.getRequest(lostPendingRequestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      requestId: lostPendingRequestId,
+      status: "pending",
+      revision: 1,
+    });
 
     const sessionId = bridge.remoteSessionId;
     device.close();
     device = null;
     await server.stop();
     server = null;
-    await expect(lostPending).resolves.toEqual({
+    const lostDecision = await lostPending;
+    expect(lostDecision).toMatchObject({
       approved: false,
-      via: "timeout",
       from: null,
+    });
+    // Depending on whether the in-flight membership refresh observes the
+    // socket close before the deadline, the bridge reports a state error or a
+    // timeout. Both paths must durably remove authority and fail closed.
+    expect(["state-error", "timeout"]).toContain(lostDecision.via);
+    expect(
+      bridge._approvalStore.getRequest(lostPendingRequestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      requestId: lostPendingRequestId,
+      status: expect.stringMatching(/^(cancelled|expired)$/),
+      revision: 2,
     });
     // This was a transport/server crash, not a host-requested session close.
     // Drop the dead bridge without calling close(), which would durably close
@@ -653,11 +678,14 @@ describe("remote approval bridge (integration)", () => {
         message.type === "remote-session-event" &&
         message.event?.type === "permission.request",
     );
+    // Keep this card pending while the real membership-snapshot RPC and
+    // cross-server revoke complete. It is explicitly denied below after the
+    // revoked frame is proved unable to mutate it, so no wall-clock expiry is
+    // part of the security race.
     const lateDecision = bridge.requestDecision({
       tool: "run_shell",
       detail: "echo late-result",
       operationArgs: { command: "echo late-result" },
-      timeoutMs: 250,
     });
     const lateRequest = await lateAskSeen;
 
@@ -709,9 +737,24 @@ describe("remote approval bridge (integration)", () => {
         event: approvalResolveEvent(lateRequest, true),
       }),
     ).rejects.toThrow(/membership coordinator denied|revoked|not paired/i);
+    // The rejected device frame must not settle or mutate the host's pending
+    // approval. Deny it explicitly so cleanup is driven by a terminal event,
+    // rather than by another wall-clock race.
+    expect(bridge._pending.has(lateRequest.event.requestId)).toBe(true);
+    expect(
+      bridge._approvalStore.getRequest(lateRequest.event.requestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({
+      status: "pending",
+      revision: lateRequest.event.revision,
+    });
+    expect(bridge.resolveLocally(lateRequest.event.requestId, false)).toBe(
+      true,
+    );
     await expect(lateDecision).resolves.toMatchObject({
       approved: false,
-      via: "timeout",
+      via: "local",
     });
   });
 });

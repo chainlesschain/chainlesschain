@@ -119,7 +119,7 @@
       "testId": "lets configuration disable Remote Control but never widen it",
       "producer": {
         "path": "packages/cli/__tests__/unit/remote-control-lib.test.js",
-        "sha256": "sha256:ee6a35c895ab43a5c8a2dbc3f532808c52cd6394e734e7e4389ebbd733f1b45b"
+        "sha256": "sha256:cbb635ebc57a11019a3f8dd05c739265371d6e3c2076b7304073a4061d8c9bea"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -162,7 +162,7 @@
       "testId": "rejects bypassPermissions when managed policy disables it",
       "producer": {
         "path": "packages/cli/__tests__/unit/headless-runner.test.js",
-        "sha256": "sha256:6e3f908d2fbb058bf721cf51c8309f1f9c2b714774b3604fca3e8179558e0efc"
+        "sha256": "sha256:42d70bf27933c74d6bbbbddb206bc04526066fc4a099286d0768cf8f6a964b9c"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -464,7 +464,7 @@
       "testId": "runs with a clean environment and never inherits credential variables",
       "producer": {
         "path": "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js",
-        "sha256": "sha256:732de783b7863366ac8dcdcc9054e032002c56f53207b123564af84c988c22fb"
+        "sha256": "sha256:8430439be2d3c8dd7cf1288bbeb4d58215d293cff8b5a88ba75014e298c7e798"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]

@@ -4,12 +4,18 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPOSITORY_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../../..");
 const CLI_ROOT = path.join(REPOSITORY_ROOT, "packages", "cli");
+const require = createRequire(import.meta.url);
+const VITEST_CLI_PATH = path.resolve(
+  path.dirname(require.resolve("vitest/package.json")),
+  "vitest.mjs",
+);
 const EVIDENCE_SCHEMA = "chainlesschain.mcp-lifecycle-evidence/v1";
 const AGGREGATE_SCHEMA = "chainlesschain.mcp-lifecycle-evidence-aggregate/v1";
 const PROFILE = "claude-2.1.229-238-mcp-lifecycle/v1";
@@ -187,16 +193,10 @@ function runRequiredTests() {
     (relativePath) =>
       path.relative(CLI_ROOT, path.join(REPOSITORY_ROOT, relativePath)),
   );
-  const vitestPath = path.join(
-    CLI_ROOT,
-    "node_modules",
-    "vitest",
-    "vitest.mjs",
-  );
   const started = Date.now();
   const result = spawnSync(
     process.execPath,
-    [vitestPath, "run", ...testFiles],
+    [VITEST_CLI_PATH, "run", ...testFiles],
     {
       cwd: CLI_ROOT,
       encoding: "utf8",

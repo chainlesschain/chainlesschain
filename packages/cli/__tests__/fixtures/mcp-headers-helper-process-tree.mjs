@@ -10,33 +10,37 @@ const nonce = process.env.CLAUDE_CODE_MCP_SERVER_NAME;
 const mode = process.argv[2];
 
 if (mode === "grandchild") {
-  if (!markerPath || !nonce) {
+  setInterval(() => {}, 1_000);
+} else {
+  const publishedMarkerPath = process.argv[2] || markerPath;
+  const publishedNonce = process.argv[3] || nonce;
+  if (!publishedMarkerPath || !publishedNonce) {
     process.exitCode = 2;
   } else {
-    const temporaryMarker = `${markerPath}.${process.pid}.tmp`;
-    writeFileSync(
-      temporaryMarker,
-      JSON.stringify({
-        nonce,
-        parentPid: process.ppid,
-        grandchildPid: process.pid,
-      }),
-      "utf8",
-    );
-    renameSync(temporaryMarker, markerPath);
+    const fixturePath = fileURLToPath(import.meta.url);
+    const grandchild = spawn(process.execPath, [fixturePath, "grandchild"], {
+      detached: false,
+      env: process.env,
+      shell: false,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    grandchild.once("spawn", () => {
+      const temporaryMarker = `${publishedMarkerPath}.${process.pid}.tmp`;
+      writeFileSync(
+        temporaryMarker,
+        JSON.stringify({
+          nonce: publishedNonce,
+          parentPid: process.pid,
+          grandchildPid: grandchild.pid,
+        }),
+        "utf8",
+      );
+      renameSync(temporaryMarker, publishedMarkerPath);
+    });
+    grandchild.once("error", () => {
+      process.exitCode = 3;
+    });
     setInterval(() => {}, 1_000);
   }
-} else {
-  const fixturePath = fileURLToPath(import.meta.url);
-  const grandchild = spawn(process.execPath, [fixturePath, "grandchild"], {
-    detached: false,
-    env: process.env,
-    shell: false,
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  grandchild.once("error", () => {
-    process.exitCode = 3;
-  });
-  setInterval(() => {}, 1_000);
 }

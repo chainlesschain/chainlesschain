@@ -6,11 +6,48 @@ const filePath = isWorker ? workerData.filePath : process.argv[2];
 const command = isWorker
   ? workerData.command || "active"
   : process.argv[3] || "active";
+// This campaign deliberately starts six independent writers at once. A busy
+// Windows CI host can leave the current lock holder unscheduled for longer
+// than the store's normal two-second admission budget, even though its
+// critical section is healthy. Keep this campaign bounded, but give every
+// contender enough time to observe all preceding durable generations.
+const concurrentRevocationLockOptions = Object.freeze({ timeoutMs: 10000 });
+const diagnosticRevocationLockOptions = Object.freeze({ timeoutMs: 100 });
+const lockOptions =
+  command === "revoke"
+    ? concurrentRevocationLockOptions
+    : command === "revoke-lock-timeout"
+      ? diagnosticRevocationLockOptions
+      : undefined;
 const authority = new DurableSkillExecutionAuthority({
   filePath,
   pollIntervalMs: 20,
+  ...(lockOptions ? { lockOptions } : {}),
 });
 let terminalMessageSequence = 0;
+
+function safeCauseDiagnostic(error) {
+  try {
+    const cause = error?.cause;
+    const causeCode =
+      typeof cause?.code === "string" &&
+      /^[A-Z][A-Z0-9_]{0,127}$/u.test(cause.code)
+        ? cause.code
+        : null;
+    const causeAttempts =
+      Number.isSafeInteger(cause?.attempts) && cause.attempts > 0
+        ? cause.attempts
+        : null;
+    const causeCommitState = ["not-committed", "committed", "unknown"].includes(
+      cause?.commitState,
+    )
+      ? cause.commitState
+      : null;
+    return { causeCode, causeAttempts, causeCommitState };
+  } catch {
+    return {};
+  }
+}
 
 function sendRaw(payload, callback) {
   if (isWorker) {
@@ -69,6 +106,7 @@ function fail(error) {
       type: "error",
       code: error?.code || null,
       message: error?.message || String(error),
+      ...safeCauseDiagnostic(error),
     },
     true,
   );
@@ -80,7 +118,7 @@ try {
       { type: "generation", generation: String(authority.readGeneration()) },
       true,
     );
-  } else if (command === "revoke") {
+  } else if (command === "revoke" || command === "revoke-lock-timeout") {
     send(
       {
         type: "revoked",

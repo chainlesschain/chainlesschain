@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -453,6 +454,69 @@ function expandWindowsShortNameAncestors(value) {
   }
 }
 
+const WINDOWS_SHORT_NAME_SEGMENT_RE = /~[0-9]+(?:\.[^.]*)?$/iu;
+
+function windowsPathSegments(value) {
+  return path
+    .normalize(value)
+    .replace(/^[a-z]:/iu, "")
+    .split(/[\\/]/u);
+}
+
+function unsafeWindowsPathSegment(value) {
+  if (value === "" || value === ".") return null;
+  return windowsPathSegments(value).find(
+    (segment) =>
+      WINDOWS_SHORT_NAME_SEGMENT_RE.test(segment) || /[ .]$/u.test(segment),
+  );
+}
+
+function canonicalizeAmbientWindowsTempPath(value) {
+  const normalized = path.normalize(value);
+  const ambientTempRoot = path.resolve(os.tmpdir());
+  const relative = path.relative(ambientTempRoot, normalized);
+  const insideAmbientTemp =
+    relative === "" ||
+    (!path.isAbsolute(relative) &&
+      relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`));
+  if (!insideAmbientTemp) return normalized;
+
+  const ambientHasShortName = windowsPathSegments(ambientTempRoot).some(
+    (segment) => WINDOWS_SHORT_NAME_SEGMENT_RE.test(segment),
+  );
+  if (!ambientHasShortName) return normalized;
+
+  // GitHub's Windows runners can expose the OS-selected TEMP root via an 8.3
+  // segment such as RUNNER~1. Never preserve that alternate spelling in a
+  // managed identity: resolve only the trusted ambient root, then append the
+  // still-lexical caller suffix. The caller's target is never stat'ed/read.
+  if (unsafeWindowsPathSegment(relative)) {
+    throw invalid(
+      "Windows short-name and trailing-dot/space path aliases are not supported",
+    );
+  }
+  let canonicalAmbientTempRoot;
+  try {
+    canonicalAmbientTempRoot = path.normalize(
+      fs.realpathSync.native(ambientTempRoot),
+    );
+  } catch {
+    throw invalid("Windows ambient temp root identity cannot be resolved");
+  }
+  if (
+    !path.isAbsolute(canonicalAmbientTempRoot) ||
+    /^\\\\\?\\/u.test(canonicalAmbientTempRoot) ||
+    /^\\\?\?\\/u.test(canonicalAmbientTempRoot) ||
+    unsafeWindowsPathSegment(canonicalAmbientTempRoot)
+  ) {
+    throw invalid("Windows ambient temp root identity is not canonical");
+  }
+  return relative
+    ? path.resolve(canonicalAmbientTempRoot, relative)
+    : canonicalAmbientTempRoot;
+}
+
 function normalizeLocalIdentityPath(value) {
   const raw = String(value);
   if (
@@ -463,19 +527,22 @@ function normalizeLocalIdentityPath(value) {
   }
   let identityPath = raw;
   if (process.platform === "win32") {
-    const segments = raw.replace(/^[a-z]:/iu, "").split(/[\\/]/u);
+    // Canonicalize only the trusted ambient temp root first. This handles
+    // hosted-runner roots such as RUNNER~1 without touching the caller's
+    // target before the managed-policy decision.
+    identityPath = canonicalizeAmbientWindowsTempPath(raw);
+    const segments = identityPath.replace(/^[a-z]:/iu, "").split(/[\\/]/u);
     if (segments.some((segment) => /[ .]$/u.test(segment))) {
       throw invalid(
         "Windows short-name and trailing-dot/space path aliases are not supported",
       );
     }
     if (segments.some((segment) => /~[0-9]+(?:\.[^.]*)?$/iu.test(segment))) {
-      // Hosted Windows runners and some managed profiles expose TEMP through
-      // a legitimate 8.3 parent (for example RUNNER~1). Resolve the longest
-      // existing ancestor and rebuild any not-yet-created safe suffix from its
-      // long spelling. An alias in a nonexistent suffix remains visible below
-      // and fails closed, while real aliases cannot mint a second authority.
-      identityPath = expandWindowsShortNameAncestors(raw);
+      // Outside the ambient temp-root exception, resolve the longest existing
+      // ancestor and rebuild any not-yet-created safe suffix from its long
+      // spelling. An alias in a nonexistent suffix remains visible below and
+      // fails closed, while real aliases cannot mint a second authority.
+      identityPath = expandWindowsShortNameAncestors(identityPath);
       const resolvedSegments = identityPath
         .replace(/^[a-z]:/iu, "")
         .split(/[\\/]/u);

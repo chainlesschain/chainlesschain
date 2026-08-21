@@ -7,6 +7,8 @@ import {
   ENTRYPOINTS,
   REQUIRED_FILES,
   mainCampaign,
+  runSafeContentionMutation,
+  summarizeWorkerDiagnostics,
 } from "../../scripts/ide-roadmap-context-permission-matrix.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-context-permission.mjs";
 
@@ -136,6 +138,93 @@ describe("context/permission Actions matrix", () => {
       }),
     ).toMatchObject({ operatingSystem: process.platform });
   }, 120_000);
+
+  it("retries only lock contention proven not to have committed", async () => {
+    const waits = [];
+    let calls = 0;
+    const result = await runSafeContentionMutation(
+      () => {
+        calls += 1;
+        if (calls < 3) {
+          throw Object.assign(new Error("busy"), {
+            code: "STATE_LOCK_UNAVAILABLE",
+            commitState: "not-committed",
+          });
+        }
+        return "revoked";
+      },
+      {
+        random: () => 0,
+        sleep: async (ms) => waits.push(ms),
+      },
+    );
+
+    expect(result).toBe("revoked");
+    expect(calls).toBe(3);
+    expect(waits).toEqual([25, 50]);
+  });
+
+  it("preserves committed, ambiguous, and exhausted failures", async () => {
+    for (const failure of [
+      Object.assign(new Error("committed"), {
+        code: "STATE_LOCK_UNAVAILABLE",
+        commitState: "committed",
+      }),
+      Object.assign(new Error("ambiguous"), {
+        code: "STATE_LOCK_UNAVAILABLE",
+      }),
+      Object.assign(new Error("write failed"), {
+        code: "DURABLE_SECURITY_STORE_WRITE_FAILED",
+        commitState: "not-committed",
+      }),
+    ]) {
+      let calls = 0;
+      await expect(
+        runSafeContentionMutation(() => {
+          calls += 1;
+          throw failure;
+        }),
+      ).rejects.toBe(failure);
+      expect(calls).toBe(1);
+    }
+
+    const exhausted = Object.assign(new Error("still busy"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+      commitState: "not-committed",
+    });
+    const waits = [];
+    let calls = 0;
+    await expect(
+      runSafeContentionMutation(
+        () => {
+          calls += 1;
+          throw exhausted;
+        },
+        {
+          random: () => 0,
+          sleep: async (ms) => waits.push(ms),
+        },
+      ),
+    ).rejects.toBe(exhausted);
+    expect(calls).toBe(4);
+    expect(waits).toEqual([25, 50, 100]);
+  });
+
+  it("bounds and redacts worker diagnostics while retaining safe classifiers", () => {
+    const summary = summarizeWorkerDiagnostics(
+      "NPM_TOKEN=must-not-render C:\\private\\rules.json STATE_LOCK_UNAVAILABLE commitState: 'not-committed'",
+      32_000,
+      DIGEST,
+    );
+
+    expect(summary).toContain("diagnosticBytes=32000");
+    expect(summary).toContain(`diagnosticDigest=${DIGEST}`);
+    expect(summary).toContain("errorCode=STATE_LOCK_UNAVAILABLE");
+    expect(summary).toContain("commitState=not-committed");
+    expect(summary).toContain("diagnosticCapture=truncated");
+    expect(summary).not.toContain("must-not-render");
+    expect(summary).not.toContain("private");
+  });
 
   it("binds all seven product entrypoints to 100 runs", () => {
     expect(ENTRYPOINTS).toEqual([

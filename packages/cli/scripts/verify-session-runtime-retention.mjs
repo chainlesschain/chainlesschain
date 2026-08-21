@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -24,6 +25,11 @@ import { BACKGROUND_SESSION_BACKLOG_LIMITS } from "../src/lib/background-session
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), "../../..");
+const require = createRequire(import.meta.url);
+const VITEST_CLI_PATH = resolve(
+  dirname(require.resolve("vitest/package.json")),
+  "vitest.mjs",
+);
 const RESULT_SCHEMA = "chainlesschain.session-runtime-retention.v1";
 const REQUIRED_RESULTS = 5_000;
 const REQUIRED_RESULT_BYTES = 32 * 1024;
@@ -145,14 +151,10 @@ async function scanDurableEvidence(filePath, expectedResults) {
 
 function runContractTests() {
   const startedAt = Date.now();
-  execFileSync(
-    process.execPath,
-    ["node_modules/vitest/vitest.mjs", "run", ...CONTRACT_TESTS],
-    {
-      cwd: resolve(REPO_ROOT, "packages/cli"),
-      stdio: "inherit",
-    },
-  );
+  execFileSync(process.execPath, [VITEST_CLI_PATH, "run", ...CONTRACT_TESTS], {
+    cwd: resolve(REPO_ROOT, "packages/cli"),
+    stdio: "inherit",
+  });
   return { files: [...CONTRACT_TESTS], durationMs: Date.now() - startedAt };
 }
 
