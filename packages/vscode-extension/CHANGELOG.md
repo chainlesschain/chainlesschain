@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.61] - Marketplace changelog repair (2026-08-21)
+
+- Republish the exact 0.37.60 runtime with its omitted release notes included
+  in the immutable extension package; there are no additional runtime changes.
+
+## [0.37.60] - Secure remote control and session continuity (2026-08-21)
+
+- Keep Remote Control loopback-only by default, require an explicit LAN
+  opt-in, and bind approvals and interrupts to separately granted scopes.
+- Surface durable cross-session messages and their delivered, refused, full,
+  and expired outcomes without reconstructing CLI authority in the extension.
+- Separate transcript announcements from the visual stream, deduplicate
+  assistant/status/tool-error events, and preserve stable turn headings and
+  keyboard focus during long streaming replies.
+
 ## [0.37.59] - Durable recovery and editor continuity (2026-08-20)
 
 - Surface CLI-owned durable workflow controls and session recovery state

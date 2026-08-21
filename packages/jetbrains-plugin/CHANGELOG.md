@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.95] - Secure remote control, messaging, and transcript access (2026-08-21)
+
+- Keep Remote Control loopback-only by default, require an explicit LAN
+  opt-in, and bind approvals and interrupts to separately granted scopes.
+- Project durable cross-session messages and their delivered, refused, full,
+  and expired outcomes without reconstructing CLI authority in the plugin.
+- Route assistant replies, permission requests, tool errors, and status
+  transitions through a dedicated deduplicated accessibility announcer.
+- Preserve stable turn headings, bounded oversized transcripts, and keyboard
+  focus across streaming and workbench transitions.
+
 ## [0.4.94] - Durable workflow and Artifact recovery (2026-08-20)
 
 - Surface CLI-owned durable workflow controls and recovery state while keeping
