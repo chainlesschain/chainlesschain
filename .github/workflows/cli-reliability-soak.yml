@@ -484,6 +484,7 @@ jobs:
         shell: bash
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          ${{ github.event_name != 'pull_request' && '--required' || '' }}
           --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
           --artifact-name "mcp-lifecycle-${RUNNER_OS}-${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}-${GITHUB_RUN_ATTEMPT}"
           --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"
@@ -591,6 +592,7 @@ jobs:
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
           --verify-evidence-dir "${RUNNER_TEMP}/mcp-lifecycle-evidence"
           --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
+          ${{ github.event_name == 'pull_request' && '--allow-advisory' || '' }}
           --output "${RUNNER_TEMP}/mcp-lifecycle-aggregate.json"
 
       - name: Upload immutable MCP security soak aggregate

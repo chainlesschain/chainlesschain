@@ -160,10 +160,11 @@ jobs:
           name: session-message-fabric-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
           if-no-files-found: error
-      - name: Verify MCP lifecycle compatibility increments
+      - name: Produce canonical MCP lifecycle compatibility evidence
         shell: bash
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          ${{ github.event_name != 'pull_request' && '--required' || '' }}
           --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
           --artifact-name "mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}"
           --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"

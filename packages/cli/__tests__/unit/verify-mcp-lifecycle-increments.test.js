@@ -1,9 +1,17 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   FRAGMENT_SCHEMA,
+  PROFILE_VERSION,
+  PRODUCER_FILES,
+  TEST_IDS,
+  THRESHOLDS,
   aggregateEvidenceEntries,
+  exactTreeProducerDigests,
   validateFragment,
+  validateRequiredWorkflowBinding,
+  workflowSource,
 } from "../../scripts/verify-mcp-lifecycle-increments.mjs";
 import {
   MCP_LIFECYCLE_PROFILE_TEST_IDS,
@@ -12,9 +20,23 @@ import {
 } from "../../scripts/mcp-lifecycle-profile.mjs";
 
 const HEAD_SHA = "a".repeat(40);
-const PRODUCER_DIGESTS = Object.freeze({
-  "packages/cli/src/lib/mcp-lifecycle-authority.js": `sha256:${"b".repeat(64)}`,
-});
+const WORKFLOW_PATH = ".github/workflows/cli-reliability-soak.yml";
+const WORKFLOW_ID = `owner/repo/${WORKFLOW_PATH}@refs/pull/1/merge`;
+const WORKFLOW_BYTES = Buffer.from("exact workflow fixture\n");
+const PRODUCER_DIGESTS = Object.freeze(
+  Object.fromEntries(
+    PRODUCER_FILES.map((producerPath) => [
+      producerPath,
+      producerPath === WORKFLOW_PATH
+        ? digest(WORKFLOW_BYTES)
+        : `sha256:${"b".repeat(64)}`,
+    ]),
+  ),
+);
+
+function digest(value) {
+  return `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
+}
 
 function measurements() {
   return {
@@ -63,7 +85,15 @@ function measurements() {
   };
 }
 
-function fragment(os) {
+function fragment(
+  os,
+  {
+    disposition = "required",
+    workflowId = WORKFLOW_ID,
+    runId = "123456",
+    jobId = `mcp-security-soak-${os}`,
+  } = {},
+) {
   const artifactName = `mcp-lifecycle-${os}-${HEAD_SHA}`;
   return {
     schema: FRAGMENT_SCHEMA,
@@ -76,12 +106,11 @@ function fragment(os) {
     measurements: measurements(),
     testIds: [...MCP_LIFECYCLE_PROFILE_TEST_IDS],
     producerDigests: { ...PRODUCER_DIGESTS },
-    disposition: "required",
+    disposition,
     source: {
-      workflowId:
-        "owner/repo/.github/workflows/cli-reliability-soak.yml@refs/pull/1/merge",
-      runId: "123456",
-      jobId: "mcp-security-soak",
+      workflowId,
+      runId,
+      jobId,
       artifactName,
     },
     outcome: "passed",
@@ -102,13 +131,128 @@ function entry(os, mutate = (value) => value) {
   };
 }
 
+function requiredEnvironment(overrides = {}) {
+  return {
+    GITHUB_ACTIONS: "true",
+    GITHUB_WORKFLOW_SHA: HEAD_SHA,
+    GITHUB_WORKFLOW_REF: WORKFLOW_ID,
+    GITHUB_REPOSITORY: "owner/repo",
+    GITHUB_RUN_ID: "123456",
+    GITHUB_JOB: "mcp-security-soak",
+    ...overrides,
+  };
+}
+
 describe("MCP lifecycle canonical audit fragment", () => {
-  it("accepts the complete canonical contract", () => {
+  it("exports the locked profile contract for drift checks", () => {
+    expect(PROFILE_VERSION).toBe(MCP_LIFECYCLE_PROFILE_VERSION);
+    expect(THRESHOLDS).toBe(MCP_LIFECYCLE_PROFILE_THRESHOLDS);
+    expect(TEST_IDS).toBe(MCP_LIFECYCLE_PROFILE_TEST_IDS);
+    expect(PRODUCER_FILES).toHaveLength(23);
+  });
+
+  it("accepts required GitHub evidence and explicitly non-qualifying advisory evidence", () => {
     expect(() =>
       validateFragment(fragment("linux"), HEAD_SHA, PRODUCER_DIGESTS, {
         requireWorkflowSource: true,
       }),
     ).not.toThrow();
+
+    const advisory = fragment("linux", {
+      disposition: "advisory",
+      workflowId: "local",
+      runId: "local",
+      jobId: "local",
+    });
+    expect(() =>
+      validateFragment(advisory, HEAD_SHA, PRODUCER_DIGESTS, {
+        allowAdvisory: true,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validateFragment(advisory, HEAD_SHA, PRODUCER_DIGESTS),
+    ).toThrow(/non-qualifying/u);
+    expect(() =>
+      validateFragment(
+        { ...advisory, disposition: "required" },
+        HEAD_SHA,
+        PRODUCER_DIGESTS,
+      ),
+    ).toThrow(/GitHub workflow ref/u);
+    expect(
+      workflowSource(undefined, HEAD_SHA, { environment: {} }),
+    ).toMatchObject({
+      workflowId: "local",
+      runId: "local",
+      jobId: "local",
+    });
+  });
+
+  it("binds required production to GitHub Actions and the exact workflow blob", () => {
+    const readProducer = (headSha, producerPath) => {
+      expect(headSha).toBe(HEAD_SHA);
+      expect(producerPath).toBe(WORKFLOW_PATH);
+      return WORKFLOW_BYTES;
+    };
+    expect(
+      workflowSource(`mcp-lifecycle-linux-${HEAD_SHA}`, HEAD_SHA, {
+        required: true,
+        environment: requiredEnvironment(),
+        producerDigests: PRODUCER_DIGESTS,
+        readProducer,
+      }),
+    ).toMatchObject({
+      workflowId: WORKFLOW_ID,
+      runId: "123456",
+      jobId: "mcp-security-soak",
+    });
+    expect(() =>
+      validateRequiredWorkflowBinding({
+        environment: requiredEnvironment({ GITHUB_ACTIONS: "false" }),
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+        readProducer,
+      }),
+    ).toThrow(/GitHub Actions/u);
+    expect(() =>
+      validateRequiredWorkflowBinding({
+        environment: requiredEnvironment({
+          GITHUB_WORKFLOW_SHA: "d".repeat(40),
+        }),
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+        readProducer,
+      }),
+    ).toThrow(/exact evidence commit/u);
+    expect(() =>
+      validateRequiredWorkflowBinding({
+        environment: requiredEnvironment(),
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+        readProducer: () => Buffer.from("tampered workflow\n"),
+      }),
+    ).toThrow(/attested workflow blob/u);
+  });
+
+  it("derives every producer digest from the exact Git tree reader", () => {
+    const calls = [];
+    const producerDigests = exactTreeProducerDigests(
+      HEAD_SHA,
+      (headSha, producerPath) => {
+        calls.push({ headSha, producerPath });
+        return Buffer.from(`tree:${headSha}:${producerPath}`);
+      },
+    );
+    expect(calls).toEqual(
+      PRODUCER_FILES.map((producerPath) => ({
+        headSha: HEAD_SHA,
+        producerPath,
+      })),
+    );
+    expect(Object.keys(producerDigests)).toEqual(PRODUCER_FILES);
+    expect(producerDigests[PRODUCER_FILES[0]]).toBe(
+      digest(Buffer.from(`tree:${HEAD_SHA}:${PRODUCER_FILES[0]}`)),
+    );
   });
 
   it("rejects a legacy schema and stale exact-head binding", () => {
@@ -130,6 +274,31 @@ describe("MCP lifecycle canonical audit fragment", () => {
     ).toThrow();
   });
 
+  it("rejects top-level, runtime, and source field injection", () => {
+    const topLevel = { ...fragment("linux"), injected: true };
+    expect(() =>
+      validateFragment(topLevel, HEAD_SHA, PRODUCER_DIGESTS, {
+        requireWorkflowSource: true,
+      }),
+    ).toThrow(/exactly/u);
+
+    const runtime = fragment("linux");
+    runtime.runtime.workflowSha = HEAD_SHA;
+    expect(() =>
+      validateFragment(runtime, HEAD_SHA, PRODUCER_DIGESTS, {
+        requireWorkflowSource: true,
+      }),
+    ).toThrow(/fragment\.runtime must contain exactly/u);
+
+    const source = fragment("linux");
+    source.source.workflowSha = HEAD_SHA;
+    expect(() =>
+      validateFragment(source, HEAD_SHA, PRODUCER_DIGESTS, {
+        requireWorkflowSource: true,
+      }),
+    ).toThrow(/fragment\.source must contain exactly/u);
+  });
+
   it("rehashes a complete three-OS matrix in deterministic order", () => {
     const aggregate = aggregateEvidenceEntries({
       entries: [entry("windows"), entry("linux"), entry("macos")],
@@ -147,6 +316,9 @@ describe("MCP lifecycle canonical audit fragment", () => {
         /^sha256:[a-f0-9]{64}$/u.test(item.digest),
       ),
     ).toBe(true);
+    expect(
+      new Set(aggregate.fragments.map((item) => item.source.jobId)).size,
+    ).toBe(3);
   });
 
   it("rejects missing, duplicate, and non-canonical matrix cells", () => {
@@ -174,5 +346,69 @@ describe("MCP lifecycle canonical audit fragment", () => {
         producerDigests: PRODUCER_DIGESTS,
       }),
     ).toThrow(/canonical producer encoding/u);
+  });
+
+  it("rejects cross-workflow and cross-run evidence mixing", () => {
+    const crossRun = entry("macos", (value) => {
+      value.source.runId = "654321";
+      return value;
+    });
+    expect(() =>
+      aggregateEvidenceEntries({
+        entries: [entry("linux"), crossRun, entry("windows")],
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+      }),
+    ).toThrow(/runId differs/u);
+
+    const crossWorkflow = entry("windows", (value) => {
+      value.source.workflowId =
+        "owner/repo/.github/workflows/cli-ci.yml@refs/heads/main";
+      return value;
+    });
+    expect(() =>
+      aggregateEvidenceEntries({
+        entries: [entry("linux"), entry("macos"), crossWorkflow],
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+      }),
+    ).toThrow(/workflowId differs/u);
+
+    expect(() =>
+      aggregateEvidenceEntries({
+        entries: [entry("linux"), entry("macos"), entry("windows")],
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+        expectedSource: { workflowId: WORKFLOW_ID, runId: "999999" },
+      }),
+    ).toThrow(/current aggregate run/u);
+  });
+
+  it("rejects a self-consistent fragment tamper and mixed disposition", () => {
+    const tampered = entry("macos", (value) => {
+      value.producerDigests["packages/cli/src/lib/mcp-lifecycle-authority.js"] =
+        `sha256:${"0".repeat(64)}`;
+      return value;
+    });
+    expect(() =>
+      aggregateEvidenceEntries({
+        entries: [entry("linux"), tampered, entry("windows")],
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+      }),
+    ).toThrow();
+
+    const advisory = entry("macos", (value) => {
+      value.disposition = "advisory";
+      return value;
+    });
+    expect(() =>
+      aggregateEvidenceEntries({
+        entries: [entry("linux"), advisory, entry("windows")],
+        headSha: HEAD_SHA,
+        producerDigests: PRODUCER_DIGESTS,
+        allowAdvisory: true,
+      }),
+    ).toThrow(/disposition differs/u);
   });
 });

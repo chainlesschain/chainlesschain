@@ -27,7 +27,38 @@ const FRAGMENT_SCHEMA =
 const AGGREGATE_SCHEMA =
   "chainlesschain.claude-code-increment-audit-fragment-set.v1";
 const COMMITMENT_ID = "MCP-LIFECYCLE";
+const PROFILE_VERSION = MCP_LIFECYCLE_PROFILE_VERSION;
+const THRESHOLDS = MCP_LIFECYCLE_PROFILE_THRESHOLDS;
+const TEST_IDS = MCP_LIFECYCLE_PROFILE_TEST_IDS;
 const REQUIRED_OPERATING_SYSTEMS = Object.freeze(["linux", "macos", "windows"]);
+const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const GITHUB_RUN_ID_PATTERN = /^[1-9][0-9]{0,31}$/u;
+const GITHUB_JOB_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u;
+const GITHUB_WORKFLOW_REF_PATTERN =
+  /^(?<repository>[^\s/]+\/[^\s/]+)\/(?<workflowPath>\.github\/workflows\/[^@\s]+\.ya?ml)@(?<workflowRef>refs\/[^\s]+|[a-f0-9]{40})$/u;
+const FRAGMENT_KEYS = Object.freeze([
+  "commitmentId",
+  "disposition",
+  "headSha",
+  "measurements",
+  "os",
+  "outcome",
+  "producerDigests",
+  "profileVersion",
+  "runtime",
+  "schema",
+  "source",
+  "testIds",
+  "thresholds",
+]);
+const RUNTIME_KEYS = Object.freeze(["arch", "name", "version"]);
+const SOURCE_KEYS = Object.freeze([
+  "artifactName",
+  "jobId",
+  "runId",
+  "workflowId",
+]);
 const PRODUCER_FILES = Object.freeze([
   ".github/workflows/cli-ci.yml",
   ".github/workflows/cli-reliability-soak.yml",
@@ -53,6 +84,10 @@ const PRODUCER_FILES = Object.freeze([
   "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js",
   "packages/cli/__tests__/unit/ide-hot-reconnect.test.js",
 ]);
+const MCP_WORKFLOW_FILES = new Set([
+  ".github/workflows/cli-ci.yml",
+  ".github/workflows/cli-reliability-soak.yml",
+]);
 const REGRESSION_TEST_FILES = Object.freeze([
   "__tests__/unit/mcp-lifecycle-authority.test.js",
   "__tests__/unit/mcp-lifecycle-increments.test.js",
@@ -68,15 +103,9 @@ function sha256(value) {
   return `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
 }
 
-function sha256File(relativePath) {
-  return sha256(fs.readFileSync(path.join(REPOSITORY_ROOT, relativePath)));
-}
-
 function exactCommit(value) {
-  const commit = String(value || "")
-    .trim()
-    .toLowerCase();
-  assert.match(commit, /^[a-f0-9]{40}$/u);
+  const commit = String(value || "").trim();
+  assert.match(commit, SHA_PATTERN);
   return commit;
 }
 
@@ -111,28 +140,50 @@ function canonicalJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-function expectedProducerDigests() {
+function readProducerAtCommit(headSha, relativePath) {
+  const objectName = `${headSha}:${relativePath}`;
+  const objectType = execFileSync("git", ["cat-file", "-t", objectName], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+  assert.equal(
+    objectType,
+    "blob",
+    `${relativePath} must be a file at exact head ${headSha}`,
+  );
+  return execFileSync("git", ["cat-file", "blob", objectName], {
+    cwd: REPOSITORY_ROOT,
+    maxBuffer: 32 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function exactTreeProducerDigests(
+  headSha,
+  readProducer = readProducerAtCommit,
+) {
   return Object.fromEntries(
     PRODUCER_FILES.map((relativePath) => [
       relativePath,
-      sha256File(relativePath),
+      sha256(readProducer(headSha, relativePath)),
     ]),
   );
 }
 
-function verifyExactHeadSources(headSha) {
+function verifyExactHeadSources(headSha, producerDigests) {
+  assert.deepEqual(
+    Object.keys(producerDigests),
+    [...PRODUCER_FILES],
+    "producer digest keys must exactly match the canonical producer set",
+  );
   for (const relativePath of PRODUCER_FILES) {
     const workingBytes = fs.readFileSync(
       path.join(REPOSITORY_ROOT, relativePath),
     );
-    const committedBytes = execFileSync(
-      "git",
-      ["show", `${headSha}:${relativePath}`],
-      { cwd: REPOSITORY_ROOT, maxBuffer: 32 * 1024 * 1024 },
-    );
     assert.equal(
       sha256(workingBytes),
-      sha256(committedBytes),
+      producerDigests[relativePath],
       `${relativePath} must match the exact evidence commit`,
     );
   }
@@ -164,20 +215,146 @@ function runRequiredTests() {
   };
 }
 
-function workflowSource(artifactName, headSha) {
+function assertExactKeys(value, keys, label) {
+  assert.ok(
+    value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`,
+  );
+  assert.deepEqual(
+    Object.keys(value).sort(),
+    [...keys].sort(),
+    `${label} must contain exactly ${keys.join(", ")}`,
+  );
+}
+
+function sourceText(value, label, maximumLength) {
+  assert.equal(typeof value, "string", `${label} must be a string`);
+  assert.equal(value, value.trim(), `${label} cannot have outer whitespace`);
+  assert.ok(
+    value.length > 0 && value.length <= maximumLength,
+    `${label} length is invalid`,
+  );
+  assert.doesNotMatch(value, /[\u0000-\u001f\u007f]/u, `${label} is invalid`);
+  return value;
+}
+
+function githubWorkflowIdentity(workflowId) {
+  const normalized = sourceText(workflowId, "source.workflowId", 512);
+  const match = GITHUB_WORKFLOW_REF_PATTERN.exec(normalized);
+  assert.ok(match, "source.workflowId must be a GitHub workflow ref");
+  assert.ok(
+    MCP_WORKFLOW_FILES.has(match.groups.workflowPath),
+    "source.workflowId must identify an MCP lifecycle producer workflow",
+  );
+  return match.groups;
+}
+
+function validateSource(source, headSha, { requireGitHubSource = false } = {}) {
+  assertExactKeys(source, SOURCE_KEYS, "fragment.source");
+  const workflowId = sourceText(source.workflowId, "source.workflowId", 512);
+  const runId = sourceText(source.runId, "source.runId", 32);
+  const jobId = sourceText(source.jobId, "source.jobId", 128);
+  const artifactName = sourceText(
+    source.artifactName,
+    "source.artifactName",
+    255,
+  );
+  assert.match(jobId, GITHUB_JOB_ID_PATTERN);
+  assert.equal(/[\\/]/u.test(artifactName), false);
+  assert.ok(
+    artifactName.includes(headSha),
+    "source.artifactName must bind the exact evidence commit",
+  );
+  if (requireGitHubSource) {
+    githubWorkflowIdentity(workflowId);
+    assert.match(runId, GITHUB_RUN_ID_PATTERN);
+    for (const [field, value] of Object.entries({
+      workflowId,
+      runId,
+      jobId,
+      artifactName,
+    })) {
+      assert.notEqual(
+        value.toLowerCase(),
+        "local",
+        `source.${field} cannot use local provenance`,
+      );
+    }
+  }
+  return { workflowId, runId, jobId, artifactName };
+}
+
+function validateRequiredWorkflowBinding({
+  environment = process.env,
+  headSha,
+  producerDigests,
+  readProducer = readProducerAtCommit,
+}) {
+  assert.equal(
+    environment.GITHUB_ACTIONS,
+    "true",
+    "required MCP lifecycle evidence must be produced by GitHub Actions",
+  );
+  const workflowSha = exactCommit(environment.GITHUB_WORKFLOW_SHA);
+  assert.equal(
+    workflowSha,
+    headSha,
+    "required workflow bytes must come from the exact evidence commit",
+  );
+  const identity = githubWorkflowIdentity(environment.GITHUB_WORKFLOW_REF);
+  assert.equal(
+    sourceText(environment.GITHUB_REPOSITORY, "GITHUB_REPOSITORY", 256),
+    identity.repository,
+    "GITHUB_WORKFLOW_REF repository must match GITHUB_REPOSITORY",
+  );
+  assert.deepEqual(
+    Object.keys(producerDigests),
+    [...PRODUCER_FILES],
+    "required producer digests must use the exact canonical Git-tree set",
+  );
+  const workflowDigest = producerDigests[identity.workflowPath];
+  assert.match(workflowDigest || "", DIGEST_PATTERN);
+  assert.equal(
+    sha256(readProducer(workflowSha, identity.workflowPath)),
+    workflowDigest,
+    "GITHUB_WORKFLOW_SHA must resolve to the attested workflow blob",
+  );
+  return { ...identity, workflowSha, workflowDigest };
+}
+
+function workflowSource(
+  artifactName,
+  headSha,
+  {
+    required = false,
+    environment = process.env,
+    producerDigests = null,
+    readProducer = readProducerAtCommit,
+  } = {},
+) {
   const normalizedArtifactName = String(
     artifactName ||
-      process.env.CC_MCP_LIFECYCLE_ARTIFACT_NAME ||
+      environment.CC_MCP_LIFECYCLE_ARTIFACT_NAME ||
       `local-mcp-lifecycle-${headSha}`,
   ).trim();
   assert.ok(normalizedArtifactName);
-  return {
+  const source = {
     workflowId:
-      process.env.GITHUB_WORKFLOW_REF || process.env.GITHUB_WORKFLOW || "local",
-    runId: process.env.GITHUB_RUN_ID || "local",
-    jobId: process.env.GITHUB_JOB || "local",
+      environment.GITHUB_WORKFLOW_REF || environment.GITHUB_WORKFLOW || "local",
+    runId: environment.GITHUB_RUN_ID || "local",
+    jobId: environment.GITHUB_JOB || "local",
     artifactName: normalizedArtifactName,
   };
+  validateSource(source, headSha, { requireGitHubSource: required });
+  if (required) {
+    validateRequiredWorkflowBinding({
+      environment,
+      headSha,
+      producerDigests,
+      readProducer,
+    });
+  }
+  return source;
 }
 
 function assertMeasurements(thresholds, measurements) {
@@ -265,10 +442,22 @@ function assertMeasurements(thresholds, measurements) {
   assert.match(measurements.lifecycleReceiptDigest, /^sha256:[a-f0-9]{64}$/u);
 }
 
-async function produceEvidence({ releaseCommit, output, artifactName }) {
+async function produceEvidence({
+  releaseCommit,
+  output,
+  artifactName,
+  required = false,
+  environment = process.env,
+}) {
   const headSha = exactCommit(releaseCommit);
   assert.equal(currentHead(), headSha, "release commit must equal git HEAD");
-  verifyExactHeadSources(headSha);
+  const producerDigests = exactTreeProducerDigests(headSha);
+  verifyExactHeadSources(headSha, producerDigests);
+  const source = workflowSource(artifactName, headSha, {
+    required,
+    environment,
+    producerDigests,
+  });
   const regression = runRequiredTests();
   const profile = await runMcpLifecycleProfile();
   const measurements = {
@@ -277,6 +466,12 @@ async function produceEvidence({ releaseCommit, output, artifactName }) {
     regressionTestFileCount: regression.fileCount,
   };
   assertMeasurements(profile.thresholds, measurements);
+  assert.equal(
+    currentHead(),
+    headSha,
+    "git HEAD changed while producing MCP lifecycle evidence",
+  );
+  verifyExactHeadSources(headSha, producerDigests);
   const fragment = {
     schema: FRAGMENT_SCHEMA,
     commitmentId: COMMITMENT_ID,
@@ -291,40 +486,69 @@ async function produceEvidence({ releaseCommit, output, artifactName }) {
     thresholds: profile.thresholds,
     measurements,
     testIds: profile.testIds,
-    producerDigests: expectedProducerDigests(),
-    disposition: "required",
-    source: workflowSource(artifactName, headSha),
+    producerDigests,
+    disposition: required ? "required" : "advisory",
+    source,
     outcome: "passed",
   };
+  validateFragment(fragment, headSha, producerDigests, {
+    allowAdvisory: !required,
+    requireWorkflowSource: required,
+  });
   if (output) writeJson(output, fragment);
   return fragment;
 }
 
 function evidenceFiles(directory) {
+  const root = path.resolve(directory);
+  assert.equal(fs.existsSync(root), true, "evidence directory must exist");
+  const rootStat = fs.lstatSync(root);
+  assert.equal(
+    rootStat.isSymbolicLink(),
+    false,
+    "evidence cannot be a symlink",
+  );
+  assert.equal(
+    rootStat.isDirectory(),
+    true,
+    "evidence root must be a directory",
+  );
   const files = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const candidate = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...evidenceFiles(candidate));
-    else if (entry.name.endsWith(".json")) files.push(candidate);
+  const pending = [root];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const candidate = path.join(current, entry.name);
+      const stat = fs.lstatSync(candidate);
+      assert.equal(
+        stat.isSymbolicLink(),
+        false,
+        "MCP lifecycle evidence cannot contain symlinks",
+      );
+      if (stat.isDirectory()) pending.push(candidate);
+      else if (stat.isFile() && entry.name.endsWith(".json")) {
+        files.push(candidate);
+      }
+    }
   }
-  return files;
+  return files.sort();
 }
 
 function validateFragment(
   fragment,
   headSha,
   producerDigests,
-  { requireWorkflowSource = false } = {},
+  { allowAdvisory = false, requireWorkflowSource = false } = {},
 ) {
+  assertExactKeys(fragment, FRAGMENT_KEYS, "MCP lifecycle fragment");
   assert.equal(fragment.schema, FRAGMENT_SCHEMA);
   assert.equal(fragment.commitmentId, COMMITMENT_ID);
   assert.equal(fragment.headSha, headSha);
   assert.ok(REQUIRED_OPERATING_SYSTEMS.includes(fragment.os));
-  assert.equal(fragment.runtime?.name, "node");
-  assert.match(fragment.runtime?.version || "", /^v\d+\.\d+\.\d+/u);
-  assert.ok(
-    typeof fragment.runtime?.arch === "string" && fragment.runtime.arch,
-  );
+  assertExactKeys(fragment.runtime, RUNTIME_KEYS, "fragment.runtime");
+  assert.equal(fragment.runtime.name, "node");
+  assert.match(fragment.runtime.version, /^v\d+\.\d+\.\d+$/u);
+  assert.ok(typeof fragment.runtime.arch === "string" && fragment.runtime.arch);
   assert.equal(fragment.profileVersion, MCP_LIFECYCLE_PROFILE_VERSION);
   assert.ok(fragment.thresholds && Object.keys(fragment.thresholds).length > 0);
   assert.ok(
@@ -332,21 +556,32 @@ function validateFragment(
   );
   assert.deepEqual(fragment.testIds, MCP_LIFECYCLE_PROFILE_TEST_IDS);
   assert.equal(new Set(fragment.testIds).size, fragment.testIds.length);
-  assert.deepEqual(fragment.producerDigests, producerDigests);
-  assert.equal(fragment.disposition, "required");
-  assert.equal(fragment.outcome, "passed");
-  for (const field of ["workflowId", "runId", "jobId", "artifactName"]) {
-    assert.ok(typeof fragment.source?.[field] === "string");
-    assert.ok(fragment.source[field].trim());
-    if (requireWorkflowSource) assert.notEqual(fragment.source[field], "local");
+  assert.deepEqual(Object.keys(producerDigests), [...PRODUCER_FILES]);
+  assert.deepEqual(Object.keys(fragment.producerDigests), [...PRODUCER_FILES]);
+  for (const digest of Object.values(fragment.producerDigests)) {
+    assert.match(digest, DIGEST_PATTERN);
   }
-  assert.ok(!/[\\/]/u.test(fragment.source.artifactName));
-  assert.ok(fragment.source.artifactName.includes(headSha));
-  if (requireWorkflowSource) assert.match(fragment.source.runId, /^\d+$/u);
+  assert.deepEqual(fragment.producerDigests, producerDigests);
+  if (fragment.disposition === "advisory") {
+    assert.equal(allowAdvisory, true, "advisory evidence is non-qualifying");
+  } else {
+    assert.equal(fragment.disposition, "required");
+  }
+  assert.equal(fragment.outcome, "passed");
+  validateSource(fragment.source, headSha, {
+    requireGitHubSource:
+      requireWorkflowSource || fragment.disposition === "required",
+  });
   assertMeasurements(fragment.thresholds, fragment.measurements);
 }
 
-function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
+function aggregateEvidenceEntries({
+  entries,
+  headSha,
+  producerDigests,
+  allowAdvisory = false,
+  expectedSource = null,
+}) {
   assert.equal(
     entries.length,
     REQUIRED_OPERATING_SYSTEMS.length,
@@ -366,6 +601,7 @@ function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
       "MCP lifecycle fragment JSON must use canonical producer encoding",
     );
     validateFragment(entry.value, headSha, producerDigests, {
+      allowAdvisory,
       requireWorkflowSource: true,
     });
     assert.ok(
@@ -376,9 +612,9 @@ function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
       !artifactNames.has(entry.value.source.artifactName),
       `duplicate artifact source ${entry.value.source.artifactName}`,
     );
-    const pathSegments = path.resolve(entry.file).split(path.sep);
-    assert.ok(
-      pathSegments.includes(entry.value.source.artifactName),
+    assert.equal(
+      path.basename(path.dirname(entry.file)),
+      entry.value.source.artifactName,
       "fragment source artifactName must match its downloaded artifact directory",
     );
     artifactNames.add(entry.value.source.artifactName);
@@ -388,7 +624,36 @@ function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
     [...byOs.keys()].sort(),
     [...REQUIRED_OPERATING_SYSTEMS].sort(),
   );
+  const dispositions = new Set(
+    [...byOs.values()].map(({ value }) => value.disposition),
+  );
+  assert.equal(
+    dispositions.size,
+    1,
+    "MCP lifecycle disposition differs across operating systems",
+  );
+  const disposition = byOs.get("linux").value.disposition;
+  if (!allowAdvisory) assert.equal(disposition, "required");
+  for (const field of ["workflowId", "runId"]) {
+    assert.equal(
+      new Set([...byOs.values()].map(({ value }) => value.source[field])).size,
+      1,
+      `MCP lifecycle ${field} differs across operating systems`,
+    );
+  }
   const baseline = byOs.get("linux").value;
+  if (expectedSource) {
+    assert.equal(
+      baseline.source.workflowId,
+      expectedSource.workflowId,
+      "MCP lifecycle fragments must come from the current aggregate workflow",
+    );
+    assert.equal(
+      baseline.source.runId,
+      expectedSource.runId,
+      "MCP lifecycle fragments must come from the current aggregate run",
+    );
+  }
   for (const { value } of byOs.values()) {
     assert.equal(value.profileVersion, baseline.profileVersion);
     assert.deepEqual(value.thresholds, baseline.thresholds);
@@ -400,7 +665,7 @@ function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
     commitmentId: COMMITMENT_ID,
     headSha,
     profileVersion: baseline.profileVersion,
-    disposition: "required",
+    disposition,
     outcome: "passed",
     operatingSystems: [...REQUIRED_OPERATING_SYSTEMS],
     thresholds: baseline.thresholds,
@@ -418,11 +683,29 @@ function aggregateEvidenceEntries({ entries, headSha, producerDigests }) {
   };
 }
 
-function verifyEvidenceSet({ evidenceDir, releaseCommit, output }) {
+function verifyEvidenceSet({
+  evidenceDir,
+  releaseCommit,
+  output,
+  allowAdvisory = false,
+  environment = process.env,
+}) {
   const headSha = exactCommit(releaseCommit);
   assert.equal(currentHead(), headSha, "release commit must equal git HEAD");
-  verifyExactHeadSources(headSha);
-  const producerDigests = expectedProducerDigests();
+  const producerDigests = exactTreeProducerDigests(headSha);
+  verifyExactHeadSources(headSha, producerDigests);
+  let expectedSource = null;
+  if (environment.GITHUB_ACTIONS === "true") {
+    const workflowId = sourceText(
+      environment.GITHUB_WORKFLOW_REF,
+      "GITHUB_WORKFLOW_REF",
+      512,
+    );
+    githubWorkflowIdentity(workflowId);
+    const runId = sourceText(environment.GITHUB_RUN_ID, "GITHUB_RUN_ID", 32);
+    assert.match(runId, GITHUB_RUN_ID_PATTERN);
+    expectedSource = { workflowId, runId };
+  }
   const entries = evidenceFiles(path.resolve(evidenceDir))
     .map((file) => ({ file, bytes: fs.readFileSync(file) }))
     .map((entry) => ({
@@ -433,16 +716,34 @@ function verifyEvidenceSet({ evidenceDir, releaseCommit, output }) {
     entries,
     headSha,
     producerDigests,
+    allowAdvisory,
+    expectedSource,
   });
+  if (aggregate.disposition === "required") {
+    validateRequiredWorkflowBinding({
+      environment,
+      headSha,
+      producerDigests,
+    });
+  }
+  assert.equal(
+    currentHead(),
+    headSha,
+    "git HEAD changed while aggregating MCP lifecycle evidence",
+  );
+  verifyExactHeadSources(headSha, producerDigests);
   if (output) writeJson(output, aggregate);
   return aggregate;
 }
 
 function parseArgs(argv) {
-  const options = {};
+  const options = { allowAdvisory: false, required: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument === "--release-commit") options.releaseCommit = argv[++index];
+    if (argument === "--required") options.required = true;
+    else if (argument === "--allow-advisory") options.allowAdvisory = true;
+    else if (argument === "--release-commit")
+      options.releaseCommit = argv[++index];
     else if (argument === "--output") options.output = argv[++index];
     else if (argument === "--artifact-name")
       options.artifactName = argv[++index];
@@ -450,6 +751,11 @@ function parseArgs(argv) {
       options.evidenceDir = argv[++index];
     } else throw new Error(`unknown argument: ${argument}`);
   }
+  assert.equal(
+    options.required && options.allowAdvisory,
+    false,
+    "--required and --allow-advisory cannot be combined",
+  );
   return options;
 }
 
@@ -472,11 +778,17 @@ export {
   AGGREGATE_SCHEMA,
   COMMITMENT_ID,
   FRAGMENT_SCHEMA,
+  PROFILE_VERSION,
   PRODUCER_FILES,
   REQUIRED_OPERATING_SYSTEMS,
+  TEST_IDS,
+  THRESHOLDS,
   aggregateEvidenceEntries,
   assertMeasurements,
+  exactTreeProducerDigests,
   produceEvidence,
   validateFragment,
+  validateRequiredWorkflowBinding,
   verifyEvidenceSet,
+  workflowSource,
 };
