@@ -68,6 +68,7 @@ import { registerSessionShowSubcommand } from "./session-show.js";
 import { registerSessionObservabilitySubcommand } from "./session-observability.js";
 import { registerSessionLocationSubcommands } from "./session-location.js";
 import { registerSessionBudgetCommands } from "./session-budget.js";
+import { registerSessionMessageCommands } from "./session-message.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -226,6 +227,7 @@ export function registerSessionCommand(program) {
   registerSessionMcpRecoveryCommands(session);
   registerSessionLocationSubcommands(session);
   registerSessionBudgetCommands(session);
+  registerSessionMessageCommands(session);
 
   // session list
   session
@@ -321,6 +323,7 @@ export function registerSessionCommand(program) {
         let team = [];
         let workflow = [];
         let dynamicWorkflow = [];
+        let sessionMessageFabric = null;
         let artifacts = [];
         let prLinks = {};
 
@@ -462,6 +465,13 @@ export function registerSessionCommand(program) {
         } catch {
           // Summaries are optional; absence never removes a session.
         }
+        try {
+          const { SessionMessageFabric } =
+            await import("../lib/session-message-fabric.js");
+          sessionMessageFabric = new SessionMessageFabric().projection();
+        } catch (error) {
+          sourceErrors.sessionMessageFabric = error?.message || String(error);
+        }
 
         const { buildSessionProjection } =
           await import("../lib/session-projection.js");
@@ -474,6 +484,7 @@ export function registerSessionCommand(program) {
           dynamicWorkflow,
           artifacts,
           prLinks,
+          sessionMessageFabric,
           sourceErrors,
         });
         if (options.json) {

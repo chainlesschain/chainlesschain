@@ -106,6 +106,20 @@ class SessionProjectionTest {
         dynamic.put("artifact", Map.of("count", 1L));
         dynamic.put("approval", Map.of(
                 "pending", true, "type", "recovery", "count", 1L));
+        dynamic.put("messaging", Map.of(
+                "authority", "cli",
+                "registered", true,
+                "revision", 7L,
+                "unread", 2L,
+                "held", 1L,
+                "endpoints", List.of(Map.of(
+                        "name", "reviewer",
+                        "address", "cc-session://host-a/@reviewer?epoch=epoch-1",
+                        "policy", "hold",
+                        "online", false,
+                        "idle", false,
+                        "unread", 2L,
+                        "held", 1L))));
         dynamic.put("pr", Map.of("count", 0L));
         dynamic.put("workflow", Map.of(
                 "runtimeRevision", 7L,
@@ -161,6 +175,10 @@ class SessionProjectionTest {
         assertTrue(item.detail.contains("recoverable checkpoints 1"));
         assertTrue(item.detail.contains(
                 "recovery warning:terminal_checkpoint_recovery -> recover"));
+        assertTrue(item.messaging.registered);
+        assertEquals(7L, item.messaging.revision);
+        assertEquals(2L, item.messaging.unread);
+        assertEquals("reviewer", item.messaging.endpoints.get(0).name);
         assertEquals(List.of("cowork", "workflow", "runtime-resume", "wf-run",
                         "--expected-revision", "7", "--cwd", "C:/repo", "--json"),
                 SessionProjection.preview(snapshot, item.id, "resume",

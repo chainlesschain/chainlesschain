@@ -67,6 +67,45 @@ public final class SessionProjection {
         }
     }
 
+    public static final class MessagingEndpoint {
+        public final String name;
+        public final String address;
+        public final String policy;
+        public final boolean online;
+        public final boolean idle;
+        public final long unread;
+        public final long held;
+
+        private MessagingEndpoint(String name, String address, String policy,
+                boolean online, boolean idle, long unread, long held) {
+            this.name = name;
+            this.address = address;
+            this.policy = policy;
+            this.online = online;
+            this.idle = idle;
+            this.unread = unread;
+            this.held = held;
+        }
+    }
+
+    public static final class MessagingSummary {
+        public final boolean registered;
+        public final long revision;
+        public final long unread;
+        public final long held;
+        public final List<MessagingEndpoint> endpoints;
+
+        private MessagingSummary(boolean registered, long revision, long unread,
+                long held, List<MessagingEndpoint> endpoints) {
+            this.registered = registered;
+            this.revision = revision;
+            this.unread = unread;
+            this.held = held;
+            this.endpoints = Collections.unmodifiableList(
+                    new ArrayList<MessagingEndpoint>(endpoints));
+        }
+    }
+
     public static final class Item {
         public final String id;
         public final String sourceId;
@@ -81,6 +120,7 @@ public final class SessionProjection {
         public final List<String> actions;
         public final Map<String, String> unavailableReasons;
         public final Map<String, ActionPreview> previews;
+        public final MessagingSummary messaging;
         /** Bounded, content-free owner/worktree/artifact/approval/PR summary. */
         public final String detail;
 
@@ -88,7 +128,8 @@ public final class SessionProjection {
                 String title, String linkedSessionId, String cwd, long port,
                 String lastEventAt, String revision, List<String> actions,
                 Map<String, String> unavailableReasons,
-                Map<String, ActionPreview> previews, String detail) {
+                Map<String, ActionPreview> previews,
+                MessagingSummary messaging, String detail) {
             this.id = id;
             this.sourceId = sourceId;
             this.kind = kind;
@@ -104,6 +145,7 @@ public final class SessionProjection {
                     new LinkedHashMap<String, String>(unavailableReasons));
             this.previews = Collections.unmodifiableMap(
                     new LinkedHashMap<String, ActionPreview>(previews));
+            this.messaging = messaging;
             this.detail = detail == null ? "" : detail;
         }
     }
@@ -226,6 +268,7 @@ public final class SessionProjection {
                         available,
                         unavailable,
                         previews,
+                        parseMessaging(item.get("messaging")),
                         projectionDetail(item)));
             }
         } catch (RuntimeException error) {
@@ -307,6 +350,66 @@ public final class SessionProjection {
         }
         return new ActionPreview(executor, argv,
                 Boolean.TRUE.equals(preview.get("mutates")), input);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static MessagingSummary parseMessaging(Object value) {
+        if (value == null) {
+            return new MessagingSummary(false, 0L, 0L, 0L, List.of());
+        }
+        if (!(value instanceof Map)) throw new IllegalArgumentException();
+        Map<String, Object> messaging = (Map<String, Object>) value;
+        if (!"cli".equals(str(messaging.get("authority")))
+                || !(messaging.get("registered") instanceof Boolean)
+                || !(messaging.get("revision") instanceof Number)
+                || !(messaging.get("unread") instanceof Number)
+                || !(messaging.get("held") instanceof Number)
+                || !(messaging.get("endpoints") instanceof List)) {
+            throw new IllegalArgumentException();
+        }
+        long revision = number(messaging.get("revision"));
+        long unread = number(messaging.get("unread"));
+        long held = number(messaging.get("held"));
+        if (revision < 0 || unread < 0 || held < 0) {
+            throw new IllegalArgumentException();
+        }
+        List<Object> rawEndpoints = (List<Object>) messaging.get("endpoints");
+        if (rawEndpoints.size() > 16) throw new IllegalArgumentException();
+        List<MessagingEndpoint> endpoints = new ArrayList<MessagingEndpoint>();
+        long endpointUnread = 0L;
+        long endpointHeld = 0L;
+        for (Object raw : rawEndpoints) {
+            if (!(raw instanceof Map)) throw new IllegalArgumentException();
+            Map<String, Object> endpoint = (Map<String, Object>) raw;
+            String name = str(endpoint.get("name"));
+            String address = str(endpoint.get("address"));
+            String policy = str(endpoint.get("policy"));
+            long itemUnread = number(endpoint.get("unread"));
+            long itemHeld = number(endpoint.get("held"));
+            if (name.isEmpty() || name.length() > 64
+                    || !address.startsWith("cc-session://")
+                    || address.length() > 512
+                    || !Set.of("accept", "hold", "refuse").contains(policy)
+                    || !(endpoint.get("online") instanceof Boolean)
+                    || !(endpoint.get("idle") instanceof Boolean)
+                    || !(endpoint.get("unread") instanceof Number)
+                    || !(endpoint.get("held") instanceof Number)
+                    || itemUnread < 0 || itemHeld < 0) {
+                throw new IllegalArgumentException();
+            }
+            endpointUnread += itemUnread;
+            endpointHeld += itemHeld;
+            endpoints.add(new MessagingEndpoint(name, address, policy,
+                    Boolean.TRUE.equals(endpoint.get("online")),
+                    Boolean.TRUE.equals(endpoint.get("idle")),
+                    itemUnread, itemHeld));
+        }
+        boolean registered = Boolean.TRUE.equals(messaging.get("registered"));
+        if (registered != !endpoints.isEmpty()
+                || unread != endpointUnread || held != endpointHeld) {
+            throw new IllegalArgumentException();
+        }
+        return new MessagingSummary(registered, revision, unread, held, endpoints);
     }
 
     @SuppressWarnings("unchecked")

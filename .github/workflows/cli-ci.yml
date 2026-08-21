@@ -101,6 +101,19 @@ jobs:
           name: claude-security-map-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
           if-no-files-found: error
+      - name: Verify 32-process cross-session message fabric
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-session-message-fabric.mjs
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/session-message-fabric-${RUNNER_OS}.json"
+      - name: Upload cross-session message fabric evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: session-message-fabric-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
+          if-no-files-found: error
       - name: Verify CLI --version
         working-directory: packages/cli
         run: node bin/chainlesschain.js --version

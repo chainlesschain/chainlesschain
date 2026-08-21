@@ -18,6 +18,10 @@ on:
       - "packages/cli/src/runtime/pipe-safety.js"
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/session-persistence-failure.js"
+      - "packages/cli/src/lib/session-message-fabric.js"
+      - "packages/cli/src/lib/session-projection.js"
+      - "packages/cli/src/commands/session-message.js"
+      - "packages/cli/src/commands/session.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-native-code-policy.js"
@@ -35,6 +39,7 @@ on:
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/scripts/cli-mcp-security-soak.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
+      - "packages/cli/scripts/verify-session-message-fabric.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
@@ -42,6 +47,12 @@ on:
       - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs"
       - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs"
       - "packages/cli/__tests__/unit/scheduler-reliability-soak.test.js"
+      - "packages/cli/__tests__/unit/session-message-fabric.test.js"
+      - "packages/cli/__tests__/unit/session-projection.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js"
+      - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java"
       - "packages/cli/__tests__/unit/scheduler-kernel-store.test.js"
       - "packages/cli/__tests__/unit/automation-center-incidents.test.js"
       - "packages/cli/__tests__/unit/automation-center-runtime.test.js"
@@ -187,6 +198,97 @@ jobs:
         with:
           name: cli-reliability-${{ matrix.os }}-${{ env.CC_CLI_RELIABILITY_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/cli-reliability-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+  session-message-fabric:
+    name: "cross-session 32-process durability (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      CC_SESSION_MESSAGE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact cross-session message commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run 32-process message admission and recovery matrix
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-session-message-fabric.mjs
+          --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
+          --output "${RUNNER_TEMP}/session-message-fabric-${RUNNER_OS}.json"
+
+      - name: Upload exact-SHA cross-session message evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: session-message-fabric-${{ matrix.os }}-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  session-message-fabric-aggregate:
+    name: Cross-session message fabric aggregate
+    if: always()
+    needs: session-message-fabric
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_SESSION_MESSAGE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete cross-session platform matrix
+        if: needs.session-message-fabric.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one cross-session message platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact cross-session message commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download exact-SHA platform evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: session-message-fabric-*-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/session-message-fabric-evidence
+
+      - name: Verify complete Linux, Windows and macOS evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-session-message-fabric.mjs
+          --verify-evidence-dir "${RUNNER_TEMP}/session-message-fabric-evidence"
+          --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
+          --output "${RUNNER_TEMP}/session-message-fabric-aggregate.json"
+
+      - name: Upload immutable cross-session aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: session-message-fabric-formal-aggregate-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/session-message-fabric-aggregate.json
           if-no-files-found: error
           retention-days: 30
 

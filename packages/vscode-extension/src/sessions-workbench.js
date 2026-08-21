@@ -101,6 +101,81 @@ function parseActionPreview(value) {
   };
 }
 
+function parseMessagingSummary(value) {
+  if (value == null) {
+    return {
+      authority: "cli",
+      registered: false,
+      revision: 0,
+      unread: 0,
+      held: 0,
+      endpoints: [],
+    };
+  }
+  if (
+    typeof value !== "object" ||
+    value.authority !== "cli" ||
+    typeof value.registered !== "boolean" ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 0 ||
+    !Number.isSafeInteger(value.unread) ||
+    value.unread < 0 ||
+    !Number.isSafeInteger(value.held) ||
+    value.held < 0 ||
+    !Array.isArray(value.endpoints) ||
+    value.endpoints.length > 16
+  ) {
+    return null;
+  }
+  const endpoints = [];
+  for (const endpoint of value.endpoints) {
+    if (
+      !endpoint ||
+      typeof endpoint !== "object" ||
+      typeof endpoint.name !== "string" ||
+      !endpoint.name ||
+      endpoint.name.length > 64 ||
+      typeof endpoint.address !== "string" ||
+      !endpoint.address.startsWith("cc-session://") ||
+      endpoint.address.length > 512 ||
+      !["accept", "hold", "refuse"].includes(endpoint.policy) ||
+      typeof endpoint.online !== "boolean" ||
+      typeof endpoint.idle !== "boolean" ||
+      !Number.isSafeInteger(endpoint.unread) ||
+      endpoint.unread < 0 ||
+      !Number.isSafeInteger(endpoint.held) ||
+      endpoint.held < 0
+    ) {
+      return null;
+    }
+    endpoints.push({
+      name: endpoint.name,
+      address: endpoint.address,
+      policy: endpoint.policy,
+      online: endpoint.online,
+      idle: endpoint.idle,
+      unread: endpoint.unread,
+      held: endpoint.held,
+    });
+  }
+  if (
+    value.registered !== endpoints.length > 0 ||
+    value.unread !==
+      endpoints.reduce((total, item) => total + item.unread, 0) ||
+    value.held !== endpoints.reduce((total, item) => total + item.held, 0)
+  ) {
+    return null;
+  }
+  return {
+    authority: "cli",
+    registered: value.registered,
+    revision: value.revision,
+    unread: value.unread,
+    held: value.held,
+    endpoints,
+  };
+}
+
 /** The `cc …` argv arrays the workbench needs (state-dir sources excluded). */
 function buildWorkbenchArgs({
   limit = WORKBENCH_SESSION_LIMIT,
@@ -258,6 +333,17 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
     const actions = [...actionSet].filter(
       (id) => actionAvailability[id]?.available === true,
     );
+    const messaging = parseMessagingSummary(item.messaging);
+    if (!messaging) {
+      return {
+        connected: false,
+        stale: false,
+        revision,
+        rows: [],
+        sources: root.sources || {},
+        error: "malformed session messaging summary",
+      };
+    }
     rows.push({
       id: item.id,
       sourceId: item.sourceId,
@@ -288,6 +374,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       worktree: item.worktree || null,
       artifact: item.artifact || null,
       approval: item.approval || null,
+      messaging,
       pr: item.pr || null,
       workflow: item.workflow || null,
     });

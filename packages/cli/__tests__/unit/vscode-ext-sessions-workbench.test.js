@@ -542,6 +542,24 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
       worktree: null,
       artifact: { count: 1, latest: null },
       approval: { pending: true, type: "recovery", count: 1 },
+      messaging: {
+        authority: "cli",
+        registered: true,
+        revision: 7,
+        unread: 2,
+        held: 1,
+        endpoints: [
+          {
+            name: "reviewer",
+            address: "cc-session://host-a/@reviewer?epoch=epoch-1",
+            policy: "hold",
+            online: false,
+            idle: false,
+            unread: 2,
+            held: 1,
+          },
+        ],
+      },
       pr: { count: 0, latest: null },
       workflow: {
         runtimeRevision: 7,
@@ -600,6 +618,15 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
       runtimeRevision: 7,
       phase: { status: "paused" },
       budget: { overall: "within" },
+    });
+    expect(row.messaging).toMatchObject({
+      registered: true,
+      revision: 7,
+      unread: 2,
+      held: 1,
+      endpoints: [
+        expect.objectContaining({ name: "reviewer", policy: "hold" }),
+      ],
     });
     expect(
       previewProjectionAction(snapshot, {

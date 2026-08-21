@@ -121,6 +121,55 @@ function sample(overrides = {}) {
 }
 
 describe("canonical session projection", () => {
+  it("binds CLI-owned cross-session inbox state to every linked IDE row", () => {
+    const projection = sample({
+      sessionMessageFabric: {
+        revision: 7,
+        endpoints: [
+          {
+            sessionId: "s/1",
+            name: "reviewer",
+            address: "cc-session://host-a/@reviewer?epoch=epoch-1",
+            policy: "hold",
+            online: false,
+            idle: false,
+            unread: 2,
+            held: 1,
+          },
+        ],
+      },
+    });
+    const linked = projection.sessions.filter((item) =>
+      ["local", "background", "remote"].includes(item.kind),
+    );
+    expect(linked.length).toBeGreaterThan(0);
+    for (const item of linked) {
+      expect(item.messaging).toEqual({
+        authority: "cli",
+        registered: true,
+        revision: 7,
+        unread: 2,
+        held: 1,
+        endpoints: [
+          {
+            name: "reviewer",
+            address: "cc-session://host-a/@reviewer?epoch=epoch-1",
+            policy: "hold",
+            online: false,
+            idle: false,
+            unread: 2,
+            held: 1,
+          },
+        ],
+      });
+    }
+    expect(projection.sources.sessionMessageFabric).toEqual({
+      ok: true,
+      count: 1,
+      error: null,
+    });
+  });
+
   it("uses stable kind-prefixed ids, the six-state vocabulary and fixed action vocabulary", () => {
     const projection = sample();
     expect(canonicalSessionId("local", "s/1")).toBe("local:s%2F1");

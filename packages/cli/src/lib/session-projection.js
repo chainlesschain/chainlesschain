@@ -615,6 +615,37 @@ function approvalSummary(source, state) {
   };
 }
 
+function messagingSummary(sessionIds, fabric) {
+  const linked = new Set(
+    (Array.isArray(sessionIds) ? sessionIds : [sessionIds]).filter(Boolean),
+  );
+  const endpoints = Array.isArray(fabric?.endpoints)
+    ? fabric.endpoints
+        .filter((endpoint) => linked.has(endpoint?.sessionId))
+        .map((endpoint) => ({
+          name: asText(endpoint?.name),
+          address: asText(endpoint?.address),
+          policy: ["accept", "hold", "refuse"].includes(endpoint?.policy)
+            ? endpoint.policy
+            : "refuse",
+          online: endpoint?.online === true,
+          idle: endpoint?.idle === true,
+          unread: asCount(endpoint?.unread),
+          held: asCount(endpoint?.held),
+        }))
+        .filter((endpoint) => endpoint.name && endpoint.address)
+        .sort((left, right) => left.name.localeCompare(right.name))
+    : [];
+  return {
+    authority: "cli",
+    registered: endpoints.length > 0,
+    revision: Number.isSafeInteger(fabric?.revision) ? fabric.revision : 0,
+    unread: endpoints.reduce((total, endpoint) => total + endpoint.unread, 0),
+    held: endpoints.reduce((total, endpoint) => total + endpoint.held, 0),
+    endpoints,
+  };
+}
+
 function lastEventFor(source, state) {
   const at =
     toIso(source?.lastEvent?.at) ||
@@ -629,7 +660,11 @@ function lastEventFor(source, state) {
   };
 }
 
-function projectOne(kind, source, { artifacts, prLinks }) {
+function projectOne(
+  kind,
+  source,
+  { artifacts, prLinks, sessionMessageFabric },
+) {
   let sourceId;
   if (kind === "remote") {
     const stateFile = asText(source?.stateFile);
@@ -701,6 +736,7 @@ function projectOne(kind, source, { artifacts, prLinks }) {
         ? { count: asCount(source?.artifacts?.count), latest: null }
         : artifactSummary(linkedSessionIds, artifacts),
     approval: approvalSummary(source, state),
+    messaging: messagingSummary(linkedSessionIds, sessionMessageFabric),
     pr: prSummary(linkedSessionIds, prLinks),
     workflow: dynamicWorkflowSummary(source),
     lastEvent: lastEventFor(source, state),
@@ -726,10 +762,11 @@ export function buildSessionProjection({
   dynamicWorkflow = [],
   artifacts = [],
   prLinks = {},
+  sessionMessageFabric = null,
   sourceErrors = {},
   generatedAt = new Date().toISOString(),
 } = {}) {
-  const context = { artifacts, prLinks };
+  const context = { artifacts, prLinks, sessionMessageFabric };
   const sessions = [
     ...(Array.isArray(local) ? local : []).map((source) =>
       projectOne("local", source, context),
@@ -784,6 +821,12 @@ export function buildSessionProjection({
     dynamicWorkflow: sourceStatus(
       Array.isArray(dynamicWorkflow) ? dynamicWorkflow.length : 0,
       sourceErrors.dynamicWorkflow,
+    ),
+    sessionMessageFabric: sourceStatus(
+      Array.isArray(sessionMessageFabric?.endpoints)
+        ? sessionMessageFabric.endpoints.length
+        : 0,
+      sourceErrors.sessionMessageFabric,
     ),
   };
   const revision = projectionRevision({
