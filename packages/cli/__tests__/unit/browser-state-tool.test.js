@@ -114,10 +114,18 @@ describe("browser_state dispatch (faked playwright via _deps)", () => {
     );
     expect(res.error).toBeUndefined();
     expect(res.ok).toBe(true);
+    expect(res.observationCaptureAvailable).toBe(true);
     expect(res.url).toBe("http://localhost:5173/");
     expect(res.title).toBe("App");
     expect(res.tabs).toHaveLength(2);
     expect(res.html).toContain("hello");
+    expect(res.htmlCaptureSucceeded).toBe(true);
+    expect(res.htmlRedaction).toEqual({
+      applied: true,
+      sensitiveFieldValues: 0,
+      urlQueryValues: 0,
+      secretPatterns: 0,
+    });
   });
 
   it("caps the DOM at dom_cap and flags truncation", async () => {

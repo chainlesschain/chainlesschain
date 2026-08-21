@@ -3676,6 +3676,15 @@ export async function executeTool(name, args, context = {}) {
       managedCheckpoint: context.managedCheckpoint === true,
       fileMutationScope: context.fileMutationScope || null,
       hermeticExecution: context.hermeticExecution === true,
+      browserEvidenceBinding: context.browserEvidenceBinding || null,
+      browserOriginGrants: context.browserOriginGrants || null,
+      browserExpectedGrantRevisions:
+        context.browserExpectedGrantRevisions || null,
+      browserReplaySourceEnvelope: context.browserReplaySourceEnvelope || null,
+      browserReplayAllowSideEffects:
+        context.browserReplayAllowSideEffects === true,
+      browserReplayAllowCredentials:
+        context.browserReplayAllowCredentials === true,
     });
   } catch (err) {
     if (
@@ -4757,9 +4766,9 @@ async function filterSkillsByCwd(skills, cwd) {
   }
 }
 
-async function promoteBrowserScreenshot(
+async function promoteBrowserGeneratedArtifact(
   filePath,
-  { sessionId = null, title = "Browser screenshot" } = {},
+  { sessionId = null, title, kind, failureLabel } = {},
 ) {
   if (!filePath) return { artifact: null, error: null };
   try {
@@ -4768,7 +4777,7 @@ async function promoteBrowserScreenshot(
     const entry = new ArtifactStore().publish({
       filePath,
       title,
-      kind: "screenshot",
+      kind,
       sessionId: sessionId ? String(sessionId) : null,
     });
     return { artifact: publicArtifactMetadata(entry), error: null };
@@ -4779,7 +4788,7 @@ async function promoteBrowserScreenshot(
         : "";
     return {
       artifact: null,
-      error: `browser screenshot artifact publication failed${code ? ` (${code})` : ""}`,
+      error: `${failureLabel} artifact publication failed${code ? ` (${code})` : ""}`,
     };
   } finally {
     try {
@@ -4788,6 +4797,155 @@ async function promoteBrowserScreenshot(
       /* best-effort cleanup */
     }
   }
+}
+
+async function promoteBrowserScreenshot(
+  filePath,
+  { sessionId = null, title = "Browser screenshot" } = {},
+) {
+  return promoteBrowserGeneratedArtifact(filePath, {
+    sessionId,
+    title,
+    kind: "screenshot",
+    failureLabel: "browser screenshot",
+  });
+}
+
+async function promoteBrowserDownload(
+  filePath,
+  { sessionId = null, title = "Browser download" } = {},
+) {
+  return promoteBrowserGeneratedArtifact(filePath, {
+    sessionId,
+    title,
+    kind: "data",
+    failureLabel: "browser download",
+  });
+}
+
+async function publishBrowserEvidence(envelope, sessionId) {
+  if (!envelope?.envelopeDigest) return { artifact: null, error: null };
+  try {
+    const { ArtifactStore, publicArtifactMetadata } =
+      await import("../lib/artifact-store.js");
+    const {
+      browserEvidenceDigest,
+      canonicalBrowserEvidenceJson,
+      verifyBrowserEvidenceEnvelope,
+    } = await import("../lib/browser-evidence.js");
+    verifyBrowserEvidenceEnvelope(envelope);
+    if (!sessionId || String(sessionId) !== envelope.binding.session.id) {
+      throw new Error("browser evidence is not bound to the active session");
+    }
+    const data = `${canonicalBrowserEvidenceJson(envelope)}\n`;
+    const expectedFileDigest = browserEvidenceDigest(data).slice(
+      "sha256:".length,
+    );
+    const expectedLineage = {
+      schema: envelope.schema,
+      sessionId: envelope.binding.session.id,
+      sessionRevision: envelope.binding.session.revision,
+      diffDigest: envelope.binding.diff.digest,
+      testRunId: envelope.binding.testRun.id,
+    };
+    const store = new ArtifactStore();
+    const published = store.publishDataOnce({
+      data,
+      fileName: "browser-evidence-envelope.json",
+      title: `Browser evidence ${envelope.binding.session.id}@${envelope.binding.session.revision}`,
+      kind: "data",
+      mime: "application/json",
+      sessionId: String(sessionId),
+      immutable: true,
+      recordDigest: envelope.envelopeDigest,
+      lineage: expectedLineage,
+    });
+    const entry = published.entry;
+    const integrity = store.verifyIntegrity(entry);
+    if (
+      !integrity.ok ||
+      entry.sessionId !== String(sessionId) ||
+      entry.immutable !== true ||
+      entry.recordDigest !== envelope.envelopeDigest ||
+      entry.sha256 !== expectedFileDigest ||
+      canonicalBrowserEvidenceJson(entry.lineage) !==
+        canonicalBrowserEvidenceJson(expectedLineage)
+    ) {
+      throw new Error("persisted evidence authority failed verification");
+    }
+    return {
+      artifact: publicArtifactMetadata(entry),
+      error: null,
+    };
+  } catch (error) {
+    const code =
+      typeof error?.code === "string"
+        ? error.code.replace(/[^A-Z0-9_-]/giu, "").slice(0, 40)
+        : "";
+    return {
+      artifact: null,
+      error: `browser evidence artifact publication failed${code ? ` (${code})` : ""}`,
+    };
+  }
+}
+
+async function resolveBrowserUploadArtifact(artifactId, sessionId) {
+  const { ArtifactStore, publicArtifactMetadata } =
+    await import("../lib/artifact-store.js");
+  const store = new ArtifactStore();
+  return store.withIndexSnapshot((entries) => {
+    const matches = entries.filter((entry) => entry.id === artifactId);
+    if (matches.length !== 1) {
+      throw new Error(
+        matches.length === 0
+          ? "upload artifact was not found"
+          : "upload artifact authority is ambiguous",
+      );
+    }
+    const entry = matches[0];
+    if (!sessionId || entry.sessionId !== String(sessionId)) {
+      throw new Error("upload artifact is not bound to the active session");
+    }
+    if (
+      typeof entry.file !== "string" ||
+      path.basename(entry.file) !== entry.file ||
+      !(entry.file === entry.id || entry.file.startsWith(`${entry.id}.`)) ||
+      !/^[a-f0-9]{64}$/u.test(String(entry.sha256 || ""))
+    ) {
+      throw new Error("upload artifact storage authority is invalid");
+    }
+    const integrity = store.verifyIntegrity(entry);
+    if (!integrity.ok) {
+      throw new Error("upload artifact failed digest verification");
+    }
+    const storedPath = store.storedPath(entry);
+    if (fs.statSync(storedPath).size !== Number(entry.size)) {
+      throw new Error("upload artifact size authority mismatch");
+    }
+    const temporaryDirectory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-browser-upload-"),
+    );
+    const temporaryPath = path.join(
+      temporaryDirectory,
+      path.basename(entry.file || "upload.bin"),
+    );
+    try {
+      fs.writeFileSync(temporaryPath, fs.readFileSync(storedPath), {
+        flag: "wx",
+        mode: 0o600,
+        flush: true,
+      });
+    } catch (error) {
+      fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+      throw error;
+    }
+    return {
+      path: temporaryPath,
+      metadata: publicArtifactMetadata(entry),
+      cleanup: () =>
+        fs.rmSync(temporaryDirectory, { recursive: true, force: true }),
+    };
+  });
 }
 
 const MCP_LEDGER_EFFECTS = new Set(["read", "unknown", "write", "destructive"]);
@@ -5058,6 +5216,12 @@ async function executeToolInner(
     managedCheckpoint = false,
     fileMutationScope = null,
     hermeticExecution = false,
+    browserEvidenceBinding = null,
+    browserOriginGrants = null,
+    browserExpectedGrantRevisions = null,
+    browserReplaySourceEnvelope = null,
+    browserReplayAllowSideEffects = false,
+    browserReplayAllowCredentials = false,
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
@@ -7332,6 +7496,14 @@ async function executeToolInner(
           tab: args.tab != null ? Number(args.tab) : undefined,
           continueOnError: args.continue_on_error === true,
           sessionId: sessionId ? String(sessionId) : null,
+          evidenceBinding: browserEvidenceBinding,
+          originGrants: browserOriginGrants,
+          expectedGrantRevisions: browserExpectedGrantRevisions,
+          replaySourceEnvelope: browserReplaySourceEnvelope,
+          replayAllowSideEffects: browserReplayAllowSideEffects,
+          replayAllowCredentials: browserReplayAllowCredentials,
+          resolveUploadArtifact: (artifactId) =>
+            resolveBrowserUploadArtifact(artifactId, sessionId),
         });
         if (!result.ok && result.error) {
           // Nothing ran (validation / attach failure) — surface as an error.
@@ -7364,7 +7536,44 @@ async function executeToolInner(
               step.detail = promoted.error;
             }
           }
+          if (originalStep.downloadPath) {
+            const promoted = await promoteBrowserDownload(
+              originalStep.downloadPath,
+              {
+                sessionId,
+                title: `Browser download ${i + 1} — ${originalStep.downloadSuggestedName || "file"}`,
+              },
+            );
+            delete step.downloadPath;
+            delete step.downloadRef;
+            if (promoted.artifact) {
+              step.downloadArtifact = promoted.artifact;
+              step.downloadRef = promoted.artifact.id;
+              step.detail = `download artifact: ${promoted.artifact.id}`;
+            } else {
+              step.downloadArtifactError = promoted.error;
+              step.detail = promoted.error;
+            }
+          }
           safeResult.steps.push(step);
+        }
+        if (result.evidence) {
+          const publishedEvidence = await publishBrowserEvidence(
+            result.evidence,
+            sessionId,
+          );
+          safeResult.evidence = result.evidence;
+          if (publishedEvidence.artifact) {
+            safeResult.evidenceArtifact = publishedEvidence.artifact;
+            safeResult.evidenceRef = publishedEvidence.artifact.id;
+          } else {
+            safeResult.evidenceArtifactError = publishedEvidence.error;
+            safeResult.evidencePublicationFailed = true;
+            safeResult.ok = false;
+            safeResult.retrySafe = false;
+            safeResult.recovery =
+              "Browser actions may have completed, but canonical evidence publication failed; do not retry side effects automatically.";
+          }
         }
         return attachDescriptor(safeResult);
       } catch (err) {

@@ -16,6 +16,8 @@ import {
   formatToolArgs,
 } from "../../src/runtime/agent-core.js";
 import { _deps as chromeDeps } from "../../src/lib/chrome-connector.js";
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { issueBrowserOriginGrant } from "../../src/lib/browser-evidence.js";
 import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
 import { createRequire } from "module";
 
@@ -40,6 +42,15 @@ function fakePage() {
       calls.push(["screenshot", p]);
       fs.writeFileSync(p, "fake-png");
     },
+    setInputFiles: async (selector, filePath) =>
+      calls.push(["upload", selector, filePath]),
+    waitForEvent: async () => ({
+      saveAs: async (filePath) => fs.writeFileSync(filePath, "downloaded"),
+      suggestedFilename: () => "download.txt",
+    }),
+    on: () => {},
+    off: () => {},
+    content: async () => "<html><body>safe</body></html>",
     textContent: async () => "hello world",
   };
 }
@@ -83,7 +94,10 @@ describe("browser_act contract + policy", () => {
       "waitForSelector",
       "screenshot",
       "assertText",
+      "upload",
+      "download",
     ]);
+    expect(itemProps.artifact_id).toBeDefined();
     // Screenshot paths are generated internally — the schema must not offer
     // any path-like knob (an agent-chosen path would turn an action tool into
     // an arbitrary-file writer).
@@ -322,6 +336,136 @@ describe("browser_act dispatch (faked playwright via _deps)", () => {
     expect(json).not.toContain(tempPath);
     expect(json).not.toContain(blockedStore);
     expect(fs.existsSync(tempPath)).toBe(false);
+  });
+
+  it("promotes upload/download and immutable canonical evidence under one session authority", async () => {
+    const sessionId = "sess-browser-transfer-evidence";
+    const uploadSource = path.join(auditDir, "upload.txt");
+    fs.writeFileSync(uploadSource, "safe upload body", "utf8");
+    const uploadArtifact = new ArtifactStore().publish({
+      filePath: uploadSource,
+      title: "Browser upload",
+      kind: "data",
+      sessionId,
+    });
+    const binding = {
+      sessionId,
+      sessionRevision: 4,
+      diff: {
+        baseSha: "a".repeat(40),
+        headSha: "b".repeat(40),
+        digest: `sha256:${"c".repeat(64)}`,
+      },
+      testRun: { id: "browser-transfer-tool", attempt: 1 },
+    };
+    const grant = issueBrowserOriginGrant({
+      grantId: "grant-localhost-5173",
+      binding,
+      origin: "http://localhost:5173",
+      revision: 6,
+      scopes: ["upload", "download", "observe"],
+      credentialBoundary: "session-bound",
+      issuedAt: "2026-08-21T00:00:00.000Z",
+      expiresAt: "2099-08-21T00:00:00.000Z",
+    });
+    const page = fakePage();
+    chromeDeps.importPlaywright = async () => fakePlaywright(page);
+
+    const result = await executeTool(
+      "browser_act",
+      {
+        actions: [
+          {
+            type: "upload",
+            selector: "#upload",
+            artifact_id: uploadArtifact.id,
+          },
+          { type: "download", selector: "#download" },
+          { type: "screenshot" },
+        ],
+      },
+      {
+        sessionId,
+        browserEvidenceBinding: binding,
+        browserOriginGrants: [grant],
+        browserExpectedGrantRevisions: { [grant.origin]: 6 },
+      },
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.steps[0].uploadArtifact).toMatchObject({
+      id: uploadArtifact.id,
+      sha256: `sha256:${uploadArtifact.sha256}`,
+    });
+    expect(result.steps[1].downloadArtifact).toMatchObject({
+      kind: "data",
+      sessionId,
+    });
+    expect(result.steps[2].screenshotArtifact).toMatchObject({
+      kind: "screenshot",
+      sessionId,
+    });
+    expect(result.evidence).toMatchObject({
+      binding: { session: { id: sessionId, revision: 4 } },
+    });
+    expect(result.evidenceArtifact).toMatchObject({
+      kind: "data",
+      sessionId,
+      immutable: true,
+      recordDigest: result.evidence.envelopeDigest,
+    });
+    const uploadCall = page.calls.find((call) => call[0] === "upload");
+    expect(uploadCall).toBeDefined();
+    expect(fs.existsSync(uploadCall[2])).toBe(false);
+    expect(JSON.stringify(result)).not.toContain(uploadCall[2]);
+  });
+
+  it("fails closed without retrying when canonical evidence cannot be published", async () => {
+    const sessionId = "sess-browser-evidence-publication-failure";
+    const binding = {
+      sessionId,
+      sessionRevision: 1,
+      diff: {
+        baseSha: "a".repeat(40),
+        headSha: "b".repeat(40),
+        digest: `sha256:${"c".repeat(64)}`,
+      },
+      testRun: { id: "browser-evidence-publication-failure", attempt: 1 },
+    };
+    const grant = issueBrowserOriginGrant({
+      grantId: "grant-evidence-publication-failure",
+      binding,
+      origin: "http://localhost:5173",
+      revision: 1,
+      scopes: ["observe"],
+      issuedAt: "2026-08-21T00:00:00.000Z",
+      expiresAt: "2099-08-21T00:00:00.000Z",
+    });
+    const blockedStore = path.join(artifactsDir, "not-a-directory");
+    fs.writeFileSync(blockedStore, "blocked");
+    process.env.CC_ARTIFACTS_DIR = blockedStore;
+    chromeDeps.importPlaywright = async () => fakePlaywright(fakePage());
+
+    const result = await executeTool(
+      "browser_act",
+      { actions: [{ type: "screenshot" }] },
+      {
+        sessionId,
+        browserEvidenceBinding: binding,
+        browserOriginGrants: [grant],
+        browserExpectedGrantRevisions: { [grant.origin]: 1 },
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.evidencePublicationFailed).toBe(true);
+    expect(result.retrySafe).toBe(false);
+    expect(result.evidenceArtifact).toBeUndefined();
+    expect(result.evidenceArtifactError).toMatch(
+      /^browser evidence artifact publication failed/u,
+    );
+    expect(result.recovery).toMatch(/do not retry side effects/u);
   });
 
   it("surfaces validation failures (javascript: navigate) as a tool error", async () => {
