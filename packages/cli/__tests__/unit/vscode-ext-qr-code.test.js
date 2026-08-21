@@ -113,6 +113,9 @@ describe("QR encoder (pure, ECC M)", () => {
 describe("pairing QR webview HTML (VS Code glue)", () => {
   it("embeds the SVG, the escaped URI and the expiry", () => {
     const html = pairingQrHtml({
+      mode: "direct",
+      exposure: "lan",
+      lanAccessible: true,
       pairingUri: PAIRING_URI + "&x=<script>",
       pairing: { expiresAt: 1760000000000 },
     });
@@ -126,7 +129,10 @@ describe("pairing QR webview HTML (VS Code glue)", () => {
   });
 
   it("falls back to copy guidance when the URI exceeds QR capacity", () => {
-    const html = pairingQrHtml({ pairingUri: "x".repeat(3000) });
+    const html = pairingQrHtml({
+      mode: "relay",
+      pairingUri: "x".repeat(3000),
+    });
     expect(html).not.toContain("<svg");
     expect(html).toContain("too long");
   });

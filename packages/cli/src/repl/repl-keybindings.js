@@ -1,5 +1,60 @@
 /** Declarative, validated keybindings for interactive prompt actions. */
 
+export const DEFAULT_REPL_KEYBINDING_FLAVOR = "classic";
+export const REPL_KEYBINDING_FLAVORS = Object.freeze([
+  DEFAULT_REPL_KEYBINDING_FLAVOR,
+  "readline",
+]);
+
+/**
+ * Resolve the prompt editing flavor. Unknown values stay on the compatible
+ * classic behavior and include a diagnostic for the caller to surface.
+ */
+export function resolveReplKeybindingFlavor(value) {
+  if (value == null || String(value).trim() === "") {
+    return { flavor: DEFAULT_REPL_KEYBINDING_FLAVOR, error: null };
+  }
+  const flavor = String(value).trim().toLowerCase();
+  if (REPL_KEYBINDING_FLAVORS.includes(flavor)) {
+    return { flavor, error: null };
+  }
+  return {
+    flavor: DEFAULT_REPL_KEYBINDING_FLAVOR,
+    error: `keybindingFlavor must be classic or readline (got "${String(value)}")`,
+  };
+}
+
+/** True for the terminal Ctrl+W chord used by readline's unix-word-rubout. */
+export function isReadlineWordRuboutKey(input, key = {}) {
+  if (key.meta || key.alt || key.shift) return false;
+  const name = String(key.name || "").toLowerCase();
+  return (
+    key.ctrl === true &&
+    (name === "w" || input === "\u0017" || key.sequence === "\u0017")
+  );
+}
+
+/**
+ * Delete the token immediately left of the cursor using whitespace-only word
+ * boundaries. This intentionally treats a full path as one token, unlike the
+ * classic path-segment behavior. Text right of the cursor is preserved.
+ */
+export function readlineWordRubout(line, cursor) {
+  const text = String(line || "");
+  const point = Math.max(
+    0,
+    Math.min(Number.isInteger(cursor) ? cursor : text.length, text.length),
+  );
+  let start = point;
+  while (start > 0 && /\s/u.test(text[start - 1])) start -= 1;
+  while (start > 0 && !/\s/u.test(text[start - 1])) start -= 1;
+  return {
+    line: text.slice(0, start) + text.slice(point),
+    cursor: start,
+    changed: start !== point,
+  };
+}
+
 export const REPL_KEYBINDING_ACTIONS = Object.freeze([
   "prompt.edit",
   "prompt.stash",

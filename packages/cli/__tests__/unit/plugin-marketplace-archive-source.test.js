@@ -386,12 +386,38 @@ describe("Marketplace HTTPS archive source", () => {
 
   it("persists archive and payload authority through installation readback", async () => {
     const bytes = pluginArchive();
-    const resolved = await materialize(bytes);
+    remoteSourceDependencies.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          plugins: [
+            {
+              name: "archive-plugin",
+              version: "1.0.0",
+              source: {
+                type: "archive",
+                url: "https://registry.example/archive-plugin.tgz",
+                sha256: digest(bytes),
+              },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    const resolved = await resolveRemoteSource(
+      "https://registry.example/index.json",
+      {
+        name: "archive-plugin",
+        artifactCacheDir,
+        archiveSourceCacheDir: sourceCacheDir,
+        archiveFetchImpl: async () => new Response(bytes, { status: 200 }),
+      },
+    );
     const cwd = path.join(root, "project");
     fs.mkdirSync(cwd);
-    installFromSource(resolved.dir, {
+    installFromSource(resolved.source, {
       scope: "project",
       cwd,
+      registryResolutionAuthority: resolved.registryResolutionAuthority,
       expectedIdentity: { name: "archive-plugin", version: "1.0.0" },
       sourceMetadata: {
         type: "registry",
@@ -406,7 +432,7 @@ describe("Marketplace HTTPS archive source", () => {
           governanceStatus: "complete",
           registryStatus: "online",
           versionAuthority: "registry-declared-unverified",
-          archiveSource: resolved.authority,
+          archiveSource: resolved.archiveAuthority,
         },
       },
     });
@@ -418,22 +444,23 @@ describe("Marketplace HTTPS archive source", () => {
       catalogAuthority: {
         archiveSource: {
           archiveSha256: digest(bytes),
-          payloadSha256: resolved.authority.payloadSha256,
+          payloadSha256: resolved.archiveAuthority.payloadSha256,
           status: "digest-verified-and-extracted",
         },
       },
     });
 
     expect(() =>
-      installFromSource(resolved.dir, {
+      installFromSource(resolved.source, {
         scope: "local",
         cwd,
+        registryResolutionAuthority: resolved.registryResolutionAuthority,
         expectedIdentity: { name: "archive-plugin", version: "1.0.0" },
         sourceMetadata: {
           ...installed[0].source,
           registry: "https://other.example/index.json",
         },
       }),
-    ).toThrow(/selected registry and source/u);
+    ).toThrow(/registry source authority|selected registry and source/u);
   });
 });

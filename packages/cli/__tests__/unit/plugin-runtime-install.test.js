@@ -35,15 +35,25 @@ import {
   buildMarketplacePayloadSbom,
   buildRemoteSbomPayloadComparison,
 } from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
+import {
+  _deps as remoteSourceDeps,
+  resolveRemoteSource,
+} from "../../src/lib/plugin-runtime/remote-source.js";
+import { _resetPluginManagedPolicyCache } from "../../src/lib/plugin-security.js";
 
 let cwd; // acts as the project root for project/local scopes
 let srcRoot; // where source plugin fixtures live
+let originalRemoteSourceDeps;
+let registryFixtureAuthorities;
 
 // Most lifecycle fixtures use separate temp directories to represent versions
 // of one already-reviewed source. Make that approval explicit so individual
 // tests can focus on the invariant named in their title. Tests of API defaults
 // call the *Impl imports directly.
 function installFromDirectory(source, opts = {}) {
+  if (opts.sourceMetadata?.type === "registry") {
+    return installRegistryFixture(source, opts, installFromSourceImpl);
+  }
   return installFromDirectoryImpl(source, {
     allowSourceSwitch: true,
     allowDowngrade: true,
@@ -52,6 +62,9 @@ function installFromDirectory(source, opts = {}) {
 }
 
 function installFromSource(source, opts = {}) {
+  if (opts.sourceMetadata?.type === "registry") {
+    return installRegistryFixture(source, opts, installFromSourceImpl);
+  }
   return installFromSourceImpl(source, {
     allowSourceSwitch: true,
     allowDowngrade: true,
@@ -59,7 +72,41 @@ function installFromSource(source, opts = {}) {
   });
 }
 
+function installRegistryFixture(localSource, opts, implementation) {
+  const registryUrl =
+    opts.sourceMetadata.registry || opts.sourceMetadata.source;
+  const resolution = registryFixtureAuthorities.get(registryUrl);
+  if (!resolution)
+    throw new Error(`missing registry fixture for ${registryUrl}`);
+  const originalSpawnSync = installDeps.spawnSync;
+  installDeps.spawnSync = (_executable, args) => {
+    const destination = args.at(-1);
+    fs.cpSync(localSource, destination, { recursive: true });
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  try {
+    return implementation(resolution.source, {
+      allowSourceSwitch: true,
+      allowDowngrade: true,
+      ...opts,
+      sourceMetadata: {
+        ...opts.sourceMetadata,
+        source: registryUrl,
+        registry: registryUrl,
+        resolvedSource: resolution.source,
+        ref: resolution.ref,
+      },
+      registryResolutionAuthority: resolution.registryResolutionAuthority,
+    });
+  } finally {
+    installDeps.spawnSync = originalSpawnSync;
+  }
+}
+
 function updatePlugin(source, opts = {}) {
+  if (opts.sourceMetadata?.type === "registry") {
+    return installRegistryFixture(source, opts, updatePluginImpl);
+  }
   return updatePluginImpl(source, {
     allowSourceSwitch: true,
     allowDowngrade: true,
@@ -204,11 +251,42 @@ function semanticSourceMetadata(
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  _resetPluginManagedPolicyCache();
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-inst-cwd-"));
   srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-inst-src-"));
+  originalRemoteSourceDeps = { ...remoteSourceDeps };
+  registryFixtureAuthorities = new Map();
+  remoteSourceDeps.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    text: async () =>
+      JSON.stringify({
+        plugins: [
+          {
+            name: "fixture",
+            source: "https://fixtures.invalid/plugin-source.git",
+          },
+        ],
+      }),
+  });
+  for (const registryUrl of [
+    "https://registry.example/index.json",
+    "https://registry.example/index.json?token=secret",
+  ]) {
+    registryFixtureAuthorities.set(
+      registryUrl,
+      await resolveRemoteSource(registryUrl, {
+        allowCache: false,
+        managedPolicy: null,
+      }),
+    );
+  }
 });
 afterEach(() => {
+  _resetPluginManagedPolicyCache();
+  Object.assign(remoteSourceDeps, originalRemoteSourceDeps);
   for (const d of [cwd, srcRoot]) {
     try {
       fs.rmSync(d, { recursive: true, force: true });
@@ -823,12 +901,15 @@ describe("installFromSource", () => {
     const [row] = listInstalled({ cwd, scopes: ["project"] });
     expect(row.source).toMatchObject({
       type: "registry",
-      source: "https://registry.example/index.json",
+      source: "https://registry.example/index.json?[REDACTED]",
       catalogAuthority: {
         schemaVersion: "cc-plugin-marketplace-catalog/v1",
         installPreflightSchemaVersion:
           "cc-plugin-marketplace-install-preflight/v1",
         catalogDigest,
+        registryDocumentSha256: registryFixtureAuthorities.get(
+          "https://registry.example/index.json?token=secret",
+        ).documentSha256,
         candidateId,
         candidateDigest,
         selectionSchemaVersion: "cc-plugin-marketplace-candidate-selection/v1",
@@ -839,6 +920,173 @@ describe("installFromSource", () => {
       },
     });
     expect(JSON.stringify(row.source)).not.toContain("secret");
+  });
+
+  it("cross-binds registry capability to the fetched document before I/O", () => {
+    const registry = "https://registry.example/index.json";
+    const resolution = registryFixtureAuthorities.get(registry);
+    let existsCalls = 0;
+    let lstatCalls = 0;
+    let mkdtempCalls = 0;
+    let spawnCalls = 0;
+    const originalExistsSync = installDeps.existsSync;
+    const originalLstatSync = installDeps.lstatSync;
+    const originalMkdtempSync = installDeps.mkdtempSync;
+    const originalSpawnSync = installDeps.spawnSync;
+    installDeps.existsSync = () => {
+      existsCalls += 1;
+      return false;
+    };
+    installDeps.lstatSync = (...args) => {
+      lstatCalls += 1;
+      return originalLstatSync(...args);
+    };
+    installDeps.mkdtempSync = (...args) => {
+      mkdtempCalls += 1;
+      return originalMkdtempSync(...args);
+    };
+    installDeps.spawnSync = () => {
+      spawnCalls += 1;
+      return { status: 1, stdout: "", stderr: "" };
+    };
+    try {
+      expect(() =>
+        installFromSourceImpl(resolution.source, {
+          cwd,
+          registryResolutionAuthority: resolution.registryResolutionAuthority,
+          sourceMetadata: {
+            type: "registry",
+            source: registry,
+            registry,
+            resolvedSource: resolution.source,
+            ref: resolution.ref,
+            catalogAuthority: {
+              registryDocumentSha256: "0".repeat(64),
+            },
+          },
+        }),
+      ).toThrow(/does not match catalog document digest/u);
+      expect(() =>
+        installFromSourceImpl(resolution.source, {
+          cwd,
+          registryResolutionAuthority: resolution.registryResolutionAuthority,
+          sourceMetadata: {
+            type: "registry",
+            source: registry,
+            registry,
+            resolvedSource: resolution.source,
+            ref: resolution.ref,
+          },
+        }),
+      ).toThrow(/requires catalog authority/u);
+      expect(() =>
+        installFromSourceImpl(resolution.source, {
+          cwd,
+          registryResolutionAuthority: resolution.registryResolutionAuthority,
+          sourceMetadata: {
+            type: "registry",
+            source: registry,
+            registry,
+            resolvedSource: resolution.source,
+            ref: resolution.ref,
+            catalogAuthority: {},
+          },
+        }),
+      ).toThrow(/catalogAuthority\.catalogDigest/u);
+      expect({ existsCalls, lstatCalls, mkdtempCalls, spawnCalls }).toEqual({
+        existsCalls: 0,
+        lstatCalls: 0,
+        mkdtempCalls: 0,
+        spawnCalls: 0,
+      });
+    } finally {
+      installDeps.existsSync = originalExistsSync;
+      installDeps.lstatSync = originalLstatSync;
+      installDeps.mkdtempSync = originalMkdtempSync;
+      installDeps.spawnSync = originalSpawnSync;
+    }
+  });
+
+  it("uses one installer-owned source authority for online publish and offline reuse", () => {
+    const registry = "https://registry.example/index.json";
+    const resolution = registryFixtureAuthorities.get(registry);
+    const source = makeSource("cached-governed", "1.0.0");
+    const manifestSha256 = crypto
+      .createHash("sha256")
+      .update(fs.readFileSync(path.join(source, "plugin.json")))
+      .digest("hex");
+    const payload = buildMarketplacePayloadSbom(source, {
+      schemaVersion: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+    });
+    const sourceCacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-plugin-source-cache-"),
+    );
+    const offlineCwd = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-inst-offline-cwd-"),
+    );
+    const sourceMetadata = {
+      type: "registry",
+      source: registry,
+      registry,
+      package: "cached-governed",
+      resolvedSource: resolution.source,
+      ref: resolution.ref,
+      catalogAuthority: {
+        catalogDigest: "a".repeat(64),
+        candidateId: `candidate-${"b".repeat(20)}`,
+        governanceStatus: "complete",
+        registryStatus: "online",
+        versionAuthority: "registry-declared-unverified",
+        artifactExpectations: {
+          manifest: { status: "declared", sha256: manifestSha256 },
+          sbom: {
+            status: "declared",
+            format: payload.schemaVersion,
+            payloadSha256: payload.digest,
+          },
+        },
+      },
+    };
+    try {
+      const online = installRegistryFixture(
+        source,
+        {
+          scope: "project",
+          cwd,
+          sourceCacheDir,
+          sourceMetadata,
+        },
+        installFromSourceImpl,
+      );
+      expect(online.sourceCache).toMatchObject({ status: "published" });
+
+      let spawnCalls = 0;
+      const originalSpawnSync = installDeps.spawnSync;
+      installDeps.spawnSync = () => {
+        spawnCalls += 1;
+        throw new Error("offline install must not spawn Git");
+      };
+      try {
+        const offline = installFromSourceImpl(resolution.source, {
+          scope: "project",
+          cwd: offlineCwd,
+          sourceCacheDir,
+          sourceMetadata,
+          registryResolutionAuthority: resolution.registryResolutionAuthority,
+          offline: true,
+        });
+        expect(offline.sourceCache).toEqual({
+          status: "hit",
+          cacheKey: online.sourceCache.cacheKey,
+        });
+        expect(spawnCalls).toBe(0);
+      } finally {
+        installDeps.spawnSync = originalSpawnSync;
+      }
+    } finally {
+      fs.rmSync(sourceCacheDir, { recursive: true, force: true });
+      fs.rmSync(offlineCwd, { recursive: true, force: true });
+    }
   });
 
   it("rejects registry identity drift and malformed catalog authority before install", () => {
@@ -1782,7 +2030,7 @@ describe("installFromSource", () => {
     // A bare word is neither a directory nor a git URL.
     expect(() =>
       installFromSource("this-is-not-a-path-or-url", { scope: "project", cwd }),
-    ).toThrow(/not found as a local directory or git URL/);
+    ).toThrow(/source directory does not exist/);
   });
 
   it("enforces managed name/source policy before files land on disk", () => {
@@ -3388,8 +3636,20 @@ describe("parseGitSource", () => {
     });
   });
 
+  it("expands bare GitLab subgroup repositories through the shared classifier", () => {
+    expect(
+      parseGitSource("gitlab.com/acme/platform/security/plugins#release"),
+    ).toEqual({
+      url: "https://gitlab.com/acme/platform/security/plugins.git",
+      ref: "release",
+    });
+  });
+
   it("returns null for non-remote strings", () => {
+    expect(parseGitSource(null)).toBeNull();
+    expect(parseGitSource("  ")).toBeNull();
     expect(parseGitSource("./local/dir")).toBeNull();
+    expect(parseGitSource("C:drive-relative-repo")).toBeNull();
     expect(parseGitSource("just-a-word")).toBeNull();
   });
 });
@@ -3401,6 +3661,36 @@ describe("installFromSource — git (mocked clone)", () => {
   });
   afterEach(() => {
     installDeps.spawnSync = savedSpawn;
+  });
+
+  it("rejects a canonical blocked source before git spawn", () => {
+    let spawned = 0;
+    installDeps.spawnSync = () => {
+      spawned += 1;
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    expect(() =>
+      installFromSourceImpl(
+        "git@gitlab.com:acme/platform/security/plugins.git",
+        {
+          scope: "project",
+          cwd,
+          managedPolicy: {
+            blockedMarketplaces: [
+              "git@gitlab.com:ACME/platform/security/plugins.git",
+            ],
+          },
+        },
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "PLUGIN_SOURCE_POLICY_BLOCKED",
+        sourceIdentity: expect.stringMatching(
+          /^gitlab:ssh:\/\/\[principal:[a-f0-9]{64}\]@gitlab\.com\/acme\/platform\/security\/plugins$/u,
+        ),
+      }),
+    );
+    expect(spawned).toBe(0);
   });
 
   it("clones a remote source and installs it", () => {
@@ -3425,28 +3715,277 @@ describe("installFromSource — git (mocked clone)", () => {
     });
     expect(listInstalled({ cwd, scopes: ["project"] })).toHaveLength(1);
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual([
-      "git",
-      [
-        "-c",
+    const [gitExecutable, gitArgs, gitOptions] = calls[0];
+    expect(path.isAbsolute(gitExecutable)).toBe(true);
+    expect(path.basename(gitExecutable).toLowerCase()).toMatch(
+      /^git(?:\.exe)?$/u,
+    );
+    expect(gitArgs).toEqual(
+      expect.arrayContaining([
+        "--no-pager",
+        `core.hooksPath=${process.platform === "win32" ? "NUL" : "/dev/null"}`,
+        "http.followRedirects=false",
+        "protocol.ext.allow=never",
+        "protocol.file.allow=never",
         "core.autocrlf=false",
-        "-c",
         "core.eol=lf",
-        "-c",
         "core.symlinks=false",
         "clone",
         "--depth",
         "1",
         "https://github.com/acme/widgets.git",
-        expect.any(String),
-      ],
-      expect.objectContaining({
-        origin: "plugin:install-git",
-        policy: "allow",
-        scope: "plugin-install",
-        shell: false,
+      ]),
+    );
+    expect(gitOptions).toMatchObject({
+      origin: "plugin:install-git",
+      policy: "allow",
+      scope: "plugin-install",
+      shell: false,
+      env: expect.objectContaining({
+        GIT_CONFIG_NOSYSTEM: "1",
+        GIT_CONFIG_GLOBAL: process.platform === "win32" ? "NUL" : "/dev/null",
+        GIT_TERMINAL_PROMPT: "0",
       }),
-    ]);
+      auditRedactArgIndexes: [
+        gitArgs.indexOf("https://github.com/acme/widgets.git"),
+      ],
+    });
+  });
+
+  it("uses the shared classifier even when owner/repo also exists locally", () => {
+    const ambiguous = path.join(cwd, "acme", "widgets");
+    fs.mkdirSync(ambiguous, { recursive: true });
+    fs.writeFileSync(
+      path.join(ambiguous, "plugin.json"),
+      JSON.stringify({ name: "wrong-local-plugin", version: "1.0.0" }),
+    );
+    let spawned = 0;
+    installDeps.spawnSync = (_cmd, args) => {
+      spawned += 1;
+      const dir = args.at(-1);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({ name: "right-remote-plugin", version: "1.0.0" }),
+      );
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    expect(
+      installFromSourceImpl("acme/widgets", { scope: "project", cwd }),
+    ).toMatchObject({ name: "right-remote-plugin" });
+    expect(spawned).toBe(1);
+  });
+
+  it("rejects source policy and malformed refs before target fs or git I/O", () => {
+    const originalExistsSync = installDeps.existsSync;
+    const originalLstatSync = installDeps.lstatSync;
+    let existsCalls = 0;
+    let lstatCalls = 0;
+    let spawnCalls = 0;
+    installDeps.existsSync = () => {
+      existsCalls += 1;
+      return false;
+    };
+    installDeps.lstatSync = () => {
+      lstatCalls += 1;
+      throw new Error("lstat must remain unreachable");
+    };
+    installDeps.spawnSync = () => {
+      spawnCalls += 1;
+      throw new Error("git must remain unreachable");
+    };
+    try {
+      const source =
+        "https://example.com/acme/review.git?tenant=private#release";
+      expect(() =>
+        installFromSourceImpl(source, {
+          cwd,
+          managedPolicy: { blockedPluginSources: [source] },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_BLOCKED" }),
+      );
+      expect(() =>
+        installFromSourceImpl("https://example.com/acme/review.git#one#two", {
+          cwd,
+          managedPolicy: {},
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+      );
+      expect(() =>
+        installFromSourceImpl("ftp://example.com/acme/review.git", {
+          cwd,
+          managedPolicy: {},
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+      );
+      const local = path.join(cwd, "blocked-local");
+      expect(() =>
+        installFromDirectoryImpl(local, {
+          cwd,
+          managedPolicy: {
+            blockedPluginSources: [{ source: "directory", path: local }],
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_BLOCKED" }),
+      );
+      expect(() =>
+        installFromDirectoryImpl("acme/review", {
+          cwd,
+          managedPolicy: {
+            blockedPluginSources: [
+              {
+                source: "directory",
+                path: path.join(cwd, "acme", "review"),
+              },
+            ],
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_BLOCKED" }),
+      );
+      expect(() =>
+        installFromDirectoryImpl(` ${local} `, {
+          cwd,
+          managedPolicy: {},
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+      );
+      const descriptor = { source: "directory", path: local };
+      expect(() =>
+        installFromSourceImpl(descriptor, {
+          cwd,
+          managedPolicy: { allowedPluginSources: [descriptor] },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+      );
+      expect(() =>
+        installFromDirectoryImpl(descriptor, {
+          cwd,
+          managedPolicy: { allowedPluginSources: [descriptor] },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+      );
+      const aliasPolicy = {
+        additionalMarketplaces: {
+          company: {
+            source: { source: "github", repo: "trusted/safe" },
+          },
+          "acme/review": {
+            source: { source: "github", repo: "trusted/safe" },
+          },
+        },
+        allowedMarketplaces: ["company", "acme/review"],
+      };
+      for (const aliasedCandidate of ["company", "acme/review"]) {
+        expect(() =>
+          installFromSourceImpl(aliasedCandidate, {
+            cwd,
+            managedPolicy: aliasPolicy,
+          }),
+        ).toThrowError(
+          expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_NOT_ALLOWED" }),
+        );
+      }
+      for (const [allowedSource, candidate] of [
+        [
+          "git@code.example:team/review.git",
+          "git@code.example:/team/review.git",
+        ],
+        [
+          "git@code.example:team/review.git",
+          "ssh://git@code.example/team/review.git",
+        ],
+        [
+          "git@code.example:team/review.git",
+          "git@code.example:team/%72eview.git",
+        ],
+        ["git@code.example:team/review.git", "git@code.example:team/review"],
+      ]) {
+        expect(() =>
+          installFromSourceImpl(candidate, {
+            cwd,
+            managedPolicy: { allowedPluginSources: [allowedSource] },
+          }),
+        ).toThrowError(
+          expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_NOT_ALLOWED" }),
+        );
+      }
+      const registry = "https://registry.example/index.json";
+      const resolved = "https://github.com/acme/blocked.git#release";
+      expect(() =>
+        installFromSourceImpl(resolved, {
+          cwd,
+          sourceMetadata: {
+            type: "registry",
+            source: registry,
+            registry,
+            resolvedSource: resolved,
+          },
+          managedPolicy: {
+            allowedMarketplaces: [{ source: "url", url: registry }],
+            blockedPluginSources: [resolved],
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          message: expect.stringMatching(/registry source authority/u),
+        }),
+      );
+      expect({ existsCalls, lstatCalls, spawnCalls }).toEqual({
+        existsCalls: 0,
+        lstatCalls: 0,
+        spawnCalls: 0,
+      });
+    } finally {
+      installDeps.existsSync = originalExistsSync;
+      installDeps.lstatSync = originalLstatSync;
+    }
+  });
+
+  it("rejects argv-visible Git credentials before clone", () => {
+    let spawned = 0;
+    installDeps.spawnSync = () => {
+      spawned += 1;
+      return { status: 128, stdout: "", stderr: "SECRET_GIT_STDERR" };
+    };
+    let failure;
+    try {
+      installFromSourceImpl(
+        "https://alice:password@example.com/acme/review.git?token=secret#main",
+        { cwd, managedPolicy: null },
+      );
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure?.message).toContain("query credentials are not supported");
+    expect(failure?.message).not.toMatch(/alice|password|secret/u);
+    expect(spawned).toBe(0);
+  });
+
+  it("ignores caller-forged update materialization directories", () => {
+    const forged = makeSource("forged-update", "9.9.9");
+    let spawned = 0;
+    installDeps.spawnSync = () => {
+      spawned += 1;
+      return { status: 128, stdout: "", stderr: "clone rejected" };
+    };
+    expect(() =>
+      updatePluginImpl("https://github.com/acme/review.git", {
+        cwd,
+        managedPolicy: {},
+        _materializedDir: forged,
+      }),
+    ).toThrow(/git clone failed/u);
+    expect(spawned).toBe(1);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
   });
 
   it("transfers a transactional clone handle to the returned install result", () => {
@@ -3503,31 +4042,20 @@ describe("installFromSource — git (mocked clone)", () => {
     ).toThrow(/git is not installed/);
   });
 
-  it("redacts URL credentials and query tokens from returned provenance", () => {
-    installDeps.spawnSync = (_cmd, args) => {
-      const dir = args[args.length - 1];
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(
-        path.join(dir, "plugin.json"),
-        JSON.stringify({ name: "private-plugin", version: "1.0.0" }),
-        "utf8",
-      );
+  it("does not materialize or persist URL credentials and query tokens", () => {
+    let spawned = 0;
+    installDeps.spawnSync = () => {
+      spawned += 1;
       return { status: 0, stdout: "", stderr: "" };
     };
-    const res = installFromSource(
-      "https://alice:secret@example.com/private.git?token=hidden#main",
-      { scope: "project", cwd },
-    );
-    expect(res.source).toBe("https://example.com/private.git");
-    expect(res.ref).toBe("main");
-    const [row] = listInstalled({ cwd, scopes: ["project"] });
-    expect(row.source).toMatchObject({
-      type: "git",
-      source: "https://example.com/private.git",
-      ref: "main",
-    });
-    expect(JSON.stringify(row)).not.toContain("secret");
-    expect(JSON.stringify(row)).not.toContain("hidden");
+    expect(() =>
+      installFromSource(
+        "https://alice:secret@example.com/private.git?token=hidden#main",
+        { scope: "project", cwd },
+      ),
+    ).toThrow(/query credentials are not supported/u);
+    expect(spawned).toBe(0);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
   });
 });
 

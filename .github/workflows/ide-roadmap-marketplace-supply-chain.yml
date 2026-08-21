@@ -9,11 +9,18 @@ on:
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
       - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
       - "packages/cli/src/lib/plugin-runtime/remote-source.js"
+      - "packages/cli/src/lib/plugin-security.js"
+      - "packages/cli/src/lib/plugin-source-identity.js"
       - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
       - "packages/cli/__tests__/unit/plugin-marketplace-archive-source.test.js"
       - "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-selection-command.test.js"
+      - "packages/cli/__tests__/unit/plugin-security.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-install.test.js"
+      - "packages/cli/__tests__/unit/plugin-remote-source-security.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-source-cache.test.js"
   push:
     branches: [main]
     paths:
@@ -23,11 +30,18 @@ on:
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
       - "packages/cli/src/lib/plugin-runtime/publisher-trust.js"
       - "packages/cli/src/lib/plugin-runtime/remote-source.js"
+      - "packages/cli/src/lib/plugin-security.js"
+      - "packages/cli/src/lib/plugin-source-identity.js"
       - "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-marketplace-supply-chain.mjs"
       - "packages/cli/__tests__/unit/ide-roadmap-marketplace-supply-chain.test.js"
       - "packages/cli/__tests__/unit/plugin-marketplace-archive-source.test.js"
       - "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-selection-command.test.js"
+      - "packages/cli/__tests__/unit/plugin-security.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-install.test.js"
+      - "packages/cli/__tests__/unit/plugin-remote-source-security.test.js"
+      - "packages/cli/__tests__/unit/plugin-marketplace-source-cache.test.js"
   schedule:
     - cron: "17 5 * * 3"
   workflow_dispatch:
@@ -130,7 +144,20 @@ jobs:
           printf '{"schema":"chainlesschain.marketplace-supply-chain-bootstrap.v1","releaseCommit":"%s","cell":"%s"}\n' "$SUPPLY_CHAIN_COMMIT" "${{ matrix.suffix }}" > "$CC_SC_ARTIFACT_DIR/bootstrap.json"
       - name: Install focused CLI dependencies
         shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+        # Vitest 4 loads Rolldown through its platform-specific optional
+        # package, so the policy regressions need optional dependencies.
+        run: npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+      - name: Run canonical marketplace policy regressions
+        shell: bash
+        working-directory: packages/cli
+        run: >-
+          node node_modules/vitest/vitest.mjs run
+          __tests__/unit/plugin-marketplace-selection-command.test.js
+          __tests__/unit/plugin-security.test.js
+          __tests__/unit/plugin-runtime-install.test.js
+          __tests__/unit/plugin-remote-source-security.test.js
+          __tests__/unit/plugin-marketplace-source-cache.test.js
+          --testTimeout=30000
       - name: Run authenticated supply-chain campaign
         shell: bash
         run: >-

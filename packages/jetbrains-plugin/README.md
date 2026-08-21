@@ -80,6 +80,16 @@ uses them on its own:
 
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
 
+## Remote Control network exposure
+
+Tools → **ChainlessChain: Remote Control** starts direct mode on loopback by
+default. Its local-only URI is shown as local pairing details and is not
+rendered as a phone QR. To pair another device, open **Connection settings…**
+and configure an E2EE relay, or explicitly choose **Allow LAN (trusted
+networks only)**. The LAN choice is off by default, persists application-wide,
+and is the only IDE setting that adds `--allow-lan`; direct LAN transport uses
+plaintext `ws://` and may require a firewall rule.
+
 ## Project memory & REPL steering (cc ≥ 0.162.41)
 
 The bridge injects `CHAINLESSCHAIN_IDE_PORT/TOKEN` into the IDE terminal, so

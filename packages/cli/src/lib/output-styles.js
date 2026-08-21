@@ -33,6 +33,18 @@ export const BUILTIN_OUTPUT_STYLES = Object.freeze({
     body: "",
     builtin: true,
   },
+  concise: {
+    name: "concise",
+    description: "Uses short, direct responses with minimal explanation.",
+    body: [
+      "## Output style: Concise",
+      "Respond directly and briefly. Prefer the smallest complete answer that",
+      "preserves essential context, decisions, verification results, and safety",
+      "warnings. Avoid restating the request, long preambles, and optional",
+      "tangents unless the user asks for more detail.",
+    ].join("\n"),
+    builtin: true,
+  },
   explanatory: {
     name: "explanatory",
     description: "Explains the reasoning and trade-offs behind changes.",

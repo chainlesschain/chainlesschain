@@ -48,6 +48,7 @@ import {
   updatePlugin,
 } from "../src/lib/plugin-runtime/install.js";
 import {
+  authorizeRegistryPluginEntry,
   fetchRegistry,
   registryCachePath,
   resolveRegistryEntrySource,
@@ -1183,10 +1184,17 @@ async function mainCampaign(options, dependencies = {}) {
     assert.equal(archivePreflight.claims.pluginBytesFetched, false);
     assert.equal(archivePreflight.package.type, "archive");
     const archiveRequestsBeforePreflight = fixture.state.archiveRequests;
+    const archiveAuthorized = authorizeRegistryPluginEntry(
+      registrySeed.registry,
+      archiveEntry,
+      { registryUrl: fixture.registryUrl, cwd: stateDir },
+    );
     const archiveSeed = await resolveRegistryEntrySource(
       fixture.registryUrl,
       archiveEntry,
       {
+        registryResolutionAuthority:
+          archiveAuthorized.registryResolutionAuthority,
         token: fixture.token,
         artifactCacheDir: directories.cache,
         archiveSourceCacheDir: directories.archiveSource,

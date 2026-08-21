@@ -409,6 +409,7 @@ describe("runAgentHeadlessStream", () => {
       {
         expandFileRefs: false,
         remoteControl: true,
+        remoteControlAllowLan: true,
         settingsHooks: {},
       },
       deps,
@@ -416,6 +417,11 @@ describe("runAgentHeadlessStream", () => {
 
     expect(outcome).toEqual({ exitCode: 0, turns: 0 });
     expect(close).toHaveBeenCalledOnce();
+    expect(deps.startHeadlessRemoteApproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowLan: true,
+      }),
+    );
     expect(emitted).toContainEqual(
       expect.objectContaining({
         type: "remote_control",

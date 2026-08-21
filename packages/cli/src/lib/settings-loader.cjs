@@ -439,6 +439,34 @@ function readBooleanSetting(key, opts = {}) {
 }
 
 /**
+ * Read a string setting across the layered `.claude/settings.json` files.
+ * The closest layer wins and managed settings remain authoritative. Blank and
+ * non-string values are ignored so they cannot erase a valid lower layer.
+ *
+ * @param {string} key settings key or dotted path
+ * @param {object} [opts]
+ * @returns {string|undefined}
+ */
+function readStringSetting(key, opts = {}) {
+  const cwd = opts.cwd || process.cwd();
+  const parts = String(key).split(".");
+  let value;
+  const absorb = (data) => {
+    let node = data;
+    for (const part of parts) {
+      node = node && typeof node === "object" ? node[part] : undefined;
+    }
+    if (typeof node === "string" && node.trim()) value = node.trim();
+  };
+  for (const file of settingsPaths(cwd, opts.settingsFile)) {
+    absorb(readSettingsFile(file, { onWarn: opts.onWarn }));
+  }
+  const managed = loadManagedSettings(opts);
+  if (managed.settings) absorb(managed.settings);
+  return value;
+}
+
+/**
  * Read a string-array setting across the layered `.claude/settings.json` files
  * plus managed settings. Unlike {@link readBooleanSetting} (last-layer wins),
  * arrays UNION across layers (mirroring how `env`/`sandbox` accumulate in
@@ -484,6 +512,7 @@ module.exports = {
   loadSettingsConfig,
   readSettingsFile,
   readBooleanSetting,
+  readStringSetting,
   readStringArraySetting,
   settingsPaths,
   managedSettingsPath,

@@ -14,9 +14,16 @@ import {
 } from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
 import { buildPluginSbom } from "../../src/lib/plugin-runtime/signature.js";
 import {
-  installFromSource,
+  installFromSource as installFromSourceImpl,
   listInstalled,
+  _deps as installDeps,
 } from "../../src/lib/plugin-runtime/install.js";
+import {
+  authorizeRegistryPluginEntry,
+  fetchRegistry,
+  _deps as remoteSourceDeps,
+} from "../../src/lib/plugin-runtime/remote-source.js";
+import { _resetPluginManagedPolicyCache } from "../../src/lib/plugin-security.js";
 
 let cwd;
 let fixtureRoot;
@@ -32,8 +39,13 @@ let signatureSha256;
 let remoteSbomBytes;
 let remoteSbomDocumentSha256;
 let payloadSbom;
+let originalRemoteSourceDeps;
+let registryFixtureResolution;
 
 const REGISTRY_ORIGIN = "https://registry.example";
+const REGISTRY_URL = `${REGISTRY_ORIGIN}/index.json`;
+const REGISTRY_GIT_SOURCE =
+  "https://fixtures.invalid/artifact-readback-plugin.git";
 const SIGNATURE_URL = `${REGISTRY_ORIGIN}/artifacts/manifest.sig`;
 const PUBLIC_KEY_URL = `${REGISTRY_ORIGIN}/artifacts/publisher.pem`;
 const SBOM_URL = `${REGISTRY_ORIGIN}/artifacts/plugin.sbom.json`;
@@ -169,6 +181,46 @@ function canonicalSourceMetadata() {
   return metadata;
 }
 
+function installFromSource(localSource, opts = {}) {
+  if (opts.sourceMetadata?.type !== "registry") {
+    return installFromSourceImpl(localSource, opts);
+  }
+  if (!registryFixtureResolution) {
+    throw new Error("registry fixture authority is not initialized");
+  }
+  const registryUrl =
+    opts.sourceMetadata.registry || opts.sourceMetadata.source;
+  if (registryUrl !== REGISTRY_URL) {
+    throw new Error(`unexpected registry fixture URL: ${registryUrl}`);
+  }
+
+  const originalSpawnSync = installDeps.spawnSync;
+  installDeps.spawnSync = (_executable, args) => {
+    fs.cpSync(localSource, args.at(-1), { recursive: true });
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  try {
+    return installFromSourceImpl(registryFixtureResolution.source, {
+      ...opts,
+      sourceMetadata: {
+        ...opts.sourceMetadata,
+        source: registryUrl,
+        registry: registryUrl,
+        resolvedSource: registryFixtureResolution.source,
+        ref: registryFixtureResolution.ref,
+        catalogAuthority: {
+          ...opts.sourceMetadata.catalogAuthority,
+          registryDocumentSha256: registryFixtureResolution.documentSha256,
+        },
+      },
+      registryResolutionAuthority:
+        registryFixtureResolution.registryResolutionAuthority,
+    });
+  } finally {
+    installDeps.spawnSync = originalSpawnSync;
+  }
+}
+
 function installSigned(metadata = sourceMetadata()) {
   installFromSource(source, {
     scope: "project",
@@ -198,7 +250,8 @@ function sourceWithEvidence(installedSource, evidence) {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  _resetPluginManagedPolicyCache();
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-artifact-cwd-"));
   fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-artifact-src-"));
   source = path.join(fixtureRoot, "plugin");
@@ -228,9 +281,41 @@ beforeEach(() => {
   payloadSbom = buildMarketplacePayloadSbom(source);
   remoteSbomBytes = Buffer.from(JSON.stringify(payloadSbom));
   remoteSbomDocumentSha256 = sha256(remoteSbomBytes);
+
+  originalRemoteSourceDeps = { ...remoteSourceDeps };
+  remoteSourceDeps.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    text: async () =>
+      JSON.stringify({
+        plugins: [
+          {
+            name: "artifact-plugin",
+            source: REGISTRY_GIT_SOURCE,
+          },
+        ],
+      }),
+  });
+  const { registry, documentSha256 } = await fetchRegistry(REGISTRY_URL, {
+    allowCache: false,
+    managedPolicy: null,
+  });
+  const authorized = authorizeRegistryPluginEntry(
+    registry,
+    registry.plugins[0],
+    { registryUrl: REGISTRY_URL, cwd },
+  );
+  registryFixtureResolution = {
+    ...authorized,
+    documentSha256,
+  };
 });
 
 afterEach(() => {
+  _resetPluginManagedPolicyCache();
+  Object.assign(remoteSourceDeps, originalRemoteSourceDeps);
+  registryFixtureResolution = null;
   for (const dir of [cwd, fixtureRoot]) {
     fs.rmSync(dir, { recursive: true, force: true });
   }

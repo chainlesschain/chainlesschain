@@ -40,6 +40,7 @@ describe("cc output-style list", () => {
     const out = await run("list", "--json");
     const parsed = JSON.parse(out);
     const names = parsed.styles.map((s) => s.name);
+    expect(names).toContain("concise");
     expect(names).toContain("explanatory");
     expect(names).toContain("learning");
   });

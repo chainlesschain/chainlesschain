@@ -116,6 +116,28 @@ describe("Marketplace source package cache", () => {
     ).toThrow(/single-link/);
   });
 
+  it("does not reflect corrupt cache authority contents", () => {
+    const sourceMetadata = metadata();
+    const published = publishMarketplaceSourceCache(source, sourceMetadata, {
+      cacheDir,
+    });
+    const authorityFile = path.join(
+      path.dirname(published.dir),
+      SOURCE_CACHE_AUTHORITY_FILENAME,
+    );
+    fs.writeFileSync(authorityFile, "SECRET_CACHE_AUTH", "utf8");
+    let failure;
+    try {
+      readMarketplaceSourceCache(sourceMetadata, { cacheDir });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure?.message).toBe(
+      "Marketplace source cache authority is invalid JSON",
+    );
+    expect(failure?.message).not.toContain("SECRET_CACHE_AUTH");
+  });
+
   it("refuses a remote source without a semantic payload anchor", () => {
     const sourceMetadata = metadata();
     delete sourceMetadata.catalogAuthority.artifactExpectations.sbom

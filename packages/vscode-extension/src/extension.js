@@ -913,10 +913,11 @@ function activate(context) {
       const { openPluginManager } = require("./ui/plugin-manager-view.js");
       openPluginManager(vscode, chatProvider);
     }),
-    // Remote Control (cc remote-control): start a pairing host so a phone /
-    // web panel can drive this machine's agent sessions, show the one-time
-    // pairing URI, list hosts, stop them. The host child belongs to this
-    // window and is torn down on deactivate.
+    // Remote Control (cc remote-control): start a loopback host by default;
+    // an E2EE relay or explicit trusted-LAN consent lets another device drive
+    // this machine's agent sessions. Show the one-time pairing URI, list
+    // hosts, stop them. The child belongs to this window and is torn down on
+    // deactivate.
     vscode.commands.registerCommand("chainlesschain.remote.control", () => {
       if (!_remoteControl) {
         const { createRemoteControlHost } = require("./remote-control-host.js");

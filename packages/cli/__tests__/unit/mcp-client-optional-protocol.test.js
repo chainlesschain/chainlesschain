@@ -52,6 +52,18 @@ describe("MCP optional protocol surface", () => {
     ]);
   });
 
+  it("rejects missing resource subscription URIs before dispatch", async () => {
+    const client = connectedClient();
+    client._sendRequest = vi.fn(async () => ({}));
+    await expect(
+      client.subscribeResource("fixture", undefined),
+    ).rejects.toThrow(/non-empty string/);
+    await expect(client.unsubscribeResource("fixture", "  ")).rejects.toThrow(
+      /non-empty string/,
+    );
+    expect(client._sendRequest).not.toHaveBeenCalled();
+  });
+
   it("supports logging level and completion requests", async () => {
     const client = connectedClient();
     client._sendRequest = vi.fn(async (_server, method) =>

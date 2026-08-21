@@ -71,6 +71,7 @@ public final class PureLogicSmokeMain {
         contextExternalSources();
         teamMonitor();
         backgroundAgents();
+        remoteHandoff();
         activityLog();
         deepLink();
         autoExecGuard();
@@ -1266,6 +1267,36 @@ public final class PureLogicSmokeMain {
         } catch (java.io.IOException e) {
             check(false, "backgroundAgents smoke IO: " + e.getMessage());
         }
+    }
+
+    private static void remoteHandoff() {
+        System.out.println("RemoteHandoff (loopback-safe IDE wrapper):");
+        eq(RemoteHandoff.buildRemoteControlStartArgs(),
+                Arrays.asList("remote-control", "start", "--json"),
+                "default start keeps loopback (no allow-lan flag)");
+        eq(RemoteHandoff.buildRemoteControlStartArgs(null, null, true),
+                Arrays.asList("remote-control", "start", "--json", "--allow-lan"),
+                "explicit LAN consent emits allow-lan");
+
+        Map<String, Object> local = new LinkedHashMap<String, Object>();
+        local.put("mode", "direct");
+        local.put("exposure", "loopback");
+        local.put("lanAccessible", Boolean.FALSE);
+        local.put("port", Long.valueOf(18800));
+        local.put("pairingUri", "chainlesschain://remote-control/pair#local");
+        check(!RemoteHandoff.isPairingUsableFromAnotherDevice(local),
+                "loopback direct URI is local-only");
+        String note = RemoteHandoff.formatPairingNote(local);
+        check(note != null && note.contains("direct loopback")
+                        && note.contains("only by clients on this machine")
+                        && !note.contains("pair a phone/web panel"),
+                "loopback note never advertises phone pairing");
+
+        Map<String, Object> lan = new LinkedHashMap<String, Object>(local);
+        lan.put("exposure", "lan");
+        lan.put("lanAccessible", Boolean.TRUE);
+        check(RemoteHandoff.isPairingUsableFromAnotherDevice(lan),
+                "explicit CLI LAN evidence permits another device");
     }
 
     private static void teamMonitor() {

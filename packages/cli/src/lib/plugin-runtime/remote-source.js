@@ -29,6 +29,15 @@ import os from "os";
 import path from "path";
 import crypto from "crypto";
 import { getElectronUserDataDir } from "../paths.js";
+import {
+  enforcePluginSourcePolicy,
+  resolvePluginManagedPolicy,
+} from "../plugin-security.js";
+import {
+  assertPluginGitTransportSafe,
+  parsePluginGitSource,
+  redactPluginSourceForDisplay,
+} from "../plugin-source-identity.js";
 import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
 import { fetchAndMaterializeMarketplaceArchive } from "./marketplace-archive-source.js";
 import {
@@ -58,6 +67,11 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 export const MAX_REGISTRY_DOCUMENT_BYTES = 4 * 1024 * 1024;
 export const MAX_REGISTRY_CACHE_CANDIDATES = 64;
 const SHA256_RE = /^[a-f0-9]{64}$/;
+const CONTROL_RE = /[\u0000-\u001f\u007f]/u;
+const MAX_REGISTRY_SOURCE_CHARS = 4096;
+const MAX_REGISTRY_REF_CHARS = 256;
+const fetchedRegistryAuthorities = new WeakMap();
+const registryResolutionAuthorities = new WeakMap();
 
 /** True when `raw` looks like a remote registry/manifest URL (http(s) + .json). */
 export function isRemoteSource(raw) {
@@ -73,15 +87,19 @@ export function isRemoteSource(raw) {
  * explicit opt-in (opts.allowInsecure / CC_PLUGIN_REGISTRY_ALLOW_HTTP=1).
  */
 export function assertRegistryUrlSafe(url, { allowInsecure = false } = {}) {
+  const displayUrl = redactPluginSourceForDisplay(url);
   let u;
   try {
     u = new URL(String(url));
   } catch {
-    throw new Error(`invalid registry URL: ${url}`);
+    throw new Error(`invalid registry URL: ${displayUrl}`);
+  }
+  if (u.username || u.password) {
+    throw new Error("registry URL credentials are not supported");
   }
   if (u.protocol === "https:") return;
   if (u.protocol !== "http:") {
-    throw new Error(`registry URL must be http(s): ${url}`);
+    throw new Error(`registry URL must be http(s): ${displayUrl}`);
   }
   // WHATWG URL keeps the brackets on IPv6 hostnames — strip before comparing.
   const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
@@ -91,7 +109,7 @@ export function assertRegistryUrlSafe(url, { allowInsecure = false } = {}) {
     allowInsecure === true || process.env.CC_PLUGIN_REGISTRY_ALLOW_HTTP === "1";
   if (loopback || optIn) return;
   throw new Error(
-    `plain-HTTP registry rejected: ${url} — a network MITM controls both the ` +
+    `plain-HTTP registry rejected: ${displayUrl} — a network MITM controls both the ` +
       `source and its sha256, so the integrity check verifies nothing. Use ` +
       `https, or opt in with --allow-insecure-registry / ` +
       `CC_PLUGIN_REGISTRY_ALLOW_HTTP=1 on a trusted network.`,
@@ -149,6 +167,16 @@ export function resolveRegistryToken(url, { token, config } = {}) {
  *   documentSha256: string }>}
  */
 export async function fetchRegistry(url, opts = {}) {
+  const displayUrl = redactPluginSourceForDisplay(url);
+  assertRegistryUrlSafe(url, { allowInsecure: opts.allowInsecure });
+  const managedPolicy = resolveManagedPolicy(opts);
+  // This gate intentionally runs before transport construction. A blocked or
+  // non-allowlisted marketplace must not reach proxy helpers, DNS, or fetch.
+  enforcePluginSourcePolicy(url, managedPolicy, {
+    action: opts.policyAction || "registry-fetch",
+    cwd: opts.cwd,
+    kindHint: "registry",
+  });
   const {
     token,
     cacheDir,
@@ -156,7 +184,6 @@ export async function fetchRegistry(url, opts = {}) {
     allowCache = true,
     offline = false,
   } = opts;
-  assertRegistryUrlSafe(url, { allowInsecure: opts.allowInsecure });
   const expectedSha256 = normalizeRegistrySha256(
     opts.expectedSha256,
     "expected registry document SHA-256",
@@ -169,14 +196,21 @@ export async function fetchRegistry(url, opts = {}) {
     if (!allowCache) {
       throw new Error("offline registry mode requires immutable cache access");
     }
-    const cached = readCachedRegistry({
-      url,
-      cacheDir,
-      expectedSha256,
-    });
-    if (cached) return cached;
+    let cached;
+    try {
+      cached = readCachedRegistry({
+        url,
+        cacheDir,
+        expectedSha256,
+      });
+    } catch (error) {
+      throw new Error(
+        `registry ${displayUrl} verified immutable cache rejected: ${publicRegistryCacheErrorMessage(error)}`,
+      );
+    }
+    if (cached) return bindFetchedRegistry(cached, url, managedPolicy);
     throw new Error(
-      `registry ${url} is unavailable in the verified immutable cache` +
+      `registry ${displayUrl} is unavailable in the verified immutable cache` +
         (expectedSha256 ? ` at SHA-256 ${expectedSha256}` : ""),
     );
   }
@@ -196,37 +230,60 @@ export async function fetchRegistry(url, opts = {}) {
     try {
       res = await fetchImpl(url, {
         headers,
-        redirect: "follow",
+        redirect: "manual",
         signal: controller.signal,
       });
     } finally {
       clearTimeout(timer);
     }
-    if (!res.ok) {
-      const error = new Error(
-        `registry fetch failed: HTTP ${res.status} ${res.statusText || ""}`.trim(),
+    if (
+      res?.redirected === true ||
+      (Number(res?.status) >= 300 && Number(res?.status) < 400) ||
+      responseUrlChanged(url, res?.url)
+    ) {
+      throw publicRegistryFailure(
+        "registry redirects are disabled because each hop cannot be policy-validated",
       );
-      error.cacheFallbackAllowed = Number(res.status) >= 500;
-      throw error;
     }
-    const bytes = await readBoundedRegistryResponse(res);
+    if (!res.ok) {
+      const status = Number(res.status);
+      throw publicRegistryFailure(
+        `registry fetch failed: HTTP ${Number.isInteger(status) ? status : "unknown"}`,
+        { cacheFallbackAllowed: status >= 500 },
+      );
+    }
+    let bytes;
+    try {
+      bytes = await readBoundedRegistryResponse(res);
+    } catch {
+      throw publicRegistryFailure("registry response body is invalid");
+    }
     const documentSha256 = sha256(bytes);
     if (expectedSha256 && documentSha256 !== expectedSha256) {
-      throw new Error(
+      throw publicRegistryFailure(
         `registry document SHA-256 mismatch: expected ${expectedSha256}, got ${documentSha256}`,
       );
     }
-    const text = decodeRegistryUtf8(bytes);
-    const registry = validateRegistry(JSON.parse(text), url);
+    let registry;
+    try {
+      const text = decodeRegistryUtf8(bytes);
+      registry = validateRegistry(JSON.parse(text), url);
+    } catch {
+      throw publicRegistryFailure("registry document is invalid");
+    }
     if (allowCache) writeImmutableCache(url, cacheDir, bytes, documentSha256);
-    return {
-      registry,
-      fromCache: false,
-      documentSha256,
-      ...(networkTransport?.authority
-        ? { networkAuthority: networkTransport.authority }
-        : {}),
-    };
+    return bindFetchedRegistry(
+      {
+        registry,
+        fromCache: false,
+        documentSha256,
+        ...(networkTransport?.authority
+          ? { networkAuthority: networkTransport.authority }
+          : {}),
+      },
+      url,
+      managedPolicy,
+    );
   } catch (err) {
     networkErr = err;
     cacheFallbackAllowed =
@@ -234,7 +291,12 @@ export async function fetchRegistry(url, opts = {}) {
       err?.name === "AbortError" ||
       err instanceof TypeError;
   } finally {
-    await networkTransport?.close();
+    try {
+      await networkTransport?.close();
+    } catch {
+      // Transport teardown is best-effort and must not override a verified
+      // response or surface an implementation error that echoed request URLs.
+    }
   }
 
   // Only transport failures and server-side outages may fall back. Authentication,
@@ -246,15 +308,15 @@ export async function fetchRegistry(url, opts = {}) {
         cacheDir,
         expectedSha256,
       });
-      if (cached) return cached;
+      if (cached) return bindFetchedRegistry(cached, url, managedPolicy);
     } catch (cacheError) {
       throw new Error(
-        `could not fetch registry ${url}: ${networkErr.message}; verified immutable cache rejected: ${cacheError.message}`,
+        `could not fetch registry ${displayUrl}: ${publicRegistryErrorMessage(networkErr)}; verified immutable cache rejected: ${publicRegistryCacheErrorMessage(cacheError)}`,
       );
     }
   }
   throw new Error(
-    `could not fetch registry ${url}: ${networkErr ? networkErr.message : "unknown error"}` +
+    `could not fetch registry ${displayUrl}: ${publicRegistryErrorMessage(networkErr)}` +
       (allowCache && cacheFallbackAllowed
         ? " (no verified immutable cache available)"
         : ""),
@@ -481,33 +543,180 @@ function sha256(value) {
 
 /** Validate + normalize a fetched document into a registry object. Throws on garbage. */
 export function validateRegistry(doc, url = "") {
+  const displayUrl = redactPluginSourceForDisplay(url);
   if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
-    throw new Error(`registry at ${url} is not a JSON object`);
+    throw new Error(`registry at ${displayUrl} is not a JSON object`);
   }
   if (Array.isArray(doc.plugins)) {
     for (const p of doc.plugins) {
       if (
         !p ||
         typeof p !== "object" ||
-        !p.name ||
-        (!p.source && p.command == null && p.headersHelper == null)
+        typeof p.name !== "string" ||
+        !p.name.trim() ||
+        (p.source == null && p.command == null && p.headersHelper == null)
       ) {
         throw new Error(
-          `registry at ${url} has a plugin entry missing name/source`,
+          `registry at ${displayUrl} has a plugin entry missing name/source`,
         );
       }
-      normalizeMarketplacePackageSource(p);
+      const normalized = normalizeMarketplacePackageSource(p);
+      if (normalized.type === "git") normalizeRegistryPluginSource(p);
     }
     return doc;
   }
   // Single-plugin manifest.
-  if (doc.source || doc.command || doc.headersHelper) {
-    normalizeMarketplacePackageSource(doc);
+  if (doc.source != null || doc.command != null || doc.headersHelper != null) {
+    const normalized = normalizeMarketplacePackageSource(doc);
+    if (normalized.type === "git") normalizeRegistryPluginSource(doc);
     return { plugins: [doc] };
   }
   throw new Error(
-    `registry at ${url} must have a "plugins" array or a top-level "source"`,
+    `registry at ${displayUrl} must have a "plugins" array or a top-level "source"`,
   );
+}
+
+function freezeRegistryValue(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+  for (const child of Object.values(value)) freezeRegistryValue(child);
+  return Object.freeze(value);
+}
+
+function bindFetchedRegistry(result, registryUrl, managedPolicy) {
+  const registry = freezeRegistryValue(result.registry);
+  fetchedRegistryAuthorities.set(
+    registry,
+    Object.freeze({
+      registryUrl: String(registryUrl),
+      documentSha256: result.documentSha256 || null,
+      managedPolicy,
+    }),
+  );
+  return { ...result, registry };
+}
+
+/** Validate one catalog entry as a bounded, remote Git source. */
+export function normalizeRegistryPluginSource(entry) {
+  if (!entry || typeof entry !== "object") {
+    throw new Error("registry plugin entry is invalid");
+  }
+  if (
+    typeof entry.source !== "string" ||
+    entry.source !== entry.source.trim() ||
+    !entry.source ||
+    entry.source.length > MAX_REGISTRY_SOURCE_CHARS ||
+    CONTROL_RE.test(entry.source) ||
+    entry.source.includes("#")
+  ) {
+    throw new Error("registry plugin source must be a bounded string");
+  }
+  let ref = null;
+  if (entry.ref != null && entry.ref !== "") {
+    if (
+      typeof entry.ref !== "string" ||
+      entry.ref !== entry.ref.trim() ||
+      !entry.ref ||
+      entry.ref.length > MAX_REGISTRY_REF_CHARS ||
+      CONTROL_RE.test(entry.ref) ||
+      entry.ref.includes("#") ||
+      entry.source.includes("#")
+    ) {
+      throw new Error("registry plugin ref must be a bounded exact string");
+    }
+    ref = entry.ref;
+  }
+  const source = ref ? `${entry.source}#${ref}` : entry.source;
+  let git;
+  try {
+    git = parsePluginGitSource(source);
+    assertPluginGitTransportSafe(git, {
+      allowFile: false,
+      requireRemote: true,
+    });
+  } catch {
+    throw new Error("registry plugin source must be a safe remote Git locator");
+  }
+  return { source, ref, git };
+}
+
+/**
+ * Issue an unforgeable in-process capability for a selected entry. The entry
+ * must be an exact member of a registry object returned by fetchRegistry;
+ * callers cannot manufacture registry metadata to downgrade source policy.
+ */
+export function authorizeRegistryPluginEntry(
+  registry,
+  entry,
+  { registryUrl, cwd } = {},
+) {
+  const fetched = fetchedRegistryAuthorities.get(registry);
+  if (!fetched || fetched.registryUrl !== String(registryUrl)) {
+    throw new Error("registry source authority is missing or mismatched");
+  }
+  if (!registry.plugins?.some((candidate) => candidate === entry)) {
+    throw new Error("registry entry is not bound to the fetched catalog");
+  }
+  const normalized = inspectRegistryEntrySource(entry);
+  if (normalized.sourceType === "git") {
+    enforcePluginSourcePolicy(normalized.source, fetched.managedPolicy, {
+      action: "registry-resolved-source",
+      blockedOnly: true,
+      cwd,
+      kindHint: "git",
+    });
+  } else {
+    let registryOrigin;
+    let archiveOrigin;
+    try {
+      registryOrigin = new URL(fetched.registryUrl).origin;
+      archiveOrigin = new URL(normalized.sourceIdentity).origin;
+    } catch {
+      throw new Error("registry archive source URL authority is invalid");
+    }
+    if (archiveOrigin !== registryOrigin) {
+      throw new Error("registry archive source must use the registry origin");
+    }
+  }
+  const authority = Object.freeze({});
+  registryResolutionAuthorities.set(
+    authority,
+    Object.freeze({
+      registryUrl: fetched.registryUrl,
+      source: normalized.source,
+      declaredSource: normalized.sourceIdentity,
+      sourceType: normalized.sourceType,
+      ref: normalized.ref,
+      archiveSha256:
+        normalized.sourceType === "archive"
+          ? normalized.archiveSpec.sha256
+          : null,
+      payloadSha256: null,
+      documentSha256: fetched.documentSha256,
+    }),
+  );
+  return {
+    ...normalized,
+    registryResolutionAuthority: authority,
+  };
+}
+
+/** Consume-only validation used by the installer before any target I/O. */
+export function assertRegistryResolutionAuthority(
+  authority,
+  { registryUrl, source, ref } = {},
+) {
+  const issued = registryResolutionAuthorities.get(authority);
+  if (
+    !issued ||
+    issued.registryUrl !== String(registryUrl) ||
+    (issued.source ?? null) !== (source ?? null) ||
+    (issued.ref || null) !== (ref || null)
+  ) {
+    throw new Error("registry source authority is missing or mismatched");
+  }
+  return issued;
 }
 
 /** List installable entries from a registry (for `cc plugin search`). */
@@ -569,19 +778,27 @@ export function resolvePluginEntry(registry, name) {
  *   entry: object, fromCache: boolean }>}
  */
 export async function resolveRemoteSource(url, opts = {}) {
+  assertRegistryUrlSafe(url, { allowInsecure: opts.allowInsecure });
+  const managedPolicy = resolveManagedPolicy(opts);
   const token = resolveRegistryToken(url, opts);
   const { registry, fromCache, documentSha256, networkAuthority } =
     await fetchRegistry(url, {
       ...opts,
       token,
+      managedPolicy,
     });
   const entry = resolvePluginEntry(registry, opts.name);
+  const authorized = authorizeRegistryPluginEntry(registry, entry, {
+    registryUrl: url,
+    cwd: opts.cwd,
+  });
   const resolvedSource =
     opts.materialize === false
-      ? inspectRegistryEntrySource(entry)
+      ? authorized
       : await resolveRegistryEntrySource(url, entry, {
           ...opts,
           token,
+          registryResolutionAuthority: authorized.registryResolutionAuthority,
         });
   return {
     ...resolvedSource,
@@ -605,16 +822,14 @@ export function inspectRegistryEntrySource(entry) {
       archiveSpec: packageSource,
     };
   }
-  // Carry a `#ref` on the source string so installFromSource pins the checkout,
-  // matching its existing `owner/repo#ref` / `url#ref` convention.
-  const source = packageSource.ref
-    ? `${packageSource.source}#${packageSource.ref}`
-    : packageSource.source;
+  // Preserve the canonical remote Git validation from the registry security
+  // boundary rather than accepting the adapter's more general local shape.
+  const normalized = normalizeRegistryPluginSource(entry);
   return {
-    source,
-    sourceIdentity: packageSource.source,
+    source: normalized.source,
+    sourceIdentity: entry.source,
     sourceType: "git",
-    ref: packageSource.ref || null,
+    ref: normalized.ref,
     sha256: entry.sha256 || null,
   };
 }
@@ -622,6 +837,22 @@ export function inspectRegistryEntrySource(entry) {
 /** Materialize one already-selected, preflight-approved registry entry. */
 export async function resolveRegistryEntrySource(url, entry, opts = {}) {
   const inspected = inspectRegistryEntrySource(entry);
+  const issued = assertRegistryResolutionAuthority(
+    opts.registryResolutionAuthority,
+    {
+      registryUrl: url,
+      source: inspected.source,
+      ref: inspected.ref,
+    },
+  );
+  if (
+    issued.sourceType !== inspected.sourceType ||
+    issued.declaredSource !== inspected.sourceIdentity ||
+    issued.archiveSha256 !==
+      (inspected.sourceType === "archive" ? inspected.archiveSpec.sha256 : null)
+  ) {
+    throw new Error("registry source authority is missing or mismatched");
+  }
   if (inspected.sourceType === "archive") {
     const archive = await fetchAndMaterializeMarketplaceArchive({
       registryUrl: url,
@@ -639,13 +870,78 @@ export async function resolveRegistryEntrySource(url, entry, opts = {}) {
       pacFile: opts.pacFile,
       caFile: opts.caFile,
     });
+    const materializedAuthority = Object.freeze({});
+    registryResolutionAuthorities.set(
+      materializedAuthority,
+      Object.freeze({
+        ...issued,
+        source: archive.dir,
+        payloadSha256: archive.authority.payloadSha256,
+      }),
+    );
     return {
       ...inspected,
       source: archive.dir,
       archiveAuthority: archive.authority,
+      registryResolutionAuthority: materializedAuthority,
     };
   }
-  return inspected;
+  return {
+    ...inspected,
+    registryResolutionAuthority: opts.registryResolutionAuthority,
+  };
+}
+
+function resolveManagedPolicy(opts) {
+  return resolvePluginManagedPolicy(opts);
+}
+
+function responseUrlChanged(requested, effective) {
+  if (!effective) return false;
+  try {
+    const left = new URL(String(requested));
+    const right = new URL(String(effective));
+    for (const value of [left, right]) {
+      value.username = "";
+      value.password = "";
+      value.hash = "";
+    }
+    return left.href !== right.href;
+  } catch {
+    return true;
+  }
+}
+
+function publicRegistryErrorMessage(error) {
+  if (!error) return "unknown error";
+  if (typeof error.publicMessage === "string") return error.publicMessage;
+  if (error.name === "AbortError") return "registry request timed out";
+  if (error instanceof TypeError) return "registry transport failed";
+  return "registry request failed";
+}
+
+function publicRegistryCacheErrorMessage(error) {
+  const message = String(error?.message || "");
+  if (message.includes("digest mismatch")) {
+    return "registry immutable cache digest mismatch";
+  }
+  if (message.includes("ambiguous")) {
+    return "registry immutable cache is ambiguous";
+  }
+  if (message.includes("more than")) {
+    return "registry immutable cache has too many candidates";
+  }
+  if (message.includes("single-link regular file")) {
+    return "registry immutable cache entry is invalid";
+  }
+  return "registry immutable cache document is invalid";
+}
+
+function publicRegistryFailure(message, { cacheFallbackAllowed = false } = {}) {
+  const error = new Error(message);
+  error.publicMessage = message;
+  error.cacheFallbackAllowed = cacheFallbackAllowed;
+  return error;
 }
 
 /** Best-effort local temp dir helper (kept here so tests can stub fs deps). */

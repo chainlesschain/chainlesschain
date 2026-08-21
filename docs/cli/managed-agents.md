@@ -1276,11 +1276,12 @@ Claude Code `/output-style` 对标。给 agent 套一层**命名、可复用的�
 样式 = 带 frontmatter(`name`/`description`)的 markdown,**body 追加到系统提示**
 (在 base + `--append-system-prompt` 之后)。来源:`.chainlesschain/output-styles/`、
 `.claude/output-styles/`(项目)、`~/.claude/output-styles/`(个人);另含内置
-`default`(无叠加)/ `explanatory`(讲解 why+权衡)/ `learning`(留小块给用户写)。
+`default`(无叠加)/ `concise`(直接、简短且保留必要安全提示)/
+`explanatory`(讲解 why+权衡)/ `learning`(留小块给用户写)。
 生效优先级:`--output-style` > `.claude/settings.json` 的 `outputStyle` 默认。
 
 ```bash
-chainlesschain agent -p "..." --output-style explanatory   # headless 套人格
+chainlesschain agent -p "..." --output-style concise       # headless 套简洁人格
 chainlesschain output-style list [--json]                  # 内置 + 文件,标 * = settings 默认
 chainlesschain output-style show explanatory
 chainlesschain output-style new pirate --description "..."  # 脚手架到 .claude/output-styles/
@@ -1290,6 +1291,22 @@ chainlesschain output-style new pirate --description "..."  # 脚手架到 .clau
 REPL 内:`/output-style`(列出 + 当前)、`/output-style <name>`(切换,即时重算系统
 消息)、`/output-style none`(清除)。`--system-prompt` 仍可整体替换系统提示;output
 style 是其上的人格叠加层。
+
+### REPL 键位风格
+
+交互 REPL 的 `.claude/settings.json` 可设置 `keybindingFlavor`，只接受：
+
+- `classic`：默认值，保持现有 ChainlessChain/Node readline 行为。
+- `readline`：目前在兼容现有快捷键的基础上，让 `Ctrl+W` 按空白边界删除光标左侧的完整 token（例如一次删除完整路径）。
+
+```json
+{
+  "keybindingFlavor": "readline"
+}
+```
+
+该设置按 user → project → local → managed 层级解析，managed 设置优先。已有
+`--vim`/`/vim` 模态编辑器是独立能力，不会因 `keybindingFlavor` 重做或替换。
 
 ## MCP OAuth — 远程 MCP server 授权
 

@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.37.59",
+  "version": "0.37.60",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -629,6 +629,12 @@
           "type": "string",
           "default": "",
           "description": "%config.remote.peerId.description%"
+        },
+        "chainlesschain.remote.allowLan": {
+          "type": "boolean",
+          "default": false,
+          "scope": "machine",
+          "description": "%config.remote.allowLan.description%"
         }
       }
     },
@@ -648,7 +654,7 @@
     "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",
     "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
     "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
-    "test:unit": "node --test src/ide-capabilities.test.js test/automation-center.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/automation-center.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
     "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"

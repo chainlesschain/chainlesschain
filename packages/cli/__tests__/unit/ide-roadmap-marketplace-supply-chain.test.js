@@ -207,7 +207,12 @@ describe("marketplace supply-chain Actions matrix", () => {
       workflow.match(
         /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(
+      workflow.match(
+        /npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+      ),
+    ).toHaveLength(1);
     expect(workflow).toContain("if: always()");
   });
 

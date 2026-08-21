@@ -43,10 +43,15 @@ import {
   REMOTE_MEMBERSHIP_HOST_UNAVAILABLE_CODE,
 } from "./remote-membership-host-store.js";
 import {
+  assertDirectWsUrlAllowed,
   buildDirectPairingUri,
+  isLoopbackBindHost,
+  pickLanAddress,
   renderQrCode,
   resolveRemoteControlOptions,
+  resolveRemoteControlWsUrl,
 } from "./remote-control.js";
+import { logger } from "./logger.js";
 
 const DEFAULT_DECISION_TIMEOUT_MS = 5 * 60 * 1000;
 const REMOTE_LEASE_AUTHORIZATION_KIND =
@@ -344,7 +349,8 @@ export class RemoteApprovalBridge {
 
   /**
    * Pairing descriptor for devices. Relay-configured servers return a ready
-   * E2EE URI; otherwise build the direct-LAN URI from the caller's endpoint.
+   * E2EE URI; otherwise build a direct URI from the explicitly selected
+   * loopback/LAN endpoint.
    */
   pairingInfo({ lanWsUrl = null } = {}) {
     if (!this.pairing) return null;
@@ -362,6 +368,7 @@ export class RemoteApprovalBridge {
       });
     return {
       uri,
+      mode: this.pairing.uri ? "relay" : "direct",
       remoteSessionId: this.remoteSessionId,
       scopes: this.pairing.scopes,
       expiresAt: this.pairing.expiresAt,
@@ -1296,27 +1303,60 @@ export class RemoteApprovalBridge {
  * self-hosts a lightweight WS server on an OS-assigned port (no sessionManager
  * needed — the session stays client-hosted), starts a bridge for this run's
  * session, prints the pairing URI (+ optional QR) to stderr, and returns the
- * gate confirmer + teardown. Relay settings (env/config) flow through, so a
- * configured relay yields an E2EE pairing URI reaching devices off-LAN.
+ * gate confirmer + teardown. Relay settings flow through the startup
+ * environment; LAN exposure remains a separate explicit caller authority.
  */
 export async function startHeadlessRemoteApproval({
   agentSessionId,
+  allowLan = false,
   env = process.env,
-  config = {},
+  config = undefined,
   writeErr = () => {},
   isText = false,
   decisionTimeoutMs = undefined,
   deps = {},
 } = {}) {
+  let effectiveConfig = config;
+  if (effectiveConfig === undefined) {
+    try {
+      const configModule =
+        deps.configModule || (await import("./config-manager.js"));
+      effectiveConfig = configModule.loadConfig();
+    } catch {
+      effectiveConfig = {};
+    }
+  }
+  const resolved = resolveRemoteControlOptions({
+    flags: { allowApprove: true, allowLan: allowLan === true },
+    env,
+    config: effectiveConfig || {},
+  });
+  if (!resolved.relayUrl && !resolved.lanAccessible) {
+    throw new Error(
+      "remote approval is loopback-only by default; configure a relay, or enable " +
+        "allowLan with a non-loopback host (omit host to use 0.0.0.0) on a trusted network",
+    );
+  }
+  const lanAddress = resolved.lanAccessible
+    ? deps.lanAddress ||
+      (deps.pickLanAddress ? deps.pickLanAddress() : pickLanAddress())
+    : null;
+  const preflightLanWsUrl = resolveRemoteControlWsUrl(
+    { ...resolved, port: 1 },
+    { lanAddress },
+  );
+  if (
+    !resolved.relayUrl &&
+    resolved.lanAccessible &&
+    isLoopbackBindHost(new URL(preflightLanWsUrl).hostname)
+  ) {
+    throw new Error(
+      "LAN binding is enabled but no private LAN address can be advertised; " +
+        "configure a private host or a relay",
+    );
+  }
   const { ChainlessChainWSServer } =
     deps.serverModule || (await import("../gateways/ws/ws-server.js"));
-  // `--remote-control` is itself an explicit request to let a paired device
-  // answer approvals, but it is not an opt-in to expose a LAN listener.
-  const resolved = resolveRemoteControlOptions({
-    flags: { allowApprove: true },
-    env,
-    config,
-  });
   const server = new ChainlessChainWSServer({
     port: 0,
     host: resolved.host,
@@ -1324,49 +1364,95 @@ export async function startHeadlessRemoteApproval({
     remoteSessionRelayUrl: resolved.relayUrl,
     remoteSessionPeerId: resolved.peerId,
   });
-  await server.start();
-  const bridge = new RemoteApprovalBridge({
-    wsUrl: `ws://127.0.0.1:${server.port}`,
-    token: resolved.token,
-    agentSessionId,
-    scopes: ["observe", "approve"],
-    decisionTimeoutMs,
-  });
+  let bridge;
   try {
-    await bridge.start();
+    await server.start();
+    const createBridge =
+      deps.createBridge || ((options) => new RemoteApprovalBridge(options));
+    bridge = createBridge({
+      wsUrl: resolveRemoteControlWsUrl(
+        { ...resolved, port: server.port, allowLan: resolved.lanAccessible },
+        { lanAddress: null },
+      ),
+      token: resolved.token,
+      agentSessionId,
+      scopes: ["observe", "approve"],
+      decisionTimeoutMs,
+    });
+    try {
+      await bridge.start();
+    } catch (err) {
+      await server.stop().catch(() => undefined);
+      throw err;
+    }
+    const lanWsUrl = resolveRemoteControlWsUrl(
+      { ...resolved, port: server.port },
+      { lanAddress },
+    );
+    const pairing = bridge.pairingInfo({ lanWsUrl });
+    if (resolved.relayUrl && pairing?.mode !== "relay") {
+      throw new Error(
+        "the configured relay did not provide a pairing URI; refusing to fall back to direct pairing",
+      );
+    }
+    if (
+      !resolved.relayUrl &&
+      pairing?.mode !== "relay" &&
+      !resolved.lanAccessible
+    ) {
+      throw new Error(
+        "direct remote approval requires explicit allowLan on a trusted network",
+      );
+    }
+    if (pairing?.mode === "direct") {
+      if (isLoopbackBindHost(new URL(lanWsUrl).hostname)) {
+        throw new Error(
+          "LAN binding is enabled but no private LAN address can be advertised",
+        );
+      }
+      assertDirectWsUrlAllowed(lanWsUrl);
+      const warn = deps.warn || ((message) => logger.warn(message));
+      warn(
+        `LAN remote approval enabled on ${resolved.host}:${server.port}. ` +
+          "Direct pairing uses plaintext ws:// with bearer credentials; use only on a trusted network.",
+      );
+    }
+    if (!pairing?.uri) {
+      throw new Error("remote approval did not produce a pairing URI");
+    }
+    if (isText) {
+      writeErr(
+        "  remote-control: approvals can be answered from a paired device\n",
+      );
+      writeErr(`  pairing: ${pairing.uri}\n`);
+      const qr = await renderQrCode(pairing.uri, deps);
+      if (qr) writeErr(qr + "\n");
+    }
+    return {
+      pairing,
+      server,
+      bridge,
+      confirmer: bridge.makeConfirmer({
+        onAsk: (ask) => {
+          if (isText) {
+            writeErr(
+              `  permission(${ask.tool || "?"}): waiting for remote approval…\n`,
+            );
+          }
+        },
+      }),
+      consumeAuthorization: (authorization, context) =>
+        bridge.consumeAuthorization(authorization, context),
+      close: async () => {
+        await bridge.close().catch(() => undefined);
+        await server.stop().catch(() => undefined);
+      },
+    };
   } catch (err) {
+    if (bridge) {
+      await bridge.close().catch(() => undefined);
+    }
     await server.stop().catch(() => undefined);
     throw err;
   }
-  const pairing = bridge.pairingInfo({
-    lanWsUrl: `ws://127.0.0.1:${server.port}`,
-  });
-  if (isText) {
-    writeErr(
-      "  remote-control: approvals can be answered from a paired device\n",
-    );
-    writeErr(`  pairing: ${pairing.uri}\n`);
-    const qr = await renderQrCode(pairing.uri, deps);
-    if (qr) writeErr(qr + "\n");
-  }
-  return {
-    pairing,
-    server,
-    bridge,
-    confirmer: bridge.makeConfirmer({
-      onAsk: (ask) => {
-        if (isText) {
-          writeErr(
-            `  permission(${ask.tool || "?"}): waiting for remote approval…\n`,
-          );
-        }
-      },
-    }),
-    consumeAuthorization: (authorization, context) =>
-      bridge.consumeAuthorization(authorization, context),
-    close: async () => {
-      await bridge.close().catch(() => undefined);
-      await server.stop().catch(() => undefined);
-    },
-  };
 }

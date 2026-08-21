@@ -53,17 +53,26 @@ function parseBackgroundState(stdout) {
 /**
  * `cc remote-control start --json` — long-running; first output is pairing
  * JSON. Optional relay settings (E2EE cross-network pairing) become
- * `--relay-url` / `--peer-id` flags. Blank/whitespace values are dropped so a
+ * `--relay-url` / `--peer-id` flags. LAN exposure is independent and only an
+ * explicit boolean opt-in in direct mode becomes `--allow-lan`; the default
+ * emits no LAN flag and therefore keeps the CLI listener on loopback. An
+ * explicit relay URL suppresses the LAN flag because its listener does not
+ * need additional exposure. Blank/whitespace relay values are dropped so a
  * cleared IDE setting falls back to the CLI's own resolution chain
  * (env `CC_REMOTE_SESSION_RELAY_URL` → config `remoteControl.relayUrl`);
  * flags — when present — win, matching the CLI precedence. peerId is passed
  * independently of relayUrl: a user may set the relay via env/config and only
  * pin the peer id in the IDE.
  */
-function buildRemoteControlStartArgs({ relayUrl, peerId } = {}) {
+function buildRemoteControlStartArgs({
+  relayUrl,
+  peerId,
+  allowLan = false,
+} = {}) {
   const args = ["remote-control", "start", "--json"];
   const url = String(relayUrl || "").trim();
   const peer = String(peerId || "").trim();
+  if (allowLan === true && !url) args.push("--allow-lan");
   if (url) args.push("--relay-url", url);
   if (peer) args.push("--peer-id", peer);
   return args;
@@ -141,17 +150,40 @@ function formatHandoffNote(state) {
   );
 }
 
+/**
+ * Whether the pairing URI is intentionally reachable from another device.
+ *
+ * Relay is cross-network by definition. Direct mode is fail-closed: new CLI
+ * payloads explicitly report `exposure` and `lanAccessible`, and an explicit
+ * negative wins if the two fields ever disagree. Legacy direct payloads that
+ * carry neither field are not assumed to be LAN-safe.
+ */
+function isPairingUsableFromAnotherDevice(pairing) {
+  if (pairing?.mode === "relay") return true;
+  if (pairing?.mode !== "direct") return false;
+  if (pairing.lanAccessible === false || pairing.exposure === "loopback") {
+    return false;
+  }
+  return pairing.lanAccessible === true || pairing.exposure === "lan";
+}
+
 /** Human summary of a pairing payload (start --json). */
 function formatPairingNote(pairing) {
   if (!pairing?.pairingUri) return null;
-  const mode = pairing.mode === "relay" ? "relay (E2EE)" : "direct LAN";
+  const relay = pairing.mode === "relay";
+  const anotherDevice = isPairingUsableFromAnotherDevice(pairing);
+  const mode = relay
+    ? "relay (E2EE)"
+    : anotherDevice
+      ? "direct LAN (explicit opt-in)"
+      : "direct loopback";
   const exp = pairing.pairing?.expiresAt
     ? new Date(pairing.pairing.expiresAt).toISOString()
     : "n/a";
-  return (
-    `remote control ready (${mode}, port ${pairing.port}) — pair a phone/` +
-    `web panel with the one-time URI (expires ${exp}):\n${pairing.pairingUri}`
-  );
+  const audience = anotherDevice
+    ? "pair a phone/web panel with the one-time URI"
+    : "this URI is usable only by clients on this machine; explicitly enable LAN access on a trusted network or configure an E2EE relay to pair another device";
+  return `remote control ready (${mode}, port ${pairing.port}) — ${audience} (expires ${exp}):\n${pairing.pairingUri}`;
 }
 
 /**
@@ -217,6 +249,7 @@ module.exports = {
   extractFirstJsonObject,
   formatHandoffNote,
   formatPairingNote,
+  isPairingUsableFromAnotherDevice,
   parseBackgroundState,
   parseRemoteControlStatus,
 };
