@@ -25,11 +25,14 @@ import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { WsRpcClient } from "../lib/ws-rpc-client.js";
 import { RemoteApprovalBridge } from "../lib/remote-approval-bridge.js";
 import {
+  assertDirectWsUrlAllowed,
+  isLoopbackBindHost,
   pickLanAddress,
   readRemoteControlStates,
   removeRemoteControlState,
   renderQrCode,
   resolveRemoteControlOptions,
+  resolveRemoteControlWsUrl,
   writeRemoteControlState,
 } from "../lib/remote-control.js";
 
@@ -100,6 +103,37 @@ export function registerRemoteControlCommand(program) {
     });
 }
 
+/** Preserve an exact validated bind host instead of broadening it via serve. */
+export function buildRemoteControlServerOptions(resolved) {
+  return {
+    port: resolved.port,
+    host: resolved.host,
+    token: resolved.token,
+    allowRemote: false,
+    remoteSessionRelayUrl: resolved.relayUrl,
+    remoteSessionPeerId: resolved.peerId,
+  };
+}
+
+function redactStatusUrl(value) {
+  if (!value) return value || null;
+  try {
+    const parsed = new URL(String(value));
+    const hadCredentials = Boolean(parsed.username || parsed.password);
+    const hadQuery = Boolean(parsed.search);
+    parsed.username = "";
+    parsed.password = "";
+    parsed.search = "";
+    parsed.hash = "";
+    return (
+      parsed.toString() +
+      (hadCredentials || hadQuery ? "[credentials/query redacted]" : "")
+    );
+  } catch {
+    return "[invalid URL redacted]";
+  }
+}
+
 /**
  * Boot the host: server runtime + loopback host client + remote session +
  * pairing printout + discovery state. Resolves `{code}` (0 = serving; the
@@ -109,6 +143,7 @@ export function registerRemoteControlCommand(program) {
 export async function runRemoteControlStart(options = {}, _deps = {}) {
   const log = _deps.log || ((m) => console.log(m));
   const errLog = _deps.err || ((m) => logger.error(m));
+  const warnLog = _deps.warn || ((m) => logger.warn(m));
   const env = _deps.env || process.env;
   const stateDir = _deps.stateDir; // undefined → default dir
   let config = {};
@@ -148,6 +183,33 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
         : resolved.host;
   const localControlUrl = `ws://${websocketHost(localControlHost)}:${resolved.port}`;
 
+  for (const warning of resolved.warnings) warnLog(warning);
+  if (resolved.lanAccessible) {
+    warnLog(
+      `LAN access enabled on ${resolved.host}:${resolved.port}. This exposes the ` +
+        "authenticated WebSocket endpoint to the local network; use only on a trusted network." +
+        (resolved.relayUrl
+          ? ""
+          : " Direct pairing uses plaintext ws:// with bearer credentials; prefer --relay-url when available."),
+    );
+  }
+  const lanAddress = resolved.lanAccessible
+    ? _deps.lanAddress ||
+      (_deps.pickLanAddress ? _deps.pickLanAddress() : pickLanAddress())
+    : null;
+  const preflightWsUrl = resolveRemoteControlWsUrl(resolved, { lanAddress });
+  if (
+    !resolved.relayUrl &&
+    resolved.lanAccessible &&
+    isLoopbackBindHost(new URL(preflightWsUrl).hostname)
+  ) {
+    errLog(
+      "LAN binding is enabled but no private LAN address can be advertised; " +
+        "use --host with a private interface address or configure a relay",
+    );
+    return { code: 4 };
+  }
+
   // Refuse to double-start on a port that already has a LIVE host.
   const existing = readRemoteControlStates({ dir: stateDir }).find(
     (state) => state.port === resolved.port && state.alive,
@@ -166,14 +228,7 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
       _deps.startServer ||
       (async () =>
         createAgentRuntimeFactory()
-          .createServerRuntime({
-            port: resolved.port,
-            host: resolved.host,
-            token: resolved.token,
-            allowRemote: resolved.exposesLan,
-            remoteSessionRelayUrl: resolved.relayUrl,
-            remoteSessionPeerId: resolved.peerId,
-          })
+          .createServerRuntime(buildRemoteControlServerOptions(resolved))
           .startServer());
     server = await startServer(resolved);
   } catch (err) {
@@ -254,15 +309,26 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     sessionId: bridge.remoteSessionId,
   };
 
-  const relayMode = Boolean(pairing?.uri);
-  const lanAddress = resolved.exposesLan
-    ? resolved.host === "0.0.0.0" || resolved.host === "::"
-      ? _deps.lanAddress || pickLanAddress() || "127.0.0.1"
-      : resolved.host
-    : "127.0.0.1";
-  const wsUrl = `ws://${lanAddress}:${resolved.port}`;
-  const pairingInfo = bridge.pairingInfo({ lanWsUrl: wsUrl });
-  const pairingUri = pairingInfo.uri;
+  let relayMode;
+  let wsUrl;
+  let pairingUri;
+  try {
+    relayMode = Boolean(pairing?.uri);
+    if (resolved.relayUrl && !relayMode) {
+      throw new Error(
+        "Relay pairing was requested but no relay URI was issued; refusing direct fallback",
+      );
+    }
+    wsUrl = resolveRemoteControlWsUrl(resolved, { lanAddress });
+    if (!relayMode) assertDirectWsUrlAllowed(wsUrl);
+    pairingUri = bridge.pairingInfo({ lanWsUrl: wsUrl })?.uri;
+    if (!pairingUri) throw new Error("Remote session returned no pairing URI");
+  } catch (err) {
+    await bridge.close?.().catch(() => undefined);
+    await server.stop?.().catch(() => undefined);
+    errLog(`Failed to finish remote-control startup: ${err.message}`);
+    return { code: 1 };
+  }
 
   const state = {
     pid: process.pid,
@@ -272,17 +338,28 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
     mode: relayMode ? "relay" : "direct",
     exposure: relayMode
       ? "outbound-relay"
-      : resolved.exposesLan
+      : resolved.lanAccessible
         ? "direct-lan"
         : "loopback",
-    relayUrl: resolved.relayUrl || null,
+    lanAccessible: resolved.lanAccessible,
+    relayUrl: redactStatusUrl(resolved.relayUrl),
     peerId: resolved.peerId || null,
     agentSessionId,
     remoteSessionId: remoteSession.sessionId,
     scopes: pairing.scopes,
     startedAt: new Date().toISOString(),
   };
-  const stateFile = writeRemoteControlState(state, { dir: stateDir });
+  let stateFile;
+  try {
+    stateFile = (_deps.writeState || writeRemoteControlState)(state, {
+      dir: stateDir,
+    });
+  } catch (err) {
+    await bridge.close?.().catch(() => undefined);
+    await server.stop?.().catch(() => undefined);
+    errLog(`Failed to finish remote-control startup: ${err.message}`);
+    return { code: 1 };
+  }
   const cleanup = () => {
     removeRemoteControlState(resolved.port, { dir: stateDir });
   };
@@ -290,73 +367,99 @@ export async function runRemoteControlStart(options = {}, _deps = {}) {
   process.once("SIGINT", cleanup);
   process.once("SIGTERM", cleanup);
 
-  if (options.json) {
-    log(
-      JSON.stringify(
-        {
-          mode: state.mode,
-          wsUrl,
-          port: resolved.port,
-          agentSessionId,
-          remoteSessionId: remoteSession.sessionId,
-          pairingUri,
-          pairing: {
-            token: pairing.token,
-            scopes: pairing.scopes,
-            expiresAt: pairing.expiresAt,
+  try {
+    if (options.json) {
+      log(
+        JSON.stringify(
+          {
+            mode: state.mode,
+            exposure: state.exposure,
+            host: resolved.host,
+            lanAccessible: resolved.lanAccessible,
+            wsUrl,
+            port: resolved.port,
+            agentSessionId,
+            remoteSessionId: remoteSession.sessionId,
+            pairingUri,
+            pairing: {
+              token: pairing.token,
+              scopes: pairing.scopes,
+              expiresAt: pairing.expiresAt,
+            },
+            stateFile,
           },
-          stateFile,
-        },
-        null,
-        2,
-      ),
-    );
-  } else {
-    log("");
-    log(chalk.bold("  Remote Control ready"));
-    log("");
-    log(
-      `  Mode:        ${
-        state.mode === "relay"
-          ? chalk.cyan("relay (E2EE, outbound)")
-          : state.exposure === "direct-lan"
-            ? chalk.yellow("direct LAN (explicit opt-in)")
-            : chalk.cyan("direct loopback")
-      }`,
-    );
-    log(`  WS server:   ${chalk.cyan(wsUrl)}`);
-    log(`  Agent sess:  ${agentSessionId}`);
-    log(`  Remote sess: ${remoteSession.sessionId}`);
-    log(`  Scopes:      ${pairing.scopes.join(", ")}`);
-    log(
-      `  Token exp:   ${pairing.expiresAt ? new Date(pairing.expiresAt).toISOString() : "n/a"} ${chalk.dim("(one-time; re-run start for another device)")}`,
-    );
-    log("");
-    log("  Pairing URI (open in ChainlessChain mobile / paste in web panel):");
-    log("");
-    log("    " + chalk.green(pairingUri));
-    if (options.qr !== false) {
-      const qr = await renderQrCode(pairingUri, _deps);
-      if (qr) {
+          null,
+          2,
+        ),
+      );
+    } else {
+      log("");
+      log(chalk.bold("  Remote Control ready"));
+      log("");
+      log(
+        `  Mode:        ${
+          state.mode === "relay"
+            ? chalk.cyan("relay (E2EE, outbound)")
+            : state.exposure === "direct-lan"
+              ? chalk.yellow("direct LAN (explicit opt-in)")
+              : chalk.cyan("direct loopback")
+        }`,
+      );
+      log(`  WS server:   ${chalk.cyan(wsUrl)}`);
+      log(`  Agent sess:  ${agentSessionId}`);
+      log(`  Remote sess: ${remoteSession.sessionId}`);
+      log(`  Scopes:      ${pairing.scopes.join(", ")}`);
+      log(
+        `  Token exp:   ${pairing.expiresAt ? new Date(pairing.expiresAt).toISOString() : "n/a"} ${chalk.dim("(one-time; re-run start for another device)")}`,
+      );
+      log("");
+      log(
+        relayMode || resolved.lanAccessible
+          ? "  Pairing URI (open in ChainlessChain mobile / paste in web panel):"
+          : "  Pairing URI (local clients on this machine only):",
+      );
+      log("");
+      log("    " + chalk.green(pairingUri));
+      if (!relayMode && !resolved.lanAccessible) {
         log("");
         log(
-          qr
-            .split("\n")
-            .map((line) => "  " + line)
-            .join("\n"),
-        );
-      } else {
-        log("");
-        log(
-          chalk.dim(
-            "  (install the optional `qrcode` package for a terminal QR)",
+          chalk.yellow(
+            "  Loopback only: use --allow-lan on a trusted network or configure --relay-url for another device.",
           ),
         );
       }
+      if (options.qr !== false && (relayMode || resolved.lanAccessible)) {
+        const qr = await renderQrCode(pairingUri, _deps);
+        if (qr) {
+          log("");
+          log(
+            qr
+              .split("\n")
+              .map((line) => "  " + line)
+              .join("\n"),
+          );
+        } else {
+          log("");
+          log(
+            chalk.dim(
+              "  (install the optional `qrcode` package for a terminal QR)",
+            ),
+          );
+        }
+      }
+      log("");
+      log(chalk.dim("  Press Ctrl+C to stop"));
+      log("");
     }
-    log("");
-    log(chalk.dim("  Press Ctrl+C to stop"));
-    log("");
+  } catch (err) {
+    process.removeListener("exit", cleanup);
+    process.removeListener("SIGINT", cleanup);
+    process.removeListener("SIGTERM", cleanup);
+    cleanup();
+    await bridge.close?.().catch(() => undefined);
+    await server.stop?.().catch(() => undefined);
+    errLog(`Failed to finish remote-control startup: ${err.message}`);
+    return { code: 1 };
   }
 
   return { code: 0, client, bridge, server, state, pairingUri };
@@ -377,7 +480,10 @@ export function runRemoteControlStatus(options = {}, _deps = {}) {
       JSON.stringify(
         // Defense in depth for legacy state files written before tokens were
         // removed from discovery state.
-        states.map(({ token: _token, ...rest }) => rest),
+        states.map(({ token: _token, ...rest }) => ({
+          ...rest,
+          relayUrl: redactStatusUrl(rest.relayUrl),
+        })),
         null,
         2,
       ),
@@ -398,7 +504,22 @@ export function runRemoteControlStatus(options = {}, _deps = {}) {
     const badge = state.alive ? chalk.green("running") : chalk.yellow("stale");
     log(
       `  ${badge}  port ${String(state.port).padEnd(6)} pid ${String(state.pid).padEnd(8)} ` +
-        `${(state.mode || "?").padEnd(7)} session ${state.agentSessionId || "?"}`,
+        `${(state.mode || "?").padEnd(7)} ${(state.exposure || "?").padEnd(18)} ` +
+        `host ${state.host || "?"} session ${state.agentSessionId || "?"}`,
+    );
+  }
+  if (
+    states.some(
+      (state) =>
+        state.alive &&
+        state.legacyExposure &&
+        state.exposure === "legacy-unknown-lan",
+    )
+  ) {
+    log(
+      chalk.red(
+        "  Warning: a legacy host may still be LAN-exposed. Stop and restart it to apply the loopback default.",
+      ),
     );
   }
   log("");

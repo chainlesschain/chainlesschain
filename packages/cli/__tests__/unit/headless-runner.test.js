@@ -2017,20 +2017,29 @@ describe("headless-runner — background phase reporter wiring", () => {
     const humanDecision = new Promise((resolve) => {
       settle = resolve;
     });
-    deps.startHeadlessRemoteApproval = async () => ({
-      confirmer: async () => {
-        await humanDecision;
-        return true;
-      },
-      consumeAuthorization: async () => true,
-      close: async () => {},
-    });
+    let remoteStartOptions;
+    deps.startHeadlessRemoteApproval = async (options) => {
+      remoteStartOptions = options;
+      return {
+        confirmer: async () => {
+          await humanDecision;
+          return true;
+        },
+        consumeAuthorization: async () => true,
+        close: async () => {},
+      };
+    };
 
     const r = await runAgentHeadless(
-      { prompt: "hi", remoteControl: true },
+      {
+        prompt: "hi",
+        remoteControl: true,
+        remoteControlAllowLan: true,
+      },
       deps,
     );
     expect(r.exitCode).toBe(0);
+    expect(remoteStartOptions.allowLan).toBe(true);
 
     // The LAST installed confirmer is the wrapped remote one (permission-mode
     // confirmer is installed first, remote-control overrides it).

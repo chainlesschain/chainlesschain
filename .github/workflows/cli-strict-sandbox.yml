@@ -67,6 +67,13 @@ on:
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/runtime/headless-runner.js"
       - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/commands/remote-control.js"
+      - "packages/cli/src/commands/agent.js"
+      - "packages/cli/src/lib/remote-control.js"
+      - "packages/cli/src/lib/remote-approval-bridge.js"
+      - "packages/cli/src/runtime/policies/agent-policy.js"
+      - "packages/vscode-extension/src/chat/remote-handoff.js"
+      - "packages/vscode-extension/src/remote-control-host.js"
       - "packages/cli/src/repl/agent-repl.js"
       - "packages/cli/src/gateways/ws/ws-agent-handler.js"
       - "packages/cli/src/gateways/ws/session-protocol.js"
@@ -85,6 +92,12 @@ on:
       - "packages/cli/__tests__/unit/event-runtime-host.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
       - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/remote-control-lib.test.js"
+      - "packages/cli/__tests__/unit/remote-approval-start.test.js"
+      - "packages/cli/__tests__/integration/remote-control-start.test.js"
+      - "packages/cli/__tests__/unit/agent-policy-repl-passthrough.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-remote-handoff.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-qr-code.test.js"
       - "packages/cli/__tests__/unit/agent-repl-loop-wrapper.test.js"
       - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
       - "packages/cli/__tests__/unit/ws-session-manager.test.js"
@@ -215,6 +228,13 @@ on:
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/runtime/headless-runner.js"
       - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/commands/remote-control.js"
+      - "packages/cli/src/commands/agent.js"
+      - "packages/cli/src/lib/remote-control.js"
+      - "packages/cli/src/lib/remote-approval-bridge.js"
+      - "packages/cli/src/runtime/policies/agent-policy.js"
+      - "packages/vscode-extension/src/chat/remote-handoff.js"
+      - "packages/vscode-extension/src/remote-control-host.js"
       - "packages/cli/src/repl/agent-repl.js"
       - "packages/cli/src/gateways/ws/ws-agent-handler.js"
       - "packages/cli/src/gateways/ws/session-protocol.js"
@@ -233,6 +253,12 @@ on:
       - "packages/cli/__tests__/unit/event-runtime-host.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
       - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/remote-control-lib.test.js"
+      - "packages/cli/__tests__/unit/remote-approval-start.test.js"
+      - "packages/cli/__tests__/integration/remote-control-start.test.js"
+      - "packages/cli/__tests__/unit/agent-policy-repl-passthrough.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-remote-handoff.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-qr-code.test.js"
       - "packages/cli/__tests__/unit/agent-repl-loop-wrapper.test.js"
       - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
       - "packages/cli/__tests__/unit/ws-session-manager.test.js"
@@ -360,6 +386,12 @@ jobs:
           __tests__/unit/event-runtime-host.test.js
           __tests__/unit/headless-runner.test.js
           __tests__/unit/headless-stream.test.js
+          __tests__/unit/remote-control-lib.test.js
+          __tests__/unit/remote-approval-start.test.js
+          __tests__/integration/remote-control-start.test.js
+          __tests__/unit/agent-policy-repl-passthrough.test.js
+          __tests__/unit/vscode-ext-remote-handoff.test.js
+          __tests__/unit/vscode-ext-qr-code.test.js
           __tests__/unit/agent-repl-loop-wrapper.test.js
           __tests__/unit/ws-agent-handler.test.js
           __tests__/unit/ws-session-manager.test.js

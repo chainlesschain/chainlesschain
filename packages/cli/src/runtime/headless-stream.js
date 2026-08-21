@@ -1694,9 +1694,8 @@ async function runAgentHeadlessStreamInWorkspace(
       const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
-      const { mergePluginHooks } = await import(
-        "../lib/plugin-runtime/hooks.js"
-      );
+      const { mergePluginHooks } =
+        await import("../lib/plugin-runtime/hooks.js");
       const effectiveHooks = mergePluginHooks(
         attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
         { cwd },
@@ -1777,9 +1776,8 @@ async function runAgentHeadlessStreamInWorkspace(
     });
 
   if (managedSettings) {
-    const { assertManagedPermissionMode } = await import(
-      "../lib/settings-loader.cjs"
-    );
+    const { assertManagedPermissionMode } =
+      await import("../lib/settings-loader.cjs");
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
@@ -2267,9 +2265,8 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
   if (!instructionExcludes) {
     try {
-      const { readStringArraySetting } = await import(
-        "../lib/settings-loader.cjs"
-      );
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
       const fromSettings = readStringArraySetting("instructionExcludes", {
         cwd,
         settingsFile: options.settingsFile,
@@ -2334,9 +2331,8 @@ async function runAgentHeadlessStreamInWorkspace(
   // Best-effort; no-op when project memory is off or no hook is registered.
   if (settingsHooks && _loadedInstructions) {
     try {
-      const { runInstructionsLoadedHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.js");
       const ctx = runInstructionsLoadedHooks(settingsHooks, {
         files: _loadedInstructions.files,
         cwd,
@@ -2376,9 +2372,8 @@ async function runAgentHeadlessStreamInWorkspace(
   // settings.json SessionStart hooks → inject session context once (observe-only).
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.js");
       const ctx = runSessionStartHooks(settingsHooks, {
         source: "startup",
         cwd,
@@ -2749,9 +2744,8 @@ async function runAgentHeadlessStreamInWorkspace(
   // the single-prompt runner + the REPL /add-dir path. Best-effort.
   if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
-      const { notifyMcpRootsChanged, workspaceRootDirs } = await import(
-        "../repl/add-dir.js"
-      );
+      const { notifyMcpRootsChanged, workspaceRootDirs } =
+        await import("../repl/add-dir.js");
       notifyMcpRootsChanged(
         [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
@@ -2817,6 +2811,8 @@ async function runAgentHeadlessStreamInWorkspace(
           .startHeadlessRemoteApproval;
       _remoteApproval = await startRemoteApproval({
         agentSessionId: sessionId,
+        allowLan: options.remoteControlAllowLan === true,
+        env: process.env,
       });
       streamCleanup.setRemoteApproval(_remoteApproval);
       emit({
@@ -3690,9 +3686,8 @@ async function runAgentHeadlessStreamInWorkspace(
       // session can honour the user's standing preferences ("越用越聪明"
       // flywheel). Best-effort — a learning ledger must never break the chat.
       try {
-        const { appendFeedback } = await import(
-          "../lib/pdh-feedback-ledger.js"
-        );
+        const { appendFeedback } =
+          await import("../lib/pdh-feedback-ledger.js");
         appendFeedback({ sessionId, turnId, kind, comment });
       } catch {
         /* persistence is best-effort */
@@ -3823,9 +3818,8 @@ async function runAgentHeadlessStreamInWorkspace(
     // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
     if (settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } = await import(
-          "../lib/settings-hook-events.js"
-        );
+        const { runUserPromptSubmitHooks } =
+          await import("../lib/settings-hook-events.js");
         const ups = runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,

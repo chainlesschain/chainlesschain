@@ -530,7 +530,11 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--remote-control",
-      "Route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR. Headless waits for the remote allow/deny (fail-closed on timeout); interactive races the terminal prompt (first answer wins; also /remote-control)",
+      "Route confirm-tier approvals to paired mobile/web devices — requires a relay or explicit LAN opt-in; headless waits fail-closed, interactive races the terminal prompt (also /remote-control)",
+    )
+    .option(
+      "--remote-control-allow-lan",
+      "Permit --remote-control to expose its authenticated WS endpoint on a trusted LAN",
     )
     .option(
       "--channels <list>",
@@ -1383,6 +1387,7 @@ export function registerAgentCommand(program) {
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
             remoteControl: options.remoteControl === true,
+            remoteControlAllowLan: options.remoteControlAllowLan === true,
             interactiveApprovals: options.interactiveApprovals === true,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
@@ -1685,6 +1690,7 @@ export function registerAgentCommand(program) {
           permissionPromptTool: options.permissionPromptTool || null,
           // --remote-control: approvals from paired mobile/web devices
           remoteControl: options.remoteControl === true,
+          remoteControlAllowLan: options.remoteControlAllowLan === true,
           // --strict-mcp-config: only --mcp-config servers (ignore registered + IDE)
           strictMcpConfig: options.strictMcpConfig === true,
           // --settings: extra .claude/settings.json permission rules
@@ -1859,6 +1865,7 @@ export function registerAgentCommand(program) {
         // --remote-control: start the paired-device approval bridge for the
         // interactive session too (terminal prompt races the device).
         remoteControl: options.remoteControl === true,
+        remoteControlAllowLan: options.remoteControlAllowLan === true,
         // --channels: inbound channel listeners (webhook/telegram) whose
         // events become user turns in this session.
         channels: options.channels || null,

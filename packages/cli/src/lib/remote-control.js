@@ -22,10 +22,12 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { randomBytes } from "crypto";
+import { isIP } from "net";
 import { REMOTE_SESSION_SCOPES } from "../harness/remote-session-registry.js";
 import { extractHost, isPrivateHost } from "./sandbox-network-policy.js";
 
 export const REMOTE_CONTROL_DEFAULT_PORT = 18800;
+export const REMOTE_CONTROL_DEFAULT_HOST = "127.0.0.1";
 export const REMOTE_CONTROL_PAIRING_SCHEME =
   "chainlesschain://remote-control/pair#";
 export const REMOTE_CONTROL_DEFAULT_SCOPES = Object.freeze([
@@ -33,6 +35,110 @@ export const REMOTE_CONTROL_DEFAULT_SCOPES = Object.freeze([
   "prompt",
 ]);
 
+function cleanHost(value) {
+  if (value == null) return null;
+  const host = String(value).trim();
+  return host || null;
+}
+
+function normalizeBindHost(value, label) {
+  let host = cleanHost(value);
+  if (!host) return null;
+  if (host.startsWith("[") && host.endsWith("]")) {
+    host = host.slice(1, -1);
+  }
+  host = host.replace(/\.+$/, "").toLowerCase();
+  if (host.includes("%")) {
+    throw new Error(
+      `Invalid ${label} "${host}": scoped IPv6 bind hosts are not supported.`,
+    );
+  }
+  if (host === "localhost" || isIP(host) !== 0) return host;
+  throw new Error(
+    `Invalid ${label} "${host}": use localhost or an IPv4/IPv6 literal without a port.`,
+  );
+}
+
+function mappedIpv4FirstOctet(host) {
+  const dotted = host.match(/^::ffff:(\d{1,3})\.\d{1,3}\.\d{1,3}\.\d{1,3}$/i);
+  if (dotted) return Number(dotted[1]);
+  const hex = host.match(/^::ffff:([0-9a-f]{1,4}):[0-9a-f]{1,4}$/i);
+  if (!hex) return null;
+  return (parseInt(hex[1], 16) >> 8) & 0xff;
+}
+
+/** Whether a bind host is restricted to this machine. */
+export function isLoopbackBindHost(value) {
+  let host = cleanHost(value)?.toLowerCase();
+  if (!host) return false;
+  if (host.startsWith("[") && host.endsWith("]")) {
+    host = host.slice(1, -1);
+  }
+  host = host.replace(/\.+$/, "");
+  return (
+    host === "localhost" ||
+    (isIP(host) === 6 && host === "::1") ||
+    (isIP(host) === 4 && host.split(".")[0] === "127") ||
+    mappedIpv4FirstOctet(host) === 127
+  );
+}
+
+function isWildcardBindHost(value) {
+  let host = cleanHost(value)?.toLowerCase();
+  if (host?.startsWith("[") && host.endsWith("]")) {
+    host = host.slice(1, -1);
+  }
+  return host === "0.0.0.0" || host === "::";
+}
+
+function isLanBindHost(value) {
+  let host = cleanHost(value)?.toLowerCase();
+  if (host?.startsWith("[") && host.endsWith("]")) {
+    host = host.slice(1, -1);
+  }
+  return (
+    isWildcardBindHost(host) ||
+    isLoopbackBindHost(host) ||
+    (isIP(host) !== 0 && isPrivateHost(host))
+  );
+}
+
+function isAdvertisableLanAddress(value) {
+  const host = cleanHost(value)?.toLowerCase();
+  return (
+    isIP(host) !== 0 &&
+    isPrivateHost(host) &&
+    !isLoopbackBindHost(host) &&
+    !isWildcardBindHost(host) &&
+    host !== "169.254.169.254"
+  );
+}
+
+function wsHost(value) {
+  const host = cleanHost(value) || REMOTE_CONTROL_DEFAULT_HOST;
+  if (host.startsWith("[") && host.endsWith("]")) return host;
+  return host.includes(":") ? `[${host}]` : host;
+}
+
+/** Resolve the direct endpoint that is safe to advertise to pairing clients. */
+export function resolveRemoteControlWsUrl(
+  { host = REMOTE_CONTROL_DEFAULT_HOST, port, allowLan = false } = {},
+  { lanAddress = null } = {},
+) {
+  let endpointHost;
+  if (allowLan && !isLoopbackBindHost(host)) {
+    endpointHost = isWildcardBindHost(host)
+      ? isAdvertisableLanAddress(lanAddress)
+        ? cleanHost(lanAddress)
+        : REMOTE_CONTROL_DEFAULT_HOST
+      : cleanHost(host);
+  } else if (isLoopbackBindHost(host)) {
+    endpointHost = cleanHost(host);
+  } else {
+    endpointHost = REMOTE_CONTROL_DEFAULT_HOST;
+  }
+  return `ws://${wsHost(endpointHost)}:${port}`;
+}
 function b64url(value) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
@@ -89,9 +195,41 @@ export function resolveRemoteControlOptions({
   ) {
     throw new Error("Remote Control is disabled by configuration");
   }
-  const port = Number(
-    flags.port ?? env.CC_REMOTE_CONTROL_PORT ?? undefined,
-  );
+
+  const warnings = [];
+  if (
+    Object.prototype.hasOwnProperty.call(rc, "host") ||
+    Object.prototype.hasOwnProperty.call(rc, "allowLan")
+  ) {
+    warnings.push(
+      "Ignoring project Remote Control exposure settings; use explicit --host/--allow-lan for this invocation.",
+    );
+  }
+
+  const flagHost = normalizeBindHost(flags.host, "--host");
+  const allowLan = flags.allowLan === true;
+  if (flagHost && !isLoopbackBindHost(flagHost) && !allowLan) {
+    throw new Error(
+      `Refusing non-loopback --host "${flagHost}" without --allow-lan. ` +
+        "Add --allow-lan on a trusted network, or remove --host and configure --relay-url.",
+    );
+  }
+  const host = flagHost || (allowLan ? "0.0.0.0" : REMOTE_CONTROL_DEFAULT_HOST);
+  if (allowLan && host === "::") {
+    throw new Error(
+      'Refusing IPv6 wildcard host "::": use an explicit private IPv6 address ' +
+        "or 0.0.0.0 so the advertised endpoint matches the listener.",
+    );
+  }
+  if (allowLan && !isLanBindHost(host)) {
+    throw new Error(
+      `Refusing --allow-lan with non-private host "${host}". ` +
+        "Use a loopback, wildcard, or private LAN address; use a relay for public networks.",
+    );
+  }
+  const lanAccessible = allowLan && !isLoopbackBindHost(host);
+
+  const port = Number(flags.port ?? env.CC_REMOTE_CONTROL_PORT ?? undefined);
   const resolvedPort =
     Number.isFinite(port) && port >= 1 && port <= 65535
       ? Math.floor(port)
@@ -100,33 +238,13 @@ export function resolveRemoteControlOptions({
     flags.token ||
     env.CC_REMOTE_CONTROL_TOKEN ||
     randomBytes(16).toString("hex");
-  const relayUrl =
-    flags.relayUrl ||
-    env.CC_REMOTE_SESSION_RELAY_URL ||
-    null;
+  const relayUrl = flags.relayUrl || env.CC_REMOTE_SESSION_RELAY_URL || null;
   const peerId =
     flags.peerId ||
     env.CC_REMOTE_SESSION_PEER_ID ||
     (relayUrl
       ? `cc-host-${os.hostname()}-${randomBytes(4).toString("hex")}`
       : null);
-  const allowLan = flags.allowLan === true;
-  const host = flags.host || (allowLan ? "0.0.0.0" : "127.0.0.1");
-  const normalizedHost = extractHost(host);
-  const loopback =
-    normalizedHost === "localhost" ||
-    normalizedHost === "::1" ||
-    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalizedHost || "");
-  if (!loopback && !allowLan) {
-    throw new Error(
-      `Refusing non-loopback Remote Control host "${host}" without explicit --allow-lan`,
-    );
-  }
-  if (!loopback && !isPrivateHost(normalizedHost)) {
-    throw new Error(
-      `Refusing public Remote Control bind host "${host}"; --allow-lan is limited to private/LAN addresses`,
-    );
-  }
 
   const requestedScopes = parseScopes(flags.scopes ?? null);
   if (requestedScopes.includes("approve") && flags.allowApprove !== true) {
@@ -146,11 +264,14 @@ export function resolveRemoteControlOptions({
   if (flags.allowInterrupt === true && !scopes.includes("interrupt")) {
     scopes.push("interrupt");
   }
+
   return {
     port: resolvedPort,
     host,
     allowLan,
-    exposesLan: !loopback,
+    exposesLan: lanAccessible,
+    lanAccessible,
+    warnings,
     token,
     relayUrl,
     peerId,
@@ -158,14 +279,17 @@ export function resolveRemoteControlOptions({
     name: flags.name || `remote-control @ ${os.hostname()}`,
   };
 }
-
 /** First non-internal IPv4 address, or null. Pure over an interfaces map. */
 export function pickLanAddress(interfaces = os.networkInterfaces()) {
   for (const entries of Object.values(interfaces || {})) {
     for (const entry of entries || []) {
       const family =
         entry.family === "IPv4" || entry.family === 4 ? "IPv4" : entry.family;
-      if (family === "IPv4" && !entry.internal && entry.address) {
+      if (
+        family === "IPv4" &&
+        !entry.internal &&
+        isAdvertisableLanAddress(entry.address)
+      ) {
         return entry.address;
       }
     }
@@ -333,8 +457,16 @@ export function readRemoteControlStates({ dir } = {}) {
     const file = path.join(stateDir, name);
     try {
       const state = JSON.parse(fs.readFileSync(file, "utf-8"));
+      const legacyExposure = state.exposure == null;
+      const exposure = legacyExposure
+        ? state.host && !isLoopbackBindHost(state.host)
+          ? "legacy-unknown-lan"
+          : "legacy-unknown"
+        : state.exposure;
       states.push({
         ...state,
+        exposure,
+        legacyExposure,
         stateFile: file,
         alive: isPidAlive(state.pid),
       });

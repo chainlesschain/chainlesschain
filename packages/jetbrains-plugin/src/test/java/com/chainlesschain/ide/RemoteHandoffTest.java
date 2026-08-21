@@ -60,6 +60,18 @@ final class RemoteHandoffTest {
     }
 
     @Test
+    void appendsAllowLanOnlyForExplicitConsent() {
+        assertEquals(Arrays.asList("remote-control", "start", "--json"),
+                RemoteHandoff.buildRemoteControlStartArgs(null, null, false));
+        assertEquals(Arrays.asList("remote-control", "start", "--json", "--allow-lan"),
+                RemoteHandoff.buildRemoteControlStartArgs(null, null, true));
+        assertEquals(Arrays.asList("remote-control", "start", "--json",
+                        "--relay-url", "wss://relay.example", "--peer-id", "ide-1"),
+                RemoteHandoff.buildRemoteControlStartArgs(
+                        "wss://relay.example", "ide-1", true));
+    }
+
+    @Test
     void extractsPrettyPrintedPairingJsonFromAccumulatingBuffer() {
         String pretty = "{\n  \"mode\": \"direct\",\n  \"port\": 18800,\n"
                 + "  \"pairingUri\": \"chainlesschain://remote-session/x?t={not-a-brace}\",\n"
@@ -108,6 +120,45 @@ final class RemoteHandoffTest {
         assertTrue(pn.contains("chainlesschain://remote-session/abc"));
         assertTrue(pn.contains("2025")); // epoch expiry rendered as an ISO instant
         assertNull(RemoteHandoff.formatPairingNote(new LinkedHashMap<String, Object>()));
+    }
+
+    @Test
+    void directPairingPresentationIsFailClosedForLoopbackAndLegacyPayloads() {
+        Map<String, Object> loopback = new LinkedHashMap<String, Object>();
+        loopback.put("mode", "direct");
+        loopback.put("exposure", "loopback");
+        loopback.put("lanAccessible", Boolean.FALSE);
+        loopback.put("port", 18800L);
+        loopback.put("pairingUri", "chainlesschain://remote-control/pair#local");
+
+        assertFalse(RemoteHandoff.isPairingUsableFromAnotherDevice(loopback));
+        String localNote = RemoteHandoff.formatPairingNote(loopback);
+        assertTrue(localNote.contains("direct loopback"));
+        assertTrue(localNote.contains("only by clients on this machine"));
+        assertFalse(localNote.contains("pair a phone/web panel"));
+
+        Map<String, Object> legacyDirect = new LinkedHashMap<String, Object>(loopback);
+        legacyDirect.remove("exposure");
+        legacyDirect.remove("lanAccessible");
+        assertFalse(RemoteHandoff.isPairingUsableFromAnotherDevice(legacyDirect));
+
+        Map<String, Object> inconsistent = new LinkedHashMap<String, Object>(loopback);
+        inconsistent.put("exposure", "lan");
+        assertFalse(RemoteHandoff.isPairingUsableFromAnotherDevice(inconsistent));
+
+        Map<String, Object> lan = new LinkedHashMap<String, Object>(loopback);
+        lan.put("exposure", "lan");
+        lan.put("lanAccessible", Boolean.TRUE);
+        assertTrue(RemoteHandoff.isPairingUsableFromAnotherDevice(lan));
+        assertTrue(RemoteHandoff.formatPairingNote(lan)
+                .contains("direct LAN (explicit opt-in)"));
+
+        Map<String, Object> relay = new LinkedHashMap<String, Object>(loopback);
+        relay.put("mode", "relay");
+        relay.put("exposure", "loopback");
+        relay.put("lanAccessible", Boolean.FALSE);
+        assertTrue(RemoteHandoff.isPairingUsableFromAnotherDevice(relay));
+        assertTrue(RemoteHandoff.formatPairingNote(relay).contains("relay (E2EE)"));
     }
 
     @Test

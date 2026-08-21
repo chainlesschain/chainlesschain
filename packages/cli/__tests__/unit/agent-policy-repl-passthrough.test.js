@@ -31,6 +31,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
         settingsFile: "run-settings.json",
         disableSlashCommands: true,
         remoteControl: true,
+        remoteControlAllowLan: true,
         worktreeId: "agent/repl-task-1",
         sessionBudgetRoot: {
           enabled: true,
@@ -48,6 +49,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.settingsFile).toBe("run-settings.json");
     expect(policy.disableSlashCommands).toBe(true);
     expect(policy.remoteControl).toBe(true);
+    expect(policy.remoteControlAllowLan).toBe(true);
     expect(policy.worktreeId).toBe("agent/repl-task-1");
     expect(policy.sessionBudgetRoot).toEqual({
       enabled: true,
@@ -70,6 +72,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     // boolean-normalized (not tri-state): absent → false
     expect(policy.disableSlashCommands).toBe(false);
     expect(policy.remoteControl).toBe(false);
+    expect(policy.remoteControlAllowLan).toBe(false);
     expect(policy.worktreeId).toBeNull();
     expect(policy.sessionBudgetRoot).toBeNull();
   });

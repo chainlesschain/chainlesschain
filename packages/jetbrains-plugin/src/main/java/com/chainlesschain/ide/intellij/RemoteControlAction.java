@@ -30,9 +30,11 @@ import java.util.Map;
 /**
  * Remote Control (Tools menu) — wraps {@code cc remote-control
  * start/status/stop --json}. Starts a pairing host (a long-running child of
- * this IDE process) so a phone / web panel can drive this machine's agent
- * sessions, shows the one-time pairing URI (copyable), lists discovered
- * hosts, and stops them. Pure arg builders/parsers: {@link RemoteHandoff}.
+ * this IDE process). Direct mode is loopback unless the user explicitly opts
+ * into LAN access; an E2EE relay or that LAN consent lets another device
+ * drive this machine's agent sessions. Shows the one-time pairing URI
+ * (copyable), lists discovered hosts, and stops them. Pure arg
+ * builders/parsers: {@link RemoteHandoff}.
  * The host survives project switches but dies with the IDE; a stale state
  * file left by a hard kill is pruned by {@code status --prune}. VS Code twin:
  * {@code chainlesschain.remote.control}.
@@ -73,27 +75,27 @@ public final class RemoteControlAction extends AnAction {
         Process live = host;
         boolean running = live != null && live.isAlive();
         String[] options = running
-                ? new String[] { "Show pairing QR", "Copy pairing URI", "Show host status",
-                        "Stop this host", "Relay settings…", "Cancel" }
+                ? new String[] { "Show pairing details", "Copy pairing URI", "Show host status",
+                        "Stop this host", "Connection settings…", "Cancel" }
                 : new String[] { "Start host", "Show host status",
-                        "Relay settings…", "Cancel" };
+                        "Connection settings…", "Cancel" };
         int pick = Messages.showDialog(project,
                 running
                         ? "Remote-control host is running (port "
                                 + (pairing != null ? pairing.get("port") : "?")
-                                + "). Paired devices can observe, prompt, approve and interrupt."
-                        : "Start a remote-control host so a phone or web panel can pair"
-                                + " with this machine and drive its agent sessions."
-                                + describeRelay(),
+                                + "). " + runningAccessDescription()
+                        : "Start a remote-control host. Direct mode is loopback-only by"
+                                + " default; another device requires an E2EE relay or"
+                                + " explicit trusted-LAN consent." + describeConnection(),
                 "ChainlessChain Remote Control", options, 0, null);
         if (pick < 0 || "Cancel".equals(options[pick])) return;
         String action = options[pick];
         if ("Start host".equals(action)) start(project);
-        else if ("Show pairing QR".equals(action)) reshowPairing(project);
+        else if ("Show pairing details".equals(action)) reshowPairing(project);
         else if ("Copy pairing URI".equals(action)) copyPairingUri(project);
         else if ("Show host status".equals(action)) showStatus(project);
         else if ("Stop this host".equals(action)) stopOwn(project);
-        else if ("Relay settings…".equals(action)) relaySettings(project);
+        else if ("Connection settings…".equals(action)) connectionSettings(project);
     }
 
     private static void reshowPairing(Project project) {
@@ -106,10 +108,11 @@ public final class RemoteControlAction extends AnAction {
         showPairing(project, p);
     }
 
-    // ---- relay (E2EE cross-network) settings — persisted app-wide ----
+    // ---- remote connection settings — persisted app-wide ----
 
     private static final String RELAY_URL_KEY = "chainlesschain.remote.relayUrl";
     private static final String PEER_ID_KEY = "chainlesschain.remote.peerId";
+    private static final String ALLOW_LAN_KEY = "chainlesschain.remote.allowLan";
 
     private static String storedRelayUrl() {
         String v = com.intellij.ide.util.PropertiesComponent.getInstance()
@@ -123,27 +126,44 @@ public final class RemoteControlAction extends AnAction {
         return v == null ? "" : v.trim();
     }
 
-    private static String describeRelay() {
+    private static boolean storedAllowLan() {
+        return "true".equals(com.intellij.ide.util.PropertiesComponent.getInstance()
+                .getValue(ALLOW_LAN_KEY));
+    }
+
+    private static String runningAccessDescription() {
+        Map<String, Object> p = pairing;
+        if (p == null) return "Pairing details are still starting.";
+        return RemoteHandoff.isPairingUsableFromAnotherDevice(p)
+                ? "A phone or web panel can use the one-time pairing URI."
+                : "The pairing URI is loopback-only and can be used only on this machine.";
+    }
+
+    private static String describeConnection() {
         String url = storedRelayUrl();
-        return url.isEmpty()
-                ? "\n\nPairing: direct LAN (no relay configured)."
-                : "\n\nPairing: relay (E2EE) via " + url + ".";
+        if (!url.isEmpty()) return "\n\nIDE setting: relay (E2EE) via " + url + ".";
+        if (storedAllowLan()) {
+            return "\n\nIDE setting: direct LAN explicitly enabled. Use only on a trusted"
+                    + " network; direct transport is plaintext ws://.";
+        }
+        return "\n\nIDE setting: direct loopback (recommended default). Only clients on"
+                + " this machine can use its URI.";
     }
 
     /**
-     * Two-field relay settings prompt persisted via {@link
+     * Relay fields plus explicit LAN consent, persisted via {@link
      * com.intellij.ide.util.PropertiesComponent} (application level — the
-     * relay is a machine/account property, not per-project). Blank clears a
-     * value; cleared settings defer to the CLI's env/config resolution. The
-     * values apply to the NEXT host start ({@code --relay-url}/{@code
-     * --peer-id} flags win over env/config, matching CLI precedence).
+     * connection choice is a machine/account property, not per-project).
+     * Blank relay values defer to the CLI's env/config resolution. LAN is off
+     * by default and only the explicit trusted-network choice below produces
+     * {@code --allow-lan}. Values apply to the NEXT host start.
      */
-    private static void relaySettings(Project project) {
+    private static void connectionSettings(Project project) {
         String url = Messages.showInputDialog(project,
                 "Relay server URL for cross-network pairing (E2EE), e.g."
-                        + " wss://relay.example.com. Leave blank for direct LAN pairing"
-                        + " or the CLI's own CC_REMOTE_SESSION_RELAY_URL /"
-                        + " remoteControl.relayUrl config.",
+                        + " wss://relay.example.com. Leave blank for direct mode, which"
+                        + " remains loopback-only unless LAN access is explicitly enabled"
+                        + " in the next step. CLI env/config may also select a relay.",
                 "Remote Control — Relay", null, storedRelayUrl(), null);
         if (url == null) return; // canceled — keep both values untouched
         String peer = Messages.showInputDialog(project,
@@ -151,15 +171,37 @@ public final class RemoteControlAction extends AnAction {
                         + " CLI auto-generates one when a relay is configured.",
                 "Remote Control — Peer Id", null, storedPeerId(), null);
         if (peer == null) return;
+        String[] lanOptions = new String[] {
+                "Loopback only (recommended)",
+                "Allow LAN (trusted networks only)",
+                "Cancel"
+        };
+        int lanPick = Messages.showDialog(project,
+                "Allow phones and other devices on this local network to connect directly?\n\n"
+                        + "This passes --allow-lan, exposes the authenticated listener to"
+                        + " the LAN over plaintext ws://, and may require a firewall rule."
+                        + " Do not enable it on public or untrusted networks; prefer the"
+                        + " E2EE relay there.",
+                "Remote Control — LAN Access", lanOptions,
+                storedAllowLan() ? 1 : 0, null);
+        if (lanPick < 0 || lanPick == 2) return;
+        boolean allowLan = lanPick == 1;
         com.intellij.ide.util.PropertiesComponent props =
                 com.intellij.ide.util.PropertiesComponent.getInstance();
         props.setValue(RELAY_URL_KEY, url.trim(), "");
         props.setValue(PEER_ID_KEY, peer.trim(), "");
+        props.setValue(ALLOW_LAN_KEY, allowLan ? "true" : "", "");
         boolean live = host != null && host.isAlive();
         Messages.showInfoMessage(project,
                 (url.trim().isEmpty()
-                        ? "Relay cleared — next host uses direct LAN pairing (or the CLI's env/config)."
-                        : "Relay saved: " + url.trim())
+                        ? (allowLan
+                                ? "Direct LAN explicitly enabled for the next host on a trusted network."
+                                : "Direct mode will remain loopback-only for the next host (recommended).")
+                        : "Relay saved: " + url.trim()
+                                + (allowLan
+                                        ? " (LAN consent is saved for direct mode; this relay start"
+                                                + " will not pass --allow-lan)."
+                                        : ""))
                         + (live ? "\n\nThe running host keeps its current mode —"
                                 + " stop and start it to apply." : ""),
                 "Remote Control");
@@ -174,8 +216,11 @@ public final class RemoteControlAction extends AnAction {
             return;
         }
         CopyPasteManager.getInstance().setContents(new StringSelection(String.valueOf(uri)));
+        boolean anotherDevice = RemoteHandoff.isPairingUsableFromAnotherDevice(p);
         Messages.showInfoMessage(project, "Pairing URI copied to the clipboard.\n\n"
-                + "It is one-time: after a device joins, run Start again for another device.",
+                + (anotherDevice
+                        ? "It is one-time: after a device joins, run Start again for another device."
+                        : "This host is loopback-only: the URI works only for clients on this machine."),
                 "Remote Control");
     }
 
@@ -197,7 +242,8 @@ public final class RemoteControlAction extends AnAction {
                 cmd.add("/c");
             }
             cmd.add(AgentChatSession.resolveBinary());
-            cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs(storedRelayUrl(), storedPeerId()));
+            cmd.addAll(RemoteHandoff.buildRemoteControlStartArgs(
+                    storedRelayUrl(), storedPeerId(), storedAllowLan()));
             ProcessBuilder pb = new ProcessBuilder(cmd);
             if (project != null && project.getBasePath() != null) {
                 pb.directory(new File(project.getBasePath()));
@@ -267,7 +313,8 @@ public final class RemoteControlAction extends AnAction {
         JScrollPane scroll = new JScrollPane(area);
         scroll.setPreferredSize(new Dimension(760, 180));
         javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 8));
-        javax.swing.JLabel qrLabel = pairingQrLabel(parsed.get("pairingUri"));
+        javax.swing.JLabel qrLabel = RemoteHandoff.isPairingUsableFromAnotherDevice(parsed)
+                ? pairingQrLabel(parsed.get("pairingUri")) : null;
         if (qrLabel != null) panel.add(qrLabel, java.awt.BorderLayout.NORTH);
         panel.add(scroll, java.awt.BorderLayout.CENTER);
         DialogBuilder b = new DialogBuilder(project);

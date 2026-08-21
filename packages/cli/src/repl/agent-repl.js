@@ -2765,15 +2765,11 @@ export async function runReplStartupBoundary(options, startupDependencies) {
         "CC_REPL_STARTUP_DEPENDENCY_INVALID",
       );
     }
-    const root = openBudgetRoot(
-      leaseSessionId,
-      options.sessionBudgetRoot,
-      {
-        persist: true,
-        signal: combineReplSignals(options.signal, leaseScope.lease.signal),
-        table: options.sessionBudgetRoot.table,
-      },
-    );
+    const root = openBudgetRoot(leaseSessionId, options.sessionBudgetRoot, {
+      persist: true,
+      signal: combineReplSignals(options.signal, leaseScope.lease.signal),
+      table: options.sessionBudgetRoot.table,
+    });
     if (
       root?.enabled !== true ||
       !root.budget ||
@@ -2829,10 +2825,7 @@ export function startReplJsonlSession(
       ...meta,
       ...(observabilityScope != null ? { observabilityScope } : {}),
     });
-    if (
-      requireDurable &&
-      (typeof sessionId !== "string" || !sessionId)
-    ) {
+    if (requireDurable && (typeof sessionId !== "string" || !sessionId)) {
       throw new Error("JSONL session creation returned no durable session id");
     }
     return sessionId || null;
@@ -3838,6 +3831,8 @@ async function startAgentReplInWorkspaceOwned(
       agentSessionId:
         sessionId || `repl-${process.pid}-${Date.now().toString(36)}`,
       isText: false, // the REPL prints its own pairing lines below
+      allowLan: options.remoteControlAllowLan === true,
+      env: process.env,
     });
     _remoteApproval = {
       bridge: started.bridge,
