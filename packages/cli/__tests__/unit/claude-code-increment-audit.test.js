@@ -12,14 +12,174 @@ import {
   REQUIRED_OPERATING_SYSTEMS,
   aggregateAuditFragments,
   artifactName,
+  compareCodePointOrder,
   loadContract,
   sha256,
   verifyAuditArtifact,
 } from "../../scripts/claude-code-increment-audit.mjs";
+import {
+  AX_TRANSCRIPT_PRODUCER_PATHS,
+  AX_TRANSCRIPT_PROFILE_VERSION,
+  AX_TRANSCRIPT_TEST_IDS,
+  AX_TRANSCRIPT_THRESHOLDS,
+} from "../../scripts/ax-transcript-audit-fragment.mjs";
+import {
+  BROWSER_EVIDENCE_PRODUCER_PATHS,
+  BROWSER_EVIDENCE_PROFILE_VERSION,
+  BROWSER_EVIDENCE_TEST_IDS,
+  BROWSER_EVIDENCE_THRESHOLDS,
+} from "../../scripts/ide-roadmap-browser-evidence.mjs";
+import {
+  PROFILE_VERSION as INPUT_PROFILE_VERSION,
+  SOURCE_PATHS as INPUT_PRODUCER_PATHS,
+  TEST_IDS as INPUT_TEST_IDS,
+  THRESHOLDS as INPUT_THRESHOLDS,
+} from "../../scripts/ide-input-performance-profile.mjs";
+import {
+  DIAGNOSTIC_PRODUCER_PATHS,
+  DIAGNOSTIC_TEST_IDS,
+  DIAGNOSTICS_PROFILE,
+} from "../../scripts/ide-roadmap-accessibility-performance.mjs";
+import {
+  PRODUCER_PATHS as SESSION_UX_PRODUCER_PATHS,
+  PROFILE_VERSION as SESSION_UX_PROFILE_VERSION,
+  TEST_IDS as SESSION_UX_TEST_IDS,
+  THRESHOLDS as SESSION_UX_THRESHOLDS,
+} from "../../scripts/session-ux-audit-fragment.mjs";
+import {
+  EVIDENCE_PRODUCER_PATHS as SECURITY_PRODUCER_PATHS,
+  PROFILE_VERSION as SECURITY_PROFILE_VERSION,
+  THRESHOLDS as SECURITY_THRESHOLDS,
+  validateSecurityMap,
+} from "../../scripts/verify-claude-security-map.mjs";
+import {
+  AUDIT_PRODUCER_PATHS as PLUGIN_PRODUCER_PATHS,
+  AUDIT_PROFILE_VERSION as PLUGIN_PROFILE_VERSION,
+  AUDIT_TEST_IDS as PLUGIN_TEST_IDS,
+  AUDIT_THRESHOLDS as PLUGIN_THRESHOLDS,
+} from "../../scripts/verify-ide-roadmap-marketplace-supply-chain.mjs";
+import {
+  PRODUCER_FILES as MCP_PRODUCER_PATHS,
+  PROFILE_VERSION as MCP_PROFILE_VERSION,
+  TEST_IDS as MCP_TEST_IDS,
+  THRESHOLDS as MCP_THRESHOLDS,
+} from "../../scripts/verify-mcp-lifecycle-increments.mjs";
+import {
+  RC_DEFAULT_PRODUCER_FILES,
+  RC_DEFAULT_PROFILE_VERSION,
+  RC_DEFAULT_TEST_IDS,
+  RC_DEFAULT_THRESHOLDS,
+} from "../../scripts/verify-rc-default-audit.mjs";
+import {
+  PRODUCERS as SESSION_RUNTIME_PRODUCER_PATHS,
+  REQUIRED_PROFILE_VERSION as SESSION_RUNTIME_PROFILE_VERSION,
+  REQUIRED_THRESHOLDS as SESSION_RUNTIME_THRESHOLDS,
+  TEST_IDS as SESSION_RUNTIME_TEST_IDS,
+} from "../../scripts/verify-session-runtime-retention.mjs";
+import {
+  REQUIRED_THRESHOLDS as XSESSION_THRESHOLDS,
+  SESSION_MESSAGE_FABRIC_PROFILE as XSESSION_PROFILE_VERSION,
+  SOURCE_FILES as XSESSION_PRODUCER_PATHS,
+  TEST_IDS as XSESSION_TEST_IDS,
+} from "../../scripts/verify-session-message-fabric.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const roots = [];
 const producerDigestCache = new Map();
+let canonicalContractCache;
+
+function canonicalContract() {
+  canonicalContractCache ||= loadContract().value;
+  return canonicalContractCache;
+}
+
+function producerProfile(profileVersion, thresholds, testIds, producerPaths) {
+  return {
+    profileVersion,
+    thresholds,
+    testIds: [...testIds],
+    producerPaths: [...producerPaths].sort(compareCodePointOrder),
+  };
+}
+
+function expectedProducerProfiles() {
+  const securityMap = validateSecurityMap().map;
+  return {
+    "RC-DEFAULT": producerProfile(
+      RC_DEFAULT_PROFILE_VERSION,
+      RC_DEFAULT_THRESHOLDS,
+      RC_DEFAULT_TEST_IDS,
+      RC_DEFAULT_PRODUCER_FILES,
+    ),
+    "SEC-DELTA": producerProfile(
+      SECURITY_PROFILE_VERSION,
+      SECURITY_THRESHOLDS,
+      [...new Set(securityMap.rows.map((row) => row.testId))].sort(
+        compareCodePointOrder,
+      ),
+      [
+        ...new Set([
+          ...SECURITY_PRODUCER_PATHS,
+          ...securityMap.rows.map((row) => row.producer.path),
+        ]),
+      ],
+    ),
+    XSESSION: producerProfile(
+      XSESSION_PROFILE_VERSION,
+      XSESSION_THRESHOLDS,
+      XSESSION_TEST_IDS,
+      XSESSION_PRODUCER_PATHS,
+    ),
+    "AX-TRANSCRIPT": producerProfile(
+      AX_TRANSCRIPT_PROFILE_VERSION,
+      AX_TRANSCRIPT_THRESHOLDS,
+      AX_TRANSCRIPT_TEST_IDS,
+      AX_TRANSCRIPT_PRODUCER_PATHS,
+    ),
+    "SESSION-UX": producerProfile(
+      SESSION_UX_PROFILE_VERSION,
+      SESSION_UX_THRESHOLDS,
+      SESSION_UX_TEST_IDS,
+      SESSION_UX_PRODUCER_PATHS,
+    ),
+    "DIAG-SCALE": producerProfile(
+      DIAGNOSTICS_PROFILE.profileVersion,
+      DIAGNOSTICS_PROFILE.thresholds,
+      DIAGNOSTIC_TEST_IDS,
+      DIAGNOSTIC_PRODUCER_PATHS,
+    ),
+    "IDE-INPUT-PERF": producerProfile(
+      INPUT_PROFILE_VERSION,
+      INPUT_THRESHOLDS,
+      INPUT_TEST_IDS,
+      INPUT_PRODUCER_PATHS,
+    ),
+    "MCP-LIFECYCLE": producerProfile(
+      MCP_PROFILE_VERSION,
+      MCP_THRESHOLDS,
+      MCP_TEST_IDS,
+      MCP_PRODUCER_PATHS,
+    ),
+    "SESSION-RUNTIME": producerProfile(
+      SESSION_RUNTIME_PROFILE_VERSION,
+      SESSION_RUNTIME_THRESHOLDS,
+      SESSION_RUNTIME_TEST_IDS,
+      SESSION_RUNTIME_PRODUCER_PATHS,
+    ),
+    "PLUGIN-SOURCE": producerProfile(
+      PLUGIN_PROFILE_VERSION,
+      PLUGIN_THRESHOLDS,
+      PLUGIN_TEST_IDS,
+      PLUGIN_PRODUCER_PATHS,
+    ),
+    "BROWSER-EVIDENCE": producerProfile(
+      BROWSER_EVIDENCE_PROFILE_VERSION,
+      BROWSER_EVIDENCE_THRESHOLDS,
+      BROWSER_EVIDENCE_TEST_IDS,
+      BROWSER_EVIDENCE_PRODUCER_PATHS,
+    ),
+  };
+}
 
 function tempDirectory(label = "fixture") {
   const directory = fs.mkdtempSync(
@@ -45,6 +205,7 @@ function producerDigest(headSha, producerPath = "package.json") {
     execFileSync("git", ["cat-file", "blob", `${headSha}:${producerPath}`], {
       cwd: REPOSITORY_ROOT,
       encoding: null,
+      maxBuffer: 128 * 1024 * 1024,
     }),
   );
   producerDigestCache.set(cacheKey, value);
@@ -56,21 +217,11 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function profileVersion(commitmentId) {
-  return `${commitmentId.toLowerCase()}/v1`;
-}
-
-function thresholds(commitmentId) {
-  return {
-    maximumFailureCount: 0,
-    requiredSampleCount: commitmentId === "DIAG-SCALE" ? 10_000 : 1,
-  };
-}
-
 function fragment({
   commitmentId,
   headSha,
   operatingSystem,
+  profile = canonicalContract().lockedProfiles[commitmentId],
   disposition = "required",
   outcome = "passed",
   overrides = {},
@@ -85,16 +236,19 @@ function fragment({
       version: `${process.version};21.0.8`,
       arch: process.arch,
     },
-    profileVersion: profileVersion(commitmentId),
-    thresholds: thresholds(commitmentId),
+    profileVersion: profile.profileVersion,
+    thresholds: structuredClone(profile.thresholds),
     measurements: {
       observationCount: 1,
       passed: outcome === "passed",
     },
-    testIds: [`${commitmentId}/repository-contract`],
-    producerDigests: {
-      "package.json": producerDigest(headSha),
-    },
+    testIds: [...profile.testIds],
+    producerDigests: Object.fromEntries(
+      profile.producerPaths.map((producerPath) => [
+        producerPath,
+        producerDigest(headSha, producerPath),
+      ]),
+    ),
     disposition,
     source: {
       workflowId:
@@ -113,11 +267,22 @@ function buildFixture({ mutate, omit, advisories = [] } = {}) {
   const evidenceDirectory = path.join(root, "evidence");
   const outputRoot = path.join(root, "output");
   const headSha = currentHead();
+  const contract = structuredClone(canonicalContract());
+  for (const profile of Object.values(contract.lockedProfiles)) {
+    profile.producerPaths = ["package.json"];
+  }
+  const contractPath = path.join(root, "contract.json");
+  writeJson(contractPath, contract);
   for (const commitmentId of REQUIRED_COMMITMENTS) {
     for (const operatingSystem of REQUIRED_OPERATING_SYSTEMS) {
       const cell = `${commitmentId}/${operatingSystem}`;
       if (omit === cell) continue;
-      let value = fragment({ commitmentId, headSha, operatingSystem });
+      let value = fragment({
+        commitmentId,
+        headSha,
+        operatingSystem,
+        profile: contract.lockedProfiles[commitmentId],
+      });
       if (mutate?.cell === cell) value = mutate.apply(value);
       writeJson(
         path.join(evidenceDirectory, `${commitmentId}-${operatingSystem}.json`),
@@ -133,16 +298,26 @@ function buildFixture({ mutate, omit, advisories = [] } = {}) {
         commitmentId: advisory.commitmentId,
         headSha,
         operatingSystem: advisory.operatingSystem,
+        profile: contract.lockedProfiles[advisory.commitmentId],
         disposition: "advisory",
         outcome: advisory.outcome || "passed",
         overrides: {
-          profileVersion: `${profileVersion(advisory.commitmentId)}-advisory`,
+          profileVersion:
+            advisory.profileVersion ||
+            `${contract.lockedProfiles[advisory.commitmentId].profileVersion}-advisory`,
           measurements: { observationCount: 50_000, passed: true },
         },
       }),
     );
   }
-  return { evidenceDirectory, headSha, outputRoot, root };
+  return {
+    contract,
+    contractPath,
+    evidenceDirectory,
+    headSha,
+    outputRoot,
+    root,
+  };
 }
 
 function aggregateFixture(fixture, options = {}) {
@@ -151,6 +326,7 @@ function aggregateFixture(fixture, options = {}) {
     releaseCommit: fixture.headSha,
     outputRoot: fixture.outputRoot,
     repositoryRoot: REPOSITORY_ROOT,
+    contractPath: fixture.contractPath,
     ...options,
   });
 }
@@ -177,6 +353,7 @@ describe("Claude Code increment unified audit", () => {
   it("locks the canonical 12-commitment by three-OS contract", () => {
     const contract = loadContract();
     expect(contract.path).toBe(DEFAULT_CONTRACT_PATH);
+    expect(contract.value.contractVersion).toBe("2026-08-21.2");
     expect(contract.value.requiredCommitments).toEqual(REQUIRED_COMMITMENTS);
     expect(contract.value.requiredOperatingSystems).toEqual(
       REQUIRED_OPERATING_SYSTEMS,
@@ -186,6 +363,104 @@ describe("Claude Code increment unified audit", () => {
       requireSameThresholdsAcrossOperatingSystems: true,
     });
     expect(contract.value.sourcePolicy.requireGitHubActions).toBe(true);
+    expect(Object.keys(contract.value.lockedProfiles)).toEqual(
+      REQUIRED_COMMITMENTS,
+    );
+  });
+
+  it("keeps locked profiles aligned with their canonical producers", async () => {
+    const contract = canonicalContract();
+    for (const [commitmentId, expectedProfile] of Object.entries(
+      expectedProducerProfiles(),
+    )) {
+      expect(contract.lockedProfiles[commitmentId]).toEqual(expectedProfile);
+    }
+
+    const locationProfile = contract.lockedProfiles["LOCATION-DRAIN"];
+    expect(locationProfile.profileVersion).toBe("location-drain-v1");
+    expect(locationProfile.testIds).toHaveLength(6);
+    expect(locationProfile.producerPaths).toHaveLength(14);
+    expect(Object.keys(locationProfile.thresholds)).toEqual([
+      "requiredOperatingSystems",
+      "requiredTargets",
+      "minimumTrajectoriesPerCell",
+      "requiredRemoteResourceKinds",
+      "requiredUnsupportedSigtermCells",
+      "minimumGracefulSigtermCells",
+      "minimumSourceFencedDrainCells",
+      "maximumUnexpectedUnsupportedSigtermCells",
+      "maximumStaleAuthorityAcceptances",
+      "maximumSecretTransfers",
+      "maximumOrphanProcesses",
+    ]);
+
+    const locationProducer = await import(
+      "../../scripts/verify-ide-roadmap-execution-location.mjs"
+    );
+    if (
+      locationProducer.PROFILE_VERSION &&
+      locationProducer.THRESHOLDS &&
+      locationProducer.TEST_IDS &&
+      locationProducer.PRODUCER_PATHS
+    ) {
+      expect(locationProfile).toEqual(
+        producerProfile(
+          locationProducer.PROFILE_VERSION,
+          locationProducer.THRESHOLDS,
+          locationProducer.TEST_IDS,
+          locationProducer.PRODUCER_PATHS,
+        ),
+      );
+    }
+  });
+
+  it("rejects missing or extra locked profile keys", () => {
+    const root = tempDirectory("contract-keys");
+    const missing = structuredClone(canonicalContract());
+    delete missing.lockedProfiles["RC-DEFAULT"];
+    const missingPath = path.join(root, "missing.json");
+    writeJson(missingPath, missing);
+    expect(() => loadContract(missingPath)).toThrow(
+      /audit contract lockedProfiles keys must be exactly/u,
+    );
+
+    const extra = structuredClone(canonicalContract());
+    extra.lockedProfiles["UNSCOPED"] = extra.lockedProfiles["RC-DEFAULT"];
+    const extraPath = path.join(root, "extra.json");
+    writeJson(extraPath, extra);
+    expect(() => loadContract(extraPath)).toThrow(
+      /audit contract lockedProfiles keys must be exactly/u,
+    );
+  });
+
+  it("uses locale-independent default code-point ordering", () => {
+    expect(["z", "ä", "a", "Z", "A"].sort(compareCodePointOrder)).toEqual([
+      "A",
+      "Z",
+      "a",
+      "z",
+      "ä",
+    ]);
+
+    const fixture = buildFixture({
+      advisories: [
+        {
+          commitmentId: "RC-DEFAULT",
+          operatingSystem: "linux",
+          profileVersion: "a",
+        },
+        {
+          commitmentId: "RC-DEFAULT",
+          operatingSystem: "linux",
+          profileVersion: "Z",
+        },
+      ],
+    });
+    expect(
+      aggregateFixture(fixture).manifest.advisoryRows.map(
+        (row) => row.profileVersion,
+      ),
+    ).toEqual(["Z", "a"]);
   });
 
   it("runs the contract verifier when either implementation or policy changes", () => {
@@ -250,6 +525,7 @@ describe("Claude Code increment unified audit", () => {
       artifactDirectory: aggregate.artifactDirectory,
       releaseCommit: fixture.headSha,
       repositoryRoot: REPOSITORY_ROOT,
+      contractPath: fixture.contractPath,
     });
     expect(verified.manifestDigest).toBe(aggregate.manifestDigest);
     expect(verified.manifest.summary.requiredRowCount).toBe(36);
@@ -331,12 +607,10 @@ describe("Claude Code increment unified audit", () => {
     );
 
     const locked = buildFixture();
-    const contract = structuredClone(loadContract().value);
-    contract.lockedProfiles["RC-DEFAULT"] = {
-      profileVersion: profileVersion("RC-DEFAULT"),
-      thresholds: { ...thresholds("RC-DEFAULT"), maximumFailureCount: 1 },
-      testIds: ["RC-DEFAULT/repository-contract"],
-      producerPaths: ["package.json"],
+    const contract = structuredClone(locked.contract);
+    contract.lockedProfiles["RC-DEFAULT"].thresholds = {
+      ...contract.lockedProfiles["RC-DEFAULT"].thresholds,
+      passiveRemoteStateWritesMaximum: 1,
     };
     const contractPath = path.join(locked.root, "locked-contract.json");
     writeJson(contractPath, contract);
@@ -347,26 +621,25 @@ describe("Claude Code increment unified audit", () => {
 
   it("rejects locked required test or producer coverage shrinkage", () => {
     const fixture = buildFixture();
-    const contract = structuredClone(loadContract().value);
-    contract.lockedProfiles["RC-DEFAULT"] = {
-      profileVersion: profileVersion("RC-DEFAULT"),
-      thresholds: thresholds("RC-DEFAULT"),
-      testIds: ["RC-DEFAULT/expected-release-test"],
-      producerPaths: ["package.json"],
-    };
+    const contract = structuredClone(fixture.contract);
+    contract.lockedProfiles["RC-DEFAULT"].testIds = [
+      "RC-DEFAULT/expected-release-test",
+    ];
     const testLockPath = path.join(fixture.root, "test-lock-contract.json");
     writeJson(testLockPath, contract);
-    expect(() => aggregateFixture(fixture, { contractPath: testLockPath })).toThrow(
-      /locked required test IDs/u,
-    );
+    expect(() =>
+      aggregateFixture(fixture, { contractPath: testLockPath }),
+    ).toThrow(/locked required test IDs/u);
 
     contract.lockedProfiles["RC-DEFAULT"].testIds = [
-      "RC-DEFAULT/repository-contract",
+      ...fixture.contract.lockedProfiles["RC-DEFAULT"].testIds,
     ];
     contract.lockedProfiles["RC-DEFAULT"].producerPaths = [
-      "package-lock.json",
-      "package.json",
-    ];
+      ...new Set([
+        ...fixture.contract.lockedProfiles["RC-DEFAULT"].producerPaths,
+        "package-lock.json",
+      ]),
+    ].sort(compareCodePointOrder);
     const producerLockPath = path.join(
       fixture.root,
       "producer-lock-contract.json",
@@ -392,6 +665,7 @@ describe("Claude Code increment unified audit", () => {
         artifactDirectory: aggregate.artifactDirectory,
         releaseCommit: first.headSha,
         repositoryRoot: REPOSITORY_ROOT,
+        contractPath: first.contractPath,
       }),
     ).toThrow(/digest drift/u);
 
@@ -405,6 +679,7 @@ describe("Claude Code increment unified audit", () => {
         artifactDirectory: secondAggregate.artifactDirectory,
         releaseCommit: second.headSha,
         repositoryRoot: REPOSITORY_ROOT,
+        contractPath: second.contractPath,
       }),
     ).toThrow(/required row contains advisory/u);
   });

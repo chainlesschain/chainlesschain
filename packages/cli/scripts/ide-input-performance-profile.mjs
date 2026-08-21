@@ -51,6 +51,10 @@ const THRESHOLDS = Object.freeze({
   leakCount: 0,
   contentReadCount: 0,
 });
+const TEST_IDS = Object.freeze([
+  "ide-input-performance-profile#vscode100kAndRapidQueries",
+  "WorkspaceMentionIndexPerformanceTest#profiles100kPathsAndRapidQueries",
+]);
 
 function parseArgs(argv) {
   const options = {};
@@ -216,6 +220,9 @@ function validateHost(host, expectedHost) {
   assert.deepEqual(host.thresholds, THRESHOLDS);
   assert.equal(host.disposition, "required");
   assert.equal(host.outcome, "pass");
+  assert.deepEqual(host.testIds, [
+    TEST_IDS[expectedHost === "vscode" ? 0 : 1],
+  ]);
   const measurement = host.measurements;
   assert.equal(measurement.pathCount, MAX_PATHS);
   assert.equal(measurement.consecutiveQueries, QUERY_COUNT);
@@ -269,7 +276,7 @@ async function runProfile({
       runtime: { node: process.version },
       thresholds: THRESHOLDS,
       measurements: vscodeMeasurements,
-      testIds: ["ide-input-performance-profile#vscode100kAndRapidQueries"],
+      testIds: [TEST_IDS[0]],
       disposition: "required",
       outcome: "pass",
     },
@@ -294,7 +301,7 @@ async function runProfile({
       vscode: vscode.measurements,
       jetbrains: jetbrains.measurements,
     },
-    testIds: [...vscode.testIds, ...jetbrains.testIds],
+    testIds: [...TEST_IDS],
     producerDigests: digests,
     disposition: "required",
     source,
@@ -356,6 +363,7 @@ export {
   PROFILE_VERSION,
   QUERY_COUNT,
   SOURCE_PATHS,
+  TEST_IDS,
   THRESHOLDS,
   canonicalOs,
   measureVsCodeIndex,

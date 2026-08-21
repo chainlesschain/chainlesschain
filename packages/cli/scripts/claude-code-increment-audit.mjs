@@ -111,6 +111,10 @@ function fail(message) {
   throw new Error(message);
 }
 
+function compareCodePointOrder(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function sha256(bytes) {
   return `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
 }
@@ -130,8 +134,8 @@ function assertPlainObject(value, scope) {
 
 function assertExactKeys(value, expectedKeys, scope) {
   assertPlainObject(value, scope);
-  const actual = Object.keys(value).sort();
-  const expected = [...expectedKeys].sort();
+  const actual = Object.keys(value).sort(compareCodePointOrder);
+  const expected = [...expectedKeys].sort(compareCodePointOrder);
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     fail(
       `${scope} keys must be exactly ${expected.join(", ")}; received ${actual.join(", ")}`,
@@ -214,7 +218,7 @@ function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (isPlainObject(value)) {
     return `{${Object.keys(value)
-      .sort()
+      .sort(compareCodePointOrder)
       .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
       .join(",")}}`;
   }
@@ -258,7 +262,8 @@ function validateLockedProfile(profile, scope) {
   if (new Set(producerPaths).size !== producerPaths.length) {
     fail(`${scope}.producerPaths must not contain duplicates`);
   }
-  if (!deepEqual(producerPaths, [...producerPaths].sort())) {
+  const sortedProducerPaths = [...producerPaths].sort(compareCodePointOrder);
+  if (!deepEqual(producerPaths, sortedProducerPaths)) {
     fail(`${scope}.producerPaths must use stable sorted order`);
   }
 }
@@ -307,12 +312,13 @@ function validateContract(contract) {
     fail("audit contract cannot allow local required evidence");
   }
   assertPlainObject(contract.lockedProfiles, "audit contract lockedProfiles");
-  for (const [commitmentId, profile] of Object.entries(
+  assertExactKeys(
     contract.lockedProfiles,
-  )) {
-    if (!REQUIRED_COMMITMENTS.includes(commitmentId)) {
-      fail(`audit contract locks unknown commitment ${commitmentId}`);
-    }
+    REQUIRED_COMMITMENTS,
+    "audit contract lockedProfiles",
+  );
+  for (const commitmentId of REQUIRED_COMMITMENTS) {
+    const profile = contract.lockedProfiles[commitmentId];
     validateLockedProfile(profile, `locked profile ${commitmentId}`);
   }
   return contract;
@@ -466,7 +472,7 @@ function normalizeFragment(fragment, contract, scope = "audit fragment") {
   }
   const producerDigests = {};
   for (const [producerPath, producerDigest] of producerEntries.sort(
-    ([a], [b]) => a.localeCompare(b),
+    ([a], [b]) => compareCodePointOrder(a, b),
   )) {
     const normalizedPath = normalizeProducerPath(
       producerPath,
@@ -599,7 +605,7 @@ function discoverJsonFiles(rootDirectory) {
   }
   return found
     .filter((filePath) => filePath.toLowerCase().endsWith(".json"))
-    .sort();
+    .sort(compareCodePointOrder);
 }
 
 function discoverFragments(fragmentsDirectory, contract) {
@@ -644,10 +650,13 @@ function sortFragments(left, right) {
       commitmentIndex(right.value.commitmentId) ||
     operatingSystemIndex(left.value.os) -
       operatingSystemIndex(right.value.os) ||
-    left.value.profileVersion.localeCompare(right.value.profileVersion) ||
-    left.value.source.runId.localeCompare(right.value.source.runId) ||
-    left.value.source.jobId.localeCompare(right.value.source.jobId) ||
-    left.relativeFile.localeCompare(right.relativeFile)
+    compareCodePointOrder(
+      left.value.profileVersion,
+      right.value.profileVersion,
+    ) ||
+    compareCodePointOrder(left.value.source.runId, right.value.source.runId) ||
+    compareCodePointOrder(left.value.source.jobId, right.value.source.jobId) ||
+    compareCodePointOrder(left.relativeFile, right.relativeFile)
   );
 }
 
@@ -1122,8 +1131,13 @@ function verifyAuditArtifact({
   ).map((filePath) => path.relative(directory, filePath).replaceAll("\\", "/"));
   const referencedFragmentFiles = [...requiredRecords, ...advisoryRecords]
     .map((record) => record.relativeFile)
-    .sort();
-  if (!deepEqual(allFragmentFiles.sort(), referencedFragmentFiles)) {
+    .sort(compareCodePointOrder);
+  if (
+    !deepEqual(
+      allFragmentFiles.sort(compareCodePointOrder),
+      referencedFragmentFiles,
+    )
+  ) {
     fail("audit artifact contains unreferenced or missing fragment files");
   }
   const coverage = enforceCoverage(
@@ -1254,6 +1268,7 @@ export {
   REQUIRED_OPERATING_SYSTEMS,
   aggregateAuditFragments,
   artifactName,
+  compareCodePointOrder,
   loadContract,
   normalizeFragment,
   sha256,

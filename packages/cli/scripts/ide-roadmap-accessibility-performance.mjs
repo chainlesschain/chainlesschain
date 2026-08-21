@@ -71,6 +71,10 @@ const DIAGNOSTICS_PROFILE = Object.freeze({
     staleVersionCount: 0,
   }),
 });
+const DIAGNOSTIC_TEST_IDS = Object.freeze([
+  "DIAG-SCALE/vscode-10k-stable-snapshot",
+  "DIAG-SCALE/jetbrains-10k-stable-snapshot",
+]);
 const REQUIRED_FILES = Object.freeze([
   "exact-commit.json",
   "host-environment.json",
@@ -1454,10 +1458,7 @@ async function mainCampaign(options, dependencies = {}) {
       profileVersion: DIAGNOSTICS_PROFILE.profileVersion,
       thresholds: DIAGNOSTICS_PROFILE.thresholds,
       measurements: { profiles: diagnosticsProfiles },
-      testIds: [
-        "DIAG-SCALE/vscode-10k-stable-snapshot",
-        "DIAG-SCALE/jetbrains-10k-stable-snapshot",
-      ],
+      testIds: [...DIAGNOSTIC_TEST_IDS],
       producerDigests: Object.fromEntries(
         DIAGNOSTIC_PRODUCER_PATHS.map((sourcePath) => [
           sourcePath,
@@ -1607,6 +1608,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 export {
   ACCESSIBILITY_WORKFLOW_PATH,
   DIAGNOSTIC_PRODUCER_PATHS,
+  DIAGNOSTIC_TEST_IDS,
   DIAGNOSTICS_PROFILE,
   GATE_SOURCE_PATHS,
   PROFILE,
