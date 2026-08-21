@@ -3,6 +3,7 @@ name: CLI Reliability Soak
 on:
   pull_request:
     paths:
+      - ".github/workflows/cli-ci.yml"
       - ".github/workflows/cli-reliability-soak.yml"
       - ".github/workflows/cli-ci.yml"
       - ".github/actions/setup-node-deps/action.yml"
@@ -36,6 +37,9 @@ on:
       - "packages/cli/src/lib/mcp-client.js"
       - "packages/cli/src/lib/mcp-oauth.js"
       - "packages/cli/src/lib/mcp-tls.js"
+      - "packages/cli/src/lib/mcp-lifecycle-authority.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/runtime/mcp-config.js"
       - "packages/cli/src/lib/paths.js"
@@ -50,6 +54,8 @@ on:
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/scripts/cli-mcp-security-soak.mjs"
+      - "packages/cli/scripts/mcp-lifecycle-profile.mjs"
+      - "packages/cli/scripts/mcp-lifecycle-profile-child.mjs"
       - "packages/cli/scripts/verify-mcp-lifecycle-increments.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-message-fabric.mjs"
@@ -57,7 +63,10 @@ on:
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
+      - "packages/cli/__tests__/unit/mcp-lifecycle-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-lifecycle-increments.test.js"
+      - "packages/cli/__tests__/unit/mcp-lifecycle-profile.test.js"
+      - "packages/cli/__tests__/unit/verify-mcp-lifecycle-increments.test.js"
       - "packages/cli/__tests__/unit/mcp-oauth.test.js"
       - "packages/cli/__tests__/unit/mcp-client-headers-helper.test.js"
       - "packages/cli/__tests__/unit/mcp-client-rpc-error-sanitization.test.js"
@@ -476,7 +485,8 @@ jobs:
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
           --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
-          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+          --artifact-name "mcp-lifecycle-${RUNNER_OS}-${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}-${GITHUB_RUN_ATTEMPT}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"
 
       - name: Upload repeated materialized capsule execution-context evidence
         if: always() && github.event_name != 'pull_request'
@@ -501,7 +511,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: mcp-lifecycle-${{ runner.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}/mcp-lifecycle-audit-fragment.json
           if-no-files-found: error
           retention-days: 90
 
@@ -543,7 +553,7 @@ jobs:
         with:
           pattern: mcp-lifecycle-*-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/mcp-lifecycle-evidence
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Download materialized capsule execution-context evidence
         if: github.event_name != 'pull_request'

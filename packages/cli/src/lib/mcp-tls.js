@@ -2,7 +2,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { createHash } from "node:crypto";
+import { createHash, X509Certificate } from "node:crypto";
+import { createSecureContext } from "node:tls";
 import { isProxy } from "node:util/types";
 import { Agent } from "undici";
 
@@ -194,7 +195,27 @@ function updateDigestPart(hash, value) {
   hash.update(length).update(bytes);
 }
 
-export function loadMcpTlsMaterial(value, { fsImpl = fs } = {}) {
+function validateCertificateBytes(bytes) {
+  if (!bytes) return;
+  const text = bytes.toString("utf8");
+  const pemCertificates = text.match(
+    /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/gu,
+  );
+  if (pemCertificates?.length) {
+    for (const certificate of pemCertificates) new X509Certificate(certificate);
+    return;
+  }
+  new X509Certificate(bytes);
+}
+
+export function loadMcpTlsMaterial(
+  value,
+  {
+    fsImpl = fs,
+    createSecureContextImpl = createSecureContext,
+    validateCertificateImpl = validateCertificateBytes,
+  } = {},
+) {
   const config = normalizeMcpTlsConfig(value);
   if (!config) return null;
   const cert = readTlsFile(config.certFile, "certFile", fsImpl);
@@ -207,6 +228,21 @@ export function loadMcpTlsMaterial(value, { fsImpl = fs } = {}) {
     ...(config.serverName ? { servername: config.serverName } : {}),
     rejectUnauthorized: config.rejectUnauthorized,
   };
+  try {
+    // Parse certificates and verify the client cert/key pair before creating a
+    // dispatcher or issuing any outbound request. Node/Undici would otherwise
+    // discover malformed or mismatched material only during a network dial.
+    validateCertificateImpl(cert);
+    validateCertificateImpl(ca);
+    createSecureContextImpl(connectOptions);
+  } catch {
+    // TLS parser diagnostics may quote attacker-controlled PEM text or paths.
+    // Keep the product error fixed and do not retain the parser error as cause.
+    throw tlsError(
+      "CC_MCP_TLS_MATERIAL_INVALID",
+      "MCP TLS certificate material is invalid or the client key does not match",
+    );
+  }
   const identityHash = createHash("sha256");
   updateDigestPart(identityHash, cert);
   updateDigestPart(identityHash, key);

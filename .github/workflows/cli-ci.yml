@@ -138,13 +138,14 @@ jobs:
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
           --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
-          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+          --artifact-name "mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"
       - name: Upload MCP lifecycle evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}/mcp-lifecycle-audit-fragment.json
           if-no-files-found: error
       - name: Verify CLI --version
         working-directory: packages/cli

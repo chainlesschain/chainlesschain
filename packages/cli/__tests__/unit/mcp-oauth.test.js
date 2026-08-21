@@ -525,6 +525,99 @@ describe("token store + expiry", () => {
       }),
     ).toBeNull();
   });
+
+  it("single-flights refresh and a concurrent revocation fences the result", async () => {
+    oauth.saveStoredToken("https://m.example.com", {
+      access_token: "OLD",
+      refresh_token: "RT",
+      expires_at: 1_000_000 - 1,
+      client_id: "cid",
+      endpoints: { token_endpoint: "https://auth.example.com/token" },
+    });
+    let releaseResponse;
+    const response = new Promise((resolve) => {
+      releaseResponse = resolve;
+    });
+    _deps.fetch = vi.fn(() => response);
+
+    const first = oauth.ensureValidToken("https://m.example.com");
+    const second = oauth.ensureValidToken("https://m.example.com");
+    await vi.waitFor(() => expect(_deps.fetch).toHaveBeenCalledTimes(1));
+
+    expect(oauth.deleteStoredToken("https://m.example.com")).toBe(true);
+    releaseResponse({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: "RESURRECTED", expires_in: 3600 }),
+      text: async () => "",
+    });
+
+    await expect(first).resolves.toBeNull();
+    await expect(second).resolves.toBeNull();
+    expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
+    const raw = JSON.parse(store.content)["https://m.example.com"];
+    expect(raw).toMatchObject({ revoked: true, credential_revision: 2 });
+    expect(raw).not.toHaveProperty("access_token");
+  });
+
+  it("fails every waiter closed when a shared refresh cannot recover", async () => {
+    oauth.saveStoredToken("https://m.example.com", {
+      access_token: "OLD",
+      refresh_token: "RT",
+      expires_at: 1_000_000 - 1,
+      client_id: "cid",
+      endpoints: { token_endpoint: "https://auth.example.com/token" },
+    });
+    let releaseFirstAttempt;
+    const firstAttempt = new Promise((resolve) => {
+      releaseFirstAttempt = resolve;
+    });
+    let attempts = 0;
+    _deps.fetch = vi.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) await firstAttempt;
+      throw new Error("network unavailable");
+    });
+
+    const opportunistic = oauth.ensureValidToken("https://m.example.com");
+    const required = oauth.ensureValidToken("https://m.example.com", {
+      forceRefresh: true,
+    });
+    await vi.waitFor(() => expect(_deps.fetch).toHaveBeenCalledTimes(1));
+    releaseFirstAttempt();
+
+    await expect(opportunistic).resolves.toBeNull();
+    await expect(required).resolves.toBeNull();
+  });
+
+  it("persists an IdP refresh-token revocation and does not retry it", async () => {
+    oauth.saveStoredToken("https://m.example.com", {
+      access_token: "OLD",
+      refresh_token: "REVOKED_RT",
+      expires_at: 1_000_000 - 1,
+      client_id: "cid",
+      endpoints: { token_endpoint: "https://auth.example.com/token" },
+    });
+    _deps.fetch = fetchStub({
+      "POST https://auth.example.com/token": {
+        ok: false,
+        status: 400,
+        body: { error: "invalid_grant" },
+      },
+    });
+
+    await expect(
+      oauth.ensureValidToken("https://m.example.com"),
+    ).resolves.toBeNull();
+    await expect(
+      oauth.ensureValidToken("https://m.example.com"),
+    ).resolves.toBeNull();
+    expect(_deps.fetch).toHaveBeenCalledTimes(1);
+    expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
+    const raw = JSON.parse(store.content)["https://m.example.com"];
+    expect(raw).toMatchObject({ revoked: true, credential_revision: 2 });
+    expect(raw).not.toHaveProperty("refresh_token");
+  });
 });
 
 describe("corrupt token store (unreadable file is not silently destroyed)", () => {
