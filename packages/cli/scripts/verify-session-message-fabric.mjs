@@ -6,17 +6,20 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import {
   SESSION_MESSAGE_FABRIC_ERROR_CODES,
   SESSION_MESSAGE_FABRIC_LIMITS,
   SessionMessageFabric,
 } from "../src/lib/session-message-fabric.js";
+import { buildSessionProjection } from "../src/lib/session-projection.js";
+import { withFileLock } from "../src/lib/with-file-lock.js";
 
 export const SESSION_MESSAGE_FABRIC_EVIDENCE_SCHEMA =
-  "chainlesschain.session-message-fabric-evidence/v1";
+  "chainlesschain.claude-code-increment-audit-fragment.v1";
 export const SESSION_MESSAGE_FABRIC_AGGREGATE_SCHEMA =
-  "chainlesschain.session-message-fabric-evidence-aggregate/v1";
+  "chainlesschain.xsession-audit-aggregate.v1";
 export const SESSION_MESSAGE_FABRIC_PROFILE = "claude-2.1.224-238-xsession/v1";
 export const REQUIRED_PROCESS_COUNT = 32;
 export const REQUIRED_OPERATING_SYSTEMS = Object.freeze([
@@ -27,13 +30,36 @@ export const REQUIRED_OPERATING_SYSTEMS = Object.freeze([
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPOSITORY_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../../..");
-const SOURCE_FILES = Object.freeze({
-  fabric: "packages/cli/src/lib/session-message-fabric.js",
-  projection: "packages/cli/src/lib/session-projection.js",
-  vscodeProjection: "packages/vscode-extension/src/sessions-workbench.js",
-  jetbrainsProjection:
-    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java",
+const REQUIRE = createRequire(import.meta.url);
+const VSCODE_PROJECTION_PATH =
+  "packages/vscode-extension/src/sessions-workbench.js";
+const JETBRAINS_PROJECTION_PATH =
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java";
+const REQUIRED_THRESHOLDS = Object.freeze({
+  processCount: REQUIRED_PROCESS_COUNT,
+  maxPendingPerRecipient: SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+  maxMessageBytes: SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
+  maxProcessMatrixMs: 60_000,
+  maxRecoveryMs: 10_000,
+  maxStateBytes: 32 * 1024 * 1024,
+  maxCoordinatorRssDeltaBytes: 256 * 1024 * 1024,
+  idleNotificationsPerWatch: 1,
+  historyLeaks: 0,
+  duplicateDeliveries: 0,
+  projectionRejects: 0,
 });
+const SOURCE_FILES = Object.freeze([
+  "packages/cli/scripts/verify-session-message-fabric.mjs",
+  "packages/cli/src/lib/session-message-fabric.js",
+  "packages/cli/src/lib/session-projection.js",
+  "packages/cli/src/lib/with-file-lock.js",
+  VSCODE_PROJECTION_PATH,
+  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java",
+  JETBRAINS_PROJECTION_PATH,
+  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java",
+  ".github/workflows/cli-ci.yml",
+  ".github/workflows/cli-reliability-soak.yml",
+]);
 const TEST_IDS = Object.freeze([
   "xsession/32-process-admission",
   "xsession/queue-101-full",
@@ -42,11 +68,15 @@ const TEST_IDS = Object.freeze([
   "xsession/duplicate-idempotency",
   "xsession/restart-durable-inbox",
   "xsession/policy-accept-hold-refuse",
+  "xsession/offline-admission-not-delivery",
   "xsession/disconnect-reconnect",
+  "xsession/process-crash-restart-idempotency",
+  "xsession/unknown-commit-retry-idempotency",
   "xsession/registration-epoch-no-history-leak",
   "xsession/delivered-refused-full-expired-receipts",
   "xsession/notify-when-idle-once",
-  "xsession/dual-ide-projection-contract",
+  "xsession/vscode-real-projection-parser",
+  "xsession/jetbrains-real-projection-parser",
 ]);
 
 function sha256File(filePath) {
@@ -65,21 +95,18 @@ function runtimeOs() {
 
 function sourceDigests() {
   const digests = Object.fromEntries(
-    Object.entries(SOURCE_FILES).map(([name, relativePath]) => [
-      name,
+    SOURCE_FILES.map((relativePath) => [
+      relativePath,
       sha256File(path.join(REPOSITORY_ROOT, relativePath)),
     ]),
   );
   assert.match(
-    fs.readFileSync(
-      path.join(REPOSITORY_ROOT, SOURCE_FILES.vscodeProjection),
-      "utf8",
-    ),
+    fs.readFileSync(path.join(REPOSITORY_ROOT, VSCODE_PROJECTION_PATH), "utf8"),
     /parseMessagingSummary/u,
   );
   assert.match(
     fs.readFileSync(
-      path.join(REPOSITORY_ROOT, SOURCE_FILES.jetbrainsProjection),
+      path.join(REPOSITORY_ROOT, JETBRAINS_PROJECTION_PATH),
       "utf8",
     ),
     /MessagingSummary/u,
@@ -88,11 +115,7 @@ function sourceDigests() {
 }
 
 function verifyExactHeadSources(headSha) {
-  const relativePaths = [
-    "packages/cli/scripts/verify-session-message-fabric.mjs",
-    ...Object.values(SOURCE_FILES),
-  ];
-  for (const relativePath of relativePaths) {
+  for (const relativePath of SOURCE_FILES) {
     const committed = execFileSync(
       "git",
       ["show", `${headSha}:${relativePath}`],
@@ -125,6 +148,92 @@ function writeJson(filePath, value) {
   });
 }
 
+function boundedSourceValue(value, fallback, label) {
+  const text = String(value || fallback || "").trim();
+  assert.match(text, /^[A-Za-z0-9][A-Za-z0-9._:/@ -]{0,255}$/u, label);
+  return text;
+}
+
+function evidenceSource(overrides = {}) {
+  return {
+    workflowId: boundedSourceValue(
+      overrides.workflowId || process.env.CC_XSESSION_WORKFLOW_ID,
+      "local",
+      "workflowId",
+    ),
+    runId: boundedSourceValue(
+      overrides.runId || process.env.CC_XSESSION_RUN_ID,
+      "local",
+      "runId",
+    ),
+    jobId: boundedSourceValue(
+      overrides.jobId || process.env.CC_XSESSION_JOB_ID,
+      `local-${runtimeOs()}`,
+      "jobId",
+    ),
+    artifactName: boundedSourceValue(
+      overrides.artifactName || process.env.CC_XSESSION_ARTIFACT_NAME,
+      `local-xsession-${runtimeOs()}`,
+      "artifactName",
+    ),
+  };
+}
+
+function executableSibling(command, sibling) {
+  if (process.env.JAVA_HOME) {
+    const candidate = path.join(
+      process.env.JAVA_HOME,
+      "bin",
+      process.platform === "win32" ? `${sibling}.exe` : sibling,
+    );
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  const locator = process.platform === "win32" ? "where.exe" : "which";
+  const resolved = execFileSync(locator, [command], { encoding: "utf8" })
+    .split(/\r?\n/u)
+    .map((entry) => entry.trim())
+    .find(Boolean);
+  assert.ok(
+    resolved,
+    `${command} is required for the JetBrains projection probe`,
+  );
+  const candidate = path.join(
+    path.dirname(fs.realpathSync(resolved)),
+    process.platform === "win32" ? `${sibling}.exe` : sibling,
+  );
+  return fs.existsSync(candidate) ? candidate : sibling;
+}
+
+function childExit(args, expectedCode) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [SCRIPT_PATH, ...args], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (code === expectedCode) resolve({ code, signal, stdout, stderr });
+      else {
+        reject(
+          new Error(
+            `session fabric child failed (${signal || code}): ${stderr.slice(0, 2_000)}`,
+          ),
+        );
+      }
+    });
+  });
+}
+
 function workerProcess(statePath, index) {
   const fabric = new SessionMessageFabric({ statePath, lockTimeoutMs: 30_000 });
   const name = `worker-${String(index).padStart(2, "0")}`;
@@ -140,6 +249,35 @@ function workerProcess(statePath, index) {
     messageId: `process-message-${index}`,
   });
   assert.equal(receipt.status, "delivered");
+}
+
+function crashAfterDurableSend(statePath) {
+  const fabric = new SessionMessageFabric({ statePath, lockTimeoutMs: 30_000 });
+  const receipt = fabric.send({
+    from: "crash-sender",
+    to: "crash-target",
+    body: "committed before abrupt process exit",
+    messageId: "crash-retry-message",
+  });
+  assert.equal(receipt.status, "delivered");
+  // Synchronous atomic persistence and fsync have completed, but no success
+  // response crosses the process boundary.  The caller must safely retry the
+  // same idempotency key after observing this abnormal exit.
+  process.exit(91);
+}
+
+function recoveryWorker(statePath) {
+  const fabric = new SessionMessageFabric({ statePath, lockTimeoutMs: 30_000 });
+  const inbox = fabric.inbox("crash-target");
+  process.stdout.write(
+    JSON.stringify({
+      count: inbox.length,
+      messageIds: inbox.map((message) => message.messageId),
+      receiptStatuses: fabric
+        .receipts("crash-sender")
+        .map((receipt) => receipt.status),
+    }),
+  );
 }
 
 function spawnWorker(statePath, index) {
@@ -179,6 +317,7 @@ async function runProcessMatrix(directory, processCount) {
     machineId: "collector-machine",
     name: "collector",
   });
+  const rssBefore = process.memoryUsage().rss;
   const startedAt = performance.now();
   await Promise.all(
     Array.from({ length: processCount }, (_, index) =>
@@ -186,6 +325,10 @@ async function runProcessMatrix(directory, processCount) {
     ),
   );
   const elapsedMs = performance.now() - startedAt;
+  const coordinatorRssDeltaBytes = Math.max(
+    0,
+    process.memoryUsage().rss - rssBefore,
+  );
   const restarted = new SessionMessageFabric({ statePath });
   const inbox = restarted.inbox("collector");
   assert.equal(inbox.length, processCount);
@@ -194,8 +337,24 @@ async function runProcessMatrix(directory, processCount) {
     processCount,
   );
   assert.equal(restarted.projection().endpoints.length, processCount + 1);
+  const admittedStateBytes = fs.statSync(statePath).size;
   restarted.inbox("collector", { acknowledge: true });
-  return { processCount, delivered: inbox.length, elapsedMs };
+  const settledStateBytes = fs.statSync(statePath).size;
+  const stateBytes = Math.max(admittedStateBytes, settledStateBytes);
+  assert.ok(elapsedMs <= REQUIRED_THRESHOLDS.maxProcessMatrixMs);
+  assert.ok(stateBytes <= REQUIRED_THRESHOLDS.maxStateBytes);
+  assert.ok(
+    coordinatorRssDeltaBytes <= REQUIRED_THRESHOLDS.maxCoordinatorRssDeltaBytes,
+  );
+  return {
+    processCount,
+    delivered: inbox.length,
+    elapsedMs,
+    stateBytes,
+    admittedStateBytes,
+    settledStateBytes,
+    coordinatorRssDeltaBytes,
+  };
 }
 
 function runFunctionalMatrix(directory) {
@@ -278,8 +437,13 @@ function runFunctionalMatrix(directory) {
       messageId: "offline-delivery",
       sequence: 5,
     }).status,
-    "delivered",
+    "held",
   );
+  const offlineAdmission = fabric
+    .receipts("sender")
+    .find((receipt) => receipt.messageId === "offline-delivery");
+  assert.equal(offlineAdmission.status, "held");
+  assert.equal(offlineAdmission.reason, "recipient_offline");
   const restarted = new SessionMessageFabric({ statePath, now: () => now });
   restarted.reconnect("target");
   assert.equal(restarted.inbox("target")[0].body, "offline");
@@ -345,6 +509,8 @@ function runFunctionalMatrix(directory) {
     messageId: "queue-101",
   });
   assert.equal(full.status, "full");
+  const queueStateBytes = fs.statSync(queue.statePath).size;
+  assert.ok(queueStateBytes <= REQUIRED_THRESHOLDS.maxStateBytes);
 
   const envelopeOverhead = Buffer.byteLength(
     JSON.stringify({ subject: null, body: "" }),
@@ -416,11 +582,204 @@ function runFunctionalMatrix(directory) {
 
   return {
     queueCapacity: SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+    queueStateBytes,
     oversizeBytes,
     receiptStatuses: [...statuses].sort(),
+    offlineAdmissions: 1,
+    offlineFalseDeliveries: 0,
     idleNotifications: 1,
     noHistoryLeak: true,
     projectionEndpoints: projection.endpoints.length,
+  };
+}
+
+async function runCrashRecoveryMatrix(directory) {
+  const statePath = path.join(directory, "crash-state.json");
+  const fabric = new SessionMessageFabric({ statePath, lockTimeoutMs: 30_000 });
+  fabric.register({ sessionId: "crash-sender", name: "crash-sender" });
+  fabric.register({ sessionId: "crash-target", name: "crash-target" });
+
+  const startedAt = performance.now();
+  await childExit(["--crash-after-send", statePath], 91);
+  const recoveredRaw = execFileSync(
+    process.execPath,
+    [SCRIPT_PATH, "--recover-after-crash", statePath],
+    { encoding: "utf8", maxBuffer: 1024 * 1024 },
+  );
+  const recovered = JSON.parse(recoveredRaw);
+  assert.deepEqual(recovered, {
+    count: 1,
+    messageIds: ["crash-retry-message"],
+    receiptStatuses: ["delivered"],
+  });
+  const retry = new SessionMessageFabric({ statePath }).send({
+    from: "crash-sender",
+    to: "crash-target",
+    body: "committed before abrupt process exit",
+    messageId: "crash-retry-message",
+  });
+  assert.equal(retry.status, "delivered");
+  assert.equal(
+    new SessionMessageFabric({ statePath }).inbox("crash-target").length,
+    1,
+  );
+
+  const uncertainPath = path.join(directory, "unknown-commit-state.json");
+  const initial = new SessionMessageFabric({ statePath: uncertainPath });
+  initial.register({ sessionId: "uncertain-sender", name: "uncertain-sender" });
+  initial.register({ sessionId: "uncertain-target", name: "uncertain-target" });
+  let failAfterCommit = true;
+  const uncertain = new SessionMessageFabric({
+    statePath: uncertainPath,
+    lock: (filePath, task, options) =>
+      withFileLock(
+        filePath,
+        () => {
+          const result = task();
+          if (failAfterCommit) {
+            failAfterCommit = false;
+            throw Object.assign(
+              new Error("injected response loss after commit"),
+              {
+                code: "EIO",
+              },
+            );
+          }
+          return result;
+        },
+        options,
+      ),
+  });
+  assert.throws(
+    () =>
+      uncertain.send({
+        from: "uncertain-sender",
+        to: "uncertain-target",
+        body: "unknown commit",
+        messageId: "unknown-commit-message",
+      }),
+    (error) =>
+      error?.code === SESSION_MESSAGE_FABRIC_ERROR_CODES.STATE_UNAVAILABLE,
+  );
+  const reconciled = new SessionMessageFabric({ statePath: uncertainPath });
+  assert.equal(
+    reconciled.send({
+      from: "uncertain-sender",
+      to: "uncertain-target",
+      body: "unknown commit",
+      messageId: "unknown-commit-message",
+    }).status,
+    "delivered",
+  );
+  assert.equal(reconciled.inbox("uncertain-target").length, 1);
+
+  const recoveryMs = performance.now() - startedAt;
+  assert.ok(recoveryMs <= REQUIRED_THRESHOLDS.maxRecoveryMs);
+  return {
+    crashExitCode: 91,
+    crashRecoveredMessages: 1,
+    unknownCommitRetries: 1,
+    duplicateDeliveries: 0,
+    recoveryMs,
+  };
+}
+
+function runDualIdeProjectionContract(directory) {
+  const projection = buildSessionProjection({
+    generatedAt: "2026-08-21T00:00:00.000Z",
+    local: [
+      {
+        id: "projection-session",
+        title: "Projection contract",
+        workspace: REPOSITORY_ROOT,
+        updated_at: "2026-08-21 00:00:00",
+      },
+    ],
+    sessionMessageFabric: {
+      revision: 11,
+      endpoints: [
+        {
+          sessionId: "projection-session",
+          name: "projection-target",
+          address: "cc-session://host-b/@projection-target?epoch=epoch-11",
+          policy: "hold",
+          online: false,
+          idle: false,
+          unread: 1,
+          held: 1,
+        },
+      ],
+    },
+  });
+  const serialized = JSON.stringify(projection);
+  const projectionPath = path.join(directory, "session-projection.json");
+  fs.writeFileSync(projectionPath, serialized, "utf8");
+
+  const { parseSessionProjection } = REQUIRE(
+    path.join(REPOSITORY_ROOT, VSCODE_PROJECTION_PATH),
+  );
+  const vscode = parseSessionProjection(serialized);
+  assert.equal(vscode.connected, true);
+  assert.equal(vscode.rows.length, 1);
+  assert.deepEqual(vscode.rows[0].messaging, {
+    authority: "cli",
+    registered: true,
+    revision: 11,
+    unread: 1,
+    held: 1,
+    endpoints: [
+      {
+        name: "projection-target",
+        address: "cc-session://host-b/@projection-target?epoch=epoch-11",
+        policy: "hold",
+        online: false,
+        idle: false,
+        unread: 1,
+        held: 1,
+      },
+    ],
+  });
+
+  const classes = path.join(directory, "jetbrains-projection-classes");
+  fs.mkdirSync(classes, { recursive: true });
+  const javac = executableSibling("javac", "javac");
+  const java = executableSibling("javac", "java");
+  const javaSources = [
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java",
+    JETBRAINS_PROJECTION_PATH,
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java",
+  ].map((relativePath) => path.join(REPOSITORY_ROOT, relativePath));
+  execFileSync(javac, ["-encoding", "UTF-8", "-d", classes, ...javaSources], {
+    cwd: REPOSITORY_ROOT,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  const jetbrains = JSON.parse(
+    execFileSync(
+      java,
+      [
+        "-cp",
+        classes,
+        "com.chainlesschain.ide.SessionProjectionAuditProbe",
+        projectionPath,
+      ],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    ),
+  );
+  assert.deepEqual(jetbrains, {
+    connected: true,
+    sessions: 1,
+    endpoints: 1,
+    unread: 1,
+    held: 1,
+  });
+  const javaVersion = execFileSync(javac, ["-version"], {
+    encoding: "utf8",
+  }).trim();
+  return {
+    vscode: { sessions: vscode.rows.length, endpoints: 1 },
+    jetbrains,
+    javaVersion: javaVersion.split(/\r?\n/u)[0],
+    projectionRejects: 0,
   };
 }
 
@@ -429,6 +788,7 @@ export async function produceSessionMessageFabricEvidence({
   output,
   processCount = REQUIRED_PROCESS_COUNT,
   verifyGitHead = true,
+  source = {},
 } = {}) {
   const headSha = exactCommit(releaseCommit);
   if (verifyGitHead) {
@@ -452,30 +812,32 @@ export async function produceSessionMessageFabricEvidence({
   try {
     const processMatrix = await runProcessMatrix(directory, processCount);
     const functional = runFunctionalMatrix(directory);
+    const recovery = await runCrashRecoveryMatrix(directory);
+    const ideProjection = runDualIdeProjectionContract(directory);
     const evidence = {
       schema: SESSION_MESSAGE_FABRIC_EVIDENCE_SCHEMA,
-      profile: SESSION_MESSAGE_FABRIC_PROFILE,
+      commitmentId: "XSESSION",
       headSha,
       os: runtimeOs(),
-      runtime: process.version,
-      producerDigest: sha256File(SCRIPT_PATH),
-      sourceDigests: sourceDigests(),
-      generatedAt: new Date().toISOString(),
-      required: true,
-      testIds: [...TEST_IDS],
-      thresholds: {
-        processCount: REQUIRED_PROCESS_COUNT,
-        maxPendingPerRecipient:
-          SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
-        maxMessageBytes: SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
-        idleNotificationsPerWatch: 1,
-        historyLeaks: 0,
+      runtime: {
+        name: "node",
+        version: process.version,
+        arch: process.arch,
       },
+      profileVersion: SESSION_MESSAGE_FABRIC_PROFILE,
+      thresholds: { ...REQUIRED_THRESHOLDS },
       measurements: {
         ...processMatrix,
         ...functional,
+        ...recovery,
+        ideProjection,
         historyLeaks: 0,
       },
+      testIds: [...TEST_IDS],
+      producerDigests: sourceDigests(),
+      disposition: "required",
+      source: evidenceSource(source),
+      outcome: "passed",
     };
     if (output) writeJson(output, evidence);
     return evidence;
@@ -498,57 +860,136 @@ export function aggregateSessionMessageFabricEvidence({
   evidenceDir,
   releaseCommit,
   output,
+  verifyGitHead = true,
+  source = {},
 } = {}) {
   const headSha = exactCommit(releaseCommit);
-  const producerDigest = sha256File(SCRIPT_PATH);
-  const expectedSourceDigests = sourceDigests();
+  if (verifyGitHead) {
+    const current = execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+      cwd: REPOSITORY_ROOT,
+    })
+      .trim()
+      .toLowerCase();
+    assert.equal(
+      current,
+      headSha,
+      "aggregate commit must equal exact Git HEAD",
+    );
+    verifyExactHeadSources(headSha);
+  }
+  const expectedProducerDigests = sourceDigests();
   const rows = [];
   for (const filePath of evidenceFiles(path.resolve(evidenceDir))) {
+    const serialized = fs.readFileSync(filePath);
     let candidate;
     try {
-      candidate = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      candidate = JSON.parse(serialized.toString("utf8"));
     } catch {
       continue;
     }
     if (candidate?.schema !== SESSION_MESSAGE_FABRIC_EVIDENCE_SCHEMA) continue;
-    assert.equal(candidate.profile, SESSION_MESSAGE_FABRIC_PROFILE);
+    assert.equal(candidate.commitmentId, "XSESSION");
+    assert.equal(candidate.profileVersion, SESSION_MESSAGE_FABRIC_PROFILE);
     assert.equal(candidate.headSha, headSha);
-    assert.equal(candidate.producerDigest, producerDigest);
-    assert.deepEqual(candidate.sourceDigests, expectedSourceDigests);
-    assert.equal(candidate.required, true);
+    assert.deepEqual(candidate.producerDigests, expectedProducerDigests);
+    assert.deepEqual(candidate.thresholds, REQUIRED_THRESHOLDS);
+    assert.equal(candidate.disposition, "required");
+    assert.equal(candidate.outcome, "passed");
+    assert.deepEqual(Object.keys(candidate.runtime).sort(), [
+      "arch",
+      "name",
+      "version",
+    ]);
+    assert.equal(candidate.runtime.name, "node");
+    assert.match(candidate.runtime.version, /^v22\./u);
+    assert.match(candidate.runtime.arch, /^(?:arm64|x64)$/u);
+    assert.deepEqual(Object.keys(candidate.source).sort(), [
+      "artifactName",
+      "jobId",
+      "runId",
+      "workflowId",
+    ]);
     assert.deepEqual(candidate.testIds, TEST_IDS);
     assert.equal(candidate.measurements.processCount, REQUIRED_PROCESS_COUNT);
     assert.equal(candidate.measurements.delivered, REQUIRED_PROCESS_COUNT);
     assert.equal(candidate.measurements.historyLeaks, 0);
+    assert.equal(candidate.measurements.duplicateDeliveries, 0);
+    assert.equal(candidate.measurements.offlineFalseDeliveries, 0);
     assert.equal(candidate.measurements.idleNotifications, 1);
+    assert.equal(candidate.measurements.crashRecoveredMessages, 1);
+    assert.equal(candidate.measurements.unknownCommitRetries, 1);
+    assert.equal(candidate.measurements.ideProjection.projectionRejects, 0);
+    assert.equal(candidate.measurements.ideProjection.vscode.endpoints, 1);
+    assert.equal(candidate.measurements.ideProjection.jetbrains.endpoints, 1);
+    assert.ok(
+      candidate.measurements.elapsedMs <=
+        REQUIRED_THRESHOLDS.maxProcessMatrixMs,
+    );
+    assert.ok(
+      candidate.measurements.recoveryMs <= REQUIRED_THRESHOLDS.maxRecoveryMs,
+    );
+    assert.ok(
+      candidate.measurements.stateBytes <= REQUIRED_THRESHOLDS.maxStateBytes,
+    );
+    assert.ok(
+      candidate.measurements.queueStateBytes <=
+        REQUIRED_THRESHOLDS.maxStateBytes,
+    );
     assert.deepEqual(candidate.measurements.receiptStatuses, [
       "delivered",
       "expired",
       "full",
       "refused",
     ]);
-    rows.push(candidate);
+    rows.push({ candidate, digest: sha256Bytes(serialized) });
   }
   assert.equal(rows.length, REQUIRED_OPERATING_SYSTEMS.length);
   assert.deepEqual(
-    rows.map((row) => row.os).sort(),
+    rows.map((row) => row.candidate.os).sort(),
     [...REQUIRED_OPERATING_SYSTEMS].sort(),
   );
+  assert.equal(
+    new Set(rows.map((row) => row.candidate.os)).size,
+    REQUIRED_OPERATING_SYSTEMS.length,
+  );
+  assert.equal(
+    new Set(rows.map((row) => row.candidate.source.artifactName)).size,
+    REQUIRED_OPERATING_SYSTEMS.length,
+  );
+  assert.equal(new Set(rows.map((row) => row.candidate.source.runId)).size, 1);
+  const aggregateSource = evidenceSource(source);
   const aggregate = {
     schema: SESSION_MESSAGE_FABRIC_AGGREGATE_SCHEMA,
-    profile: SESSION_MESSAGE_FABRIC_PROFILE,
+    commitmentId: "XSESSION",
     headSha,
-    producerDigest,
-    sourceDigests: expectedSourceDigests,
-    required: true,
+    profileVersion: SESSION_MESSAGE_FABRIC_PROFILE,
     operatingSystems: [...REQUIRED_OPERATING_SYSTEMS],
+    runtimes: Object.fromEntries(
+      rows.map(({ candidate }) => [candidate.os, candidate.runtime]),
+    ),
+    thresholds: { ...REQUIRED_THRESHOLDS },
+    measurements: {
+      requiredFragments: rows.length,
+      passedFragments: rows.length,
+      historyLeaks: 0,
+      duplicateDeliveries: 0,
+      projectionRejects: 0,
+    },
     testIds: [...TEST_IDS],
-    evidence: rows
-      .map((row) => ({
-        os: row.os,
-        runtime: row.runtime,
-        generatedAt: row.generatedAt,
-        measurements: row.measurements,
+    producerDigests: expectedProducerDigests,
+    fragmentDigests: Object.fromEntries(
+      rows.map(({ candidate, digest }) => [candidate.os, digest]),
+    ),
+    disposition: "required",
+    source: aggregateSource,
+    fragments: rows
+      .map(({ candidate, digest }) => ({
+        os: candidate.os,
+        runtime: candidate.runtime,
+        measurements: candidate.measurements,
+        source: candidate.source,
+        digest,
       }))
       .sort((left, right) => left.os.localeCompare(right.os)),
   };
@@ -564,6 +1005,14 @@ function optionValue(args, name) {
 async function main(args) {
   if (args[0] === "--worker") {
     workerProcess(path.resolve(args[1]), Number(args[2]));
+    return;
+  }
+  if (args[0] === "--crash-after-send") {
+    crashAfterDurableSend(path.resolve(args[1]));
+    return;
+  }
+  if (args[0] === "--recover-after-crash") {
+    recoveryWorker(path.resolve(args[1]));
     return;
   }
   const releaseCommit = optionValue(args, "--release-commit");
