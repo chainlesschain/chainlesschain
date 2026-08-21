@@ -28,10 +28,17 @@ import {
 import { scanSecrets } from "../src/lib/secret-scan.js";
 
 const EXACT_SHA_RE = /^[a-f0-9]{40}$/u;
+const POSITIVE_INTEGER_RE = /^[1-9][0-9]*$/u;
+export const BROWSER_EVIDENCE_WORKFLOW_PATH =
+  ".github/workflows/ide-extensions.yml";
+export const BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA =
+  "chainlesschain.browser-evidence-workflow-provenance.v1";
+export const BROWSER_EVIDENCE_JOURNEY_SUMMARY_SCHEMA =
+  "chainlesschain.browser-evidence-journey-summary.v2";
 export const BROWSER_EVIDENCE_PROFILE_VERSION =
   "browser-evidence-local-two-origin-v1";
 export const BROWSER_EVIDENCE_PRODUCER_PATHS = Object.freeze([
-  ".github/workflows/ide-extensions.yml",
+  BROWSER_EVIDENCE_WORKFLOW_PATH,
   "package-lock.json",
   "packages/cli/package.json",
   "packages/cli/src/lib/browser-evidence.js",
@@ -103,7 +110,19 @@ function parseArgs(argv) {
     options[key] = value;
     index += 1;
   }
-  for (const key of ["artifact-dir", "head-sha", "os", "artifact-name"]) {
+  for (const key of [
+    "artifact-dir",
+    "head-sha",
+    "os",
+    "artifact-name",
+    "repository",
+    "ref",
+    "workflow-ref",
+    "workflow-sha",
+    "run-id",
+    "run-attempt",
+    "job-id",
+  ]) {
     if (!options[key]) throw new Error(`--${key} is required`);
   }
   return options;
@@ -171,6 +190,90 @@ function producerDigests(root, headSha) {
       return [sourcePath, headDigest];
     }),
   );
+}
+
+function browserEvidenceArtifactName(osName, headSha, runAttempt) {
+  if (!Object.values(PLATFORM_OS).includes(osName)) {
+    throw new Error(`browser evidence artifact OS is invalid: ${osName}`);
+  }
+  if (!EXACT_SHA_RE.test(String(headSha || ""))) {
+    throw new Error("browser evidence artifact requires an exact head SHA");
+  }
+  if (!POSITIVE_INTEGER_RE.test(String(runAttempt || ""))) {
+    throw new Error(
+      "browser evidence artifact requires a positive run attempt",
+    );
+  }
+  return `browser-evidence-${osName}-${headSha}-${runAttempt}`;
+}
+
+function workflowProvenance(
+  root,
+  { headSha, repository, ref, workflowRef, workflowSha, runId, runAttempt },
+  dependencies = {},
+) {
+  const normalizedHeadSha = String(headSha || "").toLowerCase();
+  const normalizedWorkflowSha = String(workflowSha || "").toLowerCase();
+  const normalizedRepository = String(repository || "");
+  const normalizedRef = String(ref || "");
+  const normalizedWorkflowRef = String(workflowRef || "");
+  const normalizedRunId = String(runId || "");
+  const normalizedRunAttempt = String(runAttempt || "");
+  if (
+    !EXACT_SHA_RE.test(normalizedHeadSha) ||
+    !EXACT_SHA_RE.test(normalizedWorkflowSha)
+  ) {
+    throw new Error("browser evidence workflow authority requires exact SHAs");
+  }
+  if (
+    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(normalizedRepository) ||
+    !/^refs\/[^\s]+$/u.test(normalizedRef) ||
+    !POSITIVE_INTEGER_RE.test(normalizedRunId) ||
+    !POSITIVE_INTEGER_RE.test(normalizedRunAttempt)
+  ) {
+    throw new Error("browser evidence workflow authority is invalid");
+  }
+  const workflowRefPrefix = `${normalizedRepository}/${BROWSER_EVIDENCE_WORKFLOW_PATH}@`;
+  const workflowRefRevision = normalizedWorkflowRef.slice(
+    workflowRefPrefix.length,
+  );
+  if (
+    !normalizedWorkflowRef.startsWith(workflowRefPrefix) ||
+    !(
+      /^refs\/[^\s]+$/u.test(workflowRefRevision) ||
+      EXACT_SHA_RE.test(workflowRefRevision)
+    )
+  ) {
+    throw new Error("browser evidence workflow ref authority is invalid");
+  }
+  const readGitBlob =
+    dependencies.readGitBlob ||
+    ((commitSha, sourcePath) =>
+      gitBytes(root, ["cat-file", "blob", `${commitSha}:${sourcePath}`]));
+  const executedWorkflowBytes = Buffer.from(
+    readGitBlob(normalizedWorkflowSha, BROWSER_EVIDENCE_WORKFLOW_PATH),
+  );
+  const exactHeadWorkflowBytes = Buffer.from(
+    readGitBlob(normalizedHeadSha, BROWSER_EVIDENCE_WORKFLOW_PATH),
+  );
+  if (!executedWorkflowBytes.equals(exactHeadWorkflowBytes)) {
+    throw new Error(
+      "executed browser evidence workflow bytes differ from exact head",
+    );
+  }
+  return Object.freeze({
+    schema: BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
+    repository: normalizedRepository,
+    ref: normalizedRef,
+    workflowRef: normalizedWorkflowRef,
+    workflowPath: BROWSER_EVIDENCE_WORKFLOW_PATH,
+    executedWorkflowSha: normalizedWorkflowSha,
+    executedWorkflowDigest: browserEvidenceDigest(executedWorkflowBytes),
+    exactHeadWorkflowSha: normalizedHeadSha,
+    exactHeadWorkflowDigest: browserEvidenceDigest(exactHeadWorkflowBytes),
+    runId: normalizedRunId,
+    runAttempt: normalizedRunAttempt,
+  });
 }
 
 function freePort() {
@@ -434,6 +537,34 @@ export async function runBrowserEvidenceJourney(options) {
   }
   const headSha = exactHead(root, options["head-sha"]);
   const exactProducerDigests = producerDigests(root, headSha);
+  const workflow = workflowProvenance(root, {
+    headSha,
+    repository: options.repository,
+    ref: options.ref,
+    workflowRef: options["workflow-ref"],
+    workflowSha: options["workflow-sha"],
+    runId: options["run-id"],
+    runAttempt: options["run-attempt"],
+  });
+  if (
+    exactProducerDigests[BROWSER_EVIDENCE_WORKFLOW_PATH] !==
+    workflow.exactHeadWorkflowDigest
+  ) {
+    throw new Error("browser evidence workflow producer digest mismatch");
+  }
+  const expectedArtifactName = browserEvidenceArtifactName(
+    options.os,
+    headSha,
+    workflow.runAttempt,
+  );
+  if (
+    options["artifact-name"] !== expectedArtifactName ||
+    options["job-id"] !== `browser-evidence-producer-${options.os}`
+  ) {
+    throw new Error(
+      "browser evidence producer job/artifact authority mismatch",
+    );
+  }
   const baseSha = resolveBaseSha(root, headSha, options["base-sha"]);
   const artifactDir = path.resolve(root, options["artifact-dir"]);
   fs.mkdirSync(artifactDir, { recursive: true });
@@ -784,9 +915,10 @@ export async function runBrowserEvidenceJourney(options) {
       queryValueRedactions:
         result.evidence.observations.page.queryValueRedactions,
       secretScanHits: 0,
+      workflowProvenanceDigest: browserEvidenceDigest(workflow),
     };
     const summary = {
-      schema: "chainlesschain.browser-evidence-journey-summary.v1",
+      schema: BROWSER_EVIDENCE_JOURNEY_SUMMARY_SCHEMA,
       outcome: "passed",
       headSha,
       baseSha,
@@ -798,6 +930,7 @@ export async function runBrowserEvidenceJourney(options) {
       evidenceDigests,
       measurements,
       tests: BROWSER_EVIDENCE_TEST_IDS,
+      workflow,
     };
     const summaryPath = path.join(
       artifactDir,
@@ -828,10 +961,10 @@ export async function runBrowserEvidenceJourney(options) {
       disposition: "required",
       outcome: "passed",
       source: {
-        workflowId: options["workflow-id"] || "ide-extensions",
-        runId: options["run-id"] || "local",
-        jobId: options["job-id"] || `browser-evidence-${options.os}`,
-        artifactName: options["artifact-name"],
+        workflowId: workflow.workflowRef,
+        runId: workflow.runId,
+        jobId: options["job-id"],
+        artifactName: expectedArtifactName,
       },
     });
     writeExclusiveJson(
@@ -893,4 +1026,10 @@ if (isDirect) {
     });
 }
 
-export { parseArgs, producerDigests, scanArtifactJson };
+export {
+  browserEvidenceArtifactName,
+  parseArgs,
+  producerDigests,
+  scanArtifactJson,
+  workflowProvenance,
+};

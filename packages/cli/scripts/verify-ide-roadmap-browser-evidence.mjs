@@ -16,11 +16,17 @@ import { scanSecrets } from "../src/lib/secret-scan.js";
 import {
   BROWSER_EVIDENCE_PRODUCER_PATHS,
   BROWSER_EVIDENCE_PROFILE_VERSION,
+  BROWSER_EVIDENCE_JOURNEY_SUMMARY_SCHEMA,
   BROWSER_EVIDENCE_TEST_IDS,
   BROWSER_EVIDENCE_THRESHOLDS,
+  BROWSER_EVIDENCE_WORKFLOW_PATH,
+  browserEvidenceArtifactName,
+  workflowProvenance,
 } from "./ide-roadmap-browser-evidence.mjs";
 
 const REQUIRED_OS = Object.freeze(["linux", "macos", "windows"]);
+const BROWSER_EVIDENCE_AGGREGATE_SCHEMA =
+  "chainlesschain.browser-evidence-aggregate.v2";
 const EXACT_SHA_RE = /^[a-f0-9]{40}$/u;
 const KNOWN_JOURNEY_SECRETS = Object.freeze([
   "opaque-login-password",
@@ -64,7 +70,10 @@ function parseArgs(argv) {
     "output",
     "run-id",
     "run-attempt",
+    "repository",
+    "ref",
     "workflow-ref",
+    "workflow-sha",
   ]) {
     if (!options[key]) throw new Error(`--${key} is required`);
   }
@@ -224,23 +233,22 @@ export function verifyBrowserEvidenceAggregate(options) {
   const headSha = String(options["head-sha"] || "").toLowerCase();
   const trustedRunId = String(options["run-id"] || "");
   const trustedRunAttempt = String(options["run-attempt"] || "");
+  const trustedRepository = String(options.repository || "");
+  const trustedRef = String(options.ref || "");
   const trustedWorkflowRef = String(options["workflow-ref"] || "");
+  const trustedWorkflowSha = String(options["workflow-sha"] || "");
   if (!EXACT_SHA_RE.test(headSha)) {
     throw new Error("browser evidence aggregate requires an exact head SHA");
   }
-  if (
-    !/^[1-9][0-9]*$/u.test(trustedRunId) ||
-    !/^[1-9][0-9]*$/u.test(trustedRunAttempt)
-  ) {
-    throw new Error("browser evidence aggregate run authority is invalid");
-  }
-  if (
-    !/^[^/\s]+\/[^/\s]+\/\.github\/workflows\/ide-extensions\.yml@(?:refs\/[^\s]+|[a-f0-9]{40})$/u.test(
-      trustedWorkflowRef,
-    )
-  ) {
-    throw new Error("browser evidence aggregate workflow authority is invalid");
-  }
+  const trustedWorkflow = workflowProvenance(root, {
+    headSha,
+    repository: trustedRepository,
+    ref: trustedRef,
+    workflowRef: trustedWorkflowRef,
+    workflowSha: trustedWorkflowSha,
+    runId: trustedRunId,
+    runAttempt: trustedRunAttempt,
+  });
   assertExactHeadSources(root, headSha);
   const inputDir = path.resolve(root, options["input-dir"]);
   const files = regularFiles(inputDir);
@@ -337,31 +345,36 @@ export function verifyBrowserEvidenceAggregate(options) {
       }
     }
     const producerDir = path.dirname(filePath);
-    const artifactNamePattern = new RegExp(
-      `^browser-evidence-${fragment.os}-([1-9][0-9]*)$`,
-      "u",
-    );
-    const artifactNameMatch = artifactNamePattern.exec(
-      fragment.source?.artifactName || "",
+    const expectedArtifactName = browserEvidenceArtifactName(
+      fragment.os,
+      headSha,
+      trustedRunAttempt,
     );
     if (
       fragment.source?.workflowId !== trustedWorkflowRef ||
-      !fragment.source?.runId ||
+      fragment.source?.runId !== trustedRunId ||
       fragment.source?.jobId !== `browser-evidence-producer-${fragment.os}` ||
       path.basename(producerDir) !== fragment.source?.artifactName ||
-      !artifactNameMatch
+      fragment.source?.artifactName !== expectedArtifactName
     ) {
       throw new Error(`${fragment.os} producer source authority mismatch`);
     }
     runIds.add(fragment.source.runId);
-    runAttempts.add(artifactNameMatch[1]);
+    runAttempts.add(trustedRunAttempt);
     const summary = readJson(
       path.join(producerDir, "browser-evidence-journey-summary.json"),
     );
     if (
+      summary.schema !== BROWSER_EVIDENCE_JOURNEY_SUMMARY_SCHEMA ||
       summary.outcome !== "passed" ||
       summary.headSha !== headSha ||
-      summary.os !== fragment.os
+      summary.os !== fragment.os ||
+      canonicalBrowserEvidenceJson(summary.workflow) !==
+        canonicalBrowserEvidenceJson(trustedWorkflow) ||
+      fragment.measurements?.workflowProvenanceDigest !==
+        browserEvidenceDigest(trustedWorkflow) ||
+      fragment.producerDigests?.[BROWSER_EVIDENCE_WORKFLOW_PATH] !==
+        trustedWorkflow.exactHeadWorkflowDigest
     ) {
       throw new Error(`${fragment.os} journey summary authority mismatch`);
     }
@@ -544,7 +557,7 @@ export function verifyBrowserEvidenceAggregate(options) {
     );
   }
   const aggregate = {
-    schema: "chainlesschain.browser-evidence-aggregate.v1",
+    schema: BROWSER_EVIDENCE_AGGREGATE_SCHEMA,
     outcome: "passed",
     commitmentId: "BROWSER-EVIDENCE",
     headSha,
@@ -552,7 +565,7 @@ export function verifyBrowserEvidenceAggregate(options) {
     fragmentDigests,
     envelopeDigests,
     artifactNames: [...artifactNames].sort(),
-    source: { runId: trustedRunId, runAttempt: trustedRunAttempt },
+    source: trustedWorkflow,
     secretScan: { hits: 0, files: files.length },
   };
   const output = path.resolve(root, options.output);

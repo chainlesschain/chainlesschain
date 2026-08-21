@@ -154,6 +154,9 @@ jobs:
         with:
           ref: ${{ env.IDE_RELEASE_COMMIT }}
           fetch-depth: 0
+      - name: Fetch executed browser workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -184,21 +187,25 @@ jobs:
         if: runner.os != 'Linux'
         run: npm exec --workspace packages/cli -- playwright install chromium
       - name: Run real local two-origin browser evidence journey
+        shell: bash
         run: >-
           node packages/cli/scripts/ide-roadmap-browser-evidence.mjs
           --artifact-dir build/reports/browser-evidence/${{ matrix.slug }}
           --head-sha ${{ env.IDE_RELEASE_COMMIT }}
           --base-sha ${{ github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
           --os ${{ matrix.slug }}
-          --artifact-name browser-evidence-${{ matrix.slug }}-${{ github.run_attempt }}
-          --workflow-id "$GITHUB_WORKFLOW_REF"
-          --run-id ${{ github.run_id }}
-          --run-attempt ${{ github.run_attempt }}
+          --artifact-name browser-evidence-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          --repository "$GITHUB_REPOSITORY"
+          --ref "$GITHUB_REF"
+          --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
           --job-id browser-evidence-producer-${{ matrix.slug }}
       - name: Upload exact-head browser evidence fragment
         uses: actions/upload-artifact@v6
         with:
-          name: browser-evidence-${{ matrix.slug }}-${{ github.run_attempt }}
+          name: browser-evidence-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}
           path: build/reports/browser-evidence/${{ matrix.slug }}/
           if-no-files-found: error
 
@@ -212,22 +219,28 @@ jobs:
         with:
           ref: ${{ env.IDE_RELEASE_COMMIT }}
           fetch-depth: 0
+      - name: Fetch executed browser workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
       - name: Download exact-run browser evidence producers
         uses: actions/download-artifact@v6
         with:
-          pattern: browser-evidence-*-${{ github.run_attempt }}
+          pattern: browser-evidence-*-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/browser-evidence-producers
       - name: Rehash producer source and artifact evidence
         run: >-
           node packages/cli/scripts/verify-ide-roadmap-browser-evidence.mjs
           --input-dir "${{ runner.temp }}/browser-evidence-producers"
           --head-sha ${{ env.IDE_RELEASE_COMMIT }}
-          --run-id ${{ github.run_id }}
-          --run-attempt ${{ github.run_attempt }}
+          --run-id "$GITHUB_RUN_ID"
+          --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --repository "$GITHUB_REPOSITORY"
+          --ref "$GITHUB_REF"
           --workflow-ref "$GITHUB_WORKFLOW_REF"
+          --workflow-sha "$GITHUB_WORKFLOW_SHA"
           --output build/reports/browser-evidence-aggregate.json
       - name: Upload required browser evidence aggregate
         uses: actions/upload-artifact@v6

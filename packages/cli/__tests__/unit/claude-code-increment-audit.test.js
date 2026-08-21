@@ -82,6 +82,14 @@ import {
   SOURCE_FILES as XSESSION_PRODUCER_PATHS,
   TEST_IDS as XSESSION_TEST_IDS,
 } from "../../scripts/verify-session-message-fabric.mjs";
+import {
+  SOURCE_RUN_SCHEMA,
+  verifySourceRuns,
+} from "../../scripts/verify-claude-code-increment-source-runs.mjs";
+import {
+  createSourceTopology,
+  writeJson,
+} from "./claude-code-increment-source-fixture.js";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const roots = [];
@@ -212,9 +220,15 @@ function producerDigest(headSha, producerPath = "package.json") {
   return value;
 }
 
-function writeJson(filePath, value) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+function producerBytes(headSha, producerPath) {
+  return execFileSync(
+    "git",
+    ["cat-file", "blob", `${headSha}:${producerPath}`],
+    {
+      cwd: REPOSITORY_ROOT,
+      encoding: null,
+    },
+  );
 }
 
 function fragment({
@@ -224,6 +238,7 @@ function fragment({
   profile = canonicalContract().lockedProfiles[commitmentId],
   disposition = "required",
   outcome = "passed",
+  source,
   overrides = {},
 }) {
   return {
@@ -250,21 +265,28 @@ function fragment({
       ]),
     ),
     disposition,
-    source: {
-      workflowId:
-        "chainlesschain/chainlesschain/.github/workflows/test.yml@refs/heads/main",
-      runId: "32476551305",
-      jobId: `audit-${operatingSystem}`,
-      artifactName: `${commitmentId.toLowerCase()}-${operatingSystem}-evidence-1`,
-    },
+    source,
     outcome,
     ...overrides,
   };
 }
 
-function buildFixture({ mutate, omit, advisories = [] } = {}) {
+function refreshSourceAttestation(fixture) {
+  const attestation = verifySourceRuns({
+    plan: fixture.sourceTopology.plan,
+    fragmentsDirectory: fixture.evidenceDirectory,
+  });
+  writeJson(fixture.sourceRunsPath, attestation);
+  return attestation;
+}
+
+function buildFixture({
+  mutate,
+  omit,
+  advisories = [],
+  refreshAfterMutation = false,
+} = {}) {
   const root = tempDirectory("evidence");
-  const evidenceDirectory = path.join(root, "evidence");
   const outputRoot = path.join(root, "output");
   const headSha = currentHead();
   const contract = structuredClone(canonicalContract());
@@ -273,27 +295,51 @@ function buildFixture({ mutate, omit, advisories = [] } = {}) {
   }
   const contractPath = path.join(root, "contract.json");
   writeJson(contractPath, contract);
-  for (const commitmentId of REQUIRED_COMMITMENTS) {
-    for (const operatingSystem of REQUIRED_OPERATING_SYSTEMS) {
-      const cell = `${commitmentId}/${operatingSystem}`;
-      if (omit === cell) continue;
-      let value = fragment({
+  const sourceTopology = createSourceTopology({
+    root,
+    headSha,
+    browserWorkflowDigest: producerDigest(
+      headSha,
+      ".github/workflows/ide-extensions.yml",
+    ),
+    aggregatorWorkflowBytes: producerBytes(
+      headSha,
+      ".github/workflows/claude-code-increment-audit.yml",
+    ),
+    fragmentFactory: ({
+      commitmentId,
+      headSha: fragmentHead,
+      operatingSystem,
+      source,
+    }) =>
+      fragment({
         commitmentId,
-        headSha,
+        headSha: fragmentHead,
         operatingSystem,
         profile: contract.lockedProfiles[commitmentId],
-      });
-      if (mutate?.cell === cell) value = mutate.apply(value);
-      writeJson(
-        path.join(evidenceDirectory, `${commitmentId}-${operatingSystem}.json`),
-        value,
-      );
-    }
-  }
+        source,
+      }),
+  });
+  const evidenceDirectory = sourceTopology.fragmentsDirectory;
+  const sourceRunsPath = path.join(root, "source-runs.json");
+  const fixture = {
+    contract,
+    contractPath,
+    evidenceDirectory,
+    headSha,
+    outputRoot,
+    root,
+    sourceRunsPath,
+    sourceTopology,
+  };
   for (let index = 0; index < advisories.length; index += 1) {
     const advisory = advisories[index];
+    const requiredPath = sourceTopology.fragmentPaths.get(
+      `${advisory.commitmentId}/${advisory.operatingSystem}`,
+    );
+    const required = JSON.parse(fs.readFileSync(requiredPath, "utf8"));
     writeJson(
-      path.join(evidenceDirectory, `advisory-${index}.json`),
+      path.join(path.dirname(requiredPath), `advisory-${index}.json`),
       fragment({
         commitmentId: advisory.commitmentId,
         headSha,
@@ -301,6 +347,7 @@ function buildFixture({ mutate, omit, advisories = [] } = {}) {
         profile: contract.lockedProfiles[advisory.commitmentId],
         disposition: "advisory",
         outcome: advisory.outcome || "passed",
+        source: required.source,
         overrides: {
           profileVersion:
             advisory.profileVersion ||
@@ -310,19 +357,23 @@ function buildFixture({ mutate, omit, advisories = [] } = {}) {
       }),
     );
   }
-  return {
-    contract,
-    contractPath,
-    evidenceDirectory,
-    headSha,
-    outputRoot,
-    root,
-  };
+  refreshSourceAttestation(fixture);
+  if (omit) fs.rmSync(sourceTopology.fragmentPaths.get(omit));
+  if (mutate) {
+    const filePath = sourceTopology.fragmentPaths.get(mutate.cell);
+    writeJson(
+      filePath,
+      mutate.apply(JSON.parse(fs.readFileSync(filePath, "utf8"))),
+    );
+  }
+  if (refreshAfterMutation) refreshSourceAttestation(fixture);
+  return fixture;
 }
 
 function aggregateFixture(fixture, options = {}) {
   return aggregateAuditFragments({
     fragmentsDirectory: fixture.evidenceDirectory,
+    sourceRunsPath: fixture.sourceRunsPath,
     releaseCommit: fixture.headSha,
     outputRoot: fixture.outputRoot,
     repositoryRoot: REPOSITORY_ROOT,
@@ -495,6 +546,11 @@ describe("Claude Code increment unified audit", () => {
       artifactName: artifactName(fixture.headSha),
       headSha: fixture.headSha,
       result: "passed",
+      sourceRuns: {
+        file: "source-runs.json",
+        schema: SOURCE_RUN_SCHEMA,
+        sha256: expect.stringMatching(/^sha256:/u),
+      },
       summary: {
         requiredCommitmentCount: 12,
         requiredRowCount: 36,
@@ -529,6 +585,60 @@ describe("Claude Code increment unified audit", () => {
     });
     expect(verified.manifestDigest).toBe(aggregate.manifestDigest);
     expect(verified.manifest.summary.requiredRowCount).toBe(36);
+    expect(
+      fs.readFileSync(
+        path.join(aggregate.artifactDirectory, "source-runs.json"),
+      ),
+    ).toEqual(fs.readFileSync(fixture.sourceRunsPath));
+  });
+
+  it("rejects a re-signed source-run attestation that changes row provenance", () => {
+    const fixture = buildFixture();
+    const aggregate = aggregateFixture(fixture);
+    const embeddedPath = path.join(
+      aggregate.artifactDirectory,
+      "source-runs.json",
+    );
+    const sourceRuns = JSON.parse(fs.readFileSync(embeddedPath, "utf8"));
+    sourceRuns.cells[0].artifactId = "999999999";
+    writeJson(embeddedPath, sourceRuns);
+    rewriteManifest(aggregate.artifactDirectory, (manifest) => {
+      manifest.sourceRuns.sha256 = sha256(fs.readFileSync(embeddedPath));
+    });
+
+    expect(() =>
+      verifyAuditArtifact({
+        artifactDirectory: aggregate.artifactDirectory,
+        releaseCommit: fixture.headSha,
+        repositoryRoot: REPOSITORY_ROOT,
+      }),
+    ).toThrow();
+
+    const browserFixture = buildFixture();
+    const browserAggregate = aggregateFixture(browserFixture);
+    const browserSourcePath = path.join(
+      browserAggregate.artifactDirectory,
+      "source-runs.json",
+    );
+    const browserSourceRuns = JSON.parse(
+      fs.readFileSync(browserSourcePath, "utf8"),
+    );
+    for (const cell of browserSourceRuns.cells.filter(
+      (candidate) => candidate.commitmentId === "BROWSER-EVIDENCE",
+    )) {
+      cell.workflowProvenance.executedWorkflowSha = "c".repeat(40);
+    }
+    writeJson(browserSourcePath, browserSourceRuns);
+    rewriteManifest(browserAggregate.artifactDirectory, (manifest) => {
+      manifest.sourceRuns.sha256 = sha256(fs.readFileSync(browserSourcePath));
+    });
+    expect(() =>
+      verifyAuditArtifact({
+        artifactDirectory: browserAggregate.artifactDirectory,
+        releaseCommit: browserFixture.headSha,
+        repositoryRoot: REPOSITORY_ROOT,
+      }),
+    ).toThrow(/workflow provenance digest/u);
   });
 
   it("rejects stale-head and failed required fragments", () => {
@@ -561,9 +671,11 @@ describe("Claude Code increment unified audit", () => {
 
   it("rejects duplicate cells, local provenance, and producer digest drift", () => {
     const duplicate = buildFixture();
+    const duplicateSource =
+      duplicate.sourceTopology.fragmentPaths.get("RC-DEFAULT/linux");
     fs.copyFileSync(
-      path.join(duplicate.evidenceDirectory, "RC-DEFAULT-linux.json"),
-      path.join(duplicate.evidenceDirectory, "duplicate.json"),
+      duplicateSource,
+      path.join(path.dirname(duplicateSource), "duplicate.json"),
     );
     expect(() => aggregateFixture(duplicate)).toThrow(
       /duplicate required audit cell/u,
@@ -588,6 +700,7 @@ describe("Claude Code increment unified audit", () => {
           producerDigests: { "package.json": `sha256:${"0".repeat(64)}` },
         }),
       },
+      refreshAfterMutation: true,
     });
     expect(() => aggregateFixture(drift)).toThrow(/producer digest drift/u);
   });
@@ -601,6 +714,7 @@ describe("Claude Code increment unified audit", () => {
           thresholds: { ...value.thresholds, requiredSampleCount: 9_999 },
         }),
       },
+      refreshAfterMutation: true,
     });
     expect(() => aggregateFixture(drift)).toThrow(
       /thresholds differ across operating systems/u,

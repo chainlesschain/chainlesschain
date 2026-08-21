@@ -3,8 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  BROWSER_EVIDENCE_WORKFLOW_PATH,
+  BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
+  browserEvidenceArtifactName,
   parseArgs as parseProducerArgs,
   scanArtifactJson,
+  workflowProvenance,
 } from "../../scripts/ide-roadmap-browser-evidence.mjs";
 import {
   parseArgs as parseAggregateArgs,
@@ -12,6 +16,30 @@ import {
 } from "../../scripts/verify-ide-roadmap-browser-evidence.mjs";
 
 const roots = [];
+const HEAD_SHA = "a".repeat(40);
+const WORKFLOW_SHA = "b".repeat(40);
+const REPOSITORY = "chainlesschain/chainlesschain";
+const WORKFLOW_REF = `${REPOSITORY}/${BROWSER_EVIDENCE_WORKFLOW_PATH}@refs/heads/main`;
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
+
+function producerAuthorityArgs() {
+  return [
+    "--repository",
+    REPOSITORY,
+    "--ref",
+    "refs/heads/main",
+    "--workflow-ref",
+    WORKFLOW_REF,
+    "--workflow-sha",
+    WORKFLOW_SHA,
+    "--run-id",
+    "123",
+    "--run-attempt",
+    "2",
+    "--job-id",
+    "browser-evidence-producer-linux",
+  ];
+}
 
 function temporaryRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-browser-script-"));
@@ -32,20 +60,142 @@ describe("browser evidence producer arguments and secret gate", () => {
         "--artifact-dir",
         "build/browser",
         "--head-sha",
-        "a".repeat(40),
+        HEAD_SHA,
         "--os",
         "linux",
         "--artifact-name",
-        "browser-evidence-linux-1",
+        `browser-evidence-linux-${HEAD_SHA}-2`,
+        ...producerAuthorityArgs(),
       ]),
     ).toMatchObject({
       "artifact-dir": "build/browser",
-      "head-sha": "a".repeat(40),
+      "head-sha": HEAD_SHA,
       os: "linux",
-      "artifact-name": "browser-evidence-linux-1",
+      "artifact-name": `browser-evidence-linux-${HEAD_SHA}-2`,
+      repository: REPOSITORY,
+      ref: "refs/heads/main",
+      "workflow-ref": WORKFLOW_REF,
+      "workflow-sha": WORKFLOW_SHA,
+      "run-id": "123",
+      "run-attempt": "2",
+      "job-id": "browser-evidence-producer-linux",
     });
     expect(() => parseProducerArgs(["--os", "linux"])).toThrow(
       /artifact-dir is required/u,
+    );
+  });
+
+  it("binds executed workflow bytes to exact head and run provenance", () => {
+    const calls = [];
+    const provenance = workflowProvenance(
+      REPOSITORY_ROOT,
+      {
+        headSha: HEAD_SHA,
+        repository: REPOSITORY,
+        ref: "refs/pull/123/merge",
+        workflowRef: WORKFLOW_REF,
+        workflowSha: WORKFLOW_SHA,
+        runId: "123",
+        runAttempt: "2",
+      },
+      {
+        readGitBlob: (commitSha, sourcePath) => {
+          calls.push([commitSha, sourcePath]);
+          return Buffer.from("exact workflow bytes");
+        },
+      },
+    );
+    expect(provenance).toMatchObject({
+      schema: BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
+      repository: REPOSITORY,
+      ref: "refs/pull/123/merge",
+      workflowRef: WORKFLOW_REF,
+      workflowPath: BROWSER_EVIDENCE_WORKFLOW_PATH,
+      executedWorkflowSha: WORKFLOW_SHA,
+      exactHeadWorkflowSha: HEAD_SHA,
+      runId: "123",
+      runAttempt: "2",
+    });
+    expect(provenance.executedWorkflowDigest).toBe(
+      provenance.exactHeadWorkflowDigest,
+    );
+    expect(calls).toEqual([
+      [WORKFLOW_SHA, BROWSER_EVIDENCE_WORKFLOW_PATH],
+      [HEAD_SHA, BROWSER_EVIDENCE_WORKFLOW_PATH],
+    ]);
+
+    expect(() =>
+      workflowProvenance(
+        REPOSITORY_ROOT,
+        {
+          headSha: HEAD_SHA,
+          repository: REPOSITORY,
+          ref: "refs/heads/main",
+          workflowRef: WORKFLOW_REF,
+          workflowSha: WORKFLOW_SHA,
+          runId: "123",
+          runAttempt: "2",
+        },
+        {
+          readGitBlob: (commitSha) =>
+            Buffer.from(commitSha === HEAD_SHA ? "head" : "executed"),
+        },
+      ),
+    ).toThrow(/workflow bytes differ from exact head/u);
+    expect(() =>
+      workflowProvenance(
+        REPOSITORY_ROOT,
+        {
+          headSha: HEAD_SHA,
+          repository: "attacker/repository",
+          ref: "refs/heads/main",
+          workflowRef: WORKFLOW_REF,
+          workflowSha: WORKFLOW_SHA,
+          runId: "123",
+          runAttempt: "2",
+        },
+        { readGitBlob: () => Buffer.from("same") },
+      ),
+    ).toThrow(/workflow ref authority/u);
+  });
+
+  it("uses an exact OS/head/attempt artifact identity", () => {
+    expect(browserEvidenceArtifactName("linux", HEAD_SHA, "2")).toBe(
+      `browser-evidence-linux-${HEAD_SHA}-2`,
+    );
+    expect(() => browserEvidenceArtifactName("linux", "main", "2")).toThrow(
+      /exact head SHA/u,
+    );
+    expect(() => browserEvidenceArtifactName("linux", HEAD_SHA, "0")).toThrow(
+      /positive run attempt/u,
+    );
+  });
+
+  it("passes workflow SHA and exact artifact identity in Actions", () => {
+    const workflow = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, ".github/workflows/ide-extensions.yml"),
+      "utf8",
+    );
+    const browserJobs = workflow.slice(
+      workflow.indexOf("  browser-evidence-producer:"),
+      workflow.indexOf("  vscode-package:"),
+    );
+    expect(
+      browserJobs.match(/--workflow-sha "\$GITHUB_WORKFLOW_SHA"/gu),
+    ).toHaveLength(2);
+    expect(
+      browserJobs.match(
+        /git fetch --no-tags --depth=1 origin "\$GITHUB_WORKFLOW_SHA"/gu,
+      ),
+    ).toHaveLength(2);
+    expect(browserJobs).toMatch(
+      /- name: Run real local two-origin browser evidence journey\s+shell: bash\s+run:/u,
+    );
+    expect(workflow).toContain(
+      "browser-evidence-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}",
+    );
+    expect(workflow).toContain(
+      "pattern: browser-evidence-*-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}",
     );
   });
 
@@ -77,23 +227,31 @@ describe("browser evidence aggregate input discovery", () => {
         "--input-dir",
         "build/producers",
         "--head-sha",
-        "b".repeat(40),
+        HEAD_SHA,
         "--run-id",
         "123",
         "--run-attempt",
         "2",
+        "--repository",
+        REPOSITORY,
+        "--ref",
+        "refs/pull/123/merge",
         "--workflow-ref",
-        "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/heads/main",
+        WORKFLOW_REF,
+        "--workflow-sha",
+        WORKFLOW_SHA,
         "--output",
         "build/aggregate.json",
       ]),
     ).toEqual({
       "input-dir": "build/producers",
-      "head-sha": "b".repeat(40),
+      "head-sha": HEAD_SHA,
       "run-id": "123",
       "run-attempt": "2",
-      "workflow-ref":
-        "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/heads/main",
+      repository: REPOSITORY,
+      ref: "refs/pull/123/merge",
+      "workflow-ref": WORKFLOW_REF,
+      "workflow-sha": WORKFLOW_SHA,
       output: "build/aggregate.json",
     });
     const root = temporaryRoot();

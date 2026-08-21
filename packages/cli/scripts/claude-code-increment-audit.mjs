@@ -5,6 +5,12 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  META_WORKFLOW_PATH,
+  SOURCE_RUN_SCHEMA,
+  assertAttestationMatchesFragments,
+  validateSourceRunAttestation,
+} from "./verify-claude-code-increment-source-runs.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = path.resolve(SCRIPT_DIR, "../../..");
@@ -20,7 +26,7 @@ const CONTRACT_SCHEMA =
 const FRAGMENT_SCHEMA =
   "chainlesschain.claude-code-increment-audit-fragment.v1";
 const MANIFEST_SCHEMA =
-  "chainlesschain.claude-code-increment-audit-manifest.v1";
+  "chainlesschain.claude-code-increment-audit-manifest.v2";
 const SHA_RE = /^[a-f0-9]{40}$/u;
 const DIGEST_RE = /^sha256:[a-f0-9]{64}$/u;
 const TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,299}$/u;
@@ -88,6 +94,7 @@ const MANIFEST_KEYS = Object.freeze([
   "requiredRows",
   "result",
   "schema",
+  "sourceRuns",
   "summary",
 ]);
 const ROW_KEYS = Object.freeze([
@@ -822,6 +829,7 @@ function artifactName(releaseCommit) {
 
 function aggregateAuditFragments({
   fragmentsDirectory,
+  sourceRunsPath,
   releaseCommit,
   outputRoot,
   contractPath = DEFAULT_CONTRACT_PATH,
@@ -835,6 +843,26 @@ function aggregateAuditFragments({
   );
   const contractRecord = loadContract(contractPath);
   const fragments = discoverFragments(fragmentsDirectory, contractRecord.value);
+  const sourceRunsRecord = readJsonBytes(
+    path.resolve(sourceRunsPath),
+    "source run attestation",
+  );
+  validateSourceRunAttestation(sourceRunsRecord.value);
+  if (sourceRunsRecord.value.releaseCommit !== normalizedCommit) {
+    fail("source run attestation is bound to a stale release commit");
+  }
+  if (
+    sourceRunsRecord.value.aggregatorWorkflowDigest !==
+    sha256(
+      readProducerAtCommit(
+        repositoryRoot,
+        normalizedCommit,
+        META_WORKFLOW_PATH,
+      ),
+    )
+  ) {
+    fail("source run attestation aggregator workflow digest is stale");
+  }
   const producerCache = new Map();
   for (const record of fragments) {
     verifyProducerDigests(record.value, {
@@ -848,6 +876,7 @@ function aggregateAuditFragments({
     contractRecord.value,
     normalizedCommit,
   );
+  assertAttestationMatchesFragments(sourceRunsRecord.value, fragments);
 
   const resolvedOutputRoot = path.resolve(outputRoot);
   const resolvedFragmentsDirectory = path.resolve(fragmentsDirectory);
@@ -877,6 +906,10 @@ function aggregateAuditFragments({
       path.join(stageDirectory, "contract.json"),
       contractRecord.bytes,
     );
+    fs.writeFileSync(
+      path.join(stageDirectory, "source-runs.json"),
+      sourceRunsRecord.bytes,
+    );
     const requiredRows = writeRows(stageDirectory, required, "required");
     const advisoryRows = writeRows(stageDirectory, advisory, "advisory");
     const manifest = {
@@ -888,6 +921,11 @@ function aggregateAuditFragments({
         schema: contractRecord.value.schema,
         contractVersion: contractRecord.value.contractVersion,
         sha256: contractRecord.digest,
+      },
+      sourceRuns: {
+        file: "source-runs.json",
+        schema: SOURCE_RUN_SCHEMA,
+        sha256: sha256(sourceRunsRecord.bytes),
       },
       requiredCommitments: [...contractRecord.value.requiredCommitments],
       requiredOperatingSystems: [
@@ -1086,6 +1124,46 @@ function verifyAuditArtifact({
   ) {
     fail("audit manifest contract binding is invalid");
   }
+  assertExactKeys(
+    manifest.sourceRuns,
+    ["file", "schema", "sha256"],
+    "audit manifest source runs",
+  );
+  if (
+    manifest.sourceRuns.file !== "source-runs.json" ||
+    manifest.sourceRuns.schema !== SOURCE_RUN_SCHEMA ||
+    !DIGEST_RE.test(manifest.sourceRuns.sha256 || "")
+  ) {
+    fail("audit manifest source-run binding is invalid");
+  }
+  const sourceRunsPath = resolveArtifactFile(
+    directory,
+    manifest.sourceRuns.file,
+    "audit artifact source run attestation",
+  );
+  const sourceRunsRecord = readJsonBytes(
+    sourceRunsPath,
+    "audit artifact source run attestation",
+  );
+  if (sha256(sourceRunsRecord.bytes) !== manifest.sourceRuns.sha256) {
+    fail("audit artifact source run attestation digest drift");
+  }
+  validateSourceRunAttestation(sourceRunsRecord.value);
+  if (sourceRunsRecord.value.releaseCommit !== normalizedCommit) {
+    fail("audit artifact source run attestation is stale");
+  }
+  if (
+    sourceRunsRecord.value.aggregatorWorkflowDigest !==
+    sha256(
+      readProducerAtCommit(
+        repositoryRoot,
+        normalizedCommit,
+        META_WORKFLOW_PATH,
+      ),
+    )
+  ) {
+    fail("audit artifact aggregator workflow digest is stale");
+  }
   if (
     !deepEqual(
       manifest.requiredCommitments,
@@ -1145,6 +1223,10 @@ function verifyAuditArtifact({
     expectedContract.value,
     normalizedCommit,
   );
+  assertAttestationMatchesFragments(sourceRunsRecord.value, [
+    ...requiredRecords,
+    ...advisoryRecords,
+  ]);
   const expectedRequiredRows = coverage.required.map((record) =>
     rowFromFragment(record.value, record.relativeFile, record.digest),
   );
@@ -1208,15 +1290,17 @@ async function main() {
   if (command === "aggregate") {
     if (
       !options.fragmentsDir ||
+      !options.sourceRuns ||
       !options.releaseCommit ||
       !options.outputRoot
     ) {
       fail(
-        "aggregate requires --fragments-dir, --release-commit, and --output-root",
+        "aggregate requires --fragments-dir, --source-runs, --release-commit, and --output-root",
       );
     }
     const result = aggregateAuditFragments({
       fragmentsDirectory: options.fragmentsDir,
+      sourceRunsPath: options.sourceRuns,
       releaseCommit: options.releaseCommit,
       outputRoot: options.outputRoot,
       contractPath: options.contract,
