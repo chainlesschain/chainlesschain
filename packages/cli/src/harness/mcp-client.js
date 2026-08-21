@@ -1287,6 +1287,10 @@ export class MCPClient extends EventEmitter {
     this._nextId = 1;
     this._reconnectors = new Map(); // name → async () => config|null
     this._reconnecting = new Map(); // name → in-flight reconnect promise
+    // Desired resource subscriptions outlive a single transport entry. Keeping
+    // them on the client lets a later reconnect retry restoration even when a
+    // previous partial reconnect was torn down fail-closed.
+    this._resourceSubscriptions = new Map(); // name → Set<uri>
     this._sessionId =
       options && options.sessionId != null ? String(options.sessionId) : null;
     this._workspaceBinding =
@@ -2850,7 +2854,10 @@ export class MCPClient extends EventEmitter {
   /**
    * Disconnect from an MCP server.
    */
-  disconnect(name) {
+  disconnect(name, options = {}) {
+    if (options.preserveResourceSubscriptions !== true) {
+      this._resourceSubscriptions.delete(name);
+    }
     const entry = this.servers.get(name);
     if (!entry) {
       this._cancelServerElicitations(name);
@@ -2928,8 +2935,15 @@ export class MCPClient extends EventEmitter {
    */
   async disconnectAll() {
     const names = [...this.servers.keys()];
-    for (const name of names) {
-      await this.disconnect(name);
+    try {
+      for (const name of names) {
+        await this.disconnect(name);
+      }
+    } finally {
+      // A failed reconnect may have already removed its transport entry while
+      // retaining desired subscriptions for another retry. disconnectAll()
+      // is the explicit terminal teardown and must clear those tombstones too.
+      this._resourceSubscriptions.clear();
     }
   }
 
@@ -3173,11 +3187,22 @@ export class MCPClient extends EventEmitter {
       try {
         const currentEntry = this.servers.get(name) || null;
         const currentConfig = currentEntry?.config || null;
+        // Resource subscriptions belong to the logical client/server
+        // relationship, not to one transport connection. Snapshot them before
+        // disconnect() removes the old entry so a hot reconnect cannot
+        // silently stop delivering resource update notifications.
+        const resourceSubscriptions = new Set([
+          ...(this._resourceSubscriptions.get(name) || []),
+          ...(currentEntry?.resourceSubscriptions || []),
+        ]);
+        if (resourceSubscriptions.size > 0) {
+          this._resourceSubscriptions.set(name, new Set(resourceSubscriptions));
+        }
         const resolver = this._reconnectors.get(name);
         const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
         try {
-          await this.disconnect(name);
+          await this.disconnect(name, { preserveResourceSubscriptions: true });
         } catch {
           // entry may already be gone — connect() below is what matters
         }
@@ -3195,6 +3220,25 @@ export class MCPClient extends EventEmitter {
           reconnectConfig,
           options.connectAuthRetryUsed === true,
         );
+        try {
+          for (const uri of resourceSubscriptions) {
+            await this.subscribeResource(name, uri);
+          }
+        } catch {
+          // A partially restored connection is unsafe: callers would believe
+          // the reconnect recovered their live subscriptions while some were
+          // already lost. Tear it down and let the original operation surface
+          // its connection error.
+          try {
+            await this.disconnect(name, {
+              preserveResourceSubscriptions: true,
+            });
+          } catch {
+            // The outer reconnect result remains fail-closed even if cleanup
+            // itself reports an error.
+          }
+          return false;
+        }
         this.emit("server-reconnected", { name, url: fresh.url || null });
         return true;
       } catch {
@@ -3269,9 +3313,23 @@ export class MCPClient extends EventEmitter {
   async subscribeResource(serverName, uri) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
-    await this._sendRequest(serverName, "resources/subscribe", { uri });
+    if (typeof uri !== "string" || !uri.trim()) {
+      throw new TypeError(
+        "MCP resource subscription URI must be a non-empty string",
+      );
+    }
+    const normalizedUri = uri;
+    await this._sendRequest(serverName, "resources/subscribe", {
+      uri: normalizedUri,
+    });
     entry.resourceSubscriptions ||= new Set();
-    entry.resourceSubscriptions.add(String(uri));
+    entry.resourceSubscriptions.add(normalizedUri);
+    let desired = this._resourceSubscriptions.get(serverName);
+    if (!desired) {
+      desired = new Set();
+      this._resourceSubscriptions.set(serverName, desired);
+    }
+    desired.add(normalizedUri);
     return true;
   }
 
@@ -3279,8 +3337,19 @@ export class MCPClient extends EventEmitter {
   async unsubscribeResource(serverName, uri) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
-    await this._sendRequest(serverName, "resources/unsubscribe", { uri });
-    entry.resourceSubscriptions?.delete(String(uri));
+    if (typeof uri !== "string" || !uri.trim()) {
+      throw new TypeError(
+        "MCP resource subscription URI must be a non-empty string",
+      );
+    }
+    const normalizedUri = uri;
+    await this._sendRequest(serverName, "resources/unsubscribe", {
+      uri: normalizedUri,
+    });
+    entry.resourceSubscriptions?.delete(normalizedUri);
+    const desired = this._resourceSubscriptions.get(serverName);
+    desired?.delete(normalizedUri);
+    if (desired?.size === 0) this._resourceSubscriptions.delete(serverName);
     return true;
   }
 
