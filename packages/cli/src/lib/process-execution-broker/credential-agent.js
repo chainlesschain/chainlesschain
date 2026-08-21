@@ -130,6 +130,12 @@ const ENV_ALLOWLIST = new Set([
   "PSMODULEPATH",
   "CHAINLESSCHAIN_HOME",
   "CHAINLESSCHAIN_CONFIG_DIR",
+  // LOCATION-DRAIN sends only content-free identity/digest/generation fences
+  // under these exact names. Their broad SESSION/AUTH substrings are not
+  // credentials; nearby keys remain subject to the sensitive-key detector.
+  "CC_EXECUTION_LOCATION_POST_SESSION_HOOK_DIGEST",
+  "CC_EXECUTION_LOCATION_POST_SESSION_HOOK_GENERATION",
+  "CC_EXECUTION_LOCATION_PROXY_AUTHORITY_ID",
 ]);
 
 const RESERVED_AGENT_ENV_KEYS = new Set([

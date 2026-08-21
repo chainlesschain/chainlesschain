@@ -73,6 +73,7 @@ try {
   Invoke-Matrix "probe-unavailable"
   Invoke-Wsl @("--distribution", $distro, "--exec", "mv", "/opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh.offline", "/opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh")
   Invoke-Matrix "complete-reconnect"
+  Invoke-Matrix "lifecycle-faults"
   Invoke-Matrix "campaign" @("--iterations", "99")
   Invoke-Matrix "finalize"
 } catch {

@@ -106,6 +106,37 @@ describe("ProcessExecutionBroker credential boundary", () => {
     expect(JSON.stringify(audit)).not.toContain(secret);
   });
 
+  it("preserves exact content-free execution-location fences", () => {
+    const hookDigest = `sha256:${"a".repeat(64)}`;
+    executionBroker.spawnSync("cc-test-tool", [], {
+      origin: "test:execution-location-fences",
+      policy: "allow",
+      env: {
+        CC_EXECUTION_LOCATION_POST_SESSION_HOOK_DIGEST: hookDigest,
+        CC_EXECUTION_LOCATION_POST_SESSION_HOOK_GENERATION: "7",
+        CC_EXECUTION_LOCATION_PROXY_AUTHORITY_ID: "proxy-authority-1",
+        CC_EXECUTION_LOCATION_PROXY_AUTHORITY_SECRET: "must-stay-filtered",
+      },
+    });
+
+    const [, , options] = nativeSpawnSync.mock.calls[0];
+    expect(options.env).toMatchObject({
+      CC_EXECUTION_LOCATION_POST_SESSION_HOOK_DIGEST: hookDigest,
+      CC_EXECUTION_LOCATION_POST_SESSION_HOOK_GENERATION: "7",
+      CC_EXECUTION_LOCATION_PROXY_AUTHORITY_ID: "proxy-authority-1",
+    });
+    expect(
+      options.env.CC_EXECUTION_LOCATION_PROXY_AUTHORITY_SECRET,
+    ).toBeUndefined();
+    expect(
+      options.env.CC_CRED_REF_CC_EXECUTION_LOCATION_PROXY_AUTHORITY_SECRET,
+    ).toMatch(/^cc-cred-/u);
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      credentialFiltered: true,
+      credentialEnvCount: 1,
+    });
+  });
+
   it("redacts denied argv before writing the audit record", () => {
     const secret = ["denied", "credential", "value"].join("-");
     expect(() =>
