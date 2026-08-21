@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import {
+import fs, {
   existsSync,
   mkdtempSync,
   realpathSync,
@@ -661,6 +661,83 @@ describe("managed plugin policy", () => {
       }
     }
   });
+
+  it.runIf(process.platform === "win32")(
+    "accepts only 8.3 segments inherited from the ambient Windows temp root",
+    () => {
+      const originalTemp = process.env.TEMP;
+      const originalTmp = process.env.TMP;
+      const ambientTemp = String.raw`C:\Users\RUNNER~1\AppData\Local\Temp`;
+      const canonicalTemp = String.raw`C:\Users\runneradmin\AppData\Local\Temp`;
+      const realpathSpy = vi
+        .spyOn(fs.realpathSync, "native")
+        .mockImplementation((value) => {
+          expect(String(value).toLowerCase()).toBe(ambientTemp.toLowerCase());
+          return canonicalTemp;
+        });
+      try {
+        process.env.TEMP = ambientTemp;
+        process.env.TMP = ambientTemp;
+        const source = join(ambientTemp, "cc-plugin-policy", "review");
+        const canonicalSource = join(
+          canonicalTemp,
+          "cc-plugin-policy",
+          "review",
+        );
+
+        expect(canonicalizePluginSource(ambientTemp).key).toBe(
+          `path:${canonicalTemp.replace(/\\/gu, "/").toLowerCase()}`,
+        );
+        expect(canonicalizePluginSource(source)).toMatchObject({
+          kind: "path",
+          key: `path:${canonicalSource.replace(/\\/gu, "/").toLowerCase()}`,
+        });
+        expect(canonicalizePluginSource(source).key).toBe(
+          canonicalizePluginSource(canonicalSource).key,
+        );
+        expect(
+          canonicalizePluginSource(pathToFileURL(source).href).identityDigest,
+        ).toBe(
+          canonicalizePluginSource(pathToFileURL(canonicalSource).href)
+            .identityDigest,
+        );
+        expect(() =>
+          enforcePluginSourcePolicy(source, {
+            blockedPluginSources: [
+              { source: "directory", path: canonicalSource },
+            ],
+          }),
+        ).toThrowError(
+          expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_BLOCKED" }),
+        );
+
+        for (const userAlias of [
+          String.raw`C:\PROGRA~1\review`,
+          join(ambientTemp, "FORGED~1", "review"),
+          String.raw`C:\Users\OTHERU~1\AppData\Local\Temp\review`,
+        ]) {
+          expect(() => canonicalizePluginSource(userAlias)).toThrowError(
+            expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+          );
+        }
+
+        realpathSpy.mockImplementation(() => {
+          throw Object.assign(new Error("ambient temp unavailable"), {
+            code: "ENOENT",
+          });
+        });
+        expect(() => canonicalizePluginSource(source)).toThrowError(
+          expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
+        );
+      } finally {
+        realpathSpy.mockRestore();
+        if (originalTemp === undefined) delete process.env.TEMP;
+        else process.env.TEMP = originalTemp;
+        if (originalTmp === undefined) delete process.env.TMP;
+        else process.env.TMP = originalTmp;
+      }
+    },
+  );
 
   it("memoizes both valid and invalid managed settings snapshots", () => {
     const managedSettingsFile = join(dir, "managed-settings.json");

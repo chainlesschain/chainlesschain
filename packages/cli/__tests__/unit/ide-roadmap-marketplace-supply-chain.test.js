@@ -205,14 +205,34 @@ describe("marketplace supply-chain Actions matrix", () => {
     }
     expect(
       workflow.match(
-        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+        /npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
       ),
     ).toHaveLength(1);
     expect(
       workflow.match(
-        /npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
       ),
     ).toHaveLength(1);
+    const focusedStepStart = workflow.indexOf(
+      "- name: Run canonical marketplace policy regressions",
+    );
+    const focusedStepEnd = workflow.indexOf(
+      "- name: Run authenticated supply-chain campaign",
+      focusedStepStart,
+    );
+    expect(focusedStepStart).toBeGreaterThan(-1);
+    expect(focusedStepEnd).toBeGreaterThan(focusedStepStart);
+    const focusedStep = workflow.slice(focusedStepStart, focusedStepEnd);
+    expect(focusedStep).toContain("working-directory: packages/cli");
+    for (const testFile of [
+      "plugin-marketplace-selection-command.test.js",
+      "plugin-security.test.js",
+      "plugin-runtime-install.test.js",
+      "plugin-remote-source-security.test.js",
+      "plugin-marketplace-source-cache.test.js",
+    ]) {
+      expect(focusedStep).toContain(`__tests__/unit/${testFile}`);
+    }
     expect(workflow).toContain("if: always()");
   });
 

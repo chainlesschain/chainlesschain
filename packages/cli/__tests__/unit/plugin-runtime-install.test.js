@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -3692,6 +3692,81 @@ describe("installFromSource — git (mocked clone)", () => {
     );
     expect(spawned).toBe(0);
   });
+
+  it.runIf(process.platform === "win32")(
+    "accepts an inherited runner temp alias while blocking before target I/O",
+    () => {
+      const originalTemp = process.env.TEMP;
+      const originalTmp = process.env.TMP;
+      const originalExistsSync = installDeps.existsSync;
+      const originalLstatSync = installDeps.lstatSync;
+      const originalSpawnSync = installDeps.spawnSync;
+      const ambientTemp = String.raw`C:\Users\RUNNER~1\AppData\Local\Temp`;
+      const canonicalTemp = String.raw`C:\Users\runneradmin\AppData\Local\Temp`;
+      const source = path.join(ambientTemp, "cc-plugin-policy", "blocked");
+      const canonicalSource = path.join(
+        canonicalTemp,
+        "cc-plugin-policy",
+        "blocked",
+      );
+      const realpathSpy = vi
+        .spyOn(fs.realpathSync, "native")
+        .mockReturnValue(canonicalTemp);
+      let existsCalls = 0;
+      let lstatCalls = 0;
+      let spawnCalls = 0;
+      try {
+        process.env.TEMP = ambientTemp;
+        process.env.TMP = ambientTemp;
+        installDeps.existsSync = () => {
+          existsCalls += 1;
+          return false;
+        };
+        installDeps.lstatSync = () => {
+          lstatCalls += 1;
+          throw new Error("lstat must remain unreachable");
+        };
+        installDeps.spawnSync = () => {
+          spawnCalls += 1;
+          throw new Error("git must remain unreachable");
+        };
+
+        expect(() =>
+          installFromDirectoryImpl(source, {
+            cwd: ambientTemp,
+            managedPolicy: {
+              blockedPluginSources: [
+                { source: "directory", path: canonicalSource },
+              ],
+            },
+          }),
+        ).toThrowError(
+          expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_BLOCKED" }),
+        );
+        expect({ existsCalls, lstatCalls, spawnCalls }).toEqual({
+          existsCalls: 0,
+          lstatCalls: 0,
+          spawnCalls: 0,
+        });
+        expect(realpathSpy).toHaveBeenCalled();
+        expect(
+          realpathSpy.mock.calls.every(
+            ([value]) =>
+              String(value).toLowerCase() === ambientTemp.toLowerCase(),
+          ),
+        ).toBe(true);
+      } finally {
+        realpathSpy.mockRestore();
+        installDeps.existsSync = originalExistsSync;
+        installDeps.lstatSync = originalLstatSync;
+        installDeps.spawnSync = originalSpawnSync;
+        if (originalTemp === undefined) delete process.env.TEMP;
+        else process.env.TEMP = originalTemp;
+        if (originalTmp === undefined) delete process.env.TMP;
+        else process.env.TMP = originalTmp;
+      }
+    },
+  );
 
   it("clones a remote source and installs it", () => {
     const calls = [];

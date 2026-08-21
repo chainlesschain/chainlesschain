@@ -28,8 +28,8 @@ const REMOTE_ARTIFACT_EVIDENCE_SCHEMA =
   "cc-plugin-marketplace-remote-artifact-evidence/v1";
 const PLUGIN_NAME = "remote-artifact-plugin";
 const PLUGIN_VERSION = "1.0.0";
-const REGISTRY_GIT_SOURCE =
-  "https://git.example.invalid/remote-artifact-plugin.git";
+const REGISTRY_GIT_SOURCE_PREFIX =
+  "https://git.example.invalid/remote-artifact-plugin-";
 
 let cwd;
 let sourceRoot;
@@ -283,10 +283,14 @@ beforeEach(async () => {
   );
   source = path.join(sourceRoot, "plugin");
   fs.mkdirSync(source);
-  registrySource = REGISTRY_GIT_SOURCE;
+  // The production cache is intentionally shared by canonical source and
+  // payload identity. Give every test an independent registry source so a
+  // concurrent worker or a prior run cannot turn the online seed assertion
+  // from `published` into `reused` before this case performs its offline read.
+  registrySource = `${REGISTRY_GIT_SOURCE_PREFIX}${crypto.randomUUID()}.git`;
   originalSpawnSync = installDeps.spawnSync;
   installDeps.spawnSync = (_executable, args) => {
-    if (!args.includes(REGISTRY_GIT_SOURCE)) {
+    if (!args.includes(registrySource)) {
       throw new Error("unexpected Git fixture source");
     }
     fs.cpSync(source, args.at(-1), { recursive: true });
