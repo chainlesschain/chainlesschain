@@ -445,7 +445,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--output-style <name>",
-      "Apply a named output-style persona (.claude/output-styles/<name>.md or a built-in: explanatory | learning)",
+      "Apply a named output-style persona (.claude/output-styles/<name>.md or a built-in: concise | explanatory | learning)",
     )
     .option(
       "--input-format <fmt>",
@@ -530,7 +530,11 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--remote-control",
-      "Route confirm-tier approvals to paired mobile/web devices — prints a pairing URI/QR. Headless waits for the remote allow/deny (fail-closed on timeout); interactive races the terminal prompt (first answer wins; also /remote-control)",
+      "Route confirm-tier approvals to paired mobile/web devices — requires a relay or explicit LAN opt-in; headless waits fail-closed, interactive races the terminal prompt (also /remote-control)",
+    )
+    .option(
+      "--remote-control-allow-lan",
+      "Permit --remote-control to expose its authenticated WS endpoint on a trusted LAN",
     )
     .option(
       "--channels <list>",
@@ -1383,6 +1387,7 @@ export function registerAgentCommand(program) {
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
             remoteControl: options.remoteControl === true,
+            remoteControlAllowLan: options.remoteControlAllowLan === true,
             interactiveApprovals: options.interactiveApprovals === true,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
@@ -1685,6 +1690,7 @@ export function registerAgentCommand(program) {
           permissionPromptTool: options.permissionPromptTool || null,
           // --remote-control: approvals from paired mobile/web devices
           remoteControl: options.remoteControl === true,
+          remoteControlAllowLan: options.remoteControlAllowLan === true,
           // --strict-mcp-config: only --mcp-config servers (ignore registered + IDE)
           strictMcpConfig: options.strictMcpConfig === true,
           // --settings: extra .claude/settings.json permission rules
@@ -1836,6 +1842,11 @@ export function registerAgentCommand(program) {
         // === false suppresses the auto-loaded rules.md + cc.md/CLAUDE.md block
         // in the REPL's composed system prompt. Absent (undefined) = default-on.
         projectMemory: options.projectMemory,
+        // Output styles and the one-shot settings layer are also consumed by
+        // the interactive REPL. Keep them on the runtime-policy allowlist so
+        // `--output-style concise` and `--settings` are not silently dropped.
+        outputStyle: options.outputStyle || null,
+        settingsFile: options.settings || null,
         // --fallback-model also applies interactively (wrapper built in the
         // REPL). Pass the fully resolved chain (flag + config default).
         fallbackModels: fallbackModels.length ? fallbackModels : null,
@@ -1854,6 +1865,7 @@ export function registerAgentCommand(program) {
         // --remote-control: start the paired-device approval bridge for the
         // interactive session too (terminal prompt races the device).
         remoteControl: options.remoteControl === true,
+        remoteControlAllowLan: options.remoteControlAllowLan === true,
         // --channels: inbound channel listeners (webhook/telegram) whose
         // events become user turns in this session.
         channels: options.channels || null,

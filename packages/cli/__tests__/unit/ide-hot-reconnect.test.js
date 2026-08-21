@@ -45,12 +45,18 @@ function resp(status, jsonBody) {
 const rpc = (id, result) => resp(200, { jsonrpc: "2.0", id, result });
 
 let nextPort = 51000;
-function fakeEndpoint({ token = null, marker = "x", toolError = null } = {}) {
+function fakeEndpoint({
+  token = null,
+  marker = "x",
+  toolError = null,
+  subscriptionError = null,
+} = {}) {
   const url = `http://127.0.0.1:${nextPort++}/mcp`;
   const ep = {
     url,
     token,
     calls: 0,
+    subscriptions: [],
     async handler(_u, init) {
       const h = init.headers || {};
       const auth = h.Authorization || h.authorization;
@@ -83,6 +89,17 @@ function fakeEndpoint({ token = null, marker = "x", toolError = null } = {}) {
         return rpc(body.id, {
           content: [{ type: "text", text: "pong-" + marker }],
         });
+      }
+      if (body.method === "resources/subscribe") {
+        if (subscriptionError) {
+          return resp(200, {
+            jsonrpc: "2.0",
+            id: body.id,
+            error: { code: -32000, message: subscriptionError },
+          });
+        }
+        ep.subscriptions.push(body.params.uri);
+        return rpc(body.id, {});
       }
       return rpc(body.id, {});
     },
@@ -170,6 +187,101 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     expect(reconnector).toHaveBeenCalledTimes(1);
     expect(reconnected).toHaveBeenCalledWith({ name: "ide", url: b.url });
     expect(client.servers.get("ide").httpUrl).toBe(b.url);
+  });
+
+  it("restores resource subscriptions before retrying after reconnect", async () => {
+    const a = fakeEndpoint({ marker: "a" });
+    endpoints.push(a);
+    await connectTo(a);
+    await client.subscribeResource("ide", "file:///README.md");
+    expect(a.subscriptions).toEqual(["file:///README.md"]);
+
+    const b = fakeEndpoint({ marker: "b" });
+    endpoints.splice(0, endpoints.length, b);
+    client.setReconnector("ide", () => ({
+      url: b.url,
+      transport: "http",
+    }));
+
+    const result = await client.callTool("ide", "ping", {});
+    expect(result.content[0].text).toBe("pong-b");
+    expect(b.subscriptions).toEqual(["file:///README.md"]);
+    expect(client.servers.get("ide").resourceSubscriptions).toEqual(
+      new Set(["file:///README.md"]),
+    );
+  });
+
+  it("fails reconnect closed when a resource subscription cannot be restored", async () => {
+    const a = fakeEndpoint({ marker: "a" });
+    endpoints.push(a);
+    await connectTo(a);
+    await client.subscribeResource("ide", "file:///README.md");
+
+    const b = fakeEndpoint({
+      marker: "b",
+      subscriptionError: "subscription removed",
+    });
+    endpoints.splice(0, endpoints.length, b);
+    client.setReconnector("ide", () => ({
+      url: b.url,
+      transport: "http",
+    }));
+    const reconnected = vi.fn();
+    client.on("server-reconnected", reconnected);
+
+    await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
+      /fetch failed/,
+    );
+    expect(reconnected).not.toHaveBeenCalled();
+    expect(b.calls).toBe(0);
+    expect(client.servers.has("ide")).toBe(false);
+
+    // A later retry must retain the logical subscription even though the
+    // failed transport entry above was removed.
+    const c = fakeEndpoint({ marker: "c" });
+    endpoints.splice(0, endpoints.length, c);
+    client.setReconnector("ide", () => ({
+      url: c.url,
+      transport: "http",
+    }));
+    const recovered = await client.callTool("ide", "ping", {});
+    expect(recovered.content[0].text).toBe("pong-c");
+    expect(c.subscriptions).toEqual(["file:///README.md"]);
+    expect(client.servers.get("ide").resourceSubscriptions).toEqual(
+      new Set(["file:///README.md"]),
+    );
+  });
+
+  it("clears retained subscription intent on terminal disconnectAll", async () => {
+    const a = fakeEndpoint({ marker: "a" });
+    endpoints.push(a);
+    await connectTo(a);
+    await client.subscribeResource("ide", "file:///README.md");
+
+    const b = fakeEndpoint({
+      marker: "b",
+      subscriptionError: "subscription removed",
+    });
+    endpoints.splice(0, endpoints.length, b);
+    client.setReconnector("ide", () => ({
+      url: b.url,
+      transport: "http",
+    }));
+    await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
+      /fetch failed/,
+    );
+    expect(client.servers.has("ide")).toBe(false);
+
+    await client.disconnectAll();
+    const c = fakeEndpoint({ marker: "c" });
+    endpoints.splice(0, endpoints.length, c);
+    client.setReconnector("ide", () => ({
+      url: c.url,
+      transport: "http",
+    }));
+    const recovered = await client.callTool("ide", "ping", {});
+    expect(recovered.content[0].text).toBe("pong-c");
+    expect(c.subscriptions).toEqual([]);
   });
 
   it("reconnects on 401 after a token rotation on the same port", async () => {

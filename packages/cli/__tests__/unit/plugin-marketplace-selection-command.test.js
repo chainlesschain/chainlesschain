@@ -5,13 +5,20 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { registerPluginCommand } from "../../src/commands/plugin.js";
-import { listInstalled } from "../../src/lib/plugin-runtime/install.js";
+import {
+  listInstalled,
+  _deps as installDeps,
+} from "../../src/lib/plugin-runtime/install.js";
+import { _deps as scopeDeps } from "../../src/lib/plugin-runtime/scopes.js";
 import { _deps as remoteDeps } from "../../src/lib/plugin-runtime/remote-source.js";
+import { _resetPluginManagedPolicyCache } from "../../src/lib/plugin-security.js";
 
 let cwd;
 let sourceRoot;
 let logSpy;
 let originalRemoteDeps;
+let originalSpawnSync;
+const savedManagedSettings = process.env.CC_MANAGED_SETTINGS;
 
 function makeSource(version) {
   const dir = path.join(sourceRoot, version);
@@ -24,7 +31,7 @@ function makeSource(version) {
   return dir;
 }
 
-function entry(version, source) {
+function entry(version, source, extra = {}) {
   return {
     name: "multi-source",
     version,
@@ -32,6 +39,7 @@ function entry(version, source) {
     license: "Apache-2.0",
     permissions: {},
     dependencies: {},
+    ...extra,
   };
 }
 
@@ -55,15 +63,28 @@ async function run(...argv) {
 }
 
 beforeEach(() => {
+  _resetPluginManagedPolicyCache();
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-market-select-cwd-"));
   sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-market-select-src-"));
-  const one = entry("1.0.0", makeSource("1.0.0"));
-  const two = entry("2.0.0", makeSource("2.0.0"));
+  const fixtureSources = new Map([
+    ["https://git.example/multi-source-v1.git", makeSource("1.0.0")],
+    ["https://git.example/multi-source-v2.git", makeSource("2.0.0")],
+  ]);
+  const one = entry("1.0.0", "https://git.example/multi-source-v1.git");
+  const two = entry("2.0.0", "https://git.example/multi-source-v2.git");
   const registries = new Map([
     ["https://one.example/index.json", { plugins: [one] }],
     ["https://two.example/index.json", { plugins: [two] }],
   ]);
   originalRemoteDeps = { ...remoteDeps };
+  originalSpawnSync = installDeps.spawnSync;
+  installDeps.spawnSync = (_executable, args) => {
+    const source = args.find((argument) => fixtureSources.has(argument));
+    const fixture = fixtureSources.get(source);
+    if (!fixture) throw new Error("unexpected Git fixture source");
+    fs.cpSync(fixture, args.at(-1), { recursive: true });
+    return { status: 0, stdout: "", stderr: "" };
+  };
   remoteDeps.fetch = vi.fn(async (url) => {
     if (String(url).includes("down.example")) {
       throw new Error("registry unavailable");
@@ -84,7 +105,14 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  _resetPluginManagedPolicyCache();
   Object.assign(remoteDeps, originalRemoteDeps);
+  installDeps.spawnSync = originalSpawnSync;
+  if (savedManagedSettings === undefined) {
+    delete process.env.CC_MANAGED_SETTINGS;
+  } else {
+    process.env.CC_MANAGED_SETTINGS = savedManagedSettings;
+  }
   vi.restoreAllMocks();
   process.exitCode = 0;
   for (const dir of [cwd, sourceRoot]) {
@@ -147,7 +175,9 @@ describe("cc plugin multi-registry selection", () => {
         .createHash("sha256")
         .update(
           JSON.stringify({
-            plugins: [entry("2.0.0", path.join(sourceRoot, "2.0.0"))],
+            plugins: [
+              entry("2.0.0", "https://git.example/multi-source-v2.git"),
+            ],
           }),
         )
         .digest("hex"),
@@ -200,5 +230,87 @@ describe("cc plugin multi-registry selection", () => {
     );
     expect(result.exitCode).toBe(1);
     expect(remoteDeps.fetch).not.toHaveBeenCalled();
+  });
+
+  it("blocks a selected source from an allowed multi-registry set before git spawn", async () => {
+    const one = "https://one.example/index.json";
+    const two = "https://two.example/index.json";
+    const blockedSource = "https://github.com/acme/blocked-plugin.git#release";
+    remoteDeps.fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () =>
+        JSON.stringify({
+          plugins: [
+            entry(
+              String(url) === two ? "2.0.0" : "1.0.0",
+              "https://github.com/acme/blocked-plugin.git",
+              {
+                ref: "release",
+                sbom: {
+                  format: "cyclonedx-json",
+                  url: `${String(url).replace("/index.json", "")}/must-not-fetch.cdx.json`,
+                  documentSha256: "a".repeat(64),
+                },
+              },
+            ),
+          ],
+        }),
+    }));
+    let spawned = 0;
+    installDeps.spawnSync = () => {
+      spawned += 1;
+      throw new Error("git must remain unreachable");
+    };
+    const managedSettingsFile = path.join(cwd, "managed-settings.json");
+    fs.writeFileSync(
+      managedSettingsFile,
+      JSON.stringify({
+        allowedMarketplaces: [
+          { source: "url", url: one },
+          { source: "url", url: two },
+        ],
+        blockedPluginSources: [blockedSource],
+      }),
+    );
+    process.env.CC_MANAGED_SETTINGS = managedSettingsFile;
+    _resetPluginManagedPolicyCache();
+
+    let installedTreeReads = 0;
+    const originalScopeExistsSync = scopeDeps.existsSync;
+    scopeDeps.existsSync = (...args) => {
+      installedTreeReads += 1;
+      return originalScopeExistsSync(...args);
+    };
+    let result;
+    try {
+      result = await run(
+        "add",
+        "multi-source",
+        "--registry",
+        one,
+        "--registry",
+        two,
+        "--scope",
+        "project",
+        "--json",
+      );
+    } finally {
+      scopeDeps.existsSync = originalScopeExistsSync;
+    }
+    expect(result.exitCode).toBe(1);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringMatching(/blocked by managed settings/u),
+    );
+    expect(spawned).toBe(0);
+    expect(installedTreeReads).toBe(0);
+    expect(
+      remoteDeps.fetch.mock.calls.some(([url]) =>
+        String(url).includes("must-not-fetch"),
+      ),
+    ).toBe(false);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
   });
 });

@@ -7,7 +7,14 @@
  */
 
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { resolveAgentPolicy } from "../../src/runtime/policies/agent-policy.js";
+
+const agentCommandSource = fs.readFileSync(
+  path.resolve(import.meta.dirname, "../../src/commands/agent.js"),
+  "utf8",
+);
 
 describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
   it("forwards the REPL-consumed overrides verbatim", () => {
@@ -21,8 +28,10 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
         fallbackModels: ["backup-a", "backup-b"],
         pdh: true,
         outputStyle: "concise",
+        settingsFile: "run-settings.json",
         disableSlashCommands: true,
         remoteControl: true,
+        remoteControlAllowLan: true,
         worktreeId: "agent/repl-task-1",
         sessionBudgetRoot: {
           enabled: true,
@@ -37,8 +46,10 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.fallbackModels).toEqual(["backup-a", "backup-b"]);
     expect(policy.pdh).toBe(true);
     expect(policy.outputStyle).toBe("concise");
+    expect(policy.settingsFile).toBe("run-settings.json");
     expect(policy.disableSlashCommands).toBe(true);
     expect(policy.remoteControl).toBe(true);
+    expect(policy.remoteControlAllowLan).toBe(true);
     expect(policy.worktreeId).toBe("agent/repl-task-1");
     expect(policy.sessionBudgetRoot).toEqual({
       enabled: true,
@@ -57,10 +68,21 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.fallbackModels).toBeUndefined();
     expect(policy.pdh).toBeUndefined();
     expect(policy.outputStyle).toBeUndefined();
+    expect(policy.settingsFile).toBeNull();
     // boolean-normalized (not tri-state): absent → false
     expect(policy.disableSlashCommands).toBe(false);
     expect(policy.remoteControl).toBe(false);
+    expect(policy.remoteControlAllowLan).toBe(false);
     expect(policy.worktreeId).toBeNull();
     expect(policy.sessionBudgetRoot).toBeNull();
+  });
+
+  it("forwards command flags into the interactive runtime overrides", () => {
+    expect(agentCommandSource).toContain(
+      "outputStyle: options.outputStyle || null",
+    );
+    expect(agentCommandSource).toContain(
+      "settingsFile: options.settings || null",
+    );
   });
 });

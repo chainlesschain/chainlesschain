@@ -12,8 +12,23 @@ on:
       - "packages/cli/src/lib/interaction-binding.js"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/runtime/policies/agent-policy.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/commands/agent.js"
+      - "packages/vscode-extension/src/chat/remote-handoff.js"
+      - "packages/vscode-extension/src/remote-control-host.js"
+      - "packages/cli/src/commands/remote-control.js"
+      - "packages/cli/src/lib/remote-control.js"
+      - "packages/cli/src/lib/remote-approval-bridge.js"
       - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
+      - "packages/cli/__tests__/unit/remote-control-lib.test.js"
+      - "packages/cli/__tests__/unit/remote-approval-start.test.js"
+      - "packages/cli/__tests__/integration/remote-control-start.test.js"
+      - "packages/cli/__tests__/unit/agent-policy-repl-passthrough.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-remote-handoff.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-qr-code.test.js"
       - ".github/workflows/cli-background-interaction-e2e.yml"
       - ".github/actions/setup-node-deps/action.yml"
   pull_request:
@@ -27,8 +42,23 @@ on:
       - "packages/cli/src/lib/interaction-binding.js"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/runtime/headless-stream.js"
+      - "packages/cli/src/runtime/policies/agent-policy.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/commands/agent.js"
+      - "packages/vscode-extension/src/chat/remote-handoff.js"
+      - "packages/vscode-extension/src/remote-control-host.js"
+      - "packages/cli/src/commands/remote-control.js"
+      - "packages/cli/src/lib/remote-control.js"
+      - "packages/cli/src/lib/remote-approval-bridge.js"
       - "packages/cli/src/workers/background-agent-worker.js"
       - "packages/cli/__tests__/integration/background-stability-realspawn.test.js"
+      - "packages/cli/__tests__/unit/remote-control-lib.test.js"
+      - "packages/cli/__tests__/unit/remote-approval-start.test.js"
+      - "packages/cli/__tests__/integration/remote-control-start.test.js"
+      - "packages/cli/__tests__/unit/agent-policy-repl-passthrough.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-remote-handoff.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-qr-code.test.js"
       - ".github/workflows/cli-background-interaction-e2e.yml"
       - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
@@ -62,11 +92,25 @@ jobs:
           --outputFile=background-interaction-result.json
           __tests__/integration/background-stability-realspawn.test.js
 
+      - name: Run remote-control exposure migration contracts
+        working-directory: packages/cli
+        run: >-
+          npx vitest run --reporter=json
+          --outputFile=remote-control-migration-result.json
+          __tests__/unit/remote-control-lib.test.js
+          __tests__/unit/remote-approval-start.test.js
+          __tests__/integration/remote-control-start.test.js
+          __tests__/unit/agent-policy-repl-passthrough.test.js
+          __tests__/unit/vscode-ext-remote-handoff.test.js
+          __tests__/unit/vscode-ext-qr-code.test.js
+
       - name: Upload background interaction result
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: background-interaction-result-${{ matrix.os }}
-          path: packages/cli/background-interaction-result.json
+          path: |
+            packages/cli/background-interaction-result.json
+            packages/cli/remote-control-migration-result.json
           if-no-files-found: warn
           retention-days: 7

@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import {
   REMOTE_CONTROL_DEFAULT_PORT,
+  REMOTE_CONTROL_DEFAULT_HOST,
   REMOTE_CONTROL_DEFAULT_SCOPES,
   assertDirectWsUrlAllowed,
   buildDirectPairingUri,
@@ -15,12 +16,14 @@ import {
   removeRemoteControlState,
   renderQrCode,
   resolveRemoteControlOptions,
+  resolveRemoteControlWsUrl,
   writeRemoteControlState,
 } from "../../src/lib/remote-control.js";
+import { buildRemoteControlServerOptions } from "../../src/commands/remote-control.js";
 import { resolveServerPolicy } from "../../src/runtime/policies/agent-policy.js";
 
 describe("parseScopes", () => {
-  it("defaults to the full scope set when empty", () => {
+  it("defaults to the safe scope set when empty", () => {
     expect(parseScopes(null)).toEqual([...REMOTE_CONTROL_DEFAULT_SCOPES]);
     expect(parseScopes("")).toEqual([...REMOTE_CONTROL_DEFAULT_SCOPES]);
   });
@@ -45,9 +48,11 @@ describe("resolveRemoteControlOptions", () => {
       config: {},
     });
     expect(opts.port).toBe(REMOTE_CONTROL_DEFAULT_PORT);
-    expect(opts.host).toBe("127.0.0.1");
     expect(opts.allowLan).toBe(false);
     expect(opts.exposesLan).toBe(false);
+    expect(opts.host).toBe(REMOTE_CONTROL_DEFAULT_HOST);
+    expect(opts.lanAccessible).toBe(false);
+    expect(opts.warnings).toEqual([]);
     expect(opts.token).toMatch(/^[0-9a-f]{32}$/);
     expect(opts.relayUrl).toBeNull();
     expect(opts.peerId).toBeNull();
@@ -92,12 +97,7 @@ describe("resolveRemoteControlOptions", () => {
     expect(opts.host).toBe("0.0.0.0");
     expect(opts.allowLan).toBe(true);
     expect(opts.exposesLan).toBe(true);
-    expect(opts.scopes).toEqual([
-      "observe",
-      "prompt",
-      "approve",
-      "interrupt",
-    ]);
+    expect(opts.scopes).toEqual(["observe", "prompt", "approve", "interrupt"]);
   });
 
   it("fails closed for widened hosts or scopes without their opt-ins", () => {
@@ -114,7 +114,7 @@ describe("resolveRemoteControlOptions", () => {
         env: {},
         config: {},
       }),
-    ).toThrow(/public Remote Control bind host/);
+    ).toThrow(/non-private host/);
     expect(() =>
       resolveRemoteControlOptions({
         flags: { scopes: "observe,approve" },
@@ -178,6 +178,215 @@ describe("resolveRemoteControlOptions", () => {
       config: {},
     });
     expect(opts.port).toBe(REMOTE_CONTROL_DEFAULT_PORT);
+  });
+
+  it("requires an explicit LAN opt-in for a non-loopback flag host", () => {
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "0.0.0.0" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/without --allow-lan/);
+
+    const opts = resolveRemoteControlOptions({
+      flags: { host: "192.168.10.4", allowLan: true },
+      env: {},
+      config: {},
+    });
+    expect(opts.host).toBe("192.168.10.4");
+    expect(opts.allowLan).toBe(true);
+    expect(opts.lanAccessible).toBe(true);
+  });
+
+  it("uses a wildcard bind only after --allow-lan", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: { allowLan: true },
+      env: {},
+      config: {},
+    });
+    expect(opts.host).toBe("0.0.0.0");
+    expect(opts.lanAccessible).toBe(true);
+  });
+
+  it("limits --allow-lan to wildcard or private bind addresses", () => {
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "public.example", allowLan: true },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/IPv4\/IPv6 literal/);
+  });
+
+  it("only accepts canonical literal bind hosts", () => {
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "device.localhost" },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/IPv4\/IPv6 literal/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "metadata.google.internal", allowLan: true },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/IPv4\/IPv6 literal/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "fe80::1%12", allowLan: true },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/scoped IPv6/);
+    expect(() =>
+      resolveRemoteControlOptions({
+        flags: { host: "::", allowLan: true },
+        env: {},
+        config: {},
+      }),
+    ).toThrow(/IPv6 wildcard/);
+  });
+
+  it("treats IPv4-mapped loopback as loopback, not LAN exposure", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: { host: "::ffff:127.0.0.1" },
+      env: {},
+      config: {},
+    });
+    expect(opts).toMatchObject({
+      host: "::ffff:127.0.0.1",
+      allowLan: false,
+      lanAccessible: false,
+    });
+  });
+
+  it("preserves an explicit private IPv6 listener and formats its URL", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: { host: "fd12:3456::8", allowLan: true },
+      env: {},
+      config: {},
+    });
+    expect(opts).toMatchObject({
+      host: "fd12:3456::8",
+      allowLan: true,
+      lanAccessible: true,
+    });
+    expect(resolveRemoteControlWsUrl({ ...opts, port: 18800 })).toBe(
+      "ws://[fd12:3456::8]:18800",
+    );
+  });
+
+  it("ignores a legacy non-loopback config host with a migration warning", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: {},
+      env: {},
+      config: { remoteControl: { host: "0.0.0.0" } },
+    });
+    expect(opts.host).toBe(REMOTE_CONTROL_DEFAULT_HOST);
+    expect(opts.lanAccessible).toBe(false);
+    expect(opts.warnings).toEqual([
+      expect.stringMatching(/exposure settings.*--host\/--allow-lan/),
+    ]);
+  });
+
+  it("does not let project settings or environment variables grant LAN authority", () => {
+    const opts = resolveRemoteControlOptions({
+      flags: {},
+      env: { CC_REMOTE_CONTROL_ALLOW_LAN: "yes" },
+      config: { remoteControl: { host: "0.0.0.0", allowLan: true } },
+    });
+    expect(opts).toMatchObject({
+      host: "127.0.0.1",
+      allowLan: false,
+      lanAccessible: false,
+    });
+    expect(opts.warnings).toEqual([
+      expect.stringMatching(/exposure settings.*--host\/--allow-lan/),
+    ]);
+  });
+
+  it("keeps an explicit command opt-in authoritative over project host settings", () => {
+    expect(
+      resolveRemoteControlOptions({
+        flags: { allowLan: true },
+        env: {},
+        config: { remoteControl: { host: "127.0.0.1" } },
+      }),
+    ).toMatchObject({
+      host: "0.0.0.0",
+      allowLan: true,
+      lanAccessible: true,
+    });
+  });
+
+  it("requires the command authority to be the literal boolean true", () => {
+    expect(
+      resolveRemoteControlOptions({
+        flags: { allowLan: "true" },
+        env: {},
+        config: {},
+      }),
+    ).toMatchObject({
+      host: "127.0.0.1",
+      allowLan: false,
+      lanAccessible: false,
+    });
+  });
+
+  it("preserves an exact private bind in the production server policy", () => {
+    const resolved = resolveRemoteControlOptions({
+      flags: { host: "192.168.10.4", allowLan: true },
+      env: {},
+      config: {},
+    });
+    const serverPolicy = resolveServerPolicy(
+      buildRemoteControlServerOptions(resolved),
+    );
+    expect(serverPolicy).toMatchObject({
+      host: "192.168.10.4",
+      token: resolved.token,
+      allowRemote: false,
+    });
+  });
+});
+
+describe("resolveRemoteControlWsUrl", () => {
+  it("never advertises a LAN address without explicit opt-in", () => {
+    expect(
+      resolveRemoteControlWsUrl(
+        { host: "127.0.0.1", port: 18800, allowLan: false },
+        { lanAddress: "192.168.1.20" },
+      ),
+    ).toBe("ws://127.0.0.1:18800");
+  });
+
+  it("advertises the selected LAN address only after opt-in", () => {
+    expect(
+      resolveRemoteControlWsUrl(
+        { host: "0.0.0.0", port: 18800, allowLan: true },
+        { lanAddress: "192.168.1.20" },
+      ),
+    ).toBe("ws://192.168.1.20:18800");
+    expect(
+      resolveRemoteControlWsUrl({
+        host: "10.0.0.8",
+        port: 18800,
+        allowLan: true,
+      }),
+    ).toBe("ws://10.0.0.8:18800");
+  });
+
+  it("formats an explicit IPv6 loopback endpoint", () => {
+    expect(
+      resolveRemoteControlWsUrl({
+        host: "::1",
+        port: 18800,
+        allowLan: false,
+      }),
+    ).toBe("ws://[::1]:18800");
   });
 });
 
@@ -287,6 +496,23 @@ describe("pickLanAddress", () => {
     ).toBe("10.0.0.7");
     expect(pickLanAddress({})).toBeNull();
   });
+
+  it("skips public, loopback, wildcard, and metadata IPv4 addresses", () => {
+    expect(
+      pickLanAddress({
+        eth0: [
+          { family: "IPv4", address: "203.0.113.10", internal: false },
+          { family: "IPv4", address: "169.254.169.254", internal: false },
+          { family: "IPv4", address: "172.20.4.8", internal: false },
+        ],
+      }),
+    ).toBe("172.20.4.8");
+    expect(
+      pickLanAddress({
+        eth0: [{ family: "IPv4", address: "198.51.100.7", internal: false }],
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("state files", () => {
@@ -336,6 +562,18 @@ describe("state files", () => {
     const byPort = Object.fromEntries(states.map((s) => [s.port, s]));
     expect(byPort[18801].alive).toBe(false);
     expect(states.some((s) => s.invalid)).toBe(true);
+  });
+
+  it("marks legacy non-loopback records as unknown LAN exposure", () => {
+    writeRemoteControlState(
+      { pid: process.pid, port: 18803, host: "0.0.0.0", mode: "direct" },
+      { dir },
+    );
+    expect(readRemoteControlStates({ dir })[0]).toMatchObject({
+      exposure: "legacy-unknown-lan",
+      legacyExposure: true,
+      alive: true,
+    });
   });
 
   it("returns [] when the directory does not exist", () => {

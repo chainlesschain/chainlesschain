@@ -258,7 +258,8 @@ async function buildRegistrySetSelection(
     caFile,
   } = {},
 ) {
-  const { fetchRegistry, resolveRegistryToken } =
+  const managedPolicy = loadPluginManagedPolicy();
+  const { authorizeRegistryPluginEntry, fetchRegistry, resolveRegistryToken } =
     await import("../lib/plugin-runtime/remote-source.js");
   const {
     buildPluginMarketplaceCatalog,
@@ -281,6 +282,7 @@ async function buildRegistrySetSelection(
         const resolvedToken = resolveRegistryToken(url, { token, config });
         const resolved = await fetchRegistry(url, {
           token: resolvedToken,
+          managedPolicy,
           allowInsecure,
           offline,
           expectedSha256: registryDigestPins.get(url),
@@ -301,6 +303,41 @@ async function buildRegistrySetSelection(
     }),
   );
   const { VERSION } = await import("../constants.js");
+  // Select and authorize the highest-ranked candidate before inspecting the
+  // installed-plugin tree. Installed versions affect dependency diagnostics,
+  // but never candidate ordering; a blocked resolved source must therefore
+  // fail before any project/user plugin filesystem access.
+  const preliminaryCatalog = buildPluginMarketplaceCatalog({
+    sources,
+    installed: {},
+    hostVersion: VERSION,
+    strict,
+  });
+  const preliminarySelection = buildPluginMarketplaceCandidateSelection({
+    catalog: preliminaryCatalog,
+    name,
+  });
+  if (!preliminarySelection.selected) {
+    return {
+      catalog: preliminaryCatalog,
+      selection: preliminarySelection,
+      preflight: null,
+      resolved: null,
+    };
+  }
+  const sourceIndex = preliminarySelection.selected.registry.priority;
+  const entryIndex = preliminarySelection.selected.registry.entryIndex;
+  const source = sources[sourceIndex];
+  const entry = source?.registry?.plugins?.[entryIndex];
+  if (!entry || entry.name !== preliminarySelection.selected.name) {
+    throw new Error(
+      "selected registry entry no longer matches catalog authority",
+    );
+  }
+  const authorized = authorizeRegistryPluginEntry(source.registry, entry, {
+    registryUrl: registryUrls[sourceIndex],
+    cwd,
+  });
   const catalog = buildPluginMarketplaceCatalog({
     sources,
     installed: await discoverInstalledPluginVersions(cwd),
@@ -311,32 +348,27 @@ async function buildRegistrySetSelection(
     catalog,
     name,
   });
-  if (!selection.selected) {
-    return { catalog, selection, preflight: null, resolved: null };
+  if (
+    selection.selected?.registry.priority !== sourceIndex ||
+    selection.selected?.registry.entryIndex !== entryIndex
+  ) {
+    throw new Error("selected registry entry changed during local preflight");
   }
   const preflight = buildPluginMarketplaceInstallPreflightFromSelection({
     catalog,
     selection,
   }).preflight;
-  const sourceIndex = selection.selected.registry.priority;
-  const entryIndex = selection.selected.registry.entryIndex;
-  const source = sources[sourceIndex];
-  const entry = source?.registry?.plugins?.[entryIndex];
-  if (!entry || entry.name !== selection.selected.name) {
-    throw new Error(
-      "selected registry entry no longer matches catalog authority",
-    );
-  }
   return {
     catalog,
     selection,
     preflight,
     resolved: {
       registryUrl: registryUrls[sourceIndex],
-      source: entry.ref ? `${entry.source}#${entry.ref}` : entry.source,
-      ref: entry.ref || null,
+      source: authorized.source,
+      ref: authorized.ref,
       sha256: entry.sha256 || null,
       entry,
+      registryResolutionAuthority: authorized.registryResolutionAuthority,
       fromCache: source.fromCache === true,
       documentSha256: source.documentSha256 || null,
       networkAuthority: source.networkAuthority || null,
@@ -1582,6 +1614,7 @@ export function registerPluginCommand(program) {
       let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
+      let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -1652,6 +1685,8 @@ export function registerPluginCommand(program) {
             );
           }
           installSource = resolved.source;
+          registryResolutionAuthority =
+            resolved.registryResolutionAuthority || null;
           integritySha = resolved.sha256;
           if (registryManifestDigestConflict(integritySha, options.sha256)) {
             throw new Error(
@@ -1841,6 +1876,7 @@ export function registerPluginCommand(program) {
           sourceMetadata,
           expectedIdentity,
           managedPolicy: managed,
+          registryResolutionAuthority,
           policySource: sourceMetadata?.registry || source,
           remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           offline: options.offline === true,
@@ -3330,6 +3366,7 @@ export function registerPluginCommand(program) {
       let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
+      let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -3400,6 +3437,8 @@ export function registerPluginCommand(program) {
             );
           }
           installSource = resolved.source;
+          registryResolutionAuthority =
+            resolved.registryResolutionAuthority || null;
           integritySha = resolved.sha256;
           if (registryManifestDigestConflict(integritySha, options.sha256)) {
             throw new Error(
@@ -3603,6 +3642,7 @@ export function registerPluginCommand(program) {
           sourceMetadata,
           expectedIdentity,
           managedPolicy: managed,
+          registryResolutionAuthority,
           policySource: sourceMetadata?.registry || source,
           remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           offline: options.offline === true,

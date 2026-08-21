@@ -29,6 +29,9 @@ export function marketplaceSourceCacheSpec(
   if (sourceMetadata?.type !== "registry") return null;
   const source = cleanString(sourceMetadata.resolvedSource, 4096);
   const ref = cleanString(sourceMetadata.ref, 256);
+  const sourceDigest =
+    normalizeSha256(sourceMetadata.resolvedSourceDigest) ||
+    (source ? sha256Canonical({ source, ref }) : null);
   const expectations = sourceMetadata.catalogAuthority?.artifactExpectations;
   const manifestSha256 = normalizeSha256(expectations?.manifest?.sha256);
   let payloadSchemaVersion = cleanString(expectations?.sbom?.format, 128);
@@ -57,6 +60,7 @@ export function marketplaceSourceCacheSpec(
   }
   if (
     !source ||
+    !sourceDigest ||
     !manifestSha256 ||
     !payloadSha256 ||
     !isMarketplacePayloadSbomFormat(payloadSchemaVersion)
@@ -66,6 +70,7 @@ export function marketplaceSourceCacheSpec(
   const keyAuthority = {
     schemaVersion: PLUGIN_MARKETPLACE_SOURCE_CACHE_SCHEMA,
     source,
+    sourceDigest,
     ref,
     manifestSha256,
     payload: {
@@ -180,6 +185,7 @@ function buildCacheAuthority(payload, spec) {
     schemaVersion: PLUGIN_MARKETPLACE_SOURCE_CACHE_SCHEMA,
     cacheKey: spec.cacheKey,
     source: spec.source,
+    sourceDigest: spec.sourceDigest,
     ref: spec.ref,
     manifestSha256,
     payload: {
@@ -279,7 +285,11 @@ function readAuthority(file) {
     } catch {
       throw new Error("Marketplace source cache authority is not valid UTF-8");
     }
-    return JSON.parse(text);
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Marketplace source cache authority is invalid JSON");
+    }
   } finally {
     if (descriptor != null) fs.closeSync(descriptor);
   }

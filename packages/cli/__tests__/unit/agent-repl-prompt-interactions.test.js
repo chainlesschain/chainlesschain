@@ -18,6 +18,10 @@ describe("production agent REPL prompt interactions", () => {
       "_promptInteractionSurface.dispatchSlash(trimmed)",
     );
     expect(source).toContain("_promptInteractions.handleKeypress(_str, k)");
+    expect(source).toContain('readStringSetting("keybindingFlavor"');
+    expect(source).toContain('_keybindingFlavor === "readline"');
+    expect(source).toContain("isReadlineWordRuboutKey(_str, k)");
+    expect(source).toContain("readlineWordRubout(rl.line, rl.cursor)");
     expect(source).toContain("guardedReadlineKeypress");
     expect(source).toContain(
       'process.stdin.prependListener("keypress", _replKeypressHandler)',

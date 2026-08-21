@@ -50,11 +50,20 @@ function addStyleFile(dir, filename, content) {
 }
 
 describe("built-ins", () => {
-  it("ships default / explanatory / learning", () => {
-    const names = discoverOutputStyles(CWD).map((s) => s.name).sort();
+  it("ships default / concise / explanatory / learning", () => {
+    const names = discoverOutputStyles(CWD)
+      .map((s) => s.name)
+      .sort();
     expect(names).toContain("default");
+    expect(names).toContain("concise");
     expect(names).toContain("explanatory");
     expect(names).toContain("learning");
+  });
+  it("keeps the concise persona short and safety-preserving", () => {
+    const concise = getOutputStyle("concise", CWD);
+    expect(concise.builtin).toBe(true);
+    expect(concise.body).toContain("Respond directly and briefly");
+    expect(concise.body).toContain("safety");
   });
   it("getOutputStyle is case-insensitive", () => {
     expect(getOutputStyle("Explanatory", CWD).name).toBe("explanatory");

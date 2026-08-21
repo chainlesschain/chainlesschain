@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
 import crypto from "node:crypto";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { registerPluginCommand } from "../../src/commands/plugin.js";
 import {
+  _deps as installDeps,
   getActiveVersion,
   listInstalled,
   readSourceMetadataStrict,
@@ -27,14 +26,8 @@ const REMOTE_ARTIFACT_EVIDENCE_SCHEMA =
   "cc-plugin-marketplace-remote-artifact-evidence/v1";
 const PLUGIN_NAME = "remote-artifact-plugin";
 const PLUGIN_VERSION = "1.0.0";
-const GIT_AVAILABLE = (() => {
-  try {
-    execFileSync("git", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const REGISTRY_GIT_SOURCE =
+  "https://git.example.invalid/remote-artifact-plugin.git";
 
 let cwd;
 let sourceRoot;
@@ -66,6 +59,7 @@ let sbomSha256;
 let legacyPayloadSha256;
 let canonicalPayloadSha256;
 let signingPrivateKey;
+let originalSpawnSync;
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -240,7 +234,15 @@ beforeEach(async () => {
   );
   source = path.join(sourceRoot, "plugin");
   fs.mkdirSync(source);
-  registrySource = source;
+  registrySource = REGISTRY_GIT_SOURCE;
+  originalSpawnSync = installDeps.spawnSync;
+  installDeps.spawnSync = (_executable, args) => {
+    if (!args.includes(REGISTRY_GIT_SOURCE)) {
+      throw new Error("unexpected Git fixture source");
+    }
+    fs.cpSync(source, args.at(-1), { recursive: true });
+    return { status: 0, stdout: "", stderr: "" };
+  };
 
   const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
   signingPrivateKey = privateKey;
@@ -293,6 +295,7 @@ afterEach(async () => {
   expect(fs.existsSync(pluginLifecycleCoordinatorLock(PLUGIN_NAME))).toBe(
     false,
   );
+  installDeps.spawnSync = originalSpawnSync;
   vi.restoreAllMocks();
   process.exitCode = 0;
   server?.closeAllConnections?.();
@@ -316,6 +319,8 @@ afterEach(async () => {
 
 describe("cc plugin remote marketplace artifact journey", () => {
   it("replays a pinned registry and all declared artifacts offline without a network request", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
     const documentSha256 = sha256(
       Buffer.from(JSON.stringify(registryDocument())),
     );
@@ -373,80 +378,59 @@ describe("cc plugin remote marketplace artifact journey", () => {
     });
   });
 
-  it.skipIf(!GIT_AVAILABLE)(
-    "seeds and replays a semantic remote Git source package cache offline",
-    async () => {
-      sbomDeclarationMode = "payload-bound";
-      prepareRegistryVersion(PLUGIN_VERSION);
-      execFileSync("git", ["init", source], { stdio: "ignore" });
-      execFileSync("git", ["-C", source, "add", "."], { stdio: "ignore" });
-      execFileSync(
-        "git",
-        [
-          "-C",
-          source,
-          "-c",
-          "user.name=Marketplace Cache Test",
-          "-c",
-          "user.email=marketplace-cache@example.invalid",
-          "commit",
-          "-m",
-          "source cache fixture",
-        ],
-        { stdio: "ignore" },
-      );
-      registrySource = pathToFileURL(source).href;
-      const documentSha256 = sha256(
-        Buffer.from(JSON.stringify(registryDocument())),
-      );
+  it("seeds and replays a semantic remote Git source package cache offline", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const documentSha256 = sha256(
+      Buffer.from(JSON.stringify(registryDocument())),
+    );
 
-      const onlineRun = await run(
-        "add",
-        PLUGIN_NAME,
-        "--registry",
-        registryUrl,
-        "--scope",
-        "project",
-        "--json",
-      );
-      expect(onlineRun.exitCode, onlineRun.stderr).toBe(0);
-      expect(JSON.parse(onlineRun.stdout).sourceCache).toMatchObject({
-        status: "published",
-        cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
-      });
+    const onlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(onlineRun.exitCode, onlineRun.stderr).toBe(0);
+    expect(JSON.parse(onlineRun.stdout).sourceCache).toMatchObject({
+      status: "published",
+      cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
 
-      fs.renameSync(source, `${source}-removed`);
-      server.closeAllConnections?.();
-      await new Promise((resolve) => server.close(resolve));
-      requestUrls = [];
-      const offlineRun = await run(
-        "add",
-        PLUGIN_NAME,
-        "--registry",
-        registryUrl,
-        "--registry-digest",
-        `${registryUrl}=${documentSha256}`,
-        "--offline",
-        "--scope",
-        "local",
-        "--json",
-      );
+    fs.renameSync(source, `${source}-removed`);
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+    requestUrls = [];
+    const offlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--registry-digest",
+      `${registryUrl}=${documentSha256}`,
+      "--offline",
+      "--scope",
+      "local",
+      "--json",
+    );
 
-      expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
-      expect(requestUrls).toEqual([]);
-      expect(JSON.parse(offlineRun.stdout).sourceCache).toMatchObject({
-        status: "hit",
-        cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
-      });
-      const [installed] = listInstalled({ cwd, scopes: ["local"] });
-      expect(installed.source).toMatchObject({
-        offline: true,
-        catalogAuthority: {
-          remoteSbomPayloadComparison: { status: "matched" },
-        },
-      });
-    },
-  );
+    expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
+    expect(requestUrls).toEqual([]);
+    expect(JSON.parse(offlineRun.stdout).sourceCache).toMatchObject({
+      status: "hit",
+      cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    const [installed] = listInstalled({ cwd, scopes: ["local"] });
+    expect(installed.source).toMatchObject({
+      offline: true,
+      catalogAuthority: {
+        remoteSbomPayloadComparison: { status: "matched" },
+      },
+    });
+  });
 
   it("binds publisher identity to managed organization trust and enforces revocation", async () => {
     publisherDeclaration = true;
@@ -939,63 +923,44 @@ describe("cc plugin remote marketplace artifact journey", () => {
     });
   });
 
-  it.skipIf(!GIT_AVAILABLE)(
-    "compares a v2 materialized payload from a real Git clone without VCS metadata",
-    async () => {
-      sbomDeclarationMode = "payload-bound";
-      prepareRegistryVersion(PLUGIN_VERSION);
-      execFileSync("git", ["init", "-q"], { cwd: source, stdio: "ignore" });
-      execFileSync("git", ["add", "plugin.json"], {
-        cwd: source,
-        stdio: "ignore",
-      });
-      execFileSync(
-        "git",
-        [
-          "-c",
-          "user.email=tests@chainlesschain.invalid",
-          "-c",
-          "user.name=ChainlessChain Tests",
-          "commit",
-          "-q",
-          "-m",
-          "fixture",
-        ],
-        { cwd: source, stdio: "ignore" },
-      );
-      // Rebuild the publisher document from the committed checkout so the
-      // producer-side v2 walk also proves that top-level .git is excluded.
-      prepareRegistryVersion(PLUGIN_VERSION);
-      const publishedPayload = JSON.parse(sbomBytes.toString("utf8"));
-      expect(publishedPayload).toMatchObject({
-        schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
-        exclusions: expect.arrayContaining([".git"]),
-        files: [expect.objectContaining({ path: "plugin.json", type: "file" })],
-      });
-      registrySource = pathToFileURL(source).href;
+  it("compares a v2 materialized remote Git payload without VCS metadata", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    fs.mkdirSync(path.join(source, ".git"));
+    fs.writeFileSync(
+      path.join(source, ".git", "HEAD"),
+      "ref: refs/heads/main\n",
+    );
+    // Rebuild the publisher document from the committed checkout so the
+    // producer-side v2 walk also proves that top-level .git is excluded.
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const publishedPayload = JSON.parse(sbomBytes.toString("utf8"));
+    expect(publishedPayload).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      exclusions: expect.arrayContaining([".git"]),
+      files: [expect.objectContaining({ path: "plugin.json", type: "file" })],
+    });
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
 
-      const installRun = await run(
-        "add",
-        PLUGIN_NAME,
-        "--registry",
-        registryUrl,
-        "--scope",
-        "project",
-        "--json",
-      );
-
-      expect(installRun.exitCode, installRun.stderr).toBe(0);
-      const [installed] = listInstalled({ cwd, scopes: ["project"] });
-      expect(fs.existsSync(path.join(installed.dir, ".git"))).toBe(false);
-      expect(
-        installed.source.catalogAuthority.remoteSbomPayloadComparison,
-      ).toMatchObject({
-        status: "matched",
-        remotePayload: { digest: canonicalPayloadSha256, fileCount: 1 },
-        installedPayload: { digest: canonicalPayloadSha256, fileCount: 1 },
-      });
-    },
-  );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    expect(fs.existsSync(path.join(installed.dir, ".git"))).toBe(false);
+    expect(
+      installed.source.catalogAuthority.remoteSbomPayloadComparison,
+    ).toMatchObject({
+      status: "matched",
+      remotePayload: { digest: canonicalPayloadSha256, fileCount: 1 },
+      installedPayload: { digest: canonicalPayloadSha256, fileCount: 1 },
+    });
+  });
 
   it("rejects a repository payload SBOM whose inventory differs from staged plugin bytes", async () => {
     sbomDeclarationMode = "payload-bound";

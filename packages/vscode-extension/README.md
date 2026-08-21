@@ -226,19 +226,26 @@ Common Command Palette entries include:
 
 Important settings:
 
-| Setting                                       | Purpose                                    |
-| --------------------------------------------- | ------------------------------------------ |
-| `chainlesschain.ide.enabled`                  | Enable the localhost IDE bridge            |
-| `chainlesschain.cli.path`                     | Select a custom `cc` executable            |
-| `chainlesschain.cli.managed.enabled`          | Enable managed CLI lifecycle support       |
-| `chainlesschain.chat.provider` / `.model`     | Override the CLI's default chat model      |
-| `chainlesschain.chat.contextIndicator`        | Show context-window usage                  |
-| `chainlesschain.chat.leanContext`             | Reduce automatically attached chat context |
-| `chainlesschain.codeLens.enabled`             | Show Explain and Refactor CodeLens actions |
-| `chainlesschain.completion.enabled`           | Enable manual ghost-text completion        |
-| `chainlesschain.completion.automatic.enabled` | Opt into governed automatic ghost text     |
-| `chainlesschain.completion.automatic.*`       | Tune debounce, cache, budget and quality   |
-| `chainlesschain.remote.relayUrl` / `.peerId`  | Configure remote-control discovery         |
+| Setting                                       | Purpose                                                      |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| `chainlesschain.ide.enabled`                  | Enable the localhost IDE bridge                              |
+| `chainlesschain.cli.path`                     | Select a custom `cc` executable                              |
+| `chainlesschain.cli.managed.enabled`          | Enable managed CLI lifecycle support                         |
+| `chainlesschain.chat.provider` / `.model`     | Override the CLI's default chat model                        |
+| `chainlesschain.chat.contextIndicator`        | Show context-window usage                                    |
+| `chainlesschain.chat.leanContext`             | Reduce automatically attached chat context                   |
+| `chainlesschain.codeLens.enabled`             | Show Explain and Refactor CodeLens actions                   |
+| `chainlesschain.completion.enabled`           | Enable manual ghost-text completion                          |
+| `chainlesschain.completion.automatic.enabled` | Opt into governed automatic ghost text                       |
+| `chainlesschain.completion.automatic.*`       | Tune debounce, cache, budget and quality                     |
+| `chainlesschain.remote.relayUrl` / `.peerId`  | Configure E2EE remote-control discovery                      |
+| `chainlesschain.remote.allowLan`              | Explicitly expose direct mode to trusted LANs (default: off) |
+
+Remote Control direct mode is loopback-only by default. A loopback pairing
+URI is shown as local-only and is never rendered as a phone QR. To pair
+another device, configure an E2EE relay or explicitly enable
+`chainlesschain.remote.allowLan`; direct LAN transport is plaintext `ws://`
+and should be used only on a trusted network.
 
 The generated capability contract at the end of this README is the exhaustive
 command list and is checked against `package.json`, runtime registration, the

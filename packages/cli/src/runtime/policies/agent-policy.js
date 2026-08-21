@@ -90,10 +90,12 @@ export function resolveAgentPolicy({
     fallbackModels: overrides.fallbackModels,
     pdh: overrides.pdh,
     outputStyle: overrides.outputStyle,
+    settingsFile: overrides.settingsFile || null,
     disableSlashCommands: overrides.disableSlashCommands === true,
     // --remote-control also applies interactively: the REPL starts the
     // paired-device approval bridge at startup (批26).
     remoteControl: overrides.remoteControl === true,
+    remoteControlAllowLan: overrides.remoteControlAllowLan === true,
     // --channels: inbound channel listeners (webhook/telegram) whose events
     // become user turns in the interactive session (gap-2026-07-11 P0#5).
     channels: overrides.channels || null,

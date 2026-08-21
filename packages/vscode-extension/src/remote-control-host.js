@@ -1,8 +1,9 @@
 /**
  * Remote Control host manager — glue for the `chainlesschain.remote.control`
  * command. Wraps `cc remote-control start/status/stop --json`: starts a
- * pairing host (long-running child of THIS window) so mobile/web devices can
- * pair and drive this machine's agent sessions, surfaces the one-time pairing
+ * pairing host (long-running child of THIS window). Direct mode is loopback
+ * unless the user explicitly opts into LAN access; an E2EE relay or that LAN
+ * consent lets another device pair. The wrapper surfaces the one-time pairing
  * URI (copy to clipboard), lists discovered hosts, and stops them.
  *
  * Pure arg builders/parsers live in chat/remote-handoff.js; this module owns
@@ -18,6 +19,7 @@ const {
   buildRemoteControlStopArgs,
   extractFirstJsonObject,
   formatPairingNote,
+  isPairingUsableFromAnotherDevice,
   parseRemoteControlStatus,
 } = require("./chat/remote-handoff");
 
@@ -38,6 +40,18 @@ function escapeHtml(s) {
  */
 function pairingQrHtml(pairing) {
   const uri = String(pairing?.pairingUri || "");
+  if (!isPairingUsableFromAnotherDevice(pairing)) {
+    return (
+      `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>` +
+      `<body style="padding:24px;font-family:sans-serif">` +
+      `<p>This pairing URI is loopback-only and can be used only by clients ` +
+      `on this machine. A phone QR is intentionally not rendered.</p>` +
+      `<p>Enable <code>chainlesschain.remote.allowLan</code> only on a trusted ` +
+      `network, or configure an E2EE relay, then restart the host.</p>` +
+      `<code style="word-break:break-all;font-size:11px;opacity:.8">` +
+      `${escapeHtml(uri)}</code></body></html>`
+    );
+  }
   const qr = encodeQr(uri);
   const svg = qr ? qrToSvg(qr) : null;
   const exp = pairing?.pairing?.expiresAt
@@ -113,12 +127,21 @@ function createRemoteControlHost(
   async function copyPairingUri() {
     if (!pairing?.pairingUri) return;
     await vscode.env.clipboard.writeText(pairing.pairingUri);
-    vscode.window.setStatusBarMessage("$(broadcast) Pairing URI copied", 3000);
+    const label = isPairingUsableFromAnotherDevice(pairing)
+      ? "Pairing URI copied"
+      : "Local-only pairing URI copied";
+    vscode.window.setStatusBarMessage(`$(broadcast) ${label}`, 3000);
   }
 
   /** In-IDE QR of the one-time pairing URI (gap #2 — no CLI terminal needed). */
   function showQrPanel() {
     if (!pairing?.pairingUri) return;
+    if (!isPairingUsableFromAnotherDevice(pairing)) {
+      vscode.window.showWarningMessage(
+        "This host is loopback-only, so its URI cannot be scanned from a phone. Enable chainlesschain.remote.allowLan on a trusted network or configure an E2EE relay, then restart the host.",
+      );
+      return;
+    }
     const html = pairingQrHtml(pairing);
     if (qrPanel) {
       qrPanel.webview.html = html;
@@ -150,31 +173,51 @@ function createRemoteControlHost(
   function announcePairing() {
     const note = formatPairingNote(pairing);
     if (!note) return;
-    log(`remote-control: ${note}`);
+    // The URI embeds server and one-time pairing credentials. Keep it in the
+    // explicit clipboard/QR surfaces, never in the persistent output channel.
+    const safeNote = note.replace(
+      String(pairing.pairingUri),
+      "[sensitive pairing URI hidden; use the Copy action]",
+    );
+    log(`remote-control: ${safeNote}`);
+    if (isPairingUsableFromAnotherDevice(pairing)) {
+      vscode.window
+        .showInformationMessage(
+          `Remote control ready on port ${pairing.port} (${pairing.mode}). ` +
+            "Pair a phone or web panel with the one-time URI.",
+          "Show QR",
+          "Copy pairing URI",
+        )
+        .then((pick) => {
+          if (pick === "Copy pairing URI") copyPairingUri().catch(() => {});
+          else if (pick === "Show QR") showQrPanel();
+        });
+      return;
+    }
     vscode.window
       .showInformationMessage(
-        `Remote control ready on port ${pairing.port} (${pairing.mode}). ` +
-          "Pair a phone or web panel with the one-time URI.",
-        "Show QR",
-        "Copy pairing URI",
+        `Remote control ready on port ${pairing.port}, but it is loopback-only. ` +
+          "Only clients on this machine can use this URI. Enable chainlesschain.remote.allowLan on a trusted network or configure an E2EE relay to pair another device.",
+        "Copy local URI",
       )
       .then((pick) => {
-        if (pick === "Copy pairing URI") copyPairingUri().catch(() => {});
-        else if (pick === "Show QR") showQrPanel();
+        if (pick === "Copy local URI") copyPairingUri().catch(() => {});
       });
   }
 
   /**
-   * Relay (E2EE cross-network) settings — `chainlesschain.remote.relayUrl` /
-   * `.peerId`. Read at each start so a settings change applies to the next
-   * host without a window reload; blank values defer to the CLI's env/config.
+   * Remote settings — E2EE relay values plus the independent, default-off
+   * `chainlesschain.remote.allowLan` consent. Read at each start so a settings
+   * change applies to the next host without a window reload; blank relay
+   * values defer to the CLI's env/config.
    */
-  function relayOptions() {
+  function remoteOptions() {
     try {
       const cfg = vscode.workspace.getConfiguration("chainlesschain.remote");
       return {
         relayUrl: cfg.get("relayUrl") || "",
         peerId: cfg.get("peerId") || "",
+        allowLan: cfg.get("allowLan") === true,
       };
     } catch {
       return {};
@@ -188,7 +231,7 @@ function createRemoteControlHost(
     let errBuffer = "";
     const proc = doSpawn(
       cliCommand(),
-      shellArgs(buildRemoteControlStartArgs(relayOptions())),
+      shellArgs(buildRemoteControlStartArgs(remoteOptions())),
       spawnOpts(),
     );
     child = proc;
@@ -310,10 +353,24 @@ function createRemoteControlHost(
 
   async function openMenu() {
     const running = Boolean(child);
+    const configured = remoteOptions();
+    const otherDevice = isPairingUsableFromAnotherDevice(pairing);
+    const pairingItems = pairing?.pairingUri
+      ? [
+          ...(otherDevice
+            ? [{ label: "$(device-camera) Show pairing QR", action: "qr" }]
+            : []),
+          {
+            label: otherDevice
+              ? "$(clippy) Copy pairing URI"
+              : "$(clippy) Copy local-only pairing URI",
+            action: "copy",
+          },
+        ]
+      : [];
     const items = running
       ? [
-          { label: "$(device-camera) Show pairing QR", action: "qr" },
-          { label: "$(clippy) Copy pairing URI", action: "copy" },
+          ...pairingItems,
           { label: "$(list-unordered) Show host status", action: "status" },
           {
             label: "$(primitive-square) Stop this window's host",
@@ -323,7 +380,11 @@ function createRemoteControlHost(
       : [
           {
             label: "$(broadcast) Start remote-control host",
-            description: "pair a phone / web panel to drive this machine",
+            description: configured.relayUrl
+              ? "pair through the configured E2EE relay"
+              : configured.allowLan
+                ? "expose to a trusted LAN (explicit opt-in)"
+                : "start loopback-only; LAN access is off by default",
             action: "start",
           },
           {

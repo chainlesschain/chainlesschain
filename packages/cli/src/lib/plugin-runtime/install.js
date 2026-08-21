@@ -38,8 +38,18 @@ import {
 } from "./scopes.js";
 import {
   enforcePluginPolicy,
+  enforcePluginSourcePolicy,
+  resolvePluginManagedPolicy,
   verifyPluginManifest,
 } from "../plugin-security.js";
+import {
+  assertPluginGitTransportSafe,
+  canonicalizePluginSource,
+  normalizePluginLocalSourcePath,
+  parsePluginGitSource,
+  redactPluginSourceForDisplay,
+} from "../plugin-source-identity.js";
+import { assertRegistryResolutionAuthority } from "./remote-source.js";
 import {
   writePluginLock,
   buildPluginSbom,
@@ -106,12 +116,18 @@ export const _deps = {
   mkdtempSync: fs.mkdtempSync,
   randomToken: () => crypto.randomBytes(16).toString("hex"),
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  gitExecutable: null,
   beforeTransactionPhaseHook: null,
   transactionPhaseHook: null,
 };
 
 const pendingPluginTransactions = new WeakMap();
 const ownedPluginLifecycleLocks = new Map();
+const SOURCE_POLICY_PREFLIGHT = Symbol("plugin-source-policy-preflight");
+const UPDATE_MATERIALIZATION = Symbol("plugin-update-materialization");
+const NULL_DEVICE = process.platform === "win32" ? "NUL" : "/dev/null";
+let cachedTrustedGitExecutable = null;
+let cachedTrustedSshExecutable = null;
 
 /**
  * Install a plugin from a local directory into a scope's immutable version dir.
@@ -120,8 +136,11 @@ const ownedPluginLifecycleLocks = new Map();
  * @returns {{ name, version, scope, dir, warnings }}
  */
 export function installFromDirectory(srcDir, opts = {}) {
+  opts = preflightManagedSource(srcDir, opts, "install", {
+    materializedKind: "directory",
+  });
   const scope = opts.scope || "user";
-  const src = path.resolve(srcDir);
+  const src = path.resolve(opts.cwd || process.cwd(), srcDir);
   if (!_deps.existsSync(src)) {
     throw new Error(`source directory does not exist: ${src}`);
   }
@@ -157,7 +176,10 @@ export function installFromDirectory(srcDir, opts = {}) {
   assertInstalledNameDirectoryIdentity(name, { scope, cwd: opts.cwd });
   assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
   let sourceMetadata = normalizeSourceMetadata(
-    opts.sourceMetadata ?? { type: "local", source: src },
+    bindSourcePolicyAuthority(
+      opts.sourceMetadata ?? { type: "local", source: src },
+      opts,
+    ),
   );
   if (!sourceMetadata) {
     throw new Error("plugin source metadata has no valid source identity");
@@ -184,6 +206,13 @@ export function installFromDirectory(srcDir, opts = {}) {
       {
         name,
         source: opts.policySource || sourceMetadata?.source || null,
+        sourceKind:
+          sourceMetadata?.type === "registry"
+            ? "registry"
+            : sourceMetadata?.type === "git"
+              ? "git"
+              : null,
+        sourcePolicyPreflighted: true,
         action: "install",
       },
       opts.managedPolicy,
@@ -508,17 +537,34 @@ export function installFromDirectory(srcDir, opts = {}) {
  * An optional `#ref` (branch / tag / commit) pins the checkout.
  */
 export function installFromSource(source, opts = {}) {
+  const governedOpts = preflightManagedSource(source, opts, "install");
   return _withMaterializedSource(
     source,
     (dir, info) => {
       const sourceMetadata =
-        normalizeSourceMetadata(opts.sourceMetadata) ||
         normalizeSourceMetadata(
-          info
-            ? { type: "git", source: info.url, ref: info.ref || null }
-            : { type: "local", source: path.resolve(String(source || "")) },
+          bindSourcePolicyAuthority(governedOpts.sourceMetadata, governedOpts),
+        ) ||
+        normalizeSourceMetadata(
+          bindSourcePolicyAuthority(
+            info
+              ? { type: "git", source: info.url, ref: info.ref || null }
+              : {
+                  type: "local",
+                  source:
+                    governedOpts[SOURCE_POLICY_PREFLIGHT]?.materialized?.path ||
+                    path.resolve(
+                      governedOpts.cwd || process.cwd(),
+                      String(source || ""),
+                    ),
+                },
+            governedOpts,
+          ),
         );
-      const res = installFromDirectory(dir, { ...opts, sourceMetadata });
+      const res = installFromDirectory(dir, {
+        ...governedOpts,
+        sourceMetadata,
+      });
       if (!info) return res;
       const result = {
         ...res,
@@ -528,8 +574,158 @@ export function installFromSource(source, opts = {}) {
       transferPendingTransaction(res, result);
       return result;
     },
-    opts,
+    governedOpts,
   );
+}
+
+function describeMaterializedSource(source, opts, materializedKind = null) {
+  if (materializedKind !== "directory") {
+    const git = parsePluginGitSource(source);
+    if (git) return { kind: "git", git };
+  }
+  return {
+    kind: "directory",
+    path: path.resolve(
+      opts.cwd || process.cwd(),
+      normalizePluginLocalSourcePath(source),
+    ),
+  };
+}
+
+function preflightManagedSource(source, opts, action, options = {}) {
+  if (opts[SOURCE_POLICY_PREFLIGHT]) return opts;
+  const materialized = describeMaterializedSource(
+    source,
+    opts,
+    options.materializedKind,
+  );
+  const registrySource =
+    opts.sourceMetadata?.type === "registry"
+      ? opts.sourceMetadata.registry || opts.sourceMetadata.source
+      : null;
+  // Policy follows the bytes that will actually be materialized. The only
+  // intentional indirection is a registry-backed install, whose catalog URL
+  // is authoritative in sourceMetadata; a caller-supplied display/legacy
+  // policySource must never substitute a different allowlisted identity.
+  const policySource = registrySource ?? source;
+  const policyKind = registrySource ? "registry" : materialized.kind;
+  const managedPolicy = resolvePluginManagedPolicy(opts);
+  let registryAuthority = null;
+  if (registrySource) {
+    registryAuthority = assertRegistryResolutionAuthority(
+      opts.registryResolutionAuthority,
+      {
+        registryUrl: registrySource,
+        source,
+        ref: materialized.git?.ref || null,
+      },
+    );
+    if (
+      opts.sourceMetadata.resolvedSource !== source ||
+      (opts.sourceMetadata.ref || null) !== (materialized.git?.ref || null)
+    ) {
+      throw new Error(
+        "registry source metadata does not match materialized source",
+      );
+    }
+    if (
+      !opts.sourceMetadata.catalogAuthority ||
+      typeof opts.sourceMetadata.catalogAuthority !== "object" ||
+      Array.isArray(opts.sourceMetadata.catalogAuthority)
+    ) {
+      throw new Error("registry source metadata requires catalog authority");
+    }
+    const declaredDocumentSha256 =
+      opts.sourceMetadata.catalogAuthority?.registryDocumentSha256 || null;
+    if (
+      declaredDocumentSha256 &&
+      declaredDocumentSha256 !== registryAuthority.documentSha256
+    ) {
+      throw new Error(
+        "registry source authority does not match catalog document digest",
+      );
+    }
+  }
+  // Resolve managed identity before exists/clone/cache/process work. The
+  // manifest name is checked again by installFromDirectory after materializing
+  // bytes; source policy cannot wait for that later gate.
+  const decision = enforcePluginSourcePolicy(policySource, managedPolicy, {
+    action,
+    cwd: opts.cwd,
+    kindHint: policyKind,
+  });
+  const policyIdentity = canonicalizePluginSource(policySource, {
+    cwd: opts.cwd,
+    kindHint: policyKind,
+  });
+  const materializedIdentity = canonicalizePluginSource(source, {
+    cwd: opts.cwd,
+    kindHint: materialized.kind,
+  });
+  const identityDigest = (identity) =>
+    crypto
+      .createHash("sha256")
+      .update(
+        canonicalJson({
+          identity: identity.identityDigest || identity.key,
+          ref: identity.ref ?? null,
+          path: identity.path ?? null,
+        }),
+      )
+      .digest("hex");
+  const sourceAuthority = {
+    policyDigest: decision.policyDigest || null,
+    sourceDigest: identityDigest(policyIdentity),
+    resolvedSourceDigest: registrySource
+      ? identityDigest(materializedIdentity)
+      : null,
+    registryDocumentSha256: registryAuthority?.documentSha256 || null,
+  };
+  const preflight = {
+    decision,
+    materialized,
+    sourceAuthority,
+  };
+  const boundSourceMetadata = opts.sourceMetadata
+    ? bindSourcePolicyAuthority(opts.sourceMetadata, {
+        [SOURCE_POLICY_PREFLIGHT]: preflight,
+      })
+    : null;
+  const normalizedSourceMetadata = boundSourceMetadata
+    ? normalizeSourceMetadata(boundSourceMetadata)
+    : null;
+  if (opts.sourceMetadata && !normalizedSourceMetadata) {
+    throw new Error("plugin source metadata is invalid");
+  }
+  return {
+    ...opts,
+    managedPolicy,
+    ...(normalizedSourceMetadata
+      ? { sourceMetadata: normalizedSourceMetadata }
+      : {}),
+    [SOURCE_POLICY_PREFLIGHT]: preflight,
+  };
+}
+
+function bindSourcePolicyAuthority(sourceMetadata, opts) {
+  const authority = opts[SOURCE_POLICY_PREFLIGHT]?.sourceAuthority;
+  if (!authority || !sourceMetadata) return sourceMetadata;
+  return {
+    ...sourceMetadata,
+    policyDigest: authority.policyDigest,
+    sourceDigest: authority.sourceDigest,
+    ...(authority.resolvedSourceDigest
+      ? { resolvedSourceDigest: authority.resolvedSourceDigest }
+      : {}),
+    ...(authority.registryDocumentSha256 && sourceMetadata.catalogAuthority
+      ? {
+          catalogAuthority: {
+            ...sourceMetadata.catalogAuthority,
+            registryDocumentSha256: authority.registryDocumentSha256,
+          },
+        }
+      : {}),
+  };
 }
 
 /**
@@ -538,12 +734,21 @@ export function installFromSource(source, opts = {}) {
  * Single fetch shared by installFromSource + updatePlugin.
  */
 function _withMaterializedSource(source, fn, opts = {}) {
-  const raw = String(source || "");
-  const asDir = path.resolve(raw);
-  if (_deps.existsSync(asDir) && _deps.lstatSync(asDir).isDirectory()) {
-    return fn(asDir, null);
+  const materialized =
+    opts[SOURCE_POLICY_PREFLIGHT]?.materialized ||
+    describeMaterializedSource(source, opts);
+  if (materialized.kind === "directory") {
+    if (
+      _deps.existsSync(materialized.path) &&
+      _deps.lstatSync(materialized.path).isDirectory()
+    ) {
+      return fn(materialized.path, null);
+    }
+    throw new Error(
+      `source directory does not exist: ${redactPluginSourceForDisplay(materialized.path)}`,
+    );
   }
-  const git = parseGitSource(raw);
+  const git = materialized.git;
   if (git) {
     if (opts.offline === true) {
       const cached = readMarketplaceSourceCache(opts.sourceMetadata, {
@@ -562,7 +767,7 @@ function _withMaterializedSource(source, fn, opts = {}) {
       }
       return result;
     }
-    const cloned = fetchGitRepo(git.url, git.ref);
+    const cloned = fetchGitRepo(git.url, git.ref, { cwd: opts.cwd });
     try {
       const result = fn(cloned, git);
       if (result && typeof result === "object") {
@@ -592,9 +797,7 @@ function _withMaterializedSource(source, fn, opts = {}) {
       }
     }
   }
-  throw new Error(
-    `source not found as a local directory or git URL: ${source}`,
-  );
+  throw new Error("source is neither a local directory nor a git URL");
 }
 
 /**
@@ -606,6 +809,7 @@ function _withMaterializedSource(source, fn, opts = {}) {
  * Returns { name, version, previousVersion, updated, reinstalled }.
  */
 export function updatePlugin(source, opts = {}) {
+  opts = preflightManagedSource(source, opts, "upgrade");
   const scope = opts.scope || "user";
   const updateMaterialized = (dir, info) => {
     const manifest = parsePluginManifest(dir);
@@ -627,8 +831,7 @@ export function updatePlugin(source, opts = {}) {
           updatePlugin(source, {
             ...opts,
             _lifecycleLock: lifecycleLock,
-            _materializedDir: dir,
-            _materializedGitInfo: info,
+            [UPDATE_MATERIALIZATION]: { dir, info },
           }),
       );
     }
@@ -640,11 +843,21 @@ export function updatePlugin(source, opts = {}) {
     assertNoRetainedInstallRecovery(name, { scope, cwd: opts.cwd });
     assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
     const sourceMetadata =
-      normalizeSourceMetadata(opts.sourceMetadata) ||
       normalizeSourceMetadata(
-        info
-          ? { type: "git", source: info.url, ref: info.ref || null }
-          : { type: "local", source: path.resolve(String(source || "")) },
+        bindSourcePolicyAuthority(opts.sourceMetadata, opts),
+      ) ||
+      normalizeSourceMetadata(
+        bindSourcePolicyAuthority(
+          info
+            ? { type: "git", source: info.url, ref: info.ref || null }
+            : {
+                type: "local",
+                source:
+                  opts[SOURCE_POLICY_PREFLIGHT]?.materialized?.path ||
+                  path.resolve(opts.cwd || process.cwd(), String(source || "")),
+              },
+          opts,
+        ),
       );
     const previousVersion = getActiveVersion(name, { scope, cwd: opts.cwd });
     assertReplacementApprovals({
@@ -799,10 +1012,10 @@ export function updatePlugin(source, opts = {}) {
     transferPendingTransaction(res, result);
     return result;
   };
-  if (opts._materializedDir) {
+  if (opts[UPDATE_MATERIALIZATION]) {
     return updateMaterialized(
-      opts._materializedDir,
-      opts._materializedGitInfo || null,
+      opts[UPDATE_MATERIALIZATION].dir,
+      opts[UPDATE_MATERIALIZATION].info || null,
     );
   }
   return _withMaterializedSource(source, updateMaterialized, opts);
@@ -1570,19 +1783,158 @@ function rollbackRecoveredWholeNameUninstall(transaction) {
  * not remote-looking. `owner/repo` expands to a GitHub HTTPS URL.
  */
 export function parseGitSource(raw) {
-  const [loc, ref] = String(raw || "").split("#");
-  if (!loc) return null;
-  if (
-    /^(https?|git|ssh|file):\/\//.test(loc) ||
-    loc.endsWith(".git") ||
-    /^git@/.test(loc)
-  ) {
-    return { url: loc, ref: ref || null };
+  return parsePluginGitSource(raw);
+}
+
+function isPathWithin(child, root) {
+  const relative = path.relative(root, child);
+  return (
+    relative === "" ||
+    (!path.isAbsolute(relative) &&
+      relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`))
+  );
+}
+
+function validateTrustedExecutable(value, cwd) {
+  if (typeof value !== "string" || !path.isAbsolute(value)) return null;
+  try {
+    const executable = fs.realpathSync.native(value);
+    const stat = fs.statSync(executable);
+    if (!stat.isFile()) return null;
+    if (process.platform !== "win32" && (Number(stat.mode) & 0o111) === 0) {
+      return null;
+    }
+    if (isPathWithin(executable, path.resolve(cwd))) return null;
+    return executable;
+  } catch {
+    return null;
   }
-  if (/^[\w.-]+\/[\w.-]+$/.test(loc)) {
-    return { url: `https://github.com/${loc}.git`, ref: ref || null };
+}
+
+function resolveTrustedExecutable({
+  cwd,
+  executableName,
+  configured,
+  configuredLabel,
+  injected = null,
+  cached = null,
+}) {
+  if (injected != null) {
+    const trusted = validateTrustedExecutable(injected, cwd);
+    if (!trusted)
+      throw new Error(`configured ${configuredLabel} is not trusted`);
+    return trusted;
   }
-  return null;
+  const trustedCached = validateTrustedExecutable(cached, cwd);
+  if (trustedCached) return trustedCached;
+  if (configured != null) {
+    const trusted = validateTrustedExecutable(configured, cwd);
+    if (!trusted) {
+      throw new Error(`${configuredLabel} must be a trusted absolute file`);
+    }
+    return trusted;
+  }
+  for (const rawEntry of String(process.env.PATH || "").split(path.delimiter)) {
+    const entry = rawEntry.replace(/^"|"$/gu, "");
+    if (!entry || !path.isAbsolute(entry)) continue;
+    const trusted = validateTrustedExecutable(
+      path.join(entry, executableName),
+      cwd,
+    );
+    if (trusted) return trusted;
+  }
+  throw new Error(
+    `trusted ${configuredLabel} was not found on an absolute PATH entry`,
+  );
+}
+
+function resolveTrustedGitExecutable(cwd) {
+  const executable = resolveTrustedExecutable({
+    cwd,
+    executableName: process.platform === "win32" ? "git.exe" : "git",
+    configured: process.env.CHAINLESSCHAIN_GIT_BIN,
+    configuredLabel: "Git executable",
+    injected: _deps.gitExecutable,
+    cached: cachedTrustedGitExecutable,
+  });
+  cachedTrustedGitExecutable = executable;
+  return executable;
+}
+
+function resolveTrustedSshExecutable(cwd) {
+  const executable = resolveTrustedExecutable({
+    cwd,
+    executableName: process.platform === "win32" ? "ssh.exe" : "ssh",
+    configured: process.env.CHAINLESSCHAIN_SSH_BIN,
+    configuredLabel: "SSH executable",
+    cached: cachedTrustedSshExecutable,
+  });
+  cachedTrustedSshExecutable = executable;
+  return executable;
+}
+
+function hardenedPluginGitEnvironment() {
+  const environment = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.toUpperCase().startsWith("GIT_")) environment[key] = value;
+  }
+  return {
+    ...environment,
+    GIT_ATTR_NOSYSTEM: "1",
+    GIT_CONFIG_COUNT: "0",
+    GIT_CONFIG_GLOBAL: NULL_DEVICE,
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_EXTERNAL_DIFF: "",
+    GIT_OPTIONAL_LOCKS: "0",
+    GIT_PAGER: "",
+    GIT_TERMINAL_PROMPT: "0",
+    LC_ALL: "C",
+  };
+}
+
+function quoteSshCommandArgument(value) {
+  if (process.platform === "win32") {
+    return `"${String(value).replace(/"/gu, '\\"')}"`;
+  }
+  return `'${String(value).replace(/'/gu, `'\\''`)}'`;
+}
+
+function hardenedPluginGitArgs(args, { url, cwd }) {
+  const parsed = parsePluginGitSource(url);
+  const sshTransport =
+    /^ssh:\/\//iu.test(parsed?.url || "") ||
+    (!(parsed?.url || "").includes("://") &&
+      /^(?:[^@\s/:]+@)?(?:\[[^\]]+\]|[^\s/:]+):/u.test(parsed?.url || "") &&
+      !/^[a-z]:[\\/]/iu.test(parsed?.url || ""));
+  const sshArgs = sshTransport
+    ? [
+        "-c",
+        `core.sshCommand=${quoteSshCommandArgument(resolveTrustedSshExecutable(cwd))} -F ${quoteSshCommandArgument(NULL_DEVICE)} -o BatchMode=yes -o ClearAllForwardings=yes -o PermitLocalCommand=no -o ProxyCommand=none -o CanonicalizeHostname=no`,
+      ]
+    : [];
+  const fileTransport = /^file:\/\//iu.test(parsed?.url || "");
+  return [
+    "--no-pager",
+    "-c",
+    `core.hooksPath=${NULL_DEVICE}`,
+    "-c",
+    "core.fsmonitor=false",
+    "-c",
+    "core.untrackedCache=false",
+    "-c",
+    "credential.helper=",
+    "-c",
+    "diff.external=",
+    "-c",
+    "http.followRedirects=false",
+    "-c",
+    "protocol.ext.allow=never",
+    "-c",
+    `protocol.file.allow=${fileTransport ? "always" : "never"}`,
+    ...sshArgs,
+    ...args,
+  ];
 }
 
 /**
@@ -1590,30 +1942,46 @@ export function parseGitSource(raw) {
  * checkout path. Uses `git` via spawn WITHOUT a shell (url/ref are argv, not a
  * command line — no injection). Caller removes the temp dir's parent.
  */
-export function fetchGitRepo(url, ref) {
+export function fetchGitRepo(url, ref, options = {}) {
   // git argv-injection guard: a value starting with "-" is parsed by git as an
   // OPTION, not a URL/ref — e.g. a registry-supplied ref "-f" reaches
   // `git checkout <ref>` on the full-clone retry path, and an option-looking
   // url reaches `git clone`. Real git URLs/refs never start with "-"
   // (check-ref-format forbids it), so reject instead of trying to escape.
   if (String(url).startsWith("-")) {
-    throw new Error(`refusing git source that looks like an option: ${url}`);
+    throw new Error("refusing git source that looks like an option");
   }
   if (ref != null && String(ref).startsWith("-")) {
-    throw new Error(`refusing git ref that looks like an option: ${ref}`);
+    throw new Error("refusing git ref that looks like an option");
   }
+  const git = parsePluginGitSource(ref ? `${url}#${ref}` : url);
+  assertPluginGitTransportSafe(git, { allowFile: true });
+  const cwd = path.resolve(options.cwd || process.cwd());
+  const executable = resolveTrustedGitExecutable(cwd);
   const base = _deps.mkdtempSync(path.join(os.tmpdir(), "cc-plugin-git-"));
   const dir = path.join(base, "repo");
-  const run = (args) =>
-    _deps.spawnSync("git", args, {
-      encoding: "utf8",
-      timeout: 120000,
-      windowsHide: true,
-      origin: "plugin:install-git",
-      policy: "allow",
-      scope: "plugin-install",
-      shell: false,
-    });
+  const run = (args) => {
+    const hardenedArgs = hardenedPluginGitArgs(args, { url, cwd });
+    const auditRedactArgIndexes = hardenedArgs.flatMap((argument, index) =>
+      argument === url || (ref != null && argument === ref) ? [index] : [],
+    );
+    try {
+      return _deps.spawnSync(executable, hardenedArgs, {
+        cwd: base,
+        encoding: "utf8",
+        env: hardenedPluginGitEnvironment(),
+        timeout: 120000,
+        windowsHide: true,
+        origin: "plugin:install-git",
+        policy: "allow",
+        scope: "plugin-install",
+        shell: false,
+        auditRedactArgIndexes,
+      });
+    } catch (error) {
+      return { error, status: null, stdout: "", stderr: "" };
+    }
+  };
 
   // Reduce host-specific checkout differences before the v2 inventory hashes
   // the materialized staged bytes. Repository .gitattributes may still define
@@ -1636,6 +2004,11 @@ export function fetchGitRepo(url, ref) {
   if (res.error && res.error.code === "ENOENT") {
     throw new Error("git is not installed (needed to fetch a remote plugin)");
   }
+  if (res.error) {
+    throw new Error(
+      `git process failed for ${redactPluginSourceForDisplay(url)}`,
+    );
+  }
   if (res.status !== 0) {
     // A commit SHA can't be used with --branch/--depth; retry with a full clone
     // then checkout the ref explicitly.
@@ -1651,8 +2024,9 @@ export function fetchGitRepo(url, ref) {
         if (co.status === 0) return dir;
       }
     }
-    const reason = (res.stderr || "").trim() || `git exited ${res.status}`;
-    throw new Error(`git clone failed for ${url}: ${reason}`);
+    throw new Error(
+      `git clone failed for ${redactPluginSourceForDisplay(url)} (git exited ${res.status})`,
+    );
   }
   return dir;
 }
@@ -2987,13 +3361,19 @@ function sameSourceAuthority(current, candidate) {
   if (current?.type !== candidate?.type) return false;
   if (current.type === "registry") {
     return Boolean(
-      current.registry &&
-      candidate.registry &&
-      current.registry === candidate.registry,
+      current.sourceDigest &&
+      candidate.sourceDigest &&
+      current.sourceDigest === candidate.sourceDigest &&
+      current.resolvedSourceDigest &&
+      candidate.resolvedSourceDigest &&
+      current.resolvedSourceDigest === candidate.resolvedSourceDigest,
     );
   }
-  if (current.type === "git") return current.source === candidate.source;
-  return current.type === "local" && current.source === candidate.source;
+  return Boolean(
+    current.sourceDigest &&
+    candidate.sourceDigest &&
+    current.sourceDigest === candidate.sourceDigest,
+  );
 }
 
 function effectivePluginRecord(
@@ -3229,12 +3609,25 @@ function normalizeSourceMetadata(value) {
     type,
     source,
     ref: cleanBounded(value.ref, 256),
+    sourceDigest:
+      normalizeSourceAuthorityDigest(value.sourceDigest) ||
+      pluginSourceAuthorityDigest(value.source, type, value.ref),
   };
   const registry = sanitizeSource(value.registry);
   const resolvedSource = sanitizeSource(value.resolvedSource);
   const packageName = cleanBounded(value.package, 256);
   if (registry) metadata.registry = registry;
   if (resolvedSource) metadata.resolvedSource = resolvedSource;
+  const resolvedSourceDigest =
+    normalizeSourceAuthorityDigest(value.resolvedSourceDigest) ||
+    (value.resolvedSource
+      ? pluginSourceAuthorityDigest(value.resolvedSource, "git", value.ref)
+      : null);
+  const policyDigest = normalizeSourceAuthorityDigest(value.policyDigest);
+  if (resolvedSourceDigest) {
+    metadata.resolvedSourceDigest = resolvedSourceDigest;
+  }
+  if (policyDigest) metadata.policyDigest = policyDigest;
   if (packageName) metadata.package = packageName;
   if (value.offline === true) metadata.offline = true;
   if (value.catalogAuthority != null) {
@@ -3244,6 +3637,29 @@ function normalizeSourceMetadata(value) {
   }
   assertCatalogRemoteArtifactBindings(metadata);
   return metadata;
+}
+
+function normalizeSourceAuthorityDigest(value) {
+  const normalized = cleanBounded(value, 64)?.toLowerCase() || null;
+  return normalized && /^[a-f0-9]{64}$/u.test(normalized) ? normalized : null;
+}
+
+function pluginSourceAuthorityDigest(source, type, ref = null) {
+  const identity = canonicalizePluginSource(source, {
+    kindHint:
+      type === "registry" ? "registry" : type === "local" ? "directory" : "git",
+    ref: ref || undefined,
+  });
+  return crypto
+    .createHash("sha256")
+    .update(
+      canonicalJson({
+        identity: identity.identityDigest || identity.key,
+        ref: identity.ref ?? null,
+        path: identity.path ?? null,
+      }),
+    )
+    .digest("hex");
 }
 
 function normalizeMigrationIssuedAt(value) {
@@ -3928,16 +4344,7 @@ function sanitizeSource(value, preservePath = false) {
   const raw = cleanBounded(value, 4096);
   if (!raw) return null;
   if (preservePath) return raw;
-  try {
-    const parsed = new URL(raw);
-    parsed.username = "";
-    parsed.password = "";
-    parsed.search = "";
-    parsed.hash = "";
-    return parsed.toString();
-  } catch {
-    return raw;
-  }
+  return redactPluginSourceForDisplay(raw);
 }
 
 function cleanBounded(value, max) {
