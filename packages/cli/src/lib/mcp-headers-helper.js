@@ -37,6 +37,25 @@ const TRANSPORT_OWNED_HEADERS = new Set([
   "upgrade",
 ]);
 const PUBLIC_CONFIG_SCOPES = new Set(["local", "project", "user", "managed"]);
+const HELPER_ENVIRONMENT_ALLOWLIST = new Set([
+  "COMSPEC",
+  "HOME",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "NODE_EXTRA_CA_CERTS",
+  "PATH",
+  "PATHEXT",
+  "SSL_CERT_DIR",
+  "SSL_CERT_FILE",
+  "SYSTEMROOT",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  "USERPROFILE",
+  "WINDIR",
+  "XDG_CONFIG_HOME",
+]);
 
 function helperError(code, message) {
   const error = new Error(message);
@@ -96,6 +115,28 @@ function normalizeHelperCommand(value) {
     );
   }
   return value;
+}
+
+export function sanitizeMcpHeadersHelperEnvironment(environment = process.env) {
+  if (!environment || typeof environment !== "object" || isProxy(environment)) {
+    throw helperError(
+      "CC_MCP_HEADERS_HELPER_ENV_INVALID",
+      "MCP headersHelper environment must be a non-Proxy object",
+    );
+  }
+  const sanitized = {};
+  for (const key of Object.keys(environment)) {
+    if (!HELPER_ENVIRONMENT_ALLOWLIST.has(key.toUpperCase())) continue;
+    const descriptor = Object.getOwnPropertyDescriptor(environment, key);
+    if (!descriptor || !("value" in descriptor)) {
+      throw helperError(
+        "CC_MCP_HEADERS_HELPER_ENV_INVALID",
+        "MCP headersHelper environment values must be own data properties",
+      );
+    }
+    if (typeof descriptor.value === "string") sanitized[key] = descriptor.value;
+  }
+  return sanitized;
 }
 
 function canonicalHelperCwd(value, realpath = fs.realpathSync.native) {
@@ -486,7 +527,7 @@ export function runMcpHeadersHelper(spec, deps = {}) {
     ),
   );
   const env = {
-    ...(spec?.env || process.env),
+    ...sanitizeMcpHeadersHelperEnvironment(spec?.env || process.env),
     CLAUDE_CODE_MCP_SERVER_NAME: String(spec?.serverName || ""),
     CLAUDE_CODE_MCP_SERVER_URL: String(spec?.serverUrl || ""),
     ...(spec?.pluginRoot

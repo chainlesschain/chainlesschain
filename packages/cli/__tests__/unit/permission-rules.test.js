@@ -544,6 +544,22 @@ describe("evaluatePermissionRules — traversal cannot bypass a deny rule", () =
     ).toBe("deny");
   });
 
+  it("treats a trailing slash deny target as the same canonical path", () => {
+    for (const [rulePath, requestedPath] of [
+      ["./secret", "secret/"],
+      ["./secret/", "secret"],
+    ]) {
+      expect(
+        evaluatePermissionRules({
+          tool: "edit_file",
+          args: { path: requestedPath },
+          cwd,
+          rules: { deny: [`Edit(${rulePath})`] },
+        }).decision,
+      ).toBe("deny");
+    }
+  });
+
   it("denies a `..`-obfuscated path that resolves into the protected area", () => {
     // The arg never literally contains "secret/**"-shaped text, but resolves to
     // <cwd>/secret/key — the engine must resolve BEFORE matching so the deny

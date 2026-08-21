@@ -8,6 +8,7 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/**"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
       # extension sources (and its manifest / l10n bundles) directly — an
@@ -26,6 +27,7 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/package.json"
@@ -86,6 +88,19 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify Claude security delta producer map
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-security-map.mjs
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+      - name: Upload Claude security delta evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: claude-security-map-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
+          if-no-files-found: error
       - name: Verify CLI --version
         working-directory: packages/cli
         run: node bin/chainlesschain.js --version

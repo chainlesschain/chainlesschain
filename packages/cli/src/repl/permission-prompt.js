@@ -14,15 +14,38 @@
  *
  * @returns {string} the prompt header (no styling, no trailing "Proceed?")
  */
+export function visualizePermissionText(value) {
+  return String(value ?? "").replace(
+    /[\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0]/gu,
+    (character) => {
+      if (character === "\t") return "<TAB>";
+      if (character === "\n") return "<LF>";
+      if (character === "\r") return "<CR>";
+      return `<U+${character.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}>`;
+    },
+  );
+}
+
 export function buildPermissionPrompt({ tool, args, rule, reason } = {}) {
-  const detail = args?.command
-    ? ` ${args.command}`
-    : args?.path
-      ? ` ${args.path}`
-      : "";
-  if (rule) return `[Permission] rule "${rule}" asks before ${tool}:${detail}`;
-  if (reason) return `[Permission] ${reason}`;
-  return `[Permission] confirm ${tool}:${detail}`;
+  const visibleTool = visualizePermissionText(tool);
+  const command = typeof args?.command === "string" ? args.command : "";
+  const source = args?.path ?? args?.file_path ?? args?.source ?? "";
+  const destination = args?.destination ?? args?.new_path ?? args?.to ?? "";
+  const rawDetail = command
+    ? command
+    : source && destination
+      ? `${source} -> ${destination}`
+      : source || destination;
+  const detail = rawDetail ? ` ${visualizePermissionText(rawDetail)}` : "";
+  if (rule) {
+    return `[Permission] rule "${visualizePermissionText(rule)}" asks before ${visibleTool}:${detail}`;
+  }
+  if (reason) {
+    const reasonText = String(reason);
+    const missingTarget = rawDetail && !reasonText.includes(String(rawDetail));
+    return `[Permission] ${visualizePermissionText(reasonText)}${missingTarget ? `:${detail}` : ""}`;
+  }
+  return `[Permission] confirm ${visibleTool}:${detail}`;
 }
 
 /**

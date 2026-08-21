@@ -11,6 +11,9 @@ on:
       - "packages/cli/package.json"
       - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
       - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
+      - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/__tests__/unit/claude-security-map.test.js"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/src/harness/mcp-client.js"
       - "packages/cli/src/harness/prompt-compressor.js"
@@ -49,6 +52,9 @@ on:
       - "packages/cli/package.json"
       - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
       - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
+      - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/__tests__/unit/claude-security-map.test.js"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/src/harness/mcp-client.js"
       - "packages/cli/src/harness/prompt-compressor.js"
@@ -121,6 +127,13 @@ jobs:
       - name: Verify roadmap manifest contract only
         run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs --contract-only
 
+      - name: Verify Claude security delta producer map
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-security-map.mjs
+          --release-commit "${IDE_ROADMAP_SAFETY_COMMIT}"
+          --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+
       - name: Test fail-closed runtime evidence verifier
         run: npm --prefix packages/cli test -- __tests__/unit/verify-ide-roadmap-fixtures.test.js
 
@@ -150,6 +163,7 @@ jobs:
           path: |
             ${{ runner.temp }}/ide-roadmap-safety-${{ runner.os }}.json
             ${{ runner.temp }}/ide-roadmap-mcp-security-${{ runner.os }}.json
+            ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
           if-no-files-found: error
           retention-days: 90
 
@@ -198,6 +212,11 @@ jobs:
             --release-commit "${IDE_ROADMAP_SAFETY_COMMIT}" \
             --output "${RUNNER_TEMP}/ide-roadmap-mcp-security-aggregate.json"
 
+          node packages/cli/scripts/verify-claude-security-map.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/ide-roadmap-safety-evidence" \
+            --release-commit "${IDE_ROADMAP_SAFETY_COMMIT}" \
+            --output "${RUNNER_TEMP}/claude-security-map-aggregate.json"
+
       - name: Upload immutable aggregate
         uses: actions/upload-artifact@v6
         with:
@@ -205,5 +224,6 @@ jobs:
           path: |
             ${{ runner.temp }}/ide-roadmap-safety-aggregate.json
             ${{ runner.temp }}/ide-roadmap-mcp-security-aggregate.json
+            ${{ runner.temp }}/claude-security-map-aggregate.json
           if-no-files-found: error
           retention-days: 90

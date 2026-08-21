@@ -8,6 +8,14 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/mcp-headers-helper.js"
+      - "packages/cli/src/repl/permission-prompt.js"
+      - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/__tests__/unit/claude-security-map.test.js"
+      - "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js"
+      - "packages/cli/__tests__/unit/permission-prompt.test.js"
+      - "packages/cli/__tests__/unit/permission-rules.test.js"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "packages/cli/scripts/build-windows-sandbox-helper.ps1"
       - "packages/cli/src/lib/packer/pkg-config-generator.js"
       - "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js"
@@ -156,6 +164,14 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/mcp-headers-helper.js"
+      - "packages/cli/src/repl/permission-prompt.js"
+      - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/__tests__/unit/claude-security-map.test.js"
+      - "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js"
+      - "packages/cli/__tests__/unit/permission-prompt.test.js"
+      - "packages/cli/__tests__/unit/permission-rules.test.js"
+      - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "packages/cli/scripts/build-windows-sandbox-helper.ps1"
       - "packages/cli/src/lib/packer/pkg-config-generator.js"
       - "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js"
@@ -332,6 +348,13 @@ jobs:
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
 
+      - name: Verify Claude security delta producer map
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-security-map.mjs
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+
       - name: Verify Windows helper source contract
         if: runner.os == 'Windows'
         shell: powershell
@@ -442,6 +465,7 @@ jobs:
             packages/cli/strict-sandbox-contract-result.json
             packages/cli/strict-sandbox-result.json
             packages/cli/strict-sandbox-system.log
+            ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
           if-no-files-found: warn
           retention-days: 7
 

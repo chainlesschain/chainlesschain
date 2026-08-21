@@ -8,9 +8,31 @@ import {
   buildPermissionPrompt,
   resolveAskIdleTimeoutMs,
   questionWithIdleTimeout,
+  visualizePermissionText,
 } from "../../src/repl/permission-prompt.js";
 
 describe("buildPermissionPrompt", () => {
+  it("makes tabs and invisible Unicode explicit without changing the executed arguments", () => {
+    const command = "git<TAB>push\u202E origin".replace("<TAB>", "\t");
+    expect(
+      buildPermissionPrompt({ tool: "run_shell", args: { command } }),
+    ).toBe("[Permission] confirm run_shell: git<TAB>push<U+202E> origin");
+    expect(command).toContain("\t");
+    expect(visualizePermissionText("a\u200Bb\nnext")).toBe(
+      "a<U+200B>b<LF>next",
+    );
+  });
+
+  it("keeps the complete source and destination visible in the grant", () => {
+    expect(
+      buildPermissionPrompt({
+        tool: "move_file",
+        args: { path: "src/a.txt", destination: "release/a.txt" },
+        reason: "workspace mutation",
+      }),
+    ).toBe("[Permission] workspace mutation: src/a.txt -> release/a.txt");
+  });
+
   it("uses the rule name for settings/hook ask rules", () => {
     const h = buildPermissionPrompt({
       tool: "run_shell",
@@ -39,7 +61,9 @@ describe("buildPermissionPrompt", () => {
       args: { path: "~/.bashrc" },
       reason: "sensitive file: shell startup file",
     });
-    expect(h).toBe("[Permission] sensitive file: shell startup file");
+    expect(h).toBe(
+      "[Permission] sensitive file: shell startup file: ~/.bashrc",
+    );
     expect(h).not.toContain("null");
   });
 

@@ -8,6 +8,7 @@ import {
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
   runMcpHeadersHelper,
+  sanitizeMcpHeadersHelperEnvironment,
   terminateMcpHeadersHelperTree,
 } from "../../src/lib/mcp-headers-helper.js";
 import { issueProjectMcpWorkspaceAuthority } from "../../src/lib/project-mcp-trust.js";
@@ -45,6 +46,24 @@ function childProcess({ stdout = "{}", stderr = "", code = 0 } = {}) {
 }
 
 describe("MCP headersHelper runner", () => {
+  it("runs with a clean environment and never inherits credential variables", () => {
+    expect(
+      sanitizeMcpHeadersHelperEnvironment({
+        PATH: "/bin",
+        HOME: "/home/runner",
+        ANTHROPIC_API_KEY: "anthropic-secret",
+        AWS_SECRET_ACCESS_KEY: "aws-secret",
+        GITHUB_TOKEN: "github-secret",
+        SSH_AUTH_SOCK: "/tmp/credential-capability",
+      }),
+    ).toEqual({ PATH: "/bin", HOME: "/home/runner" });
+    expect(() =>
+      sanitizeMcpHeadersHelperEnvironment(
+        new Proxy({}, { ownKeys: () => ["PATH"] }),
+      ),
+    ).toThrow(/non-Proxy/);
+  });
+
   it("uses an explicit shell with shell:false and injects server context", async () => {
     const root = workspace();
     const spawn = vi.fn(() =>
@@ -56,7 +75,10 @@ describe("MCP headersHelper runner", () => {
         {
           command: "get-auth --json",
           cwd: root,
-          env: { PATH: "/bin" },
+          env: {
+            PATH: "/bin",
+            ANTHROPIC_API_KEY: "must-not-reach-helper",
+          },
           serverName: "internal-api",
           serverUrl: "https://mcp.example.test",
         },
@@ -77,6 +99,7 @@ describe("MCP headersHelper runner", () => {
         }),
       }),
     );
+    expect(spawn.mock.calls[0][2].env).not.toHaveProperty("ANTHROPIC_API_KEY");
   });
 
   it("never exposes helper stderr in a failure", async () => {
