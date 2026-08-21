@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -441,21 +442,44 @@ function normalizeLocalIdentityPath(value) {
   ) {
     throw invalid("Windows extended namespace paths are not supported");
   }
+  let identityPath = raw;
   if (process.platform === "win32") {
-    const unsafeSegment = raw
-      .replace(/^[a-z]:/iu, "")
-      .split(/[\\/]/u)
-      .find(
-        (segment) =>
-          /~[0-9]+(?:\.[^.]*)?$/iu.test(segment) || /[ .]$/u.test(segment),
-      );
-    if (unsafeSegment) {
+    const segments = raw.replace(/^[a-z]:/iu, "").split(/[\\/]/u);
+    if (segments.some((segment) => /[ .]$/u.test(segment))) {
       throw invalid(
         "Windows short-name and trailing-dot/space path aliases are not supported",
       );
     }
+    if (segments.some((segment) => /~[0-9]+(?:\.[^.]*)?$/iu.test(segment))) {
+      try {
+        // Hosted Windows runners and some managed profiles expose TEMP through
+        // a legitimate 8.3 parent (for example RUNNER~1). Resolve an existing
+        // source as a whole so its policy identity uses the long spelling. A
+        // caller-supplied alias that does not resolve exactly still fails
+        // closed, and realpath also prevents two spellings from producing two
+        // authorities for the same existing directory.
+        identityPath = fs.realpathSync.native(raw);
+      } catch {
+        throw invalid(
+          "Windows short-name and trailing-dot/space path aliases are not supported",
+        );
+      }
+      const resolvedSegments = identityPath
+        .replace(/^[a-z]:/iu, "")
+        .split(/[\\/]/u);
+      if (
+        resolvedSegments.some(
+          (segment) =>
+            /~[0-9]+(?:\.[^.]*)?$/iu.test(segment) || /[ .]$/u.test(segment),
+        )
+      ) {
+        throw invalid(
+          "Windows short-name and trailing-dot/space path aliases are not supported",
+        );
+      }
+    }
   }
-  const normalized = path.normalize(raw);
+  const normalized = path.normalize(identityPath);
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 

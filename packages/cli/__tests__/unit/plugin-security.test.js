@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -626,6 +632,21 @@ describe("managed plugin policy", () => {
         expect(() => canonicalizePluginSource(aliased)).toThrowError(
           expect.objectContaining({ code: "PLUGIN_SOURCE_POLICY_INVALID" }),
         );
+      }
+      const existingShortRoot = "C:\\PROGRA~1";
+      if (existsSync(existingShortRoot)) {
+        const expandedRoot = realpathSync.native(existingShortRoot);
+        if (expandedRoot.toLowerCase() !== existingShortRoot.toLowerCase()) {
+          expect(
+            canonicalizePluginSource(existingShortRoot, {
+              kindHint: "directory",
+            }).key,
+          ).toBe(
+            canonicalizePluginSource(expandedRoot, {
+              kindHint: "directory",
+            }).key,
+          );
+        }
       }
     }
   });
