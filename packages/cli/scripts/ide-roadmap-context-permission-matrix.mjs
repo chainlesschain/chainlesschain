@@ -34,9 +34,10 @@ const REQUIRED_FILES = Object.freeze([
   "outcome-observations.json",
 ]);
 // Each child performs five mutations through the production 2s strict lock.
-// Three shared retries cap it at eight lock windows (16s plus <250ms backoff),
-// below the 30s child deadline even if every retry consumes its full window.
-const SAFE_CONTENTION_RETRIES_PER_WORKER = 3;
+// Six shared retries leave room for the Windows 20-worker campaign to drain a
+// burst of unrelated holders. A single mutation can consume at most seven lock
+// windows (14s plus <1.3s backoff), below the 30s child deadline.
+const SAFE_CONTENTION_RETRIES_PER_WORKER = 6;
 const MAX_DIAGNOSTIC_BYTES = 16 * 1024;
 
 function delay(ms) {

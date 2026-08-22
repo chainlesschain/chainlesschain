@@ -206,8 +206,8 @@ describe("context/permission Actions matrix", () => {
         },
       ),
     ).rejects.toBe(exhausted);
-    expect(calls).toBe(4);
-    expect(waits).toEqual([25, 50, 100]);
+    expect(calls).toBe(7);
+    expect(waits).toEqual([25, 50, 100, 200, 200, 200]);
   });
 
   it("bounds and redacts worker diagnostics while retaining safe classifiers", () => {
