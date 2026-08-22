@@ -37,7 +37,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载突破 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>；JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已公开上架 Marketplace，推荐搭配完整门禁 CLI <strong class="text-ink">{CLI_VERSION}</strong>。公开 listing 与安装制品已回读；微软 VS Code Marketplace 版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
-          公开稳定版为 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> / JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong>；当前分支包元数据分别为 VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> / JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>，源码领先或分支版本漂移不替代市场 tag。CLI 源码包元数据 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 与完整门禁公开版一致。Artifact 审计/删除结算、安全 LLM secret 配置、Automation Center、内联聊天与 CLI-owned Sessions Workbench 均已进入公开安装能力。
+          公开稳定版为 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> / JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong>；当前分支包元数据分别为 VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> / JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>，源码领先或分支版本漂移不替代市场 tag。CLI 源码包元数据 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 与完整门禁公开版一致。市场版已公开安全 Remote Control、跨会话消息与 transcript 连续性；分组/Focus View、可取消诊断快照、10 万路径 mention 索引和 browser evidence 仍是源码增量。
         </p>
       </div>
     </div>
@@ -59,14 +59,14 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
           ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
           ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
-          ['自动化', 'Governed Automation Center', 'Open VSX 0.37.59 与 JetBrains 公开版 0.4.93 展示 CLI-owned flow/Routine projection、scope、preflight 与 history；JetBrains 0.4.94 已上传待审。所有变更经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。'],
+          ['自动化', 'Governed Automation Center', 'Open VSX 0.37.61 与 JetBrains 0.4.95 展示 CLI-owned flow/Routine projection、scope、preflight 与 history。所有变更经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。'],
           ['产物', '受审计的 Artifact 工作台', '预览、打开、复制路径、reveal 与下载先通过 CLI artifacts access 复核 managed bytes 并写 content-free audit；删除使用稳定 deletion id，响应丢失后按同一 id 回读/恢复，不重复执行。'],
-          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.50 / 0.4.86 读取 CLI 生成的 immutable session projection；五类 session 已覆盖 Dispatch、needs_input、Reply、artifact/PR 与独立进程重启恢复，过期动作失败闭合。'],
+          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.61 / 0.4.95 读取 CLI 生成的 immutable session/message projection，并展示 delivered、refused、full、expired 结果；源码 0.37.63 / 0.4.96 新增分组、多选批量移动与 Focus View，过期动作继续失败闭合。'],
           ['交付', '可恢复 delivery 与 rewind', '公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。'],
-          ['上下文', 'Context Center', 'VS Code 0.37.59 与 JetBrains 0.4.94 提交件显示执行位置、workspace authority、会话、工作流与恢复身份，让本地、Remote-SSH、容器和远程协作上下文保持可见。'],
+          ['上下文', 'Context Center', 'VS Code 0.37.61 与 JetBrains 0.4.95 显示执行位置、workspace authority、会话、工作流与恢复身份，让本地、Remote-SSH、容器和远程协作上下文保持可见。'],
           ['副作用', 'Side-effect Center', '双端汇总权限活动、作用域 grant 与 revoke 入口；所有变更继续通过 CLI 命令和精确上下文执行，IDE 不绕过权威存储。'],
-          ['内联', '选区旁直接问与改', 'VS Code 0.37.59 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
-          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.165.5，与已完成完整门禁的 npm latest 一致。'],
+          ['内联', '选区旁直接问与改', 'VS Code 0.37.61 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
+          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.165.6，与已完成完整门禁的 npm latest 一致。'],
           ['补全', '受治理自动 ghost-text', 'Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

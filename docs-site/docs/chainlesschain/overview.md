@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-21）：v5.0.3.135 | CLI 0.165.5（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.59（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.59 | JetBrains Marketplace 0.4.93（0.4.94 已上传待审）| Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-22）：v5.0.3.135 | CLI 0.165.6（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.59（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.61 | JetBrains Marketplace 0.4.95 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.165.5` 已公开耐久 workflow receipt/checkpoint/input/recovery、REPL/headless/WS 预算、远端结果审阅应用、Artifact access/deletion/cleanup/orphan settlement、governed plugin transaction、可移植首次安装与 MCP native-addon policy。生产安装建议固定 `chainlesschain@0.165.5`；精确 SHA `11aef634aa` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.59` 已公开，JetBrains `0.4.94` 已上传待审；Desktop/iOS 源码能力不随 npm/IDE 发布外推，正式 Scheduler campaign、签名 native 与跨宿主 revoke 仍不能按稳定发行宣称。
+> **当前能力与发布边界**：CLI `0.165.6` 已公开回环默认 Remote Control、受治理 Marketplace source/archive identity、跨会话消息、MCP 重连/生命周期恢复与既有 workflow/Artifact/native-addon 契约。生产安装建议固定 `chainlesschain@0.165.6`；精确 SHA `ef4324349f` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.61` 与 JetBrains `0.4.95` 已公开；源码 `0.37.63` / `0.4.96`、Desktop/iOS、正式 Scheduler campaign、签名 native 与跨宿主 revoke 继续按独立发行证据处理。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

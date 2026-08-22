@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - cc CLI 0.165.6: safer remote sessions and governed plugin sources
 
-> `chainlesschain` **0.165.5 -> 0.165.6** (candidate; not yet published,
-> 2026-08-21).
+> `chainlesschain` **0.165.5 -> 0.165.6** (published from exact SHA
+> `ef4324349f272f5ec6af9a6ab80110e814122dae`, 2026-08-21).
 > CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -43,10 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Focused terminal ergonomics**: the `concise` output style and persisted
   `classic`/`readline` keybinding flavor extend interactive use without
   changing existing default behavior.
-- **Release status**: publication requires the final candidate commit to pass
-  the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
-  matrices. The immutable npm tag, provenance, and registry readback will be
-  recorded only after those exact-SHA gates succeed.
+- **Published release evidence**: immutable tag `v-npm-0-165-6`, three-OS
+  `CLI CI` (`32483224738`), `CLI Strict Sandbox` (`32483224517`), npm release
+  (`32486454203`), and independent registry/provenance readback
+  (`32488130856`) all bind exact SHA `ef4324349f`. npm reports
+  `latest=0.165.6`; the public tarball SHA-1 is
+  `d0dc65bdf34d0afe8e8db4492a1ddc72d63ee260`.
 
 ### Added - cc CLI 0.165.5: governed recovery and native add-on policy
 
