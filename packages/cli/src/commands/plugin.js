@@ -282,6 +282,7 @@ async function buildRegistrySetSelection(
         const resolvedToken = resolveRegistryToken(url, { token, config });
         const resolved = await fetchRegistry(url, {
           token: resolvedToken,
+          config,
           managedPolicy,
           allowInsecure,
           offline,
@@ -408,13 +409,15 @@ async function materializeRegistrySelection(
     inspected.ref !== (marketplacePreflight.package?.ref || null) ||
     (inspected.sourceType === "archive" &&
       inspected.archiveSpec.sha256 !==
-        marketplacePreflight.package?.archiveSha256)
+        marketplacePreflight.package?.archiveSha256) ||
+    (inspected.sourceType === "command" &&
+      inspected.commandSpec.mode !== marketplacePreflight.package?.mode)
   ) {
     throw new Error(
       "registry candidate preflight revision changed before source fetch",
     );
   }
-  if (resolved.sourceType !== "archive") return resolved;
+  if (!["archive", "command"].includes(resolved.sourceType)) return resolved;
   const config = await loadOptionalPluginConfig();
   const materialized = await resolveRegistryEntrySource(url, resolved.entry, {
     registryResolutionAuthority: resolved.registryResolutionAuthority,
@@ -447,6 +450,7 @@ function catalogAuthorityFromPreflight(
   impact = null,
   remoteArtifactEvidence = null,
   archiveSource = null,
+  commandSource = null,
 ) {
   return {
     catalogDigest: preflight.catalogDigest,
@@ -501,6 +505,7 @@ function catalogAuthorityFromPreflight(
     ...(impact ? { updateImpactDigest: impact.impactDigest } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
     ...(archiveSource ? { archiveSource } : {}),
+    ...(commandSource ? { commandSource } : {}),
   };
 }
 
@@ -1671,6 +1676,7 @@ export function registerPluginCommand(program) {
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
       let archiveSourceAuthority = null;
+      let commandSourceAuthority = null;
       let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
@@ -1808,6 +1814,7 @@ export function registerPluginCommand(program) {
           );
           installSource = resolved.source;
           archiveSourceAuthority = resolved.archiveAuthority || null;
+          commandSourceAuthority = resolved.commandAuthority || null;
           registryResolutionAuthority =
             resolved.registryResolutionAuthority || registryResolutionAuthority;
           expectedIdentity = {
@@ -1838,6 +1845,7 @@ export function registerPluginCommand(program) {
               marketplaceImpact,
               null,
               archiveSourceAuthority,
+              commandSourceAuthority,
             ),
           };
           if (resolved.fromCache) {
@@ -1891,6 +1899,7 @@ export function registerPluginCommand(program) {
               marketplaceImpact,
               remoteArtifacts.authority,
               archiveSourceAuthority,
+              commandSourceAuthority,
             );
           }
         }
@@ -2138,6 +2147,7 @@ export function registerPluginCommand(program) {
           options.registry,
           {
             token,
+            config,
             allowInsecure: options.allowInsecureRegistry === true,
             offline: options.offline === true,
             expectedSha256: registryDigestPins.get(options.registry),
@@ -2279,6 +2289,7 @@ export function registerPluginCommand(program) {
             });
             const resolved = await fetchRegistry(url, {
               token,
+              config,
               allowInsecure: options.allowInsecureRegistry === true,
               offline: options.offline === true,
               expectedSha256: registryDigestPins.get(url),
@@ -3433,6 +3444,7 @@ export function registerPluginCommand(program) {
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
       let archiveSourceAuthority = null;
+      let commandSourceAuthority = null;
       let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
@@ -3586,6 +3598,7 @@ export function registerPluginCommand(program) {
           );
           installSource = resolved.source;
           archiveSourceAuthority = resolved.archiveAuthority || null;
+          commandSourceAuthority = resolved.commandAuthority || null;
           registryResolutionAuthority =
             resolved.registryResolutionAuthority || registryResolutionAuthority;
           expectedIdentity = {
@@ -3616,6 +3629,7 @@ export function registerPluginCommand(program) {
               marketplaceImpact,
               null,
               archiveSourceAuthority,
+              commandSourceAuthority,
             ),
           };
           if (resolved.fromCache && !options.json) {
@@ -3669,6 +3683,7 @@ export function registerPluginCommand(program) {
               marketplaceImpact,
               remoteArtifacts.authority,
               archiveSourceAuthority,
+              commandSourceAuthority,
             );
           }
         }

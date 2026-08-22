@@ -7,6 +7,7 @@ import {
   assertSafeInstalledPluginStructure,
   buildMarketplacePayloadSbom,
 } from "./marketplace-artifact-readback.js";
+import { createSameOriginMarketplaceHeaderFetch } from "./marketplace-command-source.js";
 import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
 import { fetchMarketplaceRemoteArtifact } from "./marketplace-remote-artifacts.js";
 
@@ -96,11 +97,28 @@ function parsePax(data) {
   return values;
 }
 
-function extractVerifiedTgz(bytes, destination) {
+function extractionLimits(limits = MARKETPLACE_ARCHIVE_LIMITS) {
+  const expandedBytes = Number(limits?.expandedBytes);
+  const entries = Number(limits?.entries);
+  if (
+    !Number.isSafeInteger(expandedBytes) ||
+    expandedBytes <= 0 ||
+    expandedBytes > MARKETPLACE_ARCHIVE_LIMITS.expandedBytes ||
+    !Number.isSafeInteger(entries) ||
+    entries <= 0 ||
+    entries > MARKETPLACE_ARCHIVE_LIMITS.entries
+  ) {
+    throw new Error("Marketplace archive extraction limits are invalid");
+  }
+  return { expandedBytes, entries };
+}
+
+function extractVerifiedTgz(bytes, destination, limits = MARKETPLACE_ARCHIVE_LIMITS) {
+  const bounded = extractionLimits(limits);
   let tar;
   try {
     tar = gunzipSync(bytes, {
-      maxOutputLength: MARKETPLACE_ARCHIVE_LIMITS.expandedBytes,
+      maxOutputLength: bounded.expandedBytes,
     });
   } catch {
     throw new Error("Marketplace archive is not a bounded valid gzip stream");
@@ -129,7 +147,7 @@ function extractVerifiedTgz(bytes, destination) {
     const data = tar.subarray(dataStart, dataEnd);
     offset = dataStart + Math.ceil(size / 512) * 512;
     records += 1;
-    if (records > MARKETPLACE_ARCHIVE_LIMITS.entries) {
+    if (records > bounded.entries) {
       throw new Error("archive contains too many entries");
     }
 
@@ -176,7 +194,7 @@ function extractVerifiedTgz(bytes, destination) {
       continue;
     }
     extractedBytes += data.length;
-    if (extractedBytes > MARKETPLACE_ARCHIVE_LIMITS.expandedBytes) {
+    if (extractedBytes > bounded.expandedBytes) {
       throw new Error("archive expanded payload exceeds its byte limit");
     }
     fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
@@ -187,6 +205,14 @@ function extractVerifiedTgz(bytes, destination) {
   assertSafeInstalledPluginStructure(destination);
   return buildMarketplacePayloadSbom(destination);
 }
+
+// Kept deliberately private-by-convention: production callers always use the
+// immutable limits above, while focused security tests can exercise the same
+// parser with a tiny bounded fixture instead of allocating a 256 MiB bomb.
+export const _marketplaceArchiveTest = Object.freeze({
+  extractVerifiedTgz: (bytes, destination, limits) =>
+    extractVerifiedTgz(bytes, destination, limits),
+});
 
 function cacheRoot(configured) {
   return (
@@ -240,6 +266,15 @@ export async function fetchAndMaterializeMarketplaceArchive(options = {}) {
     (options.proxyUrl || options.pacFile || options.caFile)
       ? createMarketplaceNetworkTransport(options)
       : null;
+  const transportFetch =
+    options.fetchImpl || networkTransport?.fetch || globalThis.fetch?.bind(globalThis);
+  const fetchImpl = options.requestHeaders
+    ? createSameOriginMarketplaceHeaderFetch(
+        transportFetch,
+        new URL(options.registryUrl).origin,
+        options.requestHeaders,
+      )
+    : transportFetch;
   let artifact;
   try {
     artifact = await fetchMarketplaceRemoteArtifact({
@@ -253,7 +288,7 @@ export async function fetchAndMaterializeMarketplaceArchive(options = {}) {
       offline: options.offline === true,
       cacheDir: options.artifactCacheDir,
       timeoutMs: options.timeoutMs,
-      fetchImpl: options.fetchImpl || networkTransport?.fetch,
+      fetchImpl,
       resolveHostname: options.resolveHostname,
     });
   } finally {
