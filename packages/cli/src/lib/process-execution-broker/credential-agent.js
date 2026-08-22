@@ -148,6 +148,144 @@ const RESERVED_AGENT_ENV_KEYS = new Set([
   "CC_CREDENTIAL_TARGET_HOST",
 ]);
 
+const JWT_TOKEN_PATTERN =
+  /\b(eyJ[A-Za-z0-9_-]{6,}\.eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,})\b/gu;
+const AWS_ASSIGNMENT_PATTERN =
+  /\b(AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN))\s*([=:])\s*([A-Za-z0-9/+=_-]{8,})/giu;
+const AWS_SIGV4_PATTERN =
+  /\bAWS4-HMAC-SHA256\s+Credential=([^,\s]+)(?:,\s*SignedHeaders=([^,\s]+))?,\s*Signature=([A-Fa-f0-9]{16,})/gu;
+const BEARER_TOKEN_PATTERN = /\bBearer\s+([A-Za-z0-9._~+\/-]{8,}={0,2})/gu;
+const PROVIDER_TOKEN_PATTERN = /\b(sk-[A-Za-z0-9_-]{20,})\b/gu;
+const MAX_JWT_CLAIM_KEYS = 16;
+
+function safeJwtMask(value) {
+  const segments = String(value).split(".");
+  if (segments.length !== 3) return { kind: "jwt", claimKeys: [] };
+  let header = null;
+  let claims = null;
+  try {
+    header = JSON.parse(Buffer.from(segments[0], "base64url").toString("utf8"));
+    claims = JSON.parse(Buffer.from(segments[1], "base64url").toString("utf8"));
+  } catch {
+    // A token-looking value is still secret-shaped, but malformed decoding must
+    // never turn its bytes or a parser diagnostic into an audit value.
+    return { kind: "jwt", claimKeys: [] };
+  }
+  const claimKeys =
+    claims && typeof claims === "object" && !Array.isArray(claims)
+      ? Object.keys(claims)
+          .filter((key) => /^[A-Za-z0-9_.:-]{1,64}$/u.test(key))
+          .sort()
+          .slice(0, MAX_JWT_CLAIM_KEYS)
+      : [];
+  const algorithm =
+    header &&
+    typeof header === "object" &&
+    !Array.isArray(header) &&
+    typeof header.alg === "string" &&
+    /^[A-Za-z0-9_.:-]{1,32}$/u.test(header.alg)
+      ? header.alg
+      : null;
+  return {
+    kind: "jwt",
+    claimKeys,
+    ...(algorithm ? { algorithm } : {}),
+  };
+}
+
+function safeExtractNoMatch(callback, inputLength) {
+  if (typeof callback !== "function") return;
+  try {
+    // Callers may record this signal, but never receive the unmasked input.
+    callback({ reason: "no_match", inputLength });
+  } catch {
+    // Observability callbacks cannot weaken credential filtering.
+  }
+}
+
+/**
+ * Extract and redact credential-shaped text for command arguments and headers.
+ *
+ * `masks` is intentionally a safe projection: it contains classification and
+ * bounded JWT claim *names* only. The raw values stay in the private `secrets`
+ * array used solely to issue target-bound broker references.
+ */
+function extractCredentialValues(value, { onExtractNoMatch } = {}) {
+  const text = String(value ?? "");
+  const secrets = [];
+  const masks = [];
+  const add = (key, secret, mask) => {
+    if (typeof secret !== "string" || secret.length === 0) return;
+    secrets.push({ key, value: secret });
+    masks.push(mask);
+  };
+
+  let sanitized = text.replace(
+    AWS_SIGV4_PATTERN,
+    (_match, credential, signedHeaders, signature) => {
+      add("aws-sigv4-credential", credential, {
+        kind: "aws_sigv4_credential",
+        ...(typeof signedHeaders === "string" && signedHeaders
+          ? { signedHeaders: signedHeaders.slice(0, 512) }
+          : {}),
+      });
+      add("aws-sigv4-signature", signature, { kind: "aws_sigv4_signature" });
+      return (
+        `AWS4-HMAC-SHA256 Credential=${REDACTED_VALUE}` +
+        (signedHeaders ? `, SignedHeaders=${signedHeaders}` : "") +
+        `, Signature=${REDACTED_VALUE}`
+      );
+    },
+  );
+  sanitized = sanitized.replace(
+    AWS_ASSIGNMENT_PATTERN,
+    (_match, key, separator, secret) => {
+      const normalizedKey = String(key).toUpperCase();
+      const kind =
+        normalizedKey === "AWS_ACCESS_KEY_ID"
+          ? "aws_access_key_id"
+          : normalizedKey === "AWS_SECRET_ACCESS_KEY"
+            ? "aws_secret_access_key"
+            : "aws_session_token";
+      add(normalizedKey.toLowerCase(), secret, { kind });
+      return `${key}${separator}${REDACTED_VALUE}`;
+    },
+  );
+  sanitized = sanitized.replace(JWT_TOKEN_PATTERN, (_match, token) => {
+    add("jwt", token, safeJwtMask(token));
+    return REDACTED_VALUE;
+  });
+  sanitized = sanitized.replace(BEARER_TOKEN_PATTERN, (_match, token) => {
+    add("bearer", token, { kind: "bearer" });
+    return `Bearer ${REDACTED_VALUE}`;
+  });
+  sanitized = sanitized.replace(PROVIDER_TOKEN_PATTERN, (_match, token) => {
+    add("provider-token", token, { kind: "provider_token" });
+    return `sk-${REDACTED_VALUE}`;
+  });
+
+  const hasAwsAccessKey = masks.some(
+    (mask) => mask.kind === "aws_access_key_id",
+  );
+  const hasAwsSecret = masks.some(
+    (mask) => mask.kind === "aws_secret_access_key",
+  );
+  if (hasAwsAccessKey && hasAwsSecret) {
+    masks.push({ kind: "aws_credential_pair" });
+  }
+  if (secrets.length === 0) safeExtractNoMatch(onExtractNoMatch, text.length);
+  return { sanitized, masks, secrets };
+}
+
+/**
+ * Public safe credential-mask extraction seam. `onExtractNoMatch` receives
+ * only a reason and input length, never the input or parsed credential values.
+ */
+export function extractCredentialMasks(value, options = {}) {
+  const { sanitized, masks } = extractCredentialValues(value, options);
+  return { sanitized, masks };
+}
+
 function credentialError(code, message) {
   const error = new Error(message);
   error.code = code;
@@ -982,16 +1120,33 @@ class CredentialAgent {
             /^(Authorization|Proxy-Authorization|X-API-Key|Cookie|Set-Cookie)\s*:\s*(.*)$/i,
           );
           if (headerMatch) {
-            sanitizedArgs.push(`${headerMatch[1]}: ${REDACTED_VALUE}`);
+            const extracted = extractCredentialValues(headerMatch[2]);
+            sanitizedArgs.push(
+              `${headerMatch[1]}: ${
+                extracted.secrets.length > 0
+                  ? extracted.sanitized
+                  : REDACTED_VALUE
+              }`,
+            );
             redacted.push({
               index: index + 1,
-              pattern: "header-with-secret",
-              secrets: [
-                {
-                  key: `header-${headerMatch[1].toLowerCase()}`,
-                  value: headerMatch[2],
-                },
-              ],
+              pattern:
+                extracted.secrets.length > 0
+                  ? "header-structured-secret"
+                  : "header-with-secret",
+              secrets:
+                extracted.secrets.length > 0
+                  ? extracted.secrets
+                  : [
+                      {
+                        key: `header-${headerMatch[1].toLowerCase()}`,
+                        value: headerMatch[2],
+                      },
+                    ],
+              masks:
+                extracted.secrets.length > 0
+                  ? extracted.masks
+                  : [{ kind: "header" }],
             });
             index += 1;
           }
@@ -1003,47 +1158,46 @@ class CredentialAgent {
         /^(Authorization|Proxy-Authorization|X-API-Key|Cookie|Set-Cookie)\s*:\s*(.*)$/i,
       );
       if (directHeaderMatch) {
-        sanitizedArgs.push(`${directHeaderMatch[1]}: ${REDACTED_VALUE}`);
+        const extracted = extractCredentialValues(directHeaderMatch[2]);
+        sanitizedArgs.push(
+          `${directHeaderMatch[1]}: ${
+            extracted.secrets.length > 0 ? extracted.sanitized : REDACTED_VALUE
+          }`,
+        );
         redacted.push({
           index,
-          pattern: "header-with-secret",
-          secrets: [
-            {
-              key: `header-${directHeaderMatch[1].toLowerCase()}`,
-              value: directHeaderMatch[2],
-            },
-          ],
+          pattern:
+            extracted.secrets.length > 0
+              ? "header-structured-secret"
+              : "header-with-secret",
+          secrets:
+            extracted.secrets.length > 0
+              ? extracted.secrets
+              : [
+                  {
+                    key: `header-${directHeaderMatch[1].toLowerCase()}`,
+                    value: directHeaderMatch[2],
+                  },
+                ],
+          masks:
+            extracted.secrets.length > 0
+              ? extracted.masks
+              : [{ kind: "header" }],
         });
         continue;
       }
 
-      const inlineSecrets = [];
-      let sanitized = arg.replace(
-        /Bearer\s+([A-Za-z0-9._-]{20,})/g,
-        (_match, value) => {
-          inlineSecrets.push({
-            key: `argv-${index}-bearer`,
-            value,
-          });
-          return `Bearer ${REDACTED_VALUE}`;
-        },
-      );
-      sanitized = sanitized.replace(
-        /\bsk-([A-Za-z0-9]{20,})\b/g,
-        (_match, value) => {
-          inlineSecrets.push({
-            key: `argv-${index}-sk-key`,
-            value: `sk-${value}`,
-          });
-          return `sk-${REDACTED_VALUE}`;
-        },
-      );
-      sanitizedArgs.push(sanitized);
-      if (inlineSecrets.length > 0) {
+      const extracted = extractCredentialValues(arg);
+      sanitizedArgs.push(extracted.sanitized);
+      if (extracted.secrets.length > 0) {
         redacted.push({
           index,
           pattern: "inline-secret",
-          secrets: inlineSecrets,
+          secrets: extracted.secrets.map((secret, secretIndex) => ({
+            ...secret,
+            key: `argv-${index}-${secret.key || secretIndex}`,
+          })),
+          masks: extracted.masks,
         });
       }
     }
@@ -1058,11 +1212,20 @@ class CredentialAgent {
     const { sanitizedArgs, redacted } = this._sanitizeArgsWithSecrets(args);
     return {
       sanitizedArgs,
-      redacted: redacted.map(({ index, pattern }) => ({
+      redacted: redacted.map(({ index, pattern, masks = [] }) => ({
         index,
         pattern,
+        ...(masks.length > 0 ? { masks } : {}),
       })),
     };
+  }
+
+  /**
+   * Return a safe structured mask projection for diagnostics or callers that
+   * need to decide whether a string should cross a process boundary.
+   */
+  extract(value, options = {}) {
+    return extractCredentialMasks(value, options);
   }
 
   /**
