@@ -166,7 +166,7 @@ jobs:
           --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Install pinned Playwright driver
         run: >-
-          npm install --workspace packages/cli --include-workspace-root=false
+          npm install
           --no-save --package-lock=false --legacy-peer-deps --ignore-scripts
           --no-audit --no-fund playwright@1.61.1
       - name: Run browser evidence contract tests
@@ -182,10 +182,10 @@ jobs:
           __tests__/unit/coding-agent-contract.test.js
       - name: Install Chromium with target-side dependencies (Linux)
         if: runner.os == 'Linux'
-        run: npm exec --workspace packages/cli -- playwright install --with-deps chromium
+        run: npm exec -- playwright install --with-deps chromium
       - name: Install Chromium (Windows/macOS)
         if: runner.os != 'Linux'
-        run: npm exec --workspace packages/cli -- playwright install chromium
+        run: npm exec -- playwright install chromium
       - name: Run real local two-origin browser evidence journey
         shell: bash
         run: >-
