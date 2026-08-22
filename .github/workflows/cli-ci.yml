@@ -9,6 +9,7 @@ on:
     paths:
       - "packages/cli/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
+      - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
       # extension sources (and its manifest / l10n bundles) directly — an
@@ -17,7 +18,12 @@ on:
       - "packages/vscode-extension/package.json"
       - "packages/vscode-extension/package.nls*.json"
       - "packages/vscode-extension/l10n/**"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/claude-code-increment-audit.yml"
+      - ".github/workflows/cli-reliability-soak.yml"
       - ".github/workflows/cli-native-release.yml"
       - ".github/workflows/cli-native-release-readback.yml"
       - ".github/workflows/cli-native-validation.yml"
@@ -28,12 +34,18 @@ on:
     paths:
       - "packages/cli/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
+      - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/package.json"
       - "packages/vscode-extension/package.nls*.json"
       - "packages/vscode-extension/l10n/**"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/claude-code-increment-audit.yml"
+      - ".github/workflows/cli-reliability-soak.yml"
       - ".github/workflows/cli-native-release.yml"
       - ".github/workflows/cli-native-release-readback.yml"
       - ".github/workflows/cli-native-validation.yml"
@@ -87,22 +99,56 @@ jobs:
           node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
       - uses: ./.github/actions/setup-node-deps
-      - name: Verify Claude security delta producer map
+      - name: Run mapped Claude security delta tests
+        shell: bash
+        run: >-
+          node packages/cli/scripts/run-claude-security-map-tests.mjs
+          --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
+      - name: Produce advisory canonical SEC-DELTA fragment
         shell: bash
         run: >-
           node packages/cli/scripts/verify-claude-security-map.mjs
           --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --test-report "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
+          --disposition advisory
+          --artifact-name "claude-security-map-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}"
           --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
       - name: Upload Claude security delta evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: claude-security-map-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
+          path: |
+            ${{ runner.temp }}/claude-security-map-tests-${{ runner.os }}.json
+            ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
+          if-no-files-found: error
+      - name: Produce required canonical RC-DEFAULT fragment
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-rc-default-audit.mjs
+          --required
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --artifact-name "rc-default-audit-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/rc-default-audit-${RUNNER_OS}.json"
+      - name: Upload RC-DEFAULT audit evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: rc-default-audit-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/rc-default-audit-${{ runner.os }}.json
           if-no-files-found: error
       - name: Verify 32-process cross-session message fabric
         shell: bash
+        env:
+          CC_XSESSION_WORKFLOW_ID: ${{ github.workflow_ref }}
+          CC_XSESSION_RUN_ID: ${{ github.run_id }}
+          CC_XSESSION_JOB_ID: verify-cli-${{ runner.os }}
+          CC_XSESSION_ARTIFACT_NAME: session-message-fabric-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
         run: >-
           node packages/cli/scripts/verify-session-message-fabric.mjs
           --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
@@ -114,18 +160,20 @@ jobs:
           name: session-message-fabric-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
           if-no-files-found: error
-      - name: Verify MCP lifecycle compatibility increments
+      - name: Produce canonical MCP lifecycle compatibility evidence
         shell: bash
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          ${{ github.event_name != 'pull_request' && '--required' || '' }}
           --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
-          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+          --artifact-name "mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"
       - name: Upload MCP lifecycle evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: mcp-lifecycle-cli-ci-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}/mcp-lifecycle-audit-fragment.json
           if-no-files-found: error
       - name: Verify CLI --version
         working-directory: packages/cli

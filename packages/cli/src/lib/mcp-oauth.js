@@ -484,7 +484,23 @@ export function loadTokenStore() {
 }
 
 export function getStoredToken(serverUrl) {
-  return loadTokenStore()[serverKey(serverUrl)] || null;
+  const record = loadTokenStore()[serverKey(serverUrl)] || null;
+  return record?.revoked === true ? null : record;
+}
+
+function tokenRecordRevision(record) {
+  return Number.isSafeInteger(record?.credential_revision) &&
+    record.credential_revision >= 0
+    ? record.credential_revision
+    : 0;
+}
+
+function tokenRevisionConflict(serverUrl) {
+  const error = new Error(
+    `MCP OAuth credential changed while it was being refreshed: ${serverKey(serverUrl)}`,
+  );
+  error.code = "MCP_TOKEN_STORE_REVISION_CONFLICT";
+  return error;
 }
 
 // The store holds OAuth access + refresh tokens, so it must not be world-
@@ -642,7 +658,7 @@ export function withStoreLock(file, fn) {
   }
 }
 
-export function saveStoredToken(serverUrl, record) {
+export function saveStoredToken(serverUrl, record, options = {}) {
   const file = tokenStorePath();
   return _deps.withStoreLock(file, () => {
     const r = _readStore(file); // re-read inside the lock (latest state)
@@ -654,22 +670,54 @@ export function saveStoredToken(serverUrl, record) {
       _warnCorruptStoreOnce(file, r.err, archived);
     }
     const store = r.store;
-    store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
+    const key = serverKey(serverUrl);
+    const current = store[key] || null;
+    if (
+      options.expectedRevision != null &&
+      (tokenRecordRevision(current) !== options.expectedRevision ||
+        current?.revoked === true)
+    ) {
+      throw tokenRevisionConflict(serverUrl);
+    }
+    store[key] = {
+      ...record,
+      server: key,
+      credential_revision: tokenRecordRevision(current) + 1,
+      revoked: false,
+    };
     _writeStoreSecure(file, store);
-    return store[serverKey(serverUrl)];
+    return store[key];
   });
 }
 
-export function deleteStoredToken(serverUrl) {
+function revokeStoredToken(serverUrl, { expectedRevision = null } = {}) {
   const file = tokenStorePath();
   return _deps.withStoreLock(file, () => {
     const store = loadTokenStore(); // re-read inside the lock (latest state)
     const key = serverKey(serverUrl);
-    if (!(key in store)) return false;
-    delete store[key];
+    const current = store[key];
+    if (!current || current.revoked === true) return false;
+    if (
+      expectedRevision != null &&
+      tokenRecordRevision(current) !== expectedRevision
+    ) {
+      return false;
+    }
+    // Keep a revision-only tombstone. An in-flight refresh that read the old
+    // credential must not resurrect it after explicit logout/revocation.
+    store[key] = {
+      server: key,
+      credential_revision: tokenRecordRevision(current) + 1,
+      revoked: true,
+      revoked_at: _deps.now(),
+    };
     _writeStoreSecure(file, store);
     return true;
   });
+}
+
+export function deleteStoredToken(serverUrl) {
+  return revokeStoredToken(serverUrl);
 }
 
 /** True when a record's access token is missing or within `skewMs` of expiry. */
@@ -692,6 +740,8 @@ export function isTokenExpired(record, { skewMs = 60_000 } = {}) {
  * @param {string} serverUrl
  * @param {{ forceRefresh?: boolean }} [opts]
  */
+const tokenRefreshFlights = new Map();
+
 export async function ensureValidToken(
   serverUrl,
   { forceRefresh = false } = {},
@@ -700,21 +750,52 @@ export async function ensureValidToken(
   if (!record) return null;
   if (!forceRefresh && !isTokenExpired(record)) return record.access_token;
   if (!record.refresh_token || !record.endpoints?.token_endpoint) {
-    // Can't refresh. On a forced refresh the cached token is known-rejected, so
-    // hand back null (caller should stop retrying and prompt re-login); on the
-    // proactive path keep the existing behaviour of using what we have.
-    return forceRefresh ? null : record.access_token || null;
+    // Reaching this branch means the cached access token is expired (including
+    // the safety skew) or the server already rejected it. Reusing it would
+    // create a deterministic 401/403 loop, so every caller fails closed.
+    return null;
   }
-  try {
-    const tok = await refreshAccessToken(
-      { token_endpoint: record.endpoints.token_endpoint },
-      { refreshToken: record.refresh_token, clientId: record.client_id },
-    );
-    const updated = saveStoredToken(serverUrl, { ...record, ...tok });
-    return updated.access_token;
-  } catch {
-    return forceRefresh ? null : record.access_token || null;
+  const key = serverKey(serverUrl);
+  let refresh = tokenRefreshFlights.get(key);
+  if (!refresh) {
+    refresh = (async () => {
+      try {
+        const tok = await refreshAccessToken(
+          { token_endpoint: record.endpoints.token_endpoint },
+          { refreshToken: record.refresh_token, clientId: record.client_id },
+        );
+        const updated = saveStoredToken(
+          serverUrl,
+          { ...record, ...tok },
+          { expectedRevision: tokenRecordRevision(record) },
+        );
+        return { status: "refreshed", accessToken: updated.access_token };
+      } catch (error) {
+        if ([400, 401, 403].includes(error?.status)) {
+          const revoked = revokeStoredToken(serverUrl, {
+            expectedRevision: tokenRecordRevision(record),
+          });
+          return { status: revoked ? "revoked" : "conflict" };
+        }
+        return {
+          status:
+            error?.code === "MCP_TOKEN_STORE_REVISION_CONFLICT"
+              ? "conflict"
+              : "failed",
+        };
+      } finally {
+        tokenRefreshFlights.delete(key);
+      }
+    })();
+    tokenRefreshFlights.set(key, refresh);
   }
+  const outcome = await refresh;
+  if (outcome.status === "refreshed") return outcome.accessToken;
+  if (outcome.status === "revoked") return null;
+  if (outcome.status === "conflict") {
+    return getStoredToken(serverUrl)?.access_token || null;
+  }
+  return null;
 }
 
 // ── interactive orchestrator ──────────────────────────────────────────────

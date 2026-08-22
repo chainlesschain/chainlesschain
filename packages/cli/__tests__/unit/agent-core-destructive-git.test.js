@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
 let tmp;
@@ -101,7 +101,9 @@ describe("destructive-git guard", () => {
     );
     expect(res.error).toMatch(/\[Destructive Git\]/);
     expect(asked).toMatchObject({ tool: "git" });
-    expect(asked.reason).toMatch(/destructive git command: git clean -fd/);
+    expect(asked.reason).toMatch(
+      /destructive git command in primary checkout: git clean -fd/,
+    );
   });
 
   it("proceeds to execution when the confirmer approves", async () => {
@@ -115,7 +117,7 @@ describe("destructive-git guard", () => {
     expect(res.command).toBe("reset --hard");
   });
 
-  it("proceeds without prompting when an explicit settings allow rule matches", async () => {
+  it("requires live confirmation for destructive Git in the primary checkout despite a settings allow", async () => {
     let prompted = false;
     const res = await executeTool(
       "git",
@@ -129,8 +131,36 @@ describe("destructive-git guard", () => {
         },
       },
     );
-    expect(res.error).toBeUndefined();
-    expect(prompted).toBe(false);
+    expect(res.error).toMatch(/\[Destructive Git\]/);
+    expect(res.policy).toMatchObject({ checkout: "primary" });
+    expect(prompted).toBe(true);
+  });
+
+  it("lets an explicit settings allow pre-authorize a linked worktree", async () => {
+    const linked = path.join(path.dirname(tmp), `${path.basename(tmp)}-linked`);
+    execFileSync("git", ["worktree", "add", "-q", "-b", "linked", linked], {
+      cwd: tmp,
+      stdio: "ignore",
+    });
+    let prompted = false;
+    try {
+      const res = await executeTool(
+        "git",
+        { command: "reset --hard", cwd: linked },
+        {
+          cwd: tmp,
+          permissionRules: { allow: ["git"] },
+          permissionConfirm: async () => {
+            prompted = true;
+            return false;
+          },
+        },
+      );
+      expect(res.error).toBeUndefined();
+      expect(prompted).toBe(false);
+    } finally {
+      fs.rmSync(linked, { recursive: true, force: true });
+    }
   });
 
   it("does NOT guard a benign/recoverable git command", async () => {

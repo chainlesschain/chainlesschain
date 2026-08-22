@@ -62,6 +62,11 @@ import {
 } from "../lib/execution-location-result-apply.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
+  projectExecutionLocationTargetSigtermProbe,
+  projectExecutionLocationTargetPreflight,
+  runExecutionLocationTargetResourceProbe,
+} from "../lib/execution-location-target-preflight.js";
+import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
   withTrustedFileParentSync,
@@ -1134,6 +1139,17 @@ function runPreviewAction(action, deps = {}) {
   }
 }
 
+async function runAsyncAction(action, options = {}) {
+  try {
+    const projection = await action();
+    writeProjection(projection, options);
+    return projection.allowed === false ? 2 : 0;
+  } catch (error) {
+    process.stderr.write(`Execution location failed: ${error.message}\n`);
+    return 1;
+  }
+}
+
 export function registerSessionLocationSubcommands(session, deps = {}) {
   const location = session
     .command("location")
@@ -1148,6 +1164,38 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
     .action((options) => {
       process.exitCode = runAction(
         () => projectCurrentExecutionLocation({}, deps),
+        options,
+      );
+    });
+
+  location
+    .command("target-preflight", { hidden: true })
+    .description("Verify target-local runner fences and resource limits")
+    .option("--json", "Machine-readable JSON output")
+    .action((options) => {
+      process.exitCode = runAction(
+        () => projectExecutionLocationTargetPreflight({}, deps),
+        options,
+      );
+    });
+
+  location
+    .command("resource-probe <kind>", { hidden: true })
+    .description("Exercise a target-local cpu or memory enforcement boundary")
+    .action((kind) => {
+      process.exitCode = runAction(
+        () => runExecutionLocationTargetResourceProbe(kind),
+        {},
+      );
+    });
+
+  location
+    .command("sigterm-drain-probe", { hidden: true })
+    .description("Exercise the target-local SIGTERM drain transition")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (options) => {
+      process.exitCode = await runAsyncAction(
+        () => projectExecutionLocationTargetSigtermProbe({}, deps),
         options,
       );
     });

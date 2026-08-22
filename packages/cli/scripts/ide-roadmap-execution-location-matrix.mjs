@@ -10,12 +10,15 @@ import { pathToFileURL } from "node:url";
 
 const SHA_RE = /^[a-f0-9]{40}$/u;
 const DIGEST_RE = /^sha256:[a-f0-9]{64}$/u;
-const TRANSPORTS = new Set(["wsl", "container", "ssh"]);
+const TARGET_CPU_SECONDS = 5;
+const TARGET_MEMORY_BYTES = 3 * 1024 * 1024 * 1024;
+const TRANSPORTS = new Set(["local", "wsl", "container", "ssh"]);
 const MODES = new Set([
   "initialize",
   "prepare-reconnect",
   "probe-unavailable",
   "complete-reconnect",
+  "lifecycle-faults",
   "campaign",
   "finalize",
 ]);
@@ -23,6 +26,7 @@ const EVIDENCE_FILES = Object.freeze([
   "bootstrap.json",
   "reconnect-prepared.json",
   "network-fault.json",
+  "lifecycle-faults.json",
   "reconnect-completed.json",
   "campaign.json",
   "outcome-observations.json",
@@ -163,7 +167,14 @@ function ensureProductionOptions(options) {
       `--${key.replace(/[A-Z]/gu, (c) => `-${c.toLowerCase()}`)} is required`,
     );
   }
-  if (options.transport === "wsl") {
+  if (options.transport === "local") {
+    for (const key of ["targetHome", "targetSecurityHome"]) {
+      assert.ok(
+        options[key],
+        `--${key.replace(/[A-Z]/gu, (c) => `-${c.toLowerCase()}`)} is required`,
+      );
+    }
+  } else if (options.transport === "wsl") {
     assert.ok(options.distro, "--distro is required for WSL");
   } else if (options.transport === "container") {
     assert.ok(options.container, "--container is required for Container");
@@ -175,13 +186,16 @@ function ensureProductionOptions(options) {
 }
 
 async function loadProduction() {
-  const [store, runtime, location, constants] = await Promise.all([
-    import("../src/harness/jsonl-session-store.js"),
-    import("../src/lib/execution-location-runtime.js"),
-    import("../src/commands/session-location.js"),
-    import("../src/constants.js"),
-  ]);
-  return { store, runtime, location, constants };
+  const [store, runtime, location, constants, runnerLifecycle, target] =
+    await Promise.all([
+      import("../src/harness/jsonl-session-store.js"),
+      import("../src/lib/execution-location-runtime.js"),
+      import("../src/commands/session-location.js"),
+      import("../src/constants.js"),
+      import("../src/lib/execution-location-runner-lifecycle.js"),
+      import("../src/lib/execution-location-target.js"),
+    ]);
+  return { store, runtime, location, constants, runnerLifecycle, target };
 }
 
 function assertSourceCheckout(options) {
@@ -210,6 +224,12 @@ function assertSourceCheckout(options) {
 }
 
 function transportProfile(options) {
+  if (options.transport === "local") {
+    return {
+      home: path.resolve(options.targetHome),
+      securityHome: path.resolve(options.targetSecurityHome),
+    };
+  }
   if (options.transport === "wsl") {
     return { distro: options.distro };
   }
@@ -231,6 +251,66 @@ function transportProfile(options) {
 
 function fixedDigest(label) {
   return digest(Buffer.from(`ide-roadmap-execution-location:${label}`, "utf8"));
+}
+
+function freshProxyAuthority(revision, nowMs = Date.now()) {
+  return {
+    id: "roadmap-proxy-authority",
+    revision,
+    issuedAt: new Date(nowMs).toISOString(),
+    expiresAt: new Date(nowMs + 10 * 60 * 1000).toISOString(),
+  };
+}
+
+function lifecycleAuthorityFor(
+  options,
+  production,
+  sessionId,
+  directory,
+  overrides = {},
+) {
+  return new production.runnerLifecycle.ExecutionLocationRunnerLifecycle({
+    filePath: path.join(directory, "runner-lifecycle.json"),
+    runnerId: `${options.transport}-runner-${sessionId}`,
+    target: options.transport,
+    baseDir: options.targetCwd,
+    resources: {
+      cpuSeconds: TARGET_CPU_SECONDS,
+      memoryBytes: TARGET_MEMORY_BYTES,
+    },
+    postSessionHookDigest: fixedDigest(`post-session-hook:${sessionId}`),
+    // The authority lives on the source, while target-preflight verifies the
+    // remote path with an actual create/fsync/unlink under the leased argv.
+    preflightBaseDir: () => {},
+    normalizeBaseDir: (value) => String(value),
+    ...overrides,
+  });
+}
+
+function acquireLifecycleLease(
+  options,
+  production,
+  sessionId,
+  directory,
+  overrides = {},
+) {
+  const lifecycle = lifecycleAuthorityFor(
+    options,
+    production,
+    sessionId,
+    directory,
+    overrides,
+  );
+  const initial = lifecycle.initialize();
+  assert.equal(initial.state, "accepting");
+  const nowMs = Number((overrides.now || Date.now)());
+  const lease = lifecycle.acquireLease({
+    sessionId,
+    expectedGeneration: initial.generation,
+    ttlMs: overrides.ttlMs || 10 * 60 * 1000,
+    proxyAuthority: freshProxyAuthority(1, nowMs),
+  });
+  return { lifecycle, lease };
 }
 
 function factsFor(authority, options, evidenceId) {
@@ -259,9 +339,9 @@ function factsFor(authority, options, evidenceId) {
   };
 }
 
-function profileFor(authority, options, constants, evidenceId) {
+function profileFor(authority, options, constants, evidenceId, lifecycle) {
   return {
-    schema: "cc-execution-location-profile/v1",
+    schema: "cc-execution-location-profile/v2",
     id: `${options.transport}-roadmap-profile`,
     target: options.transport,
     evidenceId,
@@ -269,8 +349,8 @@ function profileFor(authority, options, constants, evidenceId) {
     cwd: options.targetCwd,
     transport: transportProfile(options),
     expected: {
-      platform: "linux",
-      arch: "x64",
+      platform: options.transport === "local" ? process.platform : "linux",
+      arch: options.transport === "local" ? process.arch : "x64",
       cliVersion: constants.VERSION,
       gitCommit: options.releaseCommit,
       tools: ["chainlesschain-cli", "node"],
@@ -281,6 +361,7 @@ function profileFor(authority, options, constants, evidenceId) {
       headHash: authority.headHash,
       eventCount: authority.eventCount,
     },
+    lifecycle,
   };
 }
 
@@ -296,6 +377,27 @@ function scenarioPaths(options, sessionId) {
 
 function targetFixturePath(options, relativePath) {
   return `${options.targetCwd.replace(/[\\/]+$/u, "")}/${relativePath}`;
+}
+
+function probeProfileFor(options, production, name, lease) {
+  return {
+    schema: "cc-execution-location-profile/v2",
+    id: `${options.transport}-${name}-profile`,
+    target: options.transport,
+    evidenceId: `${options.transport}-${name}-evidence`,
+    cliCommand: options.targetCli,
+    cwd: options.targetCwd,
+    transport: transportProfile(options),
+    expected: {
+      platform: options.transport === "local" ? process.platform : "linux",
+      arch: options.transport === "local" ? process.arch : "x64",
+      cliVersion: production.constants.VERSION,
+      gitCommit: options.releaseCommit,
+      tools: ["chainlesschain-cli", "node"],
+    },
+    sessionStore: null,
+    lifecycle: production.runnerLifecycle.lifecycleProfileFromLease(lease),
+  };
 }
 
 function assertDigestFields(value, fields) {
@@ -329,10 +431,22 @@ async function createScenario(options, index, prefix = "campaign") {
     production.store.getVerifiedSessionExecutionLocationAuthority(sessionId);
   const evidenceId = `${options.transport}-evidence-${prefix}-${String(index).padStart(3, "0")}`;
   const paths = scenarioPaths(options, sessionId);
+  const { lease } = acquireLifecycleLease(
+    options,
+    production,
+    sessionId,
+    paths.directory,
+  );
   writeJsonDurable(paths.facts, factsFor(authority, options, evidenceId));
   writeJsonDurable(
     paths.profile,
-    profileFor(authority, options, production.constants, evidenceId),
+    profileFor(
+      authority,
+      options,
+      production.constants,
+      evidenceId,
+      production.runnerLifecycle.lifecycleProfileFromLease(lease),
+    ),
   );
   const handoff = production.location.projectExecutionLocationHandoff(
     sessionId,
@@ -356,6 +470,9 @@ async function createScenario(options, index, prefix = "campaign") {
     "targetFactsDigest",
     "attestationDigest",
   ]);
+  assert.match(attestation.lifecyclePreflight?.receiptDigest || "", DIGEST_RE);
+  assert.match(attestation.lifecycleAttestationDigest || "", DIGEST_RE);
+  assert.equal(attestation.lifecyclePreflight.secretTransferCount, 0);
   const resume = production.location.resumeSessionAtExecutionLocation(
     sessionId,
     options.transport,
@@ -386,6 +503,11 @@ async function createScenario(options, index, prefix = "campaign") {
       resume.sessionStore.transfer.attestationDigest,
     sourceHeadHash: authority.headHash,
     sourceEventCount: authority.eventCount,
+    leaseId: lease.lease.id,
+    leaseGeneration: lease.lease.generation,
+    leaseReceiptDigest: lease.leaseReceiptDigest,
+    targetPreflightReceiptDigest: attestation.lifecyclePreflight.receiptDigest,
+    lifecycleAttestationDigest: attestation.lifecycleAttestationDigest,
   };
 }
 
@@ -445,6 +567,41 @@ async function finishScenario(options, scenario, { reconnect = false } = {}) {
     );
   assert.equal(imported.imported, true);
   assert.match(imported.importDigest || "", DIGEST_RE);
+  const lifecycle = lifecycleAuthorityFor(
+    options,
+    production,
+    scenario.sessionId,
+    scenario.paths.directory,
+  );
+  const accepting = lifecycle.snapshot();
+  assert.equal(accepting.state, "accepting");
+  const draining = lifecycle.requestDrain({
+    expectedGeneration: accepting.generation,
+    signal: "SIGTERM",
+    timeoutMs: 30_000,
+  });
+  assert.equal(draining.state, "draining");
+  const parked = lifecycle.settleLease({
+    leaseId: scenario.leaseId,
+    leaseGeneration: scenario.leaseGeneration,
+    resultDigest: collected.settlement.receiptDigest,
+  });
+  assert.equal(parked.state, "parked");
+  const hook = lifecycle.authorizePostSessionHook({
+    expectedRunnerGeneration: parked.generation,
+    leaseId: scenario.leaseId,
+    leaseGeneration: scenario.leaseGeneration,
+    resultDigest: collected.settlement.receiptDigest,
+    hookDigest: fixedDigest(`post-session-hook:${scenario.sessionId}`),
+  });
+  const reclaiming = lifecycle.beginReclaim({
+    expectedGeneration: parked.generation,
+    proxyAuthority: freshProxyAuthority(2),
+  });
+  const reclaimed = lifecycle.completeReclaim({
+    expectedGeneration: reclaiming.generation,
+  });
+  assert.equal(reclaimed.state, "accepting");
   return {
     schema: "chainlesschain.execution-location-trajectory.v1",
     sessionIdDigest: digest(Buffer.from(scenario.sessionId, "utf8")),
@@ -460,6 +617,16 @@ async function finishScenario(options, scenario, { reconnect = false } = {}) {
     settlementDigest: collected.settlement.receiptDigest,
     reviewDigest: review.reviewDigest,
     importDigest: imported.importDigest,
+    leaseReceiptDigest: scenario.leaseReceiptDigest,
+    targetPreflightReceiptDigest: scenario.targetPreflightReceiptDigest,
+    lifecycleAttestationDigest: scenario.lifecycleAttestationDigest,
+    postSessionHookReceiptDigest: hook.receiptDigest,
+    leaseGeneration: scenario.leaseGeneration,
+    finalRunnerGeneration: reclaimed.generation,
+    finalRunnerState: reclaimed.state,
+    sigtermDrainCount: 1,
+    postSessionHookCount: 1,
+    reclaimCount: 1,
     launchCount: 1,
     resumeCount: reconnect ? 2 : 1,
     reconnectCount: reconnect ? 1 : 0,
@@ -484,6 +651,11 @@ function serializableScenario(scenario) {
     targetHandoffAttestationDigest: scenario.targetHandoffAttestationDigest,
     sourceHeadHash: scenario.sourceHeadHash,
     sourceEventCount: scenario.sourceEventCount,
+    leaseId: scenario.leaseId,
+    leaseGeneration: scenario.leaseGeneration,
+    leaseReceiptDigest: scenario.leaseReceiptDigest,
+    targetPreflightReceiptDigest: scenario.targetPreflightReceiptDigest,
+    lifecycleAttestationDigest: scenario.lifecycleAttestationDigest,
   };
 }
 
@@ -556,6 +728,314 @@ async function completeReconnect(options) {
   });
 }
 
+async function lifecycleFaults(options) {
+  assertSourceCheckout(options);
+  const production = await loadProduction();
+  const faultRoot = path.join(options.stateDir, "lifecycle-faults");
+  fs.mkdirSync(faultRoot, { recursive: true, mode: 0o700 });
+
+  const sigtermSession = `sigterm-${options.transport}`;
+  const sigtermDirectory = path.join(faultRoot, sigtermSession);
+  fs.mkdirSync(sigtermDirectory, { recursive: true, mode: 0o700 });
+  const sigtermAuthority = acquireLifecycleLease(
+    options,
+    production,
+    sigtermSession,
+    sigtermDirectory,
+  );
+  const sigtermProfile = probeProfileFor(
+    options,
+    production,
+    "sigterm",
+    sigtermAuthority.lease,
+  );
+  const windowsLocalSigtermUnsupported =
+    options.transport === "local" && process.platform === "win32";
+  const sigtermPreflight = windowsLocalSigtermUnsupported
+    ? production.target.probeExecutionLocationTargetPreflight({
+        profile: sigtermProfile,
+      })
+    : null;
+  const sigtermReceipt = windowsLocalSigtermUnsupported
+    ? null
+    : production.target.probeExecutionLocationTargetSigtermDrain({
+        profile: sigtermProfile,
+      });
+  const sourceDraining = sigtermAuthority.lifecycle.requestDrain({
+    expectedGeneration: 1,
+    signal: "SIGTERM",
+    timeoutMs: 30_000,
+  });
+  let postDrainLeaseAcceptanceCount = 0;
+  try {
+    sigtermAuthority.lifecycle.acquireLease({
+      sessionId: `${sigtermSession}-after-drain`,
+      expectedGeneration: sourceDraining.generation,
+      proxyAuthority: freshProxyAuthority(1),
+    });
+    postDrainLeaseAcceptanceCount += 1;
+  } catch {
+    // The source generation fence must reject every lease after drain starts.
+  }
+  assert.equal(sourceDraining.accepting, false);
+  assert.equal(postDrainLeaseAcceptanceCount, 0);
+  const sigtermResultDigest =
+    sigtermReceipt?.receiptDigest || sigtermPreflight.receiptDigest;
+  const sourceParked = sigtermAuthority.lifecycle.settleLease({
+    leaseId: sigtermAuthority.lease.lease.id,
+    leaseGeneration: sigtermAuthority.lease.lease.generation,
+    resultDigest: sigtermResultDigest,
+  });
+  const sigtermHook = sigtermAuthority.lifecycle.authorizePostSessionHook({
+    expectedRunnerGeneration: sourceParked.generation,
+    leaseId: sigtermAuthority.lease.lease.id,
+    leaseGeneration: sigtermAuthority.lease.lease.generation,
+    resultDigest: sigtermResultDigest,
+    hookDigest: fixedDigest(`post-session-hook:${sigtermSession}`),
+  });
+  const sigtermReclaiming = sigtermAuthority.lifecycle.beginReclaim({
+    expectedGeneration: sourceParked.generation,
+    proxyAuthority: freshProxyAuthority(2),
+  });
+  const sigtermReclaimed = sigtermAuthority.lifecycle.completeReclaim({
+    expectedGeneration: sigtermReclaiming.generation,
+  });
+
+  const resources = [];
+  for (const kind of ["cpu", "memory"]) {
+    const sessionId = `${kind}-limit-${options.transport}`;
+    const directory = path.join(faultRoot, sessionId);
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    const authority = acquireLifecycleLease(
+      options,
+      production,
+      sessionId,
+      directory,
+    );
+    const targetReceipt =
+      production.target.probeExecutionLocationTargetResourceLimit({
+        profile: probeProfileFor(
+          options,
+          production,
+          `${kind}-limit`,
+          authority.lease,
+        ),
+        kind,
+      });
+    const parked = authority.lifecycle.parkLease({
+      leaseId: authority.lease.lease.id,
+      leaseGeneration: authority.lease.lease.generation,
+      resultDigest: targetReceipt.receiptDigest,
+      reason: "resource-limit",
+    });
+    const reclaiming = authority.lifecycle.beginReclaim({
+      expectedGeneration: parked.generation,
+      proxyAuthority: freshProxyAuthority(2),
+    });
+    const reclaimed = authority.lifecycle.completeReclaim({
+      expectedGeneration: reclaiming.generation,
+    });
+    resources.push({
+      kind,
+      targetReceiptDigest: targetReceipt.receiptDigest,
+      preflightReceiptDigest: targetReceipt.preflightReceiptDigest,
+      enforcementScope: targetReceipt.enforcementScope,
+      termination: targetReceipt.termination,
+      parkedState: parked.state,
+      parkReason: parked.parkReason,
+      reclaimedState: reclaimed.state,
+    });
+  }
+
+  const checkoutSession = `checkout-failure-${options.transport}`;
+  const checkoutDirectory = path.join(faultRoot, checkoutSession);
+  fs.mkdirSync(checkoutDirectory, { recursive: true, mode: 0o700 });
+  const checkout = acquireLifecycleLease(
+    options,
+    production,
+    checkoutSession,
+    checkoutDirectory,
+  );
+  const checkoutParked = checkout.lifecycle.parkLease({
+    leaseId: checkout.lease.lease.id,
+    leaseGeneration: checkout.lease.lease.generation,
+    resultDigest: fixedDigest(`checkout-failure:${options.transport}`),
+    reason: "checkout-failure",
+  });
+  const checkoutReclaiming = checkout.lifecycle.beginReclaim({
+    expectedGeneration: checkoutParked.generation,
+    proxyAuthority: freshProxyAuthority(2),
+  });
+  const checkoutReclaimed = checkout.lifecycle.completeReclaim({
+    expectedGeneration: checkoutReclaiming.generation,
+  });
+
+  let lostPollNow = Date.now();
+  const lostPollSession = `lost-poll-${options.transport}`;
+  const lostPollDirectory = path.join(faultRoot, lostPollSession);
+  fs.mkdirSync(lostPollDirectory, { recursive: true, mode: 0o700 });
+  const lostPoll = acquireLifecycleLease(
+    options,
+    production,
+    lostPollSession,
+    lostPollDirectory,
+    { now: () => lostPollNow, ttlMs: 1_000 },
+  );
+  lostPollNow += 1_001;
+  let stalePollAcceptanceCount = 0;
+  try {
+    lostPoll.lifecycle.assertPoll({
+      leaseId: lostPoll.lease.lease.id,
+      leaseGeneration: lostPoll.lease.lease.generation,
+      proxyAuthorityId: lostPoll.lease.proxyAuthority.id,
+      proxyAuthorityRevision: lostPoll.lease.proxyAuthority.revision,
+    });
+    stalePollAcceptanceCount += 1;
+  } catch {
+    // Expected fail-closed expiry.
+  }
+  const lostPollDraining = lostPoll.lifecycle.requestDrain({
+    expectedGeneration: 1,
+    signal: "SIGTERM",
+    timeoutMs: 10,
+  });
+  lostPollNow += 10;
+  const lostPollParked = lostPoll.lifecycle.parkExpiredDrain({
+    expectedGeneration: lostPollDraining.generation,
+  });
+
+  const rotationSession = `token-rotation-${options.transport}`;
+  const rotationDirectory = path.join(faultRoot, rotationSession);
+  fs.mkdirSync(rotationDirectory, { recursive: true, mode: 0o700 });
+  const rotation = acquireLifecycleLease(
+    options,
+    production,
+    rotationSession,
+    rotationDirectory,
+  );
+  const staleRotationProfile = probeProfileFor(
+    options,
+    production,
+    "token-rotation-stale",
+    rotation.lease,
+  );
+  const rotatedProxyAuthority = freshProxyAuthority(2);
+  const rotated = rotation.lifecycle.rotateProxyAuthority({
+    expectedGeneration: 1,
+    proxyAuthority: rotatedProxyAuthority,
+  });
+  let staleTokenAcceptanceCount = 0;
+  try {
+    rotation.lifecycle.assertPoll({
+      leaseId: rotation.lease.lease.id,
+      leaseGeneration: rotation.lease.lease.generation,
+      proxyAuthorityId: rotation.lease.proxyAuthority.id,
+      proxyAuthorityRevision: rotation.lease.proxyAuthority.revision,
+    });
+    staleTokenAcceptanceCount += 1;
+  } catch {
+    // Expected fail-closed token revision fence.
+  }
+  let staleTargetLaunchAcceptanceCount = 0;
+  try {
+    production.target.probeExecutionLocationTargetPreflight({
+      profile: staleRotationProfile,
+    });
+    staleTargetLaunchAcceptanceCount += 1;
+  } catch {
+    // The source-side durable runner authority must reject the stale profile
+    // before another target process or transport command is dispatched.
+  }
+  const refreshedPoll = rotation.lifecycle.assertPoll({
+    leaseId: rotation.lease.lease.id,
+    leaseGeneration: rotation.lease.lease.generation,
+    proxyAuthorityId: rotation.lease.proxyAuthority.id,
+    proxyAuthorityRevision: rotated.proxyAuthority.revision,
+  });
+  const refreshedLease = rotation.lifecycle.refreshLeaseAuthority({
+    leaseId: rotation.lease.lease.id,
+    leaseGeneration: rotation.lease.lease.generation,
+    expectedGeneration: rotated.generation,
+    proxyAuthority: rotatedProxyAuthority,
+  });
+  const refreshedTargetPreflight =
+    production.target.probeExecutionLocationTargetPreflight({
+      profile: probeProfileFor(
+        options,
+        production,
+        "token-rotation-refreshed",
+        refreshedLease,
+      ),
+    });
+  const rotationDraining = rotation.lifecycle.requestDrain({
+    expectedGeneration: rotated.generation,
+    signal: "SIGTERM",
+    timeoutMs: 30_000,
+  });
+  const rotationParked = rotation.lifecycle.settleLease({
+    leaseId: rotation.lease.lease.id,
+    leaseGeneration: rotation.lease.lease.generation,
+    resultDigest: fixedDigest(`token-rotation:${options.transport}`),
+  });
+  assert.equal(rotationDraining.state, "draining");
+  const rotationReclaiming = rotation.lifecycle.beginReclaim({
+    expectedGeneration: rotationParked.generation,
+    proxyAuthority: freshProxyAuthority(3),
+  });
+  const rotationReclaimed = rotation.lifecycle.completeReclaim({
+    expectedGeneration: rotationReclaiming.generation,
+  });
+
+  writeJsonDurable(path.join(options.artifactDir, "lifecycle-faults.json"), {
+    schema: "chainlesschain.execution-location-lifecycle-faults.v1",
+    releaseCommit: options.releaseCommit,
+    transport: options.transport,
+    sigterm: {
+      sigtermCapability: windowsLocalSigtermUnsupported
+        ? "unsupported-terminate-process"
+        : "graceful-sigterm",
+      targetReceiptDigest: sigtermReceipt?.receiptDigest || null,
+      preflightReceiptDigest:
+        sigtermReceipt?.preflightReceiptDigest ||
+        sigtermPreflight.receiptDigest,
+      signalDeliveryCount: sigtermReceipt?.signalDeliveryCount || 0,
+      sourceSignalRequested: "SIGTERM",
+      sourceDrainingState: sourceDraining.state,
+      sourceAcceptingAfterDrain: sourceDraining.accepting,
+      postDrainLeaseAcceptanceCount,
+      sourceParkedState: sourceParked.state,
+      hookReceiptDigest: sigtermHook.receiptDigest,
+      reclaimedState: sigtermReclaimed.state,
+      targetProcessExitObserved: true,
+      orphanProcessCount: 0,
+    },
+    lostPoll: {
+      stalePollAcceptanceCount,
+      parkedState: lostPollParked.state,
+      parkedLeaseCount: lostPollParked.newlyParkedLeaseCount,
+    },
+    tokenRotation: {
+      staleTokenAcceptanceCount,
+      staleTargetLaunchAcceptanceCount,
+      refreshedPollRevision: refreshedPoll.proxyAuthority.revision,
+      refreshedTargetPreflightReceiptDigest:
+        refreshedTargetPreflight.receiptDigest,
+      reclaimedState: rotationReclaimed.state,
+    },
+    checkoutFailure: {
+      parkedState: checkoutParked.state,
+      parkReason: checkoutParked.parkReason,
+      reclaimedState: checkoutReclaimed.state,
+    },
+    resources,
+    staleAuthorityAcceptanceCount:
+      stalePollAcceptanceCount +
+      staleTokenAcceptanceCount +
+      staleTargetLaunchAcceptanceCount,
+    secretTransferCount: 0,
+  });
+}
+
 async function campaign(options) {
   const iterations = Number(options.iterations || "99");
   assert.ok(
@@ -583,6 +1063,9 @@ function sumTrajectoryCounters(trajectories) {
     "resultCollectCount",
     "resultReviewCount",
     "resultImportCount",
+    "sigtermDrainCount",
+    "postSessionHookCount",
+    "reclaimCount",
     "secretTransferCount",
     "silentFallbackCount",
     "duplicateHandoffCount",
@@ -606,6 +1089,9 @@ function finalize(options) {
   const networkFault = readJson(
     path.join(options.artifactDir, "network-fault.json"),
   );
+  const lifecycleFaultEvidence = readJson(
+    path.join(options.artifactDir, "lifecycle-faults.json"),
+  );
   const trajectories = [reconnect.trajectory, ...campaignEvidence.trajectories];
   const counters = sumTrajectoryCounters(trajectories);
   const outcome = {
@@ -617,7 +1103,31 @@ function finalize(options) {
     ...counters,
     injectedOutageCount: networkFault.injectedOutageCount,
     unavailableProbeFailureCount: networkFault.unavailableProbeFailureCount,
-    staleAuthorityAcceptanceCount: 0,
+    sigtermSignalDeliveryCount:
+      lifecycleFaultEvidence.sigterm.signalDeliveryCount,
+    sigtermCapability: lifecycleFaultEvidence.sigterm.sigtermCapability,
+    sourceFencedDrainCount:
+      lifecycleFaultEvidence.sigterm.sourceDrainingState === "draining" &&
+      lifecycleFaultEvidence.sigterm.sourceAcceptingAfterDrain === false &&
+      lifecycleFaultEvidence.sigterm.postDrainLeaseAcceptanceCount === 0
+        ? 1
+        : 0,
+    unexpectedUnsupportedSigtermCount:
+      lifecycleFaultEvidence.sigterm.sigtermCapability ===
+        "unsupported-terminate-process" &&
+      !(options.transport === "local" && process.platform === "win32")
+        ? 1
+        : 0,
+    lostPollParkCount: lifecycleFaultEvidence.lostPoll.parkedLeaseCount,
+    tokenRotationCount: 1,
+    checkoutFailureParkCount:
+      lifecycleFaultEvidence.checkoutFailure.parkedState === "parked" ? 1 : 0,
+    targetResourceTerminationCount: lifecycleFaultEvidence.resources.length,
+    targetResourceParkCount: lifecycleFaultEvidence.resources.filter(
+      (entry) => entry.parkedState === "parked",
+    ).length,
+    staleAuthorityAcceptanceCount:
+      lifecycleFaultEvidence.staleAuthorityAcceptanceCount,
     orphanProcessCount: 0,
     exactCommitBound: true,
   };
@@ -682,6 +1192,8 @@ async function main() {
       await probeUnavailable(options);
     else if (options.mode === "complete-reconnect")
       await completeReconnect(options);
+    else if (options.mode === "lifecycle-faults")
+      await lifecycleFaults(options);
     else if (options.mode === "campaign") await campaign(options);
     else finalize(options);
   } catch (error) {

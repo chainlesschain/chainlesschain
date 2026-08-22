@@ -1,6 +1,8 @@
 import {
+  chmodSync,
   closeSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -651,7 +653,21 @@ export function backgroundAgentsDir() {
   const dir =
     process.env.CC_BACKGROUND_AGENTS_DIR ||
     join(getHomeDir(), "background-agents");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 });
+  if (process.platform !== "win32") {
+    const stat = lstatSync(dir);
+    const uid = typeof process.getuid === "function" ? process.getuid() : null;
+    if (
+      !stat.isDirectory() ||
+      stat.isSymbolicLink() ||
+      (uid !== null && stat.uid !== uid)
+    ) {
+      throw new Error(
+        "background agent state directory is not owner-controlled",
+      );
+    }
+    chmodSync(dir, 0o700);
+  }
   return dir;
 }
 

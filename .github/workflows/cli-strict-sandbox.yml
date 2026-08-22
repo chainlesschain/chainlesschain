@@ -7,10 +7,13 @@ on:
       - "v*"
       - "cli-v*"
     paths:
+      - "packages/cli/src/**"
+      - "packages/cli/__tests__/**"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/repl/permission-prompt.js"
       - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/scripts/run-claude-security-map-tests.mjs"
       - "packages/cli/__tests__/unit/claude-security-map.test.js"
       - "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js"
       - "packages/cli/__tests__/unit/permission-prompt.test.js"
@@ -187,10 +190,13 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "packages/cli/src/**"
+      - "packages/cli/__tests__/**"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/repl/permission-prompt.js"
       - "packages/cli/scripts/verify-claude-security-map.mjs"
+      - "packages/cli/scripts/run-claude-security-map-tests.mjs"
       - "packages/cli/__tests__/unit/claude-security-map.test.js"
       - "packages/cli/__tests__/unit/mcp-headers-helper-runner.test.js"
       - "packages/cli/__tests__/unit/permission-prompt.test.js"
@@ -396,12 +402,11 @@ jobs:
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
 
-      - name: Verify Claude security delta producer map
+      - name: Run mapped Claude security delta tests
         shell: bash
         run: >-
-          node packages/cli/scripts/verify-claude-security-map.mjs
-          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
-          --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+          node packages/cli/scripts/run-claude-security-map-tests.mjs
+          --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
 
       - name: Verify Windows helper source contract
         if: runner.os == 'Windows'
@@ -506,6 +511,16 @@ jobs:
           __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js
           __tests__/unit/mcp-stdio-macos-code-snapshot.test.js
 
+      - name: Produce advisory canonical SEC-DELTA fragment
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-security-map.mjs
+          --release-commit "${{ github.event.pull_request.head.sha || github.sha }}"
+          --test-report "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
+          --disposition advisory
+          --artifact-name "strict-sandbox-result-${{ matrix.os }}"
+          --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+
       - name: Capture macOS sandbox diagnostics
         if: failure() && runner.os == 'macOS'
         shell: bash
@@ -524,6 +539,7 @@ jobs:
             packages/cli/strict-sandbox-contract-result.json
             packages/cli/strict-sandbox-result.json
             packages/cli/strict-sandbox-system.log
+            ${{ runner.temp }}/claude-security-map-tests-${{ runner.os }}.json
             ${{ runner.temp }}/claude-security-map-${{ runner.os }}.json
           if-no-files-found: warn
           retention-days: 7

@@ -16,7 +16,9 @@ import {
 import {
   loadRegisteredMcp,
   parseMcpServers,
+  setupMcpFromConfig,
 } from "../../src/runtime/mcp-config.js";
+import { McpLifecycleAuthority } from "../../src/lib/mcp-lifecycle-authority.js";
 import { textByteStream } from "../helpers/mcp-http-response.js";
 
 const originalClientDeps = {
@@ -95,7 +97,7 @@ describe("MCP lifecycle increments", () => {
       generation += 1;
       return {
         connectOptions: { ca: Buffer.from(`ca-generation-${generation}`) },
-        identityDigest: `sha256:generation-${generation}`,
+        identityDigest: `sha256:${String(generation).padStart(64, "0")}`,
       };
     });
     clientDeps.createMcpTlsDispatcher = vi.fn((material) => ({
@@ -121,7 +123,9 @@ describe("MCP lifecycle increments", () => {
 
     const secondEntry = client.servers.get("fixture");
     expect(clientDeps.loadMcpTlsMaterial).toHaveBeenCalledTimes(2);
-    expect(secondEntry._tlsIdentityDigest).toBe("sha256:generation-2");
+    expect(secondEntry._tlsIdentityDigest).toBe(
+      `sha256:${String(2).padStart(64, "0")}`,
+    );
     expect(secondEntry._httpDispatcher).not.toBe(firstDispatcher);
     expect(clientDeps.closeMcpTlsDispatcher).toHaveBeenCalledWith(
       firstDispatcher,
@@ -180,12 +184,46 @@ describe("MCP lifecycle increments", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("filters an explicitly disabled config before client transport setup", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-disabled-"));
+    try {
+      const authority = new McpLifecycleAuthority({
+        statePath: path.join(root, "authority.json"),
+      });
+      const fetch = vi.spyOn(clientDeps, "fetch");
+      const result = await setupMcpFromConfig(
+        parseMcpServers({
+          mcpServers: {
+            disabled: {
+              url: "https://disabled.example.test/rpc",
+              disabled: true,
+            },
+          },
+        }),
+        {
+          mcpLifecycleAuthority: authority,
+          sessionId: "disabled-session",
+        },
+      );
+      expect(result.connected).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(
+        authority.snapshot({
+          name: "disabled",
+          sessionId: "disabled-session",
+        }),
+      ).toMatchObject({ phase: "disabled", desired: "disabled" });
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("fails fast and closes TLS state when initialize selects a future version", async () => {
     installHttpFixture({ protocolVersion: "2026-01-01" });
     const dispatcher = { name: "future-version-dispatcher" };
     clientDeps.loadMcpTlsMaterial = vi.fn(() => ({
       connectOptions: { ca: Buffer.from("private-ca-material") },
-      identityDigest: "sha256:future",
+      identityDigest: `sha256:${"f".repeat(64)}`,
     }));
     clientDeps.createMcpTlsDispatcher = vi.fn(() => dispatcher);
     clientDeps.closeMcpTlsDispatcher = vi.fn(async () => {});
@@ -217,9 +255,15 @@ describe("MCP lifecycle increments", () => {
       fs.writeFileSync(caFile, "trusted-ca");
       const config = { certFile, keyFile, caFile, serverName: "mcp.test" };
 
-      const first = loadMcpTlsMaterial(config);
+      const first = loadMcpTlsMaterial(config, {
+        createSecureContextImpl: () => ({}),
+        validateCertificateImpl: () => {},
+      });
       fs.writeFileSync(certFile, "cert-generation-2");
-      const second = loadMcpTlsMaterial(config);
+      const second = loadMcpTlsMaterial(config, {
+        createSecureContextImpl: () => ({}),
+        validateCertificateImpl: () => {},
+      });
 
       expect(first.identityDigest).not.toBe(second.identityDigest);
       expect(second.connectOptions.cert.toString()).toBe("cert-generation-2");
@@ -267,6 +311,19 @@ describe("MCP lifecycle increments", () => {
         },
       ),
     ).toThrow(/no larger/i);
+  });
+
+  it("fails closed on malformed TLS material before a dispatcher can dial", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-tls-bad-"));
+    try {
+      const caFile = path.join(root, "invalid-ca.pem");
+      fs.writeFileSync(caFile, "not a certificate");
+      expect(() => loadMcpTlsMaterial({ caFile })).toThrow(
+        expect.objectContaining({ code: "CC_MCP_TLS_MATERIAL_INVALID" }),
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("preserves normalized TLS config from project and managed MCP sources", () => {

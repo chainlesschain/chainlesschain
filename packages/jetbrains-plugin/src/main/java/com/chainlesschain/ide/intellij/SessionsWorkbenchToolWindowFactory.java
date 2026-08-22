@@ -26,6 +26,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -42,8 +44,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -65,6 +69,21 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         Content content = ContentFactory.getInstance().createContent(panel.root, "", false);
         toolWindow.getContentManager().addContent(content);
         panel.scheduleTick(0);
+    }
+
+    private static final class GroupChoice {
+        final String id;
+        final String name;
+
+        GroupChoice(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     /** The workbench view: search + refresh + table + per-selection actions. */
@@ -98,6 +117,12 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private final JButton workflowResumeBtn = new JButton("Resume workflow");
         private final JButton recoverBtn = new JButton("Recover checkpoints");
         private final JButton recoveryPlanBtn = new JButton("Recovery dry-run");
+        private final JCheckBox focusView = new JCheckBox("Focus View");
+        private final JComboBox<GroupChoice> groupPicker = new JComboBox<>();
+        private final JButton groupMoveBtn = new JButton("Move selected");
+        private final JButton groupCreateBtn = new JButton("Create group");
+        private final JButton groupRenameBtn = new JButton("Rename group");
+        private final JButton groupDeleteBtn = new JButton("Delete group");
 
         /** Last full (unfiltered) aggregate — filter re-applies locally. */
         private List<SessionsWorkbench.Row> all = new ArrayList<>();
@@ -146,12 +171,36 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             actions.add(workflowResumeBtn);
             actions.add(recoverBtn);
             actions.add(recoveryPlanBtn);
+            actions.add(focusView);
+
+            JPanel groupActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+            groupActions.add(new JLabel("Group:"));
+            groupActions.add(groupPicker);
+            groupActions.add(groupMoveBtn);
+            groupActions.add(groupCreateBtn);
+            groupActions.add(groupRenameBtn);
+            groupActions.add(groupDeleteBtn);
+            groupPicker.getAccessibleContext().setAccessibleName(
+                    "Session group target");
+            groupMoveBtn.getAccessibleContext().setAccessibleName(
+                    "Move selected sessions to group");
+            focusView.getAccessibleContext().setAccessibleName(
+                    "Focus View for active session context");
+            focusView.addActionListener(ev -> applyFilter());
+            groupPicker.addActionListener(ev -> syncButtons());
+            groupMoveBtn.addActionListener(ev -> onGroupMove());
+            groupCreateBtn.addActionListener(ev -> onGroupCreate());
+            groupRenameBtn.addActionListener(ev -> onGroupRename());
+            groupDeleteBtn.addActionListener(ev -> onGroupDelete());
 
             JPanel top = new JPanel(new BorderLayout(6, 6));
             top.add(search, BorderLayout.CENTER);
-            top.add(actions, BorderLayout.SOUTH);
+            JPanel controls = new JPanel(new BorderLayout(6, 2));
+            controls.add(actions, BorderLayout.NORTH);
+            controls.add(groupActions, BorderLayout.SOUTH);
+            top.add(controls, BorderLayout.SOUTH);
 
-            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             table.setName("chainlesschain.sessions.table");
             table.getAccessibleContext().setAccessibleName(
                     "ChainlessChain sessions table");
@@ -278,6 +327,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                     try {
                         projection = parsed;
                         all = rows;
+                        syncGroups(parsed);
                         applyFilter();
                         if (!parsed.connected) {
                             note.setText("Session projection unavailable: " + parsed.error);
@@ -290,14 +340,14 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         }
 
         private void applyFilter() {
-            String keepId = selectedId();
-            model.setRows(SessionsWorkbench.filter(all, search.getText()));
-            if (keepId != null) {
-                for (int i = 0; i < model.rows.size(); i++) {
-                    if (keepId.equals(model.rows.get(i).id)) {
-                        table.getSelectionModel().setSelectionInterval(i, i);
-                        break;
-                    }
+            Set<String> keepIds = selectedIds();
+            List<SessionsWorkbench.Row> source = focusView.isSelected()
+                    ? SessionsWorkbench.focusRows(all) : all;
+            model.setRows(SessionsWorkbench.filter(source, search.getText()));
+            table.clearSelection();
+            for (int i = 0; i < model.rows.size(); i++) {
+                if (keepIds.contains(model.rows.get(i).id)) {
+                    table.getSelectionModel().addSelectionInterval(i, i);
                 }
             }
             long recoveryAttention = all.stream()
@@ -309,6 +359,22 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                             + " workflow recovery notice(s); no unattended mutation"
                     : count);
             syncButtons();
+        }
+
+        private void syncGroups(SessionProjection.Snapshot snapshot) {
+            String keep = selectedGroupId();
+            groupPicker.removeAllItems();
+            groupPicker.addItem(new GroupChoice("ungrouped", "Ungrouped"));
+            for (SessionProjection.Group group : snapshot.groups) {
+                groupPicker.addItem(new GroupChoice(group.id, group.name));
+            }
+            for (int i = 0; i < groupPicker.getItemCount(); i++) {
+                if (groupPicker.getItemAt(i).id.equals(keep)) {
+                    groupPicker.setSelectedIndex(i);
+                    return;
+                }
+            }
+            groupPicker.setSelectedIndex(0);
         }
 
         // ------------------------------------------------------ selection
@@ -483,6 +549,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         }
 
         private SessionsWorkbench.Row selected() {
+            if (table.getSelectedRowCount() != 1) return null;
             int i = table.getSelectedRow();
             if (i < 0) return null;
             int m = table.convertRowIndexToModel(i);
@@ -492,6 +559,22 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private String selectedId() {
             SessionsWorkbench.Row r = selected();
             return r == null ? null : r.id;
+        }
+
+        private Set<String> selectedIds() {
+            Set<String> ids = new LinkedHashSet<String>();
+            for (int view : table.getSelectedRows()) {
+                int row = table.convertRowIndexToModel(view);
+                if (row >= 0 && row < model.rows.size()) {
+                    ids.add(model.rows.get(row).id);
+                }
+            }
+            return ids;
+        }
+
+        private String selectedGroupId() {
+            Object value = groupPicker.getSelectedItem();
+            return value instanceof GroupChoice ? ((GroupChoice) value).id : "ungrouped";
         }
 
         private void syncButtons() {
@@ -507,6 +590,14 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             workflowResumeBtn.setEnabled(
                     acts.contains(SessionsWorkbench.ACT_WORKFLOW_RESUME));
             recoverBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_RECOVER));
+            boolean groupsReady = projection.groupsConnected
+                    && !projection.groupRevision.isEmpty();
+            groupCreateBtn.setEnabled(groupsReady);
+            groupMoveBtn.setEnabled(groupsReady && !selectedIds().isEmpty());
+            boolean concreteGroup = groupsReady
+                    && !"ungrouped".equals(selectedGroupId());
+            groupRenameBtn.setEnabled(concreteGroup);
+            groupDeleteBtn.setEnabled(concreteGroup);
             sessionDetail.setText(r == null ? "Select a session to inspect its "
                     + "canonical owner, worktree, input, artifact and PR bindings."
                     : SessionsWorkbench.describe(r, System.currentTimeMillis()));
@@ -526,6 +617,83 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         }
 
         // -------------------------------------------------------- actions
+
+        private SessionProjection.Group selectedGroup() {
+            String id = selectedGroupId();
+            for (SessionProjection.Group group : projection.groups) {
+                if (group.id.equals(id)) return group;
+            }
+            return null;
+        }
+
+        private void runGroupMutation(List<String> command) {
+            final String expectedRevision = projection.groupRevision;
+            if (!projection.groupsConnected || expectedRevision.isEmpty()) {
+                note.setText("Session groups are unavailable; refresh before retrying.");
+                return;
+            }
+            final File cwd = projectDirectory();
+            final List<String> args = new ArrayList<String>(command);
+            args.add("--expected-revision");
+            args.add(expectedRevision);
+            args.add("--json");
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                try {
+                    String out = AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS);
+                    afterAction(out == null || out.isEmpty()
+                            ? "Session group mutation returned no result"
+                            : "Session groups updated at " + expectedRevision);
+                } catch (Throwable error) {
+                    afterAction("Session group mutation rejected: "
+                            + deliveryError(error));
+                }
+            });
+        }
+
+        private void onGroupCreate() {
+            String name = Messages.showInputDialog(project,
+                    "Name the new session group (1-80 characters)",
+                    "Create Session Group", null);
+            if (name == null || name.trim().isEmpty()
+                    || name.trim().length() > 80) return;
+            runGroupMutation(List.of(
+                    "session", "group", "create", name.trim()));
+        }
+
+        private void onGroupRename() {
+            SessionProjection.Group group = selectedGroup();
+            if (group == null) return;
+            String name = Messages.showInputDialog(project,
+                    "Rename session group", "Rename Session Group", null,
+                    group.name, null);
+            if (name == null || name.trim().isEmpty()
+                    || name.trim().length() > 80
+                    || group.name.equals(name.trim())) return;
+            runGroupMutation(List.of(
+                    "session", "group", "rename", group.id, name.trim()));
+        }
+
+        private void onGroupDelete() {
+            SessionProjection.Group group = selectedGroup();
+            if (group == null) return;
+            int answer = Messages.showYesNoDialog(project,
+                    "Delete group “" + group.name
+                            + "”? Its sessions become ungrouped.",
+                    "Delete Session Group", null);
+            if (answer == Messages.YES) {
+                runGroupMutation(List.of(
+                        "session", "group", "delete", group.id));
+            }
+        }
+
+        private void onGroupMove() {
+            Set<String> ids = selectedIds();
+            if (ids.isEmpty() || ids.size() > 256) return;
+            List<String> args = new ArrayList<String>(List.of(
+                    "session", "group", "move", selectedGroupId()));
+            args.addAll(ids);
+            runGroupMutation(args);
+        }
 
         private void onResume() {
             SessionsWorkbench.Row r = selectedFor(SessionsWorkbench.ACT_DISPATCH);

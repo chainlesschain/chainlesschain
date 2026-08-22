@@ -225,11 +225,16 @@ jobs:
           --run-id "$GITHUB_RUN_ID"
           --run-attempt "$GITHUB_RUN_ATTEMPT"
           --event-name "$GITHUB_EVENT_NAME"
+          --job-id "$GITHUB_JOB"
+          --aggregate-artifact-name "ide-marketplace-supply-chain-aggregate-$GITHUB_RUN_ATTEMPT"
+          --fragment-dir "$RUNNER_TEMP/marketplace-supply-chain-audit-fragments"
           --output "$RUNNER_TEMP/marketplace-supply-chain-aggregate.json"
       - name: Upload trusted aggregate
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ide-marketplace-supply-chain-aggregate-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/marketplace-supply-chain-aggregate.json
+          path: |
+            ${{ runner.temp }}/marketplace-supply-chain-aggregate.json
+            ${{ runner.temp }}/marketplace-supply-chain-audit-fragments/
           if-no-files-found: error

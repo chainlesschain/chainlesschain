@@ -51,6 +51,17 @@ describe("evaluateShellCommandWithApproval", () => {
     expect(res.via).toBe("no-confirmer");
   });
 
+  it("keeps input redirection behind the shell approval gate", async () => {
+    const gate = new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.STRICT });
+    const res = await evaluateShellCommandWithApproval({
+      command: "node script.js < private-input.txt",
+      approvalGate: gate,
+    });
+    expect(res.allowed).toBe(false);
+    expect(res.via).toBe("no-confirmer");
+    expect(res.shellPolicy.decision).toBe("warn");
+  });
+
   it("TRUSTED allows WARN commands without confirm", async () => {
     const gate = new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.TRUSTED });
     const res = await evaluateShellCommandWithApproval({

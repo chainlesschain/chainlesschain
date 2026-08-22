@@ -70,7 +70,7 @@ echo "$node_sha256  $node_archive" | sha256sum --check --strict
 tar --exclude=node_modules --exclude=build -cf "$run_root/repository.tar" .
 
 if [[ "$transport" == "container" ]]; then
-  docker run --detach --name "$container_name" ubuntu:24.04 tail -f /dev/null >/dev/null
+  docker run --detach --cpus 2 --memory 4g --name "$container_name" ubuntu:24.04 tail -f /dev/null >/dev/null
   docker cp "$run_root/repository.tar" "$container_name:/tmp/repository.tar"
   docker cp "$node_archive" "$container_name:/tmp/node.tar.gz"
   docker exec "$container_name" bash -lc "set -euo pipefail; mkdir -p /opt/cc-target-repo /opt/node-22.12.0 /var/lib/cc-location/target-home /var/lib/cc-location/target-security; tar -xf /tmp/repository.tar -C /opt/cc-target-repo; tar -xzf /tmp/node.tar.gz --strip-components=1 -C /opt/node-22.12.0; export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; cd /opt/cc-target-repo/packages/cli; npm install --omit=optional --ignore-scripts --no-package-lock --no-save; printf '%s\n' 'CC_IDE_TARGET_NODE=/opt/node-22.12.0/bin/node' 'CC_IDE_TARGET_ENTRY=/opt/cc-target-repo/packages/cli/src/index.js' 'CC_IDE_TARGET_HOME=/var/lib/cc-location/target-home' 'CC_IDE_TARGET_SECURITY_HOME=/var/lib/cc-location/target-security' > /tmp/cc-ide-roadmap-target.env; chmod 600 /tmp/cc-ide-roadmap-target.env; chmod +x /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh"
@@ -151,6 +151,7 @@ else
   start_sshd
 fi
 run_matrix complete-reconnect
+run_matrix lifecycle-faults
 run_matrix campaign --iterations 99
 run_matrix finalize
 trap - ERR

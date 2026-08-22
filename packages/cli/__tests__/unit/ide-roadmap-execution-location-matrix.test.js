@@ -2,13 +2,22 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   EVIDENCE_FILES,
   sumTrajectoryCounters,
 } from "../../scripts/ide-roadmap-execution-location-matrix.mjs";
 import {
+  AUDIT_FRAGMENT_SCHEMA,
+  PRODUCER_PATHS,
+  PROFILE_VERSION,
+  REQUIRED_OPERATING_SYSTEMS,
+  REQUIRED_REMOTE_TRANSPORTS,
   REQUIRED_TRANSPORTS,
+  TEST_IDS,
+  THRESHOLDS,
+  assertCanonicalAuditFragment,
+  buildCanonicalAuditFragments,
   verifyCell,
 } from "../../scripts/verify-ide-roadmap-execution-location.mjs";
 
@@ -36,6 +45,16 @@ function trajectory(reconnect = false) {
     settlementDigest: DIGEST,
     reviewDigest: DIGEST,
     importDigest: DIGEST,
+    leaseReceiptDigest: DIGEST,
+    targetPreflightReceiptDigest: DIGEST,
+    lifecycleAttestationDigest: DIGEST,
+    postSessionHookReceiptDigest: DIGEST,
+    leaseGeneration: 1,
+    finalRunnerGeneration: 5,
+    finalRunnerState: "accepting",
+    sigtermDrainCount: 1,
+    postSessionHookCount: 1,
+    reclaimCount: 1,
     launchCount: 1,
     resumeCount: reconnect ? 2 : 1,
     reconnectCount: reconnect ? 1 : 0,
@@ -57,7 +76,10 @@ function writeJson(directory, file, value) {
   );
 }
 
-function makeCell(transport = "ssh") {
+function makeCell(
+  transport = "ssh",
+  operatingSystem = transport === "wsl" ? "windows" : "linux",
+) {
   const directory = fs.mkdtempSync(
     path.join(os.tmpdir(), "cc-location-evidence-"),
   );
@@ -69,13 +91,29 @@ function makeCell(transport = "ssh") {
     runId: "42",
     runAttempt: "1",
     eventName: "workflow_dispatch",
-    job: `${transport}-execution-location`,
-    artifactName: `ide-execution-location-${transport}-1`,
+    job:
+      transport === "local"
+        ? "local-execution-location"
+        : `${transport}-execution-location`,
+    artifactName:
+      transport === "local"
+        ? `ide-execution-location-local-${operatingSystem}-1`
+        : `ide-execution-location-${transport}-1`,
   };
   const reconnect = trajectory(true);
   const campaign = Array.from({ length: 99 }, () => trajectory(false));
+  const windowsLocalSigtermUnsupported =
+    transport === "local" && operatingSystem === "windows";
   writeJson(directory, "bootstrap.json", {
     schema: "chainlesschain.execution-location-bootstrap.v1",
+    releaseCommit: COMMIT,
+    transport,
+    nodeVersion: "v22.12.0",
+    platform: { linux: "linux", macos: "darwin", windows: "win32" }[
+      operatingSystem
+    ],
+    architecture: "x64",
+    provenance,
   });
   writeJson(directory, "reconnect-prepared.json", {
     schema: "chainlesschain.execution-location-reconnect-prepared.v1",
@@ -94,6 +132,57 @@ function makeCell(transport = "ssh") {
     credentialLeakCount: 0,
     diagnostic: { messageDigest: DIGEST },
   });
+  writeJson(directory, "lifecycle-faults.json", {
+    schema: "chainlesschain.execution-location-lifecycle-faults.v1",
+    releaseCommit: COMMIT,
+    transport,
+    sigterm: {
+      sigtermCapability: windowsLocalSigtermUnsupported
+        ? "unsupported-terminate-process"
+        : "graceful-sigterm",
+      targetReceiptDigest: windowsLocalSigtermUnsupported ? null : DIGEST,
+      preflightReceiptDigest: DIGEST,
+      signalDeliveryCount: windowsLocalSigtermUnsupported ? 0 : 1,
+      sourceSignalRequested: "SIGTERM",
+      sourceDrainingState: "draining",
+      sourceAcceptingAfterDrain: false,
+      postDrainLeaseAcceptanceCount: 0,
+      sourceParkedState: "parked",
+      hookReceiptDigest: DIGEST,
+      reclaimedState: "accepting",
+      targetProcessExitObserved: true,
+      orphanProcessCount: 0,
+    },
+    lostPoll: {
+      stalePollAcceptanceCount: 0,
+      parkedState: "parked",
+      parkedLeaseCount: 1,
+    },
+    tokenRotation: {
+      staleTokenAcceptanceCount: 0,
+      staleTargetLaunchAcceptanceCount: 0,
+      refreshedPollRevision: 2,
+      refreshedTargetPreflightReceiptDigest: DIGEST,
+      reclaimedState: "accepting",
+    },
+    checkoutFailure: {
+      parkedState: "parked",
+      parkReason: "checkout-failure",
+      reclaimedState: "accepting",
+    },
+    resources: ["cpu", "memory"].map((kind) => ({
+      kind,
+      targetReceiptDigest: DIGEST,
+      preflightReceiptDigest: DIGEST,
+      enforcementScope: "target-workload",
+      termination: { kind: "exit-status", value: 137 },
+      parkedState: "parked",
+      parkReason: "resource-limit",
+      reclaimedState: "accepting",
+    })),
+    staleAuthorityAcceptanceCount: 0,
+    secretTransferCount: 0,
+  });
   writeJson(directory, "reconnect-completed.json", {
     schema: "chainlesschain.execution-location-reconnect-completed.v1",
     trajectory: reconnect,
@@ -111,6 +200,17 @@ function makeCell(transport = "ssh") {
     ...sumTrajectoryCounters([reconnect, ...campaign]),
     injectedOutageCount: 1,
     unavailableProbeFailureCount: 1,
+    sigtermCapability: windowsLocalSigtermUnsupported
+      ? "unsupported-terminate-process"
+      : "graceful-sigterm",
+    sigtermSignalDeliveryCount: windowsLocalSigtermUnsupported ? 0 : 1,
+    sourceFencedDrainCount: 1,
+    unexpectedUnsupportedSigtermCount: 0,
+    lostPollParkCount: 1,
+    tokenRotationCount: 1,
+    checkoutFailureParkCount: 1,
+    targetResourceTerminationCount: 2,
+    targetResourceParkCount: 2,
     staleAuthorityAcceptanceCount: 0,
     orphanProcessCount: 0,
   });
@@ -141,14 +241,20 @@ function makeCell(transport = "ssh") {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
 describe("IDE roadmap execution-location matrix", () => {
-  it("requires the genuine WSL, Container, and strict SSH cells", () => {
-    expect(REQUIRED_TRANSPORTS).toEqual(["wsl", "container", "ssh"]);
+  it("requires Local on three OS plus genuine WSL, Container, and strict SSH", () => {
+    expect(REQUIRED_TRANSPORTS).toEqual(["local", "wsl", "container", "ssh"]);
+    expect(REQUIRED_REMOTE_TRANSPORTS).toEqual(["wsl", "container", "ssh"]);
+    expect(REQUIRED_OPERATING_SYSTEMS).toEqual(["linux", "macos", "windows"]);
+    expect(AUDIT_FRAGMENT_SCHEMA).toBe(
+      "chainlesschain.claude-code-increment-audit-fragment.v1",
+    );
     const workflow = fs.readFileSync(
       path.resolve(
         import.meta.dirname,
@@ -157,18 +263,24 @@ describe("IDE roadmap execution-location matrix", () => {
       "utf8",
     );
     expect(workflow).toContain("WSL production location trajectory x100");
+    expect(workflow).toContain("Local production location trajectory x100");
     expect(workflow).toContain("Container production location trajectory x100");
     expect(workflow).toContain(
       "Strict SSH production location trajectory x100",
     );
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain('test "$WSL_RESULT" = success');
-    expect(workflow).toContain("require all 300 trajectories");
+    expect(workflow).toContain('test "$LOCAL_RESULT" = success');
+    expect(workflow).toContain("require all 600 trajectories");
+    expect(workflow).toContain("claude-code-increment-audit-location-drain");
+    expect(
+      workflow.match(/runner\.temp \}\}\/location-drain-audit-fragments\//gu),
+    ).toHaveLength(2);
     expect(
       workflow.match(
         /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     const linuxRunner = fs.readFileSync(
       path.resolve(
         import.meta.dirname,
@@ -184,6 +296,8 @@ describe("IDE roadmap execution-location matrix", () => {
       "utf8",
     );
     expect(linuxRunner).toContain("run_matrix campaign --iterations 99");
+    expect(linuxRunner).toContain("run_matrix lifecycle-faults");
+    expect(linuxRunner).toContain("--cpus 2 --memory 4g");
     expect(linuxRunner).toContain(
       "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     );
@@ -203,8 +317,29 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(wslRunner).toContain(
       'Invoke-Matrix "campaign" @("--iterations", "99")',
     );
+    expect(wslRunner).toContain('Invoke-Matrix "lifecycle-faults"');
     expect(wslRunner).toContain(
       "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    );
+    const localRunner = fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "../../../../.github/scripts/run-ide-roadmap-execution-location-local.mjs",
+      ),
+      "utf8",
+    );
+    expect(localRunner).toContain('"--transport",\n    "local"');
+    expect(localRunner).toContain('runMatrix(commonArguments, "campaign"');
+    expect(localRunner).toContain("fs.renameSync(targetCli, offlineCli)");
+    const sessionStore = fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "../../src/harness/jsonl-session-store.js",
+      ),
+      "utf8",
+    );
+    expect(sessionStore).toContain(
+      '!["local", "wsl", "ssh", "container"].includes(collection.target)',
     );
   });
 
@@ -229,6 +364,156 @@ describe("IDE roadmap execution-location matrix", () => {
         provenance,
       }),
     ).toThrow(/digest drift/u);
+  });
+
+  it("rehashes a genuine Local cell with OS-bound provenance", () => {
+    const { directory, provenance } = makeCell("local", "windows");
+    expect(
+      verifyCell(directory, {
+        transport: "local",
+        os: "windows",
+        releaseCommit: COMMIT,
+        provenance,
+      }),
+    ).toMatchObject({
+      transport: "local",
+      os: "windows",
+      trajectoryCount: 100,
+      runtime: { name: "node", version: "v22.12.0", arch: "x64" },
+    });
+  });
+
+  it("keeps LOCATION-DRAIN evidence on the unified 13-key fragment schema", () => {
+    const fragment = {
+      schema: AUDIT_FRAGMENT_SCHEMA,
+      commitmentId: "LOCATION-DRAIN",
+      headSha: COMMIT,
+      os: "linux",
+      runtime: { name: "node", version: "v22.12.0", arch: "x64" },
+      profileVersion: PROFILE_VERSION,
+      thresholds: THRESHOLDS,
+      measurements: { totalTrajectoryCount: 600 },
+      testIds: TEST_IDS,
+      producerDigests: Object.fromEntries(
+        PRODUCER_PATHS.map((producerPath) => [producerPath, DIGEST]),
+      ),
+      disposition: "required",
+      source: {
+        workflowId:
+          "owner/repo/.github/workflows/ide-roadmap-execution-location.yml@refs/heads/main",
+        runId: "42",
+        jobId: "trusted-execution-location-aggregate",
+        artifactName: "claude-code-increment-audit-location-drain-1",
+      },
+      outcome: "passed",
+    };
+    expect(assertCanonicalAuditFragment(fragment)).toBe(fragment);
+    expect(Object.keys(fragment)).toHaveLength(13);
+    expect(() =>
+      assertCanonicalAuditFragment({ ...fragment, unexpected: true }),
+    ).toThrow(/keys drifted/u);
+  });
+
+  it("emits one same-profile required fragment per OS from all six target cells", () => {
+    vi.stubEnv("GITHUB_ACTIONS", "true");
+    const runtime = { name: "node", version: "v22.12.0", arch: "x64" };
+    const commonCounters = {
+      sigtermDrainCount: 100,
+      sourceFencedDrainCount: 1,
+      unexpectedUnsupportedSigtermCount: 0,
+      lostPollParkCount: 1,
+      tokenRotationCount: 1,
+      checkoutFailureParkCount: 1,
+      resultCollectCount: 100,
+      targetResourceTerminationCount: 0,
+      targetResourceParkCount: 0,
+      staleAuthorityAcceptanceCount: 0,
+      secretTransferCount: 0,
+      orphanProcessCount: 0,
+    };
+    const cells = [
+      ...REQUIRED_OPERATING_SYSTEMS.map((operatingSystem) => ({
+        transport: "local",
+        os: operatingSystem,
+        runtime,
+        trajectoryCount: 100,
+        counters: {
+          ...commonCounters,
+          sigtermCapability:
+            operatingSystem === "windows"
+              ? "unsupported-terminate-process"
+              : "graceful-sigterm",
+          sigtermSignalDeliveryCount: operatingSystem === "windows" ? 0 : 1,
+        },
+      })),
+      ...REQUIRED_REMOTE_TRANSPORTS.map((transport) => ({
+        transport,
+        os: transport === "wsl" ? "windows" : "linux",
+        runtime,
+        trajectoryCount: 100,
+        counters: {
+          ...commonCounters,
+          sigtermCapability: "graceful-sigterm",
+          sigtermSignalDeliveryCount: 1,
+          targetResourceTerminationCount: 2,
+          targetResourceParkCount: 2,
+        },
+      })),
+    ];
+    const fragments = buildCanonicalAuditFragments({
+      cells,
+      releaseCommit: COMMIT,
+      repositoryRoot: "unused-in-test",
+      provenance: {
+        workflowRef:
+          "owner/repo/.github/workflows/ide-roadmap-execution-location.yml@refs/heads/main",
+        runId: "42",
+        job: "trusted-execution-location-aggregate",
+      },
+      artifactName: "claude-code-increment-audit-location-drain-1",
+      resolveProducerDigests: () =>
+        Object.fromEntries(
+          PRODUCER_PATHS.map((producerPath) => [producerPath, DIGEST]),
+        ),
+    });
+    expect(fragments.map((fragment) => fragment.os)).toEqual([
+      "linux",
+      "macos",
+      "windows",
+    ]);
+    expect(
+      new Set(fragments.map((fragment) => JSON.stringify(fragment.thresholds)))
+        .size,
+    ).toBe(1);
+    expect(
+      new Set(fragments.map((fragment) => JSON.stringify(fragment.testIds)))
+        .size,
+    ).toBe(1);
+    for (const fragment of fragments) {
+      expect(fragment).toMatchObject({
+        commitmentId: "LOCATION-DRAIN",
+        disposition: "required",
+        outcome: "passed",
+        profileVersion: PROFILE_VERSION,
+        thresholds: THRESHOLDS,
+        testIds: TEST_IDS,
+        measurements: {
+          requiredCellCount: 6,
+          totalTrajectoryCount: 600,
+          remoteTargetResourceTerminationCount: 6,
+          remoteTargetResourceParkCount: 6,
+          gracefulSigtermCellCount: 5,
+          unsupportedSigtermCells: ["local-windows"],
+          sourceFencedDrainCellCount: 6,
+          unexpectedUnsupportedSigtermCount: 0,
+        },
+      });
+      expect(Object.keys(fragment)).toHaveLength(13);
+    }
+    expect(PRODUCER_PATHS).toContain(
+      "packages/cli/src/lib/execution-location-target.js",
+    );
+    expect(PRODUCER_PATHS).toEqual([...PRODUCER_PATHS].sort());
   });
 
   it("keeps target resume on the production CLI with a bounded exit input", () => {

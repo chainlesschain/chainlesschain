@@ -292,16 +292,45 @@ describe("SessionMessageFabric idle and IDE projection", () => {
     expect(receipt.idleNotifiedAt).toBe(11);
   });
 
-  it("keeps offline delivery durable and exposes bounded CLI-owned projection", () => {
+  it("distinguishes offline admission, promotes on reconnect and exposes a bounded projection", () => {
     const fabric = fixture();
     fabric.register({ sessionId: "sender", name: "sender" });
     fabric.register({ sessionId: "target-session", name: "target" });
     fabric.disconnect("target");
     expect(
       fabric.send({ from: "sender", to: "target", body: "offline" }).status,
-    ).toBe("delivered");
+    ).toBe("held");
+    expect(fabric.receipts("sender")[0]).toMatchObject({
+      status: "held",
+      reason: "recipient_offline",
+    });
     fabric.reconnect("target");
     expect(fabric.inbox("target")[0].body).toBe("offline");
+    expect(fabric.receipts("sender")[0]).toMatchObject({
+      status: "delivered",
+      reason: null,
+    });
+
+    fabric.inbox("target", { acknowledge: true });
+    fabric.disconnect("target");
+    expect(
+      fabric.send({
+        from: "sender",
+        to: "target",
+        body: "restart",
+        messageId: "offline-restart",
+      }),
+    ).toMatchObject({ status: "held", reason: "recipient_offline" });
+    const afterRestart = new SessionMessageFabric({
+      statePath: fabric.statePath,
+    });
+    afterRestart.register({
+      sessionId: "target-session",
+      name: "target",
+    });
+    expect(afterRestart.inbox("target").map((message) => message.body)).toEqual(
+      ["restart"],
+    );
 
     expect(fabric.projection()).toMatchObject({
       schema: SESSION_MESSAGE_FABRIC_PROJECTION_SCHEMA,

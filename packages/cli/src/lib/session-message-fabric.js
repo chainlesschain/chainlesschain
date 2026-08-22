@@ -368,12 +368,18 @@ function compactSettledMessages(state) {
 }
 
 function applyExpectedMessage(state, channel, message, recipient, now) {
-  if (recipient.policy === "hold") {
-    updateReceipt(state, message, "held", "policy_hold", now);
-    return false;
-  }
   if (recipient.policy === "refuse") {
     updateReceipt(state, message, "refused", "policy_refuse", now);
+  } else if (recipient.policy === "hold") {
+    updateReceipt(state, message, "held", "policy_hold", now);
+    return false;
+  } else if (recipient.online !== true) {
+    // Durable admission is not delivery.  In particular, an offline target
+    // must never produce a success-looking `delivered` receipt merely because
+    // this host appended the payload to its local queue.  Reconnect promotes
+    // the exact retained sequence through the same policy gate.
+    updateReceipt(state, message, "held", "recipient_offline", now);
+    return false;
   } else {
     const receipt = updateReceipt(state, message, "delivered", null, now);
     message.deliveredAt = now;
@@ -757,6 +763,13 @@ export class SessionMessageFabric {
         };
         state.endpoints.push(endpoint);
       }
+      for (const channel of state.channels.filter(
+        (entry) =>
+          entry.recipientAuthority === endpoint.authorityId &&
+          entry.recipientEpoch === endpoint.epoch,
+      )) {
+        promoteChannel(state, channel, now);
+      }
       return {
         changed: true,
         value: { ...clone(endpoint), address: endpointAddress(endpoint) },
@@ -783,6 +796,13 @@ export class SessionMessageFabric {
       const endpoint = requireEndpoint(state, selector);
       endpoint.online = true;
       endpoint.updatedAt = now;
+      for (const channel of state.channels.filter(
+        (entry) =>
+          entry.recipientAuthority === endpoint.authorityId &&
+          entry.recipientEpoch === endpoint.epoch,
+      )) {
+        promoteChannel(state, channel, now);
+      }
       return {
         changed: true,
         value: { ...clone(endpoint), address: endpointAddress(endpoint) },

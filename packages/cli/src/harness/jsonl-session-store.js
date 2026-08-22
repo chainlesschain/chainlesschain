@@ -4005,7 +4005,7 @@ function createSessionResultCollectionSettlementData(
     gaps: collection.gaps,
   };
   if (
-    !["wsl", "ssh", "container"].includes(collection.target) ||
+    !["local", "wsl", "ssh", "container"].includes(collection.target) ||
     collection.continuity !== "single-fixed-command-response" ||
     JSON.stringify(collection.gaps) !==
       JSON.stringify([

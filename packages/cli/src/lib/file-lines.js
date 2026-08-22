@@ -62,9 +62,14 @@ function joinedLineBuffer(parts, byteLength) {
 
 function recordRead(ioMetrics, bytes) {
   if (!ioMetrics || typeof ioMetrics !== "object") return;
+  const normalizedBytes = Math.max(0, Number(bytes) || 0);
   ioMetrics.readCalls = Math.max(0, Number(ioMetrics.readCalls) || 0) + 1;
   ioMetrics.bytesRead =
-    Math.max(0, Number(ioMetrics.bytesRead) || 0) + Math.max(0, bytes || 0);
+    Math.max(0, Number(ioMetrics.bytesRead) || 0) + normalizedBytes;
+  ioMetrics.maxReadBytes = Math.max(
+    Math.max(0, Number(ioMetrics.maxReadBytes) || 0),
+    normalizedBytes,
+  );
 }
 
 /**

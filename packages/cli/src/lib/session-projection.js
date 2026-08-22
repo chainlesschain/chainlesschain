@@ -84,6 +84,29 @@ function asText(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function boundedText(value, maxChars = 240) {
+  let text = null;
+  if (typeof value === "string") text = value;
+  else if (value && typeof value === "object") {
+    text =
+      value.summary ||
+      value.title ||
+      value.question ||
+      value.text ||
+      value.answer ||
+      null;
+  }
+  if (typeof text !== "string") return null;
+  const normalized = text
+    .replace(/[\u0000-\u001f\u007f]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (!normalized) return null;
+  return normalized.length <= maxChars
+    ? normalized
+    : `${normalized.slice(0, Math.max(0, maxChars - 1))}…`;
+}
+
 function asCount(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
@@ -646,6 +669,178 @@ function messagingSummary(sessionIds, fabric) {
   };
 }
 
+function pendingInteractionCount(source) {
+  if (Array.isArray(source?.pendingInteractions)) {
+    return Math.min(1_000, source.pendingInteractions.length);
+  }
+  return Math.min(1_000, asCount(source?.pendingInteractions));
+}
+
+function liveToolSummary(source) {
+  const candidate =
+    source?.liveTool || source?.currentTool || source?.recent?.call || null;
+  const name = boundedText(candidate?.name || candidate?.tool || candidate, 96);
+  if (!name) return null;
+  return {
+    name,
+    status: boundedText(candidate?.status || source?.toolStatus, 48),
+  };
+}
+
+function focusSummary(source, state) {
+  const pendingQuestion = boundedText(source?.pendingQuestion, 240);
+  const todos = Array.isArray(source?.todos) ? source.todos : [];
+  const latestTodo = boundedText(
+    source?.latestTodo || source?.todo?.latest || todos.at(-1),
+    240,
+  );
+  const settledAnswer = boundedText(
+    source?.settledAnswer || source?.lastAnswer || source?.answerSummary,
+    240,
+  );
+  const liveTool = liveToolSummary(source);
+  return {
+    active: ["working", "needs_input", "blocked"].includes(state),
+    liveTool,
+    latestTodo,
+    pendingQuestion,
+    settledAnswer,
+  };
+}
+
+function locationSummary(source, kind) {
+  const hint = String(
+    source?.executionLocation?.kind ||
+      source?.executionLocation ||
+      source?.location?.kind ||
+      source?.location ||
+      source?.origin ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
+  const locationKind =
+    source?.cloud === true || hint === "cloud"
+      ? "cloud"
+      : kind === "remote"
+        ? "remote"
+        : "local";
+  const connection = String(source?.connection || source?.connectivity || "")
+    .trim()
+    .toLowerCase();
+  const offline =
+    source?.offline === true ||
+    source?.online === false ||
+    ["offline", "disconnected", "unreachable"].includes(connection) ||
+    (kind === "remote" && source?.alive !== true);
+  const online =
+    !offline &&
+    (source?.online === true ||
+      ["online", "connected"].includes(connection) ||
+      (kind === "remote" && source?.alive === true) ||
+      locationKind === "cloud");
+  return {
+    kind: locationKind,
+    status: offline ? "offline" : online ? "online" : "local",
+  };
+}
+
+function groupingSummary(workbench, error) {
+  if (error) {
+    return {
+      authority: "cli",
+      connected: false,
+      revision: null,
+      generation: 0,
+      reason: String(error).slice(0, 240),
+      items: [],
+      assignments: [],
+    };
+  }
+  if (workbench == null) {
+    const items = [];
+    const assignments = [];
+    return {
+      authority: "cli",
+      connected: true,
+      revision: projectionRevision({
+        schema: "chainlesschain.session-workbench-state/v1",
+        generation: 0,
+        groups: [],
+        memberships: {},
+      }),
+      generation: 0,
+      items,
+      assignments,
+    };
+  }
+  if (
+    typeof workbench !== "object" ||
+    workbench.authority !== "cli" ||
+    workbench.connected !== true ||
+    typeof workbench.revision !== "string" ||
+    !Number.isSafeInteger(workbench.generation) ||
+    workbench.generation < 0 ||
+    !Array.isArray(workbench.items) ||
+    workbench.items.length > 128 ||
+    !Array.isArray(workbench.assignments) ||
+    workbench.assignments.length > 4096
+  ) {
+    return groupingSummary(null, "session group projection is malformed");
+  }
+  const ids = new Set();
+  const items = [];
+  for (const raw of workbench.items) {
+    const id = asText(raw?.id);
+    const name = boundedText(raw?.name, 80);
+    const order = Number(raw?.order);
+    if (
+      !id ||
+      !/^group-[a-zA-Z0-9_-]+$/u.test(id) ||
+      !name ||
+      !Number.isSafeInteger(order) ||
+      order < 0 ||
+      ids.has(id)
+    ) {
+      return groupingSummary(null, "session group projection is malformed");
+    }
+    ids.add(id);
+    items.push({ id, name, order });
+  }
+  items.sort(
+    (left, right) =>
+      left.order - right.order || left.name.localeCompare(right.name),
+  );
+  const assignments = [];
+  const seenSessions = new Set();
+  for (const raw of workbench.assignments) {
+    const sessionId = asText(raw?.sessionId);
+    const groupId = asText(raw?.groupId);
+    if (
+      !sessionId ||
+      sessionId.length > 512 ||
+      !groupId ||
+      !ids.has(groupId) ||
+      seenSessions.has(sessionId)
+    ) {
+      return groupingSummary(null, "session group projection is malformed");
+    }
+    seenSessions.add(sessionId);
+    assignments.push({ sessionId, groupId });
+  }
+  assignments.sort((left, right) =>
+    left.sessionId.localeCompare(right.sessionId),
+  );
+  return {
+    authority: "cli",
+    connected: true,
+    revision: workbench.revision,
+    generation: workbench.generation,
+    items,
+    assignments,
+  };
+}
+
 function lastEventFor(source, state) {
   const at =
     toIso(source?.lastEvent?.at) ||
@@ -663,7 +858,7 @@ function lastEventFor(source, state) {
 function projectOne(
   kind,
   source,
-  { artifacts, prLinks, sessionMessageFabric },
+  { artifacts, prLinks, sessionMessageFabric, groupAssignments },
 ) {
   let sourceId;
   if (kind === "remote") {
@@ -707,6 +902,11 @@ function projectOne(
     sourceId,
     linkedSessionId,
   );
+  const approval = approvalSummary(source, state);
+  const messaging = messagingSummary(linkedSessionIds, sessionMessageFabric);
+  const focus = focusSummary(source, state);
+  const groupId =
+    groupAssignments.get(canonicalSessionId(kind, sourceId)) || null;
   const projected = {
     id: canonicalSessionId(kind, sourceId),
     sourceId,
@@ -735,8 +935,19 @@ function projectOne(
       kind === "dynamic_workflow"
         ? { count: asCount(source?.artifacts?.count), latest: null }
         : artifactSummary(linkedSessionIds, artifacts),
-    approval: approvalSummary(source, state),
-    messaging: messagingSummary(linkedSessionIds, sessionMessageFabric),
+    approval,
+    messaging,
+    groupId,
+    attention: {
+      unread: messaging.unread,
+      needsApproval: approval.pending,
+      pendingInteractions: Math.min(
+        1_000,
+        pendingInteractionCount(source) + (focus.pendingQuestion ? 1 : 0),
+      ),
+    },
+    focus,
+    location: locationSummary(source, kind),
     pr: prSummary(linkedSessionIds, prLinks),
     workflow: dynamicWorkflowSummary(source),
     lastEvent: lastEventFor(source, state),
@@ -763,10 +974,23 @@ export function buildSessionProjection({
   artifacts = [],
   prLinks = {},
   sessionMessageFabric = null,
+  sessionWorkbench = null,
   sourceErrors = {},
   generatedAt = new Date().toISOString(),
 } = {}) {
-  const context = { artifacts, prLinks, sessionMessageFabric };
+  const groups = groupingSummary(
+    sessionWorkbench,
+    sourceErrors.sessionWorkbench,
+  );
+  const groupAssignments = new Map(
+    groups.assignments.map((entry) => [entry.sessionId, entry.groupId]),
+  );
+  const context = {
+    artifacts,
+    prLinks,
+    sessionMessageFabric,
+    groupAssignments,
+  };
   const sessions = [
     ...(Array.isArray(local) ? local : []).map((source) =>
       projectOne("local", source, context),
@@ -828,6 +1052,11 @@ export function buildSessionProjection({
         : 0,
       sourceErrors.sessionMessageFabric,
     ),
+    sessionWorkbench: sourceStatus(
+      groups.connected ? groups.items.length : 0,
+      sourceErrors.sessionWorkbench ||
+        (groups.connected ? null : groups.reason),
+    ),
   };
   const revision = projectionRevision({
     schema: SESSION_PROJECTION_SCHEMA,
@@ -836,6 +1065,7 @@ export function buildSessionProjection({
       id: session.id,
       revision: session.revision,
     })),
+    groupRevision: groups.revision,
   });
   return {
     schema: SESSION_PROJECTION_SCHEMA,
@@ -845,6 +1075,7 @@ export function buildSessionProjection({
     generatedAt: toIso(generatedAt) || new Date().toISOString(),
     revision,
     sources,
+    groups,
     sessions,
   };
 }
@@ -962,6 +1193,15 @@ export function disconnectedSessionProjection(reasonText = "CLI unavailable") {
     revision: projectionRevision({ connected: false, reason }),
     reason,
     sources: {},
+    groups: {
+      authority: "cli",
+      connected: false,
+      revision: null,
+      generation: 0,
+      reason,
+      items: [],
+      assignments: [],
+    },
     sessions: [],
   };
 }

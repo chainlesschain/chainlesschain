@@ -23,6 +23,8 @@ import {
   aggregateSessions,
   sortRows,
   filterRows,
+  focusRows,
+  buildSessionGroupMutationArgs,
   escapeHtml,
   renderWorkbenchHtml,
 } from "../../../vscode-extension/src/sessions-workbench.js";
@@ -653,6 +655,75 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     );
   });
 
+  it("consumes one CLI-owned group/focus schema and builds atomic batch move argv", () => {
+    const root = v2Fixture();
+    root.groups = {
+      authority: "cli",
+      connected: true,
+      revision: `sha256:${"6".repeat(64)}`,
+      generation: 4,
+      items: [{ id: "group-release", name: "Release", order: 0 }],
+      assignments: [],
+    };
+    const target = root.sessions.find(
+      (item) => item.id === "dynamic_workflow:wf-run",
+    );
+    target.groupId = "group-release";
+    target.attention = {
+      unread: 2,
+      needsApproval: true,
+      pendingInteractions: 3,
+    };
+    target.focus = {
+      active: true,
+      liveTool: { name: "read_file", status: "running" },
+      latestTodo: "Run the matrix",
+      pendingQuestion: "Publish now?",
+      settledAnswer: "Wait for all checks",
+    };
+    target.location = { kind: "cloud", status: "offline" };
+
+    const snapshot = parseSessionProjection(root);
+    const row = snapshot.rows.find((item) => item.id === target.id);
+    expect(snapshot.groups).toMatchObject({
+      connected: true,
+      revision: root.groups.revision,
+      items: [{ id: "group-release", name: "Release", order: 0 }],
+    });
+    expect(row).toMatchObject({
+      groupId: "group-release",
+      groupName: "Release",
+      attention: { unread: 2, needsApproval: true, pendingInteractions: 3 },
+      location: { kind: "cloud", status: "offline" },
+    });
+    expect(focusRows(snapshot.rows).map((item) => item.id)).toContain(row.id);
+    expect(
+      buildSessionGroupMutationArgs({
+        action: "move",
+        groupId: "group-release",
+        expectedRevision: snapshot.groups.revision,
+        sessionIds: [row.id, "local:local-fixture"],
+      }),
+    ).toEqual([
+      "session",
+      "group",
+      "move",
+      "group-release",
+      row.id,
+      "local:local-fixture",
+      "--expected-revision",
+      snapshot.groups.revision,
+      "--json",
+    ]);
+    const html = renderWorkbenchHtml([row], { now: NOW });
+    expect(html).toContain("data-session-select");
+    expect(html).toContain("group Release");
+    expect(html).toContain("cloud offline");
+    expect(html).toContain("latest todo Run the matrix");
+    expect(html).toContain("pending question Publish now?");
+    expect(html).toContain("settled answer Wait for all checks");
+  });
+
   it("clears every row/action on disconnect, malformed data or stale revision", () => {
     const disconnected = JSON.parse(fixtureText);
     disconnected.connected = false;
@@ -827,5 +898,27 @@ describe("manifest wiring", () => {
     expect(src).toContain('"chainlesschain.sessions.workbench"');
     expect(src).toContain("openSessionsWorkbench");
     expect(src).toContain("sessionsView.isSessionsWorkbenchOpen()");
+  });
+
+  it("wires keyboard multi-selection, atomic group moves and JetBrains interval selection", () => {
+    const vscodeUi = readFileSync(ext("src/ui/sessions-view.js"), "utf-8");
+    expect(vscodeUi).toContain("input[data-session-select]:checked");
+    expect(vscodeUi).toContain("event.ctrlKey || event.metaKey");
+    expect(vscodeUi).toContain("event.altKey && event.key.toLowerCase()==='m'");
+    expect(vscodeUi).toContain("groupRevision");
+
+    const jetbrains = readFileSync(
+      fileURLToPath(
+        new URL(
+          "../../../jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory.java",
+          import.meta.url,
+        ),
+      ),
+      "utf-8",
+    );
+    expect(jetbrains).toContain("MULTIPLE_INTERVAL_SELECTION");
+    expect(jetbrains).toContain("onGroupMove()");
+    expect(jetbrains).toContain("projection.groupRevision");
+    expect(jetbrains).not.toContain("SINGLE_SELECTION");
   });
 });

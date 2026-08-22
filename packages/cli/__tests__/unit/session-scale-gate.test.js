@@ -441,6 +441,11 @@ describe("cli-session-scale gate", () => {
     expect(workflow).toContain("CC_SESSION_SCALE_EXPECTED_SHA");
     expect(workflow).toContain("CC_SESSION_SCALE_OUTPUT");
     expect(workflow).toContain(
+      "CC_SESSION_RUNTIME_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}",
+    );
+    expect(workflow).toContain("CC_SESSION_RUNTIME_EXPECTED_SHA");
+    expect(workflow).toContain("CC_SESSION_SCALE_EVIDENCE");
+    expect(workflow).toContain(
       "packages/cli/__tests__/fixtures/session-scale-*.mjs",
     );
     expect(workflow).toContain("actions/upload-artifact@v6");
@@ -450,5 +455,9 @@ describe("cli-session-scale gate", () => {
     expect(workflow).toContain(
       "${{ runner.temp }}/cli-session-scale-result.json",
     );
+    expect(workflow).toContain("SESSION-RUNTIME three-OS aggregate");
+    expect(workflow).toContain("--verify-evidence-dir");
+    expect(workflow).toContain("--allow-advisory");
+    expect(workflow).toContain("smoke-non-qualifying");
   });
 });

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { TextDecoder } from "node:util";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
@@ -16,6 +17,7 @@ import {
 } from "./secure-file-identity.js";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 import { executionBroker } from "./process-execution-broker/index.js";
+import { assertExecutionLocationRunnerLeaseAuthority } from "./execution-location-runner-lifecycle.js";
 import {
   MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
   normalizeExecutionLocationResultBundle,
@@ -24,6 +26,8 @@ import {
 
 export const EXECUTION_LOCATION_PROFILE_SCHEMA =
   "cc-execution-location-profile/v1";
+export const EXECUTION_LOCATION_PROFILE_SCHEMA_V2 =
+  "cc-execution-location-profile/v2";
 export { EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA };
 export const EXECUTION_LOCATION_TARGET_RESUME_SCHEMA =
   "cc-execution-location-target-resume/v1";
@@ -36,13 +40,23 @@ const SESSION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
 const SESSION_LOCATION_HANDOFF_INSTALL_SCHEMA =
   "chainlesschain.session-execution-location-handoff-install/v1";
-const PROFILE_TARGETS = new Set(["wsl", "ssh", "container"]);
+const PROFILE_TARGETS = new Set(["local", "wsl", "ssh", "container"]);
+const RUNNER_LIFECYCLE_STATES = new Set([
+  "accepting",
+  "draining",
+  "parked",
+  "reclaiming",
+]);
 const SESSION_STORE_MODES = new Set(["replicated", "shared"]);
 const SHA256_RE = /^sha256:[a-f0-9]{64}$/u;
 const COMMIT_RE = /^[a-f0-9]{40,64}$/u;
 const MAX_PROFILE_BYTES = 1024 * 1024;
 const MAX_PROBE_BYTES = 1024 * 1024;
 const MAX_REPLICA_BYTES = 64 * 1024 * 1024;
+const MAX_PROXY_AUTHORITY_AGE_MS = 5 * 60 * 1000;
+const LOCAL_TARGET_SUPERVISOR = fileURLToPath(
+  new URL("./execution-location-local-supervisor.mjs", import.meta.url),
+);
 const RESULT_MEDIA_TYPE_RE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 
@@ -82,6 +96,26 @@ function safeName(value, field, max = 256) {
 function safePath(value, field) {
   const normalized = safeString(value, field);
   if (normalized.startsWith("-") || normalized.includes("\0")) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function safeInteger(value, field, minimum, maximum) {
+  const normalized = Number(value);
+  if (
+    !Number.isSafeInteger(normalized) ||
+    normalized < minimum ||
+    normalized > maximum
+  ) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function safeTimestamp(value, field) {
+  const normalized = safeString(value, field, 64);
+  if (!Number.isFinite(Date.parse(normalized))) {
     throw new TypeError(`${field} is invalid`);
   }
   return normalized;
@@ -142,9 +176,168 @@ function normalizeSessionStore(value) {
   return Object.freeze({ mode, targetSessionId, headHash, eventCount });
 }
 
+function normalizeRunnerLifecycle(value, profileCwd) {
+  const input = exactObject(
+    value,
+    [
+      "runnerId",
+      "authorityFile",
+      "state",
+      "generation",
+      "lease",
+      "proxyAuthority",
+      "baseDir",
+      "resources",
+      "postSessionHook",
+    ],
+    "profile.lifecycle",
+  );
+  const state = safeName(input.state, "profile.lifecycle.state", 32);
+  if (!RUNNER_LIFECYCLE_STATES.has(state)) {
+    throw new TypeError("profile.lifecycle.state is invalid");
+  }
+  if (state === "parked" || state === "reclaiming") {
+    throw new TypeError("profile lifecycle is not accepting target work");
+  }
+
+  const generation = safeInteger(
+    input.generation,
+    "profile.lifecycle.generation",
+    1,
+    Number.MAX_SAFE_INTEGER,
+  );
+  const lease = exactObject(
+    input.lease,
+    ["id", "generation", "expiresAt"],
+    "profile.lifecycle.lease",
+  );
+  const leaseGeneration = safeInteger(
+    lease.generation,
+    "profile.lifecycle.lease.generation",
+    1,
+    generation,
+  );
+  const leaseExpiresAt = safeTimestamp(
+    lease.expiresAt,
+    "profile.lifecycle.lease.expiresAt",
+  );
+
+  const proxyAuthority = exactObject(
+    input.proxyAuthority,
+    ["id", "revision", "issuedAt", "expiresAt"],
+    "profile.lifecycle.proxyAuthority",
+  );
+  const proxyIssuedAt = safeTimestamp(
+    proxyAuthority.issuedAt,
+    "profile.lifecycle.proxyAuthority.issuedAt",
+  );
+  const proxyExpiresAt = safeTimestamp(
+    proxyAuthority.expiresAt,
+    "profile.lifecycle.proxyAuthority.expiresAt",
+  );
+  if (Date.parse(proxyExpiresAt) <= Date.parse(proxyIssuedAt)) {
+    throw new TypeError("profile lifecycle proxy authority is invalid");
+  }
+
+  const baseDir = exactObject(
+    input.baseDir,
+    ["path", "writableRequired"],
+    "profile.lifecycle.baseDir",
+  );
+  const baseDirPath = safePath(baseDir.path, "profile.lifecycle.baseDir.path");
+  if (baseDirPath !== profileCwd || baseDir.writableRequired !== true) {
+    throw new TypeError("profile lifecycle base directory is invalid");
+  }
+
+  const resources = exactObject(
+    input.resources,
+    ["cpuSeconds", "memoryBytes"],
+    "profile.lifecycle.resources",
+  );
+  const memoryBytes = safeInteger(
+    resources.memoryBytes,
+    "profile.lifecycle.resources.memoryBytes",
+    64 * 1024 * 1024,
+    64 * 1024 * 1024 * 1024,
+  );
+  const cpuSeconds = safeInteger(
+    resources.cpuSeconds,
+    "profile.lifecycle.resources.cpuSeconds",
+    1,
+    24 * 60 * 60,
+  );
+
+  const postSessionHook = exactObject(
+    input.postSessionHook,
+    ["digest", "generation"],
+    "profile.lifecycle.postSessionHook",
+  );
+  const hookDigest = safeString(
+    postSessionHook.digest,
+    "profile.lifecycle.postSessionHook.digest",
+    80,
+  ).toLowerCase();
+  if (!SHA256_RE.test(hookDigest)) {
+    throw new TypeError("profile lifecycle post-session hook is invalid");
+  }
+  const hookGeneration = safeInteger(
+    postSessionHook.generation,
+    "profile.lifecycle.postSessionHook.generation",
+    1,
+    generation,
+  );
+  if (hookGeneration !== leaseGeneration) {
+    throw new TypeError("profile lifecycle post-session hook fence is stale");
+  }
+
+  return Object.freeze({
+    runnerId: safeName(input.runnerId, "profile.lifecycle.runnerId"),
+    authorityFile: path.resolve(
+      safePath(input.authorityFile, "profile.lifecycle.authorityFile"),
+    ),
+    state,
+    generation,
+    lease: Object.freeze({
+      id: safeName(lease.id, "profile.lifecycle.lease.id"),
+      generation: leaseGeneration,
+      expiresAt: leaseExpiresAt,
+    }),
+    proxyAuthority: Object.freeze({
+      id: safeName(proxyAuthority.id, "profile.lifecycle.proxyAuthority.id"),
+      revision: safeInteger(
+        proxyAuthority.revision,
+        "profile.lifecycle.proxyAuthority.revision",
+        1,
+        Number.MAX_SAFE_INTEGER,
+      ),
+      issuedAt: proxyIssuedAt,
+      expiresAt: proxyExpiresAt,
+    }),
+    baseDir: Object.freeze({ path: baseDirPath, writableRequired: true }),
+    resources: Object.freeze({ cpuSeconds, memoryBytes }),
+    postSessionHook: Object.freeze({
+      digest: hookDigest,
+      generation: hookGeneration,
+    }),
+  });
+}
+
 function normalizeTransport(target, value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError("profile.transport must be an object");
+  }
+  if (target === "local") {
+    const input = exactObject(
+      value,
+      ["home", "securityHome"],
+      "profile.transport",
+    );
+    return Object.freeze({
+      home: path.resolve(safePath(input.home, "profile.transport.home")),
+      securityHome: path.resolve(
+        safePath(input.securityHome, "profile.transport.securityHome"),
+      ),
+    });
   }
   if (target === "wsl") {
     const input = exactObject(value, ["distro"], "profile.transport");
@@ -228,14 +421,24 @@ export function normalizeExecutionLocationProfile(value) {
     "sessionStore",
   ];
   const suppliedDigest = value?.profileDigest;
+  const isV2 = value?.schema === EXECUTION_LOCATION_PROFILE_SCHEMA_V2;
   const input = exactObject(
     value,
-    suppliedDigest == null ? baseFields : [...baseFields, "profileDigest"],
+    suppliedDigest == null
+      ? isV2
+        ? [...baseFields, "lifecycle"]
+        : baseFields
+      : isV2
+        ? [...baseFields, "lifecycle", "profileDigest"]
+        : [...baseFields, "profileDigest"],
     "execution location profile",
   );
-  if (input.schema !== EXECUTION_LOCATION_PROFILE_SCHEMA) {
+  if (
+    input.schema !== EXECUTION_LOCATION_PROFILE_SCHEMA &&
+    input.schema !== EXECUTION_LOCATION_PROFILE_SCHEMA_V2
+  ) {
     throw new TypeError(
-      `execution location profile must use ${EXECUTION_LOCATION_PROFILE_SCHEMA}`,
+      `execution location profile must use ${EXECUTION_LOCATION_PROFILE_SCHEMA} or ${EXECUTION_LOCATION_PROFILE_SCHEMA_V2}`,
     );
   }
   if (containsSecret(JSON.stringify(input))) {
@@ -262,13 +465,14 @@ export function normalizeExecutionLocationProfile(value) {
   if (!COMMIT_RE.test(gitCommit)) {
     throw new TypeError("profile.expected.gitCommit is invalid");
   }
+  const cwd = safePath(input.cwd, "profile.cwd");
   const profile = {
-    schema: EXECUTION_LOCATION_PROFILE_SCHEMA,
+    schema: input.schema,
     id: safeName(input.id, "profile.id"),
     target,
     evidenceId: safeName(input.evidenceId, "profile.evidenceId"),
     cliCommand: safePath(input.cliCommand, "profile.cliCommand"),
-    cwd: safePath(input.cwd, "profile.cwd"),
+    cwd,
     transport: normalizeTransport(target, input.transport),
     expected: Object.freeze({
       platform: safeName(expected.platform, "profile.expected.platform", 64),
@@ -282,9 +486,14 @@ export function normalizeExecutionLocationProfile(value) {
       tools: Object.freeze(normalizeTools(expected.tools)),
     }),
     sessionStore: normalizeSessionStore(input.sessionStore),
+    ...(isV2
+      ? { lifecycle: normalizeRunnerLifecycle(input.lifecycle, cwd) }
+      : {}),
   };
   const profileDigest = digest(
-    "chainlesschain.execution-location.profile.v1\0",
+    isV2
+      ? "chainlesschain.execution-location.profile.v2\0"
+      : "chainlesschain.execution-location.profile.v1\0",
     profile,
   );
   if (suppliedDigest != null && suppliedDigest !== profileDigest) {
@@ -367,6 +576,92 @@ function quotePosix(value) {
   return `'${String(value).replace(/'/gu, `'"'"'`)}'`;
 }
 
+function targetLifecycleEnvironment(profile, deps = {}) {
+  if (!profile.lifecycle) return Object.freeze([]);
+  const now = Number((deps.now || Date.now)());
+  const lifecycle = profile.lifecycle;
+  (
+    deps.assertRunnerLifecycleAuthority ||
+    assertExecutionLocationRunnerLeaseAuthority
+  )(lifecycle, profile.target, { now: () => now });
+  const leaseExpiry = Date.parse(lifecycle.lease.expiresAt);
+  const proxyIssuedAt = Date.parse(lifecycle.proxyAuthority.issuedAt);
+  const proxyExpiry = Date.parse(lifecycle.proxyAuthority.expiresAt);
+  if (
+    !Number.isFinite(now) ||
+    leaseExpiry <= now ||
+    proxyIssuedAt > now + 30_000 ||
+    now - proxyIssuedAt > MAX_PROXY_AUTHORITY_AGE_MS ||
+    proxyExpiry <= now
+  ) {
+    throw new Error("execution location lease or proxy authority is stale");
+  }
+  const values = {
+    CC_EXECUTION_LOCATION_BASE_DIR: lifecycle.baseDir.path,
+    CC_EXECUTION_LOCATION_CPU_SECONDS: String(lifecycle.resources.cpuSeconds),
+    CC_EXECUTION_LOCATION_GENERATION: String(lifecycle.generation),
+    CC_EXECUTION_LOCATION_LEASE_GENERATION: String(lifecycle.lease.generation),
+    CC_EXECUTION_LOCATION_LEASE_ID: lifecycle.lease.id,
+    CC_EXECUTION_LOCATION_LEASE_EXPIRES_AT: lifecycle.lease.expiresAt,
+    CC_EXECUTION_LOCATION_MEMORY_BYTES: String(lifecycle.resources.memoryBytes),
+    CC_EXECUTION_LOCATION_POST_SESSION_HOOK_DIGEST:
+      lifecycle.postSessionHook.digest,
+    CC_EXECUTION_LOCATION_POST_SESSION_HOOK_GENERATION: String(
+      lifecycle.postSessionHook.generation,
+    ),
+    CC_EXECUTION_LOCATION_PROXY_AUTHORITY_ID: lifecycle.proxyAuthority.id,
+    CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT: lifecycle.proxyAuthority.expiresAt,
+    CC_EXECUTION_LOCATION_PROXY_ISSUED_AT: lifecycle.proxyAuthority.issuedAt,
+    CC_EXECUTION_LOCATION_PROXY_REVISION: String(
+      lifecycle.proxyAuthority.revision,
+    ),
+    CC_EXECUTION_LOCATION_RUNNER_ID: lifecycle.runnerId,
+    CC_EXECUTION_LOCATION_STATE: lifecycle.state,
+  };
+  return Object.freeze(
+    Object.entries(values)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key}=${value}`),
+  );
+}
+
+function localTargetEnvironment(profile, lifecycleEnvironment) {
+  const inherited = {};
+  for (const key of [
+    "ComSpec",
+    "FORCE_COLOR",
+    "LANG",
+    "LC_ALL",
+    "NO_COLOR",
+    "PATH",
+    "PATHEXT",
+    "SystemRoot",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "WINDIR",
+  ]) {
+    if (typeof process.env[key] === "string") inherited[key] = process.env[key];
+  }
+  return Object.freeze({
+    ...inherited,
+    APPDATA: path.join(profile.transport.home, "AppData", "Roaming"),
+    CHAINLESSCHAIN_HOME: profile.transport.home,
+    CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: profile.transport.securityHome,
+    FORCE_COLOR: "0",
+    HOME: profile.transport.home,
+    LOCALAPPDATA: path.join(profile.transport.home, "AppData", "Local"),
+    NO_COLOR: "1",
+    USERPROFILE: profile.transport.home,
+    ...Object.fromEntries(
+      lifecycleEnvironment.map((entry) => {
+        const separator = entry.indexOf("=");
+        return [entry.slice(0, separator), entry.slice(separator + 1)];
+      }),
+    ),
+  });
+}
+
 function materializeKnownHostsAuthority(bytes, deps = {}) {
   const runtimeFs = deps.fs || fs;
   const root = runtimeFs.mkdtempSync(
@@ -401,6 +696,36 @@ function materializeKnownHostsAuthority(bytes, deps = {}) {
 }
 
 function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
+  const lifecycleEnvironment = targetLifecycleEnvironment(profile, deps);
+  if (profile.target === "local") {
+    if (!path.isAbsolute(profile.cliCommand)) {
+      throw new Error("Local target CLI entry must be an absolute path");
+    }
+    if (!profile.lifecycle) {
+      throw new Error("Local target launch requires a lifecycle profile");
+    }
+    return Object.freeze({
+      file: deps.nodeCommand || process.execPath,
+      args: Object.freeze([
+        LOCAL_TARGET_SUPERVISOR,
+        "--cwd",
+        profile.cwd,
+        "--cpu-seconds",
+        String(profile.lifecycle.resources.cpuSeconds),
+        "--memory-bytes",
+        String(profile.lifecycle.resources.memoryBytes),
+        "--entry",
+        profile.cliCommand,
+        "--",
+        ...cliArgs,
+      ]),
+      spawnOptions: Object.freeze({
+        cwd: profile.cwd,
+        env: localTargetEnvironment(profile, lifecycleEnvironment),
+      }),
+      cleanup: null,
+    });
+  }
   if (profile.target === "wsl") {
     if ((deps.platform || process.platform) !== "win32") {
       throw new Error("WSL target launch requires a Windows host");
@@ -413,6 +738,9 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         "--cd",
         profile.cwd,
         "--exec",
+        ...(lifecycleEnvironment.length > 0
+          ? ["env", ...lifecycleEnvironment]
+          : []),
         profile.cliCommand,
         ...cliArgs,
       ]),
@@ -427,6 +755,7 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         ...(options.input == null ? [] : ["-i"]),
         "--workdir",
         profile.cwd,
+        ...lifecycleEnvironment.flatMap((entry) => ["--env", entry]),
         profile.transport.container,
         profile.cliCommand,
         ...cliArgs,
@@ -473,7 +802,13 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
     : transport.host;
   args.push(
     target,
-    `cd ${quotePosix(profile.cwd)} && ${[profile.cliCommand, ...cliArgs]
+    `cd ${quotePosix(profile.cwd)} && ${[
+      ...(lifecycleEnvironment.length > 0
+        ? ["env", ...lifecycleEnvironment]
+        : []),
+      profile.cliCommand,
+      ...cliArgs,
+    ]
       .map(quotePosix)
       .join(" ")}`,
   );
@@ -511,6 +846,7 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       stdio: options.interactive
         ? "inherit"
         : [options.input == null ? "ignore" : "pipe", "pipe", "pipe"],
+      ...(invocation.spawnOptions || {}),
     });
     if (result?.error) throw result.error;
     if (!result || result.status !== 0) {
@@ -546,6 +882,258 @@ function parseTargetProjection(raw, label) {
     throw new Error(`${label} output is invalid or secret-bearing`);
   }
   return projection;
+}
+
+function preflightExecutionLocationTarget(profile, deps = {}) {
+  if (!profile.lifecycle) return null;
+  const raw = runTargetCommand(
+    profile,
+    ["session", "location", "target-preflight", "--json"],
+    deps,
+  );
+  const receipt = exactObject(
+    parseTargetProjection(raw, "target lifecycle preflight"),
+    [
+      "schema",
+      "runnerId",
+      "state",
+      "generation",
+      "lease",
+      "proxyAuthority",
+      "baseDir",
+      "resources",
+      "postSessionHook",
+      "secretTransferCount",
+      "receiptDigest",
+    ],
+    "target lifecycle preflight",
+  );
+  const lifecycle = profile.lifecycle;
+  const material = {
+    schema: "cc-execution-location-target-preflight/v1",
+    runnerId: lifecycle.runnerId,
+    state: lifecycle.state,
+    generation: lifecycle.generation,
+    lease: {
+      id: lifecycle.lease.id,
+      generation: lifecycle.lease.generation,
+      expiresAt: lifecycle.lease.expiresAt,
+    },
+    proxyAuthority: {
+      id: lifecycle.proxyAuthority.id,
+      revision: lifecycle.proxyAuthority.revision,
+      issuedAt: lifecycle.proxyAuthority.issuedAt,
+      expiresAt: lifecycle.proxyAuthority.expiresAt,
+    },
+    baseDir: {
+      digest: digest(
+        "chainlesschain.execution-location.base-dir.v1\0",
+        lifecycle.baseDir.path,
+      ),
+      writable: true,
+    },
+    resources: {
+      cpuSeconds: lifecycle.resources.cpuSeconds,
+      memoryBytes: lifecycle.resources.memoryBytes,
+      observedCpuSeconds: Number(receipt.resources?.observedCpuSeconds),
+      observedMemoryBytes: Number(receipt.resources?.observedMemoryBytes),
+      targetEnforced: true,
+      enforcement:
+        profile.target === "local" ? "target-supervisor" : "posix-rlimit",
+    },
+    postSessionHook: {
+      digest: lifecycle.postSessionHook.digest,
+      generation: lifecycle.postSessionHook.generation,
+    },
+    secretTransferCount: 0,
+  };
+  const expectedReceiptDigest = digest(
+    "chainlesschain.execution-location.target-preflight.v1\0",
+    material,
+  );
+  if (
+    canonicalJson(receipt, "targetLifecyclePreflight") !==
+      canonicalJson(
+        { ...material, receiptDigest: expectedReceiptDigest },
+        "expectedTargetLifecyclePreflight",
+      ) ||
+    material.resources.observedCpuSeconds < 1 ||
+    material.resources.observedCpuSeconds > lifecycle.resources.cpuSeconds ||
+    material.resources.observedMemoryBytes < 1 ||
+    material.resources.observedMemoryBytes > lifecycle.resources.memoryBytes
+  ) {
+    throw new Error("target lifecycle preflight does not match the profile");
+  }
+  return Object.freeze(receipt);
+}
+
+export function probeExecutionLocationTargetPreflight(input = {}, deps = {}) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  if (!profile.lifecycle) {
+    throw new TypeError("target preflight requires a v2 lifecycle profile");
+  }
+  return preflightExecutionLocationTarget(profile, deps);
+}
+
+export function probeExecutionLocationTargetResourceLimit(
+  input = {},
+  deps = {},
+) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  if (!profile.lifecycle) {
+    throw new TypeError(
+      "resource enforcement probe requires a v2 lifecycle profile",
+    );
+  }
+  const kind = input.kind;
+  if (kind !== "cpu" && kind !== "memory") {
+    throw new TypeError(
+      "resource enforcement probe kind must be cpu or memory",
+    );
+  }
+  const preflight = preflightExecutionLocationTarget(profile, deps);
+  const invocation = targetInvocation(
+    profile,
+    ["session", "location", "resource-probe", kind],
+    deps,
+  );
+  const spawnSync =
+    deps.spawnSync ||
+    ((file, args, spawnOptions) =>
+      executionBroker.spawnSync(file, args, spawnOptions));
+  let result;
+  try {
+    result = spawnSync(invocation.file, invocation.args, {
+      origin: "execution-location:target-resource-probe",
+      scope: "execution-location",
+      policy: "allow",
+      shell: false,
+      encoding: "utf8",
+      timeout: Math.min(
+        60_000,
+        (profile.lifecycle.resources.cpuSeconds + 30) * 1000,
+      ),
+      maxBuffer: MAX_PROBE_BYTES,
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(invocation.spawnOptions || {}),
+    });
+  } finally {
+    invocation.cleanup?.();
+  }
+  if (result?.error) throw result.error;
+  const expectedMarker = `CC_EXECUTION_LOCATION_RESOURCE_PROBE_ARMED:${kind}`;
+  const status = Number(result?.status);
+  const signal = result?.signal == null ? null : String(result.signal);
+  const signalTerminated = new Set(["SIGABRT", "SIGKILL", "SIGXCPU"]).has(
+    signal,
+  );
+  const exitTerminated = [134, 137, 152].includes(status);
+  if (
+    !result ||
+    String(result.stdout || "").trim() !== expectedMarker ||
+    (!signalTerminated && !exitTerminated)
+  ) {
+    throw new Error("target workload did not terminate at its resource limit");
+  }
+  const material = {
+    schema: "cc-execution-location-target-resource-enforcement/v1",
+    target: profile.target,
+    kind,
+    profileDigest: profile.profileDigest,
+    preflightReceiptDigest: preflight.receiptDigest,
+    runnerId: profile.lifecycle.runnerId,
+    runnerGeneration: profile.lifecycle.generation,
+    leaseId: profile.lifecycle.lease.id,
+    leaseGeneration: profile.lifecycle.lease.generation,
+    limit:
+      kind === "cpu"
+        ? profile.lifecycle.resources.cpuSeconds
+        : profile.lifecycle.resources.memoryBytes,
+    enforcementScope: "target-workload",
+    termination: signalTerminated
+      ? { kind: "signal", value: signal }
+      : { kind: "exit-status", value: status },
+    secretTransferCount: 0,
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: digest(
+      "chainlesschain.execution-location.target-resource-enforcement.v1\0",
+      material,
+    ),
+  });
+}
+
+export function probeExecutionLocationTargetSigtermDrain(
+  input = {},
+  deps = {},
+) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  if (!profile.lifecycle || profile.lifecycle.state !== "accepting") {
+    throw new TypeError("SIGTERM drain probe requires an accepting v2 profile");
+  }
+  const preflight = preflightExecutionLocationTarget(profile, deps);
+  const raw = runTargetCommand(
+    profile,
+    ["session", "location", "sigterm-drain-probe", "--json"],
+    deps,
+  );
+  const receipt = exactObject(
+    parseTargetProjection(raw, "target SIGTERM drain probe"),
+    [
+      "schema",
+      "runnerId",
+      "signal",
+      "before",
+      "after",
+      "lease",
+      "preflightReceiptDigest",
+      "signalDeliveryCount",
+      "postSignalLeaseAcceptanceCount",
+      "secretTransferCount",
+      "receiptDigest",
+    ],
+    "target SIGTERM drain probe",
+  );
+  const lifecycle = profile.lifecycle;
+  const material = {
+    schema: "cc-execution-location-target-sigterm-drain/v1",
+    runnerId: lifecycle.runnerId,
+    signal: "SIGTERM",
+    before: {
+      state: "accepting",
+      generation: lifecycle.generation,
+      accepting: true,
+    },
+    after: {
+      state: "draining",
+      generation: lifecycle.generation + 1,
+      accepting: false,
+    },
+    lease: {
+      id: lifecycle.lease.id,
+      generation: lifecycle.lease.generation,
+      continued: true,
+    },
+    preflightReceiptDigest: preflight.receiptDigest,
+    signalDeliveryCount: 1,
+    postSignalLeaseAcceptanceCount: 0,
+    secretTransferCount: 0,
+  };
+  const expected = {
+    ...material,
+    receiptDigest: digest(
+      "chainlesschain.execution-location.target-sigterm-drain.v1\0",
+      material,
+    ),
+  };
+  if (
+    canonicalJson(receipt, "targetSigtermDrain") !==
+    canonicalJson(expected, "expectedTargetSigtermDrain")
+  ) {
+    throw new Error("target SIGTERM drain receipt does not match the profile");
+  }
+  return Object.freeze(receipt);
 }
 
 function validateProfileHandoff(profile, handoff) {
@@ -605,6 +1193,7 @@ function validateCurrentProjection(profile, rawProjection) {
 export function attestExecutionLocationTarget(input = {}, deps = {}) {
   const profile = normalizeExecutionLocationProfile(input.profile);
   validateProfileHandoff(profile, input.handoff);
+  const lifecyclePreflight = preflightExecutionLocationTarget(profile, deps);
   const raw = runTargetCommand(
     profile,
     ["session", "location", "current", "--json"],
@@ -612,7 +1201,7 @@ export function attestExecutionLocationTarget(input = {}, deps = {}) {
   );
   const current = parseTargetProjection(raw, "target current-location probe");
   const binding = validateCurrentProjection(profile, current);
-  return createExecutionLocationTargetAttestation({
+  const attestation = createExecutionLocationTargetAttestation({
     profileDigest: profile.profileDigest,
     sourceSessionId: input.handoff.session.sessionId,
     sourceHeadHash: input.handoff.session.headHash,
@@ -620,6 +1209,19 @@ export function attestExecutionLocationTarget(input = {}, deps = {}) {
     targetEvidenceId: input.handoff.target.evidenceId,
     baseCommit: input.handoff.transfer.git.baseCommit,
     binding,
+  });
+  if (!lifecyclePreflight) return attestation;
+  return Object.freeze({
+    ...attestation,
+    lifecyclePreflight,
+    lifecycleAttestationDigest: digest(
+      "chainlesschain.execution-location.lifecycle-attestation.v1\0",
+      {
+        attestationDigest: attestation.attestationDigest,
+        preflightReceiptDigest: lifecyclePreflight.receiptDigest,
+        profileDigest: profile.profileDigest,
+      },
+    ),
   });
 }
 

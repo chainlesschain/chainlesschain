@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/cli-session-scale.yml"
+      - ".github/workflows/cli-reliability-soak.yml"
+      - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - ".github/actions/setup-node-deps/action.yml"
       - "package.json"
       - "package-lock.json"
@@ -16,6 +18,7 @@ on:
       - "packages/cli/src/commands/session-show.js"
       - "packages/cli/src/lib/pr-link-store.js"
       - "packages/cli/src/lib/file-lines.js"
+      - "packages/cli/src/lib/session-message-provenance.js"
       - "packages/cli/src/lib/session-anti-rollback-anchor.js"
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/src/lib/secure-fs.js"
@@ -27,6 +30,9 @@ on:
       - "packages/cli/src/commands/background-session.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
+      - "packages/cli/__tests__/unit/session-runtime-retention-evidence.test.js"
+      - "packages/cli/__tests__/unit/file-lines.test.js"
+      - "packages/cli/__tests__/unit/agent-core-compact-persist.test.js"
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/cli/__tests__/fixtures/session-concurrency-writer.mjs"
@@ -63,6 +69,9 @@ jobs:
     env:
       CC_SESSION_SCALE_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
       CC_SESSION_SCALE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SESSION_RUNTIME_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_SESSION_RUNTIME_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SESSION_RUNTIME_ARTIFACT_NAME: cli-session-scale-${{ matrix.os }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
       # P0-5 uses one explicit threshold profile on all three platforms. Formal
       # mode also enforces its documented minima internally, so workflow input
       # or environment drift cannot silently shrink the matrix or loosen SLOs.
@@ -93,6 +102,7 @@ jobs:
       - name: Run long-session result retention profile
         env:
           CC_SESSION_RUNTIME_OUTPUT: ${{ runner.temp }}/session-runtime-retention.json
+          CC_SESSION_SCALE_EVIDENCE: ${{ runner.temp }}/cli-session-scale-result.json
         run: npm run test:cli-session-runtime
 
       - name: Upload exact-SHA session scale evidence
@@ -105,3 +115,55 @@ jobs:
             ${{ runner.temp }}/session-runtime-retention.json
           if-no-files-found: error
           retention-days: 30
+
+  session-runtime-aggregate:
+    name: SESSION-RUNTIME three-OS aggregate
+    if: always()
+    needs: session-scale
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_SESSION_RUNTIME_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete SESSION-RUNTIME platform matrix
+        if: needs.session-scale.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one SESSION-RUNTIME platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact SESSION-RUNTIME commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SESSION_RUNTIME_EXPECTED_SHA }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CC_SESSION_RUNTIME_EXPECTED_SHA"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download exact-SHA SESSION-RUNTIME evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-session-scale-*-${{ env.CC_SESSION_RUNTIME_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/session-runtime-evidence
+
+      - name: Rehash complete Linux, Windows, and macOS evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-session-runtime-retention.mjs
+          --verify-evidence-dir "$RUNNER_TEMP/session-runtime-evidence"
+          --release-commit "$CC_SESSION_RUNTIME_EXPECTED_SHA"
+          ${{ github.event_name == 'pull_request' && '--allow-advisory' || '' }}
+          --output "$RUNNER_TEMP/session-runtime-retention-aggregate.json"
+
+      - name: Upload immutable SESSION-RUNTIME aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: session-runtime-retention-${{ github.event_name == 'pull_request' && 'smoke-non-qualifying' || 'formal-aggregate' }}-${{ env.CC_SESSION_RUNTIME_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/session-runtime-retention-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

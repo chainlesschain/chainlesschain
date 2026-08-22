@@ -20,6 +20,7 @@ import {
   isSecretEnvName,
 } from "./credential-guard.js";
 import { containsSecret } from "./secret-scan.js";
+import { normalizePermissionRequest } from "./permission-request.js";
 
 const require_ = createRequire(import.meta.url);
 const shellPolicy = require_("../runtime/coding-agent-shell-policy.cjs");
@@ -457,21 +458,6 @@ function canonicalShellKeyword(token) {
   return String(token || "")
     .replace(/[`^](.)/g, "$1")
     .replace(/\\(.)/g, "$1");
-}
-
-function inputCommand(input) {
-  const command = input?.args?.command;
-  if (typeof command === "string") return command;
-  const argv = input?.args?.argv;
-  return Array.isArray(argv)
-    ? argv
-        .map((value) => {
-          const token = String(value);
-          if (token && !/[\s|;&"'\\]/.test(token)) return token;
-          return `"${token.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-        })
-        .join(" ")
-    : "";
 }
 
 function workspaceRoots(context = {}) {
@@ -1817,7 +1803,7 @@ export function classifyAutoModeSafety(input = {}) {
   const args = input.args && typeof input.args === "object" ? input.args : {};
   const context =
     input.context && typeof input.context === "object" ? input.context : {};
-  const command = inputCommand({ args });
+  const command = normalizePermissionRequest({ tool, args }).command;
   const segments = collectCommandSegments(command);
   const argsText = stableSerialize(args);
   const baseRiskLevel = normalizeRisk(input.baseRiskLevel, "medium");
@@ -2000,7 +1986,7 @@ export function evaluateAutoModeSafety(input = {}, opts = {}) {
       : classifyAutoModeSafety;
   const classification = classifier(input);
   const tool = String(input?.tool || "unknown").toLowerCase();
-  const command = inputCommand(input);
+  const command = normalizePermissionRequest(input).command;
   let policy = null;
   if (tool === "run_shell") {
     const result = evaluateShellCommandPolicy(command, {

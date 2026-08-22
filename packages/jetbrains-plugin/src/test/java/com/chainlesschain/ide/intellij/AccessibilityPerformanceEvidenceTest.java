@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.ide.DiagnosticsSnapshotScheduler;
 import com.chainlesschain.ide.SessionsWorkbench;
 import com.chainlesschain.ide.TranscriptCap;
 
@@ -16,8 +17,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,12 @@ class AccessibilityPerformanceEvidenceTest {
     private static final int DIFF_BYTES = 16 * MIB;
     private static final int LOG_BYTES = 64 * MIB;
     private static final int SESSION_COUNT = 128;
+    private static final int DIAGNOSTIC_COUNT = 10_000;
+    private static final int ADVISORY_DIAGNOSTIC_COUNT = 50_000;
+    private static final int DIAGNOSTIC_SAMPLES = 20;
+    private static final double DIAGNOSTIC_P95_LIMIT_MS = 1_000.0;
+    private static final double DIAGNOSTIC_WORK_SLICE_LIMIT_MS = 200.0;
+    private static final long DIAGNOSTIC_HEAP_LIMIT_BYTES = 256L * MIB;
 
     @Test
     void measuresNativeTranscriptPaintAndSessionProjectionAtRequiredScale()
@@ -41,6 +50,14 @@ class AccessibilityPerformanceEvidenceTest {
         final Evidence[] holder = new Evidence[1];
         SwingUtilities.invokeAndWait(() -> holder[0] = measureOnEdt());
         Evidence evidence = holder[0];
+        evidence.diagnosticsRequired = measureDiagnosticsScale(
+                DIAGNOSTIC_COUNT, DIAGNOSTIC_COUNT, DIAGNOSTIC_SAMPLES);
+        if ("schedule".equals(System.getenv("GITHUB_EVENT_NAME"))) {
+            evidence.diagnosticsAdvisory = measureDiagnosticsScale(
+                    ADVISORY_DIAGNOSTIC_COUNT,
+                    DiagnosticsSnapshotScheduler.DEFAULT_MAX_DIAGNOSTICS,
+                    5);
+        }
 
         assertEquals(MESSAGE_COUNT, evidence.messageCount);
         assertEquals(DIFF_BYTES, evidence.diffBytes);
@@ -54,6 +71,20 @@ class AccessibilityPerformanceEvidenceTest {
         assertTrue(evidence.focusable);
         assertFalse(evidence.inputToPaintMs.isEmpty());
         assertFalse(evidence.scrollToPaintMs.isEmpty());
+        assertEquals(DIAGNOSTIC_COUNT,
+                evidence.diagnosticsRequired.publishedCount);
+        assertEquals(0L, evidence.diagnosticsRequired.lostCount);
+        assertEquals(0L, evidence.diagnosticsRequired.duplicateCount);
+        assertEquals(0L, evidence.diagnosticsRequired.staleVersionCount);
+        assertTrue(evidence.diagnosticsRequired.p95Ms
+                <= DIAGNOSTIC_P95_LIMIT_MS,
+                evidence.diagnosticsRequired.toJson());
+        assertTrue(evidence.diagnosticsRequired.maxWorkSliceMs
+                <= DIAGNOSTIC_WORK_SLICE_LIMIT_MS,
+                evidence.diagnosticsRequired.toJson());
+        assertTrue(evidence.diagnosticsRequired.heapGrowthBytes
+                <= DIAGNOSTIC_HEAP_LIMIT_BYTES,
+                evidence.diagnosticsRequired.toJson());
 
         String output = System.getenv("CC_P2_JETBRAINS_EVIDENCE");
         if (output != null && !output.isBlank()) {
@@ -166,6 +197,78 @@ class AccessibilityPerformanceEvidenceTest {
         }
     }
 
+    private static DiagnosticsEvidence measureDiagnosticsScale(
+            int inputCount, int maxDiagnostics, int samples)
+            throws Exception {
+        long heapBefore = usedHeap();
+        List<Double> durations = new ArrayList<>();
+        DiagnosticsSnapshotScheduler.Snapshot snapshot;
+        Map<String, Long> stats;
+        try (DiagnosticsSnapshotScheduler scheduler =
+                new DiagnosticsSnapshotScheduler(
+                        maxDiagnostics, 2_000, 0L)) {
+            snapshot = scheduler.getSnapshot();
+            for (int sample = 0; sample < samples; sample++) {
+                long oldVersion = sample * 2L + 1L;
+                long finalVersion = oldVersion + 1L;
+                scheduler.schedule(List.of(diagnosticUpdate(
+                        inputCount, oldVersion, "old")));
+                long started = System.nanoTime();
+                scheduler.schedule(List.of(diagnosticUpdate(
+                        inputCount, finalVersion, "stable")));
+                snapshot = scheduler.flushNow(15_000L);
+                durations.add(elapsedMillis(started));
+            }
+            stats = scheduler.getStats();
+        }
+        long published = snapshot.summary.get("total");
+        long truncated = snapshot.summary.get("truncatedCount");
+        return new DiagnosticsEvidence(
+                inputCount,
+                (int) published,
+                (int) truncated,
+                Math.max(0L, inputCount - published - truncated),
+                stats.get("publishedDuplicateCount"),
+                stats.get("publishedStaleVersionCount"),
+                stats.get("canceledGenerationCount"),
+                durations,
+                stats.get("maxWorkSliceMicros") / 1_000.0,
+                0.0,
+                Math.max(0L, usedHeap() - heapBefore));
+    }
+
+    private static DiagnosticsSnapshotScheduler.Update diagnosticUpdate(
+            int count, long version, String prefix) {
+        String uri = "file:///workspace/diagnostics.java";
+        return new DiagnosticsSnapshotScheduler.Update(
+                uri,
+                "/workspace/diagnostics.java",
+                version,
+                Boolean.FALSE,
+                () -> {
+                    assertFalse(
+                            SwingUtilities.isEventDispatchThread(),
+                            "diagnostics reader must stay off the EDT");
+                    List<Map<String, Object>> values =
+                            new ArrayList<>(count);
+                    for (int index = 0; index < count; index++) {
+                        Map<String, Object> value = new LinkedHashMap<>();
+                        value.put("documentUri", uri);
+                        value.put("documentVersion", version);
+                        value.put("severity", index % 4 == 0
+                                ? "error" : index % 4 == 1
+                                        ? "warning" : index % 4 == 2
+                                                ? "information" : "hint");
+                        value.put("message", prefix + " diagnostic " + index);
+                        value.put("line", index);
+                        value.put("character", 0);
+                        value.put("source", "diagnostics-scale-fixture");
+                        values.add(value);
+                    }
+                    return values;
+                });
+    }
+
     private static double elapsedMillis(long startedNanos) {
         return (System.nanoTime() - startedNanos) / 1_000_000.0;
     }
@@ -235,6 +338,82 @@ class AccessibilityPerformanceEvidenceTest {
         return sorted.get(index);
     }
 
+    private static final class DiagnosticsEvidence {
+        final int inputCount;
+        final int publishedCount;
+        final int truncatedCount;
+        final long lostCount;
+        final long duplicateCount;
+        final long staleVersionCount;
+        final long canceledGenerationCount;
+        final List<Double> stableSnapshotMs;
+        final double maxWorkSliceMs;
+        final double edtMaxMs;
+        final long heapGrowthBytes;
+        final double p50Ms;
+        final double p95Ms;
+        final double p99Ms;
+
+        DiagnosticsEvidence(
+                int inputCount,
+                int publishedCount,
+                int truncatedCount,
+                long lostCount,
+                long duplicateCount,
+                long staleVersionCount,
+                long canceledGenerationCount,
+                List<Double> stableSnapshotMs,
+                double maxWorkSliceMs,
+                double edtMaxMs,
+                long heapGrowthBytes) {
+            this.inputCount = inputCount;
+            this.publishedCount = publishedCount;
+            this.truncatedCount = truncatedCount;
+            this.lostCount = lostCount;
+            this.duplicateCount = duplicateCount;
+            this.staleVersionCount = staleVersionCount;
+            this.canceledGenerationCount = canceledGenerationCount;
+            this.stableSnapshotMs = stableSnapshotMs;
+            this.maxWorkSliceMs = maxWorkSliceMs;
+            this.edtMaxMs = edtMaxMs;
+            this.heapGrowthBytes = heapGrowthBytes;
+            List<Double> sorted = new ArrayList<>(stableSnapshotMs);
+            Collections.sort(sorted);
+            this.p50Ms = percentile(sorted, 50);
+            this.p95Ms = percentile(sorted, 95);
+            this.p99Ms = percentile(sorted, 99);
+        }
+
+        String toJson() {
+            return String.format(
+                    Locale.ROOT,
+                    "{\"inputCount\":%d,\"publishedCount\":%d,"
+                            + "\"truncatedCount\":%d,\"lostCount\":%d,"
+                            + "\"duplicateCount\":%d,\"staleVersionCount\":%d,"
+                            + "\"canceledGenerationCount\":%d,"
+                            + "\"stableSnapshot\":{\"samples\":%d,"
+                            + "\"p50Ms\":%.6f,\"p95Ms\":%.6f,"
+                            + "\"p99Ms\":%.6f,\"maxMs\":%.6f},"
+                            + "\"maxWorkSliceMs\":%.6f,\"edtMaxMs\":%.6f,"
+                            + "\"heapGrowthBytes\":%d}",
+                    inputCount,
+                    publishedCount,
+                    truncatedCount,
+                    lostCount,
+                    duplicateCount,
+                    staleVersionCount,
+                    canceledGenerationCount,
+                    stableSnapshotMs.size(),
+                    p50Ms,
+                    p95Ms,
+                    p99Ms,
+                    Collections.max(stableSnapshotMs),
+                    maxWorkSliceMs,
+                    edtMaxMs,
+                    heapGrowthBytes);
+        }
+    }
+
     private static final class Evidence {
         final int messageCount;
         final int diffBytes;
@@ -256,6 +435,8 @@ class AccessibilityPerformanceEvidenceTest {
         final long heapBeforeBytes;
         final long heapAfterBytes;
         final long openFileDescriptorCount;
+        DiagnosticsEvidence diagnosticsRequired;
+        DiagnosticsEvidence diagnosticsAdvisory;
 
         Evidence(
                 int messageCount,
@@ -329,8 +510,23 @@ class AccessibilityPerformanceEvidenceTest {
                             diffPaintMs, logPaintMs, sessionProjectionMs)
                     + "\"heapBeforeBytes\":" + heapBeforeBytes + ','
                     + "\"heapAfterBytes\":" + heapAfterBytes + ','
-                    + "\"openFileDescriptorCount\":" + openFileDescriptorCount
+                    + "\"openFileDescriptorCount\":" + openFileDescriptorCount + ','
+                    + "\"javaVersion\":\""
+                    + jsonString(System.getProperty("java.version")) + "\","
+                    + "\"javaArch\":\""
+                    + jsonString(System.getProperty("os.arch")) + "\","
+                    + "\"diagnosticsScaleRequired\":"
+                    + diagnosticsRequired.toJson() + ','
+                    + "\"diagnosticsScaleAdvisory\":"
+                    + (diagnosticsAdvisory == null
+                            ? "null" : diagnosticsAdvisory.toJson())
                     + "}";
         }
+    }
+
+    private static String jsonString(String value) {
+        return String.valueOf(value == null ? "" : value)
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 }

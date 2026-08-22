@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -16,6 +18,7 @@ import {
   _deps,
   buildFollowUpArgv,
   BackgroundWorkerStartedError,
+  backgroundAgentsDir,
   cleanupBackgroundAgentWorktree,
   claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
@@ -302,6 +305,22 @@ afterEach(async () => {
 }, 40_000);
 
 describe("background agent supervisor", () => {
+  it("uses an owner-private state directory and rejects a symlinked authority root", () => {
+    expect(backgroundAgentsDir()).toBe(dir);
+    if (process.platform === "win32") return;
+
+    chmodSync(dir, 0o755);
+    expect(backgroundAgentsDir()).toBe(dir);
+    expect(statSync(dir).mode & 0o077).toBe(0);
+
+    const target = join(identityDir, "socket-target");
+    const link = join(identityDir, "socket-link");
+    mkdirSync(target, { mode: 0o700 });
+    symlinkSync(target, link, "dir");
+    process.env.CC_BACKGROUND_AGENTS_DIR = link;
+    expect(() => backgroundAgentsDir()).toThrow(/not owner-controlled/);
+  });
+
   it("parses Linux proc stat without being confused by parentheses in comm", () => {
     const fields = [
       "S",

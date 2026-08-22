@@ -1,0 +1,229 @@
+name: Claude Code Increment Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_commit:
+        description: Exact 40-character release commit (dispatch this workflow from the same commit)
+        required: true
+        type: string
+      safety_run_id:
+        description: Successful IDE Roadmap Safety Matrix run ID
+        required: true
+        type: string
+      reliability_run_id:
+        description: Successful formal CLI Reliability Soak run ID
+        required: true
+        type: string
+      accessibility_run_id:
+        description: Successful IDE Roadmap Accessibility Performance run ID
+        required: true
+        type: string
+      session_scale_run_id:
+        description: Successful formal CLI Session Scale run ID
+        required: true
+        type: string
+      marketplace_run_id:
+        description: Successful IDE Roadmap Marketplace Supply Chain run ID
+        required: true
+        type: string
+      location_run_id:
+        description: Successful IDE Roadmap Execution Location run ID
+        required: true
+        type: string
+      ide_extensions_run_id:
+        description: Successful IDE Extensions run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: claude-code-increment-audit-${{ inputs.release_commit }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_COMMIT: ${{ inputs.release_commit }}
+
+jobs:
+  aggregate:
+    name: Verify 12 commitments x 3 operating systems
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.RELEASE_COMMIT }}
+          fetch-depth: 0
+
+      - name: Fetch executed aggregator workflow authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test "$GITHUB_SHA" = "$RELEASE_COMMIT"
+          git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download and record authoritative source-run metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SAFETY_RUN_ID: ${{ inputs.safety_run_id }}
+          RELIABILITY_RUN_ID: ${{ inputs.reliability_run_id }}
+          ACCESSIBILITY_RUN_ID: ${{ inputs.accessibility_run_id }}
+          SESSION_SCALE_RUN_ID: ${{ inputs.session_scale_run_id }}
+          MARKETPLACE_RUN_ID: ${{ inputs.marketplace_run_id }}
+          LOCATION_RUN_ID: ${{ inputs.location_run_id }}
+          IDE_EXTENSIONS_RUN_ID: ${{ inputs.ide_extensions_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/source-runs" "$RUNNER_TEMP/source-artifacts"
+          for specification in \
+            "safety=$SAFETY_RUN_ID" \
+            "reliability=$RELIABILITY_RUN_ID" \
+            "accessibility=$ACCESSIBILITY_RUN_ID" \
+            "sessionScale=$SESSION_SCALE_RUN_ID" \
+            "marketplace=$MARKETPLACE_RUN_ID" \
+            "location=$LOCATION_RUN_ID" \
+            "ideExtensions=$IDE_EXTENSIONS_RUN_ID"; do
+            label="${specification%%=*}"
+            run_id="${specification#*=}"
+            case "$run_id" in
+              ""|*[!0-9]*) echo "::error::$label run ID is invalid"; exit 1 ;;
+            esac
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/source-runs/$label.json"
+            gh api --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?per_page=100" \
+              > "$RUNNER_TEMP/source-artifacts/$label.json"
+          done
+
+      - name: Resolve exact current-attempt source artifacts
+        id: source_plan
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-code-increment-source-runs.mjs
+          plan
+          --required
+          --metadata-dir "$RUNNER_TEMP/source-runs"
+          --artifacts-metadata-dir "$RUNNER_TEMP/source-artifacts"
+          --release-commit "$RELEASE_COMMIT"
+          --repository "$GITHUB_REPOSITORY"
+          --github-output "$GITHUB_OUTPUT"
+          --output "$RUNNER_TEMP/claude-code-increment-source-run-plan.json"
+
+      - name: Download RC-DEFAULT and SEC-DELTA fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.safety_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.safety_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/safety
+
+      - name: Download XSESSION and MCP-LIFECYCLE fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.reliability_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.reliability_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/reliability
+
+      - name: Download AX, session UX, diagnostics, and input fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.accessibility_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.accessibility_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/accessibility
+
+      - name: Download SESSION-RUNTIME fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.session_scale_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.session_scale_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/sessionScale
+
+      - name: Download PLUGIN-SOURCE fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.marketplace_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.marketplace_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/marketplace/${{ steps.source_plan.outputs.marketplace_artifact_name }}
+
+      - name: Download LOCATION-DRAIN fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.location_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.location_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/location/${{ steps.source_plan.outputs.location_artifact_name }}
+
+      - name: Download BROWSER-EVIDENCE fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          digest-mismatch: error
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.ide_extensions_run_id }}
+          artifact-ids: ${{ steps.source_plan.outputs.ide_extensions_artifact_ids }}
+          merge-multiple: false
+          path: ${{ runner.temp }}/fragments/ideExtensions
+
+      - name: Verify successful exact-head source-run authority
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-claude-code-increment-source-runs.mjs
+          verify
+          --plan "$RUNNER_TEMP/claude-code-increment-source-run-plan.json"
+          --fragments-dir "$RUNNER_TEMP/fragments"
+          --output "$RUNNER_TEMP/claude-code-increment-source-runs.json"
+
+      - name: Aggregate 36 canonical required cells
+        shell: bash
+        run: >-
+          node packages/cli/scripts/claude-code-increment-audit.mjs aggregate
+          --fragments-dir "$RUNNER_TEMP/fragments"
+          --source-runs "$RUNNER_TEMP/claude-code-increment-source-runs.json"
+          --release-commit "$RELEASE_COMMIT"
+          --output-root "$RUNNER_TEMP/claude-code-increment-audit-output"
+
+      - name: Independently rehash the immutable audit artifact
+        shell: bash
+        run: >-
+          node packages/cli/scripts/claude-code-increment-audit.mjs verify
+          --artifact-dir "$RUNNER_TEMP/claude-code-increment-audit-output/claude-code-increment-audit-$RELEASE_COMMIT"
+          --release-commit "$RELEASE_COMMIT"
+
+      - name: Upload unified exact-head audit artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: claude-code-increment-audit-${{ inputs.release_commit }}
+          path: ${{ runner.temp }}/claude-code-increment-audit-output/claude-code-increment-audit-${{ inputs.release_commit }}/
+          if-no-files-found: error
+          retention-days: 90

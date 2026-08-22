@@ -69,6 +69,7 @@ const LEGACY_PROJECTION_ACTIONS = new Set([
 ]);
 const PROJECTION_ACTION_EXECUTORS = new Set(["cli", "terminal", "host"]);
 const PROJECTION_PROMPT_PLACEHOLDER = "$prompt";
+const SESSION_GROUP_TARGET_UNGROUPED = "ungrouped";
 
 function parseActionPreview(value) {
   if (
@@ -176,6 +177,168 @@ function parseMessagingSummary(value) {
   };
 }
 
+function parseGroups(value) {
+  const disconnected = (reason) => ({
+    authority: "cli",
+    connected: false,
+    revision: null,
+    generation: 0,
+    reason,
+    items: [],
+  });
+  if (value == null) return disconnected("session groups unavailable");
+  if (
+    typeof value !== "object" ||
+    value.authority !== "cli" ||
+    typeof value.connected !== "boolean" ||
+    !Array.isArray(value.items) ||
+    value.items.length > 128
+  ) {
+    return null;
+  }
+  if (value.connected !== true) {
+    return disconnected(
+      typeof value.reason === "string"
+        ? value.reason
+        : "session groups unavailable",
+    );
+  }
+  if (
+    typeof value.revision !== "string" ||
+    !value.revision ||
+    !Number.isSafeInteger(value.generation) ||
+    value.generation < 0
+  ) {
+    return null;
+  }
+  const ids = new Set();
+  const items = [];
+  for (const item of value.items) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      typeof item.id !== "string" ||
+      !/^group-[a-zA-Z0-9_-]+$/u.test(item.id) ||
+      typeof item.name !== "string" ||
+      !item.name ||
+      item.name.length > 80 ||
+      !Number.isSafeInteger(item.order) ||
+      item.order < 0 ||
+      ids.has(item.id)
+    ) {
+      return null;
+    }
+    ids.add(item.id);
+    items.push({ id: item.id, name: item.name, order: item.order });
+  }
+  items.sort(
+    (left, right) =>
+      left.order - right.order || left.name.localeCompare(right.name),
+  );
+  return {
+    authority: "cli",
+    connected: true,
+    revision: value.revision,
+    generation: value.generation,
+    reason: null,
+    items,
+  };
+}
+
+function parseAttention(value) {
+  if (value == null) {
+    return { unread: 0, needsApproval: false, pendingInteractions: 0 };
+  }
+  if (
+    typeof value !== "object" ||
+    !Number.isSafeInteger(value.unread) ||
+    value.unread < 0 ||
+    typeof value.needsApproval !== "boolean" ||
+    !Number.isSafeInteger(value.pendingInteractions) ||
+    value.pendingInteractions < 0 ||
+    value.pendingInteractions > 1_000
+  ) {
+    return null;
+  }
+  return {
+    unread: value.unread,
+    needsApproval: value.needsApproval,
+    pendingInteractions: value.pendingInteractions,
+  };
+}
+
+function boundedProjectionText(value, maxChars) {
+  return typeof value === "string" && value.length <= maxChars ? value : null;
+}
+
+function parseFocus(value, state) {
+  if (value == null) {
+    return {
+      active: ["working", "needs_input", "blocked"].includes(state),
+      liveTool: null,
+      latestTodo: null,
+      pendingQuestion: null,
+      settledAnswer: null,
+    };
+  }
+  if (typeof value !== "object" || typeof value.active !== "boolean") {
+    return null;
+  }
+  let liveTool = null;
+  if (value.liveTool != null) {
+    if (
+      typeof value.liveTool !== "object" ||
+      !boundedProjectionText(value.liveTool.name, 96) ||
+      (value.liveTool.status != null &&
+        !boundedProjectionText(value.liveTool.status, 48))
+    ) {
+      return null;
+    }
+    liveTool = {
+      name: value.liveTool.name,
+      status: value.liveTool.status || null,
+    };
+  }
+  const latestTodo =
+    value.latestTodo == null
+      ? null
+      : boundedProjectionText(value.latestTodo, 240);
+  const pendingQuestion =
+    value.pendingQuestion == null
+      ? null
+      : boundedProjectionText(value.pendingQuestion, 240);
+  const settledAnswer =
+    value.settledAnswer == null
+      ? null
+      : boundedProjectionText(value.settledAnswer, 240);
+  if (
+    (value.latestTodo != null && latestTodo == null) ||
+    (value.pendingQuestion != null && pendingQuestion == null) ||
+    (value.settledAnswer != null && settledAnswer == null)
+  ) {
+    return null;
+  }
+  return {
+    active: value.active,
+    liveTool,
+    latestTodo,
+    pendingQuestion,
+    settledAnswer,
+  };
+}
+
+function parseLocation(value) {
+  if (value == null) return { kind: "local", status: "local" };
+  if (
+    typeof value !== "object" ||
+    !["local", "remote", "cloud"].includes(value.kind) ||
+    !["local", "online", "offline"].includes(value.status)
+  ) {
+    return null;
+  }
+  return { kind: value.kind, status: value.status };
+}
+
 /** The `cc …` argv arrays the workbench needs (state-dir sources excluded). */
 function buildWorkbenchArgs({
   limit = WORKBENCH_SESSION_LIMIT,
@@ -214,6 +377,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       connected: false,
       stale: false,
       revision: null,
+      groups: parseGroups(null),
       rows: [],
       // Keep transport diagnostics content-free: length and endpoint code
       // points distinguish empty/BOM/truncated output without reflecting CLI
@@ -239,6 +403,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       connected: false,
       stale: false,
       revision: null,
+      groups: parseGroups(null),
       rows: [],
       error: "unsupported or non-CLI session projection",
     };
@@ -250,6 +415,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       connected: false,
       stale: false,
       revision,
+      groups: parseGroups(root.groups),
       rows: [],
       sources: root.sources || {},
       error: String(root.reason || "CLI session projection disconnected"),
@@ -260,12 +426,28 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       connected: false,
       stale: true,
       revision,
+      groups: parseGroups(root.groups),
       rows: [],
       sources: root.sources || {},
       error: "stale session projection revision",
     };
   }
 
+  const groups = parseGroups(root.groups);
+  if (!groups) {
+    return {
+      connected: false,
+      stale: false,
+      revision,
+      groups: parseGroups(null),
+      rows: [],
+      sources: root.sources || {},
+      error: "malformed session group projection",
+    };
+  }
+  const groupNames = new Map(
+    groups.items.map((group) => [group.id, group.name]),
+  );
   const rows = [];
   const actionSet = legacy ? LEGACY_PROJECTION_ACTIONS : PROJECTION_ACTIONS;
   const kindSet = legacy
@@ -290,6 +472,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         connected: false,
         stale: false,
         revision,
+        groups,
         rows: [],
         sources: root.sources || {},
         error: "malformed session projection row",
@@ -305,6 +488,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
             connected: false,
             stale: false,
             revision,
+            groups,
             rows: [],
             sources: root.sources || {},
             error: "malformed session action preview",
@@ -325,6 +509,7 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         connected: false,
         stale: false,
         revision,
+        groups,
         rows: [],
         sources: root.sources || {},
         error: "incomplete session action availability",
@@ -339,9 +524,37 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
         connected: false,
         stale: false,
         revision,
+        groups,
         rows: [],
         sources: root.sources || {},
         error: "malformed session messaging summary",
+      };
+    }
+    const groupId =
+      typeof item.groupId === "string" && item.groupId ? item.groupId : null;
+    if (groupId && !groupNames.has(groupId)) {
+      return {
+        connected: false,
+        stale: false,
+        revision,
+        groups,
+        rows: [],
+        sources: root.sources || {},
+        error: "session row references an unknown group",
+      };
+    }
+    const attention = parseAttention(item.attention);
+    const focus = parseFocus(item.focus, item.state);
+    const location = parseLocation(item.location);
+    if (!attention || !focus || !location) {
+      return {
+        connected: false,
+        stale: false,
+        revision,
+        groups,
+        rows: [],
+        sources: root.sources || {},
+        error: "malformed session attention or location summary",
       };
     }
     rows.push({
@@ -354,7 +567,10 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       status: item.state,
       state: item.state,
       lastActivity: toEpoch(item.lastEvent?.at),
-      waitingApproval: item.state === "needs_input" || item.state === "blocked",
+      waitingApproval:
+        attention.needsApproval ||
+        item.state === "needs_input" ||
+        item.state === "blocked",
       actions,
       actionAvailability,
       actionPreviews: Object.fromEntries(
@@ -377,12 +593,18 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
       messaging,
       pr: item.pr || null,
       workflow: item.workflow || null,
+      groupId,
+      groupName: groupId ? groupNames.get(groupId) : null,
+      attention,
+      focus,
+      location,
     });
   }
   return {
     connected: true,
     stale: false,
     revision,
+    groups,
     generatedAt: root.generatedAt || null,
     sources: root.sources || {},
     rows: sortRows(rows),
@@ -695,12 +917,84 @@ function filterRows(rows, query) {
     .toLowerCase();
   if (!q) return [...(rows || [])];
   return (rows || []).filter((r) =>
-    [r.title, r.workspace, r.id].some((v) =>
+    [
+      r.title,
+      r.workspace,
+      r.id,
+      r.groupName,
+      r.focus?.latestTodo,
+      r.focus?.pendingQuestion,
+      r.focus?.settledAnswer,
+      r.focus?.liveTool?.name,
+    ].some((v) =>
       String(v || "")
         .toLowerCase()
         .includes(q),
     ),
   );
+}
+
+/** Focus View keeps active work and the latest safe hand-off context. */
+function focusRows(rows) {
+  return (rows || []).filter(
+    (row) =>
+      row?.focus?.active === true ||
+      row?.attention?.unread > 0 ||
+      row?.attention?.needsApproval === true ||
+      row?.attention?.pendingInteractions > 0 ||
+      Boolean(
+        row?.focus?.liveTool ||
+        row?.focus?.latestTodo ||
+        row?.focus?.pendingQuestion ||
+        row?.focus?.settledAnswer,
+      ),
+  );
+}
+
+function buildSessionGroupMutationArgs({
+  action,
+  expectedRevision,
+  groupId = null,
+  name = null,
+  order = null,
+  sessionIds = [],
+} = {}) {
+  if (typeof expectedRevision !== "string" || !expectedRevision) return null;
+  let args;
+  if (action === "create" && typeof name === "string" && name.trim()) {
+    args = ["session", "group", "create", name.trim()];
+    if (order != null) args.push("--order", String(order));
+  } else if (
+    action === "rename" &&
+    typeof groupId === "string" &&
+    groupId &&
+    typeof name === "string" &&
+    name.trim()
+  ) {
+    args = ["session", "group", "rename", groupId, name.trim()];
+  } else if (action === "delete" && typeof groupId === "string" && groupId) {
+    args = ["session", "group", "delete", groupId];
+  } else if (
+    action === "order" &&
+    typeof groupId === "string" &&
+    groupId &&
+    Number.isSafeInteger(Number(order))
+  ) {
+    args = ["session", "group", "order", groupId, String(order)];
+  } else if (
+    action === "move" &&
+    typeof groupId === "string" &&
+    groupId &&
+    Array.isArray(sessionIds) &&
+    sessionIds.length > 0 &&
+    sessionIds.length <= 256 &&
+    sessionIds.every((id) => typeof id === "string" && id && id.length <= 512)
+  ) {
+    args = ["session", "group", "move", groupId, ...new Set(sessionIds)];
+  } else {
+    return null;
+  }
+  return [...args, "--expected-revision", expectedRevision, "--json"];
 }
 
 function escapeHtml(value) {
@@ -830,8 +1124,37 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
           );
         }
       }
+      if (r.groupName) details.push(`group ${escapeHtml(r.groupName)}`);
+      if (r.location?.kind && r.location.kind !== "local") {
+        details.push(
+          `${escapeHtml(r.location.kind)} ${escapeHtml(r.location.status || "local")}`,
+        );
+      } else if (r.location?.status === "offline") {
+        details.push("offline");
+      }
+      if (Number(r.attention?.unread) > 0) {
+        details.push(`unread ${escapeHtml(r.attention.unread)}`);
+      }
+      if (Number(r.attention?.pendingInteractions) > 0) {
+        details.push(`pending ${escapeHtml(r.attention.pendingInteractions)}`);
+      }
+      if (r.focus?.liveTool?.name) {
+        details.push(
+          `live tool ${escapeHtml(r.focus.liveTool.name)}${r.focus.liveTool.status ? `:${escapeHtml(r.focus.liveTool.status)}` : ""}`,
+        );
+      }
+      if (r.focus?.latestTodo) {
+        details.push(`latest todo ${escapeHtml(r.focus.latestTodo)}`);
+      }
+      if (r.focus?.pendingQuestion) {
+        details.push(`pending question ${escapeHtml(r.focus.pendingQuestion)}`);
+      }
+      if (r.focus?.settledAnswer) {
+        details.push(`settled answer ${escapeHtml(r.focus.settledAnswer)}`);
+      }
       return (
-        `<tr data-session-row><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +
+        `<tr data-session-row><td><input type="checkbox" data-session-select value="${escapeHtml(r.id)}" aria-label="Select ${escapeHtml(r.title || r.id)} for a group move" /></td>` +
+        `<td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +
         `<td><span class="kind ${escapeHtml(r.kind)}">${escapeHtml(r.kind)}</span> ${escapeHtml(r.title || r.id)}${remote}` +
         `<div class="muted">${meta.join(" · ")}</div>` +
         (details.length
@@ -845,7 +1168,7 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
     .join("");
   parts.push(
     `<table aria-rowcount="${list.length}"><caption class="sr-only">Sessions (${list.length})</caption>` +
-      '<thead><tr><th scope="col" style="width:150px">status</th><th scope="col">session</th><th scope="col" style="width:90px">activity</th><th scope="col" style="width:280px">actions</th></tr></thead><tbody>' +
+      '<thead><tr><th scope="col" style="width:34px">select</th><th scope="col" style="width:150px">status</th><th scope="col">session</th><th scope="col" style="width:90px">activity</th><th scope="col" style="width:280px">actions</th></tr></thead><tbody>' +
       body +
       "</tbody></table>",
   );
@@ -862,6 +1185,7 @@ module.exports = {
   PROJECTION_ACTIONS,
   PROJECTION_ACTION_EXECUTORS,
   PROJECTION_PROMPT_PLACEHOLDER,
+  SESSION_GROUP_TARGET_UNGROUPED,
   ACTION_LABELS,
   buildWorkbenchArgs,
   parseSessionProjection,
@@ -875,6 +1199,8 @@ module.exports = {
   aggregateSessions,
   sortRows,
   filterRows,
+  focusRows,
+  buildSessionGroupMutationArgs,
   escapeHtml,
   renderWorkbenchHtml,
 };

@@ -50,6 +50,11 @@ import {
   createMcpTlsDispatcher,
   loadMcpTlsMaterial,
 } from "../lib/mcp-tls.js";
+import {
+  MCP_LIFECYCLE_ERROR_CODES,
+  MCP_LIFECYCLE_PHASES,
+  McpLifecycleAuthority,
+} from "../lib/mcp-lifecycle-authority.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -911,6 +916,10 @@ function isMcpNonRetryableProtocolError(error) {
   );
 }
 
+function isMcpFatalDiscoveryError(error) {
+  return isMcpNonRetryableProtocolError(error) || isMcpJsonBudgetError(error);
+}
+
 /**
  * Heuristic: does this error look like the server went away (vs. the tool
  * itself failing)? Used to gate reconnect-and-retry for servers that have a
@@ -1317,8 +1326,12 @@ export class MCPClient extends EventEmitter {
     // them on the client lets a later reconnect retry restoration even when a
     // previous partial reconnect was torn down fail-closed.
     this._resourceSubscriptions = new Map(); // name → Set<uri>
+    this._lifecycleAttempts = new Map(); // name → latest durable generation token
     this._sessionId =
       options && options.sessionId != null ? String(options.sessionId) : null;
+    this._lifecycleSessionId = this._sessionId || "default";
+    this._lifecycleAuthority =
+      options?.lifecycleAuthority || new McpLifecycleAuthority();
     this._workspaceBinding =
       options?.workspaceBinding || currentHostHooksV2WorkspaceBinding();
     // MCP roots capability (Claude-Code 2.1.203 parity): servers may ask the
@@ -1878,6 +1891,90 @@ export class MCPClient extends EventEmitter {
    */
   setSessionId(id) {
     this._sessionId = id != null && id !== "" ? String(id) : null;
+    if (this.servers.size === 0) {
+      this._lifecycleSessionId = this._sessionId || "default";
+    }
+  }
+
+  lifecycleSnapshot(name) {
+    return this._lifecycleAuthority.snapshot({
+      name,
+      sessionId: this._lifecycleSessionId,
+    });
+  }
+
+  _transitionLifecycle(
+    entry,
+    phase,
+    details = {},
+    { tolerateFence = false } = {},
+  ) {
+    if (!entry?._lifecycleAttempt) return null;
+    try {
+      return this._lifecycleAuthority.transition(
+        entry._lifecycleAttempt,
+        phase,
+        details,
+      );
+    } catch (error) {
+      if (tolerateFence && error?.code === MCP_LIFECYCLE_ERROR_CODES.FENCED) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  _registerLifecycleRpc(entry, requestId, method) {
+    if (!entry?._lifecycleAttempt) return null;
+    return this._lifecycleAuthority.registerRpc(
+      entry._lifecycleAttempt,
+      requestId,
+      method,
+    );
+  }
+
+  _settleLifecycleRpc(entry, requestId, outcome) {
+    if (!entry?._lifecycleAttempt) return true;
+    return this._lifecycleAuthority.settleRpc(
+      entry._lifecycleAttempt,
+      requestId,
+      outcome,
+    );
+  }
+
+  _staleLifecycleCallbackError() {
+    const error = new Error(
+      "MCP callback belongs to a stale lifecycle generation",
+    );
+    error.code = MCP_LIFECYCLE_ERROR_CODES.FENCED;
+    return error;
+  }
+
+  _rejectUnexpectedLifecycleRpc(entry, requestId, reason) {
+    if (!entry?._lifecycleAttempt) return false;
+    return this._lifecycleAuthority.rejectUnexpectedRpc(
+      entry._lifecycleAttempt,
+      requestId,
+      reason,
+    );
+  }
+
+  _failLifecycle(entry, error) {
+    try {
+      return this._transitionLifecycle(
+        entry,
+        MCP_LIFECYCLE_PHASES.FAILED,
+        { reasonCode: error?.code || "CC_MCP_TRANSPORT_FAILED" },
+        { tolerateFence: true },
+      );
+    } catch (transitionError) {
+      if (
+        transitionError?.code === MCP_LIFECYCLE_ERROR_CODES.INVALID_TRANSITION
+      ) {
+        return null;
+      }
+      return null;
+    }
   }
 
   /**
@@ -2020,9 +2117,25 @@ export class MCPClient extends EventEmitter {
    * @param {string} name - Server name
    * @param {object} config - { command?, args?, env?, url?, transport? }
    */
-  async connect(name, config, _authRetryUsed = false) {
+  async connect(name, config, internalOptions = false) {
     if (this.servers.has(name)) {
       throw new Error(`Server "${name}" already connected`);
+    }
+
+    const internal =
+      internalOptions && typeof internalOptions === "object"
+        ? internalOptions
+        : { authRetryUsed: internalOptions === true };
+    const authRetryUsed = internal.authRetryUsed === true;
+    if (config?.disabled === true || config?.enabled === false) {
+      this._lifecycleAuthority.markDisabled({
+        name,
+        sessionId: this._lifecycleSessionId,
+        config,
+      });
+      const error = new Error(`MCP server "${name}" is disabled`);
+      error.code = MCP_LIFECYCLE_ERROR_CODES.DISABLED;
+      throw error;
     }
 
     const transportKind = inferTransport(config);
@@ -2112,22 +2225,38 @@ export class MCPClient extends EventEmitter {
         };
       }
     }
+    const lifecycleAttempt =
+      internal.lifecycleAttempt ||
+      this._lifecycleAuthority.beginConnection({
+        name,
+        sessionId: this._lifecycleSessionId,
+        config: sourceConfig,
+        reconnect: internal.reconnect === true,
+        explicitEnable: true,
+      });
+    this._lifecycleAttempts.set(name, lifecycleAttempt);
     let tlsMaterial = null;
-    if (sourceConfig.tls != null) {
-      if (transportKind !== "https" && transportKind !== "wss") {
-        throw mcpTransportError(
-          "CC_MCP_TLS_TRANSPORT_REQUIRED",
-          `MCP TLS configuration requires https or wss (server "${name}")`,
-          { transport: transportKind, url: sourceConfig.url },
-        );
+    let connectionHeaders;
+    try {
+      if (sourceConfig.tls != null) {
+        if (transportKind !== "https" && transportKind !== "wss") {
+          throw mcpTransportError(
+            "CC_MCP_TLS_TRANSPORT_REQUIRED",
+            `MCP TLS configuration requires https or wss (server "${name}")`,
+            { transport: transportKind, url: sourceConfig.url },
+          );
+        }
+        tlsMaterial = _deps.loadMcpTlsMaterial(sourceConfig.tls);
       }
-      tlsMaterial = _deps.loadMcpTlsMaterial(sourceConfig.tls);
+      connectionHeaders = await this._connectionHeaders(
+        name,
+        sourceConfig,
+        transportKind,
+      );
+    } catch (error) {
+      this._failLifecycle({ _lifecycleAttempt: lifecycleAttempt }, error);
+      throw error;
     }
-    const connectionHeaders = await this._connectionHeaders(
-      name,
-      sourceConfig,
-      transportKind,
-    );
     config = { ...runtimeConfig, headers: connectionHeaders };
     const entry = {
       // Keep the source config (static headers + helper command) so every
@@ -2154,6 +2283,7 @@ export class MCPClient extends EventEmitter {
       _toolMetadataBytes: 0,
       _stdioExecutionApproval: stdioExecutionApproval,
       _stdioExecutableIdentity: stdioExecutableIdentity,
+      _lifecycleAttempt: lifecycleAttempt,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -2265,6 +2395,7 @@ export class MCPClient extends EventEmitter {
           });
           entry._webSocketPayloadError = error;
           entry.state = ServerState.ERROR;
+          this._failLifecycle(entry, error);
           rejectPending(error);
           this._cancelServerElicitations(name);
           this.emit("server-error", {
@@ -2289,6 +2420,7 @@ export class MCPClient extends EventEmitter {
           }
           entry._webSocketInboundError = error;
           entry.state = ServerState.ERROR;
+          this._failLifecycle(entry, error);
           rejectPending(error);
           this._cancelServerElicitations(name);
           this.emit("server-error", {
@@ -2366,6 +2498,7 @@ export class MCPClient extends EventEmitter {
               { transport: transportKind, url: config.url },
             );
             entry.state = ServerState.ERROR;
+            this._failLifecycle(entry, error);
             rejectPending(error);
             this._cancelServerElicitations(name);
             this.emit("server-error", {
@@ -2400,7 +2533,7 @@ export class MCPClient extends EventEmitter {
             ) {
               throw new Error("expected one JSON-RPC object");
             }
-            this._handleMessage(name, message);
+            this._handleMessage(name, message, entry);
           } catch (cause) {
             if (isMcpJsonBudgetError(cause)) {
               recordInboundFailure(cause);
@@ -2412,6 +2545,7 @@ export class MCPClient extends EventEmitter {
               { transport: transportKind, url: config.url },
             );
             entry.state = ServerState.ERROR;
+            this._failLifecycle(entry, error);
             rejectPending(error);
             this._cancelServerElicitations(name);
             this.emit("server-error", {
@@ -2433,6 +2567,7 @@ export class MCPClient extends EventEmitter {
           const inboundError = entry._webSocketInboundError;
           if (inboundError) {
             entry.state = ServerState.ERROR;
+            this._failLifecycle(entry, inboundError);
             rejectPending(inboundError);
             this._cancelServerElicitations(name);
             this.emit("server-disconnected", {
@@ -2460,6 +2595,7 @@ export class MCPClient extends EventEmitter {
           }
           if (payloadError) {
             entry.state = ServerState.ERROR;
+            this._failLifecycle(entry, payloadError);
             rejectPending(payloadError);
             this._cancelServerElicitations(name);
             this.emit("server-disconnected", {
@@ -2484,6 +2620,7 @@ export class MCPClient extends EventEmitter {
               outcomeUnknown: dispatched,
             },
           );
+          this._failLifecycle(entry, error);
           rejectPending(error);
           this._cancelServerElicitations(name);
           this.emit("server-disconnected", {
@@ -2511,6 +2648,7 @@ export class MCPClient extends EventEmitter {
               outcomeUnknown: dispatched,
             },
           );
+          this._failLifecycle(entry, error);
           rejectPending(error);
           this._cancelServerElicitations(name);
           this.emit("server-error", {
@@ -2626,6 +2764,7 @@ export class MCPClient extends EventEmitter {
             typeof data === "string"
               ? data
               : entry._decoder.decode(data, { stream: true }),
+            entry,
           );
         });
 
@@ -2655,6 +2794,7 @@ export class MCPClient extends EventEmitter {
           if (!entry._stdioFrameError) {
             entry.state = ServerState.DISCONNECTED;
           }
+          this._failLifecycle(entry, { code: "CC_MCP_STDIO_EXIT" });
           failPending(
             `MCP server "${name}" process exited (code ${code}) before responding`,
           );
@@ -2669,6 +2809,7 @@ export class MCPClient extends EventEmitter {
               if (cleanup?.verifiable && !cleanup.confirmed) {
                 entry.state = ServerState.ERROR;
                 const cleanupError = mcpStdioCleanupError(name, cleanup);
+                this._failLifecycle(entry, cleanupError);
                 this.emit("server-error", {
                   name,
                   error: cleanupError.message,
@@ -2685,6 +2826,7 @@ export class MCPClient extends EventEmitter {
 
         proc.on("error", (err) => {
           entry.state = ServerState.ERROR;
+          this._failLifecycle(entry, err);
           failPending(`MCP server "${name}" process error: ${err.message}`);
           this._cancelServerElicitations(name);
           this.emit("server-error", { name, error: err.message });
@@ -2699,6 +2841,7 @@ export class MCPClient extends EventEmitter {
         if (proc.stdin && typeof proc.stdin.on === "function") {
           proc.stdin.on("error", (err) => {
             entry.state = ServerState.ERROR;
+            this._failLifecycle(entry, err);
             failPending(`MCP server "${name}" stdin error: ${err.message}`);
             this._cancelServerElicitations(name);
             this.emit("server-error", { name, error: err.message });
@@ -2711,6 +2854,9 @@ export class MCPClient extends EventEmitter {
       }
 
       // Initialize MCP protocol (retried on transient network errors).
+      this._transitionLifecycle(entry, MCP_LIFECYCLE_PHASES.INITIALIZING, {
+        tlsIdentityDigest: entry._tlsIdentityDigest,
+      });
       const initResult = await this._requestWithRetry(name, "initialize", {
         protocolVersion: this._protocolVersion,
         capabilities: {
@@ -2730,6 +2876,9 @@ export class MCPClient extends EventEmitter {
       entry.protocolVersion = assertSupportedMcpProtocolVersion(
         initResult?.protocolVersion,
       );
+      this._transitionLifecycle(entry, MCP_LIFECYCLE_PHASES.DISCOVERING, {
+        tlsIdentityDigest: entry._tlsIdentityDigest,
+      });
       // Send initialized notification
       this._sendNotification(name, "notifications/initialized", {});
 
@@ -2762,6 +2911,7 @@ export class MCPClient extends EventEmitter {
         );
         this._replaceToolInventory(name, entry, toolsResult?.tools || []);
       } catch (err) {
+        if (isMcpFatalDiscoveryError(err)) throw err;
         if (advertisesTools) {
           entry.toolsError = err?.message || String(err);
         }
@@ -2776,7 +2926,8 @@ export class MCPClient extends EventEmitter {
           {},
         );
         entry.resources = resourcesResult?.resources || [];
-      } catch {
+      } catch (error) {
+        if (isMcpFatalDiscoveryError(error)) throw error;
         // Server may not support resources
       }
 
@@ -2788,7 +2939,8 @@ export class MCPClient extends EventEmitter {
           {},
         );
         entry.resourceTemplates = templatesResult?.resourceTemplates || [];
-      } catch {
+      } catch (error) {
+        if (isMcpFatalDiscoveryError(error)) throw error;
         // Server may not support resource templates.
       }
 
@@ -2796,9 +2948,30 @@ export class MCPClient extends EventEmitter {
       try {
         const promptsResult = await this._sendRequest(name, "prompts/list", {});
         entry.prompts = promptsResult?.prompts || [];
-      } catch {
+      } catch (error) {
+        if (isMcpFatalDiscoveryError(error)) throw error;
         // Server may not support prompts
       }
+
+      // Desired v2 subscriptions belong to the logical authority, not a
+      // transport object. Restore them after initialize + capability discovery
+      // so both hot reconnect and process restart preserve live updates.
+      for (const uri of this._lifecycleAuthority.desiredSubscriptions(
+        lifecycleAttempt,
+      )) {
+        await this._sendRequest(name, "resources/subscribe", { uri });
+        entry.resourceSubscriptions.add(uri);
+        let desired = this._resourceSubscriptions.get(name);
+        if (!desired) {
+          desired = new Set();
+          this._resourceSubscriptions.set(name, desired);
+        }
+        desired.add(uri);
+      }
+
+      this._transitionLifecycle(entry, MCP_LIFECYCLE_PHASES.READY, {
+        tlsIdentityDigest: entry._tlsIdentityDigest,
+      });
 
       this.emit("server-connected", {
         name,
@@ -2824,6 +2997,16 @@ export class MCPClient extends EventEmitter {
       };
     } catch (err) {
       entry.state = ServerState.ERROR;
+      try {
+        this._transitionLifecycle(
+          entry,
+          MCP_LIFECYCLE_PHASES.FAILED,
+          { reasonCode: err?.code || "CC_MCP_CONNECTION_FAILED" },
+          { tolerateFence: true },
+        );
+      } catch {
+        // The original transport/protocol failure remains authoritative.
+      }
       this._cancelServerElicitations(name);
       // The initialize notification is fire-and-forget. If later capability
       // discovery fails, connect() deletes this entry without going through
@@ -2887,14 +3070,17 @@ export class MCPClient extends EventEmitter {
       this._releaseToolInventory(entry);
       this.servers.delete(name);
       if (
-        !_authRetryUsed &&
+        !authRetryUsed &&
         sourceConfig.headersHelper &&
         isMcpAuthenticationError(err)
       ) {
         // A helper is intentionally uncached. One authentication rejection may
         // mean its short-lived token expired between generation and initialize;
         // execute it once more and retry the connection exactly once.
-        return this.connect(name, sourceConfig, true);
+        return this.connect(name, sourceConfig, {
+          authRetryUsed: true,
+          reconnect: true,
+        });
       }
       throw err;
     }
@@ -2908,16 +3094,73 @@ export class MCPClient extends EventEmitter {
       this._resourceSubscriptions.delete(name);
     }
     const entry = this.servers.get(name);
+    const lifecycleAttempt =
+      entry?._lifecycleAttempt || this._lifecycleAttempts.get(name) || null;
     if (!entry) {
       this._cancelServerElicitations(name);
+      if (options.preserveResourceSubscriptions !== true && lifecycleAttempt) {
+        try {
+          this._lifecycleAuthority.clearSubscriptions(lifecycleAttempt);
+          const snapshot = this._lifecycleAuthority.snapshot({
+            name,
+            sessionId: this._lifecycleSessionId,
+          });
+          if (
+            snapshot &&
+            snapshot.phase !== MCP_LIFECYCLE_PHASES.IDLE &&
+            snapshot.phase !== MCP_LIFECYCLE_PHASES.DISABLED
+          ) {
+            this._lifecycleAuthority.transition(
+              lifecycleAttempt,
+              MCP_LIFECYCLE_PHASES.DISCONNECTING,
+            );
+            this._lifecycleAuthority.transition(
+              lifecycleAttempt,
+              MCP_LIFECYCLE_PHASES.IDLE,
+            );
+          }
+        } catch (error) {
+          if (error?.code !== MCP_LIFECYCLE_ERROR_CODES.FENCED) {
+            return Promise.reject(error);
+          }
+        } finally {
+          if (this._lifecycleAttempts.get(name) === lifecycleAttempt) {
+            this._lifecycleAttempts.delete(name);
+          }
+        }
+      }
       return Promise.resolve(false);
     }
     if (entry._disconnectPromise) return entry._disconnectPromise;
+
+    let subscriptionClearError = null;
+    if (options.preserveResourceSubscriptions !== true && lifecycleAttempt) {
+      try {
+        this._lifecycleAuthority.clearSubscriptions(lifecycleAttempt);
+      } catch (error) {
+        if (error?.code !== MCP_LIFECYCLE_ERROR_CODES.FENCED) {
+          subscriptionClearError = error;
+        }
+      }
+    }
 
     // Make disconnect visible before any teardown awaits. In particular, an
     // HTTP session DELETE may wait for response headers; no new tool/resource
     // request may enter the transport during that window or trigger a hot
     // reconnect that resurrects a server the caller is intentionally closing.
+    if (options.preserveLifecycleAuthority !== true) {
+      try {
+        this._transitionLifecycle(
+          entry,
+          MCP_LIFECYCLE_PHASES.DISCONNECTING,
+          {},
+          { tolerateFence: true },
+        );
+      } catch {
+        // Local transport teardown must still run if durable state is
+        // temporarily unavailable. No further request is admitted below.
+      }
+    }
     entry.state = ServerState.DISCONNECTED;
     entry._httpDiscardStopping = true;
     this._cancelServerElicitations(name);
@@ -2960,7 +3203,6 @@ export class MCPClient extends EventEmitter {
             // ignore — disconnect is best-effort
           }
         }
-        return true;
       } finally {
         try {
           await _deps.closeMcpTlsDispatcher(entry._httpDispatcher);
@@ -2969,11 +3211,32 @@ export class MCPClient extends EventEmitter {
         }
         entry._httpDispatcher = null;
         entry.state = ServerState.DISCONNECTED;
+        if (options.preserveLifecycleAuthority !== true) {
+          try {
+            this._transitionLifecycle(
+              entry,
+              MCP_LIFECYCLE_PHASES.IDLE,
+              {},
+              { tolerateFence: true },
+            );
+          } catch {
+            // The transport is already closed; retain the durable failure for
+            // the next generation's restart recovery.
+          }
+        }
         this._releaseToolInventory(entry);
         // A future connection may reuse the same name. Never let a delayed
         // teardown delete that replacement entry.
         if (this.servers.get(name) === entry) this.servers.delete(name);
+        if (
+          options.preserveResourceSubscriptions !== true &&
+          this._lifecycleAttempts.get(name) === lifecycleAttempt
+        ) {
+          this._lifecycleAttempts.delete(name);
+        }
       }
+      if (subscriptionClearError) throw subscriptionClearError;
+      return true;
     });
     entry._disconnectPromise = disconnecting;
 
@@ -2989,7 +3252,10 @@ export class MCPClient extends EventEmitter {
    * Disconnect from all servers.
    */
   async disconnectAll() {
-    const names = [...this.servers.keys()];
+    const names = new Set([
+      ...this.servers.keys(),
+      ...this._lifecycleAttempts.keys(),
+    ]);
     try {
       for (const name of names) {
         await this.disconnect(name);
@@ -3256,8 +3522,18 @@ export class MCPClient extends EventEmitter {
         const resolver = this._reconnectors.get(name);
         const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
+        const lifecycleAttempt = this._lifecycleAuthority.beginConnection({
+          name,
+          sessionId: this._lifecycleSessionId,
+          config: fresh,
+          reconnect: true,
+          explicitEnable: true,
+        });
         try {
-          await this.disconnect(name, { preserveResourceSubscriptions: true });
+          await this.disconnect(name, {
+            preserveResourceSubscriptions: true,
+            preserveLifecycleAuthority: true,
+          });
         } catch {
           // entry may already be gone — connect() below is what matters
         }
@@ -3270,14 +3546,16 @@ export class MCPClient extends EventEmitter {
               { serverName: name, config: reconnectConfig },
             );
         }
-        await this.connect(
-          name,
-          reconnectConfig,
-          options.connectAuthRetryUsed === true,
-        );
+        await this.connect(name, reconnectConfig, {
+          authRetryUsed: options.connectAuthRetryUsed === true,
+          lifecycleAttempt,
+          reconnect: true,
+        });
         try {
           for (const uri of resourceSubscriptions) {
-            await this.subscribeResource(name, uri);
+            if (!this.servers.get(name)?.resourceSubscriptions?.has(uri)) {
+              await this.subscribeResource(name, uri);
+            }
           }
         } catch {
           // A partially restored connection is unsafe: callers would believe
@@ -3385,6 +3663,13 @@ export class MCPClient extends EventEmitter {
       this._resourceSubscriptions.set(serverName, desired);
     }
     desired.add(normalizedUri);
+    if (entry._lifecycleAttempt) {
+      this._lifecycleAuthority.setSubscription(
+        entry._lifecycleAttempt,
+        normalizedUri,
+        true,
+      );
+    }
     return true;
   }
 
@@ -3405,6 +3690,13 @@ export class MCPClient extends EventEmitter {
     const desired = this._resourceSubscriptions.get(serverName);
     desired?.delete(normalizedUri);
     if (desired?.size === 0) this._resourceSubscriptions.delete(serverName);
+    if (entry._lifecycleAttempt) {
+      this._lifecycleAuthority.setSubscription(
+        entry._lifecycleAttempt,
+        normalizedUri,
+        false,
+      );
+    }
     return true;
   }
 
@@ -3537,6 +3829,7 @@ export class MCPClient extends EventEmitter {
         method,
         params,
       });
+      this._registerLifecycleRpc(entry, id, method);
 
       let timeout = null;
       let removeCallerAbort = null;
@@ -3555,6 +3848,20 @@ export class MCPClient extends EventEmitter {
         if (settled) return false;
         settled = true;
         cleanup();
+        try {
+          const admitted = this._settleLifecycleRpc(
+            entry,
+            id,
+            settler === resolve ? "completed" : "failed-closed",
+          );
+          if (!admitted && settler === resolve) {
+            reject(this._staleLifecycleCallbackError());
+            return true;
+          }
+        } catch (authorityError) {
+          reject(authorityError);
+          return true;
+        }
         settler(value);
         return true;
       };
@@ -3658,6 +3965,7 @@ export class MCPClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       const id = this._nextId++;
       const message = JSON.stringify({ jsonrpc: "2.0", id, method, params });
+      this._registerLifecycleRpc(entry, id, method);
       const longRunning = Boolean(entry.config?.longRunning);
       const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
         ? entry.config.requestTimeoutMs
@@ -3679,6 +3987,20 @@ export class MCPClient extends EventEmitter {
         if (settled) return false;
         settled = true;
         cleanup();
+        try {
+          const admitted = this._settleLifecycleRpc(
+            entry,
+            id,
+            settler === resolve ? "completed" : "failed-closed",
+          );
+          if (!admitted && settler === resolve) {
+            reject(this._staleLifecycleCallbackError());
+            return true;
+          }
+        } catch (authorityError) {
+          reject(authorityError);
+          return true;
+        }
         settler(value);
         return true;
       };
@@ -3923,7 +4245,8 @@ export class MCPClient extends EventEmitter {
                 if (error) throw error;
               },
               parseJson: (text) => parseMcpJson(text, serverName, entry),
-              onMessage: (message) => this._handleMessage(serverName, message),
+              onMessage: (message) =>
+                this._handleMessage(serverName, message, entry),
             });
           } catch (error) {
             if (stream.stopped) return;
@@ -4006,6 +4329,14 @@ export class MCPClient extends EventEmitter {
 
     const id = this._nextId++;
     const body = JSON.stringify({ jsonrpc: "2.0", id, method, params });
+    this._registerLifecycleRpc(entry, id, method);
+    let lifecycleSettled = false;
+    const settleLifecycle = (outcome) => {
+      if (lifecycleSettled) return true;
+      const admitted = this._settleLifecycleRpc(entry, id, outcome);
+      lifecycleSettled = true;
+      return admitted;
+    };
     const headers = {
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
@@ -4210,7 +4541,7 @@ export class MCPClient extends EventEmitter {
           response,
           id,
           cap,
-          (message) => this._handleMessage(serverName, message),
+          (message) => this._handleMessage(serverName, message, entry),
           controller?.signal,
           (text) => parseMcpJson(text, serverName, entry),
         );
@@ -4243,9 +4574,18 @@ export class MCPClient extends EventEmitter {
         throw mcpRpcError(wire.error);
       }
       throwIfAborted();
+      if (!settleLifecycle("completed")) {
+        throw this._staleLifecycleCallbackError();
+      }
       return wire.result;
     } catch (err) {
-      throwIfAborted();
+      try {
+        throwIfAborted();
+      } catch (abortError) {
+        settleLifecycle("failed-closed");
+        throw abortError;
+      }
+      settleLifecycle("failed-closed");
       throw err;
     } finally {
       if (timer) clearTimeout(timer);
@@ -4286,8 +4626,9 @@ export class MCPClient extends EventEmitter {
     });
   }
 
-  _handleData(serverName, data) {
-    const entry = this.servers.get(serverName);
+  _handleData(serverName, data, sourceEntry = null) {
+    const entry = sourceEntry || this.servers.get(serverName);
+    if (sourceEntry && this.servers.get(serverName) !== sourceEntry) return;
     if (!entry || entry._stdioFrameError) return;
 
     const cap = stdioFrameByteLimit(entry.config?.maxBufferChars);
@@ -4346,7 +4687,7 @@ export class MCPClient extends EventEmitter {
         }
         continue;
       }
-      this._handleMessage(serverName, msg);
+      this._handleMessage(serverName, msg, entry);
     }
   }
 
@@ -4442,6 +4783,7 @@ export class MCPClient extends EventEmitter {
     entry._buffer = "";
     entry._bufferBytes = 0;
     entry.state = ServerState.ERROR;
+    this._failLifecycle(entry, error);
     if (entry._pending instanceof Map) {
       for (const pending of entry._pending.values()) {
         if (pending.timeout) clearTimeout(pending.timeout);
@@ -4475,12 +4817,21 @@ export class MCPClient extends EventEmitter {
     return error;
   }
 
-  _handleMessage(serverName, msg) {
-    const entry = this.servers.get(serverName);
+  _handleMessage(serverName, msg, sourceEntry = null) {
+    const currentEntry = this.servers.get(serverName);
+    const entry = sourceEntry || currentEntry;
     if (!entry) return;
+    if (sourceEntry && currentEntry !== sourceEntry) {
+      const wire = snapshotRpcMessage(msg);
+      if (wire?.hasId && !wire.hasMethod) {
+        this._rejectUnexpectedLifecycleRpc(sourceEntry, wire.id, "stale");
+      }
+      return;
+    }
 
     const failMessage = (error) => {
       entry.state = ServerState.ERROR;
+      this._failLifecycle(entry, error);
       if (entry._pending instanceof Map) {
         for (const pending of entry._pending.values()) {
           clearTimeout(pending.timeout);
@@ -4549,6 +4900,13 @@ export class MCPClient extends EventEmitter {
     // one of ours). Previously these fell into the notification branch and
     // never got a response, so a server calling e.g. roots/list hung until its
     // own timeout. Answer the ones our advertised capabilities invite.
+    // A response without a live pending request is never delivered. The
+    // durable authority records whether it was duplicate or uncorrelated.
+    if (wire.hasId && !wire.hasMethod) {
+      this._rejectUnexpectedLifecycleRpc(entry, wire.id, "unmatched");
+      return;
+    }
+
     if (wire.hasId && typeof wire.method === "string" && wire.method) {
       if (
         wire.hasParams &&

@@ -15,8 +15,11 @@ import {
   collectExecutionLocationTargetResult,
   createExecutionLocationTargetResultCollectionRequest,
   EXECUTION_LOCATION_PROFILE_SCHEMA,
+  EXECUTION_LOCATION_PROFILE_SCHEMA_V2,
   attestExecutionLocationTarget,
   normalizeExecutionLocationProfile,
+  probeExecutionLocationTargetResourceLimit,
+  probeExecutionLocationTargetSigtermDrain,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../../src/lib/execution-location-target.js";
@@ -87,6 +90,128 @@ function rawProfile(target = "container", overrides = {}) {
       eventCount: 7,
     },
     ...overrides,
+  };
+}
+
+function rawLifecycleProfile(overrides = {}) {
+  return rawProfile("container", {
+    schema: EXECUTION_LOCATION_PROFILE_SCHEMA_V2,
+    lifecycle: {
+      runnerId: "container-runner-1",
+      authorityFile: "/source/runner-lifecycle.json",
+      state: "accepting",
+      generation: 1,
+      lease: {
+        id: "lease-1",
+        generation: 1,
+        expiresAt: "2026-08-18T08:00:00.000Z",
+      },
+      proxyAuthority: {
+        id: "proxy-authority-1",
+        revision: 2,
+        issuedAt: "2026-08-18T07:00:00.000Z",
+        expiresAt: "2026-08-18T08:00:00.000Z",
+      },
+      baseDir: { path: "/work/repo", writableRequired: true },
+      resources: {
+        cpuSeconds: 120,
+        memoryBytes: 2 * 1024 * 1024 * 1024,
+      },
+      postSessionHook: {
+        digest: `sha256:${"e".repeat(64)}`,
+        generation: 1,
+      },
+    },
+    ...overrides,
+  });
+}
+
+function preflightReceipt(profile) {
+  const lifecycle = profile.lifecycle;
+  const digest = (domain, value) =>
+    `sha256:${createHash("sha256")
+      .update(domain, "utf8")
+      .update(canonicalJson(value, "targetPreflightFixture"), "utf8")
+      .digest("hex")}`;
+  const material = {
+    schema: "cc-execution-location-target-preflight/v1",
+    runnerId: lifecycle.runnerId,
+    state: lifecycle.state,
+    generation: lifecycle.generation,
+    lease: {
+      id: lifecycle.lease.id,
+      generation: lifecycle.lease.generation,
+      expiresAt: lifecycle.lease.expiresAt,
+    },
+    proxyAuthority: {
+      id: lifecycle.proxyAuthority.id,
+      revision: lifecycle.proxyAuthority.revision,
+      issuedAt: lifecycle.proxyAuthority.issuedAt,
+      expiresAt: lifecycle.proxyAuthority.expiresAt,
+    },
+    baseDir: {
+      digest: digest(
+        "chainlesschain.execution-location.base-dir.v1\0",
+        lifecycle.baseDir.path,
+      ),
+      writable: true,
+    },
+    resources: {
+      cpuSeconds: lifecycle.resources.cpuSeconds,
+      memoryBytes: lifecycle.resources.memoryBytes,
+      observedCpuSeconds: lifecycle.resources.cpuSeconds,
+      observedMemoryBytes: lifecycle.resources.memoryBytes,
+      targetEnforced: true,
+      enforcement:
+        profile.target === "local" ? "target-supervisor" : "posix-rlimit",
+    },
+    postSessionHook: { ...lifecycle.postSessionHook },
+    secretTransferCount: 0,
+  };
+  return {
+    ...material,
+    receiptDigest: digest(
+      "chainlesschain.execution-location.target-preflight.v1\0",
+      material,
+    ),
+  };
+}
+
+function sigtermReceipt(profile) {
+  const preflight = preflightReceipt(profile);
+  const material = {
+    schema: "cc-execution-location-target-sigterm-drain/v1",
+    runnerId: profile.lifecycle.runnerId,
+    signal: "SIGTERM",
+    before: {
+      state: "accepting",
+      generation: profile.lifecycle.generation,
+      accepting: true,
+    },
+    after: {
+      state: "draining",
+      generation: profile.lifecycle.generation + 1,
+      accepting: false,
+    },
+    lease: {
+      id: profile.lifecycle.lease.id,
+      generation: profile.lifecycle.lease.generation,
+      continued: true,
+    },
+    preflightReceiptDigest: preflight.receiptDigest,
+    signalDeliveryCount: 1,
+    postSignalLeaseAcceptanceCount: 0,
+    secretTransferCount: 0,
+  };
+  return {
+    ...material,
+    receiptDigest: `sha256:${createHash("sha256")
+      .update(
+        "chainlesschain.execution-location.target-sigterm-drain.v1\0",
+        "utf8",
+      )
+      .update(canonicalJson(material, "targetSigtermFixture"), "utf8")
+      .digest("hex")}`,
   };
 }
 
@@ -198,6 +323,7 @@ describe("execution location target launch and resume", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -249,6 +375,175 @@ describe("execution location target launch and resume", () => {
         stdio: ["ignore", "pipe", "pipe"],
       }),
     );
+  });
+
+  it("preflights a v2 lease and propagates resource fences inside the target", () => {
+    const profile = rawLifecycleProfile();
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(success(JSON.stringify(currentProjection())));
+    const result = attestExecutionLocationTarget(
+      { profile, handoff: handoff() },
+      {
+        spawnSync,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+
+    expect(result.lifecyclePreflight).toMatchObject({
+      schema: "cc-execution-location-target-preflight/v1",
+      runnerId: "container-runner-1",
+      resources: { targetEnforced: true },
+      secretTransferCount: 0,
+    });
+    expect(result.lifecycleAttestationDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+    const [command, args, options] = spawnSync.mock.calls[0];
+    expect(command).toBe("docker");
+    expect(args).toContain("CC_EXECUTION_LOCATION_CPU_SECONDS=120");
+    expect(args).toContain("CC_EXECUTION_LOCATION_MEMORY_BYTES=2147483648");
+    expect(args).toContain("CC_EXECUTION_LOCATION_PROXY_REVISION=2");
+    expect(args.slice(-4)).toEqual([
+      "session",
+      "location",
+      "target-preflight",
+      "--json",
+    ]);
+    expect(options).toMatchObject({ shell: false });
+    expect(JSON.stringify(args)).not.toMatch(/token|password|authorization/iu);
+  });
+
+  it("launches a Local target through the bounded supervisor with a sanitized environment", () => {
+    vi.stubEnv("GITHUB_TOKEN", "must-not-cross-local-target");
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      evidenceId: "local-evidence-1",
+      cliCommand: "/work/repo/packages/cli/src/index.js",
+      transport: {
+        home: "/target/home",
+        securityHome: "/target/security",
+      },
+    });
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(success(JSON.stringify(currentProjection("local"))));
+    const result = attestExecutionLocationTarget(
+      { profile, handoff: handoff("local") },
+      {
+        spawnSync,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+
+    expect(result.binding.location).toBe("local");
+    const [command, args, options] = spawnSync.mock.calls[0];
+    expect(command).toBe(process.execPath);
+    expect(args[0]).toMatch(/execution-location-local-supervisor\.mjs$/u);
+    expect(args).toContain("/work/repo/packages/cli/src/index.js");
+    expect(args.slice(-4)).toEqual([
+      "session",
+      "location",
+      "target-preflight",
+      "--json",
+    ]);
+    expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
+    expect(options.env.GITHUB_TOKEN).toBeUndefined();
+    expect(options.env.CHAINLESSCHAIN_HOME).toBeTruthy();
+    expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
+      "2026-08-18T08:00:00.000Z",
+    );
+  });
+
+  it("rejects an expired v2 proxy authority before spawning a target", () => {
+    const spawnSync = vi.fn();
+    expect(() =>
+      attestExecutionLocationTarget(
+        { profile: rawLifecycleProfile(), handoff: handoff() },
+        {
+          spawnSync,
+          now: () => Date.parse("2026-08-18T08:00:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      ),
+    ).toThrow(/lease or proxy authority is stale/u);
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("accepts only an armed target-workload resource termination", () => {
+    const profile = rawLifecycleProfile();
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce({
+        status: 137,
+        signal: null,
+        stdout: "CC_EXECUTION_LOCATION_RESOURCE_PROBE_ARMED:memory\n",
+        stderr: "",
+      });
+    const receipt = probeExecutionLocationTargetResourceLimit(
+      { profile, kind: "memory" },
+      {
+        spawnSync,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+    expect(receipt).toMatchObject({
+      schema: "cc-execution-location-target-resource-enforcement/v1",
+      target: "container",
+      kind: "memory",
+      enforcementScope: "target-workload",
+      termination: { kind: "exit-status", value: 137 },
+      secretTransferCount: 0,
+    });
+    expect(receipt.receiptDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+
+    expect(() =>
+      probeExecutionLocationTargetResourceLimit(
+        { profile, kind: "cpu" },
+        {
+          spawnSync: vi
+            .fn()
+            .mockReturnValueOnce(
+              success(JSON.stringify(preflightReceipt(profile))),
+            )
+            .mockReturnValueOnce(success("probe returned normally")),
+          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      ),
+    ).toThrow(/did not terminate/u);
+  });
+
+  it("verifies a target-local SIGTERM drain receipt against the active lease", () => {
+    const profile = rawLifecycleProfile();
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(success(JSON.stringify(sigtermReceipt(profile))));
+    expect(
+      probeExecutionLocationTargetSigtermDrain(
+        { profile },
+        {
+          spawnSync,
+          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      ),
+    ).toMatchObject({
+      schema: "cc-execution-location-target-sigterm-drain/v1",
+      signal: "SIGTERM",
+      before: { accepting: true },
+      after: { state: "draining", accepting: false },
+      signalDeliveryCount: 1,
+      postSignalLeaseAcceptanceCount: 0,
+    });
+    expect(spawnSync).toHaveBeenCalledTimes(2);
   });
 
   it("re-attests, verifies an exact canonical session replica, then resumes with fixed argv", () => {

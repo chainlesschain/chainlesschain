@@ -274,12 +274,12 @@ final class ConversationView {
         input.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyTyped(java.awt.event.KeyEvent e) {
-                if (e.getKeyChar() == '@') SwingUtilities.invokeLater(popups::maybeOpenMention);
-                else if (e.getKeyChar() == '/') SwingUtilities.invokeLater(popups::maybeOpenSlash);
+                if (e.getKeyChar() == '/') SwingUtilities.invokeLater(popups::maybeOpenSlash);
             }
 
             @Override
             public void keyPressed(java.awt.event.KeyEvent e) {
+                if (popups.handleMentionKey(e)) return;
                 // Enter sends; Shift+Enter falls through to insert a newline
                 // (the multi-line composer). IME confirms candidates before this
                 // fires, so CJK composition is unaffected.
@@ -296,6 +296,20 @@ final class ConversationView {
                     e.consume();
                 }
             }
+        });
+        input.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void changed() {
+                SwingUtilities.invokeLater(popups::onInputChanged);
+            }
+
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent event) { changed(); }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent event) { changed(); }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent event) { changed(); }
         });
 
         // Drag-drop images onto the composer or transcript (VS Code 0.37.0
@@ -1617,6 +1631,7 @@ final class ConversationView {
             // null and we just finalize the streamed run.)
             if (text != null) appendAssistantDelta(String.valueOf(text));
             transcript.finalizeAssistantRun();
+            transcript.collapseCompletedReasoning();
             transcript.announce("Assistant response", transcript.lastAssistantText(),
                     "turn-end:" + transcript.currentTurnNumber());
             transcript.announce("Status", "ready",

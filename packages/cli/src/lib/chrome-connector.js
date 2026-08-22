@@ -27,11 +27,20 @@
  * makes.
  */
 import fs from "fs";
+import crypto from "crypto";
 import os from "os";
 import path from "path";
 import http from "http";
 import executionBroker from "./process-execution-broker/index.js";
 import { redactSecrets } from "./secret-scan.js";
+import {
+  authorizeBrowserAction,
+  authorizeBrowserReplay,
+  browserEvidenceDigest,
+  createBrowserEvidenceEnvelope,
+  describeBrowserAction,
+  normalizeBrowserEvidenceBinding,
+} from "./browser-evidence.js";
 
 export const DEFAULT_CDP_PORT = 9222;
 
@@ -138,6 +147,44 @@ function redactBrowserDomUrl(value, cap = 1000) {
   return redactBrowserText(`${prefix}${query}`, cap);
 }
 
+function isSensitiveInputTag(tag) {
+  return (
+    /\btype\s*=\s*["']?password\b/i.test(tag) ||
+    /\b(?:name|id)\s*=\s*["'][^"']*(?:password|passwd|token|secret|api[-_]?key)[^"']*["']/i.test(
+      tag,
+    )
+  );
+}
+
+export function browserDomRedactionMetadata(value) {
+  const html = String(value || "");
+  const inputTags = html.match(/<input\b[^>]*>/gi) || [];
+  const sensitiveInputValues = inputTags.filter(
+    (tag) =>
+      isSensitiveInputTag(tag) && /\bvalue\s*=\s*["'][^"']*["']/i.test(tag),
+  ).length;
+  const sensitiveTextareaValues = (
+    html.match(
+      /<textarea\b[^>]*(?:name|id)\s*=\s*["'][^"']*(?:password|passwd|token|secret|api[-_]?key)[^"']*["'][^>]*>[\s\S]*?<\/textarea>/gi,
+    ) || []
+  ).length;
+  let urlQueryValues = 0;
+  for (const match of html.matchAll(
+    /\b(?:href|src|action)\s*=\s*["']([^"']+)["']/gi,
+  )) {
+    const query = String(match[1]).split("#", 1)[0].split("?", 2)[1] || "";
+    urlQueryValues += query
+      .split(/&(?:amp;)?/iu)
+      .filter((part) => part.trim() !== "").length;
+  }
+  return Object.freeze({
+    applied: true,
+    sensitiveFieldValues: sensitiveInputValues + sensitiveTextareaValues,
+    urlQueryValues,
+    secretPatterns: redactSecrets(html) === html ? 0 : 1,
+  });
+}
+
 /**
  * Redact secret-shaped text, sensitive form values, and DOM URL query values
  * from the bounded snapshot before it crosses the tool boundary.
@@ -145,12 +192,7 @@ function redactBrowserDomUrl(value, cap = 1000) {
 export function redactBrowserDom(value, cap = DEFAULT_DOM_CAP) {
   let html = redactSecrets(String(value || ""));
   html = html.replace(/<input\b[^>]*>/gi, (tag) => {
-    const sensitive =
-      /\btype\s*=\s*["']?password\b/i.test(tag) ||
-      /\b(?:name|id)\s*=\s*["'][^"']*(?:password|passwd|token|secret|api[-_]?key)[^"']*["']/i.test(
-        tag,
-      );
-    if (!sensitive) return tag;
+    if (!isSensitiveInputTag(tag)) return tag;
     return tag.replace(/\bvalue\s*=\s*(["'])[^"']*\1/i, 'value="[REDACTED]"');
   });
   html = html.replace(
@@ -168,10 +210,11 @@ export function redactBrowserDom(value, cap = DEFAULT_DOM_CAP) {
 function redactScreenshotFailure(error, generatedPath, cap = 300) {
   let message = String(error && error.message ? error.message : error);
   if (generatedPath) {
-    message = message
-      .split(String(generatedPath))
-      .join("[SCREENSHOT_PATH]");
+    message = message.split(String(generatedPath)).join("[SCREENSHOT_PATH]");
   }
+  message = message.replace(/https?:\/\/[^\s"'<>]+/giu, (url) =>
+    redactBrowserUrl(url, cap),
+  );
   return redactBrowserText(message.split("\n")[0], cap);
 }
 
@@ -181,6 +224,15 @@ function cleanupFailedScreenshot(generatedPath, deps) {
     deps.fs.rmSync(generatedPath, { force: true });
   } catch {
     // Failure cleanup is best-effort; never mask the browser action error.
+  }
+}
+
+function digestGeneratedFile(generatedPath, deps) {
+  if (!generatedPath) return null;
+  try {
+    return browserEvidenceDigest(deps.fs.readFileSync(generatedPath));
+  } catch {
+    return null;
   }
 }
 
@@ -427,9 +479,13 @@ export async function captureState({
         });
       }
     };
-    page.on("console", onConsole);
-    page.on("requestfailed", onRequestFailed);
-    page.on("response", onResponse);
+    const canObserve =
+      typeof page.on === "function" && typeof page.off === "function";
+    if (canObserve) {
+      page.on("console", onConsole);
+      page.on("requestfailed", onRequestFailed);
+      page.on("response", onResponse);
+    }
     try {
       if (reload) {
         await page
@@ -440,6 +496,7 @@ export async function captureState({
 
       const state = {
         ok: true,
+        observationCaptureAvailable: canObserve,
         port,
         tab: index,
         url: redactBrowserUrl(page.url()),
@@ -452,8 +509,16 @@ export async function captureState({
         network: networkEntries,
       };
       if (includeDom) {
-        const html = await page.content().catch(() => "");
+        let htmlCaptureSucceeded = true;
+        const html = await page.content().catch(() => {
+          htmlCaptureSucceeded = false;
+          return "";
+        });
         state.html = redactBrowserDom(html, domCap);
+        state.htmlCaptureSucceeded = htmlCaptureSucceeded;
+        state.htmlRedaction = browserDomRedactionMetadata(html);
+        state.htmlSourceChars = html.length;
+        state.htmlDigest = browserEvidenceDigest(state.html);
         state.htmlTruncated = html.length > domCap;
       }
       if (screenshotPath) {
@@ -468,13 +533,16 @@ export async function captureState({
         if (!state.screenshotError) {
           state.screenshotPath = screenshotPath;
           state.screenshotRef = path.basename(screenshotPath);
+          state.screenshotSha256 = digestGeneratedFile(screenshotPath, deps);
         }
       }
       return state;
     } finally {
-      page.off("console", onConsole);
-      page.off("requestfailed", onRequestFailed);
-      page.off("response", onResponse);
+      if (canObserve) {
+        page.off("console", onConsole);
+        page.off("requestfailed", onRequestFailed);
+        page.off("response", onResponse);
+      }
     }
   } finally {
     // connectOverCDP close() disconnects the client; the browser lives on.
@@ -501,6 +569,8 @@ export const SUPPORTED_BROWSER_ACTIONS = Object.freeze([
   "waitForSelector",
   "screenshot",
   "assertText",
+  "upload",
+  "download",
 ]);
 export const MAX_BROWSER_ACTIONS = 30;
 export const DEFAULT_ACTION_TIMEOUT_MS = 10000;
@@ -614,12 +684,15 @@ export function normalizeBrowserActions(actions, { deps = _deps } = {}) {
             `navigate url must be http(s):// (got ${parsed.protocol})`,
           );
         }
+        if (parsed.username || parsed.password) {
+          throw new Error("navigate url must not contain embedded credentials");
+        }
         return { type, url: String(raw.url) };
       }
       case "waitForSelector": {
         const t = Number(raw.timeoutMs ?? raw.timeout_ms ?? 5000);
         const timeoutMs = Math.min(
-          Math.max(Number.isFinite(t) ? t : 5000, 1),
+          Math.max(Number.isFinite(t) ? Math.trunc(t) : 5000, 1),
           MAX_ACTION_TIMEOUT_MS,
         );
         return {
@@ -643,7 +716,7 @@ export function normalizeBrowserActions(actions, { deps = _deps } = {}) {
           type,
           screenshotPath: path.join(
             deps.tmpdir(),
-            `cc-browser-act-${Date.now()}-${i}.png`,
+            `cc-browser-act-${crypto.randomBytes(16).toString("hex")}-${i}.png`,
           ),
         };
       }
@@ -655,6 +728,41 @@ export function normalizeBrowserActions(actions, { deps = _deps } = {}) {
           type,
           selector: requireSelector(raw, "assertText"),
           expected: raw.expected,
+        };
+      }
+      case "upload": {
+        for (const key of ["path", "file", "files", "inputFiles"]) {
+          if (raw[key] != null) {
+            throw new Error(
+              `upload accepts only a managed session artifact_id; remove "${key}"`,
+            );
+          }
+        }
+        const artifactId = String(raw.artifactId ?? raw.artifact_id ?? "");
+        if (!/^art_[A-Za-z0-9_]+$/u.test(artifactId)) {
+          throw new Error("upload requires a managed artifact_id");
+        }
+        return {
+          type,
+          selector: requireSelector(raw, "upload"),
+          artifactId,
+        };
+      }
+      case "download": {
+        for (const key of ["path", "file", "output", "downloadPath"]) {
+          if (raw[key] != null) {
+            throw new Error(
+              `download path is generated internally — remove "${key}"`,
+            );
+          }
+        }
+        return {
+          type,
+          selector: requireSelector(raw, "download"),
+          downloadPath: path.join(
+            deps.tmpdir(),
+            `cc-browser-download-${crypto.randomBytes(16).toString("hex")}-${i}.bin`,
+          ),
         };
       }
       /* c8 ignore next 2 -- unreachable: type already validated above */
@@ -700,29 +808,34 @@ function connectorProfileOwnsPort(port, deps) {
   }
 }
 
-async function runOneAction(page, act, timeoutMs) {
+async function runOneAction(
+  page,
+  act,
+  timeoutMs,
+  { resolveUploadArtifact = null } = {},
+) {
   switch (act.type) {
     case "click":
       await page.click(act.selector, { timeout: timeoutMs });
-      return `clicked ${act.selector}`;
+      return { detail: `clicked ${act.selector}` };
     case "type":
       await page.fill(act.selector, act.text, { timeout: timeoutMs });
-      return `typed ${act.text.length} chars into ${act.selector}`;
+      return { detail: `typed ${act.text.length} chars into ${act.selector}` };
     case "press":
       await page.keyboard.press(act.key);
-      return `pressed ${act.key}`;
+      return { detail: `pressed ${act.key}` };
     case "navigate":
       await page.goto(act.url, {
         waitUntil: "domcontentloaded",
         timeout: timeoutMs,
       });
-      return `navigated to ${act.url}`;
+      return { detail: `navigated to ${act.url}` };
     case "waitForSelector":
       await page.waitForSelector(act.selector, { timeout: act.timeoutMs });
-      return `selector appeared: ${act.selector}`;
+      return { detail: `selector appeared: ${act.selector}` };
     case "screenshot":
       await page.screenshot({ path: act.screenshotPath });
-      return "screenshot captured";
+      return { detail: "screenshot captured" };
     case "assertText": {
       const text = await page.textContent(act.selector, {
         timeout: timeoutMs,
@@ -732,10 +845,74 @@ async function runOneAction(page, act, timeoutMs) {
       }
       if (!text.includes(act.expected)) {
         throw new Error(
-          `assertText FAILED: "${truncateForAudit(act.expected, 80)}" not found in ${act.selector} (got: ${truncateForAudit(text.trim(), 120)})`,
+          `assertText FAILED: expected text was not found in ${act.selector}`,
         );
       }
-      return `assertText passed: ${act.selector} contains "${truncateForAudit(act.expected, 80)}"`;
+      return {
+        detail: `assertText passed: ${act.selector}`,
+      };
+    }
+    case "upload": {
+      if (typeof resolveUploadArtifact !== "function") {
+        throw new Error("upload artifact authority is unavailable");
+      }
+      const resolved = await resolveUploadArtifact(act.artifactId);
+      try {
+        if (
+          !resolved ||
+          typeof resolved.path !== "string" ||
+          !resolved.metadata?.id ||
+          !resolved.metadata?.sha256
+        ) {
+          throw new Error(
+            "upload artifact authority returned an invalid record",
+          );
+        }
+        const uploadDigest = String(resolved.metadata.sha256)
+          .replace(/^sha256:/u, "")
+          .toLowerCase();
+        if (
+          resolved.metadata.id !== act.artifactId ||
+          !/^[a-f0-9]{64}$/u.test(uploadDigest) ||
+          !Number.isFinite(Number(resolved.metadata.size)) ||
+          Number(resolved.metadata.size) < 0
+        ) {
+          throw new Error(
+            "upload artifact authority returned mismatched metadata",
+          );
+        }
+        try {
+          await page.setInputFiles(act.selector, resolved.path, {
+            timeout: timeoutMs,
+          });
+        } catch {
+          throw new Error("upload failed for the managed session artifact");
+        }
+        return {
+          detail: `uploaded managed artifact ${resolved.metadata.id}`,
+          uploadArtifact: {
+            id: resolved.metadata.id,
+            sha256: `sha256:${uploadDigest}`,
+            size: Number(resolved.metadata.size),
+          },
+        };
+      } finally {
+        await resolved?.cleanup?.();
+      }
+    }
+    case "download": {
+      if (typeof page.waitForEvent !== "function") {
+        throw new Error("download capture is unavailable in this browser");
+      }
+      const [download] = await Promise.all([
+        page.waitForEvent("download", { timeout: timeoutMs }),
+        page.click(act.selector, { timeout: timeoutMs }),
+      ]);
+      await download.saveAs(act.downloadPath);
+      return {
+        detail: "download captured",
+        suggestedName: redactBrowserText(download.suggestedFilename?.(), 200),
+      };
     }
     /* c8 ignore next 2 -- unreachable: normalizeBrowserActions validated type */
     default:
@@ -760,14 +937,47 @@ export async function performActions(
     continueOnError = false,
     sessionId = null,
     actionTimeoutMs = DEFAULT_ACTION_TIMEOUT_MS,
+    evidenceBinding = null,
+    originGrants = null,
+    expectedGrantRevisions = null,
+    replaySourceEnvelope = null,
+    replayAllowSideEffects = false,
+    replayAllowCredentials = false,
+    resolveUploadArtifact = null,
+    evidenceDomCap = 40000,
     deps = _deps,
   } = {},
 ) {
   let normalized;
   let resolvedPort;
+  let replay = null;
   try {
     resolvedPort = resolveLoopbackCdpPort(cdpUrl, port);
     normalized = normalizeBrowserActions(actions, { deps });
+    if (evidenceBinding) {
+      const normalizedBinding =
+        normalizeBrowserEvidenceBinding(evidenceBinding);
+      if (!sessionId || String(sessionId) !== normalizedBinding.session.id) {
+        throw new Error(
+          "browser evidence binding is not bound to the active session",
+        );
+      }
+    }
+    if (replaySourceEnvelope) {
+      replay = authorizeBrowserReplay({
+        sourceEnvelope: replaySourceEnvelope,
+        binding: evidenceBinding,
+        actions: normalized,
+        allowSideEffects: replayAllowSideEffects,
+        allowCredentials: replayAllowCredentials,
+      });
+    }
+    if (
+      (originGrants || expectedGrantRevisions || replaySourceEnvelope) &&
+      !evidenceBinding
+    ) {
+      throw new Error("browser evidence authority requires an exact binding");
+    }
   } catch (err) {
     return { ok: false, error: err.message };
   }
@@ -819,63 +1029,239 @@ export async function performActions(
         "(~/.chainlesschain/chrome-profile) — actions run in that browser's REAL session";
     }
 
-    let auditError = null;
-    for (const act of normalized) {
-      const started = Date.now();
-      const step = { ok: false, action: act.type, detail: "", durationMs: 0 };
-      const pageBefore = redactBrowserUrl(page.url());
-      try {
-        const detail = await runOneAction(page, act, stepTimeout);
-        step.detail =
-          act.type === "navigate"
-            ? `navigated to ${redactBrowserUrl(act.url)}`
-            : redactBrowserText(detail, 500);
-        step.ok = true;
-        if (act.screenshotPath) {
-          step.screenshotPath = act.screenshotPath;
-          step.screenshotRef = path.basename(act.screenshotPath);
-        }
-      } catch (err) {
-        cleanupFailedScreenshot(act.screenshotPath, deps);
-        step.detail = redactScreenshotFailure(err, act.screenshotPath, 500);
+    const consoleEntries = [];
+    const networkEntries = [];
+    const onConsole = (message) => {
+      if (consoleEntries.length < 200) {
+        consoleEntries.push({
+          type: redactBrowserText(message.type(), 40),
+          text: redactBrowserText(message.text(), 500),
+        });
       }
-      step.durationMs = Date.now() - started;
-      const pageAfter = redactBrowserUrl(page.url());
-      result.steps.push(step);
-      try {
-        const entry = {
-          ts: new Date(started).toISOString(),
-          action: act.type,
-          ok: step.ok,
-          durationMs: step.durationMs,
-          pageBefore,
-          pageAfter,
-          result: step.detail,
-        };
-        if (sessionId) {
-          entry.sessionId = redactBrowserText(sessionId, 160);
-        }
-        if (act.selector) entry.selector = truncateForAudit(act.selector);
-        if (act.url) entry.url = redactBrowserUrl(act.url);
-        if (act.key) entry.key = truncateForAudit(act.key, 50);
-        if (step.ok && act.screenshotPath) {
-          entry.screenshotRef = path.basename(act.screenshotPath);
-        }
-        appendActionAudit(entry, deps);
-      } catch (err) {
-        auditError = redactBrowserText(err.message, 300);
+    };
+    const onRequestFailed = (request) => {
+      if (networkEntries.length < 200) {
+        networkEntries.push({
+          kind: "failed",
+          url: redactBrowserUrl(request.url(), 300),
+          error: redactBrowserText(request.failure()?.errorText || "", 300),
+        });
       }
-      if (!step.ok && !continueOnError) break;
+    };
+    const onResponse = (response) => {
+      if (response.status() >= 400 && networkEntries.length < 200) {
+        networkEntries.push({
+          kind: "http-error",
+          url: redactBrowserUrl(response.url(), 300),
+          status: response.status(),
+        });
+      }
+    };
+    const canObserve =
+      typeof page.on === "function" && typeof page.off === "function";
+    if (canObserve) {
+      page.on("console", onConsole);
+      page.on("requestfailed", onRequestFailed);
+      page.on("response", onResponse);
     }
 
-    result.executed = result.steps.length;
-    result.ok =
-      result.steps.length === normalized.length &&
-      result.steps.every((s) => s.ok);
-    if (auditError) result.auditError = auditError;
-    result.url = redactBrowserUrl(page.url());
-    result.title = redactBrowserText(await page.title().catch(() => ""), 500);
-    return result;
+    try {
+      let auditError = null;
+      const authorities = [];
+      for (const act of normalized) {
+        const started = Date.now();
+        const step = { ok: false, action: act.type, detail: "", durationMs: 0 };
+        const pageBefore = redactBrowserUrl(page.url());
+        let authority = null;
+        try {
+          if (evidenceBinding) {
+            authority = authorizeBrowserAction({
+              binding: evidenceBinding,
+              grants: originGrants,
+              expectedGrantRevisions,
+              action: act,
+              currentUrl: page.url(),
+            });
+          }
+          const outcome = await runOneAction(page, act, stepTimeout, {
+            resolveUploadArtifact,
+          });
+          step.detail =
+            act.type === "navigate"
+              ? `navigated to ${redactBrowserUrl(act.url)}`
+              : redactBrowserText(outcome.detail, 500);
+          step.ok = true;
+          if (outcome.uploadArtifact) {
+            step.uploadArtifact = outcome.uploadArtifact;
+          }
+          if (act.screenshotPath) {
+            step.screenshotPath = act.screenshotPath;
+            step.screenshotRef = path.basename(act.screenshotPath);
+            step.screenshotSha256 = digestGeneratedFile(
+              act.screenshotPath,
+              deps,
+            );
+            if (evidenceBinding && !step.screenshotSha256) {
+              throw new Error("browser evidence screenshot digest is missing");
+            }
+          }
+          if (act.downloadPath) {
+            step.downloadPath = act.downloadPath;
+            step.downloadRef = path.basename(act.downloadPath);
+            step.downloadSha256 = digestGeneratedFile(act.downloadPath, deps);
+            if (evidenceBinding && !step.downloadSha256) {
+              throw new Error("browser evidence download digest is missing");
+            }
+            step.downloadSuggestedName =
+              outcome.suggestedName || "download.bin";
+          }
+        } catch (err) {
+          cleanupFailedScreenshot(act.screenshotPath, deps);
+          cleanupFailedScreenshot(act.downloadPath, deps);
+          step.ok = false;
+          delete step.screenshotPath;
+          delete step.screenshotRef;
+          delete step.screenshotSha256;
+          delete step.downloadPath;
+          delete step.downloadRef;
+          delete step.downloadSha256;
+          delete step.downloadSuggestedName;
+          delete step.uploadArtifact;
+          step.detail =
+            act.type === "navigate"
+              ? `navigation failed for ${redactBrowserUrl(act.url, 400)}`
+              : redactScreenshotFailure(
+                  err,
+                  act.screenshotPath || act.downloadPath,
+                  500,
+                );
+        }
+        step.durationMs = Date.now() - started;
+        const pageAfter = redactBrowserUrl(page.url());
+        result.steps.push(step);
+        authorities.push(authority);
+        try {
+          const entry = {
+            ts: new Date(started).toISOString(),
+            action: act.type,
+            ok: step.ok,
+            durationMs: step.durationMs,
+            pageBefore,
+            pageAfter,
+            result: step.detail,
+          };
+          if (sessionId) {
+            entry.sessionId = redactBrowserText(sessionId, 160);
+          }
+          if (act.selector) entry.selector = truncateForAudit(act.selector);
+          if (act.url) entry.url = redactBrowserUrl(act.url);
+          if (act.key) entry.key = truncateForAudit(act.key, 50);
+          if (act.artifactId) entry.uploadArtifactId = act.artifactId;
+          if (step.ok && act.screenshotPath) {
+            entry.screenshotRef = path.basename(act.screenshotPath);
+            entry.screenshotSha256 = step.screenshotSha256;
+          }
+          if (step.ok && act.downloadPath) {
+            entry.downloadRef = path.basename(act.downloadPath);
+            entry.downloadSha256 = step.downloadSha256;
+          }
+          if (authority) {
+            entry.originGrant = {
+              grantId: authority.grantId,
+              revision: authority.revision,
+              origin: authority.origin,
+              scope: authority.scope,
+            };
+          }
+          appendActionAudit(entry, deps);
+        } catch (err) {
+          auditError = redactBrowserText(err.message, 300);
+        }
+        if (!step.ok && !continueOnError) break;
+      }
+
+      result.executed = result.steps.length;
+      result.ok =
+        result.steps.length === normalized.length &&
+        result.steps.every((s) => s.ok);
+      if (auditError) result.auditError = auditError;
+      result.url = redactBrowserUrl(page.url());
+      result.title = redactBrowserText(await page.title().catch(() => ""), 500);
+      result.console = consoleEntries;
+      result.network = networkEntries;
+      if (evidenceBinding && result.steps.length > 0) {
+        let domCaptureSucceeded = true;
+        const sourceHtml = await page.content().catch(() => {
+          domCaptureSucceeded = false;
+          return "";
+        });
+        const normalizedCap = Math.min(
+          Math.max(0, Number(evidenceDomCap) || 40000),
+          DEFAULT_DOM_CAP,
+        );
+        const safeHtml = redactBrowserDom(sourceHtml, normalizedCap);
+        const evidenceActions = result.steps.map((step, actionIndex) =>
+          describeBrowserAction(
+            normalized[actionIndex],
+            step,
+            authorities[actionIndex],
+            actionIndex,
+          ),
+        );
+        result.evidence = createBrowserEvidenceEnvelope({
+          binding: evidenceBinding,
+          originPermissions: authorities.filter(Boolean),
+          actions: evidenceActions,
+          consoleEntries,
+          networkEntries,
+          pageUrl: page.url(),
+          pageTitle: result.title,
+          domSnapshot: {
+            html: safeHtml,
+            sourceChars: sourceHtml.length,
+            cap: normalizedCap,
+            truncated: sourceHtml.length > normalizedCap,
+            captureSucceeded: domCaptureSucceeded,
+            redaction: browserDomRedactionMetadata(sourceHtml),
+          },
+          screenshots: result.steps
+            .map((step, actionIndex) => ({
+              actionIndex,
+              digest: step.screenshotSha256,
+            }))
+            .filter((row) => row.digest),
+          downloads: result.steps
+            .map((step, actionIndex) => ({
+              actionIndex,
+              digest: step.downloadSha256,
+              suggestedName: step.downloadSuggestedName,
+            }))
+            .filter((row) => row.digest),
+          replay,
+          observationCaptureAvailable: canObserve,
+        });
+        if (!domCaptureSucceeded || !canObserve) {
+          result.ok = false;
+          result.evidenceIncomplete = true;
+          result.retrySafe = false;
+          result.recovery =
+            "Browser actions may have completed, but observation evidence capture was incomplete; do not retry side effects automatically.";
+        }
+      }
+      return result;
+    } catch (error) {
+      for (const step of result.steps || []) {
+        cleanupFailedScreenshot(step.screenshotPath, deps);
+        cleanupFailedScreenshot(step.downloadPath, deps);
+      }
+      throw error;
+    } finally {
+      if (canObserve) {
+        page.off("console", onConsole);
+        page.off("requestfailed", onRequestFailed);
+        page.off("response", onResponse);
+      }
+    }
   } finally {
     // connectOverCDP close() disconnects the client; the browser lives on.
     await browser.close().catch(() => {});

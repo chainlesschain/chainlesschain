@@ -165,4 +165,18 @@ describe("paths", () => {
       assertSafePrivateDirectoryPath(join(homedir(), ".chainlesschain")),
     ).not.toThrow();
   });
+
+  it("keeps device-namespace rejection while Cygwin symlink parity remains reverted", async () => {
+    const { assertSafePrivateDirectoryPath } =
+      await import("../../src/lib/paths.js");
+    for (const unsafe of [
+      "\\\\?\\C:\\cygwin64\\home\\user\\link",
+      "\\\\?\\UNC\\server\\share\\cygwin-link",
+      "\\\\.\\C:\\cygwin64\\home\\user\\link",
+    ]) {
+      expect(() => assertSafePrivateDirectoryPath(unsafe)).toThrow(
+        /Refusing|device namespace/i,
+      );
+    }
+  });
 });
