@@ -12,6 +12,7 @@ import {
   MCP_TLS_MAX_FILE_BYTES,
   loadMcpTlsMaterial,
   normalizeMcpTlsConfig,
+  provisionManagedMcpTlsConfig,
 } from "../../src/lib/mcp-tls.js";
 import {
   loadRegisteredMcp,
@@ -108,10 +109,14 @@ describe("MCP lifecycle increments", () => {
 
     const client = new MCPClient();
     clients.add(client);
+    const tls = provisionManagedMcpTlsConfig({
+      caFile: path.resolve("ignored-ca.pem"),
+    });
     const config = {
       url: "https://mcp.example.test/rpc",
       transport: "https",
-      tls: { caFile: path.resolve("ignored-ca.pem") },
+      configScope: "managed",
+      tls,
     };
     await client.connect("fixture", config);
     const firstEntry = client.servers.get("fixture");
@@ -229,12 +234,16 @@ describe("MCP lifecycle increments", () => {
     clientDeps.closeMcpTlsDispatcher = vi.fn(async () => {});
     const client = new MCPClient();
     clients.add(client);
+    const tls = provisionManagedMcpTlsConfig({
+      caFile: path.resolve("ignored-ca.pem"),
+    });
 
     await expect(
       client.connect("future", {
         url: "https://mcp.example.test/rpc",
         transport: "https",
-        tls: { caFile: path.resolve("ignored-ca.pem") },
+        configScope: "managed",
+        tls,
       }),
     ).rejects.toMatchObject({
       code: "CC_MCP_PROTOCOL_VERSION_UNSUPPORTED",
@@ -253,14 +262,21 @@ describe("MCP lifecycle increments", () => {
       fs.writeFileSync(keyFile, "key-generation-1", { mode: 0o600 });
       fs.chmodSync(keyFile, 0o600);
       fs.writeFileSync(caFile, "trusted-ca");
-      const config = { certFile, keyFile, caFile, serverName: "mcp.test" };
+      const config = provisionManagedMcpTlsConfig({
+        certFile,
+        keyFile,
+        caFile,
+        serverName: "mcp.test",
+      });
 
       const first = loadMcpTlsMaterial(config, {
+        configScope: "managed",
         createSecureContextImpl: () => ({}),
         validateCertificateImpl: () => {},
       });
       fs.writeFileSync(certFile, "cert-generation-2");
       const second = loadMcpTlsMaterial(config, {
+        configScope: "managed",
         createSecureContextImpl: () => ({}),
         validateCertificateImpl: () => {},
       });
@@ -285,8 +301,9 @@ describe("MCP lifecycle increments", () => {
     ).toThrow(/allowlisted/i);
     expect(() =>
       loadMcpTlsMaterial(
-        { caFile: path.resolve("ca.pem") },
+        provisionManagedMcpTlsConfig({ caFile: path.resolve("ca.pem") }),
         {
+          configScope: "managed",
           fsImpl: {
             lstatSync: () => ({ isSymbolicLink: () => true }),
           },
@@ -295,8 +312,9 @@ describe("MCP lifecycle increments", () => {
     ).toThrow(/symbolic link/i);
     expect(() =>
       loadMcpTlsMaterial(
-        { caFile: path.resolve("ca.pem") },
+        provisionManagedMcpTlsConfig({ caFile: path.resolve("ca.pem") }),
         {
+          configScope: "managed",
           fsImpl: {
             lstatSync: () => ({ isSymbolicLink: () => false }),
             constants: { O_RDONLY: 0, O_NOFOLLOW: 0 },
@@ -318,7 +336,11 @@ describe("MCP lifecycle increments", () => {
     try {
       const caFile = path.join(root, "invalid-ca.pem");
       fs.writeFileSync(caFile, "not a certificate");
-      expect(() => loadMcpTlsMaterial({ caFile })).toThrow(
+      expect(() =>
+        loadMcpTlsMaterial(provisionManagedMcpTlsConfig({ caFile }), {
+          configScope: "managed",
+        }),
+      ).toThrow(
         expect.objectContaining({ code: "CC_MCP_TLS_MATERIAL_INVALID" }),
       );
     } finally {
@@ -326,23 +348,20 @@ describe("MCP lifecycle increments", () => {
     }
   });
 
-  it("preserves normalized TLS config from project and managed MCP sources", () => {
-    const caFile = path.resolve("managed-ca.pem");
-    expect(
+  it("rejects TLS configuration from the generic MCP parser", () => {
+    expect(() =>
       parseMcpServers({
         mcpServers: {
           secure: {
             url: "https://mcp.example.test/rpc",
-            tls: { caFile },
+            tls: { caFile: path.resolve("untrusted-ca.pem") },
           },
         },
-      }).secure.tls,
-    ).toEqual({
-      certFile: null,
-      keyFile: null,
-      caFile,
-      serverName: null,
-      rejectUnauthorized: true,
-    });
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TLS_MANAGED_SOURCE_REQUIRED",
+      }),
+    );
   });
 });

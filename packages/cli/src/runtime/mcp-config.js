@@ -51,7 +51,11 @@ import {
   normalizeMcpSandboxPolicy,
   readMcpStdioCwd,
 } from "../lib/mcp-sandbox-policy.js";
-import { normalizeMcpTlsConfig } from "../lib/mcp-tls.js";
+import {
+  MCP_TLS_MANAGED_SOURCE_REQUIRED_CODE,
+  MCP_TLS_MANAGED_SOURCE_REQUIRED_MESSAGE,
+  provisionManagedMcpTlsConfig,
+} from "../lib/mcp-tls.js";
 import {
   McpLifecycleAuthority,
   defaultMcpLifecycleAuthorityPath,
@@ -327,7 +331,15 @@ export function readHeadlessMcpConfigErrors(filePath, deps = {}) {
  * Accepts the Claude-Code shape `{ "mcpServers": { ... } }`, the bundle shape
  * `{ "servers": { ... } }`, or a bare `{ name: cfg }` map.
  */
-export function parseMcpServers(raw) {
+function unmanagedMcpTlsConfigError() {
+  // Configuration parsing errors are surfaced in headless diagnostics. Keep
+  // this entirely host-owned: do not disclose source paths or any TLS field.
+  const error = new Error(MCP_TLS_MANAGED_SOURCE_REQUIRED_MESSAGE);
+  error.code = MCP_TLS_MANAGED_SOURCE_REQUIRED_CODE;
+  return error;
+}
+
+function parseMcpServersForSource(raw, { provisionManagedTls = false } = {}) {
   const block =
     (raw && typeof raw === "object" && (raw.mcpServers || raw.servers)) ||
     raw ||
@@ -405,7 +417,13 @@ export function parseMcpServers(raw) {
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
-      ...(cfg.tls != null ? { tls: normalizeMcpTlsConfig(cfg.tls) } : {}),
+      ...(cfg.tls != null
+        ? provisionManagedTls
+          ? { tls: provisionManagedMcpTlsConfig(cfg.tls) }
+          : (() => {
+              throw unmanagedMcpTlsConfigError();
+            })()
+        : {}),
       ...(cfg.disabled === true || cfg.enabled === false
         ? { disabled: true }
         : {}),
@@ -414,13 +432,25 @@ export function parseMcpServers(raw) {
   return out;
 }
 
+/**
+ * Parse an unprivileged MCP configuration source. TLS material is deliberately
+ * rejected here; only `loadManagedMcp` invokes the source-specific parser that
+ * can mint the opaque managed TLS provenance.
+ */
+export function parseMcpServers(raw) {
+  return parseMcpServersForSource(raw);
+}
+
 /** Load organization-provisioned MCP servers as the highest-precedence layer. */
 export async function loadManagedMcp(settings, deps = {}) {
   const block = settings?.managedMcpServers || settings?.mcpServers;
   if (!block || typeof block !== "object" || Array.isArray(block)) {
     return deps.into || null;
   }
-  const servers = parseMcpServers({ mcpServers: block });
+  const servers = parseMcpServersForSource(
+    { mcpServers: block },
+    { provisionManagedTls: true },
+  );
   const nameReservations = mcpServerNameReservations(deps);
   for (const config of Object.values(servers)) {
     config.configScope = "managed";

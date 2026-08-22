@@ -22,7 +22,10 @@ import {
   McpLifecycleAuthority,
   MCP_LIFECYCLE_AUTHORITY_LIMITS,
 } from "../src/lib/mcp-lifecycle-authority.js";
-import { loadMcpTlsMaterial } from "../src/lib/mcp-tls.js";
+import {
+  loadMcpTlsMaterial,
+  provisionManagedMcpTlsConfig,
+} from "../src/lib/mcp-tls.js";
 import * as oauth from "../src/lib/mcp-oauth.js";
 import {
   parseMcpServers,
@@ -906,12 +909,13 @@ async function runTlsScenario(root) {
     encoding: "utf8",
     mode: 0o600,
   });
-  const first = loadMcpTlsMaterial({
+  const managedTls = provisionManagedMcpTlsConfig({
     certFile: activeCert,
     keyFile: activeKey,
     caFile: serverCa,
     serverName: "localhost",
   });
+  const first = loadMcpTlsMaterial(managedTls, { configScope: "managed" });
   const tlsServer = await createTlsMcpServer({
     serverIdentity,
     clientCertificates: [firstIdentity.cert, secondIdentity.cert],
@@ -921,12 +925,8 @@ async function runTlsScenario(root) {
   try {
     await client.connect("mtls-profile", {
       url: tlsServer.url,
-      tls: {
-        certFile: activeCert,
-        keyFile: activeKey,
-        caFile: serverCa,
-        serverName: "localhost",
-      },
+      configScope: "managed",
+      tls: managedTls,
     });
     assert.equal(
       client.lifecycleSnapshot("mtls-profile")?.tlsIdentityDigest,
@@ -936,21 +936,12 @@ async function runTlsScenario(root) {
 
     fs.writeFileSync(activeCert, secondIdentity.cert, { encoding: "utf8" });
     fs.writeFileSync(activeKey, secondIdentity.key, { encoding: "utf8" });
-    second = loadMcpTlsMaterial({
-      certFile: activeCert,
-      keyFile: activeKey,
-      caFile: serverCa,
-      serverName: "localhost",
-    });
+    second = loadMcpTlsMaterial(managedTls, { configScope: "managed" });
     assert.notEqual(first.identityDigest, second.identityDigest);
     await client.connect("mtls-profile", {
       url: tlsServer.url,
-      tls: {
-        certFile: activeCert,
-        keyFile: activeKey,
-        caFile: serverCa,
-        serverName: "localhost",
-      },
+      configScope: "managed",
+      tls: managedTls,
     });
     assert.equal(
       client.lifecycleSnapshot("mtls-profile")?.tlsIdentityDigest,
@@ -979,7 +970,11 @@ async function runTlsScenario(root) {
     await assert.rejects(
       invalidClient.connect("invalid-tls", {
         url: "https://127.0.0.1:9/mcp",
-        tls: { certFile: activeCert, keyFile: activeKey },
+        configScope: "managed",
+        tls: provisionManagedMcpTlsConfig({
+          certFile: activeCert,
+          keyFile: activeKey,
+        }),
       }),
       (error) => error?.code === "CC_MCP_TLS_MATERIAL_INVALID",
     );

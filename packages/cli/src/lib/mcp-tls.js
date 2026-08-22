@@ -8,6 +8,18 @@ import { isProxy } from "node:util/types";
 import { Agent } from "undici";
 
 export const MCP_TLS_MAX_FILE_BYTES = 1024 * 1024;
+export const MCP_TLS_MANAGED_SOURCE_REQUIRED_CODE =
+  "CC_MCP_TLS_MANAGED_SOURCE_REQUIRED";
+export const MCP_TLS_MANAGED_SOURCE_REQUIRED_MESSAGE =
+  "MCP TLS configuration is restricted to managed provisioned sources";
+
+// TLS file paths are a privileged configuration capability: merely marking a
+// JSON object as `configScope: "managed"` must never let a project, user, or
+// headless config read certificate material. Keep the provisioned snapshot in
+// a module-private WeakMap so it cannot be recreated by JSON, object spread,
+// or a lookalike field supplied by an MCP config source.
+const MANAGED_MCP_TLS_PROVENANCE = new WeakMap();
+const MANAGED_MCP_TLS_SCOPE = "managed";
 
 const TLS_KEYS = new Set([
   "certFile",
@@ -21,6 +33,16 @@ function tlsError(code, message, cause = undefined) {
   const error = new Error(message, cause ? { cause } : undefined);
   error.code = code;
   return error;
+}
+
+function managedTlsSourceRequiredError() {
+  // Do not include the claimed scope, source file, certificate path, or any
+  // TLS configuration field here. This error is surfaced by headless and MCP
+  // connection diagnostics, where config values are not safe to disclose.
+  return tlsError(
+    MCP_TLS_MANAGED_SOURCE_REQUIRED_CODE,
+    MCP_TLS_MANAGED_SOURCE_REQUIRED_MESSAGE,
+  );
 }
 
 function plainTlsObject(value) {
@@ -130,6 +152,47 @@ export function normalizeMcpTlsConfig(value) {
   };
 }
 
+/**
+ * Convert TLS settings from the organization-managed MCP loader into an
+ * immutable, non-forgeable configuration capability.
+ *
+ * This is deliberately separate from `normalizeMcpTlsConfig`: normalization
+ * validates data, while provisioning records the trusted source provenance
+ * that is required before a certificate/key/CA file can be opened.
+ */
+export function provisionManagedMcpTlsConfig(value) {
+  const config = normalizeMcpTlsConfig(value);
+  if (!config) return null;
+  const provisioned = Object.freeze({ ...config });
+  MANAGED_MCP_TLS_PROVENANCE.set(
+    provisioned,
+    Object.freeze({ configScope: MANAGED_MCP_TLS_SCOPE }),
+  );
+  return provisioned;
+}
+
+/**
+ * Enforce the managed source boundary before any TLS path is normalized or
+ * opened. The private provenance association survives normal config-object
+ * spreads because the provisioned `tls` value itself is preserved, but a
+ * caller cannot manufacture it from JSON or by setting `configScope`.
+ */
+export function assertManagedMcpTlsConfig(value, { configScope } = {}) {
+  if (value == null) return null;
+  const provenance =
+    value && typeof value === "object"
+      ? MANAGED_MCP_TLS_PROVENANCE.get(value)
+      : null;
+  if (
+    !provenance ||
+    configScope !== MANAGED_MCP_TLS_SCOPE ||
+    provenance.configScope !== MANAGED_MCP_TLS_SCOPE
+  ) {
+    throw managedTlsSourceRequiredError();
+  }
+  return value;
+}
+
 function readTlsFile(filePath, label, fsImpl) {
   if (!filePath) return null;
   let descriptor = null;
@@ -211,12 +274,13 @@ function validateCertificateBytes(bytes) {
 export function loadMcpTlsMaterial(
   value,
   {
+    configScope,
     fsImpl = fs,
     createSecureContextImpl = createSecureContext,
     validateCertificateImpl = validateCertificateBytes,
   } = {},
 ) {
-  const config = normalizeMcpTlsConfig(value);
+  const config = assertManagedMcpTlsConfig(value, { configScope });
   if (!config) return null;
   const cert = readTlsFile(config.certFile, "certFile", fsImpl);
   const key = readTlsFile(config.keyFile, "keyFile", fsImpl);

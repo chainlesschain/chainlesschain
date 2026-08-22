@@ -47,6 +47,7 @@ import {
 } from "../lib/mcp-stdio-executable-identity.js";
 import { resolveMcpStdioSandboxContext } from "../lib/mcp-stdio-workspace-authority.js";
 import {
+  assertManagedMcpTlsConfig,
   closeMcpTlsDispatcher,
   createMcpTlsDispatcher,
   loadMcpTlsMaterial,
@@ -2350,6 +2351,12 @@ export class MCPClient extends EventEmitter {
     let connectionHeaders;
     try {
       if (sourceConfig.tls != null) {
+        // Source provenance is enforced before header helpers, dispatcher
+        // creation, or any transport work. `configScope` alone is not trusted:
+        // the TLS object must carry the opaque managed-loader provenance too.
+        assertManagedMcpTlsConfig(sourceConfig.tls, {
+          configScope: sourceConfig.configScope,
+        });
         if (transportKind !== "https" && transportKind !== "wss") {
           throw mcpTransportError(
             "CC_MCP_TLS_TRANSPORT_REQUIRED",
@@ -2357,7 +2364,9 @@ export class MCPClient extends EventEmitter {
             { transport: transportKind, url: sourceConfig.url },
           );
         }
-        tlsMaterial = _deps.loadMcpTlsMaterial(sourceConfig.tls);
+        tlsMaterial = _deps.loadMcpTlsMaterial(sourceConfig.tls, {
+          configScope: sourceConfig.configScope,
+        });
       }
       connectionHeaders = await this._connectionHeaders(
         name,
