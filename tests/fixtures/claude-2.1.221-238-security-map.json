@@ -146,7 +146,7 @@
       "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
+        "sha256": "sha256:0e5810ffa0ed0765028c4f6e2ad59c09ee3801a2e1a75564d10494b6bd485f3b"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -218,7 +218,7 @@
       "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
+        "sha256": "sha256:0e5810ffa0ed0765028c4f6e2ad59c09ee3801a2e1a75564d10494b6bd485f3b"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -248,7 +248,7 @@
       "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
+        "sha256": "sha256:0e5810ffa0ed0765028c4f6e2ad59c09ee3801a2e1a75564d10494b6bd485f3b"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -264,7 +264,7 @@
       "testId": "audits every non-applicable product boundary without claiming parity",
       "producer": {
         "path": "packages/cli/__tests__/unit/claude-security-map.test.js",
-        "sha256": "sha256:1f2a8b0e598f295628c9a5a95e9c00a84f8754d81db84d9696df261d7e87bfd2"
+        "sha256": "sha256:0e5810ffa0ed0765028c4f6e2ad59c09ee3801a2e1a75564d10494b6bd485f3b"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]

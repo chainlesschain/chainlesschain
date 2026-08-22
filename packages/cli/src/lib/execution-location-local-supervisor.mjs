@@ -5,6 +5,10 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import {
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "./secure-file-identity.js";
 
 const MEBIBYTE = 1024 * 1024;
 const MAX_CAPTURED_MARKER_BYTES = 256;
@@ -49,6 +53,47 @@ function boundedHeapMebibytes(memoryBytes) {
   return Math.max(64, Math.min(256, Math.floor(memoryBytes / MEBIBYTE)));
 }
 
+function openStagedReplicaInput(inputPath) {
+  let descriptor = null;
+  try {
+    return withTrustedFileParentSync(
+      fs,
+      inputPath,
+      ({ canonicalPath, parentDevice }) => {
+        const requested = fs.lstatSync(canonicalPath, { bigint: true });
+        assert.ok(
+          requested.isFile() &&
+            !requested.isSymbolicLink() &&
+            requested.size > 0n &&
+            requested.size <= BigInt(MAX_STDIN_BYTES),
+          "local target stdin file is invalid",
+        );
+        descriptor = fs.openSync(
+          canonicalPath,
+          fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+        );
+        const opened = fs.fstatSync(descriptor, { bigint: true });
+        assert.ok(
+          opened.isFile() &&
+            opened.nlink === 1n &&
+            samePathHandleFileIdentity(requested, opened, parentDevice),
+          "local target stdin file changed while opening",
+        );
+        const stagedInput = fs.readFileSync(descriptor);
+        assert.equal(
+          BigInt(stagedInput.length),
+          requested.size,
+          "local target stdin file changed while reading",
+        );
+        return Object.freeze({ descriptor, stagedInput });
+      },
+    );
+  } catch (error) {
+    if (descriptor !== null) fs.closeSync(descriptor);
+    throw error;
+  }
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   const resourceKind =
@@ -72,33 +117,9 @@ async function main() {
   let inputDescriptor = null;
   let stagedInput = null;
   if (options.stdinFile) {
-    const requested = fs.lstatSync(options.stdinFile);
-    assert.ok(
-      requested.isFile() &&
-        !requested.isSymbolicLink() &&
-        requested.size > 0 &&
-        requested.size <= MAX_STDIN_BYTES,
-      "local target stdin file is invalid",
-    );
-    inputDescriptor = fs.openSync(
+    ({ descriptor: inputDescriptor, stagedInput } = openStagedReplicaInput(
       options.stdinFile,
-      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
-    );
-    const opened = fs.fstatSync(inputDescriptor);
-    assert.ok(
-      opened.isFile() &&
-        opened.size === requested.size &&
-        opened.dev === requested.dev &&
-        opened.ino === requested.ino &&
-        opened.nlink === 1,
-      "local target stdin file changed while opening",
-    );
-    stagedInput = fs.readFileSync(inputDescriptor);
-    assert.equal(
-      stagedInput.length,
-      requested.size,
-      "local target stdin file changed while reading",
-    );
+    ));
   }
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
   const childEnvironment = {

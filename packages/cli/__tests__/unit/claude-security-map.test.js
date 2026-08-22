@@ -159,6 +159,16 @@ describe("Claude Code 2.1.221-2.1.238 security map", () => {
       expect(evidence.outcome).toBe("passed");
       writeJson(path.join(cell, `fragment-${osName}.json`), evidence);
     }
+    const unrelated = {
+      ...JSON.parse(
+        fs.readFileSync(path.join(directory, "linux", "fragment-linux.json")),
+      ),
+      commitmentId: "RC-DEFAULT",
+    };
+    writeJson(
+      path.join(directory, "linux", "rc-default-fragment.json"),
+      unrelated,
+    );
     const aggregate = verifyEvidenceSet({
       evidenceDir: directory,
       releaseCommit: RELEASE_COMMIT,
