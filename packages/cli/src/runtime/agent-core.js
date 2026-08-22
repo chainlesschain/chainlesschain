@@ -3713,6 +3713,7 @@ export async function executeTool(name, args, context = {}) {
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
       sessionBudget: context.sessionBudget || null,
+      hostResourceBudget: context.hostResourceBudget || null,
       // Effective contract of THIS loop (parent ceiling for a nested spawn) +
       // the MCP tool definitions this loop exposes (inheritable by a spawn).
       subAgentContract: context.subAgentContract || null,
@@ -5265,6 +5266,7 @@ async function executeToolInner(
     onToolCallSettlement = null,
     backgroundUsageFailureState = null,
     toolAdmission = null,
+    hostResourceBudget = null,
     unattendedActionPolicy = null,
     managedCheckpoint = false,
     fileMutationScope = null,
@@ -6993,6 +6995,7 @@ async function executeToolInner(
           subAgentDepth,
           subAgentBudget,
           sessionBudget,
+          hostResourceBudget,
           subAgentContract,
           settingsHooks,
           // Immutable parent execution authority. The child may only tighten
@@ -7057,6 +7060,7 @@ async function executeToolInner(
           maxBytes: args.maxBytes,
           timeout: args.timeout,
           config: webFetchConfig,
+          hostResourceBudget,
         });
         return attachDescriptor(result);
       } catch (err) {
@@ -7084,6 +7088,7 @@ async function executeToolInner(
           maxResults: args.maxResults,
           timeout: args.timeout,
           config: webSearchConfig,
+          hostResourceBudget,
         });
         return attachDescriptor(result);
       } catch (err) {
@@ -8060,6 +8065,7 @@ async function executeToolInner(
               ? { workflowEffectId: workflowChildEffectId }
               : {}),
             ...(sessionBudget ? { sessionBudget } : {}),
+            ...(hostResourceBudget ? { hostResourceBudget } : {}),
             ...(permissionRules ? { permissionRules } : {}),
             ...(hostManagedToolPolicy
               ? {
@@ -10086,6 +10092,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     // single total-sub-agent pool (breadth cap spans the whole tree).
     subAgentBudget: ctx.subAgentBudget || null,
     ...(ctx.sessionBudget ? { sessionBudget: ctx.sessionBudget } : {}),
+    ...(ctx.hostResourceBudget
+      ? { hostResourceBudget: ctx.hostResourceBudget }
+      : {}),
     onUsage,
     ...(interaction && typeof interaction.emit === "function"
       ? {
@@ -13007,6 +13016,9 @@ export async function* agentLoop(messages, options) {
   const { IterationBudget, WarningLevel } =
     await import("../lib/iteration-budget.js");
   const budget = options.iterationBudget || new IterationBudget();
+  const { HostResourceBudget } = await import("../lib/host-resource-budget.js");
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
   const signal = options.signal || null;
   const workflowEffectId = _normalizeWorkflowEffectId(options.workflowEffectId);
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
@@ -13220,6 +13232,10 @@ export async function* agentLoop(messages, options) {
     // CLI root does not create one yet; when supplied, every nested child sees
     // the same object and cannot reset concurrency/spawn/depth totals.
     sessionBudget: options.sessionBudget || null,
+    // Share bounded WebFetch cache and renderer/tool/event admission across
+    // the main loop and every nested subagent. A host can tighten these limits
+    // by supplying its own budget; otherwise the conservative defaults apply.
+    hostResourceBudget,
     // This loop's EFFECTIVE subagent contract (set when this loop IS a spawned
     // sub-agent). Threaded so a nested spawn_sub_agent sees it as the parent
     // ceiling (tighten-only). null at the top level (no ceiling).

@@ -153,6 +153,7 @@ export class SubAgentContext {
    * @param {number} [options.maxIterations] - Iteration limit (fallback if no budget)
    * @param {import('./iteration-budget.js').IterationBudget} [options.iterationBudget] - Shared iteration budget (takes priority over maxIterations)
    * @param {import('./session-resource-budget.js').SessionResourceBudget} [options.sessionBudget] - Shared session-wide resource authority
+   * @param {object} [options.hostResourceBudget] - Shared host queue/cache authority
    * @param {number} [options.tokenBudget] - Optional token budget
    * @param {object} [options.db] - Database instance (memory recall source)
    * @param {object} [options.permanentMemory] - Permanent memory instance
@@ -195,6 +196,7 @@ export class SubAgentContext {
       DEFAULT_MAX_ITERATIONS;
     this.iterationBudget = options.iterationBudget || null; // shared budget from parent
     this.sessionBudget = options.sessionBudget || null;
+    this.hostResourceBudget = options.hostResourceBudget || null;
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools ?? null; // null = all; [] = none
@@ -632,6 +634,7 @@ export class SubAgentContext {
       // (and is bounded by) the run's single breadth pool.
       subAgentBudget: this.subAgentBudget,
       sessionBudget: this.sessionBudget,
+      hostResourceBudget: this.hostResourceBudget,
       // This context's effective contract = the ceiling for its nested spawns.
       subAgentContract: this.subAgentContract,
       toolAdmission: this.toolAdmission,
@@ -652,6 +655,7 @@ export class SubAgentContext {
     }
     options.subAgentContract = this.subAgentContract;
     options.sessionBudget = this.sessionBudget;
+    options.hostResourceBudget = this.hostResourceBudget;
     if (this._runAbortController) {
       options.signal = this._runAbortController.signal;
     }
@@ -1047,10 +1051,7 @@ export class SubAgentContext {
             }
           }
           if (budgetUsageUnknown) {
-            rejectSessionBudgetUsageUnknown(
-              event,
-              "sub-agent provider call",
-            );
+            rejectSessionBudgetUsageUnknown(event, "sub-agent provider call");
           }
         }
 
@@ -1075,8 +1076,7 @@ export class SubAgentContext {
             error.code = "CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN";
             error.workflowEffectOutcomeUnknown = true;
             error.workflowEffectId = nestedEffectSettlement.workflowEffectId;
-            error.workflowChildEffectId =
-              nestedEffectSettlement.childEffectId;
+            error.workflowChildEffectId = nestedEffectSettlement.childEffectId;
             throw error;
           }
           // Store large tool results as artifacts
@@ -1393,10 +1393,10 @@ export class SubAgentContext {
   _recordNestedEffectSettlement(event) {
     if (!this._workflowEffectId || !event?.workflowChildEffectId) return null;
     const attempt = this._nestedEffectAttempts.find(
-      (candidate) =>
-        candidate.childEffectId === event.workflowChildEffectId,
+      (candidate) => candidate.childEffectId === event.workflowChildEffectId,
     );
-    const outcomeUnknown = ownDataValue(event.result, "outcomeUnknown") === true;
+    const outcomeUnknown =
+      ownDataValue(event.result, "outcomeUnknown") === true;
     const resultError = ownDataValue(event.result, "error");
     const mcpLedgerId = ownDataValue(event.result, "mcpLedgerId") ?? null;
     const settlement = {
