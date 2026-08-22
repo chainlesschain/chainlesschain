@@ -185,7 +185,7 @@ describe("browser evidence producer arguments and secret gate", () => {
     ).toHaveLength(2);
     expect(
       browserJobs.match(
-        /git fetch --no-tags --depth=1 origin "\$GITHUB_WORKFLOW_SHA"/gu,
+        /git fetch --no-tags --depth=2 origin "\$GITHUB_WORKFLOW_SHA"/gu,
       ),
     ).toHaveLength(2);
     expect(browserJobs).toMatch(
