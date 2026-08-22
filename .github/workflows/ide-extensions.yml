@@ -166,11 +166,9 @@ jobs:
         run: >-
           npm ci --workspace packages/cli --include-workspace-root=false
           --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-      - name: Install pinned Playwright driver
+      - name: Verify pinned Playwright driver
         run: >-
-          npm install --workspace packages/cli --include-workspace-root=false
-          --no-save --package-lock=false --legacy-peer-deps --ignore-scripts
-          --no-audit --no-fund playwright@1.61.1
+          npm exec --workspace packages/cli -- playwright --version
       - name: Run browser evidence contract tests
         run: >-
           npm exec --workspace packages/cli -- vitest run
