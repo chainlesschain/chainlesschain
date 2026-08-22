@@ -579,7 +579,7 @@ describe("execution location target launch and resume", () => {
     },
   );
 
-  it("moves Local replica input through one bounded file and removes it after launch", () => {
+  it("forwards Local replica input through the bounded target pipe", () => {
     const profile = rawLifecycleProfile({
       id: "local-profile-1",
       target: "local",
@@ -633,17 +633,13 @@ describe("execution location target launch and resume", () => {
 
     expect(receipt.exitStatus).toBe(0);
     const prepareCall = spawnSync.mock.calls[2];
-    const inputOption = prepareCall[1].indexOf("--stdin-file");
-    expect(inputOption).toBeGreaterThan(0);
-    const inputPath = prepareCall[1][inputOption + 1];
-    expect(inputPath).toMatch(/cc-target-input-/u);
-    expect(existsSync(inputPath)).toBe(false);
+    expect(prepareCall[1]).not.toContain("--stdin-file");
     expect(prepareCall[2]).toMatchObject({
       shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
+      input: TRANSCRIPT_BYTES,
+      stdio: ["pipe", "pipe", "pipe"],
       timeout: 120_000,
     });
-    expect(prepareCall[2]).not.toHaveProperty("input");
   });
 
   it("rejects an expired v2 proxy authority before spawning a target", () => {
