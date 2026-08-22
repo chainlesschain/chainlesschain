@@ -459,6 +459,13 @@ async function measureColdCliResume(home, sessionId, profile) {
   };
 }
 
+export function concurrencyWriterTimeoutMs(platform = process.platform) {
+  // Windows keeps the full 20×1000 formal writer matrix but needs a larger
+  // watchdog for its slower strict directory-lock and fsync path. This does
+  // not reduce writer count, event count, or any correctness assertion.
+  return platform === "win32" ? 60 * 60_000 : 30 * 60_000;
+}
+
 async function runConcurrencyScenario(store, home, profile) {
   process.env.CHAINLESSCHAIN_HOME = home;
   const sessionId = `scale-concurrency-${Date.now()}`;
@@ -476,7 +483,7 @@ async function runConcurrencyScenario(store, home, profile) {
         ],
         {
           env: { ...process.env, CHAINLESSCHAIN_HOME: home },
-          timeoutMs: 30 * 60_000,
+          timeoutMs: concurrencyWriterTimeoutMs(),
         },
       ),
     ),

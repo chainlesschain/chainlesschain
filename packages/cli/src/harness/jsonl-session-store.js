@@ -172,6 +172,14 @@ const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
 const WS_TURN_INPUT_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const WS_TURN_CLAIM_ID_PATTERN = /^claim-[0-9a-f-]{36}$/;
 const WS_TURN_FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
+// Windows antivirus and directory-replacement latency make a legitimate
+// cross-process append queue materially longer than on POSIX. Keep the same
+// strict owner/token protocol, but give a live owner enough time to drain a
+// high-contention queue instead of reporting a false lock-unavailable error.
+const SESSION_APPEND_LOCK_TIMEOUT_MS =
+  process.platform === "win32" ? 120_000 : 30_000;
+const SESSION_APPEND_LOCK_YIELD_AFTER_RELEASE_MS =
+  process.platform === "win32" ? 8 : 2;
 
 export {
   SESSION_GENERATION_AUTHORITY_FIELD,
@@ -1794,11 +1802,11 @@ function appendEventLocked(
     },
     {
       failIfUnavailable: true,
-      timeoutMs: 30_000,
+      timeoutMs: SESSION_APPEND_LOCK_TIMEOUT_MS,
       retryMs: 1,
       maxRetryMs: 8,
       retryJitterMs: 4,
-      yieldAfterReleaseMs: 2,
+      yieldAfterReleaseMs: SESSION_APPEND_LOCK_YIELD_AFTER_RELEASE_MS,
     },
   );
 }
@@ -4264,7 +4272,9 @@ function normalizeSessionResultCollectionSettlementData(sessionId, data) {
     !isLegacy &&
     data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
   ) {
-    throw new TypeError("session result collection settlement schema is invalid");
+    throw new TypeError(
+      "session result collection settlement schema is invalid",
+    );
   }
   const source = normalizeSessionResultCollectionSource(data.source, sessionId);
   const target = exactRecord(
@@ -4395,7 +4405,9 @@ function projectSessionResultCollectionSettlement(
     !legacy &&
     data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
   ) {
-    throw new TypeError("session result collection settlement schema is invalid");
+    throw new TypeError(
+      "session result collection settlement schema is invalid",
+    );
   }
   const normalized = normalizeSessionResultCollectionSettlementData(
     sessionId,
@@ -4474,7 +4486,9 @@ export function readVerifiedSessionExecutionLocationResultSettlement(
     return {
       accept(event) {
         eventCount += 1;
-        if (event?.type !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT) {
+        if (
+          event?.type !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT
+        ) {
           return;
         }
         const settlement = projectSessionResultCollectionSettlement(
@@ -4582,11 +4596,7 @@ export function settleSessionExecutionLocationResultCollection(
 }
 
 function normalizeSessionResultApplyId(value) {
-  const applyId = boundedAuthorityString(
-    value,
-    "result apply id",
-    128,
-  );
+  const applyId = boundedAuthorityString(value, "result apply id", 128);
   if (!/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$/u.test(applyId)) {
     throw new TypeError("result apply id is invalid");
   }
@@ -4624,7 +4634,11 @@ function normalizeSessionResultApplyPreparedTransaction(input) {
     ],
     "result apply prepared transaction",
   );
-  const id = boundedAuthorityString(value.id, "result apply transaction id", 192);
+  const id = boundedAuthorityString(
+    value.id,
+    "result apply transaction id",
+    192,
+  );
   const checkpointId = boundedAuthorityString(
     value.checkpointId,
     "result apply checkpoint id",
@@ -4807,7 +4821,9 @@ function projectSessionResultApplyReservation(
     eventCount !== settlement.eventCount + 1 ||
     data.applied !== false
   ) {
-    throw new TypeError("session result apply reservation predecessor is invalid");
+    throw new TypeError(
+      "session result apply reservation predecessor is invalid",
+    );
   }
   const material = {
     schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA,
@@ -5017,7 +5033,9 @@ export function readVerifiedSessionExecutionLocationResultApply(
     return {
       accept(event) {
         eventCount += 1;
-        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT) {
+        if (
+          event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT
+        ) {
           const settlement = projectSessionResultCollectionSettlement(
             sessionId,
             event,
@@ -5026,7 +5044,10 @@ export function readVerifiedSessionExecutionLocationResultApply(
           settlements.set(settlement.settlementId, settlement);
           return;
         }
-        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT) {
+        if (
+          event?.type ===
+          SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT
+        ) {
           const settlement = settlements.get(event?.data?.settlementId) || null;
           const reservation = projectSessionResultApplyReservation(
             sessionId,
@@ -5045,7 +5066,9 @@ export function readVerifiedSessionExecutionLocationResultApply(
           reservations.set(reservation.applyId, reservation);
           return;
         }
-        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT) {
+        if (
+          event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT
+        ) {
           const reservation = reservations.get(event?.data?.applyId) || null;
           const terminal = projectSessionResultApplyTerminal(
             sessionId,
@@ -5103,7 +5126,11 @@ export function reserveSessionExecutionLocationResultApply(
     if (prior.reservation.reservationId !== data.reservationId) {
       throw new Error("result apply id is already bound to different inputs");
     }
-    return Object.freeze({ ...prior, reservationAppended: false, recovered: true });
+    return Object.freeze({
+      ...prior,
+      reservationAppended: false,
+      recovered: true,
+    });
   }
   appendAuthorityEventIfHead(
     sessionId,
@@ -5113,7 +5140,11 @@ export function reserveSessionExecutionLocationResultApply(
   );
   runSessionScaleFaultHook(
     "afterResultApplyReservationAppend",
-    Object.freeze({ sessionId, applyId: data.applyId, reservationId: data.reservationId }),
+    Object.freeze({
+      sessionId,
+      applyId: data.applyId,
+      reservationId: data.reservationId,
+    }),
   );
   const receipt = readVerifiedSessionExecutionLocationResultApply(
     sessionId,
@@ -5125,7 +5156,11 @@ export function reserveSessionExecutionLocationResultApply(
   ) {
     throw new Error("result apply reservation is not canonical");
   }
-  return Object.freeze({ ...receipt, reservationAppended: true, recovered: false });
+  return Object.freeze({
+    ...receipt,
+    reservationAppended: true,
+    recovered: false,
+  });
 }
 
 export function settleSessionExecutionLocationResultApply(
@@ -5135,13 +5170,15 @@ export function settleSessionExecutionLocationResultApply(
   transaction,
 ) {
   const applyId = normalizeSessionResultApplyId(applyIdInput);
-  const prior = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  const prior = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    applyId,
+  );
   if (prior === null) {
     throw new Error("result apply reservation was not found");
   }
-  const normalizedTransaction = normalizeSessionResultApplyTerminalTransaction(
-    transaction,
-  );
+  const normalizedTransaction =
+    normalizeSessionResultApplyTerminalTransaction(transaction);
   if (prior.terminal !== null) {
     if (
       prior.status !== outcome ||
@@ -5150,7 +5187,11 @@ export function settleSessionExecutionLocationResultApply(
     ) {
       throw new Error("result apply is already settled differently");
     }
-    return Object.freeze({ ...prior, terminalAppended: false, recovered: true });
+    return Object.freeze({
+      ...prior,
+      terminalAppended: false,
+      recovered: true,
+    });
   }
   const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
   const reservation = Object.freeze({
@@ -5189,17 +5230,28 @@ export function settleSessionExecutionLocationResultApply(
     ) {
       throw error;
     }
-    return Object.freeze({ ...raced, terminalAppended: false, recovered: true });
+    return Object.freeze({
+      ...raced,
+      terminalAppended: false,
+      recovered: true,
+    });
   }
   runSessionScaleFaultHook(
     "afterResultApplyTerminalAppend",
     Object.freeze({ sessionId, applyId, terminalId: data.terminalId }),
   );
-  const receipt = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  const receipt = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    applyId,
+  );
   if (receipt?.terminal?.terminalId !== data.terminalId) {
     throw new Error("result apply terminal is not canonical");
   }
-  return Object.freeze({ ...receipt, terminalAppended: true, recovered: false });
+  return Object.freeze({
+    ...receipt,
+    terminalAppended: true,
+    recovered: false,
+  });
 }
 
 /**

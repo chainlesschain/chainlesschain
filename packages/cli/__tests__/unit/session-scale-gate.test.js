@@ -4,7 +4,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { resolveSessionScaleProfile } from "../../scripts/session-scale-gate.mjs";
+import {
+  concurrencyWriterTimeoutMs,
+  resolveSessionScaleProfile,
+} from "../../scripts/session-scale-gate.mjs";
 
 const REPOSITORY_ROOT = resolve(
   fileURLToPath(new URL("../../../../", import.meta.url)),
@@ -80,6 +83,11 @@ afterEach(() => {
 });
 
 describe("cli-session-scale gate", () => {
+  it("keeps the full Windows writer matrix under a bounded larger watchdog", () => {
+    expect(concurrencyWriterTimeoutMs("win32")).toBe(60 * 60_000);
+    expect(concurrencyWriterTimeoutMs("linux")).toBe(30 * 60_000);
+  });
+
   it("runs bounded smoke through the production store and emits evidence", async () => {
     const output = join(temporaryDirectory(), "result.json");
     await runGate(output);
