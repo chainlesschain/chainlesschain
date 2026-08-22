@@ -682,6 +682,7 @@ describe("execution location target launch and resume", () => {
       shell: false,
       input: TRANSCRIPT_BYTES,
       stdio: ["pipe", "pipe", "pipe"],
+      timeout: 120_000,
     });
     expect(spawnSync.mock.calls[2][1]).toEqual(
       expect.arrayContaining([

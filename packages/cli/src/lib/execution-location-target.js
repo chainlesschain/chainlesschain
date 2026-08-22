@@ -53,6 +53,9 @@ const COMMIT_RE = /^[a-f0-9]{40,64}$/u;
 const MAX_PROFILE_BYTES = 1024 * 1024;
 const MAX_PROBE_BYTES = 1024 * 1024;
 const MAX_REPLICA_BYTES = 64 * 1024 * 1024;
+const DEFAULT_TARGET_COMMAND_TIMEOUT_MS = 30_000;
+const MAX_TARGET_COMMAND_TIMEOUT_MS = 120_000;
+const REPLICA_TRANSFER_TIMEOUT_MS = MAX_TARGET_COMMAND_TIMEOUT_MS;
 const MAX_PROXY_AUTHORITY_AGE_MS = 5 * 60 * 1000;
 const LOCAL_TARGET_SUPERVISOR = fileURLToPath(
   new URL("./execution-location-local-supervisor.mjs", import.meta.url),
@@ -834,13 +837,23 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     ) {
       throw new Error("target command output boundary is invalid");
     }
+    const timeoutMs = Number(
+      options.timeoutMs ?? DEFAULT_TARGET_COMMAND_TIMEOUT_MS,
+    );
+    if (
+      !Number.isSafeInteger(timeoutMs) ||
+      timeoutMs < 1 ||
+      timeoutMs > MAX_TARGET_COMMAND_TIMEOUT_MS
+    ) {
+      throw new Error("target command timeout boundary is invalid");
+    }
     const result = spawnSync(invocation.file, invocation.args, {
       origin: "execution-location:target",
       scope: "execution-location",
       policy: "allow",
       shell: false,
       encoding: "utf8",
-      timeout: options.interactive ? undefined : 30000,
+      timeout: options.interactive ? undefined : timeoutMs,
       maxBuffer: options.interactive ? undefined : maxBuffer,
       ...(options.input == null ? {} : { input: options.input }),
       stdio: options.interactive
@@ -1366,7 +1379,7 @@ function transferTargetSessionStore(
       "--json",
     ],
     deps,
-    { input: transcriptBytes },
+    { input: transcriptBytes, timeoutMs: REPLICA_TRANSFER_TIMEOUT_MS },
   );
   const receipt = parseTargetProjection(
     raw,
