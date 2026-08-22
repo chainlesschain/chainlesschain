@@ -539,6 +539,7 @@ describe("SESSION-RUNTIME canonical evidence", () => {
     const dependencies = {
       currentHead: () => HEAD_SHA,
       producerState: { exact: true, producerDigests: PRODUCER_DIGESTS },
+      currentEnvironment: {},
     };
     const aggregate = verifyEvidenceSet(
       {
