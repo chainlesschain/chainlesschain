@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.63] - Marketplace Overview refresh (2026-08-22)
+
+- Refresh the packaged Open VSX Overview so its current-release table, CLI
+  pairing, install example, immutable tag link, and verification command all
+  describe this release and the public `chainlesschain@0.165.6` CLI.
+- There are no runtime changes from 0.37.62.
+
 ## [0.37.62] - Scalable IDE sessions and evidence (2026-08-21)
 
 - Add durable session groups, keyboard multi-selection and bulk moves, plus a
