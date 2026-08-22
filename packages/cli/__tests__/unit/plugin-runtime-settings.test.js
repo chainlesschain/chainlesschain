@@ -79,7 +79,11 @@ describe("collectPluginSettings", () => {
   it("trust-gates: an untrusted project plugin contributes nothing until trusted", () => {
     installSettingsPlugin("project", "toolkit", { env: { A: "1" } });
     expect(collectPluginSettings({ cwd, scopes: ["project"] }).env).toEqual({});
-    trustPlugin("toolkit", { scope: "project", version: "1.0.0" });
+    trustPlugin("toolkit", {
+      scope: "project",
+      version: "1.0.0",
+      workspaceRoot: cwd,
+    });
     expect(collectPluginSettings({ cwd, scopes: ["project"] }).env).toEqual({
       A: "1",
     });

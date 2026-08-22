@@ -63,7 +63,9 @@ export function ensurePluginLspServers(opts = {}) {
 
   // An LSP server spawns a binary — gate it behind trust. Untrusted project
   // plugins (e.g. from a cloned repo) don't get to launch processes silently.
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: cwd,
+  });
   warnUntrustedOnce(
     skipped
       .filter((p) => (p.manifest?.components?.lsp || []).length > 0)
@@ -95,9 +97,7 @@ export function ensurePluginLspServers(opts = {}) {
           pluginId: p.name,
           pluginVersion: p.version,
           pluginSource: s.absPath || p.manifest.manifestPath,
-          ...(s.sandboxPolicy
-            ? { sandboxPolicy: s.sandboxPolicy }
-            : {}),
+          ...(s.sandboxPolicy ? { sandboxPolicy: s.sandboxPolicy } : {}),
         });
         registered.push({ plugin: p.name, languageId: s.languageId, id: s.id });
       } catch {

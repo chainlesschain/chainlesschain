@@ -169,8 +169,11 @@ function readBoundedText(fsApi, target, label) {
 }
 
 function parseGitDirectory(text, baseDirectory, label) {
-  const match = /^gitdir:\s*(.+?)\s*$/imu.exec(String(text));
-  if (!match || match[1].includes("\0")) {
+  // A worktree .git file is one exact record. Do not search arbitrary
+  // multiline content for a later `gitdir:` line: that would make metadata
+  // parsing depend on attacker-controlled decoration.
+  const match = /^gitdir:[ \t]*(.+?)[ \t]*(?:\r?\n)?$/u.exec(String(text));
+  if (!match || /[\0\r\n]/u.test(match[1])) {
     throw trustError(
       "CC_WORKSPACE_TRUST_GIT_METADATA_INVALID",
       `${label} is not a valid gitdir record`,
@@ -185,7 +188,7 @@ function resolveGitCommonDirectory(fsApi, gitDirectory) {
   if (!commonStat) return gitDirectory;
   const text = readBoundedText(fsApi, commonFile, "Git commondir metadata");
   const relative = String(text).trim();
-  if (!relative || relative.includes("\0")) {
+  if (!relative || /[\0\r\n]/u.test(relative)) {
     throw trustError(
       "CC_WORKSPACE_TRUST_GIT_METADATA_INVALID",
       "Git commondir metadata is invalid",

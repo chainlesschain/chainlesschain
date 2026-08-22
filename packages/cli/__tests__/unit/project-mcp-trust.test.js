@@ -40,18 +40,21 @@ describe("project MCP trust store", () => {
       realLock(target, body, options),
     );
 
-    expect(checkProjectMcpTrust(projectFile, content, { storePath: store }))
-      .toMatchObject({ status: "first-use" });
+    expect(
+      checkProjectMcpTrust(projectFile, content, { storePath: store }),
+    ).toMatchObject({ status: "first-use" });
     expect(
       recordProjectMcpTrust(projectFile, content, {
         storePath: store,
         now: 1_700_000_000_000,
       }),
     ).toBe(true);
-    expect(checkProjectMcpTrust(projectFile, content, { storePath: store }))
-      .toMatchObject({ status: "trusted" });
-    expect(checkProjectMcpTrust(projectFile, `${content} `, { storePath: store }))
-      .toMatchObject({ status: "changed" });
+    expect(
+      checkProjectMcpTrust(projectFile, content, { storePath: store }),
+    ).toMatchObject({ status: "trusted" });
+    expect(
+      checkProjectMcpTrust(projectFile, `${content} `, { storePath: store }),
+    ).toMatchObject({ status: "changed" });
     expect(_deps.withFileLock).toHaveBeenCalledWith(
       store,
       expect.any(Function),

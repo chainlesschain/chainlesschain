@@ -37,7 +37,9 @@ export function collectPluginSettings(opts = {}) {
   } catch {
     return { env: {}, model: null, sources: [] };
   }
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: opts.cwd,
+  });
   warnUntrustedOnce(
     skipped.filter((p) => p.manifest?.components?.settings).map((p) => p.name),
     "settings",

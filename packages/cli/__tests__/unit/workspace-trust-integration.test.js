@@ -56,7 +56,8 @@ function runWriter(workspaceRoot, storePath, subject) {
     child.once("error", reject);
     child.once("exit", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`workspace trust writer exited ${code}: ${stderr}`));
+      else
+        reject(new Error(`workspace trust writer exited ${code}: ${stderr}`));
     });
   });
 }
@@ -68,6 +69,23 @@ afterEach(() => {
 });
 
 describe("workspace trust entry-point migration", () => {
+  it("rejects ambiguous linked-worktree Git metadata before issuing identity", () => {
+    const parent = createTemporaryRoot();
+    const root = path.join(parent, "linked");
+    fs.mkdirSync(root);
+    fs.writeFileSync(
+      path.join(root, ".git"),
+      "comment\ngitdir: ../outside\n",
+      "utf8",
+    );
+
+    expect(() => resolveCanonicalWorkspaceRepoIdentity(root)).toThrow(
+      expect.objectContaining({
+        code: "CC_WORKSPACE_TRUST_GIT_METADATA_INVALID",
+      }),
+    );
+  });
+
   it("keeps project MCP consent on a moved repo and requires re-consent for same-path reuse or a path-keyed legacy grant", () => {
     const parent = createTemporaryRoot();
     const repo = createGitWorkspace(parent, "repo");
@@ -80,7 +98,9 @@ describe("workspace trust entry-point migration", () => {
     // A v0 path-only grant must go through the explicit re-consent flow.
     fs.writeFileSync(
       sourceStore,
-      JSON.stringify({ [config]: { fingerprint: projectMcpFingerprint(contents) } }),
+      JSON.stringify({
+        [config]: { fingerprint: projectMcpFingerprint(contents) },
+      }),
       "utf8",
     );
     expect(
@@ -119,7 +139,10 @@ describe("workspace trust entry-point migration", () => {
         storePath: sourceStore,
         workspaceTrustStorePath: ledgerStore,
       }),
-    ).toMatchObject({ status: "changed", workspaceTrust: { decision: "deny" } });
+    ).toMatchObject({
+      status: "changed",
+      workspaceTrust: { decision: "deny" },
+    });
   });
 
   it("binds project plugin trust to its worktree and requires re-consent after a downgrade or replacement", () => {
@@ -209,7 +232,9 @@ describe("workspace trust entry-point migration", () => {
       decision: "allow",
       workspace_id: expect.stringMatching(/^[a-f0-9]{64}$/),
       repository_id: expect.stringMatching(/^[a-f0-9]{64}$/),
-      evidence: [expect.objectContaining({ source: "hooks", decision: "allow" })],
+      evidence: [
+        expect.objectContaining({ source: "hooks", decision: "allow" }),
+      ],
     });
     expect(JSON.stringify(audit)).not.toContain(repo);
   });
@@ -220,7 +245,9 @@ describe("workspace trust entry-point migration", () => {
     const storePath = path.join(parent, "workspace-trust.json");
     const subjects = ["one", "two", "three", "four"];
 
-    await Promise.all(subjects.map((subject) => runWriter(repo, storePath, subject)));
+    await Promise.all(
+      subjects.map((subject) => runWriter(repo, storePath, subject)),
+    );
 
     for (const subject of subjects) {
       expect(

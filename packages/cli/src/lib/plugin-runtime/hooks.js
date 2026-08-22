@@ -215,7 +215,9 @@ export function collectPluginHooks(opts = {}) {
   }
   // A hook runs a shell command — gate it behind trust so a cloned repo's
   // project plugin can't run commands the moment the agent starts.
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: opts.cwd,
+  });
   warnUntrustedOnce(
     skipped.filter((p) => p.manifest?.components?.hooks).map((p) => p.name),
     "hooks",
