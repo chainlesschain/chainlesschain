@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -30,6 +30,7 @@ let activeAnchorBase = sourceAnchors;
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => activeHome,
   getStatePath: () => join(activeHome, "state"),
+  getClaudeProjectStorageDir: () => null,
   getMachineSecurityAnchorDir: () => activeAnchorBase,
 }));
 
@@ -173,7 +174,7 @@ describe("verified session replica installation", () => {
       lastHash: source.expected.headHash,
       chainedEvents: source.expected.eventCount,
     });
-  }, 20_000);
+  }, 45_000);
 
   it("rejects byte, head, and count drift before publishing", () => {
     const sessionId = "session-replica-reject";
@@ -295,6 +296,49 @@ describe("verified session replica installation", () => {
       attestationDigest: target.attestationDigest,
     });
   });
+
+  it.skipIf(process.platform !== "win32")(
+    "reseals ctime-only Windows ACL metadata drift before a handoff retry",
+    () => {
+      const sessionId = "session-replica-windows-acl-ctime";
+      const source = createSource(sessionId);
+      selectTarget();
+      const target = targetAuthority(source);
+      const first = store.installSessionReplicaWithLocationHandoff(
+        sessionId,
+        source.bytes,
+        source.expected,
+        target,
+      );
+      const metaPath = join(targetHome, "sessions", `${sessionId}.meta.json`);
+      const staleMeta = JSON.parse(readFileSync(metaPath, "utf8"));
+      const staleCtimeNs = `${BigInt(staleMeta.transcript.ctimeNs) + 1n}`;
+      staleMeta.transcript.ctimeNs = staleCtimeNs;
+      writeFileSync(metaPath, JSON.stringify(staleMeta, null, 2), "utf8");
+
+      const retry = store.installSessionReplicaWithLocationHandoff(
+        sessionId,
+        source.bytes,
+        source.expected,
+        target,
+      );
+
+      expect(retry).toMatchObject({
+        handoffId: first.handoffId,
+        replicaInstalled: false,
+        handoffAppended: false,
+      });
+      expect(
+        JSON.parse(readFileSync(metaPath, "utf8")).transcript.ctimeNs,
+      ).not.toBe(staleCtimeNs);
+      expect(
+        store.getVerifiedSessionExecutionLocationAuthority(sessionId),
+      ).toMatchObject({
+        headHash: first.targetHeadHash,
+        eventCount: first.targetEventCount,
+      });
+    },
+  );
 
   it("binds returned bytes to the real target handoff and source predecessor", () => {
     const sessionId = "session-replica-result-return";

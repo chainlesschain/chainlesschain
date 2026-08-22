@@ -873,7 +873,11 @@ function samePhysicalTranscriptState(left, right, { content = true } = {}) {
   );
 }
 
-function samePhysicalTranscriptContentState(left, right) {
+function samePhysicalTranscriptContentState(
+  left,
+  right,
+  { includeCtime = true } = {},
+) {
   if (!left || !right) return left === right;
   const sameField = (exactField, legacyField) => {
     if (left[exactField] != null && right[exactField] != null) {
@@ -884,7 +888,7 @@ function samePhysicalTranscriptContentState(left, right) {
   return (
     sameField("sizeExact", "size") &&
     sameField("mtimeNs", "mtimeMs") &&
-    sameField("ctimeNs", "ctimeMs")
+    (!includeCtime || sameField("ctimeNs", "ctimeMs"))
   );
 }
 
@@ -3735,6 +3739,101 @@ function sessionReplicaReceipt(sessionId, expected, installed) {
   });
 }
 
+/**
+ * Windows ACL enforcement can advance ctime without changing a transcript's
+ * bytes, mtime, or file identity. A target process normally observes that only
+ * after a prior replica install has already sealed the sidecar witness. Before
+ * accepting that narrow drift, re-verify the full hash chain and retain the
+ * independent anti-rollback witness check performed by
+ * assertVerifiedTranscriptAnchor(). Any content, identity, head, or count
+ * mismatch remains fail-closed.
+ *
+ * Callers must already hold the session host writer lock.
+ */
+function resealWindowsAclMetadataWitnessUnlocked(
+  sessionId,
+  sessionsDir,
+  filePath,
+  meta,
+) {
+  if (
+    process.platform !== "win32" ||
+    meta?.deleted === true ||
+    !meta?.transcript
+  ) {
+    return null;
+  }
+
+  let before;
+  try {
+    before = readPhysicalTranscriptState(filePath);
+  } catch {
+    return null;
+  }
+  if (samePhysicalTranscriptState(meta.transcript, before)) {
+    return null;
+  }
+  if (
+    !samePhysicalTranscriptState(meta.transcript, before, {
+      content: false,
+    }) ||
+    !samePhysicalTranscriptContentState(meta.transcript, before, {
+      includeCtime: false,
+    })
+  ) {
+    return null;
+  }
+
+  const verification = verifyTranscriptFile(filePath);
+  const after = readPhysicalTranscriptState(filePath);
+  if (!samePhysicalTranscriptState(before, after)) {
+    throw transcriptIdentityError(
+      "not-committed",
+      "the transcript changed while its ACL metadata drift was verified",
+    );
+  }
+  if (
+    verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+    verification.malformedLines > 0 ||
+    verification.truncatedTail ||
+    verification.lastHash !== meta.last_hash ||
+    verification.chainedEvents !== Number(meta.event_count)
+  ) {
+    return null;
+  }
+
+  const resealed = rebuildSessionMetaUnlocked(sessionsDir, sessionId, filePath);
+  assertVerifiedTranscriptAnchor(sessionId, verification, resealed.transcript);
+  return resealed;
+}
+
+function resealWindowsAclMetadataWitness(sessionId) {
+  if (process.platform !== "win32") return null;
+  const filePath = sessionPath(sessionId);
+  const sessionsDir = getSessionsDir();
+  return withSessionHostWriterLock(
+    sessionId,
+    filePath,
+    () => {
+      const meta = readSessionMeta(sessionsDir, sessionId);
+      return resealWindowsAclMetadataWitnessUnlocked(
+        sessionId,
+        sessionsDir,
+        filePath,
+        meta,
+      );
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
+}
+
 function sessionLocationDigest(domain, value) {
   return `sha256:${createHash("sha256")
     .update(domain, "utf8")
@@ -5139,6 +5238,9 @@ export function installSessionReplica(sessionId, input, expectedInput) {
     sessionsDir,
     `.${basename(filePath)}.replica.pending`,
   );
+  if (getSessionPresence(sessionId) === SESSION_PRESENCE.PRESENT) {
+    resealWindowsAclMetadataWitness(sessionId);
+  }
   return withSessionHostWriterLock(
     sessionId,
     filePath,
@@ -5292,6 +5394,7 @@ export function installSessionReplicaWithLocationHandoff(
   );
 
   if (getSessionPresence(sessionId) === SESSION_PRESENCE.PRESENT) {
+    resealWindowsAclMetadataWitness(sessionId);
     const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
     if (current.locationHandoff !== null) {
       if (current.locationHandoff.handoffId !== handoff.handoffId) {
