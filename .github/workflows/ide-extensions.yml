@@ -225,6 +225,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Install browser evidence verifier dependencies
+        run: >-
+          npm install
+          --no-save --package-lock=false --legacy-peer-deps --ignore-scripts
+          --no-audit --no-fund semver@^7.6.3
       - name: Download exact-run browser evidence producers
         uses: actions/download-artifact@v6
         with:
