@@ -876,13 +876,20 @@ export async function resolveRemoteSource(url, opts = {}) {
           token,
           registryResolutionAuthority: authorized.registryResolutionAuthority,
         });
-  return {
+  const result = {
     ...resolvedSource,
-    entry,
     fromCache,
     documentSha256,
     ...(networkAuthority ? { networkAuthority } : {}),
   };
+  // Command descriptors can contain local paths or credentials. Retain the
+  // exact registry entry for the immediate authorized materialization flow,
+  // but keep it out of generic result serialization/audit output.
+  Object.defineProperty(result, "entry", {
+    value: entry,
+    enumerable: false,
+  });
+  return result;
 }
 
 /** Inspect one selected entry without fetching any candidate source bytes. */
@@ -980,12 +987,23 @@ export async function resolveRegistryEntrySource(url, entry, opts = {}) {
     };
   }
   if (inspected.sourceType === "command") {
-    const command = await runMarketplaceCommandSource(inspected.commandSpec, {
+    const command = await runMarketplaceCommandSource(
+      {
+        executable: inspected.commandSpec.executable,
+        args: inspected.commandSpec.args,
+        cwd: inspected.commandSpec.cwd,
+        env: inspected.commandSpec.env,
+        timeoutMs: inspected.commandSpec.timeoutMs,
+        maxOutputBytes: inspected.commandSpec.maxOutputBytes,
+        mode: inspected.commandSpec.mode,
+      },
+      {
       platform: opts.platform,
       spawn: opts.commandSpawn,
       spawnSync: opts.commandSpawnSync,
       kill: opts.commandKill,
-    });
+      },
+    );
     const materializedAuthority = Object.freeze({});
     registryResolutionAuthorities.set(
       materializedAuthority,

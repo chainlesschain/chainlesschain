@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchAndMaterializeMarketplaceArchive } from "../../src/lib/plugin-runtime/marketplace-archive-source.js";
+import {
+  _marketplaceArchiveTest,
+  fetchAndMaterializeMarketplaceArchive,
+} from "../../src/lib/plugin-runtime/marketplace-archive-source.js";
 import { buildPluginMarketplaceInstallPreflight } from "../../src/lib/plugin-runtime/marketplace-catalog.js";
 import {
   assertMarketplaceSourceExecutable,
@@ -239,6 +242,28 @@ describe("Marketplace HTTPS archive source", () => {
     expect(JSON.stringify(result.authority)).not.toContain("top-secret-token");
   });
 
+  it("adds ephemeral helper headers only to the selected archive origin", async () => {
+    const bytes = pluginArchive();
+    const fetch = vi.fn(async () =>
+      new Response(bytes, {
+        status: 200,
+        headers: { "content-length": String(bytes.length) },
+      }),
+    );
+    await materialize(bytes, {
+      requestHeaders: { "X-Marketplace-Session": "helper-secret" },
+      fetchImpl: fetch,
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://registry.example/archive-plugin.tgz",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Marketplace-Session": "helper-secret",
+        }),
+      }),
+    );
+  });
+
   it("recovers offline from verified bytes and ignores crash temp directories", async () => {
     const bytes = pluginArchive();
     const online = await materialize(bytes);
@@ -305,6 +330,41 @@ describe("Marketplace HTTPS archive source", () => {
     await expect(materialize(metadataFlood)).rejects.toThrow(
       /too many entries/u,
     );
+  });
+
+  it("rejects zip-shaped input, links, duplicate paths, and bounded gzip bombs", async () => {
+    const zipShaped = Buffer.from("PK\x03\x04not-a-tar", "binary");
+    await expect(materialize(zipShaped)).rejects.toThrow(
+      /bounded valid gzip/u,
+    );
+
+    for (const type of ["1", "2"]) {
+      await expect(
+        materialize(pluginArchive([tarEntry(`package/${type}-link`, "", type)])),
+      ).rejects.toThrow(/links, devices, and special entries/u);
+    }
+
+    await expect(
+      materialize(pluginArchive([tarEntry("package/index.js", "duplicate")])),
+    ).rejects.toThrow(/duplicate or case-colliding paths/u);
+    await expect(
+      materialize(
+        pluginArchive([
+          tarEntry("package/Foo.js", "upper"),
+          tarEntry("package/foo.js", "lower"),
+        ]),
+      ),
+    ).rejects.toThrow(/duplicate or case-colliding paths/u);
+
+    const destination = path.join(root, "tiny-expanded-limit");
+    fs.mkdirSync(destination);
+    expect(() =>
+      _marketplaceArchiveTest.extractVerifiedTgz(
+        gzipSync(Buffer.alloc(2 * 1024)),
+        destination,
+        { expandedBytes: 1024, entries: 10 },
+      ),
+    ).toThrow(/bounded valid gzip/u);
   });
 
   it("keeps candidate archive bytes at zero until governance preflight allows them", async () => {
