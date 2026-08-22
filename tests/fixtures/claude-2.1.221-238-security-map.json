@@ -202,7 +202,7 @@
       "testId": "isolates permission authority at the nearest nested repository",
       "producer": {
         "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js",
-        "sha256": "sha256:6effd6e825ad2713186f456f93857a5c5865ab0e10b5f0eec3d0acb49b0fdf49"
+        "sha256": "sha256:6645b4201f6a6fa178d2b838662a1e6bcbbd2cff46b4969402cdae3b51fa8396"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
