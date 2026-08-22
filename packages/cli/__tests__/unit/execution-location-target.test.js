@@ -20,6 +20,7 @@ import {
   normalizeExecutionLocationProfile,
   probeExecutionLocationTargetResourceLimit,
   probeExecutionLocationTargetSigtermDrain,
+  prepareLocalTargetState,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../../src/lib/execution-location-target.js";
@@ -459,6 +460,55 @@ describe("execution location target launch and resume", () => {
     );
     expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
       "2026-08-18T08:00:00.000Z",
+    );
+  });
+
+  it("prepares the fixed Local replica state tree in one Windows ACL batch", () => {
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      cliCommand: join(root, "index.js"),
+      cwd: root,
+      transport: {
+        home: join(root, "target-home"),
+        securityHome: join(root, "target-security"),
+      },
+    });
+    const ensurePrivateDirectory = vi.fn();
+    const repairPrivatePaths = vi.fn();
+    const prepared = prepareLocalTargetState(
+      profile,
+      ["session", "location", "prepare", "session-target-1"],
+      {
+        ensurePrivateDirectory,
+        repairPrivatePaths,
+        platform: "win32",
+      },
+    );
+
+    expect(prepared.stateHome).toBe(
+      join(root, "target-home", ".chainlesschain"),
+    );
+    expect(prepared.directories).toContain(
+      join(
+        prepared.antiRollbackDirectory,
+        "records",
+        createHash("sha256")
+          .update("session-target-1")
+          .digest("hex")
+          .slice(0, 2),
+      ),
+    );
+    expect(ensurePrivateDirectory).toHaveBeenCalledTimes(
+      prepared.directories.length,
+    );
+    expect(ensurePrivateDirectory).toHaveBeenCalledWith(
+      prepared.stateHome,
+      { applyWindowsAcl: false, failIfUnavailable: true },
+    );
+    expect(repairPrivatePaths).toHaveBeenCalledWith(
+      prepared.directories,
+      { platform: "win32" },
     );
   });
 
