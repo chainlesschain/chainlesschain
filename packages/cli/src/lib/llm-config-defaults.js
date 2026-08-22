@@ -104,3 +104,46 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
   backfillApiKey(options, cfgLlm);
   return options;
 }
+
+function optionalModel(value) {
+  if (typeof value !== "string") return null;
+  const model = value.trim();
+  return model || null;
+}
+
+/**
+ * Resolve the model precedence used by `cc agent` without allowing a default
+ * from one source to silently outrank an explicit choice from another:
+ *
+ *   CLI --model > ANTHROPIC_MODEL > settings.model > config/organization model
+ *   > ANTHROPIC_DEFAULT_MODEL (new sessions only) > runtime provider default.
+ *
+ * Environment values are supplied by the caller from the process startup
+ * environment, before settings-file `env` entries are merged. That prevents a
+ * checked-in settings file from impersonating a launcher-level override.
+ */
+export function applyAgentModelDefaults(options = {}, cfgLlm = {}, opts = {}) {
+  const explicitModel = optionalModel(opts.explicitModel);
+  const environmentModel = optionalModel(opts.anthropicModel);
+  const settingsModel = optionalModel(opts.settingsModel);
+  const defaultModel = optionalModel(opts.anthropicDefaultModel);
+
+  if (!explicitModel) {
+    if (environmentModel) {
+      options.model = environmentModel;
+    } else if (settingsModel) {
+      options.model = settingsModel;
+    }
+  }
+
+  applyConfigLlmDefaults(options, cfgLlm, {
+    // Reuse the existing config/provider wiring, but do not let its configured
+    // model overwrite one selected by a higher-priority source above.
+    explicitModel: explicitModel || environmentModel || settingsModel,
+  });
+
+  if (!options.model && opts.isNewSession !== false && defaultModel) {
+    options.model = defaultModel;
+  }
+  return options;
+}

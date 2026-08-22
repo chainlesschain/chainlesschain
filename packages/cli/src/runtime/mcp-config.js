@@ -395,6 +395,13 @@ export function parseMcpServers(raw) {
       ...(Number.isFinite(cfg.maxToolResultNodes)
         ? { maxToolResultNodes: cfg.maxToolResultNodes }
         : {}),
+      ...(Number.isFinite(cfg.toolIdleTimeoutMs)
+        ? { toolIdleTimeoutMs: cfg.toolIdleTimeoutMs }
+        : {}),
+      ...(cfg.discoveryCache === true ||
+      (cfg.discoveryCache && typeof cfg.discoveryCache === "object")
+        ? { discoveryCache: cfg.discoveryCache }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),

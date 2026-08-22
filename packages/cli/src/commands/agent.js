@@ -1051,6 +1051,12 @@ export function registerAgentCommand(program) {
       // block below may default options.model 鈥?so vision input can tell an
       // explicit model from a settings default.
       const explicitCliModel = options.model;
+      // Launcher environment is captured before a settings file can merge its
+      // own `env` map. In particular, a checked-in project settings file must
+      // not manufacture ANTHROPIC_MODEL / CLAUDE_CODE_* launcher authority.
+      const startupAnthropicModel = process.env.ANTHROPIC_MODEL;
+      const startupAnthropicDefaultModel = process.env.ANTHROPIC_DEFAULT_MODEL;
+      let settingsModel = null;
 
       // --settings native config overrides: a .claude/settings.json-shaped file
       // (and the discovered .claude settings) may set `model` + `env` for this
@@ -1080,7 +1086,10 @@ export function registerAgentCommand(program) {
         for (const [k, v] of Object.entries(sc.env || {})) {
           process.env[k] = v;
         }
-        if (!options.model && sc.model) options.model = sc.model;
+        if (!options.model && sc.model) {
+          options.model = sc.model;
+          settingsModel = sc.model;
+        }
         settingsSandbox = sc.sandbox || null;
         managedSettingsSandbox = sc.managedSandbox || null;
       } catch (error) {
@@ -1186,7 +1195,7 @@ export function registerAgentCommand(program) {
       // flags there, and BEFORE every dispatch (headless/stream/REPL) since
       // they all read options.provider/model/baseUrl/apiKey.
       {
-        const { applyConfigLlmDefaults, reconcileConfigLlmProvider } =
+        const { applyAgentModelDefaults, reconcileConfigLlmProvider } =
           await import("../lib/llm-config-defaults.js");
 
         // Self-repair a MISLABELED config (provider disagrees with the provider
@@ -1214,8 +1223,16 @@ export function registerAgentCommand(program) {
           }
         }
 
-        applyConfigLlmDefaults(options, repairedLlm, {
-          explicitModel: explicitCliModel, // settings-file model must not ride
+        applyAgentModelDefaults(options, repairedLlm, {
+          explicitModel: explicitCliModel,
+          anthropicModel: startupAnthropicModel,
+          anthropicDefaultModel: startupAnthropicDefaultModel,
+          settingsModel,
+          // ANTHROPIC_DEFAULT_MODEL is deliberately a new-session fallback;
+          // a resume/continue keeps its recorded model unless a higher source
+          // explicitly replaces it.
+          isNewSession:
+            !options.session && !options.continue && !options.resume,
         });
 
         // Also reconcile the RESOLVED options: the editor panel may have already

@@ -162,4 +162,62 @@ describe("MCPClient discovery retry", () => {
       client.connect("srv", { url: "https://api.example.com/wrong" }),
     ).rejects.toThrow(/HTTP 404.*api\.example\.com\/wrong.*MCP config/s);
   });
+
+  it("uses an opted-in fresh capability cache only after a new initialize handshake", async () => {
+    let toolLists = 0;
+    let initializes = 0;
+    _deps.fetch = async (_url, opts) => {
+      const message = JSON.parse(opts.body);
+      if (message.id === undefined) return jsonResponse(undefined, {});
+      if (message.method === "initialize") initializes += 1;
+      if (message.method === "tools/list") toolLists += 1;
+      return jsonResponse(message.id, handshakeResult(message.method));
+    };
+    const config = {
+      url: "https://api.example.com/mcp",
+      discoveryCache: { ttlMs: 60_000, maxStaleMs: 120_000, maxStrikes: 1 },
+    };
+
+    await client.connect("srv", config);
+    await client.disconnect("srv");
+    const second = await client.connect("srv", config);
+
+    expect(initializes).toBe(2);
+    expect(toolLists).toBe(1);
+    expect(second.tools).toEqual([{ name: "t1" }]);
+    expect(client.listServers()[0].toolsError).toBeNull();
+  });
+
+  it("uses bounded stale discovery only for transient tool discovery failures", async () => {
+    let failTools = false;
+    _deps.fetch = async (_url, opts) => {
+      const message = JSON.parse(opts.body);
+      if (message.id === undefined) return jsonResponse(undefined, {});
+      if (message.method === "tools/list" && failTools) {
+        throw new Error("fetch failed");
+      }
+      return jsonResponse(message.id, handshakeResult(message.method));
+    };
+    const config = {
+      url: "https://api.example.com/mcp",
+      discoveryCache: { ttlMs: 1, maxStaleMs: 60_000, maxStrikes: 1 },
+    };
+
+    await client.connect("srv", config);
+    await client.disconnect("srv");
+    const cached = [...client._discoveryCache.values()][0];
+    cached.savedAt = Date.now() - 2;
+    failTools = true;
+
+    const stale = await client.connect("srv", config);
+    expect(stale.tools).toEqual([{ name: "t1" }]);
+    expect(
+      client._discoveryCache.get([...client._discoveryCache.keys()][0]).strikes,
+    ).toBe(1);
+
+    await client.disconnect("srv");
+    const exhausted = await client.connect("srv", config);
+    expect(exhausted.tools).toEqual([]);
+    expect(exhausted.toolsError).toMatch(/fetch failed/);
+  });
 });

@@ -13,12 +13,19 @@ import { loadProjectMcp } from "../../src/runtime/mcp-config.js";
 
 let dir;
 let store;
+let workspaceTrustStore;
+let projectFile;
 let originalDeps;
+const content = '{"mcpServers":{"one":{"command":"node"}}}';
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-project-mcp-trust-"));
   store = path.join(dir, "trust.json");
+  workspaceTrustStore = path.join(dir, "workspace-trust.json");
+  projectFile = path.join(dir, ".mcp.json");
+  fs.writeFileSync(projectFile, content, "utf8");
   originalDeps = { ..._deps };
+  _deps.workspaceTrustStorePath = () => workspaceTrustStore;
 });
 
 afterEach(() => {
@@ -27,9 +34,6 @@ afterEach(() => {
 });
 
 describe("project MCP trust store", () => {
-  const projectFile = "C:/repo/.mcp.json";
-  const content = '{"mcpServers":{"one":{"command":"node"}}}';
-
   it("round-trips a fingerprint under a fail-closed lock", () => {
     const realLock = _deps.withFileLock;
     _deps.withFileLock = vi.fn((target, body, options) =>

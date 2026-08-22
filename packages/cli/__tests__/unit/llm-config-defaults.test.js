@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  applyAgentModelDefaults,
   applyConfigLlmDefaults,
   reconcileConfigLlmProvider,
 } from "../../src/lib/llm-config-defaults.js";
@@ -74,6 +75,58 @@ describe("applyConfigLlmDefaults", () => {
     expect(applyConfigLlmDefaults({ model: "m" }, { model: "x" })).toEqual({
       model: "m",
     });
+  });
+});
+
+describe("applyAgentModelDefaults", () => {
+  it("enforces CLI > ANTHROPIC_MODEL > settings > config model", () => {
+    const cli = applyAgentModelDefaults({ model: "cli-model" }, CFG, {
+      explicitModel: "cli-model",
+      anthropicModel: "env-model",
+      settingsModel: "settings-model",
+    });
+    expect(cli.model).toBe("cli-model");
+
+    const environment = applyAgentModelDefaults({}, CFG, {
+      anthropicModel: " env-model ",
+      settingsModel: "settings-model",
+    });
+    expect(environment.provider).toBe("volcengine");
+    expect(environment.model).toBe("env-model");
+
+    const settings = applyAgentModelDefaults({}, CFG, {
+      settingsModel: "settings-model",
+    });
+    expect(settings.model).toBe("settings-model");
+
+    expect(applyAgentModelDefaults({}, CFG).model).toBe(CFG.model);
+  });
+
+  it("uses ANTHROPIC_DEFAULT_MODEL only for a new session with no higher default", () => {
+    expect(
+      applyAgentModelDefaults(
+        {},
+        {},
+        {
+          anthropicDefaultModel: " default-model ",
+        },
+      ).model,
+    ).toBe("default-model");
+    expect(
+      applyAgentModelDefaults(
+        {},
+        {},
+        {
+          anthropicDefaultModel: "default-model",
+          isNewSession: false,
+        },
+      ).model,
+    ).toBeUndefined();
+    expect(
+      applyAgentModelDefaults({}, CFG, {
+        anthropicDefaultModel: "default-model",
+      }).model,
+    ).toBe(CFG.model);
   });
 });
 
