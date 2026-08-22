@@ -37,6 +37,8 @@ export const BROWSER_EVIDENCE_JOURNEY_SUMMARY_SCHEMA =
   "chainlesschain.browser-evidence-journey-summary.v2";
 export const BROWSER_EVIDENCE_PROFILE_VERSION =
   "browser-evidence-local-two-origin-v1";
+export const BROWSER_EVIDENCE_TEMP_ROOT_CLEANUP_ATTEMPTS = 60;
+export const BROWSER_EVIDENCE_TEMP_ROOT_CLEANUP_DELAY_MS = 250;
 export const BROWSER_EVIDENCE_PRODUCER_PATHS = Object.freeze([
   BROWSER_EVIDENCE_WORKFLOW_PATH,
   "package-lock.json",
@@ -205,6 +207,45 @@ function browserEvidenceArtifactName(osName, headSha, runAttempt) {
     );
   }
   return `browser-evidence-${osName}-${headSha}-${runAttempt}`;
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+export async function removeBrowserEvidenceTemporaryRoot(
+  temporaryRoot,
+  dependencies = {},
+) {
+  const removeTree = dependencies.removeTree || fs.promises.rm;
+  const pause = dependencies.sleep || sleep;
+  let lastError;
+
+  for (
+    let attempt = 1;
+    attempt <= BROWSER_EVIDENCE_TEMP_ROOT_CLEANUP_ATTEMPTS;
+    attempt += 1
+  ) {
+    try {
+      await removeTree(temporaryRoot, {
+        recursive: true,
+        force: true,
+        maxRetries: 0,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (
+        !["EBUSY", "ENOTEMPTY", "EPERM"].includes(error?.code) ||
+        attempt === BROWSER_EVIDENCE_TEMP_ROOT_CLEANUP_ATTEMPTS
+      ) {
+        throw error;
+      }
+      await pause(BROWSER_EVIDENCE_TEMP_ROOT_CLEANUP_DELAY_MS);
+    }
+  }
+
+  throw lastError;
 }
 
 function workflowProvenance(
@@ -994,12 +1035,7 @@ export async function runBrowserEvidenceJourney(options) {
     } else {
       process.env.CC_BROWSER_ACTIONS_DIR = previousActionsDir;
     }
-    fs.rmSync(temporaryRoot, {
-      recursive: true,
-      force: true,
-      maxRetries: 10,
-      retryDelay: 100,
-    });
+    await removeBrowserEvidenceTemporaryRoot(temporaryRoot);
   }
 }
 

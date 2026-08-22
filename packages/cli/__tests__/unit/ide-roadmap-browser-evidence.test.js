@@ -7,6 +7,7 @@ import {
   BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
   browserEvidenceArtifactName,
   parseArgs as parseProducerArgs,
+  removeBrowserEvidenceTemporaryRoot,
   scanArtifactJson,
   workflowProvenance,
 } from "../../scripts/ide-roadmap-browser-evidence.mjs";
@@ -169,6 +170,33 @@ describe("browser evidence producer arguments and secret gate", () => {
     expect(() => browserEvidenceArtifactName("linux", HEAD_SHA, "0")).toThrow(
       /positive run attempt/u,
     );
+  });
+
+  it("retries a Chrome profile cleanup race without hiding other failures", async () => {
+    let attempts = 0;
+    const pauses = [];
+    await removeBrowserEvidenceTemporaryRoot("/tmp/browser-profile", {
+      removeTree: async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          const error = new Error("Chrome is still flushing its profile");
+          error.code = "ENOTEMPTY";
+          throw error;
+        }
+      },
+      sleep: async (milliseconds) => pauses.push(milliseconds),
+    });
+    expect(attempts).toBe(3);
+    expect(pauses).toEqual([250, 250]);
+    await expect(
+      removeBrowserEvidenceTemporaryRoot("/tmp/browser-profile", {
+        removeTree: async () => {
+          const error = new Error("unexpected cleanup failure");
+          error.code = "EACCES";
+          throw error;
+        },
+      }),
+    ).rejects.toThrow(/unexpected cleanup failure/u);
   });
 
   it("passes workflow SHA and exact artifact identity in Actions", () => {
