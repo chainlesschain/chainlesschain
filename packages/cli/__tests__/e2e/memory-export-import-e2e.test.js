@@ -21,7 +21,10 @@ function cc(home, args) {
 
 /** Pull the JSON payload out of stdout (last line that parses as JSON). */
 function jsonFromStdout(stdout) {
-  const lines = (stdout || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = (stdout || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
   for (let i = lines.length - 1; i >= 0; i -= 1) {
     if (lines[i].startsWith("[") || lines[i].startsWith("{")) {
       try {
@@ -58,11 +61,15 @@ describe("cc memory export/import — e2e", () => {
     fs.writeFileSync(file, JSON.stringify(entries), "utf-8");
 
     const imp = cc(b, ["memory", "import", "--input", file, "--json"]);
-    expect(imp.status).toBe(0);
+    expect(imp.status, `stdout: ${imp.stdout}\nstderr: ${imp.stderr}`).toBe(0);
     expect(jsonFromStdout(imp.stdout).imported).toBeGreaterThanOrEqual(1);
 
     const expB = cc(b, ["memory", "export", "--json"]);
-    expect(jsonFromStdout(expB.stdout).some((e) => String(e.content).includes("妈妈"))).toBe(true);
+    expect(
+      jsonFromStdout(expB.stdout).some((e) =>
+        String(e.content).includes("妈妈"),
+      ),
+    ).toBe(true);
   });
 
   it("cc instinct export on an empty home yields []", () => {

@@ -40,16 +40,18 @@ export const CLI_BIN = join(
  * module scope; register `cleanup()` in afterAll.
  *
  * @param {string} label  short slug for the temp-dir name
- * @returns {{ home: string, configHome: string, workspace: string,
+ * @returns {{ home: string, configHome: string, userHome: string, workspace: string,
  *             env: (extra?: object) => object,
  *             writeScript: (body: string) => string, cleanup: () => void }}
  */
 export function testHome(label = "e2e") {
   const root = mkdtempSync(join(tmpdir(), `cc-${label}-`));
   const configHome = join(root, "config");
+  const userHome = join(root, "user-home");
   const securityAnchorHome = join(root, "security-anchors");
   const workspace = join(root, "workspace");
   mkdirSync(configHome, { recursive: true });
+  mkdirSync(userHome, { recursive: true });
   mkdirSync(securityAnchorHome, { recursive: true });
   mkdirSync(workspace, { recursive: true });
   return {
@@ -59,16 +61,17 @@ export function testHome(label = "e2e") {
     // permission repair must never target the user's working tree.
     home: configHome,
     configHome,
+    userHome,
     workspace,
     // CHAINLESSCHAIN_HOME is what getUserDataPath() honors first → isolates the
-    // bootstrap DB. HOME/USERPROFILE are set too for any path that still reads
-    // them, but they do NOT redirect the DB on Windows on their own.
+    // bootstrap DB. Keep the simulated account home distinct from configHome:
+    // secure-fs correctly refuses owner-only permission repair on a home root.
     env: (extra = {}) => ({
       ...process.env,
       CHAINLESSCHAIN_HOME: configHome,
       CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: securityAnchorHome,
-      HOME: configHome,
-      USERPROFILE: configHome,
+      HOME: userHome,
+      USERPROFILE: userHome,
       ...extra,
     }),
     // A throwaway .js script, run as `node <path>`. Use instead of inline

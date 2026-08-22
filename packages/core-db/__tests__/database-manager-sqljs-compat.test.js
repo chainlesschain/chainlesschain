@@ -85,9 +85,7 @@ describe("createSqlJsCompat — better-sqlite3 API shim over sql.js", () => {
     expect(r1.lastInsertRowid).toBe(1);
 
     compat.prepare("INSERT INTO t (v) VALUES (?)").run("second");
-    const r3 = compat
-      .prepare("UPDATE t SET v = ? WHERE id > 0")
-      .run("updated");
+    const r3 = compat.prepare("UPDATE t SET v = ? WHERE id > 0").run("updated");
     expect(r3.changes).toBe(2);
   });
 
@@ -109,6 +107,21 @@ describe("createSqlJsCompat — better-sqlite3 API shim over sql.js", () => {
     expect(
       compat.prepare("SELECT v FROM t WHERE id = :id").all({ ":id": 1 }),
     ).toEqual([{ v: "x" }]);
+  });
+
+  it("maps bare object keys to SQLite named parameters", () => {
+    compat.exec(
+      "CREATE TABLE named_values (id INTEGER PRIMARY KEY, v TEXT NOT NULL)",
+    );
+    compat
+      .prepare("INSERT INTO named_values (id, v) VALUES (@id, @value)")
+      .run({ id: 1, value: "fallback" });
+
+    expect(
+      compat
+        .prepare("SELECT v FROM named_values WHERE id = @id")
+        .get({ id: 1 }),
+    ).toEqual({ v: "fallback" });
   });
 
   it("transaction commits on success", () => {
@@ -150,7 +163,12 @@ describe("createSqlJsCompat — better-sqlite3 API shim over sql.js", () => {
       inner(); // would throw "transaction within a transaction" if not flattened
     });
     expect(() => outer()).not.toThrow();
-    expect(compat.prepare("SELECT v FROM t ORDER BY v").all().map((r) => r.v)).toEqual([1, 2]);
+    expect(
+      compat
+        .prepare("SELECT v FROM t ORDER BY v")
+        .all()
+        .map((r) => r.v),
+    ).toEqual([1, 2]);
   });
 
   it("a throw in a nested transaction rolls back the whole outer transaction", () => {
