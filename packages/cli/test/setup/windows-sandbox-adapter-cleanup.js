@@ -1,4 +1,4 @@
-import { afterAll } from "vitest";
+import { afterAll, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -11,6 +11,15 @@ const isolatedPluginTransactionHome = previousPluginTransactionHome
 if (isolatedPluginTransactionHome) {
   process.env.CC_PLUGIN_TRANSACTION_HOME = isolatedPluginTransactionHome;
 }
+
+// A number of command-surface tests intentionally exercise non-zero CLI
+// outcomes in-process.  `process.exitCode` belongs to the worker rather than
+// the individual test, so a test that does not restore it can make Vitest
+// itself exit non-zero after every assertion has passed.  Keep that process
+// state isolated just like the temporary plugin transaction home below.
+afterEach(() => {
+  process.exitCode = undefined;
+});
 
 afterAll(() => {
   if (!isolatedPluginTransactionHome) return;
