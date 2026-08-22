@@ -29,6 +29,10 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
         pdh: true,
         outputStyle: "concise",
         settingsFile: "run-settings.json",
+        claudeStorageLaunchEnv: {
+          CLAUDE_CONFIG_DIR: "/secure/claude",
+          CLAUDE_CODE_PROJECT_DIR_NAME: "repo-main",
+        },
         disableSlashCommands: true,
         remoteControl: true,
         remoteControlAllowLan: true,
@@ -47,6 +51,11 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.pdh).toBe(true);
     expect(policy.outputStyle).toBe("concise");
     expect(policy.settingsFile).toBe("run-settings.json");
+    expect(policy.claudeStorageLaunchEnv).toEqual({
+      CLAUDE_CONFIG_DIR: "/secure/claude",
+      CLAUDE_CODE_PROJECT_DIR_NAME: "repo-main",
+    });
+    expect(Object.isFrozen(policy.claudeStorageLaunchEnv)).toBe(true);
     expect(policy.disableSlashCommands).toBe(true);
     expect(policy.remoteControl).toBe(true);
     expect(policy.remoteControlAllowLan).toBe(true);
@@ -69,6 +78,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.pdh).toBeUndefined();
     expect(policy.outputStyle).toBeUndefined();
     expect(policy.settingsFile).toBeNull();
+    expect(policy.claudeStorageLaunchEnv).toBeNull();
     // boolean-normalized (not tri-state): absent → false
     expect(policy.disableSlashCommands).toBe(false);
     expect(policy.remoteControl).toBe(false);
@@ -84,5 +94,9 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(agentCommandSource).toContain(
       "settingsFile: options.settings || null",
     );
+    expect(agentCommandSource).toContain(
+      "restoreClaudeStorageLaunchEnvironment(claudeStorageLaunchEnv)",
+    );
+    expect(agentCommandSource).toContain("claudeStorageLaunchEnv,");
   });
 });

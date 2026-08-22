@@ -25,6 +25,7 @@ import { join, basename, dirname, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { getHomeDir } from "../lib/paths.js";
+import { resolveClaudeProjectStorageDir } from "../lib/claude-project-storage-layout.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import {
   isAffectedWindowsZeroDeviceStatRuntime,
@@ -678,7 +679,9 @@ function fsyncParentDirectory(filePath, payload, beforeHook, afterHook) {
 }
 
 function getSessionsDir() {
-  const dir = join(getHomeDir(), "sessions");
+  const homeDir = getHomeDir();
+  const claudeProjectDir = resolveClaudeProjectStorageDir(homeDir);
+  const dir = claudeProjectDir || join(homeDir, "sessions");
   let current = null;
   try {
     current = lstatSync(dir);
@@ -697,7 +700,27 @@ function getSessionsDir() {
     currentIdentity !== securedSessionsDirIdentity ||
     unsafePosixMode
   ) {
-    ensurePrivateDirectory(dir);
+    // A Claude-compatible project transcript is intentionally stored directly
+    // under `<CLAUDE_CONFIG_DIR>/projects/<safe-name>`, not beside the native
+    // global store. Secure every newly introduced parent before creating the
+    // transcript directory so a custom config root cannot leave project names
+    // or session metadata exposed through a broad recursive parent.
+    if (claudeProjectDir) {
+      ensurePrivateDirectory(homeDir, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
+      ensurePrivateDirectory(join(homeDir, "projects"), {
+        applyWindowsAcl: false,
+      });
+    }
+    ensurePrivateDirectory(dir, {
+      // A project directory just inherited the verified private config-root
+      // ACL. Avoid a second expensive Windows ACL process at every first
+      // transcript while preserving the native root's owner-only boundary.
+      applyWindowsAcl: !claudeProjectDir,
+      failIfUnavailable: Boolean(claudeProjectDir),
+    });
     securedSessionsDir = dir;
     const secured = lstatSync(dir);
     securedSessionsDirIdentity = `${secured.dev}:${secured.ino}`;

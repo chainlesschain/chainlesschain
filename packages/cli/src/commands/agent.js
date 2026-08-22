@@ -30,6 +30,11 @@ import {
   transformBackgroundLaunchArgv,
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
+import {
+  captureClaudeStorageLaunchEnvironment,
+  restoreClaudeStorageLaunchEnvironment,
+  validateClaudeStorageLaunchEnvironment,
+} from "../lib/claude-project-auto-memory.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -624,6 +629,20 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      // These variables select canonical config/session storage. Capture and
+      // validate them before any project settings file can merge an arbitrary
+      // `env` map; settings remain useful for child tools but never acquire
+      // launcher authority over transcript or automatic-memory placement.
+      const claudeStorageLaunchEnv = captureClaudeStorageLaunchEnvironment();
+      try {
+        validateClaudeStorageLaunchEnvironment(claudeStorageLaunchEnv, {
+          cwd: process.cwd(),
+        });
+      } catch (error) {
+        process.stderr.write(`Error: ${error.message}\n`);
+        process.exitCode = 1;
+        return;
+      }
       // Scope is immutable session authority. Resolve every scope/fork
       // conflict before worktree creation, session forking, bootstrap, or any
       // other externally visible setup performed by this action.
@@ -1100,6 +1119,8 @@ export function registerAgentCommand(program) {
         }
         // User/project settings overrides remain best-effort. Organization
         // managed settings are handled above and may never fail open.
+      } finally {
+        restoreClaudeStorageLaunchEnvironment(claudeStorageLaunchEnv);
       }
 
       let resolvedAgentSandbox;
@@ -1414,6 +1435,7 @@ export function registerAgentCommand(program) {
             // into the system prompt, and a per-turn `structured_result` event is
             // appended after each turn (parity with single-prompt --json-schema).
             jsonSchema: options.jsonSchema || null,
+            claudeStorageLaunchEnv,
           });
         } catch (err) {
           process.stderr.write(
@@ -1714,6 +1736,7 @@ export function registerAgentCommand(program) {
             : undefined,
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
+          claudeStorageLaunchEnv,
         };
 
         // --json-schema: structured output. Accepts a file path OR inline JSON.
@@ -1879,6 +1902,7 @@ export function registerAgentCommand(program) {
         observabilityScope: hasObservabilityScope
           ? observabilityScope
           : undefined,
+        claudeStorageLaunchEnv,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

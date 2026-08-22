@@ -119,6 +119,7 @@ import {
 } from "../lib/task-model-selector.js";
 import { runnableTaskModel, hasUsableKey } from "../lib/runnable-provider.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
+import { resolveClaudeProjectAutoMemory } from "../lib/claude-project-auto-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import {
   estimateMessagesTokens,
@@ -2845,6 +2846,22 @@ export function startReplJsonlSession(
   }
 }
 
+/**
+ * Resolve the automatic-memory location at the same lifecycle boundary that
+ * opens the durable REPL session. This is intentionally exported as a narrow
+ * test seam; startAgentReplInWorkspaceOwned consumes it below rather than
+ * letting a standalone helper drift away from real session behavior.
+ */
+export function resolveReplAutomaticMemoryPlan(
+  options = {},
+  cwd = process.cwd(),
+) {
+  return resolveClaudeProjectAutoMemory({
+    cwd,
+    launchEnv: options.claudeStorageLaunchEnv || undefined,
+  });
+}
+
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
   const sessionHostLeaseScope = { lease: null };
@@ -3344,10 +3361,23 @@ async function startAgentReplInWorkspaceOwned(
   // Initialize permanent memory
   let permanentMemory = null;
   try {
-    const dataDir = process.env.CHAINLESSCHAIN_DATA_DIR || process.cwd();
-    const memoryDir = path.join(dataDir, "memory");
-    permanentMemory = new CLIPermanentMemory({ db, memoryDir });
-    permanentMemory.initialize();
+    const automaticMemory = resolveReplAutomaticMemoryPlan(
+      options,
+      process.cwd(),
+    );
+    if (automaticMemory.enabled) {
+      // Legacy sessions preserve their historical CHAINLESSCHAIN_DATA_DIR/cwd
+      // memory location. Claude-compatible project storage is never allowed
+      // to fall back there: an unavailable identity or unsafe custom setting
+      // disables automatic memory rather than writing into the worktree.
+      const dataDir = process.env.CHAINLESSCHAIN_DATA_DIR || process.cwd();
+      const memoryDir =
+        automaticMemory.mode === "project"
+          ? automaticMemory.memoryDir
+          : path.join(dataDir, "memory");
+      permanentMemory = new CLIPermanentMemory({ db, memoryDir });
+      permanentMemory.initialize();
+    }
   } catch (_err) {
     // Non-critical
   }

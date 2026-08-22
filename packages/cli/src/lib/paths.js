@@ -1,49 +1,130 @@
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { CONFIG_DIR_NAME } from "../constants.js";
 import { getPlatform } from "./platform.js";
+import {
+  CLAUDE_CONFIG_DIR_ENV,
+  resolveClaudeProjectStorageDir,
+  usesClaudeConfigDirectory,
+} from "./claude-project-storage-layout.js";
 import {
   assertSafeOwnerOnlyPath,
   ensurePrivateDirectory,
   repairPrivatePaths,
 } from "./secure-fs.js";
 
-export function getHomeDir() {
-  const configured = process.env.CHAINLESSCHAIN_HOME;
-  if (configured) {
-    const windowsLiteral = configured.replaceAll("/", "\\");
-    if (
-      windowsLiteral.startsWith("\\\\?\\") ||
-      windowsLiteral.startsWith("\\\\.\\")
-    ) {
-      const error = new Error(
-        "CHAINLESSCHAIN_HOME must not use a Windows device namespace",
-      );
-      error.code = "CONFIG_HOME_UNSAFE";
-      throw error;
-    }
-    if (!isAbsolute(configured)) {
-      const error = new Error(
-        "CHAINLESSCHAIN_HOME must be an absolute path for owner-only storage",
-      );
-      error.code = "CONFIG_HOME_UNSAFE";
-      throw error;
-    }
-    const resolvedHome = resolve(configured);
-    const relativeCwd = relative(resolvedHome, resolve(process.cwd()));
-    if (
-      relativeCwd === "" ||
-      (!relativeCwd.startsWith("..") && !isAbsolute(relativeCwd))
-    ) {
-      const error = new Error(
-        "CHAINLESSCHAIN_HOME must not be the current working directory or one of its ancestors",
-      );
-      error.code = "CONFIG_HOME_UNSAFE";
-      throw error;
-    }
-    return configured;
+function pathContains(parent, candidate) {
+  const relation = relative(parent, candidate);
+  return (
+    relation === "" ||
+    (!relation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) &&
+      relation !== ".." &&
+      !isAbsolute(relation))
+  );
+}
+
+function nearestGitWorktreeRoot(cwd) {
+  let current = resolve(cwd);
+  for (;;) {
+    if (existsSync(join(current, ".git"))) return current;
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
   }
-  return join(homedir(), CONFIG_DIR_NAME);
+}
+
+function configHomeError(message) {
+  const error = new Error(message);
+  error.code = "CONFIG_HOME_UNSAFE";
+  return error;
+}
+
+function resolveConfiguredHome(configured, variableName, cwd) {
+  const windowsLiteral = configured.replaceAll("/", "\\");
+  if (
+    windowsLiteral.startsWith("\\\\?\\") ||
+    windowsLiteral.startsWith("\\\\.\\")
+  ) {
+    throw configHomeError(
+      `${variableName} must not use a Windows device namespace`,
+    );
+  }
+  if (!isAbsolute(configured)) {
+    throw configHomeError(
+      `${variableName} must be an absolute path for owner-only storage`,
+    );
+  }
+  const resolvedHome = resolve(configured);
+  const resolvedCwd = resolve(cwd);
+  const worktreeRoot = nearestGitWorktreeRoot(resolvedCwd);
+  if (
+    pathContains(resolvedHome, resolvedCwd) ||
+    pathContains(resolvedCwd, resolvedHome) ||
+    (worktreeRoot &&
+      (pathContains(worktreeRoot, resolvedHome) ||
+        pathContains(resolvedHome, worktreeRoot)))
+  ) {
+    throw configHomeError(
+      `${variableName} must not be the current working directory, its worktree, or any nested/ancestor path`,
+    );
+  }
+  // This is deliberately a no-IO validation. Directory creation/ACL repair
+  // remains in ensureHomeDir(), but broad roots and device aliases are refused
+  // before any caller can ask the secure-fs layer to mutate them.
+  assertSafeOwnerOnlyPath(resolvedHome);
+  return resolvedHome;
+}
+
+/**
+ * Resolve the CLI's authoritative config/data root. CHAINLESSCHAIN_HOME is a
+ * native explicit override and takes precedence over CLAUDE_CONFIG_DIR; the
+ * latter is only a compatible fallback for an otherwise unconfigured CLI.
+ */
+export function resolveConfigDataRoot(options = {}) {
+  const env = options.env || process.env;
+  const cwd = options.cwd || process.cwd();
+  const nativeHome = env.CHAINLESSCHAIN_HOME;
+  if (nativeHome) {
+    return Object.freeze({
+      path: resolveConfiguredHome(nativeHome, "CHAINLESSCHAIN_HOME", cwd),
+      source: "chainlesschain",
+    });
+  }
+  if (usesClaudeConfigDirectory(env)) {
+    const configured = env[CLAUDE_CONFIG_DIR_ENV].trim();
+    return Object.freeze({
+      path: resolveConfiguredHome(configured, CLAUDE_CONFIG_DIR_ENV, cwd),
+      source: "claude",
+    });
+  }
+  return Object.freeze({
+    path: join(homedir(), CONFIG_DIR_NAME),
+    source: "default",
+  });
+}
+
+export function getHomeDir() {
+  return resolveConfigDataRoot().path;
+}
+
+/**
+ * Claude-compatible session storage is opt-in and only activates when the
+ * launcher supplied both CLAUDE_CONFIG_DIR and a safe project directory name.
+ * Legacy callers continue to use `<home>/sessions`.
+ */
+export function getClaudeProjectStorageDir(options = {}) {
+  const env = options.env || process.env;
+  const root = resolveConfigDataRoot({ ...options, env });
+  if (root.source !== "claude") return null;
+  return resolveClaudeProjectStorageDir(root.path, { env });
+}
+
+export function getSessionStoreDir(options = {}) {
+  return (
+    getClaudeProjectStorageDir(options) ||
+    join(resolveConfigDataRoot(options).path, "sessions")
+  );
 }
 
 export function getBinDir() {
