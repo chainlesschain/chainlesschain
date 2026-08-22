@@ -16,6 +16,7 @@ import {
 import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";
+import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 
 // installPipeSafety moved to pipe-safety.js (canonical tests in
 // pipe-safety.test.js); headless-runner re-exports it for back-compat.
@@ -150,7 +151,7 @@ describe("headless-runner — exact delivery fixer authority", () => {
       worktreeRoot,
       allowedPaths,
     });
-    const hostResourceBudget = {};
+    const hostResourceBudget = new HostResourceBudget();
     let captured = null;
     const { deps } = makeDeps(replyText("done"));
     deps.bootstrap = vi.fn(async () => ({ db: null }));
@@ -216,6 +217,69 @@ describe("headless-runner — exact delivery fixer authority", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   }, 15_000);
+});
+
+describe("headless-runner — hook event resource budget", () => {
+  it("fails closed before the model when pre-manifest hook events fill the bounded backlog", async () => {
+    const secret = "hook-event-user-secret";
+    const hostResourceBudget = new HostResourceBudget({
+      maxEventBacklog: 1,
+    });
+    const agentLoop = vi.fn(async function* () {
+      yield { type: "response-complete", content: "must not run" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const { deps, out, err } = makeDeps(null);
+    deps.agentLoop = agentLoop;
+    deps.addHooksV2EventObserver = vi.fn((_sessionId, observer) => {
+      // The hermetic path's async lifecycle boundary yields before the manifest
+      // is written, so this precisely models two early hook events without
+      // pulling in the real hook-runtime dispatcher.
+      queueMicrotask(() => {
+        observer({ type: "hook_started", hook_event: "setup-one" });
+        observer({ type: "hook_started", hook_event: "setup-two" });
+      });
+      return vi.fn();
+    });
+
+    const outcome = await runAgentHeadless(
+      {
+        prompt: secret,
+        outputFormat: "stream-json",
+        includeHookEvents: true,
+        hostResourceBudget,
+        hermeticExecution: true,
+      },
+      deps,
+    );
+
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      isError: true,
+      result: "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached",
+    });
+    expect(agentLoop).not.toHaveBeenCalled();
+    const [failure] = out
+      .join("")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+    expect(failure).toMatchObject({
+      type: "result",
+      subtype: "error_host_resource_budget",
+      is_error: true,
+      code: "CC_HOST_EVENT_BACKLOG_EXHAUSTED",
+      error: "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached",
+    });
+    expect(JSON.stringify({ failure, err })).not.toContain(secret);
+    expect(hostResourceBudget.status().backlog.event).toEqual({
+      active: 0,
+      max: 1,
+    });
+    const reusableSlot = hostResourceBudget.admitEvent();
+    expect(reusableSlot.release()).toBe(true);
+  }, 30_000);
 });
 
 describe("headless-runner — output formats", () => {

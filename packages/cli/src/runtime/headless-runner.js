@@ -436,6 +436,10 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 const HEADLESS_SESSION_RESOLUTION = Symbol("headlessSessionResolution");
 const HEADLESS_SESSION_HOST_LEASE = Symbol("headlessSessionHostLease");
+const HEADLESS_HOOK_EVENT_CLEANUP = Symbol("headlessHookEventCleanup");
+const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
+const HOST_EVENT_BACKLOG_ERROR =
+  "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached";
 
 async function withHeadlessSessionHostLease(options, deps, task) {
   const prompt = (options.prompt || "").trim();
@@ -563,11 +567,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               ? abortSignals[0]
               : AbortSignal.any(abortSignals),
         };
+  // The inner runner can return before its long-lived cleanup `finally` is
+  // installed. Keep its pre-manifest hook queue disposer in this shared scope
+  // so the top-level host still releases every event slot on any early throw.
+  const hookEventCleanup = { dispose: null };
   const runtimeDeps = {
     ...deps,
     writeOut: outputFlow.writeOut,
     writeErr: outputFlow.writeErr,
     outputFlow,
+    [HEADLESS_HOOK_EVENT_CLEANUP]: hookEventCleanup,
   };
   const installSafety = deps.installPipeSafety || installPipeSafety;
   const disposePipeSafety = shouldInstallPipeSafety
@@ -588,6 +597,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   } catch (error) {
     failure = error;
   } finally {
+    try {
+      hookEventCleanup.dispose?.();
+    } catch {
+      // Queue-slot cleanup is best-effort and must not replace the run error.
+    }
     try {
       await outputFlow.wait();
     } catch (error) {
@@ -656,14 +670,68 @@ async function runAgentHeadlessInWorkspace(
     );
   const sessionHostLease = deps[HEADLESS_SESSION_HOST_LEASE] || null;
   const includeHookEvents = isStream && options.includeHookEvents === true;
+  // One headless invocation owns one bounded queue/cache authority. Keep an
+  // injected authority intact so an embedding can share it with its host.
+  // Do not wire sessionBudget here: executeTool already owns that lease.
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
   const pendingHookEvents = [];
   let writeHookEvent = null;
-  const removeHookObserver = includeHookEvents
-    ? addHooksV2EventObserver(sessionId, (event) => {
-        if (writeHookEvent) writeHookEvent(event);
-        else pendingHookEvents.push(event);
-      })
-    : null;
+  let removeHookObserver = null;
+  let hookEventBacklogExhausted = false;
+  let hookEventQueueDisposed = false;
+  const disposePendingHookEvents = () => {
+    if (hookEventQueueDisposed) return;
+    hookEventQueueDisposed = true;
+    try {
+      removeHookObserver?.();
+    } finally {
+      removeHookObserver = null;
+      while (pendingHookEvents.length > 0) {
+        const queued = pendingHookEvents.shift();
+        try {
+          queued?.lease?.release?.();
+        } catch {
+          // Budget slots are idempotent, but injected authorities may throw
+          // during teardown. Continue draining every remaining slot.
+        }
+      }
+    }
+  };
+  const queuePendingHookEvent = (event) => {
+    if (hookEventQueueDisposed || hookEventBacklogExhausted) return;
+    if (writeHookEvent) {
+      writeHookEvent(event);
+      return;
+    }
+    try {
+      if (typeof hostResourceBudget?.admitEvent !== "function") {
+        throw new TypeError(
+          "host resource budget does not provide admitEvent()",
+        );
+      }
+      const lease = hostResourceBudget.admitEvent();
+      if (!lease || typeof lease.release !== "function") {
+        throw new TypeError("host resource budget event admission is invalid");
+      }
+      pendingHookEvents.push({ event, lease });
+    } catch {
+      // Hook lifecycle projection is diagnostic-only, but retaining arbitrary
+      // events before the manifest is ready is not. Stop observing and fail the
+      // run at the next safe protocol boundary without exposing hook/input data.
+      hookEventBacklogExhausted = true;
+      disposePendingHookEvents();
+    }
+  };
+  const hookEventCleanupScope = deps[HEADLESS_HOOK_EVENT_CLEANUP];
+  if (hookEventCleanupScope) {
+    hookEventCleanupScope.dispose = disposePendingHookEvents;
+  }
+  if (includeHookEvents) {
+    const subscribeHookEvents =
+      deps.addHooksV2EventObserver || addHooksV2EventObserver;
+    removeHookObserver = subscribeHookEvents(sessionId, queuePendingHookEvent);
+  }
 
   const emitHeadlessError = (resultMsg) => {
     if (isStream) {
@@ -718,7 +786,7 @@ async function runAgentHeadlessInWorkspace(
       "fully verified; resume/write admission was refused";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
-    removeHookObserver?.();
+    disposePendingHookEvents();
     return {
       exitCode: 1,
       result: message,
@@ -735,7 +803,7 @@ async function runAgentHeadlessInWorkspace(
       "CC_OBSERVABILITY_SCOPE_IMMUTABLE: an existing session scope cannot be overwritten; create a new scoped session";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
-    removeHookObserver?.();
+    disposePendingHookEvents();
     return {
       exitCode: 1,
       result: message,
@@ -752,11 +820,6 @@ async function runAgentHeadlessInWorkspace(
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
-  // One headless invocation owns one bounded queue/cache authority. Keep an
-  // injected authority intact so an embedding can share it with its host.
-  // Do not wire sessionBudget here: executeTool already owns that lease.
-  const hostResourceBudget =
-    options.hostResourceBudget || new HostResourceBudget();
   const hermeticExecution = options.hermeticExecution === true;
   if (
     options.fileMutationScope != null &&
@@ -996,7 +1059,7 @@ async function runAgentHeadlessInWorkspace(
           : "CC_OBSERVABILITY_SCOPE_AUTHORITY_UNAVAILABLE: existing session authority could not be excluded";
       emitHeadlessError(message);
       writeErr(`${message}\n`);
-      removeHookObserver?.();
+      disposePendingHookEvents();
       return { exitCode: 1, result: message, isError: true };
     }
   }
@@ -2561,6 +2624,26 @@ async function runAgentHeadlessInWorkspace(
   const emitStream = (obj) => {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
   };
+  if (hookEventBacklogExhausted) {
+    // Do not emit a partial pre-manifest hook projection. The fixed diagnostic
+    // contains no event payload, hook output, command, path, or user content.
+    writeOut(
+      JSON.stringify({
+        type: "result",
+        subtype: "error_host_resource_budget",
+        is_error: true,
+        code: HOST_EVENT_BACKLOG_CODE,
+        error: HOST_EVENT_BACKLOG_ERROR,
+      }) + "\n",
+    );
+    writeErr(`${HOST_EVENT_BACKLOG_CODE}: event backlog limit reached\n`);
+    disposePendingHookEvents();
+    return {
+      exitCode: 1,
+      result: HOST_EVENT_BACKLOG_ERROR,
+      isError: true,
+    };
+  }
   writeHookEvent = (event) => emitStream(event);
 
   // --include-partial-messages: forward live assistant-text deltas as
@@ -2619,7 +2702,16 @@ async function runAgentHeadlessInWorkspace(
   // Setup/prompt-expansion hooks can run before the stream manifest is ready.
   // Keep the protocol ordered by emitting their queued projection immediately
   // after `system:init`, never before it.
-  for (const event of pendingHookEvents.splice(0)) writeHookEvent(event);
+  while (pendingHookEvents.length > 0) {
+    const queued = pendingHookEvents.shift();
+    try {
+      writeHookEvent(queued.event);
+    } finally {
+      // The event is no longer buffered once its wire projection is written.
+      // Keep the host slot only for queue residency, never for renderer I/O.
+      queued.lease.release();
+    }
+  }
 
   // --auto-rewake: after a turn finishes, run the async Stop hooks and, if an
   // `asyncRewake` check FAILED, append its report as a new user turn and re-run
@@ -3574,7 +3666,7 @@ async function runAgentHeadlessInWorkspace(
         }
       }
     });
-    removeHookObserver?.();
+    disposePendingHookEvents();
     const cleanupReport = cleanupDeadline.report();
     try {
       deps.onCleanupReport?.(cleanupReport);

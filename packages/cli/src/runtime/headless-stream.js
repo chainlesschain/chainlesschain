@@ -401,6 +401,9 @@ export function planSnapshot(pm) {
 const MAX_PLAN_REVIEW_SNAPSHOT_CHARS = 24000;
 const MAX_PLAN_REVIEW_COMMENTS = 64;
 const MAX_PLAN_REVIEW_COMMENT_CHARS = 2000;
+const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
+const HOST_EVENT_BACKLOG_ERROR =
+  "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached";
 
 function boundedReviewString(value, limit) {
   return String(value == null ? "" : value).slice(0, limit);
@@ -3183,13 +3186,43 @@ async function runAgentHeadlessStreamInWorkspace(
   // Stop / Claude-Code Esc parity) instead of waiting in line behind it.
   // Normal events queue for the serial turn loop below; interrupts act on the
   // live per-turn AbortController and are never queued.
+  // A normal input can contain arbitrary user data, so retain it only while it
+  // is waiting for the serial turn loop. Interrupts/approvals/answers remain
+  // out-of-band controls and never consume a queue slot.
   const queue = [];
   let wakeQueue = null;
   let inputDone = false;
   let currentAbort = null;
+  let inputBacklogFailure = false;
   let slashRequestSeq = 0;
   const inputLines = readJsonLines(input);
-  streamCleanup.setInputCancel(() => inputLines.return?.());
+  const releaseQueuedInputEvents = () => {
+    while (queue.length > 0) {
+      const queued = queue.shift();
+      try {
+        queued?.lease?.release?.();
+      } catch {
+        // Drain every opaque slot even when an injected test authority has a
+        // faulty disposer. Its payload is deliberately never inspected here.
+      }
+    }
+  };
+  const failInputEventBacklog = () => {
+    if (inputBacklogFailure) return;
+    inputBacklogFailure = true;
+    releaseQueuedInputEvents();
+    // A flood can happen while a model turn is running. Abort that turn before
+    // surfacing the stable host diagnostic; otherwise it could continue to do
+    // paid/tool work after the host has refused its input backlog.
+    currentAbort?.abort();
+    streamCleanup.setReason("host_event_backlog_exhausted");
+    streamCleanup.requestStop();
+    wakeQueue?.();
+  };
+  streamCleanup.setInputCancel(() => {
+    releaseQueuedInputEvents();
+    return inputLines.return?.();
+  });
   (async () => {
     try {
       for await (const line of inputLines) {
@@ -3259,7 +3292,26 @@ async function runAgentHeadlessStreamInWorkspace(
             );
           continue;
         }
-        queue.push(parsed);
+        try {
+          if (typeof hostResourceBudget?.admitEvent !== "function") {
+            throw new TypeError(
+              "host resource budget does not provide admitEvent()",
+            );
+          }
+          const lease = hostResourceBudget.admitEvent();
+          if (!lease || typeof lease.release !== "function") {
+            throw new TypeError(
+              "host resource budget event admission is invalid",
+            );
+          }
+          queue.push({ parsed, lease });
+        } catch {
+          // Refuse the whole input stream rather than dropping one unbounded
+          // event and then accepting more. The externally-visible error below
+          // is fixed and contains none of the rejected line's content.
+          failInputEventBacklog();
+          break;
+        }
         if (wakeQueue) wakeQueue();
       }
     } catch {
@@ -3279,7 +3331,15 @@ async function runAgentHeadlessStreamInWorkspace(
   })();
   const nextEvent = async () => {
     for (;;) {
-      if (queue.length > 0) return queue.shift();
+      if (queue.length > 0) {
+        const queued = queue.shift();
+        try {
+          return queued.parsed;
+        } finally {
+          // The serial loop now owns the event; it is no longer backlog.
+          queued.lease.release();
+        }
+      }
       if (inputDone || options.signal?.aborted) return null;
       await new Promise((r) => {
         let settled = false;
@@ -3300,6 +3360,18 @@ async function runAgentHeadlessStreamInWorkspace(
   for (;;) {
     await deps.outputFlow?.wait?.();
     const parsed = await nextEvent();
+    if (inputBacklogFailure) {
+      emit({
+        type: "result",
+        subtype: "error_host_resource_budget",
+        is_error: true,
+        code: HOST_EVENT_BACKLOG_CODE,
+        error: HOST_EVENT_BACKLOG_ERROR,
+        session_id: sessionId,
+      });
+      sawError = true;
+      break;
+    }
     if (parsed == null) break; // stdin closed
     sessionHostLease?.assert?.();
     if (turnBindingPersistenceError) {
