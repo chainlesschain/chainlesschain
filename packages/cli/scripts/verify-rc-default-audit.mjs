@@ -228,6 +228,17 @@ function runPassiveCliProbe(root) {
 
 function runContractTests() {
   const started = performance.now();
+  const vitestCandidates = [
+    path.join(CLI_ROOT, "node_modules", "vitest", "vitest.mjs"),
+    path.join(REPOSITORY_ROOT, "node_modules", "vitest", "vitest.mjs"),
+  ];
+  const vitestEntry = vitestCandidates.find((candidate) =>
+    fs.existsSync(candidate),
+  );
+  assert.ok(
+    vitestEntry,
+    `vitest entrypoint is missing; checked: ${vitestCandidates.join(", ")}`,
+  );
   const result = spawnSync(
     process.execPath,
     [
@@ -504,7 +515,10 @@ function evidenceSource({ artifactName, required }) {
     assert.equal(process.env.GITHUB_ACTIONS, "true");
     assert.notEqual(source.workflowId, "local");
     assert.notEqual(source.runId, "local");
-    assert.match(source.workflowId, /\.github\/workflows\/(?:cli-ci|ide-roadmap-safety)\.yml@/u);
+    assert.match(
+      source.workflowId,
+      /\.github\/workflows\/(?:cli-ci|ide-roadmap-safety)\.yml@/u,
+    );
   }
   return source;
 }
@@ -626,7 +640,10 @@ function recursivelyReadJson(directory) {
       values.push(...recursivelyReadJson(entryPath));
     } else if (entry.isFile() && entry.name.endsWith(".json")) {
       try {
-        values.push({ path: entryPath, value: JSON.parse(fs.readFileSync(entryPath, "utf8")) });
+        values.push({
+          path: entryPath,
+          value: JSON.parse(fs.readFileSync(entryPath, "utf8")),
+        });
       } catch {
         // Other safety artifacts use different schemas and are ignored here.
       }
@@ -635,10 +652,7 @@ function recursivelyReadJson(directory) {
   return values;
 }
 
-export function aggregateRcDefaultFragments({
-  evidenceDirectory,
-  headSha,
-}) {
+export function aggregateRcDefaultFragments({ evidenceDirectory, headSha }) {
   const expectedHead = exactCommit(headSha);
   const fragments = recursivelyReadJson(path.resolve(evidenceDirectory))
     .map((entry) => entry.value)
@@ -660,11 +674,17 @@ export function aggregateRcDefaultFragments({
   );
   const byOs = new Map();
   for (const fragment of fragments) {
-    assert.ok(!byOs.has(fragment.os), `duplicate RC-DEFAULT OS: ${fragment.os}`);
+    assert.ok(
+      !byOs.has(fragment.os),
+      `duplicate RC-DEFAULT OS: ${fragment.os}`,
+    );
     verifyExactHeadSources(expectedHead, fragment.producerDigests);
     byOs.set(fragment.os, fragment);
   }
-  assert.deepEqual([...byOs.keys()].sort(), [...RC_DEFAULT_REQUIRED_OSES].sort());
+  assert.deepEqual(
+    [...byOs.keys()].sort(),
+    [...RC_DEFAULT_REQUIRED_OSES].sort(),
+  );
   const baseline = byOs.get("linux") || fragments[0];
   for (const fragment of fragments) {
     assert.equal(fragment.profileVersion, baseline.profileVersion);
@@ -688,7 +708,11 @@ function main() {
   const options = parseArguments(process.argv.slice(2));
   assert.ok(options.output, "--output is required");
   const headSha = exactCommit(options.releaseCommit || currentHead());
-  assert.equal(currentHead(), headSha, "checked-out HEAD must equal release commit");
+  assert.equal(
+    currentHead(),
+    headSha,
+    "checked-out HEAD must equal release commit",
+  );
   if (options.verifyEvidenceDir) {
     writeJson(
       options.output,
@@ -716,11 +740,15 @@ function main() {
     measurements,
     digests,
   });
-  assert.equal(countSecretHits(fragment, ["rc-default-volatile-token-0123456789abcdef"]), 0);
+  assert.equal(
+    countSecretHits(fragment, ["rc-default-volatile-token-0123456789abcdef"]),
+    0,
+  );
   writeJson(options.output, fragment);
 }
 
 const isEntrypoint =
   process.argv[1] &&
-  pathToFileURL(path.resolve(process.argv[1])).href === pathToFileURL(SCRIPT_PATH).href;
+  pathToFileURL(path.resolve(process.argv[1])).href ===
+    pathToFileURL(SCRIPT_PATH).href;
 if (isEntrypoint) main();

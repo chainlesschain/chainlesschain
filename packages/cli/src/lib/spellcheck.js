@@ -7,7 +7,7 @@
  * spelling diagnostics.
  */
 
-import { spawnSync as nodeSpawnSync } from "node:child_process";
+import { executionBroker } from "./process-execution-broker/index.js";
 
 export const SPELLCHECK_ADAPTERS = Object.freeze([
   Object.freeze({ command: "aspell", args: Object.freeze(["list"]) }),
@@ -17,6 +17,17 @@ export const SPELLCHECK_ADAPTERS = Object.freeze([
 
 export const MAX_SPELLCHECK_INPUT_BYTES = 1024 * 1024;
 export const MAX_SPELLCHECK_WORDS = 200;
+
+const defaultDeps = Object.freeze({
+  spawnSync(command, args, options) {
+    return executionBroker.spawnSync(command, args, {
+      origin: "spellcheck:local-adapter",
+      scope: "spellcheck",
+      policy: "allow",
+      ...options,
+    });
+  },
+});
 
 /** Parse the REPL's local-only `/spellcheck` command. */
 export function parseSpellcheckCommand(line) {
@@ -165,7 +176,7 @@ export function spellcheckText(value, options = {}) {
       reason: "empty",
     });
   }
-  const deps = { spawnSync: nodeSpawnSync, ...(options.deps || {}) };
+  const deps = { ...defaultDeps, ...(options.deps || {}) };
   const adapter = findAdapter(options.command, deps);
   if (!adapter) {
     return Object.freeze({

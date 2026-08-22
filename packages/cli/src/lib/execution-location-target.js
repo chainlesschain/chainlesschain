@@ -58,12 +58,10 @@ const COMMIT_RE = /^[a-f0-9]{40,64}$/u;
 const MAX_PROFILE_BYTES = 1024 * 1024;
 const MAX_PROBE_BYTES = 1024 * 1024;
 const MAX_REPLICA_BYTES = 64 * 1024 * 1024;
+const DEFAULT_TARGET_COMMAND_TIMEOUT_MS = 30_000;
+const MAX_TARGET_COMMAND_TIMEOUT_MS = 120_000;
+const REPLICA_TRANSFER_TIMEOUT_MS = MAX_TARGET_COMMAND_TIMEOUT_MS;
 const MAX_PROXY_AUTHORITY_AGE_MS = 5 * 60 * 1000;
-// Session handoff may initialize a fresh owner-only state tree on Windows.
-// Keep the command bounded, while allowing a cold target process to complete
-// its security bootstrap rather than terminating at the generic 30 second
-// child-process default.
-const TARGET_COMMAND_TIMEOUT_MS = 60_000;
 const LOCAL_TARGET_SUPERVISOR = fileURLToPath(
   new URL("./execution-location-local-supervisor.mjs", import.meta.url),
 );
@@ -776,6 +774,43 @@ function materializeKnownHostsAuthority(bytes, deps = {}) {
   });
 }
 
+function materializeLocalTargetInput(input, deps = {}) {
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || "");
+  if (bytes.length === 0 || bytes.length > MAX_REPLICA_BYTES) {
+    throw new Error("local target input is empty or exceeds its byte limit");
+  }
+  const runtimeFs = deps.fs || fs;
+  const root = runtimeFs.mkdtempSync(
+    path.join(deps.tmpdir || tmpdir(), "cc-target-input-"),
+  );
+  const inputPath = path.join(root, "stdin.bin");
+  let descriptor;
+  try {
+    descriptor = runtimeFs.openSync(
+      inputPath,
+      runtimeFs.constants.O_CREAT |
+        runtimeFs.constants.O_EXCL |
+        runtimeFs.constants.O_WRONLY,
+      0o600,
+    );
+    runtimeFs.writeFileSync(descriptor, bytes);
+    runtimeFs.fsyncSync(descriptor);
+  } catch (error) {
+    try {
+      runtimeFs.rmSync(root, { recursive: true, force: true });
+    } catch {
+      // Preserve the original materialization failure.
+    }
+    throw error;
+  } finally {
+    if (descriptor !== undefined) runtimeFs.closeSync(descriptor);
+  }
+  return Object.freeze({
+    path: inputPath,
+    cleanup: () => runtimeFs.rmSync(root, { recursive: true, force: true }),
+  });
+}
+
 function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
   const lifecycleEnvironment = targetLifecycleEnvironment(profile, deps);
   if (profile.target === "local") {
@@ -794,6 +829,10 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         (deps.spawnSync ? null : prepareLocalTargetState);
       bootstrap?.(profile, cliArgs, deps);
     }
+    const inputAuthority =
+      options.input == null
+        ? null
+        : materializeLocalTargetInput(options.input, deps);
     return Object.freeze({
       file: deps.nodeCommand || process.execPath,
       args: Object.freeze([
@@ -806,6 +845,9 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         String(profile.lifecycle.resources.memoryBytes),
         "--entry",
         profile.cliCommand,
+        ...(inputAuthority === null
+          ? []
+          : ["--stdin-file", inputAuthority.path]),
         "--",
         ...cliArgs,
       ]),
@@ -813,7 +855,8 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         cwd: profile.cwd,
         env: localTargetEnvironment(profile, lifecycleEnvironment),
       }),
-      cleanup: null,
+      inputHandled: inputAuthority !== null,
+      cleanup: inputAuthority?.cleanup || null,
     });
   }
   if (profile.target === "wsl") {
@@ -924,18 +967,36 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     ) {
       throw new Error("target command output boundary is invalid");
     }
+    const timeoutMs = Number(
+      options.timeoutMs ?? DEFAULT_TARGET_COMMAND_TIMEOUT_MS,
+    );
+    if (
+      !Number.isSafeInteger(timeoutMs) ||
+      timeoutMs < 1 ||
+      timeoutMs > MAX_TARGET_COMMAND_TIMEOUT_MS
+    ) {
+      throw new Error("target command timeout boundary is invalid");
+    }
     const result = spawnSync(invocation.file, invocation.args, {
       origin: "execution-location:target",
       scope: "execution-location",
       policy: "allow",
       shell: false,
       encoding: "utf8",
-      timeout: options.interactive ? undefined : TARGET_COMMAND_TIMEOUT_MS,
+      timeout: options.interactive ? undefined : timeoutMs,
       maxBuffer: options.interactive ? undefined : maxBuffer,
-      ...(options.input == null ? {} : { input: options.input }),
+      ...(options.input == null || invocation.inputHandled
+        ? {}
+        : { input: options.input }),
       stdio: options.interactive
         ? "inherit"
-        : [options.input == null ? "ignore" : "pipe", "pipe", "pipe"],
+        : [
+            options.input == null || invocation.inputHandled
+              ? "ignore"
+              : "pipe",
+            "pipe",
+            "pipe",
+          ],
       ...(invocation.spawnOptions || {}),
     });
     if (result?.error) throw result.error;
@@ -999,6 +1060,14 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
     "target lifecycle preflight",
   );
   const lifecycle = profile.lifecycle;
+  const reportedEnforcement = receipt.resources?.enforcement;
+  const expectedEnforcement =
+    profile.target === "local"
+      ? "target-supervisor"
+      : reportedEnforcement === "posix-rlimit" ||
+          reportedEnforcement === "target-supervisor"
+        ? reportedEnforcement
+        : "posix-rlimit";
   const material = {
     schema: "cc-execution-location-target-preflight/v1",
     runnerId: lifecycle.runnerId,
@@ -1028,8 +1097,7 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
       observedCpuSeconds: Number(receipt.resources?.observedCpuSeconds),
       observedMemoryBytes: Number(receipt.resources?.observedMemoryBytes),
       targetEnforced: true,
-      enforcement:
-        profile.target === "local" ? "target-supervisor" : "posix-rlimit",
+      enforcement: expectedEnforcement,
     },
     postSessionHook: {
       digest: lifecycle.postSessionHook.digest,
@@ -1203,6 +1271,7 @@ export function probeExecutionLocationTargetSigtermDrain(
     lease: {
       id: lifecycle.lease.id,
       generation: lifecycle.lease.generation,
+      expiresAt: lifecycle.lease.expiresAt,
       continued: true,
     },
     preflightReceiptDigest: preflight.receiptDigest,
@@ -1447,7 +1516,7 @@ function transferTargetSessionStore(
       "--json",
     ],
     deps,
-    { input: transcriptBytes },
+    { input: transcriptBytes, timeoutMs: REPLICA_TRANSFER_TIMEOUT_MS },
   );
   const receipt = parseTargetProjection(
     raw,

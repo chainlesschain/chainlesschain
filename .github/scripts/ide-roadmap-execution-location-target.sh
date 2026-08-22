@@ -79,10 +79,21 @@ if [[ -n "${CC_EXECUTION_LOCATION_RUNNER_ID:-}" ]]; then
   rm -f -- "$writable_probe"
   trap - EXIT
 
-  memory_kib=$(( (CC_EXECUTION_LOCATION_MEMORY_BYTES + 1023) / 1024 ))
-  ulimit -v "$memory_kib"
-  ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS"
-  export CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT=posix-rlimit
+  ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS" || {
+    echo "execution-location target CPU limit is unavailable" >&2
+    exit 75
+  }
+  target_supervisor="$(dirname -- "$CC_IDE_TARGET_ENTRY")/lib/execution-location-local-supervisor.mjs"
+  if [[ ! -f "$target_supervisor" || -L "$target_supervisor" ]]; then
+    echo "execution-location target supervisor is unavailable" >&2
+    exit 70
+  fi
+  exec "$CC_IDE_TARGET_NODE" "$target_supervisor" \
+    --cwd "$target_base" \
+    --cpu-seconds "$CC_EXECUTION_LOCATION_CPU_SECONDS" \
+    --memory-bytes "$CC_EXECUTION_LOCATION_MEMORY_BYTES" \
+    --entry "$CC_IDE_TARGET_ENTRY" \
+    -- "$@"
 fi
 
 if [[ "${1:-}" == "session" && "${2:-}" == "resume" ]]; then
