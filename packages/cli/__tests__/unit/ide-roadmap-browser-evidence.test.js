@@ -191,6 +191,9 @@ describe("browser evidence producer arguments and secret gate", () => {
     expect(browserJobs).toMatch(
       /- name: Run real local two-origin browser evidence journey\s+shell: bash\s+run:/u,
     );
+    expect(browserJobs).toMatch(
+      /- name: Install browser evidence aggregate dependencies\s+run:\s+>-\s+npm ci --workspace packages\/cli --include-workspace-root=false/u,
+    );
     expect(workflow).toContain(
       "browser-evidence-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}",
     );

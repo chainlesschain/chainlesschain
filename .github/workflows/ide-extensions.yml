@@ -226,6 +226,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Install browser evidence aggregate dependencies
+        run: >-
+          npm ci --workspace packages/cli --include-workspace-root=false
+          --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Download exact-run browser evidence producers
         uses: actions/download-artifact@v6
         with:
