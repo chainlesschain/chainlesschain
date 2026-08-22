@@ -6,6 +6,7 @@ import {
   HostResourceBudgetError,
 } from "../../src/lib/host-resource-budget.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 import { webFetch } from "../../src/lib/web-fetch.js";
 import { _deps as webSearchDeps, webSearch } from "../../src/lib/web-search.js";
 
@@ -191,5 +192,21 @@ describe("HostResourceBudget", () => {
     } finally {
       webSearchDeps.https = originalHttps;
     }
+  });
+
+  it("threads the host budget through the agent web-tool dispatch", async () => {
+    const result = await executeTool(
+      "web_fetch",
+      { url: "https://example.com/" },
+      {
+        cwd: process.cwd(),
+        hostResourceBudget: new HostResourceBudget({ maxToolBacklog: 0 }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      code: "ERR_HOST_RESOURCE_BUDGET",
+      reason: "tool-backlog",
+    });
   });
 });
