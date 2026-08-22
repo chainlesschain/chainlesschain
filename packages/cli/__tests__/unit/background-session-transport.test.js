@@ -4,7 +4,14 @@
  * carry-buffer framing (a chunk boundary must never split a message).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -194,6 +201,44 @@ describe("background session transport", () => {
       }),
     ).rejects.toThrow();
     expect(server.clientCount()).toBe(0);
+  });
+
+  it("rejects pre-positioned POSIX socket paths and authenticates Windows named pipes", async () => {
+    if (process.platform === "win32") {
+      const { server } = await startServer();
+      await expect(
+        connectBackgroundSession({
+          pipePath: server.pipePath,
+          token: "attacker-token",
+          timeoutMs: 2000,
+        }),
+      ).rejects.toThrow();
+      return;
+    }
+
+    const options = {
+      id: uniqueId(),
+      dir,
+      token: "tok-secret",
+      getStatus: () => ({}),
+    };
+    const pipePath = transportPipePath(options.id, dir);
+    writeFileSync(pipePath, "not a socket", "utf8");
+    expect(() => startBackgroundSessionServer(options)).toThrow(
+      /not an owned socket/,
+    );
+    unlinkSync(pipePath);
+
+    symlinkSync("missing.sock", pipePath);
+    expect(() => startBackgroundSessionServer(options)).toThrow(
+      /not an owned socket/,
+    );
+    unlinkSync(pipePath);
+
+    chmodSync(dir, 0o755);
+    expect(() => startBackgroundSessionServer(options)).toThrow(
+      /socket directory is not private/,
+    );
   });
 
   it("queues prompts, relays onPrompt errors, and answers status", async () => {

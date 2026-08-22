@@ -14,6 +14,7 @@ import path from "path";
 import {
   MAX_ACTION_TIMEOUT_MS,
   MAX_BROWSER_ACTIONS,
+  browserDomRedactionMetadata,
   browserActionsDir,
   normalizeBrowserActions,
   performActions,
@@ -21,6 +22,10 @@ import {
   redactBrowserUrl,
   resolveLoopbackCdpPort,
 } from "../../src/lib/chrome-connector.js";
+import {
+  issueBrowserOriginGrant,
+  verifyBrowserEvidenceEnvelope,
+} from "../../src/lib/browser-evidence.js";
 
 let auditDir;
 let fakeHome;
@@ -130,6 +135,18 @@ describe("browser observation redaction", () => {
     expect(dom).not.toContain("abcdefghijklmnop");
     expect(dom).toContain('value="[REDACTED]"');
     expect(dom).toContain("ticket=[REDACTED]");
+    expect(
+      browserDomRedactionMetadata(
+        '<input name="api_token" value="opaque-session">' +
+          '<a href="https://example.com/download?ticket=opaque-ticket">go</a>' +
+          "<p>Bearer abcdefghijklmnop</p>",
+      ),
+    ).toEqual({
+      applied: true,
+      sensitiveFieldValues: 1,
+      urlQueryValues: 1,
+      secretPatterns: 1,
+    });
   });
 
   it("redacts a sensitive input before applying the DOM cap", () => {
@@ -151,9 +168,7 @@ describe("browser observation redaction", () => {
     expect(dom).not.toContain(secret);
     expect(dom).not.toContain("full");
     expect(dom).not.toContain("private");
-    expect(dom).toContain(
-      "/download?ticket=[REDACTED]&view=[REDACTED]",
-    );
+    expect(dom).toContain("/download?ticket=[REDACTED]&view=[REDACTED]");
   });
 });
 
@@ -299,14 +314,20 @@ describe("performActions", () => {
 
   it("redacts navigation URLs and result detail before output and audit", async () => {
     const deps = fakeDeps();
-    const secretUrl =
-      "https://alice:password@example.com/path?token=opaque-session#private";
+    expect(() =>
+      normalizeBrowserActions([
+        {
+          type: "navigate",
+          url: "https://alice:password@example.com/path",
+        },
+      ]),
+    ).toThrow(/embedded credentials/u);
+    const secretUrl = "https://example.com/path?token=opaque-session#private";
     const res = await performActions([{ type: "navigate", url: secretUrl }], {
       deps,
     });
     expect(res.ok).toBe(true);
     expect(JSON.stringify(res)).not.toContain("opaque-session");
-    expect(JSON.stringify(res)).not.toContain("password");
     expect(res.steps[0].detail).toContain("token=[REDACTED]");
 
     const [line] = readAuditLines();
@@ -436,5 +457,202 @@ describe("performActions", () => {
     expect(browserActionsDir({ deps: noEnv })).toBe(
       path.join(fakeHome, ".chainlesschain", "browser-actions"),
     );
+  });
+});
+
+describe("managed transfer and canonical evidence actions", () => {
+  const binding = {
+    sessionId: "browser-action-session",
+    sessionRevision: 3,
+    diff: {
+      baseSha: "a".repeat(40),
+      headSha: "b".repeat(40),
+      digest: `sha256:${"c".repeat(64)}`,
+    },
+    testRun: { id: "chrome-connector-actions", attempt: 1 },
+  };
+
+  function originGrant(scopes) {
+    return issueBrowserOriginGrant({
+      grantId: "grant-localhost-3000",
+      binding,
+      origin: "http://localhost:3000",
+      revision: 5,
+      scopes,
+      credentialBoundary: "session-bound",
+      issuedAt: "2026-08-21T00:00:00.000Z",
+      expiresAt: "2099-08-21T00:00:00.000Z",
+    });
+  }
+
+  it("uploads only a resolved managed session artifact and never accepts a caller path", async () => {
+    expect(() =>
+      normalizeBrowserActions([
+        { type: "upload", selector: "#file", path: "C:/secret.txt" },
+      ]),
+    ).toThrow(/managed session artifact_id/u);
+
+    const calls = [];
+    const page = fakePage({
+      setInputFiles: async (selector, filePath) =>
+        calls.push([selector, filePath]),
+    });
+    let cleaned = false;
+    const result = await performActions(
+      [{ type: "upload", selector: "#file", artifact_id: "art_upload_1" }],
+      {
+        deps: fakeDeps({ page }),
+        resolveUploadArtifact: async () => ({
+          path: "C:/managed/upload.txt",
+          metadata: {
+            id: "art_upload_1",
+            sha256: "d".repeat(64),
+            size: 12,
+          },
+          cleanup: () => {
+            cleaned = true;
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.steps[0].uploadArtifact).toEqual({
+      id: "art_upload_1",
+      sha256: `sha256:${"d".repeat(64)}`,
+      size: 12,
+    });
+    expect(calls).toEqual([["#file", "C:/managed/upload.txt"]]);
+    expect(cleaned).toBe(true);
+
+    let rejectedCleaned = false;
+    const rejected = await performActions(
+      [{ type: "upload", selector: "#file", artifact_id: "art_upload_1" }],
+      {
+        deps: fakeDeps({ page }),
+        resolveUploadArtifact: async () => ({
+          path: "C:/managed/upload.txt",
+          metadata: {
+            id: "art_wrong_authority",
+            sha256: "d".repeat(64),
+            size: 12,
+          },
+          cleanup: () => {
+            rejectedCleaned = true;
+          },
+        }),
+      },
+    );
+    expect(rejected.ok).toBe(false);
+    expect(rejected.steps[0].detail).toMatch(/mismatched metadata/u);
+    expect(rejectedCleaned).toBe(true);
+  });
+
+  it("captures downloads only at generated paths with a content digest", async () => {
+    let savedPath;
+    const page = fakePage({
+      waitForEvent: async (event) => {
+        expect(event).toBe("download");
+        return {
+          saveAs: async (filePath) => {
+            savedPath = filePath;
+            fs.writeFileSync(filePath, "safe-download");
+          },
+          suggestedFilename: () => "report.txt",
+        };
+      },
+    });
+    const result = await performActions(
+      [{ type: "download", selector: "#download" }],
+      { deps: fakeDeps({ page }) },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(savedPath.startsWith(os.tmpdir())).toBe(true);
+    expect(result.steps[0]).toMatchObject({
+      downloadPath: savedPath,
+      downloadSuggestedName: "report.txt",
+    });
+    expect(result.steps[0].downloadSha256).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    fs.rmSync(savedPath, { force: true });
+  });
+
+  it("binds real action observations and DOM/screenshot digests into an envelope", async () => {
+    const handlers = {};
+    const page = fakePage({
+      on: (event, handler) => {
+        handlers[event] = handler;
+      },
+      off: () => {},
+      content: async () =>
+        '<html><input type="password" value="opaque-password"></html>',
+      screenshot: async ({ path: filePath }) => {
+        fs.writeFileSync(filePath, "png-one");
+        handlers.console?.({
+          type: () => "error",
+          text: () => "Bearer abcdefghijklmnop",
+        });
+        handlers.response?.({
+          status: () => 500,
+          url: () => "http://localhost:3000/api?token=opaque-token",
+        });
+      },
+    });
+    const localGrant = originGrant(["observe"]);
+    const result = await performActions([{ type: "screenshot" }], {
+      deps: fakeDeps({ page }),
+      sessionId: binding.sessionId,
+      evidenceBinding: binding,
+      originGrants: [localGrant],
+      expectedGrantRevisions: { [localGrant.origin]: 5 },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.evidence.actions[0]).toMatchObject({
+      type: "screenshot",
+      sideEffect: "none",
+      authority: { origin: "http://localhost:3000", revision: 5 },
+    });
+    expect(result.evidence.domSnapshot.contentRetained).toBe(false);
+    expect(result.evidence.domSnapshot.redaction).toMatchObject({
+      applied: true,
+      sensitiveFieldValues: 1,
+    });
+    expect(result.evidence.screenshots[0].digest).toBe(
+      result.steps[0].screenshotSha256,
+    );
+    expect(JSON.stringify(result.evidence)).not.toContain("opaque-password");
+    expect(JSON.stringify(result.evidence)).not.toContain("abcdefghijklmnop");
+    expect(JSON.stringify(result.evidence)).not.toContain("opaque-token");
+    expect(verifyBrowserEvidenceEnvelope(result.evidence)).toBeTruthy();
+    fs.rmSync(result.steps[0].screenshotPath, { force: true });
+
+    const sessionMismatch = await performActions([{ type: "screenshot" }], {
+      deps: fakeDeps({ page }),
+      sessionId: "different-session",
+      evidenceBinding: binding,
+      originGrants: [localGrant],
+      expectedGrantRevisions: { [localGrant.origin]: 5 },
+    });
+    expect(sessionMismatch).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/active session/u),
+    });
+
+    const replay = await performActions([{ type: "screenshot" }], {
+      deps: fakeDeps({ page }),
+      sessionId: binding.sessionId,
+      evidenceBinding: binding,
+      originGrants: [localGrant],
+      expectedGrantRevisions: { [localGrant.origin]: 5 },
+      replaySourceEnvelope: result.evidence,
+    });
+    expect(replay.ok).toBe(true);
+    expect(replay.evidence.replay).toMatchObject({
+      sourceEnvelopeDigest: result.evidence.envelopeDigest,
+      sideEffectBoundary: "deny",
+      credentialBoundary: "deny",
+    });
+    fs.rmSync(replay.steps[0].screenshotPath, { force: true });
   });
 });

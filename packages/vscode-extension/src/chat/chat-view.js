@@ -49,6 +49,10 @@ const {
   routeSlashCommand,
   splitSlashArgs,
 } = require("./slash-commands.js");
+const {
+  WorkspaceMentionIndex,
+  relativeToRoots,
+} = require("./workspace-mention-index.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 // A cold signed macOS Webview can take longer than one second to start its
@@ -116,6 +120,9 @@ class ChatViewProvider {
     this._hostDomToken = this.opts.hostDomToken || null;
     this._hostDomPending = new Map();
     this._hostDomRevealRequested = false;
+    this._mentionIndex = null;
+    this._mentionWorkspaceKey = "";
+    this._mentionDisposables = [];
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -1906,72 +1913,173 @@ class ChatViewProvider {
     }
   }
 
-  /**
-   * Workspace files for @-mention completion. The full listing is fetched
-   * once per provider (5k cap, heavy dirs excluded) and filtered per
-   * keystroke in-process; "New" invalidates it so fresh files show up.
-   */
-  async _listWorkspaceFiles(prefix) {
-    const { filterFiles, deriveFolders } = require("./at-mention");
-    // TTL refresh: long sessions used to keep the very first scan forever, so
-    // files created mid-conversation never showed up in @-completion unless
-    // the user hit "New". 30s keeps per-keystroke filtering instant while new
-    // files appear on the next popup soon after they exist.
+  _workspaceMentionRoots() {
+    return (this.vscode.workspace?.workspaceFolders || [])
+      .map((folder) => folder?.uri?.fsPath || "")
+      .filter(Boolean);
+  }
+
+  _disposeMentionDisposables() {
+    for (const disposable of this._mentionDisposables.splice(0)) {
+      try {
+        disposable?.dispose?.();
+      } catch {
+        // Best effort during extension-host shutdown.
+      }
+    }
+  }
+
+  /** Create the metadata-only index and subscribe to incremental VFS events. */
+  _workspaceMentionIndex() {
+    const roots = this._workspaceMentionRoots();
+    const trusted = this.vscode.workspace?.isTrusted !== false;
+    const key = JSON.stringify({ roots, trusted });
+    if (this._mentionIndex && key === this._mentionWorkspaceKey) {
+      return this._mentionIndex;
+    }
+    this._disposeMentionDisposables();
+    this._mentionWorkspaceKey = key;
+    this._mentionIndex = new WorkspaceMentionIndex({ roots, trusted });
+    this._fileCache = null;
+    const workspace = this.vscode.workspace || {};
+    if (trusted && typeof workspace.createFileSystemWatcher === "function") {
+      const watcher = workspace.createFileSystemWatcher("**/*");
+      const apply = (uri, remove) => {
+        const absolutePath = uri?.fsPath || "";
+        if (!absolutePath) return;
+        if (remove) this._mentionIndex?.removePath(absolutePath);
+        else if (!this._mentionIndex?.upsertPath(absolutePath))
+          this._mentionIndex?.touchWorkspace();
+      };
+      this._mentionDisposables.push(
+        watcher,
+        watcher.onDidCreate?.((uri) => apply(uri, false)),
+        watcher.onDidChange?.((uri) => apply(uri, false)),
+        watcher.onDidDelete?.((uri) => apply(uri, true)),
+      );
+    }
+    if (typeof workspace.onDidChangeWorkspaceFolders === "function") {
+      this._mentionDisposables.push(
+        workspace.onDidChangeWorkspaceFolders(() => {
+          this._mentionWorkspaceKey = "";
+          this._fileCache = null;
+          this._mentionIndex?.cancelActive();
+        }),
+      );
+    }
+    if (typeof workspace.onDidGrantWorkspaceTrust === "function") {
+      this._mentionDisposables.push(
+        workspace.onDidGrantWorkspaceTrust(() => {
+          this._mentionWorkspaceKey = "";
+          this._fileCache = null;
+        }),
+      );
+    }
+    return this._mentionIndex;
+  }
+
+  async _primeWorkspaceFileIndex(index, ticket) {
     const TTL_MS = 30_000;
     if (this._fileCache && Date.now() - (this._fileCacheAt || 0) > TTL_MS) {
       this._fileCache = null;
+      this._fileCacheApplied = null;
     }
     if (!this._fileCache) {
       this._fileCacheAt = Date.now();
       this._fileCache = Promise.resolve()
-        .then(() =>
-          this.vscode.workspace.findFiles(
+        .then(() => {
+          if (this.vscode.workspace?.isTrusted === false) return [];
+          return this.vscode.workspace.findFiles(
             "**/*",
             "**/{node_modules,.git,dist,build,out,coverage}/**",
-            5000,
-          ),
-        )
-        .then((uris) => {
-          const folders = this.vscode.workspace.workspaceFolders || [];
-          const root = folders[0]?.uri?.fsPath || "";
-          const files = (uris || []).map((u) => {
-            let p = u.fsPath || "";
-            if (root && p.startsWith(root)) p = p.slice(root.length + 1);
-            return p.replace(/\\/g, "/");
-          });
-          // Offer the ancestor folders (as `@folder/`) ahead of the files, so
-          // typing "@src" surfaces the directory too — the CLI expands a folder
-          // ref into a bounded tree. findFiles never returns directories, so we
-          // derive them from the file listing.
-          return deriveFolders(files, 2000).concat(files);
+            100_000,
+          );
         })
+        .then((uris) => (uris || []).map((uri) => uri?.fsPath || ""))
         .catch(() => []);
     }
-    const all = await this._fileCache;
-    return filterFiles(all, prefix, 20);
+    const paths = await this._fileCache;
+    if (!ticket || index.isCurrent(ticket)) {
+      if (this._fileCacheApplied !== this._fileCache) {
+        index.replacePaths(paths);
+        this._fileCacheApplied = this._fileCache;
+      }
+      if (ticket) index.refreshTicket(ticket);
+    }
   }
 
-  /**
-   * Workspace symbols (functions/classes/…) matching the typed prefix, as
-   * `{label, value}` items whose value is the symbol's file (the CLI expands
-   * `@<path>`). Gated at >=2 chars to avoid the unfiltered symbol dump; never
-   * throws (no provider / no results → []).
-   */
-  async _listWorkspaceSymbols(prefix) {
-    const q = String(prefix || "").trim();
-    if (q.length < 2) return [];
+  async _fetchWorkspaceSymbols(prefix) {
+    const query = String(prefix || "").trim();
+    if (query.length < 2 || this.vscode.workspace?.isTrusted === false)
+      return [];
     try {
-      const syms = await this.vscode.commands.executeCommand(
-        "vscode.executeWorkspaceSymbolProvider",
-        q,
+      return (
+        (await this.vscode.commands.executeCommand(
+          "vscode.executeWorkspaceSymbolProvider",
+          query,
+        )) || []
       );
-      const { formatSymbolItems } = require("./symbol-mentions");
-      const folders = this.vscode.workspace.workspaceFolders || [];
-      const root = folders[0]?.uri?.fsPath || "";
-      return formatSymbolItems(syms, root, 8);
     } catch {
       return [];
     }
+  }
+
+  /** Compatibility helper used by focused tests and non-webview callers. */
+  async _listWorkspaceFiles(prefix) {
+    const index = this._workspaceMentionIndex();
+    const ticket = index.beginQuery();
+    await this._primeWorkspaceFileIndex(index, ticket);
+    if (!index.isCurrent(ticket)) return [];
+    return index.queryFiles(prefix, 20);
+  }
+
+  /** Compatibility helper: safely format only symbols inside trusted roots. */
+  async _listWorkspaceSymbols(prefix) {
+    const symbols = await this._fetchWorkspaceSymbols(prefix);
+    const roots = this._workspaceMentionRoots();
+    const { symbolKindLabel } = require("./symbol-mentions");
+    const out = [];
+    for (const symbol of symbols) {
+      const relative = relativeToRoots(
+        symbol?.location?.uri?.fsPath || "",
+        roots,
+      );
+      if (!relative || !symbol?.name) continue;
+      out.push({
+        label: `${symbolKindLabel(symbol.kind)} ${symbol.name} · ${relative}`,
+        value: relative,
+      });
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+
+  /**
+   * One versioned query across file + symbol metadata. A newer query cancels
+   * the prior generation; a workspace mutation invalidates the captured
+   * revision. Only commit()'s current ticket is allowed to reach the webview.
+   */
+  async _queryWorkspaceMentions(prefix) {
+    const index = this._workspaceMentionIndex();
+    const ticket = index.beginQuery();
+    await this._primeWorkspaceFileIndex(index, ticket);
+    if (!index.isCurrent(ticket)) return null;
+    const symbols = await this._fetchWorkspaceSymbols(prefix);
+    if (!index.isCurrent(ticket)) return null;
+    const { symbolKindLabel } = require("./symbol-mentions");
+    if (
+      !index.replaceSymbols(
+        ticket,
+        symbols.map((symbol) => ({
+          ...symbol,
+          kindLabel: symbolKindLabel(symbol?.kind),
+        })),
+      )
+    ) {
+      return null;
+    }
+    const result = index.query(ticket, prefix, 200);
+    return index.commit(ticket, result) ? result : null;
   }
 
   /**
@@ -2981,25 +3089,20 @@ class ChatViewProvider {
     } else if (m.type === "planReviewAction") {
       this.reviewPlan(m.action).catch(() => {});
     } else if (m.type === "files") {
-      // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
-      // first, then ranked workspace-relative paths, then workspace symbols
-      // (find a file by a function/class name). Deduped by inserted value so
-      // a symbol whose file already matched by path doesn't show twice.
       const prefix = String(m.prefix || "");
-      const { ideMentionMatches } = require("./at-mention");
-      const { dedupeMentionItems } = require("./symbol-mentions");
-      Promise.all([
-        this._listWorkspaceFiles(prefix),
-        this._listWorkspaceSymbols(prefix),
-      ]).then(
-        ([files, symbols]) =>
-          this._post({
-            kind: "files",
-            prefix,
-            items: dedupeMentionItems(
-              ideMentionMatches(prefix).concat(files, symbols),
-            ),
-          }),
+      const clientGeneration = Number(m.generation) || 0;
+      this._queryWorkspaceMentions(prefix).then(
+        (result) => {
+          if (result) {
+            this._post({
+              kind: "files",
+              prefix,
+              generation: clientGeneration,
+              workspaceRevision: result.workspaceRevision,
+              items: result.items,
+            });
+          }
+        },
         () => {},
       );
     } else if (m.type === "insertCode") {
@@ -3226,6 +3329,8 @@ class ChatViewProvider {
       this._stopSession(this._convs.get(summary.id));
     }
     this._cleanupImageTemps();
+    this._mentionIndex?.cancelActive();
+    this._disposeMentionDisposables();
     this._modeStatus?.item.dispose();
     this._modeStatus = null;
   }

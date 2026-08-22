@@ -3,7 +3,9 @@ name: CLI Reliability Soak
 on:
   pull_request:
     paths:
+      - ".github/workflows/cli-ci.yml"
       - ".github/workflows/cli-reliability-soak.yml"
+      - ".github/workflows/cli-ci.yml"
       - ".github/actions/setup-node-deps/action.yml"
       - ".github/actions/setup-linux-bwrap/action.yml"
       - "package.json"
@@ -35,6 +37,9 @@ on:
       - "packages/cli/src/lib/mcp-client.js"
       - "packages/cli/src/lib/mcp-oauth.js"
       - "packages/cli/src/lib/mcp-tls.js"
+      - "packages/cli/src/lib/mcp-lifecycle-authority.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/runtime/mcp-config.js"
       - "packages/cli/src/lib/paths.js"
@@ -49,6 +54,8 @@ on:
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/scripts/cli-mcp-security-soak.mjs"
+      - "packages/cli/scripts/mcp-lifecycle-profile.mjs"
+      - "packages/cli/scripts/mcp-lifecycle-profile-child.mjs"
       - "packages/cli/scripts/verify-mcp-lifecycle-increments.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-message-fabric.mjs"
@@ -56,7 +63,10 @@ on:
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
+      - "packages/cli/__tests__/unit/mcp-lifecycle-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-lifecycle-increments.test.js"
+      - "packages/cli/__tests__/unit/mcp-lifecycle-profile.test.js"
+      - "packages/cli/__tests__/unit/verify-mcp-lifecycle-increments.test.js"
       - "packages/cli/__tests__/unit/mcp-oauth.test.js"
       - "packages/cli/__tests__/unit/mcp-client-headers-helper.test.js"
       - "packages/cli/__tests__/unit/mcp-client-rpc-error-sanitization.test.js"
@@ -73,7 +83,9 @@ on:
       - "packages/cli/__tests__/unit/session-projection.test.js"
       - "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java"
       - "packages/cli/__tests__/unit/scheduler-kernel-store.test.js"
       - "packages/cli/__tests__/unit/automation-center-incidents.test.js"
@@ -256,10 +268,20 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - uses: ./.github/actions/setup-node-deps
 
       - name: Run 32-process message admission and recovery matrix
         shell: bash
+        env:
+          CC_XSESSION_WORKFLOW_ID: ${{ github.workflow_ref }}
+          CC_XSESSION_RUN_ID: ${{ github.run_id }}
+          CC_XSESSION_JOB_ID: session-message-fabric-${{ runner.os }}
+          CC_XSESSION_ARTIFACT_NAME: session-message-fabric-${{ matrix.os }}-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
         run: >-
           node packages/cli/scripts/verify-session-message-fabric.mjs
           --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
@@ -307,17 +329,22 @@ jobs:
 
       - name: Verify complete Linux, Windows and macOS evidence
         shell: bash
+        env:
+          CC_XSESSION_WORKFLOW_ID: ${{ github.workflow_ref }}
+          CC_XSESSION_RUN_ID: ${{ github.run_id }}
+          CC_XSESSION_JOB_ID: session-message-fabric-aggregate
+          CC_XSESSION_ARTIFACT_NAME: xsession-audit-aggregate-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
         run: >-
           node packages/cli/scripts/verify-session-message-fabric.mjs
           --verify-evidence-dir "${RUNNER_TEMP}/session-message-fabric-evidence"
           --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
-          --output "${RUNNER_TEMP}/session-message-fabric-aggregate.json"
+          --output "${RUNNER_TEMP}/xsession-audit-aggregate.json"
 
       - name: Upload immutable cross-session aggregate
         uses: actions/upload-artifact@v6
         with:
-          name: session-message-fabric-formal-aggregate-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/session-message-fabric-aggregate.json
+          name: xsession-audit-aggregate-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/xsession-audit-aggregate.json
           if-no-files-found: error
           retention-days: 30
 
@@ -457,8 +484,10 @@ jobs:
         shell: bash
         run: >-
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
+          ${{ github.event_name != 'pull_request' && '--required' || '' }}
           --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
-          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}.json"
+          --artifact-name "mcp-lifecycle-${RUNNER_OS}-${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}-${GITHUB_RUN_ATTEMPT}"
+          --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"
 
       - name: Upload repeated materialized capsule execution-context evidence
         if: always() && github.event_name != 'pull_request'
@@ -483,7 +512,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: mcp-lifecycle-${{ runner.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}.json
+          path: ${{ runner.temp }}/mcp-lifecycle-${{ runner.os }}/mcp-lifecycle-audit-fragment.json
           if-no-files-found: error
           retention-days: 90
 
@@ -525,7 +554,7 @@ jobs:
         with:
           pattern: mcp-lifecycle-*-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/mcp-lifecycle-evidence
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Download materialized capsule execution-context evidence
         if: github.event_name != 'pull_request'
@@ -563,6 +592,7 @@ jobs:
           node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs
           --verify-evidence-dir "${RUNNER_TEMP}/mcp-lifecycle-evidence"
           --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}"
+          ${{ github.event_name == 'pull_request' && '--allow-advisory' || '' }}
           --output "${RUNNER_TEMP}/mcp-lifecycle-aggregate.json"
 
       - name: Upload immutable MCP security soak aggregate

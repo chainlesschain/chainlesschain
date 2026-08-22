@@ -18,6 +18,9 @@ const {
   recheckProjectionAction,
   materializeActionPreview,
   filterRows,
+  focusRows,
+  buildSessionGroupMutationArgs,
+  SESSION_GROUP_TARGET_UNGROUPED,
   renderWorkbenchHtml,
 } = require("../sessions-workbench.js");
 const {
@@ -33,6 +36,7 @@ let _timer = null;
 let _rows = [];
 let _errors = [];
 let _query = "";
+let _focusOnly = false;
 let _hooks = {};
 let _deliveryController = null;
 let _deliveryError = "";
@@ -43,6 +47,7 @@ const _workflowNotices = new Map();
 let _snapshot = {
   connected: false,
   revision: null,
+  groups: { connected: false, revision: null, items: [] },
   rows: [],
   error: "not loaded",
 };
@@ -99,7 +104,8 @@ function post(message) {
 }
 
 function postRows() {
-  const visibleRows = filterRows(_rows, _query);
+  const focusedRows = _focusOnly ? focusRows(_rows) : _rows;
+  const visibleRows = filterRows(focusedRows, _query);
   post({
     type: "rows",
     html: renderWorkbenchHtml(visibleRows, {
@@ -108,6 +114,12 @@ function postRows() {
     }),
     visible: visibleRows.length,
     total: _rows.length,
+    focusOnly: _focusOnly,
+    groups: _snapshot.groups || {
+      connected: false,
+      revision: null,
+      items: [],
+    },
   });
 }
 
@@ -175,6 +187,7 @@ async function readProjection(vscode) {
     : {
         connected: false,
         revision: null,
+        groups: { connected: false, revision: null, items: [] },
         rows: [],
         error: result.error || "cc session projection unavailable",
       };
@@ -441,6 +454,119 @@ async function runAction(vscode, msg) {
   }
 }
 
+function groupById(groupId) {
+  return (_snapshot.groups?.items || []).find((group) => group.id === groupId);
+}
+
+function selectedCanonicalIds(msg) {
+  if (
+    !Array.isArray(msg?.ids) ||
+    msg.ids.length === 0 ||
+    msg.ids.length > 256
+  ) {
+    return [];
+  }
+  const visible = new Set(_rows.map((row) => row.id));
+  return [...new Set(msg.ids.map((id) => String(id || "")))].filter(
+    (id) => id.length <= 512 && visible.has(id),
+  );
+}
+
+async function runGroupMutation(vscode, msg, input = {}) {
+  const groups = _snapshot.groups;
+  if (
+    !groups?.connected ||
+    typeof groups.revision !== "string" ||
+    msg.groupRevision !== groups.revision
+  ) {
+    post({
+      type: "info",
+      text: "Session groups changed in another window; refresh before retrying.",
+    });
+    await loadData(vscode);
+    return;
+  }
+  const args = buildSessionGroupMutationArgs({
+    action: msg.groupAction,
+    expectedRevision: groups.revision,
+    groupId: input.groupId ?? msg.groupId,
+    name: input.name,
+    order: input.order,
+    sessionIds: input.sessionIds,
+  });
+  if (!args) {
+    post({ type: "info", text: "Session group request is invalid." });
+    return;
+  }
+  const result = await runCliJson(vscode, args);
+  if (!result.ok) {
+    post({
+      type: "info",
+      text: `Session group ${msg.groupAction} failed: ${result.error}`,
+    });
+  }
+  await loadData(vscode);
+}
+
+async function handleGroupCommand(vscode, msg) {
+  if (msg.groupAction === "create") {
+    const name = await vscode.window.showInputBox({
+      title: "Create session group",
+      prompt: "Group name",
+      validateInput: (value) =>
+        value.trim() && value.trim().length <= 80
+          ? null
+          : "Use 1-80 characters.",
+    });
+    if (name) await runGroupMutation(vscode, msg, { name });
+    return;
+  }
+  const group = groupById(String(msg.groupId || ""));
+  if (["rename", "delete", "order"].includes(msg.groupAction) && !group) {
+    post({ type: "info", text: "Select a current session group first." });
+    return;
+  }
+  if (msg.groupAction === "rename") {
+    const name = await vscode.window.showInputBox({
+      title: `Rename ${group.name}`,
+      value: group.name,
+      validateInput: (value) =>
+        value.trim() && value.trim().length <= 80
+          ? null
+          : "Use 1-80 characters.",
+    });
+    if (name && name.trim() !== group.name) {
+      await runGroupMutation(vscode, msg, { name });
+    }
+    return;
+  }
+  if (msg.groupAction === "delete") {
+    const confirmed = await vscode.window.showWarningMessage(
+      `Delete session group “${group.name}”? Its sessions become ungrouped.`,
+      { modal: true },
+      "Delete group",
+    );
+    if (confirmed === "Delete group") await runGroupMutation(vscode, msg);
+    return;
+  }
+  if (msg.groupAction === "move") {
+    const sessionIds = selectedCanonicalIds(msg);
+    if (sessionIds.length === 0) {
+      post({ type: "info", text: "Select one or more sessions to move." });
+      return;
+    }
+    const target =
+      msg.groupId === SESSION_GROUP_TARGET_UNGROUPED
+        ? SESSION_GROUP_TARGET_UNGROUPED
+        : groupById(String(msg.groupId || ""))?.id;
+    if (!target) {
+      post({ type: "info", text: "Select a current target group." });
+      return;
+    }
+    await runGroupMutation(vscode, msg, { groupId: target, sessionIds });
+  }
+}
+
 async function handleMessage(vscode, msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "hostWorkbenchDomReady") {
@@ -476,6 +602,13 @@ async function handleMessage(vscode, msg) {
     case "filter":
       _query = String(msg.query || "");
       postRows();
+      return;
+    case "focus":
+      _focusOnly = msg.enabled === true;
+      postRows();
+      return;
+    case "group":
+      await handleGroupCommand(vscode, msg);
       return;
     case "workflow-recovery-plan":
       await showWorkflowRecoveryPlan(vscode);
@@ -527,6 +660,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     _rows = [];
     _errors = [];
     _query = "";
+    _focusOnly = false;
     _deliveryController = null;
     _deliveryError = "";
     _hostDomToken = null;
@@ -539,6 +673,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     _snapshot = {
       connected: false,
       revision: null,
+      groups: { connected: false, revision: null, items: [] },
       rows: [],
       error: "disposed",
     };
@@ -626,8 +761,10 @@ function renderPageHtml(hostDomToken = null) {
   body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 14px; font-size: 13px; }
   h1 { font-size: 16px; margin: 0 0 10px; }
   .bar { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
-  .bar input { flex:1; max-width:340px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+  .bar input, .bar select { flex:1; max-width:340px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
                border:1px solid var(--vscode-input-border, transparent); border-radius:4px; padding:5px 8px; }
+  .group-bar { display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px; align-items:center; }
+  .group-bar select { min-width:180px; background:var(--vscode-dropdown-background); color:var(--vscode-dropdown-foreground); }
   table { width:100%; border-collapse:collapse; }
   th, td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--vscode-widget-border,#333); vertical-align:top; }
   th { opacity:.6; font-weight:500; font-size:11px; }
@@ -657,7 +794,7 @@ function renderPageHtml(hostDomToken = null) {
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; padding:3px 10px; border-radius:4px; cursor:pointer; margin:0 4px 3px 0; }
   button:hover { background: var(--vscode-button-hoverBackground); }
-  button:focus-visible, input:focus-visible { outline:2px solid var(--vscode-focusBorder,#007fd4); outline-offset:2px; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--vscode-focusBorder,#007fd4); outline-offset:2px; }
   button.sec { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #ccc); }
   #info { min-height:16px; font-size:11px; opacity:.7; margin:6px 0; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -669,7 +806,16 @@ function renderPageHtml(hostDomToken = null) {
     <label class="sr-only" for="q">Filter sessions</label>
     <input id="q" aria-label="Filter sessions" placeholder="Filter by title / workspace / id" />
     <button id="refresh" class="sec" type="button">Refresh</button>
+    <button id="focus" class="sec" type="button" aria-pressed="false">Focus View</button>
     <button id="workflow-recovery-plan" class="sec" type="button">Recovery dry-run</button>
+  </div>
+  <div class="group-bar" role="group" aria-label="Session groups">
+    <label for="group-target">Group</label>
+    <select id="group-target" aria-label="Session group target"><option value="ungrouped">Ungrouped</option></select>
+    <button id="group-move" type="button">Move selected</button>
+    <button id="group-create" class="sec" type="button">Create</button>
+    <button id="group-rename" class="sec" type="button">Rename</button>
+    <button id="group-delete" class="sec" type="button">Delete</button>
   </div>
   <div id="info" role="status" aria-live="polite" aria-atomic="true"></div>
   <section id="delivery" role="region" aria-label="Delivery flow">${renderDeliveryHtml(null)}</section>
@@ -677,12 +823,34 @@ function renderPageHtml(hostDomToken = null) {
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
   const hostDomToken = ${JSON.stringify(relayToken)};
+  let groupRevision = null;
+  const selectedSessionIds = () => [...document.querySelectorAll('#list input[data-session-select]:checked')]
+    .map((input)=>input.value).filter(Boolean).slice(0,256);
+  const sendGroup = (groupAction) => vscode.postMessage({
+    command:'group', groupAction,
+    groupId:document.getElementById('group-target').value,
+    groupRevision, ids:selectedSessionIds()
+  });
   document.getElementById('refresh').addEventListener('click', ()=>{
     document.getElementById('list').setAttribute('aria-busy','true');
     vscode.postMessage({command:'refresh'});
   });
   document.getElementById('workflow-recovery-plan').addEventListener('click', ()=>{
     vscode.postMessage({command:'workflow-recovery-plan'});
+  });
+  document.getElementById('focus').addEventListener('click', (event)=>{
+    const enabled=event.currentTarget.getAttribute('aria-pressed')!=='true';
+    event.currentTarget.setAttribute('aria-pressed',String(enabled));
+    vscode.postMessage({command:'focus',enabled});
+  });
+  document.getElementById('group-create').addEventListener('click',()=>sendGroup('create'));
+  document.getElementById('group-rename').addEventListener('click',()=>sendGroup('rename'));
+  document.getElementById('group-delete').addEventListener('click',()=>sendGroup('delete'));
+  document.getElementById('group-move').addEventListener('click',()=>sendGroup('move'));
+  document.getElementById('group-target').addEventListener('change',(event)=>{
+    const grouped=event.target.value!=='ungrouped';
+    document.getElementById('group-rename').disabled=!grouped || !groupRevision;
+    document.getElementById('group-delete').disabled=!grouped || !groupRevision;
   });
   document.getElementById('q').addEventListener('input', (e)=>vscode.postMessage({command:'filter', query: e.target.value}));
   document.getElementById('list').addEventListener('click', (e)=>{
@@ -697,6 +865,14 @@ function renderPageHtml(hostDomToken = null) {
       const t=prompt(label); if(!t) return; msg.text=t;
     }
     vscode.postMessage(msg);
+  });
+  document.getElementById('list').addEventListener('keydown',(event)=>{
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='a') {
+      const boxes=[...document.querySelectorAll('#list input[data-session-select]')];
+      if (boxes.length) { event.preventDefault(); boxes.forEach((box)=>{box.checked=true;}); }
+    } else if (event.altKey && event.key.toLowerCase()==='m') {
+      event.preventDefault(); document.getElementById('group-move').click();
+    }
   });
   document.getElementById('delivery').addEventListener('click', (e)=>{
     const action = e.target.closest('button[data-delivery-action]');
@@ -754,7 +930,24 @@ function renderPageHtml(hostDomToken = null) {
       const list=document.getElementById('list');
       list.innerHTML=m.html;
       list.setAttribute('aria-busy','false');
-      document.getElementById('info').textContent=String(m.visible ?? 0)+' of '+String(m.total ?? 0)+' sessions';
+      const focus=document.getElementById('focus');
+      focus.setAttribute('aria-pressed',String(m.focusOnly===true));
+      const groups=m.groups || {};
+      groupRevision=groups.connected===true && typeof groups.revision==='string' ? groups.revision : null;
+      const select=document.getElementById('group-target');
+      const prior=select.value;
+      select.replaceChildren();
+      const ungrouped=document.createElement('option'); ungrouped.value='ungrouped'; ungrouped.textContent='Ungrouped'; select.appendChild(ungrouped);
+      for (const group of Array.isArray(groups.items) ? groups.items : []) {
+        const option=document.createElement('option'); option.value=group.id; option.textContent=group.name; select.appendChild(option);
+      }
+      if ([...select.options].some((option)=>option.value===prior)) select.value=prior;
+      const grouped=select.value!=='ungrouped';
+      document.getElementById('group-move').disabled=!groupRevision;
+      document.getElementById('group-create').disabled=!groupRevision;
+      document.getElementById('group-rename').disabled=!groupRevision || !grouped;
+      document.getElementById('group-delete').disabled=!groupRevision || !grouped;
+      document.getElementById('info').textContent=String(m.visible ?? 0)+' of '+String(m.total ?? 0)+' sessions'+(m.focusOnly ? ' in Focus View' : '');
     }
     else if (m.type==='loading') document.getElementById('list').setAttribute('aria-busy','true');
     else if (m.type==='delivery') document.getElementById('delivery').innerHTML = m.html;
@@ -771,4 +964,5 @@ module.exports = {
   openSessionsWorkbench,
   isSessionsWorkbenchOpen,
   runSessionsWorkbenchHostDomCommand,
+  renderPageHtml,
 };

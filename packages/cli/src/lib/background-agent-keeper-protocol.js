@@ -257,12 +257,16 @@ export function prepareBackgroundAgentLocalPipePath(
   { platform = process.platform } = {},
 ) {
   if (platform === "win32") return pipePath;
-  const directory = fallbackLocalPipeDirectory(pipePath);
-  if (!directory) return pipePath;
-  try {
-    mkdirSync(directory, { mode: 0o700 });
-  } catch (error) {
-    if (error?.code !== "EEXIST") throw error;
+  const normalizedPipePath = posix.resolve(
+    String(pipePath || "").replaceAll("\\", "/"),
+  );
+  const directory = posix.dirname(normalizedPipePath);
+  if (fallbackLocalPipeDirectory(pipePath)) {
+    try {
+      mkdirSync(directory, { mode: 0o700 });
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+    }
   }
   const stat = lstatSync(directory);
   const uid = typeof process.getuid === "function" ? process.getuid() : null;
@@ -273,6 +277,22 @@ export function prepareBackgroundAgentLocalPipePath(
     (stat.mode & 0o077) !== 0
   ) {
     throw new Error("background agent socket directory is not private");
+  }
+
+  let socketStat = null;
+  try {
+    socketStat = lstatSync(normalizedPipePath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (socketStat) {
+    if (
+      socketStat.isSymbolicLink() ||
+      !socketStat.isSocket() ||
+      (uid !== null && socketStat.uid !== uid)
+    ) {
+      throw new Error("background agent socket path is not an owned socket");
+    }
   }
   return pipePath;
 }

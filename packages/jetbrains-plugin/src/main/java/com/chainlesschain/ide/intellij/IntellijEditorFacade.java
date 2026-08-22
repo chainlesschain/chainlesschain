@@ -5,6 +5,7 @@ import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ContextExternalSources;
+import com.chainlesschain.ide.DiagnosticsSnapshotScheduler;
 import com.chainlesschain.ide.IdeContextV2;
 import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.MultiDiff;
@@ -17,13 +18,16 @@ import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.DiffRequest;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.editor.impl.DocumentMarkupModel;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.openapi.project.Project;
@@ -34,6 +38,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ContentRevision;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.util.messages.MessageBusConnection;
 
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -51,6 +57,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -66,19 +73,33 @@ import java.util.concurrent.atomic.AtomicReference;
  * cross-language interop probe). All editor reads/writes are marshalled onto
  * the correct threads (read action / EDT + write command).
  */
-public final class IntellijEditorFacade implements EditorFacade {
+public final class IntellijEditorFacade implements EditorFacade, AutoCloseable {
 
     private static final int MAX_CONTEXT_SOURCE_BYTES = 64 * 1024;
     private static final int MAX_MEMORY_FILES = 20;
     private static final long MCP_RESOURCE_CACHE_MS = 30_000L;
 
     private final Project project;
+    private final DiagnosticsSnapshotScheduler diagnosticsScheduler;
+    private final MessageBusConnection diagnosticsConnection;
     private final Object mcpResourceLock = new Object();
     private List<Map<String, Object>> cachedMcpResourceCandidates = List.of();
     private long mcpResourceExpiresAt = 0L;
 
     public IntellijEditorFacade(Project project) {
         this.project = project;
+        this.diagnosticsScheduler = new DiagnosticsSnapshotScheduler();
+        this.diagnosticsConnection = project.getMessageBus().connect();
+        this.diagnosticsConnection.subscribe(
+                DaemonCodeAnalyzer.DAEMON_EVENT_TOPIC,
+                new DaemonCodeAnalyzer.DaemonListener() {
+                    @Override
+                    public void daemonFinished(
+                            Collection<? extends FileEditor> fileEditors) {
+                        scheduleDiagnostics(fileEditors, false);
+                    }
+                });
+        scheduleOpenDiagnostics(true);
     }
 
     @Override
@@ -248,21 +269,15 @@ public final class IntellijEditorFacade implements EditorFacade {
             // Continue with other sources.
         }
         try {
-            List<Map<String, Object>> diagnostics = getDiagnostics(null);
-            if (diagnostics != null && !diagnostics.isEmpty()) {
-                StringBuilder content = new StringBuilder();
-                for (Map<String, Object> item : diagnostics) {
-                    if (content.length() > 0) content.append('\n');
-                    content.append(String.valueOf(item.get("severity"))).append(' ')
-                            .append(String.valueOf(item.get("file"))).append(':')
-                            .append(String.valueOf(item.get("line"))).append(' ')
-                            .append(String.valueOf(item.get("message")));
-                }
+            DiagnosticsSnapshotScheduler.Snapshot diagnostics =
+                    stableDiagnosticsSnapshot();
+            if (diagnostics.summary.get("total") > 0L) {
                 addContextCandidate(
                         candidates, "diagnostics", "Diagnostics",
-                        "jetbrains.daemon-highlights", "workspace-diagnostics",
-                        content.toString(), null, "live-host",
-                        "live errors or warnings are present", capturedAt);
+                        "jetbrains.daemon-event-topic", "workspace-diagnostics",
+                        DiagnosticsSnapshotScheduler.contextText(diagnostics),
+                        null, "stable-snapshot",
+                        "stable diagnostics snapshot is available", capturedAt);
             }
         } catch (Throwable ignored) {
             // Continue with other sources.
@@ -620,36 +635,117 @@ public final class IntellijEditorFacade implements EditorFacade {
 
     @Override
     public List<Map<String, Object>> getDiagnostics(String path) {
-        return ApplicationManager.getApplication().runReadAction((com.intellij.openapi.util.Computable<List<Map<String, Object>>>) () -> {
-            List<Map<String, Object>> out = new ArrayList<>();
-            FileEditorManager fem = FileEditorManager.getInstance(project);
-            for (VirtualFile vf : fem.getOpenFiles()) {
-                if (path != null && !samePath(path, vf.getPath())) continue;
-                Document doc = FileDocumentManager.getInstance().getDocument(vf);
-                if (doc == null) continue;
-                for (RangeHighlighter h : DocumentMarkupModel.forDocument(doc, project, true).getAllHighlighters()) {
-                    Object tt = h.getErrorStripeTooltip();
-                    if (!(tt instanceof HighlightInfo)) continue;
-                    HighlightInfo info = (HighlightInfo) tt;
-                    if (info.getDescription() == null) continue;
-                    int line = doc.getLineNumber(info.getStartOffset());
-                    Map<String, Object> d = new LinkedHashMap<>();
-                    d.put("file", vf.getPath());
-                    d.put("documentUri", vf.getUrl());
-                    d.put("documentVersion",
-                            Long.valueOf(doc.getModificationStamp()));
-                    d.put("isDirty", Boolean.valueOf(
-                            FileDocumentManager.getInstance()
-                                    .isFileModified(vf)));
-                    d.put("severity", String.valueOf(info.getSeverity()).toLowerCase());
-                    d.put("message", info.getDescription());
-                    d.put("line", (long) line);
-                    d.put("character", (long) (info.getStartOffset() - doc.getLineStartOffset(line)));
-                    out.add(d);
-                }
+        stableDiagnosticsSnapshot();
+        return diagnosticsScheduler.diagnosticsForPath(path);
+    }
+
+    private DiagnosticsSnapshotScheduler.Snapshot stableDiagnosticsSnapshot() {
+        // MCP calls and Context Center refreshes run on pooled threads. If a
+        // host invokes this facade from the EDT, return the previous complete
+        // snapshot immediately rather than blocking UI dispatch.
+        if (ApplicationManager.getApplication().isDispatchThread()) {
+            return diagnosticsScheduler.getSnapshot();
+        }
+        try {
+            return diagnosticsScheduler.flushNow(5_000L);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return diagnosticsScheduler.getSnapshot();
+        } catch (IllegalStateException timeout) {
+            return diagnosticsScheduler.getSnapshot();
+        }
+    }
+
+    private void scheduleOpenDiagnostics(boolean replaceAll) {
+        List<DiagnosticsSnapshotScheduler.Update> updates =
+                ApplicationManager.getApplication().runReadAction(
+                        (com.intellij.openapi.util.Computable<List<DiagnosticsSnapshotScheduler.Update>>) () -> {
+                            List<DiagnosticsSnapshotScheduler.Update> out =
+                                    new ArrayList<>();
+                            for (VirtualFile file : FileEditorManager
+                                    .getInstance(project).getOpenFiles()) {
+                                Document document = FileDocumentManager
+                                        .getInstance().getDocument(file);
+                                if (document != null) {
+                                    out.add(diagnosticUpdate(file, document));
+                                }
+                            }
+                            return out;
+                        });
+        diagnosticsScheduler.schedule(updates, replaceAll);
+    }
+
+    private void scheduleDiagnostics(
+            Collection<? extends FileEditor> fileEditors,
+            boolean replaceAll) {
+        List<DiagnosticsSnapshotScheduler.Update> updates = new ArrayList<>();
+        if (fileEditors != null) {
+            for (FileEditor fileEditor : fileEditors) {
+                if (!(fileEditor instanceof TextEditor)) continue;
+                Document document = ((TextEditor) fileEditor)
+                        .getEditor().getDocument();
+                VirtualFile file = FileDocumentManager.getInstance()
+                        .getFile(document);
+                if (file != null) updates.add(diagnosticUpdate(file, document));
             }
-            return out;
-        });
+        }
+        if (!updates.isEmpty() || replaceAll) {
+            diagnosticsScheduler.schedule(updates, replaceAll);
+        }
+    }
+
+    private DiagnosticsSnapshotScheduler.Update diagnosticUpdate(
+            VirtualFile file, Document document) {
+        long version = document.getModificationStamp();
+        boolean dirty = FileDocumentManager.getInstance()
+                .isFileModified(file);
+        return new DiagnosticsSnapshotScheduler.Update(
+                file.getUrl(), file.getPath(), version, dirty,
+                () -> collectDiagnostics(file, document, version));
+    }
+
+    private List<Map<String, Object>> collectDiagnostics(
+            VirtualFile file, Document document, long expectedVersion) {
+        return ReadAction
+                .nonBlocking(() -> {
+                    if (document.getModificationStamp() != expectedVersion) {
+                        throw new IllegalStateException(
+                                "diagnostics document version changed before capture");
+                    }
+                    List<Map<String, Object>> out = new ArrayList<>();
+                    for (RangeHighlighter highlighter :
+                            DocumentMarkupModel.forDocument(
+                                    document, project, true).getAllHighlighters()) {
+                        Object tooltip = highlighter.getErrorStripeTooltip();
+                        if (!(tooltip instanceof HighlightInfo)) continue;
+                        HighlightInfo info = (HighlightInfo) tooltip;
+                        if (info.getDescription() == null) continue;
+                        int line = document.getLineNumber(info.getStartOffset());
+                        Map<String, Object> value = new LinkedHashMap<>();
+                        value.put("file", file.getPath());
+                        value.put("documentUri", file.getUrl());
+                        value.put("documentVersion", expectedVersion);
+                        value.put("isDirty", Boolean.valueOf(
+                                FileDocumentManager.getInstance()
+                                        .isFileModified(file)));
+                        value.put("severity", String.valueOf(
+                                info.getSeverity()).toLowerCase());
+                        value.put("message", info.getDescription());
+                        value.put("line", (long) line);
+                        value.put("character", (long) (info.getStartOffset()
+                                - document.getLineStartOffset(line)));
+                        out.add(value);
+                    }
+                    return out;
+                })
+                .expireWith(project)
+                .executeSynchronously();
+    }
+
+    @Override
+    public void close() {
+        diagnosticsConnection.disconnect();
+        diagnosticsScheduler.close();
     }
 
     @Override

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   SCOPED_PERMISSION_ERROR_CODES,
@@ -143,6 +144,34 @@ describe("ScopedPermissionStore", () => {
     ).toThrow(
       expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT }),
     );
+  });
+
+  it("isolates permission authority at the nearest nested repository", () => {
+    execFileSync("git", ["init", "-q"], { cwd: workspace });
+    const nested = path.join(workspace, "vendor", "nested");
+    fs.mkdirSync(nested, { recursive: true });
+    execFileSync("git", ["init", "-q"], { cwd: nested });
+
+    const outer = store({ filePath: path.join(root, "outer-rules.json") });
+    outer.add({
+      decision: "allow",
+      rule: "Bash(git status:*)",
+      expiresAt: now + 60_000,
+    });
+    const inner = new ScopedPermissionStore({
+      cwd: nested,
+      filePath: path.join(root, "inner-rules.json"),
+      now: () => now,
+    });
+
+    const outerState = outer.list();
+    const innerState = inner.list();
+    expect(innerState.workspace).not.toEqual(outerState.workspace);
+    expect(innerState.workspace.root).toBe(
+      process.platform === "win32" ? nested.toLowerCase() : nested,
+    );
+    expect(innerState.rules).toEqual([]);
+    expect(outerState.rules).toHaveLength(1);
   });
 });
 

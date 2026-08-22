@@ -52,6 +52,10 @@ import {
   readMcpStdioCwd,
 } from "../lib/mcp-sandbox-policy.js";
 import { normalizeMcpTlsConfig } from "../lib/mcp-tls.js";
+import {
+  McpLifecycleAuthority,
+  defaultMcpLifecycleAuthorityPath,
+} from "../lib/mcp-lifecycle-authority.js";
 
 function invalidSandboxPolicy(message) {
   const error = new TypeError(message);
@@ -212,6 +216,9 @@ export function parseMcpServers(raw) {
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
       ...(cfg.tls != null ? { tls: normalizeMcpTlsConfig(cfg.tls) } : {}),
+      ...(cfg.disabled === true || cfg.enabled === false
+        ? { disabled: true }
+        : {}),
     };
   }
   return out;
@@ -339,11 +346,30 @@ export function mcpAuthHint(url, errMessage) {
  */
 export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
+  const mcpLifecycleAuthority =
+    deps.mcpLifecycleAuthority || new McpLifecycleAuthority();
   const createClient =
     deps.createClient ||
     (() =>
-      new MCPClient({ eventRuntimeStore: deps.eventRuntimeStore || null }));
+      new MCPClient({
+        eventRuntimeStore: deps.eventRuntimeStore || null,
+        lifecycleAuthority: mcpLifecycleAuthority,
+        sessionId: deps.sessionId,
+      }));
   servers = filterMcpServersByPolicy(servers, deps.mcpPolicy, writeErr);
+  const enabledServers = {};
+  for (const [name, config] of Object.entries(servers)) {
+    if (config?.disabled === true || config?.enabled === false) {
+      mcpLifecycleAuthority.markDisabled({
+        name,
+        sessionId: deps.sessionId || "default",
+        config,
+      });
+    } else {
+      enabledServers[name] = config;
+    }
+  }
+  servers = enabledServers;
   const nameReservations = mcpServerNameReservations(deps);
   const previouslyReservedNames = new Set(nameReservations);
 
@@ -1317,6 +1343,15 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     (runtimeEnv.CC_EVENT_RUNTIME_DURABLE === "1"
       ? new EventRuntimeStore()
       : null);
+  const mcpLifecycleAuthority =
+    deps.mcpLifecycleAuthority ||
+    args.mcpLifecycleAuthority ||
+    new McpLifecycleAuthority({
+      statePath:
+        deps.mcpLifecycleStatePath ||
+        args.mcpLifecycleStatePath ||
+        defaultMcpLifecycleAuthorityPath(),
+    });
   const serverNameReservations =
     deps.mcpServerNameReservations instanceof Set
       ? deps.mcpServerNameReservations
@@ -1341,6 +1376,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     cwd: args.cwd || deps.cwd || process.cwd(),
     ...(args.sessionId != null ? { sessionId: args.sessionId } : {}),
     ...(eventRuntimeStore ? { eventRuntimeStore } : {}),
+    mcpLifecycleAuthority,
     mcpPolicy,
     mcpServerNameReservations: serverNameReservations,
   };

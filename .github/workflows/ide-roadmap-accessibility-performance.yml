@@ -5,7 +5,18 @@ on:
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-input-performance.test.js"
+      - "packages/cli/scripts/ax-transcript-audit-fragment.mjs"
+      - "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js"
+      - "packages/cli/scripts/session-ux-audit-fragment.mjs"
+      - "packages/cli/__tests__/unit/session-ux-audit-fragment.test.js"
+      - "packages/cli/src/lib/session-projection.js"
+      - "packages/cli/src/lib/session-workbench-store.js"
+      - "packages/cli/__tests__/unit/session-projection.test.js"
+      - "packages/cli/__tests__/unit/session-workbench-store.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
       - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/src/lib/session-runtime-retention.js"
@@ -16,23 +27,56 @@ on:
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/chat/chat-view.js"
+      - "packages/vscode-extension/src/chat/workspace-mention-index.js"
+      - "packages/vscode-extension/src/chat/symbol-mentions.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/src/ui/sessions-view.js"
+      - "packages/vscode-extension/src/diagnostics-scheduler.js"
+      - "packages/vscode-extension/src/vscode-facade.js"
+      - "packages/cli/__tests__/unit/vscode-ext-diagnostics-scheduler.test.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
   push:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
+      - "packages/cli/__tests__/unit/ide-input-performance.test.js"
+      - "packages/cli/scripts/ax-transcript-audit-fragment.mjs"
+      - "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js"
+      - "packages/cli/scripts/session-ux-audit-fragment.mjs"
+      - "packages/cli/__tests__/unit/session-ux-audit-fragment.test.js"
+      - "packages/cli/src/lib/session-projection.js"
+      - "packages/cli/src/lib/session-workbench-store.js"
+      - "packages/cli/__tests__/unit/session-projection.test.js"
+      - "packages/cli/__tests__/unit/session-workbench-store.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js"
       - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/src/lib/session-runtime-retention.js"
@@ -43,16 +87,38 @@ on:
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
       - "packages/vscode-extension/src/chat/chat-html.js"
+      - "packages/vscode-extension/src/chat/chat-view.js"
+      - "packages/vscode-extension/src/chat/workspace-mention-index.js"
+      - "packages/vscode-extension/src/chat/symbol-mentions.js"
       - "packages/vscode-extension/src/sessions-workbench.js"
+      - "packages/vscode-extension/src/ui/sessions-view.js"
+      - "packages/vscode-extension/src/diagnostics-scheduler.js"
+      - "packages/vscode-extension/src/vscode-facade.js"
+      - "packages/cli/__tests__/unit/vscode-ext-diagnostics-scheduler.test.js"
       - "packages/vscode-extension/test/host-dom-relay.test.cjs"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java"
       - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java"
       - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java"
       - "tests/fixtures/ide-roadmap/p2-accessibility-performance.json"
   schedule:
     - cron: "17 5 * * 3"
@@ -95,6 +161,10 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+          fetch-depth: 0
+      - name: Fetch executed workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
@@ -111,6 +181,11 @@ jobs:
           printf 'CC_P2_ARTIFACT_DIR=%s/accessibility-performance/${{ matrix.suffix }}\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_P2_AT_PROBE=%s/accessibility-performance-input/${{ matrix.suffix }}/assistive-technology.json\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_P2_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-native.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/jetbrains-input-performance.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_IDE_INPUT_PERF_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/ide-input-performance.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_SESSION_UX_PROJECTION=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-projection.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_SESSION_UX_NODE_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-node-evidence.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_SESSION_UX_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-jetbrains-evidence.json\n' "$root" >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |
@@ -132,6 +207,15 @@ jobs:
             & node packages/cli/node_modules/playwright/cli.js install chromium
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Measure canonical CLI and VS Code SESSION-UX product surfaces
+        shell: bash
+        run: >-
+          node packages/cli/scripts/session-ux-audit-fragment.mjs
+          --mode prepare
+          --release-commit "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --artifact-name "$CC_P2_ARTIFACT"
+          --projection-output "$CC_SESSION_UX_PROJECTION"
+          --node-evidence-output "$CC_SESSION_UX_NODE_EVIDENCE"
       - name: Probe Orca executable in an isolated process
         if: runner.os == 'Linux'
         shell: bash
@@ -173,6 +257,27 @@ jobs:
       - name: Run VS Code keyboard, transcript, and scale regressions
         shell: bash
         run: node --test packages/vscode-extension/test/host-dom-relay.test.cjs packages/vscode-extension/test/sessions-view-delivery.test.cjs
+      - name: Run canonical session projection, CAS, and workbench regressions
+        shell: bash
+        working-directory: packages/cli
+        run: >-
+          node node_modules/vitest/vitest.mjs run
+          __tests__/unit/session-workbench-store.test.js
+          __tests__/unit/session-projection.test.js
+          __tests__/unit/vscode-ext-sessions-workbench.test.js
+          __tests__/unit/session-ux-audit-fragment.test.js
+          --config vitest.config.js
+      - name: Run VS Code diagnostics scheduler contract
+        shell: bash
+        working-directory: packages/cli
+        run: |
+          set -euo pipefail
+          vitest=node_modules/vitest/vitest.mjs
+          if [ ! -f "$vitest" ]; then
+            vitest=../../node_modules/vitest/vitest.mjs
+          fi
+          test -f "$vitest"
+          node "$vitest" run __tests__/unit/vscode-ext-diagnostics-scheduler.test.js --config vitest.config.js
       - name: Run long-session live-state retention profile
         shell: bash
         run: >-
@@ -183,15 +288,33 @@ jobs:
         working-directory: packages/jetbrains-plugin
         run: |
           if ($env:RUNNER_OS -eq "Windows") {
-            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & .\gradlew.bat test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionProjectionTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.WorkspaceMentionIndexTest --tests com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.SessionUxEvidenceTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           } else {
             chmod +x ./gradlew
-            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
+            & ./gradlew test --tests com.chainlesschain.ide.TranscriptCapTest --tests com.chainlesschain.ide.SessionProjectionTest --tests com.chainlesschain.ide.SessionsWorkbenchTest --tests com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest --tests com.chainlesschain.ide.WorkspaceMentionIndexTest --tests com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest --tests com.chainlesschain.ide.intellij.ChatTranscriptTest --tests com.chainlesschain.ide.intellij.SessionUxEvidenceTest --tests com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest --no-daemon --stacktrace
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath $env:CC_P2_JETBRAINS_EVIDENCE)) {
             throw "JetBrains native evidence was not written"
           }
+          if (-not (Test-Path -LiteralPath $env:CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE)) {
+            throw "JetBrains IDE-INPUT-PERF evidence was not written"
+          }
+          if (-not (Test-Path -LiteralPath $env:CC_SESSION_UX_JETBRAINS_EVIDENCE)) {
+            throw "JetBrains SESSION-UX evidence was not written"
+          }
+      - name: Measure VS Code index and standardize IDE-INPUT-PERF evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ide-input-performance-profile.mjs
+          --head-sha "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --jetbrains-evidence "$CC_IDE_INPUT_PERF_JETBRAINS_EVIDENCE"
+          --os "${{ matrix.suffix }}"
+          --workflow-id "$GITHUB_WORKFLOW_REF"
+          --run-id "$GITHUB_RUN_ID"
+          --job-id "$GITHUB_JOB"
+          --artifact-name "$CC_P2_ARTIFACT"
+          --output "$CC_IDE_INPUT_PERF_EVIDENCE"
       - name: Run fixed-scale Chromium and evidence campaign
         shell: bash
         run: >-
@@ -201,6 +324,26 @@ jobs:
           --artifact-name "$CC_P2_ARTIFACT"
           --at-probe "$CC_P2_AT_PROBE"
           --jetbrains-evidence "$CC_P2_JETBRAINS_EVIDENCE"
+          --input-performance-evidence "$CC_IDE_INPUT_PERF_EVIDENCE"
+          --required true
+      - name: Bind canonical SESSION-UX required fragment
+        shell: bash
+        run: >-
+          node packages/cli/scripts/session-ux-audit-fragment.mjs
+          --mode append
+          --release-commit "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --artifact-dir "$CC_P2_ARTIFACT_DIR"
+          --artifact-name "$CC_P2_ARTIFACT"
+          --projection "$CC_SESSION_UX_PROJECTION"
+          --node-evidence "$CC_SESSION_UX_NODE_EVIDENCE"
+          --jetbrains-evidence "$CC_SESSION_UX_JETBRAINS_EVIDENCE"
+      - name: Bind canonical AX transcript required and advisory fragments
+        shell: bash
+        run: >-
+          node packages/cli/scripts/ax-transcript-audit-fragment.mjs
+          --release-commit "$ACCESSIBILITY_PERFORMANCE_COMMIT"
+          --artifact-dir "$CC_P2_ARTIFACT_DIR"
+          --artifact-name "$CC_P2_ARTIFACT"
       - name: Upload content-free producer evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -224,6 +367,10 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.ACCESSIBILITY_PERFORMANCE_COMMIT }}
+          fetch-depth: 0
+      - name: Fetch executed workflow authority
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin "$GITHUB_WORKFLOW_SHA"
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
@@ -252,11 +399,12 @@ jobs:
           --run-id "$GITHUB_RUN_ID"
           --run-attempt "$GITHUB_RUN_ATTEMPT"
           --event-name "$GITHUB_EVENT_NAME"
-          --output "$RUNNER_TEMP/accessibility-performance-aggregate.json"
+          --output "$RUNNER_TEMP/accessibility-performance-aggregate/accessibility-performance-aggregate.json"
+          --fragment-output-dir "$RUNNER_TEMP/accessibility-performance-aggregate/fragments"
       - name: Upload trusted aggregate
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ide-accessibility-performance-aggregate-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/accessibility-performance-aggregate.json
+          path: ${{ runner.temp }}/accessibility-performance-aggregate/
           if-no-files-found: error

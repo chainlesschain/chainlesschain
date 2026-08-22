@@ -2,12 +2,23 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.62] - Marketplace Overview refresh (2026-08-22)
+## [0.37.63] - Marketplace Overview refresh (2026-08-22)
 
 - Refresh the packaged Open VSX Overview so its current-release table, CLI
   pairing, install example, immutable tag link, and verification command all
   describe this release and the public `chainlesschain@0.165.6` CLI.
-- There are no runtime changes from 0.37.61.
+- There are no runtime changes from 0.37.62.
+
+## [0.37.62] - Scalable IDE sessions and evidence (2026-08-21)
+
+- Add durable session groups, keyboard multi-selection and bulk moves, plus a
+  Focus View that keeps pending questions, live tools, todos, and settled
+  answers visible without reconstructing CLI authority in the extension.
+- Keep diagnostics and workspace mentions responsive with versioned,
+  cancellable snapshots and bounded 100k-path metadata indexes.
+- Bind local browser actions, origins, DOM, console/network observations,
+  screenshots, downloads, replay state, and secret scans into canonical
+  session/revision/diff/test evidence.
 
 ## [0.37.61] - Marketplace changelog repair (2026-08-21)
 

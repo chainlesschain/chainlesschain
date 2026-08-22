@@ -9,7 +9,20 @@ import {
   REQUIRED_FILES,
   mainCampaign,
 } from "../../scripts/ide-roadmap-marketplace-supply-chain.mjs";
-import { verifyCell } from "../../scripts/verify-ide-roadmap-marketplace-supply-chain.mjs";
+import {
+  AUDIT_FRAGMENT_SCHEMA,
+  AUDIT_PRODUCER_PATHS,
+  AUDIT_PROFILE_VERSION,
+  AUDIT_TEST_IDS,
+  AUDIT_THRESHOLDS,
+  REQUIRED_OS,
+  aggregateSupplyChainEvidence,
+  buildPluginSourceAuditFragments,
+  rehashPluginSourceAuditFragments,
+  verifyCell,
+  verifyPluginSourceAuditFragments,
+  writePluginSourceAuditFragments,
+} from "../../scripts/verify-ide-roadmap-marketplace-supply-chain.mjs";
 
 const COMMIT = "a".repeat(40);
 const roots = [];
@@ -22,9 +35,15 @@ function writeJson(directory, file, value) {
   fs.writeFileSync(path.join(directory, file), `${JSON.stringify(value)}\n`);
 }
 
-function createCell() {
+function createCell({
+  operatingSystem = "linux",
+  environment = "private-registry-tls",
+} = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sc-cell-"));
   roots.push(directory);
+  const osSuffix = { linux: "linux", darwin: "macos", win32: "windows" }[
+    operatingSystem
+  ];
   const provenance = {
     repository: "owner/repo",
     workflowRef: "owner/repo/.github/workflows/sc.yml@refs/heads/main",
@@ -33,7 +52,7 @@ function createCell() {
     runAttempt: "1",
     job: "supply-chain",
     eventName: "workflow_dispatch",
-    artifactName: "ide-marketplace-supply-chain-linux-private-registry-tls-1",
+    artifactName: `ide-marketplace-supply-chain-${osSuffix}-${environment}-1`,
   };
   writeJson(directory, "exact-commit.json", {
     releaseCommit: COMMIT,
@@ -41,24 +60,28 @@ function createCell() {
   });
   writeJson(directory, "host-environment.json", {
     releaseCommit: COMMIT,
-    operatingSystem: "linux",
-    environment: "private-registry-tls",
+    operatingSystem,
+    architecture: "x64",
+    environment,
+    nodeVersion: "v22.12.0",
     provenance,
   });
   writeJson(directory, "network-journeys.json", {
-    environment: "private-registry-tls",
+    environment,
     independentRuns: 100,
     registryTls: "private-ca",
     authentication: "bearer",
     registryRequestCount: 100,
     artifactRequestCount: 300,
     archiveRequestCount: 102,
-    authenticatedRequestCount: 400,
-    proxyConnectCount: 0,
-    proxyAuthenticatedConnectCount: 0,
+    authenticatedRequestCount: environment === "air-gapped-cache" ? 4 : 400,
+    proxyConnectCount: ["explicit-proxy", "pac"].includes(environment)
+      ? 100
+      : 0,
+    proxyAuthenticatedConnectCount: environment === "explicit-proxy" ? 100 : 0,
     offlineNetworkRequestCount: 0,
     archiveTransport: "same-origin-https",
-    archiveOnlineFetchCount: 100,
+    archiveOnlineFetchCount: environment === "air-gapped-cache" ? 0 : 100,
     archivePreflightCandidateBytesFetched: false,
     archivePreflightRevision: "b".repeat(64),
     sourcePrecedence: "whole-entry-priority",
@@ -73,7 +96,7 @@ function createCell() {
     signatureVerifiedInstallCount: 200,
     rollbackFailureCount: 0,
     unverifiedActivationCount: 0,
-    archiveMaterializationCount: 202,
+    archiveMaterializationCount: environment === "air-gapped-cache" ? 102 : 202,
     archiveSourceInstallCount: 100,
   });
   writeJson(directory, "fault-injection.json", {
@@ -138,8 +161,8 @@ function createCell() {
   writeJson(directory, "manifest.json", {
     schema: "chainlesschain.marketplace-supply-chain-manifest.v1",
     releaseCommit: COMMIT,
-    operatingSystem: "linux",
-    environment: "private-registry-tls",
+    operatingSystem,
+    environment,
     files,
   });
   return { directory, provenance };
@@ -150,6 +173,46 @@ afterEach(() => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+function verifiedCells() {
+  const cells = [];
+  for (const operatingSystem of REQUIRED_OS) {
+    for (const environment of ENVIRONMENTS) {
+      const { directory, provenance } = createCell({
+        operatingSystem,
+        environment,
+      });
+      cells.push(
+        verifyCell(directory, {
+          operatingSystem,
+          environment,
+          releaseCommit: COMMIT,
+          provenance,
+        }),
+      );
+    }
+  }
+  return cells;
+}
+
+function auditOptions() {
+  return {
+    releaseCommit: COMMIT,
+    workflowRef:
+      "owner/repo/.github/workflows/ide-roadmap-marketplace-supply-chain.yml@refs/heads/main",
+    runId: "42",
+    jobId: "trusted-supply-chain-aggregate",
+    aggregateArtifactName: "ide-marketplace-supply-chain-aggregate-1",
+    producerDigests: Object.fromEntries(
+      AUDIT_PRODUCER_PATHS.map((sourcePath, index) => [
+        sourcePath,
+        `sha256:${String(index + 1)
+          .repeat(64)
+          .slice(0, 64)}`,
+      ]),
+    ),
+  };
+}
 
 describe("marketplace supply-chain Actions matrix", () => {
   it.each(ENVIRONMENTS)(
@@ -234,6 +297,12 @@ describe("marketplace supply-chain Actions matrix", () => {
       expect(focusedStep).toContain(`__tests__/unit/${testFile}`);
     }
     expect(workflow).toContain("if: always()");
+    expect(workflow).toContain(
+      '--fragment-dir "$RUNNER_TEMP/marketplace-supply-chain-audit-fragments"',
+    );
+    expect(workflow).toContain(
+      "${{ runner.temp }}/marketplace-supply-chain-audit-fragments/",
+    );
   });
 
   it("rehashes a complete zero-violation producer", () => {
@@ -262,5 +331,137 @@ describe("marketplace supply-chain Actions matrix", () => {
         provenance,
       }),
     ).toThrow();
+  });
+
+  it("normalizes twelve rehashed cells into three exact-head required fragments", () => {
+    const options = auditOptions();
+    const fragments = buildPluginSourceAuditFragments(verifiedCells(), options);
+    expect(fragments).toHaveLength(3);
+    expect(fragments.map((fragment) => fragment.os).sort()).toEqual([
+      "linux",
+      "macos",
+      "windows",
+    ]);
+    for (const fragment of fragments) {
+      expect(fragment).toMatchObject({
+        schema: AUDIT_FRAGMENT_SCHEMA,
+        commitmentId: "PLUGIN-SOURCE",
+        headSha: COMMIT,
+        runtime: { name: "node", version: "22.12.0", arch: "x64" },
+        profileVersion: AUDIT_PROFILE_VERSION,
+        thresholds: AUDIT_THRESHOLDS,
+        testIds: AUDIT_TEST_IDS,
+        producerDigests: options.producerDigests,
+        disposition: "required",
+        outcome: "passed",
+        source: {
+          workflowId: options.workflowRef,
+          runId: "42",
+          jobId: "trusted-supply-chain-aggregate",
+          artifactName: "ide-marketplace-supply-chain-aggregate-1",
+        },
+      });
+      expect(fragment.measurements).toMatchObject({
+        environmentCount: 4,
+        independentRuns: 400,
+        installUpgradeRollbackOperations: 1200,
+        immutableCacheReadbacks: 2400,
+        faultRejections: ENVIRONMENTS.length * FAULTS.length,
+        failureCount: 0,
+        credentialLeakCount: 0,
+        dynamicSourceExecutionCount: 0,
+        offlineNetworkRequestCount: 0,
+      });
+      expect(fragment.measurements.cells).toHaveLength(4);
+    }
+    expect(() =>
+      verifyPluginSourceAuditFragments(fragments, {
+        releaseCommit: COMMIT,
+        producerDigests: options.producerDigests,
+        source: fragments[0].source,
+      }),
+    ).not.toThrow();
+  });
+
+  it("rehashes emitted fragments and never counts advisory evidence as required", () => {
+    const options = auditOptions();
+    const fragments = buildPluginSourceAuditFragments(verifiedCells(), options);
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-sc-fragments-"),
+    );
+    roots.push(directory);
+    const expected = {
+      releaseCommit: COMMIT,
+      producerDigests: options.producerDigests,
+      source: fragments[0].source,
+    };
+    const records = writePluginSourceAuditFragments(
+      directory,
+      fragments,
+      expected,
+    );
+    expect(records).toHaveLength(3);
+    expect(
+      records.every((record) => /^sha256:[a-f0-9]{64}$/u.test(record.sha256)),
+    ).toBe(true);
+    expect(rehashPluginSourceAuditFragments(directory, expected)).toEqual(
+      records,
+    );
+
+    const advisoryReplacement = fragments.map((fragment) =>
+      fragment.os === "windows"
+        ? { ...fragment, disposition: "advisory" }
+        : fragment,
+    );
+    expect(() =>
+      verifyPluginSourceAuditFragments(advisoryReplacement, expected),
+    ).toThrow(/missing required audit cells/u);
+  });
+
+  it("fails closed through the aggregate entry point and records fragment digests", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sc-aggregate-"));
+    roots.push(root);
+    const evidenceRoot = path.join(root, "evidence");
+    fs.mkdirSync(evidenceRoot);
+    const osSuffix = { linux: "linux", darwin: "macos", win32: "windows" };
+    for (const operatingSystem of REQUIRED_OS) {
+      for (const environment of ENVIRONMENTS) {
+        const { directory } = createCell({ operatingSystem, environment });
+        fs.renameSync(
+          directory,
+          path.join(
+            evidenceRoot,
+            `${osSuffix[operatingSystem]}-${environment}`,
+          ),
+        );
+      }
+    }
+    const options = {
+      ...auditOptions(),
+      evidenceRoot,
+      repository: "owner/repo",
+      workflowRef: "owner/repo/.github/workflows/sc.yml@refs/heads/main",
+      workflowSha: COMMIT,
+      runAttempt: "1",
+      eventName: "workflow_dispatch",
+      fragmentDir: path.join(root, "fragments"),
+      output: path.join(root, "aggregate.json"),
+    };
+    const result = aggregateSupplyChainEvidence(options, {
+      producerDigests: () => options.producerDigests,
+    });
+    expect(result.output).toMatchObject({
+      exactCommitBound: true,
+      cellCount: 12,
+      totalIndependentRuns: 1200,
+    });
+    expect(result.output.auditFragments).toHaveLength(3);
+    for (const record of result.output.auditFragments) {
+      const bytes = fs.readFileSync(
+        path.join(options.fragmentDir, record.file),
+      );
+      expect(record.sha256).toBe(digest(bytes));
+      expect(record.disposition).toBe("required");
+    }
   });
 });

@@ -57,6 +57,32 @@ describe("bounded UTF-8 file line iterators", () => {
     ).toEqual(["a", "", "b", ""]);
   });
 
+  it("reports the largest observed read instead of only the configured chunk", () => {
+    const file = temporaryFile(`${"a".repeat(20)}\n`);
+    const forward = {};
+    expect([
+      ...iterateFileLinesSync(file, { chunkSize: 8, ioMetrics: forward }),
+    ]).toHaveLength(1);
+    expect(forward).toEqual({
+      readCalls: 3,
+      bytesRead: 21,
+      maxReadBytes: 8,
+    });
+
+    const reverse = {};
+    expect([
+      ...iterateFileLinesReverseSync(file, {
+        chunkSize: 8,
+        ioMetrics: reverse,
+      }),
+    ]).toHaveLength(1);
+    expect(reverse).toEqual({
+      readCalls: 4,
+      bytesRead: 22,
+      maxReadBytes: 8,
+    });
+  });
+
   it("fails forward before decoding a terminated line over the byte limit", () => {
     const file = temporaryFile(`${"界".repeat(3)}\nnext\n`);
     expect(() => [

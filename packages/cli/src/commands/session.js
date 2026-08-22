@@ -69,6 +69,7 @@ import { registerSessionObservabilitySubcommand } from "./session-observability.
 import { registerSessionLocationSubcommands } from "./session-location.js";
 import { registerSessionBudgetCommands } from "./session-budget.js";
 import { registerSessionMessageCommands } from "./session-message.js";
+import { registerSessionGroupCommands } from "./session-group.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -228,6 +229,7 @@ export function registerSessionCommand(program) {
   registerSessionLocationSubcommands(session);
   registerSessionBudgetCommands(session);
   registerSessionMessageCommands(session);
+  registerSessionGroupCommands(session);
 
   // session list
   session
@@ -324,6 +326,7 @@ export function registerSessionCommand(program) {
         let workflow = [];
         let dynamicWorkflow = [];
         let sessionMessageFabric = null;
+        let sessionWorkbench = null;
         let artifacts = [];
         let prLinks = {};
 
@@ -472,6 +475,13 @@ export function registerSessionCommand(program) {
         } catch (error) {
           sourceErrors.sessionMessageFabric = error?.message || String(error);
         }
+        try {
+          const { SessionWorkbenchStore } =
+            await import("../lib/session-workbench-store.js");
+          sessionWorkbench = new SessionWorkbenchStore().projection();
+        } catch (error) {
+          sourceErrors.sessionWorkbench = error?.message || String(error);
+        }
 
         const { buildSessionProjection } =
           await import("../lib/session-projection.js");
@@ -485,6 +495,7 @@ export function registerSessionCommand(program) {
           artifacts,
           prLinks,
           sessionMessageFabric,
+          sessionWorkbench,
           sourceErrors,
         });
         if (options.json) {

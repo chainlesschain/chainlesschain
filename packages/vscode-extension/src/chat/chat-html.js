@@ -969,6 +969,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   // mode "slash" → local /command items [label, desc]. sug.at holds the active
   // @-token (file mode only).
   let sug = { mode: null, at: null, items: [], sel: 0 };
+  // Host replies carry this monotonically increasing query generation. Prefix
+  // equality alone is insufficient when the user types a→ab→a quickly.
+  let mentionGeneration = 0;
   function hideSug() {
     sug = { mode: null, at: null, items: [], sel: 0 };
     suggest.style.display = "none";
@@ -1029,12 +1032,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     input.focus();
   }
   input.addEventListener("input", () => {
+    const generation = ++mentionGeneration;
     const before = input.value.slice(0, input.selectionStart);
     const at = ccAtMention.detectAtToken(before);
     if (at) {
       sug.mode = "file";
       sug.at = at;
-      vscode.postMessage({ type: "files", prefix: at.prefix });
+      vscode.postMessage({ type: "files", prefix: at.prefix, generation });
       return;
     }
     const sl = ccSlash.detectSlashToken(before);
@@ -1567,7 +1571,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "files": {
         // Stale replies (user kept typing / closed the token) are dropped.
         const at = ccAtMention.detectAtToken(input.value.slice(0, input.selectionStart));
-        if (!at || at.prefix !== m.prefix) break;
+        if (!at || at.prefix !== m.prefix || m.generation !== mentionGeneration) break;
         sug.mode = "file";
         sug.at = at;
         sug.items = Array.isArray(m.items) ? m.items : [];

@@ -24,6 +24,21 @@ function workflowJob(workflow, jobId) {
   return normalized.slice(start, end);
 }
 
+const exactSourceJobIds = Object.freeze([
+  "capability-manifest",
+  "browser-evidence-producer",
+  "browser-evidence-aggregate",
+  "vscode-package",
+  "vscode-windows-smoke",
+  "vscode-macos-smoke",
+  "vscode-remote-ssh-container",
+  "ide-roadmap-evidence-aggregate",
+  "vscode",
+  "jetbrains-host-matrix",
+  "jetbrains",
+  "jetbrains-marketplace-verify",
+]);
+
 test("JetBrains release hosts use the platform-required Java 21 toolchain", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const nightly = read(".github/workflows/ide-jetbrains-ui-smoke.yml");
@@ -49,18 +64,22 @@ test("every IDE gate checks out and records the exact source commit", () => {
     workflow,
     /CC_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
   );
-  assert.equal(
-    workflow.match(
-      /uses: actions\/checkout@(?:v5|fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)/gu,
-    )?.length,
-    10,
-    "every IDE job must use the pinned checkout action",
-  );
-  assert.equal(
-    workflow.match(/ref: \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)?.length,
-    10,
-    "every IDE job must check out the explicit source commit",
-  );
+  assert.equal(exactSourceJobIds.length, 12);
+  for (const jobId of exactSourceJobIds) {
+    const job = workflowJob(workflow, jobId);
+    assert.equal(
+      job.match(
+        /uses: actions\/checkout@(?:v5|fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)/gu,
+      )?.length,
+      1,
+      `${jobId} must use exactly one accepted checkout action`,
+    );
+    assert.equal(
+      job.match(/ref: \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)?.length,
+      1,
+      `${jobId} must check out the explicit source commit exactly once`,
+    );
+  }
   assert.equal(
     workflow.match(/--release-commit \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)
       ?.length,

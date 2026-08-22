@@ -4,16 +4,31 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  ACCESSIBILITY_WORKFLOW_PATH,
+  DIAGNOSTIC_PRODUCER_PATHS,
+  DIAGNOSTICS_PROFILE,
   PROFILE,
   REQUIRED_FILES,
   summarizeSamples,
   validateAtProbe,
+  verifyAccessibilityWorkflowAuthority,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
+import { appendAxTranscriptFragments } from "../../scripts/ax-transcript-audit-fragment.mjs";
+import {
+  appendSessionUxFragment,
+  buildSessionUxNodeEvidence,
+  measureSessionUxProjectionSurfaces,
+} from "../../scripts/session-ux-audit-fragment.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-accessibility-performance.mjs";
+import {
+  SOURCE_PATHS as INPUT_PERFORMANCE_SOURCE_PATHS,
+  THRESHOLDS as INPUT_PERFORMANCE_THRESHOLDS,
+} from "../../scripts/ide-input-performance-profile.mjs";
 
 const COMMIT = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
 const roots = [];
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
 
 function digest(bytes) {
   return `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
@@ -50,7 +65,184 @@ function jetbrainsEvidence() {
     heapBeforeBytes: 1_000,
     heapAfterBytes: 2_000,
     openFileDescriptorCount: 10,
+    javaVersion: "21.0.1",
+    javaArch: "x64",
+    diagnosticsScaleRequired: diagnosticsProfile("jetbrains"),
+    diagnosticsScaleAdvisory: null,
   };
+}
+
+function diagnosticsProfile(host) {
+  return {
+    host,
+    disposition: "required",
+    inputCount: DIAGNOSTICS_PROFILE.requiredCount,
+    maxDiagnostics: DIAGNOSTICS_PROFILE.requiredCount,
+    publishedCount: DIAGNOSTICS_PROFILE.requiredCount,
+    truncatedCount: 0,
+    lostCount: 0,
+    duplicateCount: 0,
+    staleVersionCount: 0,
+    canceledGenerationCount: 20,
+    stableSnapshot: {
+      samples: DIAGNOSTICS_PROFILE.requiredSamples,
+      p50Ms: 10,
+      p95Ms: 20,
+      p99Ms: 25,
+      maxMs: 30,
+    },
+    ...(host === "vscode"
+      ? {
+          eventLoopMaxMs: 5,
+          nodeRssGrowthBytes: 1_000,
+          nodeHeapGrowthBytes: 500,
+          rendererHeapGrowthBytes: 0,
+          rendererHeapMeasurement:
+            "chromium-product-journey-peak-minus-baseline",
+          snapshotDigest: DIGEST,
+        }
+      : { maxWorkSliceMs: 5, edtMaxMs: 0, heapGrowthBytes: 1_000 }),
+  };
+}
+
+function inputPerformanceEvidence(provenance) {
+  const measurement = {
+    pathCount: 100_000,
+    consecutiveQueries: 20,
+    rapidQueries: 20,
+    samplesMs: Array(20).fill(1),
+    p50Ms: 1,
+    p95Ms: 1,
+    p99Ms: 1,
+    maxCandidates: 200,
+    workspaceRevision: 2,
+    queryGeneration: 40,
+    cancellationCount: 19,
+    discardedQueryCount: 19,
+    deniedPathCount: 2,
+    staleCommitCount: 0,
+    leakCount: 0,
+    contentReadCount: 0,
+    symbolObserved: true,
+    workspaceTrustEnforced: true,
+  };
+  const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
+  const producerDigests = Object.fromEntries(
+    INPUT_PERFORMANCE_SOURCE_PATHS.map((sourcePath) => {
+      const bytes = fs.readFileSync(path.join(repositoryRoot, sourcePath));
+      return [sourcePath, digest(bytes)];
+    }),
+  );
+  return {
+    schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+    commitmentId: "IDE-INPUT-PERF",
+    headSha: COMMIT,
+    os: "linux",
+    runtime: {
+      name: "node+java",
+      version: `${process.version};21`,
+      arch: process.arch,
+    },
+    profileVersion: "ide-input-perf/v1",
+    thresholds: INPUT_PERFORMANCE_THRESHOLDS,
+    measurements: { vscode: measurement, jetbrains: measurement },
+    testIds: ["vscode-profile", "jetbrains-profile"],
+    producerDigests,
+    disposition: "required",
+    source: {
+      workflowId: provenance.workflowRef,
+      runId: provenance.runId,
+      jobId: provenance.job,
+      artifactName: provenance.artifactName,
+    },
+    outcome: "passed",
+  };
+}
+
+function appendSessionUxFixture(directory, provenance, producerReader) {
+  const input = fs.mkdtempSync(path.join(os.tmpdir(), "cc-p2-session-ux-"));
+  roots.push(input);
+  const measured = measureSessionUxProjectionSurfaces({
+    stateFile: path.join(input, "session-workbench.json"),
+  });
+  const projectionPath = path.join(input, "projection.json");
+  writeJson(input, "projection.json", measured.projection);
+  const projectionBytes = fs.readFileSync(projectionPath);
+  const source = {
+    workflowId: provenance.workflowRef,
+    runId: provenance.runId,
+    jobId: provenance.job,
+    artifactName: provenance.artifactName,
+  };
+  const nodeEvidencePath = path.join(input, "node.json");
+  writeJson(
+    input,
+    "node.json",
+    buildSessionUxNodeEvidence({
+      headSha: COMMIT,
+      platform: "linux",
+      source,
+      projectionBytes,
+      projectionRevision: measured.projection.revision,
+      groupRevision: measured.projection.groups.revision,
+      cli: measured.cli,
+      vscode: {
+        ...measured.vscode,
+        selectedSessionCount: 128,
+        postedMoveSessionCount: 128,
+        postedMoveRevisionPreserved: true,
+        thinkingExpandedWhileStreaming: true,
+        thinkingCollapsedAfterTool: true,
+        thinkingCollapsedAfterTurnEnd: true,
+        thinkingCollapseFailureCount: 0,
+      },
+    }),
+  );
+  const jetbrainsEvidencePath = path.join(input, "jetbrains.json");
+  writeJson(input, "jetbrains.json", {
+    schema: "chainlesschain.session-ux-jetbrains-evidence.v1",
+    headSha: COMMIT,
+    platform: "linux",
+    javaVersion: "21.0.8",
+    javaArch: "amd64",
+    source,
+    projectionDigest: digest(projectionBytes),
+    projectionRevision: measured.projection.revision,
+    groupRevision: measured.projection.groups.revision,
+    measurements: {
+      projectionConnected: true,
+      sessionCount: 128,
+      groupCount: 1,
+      groupRevisionPreserved: true,
+      groupedSessionCount: 128,
+      focusRowCount: 1,
+      pendingQuestionPreserved: true,
+      settledAnswerPreserved: true,
+      reasoningExpandedBeforeSettlement: true,
+      reasoningCollapsedAfterSettlement: true,
+      reasoningRestoredAfterToggle: true,
+      thinkingCollapseFailureCount: 0,
+    },
+  });
+  appendSessionUxFragment({
+    artifactDir: directory,
+    releaseCommit: COMMIT,
+    artifactName: provenance.artifactName,
+    projectionPath,
+    nodeEvidencePath,
+    jetbrainsEvidencePath,
+    environment: {
+      GITHUB_ACTIONS: "true",
+      GITHUB_WORKFLOW_REF: provenance.workflowRef,
+      GITHUB_RUN_ID: provenance.runId,
+      GITHUB_JOB: provenance.job,
+      CC_P2_ARTIFACT: provenance.artifactName,
+    },
+    platform: "linux",
+    producerReader,
+    requireWorkingTreeMatch: false,
+    headReader: () => COMMIT,
+  });
 }
 
 function createCell() {
@@ -74,6 +266,8 @@ function createCell() {
     "host-environment.json": {
       releaseCommit: COMMIT,
       operatingSystem: "linux",
+      architecture: "x64",
+      nodeVersion: process.version,
       hosts: ["vscode", "jetbrains"],
       provenance,
     },
@@ -180,7 +374,41 @@ function createCell() {
       descriptorOrHandleDelta: 1,
       orphanProcessCount: 0,
     },
+    "diagnostics-scale.json": {
+      schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+      commitmentId: "DIAG-SCALE",
+      headSha: COMMIT,
+      os: "linux",
+      runtime: { name: "node+java", version: "v22;21", arch: "x64" },
+      profileVersion: DIAGNOSTICS_PROFILE.profileVersion,
+      thresholds: DIAGNOSTICS_PROFILE.thresholds,
+      measurements: {
+        profiles: [
+          diagnosticsProfile("vscode"),
+          diagnosticsProfile("jetbrains"),
+        ],
+      },
+      testIds: [
+        "DIAG-SCALE/vscode-10k-stable-snapshot",
+        "DIAG-SCALE/jetbrains-10k-stable-snapshot",
+      ],
+      producerDigests: Object.fromEntries(
+        DIAGNOSTIC_PRODUCER_PATHS.map((sourcePath) => [
+          sourcePath,
+          digest(fs.readFileSync(path.join(REPOSITORY_ROOT, sourcePath))),
+        ]),
+      ),
+      disposition: "required",
+      source: {
+        workflowId: provenance.workflowRef,
+        runId: provenance.runId,
+        jobId: provenance.job,
+        artifactName: provenance.artifactName,
+      },
+      outcome: "passed",
+    },
     "jetbrains-native.json": jetbrainsEvidence(),
+    "ide-input-performance.json": inputPerformanceEvidence(provenance),
     "outcome-observations.json": {
       success: true,
       keyboardUnreachableActionCount: 0,
@@ -200,6 +428,7 @@ function createCell() {
       pageErrorCount: 0,
       requiredMeasurementsComplete: true,
       exactCommitBound: true,
+      ideInputPerformanceRequiredPassed: true,
       manualSpeechQualityPending: true,
       continuousEightHourHostSoakPending: true,
     },
@@ -219,7 +448,16 @@ function createCell() {
     operatingSystem: "linux",
     files,
   });
-  return { directory, provenance };
+  const producerReader = () => Buffer.from("exact AX producer fixture");
+  appendSessionUxFixture(directory, provenance, producerReader);
+  appendAxTranscriptFragments({
+    artifactDir: directory,
+    releaseCommit: COMMIT,
+    artifactName: provenance.artifactName,
+    producerReader,
+    requireWorkingTreeMatch: false,
+  });
+  return { directory, producerReader, provenance };
 }
 
 afterEach(() => {
@@ -229,6 +467,49 @@ afterEach(() => {
 });
 
 describe("P2-4 accessibility/performance matrix", () => {
+  it("binds the executed workflow bytes to the exact release commit", () => {
+    const workflowSha = "c".repeat(40);
+    const workflowRef =
+      `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`;
+    const matchingReader = () => Buffer.from("identical workflow bytes");
+
+    expect(
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha,
+        workflowRef,
+        required: true,
+        githubActions: "true",
+        producerReader: matchingReader,
+      }),
+    ).toMatch(/^sha256:/u);
+
+    expect(() =>
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha,
+        workflowRef,
+        required: true,
+        githubActions: "true",
+        producerReader: (commit) => Buffer.from(commit),
+      }),
+    ).toThrow(/workflow bytes differ/u);
+  });
+
+  it("rejects required workflow provenance outside GitHub Actions", () => {
+    expect(() =>
+      verifyAccessibilityWorkflowAuthority({
+        releaseCommit: COMMIT,
+        workflowSha: "c".repeat(40),
+        workflowRef:
+          `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`,
+        required: true,
+        githubActions: "false",
+        producerReader: () => Buffer.from("same"),
+      }),
+    ).toThrow(/must run in Actions/u);
+  });
+
   it("fixes the exact automated scale and percentile requirements", () => {
     expect(PROFILE).toMatchObject({
       messagesPerSession: 2_000,
@@ -289,6 +570,8 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("macos-15");
     expect(workflow).toContain("windows-2025");
     expect(workflow).toContain("AccessibilityPerformanceEvidenceTest");
+    expect(workflow).toContain("DiagnosticsSnapshotSchedulerTest");
+    expect(workflow).toContain("vscode-ext-diagnostics-scheduler.test.js");
     expect(workflow).toContain("host-dom-relay.test.cjs");
     expect(workflow).toContain(
       "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",
@@ -299,16 +582,36 @@ describe("P2-4 accessibility/performance matrix", () => {
     );
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain("needs.accessibility-performance.result");
+    expect(workflow).toContain("ax-transcript-audit-fragment.mjs");
+    expect(workflow).toContain("session-ux-audit-fragment.mjs");
+    expect(workflow).toContain("--fragment-output-dir");
+    expect(workflow).toContain("accessibility-performance-aggregate/fragments");
+    const verifier = fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "../../scripts/verify-ide-roadmap-accessibility-performance.mjs",
+      ),
+      "utf8",
+    );
+    for (const output of [
+      "diag-scale-${cell.suffix}.json",
+      "ide-input-perf-${cell.suffix}.json",
+      "session-ux-${cell.suffix}.json",
+      "ax-transcript-${cell.suffix}.json",
+    ]) {
+      expect(verifier).toContain(output);
+    }
   });
 
   it("rehashes the complete zero-failure producer cell", () => {
-    const { directory, provenance } = createCell();
+    const { directory, producerReader, provenance } = createCell();
     expect(
       verifyCell(directory, {
         suffix: "linux",
         operatingSystem: "linux",
         releaseCommit: COMMIT,
         provenance,
+        producerReader,
       }),
     ).toMatchObject({ suffix: "linux" });
     fs.appendFileSync(path.join(directory, "performance-samples.json"), " ");
@@ -318,6 +621,7 @@ describe("P2-4 accessibility/performance matrix", () => {
         operatingSystem: "linux",
         releaseCommit: COMMIT,
         provenance,
+        producerReader,
       }),
     ).toThrow();
   });

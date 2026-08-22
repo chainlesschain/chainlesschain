@@ -132,6 +132,25 @@ describe("requestIdeDiffApproval", () => {
     });
   });
 
+  it("rejects raw Git blob or object approval input before contacting the IDE", async () => {
+    const mcp = fakeDiffMcp();
+    expect(
+      await requestIdeDiffApproval(mcp, {
+        path: { oid: "a".repeat(40), mode: "100644" },
+        modifiedText: "untrusted blob text",
+      }),
+    ).toBeNull();
+    expect(
+      await requestIdeDiffApproval(mcp, {
+        path: "C:/x/old.js",
+        targetPath: { oid: "b".repeat(40) },
+        operation: "rename",
+        modifiedText: "same",
+      }),
+    ).toBeNull();
+    expect(mcp.calls).toEqual([]);
+  });
+
   it("returns rejected", async () => {
     const mcp = fakeDiffMcp({
       callTool: async () => txt({ outcome: "rejected" }),

@@ -244,7 +244,14 @@ export function finishAgentWorktree(info, { deps = _deps } = {}) {
   let headSha = null;
   let readable = false;
   try {
-    dirty = git(["status", "--porcelain"], info.path, deps).trim().length > 0;
+    // Do not inherit status.showUntrackedFiles=no from repository/user config:
+    // an untracked agent output is still work that finalize must preserve.
+    dirty =
+      git(
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        info.path,
+        deps,
+      ).trim().length > 0;
     headSha = git(["rev-parse", "HEAD"], info.path, deps).trim();
     readable = true;
   } catch {

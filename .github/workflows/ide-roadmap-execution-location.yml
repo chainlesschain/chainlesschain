@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/scripts/ide-roadmap-execution-location-target.sh"
       - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-local.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
       - ".github/workflows/ide-roadmap-execution-location.yml"
       - "packages/cli/src/commands/session-location.js"
@@ -12,12 +13,17 @@ on:
       - "packages/cli/src/lib/execution-location-*.js"
       - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-execution-location.mjs"
+      - "packages/cli/__tests__/unit/execution-location-*.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-execution-location-matrix.test.js"
+      - "packages/cli/src/lib/execution-location-local-supervisor.mjs"
+      - "tests/fixtures/ide-roadmap/manifest.json"
+      - "tests/fixtures/ide-roadmap/p1-execution-location.json"
   push:
     branches: [main]
     paths:
       - ".github/scripts/ide-roadmap-execution-location-target.sh"
       - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
+      - ".github/scripts/run-ide-roadmap-execution-location-local.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
       - ".github/workflows/ide-roadmap-execution-location.yml"
       - "packages/cli/src/commands/session-location.js"
@@ -25,7 +31,11 @@ on:
       - "packages/cli/src/lib/execution-location-*.js"
       - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-execution-location.mjs"
+      - "packages/cli/__tests__/unit/execution-location-*.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-execution-location-matrix.test.js"
+      - "packages/cli/src/lib/execution-location-local-supervisor.mjs"
+      - "tests/fixtures/ide-roadmap/manifest.json"
+      - "tests/fixtures/ide-roadmap/p1-execution-location.json"
   schedule:
     - cron: "17 2 * * 4"
   workflow_dispatch:
@@ -46,6 +56,47 @@ env:
   EXECUTION_LOCATION_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  local-execution-location:
+    name: Local production location trajectory x100 (${{ matrix.audit_os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            audit_os: linux
+          - runner: macos-15
+            audit_os: macos
+          - runner: windows-2025
+            audit_os: windows
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      CC_LOCATION_ARTIFACT: ide-execution-location-local-${{ matrix.audit_os }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact execution-location candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXECUTION_LOCATION_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Install source CLI dependencies without lifecycle scripts
+        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+      - name: Run genuine Local launch, outage, lifecycle, and result-return matrix
+        shell: pwsh
+        run: >-
+          node .github/scripts/run-ide-roadmap-execution-location-local.mjs
+          --release-commit "$env:EXECUTION_LOCATION_COMMIT"
+          --artifact-dir "$env:RUNNER_TEMP/execution-location/local"
+          --artifact-name "$env:CC_LOCATION_ARTIFACT"
+      - name: Upload Local evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_LOCATION_ARTIFACT }}
+          path: ${{ runner.temp }}/execution-location/local/
+          if-no-files-found: error
+
   wsl-execution-location:
     name: WSL production location trajectory x100
     runs-on: windows-2025
@@ -142,22 +193,27 @@ jobs:
           if-no-files-found: error
 
   trusted-execution-location-aggregate:
-    name: Trusted WSL/Container/SSH location aggregate
+    name: Trusted Local/WSL/Container/SSH location aggregate
     needs:
+      - local-execution-location
       - wsl-execution-location
       - container-execution-location
       - ssh-execution-location
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      CC_LOCATION_AUDIT_ARTIFACT: claude-code-increment-audit-location-drain-${{ github.run_attempt }}
     steps:
       - name: Fail closed when any required producer is incomplete
         env:
+          LOCAL_RESULT: ${{ needs.local-execution-location.result }}
           WSL_RESULT: ${{ needs.wsl-execution-location.result }}
           CONTAINER_RESULT: ${{ needs.container-execution-location.result }}
           SSH_RESULT: ${{ needs.ssh-execution-location.result }}
         run: |
           set -euo pipefail
+          test "$LOCAL_RESULT" = success
           test "$WSL_RESULT" = success
           test "$CONTAINER_RESULT" = success
           test "$SSH_RESULT" = success
@@ -168,6 +224,21 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
+      - name: Download Linux Local producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-local-linux-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/local/linux
+      - name: Download macOS Local producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-local-macos-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/local/macos
+      - name: Download Windows Local producer evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ide-execution-location-local-windows-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/execution-location/local/windows
       - name: Download WSL producer evidence
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
@@ -183,7 +254,7 @@ jobs:
         with:
           name: ide-execution-location-ssh-${{ github.run_attempt }}
           path: ${{ runner.temp }}/execution-location/ssh
-      - name: Rehash every producer and require all 300 trajectories
+      - name: Rehash every producer and require all 600 trajectories
         run: >-
           node packages/cli/scripts/verify-ide-roadmap-execution-location.mjs
           --evidence-root "$RUNNER_TEMP/execution-location"
@@ -195,10 +266,21 @@ jobs:
           --run-attempt "$GITHUB_RUN_ATTEMPT"
           --event-name "$GITHUB_EVENT_NAME"
           --output "$RUNNER_TEMP/execution-location-aggregate.json"
+          --repository-root "$GITHUB_WORKSPACE"
+          --fragment-output-dir "$RUNNER_TEMP/location-drain-audit-fragments"
+          --fragment-artifact-name "$CC_LOCATION_AUDIT_ARTIFACT"
       - name: Upload trusted execution-location aggregate
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ide-execution-location-aggregate-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/execution-location-aggregate.json
+          path: |
+            ${{ runner.temp }}/execution-location-aggregate.json
+            ${{ runner.temp }}/location-drain-audit-fragments/
+          if-no-files-found: error
+      - name: Upload canonical LOCATION-DRAIN audit fragments
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_LOCATION_AUDIT_ARTIFACT }}
+          path: ${{ runner.temp }}/location-drain-audit-fragments/
           if-no-files-found: error

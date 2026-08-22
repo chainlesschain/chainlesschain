@@ -460,6 +460,42 @@ describe("classifyAutoModeSafety", () => {
     );
   });
 
+  it("detects a quoted PowerShell destination outside the workspace", () => {
+    const result = classify(
+      'Copy-Item -LiteralPath "C:\\repo\\a.txt" -Destination "C:\\Windows\\Temp\\a.txt"',
+      {
+        platform: "win32",
+        cwd: "C:\\repo",
+        workspaceRoot: "C:\\repo",
+      },
+    );
+    expect(result.categories).toContain(SAFETY_CATEGORY.WORKSPACE_SCOPE_ESCAPE);
+  });
+
+  it("fails closed on a PowerShell variable write target", () => {
+    const result = classify(
+      "$destination = 'C:\\Windows\\Temp\\a.txt'; Copy-Item C:\\repo\\a.txt -Destination $destination",
+      {
+        platform: "win32",
+        cwd: "C:\\repo",
+        workspaceRoot: "C:\\repo",
+      },
+    );
+    expect(result.categories).toContain(SAFETY_CATEGORY.WORKSPACE_SCOPE_ESCAPE);
+  });
+
+  it("keeps zsh conditional commands behind destructive safety classification", () => {
+    const result = classify(
+      "zsh -c '[[ -n \"$target\" ]] && rm -rf /tmp/outside'",
+      {
+        platform: "linux",
+        cwd: "/repo",
+        workspaceRoot: "/repo",
+      },
+    );
+    expect(result.categories).toContain(SAFETY_CATEGORY.FILESYSTEM_DESTRUCTIVE);
+  });
+
   it("does not interpret a quoted redirect example as a shell write", () => {
     const result = classify('echo "example: echo x > /etc/hosts"', {
       platform: "linux",

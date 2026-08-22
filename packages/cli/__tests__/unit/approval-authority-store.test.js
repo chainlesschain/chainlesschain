@@ -371,12 +371,27 @@ describe("ApprovalAuthorityStore", () => {
     });
   });
 
-  it("uses a record revision as a compare-and-swap token", () => {
+  it("binds mid-turn approval to operation fingerprint and record revision", () => {
     const store = makeStore();
     const card = store.issueRequest({
       requestId: "request-cas",
       descriptor: descriptor(),
       binding: binding(),
+    });
+
+    expect(
+      store.resolveRequest(
+        "request-cas",
+        resolution(card, {
+          fingerprint: computeOperationFingerprint(
+            descriptor({ targetEnv: "ssh:changed-mid-turn" }),
+          ),
+        }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      approved: false,
+      reason: "fingerprint-mismatch",
     });
 
     expect(
