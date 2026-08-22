@@ -9,6 +9,7 @@ import http from "node:http";
 import https from "node:https";
 import { lookup as dnsLookup } from "node:dns";
 import { URL } from "node:url";
+import { createHash } from "node:crypto";
 
 const DEFAULT_MAX_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -140,6 +141,35 @@ function stripTags(html) {
   return String(html).replace(/<[^>]+>/g, "");
 }
 
+function webFetchCacheKey(parsed, { format, maxBytes, maxRedirects, headers }) {
+  // A caller-provided header can carry credentials or change representation.
+  // Keep those requests out of the shared host cache entirely.
+  if (
+    (headers && Object.keys(headers).length > 0) ||
+    parsed.username ||
+    parsed.password
+  ) {
+    return null;
+  }
+  const payload = JSON.stringify({
+    url: parsed.toString(),
+    format,
+    maxBytes,
+    maxRedirects,
+  });
+  // Do not retain a raw URL/query as a long-lived Map key in the host cache.
+  return `web-fetch:${createHash("sha256").update(payload).digest("hex")}`;
+}
+
+function hostBudgetUnavailable(tool, error) {
+  const reason = String(error?.budgetReason || "unavailable").slice(0, 128);
+  return {
+    error: `${tool} unavailable: host resource budget (${reason})`,
+    code: "ERR_HOST_RESOURCE_BUDGET",
+    reason,
+  };
+}
+
 /**
  * A `lookup` for http(s).request that resolves the hostname and REJECTS the
  * connection if any resolved IP is private/loopback/link-local. checkAllowed
@@ -243,6 +273,7 @@ export async function webFetch(url, options = {}) {
     config = {},
     headers = {},
     maxRedirects = 3,
+    hostResourceBudget = null,
   } = options;
 
   const check = checkAllowed(url, config);
@@ -250,53 +281,94 @@ export async function webFetch(url, options = {}) {
     return { error: `web_fetch blocked: ${check.reason}` };
   }
 
-  let parsed = check.url;
-  let redirects = 0;
-  let response;
-  while (true) {
-    response = await _doRequest(parsed, {
-      maxBytes,
-      timeout,
-      headers,
-      allowPrivateHosts: config.allowPrivateHosts,
-    });
-    if (!response.redirect) break;
-    if (++redirects > maxRedirects) {
-      return { error: "too many redirects" };
-    }
-    const next = new URL(response.redirect, parsed);
-    const nextCheck = checkAllowed(next.toString(), config);
-    if (!nextCheck.allowed) {
-      return { error: `redirect blocked: ${nextCheck.reason}` };
-    }
-    parsed = nextCheck.url;
-  }
-
-  const { statusCode, headers: respHeaders, body } = response;
-  const contentType = String(respHeaders["content-type"] || "");
-
-  let output = body;
-  let outputFormat = format;
-  if (format === "markdown") {
-    output = /html/i.test(contentType) ? htmlToMarkdown(body) : body;
-  } else if (format === "text") {
-    output = /html/i.test(contentType) ? stripTags(body) : body;
-  } else if (format === "json") {
+  const cacheKey = webFetchCacheKey(check.url, {
+    format,
+    maxBytes,
+    maxRedirects,
+    headers,
+  });
+  if (cacheKey && hostResourceBudget?.getWebFetch) {
     try {
-      output = JSON.parse(body);
-    } catch {
-      return { error: "response is not valid JSON", statusCode, body };
+      const cached = hostResourceBudget.getWebFetch(cacheKey);
+      if (cached) return { ...cached, cached: true };
+    } catch (error) {
+      return hostBudgetUnavailable("web_fetch", error);
     }
   }
 
-  return {
-    url: parsed.toString(),
-    statusCode,
-    contentType,
-    format: outputFormat,
-    bytes: Buffer.byteLength(body, "utf8"),
-    content: output,
-  };
+  let toolLease = null;
+  if (hostResourceBudget) {
+    try {
+      if (typeof hostResourceBudget.admitTool !== "function") {
+        throw new TypeError(
+          "host resource budget does not provide admitTool()",
+        );
+      }
+      toolLease = hostResourceBudget.admitTool({ kind: "web-fetch" });
+    } catch (error) {
+      return hostBudgetUnavailable("web_fetch", error);
+    }
+  }
+
+  try {
+    let parsed = check.url;
+    let redirects = 0;
+    let response;
+    while (true) {
+      response = await _doRequest(parsed, {
+        maxBytes,
+        timeout,
+        headers,
+        allowPrivateHosts: config.allowPrivateHosts,
+      });
+      if (!response.redirect) break;
+      if (++redirects > maxRedirects) {
+        return { error: "too many redirects" };
+      }
+      const next = new URL(response.redirect, parsed);
+      const nextCheck = checkAllowed(next.toString(), config);
+      if (!nextCheck.allowed) {
+        return { error: `redirect blocked: ${nextCheck.reason}` };
+      }
+      parsed = nextCheck.url;
+    }
+
+    const { statusCode, headers: respHeaders, body } = response;
+    const contentType = String(respHeaders["content-type"] || "");
+
+    let output = body;
+    let outputFormat = format;
+    if (format === "markdown") {
+      output = /html/i.test(contentType) ? htmlToMarkdown(body) : body;
+    } else if (format === "text") {
+      output = /html/i.test(contentType) ? stripTags(body) : body;
+    } else if (format === "json") {
+      try {
+        output = JSON.parse(body);
+      } catch {
+        return { error: "response is not valid JSON", statusCode, body };
+      }
+    }
+
+    const result = {
+      url: parsed.toString(),
+      statusCode,
+      contentType,
+      format: outputFormat,
+      bytes: Buffer.byteLength(body, "utf8"),
+      content: output,
+    };
+    if (cacheKey && hostResourceBudget?.putWebFetch) {
+      try {
+        hostResourceBudget.putWebFetch(cacheKey, result);
+      } catch {
+        // Cache failures never weaken the completed, bounded I/O result.
+      }
+    }
+    return result;
+  } finally {
+    toolLease?.release();
+  }
 }
 
 // `lookup` is injectable so tests can resolve a domain to a private IP without

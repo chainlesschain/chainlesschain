@@ -18,6 +18,7 @@ import { URL } from "url";
 const DEFAULT_MAX_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RESULTS = 8;
+export const MAX_WEB_SEARCH_RESULTS = 20;
 
 const KEYED_PROVIDERS = ["tavily", "brave", "bocha", "qianfan"];
 const KEYLESS_PROVIDERS = ["duckduckgo", "searxng", "baidu"];
@@ -38,7 +39,11 @@ export function resolveApiKey(provider, options = {}, config = {}) {
   switch (provider) {
     case "tavily":
       return (
-        options.apiKey || config.tavilyApiKey || config.apiKey || env.TAVILY_API_KEY || ""
+        options.apiKey ||
+        config.tavilyApiKey ||
+        config.apiKey ||
+        env.TAVILY_API_KEY ||
+        ""
       );
     case "brave":
       return (
@@ -51,7 +56,11 @@ export function resolveApiKey(provider, options = {}, config = {}) {
       );
     case "bocha":
       return (
-        options.apiKey || config.bochaApiKey || config.apiKey || env.BOCHA_API_KEY || ""
+        options.apiKey ||
+        config.bochaApiKey ||
+        config.apiKey ||
+        env.BOCHA_API_KEY ||
+        ""
       );
     case "qianfan":
       return (
@@ -82,7 +91,10 @@ export function resolveProvider(options = {}, config = {}) {
   return "duckduckgo";
 }
 
-function _request(urlStr, { method = "GET", headers = {}, body = null, timeout, maxBytes }) {
+function _request(
+  urlStr,
+  { method = "GET", headers = {}, body = null, timeout, maxBytes },
+) {
   const parsed = new URL(urlStr);
   const lib = parsed.protocol === "https:" ? _deps.https : _deps.http;
   return new Promise((resolve, reject) => {
@@ -147,6 +159,22 @@ function _clean(s) {
   return _decodeEntities(_stripTags(s)).replace(/\s+/g, " ").trim();
 }
 
+function normalizeMaxResults(value) {
+  const parsed = Number(value);
+  const requested =
+    Number.isSafeInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_RESULTS;
+  return Math.min(requested, MAX_WEB_SEARCH_RESULTS);
+}
+
+function hostBudgetUnavailable(error) {
+  const reason = String(error?.budgetReason || "unavailable").slice(0, 128);
+  return {
+    error: `web_search unavailable: host resource budget (${reason})`,
+    code: "ERR_HOST_RESOURCE_BUDGET",
+    reason,
+  };
+}
+
 // ---- Provider adapters: each returns { results: [{title,url,snippet}], answer } ----
 
 async function _searchTavily(query, { apiKey, maxResults, timeout, maxBytes }) {
@@ -167,7 +195,9 @@ async function _searchTavily(query, { apiKey, maxResults, timeout, maxBytes }) {
     maxBytes,
   });
   if (res.statusCode >= 400) {
-    return { error: `tavily HTTP ${res.statusCode}: ${res.body.slice(0, 200)}` };
+    return {
+      error: `tavily HTTP ${res.statusCode}: ${res.body.slice(0, 200)}`,
+    };
   }
   let json;
   try {
@@ -326,10 +356,7 @@ async function _searchQianfan(
     url: r.url || "",
     snippet: _clean(r.content || r.web_anchor || ""),
   }));
-  const answer =
-    json.answer ||
-    json.choices?.[0]?.message?.content ||
-    "";
+  const answer = json.answer || json.choices?.[0]?.message?.content || "";
   return { results, answer: typeof answer === "string" ? answer : "" };
 }
 
@@ -362,7 +389,8 @@ async function _searchBaidu(query, { maxResults, timeout, maxBytes }) {
   // Markup-agnostic: anchor each result on its <h3 class="t|c-title"> heading,
   // pull the URL from the anchor inside it (a baidu.com/link?url= redirect that
   // web_fetch resolves), and take the text up to the next heading as snippet.
-  const h3re = /<h3[^>]*class="[^"]*\b(?:t|c-title)\b[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+  const h3re =
+    /<h3[^>]*class="[^"]*\b(?:t|c-title)\b[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
   const marks = [];
   let m;
   while ((m = h3re.exec(html)) !== null) {
@@ -381,7 +409,10 @@ async function _searchBaidu(query, { maxResults, timeout, maxBytes }) {
   return { results, answer: "" };
 }
 
-async function _searchSearxng(query, { instanceUrl, maxResults, timeout, maxBytes }) {
+async function _searchSearxng(
+  query,
+  { instanceUrl, maxResults, timeout, maxBytes },
+) {
   if (!instanceUrl) return { error: "searxng: missing instanceUrl" };
   const base = instanceUrl.replace(/\/+$/, "");
   const url = `${base}/search?q=${encodeURIComponent(query)}&format=json`;
@@ -398,7 +429,9 @@ async function _searchSearxng(query, { instanceUrl, maxResults, timeout, maxByte
   try {
     json = JSON.parse(res.body);
   } catch {
-    return { error: "searxng: invalid JSON response (is json format enabled?)" };
+    return {
+      error: "searxng: invalid JSON response (is json format enabled?)",
+    };
   }
   const results = (json.results || []).slice(0, maxResults).map((r) => ({
     title: _clean(r.title || ""),
@@ -419,10 +452,7 @@ export async function webSearch(query, options = {}) {
 
   const config = options.config || {};
   const provider = resolveProvider(options, config);
-  const maxResults =
-    Number(options.maxResults) ||
-    Number(config.maxResults) ||
-    DEFAULT_MAX_RESULTS;
+  let maxResults = normalizeMaxResults(options.maxResults ?? config.maxResults);
   const timeout = Number(options.timeout) || DEFAULT_TIMEOUT_MS;
   const maxBytes = Number(options.maxBytes) || DEFAULT_MAX_BYTES;
 
@@ -432,56 +462,92 @@ export async function webSearch(query, options = {}) {
     };
   }
 
-  const apiKey = resolveApiKey(provider, options, config);
-  const common = { apiKey, maxResults, timeout, maxBytes };
-
-  let out;
-  try {
-    switch (provider) {
-      case "tavily":
-        out = await _searchTavily(q, common);
-        break;
-      case "brave":
-        out = await _searchBrave(q, common);
-        break;
-      case "bocha":
-        out = await _searchBocha(q, common);
-        break;
-      case "qianfan":
-        out = await _searchQianfan(q, {
-          ...common,
-          endpoint: options.qianfanUrl || config.qianfanUrl,
-        });
-        break;
-      case "searxng":
-        out = await _searchSearxng(q, {
-          instanceUrl: options.instanceUrl || config.instanceUrl,
-          maxResults,
-          timeout,
-          maxBytes,
-        });
-        break;
-      case "baidu":
-        out = await _searchBaidu(q, { maxResults, timeout, maxBytes });
-        break;
-      case "duckduckgo":
-      default:
-        out = await _searchDuckDuckGo(q, { maxResults, timeout, maxBytes });
-        break;
+  const hostResourceBudget = options.hostResourceBudget || null;
+  if (hostResourceBudget?.capWebSearchResults) {
+    try {
+      maxResults = normalizeMaxResults(
+        hostResourceBudget.capWebSearchResults(maxResults),
+      );
+    } catch (error) {
+      return hostBudgetUnavailable(error);
     }
-  } catch (err) {
-    return { error: `web_search (${provider}) failed: ${err.message}`, provider };
   }
 
-  if (out && out.error) return { ...out, provider };
-  const results = (out && out.results) || [];
-  return {
-    query: q,
-    provider,
-    count: results.length,
-    results,
-    answer: (out && out.answer) || "",
-  };
+  let toolLease = null;
+  if (hostResourceBudget) {
+    try {
+      if (typeof hostResourceBudget.admitTool !== "function") {
+        throw new TypeError(
+          "host resource budget does not provide admitTool()",
+        );
+      }
+      toolLease = hostResourceBudget.admitTool({ kind: "web-search" });
+    } catch (error) {
+      return hostBudgetUnavailable(error);
+    }
+  }
+
+  try {
+    const apiKey = resolveApiKey(provider, options, config);
+    const common = { apiKey, maxResults, timeout, maxBytes };
+
+    let out;
+    try {
+      switch (provider) {
+        case "tavily":
+          out = await _searchTavily(q, common);
+          break;
+        case "brave":
+          out = await _searchBrave(q, common);
+          break;
+        case "bocha":
+          out = await _searchBocha(q, common);
+          break;
+        case "qianfan":
+          out = await _searchQianfan(q, {
+            ...common,
+            endpoint: options.qianfanUrl || config.qianfanUrl,
+          });
+          break;
+        case "searxng":
+          out = await _searchSearxng(q, {
+            instanceUrl: options.instanceUrl || config.instanceUrl,
+            maxResults,
+            timeout,
+            maxBytes,
+          });
+          break;
+        case "baidu":
+          out = await _searchBaidu(q, { maxResults, timeout, maxBytes });
+          break;
+        case "duckduckgo":
+        default:
+          out = await _searchDuckDuckGo(q, {
+            maxResults,
+            timeout,
+            maxBytes,
+          });
+          break;
+      }
+    } catch (err) {
+      return {
+        error: `web_search (${provider}) failed: ${err.message}`,
+        provider,
+      };
+    }
+
+    if (out && out.error) return { ...out, provider };
+    const results = (out && out.results) || [];
+    return {
+      query: q,
+      provider,
+      count: results.length,
+      results,
+      answer: (out && out.answer) || "",
+    };
+  } finally {
+    toolLease?.release();
+  }
 }
 
 export const _deps = { http, https };
