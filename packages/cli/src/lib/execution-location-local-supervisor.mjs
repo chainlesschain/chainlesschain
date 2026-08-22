@@ -70,6 +70,7 @@ async function main() {
     );
   }
   let inputDescriptor = null;
+  let stagedInput = null;
   if (options.stdinFile) {
     const requested = fs.lstatSync(options.stdinFile);
     assert.ok(
@@ -91,6 +92,12 @@ async function main() {
         opened.ino === requested.ino &&
         opened.nlink === 1,
       "local target stdin file changed while opening",
+    );
+    stagedInput = fs.readFileSync(inputDescriptor);
+    assert.equal(
+      stagedInput.length,
+      requested.size,
+      "local target stdin file changed while reading",
     );
   }
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
@@ -116,11 +123,9 @@ async function main() {
         env: childEnvironment,
         shell: false,
         stdio: [
-          resume
+          resume || stagedInput !== null
             ? "pipe"
-            : inputDescriptor !== null
-              ? inputDescriptor
-              : forwardsInput
+            : forwardsInput
                 ? "inherit"
                 : "ignore",
           "pipe",
@@ -134,6 +139,7 @@ async function main() {
   }
 
   if (resume) child.stdin.end("/exit\n", "utf8");
+  else if (stagedInput !== null) child.stdin.end(stagedInput);
   let outputPrefix = "";
   let cpuLimitReached = false;
   let cpuTimer = null;
