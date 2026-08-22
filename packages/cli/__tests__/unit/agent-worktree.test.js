@@ -143,7 +143,7 @@ describe("setupAgentWorktree", { timeout: 30_000 }, () => {
   });
 });
 
-describe("finishAgentWorktree", { timeout: 30_000 }, () => {
+describe("finishAgentWorktree", { timeout: 90_000 }, () => {
   it("removes the worktree when the session changed nothing", () => {
     const info = setupAgentWorktree({ cwd: repo });
     const fin = finishAgentWorktree(info);

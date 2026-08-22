@@ -450,7 +450,7 @@
       "testId": "detects untracked work when status.showUntrackedFiles is disabled",
       "producer": {
         "path": "packages/cli/__tests__/unit/agent-worktree.test.js",
-        "sha256": "sha256:717a21a01ac9d7fd1a8613e18c54641e9b767d35b4968e3e2fc2e0030485d757"
+        "sha256": "sha256:efae219b54a0b29d668cd7a6e0d54448055eabb68be4a83d9dfaf34077de9a97"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
