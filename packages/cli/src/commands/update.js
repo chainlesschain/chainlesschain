@@ -91,6 +91,7 @@ export async function selfUpdateCli(targetVersion) {
         ...invocations.npm.prefixArgs,
         "install",
         "-g",
+        "--include=optional",
         `chainlesschain@${targetVersion}`,
       ],
       "update:npm-install",
