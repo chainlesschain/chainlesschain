@@ -257,7 +257,11 @@ describe("ensurePluginLspServers — trust gating", () => {
     ).toHaveLength(0);
 
     // Trust it → now its server registers.
-    trustPlugin("toml-tools", { scope: "project", version: "1.0.0" });
+    trustPlugin("toml-tools", {
+      scope: "project",
+      version: "1.0.0",
+      workspaceRoot: cwd,
+    });
     _resetPluginServers();
     _resetPluginLspLoadState();
     expect(

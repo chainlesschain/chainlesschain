@@ -30,6 +30,11 @@ import {
   transformBackgroundLaunchArgv,
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
+import {
+  captureClaudeStorageLaunchEnvironment,
+  restoreClaudeStorageLaunchEnvironment,
+  validateClaudeStorageLaunchEnvironment,
+} from "../lib/claude-project-auto-memory.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -466,6 +471,10 @@ export function registerAgentCommand(program) {
       "Emit live assistant-text deltas as stream_event lines (requires --output-format stream-json)",
     )
     .option(
+      "--include-hook-events",
+      "Emit redacted hook and subagent lifecycle events (requires --output-format stream-json)",
+    )
+    .option(
       "--goal [id]",
       "Bind a cc goal into the run (id, or omit the value to auto-resolve the active goal)",
     )
@@ -620,6 +629,20 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      // These variables select canonical config/session storage. Capture and
+      // validate them before any project settings file can merge an arbitrary
+      // `env` map; settings remain useful for child tools but never acquire
+      // launcher authority over transcript or automatic-memory placement.
+      const claudeStorageLaunchEnv = captureClaudeStorageLaunchEnvironment();
+      try {
+        validateClaudeStorageLaunchEnvironment(claudeStorageLaunchEnv, {
+          cwd: process.cwd(),
+        });
+      } catch (error) {
+        process.stderr.write(`Error: ${error.message}\n`);
+        process.exitCode = 1;
+        return;
+      }
       // Scope is immutable session authority. Resolve every scope/fork
       // conflict before worktree creation, session forking, bootstrap, or any
       // other externally visible setup performed by this action.
@@ -636,18 +659,16 @@ export function registerAgentCommand(program) {
       // --capabilities: print the machine-readable manifest and exit — no
       // config, no bootstrap, no network (gap-analysis 2026-07-11 快速收益 #6).
       if (options.capabilities) {
-        const { buildAgentCapabilities } = await import(
-          "../lib/headless-manifest.js"
-        );
+        const { buildAgentCapabilities } =
+          await import("../lib/headless-manifest.js");
         console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
         return;
       }
       let toolAdmission = null;
       if (process.env.CC_TOOL_ADMISSION) {
         try {
-          const { parseToolAdmissionConfig } = await import(
-            "../lib/agent-tool-admission.js"
-          );
+          const { parseToolAdmissionConfig } =
+            await import("../lib/agent-tool-admission.js");
           toolAdmission = parseToolAdmissionConfig(
             process.env.CC_TOOL_ADMISSION,
           );
@@ -724,9 +745,8 @@ export function registerAgentCommand(program) {
       // screen readers (mono theme + no repainting status line). Applied
       // before anything renders.
       {
-        const { screenReaderRequested, applyScreenReaderMode } = await import(
-          "../lib/accessibility.js"
-        );
+        const { screenReaderRequested, applyScreenReaderMode } =
+          await import("../lib/accessibility.js");
         if (screenReaderRequested(options)) {
           applyScreenReaderMode();
         }
@@ -759,9 +779,8 @@ export function registerAgentCommand(program) {
       };
       if (options.worktree !== undefined || backgroundRequested) {
         try {
-          const { resolveBackgroundWorktreePolicy } = await import(
-            "../lib/background-worktree-policy.js"
-          );
+          const { resolveBackgroundWorktreePolicy } =
+            await import("../lib/background-worktree-policy.js");
           worktreeDecision = resolveBackgroundWorktreePolicy({
             background: backgroundRequested,
             worktree: options.worktree,
@@ -813,9 +832,8 @@ export function registerAgentCommand(program) {
       };
       if (worktreeDecision.enabled) {
         try {
-          const { setupAgentWorktree, finishAgentWorktree } = await import(
-            "../lib/agent-worktree.js"
-          );
+          const { setupAgentWorktree, finishAgentWorktree } =
+            await import("../lib/agent-worktree.js");
           _finishAgentWorktreeFn = finishAgentWorktree;
           const detectedRepoRoot = worktreeDecision.repoRoot || invocationCwd;
           const worktreeCwd =
@@ -843,9 +861,8 @@ export function registerAgentCommand(program) {
             const { loadHooks } = await import("../lib/settings-hooks.cjs");
             _worktreeSettingsHooks =
               loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
-            const { runWorktreeCreateHooks, dispatchAsyncHooks } = await import(
-              "../lib/settings-hook-events.js"
-            );
+            const { runWorktreeCreateHooks, dispatchAsyncHooks } =
+              await import("../lib/settings-hook-events.js");
             runWorktreeCreateHooks(_worktreeSettingsHooks, {
               worktreePath: _worktree.path,
               branch: _worktree.branch,
@@ -853,9 +870,8 @@ export function registerAgentCommand(program) {
               cwd: _worktree.path,
             });
             if (!_worktreeAsyncSupervisor) {
-              const { AsyncHookSupervisor } = await import(
-                "../lib/async-hook-supervisor.js"
-              );
+              const { AsyncHookSupervisor } =
+                await import("../lib/async-hook-supervisor.js");
               _worktreeAsyncSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });
@@ -940,9 +956,8 @@ export function registerAgentCommand(program) {
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.
-      const { resolveAutoCheckpoint } = await import(
-        "../lib/auto-checkpoint-default.js"
-      );
+      const { resolveAutoCheckpoint } =
+        await import("../lib/auto-checkpoint-default.js");
       const autoCheckpoint = resolveAutoCheckpoint({
         flagValue: options.checkpoint,
         flagSource: command?.getOptionValueSource?.("checkpoint"),
@@ -969,15 +984,13 @@ export function registerAgentCommand(program) {
         if (headlessIntent) {
           // Headless replays the JSONL store only, so resolve "most recent"
           // from there 鈥?a DB-only id would resume into an empty transcript.
-          const { getLastSessionId } = await import(
-            "../harness/jsonl-session-store.js"
-          );
+          const { getLastSessionId } =
+            await import("../harness/jsonl-session-store.js");
           options.session = getLastSessionId();
         } else {
           // Interactive: picker across both stores (agent REPL rebuilds either).
-          const { pickRecentSession } = await import(
-            "../lib/session-picker.js"
-          );
+          const { pickRecentSession } =
+            await import("../lib/session-picker.js");
           const picked = await pickRecentSession(ctx, {
             message: "Resume which agent session?",
           });
@@ -1000,9 +1013,8 @@ export function registerAgentCommand(program) {
       // a no-op (silent) for a fresh run.
       if (options.forkSession && options.session) {
         const store = await import("../harness/jsonl-session-store.js");
-        const { applyForkSession } = await import(
-          "../runtime/headless-runner.js"
-        );
+        const { applyForkSession } =
+          await import("../runtime/headless-runner.js");
         const fork = applyForkSession(
           {
             forkSession: true,
@@ -1024,16 +1036,16 @@ export function registerAgentCommand(program) {
         }
       }
 
-      // --include-partial-messages only makes sense for NDJSON output: the
-      // stream-input mode is always NDJSON, otherwise require stream-json
-      // explicitly (fail fast rather than silently dropping the deltas).
+      // Event projections only make sense for NDJSON output: the stream-input
+      // mode is always NDJSON, otherwise require stream-json explicitly (fail
+      // fast rather than silently dropping an opt-in machine contract).
       if (
-        options.includePartialMessages &&
+        (options.includePartialMessages || options.includeHookEvents) &&
         options.inputFormat !== "stream-json" &&
         options.outputFormat !== "stream-json"
       ) {
         process.stderr.write(
-          "--include-partial-messages requires --output-format stream-json.\n",
+          "--include-partial-messages and --include-hook-events require --output-format stream-json.\n",
         );
         await _finishWorktree();
         process.exit(1);
@@ -1058,6 +1070,12 @@ export function registerAgentCommand(program) {
       // block below may default options.model 鈥?so vision input can tell an
       // explicit model from a settings default.
       const explicitCliModel = options.model;
+      // Launcher environment is captured before a settings file can merge its
+      // own `env` map. In particular, a checked-in project settings file must
+      // not manufacture ANTHROPIC_MODEL / CLAUDE_CODE_* launcher authority.
+      const startupAnthropicModel = process.env.ANTHROPIC_MODEL;
+      const startupAnthropicDefaultModel = process.env.ANTHROPIC_DEFAULT_MODEL;
+      let settingsModel = null;
 
       // --settings native config overrides: a .claude/settings.json-shaped file
       // (and the discovered .claude settings) may set `model` + `env` for this
@@ -1068,9 +1086,8 @@ export function registerAgentCommand(program) {
       let settingsSandbox = null;
       let managedSettingsSandbox = null;
       try {
-        const { loadSettingsConfig } = await import(
-          "../lib/settings-loader.cjs"
-        );
+        const { loadSettingsConfig } =
+          await import("../lib/settings-loader.cjs");
         const sc = loadSettingsConfig({
           cwd: process.cwd(),
           unattendedActionPolicy: options.unattended
@@ -1088,7 +1105,10 @@ export function registerAgentCommand(program) {
         for (const [k, v] of Object.entries(sc.env || {})) {
           process.env[k] = v;
         }
-        if (!options.model && sc.model) options.model = sc.model;
+        if (!options.model && sc.model) {
+          options.model = sc.model;
+          settingsModel = sc.model;
+        }
         settingsSandbox = sc.sandbox || null;
         managedSettingsSandbox = sc.managedSandbox || null;
       } catch (error) {
@@ -1099,6 +1119,8 @@ export function registerAgentCommand(program) {
         }
         // User/project settings overrides remain best-effort. Organization
         // managed settings are handled above and may never fail open.
+      } finally {
+        restoreClaudeStorageLaunchEnvironment(claudeStorageLaunchEnv);
       }
 
       let resolvedAgentSandbox;
@@ -1194,7 +1216,7 @@ export function registerAgentCommand(program) {
       // flags there, and BEFORE every dispatch (headless/stream/REPL) since
       // they all read options.provider/model/baseUrl/apiKey.
       {
-        const { applyConfigLlmDefaults, reconcileConfigLlmProvider } =
+        const { applyAgentModelDefaults, reconcileConfigLlmProvider } =
           await import("../lib/llm-config-defaults.js");
 
         // Self-repair a MISLABELED config (provider disagrees with the provider
@@ -1222,8 +1244,16 @@ export function registerAgentCommand(program) {
           }
         }
 
-        applyConfigLlmDefaults(options, repairedLlm, {
-          explicitModel: explicitCliModel, // settings-file model must not ride
+        applyAgentModelDefaults(options, repairedLlm, {
+          explicitModel: explicitCliModel,
+          anthropicModel: startupAnthropicModel,
+          anthropicDefaultModel: startupAnthropicDefaultModel,
+          settingsModel,
+          // ANTHROPIC_DEFAULT_MODEL is deliberately a new-session fallback;
+          // a resume/continue keeps its recorded model unless a higher source
+          // explicitly replaces it.
+          isNewSession:
+            !options.session && !options.continue && !options.resume,
         });
 
         // Also reconcile the RESOLVED options: the editor panel may have already
@@ -1247,9 +1277,8 @@ export function registerAgentCommand(program) {
       // never pollutes spawned-bin test stderr.
       if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
         try {
-          const { maybeWarnDeprecatedModel } = await import(
-            "../lib/model-deprecation.js"
-          );
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
           maybeWarnDeprecatedModel({ model: options.model });
         } catch {
           /* fail-open: a deprecation notice must never affect the run */
@@ -1335,9 +1364,8 @@ export function registerAgentCommand(program) {
       // stdin; output is always NDJSON. Routed before single-prompt handling
       // so stdin is consumed as events, not as one prompt.
       if (options.inputFormat === "stream-json") {
-        const { runAgentHeadlessStream } = await import(
-          "../runtime/headless-stream.js"
-        );
+        const { runAgentHeadlessStream } =
+          await import("../runtime/headless-stream.js");
         const { parseToolList } = await import("../runtime/headless-runner.js");
         const cwd = process.cwd();
         let outcome;
@@ -1378,6 +1406,7 @@ export function registerAgentCommand(program) {
             // (flag absent) leaves the default-on path byte-identical.
             projectMemory: options.projectMemory,
             includePartialMessages: options.includePartialMessages === true,
+            includeHookEvents: options.includeHookEvents === true,
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
             useRegisteredMcp: options.mcp !== false,
@@ -1406,6 +1435,7 @@ export function registerAgentCommand(program) {
             // into the system prompt, and a per-turn `structured_result` event is
             // appended after each turn (parity with single-prompt --json-schema).
             jsonSchema: options.jsonSchema || null,
+            claudeStorageLaunchEnv,
           });
         } catch (err) {
           process.stderr.write(
@@ -1569,9 +1599,8 @@ export function registerAgentCommand(program) {
         const resumeRequested =
           Boolean(options.continue) || options.resume !== undefined;
         if (resumeRequested && options.session) {
-          const { sessionHasPersistedEvidence } = await import(
-            "../harness/jsonl-session-store.js"
-          );
+          const { sessionHasPersistedEvidence } =
+            await import("../harness/jsonl-session-store.js");
           if (!sessionHasPersistedEvidence(options.session)) {
             process.stderr.write(
               `Note: no headless transcript for session "${options.session}" 鈥?` +
@@ -1579,16 +1608,14 @@ export function registerAgentCommand(program) {
             );
           }
         }
-        const { runAgentHeadless, parseToolList } = await import(
-          "../runtime/headless-runner.js"
-        );
+        const { runAgentHeadless, parseToolList } =
+          await import("../runtime/headless-runner.js");
         // --goal-condition: validate the spec up front so a bad prefix fails
         // fast (before any model call) with a clear message.
         if (options.goalCondition) {
           try {
-            const { parseGoalCondition } = await import(
-              "../lib/goal-condition-engine.js"
-            );
+            const { parseGoalCondition } =
+              await import("../lib/goal-condition-engine.js");
             parseGoalCondition(options.goalCondition);
           } catch (e) {
             process.stderr.write(`--goal-condition: ${e.message}\n`);
@@ -1656,6 +1683,8 @@ export function registerAgentCommand(program) {
           projectMemory: options.projectMemory,
           // --include-partial-messages: live token deltas as stream_event lines
           includePartialMessages: options.includePartialMessages === true,
+          // --include-hook-events: redacted lifecycle/progress NDJSON lines
+          includeHookEvents: options.includeHookEvents === true,
           // --goal [id]: bind a cc goal into the run (Phase 1)
           goal: options.goal,
           // --goal-assess: run-end LLM progress assessment (Phase 2)
@@ -1707,6 +1736,7 @@ export function registerAgentCommand(program) {
             : undefined,
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
+          claudeStorageLaunchEnv,
         };
 
         // --json-schema: structured output. Accepts a file path OR inline JSON.
@@ -1872,6 +1902,7 @@ export function registerAgentCommand(program) {
         observabilityScope: hasObservabilityScope
           ? observabilityScope
           : undefined,
+        claudeStorageLaunchEnv,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

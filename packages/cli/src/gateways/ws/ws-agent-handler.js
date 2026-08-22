@@ -69,6 +69,7 @@ import {
   recordSessionBudgetUsage,
   rejectSessionBudgetUsageUnknown,
 } from "../../lib/session-budget-usage.js";
+import { HostResourceBudget } from "../../lib/host-resource-budget.js";
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
@@ -163,6 +164,7 @@ export class WSAgentHandler {
     canonicalSessionStore,
     sessionHostLease = null,
     sessionBudgetRoot = null,
+    hostResourceBudget = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -173,6 +175,9 @@ export class WSAgentHandler {
     this._sessionHostLease = sessionHostLease;
     this._sessionBudgetRoot = sessionBudgetRoot;
     this._sessionBudget = sessionBudgetRoot?.budget || null;
+    // session-protocol keeps one handler alive across reconnects and incoming
+    // requests, making this authority session-scoped rather than turn-scoped.
+    this._hostResourceBudget = hostResourceBudget || new HostResourceBudget();
     this._onSessionHostLeaseAbort = null;
     if (sessionHostLease?.signal) {
       this._onSessionHostLeaseAbort = () => {
@@ -642,7 +647,8 @@ export class WSAgentHandler {
         model: session.model,
         baseUrl: session.baseUrl,
         apiKey: session.apiKey,
-        signal: signal || this._sessionBudgetSignal || this._sessionHostLease?.signal,
+        signal:
+          signal || this._sessionBudgetSignal || this._sessionHostLease?.signal,
         onlyIfNeeded: true,
         preserveCompletedExchange: true,
         llmQuery: this._compactionLlmQuery,
@@ -1152,11 +1158,10 @@ export class WSAgentHandler {
           strictUsageTelemetry =
             this._resolveCanonicalUsageProtocol() === "call-ledger";
           if (strictUsageTelemetry) this._assertUsageLedgerWritable();
-          const compacted =
-            await this._compactCanonicalHistoryBeforeClaim(
-              requestId,
-              turnSignal,
-            );
+          const compacted = await this._compactCanonicalHistoryBeforeClaim(
+            requestId,
+            turnSignal,
+          );
           if (!compacted) return;
         }
         canonicalTurn ||= this._claimCanonicalTurn(userMessage, requestId);
@@ -1240,6 +1245,7 @@ export class WSAgentHandler {
         cwd: session.projectRoot,
         sessionId: session.id,
         planManager: session.planManager,
+        hostResourceBudget: this._hostResourceBudget,
         enabledToolNames: session.enabledToolNames || null,
         hostManagedToolPolicy: session.hostManagedToolPolicy || null,
         extraToolDefinitions: session.externalToolDefinitions || [],
@@ -1507,7 +1513,10 @@ export class WSAgentHandler {
                 this._persistCanonicalUsageBoundary(event, "unknown");
               }
               if (this._markSessionBudgetUsageUnknown(event)) {
-                rejectSessionBudgetUsageUnknown(event, "WebSocket provider call");
+                rejectSessionBudgetUsageUnknown(
+                  event,
+                  "WebSocket provider call",
+                );
               }
               break;
 
@@ -1624,9 +1633,9 @@ export class WSAgentHandler {
           ? surfacedError?.code || "CC_SESSION_BUDGET_EXHAUSTED"
           : isAbortError(err)
             ? "CC_WS_TURN_INTERRUPTED"
-          : err?.code === "CC_WS_EMPTY_ASSISTANT_RESPONSE"
-            ? "CC_WS_EMPTY_ASSISTANT_RESPONSE"
-            : "CC_WS_TURN_FAILED";
+            : err?.code === "CC_WS_EMPTY_ASSISTANT_RESPONSE"
+              ? "CC_WS_EMPTY_ASSISTANT_RESPONSE"
+              : "CC_WS_TURN_FAILED";
         try {
           this._settleCanonicalFailure(canonicalTurn, failureCode);
         } catch (settlementError) {
@@ -1917,8 +1926,7 @@ export class WSAgentHandler {
             model: session.model,
             baseUrl: session.baseUrl,
             apiKey: session.apiKey,
-            signal:
-              this._sessionBudgetSignal || this._sessionHostLease?.signal,
+            signal: this._sessionBudgetSignal || this._sessionHostLease?.signal,
             force: true,
             preserveCompletedExchange: true,
             llmQuery: this._compactionLlmQuery,

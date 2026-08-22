@@ -326,6 +326,10 @@ export function installFromDirectory(srcDir, opts = {}) {
     // and may ship its own `.plugin-lock.json` or provenance metadata.
     _deps.rmSync(path.join(staged, LOCK_FILENAME), { force: true });
     _deps.rmSync(path.join(staged, SOURCE_METADATA_FILENAME), { force: true });
+    assertStagedRegistryCommandPayload(
+      staged,
+      opts[SOURCE_POLICY_PREFLIGHT]?.registryAuthority,
+    );
 
     const remoteSbomPayloadComparison = buildRemoteSbomPayloadComparison({
       remoteArtifactEvidence:
@@ -657,6 +661,19 @@ function preflightManagedSource(source, opts, action, options = {}) {
         );
       }
     }
+    if (registryAuthority.sourceType === "command") {
+      const command = opts.sourceMetadata.catalogAuthority?.commandSource;
+      if (
+        !command ||
+        command.descriptorIdentity !== registryAuthority.declaredSource ||
+        command.payloadSha256 !== registryAuthority.payloadSha256 ||
+        command.mode !== registryAuthority.commandMode
+      ) {
+        throw new Error(
+          "registry source authority does not match command source authority",
+        );
+      }
+    }
   }
   // Resolve managed identity before exists/clone/cache/process work. The
   // manifest name is checked again by installFromDirectory after materializing
@@ -693,6 +710,7 @@ function preflightManagedSource(source, opts, action, options = {}) {
     decision,
     materialized,
     sourceAuthority,
+    registryAuthority,
   };
   const boundSourceMetadata = opts.sourceMetadata
     ? bindSourcePolicyAuthority(opts.sourceMetadata, {
@@ -3638,7 +3656,16 @@ function normalizeSourceMetadata(value) {
             value.resolvedSource,
             catalogAuthority.archiveSource,
           )
-        : pluginSourceAuthorityDigest(value.resolvedSource, "git", value.ref)
+        : catalogAuthority?.commandSource
+          ? commandSourceAuthorityDigest(
+              value.resolvedSource,
+              catalogAuthority.commandSource,
+            )
+          : pluginSourceAuthorityDigest(
+              value.resolvedSource,
+              "git",
+              value.ref,
+            )
       : null);
   const policyDigest = normalizeSourceAuthorityDigest(value.policyDigest);
   if (resolvedSourceDigest) {
@@ -3650,6 +3677,7 @@ function normalizeSourceMetadata(value) {
   if (catalogAuthority) metadata.catalogAuthority = catalogAuthority;
   assertCatalogRemoteArtifactBindings(metadata);
   assertCatalogArchiveSourceBindings(metadata);
+  assertCatalogCommandSourceBindings(metadata);
   return metadata;
 }
 
@@ -3677,6 +3705,20 @@ function assertCatalogArchiveSourceBindings(metadata) {
   ) {
     throw new Error(
       "marketplace archive authority does not match the selected registry and source",
+    );
+  }
+}
+
+function assertCatalogCommandSourceBindings(metadata) {
+  const command = metadata.catalogAuthority?.commandSource;
+  if (!command) return;
+  if (
+    metadata.type !== "registry" ||
+    !metadata.registry ||
+    metadata.resolvedSource !== command.descriptorIdentity
+  ) {
+    throw new Error(
+      "marketplace command authority requires matching registry source metadata",
     );
   }
 }
@@ -3718,10 +3760,27 @@ function archiveSourceAuthorityDigest(source, archive) {
     .digest("hex");
 }
 
+function commandSourceAuthorityDigest(source, command) {
+  return crypto
+    .createHash("sha256")
+    .update(
+      canonicalJson({
+        kind: "command",
+        descriptorIdentity: sanitizeSource(source),
+        mode: command.mode || command.commandMode || null,
+        payloadSha256: command.payloadSha256 || null,
+      }),
+    )
+    .digest("hex");
+}
+
 function registryResolvedSourceAuthorityDigest(authority) {
   if (!authority) return null;
   if (authority.sourceType === "archive") {
     return archiveSourceAuthorityDigest(authority.declaredSource, authority);
+  }
+  if (authority.sourceType === "command") {
+    return commandSourceAuthorityDigest(authority.declaredSource, authority);
   }
   return pluginSourceAuthorityDigest(
     authority.declaredSource,
@@ -4030,6 +4089,12 @@ function normalizeCatalogAuthority(value) {
     value.remoteArtifactEvidence,
   );
   const archiveSource = normalizeArchiveSourceAuthority(value.archiveSource);
+  const commandSource = normalizeCommandSourceAuthority(value.commandSource);
+  if (archiveSource && commandSource) {
+    throw new Error(
+      "catalogAuthority cannot combine archive and command source authority",
+    );
+  }
   const remoteSbomPayloadComparison = assertRemoteSbomPayloadComparison(
     value.remoteSbomPayloadComparison,
     {
@@ -4137,6 +4202,7 @@ function normalizeCatalogAuthority(value) {
     ...(artifactExpectations ? { artifactExpectations } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
     ...(archiveSource ? { archiveSource } : {}),
+    ...(commandSource ? { commandSource } : {}),
     ...(remoteSbomPayloadComparison ? { remoteSbomPayloadComparison } : {}),
     ...(publisherDeclaration ? { publisherDeclaration } : {}),
     ...(publisherAuthority ? { publisherAuthority } : {}),
@@ -4210,6 +4276,42 @@ function normalizeArchiveSourceAuthority(value) {
     fileCount,
     totalBytes,
     fromCache: value.fromCache === true,
+  };
+}
+
+function normalizeCommandSourceAuthority(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("catalogAuthority.commandSource must be an object");
+  }
+  const descriptorIdentity = cleanBounded(value.descriptorIdentity, 128);
+  const payloadSha256 = cleanBounded(value.payloadSha256, 64)?.toLowerCase();
+  const mode = value.mode;
+  const fileCount = Number(value.fileCount);
+  const totalBytes = Number(value.totalBytes);
+  if (
+    value.schemaVersion !== "cc-plugin-marketplace-command-source/v1" ||
+    value.status !== "descriptor-executed-and-verified" ||
+    !/^command:[a-f0-9]{32}$/u.test(descriptorIdentity || "") ||
+    !/^[a-f0-9]{64}$/u.test(payloadSha256 || "") ||
+    !["copy", "link"].includes(mode) ||
+    !Number.isSafeInteger(fileCount) ||
+    fileCount <= 0 ||
+    fileCount > 10_000 ||
+    !Number.isSafeInteger(totalBytes) ||
+    totalBytes <= 0 ||
+    totalBytes > 256 * 1024 * 1024
+  ) {
+    throw new Error("catalogAuthority.commandSource authority is invalid");
+  }
+  return {
+    schemaVersion: value.schemaVersion,
+    status: value.status,
+    descriptorIdentity,
+    mode,
+    payloadSha256,
+    fileCount,
+    totalBytes,
   };
 }
 
@@ -4615,6 +4717,20 @@ function writeDurableFileAtomic(directory, target, value) {
     fsyncDirectoryBestEffort(directory);
   } finally {
     _deps.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+}
+
+function assertStagedRegistryCommandPayload(staged, authority) {
+  if (authority?.sourceType !== "command") return;
+  const payload = buildMarketplacePayloadSbom(staged);
+  if (
+    payload.digest !== authority.payloadSha256 ||
+    payload.fileCount !== authority.fileCount ||
+    payload.totalBytes !== authority.totalBytes
+  ) {
+    throw new Error(
+      "registry command source payload changed before immutable installation",
+    );
   }
 }
 

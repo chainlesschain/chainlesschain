@@ -18,6 +18,8 @@ import {
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 import { executionBroker } from "./process-execution-broker/index.js";
 import { assertExecutionLocationRunnerLeaseAuthority } from "./execution-location-runner-lifecycle.js";
+import { ensurePrivateDirectory, repairPrivatePaths } from "./secure-fs.js";
+import { getSessionAntiRollbackDirectory } from "./session-anti-rollback-anchor.js";
 import {
   MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
   normalizeExecutionLocationResultBundle,
@@ -649,7 +651,11 @@ function localTargetEnvironment(profile, lifecycleEnvironment) {
   return Object.freeze({
     ...inherited,
     APPDATA: path.join(profile.transport.home, "AppData", "Roaming"),
-    CHAINLESSCHAIN_HOME: profile.transport.home,
+    // `home` is the target account's home directory, not the application
+    // state directory. Pointing CHAINLESSCHAIN_HOME at it makes the
+    // owner-only guard (correctly) refuse to repair a broad user home on
+    // Windows. Keep all CLI state beneath a dedicated child directory.
+    CHAINLESSCHAIN_HOME: path.join(profile.transport.home, ".chainlesschain"),
     CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: profile.transport.securityHome,
     FORCE_COLOR: "0",
     HOME: profile.transport.home,
@@ -662,6 +668,73 @@ function localTargetEnvironment(profile, lifecycleEnvironment) {
         return [entry.slice(0, separator), entry.slice(separator + 1)];
       }),
     ),
+  });
+}
+
+function isLocalSessionPrepare(cliArgs) {
+  return (
+    cliArgs[0] === "session" &&
+    cliArgs[1] === "location" &&
+    cliArgs[2] === "prepare" &&
+    typeof cliArgs[3] === "string"
+  );
+}
+
+/**
+ * Materialize the exact durable directories required by a Local replica
+ * handoff before launching its restricted Windows target process.  The target
+ * is deliberately allowed to write only within these target-owned roots, but
+ * starting one PowerShell ACL repair per directory under a restricted token
+ * can consume the entire bounded target command window.  Create and repair
+ * the fixed tree in one host-side batch, then let the target verify and use
+ * the already-private paths.
+ *
+ * @param {Object} profile
+ * @param {string[]} cliArgs
+ * @param {Object} deps
+ */
+export function prepareLocalTargetState(profile, cliArgs, deps = {}) {
+  if (!isLocalSessionPrepare(cliArgs)) return null;
+  const sessionId = safeName(
+    cliArgs[3],
+    "Local target replica session id",
+    1024,
+  );
+  const stateHome = path.join(profile.transport.home, ".chainlesschain");
+  const antiRollbackDirectory = getSessionAntiRollbackDirectory({
+    homeDir: stateHome,
+    anchorBase: profile.transport.securityHome,
+  });
+  const sessionDigest = createHash("sha256").update(sessionId).digest("hex");
+  const directories = [
+    stateHome,
+    path.join(stateHome, "sessions"),
+    profile.transport.securityHome,
+    path.join(profile.transport.securityHome, "sessions-v1"),
+    antiRollbackDirectory,
+    path.join(antiRollbackDirectory, "namespace"),
+    path.join(antiRollbackDirectory, "records"),
+    path.join(antiRollbackDirectory, "records", sessionDigest.slice(0, 2)),
+  ];
+  const uniqueDirectories = [...new Set(directories)];
+  const ensure = deps.ensurePrivateDirectory || ensurePrivateDirectory;
+  const repair = deps.repairPrivatePaths || repairPrivatePaths;
+  const platform = deps.platform || process.platform;
+  for (const directory of uniqueDirectories) {
+    ensure(
+      directory,
+      platform === "win32"
+        ? { applyWindowsAcl: false, failIfUnavailable: true }
+        : { failIfUnavailable: true },
+    );
+  }
+  if (platform === "win32") {
+    repair(uniqueDirectories, { platform: "win32" });
+  }
+  return Object.freeze({
+    stateHome,
+    antiRollbackDirectory,
+    directories: Object.freeze(uniqueDirectories),
   });
 }
 
@@ -698,14 +771,21 @@ function materializeKnownHostsAuthority(bytes, deps = {}) {
   });
 }
 
-function materializeLocalTargetInput(input, deps = {}) {
+/**
+ * A brokered Local target cannot reliably receive a source-side stdin pipe on
+ * Windows: the restricted-token helper owns the process boundary. Stage the
+ * bounded replica beneath the already owner-only target state tree instead of
+ * using the source process temporary directory, which the target is not
+ * authorized to read.
+ */
+function materializeLocalTargetInput(profile, input, deps = {}) {
   const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || "");
   if (bytes.length === 0 || bytes.length > MAX_REPLICA_BYTES) {
     throw new Error("local target input is empty or exceeds its byte limit");
   }
   const runtimeFs = deps.fs || fs;
   const root = runtimeFs.mkdtempSync(
-    path.join(deps.tmpdir || tmpdir(), "cc-target-input-"),
+    path.join(profile.transport.home, ".chainlesschain", "target-input-"),
   );
   const inputPath = path.join(root, "stdin.bin");
   let descriptor;
@@ -744,10 +824,24 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
     if (!profile.lifecycle) {
       throw new Error("Local target launch requires a lifecycle profile");
     }
+    if (isLocalSessionPrepare(cliArgs)) {
+      // Injected spawnSync calls model a target transport in unit tests. They
+      // must not mutate a caller's host filesystem merely to exercise argv
+      // validation; production always takes the authenticated bootstrap path.
+      const bootstrap =
+        deps.prepareLocalTargetState ||
+        (deps.spawnSync ? null : prepareLocalTargetState);
+      bootstrap?.(profile, cliArgs, deps);
+    }
+    if (options.input != null && !isLocalSessionPrepare(cliArgs)) {
+      throw new Error(
+        "local target input is only supported for session prepare",
+      );
+    }
     const inputAuthority =
       options.input == null
         ? null
-        : materializeLocalTargetInput(options.input, deps);
+        : materializeLocalTargetInput(profile, options.input, deps);
     return Object.freeze({
       file: deps.nodeCommand || process.execPath,
       args: Object.freeze([

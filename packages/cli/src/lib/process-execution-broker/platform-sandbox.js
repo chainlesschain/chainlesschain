@@ -53,6 +53,10 @@ import {
   mcpStdioCapsuleNativeCodeEvidence,
   mcpStdioCapsuleNativeCodePolicyDigest,
 } from "../mcp-stdio-native-code-policy.js";
+import {
+  applyLinuxCgroupV2ToPlan,
+  normalizeLinuxCgroupPolicy,
+} from "./linux-cgroup-v2.js";
 
 export {
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
@@ -782,6 +786,7 @@ function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
     requiredBoundaries,
     sync: request.sync === true,
     pty: request.pty === true,
+    linuxCgroup: normalizeLinuxCgroupPolicy(request.linuxCgroup),
     executionContract:
       request.executionContract &&
       typeof request.executionContract === "object" &&
@@ -9890,6 +9895,7 @@ export function applyLinuxSandbox(
  *   requiredBoundaries?: string[],
  *   sync?: boolean,
  *   pty?: boolean,
+ *   linuxCgroup?: Object|null,
  *   executionContract?: Readonly<Object>|null
  * }|null} explicitRequest
  * @returns {ReturnType<typeof createSandboxPlan>}
@@ -9957,49 +9963,59 @@ export function applySandbox(
     requiredBoundaries: sandboxRequest.requiredBoundaries,
     sync: sandboxRequest.sync,
     pty: sandboxRequest.pty,
+    linuxCgroup: sandboxRequest.linuxCgroup,
     executionContract: sandboxRequest.executionContract,
   };
 
+  const applyRequestedLinuxCgroup = (plan) =>
+    applyLinuxCgroupV2ToPlan(plan, sandboxRequest.linuxCgroup, {
+      platform: runtime.platform,
+      fs: runtime.fs,
+      sync: sandboxRequest.sync,
+    });
+
   // Dispatch to platform handler
   if (runtime.platform === "darwin") {
-    return applyMacSandbox(
-      command,
-      args,
-      spawnOpts,
-      profile,
-      runtimeOverrides,
-      runtimeInjected ? null : MACOS_MCP_CODE_SNAPSHOT_ISSUER,
+    return applyRequestedLinuxCgroup(
+      applyMacSandbox(
+        command,
+        args,
+        spawnOpts,
+        profile,
+        runtimeOverrides,
+        runtimeInjected ? null : MACOS_MCP_CODE_SNAPSHOT_ISSUER,
+      ),
     );
   }
   if (runtime.platform === "win32") {
-    return applyWindowsSandbox(
-      command,
-      args,
-      spawnOpts,
-      profile,
-      runtimeOverrides,
-      runtimeInjected ? null : WINDOWS_MCP_CODE_SNAPSHOT_ISSUER,
+    return applyRequestedLinuxCgroup(
+      applyWindowsSandbox(
+        command,
+        args,
+        spawnOpts,
+        profile,
+        runtimeOverrides,
+        runtimeInjected ? null : WINDOWS_MCP_CODE_SNAPSHOT_ISSUER,
+      ),
     );
   }
   if (runtime.platform === "linux") {
-    return applyLinuxSandbox(
-      command,
-      args,
-      spawnOpts,
-      profile,
-      runtimeOverrides,
+    return applyRequestedLinuxCgroup(
+      applyLinuxSandbox(command, args, spawnOpts, profile, runtimeOverrides),
     );
   }
 
   // Unknown platform - no sandbox applied
-  return createSandboxPlan({
-    platform: runtime.platform,
-    profile: profile.profileName,
-    command,
-    args,
-    options: spawnOpts,
-    reason: "unsupported_platform",
-  });
+  return applyRequestedLinuxCgroup(
+    createSandboxPlan({
+      platform: runtime.platform,
+      profile: profile.profileName,
+      command,
+      args,
+      options: spawnOpts,
+      reason: "unsupported_platform",
+    }),
+  );
 }
 
 /**
@@ -10013,6 +10029,12 @@ export function postSpawnSandbox(proc, sandboxResult, runtimeOverrides = {}) {
   const runtime = resolveRuntime(runtimeOverrides);
   if (runtime.platform === "win32" && sandboxResult?.postSpawn?.required) {
     return postSpawnWindowsSandbox(proc, sandboxResult, runtimeOverrides);
+  }
+  if (runtime.platform === "linux" && sandboxResult?.postSpawn?.required) {
+    if (typeof sandboxResult.postSpawnLinux !== "function") {
+      throw new Error("Linux post-spawn sandbox adapter is unavailable");
+    }
+    return sandboxResult.postSpawnLinux(proc);
   }
 }
 

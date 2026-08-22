@@ -1,6 +1,6 @@
 ﻿# 会话管理 (session)
 
-> Headless 命令。`session` 同时承载传统会话管理能力，以及 Managed Agents 对标阶段新增的会话级审批策略入口。
+> Headless 命令。当前生产推荐 CLI 为 `0.165.6`。`session` 同时承载传统会话管理、会话级审批策略和耐久跨会话消息；当前主线源码另含 session group/批量移动，等待后续 exact-SHA CLI 发布后再作为稳定安装能力使用。
 
 ## 核心特性
 
@@ -10,6 +10,8 @@
 - 📊 **工作流状态查看** — `session workflow` 读取 intent / plan / progress / mode 四份工件
 - 💾 **持久化审批策略** — `approval-policies.json` 跨进程保存，CLI 与 Desktop 共享同一份文件
 - 📤 **Markdown 导出** — `session export` 一键导出为可读 Markdown 文档
+- 📨 **耐久跨会话消息** — `session message` 提供唯一 endpoint、收件箱、策略、TTL、顺序和 delivered/refused/full/expired 回执
+- 🗂️ **源码候选：会话分组** — `session group` 以 exact revision CAS 创建/重命名/排序分组并原子批量移动 canonical session
 - 🔍 **JSON 输出** — 所有子命令支持 `--json`，便于脚本自动化
 
 ## 系统架构
@@ -57,7 +59,47 @@ chainlesschain session policy <id> --set strict
 chainlesschain session policy <id> --set trusted
 chainlesschain session policy <id> --set autopilot
 chainlesschain session search <query>   # v0.162.40+：跨 JSONL agent 会话全文检索（大小写不敏感、有界扫描，返回角色+时间戳+预览+resume 提示）
+chainlesschain session message status --json
+chainlesschain session message register sess-a --name builder --json
+chainlesschain session message send @builder @reviewer "请复核变更" --message-id review-001 --json
 ```
+
+## `0.165.6`：耐久跨会话消息
+
+`session message` 的权威状态由 CLI 持有。IDE 只展示有界投影和回执，不自行推导消息是否已交付。
+
+```bash
+# 注册或重连 endpoint；name 在当前 fabric 内唯一
+cc session message register sess-a --name builder --policy accept --json
+cc session message register sess-b --name reviewer --policy hold --json
+
+# 使用稳定 message-id 防止响应丢失后的重复发送
+cc session message send @builder @reviewer "请复核变更" \
+  --subject "Review" --message-id review-001 --sequence 1 --ttl-ms 3600000 --json
+
+# 读取并确认消息；查看最终或中间回执
+cc session message inbox @reviewer --ack --json
+cc session message receipts @builder --json
+
+# 策略与在线状态更新可带 expected revision，旧界面动作会失败闭合
+cc session message policy @reviewer accept --expected-revision 2 --json
+cc session message idle @reviewer idle --expected-revision 3 --json
+```
+
+边界：消息正文有大小与 TTL 上限；endpoint epoch 退役后不会把旧 inbox 泄漏给同名复用；`delivered` 只表示目标 inbox/ack 协议结算，不等于对方已经理解或完成业务任务。
+
+## 当前源码候选：会话分组与 Focus View
+
+当前 HEAD 提供 `session group list|create|rename|delete|order|move`。所有 mutation 都必须携带 `group list --json` 返回的 exact `revision`，以 CAS 拒绝并发页面或旧投影覆盖新状态；批量 move 要么整体成功，要么不改变任何 assignment。
+
+```bash
+cc session group list --json
+cc session group create "发布复核" --expected-revision <sha256> --json
+cc session group move <group-id> <session-id-a> <session-id-b> \
+  --expected-revision <sha256> --json
+```
+
+VS Code `0.37.63` / JetBrains `0.4.96` 源码还提供多选批量移动和 Focus View（集中显示 pending question、live tool、todo 与 settled answer）。这些能力晚于公开 CLI `0.165.6`、Open VSX `0.37.61` 和 JetBrains `0.4.95`，在后续发布前不要按公开安装能力承诺。
 
 ## 传统会话管理
 

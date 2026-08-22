@@ -1,6 +1,7 @@
 import {
   existsSync,
   linkSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -21,6 +22,7 @@ import {
   probeExecutionLocationTargetPreflight,
   probeExecutionLocationTargetResourceLimit,
   probeExecutionLocationTargetSigtermDrain,
+  prepareLocalTargetState,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../../src/lib/execution-location-target.js";
@@ -462,10 +464,62 @@ describe("execution location target launch and resume", () => {
       "--json",
     ]);
     expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
+    expect(options.timeout).toBe(30_000);
     expect(options.env.GITHUB_TOKEN).toBeUndefined();
-    expect(options.env.CHAINLESSCHAIN_HOME).toBeTruthy();
+    expect(options.env.CHAINLESSCHAIN_HOME).toBe(
+      join(options.env.HOME, ".chainlesschain"),
+    );
     expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
       "2026-08-18T08:00:00.000Z",
+    );
+  });
+
+  it("prepares the fixed Local replica state tree in one Windows ACL batch", () => {
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      cliCommand: join(root, "index.js"),
+      cwd: root,
+      transport: {
+        home: join(root, "target-home"),
+        securityHome: join(root, "target-security"),
+      },
+    });
+    const ensurePrivateDirectory = vi.fn();
+    const repairPrivatePaths = vi.fn();
+    const prepared = prepareLocalTargetState(
+      profile,
+      ["session", "location", "prepare", "session-target-1"],
+      {
+        ensurePrivateDirectory,
+        repairPrivatePaths,
+        platform: "win32",
+      },
+    );
+
+    expect(prepared.stateHome).toBe(
+      join(root, "target-home", ".chainlesschain"),
+    );
+    expect(prepared.directories).toContain(
+      join(
+        prepared.antiRollbackDirectory,
+        "records",
+        createHash("sha256")
+          .update("session-target-1")
+          .digest("hex")
+          .slice(0, 2),
+      ),
+    );
+    expect(ensurePrivateDirectory).toHaveBeenCalledTimes(
+      prepared.directories.length,
+    );
+    expect(ensurePrivateDirectory).toHaveBeenCalledWith(
+      prepared.stateHome,
+      { applyWindowsAcl: false, failIfUnavailable: true },
+    );
+    expect(repairPrivatePaths).toHaveBeenCalledWith(
+      prepared.directories,
+      { platform: "win32" },
     );
   });
 
@@ -526,7 +580,7 @@ describe("execution location target launch and resume", () => {
     },
   );
 
-  it("moves Local replica input through one bounded file and removes it after launch", () => {
+  it("stages Local replica input in the target-owned state root", () => {
     const profile = rawLifecycleProfile({
       id: "local-profile-1",
       target: "local",
@@ -553,6 +607,8 @@ describe("execution location target launch and resume", () => {
       },
     );
     const prepared = handoffReceipt(initial, true, profile.evidenceId);
+    const targetStateRoot = join(root, "target-home", ".chainlesschain");
+    mkdirSync(targetStateRoot, { recursive: true });
     const spawnSync = vi
       .fn()
       .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
@@ -583,7 +639,7 @@ describe("execution location target launch and resume", () => {
     const inputOption = prepareCall[1].indexOf("--stdin-file");
     expect(inputOption).toBeGreaterThan(0);
     const inputPath = prepareCall[1][inputOption + 1];
-    expect(inputPath).toMatch(/cc-target-input-/u);
+    expect(inputPath.startsWith(targetStateRoot)).toBe(true);
     expect(existsSync(inputPath)).toBe(false);
     expect(prepareCall[2]).toMatchObject({
       shell: false,

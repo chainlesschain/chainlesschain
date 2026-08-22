@@ -12,7 +12,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { ensureDir, getHomeDir } from "./paths.js";
+import { ensureDir } from "./paths.js";
+import {
+  ensureTrustedSessionLifecycleScope,
+  resolveTrustedSessionLifecycleScope,
+  sessionLifecycleFabricDirectory,
+} from "./session-lifecycle-scope.js";
 import { withFileLock } from "./with-file-lock.js";
 
 export const SESSION_MESSAGE_FABRIC_SCHEMA =
@@ -31,6 +36,7 @@ export const SESSION_MESSAGE_RECEIPT_STATUSES = Object.freeze([
   "held",
   "refused",
   "full",
+  "rate_limited",
   "expired",
 ]);
 
@@ -38,6 +44,8 @@ export const SESSION_MESSAGE_FABRIC_LIMITS = Object.freeze({
   maxMessageBytes: 256 * 1024,
   maxPendingPerRecipient: 100,
   maxReceiptHistory: 5_000,
+  maxMessagesPerSenderWindow: 120,
+  senderRateWindowMs: 60_000,
   defaultTtlMs: 24 * 60 * 60 * 1000,
   maxTtlMs: 7 * 24 * 60 * 60 * 1000,
 });
@@ -153,6 +161,9 @@ function emptyState(now) {
     channels: [],
     messages: [],
     receipts: [],
+    // Per-sender fixed windows are durable so a new CLI process cannot evade
+    // the same-host admission limit by reopening the fabric state file.
+    rateBuckets: [],
   };
   return { ...state, digest: digestValue(state) };
 }
@@ -326,6 +337,41 @@ function updateReceipt(state, message, status, reason, now) {
   return receipt;
 }
 
+function pruneRateBuckets(state, now, windowMs) {
+  if (!Array.isArray(state.rateBuckets) || state.rateBuckets.length === 0) {
+    return false;
+  }
+  const before = state.rateBuckets.length;
+  state.rateBuckets = state.rateBuckets.filter(
+    (bucket) => now < bucket.windowStartedAt + windowMs,
+  );
+  return state.rateBuckets.length !== before;
+}
+
+function consumeSenderRate(state, senderAuthority, now, limit, windowMs) {
+  state.rateBuckets ??= [];
+  let bucket = state.rateBuckets.find(
+    (entry) => entry.senderAuthority === senderAuthority,
+  );
+  if (!bucket || now >= bucket.windowStartedAt + windowMs) {
+    if (!bucket) {
+      bucket = { senderAuthority, windowStartedAt: now, count: 0 };
+      state.rateBuckets.push(bucket);
+    } else {
+      bucket.windowStartedAt = now;
+      bucket.count = 0;
+    }
+  }
+  if (bucket.count >= limit) {
+    return {
+      allowed: false,
+      retryAfterMs: Math.max(1, bucket.windowStartedAt + windowMs - now),
+    };
+  }
+  bucket.count += 1;
+  return { allowed: true, retryAfterMs: 0 };
+}
+
 function trimReceiptHistory(state, limit) {
   if (state.receipts.length <= limit) return false;
   const protectedIds = new Set(
@@ -461,6 +507,7 @@ function validateState(state) {
     !Array.isArray(state.channels) ||
     !Array.isArray(state.messages) ||
     !Array.isArray(state.receipts) ||
+    (state.rateBuckets != null && !Array.isArray(state.rateBuckets)) ||
     typeof state.digest !== "string"
   ) {
     fail("invalid envelope");
@@ -526,29 +573,56 @@ function validateState(state) {
       fail("invalid receipt");
     }
   }
+  const bucketAuthorities = new Set();
+  for (const bucket of state.rateBuckets || []) {
+    if (
+      typeof bucket?.senderAuthority !== "string" ||
+      bucketAuthorities.has(bucket.senderAuthority) ||
+      !Number.isSafeInteger(bucket.windowStartedAt) ||
+      bucket.windowStartedAt < 0 ||
+      !Number.isSafeInteger(bucket.count) ||
+      bucket.count < 1
+    ) {
+      fail("invalid rate bucket");
+    }
+    bucketAuthorities.add(bucket.senderAuthority);
+  }
   return state;
 }
 
-export function defaultSessionMessageFabricPath() {
-  return path.join(getHomeDir(), "session-message-fabric", "state.json");
+export function defaultSessionMessageFabricPath(options = {}) {
+  return resolveTrustedSessionLifecycleScope(options).messageFabricStatePath;
 }
 
 export class SessionMessageFabric {
-  constructor({
-    statePath = defaultSessionMessageFabricPath(),
-    now = () => Date.now(),
-    createId = randomUUID,
-    lock = withFileLock,
-    lockTimeoutMs = 10_000,
-    maxMessageBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
-    maxPendingPerRecipient = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
-    maxReceiptHistory = SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
-    defaultTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.defaultTtlMs,
-    maxTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.maxTtlMs,
-  } = {}) {
+  constructor(options = {}) {
+    const {
+      statePath: configuredStatePath,
+      launchEnv,
+      cwd,
+      now = () => Date.now(),
+      createId = randomUUID,
+      lock = withFileLock,
+      lockTimeoutMs = 10_000,
+      maxMessageBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
+      maxPendingPerRecipient = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+      maxReceiptHistory = SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
+      maxMessagesPerSenderWindow = SESSION_MESSAGE_FABRIC_LIMITS.maxMessagesPerSenderWindow,
+      senderRateWindowMs = SESSION_MESSAGE_FABRIC_LIMITS.senderRateWindowMs,
+      defaultTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.defaultTtlMs,
+      maxTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.maxTtlMs,
+    } = options;
+    const usesDefaultStatePath = configuredStatePath === undefined;
+    const lifecycleScope = usesDefaultStatePath
+      ? resolveTrustedSessionLifecycleScope({ launchEnv, cwd })
+      : null;
+    const statePath = usesDefaultStatePath
+      ? lifecycleScope.messageFabricStatePath
+      : configuredStatePath;
     this.statePath = path.resolve(statePath);
+    this._lifecycleScope = lifecycleScope;
     this._secureDefaultDirectory =
-      this.statePath === path.resolve(defaultSessionMessageFabricPath());
+      usesDefaultStatePath && lifecycleScope.kind === "legacy";
     this._now = now;
     this._createId = createId;
     this._lock = lock;
@@ -566,6 +640,14 @@ export class SessionMessageFabric {
         maxReceiptHistory,
         SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
       ),
+      maxMessagesPerSenderWindow: positiveInteger(
+        maxMessagesPerSenderWindow,
+        SESSION_MESSAGE_FABRIC_LIMITS.maxMessagesPerSenderWindow,
+      ),
+      senderRateWindowMs: positiveInteger(
+        senderRateWindowMs,
+        SESSION_MESSAGE_FABRIC_LIMITS.senderRateWindowMs,
+      ),
       defaultTtlMs: positiveInteger(
         defaultTtlMs,
         SESSION_MESSAGE_FABRIC_LIMITS.defaultTtlMs,
@@ -579,6 +661,14 @@ export class SessionMessageFabric {
 
   _ensureDirectory() {
     const directory = path.dirname(this.statePath);
+    if (this._lifecycleScope?.kind === "project") {
+      ensureTrustedSessionLifecycleScope(this._lifecycleScope, {
+        extraDirectories: [
+          sessionLifecycleFabricDirectory(this._lifecycleScope),
+        ],
+      });
+      return;
+    }
     if (this._secureDefaultDirectory) {
       ensureDir(directory);
       return;
@@ -673,13 +763,24 @@ export class SessionMessageFabric {
           }
           const now = this._now();
           const swept = sweepExpired(state, now);
+          const prunedRateBuckets = pruneRateBuckets(
+            state,
+            now,
+            this._limits.senderRateWindowMs,
+          );
           const outcome = mutator(state, now) || { value: undefined };
           const compacted = compactSettledMessages(state);
           const trimmed = trimReceiptHistory(
             state,
             this._limits.maxReceiptHistory,
           );
-          if (swept || compacted || trimmed || outcome.changed === true) {
+          if (
+            swept ||
+            prunedRateBuckets ||
+            compacted ||
+            trimmed ||
+            outcome.changed === true
+          ) {
             state.revision += 1;
             state.updatedAt = now;
             state.digest = digestValue(stateWithoutDigest(state));
@@ -932,6 +1033,32 @@ export class SessionMessageFabric {
           );
         }
         return { value: clone(duplicate) };
+      }
+      const rate = consumeSenderRate(
+        state,
+        sender.authorityId,
+        now,
+        this._limits.maxMessagesPerSenderWindow,
+        this._limits.senderRateWindowMs,
+      );
+      if (!rate.allowed) {
+        const receipt = {
+          messageId: id,
+          senderAuthority: sender.authorityId,
+          recipientAuthority: recipient?.authorityId || null,
+          recipientEpoch: recipient?.epoch || null,
+          sequence: requestedSequence,
+          payloadDigest,
+          status: "rate_limited",
+          reason: "sender_rate_limit",
+          retryAfterMs: rate.retryAfterMs,
+          createdAt: now,
+          updatedAt: now,
+          idleNotifiedAt: null,
+          readAt: null,
+        };
+        state.receipts.push(receipt);
+        return { changed: true, value: clone(receipt) };
       }
       if (!recipient) {
         const receipt = {

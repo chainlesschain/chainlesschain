@@ -1,9 +1,10 @@
+import {
+  marketplaceCommandDescriptorIdentity,
+  normalizeMarketplaceCommandDescriptor,
+} from "./marketplace-command-descriptor.js";
+
 const SHA256_RE = /^[a-f0-9]{64}$/u;
-const DYNAMIC_SOURCE_TYPES = new Set([
-  "command",
-  "headers-helper",
-  "headershelper",
-]);
+const DISABLED_DYNAMIC_SOURCE_TYPES = new Set(["headers-helper", "headershelper"]);
 
 export const MARKETPLACE_DYNAMIC_SOURCE_DISABLED_CODE =
   "CC_MARKETPLACE_DYNAMIC_SOURCE_DISABLED";
@@ -60,8 +61,10 @@ function disabledDynamicSource(type) {
 /**
  * Normalize one registry package source without executing it. Git strings keep
  * the legacy shape. Archive sources require an HTTPS URL and exact compressed
- * byte digest. Dynamic command/helper adapters remain representable for UI
- * diagnostics but can never become executable materialization authority.
+ * byte digest. Legacy shell-string command/helper adapters remain
+ * representable for UI diagnostics but can never become executable authority.
+ * A typed `source: { type: "command", executable, args, cwd, ... }` is the
+ * one deliberate exception: it is parsed as an exact direct-argv descriptor.
  */
 export function normalizeMarketplacePackageSource(entry, options = {}) {
   const row = entry && typeof entry === "object" ? entry : {};
@@ -103,12 +106,34 @@ export function normalizeMarketplacePackageSource(entry, options = {}) {
   const type = String(source.type || "")
     .trim()
     .toLowerCase();
-  if (DYNAMIC_SOURCE_TYPES.has(type)) {
+  if (DISABLED_DYNAMIC_SOURCE_TYPES.has(type)) {
     const disabled = disabledDynamicSource(type);
     if (options.forExecution === true) {
       throw sourceError(disabled.code, disabled.reason);
     }
     return disabled;
+  }
+  if (type === "command") {
+    const descriptor = normalizeMarketplaceCommandDescriptor(source, {
+      kind: "source",
+      allowType: true,
+      label: "Marketplace command source descriptor",
+    });
+    const normalized = {
+      type: "command",
+      mode: descriptor.mode,
+      identity: marketplaceCommandDescriptorIdentity(source),
+    };
+    // Descriptor values are deliberately retained for the immediate local
+    // materializer but are not enumerable, so catalog/listing/provenance JSON
+    // cannot accidentally disclose a local argv, path, or environment value.
+    for (const [key, value] of Object.entries(descriptor)) {
+      Object.defineProperty(normalized, key, {
+        value,
+        enumerable: false,
+      });
+    }
+    return Object.freeze(normalized);
   }
   if (type === "git") {
     const value = bounded(source.url ?? source.source, 4096);

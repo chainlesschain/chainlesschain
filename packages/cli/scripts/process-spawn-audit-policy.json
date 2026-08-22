@@ -26,6 +26,15 @@
       "reviewedAt": "2026-07-26"
     },
     {
+      "id": "execution-location-local-supervisor",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/execution-location-local-supervisor.mjs",
+      "match": "const child = spawn\\(",
+      "reason": "The target-side resource supervisor must launch the already-resolved Node executable directly and cannot recursively route through its parent broker; it uses shell:false, a fixed CLI entry and governed command argv, plus bounded heap and CPU budgets.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-08-22"
+    },
+    {
       "id": "mcp-static-execution-context-builtin",
       "disposition": "audited-exemption",
       "path": "packages/cli/src/lib/mcp-stdio-package-materialization.js",

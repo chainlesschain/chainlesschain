@@ -27,6 +27,7 @@ import {
   sameInteractionBinding,
 } from "../lib/interaction-binding.js";
 import {
+  addHooksV2EventObserver,
   emitHooksV2Event,
   executeHooksV2Event,
   resolvePromptExpansion,
@@ -42,6 +43,7 @@ import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
 import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
 import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
+import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 import { isAbortError } from "../lib/abort-utils.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
@@ -65,6 +67,7 @@ import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
+  readHeadlessMcpConfigErrors,
 } from "./mcp-config.js";
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import {
@@ -398,6 +401,9 @@ export function planSnapshot(pm) {
 const MAX_PLAN_REVIEW_SNAPSHOT_CHARS = 24000;
 const MAX_PLAN_REVIEW_COMMENTS = 64;
 const MAX_PLAN_REVIEW_COMMENT_CHARS = 2000;
+const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
+const HOST_EVENT_BACKLOG_ERROR =
+  "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached";
 
 function boundedReviewString(value, limit) {
   return String(value == null ? "" : value).slice(0, limit);
@@ -1463,6 +1469,11 @@ async function runAgentHeadlessStreamInWorkspace(
     deps[STREAM_SESSION_ID] ||
     options.sessionId ||
     `headless-stream-${Date.now()}-${process.pid}`;
+  // The input stream may drive many turns. Allocate once at the stream-run
+  // boundary so every turn (and its nested agents) shares cache/backlog limits.
+  // SessionResourceBudget remains separately leased by executeTool.
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
   const persist =
     (Boolean(options.sessionId) || options.observabilityScope != null) &&
     options.ephemeral !== true;
@@ -1483,6 +1494,10 @@ async function runAgentHeadlessStreamInWorkspace(
       fieldGate,
     });
   const emit = streamCoalescer.emit;
+  const removeHookObserver =
+    options.includeHookEvents === true
+      ? addHooksV2EventObserver(sessionId, (event) => emit(event))
+      : null;
   streamCleanup.setOutputCleanup(() => streamCoalescer.flush?.());
 
   const hasInjectedSessionStore =
@@ -2484,6 +2499,20 @@ async function runAgentHeadlessStreamInWorkspace(
   let sanitizeRolesNextTurn =
     resumedMessages > 0 && messages[messages.length - 1]?.role === "user";
 
+  // `system:init` intentionally precedes MCP connection so stream consumers
+  // receive their manifest promptly. Validation itself is local and side-effect
+  // free, so preflight just its bounded, redacted projection here; the normal
+  // resolver below remains authoritative for parsing and connection.
+  let initialMcpServerErrors = [];
+  if (options.mcpConfig) {
+    try {
+      initialMcpServerErrors = readHeadlessMcpConfigErrors(options.mcpConfig);
+    } catch {
+      // The normal resolver reports unreadable/malformed files as its existing
+      // config error result. Never place filesystem/parser details in init.
+    }
+  }
+
   emit({
     type: "system",
     subtype: "init",
@@ -2512,6 +2541,9 @@ async function runAgentHeadlessStreamInWorkspace(
       mcp: Boolean(options.mcpConfig) || options.useRegisteredMcp !== false,
       enabledToolNames,
     }),
+    ...(initialMcpServerErrors.length > 0
+      ? { mcp_server_errors: initialMcpServerErrors }
+      : {}),
     slash_commands: [...SESSION_SLASH_COMMANDS],
     input_format: "stream-json",
     additional_directories: additionalDirectories,
@@ -2591,6 +2623,7 @@ async function runAgentHeadlessStreamInWorkspace(
         },
         {
           writeErr,
+          mcpConfigWarnings: false,
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
           loadIdeMcp: deps.loadIdeMcp,
@@ -2836,6 +2869,78 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   }
 
+  const streamInteraction = {};
+  if (interactiveQuestions) streamInteraction.askUser = interactionAskUser;
+  if (options.includeHookEvents === true) {
+    streamInteraction.emit = (kind, payload = {}) => {
+      const subAgentId =
+        typeof payload.subAgentId === "string" && payload.subAgentId.trim()
+          ? payload.subAgentId.slice(0, 160)
+          : null;
+      if (!subAgentId) return;
+      const base = {
+        schema_version: 1,
+        subagent_id: subAgentId,
+        parent_id:
+          typeof payload.parentSessionId === "string" &&
+          payload.parentSessionId.trim()
+            ? payload.parentSessionId.slice(0, 160)
+            : sessionId,
+        ...(typeof payload.role === "string" && payload.role.trim()
+          ? { role: payload.role.trim().slice(0, 96) }
+          : {}),
+      };
+      if (kind === "sub-agent.started") {
+        emit({
+          type: "subagent_started",
+          ...base,
+          background: payload.background === true,
+        });
+      } else if (
+        kind === "sub-agent.completed" ||
+        kind === "sub-agent.failed"
+      ) {
+        emit({
+          type: "subagent_completed",
+          ...base,
+          status: kind === "sub-agent.failed" ? "failed" : "completed",
+          background: payload.background === true,
+          ...(Number.isFinite(payload.iterationCount)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iterationCount),
+                ),
+              }
+            : {}),
+        });
+      } else if (kind === "sub-agent.progress") {
+        emit({
+          type: "subagent_progress",
+          ...base,
+          event_type:
+            typeof payload.event_type === "string"
+              ? payload.event_type.slice(0, 96)
+              : "unknown",
+          ...(typeof payload.tool === "string" && payload.tool
+            ? { tool: payload.tool.slice(0, 128) }
+            : {}),
+          ...(Number.isFinite(payload.iteration_count)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iteration_count),
+                ),
+              }
+            : {}),
+          ...(Number.isFinite(payload.token_count)
+            ? { token_count: Math.max(0, Math.floor(payload.token_count)) }
+            : {}),
+        });
+      }
+    };
+  }
+
   const loopOptionsBase = {
     model,
     provider,
@@ -2849,6 +2954,7 @@ async function runAgentHeadlessStreamInWorkspace(
     additionalDirectories,
     sessionId,
     sessionBudget: options.sessionBudget || null,
+    hostResourceBudget,
     sessionHostSnapshot: canonicalResume?.snapshot || null,
     // Auto-checkpoint (Claude-Code parity): snapshot the work tree before each
     // mutating tool so a stream consumer (e.g. the IDE chat panel) can rewind.
@@ -2877,9 +2983,8 @@ async function runAgentHeadlessStreamInWorkspace(
     // ask_user_question round-trip (opt-in via CC_INTERACTIVE_QUESTIONS): give
     // the tool handler an askUser that emits question_request + blocks on stdin.
     // Absent → agent-core returns user_not_reachable (graceful proceed).
-    interaction: interactiveQuestions
-      ? { askUser: interactionAskUser }
-      : undefined,
+    interaction:
+      Object.keys(streamInteraction).length > 0 ? streamInteraction : undefined,
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
@@ -3081,13 +3186,43 @@ async function runAgentHeadlessStreamInWorkspace(
   // Stop / Claude-Code Esc parity) instead of waiting in line behind it.
   // Normal events queue for the serial turn loop below; interrupts act on the
   // live per-turn AbortController and are never queued.
+  // A normal input can contain arbitrary user data, so retain it only while it
+  // is waiting for the serial turn loop. Interrupts/approvals/answers remain
+  // out-of-band controls and never consume a queue slot.
   const queue = [];
   let wakeQueue = null;
   let inputDone = false;
   let currentAbort = null;
+  let inputBacklogFailure = false;
   let slashRequestSeq = 0;
   const inputLines = readJsonLines(input);
-  streamCleanup.setInputCancel(() => inputLines.return?.());
+  const releaseQueuedInputEvents = () => {
+    while (queue.length > 0) {
+      const queued = queue.shift();
+      try {
+        queued?.lease?.release?.();
+      } catch {
+        // Drain every opaque slot even when an injected test authority has a
+        // faulty disposer. Its payload is deliberately never inspected here.
+      }
+    }
+  };
+  const failInputEventBacklog = () => {
+    if (inputBacklogFailure) return;
+    inputBacklogFailure = true;
+    releaseQueuedInputEvents();
+    // A flood can happen while a model turn is running. Abort that turn before
+    // surfacing the stable host diagnostic; otherwise it could continue to do
+    // paid/tool work after the host has refused its input backlog.
+    currentAbort?.abort();
+    streamCleanup.setReason("host_event_backlog_exhausted");
+    streamCleanup.requestStop();
+    wakeQueue?.();
+  };
+  streamCleanup.setInputCancel(() => {
+    releaseQueuedInputEvents();
+    return inputLines.return?.();
+  });
   (async () => {
     try {
       for await (const line of inputLines) {
@@ -3157,7 +3292,26 @@ async function runAgentHeadlessStreamInWorkspace(
             );
           continue;
         }
-        queue.push(parsed);
+        try {
+          if (typeof hostResourceBudget?.admitEvent !== "function") {
+            throw new TypeError(
+              "host resource budget does not provide admitEvent()",
+            );
+          }
+          const lease = hostResourceBudget.admitEvent();
+          if (!lease || typeof lease.release !== "function") {
+            throw new TypeError(
+              "host resource budget event admission is invalid",
+            );
+          }
+          queue.push({ parsed, lease });
+        } catch {
+          // Refuse the whole input stream rather than dropping one unbounded
+          // event and then accepting more. The externally-visible error below
+          // is fixed and contains none of the rejected line's content.
+          failInputEventBacklog();
+          break;
+        }
         if (wakeQueue) wakeQueue();
       }
     } catch {
@@ -3177,7 +3331,15 @@ async function runAgentHeadlessStreamInWorkspace(
   })();
   const nextEvent = async () => {
     for (;;) {
-      if (queue.length > 0) return queue.shift();
+      if (queue.length > 0) {
+        const queued = queue.shift();
+        try {
+          return queued.parsed;
+        } finally {
+          // The serial loop now owns the event; it is no longer backlog.
+          queued.lease.release();
+        }
+      }
       if (inputDone || options.signal?.aborted) return null;
       await new Promise((r) => {
         let settled = false;
@@ -3198,6 +3360,18 @@ async function runAgentHeadlessStreamInWorkspace(
   for (;;) {
     await deps.outputFlow?.wait?.();
     const parsed = await nextEvent();
+    if (inputBacklogFailure) {
+      emit({
+        type: "result",
+        subtype: "error_host_resource_budget",
+        is_error: true,
+        code: HOST_EVENT_BACKLOG_CODE,
+        error: HOST_EVENT_BACKLOG_ERROR,
+        session_id: sessionId,
+      });
+      sawError = true;
+      break;
+    }
     if (parsed == null) break; // stdin closed
     sessionHostLease?.assert?.();
     if (turnBindingPersistenceError) {
@@ -4309,6 +4483,7 @@ async function runAgentHeadlessStreamInWorkspace(
           : "completed",
   );
   await streamCleanup.cleanup();
+  removeHookObserver?.();
 
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });

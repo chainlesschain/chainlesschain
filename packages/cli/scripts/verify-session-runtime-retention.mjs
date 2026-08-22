@@ -51,6 +51,20 @@ const MAX_HEAP_DELTA_BYTES = 128 * 1024 * 1024;
 const MAX_GC_SAMPLE_DIFFERENCE_RATIO = 0.1;
 const SCAN_CHUNK_BYTES = 64 * 1024;
 const REQUIRED_NODE_VERSION = "v22.12.0";
+
+function resolveVitestEntry() {
+  const candidates = [
+    join(CLI_ROOT, "node_modules", "vitest", "vitest.mjs"),
+    join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
+  ];
+  const entry = candidates.find((candidate) => existsSync(candidate));
+  assert.ok(
+    entry,
+    `vitest entrypoint is missing; checked: ${candidates.join(", ")}`,
+  );
+  return entry;
+}
+
 const SESSION_SCALE_PROFILE_MINIMUMS = Object.freeze({
   formal: Object.freeze({
     writers: 20,
@@ -342,20 +356,9 @@ async function stabilizedHeapSample() {
 
 function runContractTests() {
   const startedAt = Date.now();
-  const vitestCandidates = [
-    join(CLI_ROOT, "node_modules", "vitest", "vitest.mjs"),
-    join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
-  ];
-  const vitestEntry = vitestCandidates.find((candidate) =>
-    existsSync(candidate),
-  );
-  assert.ok(
-    vitestEntry,
-    `vitest entrypoint is missing; checked: ${vitestCandidates.join(", ")}`,
-  );
   execFileSync(
     process.execPath,
-    [relative(CLI_ROOT, vitestEntry), "run", ...CONTRACT_TESTS],
+    [resolveVitestEntry(), "run", ...CONTRACT_TESTS],
     {
       cwd: CLI_ROOT,
       stdio: "inherit",

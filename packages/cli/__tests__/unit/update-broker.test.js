@@ -72,7 +72,7 @@ describe("CLI self-update process broker boundary", () => {
     expect(_deps.spawnSync).toHaveBeenNthCalledWith(
       1,
       "npm",
-      ["install", "-g", "chainlesschain@9.9.9"],
+      ["install", "-g", "--include=optional", "chainlesschain@9.9.9"],
       {
         encoding: "utf-8",
         stdio: "pipe",
@@ -104,6 +104,11 @@ describe("CLI self-update process broker boundary", () => {
 
     await expect(selfUpdateCli("9.9.8")).resolves.toBe(false);
     expect(_deps.spawnSync).toHaveBeenCalledOnce();
+    expect(_deps.spawnSync).toHaveBeenCalledWith(
+      "npm",
+      ["install", "-g", "--include=optional", "chainlesschain@9.9.8"],
+      expect.objectContaining({ origin: "update:npm-install", shell: false }),
+    );
   });
 
   it("fails closed when post-install verification cannot run", async () => {

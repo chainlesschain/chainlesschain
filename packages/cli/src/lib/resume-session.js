@@ -6,10 +6,12 @@
 
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { logger } from "./logger.js";
+import { getSessionStoreDir } from "./paths.js";
 
-const SESSION_DIR = path.join(os.homedir(), ".chainlesschain", "sessions");
+function sessionDir() {
+  return getSessionStoreDir();
+}
 
 /**
  * List recent chat sessions
@@ -18,15 +20,16 @@ const SESSION_DIR = path.join(os.homedir(), ".chainlesschain", "sessions");
  */
 export function listSessions(limit = 10) {
   try {
-    if (!fs.existsSync(SESSION_DIR)) {
+    const directory = sessionDir();
+    if (!fs.existsSync(directory)) {
       return [];
     }
 
     const files = fs
-      .readdirSync(SESSION_DIR)
+      .readdirSync(directory)
       .filter((f) => f.endsWith(".json"))
       .map((f) => {
-        const filePath = path.join(SESSION_DIR, f);
+        const filePath = path.join(directory, f);
         const stat = fs.statSync(filePath);
         let summary = "";
         try {
@@ -59,7 +62,7 @@ export function listSessions(limit = 10) {
  */
 export function loadSession(sessionId) {
   try {
-    const filePath = path.join(SESSION_DIR, `${sessionId}.json`);
+    const filePath = path.join(sessionDir(), `${sessionId}.json`);
     if (!fs.existsSync(filePath)) {
       return null;
     }

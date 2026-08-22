@@ -24,7 +24,8 @@ import fs, {
 import { join, basename, dirname, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
-import { getHomeDir } from "../lib/paths.js";
+import { ensureClaudeProjectStorageTree, getHomeDir } from "../lib/paths.js";
+import { resolveClaudeProjectStorageDir } from "../lib/claude-project-storage-layout.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import {
   isAffectedWindowsZeroDeviceStatRuntime,
@@ -78,9 +79,9 @@ import {
 } from "../lib/execution-location-contract.js";
 import { canonicalJson } from "../lib/scheduler-kernel/contract.js";
 import {
-  listSessionAntiRollbackIds,
-  publishSessionAntiRollbackAnchor,
-  readSessionAntiRollbackAnchor,
+  listSessionAntiRollbackIds as listSessionAntiRollbackIdsForStore,
+  publishSessionAntiRollbackAnchor as publishSessionAntiRollbackAnchorForStore,
+  readSessionAntiRollbackAnchor as readSessionAntiRollbackAnchorForStore,
   sessionAntiRollbackPredecessorWitness,
 } from "../lib/session-anti-rollback-anchor.js";
 import { normalizeSessionBudgetRootConfig } from "../lib/session-budget-production-root.js";
@@ -92,6 +93,8 @@ import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-l
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
+let securedSessionHostLeaseRoot = null;
+let securedSessionHostLeaseRootIdentity = null;
 
 // Deterministic process-crash injection for the independent session-scale
 // gate. The hooks are inert unless the dedicated child process opts in; this
@@ -678,7 +681,9 @@ function fsyncParentDirectory(filePath, payload, beforeHook, afterHook) {
 }
 
 function getSessionsDir() {
-  const dir = join(getHomeDir(), "sessions");
+  const homeDir = getHomeDir();
+  const claudeProjectDir = resolveClaudeProjectStorageDir(homeDir);
+  const dir = claudeProjectDir || join(homeDir, "sessions");
   let current = null;
   try {
     current = lstatSync(dir);
@@ -697,12 +702,81 @@ function getSessionsDir() {
     currentIdentity !== securedSessionsDirIdentity ||
     unsafePosixMode
   ) {
-    ensurePrivateDirectory(dir);
+    if (claudeProjectDir) {
+      ensureClaudeProjectStorageTree(homeDir, claudeProjectDir);
+    } else {
+      ensurePrivateDirectory(dir);
+    }
     securedSessionsDir = dir;
     const secured = lstatSync(dir);
     securedSessionsDirIdentity = `${secured.dev}:${secured.ino}`;
   }
   return dir;
+}
+
+/**
+ * Keep the legacy anchor namespace keyed by CHAINLESSCHAIN_HOME, while a
+ * Claude project gets an independent namespace keyed by its project bucket.
+ * Otherwise two project buckets using the same session id would conflict in
+ * the machine-local anti-rollback witness.
+ */
+function sessionAntiRollbackPathOptions() {
+  const homeDir = getHomeDir();
+  return {
+    homeDir: resolveClaudeProjectStorageDir(homeDir) || homeDir,
+  };
+}
+
+function readSessionAntiRollbackAnchor(sessionId) {
+  return readSessionAntiRollbackAnchorForStore(
+    sessionId,
+    sessionAntiRollbackPathOptions(),
+  );
+}
+
+function listSessionAntiRollbackIds() {
+  return listSessionAntiRollbackIdsForStore(sessionAntiRollbackPathOptions());
+}
+
+/**
+ * The legacy lease authority intentionally stays at the historical global
+ * state root. Claude project transcripts instead receive a lease directory
+ * beside their JSONL so identical ids in separate project buckets cannot
+ * fence one another. Cache the verified directory identity to avoid repeated
+ * ACL batches on every append.
+ */
+function sessionHostLeaseOptions() {
+  const homeDir = getHomeDir();
+  const projectDir = resolveClaudeProjectStorageDir(homeDir);
+  if (!projectDir) return null;
+  const stateRoot = join(projectDir, "session-host-leases");
+  let current = null;
+  try {
+    current = lstatSync(stateRoot);
+  } catch {
+    // The secure tree helper creates a missing root below.
+  }
+  const identity = current ? `${current.dev}:${current.ino}` : null;
+  const unsafePosixMode =
+    process.platform !== "win32" &&
+    current !== null &&
+    (current.mode & 0o777) !== 0o700;
+  if (
+    !current ||
+    !current.isDirectory() ||
+    current.isSymbolicLink() ||
+    unsafePosixMode ||
+    stateRoot !== securedSessionHostLeaseRoot ||
+    identity !== securedSessionHostLeaseRootIdentity
+  ) {
+    ensureClaudeProjectStorageTree(homeDir, projectDir, {
+      extraDirectories: [stateRoot],
+    });
+    const secured = lstatSync(stateRoot);
+    securedSessionHostLeaseRoot = stateRoot;
+    securedSessionHostLeaseRootIdentity = `${secured.dev}:${secured.ino}`;
+  }
+  return { stateRoot };
 }
 
 /**
@@ -799,7 +873,11 @@ function samePhysicalTranscriptState(left, right, { content = true } = {}) {
   );
 }
 
-function samePhysicalTranscriptContentState(left, right) {
+function samePhysicalTranscriptContentState(
+  left,
+  right,
+  { includeCtime = true } = {},
+) {
   if (!left || !right) return left === right;
   const sameField = (exactField, legacyField) => {
     if (left[exactField] != null && right[exactField] != null) {
@@ -810,7 +888,7 @@ function samePhysicalTranscriptContentState(left, right) {
   return (
     sameField("sizeExact", "size") &&
     sameField("mtimeNs", "mtimeMs") &&
-    sameField("ctimeNs", "ctimeMs")
+    (!includeCtime || sameField("ctimeNs", "ctimeMs"))
   );
 }
 
@@ -1072,7 +1150,12 @@ function appendVerifiedWsAuthorityEventLocked(
 function withSessionHostWriterLock(sessionId, filePath, task, options) {
   return withFileLock(
     filePath,
-    () => withSessionHostWriteAuthority(sessionId, task),
+    () =>
+      withSessionHostWriteAuthority(
+        sessionId,
+        task,
+        sessionHostLeaseOptions() || undefined,
+      ),
     options,
   );
 }
@@ -1459,7 +1542,8 @@ function publishSessionAntiRollbackWitness(
     error.code = "CC_SESSION_ANTI_ROLLBACK_UNAVAILABLE";
     throw error;
   }
-  return publishSessionAntiRollbackAnchor(sessionId, candidate, {
+  return publishSessionAntiRollbackAnchorForStore(sessionId, candidate, {
+    ...sessionAntiRollbackPathOptions(),
     provePrefix: (current) =>
       current.status === "live" &&
       existsSync(filePath) &&
@@ -3655,6 +3739,101 @@ function sessionReplicaReceipt(sessionId, expected, installed) {
   });
 }
 
+/**
+ * Windows ACL enforcement can advance ctime without changing a transcript's
+ * bytes, mtime, or file identity. A target process normally observes that only
+ * after a prior replica install has already sealed the sidecar witness. Before
+ * accepting that narrow drift, re-verify the full hash chain and retain the
+ * independent anti-rollback witness check performed by
+ * assertVerifiedTranscriptAnchor(). Any content, identity, head, or count
+ * mismatch remains fail-closed.
+ *
+ * Callers must already hold the session host writer lock.
+ */
+function resealWindowsAclMetadataWitnessUnlocked(
+  sessionId,
+  sessionsDir,
+  filePath,
+  meta,
+) {
+  if (
+    process.platform !== "win32" ||
+    meta?.deleted === true ||
+    !meta?.transcript
+  ) {
+    return null;
+  }
+
+  let before;
+  try {
+    before = readPhysicalTranscriptState(filePath);
+  } catch {
+    return null;
+  }
+  if (samePhysicalTranscriptState(meta.transcript, before)) {
+    return null;
+  }
+  if (
+    !samePhysicalTranscriptState(meta.transcript, before, {
+      content: false,
+    }) ||
+    !samePhysicalTranscriptContentState(meta.transcript, before, {
+      includeCtime: false,
+    })
+  ) {
+    return null;
+  }
+
+  const verification = verifyTranscriptFile(filePath);
+  const after = readPhysicalTranscriptState(filePath);
+  if (!samePhysicalTranscriptState(before, after)) {
+    throw transcriptIdentityError(
+      "not-committed",
+      "the transcript changed while its ACL metadata drift was verified",
+    );
+  }
+  if (
+    verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+    verification.malformedLines > 0 ||
+    verification.truncatedTail ||
+    verification.lastHash !== meta.last_hash ||
+    verification.chainedEvents !== Number(meta.event_count)
+  ) {
+    return null;
+  }
+
+  const resealed = rebuildSessionMetaUnlocked(sessionsDir, sessionId, filePath);
+  assertVerifiedTranscriptAnchor(sessionId, verification, resealed.transcript);
+  return resealed;
+}
+
+function resealWindowsAclMetadataWitness(sessionId) {
+  if (process.platform !== "win32") return null;
+  const filePath = sessionPath(sessionId);
+  const sessionsDir = getSessionsDir();
+  return withSessionHostWriterLock(
+    sessionId,
+    filePath,
+    () => {
+      const meta = readSessionMeta(sessionsDir, sessionId);
+      return resealWindowsAclMetadataWitnessUnlocked(
+        sessionId,
+        sessionsDir,
+        filePath,
+        meta,
+      );
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
+}
+
 function sessionLocationDigest(domain, value) {
   return `sha256:${createHash("sha256")
     .update(domain, "utf8")
@@ -5059,6 +5238,9 @@ export function installSessionReplica(sessionId, input, expectedInput) {
     sessionsDir,
     `.${basename(filePath)}.replica.pending`,
   );
+  if (getSessionPresence(sessionId) === SESSION_PRESENCE.PRESENT) {
+    resealWindowsAclMetadataWitness(sessionId);
+  }
   return withSessionHostWriterLock(
     sessionId,
     filePath,
@@ -5212,6 +5394,7 @@ export function installSessionReplicaWithLocationHandoff(
   );
 
   if (getSessionPresence(sessionId) === SESSION_PRESENCE.PRESENT) {
+    resealWindowsAclMetadataWitness(sessionId);
     const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
     if (current.locationHandoff !== null) {
       if (current.locationHandoff.handoffId !== handoff.handoffId) {

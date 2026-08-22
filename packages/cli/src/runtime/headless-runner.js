@@ -39,6 +39,7 @@ import {
 } from "./mcp-config.js";
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
+import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
@@ -83,6 +84,7 @@ import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import {
+  addHooksV2EventObserver,
   emitHooksV2Event,
   executeHooksV2Event,
   resolvePromptExpansion,
@@ -434,6 +436,10 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 const HEADLESS_SESSION_RESOLUTION = Symbol("headlessSessionResolution");
 const HEADLESS_SESSION_HOST_LEASE = Symbol("headlessSessionHostLease");
+const HEADLESS_HOOK_EVENT_CLEANUP = Symbol("headlessHookEventCleanup");
+const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
+const HOST_EVENT_BACKLOG_ERROR =
+  "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached";
 
 async function withHeadlessSessionHostLease(options, deps, task) {
   const prompt = (options.prompt || "").trim();
@@ -561,11 +567,16 @@ export async function runAgentHeadless(options = {}, deps = {}) {
               ? abortSignals[0]
               : AbortSignal.any(abortSignals),
         };
+  // The inner runner can return before its long-lived cleanup `finally` is
+  // installed. Keep its pre-manifest hook queue disposer in this shared scope
+  // so the top-level host still releases every event slot on any early throw.
+  const hookEventCleanup = { dispose: null };
   const runtimeDeps = {
     ...deps,
     writeOut: outputFlow.writeOut,
     writeErr: outputFlow.writeErr,
     outputFlow,
+    [HEADLESS_HOOK_EVENT_CLEANUP]: hookEventCleanup,
   };
   const installSafety = deps.installPipeSafety || installPipeSafety;
   const disposePipeSafety = shouldInstallPipeSafety
@@ -586,6 +597,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   } catch (error) {
     failure = error;
   } finally {
+    try {
+      hookEventCleanup.dispose?.();
+    } catch {
+      // Queue-slot cleanup is best-effort and must not replace the run error.
+    }
     try {
       await outputFlow.wait();
     } catch (error) {
@@ -653,6 +669,69 @@ async function runAgentHeadlessInWorkspace(
       `headless-${Date.now()}-${process.pid}`,
     );
   const sessionHostLease = deps[HEADLESS_SESSION_HOST_LEASE] || null;
+  const includeHookEvents = isStream && options.includeHookEvents === true;
+  // One headless invocation owns one bounded queue/cache authority. Keep an
+  // injected authority intact so an embedding can share it with its host.
+  // Do not wire sessionBudget here: executeTool already owns that lease.
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
+  const pendingHookEvents = [];
+  let writeHookEvent = null;
+  let removeHookObserver = null;
+  let hookEventBacklogExhausted = false;
+  let hookEventQueueDisposed = false;
+  const disposePendingHookEvents = () => {
+    if (hookEventQueueDisposed) return;
+    hookEventQueueDisposed = true;
+    try {
+      removeHookObserver?.();
+    } finally {
+      removeHookObserver = null;
+      while (pendingHookEvents.length > 0) {
+        const queued = pendingHookEvents.shift();
+        try {
+          queued?.lease?.release?.();
+        } catch {
+          // Budget slots are idempotent, but injected authorities may throw
+          // during teardown. Continue draining every remaining slot.
+        }
+      }
+    }
+  };
+  const queuePendingHookEvent = (event) => {
+    if (hookEventQueueDisposed || hookEventBacklogExhausted) return;
+    if (writeHookEvent) {
+      writeHookEvent(event);
+      return;
+    }
+    try {
+      if (typeof hostResourceBudget?.admitEvent !== "function") {
+        throw new TypeError(
+          "host resource budget does not provide admitEvent()",
+        );
+      }
+      const lease = hostResourceBudget.admitEvent();
+      if (!lease || typeof lease.release !== "function") {
+        throw new TypeError("host resource budget event admission is invalid");
+      }
+      pendingHookEvents.push({ event, lease });
+    } catch {
+      // Hook lifecycle projection is diagnostic-only, but retaining arbitrary
+      // events before the manifest is ready is not. Stop observing and fail the
+      // run at the next safe protocol boundary without exposing hook/input data.
+      hookEventBacklogExhausted = true;
+      disposePendingHookEvents();
+    }
+  };
+  const hookEventCleanupScope = deps[HEADLESS_HOOK_EVENT_CLEANUP];
+  if (hookEventCleanupScope) {
+    hookEventCleanupScope.dispose = disposePendingHookEvents;
+  }
+  if (includeHookEvents) {
+    const subscribeHookEvents =
+      deps.addHooksV2EventObserver || addHooksV2EventObserver;
+    removeHookObserver = subscribeHookEvents(sessionId, queuePendingHookEvent);
+  }
 
   const emitHeadlessError = (resultMsg) => {
     if (isStream) {
@@ -707,6 +786,7 @@ async function runAgentHeadlessInWorkspace(
       "fully verified; resume/write admission was refused";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
+    disposePendingHookEvents();
     return {
       exitCode: 1,
       result: message,
@@ -723,6 +803,7 @@ async function runAgentHeadlessInWorkspace(
       "CC_OBSERVABILITY_SCOPE_IMMUTABLE: an existing session scope cannot be overwritten; create a new scoped session";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
+    disposePendingHookEvents();
     return {
       exitCode: 1,
       result: message,
@@ -978,6 +1059,7 @@ async function runAgentHeadlessInWorkspace(
           : "CC_OBSERVABILITY_SCOPE_AUTHORITY_UNAVAILABLE: existing session authority could not be excluded";
       emitHeadlessError(message);
       writeErr(`${message}\n`);
+      disposePendingHookEvents();
       return { exitCode: 1, result: message, isError: true };
     }
   }
@@ -1847,6 +1929,10 @@ async function runAgentHeadlessInWorkspace(
         },
         {
           writeErr,
+          // `mcp_server_errors` carries skipped config entries for machine
+          // consumers. Text-mode terminal runs additionally receive the short
+          // human warning; JSON/NDJSON keep stderr quiet for stable parsing.
+          mcpConfigWarnings: isText,
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
           loadIdeMcp: deps.loadIdeMcp,
@@ -2168,6 +2254,113 @@ async function runAgentHeadlessInWorkspace(
     }
   };
 
+  // Subagent internals may contain prompts and tool results.  The public
+  // stream exposes only stable lifecycle/progress metadata, and only with the
+  // explicit --include-hook-events opt-in.
+  const headlessInteraction = {};
+  if (includeHookEvents) {
+    headlessInteraction.emit = (kind, payload = {}) => {
+      const subAgentId =
+        typeof payload.subAgentId === "string" && payload.subAgentId.trim()
+          ? payload.subAgentId.slice(0, 160)
+          : null;
+      if (!subAgentId) return;
+      const parentId =
+        typeof payload.parentSessionId === "string" &&
+        payload.parentSessionId.trim()
+          ? payload.parentSessionId.slice(0, 160)
+          : sessionId;
+      const base = {
+        schema_version: 1,
+        subagent_id: subAgentId,
+        parent_id: parentId,
+        ...(typeof payload.role === "string" && payload.role.trim()
+          ? { role: payload.role.trim().slice(0, 96) }
+          : {}),
+      };
+      if (kind === "sub-agent.started") {
+        emitStream({
+          type: "subagent_started",
+          ...base,
+          background: payload.background === true,
+          ...(Number.isFinite(payload.maxIterations)
+            ? { max_iterations: Math.max(0, Math.floor(payload.maxIterations)) }
+            : {}),
+        });
+      } else if (
+        kind === "sub-agent.completed" ||
+        kind === "sub-agent.failed"
+      ) {
+        emitStream({
+          type: "subagent_completed",
+          ...base,
+          status: kind === "sub-agent.failed" ? "failed" : "completed",
+          background: payload.background === true,
+          ...(Number.isFinite(payload.iterationCount)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iterationCount),
+                ),
+              }
+            : {}),
+        });
+      } else if (kind === "sub-agent.progress") {
+        emitStream({
+          type: "subagent_progress",
+          ...base,
+          event_type:
+            typeof payload.event_type === "string"
+              ? payload.event_type.slice(0, 96)
+              : "unknown",
+          ...(typeof payload.tool === "string" && payload.tool
+            ? { tool: payload.tool.slice(0, 128) }
+            : {}),
+          ...(Number.isFinite(payload.iteration_count)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iteration_count),
+                ),
+              }
+            : {}),
+          ...(Number.isFinite(payload.token_count)
+            ? { token_count: Math.max(0, Math.floor(payload.token_count)) }
+            : {}),
+        });
+      }
+    };
+  }
+  if (_bgPhase.enabled) {
+    headlessInteraction.askUser = async ({
+      question,
+      options: qOptions,
+      multiSelect,
+      timeoutMs,
+      defaultValue,
+      toolUseId,
+      turnId,
+      policyDigest,
+    } = {}) => {
+      _bgPhase.reportQuestion({
+        question: typeof question === "string" ? question : "",
+        options: Array.isArray(qOptions) ? qOptions : null,
+      });
+      return _backgroundInteraction.request({
+        kind: "question",
+        question,
+        options: qOptions,
+        multiSelect,
+        timeoutMs,
+        defaultValue,
+        toolUseId,
+        turnId,
+        policyDigest: policyDigest || _backgroundPolicyDigest,
+        sessionId,
+      });
+    };
+  }
+
   const childToolExecs = new Map();
   const loopOptions = {
     model,
@@ -2191,6 +2384,7 @@ async function runAgentHeadlessInWorkspace(
     sandbox: options.sandbox || null,
     sessionId,
     sessionBudget: options.sessionBudget || null,
+    hostResourceBudget,
     // Content-free continuity metadata from the same verified sample used for
     // replay history and MCP recovery authority.
     sessionHostSnapshot: canonicalResume?.snapshot || null,
@@ -2224,42 +2418,8 @@ async function runAgentHeadlessInWorkspace(
     hermeticExecution,
     iterationBudget: budget,
     toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
-    // `ask_user_question` in a BACKGROUND turn child: send a bound request to
-    // the worker over Node IPC and await the answer here. `executeTool` remains
-    // suspended, so the model continues the SAME turn/tool call after the user
-    // answers instead of receiving the answer as a follow-up turn.
-    ...(_bgPhase.enabled
-      ? {
-          interaction: {
-            askUser: async ({
-              question,
-              options: qOptions,
-              multiSelect,
-              timeoutMs,
-              defaultValue,
-              toolUseId,
-              turnId,
-              policyDigest,
-            } = {}) => {
-              _bgPhase.reportQuestion({
-                question: typeof question === "string" ? question : "",
-                options: Array.isArray(qOptions) ? qOptions : null,
-              });
-              return _backgroundInteraction.request({
-                kind: "question",
-                question,
-                options: qOptions,
-                multiSelect,
-                timeoutMs,
-                defaultValue,
-                toolUseId,
-                turnId,
-                policyDigest: policyDigest || _backgroundPolicyDigest,
-                sessionId,
-              });
-            },
-          },
-        }
+    ...(Object.keys(headlessInteraction).length > 0
+      ? { interaction: headlessInteraction }
       : {}),
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
@@ -2464,6 +2624,27 @@ async function runAgentHeadlessInWorkspace(
   const emitStream = (obj) => {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
   };
+  if (hookEventBacklogExhausted) {
+    // Do not emit a partial pre-manifest hook projection. The fixed diagnostic
+    // contains no event payload, hook output, command, path, or user content.
+    writeOut(
+      JSON.stringify({
+        type: "result",
+        subtype: "error_host_resource_budget",
+        is_error: true,
+        code: HOST_EVENT_BACKLOG_CODE,
+        error: HOST_EVENT_BACKLOG_ERROR,
+      }) + "\n",
+    );
+    writeErr(`${HOST_EVENT_BACKLOG_CODE}: event backlog limit reached\n`);
+    disposePendingHookEvents();
+    return {
+      exitCode: 1,
+      result: HOST_EVENT_BACKLOG_ERROR,
+      isError: true,
+    };
+  }
+  writeHookEvent = (event) => emitStream(event);
 
   // --include-partial-messages: forward live assistant-text deltas as
   // `stream_event` NDJSON lines (Claude-Code parity). Only meaningful for
@@ -2506,6 +2687,9 @@ async function runAgentHeadlessInWorkspace(
       mcp: Boolean(mcp),
       enabledToolNames,
     }),
+    ...(Array.isArray(mcp?.mcpServerErrors) && mcp.mcpServerErrors.length > 0
+      ? { mcp_server_errors: mcp.mcpServerErrors }
+      : {}),
     // True isolation level for tool subprocesses: os-sandbox (bwrap) /
     // container (docker) / policy-only (no sandbox — rules are pre-execution).
     isolation_level: isolationLevel(options.sandbox),
@@ -2515,6 +2699,19 @@ async function runAgentHeadlessInWorkspace(
     additional_directories: additionalDirectories,
     goal_id: boundGoalId,
   });
+  // Setup/prompt-expansion hooks can run before the stream manifest is ready.
+  // Keep the protocol ordered by emitting their queued projection immediately
+  // after `system:init`, never before it.
+  while (pendingHookEvents.length > 0) {
+    const queued = pendingHookEvents.shift();
+    try {
+      writeHookEvent(queued.event);
+    } finally {
+      // The event is no longer buffered once its wire projection is written.
+      // Keep the host slot only for queue residency, never for renderer I/O.
+      queued.lease.release();
+    }
+  }
 
   // --auto-rewake: after a turn finishes, run the async Stop hooks and, if an
   // `asyncRewake` check FAILED, append its report as a new user turn and re-run
@@ -3469,6 +3666,7 @@ async function runAgentHeadlessInWorkspace(
         }
       }
     });
+    disposePendingHookEvents();
     const cleanupReport = cleanupDeadline.report();
     try {
       deps.onCleanupReport?.(cleanupReport);

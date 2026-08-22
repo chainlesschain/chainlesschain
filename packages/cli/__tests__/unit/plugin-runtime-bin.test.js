@@ -156,7 +156,11 @@ describe("collectPluginBinDirs", () => {
   it("trust-gates: an untrusted project plugin contributes no bin dir until trusted", () => {
     installBinPlugin("project", "toolkit", ["a"]);
     expect(collectPluginBinDirs({ cwd, scopes: ["project"] })).toEqual([]);
-    trustPlugin("toolkit", { scope: "project", version: "1.0.0" });
+    trustPlugin("toolkit", {
+      scope: "project",
+      version: "1.0.0",
+      workspaceRoot: cwd,
+    });
     expect(collectPluginBinDirs({ cwd, scopes: ["project"] })).toHaveLength(1);
   });
 });
@@ -531,6 +535,7 @@ describe("resolvePluginBinInvocation", () => {
     trustPlugin("toolkit", {
       scope: "project",
       version: "1.0.0",
+      workspaceRoot: cwd,
     });
     const invocation = resolvePluginBinInvocation("mytool --safe", {
       cwd,
@@ -541,7 +546,7 @@ describe("resolvePluginBinInvocation", () => {
       runtime: "node",
     });
 
-    untrustPlugin("toolkit", { scope: "project" });
+    untrustPlugin("toolkit", { scope: "project", workspaceRoot: cwd });
 
     expect(() => createPluginNodeSandboxExecutionContract(invocation)).toThrow(
       expect.objectContaining({
@@ -649,6 +654,7 @@ describe("resolvePluginBinInvocation", () => {
     trustPlugin("toolkit", {
       scope: "project",
       version: "1.0.0",
+      workspaceRoot: cwd,
     });
     const invocation = resolvePluginBinInvocation("native --safe", {
       cwd,
@@ -659,7 +665,7 @@ describe("resolvePluginBinInvocation", () => {
       runtime: "native",
     });
 
-    untrustPlugin("toolkit", { scope: "project" });
+    untrustPlugin("toolkit", { scope: "project", workspaceRoot: cwd });
 
     expect(() => createPluginSandboxExecutionContract(invocation)).toThrow(
       expect.objectContaining({

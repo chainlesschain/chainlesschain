@@ -22,8 +22,20 @@ import {
   mutateSecurityStore,
   readSecurityStore,
 } from "./durable-security-store.js";
+import {
+  checkRecordedWorkspaceTrust,
+  evaluateWorkspaceTrustDecision,
+  projectWorkspaceTrustAudit,
+  recordWorkspaceTrustConsent,
+  resolveCanonicalWorkspaceRepoIdentity,
+  workspaceTrustPathSubject,
+} from "./workspace-trust.js";
 
-export const _deps = { withFileLock };
+export const _deps = {
+  withFileLock,
+  // Test-only seam. Production uses workspace-trust.js's one shared ledger.
+  workspaceTrustStorePath: () => null,
+};
 const workspaceAuthorities = new WeakMap();
 
 function storePath(opts = {}) {
@@ -38,6 +50,62 @@ export function projectMcpFingerprint(content) {
   return createHash("sha256").update(String(content), "utf-8").digest("hex");
 }
 
+const PROJECT_MCP_WORKSPACE_TRUST_SOURCE = "project-mcp";
+
+function workspaceTrustStoreOptions(opts = {}) {
+  const store =
+    opts.workspaceTrustStorePath ||
+    process.env.CC_WORKSPACE_TRUST_STORE ||
+    _deps.workspaceTrustStorePath() ||
+    // Custom source-store callers (notably isolated tests) get an adjacent
+    // shared ledger. Normal CLI calls omit storePath and therefore use the
+    // single workspace-trust.js default shared by all entry points.
+    (opts.storePath
+      ? path.join(path.dirname(opts.storePath), "workspace-trust-v1.json")
+      : null);
+  return store ? { storePath: store } : {};
+}
+
+function projectMcpWorkspaceTrustContext(file, content, opts = {}) {
+  const identity = resolveCanonicalWorkspaceRepoIdentity(
+    opts.workspaceRoot || path.dirname(file),
+  );
+  const subject = workspaceTrustPathSubject(identity, file);
+  const fingerprint = projectMcpFingerprint(content);
+  return { identity, subject, fingerprint };
+}
+
+function projectMcpWorkspaceRecordKey(context) {
+  const subjectDigest = createHash("sha256")
+    .update(context.subject, "utf8")
+    .digest("hex");
+  return `workspace-v1:${context.identity.workspaceId}:${subjectDigest}`;
+}
+
+function projectMcpDecision(status, context) {
+  const decision = evaluateWorkspaceTrustDecision({
+    identity: context.identity,
+    evidence: [
+      {
+        source: PROJECT_MCP_WORKSPACE_TRUST_SOURCE,
+        consent: status === "trusted" ? "explicit" : "missing",
+        fingerprint: context.fingerprint,
+        decision:
+          status === "trusted"
+            ? "allow"
+            : status === "first-use"
+              ? "ask"
+              : "deny",
+      },
+    ],
+  });
+  return {
+    status,
+    fingerprint: context.fingerprint,
+    workspaceTrust: projectWorkspaceTrustAudit(decision),
+  };
+}
+
 /**
  * Issue an in-process authority only after the caller has verified the exact
  * project file fingerprint. Plain config fields cannot forge this token.
@@ -50,7 +118,23 @@ export function issueProjectMcpWorkspaceAuthority({
   config = {},
 }) {
   const canonicalFile = fs.realpathSync.native(path.resolve(file));
-  const canonicalRoot = fs.realpathSync.native(path.resolve(workspaceRoot));
+  const workspaceIdentity =
+    resolveCanonicalWorkspaceRepoIdentity(workspaceRoot);
+  const canonicalRoot = workspaceIdentity.canonicalWorkspaceRoot;
+  const trustDecision = evaluateWorkspaceTrustDecision({
+    identity: workspaceIdentity,
+    evidence: [
+      {
+        source: PROJECT_MCP_WORKSPACE_TRUST_SOURCE,
+        consent: "host-bound",
+        fingerprint: projectMcpFingerprint(content),
+        decision: "allow",
+      },
+    ],
+  });
+  if (trustDecision.decision !== "allow") {
+    throw new Error("project MCP workspace identity is unavailable");
+  }
   const token = Object.freeze({});
   workspaceAuthorities.set(
     token,
@@ -58,6 +142,9 @@ export function issueProjectMcpWorkspaceAuthority({
       file: canonicalFile,
       fingerprint: projectMcpFingerprint(content),
       workspaceRoot: canonicalRoot,
+      workspaceId: workspaceIdentity.workspaceId,
+      repositoryId: workspaceIdentity.repositoryId,
+      workspaceTrust: projectWorkspaceTrustAudit(trustDecision),
       serverName: String(serverName || ""),
       url: typeof config.url === "string" ? config.url : "",
       transport: typeof config.transport === "string" ? config.transport : "",
@@ -100,6 +187,19 @@ export function resolveProjectMcpWorkspaceAuthority(token, expected = {}) {
   ) {
     return null;
   }
+  try {
+    const currentIdentity = resolveCanonicalWorkspaceRepoIdentity(
+      record.workspaceRoot,
+    );
+    if (
+      currentIdentity.workspaceId !== record.workspaceId ||
+      currentIdentity.repositoryId !== record.repositoryId
+    ) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
   return record.workspaceRoot;
 }
 
@@ -112,29 +212,84 @@ function readStore(opts) {
  * @returns {{status:"first-use"|"trusted"|"changed", fingerprint:string}}
  */
 export function checkProjectMcpTrust(file, content, opts = {}) {
-  const fingerprint = projectMcpFingerprint(content);
-  const record = readStore(opts)[path.resolve(file)];
-  if (!record || !record.fingerprint) {
-    return { status: "first-use", fingerprint };
+  const context = projectMcpWorkspaceTrustContext(file, content, opts);
+  const store = readStore(opts);
+  const record = store[projectMcpWorkspaceRecordKey(context)];
+  const legacyRecord = store[path.resolve(file)];
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    // A pre-v1 path-keyed grant cannot be shown to bind the current canonical
+    // workspace identity.  Treat it as changed rather than silently widening
+    // it; the existing explicit re-trust path records the v1 intersection.
+    const shared = checkRecordedWorkspaceTrust({
+      identity: context.identity,
+      source: PROJECT_MCP_WORKSPACE_TRUST_SOURCE,
+      subject: context.subject,
+      evidenceFingerprint: context.fingerprint,
+      ...workspaceTrustStoreOptions(opts),
+    });
+    return {
+      status:
+        legacyRecord?.fingerprint || shared.status === "changed"
+          ? "changed"
+          : "first-use",
+      fingerprint: context.fingerprint,
+      workspaceTrust: shared.audit,
+    };
   }
+  const binding = record.workspaceTrust;
+  if (
+    record.fingerprint !== context.fingerprint ||
+    !binding ||
+    binding.workspaceId !== context.identity.workspaceId ||
+    binding.repositoryId !== context.identity.repositoryId ||
+    binding.subject !== context.subject
+  ) {
+    return projectMcpDecision("changed", context);
+  }
+  const shared = checkRecordedWorkspaceTrust({
+    identity: context.identity,
+    source: PROJECT_MCP_WORKSPACE_TRUST_SOURCE,
+    subject: context.subject,
+    evidenceFingerprint: context.fingerprint,
+    ...workspaceTrustStoreOptions(opts),
+  });
   return {
-    status: record.fingerprint === fingerprint ? "trusted" : "changed",
-    fingerprint,
+    status: shared.status === "trusted" ? "trusted" : "changed",
+    fingerprint: context.fingerprint,
+    workspaceTrust: shared.audit,
   };
 }
 
 /** Record (or re-record) the trusted fingerprint for a file. */
 export function recordProjectMcpTrust(file, content, opts = {}) {
   const target = storePath(opts);
+  const context = projectMcpWorkspaceTrustContext(file, content, opts);
+  // Persist the shared record first.  If the legacy/source-specific store
+  // fails afterwards, the checker still requires both records and therefore
+  // cannot accidentally authorize from the shared ledger alone.
+  recordWorkspaceTrustConsent({
+    identity: context.identity,
+    source: PROJECT_MCP_WORKSPACE_TRUST_SOURCE,
+    subject: context.subject,
+    evidenceFingerprint: context.fingerprint,
+    consent: "explicit",
+    ...workspaceTrustStoreOptions(opts),
+  });
   return mutateSecurityStore(
     target,
     "project MCP trust",
     (store) => {
-      store[path.resolve(file)] = {
-        fingerprint: projectMcpFingerprint(content),
+      store[projectMcpWorkspaceRecordKey(context)] = {
+        fingerprint: context.fingerprint,
         trustedAt: new Date(
           typeof opts.now === "number" ? opts.now : Date.now(),
         ).toISOString(),
+        workspaceTrust: {
+          schemaVersion: context.identity.schemaVersion,
+          workspaceId: context.identity.workspaceId,
+          repositoryId: context.identity.repositoryId,
+          subject: context.subject,
+        },
       };
       return true;
     },

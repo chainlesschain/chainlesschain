@@ -13,13 +13,16 @@ import {
 
 let dir;
 let storeFile;
+let workspaceTrustStore;
 let originalDeps;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-trust-"));
   storeFile = path.join(dir, "plugin-trust.json");
+  workspaceTrustStore = path.join(dir, "workspace-trust.json");
   originalDeps = { ...trustDeps };
   trustDeps.storePath = () => storeFile;
+  trustDeps.workspaceTrustStorePath = () => workspaceTrustStore;
 });
 afterEach(() => {
   Object.assign(trustDeps, originalDeps);
@@ -88,7 +91,9 @@ describe("trust / untrust store", () => {
     trustPlugin("c", { scope: "project", version: "1.0.0" });
     expect(fs.existsSync(storeFile)).toBe(true);
     const raw = JSON.parse(fs.readFileSync(storeFile, "utf8"));
-    expect(raw["project:c"].version).toBe("1.0.0");
+    expect(Object.values(raw)).toContainEqual(
+      expect.objectContaining({ name: "c", version: "1.0.0" }),
+    );
   });
 
   it("holds a fail-closed lock around the complete mutation", () => {

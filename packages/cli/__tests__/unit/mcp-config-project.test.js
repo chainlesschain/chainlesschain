@@ -10,7 +10,7 @@ import path from "node:path";
 import os from "node:os";
 import { loadProjectMcp } from "../../src/runtime/mcp-config.js";
 
-let root, sub;
+let root, sub, priorWorkspaceTrustStore;
 
 function write(file, obj) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -38,7 +38,10 @@ beforeEach(() => {
   root = path.join(base, "proj");
   sub = path.join(root, "packages", "x");
   fs.mkdirSync(sub, { recursive: true });
-  fs.writeFileSync(path.join(root, ".git"), "gitdir: /nowhere\n", "utf-8");
+  // The workspace-trust boundary resolves linked-worktree metadata before
+  // granting project execution authority. This fixture needs a real Git root,
+  // not a deliberately dangling `gitdir:` pointer that must fail closed.
+  fs.mkdirSync(path.join(root, ".git"));
   // Project `.mcp.json` is OPT-IN (default-off); enable it for the load tests.
   process.env.CC_PROJECT_MCP = "1";
   // Fingerprint trust store goes to the temp dir, never the real home.
@@ -46,11 +49,24 @@ beforeEach(() => {
     path.dirname(root),
     "trust-store.json",
   );
+  // P1-2 adds a separate shared workspace ledger. Keep the fixture fully
+  // isolated: a real user ledger must never make a fresh temporary project
+  // look previously changed or trusted.
+  priorWorkspaceTrustStore = process.env.CC_WORKSPACE_TRUST_STORE;
+  process.env.CC_WORKSPACE_TRUST_STORE = path.join(
+    path.dirname(root),
+    "workspace-trust-store.json",
+  );
 });
 
 afterEach(() => {
   delete process.env.CC_PROJECT_MCP;
   delete process.env.CC_PROJECT_MCP_TRUST_STORE;
+  if (priorWorkspaceTrustStore === undefined) {
+    delete process.env.CC_WORKSPACE_TRUST_STORE;
+  } else {
+    process.env.CC_WORKSPACE_TRUST_STORE = priorWorkspaceTrustStore;
+  }
   try {
     fs.rmSync(path.dirname(root), { recursive: true, force: true });
   } catch {

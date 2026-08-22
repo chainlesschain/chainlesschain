@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-21）：产品 v5.0.3.135 / 推荐 CLI 0.165.5（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含耐久 workflow authority/阶段恢复、会话预算、远端结果审阅/应用、Artifact 审计/孤儿恢复、可移植首次安装与 MCP native-addon 失败闭合；P1-5 Marketplace/ARM64 exact-head aggregate 已通过。**
+> **当前版本边界（2026-08-22）：产品 v5.0.3.135 / 推荐 CLI 0.165.6（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含回环默认 Remote Control、受治理 Marketplace 来源/摘要归档、跨会话消息、MCP 生命周期恢复，以及既有 durable workflow、Artifact 与 native-addon policy。**
 
 ## 概述
 
@@ -409,7 +409,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.165.5` 已发布受治理插件事务、provider/tool/child-call 耐久回执、stage input/checkpoint 恢复、REPL/headless/WS 预算、远端 result bundle 收集/审阅/导入/事务应用、Artifact access/deletion/cleanup/orphan recovery、可移植首次安装与 MCP native-addon policy，并承接 `0.165.1` 的动态运行准入、远程权威和 canonical 执行边界。精确 SHA `11aef634aa` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读。
+> `0.165.6` 已发布回环默认 Remote Control、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、耐久跨会话消息、MCP 重连/生命周期恢复与 `concise`/`readline` 交互，并完整承接 `0.165.5` 的 workflow/Artifact/native-addon 契约。精确 SHA `ef4324349f` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；当前 HEAD 的 session group、browser evidence 与 execution-location drain 等待后续发布。
 
 ---
 

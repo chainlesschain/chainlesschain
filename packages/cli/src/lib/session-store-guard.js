@@ -11,9 +11,11 @@
 
 import { resolve, relative, isAbsolute, join } from "node:path";
 import { getHomeDir } from "./paths.js";
+import { resolveClaudeProjectStorageDir } from "./claude-project-storage-layout.js";
 
 export function sessionStoreDir() {
-  return join(getHomeDir(), "sessions");
+  const homeDir = getHomeDir();
+  return resolveClaudeProjectStorageDir(homeDir) || join(homeDir, "sessions");
 }
 
 /**

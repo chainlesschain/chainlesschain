@@ -27,6 +27,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { getHomeDir } from "../paths.js";
+import { ResilientGatewayClient } from "../gateway-client-resilience.js";
 
 export const _deps = { fetch: (...a) => globalThis.fetch(...a) };
 
@@ -85,6 +86,18 @@ export class CloudClient {
     }
     this.token = opts.token || null;
     this.deps = { ..._deps, ...(opts.deps || {}) };
+    // Event streaming remains opt-in for a Runner endpoint, but uses the same
+    // bounded recovery layer as every other gateway client. TLS material and
+    // proxy authorization are providers so each reconnect can rotate them
+    // without putting certificate paths or credentials into persisted config.
+    this.gateway =
+      opts.gateway ||
+      new ResilientGatewayClient({
+        baseUrl: this.baseUrl,
+        fetch: this.deps.fetch,
+        tlsProvider: opts.tlsProvider,
+        proxyAuthHelper: opts.proxyAuthHelper,
+      });
   }
 
   _headers(extra = {}) {
@@ -125,6 +138,33 @@ export class CloudClient {
 
   async result(jobId) {
     return this._json("GET", `/v1/jobs/${encodeURIComponent(jobId)}/result`);
+  }
+
+  /**
+   * Stream a Runner job's SSE events with bounded idle recovery. The runner's
+   * event endpoint is deliberately separate from polling so older private
+   * runners remain compatible with status()/result().
+   */
+  async events(jobId, options = {}) {
+    if (!/^[\w.-]+$/.test(String(jobId || ""))) {
+      throw new Error(`invalid job id: ${jobId}`);
+    }
+    // Keep Runner event authentication identical to polling. The resilience
+    // layer rejects proxy authentication in caller headers, so this remains an
+    // origin-only credential.
+    if (!this.token) {
+      return this.gateway.stream(
+        `/v1/jobs/${encodeURIComponent(jobId)}/events`,
+        options,
+      );
+    }
+    return this.gateway.stream(`/v1/jobs/${encodeURIComponent(jobId)}/events`, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${this.token}`,
+      },
+    });
   }
 }
 

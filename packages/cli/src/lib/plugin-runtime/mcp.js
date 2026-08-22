@@ -80,7 +80,9 @@ export function collectPluginMcpServers(opts = {}) {
   }
   // An MCP stdio server spawns a command — gate it behind trust so a cloned
   // repo's project plugin can't get a server launched the moment cc starts.
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: opts.cwd,
+  });
   warnUntrustedOnce(
     skipped.filter((p) => p.manifest?.components?.mcp).map((p) => p.name),
     "mcp",

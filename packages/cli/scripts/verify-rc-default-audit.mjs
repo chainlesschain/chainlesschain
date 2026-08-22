@@ -38,6 +38,19 @@ const REQUIRED_NODE_VERSION = "v22.12.0";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
+function resolveVitestEntry() {
+  const candidates = [
+    path.join(CLI_ROOT, "node_modules", "vitest", "vitest.mjs"),
+    path.join(REPOSITORY_ROOT, "node_modules", "vitest", "vitest.mjs"),
+  ];
+  const entry = candidates.find((candidate) => fs.existsSync(candidate));
+  assert.ok(
+    entry,
+    `vitest entrypoint is missing; checked: ${candidates.join(", ")}`,
+  );
+  return entry;
+}
+
 export const RC_DEFAULT_THRESHOLDS = Object.freeze({
   passiveRemoteStateWritesMaximum: 0,
   defaultNonLoopbackExposureMaximum: 0,
@@ -229,7 +242,7 @@ function runContractTests() {
   const result = spawnSync(
     process.execPath,
     [
-      vitestEntry,
+      resolveVitestEntry(),
       "run",
       ...CONTRACT_TEST_FILES,
       "--config",

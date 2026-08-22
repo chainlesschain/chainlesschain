@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-21）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.165.5`，PDH 为 `0.4.59`；Open VSX 为 `0.37.59`，JetBrains `0.4.94` 已上传待审（公开版 `0.4.93`）。CLI 已公开孤儿 Artifact 恢复、耐久 workflow 阶段恢复与 MCP native-addon 失败闭合；P1-5 Marketplace/ARM64 exact-head aggregate 已通过，Desktop/iOS 与签名 native 继续按独立发行证据分层。
+> 当前文档快照（2026-08-22）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.165.6`，PDH 为 `0.4.59`；Open VSX 为 `0.37.61`，JetBrains Marketplace 为 `0.4.95`。CLI 已公开安全 Remote Control、受治理插件来源/归档、跨会话消息与 MCP 生命周期恢复；源码 `0.37.63` / `0.4.96` 的可扩展 IDE 会话与证据能力仍按后续发行证据分层。
 
 ## 📚 文档内容
 

@@ -41,6 +41,11 @@ import {
 import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
 import { fetchAndMaterializeMarketplaceArchive } from "./marketplace-archive-source.js";
 import {
+  createSameOriginMarketplaceHeaderFetch,
+  runMarketplaceCommandSource,
+  runMarketplaceHeadersHelper,
+} from "./marketplace-command-source.js";
+import {
   assertMarketplaceSourceExecutable,
   normalizeMarketplacePackageSource,
 } from "./marketplace-source-adapter.js";
@@ -215,12 +220,27 @@ export async function fetchRegistry(url, opts = {}) {
     );
   }
 
+  // This descriptor is local operator configuration, never registry metadata.
+  // It is intentionally evaluated only for the registry request and later
+  // carried in an opaque authority for the selected same-origin archive.
+  const marketplaceRequestHeaders = await resolveMarketplaceCatalogHeaders(
+    url,
+    opts,
+  );
+
   const networkTransport = createMarketplaceNetworkTransport({
     proxyUrl: opts.proxyUrl,
     pacFile: opts.pacFile,
     caFile: opts.caFile,
   });
-  const fetchImpl = networkTransport?.fetch || _deps.fetch;
+  const transportFetch = networkTransport?.fetch || _deps.fetch;
+  const fetchImpl = marketplaceRequestHeaders
+    ? createSameOriginMarketplaceHeaderFetch(
+        transportFetch,
+        new URL(url).origin,
+        marketplaceRequestHeaders,
+      )
+    : transportFetch;
   let networkErr = null;
   let cacheFallbackAllowed = false;
   try {
@@ -283,6 +303,7 @@ export async function fetchRegistry(url, opts = {}) {
       },
       url,
       managedPolicy,
+      marketplaceRequestHeaders,
     );
   } catch (err) {
     networkErr = err;
@@ -308,7 +329,14 @@ export async function fetchRegistry(url, opts = {}) {
         cacheDir,
         expectedSha256,
       });
-      if (cached) return bindFetchedRegistry(cached, url, managedPolicy);
+      if (cached) {
+        return bindFetchedRegistry(
+          cached,
+          url,
+          managedPolicy,
+          marketplaceRequestHeaders,
+        );
+      }
     } catch (cacheError) {
       throw new Error(
         `could not fetch registry ${displayUrl}: ${publicRegistryErrorMessage(networkErr)}; verified immutable cache rejected: ${publicRegistryCacheErrorMessage(cacheError)}`,
@@ -321,6 +349,38 @@ export async function fetchRegistry(url, opts = {}) {
         ? " (no verified immutable cache available)"
         : ""),
   );
+}
+
+function configuredMarketplaceHeadersHelper(url, opts) {
+  if (opts.headersHelper != null) return opts.headersHelper;
+  const marketplace = opts.config?.plugins?.marketplace;
+  if (!marketplace || typeof marketplace !== "object") return null;
+  let origin = null;
+  try {
+    origin = new URL(url).origin;
+  } catch {
+    return null;
+  }
+  const perOrigin = marketplace.headersHelpers;
+  if (
+    perOrigin &&
+    typeof perOrigin === "object" &&
+    Object.prototype.hasOwnProperty.call(perOrigin, origin)
+  ) {
+    return perOrigin[origin];
+  }
+  return marketplace.headersHelper ?? null;
+}
+
+async function resolveMarketplaceCatalogHeaders(url, opts) {
+  const descriptor = configuredMarketplaceHeadersHelper(url, opts);
+  if (descriptor == null) return null;
+  return runMarketplaceHeadersHelper(descriptor, {
+    platform: opts.platform,
+    spawn: opts.headersHelperSpawn,
+    spawnSync: opts.headersHelperSpawnSync,
+    kill: opts.headersHelperKill,
+  });
 }
 
 async function readBoundedRegistryResponse(response) {
@@ -584,7 +644,12 @@ function freezeRegistryValue(value) {
   return Object.freeze(value);
 }
 
-function bindFetchedRegistry(result, registryUrl, managedPolicy) {
+function bindFetchedRegistry(
+  result,
+  registryUrl,
+  managedPolicy,
+  marketplaceRequestHeaders = null,
+) {
   const registry = freezeRegistryValue(result.registry);
   fetchedRegistryAuthorities.set(
     registry,
@@ -592,6 +657,11 @@ function bindFetchedRegistry(result, registryUrl, managedPolicy) {
       registryUrl: String(registryUrl),
       documentSha256: result.documentSha256 || null,
       managedPolicy,
+      // Credential values live only in this per-process, opaque binding. They
+      // never enter catalog, cache, provenance, or result JSON.
+      marketplaceRequestHeaders: marketplaceRequestHeaders
+        ? Object.freeze({ ...marketplaceRequestHeaders })
+        : null,
     }),
   );
   return { ...result, registry };
@@ -666,7 +736,7 @@ export function authorizeRegistryPluginEntry(
       cwd,
       kindHint: "git",
     });
-  } else {
+  } else if (normalized.sourceType === "archive") {
     let registryOrigin;
     let archiveOrigin;
     try {
@@ -678,6 +748,8 @@ export function authorizeRegistryPluginEntry(
     if (archiveOrigin !== registryOrigin) {
       throw new Error("registry archive source must use the registry origin");
     }
+  } else if (normalized.sourceType !== "command") {
+    throw new Error("registry package source type is unsupported");
   }
   const authority = Object.freeze({});
   registryResolutionAuthorities.set(
@@ -694,6 +766,9 @@ export function authorizeRegistryPluginEntry(
           : null,
       payloadSha256: null,
       documentSha256: fetched.documentSha256,
+      commandMode:
+        normalized.sourceType === "command" ? normalized.commandSpec.mode : null,
+      marketplaceRequestHeaders: fetched.marketplaceRequestHeaders,
     }),
   );
   return {
@@ -734,6 +809,7 @@ export function listRegistryPlugins(registry) {
             : null,
       sourceType: source.type,
       ref: source.type === "git" ? source.ref : null,
+      ...(source.type === "command" ? { mode: source.mode } : {}),
       description: p.description || "",
       enabled: source.type !== "dynamic-disabled",
       ...(source.type === "dynamic-disabled"
@@ -800,13 +876,20 @@ export async function resolveRemoteSource(url, opts = {}) {
           token,
           registryResolutionAuthority: authorized.registryResolutionAuthority,
         });
-  return {
+  const result = {
     ...resolvedSource,
-    entry,
     fromCache,
     documentSha256,
     ...(networkAuthority ? { networkAuthority } : {}),
   };
+  // Command descriptors can contain local paths or credentials. Retain the
+  // exact registry entry for the immediate authorized materialization flow,
+  // but keep it out of generic result serialization/audit output.
+  Object.defineProperty(result, "entry", {
+    value: entry,
+    enumerable: false,
+  });
+  return result;
 }
 
 /** Inspect one selected entry without fetching any candidate source bytes. */
@@ -821,6 +904,22 @@ export function inspectRegistryEntrySource(entry) {
       sha256: entry.sha256 || null,
       archiveSpec: packageSource,
     };
+  }
+  if (packageSource.type === "command") {
+    const inspected = {
+      source: null,
+      sourceIdentity: packageSource.identity,
+      sourceType: "command",
+      ref: null,
+      sha256: entry.sha256 || null,
+    };
+    // The descriptor may contain local credentials. It remains available to
+    // the immediate materializer but never spreads into a catalog/result.
+    Object.defineProperty(inspected, "commandSpec", {
+      value: packageSource,
+      enumerable: false,
+    });
+    return inspected;
   }
   // Preserve the canonical remote Git validation from the registry security
   // boundary rather than accepting the adapter's more general local shape.
@@ -869,6 +968,7 @@ export async function resolveRegistryEntrySource(url, entry, opts = {}) {
       proxyUrl: opts.proxyUrl,
       pacFile: opts.pacFile,
       caFile: opts.caFile,
+      requestHeaders: issued.marketplaceRequestHeaders,
     });
     const materializedAuthority = Object.freeze({});
     registryResolutionAuthorities.set(
@@ -883,6 +983,51 @@ export async function resolveRegistryEntrySource(url, entry, opts = {}) {
       ...inspected,
       source: archive.dir,
       archiveAuthority: archive.authority,
+      registryResolutionAuthority: materializedAuthority,
+    };
+  }
+  if (inspected.sourceType === "command") {
+    const command = await runMarketplaceCommandSource(
+      {
+        executable: inspected.commandSpec.executable,
+        args: inspected.commandSpec.args,
+        cwd: inspected.commandSpec.cwd,
+        env: inspected.commandSpec.env,
+        timeoutMs: inspected.commandSpec.timeoutMs,
+        maxOutputBytes: inspected.commandSpec.maxOutputBytes,
+        mode: inspected.commandSpec.mode,
+      },
+      {
+      platform: opts.platform,
+      spawn: opts.commandSpawn,
+      spawnSync: opts.commandSpawnSync,
+      kill: opts.commandKill,
+      },
+    );
+    const materializedAuthority = Object.freeze({});
+    registryResolutionAuthorities.set(
+      materializedAuthority,
+      Object.freeze({
+        ...issued,
+        source: command.source,
+        payloadSha256: command.payloadSha256,
+        commandMode: command.mode,
+        fileCount: command.fileCount,
+        totalBytes: command.totalBytes,
+      }),
+    );
+    return {
+      ...inspected,
+      source: command.source,
+      commandAuthority: Object.freeze({
+        schemaVersion: "cc-plugin-marketplace-command-source/v1",
+        status: "descriptor-executed-and-verified",
+        descriptorIdentity: inspected.sourceIdentity,
+        mode: command.mode,
+        payloadSha256: command.payloadSha256,
+        fileCount: command.fileCount,
+        totalBytes: command.totalBytes,
+      }),
       registryResolutionAuthority: materializedAuthority,
     };
   }

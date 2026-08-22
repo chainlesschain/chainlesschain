@@ -91,6 +91,14 @@ export function resolveAgentPolicy({
     pdh: overrides.pdh,
     outputStyle: overrides.outputStyle,
     settingsFile: overrides.settingsFile || null,
+    // Captured before settings-file env overrides. The REPL consumes this
+    // immutable launch snapshot for Claude-compatible project storage so a
+    // checked-in settings file cannot redirect transcripts or auto memory.
+    claudeStorageLaunchEnv:
+      overrides.claudeStorageLaunchEnv &&
+      typeof overrides.claudeStorageLaunchEnv === "object"
+        ? Object.freeze({ ...overrides.claudeStorageLaunchEnv })
+        : null,
     disableSlashCommands: overrides.disableSlashCommands === true,
     // --remote-control also applies interactively: the REPL starts the
     // paired-device approval bridge at startup (批26).

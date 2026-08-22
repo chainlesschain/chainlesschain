@@ -218,7 +218,11 @@ describe("collectPluginMonitors — trust gating (monitors spawn commands)", () 
       monitors: [{ name: "tests", command: "npm", args: ["test"] }],
     });
     expect(collectPluginMonitors({ cwd, scopes: ["project"] })).toEqual([]);
-    trustPlugin("toolkit", { scope: "project", version: "1.0.0" });
+    trustPlugin("toolkit", {
+      scope: "project",
+      version: "1.0.0",
+      workspaceRoot: cwd,
+    });
     const mons = collectPluginMonitors({ cwd, scopes: ["project"] });
     expect(mons).toHaveLength(1);
     expect(mons[0].id).toBe("toolkit:tests");

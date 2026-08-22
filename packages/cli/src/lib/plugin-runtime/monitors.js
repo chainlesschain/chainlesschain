@@ -116,7 +116,9 @@ export function collectPluginMonitors(opts = {}) {
     return [];
   }
   // A monitor spawns a command — gate it behind trust.
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: opts.cwd,
+  });
   warnUntrustedOnce(
     skipped.filter((p) => p.manifest?.components?.monitors).map((p) => p.name),
     "monitors",

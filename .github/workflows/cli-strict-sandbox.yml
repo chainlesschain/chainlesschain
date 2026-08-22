@@ -436,6 +436,7 @@ jobs:
           __tests__/unit/event-runtime-host.test.js
           __tests__/unit/headless-runner.test.js
           __tests__/unit/headless-stream.test.js
+          __tests__/unit/headless-hook-events.test.js
           __tests__/unit/remote-control-lib.test.js
           __tests__/unit/remote-approval-start.test.js
           __tests__/integration/remote-control-start.test.js
@@ -493,6 +494,9 @@ jobs:
           __tests__/unit/background-task-manager.test.js
           __tests__/unit/background-task-command-runner.test.js
           __tests__/unit/agent-core-run-shell-background-sandbox.test.js
+          __tests__/unit/agent-sandbox.test.js
+          __tests__/unit/sandbox-network-policy.test.js
+          __tests__/integration/sandbox-egress-proxy.test.js
           __tests__/unit/background-agent-supervisor.test.js
           __tests__/integration/background-task-worker.test.js
           src/lib/lsp/__tests__/lsp-client.test.js

@@ -2,6 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  evaluateWorkspaceTrustDecision,
+  projectWorkspaceTrustAudit,
+} from "./workspace-trust.js";
 
 const trustedWorkspaceStorage = new AsyncLocalStorage();
 const registeredHostWorkspaces = new Map();
@@ -57,12 +61,37 @@ function captureWorkspaceIdentity(workspaceRoot) {
       "Hooks v2 host workspace root must resolve to a directory",
     );
   }
-  return Object.freeze({
+  const identity = {
     canonicalRoot,
     device: stats.dev,
     inode: stats.ino,
     generation: workspaceGeneration(stats),
+  };
+  // Hooks have no user-configured path authority: the trusted host bootstrap
+  // is their separate evidence/consent channel.  It still passes through the
+  // shared canonical identity and strict lattice so audit consumers see the
+  // same repository/worktree identity as MCP and plugins.
+  const decision = evaluateWorkspaceTrustDecision({
+    workspaceRoot: canonicalRoot,
+    evidence: [
+      {
+        source: "hooks",
+        consent: "host-bound",
+        fingerprint: `${stats.dev}\0${stats.ino}\0${identity.generation}`,
+        decision: "allow",
+      },
+    ],
   });
+  if (decision.decision !== "allow") {
+    throw invalidWorkspaceRoot(
+      "Hooks v2 host workspace trust identity is unavailable",
+    );
+  }
+  Object.defineProperty(identity, "workspaceTrustAudit", {
+    value: projectWorkspaceTrustAudit(decision),
+    enumerable: false,
+  });
+  return Object.freeze(identity);
 }
 
 function workspaceIdentityKey(identity) {
@@ -240,6 +269,20 @@ export function resolveHostHooksV2WorkspaceBinding(binding) {
   const record = registeredHostWorkspaces.get(bindingId);
   if (!record || record.binding !== binding) return null;
   return verifyWorkspaceRecord(record);
+}
+
+/**
+ * Return the redacted shared trust projection for one currently valid Hooks
+ * binding.  It deliberately exposes neither the canonical path nor a host
+ * identity token.
+ */
+export function projectHostHooksV2WorkspaceTrustAudit(binding) {
+  if (!binding || typeof binding !== "object") return null;
+  const record = registeredHostWorkspaces.get(binding.bindingId);
+  if (!record || record.binding !== binding || !verifyWorkspaceRecord(record)) {
+    return null;
+  }
+  return record.identity.workspaceTrustAudit || null;
 }
 
 /**

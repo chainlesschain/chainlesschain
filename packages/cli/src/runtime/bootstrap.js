@@ -13,6 +13,12 @@
  */
 
 import { logger } from "../lib/logger.js";
+import { join } from "node:path";
+import {
+  ensureDir as ensurePrivateDir,
+  ensureHomeDir,
+  resolveConfigDataRoot,
+} from "../lib/paths.js";
 
 let _context = null;
 
@@ -40,19 +46,37 @@ export async function bootstrap(options = {}) {
     // Stage 1: Environment
     if (options.verbose) logger.verbose("Stage 1: Detecting environment...");
     const coreEnv = await import("@chainlesschain/core-env");
-    ctx.env = {
-      runtime: coreEnv.getRuntimeInfo(),
-      userDataPath: coreEnv.getUserDataPath(),
-      configDir: coreEnv.getConfigDir(),
-      dataDir: coreEnv.getDataDir(),
-      logsDir: coreEnv.getLogsDir(),
-    };
+    const configRoot = resolveConfigDataRoot();
+    if (configRoot.source === "claude") {
+      // core-env intentionally knows only native roots. Keep its runtime
+      // metadata but make all CLI runtime config/data state follow the
+      // validated CLAUDE_CONFIG_DIR root rather than silently splitting it
+      // into the platform-default user-data directory.
+      ctx.env = {
+        runtime: coreEnv.getRuntimeInfo(),
+        userDataPath: configRoot.path,
+        configDir: configRoot.path,
+        dataDir: join(configRoot.path, "data"),
+        logsDir: join(configRoot.path, "logs"),
+      };
+      ensureHomeDir();
+      ensurePrivateDir(ctx.env.dataDir);
+      ensurePrivateDir(ctx.env.logsDir);
+    } else {
+      ctx.env = {
+        runtime: coreEnv.getRuntimeInfo(),
+        userDataPath: coreEnv.getUserDataPath(),
+        configDir: coreEnv.getConfigDir(),
+        dataDir: coreEnv.getDataDir(),
+        logsDir: coreEnv.getLogsDir(),
+      };
 
-    // Ensure directories exist
-    coreEnv.ensureDir(ctx.env.userDataPath);
-    coreEnv.ensureDir(ctx.env.configDir);
-    coreEnv.ensureDir(ctx.env.dataDir);
-    coreEnv.ensureDir(ctx.env.logsDir);
+      // Ensure directories exist
+      coreEnv.ensureDir(ctx.env.userDataPath);
+      coreEnv.ensureDir(ctx.env.configDir);
+      coreEnv.ensureDir(ctx.env.dataDir);
+      coreEnv.ensureDir(ctx.env.logsDir);
+    }
 
     // Stage 2-3: Logger (shared-logger optional, CLI logger always works)
     if (options.verbose) logger.verbose("Stage 2-3: Logger ready");

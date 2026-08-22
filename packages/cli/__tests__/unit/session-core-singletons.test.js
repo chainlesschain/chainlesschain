@@ -15,6 +15,9 @@ beforeEach(async () => {
     getStatePath: () => path.join(tmpHome, "state"),
     getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
     getServicesDir: () => path.join(tmpHome, "services"),
+    resolveConfigDataRoot: () => ({ path: tmpHome, source: "default" }),
+    getClaudeProjectStorageDir: () => null,
+    ensureClaudeProjectStorageTree: () => tmpHome,
   }));
 });
 

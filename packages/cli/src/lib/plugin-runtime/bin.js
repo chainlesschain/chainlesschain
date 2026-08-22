@@ -81,7 +81,9 @@ export function collectPluginBinCommands(opts = {}) {
     }
     return [];
   }
-  const { trusted, skipped } = partitionByTrust(plugins);
+  const { trusted, skipped } = partitionByTrust(plugins, {
+    workspaceRoot: opts.cwd,
+  });
   warnUntrustedOnce(
     skipped
       .filter((p) => p.manifest?.components?.bin?.length)

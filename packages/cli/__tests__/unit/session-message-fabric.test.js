@@ -213,6 +213,74 @@ describe("SessionMessageFabric ordering, recovery and bounds", () => {
     ).toBe("delivered");
   });
 
+  it("persists a bounded per-sender rate window without breaking idempotent retry", () => {
+    let now = 1_000;
+    const limits = {
+      now: () => now,
+      maxMessagesPerSenderWindow: 2,
+      senderRateWindowMs: 100,
+    };
+    const fabric = fixture(limits);
+    fabric.register({ sessionId: "sender", name: "sender" });
+    fabric.register({ sessionId: "target", name: "target" });
+
+    expect(
+      fabric.send({
+        from: "sender",
+        to: "target",
+        body: "first",
+        messageId: "rate-1",
+      }).status,
+    ).toBe("delivered");
+    expect(
+      fabric.send({
+        from: "sender",
+        to: "target",
+        body: "second",
+        messageId: "rate-2",
+      }).status,
+    ).toBe("delivered");
+
+    const restored = new SessionMessageFabric({
+      statePath: fabric.statePath,
+      ...limits,
+    });
+    const limited = restored.send({
+      from: "sender",
+      to: "target",
+      body: "third",
+      messageId: "rate-3",
+    });
+    expect(limited).toMatchObject({
+      status: "rate_limited",
+      reason: "sender_rate_limit",
+      retryAfterMs: 100,
+    });
+    expect(
+      restored.send({
+        from: "sender",
+        to: "target",
+        body: "third",
+        messageId: "rate-3",
+      }),
+    ).toEqual(limited);
+    expect(restored.inbox("target")).toHaveLength(2);
+
+    now += 100;
+    expect(
+      restored.send({
+        from: "sender",
+        to: "target",
+        body: "after-window",
+        messageId: "rate-4",
+      }),
+    ).toMatchObject({ status: "delivered", reason: null });
+    expect(restored.projection().limits).toMatchObject({
+      maxMessagesPerSenderWindow: 2,
+      senderRateWindowMs: 100,
+    });
+  });
+
   it("pre-rejects a 256 KiB + 1 payload before changing durable state", () => {
     const fabric = fixture();
     fabric.register({ sessionId: "sender", name: "sender" });

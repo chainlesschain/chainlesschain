@@ -44,6 +44,7 @@ import {
   MACOS_PKG_EXECPATH_MAGIC,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
+import { normalizeLinuxCgroupPolicy } from "./linux-cgroup-v2.js";
 import {
   MACOS_MCP_LAUNCHER_INPUTS,
   isMacosMcpLauncherPackageVersion,
@@ -1457,13 +1458,23 @@ class ProcessExecutionBroker extends EventEmitter {
         { requiredBoundaries },
       );
     }
+    const linuxCgroup = normalizeLinuxCgroupPolicy(rawPolicy?.linuxCgroup);
+    if (
+      linuxCgroup?.mode === "required" &&
+      !requiredBoundaries.includes(SANDBOX_BOUNDARIES.RESOURCE_LIMITS)
+    ) {
+      // Required cgroup v2 is an enforcement contract, not an advisory
+      // preference. The typed platform plan must therefore prove the resource
+      // boundary before ProcessExecutionBroker starts the native child.
+      requiredBoundaries.push(SANDBOX_BOUNDARIES.RESOURCE_LIMITS);
+    }
     const executionContract = this._normalizeSandboxExecutionContract(
       options.sandboxExecutionContract,
       options,
       requiredBoundaries,
       launch,
     );
-    return { profile, requiredBoundaries, executionContract };
+    return { profile, requiredBoundaries, linuxCgroup, executionContract };
   }
 
   _stripSandboxControlOptions(options) {
@@ -3492,6 +3503,9 @@ class ProcessExecutionBroker extends EventEmitter {
       requiredBoundaries: Object.freeze([...requiredBoundaries]),
       sync,
       ...(pty ? { pty: true } : {}),
+      ...(sandboxPolicy.linuxCgroup
+        ? { linuxCgroup: sandboxPolicy.linuxCgroup }
+        : {}),
       ...(sandboxPolicy.executionContract
         ? { executionContract: sandboxPolicy.executionContract }
         : {}),

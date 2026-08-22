@@ -17,6 +17,7 @@ import {
 import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
+import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 
 function verifiedResume(messages, sessionId) {
   return {
@@ -474,8 +475,11 @@ describe("runAgentHeadlessStream", () => {
 
   it("runs one turn per event, emitting init + per-turn result + end", async () => {
     const seen = [];
-    const agentLoop = async function* (messages) {
+    const observedHostBudgets = [];
+    const hostResourceBudget = new HostResourceBudget();
+    const agentLoop = async function* (messages, loopOptions) {
       seen.push(messages.map((m) => m.role));
+      observedHostBudgets.push(loopOptions.hostResourceBudget);
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
       yield { type: "response-complete", content: "reply:" + lastUser.content };
       yield { type: "run-ended", reason: "complete" };
@@ -489,7 +493,7 @@ describe("runAgentHeadlessStream", () => {
     });
 
     const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false },
+      { expandFileRefs: false, hostResourceBudget },
       deps,
     );
 
@@ -517,7 +521,73 @@ describe("runAgentHeadlessStream", () => {
       turns: 2,
     });
     expect(outcome).toEqual({ exitCode: 0, turns: 2 });
-  }, 15000);
+    expect(observedHostBudgets).toHaveLength(2);
+    expect(observedHostBudgets[0]).toBe(hostResourceBudget);
+    expect(observedHostBudgets[1]).toBe(hostResourceBudget);
+  }, 30_000);
+
+  it("fails closed on a queued-input event backlog and releases every host slot", async () => {
+    const secret = "stream-input-user-secret";
+    const hostResourceBudget = new HostResourceBudget({
+      maxEventBacklog: 1,
+    });
+    let releaseFlood;
+    const firstTurnStarted = new Promise((resolve) => {
+      releaseFlood = resolve;
+    });
+    async function* floodInput() {
+      yield `${JSON.stringify({ type: "user", text: "first" })}\n`;
+      await firstTurnStarted;
+      yield [
+        JSON.stringify({ type: "user", text: secret }),
+        JSON.stringify({ type: "user", text: `${secret}-second` }),
+      ].join("\n") + "\n";
+    }
+    const agentLoop = vi.fn(async function* (_messages, loopOptions) {
+      releaseFlood();
+      await new Promise((resolve) => {
+        if (loopOptions.signal.aborted) {
+          resolve();
+          return;
+        }
+        loopOptions.signal.addEventListener("abort", resolve, { once: true });
+      });
+      const aborted = new Error("test turn aborted");
+      aborted.name = "AbortError";
+      throw aborted;
+    });
+    const deps = baseDeps({ agentLoop, input: floodInput() });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        hostResourceBudget,
+        settingsHooks: {},
+      },
+      deps,
+    );
+
+    expect(outcome).toEqual({ exitCode: 1, turns: 1 });
+    expect(agentLoop).toHaveBeenCalledTimes(1);
+    const events = parseEmitted(deps._lines);
+    const failure = events.find(
+      (event) => event.code === "CC_HOST_EVENT_BACKLOG_EXHAUSTED",
+    );
+    expect(failure).toMatchObject({
+      type: "result",
+      subtype: "error_host_resource_budget",
+      is_error: true,
+      code: "CC_HOST_EVENT_BACKLOG_EXHAUSTED",
+      error: "CC_HOST_EVENT_BACKLOG_EXHAUSTED: event backlog limit reached",
+    });
+    expect(JSON.stringify(events)).not.toContain(secret);
+    expect(hostResourceBudget.status().backlog.event).toEqual({
+      active: 0,
+      max: 1,
+    });
+    const reusableSlot = hostResourceBudget.admitEvent();
+    expect(reusableSlot.release()).toBe(true);
+  }, 30_000);
 
   it("fails before the model when a persisted user turn hits EROFS", async () => {
     const agentLoop = vi.fn(async function* () {

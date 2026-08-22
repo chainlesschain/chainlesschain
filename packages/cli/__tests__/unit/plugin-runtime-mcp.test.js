@@ -202,7 +202,11 @@ describe("collectPluginMcpServers — trust gating (MCP spawns commands)", () =>
     ).toEqual({});
 
     // Trust it → now its server is collected.
-    trustPlugin("weather", { scope: "project", version: "1.0.0" });
+    trustPlugin("weather", {
+      scope: "project",
+      version: "1.0.0",
+      workspaceRoot: cwd,
+    });
     const { servers } = collectPluginMcpServers({ cwd, scopes: ["project"] });
     expect(servers.weather.command).toBe("weather-mcp");
   });

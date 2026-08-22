@@ -188,7 +188,10 @@ async function _runProvider(providerId, opts = {}) {
   try {
     vault = await openCliVault();
   } catch (err) {
-    if (err.code === "BETTER_SQLITE3_MISSING") {
+    if (
+      err?.code === "BETTER_SQLITE3_MISSING" ||
+      String(err?.code || "").startsWith("CLI_VAULT_")
+    ) {
       console.error(chalk.red(`✗ ${err.message}`));
       process.exitCode = 2;
       return;

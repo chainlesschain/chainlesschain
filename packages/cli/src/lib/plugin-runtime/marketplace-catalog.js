@@ -480,7 +480,9 @@ function normalizeCandidate(entry, context) {
       ? packageSource.url
       : packageSource?.type === "git"
         ? packageSource.source
-        : "";
+        : packageSource?.type === "command"
+          ? packageSource.identity
+          : "";
   const sourceUrl = sanitizeUrl(sourceValue) || sourceValue || null;
   const ref = packageSource?.type === "git" ? packageSource.ref : null;
 
@@ -639,7 +641,16 @@ function normalizeCandidate(entry, context) {
             archiveSha256: packageSource.sha256,
             format: packageSource.format,
           }
-        : packageSource?.type === "dynamic-disabled"
+        : packageSource?.type === "command"
+          ? {
+              type: "command",
+              // The descriptor itself may carry local credentials. Catalog
+              // output binds only its non-secret canonical identity.
+              source: packageSource.identity,
+              ref: null,
+              mode: packageSource.mode,
+            }
+          : packageSource?.type === "dynamic-disabled"
           ? {
               type: "dynamic-disabled",
               source: null,
