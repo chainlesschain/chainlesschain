@@ -529,5 +529,8 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(wrapper).toContain(
       '"$CC_IDE_TARGET_NODE" "$CC_IDE_TARGET_ENTRY" "$@"',
     );
+    expect(wrapper).toContain(
+      'CHAINLESSCHAIN_HOME="$CC_IDE_TARGET_HOME/.chainlesschain"',
+    );
   });
 });

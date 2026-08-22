@@ -17,7 +17,10 @@ source "$target_env"
 : "${CC_IDE_TARGET_HOME:?missing target home}"
 : "${CC_IDE_TARGET_SECURITY_HOME:?missing target security home}"
 
-export CHAINLESSCHAIN_HOME="$CC_IDE_TARGET_HOME"
+# CC_IDE_TARGET_HOME is the isolated target account home. Keep application
+# state in its own child directory: the secure-fs guard correctly refuses to
+# apply owner-only permissions to a broad home root.
+export CHAINLESSCHAIN_HOME="$CC_IDE_TARGET_HOME/.chainlesschain"
 export CHAINLESSCHAIN_SECURITY_ANCHOR_HOME="$CC_IDE_TARGET_SECURITY_HOME"
 export NO_COLOR=1
 export FORCE_COLOR=0
