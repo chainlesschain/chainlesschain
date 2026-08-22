@@ -646,7 +646,11 @@ function localTargetEnvironment(profile, lifecycleEnvironment) {
   return Object.freeze({
     ...inherited,
     APPDATA: path.join(profile.transport.home, "AppData", "Roaming"),
-    CHAINLESSCHAIN_HOME: profile.transport.home,
+    // `home` is the target account's home directory, not the application
+    // state directory. Pointing CHAINLESSCHAIN_HOME at it makes the
+    // owner-only guard (correctly) refuse to repair a broad user home on
+    // Windows. Keep all CLI state beneath a dedicated child directory.
+    CHAINLESSCHAIN_HOME: path.join(profile.transport.home, ".chainlesschain"),
     CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: profile.transport.securityHome,
     FORCE_COLOR: "0",
     HOME: profile.transport.home,

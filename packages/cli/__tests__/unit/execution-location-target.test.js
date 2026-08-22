@@ -453,7 +453,9 @@ describe("execution location target launch and resume", () => {
     ]);
     expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
     expect(options.env.GITHUB_TOKEN).toBeUndefined();
-    expect(options.env.CHAINLESSCHAIN_HOME).toBeTruthy();
+    expect(options.env.CHAINLESSCHAIN_HOME).toBe(
+      join(options.env.HOME, ".chainlesschain"),
+    );
     expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
       "2026-08-18T08:00:00.000Z",
     );
