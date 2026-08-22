@@ -674,6 +674,19 @@ export async function runBrowserEvidenceJourney(options) {
       );
     }
 
+    // Windows Chrome can expose its initial blank tab before the command-line
+    // URL target. Set the connected tab to our local site before evaluating the
+    // grant-bound journey so every following action has an HTTP(S) origin.
+    await performActions(
+      [
+        {
+          type: "navigate",
+          url: `${siteA.origin}/?session=opaque-login-password`,
+        },
+      ],
+      { port },
+    );
+
     const store = new ArtifactStore();
     const uploadSource = path.join(temporaryRoot, "browser-upload.txt");
     fs.writeFileSync(uploadSource, "opaque-upload-secret\n", {
