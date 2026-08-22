@@ -9,6 +9,7 @@ import process from "node:process";
 const MEBIBYTE = 1024 * 1024;
 const MAX_CAPTURED_MARKER_BYTES = 256;
 const MAX_STDIN_BYTES = 64 * 1024 * 1024;
+const CPU_LIMIT_SIGNALS = new Set(["SIGKILL", "SIGXCPU"]);
 
 function parseArguments(argv) {
   const separator = argv.indexOf("--");
@@ -176,7 +177,11 @@ async function main() {
     : null;
   const armed =
     expectedMarker !== null && outputPrefix.includes(expectedMarker);
-  if (resourceKind === "cpu" && cpuLimitReached && armed) {
+  if (
+    resourceKind === "cpu" &&
+    armed &&
+    (cpuLimitReached || CPU_LIMIT_SIGNALS.has(result.signal))
+  ) {
     process.exitCode = 152;
   } else if (
     resourceKind === "memory" &&
