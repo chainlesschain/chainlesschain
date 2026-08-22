@@ -345,7 +345,6 @@ function cloneDiscoveryList(value) {
 }
 
 function applyDiscoveryCache(entry, cached) {
-  entry.tools = cloneDiscoveryList(cached.tools);
   entry.resources = cloneDiscoveryList(cached.resources);
   entry.resourceTemplates = cloneDiscoveryList(cached.resourceTemplates);
   entry.prompts = cloneDiscoveryList(cached.prompts);
@@ -3022,6 +3021,7 @@ export class MCPClient extends EventEmitter {
       entry._discoveryCacheKey = cachePolicy.enabled ? cacheKey : null;
 
       if (cacheCompatible && cacheAgeMs <= cachePolicy.ttlMs) {
+        this._replaceToolInventory(name, entry, cached.tools);
         applyDiscoveryCache(entry, cached);
         entry.discoveryCache = { state: "fresh", ageMs: cacheAgeMs };
         this.emit("server-discovery-cache", {
@@ -3101,6 +3101,7 @@ export class MCPClient extends EventEmitter {
         if (toolsDiscoveryFailed && staleUsable) {
           cached.strikes += 1;
           cached.lastFailureAt = now;
+          this._replaceToolInventory(name, entry, cached.tools);
           applyDiscoveryCache(entry, cached);
           entry.discoveryCache = {
             state: "stale",

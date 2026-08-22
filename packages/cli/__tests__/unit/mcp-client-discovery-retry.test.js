@@ -186,6 +186,15 @@ describe("MCPClient discovery retry", () => {
     expect(toolLists).toBe(1);
     expect(second.tools).toEqual([{ name: "t1" }]);
     expect(client.listServers()[0].toolsError).toBeNull();
+    // A cache hit must re-enter the same host metadata admission path as a
+    // network-discovered tool list. Otherwise reconnects can retain tools
+    // while dropping the client's aggregate byte accounting.
+    const secondEntry = client.servers.get("srv");
+    expect(secondEntry._toolMetadataBytes).toBeGreaterThan(0);
+    expect(client._toolMetadataBytes).toBe(secondEntry._toolMetadataBytes);
+
+    await client.disconnect("srv");
+    expect(client._toolMetadataBytes).toBe(0);
   });
 
   it("uses bounded stale discovery only for transient tool discovery failures", async () => {
