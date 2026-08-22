@@ -168,9 +168,18 @@ function resolveBaseSha(root, headSha, requested) {
     .toLowerCase();
   if (EXACT_SHA_RE.test(candidate) && !/^0+$/u.test(candidate))
     return candidate;
-  return String(gitBytes(root, ["rev-parse", `${headSha}^`]))
-    .trim()
-    .toLowerCase();
+  try {
+    return String(gitBytes(root, ["rev-parse", `${headSha}^`]))
+      .trim()
+      .toLowerCase();
+  } catch {
+    // A workflow_dispatch event has no push base SHA. Some exact-SHA
+    // checkouts intentionally contain only that commit, so its parent cannot
+    // be resolved even though the requested source identity is valid. Use an
+    // empty diff anchored at the verified head rather than rejecting the
+    // evidence journey for checkout topology alone.
+    return headSha;
+  }
 }
 
 function producerDigests(root, headSha) {
