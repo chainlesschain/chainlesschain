@@ -28,11 +28,11 @@ final class SessionUxEvidenceTest {
         String evidenceOutput = System.getenv("CC_SESSION_UX_JETBRAINS_EVIDENCE");
         if (projectionInput == null || projectionInput.isBlank()
                 || evidenceOutput == null || evidenceOutput.isBlank()) {
-            assertFalse("true".equals(System.getenv("GITHUB_ACTIONS")),
-                    "GitHub Actions must configure SESSION-UX evidence paths");
+            assertFalse("true".equals(System.getenv("CC_SESSION_UX_REQUIRED")),
+                    "required SESSION-UX evidence must configure its input paths");
             return;
         }
-        assertEquals("true", System.getenv("GITHUB_ACTIONS"));
+        assertEquals("true", System.getenv("CC_SESSION_UX_REQUIRED"));
 
         byte[] projectionBytes = Files.readAllBytes(Path.of(projectionInput));
         String projectionJson = new String(projectionBytes, StandardCharsets.UTF_8);

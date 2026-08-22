@@ -186,6 +186,7 @@ jobs:
           printf 'CC_SESSION_UX_PROJECTION=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-projection.json\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_SESSION_UX_NODE_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-node-evidence.json\n' "$root" >> "$GITHUB_ENV"
           printf 'CC_SESSION_UX_JETBRAINS_EVIDENCE=%s/accessibility-performance-input/${{ matrix.suffix }}/session-ux-jetbrains-evidence.json\n' "$root" >> "$GITHUB_ENV"
+          printf 'CC_SESSION_UX_REQUIRED=true\n' >> "$GITHUB_ENV"
       - name: Seed content-free failure artifact
         shell: bash
         run: |
