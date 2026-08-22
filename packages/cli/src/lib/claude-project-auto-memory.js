@@ -10,6 +10,7 @@
 import {
   existsSync,
   lstatSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   writeFileSync,
@@ -19,11 +20,15 @@ import {
   CLAUDE_CONFIG_DIR_ENV,
   resolveClaudeProjectStorageDir,
 } from "./claude-project-storage-layout.js";
-import { resolveConfigDataRoot } from "./paths.js";
 import {
-  assertSafeOwnerOnlyPath,
+  assertSafeConfigDataRoot,
+  ensureClaudeProjectStorageTree,
+  resolveConfigDataRoot,
+} from "./paths.js";
+import {
   ensurePrivateDirectory,
   ensurePrivateFile,
+  repairPrivatePaths,
 } from "./secure-fs.js";
 import { resolveCanonicalWorkspaceRepoIdentity } from "./workspace-trust.js";
 
@@ -33,6 +38,7 @@ export const CLAUDE_AUTO_MEMORY_BINDING_FILE =
   ".chainlesschain-auto-memory-binding-v1.json";
 export const CLAUDE_AUTO_MEMORY_MAX_SETTINGS_BYTES = 256 * 1024;
 export const CLAUDE_AUTO_MEMORY_MAX_BINDING_BYTES = 4096;
+export const CLAUDE_AUTO_MEMORY_MAX_EXISTING_FILES = 512;
 
 const LAUNCH_ENV_KEYS = Object.freeze([
   "CHAINLESSCHAIN_HOME",
@@ -40,6 +46,11 @@ const LAUNCH_ENV_KEYS = Object.freeze([
   "CLAUDE_CODE_PROJECT_DIR_NAME",
   "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
   "CC_MANAGED_SETTINGS",
+  // Managed settings default path is derived from these trusted launcher
+  // values on Windows; include them so a project settings env map cannot
+  // redirect that authority after the snapshot.
+  "ProgramData",
+  "PROGRAMDATA",
 ]);
 
 function autoMemoryError(code, message) {
@@ -173,17 +184,23 @@ function resolveCustomMemoryDirectory(value, workspaceRoot, options = {}) {
     );
   }
   try {
-    assertSafeOwnerOnlyPath(candidate);
-    const insideSecuredConfigRoot =
-      options.configRoot &&
-      pathContains(resolve(options.configRoot), candidate);
+    assertSafeConfigDataRoot(candidate, { env: options.env });
     ensurePrivateDirectory(candidate, {
-      // A custom directory below the project config root inherits the root's
-      // verified ACL. External custom roots still receive an explicit Windows
-      // ACL repair before they are trusted.
-      applyWindowsAcl: !insideSecuredConfigRoot,
+      // Do not assume inherited ACLs are safe: an existing custom directory
+      // can retain a broad explicit ACE even below a protected config root.
+      applyWindowsAcl: true,
       failIfUnavailable: true,
     });
+    const dailyDir = join(candidate, "daily");
+    if (process.platform === "win32") {
+      ensurePrivateDirectory(dailyDir, {
+        applyWindowsAcl: false,
+        failIfUnavailable: true,
+      });
+      repairPrivatePaths([dailyDir], { platform: "win32" });
+    } else {
+      ensurePrivateDirectory(dailyDir, { failIfUnavailable: true });
+    }
     const canonical = realpathSync.native
       ? realpathSync.native(candidate)
       : realpathSync(candidate);
@@ -203,16 +220,12 @@ function resolveCustomMemoryDirectory(value, workspaceRoot, options = {}) {
   }
 }
 
-function ensureClaudeProjectParents(configRoot, projectRoot) {
+function ensureClaudeProjectConfigRoot(configRoot) {
   try {
     ensurePrivateDirectory(configRoot, {
       applyWindowsAcl: true,
       failIfUnavailable: true,
     });
-    ensurePrivateDirectory(join(configRoot, "projects"), {
-      applyWindowsAcl: false,
-    });
-    ensurePrivateDirectory(projectRoot, { applyWindowsAcl: false });
   } catch {
     throw autoMemoryError(
       "CC_AUTO_MEMORY_STORAGE_UNAVAILABLE",
@@ -224,10 +237,9 @@ function ensureClaudeProjectParents(configRoot, projectRoot) {
 function readBinding(bindingPath) {
   try {
     ensurePrivateFile(bindingPath, {
-      // The binding lives under a directory that was just secured by the
-      // project/custom-memory setup. It inherits that ACL on Windows; avoid
-      // a second PowerShell round trip on every first automatic-memory open.
-      applyWindowsAcl: false,
+      // Existing binding files can retain explicit broad ACLs even if their
+      // parent is protected. Verify/repair the file itself before trusting it.
+      applyWindowsAcl: true,
       failIfUnavailable: true,
     });
   } catch {
@@ -290,6 +302,44 @@ function bindMemoryDirectory(memoryDirectory, repositoryId) {
     throw autoMemoryError(
       "CC_AUTO_MEMORY_IDENTITY_MISMATCH",
       "project automatic memory belongs to another workspace",
+    );
+  }
+}
+
+/**
+ * Existing memory files may predate the protected directory tree and carry a
+ * broad explicit ACL of their own. Repair every bounded, content-bearing file
+ * before CLIPermanentMemory can read it; an unexpectedly large tree fails
+ * closed instead of turning startup into an unbounded ACL walk.
+ */
+function secureExistingAutomaticMemoryFiles(memoryDirectory) {
+  const candidates = [join(memoryDirectory, "MEMORY.md")];
+  const dailyDirectory = join(memoryDirectory, "daily");
+  try {
+    const entries = readdirSync(dailyDirectory, { withFileTypes: true })
+      .filter((entry) => entry.name.endsWith(".md"))
+      .sort((left, right) => left.name.localeCompare(right.name));
+    if (entries.length > CLAUDE_AUTO_MEMORY_MAX_EXISTING_FILES) {
+      throw autoMemoryError(
+        "CC_AUTO_MEMORY_STORAGE_UNAVAILABLE",
+        "project automatic memory contains too many existing note files",
+      );
+    }
+    for (const entry of entries) {
+      candidates.push(join(dailyDirectory, entry.name));
+    }
+    for (const filePath of candidates) {
+      if (!existsSync(filePath)) continue;
+      ensurePrivateFile(filePath, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
+    }
+  } catch (error) {
+    if (error?.code === "CC_AUTO_MEMORY_STORAGE_UNAVAILABLE") throw error;
+    throw autoMemoryError(
+      "CC_AUTO_MEMORY_STORAGE_UNAVAILABLE",
+      "project automatic memory files could not be secured",
     );
   }
 }
@@ -366,10 +416,12 @@ export function resolveClaudeProjectAutoMemory(options = {}) {
   if (!projectStorage) {
     return Object.freeze({
       mode: "legacy",
-      enabled: !isAutoMemoryDisabled(env),
+      // Native CHAINLESSCHAIN_HOME precedence disables the Claude layout as a
+      // whole, including its project-only auto-memory controls.
+      enabled: true,
       memoryDir: null,
       source: null,
-      reason: isAutoMemoryDisabled(env) ? "disabled" : null,
+      reason: null,
     });
   }
   if (isAutoMemoryDisabled(env)) {
@@ -385,24 +437,29 @@ export function resolveClaudeProjectAutoMemory(options = {}) {
   try {
     const identity = resolveCanonicalWorkspaceRepoIdentity(cwd);
     const workspaceRoot = identity.canonicalWorkspaceRoot;
-    ensureClaudeProjectParents(root.path, projectStorage);
+    // Settings inside the config root become trusted only after its own
+    // owner-only boundary is established. The project descendants are secured
+    // below after we know whether default or custom memory is selected.
+    ensureClaudeProjectConfigRoot(root.path);
     const configured = resolveTrustedDirectorySetting({
       configRoot: root.path,
       workspaceRoot,
       env,
     });
     const memoryDir = configured?.defined
-      ? resolveCustomMemoryDirectory(configured.value, workspaceRoot, {
-          configRoot: root.path,
-        })
+      ? resolveCustomMemoryDirectory(configured.value, workspaceRoot, { env })
       : join(projectStorage, "memory");
     if (!configured?.defined) {
-      ensurePrivateDirectory(memoryDir, {
-        applyWindowsAcl: false,
-        failIfUnavailable: true,
+      // Includes the daily-note directory used by the actual permanent-memory
+      // lifecycle, so an older broad descendant cannot leak project memory.
+      ensureClaudeProjectStorageTree(root.path, projectStorage, {
+        extraDirectories: [memoryDir, join(memoryDir, "daily")],
       });
+    } else {
+      ensureClaudeProjectStorageTree(root.path, projectStorage);
     }
     bindMemoryDirectory(memoryDir, identity.repositoryId);
+    secureExistingAutomaticMemoryFiles(memoryDir);
     return Object.freeze({
       mode: "project",
       enabled: true,

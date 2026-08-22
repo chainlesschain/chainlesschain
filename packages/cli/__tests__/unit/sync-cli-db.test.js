@@ -40,6 +40,24 @@ describe("sync-cli-db — _vaultPath resolution", () => {
     _resetCcDirForTest();
     expect(_vaultPath().endsWith("cli-vault.db")).toBe(true);
   });
+
+  it("uses CLAUDE_CONFIG_DIR when no test/native root is supplied", () => {
+    const originalNative = process.env.CHAINLESSCHAIN_HOME;
+    const originalClaude = process.env.CLAUDE_CONFIG_DIR;
+    try {
+      _resetCcDirForTest();
+      delete process.env.CHAINLESSCHAIN_HOME;
+      process.env.CLAUDE_CONFIG_DIR = join("C:\\", "cc-cli-vault-root");
+      expect(_vaultPath()).toBe(
+        join("C:\\", "cc-cli-vault-root", "cli-vault.db"),
+      );
+    } finally {
+      if (originalNative === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = originalNative;
+      if (originalClaude === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+      else process.env.CLAUDE_CONFIG_DIR = originalClaude;
+    }
+  });
 });
 
 describe("sync-cli-db — CliVaultDbManager (delegation)", () => {

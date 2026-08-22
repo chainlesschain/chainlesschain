@@ -43,6 +43,7 @@ import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
 import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
 import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
+import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 import { isAbortError } from "../lib/abort-utils.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
@@ -1465,6 +1466,11 @@ async function runAgentHeadlessStreamInWorkspace(
     deps[STREAM_SESSION_ID] ||
     options.sessionId ||
     `headless-stream-${Date.now()}-${process.pid}`;
+  // The input stream may drive many turns. Allocate once at the stream-run
+  // boundary so every turn (and its nested agents) shares cache/backlog limits.
+  // SessionResourceBudget remains separately leased by executeTool.
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
   const persist =
     (Boolean(options.sessionId) || options.observabilityScope != null) &&
     options.ephemeral !== true;
@@ -2945,6 +2951,7 @@ async function runAgentHeadlessStreamInWorkspace(
     additionalDirectories,
     sessionId,
     sessionBudget: options.sessionBudget || null,
+    hostResourceBudget,
     sessionHostSnapshot: canonicalResume?.snapshot || null,
     // Auto-checkpoint (Claude-Code parity): snapshot the work tree before each
     // mutating tool so a stream consumer (e.g. the IDE chat panel) can rewind.

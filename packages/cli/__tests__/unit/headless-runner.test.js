@@ -150,6 +150,7 @@ describe("headless-runner — exact delivery fixer authority", () => {
       worktreeRoot,
       allowedPaths,
     });
+    const hostResourceBudget = {};
     let captured = null;
     const { deps } = makeDeps(replyText("done"));
     deps.bootstrap = vi.fn(async () => ({ db: null }));
@@ -180,6 +181,7 @@ describe("headless-runner — exact delivery fixer authority", () => {
           exactToolNames: true,
           fileMutationScope,
           hermeticExecution: true,
+          hostResourceBudget,
           additionalDirectories: [tmpdir()],
           settingsHooks: { PreToolUse: [{ matcher: "*", hooks: [] }] },
           toolAdmission: { enforce: true },
@@ -203,6 +205,7 @@ describe("headless-runner — exact delivery fixer authority", () => {
         settingsHooks: null,
         toolAdmission: null,
       });
+      expect(captured.hostResourceBudget).toBe(hostResourceBudget);
       expect(deps.bootstrap).not.toHaveBeenCalled();
       expect(deps.getApprovalGate).not.toHaveBeenCalled();
       expect(deps.executeHooksV2Event).not.toHaveBeenCalled();

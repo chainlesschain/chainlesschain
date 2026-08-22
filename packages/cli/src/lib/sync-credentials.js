@@ -21,9 +21,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import crypto from "node:crypto";
 import { withFileLock } from "./with-file-lock.js";
+import { ensureDir, getHomeDir } from "./paths.js";
 
 const SENSITIVE_FIELDS = ["sync.webdav.password", "sync.oss.secretAccessKey"];
 const ALLOWED_PROVIDER_IDS = ["webdav", "oss"];
@@ -37,10 +37,7 @@ let _ccDirOverride = null;
 
 function _ccDir() {
   if (_ccDirOverride) return _ccDirOverride;
-  return (
-    process.env.CHAINLESSCHAIN_HOME ||
-    path.join(os.homedir(), ".chainlesschain")
-  );
+  return getHomeDir();
 }
 
 function _keyPath() {
@@ -53,7 +50,13 @@ function _vaultPath() {
 
 function _ensureDir() {
   const dir = _ccDir();
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  // Explicit test-only override keeps the existing isolated fake-filesystem
+  // seam lightweight; production roots always go through owner-only setup.
+  if (_ccDirOverride) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return;
+  }
+  ensureDir(dir);
 }
 
 /**
@@ -217,24 +220,32 @@ function setCredentials(providerId, creds) {
   // Credential metadata is security-critical: never decrypt-modify-encrypt
   // without exclusion, because a lost update can silently restore/revoke the
   // wrong provider credentials.
-  return withFileLock(_vaultPath(), () => {
-    const all = loadAll();
-    if (!all.sync || typeof all.sync !== "object") all.sync = {};
-    all.sync[providerId] = { ...creds };
-    return saveAll(all);
-  }, { failIfUnavailable: true });
+  return withFileLock(
+    _vaultPath(),
+    () => {
+      const all = loadAll();
+      if (!all.sync || typeof all.sync !== "object") all.sync = {};
+      all.sync[providerId] = { ...creds };
+      return saveAll(all);
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 function clearCredentials(providerId) {
   assertProviderId(providerId);
-  return withFileLock(_vaultPath(), () => {
-    const all = loadAll();
-    if (all?.sync?.[providerId]) {
-      delete all.sync[providerId];
-      return saveAll(all);
-    }
-    return true;
-  }, { failIfUnavailable: true });
+  return withFileLock(
+    _vaultPath(),
+    () => {
+      const all = loadAll();
+      if (all?.sync?.[providerId]) {
+        delete all.sync[providerId];
+        return saveAll(all);
+      }
+      return true;
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 /** Test seam: override the resolved chainlesschain dir without env leak. */

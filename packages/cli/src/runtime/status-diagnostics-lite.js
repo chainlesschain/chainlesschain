@@ -10,6 +10,7 @@ import {
   VERSION,
 } from "../constants.js";
 import { isExecutableOnPath } from "../lib/executable-path.js";
+import { resolveConfigDataRoot } from "../lib/paths.js";
 
 function checkPort(port, host, timeoutMs, connect = createConnection) {
   return new Promise((resolve) => {
@@ -82,7 +83,14 @@ export async function collectQuickStatusReport(options = {}) {
     executableCheck: options.executableCheck || isExecutableOnPath,
     connect: options.connect || createConnection,
   };
-  const home = env.CHAINLESSCHAIN_HOME || join(deps.home(), CONFIG_DIR_NAME);
+  const configuredRoot = resolveConfigDataRoot({ env, cwd });
+  // Retain the injected-home seam for default-root unit callers, while every
+  // explicit native/Claude root uses the same validated resolver as runtime
+  // persistence.
+  const home =
+    configuredRoot.source === "default" && options.home
+      ? join(deps.home(), CONFIG_DIR_NAME)
+      : configuredRoot.path;
   const config = readJson(join(home, "config.json"), deps) || {};
   const llm = { ...DEFAULT_CONFIG.llm, ...(config.llm || {}) };
   const setupCompleted = config.setupCompleted === true;

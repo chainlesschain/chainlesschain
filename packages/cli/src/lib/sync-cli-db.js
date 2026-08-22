@@ -20,13 +20,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
+import { ensureDir, getHomeDir } from "./paths.js";
 
 function _ccDir() {
-  return (
-    process.env.CHAINLESSCHAIN_HOME ||
-    path.join(os.homedir(), ".chainlesschain")
-  );
+  return _ccDirOverride ?? getHomeDir();
 }
 
 function _vaultPath() {
@@ -123,7 +120,11 @@ class CliVaultDbManager {
  */
 async function openCliVault() {
   const dir = _ccDir();
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (_ccDirOverride) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } else {
+    ensureDir(dir);
+  }
 
   // Lazy-import better-sqlite3 — heavy native dep, defer until run-time
   // (so the CLI doesn't even pay the require cost for non-sync commands).
@@ -157,9 +158,8 @@ function _resetCcDirForTest() {
 }
 
 // Re-wrap _ccDir/_vaultPath to honor override (test seam)
-const _originalCcDir = _ccDir;
 function _ccDirEffective() {
-  return _ccDirOverride ?? _originalCcDir();
+  return _ccDirOverride ?? getHomeDir();
 }
 function _vaultPathEffective() {
   return path.join(_ccDirEffective(), "cli-vault.db");
@@ -167,7 +167,11 @@ function _vaultPathEffective() {
 
 async function openCliVaultT() {
   const dir = _ccDirEffective();
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (_ccDirOverride) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } else {
+    ensureDir(dir);
+  }
   let Database;
   try {
     Database = (await import("better-sqlite3")).default;

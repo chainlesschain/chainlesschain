@@ -70,6 +70,50 @@ describe("bootstrap", () => {
     expect(getContext()).toBeNull();
   });
 
+  it("routes runtime config and data through a Claude-compatible root", async () => {
+    const root = "C:\\claude-bootstrap-root";
+    const ensureHome = vi.fn();
+    const ensureDir = vi.fn();
+    vi.doMock("../../src/lib/paths.js", async (importOriginal) => ({
+      ...(await importOriginal()),
+      resolveConfigDataRoot: () => ({ path: root, source: "claude" }),
+      ensureHomeDir: ensureHome,
+      ensureDir,
+    }));
+    vi.doMock("@chainlesschain/core-env", () => ({
+      getRuntimeInfo: () => ({ runtime: "cli", electron: false }),
+      getUserDataPath: () => "C:\\platform-default",
+      getConfigDir: () => "C:\\platform-default\\config",
+      getDataDir: () => "C:\\platform-default\\data",
+      getLogsDir: () => "C:\\platform-default\\logs",
+      ensureDir: vi.fn(),
+    }));
+    vi.doMock("@chainlesschain/core-config", () => {
+      throw new Error("skip");
+    });
+    vi.doMock("@chainlesschain/core-db", () => {
+      throw new Error("skip");
+    });
+    vi.doMock("@chainlesschain/core-infra", () => {
+      throw new Error("skip");
+    });
+
+    const { bootstrap, shutdown } =
+      await import("../../src/runtime/bootstrap.js");
+    const ctx = await bootstrap({ skipDb: true });
+
+    expect(ctx.env).toMatchObject({
+      userDataPath: root,
+      configDir: root,
+      dataDir: "C:\\claude-bootstrap-root\\data",
+      logsDir: "C:\\claude-bootstrap-root\\logs",
+    });
+    expect(ensureHome).toHaveBeenCalledOnce();
+    expect(ensureDir).toHaveBeenCalledWith("C:\\claude-bootstrap-root\\data");
+    expect(ensureDir).toHaveBeenCalledWith("C:\\claude-bootstrap-root\\logs");
+    await shutdown();
+  });
+
   it("bootstrap returns cached context on second call", async () => {
     vi.doMock("@chainlesschain/core-env", () => ({
       getRuntimeInfo: () => ({ runtime: "cli" }),

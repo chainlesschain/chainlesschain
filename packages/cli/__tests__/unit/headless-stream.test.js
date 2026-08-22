@@ -474,8 +474,11 @@ describe("runAgentHeadlessStream", () => {
 
   it("runs one turn per event, emitting init + per-turn result + end", async () => {
     const seen = [];
-    const agentLoop = async function* (messages) {
+    const observedHostBudgets = [];
+    const hostResourceBudget = {};
+    const agentLoop = async function* (messages, loopOptions) {
       seen.push(messages.map((m) => m.role));
+      observedHostBudgets.push(loopOptions.hostResourceBudget);
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
       yield { type: "response-complete", content: "reply:" + lastUser.content };
       yield { type: "run-ended", reason: "complete" };
@@ -489,7 +492,7 @@ describe("runAgentHeadlessStream", () => {
     });
 
     const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false },
+      { expandFileRefs: false, hostResourceBudget },
       deps,
     );
 
@@ -517,7 +520,10 @@ describe("runAgentHeadlessStream", () => {
       turns: 2,
     });
     expect(outcome).toEqual({ exitCode: 0, turns: 2 });
-  }, 15000);
+    expect(observedHostBudgets).toHaveLength(2);
+    expect(observedHostBudgets[0]).toBe(hostResourceBudget);
+    expect(observedHostBudgets[1]).toBe(hostResourceBudget);
+  }, 30_000);
 
   it("fails before the model when a persisted user turn hits EROFS", async () => {
     const agentLoop = vi.fn(async function* () {

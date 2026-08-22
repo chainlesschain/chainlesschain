@@ -24,7 +24,7 @@ import fs, {
 import { join, basename, dirname, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
-import { getHomeDir } from "../lib/paths.js";
+import { ensureClaudeProjectStorageTree, getHomeDir } from "../lib/paths.js";
 import { resolveClaudeProjectStorageDir } from "../lib/claude-project-storage-layout.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import {
@@ -79,9 +79,9 @@ import {
 } from "../lib/execution-location-contract.js";
 import { canonicalJson } from "../lib/scheduler-kernel/contract.js";
 import {
-  listSessionAntiRollbackIds,
-  publishSessionAntiRollbackAnchor,
-  readSessionAntiRollbackAnchor,
+  listSessionAntiRollbackIds as listSessionAntiRollbackIdsForStore,
+  publishSessionAntiRollbackAnchor as publishSessionAntiRollbackAnchorForStore,
+  readSessionAntiRollbackAnchor as readSessionAntiRollbackAnchorForStore,
   sessionAntiRollbackPredecessorWitness,
 } from "../lib/session-anti-rollback-anchor.js";
 import { normalizeSessionBudgetRootConfig } from "../lib/session-budget-production-root.js";
@@ -93,6 +93,8 @@ import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-l
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
+let securedSessionHostLeaseRoot = null;
+let securedSessionHostLeaseRootIdentity = null;
 
 // Deterministic process-crash injection for the independent session-scale
 // gate. The hooks are inert unless the dedicated child process opts in; this
@@ -700,32 +702,81 @@ function getSessionsDir() {
     currentIdentity !== securedSessionsDirIdentity ||
     unsafePosixMode
   ) {
-    // A Claude-compatible project transcript is intentionally stored directly
-    // under `<CLAUDE_CONFIG_DIR>/projects/<safe-name>`, not beside the native
-    // global store. Secure every newly introduced parent before creating the
-    // transcript directory so a custom config root cannot leave project names
-    // or session metadata exposed through a broad recursive parent.
     if (claudeProjectDir) {
-      ensurePrivateDirectory(homeDir, {
-        applyWindowsAcl: true,
-        failIfUnavailable: true,
-      });
-      ensurePrivateDirectory(join(homeDir, "projects"), {
-        applyWindowsAcl: false,
-      });
+      ensureClaudeProjectStorageTree(homeDir, claudeProjectDir);
+    } else {
+      ensurePrivateDirectory(dir);
     }
-    ensurePrivateDirectory(dir, {
-      // A project directory just inherited the verified private config-root
-      // ACL. Avoid a second expensive Windows ACL process at every first
-      // transcript while preserving the native root's owner-only boundary.
-      applyWindowsAcl: !claudeProjectDir,
-      failIfUnavailable: Boolean(claudeProjectDir),
-    });
     securedSessionsDir = dir;
     const secured = lstatSync(dir);
     securedSessionsDirIdentity = `${secured.dev}:${secured.ino}`;
   }
   return dir;
+}
+
+/**
+ * Keep the legacy anchor namespace keyed by CHAINLESSCHAIN_HOME, while a
+ * Claude project gets an independent namespace keyed by its project bucket.
+ * Otherwise two project buckets using the same session id would conflict in
+ * the machine-local anti-rollback witness.
+ */
+function sessionAntiRollbackPathOptions() {
+  const homeDir = getHomeDir();
+  return {
+    homeDir: resolveClaudeProjectStorageDir(homeDir) || homeDir,
+  };
+}
+
+function readSessionAntiRollbackAnchor(sessionId) {
+  return readSessionAntiRollbackAnchorForStore(
+    sessionId,
+    sessionAntiRollbackPathOptions(),
+  );
+}
+
+function listSessionAntiRollbackIds() {
+  return listSessionAntiRollbackIdsForStore(sessionAntiRollbackPathOptions());
+}
+
+/**
+ * The legacy lease authority intentionally stays at the historical global
+ * state root. Claude project transcripts instead receive a lease directory
+ * beside their JSONL so identical ids in separate project buckets cannot
+ * fence one another. Cache the verified directory identity to avoid repeated
+ * ACL batches on every append.
+ */
+function sessionHostLeaseOptions() {
+  const homeDir = getHomeDir();
+  const projectDir = resolveClaudeProjectStorageDir(homeDir);
+  if (!projectDir) return null;
+  const stateRoot = join(projectDir, "session-host-leases");
+  let current = null;
+  try {
+    current = lstatSync(stateRoot);
+  } catch {
+    // The secure tree helper creates a missing root below.
+  }
+  const identity = current ? `${current.dev}:${current.ino}` : null;
+  const unsafePosixMode =
+    process.platform !== "win32" &&
+    current !== null &&
+    (current.mode & 0o777) !== 0o700;
+  if (
+    !current ||
+    !current.isDirectory() ||
+    current.isSymbolicLink() ||
+    unsafePosixMode ||
+    stateRoot !== securedSessionHostLeaseRoot ||
+    identity !== securedSessionHostLeaseRootIdentity
+  ) {
+    ensureClaudeProjectStorageTree(homeDir, projectDir, {
+      extraDirectories: [stateRoot],
+    });
+    const secured = lstatSync(stateRoot);
+    securedSessionHostLeaseRoot = stateRoot;
+    securedSessionHostLeaseRootIdentity = `${secured.dev}:${secured.ino}`;
+  }
+  return { stateRoot };
 }
 
 /**
@@ -1095,7 +1146,12 @@ function appendVerifiedWsAuthorityEventLocked(
 function withSessionHostWriterLock(sessionId, filePath, task, options) {
   return withFileLock(
     filePath,
-    () => withSessionHostWriteAuthority(sessionId, task),
+    () =>
+      withSessionHostWriteAuthority(
+        sessionId,
+        task,
+        sessionHostLeaseOptions() || undefined,
+      ),
     options,
   );
 }
@@ -1482,7 +1538,8 @@ function publishSessionAntiRollbackWitness(
     error.code = "CC_SESSION_ANTI_ROLLBACK_UNAVAILABLE";
     throw error;
   }
-  return publishSessionAntiRollbackAnchor(sessionId, candidate, {
+  return publishSessionAntiRollbackAnchorForStore(sessionId, candidate, {
+    ...sessionAntiRollbackPathOptions(),
     provePrefix: (current) =>
       current.status === "live" &&
       existsSync(filePath) &&

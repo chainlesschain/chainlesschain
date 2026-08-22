@@ -20,7 +20,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createRequire } from "node:module";
-import { getHomeDir } from "../lib/paths.js";
+import { ensureClaudeProjectStorageTree, getHomeDir } from "../lib/paths.js";
 import { resolveClaudeProjectStorageDir } from "../lib/claude-project-storage-layout.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import { readVerifiedProjection } from "./jsonl-session-store.js";
@@ -48,16 +48,10 @@ function indexPath() {
   const homeDir = getHomeDir();
   const projectDir = resolveClaudeProjectStorageDir(homeDir);
   if (projectDir) {
-    ensurePrivateDirectory(homeDir, {
-      applyWindowsAcl: true,
-      failIfUnavailable: true,
-    });
-    ensurePrivateDirectory(join(homeDir, "projects"), {
-      applyWindowsAcl: false,
-    });
+    ensureClaudeProjectStorageTree(homeDir, projectDir);
   }
   const dir = projectDir || homeDir;
-  ensurePrivateDirectory(dir);
+  if (!projectDir) ensurePrivateDirectory(dir);
   // Keep the long-standing global cache path for legacy sessions. A
   // Claude-compatible project layout must not make one project's index scan
   // another project's transcripts, so its derived index lives beside those

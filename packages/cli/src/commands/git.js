@@ -15,11 +15,50 @@ import {
   gitInit,
   isGitRepo,
 } from "../lib/git-integration.js";
+import {
+  parseGitLabMergeRequestReference,
+  renderGitLabMergeRequestFooter,
+} from "../lib/gitlab-mr-worktree.js";
 
 export function registerGitCommand(program) {
   const git = program
     .command("git")
     .description("Git integration for knowledge base versioning");
+
+  git
+    .command("gitlab-mr <reference>")
+    .description("Render a local GitLab MR/worktree footer (no network I/O)")
+    .option("--worktree <path>", "Worktree path to include in the footer")
+    .option("--host <host>", "Default GitLab host for project!iid shorthand")
+    .option("--json", "Output the normalized local display model as JSON")
+    .action((reference, options) => {
+      try {
+        const mr = parseGitLabMergeRequestReference(reference, {
+          defaultHost: options.host,
+        });
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ...mr,
+                ...(options.worktree ? { worktreePath: options.worktree } : {}),
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.log(
+          renderGitLabMergeRequestFooter(mr, {
+            worktreePath: options.worktree,
+          }),
+        );
+      } catch (error) {
+        logger.error(`GitLab MR footer failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
 
   // git status
   git

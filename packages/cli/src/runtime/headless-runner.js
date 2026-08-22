@@ -39,6 +39,7 @@ import {
 } from "./mcp-config.js";
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
+import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
@@ -751,6 +752,11 @@ async function runAgentHeadlessInWorkspace(
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
+  // One headless invocation owns one bounded queue/cache authority. Keep an
+  // injected authority intact so an embedding can share it with its host.
+  // Do not wire sessionBudget here: executeTool already owns that lease.
+  const hostResourceBudget =
+    options.hostResourceBudget || new HostResourceBudget();
   const hermeticExecution = options.hermeticExecution === true;
   if (
     options.fileMutationScope != null &&
@@ -2315,6 +2321,7 @@ async function runAgentHeadlessInWorkspace(
     sandbox: options.sandbox || null,
     sessionId,
     sessionBudget: options.sessionBudget || null,
+    hostResourceBudget,
     // Content-free continuity metadata from the same verified sample used for
     // replay history and MCP recovery authority.
     sessionHostSnapshot: canonicalResume?.snapshot || null,

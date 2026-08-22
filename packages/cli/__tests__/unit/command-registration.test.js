@@ -263,6 +263,7 @@ describe("command registration", () => {
     expect(subNames).toContain("auto-commit");
     expect(subNames).toContain("hooks");
     expect(subNames).toContain("history-analyze");
+    expect(subNames).toContain("gitlab-mr");
   });
 
   // Phase 3 command tests

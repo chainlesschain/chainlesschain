@@ -2862,6 +2862,30 @@ export function resolveReplAutomaticMemoryPlan(
   });
 }
 
+/**
+ * Resolve the concrete permanent-memory backend used by the live REPL. Claude
+ * project mode is deliberately file-only: the legacy bootstrap SQLite DB is
+ * process/global state and would otherwise let project A retrieve facts that
+ * project B summarized. Legacy mode retains its historical DB behavior.
+ */
+export function resolveReplPermanentMemoryStorage(
+  options = {},
+  db = null,
+  cwd = process.cwd(),
+) {
+  const automaticMemory = resolveReplAutomaticMemoryPlan(options, cwd);
+  if (!automaticMemory.enabled) return null;
+  const dataDir = process.env.CHAINLESSCHAIN_DATA_DIR || cwd;
+  return Object.freeze({
+    db: automaticMemory.mode === "project" ? null : db,
+    memoryDir:
+      automaticMemory.mode === "project"
+        ? automaticMemory.memoryDir
+        : path.join(dataDir, "memory"),
+    automaticMemory,
+  });
+}
+
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
   const sessionHostLeaseScope = { lease: null };
@@ -3361,21 +3385,13 @@ async function startAgentReplInWorkspaceOwned(
   // Initialize permanent memory
   let permanentMemory = null;
   try {
-    const automaticMemory = resolveReplAutomaticMemoryPlan(
+    const permanentMemoryStorage = resolveReplPermanentMemoryStorage(
       options,
+      db,
       process.cwd(),
     );
-    if (automaticMemory.enabled) {
-      // Legacy sessions preserve their historical CHAINLESSCHAIN_DATA_DIR/cwd
-      // memory location. Claude-compatible project storage is never allowed
-      // to fall back there: an unavailable identity or unsafe custom setting
-      // disables automatic memory rather than writing into the worktree.
-      const dataDir = process.env.CHAINLESSCHAIN_DATA_DIR || process.cwd();
-      const memoryDir =
-        automaticMemory.mode === "project"
-          ? automaticMemory.memoryDir
-          : path.join(dataDir, "memory");
-      permanentMemory = new CLIPermanentMemory({ db, memoryDir });
+    if (permanentMemoryStorage) {
+      permanentMemory = new CLIPermanentMemory(permanentMemoryStorage);
       permanentMemory.initialize();
     }
   } catch (_err) {
@@ -6340,6 +6356,73 @@ async function startAgentReplInWorkspaceOwned(
       logger.log(chalk.gray(`Theme set to ${_theme}.`));
       prompt();
       return;
+    }
+
+    // `/spellcheck` uses an installed local dictionary only. It never sends
+    // prompt text to a provider, and fenced code is suppressed by the adapter
+    // before the executable receives it.
+    {
+      const {
+        parseSpellcheckCommand,
+        resolveSpellcheckEnabled,
+        spellcheckText,
+      } = await import("../lib/spellcheck.js");
+      const spellcheck = parseSpellcheckCommand(trimmed);
+      if (spellcheck) {
+        let configured;
+        try {
+          const { getConfigValue } = await import("../lib/config-manager.js");
+          configured = getConfigValue("cli.spellcheck");
+        } catch {
+          configured = undefined;
+        }
+        if (spellcheck.action === "on" || spellcheck.action === "off") {
+          try {
+            const { setConfigValue } = await import("../lib/config-manager.js");
+            setConfigValue("cli.spellcheck", spellcheck.action === "on");
+          } catch {
+            // The current-session diagnostic remains useful if config storage
+            // is unavailable; don't turn a local optional feature into a
+            // REPL failure.
+          }
+          logger.info(
+            `Spellcheck: ${spellcheck.action === "on" ? "enabled" : "disabled"}.`,
+          );
+        } else if (spellcheck.action === "status") {
+          logger.info(
+            `Spellcheck: ${
+              resolveSpellcheckEnabled({
+                config: { cli: { spellcheck: configured } },
+              })
+                ? "enabled"
+                : "disabled"
+            }. ` + "Use /spellcheck <text> to check local prose.",
+          );
+        } else {
+          try {
+            const result = spellcheckText(spellcheck.text, {
+              config: { cli: { spellcheck: configured } },
+            });
+            if (!result.enabled) {
+              logger.info("Spellcheck is disabled.");
+            } else if (!result.available) {
+              logger.info(
+                "No local spellchecker found (aspell, hunspell, or ispell).",
+              );
+            } else if (result.words.length === 0) {
+              logger.info("Spellcheck: no unknown prose words.");
+            } else {
+              logger.info(
+                `Spellcheck (${result.adapter}): ${result.words.join(", ")}`,
+              );
+            }
+          } catch (error) {
+            logger.error(`/spellcheck failed: ${error.message}`);
+          }
+        }
+        prompt();
+        return;
+      }
     }
 
     // `/tui` — fullscreen no-flicker view (Claude-Code parity). `fullscreen`

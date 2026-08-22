@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { CONFIG_DIR_NAME } from "../constants.js";
@@ -13,6 +13,8 @@ import {
   ensurePrivateDirectory,
   repairPrivatePaths,
 } from "./secure-fs.js";
+
+const securedClaudeProjectStorageEntries = new Map();
 
 function pathContains(parent, candidate) {
   const relation = relative(parent, candidate);
@@ -40,7 +42,67 @@ function configHomeError(message) {
   return error;
 }
 
-function resolveConfiguredHome(configured, variableName, cwd) {
+function isBroadSharedConfigRoot(resolvedHome, env) {
+  const platform = getPlatform();
+  const candidates =
+    platform === "win32"
+      ? [
+          "C:\\Users",
+          "C:\\Users\\Public",
+          "C:\\Windows",
+          "C:\\ProgramData",
+          "C:\\Program Files",
+          "C:\\Program Files (x86)",
+          env?.PUBLIC,
+          env?.ProgramData,
+          env?.PROGRAMDATA,
+          env?.SystemRoot,
+          env?.WINDIR,
+        ]
+      : [
+          "/tmp",
+          "/var/tmp",
+          "/usr",
+          "/etc",
+          "/var",
+          "/home",
+          "/root",
+          "/run",
+          "/opt",
+          "/srv",
+          "/mnt",
+          "/media",
+        ];
+  return candidates.some((candidate) => {
+    if (typeof candidate !== "string" || !candidate) return false;
+    try {
+      const normalized = resolve(candidate);
+      return platform === "win32"
+        ? normalized.toLowerCase() === resolvedHome.toLowerCase()
+        : normalized === resolvedHome;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * Reject broad shared directories before any owner-only chmod/DACL repair.
+ * Unlike the generic secure-fs guard, config/data roots are high-value and
+ * must never target a shared system parent such as C:\\Users or /home.
+ */
+export function assertSafeConfigDataRoot(dirPath, options = {}) {
+  const resolvedPath = resolve(dirPath);
+  if (isBroadSharedConfigRoot(resolvedPath, options.env || process.env)) {
+    throw configHomeError(
+      "Config/data root must not be a broad shared system directory",
+    );
+  }
+  assertSafeOwnerOnlyPath(resolvedPath);
+  return resolvedPath;
+}
+
+function resolveConfiguredHome(configured, variableName, cwd, env) {
   const windowsLiteral = configured.replaceAll("/", "\\");
   if (
     windowsLiteral.startsWith("\\\\?\\") ||
@@ -56,6 +118,14 @@ function resolveConfiguredHome(configured, variableName, cwd) {
     );
   }
   const resolvedHome = resolve(configured);
+  try {
+    assertSafeConfigDataRoot(resolvedHome, { env });
+  } catch (error) {
+    if (error?.code === "CONFIG_HOME_UNSAFE") throw error;
+    throw configHomeError(
+      `${variableName} must not be a broad shared system directory`,
+    );
+  }
   const resolvedCwd = resolve(cwd);
   const worktreeRoot = nearestGitWorktreeRoot(resolvedCwd);
   if (
@@ -72,7 +142,6 @@ function resolveConfiguredHome(configured, variableName, cwd) {
   // This is deliberately a no-IO validation. Directory creation/ACL repair
   // remains in ensureHomeDir(), but broad roots and device aliases are refused
   // before any caller can ask the secure-fs layer to mutate them.
-  assertSafeOwnerOnlyPath(resolvedHome);
   return resolvedHome;
 }
 
@@ -87,14 +156,14 @@ export function resolveConfigDataRoot(options = {}) {
   const nativeHome = env.CHAINLESSCHAIN_HOME;
   if (nativeHome) {
     return Object.freeze({
-      path: resolveConfiguredHome(nativeHome, "CHAINLESSCHAIN_HOME", cwd),
+      path: resolveConfiguredHome(nativeHome, "CHAINLESSCHAIN_HOME", cwd, env),
       source: "chainlesschain",
     });
   }
   if (usesClaudeConfigDirectory(env)) {
     const configured = env[CLAUDE_CONFIG_DIR_ENV].trim();
     return Object.freeze({
-      path: resolveConfiguredHome(configured, CLAUDE_CONFIG_DIR_ENV, cwd),
+      path: resolveConfiguredHome(configured, CLAUDE_CONFIG_DIR_ENV, cwd, env),
       source: "claude",
     });
   }
@@ -125,6 +194,84 @@ export function getSessionStoreDir(options = {}) {
     getClaudeProjectStorageDir(options) ||
     join(resolveConfigDataRoot(options).path, "sessions")
   );
+}
+
+/**
+ * Secure a Claude-compatible project storage tree without trusting inherited
+ * Windows ACLs on pre-existing descendants.  The config root is repaired
+ * first, then every child is created below that verified boundary and repaired
+ * together in one Windows ACL batch.  This keeps the security invariant while
+ * avoiding a PowerShell process for every storage subdirectory.
+ */
+export function ensureClaudeProjectStorageTree(
+  homeDir,
+  projectDir,
+  options = {},
+) {
+  const home = resolve(homeDir);
+  const projectsDir = join(home, "projects");
+  const project = resolve(projectDir);
+  const extraDirectories = Array.isArray(options.extraDirectories)
+    ? options.extraDirectories.map((entry) => resolve(entry))
+    : [];
+  if (!pathContains(projectsDir, project) || project === projectsDir) {
+    throw configHomeError(
+      "Claude project storage path must remain below projects",
+    );
+  }
+  if (extraDirectories.some((entry) => !pathContains(project, entry))) {
+    throw configHomeError(
+      "Claude project storage descendants must remain below the project root",
+    );
+  }
+
+  ensurePrivateDirectory(home, {
+    applyWindowsAcl: true,
+    failIfUnavailable: true,
+  });
+  const descendants = [projectsDir, project, ...extraDirectories];
+  if (getPlatform() === "win32") {
+    const repairTargets = [];
+    for (const directory of descendants) {
+      ensurePrivateDirectory(directory, {
+        applyWindowsAcl: false,
+        failIfUnavailable: true,
+      });
+      let current = null;
+      try {
+        const entry = lstatSync(directory);
+        current = `${entry.dev}:${entry.ino}`;
+      } catch {
+        // ensurePrivateDirectory above either created the directory or threw;
+        // retain a fail-closed repair target if a filesystem race removed it.
+      }
+      // The secure-fs layer caches verified Windows ACLs per path. Keep a
+      // matching tree cache so repeated session writes do not re-run a batch,
+      // but force a repair whenever this helper first observes a descendant.
+      if (securedClaudeProjectStorageEntries.get(directory) !== current) {
+        repairTargets.push(directory);
+      }
+    }
+    if (repairTargets.length > 0) {
+      // A private parent is not proof that an older child has no broad explicit
+      // ACE. Repair all newly observed descendants in one fail-closed batch.
+      repairPrivatePaths(repairTargets, { platform: "win32" });
+      for (const directory of repairTargets) {
+        securedClaudeProjectStorageEntries.set(
+          directory,
+          (() => {
+            const entry = lstatSync(directory);
+            return `${entry.dev}:${entry.ino}`;
+          })(),
+        );
+      }
+    }
+  } else {
+    for (const directory of descendants) {
+      ensurePrivateDirectory(directory, { failIfUnavailable: true });
+    }
+  }
+  return project;
 }
 
 export function getBinDir() {

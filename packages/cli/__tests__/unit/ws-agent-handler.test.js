@@ -129,6 +129,30 @@ describe("WSAgentHandler", () => {
       expect(handler._processing).toBe(false);
     });
 
+    it("keeps one supplied host resource budget across requests", async () => {
+      const hostResourceBudget = {};
+      const budgetSession = createMockSession({
+        id: `host-budget-${Date.now()}-${process.pid}`,
+      });
+      const loop = vi.fn(() =>
+        fakeAgentLoop([{ type: "response-complete", content: "done" }]),
+      );
+      const budgeted = new WSAgentHandler({
+        session: budgetSession,
+        interaction,
+        db: null,
+        agentLoop: loop,
+        hostResourceBudget,
+      });
+
+      await budgeted.handleMessage("first", "req-host-budget-1");
+      await budgeted.handleMessage("second", "req-host-budget-2");
+
+      expect(loop).toHaveBeenCalledTimes(2);
+      expect(loop.mock.calls[0][1].hostResourceBudget).toBe(hostResourceBudget);
+      expect(loop.mock.calls[1][1].hostResourceBudget).toBe(hostResourceBudget);
+    });
+
     it("checks and releases the session host lease", async () => {
       const controller = new AbortController();
       const sessionHostLease = {
@@ -1902,9 +1926,7 @@ describe("WSAgentHandler", () => {
         canonicalSessionStore: {
           appendCompactEventIfMessagesMatch,
           appendEvent: vi.fn(() => settlementOrder.push("ledger-start")),
-          appendTokenUsage: vi.fn(() =>
-            settlementOrder.push("ledger-usage"),
-          ),
+          appendTokenUsage: vi.fn(() => settlementOrder.push("ledger-usage")),
         },
         sessionBudgetRoot: {
           budget: sessionBudget,

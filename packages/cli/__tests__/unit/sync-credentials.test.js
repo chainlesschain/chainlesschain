@@ -87,6 +87,24 @@ describe("sync-credentials — empty state", () => {
     expect(existsSync(_keyPath())).toBe(false);
     expect(existsSync(_vaultPath())).toBe(false);
   });
+
+  it("uses CLAUDE_CONFIG_DIR as the credential root outside the test override", () => {
+    const originalNative = process.env.CHAINLESSCHAIN_HOME;
+    const originalClaude = process.env.CLAUDE_CONFIG_DIR;
+    try {
+      _resetCcDirForTest();
+      delete process.env.CHAINLESSCHAIN_HOME;
+      process.env.CLAUDE_CONFIG_DIR = dir;
+      expect(_keyPath()).toBe(join(dir, "sync-credentials.key"));
+      expect(_vaultPath()).toBe(join(dir, "sync-credentials.enc"));
+    } finally {
+      if (originalNative === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = originalNative;
+      if (originalClaude === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+      else process.env.CLAUDE_CONFIG_DIR = originalClaude;
+      _setCcDirForTest(dir);
+    }
+  });
 });
 
 describe("sync-credentials — set / get round-trip", () => {

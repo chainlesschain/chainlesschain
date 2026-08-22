@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { getStatePath } from "./paths.js";
+import * as cliPaths from "./paths.js";
 import {
   mutateSecurityStore,
   readSecurityStore,
@@ -291,7 +291,28 @@ function publicRevocation(record, replayed) {
 }
 
 export function getSessionHostLeaseRoot() {
-  return path.join(getStatePath(), "session-host-leases");
+  const projectDir =
+    typeof cliPaths.getClaudeProjectStorageDir === "function"
+      ? cliPaths.getClaudeProjectStorageDir()
+      : null;
+  if (projectDir) {
+    const stateRoot = path.join(projectDir, "session-host-leases");
+    // The caller did not supply this location; it is derived exclusively from
+    // the validated launch environment. Establish the same private project
+    // tree for host leases that JSONL uses for transcripts.
+    if (
+      typeof cliPaths.getHomeDir === "function" &&
+      typeof cliPaths.ensureClaudeProjectStorageTree === "function"
+    ) {
+      cliPaths.ensureClaudeProjectStorageTree(
+        cliPaths.getHomeDir(),
+        projectDir,
+        { extraDirectories: [stateRoot] },
+      );
+    }
+    return stateRoot;
+  }
+  return path.join(cliPaths.getStatePath(), "session-host-leases");
 }
 
 export class SessionHostLeaseAuthority {
@@ -970,14 +991,27 @@ export class SessionHostLeaseAuthority {
   }
 }
 
-const defaultAuthority = new SessionHostLeaseAuthority();
+const scopedAuthorities = new Map();
 
-export function acquireSessionHostLease(sessionId, options) {
-  return defaultAuthority.acquire(sessionId, options);
+function authorityFor(options = {}) {
+  const stateRoot = path.resolve(
+    options?.stateRoot || getSessionHostLeaseRoot(),
+  );
+  let authority = scopedAuthorities.get(stateRoot);
+  if (!authority) {
+    authority = new SessionHostLeaseAuthority({ stateRoot });
+    scopedAuthorities.set(stateRoot, authority);
+  }
+  return authority;
 }
 
-export function withSessionHostWriteAuthority(sessionId, task) {
-  return defaultAuthority.withWriteAuthority(sessionId, task);
+export function acquireSessionHostLease(sessionId, options) {
+  const { stateRoot = null, ...leaseOptions } = options || {};
+  return authorityFor({ stateRoot }).acquire(sessionId, leaseOptions);
+}
+
+export function withSessionHostWriteAuthority(sessionId, task, options = {}) {
+  return authorityFor(options).withWriteAuthority(sessionId, task);
 }
 
 export function createSessionHostWriteDelegation(lease) {
@@ -990,23 +1024,24 @@ export function withSessionHostDelegatedWriteAuthority(
   task,
   options,
 ) {
-  return defaultAuthority.withDelegatedWriteAuthority(
+  const { stateRoot = null, ...delegationOptions } = options || {};
+  return authorityFor({ stateRoot }).withDelegatedWriteAuthority(
     sessionId,
     delegation,
     task,
-    options,
+    delegationOptions,
   );
 }
 
 export function withSessionHostRecoveryLease(
   sessionId,
   task,
-  { hostKind = "background-recovery" } = {},
+  { hostKind = "background-recovery", stateRoot = null } = {},
 ) {
   if (typeof task !== "function") {
     throw new TypeError("session host recovery callback is required");
   }
-  const lease = acquireSessionHostLease(sessionId, { hostKind });
+  const lease = acquireSessionHostLease(sessionId, { hostKind, stateRoot });
   try {
     const result = task(lease);
     if (result && typeof result.then === "function") {
@@ -1018,17 +1053,18 @@ export function withSessionHostRecoveryLease(
   }
 }
 
-export function assertSessionHostWriteAuthority(sessionId) {
-  return defaultAuthority.withWriteAuthority(
+export function assertSessionHostWriteAuthority(sessionId, options = {}) {
+  return authorityFor(options).withWriteAuthority(
     sessionId,
     (authority) => authority,
   );
 }
 
-export function readSessionHostAuthority(sessionId) {
-  return defaultAuthority.readAuthority(sessionId);
+export function readSessionHostAuthority(sessionId, options = {}) {
+  return authorityFor(options).readAuthority(sessionId);
 }
 
-export function revokeSessionHostAuthority(sessionId, options) {
-  return defaultAuthority.revoke(sessionId, options);
+export function revokeSessionHostAuthority(sessionId, options = {}) {
+  const { stateRoot = null, ...revocationOptions } = options;
+  return authorityFor({ stateRoot }).revoke(sessionId, revocationOptions);
 }
