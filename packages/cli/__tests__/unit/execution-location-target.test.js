@@ -1,6 +1,7 @@
 import {
   existsSync,
   linkSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -579,7 +580,7 @@ describe("execution location target launch and resume", () => {
     },
   );
 
-  it("forwards Local replica input through the bounded target pipe", () => {
+  it("stages Local replica input in the target-owned state root", () => {
     const profile = rawLifecycleProfile({
       id: "local-profile-1",
       target: "local",
@@ -606,6 +607,8 @@ describe("execution location target launch and resume", () => {
       },
     );
     const prepared = handoffReceipt(initial, true, profile.evidenceId);
+    const targetStateRoot = join(root, "target-home", ".chainlesschain");
+    mkdirSync(targetStateRoot, { recursive: true });
     const spawnSync = vi
       .fn()
       .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
@@ -633,13 +636,17 @@ describe("execution location target launch and resume", () => {
 
     expect(receipt.exitStatus).toBe(0);
     const prepareCall = spawnSync.mock.calls[2];
-    expect(prepareCall[1]).not.toContain("--stdin-file");
+    const inputOption = prepareCall[1].indexOf("--stdin-file");
+    expect(inputOption).toBeGreaterThan(0);
+    const inputPath = prepareCall[1][inputOption + 1];
+    expect(inputPath.startsWith(targetStateRoot)).toBe(true);
+    expect(existsSync(inputPath)).toBe(false);
     expect(prepareCall[2]).toMatchObject({
       shell: false,
-      input: TRANSCRIPT_BYTES,
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
       timeout: 120_000,
     });
+    expect(prepareCall[2]).not.toHaveProperty("input");
   });
 
   it("rejects an expired v2 proxy authority before spawning a target", () => {
