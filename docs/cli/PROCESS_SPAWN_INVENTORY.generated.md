@@ -500,10 +500,10 @@ Runtime audit: brokered: 200, audited-exemption: 36, non-executable: 40, unrevie
 | `packages/cli/scripts/verify-mcp-lifecycle-increments.mjs` | 155 | `return execFileSync("git", ["cat-file", "blob", objectName], {` |
 | `packages/cli/scripts/verify-mcp-lifecycle-increments.mjs` | 194 | `const result = spawnSync(` |
 | `packages/cli/scripts/verify-rc-default-audit.mjs` | 4 | `import { execFileSync, spawnSync } from "node:child_process";` |
-| `packages/cli/scripts/verify-rc-default-audit.mjs` | 128 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/verify-rc-default-audit.mjs` | 148 | `const committed = execFileSync(` |
-| `packages/cli/scripts/verify-rc-default-audit.mjs` | 181 | `const result = spawnSync(` |
-| `packages/cli/scripts/verify-rc-default-audit.mjs` | 218 | `const result = spawnSync(` |
+| `packages/cli/scripts/verify-rc-default-audit.mjs` | 141 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/verify-rc-default-audit.mjs` | 161 | `const committed = execFileSync(` |
+| `packages/cli/scripts/verify-rc-default-audit.mjs` | 194 | `const result = spawnSync(` |
+| `packages/cli/scripts/verify-rc-default-audit.mjs` | 231 | `const result = spawnSync(` |
 | `packages/cli/scripts/verify-session-message-fabric.mjs` | 8 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/verify-session-message-fabric.mjs` | 119 | `const committed = execFileSync(` |
 | `packages/cli/scripts/verify-session-message-fabric.mjs` | 192 | `const resolved = execFileSync(locator, [command], { encoding: "utf8" })` |
@@ -516,10 +516,10 @@ Runtime audit: brokered: 200, audited-exemption: 36, non-executable: 40, unrevie
 | `packages/cli/scripts/verify-session-message-fabric.mjs` | 795 | `const current = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/verify-session-message-fabric.mjs` | 868 | `const current = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 211 | `return execFileSync("git", args, {` |
-| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 235 | `return execFileSync("git", ["show", `${headSha}:${repoPath}`], {` |
-| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 345 | `execFileSync(` |
-| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 761 | `execFileSync(process.execPath, ["--expose-gc", SCRIPT_PATH], {` |
+| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 225 | `return execFileSync("git", args, {` |
+| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 249 | `return execFileSync("git", ["show", `${headSha}:${repoPath}`], {` |
+| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 359 | `execFileSync(` |
+| `packages/cli/scripts/verify-session-runtime-retention.mjs` | 775 | `execFileSync(process.execPath, ["--expose-gc", SCRIPT_PATH], {` |
 
 ## test
 
