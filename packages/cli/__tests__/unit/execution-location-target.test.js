@@ -31,7 +31,11 @@ const HEAD_HASH = "b".repeat(64);
 const TARGET_HEAD_HASH = "c".repeat(64);
 const TRANSCRIPT_BYTES = Buffer.from('{"replica":"exact"}\n', "utf8");
 
-function handoffReceipt(attestation, installed = true) {
+function handoffReceipt(
+  attestation,
+  installed = true,
+  targetEvidenceId = "container-evidence-1",
+) {
   const material = {
     schema: "chainlesschain.session-execution-location-handoff-install/v1",
     sessionId: "session-target-1",
@@ -45,7 +49,7 @@ function handoffReceipt(attestation, installed = true) {
     targetEventCount: 8,
     targetFactsDigest: attestation.targetFactsDigest,
     profileDigest: attestation.profileDigest,
-    targetEvidenceId: "container-evidence-1",
+    targetEvidenceId,
     attestationDigest: attestation.attestationDigest,
     replicaInstalled: installed,
     handoffAppended: installed,
@@ -295,7 +299,7 @@ function sessionProjection(attestation, receipt) {
       },
       target: {
         profileDigest: attestation.profileDigest,
-        targetEvidenceId: "container-evidence-1",
+        targetEvidenceId: receipt.targetEvidenceId,
         targetFactsDigest: attestation.targetFactsDigest,
         attestationDigest: attestation.attestationDigest,
         binding,
@@ -465,36 +469,128 @@ describe("execution location target launch and resume", () => {
     );
   });
 
-  it("accepts an explicitly supervised WSL1 target without weakening other transports", () => {
-    const profile = rawLifecycleProfile({
-      id: "wsl-profile-1",
-      target: "wsl",
-      evidenceId: "wsl-evidence-1",
-      transport: { distro: "Ubuntu-24.04" },
-    });
-    const spawnSync = vi
-      .fn()
-      .mockReturnValueOnce(
-        success(JSON.stringify(preflightReceipt(profile, "target-supervisor"))),
+  it.each(["wsl", "container", "ssh"])(
+    "accepts an explicitly supervised %s target",
+    (target) => {
+      const knownHostsBytes = Buffer.from(
+        "target.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest\n",
+        "utf8",
       );
+      const knownHostsFile = join(root, "known_hosts");
+      writeFileSync(knownHostsFile, knownHostsBytes);
+      const profile = rawLifecycleProfile({
+        id: `${target}-profile-1`,
+        target,
+        evidenceId: `${target}-evidence-1`,
+        transport:
+          target === "wsl"
+            ? { distro: "Ubuntu-24.04" }
+            : target === "container"
+              ? { container: "cc-target" }
+              : {
+                  host: "target.example",
+                  user: null,
+                  port: 22,
+                  identityFile: null,
+                  knownHostsFile,
+                  knownHostsDigest: `sha256:${createHash("sha256")
+                    .update(knownHostsBytes)
+                    .digest("hex")}`,
+                },
+      });
+      const spawnSync = vi
+        .fn()
+        .mockReturnValueOnce(
+          success(
+            JSON.stringify(preflightReceipt(profile, "target-supervisor")),
+          ),
+        );
 
-    expect(
-      probeExecutionLocationTargetPreflight(
-        { profile },
-        {
-          platform: "win32",
-          spawnSync,
-          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
-          assertRunnerLifecycleAuthority: vi.fn(),
+      expect(
+        probeExecutionLocationTargetPreflight(
+          { profile },
+          {
+            platform: target === "wsl" ? "win32" : "linux",
+            spawnSync,
+            now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+            assertRunnerLifecycleAuthority: vi.fn(),
+          },
+        ),
+      ).toMatchObject({
+        resources: {
+          enforcement: "target-supervisor",
+          observedMemoryBytes: 256 * 1024 * 1024,
+          targetEnforced: true,
         },
-      ),
-    ).toMatchObject({
-      resources: {
-        enforcement: "target-supervisor",
-        observedMemoryBytes: 256 * 1024 * 1024,
-        targetEnforced: true,
+      });
+    },
+  );
+
+  it("moves Local replica input through one bounded file and removes it after launch", () => {
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      evidenceId: "local-evidence-1",
+      cliCommand: join(root, "cli-entry.js"),
+      transport: {
+        home: join(root, "target-home"),
+        securityHome: join(root, "target-security"),
       },
     });
+    const initial = attestExecutionLocationTarget(
+      { profile, handoff: handoff("local") },
+      {
+        spawnSync: vi
+          .fn()
+          .mockReturnValueOnce(
+            success(JSON.stringify(preflightReceipt(profile))),
+          )
+          .mockReturnValueOnce(
+            success(JSON.stringify(currentProjection("local"))),
+          ),
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+    const prepared = handoffReceipt(initial, true, profile.evidenceId);
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(success(JSON.stringify(currentProjection("local"))))
+      .mockReturnValueOnce(success(JSON.stringify(prepared)))
+      .mockReturnValueOnce(
+        success(JSON.stringify(sessionProjection(initial, prepared))),
+      )
+      .mockReturnValueOnce(success());
+
+    const receipt = resumeExecutionLocationTarget(
+      {
+        profile,
+        handoff: handoff("local"),
+        expectedTargetFactsDigest: initial.targetFactsDigest,
+        transcriptBytes: TRANSCRIPT_BYTES,
+        readSourceAuthority: () => sourceAuthority(),
+      },
+      {
+        spawnSync,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+
+    expect(receipt.exitStatus).toBe(0);
+    const prepareCall = spawnSync.mock.calls[2];
+    const inputOption = prepareCall[1].indexOf("--stdin-file");
+    expect(inputOption).toBeGreaterThan(0);
+    const inputPath = prepareCall[1][inputOption + 1];
+    expect(inputPath).toMatch(/cc-target-input-/u);
+    expect(existsSync(inputPath)).toBe(false);
+    expect(prepareCall[2]).toMatchObject({
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 120_000,
+    });
+    expect(prepareCall[2]).not.toHaveProperty("input");
   });
 
   it("rejects an expired v2 proxy authority before spawning a target", () => {

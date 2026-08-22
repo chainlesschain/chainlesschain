@@ -698,6 +698,43 @@ function materializeKnownHostsAuthority(bytes, deps = {}) {
   });
 }
 
+function materializeLocalTargetInput(input, deps = {}) {
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || "");
+  if (bytes.length === 0 || bytes.length > MAX_REPLICA_BYTES) {
+    throw new Error("local target input is empty or exceeds its byte limit");
+  }
+  const runtimeFs = deps.fs || fs;
+  const root = runtimeFs.mkdtempSync(
+    path.join(deps.tmpdir || tmpdir(), "cc-target-input-"),
+  );
+  const inputPath = path.join(root, "stdin.bin");
+  let descriptor;
+  try {
+    descriptor = runtimeFs.openSync(
+      inputPath,
+      runtimeFs.constants.O_CREAT |
+        runtimeFs.constants.O_EXCL |
+        runtimeFs.constants.O_WRONLY,
+      0o600,
+    );
+    runtimeFs.writeFileSync(descriptor, bytes);
+    runtimeFs.fsyncSync(descriptor);
+  } catch (error) {
+    try {
+      runtimeFs.rmSync(root, { recursive: true, force: true });
+    } catch {
+      // Preserve the original materialization failure.
+    }
+    throw error;
+  } finally {
+    if (descriptor !== undefined) runtimeFs.closeSync(descriptor);
+  }
+  return Object.freeze({
+    path: inputPath,
+    cleanup: () => runtimeFs.rmSync(root, { recursive: true, force: true }),
+  });
+}
+
 function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
   const lifecycleEnvironment = targetLifecycleEnvironment(profile, deps);
   if (profile.target === "local") {
@@ -707,6 +744,10 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
     if (!profile.lifecycle) {
       throw new Error("Local target launch requires a lifecycle profile");
     }
+    const inputAuthority =
+      options.input == null
+        ? null
+        : materializeLocalTargetInput(options.input, deps);
     return Object.freeze({
       file: deps.nodeCommand || process.execPath,
       args: Object.freeze([
@@ -719,6 +760,9 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         String(profile.lifecycle.resources.memoryBytes),
         "--entry",
         profile.cliCommand,
+        ...(inputAuthority === null
+          ? []
+          : ["--stdin-file", inputAuthority.path]),
         "--",
         ...cliArgs,
       ]),
@@ -726,7 +770,8 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         cwd: profile.cwd,
         env: localTargetEnvironment(profile, lifecycleEnvironment),
       }),
-      cleanup: null,
+      inputHandled: inputAuthority !== null,
+      cleanup: inputAuthority?.cleanup || null,
     });
   }
   if (profile.target === "wsl") {
@@ -855,10 +900,18 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       encoding: "utf8",
       timeout: options.interactive ? undefined : timeoutMs,
       maxBuffer: options.interactive ? undefined : maxBuffer,
-      ...(options.input == null ? {} : { input: options.input }),
+      ...(options.input == null || invocation.inputHandled
+        ? {}
+        : { input: options.input }),
       stdio: options.interactive
         ? "inherit"
-        : [options.input == null ? "ignore" : "pipe", "pipe", "pipe"],
+        : [
+            options.input == null || invocation.inputHandled
+              ? "ignore"
+              : "pipe",
+            "pipe",
+            "pipe",
+          ],
       ...(invocation.spawnOptions || {}),
     });
     if (result?.error) throw result.error;
@@ -926,9 +979,8 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
   const expectedEnforcement =
     profile.target === "local"
       ? "target-supervisor"
-      : profile.target === "wsl" &&
-          (reportedEnforcement === "posix-rlimit" ||
-            reportedEnforcement === "target-supervisor")
+      : reportedEnforcement === "posix-rlimit" ||
+          reportedEnforcement === "target-supervisor"
         ? reportedEnforcement
         : "posix-rlimit";
   const material = {
