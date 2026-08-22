@@ -56,19 +56,22 @@ final class SessionUxEvidenceTest {
             ChatTranscript transcript = new ChatTranscript();
             transcript.beginTurn();
             transcript.appendReasoning("bounded SESSION-UX reasoning\n");
-            reasoning[0] = transcript.pane().getText().contains(
+            reasoning[0] = normalizedTranscriptText(transcript).contains(
                     "bounded SESSION-UX reasoning");
             transcript.collapseCompletedReasoning();
-            String collapsed = transcript.pane().getText();
+            String collapsed = normalizedTranscriptText(transcript);
             reasoning[1] = collapsed.contains("thinking (collapsed)\n")
                     && !collapsed.contains("bounded SESSION-UX reasoning");
             boolean toggled = transcript.toggleAllReasoning();
-            reasoning[2] = toggled && transcript.pane().getText().contains(
+            reasoning[2] = toggled && normalizedTranscriptText(transcript).contains(
                     "bounded SESSION-UX reasoning\n");
         });
         int thinkingFailures = 0;
         for (boolean result : reasoning) if (!result) thinkingFailures += 1;
-        assertEquals(0, thinkingFailures);
+        assertEquals(0, thinkingFailures,
+                "reasoning states expanded=" + reasoning[0]
+                        + ", collapsed=" + reasoning[1]
+                        + ", restored=" + reasoning[2]);
 
         String headSha = requiredEnvironment("ACCESSIBILITY_PERFORMANCE_COMMIT");
         String artifactName = requiredEnvironment("CC_P2_ARTIFACT");
@@ -120,6 +123,15 @@ final class SessionUxEvidenceTest {
         assertTrue(value != null && !value.isBlank(), name);
         assertFalse("local".equals(value), name);
         return value;
+    }
+
+    /** Swing text components expose native CRLF on some Windows runtimes.
+     * Evidence assertions concern the logical transcript, whose writer always
+     * uses a single newline boundary. */
+    private static String normalizedTranscriptText(ChatTranscript transcript) {
+        return transcript.pane().getText()
+                .replace("\r\n", "\n")
+                .replace('\r', '\n');
     }
 
     private static String platform() {
