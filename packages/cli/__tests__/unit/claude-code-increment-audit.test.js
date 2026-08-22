@@ -293,6 +293,10 @@ function buildFixture({
   for (const profile of Object.values(contract.lockedProfiles)) {
     profile.producerPaths = ["package.json"];
   }
+  contract.lockedProfiles["BROWSER-EVIDENCE"].producerPaths = [
+    ".github/workflows/ide-extensions.yml",
+    "package.json",
+  ].sort(compareCodePointOrder);
   const contractPath = path.join(root, "contract.json");
   writeJson(contractPath, contract);
   const sourceTopology = createSourceTopology({
@@ -445,9 +449,8 @@ describe("Claude Code increment unified audit", () => {
       "maximumOrphanProcesses",
     ]);
 
-    const locationProducer = await import(
-      "../../scripts/verify-ide-roadmap-execution-location.mjs"
-    );
+    const locationProducer =
+      await import("../../scripts/verify-ide-roadmap-execution-location.mjs");
     if (
       locationProducer.PROFILE_VERSION &&
       locationProducer.THRESHOLDS &&
@@ -611,6 +614,7 @@ describe("Claude Code increment unified audit", () => {
         artifactDirectory: aggregate.artifactDirectory,
         releaseCommit: fixture.headSha,
         repositoryRoot: REPOSITORY_ROOT,
+        contractPath: fixture.contractPath,
       }),
     ).toThrow();
 
@@ -637,6 +641,7 @@ describe("Claude Code increment unified audit", () => {
         artifactDirectory: browserAggregate.artifactDirectory,
         releaseCommit: browserFixture.headSha,
         repositoryRoot: REPOSITORY_ROOT,
+        contractPath: browserFixture.contractPath,
       }),
     ).toThrow(/workflow provenance digest/u);
   });
