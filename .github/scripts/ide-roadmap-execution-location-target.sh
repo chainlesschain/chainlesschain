@@ -76,33 +76,33 @@ if [[ -n "${CC_EXECUTION_LOCATION_RUNNER_ID:-}" ]]; then
   rm -f -- "$writable_probe"
   trap - EXIT
 
-  memory_kib=$(( (CC_EXECUTION_LOCATION_MEMORY_BYTES + 1023) / 1024 ))
-  ulimit -v "$memory_kib"
-  ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS"
+  cpu_limit_applied=false
+  if ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS"; then
+    cpu_limit_applied=true
+  fi
   observed_cpu="$(awk '$1 == "Max" && $2 == "cpu" && $3 == "time" { print $4; exit }' /proc/self/limits 2>/dev/null || true)"
-  observed_memory="$(awk '$1 == "Max" && $2 == "address" && $3 == "space" { print $4; exit }' /proc/self/limits 2>/dev/null || true)"
-  if [[ "$observed_cpu" =~ ^[1-9][0-9]*$ && \
-        "$observed_memory" =~ ^[1-9][0-9]*$ && \
-        "$observed_cpu" -le "$CC_EXECUTION_LOCATION_CPU_SECONDS" && \
-        "$observed_memory" -le "$CC_EXECUTION_LOCATION_MEMORY_BYTES" ]]; then
-    export CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT=posix-rlimit
+  if [[ "$cpu_limit_applied" == true && \
+        "$observed_cpu" =~ ^[1-9][0-9]*$ && \
+        "$observed_cpu" -le "$CC_EXECUTION_LOCATION_CPU_SECONDS" ]]; then
+    export CC_EXECUTION_LOCATION_SUPERVISOR_ENFORCEMENT=posix-rlimit+target-supervisor
   else
     if ! grep -Eqi '(microsoft|wsl)' /proc/version /proc/sys/kernel/osrelease 2>/dev/null; then
-      echo "execution-location target resource limits are unavailable" >&2
+      echo "execution-location target CPU limit is unavailable" >&2
       exit 75
     fi
-    target_supervisor="$(dirname -- "$CC_IDE_TARGET_ENTRY")/lib/execution-location-local-supervisor.mjs"
-    if [[ ! -f "$target_supervisor" || -L "$target_supervisor" ]]; then
-      echo "execution-location target supervisor is unavailable" >&2
-      exit 70
-    fi
-    exec "$CC_IDE_TARGET_NODE" "$target_supervisor" \
-      --cwd "$target_base" \
-      --cpu-seconds "$CC_EXECUTION_LOCATION_CPU_SECONDS" \
-      --memory-bytes "$CC_EXECUTION_LOCATION_MEMORY_BYTES" \
-      --entry "$CC_IDE_TARGET_ENTRY" \
-      -- "$@"
+    export CC_EXECUTION_LOCATION_SUPERVISOR_ENFORCEMENT=target-supervisor
   fi
+  target_supervisor="$(dirname -- "$CC_IDE_TARGET_ENTRY")/lib/execution-location-local-supervisor.mjs"
+  if [[ ! -f "$target_supervisor" || -L "$target_supervisor" ]]; then
+    echo "execution-location target supervisor is unavailable" >&2
+    exit 70
+  fi
+  exec "$CC_IDE_TARGET_NODE" "$target_supervisor" \
+    --cwd "$target_base" \
+    --cpu-seconds "$CC_EXECUTION_LOCATION_CPU_SECONDS" \
+    --memory-bytes "$CC_EXECUTION_LOCATION_MEMORY_BYTES" \
+    --entry "$CC_IDE_TARGET_ENTRY" \
+    -- "$@"
 fi
 
 if [[ "${1:-}" == "session" && "${2:-}" == "resume" ]]; then

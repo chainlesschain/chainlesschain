@@ -2,6 +2,7 @@ import {
   existsSync,
   linkSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -31,7 +32,7 @@ const HEAD_HASH = "b".repeat(64);
 const TARGET_HEAD_HASH = "c".repeat(64);
 const TRANSCRIPT_BYTES = Buffer.from('{"replica":"exact"}\n', "utf8");
 
-function handoffReceipt(attestation, installed = true) {
+function handoffReceipt(attestation, installed = true, target = "container") {
   const material = {
     schema: "chainlesschain.session-execution-location-handoff-install/v1",
     sessionId: "session-target-1",
@@ -45,7 +46,7 @@ function handoffReceipt(attestation, installed = true) {
     targetEventCount: 8,
     targetFactsDigest: attestation.targetFactsDigest,
     profileDigest: attestation.profileDigest,
-    targetEvidenceId: "container-evidence-1",
+    targetEvidenceId: `${target}-evidence-1`,
     attestationDigest: attestation.attestationDigest,
     replicaInstalled: installed,
     handoffAppended: installed,
@@ -162,13 +163,15 @@ function preflightReceipt(profile, enforcement) {
       memoryBytes: lifecycle.resources.memoryBytes,
       observedCpuSeconds: lifecycle.resources.cpuSeconds,
       observedMemoryBytes:
-        enforcement === "target-supervisor"
+        enforcement !== "posix-rlimit"
           ? 256 * 1024 * 1024
           : lifecycle.resources.memoryBytes,
       targetEnforced: true,
       enforcement:
         enforcement ||
-        (profile.target === "local" ? "target-supervisor" : "posix-rlimit"),
+        (profile.target === "local"
+          ? "target-supervisor"
+          : "posix-rlimit+target-supervisor"),
     },
     postSessionHook: { ...lifecycle.postSessionHook },
     secretTransferCount: 0,
@@ -274,7 +277,7 @@ function currentProjection(
   };
 }
 
-function sessionProjection(attestation, receipt) {
+function sessionProjection(attestation, receipt, target = "container") {
   const binding = attestation.binding;
   return {
     schema: "cc-session-execution-location-authority/v1",
@@ -295,7 +298,7 @@ function sessionProjection(attestation, receipt) {
       },
       target: {
         profileDigest: attestation.profileDigest,
-        targetEvidenceId: "container-evidence-1",
+        targetEvidenceId: `${target}-evidence-1`,
         targetFactsDigest: attestation.targetFactsDigest,
         attestationDigest: attestation.attestationDigest,
         binding,
@@ -463,6 +466,77 @@ describe("execution location target launch and resume", () => {
     expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
       "2026-08-18T08:00:00.000Z",
     );
+  });
+
+  it("materializes bounded Local replica input and removes it after the supervised handoff", () => {
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      evidenceId: "local-evidence-1",
+      cliCommand: "/work/repo/packages/cli/src/index.js",
+      transport: {
+        home: "/target/home",
+        securityHome: "/target/security",
+      },
+    });
+    const attestation = attestExecutionLocationTarget(
+      { profile, handoff: handoff("local") },
+      {
+        spawnSync: vi
+          .fn()
+          .mockReturnValueOnce(
+            success(JSON.stringify(preflightReceipt(profile))),
+          )
+          .mockReturnValueOnce(
+            success(JSON.stringify(currentProjection("local"))),
+          ),
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+    const prepared = handoffReceipt(attestation, true, "local");
+    let materializedInputPath;
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(success(JSON.stringify(currentProjection("local"))))
+      .mockImplementationOnce((_command, args, options) => {
+        const inputIndex = args.indexOf("--input-file");
+        materializedInputPath = args[inputIndex + 1];
+        expect(inputIndex).toBeGreaterThan(0);
+        expect(args).toContain("--input-bytes");
+        expect(args).toContain("--input-sha256");
+        expect(options.input).toBeUndefined();
+        expect(options.stdio).toEqual(["ignore", "pipe", "pipe"]);
+        expect(readFileSync(materializedInputPath)).toEqual(TRANSCRIPT_BYTES);
+        return success(JSON.stringify(prepared));
+      })
+      .mockReturnValueOnce(
+        success(
+          JSON.stringify(sessionProjection(attestation, prepared, "local")),
+        ),
+      )
+      .mockReturnValueOnce(success());
+
+    const receipt = resumeExecutionLocationTarget(
+      {
+        profile,
+        handoff: handoff("local"),
+        expectedTargetFactsDigest: attestation.targetFactsDigest,
+        transcriptBytes: TRANSCRIPT_BYTES,
+        readSourceAuthority: () => sourceAuthority(),
+      },
+      {
+        spawnSync,
+        tmpdir: root,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+
+    expect(receipt.target).toBe("local");
+    expect(materializedInputPath).toBeTruthy();
+    expect(existsSync(materializedInputPath)).toBe(false);
   });
 
   it("accepts an explicitly supervised WSL1 target without weakening other transports", () => {
