@@ -62,6 +62,7 @@ function genKeyPair(idx) {
 
 describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", () => {
   let tmpDir;
+  let userHome;
   let dbPath;
   let logPath;
   let membersFile;
@@ -77,14 +78,18 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
         // CHAINLESSCHAIN_HOME is what getUserDataPath() honors first; HOME /
         // USERPROFILE alone don't redirect the bootstrap DB on Windows.
         CHAINLESSCHAIN_HOME: tmpDir,
-        HOME: tmpDir,
-        USERPROFILE: tmpDir,
+        // Keep the simulated account home distinct from the app data root.
+        // secure-fs correctly refuses to repair permissions on a home root.
+        HOME: userHome,
+        USERPROFILE: userHome,
       },
     });
   }
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bridge-ms-e2e-"));
+    userHome = path.join(tmpDir, "user-home");
+    fs.mkdirSync(userHome, { recursive: true, mode: 0o700 });
     dbPath = path.join(tmpDir, "multisig.db");
     logPath = path.join(tmpDir, "governance.log");
     membersFile = path.join(tmpDir, "members.json");
