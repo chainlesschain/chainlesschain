@@ -437,7 +437,7 @@ Runtime audit: brokered: 200, audited-exemption: 36, non-executable: 40, unrevie
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 18 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 227 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 4 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/scripts/run-claude-security-map-tests.mjs` | 79 | `const result = spawnSync(invocation.executable, invocation.args, {` |
+| `packages/cli/scripts/run-claude-security-map-tests.mjs` | 85 | `const result = spawnSync(invocation.executable, invocation.args, {` |
 | `packages/cli/scripts/run-vitest-with-worker-retry.mjs` | 3 | `import { spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 357 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |

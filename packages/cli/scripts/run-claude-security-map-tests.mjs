@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,6 +15,11 @@ import {
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "../..");
+const require = createRequire(import.meta.url);
+const VITEST_ENTRY = path.join(
+  path.dirname(require.resolve("vitest/package.json")),
+  "vitest.mjs",
+);
 
 function parseArgs(argv) {
   const options = {};
@@ -59,7 +65,7 @@ export function mappedVitestInvocation({
   return {
     executable: process.execPath,
     args: [
-      path.join(PACKAGE_ROOT, "node_modules", "vitest", "vitest.mjs"),
+      VITEST_ENTRY,
       "run",
       ...testFiles,
       "-t",
