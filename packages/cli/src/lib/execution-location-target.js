@@ -54,6 +54,11 @@ const MAX_PROFILE_BYTES = 1024 * 1024;
 const MAX_PROBE_BYTES = 1024 * 1024;
 const MAX_REPLICA_BYTES = 64 * 1024 * 1024;
 const MAX_PROXY_AUTHORITY_AGE_MS = 5 * 60 * 1000;
+// Session handoff may initialize a fresh owner-only state tree on Windows.
+// Keep the command bounded, while allowing a cold target process to complete
+// its security bootstrap rather than terminating at the generic 30 second
+// child-process default.
+const TARGET_COMMAND_TIMEOUT_MS = 60_000;
 const LOCAL_TARGET_SUPERVISOR = fileURLToPath(
   new URL("./execution-location-local-supervisor.mjs", import.meta.url),
 );
@@ -844,7 +849,7 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       policy: "allow",
       shell: false,
       encoding: "utf8",
-      timeout: options.interactive ? undefined : 30000,
+      timeout: options.interactive ? undefined : TARGET_COMMAND_TIMEOUT_MS,
       maxBuffer: options.interactive ? undefined : maxBuffer,
       ...(options.input == null ? {} : { input: options.input }),
       stdio: options.interactive

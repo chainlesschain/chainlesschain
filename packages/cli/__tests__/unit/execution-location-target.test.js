@@ -452,6 +452,7 @@ describe("execution location target launch and resume", () => {
       "--json",
     ]);
     expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
+    expect(options.timeout).toBe(60_000);
     expect(options.env.GITHUB_TOKEN).toBeUndefined();
     expect(options.env.CHAINLESSCHAIN_HOME).toBe(
       join(options.env.HOME, ".chainlesschain"),
