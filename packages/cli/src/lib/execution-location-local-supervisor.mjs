@@ -55,6 +55,10 @@ async function main() {
       : null;
   const resume =
     options.command[0] === "session" && options.command[1] === "resume";
+  const replicaPrepare =
+    options.command[0] === "session" &&
+    options.command[1] === "location" &&
+    options.command[2] === "prepare";
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
   const childEnvironment = {
     ...process.env,
@@ -75,12 +79,25 @@ async function main() {
       cwd: options.cwd,
       env: childEnvironment,
       shell: false,
-      stdio: [resume ? "pipe" : "inherit", "pipe", "inherit"],
+      // A target `prepare` consumes an exact replica from stdin. On Windows,
+      // directly inheriting the synchronous caller's pipe can leave the
+      // target waiting for EOF. Give the supervisor one owned pipe endpoint
+      // and forward it explicitly so close/backpressure propagation is
+      // deterministic across the Node -> supervisor -> target process chain.
+      stdio: [
+        resume || replicaPrepare ? "pipe" : "inherit",
+        "pipe",
+        "inherit",
+      ],
       windowsHide: true,
     },
   );
 
-  if (resume) child.stdin.end("/exit\n", "utf8");
+  if (resume) {
+    child.stdin.end("/exit\n", "utf8");
+  } else if (replicaPrepare) {
+    process.stdin.pipe(child.stdin);
+  }
   let outputPrefix = "";
   let cpuLimitReached = false;
   let cpuTimer = null;
