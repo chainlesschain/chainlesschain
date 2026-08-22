@@ -2,13 +2,13 @@
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createHash, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
 const MEBIBYTE = 1024 * 1024;
 const MAX_CAPTURED_MARKER_BYTES = 256;
-const MAX_INPUT_BYTES = 64 * MEBIBYTE;
+const MAX_STDIN_BYTES = 64 * 1024 * 1024;
 
 function parseArguments(argv) {
   const separator = argv.indexOf("--");
@@ -48,62 +48,6 @@ function boundedHeapMebibytes(memoryBytes) {
   return Math.max(64, Math.min(256, Math.floor(memoryBytes / MEBIBYTE)));
 }
 
-function sameFileIdentity(left, right) {
-  return (
-    String(left.dev) === String(right.dev) &&
-    String(left.ino) === String(right.ino) &&
-    Number(left.nlink) === 1 &&
-    Number(right.nlink) === 1 &&
-    Number(left.size) === Number(right.size)
-  );
-}
-
-function readMaterializedInput(options) {
-  if (!options.inputFile) return null;
-  assert.match(options.inputSha256 || "", /^[a-f0-9]{64}$/u);
-  const expectedBytes = Number(options.inputBytes);
-  assert.ok(
-    Number.isSafeInteger(expectedBytes) &&
-      expectedBytes >= 1 &&
-      expectedBytes <= MAX_INPUT_BYTES,
-  );
-  const before = fs.lstatSync(options.inputFile, { bigint: true });
-  assert.ok(
-    before.isFile() &&
-      !before.isSymbolicLink() &&
-      Number(before.nlink) === 1 &&
-      Number(before.size) === expectedBytes,
-    "local target input authority is invalid",
-  );
-  let descriptor;
-  try {
-    descriptor = fs.openSync(
-      options.inputFile,
-      fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
-    );
-    const opened = fs.fstatSync(descriptor, { bigint: true });
-    assert.ok(
-      opened.isFile() && sameFileIdentity(before, opened),
-      "local target input identity changed while opening",
-    );
-    const input = fs.readFileSync(descriptor);
-    const after = fs.fstatSync(descriptor, { bigint: true });
-    assert.ok(
-      input.length === expectedBytes && sameFileIdentity(opened, after),
-      "local target input changed while reading",
-    );
-    const expectedDigest = Buffer.from(options.inputSha256, "hex");
-    const actualDigest = createHash("sha256").update(input).digest();
-    assert.ok(
-      timingSafeEqual(actualDigest, expectedDigest),
-      "local target input digest mismatch",
-    );
-    return input;
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-  }
-}
-
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   const resourceKind =
@@ -118,46 +62,77 @@ async function main() {
     options.command[0] === "session" &&
     options.command[1] === "location" &&
     options.command[2] === "prepare";
-  assert.ok(
-    !options.inputFile || forwardsInput,
-    "materialized input is permitted only for session location prepare",
-  );
-  const materializedInput = readMaterializedInput(options);
+  if (options.stdinFile) {
+    assert.ok(
+      forwardsInput && path.isAbsolute(options.stdinFile),
+      "local target stdin file is invalid",
+    );
+  }
+  let inputDescriptor = null;
+  if (options.stdinFile) {
+    const requested = fs.lstatSync(options.stdinFile);
+    assert.ok(
+      requested.isFile() &&
+        !requested.isSymbolicLink() &&
+        requested.size > 0 &&
+        requested.size <= MAX_STDIN_BYTES,
+      "local target stdin file is invalid",
+    );
+    inputDescriptor = fs.openSync(
+      options.stdinFile,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+    );
+    const opened = fs.fstatSync(inputDescriptor);
+    assert.ok(
+      opened.isFile() &&
+        opened.size === requested.size &&
+        opened.dev === requested.dev &&
+        opened.ino === requested.ino &&
+        opened.nlink === 1,
+      "local target stdin file changed while opening",
+    );
+  }
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
-  const enforcement =
-    process.env.CC_EXECUTION_LOCATION_SUPERVISOR_ENFORCEMENT ||
-    "target-supervisor";
-  assert.match(
-    enforcement,
-    /^(?:target-supervisor|posix-rlimit\+target-supervisor)$/u,
-  );
   const childEnvironment = {
     ...process.env,
     CC_EXECUTION_LOCATION_OBSERVED_CPU_SECONDS: String(options.cpuSeconds),
     CC_EXECUTION_LOCATION_OBSERVED_MEMORY_BYTES: String(
       heapMebibytes * MEBIBYTE,
     ),
-    CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT: enforcement,
+    CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT: "target-supervisor",
   };
-  const child = spawn(
-    process.execPath,
-    [
-      `--max-old-space-size=${heapMebibytes}`,
-      options.entry,
-      ...options.command,
-    ],
-    {
-      cwd: options.cwd,
-      env: childEnvironment,
-      shell: false,
-      stdio: [resume || forwardsInput ? "pipe" : "ignore", "pipe", "inherit"],
-      windowsHide: true,
-    },
-  );
+  let child;
+  try {
+    child = spawn(
+      process.execPath,
+      [
+        `--max-old-space-size=${heapMebibytes}`,
+        options.entry,
+        ...options.command,
+      ],
+      {
+        cwd: options.cwd,
+        env: childEnvironment,
+        shell: false,
+        stdio: [
+          resume
+            ? "pipe"
+            : inputDescriptor !== null
+              ? inputDescriptor
+              : forwardsInput
+                ? "inherit"
+                : "ignore",
+          "pipe",
+          "inherit",
+        ],
+        windowsHide: true,
+      },
+    );
+  } finally {
+    if (inputDescriptor !== null) fs.closeSync(inputDescriptor);
+  }
 
   if (resume) child.stdin.end("/exit\n", "utf8");
-  else if (materializedInput) child.stdin.end(materializedInput);
-  else if (forwardsInput) process.stdin.pipe(child.stdin);
   let outputPrefix = "";
   let cpuLimitReached = false;
   let cpuTimer = null;

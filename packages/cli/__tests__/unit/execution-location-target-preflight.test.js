@@ -195,30 +195,6 @@ describe("execution location target preflight", () => {
     });
   });
 
-  it("binds a POSIX CPU rlimit combined with the target memory supervisor", () => {
-    const input = fixture({
-      CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT:
-        "posix-rlimit+target-supervisor",
-      CC_EXECUTION_LOCATION_OBSERVED_CPU_SECONDS: "120",
-      CC_EXECUTION_LOCATION_OBSERVED_MEMORY_BYTES: "268435456",
-    });
-    const receipt = projectExecutionLocationTargetPreflight(
-      {},
-      {
-        environment: input.environment,
-        cwd: () => input.workspace,
-        randomId: () => "probe-hybrid",
-        now: () => Date.parse("2026-08-21T00:01:00.000Z"),
-      },
-    );
-    expect(receipt.resources).toMatchObject({
-      enforcement: "posix-rlimit+target-supervisor",
-      observedCpuSeconds: 120,
-      observedMemoryBytes: 256 * 1024 * 1024,
-      targetEnforced: true,
-    });
-  });
-
   it("rejects expired lease and proxy timestamps on the target", () => {
     const input = fixture();
     expect(() =>

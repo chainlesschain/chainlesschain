@@ -2,7 +2,6 @@ import {
   existsSync,
   linkSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -32,7 +31,11 @@ const HEAD_HASH = "b".repeat(64);
 const TARGET_HEAD_HASH = "c".repeat(64);
 const TRANSCRIPT_BYTES = Buffer.from('{"replica":"exact"}\n', "utf8");
 
-function handoffReceipt(attestation, installed = true, target = "container") {
+function handoffReceipt(
+  attestation,
+  installed = true,
+  targetEvidenceId = "container-evidence-1",
+) {
   const material = {
     schema: "chainlesschain.session-execution-location-handoff-install/v1",
     sessionId: "session-target-1",
@@ -46,7 +49,7 @@ function handoffReceipt(attestation, installed = true, target = "container") {
     targetEventCount: 8,
     targetFactsDigest: attestation.targetFactsDigest,
     profileDigest: attestation.profileDigest,
-    targetEvidenceId: `${target}-evidence-1`,
+    targetEvidenceId,
     attestationDigest: attestation.attestationDigest,
     replicaInstalled: installed,
     handoffAppended: installed,
@@ -163,15 +166,13 @@ function preflightReceipt(profile, enforcement) {
       memoryBytes: lifecycle.resources.memoryBytes,
       observedCpuSeconds: lifecycle.resources.cpuSeconds,
       observedMemoryBytes:
-        enforcement !== "posix-rlimit"
+        enforcement === "target-supervisor"
           ? 256 * 1024 * 1024
           : lifecycle.resources.memoryBytes,
       targetEnforced: true,
       enforcement:
         enforcement ||
-        (profile.target === "local"
-          ? "target-supervisor"
-          : "posix-rlimit+target-supervisor"),
+        (profile.target === "local" ? "target-supervisor" : "posix-rlimit"),
     },
     postSessionHook: { ...lifecycle.postSessionHook },
     secretTransferCount: 0,
@@ -277,7 +278,7 @@ function currentProjection(
   };
 }
 
-function sessionProjection(attestation, receipt, target = "container") {
+function sessionProjection(attestation, receipt) {
   const binding = attestation.binding;
   return {
     schema: "cc-session-execution-location-authority/v1",
@@ -298,7 +299,7 @@ function sessionProjection(attestation, receipt, target = "container") {
       },
       target: {
         profileDigest: attestation.profileDigest,
-        targetEvidenceId: `${target}-evidence-1`,
+        targetEvidenceId: receipt.targetEvidenceId,
         targetFactsDigest: attestation.targetFactsDigest,
         attestationDigest: attestation.attestationDigest,
         binding,
@@ -468,18 +469,75 @@ describe("execution location target launch and resume", () => {
     );
   });
 
-  it("materializes bounded Local replica input and removes it after the supervised handoff", () => {
+  it.each(["wsl", "container", "ssh"])(
+    "accepts an explicitly supervised %s target",
+    (target) => {
+      const knownHostsBytes = Buffer.from(
+        "target.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest\n",
+        "utf8",
+      );
+      const knownHostsFile = join(root, "known_hosts");
+      writeFileSync(knownHostsFile, knownHostsBytes);
+      const profile = rawLifecycleProfile({
+        id: `${target}-profile-1`,
+        target,
+        evidenceId: `${target}-evidence-1`,
+        transport:
+          target === "wsl"
+            ? { distro: "Ubuntu-24.04" }
+            : target === "container"
+              ? { container: "cc-target" }
+              : {
+                  host: "target.example",
+                  user: null,
+                  port: 22,
+                  identityFile: null,
+                  knownHostsFile,
+                  knownHostsDigest: `sha256:${createHash("sha256")
+                    .update(knownHostsBytes)
+                    .digest("hex")}`,
+                },
+      });
+      const spawnSync = vi
+        .fn()
+        .mockReturnValueOnce(
+          success(
+            JSON.stringify(preflightReceipt(profile, "target-supervisor")),
+          ),
+        );
+
+      expect(
+        probeExecutionLocationTargetPreflight(
+          { profile },
+          {
+            platform: target === "wsl" ? "win32" : "linux",
+            spawnSync,
+            now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+            assertRunnerLifecycleAuthority: vi.fn(),
+          },
+        ),
+      ).toMatchObject({
+        resources: {
+          enforcement: "target-supervisor",
+          observedMemoryBytes: 256 * 1024 * 1024,
+          targetEnforced: true,
+        },
+      });
+    },
+  );
+
+  it("moves Local replica input through one bounded file and removes it after launch", () => {
     const profile = rawLifecycleProfile({
       id: "local-profile-1",
       target: "local",
       evidenceId: "local-evidence-1",
-      cliCommand: "/work/repo/packages/cli/src/index.js",
+      cliCommand: join(root, "cli-entry.js"),
       transport: {
-        home: "/target/home",
-        securityHome: "/target/security",
+        home: join(root, "target-home"),
+        securityHome: join(root, "target-security"),
       },
     });
-    const attestation = attestExecutionLocationTarget(
+    const initial = attestExecutionLocationTarget(
       { profile, handoff: handoff("local") },
       {
         spawnSync: vi
@@ -494,27 +552,14 @@ describe("execution location target launch and resume", () => {
         assertRunnerLifecycleAuthority: vi.fn(),
       },
     );
-    const prepared = handoffReceipt(attestation, true, "local");
-    let materializedInputPath;
+    const prepared = handoffReceipt(initial, true, profile.evidenceId);
     const spawnSync = vi
       .fn()
       .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
       .mockReturnValueOnce(success(JSON.stringify(currentProjection("local"))))
-      .mockImplementationOnce((_command, args, options) => {
-        const inputIndex = args.indexOf("--input-file");
-        materializedInputPath = args[inputIndex + 1];
-        expect(inputIndex).toBeGreaterThan(0);
-        expect(args).toContain("--input-bytes");
-        expect(args).toContain("--input-sha256");
-        expect(options.input).toBeUndefined();
-        expect(options.stdio).toEqual(["ignore", "pipe", "pipe"]);
-        expect(readFileSync(materializedInputPath)).toEqual(TRANSCRIPT_BYTES);
-        return success(JSON.stringify(prepared));
-      })
+      .mockReturnValueOnce(success(JSON.stringify(prepared)))
       .mockReturnValueOnce(
-        success(
-          JSON.stringify(sessionProjection(attestation, prepared, "local")),
-        ),
+        success(JSON.stringify(sessionProjection(initial, prepared))),
       )
       .mockReturnValueOnce(success());
 
@@ -522,53 +567,30 @@ describe("execution location target launch and resume", () => {
       {
         profile,
         handoff: handoff("local"),
-        expectedTargetFactsDigest: attestation.targetFactsDigest,
+        expectedTargetFactsDigest: initial.targetFactsDigest,
         transcriptBytes: TRANSCRIPT_BYTES,
         readSourceAuthority: () => sourceAuthority(),
       },
       {
         spawnSync,
-        tmpdir: root,
         now: () => Date.parse("2026-08-18T07:01:00.000Z"),
         assertRunnerLifecycleAuthority: vi.fn(),
       },
     );
 
-    expect(receipt.target).toBe("local");
-    expect(materializedInputPath).toBeTruthy();
-    expect(existsSync(materializedInputPath)).toBe(false);
-  });
-
-  it("accepts an explicitly supervised WSL1 target without weakening other transports", () => {
-    const profile = rawLifecycleProfile({
-      id: "wsl-profile-1",
-      target: "wsl",
-      evidenceId: "wsl-evidence-1",
-      transport: { distro: "Ubuntu-24.04" },
+    expect(receipt.exitStatus).toBe(0);
+    const prepareCall = spawnSync.mock.calls[2];
+    const inputOption = prepareCall[1].indexOf("--stdin-file");
+    expect(inputOption).toBeGreaterThan(0);
+    const inputPath = prepareCall[1][inputOption + 1];
+    expect(inputPath).toMatch(/cc-target-input-/u);
+    expect(existsSync(inputPath)).toBe(false);
+    expect(prepareCall[2]).toMatchObject({
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 120_000,
     });
-    const spawnSync = vi
-      .fn()
-      .mockReturnValueOnce(
-        success(JSON.stringify(preflightReceipt(profile, "target-supervisor"))),
-      );
-
-    expect(
-      probeExecutionLocationTargetPreflight(
-        { profile },
-        {
-          platform: "win32",
-          spawnSync,
-          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
-          assertRunnerLifecycleAuthority: vi.fn(),
-        },
-      ),
-    ).toMatchObject({
-      resources: {
-        enforcement: "target-supervisor",
-        observedMemoryBytes: 256 * 1024 * 1024,
-        targetEnforced: true,
-      },
-    });
+    expect(prepareCall[2]).not.toHaveProperty("input");
   });
 
   it("rejects an expired v2 proxy authority before spawning a target", () => {

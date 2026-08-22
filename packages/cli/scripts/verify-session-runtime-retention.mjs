@@ -342,9 +342,20 @@ async function stabilizedHeapSample() {
 
 function runContractTests() {
   const startedAt = Date.now();
+  const vitestCandidates = [
+    join(CLI_ROOT, "node_modules", "vitest", "vitest.mjs"),
+    join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
+  ];
+  const vitestEntry = vitestCandidates.find((candidate) =>
+    existsSync(candidate),
+  );
+  assert.ok(
+    vitestEntry,
+    `vitest entrypoint is missing; checked: ${vitestCandidates.join(", ")}`,
+  );
   execFileSync(
     process.execPath,
-    ["node_modules/vitest/vitest.mjs", "run", ...CONTRACT_TESTS],
+    [relative(CLI_ROOT, vitestEntry), "run", ...CONTRACT_TESTS],
     {
       cwd: CLI_ROOT,
       stdio: "inherit",
@@ -808,9 +819,8 @@ function validateSessionScaleResult(
     assert.equal(value.arch, runtime.arch);
   }
   if (required) assert.equal(value.node, REQUIRED_NODE_VERSION);
-  const scaleMinimums = SESSION_SCALE_PROFILE_MINIMUMS[
-    required ? "formal" : "smoke"
-  ];
+  const scaleMinimums =
+    SESSION_SCALE_PROFILE_MINIMUMS[required ? "formal" : "smoke"];
   for (const [field, minimum] of Object.entries(scaleMinimums)) {
     assert.ok(
       Number.isSafeInteger(value.parameters?.[field]) &&
@@ -865,17 +875,14 @@ function validateSessionScaleResult(
     resume.coldProcess?.sampleCount >= value.parameters.coldResumeSamples,
   );
   assert.ok(
-    crash.partialRecordProcessKills?.length >=
-      value.parameters.actualKillCases,
+    crash.partialRecordProcessKills?.length >= value.parameters.actualKillCases,
   );
   assert.ok(
     crash.partialRecordProcessKills
       .slice(0, value.parameters.actualKillCases)
       .every((item) => item?.pass === true && item?.killConfirmed === true),
   );
-  assert.ok(
-    crash.actualProcessKillsTotal >= value.parameters.actualKillCases,
-  );
+  assert.ok(crash.actualProcessKillsTotal >= value.parameters.actualKillCases);
   assert.equal(
     crash.byteCutCoverage?.exhaustive,
     value.parameters.exhaustiveCuts,
@@ -1328,20 +1335,12 @@ function validateFragment(
   }
   const recomputedHeapDeltaBytes = Math.max(
     0,
-    Math.max(
-      measurements.firstGcHeapBytes,
-      measurements.secondGcHeapBytes,
-    ) - measurements.baselineHeapBytes,
+    Math.max(measurements.firstGcHeapBytes, measurements.secondGcHeapBytes) -
+      measurements.baselineHeapBytes,
   );
   const recomputedGcSampleDifferenceRatio =
-    Math.abs(
-      measurements.firstGcHeapBytes - measurements.secondGcHeapBytes,
-    ) /
-    Math.max(
-      measurements.firstGcHeapBytes,
-      measurements.secondGcHeapBytes,
-      1,
-    );
+    Math.abs(measurements.firstGcHeapBytes - measurements.secondGcHeapBytes) /
+    Math.max(measurements.firstGcHeapBytes, measurements.secondGcHeapBytes, 1);
   assert.equal(measurements.heapDeltaBytes, recomputedHeapDeltaBytes);
   assert.equal(
     measurements.gcSampleDifferenceRatio,
@@ -1393,10 +1392,7 @@ function validateFragment(
     measurements.resultCount + 1,
   );
   assert.ok(measurements.productRuntime.fixtureTranscriptBytes > 0);
-  assert.match(
-    measurements.productRuntime.fixtureHeadHash,
-    /^[a-f0-9]{64}$/u,
-  );
+  assert.match(measurements.productRuntime.fixtureHeadHash, /^[a-f0-9]{64}$/u);
   assert.equal(
     measurements.productRuntime.initialResumeForwardBytesRead,
     measurements.productRuntime.fixtureTranscriptBytes,

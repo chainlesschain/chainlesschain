@@ -153,7 +153,7 @@ export function projectExecutionLocationTargetPreflight(
   const enforcement = requiredEnvironment(
     environment,
     "CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT",
-    /^(?:posix-rlimit|target-supervisor|posix-rlimit\+target-supervisor)$/u,
+    /^(?:posix-rlimit|target-supervisor)$/u,
   );
   let observedCpuSeconds;
   let observedMemoryBytes;

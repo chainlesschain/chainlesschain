@@ -57,6 +57,13 @@ describe("process spawn inventory audit", () => {
         "const CAPSULE_EXECUTION_CONTEXT_BUILTINS = new Set([]);",
       ),
     ).toMatchObject({ disposition: "audited-exemption" });
+    expect(
+      auditRuntimeHit(
+        "packages/cli/src/lib/execution-location-local-supervisor.mjs",
+        "child = spawn(",
+        "",
+      ),
+    ).toMatchObject({ disposition: "audited-exemption" });
   });
 
   it("does not hide a multiline dynamic child_process load behind a string literal", () => {

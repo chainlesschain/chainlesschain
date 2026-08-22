@@ -530,8 +530,7 @@ describe("IDE roadmap execution-location matrix", () => {
       '"$CC_IDE_TARGET_NODE" "$CC_IDE_TARGET_ENTRY" "$@"',
     );
     expect(wrapper).toContain("execution-location-local-supervisor.mjs");
-    expect(wrapper).toContain("/proc/sys/kernel/osrelease");
-    expect(wrapper).toContain("posix-rlimit+target-supervisor");
+    expect(wrapper).toContain('ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS"');
     expect(wrapper).not.toContain("ulimit -v");
   });
 });

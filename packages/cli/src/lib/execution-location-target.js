@@ -698,16 +698,16 @@ function materializeKnownHostsAuthority(bytes, deps = {}) {
   });
 }
 
-function materializeLocalTargetInput(bytes, deps = {}) {
-  const runtimeFs = deps.fs || fs;
-  const input = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes || "");
-  if (input.length <= 0 || input.length > MAX_REPLICA_BYTES) {
-    throw new Error("Local target input is empty or exceeds its byte limit");
+function materializeLocalTargetInput(input, deps = {}) {
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || "");
+  if (bytes.length === 0 || bytes.length > MAX_REPLICA_BYTES) {
+    throw new Error("local target input is empty or exceeds its byte limit");
   }
+  const runtimeFs = deps.fs || fs;
   const root = runtimeFs.mkdtempSync(
     path.join(deps.tmpdir || tmpdir(), "cc-target-input-"),
   );
-  const inputPath = path.join(root, "input.bin");
+  const inputPath = path.join(root, "stdin.bin");
   let descriptor;
   try {
     descriptor = runtimeFs.openSync(
@@ -717,7 +717,7 @@ function materializeLocalTargetInput(bytes, deps = {}) {
         runtimeFs.constants.O_WRONLY,
       0o600,
     );
-    runtimeFs.writeFileSync(descriptor, input);
+    runtimeFs.writeFileSync(descriptor, bytes);
     runtimeFs.fsyncSync(descriptor);
   } catch (error) {
     try {
@@ -731,8 +731,6 @@ function materializeLocalTargetInput(bytes, deps = {}) {
   }
   return Object.freeze({
     path: inputPath,
-    bytes: input.length,
-    sha256: createHash("sha256").update(input).digest("hex"),
     cleanup: () => runtimeFs.rmSync(root, { recursive: true, force: true }),
   });
 }
@@ -762,16 +760,9 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         String(profile.lifecycle.resources.memoryBytes),
         "--entry",
         profile.cliCommand,
-        ...(inputAuthority
-          ? [
-              "--input-file",
-              inputAuthority.path,
-              "--input-bytes",
-              String(inputAuthority.bytes),
-              "--input-sha256",
-              inputAuthority.sha256,
-            ]
-          : []),
+        ...(inputAuthority === null
+          ? []
+          : ["--stdin-file", inputAuthority.path]),
         "--",
         ...cliArgs,
       ]),
@@ -779,7 +770,7 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
         cwd: profile.cwd,
         env: localTargetEnvironment(profile, lifecycleEnvironment),
       }),
-      inputMaterialized: inputAuthority !== null,
+      inputHandled: inputAuthority !== null,
       cleanup: inputAuthority?.cleanup || null,
     });
   }
@@ -901,8 +892,6 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     ) {
       throw new Error("target command timeout boundary is invalid");
     }
-    const pipeInput =
-      options.input != null && invocation.inputMaterialized !== true;
     const result = spawnSync(invocation.file, invocation.args, {
       origin: "execution-location:target",
       scope: "execution-location",
@@ -911,10 +900,18 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       encoding: "utf8",
       timeout: options.interactive ? undefined : timeoutMs,
       maxBuffer: options.interactive ? undefined : maxBuffer,
-      ...(pipeInput ? { input: options.input } : {}),
+      ...(options.input == null || invocation.inputHandled
+        ? {}
+        : { input: options.input }),
       stdio: options.interactive
         ? "inherit"
-        : [pipeInput ? "pipe" : "ignore", "pipe", "pipe"],
+        : [
+            options.input == null || invocation.inputHandled
+              ? "ignore"
+              : "pipe",
+            "pipe",
+            "pipe",
+          ],
       ...(invocation.spawnOptions || {}),
     });
     if (result?.error) throw result.error;
@@ -982,11 +979,10 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
   const expectedEnforcement =
     profile.target === "local"
       ? "target-supervisor"
-      : profile.target === "wsl" &&
-          (reportedEnforcement === "posix-rlimit+target-supervisor" ||
-            reportedEnforcement === "target-supervisor")
+      : reportedEnforcement === "posix-rlimit" ||
+          reportedEnforcement === "target-supervisor"
         ? reportedEnforcement
-        : "posix-rlimit+target-supervisor";
+        : "posix-rlimit";
   const material = {
     schema: "cc-execution-location-target-preflight/v1",
     runnerId: lifecycle.runnerId,
