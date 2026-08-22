@@ -11,6 +11,10 @@ import { join } from "node:path";
 import { promises as fsp, existsSync, mkdirSync } from "node:fs";
 import { getHomeDir } from "./paths.js";
 import {
+  ensureTrustedSessionLifecycleScope,
+  resolveTrustedSessionLifecycleScope,
+} from "./session-lifecycle-scope.js";
+import {
   MemoryStore,
   BetaFlags,
   ApprovalGate,
@@ -26,7 +30,10 @@ import {
 let _memoryStore = null;
 let _betaFlags = null;
 let _approvalGate = null;
-let _sessionManager = null;
+// SessionManager owns live handles as well as its parked-session sidecar. A
+// Claude project bucket must therefore receive a separate in-process manager
+// even when another project happens to reuse the same session id.
+const _sessionManagersByScope = new Map();
 
 export function getMemoryStorePath() {
   return join(getHomeDir(), "memory-store.json");
@@ -67,12 +74,14 @@ export async function getApprovalGate() {
   return _approvalGate;
 }
 
-export function getParkedSessionsPath() {
-  return join(getHomeDir(), "parked-sessions.json");
+export function getParkedSessionsPath(options = {}) {
+  return resolveTrustedSessionLifecycleScope(options).parkedSessionsPath;
 }
 
-function createParkedSessionsStore(filePath) {
+function createParkedSessionsStore(filePath, options = {}) {
+  const ensureDirectory = options.ensureDirectory || null;
   async function readAll() {
+    ensureDirectory?.();
     try {
       const raw = await fsp.readFile(filePath, "utf8");
       return JSON.parse(raw || "{}");
@@ -81,6 +90,7 @@ function createParkedSessionsStore(filePath) {
     }
   }
   async function writeAll(map) {
+    ensureDirectory?.();
     const dir = join(filePath, "..");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     await fsp.writeFile(filePath, JSON.stringify(map, null, 2), "utf8");
@@ -106,12 +116,17 @@ function createParkedSessionsStore(filePath) {
   };
 }
 
-export function getSessionManager() {
-  if (_sessionManager) return _sessionManager;
-  const store = createParkedSessionsStore(getParkedSessionsPath());
-  _sessionManager = new SessionManager({ store });
-  _sessionManager._parkedStore = store;
-  return _sessionManager;
+export function getSessionManager(options = {}) {
+  const scope = resolveTrustedSessionLifecycleScope(options);
+  const existing = _sessionManagersByScope.get(scope.key);
+  if (existing) return existing;
+  const store = createParkedSessionsStore(scope.parkedSessionsPath, {
+    ensureDirectory: () => ensureTrustedSessionLifecycleScope(scope),
+  });
+  const manager = new SessionManager({ store });
+  manager._parkedStore = store;
+  _sessionManagersByScope.set(scope.key, manager);
+  return manager;
 }
 
 export function createStreamRouter() {
@@ -122,7 +137,7 @@ export function resetSessionCoreSingletonsForTests() {
   _memoryStore = null;
   _betaFlags = null;
   _approvalGate = null;
-  _sessionManager = null;
+  _sessionManagersByScope.clear();
 }
 
 // =====================================================================

@@ -12,7 +12,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { ensureDir, getHomeDir } from "./paths.js";
+import { ensureDir } from "./paths.js";
+import {
+  ensureTrustedSessionLifecycleScope,
+  resolveTrustedSessionLifecycleScope,
+  sessionLifecycleFabricDirectory,
+} from "./session-lifecycle-scope.js";
 import { withFileLock } from "./with-file-lock.js";
 
 export const SESSION_MESSAGE_FABRIC_SCHEMA =
@@ -585,28 +590,39 @@ function validateState(state) {
   return state;
 }
 
-export function defaultSessionMessageFabricPath() {
-  return path.join(getHomeDir(), "session-message-fabric", "state.json");
+export function defaultSessionMessageFabricPath(options = {}) {
+  return resolveTrustedSessionLifecycleScope(options).messageFabricStatePath;
 }
 
 export class SessionMessageFabric {
-  constructor({
-    statePath = defaultSessionMessageFabricPath(),
-    now = () => Date.now(),
-    createId = randomUUID,
-    lock = withFileLock,
-    lockTimeoutMs = 10_000,
-    maxMessageBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
-    maxPendingPerRecipient = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
-    maxReceiptHistory = SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
-    maxMessagesPerSenderWindow = SESSION_MESSAGE_FABRIC_LIMITS.maxMessagesPerSenderWindow,
-    senderRateWindowMs = SESSION_MESSAGE_FABRIC_LIMITS.senderRateWindowMs,
-    defaultTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.defaultTtlMs,
-    maxTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.maxTtlMs,
-  } = {}) {
+  constructor(options = {}) {
+    const {
+      statePath: configuredStatePath,
+      launchEnv,
+      cwd,
+      now = () => Date.now(),
+      createId = randomUUID,
+      lock = withFileLock,
+      lockTimeoutMs = 10_000,
+      maxMessageBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
+      maxPendingPerRecipient = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+      maxReceiptHistory = SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
+      maxMessagesPerSenderWindow = SESSION_MESSAGE_FABRIC_LIMITS.maxMessagesPerSenderWindow,
+      senderRateWindowMs = SESSION_MESSAGE_FABRIC_LIMITS.senderRateWindowMs,
+      defaultTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.defaultTtlMs,
+      maxTtlMs = SESSION_MESSAGE_FABRIC_LIMITS.maxTtlMs,
+    } = options;
+    const usesDefaultStatePath = configuredStatePath === undefined;
+    const lifecycleScope = usesDefaultStatePath
+      ? resolveTrustedSessionLifecycleScope({ launchEnv, cwd })
+      : null;
+    const statePath = usesDefaultStatePath
+      ? lifecycleScope.messageFabricStatePath
+      : configuredStatePath;
     this.statePath = path.resolve(statePath);
+    this._lifecycleScope = lifecycleScope;
     this._secureDefaultDirectory =
-      this.statePath === path.resolve(defaultSessionMessageFabricPath());
+      usesDefaultStatePath && lifecycleScope.kind === "legacy";
     this._now = now;
     this._createId = createId;
     this._lock = lock;
@@ -645,6 +661,14 @@ export class SessionMessageFabric {
 
   _ensureDirectory() {
     const directory = path.dirname(this.statePath);
+    if (this._lifecycleScope?.kind === "project") {
+      ensureTrustedSessionLifecycleScope(this._lifecycleScope, {
+        extraDirectories: [
+          sessionLifecycleFabricDirectory(this._lifecycleScope),
+        ],
+      });
+      return;
+    }
     if (this._secureDefaultDirectory) {
       ensureDir(directory);
       return;

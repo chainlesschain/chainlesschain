@@ -3829,7 +3829,13 @@ async function startAgentReplInWorkspaceOwned(
   try {
     const { getSessionManager } =
       await import("../lib/session-core-singletons.js");
-    _sessionMgr = getSessionManager();
+    // Keep durable lifecycle sidecars on the same launch-authoritative Claude
+    // project bucket as the JSONL transcript. Project settings may not switch
+    // this map/path after the REPL has admitted its launch environment.
+    _sessionMgr = getSessionManager({
+      launchEnv: options.claudeStorageLaunchEnv || undefined,
+      cwd: process.cwd(),
+    });
     if (sessionId) {
       if (options.sessionId && !_sessionMgr.has(sessionId)) {
         // Try unparking; no-op if nothing parked with that id

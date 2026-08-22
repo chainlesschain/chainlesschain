@@ -6,14 +6,16 @@
  * so two IDE windows cannot silently overwrite each other's group changes.
  */
 
-import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { getHomeDir } from "./paths.js";
 import {
   mutateSecurityStore,
   readSecurityStore,
 } from "./durable-security-store.js";
 import { projectionRevision } from "./session-projection.js";
+import {
+  ensureTrustedSessionLifecycleScope,
+  resolveTrustedSessionLifecycleScope,
+} from "./session-lifecycle-scope.js";
 
 export const SESSION_WORKBENCH_STATE_SCHEMA =
   "chainlesschain.session-workbench-state/v1";
@@ -21,8 +23,8 @@ export const MAX_SESSION_GROUPS = 128;
 export const MAX_SESSION_GROUP_NAME_CHARS = 80;
 export const MAX_SESSION_GROUP_MEMBERSHIPS = 4096;
 
-function statePath() {
-  return path.join(getHomeDir(), "session-workbench.json");
+export function defaultSessionWorkbenchStatePath(options = {}) {
+  return resolveTrustedSessionLifecycleScope(options).workbenchStatePath;
 }
 
 function stateError(code, message, details = {}) {
@@ -222,19 +224,40 @@ function reindex(groups) {
 }
 
 export class SessionWorkbenchStore {
-  constructor({ filePath = statePath(), uuid = randomUUID, lockOptions } = {}) {
-    this.filePath = filePath;
+  constructor(options = {}) {
+    const {
+      filePath: configuredFilePath,
+      launchEnv,
+      cwd,
+      uuid = randomUUID,
+      lockOptions,
+    } = options;
+    const usesDefaultFilePath = configuredFilePath === undefined;
+    this._lifecycleScope = usesDefaultFilePath
+      ? resolveTrustedSessionLifecycleScope({ launchEnv, cwd })
+      : null;
+    this.filePath = usesDefaultFilePath
+      ? this._lifecycleScope.workbenchStatePath
+      : configuredFilePath;
     this.uuid = uuid;
     this.lockOptions = lockOptions;
   }
 
+  _prepareStorage() {
+    if (this._lifecycleScope?.kind === "project") {
+      ensureTrustedSessionLifecycleScope(this._lifecycleScope);
+    }
+  }
+
   projection() {
+    this._prepareStorage();
     return publicProjection(
       normalizeState(readSecurityStore(this.filePath, "session workbench")),
     );
   }
 
   _mutate(expectedRevision, mutator) {
+    this._prepareStorage();
     return mutateSecurityStore(
       this.filePath,
       "session workbench",
