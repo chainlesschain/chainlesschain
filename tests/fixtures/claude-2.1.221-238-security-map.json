@@ -232,7 +232,7 @@
       "testId": "a version bump re-requires trust",
       "producer": {
         "path": "packages/cli/__tests__/unit/plugin-runtime-trust.test.js",
-        "sha256": "sha256:6c40e3c91ca766087b10e62af6e57e526c54f89a30b265a2ab022452ca1bc0fe"
+        "sha256": "sha256:ea00d2b61ff6b8d84e719c56256c94988b5c41608ea289893c8d4db2c6500e0a"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
