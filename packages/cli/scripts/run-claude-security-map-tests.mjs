@@ -3,9 +3,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   DEFAULT_MAP_PATH,
@@ -15,11 +14,19 @@ import {
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "../..");
-const require = createRequire(import.meta.url);
-const VITEST_ENTRY = path.join(
-  path.dirname(require.resolve("vitest/package.json")),
-  "vitest.mjs",
-);
+
+function resolveVitestEntry() {
+  const candidates = [
+    path.join(PACKAGE_ROOT, "node_modules", "vitest", "vitest.mjs"),
+    path.join(REPOSITORY_ROOT, "node_modules", "vitest", "vitest.mjs"),
+  ];
+  const entry = candidates.find((candidate) => fs.existsSync(candidate));
+  assert.ok(
+    entry,
+    `vitest entrypoint is missing; checked: ${candidates.join(", ")}`,
+  );
+  return path.relative(PACKAGE_ROOT, entry);
+}
 
 function parseArgs(argv) {
   const options = {};
@@ -65,11 +72,13 @@ export function mappedVitestInvocation({
   return {
     executable: process.execPath,
     args: [
-      VITEST_ENTRY,
+      resolveVitestEntry(),
       "run",
       ...testFiles,
       "-t",
       testNamePattern,
+      "--config",
+      "vitest.config.js",
       "--reporter=json",
       `--outputFile=${path.resolve(output)}`,
     ],
@@ -98,8 +107,13 @@ export function runMappedSecurityTests(options = {}) {
   return invocation;
 }
 
-const options = parseArgs(process.argv.slice(2));
-runMappedSecurityTests({
-  mapPath: options.map,
-  output: options.output,
-});
+if (
+  process.argv[1] &&
+  pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+) {
+  const options = parseArgs(process.argv.slice(2));
+  runMappedSecurityTests({
+    mapPath: options.map,
+    output: options.output,
+  });
+}
