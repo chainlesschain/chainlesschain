@@ -535,10 +535,7 @@ function verifyEvidenceSet({
   const otherDigests = new Set();
   for (const filePath of evidenceFiles(path.resolve(evidenceDir))) {
     const { bytes, value } = readJsonBytes(filePath);
-    if (
-      value?.schema === FRAGMENT_SCHEMA ||
-      value?.commitmentId === COMMITMENT_ID
-    ) {
+    if (value?.commitmentId === COMMITMENT_ID) {
       records.push({
         filePath,
         bytes,

@@ -26,6 +26,11 @@ async function makeProgram(commandRegistrarName) {
   vi.resetModules();
   vi.doMock("../../src/lib/paths.js", () => ({
     getHomeDir: () => tmpHome,
+    resolveConfigDataRoot: () => ({
+      path: tmpHome,
+      source: "chainlesschain",
+    }),
+    getClaudeProjectStorageDir: () => null,
     getBinDir: () => path.join(tmpHome, "bin"),
     getConfigPath: () => path.join(tmpHome, "config.json"),
     getStatePath: () => path.join(tmpHome, "state"),

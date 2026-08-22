@@ -23,6 +23,7 @@ const securityAnchorDir = join(
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getClaudeProjectStorageDir: () => null,
   getStatePath: () => join(testDir, "state"),
   getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));

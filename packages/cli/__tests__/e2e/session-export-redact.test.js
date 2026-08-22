@@ -53,9 +53,9 @@ function runExport(args) {
     env: t.env(),
     // Owner-only storage deliberately rejects CHAINLESSCHAIN_HOME when it is
     // the cwd (or an ancestor): chmod-ing it could mutate a whole workspace.
-    // Execute beside the isolated home so the E2E exercises the real safety
-    // contract instead of asking production code to weaken it for a fixture.
-    cwd: path.dirname(t.home),
+    // Use the isolated workspace sibling, never the configured data root or
+    // one of its ancestors, so this E2E follows the production safety contract.
+    cwd: t.workspace,
     encoding: "utf-8",
   });
 }

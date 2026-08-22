@@ -339,7 +339,7 @@ function createSqlJsCompat(raw, dbPath) {
       all(...params) {
         const stmt = raw.prepare(sql);
         try {
-          if (params.length) stmt.bind(flattenParams(params));
+          if (params.length) stmt.bind(normalizeSqlJsParams(sql, params));
           const rows = [];
           while (stmt.step()) rows.push(stmt.getAsObject());
           return rows;
@@ -350,7 +350,7 @@ function createSqlJsCompat(raw, dbPath) {
       get(...params) {
         const stmt = raw.prepare(sql);
         try {
-          if (params.length) stmt.bind(flattenParams(params));
+          if (params.length) stmt.bind(normalizeSqlJsParams(sql, params));
           return stmt.step() ? stmt.getAsObject() : undefined;
         } finally {
           stmt.free();
@@ -359,7 +359,7 @@ function createSqlJsCompat(raw, dbPath) {
       run(...params) {
         const stmt = raw.prepare(sql);
         try {
-          if (params.length) stmt.bind(flattenParams(params));
+          if (params.length) stmt.bind(normalizeSqlJsParams(sql, params));
           stmt.step();
         } finally {
           stmt.free();
@@ -445,10 +445,43 @@ function createSqlJsCompat(raw, dbPath) {
 function flattenParams(params) {
   // better-sqlite3 accepts (a, b, c) OR ([a, b, c]) OR ({name: v}).
   // sql.js bind() wants a single array or object.
-  if (params.length === 1 && (Array.isArray(params[0]) || isPlainObject(params[0]))) {
+  if (
+    params.length === 1 &&
+    (Array.isArray(params[0]) || isPlainObject(params[0]))
+  ) {
     return params[0];
   }
   return params;
+}
+
+function normalizeSqlJsParams(sql, params) {
+  const values = flattenParams(params);
+  if (!isPlainObject(values)) return values;
+
+  const normalized = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (/^[:@$]/.test(key)) {
+      normalized[key] = value;
+      continue;
+    }
+
+    let matched = false;
+    for (const prefix of [":", "@", "$"]) {
+      const placeholder = new RegExp(
+        "\\" + prefix + escapeRegExp(key) + "(?![A-Za-z0-9_])",
+      );
+      if (placeholder.test(sql)) {
+        normalized[prefix + key] = value;
+        matched = true;
+      }
+    }
+    if (!matched) normalized[key] = value;
+  }
+  return normalized;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function isPlainObject(x) {

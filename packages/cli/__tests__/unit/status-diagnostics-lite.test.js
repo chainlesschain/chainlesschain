@@ -1,6 +1,12 @@
 import { EventEmitter } from "node:events";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { collectQuickStatusReport } from "../../src/runtime/status-diagnostics-lite.js";
+
+const STATUS_HOME = join(tmpdir(), "cc-status-home");
+const STATUS_CLAUDE_ROOT = join(tmpdir(), "cc-status-claude-root");
+const STATUS_CWD = join(tmpdir(), "cc-status-project");
 
 function closedSocket() {
   const socket = new EventEmitter();
@@ -12,8 +18,8 @@ function closedSocket() {
 describe("quick status collector", () => {
   it("collects a read-only report without executing external probes", async () => {
     const report = await collectQuickStatusReport({
-      env: { CHAINLESSCHAIN_HOME: "C:\\cc-home", PATH: "" },
-      cwd: "C:\\project",
+      env: { CHAINLESSCHAIN_HOME: STATUS_HOME, PATH: "" },
+      cwd: STATUS_CWD,
       exists: (path) =>
         path.endsWith("config.json") || path.endsWith("app.pid"),
       readFile: (path) =>
@@ -53,8 +59,8 @@ describe("quick status collector", () => {
   it("reads status config from CLAUDE_CONFIG_DIR when no native root is set", async () => {
     const reads = vi.fn((path) => (path.endsWith("config.json") ? "{}" : ""));
     await collectQuickStatusReport({
-      env: { CLAUDE_CONFIG_DIR: "C:\\claude-status-root", PATH: "" },
-      cwd: "C:\\project",
+      env: { CLAUDE_CONFIG_DIR: STATUS_CLAUDE_ROOT, PATH: "" },
+      cwd: STATUS_CWD,
       exists: (path) => path.endsWith("config.json"),
       readFile: reads,
       processKill: vi.fn(() => {
@@ -66,7 +72,7 @@ describe("quick status collector", () => {
     });
 
     expect(reads).toHaveBeenCalledWith(
-      "C:\\claude-status-root\\config.json",
+      join(STATUS_CLAUDE_ROOT, "config.json"),
       "utf8",
     );
   });

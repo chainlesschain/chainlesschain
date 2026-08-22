@@ -7,6 +7,7 @@ import {
   BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
   browserEvidenceArtifactName,
   parseArgs as parseProducerArgs,
+  removeBrowserEvidenceTemporaryRoot,
   scanArtifactJson,
   workflowProvenance,
 } from "../../scripts/ide-roadmap-browser-evidence.mjs";
@@ -171,6 +172,33 @@ describe("browser evidence producer arguments and secret gate", () => {
     );
   });
 
+  it("retries a Chrome profile cleanup race without hiding other failures", async () => {
+    let attempts = 0;
+    const pauses = [];
+    await removeBrowserEvidenceTemporaryRoot("/tmp/browser-profile", {
+      removeTree: async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          const error = new Error("Chrome is still flushing its profile");
+          error.code = "ENOTEMPTY";
+          throw error;
+        }
+      },
+      sleep: async (milliseconds) => pauses.push(milliseconds),
+    });
+    expect(attempts).toBe(3);
+    expect(pauses).toEqual([250, 250]);
+    await expect(
+      removeBrowserEvidenceTemporaryRoot("/tmp/browser-profile", {
+        removeTree: async () => {
+          const error = new Error("unexpected cleanup failure");
+          error.code = "EACCES";
+          throw error;
+        },
+      }),
+    ).rejects.toThrow(/unexpected cleanup failure/u);
+  });
+
   it("passes workflow SHA and exact artifact identity in Actions", () => {
     const workflow = fs.readFileSync(
       path.join(REPOSITORY_ROOT, ".github/workflows/ide-extensions.yml"),
@@ -185,11 +213,14 @@ describe("browser evidence producer arguments and secret gate", () => {
     ).toHaveLength(2);
     expect(
       browserJobs.match(
-        /git fetch --no-tags --depth=1 origin "\$GITHUB_WORKFLOW_SHA"/gu,
+        /git fetch --no-tags --depth=2 origin "\$GITHUB_WORKFLOW_SHA"/gu,
       ),
     ).toHaveLength(2);
     expect(browserJobs).toMatch(
       /- name: Run real local two-origin browser evidence journey\s+shell: bash\s+run:/u,
+    );
+    expect(browserJobs).toMatch(
+      /- name: Install browser evidence aggregate dependencies\s+run:\s+>-\s+npm ci --workspace packages\/cli --include-workspace-root=false/u,
     );
     expect(workflow).toContain(
       "browser-evidence-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}",
