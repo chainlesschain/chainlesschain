@@ -52,17 +52,33 @@ function safeRelativePath(value) {
   if (
     !path.startsWith("/") ||
     path.startsWith("//") ||
-    /[\\?#\r\n\u0000]/u.test(path) ||
-    path
-      .split("/")
-      .some((segment) =>
-        /^(?:\.{1,2}|%2e(?:%2e)?|%2e\.|\.%2e)$/iu.test(segment),
-      )
+    /[\\?#\r\n\u0000]/u.test(path)
   ) {
     throw gatewayError(
       "CC_GATEWAY_PATH_INVALID",
       "gateway request path is invalid",
     );
+  }
+  for (const segment of path.split("/")) {
+    let decoded;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      throw gatewayError(
+        "CC_GATEWAY_PATH_INVALID",
+        "gateway request path is invalid",
+      );
+    }
+    if (
+      decoded === "." ||
+      decoded === ".." ||
+      /[\\/\r\n\u0000]/u.test(decoded)
+    ) {
+      throw gatewayError(
+        "CC_GATEWAY_PATH_INVALID",
+        "gateway request path is invalid",
+      );
+    }
   }
   return path;
 }
@@ -100,10 +116,17 @@ export function normalizeGatewayError(errorOrResponse) {
     );
   }
 
-  const codes = [errorOrResponse?.code, errorOrResponse?.cause?.code].map(
-    (value) => String(value || "").toUpperCase(),
-  );
-  if (codes.some((code) => ["ABORT_ERR", "ERR_ABORTED"].includes(code))) {
+  const codes = [
+    errorOrResponse?.code,
+    errorOrResponse?.cause?.code,
+    errorOrResponse?.name,
+    errorOrResponse?.cause?.name,
+  ].map((value) => String(value || "").toUpperCase());
+  if (
+    codes.some((code) =>
+      ["ABORT_ERR", "ERR_ABORTED", "ABORTERROR"].includes(code),
+    )
+  ) {
     return gatewayError("CC_GATEWAY_ABORTED", "gateway request was aborted");
   }
   if (
@@ -436,7 +459,12 @@ export class ResilientGatewayClient {
     const relativePath = safeRelativePath(path);
     const prefix = this.baseUrl.pathname.replace(/\/+$/u, "");
     const endpoint = new URL(`${prefix}${relativePath}`, this.baseUrl.origin);
-    if (endpoint.origin !== this.baseUrl.origin) {
+    if (
+      endpoint.origin !== this.baseUrl.origin ||
+      (prefix &&
+        endpoint.pathname !== prefix &&
+        !endpoint.pathname.startsWith(`${prefix}/`))
+    ) {
       throw gatewayError(
         "CC_GATEWAY_PATH_INVALID",
         "gateway request path is invalid",

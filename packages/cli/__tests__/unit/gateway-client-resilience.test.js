@@ -181,6 +181,9 @@ describe("ResilientGatewayClient", () => {
     await expect(direct.stream("/../metadata")).rejects.toMatchObject({
       code: "CC_GATEWAY_PATH_INVALID",
     });
+    await expect(direct.stream("/v1/%2Fmetadata")).rejects.toMatchObject({
+      code: "CC_GATEWAY_PATH_INVALID",
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -220,6 +223,11 @@ describe("ResilientGatewayClient", () => {
       message: "gateway transport is temporarily unavailable",
     });
     expect(normalizedCause.message).not.toContain("top-secret");
+
+    expect(normalizeGatewayError({ name: "AbortError" })).toMatchObject({
+      code: "CC_GATEWAY_ABORTED",
+      message: "gateway request was aborted",
+    });
   });
 
   it("bounds unterminated SSE frame bytes and line counts with stable errors", async () => {
