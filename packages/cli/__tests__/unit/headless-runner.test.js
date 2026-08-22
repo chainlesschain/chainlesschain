@@ -1989,6 +1989,91 @@ describe("headless-runner — goal-condition cross-process resume", () => {
   });
 });
 
+describe("headless runner hook/subagent event projection", () => {
+  it("emits redacted opt-in NDJSON events and keeps the default stream unchanged", async () => {
+    const { deps, out } = makeDeps(replyText("done"));
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      expect(typeof loopOptions.interaction?.emit).toBe("function");
+      loopOptions.interaction.emit("sub-agent.started", {
+        subAgentId: "sub-1",
+        parentSessionId: loopOptions.sessionId,
+        role: "reviewer",
+        task: "must never reach stdout",
+      });
+      loopOptions.interaction.emit("sub-agent.progress", {
+        subAgentId: "sub-1",
+        parentSessionId: loopOptions.sessionId,
+        role: "reviewer",
+        event_type: "tool-executing",
+        tool: "read_file",
+        iteration_count: 2,
+        token_count: 17,
+      });
+      loopOptions.interaction.emit("sub-agent.completed", {
+        subAgentId: "sub-1",
+        parentSessionId: loopOptions.sessionId,
+        role: "reviewer",
+        summary: "must never reach stdout",
+      });
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+
+    const outcome = await runAgentHeadless(
+      {
+        prompt: "hi",
+        outputFormat: "stream-json",
+        includeHookEvents: true,
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(0);
+    const raw = out.join("");
+    const events = raw
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const init = events.find(
+      (event) => event.type === "system" && event.subtype === "init",
+    );
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "subagent_started",
+          schema_version: 1,
+          subagent_id: "sub-1",
+          parent_id: init.session_id,
+        }),
+        expect.objectContaining({
+          type: "subagent_progress",
+          event_type: "tool-executing",
+          tool: "read_file",
+        }),
+        expect.objectContaining({
+          type: "subagent_completed",
+          status: "completed",
+        }),
+      ]),
+    );
+    expect(raw).not.toContain("must never reach stdout");
+  });
+
+  it("does not add an interaction event channel without the opt-in flag", async () => {
+    const { deps } = makeDeps(replyText("done"));
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      expect(loopOptions.interaction).toBeUndefined();
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    await expect(
+      runAgentHeadless({ prompt: "hi" }, deps),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+    });
+  });
+});
+
 describe("headless-runner — background phase reporter wiring", () => {
   // The P0 state-machine producer: when this run is a background agent's turn
   // child, the human-blocking confirmers must surface their pending window as

@@ -1,21 +1,94 @@
 /**
  * Best-effort bridge from real runtime producers to Hooks v2.
  * Hook failures never change the surrounding agent or interaction result.
+ *
+ * A headless host may subscribe to a particular session to project a small,
+ * machine-readable lifecycle stream.  The projection deliberately excludes
+ * hook command lines, input, output, and error text: hooks often handle
+ * credentials, paths, and user content.  The observer is diagnostic only and
+ * is never allowed to affect a hook decision.
  */
-export function emitHooksV2Event(eventName, context = {}, options = {}) {
-  void executeHooksV2Event(eventName, context, options);
+const sessionObservers = new Map();
+
+function safeId(value, max = 160) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
 }
 
-/**
- * Decision-capable producer bridge. Callers at a real gate (PreToolUse,
- * Setup, prompt expansion) await this result; observer producers can keep
- * using emitHooksV2Event().
- */
-export async function executeHooksV2Event(
-  eventName,
-  context = {},
-  options = {},
-) {
+function observerSetFor(context = {}) {
+  const sessionId = safeId(context.session_id ?? context.sessionId);
+  return sessionId ? sessionObservers.get(sessionId) || null : null;
+}
+
+function projectLifecycle(eventName, context = {}, phase, outcome = null) {
+  const projected = {
+    type: phase,
+    schema_version: 1,
+    hook_event: safeId(eventName, 96) || "unknown",
+  };
+  const sessionId = safeId(context.session_id ?? context.sessionId);
+  const traceId = safeId(context.trace_id ?? context.traceId);
+  const parentId = safeId(context.parent_id ?? context.parentId);
+  const turnId = safeId(context.turn_id ?? context.turnId);
+  const toolUseId = safeId(context.tool_use_id ?? context.toolUseId);
+  if (sessionId) projected.session_id = sessionId;
+  if (traceId) projected.trace_id = traceId;
+  if (parentId) projected.parent_id = parentId;
+  if (turnId) projected.turn_id = turnId;
+  if (toolUseId) projected.tool_use_id = toolUseId;
+  if (!outcome || typeof outcome !== "object") return projected;
+
+  if (phase === "hook_progress") {
+    projected.hook_id = safeId(outcome.hookId, 160) || null;
+    projected.status = safeId(outcome.status, 32) || "unknown";
+    projected.decision = safeId(outcome.decision, 32) || "continue";
+    if (Number.isFinite(outcome.durationMs)) {
+      projected.duration_ms = Math.max(0, Math.floor(outcome.durationMs));
+    }
+    return projected;
+  }
+
+  projected.decision = safeId(outcome.decision, 32) || "continue";
+  projected.blocked = outcome.blocked === true;
+  projected.requires_approval = outcome.requiresApproval === true;
+  projected.hook_count = Array.isArray(outcome.results)
+    ? outcome.results.length
+    : 0;
+  projected.error = outcome.error ? "hook_runtime_error" : undefined;
+  return projected;
+}
+
+function notifyObservers(eventName, context, phase, outcome = null) {
+  const observers = observerSetFor(context);
+  if (!observers || observers.size === 0) return;
+  const event = projectLifecycle(eventName, context, phase, outcome);
+  for (const observer of observers) {
+    try {
+      observer(event);
+    } catch {
+      // Observability must never delay or weaken the hook boundary.
+    }
+  }
+}
+
+/** Register a diagnostic observer for a single canonical session id. */
+export function addHooksV2EventObserver(sessionId, observer) {
+  const key = safeId(sessionId);
+  if (!key || typeof observer !== "function") return () => {};
+  let observers = sessionObservers.get(key);
+  if (!observers) {
+    observers = new Set();
+    sessionObservers.set(key, observers);
+  }
+  observers.add(observer);
+  return () => {
+    observers.delete(observer);
+    if (observers.size === 0) sessionObservers.delete(key);
+  };
+}
+
+async function dispatchHooksV2Event(eventName, context, options) {
   try {
     const { default: runtime } = await import("./hooks-v2-runtime.js");
     if (!runtime || typeof runtime.executeHooks !== "function") {
@@ -37,6 +110,39 @@ export async function executeHooksV2Event(
       results: [],
     };
   }
+}
+
+function reportOutcome(eventName, context, outcome) {
+  for (const result of Array.isArray(outcome?.results) ? outcome.results : []) {
+    notifyObservers(eventName, context, "hook_progress", result);
+  }
+  notifyObservers(eventName, context, "hook_response", outcome);
+  return outcome;
+}
+
+export function emitHooksV2Event(eventName, context = {}, options = {}) {
+  notifyObservers(eventName, context, "hook_started");
+  void dispatchHooksV2Event(eventName, context, options).then((outcome) =>
+    reportOutcome(eventName, context, outcome),
+  );
+}
+
+/**
+ * Decision-capable producer bridge. Callers at a real gate (PreToolUse,
+ * Setup, prompt expansion) await this result; observer producers can keep
+ * using emitHooksV2Event().
+ */
+export async function executeHooksV2Event(
+  eventName,
+  context = {},
+  options = {},
+) {
+  notifyObservers(eventName, context, "hook_started");
+  return reportOutcome(
+    eventName,
+    context,
+    await dispatchHooksV2Event(eventName, context, options),
+  );
 }
 
 export function resolvePromptExpansion(prompt, outcome = {}) {
@@ -69,8 +175,6 @@ export function resolvePromptExpansion(prompt, outcome = {}) {
     prompt: resolved,
     blocked: outcome.blocked === true || outcome.decision === "block",
     reason:
-      outcome.blockingResult?.reason ||
-      outcome.blockingResult?.message ||
-      null,
+      outcome.blockingResult?.reason || outcome.blockingResult?.message || null,
   };
 }

@@ -14,10 +14,12 @@ export default defineConfig({
     // separately and passes the e2e config explicitly.
     exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
     pool: "forks",
-    forks: {
-      maxForks: 2,
-      minForks: 1,
-    },
+    // Vitest 4 removed the pool-specific `forks.maxForks` configuration in
+    // favour of the top-level worker limit. Keeping the old shape silently
+    // removes the limit and lets a large CI shard start one fork per file,
+    // which reintroduces the shared-resource contention this configuration is
+    // meant to avoid.
+    maxWorkers: 2,
     // 90s testTimeout: vitest 4 honors testTimeout strictly (v3's hardcoded
     // 60s birpc heartbeat used to mask anything between testTimeout and the
     // heartbeat ceiling). Subprocess-heavy integration tests — MTC federation

@@ -958,6 +958,8 @@ async function requestInteractivePermission(
         args && typeof args === "object" ? Object.keys(args).sort() : [],
       reason: confirmArgs?.reason || null,
       cwd,
+      trace_id: context.hookTraceId || null,
+      parent_id: context.hookParentId || null,
     },
     { failClosed: true },
   );
@@ -3558,6 +3560,8 @@ export async function executeTool(name, args, context = {}) {
         input_keys:
           args && typeof args === "object" ? Object.keys(args).sort() : [],
         cwd,
+        trace_id: context.hookTraceId || null,
+        parent_id: context.hookParentId || null,
       },
       { failClosed: true },
     );
@@ -9871,6 +9875,10 @@ async function _executeSpawnSubAgent(args, ctx) {
   const subLlmOptions = {
     ...parentLlm,
     model: mdModel || parentLlm.model || undefined,
+    // Preserve the host's optional event channel across every nesting level.
+    // It is observational only: child hooks/tools must never depend on a
+    // headless consumer being connected.
+    ...(interaction ? { interaction } : {}),
     // Contract `effort` is a compute hint (reasoning level), not authority —
     // forwarded to the child loop; harmless if the provider ignores it.
     ...(effectiveContract?.effort ? { effort: effectiveContract.effort } : {}),
@@ -10079,6 +10087,17 @@ async function _executeSpawnSubAgent(args, ctx) {
     subAgentBudget: ctx.subAgentBudget || null,
     ...(ctx.sessionBudget ? { sessionBudget: ctx.sessionBudget } : {}),
     onUsage,
+    ...(interaction && typeof interaction.emit === "function"
+      ? {
+          onProgress: (progress) =>
+            emit("sub-agent.progress", {
+              event_type: progress?.type || "unknown",
+              tool: progress?.tool || null,
+              iteration_count: progress?.iterationCount || 0,
+              token_count: progress?.tokenCount || 0,
+            }),
+        }
+      : {}),
     ...(ctx.strictUsageTelemetry === true
       ? {
           strictUsageTelemetry: true,

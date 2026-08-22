@@ -27,6 +27,7 @@ import {
   sameInteractionBinding,
 } from "../lib/interaction-binding.js";
 import {
+  addHooksV2EventObserver,
   emitHooksV2Event,
   executeHooksV2Event,
   resolvePromptExpansion,
@@ -1483,6 +1484,10 @@ async function runAgentHeadlessStreamInWorkspace(
       fieldGate,
     });
   const emit = streamCoalescer.emit;
+  const removeHookObserver =
+    options.includeHookEvents === true
+      ? addHooksV2EventObserver(sessionId, (event) => emit(event))
+      : null;
   streamCleanup.setOutputCleanup(() => streamCoalescer.flush?.());
 
   const hasInjectedSessionStore =
@@ -2836,6 +2841,70 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   }
 
+  const streamInteraction = {};
+  if (interactiveQuestions) streamInteraction.askUser = interactionAskUser;
+  if (options.includeHookEvents === true) {
+    streamInteraction.emit = (kind, payload = {}) => {
+      const subAgentId =
+        typeof payload.subAgentId === "string" && payload.subAgentId.trim()
+          ? payload.subAgentId.slice(0, 160)
+          : null;
+      if (!subAgentId) return;
+      const base = {
+        schema_version: 1,
+        subagent_id: subAgentId,
+        parent_id:
+          typeof payload.parentSessionId === "string" &&
+          payload.parentSessionId.trim()
+            ? payload.parentSessionId.slice(0, 160)
+            : sessionId,
+        ...(typeof payload.role === "string" && payload.role.trim()
+          ? { role: payload.role.trim().slice(0, 96) }
+          : {}),
+      };
+      if (kind === "sub-agent.started") {
+        emit({
+          type: "subagent_started",
+          ...base,
+          background: payload.background === true,
+        });
+      } else if (
+        kind === "sub-agent.completed" ||
+        kind === "sub-agent.failed"
+      ) {
+        emit({
+          type: "subagent_completed",
+          ...base,
+          status: kind === "sub-agent.failed" ? "failed" : "completed",
+          background: payload.background === true,
+        });
+      } else if (kind === "sub-agent.progress") {
+        emit({
+          type: "subagent_progress",
+          ...base,
+          event_type:
+            typeof payload.event_type === "string"
+              ? payload.event_type.slice(0, 96)
+              : "unknown",
+          ...(typeof payload.tool === "string" && payload.tool
+            ? { tool: payload.tool.slice(0, 128) }
+            : {}),
+          ...(Number.isFinite(payload.iteration_count)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iteration_count),
+                ),
+              }
+            : {}),
+          ...(Number.isFinite(payload.token_count)
+            ? { token_count: Math.max(0, Math.floor(payload.token_count)) }
+            : {}),
+        });
+      }
+    };
+  }
+
   const loopOptionsBase = {
     model,
     provider,
@@ -2877,9 +2946,8 @@ async function runAgentHeadlessStreamInWorkspace(
     // ask_user_question round-trip (opt-in via CC_INTERACTIVE_QUESTIONS): give
     // the tool handler an askUser that emits question_request + blocks on stdin.
     // Absent → agent-core returns user_not_reachable (graceful proceed).
-    interaction: interactiveQuestions
-      ? { askUser: interactionAskUser }
-      : undefined,
+    interaction:
+      Object.keys(streamInteraction).length > 0 ? streamInteraction : undefined,
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
@@ -4309,6 +4377,7 @@ async function runAgentHeadlessStreamInWorkspace(
           : "completed",
   );
   await streamCleanup.cleanup();
+  removeHookObserver?.();
 
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });

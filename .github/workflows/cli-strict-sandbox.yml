@@ -436,6 +436,7 @@ jobs:
           __tests__/unit/event-runtime-host.test.js
           __tests__/unit/headless-runner.test.js
           __tests__/unit/headless-stream.test.js
+          __tests__/unit/headless-hook-events.test.js
           __tests__/unit/remote-control-lib.test.js
           __tests__/unit/remote-approval-start.test.js
           __tests__/integration/remote-control-start.test.js

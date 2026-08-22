@@ -83,6 +83,7 @@ import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import {
+  addHooksV2EventObserver,
   emitHooksV2Event,
   executeHooksV2Event,
   resolvePromptExpansion,
@@ -653,6 +654,15 @@ async function runAgentHeadlessInWorkspace(
       `headless-${Date.now()}-${process.pid}`,
     );
   const sessionHostLease = deps[HEADLESS_SESSION_HOST_LEASE] || null;
+  const includeHookEvents = isStream && options.includeHookEvents === true;
+  const pendingHookEvents = [];
+  let writeHookEvent = null;
+  const removeHookObserver = includeHookEvents
+    ? addHooksV2EventObserver(sessionId, (event) => {
+        if (writeHookEvent) writeHookEvent(event);
+        else pendingHookEvents.push(event);
+      })
+    : null;
 
   const emitHeadlessError = (resultMsg) => {
     if (isStream) {
@@ -707,6 +717,7 @@ async function runAgentHeadlessInWorkspace(
       "fully verified; resume/write admission was refused";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
+    removeHookObserver?.();
     return {
       exitCode: 1,
       result: message,
@@ -723,6 +734,7 @@ async function runAgentHeadlessInWorkspace(
       "CC_OBSERVABILITY_SCOPE_IMMUTABLE: an existing session scope cannot be overwritten; create a new scoped session";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
+    removeHookObserver?.();
     return {
       exitCode: 1,
       result: message,
@@ -978,6 +990,7 @@ async function runAgentHeadlessInWorkspace(
           : "CC_OBSERVABILITY_SCOPE_AUTHORITY_UNAVAILABLE: existing session authority could not be excluded";
       emitHeadlessError(message);
       writeErr(`${message}\n`);
+      removeHookObserver?.();
       return { exitCode: 1, result: message, isError: true };
     }
   }
@@ -2168,6 +2181,113 @@ async function runAgentHeadlessInWorkspace(
     }
   };
 
+  // Subagent internals may contain prompts and tool results.  The public
+  // stream exposes only stable lifecycle/progress metadata, and only with the
+  // explicit --include-hook-events opt-in.
+  const headlessInteraction = {};
+  if (includeHookEvents) {
+    headlessInteraction.emit = (kind, payload = {}) => {
+      const subAgentId =
+        typeof payload.subAgentId === "string" && payload.subAgentId.trim()
+          ? payload.subAgentId.slice(0, 160)
+          : null;
+      if (!subAgentId) return;
+      const parentId =
+        typeof payload.parentSessionId === "string" &&
+        payload.parentSessionId.trim()
+          ? payload.parentSessionId.slice(0, 160)
+          : sessionId;
+      const base = {
+        schema_version: 1,
+        subagent_id: subAgentId,
+        parent_id: parentId,
+        ...(typeof payload.role === "string" && payload.role.trim()
+          ? { role: payload.role.trim().slice(0, 96) }
+          : {}),
+      };
+      if (kind === "sub-agent.started") {
+        emitStream({
+          type: "subagent_started",
+          ...base,
+          background: payload.background === true,
+          ...(Number.isFinite(payload.maxIterations)
+            ? { max_iterations: Math.max(0, Math.floor(payload.maxIterations)) }
+            : {}),
+        });
+      } else if (
+        kind === "sub-agent.completed" ||
+        kind === "sub-agent.failed"
+      ) {
+        emitStream({
+          type: "subagent_completed",
+          ...base,
+          status: kind === "sub-agent.failed" ? "failed" : "completed",
+          background: payload.background === true,
+          ...(Number.isFinite(payload.iterationCount)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iterationCount),
+                ),
+              }
+            : {}),
+        });
+      } else if (kind === "sub-agent.progress") {
+        emitStream({
+          type: "subagent_progress",
+          ...base,
+          event_type:
+            typeof payload.event_type === "string"
+              ? payload.event_type.slice(0, 96)
+              : "unknown",
+          ...(typeof payload.tool === "string" && payload.tool
+            ? { tool: payload.tool.slice(0, 128) }
+            : {}),
+          ...(Number.isFinite(payload.iteration_count)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iteration_count),
+                ),
+              }
+            : {}),
+          ...(Number.isFinite(payload.token_count)
+            ? { token_count: Math.max(0, Math.floor(payload.token_count)) }
+            : {}),
+        });
+      }
+    };
+  }
+  if (_bgPhase.enabled) {
+    headlessInteraction.askUser = async ({
+      question,
+      options: qOptions,
+      multiSelect,
+      timeoutMs,
+      defaultValue,
+      toolUseId,
+      turnId,
+      policyDigest,
+    } = {}) => {
+      _bgPhase.reportQuestion({
+        question: typeof question === "string" ? question : "",
+        options: Array.isArray(qOptions) ? qOptions : null,
+      });
+      return _backgroundInteraction.request({
+        kind: "question",
+        question,
+        options: qOptions,
+        multiSelect,
+        timeoutMs,
+        defaultValue,
+        toolUseId,
+        turnId,
+        policyDigest: policyDigest || _backgroundPolicyDigest,
+        sessionId,
+      });
+    };
+  }
+
   const childToolExecs = new Map();
   const loopOptions = {
     model,
@@ -2224,42 +2344,8 @@ async function runAgentHeadlessInWorkspace(
     hermeticExecution,
     iterationBudget: budget,
     toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
-    // `ask_user_question` in a BACKGROUND turn child: send a bound request to
-    // the worker over Node IPC and await the answer here. `executeTool` remains
-    // suspended, so the model continues the SAME turn/tool call after the user
-    // answers instead of receiving the answer as a follow-up turn.
-    ...(_bgPhase.enabled
-      ? {
-          interaction: {
-            askUser: async ({
-              question,
-              options: qOptions,
-              multiSelect,
-              timeoutMs,
-              defaultValue,
-              toolUseId,
-              turnId,
-              policyDigest,
-            } = {}) => {
-              _bgPhase.reportQuestion({
-                question: typeof question === "string" ? question : "",
-                options: Array.isArray(qOptions) ? qOptions : null,
-              });
-              return _backgroundInteraction.request({
-                kind: "question",
-                question,
-                options: qOptions,
-                multiSelect,
-                timeoutMs,
-                defaultValue,
-                toolUseId,
-                turnId,
-                policyDigest: policyDigest || _backgroundPolicyDigest,
-                sessionId,
-              });
-            },
-          },
-        }
+    ...(Object.keys(headlessInteraction).length > 0
+      ? { interaction: headlessInteraction }
       : {}),
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
@@ -2464,6 +2550,7 @@ async function runAgentHeadlessInWorkspace(
   const emitStream = (obj) => {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
   };
+  writeHookEvent = (event) => emitStream(event);
 
   // --include-partial-messages: forward live assistant-text deltas as
   // `stream_event` NDJSON lines (Claude-Code parity). Only meaningful for
@@ -2515,6 +2602,10 @@ async function runAgentHeadlessInWorkspace(
     additional_directories: additionalDirectories,
     goal_id: boundGoalId,
   });
+  // Setup/prompt-expansion hooks can run before the stream manifest is ready.
+  // Keep the protocol ordered by emitting their queued projection immediately
+  // after `system:init`, never before it.
+  for (const event of pendingHookEvents.splice(0)) writeHookEvent(event);
 
   // --auto-rewake: after a turn finishes, run the async Stop hooks and, if an
   // `asyncRewake` check FAILED, append its report as a new user turn and re-run
@@ -3469,6 +3560,7 @@ async function runAgentHeadlessInWorkspace(
         }
       }
     });
+    removeHookObserver?.();
     const cleanupReport = cleanupDeadline.report();
     try {
       deps.onCleanupReport?.(cleanupReport);
