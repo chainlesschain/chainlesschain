@@ -909,6 +909,15 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
     "target lifecycle preflight",
   );
   const lifecycle = profile.lifecycle;
+  const reportedEnforcement = receipt.resources?.enforcement;
+  const expectedEnforcement =
+    profile.target === "local"
+      ? "target-supervisor"
+      : profile.target === "wsl" &&
+          (reportedEnforcement === "posix-rlimit" ||
+            reportedEnforcement === "target-supervisor")
+        ? reportedEnforcement
+        : "posix-rlimit";
   const material = {
     schema: "cc-execution-location-target-preflight/v1",
     runnerId: lifecycle.runnerId,
@@ -938,8 +947,7 @@ function preflightExecutionLocationTarget(profile, deps = {}) {
       observedCpuSeconds: Number(receipt.resources?.observedCpuSeconds),
       observedMemoryBytes: Number(receipt.resources?.observedMemoryBytes),
       targetEnforced: true,
-      enforcement:
-        profile.target === "local" ? "target-supervisor" : "posix-rlimit",
+      enforcement: expectedEnforcement,
     },
     postSessionHook: {
       digest: lifecycle.postSessionHook.digest,
@@ -1113,6 +1121,7 @@ export function probeExecutionLocationTargetSigtermDrain(
     lease: {
       id: lifecycle.lease.id,
       generation: lifecycle.lease.generation,
+      expiresAt: lifecycle.lease.expiresAt,
       continued: true,
     },
     preflightReceiptDigest: preflight.receiptDigest,

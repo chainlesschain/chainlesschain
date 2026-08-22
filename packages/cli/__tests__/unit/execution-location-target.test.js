@@ -18,6 +18,7 @@ import {
   EXECUTION_LOCATION_PROFILE_SCHEMA_V2,
   attestExecutionLocationTarget,
   normalizeExecutionLocationProfile,
+  probeExecutionLocationTargetPreflight,
   probeExecutionLocationTargetResourceLimit,
   probeExecutionLocationTargetSigtermDrain,
   readExecutionLocationProfile,
@@ -126,7 +127,7 @@ function rawLifecycleProfile(overrides = {}) {
   });
 }
 
-function preflightReceipt(profile) {
+function preflightReceipt(profile, enforcement) {
   const lifecycle = profile.lifecycle;
   const digest = (domain, value) =>
     `sha256:${createHash("sha256")
@@ -160,10 +161,14 @@ function preflightReceipt(profile) {
       cpuSeconds: lifecycle.resources.cpuSeconds,
       memoryBytes: lifecycle.resources.memoryBytes,
       observedCpuSeconds: lifecycle.resources.cpuSeconds,
-      observedMemoryBytes: lifecycle.resources.memoryBytes,
+      observedMemoryBytes:
+        enforcement === "target-supervisor"
+          ? 256 * 1024 * 1024
+          : lifecycle.resources.memoryBytes,
       targetEnforced: true,
       enforcement:
-        profile.target === "local" ? "target-supervisor" : "posix-rlimit",
+        enforcement ||
+        (profile.target === "local" ? "target-supervisor" : "posix-rlimit"),
     },
     postSessionHook: { ...lifecycle.postSessionHook },
     secretTransferCount: 0,
@@ -196,6 +201,7 @@ function sigtermReceipt(profile) {
     lease: {
       id: profile.lifecycle.lease.id,
       generation: profile.lifecycle.lease.generation,
+      expiresAt: profile.lifecycle.lease.expiresAt,
       continued: true,
     },
     preflightReceiptDigest: preflight.receiptDigest,
@@ -457,6 +463,38 @@ describe("execution location target launch and resume", () => {
     expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
       "2026-08-18T08:00:00.000Z",
     );
+  });
+
+  it("accepts an explicitly supervised WSL1 target without weakening other transports", () => {
+    const profile = rawLifecycleProfile({
+      id: "wsl-profile-1",
+      target: "wsl",
+      evidenceId: "wsl-evidence-1",
+      transport: { distro: "Ubuntu-24.04" },
+    });
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(
+        success(JSON.stringify(preflightReceipt(profile, "target-supervisor"))),
+      );
+
+    expect(
+      probeExecutionLocationTargetPreflight(
+        { profile },
+        {
+          platform: "win32",
+          spawnSync,
+          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      ),
+    ).toMatchObject({
+      resources: {
+        enforcement: "target-supervisor",
+        observedMemoryBytes: 256 * 1024 * 1024,
+        targetEnforced: true,
+      },
+    });
   });
 
   it("rejects an expired v2 proxy authority before spawning a target", () => {

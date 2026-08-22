@@ -529,5 +529,7 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(wrapper).toContain(
       '"$CC_IDE_TARGET_NODE" "$CC_IDE_TARGET_ENTRY" "$@"',
     );
+    expect(wrapper).toContain("execution-location-local-supervisor.mjs");
+    expect(wrapper).toContain("/proc/sys/kernel/osrelease");
   });
 });

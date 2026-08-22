@@ -55,6 +55,10 @@ async function main() {
       : null;
   const resume =
     options.command[0] === "session" && options.command[1] === "resume";
+  const forwardsInput =
+    options.command[0] === "session" &&
+    options.command[1] === "location" &&
+    options.command[2] === "prepare";
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
   const childEnvironment = {
     ...process.env,
@@ -75,12 +79,13 @@ async function main() {
       cwd: options.cwd,
       env: childEnvironment,
       shell: false,
-      stdio: [resume ? "pipe" : "inherit", "pipe", "inherit"],
+      stdio: [resume || forwardsInput ? "pipe" : "ignore", "pipe", "inherit"],
       windowsHide: true,
     },
   );
 
   if (resume) child.stdin.end("/exit\n", "utf8");
+  else if (forwardsInput) process.stdin.pipe(child.stdin);
   let outputPrefix = "";
   let cpuLimitReached = false;
   let cpuTimer = null;
