@@ -135,10 +135,10 @@ function sessionScale(mode = "formal", os = "linux") {
         peakRssMb: 48,
         maxIoBytesRead: 65_536,
         coldProcess: {
-          samples: Array.from(
-            { length: parameters.coldResumeSamples },
-            () => ({ wallMs: 90, peakRssMb: 52 }),
-          ),
+          samples: Array.from({ length: parameters.coldResumeSamples }, () => ({
+            wallMs: 90,
+            peakRssMb: 52,
+          })),
           sampleCount: parameters.coldResumeSamples,
           p95Ms: 90,
           peakRssMb: 52,
@@ -539,6 +539,7 @@ describe("SESSION-RUNTIME canonical evidence", () => {
     const dependencies = {
       currentHead: () => HEAD_SHA,
       producerState: { exact: true, producerDigests: PRODUCER_DIGESTS },
+      currentEnvironment: {},
     };
     const aggregate = verifyEvidenceSet(
       {
@@ -570,7 +571,10 @@ describe("SESSION-RUNTIME canonical evidence", () => {
     );
     const summaryDrift = JSON.parse(readFileSync(linuxFragmentPath, "utf8"));
     summaryDrift.measurements.sessionScale.listP95Ms = 13;
-    writeFileSync(linuxFragmentPath, `${JSON.stringify(summaryDrift, null, 2)}\n`);
+    writeFileSync(
+      linuxFragmentPath,
+      `${JSON.stringify(summaryDrift, null, 2)}\n`,
+    );
     expect(() =>
       verifyEvidenceSet(
         {
@@ -582,7 +586,10 @@ describe("SESSION-RUNTIME canonical evidence", () => {
       ),
     ).toThrow();
     summaryDrift.measurements.sessionScale.listP95Ms = 12;
-    writeFileSync(linuxFragmentPath, `${JSON.stringify(summaryDrift, null, 2)}\n`);
+    writeFileSync(
+      linuxFragmentPath,
+      `${JSON.stringify(summaryDrift, null, 2)}\n`,
+    );
 
     writeFileSync(
       join(

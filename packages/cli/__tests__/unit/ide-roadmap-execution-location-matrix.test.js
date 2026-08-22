@@ -529,5 +529,21 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(wrapper).toContain(
       '"$CC_IDE_TARGET_NODE" "$CC_IDE_TARGET_ENTRY" "$@"',
     );
+    expect(wrapper).toContain("execution-location-local-supervisor.mjs");
+    expect(wrapper).toContain('ulimit -t "$CC_EXECUTION_LOCATION_CPU_SECONDS"');
+    expect(wrapper).not.toContain("ulimit -v");
+    const supervisor = fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "../../src/lib/execution-location-local-supervisor.mjs",
+      ),
+      "utf8",
+    );
+    expect(supervisor).toContain(
+      'const CPU_LIMIT_SIGNALS = new Set(["SIGKILL", "SIGXCPU"]);',
+    );
+    expect(supervisor).toContain(
+      "cpuLimitReached || CPU_LIMIT_SIGNALS.has(result.signal)",
+    );
   });
 });

@@ -2,10 +2,14 @@
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
 const MEBIBYTE = 1024 * 1024;
 const MAX_CAPTURED_MARKER_BYTES = 256;
+const MAX_STDIN_BYTES = 64 * 1024 * 1024;
+const CPU_LIMIT_SIGNALS = new Set(["SIGKILL", "SIGXCPU"]);
 
 function parseArguments(argv) {
   const separator = argv.indexOf("--");
@@ -55,6 +59,40 @@ async function main() {
       : null;
   const resume =
     options.command[0] === "session" && options.command[1] === "resume";
+  const forwardsInput =
+    options.command[0] === "session" &&
+    options.command[1] === "location" &&
+    options.command[2] === "prepare";
+  if (options.stdinFile) {
+    assert.ok(
+      forwardsInput && path.isAbsolute(options.stdinFile),
+      "local target stdin file is invalid",
+    );
+  }
+  let inputDescriptor = null;
+  if (options.stdinFile) {
+    const requested = fs.lstatSync(options.stdinFile);
+    assert.ok(
+      requested.isFile() &&
+        !requested.isSymbolicLink() &&
+        requested.size > 0 &&
+        requested.size <= MAX_STDIN_BYTES,
+      "local target stdin file is invalid",
+    );
+    inputDescriptor = fs.openSync(
+      options.stdinFile,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+    );
+    const opened = fs.fstatSync(inputDescriptor);
+    assert.ok(
+      opened.isFile() &&
+        opened.size === requested.size &&
+        opened.dev === requested.dev &&
+        opened.ino === requested.ino &&
+        opened.nlink === 1,
+      "local target stdin file changed while opening",
+    );
+  }
   const heapMebibytes = boundedHeapMebibytes(options.memoryBytes);
   const childEnvironment = {
     ...process.env,
@@ -64,21 +102,36 @@ async function main() {
     ),
     CC_EXECUTION_LOCATION_RESOURCE_ENFORCEMENT: "target-supervisor",
   };
-  const child = spawn(
-    process.execPath,
-    [
-      `--max-old-space-size=${heapMebibytes}`,
-      options.entry,
-      ...options.command,
-    ],
-    {
-      cwd: options.cwd,
-      env: childEnvironment,
-      shell: false,
-      stdio: [resume ? "pipe" : "inherit", "pipe", "inherit"],
-      windowsHide: true,
-    },
-  );
+  let child;
+  try {
+    child = spawn(
+      process.execPath,
+      [
+        `--max-old-space-size=${heapMebibytes}`,
+        options.entry,
+        ...options.command,
+      ],
+      {
+        cwd: options.cwd,
+        env: childEnvironment,
+        shell: false,
+        stdio: [
+          resume
+            ? "pipe"
+            : inputDescriptor !== null
+              ? inputDescriptor
+              : forwardsInput
+                ? "inherit"
+                : "ignore",
+          "pipe",
+          "inherit",
+        ],
+        windowsHide: true,
+      },
+    );
+  } finally {
+    if (inputDescriptor !== null) fs.closeSync(inputDescriptor);
+  }
 
   if (resume) child.stdin.end("/exit\n", "utf8");
   let outputPrefix = "";
@@ -124,7 +177,11 @@ async function main() {
     : null;
   const armed =
     expectedMarker !== null && outputPrefix.includes(expectedMarker);
-  if (resourceKind === "cpu" && cpuLimitReached && armed) {
+  if (
+    resourceKind === "cpu" &&
+    armed &&
+    (cpuLimitReached || CPU_LIMIT_SIGNALS.has(result.signal))
+  ) {
     process.exitCode = 152;
   } else if (
     resourceKind === "memory" &&

@@ -42,6 +42,15 @@
       "reason": "Owner-only Windows storage must be established below paths/config and therefore cannot import the broker without a bootstrap cycle; the boundary invokes only a fixed PowerShell ACL program, disables profiles and interactivity, hides the window, bounds runtime, and passes single targets as literal argv or batches as UTF-8 JSON over stdin.",
       "owner": "cli-security",
       "reviewedAt": "2026-08-01"
+    },
+    {
+      "id": "execution-location-target-supervisor-boundary",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/execution-location-local-supervisor.mjs",
+      "match": "child = spawn\\(",
+      "reason": "The supervisor is the target-side resource boundary reached through the brokered execution-location launcher or its fixed remote wrapper; it launches only process.execPath with a validated entry, cwd, resource limits, and literal argv, so routing recursively through the source broker would cross the attested target boundary.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-08-22"
     }
   ]
 }

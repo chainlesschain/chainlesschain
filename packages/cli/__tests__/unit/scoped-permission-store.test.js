@@ -166,9 +166,12 @@ describe("ScopedPermissionStore", () => {
 
     const outerState = outer.list();
     const innerState = inner.list();
+    const canonicalNested = fs.realpathSync.native(nested);
     expect(innerState.workspace).not.toEqual(outerState.workspace);
     expect(innerState.workspace.root).toBe(
-      process.platform === "win32" ? nested.toLowerCase() : nested,
+      process.platform === "win32"
+        ? canonicalNested.toLowerCase()
+        : canonicalNested,
     );
     expect(innerState.rules).toEqual([]);
     expect(outerState.rules).toHaveLength(1);

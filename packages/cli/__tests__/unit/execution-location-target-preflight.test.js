@@ -23,8 +23,8 @@ function fixture(overrides = {}) {
     limitsPath,
     [
       "Limit                     Soft Limit           Hard Limit           Units",
-      "Max cpu time              120                  120                  seconds",
-      "Max address space         2147483648           2147483648           bytes",
+      "Max cpu time              120                  120                  seconds   ",
+      "Max address space         2147483648           2147483648           bytes     ",
       "",
     ].join("\n"),
     "utf8",

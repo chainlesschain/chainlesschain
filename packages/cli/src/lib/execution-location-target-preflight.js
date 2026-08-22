@@ -37,7 +37,7 @@ function digest(domain, value) {
 function parseLimit(limits, label, unit) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   const match = limits.match(
-    new RegExp(`^${escaped}\\s+(\\S+)\\s+(\\S+)\\s+${unit}$`, "mu"),
+    new RegExp(`^${escaped}\\s+(\\S+)\\s+(\\S+)\\s+${unit}[ \\t]*$`, "mu"),
   );
   if (!match || match[1] === "unlimited") return null;
   const value = Number(match[1]);
