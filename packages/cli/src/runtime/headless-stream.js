@@ -66,6 +66,7 @@ import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
+  readHeadlessMcpConfigErrors,
 } from "./mcp-config.js";
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import {
@@ -2489,6 +2490,20 @@ async function runAgentHeadlessStreamInWorkspace(
   let sanitizeRolesNextTurn =
     resumedMessages > 0 && messages[messages.length - 1]?.role === "user";
 
+  // `system:init` intentionally precedes MCP connection so stream consumers
+  // receive their manifest promptly. Validation itself is local and side-effect
+  // free, so preflight just its bounded, redacted projection here; the normal
+  // resolver below remains authoritative for parsing and connection.
+  let initialMcpServerErrors = [];
+  if (options.mcpConfig) {
+    try {
+      initialMcpServerErrors = readHeadlessMcpConfigErrors(options.mcpConfig);
+    } catch {
+      // The normal resolver reports unreadable/malformed files as its existing
+      // config error result. Never place filesystem/parser details in init.
+    }
+  }
+
   emit({
     type: "system",
     subtype: "init",
@@ -2517,6 +2532,9 @@ async function runAgentHeadlessStreamInWorkspace(
       mcp: Boolean(options.mcpConfig) || options.useRegisteredMcp !== false,
       enabledToolNames,
     }),
+    ...(initialMcpServerErrors.length > 0
+      ? { mcp_server_errors: initialMcpServerErrors }
+      : {}),
     slash_commands: [...SESSION_SLASH_COMMANDS],
     input_format: "stream-json",
     additional_directories: additionalDirectories,
@@ -2596,6 +2614,7 @@ async function runAgentHeadlessStreamInWorkspace(
         },
         {
           writeErr,
+          mcpConfigWarnings: false,
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
           loadIdeMcp: deps.loadIdeMcp,

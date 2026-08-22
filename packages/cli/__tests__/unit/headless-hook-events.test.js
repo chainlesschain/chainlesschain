@@ -24,6 +24,7 @@ vi.mock("../../src/lib/hooks-v2-runtime.js", () => ({
 import { emitHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import { loadMcpConfig } from "../../src/runtime/mcp-config.js";
 
 function makeDeps(lines, agentLoop) {
   return {
@@ -273,5 +274,77 @@ describe("headless hook and subagent event projection", () => {
     }));
     expect(JSON.stringify(events)).not.toContain("/private/stream-workspace");
     expect(JSON.stringify(events)).not.toContain("top-secret");
+  });
+});
+
+describe("headless MCP config-error projection", () => {
+  it("keeps skipped --mcp-config errors structured, bounded, and out of transport setup", async () => {
+    const warnings = [];
+    const result = await loadMcpConfig("mcp.json", {
+      readFile: () =>
+        JSON.stringify({
+          mcpServers: {
+            unknown: { type: "grpc", url: "https://secret.example.test" },
+            incomplete: { type: "stdio" },
+          },
+        }),
+      writeErr: (line) => warnings.push(line),
+    });
+
+    expect(result.mcpServerErrors).toEqual([
+      {
+        name: "unknown",
+        type: "unknown_type",
+        message: "MCP server transport type is not supported.",
+      },
+      {
+        name: "incomplete",
+        type: "invalid_config",
+        message: "Stdio MCP server configuration requires a command.",
+      },
+    ]);
+    expect(warnings.join("")).toContain(
+      "Warning: 2 MCP servers skipped due to invalid config:",
+    );
+    expect(JSON.stringify(result.mcpServerErrors)).not.toContain("secret");
+    await result.mcpClient.disconnectAll();
+  });
+
+  it("adds non-empty mcp_server_errors only to the stream-json init event", async () => {
+    const lines = [];
+    const result = await runAgentHeadless(
+      { prompt: "report setup", outputFormat: "stream-json", ephemeral: true },
+      {
+        ...makeDeps(lines, async function* () {
+          yield { type: "response-complete", content: "done" };
+          yield { type: "run-ended", reason: "complete" };
+        }),
+        resolveAgentMcp: async () => ({
+          mcpServerErrors: [
+            {
+              name: "invalid",
+              type: "invalid_config",
+              message: "MCP server configuration is invalid.",
+            },
+          ],
+          connected: [],
+          extraToolDefinitions: [],
+          externalToolExecutors: {},
+          externalToolDescriptors: {},
+        }),
+      },
+    );
+
+    expect(result).toMatchObject({ exitCode: 0, isError: false });
+    const init = parseNdjson(lines).find(
+      (event) => event.type === "system" && event.subtype === "init",
+    );
+    expect(init.mcp_server_errors).toEqual([
+      {
+        name: "invalid",
+        type: "invalid_config",
+        message: "MCP server configuration is invalid.",
+      },
+    ]);
   });
 });

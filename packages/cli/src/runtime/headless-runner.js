@@ -1860,6 +1860,10 @@ async function runAgentHeadlessInWorkspace(
         },
         {
           writeErr,
+          // `mcp_server_errors` carries skipped config entries for machine
+          // consumers. Text-mode terminal runs additionally receive the short
+          // human warning; JSON/NDJSON keep stderr quiet for stable parsing.
+          mcpConfigWarnings: isText,
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
           loadIdeMcp: deps.loadIdeMcp,
@@ -2593,6 +2597,9 @@ async function runAgentHeadlessInWorkspace(
       mcp: Boolean(mcp),
       enabledToolNames,
     }),
+    ...(Array.isArray(mcp?.mcpServerErrors) && mcp.mcpServerErrors.length > 0
+      ? { mcp_server_errors: mcp.mcpServerErrors }
+      : {}),
     // True isolation level for tool subprocesses: os-sandbox (bwrap) /
     // container (docker) / policy-only (no sandbox — rules are pre-execution).
     isolation_level: isolationLevel(options.sandbox),

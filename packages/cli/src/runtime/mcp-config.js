@@ -139,6 +139,189 @@ function headersHelperField(value) {
     : {};
 }
 
+const MCP_CONFIG_ERROR_TYPES = new Set([
+  "invalid_config",
+  "invalid_name",
+  "unknown_type",
+  "url_missing_type",
+  "reserved_name",
+]);
+
+const MCP_CONFIG_TRANSPORT_TYPES = new Set([
+  "stdio",
+  "http",
+  "https",
+  "sse",
+  "ws",
+  "wss",
+]);
+
+function mcpConfigError(name, type, message) {
+  return {
+    // The entry name is intentionally retained: callers need to associate a
+    // skipped config with the declaration that supplied it. Keep its size
+    // bounded, while all other fields are fixed host-owned strings.
+    name: String(name || "<unnamed>").slice(0, 256),
+    type: MCP_CONFIG_ERROR_TYPES.has(type) ? type : "invalid_config",
+    message,
+  };
+}
+
+function mcpConfigEntries(raw) {
+  const block =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw.mcpServers || raw.servers || raw
+      : null;
+  return block && typeof block === "object" && !Array.isArray(block)
+    ? Object.entries(block)
+    : [];
+}
+
+function mcpConfigEntryError(name, config) {
+  if (!name || typeof name !== "string" || name.trim().length === 0) {
+    return mcpConfigError(
+      name,
+      "invalid_name",
+      "MCP server name must be a non-empty string.",
+    );
+  }
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return mcpConfigError(
+      name,
+      "invalid_config",
+      "MCP server configuration must be an object.",
+    );
+  }
+
+  const configuredType =
+    typeof config.type === "string" && config.type.trim()
+      ? config.type.trim().toLowerCase()
+      : typeof config.transport === "string" && config.transport.trim()
+        ? config.transport.trim().toLowerCase()
+        : null;
+  if (configuredType && !MCP_CONFIG_TRANSPORT_TYPES.has(configuredType)) {
+    return mcpConfigError(
+      name,
+      "unknown_type",
+      "MCP server transport type is not supported.",
+    );
+  }
+
+  const hasCommand =
+    typeof config.command === "string" && config.command.trim().length > 0;
+  const hasUrl = typeof config.url === "string" && config.url.trim().length > 0;
+  if (hasCommand && hasUrl) {
+    return mcpConfigError(
+      name,
+      "invalid_config",
+      "MCP server configuration must specify one transport endpoint.",
+    );
+  }
+  if (
+    configuredType === "stdio" &&
+    !hasCommand &&
+    config.disabled !== true &&
+    config.enabled !== false
+  ) {
+    return mcpConfigError(
+      name,
+      "invalid_config",
+      "Stdio MCP server configuration requires a command.",
+    );
+  }
+  if (
+    configuredType &&
+    configuredType !== "stdio" &&
+    !hasUrl &&
+    config.disabled !== true &&
+    config.enabled !== false
+  ) {
+    return mcpConfigError(
+      name,
+      "invalid_config",
+      "Remote MCP server configuration requires a URL.",
+    );
+  }
+  if (
+    !hasCommand &&
+    !hasUrl &&
+    config.disabled !== true &&
+    config.enabled !== false
+  ) {
+    return mcpConfigError(
+      name,
+      "invalid_config",
+      "MCP server configuration requires a command or URL.",
+    );
+  }
+  return null;
+}
+
+/**
+ * Validate one explicit `--mcp-config` document without connecting to any
+ * server. Invalid entries are independently skipped; the fixed diagnostic
+ * shape is safe to expose in headless `system:init` output.
+ *
+ * This intentionally retains ChainlessChain's legacy URL inference when no
+ * `type`/`transport` is given. Explicit, unknown transport types are rejected
+ * before any DNS, process spawn, or transport construction.
+ */
+export function parseHeadlessMcpConfig(raw) {
+  const servers = {};
+  const errors = [];
+  for (const [name, config] of mcpConfigEntries(raw)) {
+    const entryError = mcpConfigEntryError(name, config);
+    if (entryError) {
+      errors.push(entryError);
+      continue;
+    }
+    try {
+      // Claude-style config calls the field `type`; the established cc shape
+      // calls it `transport`. Preserve an explicit transport when both exist.
+      const normalizedConfig =
+        config.transport == null && typeof config.type === "string"
+          ? { ...config, transport: config.type }
+          : config;
+      const parsed = parseMcpServers({
+        mcpServers: { [name]: normalizedConfig },
+      });
+      if (!parsed[name]) {
+        errors.push(
+          mcpConfigError(
+            name,
+            "invalid_config",
+            "MCP server configuration is invalid.",
+          ),
+        );
+        continue;
+      }
+      servers[name] = parsed[name];
+    } catch (error) {
+      if (error?.code === MCP_SANDBOX_POLICY_INVALID_CODE) {
+        throw error;
+      }
+      // Non-authority config parsers can still reject malformed nested values.
+      // Do not reflect their raw message into NDJSON because it may contain a
+      // filesystem path or user-supplied secret.
+      errors.push(
+        mcpConfigError(
+          name,
+          "invalid_config",
+          "MCP server configuration is invalid.",
+        ),
+      );
+    }
+  }
+  return { servers, errors };
+}
+
+/** Read just the safe validation projection for a `--mcp-config` file. */
+export function readHeadlessMcpConfigErrors(filePath, deps = {}) {
+  const readFile = deps.readFile || ((p) => fs.readFileSync(p, "utf-8"));
+  const raw = JSON.parse(readFile(filePath));
+  return parseHeadlessMcpConfig(raw).errors;
+}
+
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
  * Accepts the Claude-Code shape `{ "mcpServers": { ... } }`, the bundle shape
@@ -399,6 +582,29 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     result.resourceTemplates = [];
   }
   if (!Array.isArray(result.prompts)) result.prompts = [];
+  if (!Array.isArray(result.mcpServerErrors)) {
+    result.mcpServerErrors = [];
+  }
+  if (Array.isArray(deps.mcpServerErrors)) {
+    for (const error of deps.mcpServerErrors) {
+      if (!error || typeof error !== "object") continue;
+      const normalized = mcpConfigError(
+        error.name,
+        error.type,
+        error.message || "MCP server configuration is invalid.",
+      );
+      if (
+        !result.mcpServerErrors.some(
+          (current) =>
+            current.name === normalized.name &&
+            current.type === normalized.type &&
+            current.message === normalized.message,
+        )
+      ) {
+        result.mcpServerErrors.push(normalized);
+      }
+    }
+  }
   // Per-server usage instructions from the MCP initialize response (surfaced
   // by tool search; absent for servers that send none).
   if (
@@ -805,11 +1011,19 @@ export async function loadMcpConfig(filePath, deps = {}) {
       `--mcp-config: cannot read/parse "${filePath}": ${err.message}`,
     );
   }
-  const servers = parseMcpServers(raw);
-  if (Object.keys(servers).length === 0) {
+  const { servers, errors } = parseHeadlessMcpConfig(raw);
+  if (Object.keys(servers).length === 0 && errors.length === 0) {
     throw new Error(
       `--mcp-config: no servers found in "${filePath}" ` +
         `(expected {"mcpServers": {"name": {"command": "..."}}}).`,
+    );
+  }
+  if (errors.length > 0 && deps.mcpConfigWarnings !== false) {
+    const count = errors.length;
+    const noun = count === 1 ? "server" : "servers";
+    deps.writeErr?.(
+      `Warning: ${count} MCP ${noun} skipped due to invalid config:\n` +
+        errors.map((error) => `  ${error.name}: ${error.message}\n`).join(""),
     );
   }
   authorizeStdioServers(
@@ -818,7 +1032,10 @@ export async function loadMcpConfig(filePath, deps = {}) {
     () => path.resolve(filePath),
     { failFast: true },
   );
-  return setupMcpFromConfig(servers, deps);
+  return setupMcpFromConfig(servers, {
+    ...deps,
+    mcpServerErrors: errors,
+  });
 }
 
 /**
