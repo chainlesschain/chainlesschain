@@ -2877,6 +2877,14 @@ async function runAgentHeadlessStreamInWorkspace(
           ...base,
           status: kind === "sub-agent.failed" ? "failed" : "completed",
           background: payload.background === true,
+          ...(Number.isFinite(payload.iterationCount)
+            ? {
+                iteration_count: Math.max(
+                  0,
+                  Math.floor(payload.iterationCount),
+                ),
+              }
+            : {}),
         });
       } else if (kind === "sub-agent.progress") {
         emit({

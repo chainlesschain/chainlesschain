@@ -199,6 +199,13 @@ P0-3 只有在 CI 具备真实阻断环境时计入本期完成；跨会话完�
 | P0-2 插件 canonical identity/managed policy                                         | 本地实现与对抗回归完成；已闭合 authority/ref/path/registry 间接源、零 I/O gate、redirect、错误脱敏及 Windows ambient TEMP 8.3 canonical identity 边界 | `cf50236b9c`、`79e565930e`；精确门禁集 167/167，跨 workflow/制品回归 211/211；独立终审无阻断                              | 仍须在同一精确提交上通过 CLI CI、CLI Strict Sandbox 与供应链 Actions                    |
 | P0-3 真实选择性 egress、生产 relay、Runner host/control plane、跨机器消息与企业网关 | 维持下一期/需外部条件结论                                                                                                                             | —                                                                                                                         | 需要具备相应 runner、控制面、账号或真实网络环境后再验收                                 |
 
+### 13.1 2026-08-22 后续本地收口（待新精确 SHA 验证）
+
+| 工作包 | 当前本地结论 | 追加验证 | 仍需的发布门禁 |
+| --- | --- | --- | --- |
+| P1-3 Headless hook/subagent 事件 | 新增仅限 `stream-json` 的 `--include-hook-events`；普通 headless 与 stream-input 均输出带 `schema_version`、`parent_id` 的 `hook_started` / `hook_progress` / `hook_response` 与 subagent lifecycle/progress。投影不包含 hook 命令、输出、错误、cwd 或用户内容；默认关闭保持原有 NDJSON。 | `packages/cli/__tests__/unit/headless-hook-events.test.js` 覆盖普通与 stream-input、默认关闭、事件顺序、字段一致性和脱敏。 | 新提交必须在同一精确 SHA 上通过 `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、macOS 矩阵；strict job 显式运行该测试。 |
+| Vitest 4 契约运行器 | 原 `forks.maxForks` 是 Vitest 3 配置，已改为 Vitest 4 的顶层 `maxWorkers: 2`，恢复 strict-sandbox 契约套件的有界并发，避免共享资源/退出状态被过度并发放大。 | 配置导入断言 `pool=forks`、`maxWorkers=2`，并通过 focused Vitest 回归。 | 以新精确 SHA 重跑，不能使用旧 SHA 上的失败或部分绿色结果。 |
+
 PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；Actions 暴露的 VS Code 版本陈旧、Windows runner `RUNNER~1` 误判、供应链 workflow 断言漂移及 macOS 测试缓存串扰，分别由 `ea0359f60f` 与 follow-up `79e565930e` 修复。首轮 JetBrains 还在两个未触碰的 transcript/performance 断言上失败，须由 follow-up 精确 SHA 重跑确认。首轮结果仅作为失败证据，不得复用于后续 SHA。
 
 以上“本地完成”不等于已合并或可发布。CLI 发布仍以同一精确 SHA 上 `CLI CI` 和 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵为硬门禁；不得用本地结果、部分矩阵或旧提交上的绿色检查替代。
