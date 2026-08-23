@@ -18,11 +18,14 @@ import { tmpdir } from "node:os";
 const testDir = join(tmpdir(), `cc-ext-test-${Date.now()}`);
 const securityAnchorDir = `${testDir}-security-anchors`;
 
-vi.mock("../../src/lib/paths.js", () => ({
+vi.mock("../../src/lib/paths.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getHomeDir: () => testDir,
   getConfigPath: () => join(testDir, "config.json"),
   getStatePath: () => join(testDir, "state"),
   getMachineSecurityAnchorDir: () => securityAnchorDir,
+  resolveConfigDataRoot: () => ({ path: testDir, source: "chainlesschain" }),
+  getClaudeProjectStorageDir: () => null,
 }));
 
 // setFeature serializes its write via withFileLock; in this unit test the

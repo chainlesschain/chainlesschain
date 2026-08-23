@@ -28,7 +28,8 @@ function restoreEnvironment(name, value) {
 }
 
 function mockPaths() {
-  vi.doMock("../../src/lib/paths.js", () => ({
+  vi.doMock("../../src/lib/paths.js", async (importOriginal) => ({
+    ...(await importOriginal()),
     getHomeDir: () => tmpHome,
     getBinDir: () => path.join(tmpHome, "bin"),
     getConfigPath: () => path.join(tmpHome, "config.json"),
@@ -43,6 +44,11 @@ function mockPaths() {
       return p;
     },
     ensureHomeDir: () => tmpHome,
+    resolveConfigDataRoot: () => ({
+      path: tmpHome,
+      source: "chainlesschain",
+    }),
+    getClaudeProjectStorageDir: () => null,
   }));
 }
 

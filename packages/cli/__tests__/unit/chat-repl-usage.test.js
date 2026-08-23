@@ -10,13 +10,19 @@ const originalFetch = globalThis.fetch;
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cli-chat-repl-"));
   vi.resetModules();
-  vi.doMock("../../src/lib/paths.js", () => ({
+  vi.doMock("../../src/lib/paths.js", async (importOriginal) => ({
+    ...(await importOriginal()),
     getHomeDir: () => tmpHome,
     getBinDir: () => path.join(tmpHome, "bin"),
     getConfigPath: () => path.join(tmpHome, "config.json"),
     getStatePath: () => path.join(tmpHome, "state"),
     getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
     getServicesDir: () => path.join(tmpHome, "services"),
+    resolveConfigDataRoot: () => ({
+      path: tmpHome,
+      source: "chainlesschain",
+    }),
+    getClaudeProjectStorageDir: () => null,
   }));
 });
 

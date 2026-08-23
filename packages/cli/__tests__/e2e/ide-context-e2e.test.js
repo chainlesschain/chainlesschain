@@ -81,7 +81,7 @@ beforeAll(async () => {
 
   // The lockfile a real editor extension would write, under the isolated HOME
   // (the spawned process resolves ~ via USERPROFILE/HOME from t.env()).
-  const lockDir = path.join(t.home, ".chainlesschain", "ide");
+  const lockDir = path.join(t.userHome, ".chainlesschain", "ide");
   fs.mkdirSync(lockDir, { recursive: true });
   fs.writeFileSync(
     path.join(lockDir, `${ideServer.port}.json`),
@@ -90,7 +90,7 @@ beforeAll(async () => {
       transport: "http",
       url: ideServer.url(),
       port: ideServer.port,
-      workspaceFolders: [t.home],
+      workspaceFolders: [t.workspace],
       token: TOKEN,
       pid: process.pid,
       started_at: Date.now(),

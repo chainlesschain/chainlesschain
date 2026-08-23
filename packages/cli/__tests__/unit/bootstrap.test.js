@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { join } from "node:path";
 
 /**
  * Unit tests for runtime/bootstrap.js
@@ -105,12 +106,12 @@ describe("bootstrap", () => {
     expect(ctx.env).toMatchObject({
       userDataPath: root,
       configDir: root,
-      dataDir: "C:\\claude-bootstrap-root\\data",
-      logsDir: "C:\\claude-bootstrap-root\\logs",
+      dataDir: join(root, "data"),
+      logsDir: join(root, "logs"),
     });
     expect(ensureHome).toHaveBeenCalledOnce();
-    expect(ensureDir).toHaveBeenCalledWith("C:\\claude-bootstrap-root\\data");
-    expect(ensureDir).toHaveBeenCalledWith("C:\\claude-bootstrap-root\\logs");
+    expect(ensureDir).toHaveBeenCalledWith(join(root, "data"));
+    expect(ensureDir).toHaveBeenCalledWith(join(root, "logs"));
     await shutdown();
   });
 

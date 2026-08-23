@@ -17,7 +17,7 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,7 +36,7 @@ function nextPort() {
 function startServer(port, runtimeRoot) {
   return spawn(process.execPath, [bin, "serve", "--port", String(port)], {
     stdio: ["pipe", "pipe", "pipe"],
-    cwd: runtimeRoot,
+    cwd: join(runtimeRoot, "workspace"),
     env: {
       ...process.env,
       FORCE_COLOR: "0",
@@ -128,6 +128,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   function startIsolatedServer(port) {
     runtimeRoot = mkdtempSync(join(tmpdir(), "cc-envelope-e2e-"));
+    mkdirSync(join(runtimeRoot, "workspace"), { recursive: true });
     return startServer(port, runtimeRoot);
   }
 

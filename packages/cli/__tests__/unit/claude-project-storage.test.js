@@ -3,11 +3,12 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 const secureFsCalls = vi.hoisted(() => ({
   privateFiles: [],
@@ -87,6 +88,10 @@ function registerTestAnchor(homeDir) {
     homeDir,
     anchorBase: process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME,
   });
+}
+
+function canonicalTestPath(target) {
+  return join(realpathSync.native(root), relative(root, target));
 }
 
 beforeEach(() => {
@@ -297,7 +302,7 @@ describe("Claude-compatible project storage", () => {
     expect(userPlan).toMatchObject({
       enabled: true,
       source: "user",
-      memoryDir: userCustom,
+      memoryDir: canonicalTestPath(userCustom),
     });
 
     const managedCustom = join(configRoot, "managed-memory");
@@ -342,7 +347,7 @@ describe("Claude-compatible project storage", () => {
       ).toMatchObject({
         enabled: true,
         source: "managed",
-        memoryDir: managedMemory,
+        memoryDir: canonicalTestPath(managedMemory),
       });
     },
   );
