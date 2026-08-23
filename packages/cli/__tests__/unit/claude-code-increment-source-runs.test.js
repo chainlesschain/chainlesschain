@@ -105,6 +105,51 @@ describe("Claude increment source-run authority", () => {
     expect(outputs).toContain("location_artifact_name=");
   });
 
+  it("ignores unbound support fragments but rejects foreign artifact claims", () => {
+    const input = fixture();
+    const accessibilityFragment = input.fragmentPaths.get(
+      "AX-TRANSCRIPT/linux",
+    );
+    const accessibility = readJson(accessibilityFragment);
+    const supportPath = path.join(
+      path.dirname(accessibilityFragment),
+      "session-runtime-retention.json",
+    );
+    const support = {
+      schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
+      commitmentId: "SESSION-RUNTIME",
+      headSha: HEAD_SHA,
+      os: "linux",
+      disposition: "advisory",
+      outcome: "passed",
+      source: {
+        workflowId: accessibility.source.workflowId,
+        runId: accessibility.source.runId,
+        jobId: accessibility.source.jobId,
+        artifactName: "session-runtime-retention.json",
+      },
+    };
+    writeJson(supportPath, support);
+
+    const result = verifySourceRuns({
+      plan: input.plan,
+      fragmentsDirectory: input.fragmentsDirectory,
+    });
+    expect(result.requiredCellCount).toBe(36);
+    expect(result.cells).toHaveLength(36);
+
+    support.source.artifactName = path.basename(
+      path.dirname(accessibilityFragment),
+    );
+    writeJson(supportPath, support);
+    expect(() =>
+      verifySourceRuns({
+        plan: input.plan,
+        fragmentsDirectory: input.fragmentsDirectory,
+      }),
+    ).toThrow(/accessibility contains unexpected SESSION-RUNTIME fragment/u);
+  });
+
   it("selects only exact current-attempt artifact IDs and rejects ambiguity", () => {
     const input = fixture();
     expect(

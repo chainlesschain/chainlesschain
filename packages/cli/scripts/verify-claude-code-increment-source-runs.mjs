@@ -712,10 +712,15 @@ export function verifySourceRuns({
       .filter(({ value }) => value?.schema === FRAGMENT_SCHEMA);
     assert.ok(fragments.length > 0, `${run.label} has no canonical fragments`);
     for (const { filePath, bytes, value } of fragments) {
-      assert.ok(
-        expected.commitments.includes(value.commitmentId),
-        `${run.label} contains unexpected ${value.commitmentId} fragment`,
-      );
+      if (!expected.commitments.includes(value.commitmentId)) {
+        const claimedArtifact = value.source?.artifactName;
+        assert.equal(
+          run.artifacts.some((artifact) => artifact.name === claimedArtifact),
+          false,
+          `${run.label} contains unexpected ${value.commitmentId} fragment`,
+        );
+        continue;
+      }
       assert.ok(
         REQUIRED_OPERATING_SYSTEMS.includes(value.os),
         `${filePath} OS`,
