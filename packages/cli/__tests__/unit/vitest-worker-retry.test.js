@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
   isRetryableVitestWorkerFailure,
+  jsonHasTestsAndNoFailures,
+  jsonOutputPath,
   junitHasTestsAndNoFailures,
   junitOutputPath,
   runVitestOnce,
@@ -17,6 +19,18 @@ const repositoryRoot = path.resolve(
 );
 const cleanJunit =
   '<?xml version="1.0"?><testsuites tests="174" failures="0" errors="0"></testsuites>';
+const cleanJson = JSON.stringify({
+  numTotalTestSuites: 3,
+  numPassedTestSuites: 2,
+  numFailedTestSuites: 0,
+  numPendingTestSuites: 1,
+  numTotalTests: 10,
+  numPassedTests: 8,
+  numFailedTests: 0,
+  numPendingTests: 1,
+  numTodoTests: 1,
+  success: true,
+});
 const workerFailure = [
   "[vitest-pool]: Worker forks emitted error.",
   "Caused by: Error: Worker exited unexpectedly",
@@ -66,6 +80,46 @@ describe("Vitest worker infrastructure retry", () => {
     expect(junitOutputPath(["run"])).toBeNull();
   });
 
+  it("recognizes a complete zero-failure JSON report without hiding incomplete results", () => {
+    expect(jsonHasTestsAndNoFailures(cleanJson)).toBe(true);
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: "JSON report written",
+        jsonReport: cleanJson,
+      }),
+    ).toBe(true);
+    for (const candidate of [
+      cleanJson.replace('"numFailedTests":0', '"numFailedTests":1'),
+      cleanJson.replace('"success":true', '"success":false'),
+      cleanJson.replace('"numTotalTests":10', '"numTotalTests":11'),
+      "not-json",
+      null,
+    ]) {
+      expect(jsonHasTestsAndNoFailures(candidate)).toBe(false);
+    }
+  });
+
+  it("extracts generic and reporter-specific JSON output paths", () => {
+    expect(
+      jsonOutputPath([
+        "run",
+        "--reporter=json",
+        "--outputFile=strict-result.json",
+      ]),
+    ).toBe("strict-result.json");
+    expect(
+      jsonOutputPath([
+        "run",
+        "--reporter",
+        "json",
+        "--outputFile.json",
+        "strict-result.json",
+      ]),
+    ).toBe("strict-result.json");
+    expect(jsonOutputPath(["run", "--outputFile=result.json"])).toBeNull();
+  });
+
   it("launches the installed Vitest CLI through Node without a platform shell", async () => {
     const child = new EventEmitter();
     child.stdout = new EventEmitter();
@@ -103,6 +157,21 @@ describe("Vitest worker infrastructure retry", () => {
     ).resolves.toBe(0);
     expect(runOnce).toHaveBeenCalledTimes(2);
     expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it("retries once when a complete JSON report is clean but Vitest exits non-zero", async () => {
+    const runOnce = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 1, output: "JSON report written" })
+      .mockResolvedValueOnce({ exitCode: 0, output: "passed" });
+
+    await expect(
+      runVitestWithWorkerRetry(
+        ["run", "--reporter=json", "--outputFile=strict-result.json"],
+        { runOnce, readFile: () => cleanJson, warn: vi.fn() },
+      ),
+    ).resolves.toBe(0);
+    expect(runOnce).toHaveBeenCalledTimes(2);
   });
 
   it("does not retry assertion failures, missing reports, or a second failure", async () => {
@@ -167,7 +236,9 @@ describe("Vitest worker infrastructure retry", () => {
     expect(unitStep).toContain(
       "node scripts/run-vitest-with-worker-retry.mjs -- run",
     );
-    expect(unitStep).toContain("--shard=${{ matrix.shard }}/${{ inputs.shards }}");
+    expect(unitStep).toContain(
+      "--shard=${{ matrix.shard }}/${{ inputs.shards }}",
+    );
     expect(unitStep).toContain("--reporter=default --reporter=junit");
     expect(unitStep).toContain(
       "--outputFile.junit=test-results/unit-${{ matrix.shard }}.xml",
@@ -186,5 +257,23 @@ describe("Vitest worker infrastructure retry", () => {
     expect(integrationStep).toContain("--silent=passed-only");
     expect(integrationStep).toContain("__tests__/integration/");
     expect(integrationStep).not.toContain("continue-on-error");
+  });
+
+  it("keeps the strict sandbox contract behind a bounded clean-report retry", () => {
+    const workflow = fs.readFileSync(
+      path.join(repositoryRoot, ".github/workflows/cli-strict-sandbox.yml"),
+      "utf8",
+    );
+    const step = workflow.slice(
+      workflow.indexOf("- name: Run platform sandbox contract tests"),
+      workflow.indexOf(
+        "- name: Run native ProcessExecutionBroker strict boundary",
+      ),
+    );
+    expect(step).toContain(
+      "node scripts/run-vitest-with-worker-retry.mjs -- run --reporter=json",
+    );
+    expect(step).toContain("--outputFile=strict-sandbox-contract-result.json");
+    expect(step).not.toContain("continue-on-error");
   });
 });

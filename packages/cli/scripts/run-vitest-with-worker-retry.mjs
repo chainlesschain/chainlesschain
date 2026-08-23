@@ -23,15 +23,32 @@ function appendOutputTail(current, chunk) {
 }
 
 export function junitOutputPath(args) {
-  const prefix = "--outputFile.junit=";
+  return outputOptionValue(args, "outputFile.junit");
+}
+
+function outputOptionValue(args, optionName) {
+  const prefix = `--${optionName}=`;
   for (let index = 0; index < args.length; index += 1) {
     const argument = String(args[index]);
     if (argument.startsWith(prefix)) return argument.slice(prefix.length);
-    if (argument === "--outputFile.junit" && index + 1 < args.length) {
+    if (argument === `--${optionName}` && index + 1 < args.length) {
       return String(args[index + 1]);
     }
   }
   return null;
+}
+
+export function jsonOutputPath(args) {
+  const reporterSpecific = outputOptionValue(args, "outputFile.json");
+  if (reporterSpecific) return reporterSpecific;
+  const hasJsonReporter = args.some((argument, index) => {
+    const value = String(argument);
+    return (
+      value === "--reporter=json" ||
+      (value === "--reporter" && String(args[index + 1]) === "json")
+    );
+  });
+  return hasJsonReporter ? outputOptionValue(args, "outputFile") : null;
 }
 
 function numericXmlAttribute(tag, name) {
@@ -49,13 +66,56 @@ export function junitHasTestsAndNoFailures(junitXml) {
   return tests !== null && tests > 0 && failures === 0 && errors === 0;
 }
 
-export function isRetryableVitestWorkerFailure({ exitCode, output, junitXml }) {
+export function jsonHasTestsAndNoFailures(jsonText) {
+  if (typeof jsonText !== "string") return false;
+  let report;
+  try {
+    report = JSON.parse(jsonText);
+  } catch {
+    return false;
+  }
+  const counts = [
+    report?.numTotalTests,
+    report?.numPassedTests,
+    report?.numFailedTests,
+    report?.numPendingTests,
+    report?.numTodoTests,
+    report?.numTotalTestSuites,
+    report?.numPassedTestSuites,
+    report?.numFailedTestSuites,
+    report?.numPendingTestSuites,
+  ];
+  if (!counts.every((value) => Number.isInteger(value) && value >= 0)) {
+    return false;
+  }
   return (
-    exitCode !== 0 &&
+    report.success === true &&
+    report.numTotalTests > 0 &&
+    report.numFailedTests === 0 &&
+    report.numFailedTestSuites === 0 &&
+    report.numPassedTests + report.numPendingTests + report.numTodoTests ===
+      report.numTotalTests &&
+    report.numPassedTestSuites +
+      report.numFailedTestSuites +
+      report.numPendingTestSuites ===
+      report.numTotalTestSuites
+  );
+}
+
+export function isRetryableVitestWorkerFailure({
+  exitCode,
+  output,
+  junitXml,
+  jsonReport,
+}) {
+  const exactWorkerFailure =
     typeof output === "string" &&
     output.includes(WORKER_POOL_ERROR) &&
-    output.includes(UNEXPECTED_EXIT_ERROR) &&
-    junitHasTestsAndNoFailures(junitXml)
+    output.includes(UNEXPECTED_EXIT_ERROR);
+  return (
+    exitCode !== 0 &&
+    ((exactWorkerFailure && junitHasTestsAndNoFailures(junitXml)) ||
+      jsonHasTestsAndNoFailures(jsonReport))
   );
 }
 
@@ -121,18 +181,28 @@ export async function runVitestWithWorkerRetry(
       // A missing or unreadable report is not safe to retry automatically.
     }
   }
+  const jsonReportPath = jsonOutputPath(args);
+  let jsonReport = null;
+  if (jsonReportPath) {
+    try {
+      jsonReport = readFile(path.resolve(process.cwd(), jsonReportPath));
+    } catch {
+      // A missing or unreadable report is not safe to retry automatically.
+    }
+  }
   if (
     !isRetryableVitestWorkerFailure({
       exitCode: first.exitCode,
       output: first.output,
       junitXml,
+      jsonReport,
     })
   ) {
     return first.exitCode;
   }
 
   warn(
-    "::warning title=Vitest worker infrastructure failure::All recorded assertions passed, but a forks worker exited unexpectedly; retrying this shard once.",
+    "::warning title=Vitest infrastructure failure::All recorded assertions passed, but Vitest exited non-zero; retrying this suite once.",
   );
   const second = await runOnce(args);
   return second.exitCode;
