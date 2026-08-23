@@ -3,10 +3,11 @@
 > 原始分析对象：ChainlessChain CLI `0.165.4`
 > 原始审计快照：`github/main` 提交 `1ef06b52a96a243ae2c340615dc6ef091835f311`
 > 当前实现与发布复核：ChainlessChain CLI `0.165.8`，发布提交 `28f92564f5c5ab203baf76e73350237fe747a8ba`、标签 `v-npm-0-165-8`（2026-08-23）
+> 当前增量审计闭环：`github/main@30022b7a144c788c76a320a4e24b2874dc75448a`，`Claude Code Increment Audit` run `32657173810`（2026-08-24）
 > Claude Code 原基线：`v2.1.220`
 > 本次增量窗口：`v2.1.221`～`v2.1.238`；官方没有公开发布 `v2.1.230`
 > 审计方法：官方 release/文档核对、代码静态审计、交付与 CI 可执行性复核；相似命令不直接视为行为完全等价。
-> 阅读口径：第 1～12 节保留原始差距分析，第 13 节记录实施过程，当前结论以第 14 节为准；代码已合入不等于当前 exact-head 发布矩阵已通过。
+> 阅读口径：第 1～12 节保留原始差距分析，第 13 节记录实施过程，当前结论以第 14、15 节为准；代码已合入不等于 exact-head 审计已通过，后续独立审计证据见第 15.4 节。
 
 ## 1. 复核后的结论
 
@@ -14,7 +15,7 @@ ChainlessChain CLI 已覆盖安全/裸模式、结构化 headless 输出、后�
 
 原始审计提出的三个 P0 边界中，前两个已在当前代码收口：Remote Control 默认改为 loopback，LAN 与高风险 scope 需要显式 opt-in，relay 失败不静默回退；plugin source 的 canonical identity 与 managed policy 已提前到 DNS/clone/helper 等外部 I/O 之前。第三项“按域名选择性放行”的不可绕过 egress 仍需要真实 Linux enforcement cell，当前实现保持无强制后端则 fail closed，不能把 proxy contract 写成生产隔离完成。
 
-原始 P1/P2 仓库内项目也已进入 `main`：MCP lifecycle/机器可读错误、统一 workspace trust、headless hook/subagent 事件、durable cross-session messaging、长会话和 host resource budget、archive/command source/`headersHelper`、gateway resilience、Concise、`classic`/`readline`、spellcheck、GitLab MR parser 及 Runner lifecycle contract 均有实际模块和定向回归。CLI `0.165.8` 的 exact-SHA 三平台发布证据已经完成；仍未完成的是独立的 36-cell `Claude Code Increment Audit` 聚合证据，以及生产 relay、Runner control plane、跨机器/移动端、企业网关/PKI、真实私库和长期 soak 等外部验收。
+原始 P1/P2 仓库内项目也已进入 `main`：MCP lifecycle/机器可读错误、统一 workspace trust、headless hook/subagent 事件、durable cross-session messaging、长会话和 host resource budget、archive/command source/`headersHelper`、gateway resilience、Concise、`classic`/`readline`、spellcheck、GitLab MR parser 及 Runner lifecycle contract 均有实际模块和定向回归。CLI `0.165.8` 的 exact-SHA 三平台发布证据已经完成；`30022b7a144c788c76a320a4e24b2874dc75448a` 上的独立 36-cell `Claude Code Increment Audit` 也已取得 36/36 required 与 3/3 advisory 全通过的统一 artifact。仍未完成的是 P0-3 真实选择性 egress，以及生产 relay、Runner control plane、跨机器/移动端、企业网关/PKI、真实私库和长期 soak 等外部验收。
 
 ## 2. 全版本段增量审计
 
@@ -262,7 +263,7 @@ PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；
 - 不可变标签 `v-npm-0-165-8` 精确指向 `28f92564f5`；发布 run `32616155187` 的 exact-SHA gate、完整测试、不可变 tarball/SBOM、Trusted Publishing、provenance 与公开 registry 回读均成功；
 - npm 公开 registry 报告 `chainlesschain@0.165.8` 且 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`，integrity 为 `sha512-Uer82QMt2i7h1MIDjilty0KjQA1yIdGSOK7eS5UoPEdfYdgbqo70Rq4/VJK1F4x7NclTVS9tynzBdKdNxa/fIQ==`。
 
-因此 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 该结论不替代本报告定义的 36-cell 增量审计聚合，也不关闭仓库外验收尾项。
+因此 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 发布证据本身不替代本报告定义的 36-cell 增量审计聚合；后者已在后续精确提交上独立完成（见第 15.4 节），但仍不关闭仓库外验收尾项。
 
 ## 15. 任务完成情况汇总
 
@@ -276,42 +277,64 @@ PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；
 
 ### 15.1 总体完成情况
 
-| 维度 | 状态 | 当前结论 |
-| --- | --- | --- |
-| 仓库内功能实现 | 完成 | 早期标记为“缺实现”的仓库内任务均已合入 `main`，并具备相应定向回归；具体外部尾项除外 |
-| CLI 发布 | 完成 | `chainlesschain@0.165.8` 已从精确提交 `28f92564f5c5ab203baf76e73350237fe747a8ba` 发布 |
-| CLI 三平台发布门禁 | 完成 | `CLI CI` 的 Ubuntu、macOS、Windows 矩阵成功，52 个 job 成功；`CLI Strict Sandbox` 三个平台的 native boundary job 全部成功 |
-| 发布供应链 | 完成 | 不可变标签、完整测试、tarball/SBOM、Trusted Publishing、provenance 和 npm 公开 registry 回读均成功 |
-| 36-cell 增量审计 | 未完成 | 独立 `Claude Code Increment Audit` 仍需聚合 12 个 required profile × Linux/Windows/macOS，共 36 个与目标 SHA 和 provenance 一致的 required cell |
-| 仓库外生产验收 | 未完成 | 真实选择性 egress、生产 relay、跨机器身份/投递、企业 PKI/IdP、真实私库、专有 Runner 控制面、真人辅助技术和长时 soak 等仍待外部环境验收 |
+| 维度               | 状态   | 当前结论                                                                                                                                                                                           |
+| ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 仓库内功能实现     | 完成   | 早期标记为“缺实现”的仓库内任务均已合入 `main`，并具备相应定向回归；具体外部尾项除外                                                                                                                |
+| CLI 发布           | 完成   | `chainlesschain@0.165.8` 已从精确提交 `28f92564f5c5ab203baf76e73350237fe747a8ba` 发布                                                                                                              |
+| CLI 三平台发布门禁 | 完成   | `CLI CI` 的 Ubuntu、macOS、Windows 矩阵成功，52 个 job 成功；`CLI Strict Sandbox` 三个平台的 native boundary job 全部成功                                                                          |
+| 发布供应链         | 完成   | 不可变标签、完整测试、tarball/SBOM、Trusted Publishing、provenance 和 npm 公开 registry 回读均成功                                                                                                 |
+| 36-cell 增量审计   | 完成   | `30022b7a144c788c76a320a4e24b2874dc75448a` 上的独立 run `32657173810` 已聚合 12 个 required profile × Linux/macOS/Windows；36/36 required 与 3/3 advisory 均通过，统一 artifact 已上传并独立重哈希 |
+| 仓库外生产验收     | 未完成 | 真实选择性 egress、生产 relay、跨机器身份/投递、企业 PKI/IdP、真实私库、专有 Runner 控制面、真人辅助技术和长时 soak 等仍待外部环境验收                                                             |
 
 ### 15.2 P0/P1 任务完成情况
 
-| 任务 | 状态 | 已完成 | 尚未完成/验收边界 |
-| --- | --- | --- | --- |
-| P0-1 Remote Control 默认姿态 | 完成 | 默认绑定 loopback；LAN 需要显式授权；已配置 relay 失败时不回退 direct；CLI 与 IDE 均采用 fail-closed 边界 | 生产 relay 属于独立的外部建设，不影响本地默认姿态任务的完成结论 |
-| P0-2 插件 canonical identity/managed policy | 核心完成 | authority/ref/path/registry 间接源、零 I/O gate、redirect、错误脱敏及 Windows ambient TEMP 8.3 canonical identity 边界均已实现并回归 | 真实私有 Marketplace、GitLab、OAuth/PAT 活体验收 |
-| P0-3 选择性 egress 强制 | 未完成 | 策略、代理负向测试、严格门禁映射以及无不可绕过后端时 fail closed 已完成 | 仍缺 Linux network namespace/proxy backend 和至少一个真实不可绕过阻断 cell；proxy contract 不能替代真实 enforcement |
-| P1-1 MCP 生命周期/可观测性 | 完成 | subscription 重连恢复、disabled 配置 I/O 前拒绝、结构化脱敏错误、progress/idle watchdog 和显式 opt-in discovery cache 均已落地 | 仍需纳入独立 36-cell 聚合证据，但仓库内实现与 CLI 发布门禁已经完成 |
-| P1-2 统一工作区信任 | 核心完成 | canonical workspace/repository identity、共享 ledger、精确 consent、MCP/plugin/hooks 接入和脱敏审计均已完成 | 真实升级环境中的存量授权迁移验收 |
-| P1-3 Headless hook/subagent 事件 | 完成 | `--include-hook-events`、hook/subagent 生命周期投影、schema/parent ID、默认关闭兼容和敏感信息抑制均已实现 | 仍需纳入独立 36-cell 聚合证据 |
-| P1-4 结构化凭据 mask 与 managed TLS | 核心完成 | JWT claim-name、AWS pair/SigV4、no-match 脱敏及 MCP TLS provenance/轮换边界已经实现 | Windows namespace 路径、企业 TLS 和全平台真实凭据场景验收 |
-| P1-5 独立 CLI 会话 live transport | 核心完成 | 本机 durable route、accept/hold/refuse、TTL、大小/队列/backpressure、限流、幂等、receipt/ACK 和 `notify_when_idle` 已完成 | 跨机器 relay、设备身份和离线投递仍需生产控制面 |
-| P1-6 长会话和资源治理 | 核心完成 | 共享 host budget、WebFetch TTL cache、WebSearch cap、事件 admission/backpressure 和 delegated cgroup fail-closed contract/smoke 已完成 | 真实 delegated-cgroup runner 以及 RSS/CPU/FD 长时 soak |
-| P1-7 Marketplace command source/headers helper | 核心完成 | 安全 direct-argv descriptor、进程边界、archive 安全、同源 header、Windows link 拒绝和脱敏审计均已实现 | 私有 Marketplace、OAuth/PAT 真实实例验收 |
-| P1-8 Gateway client 韧性 | 核心完成 | fake gateway 已覆盖 SSE keepalive、idle recovery、Last-Event-ID、TLS 轮换、proxy helper 和错误脱敏 | 真实 mTLS PKI、proxy 和生产 gateway 实例验收 |
+| 任务                                           | 状态     | 已完成                                                                                                                                                | 尚未完成/验收边界                                                                                                   |
+| ---------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| P0-1 Remote Control 默认姿态                   | 完成     | 默认绑定 loopback；LAN 需要显式授权；已配置 relay 失败时不回退 direct；CLI 与 IDE 均采用 fail-closed 边界                                             | 生产 relay 属于独立的外部建设，不影响本地默认姿态任务的完成结论                                                     |
+| P0-2 插件 canonical identity/managed policy    | 核心完成 | authority/ref/path/registry 间接源、零 I/O gate、redirect、错误脱敏及 Windows ambient TEMP 8.3 canonical identity 边界均已实现并回归                  | 真实私有 Marketplace、GitLab、OAuth/PAT 活体验收                                                                    |
+| P0-3 选择性 egress 强制                        | 未完成   | 策略、代理负向测试、严格门禁映射以及无不可绕过后端时 fail closed 已完成                                                                               | 仍缺 Linux network namespace/proxy backend 和至少一个真实不可绕过阻断 cell；proxy contract 不能替代真实 enforcement |
+| P1-1 MCP 生命周期/可观测性                     | 完成     | subscription 重连恢复、disabled 配置 I/O 前拒绝、结构化脱敏错误、progress/idle watchdog 和显式 opt-in discovery cache 均已落地，并已纳入 36-cell 聚合 | 无仓库内尾项；真实企业 IdP/mTLS 场景仍按外部验收处理                                                                |
+| P1-2 统一工作区信任                            | 核心完成 | canonical workspace/repository identity、共享 ledger、精确 consent、MCP/plugin/hooks 接入和脱敏审计均已完成                                           | 真实升级环境中的存量授权迁移验收                                                                                    |
+| P1-3 Headless hook/subagent 事件               | 完成     | `--include-hook-events`、hook/subagent 生命周期投影、schema/parent ID、默认关闭兼容和敏感信息抑制均已实现，并已纳入 36-cell 聚合                      | 无仓库内尾项                                                                                                        |
+| P1-4 结构化凭据 mask 与 managed TLS            | 核心完成 | JWT claim-name、AWS pair/SigV4、no-match 脱敏及 MCP TLS provenance/轮换边界已经实现                                                                   | Windows namespace 路径、企业 TLS 和全平台真实凭据场景验收                                                           |
+| P1-5 独立 CLI 会话 live transport              | 核心完成 | 本机 durable route、accept/hold/refuse、TTL、大小/队列/backpressure、限流、幂等、receipt/ACK 和 `notify_when_idle` 已完成                             | 跨机器 relay、设备身份和离线投递仍需生产控制面                                                                      |
+| P1-6 长会话和资源治理                          | 核心完成 | 共享 host budget、WebFetch TTL cache、WebSearch cap、事件 admission/backpressure 和 delegated cgroup fail-closed contract/smoke 已完成                | 真实 delegated-cgroup runner 以及 RSS/CPU/FD 长时 soak                                                              |
+| P1-7 Marketplace command source/headers helper | 核心完成 | 安全 direct-argv descriptor、进程边界、archive 安全、同源 header、Windows link 拒绝和脱敏审计均已实现                                                 | 私有 Marketplace、OAuth/PAT 真实实例验收                                                                            |
+| P1-8 Gateway client 韧性                       | 核心完成 | fake gateway 已覆盖 SSE keepalive、idle recovery、Last-Event-ID、TLS 轮换、proxy helper 和错误脱敏                                                    | 真实 mTLS PKI、proxy 和生产 gateway 实例验收                                                                        |
 
 ### 15.3 P2 任务完成情况
 
-| 任务 | 状态 | 已完成 | 尚未完成/验收边界 |
-| --- | --- | --- | --- |
-| Concise 输出风格 | 完成 | 已新增内置 Concise 并完成定向回归 | 无仓库内尾项 |
-| `keybindingFlavor` | 完成 | `classic` 保持默认，`readline` 已实现并验证 `Ctrl+W` 空白边界语义 | 无仓库内尾项 |
-| spellcheck | 核心完成 | 本地 adapter、关闭开关、代码块抑制和诊断脱敏均已完成 | 真实 `aspell`/`hunspell`/`ispell` 二进制及三平台 PTY 条件式验收 |
-| 默认模型/项目目录环境配置 | 完成 | 模型优先级、恢复会话边界、项目存储隔离、memory 绑定以及 SQLite native/fallback 路径均已实现 | 真实 native ABI、Windows ACL 和原生 SQLite 全量会话索引属于扩展验收 |
-| subagent fork 默认语义 | 完成 | 产品决策为继续默认 `fresh`；只有显式 `fork` 才按收紧契约继承，并已有回归 | 无仓库内尾项 |
-| selection clear、screen reader、窄终端 | 完成 | `/clear`、screen-reader mono 输出、窄终端 grapheme wrap 和相关可访问性回归已覆盖 | 真人辅助技术实机验证属于外部验收 |
-| GitLab MR footer/worktree | 核心完成 | 本地 MR/worktree parser 和 UI 已实现，且不隐式调用网络或 `glab` | 真实 GitLab/glab 活体测试 |
-| Runner host 生命周期扩展 | 核心完成 | 本地 Runner lifecycle contract 已覆盖目录 preflight、租约/资源 profile、authority 轮换、SIGTERM drain、park/reclaim、hook fence 和 target quota | 生产 daemon、注册/调度、租户、计费、仓库凭据、真实网络策略、部署及外部审计尚未完成 |
+| 任务                                   | 状态     | 已完成                                                                                                                                          | 尚未完成/验收边界                                                                  |
+| -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Concise 输出风格                       | 完成     | 已新增内置 Concise 并完成定向回归                                                                                                               | 无仓库内尾项                                                                       |
+| `keybindingFlavor`                     | 完成     | `classic` 保持默认，`readline` 已实现并验证 `Ctrl+W` 空白边界语义                                                                               | 无仓库内尾项                                                                       |
+| spellcheck                             | 核心完成 | 本地 adapter、关闭开关、代码块抑制和诊断脱敏均已完成                                                                                            | 真实 `aspell`/`hunspell`/`ispell` 二进制及三平台 PTY 条件式验收                    |
+| 默认模型/项目目录环境配置              | 完成     | 模型优先级、恢复会话边界、项目存储隔离、memory 绑定以及 SQLite native/fallback 路径均已实现                                                     | 真实 native ABI、Windows ACL 和原生 SQLite 全量会话索引属于扩展验收                |
+| subagent fork 默认语义                 | 完成     | 产品决策为继续默认 `fresh`；只有显式 `fork` 才按收紧契约继承，并已有回归                                                                        | 无仓库内尾项                                                                       |
+| selection clear、screen reader、窄终端 | 完成     | `/clear`、screen-reader mono 输出、窄终端 grapheme wrap 和相关可访问性回归已覆盖                                                                | 真人辅助技术实机验证属于外部验收                                                   |
+| GitLab MR footer/worktree              | 核心完成 | 本地 MR/worktree parser 和 UI 已实现，且不隐式调用网络或 `glab`                                                                                 | 真实 GitLab/glab 活体测试                                                          |
+| Runner host 生命周期扩展               | 核心完成 | 本地 Runner lifecycle contract 已覆盖目录 preflight、租约/资源 profile、authority 轮换、SIGTERM drain、park/reclaim、hook fence 和 target quota | 生产 daemon、注册/调度、租户、计费、仓库凭据、真实网络策略、部署及外部审计尚未完成 |
 
-综上，CLI `0.165.8` 的仓库内代码、常规三平台发布门禁和 npm 发布已经完成。当前不能关闭的关键项是 P0-3 真实选择性 egress、独立 36-cell 增量审计，以及依赖生产基础设施或真实设备/账号的仓库外验收尾项。
+### 15.4 Exact-head 36-cell 审计证据（2026-08-24）
+
+七个源工作流均在 release commit `30022b7a144c788c76a320a4e24b2874dc75448a` 上以 attempt 1 完成成功；源 artifact 均未过期。聚合 run 对 source-run authority、当前 attempt artifact、artifact digest、producer bytes 和 36 个 required fragment 重新校验，并独立重哈希最终 artifact。
+
+| 证据角色           | Workflow / run                                          | 状态     | Artifact 核验                                                  |
+| ------------------ | ------------------------------------------------------- | -------- | -------------------------------------------------------------- |
+| Safety             | `IDE Roadmap Safety Matrix` / `32648325666`             | 完成     | attempt 1；4 个 artifact；0 过期                               |
+| Reliability        | `CLI Reliability Soak` / `32648341013`                  | 完成     | attempt 1；22 个 artifact；0 过期；正式 7200 秒 soak           |
+| Accessibility      | `IDE Roadmap Accessibility Performance` / `32648340929` | 完成     | attempt 1；4 个 artifact；0 过期                               |
+| Session scale      | `CLI Session Scale` / `32648340894`                     | 完成     | attempt 1；4 个 artifact；0 过期                               |
+| Marketplace        | `IDE Roadmap Marketplace Supply Chain` / `32648341227`  | 完成     | attempt 1；13 个 artifact；0 过期                              |
+| Execution location | `IDE Roadmap Execution Location` / `32648340911`        | 完成     | attempt 1；8 个 artifact；0 过期                               |
+| IDE extensions     | `IDE Extensions` / `32648340921`                        | 完成     | attempt 1；17 个 artifact；0 过期                              |
+| 统一聚合           | `Claude Code Increment Audit` / `32657173810`           | **完成** | 36/36 required、3/3 advisory；artifact ID `9497752232`；0 过期 |
+
+| 最终 artifact 字段     | 值                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| 名称                   | `claude-code-increment-audit-30022b7a144c788c76a320a4e24b2874dc75448a`          |
+| GitHub artifact digest | `sha256:6758a22f63638bcb54a2af2bc21f6e6210ff0c91c6b4af16a4729b26980e2d9b`       |
+| `manifest.sha256`      | `sha256:34d7f93d161f3c231a3b2a95fb3114ecc82e3291e2c3197f912cc6937248a6df`       |
+| Manifest 结果          | `passed`；12 个 commitment；36 required row；3 advisory row；0 advisory failure |
+
+综上，CLI `0.165.8` 的仓库内代码、常规三平台发布门禁和 npm 发布已经完成，独立 exact-head 36-cell 增量审计也已闭环。当前不能关闭的关键项是 P0-3 真实选择性 egress，以及依赖生产基础设施或真实设备/账号的仓库外验收尾项。
