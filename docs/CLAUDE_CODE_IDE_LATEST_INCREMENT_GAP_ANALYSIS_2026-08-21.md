@@ -7,11 +7,11 @@
 - 上次对标基线：`2.1.220`（见 [原净差距与路线图](./CLAUDE_CODE_IDE_NET_GAPS_AND_ROADMAP_2026-08-01.md)）
 - 增量范围：`2.1.221`～`2.1.238`
 - ChainlessChain 原始审计基线：`github/main@1ef06b52a96a243ae2c340615dc6ef091835f311`，在干净隔离工作树上静态审阅
-- ChainlessChain 当前实现复核基线：`github/main@c48dc73acd8996cc36a3d6c4361a38e94ae9d473`；两个收口分支已由 `92529e25f3`、`8d21ff2e3b` 合入 `main`
+- ChainlessChain 当前实现复核基线：`github/main@28f92564f5c5ab203baf76e73350237fe747a8ba`；IDE 发布提交 `ce0b74e9a8618f5395ced746d21965dd1da20368` 已合入 `main`，并由 `ide-vscode-v0.37.63` 与 `ide-jetbrains-v0.4.96` 标签发布
 - 审阅范围：以 IDE 为决策中心，同时覆盖会实质影响双 IDE 安全性、可靠性和性能的 CLI runtime、MCP、插件 marketplace、Remote Control 与 self-hosted runner 增量
 - 官方补充依据：[实时 CHANGELOG](https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md)、[VS Code IDE 集成](https://code.claude.com/docs/en/ide-integrations)、[JetBrains 集成](https://code.claude.com/docs/en/jetbrains)、[Remote Control](https://code.claude.com/docs/en/remote-control)、[Chrome 集成](https://code.claude.com/docs/en/chrome)、[Subagents](https://code.claude.com/docs/en/agents)
 
-> 上游事实判断仍以固定 SHA 为准，实时链接只用于观察后续变化。`2.1.230` 没有独立版本节，不能推断为漏审功能。本文前半部分保留 2026-08-21 的原始差距判断；当前实现状态以第 1.1 节和第九节为准。实现进入 `main` 不等于当前 exact-head 已通过发布矩阵。
+> 上游事实判断仍以固定 SHA 为准，实时链接只用于观察后续变化。`2.1.230` 没有独立版本节，不能推断为漏审功能。本文前半部分保留 2026-08-21 的原始差距判断；当前实现状态以第 1.1 节和第九节为准。实现进入 `main` 本身不等于通过发布矩阵；本次 IDE 发布的 exact commit 与市场验证见第九节。它不替代本文定义的 Claude Code Increment Audit 36-cell 聚合证据。
 
 ## 一、结论
 
@@ -269,6 +269,16 @@ rg -n 'headersHelper|archive|command|source' packages/cli/src/lib/plugin-runtime
 
 ## 九、当前 exact-head 运行状态
 
-截至 2026-08-23 09:06（Asia/Shanghai），`github/main@c48dc73acd8996cc36a3d6c4361a38e94ae9d473` 的 `CLI Strict Sandbox`、`CLI Session Host Consistency`、`IDE Roadmap Accessibility Performance` 与 `IDE Roadmap Execution Location` 已成功；`CLI Session Scale`、`IDE Roadmap Safety Matrix` 正在运行，`CLI Reliability Soak`、`IDE Roadmap Marketplace Supply Chain` 与 `IDE Extensions` 仍在排队。`CLI CI` run `32607630246` 已出现失败分片：real-spawn fixture 违反 config-home/workspace 分离规则，数个旧 `paths.js` mock 未继承新增导出，离线 changelog 与 canonical `CHANGELOG.md` 漂移。本次随文修复这些测试契约并补齐 `0.165.7` source-candidate changelog；本地定向回归为 real-spawn 4/4，以及 workflow/session/changelog 76/76。
+### 9.1 历史快照（2026-08-23 09:06）
 
-这一定义当前结论为：**仓库实现完成，旧 exact-head 暴露的 CI 回归已在后续修复；包含本文与修复的新精确提交仍须重跑完整矩阵，不能宣称 release-ready。** 旧 SHA 的部分绿色、仍在运行的 producer 和本地测试都不能替代新提交的 GitHub run 与统一 `claude-code-increment-audit-<sha>` artifact。
+`github/main@c48dc73acd8996cc36a3d6c4361a38e94ae9d473` 的当时运行状态与 `CLI CI` run `32607630246` 的失败分片，属于本节此前记录的历史快照：real-spawn fixture 违反 config-home/workspace 分离规则，数个旧 `paths.js` mock 未继承新增导出，离线 changelog 与 canonical `CHANGELOG.md` 漂移。后续修复已作为发布链路的一部分复核；不能再将该快照表述为当前发布状态。
+
+### 9.2 当前 IDE 发布状态（2026-08-23 11:06，Asia/Shanghai）
+
+IDE 发布 exact commit `ce0b74e9a8618f5395ced746d21965dd1da20368` 已进入 `github/main@28f92564f5c5ab203baf76e73350237fe747a8ba`。该 commit 的 `CLI Strict Sandbox`（run `32604667250`）、`CLI CI`（run `32604664813`）和 `IDE Extensions`（run `32604662647`）均已成功完成。
+
+- `ide-vscode-v0.37.63` 触发的 `IDE Extensions` run `32611779800` 成功；Open VSX `chainlesschain.chainlesschain-ide` `0.37.63` 已通过公开列表验证。
+- `ide-jetbrains-v0.4.96` 触发的 `IDE Extensions` run `32611783299` 成功；`com.chainlesschain.ide` `0.4.96` 已完成 JetBrains Marketplace 上传及发布后列表验证。
+- `SESSION-UX` 证据要求已由 `ce0b74e9a8` 收窄至专用证据工作流，常规 JetBrains 发布单测不再错误要求该环境变量；六个 JetBrains 实机环境均已通过。
+
+这一定义当前结论为：**本次双 IDE 发布已经完成，发布 commit、三项所需门禁、两个发布标签和两个市场的发布后验证均已成功。** 但这不等同于宣称当前 `github/main` 已取得本文所定义的完整 `Claude Code Increment Audit` 36-cell artifact；该审计仍应按其独立的 exact-head 合同和外部尾项判断，不能由 IDE 发布结果替代。
