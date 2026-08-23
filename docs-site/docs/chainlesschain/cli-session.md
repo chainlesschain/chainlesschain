@@ -1,6 +1,6 @@
 ﻿# 会话管理 (session)
 
-> Headless 命令。当前生产推荐 CLI 为 `0.165.6`。`session` 同时承载传统会话管理、会话级审批策略和耐久跨会话消息；当前主线源码另含 session group/批量移动，等待后续 exact-SHA CLI 发布后再作为稳定安装能力使用。
+> Headless 命令。当前生产推荐 CLI 为 `0.165.8`。`session` 同时承载传统会话管理、会话级审批策略、耐久跨会话消息与 session group/批量移动；IDE 的 Focus View 仍按各自发布版本与平台支持情况提供。
 
 ## 核心特性
 
@@ -64,7 +64,7 @@ chainlesschain session message register sess-a --name builder --json
 chainlesschain session message send @builder @reviewer "请复核变更" --message-id review-001 --json
 ```
 
-## `0.165.6`：耐久跨会话消息
+## `0.165.8`：耐久跨会话消息与会话分组
 
 `session message` 的权威状态由 CLI 持有。IDE 只展示有界投影和回执，不自行推导消息是否已交付。
 
@@ -88,7 +88,7 @@ cc session message idle @reviewer idle --expected-revision 3 --json
 
 边界：消息正文有大小与 TTL 上限；endpoint epoch 退役后不会把旧 inbox 泄漏给同名复用；`delivered` 只表示目标 inbox/ack 协议结算，不等于对方已经理解或完成业务任务。
 
-## 当前源码候选：会话分组与 Focus View
+## 会话分组与 Focus View
 
 当前 HEAD 提供 `session group list|create|rename|delete|order|move`。所有 mutation 都必须携带 `group list --json` 返回的 exact `revision`，以 CAS 拒绝并发页面或旧投影覆盖新状态；批量 move 要么整体成功，要么不改变任何 assignment。
 
@@ -99,7 +99,7 @@ cc session group move <group-id> <session-id-a> <session-id-b> \
   --expected-revision <sha256> --json
 ```
 
-VS Code `0.37.63` / JetBrains `0.4.96` 源码还提供多选批量移动和 Focus View（集中显示 pending question、live tool、todo 与 settled answer）。这些能力晚于公开 CLI `0.165.6`、Open VSX `0.37.61` 和 JetBrains `0.4.95`，在后续发布前不要按公开安装能力承诺。
+VS Code `0.37.63` / JetBrains `0.4.96` 已发布多选批量移动和 Focus View（集中显示 pending question、live tool、todo 与 settled answer）。CLI 和 IDE 的发布门均不替代真实 relay、跨宿主与长期 soak 的独立验收。
 
 ## 传统会话管理
 

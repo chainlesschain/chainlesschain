@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-22）：产品 v5.0.3.135 / 推荐 CLI 0.165.6（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含回环默认 Remote Control、受治理 Marketplace 来源/摘要归档、跨会话消息、MCP 生命周期恢复，以及既有 durable workflow、Artifact 与 native-addon policy。**
+> **当前版本边界（2026-08-23）：产品 v5.0.3.135 / 推荐 CLI 0.165.8（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含回环默认 Remote Control、受治理 Marketplace 来源/摘要归档、跨会话消息、MCP 生命周期恢复，以及 Agent SDK 发布门运行目录隔离。**
 
 ## 概述
 
@@ -409,7 +409,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.165.6` 已发布回环默认 Remote Control、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、耐久跨会话消息、MCP 重连/生命周期恢复与 `concise`/`readline` 交互，并完整承接 `0.165.5` 的 workflow/Artifact/native-addon 契约。精确 SHA `ef4324349f` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；当前 HEAD 的 session group、browser evidence 与 execution-location drain 等待后续发布。
+> `0.165.8` 已完成三平台 CLI CI、Strict Sandbox、npm Trusted Publishing 与 registry 回读。它承接 `0.165.6` 的公开能力，并使 Agent SDK 发布测试将模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点独立隔离，覆盖生产 fail-closed 权限路径。`0.165.7` 未发布；独立 36-cell 增量审计和仓库外验收仍需单独完成。
 
 ---
 

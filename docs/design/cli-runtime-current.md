@@ -1,11 +1,11 @@
-# CLI Runtime 当前实现核对（稳定版 0.165.6）
+# CLI Runtime 当前实现核对（稳定版 0.165.8）
 
-> 更新时间：2026-08-22。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.6`；公开 CLI 能力绑定不可变 tag `v-npm-0-165-6` 的精确 SHA `ef4324349f272f5ec6af9a6ab80110e814122dae`。Open VSX `0.37.61` 与 JetBrains `0.4.95` 已公开；当前分支 IDE 包元数据为 `0.37.63` / `0.4.96`，本文继续把 npm/CLI、IDE 市场、发布后源码与签名 native 发行的证据边界分开记录。
+> 更新时间：2026-08-23。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.8`；公开 CLI 能力绑定不可变 tag `v-npm-0-165-8` 的精确 SHA `28f92564f5c5ab203baf76e73350237fe747a8ba`。Open VSX `0.37.63` 与 JetBrains `0.4.96` 已公开并完成发布后回读；本文继续把 npm/CLI、IDE 市场、发布后源码与签名 native 发行的证据边界分开记录。
 
 ## 版本与证据边界
 
-- `0.165.6` 是当前生产推荐基线。`v-npm-0-165-6` 精确指向 `ef4324349f272f5ec6af9a6ab80110e814122dae`；同一 SHA 的 `CLI CI` `32483224738`、`CLI Strict Sandbox` `32483224517` Linux/Windows/macOS、专用 npm 发布 `32486454203`、Trusted Publishing、签名 provenance 与独立 registry readback `32488130856` 均成功。npm 公网回读为 `latest=0.165.6`，tarball SHA-1 为 `d0dc65bdf34d0afe8e8db4492a1ddc72d63ee260`。
-- `0.165.5` 是上一轮文档基线；其孤儿 Artifact、耐久 workflow 与 MCP native-addon policy 现由 `0.165.6` 完整承接。
+- `0.165.8` 是当前生产推荐基线。`v-npm-0-165-8` 精确指向 `28f92564f5c5ab203baf76e73350237fe747a8ba`；同一 SHA 的 `CLI CI` `32614151603`、`CLI Strict Sandbox` `32614151467` Linux/Windows/macOS 与专用 npm 发布 `32616155187` 均成功。npm 公网回读为 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。
+- `0.165.7` 在 Agent SDK 发布前测试夹具中失败，未执行打包或 npm 发布；其 tag 保持不可变。`0.165.8` 完整承接既有 Artifact、耐久 workflow 与 MCP native-addon policy。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -14,9 +14,9 @@
 - `0.163.7` 正式公开 outcome-unknown 人工裁决、五域 migration journal 与受治理回滚、因果交付报告、call-ledger 预算和后台恢复权威加固。裁决与回滚均依赖精确证据/CAS；它们不扩张为跨独立存储的原子事务或语义因果证明。
 - `0.163.8` 正式承接确定性 scheduler disk-fault matrix、checkpoint-aware Automation pause/resume、incident retry/cancel、受治理多 Agent merge review、只读 MCP resource templates 与 transaction-time lease clock。首个 formal soak run `31807830251` 因 Windows worker 提前退出而无效；后继 exact-main run `31821080101` 三平台及 aggregate 全部成功并定义新 `T0`，正式计数为 `1/4`，其余三个 segment 与 72 小时 campaign verifier 尚未完成。
 - `0.164.0` 正式包含原生 `/paste-image`、作用域权限/副作用证据、执行位置与 workflow definition identity、受治理插件市场、后台 keeper 与 MCP capsule 证据加固。Linux dynamic-native 与 macOS signed launcher 仍是有限声明/禁用候选，不外推为任意 shared-library closure 或签名 native 发行闭环。
-- `0.165.6` 正式包含回环默认的 Remote Control、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、跨会话消息、MCP 重连/生命周期恢复及 `concise`/`readline` 交互。
-- IDE 当前公开版本为 Open VSX `0.37.61` 与 JetBrains `0.4.95`。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
-- 当前 HEAD 的 session group/Focus View、可取消诊断快照、10 万路径 mention 索引、browser evidence、MCP durable lifecycle recovery 与 execution-location drain matrix 晚于 `ef4324349f`；它们不能继承 `v-npm-0-165-6`、Open VSX `0.37.61` 或 JetBrains `0.4.95` 的发布授权。
+- `0.165.8` 正式包含回环默认的 Remote Control、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、跨会话消息、MCP 重连/生命周期恢复及 `concise`/`readline` 交互；并将 Agent SDK 发布测试的模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点隔离，以覆盖生产 fail-closed 路径。
+- IDE 当前公开版本为 Open VSX `0.37.63` 与 JetBrains `0.4.96`，且已完成发布后回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- CLI `0.165.8` 与双 IDE 的各自发布门已经完成；它们不替代 Claude Code Increment Audit 的 36-cell 聚合，也不覆盖生产 relay、跨宿主、签名 native 与长期外部验收。
 
 ## 当前边界
 
@@ -329,10 +329,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 公开版 `0.37.61` / JetBrains `0.4.95` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE 公开版 `0.37.63` / JetBrains `0.4.96` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.61`；JetBrains Marketplace 当前公开 `0.4.95`。双端延续 Context Center、权限/副作用证据、Automation Center、durable workflow/orphan Artifact recovery，并公开安全 Remote Control、跨会话消息与长 transcript 连续性。源码 `0.37.63` / `0.4.96` 的 group/Focus/scale/evidence 增量仍待后续发布。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- Open VSX 当前公开 `0.37.63`；JetBrains Marketplace 当前公开 `0.4.96`。双端延续 Context Center、权限/副作用证据、Automation Center、durable workflow/orphan Artifact recovery，并公开安全 Remote Control、跨会话消息、长 transcript 连续性、会话分组、Focus View 与可扩展诊断/证据能力。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
