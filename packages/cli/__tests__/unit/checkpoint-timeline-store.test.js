@@ -8,10 +8,13 @@ const testDir = join(tmpdir(), `cc-checkpoint-timeline-${process.pid}`);
 const sessionsDir = join(testDir, "sessions");
 const securityAnchorDir = `${testDir}-security-anchors`;
 
-vi.mock("../../src/lib/paths.js", () => ({
+vi.mock("../../src/lib/paths.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getHomeDir: () => testDir,
   getStatePath: () => join(testDir, "state"),
   getMachineSecurityAnchorDir: () => securityAnchorDir,
+  resolveConfigDataRoot: () => ({ path: testDir, source: "chainlesschain" }),
+  getClaudeProjectStorageDir: () => null,
 }));
 
 const store = await import("../../src/harness/jsonl-session-store.js");

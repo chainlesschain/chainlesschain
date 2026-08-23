@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.165.7: merged-session and evidence stability
+
+> `chainlesschain` **0.165.6 -> 0.165.7** (source candidate; not yet
+> published, 2026-08-23).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Durable session stability**: bound headless event backlogs, scoped session
+  sidecars, routed Claude project storage through canonical path authority,
+  and prevented Windows append-writer starvation under concurrent session
+  activity.
+- **Execution-location convergence**: local and remote replicas now bootstrap
+  isolated target state, preserve replica identity and witnesses, forward
+  staged input through the target supervisor, and retain CPU-limit evidence.
+- **Browser evidence reliability**: two-origin browser evidence installs its
+  complete driver and aggregate dependency closure, preserves detached
+  baselines, stabilizes Windows tabs, and retries bounded profile cleanup.
+- **Merged test-contract repair**: real-spawn fixtures keep workspace and
+  application data as siblings, while path-module mocks inherit the production
+  API before overriding isolated test roots. The bundled offline changelog is
+  regenerated from this canonical record.
+- **Release status**: publication requires this candidate's exact commit to
+  pass the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
+  matrices. Tag, provenance, registry readback, and publication evidence must
+  be recorded only after those exact-SHA gates succeed.
+
 ### Added - cc CLI 0.165.6: safer remote sessions and governed plugin sources
 
 > `chainlesschain` **0.165.5 -> 0.165.6** (published from exact SHA

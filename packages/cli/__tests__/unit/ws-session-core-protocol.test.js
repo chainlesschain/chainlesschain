@@ -5,17 +5,27 @@ import path from "node:path";
 
 let tmpHome;
 
-beforeEach(() => {
-  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cli-ws-sc-"));
-  vi.resetModules();
-  vi.doMock("../../src/lib/paths.js", () => ({
+async function createPathsMock(importOriginal) {
+  return {
+    ...(await importOriginal()),
     getHomeDir: () => tmpHome,
     getBinDir: () => path.join(tmpHome, "bin"),
     getConfigPath: () => path.join(tmpHome, "config.json"),
     getStatePath: () => path.join(tmpHome, "state"),
     getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
     getServicesDir: () => path.join(tmpHome, "services"),
-  }));
+    resolveConfigDataRoot: () => ({
+      path: tmpHome,
+      source: "chainlesschain",
+    }),
+    getClaudeProjectStorageDir: () => null,
+  };
+}
+
+beforeEach(() => {
+  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cli-ws-sc-"));
+  vi.resetModules();
+  vi.doMock("../../src/lib/paths.js", createPathsMock);
 });
 
 afterEach(() => {
@@ -255,14 +265,7 @@ describe("Hosted Session API — session-core-protocol", () => {
     }));
     // re-import so handler binding picks up the mock via dynamic import
     vi.resetModules();
-    vi.doMock("../../src/lib/paths.js", () => ({
-      getHomeDir: () => tmpHome,
-      getBinDir: () => path.join(tmpHome, "bin"),
-      getConfigPath: () => path.join(tmpHome, "config.json"),
-      getStatePath: () => path.join(tmpHome, "state"),
-      getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
-      getServicesDir: () => path.join(tmpHome, "services"),
-    }));
+    vi.doMock("../../src/lib/paths.js", createPathsMock);
     const { SESSION_CORE_STREAMING_HANDLERS } =
       await import("../../src/gateways/ws/session-core-protocol.js");
     const emitted = [];
@@ -288,14 +291,7 @@ describe("Hosted Session API — session-core-protocol", () => {
         })(),
     }));
     vi.resetModules();
-    vi.doMock("../../src/lib/paths.js", () => ({
-      getHomeDir: () => tmpHome,
-      getBinDir: () => path.join(tmpHome, "bin"),
-      getConfigPath: () => path.join(tmpHome, "config.json"),
-      getStatePath: () => path.join(tmpHome, "state"),
-      getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
-      getServicesDir: () => path.join(tmpHome, "services"),
-    }));
+    vi.doMock("../../src/lib/paths.js", createPathsMock);
     const { SESSION_CORE_STREAMING_HANDLERS } =
       await import("../../src/gateways/ws/session-core-protocol.js");
     const busPublished = [];
@@ -337,14 +333,7 @@ describe("Hosted Session API — session-core-protocol", () => {
 
   it("dispatcher routes stream.run and emits intermediate events", async () => {
     vi.resetModules();
-    vi.doMock("../../src/lib/paths.js", () => ({
-      getHomeDir: () => tmpHome,
-      getBinDir: () => path.join(tmpHome, "bin"),
-      getConfigPath: () => path.join(tmpHome, "config.json"),
-      getStatePath: () => path.join(tmpHome, "state"),
-      getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
-      getServicesDir: () => path.join(tmpHome, "services"),
-    }));
+    vi.doMock("../../src/lib/paths.js", createPathsMock);
     vi.doMock("../../src/lib/provider-stream.js", () => ({
       buildProviderSource: () =>
         (async function* () {
@@ -444,14 +433,7 @@ describe("Hosted Session API — session-core-protocol", () => {
 
   it("dispatcher passes context with server to streaming handlers", async () => {
     vi.resetModules();
-    vi.doMock("../../src/lib/paths.js", () => ({
-      getHomeDir: () => tmpHome,
-      getBinDir: () => path.join(tmpHome, "bin"),
-      getConfigPath: () => path.join(tmpHome, "config.json"),
-      getStatePath: () => path.join(tmpHome, "state"),
-      getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
-      getServicesDir: () => path.join(tmpHome, "services"),
-    }));
+    vi.doMock("../../src/lib/paths.js", createPathsMock);
     vi.doMock("../../src/lib/provider-stream.js", () => ({
       buildProviderSource: () =>
         (async function* () {

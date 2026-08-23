@@ -18,10 +18,13 @@ import { tmpdir } from "node:os";
 const testDir = join(tmpdir(), `cc-v5029-integ-${Date.now()}`);
 const securityAnchorDir = `${testDir}-security-anchors`;
 
-vi.mock("../../src/lib/paths.js", () => ({
+vi.mock("../../src/lib/paths.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getHomeDir: () => testDir,
   getStatePath: () => join(testDir, "state"),
   getMachineSecurityAnchorDir: () => securityAnchorDir,
+  resolveConfigDataRoot: () => ({ path: testDir, source: "chainlesschain" }),
+  getClaudeProjectStorageDir: () => null,
 }));
 
 let mockConfig = { features: {} };

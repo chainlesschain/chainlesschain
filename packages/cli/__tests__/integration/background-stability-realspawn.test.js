@@ -44,6 +44,7 @@ import { loadBackgroundInteractionJournal } from "../../src/lib/background-inter
 import { readEvents } from "../../src/harness/jsonl-session-store.js";
 
 let dir;
+let workspaceDir;
 let launchedIds;
 let previousHome;
 let previousSecurityAnchorHome;
@@ -93,8 +94,14 @@ async function pollUntil(fn, { timeoutMs = 60_000, intervalMs = 50 } = {}) {
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-real-"));
+  workspaceDir = join(dir, "workspace");
+  mkdirSync(workspaceDir, { recursive: true });
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
   previousHome = process.env.CHAINLESSCHAIN_HOME;
+  // Keep the config home and test workspace as siblings. Production path
+  // validation intentionally rejects a config home nested in (or containing)
+  // the active workspace; using the fixture root as cwd made every real-spawn
+  // worker fail before exercising the background lifecycle under test.
   process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
   previousSecurityAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   const securityAnchorHome = join(dir, "security-anchors");
@@ -160,7 +167,7 @@ function launch({ script, argv = [], followUpArgv, title = "matrix" }) {
   writeFileSync(fakeCli, script, "utf-8");
   const state = launchBackgroundAgent({
     argv,
-    cwd: dir,
+    cwd: workspaceDir,
     sessionId: `sid-${title}`,
     title,
     cliEntry: fakeCli,
