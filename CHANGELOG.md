@@ -7,10 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.165.8: release-gate home isolation
+
+> `chainlesschain` **0.165.7 -> 0.165.8** (source candidate; not yet
+> published, 2026-08-23).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Agent SDK release-gate isolation**: the real-CLI SDK test now keeps its
+  simulated operating-system home separate from `CHAINLESSCHAIN_HOME`, while
+  retaining separate workspace and rollback-resistant security-anchor roots.
+  This exercises the production fail-closed layout without asking the CLI to
+  repair owner-only permissions on a broad user-home directory.
+- **Candidate continuity**: exact SHA `350fb4ce71` passed the complete Linux,
+  Windows, and macOS `CLI CI` (`32612516841`) and `CLI Strict Sandbox`
+  (`32612516696`) matrices. Its immutable `v-npm-0-165-7` release run
+  (`32613795671`) stopped in the Agent SDK test before package, dry-run, or npm
+  publish jobs; `0.165.7` was therefore never published and the fix advances
+  to a new immutable version/tag rather than moving the existing tag.
+- **Release status**: publication requires this candidate's exact commit to
+  pass the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`
+  matrices. Tag, provenance, registry readback, and publication evidence must
+  be recorded only after those exact-SHA gates succeed.
+
 ### Fixed - cc CLI 0.165.7: merged-session and evidence stability
 
-> `chainlesschain` **0.165.6 -> 0.165.7** (source candidate; not yet
-> published, 2026-08-23).
+> `chainlesschain` **0.165.6 -> 0.165.7** (unpublished immutable-tag candidate,
+> 2026-08-23; superseded by `0.165.8` after a pre-package release-gate failure).
 > CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 

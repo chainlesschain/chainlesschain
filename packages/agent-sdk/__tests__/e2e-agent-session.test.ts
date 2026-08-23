@@ -33,6 +33,7 @@ const CLI_BIN = join(__dirname, "..", "..", "cli", "bin", "chainlesschain.js");
 
 const sandboxRoot = mkdtempSync(join(tmpdir(), "cc-sdk-e2e-"));
 const home = join(sandboxRoot, "home");
+const userHome = join(sandboxRoot, "user-home");
 const securityAnchorHome = join(sandboxRoot, "security-anchor");
 const workspace = join(sandboxRoot, "workspace");
 let llmServer: http.Server;
@@ -53,13 +54,16 @@ function freePort(): Promise<number> {
 beforeAll(async () => {
   // CHAINLESSCHAIN_HOME is owner-private control state and must never contain
   // the active workspace or the rollback-resistant security anchor. Keep all
-  // three paths as siblings so the real CLI E2E exercises the same fail-closed
-  // layout required in production even though HOME is redirected below.
+  // these paths as siblings so the real CLI E2E exercises the same fail-closed
+  // layout required in production. CHAINLESSCHAIN_HOME must also remain
+  // distinct from the redirected OS home: the CLI correctly refuses to apply
+  // owner-only permission repairs to a broad user-home directory.
   mkdirSync(home, { recursive: true });
+  mkdirSync(userHome, { recursive: true });
   mkdirSync(securityAnchorHome, { recursive: true });
   mkdirSync(workspace, { recursive: true });
   // settings `ask` on Write → write_file hits the approval CONFIRM tier.
-  const dotClaude = join(home, ".claude");
+  const dotClaude = join(userHome, ".claude");
   mkdirSync(dotClaude, { recursive: true });
   writeFileSync(
     join(dotClaude, "settings.json"),
@@ -147,8 +151,8 @@ function newSession(
     env: {
       CHAINLESSCHAIN_HOME: home,
       CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: securityAnchorHome,
-      HOME: home,
-      USERPROFILE: home,
+      HOME: userHome,
+      USERPROFILE: userHome,
       CC_DEBUG: "1",
     },
     extraArgs: [
