@@ -9,6 +9,7 @@ import {
   META_WORKFLOW_PATH,
   SOURCE_RUN_SCHEMA,
   assertAttestationMatchesFragments,
+  selectAttestedFragments,
   validateSourceRunAttestation,
 } from "./verify-claude-code-increment-source-runs.mjs";
 
@@ -842,7 +843,10 @@ function aggregateAuditFragments({
     verifyGitHead,
   );
   const contractRecord = loadContract(contractPath);
-  const fragments = discoverFragments(fragmentsDirectory, contractRecord.value);
+  const discoveredFragments = discoverFragments(
+    fragmentsDirectory,
+    contractRecord.value,
+  );
   const sourceRunsRecord = readJsonBytes(
     path.resolve(sourceRunsPath),
     "source run attestation",
@@ -864,13 +868,18 @@ function aggregateAuditFragments({
     fail("source run attestation aggregator workflow digest is stale");
   }
   const producerCache = new Map();
-  for (const record of fragments) {
+  for (const record of discoveredFragments) {
     verifyProducerDigests(record.value, {
       repositoryRoot,
       releaseCommit: normalizedCommit,
       producerCache,
     });
   }
+  enforceCoverage(discoveredFragments, contractRecord.value, normalizedCommit);
+  const fragments = selectAttestedFragments(
+    sourceRunsRecord.value,
+    discoveredFragments,
+  );
   const { required, advisory } = enforceCoverage(
     fragments,
     contractRecord.value,

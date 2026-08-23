@@ -1006,17 +1006,8 @@ export function assertAttestationMatchesFragments(
   const unmatched = [...attestation.cells];
   for (const record of fragmentRecords) {
     const fragment = record.value;
-    const index = unmatched.findIndex(
-      (cell) =>
-        cell.fragmentDigest === record.digest &&
-        cell.commitmentId === fragment.commitmentId &&
-        cell.os === fragment.os &&
-        cell.disposition === fragment.disposition &&
-        cell.outcome === fragment.outcome &&
-        cell.workflowId === fragment.source.workflowId &&
-        cell.runId === fragment.source.runId &&
-        cell.jobId === fragment.source.jobId &&
-        cell.artifactName === fragment.source.artifactName,
+    const index = unmatched.findIndex((cell) =>
+      attestationCellMatchesFragment(cell, record),
     );
     assert.notEqual(
       index,
@@ -1044,6 +1035,52 @@ export function assertAttestationMatchesFragments(
     "source attestation contains unmatched fragments",
   );
   return attestation;
+}
+
+function attestationCellMatchesFragment(cell, record) {
+  const fragment = record.value;
+  return (
+    cell.fragmentDigest === record.digest &&
+    cell.commitmentId === fragment.commitmentId &&
+    cell.os === fragment.os &&
+    cell.disposition === fragment.disposition &&
+    cell.outcome === fragment.outcome &&
+    cell.workflowId === fragment.source.workflowId &&
+    cell.runId === fragment.source.runId &&
+    cell.jobId === fragment.source.jobId &&
+    cell.artifactName === fragment.source.artifactName
+  );
+}
+
+export function selectAttestedFragments(attestation, fragmentRecords) {
+  validateSourceRunAttestation(attestation);
+  const selected = [];
+  for (const cell of attestation.cells) {
+    const matches = fragmentRecords.filter((record) =>
+      attestationCellMatchesFragment(cell, record),
+    );
+    assert.equal(
+      matches.length,
+      1,
+      `attested fragment ${cell.commitmentId}/${cell.os} multiplicity`,
+    );
+    selected.push(matches[0]);
+  }
+  const selectedRecords = new Set(selected);
+  const plannedArtifactNames = new Set(
+    attestation.runs.flatMap((run) =>
+      run.artifacts.map((artifact) => artifact.name),
+    ),
+  );
+  for (const record of fragmentRecords) {
+    if (selectedRecords.has(record)) continue;
+    assert.equal(
+      plannedArtifactNames.has(record.value.source.artifactName),
+      false,
+      `unattested fragment ${record.value.commitmentId}/${record.value.os} claims an authoritative artifact`,
+    );
+  }
+  return selected;
 }
 
 function writeGitHubOutputs(filePath, plan) {

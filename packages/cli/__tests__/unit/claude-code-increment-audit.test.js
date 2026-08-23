@@ -595,6 +595,63 @@ describe("Claude Code increment unified audit", () => {
     ).toEqual(fs.readFileSync(fixture.sourceRunsPath));
   });
 
+  it("excludes unbound support fragments and rejects authoritative claims", () => {
+    function addAccessibilitySupportFragment(fixture, artifactName) {
+      const accessibilityPath = fixture.sourceTopology.fragmentPaths.get(
+        "AX-TRANSCRIPT/linux",
+      );
+      const accessibility = JSON.parse(
+        fs.readFileSync(accessibilityPath, "utf8"),
+      );
+      const runtimePath = fixture.sourceTopology.fragmentPaths.get(
+        "SESSION-RUNTIME/linux",
+      );
+      const support = JSON.parse(fs.readFileSync(runtimePath, "utf8"));
+      support.disposition = "advisory";
+      support.source = {
+        workflowId: accessibility.source.workflowId,
+        runId: accessibility.source.runId,
+        jobId: accessibility.source.jobId,
+        artifactName,
+      };
+      writeJson(
+        path.join(
+          path.dirname(accessibilityPath),
+          "session-runtime-retention.json",
+        ),
+        support,
+      );
+    }
+
+    const unbound = buildFixture();
+    addAccessibilitySupportFragment(unbound, "session-runtime-retention.json");
+    const aggregate = aggregateFixture(unbound);
+    expect(aggregate.manifest.summary).toMatchObject({
+      requiredRowCount: 36,
+      advisoryRowCount: 0,
+    });
+    expect(() =>
+      verifyAuditArtifact({
+        artifactDirectory: aggregate.artifactDirectory,
+        releaseCommit: unbound.headSha,
+        repositoryRoot: REPOSITORY_ROOT,
+        contractPath: unbound.contractPath,
+      }),
+    ).not.toThrow();
+
+    const claimed = buildFixture();
+    const accessibilityPath = claimed.sourceTopology.fragmentPaths.get(
+      "AX-TRANSCRIPT/linux",
+    );
+    addAccessibilitySupportFragment(
+      claimed,
+      path.basename(path.dirname(accessibilityPath)),
+    );
+    expect(() => aggregateFixture(claimed)).toThrow(
+      /unattested fragment SESSION-RUNTIME\/linux claims an authoritative artifact/u,
+    );
+  });
+
   it("rejects a re-signed source-run attestation that changes row provenance", () => {
     const fixture = buildFixture();
     const aggregate = aggregateFixture(fixture);
