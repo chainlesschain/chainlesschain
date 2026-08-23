@@ -263,3 +263,55 @@ PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；
 - npm 公开 registry 报告 `chainlesschain@0.165.8` 且 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`，integrity 为 `sha512-Uer82QMt2i7h1MIDjilty0KjQA1yIdGSOK7eS5UoPEdfYdgbqo70Rq4/VJK1F4x7NclTVS9tynzBdKdNxa/fIQ==`。
 
 因此 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 该结论不替代本报告定义的 36-cell 增量审计聚合，也不关闭仓库外验收尾项。
+
+## 15. 任务完成情况汇总
+
+本节以第 14 节的当前代码与 Git 复核为准，用于汇总任务完成情况。章节 1～12 中记录的早期差距和第 13 节的实施过程仍作为历史审计证据保留，但不再单独代表当前状态。
+
+状态定义：
+
+- **完成**：仓库内实现、定向回归以及当前适用的发布门禁已经完成。
+- **核心完成**：仓库内核心实现和模拟/契约验证已经完成，但仍有依赖真实账号、网络、设备或生产控制面的外部验收。
+- **未完成**：任务定义中的关键强制执行或聚合验收条件尚未满足。
+
+### 15.1 总体完成情况
+
+| 维度 | 状态 | 当前结论 |
+| --- | --- | --- |
+| 仓库内功能实现 | 完成 | 早期标记为“缺实现”的仓库内任务均已合入 `main`，并具备相应定向回归；具体外部尾项除外 |
+| CLI 发布 | 完成 | `chainlesschain@0.165.8` 已从精确提交 `28f92564f5c5ab203baf76e73350237fe747a8ba` 发布 |
+| CLI 三平台发布门禁 | 完成 | `CLI CI` 的 Ubuntu、macOS、Windows 矩阵成功，52 个 job 成功；`CLI Strict Sandbox` 三个平台的 native boundary job 全部成功 |
+| 发布供应链 | 完成 | 不可变标签、完整测试、tarball/SBOM、Trusted Publishing、provenance 和 npm 公开 registry 回读均成功 |
+| 36-cell 增量审计 | 未完成 | 独立 `Claude Code Increment Audit` 仍需聚合 12 个 required profile × Linux/Windows/macOS，共 36 个与目标 SHA 和 provenance 一致的 required cell |
+| 仓库外生产验收 | 未完成 | 真实选择性 egress、生产 relay、跨机器身份/投递、企业 PKI/IdP、真实私库、专有 Runner 控制面、真人辅助技术和长时 soak 等仍待外部环境验收 |
+
+### 15.2 P0/P1 任务完成情况
+
+| 任务 | 状态 | 已完成 | 尚未完成/验收边界 |
+| --- | --- | --- | --- |
+| P0-1 Remote Control 默认姿态 | 完成 | 默认绑定 loopback；LAN 需要显式授权；已配置 relay 失败时不回退 direct；CLI 与 IDE 均采用 fail-closed 边界 | 生产 relay 属于独立的外部建设，不影响本地默认姿态任务的完成结论 |
+| P0-2 插件 canonical identity/managed policy | 核心完成 | authority/ref/path/registry 间接源、零 I/O gate、redirect、错误脱敏及 Windows ambient TEMP 8.3 canonical identity 边界均已实现并回归 | 真实私有 Marketplace、GitLab、OAuth/PAT 活体验收 |
+| P0-3 选择性 egress 强制 | 未完成 | 策略、代理负向测试、严格门禁映射以及无不可绕过后端时 fail closed 已完成 | 仍缺 Linux network namespace/proxy backend 和至少一个真实不可绕过阻断 cell；proxy contract 不能替代真实 enforcement |
+| P1-1 MCP 生命周期/可观测性 | 完成 | subscription 重连恢复、disabled 配置 I/O 前拒绝、结构化脱敏错误、progress/idle watchdog 和显式 opt-in discovery cache 均已落地 | 仍需纳入独立 36-cell 聚合证据，但仓库内实现与 CLI 发布门禁已经完成 |
+| P1-2 统一工作区信任 | 核心完成 | canonical workspace/repository identity、共享 ledger、精确 consent、MCP/plugin/hooks 接入和脱敏审计均已完成 | 真实升级环境中的存量授权迁移验收 |
+| P1-3 Headless hook/subagent 事件 | 完成 | `--include-hook-events`、hook/subagent 生命周期投影、schema/parent ID、默认关闭兼容和敏感信息抑制均已实现 | 仍需纳入独立 36-cell 聚合证据 |
+| P1-4 结构化凭据 mask 与 managed TLS | 核心完成 | JWT claim-name、AWS pair/SigV4、no-match 脱敏及 MCP TLS provenance/轮换边界已经实现 | Windows namespace 路径、企业 TLS 和全平台真实凭据场景验收 |
+| P1-5 独立 CLI 会话 live transport | 核心完成 | 本机 durable route、accept/hold/refuse、TTL、大小/队列/backpressure、限流、幂等、receipt/ACK 和 `notify_when_idle` 已完成 | 跨机器 relay、设备身份和离线投递仍需生产控制面 |
+| P1-6 长会话和资源治理 | 核心完成 | 共享 host budget、WebFetch TTL cache、WebSearch cap、事件 admission/backpressure 和 delegated cgroup fail-closed contract/smoke 已完成 | 真实 delegated-cgroup runner 以及 RSS/CPU/FD 长时 soak |
+| P1-7 Marketplace command source/headers helper | 核心完成 | 安全 direct-argv descriptor、进程边界、archive 安全、同源 header、Windows link 拒绝和脱敏审计均已实现 | 私有 Marketplace、OAuth/PAT 真实实例验收 |
+| P1-8 Gateway client 韧性 | 核心完成 | fake gateway 已覆盖 SSE keepalive、idle recovery、Last-Event-ID、TLS 轮换、proxy helper 和错误脱敏 | 真实 mTLS PKI、proxy 和生产 gateway 实例验收 |
+
+### 15.3 P2 任务完成情况
+
+| 任务 | 状态 | 已完成 | 尚未完成/验收边界 |
+| --- | --- | --- | --- |
+| Concise 输出风格 | 完成 | 已新增内置 Concise 并完成定向回归 | 无仓库内尾项 |
+| `keybindingFlavor` | 完成 | `classic` 保持默认，`readline` 已实现并验证 `Ctrl+W` 空白边界语义 | 无仓库内尾项 |
+| spellcheck | 核心完成 | 本地 adapter、关闭开关、代码块抑制和诊断脱敏均已完成 | 真实 `aspell`/`hunspell`/`ispell` 二进制及三平台 PTY 条件式验收 |
+| 默认模型/项目目录环境配置 | 完成 | 模型优先级、恢复会话边界、项目存储隔离、memory 绑定以及 SQLite native/fallback 路径均已实现 | 真实 native ABI、Windows ACL 和原生 SQLite 全量会话索引属于扩展验收 |
+| subagent fork 默认语义 | 完成 | 产品决策为继续默认 `fresh`；只有显式 `fork` 才按收紧契约继承，并已有回归 | 无仓库内尾项 |
+| selection clear、screen reader、窄终端 | 完成 | `/clear`、screen-reader mono 输出、窄终端 grapheme wrap 和相关可访问性回归已覆盖 | 真人辅助技术实机验证属于外部验收 |
+| GitLab MR footer/worktree | 核心完成 | 本地 MR/worktree parser 和 UI 已实现，且不隐式调用网络或 `glab` | 真实 GitLab/glab 活体测试 |
+| Runner host 生命周期扩展 | 核心完成 | 本地 Runner lifecycle contract 已覆盖目录 preflight、租约/资源 profile、authority 轮换、SIGTERM drain、park/reclaim、hook fence 和 target quota | 生产 daemon、注册/调度、租户、计费、仓库凭据、真实网络策略、部署及外部审计尚未完成 |
+
+综上，CLI `0.165.8` 的仓库内代码、常规三平台发布门禁和 npm 发布已经完成。当前不能关闭的关键项是 P0-3 真实选择性 egress、独立 36-cell 增量审计，以及依赖生产基础设施或真实设备/账号的仓库外验收尾项。

@@ -290,3 +290,56 @@ CLI `0.165.8` 的不可变发布标签 `v-npm-0-165-8` 精确指向 `28f92564f5c
 npm 公开 registry 当前报告 `chainlesschain@0.165.8` 且 `latest=0.165.8`；tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。先前 `v-npm-0-165-7` 候选在 package/publish 之前因 Agent SDK 测试夹具的 HOME 隔离问题停止，因此没有发布 `0.165.7`，且该不可变标签未被移动；修复通过新版本和新标签完成。
 
 这一定义 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 它与 9.2 的双 IDE 发布共同证明当前交付版本已完成各自发布门禁，但仍不能替代独立的 36-cell `Claude Code Increment Audit` 聚合或仓库外验收。
+
+## 十、任务完成情况汇总
+
+本节以第 1.1 节和第九节的当前实现及发布复核为准。前文保留的 2026-08-21 原始差距用于追溯需求来源，不再单独代表当前代码状态。
+
+状态定义：
+
+- **完成**：对应代码、定向验证和当前适用的版本发布门禁已经完成。
+- **实现完成/审计待闭环**：产品代码、测试、profile、producer/verifier 已完成，但独立 36-cell exact-head 聚合尚未取得。
+- **条件完成**：本地核心或 adapter 已实现，仍需产品启用决策或真实外部环境验收。
+
+### 10.1 总体完成情况
+
+| 维度 | 状态 | 当前结论 |
+| --- | --- | --- |
+| 12 个 required commitment 的仓库内实现 | 完成 | 12/12 均已有产品代码、定向测试、锁定 profile、Actions producer/verifier 和 test ID |
+| VS Code 发布 | 完成 | `0.37.63` 已通过发布标签触发的 `IDE Extensions`，并完成 Open VSX 公开列表验证 |
+| JetBrains 发布 | 完成 | `0.4.96` 已通过发布标签触发的 `IDE Extensions`，并完成 JetBrains Marketplace 上传和发布后列表验证 |
+| IDE 发布门禁 | 完成 | IDE 发布 exact commit 的 `CLI Strict Sandbox`、`CLI CI` 和 `IDE Extensions` 均成功；六个 JetBrains 实机环境通过 |
+| CLI 配套发布 | 完成 | CLI `0.165.8` 已通过 Ubuntu、macOS、Windows 发布矩阵、供应链门禁和 npm 公开回读 |
+| 36-cell 增量审计 | 未完成 | 仍需在同一 exact-head 上聚合 12 个 profile × Linux/macOS/Windows，共 36 个 required cell；已发布 IDE/CLI 的各自门禁不能替代该聚合 |
+| 仓库外生产验收 | 未完成 | 真实 relay、企业基础设施、真人辅助技术、真实私库/第三方站点、专有 Runner 和长时 soak 等仍待外部环境验收 |
+| 文档整体发布判断 | `NO-GO` | 仅针对独立 36-cell 聚合和仓库外尾项；不代表 VS Code、JetBrains 或 CLI 版本尚未发布 |
+
+### 10.2 Required Commitment 完成情况
+
+| ID | 优先级 | 状态 | 仓库内已完成 | 尚未完成/验收边界 |
+| --- | --- | --- | --- | --- |
+| `RC-DEFAULT` | P0 | 实现完成/审计待闭环 | 默认 loopback；LAN、approve、interrupt 显式 opt-in；project config 不得自启或放宽；relay 失败不回退 LAN | 真实 relay、Trusted Devices/passkey、移动端和公网弱网；统一 36-cell 聚合 |
+| `SEC-DELTA` | P0 | 实现完成/审计待闭环 | `2.1.221`～`2.1.238` 安全差分已映射到真实测试、producer digest 和上游回滚语义 | 企业 MDM、专有 EDR、真人攻击复核；统一 36-cell 聚合 |
+| `XSESSION` | P0 | 实现完成/审计待闭环 | `SessionMessageFabric`、canonical route、accept/hold/refuse、TTL、容量/速率限制、幂等回执和一次性 idle 通知已实现 | 跨机器、移动端、E2EE relay 和弱网 8 小时 soak；统一 36-cell 聚合 |
+| `AX-TRANSCRIPT` | P1 | 实现完成/审计待闭环 | 双 IDE 已有稳定 turn heading、分类 announcer、流式去重、tool error label 和焦点恢复 | NVDA、VoiceOver、Orca 真人听测；统一 36-cell 聚合 |
+| `SESSION-UX` | P1 | 实现完成/审计待闭环 | CLI-owned group/focus、128-session 批量移动、CAS、offline/cloud/pending/unread 和 thinking collapse 已接入双 IDE | 真人 UX 评审；统一 36-cell 聚合 |
+| `DIAG-SCALE` | P1 | 实现完成/审计待闭环 | 双 IDE 已使用按 URI/version 的有界 snapshot scheduler，并覆盖取消、去重和 10k 稳定快照 | 真实大型 monorepo 和 8 小时 IDE soak；统一 36-cell 聚合 |
+| `IDE-INPUT-PERF` | P1 | 实现完成/审计待闭环 | 双 IDE 已使用 100k-path 有界 mention index、workspace revision、取消和最大 200 候选 | 超大真实 workspace 和远程文件系统 soak；统一 36-cell 聚合 |
+| `MCP-LIFECYCLE` | P1 | 实现完成/审计待闭环 | disabled no-connect、init/discover 顺序、OAuth fence、mTLS provenance/rotation、subscription reconnect、single-flight 和脱敏已落地 | 企业 IdP、真实 mTLS 轮换和专有 MCP server；统一 36-cell 聚合 |
+| `SESSION-RUNTIME` | P1 | 实现完成/审计待闭环 | 旧 result live state 释放、durable resume/evidence、增量扫描、backlog cap、session scale 和 Windows writer 竞争修复已落地 | 8/24 小时真实模型长会话；统一 36-cell 聚合 |
+| `PLUGIN-SOURCE` | P1 | 实现完成/审计待闭环 | HTTPS archive+SHA、source adapter、不可变缓存/回滚和 governed command/helper 边界已实现；动态 source 默认拒绝 | 真实私库、组织 trust root、PAC/custom CA、key revocation 和动态 source 产品启用决策；统一 36-cell 聚合 |
+| `LOCATION-DRAIN` | P1 | 实现完成/审计待闭环 | Local/WSL/Container/SSH 已接入 drain、lease/generation fence、park/reclaim、fresh proxy authority 和 target-side CPU/内存证据 | 企业 Runner、生产代理、共享存储和物理断电；统一 36-cell 聚合 |
+| `BROWSER-EVIDENCE` | P1 | 实现完成/审计待闭环 | action/origin/revision、登录态脱敏、上传下载、console/network、screenshot diff 和 replay 已绑定 canonical evidence | CAPTCHA、第三方真实站点和人工登录授权；统一 36-cell 聚合 |
+
+以上 12 项均不应再描述为“尚未开发”。准确状态是：**仓库内产品实现和证据生产能力已完成，但独立 36-cell exact-head 聚合尚未闭环。**
+
+### 10.3 候选项、条件项与不立项
+
+| 项目 | 状态 | 已完成 | 尚未完成/处置边界 |
+| --- | --- | --- | --- |
+| `PROMPT-POLISH` | 条件完成 | Concise、`readline`、spellcheck 和 GitLab MR 本地 parser 已分别落地 | 不属于 12 个 required commitment；真实词典、PTY 和完整 prompt polish 继续按候选项处理 |
+| Marketplace `command`/`headersHelper` 产品启用 | 条件完成 | 默认拒绝的安全内核、governed command/helper 边界和 managed policy 控制已实现 | 需要明确私有 registry 需求、owner 和产品启用策略，否则维持 disabled |
+| `GITLAB` | 条件完成 | 本地 MR/worktree parser 已实现 | 完整 GitLab adapter、Marketplace、真实 API/glab 和凭据旅程仍需产品范围确认 |
+| Ultraplan | 不立项 | 已明确不复制上游已移除能力 | 若存在遗留 backlog，应移除而不是实施 |
+
+综上，VS Code `0.37.63`、JetBrains `0.4.96` 和 CLI `0.165.8` 已完成各自发布门禁和公开发布验证；12 个 required commitment 的仓库内实现也已全部落地。当前不能关闭的是统一 36-cell `Claude Code Increment Audit`、依赖生产基础设施或真实账号/设备的外部验收，以及少数需要产品决策的条件项。
