@@ -2,7 +2,7 @@
 
 > 原始分析对象：ChainlessChain CLI `0.165.4`
 > 原始审计快照：`github/main` 提交 `1ef06b52a96a243ae2c340615dc6ef091835f311`
-> 当前实现复核：ChainlessChain CLI `0.165.7`，`github/main@c48dc73acd8996cc36a3d6c4361a38e94ae9d473`（2026-08-23）
+> 当前实现与发布复核：ChainlessChain CLI `0.165.8`，发布提交 `28f92564f5c5ab203baf76e73350237fe747a8ba`、标签 `v-npm-0-165-8`（2026-08-23）
 > Claude Code 原基线：`v2.1.220`
 > 本次增量窗口：`v2.1.221`～`v2.1.238`；官方没有公开发布 `v2.1.230`
 > 审计方法：官方 release/文档核对、代码静态审计、交付与 CI 可执行性复核；相似命令不直接视为行为完全等价。
@@ -14,7 +14,7 @@ ChainlessChain CLI 已覆盖安全/裸模式、结构化 headless 输出、后�
 
 原始审计提出的三个 P0 边界中，前两个已在当前代码收口：Remote Control 默认改为 loopback，LAN 与高风险 scope 需要显式 opt-in，relay 失败不静默回退；plugin source 的 canonical identity 与 managed policy 已提前到 DNS/clone/helper 等外部 I/O 之前。第三项“按域名选择性放行”的不可绕过 egress 仍需要真实 Linux enforcement cell，当前实现保持无强制后端则 fail closed，不能把 proxy contract 写成生产隔离完成。
 
-原始 P1/P2 仓库内项目也已进入 `main`：MCP lifecycle/机器可读错误、统一 workspace trust、headless hook/subagent 事件、durable cross-session messaging、长会话和 host resource budget、archive/command source/`headersHelper`、gateway resilience、Concise、`classic`/`readline`、spellcheck、GitLab MR parser 及 Runner lifecycle contract 均有实际模块和定向回归。仍未完成的是当前 exact-head 的统一三平台发布证据，以及生产 relay、Runner control plane、跨机器/移动端、企业网关/PKI、真实私库和长期 soak 等外部验收。
+原始 P1/P2 仓库内项目也已进入 `main`：MCP lifecycle/机器可读错误、统一 workspace trust、headless hook/subagent 事件、durable cross-session messaging、长会话和 host resource budget、archive/command source/`headersHelper`、gateway resilience、Concise、`classic`/`readline`、spellcheck、GitLab MR parser 及 Runner lifecycle contract 均有实际模块和定向回归。CLI `0.165.8` 的 exact-SHA 三平台发布证据已经完成；仍未完成的是独立的 36-cell `Claude Code Increment Audit` 聚合证据，以及生产 relay、Runner control plane、跨机器/移动端、企业网关/PKI、真实私库和长期 soak 等外部验收。
 
 ## 2. 全版本段增量审计
 
@@ -223,7 +223,7 @@ PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；
 
 ### 14.1 分支、版本与统一证据契约
 
-- 当前实施复核基线为 `github/main@c48dc73acd8996cc36a3d6c4361a38e94ae9d473`；IDE 发布线通过 `92529e25f3` 与 `8d21ff2e3b` 合入，CLI 源码版本为 `0.165.7`，VS Code 为 `0.37.63`，JetBrains 为 `0.4.96`。
+- 当前代码与 CLI 发布复核基线为 `28f92564f5c5ab203baf76e73350237fe747a8ba`；IDE 发布线通过 `92529e25f3` 与 `8d21ff2e3b` 合入，CLI 发布版本为 `0.165.8`，VS Code 为 `0.37.63`，JetBrains 为 `0.4.96`。
 - `tests/fixtures/claude-code-increment-audit-contract.json` 已把 `RC-DEFAULT`、`SEC-DELTA`、`XSESSION`、`AX-TRANSCRIPT`、`SESSION-UX`、`DIAG-SCALE`、`IDE-INPUT-PERF`、`MCP-LIFECYCLE`、`SESSION-RUNTIME`、`PLUGIN-SOURCE`、`LOCATION-DRAIN`、`BROWSER-EVIDENCE` 锁为 12 个 required profile。
 - `.github/workflows/claude-code-increment-audit.yml` 只聚合与目标 SHA、workflow、profile、平台和 provenance 全部一致的 producer artifact；完成定义为 12 个 profile × Linux/Windows/macOS，共 36 个 required cell，而不是“存在某次绿色 run”。
 
@@ -249,4 +249,17 @@ PR #249 的首个精确 SHA `b2e54248ec` 已完成矩阵并确认不可合并；
 2. 其他 unit/integration 分片完整替换了旧版 `paths.js`，没有继承新增的 `resolveConfigDataRoot` / `getClaudeProjectStorageDir`；相关 mock 现先导入真实模块，再覆盖隔离测试根。
 3. 根 `CHANGELOG.md` 已记录已发布的 `0.165.6`，但 CLI 离线产物仍保留候选文本且缺少当前 `0.165.7`；本次补充 `0.165.7` source-candidate 条目并由 canonical changelog 重建 JSON。
 
-本地定向验证为 real-spawn 4/4，以及 workflow/session/changelog 6 files、76/76。它们证明上述失败原因和修复路径，但不替代推送后新提交的三平台 Actions。当前发布结论仍是：**实现已合入，旧失败已修复；只有包含本文与修复的精确提交完成全矩阵后，才可宣称 release-ready。**
+本地定向验证为 real-spawn 4/4，以及 workflow/session/changelog 6 files、76/76。它们证明上述失败原因和修复路径，但不替代推送后新提交的三平台 Actions；该阶段的最终远端发布结论见 14.4。
+
+### 14.4 CLI `0.165.8` 最终发布证据
+
+首次不可变候选标签 `v-npm-0-165-7` 指向 `350fb4ce717eaa42cd9ce301558924ae2a124263`。该提交的 `CLI CI`（run `32612516841`）与 `CLI Strict Sandbox`（run `32612516696`）成功，但发布 run `32613795671` 在 Agent SDK 真实 CLI 测试中发现夹具把 `CHAINLESSCHAIN_HOME` 同时设为模拟 OS HOME，触发了生产代码对宽泛用户目录权限修复的拒绝。package、dry-run 和 publish job 均未执行，npm 没有发布 `0.165.7`；不可变标签也没有移动或删除。
+
+修复提交 `28f92564f5c5ab203baf76e73350237fe747a8ba` 将应用私有目录、模拟 OS HOME、workspace 和 security anchor 分离，并把版本递增到 `0.165.8`。该 exact SHA 的发布证据为：
+
+- `CLI CI` run `32614151603`：Ubuntu、macOS、Windows 全矩阵成功，52 个 job 成功，1 个仅适用于 PR 的 dry-run job 按 push 条件跳过；
+- `CLI Strict Sandbox` run `32614151467`：Ubuntu、macOS、Windows 三个 native boundary job 全部成功；
+- 不可变标签 `v-npm-0-165-8` 精确指向 `28f92564f5`；发布 run `32616155187` 的 exact-SHA gate、完整测试、不可变 tarball/SBOM、Trusted Publishing、provenance 与公开 registry 回读均成功；
+- npm 公开 registry 报告 `chainlesschain@0.165.8` 且 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`，integrity 为 `sha512-Uer82QMt2i7h1MIDjilty0KjQA1yIdGSOK7eS5UoPEdfYdgbqo70Rq4/VJK1F4x7NclTVS9tynzBdKdNxa/fIQ==`。
+
+因此 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 该结论不替代本报告定义的 36-cell 增量审计聚合，也不关闭仓库外验收尾项。

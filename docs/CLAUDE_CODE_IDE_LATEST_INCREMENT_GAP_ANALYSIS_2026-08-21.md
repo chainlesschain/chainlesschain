@@ -265,7 +265,7 @@ rg -n 'headersHelper|archive|command|source' packages/cli/src/lib/plugin-runtime
 1. **当前 exact-head 发布证据**：必须让 Safety、Reliability、Accessibility、Session Scale、Marketplace、Execution Location 和 IDE Extensions 在同一提交成功，再运行 `Claude Code Increment Audit` 聚合 36 个 required cell。旧 SHA、部分矩阵、排队中、取消或超时的 run 都不能复用。
 2. **仓库外尾项**：真实 relay/移动端/弱网、企业 IdP 与 mTLS 轮换、第三方私库和 GitLab、专有 runner/代理/共享存储、真人 NVDA/VoiceOver/Orca 与 8h/24h soak。这些不应以本地 fixture 或 fake control plane 冒充完成。
 
-`PROMPT-POLISH` 的本地能力已部分落地，但仍不进入 12 项 required 完成率；动态 marketplace source 的产品启用仍需 managed policy 与 owner 决策；Ultraplan 继续明确不立项。原路线图的 `12/19 尚未关闭、7/19 完成` 与整体 `NO-GO` 在外部尾项和当前 exact-head artifact 完成前保持不变。
+`PROMPT-POLISH` 的本地能力已部分落地，但仍不进入 12 项 required 完成率；动态 marketplace source 的产品启用仍需 managed policy 与 owner 决策；Ultraplan 继续明确不立项。CLI `0.165.8` 与双 IDE 的发布证据已不再是缺口；原路线图的 `12/19 尚未关闭、7/19 完成` 与整体 `NO-GO` 仍针对独立 36-cell 聚合和仓库外尾项保持不变。
 
 ## 九、当前 exact-head 运行状态
 
@@ -282,3 +282,11 @@ IDE 发布 exact commit `ce0b74e9a8618f5395ced746d21965dd1da20368` 已进入 `gi
 - `SESSION-UX` 证据要求已由 `ce0b74e9a8` 收窄至专用证据工作流，常规 JetBrains 发布单测不再错误要求该环境变量；六个 JetBrains 实机环境均已通过。
 
 这一定义当前结论为：**本次双 IDE 发布已经完成，发布 commit、三项所需门禁、两个发布标签和两个市场的发布后验证均已成功。** 但这不等同于宣称当前 `github/main` 已取得本文所定义的完整 `Claude Code Increment Audit` 36-cell artifact；该审计仍应按其独立的 exact-head 合同和外部尾项判断，不能由 IDE 发布结果替代。
+
+### 9.3 当前 CLI 发布状态（2026-08-23，Asia/Shanghai）
+
+CLI `0.165.8` 的不可变发布标签 `v-npm-0-165-8` 精确指向 `28f92564f5c5ab203baf76e73350237fe747a8ba`。该提交的 `CLI CI` run `32614151603` 完成 Ubuntu、macOS、Windows 全矩阵，`CLI Strict Sandbox` run `32614151467` 的三个 native boundary job 全部成功。npm 发布 run `32616155187` 的 exact-SHA gate、完整测试、不可变 tarball/SBOM、Trusted Publishing、provenance 与公开 registry 回读也全部成功。
+
+npm 公开 registry 当前报告 `chainlesschain@0.165.8` 且 `latest=0.165.8`；tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。先前 `v-npm-0-165-7` 候选在 package/publish 之前因 Agent SDK 测试夹具的 HOME 隔离问题停止，因此没有发布 `0.165.7`，且该不可变标签未被移动；修复通过新版本和新标签完成。
+
+这一定义 CLI 发布结论为：**`0.165.8` 已从通过完整三平台门禁的精确提交发布并完成公开回读。** 它与 9.2 的双 IDE 发布共同证明当前交付版本已完成各自发布门禁，但仍不能替代独立的 36-cell `Claude Code Increment Audit` 聚合或仓库外验收。
