@@ -316,7 +316,7 @@ describe("Claude-compatible project storage", () => {
     expect(managedPlan).toMatchObject({
       enabled: true,
       source: "managed",
-      memoryDir: managedCustom,
+      memoryDir: canonicalTestPath(managedCustom),
     });
   });
 

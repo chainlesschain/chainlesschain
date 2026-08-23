@@ -3,7 +3,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -69,9 +68,7 @@ describe("sync-cli-db — _vaultPath resolution", () => {
       _resetCcDirForTest();
       delete process.env.CHAINLESSCHAIN_HOME;
       process.env.CLAUDE_CONFIG_DIR = claudeRoot;
-      expect(_vaultPath()).toBe(
-        join(realpathSync.native(claudeRoot), "cli-vault.db"),
-      );
+      expect(_vaultPath()).toBe(join(claudeRoot, "cli-vault.db"));
     } finally {
       if (originalNative === undefined) delete process.env.CHAINLESSCHAIN_HOME;
       else process.env.CHAINLESSCHAIN_HOME = originalNative;
