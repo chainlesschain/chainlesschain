@@ -179,7 +179,14 @@ const WS_TURN_FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
 const SESSION_APPEND_LOCK_TIMEOUT_MS =
   process.platform === "win32" ? 120_000 : 30_000;
 const SESSION_APPEND_LOCK_YIELD_AFTER_RELEASE_MS =
-  process.platform === "win32" ? 8 : 2;
+  // Every append releases the directory lock before this bounded handoff.
+  // On a two-core hosted Windows runner, an 8 ms pause lets the just-released
+  // writer reacquire before waiters that are still in their 1–12 ms backoff.
+  // The resulting writer starvation makes the formal 20×1000 matrix time out
+  // despite every individual operation being healthy.  Leave enough room for
+  // an existing contender to wake, while retaining the same strict lock and
+  // the full append workload.
+  process.platform === "win32" ? 32 : 2;
 
 export {
   SESSION_GENERATION_AUTHORITY_FIELD,
