@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   assertCompiledGraph,
   compileGraphDefinition,
+  executionAttemptId,
   graphDigest,
   writeScopesOverlap,
 } from "./compiler.js";
@@ -111,6 +112,22 @@ function idleCompensationState() {
     startedAt: null,
     completedAt: null,
   };
+}
+
+function iterationFrameId(runId, regionId, iterationPath) {
+  const digest = graphDigest(
+    { runId, regionId, iterationPath },
+    "cc.graph.iteration-frame/v1",
+  );
+  return `iteration-${digest.slice(7, 39)}`;
+}
+
+function deterministicSubgraphRunId(parentRunId, nodeId, revisionDigest) {
+  const digest = graphDigest(
+    { parentRunId, nodeId, revisionDigest },
+    "cc.graph.subgraph-run/v1",
+  );
+  return `subgraph-${digest.slice(7, 39)}`;
 }
 
 function finitePositive(value, fallback) {
@@ -282,6 +299,13 @@ function stateSnapshot(run) {
     cancellationRequested: run.cancellationRequested,
     progressEpoch: run.progressEpoch,
     compensation: clone(run.compensation),
+    parentRunRef: clone(run.parentRunRef),
+    subgraphDepth: run.subgraphDepth,
+    definitionPath: clone(run.definitionPath),
+    loopStates: mapSnapshot(run.loopStates),
+    iterationFrames: mapSnapshot(run.iterationFrames),
+    loopDecisionCache: mapSnapshot(run.loopDecisionCache),
+    subgraphRuns: mapSnapshot(run.subgraphRuns),
     nodeStates: mapSnapshot(run.nodeStates),
     attempts: mapSnapshot(run.attempts),
     agents: mapSnapshot(run.agents),
@@ -315,7 +339,16 @@ function restoreState(run, snapshot, compiled = null) {
   run.cancellationRequested = snapshot.cancellationRequested === true;
   run.progressEpoch = snapshot.progressEpoch;
   run.compensation = clone(snapshot.compensation || idleCompensationState());
+  run.parentRunRef = clone(snapshot.parentRunRef || null);
+  run.subgraphDepth = Number(snapshot.subgraphDepth || 0);
+  run.definitionPath = clone(
+    snapshot.definitionPath || [run.compiled.definitionId],
+  );
   for (const field of [
+    "loopStates",
+    "iterationFrames",
+    "loopDecisionCache",
+    "subgraphRuns",
     "nodeStates",
     "attempts",
     "agents",
@@ -345,6 +378,7 @@ function nodeProjection(run, nodeId) {
     attemptIds: Object.freeze([...state.attemptIds]),
     acceptedAttemptId: state.acceptedAttemptId,
     blockedRoot: state.blockedRoot,
+    iterationPath: Object.freeze([...(state.iterationPath || [])]),
     createdAt: state.createdAt,
     updatedAt: state.updatedAt,
   });
@@ -371,6 +405,28 @@ function runProjection(run) {
     completedAt: run.completedAt,
     progressEpoch: run.progressEpoch,
     compensation: Object.freeze(clone(run.compensation)),
+    parentRunRef: Object.freeze(clone(run.parentRunRef)),
+    subgraphDepth: run.subgraphDepth,
+    definitionPath: Object.freeze([...run.definitionPath]),
+    loops: Object.freeze(
+      [...run.loopStates.values()]
+        .sort((left, right) => left.regionId.localeCompare(right.regionId))
+        .map((state) => Object.freeze(clone(state))),
+    ),
+    iterationFrames: Object.freeze(
+      [...run.iterationFrames.values()]
+        .sort((left, right) =>
+          left.iterationPath
+            .join(".")
+            .localeCompare(right.iterationPath.join(".")),
+        )
+        .map((frame) => Object.freeze(clone(frame))),
+    ),
+    subgraphRuns: Object.freeze(
+      [...run.subgraphRuns.values()]
+        .sort((left, right) => left.nodeId.localeCompare(right.nodeId))
+        .map((relation) => Object.freeze(clone(relation))),
+    ),
     nodes: Object.freeze(
       run.compiled.topologicalOrder.map((id) => nodeProjection(run, id)),
     ),
@@ -429,6 +485,13 @@ function buildRun(compiled, options, now) {
     cancellationRequested: false,
     progressEpoch: 0,
     compensation: idleCompensationState(),
+    parentRunRef: clone(options.parentRunRef || null),
+    subgraphDepth: Number(options.subgraphDepth || 0),
+    definitionPath: clone(options.definitionPath || [compiled.definitionId]),
+    loopStates: new Map(),
+    iterationFrames: new Map(),
+    loopDecisionCache: new Map(),
+    subgraphRuns: new Map(),
     nodeStates: new Map(),
     attempts: new Map(),
     agents: new Map(),
@@ -446,13 +509,41 @@ function buildRun(compiled, options, now) {
     fenceCounters: new Map(),
     lastEvent: null,
   };
+  for (const loop of compiled.definition.loops || []) {
+    const iterationPath = [0];
+    const frameId = iterationFrameId(run.id, loop.id, iterationPath);
+    run.loopStates.set(loop.id, {
+      regionId: loop.id,
+      status: "active",
+      iteration: 0,
+      iterationPath,
+      frameId,
+      maxIterations: loop.maxIterations,
+      condition: loop.condition || null,
+      conditionEvidenceDigest: null,
+    });
+    run.iterationFrames.set(frameId, {
+      id: frameId,
+      runId: run.id,
+      regionId: loop.id,
+      parentFrameId: null,
+      iterationPath,
+      status: "active",
+      startedAt: createdAt,
+      completedAt: null,
+    });
+  }
   const compensationNodeIds = new Set(compiled.compensationNodeIds || []);
   for (const nodeId of compiled.topologicalOrder) {
+    const loopId = compiled.loopByNode?.[nodeId];
     run.nodeStates.set(nodeId, {
       status: compensationNodeIds.has(nodeId) ? "skipped" : "pending",
       attemptIds: [],
       acceptedAttemptId: null,
       blockedRoot: null,
+      iterationPath: loopId
+        ? [...run.loopStates.get(loopId).iterationPath]
+        : [],
       createdAt,
       updatedAt: createdAt,
     });
@@ -493,13 +584,56 @@ function addUsage(run, usage) {
   }
 }
 
+function effectiveDependencyStatus(run, dependency) {
+  const status = run.nodeStates.get(dependency).status;
+  const loopId = run.compiled.loopByExitNode?.[dependency];
+  const loopState = loopId ? run.loopStates.get(loopId) : null;
+  if (loopState && ["active", "waiting_condition"].includes(loopState.status)) {
+    return "running";
+  }
+  if (loopState?.status === "failed") return "failed";
+  if (loopState?.status === "cancelled") return "cancelled";
+  if (loopState?.status === "exhausted") return "budget_exhausted";
+  return status;
+}
+
+function refreshLoopStates(run, now) {
+  let changed = false;
+  for (const loop of run.compiled.definition.loops || []) {
+    const loopState = run.loopStates.get(loop.id);
+    if (!loopState || loopState.status !== "active") continue;
+    const statuses = loop.nodeIds.map(
+      (nodeId) => run.nodeStates.get(nodeId).status,
+    );
+    const failure = statuses.find((status) => FAILURE_NODE.has(status));
+    const cancelled = statuses.find((status) => status === "cancelled");
+    const frame = run.iterationFrames.get(loopState.frameId);
+    if (failure || cancelled) {
+      loopState.status = failure ? "failed" : "cancelled";
+      if (frame) {
+        frame.status = failure ? "failed" : "cancelled";
+        frame.completedAt = nowIso(now);
+      }
+      changed = true;
+    } else if (statuses.every((status) => status === "succeeded")) {
+      loopState.status = "waiting_condition";
+      if (frame) {
+        frame.status = "succeeded";
+        frame.completedAt = nowIso(now);
+      }
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function nodeReadiness(run, nodeId) {
   const node = run.compiled.nodes[nodeId];
   const dependencies = run.compiled.dependencies[nodeId] || [];
   if (!dependencies.length) return { ready: true };
   const policies = run.compiled.dependencyPolicies[nodeId] || {};
   const observations = dependencies.map((dependency) => {
-    const status = run.nodeStates.get(dependency).status;
+    const status = effectiveDependencyStatus(run, dependency);
     const policy = policies[dependency] || "success";
     return {
       dependency,
@@ -851,6 +985,16 @@ function classifyQuiescence(run, now) {
   ) {
     return "waiting_external";
   }
+  if (
+    [...run.loopStates.values()].some(
+      (loopState) => loopState.status === "waiting_condition",
+    ) ||
+    [...run.subgraphRuns.values()].some((relation) =>
+      ["starting", "running"].includes(relation.status),
+    )
+  ) {
+    return "waiting_external";
+  }
   const cycles = waitGraphCycles(run);
   if (cycles.length) return "deadlocked";
   const pending = [...run.nodeStates.entries()].filter(
@@ -906,6 +1050,20 @@ export class GraphKernel {
       );
     }
     return run;
+  }
+
+  _loadRun(runId) {
+    const id = safeIdentifier(runId, "runId");
+    if (this.runs.has(id)) return this.runs.get(id);
+    try {
+      if (this.eventStore.read(id).length > 0) {
+        this.recoverRun(id);
+        return this.runs.get(id);
+      }
+    } catch (error) {
+      if (error?.code !== "CC_ROLLOUT_THREAD_NOT_FOUND") throw error;
+    }
+    return null;
   }
 
   _transaction(run, type, details, mutator, options = {}) {
@@ -973,6 +1131,9 @@ export class GraphKernel {
           definitionId: compiled.definitionId,
           revisionDigest: compiled.revisionDigest,
           occurrenceRef: occurrence,
+          parentRunRef: run.parentRunRef,
+          subgraphDepth: run.subgraphDepth,
+          definitionPath: run.definitionPath,
         },
         () => {},
         { idempotencyKey: `run-start:${run.id}` },
@@ -1221,12 +1382,48 @@ export class GraphKernel {
         const compiled = compileGraphDefinition(definition);
         const createdAt = nowIso(() => now);
         const compensationNodeIds = new Set(compiled.compensationNodeIds || []);
+        const addedNodeIds = new Set(nodes.map((node) => node.id));
+        for (const loop of loops) {
+          if (loop.nodeIds.some((nodeId) => !addedNodeIds.has(nodeId))) {
+            throw kernelError(
+              "CC_GRAPH_DYNAMIC_LOOP_BOUNDARY",
+              "a dynamic loop must be added atomically with all of its nodes",
+              { loopId: loop.id },
+            );
+          }
+          const iterationPath = [0];
+          const frameId = iterationFrameId(run.id, loop.id, iterationPath);
+          run.loopStates.set(loop.id, {
+            regionId: loop.id,
+            status: "active",
+            iteration: 0,
+            iterationPath,
+            frameId,
+            maxIterations: loop.maxIterations,
+            condition: loop.condition || null,
+            conditionEvidenceDigest: null,
+          });
+          run.iterationFrames.set(frameId, {
+            id: frameId,
+            runId: run.id,
+            regionId: loop.id,
+            parentFrameId: null,
+            iterationPath,
+            status: "active",
+            startedAt: createdAt,
+            completedAt: null,
+          });
+        }
         for (const node of nodes) {
+          const loopId = compiled.loopByNode?.[node.id];
           run.nodeStates.set(node.id, {
             status: compensationNodeIds.has(node.id) ? "skipped" : "pending",
             attemptIds: [],
             acceptedAttemptId: null,
             blockedRoot: null,
+            iterationPath: loopId
+              ? [...run.loopStates.get(loopId).iterationPath]
+              : [],
             createdAt,
             updatedAt: createdAt,
           });
@@ -1281,6 +1478,7 @@ export class GraphKernel {
         }
         run.phase = "sealed";
         propagate(run, () => now);
+        if (refreshLoopStates(run, () => now)) propagate(run, () => now);
         run.status = classifyQuiescence(run, now);
         if (TERMINAL_RUN.has(run.status)) run.completedAt = nowIso(() => now);
         return runProjection(run);
@@ -1295,10 +1493,382 @@ export class GraphKernel {
       const now = this.now();
       sweepExpirations(run, now);
       propagate(run, () => now);
+      if (refreshLoopStates(run, () => now)) propagate(run, () => now);
       run.status = classifyQuiescence(run, now);
       if (TERMINAL_RUN.has(run.status)) run.completedAt ||= nowIso(() => now);
       return runProjection(run);
     });
+  }
+
+  advanceLoop(
+    runId,
+    { regionId, continueLoop, conditionEvidenceDigest, requestId = null } = {},
+  ) {
+    const run = this._run(runId);
+    const safeRegionId = safeIdentifier(regionId, "regionId");
+    const evidenceDigest = String(conditionEvidenceDigest || "");
+    if (!/^sha256:[a-f0-9]{64}$/u.test(evidenceDigest)) {
+      throw kernelError(
+        "CC_GRAPH_LOOP_EVIDENCE_REQUIRED",
+        "loop advancement requires a sha256 condition evidence digest",
+      );
+    }
+    if (typeof continueLoop !== "boolean") {
+      throw kernelError(
+        "CC_GRAPH_LOOP_DECISION_INVALID",
+        "continueLoop must be a boolean",
+      );
+    }
+    const loop = run.compiled.loops?.[safeRegionId];
+    const loopState = run.loopStates.get(safeRegionId);
+    if (!loop || !loopState) {
+      throw kernelError(
+        "CC_GRAPH_LOOP_NOT_FOUND",
+        `loop region not found: ${safeRegionId}`,
+      );
+    }
+    if (requestId == null) {
+      throw kernelError(
+        "CC_GRAPH_LOOP_REQUEST_ID_REQUIRED",
+        "loop advancement requires a stable requestId for crash-safe replay",
+      );
+    }
+    const decisionKey = safeIdentifier(requestId, "requestId");
+    const decisionDigest = graphDigest(
+      {
+        regionId: safeRegionId,
+        continueLoop,
+        conditionEvidenceDigest: evidenceDigest,
+      },
+      "cc.graph.loop-decision/v1",
+    );
+    const replay = run.loopDecisionCache.get(decisionKey);
+    if (replay) {
+      if (replay.digest !== decisionDigest) {
+        throw kernelError(
+          "CC_GRAPH_REQUEST_ID_CONFLICT",
+          "loop requestId was reused with a different decision",
+        );
+      }
+      return runProjection(run);
+    }
+    this._transaction(
+      run,
+      continueLoop ? "loop.continued" : "loop.exited",
+      {
+        regionId: safeRegionId,
+        iteration: loopState.iteration,
+        continueLoop,
+        conditionEvidenceDigest: evidenceDigest,
+        requestId: decisionKey,
+      },
+      () => {
+        if (loopState.status !== "waiting_condition") {
+          throw kernelError(
+            "CC_GRAPH_LOOP_NOT_WAITING",
+            `loop body is not awaiting a condition decision: ${safeRegionId}`,
+          );
+        }
+        const now = this.now();
+        loopState.conditionEvidenceDigest = evidenceDigest;
+        if (!continueLoop) {
+          loopState.status = "succeeded";
+          run.loopDecisionCache.set(decisionKey, {
+            digest: decisionDigest,
+            result: "exited",
+          });
+          propagate(run, () => now);
+          refreshLoopStates(run, () => now);
+          run.status = classifyQuiescence(run, now);
+          if (TERMINAL_RUN.has(run.status)) {
+            run.completedAt = nowIso(() => now);
+          }
+          return runProjection(run);
+        }
+
+        const nextIteration = loopState.iteration + 1;
+        if (nextIteration >= loop.maxIterations) {
+          loopState.status = "exhausted";
+          const frame = run.iterationFrames.get(loopState.frameId);
+          if (frame) frame.status = "exhausted";
+          const exitState = run.nodeStates.get(loop.exitNodeId);
+          exitState.status = "budget_exhausted";
+          exitState.blockedRoot = loop.id;
+          exitState.updatedAt = nowIso(() => now);
+          run.loopDecisionCache.set(decisionKey, {
+            digest: decisionDigest,
+            result: "exhausted",
+          });
+          propagate(run, () => now);
+          run.status = "budget_exhausted";
+          run.completedAt = nowIso(() => now);
+          return runProjection(run);
+        }
+
+        const iterationPath = [nextIteration];
+        const frameId = iterationFrameId(run.id, safeRegionId, iterationPath);
+        loopState.status = "active";
+        loopState.iteration = nextIteration;
+        loopState.iterationPath = iterationPath;
+        loopState.frameId = frameId;
+        loopState.conditionEvidenceDigest = null;
+        run.iterationFrames.set(frameId, {
+          id: frameId,
+          runId: run.id,
+          regionId: safeRegionId,
+          parentFrameId: null,
+          iterationPath,
+          status: "active",
+          startedAt: nowIso(() => now),
+          completedAt: null,
+        });
+        for (const nodeId of loop.nodeIds) {
+          const state = run.nodeStates.get(nodeId);
+          state.status = "pending";
+          state.acceptedAttemptId = null;
+          state.blockedRoot = null;
+          state.iterationPath = [...iterationPath];
+          state.updatedAt = nowIso(() => now);
+        }
+        run.loopDecisionCache.set(decisionKey, {
+          digest: decisionDigest,
+          result: "continued",
+        });
+        run.status = "running";
+        run.completedAt = null;
+        return runProjection(run);
+      },
+      { idempotencyKey: `loop-decision:${decisionKey}` },
+    );
+    return runProjection(run);
+  }
+
+  startSubgraph(
+    parentRunId,
+    nodeId,
+    compiledGraph,
+    { childRunId = null, seal = true } = {},
+  ) {
+    const childCompiled = assertCompiledGraph(compiledGraph);
+    const parent = this._run(parentRunId);
+    const safeNodeId = safeIdentifier(nodeId, "nodeId");
+    const call = parent.compiled.subgraphCalls?.[safeNodeId];
+    const state = parent.nodeStates.get(safeNodeId);
+    if (!call || !state) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_CALL_NOT_FOUND",
+        `subgraph call not found: ${safeNodeId}`,
+      );
+    }
+    if (
+      call.definitionId !== childCompiled.definitionId ||
+      call.revisionDigest !== childCompiled.revisionDigest
+    ) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_DIGEST_MISMATCH",
+        `subgraph definition does not match the pinned call: ${safeNodeId}`,
+      );
+    }
+    const childDepth = parent.subgraphDepth + 1;
+    if (childDepth > call.maxDepth) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_DEPTH_EXCEEDED",
+        `subgraph depth ${childDepth} exceeds maxDepth ${call.maxDepth}`,
+      );
+    }
+    if (parent.definitionPath.includes(childCompiled.definitionId)) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_RECURSION",
+        `recursive subgraph call rejected: ${[
+          ...parent.definitionPath,
+          childCompiled.definitionId,
+        ].join(" -> ")}`,
+      );
+    }
+    const id = safeIdentifier(
+      childRunId ||
+        deterministicSubgraphRunId(
+          parent.id,
+          safeNodeId,
+          childCompiled.revisionDigest,
+        ),
+      "childRunId",
+    );
+    let relation = parent.subgraphRuns.get(safeNodeId);
+    if (relation) {
+      if (
+        relation.childRunId !== id ||
+        relation.revisionDigest !== childCompiled.revisionDigest
+      ) {
+        throw kernelError(
+          "CC_GRAPH_SUBGRAPH_CALL_CONFLICT",
+          "subgraph call was already bound to a different child run",
+        );
+      }
+    } else {
+      if (parent.phase !== "sealed") {
+        throw kernelError(
+          "CC_GRAPH_SUBGRAPH_REQUIRES_SEALED_PARENT",
+          "subgraph calls require a sealed parent GraphRun",
+        );
+      }
+      if (
+        state.status !== "pending" ||
+        !nodeReadiness(parent, safeNodeId).ready
+      ) {
+        throw kernelError(
+          "CC_GRAPH_NODE_NOT_READY",
+          `Graph node is not ready: ${safeNodeId}`,
+        );
+      }
+      relation = this._transaction(
+        parent,
+        "subgraph.starting",
+        {
+          nodeId: safeNodeId,
+          childRunId: id,
+          definitionId: childCompiled.definitionId,
+          revisionDigest: childCompiled.revisionDigest,
+          depth: childDepth,
+        },
+        () => {
+          const createdAt = nowIso(this.now);
+          const value = {
+            nodeId: safeNodeId,
+            childRunId: id,
+            definitionId: childCompiled.definitionId,
+            revisionDigest: childCompiled.revisionDigest,
+            depth: childDepth,
+            status: "starting",
+            createdAt,
+            updatedAt: createdAt,
+            completedAt: null,
+          };
+          parent.subgraphRuns.set(safeNodeId, value);
+          state.status = "running";
+          state.updatedAt = createdAt;
+          parent.status = "waiting_external";
+          return clone(value);
+        },
+        { idempotencyKey: `subgraph-starting:${safeNodeId}:${id}` },
+      );
+    }
+
+    let child = this._loadRun(id);
+    if (child) {
+      if (
+        child.revisionDigest !== childCompiled.revisionDigest ||
+        child.parentRunRef?.runId !== parent.id ||
+        child.parentRunRef?.nodeId !== safeNodeId
+      ) {
+        throw kernelError(
+          "CC_GRAPH_SUBGRAPH_RUN_CONFLICT",
+          `child run id is already bound to another call: ${id}`,
+        );
+      }
+    } else {
+      this.startRun(childCompiled, {
+        runId: id,
+        parentRunRef: {
+          runId: parent.id,
+          nodeId: safeNodeId,
+          revisionDigest: parent.revisionDigest,
+        },
+        subgraphDepth: childDepth,
+        definitionPath: [...parent.definitionPath, childCompiled.definitionId],
+      });
+      child = this._run(id);
+    }
+    if (seal !== false && child.phase === "open") this.sealRun(id);
+
+    relation = parent.subgraphRuns.get(safeNodeId);
+    if (relation.status === "starting") {
+      this._transaction(
+        parent,
+        "subgraph.started",
+        { nodeId: safeNodeId, childRunId: id },
+        () => {
+          relation.status = "running";
+          relation.updatedAt = nowIso(this.now);
+          parent.status = "waiting_external";
+        },
+        { idempotencyKey: `subgraph-started:${safeNodeId}:${id}` },
+      );
+    }
+    return Object.freeze({
+      relation: Object.freeze(clone(parent.subgraphRuns.get(safeNodeId))),
+      parentRun: runProjection(parent),
+      childRun: runProjection(child),
+    });
+  }
+
+  settleSubgraph(parentRunId, nodeId) {
+    const parent = this._run(parentRunId);
+    const safeNodeId = safeIdentifier(nodeId, "nodeId");
+    const relation = parent.subgraphRuns.get(safeNodeId);
+    if (!relation) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_NOT_STARTED",
+        `subgraph has not been started: ${safeNodeId}`,
+      );
+    }
+    if (["succeeded", "failed", "cancelled"].includes(relation.status)) {
+      return runProjection(parent);
+    }
+    const child = this._loadRun(relation.childRunId);
+    if (!child) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_RUN_NOT_FOUND",
+        `subgraph child run not found: ${relation.childRunId}`,
+      );
+    }
+    if (!TERMINAL_RUN.has(child.status)) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_ACTIVE",
+        `subgraph child run is not terminal: ${child.status}`,
+      );
+    }
+    return this._transaction(
+      parent,
+      "subgraph.settled",
+      {
+        nodeId: safeNodeId,
+        childRunId: child.id,
+        childStatus: child.status,
+      },
+      () => {
+        const now = this.now();
+        const state = parent.nodeStates.get(safeNodeId);
+        const succeeded = child.status === "succeeded";
+        relation.status = succeeded
+          ? "succeeded"
+          : child.status === "cancelled"
+            ? "cancelled"
+            : "failed";
+        relation.updatedAt = nowIso(() => now);
+        relation.completedAt = nowIso(() => now);
+        relation.childStatus = child.status;
+        state.status = succeeded
+          ? "succeeded"
+          : child.status === "cancelled"
+            ? "cancelled"
+            : child.status === "budget_exhausted"
+              ? "budget_exhausted"
+              : "failed";
+        state.blockedRoot = succeeded ? null : child.id;
+        state.updatedAt = nowIso(() => now);
+        propagate(parent, () => now);
+        refreshLoopStates(parent, () => now);
+        parent.status = classifyQuiescence(parent, now);
+        if (TERMINAL_RUN.has(parent.status)) {
+          parent.completedAt = nowIso(() => now);
+        }
+        return runProjection(parent);
+      },
+      {
+        idempotencyKey: `subgraph-settle:${safeNodeId}:${child.id}:${child.status}`,
+      },
+    );
   }
 
   readyNodes(runId) {
@@ -1330,6 +1900,14 @@ export class GraphKernel {
       })
       .map((nodeId) => ({
         nodeId,
+        ...(run.compiled.subgraphCalls?.[nodeId]
+          ? {
+              dispatch: "subgraph",
+              definitionId: run.compiled.subgraphCalls[nodeId].definitionId,
+              revisionDigest: run.compiled.subgraphCalls[nodeId].revisionDigest,
+              maxDepth: run.compiled.subgraphCalls[nodeId].maxDepth,
+            }
+          : {}),
         priority: effectivePriority(run, nodeId, now, this.agingWindowMs),
       }))
       .sort(
@@ -1345,6 +1923,7 @@ export class GraphKernel {
     if (!ready.length) return null;
     let lastConflict = null;
     for (const candidate of ready) {
+      if (candidate.dispatch === "subgraph") continue;
       try {
         return this.assignNode(runId, candidate.nodeId, agentId, options);
       } catch (error) {
@@ -1371,13 +1950,27 @@ export class GraphKernel {
       role = "executor",
       ttlMs = 60_000,
       leaseId = this.createId(),
-      attemptId = this.createId(),
+      attemptId = null,
       grant = {},
     } = {},
   ) {
     const run = this._run(runId);
     const safeNodeId = safeIdentifier(nodeId, "nodeId");
     const safeAgentId = safeIdentifier(agentId, "agentId");
+    const iterationPath = [
+      ...(run.nodeStates.get(safeNodeId)?.iterationPath || []),
+    ];
+    const attemptNumber =
+      [...run.attempts.values()].filter(
+        (candidate) =>
+          candidate.nodeId === safeNodeId &&
+          JSON.stringify(candidate.iterationPath || []) ===
+            JSON.stringify(iterationPath),
+      ).length + 1;
+    const requestedAttemptId = safeIdentifier(
+      attemptId || executionAttemptId(safeNodeId, iterationPath, attemptNumber),
+      "attemptId",
+    );
     return this._transaction(
       run,
       "assignment.started",
@@ -1386,12 +1979,19 @@ export class GraphKernel {
         const now = this.now();
         sweepExpirations(run, now);
         propagate(run, () => now);
+        refreshLoopStates(run, () => now);
         const node = run.compiled.nodes[safeNodeId];
         const state = run.nodeStates.get(safeNodeId);
         if (!node || !state) {
           throw kernelError(
             "CC_GRAPH_NODE_NOT_FOUND",
             `Graph node not found: ${safeNodeId}`,
+          );
+        }
+        if (run.compiled.subgraphCalls?.[safeNodeId]) {
+          throw kernelError(
+            "CC_GRAPH_SUBGRAPH_DISPATCH_REQUIRED",
+            `subgraph nodes must be started through startSubgraph(): ${safeNodeId}`,
           );
         }
         const compensationEntry = compensationAssignment(run, safeNodeId);
@@ -1438,11 +2038,13 @@ export class GraphKernel {
         }
         const fence = (run.fenceCounters.get(safeNodeId) || 0) + 1;
         run.fenceCounters.set(safeNodeId, fence);
-        const id = safeIdentifier(attemptId, "attemptId");
+        const id = requestedAttemptId;
         const attempt = {
           id,
           runId: run.id,
           nodeId: safeNodeId,
+          iterationPath,
+          attempt: attemptNumber,
           agentId: safeAgentId,
           role: compensationEntry ? "executor" : role,
           compensationForNodeId: compensationEntry?.nodeId || null,
@@ -1466,7 +2068,7 @@ export class GraphKernel {
         agent.updatedAt = nowIso(() => now);
         return attemptProjection(attempt);
       },
-      { idempotencyKey: `assignment:${attemptId}` },
+      { idempotencyKey: `assignment:${requestedAttemptId}` },
     );
   }
 
@@ -1892,8 +2494,7 @@ export class GraphKernel {
           attempt.participationStatus = "failed";
           attempt.error = error == null ? null : String(error).slice(0, 4096);
           attempt.terminalEvidence = clone(evidence);
-          const attemptNumber = state.attemptIds.length;
-          if (attemptNumber <= Number(node.retryLimit || 0)) {
+          if (attempt.attempt <= Number(node.retryLimit || 0)) {
             state.status = "pending";
           } else {
             state.status = outcome === "timed_out" ? "timed_out" : "failed";
@@ -1929,6 +2530,7 @@ export class GraphKernel {
           }
         } else {
           propagate(run, this.now);
+          if (refreshLoopStates(run, this.now)) propagate(run, this.now);
           run.status = classifyQuiescence(run, this.now());
         }
         if (TERMINAL_RUN.has(run.status)) run.completedAt = nowIso(this.now);
@@ -1980,6 +2582,20 @@ export class GraphKernel {
         }
       }),
     );
+    for (const relation of run.subgraphRuns.values()) {
+      if (!["starting", "running"].includes(relation.status)) continue;
+      try {
+        const child = this._loadRun(relation.childRunId);
+        if (child && !TERMINAL_RUN.has(child.status)) {
+          await this.cancelRun(child.id, { reason, interrupt });
+        }
+      } catch (error) {
+        failures.push({
+          subgraphRunId: relation.childRunId,
+          error: String(error?.message || error).slice(0, 4096),
+        });
+      }
+    }
     return this._transaction(
       run,
       failures.length ? "run.cancel_reconciliation" : "run.cancelled",
@@ -1999,6 +2615,19 @@ export class GraphKernel {
           state.status = failure ? "reconciliation_required" : "cancelled";
           state.updatedAt = nowIso(this.now);
         }
+        for (const relation of run.subgraphRuns.values()) {
+          if (!["starting", "running"].includes(relation.status)) continue;
+          const failure = failures.find(
+            (entry) => entry.subgraphRunId === relation.childRunId,
+          );
+          relation.status = failure ? "failed" : "cancelled";
+          relation.updatedAt = nowIso(this.now);
+          relation.completedAt = failure ? null : nowIso(this.now);
+          const state = run.nodeStates.get(relation.nodeId);
+          state.status = failure ? "reconciliation_required" : "cancelled";
+          state.blockedRoot = relation.childRunId;
+          state.updatedAt = nowIso(this.now);
+        }
         const unsettledEffects = [...run.effects.values()].filter(
           (effect) => effect.status === "started",
         );
@@ -2009,6 +2638,7 @@ export class GraphKernel {
           state.status = "reconciliation_required";
           state.updatedAt = nowIso(this.now);
         }
+        refreshLoopStates(run, this.now);
         const requiresReconciliation =
           failures.length > 0 || unsettledEffects.length > 0;
         run.status = requiresReconciliation
@@ -2530,10 +3160,20 @@ export class GraphKernel {
         sender.updatedAt = nowIso(() => now);
         const fence = (run.fenceCounters.get(sender.nodeId) || 0) + 1;
         run.fenceCounters.set(sender.nodeId, fence);
+        const iterationPath = [...(sender.iterationPath || [])];
+        const attemptNumber =
+          [...run.attempts.values()].filter(
+            (candidate) =>
+              candidate.nodeId === sender.nodeId &&
+              JSON.stringify(candidate.iterationPath || []) ===
+                JSON.stringify(iterationPath),
+          ).length + 1;
         const newAttempt = {
           id: safeIdentifier(attemptId, "attemptId"),
           runId: run.id,
           nodeId: sender.nodeId,
+          iterationPath,
+          attempt: attemptNumber,
           agentId: handoff.toAgentId,
           role: "executor",
           leaseId: safeIdentifier(leaseId, "leaseId"),

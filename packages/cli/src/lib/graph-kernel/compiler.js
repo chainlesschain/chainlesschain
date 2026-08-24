@@ -272,7 +272,13 @@ export function writeScopesOverlap(left, right) {
   return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
 }
 
-function loopMultipliers(definition, diagnostics, nodeIds) {
+function loopMultipliers(
+  definition,
+  diagnostics,
+  nodeIds,
+  nodes,
+  dependencies,
+) {
   const multiplier = new Map([...nodeIds].map((id) => [id, 1]));
   const membership = new Map();
   for (const [index, loop] of definition.loops.entries()) {
@@ -300,6 +306,23 @@ function loopMultipliers(definition, diagnostics, nodeIds) {
       owners.push(loop.id);
       membership.set(nodeId, owners);
       multiplier.set(nodeId, multiplier.get(nodeId) * loop.maxIterations);
+      const node = nodes.get(nodeId);
+      if (node && !["none", "read"].includes(node.effectClass || "none")) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_LOOP_EFFECT_UNSUPPORTED",
+          `#/loops/${index}/nodeIds`,
+          `loop nodes must be effect-free until iteration-scoped effect receipts are available: ${nodeId}`,
+        );
+      }
+      if (node?.kind === "subgraph") {
+        diagnostic(
+          diagnostics,
+          "GRAPH_LOOP_SUBGRAPH_UNSUPPORTED",
+          `#/loops/${index}/nodeIds`,
+          `subgraph calls cannot be nested inside a loop region: ${nodeId}`,
+        );
+      }
     }
     if (
       !loop.nodeIds.includes(loop.entryNodeId) ||
@@ -311,6 +334,67 @@ function loopMultipliers(definition, diagnostics, nodeIds) {
         `#/loops/${index}`,
         "loop entry and exit must be members of the region",
       );
+    }
+    const regionNodeIds = new Set(loop.nodeIds);
+    const regionOutgoing = new Map(
+      loop.nodeIds.map((nodeId) => [nodeId, new Set()]),
+    );
+    for (const nodeId of loop.nodeIds) {
+      for (const dependency of dependencies.get(nodeId) || []) {
+        if (regionNodeIds.has(dependency)) {
+          regionOutgoing.get(dependency).add(nodeId);
+        } else if (nodeId !== loop.entryNodeId) {
+          diagnostic(
+            diagnostics,
+            "GRAPH_LOOP_ENTRY_LEAK",
+            `#/loops/${index}/entryNodeId`,
+            `external dependencies may only enter a loop through its entry node: ${nodeId} depends on ${dependency}`,
+          );
+        }
+      }
+    }
+    const canReach = (source, target) => {
+      const pending = [source];
+      const seen = new Set();
+      while (pending.length) {
+        const current = pending.pop();
+        if (current === target) return true;
+        if (seen.has(current)) continue;
+        seen.add(current);
+        pending.push(...(regionOutgoing.get(current) || []));
+      }
+      return false;
+    };
+    for (const nodeId of loop.nodeIds) {
+      if (!canReach(loop.entryNodeId, nodeId)) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_LOOP_NODE_UNREACHABLE_FROM_ENTRY",
+          `#/loops/${index}/nodeIds`,
+          `loop node is unreachable from its entry: ${nodeId}`,
+        );
+      }
+      if (!canReach(nodeId, loop.exitNodeId)) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_LOOP_NODE_CANNOT_REACH_EXIT",
+          `#/loops/${index}/nodeIds`,
+          `loop node cannot reach its exit: ${nodeId}`,
+        );
+      }
+    }
+    for (const node of definition.nodes) {
+      if (regionNodeIds.has(node.id)) continue;
+      for (const dependency of dependencies.get(node.id) || []) {
+        if (regionNodeIds.has(dependency) && dependency !== loop.exitNodeId) {
+          diagnostic(
+            diagnostics,
+            "GRAPH_LOOP_EXIT_LEAK",
+            `#/loops/${index}/exitNodeId`,
+            `nodes outside a loop may only depend on its exit node: ${node.id} depends on ${dependency}`,
+          );
+        }
+      }
     }
   }
   for (const [nodeId, owners] of membership) {
@@ -362,6 +446,15 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
         `subgraph call node does not exist: ${call.nodeId}`,
       );
     }
+    const callNode = definition.nodes.find((node) => node.id === call.nodeId);
+    if (callNode && callNode.kind !== "subgraph") {
+      diagnostic(
+        diagnostics,
+        "GRAPH_SUBGRAPH_NODE_KIND_INVALID",
+        `#/subgraphCalls/${index}/nodeId`,
+        `subgraph call must target a node with kind=subgraph: ${call.nodeId}`,
+      );
+    }
     const target =
       registry instanceof Map
         ? registry.get(call.definitionId)
@@ -375,6 +468,16 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
       );
     }
     calls.set(call.nodeId, call);
+  }
+  for (const [index, node] of definition.nodes.entries()) {
+    if (node.kind === "subgraph" && !calls.has(node.id)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_SUBGRAPH_CALL_REQUIRED",
+        `#/nodes/${index}`,
+        `subgraph node requires a pinned SubgraphCall: ${node.id}`,
+      );
+    }
   }
 
   const definitions = new Map();
@@ -917,7 +1020,13 @@ export function compileGraphDefinition(input, options = {}) {
     }
   }
 
-  const multiplier = loopMultipliers(definition, diagnostics, nodeIds);
+  const multiplier = loopMultipliers(
+    definition,
+    diagnostics,
+    nodeIds,
+    nodes,
+    dependencies,
+  );
   const budget = budgetUpperBound(definition, multiplier, diagnostics);
   const subgraphCalls = validateSubgraphs(
     definition,
@@ -972,6 +1081,21 @@ export function compileGraphDefinition(input, options = {}) {
       ),
     ),
     loopMultipliers: deepFreeze(Object.fromEntries(multiplier)),
+    loops: deepFreeze(
+      Object.fromEntries(definition.loops.map((loop) => [loop.id, loop])),
+    ),
+    loopByNode: deepFreeze(
+      Object.fromEntries(
+        definition.loops.flatMap((loop) =>
+          loop.nodeIds.map((nodeId) => [nodeId, loop.id]),
+        ),
+      ),
+    ),
+    loopByExitNode: deepFreeze(
+      Object.fromEntries(
+        definition.loops.map((loop) => [loop.exitNodeId, loop.id]),
+      ),
+    ),
     budgetUpperBound: deepFreeze(budget),
     subgraphCalls: deepFreeze(Object.fromEntries(subgraphCalls)),
     triggers: deepFreeze([...(definition.triggers || [])]),
@@ -1026,5 +1150,9 @@ export function executionAttemptId(nodeId, iterationPath = [], attempt = 1) {
         return number;
       })
     : [];
-  return `${nodeId}@${path.length ? path.join(".") : "root"}#${attempt}`;
+  const digest = graphDigest(
+    { nodeId: String(nodeId), iterationPath: path, attempt },
+    "cc.graph.execution-attempt/v1",
+  );
+  return `attempt-${digest.slice(7, 47)}`;
 }

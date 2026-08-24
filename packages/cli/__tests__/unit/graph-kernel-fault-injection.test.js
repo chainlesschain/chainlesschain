@@ -56,22 +56,22 @@ function task(id, overrides = {}) {
   };
 }
 
-function compiled(nodes) {
+function compiled(nodes, overrides = {}) {
   return compileGraphDefinition({
     schemaVersion: 1,
-    id: "fault-injection-graph",
+    id: overrides.id || "fault-injection-graph",
     revision: 1,
     nodes,
     edges: [],
-    loops: [],
-    subgraphCalls: [],
+    loops: overrides.loops || [],
+    subgraphCalls: overrides.subgraphCalls || [],
     budget: { turns: 100, tokens: 100_000 },
     allowedCapabilities: [],
     metadata: {},
   });
 }
 
-function context(nodes, runId) {
+function context(nodes, runId, overrides = {}) {
   const durable = new GraphEventStore({
     rolloutStore: new MemoryRolloutStore({ now: () => NOW }),
   });
@@ -81,7 +81,7 @@ function context(nodes, runId) {
     now: () => NOW,
     createId: () => "generated-id",
   });
-  kernel.startRun(compiled(nodes), { runId });
+  kernel.startRun(compiled(nodes, overrides), { runId });
   kernel.sealRun(runId);
   return { durable, eventStore, kernel };
 }
@@ -284,6 +284,106 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
       recovered
         .events(runId)
         .filter((event) => event.type === "message.processed"),
+    ).toHaveLength(1);
+  });
+
+  it("recovers the next deterministic loop frontier after a decision cutpoint", () => {
+    const runId = "fault-loop-decision";
+    const { durable, eventStore, kernel } = context([task("repeat")], runId, {
+      loops: [
+        {
+          id: "bounded-loop",
+          entryNodeId: "repeat",
+          exitNodeId: "repeat",
+          nodeIds: ["repeat"],
+          maxIterations: 2,
+          condition: "done",
+        },
+      ],
+    });
+    const attempt = assign(kernel, runId, "repeat");
+    kernel.settleAttempt(runId, {
+      attemptId: attempt.id,
+      leaseId: attempt.leaseId,
+      fence: attempt.fence,
+      outcome: "succeeded",
+      evidence: { outputDigest: DIGEST_A },
+    });
+    eventStore.arm("loop.continued");
+
+    expect(() =>
+      kernel.advanceLoop(runId, {
+        regionId: "bounded-loop",
+        continueLoop: true,
+        conditionEvidenceDigest: DIGEST_B,
+        requestId: "loop-cutpoint-0",
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "TEST_CRASH_AFTER_DURABLE_APPEND" }),
+    );
+
+    const recovered = recover(durable, runId);
+    expect(recovered.getRun(runId)).toMatchObject({
+      status: "running",
+      loops: [
+        expect.objectContaining({
+          status: "active",
+          iterationPath: [1],
+        }),
+      ],
+      nodes: [
+        expect.objectContaining({ status: "pending", iterationPath: [1] }),
+      ],
+    });
+    expect(
+      recovered
+        .events(runId)
+        .filter((event) => event.type === "loop.continued"),
+    ).toHaveLength(1);
+  });
+
+  it("resumes child creation after the parent subgraph binding was committed", () => {
+    const child = compiled([task("child-task")], { id: "fault-child" });
+    const runId = "fault-subgraph-start";
+    const { durable, eventStore, kernel } = context(
+      [task("call-child", { kind: "subgraph" })],
+      runId,
+      {
+        id: "fault-parent",
+        subgraphCalls: [
+          {
+            nodeId: "call-child",
+            definitionId: child.definitionId,
+            revisionDigest: child.revisionDigest,
+            maxDepth: 2,
+          },
+        ],
+      },
+    );
+    eventStore.arm("subgraph.starting");
+
+    expect(() => kernel.startSubgraph(runId, "call-child", child)).toThrowError(
+      expect.objectContaining({ code: "TEST_CRASH_AFTER_DURABLE_APPEND" }),
+    );
+
+    const recovered = recover(durable, runId);
+    expect(recovered.getRun(runId)).toMatchObject({
+      status: "waiting_external",
+      subgraphRuns: [expect.objectContaining({ status: "starting" })],
+    });
+    const resumed = recovered.startSubgraph(runId, "call-child", child);
+    expect(resumed).toMatchObject({
+      relation: { status: "running" },
+      childRun: {
+        definitionId: "fault-child",
+        phase: "sealed",
+        status: "running",
+      },
+    });
+    expect(
+      recovered
+        .events(runId)
+        .filter((event) => event.type === "subgraph.starting"),
     ).toHaveLength(1);
   });
 });

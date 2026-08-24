@@ -207,6 +207,67 @@ describe("typed Graph Compiler", () => {
     }
   });
 
+  it("indexes bounded loop regions and rejects unsafe execution boundaries", () => {
+    const compiled = compileGraphDefinition(
+      graph({
+        nodes: [
+          node("entry"),
+          node("exit", { dependsOn: ["entry"] }),
+          node("after", { dependsOn: ["exit"] }),
+        ],
+        loops: [
+          {
+            id: "quality-loop",
+            entryNodeId: "entry",
+            exitNodeId: "exit",
+            nodeIds: ["entry", "exit"],
+            maxIterations: 3,
+            condition: "quality gate passed",
+          },
+        ],
+      }),
+    );
+    expect(compiled.loops["quality-loop"]).toMatchObject({
+      maxIterations: 3,
+    });
+    expect(compiled.loopByNode).toEqual({
+      entry: "quality-loop",
+      exit: "quality-loop",
+    });
+    expect(compiled.loopByExitNode).toEqual({ exit: "quality-loop" });
+
+    try {
+      compileGraphDefinition(
+        graph({
+          nodes: [
+            node("entry", {
+              effectClass: "external",
+              idempotencyKey: "unsafe-loop-effect",
+            }),
+            node("exit", { dependsOn: ["entry"] }),
+            node("leak", { dependsOn: ["entry"] }),
+          ],
+          loops: [
+            {
+              id: "unsafe-loop",
+              entryNodeId: "entry",
+              exitNodeId: "exit",
+              nodeIds: ["entry", "exit"],
+              maxIterations: 2,
+            },
+          ],
+        }),
+      );
+    } catch (error) {
+      expect(diagnosticCodes(error)).toEqual(
+        expect.arrayContaining([
+          "GRAPH_LOOP_EFFECT_UNSUPPORTED",
+          "GRAPH_LOOP_EXIT_LEAK",
+        ]),
+      );
+    }
+  });
+
   it("rejects unordered write conflicts but accepts worktree isolation", () => {
     const writer = (id, scope, workspaceIsolation = "declared_scope") =>
       node(id, {
@@ -357,7 +418,10 @@ describe("typed Graph Compiler", () => {
   });
 
   it("provides deterministic attempt ids and schema/scope helpers", () => {
-    expect(executionAttemptId("task", [0, 2], 3)).toBe("task@0.2#3");
+    const attemptId = executionAttemptId("task", [0, 2], 3);
+    expect(attemptId).toBe(executionAttemptId("task", [0, 2], 3));
+    expect(attemptId).not.toBe(executionAttemptId("task", [0, 3], 3));
+    expect(attemptId).toMatch(/^attempt-[a-f0-9]{40}$/);
     expect(writeScopesOverlap("src/**", "src/core/file.js")).toBe(true);
     expect(writeScopesOverlap("src/**", "docs/**")).toBe(false);
     expect(

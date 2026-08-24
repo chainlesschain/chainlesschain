@@ -40,12 +40,19 @@ function criticalPath(definition, attempts) {
   const duration = new Map(
     forwardNodes.map((node) => [
       node.id,
-      Math.max(
-        0,
+      [
         ...attempts
           .filter((attempt) => attempt.nodeId === node.id)
-          .map(durationMs),
-      ),
+          .reduce((iterations, attempt) => {
+            const key = JSON.stringify(attempt.iterationPath || []);
+            iterations.set(
+              key,
+              Math.max(iterations.get(key) || 0, durationMs(attempt)),
+            );
+            return iterations;
+          }, new Map())
+          .values(),
+      ].reduce((total, value) => total + value, 0),
     ]),
   );
   const dependencies = new Map(
@@ -151,6 +158,19 @@ export function reduceGraphTrace(
   const handoffs = [...mapFromEntries(state.handoffs).values()];
   const humanTasks = [...mapFromEntries(state.humanTasks).values()];
   const agents = [...mapFromEntries(state.agents).values()];
+  const loopStates = [...mapFromEntries(state.loopStates).values()].sort(
+    (left, right) => left.regionId.localeCompare(right.regionId),
+  );
+  const iterationFrames = [
+    ...mapFromEntries(state.iterationFrames).values(),
+  ].sort(
+    (left, right) =>
+      left.regionId.localeCompare(right.regionId) ||
+      left.iterationPath.join(".").localeCompare(right.iterationPath.join(".")),
+  );
+  const subgraphRuns = [...mapFromEntries(state.subgraphRuns).values()].sort(
+    (left, right) => left.nodeId.localeCompare(right.nodeId),
+  );
   const definition = state.definition;
   const compensationForNode = new Map([
     ...definition.nodes
@@ -173,6 +193,7 @@ export function reduceGraphTrace(
     blockedRoot: nodeStates.get(node.id)?.blockedRoot || null,
     acceptedAttemptId: nodeStates.get(node.id)?.acceptedAttemptId || null,
     attemptIds: nodeStates.get(node.id)?.attemptIds || [],
+    iterationPath: nodeStates.get(node.id)?.iterationPath || [],
     writeSet: node.writeSet || [],
     workspaceIsolation: node.workspaceIsolation || null,
     compensationNodeId:
@@ -273,6 +294,27 @@ export function reduceGraphTrace(
     attempts,
     handoffs,
     humanTasks,
+    iterationGraph: {
+      loops: loopStates,
+      frames: iterationFrames,
+      attempts: attempts.map((attempt) => ({
+        id: attempt.id,
+        nodeId: attempt.nodeId,
+        iterationPath: attempt.iterationPath || [],
+        attempt: attempt.attempt || 1,
+        status: attempt.status,
+      })),
+    },
+    subgraphGraph: {
+      runs: subgraphRuns,
+      edges: subgraphRuns.map((relation) => ({
+        from: relation.nodeId,
+        to: `run:${relation.childRunId}`,
+        kind: "subgraph_call",
+        revisionDigest: relation.revisionDigest,
+        status: relation.status,
+      })),
+    },
     criticalPath: criticalPath(definition, attempts),
     timeline,
   };
