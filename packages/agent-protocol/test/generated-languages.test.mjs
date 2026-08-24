@@ -13,7 +13,7 @@ test("generated clients preserve protocol field names across language keywords",
   const kotlin = read("../generated/kotlin/CcAgentProtocol.kt");
   const swift = read("../generated/swift/CcAgentProtocol.swift");
 
-  assert.match(python, /"from": Required\["Identifier"\]/u);
+  assert.match(python, /"from": "Identifier"/u);
   assert.doesNotMatch(python, /^\s+from:/mu);
   assert.match(kotlin, /val `when`: String/u);
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);

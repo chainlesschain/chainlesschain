@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Typing :: Typed",
 ]
-dependencies = ["typing_extensions>=4.4; python_version < '3.11'"]
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/chainlesschain/chainlesschain"

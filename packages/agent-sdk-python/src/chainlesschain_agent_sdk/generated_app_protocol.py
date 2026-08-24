@@ -3,11 +3,6 @@ from __future__ import annotations
 import json
 from typing import Any, Literal, Mapping, Sequence, TypeAlias, TypedDict, Union
 
-try:
-    from typing import NotRequired, Required
-except ImportError:  # Python 3.10
-    from typing_extensions import NotRequired, Required
-
 CC_AGENT_PROTOCOL_VERSION = 1
 CC_AGENT_PROTOCOL_MIN_VERSION = 1
 CC_AGENT_PROTOCOL_SCHEMA_DIGEST = "sha256:743d32d9f2b265b4f5d730abd748ca73687ca7dd672f896bd28c6f363b280155"
@@ -41,482 +36,783 @@ JsonValue: TypeAlias = Union[None, bool, float, str, Sequence["JsonValue"], Mapp
 ApprovalDecision: TypeAlias = Union[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]
 ClientRequest: TypeAlias = Mapping[str, Any]
 
-DataPolicy = TypedDict(
-    "DataPolicy",
+_DataPolicyRequired = TypedDict(
+    "_DataPolicyRequired",
     {
-    "origin": Required["str"],
-    "trust": Required["Literal[\"trusted_host\", \"authenticated_user\", \"untrusted_content\", \"unknown\"]"],
-    "sensitivity": Required["Literal[\"public\", \"internal\", \"confidential\", \"secret\"]"],
-    "allowedSinks": Required["Sequence[str]"],
-    "declassificationDecisionId": NotRequired["Identifier"],
+        "origin": "str",
+        "trust": "Literal[\"trusted_host\", \"authenticated_user\", \"untrusted_content\", \"unknown\"]",
+        "sensitivity": "Literal[\"public\", \"internal\", \"confidential\", \"secret\"]",
+        "allowedSinks": "Sequence[str]",
+    },
+    total=True,
+)
+_DataPolicyOptional = TypedDict(
+    "_DataPolicyOptional",
+    {
+        "declassificationDecisionId": "Identifier",
     },
     total=False,
 )
 
-Thread = TypedDict(
-    "Thread",
+class DataPolicy(_DataPolicyRequired, _DataPolicyOptional):
+    pass
+
+_ThreadRequired = TypedDict(
+    "_ThreadRequired",
     {
-    "id": Required["Identifier"],
-    "status": Required["Literal[\"active\", \"idle\", \"archived\"]"],
-    "title": NotRequired["Union[str, None]"],
-    "parentThreadId": NotRequired["Union[Identifier, None]"],
-    "createdAt": Required["Timestamp"],
-    "updatedAt": Required["Timestamp"],
-    "revision": Required["int"],
-    "metadata": NotRequired["Mapping[str, Any]"],
+        "id": "Identifier",
+        "status": "Literal[\"active\", \"idle\", \"archived\"]",
+        "createdAt": "Timestamp",
+        "updatedAt": "Timestamp",
+        "revision": "int",
+    },
+    total=True,
+)
+_ThreadOptional = TypedDict(
+    "_ThreadOptional",
+    {
+        "title": "Union[str, None]",
+        "parentThreadId": "Union[Identifier, None]",
+        "metadata": "Mapping[str, Any]",
     },
     total=False,
 )
 
-Turn = TypedDict(
-    "Turn",
+class Thread(_ThreadRequired, _ThreadOptional):
+    pass
+
+_TurnRequired = TypedDict(
+    "_TurnRequired",
     {
-    "id": Required["Identifier"],
-    "threadId": Required["Identifier"],
-    "status": Required["Literal[\"queued\", \"running\", \"waiting_approval\", \"waiting_input\", \"completed\", \"failed\", \"interrupted\"]"],
-    "createdAt": Required["Timestamp"],
-    "completedAt": NotRequired["Union[Timestamp, None]"],
-    "revision": Required["int"],
-    "terminalEvidence": NotRequired["Union[TerminalEvidence, None]"],
+        "id": "Identifier",
+        "threadId": "Identifier",
+        "status": "Literal[\"queued\", \"running\", \"waiting_approval\", \"waiting_input\", \"completed\", \"failed\", \"interrupted\"]",
+        "createdAt": "Timestamp",
+        "revision": "int",
+    },
+    total=True,
+)
+_TurnOptional = TypedDict(
+    "_TurnOptional",
+    {
+        "completedAt": "Union[Timestamp, None]",
+        "terminalEvidence": "Union[TerminalEvidence, None]",
     },
     total=False,
 )
 
-Item = TypedDict(
-    "Item",
+class Turn(_TurnRequired, _TurnOptional):
+    pass
+
+_ItemRequired = TypedDict(
+    "_ItemRequired",
     {
-    "id": Required["Identifier"],
-    "threadId": Required["Identifier"],
-    "turnId": Required["Identifier"],
-    "parentId": NotRequired["Union[Identifier, None]"],
-    "kind": Required["Literal[\"user_message\", \"assistant_message\", \"reasoning\", \"tool\", \"approval\", \"plan\", \"subagent\", \"artifact\", \"error\"]"],
-    "status": Required["Literal[\"started\", \"streaming\", \"completed\", \"failed\", \"cancelled\"]"],
-    "content": NotRequired["JsonValue"],
-    "dataPolicy": NotRequired["DataPolicy"],
-    "createdAt": Required["Timestamp"],
-    "completedAt": NotRequired["Union[Timestamp, None]"],
+        "id": "Identifier",
+        "threadId": "Identifier",
+        "turnId": "Identifier",
+        "kind": "Literal[\"user_message\", \"assistant_message\", \"reasoning\", \"tool\", \"approval\", \"plan\", \"subagent\", \"artifact\", \"error\"]",
+        "status": "Literal[\"started\", \"streaming\", \"completed\", \"failed\", \"cancelled\"]",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_ItemOptional = TypedDict(
+    "_ItemOptional",
+    {
+        "parentId": "Union[Identifier, None]",
+        "content": "JsonValue",
+        "dataPolicy": "DataPolicy",
+        "completedAt": "Union[Timestamp, None]",
     },
     total=False,
 )
 
-PermissionGrant = TypedDict(
-    "PermissionGrant",
+class Item(_ItemRequired, _ItemOptional):
+    pass
+
+_PermissionGrantRequired = TypedDict(
+    "_PermissionGrantRequired",
     {
-    "capability": Required["str"],
-    "scope": Required["str"],
-    "expiresAt": NotRequired["Union[Timestamp, None]"],
+        "capability": "str",
+        "scope": "str",
+    },
+    total=True,
+)
+_PermissionGrantOptional = TypedDict(
+    "_PermissionGrantOptional",
+    {
+        "expiresAt": "Union[Timestamp, None]",
     },
     total=False,
 )
 
-ApprovalBinding = TypedDict(
-    "ApprovalBinding",
+class PermissionGrant(_PermissionGrantRequired, _PermissionGrantOptional):
+    pass
+
+_ApprovalBindingRequired = TypedDict(
+    "_ApprovalBindingRequired",
     {
-    "threadId": Required["Identifier"],
-    "turnId": Required["Identifier"],
-    "itemId": Required["Identifier"],
-    "attemptId": NotRequired["Union[Identifier, None]"],
-    "operationDigest": Required["Digest"],
-    "policyDigest": Required["Digest"],
-    "workspaceDigest": NotRequired["Union[Digest, None]"],
-    "cwd": NotRequired["str"],
-    "nonce": Required["Identifier"],
-    "expiresAt": Required["Timestamp"],
+        "threadId": "Identifier",
+        "turnId": "Identifier",
+        "itemId": "Identifier",
+        "operationDigest": "Digest",
+        "policyDigest": "Digest",
+        "nonce": "Identifier",
+        "expiresAt": "Timestamp",
+    },
+    total=True,
+)
+_ApprovalBindingOptional = TypedDict(
+    "_ApprovalBindingOptional",
+    {
+        "attemptId": "Union[Identifier, None]",
+        "workspaceDigest": "Union[Digest, None]",
+        "cwd": "str",
     },
     total=False,
 )
 
-ApprovalRequest = TypedDict(
-    "ApprovalRequest",
+class ApprovalBinding(_ApprovalBindingRequired, _ApprovalBindingOptional):
+    pass
+
+_ApprovalRequestRequired = TypedDict(
+    "_ApprovalRequestRequired",
     {
-    "id": Required["Identifier"],
-    "binding": Required["ApprovalBinding"],
-    "operation": Required["JsonValue"],
-    "risk": Required["Literal[\"low\", \"medium\", \"high\", \"critical\"]"],
-    "reason": Required["str"],
-    "requestedPermissions": NotRequired["Sequence[PermissionGrant]"],
+        "id": "Identifier",
+        "binding": "ApprovalBinding",
+        "operation": "JsonValue",
+        "risk": "Literal[\"low\", \"medium\", \"high\", \"critical\"]",
+        "reason": "str",
+    },
+    total=True,
+)
+_ApprovalRequestOptional = TypedDict(
+    "_ApprovalRequestOptional",
+    {
+        "requestedPermissions": "Sequence[PermissionGrant]",
     },
     total=False,
 )
 
-TerminalEvidence = TypedDict(
-    "TerminalEvidence",
+class ApprovalRequest(_ApprovalRequestRequired, _ApprovalRequestOptional):
+    pass
+
+_TerminalEvidenceRequired = TypedDict(
+    "_TerminalEvidenceRequired",
     {
-    "status": Required["Literal[\"succeeded\", \"failed\", \"partial\", \"cancelled\", \"blocked\", \"budget_exhausted\"]"],
-    "eventDigest": Required["Digest"],
-    "outputDigest": NotRequired["Union[Digest, None]"],
-    "artifactIds": NotRequired["Sequence[Identifier]"],
-    "commit": NotRequired["Union[str, None]"],
-    "testReceiptIds": NotRequired["Sequence[Identifier]"],
+        "status": "Literal[\"succeeded\", \"failed\", \"partial\", \"cancelled\", \"blocked\", \"budget_exhausted\"]",
+        "eventDigest": "Digest",
+    },
+    total=True,
+)
+_TerminalEvidenceOptional = TypedDict(
+    "_TerminalEvidenceOptional",
+    {
+        "outputDigest": "Union[Digest, None]",
+        "artifactIds": "Sequence[Identifier]",
+        "commit": "Union[str, None]",
+        "testReceiptIds": "Sequence[Identifier]",
     },
     total=False,
 )
 
-TypedPort = TypedDict(
-    "TypedPort",
+class TerminalEvidence(_TerminalEvidenceRequired, _TerminalEvidenceOptional):
+    pass
+
+_TypedPortRequired = TypedDict(
+    "_TypedPortRequired",
     {
-    "name": Required["Identifier"],
-    "schema": Required["Mapping[str, Any]"],
-    "required": NotRequired["bool"],
-    "dataPolicy": NotRequired["DataPolicy"],
+        "name": "Identifier",
+        "schema": "Mapping[str, Any]",
+    },
+    total=True,
+)
+_TypedPortOptional = TypedDict(
+    "_TypedPortOptional",
+    {
+        "required": "bool",
+        "dataPolicy": "DataPolicy",
     },
     total=False,
 )
 
-Budget = TypedDict(
-    "Budget",
+class TypedPort(_TypedPortRequired, _TypedPortOptional):
+    pass
+
+_BudgetRequired = TypedDict(
+    "_BudgetRequired",
     {
-    "turns": NotRequired["int"],
-    "tokens": NotRequired["int"],
-    "costUsd": NotRequired["float"],
-    "wallMs": NotRequired["int"],
-    "spawnCount": NotRequired["int"],
+
+    },
+    total=True,
+)
+_BudgetOptional = TypedDict(
+    "_BudgetOptional",
+    {
+        "turns": "int",
+        "tokens": "int",
+        "costUsd": "float",
+        "wallMs": "int",
+        "spawnCount": "int",
     },
     total=False,
 )
 
-TaskNode = TypedDict(
-    "TaskNode",
+class Budget(_BudgetRequired, _BudgetOptional):
+    pass
+
+_TaskNodeRequired = TypedDict(
+    "_TaskNodeRequired",
     {
-    "id": Required["Identifier"],
-    "kind": Required["Literal[\"task\", \"join\", \"human\", \"subgraph\"]"],
-    "dependsOn": Required["Sequence[Identifier]"],
-    "inputs": Required["Sequence[TypedPort]"],
-    "outputs": Required["Sequence[TypedPort]"],
-    "inputBindings": NotRequired["Mapping[str, Any]"],
-    "capabilities": NotRequired["Sequence[str]"],
-    "tools": NotRequired["Sequence[str]"],
-    "skills": NotRequired["Sequence[str]"],
-    "budget": NotRequired["Budget"],
-    "writeSet": NotRequired["Sequence[str]"],
-    "workspaceIsolation": NotRequired["Literal[\"worktree\", \"declared_scope\"]"],
-    "effectClass": Required["Literal[\"none\", \"read\", \"workspace_write\", \"external\"]"],
-    "idempotencyKey": NotRequired["str"],
-    "compensationNodeId": NotRequired["Identifier"],
-    "priority": NotRequired["int"],
-    "join": NotRequired["Literal[\"all\", \"any\", \"quorum\", \"race\"]"],
-    "quorum": NotRequired["int"],
-    "retryLimit": NotRequired["int"],
+        "id": "Identifier",
+        "kind": "Literal[\"task\", \"join\", \"human\", \"subgraph\"]",
+        "dependsOn": "Sequence[Identifier]",
+        "inputs": "Sequence[TypedPort]",
+        "outputs": "Sequence[TypedPort]",
+        "effectClass": "Literal[\"none\", \"read\", \"workspace_write\", \"external\"]",
+    },
+    total=True,
+)
+_TaskNodeOptional = TypedDict(
+    "_TaskNodeOptional",
+    {
+        "inputBindings": "Mapping[str, Any]",
+        "capabilities": "Sequence[str]",
+        "tools": "Sequence[str]",
+        "skills": "Sequence[str]",
+        "budget": "Budget",
+        "writeSet": "Sequence[str]",
+        "workspaceIsolation": "Literal[\"worktree\", \"declared_scope\"]",
+        "idempotencyKey": "str",
+        "compensationNodeId": "Identifier",
+        "priority": "int",
+        "join": "Literal[\"all\", \"any\", \"quorum\", \"race\"]",
+        "quorum": "int",
+        "retryLimit": "int",
     },
     total=False,
 )
 
-Edge = TypedDict(
-    "Edge",
+class TaskNode(_TaskNodeRequired, _TaskNodeOptional):
+    pass
+
+_EdgeRequired = TypedDict(
+    "_EdgeRequired",
     {
-    "id": Required["Identifier"],
-    "from": Required["Identifier"],
-    "to": Required["Identifier"],
-    "kind": Required["Literal[\"control\", \"data\", \"message\", \"review\", \"merge\", \"compensation\"]"],
-    "when": Required["Literal[\"success\", \"failure\", \"always\", \"timeout\", \"cancel\"]"],
-    "fromPort": NotRequired["Identifier"],
-    "toPort": NotRequired["Identifier"],
+        "id": "Identifier",
+        "from": "Identifier",
+        "to": "Identifier",
+        "kind": "Literal[\"control\", \"data\", \"message\", \"review\", \"merge\", \"compensation\"]",
+        "when": "Literal[\"success\", \"failure\", \"always\", \"timeout\", \"cancel\"]",
+    },
+    total=True,
+)
+_EdgeOptional = TypedDict(
+    "_EdgeOptional",
+    {
+        "fromPort": "Identifier",
+        "toPort": "Identifier",
     },
     total=False,
 )
 
-LoopRegion = TypedDict(
-    "LoopRegion",
+class Edge(_EdgeRequired, _EdgeOptional):
+    pass
+
+_LoopRegionRequired = TypedDict(
+    "_LoopRegionRequired",
     {
-    "id": Required["Identifier"],
-    "entryNodeId": Required["Identifier"],
-    "exitNodeId": Required["Identifier"],
-    "nodeIds": Required["Sequence[Identifier]"],
-    "maxIterations": Required["int"],
-    "condition": NotRequired["str"],
-    "budget": NotRequired["Budget"],
+        "id": "Identifier",
+        "entryNodeId": "Identifier",
+        "exitNodeId": "Identifier",
+        "nodeIds": "Sequence[Identifier]",
+        "maxIterations": "int",
+    },
+    total=True,
+)
+_LoopRegionOptional = TypedDict(
+    "_LoopRegionOptional",
+    {
+        "condition": "str",
+        "budget": "Budget",
     },
     total=False,
 )
 
-TriggerBinding = TypedDict(
-    "TriggerBinding",
+class LoopRegion(_LoopRegionRequired, _LoopRegionOptional):
+    pass
+
+_TriggerBindingRequired = TypedDict(
+    "_TriggerBindingRequired",
     {
-    "id": Required["Identifier"],
-    "kind": Required["Literal[\"manual\", \"schedule\", \"webhook\", \"message\", \"child_completion\"]"],
-    "targetNodeId": Required["Identifier"],
-    "sourceRef": NotRequired["Union[str, None]"],
-    "authorityDigest": Required["Digest"],
-    "dataPolicy": NotRequired["DataPolicy"],
+        "id": "Identifier",
+        "kind": "Literal[\"manual\", \"schedule\", \"webhook\", \"message\", \"child_completion\"]",
+        "targetNodeId": "Identifier",
+        "authorityDigest": "Digest",
+    },
+    total=True,
+)
+_TriggerBindingOptional = TypedDict(
+    "_TriggerBindingOptional",
+    {
+        "sourceRef": "Union[str, None]",
+        "dataPolicy": "DataPolicy",
     },
     total=False,
 )
 
-Region = TypedDict(
-    "Region",
+class TriggerBinding(_TriggerBindingRequired, _TriggerBindingOptional):
+    pass
+
+_RegionRequired = TypedDict(
+    "_RegionRequired",
     {
-    "id": Required["Identifier"],
-    "kind": Required["Literal[\"sequence\", \"parallel\", \"condition\", \"try\", \"compensation\"]"],
-    "nodeIds": Required["Sequence[Identifier]"],
-    "parentRegionId": NotRequired["Union[Identifier, None]"],
-    "entryNodeId": NotRequired["Identifier"],
-    "exitNodeId": NotRequired["Identifier"],
+        "id": "Identifier",
+        "kind": "Literal[\"sequence\", \"parallel\", \"condition\", \"try\", \"compensation\"]",
+        "nodeIds": "Sequence[Identifier]",
+    },
+    total=True,
+)
+_RegionOptional = TypedDict(
+    "_RegionOptional",
+    {
+        "parentRegionId": "Union[Identifier, None]",
+        "entryNodeId": "Identifier",
+        "exitNodeId": "Identifier",
     },
     total=False,
 )
 
-SubgraphCall = TypedDict(
-    "SubgraphCall",
+class Region(_RegionRequired, _RegionOptional):
+    pass
+
+_SubgraphCallRequired = TypedDict(
+    "_SubgraphCallRequired",
     {
-    "nodeId": Required["Identifier"],
-    "definitionId": Required["Identifier"],
-    "revisionDigest": Required["Digest"],
-    "maxDepth": Required["int"],
+        "nodeId": "Identifier",
+        "definitionId": "Identifier",
+        "revisionDigest": "Digest",
+        "maxDepth": "int",
+    },
+    total=True,
+)
+_SubgraphCallOptional = TypedDict(
+    "_SubgraphCallOptional",
+    {
+
     },
     total=False,
 )
 
-GraphDefinition = TypedDict(
-    "GraphDefinition",
+class SubgraphCall(_SubgraphCallRequired, _SubgraphCallOptional):
+    pass
+
+_GraphDefinitionRequired = TypedDict(
+    "_GraphDefinitionRequired",
     {
-    "schemaVersion": Required["int"],
-    "id": Required["Identifier"],
-    "revision": Required["int"],
-    "triggers": NotRequired["Sequence[TriggerBinding]"],
-    "regions": NotRequired["Sequence[Region]"],
-    "nodes": Required["Sequence[TaskNode]"],
-    "edges": Required["Sequence[Edge]"],
-    "loops": Required["Sequence[LoopRegion]"],
-    "subgraphCalls": Required["Sequence[SubgraphCall]"],
-    "budget": Required["Budget"],
-    "allowedCapabilities": NotRequired["Sequence[str]"],
-    "metadata": NotRequired["Mapping[str, Any]"],
+        "schemaVersion": "int",
+        "id": "Identifier",
+        "revision": "int",
+        "nodes": "Sequence[TaskNode]",
+        "edges": "Sequence[Edge]",
+        "loops": "Sequence[LoopRegion]",
+        "subgraphCalls": "Sequence[SubgraphCall]",
+        "budget": "Budget",
+    },
+    total=True,
+)
+_GraphDefinitionOptional = TypedDict(
+    "_GraphDefinitionOptional",
+    {
+        "triggers": "Sequence[TriggerBinding]",
+        "regions": "Sequence[Region]",
+        "allowedCapabilities": "Sequence[str]",
+        "metadata": "Mapping[str, Any]",
     },
     total=False,
 )
 
-GraphRevision = TypedDict(
-    "GraphRevision",
+class GraphDefinition(_GraphDefinitionRequired, _GraphDefinitionOptional):
+    pass
+
+_GraphRevisionRequired = TypedDict(
+    "_GraphRevisionRequired",
     {
-    "definitionId": Required["Identifier"],
-    "revision": Required["int"],
-    "revisionDigest": Required["Digest"],
-    "schemaVersion": Required["int"],
-    "parentRevisionDigest": NotRequired["Union[Digest, None]"],
-    "createdAt": Required["Timestamp"],
-    "producerLeaseId": NotRequired["Union[Identifier, None]"],
+        "definitionId": "Identifier",
+        "revision": "int",
+        "revisionDigest": "Digest",
+        "schemaVersion": "int",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_GraphRevisionOptional = TypedDict(
+    "_GraphRevisionOptional",
+    {
+        "parentRevisionDigest": "Union[Digest, None]",
+        "producerLeaseId": "Union[Identifier, None]",
     },
     total=False,
 )
 
-IterationFrame = TypedDict(
-    "IterationFrame",
+class GraphRevision(_GraphRevisionRequired, _GraphRevisionOptional):
+    pass
+
+_IterationFrameRequired = TypedDict(
+    "_IterationFrameRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "regionId": Required["Identifier"],
-    "parentFrameId": NotRequired["Union[Identifier, None]"],
-    "iterationPath": Required["Sequence[int]"],
-    "status": Required["Literal[\"active\", \"succeeded\", \"failed\", \"cancelled\", \"exhausted\"]"],
-    "startedAt": NotRequired["Timestamp"],
-    "completedAt": NotRequired["Union[Timestamp, None]"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "regionId": "Identifier",
+        "iterationPath": "Sequence[int]",
+        "status": "Literal[\"active\", \"succeeded\", \"failed\", \"cancelled\", \"exhausted\"]",
+    },
+    total=True,
+)
+_IterationFrameOptional = TypedDict(
+    "_IterationFrameOptional",
+    {
+        "parentFrameId": "Union[Identifier, None]",
+        "startedAt": "Timestamp",
+        "completedAt": "Union[Timestamp, None]",
     },
     total=False,
 )
 
-NodeAttempt = TypedDict(
-    "NodeAttempt",
+class IterationFrame(_IterationFrameRequired, _IterationFrameOptional):
+    pass
+
+_NodeAttemptRequired = TypedDict(
+    "_NodeAttemptRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "nodeId": Required["Identifier"],
-    "iterationPath": Required["Sequence[int]"],
-    "attempt": Required["int"],
-    "status": Required["Literal[\"pending\", \"running\", \"succeeded\", \"failed\", \"cancelled\", \"timed_out\", \"reconciliation_required\"]"],
-    "acceptedAssignmentAttemptId": NotRequired["Union[Identifier, None]"],
-    "createdAt": Required["Timestamp"],
-    "completedAt": NotRequired["Union[Timestamp, None]"],
-    "terminalEvidence": NotRequired["Union[TerminalEvidence, None]"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "nodeId": "Identifier",
+        "iterationPath": "Sequence[int]",
+        "attempt": "int",
+        "status": "Literal[\"pending\", \"running\", \"succeeded\", \"failed\", \"cancelled\", \"timed_out\", \"reconciliation_required\"]",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_NodeAttemptOptional = TypedDict(
+    "_NodeAttemptOptional",
+    {
+        "acceptedAssignmentAttemptId": "Union[Identifier, None]",
+        "completedAt": "Union[Timestamp, None]",
+        "terminalEvidence": "Union[TerminalEvidence, None]",
     },
     total=False,
 )
 
-AssignmentAttempt = TypedDict(
-    "AssignmentAttempt",
+class NodeAttempt(_NodeAttemptRequired, _NodeAttemptOptional):
+    pass
+
+_AssignmentAttemptRequired = TypedDict(
+    "_AssignmentAttemptRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "nodeId": Required["Identifier"],
-    "agentId": Required["Identifier"],
-    "role": Required["Literal[\"lead\", \"executor\", \"reviewer\", \"judge\", \"observer\"]"],
-    "leaseId": Required["Identifier"],
-    "fence": Required["int"],
-    "status": Required["Literal[\"offered\", \"active\", \"accepted\", \"rejected\", \"expired\", \"cancelled\"]"],
-    "createdAt": Required["Timestamp"],
-    "expiresAt": NotRequired["Timestamp"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "nodeId": "Identifier",
+        "agentId": "Identifier",
+        "role": "Literal[\"lead\", \"executor\", \"reviewer\", \"judge\", \"observer\"]",
+        "leaseId": "Identifier",
+        "fence": "int",
+        "status": "Literal[\"offered\", \"active\", \"accepted\", \"rejected\", \"expired\", \"cancelled\"]",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_AssignmentAttemptOptional = TypedDict(
+    "_AssignmentAttemptOptional",
+    {
+        "expiresAt": "Timestamp",
     },
     total=False,
 )
 
-ArtifactRef = TypedDict(
-    "ArtifactRef",
+class AssignmentAttempt(_AssignmentAttemptRequired, _AssignmentAttemptOptional):
+    pass
+
+_ArtifactRefRequired = TypedDict(
+    "_ArtifactRefRequired",
     {
-    "id": Required["Identifier"],
-    "digest": Required["Digest"],
-    "producerNodeId": Required["Identifier"],
-    "producerAttemptId": Required["Identifier"],
-    "producerLeaseId": Required["Identifier"],
-    "schema": Required["Mapping[str, Any]"],
-    "commit": NotRequired["Union[str, None]"],
-    "validationEvidence": NotRequired["Sequence[Identifier]"],
-    "consumerNodeIds": NotRequired["Sequence[Identifier]"],
-    "dataPolicy": Required["DataPolicy"],
+        "id": "Identifier",
+        "digest": "Digest",
+        "producerNodeId": "Identifier",
+        "producerAttemptId": "Identifier",
+        "producerLeaseId": "Identifier",
+        "schema": "Mapping[str, Any]",
+        "dataPolicy": "DataPolicy",
+    },
+    total=True,
+)
+_ArtifactRefOptional = TypedDict(
+    "_ArtifactRefOptional",
+    {
+        "commit": "Union[str, None]",
+        "validationEvidence": "Sequence[Identifier]",
+        "consumerNodeIds": "Sequence[Identifier]",
     },
     total=False,
 )
 
-EffectReceipt = TypedDict(
-    "EffectReceipt",
+class ArtifactRef(_ArtifactRefRequired, _ArtifactRefOptional):
+    pass
+
+_EffectReceiptRequired = TypedDict(
+    "_EffectReceiptRequired",
     {
-    "receiptDigest": Required["Digest"],
-    "externalId": NotRequired["Union[str, None]"],
-    "recordedAt": Required["Timestamp"],
-    "metadata": NotRequired["Mapping[str, Any]"],
+        "receiptDigest": "Digest",
+        "recordedAt": "Timestamp",
+    },
+    total=True,
+)
+_EffectReceiptOptional = TypedDict(
+    "_EffectReceiptOptional",
+    {
+        "externalId": "Union[str, None]",
+        "metadata": "Mapping[str, Any]",
     },
     total=False,
 )
 
-Effect = TypedDict(
-    "Effect",
+class EffectReceipt(_EffectReceiptRequired, _EffectReceiptOptional):
+    pass
+
+_EffectRequired = TypedDict(
+    "_EffectRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "nodeId": Required["Identifier"],
-    "attemptId": Required["Identifier"],
-    "idempotencyKey": Required["str"],
-    "operationDigest": Required["Digest"],
-    "status": Required["Literal[\"started\", \"committed\", \"failed\", \"unknown\", \"compensated\"]"],
-    "receipt": NotRequired["Union[EffectReceipt, None]"],
-    "compensationEffectId": NotRequired["Union[Identifier, None]"],
-    "createdAt": Required["Timestamp"],
-    "updatedAt": NotRequired["Timestamp"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "nodeId": "Identifier",
+        "attemptId": "Identifier",
+        "idempotencyKey": "str",
+        "operationDigest": "Digest",
+        "status": "Literal[\"started\", \"committed\", \"failed\", \"unknown\", \"compensated\"]",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_EffectOptional = TypedDict(
+    "_EffectOptional",
+    {
+        "receipt": "Union[EffectReceipt, None]",
+        "compensationEffectId": "Union[Identifier, None]",
+        "updatedAt": "Timestamp",
     },
     total=False,
 )
 
-Message = TypedDict(
-    "Message",
+class Effect(_EffectRequired, _EffectOptional):
+    pass
+
+_MessageRequired = TypedDict(
+    "_MessageRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "fromAttemptId": Required["Identifier"],
-    "toAgentId": Required["Identifier"],
-    "causationId": NotRequired["Union[Identifier, None]"],
-    "correlationId": NotRequired["Union[Identifier, None]"],
-    "mode": Required["Literal[\"send\", \"followup\"]"],
-    "status": Required["Literal[\"admitted\", \"delivered\", \"read\", \"processed\", \"dead_letter\"]"],
-    "payload": Required["JsonValue"],
-    "payloadDigest": Required["Digest"],
-    "dataPolicy": Required["DataPolicy"],
-    "createdAt": Required["Timestamp"],
-    "expiresAt": NotRequired["Timestamp"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "fromAttemptId": "Identifier",
+        "toAgentId": "Identifier",
+        "mode": "Literal[\"send\", \"followup\"]",
+        "status": "Literal[\"admitted\", \"delivered\", \"read\", \"processed\", \"dead_letter\"]",
+        "payload": "JsonValue",
+        "payloadDigest": "Digest",
+        "dataPolicy": "DataPolicy",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_MessageOptional = TypedDict(
+    "_MessageOptional",
+    {
+        "causationId": "Union[Identifier, None]",
+        "correlationId": "Union[Identifier, None]",
+        "expiresAt": "Timestamp",
     },
     total=False,
 )
 
-Handoff = TypedDict(
-    "Handoff",
+class Message(_MessageRequired, _MessageOptional):
+    pass
+
+_HandoffRequired = TypedDict(
+    "_HandoffRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "nodeId": Required["Identifier"],
-    "fromAttemptId": Required["Identifier"],
-    "toAgentId": Required["Identifier"],
-    "revisionDigest": Required["Digest"],
-    "authorityDigest": Required["Digest"],
-    "artifactIds": NotRequired["Sequence[Identifier]"],
-    "status": Required["Literal[\"offered\", \"accepted\", \"rejected\", \"committed\", \"revoked\", \"expired\"]"],
-    "expiresAt": Required["Timestamp"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "nodeId": "Identifier",
+        "fromAttemptId": "Identifier",
+        "toAgentId": "Identifier",
+        "revisionDigest": "Digest",
+        "authorityDigest": "Digest",
+        "status": "Literal[\"offered\", \"accepted\", \"rejected\", \"committed\", \"revoked\", \"expired\"]",
+        "expiresAt": "Timestamp",
+    },
+    total=True,
+)
+_HandoffOptional = TypedDict(
+    "_HandoffOptional",
+    {
+        "artifactIds": "Sequence[Identifier]",
     },
     total=False,
 )
 
-HumanTask = TypedDict(
-    "HumanTask",
+class Handoff(_HandoffRequired, _HandoffOptional):
+    pass
+
+_HumanTaskRequired = TypedDict(
+    "_HumanTaskRequired",
     {
-    "id": Required["Identifier"],
-    "runId": Required["Identifier"],
-    "revisionDigest": Required["Digest"],
-    "nodeId": Required["Identifier"],
-    "attemptId": Required["Identifier"],
-    "operationDigest": Required["Digest"],
-    "status": Required["Literal[\"open\", \"claimed\", \"decided\", \"cancelled\", \"expired\"]"],
-    "claimActorId": NotRequired["Union[Identifier, None]"],
-    "claimLeaseId": NotRequired["Union[Identifier, None]"],
-    "nonce": Required["Identifier"],
-    "expiresAt": Required["Timestamp"],
-    "decision": NotRequired["Union[ApprovalDecision, None]"],
+        "id": "Identifier",
+        "runId": "Identifier",
+        "revisionDigest": "Digest",
+        "nodeId": "Identifier",
+        "attemptId": "Identifier",
+        "operationDigest": "Digest",
+        "status": "Literal[\"open\", \"claimed\", \"decided\", \"cancelled\", \"expired\"]",
+        "nonce": "Identifier",
+        "expiresAt": "Timestamp",
+    },
+    total=True,
+)
+_HumanTaskOptional = TypedDict(
+    "_HumanTaskOptional",
+    {
+        "claimActorId": "Union[Identifier, None]",
+        "claimLeaseId": "Union[Identifier, None]",
+        "decision": "Union[ApprovalDecision, None]",
     },
     total=False,
 )
 
-GraphRun = TypedDict(
-    "GraphRun",
+class HumanTask(_HumanTaskRequired, _HumanTaskOptional):
+    pass
+
+_GraphRunRequired = TypedDict(
+    "_GraphRunRequired",
     {
-    "id": Required["Identifier"],
-    "definitionId": Required["Identifier"],
-    "revision": Required["int"],
-    "revisionDigest": Required["Digest"],
-    "occurrenceId": NotRequired["Union[Identifier, None]"],
-    "phase": Required["Literal[\"open\", \"sealed\"]"],
-    "status": Required["Literal[\"running\", \"waiting_input\", \"waiting_external\", \"waiting_human\", \"reconciliation_required\", \"succeeded\", \"failed\", \"partial\", \"cancelled\", \"blocked\", \"deadlocked\", \"budget_exhausted\"]"],
-    "graphRevision": Required["int"],
-    "createdAt": Required["Timestamp"],
-    "completedAt": NotRequired["Union[Timestamp, None]"],
+        "id": "Identifier",
+        "definitionId": "Identifier",
+        "revision": "int",
+        "revisionDigest": "Digest",
+        "phase": "Literal[\"open\", \"sealed\"]",
+        "status": "Literal[\"running\", \"waiting_input\", \"waiting_external\", \"waiting_human\", \"reconciliation_required\", \"succeeded\", \"failed\", \"partial\", \"cancelled\", \"blocked\", \"deadlocked\", \"budget_exhausted\"]",
+        "graphRevision": "int",
+        "createdAt": "Timestamp",
+    },
+    total=True,
+)
+_GraphRunOptional = TypedDict(
+    "_GraphRunOptional",
+    {
+        "occurrenceId": "Union[Identifier, None]",
+        "completedAt": "Union[Timestamp, None]",
     },
     total=False,
 )
 
-InitializeParams = TypedDict(
-    "InitializeParams",
+class GraphRun(_GraphRunRequired, _GraphRunOptional):
+    pass
+
+_InitializeParamsRequired = TypedDict(
+    "_InitializeParamsRequired",
     {
-    "protocolVersion": Required["int"],
-    "minimumProtocolVersion": Required["int"],
-    "client": Required["Mapping[str, Any]"],
-    "features": NotRequired["Sequence[str]"],
+        "protocolVersion": "int",
+        "minimumProtocolVersion": "int",
+        "client": "Mapping[str, Any]",
+    },
+    total=True,
+)
+_InitializeParamsOptional = TypedDict(
+    "_InitializeParamsOptional",
+    {
+        "features": "Sequence[str]",
     },
     total=False,
 )
 
-JsonRpcRequestBase = TypedDict(
-    "JsonRpcRequestBase",
+class InitializeParams(_InitializeParamsRequired, _InitializeParamsOptional):
+    pass
+
+_JsonRpcRequestBaseRequired = TypedDict(
+    "_JsonRpcRequestBaseRequired",
     {
-    "jsonrpc": Required["Literal[\"2.0\"]"],
-    "id": Required["Union[str, int]"],
-    "method": Required["str"],
-    "params": NotRequired["Mapping[str, Any]"],
+        "jsonrpc": "Literal[\"2.0\"]",
+        "id": "Union[str, int]",
+        "method": "str",
+    },
+    total=True,
+)
+_JsonRpcRequestBaseOptional = TypedDict(
+    "_JsonRpcRequestBaseOptional",
+    {
+        "params": "Mapping[str, Any]",
     },
     total=False,
 )
 
-ClientResponse = TypedDict(
-    "ClientResponse",
+class JsonRpcRequestBase(_JsonRpcRequestBaseRequired, _JsonRpcRequestBaseOptional):
+    pass
+
+_ClientResponseRequired = TypedDict(
+    "_ClientResponseRequired",
     {
-    "jsonrpc": Required["Literal[\"2.0\"]"],
-    "id": Required["Union[str, int]"],
-    "result": NotRequired["JsonValue"],
-    "error": NotRequired["Mapping[str, Any]"],
+        "jsonrpc": "Literal[\"2.0\"]",
+        "id": "Union[str, int]",
+    },
+    total=True,
+)
+_ClientResponseOptional = TypedDict(
+    "_ClientResponseOptional",
+    {
+        "result": "JsonValue",
+        "error": "Mapping[str, Any]",
     },
     total=False,
 )
 
-ServerRequest = TypedDict(
-    "ServerRequest",
+class ClientResponse(_ClientResponseRequired, _ClientResponseOptional):
+    pass
+
+_ServerRequestRequired = TypedDict(
+    "_ServerRequestRequired",
     {
-    "jsonrpc": Required["Literal[\"2.0\"]"],
-    "id": Required["Union[str, int]"],
-    "method": Required["Literal[\"approval/decide\", \"humanTask/decide\"]"],
-    "params": Required["JsonValue"],
+        "jsonrpc": "Literal[\"2.0\"]",
+        "id": "Union[str, int]",
+        "method": "Literal[\"approval/decide\", \"humanTask/decide\"]",
+        "params": "JsonValue",
+    },
+    total=True,
+)
+_ServerRequestOptional = TypedDict(
+    "_ServerRequestOptional",
+    {
+
     },
     total=False,
 )
 
-ServerNotification = TypedDict(
-    "ServerNotification",
+class ServerRequest(_ServerRequestRequired, _ServerRequestOptional):
+    pass
+
+_ServerNotificationRequired = TypedDict(
+    "_ServerNotificationRequired",
     {
-    "jsonrpc": Required["Literal[\"2.0\"]"],
-    "method": Required["Literal[\"thread/updated\", \"turn/started\", \"turn/completed\", \"item/started\", \"item/delta\", \"item/completed\", \"approval/requested\", \"approval/resolved\", \"tool/requested\", \"tool/result\", \"subagent/started\", \"subagent/completed\", \"graph/event\"]"],
-    "params": Required["JsonValue"],
+        "jsonrpc": "Literal[\"2.0\"]",
+        "method": "Literal[\"thread/updated\", \"turn/started\", \"turn/completed\", \"item/started\", \"item/delta\", \"item/completed\", \"approval/requested\", \"approval/resolved\", \"tool/requested\", \"tool/result\", \"subagent/started\", \"subagent/completed\", \"graph/event\"]",
+        "params": "JsonValue",
+    },
+    total=True,
+)
+_ServerNotificationOptional = TypedDict(
+    "_ServerNotificationOptional",
+    {
+
     },
     total=False,
 )
+
+class ServerNotification(_ServerNotificationRequired, _ServerNotificationOptional):
+    pass
