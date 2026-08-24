@@ -6,6 +6,7 @@ import {
   executionAttemptId,
   isCompiledGraph,
   isPortSchemaAssignable,
+  migrateGraphDefinition,
   writeScopesOverlap,
 } from "../../src/lib/graph-kernel/compiler.js";
 
@@ -234,6 +235,74 @@ describe("typed Graph Compiler", () => {
     ]);
   });
 
+  it("compiles isolated inverse-effect handlers outside the forward schedule", () => {
+    const compiled = compileGraphDefinition(
+      graph({
+        nodes: [
+          node("apply", {
+            effectClass: "external",
+            idempotencyKey: "apply-v1",
+            compensationNodeId: "undo",
+          }),
+          node("undo", {
+            effectClass: "external",
+            idempotencyKey: "undo-v1",
+          }),
+        ],
+        edges: [
+          {
+            id: "apply-compensation",
+            from: "apply",
+            to: "undo",
+            kind: "compensation",
+            when: "always",
+          },
+        ],
+      }),
+    );
+
+    expect(compiled.forwardTopologicalOrder).toEqual(["apply"]);
+    expect(compiled.compensationByNode).toEqual({ apply: "undo" });
+    expect(compiled.compensationNodeIds).toEqual(["undo"]);
+    expect(Object.isFrozen(compiled.compensationByNode)).toBe(true);
+  });
+
+  it("rejects unsafe, missing, reused, or forward-scheduled compensation handlers", () => {
+    const definition = graph({
+      nodes: [
+        node("plain", { compensationNodeId: "missing" }),
+        node("apply-a", {
+          effectClass: "external",
+          idempotencyKey: "apply-a-v1",
+          compensationNodeId: "undo",
+        }),
+        node("apply-b", {
+          dependsOn: ["apply-a"],
+          effectClass: "external",
+          idempotencyKey: "apply-b-v1",
+          compensationNodeId: "undo",
+        }),
+        node("undo", {
+          dependsOn: ["apply-b"],
+          effectClass: "external",
+          idempotencyKey: "undo-v1",
+        }),
+      ],
+    });
+
+    try {
+      compileGraphDefinition(definition);
+    } catch (error) {
+      expect(diagnosticCodes(error)).toEqual(
+        expect.arrayContaining([
+          "GRAPH_UNKNOWN_COMPENSATION_TARGET",
+          "GRAPH_COMPENSATION_TARGET_REUSED",
+          "GRAPH_COMPENSATION_TARGET_IN_FORWARD_GRAPH",
+        ]),
+      );
+    }
+  });
+
   it("detects subgraph call cycles and pinned digest drift", () => {
     const definition = graph({
       id: "root-graph",
@@ -305,6 +374,49 @@ describe("typed Graph Compiler", () => {
         },
       ),
     ).toBe(true);
+  });
+
+  it("dry-runs the N-1 upcast without mutating the source definition", () => {
+    const legacy = graph({ schemaVersion: 0, metadata: { legacy: true } });
+    const before = structuredClone(legacy);
+    const upcasters = {
+      0: (definition) => ({
+        ...definition,
+        schemaVersion: 1,
+        metadata: { ...definition.metadata, upcast: "v0-to-v1" },
+      }),
+    };
+
+    const migration = migrateGraphDefinition(legacy, {
+      dryRun: true,
+      upcasters,
+    });
+    expect(migration).toMatchObject({
+      dryRun: true,
+      fromVersion: 0,
+      toVersion: 1,
+      backupRequired: true,
+      definition: {
+        schemaVersion: 1,
+        metadata: { legacy: true, upcast: "v0-to-v1" },
+      },
+    });
+    expect(migration.revisionDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(legacy).toEqual(before);
+    expect(compileGraphDefinition(legacy, { upcasters }).migratedFrom).toBe(0);
+
+    expect(() =>
+      compileGraphDefinition(legacy, {
+        upcasters: { 0: (definition) => ({ ...definition, schemaVersion: 2 }) },
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_COMPILE_FAILED",
+        diagnostics: [
+          expect.objectContaining({ code: "GRAPH_CANONICALIZATION_FAILED" }),
+        ],
+      }),
+    );
   });
 
   it("validates trigger targets and structured region hierarchy before effects", () => {

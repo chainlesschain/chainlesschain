@@ -146,6 +146,140 @@ describe("Graph trace, eval, and trigger contracts", () => {
     });
   });
 
+  it("projects inverse-effect lineage without polluting the forward critical path", () => {
+    const value = context();
+    const compiled = compileGraphDefinition({
+      schemaVersion: 1,
+      id: "observable-compensation",
+      revision: 1,
+      nodes: [
+        {
+          ...node("apply"),
+          effectClass: "external",
+          idempotencyKey: "apply-key",
+          compensationNodeId: "undo",
+        },
+        node("fail", ["apply"]),
+        {
+          ...node("undo"),
+          effectClass: "external",
+          idempotencyKey: "undo-key",
+        },
+      ],
+      edges: [],
+      loops: [],
+      subgraphCalls: [],
+      budget: { turns: 10, tokens: 1_000 },
+      allowedCapabilities: [],
+      metadata: {},
+    });
+    const runId = "run-observable-compensation";
+    value.kernel.startRun(compiled, { runId });
+    value.kernel.sealRun(runId);
+
+    const apply = value.kernel.assignNode(runId, "apply", "agent-1", {
+      attemptId: "apply-attempt",
+      leaseId: "apply-lease",
+    });
+    value.kernel.beginEffect(runId, {
+      effectId: "apply-effect",
+      attemptId: apply.id,
+      leaseId: apply.leaseId,
+      fence: apply.fence,
+      idempotencyKey: "apply-key",
+      operationDigest: OUTPUT_DIGEST,
+    });
+    value.kernel.settleEffect(runId, {
+      effectId: "apply-effect",
+      attemptId: apply.id,
+      leaseId: apply.leaseId,
+      fence: apply.fence,
+      outcome: "committed",
+      receipt: { receiptDigest: OUTPUT_DIGEST },
+    });
+    value.advance(10);
+    value.kernel.settleAttempt(runId, {
+      attemptId: apply.id,
+      leaseId: apply.leaseId,
+      fence: apply.fence,
+      outcome: "succeeded",
+      evidence: { outputDigest: OUTPUT_DIGEST },
+    });
+
+    const fail = value.kernel.assignNode(runId, "fail", "agent-1", {
+      attemptId: "fail-attempt",
+      leaseId: "fail-lease",
+    });
+    value.advance(10);
+    value.kernel.settleAttempt(runId, {
+      attemptId: fail.id,
+      leaseId: fail.leaseId,
+      fence: fail.fence,
+      outcome: "failed",
+      error: "fixture failure",
+    });
+    value.kernel.beginCompensation(runId, { triggerNodeId: "fail" });
+    const undo = value.kernel.assignNode(runId, "undo", "agent-1", {
+      attemptId: "undo-attempt",
+      leaseId: "undo-lease",
+    });
+    value.kernel.beginEffect(runId, {
+      effectId: "undo-effect",
+      attemptId: undo.id,
+      leaseId: undo.leaseId,
+      fence: undo.fence,
+      idempotencyKey: "undo-key",
+      operationDigest: OUTPUT_DIGEST,
+    });
+    value.kernel.settleEffect(runId, {
+      effectId: "undo-effect",
+      attemptId: undo.id,
+      leaseId: undo.leaseId,
+      fence: undo.fence,
+      outcome: "committed",
+      receipt: { receiptDigest: OUTPUT_DIGEST },
+    });
+    value.advance(100);
+    value.kernel.settleAttempt(runId, {
+      attemptId: undo.id,
+      leaseId: undo.leaseId,
+      fence: undo.fence,
+      outcome: "succeeded",
+      evidence: { outputDigest: OUTPUT_DIGEST },
+    });
+
+    const projection = reduceGraphTrace(value.kernel.events(runId));
+    expect(projection).toMatchObject({
+      status: "partial",
+      compensation: {
+        status: "completed",
+        completedNodeIds: ["apply"],
+      },
+      criticalPath: { nodeIds: ["apply", "fail"], durationMs: 20 },
+    });
+    expect(projection.taskGraph.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "apply",
+          compensationNodeId: "undo",
+        }),
+        expect.objectContaining({
+          id: "undo",
+          compensationForNodeId: "apply",
+        }),
+      ]),
+    );
+    expect(projection.taskGraph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: "apply",
+          to: "undo",
+          kind: "compensation",
+        }),
+      ]),
+    );
+  });
+
   it("compares schedule-equivalent runs and enforces frozen eval thresholds", () => {
     const left = complete(context(), "run-left");
     const right = complete(context(), "run-right");

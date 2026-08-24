@@ -63,6 +63,7 @@ jobs:
           npx vitest run
           packages/cli/__tests__/unit/graph-kernel-compiler.test.js
           packages/cli/__tests__/unit/graph-kernel-runtime.test.js
+          packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
           packages/cli/__tests__/integration/headless-session-resume.test.js
           packages/cli/__tests__/integration/team-worktree-real-git.test.js

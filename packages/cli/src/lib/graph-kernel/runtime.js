@@ -98,6 +98,21 @@ function mapRestore(entries) {
   return new Map((entries || []).map(([key, value]) => [key, clone(value)]));
 }
 
+function idleCompensationState() {
+  return {
+    status: "idle",
+    triggerNodeId: null,
+    reason: null,
+    terminalStatus: null,
+    plan: [],
+    currentIndex: 0,
+    completedNodeIds: [],
+    failure: null,
+    startedAt: null,
+    completedAt: null,
+  };
+}
+
 function finitePositive(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : fallback;
@@ -266,6 +281,7 @@ function stateSnapshot(run) {
     completedAt: run.completedAt,
     cancellationRequested: run.cancellationRequested,
     progressEpoch: run.progressEpoch,
+    compensation: clone(run.compensation),
     nodeStates: mapSnapshot(run.nodeStates),
     attempts: mapSnapshot(run.attempts),
     agents: mapSnapshot(run.agents),
@@ -298,6 +314,7 @@ function restoreState(run, snapshot, compiled = null) {
   run.completedAt = snapshot.completedAt;
   run.cancellationRequested = snapshot.cancellationRequested === true;
   run.progressEpoch = snapshot.progressEpoch;
+  run.compensation = clone(snapshot.compensation || idleCompensationState());
   for (const field of [
     "nodeStates",
     "attempts",
@@ -353,6 +370,7 @@ function runProjection(run) {
     createdAt: run.createdAt,
     completedAt: run.completedAt,
     progressEpoch: run.progressEpoch,
+    compensation: Object.freeze(clone(run.compensation)),
     nodes: Object.freeze(
       run.compiled.topologicalOrder.map((id) => nodeProjection(run, id)),
     ),
@@ -410,6 +428,7 @@ function buildRun(compiled, options, now) {
     completedAt: null,
     cancellationRequested: false,
     progressEpoch: 0,
+    compensation: idleCompensationState(),
     nodeStates: new Map(),
     attempts: new Map(),
     agents: new Map(),
@@ -427,9 +446,10 @@ function buildRun(compiled, options, now) {
     fenceCounters: new Map(),
     lastEvent: null,
   };
+  const compensationNodeIds = new Set(compiled.compensationNodeIds || []);
   for (const nodeId of compiled.topologicalOrder) {
     run.nodeStates.set(nodeId, {
-      status: "pending",
+      status: compensationNodeIds.has(nodeId) ? "skipped" : "pending",
       attemptIds: [],
       acceptedAttemptId: null,
       blockedRoot: null,
@@ -702,6 +722,69 @@ function waitGraphCycles(run) {
   return components.sort((left, right) => left[0].localeCompare(right[0]));
 }
 
+function currentCompensationEntry(run) {
+  if (run.compensation?.status !== "running") return null;
+  return run.compensation.plan[run.compensation.currentIndex] || null;
+}
+
+function compensationAssignment(run, nodeId) {
+  const entry = currentCompensationEntry(run);
+  return entry?.compensationNodeId === nodeId ? entry : null;
+}
+
+function committedEffectsForNode(run, nodeId) {
+  return [...run.effects.values()]
+    .filter(
+      (effect) => effect.nodeId === nodeId && effect.status === "committed",
+    )
+    .sort(
+      (left, right) =>
+        left.createdAt.localeCompare(right.createdAt) ||
+        left.id.localeCompare(right.id),
+    );
+}
+
+function completeCompensationStep(run, entry, now) {
+  const compensationEffects = committedEffectsForNode(
+    run,
+    entry.compensationNodeId,
+  );
+  if (compensationEffects.length === 0) {
+    throw kernelError(
+      "CC_GRAPH_COMPENSATION_RECEIPT_REQUIRED",
+      `compensation node requires a committed effect receipt: ${entry.compensationNodeId}`,
+    );
+  }
+  const compensationEffect = compensationEffects.at(-1);
+  for (const effect of committedEffectsForNode(run, entry.nodeId)) {
+    effect.status = "compensated";
+    effect.compensationEffectId = compensationEffect.id;
+    effect.updatedAt = nowIso(() => now);
+  }
+  run.compensation.completedNodeIds.push(entry.nodeId);
+  run.compensation.currentIndex += 1;
+  if (run.compensation.currentIndex >= run.compensation.plan.length) {
+    run.compensation.status = "completed";
+    run.compensation.completedAt = nowIso(() => now);
+    run.status = run.compensation.terminalStatus;
+    run.completedAt = nowIso(() => now);
+  } else {
+    run.status = "running";
+  }
+}
+
+function failCompensation(run, entry, error, now) {
+  run.compensation.status = "failed";
+  run.compensation.failure = {
+    nodeId: entry.nodeId,
+    compensationNodeId: entry.compensationNodeId,
+    error: String(error || "compensation_failed").slice(0, 4096),
+  };
+  run.compensation.completedAt = nowIso(() => now);
+  run.status = "reconciliation_required";
+  run.completedAt = null;
+}
+
 function terminalAlgebra(run) {
   const statuses = [...run.nodeStates.values()].map((state) => state.status);
   const successes = statuses.filter((status) => status === "succeeded").length;
@@ -719,6 +802,12 @@ function terminalAlgebra(run) {
 }
 
 function classifyQuiescence(run, now) {
+  if (run.compensation?.status === "failed") {
+    return "reconciliation_required";
+  }
+  if (run.compensation?.status === "completed") {
+    return run.compensation.terminalStatus || "failed";
+  }
   if (TERMINAL_RUN.has(run.status)) return run.status;
   if (run.phase === "open") return "running";
   if (
@@ -1131,9 +1220,10 @@ export class GraphKernel {
         };
         const compiled = compileGraphDefinition(definition);
         const createdAt = nowIso(() => now);
+        const compensationNodeIds = new Set(compiled.compensationNodeIds || []);
         for (const node of nodes) {
           run.nodeStates.set(node.id, {
-            status: "pending",
+            status: compensationNodeIds.has(node.id) ? "skipped" : "pending",
             attemptIds: [],
             acceptedAttemptId: null,
             blockedRoot: null,
@@ -1141,6 +1231,18 @@ export class GraphKernel {
             updatedAt: createdAt,
           });
           run.fenceCounters.set(node.id, 0);
+        }
+        for (const compensationNodeId of compensationNodeIds) {
+          const state = run.nodeStates.get(compensationNodeId);
+          if (!state || state.status === "skipped") continue;
+          if (state.status !== "pending" || state.attemptIds.length > 0) {
+            throw kernelError(
+              "CC_GRAPH_COMPENSATION_TARGET_ACTIVE",
+              `dynamic revision cannot convert an active node into a compensation target: ${compensationNodeId}`,
+            );
+          }
+          state.status = "skipped";
+          state.updatedAt = createdAt;
         }
         run.compiled = compiled;
         run.graphRevision += 1;
@@ -1202,6 +1304,25 @@ export class GraphKernel {
   readyNodes(runId) {
     const run = this._run(runId);
     const now = this.now();
+    const compensationEntry = currentCompensationEntry(run);
+    if (compensationEntry) {
+      const state = run.nodeStates.get(compensationEntry.compensationNodeId);
+      if (state?.status !== "pending") return [];
+      return [
+        Object.freeze({
+          nodeId: compensationEntry.compensationNodeId,
+          compensationForNodeId: compensationEntry.nodeId,
+          priority: Object.freeze({
+            base: 1000,
+            donation: 0,
+            aging: 0,
+            criticalPathBoost: 0,
+            total: 1000,
+            queueWaitMs: 0,
+          }),
+        }),
+      ];
+    }
     return run.compiled.topologicalOrder
       .filter((nodeId) => {
         const state = run.nodeStates.get(nodeId);
@@ -1273,10 +1394,13 @@ export class GraphKernel {
             `Graph node not found: ${safeNodeId}`,
           );
         }
-        if (
-          state.status !== "pending" ||
-          !nodeReadiness(run, safeNodeId).ready
-        ) {
+        const compensationEntry = compensationAssignment(run, safeNodeId);
+        const ready = compensationEntry
+          ? state.status === "pending"
+          : run.compensation.status !== "running" &&
+            state.status === "pending" &&
+            nodeReadiness(run, safeNodeId).ready;
+        if (!ready) {
           throw kernelError(
             "CC_GRAPH_NODE_NOT_READY",
             `Graph node is not ready: ${safeNodeId}`,
@@ -1320,7 +1444,8 @@ export class GraphKernel {
           runId: run.id,
           nodeId: safeNodeId,
           agentId: safeAgentId,
-          role,
+          role: compensationEntry ? "executor" : role,
+          compensationForNodeId: compensationEntry?.nodeId || null,
           leaseId: safeIdentifier(leaseId, "leaseId"),
           fence,
           status: "active",
@@ -1683,6 +1808,7 @@ export class GraphKernel {
         );
         const state = run.nodeStates.get(attempt.nodeId);
         const node = run.compiled.nodes[attempt.nodeId];
+        const compensationEntry = compensationAssignment(run, attempt.nodeId);
         if (state.acceptedAttemptId && state.acceptedAttemptId !== attempt.id) {
           attempt.status = "rejected";
           attempt.participationStatus = "loser";
@@ -1701,7 +1827,16 @@ export class GraphKernel {
           attempt.terminalEvidence = clone(evidence);
           state.status = "reconciliation_required";
           state.updatedAt = nowIso(this.now);
-          run.status = "reconciliation_required";
+          if (compensationEntry) {
+            failCompensation(
+              run,
+              compensationEntry,
+              error || "compensation outcome is unknown",
+              this.now(),
+            );
+          } else {
+            run.status = "reconciliation_required";
+          }
           return attemptProjection(attempt);
         }
         if (outcome === "succeeded") {
@@ -1781,8 +1916,21 @@ export class GraphKernel {
           agent.status = "idle";
           agent.updatedAt = nowIso(this.now);
         }
-        propagate(run, this.now);
-        run.status = classifyQuiescence(run, this.now());
+        if (compensationEntry) {
+          if (outcome === "succeeded") {
+            completeCompensationStep(run, compensationEntry, this.now());
+          } else if (state.status !== "pending") {
+            failCompensation(
+              run,
+              compensationEntry,
+              error || outcome,
+              this.now(),
+            );
+          }
+        } else {
+          propagate(run, this.now);
+          run.status = classifyQuiescence(run, this.now());
+        }
         if (TERMINAL_RUN.has(run.status)) run.completedAt = nowIso(this.now);
         return attemptProjection(attempt);
       },
@@ -1868,6 +2016,115 @@ export class GraphKernel {
           : "cancelled";
         run.completedAt = requiresReconciliation ? null : nowIso(this.now);
         return runProjection(run);
+      },
+    );
+  }
+
+  beginCompensation(
+    runId,
+    { triggerNodeId = null, reason = "forward_failure" } = {},
+  ) {
+    const run = this._run(runId);
+    const trigger =
+      triggerNodeId == null
+        ? null
+        : safeIdentifier(triggerNodeId, "triggerNodeId");
+    if (run.compensation.status !== "idle") {
+      if (
+        run.compensation.triggerNodeId === trigger &&
+        run.compensation.reason === String(reason)
+      ) {
+        return runProjection(run);
+      }
+      throw kernelError(
+        "CC_GRAPH_COMPENSATION_ALREADY_STARTED",
+        "compensation has already been started for this run",
+      );
+    }
+    return this._transaction(
+      run,
+      "compensation.started",
+      { triggerNodeId: trigger, reason },
+      () => {
+        if (!["failed", "partial", "cancelled"].includes(run.status)) {
+          throw kernelError(
+            "CC_GRAPH_COMPENSATION_NOT_AVAILABLE",
+            "compensation requires a failed, partial, or cancelled terminal run",
+          );
+        }
+        if (trigger && !run.compiled.nodes[trigger]) {
+          throw kernelError(
+            "CC_GRAPH_NODE_NOT_FOUND",
+            `Graph node not found: ${trigger}`,
+          );
+        }
+        const activeAttempts = [...run.attempts.values()].filter((attempt) =>
+          ACTIVE_ATTEMPT.has(attempt.status),
+        );
+        const unsettledEffects = [...run.effects.values()].filter((effect) =>
+          ["started", "unknown"].includes(effect.status),
+        );
+        if (activeAttempts.length || unsettledEffects.length) {
+          throw kernelError(
+            "CC_GRAPH_COMPENSATION_UNSETTLED",
+            "compensation cannot start before attempts and effects are settled",
+            {
+              attemptIds: activeAttempts.map((attempt) => attempt.id).sort(),
+              effectIds: unsettledEffects.map((effect) => effect.id).sort(),
+            },
+          );
+        }
+        const plan = (run.compiled.forwardTopologicalOrder || [])
+          .filter(
+            (nodeId) =>
+              run.nodeStates.get(nodeId)?.status === "succeeded" &&
+              run.compiled.compensationByNode?.[nodeId] &&
+              committedEffectsForNode(run, nodeId).length > 0,
+          )
+          .reverse()
+          .map((nodeId) => ({
+            nodeId,
+            compensationNodeId: run.compiled.compensationByNode[nodeId],
+          }));
+        if (plan.length === 0) {
+          throw kernelError(
+            "CC_GRAPH_COMPENSATION_NOT_REQUIRED",
+            "run has no committed compensatable effects",
+          );
+        }
+        const now = this.now();
+        for (const entry of plan) {
+          const state = run.nodeStates.get(entry.compensationNodeId);
+          if (!state || state.status !== "skipped") {
+            throw kernelError(
+              "CC_GRAPH_COMPENSATION_TARGET_INVALID",
+              `compensation target is not isolated and idle: ${entry.compensationNodeId}`,
+            );
+          }
+          state.status = "pending";
+          state.blockedRoot = null;
+          state.updatedAt = nowIso(() => now);
+        }
+        run.compensation = {
+          status: "running",
+          triggerNodeId: trigger,
+          reason: String(reason),
+          terminalStatus: run.status,
+          plan,
+          currentIndex: 0,
+          completedNodeIds: [],
+          failure: null,
+          startedAt: nowIso(() => now),
+          completedAt: null,
+        };
+        run.status = "running";
+        run.completedAt = null;
+        run.phase = "sealed";
+        return runProjection(run);
+      },
+      {
+        allowTerminal: true,
+        idempotencyKey: `compensation-start:${run.id}:${trigger || "terminal"}`,
       },
     );
   }

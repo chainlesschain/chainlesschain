@@ -518,6 +518,118 @@ export function compileGraphDefinition(input, options = {}) {
   }
   const nodes = new Map(definition.nodes.map((node) => [node.id, node]));
   const nodeIds = new Set(nodes.keys());
+  const compensationTargets = new Map();
+  const declareCompensation = (sourceId, targetId) => {
+    if (!sourceId || !targetId) return;
+    const targets = compensationTargets.get(sourceId) || new Set();
+    targets.add(targetId);
+    compensationTargets.set(sourceId, targets);
+  };
+  for (const node of definition.nodes) {
+    if (node.compensationNodeId) {
+      declareCompensation(node.id, node.compensationNodeId);
+    }
+  }
+  for (const edge of definition.edges) {
+    if (edge.kind === "compensation") {
+      declareCompensation(edge.from, edge.to);
+    }
+  }
+  const compensationByNode = new Map();
+  const compensationOwners = new Map();
+  for (const [sourceId, targets] of compensationTargets) {
+    if (targets.size !== 1) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_TARGET_CONFLICT",
+        "#/nodes",
+        `effect node declares multiple compensation targets: ${sourceId}`,
+        { sourceId, targetIds: [...targets].sort() },
+      );
+      continue;
+    }
+    const [targetId] = targets;
+    const source = nodes.get(sourceId);
+    const target = nodes.get(targetId);
+    if (!target) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_UNKNOWN_COMPENSATION_TARGET",
+        "#/nodes",
+        `unknown compensation target ${targetId} for ${sourceId}`,
+        { sourceId, targetId },
+      );
+    }
+    if (!source || !target) continue;
+    if (sourceId === targetId) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_SELF_REFERENCE",
+        "#/nodes",
+        `node cannot compensate itself: ${sourceId}`,
+      );
+    }
+    if (!["workspace_write", "external"].includes(source.effectClass)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_SOURCE_NOT_EFFECTFUL",
+        "#/nodes",
+        `compensation source must be effectful: ${sourceId}`,
+      );
+    }
+    if (!["workspace_write", "external"].includes(target.effectClass)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_TARGET_NOT_EFFECTFUL",
+        "#/nodes",
+        `compensation target must be effectful: ${targetId}`,
+      );
+    }
+    const priorOwner = compensationOwners.get(targetId);
+    if (priorOwner && priorOwner !== sourceId) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_TARGET_REUSED",
+        "#/nodes",
+        `compensation target ${targetId} is already owned by ${priorOwner}`,
+      );
+    } else {
+      compensationOwners.set(targetId, sourceId);
+      compensationByNode.set(sourceId, targetId);
+    }
+  }
+  const compensationNodeIds = new Set(compensationOwners.keys());
+  for (const targetId of compensationNodeIds) {
+    const target = nodes.get(targetId);
+    const usedAsForwardDependency = definition.nodes.some((node) =>
+      node.dependsOn.includes(targetId),
+    );
+    const usedByForwardEdge = definition.edges.some(
+      (edge) =>
+        edge.kind !== "compensation" &&
+        (edge.from === targetId || edge.to === targetId),
+    );
+    if (
+      target.dependsOn.length > 0 ||
+      usedAsForwardDependency ||
+      usedByForwardEdge
+    ) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_TARGET_IN_FORWARD_GRAPH",
+        "#/nodes",
+        `compensation target must be isolated from the forward dependency graph: ${targetId}`,
+      );
+    }
+    if (compensationTargets.has(targetId)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_COMPENSATION_RECURSIVE",
+        "#/nodes",
+        `compensation target cannot declare another compensation target: ${targetId}`,
+      );
+    }
+  }
   for (const [index, trigger] of (definition.triggers || []).entries()) {
     if (!nodeIds.has(trigger.targetNodeId)) {
       diagnostic(
@@ -761,6 +873,7 @@ export function compileGraphDefinition(input, options = {}) {
 
   for (let leftIndex = 0; leftIndex < definition.nodes.length; leftIndex += 1) {
     const left = definition.nodes[leftIndex];
+    if (compensationNodeIds.has(left.id)) continue;
     if (!["workspace_write", "external"].includes(left.effectClass)) continue;
     for (
       let rightIndex = leftIndex + 1;
@@ -768,6 +881,7 @@ export function compileGraphDefinition(input, options = {}) {
       rightIndex += 1
     ) {
       const right = definition.nodes[rightIndex];
+      if (compensationNodeIds.has(right.id)) continue;
       if (!["workspace_write", "external"].includes(right.effectClass))
         continue;
       if (
@@ -829,6 +943,11 @@ export function compileGraphDefinition(input, options = {}) {
       Object.fromEntries([...nodes].map(([id, value]) => [id, value])),
     ),
     topologicalOrder: Object.freeze(order),
+    forwardTopologicalOrder: Object.freeze(
+      order.filter((nodeId) => !compensationNodeIds.has(nodeId)),
+    ),
+    compensationByNode: deepFreeze(Object.fromEntries(compensationByNode)),
+    compensationNodeIds: Object.freeze([...compensationNodeIds].sort()),
     dependencies: deepFreeze(
       Object.fromEntries(
         [...dependencies].map(([id, values]) => [id, [...values].sort()]),

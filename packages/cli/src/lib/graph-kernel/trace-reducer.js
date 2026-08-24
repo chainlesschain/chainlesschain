@@ -25,9 +25,20 @@ function durationMs(attempt) {
 }
 
 function criticalPath(definition, attempts) {
-  const nodes = new Map(definition.nodes.map((node) => [node.id, node]));
+  const compensationNodeIds = new Set(
+    [
+      ...definition.nodes.map((node) => node.compensationNodeId),
+      ...definition.edges
+        .filter((edge) => edge.kind === "compensation")
+        .map((edge) => edge.to),
+    ].filter((nodeId) => typeof nodeId === "string"),
+  );
+  const forwardNodes = definition.nodes.filter(
+    (node) => !compensationNodeIds.has(node.id),
+  );
+  const nodes = new Map(forwardNodes.map((node) => [node.id, node]));
   const duration = new Map(
-    definition.nodes.map((node) => [
+    forwardNodes.map((node) => [
       node.id,
       Math.max(
         0,
@@ -38,7 +49,10 @@ function criticalPath(definition, attempts) {
     ]),
   );
   const dependencies = new Map(
-    definition.nodes.map((node) => [node.id, new Set(node.dependsOn)]),
+    forwardNodes.map((node) => [
+      node.id,
+      new Set(node.dependsOn.filter((nodeId) => nodes.has(nodeId))),
+    ]),
   );
   for (const edge of definition.edges) {
     if (
@@ -138,6 +152,20 @@ export function reduceGraphTrace(
   const humanTasks = [...mapFromEntries(state.humanTasks).values()];
   const agents = [...mapFromEntries(state.agents).values()];
   const definition = state.definition;
+  const compensationForNode = new Map([
+    ...definition.nodes
+      .filter((node) => node.compensationNodeId)
+      .map((node) => [node.compensationNodeId, node.id]),
+    ...definition.edges
+      .filter((edge) => edge.kind === "compensation")
+      .map((edge) => [edge.to, edge.from]),
+  ]);
+  const compensationByNode = new Map(
+    [...compensationForNode].map(([targetId, sourceId]) => [
+      sourceId,
+      targetId,
+    ]),
+  );
   const taskNodes = definition.nodes.map((node) => ({
     id: node.id,
     kind: node.kind,
@@ -147,6 +175,9 @@ export function reduceGraphTrace(
     attemptIds: nodeStates.get(node.id)?.attemptIds || [],
     writeSet: node.writeSet || [],
     workspaceIsolation: node.workspaceIsolation || null,
+    compensationNodeId:
+      node.compensationNodeId || compensationByNode.get(node.id) || null,
+    compensationForNodeId: compensationForNode.get(node.id) || null,
   }));
   const dependencyEdges = [
     ...definition.nodes.flatMap((node) =>
@@ -160,6 +191,26 @@ export function reduceGraphTrace(
     ),
     ...definition.edges,
   ];
+  const compensationEdgeKeys = new Set(
+    dependencyEdges
+      .filter((edge) => edge.kind === "compensation")
+      .map((edge) => `${edge.from}\0${edge.to}`),
+  );
+  for (const node of definition.nodes) {
+    if (
+      !node.compensationNodeId ||
+      compensationEdgeKeys.has(`${node.id}\0${node.compensationNodeId}`)
+    ) {
+      continue;
+    }
+    dependencyEdges.push({
+      id: `compensation:${node.id}:${node.compensationNodeId}`,
+      from: node.id,
+      to: node.compensationNodeId,
+      kind: "compensation",
+      when: "always",
+    });
+  }
   const artifactEdges = artifacts.flatMap((artifact) => [
     {
       from: artifact.producerNodeId,
@@ -213,6 +264,7 @@ export function reduceGraphTrace(
     revisionDigest: state.revisionDigest,
     phase: state.phase,
     status: state.status,
+    compensation: clone(state.compensation || null),
     agentTree,
     taskGraph: { nodes: taskNodes, edges: dependencyEdges },
     artifactGraph: { artifacts, edges: artifactEdges },

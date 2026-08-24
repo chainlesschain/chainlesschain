@@ -696,4 +696,219 @@ describe("canonical Graph Kernel", () => {
     succeed(recovered, "run-effect-crash", retry);
     expect(recovered.getRun("run-effect-crash").status).toBe("succeeded");
   });
+
+  it("executes durable inverse effects in reverse dependency order", () => {
+    const context = createKernel();
+    const compiled = graph([
+      node("apply-a", {
+        effectClass: "external",
+        idempotencyKey: "apply-a-key",
+        compensationNodeId: "undo-a",
+      }),
+      node("apply-b", {
+        dependsOn: ["apply-a"],
+        effectClass: "external",
+        idempotencyKey: "apply-b-key",
+        compensationNodeId: "undo-b",
+      }),
+      node("fail", { dependsOn: ["apply-b"] }),
+      node("undo-a", {
+        effectClass: "external",
+        idempotencyKey: "undo-a-key",
+      }),
+      node("undo-b", {
+        effectClass: "external",
+        idempotencyKey: "undo-b-key",
+      }),
+    ]);
+    startSealed(context.kernel, compiled, "run-compensation");
+
+    for (const [nodeId, effectId, idempotencyKey] of [
+      ["apply-a", "effect-apply-a", "apply-a-key"],
+      ["apply-b", "effect-apply-b", "apply-b-key"],
+    ]) {
+      const attempt = assign(
+        context.kernel,
+        "run-compensation",
+        nodeId,
+        "agent-1",
+      );
+      context.kernel.beginEffect("run-compensation", {
+        effectId,
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        idempotencyKey,
+        operationDigest: DIGEST_B,
+      });
+      context.kernel.settleEffect("run-compensation", {
+        effectId,
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        outcome: "committed",
+        receipt: { receiptDigest: DIGEST_A },
+      });
+      succeed(context.kernel, "run-compensation", attempt);
+    }
+
+    const failed = assign(context.kernel, "run-compensation", "fail");
+    context.kernel.settleAttempt("run-compensation", {
+      attemptId: failed.id,
+      leaseId: failed.leaseId,
+      fence: failed.fence,
+      outcome: "failed",
+      error: "force rollback",
+    });
+    expect(context.kernel.getRun("run-compensation").status).toBe("partial");
+    const started = context.kernel.beginCompensation("run-compensation", {
+      triggerNodeId: "fail",
+      reason: "forward failure",
+    });
+    expect(started.compensation).toMatchObject({
+      status: "running",
+      terminalStatus: "partial",
+      plan: [
+        { nodeId: "apply-b", compensationNodeId: "undo-b" },
+        { nodeId: "apply-a", compensationNodeId: "undo-a" },
+      ],
+    });
+
+    const recovered = new GraphKernel({
+      eventStore: context.eventStore,
+      now: () => 1_700_000_000_000,
+    });
+    expect(recovered.recoverRun("run-compensation").compensation.status).toBe(
+      "running",
+    );
+    expect(recovered.readyNodes("run-compensation")).toEqual([
+      expect.objectContaining({
+        nodeId: "undo-b",
+        compensationForNodeId: "apply-b",
+      }),
+    ]);
+
+    for (const [nodeId, sourceNodeId, effectId, idempotencyKey] of [
+      ["undo-b", "apply-b", "effect-undo-b", "undo-b-key"],
+      ["undo-a", "apply-a", "effect-undo-a", "undo-a-key"],
+    ]) {
+      const attempt = assign(
+        recovered,
+        "run-compensation",
+        nodeId,
+        "compensator",
+      );
+      expect(attempt.compensationForNodeId).toBe(sourceNodeId);
+      expect(() =>
+        succeed(recovered, "run-compensation", attempt),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_GRAPH_COMPENSATION_RECEIPT_REQUIRED",
+        }),
+      );
+      recovered.beginEffect("run-compensation", {
+        effectId,
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        idempotencyKey,
+        operationDigest: DIGEST_B,
+      });
+      recovered.settleEffect("run-compensation", {
+        effectId,
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        outcome: "committed",
+        receipt: { receiptDigest: DIGEST_A },
+      });
+      succeed(recovered, "run-compensation", attempt);
+    }
+
+    const terminal = recovered.getRun("run-compensation");
+    expect(terminal).toMatchObject({
+      status: "partial",
+      compensation: {
+        status: "completed",
+        completedNodeIds: ["apply-b", "apply-a"],
+      },
+    });
+    const effects = Object.fromEntries(
+      recovered.events("run-compensation").at(-1).payload.state.effects,
+    );
+    expect(effects["effect-apply-b"]).toMatchObject({
+      status: "compensated",
+      compensationEffectId: "effect-undo-b",
+    });
+    expect(effects["effect-apply-a"]).toMatchObject({
+      status: "compensated",
+      compensationEffectId: "effect-undo-a",
+    });
+  });
+
+  it("requires reconciliation when an inverse effect exhausts retries", () => {
+    const { kernel } = createKernel();
+    const compiled = graph([
+      node("apply", {
+        effectClass: "external",
+        idempotencyKey: "apply-key",
+        compensationNodeId: "undo",
+      }),
+      node("fail", { dependsOn: ["apply"] }),
+      node("undo", {
+        effectClass: "external",
+        idempotencyKey: "undo-key",
+      }),
+    ]);
+    startSealed(kernel, compiled, "run-compensation-failure");
+    const applied = assign(kernel, "run-compensation-failure", "apply");
+    const effect = kernel.beginEffect("run-compensation-failure", {
+      effectId: "effect-apply",
+      attemptId: applied.id,
+      leaseId: applied.leaseId,
+      fence: applied.fence,
+      idempotencyKey: "apply-key",
+      operationDigest: DIGEST_B,
+    });
+    kernel.settleEffect("run-compensation-failure", {
+      effectId: effect.id,
+      attemptId: applied.id,
+      leaseId: applied.leaseId,
+      fence: applied.fence,
+      outcome: "committed",
+      receipt: { receiptDigest: DIGEST_A },
+    });
+    succeed(kernel, "run-compensation-failure", applied);
+    const failed = assign(kernel, "run-compensation-failure", "fail");
+    kernel.settleAttempt("run-compensation-failure", {
+      attemptId: failed.id,
+      leaseId: failed.leaseId,
+      fence: failed.fence,
+      outcome: "failed",
+      error: "forward failure",
+    });
+    kernel.beginCompensation("run-compensation-failure", {
+      triggerNodeId: "fail",
+    });
+    const undo = assign(kernel, "run-compensation-failure", "undo");
+    kernel.settleAttempt("run-compensation-failure", {
+      attemptId: undo.id,
+      leaseId: undo.leaseId,
+      fence: undo.fence,
+      outcome: "failed",
+      error: "remote rollback rejected",
+    });
+
+    expect(kernel.getRun("run-compensation-failure")).toMatchObject({
+      status: "reconciliation_required",
+      compensation: {
+        status: "failed",
+        failure: {
+          nodeId: "apply",
+          compensationNodeId: "undo",
+          error: "remote rollback rejected",
+        },
+      },
+    });
+  });
 });
