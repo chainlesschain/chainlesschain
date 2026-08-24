@@ -6,7 +6,10 @@ import {
   JsonlRolloutStore,
   MemoryRolloutStore,
 } from "../../src/lib/app-server/rollout-store.js";
-import { SqliteRolloutStore } from "../../src/lib/app-server/sqlite-rollout-store.js";
+import {
+  SqliteRolloutStore,
+  sqliteRolloutStoreAvailable,
+} from "../../src/lib/app-server/sqlite-rollout-store.js";
 
 const temporary = [];
 
@@ -22,25 +25,35 @@ function createDirectory() {
   return directory;
 }
 
-for (const [name, createStore] of [
+const implementations = [
   ["memory", () => new MemoryRolloutStore({ now: () => 1_700_000_000_000 })],
-  [
+];
+if (sqliteRolloutStoreAvailable()) {
+  implementations.push([
     "sqlite",
     () =>
       new SqliteRolloutStore({
         filename: ":memory:",
         now: () => 1_700_000_000_000,
       }),
-  ],
-  [
-    "jsonl",
-    () =>
-      new JsonlRolloutStore({
-        directory: createDirectory(),
-        now: () => 1_700_000_000_000,
-      }),
-  ],
-]) {
+  ]);
+} else {
+  it("reports a stable capability error when node:sqlite is unavailable", () => {
+    expect(() => new SqliteRolloutStore()).toThrowError(
+      expect.objectContaining({ code: "CC_ROLLOUT_SQLITE_UNAVAILABLE" }),
+    );
+  });
+}
+implementations.push([
+  "jsonl",
+  () =>
+    new JsonlRolloutStore({
+      directory: createDirectory(),
+      now: () => 1_700_000_000_000,
+    }),
+]);
+
+for (const [name, createStore] of implementations) {
   describe(`App Server rollout store (${name})`, () => {
     it("supports start/append/read/resume/fork/checkpoint/compact/archive", () => {
       const store = createStore();

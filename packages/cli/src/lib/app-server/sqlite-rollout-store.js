@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
 
 import {
   ROLLOUT_STORE_SCHEMA,
@@ -11,6 +11,13 @@ import {
 
 const { buildRecord, canonicalJson, projectThread, verifyRecords } =
   _rolloutStoreInternals;
+
+let DatabaseSync = null;
+try {
+  ({ DatabaseSync } = createRequire(import.meta.url)("node:sqlite"));
+} catch {
+  // node:sqlite is optional on the minimum supported Node 22.12 runtime.
+}
 
 function sqliteError(code, message, cause = null) {
   const error = new Error(message);
@@ -32,12 +39,22 @@ function recordThreadId(input) {
   ).thread_id;
 }
 
+export function sqliteRolloutStoreAvailable() {
+  return typeof DatabaseSync === "function";
+}
+
 export class SqliteRolloutStore {
   constructor({ filename = ":memory:", now = Date.now, database = null } = {}) {
     this.filename = filename === ":memory:" ? filename : path.resolve(filename);
     this.now = now;
     if (this.filename !== ":memory:") {
       fs.mkdirSync(path.dirname(this.filename), { recursive: true });
+    }
+    if (!database && !sqliteRolloutStoreAvailable()) {
+      throw sqliteError(
+        "CC_ROLLOUT_SQLITE_UNAVAILABLE",
+        "SQLite rollout storage requires a Node runtime with node:sqlite",
+      );
     }
     this.db = database || new DatabaseSync(this.filename);
     this.db.exec("PRAGMA journal_mode = WAL");
