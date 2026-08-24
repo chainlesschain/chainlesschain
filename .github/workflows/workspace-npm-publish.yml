@@ -44,8 +44,14 @@ jobs:
       - name: Setup Node.js 22
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: "22.x"
+          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
+          node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm Trusted Publishing support
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
 
       - name: Install root dependencies
         run: npm install --ignore-scripts
@@ -67,10 +73,17 @@ jobs:
             npm run build --if-present --workspace="./packages/$pkg_dir"
           done < .publish-order.txt
 
+      # setup-node writes a token placeholder to its temporary npmrc. Remove it
+      # after dependency installation so live publishing can only authenticate
+      # with the short-lived GitHub OIDC identity. Each existing npm package
+      # must trust this workflow filename before its next live release.
+      - name: Enforce tokenless OIDC publishing
+        if: steps.detect.outputs.has_packages == 'true'
+        run: npm config delete //registry.npmjs.org/:_authToken --location=user
+
       - name: Publish packages in dependency order
         if: steps.detect.outputs.has_packages == 'true'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DRY_RUN: ${{ inputs.dry-run }}
         run: |
           set -e
