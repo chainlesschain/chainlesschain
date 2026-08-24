@@ -1,14 +1,14 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-23：npm `latest` 与生产推荐版为 `0.165.8`，发布证据绑定不可变 tag `v-npm-0-165-8` 的精确 SHA `28f92564f5`；安全 Remote Control、受治理插件来源/摘要归档、跨会话消息与 MCP 生命周期恢复已进入公开 CLI 契约。Open VSX `0.37.63`、JetBrains `0.4.96` 已公开并完成发布后回读。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-24：npm `latest` 与生产推荐版为 Agent Platform `0.166.0`，发布证据绑定不可变 tag `v-npm-0-166-0` 的精确 SHA `40354eb432`；canonical Agent Protocol、CC App Server、Agent Kernel、Graph Kernel 与 Agent SDK `0.2.0` 已进入公开发行面。Open VSX `0.37.63`、JetBrains `0.4.96` 仍是已回读的公开市场版本。
 
 ## 当前重点
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
-- CLI `0.165.8` 完整承接 `0.165.6` 的稳定契约，并修正 Agent SDK 发布门：模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点必须隔离，以生产同等的 fail-closed 路径验证运行目录权限。
-- 精确发布 SHA `28f92564f5` 的三平台 CLI CI `32614151603`、Strict Sandbox `32614151467` 与 npm 发布 `32616155187` 均已闭环；公开 tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。`0.165.7` 在发布前的 Agent SDK 夹具失败，未发布且 tag 保持不可变。npm 证据不等于 Desktop/native 签名发行完成。
+- Agent Platform `0.166.0` 新增 canonical Schema 与 TS/Python/Kotlin/Swift codegen、stdio CC App Server、统一 Agent Kernel 接入、durable Graph Kernel、Graph trace/eval、受治理 `cc exec` facade、Record & Replay 原型和签名 Webhook 边界。
+- 精确发布 SHA `40354eb432` 的三平台 CLI CI `32707920123`、Strict Sandbox `32707919798` 与 npm 发布 `32711432194` 均已闭环；TypeScript/Python Agent SDK `0.2.0` 也已公开并完成安装回读。npm 证据不等于 Desktop/native 签名发行或 Graph authoritative cutover 完成。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
@@ -22,14 +22,36 @@
 
 ### `cli-runtime-current.md`
 
-- 生产基线更新为 CLI `0.165.8`；npm `latest`、主线包元数据与完整门禁公开版已对齐，IDE 市场 Open VSX `0.37.63`、JetBrains `0.4.96` 均已完成公开回读。
+- 生产基线更新为 Agent Platform CLI `0.166.0`；npm `latest`、主线包元数据与完整门禁公开版已对齐，IDE 市场 Open VSX `0.37.63`、JetBrains `0.4.96` 保持独立公开回读口径。
+- 新增 canonical Agent Protocol、CC App Server、Graph Kernel、Graph trace/eval、SDK `0.2.0` 与迁移边界核对。
 - 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
 - 明确 production `run_skill` 不 import `handler.js`，隔离 Skill 只获得三个只读文件工具；历史 `shell-exec` metadata 不产生 process authority，无消费方的 `skill-process-broker` façade 已删除。
 - 记录 CLI-Anything/CLI Pack legacy handler 仍可生成但不会由 production `run_skill` 执行；未来恢复前必须重新满足可执行身份、完整进程树、宿主 dispose 与三平台门禁。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
-- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、打包/启动校验，以及 0.165.8 的 exact-SHA、不可变制品、provenance 与 registry 回读边界。
+- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、打包/启动校验，以及 0.166.0 的 exact-SHA、不可变制品、provenance 与 registry 回读边界。
+
+### `modules/103_Agent_SDK平台化方案.md`
+
+- 从早期 stream-json SDK 方案升级为 Agent Platform 总体设计，覆盖 canonical Schema、多语言 codegen、CC App Server 与 Graph Kernel。
+- 记录 `cc serve --app-server`、`cc team graph inspect|diff|eval`、有界队列、rollout/fork、Effect/reconcile 与 HumanTask 安全不变量。
+- 明确公开 CLI/SDK 与私有协议源、产品入口迁移、真实 provider 旅程和长期 soak 的证据边界。
+
+### `modules/104_CC_App_Server设计.md`
+
+- 单独记录 stdio JSON-RPC、Thread/Turn/Item/Approval 状态机、有界请求/输出队列、hash-chain rollout、fork 与物理中断结算。
+- 明确 App Server 是产品集成入口，不是公网服务，也不复制 Agent Kernel 或 Graph Kernel 的状态机。
+
+### `modules/105_Graph_Kernel设计.md`
+
+- 单独记录 GraphDefinition 编译、GraphRun、Task/Attempt、lease/fence、Message、Effect、Handoff、HumanTask、trace/diff/eval 与 adapter cutover。
+- 明确只读观测命令已发布不等于所有 Team/Cowork/Scheduler 产品入口完成 authoritative writer 迁移。
+
+### `modules/106_Agent_Kernel设计.md`
+
+- 单独记录模型/工具主循环、runtime policy、权限、沙箱、预算、输出背压、中断和有界 cleanup。
+- 说明 CLI、SDK、WebSocket 与 App Server 如何复用同一内核，以及 Agent Kernel 与 Graph authority 的结算边界。
 
 ### `CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md`
 
@@ -68,11 +90,15 @@
 
 ### Agent Runtime / 对标主线
 
-1. `modules/78_CLI_Agent_Runtime重构实施计划.md`
-2. `modules/82_CLI_Runtime收口路线图.md`
-3. `modules/85_Hermes_Agent对标实施方案.md`
-4. `modules/88_OpenAgents对标补齐方案.md`
-5. `modules/91_Managed_Agents对标计划.md`
+1. `modules/103_Agent_SDK平台化方案.md`
+2. `modules/104_CC_App_Server设计.md`
+3. `modules/106_Agent_Kernel设计.md`
+4. `modules/105_Graph_Kernel设计.md`
+5. `modules/78_CLI_Agent_Runtime重构实施计划.md`
+6. `modules/82_CLI_Runtime收口路线图.md`
+7. `modules/85_Hermes_Agent对标实施方案.md`
+8. `modules/88_OpenAgents对标补齐方案.md`
+9. `modules/91_Managed_Agents对标计划.md`
 
 ### Desktop / Web / 协议联动
 
@@ -86,7 +112,8 @@
 
 近期与本目录直接相关的新增验证包括：
 
-- CLI `0.165.8` exact-SHA：CLI CI 的 Ubuntu/Windows/macOS 完整矩阵、三平台 CLI Strict Sandbox、npm exact-SHA、不可变制品、provenance 与 registry readback 全绿
+- CLI `0.166.0@40354eb432` exact-SHA：CLI CI 的 Ubuntu/Windows/macOS 完整矩阵、三平台 CLI Strict Sandbox、npm exact-SHA、不可变制品、provenance 与 registry readback 全绿
+- Agent SDK `0.2.0`：TypeScript npm 与 Python PyPI 发布、Python 3.10/3.12/3.13 conformance 及公网安装 smoke 通过
 - IDE：Open VSX `0.37.63` 与 JetBrains `0.4.96` 已公开回读；Claude Code Increment Audit 的 36-cell 聚合继续独立判断
 
 - `@chainlesschain/session-core`: `293/293`

@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.165.5 · PDH 0.4.59 · Open VSX 0.37.59 · JetBrains 0.4.94 待审｜耐久恢复 · 产物治理";
+        "v5.0.3.135 · Agent Platform CLI 0.166.0 · Agent SDK 0.2.0 · Open VSX 0.37.63 · JetBrains 0.4.96｜App Server · Graph Kernel";
     }
   },
 
@@ -127,8 +127,20 @@ export default defineConfig({
             link: "/cc-pack-design",
           },
           {
-            text: "v5.0.3.134 Agent SDK 平台化 (103) ⭐NEW",
+            text: "Agent Platform 平台化 (103) ⭐NEW",
             link: "/modules/m103-agent-sdk-platform",
+          },
+          {
+            text: "CC App Server 设计 (104) ⭐NEW",
+            link: "/modules/m104-cc-app-server",
+          },
+          {
+            text: "Graph Kernel 设计 (105) ⭐NEW",
+            link: "/modules/m105-graph-kernel",
+          },
+          {
+            text: "Agent Kernel 设计 (106) ⭐NEW",
+            link: "/modules/m106-agent-kernel",
           },
         ],
       },
@@ -862,7 +874,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "当前 Agent / CLI / IDE 主线 (77-103)",
+          text: "当前 Agent / CLI / IDE 主线 (77-106)",
           collapsed: false,
           items: [
             {
@@ -874,7 +886,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.165.5) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.0) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {
@@ -984,6 +996,18 @@ export default defineConfig({
             {
               text: "103 Agent SDK 平台化方案 ⭐NEW",
               link: "/modules/m103-agent-sdk-platform",
+            },
+            {
+              text: "104 CC App Server 设计 ⭐NEW",
+              link: "/modules/m104-cc-app-server",
+            },
+            {
+              text: "105 Graph Kernel 设计 ⭐NEW",
+              link: "/modules/m105-graph-kernel",
+            },
+            {
+              text: "106 Agent Kernel 设计 ⭐NEW",
+              link: "/modules/m106-agent-kernel",
             },
           ],
         },

@@ -64,6 +64,7 @@ const categories = [
       ['llm test', '测试 LLM 连通性'],
       ['agent', 'Claude Code 风格 agent 会话'],
       ['agent -p', '无头单次执行（claude -p 平价）'],
+      ['exec -p', '受治理的 Agent Kernel 单次执行 facade'],
       ['agent --think / --ultrathink', 'Anthropic 扩展思考（含 --thinking-budget）'],
       ['agent --image', '多模态图像输入（视觉模型）'],
       ['agent web_search', '内置可插拔搜索工具（含免 key 源）'],
@@ -182,6 +183,7 @@ const categories = [
       ['cowork status', '查看 cowork 状态'],
       ['team run --tasks <file>', '声明式依赖 DAG：预算、租约、worktree 与可恢复状态'],
       ['team queue init / worker / finalize', '共享文件系统 distributed queue v1：CLI 权威摘要、租约与 CAS fence'],
+      ['team graph inspect / diff / eval', 'GraphRun 时间旅行、根因、差异与 CI 阈值门'],
     ],
   },
   {
@@ -224,6 +226,7 @@ const categories = [
     key: 'server',
     cmds: [
       ['serve', 'WebSocket 服务器（18800）'],
+      ['serve --app-server', 'stdio JSON-RPC 产品集成：Thread / Turn / Item / Approval'],
       ['ui', 'Web 管理面板（18810）'],
       ['stream', 'NDJSON 流式输出'],
     ],
@@ -458,7 +461,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 与主线源码同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>。安装命令固定到 exact-SHA、三平台门禁、发布与 registry 回读均已核验的发布标签；Automation Scheduler、共享 permission/budget authority 与 IDE Automation Center 命令已进入稳定契约。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 与主线源码同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>。canonical Agent Protocol、CC App Server、Agent Kernel、Graph Kernel 与 trace/eval 已进入稳定契约；TypeScript/Python Agent SDK 为 0.2.0。
         </p>
 
         <!-- Install tabs -->
@@ -537,6 +540,7 @@ const packs = [
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           ['cc agent -p', '无头单轮执行 + text/json/stream-json 输出 + --max-turns / --permission-mode'],
+          ['cc exec -p', '受治理的单次执行 facade，复用 Agent Kernel 权限、沙箱、预算与事件'],
           ['cc permissions', '.claude/settings.json 权限规则 allow/ask/deny + 凭据读取保护'],
           ['cc checkpoint', 'git 仓内默认自动快照，agent 改动出问题一键 restore 回滚'],
           ['cc cost', '估算 token $ 花费，按 provider/model 拆分；REPL 内 /cost'],
@@ -545,6 +549,8 @@ const packs = [
           ['cc mcp / ide / pdh', '把 MCP server、编辑器、安卓设备的工具喂进 agent 循环；大规模工具面自动 Tool Search 延迟装载 schema，省 10-30% 上下文'],
           ['cc team run', '运行声明式任务 DAG；单个本地 runner 已验证 10,000 任务、最多 64 workers，预算与恢复状态持久化'],
           ['cc team queue', '在受支持的共享文件系统上用 queue v1 协调多进程 worker；authority digest、lease 与 CAS 防止过期写入'],
+          ['cc team graph', 'inspect / diff / eval：GraphRun 投影、时间旅行、阻塞根因和 CI gate'],
+          ['cc serve --app-server', 'stdio 产品入口：耐久 Thread/Turn/Item、结构化审批、背压与恢复'],
           ['cc auto-mode eval', '用 145 条不可变离线语料审计危险操作分类；门禁失败即非零退出，不执行被评估命令'],
           ['cc output-style', '命名人格叠加系统提示（explanatory / learning）'],
           ['--json-schema', '结构化输出：回答经 JSON Schema 校验，失败自动纠错重试'],
@@ -557,6 +563,9 @@ const packs = [
       </div>
       <div class="mt-10">
         <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ember">Agent 模式命令大全 ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-kernel.html" rel="noopener" class="btn-ghost ml-3">Agent Kernel ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-app-server.html" rel="noopener" class="btn-ghost ml-3">App Server ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html" rel="noopener" class="btn-ghost ml-3">Graph Kernel ↗</a>
       </div>
     </div>
   </section>
@@ -635,10 +644,10 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.59：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 已改为 optional，无 Python/编译器/native prebuild 时首次安装回退内置 sql.js WASM，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 正式加入动态 workflow 运行准入、远程审批与 relay membership epoch/reconnect reconciliation、canonical workspace/delivery authority、后台 keeper 的 zombie/PID 复用与持久清理证据，以及 CLI/PDH 依赖安全修复；同一精确 SHA <code class="font-mono text-sm">1a10ed7c8f</code> 的三平台 CLI/Strict、npm 发布与独立回读均成功。
+          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade 与 Agent SDK 0.2.0。exact SHA <code class="font-mono text-sm">40354eb432</code> 的三平台 CLI CI、Strict Sandbox 与 npm 发布均成功；SDK npm/PyPI 也已完成安装回读。
         </p>
         <p class="mt-4 text-lg text-muted">
-          npm <code class="font-mono text-sm">{CLI_VERSION}</code> 已包含回环默认 Remote Control、canonical Marketplace source identity、摘要固定归档、跨会话消息、MCP 重连/生命周期恢复，以及 <code class="font-mono text-sm">concise</code> / <code class="font-mono text-sm">readline</code> 交互。exact SHA <code class="font-mono text-sm">28f92564f5</code> 的三平台 CLI CI/Strict 与 npm 发布均成功；本次同时让 Agent SDK 测试隔离模拟 OS HOME、运行目录、工作区与安全锚点，覆盖生产 fail-closed 路径。
+          该发布证据不表示 Desktop/IDE 已全部迁移到 App Server，也不表示 Team/Cowork/Scheduler 已全部切换为 Graph authoritative writer。真实 provider 三平台 journey、长期 overload/fairness soak、完整产品 crash/recovery conformance 与签名 native 发行继续独立判断。
         </p>
       </div>
     </div>

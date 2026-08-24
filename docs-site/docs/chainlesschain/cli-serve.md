@@ -1,12 +1,22 @@
-# WebSocket 服务（serve）
+# 服务入口（serve）：WebSocket Gateway 与 CC App Server
 
-> `chainlesschain serve` 用于把 CLI 能力通过 WebSocket 暴露给浏览器端、IDE 插件、自动化脚本和其他前端。当前文档已对齐 Runtime / Gateway 重构、统一 runtime event、session record、后台任务、Worktree 和压缩观测的最新实现。
+> 适用版本：`chainlesschain@0.166.0`。`chainlesschain serve` 有两个互斥入口：默认启动既有 WebSocket Gateway；`--app-server` 启动面向完整产品集成的 stdio JSON-RPC 服务。本文详述 WebSocket 模式，App Server 请进入独立的 [CC App Server 使用指南](./cli-app-server.md)。
 
 ## 概述
 
 `chainlesschain serve` 启动一个 WebSocket 服务器，将 CLI 全部 60+ 命令通过统一的 WS 协议对外暴露。它不是一个简单的命令转发层，而是 CLI Runtime 的 WS Gateway，支持命令缓冲执行与流式执行、有状态的 Agent/Chat 会话管理、后台任务调度与通知、Worktree 预览与合并，以及压缩观测统计。
 
 任何能建立 WebSocket 连接的客户端（浏览器、IDE 插件、自动化脚本、移动端）都可以通过此服务驱动 CLI 的全部能力，无需直接操作命令行。
+
+如果宿主需要耐久 Thread/Turn/Item、结构化审批、hash-chain rollout、协议 feature 协商和断线增量恢复，应改用：
+
+```bash
+cc serve --app-server \
+  --app-server-state-dir .cc-app-server-state \
+  --app-server-queue-cap 256
+```
+
+App Server 使用 stdio，不监听端口；WebSocket 的 `--port`、`--host`、`--token`、`--allow-remote` 与 `--app-server` 不应混用。
 
 ## 核心特性
 
@@ -79,6 +89,9 @@ Client (浏览器/IDE/脚本)
 ```bash
 # CLI 启动参数
 chainlesschain serve [options]
+  --app-server                   # 改为启动 stdio CC App Server（与 WS 模式互斥）
+  --app-server-state-dir <path>  # App Server rollout 私有目录
+  --app-server-queue-cap <n>     # App Server 请求队列上限（默认 256）
   -p, --port <port>             # WebSocket 端口 (默认 18800)
   -H, --host <host>             # 绑定地址 (默认 127.0.0.1)
   --token <token>               # 认证 token（远程访问必填）
@@ -603,6 +616,9 @@ chainlesschain serve --timeout 60000
 
 ## 相关文档
 
+- [CC App Server 使用指南](/chainlesschain/cli-app-server) — stdio JSON-RPC、Thread/Turn/Item、审批、背压与恢复
+- [GraphRun 观测与评估](/chainlesschain/cli-team-graph) — Graph Kernel 的只读投影、diff 与 CI gate
+- [Agent SDK](/chainlesschain/agent-sdk) — TypeScript `AppServerClient` 与流式 Agent 客户端
 - [Web 管理界面（ui）](/chainlesschain/cli-web-panel) — 基于此 WS 服务的 Vue3 管理面板
 - [Agent 架构优化](/chainlesschain/agent-optimization) — Agent 会话内部架构
 - [AI Orchestration](/chainlesschain/cli-orchestrate) — 多 AI 后端调度（通过 WS `orchestrate` 协议触发）

@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.165.5 · PDH 0.4.59 · Open VSX 0.37.59 · JetBrains 0.4.94 待审｜耐久恢复 · 产物治理";
+        "v5.0.3.135 · Agent Platform CLI 0.166.0 · Agent SDK 0.2.0 · Open VSX 0.37.63 · JetBrains 0.4.96｜App Server · Graph Kernel";
     }
   },
 
@@ -177,12 +177,30 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "⭐ 最新功能（Claude Code 平价）",
+          text: "🧩 Agent Platform 0.166.0",
+          collapsed: false,
           items: [
             {
-              text: "Agent SDK — TypeScript + Python ⭐NEW",
+              text: "CC App Server 使用指南 ⭐NEW",
+              link: "/chainlesschain/cli-app-server",
+            },
+            {
+              text: "Agent Kernel 使用与运维 ⭐NEW",
+              link: "/chainlesschain/cli-agent-kernel",
+            },
+            {
+              text: "GraphRun 观测与评估 ⭐NEW",
+              link: "/chainlesschain/cli-team-graph",
+            },
+            {
+              text: "Agent SDK — TypeScript + Python",
               link: "/chainlesschain/agent-sdk",
             },
+          ],
+        },
+        {
+          text: "⭐ 最新功能（Claude Code 平价）",
+          items: [
             {
               text: "Agent Team — 任务图团队编排 (team) ⭐NEW",
               link: "/chainlesschain/cli-team",
@@ -224,7 +242,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (0.165.5) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (0.166.0) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1784,7 +1802,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.165.5) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.0) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {
@@ -1894,6 +1912,18 @@ export default defineConfig({
             {
               text: "103 Agent SDK 平台化方案 ⭐NEW",
               link: "/design/modules/103-agent-sdk-platform",
+            },
+            {
+              text: "104 CC App Server 设计 ⭐NEW",
+              link: "/design/modules/104-cc-app-server",
+            },
+            {
+              text: "105 Graph Kernel 设计 ⭐NEW",
+              link: "/design/modules/105-graph-kernel",
+            },
+            {
+              text: "106 Agent Kernel 设计 ⭐NEW",
+              link: "/design/modules/106-agent-kernel",
             },
             {
               text: "60b CLI指令技能包 ⭐",

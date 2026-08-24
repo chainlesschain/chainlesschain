@@ -59,6 +59,7 @@ const categories = [
       ['llm test', 'Test LLM connectivity'],
       ['agent', 'Claude Code-style agent session'],
       ['agent -p', 'Headless one-shot run (claude -p parity)'],
+      ['exec -p', 'Governed one-shot Agent Kernel facade'],
       ['agent --think / --ultrathink', 'Anthropic extended thinking (+ --thinking-budget)'],
       ['agent --image', 'Multimodal image input (vision models)'],
       ['agent web_search', 'Built-in pluggable search tool (keyless backends incl.)'],
@@ -177,6 +178,7 @@ const categories = [
       ['cowork status', 'Cowork status'],
       ['team run --tasks <file>', 'Declared dependency DAG with budgets, leases, worktrees, and recoverable state'],
       ['team queue init / worker / finalize', 'Shared-filesystem distributed queue v1 with CLI-owned authority digests, leases, and CAS fences'],
+      ['team graph inspect / diff / eval', 'GraphRun time travel, root cause, diff, and CI thresholds'],
     ],
   },
   {
@@ -219,6 +221,7 @@ const categories = [
     key: 'server',
     cmds: [
       ['serve', 'WebSocket server (18800)'],
+      ['serve --app-server', 'stdio JSON-RPC product integration: Thread / Turn / Item / Approval'],
       ['ui', 'Web admin panel (18810)'],
       ['stream', 'NDJSON streaming output'],
     ],
@@ -454,7 +457,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest and mainline source are <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>. Install commands pin the release tag whose exact SHA, three-OS gates, publication, and registry readback have been verified. Automation scheduling, shared permission budgets, and the IDE Automation Center commands are part of the stable contract.
+          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest and mainline source are <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>. Canonical Agent Protocol, CC App Server, Agent Kernel, Graph Kernel, and trace/eval are in the stable contract; the TypeScript and Python Agent SDKs are 0.2.0.
         </p>
 
         <!-- Install tabs -->
@@ -533,6 +536,7 @@ const packs = [
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           ['cc agent -p', 'Headless single turn + text/json/stream-json output + --max-turns / --permission-mode'],
+          ['cc exec -p', 'Governed one-shot facade reusing Agent Kernel permissions, sandboxing, budgets, and events'],
           ['cc permissions', '.claude/settings.json allow/ask/deny rules + credential-read guard'],
           ['cc checkpoint', 'Auto-snapshot inside a git repo; one-click restore when an edit goes wrong'],
           ['cc cost', 'Estimated token $ spend, split by provider/model; /cost in the REPL'],
@@ -541,6 +545,8 @@ const packs = [
           ['cc mcp / ide / pdh', 'Feed MCP servers, your editor and an Android device into the agent loop; large tool surfaces auto-enable Tool Search with deferred schemas, saving 10-30% context'],
           ['cc team run', 'Run a declared task DAG; one local runner is validated at 10,000 tasks and up to 64 workers with durable budgets and recovery state'],
           ['cc team queue', 'Coordinate multi-process workers on a supported shared filesystem through queue v1; authority digests, leases, and CAS reject stale writes'],
+          ['cc team graph', 'inspect / diff / eval: GraphRun projections, time travel, blocked roots, and CI gates'],
+          ['cc serve --app-server', 'stdio product entry with durable Thread/Turn/Item, structured approval, backpressure, and recovery'],
           ['cc auto-mode eval', 'Audit dangerous-operation classification against an immutable 145-case offline corpus; a failed gate exits nonzero and never executes evaluated commands'],
           ['cc output-style', 'Named personas layered onto the system prompt (explanatory / learning)'],
           ['--json-schema', 'Structured output: the reply is validated against a JSON Schema, retried on failure'],
@@ -553,6 +559,9 @@ const packs = [
       </div>
       <div class="mt-10">
         <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ember">The complete Agent-mode command guide ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-kernel.html" rel="noopener" class="btn-ghost ml-3">Agent Kernel ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-app-server.html" rel="noopener" class="btn-ghost ml-3">App Server ↗</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html" rel="noopener" class="btn-ghost ml-3">Graph Kernel ↗</a>
       </div>
     </div>
   </section>
@@ -632,10 +641,10 @@ const packs = [
           The current CLI carries PDH 0.4.59. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted. Native SQLite is now optional, so first install falls back to bundled sql.js WASM when Python, a compiler, or a native prebuild is unavailable; partial reads or incomplete pagination still retain the previous checkpoint for a safe resume.
         </p>
         <p class="mt-4 text-lg text-muted">
-          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> ships dynamic workflow run admission, remote-approval and relay membership epochs with reconnect reconciliation, canonical workspace/delivery authority, stronger zombie/PID-reuse and durable-cleanup evidence for the background keeper, plus CLI/PDH dependency-security fixes. Exact SHA <code class="font-mono text-sm">1a10ed7c8f</code> passed three-OS CLI/Strict gates, npm publication, and independent readback.
+          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, and Agent SDK 0.2.0. Exact SHA <code class="font-mono text-sm">40354eb432</code> passed three-OS CLI CI, Strict Sandbox, and npm publication; the npm/PyPI SDKs also passed installation readback.
         </p>
         <p class="mt-4 text-lg text-muted">
-          npm <code class="font-mono text-sm">{CLI_VERSION}</code> includes loopback-default Remote Control, canonical Marketplace source identity, digest-pinned archives, durable cross-session messaging, MCP reconnect/lifecycle recovery, and <code class="font-mono text-sm">concise</code> / <code class="font-mono text-sm">readline</code> interaction. Exact SHA <code class="font-mono text-sm">28f92564f5</code> passed three-OS CLI CI/Strict and npm publication; the release also isolates simulated OS HOME, runtime home, workspace, and security anchors in the Agent SDK test to exercise production fail-closed behavior.
+          This evidence does not mean every Desktop/IDE host has migrated to App Server or every Team/Cowork/Scheduler adapter uses the Graph authoritative writer. Real-provider three-OS journeys, long overload/fairness soaks, full-product crash/recovery conformance, and signed native delivery remain separate.
         </p>
       </div>
     </div>

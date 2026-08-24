@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.165.8 | Open VSX 0.37.63 · JetBrains 0.4.96 | 安全远程 · 跨会话消息"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.0 | Agent SDK 0.2.0 | App Server · Graph Kernel"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,12 +20,14 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
-  - icon: 🛟
-    title: Checkpoint Restore Saga
-    details: direct / timeline restore 共用持久 CAS saga；recovery list/show/abort/resume/rollback/release 按 owner、seq 与 head fence 保守结算，外部副作用仍不伪装成可回滚。
+  - icon: 🧩
+    title: Agent Platform 0.166.0
+    details: canonical Agent Protocol、stdio CC App Server、耐久 Graph Kernel、受治理 exec facade 与 TypeScript/Python Agent SDK 0.2.0 已进入公开发行面。
+    link: /chainlesschain/cli-app-server
   - icon: 🤝
-    title: P2-16 Agent Teams
-    details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
+    title: GraphRun 观测与评估
+    details: cc team graph 提供耐久事件投影、时间旅行、阻塞根因、diff 与可用于 CI 的 eval 阈值门；默认不展开敏感正文。
+    link: /chainlesschain/cli-team-graph
   - icon: 🧑‍💻
     title: 双 IDE 会话与交付
     details: Open VSX 0.37.63 与 JetBrains 0.4.96 已公开安全 Remote Control、跨会话消息投影、transcript 连续性、会话分组、Focus View 与规模化索引。
@@ -37,10 +39,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.165.8 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox 与 npm 发布回读；回环安全默认、插件来源治理、跨会话消息、MCP 生命周期恢复与 Agent SDK 运行目录隔离进入公开契约。
+    details: CLI 0.166.0 已在 exact SHA 40354eb432 完成三平台 CLI CI、Strict Sandbox 与 npm 发布回读；TypeScript/Python Agent SDK 0.2.0 也已公开并完成安装回读。
 ---
 
-> **2026-08-23 部署快照**：桌面、Android 与 iOS 产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.165.8`，PDH 为 `0.4.59`。exact SHA `28f92564f5` 已通过三平台 CLI CI、Strict Sandbox 与 npm 发布回读；本次以隔离的模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区和安全锚点验证 Agent SDK 的生产 fail-closed 路径。Open VSX `0.37.63` 与 JetBrains `0.4.96` 已公开并完成发布后回读。Claude Code Increment Audit 36-cell、Desktop/iOS、签名 native、跨宿主 revoke 与长期外部验收继续按独立证据处理。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[会话管理](/chainlesschain/cli-session)、[插件市场](/chainlesschain/cli-plugin)、[Agent Team](/chainlesschain/cli-team)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
+> **2026-08-24 部署快照**：桌面、Android 与 iOS 产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 Agent Platform `0.166.0`，TypeScript/Python Agent SDK 为 `0.2.0`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-0` 的 exact SHA [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d) 已通过三平台 CLI CI、Strict Sandbox 与 npm 发布回读；canonical Agent Protocol、CC App Server、Graph Kernel、Graph trace/eval 和受治理 `cc exec` facade 已进入公开契约。Open VSX `0.37.63` 与 JetBrains `0.4.96` 仍是已公开回读版本。npm/SDK 发布不等于 Desktop/iOS、签名 native 或所有产品 Graph authoritative cutover 已完成。详细入口：[CC App Server](/chainlesschain/cli-app-server)、[GraphRun 观测与评估](/chainlesschain/cli-team-graph)、[Agent SDK](/chainlesschain/agent-sdk)、[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

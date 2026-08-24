@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+#### Added — Agent Platform CLI 0.166.0 + Agent SDK 0.2.0
+
+> `chainlesschain@0.166.0` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-0` 精确指向 [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798)和[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)均成功。TypeScript `@chainlesschain/agent-sdk@0.2.0` 与 PyPI `chainlesschain-agent-sdk==0.2.0` 也已公开并完成安装回读。
+
+- **Canonical Agent Protocol**：以版本化 JSON Schema 为单一来源，生成 TypeScript、Python、Kotlin 与 Swift 绑定，并用冻结 v1 baseline 阻止未声明的不兼容变更。
+- **CC App Server**：`cc serve --app-server` 提供 stdio JSON-RPC、Thread/Turn/Item、结构化审批、协议 feature 协商、有界背压、hash-chain rollout、恢复、fork 与可验证中断。详见 [CC App Server 使用指南](/chainlesschain/cli-app-server)。
+- **Agent Kernel**：CLI、headless、SDK stream、WebSocket、UI 与 App Server 复用模型/工具循环、权限、沙箱、多维预算、输出背压和有界 cleanup。详见 [Agent Kernel 使用与运维](/chainlesschain/cli-agent-kernel)。
+- **Graph Kernel**：新增 GraphDefinition 编译、GraphRun、Task/Attempt、lease/fence、Message、Effect、Handoff、HumanTask 与 adapter cutover；`cc team graph inspect|diff|eval` 提供时间旅行、阻塞根因、差异和 CI 阈值门。详见 [GraphRun 观测与评估](/chainlesschain/cli-team-graph)。
+- **SDK 0.2.0**：TypeScript 新增 `AppServerClient`，Python 对齐生成协议类型；未知事件/字段保持透传，缺少审批处理器时 fail closed。
+- **执行与集成**：受治理 `cc exec` facade、Record & Replay 原型、签名 Webhook 边界、Docker 可选服务启动、MCP one-shot 与 Web Panel 结构化 MCP tools 已进入对应源码/发行面；Windows IME 与 rollout fork/SQLite 恢复路径完成修复。
+- **边界**：CLI/SDK 发布不表示 Desktop/IDE 已全部迁移到 App Server，也不表示 Team/Cowork/Scheduler 已全部切换为 Graph authoritative writer；真实 provider 三平台 journey、长期 overload/fairness soak 与签名 native 发行继续独立取证。
+
 #### Added — CLI 0.165.5 与 IDE 补丁发布
 
 > `chainlesschain@0.165.5` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-165-5` 精确指向 [`11aef634aa`](https://github.com/chainlesschain/chainlesschain/commit/11aef634aa3ab88994698eca0ce2f5cfa65faf48)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582642)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32413582490)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32428314006)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32429710720)均成功。公网 tarball SHA-1 为 `c2cc7fb18ea572749d747de02355c6a0a5aef357`。

@@ -2,32 +2,36 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.165.8` (current fully gated build; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.0` (current fully gated build; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.165.8 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.0 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-08-23 Current mainline — **v5.0.3.135 / CLI 0.165.8 / PDH 0.4.59 / Open VSX 0.37.63 / JetBrains 0.4.96**
+## 2026-08-24 Current mainline — **v5.0.3.135 / Agent Platform CLI 0.166.0 / Agent SDK 0.2.0 / PDH 0.4.59**
 
-> **Release status:** `chainlesschain@0.165.8` is the current npm `latest` and production recommendation. Immutable tag `v-npm-0-165-8` resolves to exact commit [`28f92564f5`](https://github.com/chainlesschain/chainlesschain/commit/28f92564f5c5ab203baf76e73350237fe747a8ba); that SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151603), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151467), and the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/32616155187). npm reports `latest=0.165.8`; the public tarball SHA-1 is `56b8043e611ed03e3d6057b037df34879048269f`.
+> **Release status:** `chainlesschain@0.166.0` is the current npm `latest` and production recommendation. Immutable tag `v-npm-0-166-0` resolves to exact commit [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d); that SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798), the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194), and [independent registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/32713336762). npm reports `latest=0.166.0`.
 >
-> **CLI 0.165.8:** Retains the public loopback-default Remote Control, governed Marketplace source/archive identity, durable cross-session messaging, and MCP lifecycle recovery. This release also isolates the Agent SDK release-gate runtime roots so simulated OS HOME, `CHAINLESSCHAIN_HOME`, workspace, and security anchors exercise the production fail-closed layout independently.
+> **Agent Platform 0.166.0:** One schema generates TypeScript, Python, Kotlin, and Swift protocol bindings. The release adds a bounded stdio JSON-RPC service at `cc serve --app-server`, a shared Agent Kernel for permission/sandbox/budget/interrupt settlement, resumable/forkable rollouts, and the canonical Graph Kernel. `cc team graph inspect|diff|eval` projects durable events into Agent, Task, Artifact, Message, Effect, and Timeline views with time travel and threshold gates.
+>
+> **SDK 0.2.0:** npm `@chainlesschain/agent-sdk@0.2.0` and PyPI `chainlesschain-agent-sdk==0.2.0` are public. The TypeScript SDK adds the bounded `AppServerClient`, and both languages ship generated App Server protocol types. `@chainlesschain/agent-protocol@0.1.0` remains a private build-time source of truth, not a public runtime dependency.
+>
+> **Security and UX fixes:** Normal Agent startup remains Docker-optional while explicit strict/workspace-write sandbox policies stay fail-closed. Shell, MCP, IPFS, and Agent Network execution/secret boundaries were tightened; the Web Panel can expose structured MCP tools; and Windows REPL suggestion interactions now preserve IME state.
 >
 > **IDE release status:** Open VSX `0.37.63` and JetBrains Marketplace `0.4.96` are public and verified after publication, including secure Remote Control, cross-session message projections, long-transcript accessibility, and interaction continuity. Microsoft VS Code Marketplace and JetBrains author signing remain open.
 >
-> **Release and source boundary:** the CLI `0.165.8` and both IDE releases have each closed their own release gates. This does not replace the independent Claude Code Increment Audit 36-cell aggregate, nor external validation for production relay, cross-host/mobile, enterprise PKI, real private repositories, signed native distribution, cross-host revocation, and long-running soak.
+> **Release and source boundary:** the CLI/SDK platform core is published, but Desktop, IDE, Cowork, Team, and Scheduler have not all switched to a single authoritative Graph Kernel. The real-provider three-OS Graph Agent journey, 30-minute overload/fairness soak, production relay, signed native distribution, and cross-host revocation remain separate acceptance work. IDE marketplace versions do not advance merely because mainline source changed.
 >
 > **Native and long-running evidence boundary:** npm publication is not a signed Desktop/native release. The 72-hour Scheduler campaign, three-OS keeper formal aggregate, full protected macOS-helper proof, platform signing/notarization/updater evidence, and public fresh-install/upgrade/rollback readback remain incomplete. All 25 compatibility aliases remain because representative telemetry is still missing.
 >
 > **Checkpoint recovery:** direct and timeline restores now share a hash-chained CAS saga bound to workspace prestate, lifetime locks, immutable Git/copy targets, and safety checkpoints. `cc checkpoint recovery list|show|abort|resume|rollback|release` mutates state only after validating live-owner or verified-owner-absence authority, exact sequence/head fences, and action eligibility. `resume` only settles an already-completed verified restore, while `rollback --yes` only reverses a verified partial file mutation. This is a narrow file-recovery closure, not general multi-resource atomicity, power-loss proof, or external-side-effect rollback.
 >
-> **Release-chain closure:** `0.165.8` has a closed chain of tag identity, three-OS CLI CI/Strict matrices, immutable artifacts, Trusted Publishing, signed provenance, and registry readback. `0.165.7` stopped at a pre-publication Agent SDK test fixture failure and was not published; its tag remains immutable. Registry presence alone is not release authority. PDH remains `0.4.59` (optional native SQLite with a `sql.js` fallback), and Agent SDK remains `0.1.7`.
+> **Release-chain closure:** `0.166.0` has a closed chain of tag identity, three-OS CLI CI/Strict matrices, immutable artifacts, Trusted Publishing, signed provenance, and registry readback. TypeScript and Python Agent SDK `0.2.0` also completed publication and public-install readback. PDH remains `0.4.59` (optional native SQLite with a `sql.js` fallback).
 >
-> See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [checkpoint recovery guide](docs-site/docs/chainlesschain/checkpoint.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [runtime design check](docs/design/cli-runtime-current.md), [IDE bridge design](docs/design/modules/98_IDE桥接对标方案.md), and [changelog](CHANGELOG.md).
+> See the [Agent SDK guide](docs-site/docs/chainlesschain/agent-sdk.md), [CC App Server](docs-site/docs/chainlesschain/cli-app-server.md), [Agent Kernel](docs-site/docs/chainlesschain/cli-agent-kernel.md), [GraphRun observability and evaluation](docs-site/docs/chainlesschain/cli-team-graph.md), [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [Agent platform design](docs/design/modules/103_Agent_SDK平台化方案.md), [App Server design](docs/design/modules/104_CC_App_Server设计.md), [Agent Kernel design](docs/design/modules/106_Agent_Kernel设计.md), [Graph Kernel design](docs/design/modules/105_Graph_Kernel设计.md), and [changelog](CHANGELOG.md).
 
 ## 2026-07-24 Historical release — **cc CLI 0.162.177 / VS Code extension 0.37.31: generated skill processes are now host-brokered**
 
@@ -2507,7 +2511,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.165.8-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.0-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

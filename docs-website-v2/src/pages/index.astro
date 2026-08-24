@@ -138,10 +138,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：npm <code class="font-mono">latest</code>、生产推荐版与主线包元数据均为 <code class="font-mono">{CLI_VERSION}</code>。不可变 tag <code class="font-mono">v-npm-0-165-8</code> 的 exact SHA <code class="font-mono">28f92564f5</code> 已通过三平台 CLI CI、Strict Sandbox 与 npm 发布回读。该版延续回环默认 Remote Control、受治理 Marketplace 来源/摘要归档、跨会话消息与 MCP 生命周期恢复，并修正 Agent SDK 发布门的运行目录隔离。主线包版本为 <code class="font-mono">{SOURCE_CLI_VERSION}</code>。
+          发布说明：npm <code class="font-mono">latest</code>、生产推荐版与主线包元数据均为 Agent Platform <code class="font-mono">{CLI_VERSION}</code>。不可变 tag <code class="font-mono">v-npm-0-166-0</code> 的 exact SHA <code class="font-mono">40354eb432</code> 已通过三平台 CLI CI、Strict Sandbox 与 npm 发布回读；canonical Agent Protocol、CC App Server、Agent Kernel、Graph Kernel 与 Graph trace/eval 已公开，TypeScript/Python Agent SDK 为 <code class="font-mono">0.2.0</code>。主线包版本为 <code class="font-mono">{SOURCE_CLI_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX 0.37.63 与 JetBrains 0.4.96 已公开并完成发布后回读。CLI 与 IDE 发布均不替代 Claude Code Increment Audit 的 36-cell 聚合；Desktop/iOS、完整 Scheduler campaign、签名 native、跨宿主 revoke 与仓库外长期验收继续独立取证。
+          Open VSX 0.37.63 与 JetBrains 0.4.96 仍是已公开回读版本。CLI/SDK 发布不表示 Desktop/IDE 已全部迁移到 App Server，也不表示所有产品已切换为 Graph authoritative writer；签名 native 与长期验收继续独立取证。
         </p>
 
         <!-- Trust badges -->
@@ -516,7 +516,7 @@ const badges = [
           无需启动任何 GUI — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> 让本地 AI、Agent 编码、多智能体协作全部在终端里完成。
         </p>
         <p class="text-sm text-muted mb-8">
-          已验证版 {CLI_VERSION} 提供限定范围的 Process Broker checkpoint/rollback、Agent Teams v6/queue v1、Auto mode 145-case 安全门、canonical session/budget、MCP 不确定结果裁决，以及绑定 workspace、owner、seq/head fence 和持久 Git/copy engine 的 checkpoint restore saga。
+          已验证版 {CLI_VERSION} 新增 canonical Agent Protocol、stdio CC App Server、统一 Agent Kernel、耐久 Graph Kernel 与 trace/diff/eval，同时保留 Process Broker checkpoint/rollback、Agent Teams v6/queue v1、canonical session/budget 和 MCP 不确定结果裁决。
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
@@ -535,6 +535,9 @@ const badges = [
         <div class="flex flex-wrap gap-3">
           <a href="/cli" class="btn-ember">查看所有命令 →</a>
           <a href="https://docs.chainlesschain.com/chainlesschain/cli.html" rel="noopener" class="btn-ghost">CLI 文档 ↗</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/cli-app-server.html" rel="noopener" class="btn-ghost">App Server ↗</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-kernel.html" rel="noopener" class="btn-ghost">Agent Kernel ↗</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html" rel="noopener" class="btn-ghost">Graph Kernel ↗</a>
         </div>
       </div>
       <div class="md:pl-4">

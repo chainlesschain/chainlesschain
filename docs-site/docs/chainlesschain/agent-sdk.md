@@ -1,6 +1,6 @@
 # Agent SDK — TypeScript + Python 智能体接入套件
 
-> **更新: 2026-08-01 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.1.7` / PyPI `chainlesschain-agent-sdk==0.1.0`） | 协议版本 Agent Protocol v1 | TypeScript + Python 双语言契约**
+> **更新: 2026-08-24 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.2.0` / PyPI `chainlesschain-agent-sdk==0.2.0` / CLI `chainlesschain@0.166.0`） | 协议版本 Agent Protocol v1 | TypeScript + Python SDK，多语言生成协议**
 >
 > Agent SDK 把 `cc agent` 的 stream-json 双工协议固化为**带类型的正式契约**：Node/浏览器使用 TypeScript 包，Python 自动化与 CI 使用 PyPI 包；流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析。VS Code 扩展、web-panel 已迁移到 TypeScript SDK；JetBrains 插件（Kotlin/Java）对齐同一份语言中立协议。
 
@@ -13,11 +13,11 @@
 3. **自行对齐事件词汇表** — `system/init`、`stream_event`、`approval_request`、`result` 等十余种事件的字段名靠读 CLI 源码；
 4. **自行实现审批/恢复语义** — 审批超时 fail-closed、resume 何时真正回放历史，全是隐式约定。
 
-Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 `.d.ts` 的 TypeScript SDK 与带 `py.typed`/dataclass 的 Python SDK——再加一份版本化协议文档。**协议即契约**（Agent Protocol v1）：TypeScript、Python 和 JetBrains 都以同一份 `PROTOCOL.md` 与 canonical NDJSON fixtures 为兼容面。
+Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 `.d.ts` 的 TypeScript SDK 与带 `py.typed`/dataclass 的 Python SDK——再加一份版本化协议。**协议即契约**（Agent Protocol v1）：`packages/agent-protocol` 的 canonical JSON Schema 生成 TypeScript、Python、Kotlin 与 Swift 绑定，并冻结 v1 baseline 做不兼容变更检查。该协议包保持私有；公开 SDK 直接携带生成结果，不增加运行时依赖。
 
 ## 核心特性
 
-- 📡 **完整事件词汇表**：TypeScript `protocol.ts` 定义全部流式输出事件（`system/init`、文本/思考增量、`tool_use`/`tool_result`、`approval_request/resolved`、`question_request/resolved`、`plan_update`、`token_usage`、`compaction`、`result` 等）与 stdin 输入事件；Python 对齐 22 类 typed event。两端都保留未知事件及新增字段的原始对象并继续透传，旧消费者不会因此中断事件泵。
+- 📡 **完整事件词汇表**：TypeScript `protocol.ts` 定义全部流式输出事件（`system/init`、文本/思考增量、`tool_use`/`tool_result`、`approval_request/resolved`、`question_request/resolved`、`plan_update`、`token_usage`、`compaction`、`result` 等）与 stdin 输入事件；Python 对齐 24 类 typed event。两端都保留未知事件及新增字段的原始对象并继续透传，旧消费者不会因此中断事件泵。
 - ✅ **审批回调契约**：`onApproval: (req) => Promise<boolean>` —— 提供回调即自动加 `--interactive-approvals`；CONFIRM 级工具**阻塞等待**裁决；回调抛错 = 拒绝（fail-closed，与 CLI 自身 `CC_APPROVAL_TIMEOUT_MS` 超时语义一致）。
 - 🔄 **会话恢复契约**：`sessionId`（新会话首启声明 id）/ `resume`（续既有会话）/ `forkSession`；`init` 事件回传 `session_id` 与 `resumed_messages`。
 - 🐍 **Python 原生异步 API**：`asyncio` 子进程、异步迭代器、同步/协程双形态 callback、冻结 dataclass 与深拷贝 `to_dict()`；approval 异常拒绝、question 异常取消、MCP elicitation 仅显式 `accept` 才放行。
@@ -27,6 +27,8 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 - 🔌 **后台会话接管**：`attachBackgroundSession` 讲 `cc attach` 同款 pipe 协议（Windows 命名管道 / POSIX domain socket，token 握手 5 秒超时），prompt / status / stop-turn / detach。
 - 🌐 **浏览器安全入口**：`/browser` 子路径零 Node 依赖——协议类型 + NDJSON 解码器 + `bg-*` WebSocket 帧构造/判别（`bgRequest` / `isBgPushFrame`），web-panel 直接消费。
 - 📦 **多语言正式包 + 零依赖**：TypeScript 产 ESM + CJS 两份（`exports` 条件导出），Python 产 universal wheel + sdist；两个包都没有运行时依赖。
+- 🧩 **生成式 App Server 契约**：`0.2.0` 新增 Thread / Turn / Item / Approval JSON-RPC 类型，TypeScript `AppServerClient` 可直接启动 `cc serve --app-server`，并自动执行 initialize 能力协商。
+- 🚦 **有界与失败闭合**：客户端 pending request、服务端 request/output queue、NDJSON 单行与请求超时均有上限；未配置服务端审批 handler 时默认拒绝，过载返回稳定 `-32001`。
 
 ## 系统架构
 
@@ -54,6 +56,23 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### `0.2.0` 平台扩展
+
+```text
+packages/agent-protocol (private canonical schema + baseline)
+   └─ codegen ──► TypeScript / Python / Kotlin / Swift
+                         │
+                         ▼
+@chainlesschain/agent-sdk 0.2.0
+   ├─ AgentSession          cc agent stream-json
+   └─ AppServerClient       cc serve --app-server (stdio JSON-RPC)
+                               ├─ thread start/read/resume/fork
+                               ├─ turn start/interrupt
+                               └─ item/approval notifications
+```
+
+`AgentSession` 仍适合脚本、CI 与一对一会话；需要持久线程、服务端审批和完整产品集成时使用 `AppServerClient`。两条入口共享 CLI 权限和工具执行边界，不会建立第二套授权系统。
+
 发布入口：
 
 | 入口                                 | 环境          | 内容                                                                                                |
@@ -68,20 +87,20 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 ### TypeScript / Node
 
 ```bash
-npm install "@chainlesschain/agent-sdk@0.1.7"
+npm install "@chainlesschain/agent-sdk@0.2.0"
 ```
 
 ### Python
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.1.0"
+python -m pip install "chainlesschain-agent-sdk==0.2.0"
 ```
 
 Python 包已在 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) 公开发布，支持
 Python 3.10、3.11、3.12、3.13。SDK 通过子进程驱动 `cc agent`，因此 CLI 需要单独安装：
 
 ```bash
-npm install --global "chainlesschain@0.163.6"
+npm install --global "chainlesschain@0.166.0"
 cc --version
 ```
 
@@ -183,6 +202,40 @@ ws.onmessage = ({ data }) => {
   if (msg.type === "bg-event") handleWorkerEvent(msg.event);
 };
 ```
+
+### App Server 产品集成
+
+```ts
+import { AppServerClient } from "@chainlesschain/agent-sdk";
+
+const client = new AppServerClient({
+  cwd: workspaceRoot,
+  stateDirectory: appStateDir,
+  maxPendingRequests: 128,
+  onServerRequest: async (request) =>
+    request.method === "approval/decide"
+      ? await reviewApproval(request.params)
+      : { kind: "decline", reason: "Unsupported server request" },
+});
+
+client.on("notification", (event) => renderEvent(event));
+await client.start(); // 启动 cc serve --app-server 并完成 initialize
+
+const { thread } = (await client.request("thread/start", {
+  title: "修复登录回归",
+  metadata: { host: "my-app" },
+})) as { thread: { id: string } };
+
+await client.request("turn/start", {
+  threadId: thread.id,
+  input: "运行聚焦测试并修复失败",
+});
+
+// 进程重启后可 thread/read、thread/resume 或 thread/fork。
+await client.close();
+```
+
+默认 rollout 使用带 hash chain 的 JSONL；`stateDirectory` 应是当前用户控制的私有目录。服务端 `--app-server-queue-cap` 与客户端 `maxPendingRequests` 是两层独立上限。
 
 ## Python 使用示例
 
@@ -306,16 +359,16 @@ Python 使用同一组语义，字段名改为 snake_case：
 
 | 套件                  | 数量 | 覆盖点                                                                  |
 | --------------------- | ---- | ----------------------------------------------------------------------- |
-| `test_protocol.py`    | 8    | 22 类事件清单、nested dataclass、未知事件/新增字段无损、共享 fixture    |
+| `test_protocol.py`    | 10   | 24 类事件清单、nested dataclass、未知事件/新增字段无损、共享 fixture    |
 | `test_ndjson.py`      | 5    | 任意 byte 边界、拆分 UTF-8、CRLF、坏行隔离、最终无换行 flush            |
 | `test_session.py`     | 5    | argv 对齐、跨平台 spawn、真实子进程双工、callback fail-closed、提前退出 |
 | `test_ci_consumer.py` | 3    | 穷举 handler、先 journal 后 dispatch、canonical fixture replay          |
 
-合计 **21 项 hermetic 测试**，常规 CI 覆盖 Python 3.10、3.12、3.13。0.1.0
+合计 **23 项 hermetic 测试**，常规 CI 覆盖 Python 3.10、3.12、3.13。`0.2.0`
 发布后另有一条只访问公开 PyPI 的 wheel 安装矩阵，三个 Python 版本全部通过 metadata、
 `__version__` 与 `AgentSession` 校验：
-[查看发布作业](https://github.com/chainlesschain/chainlesschain/actions/runs/30065060091) ·
-[查看公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/30065341896)。
+[查看发布作业](https://github.com/chainlesschain/chainlesschain/actions/runs/32711233078) ·
+[查看公网安装矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/32711340937)。
 
 ## 安全考虑
 
@@ -341,43 +394,49 @@ Python 使用同一组语义，字段名改为 snake_case：
 
 ## 关键文件
 
-| 文件                                                                 | 说明                                                                        |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `packages/agent-sdk/src/protocol.ts`                                 | **契约单一来源**：全事件/输入/帧类型 + guards + `PROTOCOL_VERSION`          |
-| `packages/agent-sdk/src/agent-session.ts`                            | `AgentSession` spawn 双工客户端（argv 构造 + 事件分发 + 审批/问题自动应答） |
-| `packages/agent-sdk/src/ndjson.ts`                                   | carry-buffer NDJSON 解码器（含 `flush()`）                                  |
-| `packages/agent-sdk/src/background.ts`                               | 后台会话 pipe 客户端 + 状态文件读取                                         |
-| `packages/agent-sdk/src/cli-json.ts`                                 | session/checkpoint `--json` 一次性包装                                      |
-| `packages/agent-sdk/src/browser.ts`                                  | 浏览器安全入口（`bgRequest` / `isBgPushFrame`）                             |
-| `packages/agent-sdk/docs/PROTOCOL.md`                                | **语言中立契约文档**（JetBrains 的兼容面）                                  |
-| `packages/agent-sdk/scripts/build.mjs`                               | tsc 双构建（ESM + CJS）                                                     |
-| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py` | Python 22 类 typed event、未知事件透传与 wire parser                        |
-| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/session.py`  | Python `asyncio` 双工会话与 callback 协调                                   |
-| `packages/agent-sdk-python/examples/ci_gate.py`                      | 穷举 CI consumer、事件 journal 与离线 fixture replay                        |
-| `.github/workflows/python-agent-sdk-release.yml`                     | wheel/sdist 验证与 PyPI Trusted Publishing                                  |
-| `.github/workflows/python-agent-sdk-pypi-smoke.yml`                  | 发布后公开 PyPI wheel 安装矩阵                                              |
-| `packages/vscode-extension/scripts/sync-agent-sdk.mjs`               | vendor 同步脚本（改 SDK 后必跑）                                            |
-| `packages/vscode-extension/src/vendor/agent-sdk/`                    | vendored CJS（生成物，禁手改）                                              |
-| `packages/cli/src/runtime/headless-stream.js`                        | 协议的 CLI 侧真源（stream-json 双工实现）                                   |
-| `packages/cli/src/lib/background-session-transport.js`               | 后台管道协议的 CLI 侧真源                                                   |
+| 文件                                                                               | 说明                                                                        |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `packages/agent-sdk/src/protocol.ts`                                               | **契约单一来源**：全事件/输入/帧类型 + guards + `PROTOCOL_VERSION`          |
+| `packages/agent-sdk/src/agent-session.ts`                                          | `AgentSession` spawn 双工客户端（argv 构造 + 事件分发 + 审批/问题自动应答） |
+| `packages/agent-sdk/src/ndjson.ts`                                                 | carry-buffer NDJSON 解码器（含 `flush()`）                                  |
+| `packages/agent-sdk/src/background.ts`                                             | 后台会话 pipe 客户端 + 状态文件读取                                         |
+| `packages/agent-sdk/src/cli-json.ts`                                               | session/checkpoint `--json` 一次性包装                                      |
+| `packages/agent-sdk/src/browser.ts`                                                | 浏览器安全入口（`bgRequest` / `isBgPushFrame`）                             |
+| `packages/agent-sdk/src/app-server-client.ts`                                      | `cc serve --app-server` 的有界 stdio JSON-RPC 客户端                        |
+| `packages/agent-sdk/src/generated/app-protocol.ts`                                 | 由 canonical Schema 生成的 TypeScript App Server 类型与 validator           |
+| `packages/agent-sdk/docs/PROTOCOL.md`                                              | **语言中立契约文档**（JetBrains 的兼容面）                                  |
+| `packages/agent-sdk/scripts/build.mjs`                                             | tsc 双构建（ESM + CJS）                                                     |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py`               | Python 24 类 typed event、未知事件透传与 wire parser                        |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/session.py`                | Python `asyncio` 双工会话与 callback 协调                                   |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py` | Python 3.10+ 生成式 App Server 类型与 validator                             |
+| `packages/agent-sdk-python/examples/ci_gate.py`                                    | 穷举 CI consumer、事件 journal 与离线 fixture replay                        |
+| `.github/workflows/python-agent-sdk-release.yml`                                   | wheel/sdist 验证与 PyPI Trusted Publishing                                  |
+| `.github/workflows/python-agent-sdk-pypi-smoke.yml`                                | 发布后公开 PyPI wheel 安装矩阵                                              |
+| `packages/vscode-extension/scripts/sync-agent-sdk.mjs`                             | vendor 同步脚本（改 SDK 后必跑）                                            |
+| `packages/vscode-extension/src/vendor/agent-sdk/`                                  | vendored CJS（生成物，禁手改）                                              |
+| `packages/cli/src/runtime/headless-stream.js`                                      | 协议的 CLI 侧真源（stream-json 双工实现）                                   |
+| `packages/cli/src/lib/background-session-transport.js`                             | 后台管道协议的 CLI 侧真源                                                   |
 
 ## 协议演进规则
 
-任何对 stream-json 事件的增改都是协议变更，必须**同一提交**内完成以下同步：
+任何对 stream-json 或 App Server 事件的增改都是协议变更，必须**同一提交**内完成以下同步：
 
 1. `packages/agent-sdk/src/protocol.ts`（必要时 bump `PROTOCOL_VERSION`）
 2. `packages/agent-sdk/docs/PROTOCOL.md`
 3. `packages/agent-sdk-python/.../protocol.py` 与共享 fixture conformance tests
 4. JetBrains `ChatEvents.java` / VS Code 消费点（改 SDK 源后重跑 vendor 同步）
+5. `packages/agent-protocol` Schema、v1 baseline 兼容检查与四语言 codegen freshness
 
 ## 相关文档
 
 - [CLI 命令行工具](./cli.md) — `cc agent` 全旗标
 - [检查点](./checkpoint.md) — checkpoint 子命令详解
 - [Agent Team — 任务图团队编排](./cli-team.md)
+- [GraphRun 观测与评估](./cli-team-graph.md)
+- [CC App Server / WebSocket 服务](./cli-serve.md)
 - [可靠性评测 + 趋势门](./cli-eval.md)
 - [语义代码智能 — LSP](./cli-code-intel.md)
 - [Cowork 多智能体协作](./cowork.md)
-- [Python SDK 0.1.0（PyPI）](https://pypi.org/project/chainlesschain-agent-sdk/)
+- [Python SDK 0.2.0（PyPI）](https://pypi.org/project/chainlesschain-agent-sdk/)
 - [Python SDK 仓库说明](https://github.com/chainlesschain/chainlesschain/tree/main/packages/agent-sdk-python)
 - 设计文档：`docs/design/modules/103_Agent_SDK平台化方案.md`（设计站同步）

@@ -1,12 +1,12 @@
 {
-  "checkedAt": "2026-08-23",
-  "recommendedCliVersion": "0.165.8",
-  "npmLatestCliVersion": "0.165.8",
-  "sourceMainCliVersion": "0.165.8",
+  "checkedAt": "2026-08-24",
+  "recommendedCliVersion": "0.166.0",
+  "npmLatestCliVersion": "0.166.0",
+  "sourceMainCliVersion": "0.166.0",
   "openVsxVersion": "0.37.63",
   "openVsxDownloadsMilestone": "27,000+",
   "jetBrainsMarketplaceVersion": "0.4.96",
-  "sourceJetBrainsVersion": "0.4.96",
+  "sourceJetBrainsVersion": "0.4.97",
   "lastFullyGatedVsCodeVersion": "0.37.63",
   "lastFullyGatedJetBrainsVersion": "0.4.96"
 }

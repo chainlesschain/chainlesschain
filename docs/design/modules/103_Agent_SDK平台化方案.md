@@ -1,76 +1,160 @@
-# 103. Agent SDK 平台化方案
+# 103. Agent 平台化方案：协议、App Server 与 Graph Kernel
 
-> 状态：第三阶段（平台化）全落地（2026-07-09）——SDK 包 + 四端契约化 + 真 CLI e2e + 两 IDE 首会话持久化修复
+> 状态：核心已随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布（2026-08-24）。产品入口迁移、真实 provider 旅程与长期过载验证仍按独立门禁推进。
 
 ## 1. 目标
 
-把 `cc agent` 的 stream-json 双工协议从"各消费端读源码对齐的隐式约定"升级为**版本化的正式平台契约**：
+把 `cc agent` 的流式会话从“多个客户端分别拼参数和解析事件”升级为一套可生成、可协商、可恢复、可审计的平台契约：
 
-1. 提供 **TypeScript Agent SDK**（`@chainlesschain/agent-sdk`）；
-2. web-panel / IDE 改用 SDK，而不是各自拼 CLI argv、手写 NDJSON 解析；
-3. **approval callback、stream event、checkpoint、session resume** 成为 SDK 契约。
+1. 以一个版本化 JSON Schema 生成 TypeScript、Python、Kotlin 与 Swift 协议绑定；
+2. 通过 CC App Server 为 IDE、桌面端和自动化宿主提供统一 Thread / Turn / Item / Approval 生命周期；
+3. 以 canonical Graph Kernel 统一确定性 Task DAG、动态 Agent、Artifact、Message、Effect 与 HumanTask 的状态和证据；
+4. 保留 `cc agent` / Agent SDK 轻量入口，不强迫所有消费者立即迁移到 App Server。
 
-## 2. 背景与动因
+## 2. 发布组成
 
-第一/二阶段（gap-analysis 批次）补齐了权限模式、attach transport、后台面板等能力后，消费端复杂度成为主要摩擦：
+| 组件                                   | 发布状态     | 角色                                                                          |
+| -------------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| `chainlesschain@0.166.0`               | npm `latest` | App Server、Graph Kernel、`cc exec` facade、Graph 观测命令与安全适配器        |
+| `@chainlesschain/agent-sdk@0.2.0`      | npm 公开     | `AgentSession`、`AppServerClient`、Node/browser 协议入口                      |
+| `chainlesschain-agent-sdk==0.2.0`      | PyPI 公开    | Python ≥ 3.10 异步会话客户端与生成协议类型                                    |
+| `@chainlesschain/agent-protocol@0.1.0` | 私有         | canonical Schema、v1 baseline、兼容性检查与多语言 codegen；不是公开运行时依赖 |
 
-- VS Code `agent-session.js`、JetBrains `AgentChatSession.java`、web-panel 各自维护一份协议拼装 + 行解析，行为靠"孪生文件"纪律维持一致；
-- chunk 边界切行、close 时冲洗最后一条无换行行等细节各端独立踩坑；
-- CLI 包无 `exports` map、无 `.d.ts`、无 semver 契约面——嵌入方只能深 import 或读源码。
+不可变 CLI 标签 `v-npm-0-166-0` 与 Python SDK 标签 `python-agent-sdk-v0.2.0` 都解析到精确发布提交 `40354eb432281c28ed266f2dc6d1458764eb536d`。
 
-## 3. 架构
+## 3. 总体架构
 
+```text
+VS Code / JetBrains / Desktop / CI / custom host
+        │                         │
+        │ stream-json             │ stdio JSON-RPC
+        ▼                         ▼
+ AgentSession                 AppServerClient
+        │                         │
+        └──────── @chainlesschain/agent-sdk 0.2.0 ────────┐
+                                                          │ generated types
+packages/agent-protocol                                   │
+  schema/cc-agent-protocol.schema.json                    │
+  schema/baselines/v1.json                                │
+  scripts/generate.mjs ──► TS / Python / Kotlin / Swift ──┘
+                               │
+                               ▼
+                    CC App Server (`cc serve --app-server`)
+                     ├─ initialize / capability negotiation
+                     ├─ thread start / read / resume / fork
+                     ├─ turn start / interrupt
+                     ├─ item + approval notifications
+                     ├─ bounded request/output queues
+                     └─ JSONL rollout + capability-gated SQLite
+                               │
+                               ▼
+                         Agent Kernel adapters
+                               │
+                               ▼
+                         canonical Graph Kernel
+                     ├─ typed/versioned Graph IR
+                     ├─ durable event store + checkpoints
+                     ├─ lease/fence/attempt scheduling
+                     ├─ message + custody handoff
+                     ├─ Effect/receipt/reconcile
+                     ├─ HumanTask/quorum/SoD
+                     └─ trace reducer / time travel / eval
 ```
-packages/agent-sdk (TypeScript, 双构建 ESM+CJS)
-├── src/protocol.ts        # 契约单一来源: PROTOCOL_VERSION=1
-│     · AgentStreamEvent 全词汇 (system/init·stream_event·tool_use/result·
-│       approval_request/resolved·question·plan_update·token_usage·result…)
-│     · AgentInputEvent (user/interrupt/compact/approval/answer/plan/…)
-│     · Bg pipe 消息 + bg-* WS 帧 + type guards
-├── src/agent-session.ts   # AgentSession spawn 双工客户端
-├── src/background.ts      # attachBackgroundSession (cc attach 同款 pipe 协议)
-├── src/cli-json.ts        # session/checkpoint `--json` 包装 (进程边界)
-├── src/browser.ts         # 浏览器安全入口 (bgRequest/isBgPushFrame)
-└── docs/PROTOCOL.md       # 语言中立契约 (Agent Protocol v1)
+
+## 4. Canonical Agent Protocol
+
+Schema 位于 `packages/agent-protocol/schema/cc-agent-protocol.schema.json`，冻结的 v1 基线位于 `schema/baselines/v1.json`。生成器必须保持确定性；任何不兼容改动都要先通过 baseline 检查，不能由某个客户端单独扩写协议。
+
+当前生成目标：
+
+- TypeScript：`packages/agent-sdk/src/generated/app-protocol.ts`
+- Python：`packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py`
+- Kotlin：`packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt`
+- Swift：`packages/agent-protocol/generated/swift/CcAgentProtocol.swift`
+
+兼容规则：允许新增可选字段和客户端未知通知；禁止静默改变已发布字段类型、必填性、枚举语义或生命周期顺序。宿主必须保留未知事件的原始值，避免新 CLI 事件让旧客户端中断事件泵。
+
+## 5. CC App Server
+
+`cc serve --app-server` 通过 stdio 启动 JSON-RPC 服务。`--app-server-state-dir <path>` 指定 owner-controlled rollout 目录，`--app-server-queue-cap <n>` 控制服务端请求队列，默认 256。它与旧 `cc serve` WebSocket Gateway 是两种互斥模式：开启 `--app-server` 后，不监听 WebSocket 端口。
+
+`AppServerClient` 负责：
+
+- 启动并完成 `initialize` 能力协商；
+- 对请求数、单行长度与超时做本地上限；
+- 把通知映射为类型化事件；
+- 对未配置 handler 的服务端审批请求默认拒绝；
+- 在过载时返回稳定错误 `-32001`，而不是让队列无界增长。
+
+Rollout 存储默认使用带 hash chain 的 JSONL；SQLite 只有在当前 Node 运行时能力满足时才启用，不能因可选能力缺失破坏默认启动。Thread fork 使用独立身份，避免父线程和分支误写到同一 rollout。
+
+## 6. Graph Kernel
+
+Graph Kernel 把执行和观测分成两层：运行时负责 Graph IR、调度、消息、Effect、HumanTask 与恢复；只读投影通过 `cc team graph` 暴露：
+
+```bash
+cc team graph inspect <run-id>
+cc team graph inspect <run-id> --at-seq 120
+cc team graph inspect <run-id> --blocked-root task-7
+cc team graph diff <run-id> --from-seq 80 --to-seq 120
+cc team graph eval <run-id> --thresholds '{"deadlocked":{"max":0}}'
 ```
 
-消费矩阵：
+默认事件目录为 `CHAINLESSCHAIN_HOME` 下的 `graph-runs`；也可用 `--state-dir` 指向隔离目录。投影默认隐藏 Message 与 HumanTask 内容，只有显式 `--include-content` 才输出，避免诊断命令无意扩散敏感上下文。
 
-| 消费端 | 方式 | 原因 |
-|---|---|---|
-| VS Code | `scripts/sync-agent-sdk.mjs` vendor CJS 构建进 `src/vendor/agent-sdk/` | vsce `--no-dependencies` 打包、node_modules 不进包 |
-| web-panel | vite/vitest alias 直指 SDK TS 源 | 非 workspace 成员，沿用 `@chainlesschain/locales` 先例；npm 发包时需同步 build-web-panel.mjs staging |
-| JetBrains | 实现 `docs/PROTOCOL.md`（javadoc + README declared） | Kotlin/Java 不消费 TS；**协议文档即兼容面** |
+关键不变量：
 
-## 4. 四大契约语义
+- Graph definition 必须先编译并验证引用、环、端口、能力、预算、write scope 与循环边界，之后才允许 Effect；
+- AssignmentAttempt、agent capacity、lease 与 fence 共同决定谁可以结算节点；
+- Message 采用 at-least-once + 幂等消费，不宣称 exactly-once；
+- Effect 在副作用前落账，未知结果进入 reconcile，取消后的迟到结果不能越过 fence；
+- trace reducer 只从 append-only 事件生成投影，time travel 与 diff 不改写权威状态。
 
-| 契约 | 语义要点 |
-|---|---|
-| 流式事件 | NDJSON 一行一事件；解码必须 carry buffer；close 必须 flush 最后一条无换行行；未知 type 必须忽略（向前兼容） |
-| 审批回调 | `onApproval` 隐含 `--interactive-approvals`；CONFIRM 级阻塞至裁决；回调异常 = deny（fail-closed，与 CLI `CC_APPROVAL_TIMEOUT_MS` 超时行为一致） |
-| 检查点 | `cc checkpoint create/list/show/restore --json` 的 JSON 输出即稳定面 |
-| 会话恢复 | ⚠️ 匿名流式会话**不落盘**（CLI 设计）：可恢复会话必须首启声明 `--session <id>`（SDK `sessionId` 选项）；`--resume <id>` 不存在则创建并持久化 |
+## 7. 安全边界
 
-## 5. e2e 验证与修复的缺陷
+- App Server 使用 stdio，不开放远程监听面；未来新增网络传输必须单独定义认证、TLS、队列与来源边界。
+- 所有客户端审批默认失败闭合；没有 handler、超时、binding 不匹配或 handler 抛错都不能授权工具。
+- Webhook 入口绑定 HMAC、时间窗、delivery replay、body cap 与 rate limit；可信来源由适配器赋值，不能相信请求体自报。
+- Graph 的 `origin`、`trust`、`sensitivity` 与 `allowedSinks` 随 DataRef/ArtifactRef 传播，declassification 必须显式审计。
+- `cc exec` 只是现有 governed Agent 入口的 facade，不建立第二套权限或工具执行权威。
 
-SDK 自带真 CLI e2e（fake ollama + `CHAINLESSCHAIN_HOME` 隔离，`AgentSession` 驱动仓库真 `cc`），断言全部四契约。落地当天抓出并修复：
+## 8. 发布验证
 
-1. **两 IDE 首会话持久化洞（HIGH）**：面板首会话匿名 spawn → 转录从未写盘 → IDE 重载后 `--resume <init 捕获的 id>` 静默空会话，重载前上下文全丢。修复 = 首启即声明 `panel-<ts>-<rand>` id（VS Code chat-view + JetBrains `SessionArgs.newPanelSessionId()`）。
-2. **SDK `.js` 入口 spawn 失败**：`buildSpawnCommand` 把 `.js` cliPath 当可直接执行——改经 `process.execPath`。
+精确提交 `40354eb432281c28ed266f2dc6d1458764eb536d` 已通过：
 
-## 6. 协议演进规则
+- Linux、Windows、macOS 的 CLI CI；
+- Linux、Windows、macOS 的 CLI Strict Sandbox；
+- Python 3.10、3.12、3.13 SDK conformance；
+- npm CLI/TypeScript SDK Trusted Publishing、provenance 与公网回读；
+- PyPI wheel/sdist 发布与独立安装 smoke。
 
-任何 stream-json 事件增改 = 协议变更，须**同一提交**同步三处：`protocol.ts`（必要时 bump PROTOCOL_VERSION）+ `docs/PROTOCOL.md` + JetBrains `ChatEvents.java`。改 SDK 源后须重跑 VS Code vendor 同步脚本。
+仓库内定向覆盖包括协议 codegen/兼容性、App Server/rollout、Graph compiler/runtime/trace/eval/adapters、Codex adapter、Record & Replay 与 Webhook security。
 
-## 7. 验证记录（2026-07-09）
+## 9. 尚未关闭的迁移
 
-- agent-sdk：36/36（单元 + 真管道集成 + 真 CLI e2e）
-- VS Code 扩展：58 文件 / 512 测试绿（CLI vitest 承载）
-- web-panel：121 文件 / 2458 绿 + vite 生产构建干净
-- JetBrains：compileJava 干净 + PureLogicSmokeMain 663/0
+- Desktop、IDE、CLI Team、Cowork 与 Scheduler 仍需完成 shadow-run/diff、回滚演练和 authoritative writer 切换；
+- Graph loop/subgraph 的完整生产语义、逆依赖补偿与全部 durable cut-point 故障矩阵仍需补齐；
+- 真实 child Agent 的 message ACK/handoff 长时恢复与 30 分钟 overload/fairness soak 尚未闭环；
+- `graph-agent-real-journey.yml` 仍需真实 provider secret 下的 Linux/Windows/macOS 聚合全绿；
+- Desktop/IDE 的 Graph topology、timeline 与 HumanTask 交互界面仍未接入；
+- 私有 `@chainlesschain/agent-protocol` 不得写成已经公开发布。
 
-## 8. 未决项
+## 10. 关键文件
 
-- SDK npm 首发时机（随下次 CLI 发版拍板；批 1–3 已随 cli 0.162.155 仓内出货）
-- VS Code `AgentChatSession` 类整体替换为 SDK `AgentSession`（当前为 argv+framing 委托，类壳保留以维持 456+ 测试面）
-- `buildSessionArgs`（provider/baseUrl/apiKey/think 选项旗标）保留在扩展侧，喂 SDK `extraArgs`
+| 路径                                             | 说明                                          |
+| ------------------------------------------------ | --------------------------------------------- |
+| `packages/agent-protocol/`                       | Schema、baseline、codegen 与跨语言兼容性测试  |
+| `packages/agent-sdk/src/app-server-client.ts`    | TypeScript 有界 stdio 客户端                  |
+| `packages/cli/src/lib/app-server/`               | CC App Server、transport 与 rollout store     |
+| `packages/cli/src/lib/graph-kernel/`             | Graph compiler、runtime、event、trace 与 eval |
+| `packages/cli/src/commands/serve.js`             | `--app-server` 入口                           |
+| `packages/cli/src/commands/graph.js`             | `cc team graph inspect                        | diff | eval` |
+| `.github/workflows/graph-agent-real-journey.yml` | 真实 provider 三平台旅程门                    |
+
+## 11. 相关文档
+
+- [Agent SDK 用户指南](../../../docs-site/docs/chainlesschain/agent-sdk.md)
+- [CC App Server / WebSocket 服务](../../../docs-site/docs/chainlesschain/cli-serve.md)
+- [GraphRun 观测与评估](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
+- [CLI Runtime 当前实现](../cli-runtime-current.md)
+- [Agent Protocol](../../../packages/agent-sdk/docs/PROTOCOL.md)

@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.165.8）
+# CLI Runtime 当前实现（Agent Platform 0.166.0）
 
-> 更新时间：2026-08-23。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.8`。稳定能力以不可变 tag `v-npm-0-165-8` 的精确 SHA [`28f92564f5`](https://github.com/chainlesschain/chainlesschain/commit/28f92564f5c5ab203baf76e73350237fe747a8ba) 为准。Open VSX `0.37.63` 与 JetBrains `0.4.96` 已公开并完成发布后回读；本文继续区分稳定安装契约、IDE 市场与 native 发行证据。
+> 更新时间：2026-08-24。npm `latest`、生产推荐版与仓库包元数据均为 Agent Platform `0.166.0`。稳定能力以不可变 tag `v-npm-0-166-0` 的精确 SHA [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d) 为准；TypeScript/Python Agent SDK `0.2.0` 已公开。Open VSX `0.37.63` 与 JetBrains `0.4.96` 仍是独立回读的市场版本；本文继续区分 CLI、SDK、IDE、产品迁移与 native 发行证据。
 
 ## 概述
 
@@ -8,24 +8,29 @@
 
 ## 安装版本怎么选
 
-| 用途                 | 版本                                                   | 说明                                                                                                                    |
-| -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用  | `0.165.8`                                                        | `v-npm-0-165-8` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门                      |
-| npm `latest`         | `0.165.8`                                                        | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                                           |
-| IDE 工作台           | CLI `0.165.8` + VS Code `0.37.63` / JetBrains `0.4.96`           | 双市场公开版均已回读                                                                                                    |
-| Runtime / Agent Team | `0.165.8`                                                        | 回环安全默认、插件来源/归档治理、跨会话消息、MCP lifecycle 与 Agent SDK 运行目录隔离已发布                              |
-| 独立发行边界         | Desktop/iOS 源码、signed native、长期 campaign                    | 不因 npm/Open VSX/JetBrains 上传而自动成为对应产品已发行能力                                                             |
+| 用途                | 版本                                                         | 说明                                                                                               |
+| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用 | `0.166.0`                                                    | `v-npm-0-166-0` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`        | `0.166.0`                                                    | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
+| Agent SDK           | TypeScript/Python `0.2.0`                                    | npm/PyPI 均已公开并完成安装回读                                                                    |
+| IDE 工作台          | CLI `0.166.0` + VS Code `0.37.63` / JetBrains `0.4.96`       | 双市场公开版本保持独立回读                                                                         |
+| Agent Platform      | CLI `0.166.0`                                                | canonical Protocol、CC App Server、Agent Kernel、Graph Kernel 与 trace/eval 已发布                 |
+| 独立发行边界        | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                                  |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.165.8
+npm i -g chainlesschain@0.166.0
 ```
 
-已安装旧版的用户可固定升级到 `0.165.8`。`0.165.7` 在发布前的 Agent SDK 夹具中失败，未执行打包或 npm 发布；其 tag 保持不可变，不移动或复用。
+已安装旧版的用户可固定升级到 `0.166.0`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.0`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.0`；SDK 与 CLI 独立安装和发版。
 
 ## 核心特性
 
+- `cc serve --app-server`：启动 stdio JSON-RPC 产品集成入口，提供 Thread/Turn/Item、结构化审批、耐久 rollout、fork、恢复和有界背压。
+- Agent Kernel：`agent`、`exec`、SDK stream、WebSocket、UI 与 App Server 复用模型/工具循环、权限、沙箱、预算、中断和有界 cleanup。
+- `cc team graph inspect|diff|eval`：只读 GraphRun 投影、时间旅行、阻塞根因、差异和 CI 阈值门；敏感正文默认不输出。
+- Agent Protocol / SDK `0.2.0`：canonical Schema 生成 TypeScript、Python、Kotlin、Swift 绑定，TypeScript `AppServerClient` 负责 stdio 宿主接入。
 - `cc agent --bg`：后台启动长任务，返回可持久化的会话 ID。
 - `cc attach <id>`：通过本机控制通道继续提问、停止或查看后台 Agent；通道不可用时自动改为日志跟随。
 - `cc logs <id>`、`cc daemon status|view|resume|stop`：查看和管理后台会话。
@@ -68,6 +73,7 @@ npm i -g chainlesschain@0.165.8
 - `0.165.5@11aef634aa`：MCP package native addon 与 unsupported strict-native loader 失败闭合、durable workflow/orphan Artifact recovery 已进入 CLI/IDE 发行面，P1-5 Marketplace 与 ARM64 host aggregate 同 SHA 全绿。Desktop returned-artifact workbench 与 iOS transient remote-session recovery 仍只属于对应源码快照。
 - `0.165.6@ef4324349f`：Remote Control 回环默认与 LAN 显式授权、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、跨会话消息、MCP 重连/生命周期恢复，以及 `concise`/`readline` 交互已公开。后续 HEAD 的 session group、browser evidence 与 execution-location drain 不继承该 tag 的发布授权。
 - `0.165.8@28f92564f5`：完整承接 `0.165.6`，并修正 Agent SDK 发布门的运行目录隔离：模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点分离，使生产 fail-closed 权限路径在真实 CLI 测试中得到验证。`0.165.7` 未发布。
+- `0.166.0@40354eb432`：Agent Platform 正式发布 canonical Protocol/codegen、CC App Server、Agent Kernel adapter、durable Graph Kernel、Graph trace/eval、受治理 `cc exec` facade、Record & Replay 原型和签名 Webhook 边界。SDK/CLI 发布不代表全部 Desktop/IDE adapter cutover 或 Graph 唯一 writer 已完成。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -323,7 +329,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.63`，JetBrains Marketplace 当前公开 `0.4.96`。生产建议搭配 CLI `0.165.8`：
+Open VSX 当前公开 VS Code `0.37.63`，JetBrains Marketplace 当前公开 `0.4.96`。生产建议搭配 CLI `0.166.0`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -440,11 +446,15 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.165.8` 的权威发布提交为 [`28f92564f5c5ab203baf76e73350237fe747a8ba`](https://github.com/chainlesschain/chainlesschain/commit/28f92564f5c5ab203baf76e73350237fe747a8ba)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151603)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151467) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32616155187)均成功。npm 公网回读为 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
+`0.166.0` 的权威发布提交为 [`40354eb432281c28ed266f2dc6d1458764eb536d`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)均成功；npm 公网回读为 `latest=0.166.0`。TypeScript/Python Agent SDK `0.2.0` 也已公开并完成安装回读。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
 
 ## 相关文档
 
 - [CLI 命令行工具](./cli.md)
+- [CC App Server 使用指南](./cli-app-server.md)
+- [Agent Kernel 使用与运维](./cli-agent-kernel.md)
+- [GraphRun 观测与评估](./cli-team-graph.md)
+- [Agent SDK](./agent-sdk.md)
 - [后台 Agent 与 attach](./cli-background-agents.md)
 - [Agent Team 用户指南](./cli-team.md)
 - [CLI 安全沙箱](./cli-sandbox.md)

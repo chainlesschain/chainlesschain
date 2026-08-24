@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-23）：产品 v5.0.3.135 / 推荐 CLI 0.165.8（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含回环默认 Remote Control、受治理 Marketplace 来源/摘要归档、跨会话消息、MCP 生命周期恢复，以及 Agent SDK 发布门运行目录隔离。**
+> **当前版本边界（2026-08-24）：产品 v5.0.3.135 / Agent Platform CLI 0.166.0（npm latest、主线包元数据与完整门禁已对齐）| Agent SDK 0.2.0 | 175 命令 | Node.js ≥ 22.12.0。稳定版新增 canonical Agent Protocol、stdio CC App Server、Graph Kernel、Graph trace/eval 与受治理 `cc exec` facade。**
 
 ## 概述
 
@@ -13,6 +13,8 @@ ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，�
 - 🧠 **Agent 模式**: Claude Code 风格代理会话，10 工具 + 146 技能 + Plan Mode + /cowork
 - 🎯 **多层技能系统**: 4 层优先级（bundled < marketplace < managed < workspace），自定义技能管理
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
+- 🧩 **产品集成协议**: `cc serve --app-server` 提供耐久 Thread/Turn/Item、结构化审批、背压与断线恢复
+- 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供时间旅行、根因分析和 CI 阈值门
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
 - 🧪 **30,000+ 测试通过**: 跨桌面 / CLI / web-panel / core packages 共 6 层测试矩阵
 
@@ -131,11 +133,14 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 - [安全加固 (CLI)](/chainlesschain/cli-hardening) — 性能基线与审计
 - [社交平台 (CLI)](/chainlesschain/cli-social) — 联系人/好友/动态/聊天
 - [WebSocket 服务器 (CLI)](/chainlesschain/cli-serve) — WebSocket 远程调用全部 CLI 命令
+- [CC App Server](/chainlesschain/cli-app-server) — stdio JSON-RPC 产品集成、耐久线程与审批
+- [GraphRun 观测与评估](/chainlesschain/cli-team-graph) — Graph Kernel 投影、diff 和 eval gate
+- [Agent SDK](/chainlesschain/agent-sdk) — TypeScript/Python 智能体接入套件
 
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.163.6
+npm install -g chainlesschain@0.166.0
 chainlesschain setup
 chainlesschain start
 ```
@@ -152,7 +157,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.163.6
+npm install -g chainlesschain@0.166.0
 ```
 
 安装后提供 3 个等价命令：
@@ -409,7 +414,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.165.8` 已完成三平台 CLI CI、Strict Sandbox、npm Trusted Publishing 与 registry 回读。它承接 `0.165.6` 的公开能力，并使 Agent SDK 发布测试将模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点独立隔离，覆盖生产 fail-closed 权限路径。`0.165.7` 未发布；独立 36-cell 增量审计和仓库外验收仍需单独完成。
+> `0.166.0` 的不可变 tag `v-npm-0-166-0` 精确指向提交 [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)。同一提交已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、npm Trusted Publishing 与 registry 回读；TypeScript/Python Agent SDK `0.2.0` 也已公开。该证据不自动覆盖 Desktop/iOS、签名 native 或所有产品的 Graph authoritative cutover。
 
 ---
 

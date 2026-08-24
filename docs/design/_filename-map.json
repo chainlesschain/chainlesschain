@@ -554,6 +554,18 @@
     "103_Agent_SDK平台化方案.md": {
       "docs-site": "103-agent-sdk-platform.md",
       "docs-site-design": "m103-agent-sdk-platform.md"
+    },
+    "104_CC_App_Server设计.md": {
+      "docs-site": "104-cc-app-server.md",
+      "docs-site-design": "m104-cc-app-server.md"
+    },
+    "105_Graph_Kernel设计.md": {
+      "docs-site": "105-graph-kernel.md",
+      "docs-site-design": "m105-graph-kernel.md"
+    },
+    "106_Agent_Kernel设计.md": {
+      "docs-site": "106-agent-kernel.md",
+      "docs-site-design": "m106-agent-kernel.md"
     }
   }
 }

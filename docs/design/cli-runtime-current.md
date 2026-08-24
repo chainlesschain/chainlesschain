@@ -1,11 +1,11 @@
-# CLI Runtime 当前实现核对（稳定版 0.165.8）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.0）
 
-> 更新时间：2026-08-23。npm `latest`、生产推荐版与仓库包元数据均为 `0.165.8`；公开 CLI 能力绑定不可变 tag `v-npm-0-165-8` 的精确 SHA `28f92564f5c5ab203baf76e73350237fe747a8ba`。Open VSX `0.37.63` 与 JetBrains `0.4.96` 已公开并完成发布后回读；本文继续把 npm/CLI、IDE 市场、发布后源码与签名 native 发行的证据边界分开记录。
+> 更新时间：2026-08-24。npm `latest`、生产推荐版与仓库包元数据均为 Agent Platform `0.166.0`；公开 CLI 能力绑定不可变 tag `v-npm-0-166-0` 的精确 SHA `40354eb432281c28ed266f2dc6d1458764eb536d`。TypeScript/Python Agent SDK `0.2.0` 已公开；Open VSX `0.37.63` 与 JetBrains `0.4.96` 仍是独立回读的市场版本。本文继续把 npm/CLI、SDK、IDE 市场、产品迁移与签名 native 发行的证据边界分开记录。
 
 ## 版本与证据边界
 
-- `0.165.8` 是当前生产推荐基线。`v-npm-0-165-8` 精确指向 `28f92564f5c5ab203baf76e73350237fe747a8ba`；同一 SHA 的 `CLI CI` `32614151603`、`CLI Strict Sandbox` `32614151467` Linux/Windows/macOS 与专用 npm 发布 `32616155187` 均成功。npm 公网回读为 `latest=0.165.8`，tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。
-- `0.165.7` 在 Agent SDK 发布前测试夹具中失败，未执行打包或 npm 发布；其 tag 保持不可变。`0.165.8` 完整承接既有 Artifact、耐久 workflow 与 MCP native-addon policy。
+- `0.166.0` 是当前生产推荐基线。`v-npm-0-166-0` 精确指向 `40354eb432281c28ed266f2dc6d1458764eb536d`；同一 SHA 的 `CLI CI` `32707920123`、`CLI Strict Sandbox` `32707919798` Linux/Windows/macOS 与专用 npm 发布 `32711432194` 均成功。npm 公网回读为 `latest=0.166.0`。
+- `@chainlesschain/agent-sdk@0.2.0` 与 `chainlesschain-agent-sdk==0.2.0` 已公开，Python SDK 的 3.10/3.12/3.13 conformance 与独立 PyPI 安装 smoke 通过。`@chainlesschain/agent-protocol@0.1.0` 保持私有构建期单一事实源。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -14,9 +14,11 @@
 - `0.163.7` 正式公开 outcome-unknown 人工裁决、五域 migration journal 与受治理回滚、因果交付报告、call-ledger 预算和后台恢复权威加固。裁决与回滚均依赖精确证据/CAS；它们不扩张为跨独立存储的原子事务或语义因果证明。
 - `0.163.8` 正式承接确定性 scheduler disk-fault matrix、checkpoint-aware Automation pause/resume、incident retry/cancel、受治理多 Agent merge review、只读 MCP resource templates 与 transaction-time lease clock。首个 formal soak run `31807830251` 因 Windows worker 提前退出而无效；后继 exact-main run `31821080101` 三平台及 aggregate 全部成功并定义新 `T0`，正式计数为 `1/4`，其余三个 segment 与 72 小时 campaign verifier 尚未完成。
 - `0.164.0` 正式包含原生 `/paste-image`、作用域权限/副作用证据、执行位置与 workflow definition identity、受治理插件市场、后台 keeper 与 MCP capsule 证据加固。Linux dynamic-native 与 macOS signed launcher 仍是有限声明/禁用候选，不外推为任意 shared-library closure 或签名 native 发行闭环。
-- `0.165.8` 正式包含回环默认的 Remote Control、canonical Marketplace source identity、摘要固定归档、Windows short-path authority、跨会话消息、MCP 重连/生命周期恢复及 `concise`/`readline` 交互；并将 Agent SDK 发布测试的模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点隔离，以覆盖生产 fail-closed 路径。
+- `0.166.0` 完整承接既有回环默认 Remote Control、Marketplace/Artifact/会话/MCP/沙箱契约，并新增 canonical Agent Protocol、多语言 codegen、CC App Server、统一 Agent Kernel 接入、durable Graph Kernel、Graph trace/eval、`cc exec` facade、Record & Replay 原型与 Webhook 验签。
+- `cc serve --app-server` 以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。
+- `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
 - IDE 当前公开版本为 Open VSX `0.37.63` 与 JetBrains `0.4.96`，且已完成发布后回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
-- CLI `0.165.8` 与双 IDE 的各自发布门已经完成；它们不替代 Claude Code Increment Audit 的 36-cell 聚合，也不覆盖生产 relay、跨宿主、签名 native 与长期外部验收。
+- CLI/SDK `0.166.0/0.2.0` 的发布门已经完成；这不等于 Desktop、IDE、Team、Cowork 与 Scheduler 已切换为唯一 Graph writer，也不替代真实 provider Graph journey、30 分钟过载/公平性 soak、生产 relay、跨宿主和签名 native 验收。
 
 ## 当前边界
 
@@ -356,6 +358,10 @@ outcome-unknown dead letter
 | MCP 恢复        | `packages/cli/src/lib/mcp-call-recovery*.js`、`harness/mcp-client.js`                                                                            |
 | MCP source 策略 | `packages/cli/src/lib/mcp-sandbox-policy.js`、`mcp-stdio-workspace-authority.js`、`runtime/mcp-config.js`                                        |
 | Agent Team      | `packages/cli/src/lib/agent-team/`、`commands/team.js`、`commands/team-distributed.js`                                                           |
+| Agent Protocol  | `packages/agent-protocol/schema/`、`scripts/generate.mjs`、`generated/`                                                                          |
+| CC App Server   | `packages/cli/src/lib/app-server/`、`commands/serve.js`、`packages/agent-sdk/src/app-server-client.ts`                                           |
+| Agent Kernel    | `packages/cli/src/runtime/{runtime-factory,agent-runtime,agent-core,headless-runner,headless-stream,output-backpressure}.js`                     |
+| Graph Kernel    | `packages/cli/src/lib/graph-kernel/`、`commands/graph.js`、`commands/team.js`                                                                    |
 | Auto 安全分类   | `packages/cli/src/lib/auto-mode-safety-classifier.js`、`lib/auto-mode-safety-eval.js`、`commands/auto-mode.js`                                   |
 | OTLP 出口       | `packages/cli/src/lib/otlp-exporter.js`、`lib/observability/otlp-exporter.js`                                                                    |
 | 插件沙箱策略    | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
@@ -380,8 +386,15 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.165.6` 的精确正式发布提交为 [`ef4324349f272f5ec6af9a6ab80110e814122dae`](https://github.com/chainlesschain/chainlesschain/commit/ef4324349f272f5ec6af9a6ab80110e814122dae)。该提交的 [CLI CI run 32483224738](https://github.com/chainlesschain/chainlesschain/actions/runs/32483224738)、[CLI Strict Sandbox run 32483224517](https://github.com/chainlesschain/chainlesschain/actions/runs/32483224517)、[npm publish run 32486454203](https://github.com/chainlesschain/chainlesschain/actions/runs/32486454203)与[独立公网回读 run 32488130856](https://github.com/chainlesschain/chainlesschain/actions/runs/32488130856)均成功；npm `latest` 已回读为 `0.165.6`，公开 tarball SHA-1 为 `d0dc65bdf34d0afe8e8db4492a1ddc72d63ee260`。
+`0.166.0` 的精确正式发布提交为 [`40354eb432281c28ed266f2dc6d1458764eb536d`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)。该提交的 [CLI CI run 32707920123](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)、[CLI Strict Sandbox run 32707919798](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798)与 [npm publish run 32711432194](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)均成功；npm `latest` 已回读为 `0.166.0`。TypeScript/Python Agent SDK `0.2.0` 也已公开并完成公网安装回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；`ef4324349f` 之后的源码增量不能继承 `v-npm-0-165-6` 的发布授权。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；`40354eb432` 之后的源码增量不能继承 `v-npm-0-166-0` 的发布授权。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
+
+## 相关设计
+
+- [103 Agent SDK 平台化方案](./modules/103_Agent_SDK平台化方案.md)
+- [104 CC App Server 设计](./modules/104_CC_App_Server设计.md)
+- [106 Agent Kernel 设计](./modules/106_Agent_Kernel设计.md)
+- [105 Graph Kernel 设计](./modules/105_Graph_Kernel设计.md)

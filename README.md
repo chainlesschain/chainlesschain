@@ -2,32 +2,36 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.165.8`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.0`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.165.8 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.0 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-23 当前主线 — **v5.0.3.135 / CLI 0.165.8 / PDH 0.4.59 / Open VSX 0.37.63 / JetBrains 0.4.96**
+## 2026-08-24 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.0 / Agent SDK 0.2.0 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.165.8` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-165-8` 精确指向提交 [`28f92564f5`](https://github.com/chainlesschain/chainlesschain/commit/28f92564f5c5ab203baf76e73350237fe747a8ba)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151603)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32614151467) 与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32616155187)均成功；npm registry 已回读 `latest=0.165.8`，公开 tarball SHA-1 为 `56b8043e611ed03e3d6057b037df34879048269f`。
+> **发布口径**：`chainlesschain@0.166.0` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-0` 精确指向提交 [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32713336762)均成功；npm registry 已回读 `latest=0.166.0`。
 >
-> **CLI 0.165.8**：延续已公开的回环默认 Remote Control、受治理插件来源/摘要归档、跨会话消息与 MCP 生命周期恢复；本次同时修正 Agent SDK 发布门的运行目录隔离，令模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点保持独立，从而以生产同等的 fail-closed 路径完成跨平台验证。
+> **Agent Platform 0.166.0**：以单一 Schema 生成 TypeScript、Python、Kotlin 与 Swift 协议绑定；新增 `cc serve --app-server` 的有界 stdio JSON-RPC 服务、复用权限/沙箱/预算/中断结算的统一 Agent Kernel、可恢复/分支的 rollout，以及 canonical Graph Kernel。`cc team graph inspect|diff|eval` 可把耐久事件投影为 Agent、Task、Artifact、Message、Effect 与 Timeline 视图，并执行 time-travel 与阈值门控。
+>
+> **SDK 0.2.0**：npm `@chainlesschain/agent-sdk@0.2.0` 与 PyPI `chainlesschain-agent-sdk==0.2.0` 已公开；TypeScript SDK 新增有界 `AppServerClient`，两种语言均分发生成的 App Server 协议类型。`@chainlesschain/agent-protocol@0.1.0` 仍是私有构建期单一事实源，不是公开运行时依赖。
+>
+> **安全与体验修复**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合；shell、MCP、IPFS 与 Agent Network 的执行/密钥边界进一步收紧，Web Panel 可展示结构化 MCP 工具；Windows REPL 在建议交互后保留 IME 状态。
 >
 > **IDE 发布状态**：Open VSX `0.37.63` 与 JetBrains Marketplace `0.4.96` 已公开并完成发布后回读，包含安全远程控制、跨会话消息投影、长 transcript 可访问性与交互连续性。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名仍未配置。
 >
-> **发布与源码边界**：CLI `0.165.8` 和双 IDE 的各自发布门已闭环，但不替代独立的 Claude Code Increment Audit 36-cell 聚合，也不覆盖生产 relay、跨机器/移动端、企业 PKI、真实私库、签名 native、跨宿主 revoke 与长期 soak 等仓库外验收。
+> **发布与源码边界**：CLI/SDK 的平台核心已经发布，但 Desktop、IDE、Cowork、Team 与 Scheduler 尚未全部切换为唯一 authoritative Graph Kernel；真实 provider 的三平台 Graph Agent journey、30 分钟过载/公平性 soak、生产 relay、签名 native 与跨宿主撤销仍需独立验收。双 IDE 的公开市场版本也不会因主线源码升级而自动上调。
 >
 > **原生与长期证据边界**：npm 发布不等于 Desktop/native 签名发行。72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据，以及 Linux/Windows/macOS 签名、notarization/updater 与公开 fresh install/upgrade/rollback 回读仍未全部闭环；25 个兼容 alias 因缺少代表性遥测继续保留。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **发布链闭环**：`0.165.8` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与 registry 回读已闭环；`0.165.7` 在发布前的 Agent SDK 测试夹具中失败，因此未发布且 tag 保持不可变。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback），Agent SDK 保持 `0.1.7`。
+> **发布链闭环**：`0.166.0` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与 registry 回读已闭环；TypeScript/Python Agent SDK `0.2.0` 也已完成发布与公网安装回读。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
 >
-> 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[检查点恢复指南](docs-site/docs/chainlesschain/checkpoint.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[IDE 桥接设计](docs/design/modules/98_IDE桥接对标方案.md)及[更新日志](CHANGELOG.md)。
+> 详见 [Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[CC App Server](docs-site/docs/chainlesschain/cli-app-server.md)、[Agent Kernel](docs-site/docs/chainlesschain/cli-agent-kernel.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Agent 平台设计](docs/design/modules/103_Agent_SDK平台化方案.md)、[App Server 设计](docs/design/modules/104_CC_App_Server设计.md)、[Agent Kernel 设计](docs/design/modules/106_Agent_Kernel设计.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)及[更新日志](CHANGELOG.md)。
 
 ## 2026-07-24 历史发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 
@@ -2793,7 +2797,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.165.8-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.0-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
