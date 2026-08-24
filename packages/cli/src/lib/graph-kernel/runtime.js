@@ -78,6 +78,13 @@ const TRUST_RANK = Object.freeze({
   authenticated_user: 2,
   trusted_host: 3,
 });
+const BUDGET_FIELDS = Object.freeze([
+  "turns",
+  "tokens",
+  "costUsd",
+  "wallMs",
+  "spawnCount",
+]);
 
 function kernelError(code, message, details = {}) {
   const error = new Error(message);
@@ -99,6 +106,29 @@ function mapRestore(entries) {
   return new Map((entries || []).map(([key, value]) => [key, clone(value)]));
 }
 
+function emptyBudgetUsage() {
+  return Object.fromEntries(BUDGET_FIELDS.map((field) => [field, 0]));
+}
+
+function budgetValue(budget, field) {
+  return Number(budget?.[field] || 0);
+}
+
+function persistedSubgraphRegistry(definitions = {}) {
+  return new Map(
+    Object.entries(definitions).map(([id, definition]) => [
+      id,
+      {
+        definition,
+        revisionDigest: graphDigest(
+          definition,
+          `cc.graph.definition/${definition.schemaVersion}`,
+        ),
+      },
+    ]),
+  );
+}
+
 function idleCompensationState() {
   return {
     status: "idle",
@@ -108,6 +138,7 @@ function idleCompensationState() {
     plan: [],
     currentIndex: 0,
     completedNodeIds: [],
+    completedEntries: [],
     failure: null,
     startedAt: null,
     completedAt: null,
@@ -128,6 +159,40 @@ function deterministicSubgraphRunId(parentRunId, nodeId, revisionDigest) {
     "cc.graph.subgraph-run/v1",
   );
   return `subgraph-${digest.slice(7, 39)}`;
+}
+
+export function iterationEffectIdempotencyKey(
+  baseIdempotencyKey,
+  iterationPath = [],
+) {
+  const base = String(baseIdempotencyKey || "").trim();
+  if (!base) {
+    throw kernelError(
+      "CC_GRAPH_EFFECT_IDEMPOTENCY_REQUIRED",
+      "effect idempotency key is required",
+    );
+  }
+  if (!Array.isArray(iterationPath)) {
+    throw kernelError(
+      "CC_GRAPH_INVALID_ARGUMENT",
+      "iterationPath must be an array",
+    );
+  }
+  const path = iterationPath.map((value) => {
+    const number = Number(value);
+    if (!Number.isInteger(number) || number < 0) {
+      throw kernelError(
+        "CC_GRAPH_INVALID_ARGUMENT",
+        "iterationPath must contain non-negative integers",
+      );
+    }
+    return number;
+  });
+  if (path.length === 0) return base;
+  return graphDigest(
+    { baseIdempotencyKey: base, iterationPath: path },
+    "cc.graph.iteration-effect-idempotency/v1",
+  );
 }
 
 function finitePositive(value, fallback) {
@@ -286,6 +351,7 @@ function stateSnapshot(run) {
     version: 1,
     id: run.id,
     definition: run.compiled.definition,
+    subgraphDefinitions: run.compiled.subgraphDefinitions,
     phase: run.phase,
     status: run.status,
     graphRevision: run.graphRevision,
@@ -294,6 +360,7 @@ function stateSnapshot(run) {
     authorityDigest: run.authorityDigest,
     budget: run.budget,
     budgetUsed: run.budgetUsed,
+    budgetReserved: run.budgetReserved,
     createdAt: run.createdAt,
     completedAt: run.completedAt,
     cancellationRequested: run.cancellationRequested,
@@ -325,7 +392,12 @@ function stateSnapshot(run) {
 }
 
 function restoreState(run, snapshot, compiled = null) {
-  run.compiled = compiled || compileGraphDefinition(snapshot.definition);
+  run.compiled =
+    compiled ||
+    compileGraphDefinition(snapshot.definition, {
+      subgraphs: persistedSubgraphRegistry(snapshot.subgraphDefinitions),
+      allowUnresolvedSubgraphs: snapshot.subgraphDefinitions == null,
+    });
   run.phase = snapshot.phase;
   run.status = snapshot.status;
   run.graphRevision = snapshot.graphRevision;
@@ -334,11 +406,13 @@ function restoreState(run, snapshot, compiled = null) {
   run.authorityDigest = snapshot.authorityDigest;
   run.budget = clone(snapshot.budget);
   run.budgetUsed = clone(snapshot.budgetUsed);
+  run.budgetReserved = clone(snapshot.budgetReserved || emptyBudgetUsage());
   run.createdAt = snapshot.createdAt;
   run.completedAt = snapshot.completedAt;
   run.cancellationRequested = snapshot.cancellationRequested === true;
   run.progressEpoch = snapshot.progressEpoch;
   run.compensation = clone(snapshot.compensation || idleCompensationState());
+  run.compensation.completedEntries ||= [];
   run.parentRunRef = clone(snapshot.parentRunRef || null);
   run.subgraphDepth = Number(snapshot.subgraphDepth || 0);
   run.definitionPath = clone(
@@ -401,6 +475,7 @@ function runProjection(run) {
     authorityDigest: run.authorityDigest,
     budget: clone(run.budget),
     budgetUsed: clone(run.budgetUsed),
+    budgetReserved: clone(run.budgetReserved),
     createdAt: run.createdAt,
     completedAt: run.completedAt,
     progressEpoch: run.progressEpoch,
@@ -473,13 +548,8 @@ function buildRun(compiled, options, now) {
         "cc.graph.authority/v1",
       ),
     budget: clone(options.budget || compiled.definition.budget || {}),
-    budgetUsed: {
-      turns: 0,
-      tokens: 0,
-      costUsd: 0,
-      wallMs: 0,
-      spawnCount: 0,
-    },
+    budgetUsed: emptyBudgetUsage(),
+    budgetReserved: emptyBudgetUsage(),
     createdAt,
     completedAt: null,
     cancellationRequested: false,
@@ -558,7 +628,7 @@ function eventDetails(value) {
 }
 
 function checkBudget(run, usage) {
-  for (const field of ["turns", "tokens", "costUsd", "wallMs", "spawnCount"]) {
+  for (const field of BUDGET_FIELDS) {
     const delta = Number(usage?.[field] || 0);
     if (!Number.isFinite(delta) || delta < 0) {
       throw kernelError(
@@ -567,11 +637,18 @@ function checkBudget(run, usage) {
       );
     }
     const cap = run.budget?.[field];
-    if (cap != null && run.budgetUsed[field] + delta > cap) {
+    const reserved = budgetValue(run.budgetReserved, field);
+    if (cap != null && run.budgetUsed[field] + reserved + delta > cap) {
       throw kernelError(
         "CC_GRAPH_BUDGET_EXHAUSTED",
         `GraphRun ${field} budget would be exceeded`,
-        { field, cap, used: run.budgetUsed[field], requested: delta },
+        {
+          field,
+          cap,
+          used: run.budgetUsed[field],
+          reserved,
+          requested: delta,
+        },
       );
     }
   }
@@ -579,9 +656,40 @@ function checkBudget(run, usage) {
 
 function addUsage(run, usage) {
   checkBudget(run, usage);
-  for (const field of Object.keys(run.budgetUsed)) {
+  for (const field of BUDGET_FIELDS) {
     run.budgetUsed[field] += Number(usage?.[field] || 0);
   }
+}
+
+function reserveBudget(run, budget) {
+  checkBudget(run, budget);
+  for (const field of BUDGET_FIELDS) {
+    run.budgetReserved[field] += budgetValue(budget, field);
+  }
+}
+
+function settleSubgraphBudget(run, relation, usage) {
+  if (relation.budgetSettled === true) return;
+  for (const field of BUDGET_FIELDS) {
+    const reserved = budgetValue(relation.budgetSlice, field);
+    const actual = budgetValue(usage, field);
+    if (actual > reserved) {
+      throw kernelError(
+        "CC_GRAPH_SUBGRAPH_BUDGET_INVARIANT",
+        `child ${field} usage exceeds its reserved budget slice`,
+        { field, reserved, actual, childRunId: relation.childRunId },
+      );
+    }
+    run.budgetReserved[field] = Math.max(
+      0,
+      budgetValue(run.budgetReserved, field) - reserved,
+    );
+  }
+  addUsage(run, usage);
+  relation.budgetUsed = Object.fromEntries(
+    BUDGET_FIELDS.map((field) => [field, budgetValue(usage, field)]),
+  );
+  relation.budgetSettled = true;
 }
 
 function effectiveDependencyStatus(run, dependency) {
@@ -866,13 +974,33 @@ function compensationAssignment(run, nodeId) {
   return entry?.compensationNodeId === nodeId ? entry : null;
 }
 
-function committedEffectsForNode(run, nodeId) {
+function sameIterationPath(left, right) {
+  return JSON.stringify(left || []) === JSON.stringify(right || []);
+}
+
+function compareIterationPath(left, right) {
+  const a = left || [];
+  const b = right || [];
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    if (a[index] == null) return -1;
+    if (b[index] == null) return 1;
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
+}
+
+function committedEffectsForNode(run, nodeId, iterationPath = null) {
   return [...run.effects.values()]
     .filter(
-      (effect) => effect.nodeId === nodeId && effect.status === "committed",
+      (effect) =>
+        effect.nodeId === nodeId &&
+        effect.status === "committed" &&
+        (iterationPath == null ||
+          sameIterationPath(effect.iterationPath, iterationPath)),
     )
     .sort(
       (left, right) =>
+        compareIterationPath(left.iterationPath, right.iterationPath) ||
         left.createdAt.localeCompare(right.createdAt) ||
         left.id.localeCompare(right.id),
     );
@@ -882,6 +1010,7 @@ function completeCompensationStep(run, entry, now) {
   const compensationEffects = committedEffectsForNode(
     run,
     entry.compensationNodeId,
+    entry.iterationPath,
   );
   if (compensationEffects.length === 0) {
     throw kernelError(
@@ -890,12 +1019,34 @@ function completeCompensationStep(run, entry, now) {
     );
   }
   const compensationEffect = compensationEffects.at(-1);
-  for (const effect of committedEffectsForNode(run, entry.nodeId)) {
+  const sourceEffects = entry.effectIds.map((effectId) =>
+    run.effects.get(effectId),
+  );
+  if (
+    sourceEffects.some(
+      (effect) =>
+        !effect ||
+        effect.status !== "committed" ||
+        !sameIterationPath(effect.iterationPath, entry.iterationPath),
+    )
+  ) {
+    throw kernelError(
+      "CC_GRAPH_COMPENSATION_SOURCE_RECEIPT_INVALID",
+      `compensation source receipts changed for ${entry.nodeId}`,
+    );
+  }
+  for (const effect of sourceEffects) {
     effect.status = "compensated";
     effect.compensationEffectId = compensationEffect.id;
     effect.updatedAt = nowIso(() => now);
   }
   run.compensation.completedNodeIds.push(entry.nodeId);
+  run.compensation.completedEntries.push({
+    nodeId: entry.nodeId,
+    iterationPath: [...entry.iterationPath],
+    effectIds: [...entry.effectIds],
+    compensationEffectId: compensationEffect.id,
+  });
   run.compensation.currentIndex += 1;
   if (run.compensation.currentIndex >= run.compensation.plan.length) {
     run.compensation.status = "completed";
@@ -903,6 +1054,13 @@ function completeCompensationStep(run, entry, now) {
     run.status = run.compensation.terminalStatus;
     run.completedAt = nowIso(() => now);
   } else {
+    const next = run.compensation.plan[run.compensation.currentIndex];
+    const state = run.nodeStates.get(next.compensationNodeId);
+    state.status = "pending";
+    state.acceptedAttemptId = null;
+    state.blockedRoot = null;
+    state.iterationPath = [...next.iterationPath];
+    state.updatedAt = nowIso(() => now);
     run.status = "running";
   }
 }
@@ -912,6 +1070,8 @@ function failCompensation(run, entry, error, now) {
   run.compensation.failure = {
     nodeId: entry.nodeId,
     compensationNodeId: entry.compensationNodeId,
+    iterationPath: [...entry.iterationPath],
+    effectIds: [...entry.effectIds],
     error: String(error || "compensation_failed").slice(0, 4096),
   };
   run.compensation.completedAt = nowIso(() => now);
@@ -1379,7 +1539,11 @@ export class GraphKernel {
             ...clone(subgraphCalls),
           ],
         };
-        const compiled = compileGraphDefinition(definition);
+        const compiled = compileGraphDefinition(definition, {
+          subgraphs: persistedSubgraphRegistry(
+            run.compiled.subgraphDefinitions,
+          ),
+        });
         const createdAt = nowIso(() => now);
         const compensationNodeIds = new Set(compiled.compensationNodeIds || []);
         const addedNodeIds = new Set(nodes.map((node) => node.id));
@@ -1730,15 +1894,24 @@ export class GraphKernel {
           definitionId: childCompiled.definitionId,
           revisionDigest: childCompiled.revisionDigest,
           depth: childDepth,
+          budgetSlice: call.budget,
+          inputBindings: call.inputBindings || [],
+          outputBindings: call.outputBindings || [],
         },
         () => {
           const createdAt = nowIso(this.now);
+          reserveBudget(parent, call.budget || {});
           const value = {
             nodeId: safeNodeId,
             childRunId: id,
             definitionId: childCompiled.definitionId,
             revisionDigest: childCompiled.revisionDigest,
             depth: childDepth,
+            inputBindings: clone(call.inputBindings || []),
+            outputBindings: clone(call.outputBindings || []),
+            budgetSlice: clone(call.budget || {}),
+            budgetUsed: null,
+            budgetSettled: false,
             status: "starting",
             createdAt,
             updatedAt: createdAt,
@@ -1776,6 +1949,7 @@ export class GraphKernel {
         },
         subgraphDepth: childDepth,
         definitionPath: [...parent.definitionPath, childCompiled.definitionId],
+        budget: call.budget || {},
       });
       child = this._run(id);
     }
@@ -1848,6 +2022,7 @@ export class GraphKernel {
         relation.updatedAt = nowIso(() => now);
         relation.completedAt = nowIso(() => now);
         relation.childStatus = child.status;
+        settleSubgraphBudget(parent, relation, child.budgetUsed);
         state.status = succeeded
           ? "succeeded"
           : child.status === "cancelled"
@@ -1882,6 +2057,12 @@ export class GraphKernel {
         Object.freeze({
           nodeId: compensationEntry.compensationNodeId,
           compensationForNodeId: compensationEntry.nodeId,
+          iterationPath: Object.freeze([...compensationEntry.iterationPath]),
+          effectIdempotencyKey: iterationEffectIdempotencyKey(
+            run.compiled.nodes[compensationEntry.compensationNodeId]
+              .idempotencyKey,
+            compensationEntry.iterationPath,
+          ),
           priority: Object.freeze({
             base: 1000,
             donation: 0,
@@ -1900,12 +2081,30 @@ export class GraphKernel {
       })
       .map((nodeId) => ({
         nodeId,
+        iterationPath: Object.freeze([
+          ...(run.nodeStates.get(nodeId)?.iterationPath || []),
+        ]),
+        ...(["workspace_write", "external"].includes(
+          run.compiled.nodes[nodeId].effectClass,
+        )
+          ? {
+              effectIdempotencyKey: iterationEffectIdempotencyKey(
+                run.compiled.nodes[nodeId].idempotencyKey,
+                run.nodeStates.get(nodeId)?.iterationPath || [],
+              ),
+            }
+          : {}),
         ...(run.compiled.subgraphCalls?.[nodeId]
           ? {
               dispatch: "subgraph",
               definitionId: run.compiled.subgraphCalls[nodeId].definitionId,
               revisionDigest: run.compiled.subgraphCalls[nodeId].revisionDigest,
               maxDepth: run.compiled.subgraphCalls[nodeId].maxDepth,
+              inputBindings:
+                run.compiled.subgraphCalls[nodeId].inputBindings || [],
+              outputBindings:
+                run.compiled.subgraphCalls[nodeId].outputBindings || [],
+              budget: run.compiled.subgraphCalls[nodeId].budget || {},
             }
           : {}),
         priority: effectivePriority(run, nodeId, now, this.agingWindowMs),
@@ -1957,8 +2156,11 @@ export class GraphKernel {
     const run = this._run(runId);
     const safeNodeId = safeIdentifier(nodeId, "nodeId");
     const safeAgentId = safeIdentifier(agentId, "agentId");
+    const plannedCompensation = compensationAssignment(run, safeNodeId);
     const iterationPath = [
-      ...(run.nodeStates.get(safeNodeId)?.iterationPath || []),
+      ...(plannedCompensation?.iterationPath ||
+        run.nodeStates.get(safeNodeId)?.iterationPath ||
+        []),
     ];
     const attemptNumber =
       [...run.attempts.values()].filter(
@@ -2048,6 +2250,11 @@ export class GraphKernel {
           agentId: safeAgentId,
           role: compensationEntry ? "executor" : role,
           compensationForNodeId: compensationEntry?.nodeId || null,
+          effectIdempotencyKey: ["workspace_write", "external"].includes(
+            node.effectClass,
+          )
+            ? iterationEffectIdempotencyKey(node.idempotencyKey, iterationPath)
+            : null,
           leaseId: safeIdentifier(leaseId, "leaseId"),
           fence,
           status: "active",
@@ -2150,7 +2357,11 @@ export class GraphKernel {
             "node did not declare an effectful execution class",
           );
         }
-        if (!key || key !== node.idempotencyKey) {
+        const authenticatedKey = iterationEffectIdempotencyKey(
+          node.idempotencyKey,
+          attempt.iterationPath,
+        );
+        if (!key || key !== authenticatedKey) {
           throw kernelError(
             "CC_GRAPH_EFFECT_IDEMPOTENCY_REQUIRED",
             "effect must use the idempotency key authenticated by Graph Compiler",
@@ -2167,9 +2378,11 @@ export class GraphKernel {
           runId: run.id,
           nodeId: attempt.nodeId,
           attemptId: attempt.id,
+          iterationPath: [...attempt.iterationPath],
           leaseId: attempt.leaseId,
           fence: attempt.fence,
           idempotencyKey: key,
+          baseIdempotencyKey: node.idempotencyKey,
           operationDigest,
           status: "started",
           receipt: null,
@@ -2620,6 +2833,14 @@ export class GraphKernel {
           const failure = failures.find(
             (entry) => entry.subgraphRunId === relation.childRunId,
           );
+          const child = this._loadRun(relation.childRunId);
+          if (!failure) {
+            settleSubgraphBudget(
+              run,
+              relation,
+              child?.budgetUsed || emptyBudgetUsage(),
+            );
+          }
           relation.status = failure ? "failed" : "cancelled";
           relation.updatedAt = nowIso(this.now);
           relation.completedAt = failure ? null : nowIso(this.now);
@@ -2676,10 +2897,14 @@ export class GraphKernel {
       "compensation.started",
       { triggerNodeId: trigger, reason },
       () => {
-        if (!["failed", "partial", "cancelled"].includes(run.status)) {
+        if (
+          !["failed", "partial", "cancelled", "budget_exhausted"].includes(
+            run.status,
+          )
+        ) {
           throw kernelError(
             "CC_GRAPH_COMPENSATION_NOT_AVAILABLE",
-            "compensation requires a failed, partial, or cancelled terminal run",
+            "compensation requires a failed, partial, cancelled, or budget-exhausted terminal run",
           );
         }
         if (trigger && !run.compiled.nodes[trigger]) {
@@ -2705,17 +2930,18 @@ export class GraphKernel {
           );
         }
         const plan = (run.compiled.forwardTopologicalOrder || [])
-          .filter(
-            (nodeId) =>
-              run.nodeStates.get(nodeId)?.status === "succeeded" &&
-              run.compiled.compensationByNode?.[nodeId] &&
-              committedEffectsForNode(run, nodeId).length > 0,
-          )
+          .filter((nodeId) => run.compiled.compensationByNode?.[nodeId])
           .reverse()
-          .map((nodeId) => ({
-            nodeId,
-            compensationNodeId: run.compiled.compensationByNode[nodeId],
-          }));
+          .flatMap((nodeId) =>
+            committedEffectsForNode(run, nodeId)
+              .reverse()
+              .map((effect) => ({
+                nodeId,
+                compensationNodeId: run.compiled.compensationByNode[nodeId],
+                iterationPath: [...(effect.iterationPath || [])],
+                effectIds: [effect.id],
+              })),
+          );
         if (plan.length === 0) {
           throw kernelError(
             "CC_GRAPH_COMPENSATION_NOT_REQUIRED",
@@ -2723,7 +2949,9 @@ export class GraphKernel {
           );
         }
         const now = this.now();
+        const preparedTargets = new Set();
         for (const entry of plan) {
+          if (preparedTargets.has(entry.compensationNodeId)) continue;
           const state = run.nodeStates.get(entry.compensationNodeId);
           if (!state || state.status !== "skipped") {
             throw kernelError(
@@ -2733,7 +2961,9 @@ export class GraphKernel {
           }
           state.status = "pending";
           state.blockedRoot = null;
+          state.iterationPath = [...entry.iterationPath];
           state.updatedAt = nowIso(() => now);
+          preparedTargets.add(entry.compensationNodeId);
         }
         run.compensation = {
           status: "running",
@@ -2743,6 +2973,7 @@ export class GraphKernel {
           plan,
           currentIndex: 0,
           completedNodeIds: [],
+          completedEntries: [],
           failure: null,
           startedAt: nowIso(() => now),
           completedAt: null,

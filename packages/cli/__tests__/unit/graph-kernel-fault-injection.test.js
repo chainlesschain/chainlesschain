@@ -57,18 +57,21 @@ function task(id, overrides = {}) {
 }
 
 function compiled(nodes, overrides = {}) {
-  return compileGraphDefinition({
-    schemaVersion: 1,
-    id: overrides.id || "fault-injection-graph",
-    revision: 1,
-    nodes,
-    edges: [],
-    loops: overrides.loops || [],
-    subgraphCalls: overrides.subgraphCalls || [],
-    budget: { turns: 100, tokens: 100_000 },
-    allowedCapabilities: [],
-    metadata: {},
-  });
+  return compileGraphDefinition(
+    {
+      schemaVersion: 1,
+      id: overrides.id || "fault-injection-graph",
+      revision: 1,
+      nodes,
+      edges: [],
+      loops: overrides.loops || [],
+      subgraphCalls: overrides.subgraphCalls || [],
+      budget: { turns: 100, tokens: 100_000 },
+      allowedCapabilities: [],
+      metadata: {},
+    },
+    { subgraphs: overrides.subgraphs || new Map() },
+  );
 }
 
 function context(nodes, runId, overrides = {}) {
@@ -358,6 +361,7 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
             maxDepth: 2,
           },
         ],
+        subgraphs: new Map([[child.definitionId, child]]),
       },
     );
     eventStore.arm("subgraph.starting");
@@ -369,11 +373,16 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
     const recovered = recover(durable, runId);
     expect(recovered.getRun(runId)).toMatchObject({
       status: "waiting_external",
+      budgetReserved: { turns: 100, tokens: 100_000 },
       subgraphRuns: [expect.objectContaining({ status: "starting" })],
     });
     const resumed = recovered.startSubgraph(runId, "call-child", child);
     expect(resumed).toMatchObject({
-      relation: { status: "running" },
+      relation: {
+        status: "running",
+        budgetSlice: { turns: 100, tokens: 100_000 },
+      },
+      parentRun: { budgetReserved: { turns: 100, tokens: 100_000 } },
       childRun: {
         definitionId: "fault-child",
         phase: "sealed",

@@ -937,6 +937,43 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 64
+        },
+        "inputBindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/SubgraphPortBinding"
+          }
+        },
+        "outputBindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/SubgraphPortBinding"
+          }
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        }
+      }
+    },
+    "SubgraphPortBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parentPort",
+        "childNodeId",
+        "childPort"
+      ],
+      "properties": {
+        "parentPort": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "childNodeId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "childPort": {
+          "$ref": "#/$defs/Identifier"
         }
       }
     },
@@ -1396,6 +1433,18 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "baseIdempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "iterationPath": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
         "operationDigest": {
           "$ref": "#/$defs/Digest"

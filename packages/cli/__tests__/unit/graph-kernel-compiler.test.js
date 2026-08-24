@@ -261,7 +261,7 @@ describe("typed Graph Compiler", () => {
     } catch (error) {
       expect(diagnosticCodes(error)).toEqual(
         expect.arrayContaining([
-          "GRAPH_LOOP_EFFECT_UNSUPPORTED",
+          "GRAPH_LOOP_EFFECT_COMPENSATION_REQUIRED",
           "GRAPH_LOOP_EXIT_LEAK",
         ]),
       );
@@ -403,6 +403,94 @@ describe("typed Graph Compiler", () => {
         expect.arrayContaining([
           "GRAPH_SUBGRAPH_CALL_CYCLE",
           "GRAPH_SUBGRAPH_DIGEST_MISMATCH",
+        ]),
+      );
+    }
+  });
+
+  it("type-checks subgraph port mappings and enforces an explicit budget slice", () => {
+    const child = compileGraphDefinition(
+      graph({
+        id: "typed-child",
+        nodes: [
+          node("transform", {
+            inputs: [
+              { name: "request", schema: { type: "string" }, required: true },
+            ],
+            outputs: [
+              { name: "result", schema: { type: "string" }, required: true },
+            ],
+            budget: { turns: 2, tokens: 50 },
+          }),
+        ],
+        budget: { turns: 2, tokens: 50 },
+      }),
+    );
+    const callNode = node("call-child", {
+      kind: "subgraph",
+      inputs: [{ name: "prompt", schema: { type: "string" }, required: true }],
+      outputs: [{ name: "answer", schema: { type: "string" }, required: true }],
+    });
+    const call = {
+      nodeId: callNode.id,
+      definitionId: child.definitionId,
+      revisionDigest: child.revisionDigest,
+      maxDepth: 2,
+      inputBindings: [
+        {
+          parentPort: "prompt",
+          childNodeId: "transform",
+          childPort: "request",
+        },
+      ],
+      outputBindings: [
+        {
+          parentPort: "answer",
+          childNodeId: "transform",
+          childPort: "result",
+        },
+      ],
+      budget: { turns: 2, tokens: 50 },
+    };
+    const compiled = compileGraphDefinition(
+      graph({
+        id: "typed-parent",
+        nodes: [callNode],
+        subgraphCalls: [call],
+        budget: { turns: 2, tokens: 50 },
+      }),
+      { subgraphs: new Map([[child.definitionId, child]]) },
+    );
+    expect(compiled.subgraphCalls[callNode.id]).toMatchObject(call);
+    expect(compiled.budgetUpperBound).toMatchObject({ turns: 2, tokens: 50 });
+
+    const invalidCallNode = {
+      ...callNode,
+      inputs: [{ name: "prompt", schema: { type: "number" }, required: true }],
+    };
+    try {
+      compileGraphDefinition(
+        graph({
+          id: "invalid-typed-parent",
+          nodes: [invalidCallNode],
+          subgraphCalls: [
+            {
+              ...call,
+              outputBindings: [],
+              budget: { turns: 1, tokens: 49 },
+            },
+          ],
+          budget: { turns: 2, tokens: 50 },
+        }),
+        { subgraphs: new Map([[child.definitionId, child]]) },
+      );
+      throw new Error("expected invalid subgraph contract to fail");
+    } catch (error) {
+      expect(diagnosticCodes(error)).toEqual(
+        expect.arrayContaining([
+          "GRAPH_SUBGRAPH_PORT_TYPE_MISMATCH",
+          "GRAPH_SUBGRAPH_REQUIRED_OUTPUT_UNMAPPED",
+          "GRAPH_SUBGRAPH_BUDGET_SLICE_TOO_SMALL",
         ]),
       );
     }

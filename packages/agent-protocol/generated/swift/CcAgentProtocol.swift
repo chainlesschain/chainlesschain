@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:743d32d9f2b265b4f5d730abd748ca73687ca7dd672f896bd28c6f363b280155"
+public let ccAgentProtocolSchemaDigest = "sha256:2bfdca3e1cc944694d937b5d1b12339a567a56f41dcc9cffddf999fc24392e37"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -194,6 +194,15 @@ public struct SubgraphCall: Codable, Sendable {
     public let definitionId: String
     public let revisionDigest: String
     public let maxDepth: Int
+    public let inputBindings: [SubgraphPortBinding]?
+    public let outputBindings: [SubgraphPortBinding]?
+    public let budget: Budget?
+}
+
+public struct SubgraphPortBinding: Codable, Sendable {
+    public let parentPort: String
+    public let childNodeId: String
+    public let childPort: String
 }
 
 public struct GraphDefinition: Codable, Sendable {
@@ -284,6 +293,8 @@ public struct Effect: Codable, Sendable {
     public let nodeId: String
     public let attemptId: String
     public let idempotencyKey: String
+    public let baseIdempotencyKey: String?
+    public let iterationPath: [Int]?
     public let operationDigest: String
     public let status: String
     public let receipt: JSONValue?

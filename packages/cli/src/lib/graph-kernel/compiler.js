@@ -278,6 +278,7 @@ function loopMultipliers(
   nodeIds,
   nodes,
   dependencies,
+  compensationByNode,
 ) {
   const multiplier = new Map([...nodeIds].map((id) => [id, 1]));
   const membership = new Map();
@@ -307,12 +308,16 @@ function loopMultipliers(
       membership.set(nodeId, owners);
       multiplier.set(nodeId, multiplier.get(nodeId) * loop.maxIterations);
       const node = nodes.get(nodeId);
-      if (node && !["none", "read"].includes(node.effectClass || "none")) {
+      if (
+        node &&
+        !["none", "read"].includes(node.effectClass || "none") &&
+        !compensationByNode.has(nodeId)
+      ) {
         diagnostic(
           diagnostics,
-          "GRAPH_LOOP_EFFECT_UNSUPPORTED",
+          "GRAPH_LOOP_EFFECT_COMPENSATION_REQUIRED",
           `#/loops/${index}/nodeIds`,
-          `loop nodes must be effect-free until iteration-scoped effect receipts are available: ${nodeId}`,
+          `effectful loop node requires an isolated compensation handler: ${nodeId}`,
         );
       }
       if (node?.kind === "subgraph") {
@@ -411,12 +416,19 @@ function loopMultipliers(
   return multiplier;
 }
 
-function budgetUpperBound(definition, multiplier, diagnostics) {
+function budgetUpperBound(
+  definition,
+  multiplier,
+  diagnostics,
+  subgraphCalls = new Map(),
+) {
   const total = Object.fromEntries(BUDGET_FIELDS.map((field) => [field, 0]));
   for (const node of definition.nodes) {
+    const subgraphBudget = subgraphCalls.get(node.id)?.budget;
     for (const field of BUDGET_FIELDS) {
       total[field] +=
-        Number(node.budget?.[field] || 0) * multiplier.get(node.id);
+        Number(subgraphBudget?.[field] ?? node.budget?.[field] ?? 0) *
+        multiplier.get(node.id);
     }
   }
   for (const field of BUDGET_FIELDS) {
@@ -434,9 +446,172 @@ function budgetUpperBound(definition, multiplier, diagnostics) {
   return total;
 }
 
+function subgraphTarget(registry, definitionId) {
+  return registry instanceof Map
+    ? registry.get(definitionId)
+    : registry[definitionId];
+}
+
+function requiredPortNames(ports) {
+  return (ports || [])
+    .filter((port) => port.required !== false)
+    .map((port) => port.name);
+}
+
+function validateSubgraphPortBindings(
+  call,
+  callNode,
+  targetDefinition,
+  callIndex,
+  diagnostics,
+) {
+  const parentInputs = new Map(
+    (callNode?.inputs || []).map((port) => [port.name, port]),
+  );
+  const parentOutputs = new Map(
+    (callNode?.outputs || []).map((port) => [port.name, port]),
+  );
+  const childNodes = new Map(
+    (targetDefinition?.nodes || []).map((node) => [node.id, node]),
+  );
+  const mappedInputs = new Set();
+  const mappedChildInputs = new Set();
+  const mappedOutputs = new Set();
+
+  const validateBindings = (direction) => {
+    const bindings = call[`${direction}Bindings`] || [];
+    for (const [bindingIndex, binding] of bindings.entries()) {
+      const path = `#/subgraphCalls/${callIndex}/${direction}Bindings/${bindingIndex}`;
+      const parentPorts = direction === "input" ? parentInputs : parentOutputs;
+      const parentPort = parentPorts.get(binding.parentPort);
+      const childNode = childNodes.get(binding.childNodeId);
+      const childPorts = new Map(
+        (childNode?.[direction === "input" ? "inputs" : "outputs"] || []).map(
+          (port) => [port.name, port],
+        ),
+      );
+      const childPort = childPorts.get(binding.childPort);
+      const parentSet = direction === "input" ? mappedInputs : mappedOutputs;
+      if (parentSet.has(binding.parentPort)) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_DUPLICATE_PARENT_PORT",
+          `${path}/parentPort`,
+          `subgraph ${direction} port is mapped more than once: ${binding.parentPort}`,
+        );
+      }
+      parentSet.add(binding.parentPort);
+      if (!parentPort) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_UNKNOWN_PARENT_PORT",
+          `${path}/parentPort`,
+          `unknown parent ${direction} port: ${binding.parentPort}`,
+        );
+      }
+      if (!childNode) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_UNKNOWN_CHILD_NODE",
+          `${path}/childNodeId`,
+          `unknown child node: ${binding.childNodeId}`,
+        );
+      } else if (!childPort) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_UNKNOWN_CHILD_PORT",
+          `${path}/childPort`,
+          `unknown child ${direction} port: ${binding.childNodeId}.${binding.childPort}`,
+        );
+      }
+      if (direction === "input") {
+        const childKey = `${binding.childNodeId}\0${binding.childPort}`;
+        if (mappedChildInputs.has(childKey)) {
+          diagnostic(
+            diagnostics,
+            "GRAPH_SUBGRAPH_DUPLICATE_CHILD_INPUT",
+            path,
+            `child input is mapped more than once: ${binding.childNodeId}.${binding.childPort}`,
+          );
+        }
+        mappedChildInputs.add(childKey);
+      }
+      const producer = direction === "input" ? parentPort : childPort;
+      const consumer = direction === "input" ? childPort : parentPort;
+      if (
+        producer &&
+        consumer &&
+        !isPortSchemaAssignable(producer.schema, consumer.schema)
+      ) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_PORT_TYPE_MISMATCH",
+          path,
+          direction === "input"
+            ? `${callNode.id}.${binding.parentPort} is not assignable to ${binding.childNodeId}.${binding.childPort}`
+            : `${binding.childNodeId}.${binding.childPort} is not assignable to ${callNode.id}.${binding.parentPort}`,
+        );
+      }
+    }
+  };
+
+  validateBindings("input");
+  validateBindings("output");
+
+  for (const portName of requiredPortNames(callNode?.inputs)) {
+    if (!mappedInputs.has(portName)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_SUBGRAPH_REQUIRED_INPUT_UNMAPPED",
+        `#/subgraphCalls/${callIndex}/inputBindings`,
+        `required parent input is not mapped into the child graph: ${portName}`,
+      );
+    }
+  }
+  for (const portName of requiredPortNames(callNode?.outputs)) {
+    if (!mappedOutputs.has(portName)) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_SUBGRAPH_REQUIRED_OUTPUT_UNMAPPED",
+        `#/subgraphCalls/${callIndex}/outputBindings`,
+        `required parent output is not mapped from the child graph: ${portName}`,
+      );
+    }
+  }
+
+  const internallyBoundInputs = new Set(
+    (targetDefinition?.edges || [])
+      .filter((edge) => edge.kind === "data")
+      .map((edge) => `${edge.to}\0${edge.toPort}`),
+  );
+  for (const childNode of childNodes.values()) {
+    for (const portName of requiredPortNames(childNode.inputs)) {
+      const key = `${childNode.id}\0${portName}`;
+      if (
+        !mappedChildInputs.has(key) &&
+        !internallyBoundInputs.has(key) &&
+        !Object.hasOwn(childNode.inputBindings || {}, portName)
+      ) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_REQUIRED_CHILD_INPUT_UNBOUND",
+          `#/subgraphCalls/${callIndex}/inputBindings`,
+          `required child input has no internal or parent binding: ${childNode.id}.${portName}`,
+        );
+      }
+    }
+  }
+}
+
 function validateSubgraphs(definition, nodeIds, options, diagnostics) {
   const registry = options.subgraphs || new Map();
   const calls = new Map();
+  const registryDefinitions = new Map();
+  const registryEntries =
+    registry instanceof Map ? registry.entries() : Object.entries(registry);
+  for (const [id, value] of registryEntries) {
+    registryDefinitions.set(id, stableValue(value?.definition || value));
+  }
   for (const [index, call] of definition.subgraphCalls.entries()) {
     if (!nodeIds.has(call.nodeId)) {
       diagnostic(
@@ -455,10 +630,15 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
         `subgraph call must target a node with kind=subgraph: ${call.nodeId}`,
       );
     }
-    const target =
-      registry instanceof Map
-        ? registry.get(call.definitionId)
-        : registry[call.definitionId];
+    const target = subgraphTarget(registry, call.definitionId);
+    if (!target && options.allowUnresolvedSubgraphs !== true) {
+      diagnostic(
+        diagnostics,
+        "GRAPH_SUBGRAPH_DEFINITION_REQUIRED",
+        `#/subgraphCalls/${index}/definitionId`,
+        `subgraph definition must be available during compilation: ${call.definitionId}`,
+      );
+    }
     if (target && target.revisionDigest !== call.revisionDigest) {
       diagnostic(
         diagnostics,
@@ -467,7 +647,34 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
         `subgraph digest does not match pinned revision: ${call.definitionId}`,
       );
     }
-    calls.set(call.nodeId, call);
+    const targetDefinition = target?.definition || target;
+    if (targetDefinition) {
+      validateSubgraphPortBindings(
+        call,
+        callNode,
+        targetDefinition,
+        index,
+        diagnostics,
+      );
+    }
+    const targetBudget = target?.budgetUpperBound || targetDefinition?.budget;
+    const budget = stableValue(
+      call.budget || callNode?.budget || targetDefinition?.budget || {},
+    );
+    for (const field of BUDGET_FIELDS) {
+      const required = Number(targetBudget?.[field] || 0);
+      const cap = budget[field];
+      if (required > 0 && (cap == null || Number(cap) < required)) {
+        diagnostic(
+          diagnostics,
+          "GRAPH_SUBGRAPH_BUDGET_SLICE_TOO_SMALL",
+          `#/subgraphCalls/${index}/budget/${field}`,
+          `subgraph ${field} budget slice ${cap ?? "unbounded"} is below the child upper bound ${required}`,
+          { field, required, cap: cap ?? null },
+        );
+      }
+    }
+    calls.set(call.nodeId, { ...call, budget });
   }
   for (const [index, node] of definition.nodes.entries()) {
     if (node.kind === "subgraph" && !calls.has(node.id)) {
@@ -514,7 +721,7 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
     visited.add(id);
   };
   visit(definition.id);
-  return calls;
+  return { calls, definitions: registryDefinitions };
 }
 
 function migrateDefinition(input, options) {
@@ -1026,13 +1233,19 @@ export function compileGraphDefinition(input, options = {}) {
     nodeIds,
     nodes,
     dependencies,
+    compensationByNode,
   );
-  const budget = budgetUpperBound(definition, multiplier, diagnostics);
-  const subgraphCalls = validateSubgraphs(
+  const subgraphs = validateSubgraphs(
     definition,
     nodeIds,
     options,
     diagnostics,
+  );
+  const budget = budgetUpperBound(
+    definition,
+    multiplier,
+    diagnostics,
+    subgraphs.calls,
   );
   if (diagnostics.length) throw new GraphCompileError(diagnostics);
 
@@ -1097,7 +1310,8 @@ export function compileGraphDefinition(input, options = {}) {
       ),
     ),
     budgetUpperBound: deepFreeze(budget),
-    subgraphCalls: deepFreeze(Object.fromEntries(subgraphCalls)),
+    subgraphCalls: deepFreeze(Object.fromEntries(subgraphs.calls)),
+    subgraphDefinitions: deepFreeze(Object.fromEntries(subgraphs.definitions)),
     triggers: deepFreeze([...(definition.triggers || [])]),
     regions: deepFreeze([...(definition.regions || [])]),
   };

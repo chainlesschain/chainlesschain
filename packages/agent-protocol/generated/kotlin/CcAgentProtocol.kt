@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:743d32d9f2b265b4f5d730abd748ca73687ca7dd672f896bd28c6f363b280155"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:2bfdca3e1cc944694d937b5d1b12339a567a56f41dcc9cffddf999fc24392e37"
 typealias JSONValue = Any?
 
 data class DataPolicy(
@@ -164,7 +164,16 @@ data class SubgraphCall(
     val nodeId: String,
     val definitionId: String,
     val revisionDigest: String,
-    val maxDepth: Long
+    val maxDepth: Long,
+    val inputBindings: List<SubgraphPortBinding>? = null,
+    val outputBindings: List<SubgraphPortBinding>? = null,
+    val budget: Budget? = null
+)
+
+data class SubgraphPortBinding(
+    val parentPort: String,
+    val childNodeId: String,
+    val childPort: String
 )
 
 data class GraphDefinition(
@@ -255,6 +264,8 @@ data class Effect(
     val nodeId: String,
     val attemptId: String,
     val idempotencyKey: String,
+    val baseIdempotencyKey: String? = null,
+    val iterationPath: List<Long>? = null,
     val operationDigest: String,
     val status: String,
     val receipt: JSONValue? = null,
