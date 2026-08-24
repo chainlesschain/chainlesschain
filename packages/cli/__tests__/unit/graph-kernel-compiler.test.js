@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
+  GRAPH_DEFINITION_MIN_VERSION,
   GraphCompileError,
   assertCompiledGraph,
   compileGraphDefinition,
@@ -7,6 +9,7 @@ import {
   isCompiledGraph,
   isPortSchemaAssignable,
   migrateGraphDefinition,
+  restoreGraphDefinitionBackup,
   writeScopesOverlap,
 } from "../../src/lib/graph-kernel/compiler.js";
 
@@ -42,6 +45,15 @@ function diagnosticCodes(error) {
   expect(error).toBeInstanceOf(GraphCompileError);
   expect(error.effectStarted).toBe(false);
   return error.diagnostics.map((diagnostic) => diagnostic.code);
+}
+
+function migrationFixture(name) {
+  return JSON.parse(
+    readFileSync(
+      new URL(`../fixtures/graph-kernel/${name}.json`, import.meta.url),
+      "utf8",
+    ),
+  );
 }
 
 describe("typed Graph Compiler", () => {
@@ -528,35 +540,52 @@ describe("typed Graph Compiler", () => {
     ).toBe(true);
   });
 
-  it("dry-runs the N-1 upcast without mutating the source definition", () => {
-    const legacy = graph({ schemaVersion: 0, metadata: { legacy: true } });
-    const before = structuredClone(legacy);
-    const upcasters = {
-      0: (definition) => ({
-        ...definition,
-        schemaVersion: 1,
-        metadata: { ...definition.metadata, upcast: "v0-to-v1" },
-      }),
-    };
+  it("upcasts the frozen N-1 corpus with backup and rollback evidence", () => {
+    expect(GRAPH_DEFINITION_MIN_VERSION).toBe(0);
+    for (const name of ["minimal", "typed"]) {
+      const legacy = migrationFixture(`definition-v0-${name}`);
+      const expected = migrationFixture(`definition-v1-${name}`);
+      const before = structuredClone(legacy);
+      const migration = migrateGraphDefinition(legacy, { dryRun: true });
+      expect(migration).toMatchObject({
+        dryRun: true,
+        fromVersion: 0,
+        toVersion: 1,
+        backupRequired: true,
+        definition: expected,
+        backupDefinition: legacy,
+      });
+      expect(migration.revisionDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(migration.rollbackDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(Object.isFrozen(migration.backupDefinition)).toBe(true);
+      expect(
+        restoreGraphDefinitionBackup(
+          migration.backupDefinition,
+          migration.rollbackDigest,
+        ),
+      ).toEqual(legacy);
+      expect(() =>
+        restoreGraphDefinitionBackup(
+          { ...migration.backupDefinition, revision: 999 },
+          migration.rollbackDigest,
+        ),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_GRAPH_MIGRATION_BACKUP_TAMPERED",
+        }),
+      );
+      expect(legacy).toEqual(before);
+      expect(compileGraphDefinition(legacy).migratedFrom).toBe(0);
+      expect(migrateGraphDefinition(expected, { dryRun: true })).toMatchObject({
+        fromVersion: 1,
+        toVersion: 1,
+        backupRequired: false,
+        backupDefinition: null,
+        rollbackDigest: null,
+      });
+    }
 
-    const migration = migrateGraphDefinition(legacy, {
-      dryRun: true,
-      upcasters,
-    });
-    expect(migration).toMatchObject({
-      dryRun: true,
-      fromVersion: 0,
-      toVersion: 1,
-      backupRequired: true,
-      definition: {
-        schemaVersion: 1,
-        metadata: { legacy: true, upcast: "v0-to-v1" },
-      },
-    });
-    expect(migration.revisionDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(legacy).toEqual(before);
-    expect(compileGraphDefinition(legacy, { upcasters }).migratedFrom).toBe(0);
-
+    const legacy = migrationFixture("definition-v0-minimal");
     expect(() =>
       compileGraphDefinition(legacy, {
         upcasters: { 0: (definition) => ({ ...definition, schemaVersion: 2 }) },

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "migration-typed",
+  "revision": 7,
+  "triggers": [],
+  "regions": [],
+  "nodes": [
+    {
+      "id": "inspect",
+      "kind": "task",
+      "dependsOn": [],
+      "inputs": [],
+      "outputs": [
+        { "name": "result", "schema": { "type": "string" }, "required": true }
+      ],
+      "effectClass": "none",
+      "budget": { "turns": 1, "tokens": 50 }
+    },
+    {
+      "id": "publish",
+      "kind": "task",
+      "dependsOn": ["inspect"],
+      "inputs": [
+        { "name": "source", "schema": { "type": "string" }, "required": true }
+      ],
+      "outputs": [],
+      "effectClass": "external",
+      "idempotencyKey": "publish-migration-fixture",
+      "budget": { "turns": 1, "tokens": 50 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "inspect",
+      "to": "publish",
+      "kind": "data",
+      "when": "success",
+      "fromPort": "result",
+      "toPort": "source"
+    }
+  ],
+  "loops": [],
+  "subgraphCalls": [],
+  "budget": { "turns": 2, "tokens": 100 },
+  "allowedCapabilities": [],
+  "metadata": { "fixture": "typed" }
+}

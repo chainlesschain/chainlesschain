@@ -10,7 +10,10 @@ const graphProtocolSchema = JSON.parse(
 );
 
 export const GRAPH_DEFINITION_VERSION = 1;
-export const GRAPH_DEFINITION_MIN_VERSION = 1;
+export const GRAPH_DEFINITION_MIN_VERSION = Math.max(
+  0,
+  GRAPH_DEFINITION_VERSION - 1,
+);
 export const GRAPH_COMPILE_ERROR = "CC_GRAPH_COMPILE_FAILED";
 
 const compiledGraphs = new WeakSet();
@@ -724,12 +727,48 @@ function validateSubgraphs(definition, nodeIds, options, diagnostics) {
   return { calls, definitions: registryDefinitions };
 }
 
+function upcastGraphDefinitionV0(input) {
+  const definition = stableValue(input);
+  return {
+    schemaVersion: 1,
+    id: definition.id,
+    revision: definition.revision ?? 1,
+    triggers: definition.triggers || [],
+    regions: definition.regions || [],
+    nodes: (definition.nodes || []).map((node) => ({
+      ...node,
+      kind: node.kind || "task",
+      dependsOn: node.dependsOn || [],
+      inputs: node.inputs || [],
+      outputs: node.outputs || [],
+      effectClass: node.effectClass || "none",
+    })),
+    edges: (definition.edges || []).map((edge, index) => ({
+      ...edge,
+      id: edge.id || `edge-${index + 1}`,
+      kind: edge.kind || "control",
+      when: edge.when || "success",
+    })),
+    loops: definition.loops || [],
+    subgraphCalls: definition.subgraphCalls || [],
+    budget: definition.budget || {},
+    allowedCapabilities: definition.allowedCapabilities || [],
+    metadata: definition.metadata || {},
+  };
+}
+
+const BUILTIN_GRAPH_UPCASTERS = Object.freeze({
+  0: upcastGraphDefinitionV0,
+});
+
 function migrateDefinition(input, options) {
   const sourceVersion = Number(input?.schemaVersion);
   if (sourceVersion === GRAPH_DEFINITION_VERSION) {
     return { definition: stableValue(input), migratedFrom: null };
   }
-  const upcaster = options.upcasters?.[sourceVersion];
+  const upcaster =
+    options.upcasters?.[sourceVersion] ||
+    BUILTIN_GRAPH_UPCASTERS[sourceVersion];
   if (
     sourceVersion === GRAPH_DEFINITION_VERSION - 1 &&
     typeof upcaster === "function"
@@ -1339,6 +1378,8 @@ export function assertCompiledGraph(value) {
 export function migrateGraphDefinition(input, options = {}) {
   const { definition, migratedFrom } = migrateDefinition(input, options);
   const compiled = compileGraphDefinition(definition, options);
+  const backupDefinition =
+    migratedFrom == null ? null : deepFreeze(stableValue(input));
   return Object.freeze({
     dryRun: options.dryRun !== false,
     fromVersion: migratedFrom ?? definition.schemaVersion,
@@ -1346,7 +1387,37 @@ export function migrateGraphDefinition(input, options = {}) {
     definition: compiled.definition,
     revisionDigest: compiled.revisionDigest,
     backupRequired: migratedFrom != null,
+    backupDefinition,
+    rollbackDigest:
+      backupDefinition == null
+        ? null
+        : graphDigest(
+            backupDefinition,
+            `cc.graph.definition-backup/${migratedFrom}`,
+          ),
   });
+}
+
+export function restoreGraphDefinitionBackup(
+  backupDefinition,
+  expectedRollbackDigest,
+) {
+  const backup = stableValue(backupDefinition);
+  const version = Number(backup.schemaVersion);
+  if (version !== GRAPH_DEFINITION_VERSION - 1) {
+    const error = new TypeError(
+      `backup must use GraphDefinition version ${GRAPH_DEFINITION_VERSION - 1}`,
+    );
+    error.code = "CC_GRAPH_MIGRATION_BACKUP_INVALID";
+    throw error;
+  }
+  const digest = graphDigest(backup, `cc.graph.definition-backup/${version}`);
+  if (digest !== expectedRollbackDigest) {
+    const error = new TypeError("graph migration backup digest does not match");
+    error.code = "CC_GRAPH_MIGRATION_BACKUP_TAMPERED";
+    throw error;
+  }
+  return deepFreeze(backup);
 }
 
 export function executionAttemptId(nodeId, iterationPath = [], attempt = 1) {

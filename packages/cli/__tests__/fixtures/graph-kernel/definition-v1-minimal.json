@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "migration-minimal",
+  "revision": 1,
+  "triggers": [],
+  "regions": [],
+  "nodes": [
+    {
+      "id": "root",
+      "kind": "task",
+      "dependsOn": [],
+      "inputs": [],
+      "outputs": [],
+      "effectClass": "none"
+    }
+  ],
+  "edges": [],
+  "loops": [],
+  "subgraphCalls": [],
+  "budget": {},
+  "allowedCapabilities": [],
+  "metadata": { "fixture": "minimal" }
+}

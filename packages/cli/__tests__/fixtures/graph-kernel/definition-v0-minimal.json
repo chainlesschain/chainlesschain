@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 0,
+  "id": "migration-minimal",
+  "revision": 1,
+  "nodes": [{ "id": "root", "dependsOn": [] }],
+  "edges": [],
+  "metadata": { "fixture": "minimal" }
+}

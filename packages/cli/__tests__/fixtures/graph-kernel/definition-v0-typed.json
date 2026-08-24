@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 0,
+  "id": "migration-typed",
+  "revision": 7,
+  "nodes": [
+    {
+      "id": "inspect",
+      "dependsOn": [],
+      "outputs": [
+        { "name": "result", "schema": { "type": "string" }, "required": true }
+      ],
+      "budget": { "turns": 1, "tokens": 50 }
+    },
+    {
+      "id": "publish",
+      "dependsOn": ["inspect"],
+      "inputs": [
+        { "name": "source", "schema": { "type": "string" }, "required": true }
+      ],
+      "effectClass": "external",
+      "idempotencyKey": "publish-migration-fixture",
+      "budget": { "turns": 1, "tokens": 50 }
+    }
+  ],
+  "edges": [
+    {
+      "from": "inspect",
+      "to": "publish",
+      "kind": "data",
+      "fromPort": "result",
+      "toPort": "source"
+    }
+  ],
+  "budget": { "turns": 2, "tokens": 100 },
+  "metadata": { "fixture": "typed" }
+}
