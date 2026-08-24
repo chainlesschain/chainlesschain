@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.97] - Recommended CLI 0.165.10 pairing (2026-08-24)
+
+- Recommend the public `chainlesschain@0.165.10` CLI after its exact release
+  commit passed the complete Linux, Windows, and macOS CLI CI and Strict
+  Sandbox matrices, npm publication, and public-registry readback.
+- Document the Windows startup hotfix: normal agent startup no longer requires
+  Docker unless container sandboxing is explicitly selected, while explicit
+  sandbox and managed-policy requests continue to fail closed when isolation
+  is unavailable.
+- Pair with `@chainlesschain/session-core@0.3.6`, including its published
+  `./runtime-claims` entry point. CLI `0.165.10` supersedes the broken
+  `0.165.9` default-startup behavior. There are no plugin runtime changes from
+  0.4.96.
+
 ## [0.4.96] - Scalable IDE sessions and evidence (2026-08-21)
 
 - Add durable session groups, native multi-selection and bulk moves, plus a

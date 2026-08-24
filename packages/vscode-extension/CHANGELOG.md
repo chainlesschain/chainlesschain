@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.65] - Recommended CLI 0.165.10 pairing (2026-08-24)
+
+- Recommend the public `chainlesschain@0.165.10` CLI after its exact release
+  commit passed the complete Linux, Windows, and macOS CLI CI and Strict
+  Sandbox matrices, npm publication, and public-registry readback.
+- Document the Windows startup hotfix: normal agent startup no longer requires
+  Docker unless container sandboxing is explicitly selected, while explicit
+  sandbox and managed-policy requests continue to fail closed when isolation
+  is unavailable.
+- Pair with `@chainlesschain/session-core@0.3.6`, which publishes the required
+  `./runtime-claims` entry point. CLI `0.165.10` supersedes the broken
+  `0.165.9` default-startup behavior. There are no extension runtime changes
+  from 0.37.64.
+
 ## [0.37.64] - Recommended CLI 0.165.8 pairing (2026-08-24)
 
 - Prefer the public `chainlesschain@0.165.8` CLI after compatibility testing
