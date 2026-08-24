@@ -100,7 +100,9 @@ export function isHeadlessEnv(env = process.env, platform = process.platform) {
   return !(env.DISPLAY || env.WAYLAND_DISPLAY);
 }
 
-// Singleton MCP client for session reuse
+// Singleton MCP client for commands that deliberately keep a connection open
+// in the current process. Normal CLI queries use connectForQuery() so they do
+// not depend on state from a previous (and therefore different) process.
 let mcpClient = null;
 const PROJECT_MCP_FILE_TRUST = Symbol("projectMcpFileTrust");
 
@@ -184,9 +186,11 @@ async function resolveAuthTargetUrl(program, target) {
 }
 
 /**
- * Connect MCP server(s) for a one-shot query (resources / prompts). Connects
+ * Connect MCP server(s) for a one-shot query (tools / resources / prompts).
+ * Connects
  * the named server, or every registered server when `serverName` is omitted.
- * Returns `{ client, connected }`; the caller must `await shutdown()`.
+ * Returns `{ client, connected }`; the caller must disconnect the client and
+ * `await shutdown()`.
  */
 async function connectForQuery(program, serverName) {
   const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -1712,17 +1716,23 @@ export function registerMcpCommand(program) {
 
   mcp
     .command("connect")
-    .description("Connect to an MCP server")
+    .description("Connect to an MCP server and verify its capabilities")
     .argument("<name>", "Server name (configured or command)")
     .option("--mode <mode>", "Runtime mode (local | lan | hosted)")
     .option("--force", "Bypass mode compatibility check")
+    .option(
+      "--stay-open",
+      "Keep the MCP connection open in this process until interrupted",
+    )
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
+      let client = null;
+      let spinner = null;
+      let connectionEstablished = false;
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
+          throw new Error("Database not available");
         }
 
         const db = ctx.db.getDatabase();
@@ -1734,10 +1744,9 @@ export function registerMcpCommand(program) {
 
         if (!serverConfig) {
           const names = visible.map((s) => s.name);
-          logger.error(
+          throw new Error(
             `${notFoundWithSuggestion(name, names, { noun: "Server" })}. Use 'mcp add' first.`,
           );
-          process.exit(1);
         }
 
         const mode = resolveMode(options);
@@ -1746,19 +1755,19 @@ export function registerMcpCommand(program) {
           mode,
         );
         if (!check.allowed && !options.force) {
-          logger.error(
+          throw new Error(
             `Server "${name}" blocked in mode "${mode}": ${check.reason}. Use --force to override.`,
           );
-          process.exit(1);
         }
 
-        const spinner = ora(`Connecting to ${name}...`).start();
-        const client = getClient();
+        spinner = ora(`Connecting to ${name}...`).start();
+        client = getClient();
 
         const result = await client.connect(
           name,
           authorizeMcpRowForConnect(serverConfig),
         );
+        connectionEstablished = true;
         spinner.stop();
 
         if (options.json) {
@@ -1783,10 +1792,18 @@ export function registerMcpCommand(program) {
           }
         }
 
-        // Don't shutdown — keep connection alive for subsequent calls
+        if (options.stayOpen && !options.json) {
+          logger.info("Connection kept open; press Ctrl+C to stop.");
+        }
       } catch (err) {
+        spinner?.stop();
         logger.error(`Connection failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        if (!options.stayOpen || !connectionEstablished) {
+          await client?.disconnectAll();
+          await shutdown();
+        }
       }
     });
 
@@ -1817,14 +1834,15 @@ export function registerMcpCommand(program) {
     .option("-s, --server <name>", "Filter by server name")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      let client = null;
       try {
-        const client = getClient();
+        ({ client } = await connectForQuery(program, options.server));
         const tools = client.listTools(options.server);
 
         if (options.json) {
           console.log(JSON.stringify(tools, null, 2));
         } else if (tools.length === 0) {
-          logger.info("No tools available. Connect to a server first.");
+          logger.info("No tools available.");
         } else {
           logger.log(chalk.bold(`MCP Tools (${tools.length}):\n`));
           for (const t of tools) {
@@ -1838,7 +1856,10 @@ export function registerMcpCommand(program) {
         }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        await client?.disconnectAll();
+        await shutdown();
       }
     });
 
@@ -1851,8 +1872,10 @@ export function registerMcpCommand(program) {
     .option("-a, --args <json>", "Tool arguments as JSON")
     .option("--json", "Output as JSON")
     .action(async (tool, options) => {
+      let client = null;
+      let spinner = null;
       try {
-        const client = getClient();
+        ({ client } = await connectForQuery(program, options.server));
 
         // Find which server has this tool
         let serverName = options.server;
@@ -1863,13 +1886,14 @@ export function registerMcpCommand(program) {
             logger.error(
               `Tool "${tool}" not found. Run 'mcp tools' to see available tools.`,
             );
-            process.exit(1);
+            process.exitCode = 1;
+            return;
           }
           serverName = match.server;
         }
 
         const args = parseJsonOption(options.args, "--args", {});
-        const spinner = ora(`Calling ${tool}...`).start();
+        spinner = ora(`Calling ${tool}...`).start();
 
         const result = await client.callTool(serverName, tool, args);
         spinner.stop();
@@ -1893,8 +1917,12 @@ export function registerMcpCommand(program) {
           }
         }
       } catch (err) {
+        spinner?.stop();
         logger.error(`Tool call failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        await client?.disconnectAll();
+        await shutdown();
       }
     });
 
