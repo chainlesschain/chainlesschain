@@ -36,8 +36,8 @@ Public subpath exports:
 - `@chainlesschain/agent-protocol/generated/kotlin` — generated Kotlin source.
 - `@chainlesschain/agent-protocol/generated/swift` — generated Swift source.
 
-The package version and the protocol version are separate. The initial npm
-package is `0.1.0`; the embedded wire protocol is version `1` and declares its
+The package version and the protocol version are separate. The current npm
+package is `0.1.1`; the embedded wire protocol is version `1` and declares its
 minimum compatible protocol version in `x-cc-protocol`.
 
 ## Release integrity

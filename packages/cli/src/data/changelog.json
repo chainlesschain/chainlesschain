@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.1",
+      "cliVersions": ["0.1.1", "0.2.1", "0.166.0", "0.166.1"],
+      "date": "2026-08-24",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.1 + Agent Protocol 0.1.1 + Agent SDKs 0.2.1: structured Graph execution",
+          "body": "> `chainlesschain` **0.166.0 -> 0.166.1**,\n> `@chainlesschain/agent-protocol` **0.1.0 -> 0.1.1**,\n> `@chainlesschain/agent-sdk` **0.2.0 -> 0.2.1**, and\n> `chainlesschain-agent-sdk` **0.2.0 -> 0.2.1** (release candidate,\n> 2026-08-24).\n\n- **Typed subgraphs with budget isolation**: subgraph calls now validate\n  parent/child input and output mappings before effects, reserve durable\n  per-call budget slices, prevent parallel oversubscription, and settle only\n  the child run's actual usage across completion, cancellation, and recovery.\n- **Effectful bounded loops**: loop effects receive deterministic\n  iteration-scoped idempotency keys and receipts. Compensation executes once\n  per committed iteration in reverse dependency/iteration order and resumes\n  safely after interruption or budget exhaustion.\n- **Graph migration and rollback**: the compiler includes a built-in v0-to-v1\n  upcaster, frozen minimal and typed N/N-1 corpora, immutable pre-migration\n  backups, domain-separated rollback digests, and tamper-evident restore.\n- **Cross-language delivery**: the canonical schema and generated TypeScript,\n  Python, Kotlin, and Swift bindings expose the new subgraph budget/mapping and\n  effect iteration lineage fields without adding SDK runtime dependencies.\n- **Release validation**: publication requires this exact release commit to\n  pass the complete Linux, Windows, and macOS `CLI CI`, `CLI Strict Sandbox`,\n  and Agent Protocol matrices plus Python 3.10/3.12/3.13 SDK conformance."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.0",
       "cliVersions": ["0.2.0", "0.165.10", "0.166.0"],
       "date": "2026-08-24",

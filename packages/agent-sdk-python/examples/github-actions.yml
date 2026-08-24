@@ -36,8 +36,8 @@ jobs:
       # the protocol surface used by this gate.
       - name: Install clients
         run: |
-          python -m pip install --no-deps chainlesschain-agent-sdk==0.2.0
-          npm install --global chainlesschain@0.166.0
+          python -m pip install --no-deps chainlesschain-agent-sdk==0.2.1
+          npm install --global chainlesschain@0.166.1
 
       - name: Run the agent gate
         env:

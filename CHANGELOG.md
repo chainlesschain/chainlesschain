@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.1 + Agent Protocol 0.1.1 + Agent SDKs 0.2.1: structured Graph execution
+
+> `chainlesschain` **0.166.0 -> 0.166.1**,
+> `@chainlesschain/agent-protocol` **0.1.0 -> 0.1.1**,
+> `@chainlesschain/agent-sdk` **0.2.0 -> 0.2.1**, and
+> `chainlesschain-agent-sdk` **0.2.0 -> 0.2.1** (release candidate,
+> 2026-08-24).
+
+- **Typed subgraphs with budget isolation**: subgraph calls now validate
+  parent/child input and output mappings before effects, reserve durable
+  per-call budget slices, prevent parallel oversubscription, and settle only
+  the child run's actual usage across completion, cancellation, and recovery.
+- **Effectful bounded loops**: loop effects receive deterministic
+  iteration-scoped idempotency keys and receipts. Compensation executes once
+  per committed iteration in reverse dependency/iteration order and resumes
+  safely after interruption or budget exhaustion.
+- **Graph migration and rollback**: the compiler includes a built-in v0-to-v1
+  upcaster, frozen minimal and typed N/N-1 corpora, immutable pre-migration
+  backups, domain-separated rollback digests, and tamper-evident restore.
+- **Cross-language delivery**: the canonical schema and generated TypeScript,
+  Python, Kotlin, and Swift bindings expose the new subgraph budget/mapping and
+  effect iteration lineage fields without adding SDK runtime dependencies.
+- **Release validation**: publication requires this exact release commit to
+  pass the complete Linux, Windows, and macOS `CLI CI`, `CLI Strict Sandbox`,
+  and Agent Protocol matrices plus Python 3.10/3.12/3.13 SDK conformance.
+
 ### Added - cc CLI 0.166.0 + Agent SDKs 0.2.0: canonical App Server and Graph kernels
 
 > `chainlesschain` **0.165.10 -> 0.166.0**,

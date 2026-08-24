@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/agent-protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Canonical versioned Agent and Graph protocol schema, compatibility checks, and generated language bindings for ChainlessChain.",
   "license": "MIT",
   "type": "module",
