@@ -86,6 +86,35 @@ describe("AgentCoordinator._executeParallel", () => {
     expect(order).toEqual(["agent-a", "agent-b", "agent-c"]);
   });
 
+  it("propagates a failed dependency without dispatching its descendants", async () => {
+    coord.assignTask = vi.fn(async (agentId) => ({
+      success: agentId !== "agent-a",
+      error: agentId === "agent-a" ? "root failed" : undefined,
+    }));
+
+    const results = await coord._executeParallel("s", [
+      sub("c", ["b"]),
+      sub("b", ["a"]),
+      sub("a"),
+    ]);
+    const byId = Object.fromEntries(
+      results.map((result) => [result.subtaskId, result]),
+    );
+
+    expect(byId.a.success).toBe(false);
+    expect(byId.b).toMatchObject({
+      status: "upstream_failed",
+      success: false,
+      blockedRootCut: ["a"],
+    });
+    expect(byId.c).toMatchObject({
+      status: "upstream_failed",
+      success: false,
+      blockedRootCut: ["a"],
+    });
+    expect(coord.assignTask).toHaveBeenCalledTimes(1);
+  });
+
   it("resolves a CIRCULAR dependency as errors instead of hanging", async () => {
     const results = await coord._executeParallel("s", [
       sub("a", ["b"]),

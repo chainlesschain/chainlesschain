@@ -56,7 +56,7 @@ describe("sub-runtime entry dispatcher", () => {
     expect(exited).toBeNull();
   });
 
-  it("run cmd creates member session and streams progress + done", async () => {
+  it("run cmd records a simulation without claiming execution success", async () => {
     const dispatch = entryMod.createDispatcher();
     await dispatch({
       cmd: "run",
@@ -77,7 +77,13 @@ describe("sub-runtime entry dispatcher", () => {
       index: 0,
       total: 2,
     });
-    expect(written[2]).toMatchObject({ type: "done", success: true });
+    expect(written[2]).toMatchObject({
+      type: "done",
+      success: false,
+      status: "simulated",
+      runtimeClaims: { simulated: true, realExecution: false },
+      terminalEvidence: [],
+    });
 
     // Member's own progress.log must contain both steps.
     const memberLog = fs.readFileSync(

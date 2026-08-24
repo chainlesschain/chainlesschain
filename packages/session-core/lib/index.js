@@ -157,6 +157,14 @@ const {
   annotateCompatibility: annotateMcpCompatibility,
 } = require("./mcp-policy.js");
 
+const {
+  RUNTIME_CLAIMS_SCHEMA,
+  RUNTIME_MODE,
+  TERMINAL_EVIDENCE_KIND,
+  createRuntimeClaims,
+  hasTerminalSuccessEvidence,
+} = require("./runtime-claims.js");
+
 module.exports = {
   // SessionHandle
   SessionHandle,
@@ -274,4 +282,10 @@ module.exports = {
   createDurationChecker,
   createThresholdChecker,
   createLintPassChecker,
+  // Runtime execution truthfulness contract
+  RUNTIME_CLAIMS_SCHEMA,
+  RUNTIME_MODE,
+  TERMINAL_EVIDENCE_KIND,
+  createRuntimeClaims,
+  hasTerminalSuccessEvidence,
 };

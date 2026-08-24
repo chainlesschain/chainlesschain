@@ -14,7 +14,44 @@
  */
 
 import { EventEmitter } from "events";
+import crypto from "crypto";
+import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 import executionBroker from "./process-execution-broker/index.js";
+import {
+  createExternalAgentAdapter,
+  EXTERNAL_AGENT_ERROR,
+} from "./external-agent-adapters.js";
+
+const {
+  RUNTIME_MODE,
+  TERMINAL_EVIDENCE_KIND,
+  createRuntimeClaims,
+  hasTerminalSuccessEvidence,
+} = runtimeClaimsContract;
+
+const REAL_EXECUTION_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.REAL_EXECUTION,
+  durable: false,
+  crashSafe: false,
+  isolatedWrites: false,
+});
+
+const VALIDATION_ONLY_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.VALIDATE_ONLY,
+});
+
+function transcriptReceipt(rawOutput) {
+  return `sha256:${crypto.createHash("sha256").update(rawOutput).digest("hex")}`;
+}
+
+export {
+  ExternalAgentAdapter,
+  ClaudeAdapter,
+  CodexAdapter,
+  createExternalAgentAdapter,
+  EXTERNAL_AGENT_ERROR,
+  EXTERNAL_AGENT_PROTOCOL,
+} from "./external-agent-adapters.js";
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
 export const _deps = {
@@ -30,6 +67,7 @@ export const AGENT_STATUS = {
   COMPLETED: "completed",
   FAILED: "failed",
   TIMEOUT: "timeout",
+  CANCELLED: "cancelled",
 };
 
 // Bound how much of a child's stdout/stderr we retain in memory. A verbose or
@@ -68,7 +106,7 @@ export function detectClaudeCode() {
 }
 
 /**
- * Check if the `codex` CLI (GitHub Copilot Coding Agent) is installed.
+ * Check if the OpenAI Codex CLI is installed.
  * Returns { found: boolean, version?: string }.
  */
 export function detectCodex() {
@@ -83,8 +121,9 @@ export function detectCodex() {
 // ─── Single Agent ─────────────────────────────────────────────────
 
 /**
- * A single Claude Code CLI execution agent.
- * Wraps `claude -p "<task>" --output-format stream-json` as a child process.
+ * A single external coding-agent CLI process. The historical class name is
+ * retained for API compatibility; provider-specific argv and JSONL parsing are
+ * delegated to ClaudeAdapter or CodexAdapter.
  */
 export class ClaudeCodeAgent extends EventEmitter {
   constructor(options = {}) {
@@ -94,9 +133,18 @@ export class ClaudeCodeAgent extends EventEmitter {
       `cc-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     this.cliCommand = options.cliCommand || "claude"; // "claude" or "codex"
     this.model = options.model || null;
+    this.sandbox = options.sandbox || null;
+    this.adapter =
+      options.adapter ||
+      createExternalAgentAdapter({
+        cliCommand: this.cliCommand,
+        model: this.model,
+        sandbox: this.sandbox,
+      });
     this.status = AGENT_STATUS.IDLE;
     this.currentTask = null;
     this._proc = null;
+    this._cancelRequested = false;
   }
 
   /**
@@ -128,13 +176,32 @@ export class ClaudeCodeAgent extends EventEmitter {
     this.currentTask = taskDescription;
     this.emit("task:start", { agentId: this.id, task: taskDescription });
 
-    const args = ["-p", fullPrompt, "--output-format", "stream-json"];
-    if (this.model) {
-      args.push("--model", this.model);
+    let args;
+    try {
+      args = this.adapter.buildArgs({ prompt: fullPrompt, allowedTools });
+    } catch (err) {
+      this.status = AGENT_STATUS.FAILED;
+      this.currentTask = null;
+      const result = {
+        success: false,
+        status: "validation-failed",
+        output: "",
+        exitCode: -1,
+        duration: 0,
+        timedOut: false,
+        cancelled: false,
+        agentId: this.id,
+        error: err.message,
+        errorCode: err.code || EXTERNAL_AGENT_ERROR.UNSUPPORTED_OPTION,
+        protocol: this.adapter.capabilities().protocol,
+        runtimeClaims: VALIDATION_ONLY_CLAIMS,
+        terminalEvidence: [],
+      };
+      this.emit("task:complete", result);
+      return result;
     }
-    if (allowedTools) {
-      args.push("--allowedTools", allowedTools);
-    }
+
+    this._cancelRequested = false;
 
     return new Promise((resolve) => {
       const startTime = Date.now();
@@ -160,7 +227,7 @@ export class ClaudeCodeAgent extends EventEmitter {
         return bytes;
       };
 
-      const proc = _deps.spawn(this.cliCommand, args, {
+      const proc = _deps.spawn(this.adapter.command, args, {
         cwd,
         env: { ...process.env },
         windowsHide: true,
@@ -220,28 +287,93 @@ export class ClaudeCodeAgent extends EventEmitter {
         this._proc = null;
         const duration = Date.now() - startTime;
         const rawOutput = outputChunks.join("");
+        const cancelled = this._cancelRequested && !timedOut;
+        const projection = this.adapter.parseTranscript(rawOutput);
+        const missingTerminal =
+          this.adapter.capabilities().requiresTerminalEvent &&
+          projection.terminal === null;
+        const protocolFailed =
+          projection.terminal === "failed" || missingTerminal;
         const status = timedOut
           ? AGENT_STATUS.TIMEOUT
-          : code === 0
-            ? AGENT_STATUS.COMPLETED
-            : AGENT_STATUS.FAILED;
+          : cancelled
+            ? AGENT_STATUS.CANCELLED
+            : protocolFailed
+              ? AGENT_STATUS.FAILED
+              : code === 0
+                ? AGENT_STATUS.COMPLETED
+                : AGENT_STATUS.FAILED;
 
         this.status = status;
         this.currentTask = null;
 
-        // Parse stream-json output: last assistant message is the result
-        const parsedOutput = _parseStreamJson(rawOutput);
+        const terminalEvidence = [
+          ...(projection.terminal
+            ? [
+                {
+                  kind: TERMINAL_EVIDENCE_KIND.RUNTIME_EVENT,
+                  outcome: projection.terminal,
+                  source: this.adapter.capabilities().protocol,
+                },
+              ]
+            : []),
+          ...(rawOutput
+            ? [
+                {
+                  kind: TERMINAL_EVIDENCE_KIND.OUTPUT_RECEIPT,
+                  digest: transcriptReceipt(rawOutput),
+                },
+              ]
+            : []),
+        ];
+        const success =
+          code === 0 &&
+          !timedOut &&
+          !cancelled &&
+          !protocolFailed &&
+          hasTerminalSuccessEvidence(REAL_EXECUTION_CLAIMS, terminalEvidence);
+        const errorCode = timedOut
+          ? EXTERNAL_AGENT_ERROR.TIMEOUT
+          : cancelled
+            ? EXTERNAL_AGENT_ERROR.CANCELLED
+            : code !== 0
+              ? EXTERNAL_AGENT_ERROR.EXIT_NONZERO
+              : protocolFailed
+                ? EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED
+                : null;
 
         const result = {
-          success: code === 0 && !timedOut,
-          output: parsedOutput || rawOutput.slice(-4000), // last 4K chars fallback
+          success,
+          status: success ? "completed" : status,
+          output: projection.output || rawOutput.slice(-4000),
           rawOutput,
           outputTruncated, // true when the child exceeded maxOutputBytes
           exitCode: code,
           duration,
           timedOut,
+          cancelled,
           agentId: this.id,
           stderr: errorChunks.join("").slice(-2000),
+          error: success
+            ? undefined
+            : projection.error ||
+              (missingTerminal
+                ? "External agent JSONL stream ended without a terminal event"
+                : null) ||
+              (timedOut
+                ? "External agent timed out"
+                : cancelled
+                  ? "External agent was cancelled"
+                  : `External agent exited with code ${code}`),
+          errorCode,
+          protocol: this.adapter.capabilities().protocol,
+          terminalEvent: projection.terminal,
+          usage: projection.usage,
+          unknownEventTypes: projection.unknownEventTypes,
+          unknownItemTypes: projection.unknownItemTypes,
+          malformedLineCount: projection.malformedLineCount,
+          runtimeClaims: REAL_EXECUTION_CLAIMS,
+          terminalEvidence,
         };
 
         this.emit("task:complete", result);
@@ -256,12 +388,18 @@ export class ClaudeCodeAgent extends EventEmitter {
         this.currentTask = null;
         const result = {
           success: false,
+          status: "failed",
           output: "",
           exitCode: -1,
           duration: Date.now() - startTime,
           timedOut: false,
+          cancelled: false,
           agentId: this.id,
           error: err.message,
+          errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+          protocol: this.adapter.capabilities().protocol,
+          runtimeClaims: REAL_EXECUTION_CLAIMS,
+          terminalEvidence: [],
         };
         this.emit("task:complete", result);
         resolve(result);
@@ -272,6 +410,7 @@ export class ClaudeCodeAgent extends EventEmitter {
   /** Abort the currently running task. */
   abort() {
     if (this._proc) {
+      this._cancelRequested = true;
       this._proc.kill("SIGTERM");
     }
   }
@@ -281,6 +420,7 @@ export class ClaudeCodeAgent extends EventEmitter {
       id: this.id,
       status: this.status,
       cliCommand: this.cliCommand,
+      protocol: this.adapter.capabilities().protocol,
       currentTask: this.currentTask,
     };
   }
@@ -304,6 +444,7 @@ export class ClaudeCodePool extends EventEmitter {
     this.maxParallel = options.maxParallel || 3;
     this.cliCommand = options.cliCommand || "claude";
     this.model = options.model || null;
+    this.sandbox = options.sandbox || null;
     this.agentTimeout = options.agentTimeout || 300_000;
 
     // Bound retained completion history. dispatch() returns results directly,
@@ -359,6 +500,7 @@ export class ClaudeCodePool extends EventEmitter {
       id: `agent-${task.id}`,
       cliCommand: this.cliCommand,
       model: this.model,
+      sandbox: this.sandbox,
     });
 
     this._agents.set(agent.id, agent);
@@ -398,43 +540,6 @@ export class ClaudeCodePool extends EventEmitter {
       agent.abort();
     }
   }
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────
-
-/**
- * Parse Claude Code stream-json output and extract the last assistant text.
- * Stream-json lines look like:  {"type":"assistant","message":{...}}
- */
-function _parseStreamJson(raw) {
-  if (!raw) return "";
-  const lines = raw.split("\n").filter(Boolean);
-  let lastText = "";
-
-  for (const line of lines) {
-    try {
-      const obj = JSON.parse(line);
-      // stream-json: result message has type "result"
-      if (obj.type === "result" && obj.result) {
-        return typeof obj.result === "string"
-          ? obj.result
-          : JSON.stringify(obj.result);
-      }
-      // assistant message blocks
-      if (obj.type === "assistant" && obj.message?.content) {
-        const blocks = obj.message.content;
-        const textBlocks = blocks
-          .filter((b) => b.type === "text")
-          .map((b) => b.text)
-          .join("\n");
-        if (textBlocks) lastText = textBlocks;
-      }
-    } catch (_err) {
-      // Non-JSON line (progress text) — ignore
-    }
-  }
-
-  return lastText;
 }
 
 // =====================================================================

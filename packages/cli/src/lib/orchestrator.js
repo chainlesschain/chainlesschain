@@ -28,6 +28,17 @@ import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { firstBalancedJson } from "./json-schema-output.js";
 import executionBroker from "./process-execution-broker/index.js";
+import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
+
+const { RUNTIME_MODE, createRuntimeClaims, hasTerminalSuccessEvidence } =
+  runtimeClaimsContract;
+
+const ORCHESTRATOR_RUNTIME_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.REAL_EXECUTION,
+  durable: false,
+  crashSafe: false,
+  isolatedWrites: false,
+});
 
 /* ---------- _deps injection (Vitest CJS mock pattern) ---------- */
 export const _deps = {
@@ -160,6 +171,8 @@ export class Orchestrator extends EventEmitter {
       ciErrors: [],
       createdAt: new Date().toISOString(),
       completedAt: null,
+      runtimeClaims: ORCHESTRATOR_RUNTIME_CLAIMS,
+      terminalEvidence: [],
     };
 
     this._tasks.set(task.id, task);
@@ -192,6 +205,8 @@ export class Orchestrator extends EventEmitter {
       source: t.source,
       retries: t.retries,
       createdAt: t.createdAt,
+      runtimeClaims: t.runtimeClaims,
+      terminalEvidence: t.terminalEvidence,
     }));
     return {
       tasks,
@@ -228,6 +243,7 @@ export class Orchestrator extends EventEmitter {
 
       // Step 2: Dispatch to Claude Code agents
       task.agentResults = await this._dispatch(task);
+      this._assertSuccessfulAgentResults(task);
 
       // Step 3: CI/CD check
       if (task.runCI) {
@@ -368,6 +384,7 @@ export class Orchestrator extends EventEmitter {
       task.agentResults = await this._router.dispatch(fixSubtasks, {
         cwd: task.cwd,
       });
+      this._assertSuccessfulAgentResults(task);
       this.emit("agents:complete", { task, results: task.agentResults });
     }
 
@@ -407,6 +424,36 @@ export class Orchestrator extends EventEmitter {
       const errors = _parseErrors(output);
       return { pass: false, output, errors };
     }
+  }
+
+  _assertSuccessfulAgentResults(task) {
+    if (!Array.isArray(task.agentResults) || task.agentResults.length === 0) {
+      throw new Error("Agent dispatch produced no terminal results");
+    }
+
+    const failed = [];
+    const evidence = [];
+    for (let index = 0; index < task.agentResults.length; index += 1) {
+      const result = task.agentResults[index];
+      const valid =
+        result?.success === true &&
+        hasTerminalSuccessEvidence(
+          result.runtimeClaims,
+          result.terminalEvidence,
+        );
+      if (!valid) {
+        failed.push(
+          `${result?.taskId || `result-${index}`}: ${result?.error || result?.status || "missing terminal evidence"}`,
+        );
+      } else {
+        evidence.push(...result.terminalEvidence);
+      }
+    }
+
+    if (failed.length > 0) {
+      throw new Error(`Agent execution did not succeed: ${failed.join("; ")}`);
+    }
+    task.terminalEvidence = evidence;
   }
 
   /**

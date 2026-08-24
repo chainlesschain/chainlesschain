@@ -34,6 +34,17 @@ const readline = require("readline");
 const {
   SessionStateManager,
 } = require("../ai-engine/code-agent/session-state-manager.js");
+const {
+  RUNTIME_MODE,
+  createRuntimeClaims,
+} = require("@chainlesschain/session-core/runtime-claims");
+
+const SUB_RUNTIME_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.SIMULATED,
+  durable: false,
+  crashSafe: false,
+  isolatedWrites: true,
+});
 
 // Test injection seam so unit tests can drive the handler loop without
 // actually piping real stdin/stdout.
@@ -86,7 +97,14 @@ async function handleRun(msg) {
       return;
     }
   }
-  _deps.write({ type: "done", memberId, success: true });
+  _deps.write({
+    type: "done",
+    memberId,
+    success: false,
+    status: "simulated",
+    runtimeClaims: SUB_RUNTIME_CLAIMS,
+    terminalEvidence: [],
+  });
 }
 
 function createDispatcher() {

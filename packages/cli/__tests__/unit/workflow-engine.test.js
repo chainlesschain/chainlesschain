@@ -261,14 +261,19 @@ describe("workflow-engine", () => {
   // ─── executeWorkflow ──────────────────────────────────
 
   describe("executeWorkflow", () => {
-    it("executes workflow and returns completed status", () => {
+    it("simulates workflow without claiming execution success", () => {
       const stages = [
         { id: "s1", name: "Step 1", type: "action", next: ["s2"] },
         { id: "s2", name: "Step 2", type: "approval", next: [] },
       ];
       const wf = createWorkflow(db, { name: "Exec WF", stages });
       const exec = executeWorkflow(db, wf.id);
-      expect(exec.status).toBe("completed");
+      expect(exec.status).toBe("simulated");
+      expect(exec.runtimeClaims).toMatchObject({
+        simulated: true,
+        realExecution: false,
+      });
+      expect(exec.terminalEvidence).toEqual([]);
       expect(exec.id).toMatch(/^exec-/);
       expect(exec.log).toHaveLength(2);
     });
@@ -280,7 +285,7 @@ describe("workflow-engine", () => {
       expect(exec.log[0].stageId).toBe("a");
       expect(exec.log[0].stageName).toBe("Action A");
       expect(exec.log[0].type).toBe("action");
-      expect(exec.log[0].status).toBe("completed");
+      expect(exec.log[0].status).toBe("simulated");
     });
 
     it("throws for non-existent workflow", () => {
@@ -293,14 +298,14 @@ describe("workflow-engine", () => {
       const stages = [{ id: "a", name: "A", type: "action", next: [] }];
       const wf = createWorkflow(db, { name: "Input WF", stages });
       const exec = executeWorkflow(db, wf.id, { key: "value" });
-      expect(exec.status).toBe("completed");
+      expect(exec.status).toBe("simulated");
     });
   });
 
   // ─── pauseExecution ───────────────────────────────────
 
   describe("pauseExecution", () => {
-    it("pauses a completed execution", () => {
+    it("pauses a simulated execution", () => {
       const stages = [{ id: "a", name: "A", type: "action", next: [] }];
       const wf = createWorkflow(db, { name: "Pause WF", stages });
       const exec = executeWorkflow(db, wf.id);
@@ -324,7 +329,8 @@ describe("workflow-engine", () => {
       const exec = executeWorkflow(db, wf.id);
       pauseExecution(db, exec.id);
       const result = resumeExecution(db, exec.id);
-      expect(result.status).toBe("running");
+      expect(result.status).toBe("simulated");
+      expect(result.runtimeClaims.simulated).toBe(true);
     });
 
     it("throws for non-paused execution", () => {
@@ -373,7 +379,8 @@ describe("workflow-engine", () => {
       const log = getExecutionLog(db, exec.id);
       expect(log.id).toBe(exec.id);
       expect(log.workflowId).toBe(wf.id);
-      expect(log.status).toBe("completed");
+      expect(log.status).toBe("simulated");
+      expect(log.runtimeClaims.simulated).toBe(true);
       expect(Array.isArray(log.log)).toBe(true);
     });
 
@@ -519,7 +526,7 @@ describe("workflow-engine", () => {
       expect(cp.id).toMatch(/^cp-/);
       expect(cp.executionId).toBe(exec.id);
       expect(cp.workflowId).toBe(wf.id);
-      expect(cp.snapshot.status).toBe("completed");
+      expect(cp.snapshot.status).toBe("simulated");
     });
 
     it("throws for non-existent execution", () => {

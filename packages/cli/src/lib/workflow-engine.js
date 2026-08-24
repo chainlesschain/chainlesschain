@@ -5,6 +5,12 @@
  */
 
 import crypto from "crypto";
+import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
+
+const { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;
+const WORKFLOW_SIMULATION_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.SIMULATED,
+});
 
 // ─── Frozen enums (Phase 82 spec) ─────────────────────────────
 
@@ -14,6 +20,7 @@ export const WORKFLOW_STATUS = Object.freeze({
   RUNNING: "running",
   PAUSED: "paused",
   COMPLETED: "completed",
+  SIMULATED: "simulated",
   FAILED: "failed",
   ROLLING_BACK: "rolling_back",
   ROLLED_BACK: "rolled_back",
@@ -24,6 +31,7 @@ export const NODE_STATUS = Object.freeze({
   PENDING: "pending",
   RUNNING: "running",
   COMPLETED: "completed",
+  SIMULATED: "simulated",
   FAILED: "failed",
   SKIPPED: "skipped",
   WAITING_APPROVAL: "waiting_approval",
@@ -228,7 +236,10 @@ export function deleteWorkflow(db, workflowId) {
 }
 
 /**
- * Execute a workflow, running through stages in topological order.
+ * Simulate a workflow by traversing stages in topological order.
+ *
+ * This legacy designer has no action executor. It must never report a
+ * production completion until an execution adapter is explicitly supplied.
  * @returns {{ id, workflowId, status, log }}
  */
 export function executeWorkflow(db, workflowId, input = {}) {
@@ -251,14 +262,14 @@ export function executeWorkflow(db, workflowId, input = {}) {
   // Topological sort for execution order
   const order = topologicalSort(stages);
 
-  // Execute each stage
+  // Plan each stage. No action or approval handler is invoked here.
   for (const stageId of order) {
     const stage = stages.find((s) => s.id === stageId);
     log.push({
       stageId: stage.id,
       stageName: stage.name,
       type: stage.type || "action",
-      status: "completed",
+      status: "simulated",
       timestamp: new Date().toISOString(),
     });
   }
@@ -271,7 +282,7 @@ export function executeWorkflow(db, workflowId, input = {}) {
   ).run(
     execId,
     workflowId,
-    "completed",
+    "simulated",
     JSON.stringify(input),
     JSON.stringify(log),
     order[order.length - 1] || null,
@@ -279,7 +290,14 @@ export function executeWorkflow(db, workflowId, input = {}) {
     now,
   );
 
-  return { id: execId, workflowId, status: "completed", log };
+  return {
+    id: execId,
+    workflowId,
+    status: "simulated",
+    log,
+    runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
+    terminalEvidence: [],
+  };
 }
 
 /**
@@ -332,7 +350,7 @@ export function pauseExecution(db, executionId) {
   if (
     exec.status !== "running" &&
     exec.status !== "pending" &&
-    exec.status !== "completed"
+    exec.status !== "simulated"
   ) {
     throw new Error(`Cannot pause execution in status: ${exec.status}`);
   }
@@ -352,11 +370,15 @@ export function pauseExecution(db, executionId) {
     executionId,
   );
 
-  return { id: executionId, status: "paused" };
+  return {
+    id: executionId,
+    status: "paused",
+    runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
+  };
 }
 
 /**
- * Resume a paused execution.
+ * Resume a paused simulation.
  */
 export function resumeExecution(db, executionId) {
   ensureWorkflowTables(db);
@@ -371,13 +393,13 @@ export function resumeExecution(db, executionId) {
   }
 
   db.prepare("UPDATE workflow_executions SET status = ? WHERE id = ?").run(
-    "running",
+    "simulated",
     executionId,
   );
 
   const log = _safeParse(exec.log, []);
   log.push({
-    action: "resumed",
+    action: "simulation-resumed",
     timestamp: new Date().toISOString(),
   });
   db.prepare("UPDATE workflow_executions SET log = ? WHERE id = ?").run(
@@ -385,7 +407,11 @@ export function resumeExecution(db, executionId) {
     executionId,
   );
 
-  return { id: executionId, status: "running" };
+  return {
+    id: executionId,
+    status: "simulated",
+    runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
+  };
 }
 
 /**
@@ -439,6 +465,11 @@ export function getExecutionLog(db, executionId) {
     log: _safeParse(exec.log, []),
     startedAt: exec.started_at,
     completedAt: exec.completed_at,
+    runtimeClaims:
+      exec.status === "simulated" || exec.status === "paused"
+        ? WORKFLOW_SIMULATION_CLAIMS
+        : undefined,
+    terminalEvidence: [],
   };
 }
 

@@ -160,6 +160,20 @@ describe("validateWorkflow", () => {
     expect(errors.some((e) => /duplicate/.test(e))).toBe(true);
   });
 
+  it("rejects declarative ids reserved for forEach children", () => {
+    const wf = {
+      id: "x",
+      name: "x",
+      steps: [
+        { id: "fan", message: "m", forEach: ["one"] },
+        { id: "fan[0]", message: "collision" },
+      ],
+    };
+    const { valid, errors } = validateWorkflow(wf);
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/collides with dynamic children/);
+  });
+
   it("rejects unknown dependsOn", () => {
     const wf = {
       id: "x",
@@ -392,7 +406,7 @@ describe("executeWorkflow", () => {
     expect(_deps.runTask).toHaveBeenCalledTimes(1);
   });
 
-  it("continues on failure when continueOnError set", async () => {
+  it("does not dispatch a failed step's successor with continueOnError set", async () => {
     _deps.runTask = vi.fn(async ({ userMessage }) => {
       if (userMessage.includes("Find")) {
         return { taskId: "t1", status: "failed", result: { summary: "boom" } };
@@ -404,8 +418,12 @@ describe("executeWorkflow", () => {
       cwd: "/project",
       continueOnError: true,
     });
-    expect(out.status).toBe("partial");
-    expect(_deps.runTask).toHaveBeenCalledTimes(2);
+    expect(out.status).toBe("failed");
+    expect(_deps.runTask).toHaveBeenCalledTimes(1);
+    expect(out.steps.find((step) => step.id === "summarize")).toMatchObject({
+      status: "upstream_failed",
+      result: { blockedRootCut: ["fetch"] },
+    });
   });
 
   it("appends to workflow-history.jsonl", async () => {
@@ -1154,9 +1172,45 @@ describe("runLoopStep", () => {
       resultsById: new Map(),
     });
     expect(out.result.iterations).toBe(3);
+    expect(out.status).toBe("exhausted");
     expect(out.result.loopExhausted).toBe(true);
     expect(out.result.loopStop).toBe("cap");
     expect(_deps.runTask).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not unlock a dependent after a loop exhausts", async () => {
+    _deps.runTask = vi.fn(async ({ userMessage }) => ({
+      taskId: userMessage,
+      status: "completed",
+      result: { summary: "not-ready" },
+    }));
+    const out = await executeWorkflow({
+      workflow: {
+        id: "loop-cap",
+        name: "Loop cap",
+        steps: [
+          {
+            id: "wait",
+            message: "wait",
+            loopUntil: "${self.summary} == 'ready'",
+            maxIterations: 2,
+          },
+          { id: "after", message: "after", dependsOn: ["wait"] },
+        ],
+      },
+      cwd: "/project",
+      continueOnError: true,
+    });
+
+    expect(out.status).toBe("failed");
+    expect(out.steps.find((step) => step.id === "wait").status).toBe(
+      "exhausted",
+    );
+    expect(out.steps.find((step) => step.id === "after")).toMatchObject({
+      status: "upstream_failed",
+      result: { blockedRootCut: ["wait"] },
+    });
+    expect(_deps.runTask).toHaveBeenCalledTimes(2);
   });
 
   it("aborts the loop when an iteration fails", async () => {
@@ -1373,7 +1427,7 @@ describe("pipeline mode (no-barrier scheduling)", () => {
     expect(_deps.runTask).toHaveBeenCalledTimes(1);
   });
 
-  it("continues past failure when continueOnError is set", async () => {
+  it("does not dispatch an unsuccessful dependency with continueOnError", async () => {
     _deps.runTask = vi.fn(async ({ userMessage }) => {
       if (userMessage === "trigger") {
         return { taskId: "t", status: "failed", result: { summary: "boom" } };
@@ -1394,13 +1448,12 @@ describe("pipeline mode (no-barrier scheduling)", () => {
       cwd: "/project",
       continueOnError: true,
     });
-    expect(out.status).toBe("partial");
-    expect(_deps.runTask).toHaveBeenCalledTimes(2);
-    // downstream ran even though its dep failed, and saw the failed status
-    const after = _deps.runTask.mock.calls.find((c) =>
-      c[0].userMessage.startsWith("after"),
-    );
-    expect(after[0].userMessage).toBe("after a=failed");
+    expect(out.status).toBe("failed");
+    expect(_deps.runTask).toHaveBeenCalledTimes(1);
+    expect(out.steps.find((step) => step.id === "b")).toMatchObject({
+      status: "upstream_failed",
+      result: { blockedRootCut: ["a"] },
+    });
   });
 
   it("expands a forEach step and feeds its parent aggregate downstream", async () => {

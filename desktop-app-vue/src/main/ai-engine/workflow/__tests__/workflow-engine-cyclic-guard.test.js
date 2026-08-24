@@ -58,7 +58,7 @@ describe("WorkflowEngine.executeWorkflow cyclic-DAG guard", () => {
     });
 
     const execution = await engine.executeWorkflow("linear-wf", {});
-    expect(execution.status).toBe("completed");
+    expect(execution.status).toBe("simulated");
   });
 
   it("runs each diamond node EXACTLY ONCE (no per-branch double-execution)", async () => {
@@ -77,7 +77,7 @@ describe("WorkflowEngine.executeWorkflow cyclic-DAG guard", () => {
     });
 
     const execution = await engine.executeWorkflow("diamond-wf", {});
-    expect(execution.status).toBe("completed");
+    expect(execution.status).toBe("simulated");
 
     const ids = execution.log.map((e) => e.stageId);
     // Each of the 4 stages logged exactly once (DFS bug ran D twice → 5 entries).
@@ -111,7 +111,7 @@ describe("WorkflowEngine.executeWorkflow cyclic-DAG guard", () => {
     });
 
     const execution = await engine.executeWorkflow("chained-wf", {});
-    expect(execution.status).toBe("completed");
+    expect(execution.status).toBe("simulated");
     // Exactly 12 stages, each logged once (DFS would log far more).
     expect(execution.log).toHaveLength(12);
     const counts = {};

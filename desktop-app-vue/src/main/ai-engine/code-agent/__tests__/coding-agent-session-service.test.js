@@ -1511,7 +1511,7 @@ describe("CodingAgentSessionService", () => {
         toolManager: {
           functionCaller: {
             hasTool: vi.fn().mockReturnValue(true),
-            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+            call: vi.fn().mockResolvedValue({ result: "ok" }),
           },
         },
         toolAdapter: {
@@ -1563,7 +1563,7 @@ describe("CodingAgentSessionService", () => {
         toolManager: {
           functionCaller: {
             hasTool: vi.fn().mockReturnValue(true),
-            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+            call: vi.fn().mockResolvedValue({ result: "ok" }),
           },
         },
         toolAdapter: {
@@ -1617,7 +1617,7 @@ describe("CodingAgentSessionService", () => {
         toolManager: {
           functionCaller: {
             hasTool: vi.fn().mockReturnValue(true),
-            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+            call: vi.fn().mockResolvedValue({ result: "ok" }),
           },
         },
         toolAdapter: {
@@ -1676,7 +1676,7 @@ describe("CodingAgentSessionService", () => {
         toolManager: {
           functionCaller: {
             hasTool: vi.fn().mockReturnValue(true),
-            callTool: vi.fn().mockResolvedValue({ result: "ok" }),
+            call: vi.fn().mockResolvedValue({ result: "ok" }),
           },
         },
         toolAdapter: {
@@ -1763,14 +1763,14 @@ describe("CodingAgentSessionService", () => {
       expect(result.success).toBe(true);
     });
 
-    it("_mapEventToTraceType maps assistant.message to assistant_message", () => {
+    it("_mapEventToTraceType maps assistant.message to a TraceStore message", () => {
       const result = service._mapEventToTraceType({
         type: "assistant.message",
         payload: { content: "hello" },
       });
       expect(result).toMatchObject({
-        type: "assistant_message",
-        content: "hello",
+        type: "message",
+        payload: { role: "assistant", content: "hello" },
       });
     });
 
@@ -1781,7 +1781,7 @@ describe("CodingAgentSessionService", () => {
       });
       expect(result).toMatchObject({
         type: "tool_call",
-        name: "read_file",
+        payload: { tool: "read_file", args: { path: "/tmp" } },
       });
     });
 

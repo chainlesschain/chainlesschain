@@ -11,6 +11,7 @@ import {
   ClaudeCodeAgent,
   ClaudeCodePool,
   AGENT_STATUS,
+  EXTERNAL_AGENT_ERROR,
 } from "../../src/lib/claude-code-bridge.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -234,6 +235,7 @@ describe("ClaudeCodeAgent", () => {
     expect(result.success).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(agent.status).toBe(AGENT_STATUS.FAILED);
+    expect(result.errorCode).toBe(EXTERNAL_AGENT_ERROR.EXIT_NONZERO);
   });
 
   it("marks task as TIMEOUT when process hangs", async () => {
@@ -252,6 +254,7 @@ describe("ClaudeCodeAgent", () => {
     });
     expect(result.timedOut).toBe(true);
     expect(result.success).toBe(false);
+    expect(result.errorCode).toBe(EXTERNAL_AGENT_ERROR.TIMEOUT);
     expect(proc.kill).toHaveBeenCalledWith("SIGTERM");
   }, 10000);
 
@@ -263,6 +266,7 @@ describe("ClaudeCodeAgent", () => {
     const result = await agent.executeTask("task", { cwd: "/tmp" });
     expect(result.success).toBe(false);
     expect(result.error).toContain("ENOENT");
+    expect(result.errorCode).toBe(EXTERNAL_AGENT_ERROR.SPAWN_FAILED);
   });
 
   it("prepends context to prompt when context is provided", async () => {
@@ -319,6 +323,7 @@ describe("ClaudeCodeAgent", () => {
     // Clean up — emit close so the promise resolves
     proc.emit("close", 1);
     await taskPromise;
+    expect(agent.status).toBe(AGENT_STATUS.CANCELLED);
   });
 
   it("toJSON returns correct shape", () => {
@@ -327,6 +332,50 @@ describe("ClaudeCodeAgent", () => {
     expect(json.id).toBe("a10");
     expect(json.cliCommand).toBe("codex");
     expect(json.status).toBe(AGENT_STATUS.IDLE);
+    expect(json.protocol).toBe("codex-exec-jsonl-v1");
+  });
+
+  it("uses the Codex argv and JSONL contract", async () => {
+    const jsonl = [
+      JSON.stringify({ type: "thread.started", thread_id: "thread-1" }),
+      JSON.stringify({ type: "turn.started" }),
+      JSON.stringify({
+        type: "item.completed",
+        item: { id: "item-1", type: "agent_message", text: "Done" },
+      }),
+      JSON.stringify({ type: "turn.completed", usage: { output_tokens: 2 } }),
+    ].join("\n");
+    _deps.spawn = vi.fn(() =>
+      makeChildProcess({ stdout: `${jsonl}\n`, exitCode: 0 }),
+    );
+
+    const agent = new ClaudeCodeAgent({ id: "codex-1", cliCommand: "codex" });
+    const result = await agent.executeTask("Fix the bug", { cwd: "/tmp" });
+
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      "codex",
+      ["exec", "--json", "Fix the bug"],
+      expect.any(Object),
+    );
+    expect(result).toMatchObject({
+      success: true,
+      output: "Done",
+      terminalEvent: "completed",
+      protocol: "codex-exec-jsonl-v1",
+    });
+  });
+
+  it("fails closed when Codex exits without a terminal JSONL event", async () => {
+    _deps.spawn = vi.fn(() =>
+      makeChildProcess({
+        stdout: `${JSON.stringify({ type: "turn.started" })}\n`,
+        exitCode: 0,
+      }),
+    );
+    const agent = new ClaudeCodeAgent({ id: "codex-2", cliCommand: "codex" });
+    const result = await agent.executeTask("task", { cwd: "/tmp" });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe(EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED);
   });
 
   it("escalates to SIGKILL when the process ignores SIGTERM", async () => {

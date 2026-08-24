@@ -165,6 +165,34 @@ describe("AgentRouter round-robin strategy", () => {
       dispatchCounts[BACKEND_TYPE.GEMINI],
     );
   });
+
+  it("serializes shared writes but permits statically disjoint scopes", async () => {
+    let active = 0;
+    let maxObserved = 0;
+    const backend = makeCliBackend(BACKEND_TYPE.CLAUDE);
+    backend._pool.dispatch = vi.fn(async (tasks) => {
+      active += 1;
+      maxObserved = Math.max(maxObserved, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return tasks.map((task) => ({ taskId: task.id, success: true }));
+    });
+    const router = makeRouter([backend], "round-robin");
+    const baseTasks = ["a", "b", "c"].map((id) => ({
+      id,
+      description: id,
+    }));
+
+    await router.dispatch(baseTasks, { cwd: "/tmp" });
+    expect(maxObserved).toBe(1);
+
+    maxObserved = 0;
+    await router.dispatch(
+      baseTasks.map((task) => ({ ...task, scopePaths: [`src/${task.id}`] })),
+      { cwd: "/tmp" },
+    );
+    expect(maxObserved).toBeGreaterThan(1);
+  });
 });
 
 // ─── Primary strategy ─────────────────────────────────────────────
@@ -235,7 +263,7 @@ describe("AgentRouter by-type strategy", () => {
 // ─── parallel-all strategy ────────────────────────────────────────
 
 describe("AgentRouter parallel-all strategy", () => {
-  it("dispatches each task to ALL backends and picks best result", async () => {
+  it("rejects multi-backend candidate writes without worktree isolation", async () => {
     const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
     const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
     b2._pool.dispatch = vi.fn(async (tasks) =>
@@ -249,14 +277,15 @@ describe("AgentRouter parallel-all strategy", () => {
     );
     const router = makeRouter([b1, b2], "parallel-all");
 
-    const results = await router.dispatch([{ id: "t1", description: "task" }], {
-      cwd: "/tmp",
+    await expect(
+      router.dispatch([{ id: "t1", description: "task" }], {
+        cwd: "/tmp",
+      }),
+    ).rejects.toMatchObject({
+      code: "AGENT_ROUTER_WRITE_ISOLATION_REQUIRED",
     });
-    expect(results).toHaveLength(1);
-    // Should pick the successful result (b1)
-    expect(results[0].success).toBe(true);
-    // allResults should contain both
-    expect(results[0].allResults).toHaveLength(2);
+    expect(b1._pool.dispatch).not.toHaveBeenCalled();
+    expect(b2._pool.dispatch).not.toHaveBeenCalled();
   });
 
   it("returns first result even if all fail", async () => {

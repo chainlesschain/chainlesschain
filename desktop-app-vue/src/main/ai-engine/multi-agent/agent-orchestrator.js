@@ -15,6 +15,31 @@
 const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
 
+function normalizedWriteScopes(task) {
+  if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {
+    return null;
+  }
+  return task.scopePaths.map(
+    (scope) => String(scope).replace(/\\/g, "/").replace(/\/+$/u, "") + "/",
+  );
+}
+
+function tasksHaveDisjointWrites(tasks) {
+  if (tasks.every((task) => task?.effects === "read-only")) return true;
+  const scopes = tasks.map(normalizedWriteScopes);
+  if (scopes.some((scope) => scope === null)) return false;
+  for (let i = 0; i < scopes.length; i += 1) {
+    for (let j = i + 1; j < scopes.length; j += 1) {
+      for (const left of scopes[i]) {
+        for (const right of scopes[j]) {
+          if (left.startsWith(right) || right.startsWith(left)) return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 /**
  * Agent 协调器
  */
@@ -217,20 +242,42 @@ class AgentOrchestrator extends EventEmitter {
 
       const agent = this.agents.get(agentId);
 
+      const abortController = new AbortController();
+      const forwardAbort = () => {
+        if (!abortController.signal.aborted) {
+          abortController.abort(
+            task.signal.reason || new Error("Task cancelled"),
+          );
+        }
+      };
+      if (task.signal?.aborted) {
+        forwardAbort();
+      } else {
+        task.signal?.addEventListener("abort", forwardAbort, { once: true });
+      }
+      const executionTask = {
+        ...task,
+        signal: abortController.signal,
+        context: { ...(task.context || {}), signal: abortController.signal },
+      };
+
       // 记录执行
       this.activeExecutions.set(executionId, {
         task,
         agentId,
         startTime,
+        abortController,
+        forwardAbort,
       });
 
       this._log(`任务分发: ${task.type} -> ${agentId}`);
 
       // 执行任务（带超时）
       const result = await this._executeWithTimeout(
-        agent.execute(task),
+        agent.execute(executionTask),
         this.config.agentTimeout,
         `Agent ${agentId} 执行超时`,
+        abortController,
       );
 
       // 更新统计
@@ -241,6 +288,7 @@ class AgentOrchestrator extends EventEmitter {
       this._recordHistory(executionId, task, agentId, result, null, duration);
 
       this.activeExecutions.delete(executionId);
+      task.signal?.removeEventListener("abort", forwardAbort);
       this.stats.completedTasks++;
 
       this.emit("task-completed", {
@@ -272,6 +320,9 @@ class AgentOrchestrator extends EventEmitter {
       );
 
       this.activeExecutions.delete(executionId);
+      if (execution?.forwardAbort) {
+        task.signal?.removeEventListener("abort", execution.forwardAbort);
+      }
       this.stats.failedTasks++;
 
       this.emit("task-failed", { executionId, task, error, duration });
@@ -345,54 +396,51 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<Array>} 结果数组
    */
   async executeParallel(tasks, options = {}) {
-    const maxConcurrency =
+    const requestedConcurrency =
       options.maxConcurrency || this.config.maxParallelAgents;
+    // Agents share a writable workspace. Default to serial execution unless
+    // every task is read-only or declares statically disjoint write scopes.
+    const maxConcurrency = tasksHaveDisjointWrites(tasks)
+      ? requestedConcurrency
+      : 1;
     const stopOnError = options.stopOnError || false;
 
-    const results = [];
-    const errors = [];
-    let activeCount = 0;
+    const results = new Array(tasks.length);
+    const abortController = new AbortController();
+    let firstError = null;
+    let stopped = false;
     let taskIndex = 0;
+    const workerCount = Math.min(
+      Math.max(1, maxConcurrency),
+      Math.max(1, tasks.length),
+    );
 
-    return new Promise((resolve, reject) => {
-      const executeNext = async () => {
-        if (taskIndex >= tasks.length && activeCount === 0) {
-          // 所有任务完成
-          if (stopOnError && errors.length > 0) {
-            reject(errors[0]);
-          } else {
-            resolve(results);
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (!stopped && taskIndex < tasks.length) {
+        const currentIndex = taskIndex;
+        taskIndex += 1;
+        try {
+          const result = await this.dispatch({
+            ...tasks[currentIndex],
+            signal: abortController.signal,
+          });
+          results[currentIndex] = { success: true, result };
+        } catch (error) {
+          results[currentIndex] = { success: false, error: error.message };
+          firstError ||= error;
+          if (stopOnError) {
+            stopped = true;
+            if (!abortController.signal.aborted) {
+              abortController.abort(error);
+            }
           }
-          return;
         }
-
-        while (activeCount < maxConcurrency && taskIndex < tasks.length) {
-          const currentIndex = taskIndex++;
-          const task = tasks[currentIndex];
-          activeCount++;
-
-          this.dispatch(task)
-            .then((result) => {
-              results[currentIndex] = { success: true, result };
-            })
-            .catch((error) => {
-              results[currentIndex] = { success: false, error: error.message };
-              errors.push(error);
-
-              if (stopOnError) {
-                reject(error);
-                return;
-              }
-            })
-            .finally(() => {
-              activeCount--;
-              executeNext();
-            });
-        }
-      };
-
-      executeNext();
+      }
     });
+
+    await Promise.all(workers);
+    if (stopOnError && firstError) throw firstError;
+    return results;
   }
 
   /**
@@ -448,12 +496,12 @@ class AgentOrchestrator extends EventEmitter {
       timestamp: Date.now(),
     };
 
-    this.messageQueue.push(messageRecord);
-
-    // 限制队列长度
-    if (this.messageQueue.length > 1000) {
-      this.messageQueue = this.messageQueue.slice(-500);
+    if (this.messageQueue.length >= 1000) {
+      const error = new Error("Agent message queue is full");
+      error.code = "AGENT_MESSAGE_QUEUE_FULL";
+      throw error;
     }
+    this.messageQueue.push(messageRecord);
 
     this._log(`消息: ${fromAgent} -> ${toAgent}`);
 
@@ -513,19 +561,31 @@ class AgentOrchestrator extends EventEmitter {
    * 带超时的执行
    * @private
    */
-  _executeWithTimeout(promise, timeout, timeoutMessage) {
-    // Store + clear the timer: when `promise` settles first (the normal case)
-    // the timeout was previously left armed for the full duration, leaking a
-    // timer per dispatch (hundreds under bursty parallel/chain execution).
-    let timer = null;
-    const timeoutPromise = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(timeoutMessage)), timeout);
-    });
-    return Promise.race([promise, timeoutPromise]).finally(() => {
-      if (timer) {
-        clearTimeout(timer);
+  async _executeWithTimeout(promise, timeout, timeoutMessage, controller) {
+    const timeoutError = new Error(timeoutMessage);
+    timeoutError.code = "AGENT_TIMEOUT";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (controller && !controller.signal.aborted) {
+        controller.abort(timeoutError);
       }
-    });
+    }, timeout);
+    try {
+      const result = await promise;
+      if (timedOut) throw timeoutError;
+      if (controller?.signal.aborted) {
+        throw (
+          controller.signal.reason || new Error("Agent execution cancelled")
+        );
+      }
+      return result;
+    } catch (error) {
+      if (timedOut) throw timeoutError;
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**

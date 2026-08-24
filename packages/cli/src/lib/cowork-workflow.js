@@ -131,6 +131,9 @@ const ADMITTED_STEP_STATUSES = new Set([
   "failed",
   "partial",
   "skipped",
+  "exhausted",
+  "upstream_failed",
+  "cancelled",
 ]);
 const MAX_ADMITTED_RUN_STEPS = 64;
 const MAX_ADMITTED_SNAPSHOT_NODES = 25_000;
@@ -948,6 +951,23 @@ export function validateWorkflow(wf) {
         errors.push(`steps[${i}].maxIterations must be a positive integer`);
       }
     }
+    // forEach expands `stepId` into concrete runtime ids such as
+    // `stepId[0]`.  A declarative step with the same id would overwrite the
+    // child result and make dependency/evidence accounting ambiguous.
+    for (const parent of wf.steps) {
+      if (parent?.forEach === undefined || typeof parent.id !== "string") {
+        continue;
+      }
+      const escapedParentId = parent.id.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+      const childIdPattern = new RegExp(`^${escapedParentId}\\[\\d+\\]$`, "u");
+      for (const id of ids) {
+        if (childIdPattern.test(id)) {
+          errors.push(
+            `step id '${id}' collides with dynamic children of '${parent.id}'`,
+          );
+        }
+      }
+    }
     // Check dependsOn references exist
     for (const s of wf.steps) {
       for (const dep of s.dependsOn || []) {
@@ -1682,7 +1702,7 @@ export async function runLoopStep({
   }
   const outcome = {
     id: recordId,
-    status: last ? last.status : "skipped",
+    status: stopReason === "cap" ? "exhausted" : last ? last.status : "skipped",
     taskId: last?.taskId ?? null,
     result: {
       ...(last?.result || {}),
@@ -1692,6 +1712,35 @@ export async function runLoopStep({
     },
   };
   return admitted ? normalizeAdmittedOutcome(outcome) : outcome;
+}
+
+function dependencyBlock(step, resultsById) {
+  const blocked = (step.dependsOn || [])
+    .map((id) => resultsById.get(id))
+    .filter((outcome) => outcome && outcome.status !== "completed");
+  if (blocked.length === 0) return null;
+
+  const blockedRootCut = [
+    ...new Set(
+      blocked.flatMap((outcome) =>
+        Array.isArray(outcome.result?.blockedRootCut)
+          ? outcome.result.blockedRootCut
+          : [outcome.id],
+      ),
+    ),
+  ];
+  const allSkipped = blocked.every((outcome) => outcome.status === "skipped");
+  return {
+    id: step.id,
+    status: allSkipped ? "skipped" : "upstream_failed",
+    taskId: null,
+    result: {
+      summary: allSkipped
+        ? "skipped because an upstream dependency was skipped"
+        : "blocked by an unsuccessful upstream dependency",
+      blockedRootCut,
+    },
+  };
 }
 
 // ─── Step node + no-barrier pipeline ──────────────────────────────────────────
@@ -1725,6 +1774,12 @@ export async function runStepNode(step, ctx) {
       failed: status !== "completed" && status !== "skipped",
     };
   };
+
+  const blocked = dependencyBlock(step, resultsById);
+  if (blocked) {
+    resultsById.set(recordId, blocked);
+    return { outcomes: [blocked], failed: blocked.status !== "skipped" };
+  }
 
   let runThis;
   try {
@@ -2196,6 +2251,13 @@ export async function executeWorkflow(options = {}) {
         const runnable = []; // { step, message, recordId, parentId }
         const preOutcomes = []; // outcomes produced synchronously (skipped)
         for (const step of chunk) {
+          const blocked = dependencyBlock(step, resultsById);
+          if (blocked) {
+            if (blocked.status !== "skipped") anyFailure = true;
+            resultsById.set(step.id, blocked);
+            preOutcomes.push(blocked);
+            continue;
+          }
           if (anyFailure && !continueOnError) {
             const outcome = {
               id: step.id,

@@ -64,7 +64,7 @@ describe("SubRuntimePool — real spawn integration", () => {
     desktopProcessBroker = null;
   });
 
-  it("spawns 2 real sub-runtimes, each writes its own member progress.log", async () => {
+  it("spawns 2 real sub-runtimes and reports their work as simulation", async () => {
     const pool = new SubRuntimePool({
       maxSize: 2,
       readyTimeoutMs: 10_000,
@@ -83,7 +83,9 @@ describe("SubRuntimePool — real spawn integration", () => {
     await pool.shutdown();
 
     expect(results).toHaveLength(2);
-    expect(results.every((r) => r.success)).toBe(true);
+    expect(results.every((r) => r.success === false)).toBe(true);
+    expect(results.every((r) => r.status === "simulated")).toBe(true);
+    expect(results.every((r) => r.runtimeClaims.simulated)).toBe(true);
     expect(results[0].memberId).toBe(`${parentId}.m0-executor`);
     expect(results[1].memberId).toBe(`${parentId}.m1-reviewer`);
 

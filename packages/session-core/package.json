@@ -27,6 +27,7 @@
     "./service-envelope": "./lib/service-envelope.js",
     "./envelope-sse": "./lib/envelope-sse.js",
     "./quality-gate": "./lib/quality-gate.js",
+    "./runtime-claims": "./lib/runtime-claims.js",
     "./nostr-crypto": "./lib/nostr-crypto.js"
   },
   "scripts": {

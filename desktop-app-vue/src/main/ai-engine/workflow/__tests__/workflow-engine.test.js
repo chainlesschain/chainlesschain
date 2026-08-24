@@ -128,7 +128,11 @@ describe("WorkflowEngine", () => {
       ],
     });
     const exec = await engine.executeWorkflow("wf-1", { data: "test" });
-    expect(exec.status).toBe("completed");
+    expect(exec.status).toBe("simulated");
+    expect(exec.runtimeClaims).toMatchObject({
+      simulated: true,
+      realExecution: false,
+    });
     expect(exec.log).toHaveLength(2);
     expect(exec.log[0].stageId).toBe("s1");
   });
@@ -160,7 +164,7 @@ describe("WorkflowEngine", () => {
 
   // --- Pause / Resume / Rollback ---
 
-  it("should pause an execution", async () => {
+  it("should not pause a terminal simulation", async () => {
     await engine.initialize(db);
     engine.createWorkflow({
       id: "wf-1",
@@ -168,8 +172,7 @@ describe("WorkflowEngine", () => {
       stages: [{ id: "s1", type: "action", name: "S1", next: [] }],
     });
     const exec = await engine.executeWorkflow("wf-1");
-    const paused = engine.pauseExecution(exec.id);
-    expect(paused.status).toBe("paused");
+    expect(engine.pauseExecution(exec.id)).toBeNull();
   });
 
   it("should resume a paused execution to completion", async () => {
@@ -179,12 +182,12 @@ describe("WorkflowEngine", () => {
       name: "W",
       stages: [{ id: "s1", type: "action", name: "S1", next: [] }],
     });
+    engine.setBreakpoint("wf-1", "s1");
     const exec = await engine.executeWorkflow("wf-1");
-    engine.pauseExecution(exec.id);
     // resume re-drives the remaining stages (all done here) and finalizes —
     // the old behavior of returning a forever-"running" execution was the bug.
     const resumed = await engine.resumeExecution(exec.id);
-    expect(resumed.status).toBe("completed");
+    expect(resumed.status).toBe("simulated");
   });
 
   it("should return null when resuming non-paused execution", async () => {

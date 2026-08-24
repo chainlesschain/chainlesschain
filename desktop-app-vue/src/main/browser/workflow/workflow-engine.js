@@ -24,6 +24,14 @@ const ExecutionStatus = {
   CANCELLED: "cancelled",
 };
 
+class WorkflowCancelledError extends Error {
+  constructor(message = "Workflow cancelled") {
+    super(message);
+    this.name = "WorkflowCancelledError";
+    this.code = "WORKFLOW_CANCELLED";
+  }
+}
+
 /**
  * Workflow execution context
  */
@@ -43,6 +51,7 @@ class ExecutionContext {
     this.error = null;
     this.errorStep = null;
     this.retryCount = 0;
+    this.retryCounts = new WeakMap();
 
     // Variable manager
     this.variables = new VariableManager({
@@ -57,6 +66,27 @@ class ExecutionContext {
     this.pauseRequested = false;
     this.cancelRequested = false;
     this.resumeResolve = null;
+    this.abortController = new AbortController();
+    this.signal = this.abortController.signal;
+    this.cancelReason = null;
+    this.removeParentAbort = null;
+    if (options.signal) {
+      const forwardAbort = () => {
+        this.cancelRequested = true;
+        this.cancelReason =
+          options.signal.reason || new WorkflowCancelledError();
+        if (!this.signal.aborted) {
+          this.abortController.abort(this.cancelReason);
+        }
+      };
+      if (options.signal.aborted) {
+        forwardAbort();
+      } else {
+        options.signal.addEventListener("abort", forwardAbort, { once: true });
+        this.removeParentAbort = () =>
+          options.signal.removeEventListener("abort", forwardAbort);
+      }
+    }
   }
 }
 
@@ -134,6 +164,10 @@ class WorkflowEngine extends EventEmitter {
       // Execute steps
       const result = await this._executeSteps(workflow.steps, context);
 
+      // Fence the final step: cancellation requested while the last physical
+      // action was settling must win over a late successful result.
+      await this._checkPauseCancel(context);
+
       context.status = ExecutionStatus.COMPLETED;
       context.endTime = Date.now();
 
@@ -168,6 +202,34 @@ class WorkflowEngine extends EventEmitter {
         duration: context.endTime - context.startTime,
       };
     } catch (error) {
+      if (
+        error?.code === "WORKFLOW_CANCELLED" ||
+        context.cancelRequested ||
+        context.status === ExecutionStatus.CANCELLED
+      ) {
+        context.status = ExecutionStatus.CANCELLED;
+        context.endTime = Date.now();
+        context.error = null;
+        if (this.storage) {
+          await this.storage.updateExecution(executionId, {
+            status: ExecutionStatus.CANCELLED,
+            results: context.results,
+            currentStep: context.currentStepIndex,
+          });
+        }
+        this.emit("workflow:cancelled", {
+          executionId,
+          workflowId: workflow.id,
+          reason: context.cancelReason?.message || "Workflow cancelled",
+        });
+        return {
+          executionId,
+          status: ExecutionStatus.CANCELLED,
+          results: context.results,
+          variables: context.variables.getAll(),
+          duration: context.endTime - context.startTime,
+        };
+      }
       context.status = ExecutionStatus.FAILED;
       context.endTime = Date.now();
       context.error = error.message;
@@ -198,6 +260,7 @@ class WorkflowEngine extends EventEmitter {
 
       throw error;
     } finally {
+      context.removeParentAbort?.();
       this.executions.delete(executionId);
     }
   }
@@ -274,6 +337,10 @@ class WorkflowEngine extends EventEmitter {
           result = await this._executeAction(interpolatedStep, context);
       }
 
+      // Do not publish or persist a late action result after its attempt was
+      // cancelled. The underlying promise has settled at this point.
+      await this._checkPauseCancel(context);
+
       // Store step result
       context.variables.setStepResult(stepIndex, result);
       context.results.push({
@@ -293,15 +360,24 @@ class WorkflowEngine extends EventEmitter {
 
       return result;
     } catch (error) {
+      if (
+        error?.code === "WORKFLOW_CANCELLED" ||
+        context.cancelRequested ||
+        context.signal.aborted
+      ) {
+        throw context.cancelReason || new WorkflowCancelledError();
+      }
       // Handle retry
       if (this._shouldRetry(step, context, error)) {
-        context.retryCount++;
+        const retryCount = (context.retryCounts.get(step) || 0) + 1;
+        context.retryCounts.set(step, retryCount);
+        context.retryCount = retryCount;
         logger.info("[WorkflowEngine] Retrying step", {
           stepIndex,
-          retryCount: context.retryCount,
+          retryCount,
         });
 
-        await this._delay(this.options.retryDelay * context.retryCount);
+        await this._delay(this.options.retryDelay * retryCount, context.signal);
         return this.executeStep(step, context);
       }
 
@@ -381,6 +457,11 @@ class WorkflowEngine extends EventEmitter {
     }
 
     context.cancelRequested = true;
+    context.status = ExecutionStatus.CANCELLED;
+    context.cancelReason = new WorkflowCancelledError();
+    if (!context.signal.aborted) {
+      context.abortController.abort(context.cancelReason);
+    }
 
     // If paused, resume to allow cancellation
     if (context.resumeResolve) {
@@ -478,12 +559,14 @@ class WorkflowEngine extends EventEmitter {
         return this.browserEngine.navigate(targetId, step.url, {
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "click":
         return this.browserEngine.act(targetId, "click", ref, {
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "type":
@@ -491,6 +574,7 @@ class WorkflowEngine extends EventEmitter {
           text: step.text,
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "select":
@@ -498,12 +582,14 @@ class WorkflowEngine extends EventEmitter {
           value: step.value,
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "hover":
         return this.browserEngine.act(targetId, "hover", ref, {
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "drag":
@@ -511,13 +597,20 @@ class WorkflowEngine extends EventEmitter {
           target: step.target,
           timeout,
           ...options,
+          signal: context.signal,
         });
 
       case "screenshot":
-        return this.browserEngine.screenshot(targetId, options);
+        return this.browserEngine.screenshot(targetId, {
+          ...options,
+          signal: context.signal,
+        });
 
       case "snapshot":
-        return this.browserEngine.takeSnapshot(targetId, options);
+        return this.browserEngine.takeSnapshot(targetId, {
+          ...options,
+          signal: context.signal,
+        });
 
       case "scroll":
         return this._executeScroll(targetId, step, context);
@@ -706,7 +799,7 @@ class WorkflowEngine extends EventEmitter {
         return { waited: Date.now() - startTime, conditionMet: true };
       }
 
-      await this._delay(interval);
+      await this._delay(interval, context.signal);
       await this._checkPauseCancel(context);
     }
 
@@ -741,6 +834,7 @@ class WorkflowEngine extends EventEmitter {
     const result = await this.executeWorkflow(subWorkflow, {
       targetId: context.targetId,
       initialVariables: subVars,
+      signal: context.signal,
     });
 
     // Copy output variables back if specified
@@ -762,7 +856,7 @@ class WorkflowEngine extends EventEmitter {
   async _checkPauseCancel(context) {
     if (context.cancelRequested) {
       context.status = ExecutionStatus.CANCELLED;
-      throw new Error("Workflow cancelled");
+      throw context.cancelReason || new WorkflowCancelledError();
     }
 
     if (context.pauseRequested) {
@@ -789,7 +883,7 @@ class WorkflowEngine extends EventEmitter {
       // Check cancel again after resume
       if (context.cancelRequested) {
         context.status = ExecutionStatus.CANCELLED;
-        throw new Error("Workflow cancelled");
+        throw context.cancelReason || new WorkflowCancelledError();
       }
     }
   }
@@ -802,15 +896,30 @@ class WorkflowEngine extends EventEmitter {
       return false;
     }
 
-    const maxRetries = step.maxRetries || this.options.maxRetries;
-    return context.retryCount < maxRetries;
+    const maxRetries = step.maxRetries ?? this.options.maxRetries;
+    return (context.retryCounts.get(step) || 0) < maxRetries;
   }
 
   /**
    * Delay helper
    */
-  _delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  _delay(ms, signal) {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(signal.reason || new WorkflowCancelledError());
+        return;
+      }
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      const onAbort = () => {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", onAbort);
+        reject(signal.reason || new WorkflowCancelledError());
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
   }
 }
 
@@ -818,4 +927,5 @@ module.exports = {
   WorkflowEngine,
   ExecutionContext,
   ExecutionStatus,
+  WorkflowCancelledError,
 };

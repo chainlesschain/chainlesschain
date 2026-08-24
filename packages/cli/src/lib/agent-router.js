@@ -3,7 +3,7 @@
  *
  * Routes coding subtasks across multiple agent backends in parallel:
  *   - claude     (Claude Code CLI — best for complex reasoning)
- *   - codex      (GitHub Copilot CLI — good for repo context)
+ *   - codex      (OpenAI Codex CLI — good for repo context)
  *   - gemini     (Google Gemini via ChainlessChain LLM provider)
  *   - openai     (GPT-4o via ChainlessChain LLM provider)
  *   - ollama     (Local LLM — offline / private)
@@ -32,6 +32,12 @@ import {
   detectCodex,
 } from "./claude-code-bridge.js";
 import { createChatFn } from "./cowork-adapter.js";
+import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
+
+const { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;
+const SIMULATED_API_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.SIMULATED,
+});
 
 // ─── Backend type constants ───────────────────────────────────────
 export const BACKEND_TYPE = {
@@ -69,6 +75,37 @@ const TYPE_KEYWORDS = {
   "data-analysis": ["data", "analyze", "statistics", "report", "chart"],
   research: ["research", "investigate", "explore", "compare"],
 };
+
+export const AGENT_ROUTER_ERROR = Object.freeze({
+  WRITE_ISOLATION_REQUIRED: "AGENT_ROUTER_WRITE_ISOLATION_REQUIRED",
+});
+
+function normalizedScopes(task) {
+  if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {
+    return null;
+  }
+  return task.scopePaths.map(
+    (scope) => String(scope).replace(/\\/g, "/").replace(/\/+$/u, "") + "/",
+  );
+}
+
+export function assignmentsHaveDisjointWrites(assignments) {
+  if (assignments.every(({ task }) => task?.effects === "read-only")) {
+    return true;
+  }
+  const scopes = assignments.map(({ task }) => normalizedScopes(task));
+  if (scopes.some((scope) => scope === null)) return false;
+  for (let i = 0; i < scopes.length; i += 1) {
+    for (let j = i + 1; j < scopes.length; j += 1) {
+      for (const left of scopes[i]) {
+        for (const right of scopes[j]) {
+          if (left.startsWith(right) || right.startsWith(left)) return false;
+        }
+      }
+    }
+  }
+  return true;
+}
 
 function detectTaskType(description) {
   const lower = description.toLowerCase();
@@ -116,20 +153,26 @@ async function executeViaAPI(task, options) {
     ]);
 
     return {
-      success: true,
+      success: false,
+      status: "simulated",
       output,
       exitCode: 0,
       duration: Date.now() - startTime,
       agentId: `api-${provider}`,
+      runtimeClaims: SIMULATED_API_CLAIMS,
+      terminalEvidence: [],
     };
   } catch (err) {
     return {
       success: false,
+      status: "failed",
       output: "",
       exitCode: -1,
       duration: Date.now() - startTime,
       agentId: `api-${provider}`,
       error: err.message,
+      runtimeClaims: SIMULATED_API_CLAIMS,
+      terminalEvidence: [],
     };
   }
 }
@@ -257,6 +300,13 @@ export class AgentRouter extends EventEmitter {
 
   /** Parallel-all: run every task on ALL backends; return best result per task. */
   async _dispatchParallelAll(subtasks, { cwd }) {
+    if (this._backends.length > 1) {
+      const error = new Error(
+        "parallel-all requires per-attempt worktrees and accepted-winner merge",
+      );
+      error.code = AGENT_ROUTER_ERROR.WRITE_ISOLATION_REQUIRED;
+      throw error;
+    }
     const results = [];
     for (const task of subtasks) {
       const allResults = await Promise.all(
@@ -276,10 +326,15 @@ export class AgentRouter extends EventEmitter {
 
   async _runAssignments(assignments, { cwd }) {
     const results = new Array(assignments.length);
+    const concurrency = assignmentsHaveDisjointWrites(assignments)
+      ? this.maxParallel
+      : 1;
 
-    // Process in parallel batches
-    for (let i = 0; i < assignments.length; i += this.maxParallel) {
-      const batch = assignments.slice(i, i + this.maxParallel);
+    // Shared writable cwd tasks are serialized unless their declared write
+    // scopes are statically disjoint. Candidate fan-out is rejected above
+    // until it has per-attempt worktrees and winner-only merge semantics.
+    for (let i = 0; i < assignments.length; i += concurrency) {
+      const batch = assignments.slice(i, i + concurrency);
       const batchResults = await Promise.all(
         batch.map(({ task, backend }) =>
           this._runSingleTask(task, backend, { cwd }),
@@ -332,6 +387,7 @@ export class AgentRouter extends EventEmitter {
           maxParallel: 1,
           cliCommand: type === BACKEND_TYPE.CODEX ? "codex" : "claude",
           model: cfg.model || null,
+          sandbox: cfg.sandbox || null,
         });
         pool.on("agent:output", (ev) => this.emit("agent:output", ev));
         return {

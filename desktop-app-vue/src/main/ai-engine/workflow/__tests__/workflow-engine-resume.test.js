@@ -45,13 +45,13 @@ describe("WorkflowEngine resumeExecution", () => {
       ],
     });
     engine.setBreakpoint("wf-bp", "s2");
-    const completedHandler = vi.fn();
-    engine.on("workflow:completed", completedHandler);
+    const simulatedHandler = vi.fn();
+    engine.on("workflow:simulated", simulatedHandler);
 
     const exec = await engine.executeWorkflow("wf-bp");
     expect(exec.status).toBe("paused");
     expect(exec.currentStage).toBe("s2");
-    expect(completedHandler).not.toHaveBeenCalled();
+    expect(simulatedHandler).not.toHaveBeenCalled();
   });
 
   it("executeWorkflow reports 'waiting' (not 'completed') at an approval gate", async () => {
@@ -83,14 +83,14 @@ describe("WorkflowEngine resumeExecution", () => {
     expect(exec.status).toBe("paused");
     expect(exec.log.map((e) => e.stageId)).toEqual(["s1"]);
 
-    const completedHandler = vi.fn();
-    engine.on("workflow:completed", completedHandler);
+    const simulatedHandler = vi.fn();
+    engine.on("workflow:simulated", simulatedHandler);
     const resumed = await engine.resumeExecution(exec.id);
 
-    expect(resumed.status).toBe("completed");
+    expect(resumed.status).toBe("simulated");
     expect(resumed.log.map((e) => e.stageId)).toEqual(["s1", "s2", "s3"]);
-    expect(resumed.log.every((e) => e.status === "completed")).toBe(true);
-    expect(completedHandler).toHaveBeenCalledWith({ executionId: exec.id });
+    expect(resumed.log.every((e) => e.status === "simulated")).toBe(true);
+    expect(simulatedHandler).toHaveBeenCalledWith({ executionId: exec.id });
   });
 
   it("resume steps over the paused breakpoint once but honors LATER breakpoints", async () => {
@@ -115,7 +115,7 @@ describe("WorkflowEngine resumeExecution", () => {
     expect(afterFirstResume.log.map((e) => e.stageId)).toEqual(["s1", "s2"]);
 
     const afterSecondResume = await engine.resumeExecution(exec.id);
-    expect(afterSecondResume.status).toBe("completed");
+    expect(afterSecondResume.status).toBe("simulated");
     expect(afterSecondResume.log.map((e) => e.stageId)).toEqual([
       "s1",
       "s2",
@@ -140,9 +140,9 @@ describe("WorkflowEngine resumeExecution", () => {
     );
 
     const resumed = await engine.resumeExecution(exec.id);
-    expect(resumed.status).toBe("completed");
+    expect(resumed.status).toBe("simulated");
     const gateEntry = resumed.log.find((e) => e.stageId === "gate");
-    expect(gateEntry.status).toBe("completed");
+    expect(gateEntry.status).toBe("simulated");
     expect(gateEntry.approved).toBe(true);
     expect(resumed.log.map((e) => e.stageId)).toEqual(["s1", "gate", "s3"]);
   });
@@ -165,7 +165,7 @@ describe("WorkflowEngine resumeExecution", () => {
     expect(exec.log.map((e) => e.stageId)).toEqual(["a"]);
 
     const resumed = await engine.resumeExecution(exec.id);
-    expect(resumed.status).toBe("completed");
+    expect(resumed.status).toBe("simulated");
     const order = resumed.log.map((e) => e.stageId);
     // every stage exactly once, d only after BOTH b and c
     expect([...order].sort()).toEqual(["a", "b", "c", "d"]);

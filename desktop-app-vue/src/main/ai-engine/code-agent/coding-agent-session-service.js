@@ -10,6 +10,7 @@ const {
   createCodingAgentEvent,
 } = require("./coding-agent-events.js");
 const { CodingAgentToolAdapter } = require("./coding-agent-tool-adapter.js");
+const { CodingAgentToolBroker } = require("./coding-agent-tool-broker.js");
 const {
   CodingAgentPermissionGate,
 } = require("./coding-agent-permission-gate.js");
@@ -135,6 +136,8 @@ class CodingAgentSessionService extends EventEmitter {
       });
     this.toolManager = options.toolManager || null;
     this.mcpManager = options.mcpManager || null;
+    this.sessionCore = options.sessionCore || null;
+    this.memoryStore = options.memoryStore || null;
     this.toolAdapter =
       options.toolAdapter ||
       new CodingAgentToolAdapter({
@@ -144,6 +147,12 @@ class CodingAgentSessionService extends EventEmitter {
         allowedMcpServerNames: options.allowedMcpServerNames,
         allowHighRiskMcpServers: options.allowHighRiskMcpServers,
         mcpServerRegistry: options.mcpServerRegistry,
+      });
+    this.toolBroker =
+      options.toolBroker ||
+      new CodingAgentToolBroker({
+        toolManager: this.toolManager,
+        mcpManager: this.mcpManager,
       });
     this.permissionGate =
       options.permissionGate ||
@@ -436,6 +445,7 @@ class CodingAgentSessionService extends EventEmitter {
 
   async closeSession(sessionId, options = {}) {
     const response = await this.bridge.closeSession(sessionId);
+    let consolidation = null;
 
     const session = this.sessions.get(sessionId);
     if (session) {
@@ -458,30 +468,36 @@ class CodingAgentSessionService extends EventEmitter {
         ),
       );
 
-      // Phase J: auto-consolidate session memory on close.
-      // Fire-and-forget — consolidation failure must never block session close.
+      // Phase J: auto-consolidate session memory on close. Await the pipeline so
+      // callers can rely on close -> trace -> memory ordering. A consolidation
+      // failure is reported but does not turn a successful runtime close into a
+      // failed close.
       if (options.consolidate !== false) {
-        this._autoConsolidate(sessionId, session).catch((e) => {
+        try {
+          consolidation = await this._autoConsolidate(sessionId, session);
+        } catch (e) {
           logger.warn(
             `[CodingAgentSessionService] auto-consolidate failed for ${sessionId}: ${e.message}`,
           );
-        });
+          consolidation = { success: false, error: e.message };
+        }
       }
     }
 
     return {
       success: response.success !== false,
       sessionId,
+      consolidation,
     };
   }
 
   /**
    * Phase J: auto-consolidate session trace into MemoryStore on close.
    * Uses session-core MemoryConsolidator with the session's stored events.
-   * Fire-and-forget — callers should .catch() any errors.
+   * Returns the real MemoryConsolidator result for close-pipeline evidence.
    */
   async _autoConsolidate(sessionId, session) {
-    const sc = require("@chainlesschain/session-core");
+    const sc = this.sessionCore || require("@chainlesschain/session-core");
     const {
       getMemoryStore,
     } = require("../../session/session-core-singletons.js");
@@ -493,7 +509,7 @@ class CodingAgentSessionService extends EventEmitter {
       return;
     }
 
-    const memoryStore = await getMemoryStore();
+    const memoryStore = this.memoryStore || (await getMemoryStore());
     const traceStore = new sc.TraceStore();
 
     // Feed session events into trace store
@@ -504,17 +520,25 @@ class CodingAgentSessionService extends EventEmitter {
     for (const evt of events) {
       const traceType = this._mapEventToTraceType(evt);
       if (traceType) {
-        traceStore.add(traceType);
+        traceStore.record({
+          sessionId,
+          type: traceType.type,
+          ts: traceType.ts,
+          payload: traceType.payload,
+        });
       }
     }
 
-    const consolidator = new sc.MemoryConsolidator({ memoryStore });
-    const mockHandle = {
+    const consolidator = new sc.MemoryConsolidator({
+      memoryStore,
+      traceStore,
+    });
+    const sessionHandle = {
       sessionId,
       agentId: session?.agentId || null,
       runtimeMs: session?.runtimeMs || 0,
     };
-    const result = await consolidator.consolidate(mockHandle, traceStore, {
+    const result = await consolidator.consolidate(sessionHandle, {
       scope: "session",
     });
 
@@ -522,6 +546,7 @@ class CodingAgentSessionService extends EventEmitter {
       `[CodingAgentSessionService] auto-consolidated ${events.length} events for session ${sessionId}`,
       result,
     );
+    return result;
   }
 
   /**
@@ -535,37 +560,64 @@ class CodingAgentSessionService extends EventEmitter {
     const type = evt.type;
     const payload = evt.payload || evt;
 
+    const timestamp = payload.timestamp || evt.timestamp || null;
+    const parsedTimestamp = timestamp ? Date.parse(timestamp) : NaN;
+    const ts = Number.isFinite(parsedTimestamp) ? parsedTimestamp : undefined;
+
+    if (type === "request.accepted") {
+      return {
+        type: "message",
+        payload: {
+          role: "user",
+          content: payload.content || payload.text || "",
+        },
+        ts,
+      };
+    }
     if (
       type.includes("assistant.message") ||
       type.includes("assistant.final")
     ) {
       return {
-        type: "assistant_message",
-        content: payload.content || payload.text || "",
-        ts: payload.timestamp || evt.timestamp,
+        type: "message",
+        payload: {
+          role: "assistant",
+          content: payload.content || payload.text || "",
+        },
+        ts,
       };
     }
     if (type.includes("tool.call.started")) {
       return {
         type: "tool_call",
-        name: payload.toolName || payload.name || "",
-        args: payload.args || payload.toolArgs || {},
-        ts: payload.timestamp || evt.timestamp,
+        payload: {
+          tool: payload.toolName || payload.name || "",
+          args: payload.args || payload.toolArgs || {},
+        },
+        ts,
       };
     }
     if (type.includes("tool.call.completed")) {
       return {
         type: "tool_result",
-        name: payload.toolName || payload.name || "",
-        result: payload.result || "",
-        ts: payload.timestamp || evt.timestamp,
+        payload: {
+          ok: payload.success !== false && payload.isError !== true,
+          tool: payload.toolName || payload.name || "",
+          result: payload.result || payload.content || "",
+          summary:
+            payload.summary ||
+            (typeof payload.result === "string" ? payload.result : ""),
+        },
+        ts,
       };
     }
     if (type === "error" || type.includes("tool.call.failed")) {
       return {
         type: "error",
-        message: payload.error || payload.message || "",
-        ts: payload.timestamp || evt.timestamp,
+        payload: {
+          error: payload.error || payload.message || "",
+        },
+        ts,
       };
     }
     return null;
@@ -2227,40 +2279,12 @@ class CodingAgentSessionService extends EventEmitter {
       );
     }
 
-    if (descriptor.mcpMetadata?.serverName) {
-      if (!this.mcpManager || typeof this.mcpManager.callTool !== "function") {
-        throw new Error(`MCP manager is unavailable for tool "${toolName}".`);
-      }
-
-      const result = await this.mcpManager.callTool(
-        descriptor.mcpMetadata.serverName,
-        descriptor.mcpMetadata.originalToolName,
-        args,
-      );
-      return {
-        ...result,
-        toolName,
-      };
-    }
-
-    const functionCaller = this.toolManager?.functionCaller || null;
-    if (!functionCaller || typeof functionCaller.callTool !== "function") {
-      throw new Error(
-        `Tool manager function caller is unavailable for tool "${toolName}".`,
-      );
-    }
-
-    if (
-      typeof functionCaller.hasTool === "function" &&
-      !functionCaller.hasTool(toolName)
-    ) {
-      throw new Error(`Hosted tool is not registered: ${toolName}`);
-    }
-
-    const result = await functionCaller.callTool(toolName, args);
-    return result && typeof result === "object"
-      ? result
-      : { result, toolName, sessionId };
+    return this.toolBroker.execute(descriptor, args, {
+      sessionId,
+      agentId: session?.agentId || null,
+      workspace: this.projectRoot,
+      authorization: evaluation,
+    });
   }
 
   _completePendingRequest(session, requestId) {

@@ -23,6 +23,9 @@ const { logger } = require("../../utils/logger.js");
 const {
   spawnWithDesktopBroker,
 } = require("../../process/desktop-process-broker.js");
+const {
+  hasTerminalSuccessEvidence,
+} = require("@chainlesschain/session-core/runtime-claims");
 
 const DEFAULT_MAX = 4;
 const HARD_CAP = 6;
@@ -92,8 +95,8 @@ function hasScopeConflict(a, b) {
  * assignments whose dependencies are all satisfied by prior waves. Waves
  * run as sequential barriers.
  *
- * Input assignments must carry `taskId`. `dependsOn` entries pointing at
- * tasks that are not in the input set are ignored (treated as satisfied).
+ * Input assignments must carry a unique `taskId`. Every `dependsOn` entry
+ * must reference another task in the same compiled graph.
  *
  * Throws on cycles.
  */
@@ -101,7 +104,10 @@ function topoWaves(assignments) {
   const byId = new Map();
   for (const a of assignments) {
     if (!a || !a.taskId) {
-      continue;
+      throw new Error("topoWaves: every assignment requires taskId");
+    }
+    if (byId.has(a.taskId)) {
+      throw new Error(`topoWaves: duplicate taskId "${a.taskId}"`);
     }
     byId.set(a.taskId, a);
   }
@@ -110,7 +116,13 @@ function topoWaves(assignments) {
   }
   const remainingDeps = new Map();
   for (const [id, a] of byId) {
-    const deps = (a.dependsOn || []).filter((d) => byId.has(d));
+    const deps = a.dependsOn || [];
+    const unknown = deps.filter((dependencyId) => !byId.has(dependencyId));
+    if (unknown.length > 0) {
+      throw new Error(
+        `topoWaves: task "${id}" references unknown dependencies [${unknown.join(", ")}]`,
+      );
+    }
     remainingDeps.set(id, new Set(deps));
   }
   const waves = [];
@@ -145,6 +157,21 @@ function topoWaves(assignments) {
     }
   }
   return waves;
+}
+
+async function runWithConcurrencyLimit(items, limit, worker) {
+  const cursor = { index: 0 };
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, limit), items.length) },
+    async () => {
+      while (cursor.index < items.length) {
+        const index = cursor.index;
+        cursor.index += 1;
+        await worker(items[index], index);
+      }
+    },
+  );
+  await Promise.all(workers);
 }
 
 /**
@@ -431,40 +458,36 @@ class SubRuntimePool extends EventEmitter {
 
     for (const wave of waves) {
       const groups = scopeGroups(wave);
-      await Promise.all(
-        groups.map(async (group) => {
-          // Each conflict group runs its tasks sequentially. Groups run
-          // in parallel. We do not enforce maxSize on the wave width —
-          // the planner is expected to size the task set; enforcing it
-          // here would silently drop work.
-          for (const assignment of group) {
-            const unmetDeps = (assignment.dependsOn || []).filter((id) => {
-              const r = resultsById.get(id);
-              return r && !r.success;
-            });
-            if (unmetDeps.length > 0) {
-              resultsById.set(assignment.taskId, {
-                taskId: assignment.taskId,
-                memberIdx: assignment.memberIdx,
-                success: false,
-                error: `blocked by failed dependency: ${unmetDeps.join(", ")}`,
-                progressEvents: [],
-                blocked: true,
-              });
-              continue;
-            }
-            const result = await this._runSingle({
-              projectRoot,
-              sessionId,
-              assignment,
-            });
+      await runWithConcurrencyLimit(groups, this.maxSize, async (group) => {
+        // A conflict group is sequential; independent groups run in
+        // parallel, bounded by the same hard pool size as legacy mode.
+        for (const assignment of group) {
+          const unmetDeps = (assignment.dependsOn || []).filter((id) => {
+            const r = resultsById.get(id);
+            return r && !r.success;
+          });
+          if (unmetDeps.length > 0) {
             resultsById.set(assignment.taskId, {
               taskId: assignment.taskId,
-              ...result,
+              memberIdx: assignment.memberIdx,
+              success: false,
+              error: `blocked by failed dependency: ${unmetDeps.join(", ")}`,
+              progressEvents: [],
+              blocked: true,
             });
+            continue;
           }
-        }),
-      );
+          const result = await this._runSingle({
+            projectRoot,
+            sessionId,
+            assignment,
+          });
+          resultsById.set(assignment.taskId, {
+            taskId: assignment.taskId,
+            ...result,
+          });
+        }
+      });
     }
 
     return assignments.map(
@@ -677,10 +700,22 @@ class SubRuntimePool extends EventEmitter {
           progressEvents.push(msg);
           this.emit("progress", { assignment, msg });
         } else if (msg.type === "done") {
+          const success =
+            msg.success === true &&
+            hasTerminalSuccessEvidence(msg.runtimeClaims, msg.terminalEvidence);
           finish({
             memberIdx: assignment.memberIdx,
             memberId: msg.memberId,
-            success: true,
+            success,
+            status: msg.status || (success ? "completed" : "unverified"),
+            runtimeClaims: msg.runtimeClaims || null,
+            terminalEvidence: Array.isArray(msg.terminalEvidence)
+              ? msg.terminalEvidence
+              : [],
+            error:
+              success || msg.status === "simulated"
+                ? undefined
+                : "sub-runtime done event lacks terminal success evidence",
             progressEvents,
           });
         } else if (msg.type === "error") {
@@ -763,6 +798,7 @@ module.exports = {
   hasScopeConflict,
   topoWaves,
   scopeGroups,
+  runWithConcurrencyLimit,
   isStructuredAssignments,
   // Path B-1 conflict resolution helpers (generalized CutClaw pattern).
   detectConflictPairs,

@@ -4,13 +4,26 @@
  */
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  RUNTIME_MODE,
+  createRuntimeClaims,
+} = require("@chainlesschain/session-core/runtime-claims");
+
+const WORKFLOW_SIMULATION_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.SIMULATED,
+});
 
 // Cap on retained in-memory executions. Each executeWorkflow() adds one entry
 // that is persisted to the DB but never removed, so without a bound the
 // _executions map grows forever. Only *terminal* executions are evicted (active
 // ones must stay readable for pause/resume/rollback).
 const MAX_EXECUTIONS = 500;
-const TERMINAL_EXEC_STATES = new Set(["completed", "failed", "rolled_back"]);
+const TERMINAL_EXEC_STATES = new Set([
+  "simulated",
+  "completed",
+  "failed",
+  "rolled_back",
+]);
 
 /** Tolerant JSON column parse — a corrupt row must not abort the workflow load. */
 function safeParse(raw, fallback) {
@@ -91,9 +104,19 @@ class WorkflowEngine extends EventEmitter {
     try {
       const rows = this.db.prepare("SELECT * FROM workflows").all();
       for (const row of rows) {
+        const parsedDag = safeParse(row.dag, {});
+        let dag;
+        try {
+          dag = this._compileDAG(parsedDag);
+        } catch (error) {
+          logger.warn(
+            `[WorkflowEngine] Ignoring invalid workflow ${row.id}: ${error.message}`,
+          );
+          continue;
+        }
         this._workflows.set(row.id, {
           ...row,
-          dag: safeParse(row.dag, {}),
+          dag,
         });
       }
     } catch (error) {
@@ -249,15 +272,16 @@ class WorkflowEngine extends EventEmitter {
     const id =
       definition.id ||
       `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const dag = this._compileDAG({
+      stages: definition.stages || [],
+      edges: definition.edges || [],
+      metadata: definition.metadata || {},
+    });
     const workflow = {
       id,
       name: definition.name || "Untitled Workflow",
       description: definition.description || "",
-      dag: {
-        stages: definition.stages || [],
-        edges: definition.edges || [],
-        metadata: definition.metadata || {},
-      },
+      dag,
       version: 1,
       status: "draft",
     };
@@ -271,6 +295,51 @@ class WorkflowEngine extends EventEmitter {
     this._persistWorkflow(workflow);
     this.emit("workflow:created", { id, name: workflow.name });
     return { id, status: workflow.status, stages: workflow.dag.stages };
+  }
+
+  _compileDAG(dag) {
+    const sourceStages = Array.isArray(dag?.stages) ? dag.stages : [];
+    const ids = new Set();
+    const stages = sourceStages.map((stage) => {
+      if (!stage?.id || ids.has(stage.id)) {
+        throw new Error(
+          `invalid or duplicate stage id: ${stage?.id || "<missing>"}`,
+        );
+      }
+      ids.add(stage.id);
+      return { ...stage, next: [...(stage.next || [])] };
+    });
+
+    const byId = new Map(stages.map((stage) => [stage.id, stage]));
+    for (const stage of stages) {
+      for (const target of stage.next) {
+        if (!byId.has(target)) {
+          throw new Error(
+            `stage "${stage.id}" references unknown target "${target}"`,
+          );
+        }
+      }
+    }
+    const edges = Array.isArray(dag?.edges) ? dag.edges : [];
+    for (const edge of edges) {
+      const source = edge?.source || edge?.from || edge?.sourceId;
+      const target = edge?.target || edge?.to || edge?.targetId;
+      if (!byId.has(source) || !byId.has(target)) {
+        throw new Error(
+          `edge references unknown stage: ${source || "<missing>"} -> ${target || "<missing>"}`,
+        );
+      }
+      if (!byId.get(source).next.includes(target)) {
+        byId.get(source).next.push(target);
+      }
+    }
+
+    return {
+      ...dag,
+      stages,
+      edges: edges.map((edge) => ({ ...edge })),
+      metadata: { ...(dag?.metadata || {}) },
+    };
   }
 
   _validateDAG(dag) {
@@ -343,12 +412,14 @@ class WorkflowEngine extends EventEmitter {
     const execution = {
       id: execId,
       workflowId,
-      status: "running",
+      status: "simulating",
       currentStage: null,
       input,
       output: null,
       log: [],
       startedAt: Date.now(),
+      runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
+      terminalEvidence: [],
     };
 
     this._executions.set(execId, execution);
@@ -357,6 +428,7 @@ class WorkflowEngine extends EventEmitter {
 
     // Execute stages in topological order
     try {
+      workflow.dag = this._compileDAG(workflow.dag);
       // Guard the execution boundary against a cyclic DAG. createWorkflow()
       // validates, but _loadWorkflows() rehydrates straight from the DB without
       // validation (older/looser builds or direct DB writes can persist a cycle).
@@ -379,10 +451,10 @@ class WorkflowEngine extends EventEmitter {
       // gate ("waiting") — those runs are NOT complete. Only a run that made
       // it through the whole DAG (status still "running") may be finalized;
       // paused/waiting executions finish later via resumeExecution().
-      if (execution.status === "running") {
-        execution.status = "completed";
+      if (execution.status === "simulating") {
+        execution.status = "simulated";
         execution.output = { stages: execution.log };
-        this.emit("workflow:completed", { executionId: execId });
+        this.emit("workflow:simulated", { executionId: execId });
       }
     } catch (error) {
       execution.status = "failed";
@@ -426,7 +498,7 @@ class WorkflowEngine extends EventEmitter {
     const done = new Set();
     if (opts.resume) {
       for (const entry of execution.log) {
-        if (entry.status === "completed" && stagesById.has(entry.stageId)) {
+        if (entry.status === "simulated" && stagesById.has(entry.stageId)) {
           done.add(entry.stageId);
         }
       }
@@ -496,8 +568,9 @@ class WorkflowEngine extends EventEmitter {
           return;
         }
 
-        // Execute the stage action
-        logEntry.status = "completed";
+        // No action executor is wired into this legacy designer. Record the
+        // topological traversal honestly as a simulation.
+        logEntry.status = "simulated";
         logEntry.completedAt = Date.now();
         logEntry.duration = logEntry.completedAt - logEntry.startedAt;
       } catch (error) {
@@ -528,7 +601,7 @@ class WorkflowEngine extends EventEmitter {
 
   pauseExecution(executionId) {
     const execution = this._executions.get(executionId);
-    if (!execution) {
+    if (!execution || TERMINAL_EXEC_STATES.has(execution.status)) {
       return null;
     }
     execution.status = "paused";
@@ -557,7 +630,7 @@ class WorkflowEngine extends EventEmitter {
     if (execution.status === "waiting") {
       const gate = execution.log.find((e) => e.status === "awaiting_approval");
       if (gate) {
-        gate.status = "completed";
+        gate.status = "simulated";
         gate.approved = true;
         gate.completedAt = Date.now();
         gate.duration = gate.completedAt - gate.startedAt;
@@ -565,7 +638,7 @@ class WorkflowEngine extends EventEmitter {
     }
 
     const resumedFromStage = execution.currentStage;
-    execution.status = "running";
+    execution.status = "simulating";
     this.emit("workflow:resumed", { executionId });
 
     // Re-drive the remaining stages (the old implementation only flipped the
@@ -578,10 +651,10 @@ class WorkflowEngine extends EventEmitter {
         workflow.dag.stages,
         { resume: true, skipBreakpointFor: resumedFromStage },
       );
-      if (execution.status === "running") {
-        execution.status = "completed";
+      if (execution.status === "simulating") {
+        execution.status = "simulated";
         execution.output = { stages: execution.log };
-        this.emit("workflow:completed", { executionId });
+        this.emit("workflow:simulated", { executionId });
       }
     } catch (error) {
       execution.status = "failed";

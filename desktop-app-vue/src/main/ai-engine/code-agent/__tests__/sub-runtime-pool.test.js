@@ -8,6 +8,37 @@ import { EventEmitter } from "node:events";
 
 const poolMod = require("../sub-runtime-pool.js");
 const { SubRuntimePool } = poolMod;
+const {
+  RUNTIME_MODE,
+  TERMINAL_EVIDENCE_KIND,
+  createRuntimeClaims,
+} = require("@chainlesschain/session-core/runtime-claims");
+
+const TEST_EXECUTION_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.REAL_EXECUTION,
+  isolatedWrites: true,
+});
+
+function completedEvent(fields = {}) {
+  return {
+    type: "done",
+    success: true,
+    status: "completed",
+    runtimeClaims: TEST_EXECUTION_CLAIMS,
+    terminalEvidence: [
+      {
+        kind: TERMINAL_EVIDENCE_KIND.RUNTIME_EVENT,
+        outcome: "completed",
+        source: "test-sub-runtime",
+      },
+      {
+        kind: TERMINAL_EVIDENCE_KIND.OUTPUT_RECEIPT,
+        digest: `sha256:${"a".repeat(64)}`,
+      },
+    ],
+    ...fields,
+  };
+}
 
 /**
  * Build a fake child that mimics the sub-runtime protocol. The test
@@ -104,11 +135,7 @@ describe("SubRuntimePool", () => {
                 total: msg.assignment.steps.length,
               });
             }
-            writeLine({
-              type: "done",
-              memberId: `parent.m${idx}-executor`,
-              success: true,
-            });
+            writeLine(completedEvent({ memberId: `parent.m${idx}-executor` }));
           });
         },
       });
@@ -341,9 +368,10 @@ describe("topoWaves", () => {
     expect(waves[2].map((t) => t.taskId)).toEqual(["join"]);
   });
 
-  it("ignores dependsOn entries that point outside the input set", () => {
-    const waves = topoWaves([{ taskId: "a", dependsOn: ["does-not-exist"] }]);
-    expect(waves).toEqual([[{ taskId: "a", dependsOn: ["does-not-exist"] }]]);
+  it("rejects dependsOn entries that point outside the input set", () => {
+    expect(() =>
+      topoWaves([{ taskId: "a", dependsOn: ["does-not-exist"] }]),
+    ).toThrow(/unknown dependencies/);
   });
 
   it("throws on a direct cycle", () => {
@@ -365,14 +393,10 @@ describe("topoWaves", () => {
     ).toThrow(/cycle detected/);
   });
 
-  it("skips assignments without taskId", () => {
-    const waves = topoWaves([
-      { taskId: "a" },
-      { memberIdx: 0, role: "executor" }, // no taskId → dropped
-    ]);
-    expect(waves).toHaveLength(1);
-    expect(waves[0]).toHaveLength(1);
-    expect(waves[0][0].taskId).toBe("a");
+  it("rejects assignments without taskId", () => {
+    expect(() =>
+      topoWaves([{ taskId: "a" }, { memberIdx: 0, role: "executor" }]),
+    ).toThrow(/requires taskId/);
   });
 });
 
@@ -438,11 +462,11 @@ describe("SubRuntimePool._dispatchStructured", () => {
         onRun: ({ msg, writeLine }) => {
           log.push(msg.assignment.taskId || `idx-${msg.assignment.memberIdx}`);
           setImmediate(() => {
-            writeLine({
-              type: "done",
-              memberId: `${msg.sessionId}.m${msg.assignment.memberIdx}-${msg.assignment.role}`,
-              success: true,
-            });
+            writeLine(
+              completedEvent({
+                memberId: `${msg.sessionId}.m${msg.assignment.memberIdx}-${msg.assignment.role}`,
+              }),
+            );
           });
         },
       });
@@ -486,9 +510,22 @@ describe("SubRuntimePool._dispatchStructured", () => {
     await pool.shutdown();
   });
 
-  it("structured mode does not enforce the legacy maxSize cap", async () => {
-    const runLog = [];
-    mockAllSucceed(runLog);
+  it("structured mode schedules all work without exceeding maxSize", async () => {
+    let active = 0;
+    let maxObserved = 0;
+    poolMod._deps.spawn = () => {
+      const { child } = createFakeChild({
+        onRun: ({ msg, writeLine }) => {
+          active += 1;
+          maxObserved = Math.max(maxObserved, active);
+          setTimeout(() => {
+            active -= 1;
+            writeLine(completedEvent({ memberId: msg.assignment.taskId }));
+          }, 10);
+        },
+      });
+      return child;
+    };
 
     // 4 independent tasks in a pool with maxSize=2. Legacy path would
     // throw; structured path runs them as one wave with scope groups.
@@ -505,6 +542,7 @@ describe("SubRuntimePool._dispatchStructured", () => {
     });
     expect(results).toHaveLength(4);
     expect(results.every((r) => r.success)).toBe(true);
+    expect(maxObserved).toBeLessThanOrEqual(2);
     await pool.shutdown();
   });
 
@@ -521,11 +559,11 @@ describe("SubRuntimePool._dispatchStructured", () => {
           // does not serialize.
           setTimeout(() => {
             runLog.push({ phase: "end", id });
-            writeLine({
-              type: "done",
-              memberId: msg.sessionId + "." + id,
-              success: true,
-            });
+            writeLine(
+              completedEvent({
+                memberId: msg.sessionId + "." + id,
+              }),
+            );
           }, 10);
         },
       });
@@ -582,11 +620,11 @@ describe("SubRuntimePool._dispatchStructured", () => {
             if (id === "root") {
               writeLine({ type: "error", error: "root blew up" });
             } else {
-              writeLine({
-                type: "done",
-                memberId: msg.sessionId + "." + id,
-                success: true,
-              });
+              writeLine(
+                completedEvent({
+                  memberId: msg.sessionId + "." + id,
+                }),
+              );
             }
           });
         },

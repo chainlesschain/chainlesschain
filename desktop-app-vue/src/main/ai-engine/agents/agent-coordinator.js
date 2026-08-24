@@ -13,6 +13,15 @@
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
+const {
+  RUNTIME_MODE,
+  createRuntimeClaims,
+  hasTerminalSuccessEvidence,
+} = require("@chainlesschain/session-core/runtime-claims");
+
+const QUEUED_RUNTIME_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.SIMULATED,
+});
 
 /**
  * Parse a template's `capabilities` column robustly. A single template with a
@@ -602,13 +611,52 @@ class AgentCoordinator extends EventEmitter {
           result = {
             status: "pending",
             message: `Task assigned to agent ${agentId}, awaiting execution`,
+            runtimeClaims: QUEUED_RUNTIME_CLAIMS,
+            terminalEvidence: [],
           };
         }
       } else {
         result = {
           status: "pending",
           message: "Agent registry not available, task queued",
+          runtimeClaims: QUEUED_RUNTIME_CLAIMS,
+          terminalEvidence: [],
         };
+      }
+
+      if (result?.status === "pending") {
+        taskInfo.status = TASK_STATUS.PENDING;
+        taskInfo.result = result;
+        this._updateTaskRecord(taskId, {
+          status: TASK_STATUS.PENDING,
+          success: null,
+          result: JSON.stringify(result),
+        });
+        this.emit("task:pending", { taskId, agentId, result });
+        return {
+          success: false,
+          pending: true,
+          runtimeClaims: QUEUED_RUNTIME_CLAIMS,
+          terminalEvidence: [],
+          data: {
+            taskId,
+            agentId,
+            status: TASK_STATUS.PENDING,
+            result,
+          },
+        };
+      }
+
+      if (
+        result?.success !== true ||
+        !hasTerminalSuccessEvidence(
+          result.runtimeClaims,
+          result.terminalEvidence,
+        )
+      ) {
+        throw new Error(
+          result?.error || "Agent result lacks terminal success evidence",
+        );
       }
 
       // Update records on success
@@ -1672,15 +1720,21 @@ class AgentCoordinator extends EventEmitter {
       }
     });
 
-    const depsMet = (subtask) => {
-      const deps = subtask.dependencies || [];
-      return deps.every((depId) => {
-        const di = idToIndex.has(depId) ? idToIndex.get(depId) : -1;
-        // An unknown dependency id can never be satisfied — let the deadlock
-        // path surface it as an error rather than treating it as "met".
-        return di >= 0 && completed.has(di);
-      });
-    };
+    const dependencyIndices = (subtask) =>
+      (subtask.dependencies || []).map((depId) =>
+        idToIndex.has(depId) ? idToIndex.get(depId) : -1,
+      );
+    const depsSettled = (subtask) =>
+      dependencyIndices(subtask).every(
+        (index) => index >= 0 && completed.has(index),
+      );
+    const depsSucceeded = (subtask) =>
+      dependencyIndices(subtask).every(
+        (index) =>
+          index >= 0 &&
+          completed.has(index) &&
+          results[index]?.success === true,
+      );
 
     if (n === 0) {
       return results;
@@ -1693,6 +1747,46 @@ class AgentCoordinator extends EventEmitter {
           return;
         }
 
+        // Propagate failure through the dependency frontier before dispatching
+        // new work. A settled failure never satisfies a success edge.
+        let propagated = true;
+        while (propagated) {
+          propagated = false;
+          for (let i = 0; i < n; i++) {
+            if (started.has(i) || !depsSettled(subtasks[i])) continue;
+            if (depsSucceeded(subtasks[i])) continue;
+            const dependencyResults = dependencyIndices(subtasks[i]).map(
+              (index) => results[index],
+            );
+            const blockedRootCut = [
+              ...new Set(
+                dependencyResults.flatMap((result) =>
+                  Array.isArray(result?.blockedRootCut)
+                    ? result.blockedRootCut
+                    : [result?.subtaskId].filter(Boolean),
+                ),
+              ),
+            ];
+            results[i] = {
+              subtaskId: subtasks[i].subtaskId || subtasks[i].id,
+              agentType: subtasks[i].agentType,
+              status: "upstream_failed",
+              success: false,
+              error: "Blocked by unsuccessful dependency",
+              blockedRootCut,
+              duration: 0,
+            };
+            started.add(i);
+            completed.add(i);
+            propagated = true;
+          }
+        }
+
+        if (completed.size === n) {
+          resolve(results);
+          return;
+        }
+
         // Launch every not-yet-started, dependency-satisfied subtask up to the
         // concurrency cap (scan by fixed index — no cursor, no array mutation).
         for (let i = 0; i < n && running < maxConcurrency; i++) {
@@ -1700,7 +1794,7 @@ class AgentCoordinator extends EventEmitter {
             continue;
           }
           const subtask = subtasks[i];
-          if (!depsMet(subtask)) {
+          if (!depsSucceeded(subtask)) {
             continue;
           }
           started.add(i);
@@ -1770,7 +1864,7 @@ class AgentCoordinator extends EventEmitter {
         // dependencies). Fill the unfinished slots with errors and resolve.
         if (running === 0 && completed.size < n) {
           const anyRunnable = subtasks.some(
-            (s, i) => !started.has(i) && depsMet(s),
+            (s, i) => !started.has(i) && depsSucceeded(s),
           );
           if (!anyRunnable) {
             for (let i = 0; i < n; i++) {
@@ -1780,7 +1874,8 @@ class AgentCoordinator extends EventEmitter {
                     subtasks[i]?.subtaskId || subtasks[i]?.id || `unknown-${i}`,
                   agentType: subtasks[i]?.agentType || "unknown",
                   success: false,
-                  error: "Unresolvable dependencies or scheduling error",
+                  status: "blocked",
+                  error: "Unknown, cyclic, or unresolvable dependencies",
                   duration: 0,
                 };
                 completed.add(i);
