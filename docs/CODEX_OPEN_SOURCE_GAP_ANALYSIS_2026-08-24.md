@@ -2,12 +2,15 @@
 
 > 审计日期：2026-08-24  
 > ChainlessChain 基线：`3ec94b795e`  
+> 最新 Agent 平台发布验证基线：`40354eb432281c28ed266f2dc6d1458764eb536d`（`v-npm-0-166-0`、`python-agent-sdk-v0.2.0`）
 > Codex 源码参考基线：`479c8c8924eaafdeb56e86154cd19ff0805839e4`（2026-08-23）  
 > 本机 Codex CLI：`codex-cli 0.149.0`
 
 ## 1. 结论先行
 
 ChainlessChain 当前最不缺的是 Agent 功能。CLI、桌面端、IDE、TS/Python SDK、MCP、Skills、Hooks、Worktree、多代理、会话恢复、上下文压缩、沙箱、审批、OTLP 和 Eval 都已有实现。
+
+截至 2026-08-24 的最新落地状态，Agent 平台发布提交 `40354eb432281c28ed266f2dc6d1458764eb536d` 已通过精确 SHA 的 Linux/Windows/macOS CLI 与 strict sandbox 权威矩阵，以及 Python 3.10/3.12/3.13 SDK conformance；随后已公开发布 `chainlesschain@0.166.0`、`@chainlesschain/agent-sdk@0.2.0` 和 `chainlesschain-agent-sdk==0.2.0`，并完成 npm/PyPI 公网回读。`@chainlesschain/agent-protocol@0.1.0` 本次按发布边界继续保持私有，只作为 schema/codegen 的构建期 source of truth，不是其他已发布包的运行时依赖；其公开包入口和独立发布门禁留到后续版本。
 
 真正值得从 Codex 学习的，不是继续堆功能，而是把这些能力收敛成一套可验证的产品内核：
 
@@ -99,7 +102,7 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 
 #### 4.1.1 P0 实施状态（2026-08-24）
 
-本轮已完成 4.1 中 P0-1～P0-8 的代码修复与契约验证。P0-1～P0-5 提交为 `a14f1c7308`；P0-6～P0-8、安全证据刷新与工作流契约收口分别提交为 `d31757dd45`、`6a6ddd19d6`、`d63322b5e9`。CLI 发布候选为精确提交 `f370514d5518a0dd52906b99c661cceea63f41d5`，已经通过同一 SHA 的 Linux/Windows/macOS 权威矩阵并发布为 `chainlesschain@0.165.9`。该发布证据只覆盖这里记录的 P0 版本；4.2、4.3 的本地新增实现和仍待外部验证的门禁分别记录如下，不借用旧发布结果冒充 P1/P2 已验收。
+本轮已完成 4.1 中 P0-1～P0-8 的代码修复与契约验证。P0-1～P0-5 提交为 `a14f1c7308`；P0-6～P0-8、安全证据刷新与工作流契约收口分别提交为 `d31757dd45`、`6a6ddd19d6`、`d63322b5e9`。CLI 发布候选为精确提交 `f370514d5518a0dd52906b99c661cceea63f41d5`，已经通过同一 SHA 的 Linux/Windows/macOS 权威矩阵并发布为 `chainlesschain@0.165.9`。这里保留的是 P0 版本的历史发布证据；后续 P1/P2 实现已经另以精确提交 `40354eb432281c28ed266f2dc6d1458764eb536d` 完成独立矩阵、正式发布和公网回读，证据见 4.3.2 与 11.1。仍未通过真实 provider 旅程或产品切换验证的任务继续保持开放，不借用基础发布矩阵冒充路线图全部验收。
 
 发布验收证据：
 
@@ -136,24 +139,24 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 | P1-11 | Skill 供应链、数据来源与选择性网络出口 | 已有 AgentAuthority、ContextSourceLedger、MCP effect provenance、Plugin VM、SecretStore、ProcessExecutionBroker 和 Merkle audit；补 Skill containment/签名/capability manifest、Graph 数据的 origin/trust/sensitivity/allowedSinks 与 declassification；webhook 验签/鉴权/body cap；统一 egress broker 覆盖 MCP transport 的 DNS/IP/redirect 重检、超时及 request/response/SSE frame 上限 | P0-6、P0-7、P0-8           | 第 3～10 周，L        |
 | P1-12 | Graph Kernel 集成、双写验证与迁移切换  | P1-4～P1-9 分别建设 IR、调度、协作、动态图、effect 与 HumanTask，但还缺唯一 authoritative runtime 的切换任务；将 CLI Team、Cowork、Scheduler Kernel 与 Desktop/Browser 作为 adapter 接入；Browser 未具备 checkpoint/hydration 前标为 non-durable；完成 shadow-run/diff、统一投影、feature flag、回滚和旧 shell 下线                                                                       | P1-4～P1-9；P1-10 增量门禁 | 第 9～12 周，L        |
 
-#### 4.2.1 P1 实施状态（2026-08-24，本工作树）
+#### 4.2.1 P1 实施与发布状态（2026-08-24）
 
-本次把可以在仓库内闭环的协议、内核和契约实现落到代码与确定性测试；需要真实产品切换、长时间 soak、真实 provider 或三操作系统 CI 的项目继续保持“待外部验收”，不能由本地单测关闭。
+本次把可以在仓库内闭环的协议、内核和契约实现落到代码与确定性测试，并随 Agent 平台精确提交完成三操作系统 CLI/sandbox 发布矩阵和 SDK 发布。需要真实产品切换、长时间 soak、真实 provider 或跨产品 conformance 的项目继续保持“待外部验收”，不能因为基础包已经发布而关闭。
 
-| 编号  | 本地实施状态 | 本次落地                                                                                                                                                             | 尚未关闭的验收边界                                                                          |
-| ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| P1-1  | 核心已落地   | canonical JSON Schema；TS/Python/Kotlin/Swift 确定性 codegen；运行时 validator；冻结 v1 baseline 和 breaking-change 检查                                             | 旧客户端手工事件 union 尚未全部迁移；CLI/Desktop/IDE 同 fixture 的三端 conformance 尚未完成 |
-| P1-2  | MVP 已落地   | stdio JSON-RPC initialize、thread start/resume/fork/read、turn start/interrupt、item/approval 通知、能力协商、有界队列和 TypeScript client                           | Desktop/IDE pilot、WebSocket 实验入口与至少 30 分钟 overload soak 尚未完成                  |
-| P1-3  | 部分完成     | App Server 复用真实 CLI agent loop；rollout 支持 JSONL hash chain、SQLite、checkpoint/compact/resume/fork/archive/migrate 和 terminal evidence                       | Desktop `$team`、旧 runtime 与全部执行入口尚未切换到唯一 Agent Kernel                       |
-| P1-4  | 核心已落地   | typed/versioned Graph IR、digest、N/N-1 upcast/dry-run；effect-before-compile 的引用/环/端口/能力/预算/write-scope/loop/subgraph/Trigger/Region 校验                 | loop/subgraph 的完整生产执行语义、补偿规划与全部 migration fixture 尚未完成                 |
-| P1-5  | 核心已落地   | N:M AssignmentAttempt、agent capacity、lease/fence、accepted attempt、优先级 donation/aging/critical boost、预算和 artifact/write provenance                         | CLI Team/Cowork 生产 adapter 切换与 3 倍 SLO fairness soak 尚未完成                         |
-| P1-6  | 核心已落地   | at-least-once 消息 admitted/delivered/read/processed/dead-letter、去重/背压/因果，以及 offer/accept/reject/commit/revoke custody handoff                             | 真实 child send/receive/ack/followup adapter 与离线/长时恢复矩阵尚未完成                    |
-| P1-7  | 核心已落地   | occurrence↔GraphRun dispatch journal、动态 revision CAS/request id、producer lease/seal、稳定 quiescence、wait-for deadlock/livelock 与 crash-after-commit 恢复      | Scheduler/Cowork 的生产双写与跨进程竞争 soak 尚未完成                                       |
-| P1-8  | 核心已落地   | durable Effect/receipt/unknown-outcome/reconcile、取消 fencing、artifact provenance、append-only event、确定性 trace reducer/time travel/diff                        | 逆依赖补偿执行器和全部 durable cut-point fault-injection matrix 尚未完成                    |
-| P1-9  | 核心已落地   | 可认领/恢复 HumanTask，绑定 revision/attempt/operation digest，等待释放 slot，多人 quorum、职责分离、重启快照和 cancel/decision CAS                                  | Desktop/IDE 人机界面暴露及跨产品 race/restart conformance 尚未完成                          |
-| P1-10 | 部分完成     | App Server transport/input/output 与 SDK client 有界化；协议和内核接口随实现提交 fixture                                                                             | 旧 transport/event/tool 队列普查、跨端 conformance matrix 和 30 分钟 RSS/过载门禁尚未完成   |
-| P1-11 | 部分完成     | Graph 数据来源/信任/敏感度/allowedSinks 传播与审计 declassification；orchestrate webhook 增加 HMAC、时间窗、delivery replay、body/rate cap，并保留可信 origin        | Skill 签名/containment、所有 webhook vendor 原生签名和全产品统一 egress broker 迁移尚未完成 |
-| P1-12 | 仅门禁就绪   | CLI Team/Cowork/Scheduler/Desktop/Browser 的 machine-readable claims、单一 writer 约束、shadow equivalence、terminal-evidence/cutover gate；Browser 明确 non-durable | 未执行 authoritative 切换、回滚演练或旧 writer 下线；因此不得将 P1-12 标为完成              |
+| 编号  | 实施/发布状态     | 本次落地                                                                                                                                                             | 尚未关闭的验收边界                                                                                                   |
+| ----- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| P1-1  | 核心随 SDK 已发布 | canonical JSON Schema；TS/Python/Kotlin/Swift 确定性 codegen；运行时 validator；冻结 v1 baseline 和 breaking-change 检查；TS/Python SDK 已公开发布                   | 旧客户端手工事件 union 尚未全部迁移；CLI/Desktop/IDE 同 fixture 的三端 conformance 尚未完成；协议 npm 包本次保持私有 |
+| P1-2  | MVP 随 CLI 已发布 | stdio JSON-RPC initialize、thread start/resume/fork/read、turn start/interrupt、item/approval 通知、能力协商、有界队列和 TypeScript client                           | Desktop/IDE pilot、WebSocket 实验入口与至少 30 分钟 overload soak 尚未完成                                           |
+| P1-3  | 部分随 CLI 发布   | App Server 复用真实 CLI agent loop；rollout 支持 JSONL hash chain、SQLite、checkpoint/compact/resume/fork/archive/migrate 和 terminal evidence                       | Desktop `$team`、旧 runtime 与全部执行入口尚未切换到唯一 Agent Kernel                                                |
+| P1-4  | 核心随 CLI 已发布 | typed/versioned Graph IR、digest、N/N-1 upcast/dry-run；effect-before-compile 的引用/环/端口/能力/预算/write-scope/loop/subgraph/Trigger/Region 校验                 | loop/subgraph 的完整生产执行语义、补偿规划与全部 migration fixture 尚未完成                                          |
+| P1-5  | 核心随 CLI 已发布 | N:M AssignmentAttempt、agent capacity、lease/fence、accepted attempt、优先级 donation/aging/critical boost、预算和 artifact/write provenance                         | CLI Team/Cowork 生产 adapter 切换与 3 倍 SLO fairness soak 尚未完成                                                  |
+| P1-6  | 核心随 CLI 已发布 | at-least-once 消息 admitted/delivered/read/processed/dead-letter、去重/背压/因果，以及 offer/accept/reject/commit/revoke custody handoff                             | 真实 child send/receive/ack/followup adapter 与离线/长时恢复矩阵尚未完成                                             |
+| P1-7  | 核心随 CLI 已发布 | occurrence↔GraphRun dispatch journal、动态 revision CAS/request id、producer lease/seal、稳定 quiescence、wait-for deadlock/livelock 与 crash-after-commit 恢复      | Scheduler/Cowork 的生产双写与跨进程竞争 soak 尚未完成                                                                |
+| P1-8  | 核心随 CLI 已发布 | durable Effect/receipt/unknown-outcome/reconcile、取消 fencing、artifact provenance、append-only event、确定性 trace reducer/time travel/diff                        | 逆依赖补偿执行器和全部 durable cut-point fault-injection matrix 尚未完成                                             |
+| P1-9  | 核心随 CLI 已发布 | 可认领/恢复 HumanTask，绑定 revision/attempt/operation digest，等待释放 slot，多人 quorum、职责分离、重启快照和 cancel/decision CAS                                  | Desktop/IDE 人机界面暴露及跨产品 race/restart conformance 尚未完成                                                   |
+| P1-10 | 部分随版本发布    | App Server transport/input/output 与 SDK client 有界化；协议和内核接口随实现提交 fixture                                                                             | 旧 transport/event/tool 队列普查、跨端 conformance matrix 和 30 分钟 RSS/过载门禁尚未完成                            |
+| P1-11 | 部分随 CLI 发布   | Graph 数据来源/信任/敏感度/allowedSinks 传播与审计 declassification；orchestrate webhook 增加 HMAC、时间窗、delivery replay、body/rate cap，并保留可信 origin        | Skill 签名/containment、所有 webhook vendor 原生签名和全产品统一 egress broker 迁移尚未完成                          |
+| P1-12 | 仅门禁发布就绪    | CLI Team/Cowork/Scheduler/Desktop/Browser 的 machine-readable claims、单一 writer 约束、shadow equivalence、terminal-evidence/cutover gate；Browser 明确 non-durable | 未执行 authoritative 切换、回滚演练或旧 writer 下线；因此不得将 P1-12 标为完成                                       |
 
 ### 4.3 P2：体验、生态与质量闭环
 
@@ -166,16 +169,30 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 | P2-5 | 可选 Codex App Server adapter  | 轻量任务使用 `codex exec --json`；持久会话才在 feature flag 后映射 Codex App Server 到 ChainlessChain Thread/Turn/Item/Approval/OTel，保持 provider-neutral；官方仍标实验性时不得作为生产硬依赖 | Codex 可用环境和兼容版本矩阵          | P1-1/P1-2 稳定后，M            |
 | P2-6 | Graph/Agent 真实旅程与发布矩阵 | 建立真实模型、多 Agent、worktree/merge、crash/resume、sandbox、消息恢复和跨端一致性旅程；发布以同一精确 SHA 的 Linux/Windows/macOS workflow matrix 为准，不以本地或旧提交结果关闭任务           | CI、真实 provider、各 OS enforcement  | 持续门禁，不与功能完成混为一谈 |
 
-#### 4.3.1 P2 实施状态（2026-08-24，本工作树）
+#### 4.3.1 P2 实施与发布状态（2026-08-24）
 
-| 编号 | 本地实施状态   | 本次落地                                                                                                                                                      | 尚未关闭的验收边界                                                                  |
-| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| P2-1 | 本地完成       | `exec` 作为 `agent` 的稳定 alias，共用同一 Commander command、参数、输出和 agent loop；manifest/help/completion 从同一声明生成                                | text/json/stream-json、恢复与退出码的 Linux/Windows/macOS 精确 SHA fixture 尚未全绿 |
-| P2-2 | CLI 核心完成   | `cc team graph inspect/diff/eval` 可从持久事件生成 Agent Tree、Task Graph、Artifact/Message/Effect/Timeline、critical path、blocked root 和 time-travel       | Desktop Team Monitor 的交互式 topology/timeline UI 尚未接入                         |
-| P2-3 | 确定性阶段完成 | 多 seed、单 Agent 对照、schedule equivalence 与 correctness/safety/recovery/cost/latency threshold gate 可绑定精确 commit SHA                                 | 真实模型预算、长期 soak 与权威 CI 报告尚未完成                                      |
-| P2-4 | 原型完成       | 低风险 UI action 录制、参数化、secret/PII/volatile 扫描、capability/env binding、用户精确审阅和 network-off 沙箱回放；漂移或越权 fail closed                  | 真实 UI driver 与跨平台回放矩阵尚未完成                                             |
-| P2-5 | 可选原型完成   | feature flag、显式版本兼容矩阵、provider-neutral 事件映射和 fail-closed；只允许 admission 前回退 `codex exec --json`，防止已接纳请求重复副作用                | 上游真实版本三平台矩阵和移除演练尚未完成，仍非生产关键依赖                          |
-| P2-6 | 工作流已建立   | 手动真实旅程 workflow 强制当前 `github.sha`，Linux/Windows/macOS 矩阵运行 Graph/恢复/worktree 契约和真实 `cc exec`，聚合 job 校验三平台 evidence 的 exact SHA | 尚未用真实 provider secret 跑出全绿矩阵；在权威 workflow 完成前 P2-6 保持未关闭     |
+| 编号 | 实施/发布状态       | 本次落地                                                                                                                                                               | 尚未关闭的验收边界                                                                                     |
+| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| P2-1 | CLI facade 已发布   | `exec` 作为 `agent` 的稳定 alias，共用同一 Commander command、参数、输出和 agent loop；manifest/help/completion 从同一声明生成；精确 SHA 的完整 CLI 与三平台矩阵已通过 | facade 本身已关闭；真实 provider 的端到端自动化旅程仍归 P2-6                                           |
+| P2-2 | CLI 核心已发布      | `cc team graph inspect/diff/eval` 可从持久事件生成 Agent Tree、Task Graph、Artifact/Message/Effect/Timeline、critical path、blocked root 和 time-travel                | Desktop Team Monitor 的交互式 topology/timeline UI 尚未接入                                            |
+| P2-3 | 确定性阶段已发布    | 多 seed、单 Agent 对照、schedule equivalence 与 correctness/safety/recovery/cost/latency threshold gate 可绑定精确 commit SHA                                          | 真实模型预算、长期 soak 与真实旅程权威报告尚未完成                                                     |
+| P2-4 | 原型随 CLI 发布     | 低风险 UI action 录制、参数化、secret/PII/volatile 扫描、capability/env binding、用户精确审阅和 network-off 沙箱回放；漂移或越权 fail closed                           | 真实 UI driver 与跨平台回放矩阵尚未完成                                                                |
+| P2-5 | 可选原型随 CLI 发布 | feature flag、显式版本兼容矩阵、provider-neutral 事件映射和 fail-closed；只允许 admission 前回退 `codex exec --json`，防止已接纳请求重复副作用                         | 上游真实版本三平台矩阵和移除演练尚未完成，仍非生产关键依赖                                             |
+| P2-6 | 基础发布矩阵已通过  | 精确 SHA 的 CLI CI 与 CLI Strict Sandbox 已在 Linux/Windows/macOS 全绿；正式标签工作流复测、打包、SBOM、provenance 和独立公网回读成功                                  | `graph-agent-real-journey.yml` 尚未使用真实 provider secret 跑出三平台聚合全绿；真实旅程任务保持未关闭 |
+
+#### 4.3.2 Agent 平台正式发布证据（2026-08-24）
+
+发布身份为精确提交 `40354eb432281c28ed266f2dc6d1458764eb536d`（`chore(release): prepare agent platform 0.166.0`）。不可变标签 `v-npm-0-166-0` 与 `python-agent-sdk-v0.2.0` 均解析到该提交；后续 main 上的 IDE 元数据提交不属于本次 Agent 平台发布内容。
+
+- [CLI CI（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)：同一 SHA 的全部分片与 Linux、Windows、macOS `verify-cli` 通过。
+- [CLI Strict Sandbox（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798)：同一 SHA 的 Linux、Windows、macOS strict native boundary 全部通过。
+- [Python Agent SDK（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919817)：Python 3.10、3.12、3.13 conformance 全部通过。
+- [npm 正式发布（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)：精确 SHA gate、完整 CLI/SDK 复测、不可变 CLI tarball、SBOM、provenance publish 与注册表回读全部通过。
+- [CLI npm 独立公网回读（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32713336762)：验证 npm 签名 provenance，并证明注册表 tarball 与发布 workflow 保存的不可变产物逐字节一致。
+- [Python SDK 正式发布（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32711233078)及其 [PyPI 公网安装冒烟（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32711340937) 均通过。
+- npm 公共包：`chainlesschain@0.166.0`（`latest=0.166.0`，integrity `sha512-ZexkPufz7kOCwfUXMsmrSoCOf6qH9wTO1mTBJLMTvwjDBoiabMSGY7PbKcHAsNjJBAjEg5Ni7O4XpjMiPcqndA==`）和 `@chainlesschain/agent-sdk@0.2.0`（`latest=0.2.0`，integrity `sha512-8vOMDXu1s8pDhvQpvTYP/DypjP6MAb6dkact24LmwB8Jv9Uceo6bazIK8R4+sFQdN5/YY9MsU/Fz+5IAsA5Vew==`）；后者已在全新临时项目完成根入口和 `/protocol` 子入口导入。
+- PyPI 公共包：`chainlesschain-agent-sdk==0.2.0`，wheel/sdist 可见，声明 Python `>=3.10`，独立环境 wheel 导入与版本一致性验证通过。
+- 明确未发布：`@chainlesschain/agent-protocol@0.1.0` 仍为 `private: true`，npm 公网查询返回 404，仓库其他 package manifest 没有将其声明为依赖。TS/Python SDK 使用生成后随包分发的协议绑定，因此暂缓协议包公开发布不影响上述版本安装或运行。
 
 ## 5. P0：立即修复的真实性与安全问题
 
@@ -756,10 +773,10 @@ Graph Eval 不应只统计“多少任务完成”，还应覆盖：
 
 ### 11.1 本次 P1/P2 实现回归（2026-08-24）
 
-- canonical protocol codegen freshness、兼容性与跨语言关键字检查通过；协议/codegen 单测 3 项通过，TypeScript SDK build 通过，排除真实 CLI 环境 E2E 后的 SDK 7 个单测文件、52 项测试通过。
-- Python 3.12 对生成协议模块完成真实 import/validator 探针，Python SDK 23 项单测通过；本机默认 Python 3.8 低于包声明的 `>=3.10`，未作为支持环境计入。
+- canonical protocol codegen freshness、兼容性与跨语言关键字检查通过；协议/codegen 单测 3 项通过，TypeScript SDK build 通过，SDK 53 项测试通过。发布后的 `@chainlesschain/agent-sdk@0.2.0` 又在全新临时项目完成 npm 安装及根入口、`/protocol` 子入口导入。
+- Python SDK 23 项单测通过；权威 Actions 在 Python 3.10、3.12、3.13 完成 conformance，发布后的 `chainlesschain-agent-sdk==0.2.0` 由独立 PyPI smoke workflow 完成 wheel 安装、导入和版本一致性验证。本机默认 Python 3.8 低于包声明的 `>=3.10`，未作为支持环境计入。
 - App Server/rollout、外部 Agent adapter、Graph compiler/runtime/trace/eval/adapters、Record & Replay、Webhook security 共 10 个单测文件、68 项测试通过。SQLite adapter 使用 Node `node:sqlite`，测试通过但 Node 仍输出 experimental warning。
 - orchestrate Webhook 的 DingTalk 与 Feishu 定向 E2E 2 项通过；同文件其余 17 项因 `-t "webhook server"` 过滤而跳过，不解释为全文件验收。
-- CLI command manifest/help index/shell completions freshness 检查通过；`cc exec --help` 和 `cc team graph --help` 真实入口探针通过；本次新增/修改的 JS/MJS 源码 ESLint 无错误。
+- CLI command manifest/help index/shell completions freshness 检查通过；`cc exec --help` 和 `cc team graph --help` 真实入口探针通过；本次新增/修改的 JS/MJS 源码 ESLint 无错误。精确提交 `40354eb432281c28ed266f2dc6d1458764eb536d` 的 CLI CI、CLI Strict Sandbox 和正式标签完整复测均通过，`chainlesschain@0.166.0` 的 npm provenance 与独立公网 tarball 回读也通过。
 
-本次仍没有执行完整桌面 E2E、30 分钟 overload/fairness soak、真实模型多智能体旅程、同一精确 SHA 的全部 OS sandbox/recovery matrix 或渗透测试。新增的 `graph-agent-real-journey.yml` 只是把权威门禁编码进 CI；在真实 provider secret 和 Linux/Windows/macOS 聚合 job 全绿前，P1-12 与 P2-6 必须保持未关闭。
+本次已经完成同一精确 SHA 的 Linux/Windows/macOS CLI 与 strict sandbox 基础发布矩阵，不再将“三操作系统发布矩阵未运行”列为限制。但仍没有执行完整桌面 E2E、30 分钟 overload/fairness soak、真实模型多智能体旅程、全产品 crash/recovery conformance 或渗透测试；`graph-agent-real-journey.yml` 尚未在真实 provider secret 下得到 Linux/Windows/macOS 聚合 job 全绿。因此 P1-12 的 authoritative 产品切换与 P2-6 的真实旅程仍保持未关闭。`@chainlesschain/agent-protocol@0.1.0` 的公开 npm 包也明确留待后续独立发布，不把 SDK 已发布解释为协议包已经公开。
