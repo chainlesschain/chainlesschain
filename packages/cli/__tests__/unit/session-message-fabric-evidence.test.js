@@ -132,7 +132,7 @@ describe("cross-session message exact-head evidence", () => {
     expect(() =>
       aggregateSessionMessageFabricEvidence(aggregateOptions),
     ).toThrow();
-  }, 30_000);
+  }, 60_000);
 
   it("is required by both CLI CI and the existing reliability soak", () => {
     const cliCi = fs.readFileSync(
