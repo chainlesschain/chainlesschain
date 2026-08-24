@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.0",
+      "cliVersions": ["0.2.0", "0.165.10", "0.166.0"],
+      "date": "2026-08-24",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.0 + Agent SDKs 0.2.0: canonical App Server and Graph kernels",
+          "body": "> `chainlesschain` **0.165.10 -> 0.166.0**,\n> `@chainlesschain/agent-sdk` **0.1.7 -> 0.2.0**, and\n> `chainlesschain-agent-sdk` **0.1.0 -> 0.2.0** (release candidate,\n> 2026-08-24). `@chainlesschain/agent-protocol` remains a private build-time\n> source of truth and is not a runtime dependency or public package.\n\n- **Canonical cross-language protocol**: one private schema and deterministic\n  generator now produce the TypeScript and Python App Server contracts,\n  including Python 3.10-compatible reserved-field and optional-key handling.\n- **Durable App Server**: JSON-RPC request/notification streaming, thread\n  lifecycle, subscriptions, checkpoints, compaction, replay, and forking share\n  JSONL, memory, and capability-gated SQLite rollout stores.\n- **Graph execution kernel**: durable DAG execution adds checkpointed state,\n  interrupt/resume, record/replay, event projections, evaluation hooks, and\n  observable execution evidence.\n- **Secure integrations**: signed webhook delivery rejects stale or replayed\n  requests, the Codex App adapter consumes the canonical protocol, and the\n  governed `cc exec` path is exposed without duplicating authority.\n- **Release validation**: publication requires this exact release commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices, plus Python 3.10/3.12/3.13 SDK conformance,\n  before the immutable npm and PyPI tags are created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.10",
       "cliVersions": ["0.3.6", "0.165.9", "0.165.10"],
       "date": "2026-08-24",
@@ -10,7 +23,7 @@
       "sections": [
         {
           "heading": "Fixed - cc CLI 0.165.10: restore Docker-optional startup",
-          "body": "> `chainlesschain` **0.165.9 -> 0.165.10** and\n> `@chainlesschain/session-core` **0.3.5 -> 0.3.6** (hotfix candidate,\n> 2026-08-24). `@chainlesschain/personal-data-hub` remains **0.4.59** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Windows startup regression**: starting `cc` without an explicit container\n  sandbox no longer requires Docker or exits with configuration code 6 when\n  Docker is unavailable. Explicit `--sandbox`, `--sandbox-mode\n  workspace-write|strict`, and managed sandbox policy remain fail-closed.\n- **Session contract delivery**: publish the `runtime-claims` export added\n  after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm\n  installs receive the same runtime contract used by the release source.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before the immutable npm tag is created."
+          "body": "> `chainlesschain` **0.165.9 -> 0.165.10** and\n> `@chainlesschain/session-core` **0.3.5 -> 0.3.6** (hotfix candidate,\n> 2026-08-24). `@chainlesschain/personal-data-hub` remains **0.4.59** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Windows startup regression**: starting `cc` without an explicit container\n  sandbox no longer requires Docker or exits with configuration code 6 when\n  Docker is unavailable. Explicit `--sandbox`,\n  `--sandbox-mode workspace-write|strict`, and managed sandbox policy remain\n  fail-closed.\n- **Session contract delivery**: publish the `runtime-claims` export added\n  after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm\n  installs receive the same runtime contract used by the release source.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before the immutable npm tag is created."
         }
       ]
     },

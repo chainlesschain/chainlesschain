@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.0 + Agent SDKs 0.2.0: canonical App Server and Graph kernels
+
+> `chainlesschain` **0.165.10 -> 0.166.0**,
+> `@chainlesschain/agent-sdk` **0.1.7 -> 0.2.0**, and
+> `chainlesschain-agent-sdk` **0.1.0 -> 0.2.0** (release candidate,
+> 2026-08-24). `@chainlesschain/agent-protocol` remains a private build-time
+> source of truth and is not a runtime dependency or public package.
+
+- **Canonical cross-language protocol**: one private schema and deterministic
+  generator now produce the TypeScript and Python App Server contracts,
+  including Python 3.10-compatible reserved-field and optional-key handling.
+- **Durable App Server**: JSON-RPC request/notification streaming, thread
+  lifecycle, subscriptions, checkpoints, compaction, replay, and forking share
+  JSONL, memory, and capability-gated SQLite rollout stores.
+- **Graph execution kernel**: durable DAG execution adds checkpointed state,
+  interrupt/resume, record/replay, event projections, evaluation hooks, and
+  observable execution evidence.
+- **Secure integrations**: signed webhook delivery rejects stale or replayed
+  requests, the Codex App adapter consumes the canonical protocol, and the
+  governed `cc exec` path is exposed without duplicating authority.
+- **Release validation**: publication requires this exact release commit to
+  pass the complete Linux, Windows, and macOS `CLI CI` and
+  `CLI Strict Sandbox` matrices, plus Python 3.10/3.12/3.13 SDK conformance,
+  before the immutable npm and PyPI tags are created.
+
 ### Fixed - cc CLI 0.165.10: restore Docker-optional startup
 
 > `chainlesschain` **0.165.9 -> 0.165.10** and
@@ -16,8 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Windows startup regression**: starting `cc` without an explicit container
   sandbox no longer requires Docker or exits with configuration code 6 when
-  Docker is unavailable. Explicit `--sandbox`, `--sandbox-mode
-  workspace-write|strict`, and managed sandbox policy remain fail-closed.
+  Docker is unavailable. Explicit `--sandbox`,
+  `--sandbox-mode workspace-write|strict`, and managed sandbox policy remain
+  fail-closed.
 - **Session contract delivery**: publish the `runtime-claims` export added
   after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm
   installs receive the same runtime contract used by the release source.

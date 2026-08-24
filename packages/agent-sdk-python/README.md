@@ -8,19 +8,18 @@ the same Agent Protocol v1 used by `@chainlesschain/agent-sdk`. It starts one
 `cc agent` subprocess, frames its NDJSON stream safely, exposes frozen typed
 events, and performs approval, question, and MCP elicitation round trips.
 
-Version `0.1.0` is available from
+Version `0.2.0` is available from
 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/). Python 3.10 or
-newer is required. That published version is the 22-event baseline; the
-current source tree adds the typed URL-elicitation defer/complete events and
-has not yet been published as a new package version.
+newer is required. This release adds the generated App Server protocol types,
+typed URL-elicitation events, and canonical cross-language fixtures.
 
 ## Install
 
 Install the SDK and a compatible `cc` CLI:
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.1.0"
-npm install --global "chainlesschain@0.162.177"
+python -m pip install "chainlesschain-agent-sdk==0.2.0"
+npm install --global "chainlesschain@0.166.0"
 ```
 
 The Python distribution has no runtime dependencies. The CLI is installed
