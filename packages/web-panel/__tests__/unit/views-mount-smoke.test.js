@@ -32,10 +32,12 @@ vi.mock('ant-design-vue/es/locale/zh_CN', () => ({ default: { locale: 'zh_CN' } 
 vi.mock('ant-design-vue/es/locale/en_US', () => ({ default: { locale: 'en_US' } }))
 
 const wsExecute = vi.fn()
+const wsExecuteJson = vi.fn()
 
 vi.mock('../../src/stores/ws.js', () => ({
   useWsStore: () => ({
     execute: wsExecute,
+    executeJson: wsExecuteJson,
     onRuntimeEvent: () => () => {},
     onSession: () => () => {},
     sendRaw: vi.fn().mockResolvedValue({}),
@@ -92,6 +94,8 @@ beforeEach(() => {
   setActivePinia(createPinia())
   wsExecute.mockReset()
   wsExecute.mockResolvedValue({ output: '', exitCode: 0 })
+  wsExecuteJson.mockReset()
+  wsExecuteJson.mockResolvedValue([])
 })
 
 afterEach(() => {

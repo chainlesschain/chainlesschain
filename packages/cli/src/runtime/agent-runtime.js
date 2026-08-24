@@ -16,6 +16,7 @@ import { startChatRepl } from "../gateways/repl/chat-repl.js";
 import { ChainlessChainWSServer } from "../gateways/ws/ws-server.js";
 import { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
 import { attachTopicHandlers } from "../gateways/ws/topic-handler-attachment.js";
+import { createMcpTopicHandlers } from "../gateways/ws/mcp-topic-handlers.js";
 import { PtyManager } from "../gateways/terminal/PtyManager.js";
 import { createTerminalHandlers } from "../gateways/terminal/terminal-handlers.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
@@ -578,8 +579,18 @@ export class AgentRuntime {
       ptyManager,
       broadcast: (frame) => wsBroadcastRef.current?.(frame),
     });
+    const mcpConfigStore = rawDb
+      ? this.deps.createMcpServerConfig(rawDb)
+      : null;
     const attached = attachTopicHandlers(wsServer, {
-      handlers: terminal.handlers,
+      handlers: {
+        ...terminal.handlers,
+        ...createMcpTopicHandlers({
+          mcpClient,
+          configStore: mcpConfigStore,
+          cwd: workspacePolicyCwd,
+        }),
+      },
     });
     wsBroadcastRef.current = attached.broadcast;
     terminal.attachServerEvents();

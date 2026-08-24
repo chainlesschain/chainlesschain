@@ -29,7 +29,7 @@
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic :title="t('mcpTools.stats.running')" :value="t('mcpTools.stats.ready')" value-style="color: #52c41a; font-size: 20px;">
+          <a-statistic :title="t('mcpTools.stats.running')" :value="connectedServers" value-style="color: #52c41a; font-size: 20px;">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
         </a-card>
@@ -52,7 +52,7 @@
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
             <CloudServerOutlined style="color: #1677ff;" />
             <span style="color: #e0e0e0; font-weight: 500; font-family: monospace;">{{ srv.name }}</span>
-            <a-badge status="success" />
+            <a-badge :status="serverBadgeStatus(srv.state)" :text="srv.state || 'unknown'" />
           </div>
           <div v-if="srv.command" style="color: var(--text-secondary); font-size: 11px; font-family: monospace;">
             {{ srv.command }} {{ srv.args?.join(' ') }}
@@ -286,6 +286,18 @@ const tools = ref([])
 const toolSearch = ref('')
 const dataSource = ref('')   // 'topic' | 'cli' — surfaced in template hint, helps debug
 
+const connectedServers = computed(() =>
+  servers.value.filter((server) => ['connected', 'ready'].includes(String(server.state || '').toLowerCase())).length,
+)
+
+function serverBadgeStatus(state) {
+  const normalized = String(state || '').toLowerCase()
+  if (normalized === 'connected' || normalized === 'ready') return 'success'
+  if (normalized === 'connecting') return 'processing'
+  if (normalized === 'error' || normalized === 'failed') return 'error'
+  return 'default'
+}
+
 const filteredTools = computed(() => {
   if (!toolSearch.value) return tools.value
   const q = toolSearch.value.toLowerCase()
@@ -506,9 +518,14 @@ async function loadFromTopic() {
   servers.value = r.servers.map((s) => ({
     key: s.name,
     name: s.name,
-    command: '',
-    args: [],
-    description: s.state ? `state: ${s.state}` : '',
+    command: s.command || '',
+    args: Array.isArray(s.args) ? s.args : [],
+    state: s.state || 'disconnected',
+    description: [
+      s.configScope ? `scope: ${s.configScope}` : '',
+      s.autoConnect ? 'auto-connect' : '',
+      s.error ? `error: ${s.error}` : '',
+    ].filter(Boolean).join(' | '),
     error: s.error || null,
   }))
   const flat = []
@@ -542,17 +559,30 @@ async function load() {
       const recoverable =
         msg.includes('mcp_unavailable') ||
         msg.includes('no_handler') ||
-        msg.includes('UNKNOWN_TYPE')
+        msg.includes('UNKNOWN_TYPE') ||
+        msg.includes('Unknown message type')
       if (!recoverable) {
         console.error('MCP topic load failed:', err)
       }
     }
-    const [serversResult, toolsResult] = await Promise.all([
-      ws.execute('mcp servers', 15000).catch(() => ({ output: '' })),
-      ws.execute('mcp tools', 15000).catch(() => ({ output: '' })),
-    ])
-    servers.value = parseServers(serversResult.output)
-    tools.value = parseTools(toolsResult.output)
+    // Older CLI hosts do not expose the structured MCP topics. Only consume
+    // their JSON output: parsing human output previously turned bootstrap
+    // logs and Scope/Command fields into fake server cards. A separate
+    // `mcp tools` process cannot share MCP connections, so it is not queried.
+    const configured = await ws.executeJson('mcp servers --json', 15000)
+    servers.value = (Array.isArray(configured) ? configured : []).map((s) => ({
+      key: s.name,
+      name: s.name,
+      command: s.command || '',
+      args: Array.isArray(s.args) ? s.args : [],
+      state: 'disconnected',
+      description: [
+        s.configScope ? `scope: ${s.configScope}` : '',
+        s.autoConnect ? 'auto-connect (restart UI to connect)' : '',
+      ].filter(Boolean).join(' | '),
+      error: null,
+    }))
+    tools.value = []
     dataSource.value = 'cli'
   } catch (e) {
     console.error('MCP load failed:', e)
@@ -565,58 +595,6 @@ async function load() {
       resourcesLoaded.value = false
     }
   }
-}
-
-function parseServers(output) {
-  const result = []
-  const lines = output.split('\n')
-  let current = null
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('MCP')) continue
-    const nameMatch = trimmed.match(/^[●•]?\s*([a-z][a-z0-9-_]+)\s*$/i)
-      || trimmed.match(/^([a-z][a-z0-9-_]+)\s*[:：]/)
-    if (nameMatch) {
-      if (current) result.push(current)
-      current = { key: nameMatch[1], name: nameMatch[1], command: '', args: [], description: '' }
-    } else if (current) {
-      if (trimmed.startsWith('command:') || trimmed.startsWith('Command:')) {
-        current.command = trimmed.replace(/^command:\s*/i, '').trim()
-      } else if (trimmed.startsWith('args:') || trimmed.startsWith('Args:')) {
-        current.args = trimmed.replace(/^args:\s*/i, '').split(',').map(a => a.trim())
-      } else if (!current.description) {
-        current.description = trimmed.slice(0, 80)
-      }
-    }
-  }
-  if (current) result.push(current)
-  if (!result.length && output.trim() && !output.includes('No MCP')) {
-    const entries = output.split('\n').filter(l => l.trim() && !l.includes('─'))
-    entries.slice(0, 10).forEach((e, i) => {
-      result.push({ key: i, name: e.trim(), command: '', args: [], description: '' })
-    })
-  }
-  return result
-}
-
-function parseTools(output) {
-  const result = []
-  const lines = output.split('\n')
-  let currentServer = 'unknown'
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('─')) continue
-    if (trimmed.match(/^\[/) || trimmed.match(/^Server:/i)) {
-      currentServer = trimmed.replace(/[\[\]]/g, '').replace(/^Server:\s*/i, '').trim()
-      continue
-    }
-    const m = trimmed.match(/^[●•]?\s*([a-z][a-z0-9_-]+)\s*[-–]\s*(.+)/i)
-      || trimmed.match(/^[●•]?\s*([a-z][a-z0-9_-]+)$/)
-    if (m) {
-      result.push({ key: result.length, name: m[1], description: m[2] || '', server: currentServer })
-    }
-  }
-  return result
 }
 
 onMounted(load)

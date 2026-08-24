@@ -2,11 +2,9 @@
  * useMcp — talks to the embedded desktop web-shell's MCP topics
  * (see desktop-app-vue/src/main/web-shell/handlers/mcp-handlers.js).
  *
- * These topics are ONLY registered when the SPA is loaded inside the
- * Electron web-shell (--web-shell or ui.useWebShellExperimental=true).
- * In standalone CLI mode the same WS speaks `cc mcp ...` via execute().
- * Pages that need to work in both modes should fall back to ws.execute
- * on `mcp_unavailable` / `no_handler` (not done here — kept simple).
+ * The Electron web-shell and standalone `cc ui` both register these topics.
+ * Older CLI hosts may not have them; callers can retain a structured
+ * `ws.executeJson('mcp servers --json')` compatibility path.
  *
  * Usage:
  *   const mcp = useMcp()
