@@ -11,6 +11,49 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
+const SENSITIVE_AUDIT_KEY =
+  /(?:authorization|cookie|credential|password|private.?key|secret|token|api.?key)/i;
+const LARGE_PAYLOAD_KEY = /^(?:body|content|data|input|payload)$/i;
+
+function summarizeAuditPayload(value) {
+  const serialized = typeof value === "string" ? value : JSON.stringify(value);
+  return {
+    redacted: true,
+    byteLength: Buffer.byteLength(serialized || "", "utf8"),
+    sha256: crypto
+      .createHash("sha256")
+      .update(serialized || "")
+      .digest("hex"),
+  };
+}
+
+function sanitizeAuditValue(value, key = "", depth = 0) {
+  if (SENSITIVE_AUDIT_KEY.test(key)) return "[REDACTED]";
+  if (LARGE_PAYLOAD_KEY.test(key)) return summarizeAuditPayload(value);
+  if (
+    value == null ||
+    typeof value === "boolean" ||
+    typeof value === "number"
+  ) {
+    return value;
+  }
+  if (typeof value === "string") return value.slice(0, 512);
+  if (depth >= 4) return "[MAX_DEPTH]";
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 20)
+      .map((item) => sanitizeAuditValue(item, "", depth + 1));
+  }
+  if (typeof value === "object") {
+    const sanitized = {};
+    for (const [childKey, childValue] of Object.entries(value).slice(0, 50)) {
+      sanitized[childKey] = sanitizeAuditValue(childValue, childKey, depth + 1);
+    }
+    return sanitized;
+  }
+  return String(value).slice(0, 512);
+}
+
 // Platform detection for cross-platform path handling
 const isWindows = process.platform === "win32";
 
@@ -153,6 +196,20 @@ class MCPSecurityPolicy extends EventEmitter {
 
     // Audit log
     this.auditLog = [];
+    this.auditStore = config.auditStore || null;
+    this.requirePersistentAudit = config.requirePersistentAudit === true;
+    this.auditContextProvider =
+      typeof config.auditContextProvider === "function"
+        ? config.auditContextProvider
+        : () => ({});
+    if (
+      this.requirePersistentAudit &&
+      (!this.auditStore || typeof this.auditStore.append !== "function")
+    ) {
+      throw new SecurityError(
+        "Persistent MCP security audit storage is required but unavailable",
+      );
+    }
 
     // Risk levels for operations
     this.RISK_LEVELS = {
@@ -199,6 +256,10 @@ class MCPSecurityPolicy extends EventEmitter {
     );
   }
 
+  clearServerPermissions(serverName) {
+    this.serverPermissions.delete(serverName);
+  }
+
   /**
    * Validate tool execution
    * @param {string} serverName - Server identifier
@@ -206,7 +267,12 @@ class MCPSecurityPolicy extends EventEmitter {
    * @param {Object} params - Tool parameters
    * @throws {SecurityError} If validation fails
    */
-  async validateToolExecution(serverName, toolName, params) {
+  async validateToolExecution(
+    serverName,
+    toolName,
+    params,
+    executionContext = {},
+  ) {
     try {
       // 1. Check if server is trusted
       this._validateTrustedServer(serverName);
@@ -235,14 +301,30 @@ class MCPSecurityPolicy extends EventEmitter {
       }
 
       // 6. Log to audit trail
-      this._logAudit("ALLOWED", serverName, toolName, params, riskLevel);
+      this._logAudit(
+        "ALLOWED",
+        serverName,
+        toolName,
+        params,
+        riskLevel,
+        executionContext,
+      );
 
       logger.info(
         `[MCPSecurityPolicy] Validation passed: ${serverName}.${toolName} (${riskLevel})`,
       );
     } catch (error) {
       // Log denied access
-      this._logAudit("DENIED", serverName, toolName, params, error.message);
+      if (error?.details?.auditPersistence !== true) {
+        this._logAudit(
+          "DENIED",
+          serverName,
+          toolName,
+          params,
+          error.message,
+          executionContext,
+        );
+      }
 
       logger.error(`[MCPSecurityPolicy] Validation failed: ${error.message}`);
 
@@ -293,7 +375,13 @@ class MCPSecurityPolicy extends EventEmitter {
     }
 
     // Check allowed paths (whitelist) using cross-platform matching
-    if (permissions.allowedPaths.length > 0) {
+    if (permissions.allowedPaths.length === 0) {
+      throw new SecurityError(
+        `Access denied: No allowed paths configured for server ${serverName}`,
+        { serverName, operation, targetPath },
+      );
+    }
+    {
       const isAllowed = permissions.allowedPaths.some((allowed) => {
         // Support glob-like patterns
         if (allowed.endsWith("*")) {
@@ -330,7 +418,14 @@ class MCPSecurityPolicy extends EventEmitter {
   _validateWritePermission(serverName, operation) {
     const permissions = this.serverPermissions.get(serverName);
 
-    if (permissions && permissions.readOnly && operation !== "read") {
+    if (!permissions) {
+      throw new SecurityError(
+        `Write operation denied: No permissions configured for server ${serverName}`,
+        { serverName, operation },
+      );
+    }
+
+    if (permissions.readOnly && operation !== "read") {
       throw new SecurityError(
         `Write operation denied: ${serverName} is configured as read-only`,
         { serverName, operation },
@@ -472,8 +567,17 @@ class MCPSecurityPolicy extends EventEmitter {
       return this._requestConsentViaIPC(consentRequest, cacheKey);
     }
 
-    // Fallback: emit event for external handler
-    return this._requestConsentViaEvent(consentRequest, cacheKey);
+    // An explicitly installed external consent handler is a valid UI adapter.
+    // With neither renderer nor handler, reject immediately instead of leaving
+    // a high-risk operation pending until a timeout.
+    if (this.listenerCount("consent-required") > 0) {
+      return this._requestConsentViaEvent(consentRequest, cacheKey);
+    }
+    throw new SecurityError("No user consent handler is available", {
+      serverName,
+      toolName,
+      consentUnavailable: true,
+    });
   }
 
   /**
@@ -678,16 +782,57 @@ class MCPSecurityPolicy extends EventEmitter {
    * Log to audit trail
    * @private
    */
-  _logAudit(decision, serverName, toolName, params, details) {
+  _logAudit(
+    decision,
+    serverName,
+    toolName,
+    params,
+    details,
+    executionContext = {},
+  ) {
+    const context = {
+      ...(this.auditContextProvider() || {}),
+      ...(executionContext || {}),
+    };
     const entry = {
       timestamp: Date.now(),
+      auditId: crypto.randomUUID(),
       decision, // 'ALLOWED' or 'DENIED'
       serverName,
       toolName,
-      params,
+      params: sanitizeAuditValue(params),
       details,
-      user: process.env.USER || process.env.USERNAME || "unknown",
+      actor:
+        context.actor || process.env.USER || process.env.USERNAME || "unknown",
+      user:
+        context.actor || process.env.USER || process.env.USERNAME || "unknown",
+      sessionId: context.sessionId || null,
+      authorization: context.authorization || {
+        serverPermissionConfigured: this.serverPermissions.has(serverName),
+      },
+      policy: context.policy || {
+        component: "mcp-security-policy",
+        persistentAuditRequired: this.requirePersistentAudit,
+        riskOrReason: details,
+      },
+      sandbox: context.sandbox || null,
+      result: context.result || { decision },
     };
+
+    if (this.auditStore) {
+      try {
+        this.auditStore.append(entry);
+      } catch (error) {
+        throw new SecurityError(
+          `MCP security audit persistence failed: ${error.message}`,
+          { auditPersistence: true, cause: error.message },
+        );
+      }
+    } else if (this.requirePersistentAudit) {
+      throw new SecurityError("MCP security audit persistence unavailable", {
+        auditPersistence: true,
+      });
+    }
 
     this.auditLog.push(entry);
 
@@ -721,6 +866,15 @@ class MCPSecurityPolicy extends EventEmitter {
     }
 
     return log;
+  }
+
+  getPersistentAuditLog(filters = {}) {
+    if (!this.auditStore || typeof this.auditStore.query !== "function") {
+      throw new SecurityError(
+        "Persistent MCP security audit query unavailable",
+      );
+    }
+    return this.auditStore.query(filters);
   }
 
   /**
@@ -774,9 +928,9 @@ class MCPSecurityPolicy extends EventEmitter {
     // Check if main window is available
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
       logger.warn(
-        "[MCPSecurityPolicy] No main window available for consent request, auto-allowing",
+        "[MCPSecurityPolicy] No main window available for consent request, denying",
       );
-      return true; // Auto-allow if no UI available
+      return false;
     }
 
     try {
@@ -803,13 +957,11 @@ class MCPSecurityPolicy extends EventEmitter {
       // Check if server has permissions configured
       const permissions = this.serverPermissions.get(serverName);
 
-      // If no permissions configured, allow by default (server is already trusted)
+      // Connection trust never implies tool authority.
       if (!permissions) {
-        logger.info(
-          `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing by default`,
-        );
-        this._logAudit("ALLOWED", serverName, toolName, args, "low");
-        return { permitted: true };
+        const reason = `No permissions configured for server ${serverName}`;
+        this._logAudit("DENIED", serverName, toolName, args, reason);
+        return { permitted: false, reason };
       }
 
       // Detect operation type
@@ -825,7 +977,7 @@ class MCPSecurityPolicy extends EventEmitter {
 
       // Validate path access if applicable
       const targetPath = args?.path || args?.uri || args?.file;
-      if (targetPath && permissions.allowedPaths?.length > 0) {
+      if (targetPath) {
         try {
           this._validatePathAccess(serverName, operation.type, targetPath);
         } catch (error) {
@@ -864,18 +1016,15 @@ class MCPSecurityPolicy extends EventEmitter {
     try {
       const permissions = this.serverPermissions.get(serverName);
 
-      // If no permissions configured, allow by default
+      // Resources require an explicit path capability.
       if (!permissions) {
-        logger.info(
-          `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing resource access`,
-        );
-        return { permitted: true };
+        return {
+          permitted: false,
+          reason: `No permissions configured for server ${serverName}`,
+        };
       }
 
-      // Only validate path if there are allowed paths configured
-      if (permissions.allowedPaths?.length > 0) {
-        this._validatePathAccess(serverName, "read", resourceUri);
-      }
+      this._validatePathAccess(serverName, "read", resourceUri);
 
       return { permitted: true };
     } catch (error) {
@@ -912,4 +1061,5 @@ module.exports = {
   // exported for unit testing of the allowed/forbidden path-matching boundary
   pathMatchesPattern,
   normalizeSecurityPath,
+  sanitizeAuditValue,
 };

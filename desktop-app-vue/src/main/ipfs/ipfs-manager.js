@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * IPFS Manager - Decentralized Storage
@@ -14,46 +14,52 @@
  * @version 1.0.0
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 
 // Lazy-load electron app to support test environments
 let app;
+let electronSafeStorage;
 try {
-  app = require('electron').app;
+  const electron = require("electron");
+  app = electron.app;
+  electronSafeStorage = electron.safeStorage;
 } catch (_e) {
   app = global.app || {
-    getPath: () => require('os').tmpdir(),
+    getPath: () => require("os").tmpdir(),
   };
 }
+
+const WRAPPED_DEK_PREFIX = "cc-ipfs-dek:v1:";
 
 // ============================================================
 // Constants
 // ============================================================
 
 const DEFAULT_STORAGE_QUOTA_BYTES = 1073741824; // 1GB
-const DEFAULT_GATEWAY_URL = 'https://ipfs.io';
-const DEFAULT_EXTERNAL_API_URL = 'http://127.0.0.1:5001';
+const DEFAULT_GATEWAY_URL = "https://ipfs.io";
+const DEFAULT_EXTERNAL_API_URL = "http://127.0.0.1:5001";
 
 // ============================================================
 // IPFSManager
 // ============================================================
 
 class IPFSManager extends EventEmitter {
-  constructor() {
+  constructor({ safeStorage = electronSafeStorage } = {}) {
     super();
     this.node = null;
     this.unixfs = null;
     this.jsonCodec = null;
     this.database = null;
+    this.safeStorage = safeStorage;
     this.initialized = false;
-    this.mode = 'embedded';
+    this.mode = "embedded";
     this.config = {
-      repoPath: '',
+      repoPath: "",
       gatewayUrl: DEFAULT_GATEWAY_URL,
       storageQuotaBytes: DEFAULT_STORAGE_QUOTA_BYTES,
       externalApiUrl: DEFAULT_EXTERNAL_API_URL,
@@ -72,7 +78,7 @@ class IPFSManager extends EventEmitter {
    */
   async initialize(dependencies) {
     if (this.initialized) {
-      logger.info('[IPFS] Manager already initialized');
+      logger.info("[IPFS] Manager already initialized");
       return;
     }
 
@@ -83,8 +89,12 @@ class IPFSManager extends EventEmitter {
     }
 
     // Set repo path
-    const userDataPath = app?.getPath?.('userData') || '.';
-    this.config.repoPath = path.join(userDataPath, '.chainlesschain', 'ipfs-repo');
+    const userDataPath = app?.getPath?.("userData") || ".";
+    this.config.repoPath = path.join(
+      userDataPath,
+      ".chainlesschain",
+      "ipfs-repo",
+    );
 
     // Ensure directory exists
     fs.mkdirSync(this.config.repoPath, { recursive: true });
@@ -93,7 +103,7 @@ class IPFSManager extends EventEmitter {
     this._ensureTables();
 
     this.initialized = true;
-    logger.info('[IPFS] Manager initialized', {
+    logger.info("[IPFS] Manager initialized", {
       mode: this.mode,
       repoPath: this.config.repoPath,
     });
@@ -104,7 +114,7 @@ class IPFSManager extends EventEmitter {
    */
   _ensureTables() {
     if (!this.database) {
-      logger.warn('[IPFS] No database available, skipping table creation');
+      logger.warn("[IPFS] No database available, skipping table creation");
       return;
     }
 
@@ -138,10 +148,85 @@ class IPFSManager extends EventEmitter {
         CREATE INDEX IF NOT EXISTS idx_ipfs_content_pinned ON ipfs_content(pinned)
       `);
 
-      logger.info('[IPFS] Database tables ensured');
+      this._migrateEncryptionKeys();
+
+      logger.info("[IPFS] Database tables ensured");
     } catch (error) {
-      logger.error('[IPFS] Failed to create tables', { error: error.message });
+      logger.error("[IPFS] Failed to create tables", { error: error.message });
+      throw error;
     }
+  }
+
+  _wrapEncryptionKey(key) {
+    if (
+      !this.safeStorage ||
+      typeof this.safeStorage.isEncryptionAvailable !== "function" ||
+      !this.safeStorage.isEncryptionAvailable() ||
+      typeof this.safeStorage.encryptString !== "function"
+    ) {
+      throw new Error("IPFS data-key wrapping is unavailable");
+    }
+    return `${WRAPPED_DEK_PREFIX}${this.safeStorage
+      .encryptString(String(key))
+      .toString("base64")}`;
+  }
+
+  _unwrapEncryptionKey(wrapped) {
+    if (
+      typeof wrapped !== "string" ||
+      !wrapped.startsWith(WRAPPED_DEK_PREFIX)
+    ) {
+      throw new Error("IPFS data key is not wrapped");
+    }
+    if (
+      !this.safeStorage ||
+      typeof this.safeStorage.decryptString !== "function"
+    ) {
+      throw new Error("IPFS data-key unwrapping is unavailable");
+    }
+    return this.safeStorage.decryptString(
+      Buffer.from(wrapped.slice(WRAPPED_DEK_PREFIX.length), "base64"),
+    );
+  }
+
+  _migrateEncryptionKeys({ dryRun = false } = {}) {
+    if (!this.database || typeof this.database.all !== "function") {
+      return { pending: 0, migrated: 0, dryRun };
+    }
+    const rows =
+      this.database.all(
+        "SELECT cid, encryption_key FROM ipfs_content WHERE encrypted = 1",
+      ) || [];
+    const legacy = rows.filter(
+      (row) =>
+        row.encryption_key &&
+        !String(row.encryption_key).startsWith(WRAPPED_DEK_PREFIX),
+    );
+    if (dryRun) return { pending: legacy.length, migrated: 0, dryRun: true };
+    const staged = legacy.map((row) => ({
+      cid: row.cid,
+      wrapped: this._wrapEncryptionKey(row.encryption_key),
+    }));
+    if (staged.length > 0) {
+      this.database.run("BEGIN IMMEDIATE TRANSACTION");
+      try {
+        for (const row of staged) {
+          this.database.run(
+            "UPDATE ipfs_content SET encryption_key = ? WHERE cid = ?",
+            [row.wrapped, row.cid],
+          );
+        }
+        this.database.run("COMMIT");
+      } catch (error) {
+        try {
+          this.database.run("ROLLBACK");
+        } catch {
+          // Preserve the migration error. The database remains fail-closed.
+        }
+        throw error;
+      }
+    }
+    return { pending: legacy.length, migrated: legacy.length, dryRun: false };
   }
 
   /**
@@ -149,8 +234,8 @@ class IPFSManager extends EventEmitter {
    * @throws {Error} If node is not started
    */
   _ensureNode() {
-    if (!this.node && this.mode === 'embedded') {
-      throw new Error('IPFS node is not started. Call startNode() first.');
+    if (!this.node && this.mode === "embedded") {
+      throw new Error("IPFS node is not started. Call startNode() first.");
     }
   }
 
@@ -160,7 +245,9 @@ class IPFSManager extends EventEmitter {
    */
   _ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('IPFS Manager is not initialized. Call initialize() first.');
+      throw new Error(
+        "IPFS Manager is not initialized. Call initialize() first.",
+      );
     }
   }
 
@@ -170,19 +257,19 @@ class IPFSManager extends EventEmitter {
   async startNode() {
     this._ensureInitialized();
 
-    if (this.mode === 'embedded') {
+    if (this.mode === "embedded") {
       try {
-        logger.info('[IPFS] Starting embedded Helia node...');
+        logger.info("[IPFS] Starting embedded Helia node...");
 
         // Dynamic ESM imports for Helia packages
-        const { createHelia } = await import('helia');
-        const { FsBlockstore } = await import('blockstore-fs');
-        const { LevelDatastore } = await import('datastore-level');
-        const { unixfs } = await import('@helia/unixfs');
-        const { json } = await import('@helia/json');
+        const { createHelia } = await import("helia");
+        const { FsBlockstore } = await import("blockstore-fs");
+        const { LevelDatastore } = await import("datastore-level");
+        const { unixfs } = await import("@helia/unixfs");
+        const { json } = await import("@helia/json");
 
-        const blocksPath = path.join(this.config.repoPath, 'blocks');
-        const dataPath = path.join(this.config.repoPath, 'data');
+        const blocksPath = path.join(this.config.repoPath, "blocks");
+        const dataPath = path.join(this.config.repoPath, "data");
 
         fs.mkdirSync(blocksPath, { recursive: true });
         fs.mkdirSync(dataPath, { recursive: true });
@@ -195,19 +282,21 @@ class IPFSManager extends EventEmitter {
         this.jsonCodec = json(this.node);
 
         const peerId = this.node.libp2p.peerId.toString();
-        logger.info('[IPFS] Embedded Helia node started', { peerId });
-        this.emit('node-started', { mode: 'embedded', peerId });
+        logger.info("[IPFS] Embedded Helia node started", { peerId });
+        this.emit("node-started", { mode: "embedded", peerId });
       } catch (error) {
-        logger.error('[IPFS] Failed to start embedded node', { error: error.message });
+        logger.error("[IPFS] Failed to start embedded node", {
+          error: error.message,
+        });
         throw error;
       }
     } else {
       // External Kubo RPC mode
-      logger.info('[IPFS] Using external Kubo node', {
+      logger.info("[IPFS] Using external Kubo node", {
         apiUrl: this.config.externalApiUrl,
       });
-      this.emit('node-started', {
-        mode: 'external',
+      this.emit("node-started", {
+        mode: "external",
         apiUrl: this.config.externalApiUrl,
       });
     }
@@ -222,14 +311,14 @@ class IPFSManager extends EventEmitter {
     if (this.node) {
       try {
         await this.node.stop();
-        logger.info('[IPFS] Node stopped');
+        logger.info("[IPFS] Node stopped");
       } catch (error) {
-        logger.error('[IPFS] Error stopping node', { error: error.message });
+        logger.error("[IPFS] Error stopping node", { error: error.message });
       }
       this.node = null;
       this.unixfs = null;
       this.jsonCodec = null;
-      this.emit('node-stopped');
+      this.emit("node-stopped");
     }
   }
 
@@ -243,20 +332,27 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
-    const { encrypt = this.config.encryptionEnabled, metadata = {}, filename } = options;
+    const {
+      encrypt = this.config.encryptionEnabled,
+      metadata = {},
+      filename,
+    } = options;
 
-    let data = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf-8');
+    let data = Buffer.isBuffer(content)
+      ? content
+      : Buffer.from(content, "utf-8");
     const originalSize = data.length;
 
     // Check storage quota
     const currentUsage = this.stats.totalSize || 0;
     if (currentUsage + originalSize > this.config.storageQuotaBytes) {
       throw new Error(
-        `Storage quota exceeded. Usage: ${currentUsage} bytes, Quota: ${this.config.storageQuotaBytes} bytes, Attempted: ${originalSize} bytes`
+        `Storage quota exceeded. Usage: ${currentUsage} bytes, Quota: ${this.config.storageQuotaBytes} bytes, Attempted: ${originalSize} bytes`,
       );
     }
 
     let encryptionKey = null;
+    let wrappedEncryptionKey = null;
     let encrypted = false;
 
     // Optionally encrypt with AES-256-GCM
@@ -264,8 +360,9 @@ class IPFSManager extends EventEmitter {
       const encResult = this._encrypt(data);
       data = encResult.encrypted;
       encryptionKey = encResult.key;
+      wrappedEncryptionKey = this._wrapEncryptionKey(encryptionKey);
       encrypted = true;
-      logger.info('[IPFS] Content encrypted before adding');
+      logger.info("[IPFS] Content encrypted before adding");
     }
 
     // Add via unixfs
@@ -278,7 +375,7 @@ class IPFSManager extends EventEmitter {
         await this.node.pins.add(cid);
       }
     } catch (pinError) {
-      logger.warn('[IPFS] Pinning not available, content added without pin', {
+      logger.warn("[IPFS] Pinning not available, content added without pin", {
         error: pinError.message,
       });
     }
@@ -296,20 +393,25 @@ class IPFSManager extends EventEmitter {
             filename || null,
             originalSize,
             encrypted ? 1 : 0,
-            encryptionKey,
+            wrappedEncryptionKey,
             JSON.stringify(metadata),
-          ]
+          ],
         );
       } catch (dbError) {
-        logger.error('[IPFS] Failed to record content in database', {
+        logger.error("[IPFS] Failed to record content in database", {
           error: dbError.message,
         });
+        if (encrypted) {
+          throw new Error(
+            `Failed to persist wrapped IPFS data key: ${dbError.message}`,
+          );
+        }
       }
     }
 
     await this._updateStats();
 
-    logger.info('[IPFS] Content added', {
+    logger.info("[IPFS] Content added", {
       cid: cidString,
       size: originalSize,
       encrypted,
@@ -356,7 +458,7 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
-    const { CID } = await import('multiformats/cid');
+    const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
 
     // Collect all bytes from the async iterable
@@ -374,8 +476,8 @@ class IPFSManager extends EventEmitter {
     if (this.database) {
       try {
         const row = this.database.get(
-          'SELECT encryption_key, encrypted, metadata FROM ipfs_content WHERE cid = ?',
-          [cidString]
+          "SELECT encryption_key, encrypted, metadata FROM ipfs_content WHERE cid = ?",
+          [cidString],
         );
         if (row) {
           isEncrypted = row.encrypted === 1;
@@ -387,23 +489,27 @@ class IPFSManager extends EventEmitter {
           }
         }
       } catch (dbError) {
-        logger.warn('[IPFS] Could not fetch content metadata from database', {
+        logger.warn("[IPFS] Could not fetch content metadata from database", {
           error: dbError.message,
         });
       }
     }
 
     // Decrypt if needed
-    if (isEncrypted && encryptionKey) {
+    if (isEncrypted) {
       try {
-        data = this._decrypt(data, encryptionKey);
-        logger.info('[IPFS] Content decrypted successfully');
+        if (!encryptionKey) throw new Error("IPFS wrapped data key is missing");
+        data = this._decrypt(data, this._unwrapEncryptionKey(encryptionKey));
+        logger.info("[IPFS] Content decrypted successfully");
       } catch (decryptError) {
         throw new Error(`Failed to decrypt content: ${decryptError.message}`);
       }
     }
 
-    logger.info('[IPFS] Content retrieved', { cid: cidString, size: data.length });
+    logger.info("[IPFS] Content retrieved", {
+      cid: cidString,
+      size: data.length,
+    });
 
     return { content: data, metadata };
   }
@@ -425,7 +531,11 @@ class IPFSManager extends EventEmitter {
 
     fs.writeFileSync(outputPath, content);
 
-    logger.info('[IPFS] File written', { cid: cidString, outputPath, size: content.length });
+    logger.info("[IPFS] File written", {
+      cid: cidString,
+      outputPath,
+      size: content.length,
+    });
 
     return { path: outputPath, size: content.length };
   }
@@ -439,7 +549,7 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
-    const { CID } = await import('multiformats/cid');
+    const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
 
     try {
@@ -447,7 +557,7 @@ class IPFSManager extends EventEmitter {
         await this.node.pins.add(cid);
       }
     } catch (pinError) {
-      logger.warn('[IPFS] Pin API not available', { error: pinError.message });
+      logger.warn("[IPFS] Pin API not available", { error: pinError.message });
     }
 
     // Update DB record
@@ -455,10 +565,10 @@ class IPFSManager extends EventEmitter {
       try {
         this.database.run(
           "UPDATE ipfs_content SET pinned = 1, updated_at = datetime('now') WHERE cid = ?",
-          [cidString]
+          [cidString],
         );
       } catch (dbError) {
-        logger.error('[IPFS] Failed to update pin status in database', {
+        logger.error("[IPFS] Failed to update pin status in database", {
           error: dbError.message,
         });
       }
@@ -466,7 +576,7 @@ class IPFSManager extends EventEmitter {
 
     await this._updateStats();
 
-    logger.info('[IPFS] Content pinned', { cid: cidString });
+    logger.info("[IPFS] Content pinned", { cid: cidString });
 
     return { pinned: true, cid: cidString };
   }
@@ -480,7 +590,7 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
-    const { CID } = await import('multiformats/cid');
+    const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
 
     try {
@@ -488,7 +598,9 @@ class IPFSManager extends EventEmitter {
         await this.node.pins.rm(cid);
       }
     } catch (pinError) {
-      logger.warn('[IPFS] Unpin API not available', { error: pinError.message });
+      logger.warn("[IPFS] Unpin API not available", {
+        error: pinError.message,
+      });
     }
 
     // Update DB record
@@ -496,10 +608,10 @@ class IPFSManager extends EventEmitter {
       try {
         this.database.run(
           "UPDATE ipfs_content SET pinned = 0, updated_at = datetime('now') WHERE cid = ?",
-          [cidString]
+          [cidString],
         );
       } catch (dbError) {
-        logger.error('[IPFS] Failed to update unpin status in database', {
+        logger.error("[IPFS] Failed to update unpin status in database", {
           error: dbError.message,
         });
       }
@@ -507,7 +619,7 @@ class IPFSManager extends EventEmitter {
 
     await this._updateStats();
 
-    logger.info('[IPFS] Content unpinned', { cid: cidString });
+    logger.info("[IPFS] Content unpinned", { cid: cidString });
 
     return { unpinned: true, cid: cidString };
   }
@@ -520,11 +632,19 @@ class IPFSManager extends EventEmitter {
   async listPins(options = {}) {
     this._ensureInitialized();
 
-    const { offset = 0, limit = 50, sortBy = 'created_at' } = options;
+    const { offset = 0, limit = 50, sortBy = "created_at" } = options;
 
     // Validate sortBy to prevent SQL injection
-    const allowedSortColumns = ['created_at', 'size', 'filename', 'cid', 'updated_at'];
-    const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'created_at';
+    const allowedSortColumns = [
+      "created_at",
+      "size",
+      "filename",
+      "cid",
+      "updated_at",
+    ];
+    const safeSortBy = allowedSortColumns.includes(sortBy)
+      ? sortBy
+      : "created_at";
 
     if (!this.database) {
       return { items: [], total: 0 };
@@ -532,7 +652,7 @@ class IPFSManager extends EventEmitter {
 
     try {
       const totalRow = this.database.get(
-        'SELECT COUNT(*) as count FROM ipfs_content WHERE pinned = 1'
+        "SELECT COUNT(*) as count FROM ipfs_content WHERE pinned = 1",
       );
       const total = totalRow?.count || 0;
 
@@ -542,19 +662,27 @@ class IPFSManager extends EventEmitter {
          WHERE pinned = 1
          ORDER BY ${safeSortBy} DESC
          LIMIT ? OFFSET ?`,
-        [limit, offset]
+        [limit, offset],
       );
 
       const items = (rows || []).map((row) => ({
         ...row,
         pinned: row.pinned === 1,
         encrypted: row.encrypted === 1,
-        metadata: row.metadata ? (() => { try { return JSON.parse(row.metadata); } catch { return {}; } })() : {},
+        metadata: row.metadata
+          ? (() => {
+              try {
+                return JSON.parse(row.metadata);
+              } catch {
+                return {};
+              }
+            })()
+          : {},
       }));
 
       return { items, total };
     } catch (error) {
-      logger.error('[IPFS] Failed to list pins', { error: error.message });
+      logger.error("[IPFS] Failed to list pins", { error: error.message });
       return { items: [], total: 0 };
     }
   }
@@ -593,12 +721,12 @@ class IPFSManager extends EventEmitter {
     let removedItems = 0;
 
     // Run GC on Helia node if available
-    if (this.node && typeof this.node.gc === 'function') {
+    if (this.node && typeof this.node.gc === "function") {
       try {
         await this.node.gc();
-        logger.info('[IPFS] Helia garbage collection completed');
+        logger.info("[IPFS] Helia garbage collection completed");
       } catch (gcError) {
-        logger.warn('[IPFS] Helia GC not available or failed', {
+        logger.warn("[IPFS] Helia GC not available or failed", {
           error: gcError.message,
         });
       }
@@ -608,7 +736,7 @@ class IPFSManager extends EventEmitter {
     if (this.database) {
       try {
         const unpinnedRows = this.database.all(
-          'SELECT id, cid, size FROM ipfs_content WHERE pinned = 0'
+          "SELECT id, cid, size FROM ipfs_content WHERE pinned = 0",
         );
 
         if (unpinnedRows && unpinnedRows.length > 0) {
@@ -617,14 +745,14 @@ class IPFSManager extends EventEmitter {
             removedItems++;
           }
 
-          this.database.run('DELETE FROM ipfs_content WHERE pinned = 0');
-          logger.info('[IPFS] Removed unpinned content from database', {
+          this.database.run("DELETE FROM ipfs_content WHERE pinned = 0");
+          logger.info("[IPFS] Removed unpinned content from database", {
             removedItems,
             freedBytes,
           });
         }
       } catch (dbError) {
-        logger.error('[IPFS] Failed to clean up database during GC', {
+        logger.error("[IPFS] Failed to clean up database during GC", {
           error: dbError.message,
         });
       }
@@ -632,7 +760,10 @@ class IPFSManager extends EventEmitter {
 
     await this._updateStats();
 
-    logger.info('[IPFS] Garbage collection complete', { freedBytes, removedItems });
+    logger.info("[IPFS] Garbage collection complete", {
+      freedBytes,
+      removedItems,
+    });
 
     return { freedBytes, removedItems };
   }
@@ -642,12 +773,12 @@ class IPFSManager extends EventEmitter {
    * @param {number} quotaBytes - New quota in bytes
    */
   async setQuota(quotaBytes) {
-    if (typeof quotaBytes !== 'number' || quotaBytes <= 0) {
-      throw new Error('Quota must be a positive number');
+    if (typeof quotaBytes !== "number" || quotaBytes <= 0) {
+      throw new Error("Quota must be a positive number");
     }
 
     this.config.storageQuotaBytes = quotaBytes;
-    logger.info('[IPFS] Storage quota updated', { quotaBytes });
+    logger.info("[IPFS] Storage quota updated", { quotaBytes });
   }
 
   /**
@@ -661,7 +792,7 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
 
     if (!knowledgeId) {
-      throw new Error('knowledgeId is required');
+      throw new Error("knowledgeId is required");
     }
 
     const result = await this.addContent(content, {
@@ -675,16 +806,16 @@ class IPFSManager extends EventEmitter {
       try {
         this.database.run(
           "UPDATE ipfs_content SET knowledge_id = ?, updated_at = datetime('now') WHERE id = ?",
-          [knowledgeId, result.id]
+          [knowledgeId, result.id],
         );
       } catch (dbError) {
-        logger.error('[IPFS] Failed to link content to knowledge item', {
+        logger.error("[IPFS] Failed to link content to knowledge item", {
           error: dbError.message,
         });
       }
     }
 
-    logger.info('[IPFS] Knowledge attachment added', {
+    logger.info("[IPFS] Knowledge attachment added", {
       knowledgeId,
       cid: result.cid,
       size: result.size,
@@ -703,25 +834,25 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
 
     if (!knowledgeId || !cidString) {
-      throw new Error('Both knowledgeId and cid are required');
+      throw new Error("Both knowledgeId and cid are required");
     }
 
     // Verify the CID is linked to the given knowledge item
     if (this.database) {
       const row = this.database.get(
-        'SELECT id FROM ipfs_content WHERE cid = ? AND knowledge_id = ?',
-        [cidString, knowledgeId]
+        "SELECT id FROM ipfs_content WHERE cid = ? AND knowledge_id = ?",
+        [cidString, knowledgeId],
       );
       if (!row) {
         throw new Error(
-          `Content with CID ${cidString} is not linked to knowledge item ${knowledgeId}`
+          `Content with CID ${cidString} is not linked to knowledge item ${knowledgeId}`,
         );
       }
     }
 
     const result = await this.getContent(cidString);
 
-    logger.info('[IPFS] Knowledge attachment retrieved', {
+    logger.info("[IPFS] Knowledge attachment retrieved", {
       knowledgeId,
       cid: cidString,
       size: result.content.length,
@@ -738,12 +869,12 @@ class IPFSManager extends EventEmitter {
   _encrypt(data) {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
     const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
     const tag = cipher.getAuthTag();
     return {
       encrypted: Buffer.concat([iv, tag, encrypted]),
-      key: key.toString('hex'),
+      key: key.toString("hex"),
     };
   }
 
@@ -754,11 +885,11 @@ class IPFSManager extends EventEmitter {
    * @returns {Buffer} Decrypted data
    */
   _decrypt(data, keyHex) {
-    const key = Buffer.from(keyHex, 'hex');
+    const key = Buffer.from(keyHex, "hex");
     const iv = data.subarray(0, 16);
     const tag = data.subarray(16, 32);
     const encrypted = data.subarray(32);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(encrypted), decipher.final()]);
   }
@@ -770,7 +901,7 @@ class IPFSManager extends EventEmitter {
     if (this.database) {
       try {
         const row = this.database.get(
-          'SELECT COUNT(*) as count, COALESCE(SUM(size), 0) as totalSize FROM ipfs_content WHERE pinned = 1'
+          "SELECT COUNT(*) as count, COALESCE(SUM(size), 0) as totalSize FROM ipfs_content WHERE pinned = 1",
         );
         this.stats.totalPinned = row?.count || 0;
         this.stats.totalSize = row?.totalSize || 0;
@@ -807,7 +938,7 @@ class IPFSManager extends EventEmitter {
    * @param {string} mode - 'embedded' or 'external'
    */
   async setMode(mode) {
-    if (mode !== 'embedded' && mode !== 'external') {
+    if (mode !== "embedded" && mode !== "external") {
       throw new Error("Invalid mode. Must be 'embedded' or 'external'.");
     }
 
@@ -816,7 +947,7 @@ class IPFSManager extends EventEmitter {
     }
 
     this.mode = mode;
-    logger.info('[IPFS] Mode changed', { mode });
+    logger.info("[IPFS] Mode changed", { mode });
   }
 }
 

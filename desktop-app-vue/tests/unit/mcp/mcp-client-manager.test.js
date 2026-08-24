@@ -122,6 +122,52 @@ describe("MCPClientManager", () => {
   });
 
   describe("Server Connection", () => {
+    it("rejects raw policy bypass requests", async () => {
+      await expect(
+        manager.connectServer("unsafe", {
+          command: "node",
+          args: [],
+          bypassPolicy: true,
+        }),
+      ).rejects.toMatchObject({ code: "MCP_POLICY_BYPASS_FORBIDDEN" });
+      expect(mockDeps.mcpStdio.StdioClientTransport).not.toHaveBeenCalled();
+    });
+
+    it("passes only an allowlisted environment to stdio servers", async () => {
+      const previousSecret = process.env.AWS_SECRET_ACCESS_KEY;
+      process.env.AWS_SECRET_ACCESS_KEY = "must-not-leak";
+      try {
+        await manager.connectServer("isolated", {
+          command: "node",
+          args: [],
+          dataPath: "/workspace/data",
+        });
+        const options =
+          mockDeps.mcpStdio.StdioClientTransport.mock.calls.at(-1)[0];
+        expect(options.env.CHAINLESSCHAIN_DATA_PATH).toBe("/workspace/data");
+        expect(options.env.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+        expect(options.env.GITHUB_TOKEN).toBeUndefined();
+        expect(options.env.DATABASE_URL).toBeUndefined();
+      } finally {
+        if (previousSecret === undefined) {
+          delete process.env.AWS_SECRET_ACCESS_KEY;
+        } else {
+          process.env.AWS_SECRET_ACCESS_KEY = previousSecret;
+        }
+      }
+    });
+
+    it("rejects static credentials in MCP server configuration", async () => {
+      await expect(
+        manager.connectServer("credentialed", {
+          command: "node",
+          args: [],
+          authentication: { personalAccessToken: "plaintext-token" },
+        }),
+      ).rejects.toMatchObject({ code: "MCP_STATIC_CREDENTIAL_FORBIDDEN" });
+      expect(mockDeps.mcpStdio.StdioClientTransport).not.toHaveBeenCalled();
+    });
+
     it("should connect to a stdio server", async () => {
       const serverConfig = {
         command: "npx",

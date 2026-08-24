@@ -82,6 +82,20 @@ describe("agent sandbox", () => {
     expect(sandbox.network).toBe(false);
   });
 
+  it("defaults the public sandbox mode to fail-closed workspace-write", () => {
+    const sandbox = normalizeAgentSandboxMode(undefined, undefined, {
+      cwd: ".",
+    });
+    expect(sandbox).toMatchObject({
+      mode: "workspace-write",
+      network: false,
+    });
+    expect(sandbox.policy).toMatchObject({
+      failIfUnavailable: true,
+      allowUnsandboxedCommands: false,
+    });
+  });
+
   it("clamps an enabled sandbox for safe/auto runs", () => {
     const sandbox = enforceSandboxFailClosed(
       normalizeAgentSandbox(true),

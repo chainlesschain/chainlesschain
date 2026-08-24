@@ -111,6 +111,28 @@ describe("desktop process broker", () => {
     broker.uninstall();
   });
 
+  it("rejects process execution when durable audit persistence fails", () => {
+    const { cp, calls } = fakeChildProcess();
+    const broker = installDesktopProcessBroker({
+      childProcess: cp,
+      auditSink: () => {
+        throw new Error("disk unavailable");
+      },
+    });
+
+    expect(() =>
+      cp.spawn("node", ["worker.js"], { origin: "desktop:test-worker" }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "ERR_PROCESS_AUDIT_UNAVAILABLE",
+        message: "desktop_process_audit_unavailable",
+      }),
+    );
+    expect(calls).toHaveLength(0);
+    expect(broker.getAuditLog()).toHaveLength(0);
+    broker.uninstall();
+  });
+
   it("exposes a fail-closed literal-argv execFileSync facade", () => {
     const { cp, calls } = fakeChildProcess();
     expect(() =>

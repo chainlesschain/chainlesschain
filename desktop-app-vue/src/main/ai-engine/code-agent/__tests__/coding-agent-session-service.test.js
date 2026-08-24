@@ -899,6 +899,9 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      mcpSecurityPolicy: {
+        validateToolExecution: vi.fn().mockResolvedValue(undefined),
+      },
       mcpManager: {
         servers: new Map([["weather", { state: "connected" }]]),
         listTools: vi.fn().mockResolvedValue([
@@ -1060,6 +1063,9 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      mcpSecurityPolicy: {
+        validateToolExecution: vi.fn().mockResolvedValue(undefined),
+      },
       mcpManager: {
         servers: new Map([["weather", { state: "connected" }]]),
         listTools: vi.fn().mockResolvedValue([

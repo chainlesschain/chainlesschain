@@ -259,7 +259,13 @@ export function normalizeAgentSandbox(value, options = {}) {
  */
 export function normalizeAgentSandboxMode(mode, value, options = {}) {
   if (mode == null || mode === "") {
-    return normalizeAgentSandbox(value, options);
+    // Public agent execution defaults to a real, fail-closed workspace
+    // sandbox. Bare-host execution remains available only through the
+    // explicit `off` mode below, where managed policy can prohibit it.
+    return normalizeAgentSandboxMode("workspace-write", value || true, {
+      ...options,
+      network: false,
+    });
   }
   if (!AGENT_SANDBOX_MODES.includes(mode)) {
     const error = new Error(

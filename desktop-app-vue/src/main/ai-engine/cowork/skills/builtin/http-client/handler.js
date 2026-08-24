@@ -3,12 +3,10 @@
  *
  * Sends HTTP requests (GET/POST/PUT/DELETE/PATCH/HEAD) with custom headers,
  * authentication (Bearer, Basic, API Key), request body, timeout control,
- * and formatted response output. Uses Node.js built-in http/https modules.
+ * and formatted response output. Network I/O is delegated to a host-owned
+ * egress broker; the Skill has no raw socket authority.
  */
 
-const http = require("http");
-const https = require("https");
-const { URL } = require("url");
 const { logger } = require("../../../../../utils/logger.js");
 
 const DEFAULT_TIMEOUT = 30000;
@@ -24,58 +22,6 @@ const IMPORTANT_HEADERS = [
   "set-cookie",
   "x-request-id",
 ];
-
-// ── Core HTTP request ─────────────────────────────────────────────
-
-function httpRequest(urlStr, method, headers, body, timeout) {
-  return new Promise((resolve, reject) => {
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(urlStr);
-    } catch {
-      return reject(new Error(`Invalid URL: ${urlStr}`));
-    }
-
-    const protocol = parsedUrl.protocol === "https:" ? https : http;
-    const options = {
-      method: method.toUpperCase(),
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
-      path: parsedUrl.pathname + parsedUrl.search,
-      headers: { "User-Agent": "ChainlessChain-HTTPClient/1.0", ...headers },
-      timeout: timeout || DEFAULT_TIMEOUT,
-    };
-
-    const startTime = Date.now();
-    const req = protocol.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-      res.on("end", () => {
-        resolve({
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: res.headers,
-          body: data,
-          duration: Date.now() - startTime,
-        });
-      });
-    });
-
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(
-        new Error(`Request timeout after ${timeout || DEFAULT_TIMEOUT}ms`),
-      );
-    });
-    if (body) {
-      req.write(body);
-    }
-    req.end();
-  });
-}
 
 // ── Input parsing ─────────────────────────────────────────────────
 
@@ -334,13 +280,24 @@ module.exports = {
     );
 
     try {
-      const res = await httpRequest(
-        options.url,
-        options.method,
-        options.headers,
-        options.body,
-        options.timeout,
-      );
+      const networkBroker = context?.networkBroker;
+      if (!networkBroker || typeof networkBroker.request !== "function") {
+        const unavailable = new Error(
+          "Cowork network broker is unavailable; raw HTTP execution is disabled",
+        );
+        unavailable.code = "COWORK_NETWORK_BROKER_UNAVAILABLE";
+        throw unavailable;
+      }
+      const res = await networkBroker.request({
+        url: options.url,
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+        timeout: options.timeout,
+        maxResponseBytes: MAX_BODY_DISPLAY,
+        origin: "cowork-skill:http-client",
+        workspaceRoot: projectRoot,
+      });
 
       const contentType = res.headers["content-type"] || "";
       const bodySize = res.body ? Buffer.byteLength(res.body) : 0;

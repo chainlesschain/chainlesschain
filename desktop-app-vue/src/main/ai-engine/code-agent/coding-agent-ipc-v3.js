@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const { createHash, randomUUID } = require("crypto");
-const { ipcMain, shell, dialog } = require("electron");
 const { logger } = require("../../utils/logger.js");
 const { ArtifactWorkbenchClient } = require("./artifact-workbench-client.js");
 const {
@@ -86,15 +85,18 @@ function registerCodingAgentIPCV3(options = {}) {
     throw new Error("registerCodingAgentIPCV3 requires a service instance");
   }
 
-  const ipc = injectedIpcMain || ipcMain;
+  // Keep Electron acquisition lazy: injected test/embedded hosts must not
+  // accidentally gain desktop shell or dialog authority.
+  const electronRuntime = injectedIpcMain ? null : require("electron");
+  const ipc = injectedIpcMain || electronRuntime.ipcMain;
   const artifactClient =
     options.artifactClient ||
     new ArtifactWorkbenchClient({
       repoRoot: service.repoRoot,
       cliEntry: service.bridge?.cliEntry,
     });
-  const electronShell = options.shell || shell;
-  const electronDialog = options.dialog || dialog;
+  const electronShell = options.shell || electronRuntime?.shell || null;
+  const electronDialog = options.dialog || electronRuntime?.dialog || null;
   const runtimeFs = options.fs || fs;
 
   logger.info("[CodingAgentIPCV3] Registering coding agent IPC handlers...");

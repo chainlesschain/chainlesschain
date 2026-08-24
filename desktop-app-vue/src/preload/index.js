@@ -1,4 +1,22 @@
 const { contextBridge, ipcRenderer, desktopCapturer } = require("electron");
+const { assertLegacyGenericIpcEnabled } = require("./legacy-ipc-policy.js");
+
+function legacyInvoke(channel, ...args) {
+  assertLegacyGenericIpcEnabled();
+  return ipcRenderer.invoke(channel, ...args);
+}
+
+function legacySend(channel, ...args) {
+  assertLegacyGenericIpcEnabled();
+  return ipcRenderer.send(channel, ...args);
+}
+
+function legacyOn(channel, func, once = false) {
+  assertLegacyGenericIpcEnabled();
+  return ipcRenderer[once ? "once" : "on"](channel, (event, ...args) =>
+    func(event, ...args),
+  );
+}
 
 /**
  * 清理对象中的 undefined 值
@@ -2882,7 +2900,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 通用 IPC invoke 方法
   // 用于调用任意 IPC 通道（如 session:*, error:* 等）
   // ==========================================
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  invoke: legacyInvoke,
 
   // ==========================================
   // session-core (Managed Agents parity Phase H)
@@ -3438,15 +3456,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
 // Also expose a direct electron object for components that use window.electron.ipcRenderer
 contextBridge.exposeInMainWorld("electron", {
   ipcRenderer: {
-    invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
-    send: (channel, ...args) => ipcRenderer.send(channel, ...args),
-    on: (channel, func) =>
-      ipcRenderer.on(channel, (event, ...args) => func(event, ...args)),
-    once: (channel, func) =>
-      ipcRenderer.once(channel, (event, ...args) => func(event, ...args)),
-    removeListener: (channel, func) =>
-      ipcRenderer.removeListener(channel, func),
-    removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+    invoke: legacyInvoke,
+    send: legacySend,
+    on: (channel, func) => legacyOn(channel, func),
+    once: (channel, func) => legacyOn(channel, func, true),
+    removeListener: (channel, func) => {
+      assertLegacyGenericIpcEnabled();
+      return ipcRenderer.removeListener(channel, func);
+    },
+    removeAllListeners: (channel) => {
+      assertLegacyGenericIpcEnabled();
+      return ipcRenderer.removeAllListeners(channel);
+    },
   },
   desktopCapturer: {
     getSources: (options) => desktopCapturer.getSources(options),
@@ -3455,11 +3476,15 @@ contextBridge.exposeInMainWorld("electron", {
 
 // Expose window.ipc for components that use window.ipc.invoke pattern
 contextBridge.exposeInMainWorld("ipc", {
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
-  on: (channel, func) =>
-    ipcRenderer.on(channel, (event, ...args) => func(event, ...args)),
-  once: (channel, func) =>
-    ipcRenderer.once(channel, (event, ...args) => func(event, ...args)),
-  removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  invoke: legacyInvoke,
+  on: (channel, func) => legacyOn(channel, func),
+  once: (channel, func) => legacyOn(channel, func, true),
+  removeListener: (channel, func) => {
+    assertLegacyGenericIpcEnabled();
+    return ipcRenderer.removeListener(channel, func);
+  },
+  removeAllListeners: (channel) => {
+    assertLegacyGenericIpcEnabled();
+    return ipcRenderer.removeAllListeners(channel);
+  },
 });

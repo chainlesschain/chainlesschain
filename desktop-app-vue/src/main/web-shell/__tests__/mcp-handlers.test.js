@@ -83,6 +83,13 @@ function makeStubManager(overrides = {}) {
   };
 }
 
+function makeAllowSecurityPolicy() {
+  return {
+    validateToolExecution: vi.fn().mockResolvedValue(undefined),
+    validateResourceAccess: vi.fn(() => ({ permitted: true })),
+  };
+}
+
 describe("shapeTool", () => {
   it("preserves name + description + inputSchema", () => {
     const t = shapeTool({
@@ -209,13 +216,22 @@ describe("mcp.list_tools — manager unavailable", () => {
 describe("mcp.call_tool", () => {
   it("forwards serverName + toolName + params to the manager", async () => {
     const mcpManager = makeStubManager();
-    const handler = createMcpCallToolHandler({ mcpManager });
+    const mcpSecurityPolicy = makeAllowSecurityPolicy();
+    const handler = createMcpCallToolHandler({
+      mcpManager,
+      mcpSecurityPolicy,
+    });
     const result = await handler({
       serverName: "filesystem",
       toolName: "read_file",
       params: { path: "/tmp/foo" },
     });
     expect(mcpManager.callTool).toHaveBeenCalledWith(
+      "filesystem",
+      "read_file",
+      { path: "/tmp/foo" },
+    );
+    expect(mcpSecurityPolicy.validateToolExecution).toHaveBeenCalledWith(
       "filesystem",
       "read_file",
       { path: "/tmp/foo" },
@@ -227,7 +243,10 @@ describe("mcp.call_tool", () => {
 
   it("defaults params to {} when omitted", async () => {
     const mcpManager = makeStubManager();
-    const handler = createMcpCallToolHandler({ mcpManager });
+    const handler = createMcpCallToolHandler({
+      mcpManager,
+      mcpSecurityPolicy: makeAllowSecurityPolicy(),
+    });
     await handler({ serverName: "github", toolName: "list_repos" });
     expect(mcpManager.callTool).toHaveBeenCalledWith(
       "github",
@@ -266,13 +285,25 @@ describe("mcp.call_tool", () => {
     ).rejects.toThrow("mcp_unavailable");
   });
 
+  it("fails closed when the MCP security policy is unavailable", async () => {
+    const handler = createMcpCallToolHandler({
+      mcpManager: makeStubManager(),
+    });
+    await expect(
+      handler({ serverName: "filesystem", toolName: "read_file" }),
+    ).rejects.toThrow("mcp_security_policy_unavailable");
+  });
+
   it("propagates callTool errors verbatim", async () => {
     const mcpManager = makeStubManager({
       callTool: vi.fn(async () => {
         throw new Error("permission_denied");
       }),
     });
-    const handler = createMcpCallToolHandler({ mcpManager });
+    const handler = createMcpCallToolHandler({
+      mcpManager,
+      mcpSecurityPolicy: makeAllowSecurityPolicy(),
+    });
     await expect(
       handler({ serverName: "filesystem", toolName: "read_file" }),
     ).rejects.toThrow("permission_denied");
@@ -377,12 +408,20 @@ describe("mcp.list_resources — single server", () => {
 describe("mcp.read_resource", () => {
   it("forwards serverName + uri to readResource", async () => {
     const mcpManager = makeStubManager();
-    const handler = createMcpReadResourceHandler({ mcpManager });
+    const mcpSecurityPolicy = makeAllowSecurityPolicy();
+    const handler = createMcpReadResourceHandler({
+      mcpManager,
+      mcpSecurityPolicy,
+    });
     const result = await handler({
       serverName: "filesystem",
       uri: "file:///tmp/notes.md",
     });
     expect(mcpManager.readResource).toHaveBeenCalledWith(
+      "filesystem",
+      "file:///tmp/notes.md",
+    );
+    expect(mcpSecurityPolicy.validateResourceAccess).toHaveBeenCalledWith(
       "filesystem",
       "file:///tmp/notes.md",
     );
@@ -426,7 +465,10 @@ describe("mcp.read_resource", () => {
         throw new Error("not_found");
       }),
     });
-    const handler = createMcpReadResourceHandler({ mcpManager });
+    const handler = createMcpReadResourceHandler({
+      mcpManager,
+      mcpSecurityPolicy: makeAllowSecurityPolicy(),
+    });
     await expect(
       handler({ serverName: "filesystem", uri: "file:///gone" }),
     ).rejects.toThrow("not_found");

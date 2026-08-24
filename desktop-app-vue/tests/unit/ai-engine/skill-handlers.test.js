@@ -2259,6 +2259,37 @@ describe("Skill Handlers", () => {
       expect(result.success).toBe(true);
       expect(result.message).toBeDefined();
     });
+
+    it("should fail closed when the host network broker is unavailable", async () => {
+      const result = await handler.execute(
+        { input: "--get https://example.com" },
+        {},
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("network broker is unavailable");
+    });
+
+    it("should delegate network access to the host broker", async () => {
+      const request = vi.fn().mockResolvedValue({
+        status: 200,
+        statusText: "OK",
+        headers: { "content-type": "text/plain" },
+        body: "brokered",
+        duration: 1,
+      });
+      const result = await handler.execute(
+        { input: "--get https://example.com" },
+        { networkBroker: { request }, workspaceRoot: process.cwd() },
+      );
+      expect(result.success).toBe(true);
+      expect(request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "https://example.com",
+          method: "GET",
+          origin: "cowork-skill:http-client",
+        }),
+      );
+    });
   });
 
   // ============================================================

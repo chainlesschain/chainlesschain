@@ -9,6 +9,8 @@ import {
   KADEMLIA_K,
   KADEMLIA_BITS,
   ensureAgentNetworkTables,
+  migrateAgentNetworkSecrets,
+  setAgentNetworkSecretStore,
   createAgentDID,
   resolveAgentDID,
   listAgentDIDs,
@@ -48,7 +50,20 @@ import { MockDatabase } from "../helpers/mock-db.js";
 
 describe("agent-network", () => {
   let db;
+  let storedSecrets;
   beforeEach(() => {
+    storedSecrets = new Map();
+    setAgentNetworkSecretStore({
+      set(key, value) {
+        storedSecrets.set(key, value);
+      },
+      get(key) {
+        return storedSecrets.get(key) ?? null;
+      },
+      delete(key) {
+        return storedSecrets.delete(key);
+      },
+    });
     db = new MockDatabase();
     ensureAgentNetworkTables(db);
   });
@@ -93,6 +108,10 @@ describe("agent-network", () => {
       expect(r.publicKey).toMatch(/^[0-9a-f]+$/);
       expect(r.didDocument.id).toBe(r.did);
       expect(r.didDocument.service[0].type).toBe("AgentService");
+      const row = db.data.get("agent_dids")[0];
+      expect(row.private_key).toBe("");
+      expect(row.private_key_ref).toMatch(/^agent-network\/did\/[0-9a-f]{64}$/);
+      expect(storedSecrets.get(row.private_key_ref)).toMatch(/^[0-9a-f]+$/);
     });
 
     it("resolves a DID back into public metadata", () => {
@@ -271,6 +290,10 @@ describe("agent-network", () => {
       const session = validateSession(db, token);
       expect(session).toBeTruthy();
       expect(session.agentDid).toBe(did);
+      const row = db.data.get("agent_auth_sessions")[0];
+      expect(row.token).toBe("");
+      expect(row.token_hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(row.token_hash).not.toBe(token);
     });
 
     it("rejects a bad signature", () => {
@@ -302,6 +325,47 @@ describe("agent-network", () => {
       expect(forA).toHaveLength(1);
       const pending = listSessions(db, { status: AUTH_STATUS.PENDING });
       expect(pending).toHaveLength(2);
+    });
+
+    it("migrates legacy private keys and tokens without retaining plaintext", () => {
+      const did = "did:chainless:legacy";
+      db.data.get("agent_dids").push({
+        did,
+        private_key: "legacy-private-key",
+        private_key_ref: "",
+      });
+      db.data.get("agent_auth_sessions").push({
+        session_id: "legacy-session",
+        token: "legacy-token",
+        token_hash: "",
+      });
+
+      expect(migrateAgentNetworkSecrets(db, { dryRun: true })).toEqual({
+        pendingPrivateKeys: 1,
+        pendingTokens: 1,
+        migratedPrivateKeys: 0,
+        migratedTokens: 0,
+        dryRun: true,
+      });
+      expect(db.data.get("agent_dids")[0].private_key).toBe(
+        "legacy-private-key",
+      );
+      expect(storedSecrets).toHaveProperty("size", 0);
+
+      expect(migrateAgentNetworkSecrets(db)).toEqual({
+        migratedPrivateKeys: 1,
+        migratedTokens: 1,
+      });
+
+      const didRow = db.data.get("agent_dids")[0];
+      const sessionRow = db.data.get("agent_auth_sessions")[0];
+      expect(didRow.private_key).toBe("");
+      expect(storedSecrets.get(didRow.private_key_ref)).toBe(
+        "legacy-private-key",
+      );
+      expect(sessionRow.token).toBe("");
+      expect(sessionRow.token_hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(sessionRow.token_hash).not.toContain("legacy-token");
     });
   });
 

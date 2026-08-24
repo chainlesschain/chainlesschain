@@ -212,12 +212,11 @@ describe("window.open handler — desktop:* roles", () => {
       opened: true,
     });
     expect(result.url).toBe("http://localhost:5173#/hardware-wallet");
-    // Desktop preload (NOT web-shell preload) + sandbox:false (Electron 39
-    // workaround that the comment in main/index.js documents).
+    // Desktop preload (NOT web-shell preload) with renderer sandboxing.
     expect(factoryCalls[0].opts.webPreferences).toMatchObject({
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       preload: "/abs/desktop-preload.js",
     });
     // Per-role default geometry from window-registry.
@@ -273,7 +272,7 @@ describe("window.open handler — desktop:* roles", () => {
     );
   });
 
-  it("does NOT add sandbox:false for non-desktop roles", async () => {
+  it("enables the sandbox for non-desktop roles too", async () => {
     const handler = createWindowOpenHandler({
       registry,
       httpUrl: HTTP_URL,
@@ -281,7 +280,7 @@ describe("window.open handler — desktop:* roles", () => {
       browserWindowFactory: factory,
     });
     await handler({ role: "artifact" });
-    expect(factoryCalls[0].opts.webPreferences.sandbox).toBeUndefined();
+    expect(factoryCalls[0].opts.webPreferences.sandbox).toBe(true);
   });
 
   it("sets backgroundColor for desktop:* roles to avoid white flash", async () => {

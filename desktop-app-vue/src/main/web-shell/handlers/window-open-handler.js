@@ -170,10 +170,7 @@ function createWindowOpenHandler(options = {}) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        // Desktop pages need the same sandbox-off workaround the main
-        // window uses — see main/index.js comment about Electron 39
-        // sandboxed_renderer crash on Windows.
-        ...(isDesktopRole ? { sandbox: false } : {}),
+        sandbox: true,
         ...(preloadForWindow ? { preload: preloadForWindow } : {}),
       },
     };

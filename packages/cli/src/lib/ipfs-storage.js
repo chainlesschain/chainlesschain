@@ -21,6 +21,35 @@
  */
 
 import crypto from "crypto";
+import { createSecretStore } from "./secret-store.js";
+
+let configuredIpfsSecretStore = null;
+
+export function setIpfsSecretStore(secretStore) {
+  if (
+    !secretStore ||
+    typeof secretStore.set !== "function" ||
+    typeof secretStore.get !== "function" ||
+    typeof secretStore.delete !== "function"
+  ) {
+    throw new TypeError("IPFS storage requires a SecretStore");
+  }
+  configuredIpfsSecretStore = secretStore;
+}
+
+function getIpfsSecretStore() {
+  if (!configuredIpfsSecretStore) {
+    configuredIpfsSecretStore = createSecretStore({
+      service: "chainlesschain-ipfs-dek",
+    });
+  }
+  return configuredIpfsSecretStore;
+}
+
+function _encryptionKeyRef(cid) {
+  const digest = crypto.createHash("sha256").update(cid).digest("hex");
+  return `ipfs/dek/${digest}`;
+}
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -91,7 +120,8 @@ export function ensureIpfsTables(db) {
     mime_type TEXT,
     pinned INTEGER DEFAULT 0,
     encrypted INTEGER DEFAULT 0,
-    encryption_key TEXT,
+    encryption_key TEXT DEFAULT '',
+    encryption_key_ref TEXT,
     knowledge_id TEXT,
     metadata TEXT,
     payload TEXT,
@@ -105,7 +135,61 @@ export function ensureIpfsTables(db) {
     updated_at INTEGER NOT NULL
   )`);
 
+  const columns = db.prepare("PRAGMA table_info(ipfs_content)").all();
+  if (
+    columns.length > 0 &&
+    !columns.some((entry) => entry.name === "encryption_key_ref")
+  ) {
+    db.exec("ALTER TABLE ipfs_content ADD COLUMN encryption_key_ref TEXT");
+  }
+
+  migrateIpfsEncryptionKeys(db);
+
   _loadAll(db);
+}
+
+export function migrateIpfsEncryptionKeys(db, { dryRun = false } = {}) {
+  db.exec("PRAGMA secure_delete = ON");
+  const rows = db
+    .prepare("SELECT cid, encryption_key, encryption_key_ref FROM ipfs_content")
+    .all()
+    .filter((row) => row.encryption_key && !row.encryption_key_ref);
+  if (dryRun) {
+    return { pending: rows.length, migrated: 0, dryRun: true };
+  }
+
+  if (rows.length > 0 && typeof db.transaction !== "function") {
+    throw new Error(
+      "IPFS data-key migration requires transactional database support",
+    );
+  }
+
+  const secretStore = rows.length > 0 ? getIpfsSecretStore() : null;
+  const stagedKeyRefs = [];
+  try {
+    for (const row of rows) {
+      const keyRef = _encryptionKeyRef(row.cid);
+      secretStore.set(keyRef, row.encryption_key);
+      stagedKeyRefs.push(keyRef);
+    }
+    const applyMigration = db.transaction(() => {
+      for (const row of rows) {
+        const keyRef = _encryptionKeyRef(row.cid);
+        db.prepare(
+          "UPDATE ipfs_content SET encryption_key = ?, encryption_key_ref = ? WHERE cid = ?",
+        ).run("", keyRef, row.cid);
+      }
+    });
+    applyMigration();
+  } catch (error) {
+    for (const keyRef of stagedKeyRefs) secretStore.delete(keyRef);
+    throw error;
+  }
+  return {
+    pending: rows.length,
+    migrated: rows.length,
+    dryRun: false,
+  };
 }
 
 function _loadAll(db) {
@@ -263,6 +347,7 @@ export function addContent(
   }
 
   const cid = _computeCid(payload);
+  const encryptionKeyRef = encryptionKey ? _encryptionKeyRef(cid) : null;
 
   // Idempotent: if CID exists, just update flags
   const existing = _content.get(cid);
@@ -301,7 +386,8 @@ export function addContent(
     mime_type: mimeType || null,
     pinned: pin ? 1 : 0,
     encrypted: encrypt ? 1 : 0,
-    encryption_key: encryptionKey,
+    encryption_key: "",
+    encryption_key_ref: encryptionKeyRef,
     knowledge_id: knowledgeId || null,
     metadata: metadataJson,
     payload: payloadBase64,
@@ -309,24 +395,33 @@ export function addContent(
     updated_at: now,
   };
 
-  db.prepare(
-    `INSERT INTO ipfs_content (id, cid, filename, size, mime_type, pinned, encrypted, encryption_key, knowledge_id, metadata, payload, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    cid,
-    entry.filename,
-    size,
-    entry.mime_type,
-    entry.pinned,
-    entry.encrypted,
-    entry.encryption_key,
-    entry.knowledge_id,
-    entry.metadata,
-    entry.payload,
-    now,
-    now,
-  );
+  if (encryptionKeyRef) {
+    getIpfsSecretStore().set(encryptionKeyRef, encryptionKey);
+  }
+  try {
+    db.prepare(
+      `INSERT INTO ipfs_content (id, cid, filename, size, mime_type, pinned, encrypted, encryption_key, encryption_key_ref, knowledge_id, metadata, payload, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      cid,
+      entry.filename,
+      size,
+      entry.mime_type,
+      entry.pinned,
+      entry.encrypted,
+      entry.encryption_key,
+      entry.encryption_key_ref,
+      entry.knowledge_id,
+      entry.metadata,
+      entry.payload,
+      now,
+      now,
+    );
+  } catch (error) {
+    if (encryptionKeyRef) getIpfsSecretStore().delete(encryptionKeyRef);
+    throw error;
+  }
 
   _content.set(cid, entry);
   if (knowledgeId) {
@@ -350,9 +445,12 @@ export function getContent(db, cid, { asString } = {}) {
   if (!entry) return null;
 
   let buffer = Buffer.from(entry.payload, "base64");
-  if (entry.encrypted && entry.encryption_key) {
+  if (entry.encrypted) {
     try {
-      buffer = _decrypt(buffer, entry.encryption_key);
+      if (!entry.encryption_key_ref) return null;
+      const encryptionKey = getIpfsSecretStore().get(entry.encryption_key_ref);
+      if (!encryptionKey) return null;
+      buffer = _decrypt(buffer, encryptionKey);
     } catch (_e) {
       return null;
     }
@@ -395,7 +493,7 @@ export function listContent(db, { pinned, knowledgeId, limit = 50 } = {}) {
     .sort((a, b) => b.created_at - a.created_at)
     .slice(0, limit)
     .map((c) => {
-      const { payload, encryption_key, ...rest } = c;
+      const { payload, encryption_key, encryption_key_ref, ...rest } = c;
       return rest;
     });
 }
@@ -446,7 +544,7 @@ export function listPins(db, { limit = 50, sortBy = "created_at" } = {}) {
     .sort(sorter)
     .slice(0, limit)
     .map((c) => {
-      const { payload, encryption_key, ...rest } = c;
+      const { payload, encryption_key, encryption_key_ref, ...rest } = c;
       return rest;
     });
 }
@@ -501,8 +599,12 @@ export function garbageCollect(db) {
     }
   }
   for (const cid of toRemove) {
+    const entry = _content.get(cid);
     _content.delete(cid);
     db.prepare("DELETE FROM ipfs_content WHERE cid = ?").run(cid);
+    if (entry?.encryption_key_ref) {
+      getIpfsSecretStore().delete(entry.encryption_key_ref);
+    }
   }
   // Clean up knowledge links pointing to removed CIDs
   for (const [kid, set] of _knowledgeLinks) {
@@ -555,7 +657,7 @@ export function getKnowledgeAttachments(db, knowledgeId) {
     .map((cid) => _content.get(cid))
     .filter(Boolean)
     .map((c) => {
-      const { payload, encryption_key, ...rest } = c;
+      const { payload, encryption_key, encryption_key_ref, ...rest } = c;
       return rest;
     });
 }

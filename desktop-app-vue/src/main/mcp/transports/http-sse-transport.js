@@ -77,6 +77,10 @@ class HttpSseTransport extends EventEmitter {
       circuitBreakerThreshold: 5, // Open circuit after 5 consecutive failures
       circuitBreakerTimeout: 30000, // Try again after 30s
       onTokenRefresh: null,
+      lookup: null,
+      maxRequestBytes: 1024 * 1024,
+      maxResponseBytes: 8 * 1024 * 1024,
+      maxSseFrameBytes: 1024 * 1024,
       ...config,
     };
 
@@ -205,57 +209,70 @@ class HttpSseTransport extends EventEmitter {
         headers["Authorization"] = `Bearer ${this.config.apiKey}`;
       }
 
-      const req = protocol.get(url.toString(), { headers }, (res) => {
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(`SSE connection failed with status ${res.statusCode}`),
-          );
-          return;
-        }
+      const req = protocol.get(
+        url.toString(),
+        {
+          headers,
+          ...(this.config.lookup ? { lookup: this.config.lookup } : {}),
+        },
+        (res) => {
+          if (res.statusCode !== 200) {
+            reject(
+              new Error(`SSE connection failed with status ${res.statusCode}`),
+            );
+            return;
+          }
 
-        logger.info("[HttpSseTransport] SSE connection established");
+          logger.info("[HttpSseTransport] SSE connection established");
 
-        let buffer = "";
+          let buffer = "";
 
-        res.on("data", (chunk) => {
-          buffer += chunk.toString("utf8");
+          res.on("data", (chunk) => {
+            buffer += chunk.toString("utf8");
+            if (
+              Buffer.byteLength(buffer, "utf8") > this.config.maxSseFrameBytes
+            ) {
+              req.destroy(new Error("MCP SSE frame exceeds configured limit"));
+              return;
+            }
 
-          // Process complete SSE messages
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || ""; // Keep incomplete message in buffer
+            // Process complete SSE messages
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop() || ""; // Keep incomplete message in buffer
 
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.substring(6);
-              try {
-                const message = JSON.parse(data);
-                this._handleMessage(message);
-              } catch (error) {
-                logger.error(
-                  "[HttpSseTransport] Failed to parse SSE message:",
-                  error,
-                );
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.substring(6);
+                try {
+                  const message = JSON.parse(data);
+                  this._handleMessage(message);
+                } catch (error) {
+                  logger.error(
+                    "[HttpSseTransport] Failed to parse SSE message:",
+                    error,
+                  );
+                }
               }
             }
-          }
-        });
+          });
 
-        res.on("error", (error) => {
-          logger.error("[HttpSseTransport] SSE error:", error);
-          this.emit("error", error);
-          this._reconnectSSE();
-        });
+          res.on("error", (error) => {
+            logger.error("[HttpSseTransport] SSE error:", error);
+            this.emit("error", error);
+            this._reconnectSSE();
+          });
 
-        res.on("end", () => {
-          logger.info("[HttpSseTransport] SSE connection closed");
-          this.isConnected = false;
-          this.emit("disconnected");
-          this._reconnectSSE();
-        });
+          res.on("end", () => {
+            logger.info("[HttpSseTransport] SSE connection closed");
+            this.isConnected = false;
+            this.emit("disconnected");
+            this._reconnectSSE();
+          });
 
-        this.sseConnection = res;
-        resolve();
-      });
+          this.sseConnection = res;
+          resolve();
+        },
+      );
 
       req.on("error", (error) => {
         logger.error("[HttpSseTransport] SSE request error:", error);
@@ -408,6 +425,9 @@ class HttpSseTransport extends EventEmitter {
       const protocol = this.config.useSSL ? https : http;
 
       const data = JSON.stringify(message);
+      if (Buffer.byteLength(data) > this.config.maxRequestBytes) {
+        return reject(new Error("MCP request exceeds configured limit"));
+      }
 
       const headers = {
         "Content-Type": "application/json",
@@ -422,6 +442,7 @@ class HttpSseTransport extends EventEmitter {
       const options = {
         method: "POST",
         headers,
+        ...(this.config.lookup ? { lookup: this.config.lookup } : {}),
       };
 
       const req = protocol.request(url.toString(), options, (res) => {
@@ -429,6 +450,12 @@ class HttpSseTransport extends EventEmitter {
 
         res.on("data", (chunk) => {
           responseData += chunk.toString("utf8");
+          if (
+            Buffer.byteLength(responseData, "utf8") >
+            this.config.maxResponseBytes
+          ) {
+            req.destroy(new Error("MCP response exceeds configured limit"));
+          }
         });
 
         res.on("end", () => {

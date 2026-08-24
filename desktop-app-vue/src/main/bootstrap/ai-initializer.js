@@ -6,6 +6,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const path = require("node:path");
 
 /**
  * 注册 AI 引擎初始化器
@@ -280,12 +281,24 @@ function registerAIInitializers(factory) {
       const { MCPClientManager } = require("../mcp/mcp-client-manager");
       const { MCPToolAdapter } = require("../mcp/mcp-tool-adapter");
       const { MCPSecurityPolicy } = require("../mcp/mcp-security-policy");
+      const {
+        MCPSecurityAuditStore,
+      } = require("../mcp/mcp-security-audit-store");
+      const { app } = require("electron");
       const { registerMCPIPC } = require("../mcp/mcp-ipc");
 
       // 初始化安全策略
       const mcpSecurity = new MCPSecurityPolicy({
         auditLog: true,
         requireConsent: true,
+        requirePersistentAudit: true,
+        auditStore: new MCPSecurityAuditStore(
+          path.join(
+            app.getPath("userData"),
+            "audit",
+            "mcp-security-audit.jsonl",
+          ),
+        ),
       });
 
       // 初始化MCP客户端管理器

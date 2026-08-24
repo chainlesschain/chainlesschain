@@ -533,17 +533,20 @@ class FileIPC {
     // 写入文件内容
     ipcMain.handle("file:writeContent", async (event, filePath, content) => {
       try {
+        const { getProjectConfig } = require("../project/project-config");
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
         logger.info("[File IPC] 写入文件:", filePath);
 
         // 确保目录存在
-        const dir = path.dirname(filePath);
+        const dir = path.dirname(resolvedPath);
         await fs.mkdir(dir, { recursive: true });
 
-        await fs.writeFile(filePath, content, "utf-8");
+        await fs.writeFile(resolvedPath, content, "utf-8");
 
         return {
           success: true,
-          filePath,
+          filePath: resolvedPath,
         };
       } catch (error) {
         logger.error("[File IPC] 写入文件失败:", error);
@@ -653,7 +656,10 @@ class FileIPC {
           data,
         };
       } catch (error) {
-        const normalizedError = this.normalizeError(error, "Office文件预览失败");
+        const normalizedError = this.normalizeError(
+          error,
+          "Office文件预览失败",
+        );
         logger.error("[File IPC] Office文件预览失败:", error);
         return {
           success: false,
@@ -1157,7 +1163,8 @@ class FileIPC {
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("[FileIPC] Word预览失败:", errorMessage, error);
       throw new Error(`Word预览失败: ${errorMessage}`);
     }
@@ -1198,7 +1205,9 @@ class FileIPC {
         const data = [];
         worksheet.eachRow({ includeEmpty: true }, (row) => {
           const rowValues = row.values.slice(1); // row.values[0] is undefined (1-indexed)
-          data.push(rowValues.map((v) => (v !== undefined && v !== null ? v : "")));
+          data.push(
+            rowValues.map((v) => (v !== undefined && v !== null ? v : "")),
+          );
         });
 
         sheets.push({

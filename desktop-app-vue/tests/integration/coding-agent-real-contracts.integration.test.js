@@ -197,7 +197,13 @@ describe("Coding Agent real object contracts", () => {
     const descriptor = tools.find(
       (tool) => tool.name === "mcp_filesystem_read_file",
     );
-    const broker = new CodingAgentToolBroker({ mcpManager });
+    const mcpSecurityPolicy = {
+      validateToolExecution: vi.fn().mockResolvedValue(undefined),
+    };
+    const broker = new CodingAgentToolBroker({
+      mcpManager,
+      mcpSecurityPolicy,
+    });
 
     const result = await broker.execute(
       descriptor,
@@ -206,6 +212,11 @@ describe("Coding Agent real object contracts", () => {
     );
 
     expect(mcpManager.callTool).toHaveBeenCalledWith(
+      "filesystem",
+      "read_file",
+      { path: "README.md" },
+    );
+    expect(mcpSecurityPolicy.validateToolExecution).toHaveBeenCalledWith(
       "filesystem",
       "read_file",
       { path: "README.md" },

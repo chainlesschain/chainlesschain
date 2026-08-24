@@ -9,6 +9,7 @@ class CodingAgentToolBroker {
   constructor(options = {}) {
     this.toolManager = options.toolManager || null;
     this.mcpManager = options.mcpManager || null;
+    this.mcpSecurityPolicy = options.mcpSecurityPolicy || null;
   }
 
   async execute(descriptor, args = {}, context = {}) {
@@ -28,12 +29,26 @@ class CodingAgentToolBroker {
         `MCP manager is unavailable for tool "${descriptor.name}".`,
       );
     }
+    if (
+      !this.mcpSecurityPolicy ||
+      typeof this.mcpSecurityPolicy.validateToolExecution !== "function"
+    ) {
+      throw new Error(
+        `MCP security policy is unavailable for tool "${descriptor.name}".`,
+      );
+    }
+
+    await this.mcpSecurityPolicy.validateToolExecution(
+      descriptor.mcpMetadata.serverName,
+      descriptor.mcpMetadata.originalToolName,
+      args,
+      context,
+    );
 
     const result = await this.mcpManager.callTool(
       descriptor.mcpMetadata.serverName,
       descriptor.mcpMetadata.originalToolName,
       args,
-      context,
     );
     return result && typeof result === "object"
       ? { ...result, toolName: descriptor.name }

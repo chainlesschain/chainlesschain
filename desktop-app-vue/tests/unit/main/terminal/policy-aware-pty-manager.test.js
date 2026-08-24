@@ -29,7 +29,11 @@ describe("Desktop policy-aware PtyManager bootstrap", () => {
       executionCwd: path.resolve("caller-root"),
     };
 
-    expect(resolver(request)).toBe(policy);
+    expect(resolver(request)).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+    expect(Object.isFrozen(resolver(request))).toBe(true);
+    expect(Object.isFrozen(resolver(request).requiredBoundaries)).toBe(true);
     expect(collector).toHaveBeenCalledWith(request);
     expect(resolver(request)).not.toBeInstanceOf(Promise);
     expect(fileURLToPath(importModule.mock.calls[0][0])).toBe(

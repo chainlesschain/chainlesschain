@@ -40,6 +40,36 @@ const DEFAULT_CONFIG = Object.freeze({
   idleKillMs: 24 * 60 * 60 * 1000,
 });
 
+const PTY_ENV_ALLOWLIST = new Set([
+  "COMSPEC",
+  "HOME",
+  "LANG",
+  "LC_ALL",
+  "LOCALAPPDATA",
+  "LOGNAME",
+  "PATH",
+  "PATHEXT",
+  "SYSTEMDRIVE",
+  "SYSTEMROOT",
+  "TEMP",
+  "TMP",
+  "USER",
+  "USERDOMAIN",
+  "USERNAME",
+  "USERPROFILE",
+  "WINDIR",
+]);
+
+function buildMinimalPtyEnv(source = process.env) {
+  const env = {};
+  for (const [key, value] of Object.entries(source || {})) {
+    if (PTY_ENV_ALLOWLIST.has(key.toUpperCase()) && value != null) {
+      env[key] = String(value);
+    }
+  }
+  return env;
+}
+
 // Map whitelisted shell name → resolved executable + args. node-pty needs a
 // real path / command name to spawn. Login-shell flags ensure ~/.bashrc /
 // ~/.profile load so user PATH (npm-global, cargo, brew etc.) is visible —
@@ -464,18 +494,12 @@ class PtyManager extends EventEmitter {
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
     const { cmd, args } = resolveShellCmd(shell, platform);
 
-    // req.env arrives from a remote WS frame; only merge a plain object, else a
-    // string/array would spread into garbage numeric env keys.
-    const extraEnv =
-      req.env && typeof req.env === "object" && !Array.isArray(req.env)
-        ? req.env
-        : {};
     const nativeSpawnOptions = {
       name: "xterm-256color",
       cols,
       rows,
       cwd,
-      env: { ...process.env, ...extraEnv },
+      env: buildMinimalPtyEnv(),
     };
     const brokerSpawnOptions = {
       ...nativeSpawnOptions,
@@ -793,4 +817,4 @@ class PtySession {
   }
 }
 
-module.exports = { PtyManager, DEFAULT_CONFIG };
+module.exports = { PtyManager, DEFAULT_CONFIG, buildMinimalPtyEnv };

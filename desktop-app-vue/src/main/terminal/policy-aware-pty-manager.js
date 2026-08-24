@@ -58,11 +58,23 @@ async function buildResolver(options = {}) {
     }
     const collectWorkspacePluginBinSandboxPolicy =
       pluginBin.collectWorkspacePluginBinSandboxPolicy;
-    const resolver = ({ workspaceCwd, executionCwd }) =>
-      collectWorkspacePluginBinSandboxPolicy({
+    const resolver = ({ workspaceCwd, executionCwd }) => {
+      const observed = collectWorkspacePluginBinSandboxPolicy({
         workspaceCwd,
         executionCwd,
       });
+      return Object.freeze({
+        requiredBoundaries: Object.freeze(
+          [
+            ...new Set([
+              "filesystem",
+              "network",
+              ...(observed?.requiredBoundaries || []),
+            ]),
+          ].sort(),
+        ),
+      });
+    };
     Object.defineProperty(resolver, "loadError", {
       value: null,
       enumerable: false,

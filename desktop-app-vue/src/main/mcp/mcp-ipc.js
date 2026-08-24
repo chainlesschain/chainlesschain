@@ -284,14 +284,10 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps = {}) {
           securityPolicy.setServerPermissions(serverName, config.permissions);
           logger.info(`[MCP IPC] Registered permissions for ${serverName}`);
         } else {
-          // Set default permissive permissions if none provided
-          securityPolicy.setServerPermissions(serverName, {
-            allowedPaths: [],
-            forbiddenPaths: [],
-            readOnly: false,
-            requireConsent: true,
-          });
-          logger.info(`[MCP IPC] Set default permissions for ${serverName}`);
+          securityPolicy.clearServerPermissions(serverName);
+          logger.warn(
+            `[MCP IPC] No permissions configured for ${serverName}; tool and resource access will be denied`,
+          );
         }
 
         // Register tools with ToolManager
@@ -339,6 +335,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps = {}) {
       logger.info(`[MCP IPC] Disconnecting from server: ${serverName}`);
 
       await mcpManager.disconnectServer(serverName);
+      securityPolicy.clearServerPermissions(serverName);
 
       return {
         success: true,

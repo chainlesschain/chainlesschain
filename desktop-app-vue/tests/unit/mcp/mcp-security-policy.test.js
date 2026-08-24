@@ -136,6 +136,77 @@ describe("MCPSecurityPolicy", () => {
     });
   });
 
+  describe("Persistent security audit", () => {
+    it("redacts secrets and records execution context", () => {
+      const append = vi.fn();
+      const policy = new MCPSecurityPolicy({
+        requirePersistentAudit: true,
+        auditStore: { append, query: vi.fn(() => []) },
+        auditContextProvider: () => ({
+          actor: "agent-1",
+          sessionId: "session-1",
+          authorization: { grant: "explicit" },
+          sandbox: { mode: "workspace-write" },
+        }),
+      });
+      policy.setServerPermissions("filesystem", {
+        allowedPaths: ["data/notes/"],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      expect(
+        policy.validateToolCall("filesystem", "read_file", {
+          path: "data/notes/a.txt",
+          apiToken: "do-not-log",
+          content: "private document body",
+        }),
+      ).toEqual({ permitted: true });
+
+      const entry = append.mock.calls[0][0];
+      expect(entry.actor).toBe("agent-1");
+      expect(entry.sessionId).toBe("session-1");
+      expect(entry.authorization).toEqual({ grant: "explicit" });
+      expect(entry.sandbox).toEqual({ mode: "workspace-write" });
+      expect(entry.result).toEqual({ decision: "ALLOWED" });
+      expect(entry.params.apiToken).toBe("[REDACTED]");
+      expect(entry.params.content.redacted).toBe(true);
+      expect(JSON.stringify(entry)).not.toContain("do-not-log");
+      expect(JSON.stringify(entry)).not.toContain("private document body");
+    });
+
+    it("fails closed when required audit persistence cannot be written", () => {
+      const policy = new MCPSecurityPolicy({
+        requirePersistentAudit: true,
+        auditStore: {
+          append() {
+            throw new Error("disk unavailable");
+          },
+        },
+      });
+      policy.setServerPermissions("filesystem", {
+        allowedPaths: ["data/notes/"],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      expect(
+        policy.validateToolCall("filesystem", "read_file", {
+          path: "data/notes/a.txt",
+        }),
+      ).toEqual({
+        permitted: false,
+        reason: expect.stringContaining("audit persistence failed"),
+      });
+    });
+
+    it("rejects required persistence without an audit store", () => {
+      expect(
+        () => new MCPSecurityPolicy({ requirePersistentAudit: true }),
+      ).toThrow("audit storage is required");
+    });
+  });
+
   describe("Operation Detection", () => {
     it("should detect read operations", () => {
       const operation = securityPolicy._detectOperation("read_file", {
@@ -501,7 +572,7 @@ describe("MCPSecurityPolicy", () => {
       // Empty path with no allowed paths configured - no whitelist means allow all (except forbidden)
       expect(() => {
         securityPolicy._validatePathAccess("test", "read", "");
-      }).not.toThrow(); // Changed: when allowedPaths is empty, no whitelist enforcement
+      }).toThrow(/No allowed paths configured/);
     });
 
     it("should be case-insensitive on Windows", () => {
@@ -948,6 +1019,9 @@ describe("MCPSecurityPolicy", () => {
 
     it("should timeout consent requests after CONSENT_TIMEOUT", async () => {
       securityPolicy.CONSENT_TIMEOUT = 100; // Short timeout for testing
+      securityPolicy.on("consent-required", () => {
+        // Deliberately leave the request unanswered.
+      });
 
       await expect(
         securityPolicy._requestUserConsent(
@@ -958,6 +1032,17 @@ describe("MCPSecurityPolicy", () => {
         ),
       ).rejects.toThrow("timed out");
     }, 5000);
+
+    it("should reject immediately when no consent UI or handler exists", async () => {
+      await expect(
+        securityPolicy._requestUserConsent(
+          "filesystem",
+          "delete_file",
+          { path: "test.txt" },
+          "high",
+        ),
+      ).rejects.toThrow("No user consent handler");
+    });
 
     it("should list pending consent requests", () => {
       const requestId = "test-pending-id";
@@ -1003,14 +1088,15 @@ describe("MCPSecurityPolicy", () => {
   });
 
   describe("validateToolCall (Synchronous)", () => {
-    it("should allow tool call when no permissions configured", () => {
+    it("should deny tool call when no permissions configured", () => {
       const result = securityPolicy.validateToolCall(
         "unknown-server",
         "read_file",
         { path: "/test.txt" },
       );
 
-      expect(result.permitted).toBe(true);
+      expect(result.permitted).toBe(false);
+      expect(result.reason).toMatch(/No permissions configured/);
     });
 
     it("should block write on read-only server", () => {
@@ -1086,13 +1172,14 @@ describe("MCPSecurityPolicy", () => {
   });
 
   describe("validateResourceAccess", () => {
-    it("should allow resource access when no permissions configured", () => {
+    it("should deny resource access when no permissions configured", () => {
       const result = securityPolicy.validateResourceAccess(
         "unknown-server",
         "resource://test",
       );
 
-      expect(result.permitted).toBe(true);
+      expect(result.permitted).toBe(false);
+      expect(result.reason).toMatch(/No permissions configured/);
     });
 
     it("should validate resource URI against allowed paths", () => {
@@ -1125,7 +1212,7 @@ describe("MCPSecurityPolicy", () => {
       expect(result.permitted).toBe(false);
     });
 
-    it("should allow resource access when no allowed paths specified", () => {
+    it("should deny resource access when no allowed paths are specified", () => {
       securityPolicy.setServerPermissions("filesystem", {
         allowedPaths: [],
         forbiddenPaths: [],
@@ -1137,7 +1224,8 @@ describe("MCPSecurityPolicy", () => {
         "any/path",
       );
 
-      expect(result.permitted).toBe(true);
+      expect(result.permitted).toBe(false);
+      expect(result.reason).toMatch(/No allowed paths configured/);
     });
   });
 
@@ -1159,7 +1247,7 @@ describe("MCPSecurityPolicy", () => {
   });
 
   describe("Public Consent Request", () => {
-    it("should request user consent for server connection", async () => {
+    it("should deny server connection consent when no UI is available", async () => {
       const request = {
         operation: "connect-server",
         serverName: "filesystem",
@@ -1170,10 +1258,10 @@ describe("MCPSecurityPolicy", () => {
       // Auto-allow when no main window
       const result = await securityPolicy.requestUserConsent(request);
 
-      expect(result).toBe(true);
+      expect(result).toBe(false);
     });
 
-    it("should auto-allow when main window is destroyed", async () => {
+    it("should deny when main window is destroyed", async () => {
       securityPolicy.mainWindow = { isDestroyed: () => true };
 
       const request = {
@@ -1185,7 +1273,7 @@ describe("MCPSecurityPolicy", () => {
 
       const result = await securityPolicy.requestUserConsent(request);
 
-      expect(result).toBe(true);
+      expect(result).toBe(false);
     });
 
     it("should map security levels to risk levels", async () => {
@@ -1203,9 +1291,11 @@ describe("MCPSecurityPolicy", () => {
         permissions: [],
       };
 
-      // Both should auto-allow when no window
-      expect(await securityPolicy.requestUserConsent(highRequest)).toBe(true);
-      expect(await securityPolicy.requestUserConsent(mediumRequest)).toBe(true);
+      // Both fail closed when no consent UI can bind the decision.
+      expect(await securityPolicy.requestUserConsent(highRequest)).toBe(false);
+      expect(await securityPolicy.requestUserConsent(mediumRequest)).toBe(
+        false,
+      );
     });
   });
 
@@ -1397,7 +1487,7 @@ describe("MCPSecurityPolicy", () => {
       // Should not throw when allowedPaths is empty (no whitelist)
       expect(() => {
         securityPolicy._validatePathAccess("test", "read", "any/path");
-      }).not.toThrow();
+      }).toThrow(/No allowed paths configured/);
     });
   });
 });

@@ -14,6 +14,38 @@
  */
 
 import crypto from "crypto";
+import { createSecretStore } from "./secret-store.js";
+
+let configuredAgentNetworkSecretStore = null;
+
+export function setAgentNetworkSecretStore(secretStore) {
+  if (
+    !secretStore ||
+    typeof secretStore.set !== "function" ||
+    typeof secretStore.get !== "function" ||
+    typeof secretStore.delete !== "function"
+  ) {
+    throw new TypeError("Agent Network requires a SecretStore");
+  }
+  configuredAgentNetworkSecretStore = secretStore;
+}
+
+function getAgentNetworkSecretStore() {
+  if (!configuredAgentNetworkSecretStore) {
+    configuredAgentNetworkSecretStore = createSecretStore({
+      service: "chainlesschain-agent-network",
+    });
+  }
+  return configuredAgentNetworkSecretStore;
+}
+
+function didPrivateKeyRef(did) {
+  return `agent-network/did/${crypto.createHash("sha256").update(did).digest("hex")}`;
+}
+
+function authTokenHash(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
 
 /* ── Constants ───────────────────────────────────────────── */
 
@@ -77,7 +109,8 @@ export function ensureAgentNetworkTables(db) {
     CREATE TABLE IF NOT EXISTS agent_dids (
       did TEXT PRIMARY KEY,
       public_key TEXT NOT NULL,
-      private_key TEXT NOT NULL,
+      private_key TEXT NOT NULL DEFAULT '',
+      private_key_ref TEXT NOT NULL,
       did_document TEXT NOT NULL,
       metadata TEXT,
       status TEXT NOT NULL,
@@ -124,7 +157,8 @@ export function ensureAgentNetworkTables(db) {
     CREATE TABLE IF NOT EXISTS agent_auth_sessions (
       session_id TEXT PRIMARY KEY,
       agent_did TEXT NOT NULL,
-      token TEXT NOT NULL,
+      token TEXT NOT NULL DEFAULT '',
+      token_hash TEXT NOT NULL,
       challenge TEXT NOT NULL,
       status TEXT NOT NULL,
       expires_at INTEGER NOT NULL,
@@ -161,6 +195,81 @@ export function ensureAgentNetworkTables(db) {
       completed_at INTEGER
     )
   `);
+
+  for (const [table, column, definition] of [
+    ["agent_dids", "private_key_ref", "TEXT"],
+    ["agent_auth_sessions", "token_hash", "TEXT"],
+  ]) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+    if (columns.length > 0 && !columns.some((entry) => entry.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+
+  migrateAgentNetworkSecrets(db);
+}
+
+export function migrateAgentNetworkSecrets(db, { dryRun = false } = {}) {
+  db.exec("PRAGMA secure_delete = ON");
+  const didRows = db
+    .prepare("SELECT did, private_key, private_key_ref FROM agent_dids")
+    .all()
+    .filter((row) => row.private_key && !row.private_key_ref);
+  const authRows = db
+    .prepare("SELECT session_id, token, token_hash FROM agent_auth_sessions")
+    .all()
+    .filter((row) => row.token && !row.token_hash);
+
+  if (dryRun) {
+    return {
+      pendingPrivateKeys: didRows.length,
+      pendingTokens: authRows.length,
+      migratedPrivateKeys: 0,
+      migratedTokens: 0,
+      dryRun: true,
+    };
+  }
+
+  if (
+    (didRows.length > 0 || authRows.length > 0) &&
+    typeof db.transaction !== "function"
+  ) {
+    throw new Error(
+      "Agent Network secret migration requires transactional database support",
+    );
+  }
+
+  const secretStore = didRows.length > 0 ? getAgentNetworkSecretStore() : null;
+  const stagedKeyRefs = [];
+  try {
+    for (const row of didRows) {
+      const keyRef = didPrivateKeyRef(row.did);
+      secretStore.set(keyRef, row.private_key);
+      stagedKeyRefs.push(keyRef);
+    }
+
+    const applyMigration = db.transaction(() => {
+      for (const row of didRows) {
+        const keyRef = didPrivateKeyRef(row.did);
+        db.prepare(
+          "UPDATE agent_dids SET private_key = ?, private_key_ref = ? WHERE did = ?",
+        ).run("", keyRef, row.did);
+      }
+      for (const row of authRows) {
+        db.prepare(
+          "UPDATE agent_auth_sessions SET token = ?, token_hash = ? WHERE session_id = ?",
+        ).run("", authTokenHash(row.token), row.session_id);
+      }
+    });
+    applyMigration();
+  } catch (error) {
+    for (const keyRef of stagedKeyRefs) secretStore.delete(keyRef);
+    throw error;
+  }
+  return {
+    migratedPrivateKeys: didRows.length,
+    migratedTokens: authRows.length,
+  };
 }
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -258,6 +367,7 @@ export function createAgentDID(db, { displayName, metadata = {} } = {}) {
     .slice(0, 32);
   const did = `did:chainless:${idHash}`;
   const now = _now();
+  const privateKeyRef = didPrivateKeyRef(did);
 
   const didDocument = {
     "@context": ["https://www.w3.org/ns/did/v1"],
@@ -284,20 +394,28 @@ export function createAgentDID(db, { displayName, metadata = {} } = {}) {
       : [],
   };
 
-  db.prepare(
-    `INSERT INTO agent_dids
-      (did, public_key, private_key, did_document, metadata, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    did,
-    publicKey,
-    privateKey,
-    JSON.stringify(didDocument),
-    _json({ displayName, ...metadata }),
-    DID_STATUS.ACTIVE,
-    now,
-    now,
-  );
+  const secretStore = getAgentNetworkSecretStore();
+  secretStore.set(privateKeyRef, privateKey);
+  try {
+    db.prepare(
+      `INSERT INTO agent_dids
+        (did, public_key, private_key, private_key_ref, did_document, metadata, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      did,
+      publicKey,
+      "",
+      privateKeyRef,
+      JSON.stringify(didDocument),
+      _json({ displayName, ...metadata }),
+      DID_STATUS.ACTIVE,
+      now,
+      now,
+    );
+  } catch (error) {
+    secretStore.delete(privateKeyRef);
+    throw error;
+  }
 
   return { did, publicKey, didDocument };
 }
@@ -351,12 +469,19 @@ export function deactivateAgentDID(db, did) {
 
 export function signWithAgent(db, did, data) {
   const row = db
-    .prepare(`SELECT private_key, status FROM agent_dids WHERE did = ?`)
+    .prepare(`SELECT private_key_ref, status FROM agent_dids WHERE did = ?`)
     .get(did);
   if (!row) throw new Error(`Unknown agent DID: ${did}`);
   if (row.status !== DID_STATUS.ACTIVE)
     throw new Error(`Agent DID is not active: ${did}`);
-  return _signEd25519(row.private_key, data);
+  if (!row.private_key_ref) {
+    throw new Error(`Agent DID private key reference is missing: ${did}`);
+  }
+  const privateKey = getAgentNetworkSecretStore().get(row.private_key_ref);
+  if (!privateKey) {
+    throw new Error(`Agent DID private key is unavailable: ${did}`);
+  }
+  return _signEd25519(privateKey, data);
 }
 
 export function verifyWithAgent(db, did, data, signature) {
@@ -557,14 +682,13 @@ export function startAuth(db, did) {
     throw new Error(`Agent DID not active: ${did}`);
   const sessionId = _uuid();
   const challenge = _hex(crypto.randomBytes(32));
-  const token = _hex(crypto.randomBytes(24));
   const now = _now();
   const expires = now + SESSION_TTL_MS;
   db.prepare(
     `INSERT INTO agent_auth_sessions
-       (session_id, agent_did, token, challenge, status, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(sessionId, did, token, challenge, AUTH_STATUS.PENDING, expires, now);
+       (session_id, agent_did, token, token_hash, challenge, status, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(sessionId, did, "", "", challenge, AUTH_STATUS.PENDING, expires, now);
   return { sessionId, challenge, expiresAt: expires };
 }
 
@@ -584,21 +708,23 @@ export function completeAuth(db, sessionId, signatureHex) {
   }
   const ok = verifyWithAgent(db, row.agent_did, row.challenge, signatureHex);
   if (!ok) throw new Error(`Signature verification failed`);
+  const token = _hex(crypto.randomBytes(24));
   db.prepare(
-    `UPDATE agent_auth_sessions SET status = ? WHERE session_id = ?`,
-  ).run(AUTH_STATUS.ACTIVE, sessionId);
+    `UPDATE agent_auth_sessions SET status = ?, token = ?, token_hash = ? WHERE session_id = ?`,
+  ).run(AUTH_STATUS.ACTIVE, "", authTokenHash(token), sessionId);
   return {
     sessionId,
-    token: row.token,
+    token,
     agentDid: row.agent_did,
     expiresAt: row.expires_at,
   };
 }
 
 export function validateSession(db, token) {
+  if (typeof token !== "string" || token.length === 0) return null;
   const row = db
-    .prepare(`SELECT * FROM agent_auth_sessions WHERE token = ?`)
-    .get(token);
+    .prepare(`SELECT * FROM agent_auth_sessions WHERE token_hash = ?`)
+    .get(authTokenHash(token));
   if (!row) return null;
   const now = _now();
   if (row.status !== AUTH_STATUS.ACTIVE) return null;
@@ -659,13 +785,24 @@ export function issueCredential(
   if (!issuerDid) throw new Error("issuerDid is required");
   if (!subjectDid) throw new Error("subjectDid is required");
   const issuer = db
-    .prepare(`SELECT private_key, status FROM agent_dids WHERE did = ?`)
+    .prepare(`SELECT private_key_ref, status FROM agent_dids WHERE did = ?`)
     .get(issuerDid);
   if (!issuer) throw new Error(`Unknown issuer DID: ${issuerDid}`);
   if (issuer.status !== DID_STATUS.ACTIVE)
     throw new Error(`Issuer DID not active: ${issuerDid}`);
   const subject = resolveAgentDID(db, subjectDid);
   if (!subject) throw new Error(`Unknown subject DID: ${subjectDid}`);
+  if (!issuer.private_key_ref) {
+    throw new Error(
+      `Issuer DID private key reference is missing: ${issuerDid}`,
+    );
+  }
+  const issuerPrivateKey = getAgentNetworkSecretStore().get(
+    issuer.private_key_ref,
+  );
+  if (!issuerPrivateKey) {
+    throw new Error(`Issuer DID private key is unavailable: ${issuerDid}`);
+  }
   const now = _now();
   const id = `vc:${_uuid()}`;
   const payload = {
@@ -677,7 +814,7 @@ export function issueCredential(
     issuedAt: now,
     expiresAt,
   };
-  const proof = _credentialProof(issuer.private_key, payload);
+  const proof = _credentialProof(issuerPrivateKey, payload);
   db.prepare(
     `INSERT INTO agent_credentials
        (id, issuer_did, subject_did, type, claims, proof, status, issued_at, expires_at)

@@ -97,6 +97,21 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 | P0-7 | 沙箱、审批与审计 fail closed        | ApprovalGate 初始化异常可退回允许；CLI 默认可不启用技术沙箱；Desktop MCP 无主窗口时高风险连接 consent 自动允许，部分审计写入失败被忽略                        | sandbox guarantee 与 approval policy 独立且默认生效；无 UI 或 sandbox/approval/audit/ToolBroker 不可用时高危动作稳定拒绝；审批绑定 operation+args+cwd+workspace+policy digest，过期、重放或参数变化必须重新审批                                 | Linux/macOS/Windows 各需真实 enforcement cell | 本期核心，M |
 | P0-8 | 秘密、数据密钥与持久审计迁移        | 私钥/bearer token 可能进入普通数据库；IPFS 数据密钥与密文同库；Desktop stdio MCP 直接继承完整 `process.env` 并注入数据库/GitHub token；高危审计可能只留内存   | 数据库只保存 SecretStore/key reference 或 wrapped DEK；子进程使用最小 allowlist env 和按调用注入的短期 credential；迁移后旧明文被安全清理并可回滚；审计持久、完整、脱敏且无法静默丢失，包含 actor/session/authorization/policy/sandbox/result   | 生产 KMS/HSM 可后移，本地 SecretStore 核心无  | 本期，M     |
 
+#### 4.1.1 P0 实施状态（2026-08-24）
+
+本轮已完成 4.1 中 P0-1～P0-8 的代码修复与本地契约验证。P0-1～P0-5 已提交为 `a14f1c7308`；P0-6～P0-8 与本状态更新属于后续安全收口提交。这里的“代码完成”不替代发布门禁：凡验收标准明确要求 Linux/Windows/macOS 的项目，仍须在同一精确提交上通过权威 GitHub Actions 矩阵后才能标记为“发布验收完成”。4.2、4.3 的 P1/P2 是后续架构路线图，不在本轮冒充已完成能力。
+
+| 编号 | 本地状态 | 已落地证据                                                                                                                                                                                                       | 仍需外部验收                                           |
+| ---- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| P0-1 | 代码完成 | 独立 Codex `exec --json` adapter、真实 argv/JSONL fixtures、未知事件/取消/超时/非零退出映射                                                                                                                      | 同一提交的 Linux/Windows/macOS adapter matrix          |
+| P0-2 | 代码完成 | 真实 `FunctionCaller/TraceStore/MemoryConsolidator/MCP adapter` 集成链路，不再依赖生产中不存在的方法 mock                                                                                                        | 发布矩阵复跑                                           |
+| P0-3 | 代码完成 | 执行面 runtime claims；未接真实内核的入口降级为 planned/simulated；terminal success 要求证据                                                                                                                     | 后续 P1-3/P1-12 才切换唯一 authoritative kernel        |
+| P0-4 | 代码完成 | loop cap、依赖失败传播、blocked-root cut 与 Browser cancel 终态已修正并覆盖回归                                                                                                                                  | crash/recovery 与跨端矩阵复跑                          |
+| P0-5 | 代码完成 | stop-on-error、descendant abort、settlement/fence、per-attempt workspace/write-scope 隔离已落地                                                                                                                  | 真实 Git/进程树三平台矩阵                              |
+| P0-6 | 代码完成 | generic preload IPC 默认关闭；项目路径 realpath/symlink 边界；Coding Agent/Web Shell raw MCP 强制策略；Cowork code runner/HTTP 与 stdio MCP 强制 Broker；HTTP MCP 有域名、DNS/IP 和大小上限                      | 全产品唯一 Broker 的长期收敛仍属于 P1-3/P1-11          |
+| P0-7 | 代码完成 | ApprovalGate 缺失默认拒绝；CLI 默认 workspace-write/network-off；renderer sandbox 与 sender guard 默认强制；无 consent UI、sandbox、Broker 或持久审计时拒绝                                                      | Linux/macOS/Windows 各自真实 enforcement cell          |
+| P0-8 | 代码完成 | Agent 私钥进入 SecretStore、bearer 仅留 hash；CLI IPFS 保存 keyRef，Desktop IPFS 保存 wrapped DEK；旧明文迁移支持 dry-run/事务失败回滚；MCP/PTY/Skill 使用最小环境；MCP 与桌面进程审计持久、脱敏且写入失败即拒绝 | 生产 KMS/HSM 可后移；升级/降级演练须在发布候选提交执行 |
+
 ### 4.2 P1：统一协议、Agent Kernel 与 Graph Engineering
 
 | 编号  | 任务                                   | 已有基础与剩余工作                                                                                                                                                                                                                                                                                                                                                                        | 前置依赖                   | 建议期次              |

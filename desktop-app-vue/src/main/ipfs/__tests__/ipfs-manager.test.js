@@ -34,6 +34,13 @@ vi.mock("fs", () => ({
 
 vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => "/mock/userData") },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => true),
+    encryptString: vi.fn((value) => Buffer.from(`wrapped:${value}`, "utf8")),
+    decryptString: vi.fn((value) =>
+      value.toString("utf8").replace(/^wrapped:/, ""),
+    ),
+  },
 }));
 
 vi.mock("../../utils/logger.js", () => ({
@@ -64,6 +71,16 @@ function makeMockDatabase(options = {}) {
     run: vi.fn(),
     get: vi.fn(() => options.getResult ?? null),
     all: vi.fn(() => options.allResult ?? []),
+  };
+}
+
+function makeSafeStorage({ available = true } = {}) {
+  return {
+    isEncryptionAvailable: vi.fn(() => available),
+    encryptString: vi.fn((value) => Buffer.from(`wrapped:${value}`, "utf8")),
+    decryptString: vi.fn((value) =>
+      value.toString("utf8").replace(/^wrapped:/, ""),
+    ),
   };
 }
 
@@ -105,7 +122,7 @@ describe("IPFSManager", () => {
 
   beforeEach(() => {
     mockDb = makeMockDatabase();
-    manager = new IPFSManager();
+    manager = new IPFSManager({ safeStorage: makeSafeStorage() });
   });
 
   afterEach(async () => {
@@ -314,6 +331,41 @@ describe("IPFSManager", () => {
       await manager.addContent("sensitive data", { encrypt: true });
 
       expect(encryptSpy).toHaveBeenCalled();
+      const insert = mockDb.run.mock.calls.find(([sql]) =>
+        sql.includes("INSERT INTO ipfs_content"),
+      );
+      expect(
+        insert[1].some((value) => String(value).startsWith("cc-ipfs-dek:v1:")),
+      ).toBe(true);
+      expect(insert[1]).not.toContain("abc123def456".padEnd(64, "0"));
+    });
+
+    it("migrates legacy plaintext data keys to wrapped DEKs", async () => {
+      const legacyDb = makeMockDatabase({
+        allResult: [{ cid: "QmLegacy", encryption_key: "ab".repeat(32) }],
+      });
+      const migratingManager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+      });
+      await migratingManager.initialize({ database: legacyDb });
+      expect(legacyDb.run).toHaveBeenCalledWith(
+        "UPDATE ipfs_content SET encryption_key = ? WHERE cid = ?",
+        [expect.stringMatching(/^cc-ipfs-dek:v1:/), "QmLegacy"],
+      );
+    });
+
+    it("fails before storing encrypted content when DEK wrapping is unavailable", async () => {
+      const unavailableManager = new IPFSManager({
+        safeStorage: makeSafeStorage({ available: false }),
+      });
+      await unavailableManager.initialize({ database: mockDb });
+      unavailableManager.node = makeMockNode();
+      unavailableManager.unixfs = makeMockUnixfs("QmMustNotBeStored");
+
+      await expect(
+        unavailableManager.addContent("sensitive data", { encrypt: true }),
+      ).rejects.toThrow("data-key wrapping is unavailable");
+      expect(unavailableManager.unixfs.addBytes).not.toHaveBeenCalled();
     });
 
     it("records content in DB when database is available", async () => {

@@ -238,13 +238,15 @@ export async function evaluateShellCommandWithApproval({
     };
   }
 
-  // No ApprovalGate wired? Preserve legacy behavior (shell policy decides).
+  // A missing gate is an unavailable security boundary, not an implicit
+  // authorization. Explicit bypass modes must provide their own auditable
+  // gate implementation instead of omitting the gate.
   if (!approvalGate || typeof approvalGate.decide !== "function") {
     return {
-      allowed: true,
-      decision: DECISION.ALLOW,
-      via: "shell-policy",
-      reason: shellPolicy.reason,
+      allowed: false,
+      decision: DECISION.DENY,
+      via: "approval-gate-unavailable",
+      reason: "Approval gate is unavailable",
       shellPolicy,
       riskLevel,
       policy: null,

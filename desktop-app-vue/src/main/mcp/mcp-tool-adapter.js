@@ -107,6 +107,17 @@ class MCPToolAdapter extends EventEmitter {
         `[MCPToolAdapter] Registering tools from server: ${serverName}`,
       );
 
+      if (this.securityPolicy) {
+        if (serverConfig?.permissions) {
+          this.securityPolicy.setServerPermissions(
+            serverName,
+            serverConfig.permissions,
+          );
+        } else {
+          this.securityPolicy.clearServerPermissions?.(serverName);
+        }
+      }
+
       // Connect to MCP server
       const capabilities = await this.mcpClientManager.connectServer(
         serverName,

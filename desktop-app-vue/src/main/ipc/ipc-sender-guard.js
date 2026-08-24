@@ -31,8 +31,9 @@
  *     - "report" / "audit" → compute the verdict and LOG would-blocks, but do
  *                           NOT block (use to re-verify after window changes);
  *     - "0" / "off"       → disabled entirely (kill-switch).
- * Internal guard errors FAIL OPEN (allow + log): a bug in the guard must never
- * brick legitimate IPC. A clean "untrusted" verdict FAILS CLOSED in enforce mode.
+ * Internal guard errors FAIL CLOSED in enforce mode. Report/off remain explicit
+ * operational escape hatches, but an exception can never silently authorize a
+ * privileged IPC call under the default posture.
  *
  * @module ipc/ipc-sender-guard
  */
@@ -175,7 +176,15 @@ const _warned = new Set();
  * @returns {boolean} true only in enforce mode with an untrusted sender.
  */
 function shouldBlock(channel, event, getMode) {
-  const mode = getMode();
+  let mode;
+  try {
+    mode = getMode();
+  } catch (err) {
+    logger.error(
+      `[ipc-sender-guard] mode resolution failed for "${channel}" (blocking): ${err && err.message}`,
+    );
+    return true;
+  }
   if (mode === "off") {
     return false;
   }
@@ -183,11 +192,11 @@ function shouldBlock(channel, event, getMode) {
   try {
     verdict = validateSender(event);
   } catch (err) {
-    // Guard bug → fail OPEN (never brick legit IPC), but make it loud.
+    // Guard bugs cannot grant authority under the default enforce posture.
     logger.error(
-      `[ipc-sender-guard] internal error validating "${channel}" (allowing): ${err && err.message}`,
+      `[ipc-sender-guard] internal error validating "${channel}" (${mode === "enforce" ? "blocking" : "reporting"}): ${err && err.message}`,
     );
-    return false;
+    return mode === "enforce";
   }
   if (!verdict || verdict.trusted !== false) {
     return false;

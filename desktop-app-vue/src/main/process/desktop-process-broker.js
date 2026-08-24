@@ -131,18 +131,23 @@ function cleanProvenance(provenance) {
 }
 
 function defaultAuditSink(entry) {
-  try {
-    const logPath = nodePath.join(
-      nodeOs.homedir(),
-      ".chainlesschain",
-      "logs",
-      "desktop-process-audit.jsonl",
-    );
-    nodeFs.mkdirSync(nodePath.dirname(logPath), { recursive: true });
-    nodeFs.appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
-  } catch {
-    // Auditing must never change the desktop process execution result.
-  }
+  const logPath = nodePath.join(
+    nodeOs.homedir(),
+    ".chainlesschain",
+    "logs",
+    "desktop-process-audit.jsonl",
+  );
+  nodeFs.mkdirSync(nodePath.dirname(logPath), {
+    recursive: true,
+    mode: 0o700,
+  });
+  nodeFs.appendFileSync(logPath, `${JSON.stringify(entry)}\n`, {
+    encoding: "utf8",
+    flag: "a",
+    mode: 0o600,
+  });
+  nodeFs.chmodSync(nodePath.dirname(logPath), 0o700);
+  nodeFs.chmodSync(logPath, 0o600);
 }
 
 function invokeWithOptionalArgs(original, first, args, options) {
@@ -187,14 +192,17 @@ function installDesktopProcessBroker({
           }
         : {}),
     };
+    try {
+      auditSink(entry);
+    } catch (cause) {
+      const error = new Error("desktop_process_audit_unavailable", { cause });
+      error.code = "ERR_PROCESS_AUDIT_UNAVAILABLE";
+      error.auditEntry = entry;
+      throw error;
+    }
     auditLog.push(entry);
     if (auditLog.length > 1000) {
       auditLog.shift();
-    }
-    try {
-      auditSink(entry);
-    } catch {
-      // An injected audit sink is advisory and must not break execution.
     }
     return entry;
   };

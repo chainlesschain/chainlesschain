@@ -6,6 +6,7 @@
  * the report/enforce/off modes behave correctly (report logs but allows; enforce
  * blocks; off skips) while never throwing from an internal error.
  */
+import { describe, it, expect, vi, afterEach } from "vitest";
 const path = require("path");
 const { pathToFileURL } = require("url");
 
@@ -180,6 +181,15 @@ describe("ipc-sender-guard / wrapHandler modes", () => {
     const wrapped = _wrapHandler("chan:x", handler, () => "off");
     await expect(wrapped(untrustedEvt)).resolves.toBe("ok");
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when the guard mode cannot be resolved", async () => {
+    const handler = vi.fn().mockResolvedValue("ok");
+    const wrapped = _wrapHandler("chan:x", handler, () => {
+      throw new Error("configuration unavailable");
+    });
+    await expect(wrapped(trustedEvt)).rejects.toThrow("untrusted sender");
+    expect(handler).not.toHaveBeenCalled();
   });
 });
 

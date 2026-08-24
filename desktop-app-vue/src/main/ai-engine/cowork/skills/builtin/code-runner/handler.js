@@ -6,11 +6,61 @@
  * Supports Python, JavaScript (Node.js), and Bash.
  */
 
-const { spawn, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const { pathToFileURL } = require("node:url");
 const { logger } = require("../../../../../utils/logger.js");
+
+const PROCESS_BROKER_MODULE_REL =
+  "../../../../../../../packages/cli/src/lib/process-execution-broker/index.js";
+let processBrokerPromise = null;
+
+async function loadProcessBroker() {
+  if (!processBrokerPromise) {
+    const moduleUrl = pathToFileURL(
+      path.resolve(__dirname, PROCESS_BROKER_MODULE_REL),
+    ).href;
+    processBrokerPromise = import(moduleUrl).then((module) => {
+      const broker = module.executionBroker || module.default;
+      if (
+        !broker ||
+        typeof broker.spawn !== "function" ||
+        typeof broker.execFileSync !== "function"
+      ) {
+        throw new Error("ProcessExecutionBroker exports are unavailable");
+      }
+      return broker;
+    });
+  }
+  return processBrokerPromise;
+}
+
+const _deps = { loadProcessBroker };
+const CODE_RUNNER_SANDBOX_POLICY = Object.freeze({
+  requiredBoundaries: Object.freeze(["filesystem", "network"]),
+});
+
+function minimalRuntimeEnv() {
+  const env = {};
+  for (const key of [
+    "PATH",
+    "Path",
+    "PATHEXT",
+    "SystemRoot",
+    "WINDIR",
+    "COMSPEC",
+    "HOME",
+    "USERPROFILE",
+    "TMP",
+    "TEMP",
+    "LANG",
+    "LC_ALL",
+  ]) {
+    if (process.env[key] != null) env[key] = process.env[key];
+  }
+  return env;
+}
 
 // ── Language configuration ───────────────────────────────────────
 
@@ -37,12 +87,18 @@ const MAX_OUTPUT_LENGTH = 5000;
 
 // ── Core execution ───────────────────────────────────────────────
 
-function executeCode(command, args, timeout, cwd) {
+async function executeCode(command, args, timeout, cwd) {
+  const broker = await _deps.loadProcessBroker();
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, {
+    const proc = broker.spawn(command, args, {
+      origin: "skill:code-runner",
+      scope: "cowork-skill",
+      policy: "allow",
       cwd,
       timeout,
-      env: { ...process.env },
+      env: minimalRuntimeEnv(),
+      shell: false,
+      sandboxPolicy: CODE_RUNNER_SANDBOX_POLICY,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
@@ -96,17 +152,22 @@ function detectLanguageFromExtension(filePath) {
 
 // ── Command availability check ───────────────────────────────────
 
-function isCommandAvailable(command) {
+async function isCommandAvailable(command) {
   // Sanitize: only allow alphanumeric, dash, underscore, dot (prevent injection)
   if (!/^[\w.-]+$/.test(command)) {
     return false;
   }
   try {
+    const broker = await _deps.loadProcessBroker();
     const checkCmd = process.platform === "win32" ? "where" : "which";
     const args = [command];
-    execFileSync(checkCmd, args, {
+    broker.execFileSync(checkCmd, args, {
+      origin: "skill:code-runner:probe",
+      scope: "cowork-skill",
+      policy: "allow",
       encoding: "utf-8",
       timeout: 5000,
+      env: minimalRuntimeEnv(),
       stdio: ["pipe", "pipe", "pipe"],
     });
     return true;
@@ -118,9 +179,9 @@ function isCommandAvailable(command) {
 // ── Temp file management ─────────────────────────────────────────
 
 function createTempFile(code, extension) {
-  const fileName = `code_runner_${Date.now()}${extension}`;
-  const filePath = path.join(os.tmpdir(), fileName);
-  fs.writeFileSync(filePath, code, "utf-8");
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-code-runner-"));
+  const filePath = path.join(tempDir, `snippet${extension}`);
+  fs.writeFileSync(filePath, code, { encoding: "utf-8", mode: 0o600 });
   return filePath;
 }
 
@@ -128,6 +189,7 @@ function cleanupTempFile(filePath) {
   try {
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
+      fs.rmdirSync(path.dirname(filePath));
     }
   } catch (err) {
     logger.warn(`[CodeRunner] Failed to cleanup temp file: ${err.message}`);
@@ -240,7 +302,7 @@ async function handleRun(code, languageName, timeout, cwd) {
     };
   }
 
-  if (!isCommandAvailable(lang.command)) {
+  if (!(await isCommandAvailable(lang.command))) {
     return {
       success: false,
       error: "Runtime not found",
@@ -305,6 +367,21 @@ async function handleFile(filePath, languageName, timeout, cwd) {
     };
   }
 
+  const canonicalWorkspace = fs.realpathSync(cwd);
+  const canonicalFile = fs.realpathSync(filePath);
+  const relativeFile = path.relative(canonicalWorkspace, canonicalFile);
+  if (
+    relativeFile === ".." ||
+    relativeFile.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeFile)
+  ) {
+    return {
+      success: false,
+      error: "Script path outside workspace",
+      message: "Code Runner can execute only scripts inside the workspace.",
+    };
+  }
+
   // Detect language from extension if not provided
   const lang = languageName
     ? resolveLanguage(languageName)
@@ -319,7 +396,7 @@ async function handleFile(filePath, languageName, timeout, cwd) {
     };
   }
 
-  if (!isCommandAvailable(lang.command)) {
+  if (!(await isCommandAvailable(lang.command))) {
     return {
       success: false,
       error: "Runtime not found",
@@ -382,7 +459,7 @@ async function handleLanguages() {
   const results = [];
 
   for (const [name, config] of Object.entries(LANGUAGES)) {
-    const available = isCommandAvailable(config.command);
+    const available = await isCommandAvailable(config.command);
     results.push({
       name,
       command: config.command,
@@ -421,6 +498,8 @@ async function handleLanguages() {
 // ── Handler export ───────────────────────────────────────────────
 
 module.exports = {
+  _deps,
+  loadProcessBroker,
   async init(_skill) {
     logger.info("[CodeRunner] Handler initialized");
   },

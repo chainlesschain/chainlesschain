@@ -107,6 +107,7 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  *                                            when MCP is disabled). Surfaced to the
  *                                            embedded SPA via mcp.list_tools /
  *                                            mcp.call_tool topics.
+ * @property {object | null} [mcpSecurityPolicy] Required policy for MCP calls.
  * @property {object | null} [llmManager]    LLMManager singleton (or null when
  *                                            LLM hasn't initialised yet). Drives
  *                                            the streaming `llm.chat` topic.
@@ -228,12 +229,14 @@ async function startWebShell(options = {}) {
     }),
     "mcp.call_tool": createMcpCallToolHandler({
       mcpManager: options.mcpManager ?? null,
+      mcpSecurityPolicy: options.mcpSecurityPolicy ?? null,
     }),
     "mcp.list_resources": createMcpListResourcesHandler({
       mcpManager: options.mcpManager ?? null,
     }),
     "mcp.read_resource": createMcpReadResourceHandler({
       mcpManager: options.mcpManager ?? null,
+      mcpSecurityPolicy: options.mcpSecurityPolicy ?? null,
     }),
     "mcp.list_servers": createMcpListServersHandler({
       mcpConfigLoader: options.mcpConfigLoader ?? null,

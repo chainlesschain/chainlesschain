@@ -25,6 +25,7 @@ function createCodingAgentBootstrap(options = {}) {
       projectRoot: options.projectRoot,
       toolManager: options.toolManager || null,
       mcpManager: options.mcpManager || null,
+      mcpSecurityPolicy: options.mcpSecurityPolicy || null,
       enablePhase5Envelopes: options.enablePhase5Envelopes === true,
     });
 

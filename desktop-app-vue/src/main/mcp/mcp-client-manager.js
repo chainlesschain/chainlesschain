@@ -11,7 +11,9 @@
 // Default imports - can be overridden via dependency injection for testing
 const { logger } = require("../utils/logger.js");
 const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
-const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
+const {
+  BrokeredStdioClientTransport,
+} = require("./transports/brokered-stdio-client-transport.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
 
 // Rolling window of latency samples kept per tool. getMetrics reduces the array
@@ -19,6 +21,7 @@ const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
 // a frequently-invoked tool.
 const MAX_LATENCY_SAMPLES = 1000;
 const defaultHttpSseTransport = require("./transports/http-sse-transport");
+const { validateMcpEgress } = require("./mcp-egress-policy");
 const EventEmitter = require("events");
 
 // Phase 3 (Hosted MCP Policy): shared policy from session-core.
@@ -29,11 +32,11 @@ function getMcpPolicy() {
   }
   try {
     _mcpPolicy = require("@chainlesschain/session-core/mcp-policy");
-  } catch (_e) {
+  } catch (error) {
     _mcpPolicy = {
       validateMcpServer: () => ({
-        allowed: true,
-        reason: null,
+        allowed: false,
+        reason: `MCP policy unavailable: ${error.message}`,
         transport: null,
       }),
     };
@@ -75,6 +78,63 @@ const TRANSPORT_TYPES = {
   HTTP_SSE: "http-sse",
 };
 
+const MCP_STDIO_ENV_ALLOWLIST = Object.freeze([
+  "PATH",
+  "Path",
+  "PATHEXT",
+  "SystemRoot",
+  "WINDIR",
+  "COMSPEC",
+  "HOME",
+  "USERPROFILE",
+  "TMP",
+  "TEMP",
+  "LANG",
+  "LC_ALL",
+  "TZ",
+  "NODE_EXTRA_CA_CERTS",
+]);
+
+function buildMcpStdioEnv(serverConfig, hostEnv = process.env) {
+  assertNoStaticMcpCredentials(serverConfig);
+  const env = {};
+  for (const key of MCP_STDIO_ENV_ALLOWLIST) {
+    if (hostEnv[key] != null) env[key] = String(hostEnv[key]);
+  }
+  env.CHAINLESSCHAIN_DATA_PATH = serverConfig.dataPath || process.cwd();
+  if (serverConfig.databasePath) {
+    env.SQLITE_DB_PATH = serverConfig.databasePath;
+  }
+  if (serverConfig.repositoryPath) {
+    env.GIT_REPOSITORY_PATH = serverConfig.repositoryPath;
+  }
+  if (serverConfig.permissions?.allowedDomains?.length > 0) {
+    env.ALLOWED_DOMAINS = serverConfig.permissions.allowedDomains.join(",");
+  }
+  if (serverConfig.permissions?.forbiddenDomains?.length > 0) {
+    env.FORBIDDEN_DOMAINS = serverConfig.permissions.forbiddenDomains.join(",");
+  }
+  return env;
+}
+
+function assertNoStaticMcpCredentials(serverConfig) {
+  const headers = serverConfig?.headers || {};
+  if (
+    serverConfig?.connection?.password ||
+    serverConfig?.authentication?.personalAccessToken ||
+    serverConfig?.apiKey ||
+    Object.keys(headers).some((key) =>
+      /^(?:authorization|cookie|x-api-key)$/i.test(key),
+    )
+  ) {
+    const error = new Error(
+      "Static MCP credentials are forbidden; inject a scoped credential at call time",
+    );
+    error.code = "MCP_STATIC_CREDENTIAL_FORBIDDEN";
+    throw error;
+  }
+}
+
 /**
  * @typedef {Object} ServerConfig
  * @property {string} name - Server identifier
@@ -112,8 +172,7 @@ class MCPClientManager extends EventEmitter {
     this._deps = {
       Client: deps.mcpClient?.Client || defaultMcpClient.Client,
       StdioClientTransport:
-        deps.mcpStdio?.StdioClientTransport ||
-        defaultMcpStdio.StdioClientTransport,
+        deps.mcpStdio?.StdioClientTransport || BrokeredStdioClientTransport,
       LoggingMessageNotificationSchema:
         deps.mcpTypes?.LoggingMessageNotificationSchema ||
         defaultMcpTypes.LoggingMessageNotificationSchema,
@@ -129,6 +188,7 @@ class MCPClientManager extends EventEmitter {
       HttpSseTransport:
         deps.httpSseTransport?.HttpSseTransport ||
         defaultHttpSseTransport.HttpSseTransport,
+      validateMcpEgress: deps.validateMcpEgress || validateMcpEgress,
     };
 
     // Server name -> { client, transport, tools, resources, state }
@@ -167,21 +227,27 @@ class MCPClientManager extends EventEmitter {
     try {
       logger.info(`[MCPClientManager] Connecting to server: ${serverName}`);
 
-      // Phase 3: enforce hosted MCP policy unless caller explicitly bypasses.
+      // Policy is mandatory at this raw manager boundary. Trusted internal
+      // callers use the same policy instead of passing a renderer-controlled
+      // bypass bit.
       const mode = resolveRuntimeMode(this.config);
-      if (!serverConfig?.bypassPolicy) {
-        const { validateMcpServer } = getMcpPolicy();
-        const check = validateMcpServer(toPolicyServer(serverConfig), mode);
-        if (!check.allowed) {
-          const err = new Error(
-            `MCP server "${serverName}" blocked in mode "${mode}": ${check.reason}`,
-          );
-          err.code = "MCP_POLICY_BLOCKED";
-          err.mode = mode;
-          err.transport = check.transport;
-          throw err;
-        }
+      if (serverConfig?.bypassPolicy) {
+        const err = new Error("MCP policy bypass is not supported");
+        err.code = "MCP_POLICY_BYPASS_FORBIDDEN";
+        throw err;
       }
+      const { validateMcpServer } = getMcpPolicy();
+      const check = validateMcpServer(toPolicyServer(serverConfig), mode);
+      if (!check.allowed) {
+        const err = new Error(
+          `MCP server "${serverName}" blocked in mode "${mode}": ${check.reason}`,
+        );
+        err.code = "MCP_POLICY_BLOCKED";
+        err.mode = mode;
+        err.transport = check.transport;
+        throw err;
+      }
+      assertNoStaticMcpCredentials(serverConfig);
 
       // Check if already connected
       if (this.servers.has(serverName)) {
@@ -225,10 +291,11 @@ class MCPClientManager extends EventEmitter {
         logger.info(
           `[MCPClientManager] Using HTTP+SSE transport for ${serverName}`,
         );
+        const egress = await this._deps.validateMcpEgress(serverConfig);
         transport = new this._deps.HttpSseTransport({
           baseURL: serverConfig.baseURL,
-          apiKey: serverConfig.apiKey,
           headers: serverConfig.headers || {},
+          lookup: egress.lookup,
           timeout: serverConfig.timeout || 30000,
           useSSL: serverConfig.baseURL?.startsWith("https") || false,
           maxRetries: serverConfig.maxRetries || 3,
@@ -250,55 +317,14 @@ class MCPClientManager extends EventEmitter {
           `[MCPClientManager] Using stdio transport for ${serverName}`,
         );
 
-        // Build environment variables for the server process
-        const serverEnv = {
-          ...process.env,
-          CHAINLESSCHAIN_DATA_PATH: serverConfig.dataPath || process.cwd(),
-        };
-
-        // Add database connection env vars for postgres
-        if (serverConfig.connection) {
-          const conn = serverConfig.connection;
-          if (conn.host && conn.database && conn.user) {
-            const password = conn.password || "";
-            const port = conn.port || 5432;
-            serverEnv.POSTGRES_CONNECTION_STRING = `postgresql://${conn.user}:${password}@${conn.host}:${port}/${conn.database}`;
-            serverEnv.DATABASE_URL = serverEnv.POSTGRES_CONNECTION_STRING;
-          }
-        }
-
-        // Add database path for sqlite
-        if (serverConfig.databasePath) {
-          serverEnv.SQLITE_DB_PATH = serverConfig.databasePath;
-        }
-
-        // Add repository path for git
-        if (serverConfig.repositoryPath) {
-          serverEnv.GIT_REPOSITORY_PATH = serverConfig.repositoryPath;
-        }
-
-        // Add GitHub personal access token
-        if (serverConfig.authentication?.personalAccessToken) {
-          serverEnv.GITHUB_PERSONAL_ACCESS_TOKEN =
-            serverConfig.authentication.personalAccessToken;
-          serverEnv.GITHUB_TOKEN =
-            serverConfig.authentication.personalAccessToken;
-        }
-
-        // Add fetch/HTTP configuration
-        if (serverConfig.permissions?.allowedDomains?.length > 0) {
-          serverEnv.ALLOWED_DOMAINS =
-            serverConfig.permissions.allowedDomains.join(",");
-        }
-        if (serverConfig.permissions?.forbiddenDomains?.length > 0) {
-          serverEnv.FORBIDDEN_DOMAINS =
-            serverConfig.permissions.forbiddenDomains.join(",");
-        }
+        const serverEnv = buildMcpStdioEnv(serverConfig);
 
         transport = new this._deps.StdioClientTransport({
+          serverName,
           command: serverConfig.command,
           args: serverConfig.args,
           env: serverEnv,
+          cwd: serverConfig.cwd || serverConfig.dataPath || process.cwd(),
         });
 
         // Connect to server
@@ -991,4 +1017,9 @@ class MCPClientManager extends EventEmitter {
 // Export transport types for external use
 MCPClientManager.TRANSPORT_TYPES = TRANSPORT_TYPES;
 
-module.exports = { MCPClientManager, TRANSPORT_TYPES };
+module.exports = {
+  MCPClientManager,
+  TRANSPORT_TYPES,
+  MCP_STDIO_ENV_ALLOWLIST,
+  buildMcpStdioEnv,
+};

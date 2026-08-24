@@ -136,6 +136,7 @@ class CodingAgentSessionService extends EventEmitter {
       });
     this.toolManager = options.toolManager || null;
     this.mcpManager = options.mcpManager || null;
+    this.mcpSecurityPolicy = options.mcpSecurityPolicy || null;
     this.sessionCore = options.sessionCore || null;
     this.memoryStore = options.memoryStore || null;
     this.toolAdapter =
@@ -153,6 +154,7 @@ class CodingAgentSessionService extends EventEmitter {
       new CodingAgentToolBroker({
         toolManager: this.toolManager,
         mcpManager: this.mcpManager,
+        mcpSecurityPolicy: this.mcpSecurityPolicy,
       });
     this.permissionGate =
       options.permissionGate ||

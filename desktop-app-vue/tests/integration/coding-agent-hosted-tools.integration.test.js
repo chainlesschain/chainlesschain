@@ -103,6 +103,7 @@ describe("Coding agent hosted tool integration", () => {
   let ipcMainMock;
   let mainWindow;
   let mcpManager;
+  let mcpSecurityPolicy;
   let service;
 
   beforeEach(() => {
@@ -134,6 +135,9 @@ describe("Coding agent hosted tool integration", () => {
         isError: false,
       }),
     };
+    mcpSecurityPolicy = {
+      validateToolExecution: vi.fn().mockResolvedValue(undefined),
+    };
 
     service = new CodingAgentSessionService({
       bridge,
@@ -141,6 +145,7 @@ describe("Coding agent hosted tool integration", () => {
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
       mcpManager,
+      mcpSecurityPolicy,
     });
 
     registerCodingAgentIPCV3({
@@ -208,6 +213,12 @@ describe("Coding agent hosted tool integration", () => {
       {
         city: "Shanghai",
       },
+    );
+    expect(mcpSecurityPolicy.validateToolExecution).toHaveBeenCalledWith(
+      "weather",
+      "get_forecast",
+      { city: "Shanghai" },
+      expect.objectContaining({ sessionId: "session-1" }),
     );
     expect(bridge.sentMessages).toContainEqual(
       expect.objectContaining({

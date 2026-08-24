@@ -13,7 +13,6 @@ function createBoundTerminalSession(ptyManager, payload = {}) {
     projectId: request.projectId,
     shell: request.shell,
     cwd: request.cwd,
-    env: request.env,
     cols: request.cols,
     rows: request.rows,
   });

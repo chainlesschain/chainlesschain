@@ -4,7 +4,7 @@ import pkg from "../../../../src/main/terminal/terminal-create-request.js";
 const { createBoundTerminalSession } = pkg;
 
 describe("shared Desktop terminal create adapter", () => {
-  it("forwards projectId and legacy cwd selectors but drops root claims", () => {
+  it("forwards project selectors but drops root and environment claims", () => {
     const ptyManager = {
       create: vi.fn(() => ({ sessionId: "session-1" })),
     };
@@ -26,7 +26,6 @@ describe("shared Desktop terminal create adapter", () => {
       projectId: "project-1",
       cwd: "C:\\legacy-selector",
       shell: "pwsh",
-      env: { SAFE: "1" },
       cols: 120,
       rows: 40,
     });

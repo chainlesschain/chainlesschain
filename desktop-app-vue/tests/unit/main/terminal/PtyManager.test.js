@@ -235,12 +235,12 @@ describe("PtyManager — concurrency cap counts only live sessions", () => {
 });
 
 describe("PtyManager — env handling (remote frame input)", () => {
-  it("ignores a non-object env, merges a valid object env", () => {
+  it("ignores caller environment claims", () => {
     const { mgr, fakes } = makeMultiMgr({});
     mgr.create({ shell: "pwsh", env: "ATTACK" });
     expect(fakes[0].proc.spawnOpts.env["0"]).toBeUndefined();
     mgr.create({ shell: "pwsh", env: { MY_VAR: "x" } });
-    expect(fakes[1].proc.spawnOpts.env.MY_VAR).toBe("x");
+    expect(fakes[1].proc.spawnOpts.env.MY_VAR).toBeUndefined();
   });
 });
 
@@ -662,9 +662,7 @@ describe("PtyManager DB-backed project-root selector", () => {
     expect(broker.spawnPty.mock.calls[0][3].cwd).toBe(
       fs.realpathSync.native(subdir),
     );
-    expect(broker.spawnPty.mock.calls[0][3].env).toMatchObject({
-      KEEP_ME: "yes",
-    });
+    expect(broker.spawnPty.mock.calls[0][3].env.KEEP_ME).toBeUndefined();
     expect(created).toMatchObject({
       projectId: "project-1",
       cwd: fs.realpathSync.native(subdir),

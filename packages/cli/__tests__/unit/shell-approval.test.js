@@ -14,12 +14,13 @@ describe("evaluateShellCommandWithApproval", () => {
     expect(res.riskLevel).toBe("high");
   });
 
-  it("preserves legacy behavior when no approvalGate is passed (WARN → allow)", async () => {
+  it("fails closed when no approvalGate is available", async () => {
     const res = await evaluateShellCommandWithApproval({
       command: "echo hi",
     });
-    expect(res.allowed).toBe(true);
-    expect(res.via).toBe("shell-policy");
+    expect(res.allowed).toBe(false);
+    expect(res.decision).toBe("deny");
+    expect(res.via).toBe("approval-gate-unavailable");
     expect(res.riskLevel).toBe("medium");
   });
 

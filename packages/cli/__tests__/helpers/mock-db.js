@@ -24,6 +24,33 @@ export class MockDatabase {
     }
   }
 
+  transaction(operation) {
+    if (typeof operation !== "function") {
+      throw new TypeError("transaction operation must be a function");
+    }
+    return (...args) => {
+      const tablesSnapshot = new Map(
+        [...this.tables].map(([key, value]) => [
+          key,
+          JSON.parse(JSON.stringify(value)),
+        ]),
+      );
+      const dataSnapshot = new Map(
+        [...this.data].map(([key, value]) => [
+          key,
+          JSON.parse(JSON.stringify(value)),
+        ]),
+      );
+      try {
+        return operation(...args);
+      } catch (error) {
+        this.tables = tablesSnapshot;
+        this.data = dataSnapshot;
+        throw error;
+      }
+    };
+  }
+
   prepare(sql) {
     const db = this;
     return {

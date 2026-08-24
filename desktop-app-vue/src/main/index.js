@@ -918,15 +918,9 @@ class ChainlessChainApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        // Electron 39 / Windows hits a flaky "sandboxed_renderer.bundle.js
-        // script failed to run — TypeError: object is not iterable" race
-        // when the splash window closes around the same moment a second
-        // BrowserWindow boots. The crash sometimes takes the main process
-        // with it (exit 0xC0000005). Disabling sandbox on the main window
-        // bypasses that bundle entirely. We are already nodeIntegration
-        // false + contextIsolation true, so the threat surface from this
-        // is bounded — preload still runs in an isolated world.
-        sandbox: false,
+        // Keep Chromium's renderer sandbox as a technical boundary; IPC
+        // sender validation and approval policy are additional layers.
+        sandbox: true,
         preload: preloadPath,
       },
       ...titleBarOptions,
@@ -934,14 +928,18 @@ class ChainlessChainApp {
 
     // Sender-frame trust guard: monkey-patch ipcMain.handle BEFORE any handler
     // registers so every channel validates which frame sent the request (reject
-    // sub-frames / foreign origins). Default report-only; CC_IPC_SENDER_GUARD=
-    // enforce to block, =0 to disable. See ipc/ipc-sender-guard.js.
+    // sub-frames / foreign origins). Default is enforce; report/off are
+    // explicit operational overrides. See ipc/ipc-sender-guard.js.
     try {
       const { ipcMain } = require("electron");
       const { installSenderGuard } = require("./ipc/ipc-sender-guard.js");
-      installSenderGuard(ipcMain);
+      const installed = installSenderGuard(ipcMain);
+      if (!installed && !ipcMain.__ccSenderGuardInstalled) {
+        throw new Error("IPC sender guard did not install");
+      }
     } catch (e) {
-      logger.warn("[Main] IPC sender-guard install failed:", e.message);
+      logger.error("[Main] IPC sender-guard install failed:", e.message);
+      throw e;
     }
 
     // Authoritative current-user source for privileged-handler actor hardening
@@ -1059,6 +1057,7 @@ class ChainlessChainApp {
         // fast-start paths, so by here this.mcpManager is settled (manager or
         // null). Handlers re-check at call time, so re-binding isn't needed.
         mcpManager: this.mcpManager ?? null,
+        mcpSecurityPolicy: this.mcpSecurity ?? null,
         // mcp.list_servers reads CONFIGURED servers from .chainlesschain/
         // config.json (mcpConfigLoader is the source of truth); list_tools
         // only sees CONNECTED ones.
@@ -1538,9 +1537,11 @@ class ChainlessChainApp {
       this.codingAgentBootstrap = createCodingAgentBootstrap({
         toolManager: this.toolManager,
         mcpManager: this.mcpManager,
+        mcpSecurityPolicy: this.mcpSecurity,
       });
     }
 
+    this.mcpSecurity?.setMainWindow?.(this.mainWindow);
     this.codingAgentBootstrap.attachWindow(this.mainWindow);
     logger.info("[Main] Coding Agent V3 production IPC registered");
   }

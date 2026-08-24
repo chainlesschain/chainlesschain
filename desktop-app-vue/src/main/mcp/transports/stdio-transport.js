@@ -33,8 +33,11 @@ const PLATFORM = {
 function getPlatformSpawnOptions(config) {
   const baseOptions = {
     stdio: ["pipe", "pipe", "pipe"],
-    env: { ...process.env, ...config.env },
+    // The caller owns the complete environment. Re-introducing process.env
+    // here would defeat MCPClientManager's capability-scoped allowlist.
+    env: { ...(config.env || {}) },
     cwd: config.cwd,
+    shell: false,
   };
 
   if (PLATFORM.isWindows) {
@@ -42,16 +45,10 @@ function getPlatformSpawnOptions(config) {
     // and set proper environment for npm/npx
     return {
       ...baseOptions,
-      shell: true,
       windowsHide: true, // Hide the console window
     };
   } else {
-    // On Unix-like systems, use shell only if command contains special characters
-    const needsShell = /[|&;`$(){}[\]<>*?!#~]/.test(config.command);
-    return {
-      ...baseOptions,
-      shell: needsShell,
-    };
+    return baseOptions;
   }
 }
 

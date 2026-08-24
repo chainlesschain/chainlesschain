@@ -2,6 +2,7 @@ const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { resolveContainedProjectPath } = require("./project-path-security.js");
 
 // M2: 启动期 IO 异步化 — 通过 _deps 暴露 fs.promises 便于测试覆盖
 const _deps = { fsp: fs.promises };
@@ -200,23 +201,10 @@ class ProjectConfig {
     if (!relativePath) {
       return "";
     }
-
-    // 如果已经是绝对路径，直接返回
-    if (
-      path.isAbsolute(relativePath) &&
-      !relativePath.startsWith("/data/projects")
-    ) {
-      return relativePath;
-    }
-
-    // 如果是 /data/projects/ 开头的相对路径，转换为绝对路径
-    if (relativePath.startsWith("/data/projects/")) {
-      const projectId = relativePath.replace("/data/projects/", "");
-      return path.join(this.getProjectsRootPath(), projectId);
-    }
-
-    // 其他情况，拼接到根路径
-    return path.join(this.getProjectsRootPath(), relativePath);
+    return resolveContainedProjectPath(
+      this.getProjectsRootPath(),
+      relativePath,
+    );
   }
 
   /**
@@ -289,5 +277,6 @@ module.exports = {
   ProjectConfig,
   getProjectConfig,
   getProjectConfigAsync,
+  resolveContainedProjectPath,
 };
 module.exports._deps = _deps;

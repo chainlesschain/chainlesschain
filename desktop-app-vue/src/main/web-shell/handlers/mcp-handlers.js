@@ -68,6 +68,12 @@ function getManager(options) {
   return mgr;
 }
 
+function getSecurityPolicy(options) {
+  const policy = options.mcpSecurityPolicy;
+  if (!policy) throw new Error("mcp_security_policy_unavailable");
+  return policy;
+}
+
 /**
  * Build the `mcp.list_tools` topic handler.
  *
@@ -147,6 +153,11 @@ function createMcpCallToolHandler(options = {}) {
     }
     const params =
       frame?.params && typeof frame.params === "object" ? frame.params : {};
+    const policy = getSecurityPolicy(options);
+    if (typeof policy.validateToolExecution !== "function") {
+      throw new Error("mcp_security_policy_unavailable");
+    }
+    await policy.validateToolExecution(serverName, toolName, params);
     return mgr.callTool(serverName, toolName, params);
   };
 }
@@ -235,6 +246,13 @@ function createMcpReadResourceHandler(options = {}) {
     }
     if (typeof uri !== "string" || !uri) {
       throw new Error("uri_required");
+    }
+    const policy = getSecurityPolicy(options);
+    const allowed = policy.validateResourceAccess?.(serverName, uri);
+    if (!allowed?.permitted) {
+      throw new Error(
+        `resource_access_denied:${allowed?.reason || "security_policy_rejected"}`,
+      );
     }
     return mgr.readResource(serverName, uri);
   };

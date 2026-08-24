@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.9",
+      "cliVersions": ["0.165.8", "0.165.9"],
+      "date": "2026-08-24",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.165.9: fail-closed execution and secret migration",
+          "body": "> `chainlesschain` **0.165.8 -> 0.165.9** (source candidate; not yet\n> published, 2026-08-24).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Fail-closed command admission**: shell execution now denies when its\n  ApprovalGate is unavailable, and an unspecified agent sandbox resolves to\n  `workspace-write` with network access disabled instead of silently running\n  without a technical boundary.\n- **Agent Network secret storage**: DID private keys move to the OS-backed\n  SecretStore and the ordinary database retains only key references. Auth\n  sessions persist bearer-token hashes rather than reusable bearer values.\n- **IPFS data-key separation**: encrypted CLI IPFS content stores its DEK in\n  SecretStore and only a key reference beside the ciphertext. Legacy plaintext\n  keys support dry-run inspection and transactional, fail-closed migration.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices. Tag, provenance, registry readback, and\n  publication evidence must be recorded only after those exact-SHA gates\n  succeed."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.8",
       "cliVersions": ["0.165.7", "0.165.8"],
       "date": "2026-08-23",

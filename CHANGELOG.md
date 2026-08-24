@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.165.9: fail-closed execution and secret migration
+
+> `chainlesschain` **0.165.8 -> 0.165.9** (source candidate; not yet
+> published, 2026-08-24).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Fail-closed command admission**: shell execution now denies when its
+  ApprovalGate is unavailable, and an unspecified agent sandbox resolves to
+  `workspace-write` with network access disabled instead of silently running
+  without a technical boundary.
+- **Agent Network secret storage**: DID private keys move to the OS-backed
+  SecretStore and the ordinary database retains only key references. Auth
+  sessions persist bearer-token hashes rather than reusable bearer values.
+- **IPFS data-key separation**: encrypted CLI IPFS content stores its DEK in
+  SecretStore and only a key reference beside the ciphertext. Legacy plaintext
+  keys support dry-run inspection and transactional, fail-closed migration.
+- **Release status**: publication requires this candidate's exact commit to
+  pass the complete Linux, Windows, and macOS `CLI CI` and
+  `CLI Strict Sandbox` matrices. Tag, provenance, registry readback, and
+  publication evidence must be recorded only after those exact-SHA gates
+  succeed.
+
 ### Fixed - cc CLI 0.165.8: release-gate home isolation
 
 > `chainlesschain` **0.165.7 -> 0.165.8** (source candidate; not yet

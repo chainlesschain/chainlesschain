@@ -23,13 +23,28 @@ import {
   addKnowledgeAttachment,
   getKnowledgeAttachments,
   _resetState,
+  migrateIpfsEncryptionKeys,
+  setIpfsSecretStore,
 } from "../../src/lib/ipfs-storage.js";
 
 describe("ipfs-storage", () => {
   let db;
+  let storedSecrets;
 
   beforeEach(() => {
     _resetState();
+    storedSecrets = new Map();
+    setIpfsSecretStore({
+      set(key, value) {
+        storedSecrets.set(key, value);
+      },
+      get(key) {
+        return storedSecrets.get(key) ?? null;
+      },
+      delete(key) {
+        return storedSecrets.delete(key);
+      },
+    });
     db = new MockDatabase();
     ensureIpfsTables(db);
   });
@@ -278,6 +293,35 @@ describe("ipfs-storage", () => {
       addContent(db, "plaintext payload", { encrypt: true });
       const rows = db.data.get("ipfs_content");
       expect(rows[0].payload).not.toContain("plaintext payload");
+      expect(rows[0].encryption_key).toBe("");
+      expect(rows[0].encryption_key_ref).toMatch(/^ipfs\/dek\/[0-9a-f]{64}$/);
+      expect(storedSecrets.get(rows[0].encryption_key_ref)).toMatch(
+        /^[0-9a-f]{64}$/,
+      );
+    });
+
+    it("dry-runs and migrates legacy plaintext DEKs", () => {
+      db.data.get("ipfs_content").push({
+        cid: "bafylegacy",
+        encryption_key: "ab".repeat(32),
+        encryption_key_ref: "",
+      });
+
+      expect(migrateIpfsEncryptionKeys(db, { dryRun: true })).toEqual({
+        pending: 1,
+        migrated: 0,
+        dryRun: true,
+      });
+      expect(db.data.get("ipfs_content")[0].encryption_key).not.toBe("");
+
+      expect(migrateIpfsEncryptionKeys(db)).toEqual({
+        pending: 1,
+        migrated: 1,
+        dryRun: false,
+      });
+      const row = db.data.get("ipfs_content")[0];
+      expect(row.encryption_key).toBe("");
+      expect(storedSecrets.get(row.encryption_key_ref)).toBe("ab".repeat(32));
     });
   });
 
