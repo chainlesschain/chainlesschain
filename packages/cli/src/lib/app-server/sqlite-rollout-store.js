@@ -240,7 +240,7 @@ export class SqliteRolloutStore {
       .slice(0, Math.max(1, Number(limit) || 100));
   }
 
-  fork(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
+  forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
     const source = this.resume(sourceThreadId);
     const target = this.start({
       threadId,

@@ -382,7 +382,7 @@ export class CcAppServer {
       sourceThreadId,
       requestId,
     );
-    const thread = this.store.fork(sourceThreadId, {
+    const thread = this.store.forkThread(sourceThreadId, {
       threadId: kernelThreadId || params.newThreadId || this.createId(),
       title: params.title ?? null,
     });

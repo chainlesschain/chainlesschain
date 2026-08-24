@@ -359,7 +359,7 @@ export class JsonlRolloutStore {
       .slice(0, Math.max(1, Math.min(10_000, Number(limit) || 100)));
   }
 
-  fork(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
+  forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
     const sourceRecords = this._readUnsafe(sourceThreadId);
     const source = projectThread(sourceRecords);
     const target = this.start({
@@ -530,7 +530,7 @@ export class MemoryRolloutStore {
       .slice(0, limit);
   }
 
-  fork(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
+  forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
     const source = this.resume(sourceThreadId);
     const target = this.start({
       threadId,

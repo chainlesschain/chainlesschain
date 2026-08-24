@@ -95,12 +95,14 @@ for (const [name, createStore] of implementations) {
         summary: "Retained pending approval and frontier",
         retainedState: { pendingApproval: "approval-1" },
       });
-      const fork = store.fork(thread.id, { threadId: "thread-2" });
-      expect(fork).toMatchObject({
+      const forkedThread = store.forkThread(thread.id, {
+        threadId: "thread-2",
+      });
+      expect(forkedThread).toMatchObject({
         id: "thread-2",
         parentThreadId: "thread-1",
       });
-      expect(store.read(fork.id).at(-1).payload).toMatchObject({
+      expect(store.read(forkedThread.id).at(-1).payload).toMatchObject({
         sourceThreadId: "thread-1",
         sourceHeadHash: expect.stringMatching(/^sha256:/),
       });
