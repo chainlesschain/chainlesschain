@@ -103,6 +103,8 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
         args: [
           "--no-ide",
           "--no-mcp",
+          "--sandbox-mode",
+          "off",
           "--provider",
           "ollama",
           "--model",
@@ -175,6 +177,8 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
           args: [
             "--no-ide",
             "--no-mcp",
+            "--sandbox-mode",
+            "off",
             "--provider",
             "ollama",
             "--model",
@@ -283,6 +287,8 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
         args: [
           "--no-ide",
           "--no-mcp",
+          "--sandbox-mode",
+          "off",
           "--provider",
           "ollama",
           "--model",

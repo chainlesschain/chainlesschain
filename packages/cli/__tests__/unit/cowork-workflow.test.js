@@ -1401,7 +1401,7 @@ describe("pipeline mode (no-barrier scheduling)", () => {
     expect(maxInFlight).toBe(2);
   });
 
-  it("halts scheduling on failure and skips the rest (continueOnError off)", async () => {
+  it("halts scheduling and propagates the failed root cut", async () => {
     _deps.runTask = vi.fn(async ({ userMessage }) => {
       if (userMessage === "a") {
         return { taskId: "t", status: "failed", result: { summary: "boom" } };
@@ -1420,10 +1420,16 @@ describe("pipeline mode (no-barrier scheduling)", () => {
     };
     const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
     expect(out.status).toBe("failed");
-    const byId = Object.fromEntries(out.steps.map((s) => [s.id, s.status]));
-    expect(byId.a).toBe("failed");
-    expect(byId.b).toBe("skipped");
-    expect(byId.c).toBe("skipped");
+    const byId = Object.fromEntries(out.steps.map((s) => [s.id, s]));
+    expect(byId.a.status).toBe("failed");
+    expect(byId.b).toMatchObject({
+      status: "upstream_failed",
+      result: { blockedRootCut: ["a"] },
+    });
+    expect(byId.c).toMatchObject({
+      status: "upstream_failed",
+      result: { blockedRootCut: ["a"] },
+    });
     expect(_deps.runTask).toHaveBeenCalledTimes(1);
   });
 

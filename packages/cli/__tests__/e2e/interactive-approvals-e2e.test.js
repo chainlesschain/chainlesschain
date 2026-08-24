@@ -93,6 +93,8 @@ function startAgent() {
     [
       CLI_BIN,
       "agent",
+      "--sandbox-mode",
+      "off",
       "--input-format",
       "stream-json",
       "--output-format",

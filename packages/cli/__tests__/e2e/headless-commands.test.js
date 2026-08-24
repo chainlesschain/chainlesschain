@@ -107,13 +107,17 @@ describe("E2E: headless CLI commands", () => {
   // deterministic and need no Ollama/network.
   describe("agent headless mode — fail-closed validation (no LLM)", () => {
     it("rejects an invalid --output-format with a non-zero exit", () => {
-      const r = runFail('agent -p "hi" --output-format yaml');
+      const r = runFail(
+        'agent -p "hi" --sandbox-mode off --output-format yaml',
+      );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --output-format");
     });
 
     it("rejects an invalid --permission-mode with a non-zero exit", () => {
-      const r = runFail('agent -p "hi" --permission-mode yolo');
+      const r = runFail(
+        'agent -p "hi" --sandbox-mode off --permission-mode yolo',
+      );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --permission-mode");
     });

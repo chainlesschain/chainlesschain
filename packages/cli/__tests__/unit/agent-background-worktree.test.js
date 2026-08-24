@@ -46,6 +46,11 @@ vi.mock("../../src/lib/config-manager.js", () => ({
   saveConfig: vi.fn(),
 }));
 
+vi.mock("../../src/lib/agent-sandbox.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  assertSandboxAvailable: vi.fn(),
+}));
+
 import { registerAgentCommand } from "../../src/commands/agent.js";
 
 const canonicalPath = realpathSync.native || realpathSync;

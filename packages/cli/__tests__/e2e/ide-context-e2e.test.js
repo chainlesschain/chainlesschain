@@ -120,6 +120,8 @@ function runAgent(extraEnv = {}) {
         "what am I looking at",
         "--ide",
         "--no-mcp",
+        "--sandbox-mode",
+        "off",
         "--provider",
         "ollama",
         "--model",

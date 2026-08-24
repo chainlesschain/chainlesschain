@@ -318,7 +318,7 @@ describe("workflow end-to-end (stubbed runner)", () => {
       name: "halts",
       steps: [
         { id: "a", message: "a" },
-        { id: "b", message: "b", dependsOn: ["a"] },
+        { id: "b", message: "b" },
       ],
     };
     let calls = 0;
@@ -330,7 +330,11 @@ describe("workflow end-to-end (stubbed runner)", () => {
         result: { summary: calls === 1 ? "boom" : "ok" },
       };
     };
-    const r1 = await executeWorkflow({ workflow: wf, cwd: tmpDir });
+    const r1 = await executeWorkflow({
+      workflow: wf,
+      cwd: tmpDir,
+      maxParallel: 1,
+    });
     expect(r1.status).toBe("failed");
     expect(calls).toBe(1);
 
@@ -338,6 +342,7 @@ describe("workflow end-to-end (stubbed runner)", () => {
     const r2 = await executeWorkflow({
       workflow: wf,
       cwd: tmpDir,
+      maxParallel: 1,
       continueOnError: true,
     });
     expect(r2.status).toBe("partial");

@@ -1889,9 +1889,10 @@ export async function runStepNode(step, ctx) {
  * No-barrier pipeline scheduler: start each step the instant *its own*
  * dependencies finish, rather than waiting for the whole dependency level.
  * Up to `maxParallel` step nodes run concurrently. On failure with
- * `continueOnError` off, no new steps are scheduled (in-flight ones finish) and
- * the rest are marked skipped. Produces the same outcome set as the batch
- * executor — only the wall-clock idle between levels is removed.
+ * `continueOnError` off, no new steps are scheduled (in-flight ones finish).
+ * Unscheduled descendants receive the same dependency-derived terminal state
+ * as the batch executor; unrelated work is marked skipped. Only the wall-clock
+ * idle between levels differs.
  */
 export async function runPipeline({
   steps,
@@ -1941,9 +1942,9 @@ export async function runPipeline({
           reject(fatalError);
           return;
         }
-        for (const s of steps) {
+        for (const s of topoSort(steps)) {
           if (scheduled.has(s.id)) continue;
-          const o = {
+          const o = dependencyBlock(s, resultsById) || {
             id: s.id,
             status: "skipped",
             taskId: null,

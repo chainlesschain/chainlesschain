@@ -1099,14 +1099,18 @@ describe("workflow WS handlers (N1)", () => {
         status: "failed",
         steps: [
           { id: "a", status: "failed", result: { summary: "real failure" } },
-          { id: "b", status: "skipped" },
+          {
+            id: "b",
+            status: "upstream_failed",
+            result: { blockedRootCut: ["a"] },
+          },
         ],
       });
       expect(JSON.parse(wfDeps.appendFileSync.mock.calls[0][1])).toMatchObject({
         status: "failed",
         steps: [
           { id: "a", status: "failed" },
-          { id: "b", status: "skipped" },
+          { id: "b", status: "upstream_failed" },
         ],
       });
     },

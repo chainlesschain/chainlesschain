@@ -113,6 +113,8 @@ function runResume(sessionId) {
         "--resume",
         sessionId,
         "--no-mcp",
+        "--sandbox-mode",
+        "off",
         "--provider",
         "ollama",
         "--model",
