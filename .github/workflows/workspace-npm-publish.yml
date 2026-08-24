@@ -31,13 +31,18 @@ jobs:
     name: Publish packages to npm
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
@@ -55,7 +60,12 @@ jobs:
 
       - name: Build packages
         if: steps.detect.outputs.has_packages == 'true'
-        run: npm run build --if-present
+        shell: bash
+        run: |
+          while IFS= read -r pkg_dir; do
+            [ -z "$pkg_dir" ] && continue
+            npm run build --if-present --workspace="./packages/$pkg_dir"
+          done < .publish-order.txt
 
       - name: Publish packages in dependency order
         if: steps.detect.outputs.has_packages == 'true'

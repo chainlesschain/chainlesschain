@@ -1,15 +1,52 @@
 {
   "name": "@chainlesschain/agent-protocol",
   "version": "0.1.0",
-  "private": true,
+  "description": "Canonical versioned Agent and Graph protocol schema, compatibility checks, and generated language bindings for ChainlessChain.",
+  "license": "MIT",
   "type": "module",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./schema": "./schema/cc-agent-protocol.schema.json",
+    "./compatibility": "./src/compatibility.mjs",
+    "./generated/kotlin": "./generated/kotlin/CcAgentProtocol.kt",
+    "./generated/swift": "./generated/swift/CcAgentProtocol.swift",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "schema/",
+    "generated/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "generate": "node scripts/generate.mjs",
     "check": "node scripts/generate.mjs --check",
     "baseline:freeze": "node scripts/generate.mjs --freeze-baseline",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "prepublishOnly": "npm run check && npm test"
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/agent-protocol"
+  },
+  "homepage": "https://github.com/chainlesschain/chainlesschain/tree/main/packages/agent-protocol",
+  "bugs": {
+    "url": "https://github.com/chainlesschain/chainlesschain/issues"
+  },
+  "keywords": [
+    "chainlesschain",
+    "agent",
+    "protocol",
+    "json-schema",
+    "graph"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

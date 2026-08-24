@@ -1,0 +1,58 @@
+name: Agent Protocol CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/agent-protocol/**"
+      - "packages/agent-sdk/src/generated/**"
+      - "packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py"
+      - "packages/cli/src/generated/cc-agent-protocol.schema.json"
+      - ".github/workflows/agent-protocol-ci.yml"
+      - ".github/workflows/workspace-npm-publish.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/agent-protocol/**"
+      - "packages/agent-sdk/src/generated/**"
+      - "packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py"
+      - "packages/cli/src/generated/cc-agent-protocol.schema.json"
+      - ".github/workflows/agent-protocol-ci.yml"
+      - ".github/workflows/workspace-npm-publish.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+
+      - name: Verify generated bindings and compatibility baseline
+        run: npm run check --workspace=packages/agent-protocol
+
+      - name: Run protocol package tests
+        run: npm test --workspace=packages/agent-protocol
+
+      - name: Verify public package tarball
+        working-directory: packages/agent-protocol
+        run: npm pack --dry-run --json
