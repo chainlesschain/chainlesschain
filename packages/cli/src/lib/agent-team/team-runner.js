@@ -20,6 +20,21 @@ function leaseFencingToken(lease) {
   return lease?.fencingToken ?? lease?.leaseId ?? null;
 }
 
+const FOLLOWUP_WAKE_PROMPT = [
+  "A teammate explicitly requested a follow-up turn for this existing team session.",
+  "Process the pending teammate mailbox messages shown below or available through team_receive.",
+  "Use team_ack only after durable processing, and keep all message content within the original task authority, budget, and workspace contract.",
+].join(" ");
+
+function taskStatus(task) {
+  return String(task?.status || "").toLowerCase();
+}
+
+function followupMetadata(task) {
+  const value = task?.metadata?.teamFollowup;
+  return value && typeof value === "object" ? value : null;
+}
+
 export class TeamRunner {
   /**
    * @param {TaskLeaseRegistry} registry
@@ -84,6 +99,25 @@ export class TeamRunner {
     // it. Ordinary renewals keep the same identity and do not call this hook.
     this.onLeaseChanged =
       typeof opts.onLeaseChanged === "function" ? opts.onLeaseChanged : null;
+    // An explicit follow-up to an idle teammate is materialized as a bounded,
+    // high-priority system task. It receives its own task lease/fence but
+    // resumes the recipient's prior agent session. The mutation hook persists
+    // the new task immediately so a coordinator crash cannot lose the wake.
+    this.onFollowupMutation =
+      typeof opts.onFollowupMutation === "function"
+        ? opts.onFollowupMutation
+        : null;
+    this.maxFollowupWakes =
+      Number.isSafeInteger(opts.maxFollowupWakes) && opts.maxFollowupWakes > 0
+        ? opts.maxFollowupWakes
+        : 3;
+    this.maxFollowupTasks =
+      Number.isSafeInteger(opts.maxFollowupTasks) && opts.maxFollowupTasks > 0
+        ? opts.maxFollowupTasks
+        : Math.min(this.maxTasks, 1000);
+    this._followupTasks = this.registry
+      .list()
+      .filter((task) => followupMetadata(task)).length;
     this._executions = 0;
     this._reservedExecutions = 0;
     this._inFlight = 0;
@@ -93,6 +127,7 @@ export class TeamRunner {
     // same process must not steal and double-run that still-active task.
     this._activeKeys = new Set();
     this._members = new Map(); // holder → lifecycle record
+    this._residentHolders = new Set();
     this._budgetStopped = false;
     this._registryBudgetReason = null;
     this._fatalError = null;
@@ -127,16 +162,28 @@ export class TeamRunner {
     }
     if (state === "completed-task") {
       m.completed += 1;
+      if (extra.key) m.lastTaskKey = extra.key;
+      if (extra.sessionTaskKey) m.sessionTaskKey = extra.sessionTaskKey;
+      m.currentTaskKey = null;
       return m;
     }
     if (state === "failed-task") {
       m.failed += 1;
       m.lastError = extra.error || null;
+      if (extra.key) m.lastTaskKey = extra.key;
+      if (extra.sessionTaskKey) m.sessionTaskKey = extra.sessionTaskKey;
+      m.currentTaskKey = null;
       return m;
     }
     if (m.state === state) return m; // no transition
     const previousState = m.state;
     m.state = state;
+    if (state === "running") {
+      m.currentTaskKey = extra.key || null;
+      if (extra.sessionTaskKey) m.sessionTaskKey = extra.sessionTaskKey;
+    } else if (state === "idle" || state === "shutdown") {
+      m.currentTaskKey = null;
+    }
     this._emit("teammate:state", { holder, state, ...extra });
     // Initial registration starts in `idle`; the hook is reserved for a real
     // transition back to idle after a teammate has participated in the run.
@@ -168,6 +215,275 @@ export class TeamRunner {
     for (const r of records) {
       if (r && r.holder) this._members.set(r.holder, { ...r });
     }
+  }
+
+  _sessionTaskKey(key, task = this.registry.getTask(key)) {
+    return followupMetadata(task)?.sessionTaskKey || key;
+  }
+
+  _followupTasksFor(recipient, messageId) {
+    return this.registry
+      .list()
+      .filter((task) => {
+        const metadata = followupMetadata(task);
+        return (
+          metadata?.recipient === recipient && metadata.messageId === messageId
+        );
+      })
+      .sort(
+        (left, right) =>
+          (followupMetadata(left)?.wakeAttempt || 0) -
+          (followupMetadata(right)?.wakeAttempt || 0),
+      );
+  }
+
+  _terminalMessageReceipt(recipient, messageId) {
+    const receipt = this.mailbox
+      ?.snapshot?.()
+      ?.receipts?.map((entry) => entry?.[1])
+      ?.find(
+        (candidate) =>
+          candidate?.recipient === recipient &&
+          candidate?.messageId === messageId,
+      );
+    return ["processed", "dead_letter"].includes(receipt?.status)
+      ? receipt
+      : null;
+  }
+
+  _persistFollowupMutation(event) {
+    if (!this.onFollowupMutation) return;
+    try {
+      this.onFollowupMutation(event);
+    } catch (error) {
+      const failure =
+        error instanceof Error
+          ? error
+          : new Error(String(error || "follow-up persistence failed"));
+      failure.code ||= "TEAM_FOLLOWUP_PERSIST_FAILED";
+      this.abortRun(failure, { requireAdjudication: true });
+      throw failure;
+    }
+  }
+
+  _deadLetterExhaustedFollowup(recipient, message) {
+    const receipts = this.mailbox.acknowledge(recipient, {
+      messageIds: [message.id],
+      consumerKey: `team-followup-wake:${message.id}`,
+      status: "dead_letter",
+      reason: "followup_wake_attempts_exhausted",
+      recipientAttempt: {
+        holder: recipient,
+        taskKey: null,
+        attempt: this.maxFollowupWakes,
+        leaseId: null,
+        fencingToken: null,
+      },
+    });
+    this._emit("followup:dead-lettered", {
+      holder: recipient,
+      messageId: message.id,
+      reason: "followup_wake_attempts_exhausted",
+    });
+    this._persistFollowupMutation({
+      type: "followup:dead-lettered",
+      holder: recipient,
+      messageId: message.id,
+    });
+    return {
+      recipient,
+      wake: "dead_lettered",
+      messageId: message.id,
+      receipt: receipts[0],
+    };
+  }
+
+  _requestRecipientFollowupWake(recipient, message) {
+    const terminal = this._terminalMessageReceipt(recipient, message.id);
+    if (terminal) {
+      return {
+        recipient,
+        wake:
+          terminal.status === "processed"
+            ? "already_processed"
+            : "dead_lettered",
+        messageId: message.id,
+      };
+    }
+    const member = this._members.get(recipient);
+    if (member?.state === "running") {
+      return { recipient, wake: "target_active", messageId: message.id };
+    }
+    if (!this._residentHolders.has(recipient)) {
+      return {
+        recipient,
+        wake: "queued_until_target_turn",
+        messageId: message.id,
+      };
+    }
+    const sessionTaskKey = member?.sessionTaskKey || null;
+    const sourceTask = sessionTaskKey
+      ? this.registry.getTask(sessionTaskKey)
+      : null;
+    if (!sourceTask || taskStatus(sourceTask) !== "completed") {
+      return {
+        recipient,
+        wake: "queued_until_target_turn",
+        messageId: message.id,
+      };
+    }
+    const existing = this._followupTasksFor(recipient, message.id);
+    const unsettled = existing.find((task) =>
+      ["pending", "in_progress"].includes(taskStatus(task)),
+    );
+    if (unsettled) {
+      return {
+        recipient,
+        wake: "turn_scheduled",
+        messageId: message.id,
+        taskKey: unsettled.key,
+        idempotent: true,
+      };
+    }
+    if (existing.length >= this.maxFollowupWakes) {
+      return this._deadLetterExhaustedFollowup(recipient, message);
+    }
+    if (this._followupTasks >= this.maxFollowupTasks) {
+      const error = new Error("Team follow-up wake task capacity exceeded");
+      error.code = "TEAM_FOLLOWUP_WAKE_CAPACITY";
+      throw error;
+    }
+    const completedWake = [...existing]
+      .reverse()
+      .find((task) => taskStatus(task) === "completed");
+    const dependencyKey = completedWake?.key || sessionTaskKey;
+    const wakeAttempt = existing.length + 1;
+    const key = `team_followup:${message.id}:${recipient}:${wakeAttempt}`.slice(
+      0,
+      256,
+    );
+    const sourceMetadata = sourceTask.metadata || {};
+    const added = this.registry.addTask({
+      key,
+      title: `Follow up message ${message.id} for ${recipient}`,
+      dependsOn: [dependencyKey],
+      priority: "high",
+      createdBy: message.from || "coordinator",
+      metadata: {
+        prompt: FOLLOWUP_WAKE_PROMPT,
+        ...(Array.isArray(sourceMetadata.scopePaths)
+          ? { scopePaths: [...sourceMetadata.scopePaths] }
+          : {}),
+        ...(sourceMetadata.agent ? { agent: sourceMetadata.agent } : {}),
+        ...(sourceMetadata.policy ? { policy: sourceMetadata.policy } : {}),
+        retrySafe: sourceMetadata.retrySafe === true,
+        teamFollowup: {
+          messageId: message.id,
+          recipient,
+          sender: message.from || null,
+          sessionTaskKey,
+          dependencyTaskKey: dependencyKey,
+          wakeAttempt,
+        },
+      },
+    });
+    if (!added.ok) {
+      const duplicate = this.registry.getTask(key);
+      if (duplicate && followupMetadata(duplicate)?.messageId === message.id) {
+        return {
+          recipient,
+          wake: "turn_scheduled",
+          messageId: message.id,
+          taskKey: key,
+          idempotent: true,
+        };
+      }
+      const error = new Error(
+        `Could not schedule follow-up wake for ${recipient}: ${added.reason}`,
+      );
+      error.code = "TEAM_FOLLOWUP_WAKE_REJECTED";
+      throw error;
+    }
+    this._followupTasks += 1;
+    this._emit("followup:wake-scheduled", {
+      holder: recipient,
+      messageId: message.id,
+      key,
+      sessionTaskKey,
+      wakeAttempt,
+    });
+    this._persistFollowupMutation({
+      type: "followup:wake-scheduled",
+      holder: recipient,
+      messageId: message.id,
+      key,
+      sessionTaskKey,
+      wakeAttempt,
+    });
+    this._signalProgress();
+    return {
+      recipient,
+      wake: "turn_scheduled",
+      messageId: message.id,
+      taskKey: key,
+      wakeAttempt,
+    };
+  }
+
+  /**
+   * Materialize an explicit follow-up as a real lease-bound turn when the
+   * target has an idle resumable session. Active targets keep using their live
+   * bridge; recipients without a prior session retain the durable message for
+   * their first ordinary turn.
+   */
+  requestFollowupWake({ to, message, senderAttempt = null } = {}) {
+    if (
+      !this.realtimeMessaging ||
+      !this.mailbox ||
+      message?.mode !== "followup"
+    ) {
+      return { wake: "queued_until_target_turn", recipients: [] };
+    }
+    const sender = senderAttempt?.holder || message?.from || null;
+    if (to === "coordinator") {
+      return { wake: "queued_for_coordinator", recipients: [] };
+    }
+    const recipients =
+      to === "*"
+        ? (this.mailbox.status?.().recipients || []).filter(
+            (recipient) => recipient !== sender,
+          )
+        : [to];
+    const results = recipients.map((recipient) =>
+      this._requestRecipientFollowupWake(recipient, message),
+    );
+    const wakes = results.map((result) => result.wake);
+    const wake = wakes.includes("turn_scheduled")
+      ? "turn_scheduled"
+      : wakes.includes("target_active")
+        ? "target_active"
+        : wakes.includes("queued_until_target_turn")
+          ? "queued_until_target_turn"
+          : wakes.includes("dead_lettered")
+            ? "dead_lettered"
+            : wakes[0] || "queued_until_target_turn";
+    return { wake, recipients: results };
+  }
+
+  _reconcileFollowupWakes(recipient = null) {
+    if (!this.realtimeMessaging || !this.mailbox) return 0;
+    const recipients = recipient ? [recipient] : [...this._residentHolders];
+    let scheduled = 0;
+    for (const holder of recipients) {
+      for (const message of this.mailbox.peek(holder)) {
+        if (message.mode !== "followup") continue;
+        const outcome = this._requestRecipientFollowupWake(holder, message);
+        if (outcome.wake === "turn_scheduled" && !outcome.idempotent) {
+          scheduled += 1;
+        }
+      }
+    }
+    return scheduled;
   }
 
   /** Snapshot of local in-flight claims for an IDE/operator control surface. */
@@ -356,11 +672,16 @@ export class TeamRunner {
       { length: workerCount },
       (_, index) => `teammate-${index + 1}`,
     );
+    this._residentHolders = new Set(holders);
     this.mailbox?.registerRecipients?.(holders);
     for (const holder of holders) {
       this._setState(holder, "idle");
-      workers.push(this._worker(holder));
     }
+    // A prior coordinator may have committed a follow-up message immediately
+    // before crashing, before it could materialize the wake task. Reconcile
+    // those durable messages before workers decide the graph has no more work.
+    this._reconcileFollowupWakes();
+    for (const holder of holders) workers.push(this._worker(holder));
     try {
       await Promise.all(workers);
     } finally {
@@ -447,11 +768,16 @@ export class TeamRunner {
       }
       const key = this._nextFor(holder);
       if (!key) {
+        this._setState(holder, "idle");
+        // A follow-up may have arrived while this target's previous turn was
+        // still active. If it was not explicitly ACKed by turn settlement,
+        // convert it into a fresh lease-bound turn now instead of shutting the
+        // worker down with a stranded wake intent.
+        if (this._reconcileFollowupWakes(holder) > 0) continue;
         // Nothing to claim right now. If peers are still working, wait and
         // retry (their completions may unblock a dependent). Otherwise we're done.
         const heldScopes = this.scopeLock?.status?.().count || 0;
         if (this._inFlight > 0 || this._reservedExecutions > 0) {
-          this._setState(holder, "idle");
           await this._waitForProgress();
           continue;
         }
@@ -1045,7 +1371,7 @@ export class TeamRunner {
   }
 
   /** Pick a claimable task key for this holder (highest priority first). */
-  _nextFor() {
+  _nextFor(holder) {
     // A whole-workspace owner blocks every other scope, so avoid walking a
     // large ready queue only to rediscover the same conflict for each task.
     if (
@@ -1059,8 +1385,14 @@ export class TeamRunner {
       const excluded = new Set(this._activeKeys);
       for (let scanned = 0; scanned < this.maxScopeScan; scanned++) {
         const key = this.registry.nextClaimable({ excludeKeys: excluded });
-        if (!key || !this.scopeLock) return key;
+        if (!key) return null;
         const task = this.registry.getTask(key);
+        const targetHolder = followupMetadata(task)?.recipient || null;
+        if (targetHolder && targetHolder !== holder) {
+          excluded.add(key);
+          continue;
+        }
+        if (!this.scopeLock) return key;
         const check = this.scopeLock.canAcquire(
           key,
           this.scopeForTask(task, key),
@@ -1087,6 +1419,8 @@ export class TeamRunner {
     for (const key of claimable) {
       if (this._activeKeys.has(key)) continue;
       const t = this.registry.getTask(key);
+      const targetHolder = followupMetadata(t)?.recipient || null;
+      if (targetHolder && targetHolder !== holder) continue;
       const score = rank[t?.priority] ?? 1;
       if (score < bestScore) {
         bestScore = score;
@@ -1138,11 +1472,12 @@ export class TeamRunner {
 
   async _execute(holder, key, claim) {
     const task = this.registry.getTask(key);
+    const sessionTaskKey = this._sessionTaskKey(key, task);
     this._reservedExecutions--;
     this._executions++;
     this._inFlight++;
     this._maxInFlight = Math.max(this._maxInFlight, this._inFlight);
-    this._setState(holder, "running", { key });
+    this._setState(holder, "running", { key, sessionTaskKey });
     this._emit("task:claimed", { key, holder, attempts: task.attempts });
     const renew = () => this._renewClaim(claim);
     // A teammate-scoped messaging handle: post to a peer / broadcast, and read
@@ -1179,6 +1514,11 @@ export class TeamRunner {
       const member = this._members.get(recipient);
       return member ? { ...member } : null;
     };
+    const requestFollowupWake = (request = {}) =>
+      this.requestFollowupWake({
+        ...request,
+        senderAttempt: request.senderAttempt || messageAuthority(),
+      });
     const sendMessage = (to, body, subject = null, options = {}) => {
       if (!this.mailbox) return null;
       let message;
@@ -1251,6 +1591,7 @@ export class TeamRunner {
         sendMessage,
         messageAuthority,
         recipientState,
+        requestFollowupWake,
         mailbox: this.mailbox,
         budget: this.budget,
         budgetReservation: claim.budgetReservation,
@@ -1322,7 +1663,10 @@ export class TeamRunner {
       });
       if (done.ok) {
         if (span) span.end();
-        this._setState(holder, "completed-task");
+        this._setState(holder, "completed-task", {
+          key,
+          sessionTaskKey,
+        });
         this._emit("task:completed", {
           key,
           holder,
@@ -1390,6 +1734,8 @@ export class TeamRunner {
       if (outcome?.ok) {
         this._setState(holder, "failed-task", {
           error: failure?.message || String(failure),
+          key,
+          sessionTaskKey,
         });
         this._emit("task:failed", {
           key,

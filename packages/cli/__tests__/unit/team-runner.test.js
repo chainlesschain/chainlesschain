@@ -1302,6 +1302,316 @@ describe("TeamRunner directed messaging", () => {
     );
   });
 
+  it("materializes an idle recipient follow-up as a targeted lease-bound turn", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "sender", title: "sender" });
+    reg.addTask({ key: "receiver", title: "receiver" });
+    const mailbox = new TeamMailbox();
+    const persisted = [];
+    const executions = [];
+    let receiverWasRunning = false;
+    let resolveReceiverIdle;
+    const receiverIdle = new Promise((resolve) => {
+      resolveReceiverIdle = resolve;
+    });
+    let wakeResult = null;
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      mailbox,
+      realtimeMessaging: true,
+      onFollowupMutation: (event) => persisted.push(event),
+      onEvent: (event) => {
+        if (
+          event.type === "teammate:state" &&
+          event.holder === "teammate-2" &&
+          event.state === "running"
+        ) {
+          receiverWasRunning = true;
+        }
+        if (
+          receiverWasRunning &&
+          event.type === "teammate:state" &&
+          event.holder === "teammate-2" &&
+          event.state === "idle"
+        ) {
+          resolveReceiverIdle();
+        }
+      },
+      runTask: async (context) => {
+        executions.push({
+          key: context.key,
+          holder: context.holder,
+          followup: context.task.metadata?.teamFollowup || null,
+        });
+        if (context.key === "receiver") return "receiver-ready";
+        if (context.key === "sender") {
+          await receiverIdle;
+          const authority = context.messageAuthority();
+          const message = context.sendMessage(
+            "teammate-2",
+            { request: "confirm" },
+            "explicit follow-up",
+            {
+              mode: "followup",
+              idempotencyKey: "idle-followup-v1",
+            },
+          );
+          wakeResult = context.requestFollowupWake({
+            to: "teammate-2",
+            message,
+            senderAttempt: authority,
+          });
+          return "sent";
+        }
+        const followup = context.task.metadata?.teamFollowup;
+        expect(followup).toMatchObject({
+          recipient: "teammate-2",
+          sessionTaskKey: "receiver",
+          wakeAttempt: 1,
+        });
+        expect(context.holder).toBe("teammate-2");
+        const message = context.inbox.find(
+          (candidate) => candidate.id === followup.messageId,
+        );
+        expect(message?.body).toEqual({ request: "confirm" });
+        mailbox.acknowledge("teammate-2", {
+          messageIds: [message.id],
+          consumerKey: "receiver-followup-v1",
+          recipientAttempt: context.messageAuthority(),
+        });
+        return "followup-processed";
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.success).toBe(true);
+    expect(summary.executions).toBe(3);
+    expect(wakeResult).toMatchObject({
+      wake: "turn_scheduled",
+      recipients: [
+        {
+          recipient: "teammate-2",
+          wake: "turn_scheduled",
+          wakeAttempt: 1,
+        },
+      ],
+    });
+    expect(executions.find((execution) => execution.followup)?.holder).toBe(
+      "teammate-2",
+    );
+    expect(persisted).toContainEqual(
+      expect.objectContaining({ type: "followup:wake-scheduled" }),
+    );
+    expect(mailbox.peek("teammate-2")).toEqual([]);
+  });
+
+  it("reconciles a committed follow-up message into a new turn after restart", async () => {
+    const reg = freshRegistry();
+    for (const key of ["sender", "receiver"]) {
+      reg.addTask({ key, title: key });
+      const acquired = reg.acquire(key, { holder: `old-${key}` });
+      reg.complete(key, {
+        holder: `old-${key}`,
+        leaseId: acquired.lease.leaseId,
+        result: `${key}-done`,
+      });
+    }
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const followup = mailbox.send({
+      from: "teammate-1",
+      to: "teammate-2",
+      body: "recover me",
+      mode: "followup",
+      idempotencyKey: "restart-followup-v1",
+      senderAttempt: {
+        holder: "teammate-1",
+        taskKey: "sender",
+        attempt: 1,
+        leaseId: "old-sender-lease",
+        fencingToken: "old-sender-fence",
+      },
+    });
+    const persisted = [];
+    const executed = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      mailbox,
+      realtimeMessaging: true,
+      onFollowupMutation: (event) => persisted.push(event),
+      runTask: async (context) => {
+        executed.push({ key: context.key, holder: context.holder });
+        expect(context.task.metadata.teamFollowup).toMatchObject({
+          messageId: followup.id,
+          sessionTaskKey: "receiver",
+        });
+        mailbox.acknowledge("teammate-2", {
+          messageIds: [followup.id],
+          consumerKey: "restart-consumer-v1",
+          recipientAttempt: context.messageAuthority(),
+        });
+        return "recovered";
+      },
+    });
+    runner.seedMembers([
+      {
+        holder: "teammate-1",
+        state: "shutdown",
+        completed: 1,
+        failed: 0,
+        lastTaskKey: "sender",
+        sessionTaskKey: "sender",
+      },
+      {
+        holder: "teammate-2",
+        state: "shutdown",
+        completed: 1,
+        failed: 0,
+        lastTaskKey: "receiver",
+        sessionTaskKey: "receiver",
+      },
+    ]);
+
+    const summary = await runner.run();
+    expect(summary.success).toBe(true);
+    expect(executed).toHaveLength(1);
+    expect(executed[0]).toMatchObject({ holder: "teammate-2" });
+    expect(persisted).toContainEqual(
+      expect.objectContaining({
+        type: "followup:wake-scheduled",
+        messageId: followup.id,
+      }),
+    );
+    expect(mailbox.peek("teammate-2")).toEqual([]);
+  });
+
+  it("keeps a follow-up queued when the restored recipient is not resident", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "receiver", title: "receiver" });
+    const acquired = reg.acquire("receiver", { holder: "old-receiver" });
+    reg.complete("receiver", {
+      holder: "old-receiver",
+      leaseId: acquired.lease.leaseId,
+    });
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const followup = mailbox.send({
+      from: "coordinator",
+      to: "teammate-2",
+      body: "wait until this teammate is resident again",
+      mode: "followup",
+      idempotencyKey: "offline-followup-v1",
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      mailbox,
+      realtimeMessaging: true,
+      runTask: async () => {
+        throw new Error(
+          "an offline target must not be executed by another holder",
+        );
+      },
+    });
+    runner.seedMembers([
+      {
+        holder: "teammate-2",
+        state: "shutdown",
+        completed: 1,
+        failed: 0,
+        lastTaskKey: "receiver",
+        sessionTaskKey: "receiver",
+      },
+    ]);
+
+    await expect(runner.run()).resolves.toMatchObject({
+      success: true,
+      executions: 0,
+      activeTeammates: 1,
+    });
+    expect(mailbox.peek("teammate-2").map((message) => message.id)).toEqual([
+      followup.id,
+    ]);
+    expect(
+      reg.list().filter((task) => task.metadata?.teamFollowup),
+    ).toHaveLength(0);
+  });
+
+  it("dead-letters an unacknowledged follow-up after bounded wake turns", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "receiver", title: "receiver" });
+    let dependency = "receiver";
+    for (const key of ["receiver"]) {
+      const acquired = reg.acquire(key, { holder: "old-receiver" });
+      reg.complete(key, {
+        holder: "old-receiver",
+        leaseId: acquired.lease.leaseId,
+      });
+    }
+    const mailbox = new TeamMailbox({ recipients: ["teammate-1"] });
+    const followup = mailbox.send({
+      from: "coordinator",
+      to: "teammate-1",
+      body: "poison follow-up",
+      mode: "followup",
+      idempotencyKey: "poison-followup-v1",
+    });
+    for (let wakeAttempt = 1; wakeAttempt <= 3; wakeAttempt++) {
+      const key = `existing-wake-${wakeAttempt}`;
+      reg.addTask({
+        key,
+        title: key,
+        dependsOn: [dependency],
+        metadata: {
+          teamFollowup: {
+            messageId: followup.id,
+            recipient: "teammate-1",
+            sessionTaskKey: "receiver",
+            wakeAttempt,
+          },
+        },
+      });
+      const acquired = reg.acquire(key, { holder: "old-receiver" });
+      reg.complete(key, {
+        holder: "old-receiver",
+        leaseId: acquired.lease.leaseId,
+      });
+      dependency = key;
+    }
+    const events = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      mailbox,
+      realtimeMessaging: true,
+      maxFollowupWakes: 3,
+      onEvent: (event) => events.push(event),
+      runTask: async () => {
+        throw new Error("no fourth wake turn should run");
+      },
+    });
+    runner.seedMembers([
+      {
+        holder: "teammate-1",
+        state: "shutdown",
+        completed: 4,
+        failed: 0,
+        lastTaskKey: dependency,
+        sessionTaskKey: "receiver",
+      },
+    ]);
+
+    await expect(runner.run()).resolves.toMatchObject({ success: true });
+    expect(mailbox.peek("teammate-1")).toEqual([]);
+    expect(mailbox.status().counters.deadLetteredMessages).toBe(1);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "followup:dead-lettered",
+        messageId: followup.id,
+      }),
+    );
+  });
+
   it("delivers a broadcast from one teammate to a different teammate", async () => {
     const reg = freshRegistry();
     // Two independent tasks so both teammates are busy at once; each broadcasts

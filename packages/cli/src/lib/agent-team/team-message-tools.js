@@ -96,7 +96,7 @@ const DEFINITIONS = Object.freeze([
     function: {
       name: "team_followup",
       description:
-        "Queue an at-least-once follow-up and request a teammate turn wake. The result states whether the target is active or the request remains queued.",
+        "Queue an at-least-once follow-up and request a teammate turn wake. An idle teammate with a resumable session receives a new lease-bound turn; otherwise the result reports active, queued, processed, or dead-lettered state.",
       parameters: {
         type: "object",
         additionalProperties: false,

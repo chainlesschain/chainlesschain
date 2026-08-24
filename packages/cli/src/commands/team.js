@@ -1371,6 +1371,7 @@ export function makeAgentRunTask(opts = {}) {
     sendMessage = null,
     messageAuthority = null,
     recipientState = null,
+    requestFollowupWake = null,
     mailbox = null,
     budgetReservation = null,
     signal = null,
@@ -1395,7 +1396,7 @@ export function makeAgentRunTask(opts = {}) {
     );
     return spawnAgent(buildTeamAgentPrompt(prompt, { inbox }), process.cwd(), {
       ...effectiveContract,
-      sessionId: opts.sessionIdForTask?.(key) || null,
+      sessionId: opts.sessionIdForTask?.(key, task) || null,
       signal,
       ...(mailbox && holder
         ? {
@@ -1405,6 +1406,7 @@ export function makeAgentRunTask(opts = {}) {
               sendMessage,
               assertAuthority: messageAuthority,
               recipientState,
+              requestFollowupWake,
               onMutation: opts.onMailboxMutation,
               durable: opts.mailboxDurable === true,
             },
@@ -2285,6 +2287,11 @@ export function registerTeamCommand(program, { logger } = {}) {
             }),
           ]),
         );
+        const sessionTaskKeyFor = (key, task = reg.getTask(key)) =>
+          task?.metadata?.teamFollowup?.sessionTaskKey || key;
+        const taskContractFor = (key, task = reg.getTask(key)) =>
+          taskContracts.get(key) ||
+          taskContracts.get(sessionTaskKeyFor(key, task));
         if ((options.agent || options.exec) && !options.worktree) {
           const isolatedTask = reg
             .list()
@@ -2531,37 +2538,40 @@ export function registerTeamCommand(program, { logger } = {}) {
             checkpointRequired:
               options.agent === true || options.managedCheckpoint === true,
             worktreeRequired: options.worktree === true,
-            units: reg.list().map((task) => ({
-              key: task.key,
-              branch: options.worktree
-                ? priorUnits.get(task.key)?.branch ||
-                  branchPlanner.branchFor(task.key)
-                : null,
-              worktreePath: options.worktree
-                ? priorUnits.get(task.key)?.worktreePath || null
-                : null,
-              sessionId: options.agent
-                ? priorUnits.get(task.key)?.sessionId ||
-                  _deps.collaborationStore.createSessionId(runId, task.key)
-                : null,
-              status:
-                String(task.status || "").toLowerCase() === "completed"
-                  ? "completed"
-                  : "pending",
-              permissionMode: taskContracts.get(task.key)?.permissionMode,
-              resourceBudget: {
-                maxTurns: taskContracts.get(task.key)?.maxTurns,
-                maxCostUsd: taskContracts.get(task.key)?.maxBudgetUsd,
-                maxTokens: taskContracts.get(task.key)?.maxTokens,
-                maxWallMs: taskContracts.get(task.key)?.maxWallMs,
-              },
-              checkpointRequired:
-                taskContracts.get(task.key)?.checkpointRequired === true ||
-                options.managedCheckpoint === true,
-              worktreeRequired:
-                taskContracts.get(task.key)?.worktreeRequired === true,
-              scopePaths: task.metadata?.scopePaths || [],
-            })),
+            units: reg
+              .list()
+              .filter((task) => !task.metadata?.teamFollowup)
+              .map((task) => ({
+                key: task.key,
+                branch: options.worktree
+                  ? priorUnits.get(task.key)?.branch ||
+                    branchPlanner.branchFor(task.key)
+                  : null,
+                worktreePath: options.worktree
+                  ? priorUnits.get(task.key)?.worktreePath || null
+                  : null,
+                sessionId: options.agent
+                  ? priorUnits.get(task.key)?.sessionId ||
+                    _deps.collaborationStore.createSessionId(runId, task.key)
+                  : null,
+                status:
+                  String(task.status || "").toLowerCase() === "completed"
+                    ? "completed"
+                    : "pending",
+                permissionMode: taskContracts.get(task.key)?.permissionMode,
+                resourceBudget: {
+                  maxTurns: taskContracts.get(task.key)?.maxTurns,
+                  maxCostUsd: taskContracts.get(task.key)?.maxBudgetUsd,
+                  maxTokens: taskContracts.get(task.key)?.maxTokens,
+                  maxWallMs: taskContracts.get(task.key)?.maxWallMs,
+                },
+                checkpointRequired:
+                  taskContracts.get(task.key)?.checkpointRequired === true ||
+                  options.managedCheckpoint === true,
+                worktreeRequired:
+                  taskContracts.get(task.key)?.worktreeRequired === true,
+                scopePaths: task.metadata?.scopePaths || [],
+              })),
           });
         } catch (err) {
           (log.error || console.error)(
@@ -2574,7 +2584,8 @@ export function registerTeamCommand(program, { logger } = {}) {
           collaborationRun.units.map((unit) => [unit.key, unit]),
         );
         const settleGovernance = (key, status, extra = {}) => {
-          const unit = collaborationUnits.get(key);
+          const governanceKey = sessionTaskKeyFor(key);
+          const unit = collaborationUnits.get(governanceKey);
           let sideEffects = null;
           if (unit?.sessionId) {
             try {
@@ -2587,7 +2598,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           }
           const updated = _deps.collaborationStore.updateUnit(
             collaborationRun.id,
-            key,
+            governanceKey,
             {
               status,
               ...extra,
@@ -2595,7 +2606,7 @@ export function registerTeamCommand(program, { logger } = {}) {
             },
             { returnUnit: true },
           );
-          if (updated) collaborationUnits.set(key, updated);
+          if (updated) collaborationUnits.set(governanceKey, updated);
         };
 
         // Persist a snapshot after each task settles so a crash mid-run is
@@ -2718,6 +2729,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                 sendMessage = null,
                 messageAuthority = null,
                 recipientState = null,
+                requestFollowupWake = null,
                 mailbox: taskMailbox = null,
                 budgetReservation = null,
                 signal = null,
@@ -2728,7 +2740,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                   throw new Error(`task "${key}" has no \`prompt\` to --agent`);
                 }
                 const contract = applyBudgetReservation(
-                  taskContracts.get(key),
+                  taskContractFor(key, task),
                   budgetReservation,
                 );
                 return spawnAgent(
@@ -2743,7 +2755,9 @@ export function registerTeamCommand(program, { logger } = {}) {
                       ? false
                       : contract.checkpointRequired,
                     managedCheckpoint,
-                    sessionId: collaborationUnits.get(key)?.sessionId,
+                    sessionId: collaborationUnits.get(
+                      sessionTaskKeyFor(key, task),
+                    )?.sessionId,
                     signal,
                     ...(taskMailbox && holder
                       ? {
@@ -2753,6 +2767,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                             sendMessage,
                             assertAuthority: messageAuthority,
                             recipientState,
+                            requestFollowupWake,
                             onMutation: persist,
                             durable: Boolean(options.state),
                           },
@@ -2775,9 +2790,10 @@ export function registerTeamCommand(program, { logger } = {}) {
           runTask = makeShellRunTask(log);
         } else if (options.agent)
           runTask = makeAgentRunTask({
-            contractForTask: (key) => taskContracts.get(key),
+            contractForTask: (key, task) => taskContractFor(key, task),
             worktreeEnabled: false,
-            sessionIdForTask: (key) => collaborationUnits.get(key)?.sessionId,
+            sessionIdForTask: (key, task) =>
+              collaborationUnits.get(sessionTaskKeyFor(key, task))?.sessionId,
             onMailboxMutation: persist,
             mailboxDurable: Boolean(options.state),
           });
@@ -2838,7 +2854,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           }
           const binding = adjudicationBindingFor(
             task,
-            collaborationUnits.get(key) || null,
+            collaborationUnits.get(sessionTaskKeyFor(key, task)) || null,
           );
           const opened = adjudicationStore.openCase(binding, {
             anchor: adjudicationCursor,
@@ -2865,7 +2881,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           runTask,
           budget,
           budgetForTask: options.agent
-            ? (task) => taskContracts.get(task.key)
+            ? (task) => taskContractFor(task.key, task)
             : () => ({ reserveUsage: false }),
           mailbox,
           realtimeMessaging: options.agent === true,
@@ -2895,14 +2911,22 @@ export function registerTeamCommand(program, { logger } = {}) {
                 ? "pending"
                 : retry
                   ? "pending"
-                  : status;
+                  : options.agent === true && status === "completed"
+                    ? "running"
+                    : status;
             settleGovernance(key, governanceStatus, {
-              endedAt: governanceStatus === "pending" ? null : Date.now(),
+              endedAt:
+                governanceStatus === "pending" || governanceStatus === "running"
+                  ? null
+                  : Date.now(),
             });
             ensureTaskAdjudicationCase(key);
             persist();
           },
           onLeaseChanged: () => {
+            persist();
+          },
+          onFollowupMutation: () => {
             persist();
           },
           onEvent: (e) => {
@@ -3011,18 +3035,32 @@ export function registerTeamCommand(program, { logger } = {}) {
         persist();
         let governanceFailed = false;
         try {
-          // Reconcile only units whose authoritative registry state differs.
-          // Per-task hooks already durably settled the common path.
+          // Follow-up wake tasks are new lease-bound turns in the same durable
+          // collaboration session/unit as their source task. Aggregate every
+          // such turn before making the unit terminal; otherwise the first
+          // completed turn would freeze governance before a later follow-up.
+          const tasksByGovernanceKey = new Map(
+            [...collaborationUnits.keys()].map((key) => [key, []]),
+          );
           for (const task of reg.list()) {
-            const state = String(task.status || "").toLowerCase();
+            const governanceKey = sessionTaskKeyFor(task.key, task);
+            tasksByGovernanceKey.get(governanceKey)?.push(task);
+          }
+          for (const [key, tasks] of tasksByGovernanceKey) {
+            const states = tasks.map((task) =>
+              String(task.status || "").toLowerCase(),
+            );
             const status =
-              state === "completed"
+              states.length > 0 &&
+              states.every((state) => state === "completed")
                 ? "completed"
-                : state === "cancelled" || state === "pending"
+                : states.some(
+                      (state) => state === "cancelled" || state === "pending",
+                    )
                   ? "cancelled"
                   : "failed";
-            if (collaborationUnits.get(task.key)?.status === status) continue;
-            settleGovernance(task.key, status, {
+            if (collaborationUnits.get(key)?.status === status) continue;
+            settleGovernance(key, status, {
               endedAt: Date.now(),
             });
           }

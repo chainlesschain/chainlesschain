@@ -119,6 +119,7 @@ export class TeamMessageBridge {
     sendMessage = null,
     assertAuthority = null,
     recipientState = null,
+    requestFollowupWake = null,
     onMutation = null,
     durable = false,
     now = () => Date.now(),
@@ -133,6 +134,8 @@ export class TeamMessageBridge {
       typeof assertAuthority === "function" ? assertAuthority : null;
     this.recipientState =
       typeof recipientState === "function" ? recipientState : null;
+    this.requestFollowupWake =
+      typeof requestFollowupWake === "function" ? requestFollowupWake : null;
     this.onMutation = typeof onMutation === "function" ? onMutation : null;
     this.durable = durable === true;
     this.now = now;
@@ -256,6 +259,24 @@ export class TeamMessageBridge {
         });
     this._persist({ type: mode, messageIds: [message.id] });
     const state = this.recipientState?.(to) || null;
+    const wakeResult =
+      mode === "followup" && this.requestFollowupWake
+        ? this.requestFollowupWake({
+            to,
+            message,
+            senderAttempt: authority,
+          })
+        : null;
+    if (wakeResult) {
+      this._persist({
+        type: "followup-wake",
+        messageIds: [message.id],
+        wake: wakeResult.wake,
+        taskKeys: (wakeResult.recipients || [])
+          .map((recipient) => recipient.taskKey)
+          .filter(Boolean),
+      });
+    }
     return {
       status: "admitted",
       delivery: "at_least_once",
@@ -263,9 +284,13 @@ export class TeamMessageBridge {
       ...(mode === "followup"
         ? {
             wake:
-              state?.state === "running"
+              wakeResult?.wake ||
+              (state?.state === "running"
                 ? "target_active"
-                : "queued_until_target_turn",
+                : "queued_until_target_turn"),
+            ...(wakeResult?.recipients
+              ? { wakeRecipients: wakeResult.recipients }
+              : {}),
           }
         : {}),
     };

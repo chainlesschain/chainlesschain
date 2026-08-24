@@ -121,6 +121,60 @@ describe("TeamMessageBridge", () => {
     ]);
   });
 
+  it("returns a real idle-turn wake scheduled by the parent runner", async () => {
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const wakeRequests = [];
+    const mutations = [];
+    const bridge = await bridgeFor(mailbox, "teammate-1", {
+      recipientState: () => ({ state: "idle" }),
+      requestFollowupWake: (request) => {
+        wakeRequests.push(request);
+        return {
+          wake: "turn_scheduled",
+          recipients: [
+            {
+              recipient: request.to,
+              wake: "turn_scheduled",
+              taskKey: "team_followup:1:teammate-2:1",
+              wakeAttempt: 1,
+            },
+          ],
+        };
+      },
+      onMutation: (event) => mutations.push(event),
+    });
+
+    const result = await call(bridge, "followup", {
+      to: "teammate-2",
+      body: "wake and review",
+      message_id: "wake-review-v1",
+    });
+
+    expect(result).toMatchObject({
+      status: "admitted",
+      wake: "turn_scheduled",
+      wakeRecipients: [
+        {
+          recipient: "teammate-2",
+          taskKey: "team_followup:1:teammate-2:1",
+          wakeAttempt: 1,
+        },
+      ],
+    });
+    expect(wakeRequests).toHaveLength(1);
+    expect(wakeRequests[0]).toMatchObject({
+      to: "teammate-2",
+      message: { mode: "followup" },
+      senderAttempt: { taskKey: "task-teammate-1" },
+    });
+    expect(mutations.map((event) => event.type)).toEqual([
+      "followup",
+      "followup-wake",
+    ]);
+  });
+
   it("fails closed for a wrong token or stale attempt and hides the token from prompts", async () => {
     const mailbox = new TeamMailbox({
       recipients: ["teammate-1", "teammate-2"],
