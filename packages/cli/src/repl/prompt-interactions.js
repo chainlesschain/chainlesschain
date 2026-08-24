@@ -204,7 +204,11 @@ export class PromptInteractionController {
 
   _showSuggestionUpdate(suggestions) {
     if (this.screenReader || !suggestions.length) return;
-    this._print(`\n${renderPromptSuggestions(suggestions)}`, { refresh: true });
+    // Suggestion generation is asynchronous. Refreshing an already-visible
+    // readline prompt here interrupts Windows IME composition and can leave
+    // Chinese input unusable. The REPL awaits suggestion settlement before it
+    // reopens the prompt, so this output must never repaint the active line.
+    this._print(`\n${renderPromptSuggestions(suggestions)}`);
   }
 
   _suggestionContext(overrides = {}) {
@@ -285,6 +289,12 @@ export class PromptInteractionController {
         context: this._suggestionContext(),
       });
       this._print(result.message, { error: !result.ok });
+      // Keep generated output ahead of the next rl.prompt(). In particular,
+      // do not let a late suggestion callback redraw a prompt while an IME is
+      // composing text.
+      if (result.action === "refresh" && result.promise) {
+        await result.promise;
+      }
       return { handled: true, ...result };
     }
 

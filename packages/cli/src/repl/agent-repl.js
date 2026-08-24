@@ -9686,14 +9686,15 @@ async function startAgentReplInWorkspaceOwned(
         );
       }
 
-      // Generate follow-up suggestions from the settled assistant turn. The
-      // controller snapshots the actual conversation context and debounces in
-      // the background, so readline and persistence remain non-blocking.
+      // Generate follow-up suggestions from the settled assistant turn. Wait
+      // for their bounded local generation before reopening readline: writing
+      // and refreshing suggestions after rl.prompt() breaks Windows IME
+      // composition and can make subsequent Chinese input unusable.
       const suggestionRun = _promptInteractions.scheduleSuggestions({
         messages: messages.slice(),
         lastAssistantText: effectiveResponse || "",
       });
-      void suggestionRun.promise;
+      await suggestionRun.promise;
 
       // Auto-save session
       if (sessionId) {

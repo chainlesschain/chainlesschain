@@ -27,13 +27,12 @@ function harness(options = {}) {
     pop: vi.fn(() => stashEntries.pop() || null),
     clear: vi.fn(() => stashEntries.splice(0).length),
   };
-  const suggestionController =
-    options.suggestionController ||
-    new PromptSuggestionController({ enabled: true, debounceMs: 0 });
   const controller = new PromptInteractionController({
     readline,
     stash,
-    suggestionController,
+    suggestionController: options.suggestionController,
+    generateSuggestions: options.generateSuggestions,
+    suggestionDebounceMs: options.suggestionDebounceMs ?? 0,
     sessionId: "session-1",
     write: (text) => output.push(text),
     writeError: (text) => errors.push(text),
@@ -261,13 +260,9 @@ describe("prompt interaction controller", () => {
 
   it("refreshes suggestions with the live assistant message context", async () => {
     const generate = vi.fn(async () => ["continue from the live answer"]);
-    const suggestionController = new PromptSuggestionController({
-      generate,
-      debounceMs: 0,
-    });
     const messages = [{ role: "assistant", content: "live answer" }];
     const h = harness({
-      suggestionController,
+      generateSuggestions: generate,
       getSuggestionContext: () => ({ messages }),
     });
     const refresh = await h.controller.handleSlash("/suggestions refresh");
@@ -279,6 +274,20 @@ describe("prompt interaction controller", () => {
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(h.output.join("")).toContain("continue from the live answer");
+    expect(h.readline._refreshLine).not.toHaveBeenCalled();
+  });
+
+  it("prints automatic suggestions without repainting the active readline prompt", async () => {
+    const h = harness({ generateSuggestions: async () => ["下一步建议"] });
+
+    const scheduled = h.controller.scheduleSuggestions({
+      lastAssistantText: "已完成",
+    });
+    await scheduled.promise;
+
+    expect(h.output.join("")).toContain("下一步建议");
+    expect(h.readline._refreshLine).not.toHaveBeenCalled();
   });
 
   it("falls back to safe defaults when configured keybindings are invalid", () => {

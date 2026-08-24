@@ -31,6 +31,7 @@ describe("production agent REPL prompt interactions", () => {
       "getSuggestionContext: () => ({ messages: messages.slice() })",
     );
     expect(source).toContain("_promptInteractions.scheduleSuggestions({");
+    expect(source).toContain("await suggestionRun.promise;");
     expect(source).toContain("_promptInteractions.takeClipboardImageChips()");
     expect(source).toContain("_promptInteractions.clearClipboardImageChips()");
     expect(source).toContain("mergeClipboardImageChips(");
