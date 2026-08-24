@@ -115,7 +115,7 @@ describe("packed session-core authorization boundary", () => {
       expect(
         packedCliManifest.dependencies["@chainlesschain/session-core"],
       ).toBe(packedSessionManifest.version);
-      expect(packedSessionManifest.version).toBe("0.3.5");
+      expect(packedSessionManifest.version).toBe("0.3.6");
       expect(
         tarEntry(cliTarball, "package/src/runtime/headless-runner.js").toString(
           "utf8",
