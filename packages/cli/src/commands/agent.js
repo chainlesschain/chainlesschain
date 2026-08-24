@@ -231,7 +231,7 @@ export function resolveAgentObservabilityScope(options = {}) {
 export function registerAgentCommand(program) {
   program
     .command("agent")
-    .alias("a")
+    .aliases(["a", "exec"])
     .description(
       "Start an agentic AI session (reads/writes files, runs commands)",
     )

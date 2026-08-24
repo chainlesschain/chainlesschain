@@ -1,0 +1,125 @@
+name: Graph Agent Real Journey
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact event commit SHA; overrides are refused when provider secrets are used
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  JOURNEY_SHA: ${{ github.sha }}
+
+jobs:
+  real-journey:
+    name: Real model, exec, worktree (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+          - runner: windows-latest
+            platform: windows
+          - runner: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - name: Refuse a secret-bearing commit override
+        if: inputs.commit_sha != '' && inputs.commit_sha != github.sha
+        shell: bash
+        run: |
+          echo "::error::Real-provider secrets may only be used with the workflow event commit"
+          exit 1
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.JOURNEY_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact checked-out SHA
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${JOURNEY_SHA}"
+
+      - name: Run deterministic Graph, recovery, message, and worktree contracts
+        shell: bash
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/graph-kernel-compiler.test.js
+          packages/cli/__tests__/unit/graph-kernel-runtime.test.js
+          packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/integration/headless-session-resume.test.js
+          packages/cli/__tests__/integration/team-worktree-real-git.test.js
+
+      - name: Run real-provider cc exec journey
+        shell: bash
+        env:
+          CC_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          CC_GRAPH_JOURNEY_PROVIDER: ${{ vars.CC_LLM_PROVIDER || 'openai' }}
+          CC_GRAPH_JOURNEY_MODEL: ${{ vars.CC_LLM_MODEL || 'gpt-5-mini' }}
+        run: >-
+          node packages/cli/scripts/graph-agent-real-journey.mjs
+          --commit-sha "${JOURNEY_SHA}"
+          --output "${RUNNER_TEMP}/graph-agent-journey-${{ matrix.platform }}.json"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: graph-agent-real-journey-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-agent-journey-${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  exact-sha-matrix:
+    name: Exact-SHA three-platform journey gate
+    if: always()
+    needs: real-journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Refuse a partial or failed platform matrix
+        if: needs.real-journey.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Graph/Agent real journey matrix is incomplete"
+          exit 1
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.JOURNEY_SHA }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: graph-agent-real-journey-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-agent-evidence
+          merge-multiple: true
+
+      - name: Verify exact SHA and all platform evidence
+        run: >-
+          node packages/cli/scripts/graph-agent-real-journey.mjs
+          --verify-dir "${RUNNER_TEMP}/graph-agent-evidence"
+          --commit-sha "${JOURNEY_SHA}"
+          --output "${RUNNER_TEMP}/graph-agent-real-journey-matrix.json"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: graph-agent-real-journey-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-agent-real-journey-matrix.json
+          if-no-files-found: error
+          retention-days: 180

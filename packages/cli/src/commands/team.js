@@ -46,6 +46,7 @@ import { stopBackgroundAgentChildTree } from "../lib/background-agent-supervisor
 import { redactSecrets } from "../lib/secret-scan.js";
 import { tightenPermissionMode } from "../lib/subagent-contract.js";
 import { TeamRunStateLock } from "../lib/agent-team/team-run-state-lock.js";
+import { registerGraphCommand } from "./graph.js";
 import {
   computeTeamAdjudicationEvidenceDigest,
   TeamAdjudicationStore,
@@ -1453,6 +1454,7 @@ export function registerTeamCommand(program, { logger } = {}) {
     buildAgentPrompt: buildTeamAgentPrompt,
   });
   registerTeamMergeReviewCommands(team, { logger: log });
+  registerGraphCommand(team);
 
   team
     .command("control-bindings")

@@ -5,11 +5,25 @@
 
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import path from "node:path";
 
 export function registerServeCommand(program) {
   program
     .command("serve")
     .description("Start WebSocket server for remote CLI access")
+    .option(
+      "--app-server",
+      "Run the canonical CC App Server over stdio instead of the legacy WebSocket server",
+    )
+    .option(
+      "--app-server-state-dir <path>",
+      "Owner-controlled rollout directory for --app-server",
+    )
+    .option(
+      "--app-server-queue-cap <n>",
+      "Maximum queued App Server requests",
+      "256",
+    )
     .option("-p, --port <port>", "Port number", "18800")
     .option("-H, --host <host>", "Bind host", "127.0.0.1")
     .option(
@@ -45,6 +59,31 @@ export function registerServeCommand(program) {
     )
     .action(async (opts) => {
       try {
+        if (opts.appServer) {
+          const [
+            { runStdioAppServer },
+            { JsonlRolloutStore },
+            { CliAgentKernelAdapter },
+          ] = await Promise.all([
+            import("../lib/app-server/stdio-transport.js"),
+            import("../lib/app-server/rollout-store.js"),
+            import("../lib/app-server/cli-agent-kernel-adapter.js"),
+          ]);
+          const stateDirectory = opts.appServerStateDir
+            ? path.resolve(opts.appServerStateDir)
+            : undefined;
+          await runStdioAppServer({
+            store: new JsonlRolloutStore({ directory: stateDirectory }),
+            kernel: new CliAgentKernelAdapter({
+              cwd: opts.project ? path.resolve(opts.project) : process.cwd(),
+            }),
+            maxQueuedRequests: Math.max(
+              1,
+              parseInt(opts.appServerQueueCap, 10) || 256,
+            ),
+          });
+          return;
+        }
         const runtime = createAgentRuntimeFactory().createServerRuntime({
           port: parseInt(opts.port, 10),
           host: opts.host,

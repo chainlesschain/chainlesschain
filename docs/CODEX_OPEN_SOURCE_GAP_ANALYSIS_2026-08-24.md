@@ -99,7 +99,7 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 
 #### 4.1.1 P0 实施状态（2026-08-24）
 
-本轮已完成 4.1 中 P0-1～P0-8 的代码修复与契约验证。P0-1～P0-5 提交为 `a14f1c7308`；P0-6～P0-8、安全证据刷新与工作流契约收口分别提交为 `d31757dd45`、`6a6ddd19d6`、`d63322b5e9`。CLI 发布候选为精确提交 `f370514d5518a0dd52906b99c661cceea63f41d5`，已经通过同一 SHA 的 Linux/Windows/macOS 权威矩阵并发布为 `chainlesschain@0.165.9`。4.2、4.3 的 P1/P2 仍是后续架构路线图，不因本次 P0/CLI 发布而冒充已完成能力。
+本轮已完成 4.1 中 P0-1～P0-8 的代码修复与契约验证。P0-1～P0-5 提交为 `a14f1c7308`；P0-6～P0-8、安全证据刷新与工作流契约收口分别提交为 `d31757dd45`、`6a6ddd19d6`、`d63322b5e9`。CLI 发布候选为精确提交 `f370514d5518a0dd52906b99c661cceea63f41d5`，已经通过同一 SHA 的 Linux/Windows/macOS 权威矩阵并发布为 `chainlesschain@0.165.9`。该发布证据只覆盖这里记录的 P0 版本；4.2、4.3 的本地新增实现和仍待外部验证的门禁分别记录如下，不借用旧发布结果冒充 P1/P2 已验收。
 
 发布验收证据：
 
@@ -108,16 +108,16 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 - [npm 正式发布（成功）](https://github.com/chainlesschain/chainlesschain/actions/runs/32689298604)：immutable tag/exact-SHA gate、完整复测、打包校验、provenance publish 与注册表回读全部通过。
 - npm 公共包：`chainlesschain@0.165.9`，`latest=0.165.9`，tarball 为 `https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.165.9.tgz`，integrity 为 `sha512-tMKa41cjmF618GvdxsRKIJXW68I3Hp7R13cDKtmlxA+u3LhmI3eBK4KRf+7qLDdWNzWyqYNkw4yC1y4+LdYJmA==`。
 
-| 编号 | 实施状态 | 已落地证据                                                                                                                                                                                                       | 外部验收与范围边界                                                                 |
-| ---- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| P0-1 | 已完成   | 独立 Codex `exec --json` adapter、真实 argv/JSONL fixtures、未知事件/取消/超时/非零退出映射                                                                                                                      | 精确 SHA 的三平台 CLI CI 与 `verify-cli` 已通过                                    |
-| P0-2 | 已完成   | 真实 `FunctionCaller/TraceStore/MemoryConsolidator/MCP adapter` 集成链路，不再依赖生产中不存在的方法 mock                                                                                                        | 精确 SHA 的完整 CLI 发布复测已通过                                                 |
-| P0-3 | 已完成   | 执行面 runtime claims；未接真实内核的入口降级为 planned/simulated；terminal success 要求证据                                                                                                                     | CLI 发布门禁已通过；唯一 authoritative kernel 的切换仍属于 P1-3/P1-12              |
-| P0-4 | 已完成   | loop cap、依赖失败传播、blocked-root cut 与 Browser cancel 终态已修正并覆盖回归                                                                                                                                  | CLI 三平台矩阵已通过；全产品 crash/recovery 持续矩阵属于后续发布门禁               |
-| P0-5 | 已完成   | stop-on-error、descendant abort、settlement/fence、per-attempt workspace/write-scope 隔离已落地                                                                                                                  | CLI CI 与 Strict Sandbox 的 Linux/Windows/macOS 矩阵已通过                          |
-| P0-6 | 已完成   | generic preload IPC 默认关闭；项目路径 realpath/symlink 边界；Coding Agent/Web Shell raw MCP 强制策略；Cowork code runner/HTTP 与 stdio MCP 强制 Broker；HTTP MCP 有域名、DNS/IP 和大小上限                      | CLI 发布验收已通过；全产品唯一 Broker 的长期收敛仍属于 P1-3/P1-11                  |
-| P0-7 | 已完成   | ApprovalGate 缺失默认拒绝；CLI 默认 workspace-write/network-off；renderer sandbox 与 sender guard 默认强制；无 consent UI、sandbox、Broker 或持久审计时拒绝                                                      | Strict Sandbox 三个平台的真实 native boundary 已通过                               |
-| P0-8 | 已完成   | Agent 私钥进入 SecretStore、bearer 仅留 hash；CLI IPFS 保存 keyRef，Desktop IPFS 保存 wrapped DEK；旧明文迁移支持 dry-run/事务失败回滚；MCP/PTY/Skill 使用最小环境；MCP 与桌面进程审计持久、脱敏且写入失败即拒绝 | 发布候选完整复测与 npm provenance 发布已通过；生产 KMS/HSM 仍可按路线图后移        |
+| 编号 | 实施状态 | 已落地证据                                                                                                                                                                                                       | 外部验收与范围边界                                                          |
+| ---- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| P0-1 | 已完成   | 独立 Codex `exec --json` adapter、真实 argv/JSONL fixtures、未知事件/取消/超时/非零退出映射                                                                                                                      | 精确 SHA 的三平台 CLI CI 与 `verify-cli` 已通过                             |
+| P0-2 | 已完成   | 真实 `FunctionCaller/TraceStore/MemoryConsolidator/MCP adapter` 集成链路，不再依赖生产中不存在的方法 mock                                                                                                        | 精确 SHA 的完整 CLI 发布复测已通过                                          |
+| P0-3 | 已完成   | 执行面 runtime claims；未接真实内核的入口降级为 planned/simulated；terminal success 要求证据                                                                                                                     | CLI 发布门禁已通过；唯一 authoritative kernel 的切换仍属于 P1-3/P1-12       |
+| P0-4 | 已完成   | loop cap、依赖失败传播、blocked-root cut 与 Browser cancel 终态已修正并覆盖回归                                                                                                                                  | CLI 三平台矩阵已通过；全产品 crash/recovery 持续矩阵属于后续发布门禁        |
+| P0-5 | 已完成   | stop-on-error、descendant abort、settlement/fence、per-attempt workspace/write-scope 隔离已落地                                                                                                                  | CLI CI 与 Strict Sandbox 的 Linux/Windows/macOS 矩阵已通过                  |
+| P0-6 | 已完成   | generic preload IPC 默认关闭；项目路径 realpath/symlink 边界；Coding Agent/Web Shell raw MCP 强制策略；Cowork code runner/HTTP 与 stdio MCP 强制 Broker；HTTP MCP 有域名、DNS/IP 和大小上限                      | CLI 发布验收已通过；全产品唯一 Broker 的长期收敛仍属于 P1-3/P1-11           |
+| P0-7 | 已完成   | ApprovalGate 缺失默认拒绝；CLI 默认 workspace-write/network-off；renderer sandbox 与 sender guard 默认强制；无 consent UI、sandbox、Broker 或持久审计时拒绝                                                      | Strict Sandbox 三个平台的真实 native boundary 已通过                        |
+| P0-8 | 已完成   | Agent 私钥进入 SecretStore、bearer 仅留 hash；CLI IPFS 保存 keyRef，Desktop IPFS 保存 wrapped DEK；旧明文迁移支持 dry-run/事务失败回滚；MCP/PTY/Skill 使用最小环境；MCP 与桌面进程审计持久、脱敏且写入失败即拒绝 | 发布候选完整复测与 npm provenance 发布已通过；生产 KMS/HSM 仍可按路线图后移 |
 
 ### 4.2 P1：统一协议、Agent Kernel 与 Graph Engineering
 
@@ -136,6 +136,25 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 | P1-11 | Skill 供应链、数据来源与选择性网络出口 | 已有 AgentAuthority、ContextSourceLedger、MCP effect provenance、Plugin VM、SecretStore、ProcessExecutionBroker 和 Merkle audit；补 Skill containment/签名/capability manifest、Graph 数据的 origin/trust/sensitivity/allowedSinks 与 declassification；webhook 验签/鉴权/body cap；统一 egress broker 覆盖 MCP transport 的 DNS/IP/redirect 重检、超时及 request/response/SSE frame 上限 | P0-6、P0-7、P0-8           | 第 3～10 周，L        |
 | P1-12 | Graph Kernel 集成、双写验证与迁移切换  | P1-4～P1-9 分别建设 IR、调度、协作、动态图、effect 与 HumanTask，但还缺唯一 authoritative runtime 的切换任务；将 CLI Team、Cowork、Scheduler Kernel 与 Desktop/Browser 作为 adapter 接入；Browser 未具备 checkpoint/hydration 前标为 non-durable；完成 shadow-run/diff、统一投影、feature flag、回滚和旧 shell 下线                                                                       | P1-4～P1-9；P1-10 增量门禁 | 第 9～12 周，L        |
 
+#### 4.2.1 P1 实施状态（2026-08-24，本工作树）
+
+本次把可以在仓库内闭环的协议、内核和契约实现落到代码与确定性测试；需要真实产品切换、长时间 soak、真实 provider 或三操作系统 CI 的项目继续保持“待外部验收”，不能由本地单测关闭。
+
+| 编号  | 本地实施状态 | 本次落地                                                                                                                                                             | 尚未关闭的验收边界                                                                          |
+| ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| P1-1  | 核心已落地   | canonical JSON Schema；TS/Python/Kotlin/Swift 确定性 codegen；运行时 validator；冻结 v1 baseline 和 breaking-change 检查                                             | 旧客户端手工事件 union 尚未全部迁移；CLI/Desktop/IDE 同 fixture 的三端 conformance 尚未完成 |
+| P1-2  | MVP 已落地   | stdio JSON-RPC initialize、thread start/resume/fork/read、turn start/interrupt、item/approval 通知、能力协商、有界队列和 TypeScript client                           | Desktop/IDE pilot、WebSocket 实验入口与至少 30 分钟 overload soak 尚未完成                  |
+| P1-3  | 部分完成     | App Server 复用真实 CLI agent loop；rollout 支持 JSONL hash chain、SQLite、checkpoint/compact/resume/fork/archive/migrate 和 terminal evidence                       | Desktop `$team`、旧 runtime 与全部执行入口尚未切换到唯一 Agent Kernel                       |
+| P1-4  | 核心已落地   | typed/versioned Graph IR、digest、N/N-1 upcast/dry-run；effect-before-compile 的引用/环/端口/能力/预算/write-scope/loop/subgraph/Trigger/Region 校验                 | loop/subgraph 的完整生产执行语义、补偿规划与全部 migration fixture 尚未完成                 |
+| P1-5  | 核心已落地   | N:M AssignmentAttempt、agent capacity、lease/fence、accepted attempt、优先级 donation/aging/critical boost、预算和 artifact/write provenance                         | CLI Team/Cowork 生产 adapter 切换与 3 倍 SLO fairness soak 尚未完成                         |
+| P1-6  | 核心已落地   | at-least-once 消息 admitted/delivered/read/processed/dead-letter、去重/背压/因果，以及 offer/accept/reject/commit/revoke custody handoff                             | 真实 child send/receive/ack/followup adapter 与离线/长时恢复矩阵尚未完成                    |
+| P1-7  | 核心已落地   | occurrence↔GraphRun dispatch journal、动态 revision CAS/request id、producer lease/seal、稳定 quiescence、wait-for deadlock/livelock 与 crash-after-commit 恢复      | Scheduler/Cowork 的生产双写与跨进程竞争 soak 尚未完成                                       |
+| P1-8  | 核心已落地   | durable Effect/receipt/unknown-outcome/reconcile、取消 fencing、artifact provenance、append-only event、确定性 trace reducer/time travel/diff                        | 逆依赖补偿执行器和全部 durable cut-point fault-injection matrix 尚未完成                    |
+| P1-9  | 核心已落地   | 可认领/恢复 HumanTask，绑定 revision/attempt/operation digest，等待释放 slot，多人 quorum、职责分离、重启快照和 cancel/decision CAS                                  | Desktop/IDE 人机界面暴露及跨产品 race/restart conformance 尚未完成                          |
+| P1-10 | 部分完成     | App Server transport/input/output 与 SDK client 有界化；协议和内核接口随实现提交 fixture                                                                             | 旧 transport/event/tool 队列普查、跨端 conformance matrix 和 30 分钟 RSS/过载门禁尚未完成   |
+| P1-11 | 部分完成     | Graph 数据来源/信任/敏感度/allowedSinks 传播与审计 declassification；orchestrate webhook 增加 HMAC、时间窗、delivery replay、body/rate cap，并保留可信 origin        | Skill 签名/containment、所有 webhook vendor 原生签名和全产品统一 egress broker 迁移尚未完成 |
+| P1-12 | 仅门禁就绪   | CLI Team/Cowork/Scheduler/Desktop/Browser 的 machine-readable claims、单一 writer 约束、shadow equivalence、terminal-evidence/cutover gate；Browser 明确 non-durable | 未执行 authoritative 切换、回滚演练或旧 writer 下线；因此不得将 P1-12 标为完成              |
+
 ### 4.3 P2：体验、生态与质量闭环
 
 | 编号 | 任务                           | 复核后的准确范围                                                                                                                                                                                | 外部条件                              | 建议                           |
@@ -146,6 +165,17 @@ OpenAI 官方当前列出的开放组件包括 Codex CLI、SDK、Security CLI/SD
 | P2-4 | Record & Replay → Skill        | 录制 UI 操作和必要上下文，去除秘密/易变数据，生成参数化 Skill 草稿；用户审阅 capability、步骤和失败条件后在沙箱回放，通过才启用                                                                 | 真实 UI/跨平台回放矩阵                | P2 prototype，M                |
 | P2-5 | 可选 Codex App Server adapter  | 轻量任务使用 `codex exec --json`；持久会话才在 feature flag 后映射 Codex App Server 到 ChainlessChain Thread/Turn/Item/Approval/OTel，保持 provider-neutral；官方仍标实验性时不得作为生产硬依赖 | Codex 可用环境和兼容版本矩阵          | P1-1/P1-2 稳定后，M            |
 | P2-6 | Graph/Agent 真实旅程与发布矩阵 | 建立真实模型、多 Agent、worktree/merge、crash/resume、sandbox、消息恢复和跨端一致性旅程；发布以同一精确 SHA 的 Linux/Windows/macOS workflow matrix 为准，不以本地或旧提交结果关闭任务           | CI、真实 provider、各 OS enforcement  | 持续门禁，不与功能完成混为一谈 |
+
+#### 4.3.1 P2 实施状态（2026-08-24，本工作树）
+
+| 编号 | 本地实施状态   | 本次落地                                                                                                                                                      | 尚未关闭的验收边界                                                                  |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| P2-1 | 本地完成       | `exec` 作为 `agent` 的稳定 alias，共用同一 Commander command、参数、输出和 agent loop；manifest/help/completion 从同一声明生成                                | text/json/stream-json、恢复与退出码的 Linux/Windows/macOS 精确 SHA fixture 尚未全绿 |
+| P2-2 | CLI 核心完成   | `cc team graph inspect/diff/eval` 可从持久事件生成 Agent Tree、Task Graph、Artifact/Message/Effect/Timeline、critical path、blocked root 和 time-travel       | Desktop Team Monitor 的交互式 topology/timeline UI 尚未接入                         |
+| P2-3 | 确定性阶段完成 | 多 seed、单 Agent 对照、schedule equivalence 与 correctness/safety/recovery/cost/latency threshold gate 可绑定精确 commit SHA                                 | 真实模型预算、长期 soak 与权威 CI 报告尚未完成                                      |
+| P2-4 | 原型完成       | 低风险 UI action 录制、参数化、secret/PII/volatile 扫描、capability/env binding、用户精确审阅和 network-off 沙箱回放；漂移或越权 fail closed                  | 真实 UI driver 与跨平台回放矩阵尚未完成                                             |
+| P2-5 | 可选原型完成   | feature flag、显式版本兼容矩阵、provider-neutral 事件映射和 fail-closed；只允许 admission 前回退 `codex exec --json`，防止已接纳请求重复副作用                | 上游真实版本三平台矩阵和移除演练尚未完成，仍非生产关键依赖                          |
+| P2-6 | 工作流已建立   | 手动真实旅程 workflow 强制当前 `github.sha`，Linux/Windows/macOS 矩阵运行 Graph/恢复/worktree 契约和真实 `cc exec`，聚合 job 校验三平台 evidence 的 exact SHA | 尚未用真实 provider secret 跑出全绿矩阵；在权威 workflow 完成前 P2-6 保持未关闭     |
 
 ## 5. P0：立即修复的真实性与安全问题
 
@@ -724,4 +754,12 @@ Graph Eval 不应只统计“多少任务完成”，还应覆盖：
 - 补跑 `scheduler-kernel-service/store/runtime` 3 个单测文件：共 19 项通过（service 8 项、store 11 项）；其余 57 项（store 42 项、runtime 15 项）在进入业务断言前因本机 Node `22.22.2`/Windows x64 缺少 `better-sqlite3` 原生 binding 而失败。该结果记为环境阻塞，不解释为逻辑回归；必须在具备匹配 binding 的权威 CI cell 重跑后才能给 SQLite 路径下结论。
 - 只读最小探针令 `loopUntil:false, maxIterations:2` 的每轮任务都返回 completed，实际得到 `{"status":"completed","loopExhausted":true,"loopStop":"cap","iterations":2}`，确认 loop-cap 终态问题可复现；现有单测只断言 exhausted/stop/count，没有断言 status：[`cowork-workflow.test.js`](../packages/cli/__tests__/unit/cowork-workflow.test.js#L1140)。
 
-本次没有执行完整桌面 E2E、真实模型多智能体旅程、全部 OS sandbox matrix 或渗透测试。因此安全与 Graph 项是高置信代码路径/契约发现，仍应通过独立威胁建模、最小复现、性能复跑和修复后的跨端回归完成闭环。
+### 11.1 本次 P1/P2 实现回归（2026-08-24）
+
+- canonical protocol codegen freshness、兼容性与跨语言关键字检查通过；协议/codegen 单测 3 项通过，TypeScript SDK build 通过，排除真实 CLI 环境 E2E 后的 SDK 7 个单测文件、52 项测试通过。
+- Python 3.12 对生成协议模块完成真实 import/validator 探针，Python SDK 23 项单测通过；本机默认 Python 3.8 低于包声明的 `>=3.10`，未作为支持环境计入。
+- App Server/rollout、外部 Agent adapter、Graph compiler/runtime/trace/eval/adapters、Record & Replay、Webhook security 共 10 个单测文件、68 项测试通过。SQLite adapter 使用 Node `node:sqlite`，测试通过但 Node 仍输出 experimental warning。
+- orchestrate Webhook 的 DingTalk 与 Feishu 定向 E2E 2 项通过；同文件其余 17 项因 `-t "webhook server"` 过滤而跳过，不解释为全文件验收。
+- CLI command manifest/help index/shell completions freshness 检查通过；`cc exec --help` 和 `cc team graph --help` 真实入口探针通过；本次新增/修改的 JS/MJS 源码 ESLint 无错误。
+
+本次仍没有执行完整桌面 E2E、30 分钟 overload/fairness soak、真实模型多智能体旅程、同一精确 SHA 的全部 OS sandbox/recovery matrix 或渗透测试。新增的 `graph-agent-real-journey.yml` 只是把权威门禁编码进 CI；在真实 provider secret 和 Linux/Windows/macOS 聚合 job 全绿前，P1-12 与 P2-6 必须保持未关闭。

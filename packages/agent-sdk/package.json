@@ -31,9 +31,11 @@
     "LICENSE"
   ],
   "scripts": {
+    "protocol:generate": "node ../agent-protocol/scripts/generate.mjs",
+    "protocol:check": "node ../agent-protocol/scripts/generate.mjs --check",
     "build": "node scripts/build.mjs",
     "test": "vitest run",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run protocol:check && npm run build"
   },
   "engines": {
     "node": ">=22.12.0"

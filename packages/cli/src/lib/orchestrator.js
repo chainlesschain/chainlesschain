@@ -162,6 +162,7 @@ export class Orchestrator extends EventEmitter {
       priority: opts.priority || 2,
       cwd: opts.cwd || this.cwd,
       context: opts.context || "",
+      dataPolicy: opts.dataPolicy || null,
       runCI: opts.runCI !== false,
       notify: opts.notify !== false,
       status: TASK_STATUS.PENDING,
@@ -293,7 +294,7 @@ export class Orchestrator extends EventEmitter {
       this.emit("task:decomposed", { task, subtasks });
       this._log(`Decomposed into ${subtasks.length} subtask(s)`);
       return subtasks;
-    } catch (_err) {
+    } catch {
       // Fallback: treat whole task as single subtask
       const fallback = [
         { id: "sub-1", description: task.description, context: task.context },

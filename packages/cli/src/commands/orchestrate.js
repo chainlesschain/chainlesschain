@@ -57,6 +57,21 @@ export function registerOrchestrateCommand(program) {
     .option("--interval <min>", "Cron interval in minutes (watch mode)", "10")
     .option("--webhook", "Start HTTP webhook server for IM platform commands")
     .option("--webhook-port <port>", "Webhook server port", "18820")
+    .option(
+      "--webhook-secret-env <name>",
+      "Environment variable containing the webhook HMAC secret",
+      "CC_ORCHESTRATE_WEBHOOK_SECRET",
+    )
+    .option(
+      "--webhook-max-body-bytes <n>",
+      "Maximum authenticated webhook request body",
+      "262144",
+    )
+    .option(
+      "--webhook-rate-limit <n>",
+      "Maximum webhook requests per source and minute",
+      "30",
+    )
     .option("--json", "Output as JSON")
     .option("--verbose", "Verbose output");
 
@@ -90,8 +105,7 @@ export function registerOrchestrateCommand(program) {
       return;
     }
 
-    const { Orchestrator, TASK_SOURCE, TASK_STATUS } =
-      await import("../lib/orchestrator.js");
+    const { Orchestrator } = await import("../lib/orchestrator.js");
 
     const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
 
@@ -137,7 +151,6 @@ export function registerOrchestrateCommand(program) {
     // Build agent backends from --backends option
     let agentsConfig;
     if (options.backends) {
-      const { BACKEND_TYPE } = await import("../lib/agent-router.js");
       const backendNames = options.backends.split(",").map((s) => s.trim());
       agentsConfig = {
         backends: backendNames.map((type) => ({ type, weight: 1 })),
@@ -340,8 +353,6 @@ export function registerOrchestrateCommand(program) {
 // ─── Pretty (interactive) run ────────────────────────────────────
 
 async function _runPretty(orch, taskText, options, cwd) {
-  const { TASK_STATUS } = await import("../lib/orchestrator.js");
-
   console.log(chalk.bold.cyan("\n⚡ ChainlessChain Orchestrator\n"));
   console.log(chalk.gray(`  Task:    `) + chalk.white(taskText.slice(0, 120)));
   console.log(chalk.gray(`  CWD:     `) + chalk.white(cwd));
@@ -377,7 +388,7 @@ async function _runPretty(orch, taskText, options, cwd) {
     spinner.text = `Running CI check (attempt ${attempt + 1})...`;
   });
 
-  orch.on("ci:fail", ({ errors, attempt }) => {
+  orch.on("ci:fail", ({ attempt }) => {
     spinner.text = `CI failed (attempt ${attempt + 1}) — retrying with agents...`;
   });
 
@@ -508,11 +519,25 @@ async function _webhookMode(cwd, options) {
   const { createServer } = await import("http");
   const { parseDingTalkIncoming, parseFeishuIncoming, parseWeComIncoming } =
     await import("../lib/notifiers/index.js");
-  const { Orchestrator, TASK_SOURCE } = await import("../lib/orchestrator.js");
+  const { Orchestrator } = await import("../lib/orchestrator.js");
+  const { WebhookSecurityGate } = await import("../lib/webhook-security.js");
 
   const port = parseInt(options.webhookPort, 10) || 18820;
 
   const orch = new Orchestrator({ cwd, verbose: options.verbose });
+  const secretEnvironmentName =
+    options.webhookSecretEnv || "CC_ORCHESTRATE_WEBHOOK_SECRET";
+  if (!/^[A-Z_][A-Z0-9_]{0,127}$/u.test(secretEnvironmentName)) {
+    throw new Error("--webhook-secret-env must be a valid environment name");
+  }
+  const securityGate = new WebhookSecurityGate({
+    secret: process.env[secretEnvironmentName],
+    maxRequestsPerMinute: parseInt(options.webhookRateLimit, 10) || 30,
+  });
+  const maxBodyBytes = Math.max(
+    1,
+    parseInt(options.webhookMaxBodyBytes, 10) || 262144,
+  );
 
   const server = createServer(async (req, res) => {
     if (req.method !== "POST") {
@@ -521,25 +546,71 @@ async function _webhookMode(cwd, options) {
       return;
     }
 
+    const url = req.url?.split("?")[0] || "/";
+    const channel =
+      url === "/wecom"
+        ? "wecom"
+        : url === "/dingtalk"
+          ? "dingtalk"
+          : url === "/feishu"
+            ? "feishu"
+            : null;
+    if (!channel) {
+      res.writeHead(404);
+      res.end("Not Found");
+      return;
+    }
+    if (Number(req.headers["content-length"] || 0) > maxBodyBytes) {
+      res.writeHead(413);
+      res.end("Payload Too Large");
+      req.resume();
+      return;
+    }
     const bodyChunks = [];
-    req.on("data", (chunk) => bodyChunks.push(chunk));
+    let bodyBytes = 0;
+    let bodyRejected = false;
+    req.on("data", (chunk) => {
+      if (bodyRejected) return;
+      bodyBytes += chunk.length;
+      if (bodyBytes > maxBodyBytes) {
+        bodyRejected = true;
+        res.writeHead(413);
+        res.end("Payload Too Large");
+        return;
+      }
+      bodyChunks.push(chunk);
+    });
     req.on("end", async () => {
+      if (bodyRejected) return;
       // Decode once: per-chunk toString() would corrupt a multi-byte UTF-8
       // char (e.g. Chinese IM webhook text) split across a chunk boundary.
       const body = Buffer.concat(bodyChunks).toString("utf-8");
       let taskText = null;
-      let source = TASK_SOURCE.CLI;
+      let source = `webhook:${channel}`;
+      let verified;
 
-      const url = req.url?.split("?")[0] || "/";
+      try {
+        verified = securityGate.verify({
+          channel,
+          headers: req.headers,
+          body,
+          remoteAddress: req.socket.remoteAddress || "unknown",
+        });
+      } catch (error) {
+        if (error?.retryAfterSeconds) {
+          res.setHeader("Retry-After", String(error.retryAfterSeconds));
+        }
+        res.writeHead(error?.statusCode || 401);
+        res.end("Unauthorized");
+        return;
+      }
 
       try {
         if (url === "/wecom") {
           taskText = parseWeComIncoming(body);
-          source = TASK_SOURCE.CLI;
         } else if (url === "/dingtalk") {
           const parsed = JSON.parse(body);
           taskText = parseDingTalkIncoming(parsed);
-          source = TASK_SOURCE.CLI;
         } else if (url === "/feishu") {
           const parsed = JSON.parse(body);
           // Feishu challenge verification
@@ -549,13 +620,8 @@ async function _webhookMode(cwd, options) {
             return;
           }
           taskText = parseFeishuIncoming(parsed);
-          source = TASK_SOURCE.CLI;
-        } else {
-          res.writeHead(404);
-          res.end("Not Found");
-          return;
         }
-      } catch (_err) {
+      } catch {
         res.writeHead(400);
         res.end("Bad Request");
         return;
@@ -586,6 +652,7 @@ async function _webhookMode(cwd, options) {
         .addTask(taskText, {
           source,
           cwd,
+          dataPolicy: verified.dataPolicy,
           runCI: options.ci !== false,
           notify: true,
         })

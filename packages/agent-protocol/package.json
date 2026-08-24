@@ -1,0 +1,15 @@
+{
+  "name": "@chainlesschain/agent-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "check": "node scripts/generate.mjs --check",
+    "baseline:freeze": "node scripts/generate.mjs --freeze-baseline",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

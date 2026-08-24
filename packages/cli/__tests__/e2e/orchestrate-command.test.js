@@ -14,6 +14,18 @@ import { describe, it, expect, afterAll } from "vitest";
 import { execSync, spawn } from "node:child_process";
 import http from "node:http";
 import { testHome, freePort, CLI_BIN as bin } from "./_helpers/cli-e2e.js";
+import { signWebhookBody } from "../../src/lib/webhook-security.js";
+
+const WEBHOOK_SECRET = "orchestrate-e2e-secret-32-characters";
+
+function signedWebhookHeaders(body, delivery) {
+  const timestamp = String(Date.now());
+  return {
+    "x-cc-webhook-timestamp": timestamp,
+    "x-cc-webhook-delivery": delivery,
+    "x-cc-webhook-signature": signWebhookBody(WEBHOOK_SECRET, timestamp, body),
+  };
+}
 
 // Per-file DB isolation (see _helpers/cli-e2e.js). childEnv() injects
 // CHAINLESSCHAIN_HOME so each spawned cc opens an isolated bootstrap DB.
@@ -196,7 +208,10 @@ describe("E2E: orchestrate --webhook server", () => {
       [bin, "orchestrate", "--webhook", "--webhook-port", String(port)],
       {
         encoding: "utf8",
-        env: childEnv({ FORCE_COLOR: "0" }),
+        env: childEnv({
+          FORCE_COLOR: "0",
+          CC_ORCHESTRATE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+        }),
       },
     );
 
@@ -273,6 +288,7 @@ describe("E2E: orchestrate --webhook server", () => {
           headers: {
             "Content-Type": "application/json",
             "Content-Length": Buffer.byteLength(body),
+            ...signedWebhookHeaders(body, "dingtalk-e2e-1"),
           },
         },
         (res) => {
@@ -303,7 +319,10 @@ describe("E2E: orchestrate --webhook server", () => {
       [bin, "orchestrate", "--webhook", "--webhook-port", String(port)],
       {
         encoding: "utf8",
-        env: childEnv({ FORCE_COLOR: "0" }),
+        env: childEnv({
+          FORCE_COLOR: "0",
+          CC_ORCHESTRATE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+        }),
       },
     );
 
@@ -368,6 +387,7 @@ describe("E2E: orchestrate --webhook server", () => {
           headers: {
             "Content-Type": "application/json",
             "Content-Length": Buffer.byteLength(body),
+            ...signedWebhookHeaders(body, "feishu-e2e-1"),
           },
         },
         (res) => {

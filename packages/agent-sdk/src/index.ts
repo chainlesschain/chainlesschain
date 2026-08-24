@@ -8,6 +8,7 @@
  */
 
 export * from "./protocol.js";
+export * from "./generated/app-protocol.js";
 export { createNdjsonDecoder, encodeNdjson } from "./ndjson.js";
 export type { NdjsonDecoderOptions } from "./ndjson.js";
 export {
@@ -41,3 +42,8 @@ export {
   showSession,
 } from "./cli-json.js";
 export type { CliRunOptions } from "./cli-json.js";
+export { AppServerClient, AppServerRpcError } from "./app-server-client.js";
+export type {
+  AppServerClientOptions,
+  AppServerRpcErrorShape,
+} from "./app-server-client.js";

@@ -111,7 +111,7 @@
     },
     {
       "name": "agent",
-      "aliases": ["a"],
+      "aliases": ["a", "exec"],
       "module": "./commands/agent.js",
       "register": "registerAgentCommand",
       "summary": "Start an agentic AI session (reads/writes files, runs commands)",

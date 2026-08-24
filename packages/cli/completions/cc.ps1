@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: e90adf9802a6d3eee692c21e74b6534e9c3c80e05ed3ab5217ef27e29ffce57f
+# manifest-sha256: 9d15002ea7b1c3f7980e5c2aa59aace97be30040df5e5fdc2aea70a659a3e293
 using namespace System.Management.Automation
 
 $ChainlessChainCommands = @(
@@ -69,6 +69,7 @@ $ChainlessChainCommands = @(
   'eval'
   'evolution'
   'evomap'
+  'exec'
   'execbe'
   'export'
   'federation'

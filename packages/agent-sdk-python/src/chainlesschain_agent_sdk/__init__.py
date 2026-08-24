@@ -47,6 +47,13 @@ from .protocol import (
     parse_event,
     parse_event_json,
 )
+from .generated_app_protocol import (
+    CC_AGENT_PROTOCOL_FEATURES,
+    CC_AGENT_PROTOCOL_MIN_VERSION,
+    CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
+    CC_AGENT_PROTOCOL_VERSION,
+    validate_protocol_message,
+)
 from .session import (
     AgentSession,
     AgentSessionError,
@@ -59,6 +66,10 @@ from .session import (
 )
 
 __all__ = [
+    "CC_AGENT_PROTOCOL_FEATURES",
+    "CC_AGENT_PROTOCOL_MIN_VERSION",
+    "CC_AGENT_PROTOCOL_SCHEMA_DIGEST",
+    "CC_AGENT_PROTOCOL_VERSION",
     "MIN_PROTOCOL_VERSION",
     "PROTOCOL_FEATURES",
     "PROTOCOL_VERSION",
@@ -114,6 +125,7 @@ __all__ = [
     "is_mcp_elicitation",
     "parse_event",
     "parse_event_json",
+    "validate_protocol_message",
 ]
 
 __version__ = "0.1.0"

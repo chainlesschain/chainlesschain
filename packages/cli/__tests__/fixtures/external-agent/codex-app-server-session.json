@@ -1,0 +1,7 @@
+[
+  {"jsonrpc":"2.0","method":"thread/started","params":{"thread":{"id":"codex-thread-1"}}},
+  {"jsonrpc":"2.0","method":"turn/started","params":{"turn":{"id":"codex-turn-1","threadId":"codex-thread-1","status":"running"}}},
+  {"jsonrpc":"2.0","method":"item/completed","params":{"item":{"id":"item-1","type":"agent_message","text":"App Server result"}}},
+  {"jsonrpc":"2.0","method":"future/telemetry","params":{"value":1}},
+  {"jsonrpc":"2.0","method":"turn/completed","params":{"turn":{"id":"codex-turn-1","status":"completed"},"usage":{"input_tokens":20,"output_tokens":4}}}
+]

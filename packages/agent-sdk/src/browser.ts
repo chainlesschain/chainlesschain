@@ -4,6 +4,7 @@
  */
 
 export * from "./protocol.js";
+export * from "./generated/app-protocol.js";
 export { createNdjsonDecoder, encodeNdjson } from "./ndjson.js";
 
 import type {
