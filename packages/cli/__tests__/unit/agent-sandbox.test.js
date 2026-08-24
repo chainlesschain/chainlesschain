@@ -82,18 +82,19 @@ describe("agent sandbox", () => {
     expect(sandbox.network).toBe(false);
   });
 
-  it("defaults the public sandbox mode to fail-closed workspace-write", () => {
+  it("does not require Docker when no container sandbox was requested", () => {
+    expect(
+      normalizeAgentSandboxMode(undefined, undefined, { cwd: "." }),
+    ).toBeNull();
+  });
+
+  it("still honors settings that explicitly enable a fail-closed sandbox", () => {
     const sandbox = normalizeAgentSandboxMode(undefined, undefined, {
       cwd: ".",
+      settings: { enabled: true, failIfUnavailable: true },
     });
-    expect(sandbox).toMatchObject({
-      mode: "workspace-write",
-      network: false,
-    });
-    expect(sandbox.policy).toMatchObject({
-      failIfUnavailable: true,
-      allowUnsandboxedCommands: false,
-    });
+    expect(sandbox).toMatchObject({ engine: "docker", network: false });
+    expect(sandbox.policy.failIfUnavailable).toBe(true);
   });
 
   it("clamps an enabled sandbox for safe/auto runs", () => {

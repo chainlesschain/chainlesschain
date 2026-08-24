@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.10",
+      "cliVersions": ["0.3.6", "0.165.9", "0.165.10"],
+      "date": "2026-08-24",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.165.10: restore Docker-optional startup",
+          "body": "> `chainlesschain` **0.165.9 -> 0.165.10** and\n> `@chainlesschain/session-core` **0.3.5 -> 0.3.6** (hotfix candidate,\n> 2026-08-24). `@chainlesschain/personal-data-hub` remains **0.4.59** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Windows startup regression**: starting `cc` without an explicit container\n  sandbox no longer requires Docker or exits with configuration code 6 when\n  Docker is unavailable. Explicit `--sandbox`, `--sandbox-mode\n  workspace-write|strict`, and managed sandbox policy remain fail-closed.\n- **Session contract delivery**: publish the `runtime-claims` export added\n  after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm\n  installs receive the same runtime contract used by the release source.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before the immutable npm tag is created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.9",
       "cliVersions": ["0.165.8", "0.165.9"],
       "date": "2026-08-24",

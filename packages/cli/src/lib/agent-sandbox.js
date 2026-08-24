@@ -259,13 +259,10 @@ export function normalizeAgentSandbox(value, options = {}) {
  */
 export function normalizeAgentSandboxMode(mode, value, options = {}) {
   if (mode == null || mode === "") {
-    // Public agent execution defaults to a real, fail-closed workspace
-    // sandbox. Bare-host execution remains available only through the
-    // explicit `off` mode below, where managed policy can prohibit it.
-    return normalizeAgentSandboxMode("workspace-write", value || true, {
-      ...options,
-      network: false,
-    });
+    // Keep the container sandbox opt-in unless CLI/settings policy explicitly
+    // enables it. The process broker still applies its platform boundary, but
+    // starting a normal agent must not require Docker to be installed/running.
+    return normalizeAgentSandbox(value, options);
   }
   if (!AGENT_SANDBOX_MODES.includes(mode)) {
     const error = new Error(

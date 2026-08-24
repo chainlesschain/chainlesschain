@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.165.10: restore Docker-optional startup
+
+> `chainlesschain` **0.165.9 -> 0.165.10** and
+> `@chainlesschain/session-core` **0.3.5 -> 0.3.6** (hotfix candidate,
+> 2026-08-24). `@chainlesschain/personal-data-hub` remains **0.4.59** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Windows startup regression**: starting `cc` without an explicit container
+  sandbox no longer requires Docker or exits with configuration code 6 when
+  Docker is unavailable. Explicit `--sandbox`, `--sandbox-mode
+  workspace-write|strict`, and managed sandbox policy remain fail-closed.
+- **Session contract delivery**: publish the `runtime-claims` export added
+  after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm
+  installs receive the same runtime contract used by the release source.
+- **Release status**: publication requires this candidate's exact commit to
+  pass the complete Linux, Windows, and macOS `CLI CI` and
+  `CLI Strict Sandbox` matrices before the immutable npm tag is created.
+
 ### Fixed - cc CLI 0.165.9: fail-closed execution and secret migration
 
 > `chainlesschain` **0.165.8 -> 0.165.9** (source candidate; not yet
