@@ -25,6 +25,7 @@ import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
 import { TeamBudget } from "../lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
 import { TeamAgentStreamParser } from "../lib/agent-team/team-agent-stream.js";
+import { TeamMessageBridge } from "../lib/agent-team/team-message-bridge.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import {
   TeamScopeLock,
@@ -727,6 +728,7 @@ export function buildTeamAgentPrompt(prompt, { inbox = [] } = {}) {
   const messages = inbox
     .slice(-MAX_TEAM_AGENT_INBOX_MESSAGES)
     .map((message) => ({
+      id: Number.isSafeInteger(message?.id) ? message.id : null,
       from: String(message?.from || "unknown").slice(0, 128),
       to: String(message?.to || "").slice(0, 128),
       subject:
@@ -1016,7 +1018,7 @@ export function makeShellRunTask() {
 }
 
 /** Spawn a headless `cc agent -p` for one prompt in `cwd`; resolve on exit 0. */
-export function spawnAgent(prompt, cwd, opts = {}) {
+function spawnAgentProcess(prompt, cwd, opts = {}) {
   return new Promise((resolve, reject) => {
     const parser = new TeamAgentStreamParser({
       maxLineBytes: opts.maxStreamLineBytes,
@@ -1043,7 +1045,11 @@ export function spawnAgent(prompt, cwd, opts = {}) {
     try {
       child = _deps.spawn(process.execPath, args, {
         cwd,
-        env: { ...process.env, CLAUDECODE: "1" },
+        env: {
+          ...process.env,
+          CLAUDECODE: "1",
+          ...(opts.childEnv || {}),
+        },
         windowsHide: true,
         detached:
           opts.managedCheckpoint === true
@@ -1311,6 +1317,33 @@ export function spawnAgent(prompt, cwd, opts = {}) {
   });
 }
 
+export function spawnAgent(prompt, cwd, opts = {}) {
+  if (!opts.messageBridge) return spawnAgentProcess(prompt, cwd, opts);
+  return (async () => {
+    let bridge;
+    try {
+      bridge = new TeamMessageBridge(opts.messageBridge);
+      await bridge.start();
+    } catch (error) {
+      throw teamAgentError(
+        "TEAM_AGENT_MESSAGE_BRIDGE_FAILED",
+        error?.message || "Could not start teammate message bridge",
+      );
+    }
+    try {
+      return await spawnAgentProcess(bridge.decoratePrompt(prompt), cwd, {
+        ...opts,
+        childEnv: {
+          ...(opts.childEnv || {}),
+          ...bridge.childEnvironment(),
+        },
+      });
+    } finally {
+      await bridge.close();
+    }
+  })();
+}
+
 /** Real executor: hand a task's `prompt` to a headless `cc agent -p` in cwd. */
 function applyBudgetReservation(contract, budgetReservation) {
   const effectiveContract = { ...contract };
@@ -1333,7 +1366,12 @@ export function makeAgentRunTask(opts = {}) {
   return function runTask({
     key,
     task,
+    holder,
     inbox = [],
+    sendMessage = null,
+    messageAuthority = null,
+    recipientState = null,
+    mailbox = null,
     budgetReservation = null,
     signal = null,
   }) {
@@ -1359,6 +1397,19 @@ export function makeAgentRunTask(opts = {}) {
       ...effectiveContract,
       sessionId: opts.sessionIdForTask?.(key) || null,
       signal,
+      ...(mailbox && holder
+        ? {
+            messageBridge: {
+              mailbox,
+              holder,
+              sendMessage,
+              assertAuthority: messageAuthority,
+              recipientState,
+              onMutation: opts.onMailboxMutation,
+              durable: opts.mailboxDurable === true,
+            },
+          }
+        : {}),
     });
   };
 }
@@ -2661,8 +2712,13 @@ export function registerTeamCommand(program, { logger } = {}) {
               runInWorktree: async ({
                 key,
                 task,
+                holder,
                 cwd,
                 inbox = [],
+                sendMessage = null,
+                messageAuthority = null,
+                recipientState = null,
+                mailbox: taskMailbox = null,
                 budgetReservation = null,
                 signal = null,
                 managedCheckpoint = false,
@@ -2689,6 +2745,19 @@ export function registerTeamCommand(program, { logger } = {}) {
                     managedCheckpoint,
                     sessionId: collaborationUnits.get(key)?.sessionId,
                     signal,
+                    ...(taskMailbox && holder
+                      ? {
+                          messageBridge: {
+                            mailbox: taskMailbox,
+                            holder,
+                            sendMessage,
+                            assertAuthority: messageAuthority,
+                            recipientState,
+                            onMutation: persist,
+                            durable: Boolean(options.state),
+                          },
+                        }
+                      : {}),
                   },
                 );
               },
@@ -2709,6 +2778,8 @@ export function registerTeamCommand(program, { logger } = {}) {
             contractForTask: (key) => taskContracts.get(key),
             worktreeEnabled: false,
             sessionIdForTask: (key) => collaborationUnits.get(key)?.sessionId,
+            onMailboxMutation: persist,
+            mailboxDurable: Boolean(options.state),
           });
         else runTask = async () => ({ dryRun: true });
 
@@ -2797,6 +2868,7 @@ export function registerTeamCommand(program, { logger } = {}) {
             ? (task) => taskContracts.get(task.key)
             : () => ({ reserveUsage: false }),
           mailbox,
+          realtimeMessaging: options.agent === true,
           scopeLock,
           recorder,
           beforeTask: ({ key }) => {

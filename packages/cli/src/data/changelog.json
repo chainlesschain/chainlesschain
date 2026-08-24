@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.2",
+      "cliVersions": ["0.166.1", "0.166.2"],
+      "date": "2026-08-25",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.2: lease-bound real-time team messaging",
+          "body": "> `chainlesschain` **0.166.1 -> 0.166.2** (CLI-only release candidate,\n> 2026-08-25). `@chainlesschain/agent-protocol` remains **0.1.1**,\n> `@chainlesschain/agent-sdk` remains **0.2.1**, and\n> `chainlesschain-agent-sdk` remains **0.2.1**.\n\n- **Live teammate tools**: real `cc team --agent` children receive host-owned\n  `team_send`, `team_receive`, `team_ack`, and `team_followup` tools over a\n  private local bridge instead of relying only on a startup inbox snapshot.\n- **Retry-safe delivery**: the bounded mailbox persists at-least-once delivery\n  receipts, stable-consumer ACKs, idempotent message keys, payload digests,\n  causation/correlation metadata, processed/dead-letter states, and monotonic\n  cursors across team-state restore.\n- **Attempt-scoped authority**: every bridge operation revalidates the current\n  holder, task, attempt, lease, and fencing token; stale attempts fail closed,\n  bridge credentials never enter the prompt, and nested subagents cannot\n  inherit the parent-bound tools.\n- **Honest durability and wake semantics**: `--state` checkpoints every bridge\n  mutation, runs without state declare process-local delivery, and follow-up\n  results distinguish an active target from a request queued for a future turn.\n- **Release validation**: publication requires this candidate's exact commit\n  to pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before an immutable npm tag is created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.1",
       "cliVersions": ["0.1.1", "0.2.1", "0.166.0", "0.166.1"],
       "date": "2026-08-24",

@@ -1245,6 +1245,63 @@ describe("TeamRunner directed messaging", () => {
     expect(summary.messages).toBe(2);
   });
 
+  it("keeps real-time inbox messages pending until an attempt-bound ACK", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "task", title: "task" });
+    const mailbox = new TeamMailbox({
+      recipients: ["coordinator", "teammate-1"],
+    });
+    const message = mailbox.send({
+      from: "coordinator",
+      to: "teammate-1",
+      body: "process me",
+    });
+    let authority = null;
+    let authorityFn = null;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      mailbox,
+      realtimeMessaging: true,
+      runTask: async ({
+        inbox,
+        sendMessage,
+        messageAuthority,
+        recipientState,
+      }) => {
+        authorityFn = messageAuthority;
+        expect(inbox.map((entry) => entry.id)).toEqual([message.id]);
+        expect(mailbox.peek("teammate-1")).toHaveLength(1);
+        authority = messageAuthority();
+        expect(
+          sendMessage("coordinator", "attempt-bound", null, {
+            senderAttempt: { taskKey: "forged" },
+          }).senderAttempt,
+        ).toEqual(authority);
+        expect(recipientState("teammate-1")).toMatchObject({
+          state: "running",
+        });
+        mailbox.acknowledge("teammate-1", {
+          messageIds: [message.id],
+          consumerKey: "task-consumer",
+          recipientAttempt: authority,
+        });
+        return "ok";
+      },
+    });
+
+    await expect(runner.run()).resolves.toMatchObject({ success: true });
+    expect(authority).toMatchObject({
+      holder: "teammate-1",
+      taskKey: "task",
+      leaseId: expect.any(String),
+      fencingToken: expect.any(String),
+    });
+    expect(mailbox.peek("teammate-1")).toEqual([]);
+    expect(() => authorityFn()).toThrowError(
+      expect.objectContaining({ code: "TEAM_MESSAGE_BRIDGE_STALE_ATTEMPT" }),
+    );
+  });
+
   it("delivers a broadcast from one teammate to a different teammate", async () => {
     const reg = freshRegistry();
     // Two independent tasks so both teammates are busy at once; each broadcasts

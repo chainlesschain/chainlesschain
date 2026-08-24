@@ -16,6 +16,7 @@ import {
   spawnAgent,
 } from "../../src/commands/team.js";
 import { TaskLeaseRegistry } from "../../src/lib/agent-team/task-lease.js";
+import { TeamMailbox } from "../../src/lib/agent-team/team-mailbox.js";
 import {
   computeTeamControlAdjudicationDigest,
   computeTeamControlAttemptDigest,
@@ -331,6 +332,53 @@ describe("team command process Broker", () => {
       }),
     );
     expect(options.env.CLAUDECODE).toBe("1");
+  });
+
+  it("mounts and cleans a lease-bound real-time teammate tool bridge", async () => {
+    const child = createChild({ stdin: true });
+    let stdin = "";
+    let childEnvironment = null;
+    child.stdin.setEncoding("utf8");
+    child.stdin.on("data", (chunk) => (stdin += chunk));
+    _deps.spawn = vi.fn((_file, _args, options) => {
+      childEnvironment = options.env;
+      return child;
+    });
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+
+    const completed = spawnAgent("coordinate during the task", "/repo", {
+      messageBridge: {
+        mailbox,
+        holder: "teammate-1",
+        durable: true,
+        assertAuthority: () => ({
+          holder: "teammate-1",
+          taskKey: "build",
+          leaseId: "lease-build",
+          fencingToken: "fence-build",
+        }),
+      },
+    });
+    await vi.waitFor(() => expect(_deps.spawn).toHaveBeenCalledOnce());
+    child.stdout.write(`${JSON.stringify({ type: "result" })}\n`);
+    child.emit("close", 0);
+    await expect(completed).resolves.toEqual({ code: 0 });
+
+    expect(childEnvironment).toMatchObject({
+      CC_TEAM_MESSAGE_BRIDGE_PROTOCOL: "1",
+    });
+    expect(childEnvironment.CC_TEAM_MESSAGE_BRIDGE_ENDPOINT).toMatch(
+      process.platform === "win32" ? /^\\\\\.\\pipe\\/ : /\.sock$/,
+    );
+    expect(childEnvironment.CC_TEAM_MESSAGE_BRIDGE_TOKEN).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(stdin).toContain("team_receive");
+    expect(stdin).toContain("Channel durability: checkpointed");
+    expect(stdin).toContain("coordinate during the task");
+    expect(stdin).not.toContain(childEnvironment.CC_TEAM_MESSAGE_BRIDGE_TOKEN);
   });
 
   it("kills a teammate at its live token ceiling and preserves billed usage", async () => {

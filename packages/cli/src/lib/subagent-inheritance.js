@@ -54,20 +54,22 @@ export function filterInheritedMcp(parent, allow) {
     typeof parent.externalToolExecutors === "object"
       ? parent.externalToolExecutors
       : {};
+  const inheritable = (name) =>
+    descs[name]?.inheritable !== false && execs[name]?.inheritable !== false;
 
   const outDefs = defs.filter((d) => {
     const name = d?.function?.name;
-    return name && serverAllowed(mcpServerOf(name));
+    return name && inheritable(name) && serverAllowed(mcpServerOf(name));
   });
   const outDescs = {};
   for (const [name, desc] of Object.entries(descs)) {
     const server = desc?.serverName || mcpServerOf(name);
-    if (serverAllowed(server)) outDescs[name] = desc;
+    if (inheritable(name) && serverAllowed(server)) outDescs[name] = desc;
   }
   const outExecs = {};
   for (const [name, exec] of Object.entries(execs)) {
     const server = exec?.serverName || mcpServerOf(name);
-    if (serverAllowed(server)) outExecs[name] = exec;
+    if (inheritable(name) && serverAllowed(server)) outExecs[name] = exec;
   }
 
   if (

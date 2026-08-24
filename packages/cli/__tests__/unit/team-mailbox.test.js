@@ -128,6 +128,199 @@ describe("TeamMailbox snapshot/restore", () => {
   });
 });
 
+describe("TeamMailbox real-time delivery receipts", () => {
+  it("redelivers until a stable consumer ACK is durably processed", () => {
+    const mb = new TeamMailbox({ recipients: ["a", "b"] });
+    const sent = mb.send({
+      from: "a",
+      to: "b",
+      body: { task: "review" },
+      idempotencyKey: "send-review-1",
+      causationId: "task-a",
+      senderAttempt: { taskKey: "task-a", leaseId: "lease-a" },
+    });
+
+    const first = mb.receive("b");
+    const redelivery = mb.receive("b", { markRead: true });
+    expect(first[0]).toMatchObject({
+      id: sent.id,
+      delivery: { status: "delivered", deliveryCount: 1 },
+    });
+    expect(redelivery[0]).toMatchObject({
+      id: sent.id,
+      delivery: { status: "read", deliveryCount: 2 },
+    });
+
+    const acknowledged = mb.acknowledge("b", {
+      messageIds: [sent.id],
+      consumerKey: "review-handler-v1",
+      status: "processed",
+      recipientAttempt: { taskKey: "task-b", leaseId: "lease-b" },
+    });
+    expect(acknowledged).toMatchObject({
+      cursor: sent.id,
+      receipts: [
+        {
+          messageId: sent.id,
+          status: "processed",
+          consumerKey: "review-handler-v1",
+        },
+      ],
+    });
+    expect(mb.receive("b")).toEqual([]);
+
+    const restored = TeamMailbox.restore(mb.snapshot());
+    expect(
+      restored.acknowledge("b", {
+        messageIds: [sent.id],
+        consumerKey: "review-handler-v1",
+      }),
+    ).toMatchObject({
+      cursor: sent.id,
+      receipts: [{ status: "processed" }],
+    });
+    expect(() =>
+      restored.acknowledge("b", {
+        messageIds: [sent.id],
+        consumerKey: "different-handler",
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: TEAM_MAILBOX_ERROR_CODES.ACK_CONFLICT }),
+    );
+  });
+
+  it("keeps out-of-order ACKs without skipping an earlier message", () => {
+    const mb = new TeamMailbox({ recipients: ["a", "b"] });
+    const first = mb.send({ from: "a", to: "b", body: "first" });
+    const second = mb.send({ from: "a", to: "b", body: "second" });
+
+    expect(
+      mb.acknowledge("b", {
+        messageIds: [second.id],
+        consumerKey: "consumer",
+      }).cursor,
+    ).toBe(0);
+    expect(mb.receive("b").map((message) => message.id)).toEqual([first.id]);
+    expect(
+      mb.acknowledge("b", {
+        messageIds: [first.id],
+        consumerKey: "consumer",
+      }).cursor,
+    ).toBe(second.id);
+    expect(mb.receive("b")).toEqual([]);
+  });
+
+  it("deduplicates retried sends and rejects idempotency-key drift", () => {
+    const mb = new TeamMailbox({ recipients: ["a", "b"] });
+    const first = mb.send({
+      from: "a",
+      to: "b",
+      body: "same",
+      idempotencyKey: "message-1",
+    });
+    const replay = mb.send({
+      from: "a",
+      to: "b",
+      body: "same",
+      idempotencyKey: "message-1",
+    });
+    expect(replay).toEqual(first);
+    expect(mb.size()).toBe(1);
+    expect(mb.status().counters.idempotentReplays).toBe(1);
+
+    expect(() =>
+      mb.send({
+        from: "a",
+        to: "b",
+        body: "changed",
+        idempotencyKey: "message-1",
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: TEAM_MAILBOX_ERROR_CODES.MESSAGE_INVALID,
+      }),
+    );
+  });
+
+  it("scopes message ids to a task while deduplicating a renewed lease", () => {
+    const mb = new TeamMailbox({ recipients: ["a", "b"] });
+    const first = mb.send({
+      from: "a",
+      to: "b",
+      body: "task-a result",
+      idempotencyKey: "result-1",
+      senderAttempt: { taskKey: "task-a", leaseId: "lease-1" },
+    });
+    const renewed = mb.send({
+      from: "a",
+      to: "b",
+      body: "task-a result",
+      idempotencyKey: "result-1",
+      senderAttempt: { taskKey: "task-a", leaseId: "lease-2" },
+    });
+    const otherTask = mb.send({
+      from: "a",
+      to: "b",
+      body: "task-b result",
+      idempotencyKey: "result-1",
+      senderAttempt: { taskKey: "task-b", leaseId: "lease-3" },
+    });
+
+    expect(renewed).toEqual(first);
+    expect(otherTask.id).toBe(first.id + 1);
+  });
+
+  it("validates an ACK batch atomically and never reopens a terminal receipt", () => {
+    const mb = new TeamMailbox({ recipients: ["a", "b"] });
+    const first = mb.send({ from: "a", to: "b", body: "first" });
+    const second = mb.send({ from: "a", to: "b", body: "second" });
+
+    expect(() =>
+      mb.acknowledge("b", {
+        messageIds: [first.id, 999],
+        consumerKey: "consumer",
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: TEAM_MAILBOX_ERROR_CODES.ACK_INVALID }),
+    );
+    expect(mb.snapshot().receipts).toEqual([]);
+
+    mb.acknowledge("b", {
+      messageIds: [first.id],
+      consumerKey: "consumer",
+    });
+    expect(() =>
+      mb.acknowledge("b", {
+        messageIds: [first.id],
+        consumerKey: "consumer",
+        status: "read",
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: TEAM_MAILBOX_ERROR_CODES.ACK_CONFLICT }),
+    );
+    expect(mb.receive("b").map((message) => message.id)).toEqual([second.id]);
+  });
+
+  it("keeps receipt snapshots within their configured capacity", () => {
+    const mb = new TeamMailbox({
+      recipients: ["a", "b"],
+      maxMessages: 1,
+      maxReceiptHistory: 1,
+    });
+    const first = mb.send({ from: "a", to: "b", body: "first" });
+    mb.receive("b");
+    mb.acknowledge("b", {
+      messageIds: [first.id],
+      consumerKey: "consumer",
+    });
+    const second = mb.send({ from: "a", to: "b", body: "second" });
+    expect(mb.receive("b").map((message) => message.id)).toEqual([second.id]);
+    const snapshot = mb.snapshot();
+    expect(snapshot.receipts).toHaveLength(1);
+    expect(() => TeamMailbox.restore(snapshot)).not.toThrow();
+  });
+});
+
 describe("TeamMailbox bounded backpressure", () => {
   it("rejects a missing recipient with the stable invalid-message code", () => {
     const mb = new TeamMailbox();
@@ -142,6 +335,25 @@ describe("TeamMailbox bounded backpressure", () => {
       }),
     );
     expect(mb.status().counters.rejectedMessages).toBe(2);
+  });
+
+  it("rejects cyclic payloads before computing an idempotency digest", () => {
+    const mb = new TeamMailbox();
+    const body = {};
+    body.self = body;
+    expect(() =>
+      mb.send({
+        from: "a",
+        to: "b",
+        body,
+        idempotencyKey: "cyclic-message",
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: TEAM_MAILBOX_ERROR_CODES.MESSAGE_INVALID,
+      }),
+    );
+    expect(mb.status().counters.rejectedMessages).toBe(1);
   });
 
   it("rejects an oversized single message with a stable code", () => {

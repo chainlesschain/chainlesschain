@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.2: lease-bound real-time team messaging
+
+> `chainlesschain` **0.166.1 -> 0.166.2** (CLI-only release candidate,
+> 2026-08-25). `@chainlesschain/agent-protocol` remains **0.1.1**,
+> `@chainlesschain/agent-sdk` remains **0.2.1**, and
+> `chainlesschain-agent-sdk` remains **0.2.1**.
+
+- **Live teammate tools**: real `cc team --agent` children receive host-owned
+  `team_send`, `team_receive`, `team_ack`, and `team_followup` tools over a
+  private local bridge instead of relying only on a startup inbox snapshot.
+- **Retry-safe delivery**: the bounded mailbox persists at-least-once delivery
+  receipts, stable-consumer ACKs, idempotent message keys, payload digests,
+  causation/correlation metadata, processed/dead-letter states, and monotonic
+  cursors across team-state restore.
+- **Attempt-scoped authority**: every bridge operation revalidates the current
+  holder, task, attempt, lease, and fencing token; stale attempts fail closed,
+  bridge credentials never enter the prompt, and nested subagents cannot
+  inherit the parent-bound tools.
+- **Honest durability and wake semantics**: `--state` checkpoints every bridge
+  mutation, runs without state declare process-local delivery, and follow-up
+  results distinguish an active target from a request queued for a future turn.
+- **Release validation**: publication requires this candidate's exact commit
+  to pass the complete Linux, Windows, and macOS `CLI CI` and
+  `CLI Strict Sandbox` matrices before an immutable npm tag is created.
+
 ### Added - cc CLI 0.166.1 + Agent Protocol 0.1.1 + Agent SDKs 0.2.1: structured Graph execution
 
 > `chainlesschain` **0.166.0 -> 0.166.1**,

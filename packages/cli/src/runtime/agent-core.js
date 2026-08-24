@@ -8304,6 +8304,44 @@ async function executeToolInner(
         );
       }
 
+      if (localToolExecutor?.kind === "team-message") {
+        if (
+          localToolExecutor.inheritable !== false ||
+          typeof localToolExecutor.execute !== "function"
+        ) {
+          return attachDescriptor({
+            error:
+              "Team message tool blocked because its host authority is invalid",
+            code: "TEAM_MESSAGE_TOOL_AUTHORITY_INVALID",
+            policy: {
+              decision: "blocked",
+              via: "team-message-authority",
+            },
+          });
+        }
+        try {
+          const result = await localToolExecutor.execute(args || {}, {
+            signal,
+          });
+          return attachDescriptor(
+            result && typeof result === "object" ? result : { result },
+          );
+        } catch (error) {
+          return attachDescriptor({
+            error: `Team message tool failed: ${String(error?.message || error).slice(0, 2048)}`,
+            code: String(
+              error?.code || "TEAM_MESSAGE_TOOL_EXECUTION_FAILED",
+            ).slice(0, 128),
+            retryable:
+              error?.code === "TEAM_MESSAGE_BRIDGE_TIMEOUT" ||
+              Number.isSafeInteger(error?.retryAfterMs),
+            ...(Number.isSafeInteger(error?.retryAfterMs)
+              ? { retryAfterMs: error.retryAfterMs }
+              : {}),
+          });
+        }
+      }
+
       if (localToolExecutor?.kind === "mcp") {
         if (!mcpClient || typeof mcpClient.callTool !== "function") {
           return attachDescriptor({

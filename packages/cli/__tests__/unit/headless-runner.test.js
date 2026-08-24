@@ -139,6 +139,145 @@ describe("headless-runner — pure helpers", () => {
   });
 });
 
+describe("headless-runner — team message tools", () => {
+  it("adds a parent-issued team tool bundle to the live model surface", async () => {
+    const definition = {
+      type: "function",
+      function: {
+        name: "team_receive",
+        description: "receive team messages",
+        parameters: { type: "object", properties: {} },
+      },
+    };
+    const chatFn = vi.fn(async (_messages, options) => {
+      expect(
+        options.extraToolDefinitions.map((tool) => tool.function.name),
+      ).toContain("team_receive");
+      return {
+        message: { role: "assistant", content: "done" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    });
+    const { deps } = makeDeps(chatFn);
+    deps.resolveTeamMessageToolBundle = vi.fn(() => ({
+      extraToolDefinitions: [definition],
+      externalToolExecutors: {
+        team_receive: {
+          kind: "team-message",
+          inheritable: false,
+          execute: vi.fn(),
+        },
+      },
+      externalToolDescriptors: {
+        team_receive: {
+          name: "team_receive",
+          kind: "team-message",
+          inheritable: false,
+          isReadOnly: true,
+          riskLevel: "low",
+        },
+      },
+    }));
+
+    await expect(
+      runAgentHeadless(
+        { prompt: "coordinate", outputFormat: "json", ephemeral: true },
+        deps,
+      ),
+    ).resolves.toMatchObject({ exitCode: 0 });
+    expect(deps.resolveTeamMessageToolBundle).toHaveBeenCalledOnce();
+  });
+
+  it("dispatches a model-requested team tool through its bound host executor", async () => {
+    const execute = vi.fn(async (args) => ({
+      status: "admitted",
+      message: { id: 7, from: "teammate-1", ...args },
+    }));
+    let turn = 0;
+    const chatFn = vi.fn(async (messages, options) => {
+      expect(
+        options.extraToolDefinitions.map((tool) => tool.function.name),
+      ).toContain("team_send");
+      turn += 1;
+      if (turn === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "team-send-1",
+                type: "function",
+                function: {
+                  name: "team_send",
+                  arguments: JSON.stringify({
+                    to: "teammate-2",
+                    body: "ready for review",
+                    message_id: "review-1",
+                  }),
+                },
+              },
+            ],
+          },
+          usage: { input_tokens: 1, output_tokens: 1 },
+        };
+      }
+      const result = messages.find(
+        (message) =>
+          message.role === "tool" && message.tool_call_id === "team-send-1",
+      );
+      expect(JSON.parse(result.content)).toMatchObject({
+        status: "admitted",
+        message: { id: 7, from: "teammate-1" },
+      });
+      return {
+        message: { role: "assistant", content: "done" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    });
+    const { deps } = makeDeps(chatFn);
+    deps.resolveTeamMessageToolBundle = vi.fn(() => ({
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "team_send",
+            description: "send a team message",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+      externalToolExecutors: {
+        team_send: { kind: "team-message", inheritable: false, execute },
+      },
+      externalToolDescriptors: {
+        team_send: {
+          name: "team_send",
+          kind: "team-message",
+          inheritable: false,
+          isReadOnly: false,
+          riskLevel: "low",
+        },
+      },
+    }));
+
+    await expect(
+      runAgentHeadless(
+        { prompt: "coordinate", outputFormat: "json", ephemeral: true },
+        deps,
+      ),
+    ).resolves.toMatchObject({ exitCode: 0 });
+    expect(execute).toHaveBeenCalledWith(
+      {
+        to: "teammate-2",
+        body: "ready for review",
+        message_id: "review-1",
+      },
+      expect.objectContaining({ signal: null }),
+    );
+  });
+});
+
 describe("headless-runner — exact delivery fixer authority", () => {
   it("forwards the immutable exact tool and file mutation scope to agentLoop", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-headless-mutation-scope-"));

@@ -204,6 +204,7 @@ import {
   runtimeToolCallId,
 } from "../lib/runtime-usage-ledger.js";
 import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
+import { resolveTeamMessageToolBundle } from "../lib/agent-team/team-message-tools.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -1990,6 +1991,20 @@ async function runAgentHeadlessInWorkspace(
   const hostMcp = mcp
     ? { ...mcp, mcpClient: mcpRecoveryRuntime.client || mcp.mcpClient }
     : null;
+  let teamMessageTools = null;
+  try {
+    teamMessageTools = (
+      deps.resolveTeamMessageToolBundle || resolveTeamMessageToolBundle
+    )({ env: options.teamMessageEnv || process.env });
+  } catch (error) {
+    writeErr(`Error: ${error.message}\n`);
+    emitHeadlessError(error.message);
+    return {
+      exitCode: HEADLESS_EXIT_CODES.CONFIG_ERROR,
+      result: error.message,
+      isError: true,
+    };
+  }
 
   // Seed MCP roots for --add-dir (Claude-Code roots/list_changed parity): a
   // headless session started with extra workspace roots must advertise the FULL
@@ -2424,9 +2439,27 @@ async function runAgentHeadlessInWorkspace(
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
     mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
-    extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
-    externalToolExecutors: mcp?.externalToolExecutors || undefined,
-    externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
+    extraToolDefinitions:
+      mcp?.extraToolDefinitions || teamMessageTools?.extraToolDefinitions
+        ? [
+            ...(mcp?.extraToolDefinitions || []),
+            ...(teamMessageTools?.extraToolDefinitions || []),
+          ]
+        : undefined,
+    externalToolExecutors:
+      mcp?.externalToolExecutors || teamMessageTools?.externalToolExecutors
+        ? {
+            ...(mcp?.externalToolExecutors || {}),
+            ...(teamMessageTools?.externalToolExecutors || {}),
+          }
+        : undefined,
+    externalToolDescriptors:
+      mcp?.externalToolDescriptors || teamMessageTools?.externalToolDescriptors
+        ? {
+            ...(mcp?.externalToolDescriptors || {}),
+            ...(teamMessageTools?.externalToolDescriptors || {}),
+          }
+        : undefined,
     // Persist every MCP started/settled record into this exact canonical
     // session. Unknown/write/destructive prewrite failure then blocks before
     // the external call; a settlement failure leaves a recoverable started row.

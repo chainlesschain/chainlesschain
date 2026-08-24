@@ -54,6 +54,9 @@ export class TeamRunner {
       typeof opts.budgetForTask === "function" ? opts.budgetForTask : null;
     // Directed/broadcast messaging between teammates (null → disabled).
     this.mailbox = opts.mailbox || null;
+    // Real agent children keep messages pending until their explicit ACK tool
+    // succeeds. Legacy/dry-run executors retain drain-on-dispatch semantics.
+    this.realtimeMessaging = opts.realtimeMessaging === true;
     // Optional conservative path ownership. Tasks with overlapping scopes are
     // serialized in a shared workspace; an empty scope means the whole repo.
     this.scopeLock = opts.scopeLock || null;
@@ -1144,12 +1147,54 @@ export class TeamRunner {
     const renew = () => this._renewClaim(claim);
     // A teammate-scoped messaging handle: post to a peer / broadcast, and read
     // its own inbox (direct messages + unseen broadcasts).
-    const inbox = this.mailbox ? this.mailbox.drain(holder) : [];
-    const sendMessage = (to, body, subject = null) => {
+    const inbox = this.mailbox
+      ? this.realtimeMessaging
+        ? this.mailbox.peek(holder)
+        : this.mailbox.drain(holder)
+      : [];
+    const messageAuthority = () => {
+      const current = this._claimsByKey.get(key);
+      if (
+        current !== claim ||
+        claim.lost ||
+        claim.interruption ||
+        claim.coordinatorAbort ||
+        claim.abortController.signal.aborted
+      ) {
+        const error = new Error(
+          `Team message authority for task "${key}" is no longer active`,
+        );
+        error.code = "TEAM_MESSAGE_BRIDGE_STALE_ATTEMPT";
+        throw error;
+      }
+      return {
+        holder,
+        taskKey: key,
+        attempt: task.attempts,
+        leaseId: claim.leaseId,
+        fencingToken: claim.fencingToken,
+      };
+    };
+    const recipientState = (recipient) => {
+      const member = this._members.get(recipient);
+      return member ? { ...member } : null;
+    };
+    const sendMessage = (to, body, subject = null, options = {}) => {
       if (!this.mailbox) return null;
       let message;
       try {
-        message = this.mailbox.send({ from: holder, to, subject, body });
+        const authority = messageAuthority();
+        message = this.mailbox.send({
+          from: holder,
+          to,
+          subject,
+          body,
+          mode: options.mode,
+          idempotencyKey: options.idempotencyKey,
+          causationId: options.causationId,
+          correlationId: options.correlationId,
+          senderAttempt: authority,
+        });
       } catch (error) {
         this._emit("mailbox:backpressure", {
           holder,
@@ -1167,6 +1212,13 @@ export class TeamRunner {
           messages: this.mailbox.size(),
         });
       }
+      this._emit("mailbox:message-sent", {
+        holder,
+        key,
+        messageId: message.id,
+        to: message.to,
+        mode: message.mode || "send",
+      });
       return message;
     };
     const startedAt = this._now();
@@ -1197,6 +1249,8 @@ export class TeamRunner {
         renew,
         inbox,
         sendMessage,
+        messageAuthority,
+        recipientState,
         mailbox: this.mailbox,
         budget: this.budget,
         budgetReservation: claim.budgetReservation,

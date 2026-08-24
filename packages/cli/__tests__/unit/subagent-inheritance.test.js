@@ -70,6 +70,24 @@ describe("filterInheritedMcp", () => {
     expect(filterInheritedMcp(parent, ["nonexistent"])).toBeNull();
   });
 
+  it("never delegates a host tool explicitly bound to the parent attempt", () => {
+    const name = "team_send";
+    expect(
+      filterInheritedMcp(
+        {
+          extraToolDefinitions: [{ type: "function", function: { name } }],
+          externalToolDescriptors: {
+            [name]: { kind: "team-message", inheritable: false },
+          },
+          externalToolExecutors: {
+            [name]: { kind: "team-message", inheritable: false },
+          },
+        },
+        null,
+      ),
+    ).toBeNull();
+  });
+
   it("falls back to the wire name when a descriptor lacks serverName", () => {
     const p = {
       extraToolDefinitions: [
