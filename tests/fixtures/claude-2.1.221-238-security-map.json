@@ -324,7 +324,7 @@
       "testId": "keeps input redirection behind the shell approval gate",
       "producer": {
         "path": "packages/cli/__tests__/unit/shell-approval.test.js",
-        "sha256": "sha256:d57864fdc8791dc5fc15c929475e2f32e01f7d392efc133fafe9edb331eac45f"
+        "sha256": "sha256:50c1bab984b6f88be0b9afbbfd125e4dfafdab5a50d0b8aa35278f1903a61b43"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
