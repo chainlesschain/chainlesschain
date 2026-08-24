@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.64] - Recommended CLI 0.165.8 pairing (2026-08-24)
+
+- Prefer the public `chainlesschain@0.165.8` CLI after compatibility testing
+  with the IDE bridge and successful exact-commit Linux, Windows, and macOS
+  CLI CI, Strict Sandbox, npm publication, and public-registry readback.
+- Document the paired CLI's bounded durable-session backlogs and sidecars,
+  converged local/remote execution state, more reliable browser evidence, and
+  isolated release-gate HOME, application-data, workspace, and security-anchor
+  roots. The unpublished `0.165.7` candidate is fully superseded by `0.165.8`.
+- Refresh the packaged Open VSX Overview, install command, release tag, and
+  VSIX verification example for the new pairing. There are no extension
+  runtime changes from 0.37.63.
+
 ## [0.37.63] - Marketplace Overview refresh (2026-08-22)
 
 - Refresh the packaged Open VSX Overview so its current-release table, CLI
