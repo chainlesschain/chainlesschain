@@ -14,6 +14,7 @@ import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
+import java.util.stream.Stream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -91,7 +92,12 @@ class CcExecService @Inject constructor(
     internal suspend fun executeArgv(
         argv: List<String>, env: Map<String, String>, cwd: File, timeoutMs: Long,
     ): CcResult = withContext(Dispatchers.IO) {
-        val pb = ProcessBuilder(argv).directory(cwd).redirectErrorStream(false)
+        val launch = try {
+            prepareLaunch(argv, cwd)
+        } catch (e: Exception) {
+            return@withContext CcResult.Error("ProcessBuilder.start() failed: ${e.message}")
+        }
+        val pb = ProcessBuilder(launch.argv).directory(cwd).redirectErrorStream(false)
         pb.environment().clear()
         pb.environment().putAll(env)
 
@@ -119,11 +125,10 @@ class CcExecService @Inject constructor(
                 val durationMs = System.currentTimeMillis() - startedAt
 
                 if (exited == null) {
-                    destroyProcess(proc)
-                    // A subprocess may leave descendants holding inherited pipe file
-                    // descriptors after the direct child dies (for example
-                    // `/bin/sh -c "sleep 30"`). Close our pipe endpoints and cancel the
-                    // drains instead of waiting for an unrelated descendant to exit.
+                    destroyProcessTree(proc, launch.pidFile)
+                    // Descendants inherit stdout/stderr. Kill the complete tree before
+                    // closing our endpoints so their file descriptors cannot keep the
+                    // blocking drain coroutines alive.
                     closeProcessPipes(proc)
                     stdoutDrain.cancelAndJoin(); stderrDrain.cancelAndJoin()
                     CcResult.Error("timeout after ${timeoutMs}ms (process killed)")
@@ -139,10 +144,39 @@ class CcExecService @Inject constructor(
                 }
             }
         } catch (ce: CancellationException) {
-            destroyProcess(proc)
+            destroyProcessTree(proc, launch.pidFile)
             closeProcessPipes(proc)
             throw ce
+        } finally {
+            launch.pidFile?.delete()
         }
+    }
+
+    /**
+     * Android's [Process] API has no pid/descendants methods. On Android only,
+     * run the requested argv through a constant shell program which records its
+     * pid and then `exec`s `"$@"`. Arguments remain separate and are never
+     * interpolated into shell source. JVM 9+ hosts use Process.descendants via
+     * reflection and do not need the wrapper.
+     */
+    private fun prepareLaunch(argv: List<String>, cwd: File): ProcessLaunch {
+        if (hasJvmDescendantsApi()) return ProcessLaunch(argv, null)
+
+        val shell = when {
+            File(ANDROID_SHELL).canExecute() -> ANDROID_SHELL
+            File(UNIX_SHELL).canExecute() -> UNIX_SHELL
+            else -> return ProcessLaunch(argv, null)
+        }
+        val pidFile = File.createTempFile("cc-exec-", ".pid", cwd)
+        check(pidFile.delete()) { "cannot prepare process pid file: ${pidFile.absolutePath}" }
+        return ProcessLaunch(
+            argv = listOf(shell, "-c", PID_CAPTURE_SCRIPT, "cc-exec", pidFile.absolutePath) + argv,
+            pidFile = pidFile,
+        )
+    }
+
+    private fun hasJvmDescendantsApi(): Boolean = Process::class.java.methods.any {
+        it.name == "descendants" && it.parameterCount == 0
     }
 
     /**
@@ -169,6 +203,107 @@ class CcExecService @Inject constructor(
             }
         }
         return out.toByteArray()
+    }
+
+    private fun destroyProcessTree(proc: Process, pidFile: File?) {
+        val handledByJvm = destroyJvmDescendants(proc)
+        if (!handledByJvm) destroyAndroidDescendants(pidFile)
+        destroyProcess(proc)
+    }
+
+    /**
+     * Use Java 9's process-tree API on CI/desktop JVMs without statically
+     * referencing ProcessHandle (which is absent from the Android API stubs).
+     */
+    private fun destroyJvmDescendants(proc: Process): Boolean {
+        val descendantsMethod = Process::class.java.methods.firstOrNull {
+            it.name == "descendants" && it.parameterCount == 0
+        } ?: return false
+
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            val stream = descendantsMethod.invoke(proc) as Stream<Any>
+            val descendants = stream.use { it.iterator().asSequence().toList() }
+            val processHandleClass = Class.forName("java.lang.ProcessHandle")
+            val destroyForcibly = processHandleClass.getMethod("destroyForcibly")
+            val isAlive = processHandleClass.getMethod("isAlive")
+
+            descendants.asReversed().forEach { handle ->
+                destroyForcibly.invoke(handle)
+            }
+            waitForJvmDescendants(descendants, isAlive)
+            true
+        } catch (e: Throwable) {
+            Timber.tag(TAG).w(e, "destroyJvmDescendants failed")
+            false
+        }
+    }
+
+    private fun waitForJvmDescendants(descendants: List<Any>, isAlive: java.lang.reflect.Method) {
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DESCENDANT_KILL_GRACE_MS)
+        while (System.nanoTime() < deadlineNanos) {
+            val anyAlive = descendants.any { handle ->
+                try {
+                    isAlive.invoke(handle) as Boolean
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            if (!anyAlive) return
+            Thread.sleep(DESCENDANT_POLL_MS)
+        }
+    }
+
+    /** Android fallback: enumerate the recorded process through Linux procfs. */
+    private fun destroyAndroidDescendants(pidFile: File?) {
+        val rootPid = try {
+            pidFile?.takeIf { it.isFile }?.readText()?.trim()?.toIntOrNull()
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "read process pid failed")
+            null
+        } ?: return
+
+        val descendants = collectProcDescendants(rootPid)
+        descendants.forEach { pid -> sendAndroidSignal(pid, SIGNAL_TERM) }
+        if (descendants.isNotEmpty()) Thread.sleep(DESCENDANT_POLL_MS)
+        descendants.filter { File("/proc/$it").exists() }
+            .forEach { pid -> sendAndroidSignal(pid, SIGNAL_KILL) }
+    }
+
+    private fun collectProcDescendants(rootPid: Int): List<Int> {
+        val seen = LinkedHashSet<Int>()
+        val postOrder = ArrayList<Int>()
+
+        fun visit(pid: Int, depth: Int) {
+            if (depth > MAX_PROCESS_TREE_DEPTH || seen.size >= MAX_PROCESS_TREE_SIZE) return
+            val children = try {
+                File("/proc/$pid/task/$pid/children").readText()
+                    .trim()
+                    .split(Regex("\\s+"))
+                    .mapNotNull(String::toIntOrNull)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            for (child in children) {
+                if (child > 0 && seen.add(child)) {
+                    visit(child, depth + 1)
+                    postOrder += child
+                }
+            }
+        }
+
+        visit(rootPid, 0)
+        return postOrder
+    }
+
+    private fun sendAndroidSignal(pid: Int, signal: Int) {
+        try {
+            val osClass = Class.forName("android.system.Os")
+            osClass.getMethod("kill", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                .invoke(null, pid, signal)
+        } catch (e: Throwable) {
+            Timber.tag(TAG).w(e, "kill(%d, %d) failed", pid, signal)
+        }
     }
 
     private fun destroyProcess(proc: Process) {
@@ -201,6 +336,16 @@ class CcExecService @Inject constructor(
         // worst-case memory under a runaway subprocess.
         internal const val PIPE_DRAIN_HARD_LIMIT: Int = 256 * 1024
         private const val GRACE_KILL_MS: Long = 200L
+        private const val DESCENDANT_KILL_GRACE_MS: Long = 200L
+        private const val DESCENDANT_POLL_MS: Long = 10L
+        private const val MAX_PROCESS_TREE_DEPTH: Int = 64
+        private const val MAX_PROCESS_TREE_SIZE: Int = 1024
+        private const val SIGNAL_TERM: Int = 15
+        private const val SIGNAL_KILL: Int = 9
+        private const val ANDROID_SHELL: String = "/system/bin/sh"
+        private const val UNIX_SHELL: String = "/bin/sh"
+        private const val PID_CAPTURE_SCRIPT: String =
+            "printf '%s\\n' \"\u0024\u0024\" > \"\u00241\"; shift; exec \"\u0024@\""
 
         val FORBIDDEN_ENV_PREFIXES: List<String> = listOf(
             "OPENAI_", "ANTHROPIC_", "DEEPSEEK_", "DASHSCOPE_",
@@ -209,6 +354,11 @@ class CcExecService @Inject constructor(
         )
     }
 }
+
+private data class ProcessLaunch(
+    val argv: List<String>,
+    val pidFile: File?,
+)
 
 sealed class CcResult {
     data class Ok(
