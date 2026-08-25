@@ -3,6 +3,13 @@ package com.chainlesschain.android.pdh
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -138,7 +145,7 @@ class PdhAgentSessionTest {
     fun approval_request_maps_fields() {
         val e = PdhAgentSession.parseLine(
             """{"type":"approval_request","id":"appr-1","tool":"mcp__pdh__send_message",""" +
-                """"command":"发给 妈妈:晚上好","risk":"high"}""",
+                """"command":"发给 妈妈:晚上好","risk":"high","binding":"sha256:exact-call"}""",
         )
         assertTrue(e is PdhAgentEvent.ApprovalRequest)
         e as PdhAgentEvent.ApprovalRequest
@@ -146,6 +153,7 @@ class PdhAgentSessionTest {
         assertEquals("mcp__pdh__send_message", e.tool)
         assertEquals("发给 妈妈:晚上好", e.summary)
         assertEquals("high", e.risk)
+        assertEquals("sha256:exact-call", e.binding)
     }
 
     @Test
@@ -155,6 +163,47 @@ class PdhAgentSessionTest {
         ) as PdhAgentEvent.ApprovalRequest
         assertEquals("拨打电话", e.summary)
         assertNull(e.risk)
+        assertNull(e.binding)
+    }
+
+    @Test
+    fun approval_event_uses_canonical_least_privilege_decision_and_binding() {
+        val event = PdhAgentSession.approvalEvent(
+            "appr-1",
+            approve = true,
+            binding = "sha256:exact-call",
+        )
+        assertEquals("approval", event["type"]?.jsonPrimitive?.content)
+        assertEquals(canonicalDecision("accept-once"), event["decision"]?.jsonObject)
+        assertEquals(true, event["approve"]?.jsonPrimitive?.content?.toBoolean())
+        assertEquals("sha256:exact-call", event["binding"]?.jsonPrimitive?.content)
+
+        val denied = PdhAgentSession.approvalEvent("appr-2", false, "  ")
+        assertEquals("decline", denied["decision"]?.jsonObject
+            ?.get("kind")?.jsonPrimitive?.content)
+        assertFalse(denied.containsKey("binding"))
+    }
+
+    private fun canonicalDecision(name: String): JsonObject {
+        val relative = Paths.get(
+            "packages",
+            "agent-protocol",
+            "test",
+            "fixtures",
+            "approval-decisions.json",
+        )
+        val fixture = listOf(
+            relative,
+            Paths.get("..").resolve(relative),
+            Paths.get("..", "..").resolve(relative),
+        ).firstOrNull(Files::exists)
+            ?: error("canonical approval fixture not found from ${Paths.get("").toAbsolutePath()}")
+        val fixtureJson = String(Files.readAllBytes(fixture), Charsets.UTF_8)
+        return Json.parseToJsonElement(fixtureJson).jsonArray
+            .map { it.jsonObject }
+            .first { it["name"]?.jsonPrimitive?.content == name }
+            .getValue("value")
+            .jsonObject
     }
 
     @Test

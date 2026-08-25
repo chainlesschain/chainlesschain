@@ -85,6 +85,20 @@ class ChatEventsTest {
     // ── mapAgentEvent ───────────────────────────────────────────────────────
 
     @Test
+    void approvalRequestPreservesExactCallBinding() {
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "approval_request");
+        evt.put("id", "approval-1");
+        evt.put("tool", "run_shell");
+        evt.put("binding", "sha256:exact-call");
+
+        Map<String, Object> ui =
+                ChatEvents.mapAgentEvent(evt, new ChatEvents.TurnState());
+        assertEquals("approval", ui.get("kind"));
+        assertEquals("sha256:exact-call", ui.get("binding"));
+    }
+
+    @Test
     void tokenUsageEventMapsToUsageKindCarryingTheSameUsageMap() {
         ChatEvents.TurnState st = new ChatEvents.TurnState();
         Map<String, Object> u = usage(12000L, 300L, 900L);

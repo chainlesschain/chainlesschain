@@ -30,6 +30,7 @@ exports.isApprovalRequest = isApprovalRequest;
 exports.isQuestionRequest = isQuestionRequest;
 exports.isMcpElicitationRequest = isMcpElicitationRequest;
 exports.isResult = isResult;
+exports.isSlashCommandResult = isSlashCommandResult;
 exports.PROTOCOL_VERSION = 1;
 /**
  * The oldest protocol version the CLI can still negotiate down to (the N-1 in
@@ -92,9 +93,14 @@ function isQuestionRequest(event) {
 }
 /** True when a question wire event is carrying an MCP elicitation form. */
 function isMcpElicitationRequest(event) {
-    return (isQuestionRequest(event) &&
-        event.metadata?.kind === "mcp_elicitation");
+    return isQuestionRequest(event) && event.metadata?.kind === "mcp_elicitation";
 }
 function isResult(event) {
     return event.type === "result";
+}
+function isSlashCommandResult(event) {
+    return (event.type === "slash_command_result" &&
+        typeof event.request_id === "string" &&
+        typeof event.command === "string" &&
+        typeof event.ok === "boolean");
 }

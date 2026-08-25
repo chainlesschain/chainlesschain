@@ -101,6 +101,7 @@ class PdhChatViewModel @Inject constructor(
      */
     sealed class TrustCard {
         abstract val id: String
+        open val approvalBinding: String? = null
         /** 引导卡:采集需人在 App 内完成一步(§3.6)。 */
         data class Guide(
             override val id: String,
@@ -115,6 +116,7 @@ class PdhChatViewModel @Inject constructor(
             val tool: String,
             val summary: String,
             val risk: String?,
+            override val approvalBinding: String? = null,
         ) : TrustCard()
         /** 审批卡:有副作用的写(未归类为事务的其他工具)。 */
         data class Approve(
@@ -122,6 +124,7 @@ class PdhChatViewModel @Inject constructor(
             val tool: String,
             val summary: String,
             val risk: String?,
+            override val approvalBinding: String? = null,
         ) : TrustCard()
         /**
          * §3.5.17 事务卡:不可逆真实世界副作用(send/call/pay/lifecycle/reminder)。
@@ -136,6 +139,7 @@ class PdhChatViewModel @Inject constructor(
             val reversible: Boolean,
             val needsConfirmWord: Boolean,
             val sourceWarning: Boolean,
+            override val approvalBinding: String? = null,
         ) : TrustCard()
         /**
          * §3.5.14 备份卡:把"训练好的个人 AI"(数据+学习层)E2E 加密同步到你的自有
@@ -145,6 +149,7 @@ class PdhChatViewModel @Inject constructor(
             override val id: String,
             val summary: String,
             val assets: List<PdhAssetBackup.Asset>,
+            override val approvalBinding: String? = null,
         ) : TrustCard()
         /**
          * §3.5.14 恢复卡:用备份覆盖/合并本地资产 —— 更高风险,强确认(确认词)+ 凭
@@ -153,6 +158,7 @@ class PdhChatViewModel @Inject constructor(
         data class Restore(
             override val id: String,
             val summary: String,
+            override val approvalBinding: String? = null,
         ) : TrustCard()
         /** 计划卡:Plan Mode 当前计划项。 */
         data class Plan(
@@ -705,12 +711,18 @@ class PdhChatViewModel @Inject constructor(
             // 有副作用工具 → 普通审批卡。
             is PdhAgentEvent.ApprovalRequest -> _uiState.update { st ->
                 val card: TrustCard = when {
-                    isPreviewTool(ev.tool) -> TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk)
+                    isPreviewTool(ev.tool) ->
+                        TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk, ev.binding)
                     // §3.5.14 资产备份/恢复 → 专用卡(范围可见 + 不上云 / 强确认)。
                     ev.tool.contains("backup", ignoreCase = true) ->
-                        TrustCard.Backup(ev.id, ev.summary, PdhAssetBackup.inventory(emptyMap()))
+                        TrustCard.Backup(
+                            ev.id,
+                            ev.summary,
+                            PdhAssetBackup.inventory(emptyMap()),
+                            ev.binding,
+                        )
                     ev.tool.contains("restore", ignoreCase = true) ->
-                        TrustCard.Restore(ev.id, ev.summary)
+                        TrustCard.Restore(ev.id, ev.summary, ev.binding)
                     PdhTransaction.isTransaction(ev.tool) -> {
                         val risk = PdhTransaction.riskOf(ev.tool, ev.summary)
                         TrustCard.Transaction(
@@ -722,9 +734,16 @@ class PdhChatViewModel @Inject constructor(
                             needsConfirmWord = PdhTransaction.requiresConfirmWord(risk),
                             // §3.5.17 接线3: 本轮处理过不可信采集数据 → 提示核对(防 injection)。
                             sourceWarning = hasUntrustedDataSinceLastUser(st.messages),
+                            approvalBinding = ev.binding,
                         )
                     }
-                    else -> TrustCard.Approve(ev.id, ev.tool, ev.summary, ev.risk)
+                    else -> TrustCard.Approve(
+                        ev.id,
+                        ev.tool,
+                        ev.summary,
+                        ev.risk,
+                        ev.binding,
+                    )
                 }
                 st.copy(pendingCards = st.pendingCards.filterNot { c -> c.id == ev.id } + card)
             }
@@ -828,13 +847,13 @@ class PdhChatViewModel @Inject constructor(
 
     // ── §3.5.9 card actions (回传走现成 stdin 协议) ──────────────────────────
 
-    /** 预览卡 / 审批卡 / 事务卡 的 [确认]/[拒绝] → `{type:approval,id,approve}`。 */
+    /** 预览卡 / 审批卡 / 事务卡的裁决 → structured ApprovalDecision + binding。 */
     fun resolveCard(id: String, approve: Boolean) {
         val card = _uiState.value.pendingCards.firstOrNull { it.id == id }
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
         // §3.5.18 接线: an approved transaction is a real behavior → 操作台账。
         if (approve && card is TrustCard.Transaction) recordAction(card)
-        viewModelScope.launch { session.sendApproval(id, approve) }
+        viewModelScope.launch { session.sendApproval(id, approve, card?.approvalBinding) }
         rearmAfterCardResolved() // agent 恢复干活 → 继续盯静默。
     }
 

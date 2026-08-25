@@ -317,8 +317,18 @@ class PdhChatViewModelTest {
 
     // ── §3.5.17 事务审批卡 ──────────────────────────────────────────────────
 
-    private fun approval(id: String, tool: String, summary: String = "动作") =
-        PdhAgentEvent.ApprovalRequest(id = id, tool = tool, summary = summary, risk = null)
+    private fun approval(
+        id: String,
+        tool: String,
+        summary: String = "动作",
+        binding: String? = null,
+    ) = PdhAgentEvent.ApprovalRequest(
+        id = id,
+        tool = tool,
+        summary = summary,
+        risk = null,
+        binding = binding,
+    )
 
     private fun txnCards(vm: PdhChatViewModel) =
         vm.uiState.value.pendingCards.filterIsInstance<PdhChatViewModel.TrustCard.Transaction>()
@@ -356,15 +366,15 @@ class PdhChatViewModelTest {
 
     @Test
     fun resolve_transaction_card_sends_approval_and_removes_it() = runTest(dispatcher) {
-        coEvery { session.sendApproval(any(), any()) } returns true
+        coEvery { session.sendApproval(any(), any(), any()) } returns true
         val vm = newVm()
-        emit(approval("t4", "mcp__pdh__make_call", "拨打 妈妈"))
+        emit(approval("t4", "mcp__pdh__make_call", "拨打 妈妈", "sha256:exact-call"))
         assertEquals(1, txnCards(vm).size)
 
         vm.resolveCard("t4", true)
         advanceUntilIdle()
         assertTrue(txnCards(vm).isEmpty())
-        coVerify { session.sendApproval("t4", true) }
+        coVerify { session.sendApproval("t4", true, "sha256:exact-call") }
     }
 
     @Test
@@ -566,12 +576,12 @@ class PdhChatViewModelTest {
 
     @Test
     fun resolving_backup_card_sends_approval_and_removes_it() = runTest(dispatcher) {
-        coEvery { session.sendApproval(any(), any()) } returns true
+        coEvery { session.sendApproval(any(), any(), any()) } returns true
         val vm = newVm()
         emit(approval("b2", "mcp__pdh__backup_assets", "备份"))
         vm.resolveCard("b2", true)
         advanceUntilIdle()
-        coVerify { session.sendApproval("b2", true) }
+        coVerify { session.sendApproval("b2", true, null) }
         assertTrue(vm.uiState.value.pendingCards.isEmpty())
     }
 
@@ -626,7 +636,7 @@ class PdhChatViewModelTest {
 
     @Test
     fun approving_a_transaction_records_an_action() = runTest(dispatcher) {
-        coEvery { session.sendApproval(any(), any()) } returns true
+        coEvery { session.sendApproval(any(), any(), any()) } returns true
         val vm = newVm()
         emit(approval("a1", "mcp__pdh__send_message", "发给妈妈:晚上好"))
         vm.resolveCard("a1", true)
@@ -636,7 +646,7 @@ class PdhChatViewModelTest {
 
     @Test
     fun denying_a_transaction_records_no_action() = runTest(dispatcher) {
-        coEvery { session.sendApproval(any(), any()) } returns true
+        coEvery { session.sendApproval(any(), any(), any()) } returns true
         val vm = newVm()
         emit(approval("a2", "mcp__pdh__send_message", "发给妈妈:晚上好"))
         vm.resolveCard("a2", false)

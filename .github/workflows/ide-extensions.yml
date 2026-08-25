@@ -18,6 +18,8 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "packages/agent-sdk/**"
+      - "packages/agent-protocol/**"
       - "desktop-app-vue/src/renderer/utils/keyboard-shortcuts.ts"
       - "desktop-app-vue/src/renderer/components/common/CommandPalette.vue"
       - "packages/cli/src/lib/capability-manifest.js"
@@ -62,6 +64,8 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "packages/agent-sdk/**"
+      - "packages/agent-protocol/**"
       - "desktop-app-vue/src/renderer/utils/keyboard-shortcuts.ts"
       - "desktop-app-vue/src/renderer/components/common/CommandPalette.vue"
       - "packages/cli/src/lib/capability-manifest.js"
@@ -305,6 +309,9 @@ jobs:
 
       - name: Unit tests
         run: npm run test:unit
+
+      - name: Verify vendored Agent SDK freshness
+        run: npm run check:agent-sdk
 
       - name: Marketplace verifier self-test
         run: node ../../scripts/verify-ide-marketplace.mjs --self-test

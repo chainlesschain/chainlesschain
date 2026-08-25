@@ -77,14 +77,14 @@ function attachBackgroundSession(options) {
                         hello: message,
                         send: write,
                         prompt: (text) => write({ type: "prompt", text }),
+                        requestStatus: () => write({ type: "status" }),
+                        stopTurn: () => write({ type: "stop" }),
                         answerInteraction: (requestId, binding, answer) => write({
                             type: "interaction_response",
                             requestId,
                             binding,
                             answer,
                         }),
-                        requestStatus: () => write({ type: "status" }),
-                        stopTurn: () => write({ type: "stop" }),
                         detach: () => {
                             write({ type: "detach" });
                             socket.end();

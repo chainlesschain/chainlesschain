@@ -312,6 +312,10 @@ public final class ChatEvents {
             m.put("risk", evt.get("risk"));
             m.put("rule", evt.get("rule"));
             m.put("reason", evt.get("reason"));
+            // Preserve the exact-call digest so a structured approval can echo
+            // it and the CLI can reject stale or cross-tool responses.
+            m.put("binding", evt.get("binding") instanceof String
+                    ? evt.get("binding") : null);
             return m;
         }
         if ("approval_resolved".equals(type)) {

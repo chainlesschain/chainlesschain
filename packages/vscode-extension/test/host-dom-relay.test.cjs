@@ -197,6 +197,7 @@ test("ChatViewProvider rehydrates questions and preserves approval bindings", ()
   assert.deepEqual(sent.at(-1), {
     type: "approval",
     id: "approval-bound",
+    decision: { kind: "acceptOnce" },
     approve: true,
     binding: "sha256:exact-call",
   });

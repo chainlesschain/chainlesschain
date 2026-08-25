@@ -2,14 +2,16 @@ name: Android Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
-      - '.github/workflows/android-tests.yml'
+      - "android-app/**"
+      - "packages/agent-protocol/**"
+      - ".github/workflows/android-tests.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
+      - "android-app/**"
+      - "packages/agent-protocol/**"
 
 # 2026-05-24: parallel session 每 ~10 min push 一次 → 8+ queued runs 堆积
 # (see CI run 26349686684 stuck in 5th queue position 30+ min)，每个 run
@@ -37,9 +39,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
       - name: Grant execute permission for gradlew
         working-directory: android-app
@@ -131,9 +133,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
       - name: Grant execute permission for gradlew
         working-directory: android-app
@@ -167,7 +169,7 @@ jobs:
           script: echo "Generated AVD snapshot for caching."
 
       - name: Run P1 Integration Tests
-        continue-on-error: true  # outer advisory gate: P1 failures do not block the workflow yet
+        continue-on-error: true # outer advisory gate: P1 failures do not block the workflow yet
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -187,7 +189,7 @@ jobs:
             ./gradlew :feature-ai:connectedAndroidTest --tests "*AI_RAG_IntegrationTest*" --no-daemon
 
       - name: Run P2 UI Component Tests
-        continue-on-error: true  # outer advisory gate: P2 failures do not block the workflow yet
+        continue-on-error: true # outer advisory gate: P2 failures do not block the workflow yet
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -233,9 +235,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
       - name: Grant execute permission for gradlew
         working-directory: android-app
@@ -329,9 +331,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
       - name: Grant execute permission for gradlew
         working-directory: android-app

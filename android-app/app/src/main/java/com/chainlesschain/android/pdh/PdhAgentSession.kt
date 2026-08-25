@@ -82,6 +82,8 @@ class PdhAgentSession @Inject constructor(
             val tool: String,
             val summary: String,
             val risk: String?,
+            /** Exact-call digest that structured approvals must echo. */
+            val binding: String? = null,
         ) : PdhAgentEvent()
         /** 审批裁决回显 → UI 收起对应卡。 */
         data class ApprovalResolved(val id: String, val approved: Boolean) : PdhAgentEvent()
@@ -257,15 +259,11 @@ class PdhAgentSession @Inject constructor(
 
     /**
      * §3.5.9: approve/deny an `approval_request` (预览卡 / 审批卡) →
-     * `{"type":"approval","id":…,"approve":…}`. cc unblocks the gated tool.
+     * a canonical structured decision. cc unblocks the gated tool only when the
+     * exact-call [binding] matches; the boolean remains for N-1 compatibility.
      */
-    suspend fun sendApproval(id: String, approve: Boolean): Boolean = sendRaw(
-        buildJsonObject {
-            put("type", "approval")
-            put("id", id)
-            put("approve", approve)
-        },
-    )
+    suspend fun sendApproval(id: String, approve: Boolean, binding: String? = null): Boolean =
+        sendRaw(approvalEvent(id, approve, binding))
 
     /**
      * §3.5.9: plan-card control → `{"type":"plan","action":…}`
@@ -386,6 +384,21 @@ class PdhAgentSession @Inject constructor(
             else -> LlmRoute.CLOUD_ANDROID
         }
 
+        /** Pure: build a least-privilege canonical approval response. */
+        fun approvalEvent(id: String, approve: Boolean, binding: String?): JsonObject =
+            buildJsonObject {
+                put("type", "approval")
+                put("id", id)
+                put(
+                    "decision",
+                    buildJsonObject {
+                        put("kind", if (approve) "acceptOnce" else "decline")
+                    },
+                )
+                put("approve", approve)
+                if (!binding.isNullOrBlank()) put("binding", binding)
+            }
+
         /** §3.5.13 pure: build the `{type:feedback}` event (testable). */
         fun feedbackEvent(turnId: String, kind: FeedbackKind, comment: String?): JsonObject =
             buildJsonObject {
@@ -469,6 +482,7 @@ class PdhAgentSession @Inject constructor(
                         .ifEmpty { str(obj, "reason") }
                         .ifEmpty { str(obj, "tool") },
                     risk = str(obj, "risk").ifEmpty { null },
+                    binding = str(obj, "binding").ifEmpty { null },
                 )
                 "approval_resolved" -> PdhAgentEvent.ApprovalResolved(
                     id = str(obj, "id"),

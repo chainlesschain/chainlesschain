@@ -22,8 +22,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.showSession = exports.showCheckpoint = exports.runCliJson = exports.restoreCheckpoint = exports.listSessions = exports.listCheckpoints = exports.createCheckpoint = exports.readBackgroundAgentState = exports.backgroundAgentsDir = exports.attachBackgroundSession = exports.buildSpawnCommand = exports.buildAgentArgs = exports.AgentSession = exports.encodeNdjson = exports.createNdjsonDecoder = void 0;
+exports.AppServerRpcError = exports.AppServerClient = exports.showSession = exports.showCheckpoint = exports.runCliJson = exports.restoreCheckpoint = exports.listSessions = exports.listCheckpoints = exports.createCheckpoint = exports.readBackgroundAgentState = exports.backgroundAgentsDir = exports.attachBackgroundSession = exports.buildSpawnCommand = exports.buildAgentArgs = exports.AgentSession = exports.encodeNdjson = exports.createNdjsonDecoder = void 0;
 __exportStar(require("./protocol.js"), exports);
+__exportStar(require("./generated/app-protocol.js"), exports);
 var ndjson_js_1 = require("./ndjson.js");
 Object.defineProperty(exports, "createNdjsonDecoder", { enumerable: true, get: function () { return ndjson_js_1.createNdjsonDecoder; } });
 Object.defineProperty(exports, "encodeNdjson", { enumerable: true, get: function () { return ndjson_js_1.encodeNdjson; } });
@@ -43,3 +44,6 @@ Object.defineProperty(exports, "restoreCheckpoint", { enumerable: true, get: fun
 Object.defineProperty(exports, "runCliJson", { enumerable: true, get: function () { return cli_json_js_1.runCliJson; } });
 Object.defineProperty(exports, "showCheckpoint", { enumerable: true, get: function () { return cli_json_js_1.showCheckpoint; } });
 Object.defineProperty(exports, "showSession", { enumerable: true, get: function () { return cli_json_js_1.showSession; } });
+var app_server_client_js_1 = require("./app-server-client.js");
+Object.defineProperty(exports, "AppServerClient", { enumerable: true, get: function () { return app_server_client_js_1.AppServerClient; } });
+Object.defineProperty(exports, "AppServerRpcError", { enumerable: true, get: function () { return app_server_client_js_1.AppServerRpcError; } });

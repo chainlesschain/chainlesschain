@@ -2005,7 +2005,7 @@ final class ConversationView {
         return sel;
     }
 
-    /** Tool-permission approval card → sends {type:approval,id,approve} on click. */
+    /** Tool-permission approval card → sends a canonical structured decision. */
     @SuppressWarnings("unchecked")
     private void showApprovalCard(Map<String, Object> ui) {
         final String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
@@ -2025,8 +2025,10 @@ final class ConversationView {
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
         JButton approve = new JButton("Approve");
         JButton deny = new JButton("Deny");
-        approve.addActionListener(e -> respondApproval(id, true));
-        deny.addActionListener(e -> respondApproval(id, false));
+        String binding = ui.get("binding") instanceof String
+                ? String.valueOf(ui.get("binding")) : null;
+        approve.addActionListener(e -> respondApproval(id, true, binding));
+        deny.addActionListener(e -> respondApproval(id, false, binding));
         btns.add(approve);
         btns.add(deny);
         card.add(btns, BorderLayout.SOUTH);
@@ -2037,11 +2039,9 @@ final class ConversationView {
         cardsPanel.repaint();
     }
 
-    private void respondApproval(String id, boolean approve) {
-        Map<String, Object> ev = new LinkedHashMap<>();
-        ev.put("type", "approval");
-        ev.put("id", id);
-        ev.put("approve", approve);
+    private void respondApproval(String id, boolean approve, String binding) {
+        Map<String, Object> ev = com.chainlesschain.ide.ApprovalResponses.response(
+                id, approve, binding);
         queueSessionEvent(ev); // blocking stdin write — never on the EDT
         indexConversation("running");
         removeApprovalCard(id);

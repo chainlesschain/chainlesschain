@@ -53,6 +53,7 @@ const {
   WorkspaceMentionIndex,
   relativeToRoots,
 } = require("./workspace-mention-index.js");
+const { buildApprovalResponse } = require("./approval-response.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 // A cold signed macOS Webview can take longer than one second to start its
@@ -3142,14 +3143,7 @@ class ChatViewProvider {
         () => this._reloadLlmConfig(),
       );
     } else if (m.type === "approval") {
-      this.session?.sendEvent({
-        type: "approval",
-        id: String(m.id || ""),
-        approve: m.approve === true,
-        ...(typeof m.binding === "string" && m.binding
-          ? { binding: m.binding }
-          : {}),
-      });
+      this.session?.sendEvent(buildApprovalResponse(m));
     } else if (m.type === "answer") {
       // The in-panel question card's answer (option / text / multi-select, or
       // null when skipped) → unblock the agent's ask_user_question.

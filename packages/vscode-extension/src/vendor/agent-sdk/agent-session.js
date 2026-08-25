@@ -8,7 +8,9 @@
  * typed transport:
  *
  *   const session = new AgentSession({ onApproval: async (req) => ... });
- *   await session.start();
+ *   const ready = new Promise((resolve) => session.on("init", resolve));
+ *   session.start();
+ *   await ready;
  *   session.on("text", (t) => render(t));
  *   session.send("refactor foo.ts");
  *
@@ -27,7 +29,20 @@ exports.buildSpawnCommand = buildSpawnCommand;
 exports.buildAgentArgs = buildAgentArgs;
 const node_child_process_1 = require("node:child_process");
 const ndjson_js_1 = require("./ndjson.js");
+const app_protocol_js_1 = require("./generated/app-protocol.js");
 const protocol_js_1 = require("./protocol.js");
+function normalizeApprovalVerdict(verdict, invalidReason = "Invalid approval callback decision") {
+    if (verdict === true)
+        return { kind: "acceptOnce" };
+    if (verdict === false)
+        return { kind: "decline" };
+    if ((0, app_protocol_js_1.isApprovalDecision)(verdict))
+        return verdict;
+    return { kind: "decline", reason: invalidReason };
+}
+function approvalBoolean(decision) {
+    return ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(decision.kind);
+}
 /**
  * On Windows `cc` is an npm `.cmd` shim, so the child must go through
  * `cmd.exe /c`. NoDefaultCurrentDirectoryInExePath stops cmd.exe from
@@ -118,7 +133,7 @@ class AgentSession {
             }
         }
     }
-    /** Spawn the CLI child. Resolves once the process is started. */
+    /** Spawn the CLI child. Listen for `init` before sending the first turn. */
     start() {
         if (this.child)
             throw new Error("AgentSession already started");
@@ -217,14 +232,17 @@ class AgentSession {
         if (!callback)
             return;
         void (async () => {
-            let approve = false;
+            let decision = {
+                kind: "decline",
+                reason: "Approval callback failed",
+            };
             try {
-                approve = (await callback(request)) === true;
+                decision = normalizeApprovalVerdict(await callback(request));
             }
             catch {
-                approve = false; // fail closed, mirroring the CLI's own timeout path
+                // Fail closed, mirroring the CLI's own timeout path.
             }
-            this.respondApproval(request.id, approve);
+            this.respondApproval(request.id, decision, request.binding);
         })();
     }
     autoRespondQuestion(request) {
@@ -290,8 +308,26 @@ class AgentSession {
     compact() {
         return this.write({ type: "compact" });
     }
-    respondApproval(id, approve) {
-        return this.write({ type: "approval", id, approve });
+    respondApproval(id, verdict, binding) {
+        // Preserve the N-1 public method contract exactly. A boolean response must
+        // remain a legacy wire event; turning it into a structured decision would
+        // make a new CLI require a binding that old callers never received/passed.
+        if (typeof verdict === "boolean") {
+            return this.write({
+                type: "approval",
+                id,
+                approve: verdict,
+                ...(binding ? { binding } : {}),
+            });
+        }
+        const decision = normalizeApprovalVerdict(verdict, "Invalid approval response");
+        return this.write({
+            type: "approval",
+            id,
+            decision,
+            approve: approvalBoolean(decision),
+            ...(binding ? { binding } : {}),
+        });
     }
     answerQuestion(id, answer, binding) {
         return this.write({

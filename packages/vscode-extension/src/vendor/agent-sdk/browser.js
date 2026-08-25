@@ -22,6 +22,7 @@ exports.encodeNdjson = exports.createNdjsonDecoder = void 0;
 exports.bgRequest = bgRequest;
 exports.isBgPushFrame = isBgPushFrame;
 __exportStar(require("./protocol.js"), exports);
+__exportStar(require("./generated/app-protocol.js"), exports);
 var ndjson_js_1 = require("./ndjson.js");
 Object.defineProperty(exports, "createNdjsonDecoder", { enumerable: true, get: function () { return ndjson_js_1.createNdjsonDecoder; } });
 Object.defineProperty(exports, "encodeNdjson", { enumerable: true, get: function () { return ndjson_js_1.encodeNdjson; } });
