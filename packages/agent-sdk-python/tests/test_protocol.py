@@ -8,6 +8,8 @@ from pathlib import Path
 from chainlesschain_agent_sdk import (
     KNOWN_EVENT_CLASSES,
     PROTOCOL_FEATURES,
+    ApprovalRequestEvent,
+    ApprovalResolvedEvent,
     ContentDeltaEvent,
     PlanUpdateEvent,
     ProtocolDecodeError,
@@ -19,6 +21,7 @@ from chainlesschain_agent_sdk import (
     UnknownContentDelta,
     parse_event,
     parse_event_json,
+    validate_approval_decision,
 )
 
 from tests.event_samples import EVENT_SAMPLES
@@ -27,9 +30,73 @@ from tests.event_samples import EVENT_SAMPLES
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = PACKAGE_ROOT.parent / "agent-sdk" / "__fixtures__" / "protocol"
 TYPESCRIPT_PROTOCOL = PACKAGE_ROOT.parent / "agent-sdk" / "src" / "protocol.ts"
+APPROVAL_FIXTURES = (
+    PACKAGE_ROOT.parent
+    / "agent-protocol"
+    / "test"
+    / "fixtures"
+    / "approval-decisions.json"
+)
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_generated_structured_approval_validator(self) -> None:
+        self.assertEqual(validate_approval_decision({"kind": "acceptOnce"}), (True, ()))
+        self.assertTrue(
+            validate_approval_decision(
+                {
+                    "kind": "acceptForSession",
+                    "permissions": [
+                        {"capability": "tool:run_shell", "scope": "npm test"}
+                    ],
+                }
+            )[0]
+        )
+        self.assertFalse(
+            validate_approval_decision(
+                {"kind": "acceptOnce", "unexpected": True}
+            )[0]
+        )
+        self.assertFalse(validate_approval_decision({"kind": "allowEverything"})[0])
+
+    def test_shared_approval_decision_conformance_fixture(self) -> None:
+        fixtures = json.loads(APPROVAL_FIXTURES.read_text(encoding="utf-8"))
+        for fixture in fixtures:
+            with self.subTest(fixture["name"]):
+                self.assertEqual(
+                    validate_approval_decision(fixture["value"])[0],
+                    fixture["valid"],
+                )
+
+    def test_approval_events_preserve_binding_and_decision(self) -> None:
+        request = parse_event(
+            {
+                "type": "approval_request",
+                "id": "approval-1",
+                "binding": "sha256:binding",
+                "requested_permissions": [
+                    {"capability": "tool:run_shell", "scope": "npm test"}
+                ],
+            }
+        )
+        resolved = parse_event(
+            {
+                "type": "approval_resolved",
+                "id": "approval-1",
+                "approved": True,
+                "via": "user-approve",
+                "decision": {"kind": "acceptOnce"},
+            }
+        )
+        self.assertIsInstance(request, ApprovalRequestEvent)
+        self.assertEqual(request.binding, "sha256:binding")
+        self.assertEqual(
+            [dict(permission) for permission in request.requested_permissions],
+            [{"capability": "tool:run_shell", "scope": "npm test"}],
+        )
+        self.assertIsInstance(resolved, ApprovalResolvedEvent)
+        self.assertEqual(dict(resolved.decision), {"kind": "acceptOnce"})
+
     def test_protocol_features_advertise_permission_decisions(self) -> None:
         self.assertEqual(
             PROTOCOL_FEATURES,

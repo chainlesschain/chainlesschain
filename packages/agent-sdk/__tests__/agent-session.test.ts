@@ -210,6 +210,14 @@ describe("AgentSession", () => {
     ]);
   });
 
+  it("keeps direct boolean approval responses on the N-1 wire", () => {
+    const { session, writtenEvents } = startSession();
+    session.respondApproval("appr-legacy", true);
+    expect(writtenEvents()).toEqual([
+      { type: "approval", id: "appr-legacy", approve: true },
+    ]);
+  });
+
   it("auto-answers approval requests via the callback", async () => {
     const onApproval = vi.fn(async () => true);
     const { session, push, writtenEvents } = startSession({ onApproval });
@@ -223,6 +231,7 @@ describe("AgentSession", () => {
       risk: "medium",
       rule: null,
       reason: null,
+      binding: "sha256:bound-approval",
     });
     await flush();
     expect(seen).toHaveBeenCalledTimes(1);
@@ -230,7 +239,72 @@ describe("AgentSession", () => {
       expect.objectContaining({ id: "appr-1", tool: "shell" }),
     );
     expect(writtenEvents()).toEqual([
-      { type: "approval", id: "appr-1", approve: true },
+      {
+        type: "approval",
+        id: "appr-1",
+        decision: { kind: "acceptOnce" },
+        approve: true,
+        binding: "sha256:bound-approval",
+      },
+    ]);
+  });
+
+  it("preserves a canonical scoped approval decision", async () => {
+    const decision = {
+      kind: "acceptForTurn" as const,
+      permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+    };
+    const { push, writtenEvents } = startSession({
+      onApproval: async () => decision,
+    });
+    push({
+      type: "approval_request",
+      id: "appr-scoped",
+      tool: "run_shell",
+      command: "npm test",
+      risk: "medium",
+      rule: null,
+      reason: null,
+      binding: "sha256:scoped",
+    });
+    await flush();
+    expect(writtenEvents()).toEqual([
+      {
+        type: "approval",
+        id: "appr-scoped",
+        decision,
+        approve: true,
+        binding: "sha256:scoped",
+      },
+    ]);
+  });
+
+  it("fails closed when a JavaScript callback returns an invalid decision", async () => {
+    const { push, writtenEvents } = startSession({
+      onApproval: (() => ({ kind: "allowEverything" })) as never,
+    });
+    push({
+      type: "approval_request",
+      id: "appr-invalid",
+      tool: "run_shell",
+      command: "npm test",
+      risk: "medium",
+      rule: null,
+      reason: null,
+      binding: "sha256:invalid",
+    });
+    await flush();
+    expect(writtenEvents()).toEqual([
+      {
+        type: "approval",
+        id: "appr-invalid",
+        decision: {
+          kind: "decline",
+          reason: "Invalid approval callback decision",
+        },
+        approve: false,
+        binding: "sha256:invalid",
+      },
     ]);
   });
 
@@ -250,7 +324,12 @@ describe("AgentSession", () => {
     });
     await flush();
     expect(writtenEvents()).toEqual([
-      { type: "approval", id: "appr-2", approve: false },
+      {
+        type: "approval",
+        id: "appr-2",
+        decision: { kind: "decline", reason: "Approval callback failed" },
+        approve: false,
+      },
     ]);
   });
 

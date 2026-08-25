@@ -109,6 +109,7 @@ describe("interactive questions round-trip", () => {
             expandFileRefs: false,
             interactiveQuestions: true,
             sessionId: "test-question-session",
+            ephemeral: true,
             ...options,
           },
           deps,

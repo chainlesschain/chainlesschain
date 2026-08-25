@@ -21,12 +21,20 @@ import {
   CC_AGENT_PROTOCOL_SCHEMA,
   CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
   CC_AGENT_PROTOCOL_VERSION,
+  assertApprovalDecision,
   assertProtocolCompatible,
+  validateProtocolMessage,
 } from "@chainlesschain/agent-protocol";
 
 console.log(CC_AGENT_PROTOCOL_VERSION, CC_AGENT_PROTOCOL_SCHEMA_DIGEST);
 assertProtocolCompatible(previousSchema, CC_AGENT_PROTOCOL_SCHEMA);
+assertApprovalDecision({ kind: "acceptOnce" });
+console.log(validateProtocolMessage(incomingJsonRpcMessage));
 ```
+
+`validateProtocolMessage`, `validateProtocolDefinition`, and
+`validateApprovalDecision` are derived from the packaged canonical schema and
+return `{ ok, errors }`. Their `assert*` counterparts throw on invalid input.
 
 Public subpath exports:
 

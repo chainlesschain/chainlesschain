@@ -19,6 +19,7 @@ export {
 export type {
   AgentSessionEvents,
   AgentSessionOptions,
+  ApprovalVerdict,
   PermissionMode,
   SendOptions,
 } from "./agent-session.js";

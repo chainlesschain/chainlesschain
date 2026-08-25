@@ -43,6 +43,13 @@ for line in sys.stdin:
                 "risk": "medium",
                 "rule": None,
                 "reason": "test callback",
+                "binding": "sha256:test-approval-binding",
+                "requested_permissions": [
+                    {
+                        "capability": "tool:run_shell",
+                        "scope": "python -m unittest",
+                    }
+                ],
             }
         )
     elif event_type == "approval":

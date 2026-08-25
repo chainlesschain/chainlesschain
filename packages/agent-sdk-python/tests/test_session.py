@@ -5,6 +5,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 from chainlesschain_agent_sdk import (
     AgentSession,
@@ -75,6 +76,14 @@ class SessionHelpersTests(unittest.TestCase):
 
 
 class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_direct_boolean_approval_keeps_legacy_wire_shape(self) -> None:
+        session = AgentSession(AgentSessionOptions(cli_path=str(FAKE_CLI)))
+        session.write = AsyncMock()
+        await session.respond_approval("approval-legacy", True)
+        session.write.assert_awaited_once_with(
+            {"type": "approval", "id": "approval-legacy", "approve": True}
+        )
+
     async def test_subprocess_callbacks_unknown_passthrough_and_final_flush(
         self,
     ) -> None:
@@ -137,7 +146,13 @@ class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
             responses,
             [
                 {"type": "user", "text": "run tests", "images": ["shot.png"]},
-                {"type": "approval", "id": "approval-1", "approve": True},
+                {
+                    "type": "approval",
+                    "id": "approval-1",
+                    "decision": {"kind": "acceptOnce"},
+                    "approve": True,
+                    "binding": "sha256:test-approval-binding",
+                },
                 {
                     "type": "answer",
                     "id": "question-1",
@@ -172,7 +187,16 @@ class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
         responses = json.loads(result.result)
         self.assertEqual(
             responses[1],
-            {"type": "approval", "id": "approval-1", "approve": False},
+            {
+                "type": "approval",
+                "id": "approval-1",
+                "decision": {
+                    "kind": "decline",
+                    "reason": "Approval callback failed",
+                },
+                "approve": False,
+                "binding": "sha256:test-approval-binding",
+            },
         )
         self.assertEqual(
             responses[2],
@@ -186,6 +210,38 @@ class AgentSessionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             responses[3],
             {"type": "answer", "id": "mcp-1", "answer": None},
+        )
+
+    async def test_structured_approval_callback_preserves_scope_and_binding(
+        self,
+    ) -> None:
+        decision = {
+            "kind": "acceptForTurn",
+            "permissions": [
+                {"capability": "tool:run_shell", "scope": "python -m unittest"}
+            ],
+        }
+        session = AgentSession(
+            AgentSessionOptions(cli_path=str(FAKE_CLI)),
+            on_approval=lambda _event: decision,
+            on_question=lambda _event: None,
+            on_elicitation=lambda _event: ElicitationResponse("decline"),
+        )
+        await session.start()
+        pending = asyncio.create_task(session.next_result())
+        await session.send("run")
+        result = await pending
+        await session.wait()
+        responses = json.loads(result.result)
+        self.assertEqual(
+            responses[1],
+            {
+                "type": "approval",
+                "id": "approval-1",
+                "decision": decision,
+                "approve": True,
+                "binding": "sha256:test-approval-binding",
+            },
         )
 
     async def test_next_result_rejects_when_process_exits_first(self) -> None:

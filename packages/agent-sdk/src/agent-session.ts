@@ -26,6 +26,10 @@ import type { ChildProcess, SpawnOptions } from "node:child_process";
 
 import { createNdjsonDecoder, encodeNdjson } from "./ndjson.js";
 import {
+  isApprovalDecision,
+  type ApprovalDecision,
+} from "./generated/app-protocol.js";
+import {
   type AgentInputEvent,
   type AgentStreamEvent,
   type ApprovalRequestEvent,
@@ -45,11 +49,25 @@ import {
 } from "./protocol.js";
 
 export type PermissionMode =
-  | "default"
-  | "plan"
-  | "acceptEdits"
-  | "bypassPermissions"
-  | "auto";
+  "default" | "plan" | "acceptEdits" | "bypassPermissions" | "auto";
+
+export type ApprovalVerdict = ApprovalDecision | boolean;
+
+function normalizeApprovalVerdict(
+  verdict: unknown,
+  invalidReason = "Invalid approval callback decision",
+): ApprovalDecision {
+  if (verdict === true) return { kind: "acceptOnce" };
+  if (verdict === false) return { kind: "decline" };
+  if (isApprovalDecision(verdict)) return verdict;
+  return { kind: "decline", reason: invalidReason };
+}
+
+function approvalBoolean(decision: ApprovalDecision): boolean {
+  return ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(
+    decision.kind,
+  );
+}
 
 export interface AgentSessionEvents {
   /** Every protocol event, before specialized dispatch. */
@@ -101,7 +119,9 @@ export interface AgentSessionOptions {
    * Approval callback — resolves each approval_request. Implies
    * --interactive-approvals. Throwing or rejecting denies (fail closed).
    */
-  onApproval?: (request: ApprovalRequestEvent) => Promise<boolean> | boolean;
+  onApproval?: (
+    request: ApprovalRequestEvent,
+  ) => Promise<ApprovalVerdict> | ApprovalVerdict;
   /**
    * Question callback for ask_user_question round-trips. Implies
    * CC_INTERACTIVE_QUESTIONS=1. Return null to cancel.
@@ -338,13 +358,16 @@ export class AgentSession {
     const callback = this.options.onApproval;
     if (!callback) return;
     void (async () => {
-      let approve = false;
+      let decision: ApprovalDecision = {
+        kind: "decline",
+        reason: "Approval callback failed",
+      };
       try {
-        approve = (await callback(request)) === true;
+        decision = normalizeApprovalVerdict(await callback(request));
       } catch {
-        approve = false; // fail closed, mirroring the CLI's own timeout path
+        // Fail closed, mirroring the CLI's own timeout path.
       }
-      this.respondApproval(request.id, approve);
+      this.respondApproval(request.id, decision, request.binding);
     })();
   }
 
@@ -412,8 +435,33 @@ export class AgentSession {
     return this.write({ type: "compact" });
   }
 
-  respondApproval(id: string, approve: boolean): boolean {
-    return this.write({ type: "approval", id, approve });
+  respondApproval(
+    id: string,
+    verdict: ApprovalVerdict,
+    binding?: string,
+  ): boolean {
+    // Preserve the N-1 public method contract exactly. A boolean response must
+    // remain a legacy wire event; turning it into a structured decision would
+    // make a new CLI require a binding that old callers never received/passed.
+    if (typeof verdict === "boolean") {
+      return this.write({
+        type: "approval",
+        id,
+        approve: verdict,
+        ...(binding ? { binding } : {}),
+      });
+    }
+    const decision = normalizeApprovalVerdict(
+      verdict,
+      "Invalid approval response",
+    );
+    return this.write({
+      type: "approval",
+      id,
+      decision,
+      approve: approvalBoolean(decision),
+      ...(binding ? { binding } : {}),
+    });
   }
 
   answerQuestion(

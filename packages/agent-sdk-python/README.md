@@ -51,7 +51,11 @@ async def main() -> None:
             session_id="ci-fix-1042",  # declare new sessions that must be resumable
             permission_mode="acceptEdits",
         ),
-        on_approval=lambda request: request.tool == "run_shell",
+        on_approval=lambda request: (
+            {"kind": "acceptOnce"}
+            if request.tool == "run_shell"
+            else {"kind": "decline", "reason": "Tool is not allow-listed"}
+        ),
         on_question=lambda request: None,  # cancel in non-interactive hosts
         on_elicitation=lambda request: ElicitationResponse("decline"),
     )
@@ -71,6 +75,10 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+Approval callbacks may still return booleans for source compatibility. Direct
+`respond_approval(id, bool)` calls retain the legacy boolean wire; structured
+decisions echo the request binding and can express scoped turn/session grants.
 
 `SystemInitEvent.session_id` is the authoritative live ID. Persist it and
 resume later with `AgentSessionOptions(resume=that_id)`. Anonymous stream

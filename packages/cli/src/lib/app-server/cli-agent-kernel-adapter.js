@@ -162,6 +162,7 @@ export class CliAgentKernelAdapter {
             type: "approval",
             id: event.id,
             approve: approvalBoolean(decision),
+            decision,
             binding: event.binding,
           });
         }

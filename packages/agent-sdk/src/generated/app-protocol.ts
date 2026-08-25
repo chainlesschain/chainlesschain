@@ -2094,6 +2094,27 @@ export function validateProtocolMessage(value: unknown): ProtocolValidationResul
   return { ok: errors.length === 0, errors };
 }
 
+export function validateProtocolDefinition(name: keyof typeof CC_AGENT_PROTOCOL_SCHEMA.$defs, value: unknown): ProtocolValidationResult {
+  const errors: ProtocolValidationError[] = [];
+  const definition = CC_AGENT_PROTOCOL_SCHEMA.$defs[name];
+  if (!definition) return { ok: false, errors: [{ path: "#", message: `unknown protocol definition ${String(name)}` }] };
+  validateNode(value, definition, "#", errors, CC_AGENT_PROTOCOL_SCHEMA);
+  return { ok: errors.length === 0, errors };
+}
+
+export function validateApprovalDecision(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("ApprovalDecision", value);
+}
+
+export function isApprovalDecision(value: unknown): value is ApprovalDecision {
+  return validateApprovalDecision(value).ok;
+}
+
+export function assertApprovalDecision(value: unknown): asserts value is ApprovalDecision {
+  const result = validateApprovalDecision(value);
+  if (!result.ok) throw new TypeError(`Invalid ApprovalDecision: ${result.errors.map((error) => `${error.path} ${error.message}`).join("; ")}`);
+}
+
 export function assertProtocolMessage(value: unknown): asserts value is ClientRequest | ClientResponse | ServerRequest | ServerNotification {
   const result = validateProtocolMessage(value);
   if (!result.ok) throw new TypeError(`Invalid CC Agent protocol message: ${result.errors.map((error) => `${error.path} ${error.message}`).join("; ")}`);

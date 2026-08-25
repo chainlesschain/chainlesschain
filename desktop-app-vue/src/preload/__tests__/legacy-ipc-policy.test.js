@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const {
   legacyGenericIpcEnabled,
@@ -6,6 +8,19 @@ const {
 } = require("../legacy-ipc-policy.js");
 
 describe("legacy generic IPC policy", () => {
+  it("keeps the sandboxed preload free of relative module imports", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/preload/index.js"),
+      "utf8",
+    );
+    const requiredModules = Array.from(
+      source.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g),
+      (match) => match[1],
+    );
+
+    expect(requiredModules).toEqual(["electron"]);
+  });
+
   it("is disabled by default", () => {
     expect(legacyGenericIpcEnabled({})).toBe(false);
     expect(() => assertLegacyGenericIpcEnabled({})).toThrowError(

@@ -14,17 +14,64 @@ import {
   parseInputEvent,
 } from "../../src/runtime/headless-stream.js";
 import { approvalBindingDigest } from "../../src/lib/agent-authority.js";
+import {
+  APPROVAL_GRANTS_EVENT,
+  approvalPermissionForContext,
+} from "../../src/lib/approval-grant-ledger.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function verifiedResume(sessionId) {
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"b".repeat(64)}`,
+    },
+    messages: [],
+    recovery: {
+      sessionId,
+      records: [],
+      unsettled: [],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+      verified: true,
+      headHash: "a".repeat(64),
+      recoveryDigest: `sha256:${"c".repeat(64)}`,
+      remediation: null,
+    },
+  };
+}
 
 describe("parseInputEvent — approval verdicts", () => {
   it("parses approve/deny and rejects malformed ones", () => {
     expect(
       parseInputEvent('{"type":"approval","id":"appr-1","approve":true}'),
-    ).toEqual({ approval: { id: "appr-1", approve: true, binding: null } });
+    ).toEqual({
+      approval: {
+        id: "appr-1",
+        approve: true,
+        decision: { kind: "acceptOnce" },
+        structured: false,
+        invalidReason: null,
+        binding: null,
+      },
+    });
     expect(
       parseInputEvent('{"type":"approval","id":"appr-2","approve":"yes"}'),
-    ).toEqual({ approval: { id: "appr-2", approve: false, binding: null } }); // strict boolean
+    ).toEqual({
+      approval: {
+        id: "appr-2",
+        approve: false,
+        decision: { kind: "decline", reason: "Legacy boolean denial" },
+        structured: false,
+        invalidReason: null,
+        binding: null,
+      },
+    }); // strict boolean
     expect(parseInputEvent('{"type":"approval"}')).toBe(null); // no id
   });
 
@@ -34,14 +81,70 @@ describe("parseInputEvent — approval verdicts", () => {
         '{"type":"approval","id":"appr-1","approve":true,"binding":"ab_deadbeef"}',
       ),
     ).toEqual({
-      approval: { id: "appr-1", approve: true, binding: "ab_deadbeef" },
+      approval: {
+        id: "appr-1",
+        approve: true,
+        decision: { kind: "acceptOnce" },
+        structured: false,
+        invalidReason: null,
+        binding: "ab_deadbeef",
+      },
     });
     // a non-string binding is ignored (stays null)
     expect(
       parseInputEvent(
         '{"type":"approval","id":"appr-1","approve":true,"binding":5}',
       ),
-    ).toEqual({ approval: { id: "appr-1", approve: true, binding: null } });
+    ).toEqual({
+      approval: {
+        id: "appr-1",
+        approve: true,
+        decision: { kind: "acceptOnce" },
+        structured: false,
+        invalidReason: null,
+        binding: null,
+      },
+    });
+  });
+
+  it("validates structured decisions and fails closed on drift", () => {
+    expect(
+      parseInputEvent(
+        '{"type":"approval","id":"appr-1","decision":{"kind":"acceptForTurn","permissions":[{"capability":"tool:run_shell","scope":"npm test"}]},"approve":true,"binding":"ab_bound"}',
+      ),
+    ).toEqual({
+      approval: {
+        id: "appr-1",
+        approve: true,
+        decision: {
+          kind: "acceptForTurn",
+          permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+        },
+        structured: true,
+        invalidReason: null,
+        binding: "ab_bound",
+      },
+    });
+    expect(
+      parseInputEvent(
+        '{"type":"approval","id":"appr-2","decision":{"kind":"acceptOnce","extra":true},"approve":true}',
+      ).approval,
+    ).toMatchObject({
+      approve: false,
+      decision: { kind: "decline" },
+      structured: true,
+      invalidReason: "invalid-decision",
+    });
+    expect(
+      parseInputEvent(
+        '{"type":"approval","id":"appr-3","decision":{"kind":"acceptOnce"},"approve":false}',
+      ).approval,
+    ).toMatchObject({
+      approve: false,
+      decision: { kind: "decline" },
+      structured: true,
+      invalidReason: "decision-boolean-mismatch",
+    });
   });
 });
 
@@ -75,7 +178,12 @@ describe("interactive approvals round-trip", () => {
     yield { type: "run-ended", reason: "complete" };
   };
 
-  function harness({ inputGen, agentLoop = confirmingLoop, options = {} }) {
+  function harness({
+    inputGen,
+    agentLoop = confirmingLoop,
+    options = {},
+    deps: depsOverrides = {},
+  }) {
     const lines = [];
     const deps = {
       bootstrap: async () => ({ db: null }),
@@ -84,6 +192,7 @@ describe("interactive approvals round-trip", () => {
       writeErr: () => {},
       agentLoop,
       input: inputGen(),
+      ...depsOverrides,
     };
     return {
       run: () =>
@@ -190,7 +299,7 @@ describe("interactive approvals round-trip", () => {
     );
   });
 
-  it("approval_request advertises a binding; echoing it back approves", async () => {
+  it("a structured decision must echo the advertised binding", async () => {
     // The binding is a pure function of the confirm context, so a faithful UI
     // can reproduce exactly what the request advertised.
     const expectedBinding = approvalBindingDigest({
@@ -206,6 +315,7 @@ describe("interactive approvals round-trip", () => {
         yield JSON.stringify({
           type: "approval",
           id: "appr-1",
+          decision: { kind: "acceptOnce" },
           approve: true,
           binding: expectedBinding,
         }) + "\n";
@@ -217,8 +327,309 @@ describe("interactive approvals round-trip", () => {
     expect(req.binding).toMatch(/^ab_[0-9a-f]{32}$/);
     expect(
       h.events().find((e) => e.type === "approval_resolved"),
-    ).toMatchObject({ id: "appr-1", approved: true, via: "user-approve" });
+    ).toMatchObject({
+      id: "appr-1",
+      approved: true,
+      decision: { kind: "acceptOnce" },
+      via: "user-approve",
+    });
     expect(h.events().find((e) => e.type === "result").result).toBe("executed");
+  });
+
+  it("rejects a structured approval that omits the binding", async () => {
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(
+      h.events().find((e) => e.type === "approval_resolved"),
+    ).toMatchObject({
+      approved: false,
+      decision: { kind: "decline" },
+      via: "binding-missing",
+    });
+    expect(h.events().find((e) => e.type === "result").result).toBe(
+      "skipped (denied)",
+    );
+  });
+
+  it("reuses an exact acceptForTurn grant without opening a second card", async () => {
+    const context = {
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    };
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: context.command },
+      policyDigest: context.riskLevel,
+    });
+    const requiredPermission = approvalPermissionForContext(context, {
+      cwd: process.cwd(),
+    });
+    const doubleConfirmingLoop = async function* (_messages, opts) {
+      const first = await opts.permissionConfirm(context);
+      const second = await opts.permissionConfirm(context);
+      yield {
+        type: "response-complete",
+        content: first && second ? "both executed" : "denied",
+      };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const h = harness({
+      agentLoop: doubleConfirmingLoop,
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: {
+            kind: "acceptForTurn",
+            permissions: [requiredPermission],
+          },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(
+      h.events().filter((event) => event.type === "approval_request"),
+    ).toHaveLength(1);
+    expect(
+      h.events().find((event) => event.type === "approval_request"),
+    ).toMatchObject({ requested_permissions: [requiredPermission] });
+    expect(
+      h.events().find((event) => event.type === "approval_resolved"),
+    ).toMatchObject({
+      approved: true,
+      decision: {
+        kind: "acceptForTurn",
+        permissions: [requiredPermission],
+      },
+    });
+    expect(h.events().find((event) => event.type === "result").result).toBe(
+      "both executed",
+    );
+  });
+
+  it("downgrades a session grant to acceptOnce when authority persistence fails", async () => {
+    const context = {
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    };
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: context.command },
+      policyDigest: context.riskLevel,
+    });
+    const requiredPermission = approvalPermissionForContext(context, {
+      cwd: process.cwd(),
+    });
+    const appended = [];
+    const h = harness({
+      options: { sessionId: "durable-approval-session" },
+      deps: {
+        sessionExists: () => false,
+        startSession: () => {},
+        readEvents: () => [],
+        readVerifiedEvents: () => [],
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendEvent: () => true,
+        appendAuthorityEvent: (_sessionId, type, data) => {
+          appended.push({ type, data });
+          return type !== APPROVAL_GRANTS_EVENT;
+        },
+        loadSideEffectLedger: () => null,
+      },
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: {
+            kind: "acceptForSession",
+            permissions: [requiredPermission],
+          },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(appended.some((event) => event.type === APPROVAL_GRANTS_EVENT)).toBe(
+      true,
+    );
+    expect(
+      h.events().find((event) => event.type === "approval_resolved"),
+    ).toMatchObject({
+      approved: true,
+      decision: { kind: "acceptOnce" },
+      via: "session-grant-persistence-failed",
+    });
+    expect(h.events().find((event) => event.type === "result").result).toBe(
+      "executed",
+    );
+  });
+
+  it("restores a persisted exact session grant before the resumed turn", async () => {
+    const sessionId = "durable-approval-resume";
+    const context = {
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    };
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: context.command },
+      policyDigest: context.riskLevel,
+    });
+    const requiredPermission = approvalPermissionForContext(context, {
+      cwd: process.cwd(),
+    });
+    let persistedGrant = null;
+    const baseStore = {
+      startSession: () => {},
+      readEvents: () => [],
+      readVerifiedEvents: () => [],
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendEvent: () => true,
+      appendAuthorityEvent: (_id, type, data) => {
+        if (type === APPROVAL_GRANTS_EVENT) persistedGrant = data;
+        return true;
+      },
+      findLatestEvent: (_id, type) =>
+        type === APPROVAL_GRANTS_EVENT && persistedGrant
+          ? { type, data: persistedGrant }
+          : null,
+      loadSideEffectLedger: () => null,
+    };
+    const first = harness({
+      options: { sessionId },
+      deps: { ...baseStore, sessionExists: () => false },
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: {
+            kind: "acceptForSession",
+            permissions: [requiredPermission],
+          },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await first.run();
+    expect(persistedGrant).not.toBeNull();
+
+    const resumedLoop = async function* (_messages, opts) {
+      const allowed = await opts.permissionConfirm(context);
+      yield {
+        type: "response-complete",
+        content: allowed ? "restored grant" : "denied",
+      };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const resumed = harness({
+      options: { sessionId },
+      agentLoop: resumedLoop,
+      deps: {
+        ...baseStore,
+        sessionExists: () => true,
+        readSessionHostResumeState: () => verifiedResume(sessionId),
+      },
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "continue" }) + "\n";
+      },
+    });
+    await resumed.run();
+    expect(
+      resumed.events().filter((event) => event.type === "approval_request"),
+    ).toHaveLength(0);
+    expect(
+      resumed.events().find((event) => event.type === "result").result,
+    ).toBe("restored grant");
+  });
+
+  it("discards a corrupt persisted grant ledger and asks again", async () => {
+    const context = {
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    };
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: context.command },
+      policyDigest: context.riskLevel,
+    });
+    const h = harness({
+      options: { sessionId: "corrupt-approval-grants" },
+      deps: {
+        sessionExists: () => false,
+        startSession: () => {},
+        readEvents: () => [],
+        readVerifiedEvents: () => [],
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendEvent: () => true,
+        appendAuthorityEvent: () => true,
+        findLatestEvent: (_id, type) =>
+          type === APPROVAL_GRANTS_EVENT
+            ? { type, data: { schema: "corrupt" } }
+            : null,
+        loadSideEffectLedger: () => null,
+      },
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(h.events()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "recovery_degraded",
+          component: "approval_grants",
+        }),
+        expect.objectContaining({ type: "approval_request", id: "appr-1" }),
+      ]),
+    );
+    expect(h.events().find((event) => event.type === "result").result).toBe(
+      "executed",
+    );
   });
 
   it("a mismatched binding is rejected (deny, fail closed) — replay/param-substitution", async () => {

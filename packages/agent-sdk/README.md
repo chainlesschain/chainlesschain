@@ -11,7 +11,10 @@ import { AgentSession, listSessions } from "@chainlesschain/agent-sdk";
 const session = new AgentSession({
   resume: previousSessionId, // session-resume contract
   permissionMode: "acceptEdits",
-  onApproval: async (req) => await ui.confirm(req), // approval-callback contract
+  onApproval: async (req) =>
+    (await ui.confirm(req))
+      ? { kind: "acceptOnce" }
+      : { kind: "decline", reason: "User denied the operation" },
   onQuestion: async (req) => await ui.answer(req), // SDK echoes req.binding
   onElicitation: async (req) => await ui.answerMcp(req),
 });
@@ -23,6 +26,10 @@ session.on("elicitation_complete", (e) => settleExternalFlow(e));
 session.send("run the tests and fix failures");
 const result = await session.nextResult();
 ```
+
+Approval callbacks may still return booleans for source compatibility. Direct
+`respondApproval(id, boolean)` calls retain the legacy boolean wire; structured
+decisions echo the request binding and can express scoped turn/session grants.
 
 Entries:
 

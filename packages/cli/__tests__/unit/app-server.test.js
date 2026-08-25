@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { CcAppServer } from "../../src/lib/app-server/server.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
 import {
   APP_SERVER_PROTOCOL_VERSION,
   JSON_RPC_ERROR,
+  validateApprovalDecision,
   validateAppServerMessage,
 } from "../../src/lib/app-server/protocol.js";
 import {
@@ -49,6 +51,39 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
+  it("validates ApprovalDecision from the canonical schema", () => {
+    expect(validateApprovalDecision({ kind: "acceptOnce" }).ok).toBe(true);
+    expect(
+      validateApprovalDecision({
+        kind: "acceptForTurn",
+        permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateApprovalDecision({ kind: "acceptOnce", unexpected: true }).ok,
+    ).toBe(false);
+    expect(validateApprovalDecision({ kind: "allowEverything" }).ok).toBe(
+      false,
+    );
+  });
+
+  it("matches the shared ApprovalDecision conformance fixture", () => {
+    const fixtures = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../agent-protocol/test/fixtures/approval-decisions.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    for (const fixture of fixtures) {
+      expect(validateApprovalDecision(fixture.value).ok, fixture.name).toBe(
+        fixture.valid,
+      );
+    }
+  });
+
   it("negotiates, runs a real-kernel-shaped turn and persists canonical events", async () => {
     const messages = [];
     const kernel = {
@@ -175,6 +210,9 @@ describe("CC App Server", () => {
           risk: "high",
           rule: "shell-confirm",
           reason: "command execution",
+          requested_permissions: [
+            { capability: "tool:run_shell", scope: "npm test" },
+          ],
         };
         await emit(event);
         const decisionPromise = requestApproval(event);
@@ -229,6 +267,9 @@ describe("CC App Server", () => {
         .request,
     ).toMatchObject({
       id: "approval-1",
+      requestedPermissions: [
+        { capability: "tool:run_shell", scope: "npm test" },
+      ],
       binding: {
         operationDigest: expect.stringMatching(/^sha256:/),
         policyDigest: expect.stringMatching(/^sha256:/),

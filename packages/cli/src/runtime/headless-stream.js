@@ -22,6 +22,12 @@ import {
   approvalBindingDigest,
   verifyApprovalBinding,
 } from "../lib/agent-authority.js";
+import { validateApprovalDecision } from "../lib/app-server/protocol.js";
+import {
+  APPROVAL_GRANTS_EVENT,
+  ApprovalGrantLedger,
+  approvalPermissionForContext,
+} from "../lib/approval-grant-ledger.js";
 import {
   normalizeInteractionBinding,
   sameInteractionBinding,
@@ -572,14 +578,57 @@ export function parseInputEvent(line) {
   if (obj && typeof obj === "object" && obj.type === "compact") {
     return { compact: true };
   }
-  // Approval verdicts (panel Approve/Deny for --interactive-approvals):
-  //   {"type":"approval","id":"appr-1","approve":true|false}
+  // Approval verdicts (panel/SDK for --interactive-approvals). New clients
+  // send the canonical structured decision and echo the request binding. The
+  // boolean remains an N-1 migration field for older clients only.
+  //   {"type":"approval","id":"appr-1","decision":{"kind":"acceptOnce"},"binding":"..."}
+  //   {"type":"approval","id":"appr-1","approve":true|false} // legacy
   if (obj && typeof obj === "object" && obj.type === "approval") {
     if (!obj.id) return null;
+    const structured = obj.decision !== undefined;
+    let decision;
+    let invalidReason = null;
+    if (structured) {
+      const validation = validateApprovalDecision(obj.decision);
+      if (validation.ok) {
+        decision = obj.decision;
+      } else {
+        invalidReason = "invalid-decision";
+        decision = {
+          kind: "decline",
+          reason: "Invalid structured approval decision",
+        };
+      }
+    } else {
+      decision =
+        obj.approve === true
+          ? { kind: "acceptOnce" }
+          : { kind: "decline", reason: "Legacy boolean denial" };
+    }
+    const approve = [
+      "acceptOnce",
+      "acceptForTurn",
+      "acceptForSession",
+    ].includes(decision.kind);
+    if (
+      !invalidReason &&
+      structured &&
+      typeof obj.approve === "boolean" &&
+      obj.approve !== approve
+    ) {
+      invalidReason = "decision-boolean-mismatch";
+      decision = {
+        kind: "decline",
+        reason: "Structured and legacy approval verdicts disagree",
+      };
+    }
     return {
       approval: {
         id: String(obj.id),
-        approve: obj.approve === true,
+        approve: invalidReason ? false : approve,
+        decision,
+        structured,
+        invalidReason,
         // Optional approval binding (authority §"权限来源与跨 Agent 授权边界"):
         // when present it must match the digest the matching approval_request
         // advertised, so a stale/mis-routed/param-substituted verdict can't
@@ -2035,12 +2084,61 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   };
 
+  // Structured approval grants are exact tool+args+cwd capabilities. Turn
+  // grants are memory-only and reset before every model turn; session grants
+  // are restored only from a verified authority event and are appended under
+  // the same anchored transcript contract as other session authority state.
+  let approvalGrantLedger = new ApprovalGrantLedger({ sessionId });
+  let approvalGrantPersistenceError = null;
+  if (persist) {
+    try {
+      const event = store.findLatestEvent(
+        sessionId,
+        APPROVAL_GRANTS_EVENT,
+        (candidate) => candidate?.data && typeof candidate.data === "object",
+      );
+      if (event) {
+        approvalGrantLedger = ApprovalGrantLedger.fromJSON(event.data, {
+          sessionId,
+        });
+      }
+    } catch (error) {
+      approvalGrantPersistenceError = error;
+      approvalGrantLedger = new ApprovalGrantLedger({ sessionId });
+      emit({
+        type: "recovery_degraded",
+        component: "approval_grants",
+        session_id: sessionId,
+        error:
+          "Persisted approval grants could not be verified; all grants were discarded",
+      });
+    }
+  }
+  const persistApprovalGrants = () => {
+    if (!persist || approvalGrantPersistenceError) return false;
+    try {
+      const persisted = store.appendAuthorityEvent(
+        sessionId,
+        APPROVAL_GRANTS_EVENT,
+        approvalGrantLedger.toJSON(),
+      );
+      if (persisted === false) {
+        throw new Error("session store rejected approval grants");
+      }
+      return true;
+    } catch (error) {
+      approvalGrantPersistenceError = error;
+      return false;
+    }
+  };
+
   // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
   // CONFIRM-tier decisions (risky shell via the ApprovalGate, settings/hook
   // `ask`) normally fail closed in headless. With this opt-in they become a
   // structured round-trip instead: emit `approval_request`, BLOCK the tool
-  // until a {"type":"approval",id,approve} arrives on stdin (handled by the
-  // concurrent pump below, so the wait never deadlocks), fail closed on
+  // until a canonical structured decision (or an N-1 boolean response) arrives
+  // on stdin (handled by the concurrent pump below, so the wait never
+  // deadlocks), fail closed on
   // timeout (CC_APPROVAL_TIMEOUT_MS, default 120s) or stdin close. The
   // resolution is echoed as `approval_resolved` so UIs can settle their cards.
   const interactive = options.interactiveApprovals === true;
@@ -2050,45 +2148,87 @@ async function runAgentHeadlessStreamInWorkspace(
     Number(process.env.CC_APPROVAL_TIMEOUT_MS) > 0
       ? Number(process.env.CC_APPROVAL_TIMEOUT_MS)
       : 120000;
-  const settleApproval = (id, approve, via, incomingBinding = null) => {
+  const settleApproval = (
+    id,
+    decision,
+    via,
+    incomingBinding = null,
+    { structured = false, invalidReason = null } = {},
+  ) => {
     const p = pendingApprovals.get(id);
     if (!p) return;
+    const approve = [
+      "acceptOnce",
+      "acceptForTurn",
+      "acceptForSession",
+    ].includes(decision?.kind);
     // Approval binding (authority §"权限来源与跨 Agent 授权边界"): an *approve*
     // verdict that carries a binding which does NOT match the one the request
     // advertised is stale / mis-routed / argument-tampered — reject it (deny,
     // fail closed) instead of green-lighting a different or changed tool call.
-    // A verdict with no binding stays backward-compatible; a deny always wins.
+    // A legacy boolean verdict with no binding stays backward-compatible. A
+    // structured approval must echo the binding; a deny always wins.
     if (
       approve === true &&
-      incomingBinding &&
       p.binding &&
-      !verifyApprovalBinding(p.binding, incomingBinding)
+      ((structured && !incomingBinding) ||
+        (incomingBinding && !verifyApprovalBinding(p.binding, incomingBinding)))
     ) {
       pendingApprovals.delete(id);
       clearTimeout(p.timer);
+      const rejectionReason = incomingBinding
+        ? "binding-mismatch"
+        : "binding-missing";
       emit({
         type: "approval_resolved",
         id,
         approved: false,
-        via: "binding-mismatch",
+        decision: {
+          kind: "decline",
+          reason: `Approval ${rejectionReason}`,
+        },
+        via: rejectionReason,
         session_id: sessionId,
       });
       p.resolve(false);
       return;
+    }
+    if (
+      approve &&
+      (decision.kind === "acceptForTurn" ||
+        decision.kind === "acceptForSession")
+    ) {
+      const priorSessionGrants = new Map(approvalGrantLedger.sessionGrants);
+      const priorRevision = approvalGrantLedger.revision;
+      const applied = approvalGrantLedger.applyDecision(
+        decision,
+        p.requiredPermission,
+        p.binding,
+      );
+      decision = applied.decision;
+      if (applied.persistedScope && persist && !persistApprovalGrants()) {
+        approvalGrantLedger.sessionGrants = priorSessionGrants;
+        approvalGrantLedger.revision = priorRevision;
+        decision = { kind: "acceptOnce" };
+        via = "session-grant-persistence-failed";
+      }
     }
     pendingApprovals.delete(id);
     clearTimeout(p.timer);
     emit({
       type: "approval_resolved",
       id,
-      approved: approve === true,
-      via,
+      approved: invalidReason ? false : approve,
+      decision,
+      via: invalidReason || via,
       session_id: sessionId,
     });
-    p.resolve(approve === true);
+    p.resolve(!invalidReason && approve);
   };
-  const interactiveConfirm = (ctx = {}) =>
-    new Promise((resolve) => {
+  const interactiveConfirm = (ctx = {}) => {
+    const requiredPermission = approvalPermissionForContext(ctx, { cwd });
+    if (approvalGrantLedger.allows(requiredPermission)) return true;
+    return new Promise((resolve) => {
       const id = `appr-${++approvalSeq}`;
       // Bind this approval request to the exact call it authorizes: the request
       // id, its normalized arguments, and the policy/rule in force. The digest
@@ -2101,11 +2241,21 @@ async function runAgentHeadlessStreamInWorkspace(
         policyDigest: ctx.rule || ctx.riskLevel || ctx.risk || null,
       });
       const timer = setTimeout(
-        () => settleApproval(id, false, "timeout"),
+        () =>
+          settleApproval(
+            id,
+            { kind: "decline", reason: "Approval timed out" },
+            "timeout",
+          ),
         approvalTimeoutMs,
       );
       timer.unref?.();
-      pendingApprovals.set(id, { resolve, timer, binding });
+      pendingApprovals.set(id, {
+        resolve,
+        timer,
+        binding,
+        requiredPermission,
+      });
       emit({
         type: "approval_request",
         id,
@@ -2116,8 +2266,10 @@ async function runAgentHeadlessStreamInWorkspace(
         rule: ctx.rule || null,
         reason: ctx.reason || null,
         binding,
+        requested_permissions: [requiredPermission],
       });
     });
+  };
 
   let approvalGate = null;
   try {
@@ -2206,6 +2358,10 @@ async function runAgentHeadlessStreamInWorkspace(
           type: "approval_resolved",
           id,
           approved: false,
+          decision: {
+            kind: "decline",
+            reason: `Approval ${via}`,
+          },
           via,
           session_id: sessionId,
         });
@@ -3260,9 +3416,13 @@ async function runAgentHeadlessStreamInWorkspace(
           // Approval verdicts settle a BLOCKED tool — never queued.
           settleApproval(
             parsed.approval.id,
-            parsed.approval.approve,
+            parsed.approval.decision,
             parsed.approval.approve ? "user-approve" : "user-deny",
             parsed.approval.binding,
+            {
+              structured: parsed.approval.structured,
+              invalidReason: parsed.approval.invalidReason,
+            },
           );
           continue;
         }
@@ -3321,7 +3481,11 @@ async function runAgentHeadlessStreamInWorkspace(
     // stdin closed while approvals were pending → fail closed so the blocked
     // turn can finish and the process can exit.
     for (const id of [...pendingApprovals.keys()]) {
-      settleApproval(id, false, "stdin-closed");
+      settleApproval(
+        id,
+        { kind: "decline", reason: "Approval input closed" },
+        "stdin-closed",
+      );
     }
     // stdin closed while a question was pending → user_timeout (model proceeds).
     for (const id of [...pendingQuestions.keys()]) {
@@ -4112,6 +4276,7 @@ async function runAgentHeadlessStreamInWorkspace(
       }
     }
     turns += 1;
+    approvalGrantLedger.beginTurn(turns);
     if (persistenceFailure) {
       terminalPersistenceFailure = persistenceFailure;
       sawError = true;

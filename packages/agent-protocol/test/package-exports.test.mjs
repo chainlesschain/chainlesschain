@@ -8,7 +8,11 @@ import {
   CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
   CC_AGENT_PROTOCOL_VERSION,
   assertProtocolCompatible,
+  assertApprovalDecision,
   compareProtocolSchemas,
+  validateApprovalDecision,
+  validateProtocolDefinition,
+  validateProtocolMessage,
 } from "@chainlesschain/agent-protocol";
 
 test("public root export matches the canonical schema", () => {
@@ -21,6 +25,46 @@ test("public root export matches the canonical schema", () => {
   assert.equal(Object.isFrozen(CC_AGENT_PROTOCOL_SCHEMA.$defs), true);
   assert.equal(typeof assertProtocolCompatible, "function");
   assert.equal(typeof compareProtocolSchemas, "function");
+  assert.equal(typeof validateProtocolMessage, "function");
+  assert.equal(typeof validateProtocolDefinition, "function");
+});
+
+test("public validators derive ApprovalDecision from the canonical schema", () => {
+  assert.deepEqual(validateApprovalDecision({ kind: "acceptOnce" }), {
+    ok: true,
+    errors: [],
+  });
+  assert.equal(
+    validateApprovalDecision({
+      kind: "acceptForSession",
+      permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+    }).ok,
+    true,
+  );
+  assert.equal(
+    validateApprovalDecision({ kind: "acceptOnce", unexpected: true }).ok,
+    false,
+  );
+  assert.throws(
+    () => assertApprovalDecision({ kind: "allowEverything" }),
+    /Invalid ApprovalDecision/u,
+  );
+});
+
+test("public validator matches the shared ApprovalDecision conformance fixture", () => {
+  const cases = JSON.parse(
+    readFileSync(
+      new URL("./fixtures/approval-decisions.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const fixture of cases) {
+    assert.equal(
+      validateApprovalDecision(fixture.value).ok,
+      fixture.valid,
+      fixture.name,
+    );
+  }
 });
 
 test("package metadata exposes only supported public entry points", () => {

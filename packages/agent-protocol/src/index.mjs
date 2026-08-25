@@ -4,6 +4,7 @@ import {
   assertProtocolCompatible,
   compareProtocolSchemas,
 } from "./compatibility.mjs";
+import { createProtocolValidators } from "./validation.mjs";
 
 const schemaText = readFileSync(
   new URL("../schema/cc-agent-protocol.schema.json", import.meta.url),
@@ -29,6 +30,42 @@ export const CC_AGENT_PROTOCOL_FEATURES = Object.freeze([
 export const CC_AGENT_PROTOCOL_SCHEMA_DIGEST = `sha256:${createHash("sha256")
   .update(schemaText)
   .digest("hex")}`;
+
+const validators = createProtocolValidators(CC_AGENT_PROTOCOL_SCHEMA);
+
+export function validateProtocolMessage(value) {
+  return validators.validateProtocolMessage(value);
+}
+
+export function validateProtocolDefinition(name, value) {
+  return validators.validateProtocolDefinition(name, value);
+}
+
+export function validateApprovalDecision(value) {
+  return validateProtocolDefinition("ApprovalDecision", value);
+}
+
+export function assertProtocolMessage(value) {
+  const result = validateProtocolMessage(value);
+  if (!result.ok) {
+    throw new TypeError(
+      `Invalid CC Agent protocol message: ${result.errors
+        .map((error) => `${error.path} ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+}
+
+export function assertApprovalDecision(value) {
+  const result = validateApprovalDecision(value);
+  if (!result.ok) {
+    throw new TypeError(
+      `Invalid ApprovalDecision: ${result.errors
+        .map((error) => `${error.path} ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+}
 
 export { assertProtocolCompatible, compareProtocolSchemas };
 

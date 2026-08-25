@@ -185,7 +185,9 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     });
     const inits: SystemInitEvent[] = [];
     const results: ResultEvent[] = [];
+    const observedEvents: unknown[] = [];
     let streamedText = "";
+    first.on("event", (event) => observedEvents.push(event));
     first.on("init", (e) => inits.push(e));
     first.on("result", (e) => results.push(e));
     first.on("text", (t) => (streamedText += t));
@@ -200,10 +202,11 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const cliStderr = stderrLines.join("").trim();
+      const eventTrace = JSON.stringify(observedEvents, null, 2);
       throw new Error(
         cliStderr
-          ? `${message}\ncc stderr:\n${cliStderr}`
-          : `${message}\ncc stderr: <empty>`,
+          ? `${message}\ncc stderr:\n${cliStderr}\ncc events:\n${eventTrace}`
+          : `${message}\ncc stderr: <empty>\ncc events:\n${eventTrace}`,
       );
     }
     expect(r1.is_error).toBe(false);

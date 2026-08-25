@@ -12,6 +12,7 @@ import {
   rpcError,
   rpcNotification,
   rpcResult,
+  validateApprovalDecision,
   validateAppServerMessage,
 } from "./protocol.js";
 
@@ -746,28 +747,24 @@ export class CcAppServer {
         ? event.risk
         : "high",
       reason: event.reason || "The Agent Kernel requires approval",
-      requestedPermissions: [],
+      requestedPermissions: Array.isArray(event.requested_permissions)
+        ? event.requested_permissions
+        : [],
     };
   }
 
   async _requestApproval(turn, event) {
     const request = this._approvalRequest(turn, event);
     const result = await this._requestClient("approval/decide", { request });
-    const decision = requireObject(result, "approval decision");
-    const allowed = new Set([
-      "acceptOnce",
-      "acceptForTurn",
-      "acceptForSession",
-      "decline",
-      "cancel",
-    ]);
-    if (!allowed.has(decision.kind)) {
+    const validation = validateApprovalDecision(result);
+    if (!validation.ok) {
       throw new JsonRpcError(
         JSON_RPC_ERROR.INVALID_PARAMS,
         "client returned an invalid approval decision",
+        { errors: validation.errors },
       );
     }
-    return decision;
+    return result;
   }
 
   async _completeTurn(turn, status, result) {

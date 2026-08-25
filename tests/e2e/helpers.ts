@@ -162,17 +162,18 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     timeout: 30000,
   });
 
-  // Wait for preload to expose at least one bridge object. Previously this
-  // catch+warn'd-and-continued, masking the only signal that preload didn't
-  // load. Now we throw with a snapshot of what *is* on window so CI tells us
-  // whether the preload script ran at all.
+  // Wait for the exact typed capabilities this bootstrap path needs.
+  // Previously this catch+warn'd-and-continued, masking the only signal that
+  // preload didn't load. Now we throw with a snapshot of what *is* on window
+  // so CI tells us whether the preload script ran at all.
   try {
     await window.waitForFunction(
       () => {
+        const api = (window as any).electronAPI;
         return (
-          typeof (window as any).electronAPI !== "undefined" ||
-          typeof (window as any).electron !== "undefined" ||
-          typeof (window as any).api !== "undefined"
+          typeof api?.initialSetup?.getStatus === "function" &&
+          typeof api?.initialSetup?.complete === "function" &&
+          typeof api?.team?.getTeams === "function"
         );
       },
       undefined,
@@ -190,19 +191,25 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
         windowKeys: keys.slice(0, 80),
         windowKeyCount: keys.length,
         hasElectronAPI: typeof w.electronAPI,
+        hasInitialSetupGetStatus: typeof w.electronAPI?.initialSetup?.getStatus,
+        hasInitialSetupComplete: typeof w.electronAPI?.initialSetup?.complete,
+        hasTeamGetTeams: typeof w.electronAPI?.team?.getTeams,
         hasElectron: typeof w.electron,
         hasApi: typeof w.api,
         userAgent: w.navigator?.userAgent,
       };
     });
     throw new Error(
-      `Preload bridge never exposed (electronAPI/electron/api all undefined after 60s). ` +
+      `Typed preload bridge never exposed initialSetup/team capabilities after 60s. ` +
         `Renderer state: ${JSON.stringify(diagnostics, null, 2)}. ` +
         `Original error: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
-  const setupCompletedDuringLaunch = await ensureInitialSetup(window, userDataPath);
+  const setupCompletedDuringLaunch = await ensureInitialSetup(
+    window,
+    userDataPath,
+  );
   if (setupCompletedDuringLaunch) {
     await app.close();
     return launchElectronApp();
@@ -213,19 +220,16 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   return { app, window };
 }
 
-async function ensureInitialSetup(window: Page, userDataPath: string): Promise<boolean> {
+async function ensureInitialSetup(
+  window: Page,
+  userDataPath: string,
+): Promise<boolean> {
   const setupStatus = await window.evaluate(async () => {
-    if ((window as any).electronAPI?.initialSetup?.getStatus) {
-      return await (window as any).electronAPI.initialSetup.getStatus();
+    const getStatus = (window as any).electronAPI?.initialSetup?.getStatus;
+    if (typeof getStatus !== "function") {
+      throw new Error("Typed initialSetup.getStatus capability is unavailable");
     }
-
-    if ((window as any).electron?.ipcRenderer) {
-      return await (window as any).electron.ipcRenderer.invoke(
-        "initial-setup:get-status",
-      );
-    }
-
-    return null;
+    return await getStatus();
   });
 
   if (!setupStatus || setupStatus.completed) {
@@ -252,24 +256,17 @@ async function ensureInitialSetup(window: Page, userDataPath: string): Promise<b
   };
 
   const result = await window.evaluate(async (setupConfig) => {
-    if ((window as any).electronAPI?.initialSetup?.complete) {
-      return await (window as any).electronAPI.initialSetup.complete(
-        setupConfig,
-      );
+    const complete = (window as any).electronAPI?.initialSetup?.complete;
+    if (typeof complete !== "function") {
+      throw new Error("Typed initialSetup.complete capability is unavailable");
     }
-
-    if ((window as any).electron?.ipcRenderer) {
-      return await (window as any).electron.ipcRenderer.invoke(
-        "initial-setup:complete",
-        setupConfig,
-      );
-    }
-
-    throw new Error("No initial setup IPC interface found");
+    return await complete(setupConfig);
   }, config);
 
   if (!result?.success) {
-    throw new Error(`Initial setup failed: ${result?.error || "unknown error"}`);
+    throw new Error(
+      `Initial setup failed: ${result?.error || "unknown error"}`,
+    );
   }
 
   return true;
@@ -292,16 +289,6 @@ async function waitForTeamIpcReady(window: Page): Promise<void> {
   while (Date.now() < deadline) {
     try {
       const result = await window.evaluate(async () => {
-        if ((window as any).electron?.ipcRenderer) {
-          return await (window as any).electron.ipcRenderer.invoke(
-            "team:get-teams",
-            {
-              orgId: "__e2e_probe__",
-              options: {},
-            },
-          );
-        }
-
         if ((window as any).electronAPI?.team?.getTeams) {
           return await (window as any).electronAPI.team.getTeams({
             orgId: "__e2e_probe__",

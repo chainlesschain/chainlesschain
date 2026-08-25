@@ -20,6 +20,11 @@
  * mirror packages/cli/src/lib/headless-manifest.js STREAM_PROTOCOL_VERSION.
  */
 
+import type {
+  ApprovalDecision,
+  PermissionGrant,
+} from "./generated/app-protocol.js";
+
 export const PROTOCOL_VERSION = 1;
 
 /**
@@ -217,12 +222,18 @@ export interface ApprovalRequestEvent extends StreamEventMeta {
   risk: string | null;
   rule: string | null;
   reason: string | null;
+  /** Digest binding for the exact tool call; structured responses must echo it. */
+  binding?: string;
+  /** Exact reusable permission requested by this operation. */
+  requested_permissions?: PermissionGrant[];
 }
 
 export interface ApprovalResolvedEvent extends StreamEventMeta {
   type: "approval_resolved";
   id: string;
   approved: boolean;
+  /** Canonical decision; absent only when talking to an older CLI. */
+  decision?: ApprovalDecision;
   /** "user" when answered, "timeout" when the CLI failed closed. */
   via: string;
   session_id?: string;
@@ -485,11 +496,27 @@ export interface CompactInput {
   type: "compact";
 }
 
-export interface ApprovalResponseInput {
+export interface StructuredApprovalResponseInput {
+  type: "approval";
+  id: string;
+  decision: ApprovalDecision;
+  /** Compatibility bit for an older CLI; must agree with decision when present. */
+  approve?: boolean;
+  /** Copied from ApprovalRequestEvent; required to approve on the new wire. */
+  binding?: string;
+}
+
+/** @deprecated Use StructuredApprovalResponseInput. */
+export interface LegacyApprovalResponseInput {
   type: "approval";
   id: string;
   approve: boolean;
+  decision?: never;
+  binding?: string;
 }
+
+export type ApprovalResponseInput =
+  StructuredApprovalResponseInput | LegacyApprovalResponseInput;
 
 export interface QuestionAnswerInput {
   type: "answer";

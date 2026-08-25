@@ -53,6 +53,49 @@ export function validateAppServerMessage(value) {
   });
 }
 
+const definitionSchemas = new Map();
+
+/** Validate one canonical $defs value without maintaining a second hand-written union. */
+export function validateAppServerDefinition(name, value) {
+  const definition = APP_SERVER_SCHEMA.$defs?.[name];
+  if (!definition) {
+    return Object.freeze({
+      ok: false,
+      errors: Object.freeze([
+        Object.freeze({
+          path: "#",
+          message: `unknown protocol definition ${String(name)}`,
+        }),
+      ]),
+    });
+  }
+  let definitionSchema = definitionSchemas.get(name);
+  if (!definitionSchema) {
+    definitionSchema = {
+      $schema: APP_SERVER_SCHEMA.$schema,
+      $ref: `#/$defs/${name}`,
+      $defs: APP_SERVER_SCHEMA.$defs,
+    };
+    definitionSchemas.set(name, definitionSchema);
+  }
+  const result = validate(value, definitionSchema);
+  return Object.freeze({
+    ok: result.valid,
+    errors: Object.freeze(
+      result.errors.map((error) =>
+        Object.freeze({
+          path: error.instancePath || error.schemaPath || "#",
+          message: error.message || error.code || "invalid value",
+        }),
+      ),
+    ),
+  });
+}
+
+export function validateApprovalDecision(value) {
+  return validateAppServerDefinition("ApprovalDecision", value);
+}
+
 export function rpcResult(id, result) {
   return { jsonrpc: "2.0", id, result: result ?? null };
 }

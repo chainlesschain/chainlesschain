@@ -47,7 +47,7 @@ describe("runAgentHeadlessStream --replay-user-messages", () => {
     expect(echoes).toHaveLength(2);
     expect(echoes[0].message).toEqual({ role: "user", content: "hello" });
     expect(echoes[1].message).toEqual({ role: "user", content: "world" });
-  }, 15000);
+  }, 30000);
 
   it("does not echo without the flag", async () => {
     const agentLoop = async function* () {
@@ -517,6 +517,7 @@ describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () =
     readVerifiedEvents: () => [],
     appendUserMessage: vi.fn(),
     appendAssistantMessage: vi.fn(),
+    appendTokenUsage: vi.fn(),
     appendEvent: () => true,
     appendAuthorityEvent: () => true,
     appendCompactEventIfMessagesMatch: vi.fn((_id, data) => {

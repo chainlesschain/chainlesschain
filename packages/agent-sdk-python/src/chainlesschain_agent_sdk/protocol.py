@@ -229,6 +229,8 @@ class ApprovalRequestEvent(AgentEvent):
     risk: Optional[str] = None
     rule: Optional[str] = None
     reason: Optional[str] = None
+    binding: Optional[str] = None
+    requested_permissions: Tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -237,6 +239,7 @@ class ApprovalResolvedEvent(AgentEvent):
     approved: bool
     via: str
     session_id: Optional[str] = None
+    decision: Optional[Mapping[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -692,6 +695,15 @@ def parse_event(value: Mapping[str, Any]) -> AgentStreamEvent:
             risk=_as_string(raw.get("risk")),
             rule=_as_string(raw.get("rule")),
             reason=_as_string(raw.get("reason")),
+            binding=_as_string(raw.get("binding")),
+            requested_permissions=tuple(
+                _freeze_raw(permission)
+                for permission in raw.get("requested_permissions", ())
+                if isinstance(permission, Mapping)
+            )
+            if isinstance(raw.get("requested_permissions"), Sequence)
+            and not isinstance(raw.get("requested_permissions"), (str, bytes))
+            else (),
             **common,
         )
 
@@ -706,6 +718,11 @@ def parse_event(value: Mapping[str, Any]) -> AgentStreamEvent:
             approved=approved,
             via=via,
             session_id=_as_string(raw.get("session_id")),
+            decision=(
+                _freeze_raw(raw["decision"])
+                if isinstance(raw.get("decision"), Mapping)
+                else None
+            ),
             **common,
         )
 

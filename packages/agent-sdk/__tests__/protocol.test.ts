@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
   contentDelta,
@@ -11,8 +12,43 @@ import {
   isSystemInit,
   type AgentStreamEvent,
 } from "../src/protocol.js";
+import {
+  isApprovalDecision,
+  validateApprovalDecision,
+} from "../src/generated/app-protocol.js";
 
 describe("protocol type guards", () => {
+  it("validates canonical structured approval decisions from the generated schema", () => {
+    expect(isApprovalDecision({ kind: "acceptOnce" })).toBe(true);
+    expect(
+      isApprovalDecision({
+        kind: "acceptForSession",
+        permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+      }),
+    ).toBe(true);
+    expect(
+      validateApprovalDecision({ kind: "acceptOnce", unexpected: true }),
+    ).toMatchObject({ ok: false });
+    expect(isApprovalDecision({ kind: "allowEverything" })).toBe(false);
+  });
+
+  it("matches the shared ApprovalDecision conformance fixture", () => {
+    const fixtures = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../agent-protocol/test/fixtures/approval-decisions.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as Array<{ name: string; valid: boolean; value: unknown }>;
+    for (const fixture of fixtures) {
+      expect(validateApprovalDecision(fixture.value).ok, fixture.name).toBe(
+        fixture.valid,
+      );
+    }
+  });
+
   it("isAgentEvent requires an object with a string type", () => {
     expect(isAgentEvent({ type: "result" })).toBe(true);
     expect(isAgentEvent(null)).toBe(false);

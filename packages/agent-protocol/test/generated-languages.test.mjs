@@ -15,6 +15,7 @@ test("generated clients preserve protocol field names across language keywords",
 
   assert.match(python, /"from": "Identifier"/u);
   assert.doesNotMatch(python, /^\s+from:/mu);
+  assert.match(python, /def validate_approval_decision\(/u);
   assert.match(kotlin, /val `when`: String/u);
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
 });

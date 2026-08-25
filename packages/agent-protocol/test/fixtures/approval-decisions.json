@@ -1,0 +1,56 @@
+[
+  {
+    "name": "accept-once",
+    "valid": true,
+    "value": { "kind": "acceptOnce" }
+  },
+  {
+    "name": "turn-scoped-permission",
+    "valid": true,
+    "value": {
+      "kind": "acceptForTurn",
+      "permissions": [{ "capability": "tool:run_shell", "scope": "npm test" }]
+    }
+  },
+  {
+    "name": "session-scoped-empty-permissions",
+    "valid": true,
+    "value": { "kind": "acceptForSession", "permissions": [] }
+  },
+  {
+    "name": "decline-with-reason",
+    "valid": true,
+    "value": { "kind": "decline", "reason": "Policy rejected the action" }
+  },
+  {
+    "name": "cancel",
+    "valid": true,
+    "value": { "kind": "cancel" }
+  },
+  {
+    "name": "unknown-kind",
+    "valid": false,
+    "value": { "kind": "allowEverything" }
+  },
+  {
+    "name": "unexpected-property",
+    "valid": false,
+    "value": { "kind": "acceptOnce", "unexpected": true }
+  },
+  {
+    "name": "invalid-permission",
+    "valid": false,
+    "value": {
+      "kind": "acceptForSession",
+      "permissions": [{ "capability": "tool:run_shell" }]
+    }
+  },
+  {
+    "name": "permissions-on-accept-once",
+    "valid": false,
+    "value": {
+      "kind": "acceptOnce",
+      "permissions": [{ "capability": "tool:run_shell", "scope": "*" }]
+    }
+  }
+]

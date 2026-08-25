@@ -26,6 +26,7 @@ from typing import (
 )
 
 from .ndjson import NdjsonDecodeError, NdjsonDecoder, encode_ndjson
+from .generated_app_protocol import validate_approval_decision
 from .protocol import (
     AgentStreamEvent,
     ApprovalRequestEvent,
@@ -36,11 +37,33 @@ from .protocol import (
 )
 
 MaybeAwaitable = Union[Any, Awaitable[Any]]
-ApprovalCallback = Callable[[ApprovalRequestEvent], Union[bool, Awaitable[bool]]]
+ApprovalVerdict = Union[bool, Mapping[str, Any]]
+ApprovalCallback = Callable[
+    [ApprovalRequestEvent], Union[ApprovalVerdict, Awaitable[ApprovalVerdict]]
+]
 QuestionCallback = Callable[[QuestionRequestEvent], MaybeAwaitable]
 EventCallback = Callable[[AgentStreamEvent], MaybeAwaitable]
 ErrorCallback = Callable[[BaseException], MaybeAwaitable]
 StderrCallback = Callable[[str], MaybeAwaitable]
+
+_ACCEPT_APPROVAL_KINDS = frozenset(
+    {"acceptOnce", "acceptForTurn", "acceptForSession"}
+)
+
+
+def _normalize_approval_verdict(
+    verdict: Any, invalid_reason: str = "Invalid approval callback decision"
+) -> Dict[str, Any]:
+    if verdict is True:
+        return {"kind": "acceptOnce"}
+    if verdict is False:
+        return {"kind": "decline"}
+    if isinstance(verdict, Mapping):
+        decision = dict(verdict)
+        valid, _errors = validate_approval_decision(decision)
+        if valid:
+            return decision
+    return {"kind": "decline", "reason": invalid_reason}
 
 
 class AgentSessionError(RuntimeError):
@@ -322,10 +345,37 @@ class AgentSession:
     async def compact(self) -> None:
         await self.write({"type": "compact"})
 
-    async def respond_approval(self, request_id: str, approve: bool) -> None:
-        await self.write(
-            {"type": "approval", "id": request_id, "approve": bool(approve)}
+    async def respond_approval(
+        self,
+        request_id: str,
+        verdict: ApprovalVerdict,
+        binding: Optional[str] = None,
+    ) -> None:
+        # Preserve the N-1 method contract exactly. Converting a boolean to a
+        # structured decision would make a new CLI require a binding that old
+        # callers never received or passed.
+        if isinstance(verdict, bool):
+            legacy_event: Dict[str, Any] = {
+                "type": "approval",
+                "id": request_id,
+                "approve": verdict,
+            }
+            if binding:
+                legacy_event["binding"] = binding
+            await self.write(legacy_event)
+            return
+        decision = _normalize_approval_verdict(
+            verdict, "Invalid approval response"
         )
+        event: Dict[str, Any] = {
+            "type": "approval",
+            "id": request_id,
+            "decision": decision,
+            "approve": decision["kind"] in _ACCEPT_APPROVAL_KINDS,
+        }
+        if binding:
+            event["binding"] = binding
+        await self.write(event)
 
     async def answer_question(
         self,
@@ -537,16 +587,20 @@ class AgentSession:
         task.add_done_callback(self._callback_tasks.discard)
 
     async def _handle_approval(self, event: ApprovalRequestEvent) -> None:
-        approve = False
+        decision: Dict[str, Any] = {
+            "kind": "decline",
+            "reason": "Approval callback failed",
+        }
         try:
             assert self.on_approval is not None
-            approve = (await _maybe_await(self.on_approval(event))) is True
+            decision = _normalize_approval_verdict(
+                await _maybe_await(self.on_approval(event))
+            )
         except Exception as exc:
             # Fail closed, matching the TypeScript SDK and CLI timeout path.
             await self._notify_error(exc)
-            approve = False
         try:
-            await self.respond_approval(event.id, approve)
+            await self.respond_approval(event.id, decision, event.binding)
         except SessionNotRunningError:
             pass
 
