@@ -102,6 +102,7 @@ export class TeamSessionMessageAdapter {
     createId = randomUUID,
     maxMessageBytes = DEFAULT_TEAM_MAILBOX_LIMITS.maxMessageBytes,
     maxMessages = DEFAULT_TEAM_MAILBOX_LIMITS.maxMessages,
+    maxTotalBytes = DEFAULT_TEAM_MAILBOX_LIMITS.maxTotalBytes,
     maxReceiptHistory = DEFAULT_TEAM_MAILBOX_LIMITS.maxReceiptHistory,
     maxMessagesPerSenderWindow,
     senderRateWindowMs,
@@ -117,6 +118,7 @@ export class TeamSessionMessageAdapter {
     this._limits = {
       maxMessageBytes,
       maxMessages,
+      maxTotalBytes,
       maxReceiptHistory,
     };
     this.fabric = new SessionMessageFabric({
@@ -125,6 +127,7 @@ export class TeamSessionMessageAdapter {
       createId,
       maxMessageBytes,
       maxPendingPerRecipient: maxMessages,
+      maxPendingBytes: maxTotalBytes,
       maxReceiptHistory,
       ...(maxMessagesPerSenderWindow == null
         ? {}
@@ -510,6 +513,7 @@ export class TeamSessionMessageAdapter {
 
   _pressureFromAuthority(authority) {
     const counts = new Map();
+    let pendingBytes = 0;
     for (const message of authority.messages) {
       if (
         !["delivered", "held"].includes(message.status) ||
@@ -521,13 +525,16 @@ export class TeamSessionMessageAdapter {
         message.recipientAuthority,
         (counts.get(message.recipientAuthority) || 0) + 1,
       );
+      pendingBytes += message.messageBytes || 0;
     }
     const pending = Math.max(0, ...counts.values());
-    const ratio = pending / Math.max(1, this._limits.maxMessages);
+    const messageRatio = pending / Math.max(1, this._limits.maxMessages);
+    const byteRatio = pendingBytes / Math.max(1, this._limits.maxTotalBytes);
+    const ratio = Math.max(messageRatio, byteRatio);
     return {
       ratio,
-      messageRatio: ratio,
-      byteRatio: 0,
+      messageRatio,
+      byteRatio,
       level:
         ratio >= 1
           ? "full"

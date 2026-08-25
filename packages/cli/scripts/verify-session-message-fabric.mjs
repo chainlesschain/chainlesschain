@@ -72,6 +72,7 @@ export const SOURCE_FILES = Object.freeze([
 export const TEST_IDS = Object.freeze([
   "xsession/32-process-admission",
   "xsession/queue-101-full",
+  "xsession/aggregate-pending-byte-cap",
   "xsession/256-kib-plus-one-rejected",
   "xsession/out-of-order-promotion",
   "xsession/duplicate-idempotency",
@@ -525,6 +526,31 @@ function runFunctionalMatrix(directory) {
   const queueStateBytes = fs.statSync(queue.statePath).size;
   assert.ok(queueStateBytes <= REQUIRED_THRESHOLDS.maxStateBytes);
 
+  const byteQueue = new SessionMessageFabric({
+    statePath: path.join(directory, "byte-queue-state.json"),
+    maxPendingBytes: 1_000,
+  });
+  byteQueue.register({ sessionId: "byte-sender", name: "byte-sender" });
+  byteQueue.register({ sessionId: "byte-target", name: "byte-target" });
+  assert.equal(
+    byteQueue.send({
+      from: "byte-sender",
+      to: "byte-target",
+      body: "x".repeat(500),
+      messageId: "byte-1",
+    }).status,
+    "delivered",
+  );
+  assert.equal(
+    byteQueue.send({
+      from: "byte-sender",
+      to: "byte-target",
+      body: "y".repeat(500),
+      messageId: "byte-2",
+    }).status,
+    "full",
+  );
+
   const envelopeOverhead = Buffer.byteLength(
     JSON.stringify({ subject: null, body: "" }),
     "utf8",
@@ -596,6 +622,7 @@ function runFunctionalMatrix(directory) {
   return {
     queueCapacity: SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
     queueStateBytes,
+    aggregatePendingByteCaps: 1,
     oversizeBytes,
     receiptStatuses: [...statuses].sort(),
     offlineAdmissions: 1,
@@ -784,6 +811,7 @@ function runTeamAdapterMatrix(directory) {
     teamProcessedRecoveries: 1,
     teamPoisonDeadLetters: 1,
     teamCrossProcessRateLimits: 1,
+    teamMaxPendingBytes: snapshot.limits.maxTotalBytes,
   };
 }
 
@@ -1028,6 +1056,8 @@ export function aggregateSessionMessageFabricEvidence({
     assert.equal(candidate.measurements.teamProcessedRecoveries, 1);
     assert.equal(candidate.measurements.teamPoisonDeadLetters, 1);
     assert.equal(candidate.measurements.teamCrossProcessRateLimits, 1);
+    assert.equal(candidate.measurements.aggregatePendingByteCaps, 1);
+    assert.equal(candidate.measurements.teamMaxPendingBytes, 4 * 1024 * 1024);
     assert.equal(candidate.measurements.ideProjection.projectionRejects, 0);
     assert.equal(candidate.measurements.ideProjection.vscode.endpoints, 1);
     assert.equal(candidate.measurements.ideProjection.jetbrains.endpoints, 1);

@@ -46,6 +46,7 @@ export const SESSION_MESSAGE_RECEIPT_STATUSES = Object.freeze([
 export const SESSION_MESSAGE_FABRIC_LIMITS = Object.freeze({
   maxMessageBytes: 256 * 1024,
   maxPendingPerRecipient: 100,
+  maxPendingBytes: 32 * 1024 * 1024,
   maxReceiptHistory: 5_000,
   maxMessagesPerSenderWindow: 120,
   senderRateWindowMs: 60_000,
@@ -658,6 +659,7 @@ export class SessionMessageFabric {
       lockTimeoutMs = 10_000,
       maxMessageBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxMessageBytes,
       maxPendingPerRecipient = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+      maxPendingBytes = SESSION_MESSAGE_FABRIC_LIMITS.maxPendingBytes,
       maxReceiptHistory = SESSION_MESSAGE_FABRIC_LIMITS.maxReceiptHistory,
       maxMessagesPerSenderWindow = SESSION_MESSAGE_FABRIC_LIMITS.maxMessagesPerSenderWindow,
       senderRateWindowMs = SESSION_MESSAGE_FABRIC_LIMITS.senderRateWindowMs,
@@ -687,6 +689,10 @@ export class SessionMessageFabric {
       maxPendingPerRecipient: positiveInteger(
         maxPendingPerRecipient,
         SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient,
+      ),
+      maxPendingBytes: positiveInteger(
+        maxPendingBytes,
+        SESSION_MESSAGE_FABRIC_LIMITS.maxPendingBytes,
       ),
       maxReceiptHistory: positiveInteger(
         maxReceiptHistory,
@@ -1196,10 +1202,17 @@ export class SessionMessageFabric {
           value: clone(receiptFor(state, sender.authorityId, id)),
         };
       }
+      const pendingBytes = state.messages
+        .filter(
+          (entry) =>
+            PENDING_STATUSES.has(entry.status) && entry.acknowledgedAt == null,
+        )
+        .reduce((sum, entry) => sum + (entry.messageBytes || 0), 0);
       if (
         recipient.policy !== "refuse" &&
-        pendingForRecipient(state, recipient).length >=
-          this._limits.maxPendingPerRecipient
+        (pendingForRecipient(state, recipient).length >=
+          this._limits.maxPendingPerRecipient ||
+          pendingBytes + messageBytes > this._limits.maxPendingBytes)
       ) {
         updateReceipt(state, message, "full", "queue_capacity", now);
         return {

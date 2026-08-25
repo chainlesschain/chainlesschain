@@ -363,6 +363,29 @@ describe("SessionMessageFabric ordering, recovery and bounds", () => {
     expect(fabric.projection().revision).toBe(before);
   });
 
+  it("enforces the aggregate pending-byte cap inside the write transaction", () => {
+    const fabric = fixture({ maxPendingBytes: 1_000 });
+    fabric.register({ sessionId: "sender", name: "sender" });
+    fabric.register({ sessionId: "target", name: "target" });
+    expect(
+      fabric.send({
+        from: "sender",
+        to: "target",
+        body: "x".repeat(500),
+        messageId: "bytes-1",
+      }).status,
+    ).toBe("delivered");
+    expect(
+      fabric.send({
+        from: "sender",
+        to: "target",
+        body: "y".repeat(500),
+        messageId: "bytes-2",
+      }),
+    ).toMatchObject({ status: "full", reason: "queue_capacity" });
+    expect(fabric.inbox("target")).toHaveLength(1);
+  });
+
   it("expires durable backlog and reports the terminal receipt", () => {
     let now = 1_000;
     const fabric = fixture({ now: () => now });

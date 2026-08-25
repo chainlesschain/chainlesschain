@@ -38,6 +38,7 @@ describe("cross-session message exact-head evidence", () => {
       processCount: REQUIRED_PROCESS_COUNT,
       delivered: REQUIRED_PROCESS_COUNT,
       queueCapacity: 100,
+      aggregatePendingByteCaps: 1,
       receiptStatuses: ["delivered", "expired", "full", "refused"],
       idleNotifications: 1,
       offlineFalseDeliveries: 0,
@@ -48,6 +49,7 @@ describe("cross-session message exact-head evidence", () => {
       teamProcessedRecoveries: 1,
       teamPoisonDeadLetters: 1,
       teamCrossProcessRateLimits: 1,
+      teamMaxPendingBytes: 4 * 1024 * 1024,
       duplicateDeliveries: 0,
       historyLeaks: 0,
     });

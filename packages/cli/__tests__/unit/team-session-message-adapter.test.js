@@ -153,6 +153,32 @@ describe("TeamSessionMessageAdapter", () => {
     expect(peer.peek("teammate-2")).toHaveLength(2);
   });
 
+  it("preserves the legacy aggregate byte-pressure ceiling", () => {
+    const adapter = fixture({ maxTotalBytes: 4_096 });
+    let accepted = 0;
+    let failure = null;
+    for (let index = 0; index < 10; index += 1) {
+      try {
+        adapter.send({
+          from: "coordinator",
+          to: "teammate-1",
+          body: "x".repeat(1_000),
+          idempotencyKey: `bytes-${index}`,
+        });
+        accepted += 1;
+      } catch (error) {
+        failure = error;
+        break;
+      }
+    }
+    expect(accepted).toBeGreaterThan(0);
+    expect(accepted).toBeLessThan(10);
+    expect(failure).toMatchObject({
+      code: "TEAM_MAILBOX_CAPACITY_EXCEEDED",
+    });
+    expect(adapter.pressure().byteRatio).toBeLessThanOrEqual(1);
+  });
+
   it("recovers offline processing and enforces rate limits in separate processes", () => {
     const adapter = fixture({
       maxMessagesPerSenderWindow: 2,
