@@ -16,6 +16,25 @@
 
 import { emitHooksV2Event } from "../hooks-v2-producers.js";
 
+const HANDOFF_REGISTRY_METHODS = Object.freeze([
+  "offerHandoff",
+  "findHandoff",
+  "acceptHandoff",
+  "rejectHandoff",
+  "commitHandoff",
+  "revokeHandoff",
+  "expireHandoffs",
+  "pendingCommittedHandoffs",
+  "refreshCommittedHandoffLease",
+  "markHandoffStarted",
+]);
+
+function supportsCustodyHandoffs(registry) {
+  return HANDOFF_REGISTRY_METHODS.every(
+    (method) => typeof registry?.[method] === "function",
+  );
+}
+
 function leaseFencingToken(lease) {
   return lease?.fencingToken ?? lease?.leaseId ?? null;
 }
@@ -56,6 +75,11 @@ export class TeamRunner {
    */
   constructor(registry, opts = {}) {
     this.registry = registry;
+    // TeamRunner is also driven through older/durable registry adapters such
+    // as TeamDistributedQueue. Custody handoff is an optional registry
+    // capability: do not make ordinary scheduling depend on methods an adapter
+    // has not implemented; child calls on that adapter fail closed.
+    this.handoffEnabled = supportsCustodyHandoffs(registry);
     this.runTask = opts.runTask;
     this.teammates = opts.teammates > 0 ? Math.floor(opts.teammates) : 2;
     this.ttlMs = opts.ttlMs;
@@ -632,6 +656,7 @@ export class TeamRunner {
   }
 
   _expireHandoffs() {
+    if (!this.handoffEnabled) return [];
     const result = this._assertHandoffResult(
       this.registry.expireHandoffs(),
       "expire",
@@ -766,6 +791,12 @@ export class TeamRunner {
 
   /** Lease-bound state machine entry point used by the team_handoff tool. */
   requestHandoff({ action, handoffId, authority, ...args } = {}) {
+    if (!this.handoffEnabled) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_UNAVAILABLE",
+        "Task custody handoff is unavailable for this registry adapter",
+      );
+    }
     const holder = authority?.holder;
     if (!holder || !authority?.taskKey || !authority?.leaseId) {
       throw this._handoffFailure(
@@ -993,6 +1024,7 @@ export class TeamRunner {
   }
 
   _reconcileCommittedHandoffs() {
+    if (!this.handoffEnabled) return [];
     for (const pending of this.registry.pendingCommittedHandoffs()) {
       if (!this._residentHolders.has(pending.handoff.toHolder)) {
         throw this._handoffFailure(
@@ -1202,12 +1234,12 @@ export class TeamRunner {
     }
     this.sessionBudget?.start?.();
     const workers = [];
-    const requiredHandoffWorker = this.registry
-      .pendingCommittedHandoffs()
-      .reduce((maximum, pending) => {
-        const match = /^teammate-(\d+)$/u.exec(pending.handoff.toHolder);
-        return match ? Math.max(maximum, Number(match[1])) : maximum;
-      }, 0);
+    const requiredHandoffWorker = (
+      this.handoffEnabled ? this.registry.pendingCommittedHandoffs() : []
+    ).reduce((maximum, pending) => {
+      const match = /^teammate-(\d+)$/u.exec(pending.handoff.toHolder);
+      return match ? Math.max(maximum, Number(match[1])) : maximum;
+    }, 0);
     if (requiredHandoffWorker > this.teammates) {
       const error = new Error(
         `Committed handoff target requires ${requiredHandoffWorker} teammates, but this run allows ${this.teammates}`,
@@ -2248,11 +2280,13 @@ export class TeamRunner {
         ...request,
         senderAttempt: request.senderAttempt || messageAuthority(),
       });
-    const requestHandoff = (request = {}) =>
-      this.requestHandoff({
-        ...request,
-        authority: request.authority || messageAuthority(),
-      });
+    const requestHandoff = this.handoffEnabled
+      ? (request = {}) =>
+          this.requestHandoff({
+            ...request,
+            authority: request.authority || messageAuthority(),
+          })
+      : null;
     const sendMessage = (to, body, subject = null, options = {}) => {
       if (!this.mailbox) return null;
       let message;
