@@ -77,6 +77,14 @@ function makeStubMcp() {
   };
 }
 
+/** Allow the two privileged MCP hops while proving the policy is consulted. */
+function makeAllowMcpSecurityPolicy() {
+  return {
+    validateToolExecution: vi.fn().mockResolvedValue(undefined),
+    validateResourceAccess: vi.fn(() => ({ permitted: true })),
+  };
+}
+
 /** Build a stub UKeyManager surface enough for ukey.sign. */
 function makeStubUkey() {
   return {
@@ -192,6 +200,7 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
   let handle = null;
   let ws = null;
   const stubMcp = makeStubMcp();
+  const stubMcpSecurityPolicy = makeAllowMcpSecurityPolicy();
   const stubLlm = makeStubLlm();
   const stubUkey = makeStubUkey();
 
@@ -201,6 +210,7 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
       httpPort: 0,
       wsPort: 0,
       mcpManager: stubMcp,
+      mcpSecurityPolicy: stubMcpSecurityPolicy,
       llmManager: stubLlm,
       ukeyManager: stubUkey,
       // mainWindow null is OK for these topics — only fs.* dialogs need it.
@@ -260,6 +270,11 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
     expect(stubMcp.callTool).toHaveBeenCalledWith("filesystem", "read_file", {
       path: "/tmp/foo",
     });
+    expect(stubMcpSecurityPolicy.validateToolExecution).toHaveBeenCalledWith(
+      "filesystem",
+      "read_file",
+      { path: "/tmp/foo" },
+    );
   });
 
   it("mcp.list_resources + mcp.read_resource round-trip", async () => {
@@ -278,6 +293,10 @@ describe("web-shell integration — all 5 topics over a real WS hop", () => {
     });
     expect(read.ok).toBe(true);
     expect(read.result.contents[0].text).toContain("read file:///tmp/x.txt");
+    expect(stubMcpSecurityPolicy.validateResourceAccess).toHaveBeenCalledWith(
+      "filesystem",
+      "file:///tmp/x.txt",
+    );
   });
 
   it("mcp.call_tool with missing toolName returns ok:false envelope", async () => {
