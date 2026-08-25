@@ -101,6 +101,24 @@ describe("verified npm release provenance", () => {
     });
   });
 
+  it("verifies another package published by the same trusted workflow", () => {
+    const packageName = "@chainlesschain/agent-sdk";
+    const payload = statement();
+    payload.subject[0].name = `pkg:npm/%40chainlesschain/agent-sdk@${VERSION}`;
+    const value = audit(payload);
+    value.verified[0].name = packageName;
+
+    expect(
+      verifyNpmReleaseProvenance(value, {
+        packageName,
+        version: VERSION,
+        commit: COMMIT,
+        ref: REF,
+        sha512: SHA512,
+      }),
+    ).toMatchObject({ package: packageName, version: VERSION });
+  });
+
   it.each([
     [
       "package digest",

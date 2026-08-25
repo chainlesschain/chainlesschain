@@ -61,16 +61,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5 6; do
+          # PyPI's upload API can succeed before every public simple-index
+          # cache sees the new file. Keep retrying the public, cache-bypassing
+          # install for up to roughly three minutes before failing the smoke.
+          for attempt in $(seq 1 18); do
             if python -m pip install \
               --disable-pip-version-check \
               --no-deps \
+              --no-cache-dir \
               --only-binary=:all: \
               --index-url https://pypi.org/simple/ \
               "chainlesschain-agent-sdk==${SDK_VERSION}"; then
               break
             fi
-            if [[ "$attempt" == "6" ]]; then
+            if [[ "$attempt" == "18" ]]; then
               exit 1
             fi
             sleep 10

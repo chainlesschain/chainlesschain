@@ -1,11 +1,11 @@
-# CLI Runtime 当前实现核对（Agent Platform 0.166.2）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.3）
 
-> 更新时间：2026-08-25。npm `latest` 与生产推荐版为 Agent Platform `0.166.2`；公开 CLI 能力绑定不可变 tag `v-npm-0-166-2` 的精确 SHA `f868e142068c33d203601cddd7643fd8ad9c4ffb`。TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 已公开；Open VSX `0.37.66` 与 JetBrains `0.4.98` 是独立回读的市场版本。候选代码提交 `20b1bb5563` 虽仍使用 `0.166.2` 包元数据，但包含尚未发布的 SessionMessageFabric，不能仅凭版本字段继承公开发布身份。
+> 更新时间：2026-08-25。npm `latest` 与生产推荐版为 Agent Platform `0.166.3`；公开 CLI 能力绑定不可变 tag `v-npm-0-166-3` 的精确 SHA `67fdfd25359b7bb6995fed1a89452bcc128daf6d`。TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 已公开；Open VSX `0.37.66` 与 JetBrains `0.4.98` 是独立回读的市场版本。
 
 ## 版本与证据边界
 
-- `0.166.2` 是当前生产推荐基线。`v-npm-0-166-2` 精确指向 `f868e142068c33d203601cddd7643fd8ad9c4ffb`；同一 SHA 的 `CLI CI` `32775668553`、`CLI Strict Sandbox` `32775668270` Linux/Windows/macOS、专用 npm 发布 `32779764184` 与独立公网回读 `32781738319` 均成功。npm 公网回读为 `latest=0.166.2`。
-- `@chainlesschain/agent-sdk@0.2.1`、`chainlesschain-agent-sdk==0.2.1` 与 `@chainlesschain/agent-protocol@0.1.1` 已公开，SDK 与 Protocol 保持独立安装和发版边界。
+- `0.166.3` 是当前生产推荐基线。`v-npm-0-166-3` 精确指向 `67fdfd25359b7bb6995fed1a89452bcc128daf6d`；同一 SHA 的 `CLI CI` `32855663231`、`CLI Strict Sandbox` `32855662747` Linux/Windows/macOS、专用 npm 发布 `32861981998` 与独立公网回读 `32864484809` 均成功。npm 公网回读为 `latest=0.166.3`。
+- `@chainlesschain/agent-sdk@0.2.2`、`chainlesschain-agent-sdk==0.2.2` 与 `@chainlesschain/agent-protocol@0.1.2` 已公开，SDK 与 Protocol 保持独立安装和发版边界。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -17,11 +17,11 @@
 - `0.166.0` 完整承接既有回环默认 Remote Control、Marketplace/Artifact/会话/MCP/沙箱契约，并新增 canonical Agent Protocol、多语言 codegen、CC App Server、统一 Agent Kernel 接入、durable Graph Kernel、Graph trace/eval、`cc exec` facade、Record & Replay 原型与 Webhook 验签。
 - `0.166.1` 协同公开 Agent SDK `0.2.1` 与 Agent Protocol `0.1.1`，继续分离 CLI、SDK、Protocol 的安装和发布证据。
 - `0.166.2` 为真实 `cc team --agent` 子进程注入宿主私有 `team_send`、`team_receive`、`team_ack`、`team_followup` 工具；TeamMailbox v3 提供稳定 consumer、至少一次投递、幂等、read/processed/dead-letter 与 `--state` checkpoint。桥接调用重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。
+- `0.166.3` 公开 custody handoff、idle followup、canonical message/handoff 投影、state-backed SessionMessageFabric 与结构化 ApprovalDecision/exact grants；协议与两套 SDK 协调升级为 `0.1.2/0.2.2`。
 - `cc serve --app-server` 以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
 - IDE 当前公开版本为 Open VSX `0.37.66` 与 JetBrains `0.4.98`，且已完成发布后回读；双端新增无内容 TeamMailbox v3 健康投影。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
-- CLI/SDK/Protocol `0.166.2/0.2.1/0.1.1` 的发布门已经完成；这不等于候选代码 `20b1bb5563` 的 custody handoff / SessionMessageFabric 已发布，也不替代 Desktop、Cowork、Scheduler、生产 relay、跨宿主和签名 native 验收。
-- 未发布候选把 state-backed Team 消息迁移到 companion `SessionMessageFabric`，覆盖 legacy v3 迁移、offline/online、跨进程 rate limit、单 revision audit、processed-before-ACK、poison dead letter 与锁内 4 MiB pending byte cap；必须绑定后续 exact-SHA 发布门后才能升级为公开契约。
+- CLI/SDK/Protocol `0.166.3/0.2.2/0.1.2` 的发布门已经完成；custody handoff、SessionMessageFabric 与结构化审批已属于公开契约，但这不替代 Desktop、Cowork、Scheduler、生产 relay、跨宿主和签名 native 验收。
 
 ## 当前边界
 
@@ -310,8 +310,8 @@ outcome-unknown dead letter
 - `TeamBudget` 同时限制 `maxTasks`、`maxTokens`、`maxUsd` 与 `maxWallMs`。启用 token/USD cap 时，usage 缺失或远端模型无法定价会失败闭合；恢复只允许收紧 cap，不能抹去已经消费的预算。
 - 本地 active wall time 不计算进程停机时间；分布式全局 wall 从第一次 acquire 开始并包含 worker 停机时间。executor 返回、checkpoint、commit 和完成发布尾部都会重新 fencing，超限后的迟到结果不能发布为成功。
 - worktree 按任务隔离并执行 prepare → persist → remove → persist 两阶段清理。崩溃后的不确定外部副作用进入交互式 adjudication；只有 dry-run、明确 `retrySafe` 或具有可接受 committed evidence 的任务才能按相应路径安全恢复。
-- `0.166.2` 的公共契约不是顶层 `cc team send` 子命令，而是仅向真实 `cc team --agent` 子进程注入的私有 `team_send|receive|ack|followup` 宿主工具。工具受 lease/fence 与 credential-capability 约束；普通 shell worker、prompt 文本和 IDE 均不获得消息 authority。
-- 候选代码 `20b1bb5563` 进一步加入 idle followup wake、custody handoff 和 SessionMessageFabric，但仍未发布；设计或 UI 不得把候选的离线/跨进程语义归因给 npm `0.166.2`。
+- `0.166.3` 的公共契约不是顶层 `cc team send` 子命令，而是仅向真实 `cc team --agent` 子进程注入的私有 `team_send|receive|ack|followup|handoff` 宿主工具。工具受 lease/fence 与 credential-capability 约束；普通 shell worker、prompt 文本和 IDE 均不获得消息 authority。
+- idle followup wake、custody handoff 和 SessionMessageFabric 已公开，但 Desktop/IDE UI 与其他产品 adapter 仍不得在 authoritative cutover 前宣称自己具有同等持久语义。
 - Agent Team checkpoint authority 当前为 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`。三平台长期 soak 使用 2 个真实 OS worker 验证跨进程 DAG、故障与恢复；它与单进程 64-worker 规模测试是两项不同证据。
 
 ### 7. Hooks 与进程生命周期
@@ -390,9 +390,9 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.2` 的精确正式发布提交为 [`f868e142068c33d203601cddd7643fd8ad9c4ffb`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)。该提交的 [CLI CI run 32775668553](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668553)、[CLI Strict Sandbox run 32775668270](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668270)、[npm publish run 32779764184](https://github.com/chainlesschain/chainlesschain/actions/runs/32779764184)与[独立回读 run 32781738319](https://github.com/chainlesschain/chainlesschain/actions/runs/32781738319)均成功；npm `latest` 已回读为 `0.166.2`。TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已公开并完成公网安装回读。
+`0.166.3` 的精确正式发布提交为 [`67fdfd25359b7bb6995fed1a89452bcc128daf6d`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d)。该提交的 [CLI CI run 32855663231](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231)、[CLI Strict Sandbox run 32855662747](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747)、[npm publish run 32861981998](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998)与[独立回读 run 32864484809](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)均成功；npm `latest` 已回读为 `0.166.3`。TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 也已公开并完成公网回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；`f868e14206` 之后的源码增量不能继承 `v-npm-0-166-2` 的发布授权，即使包元数据仍显示 `0.166.2`。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；`67fdfd2535` 之后的源码增量不能继承 `v-npm-0-166-3` 的发布授权，即使包元数据仍显示 `0.166.3`。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
 

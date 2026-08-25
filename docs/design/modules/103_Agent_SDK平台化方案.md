@@ -1,6 +1,6 @@
 # 103. Agent 平台化方案：协议、App Server 与 Graph Kernel
 
-> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；当前公开基线为 CLI `0.166.2`、Agent SDK `0.2.1`、Agent Protocol `0.1.1`（2026-08-25）。产品入口迁移、真实 provider 旅程与长期过载验证仍按独立门禁推进。
+> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；当前公开基线为 CLI `0.166.3`、Agent SDK `0.2.2`、Agent Protocol `0.1.2`（2026-08-25）。产品入口迁移、真实 provider 旅程与长期过载验证仍按独立门禁推进。
 
 ## 1. 目标
 
@@ -13,14 +13,14 @@
 
 ## 2. 发布组成
 
-| 组件                                   | 发布状态     | 角色                                                                          |
-| -------------------------------------- | ------------ | ----------------------------------------------------------------------------- |
-| `chainlesschain@0.166.2`               | npm `latest` | TeamMailbox v3、App Server、Graph Kernel、`cc exec` facade 与安全适配器        |
-| `@chainlesschain/agent-sdk@0.2.1`      | npm 公开     | `AgentSession`、`AppServerClient`、Node/browser 协议入口                      |
-| `chainlesschain-agent-sdk==0.2.1`      | PyPI 公开    | Python ≥ 3.10 异步会话客户端与生成协议类型                                    |
-| `@chainlesschain/agent-protocol@0.1.1` | npm 公开     | canonical Schema、v1 baseline、兼容性检查与多语言 codegen                     |
+| 组件                                   | 发布状态     | 角色                                                                           |
+| -------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| `chainlesschain@0.166.3`               | npm `latest` | Team/Session 消息与 custody、结构化审批、App Server、Graph Kernel 与 `cc exec` |
+| `@chainlesschain/agent-sdk@0.2.2`      | npm 公开     | `AgentSession`、`AppServerClient`、结构化审批与 Node/browser 协议入口          |
+| `chainlesschain-agent-sdk==0.2.2`      | PyPI 公开    | Python ≥ 3.10 异步会话客户端、结构化审批与生成协议类型                         |
+| `@chainlesschain/agent-protocol@0.1.2` | npm 公开     | canonical Schema、runtime validator、v1 baseline、兼容检查与多语言 codegen     |
 
-CLI `0.166.1`、Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 的不可变标签 `v-npm-0-166-1`、`python-agent-sdk-v0.2.1`、`agent-protocol-oidc-v0.1.1` 都解析到精确发布提交 `e6a830f340`；CLI `0.166.2` 的 TeamMailbox v3 发布证据另绑定 `v-npm-0-166-2@f868e14206`。
+CLI `0.166.3`、Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 的发布标签 `v-npm-0-166-3`、`python-agent-sdk-v0.2.2`、`agent-protocol-oidc-v0.1.2` 都解析到精确发布提交 `67fdfd2535`；三平台门禁、OIDC 发布和公网 provenance/readback 已闭环。
 
 ## 3. 总体架构
 
@@ -31,7 +31,7 @@ VS Code / JetBrains / Desktop / CI / custom host
         ▼                         ▼
  AgentSession                 AppServerClient
         │                         │
-        └──────── @chainlesschain/agent-sdk 0.2.1 ────────┐
+        └──────── @chainlesschain/agent-sdk 0.2.2 ────────┐
                                                           │ generated types
 packages/agent-protocol                                   │
   schema/cc-agent-protocol.schema.json                    │

@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（Agent Platform 0.166.2）
+# CLI Runtime 当前实现（Agent Platform 0.166.3）
 
-> 更新时间：2026-08-25。npm `latest` 与生产推荐版为 Agent Platform `0.166.2`。稳定能力以不可变 tag `v-npm-0-166-2` 的精确 SHA [`f868e14206`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb) 为准；TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 已公开。Open VSX `0.37.66` 与 JetBrains `0.4.98` 是独立回读的市场版本。候选代码 `20b1bb5563` 虽仍使用 `0.166.2` 元数据，但其 SessionMessageFabric 改动尚未发布。
+> 更新时间：2026-08-25。npm `latest` 与生产推荐版为 Agent Platform `0.166.3`。稳定能力以不可变 tag `v-npm-0-166-3` 的精确 SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 为准；TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 已公开。Open VSX `0.37.66` 与 JetBrains `0.4.98` 是独立回读的市场版本。
 
 ## 概述
 
@@ -8,29 +8,29 @@
 
 ## 安装版本怎么选
 
-| 用途                | 版本                                                         | 说明                                                                                               |
-| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.166.2`                                                    | `v-npm-0-166-2` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`        | `0.166.2`                                                    | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
-| Agent SDK / Protocol| SDK `0.2.1` / Protocol `0.1.1`                               | npm/PyPI 均已公开并完成安装回读                                                                    |
-| IDE 工作台          | CLI `0.166.2` + VS Code `0.37.66` / JetBrains `0.4.98`       | 双市场公开版本保持独立回读                                                                         |
-| Agent Platform      | CLI `0.166.2`                                                | TeamMailbox v3、canonical Protocol、App Server、Agent/Graph Kernel 已发布                           |
-| 独立发行边界        | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                                  |
+| 用途                 | 版本                                                         | 说明                                                                                               |
+| -------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用  | `0.166.3`                                                    | `v-npm-0-166-3` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`         | `0.166.3`                                                    | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
+| Agent SDK / Protocol | SDK `0.2.2` / Protocol `0.1.2`                               | npm/PyPI 均已公开并完成安装回读                                                                    |
+| IDE 工作台           | CLI `0.166.3` + VS Code `0.37.66` / JetBrains `0.4.98`       | 双市场公开版本保持独立回读                                                                         |
+| Agent Platform       | CLI `0.166.3`                                                | TeamMailbox/SessionMessageFabric、结构化审批、App Server、Agent/Graph Kernel 已发布                |
+| 独立发行边界         | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                                  |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.166.2
+npm i -g chainlesschain@0.166.3
 ```
 
-已安装旧版的用户可固定升级到 `0.166.2`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.1`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.1`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.1`；三者与 CLI 独立安装和发版。
+已安装旧版的用户可固定升级到 `0.166.3`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.2`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.2`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.2`；三者与 CLI 独立安装和发版。
 
 ## 核心特性
 
 - `cc serve --app-server`：启动 stdio JSON-RPC 产品集成入口，提供 Thread/Turn/Item、结构化审批、耐久 rollout、fork、恢复和有界背压。
 - Agent Kernel：`agent`、`exec`、SDK stream、WebSocket、UI 与 App Server 复用模型/工具循环、权限、沙箱、预算、中断和有界 cleanup。
 - `cc team graph inspect|diff|eval`：只读 GraphRun 投影、时间旅行、阻塞根因、差异和 CI 阈值门；敏感正文默认不输出。
-- Agent Protocol `0.1.1` / SDK `0.2.1`：canonical Schema 生成 TypeScript、Python、Kotlin、Swift 绑定，TypeScript `AppServerClient` 负责 stdio 宿主接入。
+- Agent Protocol `0.1.2` / SDK `0.2.2`：canonical Schema 生成 TypeScript、Python、Kotlin、Swift 绑定与 runtime validator，TypeScript `AppServerClient` 负责 stdio 宿主接入。
 - TeamMailbox v3：真实 `cc team --agent` 子进程获得私有 `team_send|receive|ack|followup` 宿主工具；普通 shell worker、prompt 文本和 IDE 不获得消息 authority。
 - `cc agent --bg`：后台启动长任务，返回可持久化的会话 ID。
 - `cc attach <id>`：通过本机控制通道继续提问、停止或查看后台 Agent；通道不可用时自动改为日志跟随。
@@ -76,7 +76,8 @@ npm i -g chainlesschain@0.166.2
 - `0.165.8@28f92564f5`：完整承接 `0.165.6`，并修正 Agent SDK 发布门的运行目录隔离：模拟 OS HOME、`CHAINLESSCHAIN_HOME`、工作区与安全锚点分离，使生产 fail-closed 权限路径在真实 CLI 测试中得到验证。`0.165.7` 未发布。
 - `0.166.0@40354eb432`：Agent Platform 正式发布 canonical Protocol/codegen、CC App Server、Agent Kernel adapter、durable Graph Kernel、Graph trace/eval、受治理 `cc exec` facade、Record & Replay 原型和签名 Webhook 边界。SDK/CLI 发布不代表全部 Desktop/IDE adapter cutover 或 Graph 唯一 writer 已完成。
 - `0.166.1`：协同公开 Agent SDK `0.2.1` 与 Agent Protocol `0.1.1`，保持 CLI、SDK、Protocol 的独立发布证据。
-- `0.166.2@f868e14206`：真实 team agent 公开私有 send/receive/ack/followup 宿主工具；TeamMailbox v3 提供稳定 consumer、至少一次投递、幂等、read/processed/dead-letter 与 checkpoint。候选代码 `20b1bb5563` 的 custody handoff / SessionMessageFabric 仍未发布。
+- `0.166.2@f868e14206`：真实 team agent 公开私有 send/receive/ack/followup 宿主工具；TeamMailbox v3 提供稳定 consumer、至少一次投递、幂等、read/processed/dead-letter 与 checkpoint。
+- `0.166.3@67fdfd2535`：公开 custody handoff、idle followup、canonical message/handoff 投影、SessionMessageFabric 与结构化审批/exact grants；协议与 TS/Python SDK 协调升级到 `0.1.2/0.2.2`。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -332,7 +333,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.66`，JetBrains Marketplace 当前公开 `0.4.98`。生产建议搭配 CLI `0.166.2`：
+Open VSX 当前公开 VS Code `0.37.66`，JetBrains Marketplace 当前公开 `0.4.98`。生产建议搭配 CLI `0.166.3`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -450,7 +451,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.2` 的权威发布提交为 [`f868e142068c33d203601cddd7643fd8ad9c4ffb`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668553)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668270)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32779764184)与[独立回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32781738319)均成功；npm 公网回读为 `latest=0.166.2`。TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已公开。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
+`0.166.3` 的权威发布提交为 [`67fdfd25359b7bb6995fed1a89452bcc128daf6d`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998)与[独立回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)均成功；npm 公网回读为 `latest=0.166.3`。TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 也已公开。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和后续源码门只能补充，不能替代发布授权。
 
 ## 相关文档
 

@@ -169,6 +169,16 @@ describe("CLI release workflow contracts", () => {
     );
     expect(text).toContain("Verify published CLI npm provenance");
     expect(text).toContain(
+      "Verify published Agent SDK registry bytes and npm provenance",
+    );
+    expect(text).toContain(
+      "if: steps.agent-sdk-publish.outputs.published == 'true'",
+    );
+    expect(text).toContain(
+      '"$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"',
+    );
+    expect(text).toContain("agent-sdk-npm-provenance.json");
+    expect(text).toContain(
       "npm audit signatures --include-attestations --json",
     );
     expect(text).toContain("verify-npm-release-provenance.mjs");
@@ -226,15 +236,23 @@ describe("CLI release workflow contracts", () => {
     expect(generic).not.toContain('- "v*"');
     expect(generic).toContain('[ "$pkg_dir" = "cli" ]');
     expect(generic).toContain('[ "$PKG_NAME" = "chainlesschain" ]');
+    expect(generic).toContain('[ "$pkg_dir" = "agent-sdk" ]');
+    expect(generic).toContain('[ "$PKG_NAME" = "@chainlesschain/agent-sdk" ]');
+    expect(detector).toContain('"@chainlesschain/agent-sdk",');
     expect(detector).toContain(
-      'const PROTECTED_PACKAGE_NAMES = new Set(["chainlesschain"]);',
+      'const PROTECTED_PACKAGE_DIRS = new Set(["cli", "agent-sdk"]);',
     );
     expect(detector).toContain(
-      'const PROTECTED_PACKAGE_DIRS = new Set(["cli"]);',
+      "must use the dedicated exact-SHA CLI/Agent SDK release workflow",
     );
-    expect(detector).toContain(
-      "must use the dedicated exact-SHA CLI release workflow",
-    );
+  });
+
+  it("allows PyPI's public index to converge before failing release smoke", () => {
+    const smoke = workflow("python-agent-sdk-pypi-smoke.yml");
+    expect(smoke).toContain("timeout-minutes: 10");
+    expect(smoke).toContain("for attempt in $(seq 1 18)");
+    expect(smoke).toContain("--no-cache-dir");
+    expect(smoke).toContain('if [[ "$attempt" == "18" ]]');
   });
 
   it("makes product releases consume, never create, an authorized CLI release", () => {
@@ -306,7 +324,7 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
-  it("excludes the CLI from generic tag detection and rejects explicit selection", () => {
+  it("excludes the CLI and Agent SDK from generic publishing", () => {
     const tempRoot = fs.realpathSync.native(
       fs.mkdtempSync(path.join(os.tmpdir(), "cc-generic-publish-")),
     );
@@ -314,9 +332,11 @@ describe("CLI release workflow contracts", () => {
     try {
       const scriptDir = path.join(tempRoot, "scripts", "ci");
       const cliDir = path.join(tempRoot, "packages", "cli");
+      const agentSdkDir = path.join(tempRoot, "packages", "agent-sdk");
       const coreDir = path.join(tempRoot, "packages", "core-env");
       fs.mkdirSync(scriptDir, { recursive: true });
       fs.mkdirSync(cliDir, { recursive: true });
+      fs.mkdirSync(agentSdkDir, { recursive: true });
       fs.mkdirSync(coreDir, { recursive: true });
       fs.copyFileSync(
         path.join(
@@ -330,6 +350,13 @@ describe("CLI release workflow contracts", () => {
       fs.writeFileSync(
         path.join(cliDir, "package.json"),
         JSON.stringify({ name: "chainlesschain", version: "9.9.9" }),
+      );
+      fs.writeFileSync(
+        path.join(agentSdkDir, "package.json"),
+        JSON.stringify({
+          name: "@chainlesschain/agent-sdk",
+          version: "9.9.9",
+        }),
       );
       fs.writeFileSync(
         path.join(coreDir, "package.json"),
@@ -351,21 +378,27 @@ describe("CLI release workflow contracts", () => {
         fs.readFileSync(path.join(tempRoot, ".publish-order.txt"), "utf8"),
       ).toBe("core-env\n");
       expect(tagRun.stdout).not.toContain("chainlesschain@9.9.9");
+      expect(tagRun.stdout).not.toContain("@chainlesschain/agent-sdk@9.9.9");
 
-      const explicitRun = spawnSync(process.execPath, [script], {
-        cwd: tempRoot,
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          GITHUB_REF: "refs/heads/main",
-          GITHUB_OUTPUT: path.join(tempRoot, "manual-output.txt"),
-          INPUT_VERSION: "chainlesschain@9.9.9",
-        },
-      });
-      expect(explicitRun.status).toBe(1);
-      expect(explicitRun.stderr).toContain(
-        "must use the dedicated exact-SHA CLI release workflow",
-      );
+      for (const [index, requested] of [
+        "chainlesschain@9.9.9",
+        "@chainlesschain/agent-sdk@9.9.9",
+      ].entries()) {
+        const explicitRun = spawnSync(process.execPath, [script], {
+          cwd: tempRoot,
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            GITHUB_REF: "refs/heads/main",
+            GITHUB_OUTPUT: path.join(tempRoot, `manual-output-${index}.txt`),
+            INPUT_VERSION: requested,
+          },
+        });
+        expect(explicitRun.status, requested).toBe(1);
+        expect(explicitRun.stderr, requested).toContain(
+          "must use the dedicated exact-SHA CLI/Agent SDK release workflow",
+        );
+      }
     } finally {
       fs.rmSync(tempRoot, { recursive: true, force: true });
     }

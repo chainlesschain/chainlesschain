@@ -2,34 +2,34 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.2`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.3`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.2 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.3 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-25 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.2 / Agent SDK 0.2.1 / PDH 0.4.59**
+## 2026-08-25 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.166.2` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-2` 精确指向提交 [`f868e14206`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668553)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668270)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32779764184)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32781738319)均成功；npm registry 已回读 `latest=0.166.2`。
+> **发布口径**：`chainlesschain@0.166.3` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-3` 精确指向提交 [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)均成功；npm registry 已回读 `latest=0.166.3`。
 >
-> **Agent Platform 0.166.2**：真实 `cc team --agent` 子进程新增宿主私有工具 `team_send`、`team_receive`、`team_ack`、`team_followup`。TeamMailbox v3 提供稳定 consumer、至少一次投递、幂等键、read/processed/dead-letter 状态和 `--state` checkpoint；桥接层每次调用均重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。既有 canonical Protocol、CC App Server、Agent Kernel 与 Graph Kernel 契约继续保持。
+> **Agent Platform 0.166.3**：在 TeamMailbox v3 基础上公开 idle followup 新 turn、canonical message/handoff 投影、custody handoff 状态机与 state-backed `SessionMessageFabric`；同时加入 schema-derived 结构化审批、exact turn/session grants 和持久 authority-event 恢复。真实 child 工具仍由宿主私有注入并在每次调用时重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。
 >
-> **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.1`、PyPI `chainlesschain-agent-sdk==0.2.1` 与 npm `@chainlesschain/agent-protocol@0.1.1` 已公开；SDK 保持有界 `AppServerClient` 和生成协议类型，并与 CLI 独立安装、独立发版。
+> **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.2`、PyPI `chainlesschain-agent-sdk==0.2.2` 与 npm `@chainlesschain/agent-protocol@0.1.2` 已公开；SDK 新增 canonical ApprovalDecision/binding/requested-permissions 回调，保留 N-1 boolean wire 兼容，并与 CLI 独立安装、独立发版。
 >
 > **安全与体验修复**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合；shell、MCP、IPFS 与 Agent Network 的执行/密钥边界进一步收紧，Web Panel 可展示结构化 MCP 工具；Windows REPL 在建议交互后保留 IME 状态。
 >
 > **IDE 发布状态**：Open VSX `0.37.66` 与 JetBrains Marketplace `0.4.98` 已公开并完成发布后回读。双端新增无消息内容的 TeamMailbox v3 健康投影，只显示计数、最旧消息年龄、dead-letter 数量和有界状态；subject/body/digest、consumer key、失败原因、凭据及 attempt binding 均不进入 IDE。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名仍未配置。
 >
-> **发布与源码边界**：候选代码提交 `20b1bb5563` 在相同包版本元数据下继续实现 custody handoff 与 companion `SessionMessageFabric`（legacy v3 迁移、离线/在线恢复、跨进程限流、processed-before-ACK、poison dead-letter、4 MiB pending 上限），但尚未完成该精确提交的正式 npm 发布闭环，因此仍是**未发布候选**，不能写成 `0.166.2` 的公开契约。Desktop、Cowork、Scheduler、生产 relay、签名 native 与跨宿主验收仍按独立证据判断。
+> **发布与源码边界**：`67fdfd2535` 已把 custody handoff、companion `SessionMessageFabric` 与结构化审批纳入公开包，并完成精确 SHA 发布闭环；Desktop、Cowork、Scheduler 的 authoritative adapter 切换、生产 relay、签名 native、跨宿主与真实 provider/长时 soak 验收仍按独立证据判断，不能由 npm 发包自动推定完成。
 >
 > **原生与长期证据边界**：npm 发布不等于 Desktop/native 签名发行。72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据，以及 Linux/Windows/macOS 签名、notarization/updater 与公开 fresh install/upgrade/rollback 回读仍未全部闭环；25 个兼容 alias 因缺少代表性遥测继续保留。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **发布链闭环**：`0.166.2` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与 registry 回读已闭环；TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已完成发布与公网安装回读。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
+> **发布链闭环**：`0.166.3` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环；TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 也已完成 OIDC 发布与公网回读。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
 >
 > 详见 [Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[CC App Server](docs-site/docs/chainlesschain/cli-app-server.md)、[Agent Kernel](docs-site/docs/chainlesschain/cli-agent-kernel.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Agent 平台设计](docs/design/modules/103_Agent_SDK平台化方案.md)、[App Server 设计](docs/design/modules/104_CC_App_Server设计.md)、[Agent Kernel 设计](docs/design/modules/106_Agent_Kernel设计.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)及[更新日志](CHANGELOG.md)。
 
@@ -1851,14 +1851,14 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 收口跨链桥设计 §11 + 联邦治理 v0.2 §11 列出的全部可做项（链上锚定阻塞 Q-COMP-3、真实 RPC 适配器需 desktop 大工程，此两项继续保留）：
 
-| Wave                                            | 模块                                    | 内容                                                                                                                                                                                                                                        |
+| Wave | 模块 | 内容 |
 | ----------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation 互信（v0.3 #1）         | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate`                                                 |
-| **A2** 离线审计第三方接口（v0.3 #3）            | 同上 lib                                | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
-| **B1** 多跳桥（bridge §11 #3）                  | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch（bridge §11 #4）         | 同上                                    | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                             |
-| **B3** SLA Manager 集成（bridge §11 #6）        | 同上                                    | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla`                                                                                                  |
-| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab                    | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana                                                                            |
+| **A1** Cross-federation 互信（v0.3 #1） | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate` |
+| **A2** 离线审计第三方接口（v0.3 #3） | 同上 lib | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
+| **B1** 多跳桥（bridge §11 #3） | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch（bridge §11 #4） | 同上 | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
+| **B3** SLA Manager 集成（bridge §11 #6） | 同上 | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla` |
+| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana |
 
 **累计测试**：core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 全绿**。
 
@@ -1962,15 +1962,15 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 落地两份治理 / 跨链设计文档（关闭 §12 已知限制 #2/#6）+ `cc crosschain mtc-*` 一组新子命令，让现有桥流程能 opt-in 写 MTC envelope：
 
-| 模块                        | 内容                                                                                                                                                                                                              |
+| 模块 | 内容 |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 设计文档 — 联邦治理 v1      | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
-| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship)             |
-| CLI lib                     | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
-| 4 个新子命令                | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                   |
-| `--mtc` opt-in flag         | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
-| Bug fix                     | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB                                                                       |
-| core-mtc 改动               | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit）                                                                                                                                           |
+| 设计文档 — 联邦治理 v1 | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
+| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship) |
+| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
+| 4 个新子命令 | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
+| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
+| Bug fix | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB |
+| core-mtc 改动 | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit） |
 
 **累计测试**：lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + 既有 cross-chain 83 = **342 测试全绿**，覆盖 unit / integration / e2e 三层 + 跨进程独立验证。
 
@@ -2564,12 +2564,12 @@ Electron 桌面端 `/v2` 路由上线**对话优先 + 插件化平台**新壳，
 
 新命令树：`cowork {debate|compare|analyze|template|cron|workflow|share|learning|status}`。全部 headless，`_deps` 注入模式保证可测，统一持久化到 `.chainlesschain/cowork/*.jsonl`。
 
-| 层       | 范围                                                                                                                                    | 通过        |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 单元     | `cowork-learning.test.js` / `cowork-workflow.test.js` / `cowork-share.test.js`                                                          | `57/57`     |
+| 层       | 范围                                                                                                                                   | 通过        |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 单元     | `cowork-learning.test.js` / `cowork-workflow.test.js` / `cowork-share.test.js`                                                         | `57/57`     |
 | 集成     | `cowork-evolution-workflow.test.js`（mkdtemp 真 fs，覆盖 marketplace↔registry / share 往返 / learning 真 JSONL / workflow e2e / cron） | `12/12`     |
-| E2E      | `cowork-evolution-commands.test.js`（spawn CLI 真二进制，learning/workflow/share 全子命令 + 错误路径）                                  | `14/14`     |
-| **小计** | **3 个新模块 + 2 个测试文件**                                                                                                           | **`83/83`** |
+| E2E      | `cowork-evolution-commands.test.js`（spawn CLI 真二进制，learning/workflow/share 全子命令 + 错误路径）                                 | `14/14`     |
+| **小计** | **3 个新模块 + 2 个测试文件**                                                                                                          | **`83/83`** |
 
 累计 cowork 测试 168（既有 template-marketplace 17 + cron 31 + task-runner 63 + 本次新增 57）。版本号 `packages/cli/package.json` 升到 `0.46.0`。
 
@@ -2797,7 +2797,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.2-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.3-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**

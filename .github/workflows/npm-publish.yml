@@ -435,18 +435,82 @@ jobs:
       # the TS source), so order relative to the CLI is free. Added 2026-07-09
       # (platform phase 3 first publish).
       - name: "Publish @chainlesschain/agent-sdk"
+        id: agent-sdk-publish
         working-directory: packages/agent-sdk
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/agent-sdk@$PKG_VER"
           if npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
+            echo "published=false" >> "$GITHUB_OUTPUT"
           else
             npm install --no-audit --no-fund
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            echo "published=true" >> "$GITHUB_OUTPUT"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify published Agent SDK registry bytes and npm provenance
+        if: steps.agent-sdk-publish.outputs.published == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_NAME="@chainlesschain/agent-sdk"
+          SDK_VERSION=$(node -p "require('./packages/agent-sdk/package.json').version")
+          CLI_VERSION="${{ steps.version.outputs.VERSION }}"
+          EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          READBACK_ROOT=$(mktemp -d)
+          trap 'rm -rf "$READBACK_ROOT"' EXIT
+
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "$SDK_NAME@$SDK_VERSION" --pack-destination "$READBACK_ROOT" \
+              >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then
+              REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-agent-sdk-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose $SDK_NAME@$SDK_VERSION after 30 attempts" >&2
+              cat "$READBACK_ROOT/npm-pack.err" >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed $SDK_NAME@$SDK_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
+          SDK_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+
+          AUDIT_ROOT="$READBACK_ROOT/audit"
+          mkdir -p "$AUDIT_ROOT"
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "$SDK_NAME@$SDK_VERSION"
+          )
+          VERIFIED=false
+          for ATTEMPT in {1..30}; do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/agent-sdk-npm-provenance.json \
+              node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                "$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"; then
+              VERIFIED=true
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "npm did not expose valid signed provenance for $SDK_NAME@$SDK_VERSION after 30 attempts" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for $SDK_NAME@$SDK_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
 
       # Personal Data Hub — must publish before CLI: CLI's package.json pins
       # a fixed version of this package, so a same-day CLI bump expects the
@@ -546,6 +610,7 @@ jobs:
           path: |
             release-artifacts/chainlesschain-release.json
             release-artifacts/chainlesschain-npm-provenance.json
+            release-artifacts/agent-sdk-npm-provenance.json
           if-no-files-found: error
           retention-days: 90
 

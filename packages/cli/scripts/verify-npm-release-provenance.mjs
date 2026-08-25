@@ -77,6 +77,17 @@ function escapedRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
+function npmPackagePurlName(packageName) {
+  if (!packageName.startsWith("@")) {
+    return encodeURIComponent(packageName);
+  }
+  const separator = packageName.indexOf("/");
+  if (separator <= 1 || separator === packageName.length - 1) {
+    throw new Error("scoped npm package name is malformed");
+  }
+  return `${encodeURIComponent(packageName.slice(0, separator))}/${encodeURIComponent(packageName.slice(separator + 1))}`;
+}
+
 /**
  * Consume only entries that npm itself placed in `verified` after
  * `npm audit signatures --include-attestations`. The Sigstore verification is
@@ -158,7 +169,7 @@ export function verifyNpmReleaseProvenance(audit, expected) {
   const subject = statement.subject[0];
   assertExact(
     subject?.name,
-    `pkg:npm/${packageName}@${version}`,
+    `pkg:npm/${npmPackagePurlName(packageName)}@${version}`,
     "SLSA package subject",
   );
   assertExact(
@@ -260,7 +271,7 @@ function readAudit(file) {
 }
 
 async function main() {
-  const [auditPath, version, commit, ref, sha512, ...extra] =
+  const [auditPath, version, commit, ref, sha512, packageName, ...extra] =
     process.argv.slice(2);
   if (
     !auditPath ||
@@ -271,10 +282,11 @@ async function main() {
     extra.length > 0
   ) {
     throw new Error(
-      "usage: verify-npm-release-provenance.mjs <npm-audit.json> <version> <commit> <ref> <sha512>",
+      "usage: verify-npm-release-provenance.mjs <npm-audit.json> <version> <commit> <ref> <sha512> [package-name]",
     );
   }
   const result = verifyNpmReleaseProvenance(readAudit(auditPath), {
+    packageName,
     version,
     commit,
     ref,
