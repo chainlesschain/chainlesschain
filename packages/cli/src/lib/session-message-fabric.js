@@ -38,6 +38,9 @@ export const SESSION_MESSAGE_RECEIPT_STATUSES = Object.freeze([
   "full",
   "rate_limited",
   "expired",
+  "read",
+  "processed",
+  "dead_letter",
 ]);
 
 export const SESSION_MESSAGE_FABRIC_LIMITS = Object.freeze({
@@ -62,9 +65,21 @@ export const SESSION_MESSAGE_FABRIC_ERROR_CODES = Object.freeze({
 });
 
 const PENDING_STATUSES = new Set(["held", "delivered"]);
+const MESSAGE_STATUSES = new Set([
+  "delivered",
+  "held",
+  "refused",
+  "full",
+  "rate_limited",
+  "expired",
+]);
+const PROCESSING_STATUSES = new Set(["read", "processed", "dead_letter"]);
+const TERMINAL_PROCESSING_STATUSES = new Set(["processed", "dead_letter"]);
 const RECEIPT_STATUSES = new Set(SESSION_MESSAGE_RECEIPT_STATUSES);
 const POLICIES = new Set(SESSION_MESSAGE_POLICIES);
 const NAME_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+// Bounded ids explicitly reject ASCII control characters.
+// eslint-disable-next-line no-control-regex
 const ID_PATTERN = /^[^\u0000-\u001f\u007f]{1,256}$/u;
 const MESSAGE_ID_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/u;
 
@@ -324,6 +339,11 @@ function updateReceipt(state, message, status, reason, now) {
       updatedAt: now,
       idleNotifiedAt: null,
       readAt: null,
+      processedAt: null,
+      deadLetteredAt: null,
+      deliveryCount: 0,
+      consumerKey: null,
+      recipientAttempt: null,
     };
     state.receipts.push(receipt);
   } else {
@@ -402,6 +422,7 @@ function compactSettledMessages(state) {
   state.messages = state.messages.filter((message) => {
     if (!PENDING_STATUSES.has(message.status)) return false;
     if (message.acknowledgedAt == null) return true;
+    if (message.retainAfterAck === true) return true;
     if (message.notifyWhenIdle !== true) return false;
     const receipt = receiptFor(
       state,
@@ -411,6 +432,30 @@ function compactSettledMessages(state) {
     return receipt?.idleNotifiedAt == null;
   });
   return state.messages.length !== before;
+}
+
+function trimRetainedSettledMessages(state, limit) {
+  const retained = state.messages
+    .filter(
+      (message) =>
+        message.retainAfterAck === true && message.acknowledgedAt != null,
+    )
+    .sort(
+      (left, right) =>
+        left.acknowledgedAt - right.acknowledgedAt ||
+        left.createdAt - right.createdAt ||
+        left.messageId.localeCompare(right.messageId),
+    );
+  let changed = false;
+  while (retained.length > limit) {
+    const target = retained.shift();
+    const index = state.messages.indexOf(target);
+    if (index >= 0) {
+      state.messages.splice(index, 1);
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 function applyExpectedMessage(state, channel, message, recipient, now) {
@@ -556,7 +601,7 @@ function validateState(state) {
       !MESSAGE_ID_PATTERN.test(message?.messageId || "") ||
       !Number.isSafeInteger(message?.sequence) ||
       message.sequence < 1 ||
-      !RECEIPT_STATUSES.has(message?.status) ||
+      !MESSAGE_STATUSES.has(message?.status) ||
       !channelIds.has(message?.channelId) ||
       typeof message?.payloadDigest !== "string"
     ) {
@@ -571,6 +616,13 @@ function validateState(state) {
       typeof receipt?.payloadDigest !== "string"
     ) {
       fail("invalid receipt");
+    }
+    if (
+      receipt.deliveryCount != null &&
+      (!Number.isSafeInteger(receipt.deliveryCount) ||
+        receipt.deliveryCount < 0)
+    ) {
+      fail("invalid receipt delivery count");
     }
   }
   const bucketAuthorities = new Set();
@@ -770,6 +822,10 @@ export class SessionMessageFabric {
           );
           const outcome = mutator(state, now) || { value: undefined };
           const compacted = compactSettledMessages(state);
+          const trimmedSettled = trimRetainedSettledMessages(
+            state,
+            this._limits.maxReceiptHistory,
+          );
           const trimmed = trimReceiptHistory(
             state,
             this._limits.maxReceiptHistory,
@@ -778,6 +834,7 @@ export class SessionMessageFabric {
             swept ||
             prunedRateBuckets ||
             compacted ||
+            trimmedSettled ||
             trimmed ||
             outcome.changed === true
           ) {
@@ -985,6 +1042,7 @@ export class SessionMessageFabric {
     sequence = null,
     ttlMs = this._limits.defaultTtlMs,
     notifyWhenIdle = false,
+    retainAfterAck = false,
   } = {}) {
     const id = messageId(requestedMessageId, this._createId);
     const cleanSubject = subject == null ? null : String(subject).slice(0, 512);
@@ -1108,6 +1166,7 @@ export class SessionMessageFabric {
         status: "held",
         reason: "out_of_order",
         notifyWhenIdle: notifyWhenIdle === true,
+        retainAfterAck: retainAfterAck === true,
         createdAt: now,
         updatedAt: now,
         deliveredAt: null,
@@ -1192,6 +1251,196 @@ export class SessionMessageFabric {
         value: clone(messages),
       };
     });
+  }
+
+  /**
+   * Deliver an at-least-once batch without retiring it. This is deliberately
+   * separate from `inbox(..., { acknowledge: true })`, whose historical API
+   * means "read and remove". Processing callers must explicitly settle each
+   * message with `acknowledge()`.
+   */
+  receive(selector, { limit = 100, markRead = false } = {}) {
+    const boundedLimit = positiveInteger(limit, 100, 100);
+    return this._transaction((state, now) => {
+      const endpoint = requireEndpoint(state, selector);
+      const messages = pendingForRecipient(state, endpoint)
+        .filter((message) => message.status === "delivered")
+        .sort(
+          (left, right) =>
+            (left.senderAuthority === right.senderAuthority
+              ? left.sequence - right.sequence
+              : left.createdAt - right.createdAt) ||
+            left.senderAuthority.localeCompare(right.senderAuthority),
+        )
+        .slice(0, boundedLimit);
+      for (const message of messages) {
+        const receipt = receiptFor(
+          state,
+          message.senderAuthority,
+          message.messageId,
+        );
+        if (!receipt) continue;
+        receipt.deliveryCount = (receipt.deliveryCount || 0) + 1;
+        receipt.deliveredAt ||= message.deliveredAt || now;
+        if (markRead) {
+          receipt.status = "read";
+          receipt.readAt ||= now;
+        } else if (!PROCESSING_STATUSES.has(receipt.status)) {
+          receipt.status = "delivered";
+        }
+        receipt.updatedAt = now;
+      }
+      return {
+        changed: messages.length > 0,
+        value: clone(
+          messages.map((message) => ({
+            ...message,
+            delivery: receiptFor(
+              state,
+              message.senderAuthority,
+              message.messageId,
+            ),
+          })),
+        ),
+      };
+    });
+  }
+
+  /** Persist read/processed/dead-letter evidence for explicit physical ids. */
+  acknowledge(
+    selector,
+    {
+      messageIds = [],
+      consumerKey,
+      status = "processed",
+      reason = null,
+      recipientAttempt = null,
+    } = {},
+  ) {
+    if (
+      !Array.isArray(messageIds) ||
+      messageIds.length === 0 ||
+      messageIds.length > 100 ||
+      messageIds.some((id) => !MESSAGE_ID_PATTERN.test(String(id || ""))) ||
+      new Set(messageIds.map(String)).size !== messageIds.length
+    ) {
+      throw fabricError(
+        SESSION_MESSAGE_FABRIC_ERROR_CODES.INVALID_ARGUMENT,
+        "messageIds must contain 1-100 unique message identifiers",
+      );
+    }
+    if (!PROCESSING_STATUSES.has(status)) {
+      throw fabricError(
+        SESSION_MESSAGE_FABRIC_ERROR_CODES.INVALID_ARGUMENT,
+        "processing status must be read, processed or dead_letter",
+      );
+    }
+    const safeConsumerKey = boundedId(consumerKey, "consumerKey");
+    const safeAttempt =
+      recipientAttempt == null ? null : jsonBody(recipientAttempt).value;
+    const safeReason = String(reason || "poison_message").slice(0, 1024);
+    const ids = messageIds.map(String);
+    return this._transaction((state, now) => {
+      const endpoint = requireEndpoint(state, selector);
+      const plans = ids.map((id) => {
+        const receipt = state.receipts.find(
+          (candidate) =>
+            candidate.messageId === id &&
+            candidate.recipientAuthority === endpoint.authorityId &&
+            candidate.recipientEpoch === endpoint.epoch,
+        );
+        const message = state.messages.find(
+          (candidate) =>
+            candidate.messageId === id &&
+            candidate.recipientAuthority === endpoint.authorityId &&
+            candidate.recipientEpoch === endpoint.epoch,
+        );
+        if (
+          !receipt ||
+          (!message && !TERMINAL_PROCESSING_STATUSES.has(receipt.status))
+        ) {
+          throw fabricError(
+            SESSION_MESSAGE_FABRIC_ERROR_CODES.INVALID_ARGUMENT,
+            `message is not addressed to the active recipient: ${id}`,
+          );
+        }
+        if (TERMINAL_PROCESSING_STATUSES.has(receipt.status)) {
+          if (receipt.consumerKey !== safeConsumerKey) {
+            throw fabricError(
+              SESSION_MESSAGE_FABRIC_ERROR_CODES.MESSAGE_ID_CONFLICT,
+              `message was settled by another consumer: ${id}`,
+            );
+          }
+          if (receipt.status !== status) {
+            throw fabricError(
+              SESSION_MESSAGE_FABRIC_ERROR_CODES.MESSAGE_ID_CONFLICT,
+              `message already has terminal status ${receipt.status}: ${id}`,
+            );
+          }
+          return { receipt, message, replay: true };
+        }
+        return { receipt, message, replay: false };
+      });
+      const receipts = [];
+      for (const plan of plans) {
+        const { receipt, message, replay } = plan;
+        if (replay) {
+          receipts.push(clone(receipt));
+          continue;
+        }
+        receipt.status = status;
+        receipt.consumerKey = safeConsumerKey;
+        receipt.recipientAttempt = safeAttempt;
+        receipt.updatedAt = now;
+        if (status === "read") receipt.readAt ||= now;
+        if (status === "processed") {
+          receipt.readAt ||= now;
+          receipt.processedAt ||= now;
+          message.acknowledgedAt = now;
+        }
+        if (status === "dead_letter") {
+          receipt.deadLetteredAt ||= now;
+          receipt.reason = safeReason;
+          message.acknowledgedAt = now;
+        }
+        receipts.push(clone(receipt));
+      }
+      return { changed: plans.some((plan) => !plan.replay), value: receipts };
+    });
+  }
+
+  /** Bounded retained history for authoritative adapters and audit reducers. */
+  history() {
+    return this._transaction((state) => ({
+      value: clone(
+        state.messages.sort(
+          (left, right) =>
+            left.createdAt - right.createdAt ||
+            left.messageId.localeCompare(right.messageId),
+        ),
+      ),
+    }));
+  }
+
+  /**
+   * One-revision authority view for host adapters and deterministic reducers.
+   * Unlike a sequence of projection/history/receipt reads, this cannot combine
+   * fields from different concurrent commits.
+   */
+  auditSnapshot() {
+    return this._transaction((state) => ({
+      value: {
+        schema: SESSION_MESSAGE_FABRIC_SCHEMA,
+        version: state.version,
+        authority: "cli",
+        revision: state.revision,
+        digest: state.digest,
+        limits: clone(this._limits),
+        endpoints: clone(state.endpoints),
+        messages: clone(state.messages),
+        receipts: clone(state.receipts),
+      },
+    }));
   }
 
   receipts(selector) {

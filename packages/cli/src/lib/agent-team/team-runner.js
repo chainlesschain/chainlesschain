@@ -217,6 +217,10 @@ export class TeamRunner {
     }
     if (m.state === state) return m; // no transition
     const previousState = m.state;
+    // Durable message adapters bind online/offline admission to the same member
+    // lifecycle used by the scheduler. A running target releases held sequence;
+    // idle/shutdown targets retain it without reporting false delivery.
+    this.mailbox?.setRecipientState?.(holder, state);
     m.state = state;
     if (state === "running") {
       m.currentTaskKey = extra.key || null;

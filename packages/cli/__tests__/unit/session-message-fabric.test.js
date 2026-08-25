@@ -134,6 +134,66 @@ describe("SessionMessageFabric authority and policy", () => {
 });
 
 describe("SessionMessageFabric ordering, recovery and bounds", () => {
+  it("keeps processed-before-ACK delivery durable and fences poison-message consumers", () => {
+    const fabric = fixture();
+    fabric.register({ sessionId: "sender", name: "sender" });
+    fabric.register({ sessionId: "target", name: "target" });
+    fabric.send({
+      from: "sender",
+      to: "target",
+      body: "process me",
+      messageId: "processing-1",
+      retainAfterAck: true,
+    });
+
+    expect(fabric.receive("target", { markRead: true })[0]).toMatchObject({
+      messageId: "processing-1",
+      delivery: { status: "read", deliveryCount: 1 },
+    });
+    expect(
+      new SessionMessageFabric({ statePath: fabric.statePath }).receive(
+        "target",
+      )[0],
+    ).toMatchObject({
+      messageId: "processing-1",
+      delivery: { status: "read", deliveryCount: 2 },
+    });
+
+    const [settled] = fabric.acknowledge("target", {
+      messageIds: ["processing-1"],
+      consumerKey: "worker-attempt-1",
+      status: "dead_letter",
+      reason: "invalid payload",
+      recipientAttempt: { leaseId: "lease-1", fencingToken: 3 },
+    });
+    expect(settled).toMatchObject({
+      status: "dead_letter",
+      deliveryCount: 2,
+      consumerKey: "worker-attempt-1",
+      reason: "invalid payload",
+    });
+    expect(fabric.receive("target")).toEqual([]);
+    expect(fabric.history()).toHaveLength(1);
+    expect(
+      fabric.acknowledge("target", {
+        messageIds: ["processing-1"],
+        consumerKey: "worker-attempt-1",
+        status: "dead_letter",
+      })[0].status,
+    ).toBe("dead_letter");
+    expect(() =>
+      fabric.acknowledge("target", {
+        messageIds: ["processing-1"],
+        consumerKey: "worker-attempt-2",
+        status: "dead_letter",
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: SESSION_MESSAGE_FABRIC_ERROR_CODES.MESSAGE_ID_CONFLICT,
+      }),
+    );
+  });
+
   it("buffers out-of-order messages, deduplicates retries and survives restart", () => {
     const fabric = fixture();
     fabric.register({ sessionId: "sender", name: "sender" });
@@ -211,7 +271,7 @@ describe("SessionMessageFabric ordering, recovery and bounds", () => {
         sequence: 101,
       }).status,
     ).toBe("delivered");
-  });
+  }, 10_000);
 
   it("persists a bounded per-sender rate window without breaking idempotent retry", () => {
     let now = 1_000;

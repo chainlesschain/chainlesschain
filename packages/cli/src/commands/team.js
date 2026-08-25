@@ -24,6 +24,7 @@ import { TeamRunner } from "../lib/agent-team/team-runner.js";
 import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
 import { TeamBudget } from "../lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
+import { TeamSessionMessageAdapter } from "../lib/agent-team/team-session-message-adapter.js";
 import { TeamAgentStreamParser } from "../lib/agent-team/team-agent-stream.js";
 import { TeamMessageBridge } from "../lib/agent-team/team-message-bridge.js";
 import {
@@ -2169,8 +2170,17 @@ export function registerTeamCommand(program, { logger } = {}) {
           return;
         }
         const ttlMs = limits.ttlMs;
+        const stateId = resumeSnapshot?.stateId || `team_state_${randomUUID()}`;
+        const messageStatePath = options.state
+          ? `${options.state}.${stateId}.messages.json`
+          : null;
         let reg;
-        let mailbox = new TeamMailbox();
+        let mailbox = options.state
+          ? new TeamSessionMessageAdapter({
+              statePath: messageStatePath,
+              teamId: stateId,
+            })
+          : new TeamMailbox();
         let budget = new TeamBudget({
           maxTasks: limits.maxTasks,
           maxTokens: limits.maxTokens,
@@ -2190,7 +2200,32 @@ export function registerTeamCommand(program, { logger } = {}) {
             const isV2 = snap && snap.version >= 2 && snap.registry;
             reg = TaskLeaseRegistry.restore(isV2 ? snap.registry : snap);
             if (isV2) {
-              if (snap.mailbox) mailbox = TeamMailbox.restore(snap.mailbox);
+              if (snap.mailbox?.authority === "session-message-fabric") {
+                if (
+                  !sameFilesystemPath(
+                    path.resolve(snap.mailbox.statePath),
+                    path.resolve(messageStatePath),
+                  )
+                ) {
+                  throw new Error(
+                    "Team message authority path does not match the trusted state identity",
+                  );
+                }
+                mailbox = TeamSessionMessageAdapter.restore(snap.mailbox, {
+                  statePath: messageStatePath,
+                  teamId: stateId,
+                });
+              } else if (snap.mailbox && options.state) {
+                mailbox = TeamSessionMessageAdapter.migrateLegacy(
+                  snap.mailbox,
+                  {
+                    statePath: messageStatePath,
+                    teamId: stateId,
+                  },
+                );
+              } else if (snap.mailbox) {
+                mailbox = TeamMailbox.restore(snap.mailbox);
+              }
               budget = TeamBudget.restore(snap.budget, {
                 // Resume flags may only tighten prior caps; omitted flags keep
                 // the persisted authority.
@@ -2366,7 +2401,6 @@ export function registerTeamCommand(program, { logger } = {}) {
             );
           }
         }
-        const stateId = resumeSnapshot?.stateId || `team_state_${randomUUID()}`;
         let controlCursor = resumeSnapshot?.controlCursor || null;
         let adjudicationCursor = resumeSnapshot?.adjudicationCursor || null;
         let adjudicationRunId = resumeSnapshot?.adjudicationRunId || null;

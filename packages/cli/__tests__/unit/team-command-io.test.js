@@ -309,6 +309,14 @@ describe(
       const snap = JSON.parse(fs.readFileSync(state, "utf8"));
       expect(snap.version).toBe(6);
       expect(snap.stateId).toMatch(/^team_state_/);
+      expect(snap.mailbox).toMatchObject({
+        version: 4,
+        authority: "session-message-fabric",
+        teamId: snap.stateId,
+        fabricRevision: expect.any(Number),
+        fabricDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      });
+      expect(fs.existsSync(snap.mailbox.statePath)).toBe(true);
       expect(snap).toHaveProperty("controlCursor");
       expect(snap.adjudicationRunId).toBe(snap.collaborationRunId);
       expect(snap).toHaveProperty("adjudicationCursor");

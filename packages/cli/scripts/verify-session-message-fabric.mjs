@@ -15,12 +15,13 @@ import {
 } from "../src/lib/session-message-fabric.js";
 import { buildSessionProjection } from "../src/lib/session-projection.js";
 import { withFileLock } from "../src/lib/with-file-lock.js";
+import { TeamSessionMessageAdapter } from "../src/lib/agent-team/team-session-message-adapter.js";
 
 export const SESSION_MESSAGE_FABRIC_EVIDENCE_SCHEMA =
   "chainlesschain.claude-code-increment-audit-fragment.v1";
 export const SESSION_MESSAGE_FABRIC_AGGREGATE_SCHEMA =
   "chainlesschain.xsession-audit-aggregate.v1";
-export const SESSION_MESSAGE_FABRIC_PROFILE = "claude-2.1.224-238-xsession/v1";
+export const SESSION_MESSAGE_FABRIC_PROFILE = "claude-2.1.224-238-xsession/v2";
 export const REQUIRED_PROCESS_COUNT = 32;
 export const REQUIRED_OPERATING_SYSTEMS = Object.freeze([
   "linux",
@@ -30,6 +31,10 @@ export const REQUIRED_OPERATING_SYSTEMS = Object.freeze([
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPOSITORY_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../../..");
+const TEAM_PROCESS_FIXTURE = path.join(
+  REPOSITORY_ROOT,
+  "packages/cli/__tests__/fixtures/team-session-message-process.mjs",
+);
 const REQUIRE = createRequire(import.meta.url);
 const VSCODE_PROJECTION_PATH =
   "packages/vscode-extension/src/sessions-workbench.js";
@@ -51,6 +56,10 @@ export const REQUIRED_THRESHOLDS = Object.freeze({
 export const SOURCE_FILES = Object.freeze([
   "packages/cli/scripts/verify-session-message-fabric.mjs",
   "packages/cli/src/lib/session-message-fabric.js",
+  "packages/cli/src/lib/agent-team/team-session-message-adapter.js",
+  "packages/cli/src/lib/agent-team/team-runner.js",
+  "packages/cli/src/commands/team.js",
+  "packages/cli/__tests__/fixtures/team-session-message-process.mjs",
   "packages/cli/src/lib/session-projection.js",
   "packages/cli/src/lib/with-file-lock.js",
   VSCODE_PROJECTION_PATH,
@@ -74,6 +83,10 @@ export const TEST_IDS = Object.freeze([
   "xsession/unknown-commit-retry-idempotency",
   "xsession/registration-epoch-no-history-leak",
   "xsession/delivered-refused-full-expired-receipts",
+  "team/session-fabric-offline-process-recovery",
+  "team/session-fabric-processed-before-ack",
+  "team/session-fabric-poison-dead-letter",
+  "team/session-fabric-cross-process-rate-limit",
   "xsession/notify-when-idle-once",
   "xsession/vscode-real-projection-parser",
   "xsession/jetbrains-real-projection-parser",
@@ -684,6 +697,96 @@ async function runCrashRecoveryMatrix(directory) {
   };
 }
 
+function runTeamAdapterMatrix(directory) {
+  const statePath = path.join(directory, "team-message-state.json");
+  const teamId = "team_state_evidence";
+  const adapter = new TeamSessionMessageAdapter({
+    statePath,
+    teamId,
+    recipients: ["teammate-1", "teammate-2"],
+    maxMessagesPerSenderWindow: 2,
+    senderRateWindowMs: 60_000,
+  });
+  adapter.setRecipientState("teammate-2", "idle");
+  const offline = adapter.send({
+    from: "coordinator",
+    to: "teammate-2",
+    body: "offline recovery",
+    idempotencyKey: "evidence-offline",
+  });
+  assert.equal(adapter.peek("teammate-2").length, 0);
+  const recovered = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [TEAM_PROCESS_FIXTURE, "recover", statePath, teamId],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    ),
+  );
+  assert.deepEqual(recovered, { messages: [offline.id], pending: 0 });
+
+  const poison = adapter.send({
+    from: "coordinator",
+    to: "teammate-2",
+    body: { invalid: true },
+    idempotencyKey: "evidence-poison",
+  });
+  assert.equal(
+    adapter.receive("teammate-2", { markRead: true })[0].id,
+    poison.id,
+  );
+  adapter.acknowledge("teammate-2", {
+    messageIds: [poison.id],
+    consumerKey: "poison-evidence",
+    status: "dead_letter",
+    reason: "schema rejected",
+  });
+
+  const rateBase = {
+    from: "teammate-1",
+    to: "teammate-2",
+    senderAttempt: { taskKey: "rate-task" },
+  };
+  adapter.send({
+    ...rateBase,
+    body: "first",
+    idempotencyKey: "process-rate-1",
+  });
+  adapter.send({
+    ...rateBase,
+    body: "second",
+    idempotencyKey: "process-rate-2",
+  });
+  const limited = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [TEAM_PROCESS_FIXTURE, "rate", statePath, teamId],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    ),
+  );
+  assert.equal(limited.admitted, false);
+  assert.ok(limited.retryAfterMs > 0);
+  const snapshot = adapter.snapshot();
+  assert.ok(
+    snapshot.receipts.some(
+      ([, receipt]) =>
+        receipt.messageId === offline.id && receipt.status === "processed",
+    ),
+  );
+  assert.ok(
+    snapshot.receipts.some(
+      ([, receipt]) =>
+        receipt.messageId === poison.id && receipt.status === "dead_letter",
+    ),
+  );
+  return {
+    teamOfflineAdmissions: 1,
+    teamOfflineFalseDeliveries: 0,
+    teamProcessedRecoveries: 1,
+    teamPoisonDeadLetters: 1,
+    teamCrossProcessRateLimits: 1,
+  };
+}
+
 function runDualIdeProjectionContract(directory) {
   const projection = buildSessionProjection({
     generatedAt: "2026-08-21T00:00:00.000Z",
@@ -813,6 +916,7 @@ export async function produceSessionMessageFabricEvidence({
     const processMatrix = await runProcessMatrix(directory, processCount);
     const functional = runFunctionalMatrix(directory);
     const recovery = await runCrashRecoveryMatrix(directory);
+    const teamAdapter = runTeamAdapterMatrix(directory);
     const ideProjection = runDualIdeProjectionContract(directory);
     const evidence = {
       schema: SESSION_MESSAGE_FABRIC_EVIDENCE_SCHEMA,
@@ -830,6 +934,7 @@ export async function produceSessionMessageFabricEvidence({
         ...processMatrix,
         ...functional,
         ...recovery,
+        ...teamAdapter,
         ideProjection,
         historyLeaks: 0,
       },
@@ -919,6 +1024,10 @@ export function aggregateSessionMessageFabricEvidence({
     assert.equal(candidate.measurements.idleNotifications, 1);
     assert.equal(candidate.measurements.crashRecoveredMessages, 1);
     assert.equal(candidate.measurements.unknownCommitRetries, 1);
+    assert.equal(candidate.measurements.teamOfflineFalseDeliveries, 0);
+    assert.equal(candidate.measurements.teamProcessedRecoveries, 1);
+    assert.equal(candidate.measurements.teamPoisonDeadLetters, 1);
+    assert.equal(candidate.measurements.teamCrossProcessRateLimits, 1);
     assert.equal(candidate.measurements.ideProjection.projectionRejects, 0);
     assert.equal(candidate.measurements.ideProjection.vscode.endpoints, 1);
     assert.equal(candidate.measurements.ideProjection.jetbrains.endpoints, 1);
