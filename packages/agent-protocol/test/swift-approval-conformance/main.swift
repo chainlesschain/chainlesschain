@@ -1,6 +1,6 @@
 import Foundation
 
-private struct ApprovalFixture: Decodable {
+struct ApprovalFixture: Decodable {
     let name: String
     let valid: Bool
     let value: JSONValue
