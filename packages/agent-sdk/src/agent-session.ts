@@ -7,7 +7,9 @@
  * typed transport:
  *
  *   const session = new AgentSession({ onApproval: async (req) => ... });
- *   await session.start();
+ *   const ready = new Promise((resolve) => session.on("init", resolve));
+ *   session.start();
+ *   await ready;
  *   session.on("text", (t) => render(t));
  *   session.send("refactor foo.ts");
  *
@@ -249,7 +251,7 @@ export class AgentSession {
     }
   }
 
-  /** Spawn the CLI child. Resolves once the process is started. */
+  /** Spawn the CLI child. Listen for `init` before sending the first turn. */
   start(): void {
     if (this.child) throw new Error("AgentSession already started");
     const cliPath = this.options.cliPath || "cc";

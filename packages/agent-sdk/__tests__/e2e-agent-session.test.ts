@@ -169,6 +169,25 @@ function newSession(
   });
 }
 
+function waitForInit(session: AgentSession): Promise<SystemInitEvent> {
+  return new Promise((resolve, reject) => {
+    const onInit = (event: SystemInitEvent) => {
+      cleanup();
+      resolve(event);
+    };
+    const onExit = (code: number | null) => {
+      cleanup();
+      reject(new Error(`agent exited (code ${code}) before init`));
+    };
+    const cleanup = () => {
+      session.off("init", onInit);
+      session.off("exit", onExit);
+    };
+    session.on("init", onInit);
+    session.on("exit", onExit);
+  });
+}
+
 describe("AgentSession ↔ real cc agent (e2e)", () => {
   it("streams init/text/result, answers approvals via callback (file really written), resumes", async () => {
     // ── Turn 1: plain text turn — stream-event + result contracts ──────
@@ -193,12 +212,15 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     first.on("text", (t) => (streamedText += t));
     const stderrLines: string[] = [];
     first.on("stderr", (c) => stderrLines.push(c));
+    const firstReady = waitForInit(first);
     first.start();
+    await firstReady;
 
-    first.send("say hello");
+    const firstResult = first.nextResult();
+    expect(first.send("say hello")).toBe(true);
     let r1: ResultEvent;
     try {
-      r1 = await first.nextResult();
+      r1 = await firstResult;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const cliStderr = stderrLines.join("").trim();
@@ -218,8 +240,9 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
 
     // ── Turn 2: approval-callback contract — blocked Write really lands ─
     const targetFile = join(workspace, "sdk-e2e-approved.txt");
-    first.send(`please write the file TARGET:${targetFile}`);
-    const r2 = await first.nextResult();
+    const secondResult = first.nextResult();
+    expect(first.send(`please write the file TARGET:${targetFile}`)).toBe(true);
+    const r2 = await secondResult;
     expect(approvals).toContain("write_file");
     expect(r2.is_error).toBe(false);
     expect(existsSync(targetFile)).toBe(true);
@@ -234,9 +257,12 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     const second = newSession({ resume: sessionId as string });
     const resumedInits: SystemInitEvent[] = [];
     second.on("init", (e) => resumedInits.push(e));
+    const secondReady = waitForInit(second);
     second.start();
-    second.send("and again");
-    const r3 = await second.nextResult();
+    await secondReady;
+    const resumedResult = second.nextResult();
+    expect(second.send("and again")).toBe(true);
+    const r3 = await resumedResult;
     expect(r3.is_error).toBe(false);
     expect(resumedInits.length).toBe(1);
     expect(resumedInits[0].session_id).toBe(sessionId);

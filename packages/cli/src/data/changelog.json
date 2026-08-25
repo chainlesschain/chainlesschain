@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.3",
+      "cliVersions": ["0.1.2", "0.2.2", "0.166.2", "0.166.3"],
+      "date": "2026-08-25",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.3 + Agent Protocol 0.1.2 + Agent SDKs 0.2.2: scoped approvals and durable team authority",
+          "body": "> `chainlesschain` **0.166.2 -> 0.166.3**,\n> `@chainlesschain/agent-protocol` **0.1.1 -> 0.1.2**,\n> `@chainlesschain/agent-sdk` **0.2.1 -> 0.2.2**, and\n> `chainlesschain-agent-sdk` **0.2.1 -> 0.2.2** (release candidate,\n> 2026-08-25).\n\n- **Canonical approval contract**: the protocol package exports schema-derived\n  JavaScript validators and deterministic TypeScript/Python bindings for\n  `acceptOnce`, `acceptForTurn`, `acceptForSession`, `decline`, and `cancel`.\n  Shared valid/invalid fixtures keep the protocol, both SDKs, and CLI App\n  Server on one wire contract.\n- **Fail-closed, exactly scoped grants**: approval responses bind the request,\n  requested permission, tool, arguments, working directory, and policy digest.\n  Turn grants stay in memory; session grants become effective only after a\n  tamper-evident authority event is persisted and verified. Expired, corrupt,\n  mismatched, widened, or persistence-failed grants never silently authorize a\n  call.\n- **N-1 SDK compatibility**: boolean callbacks normalize to one-shot canonical\n  decisions with the request binding, while direct boolean responses retain\n  the legacy wire for older callers. Invalid or throwing callbacks decline\n  safely in both TypeScript and Python.\n- **Durable Team messaging and custody**: state-backed Team runs now use the\n  `SessionMessageFabric` authority for bounded cross-process delivery,\n  offline/reconnect, receipts, fencing, dead letters, rate limits, and legacy\n  mailbox migration. Idle follow-up turns and offer/accept/commit handoffs keep\n  stable message identity while transferring attempt/lease custody explicitly.\n- **Release validation**: publication requires the exact release commit to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the desktop E2E matrix before immutable OIDC tags\n  are created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.2",
       "cliVersions": ["0.166.1", "0.166.2"],
       "date": "2026-08-25",

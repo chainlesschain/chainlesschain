@@ -18,13 +18,20 @@ const session = new AgentSession({
   onQuestion: async (req) => await ui.answer(req), // SDK echoes req.binding
   onElicitation: async (req) => await ui.answerMcp(req),
 });
-session.start();
 session.on("text", (delta) => render(delta)); // stream-event contract
-session.on("init", (e) => persist(e.session_id));
+const ready = new Promise<void>((resolve) =>
+  session.on("init", (e) => {
+    persist(e.session_id);
+    resolve();
+  }),
+);
 session.on("elicitation_deferred", (e) => queueForInteractiveHost(e));
 session.on("elicitation_complete", (e) => settleExternalFlow(e));
+session.start();
+await ready; // system/init is the protocol readiness signal
+const nextResult = session.nextResult();
 session.send("run the tests and fix failures");
-const result = await session.nextResult();
+const result = await nextResult;
 ```
 
 Approval callbacks may still return booleans for source compatibility. Direct

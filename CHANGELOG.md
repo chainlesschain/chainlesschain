@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.3 + Agent Protocol 0.1.2 + Agent SDKs 0.2.2: scoped approvals and durable team authority
+
+> `chainlesschain` **0.166.2 -> 0.166.3**,
+> `@chainlesschain/agent-protocol` **0.1.1 -> 0.1.2**,
+> `@chainlesschain/agent-sdk` **0.2.1 -> 0.2.2**, and
+> `chainlesschain-agent-sdk` **0.2.1 -> 0.2.2** (release candidate,
+> 2026-08-25).
+
+- **Canonical approval contract**: the protocol package exports schema-derived
+  JavaScript validators and deterministic TypeScript/Python bindings for
+  `acceptOnce`, `acceptForTurn`, `acceptForSession`, `decline`, and `cancel`.
+  Shared valid/invalid fixtures keep the protocol, both SDKs, and CLI App
+  Server on one wire contract.
+- **Fail-closed, exactly scoped grants**: approval responses bind the request,
+  requested permission, tool, arguments, working directory, and policy digest.
+  Turn grants stay in memory; session grants become effective only after a
+  tamper-evident authority event is persisted and verified. Expired, corrupt,
+  mismatched, widened, or persistence-failed grants never silently authorize a
+  call.
+- **N-1 SDK compatibility**: boolean callbacks normalize to one-shot canonical
+  decisions with the request binding, while direct boolean responses retain
+  the legacy wire for older callers. Invalid or throwing callbacks decline
+  safely in both TypeScript and Python.
+- **Durable Team messaging and custody**: state-backed Team runs now use the
+  `SessionMessageFabric` authority for bounded cross-process delivery,
+  offline/reconnect, receipts, fencing, dead letters, rate limits, and legacy
+  mailbox migration. Idle follow-up turns and offer/accept/commit handoffs keep
+  stable message identity while transferring attempt/lease custody explicitly.
+- **Release validation**: publication requires the exact release commit to pass
+  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
+  `CLI Strict Sandbox`, and the desktop E2E matrix before immutable OIDC tags
+  are created.
+
 ### Added - cc CLI 0.166.2: lease-bound real-time team messaging
 
 > `chainlesschain` **0.166.1 -> 0.166.2** (CLI-only release candidate,
