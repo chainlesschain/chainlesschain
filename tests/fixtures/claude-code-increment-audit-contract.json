@@ -143,7 +143,7 @@
       ]
     },
     "XSESSION": {
-      "profileVersion": "claude-2.1.224-238-xsession/v1",
+      "profileVersion": "claude-2.1.224-238-xsession/v2",
       "thresholds": {
         "processCount": 32,
         "maxPendingPerRecipient": 100,
@@ -160,6 +160,7 @@
       "testIds": [
         "xsession/32-process-admission",
         "xsession/queue-101-full",
+        "xsession/aggregate-pending-byte-cap",
         "xsession/256-kib-plus-one-rejected",
         "xsession/out-of-order-promotion",
         "xsession/duplicate-idempotency",
@@ -171,6 +172,10 @@
         "xsession/unknown-commit-retry-idempotency",
         "xsession/registration-epoch-no-history-leak",
         "xsession/delivered-refused-full-expired-receipts",
+        "team/session-fabric-offline-process-recovery",
+        "team/session-fabric-processed-before-ack",
+        "team/session-fabric-poison-dead-letter",
+        "team/session-fabric-cross-process-rate-limit",
         "xsession/notify-when-idle-once",
         "xsession/vscode-real-projection-parser",
         "xsession/jetbrains-real-projection-parser"
@@ -178,7 +183,11 @@
       "producerPaths": [
         ".github/workflows/cli-ci.yml",
         ".github/workflows/cli-reliability-soak.yml",
+        "packages/cli/__tests__/fixtures/team-session-message-process.mjs",
         "packages/cli/scripts/verify-session-message-fabric.mjs",
+        "packages/cli/src/commands/team.js",
+        "packages/cli/src/lib/agent-team/team-runner.js",
+        "packages/cli/src/lib/agent-team/team-session-message-adapter.js",
         "packages/cli/src/lib/session-message-fabric.js",
         "packages/cli/src/lib/session-projection.js",
         "packages/cli/src/lib/with-file-lock.js",
