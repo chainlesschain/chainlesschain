@@ -2,7 +2,9 @@ package com.chainlesschain.ide;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.chainlesschain.agent.protocol.generated.CcAgentProtocolKt;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -10,6 +12,21 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ApprovalResponsesTest {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void generatedKotlinUnionReplaysEveryCanonicalFixture() throws Exception {
+        for (Object value : canonicalFixtures()) {
+            Map<String, Object> fixture = (Map<String, Object>) value;
+            boolean valid = Boolean.TRUE.equals(fixture.get("valid"));
+            try {
+                assertNotNull(CcAgentProtocolKt.parseApprovalDecision(fixture.get("value")));
+                assertEquals(true, valid, fixture.get("name") + " should be invalid");
+            } catch (IllegalArgumentException error) {
+                assertFalse(valid, fixture.get("name") + " should be valid: " + error);
+            }
+        }
+    }
 
     @Test
     void emitsCanonicalLeastPrivilegeDecisionAndEchoesBinding() throws Exception {
@@ -39,15 +56,19 @@ class ApprovalResponsesTest {
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> canonicalDecision(String name) throws Exception {
-        Path fixture = Path.of("..", "agent-protocol", "test", "fixtures",
-                "approval-decisions.json");
-        List<Object> entries = (List<Object>) MiniJson.parse(Files.readString(fixture));
-        for (Object value : entries) {
+        for (Object value : canonicalFixtures()) {
             Map<String, Object> entry = (Map<String, Object>) value;
             if (name.equals(entry.get("name"))) {
                 return (Map<String, Object>) entry.get("value");
             }
         }
         throw new AssertionError("missing canonical fixture entry: " + name);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> canonicalFixtures() throws Exception {
+        Path fixture = Path.of("..", "agent-protocol", "test", "fixtures",
+                "approval-decisions.json");
+        return (List<Object>) MiniJson.parse(Files.readString(fixture));
     }
 }

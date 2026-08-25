@@ -1,5 +1,7 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.toWireValue
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.localterminal.LocalFilesystemBootstrapper
@@ -385,19 +387,26 @@ class PdhAgentSession @Inject constructor(
         }
 
         /** Pure: build a least-privilege canonical approval response. */
-        fun approvalEvent(id: String, approve: Boolean, binding: String?): JsonObject =
-            buildJsonObject {
+        fun approvalEvent(id: String, approve: Boolean, binding: String?): JsonObject {
+            val decision: ApprovalDecision = if (approve) {
+                ApprovalDecision.AcceptOnce
+            } else {
+                ApprovalDecision.Decline()
+            }
+            val wireDecision = decision.toWireValue()
+            return buildJsonObject {
                 put("type", "approval")
                 put("id", id)
                 put(
                     "decision",
                     buildJsonObject {
-                        put("kind", if (approve) "acceptOnce" else "decline")
+                        put("kind", wireDecision.getValue("kind") as String)
                     },
                 )
                 put("approve", approve)
                 if (!binding.isNullOrBlank()) put("binding", binding)
             }
+        }
 
         /** §3.5.13 pure: build the `{type:feedback}` event (testable). */
         fun feedbackEvent(turnId: String, kind: FeedbackKind, comment: String?): JsonObject =

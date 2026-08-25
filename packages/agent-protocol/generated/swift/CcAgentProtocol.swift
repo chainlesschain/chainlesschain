@@ -41,6 +41,20 @@ public struct DataPolicy: Codable, Sendable {
     public let sensitivity: String
     public let allowedSinks: [String]
     public let declassificationDecisionId: String?
+
+    public init(
+        origin: String,
+        trust: String,
+        sensitivity: String,
+        allowedSinks: [String],
+        declassificationDecisionId: String? = nil
+    ) {
+        self.origin = origin
+        self.trust = trust
+        self.sensitivity = sensitivity
+        self.allowedSinks = allowedSinks
+        self.declassificationDecisionId = declassificationDecisionId
+    }
 }
 
 public struct Thread: Codable, Sendable {
@@ -52,6 +66,26 @@ public struct Thread: Codable, Sendable {
     public let updatedAt: String
     public let revision: Int
     public let metadata: JSONValue?
+
+    public init(
+        id: String,
+        status: String,
+        title: String? = nil,
+        parentThreadId: JSONValue? = nil,
+        createdAt: String,
+        updatedAt: String,
+        revision: Int,
+        metadata: JSONValue? = nil
+    ) {
+        self.id = id
+        self.status = status
+        self.title = title
+        self.parentThreadId = parentThreadId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.revision = revision
+        self.metadata = metadata
+    }
 }
 
 public struct Turn: Codable, Sendable {
@@ -62,6 +96,24 @@ public struct Turn: Codable, Sendable {
     public let completedAt: JSONValue?
     public let revision: Int
     public let terminalEvidence: JSONValue?
+
+    public init(
+        id: String,
+        threadId: String,
+        status: String,
+        createdAt: String,
+        completedAt: JSONValue? = nil,
+        revision: Int,
+        terminalEvidence: JSONValue? = nil
+    ) {
+        self.id = id
+        self.threadId = threadId
+        self.status = status
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+        self.revision = revision
+        self.terminalEvidence = terminalEvidence
+    }
 }
 
 public struct Item: Codable, Sendable {
@@ -75,12 +127,46 @@ public struct Item: Codable, Sendable {
     public let dataPolicy: DataPolicy?
     public let createdAt: String
     public let completedAt: JSONValue?
+
+    public init(
+        id: String,
+        threadId: String,
+        turnId: String,
+        parentId: JSONValue? = nil,
+        kind: String,
+        status: String,
+        content: JSONValue? = nil,
+        dataPolicy: DataPolicy? = nil,
+        createdAt: String,
+        completedAt: JSONValue? = nil
+    ) {
+        self.id = id
+        self.threadId = threadId
+        self.turnId = turnId
+        self.parentId = parentId
+        self.kind = kind
+        self.status = status
+        self.content = content
+        self.dataPolicy = dataPolicy
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+    }
 }
 
 public struct PermissionGrant: Codable, Sendable {
     public let capability: String
     public let scope: String
     public let expiresAt: JSONValue?
+
+    public init(
+        capability: String,
+        scope: String,
+        expiresAt: JSONValue? = nil
+    ) {
+        self.capability = capability
+        self.scope = scope
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct ApprovalBinding: Codable, Sendable {
@@ -94,6 +180,30 @@ public struct ApprovalBinding: Codable, Sendable {
     public let cwd: String?
     public let nonce: String
     public let expiresAt: String
+
+    public init(
+        threadId: String,
+        turnId: String,
+        itemId: String,
+        attemptId: JSONValue? = nil,
+        operationDigest: String,
+        policyDigest: String,
+        workspaceDigest: JSONValue? = nil,
+        cwd: String? = nil,
+        nonce: String,
+        expiresAt: String
+    ) {
+        self.threadId = threadId
+        self.turnId = turnId
+        self.itemId = itemId
+        self.attemptId = attemptId
+        self.operationDigest = operationDigest
+        self.policyDigest = policyDigest
+        self.workspaceDigest = workspaceDigest
+        self.cwd = cwd
+        self.nonce = nonce
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct ApprovalRequest: Codable, Sendable {
@@ -103,6 +213,22 @@ public struct ApprovalRequest: Codable, Sendable {
     public let risk: String
     public let reason: String
     public let requestedPermissions: [PermissionGrant]?
+
+    public init(
+        id: String,
+        binding: ApprovalBinding,
+        operation: JSONValue,
+        risk: String,
+        reason: String,
+        requestedPermissions: [PermissionGrant]? = nil
+    ) {
+        self.id = id
+        self.binding = binding
+        self.operation = operation
+        self.risk = risk
+        self.reason = reason
+        self.requestedPermissions = requestedPermissions
+    }
 }
 
 public struct TerminalEvidence: Codable, Sendable {
@@ -112,6 +238,22 @@ public struct TerminalEvidence: Codable, Sendable {
     public let artifactIds: [String]?
     public let commit: String?
     public let testReceiptIds: [String]?
+
+    public init(
+        status: String,
+        eventDigest: String,
+        outputDigest: JSONValue? = nil,
+        artifactIds: [String]? = nil,
+        commit: String? = nil,
+        testReceiptIds: [String]? = nil
+    ) {
+        self.status = status
+        self.eventDigest = eventDigest
+        self.outputDigest = outputDigest
+        self.artifactIds = artifactIds
+        self.commit = commit
+        self.testReceiptIds = testReceiptIds
+    }
 }
 
 public struct TypedPort: Codable, Sendable {
@@ -119,6 +261,18 @@ public struct TypedPort: Codable, Sendable {
     public let schema: JSONValue
     public let required: Bool?
     public let dataPolicy: DataPolicy?
+
+    public init(
+        name: String,
+        schema: JSONValue,
+        required: Bool? = nil,
+        dataPolicy: DataPolicy? = nil
+    ) {
+        self.name = name
+        self.schema = schema
+        self.required = required
+        self.dataPolicy = dataPolicy
+    }
 }
 
 public struct Budget: Codable, Sendable {
@@ -127,6 +281,20 @@ public struct Budget: Codable, Sendable {
     public let costUsd: Double?
     public let wallMs: Int?
     public let spawnCount: Int?
+
+    public init(
+        turns: Int? = nil,
+        tokens: Int? = nil,
+        costUsd: Double? = nil,
+        wallMs: Int? = nil,
+        spawnCount: Int? = nil
+    ) {
+        self.turns = turns
+        self.tokens = tokens
+        self.costUsd = costUsd
+        self.wallMs = wallMs
+        self.spawnCount = spawnCount
+    }
 }
 
 public struct TaskNode: Codable, Sendable {
@@ -149,6 +317,48 @@ public struct TaskNode: Codable, Sendable {
     public let join: String?
     public let quorum: Int?
     public let retryLimit: Int?
+
+    public init(
+        id: String,
+        kind: String,
+        dependsOn: [String],
+        inputs: [TypedPort],
+        outputs: [TypedPort],
+        inputBindings: JSONValue? = nil,
+        capabilities: [String]? = nil,
+        tools: [String]? = nil,
+        skills: [String]? = nil,
+        budget: Budget? = nil,
+        writeSet: [String]? = nil,
+        workspaceIsolation: String? = nil,
+        effectClass: String,
+        idempotencyKey: String? = nil,
+        compensationNodeId: String? = nil,
+        priority: Int? = nil,
+        join: String? = nil,
+        quorum: Int? = nil,
+        retryLimit: Int? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.dependsOn = dependsOn
+        self.inputs = inputs
+        self.outputs = outputs
+        self.inputBindings = inputBindings
+        self.capabilities = capabilities
+        self.tools = tools
+        self.skills = skills
+        self.budget = budget
+        self.writeSet = writeSet
+        self.workspaceIsolation = workspaceIsolation
+        self.effectClass = effectClass
+        self.idempotencyKey = idempotencyKey
+        self.compensationNodeId = compensationNodeId
+        self.priority = priority
+        self.join = join
+        self.quorum = quorum
+        self.retryLimit = retryLimit
+    }
 }
 
 public struct Edge: Codable, Sendable {
@@ -159,6 +369,24 @@ public struct Edge: Codable, Sendable {
     public let when: String
     public let fromPort: String?
     public let toPort: String?
+
+    public init(
+        id: String,
+        from: String,
+        to: String,
+        kind: String,
+        when: String,
+        fromPort: String? = nil,
+        toPort: String? = nil
+    ) {
+        self.id = id
+        self.from = from
+        self.to = to
+        self.kind = kind
+        self.when = when
+        self.fromPort = fromPort
+        self.toPort = toPort
+    }
 }
 
 public struct LoopRegion: Codable, Sendable {
@@ -169,6 +397,24 @@ public struct LoopRegion: Codable, Sendable {
     public let maxIterations: Int
     public let condition: String?
     public let budget: Budget?
+
+    public init(
+        id: String,
+        entryNodeId: String,
+        exitNodeId: String,
+        nodeIds: [String],
+        maxIterations: Int,
+        condition: String? = nil,
+        budget: Budget? = nil
+    ) {
+        self.id = id
+        self.entryNodeId = entryNodeId
+        self.exitNodeId = exitNodeId
+        self.nodeIds = nodeIds
+        self.maxIterations = maxIterations
+        self.condition = condition
+        self.budget = budget
+    }
 }
 
 public struct TriggerBinding: Codable, Sendable {
@@ -178,6 +424,22 @@ public struct TriggerBinding: Codable, Sendable {
     public let sourceRef: String?
     public let authorityDigest: String
     public let dataPolicy: DataPolicy?
+
+    public init(
+        id: String,
+        kind: String,
+        targetNodeId: String,
+        sourceRef: String? = nil,
+        authorityDigest: String,
+        dataPolicy: DataPolicy? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.targetNodeId = targetNodeId
+        self.sourceRef = sourceRef
+        self.authorityDigest = authorityDigest
+        self.dataPolicy = dataPolicy
+    }
 }
 
 public struct Region: Codable, Sendable {
@@ -187,6 +449,22 @@ public struct Region: Codable, Sendable {
     public let parentRegionId: JSONValue?
     public let entryNodeId: String?
     public let exitNodeId: String?
+
+    public init(
+        id: String,
+        kind: String,
+        nodeIds: [String],
+        parentRegionId: JSONValue? = nil,
+        entryNodeId: String? = nil,
+        exitNodeId: String? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.nodeIds = nodeIds
+        self.parentRegionId = parentRegionId
+        self.entryNodeId = entryNodeId
+        self.exitNodeId = exitNodeId
+    }
 }
 
 public struct SubgraphCall: Codable, Sendable {
@@ -197,12 +475,40 @@ public struct SubgraphCall: Codable, Sendable {
     public let inputBindings: [SubgraphPortBinding]?
     public let outputBindings: [SubgraphPortBinding]?
     public let budget: Budget?
+
+    public init(
+        nodeId: String,
+        definitionId: String,
+        revisionDigest: String,
+        maxDepth: Int,
+        inputBindings: [SubgraphPortBinding]? = nil,
+        outputBindings: [SubgraphPortBinding]? = nil,
+        budget: Budget? = nil
+    ) {
+        self.nodeId = nodeId
+        self.definitionId = definitionId
+        self.revisionDigest = revisionDigest
+        self.maxDepth = maxDepth
+        self.inputBindings = inputBindings
+        self.outputBindings = outputBindings
+        self.budget = budget
+    }
 }
 
 public struct SubgraphPortBinding: Codable, Sendable {
     public let parentPort: String
     public let childNodeId: String
     public let childPort: String
+
+    public init(
+        parentPort: String,
+        childNodeId: String,
+        childPort: String
+    ) {
+        self.parentPort = parentPort
+        self.childNodeId = childNodeId
+        self.childPort = childPort
+    }
 }
 
 public struct GraphDefinition: Codable, Sendable {
@@ -218,6 +524,34 @@ public struct GraphDefinition: Codable, Sendable {
     public let budget: Budget
     public let allowedCapabilities: [String]?
     public let metadata: JSONValue?
+
+    public init(
+        schemaVersion: Int,
+        id: String,
+        revision: Int,
+        triggers: [TriggerBinding]? = nil,
+        regions: [Region]? = nil,
+        nodes: [TaskNode],
+        edges: [Edge],
+        loops: [LoopRegion],
+        subgraphCalls: [SubgraphCall],
+        budget: Budget,
+        allowedCapabilities: [String]? = nil,
+        metadata: JSONValue? = nil
+    ) {
+        self.schemaVersion = schemaVersion
+        self.id = id
+        self.revision = revision
+        self.triggers = triggers
+        self.regions = regions
+        self.nodes = nodes
+        self.edges = edges
+        self.loops = loops
+        self.subgraphCalls = subgraphCalls
+        self.budget = budget
+        self.allowedCapabilities = allowedCapabilities
+        self.metadata = metadata
+    }
 }
 
 public struct GraphRevision: Codable, Sendable {
@@ -228,6 +562,24 @@ public struct GraphRevision: Codable, Sendable {
     public let parentRevisionDigest: JSONValue?
     public let createdAt: String
     public let producerLeaseId: JSONValue?
+
+    public init(
+        definitionId: String,
+        revision: Int,
+        revisionDigest: String,
+        schemaVersion: Int,
+        parentRevisionDigest: JSONValue? = nil,
+        createdAt: String,
+        producerLeaseId: JSONValue? = nil
+    ) {
+        self.definitionId = definitionId
+        self.revision = revision
+        self.revisionDigest = revisionDigest
+        self.schemaVersion = schemaVersion
+        self.parentRevisionDigest = parentRevisionDigest
+        self.createdAt = createdAt
+        self.producerLeaseId = producerLeaseId
+    }
 }
 
 public struct IterationFrame: Codable, Sendable {
@@ -239,6 +591,26 @@ public struct IterationFrame: Codable, Sendable {
     public let status: String
     public let startedAt: String?
     public let completedAt: JSONValue?
+
+    public init(
+        id: String,
+        runId: String,
+        regionId: String,
+        parentFrameId: JSONValue? = nil,
+        iterationPath: [Int],
+        status: String,
+        startedAt: String? = nil,
+        completedAt: JSONValue? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.regionId = regionId
+        self.parentFrameId = parentFrameId
+        self.iterationPath = iterationPath
+        self.status = status
+        self.startedAt = startedAt
+        self.completedAt = completedAt
+    }
 }
 
 public struct NodeAttempt: Codable, Sendable {
@@ -252,6 +624,30 @@ public struct NodeAttempt: Codable, Sendable {
     public let createdAt: String
     public let completedAt: JSONValue?
     public let terminalEvidence: JSONValue?
+
+    public init(
+        id: String,
+        runId: String,
+        nodeId: String,
+        iterationPath: [Int],
+        attempt: Int,
+        status: String,
+        acceptedAssignmentAttemptId: JSONValue? = nil,
+        createdAt: String,
+        completedAt: JSONValue? = nil,
+        terminalEvidence: JSONValue? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.nodeId = nodeId
+        self.iterationPath = iterationPath
+        self.attempt = attempt
+        self.status = status
+        self.acceptedAssignmentAttemptId = acceptedAssignmentAttemptId
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+        self.terminalEvidence = terminalEvidence
+    }
 }
 
 public struct AssignmentAttempt: Codable, Sendable {
@@ -265,6 +661,30 @@ public struct AssignmentAttempt: Codable, Sendable {
     public let status: String
     public let createdAt: String
     public let expiresAt: String?
+
+    public init(
+        id: String,
+        runId: String,
+        nodeId: String,
+        agentId: String,
+        role: String,
+        leaseId: String,
+        fence: Int,
+        status: String,
+        createdAt: String,
+        expiresAt: String? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.nodeId = nodeId
+        self.agentId = agentId
+        self.role = role
+        self.leaseId = leaseId
+        self.fence = fence
+        self.status = status
+        self.createdAt = createdAt
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct ArtifactRef: Codable, Sendable {
@@ -278,6 +698,30 @@ public struct ArtifactRef: Codable, Sendable {
     public let validationEvidence: [String]?
     public let consumerNodeIds: [String]?
     public let dataPolicy: DataPolicy
+
+    public init(
+        id: String,
+        digest: String,
+        producerNodeId: String,
+        producerAttemptId: String,
+        producerLeaseId: String,
+        schema: JSONValue,
+        commit: String? = nil,
+        validationEvidence: [String]? = nil,
+        consumerNodeIds: [String]? = nil,
+        dataPolicy: DataPolicy
+    ) {
+        self.id = id
+        self.digest = digest
+        self.producerNodeId = producerNodeId
+        self.producerAttemptId = producerAttemptId
+        self.producerLeaseId = producerLeaseId
+        self.schema = schema
+        self.commit = commit
+        self.validationEvidence = validationEvidence
+        self.consumerNodeIds = consumerNodeIds
+        self.dataPolicy = dataPolicy
+    }
 }
 
 public struct EffectReceipt: Codable, Sendable {
@@ -285,6 +729,18 @@ public struct EffectReceipt: Codable, Sendable {
     public let externalId: String?
     public let recordedAt: String
     public let metadata: JSONValue?
+
+    public init(
+        receiptDigest: String,
+        externalId: String? = nil,
+        recordedAt: String,
+        metadata: JSONValue? = nil
+    ) {
+        self.receiptDigest = receiptDigest
+        self.externalId = externalId
+        self.recordedAt = recordedAt
+        self.metadata = metadata
+    }
 }
 
 public struct Effect: Codable, Sendable {
@@ -301,6 +757,36 @@ public struct Effect: Codable, Sendable {
     public let compensationEffectId: JSONValue?
     public let createdAt: String
     public let updatedAt: String?
+
+    public init(
+        id: String,
+        runId: String,
+        nodeId: String,
+        attemptId: String,
+        idempotencyKey: String,
+        baseIdempotencyKey: String? = nil,
+        iterationPath: [Int]? = nil,
+        operationDigest: String,
+        status: String,
+        receipt: JSONValue? = nil,
+        compensationEffectId: JSONValue? = nil,
+        createdAt: String,
+        updatedAt: String? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.nodeId = nodeId
+        self.attemptId = attemptId
+        self.idempotencyKey = idempotencyKey
+        self.baseIdempotencyKey = baseIdempotencyKey
+        self.iterationPath = iterationPath
+        self.operationDigest = operationDigest
+        self.status = status
+        self.receipt = receipt
+        self.compensationEffectId = compensationEffectId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 public struct Message: Codable, Sendable {
@@ -317,6 +803,36 @@ public struct Message: Codable, Sendable {
     public let dataPolicy: DataPolicy
     public let createdAt: String
     public let expiresAt: String?
+
+    public init(
+        id: String,
+        runId: String,
+        fromAttemptId: String,
+        toAgentId: String,
+        causationId: JSONValue? = nil,
+        correlationId: JSONValue? = nil,
+        mode: String,
+        status: String,
+        payload: JSONValue,
+        payloadDigest: String,
+        dataPolicy: DataPolicy,
+        createdAt: String,
+        expiresAt: String? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.fromAttemptId = fromAttemptId
+        self.toAgentId = toAgentId
+        self.causationId = causationId
+        self.correlationId = correlationId
+        self.mode = mode
+        self.status = status
+        self.payload = payload
+        self.payloadDigest = payloadDigest
+        self.dataPolicy = dataPolicy
+        self.createdAt = createdAt
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct Handoff: Codable, Sendable {
@@ -330,6 +846,30 @@ public struct Handoff: Codable, Sendable {
     public let artifactIds: [String]?
     public let status: String
     public let expiresAt: String
+
+    public init(
+        id: String,
+        runId: String,
+        nodeId: String,
+        fromAttemptId: String,
+        toAgentId: String,
+        revisionDigest: String,
+        authorityDigest: String,
+        artifactIds: [String]? = nil,
+        status: String,
+        expiresAt: String
+    ) {
+        self.id = id
+        self.runId = runId
+        self.nodeId = nodeId
+        self.fromAttemptId = fromAttemptId
+        self.toAgentId = toAgentId
+        self.revisionDigest = revisionDigest
+        self.authorityDigest = authorityDigest
+        self.artifactIds = artifactIds
+        self.status = status
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct HumanTask: Codable, Sendable {
@@ -345,6 +885,34 @@ public struct HumanTask: Codable, Sendable {
     public let nonce: String
     public let expiresAt: String
     public let decision: JSONValue?
+
+    public init(
+        id: String,
+        runId: String,
+        revisionDigest: String,
+        nodeId: String,
+        attemptId: String,
+        operationDigest: String,
+        status: String,
+        claimActorId: JSONValue? = nil,
+        claimLeaseId: JSONValue? = nil,
+        nonce: String,
+        expiresAt: String,
+        decision: JSONValue? = nil
+    ) {
+        self.id = id
+        self.runId = runId
+        self.revisionDigest = revisionDigest
+        self.nodeId = nodeId
+        self.attemptId = attemptId
+        self.operationDigest = operationDigest
+        self.status = status
+        self.claimActorId = claimActorId
+        self.claimLeaseId = claimLeaseId
+        self.nonce = nonce
+        self.expiresAt = expiresAt
+        self.decision = decision
+    }
 }
 
 public struct GraphRun: Codable, Sendable {
@@ -358,6 +926,30 @@ public struct GraphRun: Codable, Sendable {
     public let graphRevision: Int
     public let createdAt: String
     public let completedAt: JSONValue?
+
+    public init(
+        id: String,
+        definitionId: String,
+        revision: Int,
+        revisionDigest: String,
+        occurrenceId: JSONValue? = nil,
+        phase: String,
+        status: String,
+        graphRevision: Int,
+        createdAt: String,
+        completedAt: JSONValue? = nil
+    ) {
+        self.id = id
+        self.definitionId = definitionId
+        self.revision = revision
+        self.revisionDigest = revisionDigest
+        self.occurrenceId = occurrenceId
+        self.phase = phase
+        self.status = status
+        self.graphRevision = graphRevision
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+    }
 }
 
 public struct InitializeParams: Codable, Sendable {
@@ -365,6 +957,18 @@ public struct InitializeParams: Codable, Sendable {
     public let minimumProtocolVersion: Int
     public let client: JSONValue
     public let features: [String]?
+
+    public init(
+        protocolVersion: Int,
+        minimumProtocolVersion: Int,
+        client: JSONValue,
+        features: [String]? = nil
+    ) {
+        self.protocolVersion = protocolVersion
+        self.minimumProtocolVersion = minimumProtocolVersion
+        self.client = client
+        self.features = features
+    }
 }
 
 public struct JsonRpcRequestBase: Codable, Sendable {
@@ -372,6 +976,18 @@ public struct JsonRpcRequestBase: Codable, Sendable {
     public let id: String
     public let method: String
     public let params: JSONValue?
+
+    public init(
+        jsonrpc: String,
+        id: String,
+        method: String,
+        params: JSONValue? = nil
+    ) {
+        self.jsonrpc = jsonrpc
+        self.id = id
+        self.method = method
+        self.params = params
+    }
 }
 
 public struct ServerRequest: Codable, Sendable {
@@ -379,10 +995,248 @@ public struct ServerRequest: Codable, Sendable {
     public let id: String
     public let method: String
     public let params: JSONValue
+
+    public init(
+        jsonrpc: String,
+        id: String,
+        method: String,
+        params: JSONValue
+    ) {
+        self.jsonrpc = jsonrpc
+        self.id = id
+        self.method = method
+        self.params = params
+    }
 }
 
 public struct ServerNotification: Codable, Sendable {
     public let jsonrpc: String
     public let method: String
     public let params: JSONValue
+
+    public init(
+        jsonrpc: String,
+        method: String,
+        params: JSONValue
+    ) {
+        self.jsonrpc = jsonrpc
+        self.method = method
+        self.params = params
+    }
+}
+
+public enum ApprovalDecision: Codable, Sendable {
+    case acceptOnce
+    case acceptForTurn(permissions: [PermissionGrant]?)
+    case acceptForSession(permissions: [PermissionGrant]?)
+    case decline(reason: String?)
+    case cancel(reason: String?)
+
+    private struct DynamicCodingKey: CodingKey, Hashable {
+        let stringValue: String
+        let intValue: Int?
+
+        init(_ stringValue: String) {
+            self.stringValue = stringValue
+            self.intValue = nil
+        }
+
+        init?(stringValue: String) {
+            self.init(stringValue)
+        }
+
+        init?(intValue: Int) {
+            self.stringValue = String(intValue)
+            self.intValue = intValue
+        }
+    }
+
+    private static func decodingError(
+        _ codingPath: [CodingKey],
+        _ message: String
+    ) -> DecodingError {
+        .dataCorrupted(.init(
+            codingPath: codingPath,
+            debugDescription: "Invalid ApprovalDecision: \(message)"
+        ))
+    }
+
+    private static func encodingError(
+        _ value: ApprovalDecision,
+        _ codingPath: [CodingKey],
+        _ message: String
+    ) -> EncodingError {
+        .invalidValue(value, .init(
+            codingPath: codingPath,
+            debugDescription: "Invalid ApprovalDecision: \(message)"
+        ))
+    }
+
+    private static func validate(
+        permissions: [PermissionGrant],
+        decision: ApprovalDecision,
+        codingPath: [CodingKey]
+    ) throws {
+        guard permissions.count <= 64 else {
+            throw encodingError(decision, codingPath, "permissions must contain at most 64 entries")
+        }
+        for (index, grant) in permissions.enumerated() {
+            guard (1...128).contains(grant.capability.count) else {
+                throw encodingError(decision, codingPath, "permissions[\(index)].capability length must be 1...128")
+            }
+            guard (1...1024).contains(grant.scope.count) else {
+                throw encodingError(decision, codingPath, "permissions[\(index)].scope length must be 1...1024")
+            }
+            if let expiresAt = grant.expiresAt {
+                switch expiresAt {
+                case .null:
+                    break
+                case .string:
+                    break
+                default:
+                    throw encodingError(decision, codingPath, "permissions[\(index)].expiresAt must be a string or null")
+                }
+            }
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicCodingKey.self)
+        let kindKey = DynamicCodingKey("kind")
+        guard container.contains(kindKey), !(try container.decodeNil(forKey: kindKey)) else {
+            throw Self.decodingError(container.codingPath, "kind must be a string")
+        }
+        let kind = try container.decode(String.self, forKey: kindKey)
+        let allowed: Set<String>
+        switch kind {
+        case "acceptOnce":
+            allowed = ["kind"]
+        case "acceptForTurn", "acceptForSession":
+            allowed = ["kind", "permissions"]
+        case "decline", "cancel":
+            allowed = ["kind", "reason"]
+        default:
+            throw Self.decodingError(container.codingPath, "unknown kind: \(kind)")
+        }
+        let unexpected = Set(container.allKeys.map(\.stringValue)).subtracting(allowed)
+        guard unexpected.isEmpty else {
+            throw Self.decodingError(
+                container.codingPath,
+                "unexpected ApprovalDecision properties: \(unexpected.sorted())"
+            )
+        }
+
+        func decodePermissions() throws -> [PermissionGrant]? {
+            let key = DynamicCodingKey("permissions")
+            guard container.contains(key) else { return nil }
+            guard !(try container.decodeNil(forKey: key)) else {
+                throw Self.decodingError(container.codingPath, "permissions must not be null")
+            }
+            var entries = try container.nestedUnkeyedContainer(forKey: key)
+            var grants: [PermissionGrant] = []
+            while !entries.isAtEnd {
+                guard grants.count < 64 else {
+                    throw Self.decodingError(entries.codingPath, "permissions must contain at most 64 entries")
+                }
+                let index = grants.count
+                let grant = try entries.nestedContainer(keyedBy: DynamicCodingKey.self)
+                let grantAllowed: Set<String> = ["capability", "scope", "expiresAt"]
+                let grantUnexpected = Set(grant.allKeys.map(\.stringValue)).subtracting(grantAllowed)
+                guard grantUnexpected.isEmpty else {
+                    throw Self.decodingError(
+                        grant.codingPath,
+                        "permissions[\(index)] has unexpected properties: \(grantUnexpected.sorted())"
+                    )
+                }
+                let capability = try grant.decode(String.self, forKey: DynamicCodingKey("capability"))
+                guard (1...128).contains(capability.count) else {
+                    throw Self.decodingError(grant.codingPath, "permissions[\(index)].capability length must be 1...128")
+                }
+                let scope = try grant.decode(String.self, forKey: DynamicCodingKey("scope"))
+                guard (1...1024).contains(scope.count) else {
+                    throw Self.decodingError(grant.codingPath, "permissions[\(index)].scope length must be 1...1024")
+                }
+                let expiresAtKey = DynamicCodingKey("expiresAt")
+                let expiresAt: JSONValue?
+                if grant.contains(expiresAtKey) {
+                    expiresAt = try grant.decode(JSONValue.self, forKey: expiresAtKey)
+                } else {
+                    expiresAt = nil
+                }
+                if let expiresAt {
+                    switch expiresAt {
+                    case .null:
+                        break
+                    case .string:
+                        break
+                    default:
+                        throw Self.decodingError(grant.codingPath, "permissions[\(index)].expiresAt must be a string or null")
+                    }
+                }
+                grants.append(PermissionGrant(
+                    capability: capability,
+                    scope: scope,
+                    expiresAt: expiresAt
+                ))
+            }
+            return grants
+        }
+
+        func decodeReason() throws -> String? {
+            let key = DynamicCodingKey("reason")
+            guard container.contains(key) else { return nil }
+            guard !(try container.decodeNil(forKey: key)) else {
+                throw Self.decodingError(container.codingPath, "reason must not be null")
+            }
+            let reason = try container.decode(String.self, forKey: key)
+            guard reason.count <= 2048 else {
+                throw Self.decodingError(container.codingPath, "reason length must be <= 2048")
+            }
+            return reason
+        }
+
+        switch kind {
+        case "acceptOnce":
+            self = .acceptOnce
+        case "acceptForTurn":
+            self = .acceptForTurn(permissions: try decodePermissions())
+        case "acceptForSession":
+            self = .acceptForSession(permissions: try decodePermissions())
+        case "decline":
+            self = .decline(reason: try decodeReason())
+        case "cancel":
+            self = .cancel(reason: try decodeReason())
+        default:
+            throw Self.decodingError(container.codingPath, "unknown kind: \(kind)")
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicCodingKey.self)
+        let kindKey = DynamicCodingKey("kind")
+        switch self {
+        case .acceptOnce:
+            try container.encode("acceptOnce", forKey: kindKey)
+        case .acceptForTurn(let permissions):
+            if let permissions { try Self.validate(permissions: permissions, decision: self, codingPath: encoder.codingPath) }
+            try container.encode("acceptForTurn", forKey: kindKey)
+            try container.encodeIfPresent(permissions, forKey: DynamicCodingKey("permissions"))
+        case .acceptForSession(let permissions):
+            if let permissions { try Self.validate(permissions: permissions, decision: self, codingPath: encoder.codingPath) }
+            try container.encode("acceptForSession", forKey: kindKey)
+            try container.encodeIfPresent(permissions, forKey: DynamicCodingKey("permissions"))
+        case .decline(let reason):
+            if let reason, reason.count > 2048 {
+                throw Self.encodingError(self, encoder.codingPath, "reason length must be <= 2048")
+            }
+            try container.encode("decline", forKey: kindKey)
+            try container.encodeIfPresent(reason, forKey: DynamicCodingKey("reason"))
+        case .cancel(let reason):
+            if let reason, reason.count > 2048 {
+                throw Self.encodingError(self, encoder.codingPath, "reason length must be <= 2048")
+            }
+            try container.encode("cancel", forKey: kindKey)
+            try container.encodeIfPresent(reason, forKey: DynamicCodingKey("reason"))
+        }
+    }
 }

@@ -1,18 +1,30 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.PermissionGrant
+import com.chainlesschain.agent.protocol.generated.parseApprovalDecision
+import com.chainlesschain.agent.protocol.generated.toWireValue
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -184,7 +196,38 @@ class PdhAgentSessionTest {
         assertFalse(denied.containsKey("binding"))
     }
 
+    @Test
+    fun generated_kotlin_union_replays_every_canonical_approval_fixture() {
+        canonicalFixtures().map { it.jsonObject }.forEach { fixture ->
+            val valid = fixture.getValue("valid").jsonPrimitive.content.toBoolean()
+            val accepted = runCatching {
+                parseApprovalDecision(fixture.getValue("value").toProtocolValue())
+            }.isSuccess
+            assertEquals(valid, accepted, fixture.getValue("name").jsonPrimitive.content)
+        }
+    }
+
+    @Test
+    fun generated_kotlin_union_rejects_invalid_constructed_wire_values() {
+        assertFailsWith<IllegalArgumentException> {
+            ApprovalDecision.AcceptForSession(
+                permissions = listOf(PermissionGrant(capability = "", scope = "*")),
+            ).toWireValue()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            ApprovalDecision.Cancel(reason = "x".repeat(2049)).toWireValue()
+        }
+    }
+
     private fun canonicalDecision(name: String): JsonObject {
+        return canonicalFixtures()
+            .map { it.jsonObject }
+            .first { it["name"]?.jsonPrimitive?.content == name }
+            .getValue("value")
+            .jsonObject
+    }
+
+    private fun canonicalFixtures(): JsonArray {
         val relative = Paths.get(
             "packages",
             "agent-protocol",
@@ -200,10 +243,17 @@ class PdhAgentSessionTest {
             ?: error("canonical approval fixture not found from ${Paths.get("").toAbsolutePath()}")
         val fixtureJson = String(Files.readAllBytes(fixture), Charsets.UTF_8)
         return Json.parseToJsonElement(fixtureJson).jsonArray
-            .map { it.jsonObject }
-            .first { it["name"]?.jsonPrimitive?.content == name }
-            .getValue("value")
-            .jsonObject
+    }
+
+    private fun JsonElement.toProtocolValue(): Any? = when (this) {
+        JsonNull -> null
+        is JsonObject -> mapValues { (_, value) -> value.toProtocolValue() }
+        is JsonArray -> map { it.toProtocolValue() }
+        is JsonPrimitive -> if (isString) {
+            content
+        } else {
+            booleanOrNull ?: longOrNull ?: doubleOrNull ?: content
+        }
     }
 
     @Test

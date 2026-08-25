@@ -17,5 +17,20 @@ test("generated clients preserve protocol field names across language keywords",
   assert.doesNotMatch(python, /^\s+from:/mu);
   assert.match(python, /def validate_approval_decision\(/u);
   assert.match(kotlin, /val `when`: String/u);
+  assert.match(kotlin, /sealed interface ApprovalDecision/u);
+  assert.match(
+    kotlin,
+    /data class AcceptForSession\([\s\S]*permissions: List<PermissionGrant>\?/u,
+  );
+  assert.match(kotlin, /fun parseApprovalDecision\(value: Any\?\)/u);
+  assert.match(kotlin, /fun ApprovalDecision\.toWireValue\(\)/u);
+  assert.match(kotlin, /approvalPermissionsWireValue/u);
+  assert.match(kotlin, /unexpected ApprovalDecision properties/u);
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
+  assert.match(swift, /public enum ApprovalDecision: Codable, Sendable/u);
+  assert.match(
+    swift,
+    /case acceptForSession\(permissions: \[PermissionGrant\]\?\)/u,
+  );
+  assert.match(swift, /unexpected ApprovalDecision properties/u);
 });

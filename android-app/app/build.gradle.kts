@@ -108,6 +108,12 @@ android {
     namespace = "com.chainlesschain.android"
     compileSdk = 35
 
+    // Compile the canonical generated Kotlin protocol directly so schema/codegen
+    // drift cannot be hidden behind another hand-maintained mobile mirror.
+    sourceSets.getByName("main").java.srcDir(
+        "../../packages/agent-protocol/generated/kotlin",
+    )
+
     // The Remote Session FirebaseMessagingService (onNewToken / foreground push)
     // subclasses a firebase-messaging type, so it is compiled ONLY when Firebase
     // is configured — otherwise the app builds and runs without the SDK. See

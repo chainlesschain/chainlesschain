@@ -53,6 +53,17 @@ jobs:
       - name: Run protocol package tests
         run: npm test --workspace=packages/agent-protocol
 
+      - name: Compile and replay Swift ApprovalDecision conformance
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          swiftc \
+            packages/agent-protocol/generated/swift/CcAgentProtocol.swift \
+            packages/agent-protocol/test/swift-approval-conformance/main.swift \
+            -o "$RUNNER_TEMP/swift-approval-conformance"
+          "$RUNNER_TEMP/swift-approval-conformance" \
+            packages/agent-protocol/test/fixtures/approval-decisions.json
+
       - name: Verify public package tarball
         working-directory: packages/agent-protocol
         run: npm pack --dry-run --json

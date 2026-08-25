@@ -357,3 +357,121 @@ data class ServerNotification(
     val method: String,
     val params: JSONValue
 )
+
+sealed interface ApprovalDecision {
+    data object AcceptOnce : ApprovalDecision
+    data class AcceptForTurn(val permissions: List<PermissionGrant>? = null) : ApprovalDecision
+    data class AcceptForSession(val permissions: List<PermissionGrant>? = null) : ApprovalDecision
+    data class Decline(val reason: String? = null) : ApprovalDecision
+    data class Cancel(val reason: String? = null) : ApprovalDecision
+}
+
+private fun invalidApprovalDecision(message: String): Nothing =
+    throw IllegalArgumentException("Invalid ApprovalDecision: $message")
+
+private fun parseApprovalPermissions(value: Any?): List<PermissionGrant> {
+    val entries = value as? List<*>
+        ?: invalidApprovalDecision("permissions must be an array")
+    if (entries.size > 64) invalidApprovalDecision("permissions must contain at most 64 entries")
+    return entries.mapIndexed { index, entry ->
+        val grant = entry as? Map<*, *>
+            ?: invalidApprovalDecision("permissions[$index] must be an object")
+        val unexpected = grant.keys.filter {
+            it !is String || it !in setOf("capability", "scope", "expiresAt")
+        }
+        if (unexpected.isNotEmpty()) {
+            invalidApprovalDecision("permissions[$index] has unexpected properties: $unexpected")
+        }
+        val capability = grant["capability"] as? String
+            ?: invalidApprovalDecision("permissions[$index].capability must be a string")
+        if (capability.length !in 1..128) {
+            invalidApprovalDecision("permissions[$index].capability length must be 1...128")
+        }
+        val scope = grant["scope"] as? String
+            ?: invalidApprovalDecision("permissions[$index].scope must be a string")
+        if (scope.length !in 1..1024) {
+            invalidApprovalDecision("permissions[$index].scope length must be 1...1024")
+        }
+        val expiresAt = grant["expiresAt"]
+        if (grant.containsKey("expiresAt") && expiresAt != null && expiresAt !is String) {
+            invalidApprovalDecision("permissions[$index].expiresAt must be a string or null")
+        }
+        PermissionGrant(capability = capability, scope = scope, expiresAt = expiresAt)
+    }
+}
+
+fun parseApprovalDecision(value: Any?): ApprovalDecision {
+    val decision = value as? Map<*, *>
+        ?: invalidApprovalDecision("value must be an object")
+    val kind = decision["kind"] as? String
+        ?: invalidApprovalDecision("kind must be a string")
+    val allowed = when (kind) {
+        "acceptOnce" -> setOf("kind")
+        "acceptForTurn", "acceptForSession" -> setOf("kind", "permissions")
+        "decline", "cancel" -> setOf("kind", "reason")
+        else -> invalidApprovalDecision("unknown kind: $kind")
+    }
+    val unexpected = decision.keys.filter { it !is String || it !in allowed }
+    if (unexpected.isNotEmpty()) {
+        invalidApprovalDecision("unexpected ApprovalDecision properties: $unexpected")
+    }
+    val permissions = when {
+        !decision.containsKey("permissions") -> null
+        decision["permissions"] == null -> invalidApprovalDecision("permissions must not be null")
+        else -> parseApprovalPermissions(decision["permissions"])
+    }
+    val reason = when {
+        !decision.containsKey("reason") -> null
+        decision["reason"] !is String -> invalidApprovalDecision("reason must be a string")
+        else -> decision["reason"] as String
+    }
+    if (reason != null && reason.length > 2048) {
+        invalidApprovalDecision("reason length must be <= 2048")
+    }
+    return when (kind) {
+        "acceptOnce" -> ApprovalDecision.AcceptOnce
+        "acceptForTurn" -> ApprovalDecision.AcceptForTurn(permissions)
+        "acceptForSession" -> ApprovalDecision.AcceptForSession(permissions)
+        "decline" -> ApprovalDecision.Decline(reason)
+        "cancel" -> ApprovalDecision.Cancel(reason)
+        else -> invalidApprovalDecision("unknown kind: $kind")
+    }
+}
+
+private fun approvalPermissionsWireValue(permissions: List<PermissionGrant>): List<Map<String, Any?>> {
+    if (permissions.size > 64) {
+        invalidApprovalDecision("permissions must contain at most 64 entries")
+    }
+    return permissions.mapIndexed { index, grant ->
+        if (grant.capability.length !in 1..128) {
+            invalidApprovalDecision("permissions[$index].capability length must be 1...128")
+        }
+        if (grant.scope.length !in 1..1024) {
+            invalidApprovalDecision("permissions[$index].scope length must be 1...1024")
+        }
+        if (grant.expiresAt != null && grant.expiresAt !is String) {
+            invalidApprovalDecision("permissions[$index].expiresAt must be a string or null")
+        }
+        linkedMapOf<String, Any?>(
+            "capability" to grant.capability,
+            "scope" to grant.scope,
+        ).also { value -> if (grant.expiresAt != null) value["expiresAt"] = grant.expiresAt }
+    }
+}
+
+private fun approvalReasonWireValue(reason: String): String {
+    if (reason.length > 2048) invalidApprovalDecision("reason length must be <= 2048")
+    return reason
+}
+
+fun ApprovalDecision.toWireValue(): Map<String, Any?> = when (this) {
+    ApprovalDecision.AcceptOnce -> linkedMapOf("kind" to "acceptOnce")
+    is ApprovalDecision.AcceptForTurn -> linkedMapOf<String, Any?>("kind" to "acceptForTurn")
+        .also { value -> if (permissions != null) value["permissions"] = approvalPermissionsWireValue(permissions) }
+    is ApprovalDecision.AcceptForSession -> linkedMapOf<String, Any?>("kind" to "acceptForSession")
+        .also { value -> if (permissions != null) value["permissions"] = approvalPermissionsWireValue(permissions) }
+    is ApprovalDecision.Decline -> linkedMapOf<String, Any?>("kind" to "decline")
+        .also { value -> if (reason != null) value["reason"] = approvalReasonWireValue(reason) }
+    is ApprovalDecision.Cancel -> linkedMapOf<String, Any?>("kind" to "cancel")
+        .also { value -> if (reason != null) value["reason"] = approvalReasonWireValue(reason) }
+}

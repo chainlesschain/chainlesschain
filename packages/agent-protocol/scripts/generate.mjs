@@ -503,6 +503,388 @@ function modelFieldName(field, language) {
   return keywords.has(field) ? `\`${field}\`` : field;
 }
 
+function approvalDecisionVariants() {
+  const definition = schema.$defs.ApprovalDecision;
+  if (!definition || !Array.isArray(definition.oneOf)) {
+    throw new Error("ApprovalDecision must remain a oneOf discriminated union");
+  }
+  const variants = definition.oneOf.flatMap((branch) => {
+    const kind = branch.properties?.kind;
+    const kindValues = Object.hasOwn(kind || {}, "const")
+      ? [kind.const]
+      : kind?.enum || [];
+    if (kindValues.length === 0) {
+      throw new Error("every ApprovalDecision branch must declare kind");
+    }
+    const required = new Set(branch.required || []);
+    const fields = Object.entries(branch.properties || {})
+      .filter(([field]) => field !== "kind")
+      .map(([field, node]) => ({ field, node, required: required.has(field) }));
+    return kindValues.map((kindValue) => ({
+      kind: kindValue,
+      name: `${kindValue[0].toUpperCase()}${kindValue.slice(1)}`,
+      fields,
+    }));
+  });
+  const supported = variants.map(({ kind, fields }) => [
+    kind,
+    fields.map(({ field }) => field),
+  ]);
+  const expected = [
+    ["acceptOnce", []],
+    ["acceptForTurn", ["permissions"]],
+    ["acceptForSession", ["permissions"]],
+    ["decline", ["reason"]],
+    ["cancel", ["reason"]],
+  ];
+  if (JSON.stringify(supported) !== JSON.stringify(expected)) {
+    throw new Error(
+      "ApprovalDecision changed; update the strict Kotlin/Swift union renderer",
+    );
+  }
+  return variants;
+}
+
+function renderKotlinApprovalDecision() {
+  approvalDecisionVariants();
+  return `sealed interface ApprovalDecision {
+    data object AcceptOnce : ApprovalDecision
+    data class AcceptForTurn(val permissions: List<PermissionGrant>? = null) : ApprovalDecision
+    data class AcceptForSession(val permissions: List<PermissionGrant>? = null) : ApprovalDecision
+    data class Decline(val reason: String? = null) : ApprovalDecision
+    data class Cancel(val reason: String? = null) : ApprovalDecision
+}
+
+private fun invalidApprovalDecision(message: String): Nothing =
+    throw IllegalArgumentException("Invalid ApprovalDecision: $message")
+
+private fun parseApprovalPermissions(value: Any?): List<PermissionGrant> {
+    val entries = value as? List<*>
+        ?: invalidApprovalDecision("permissions must be an array")
+    if (entries.size > 64) invalidApprovalDecision("permissions must contain at most 64 entries")
+    return entries.mapIndexed { index, entry ->
+        val grant = entry as? Map<*, *>
+            ?: invalidApprovalDecision("permissions[$index] must be an object")
+        val unexpected = grant.keys.filter {
+            it !is String || it !in setOf("capability", "scope", "expiresAt")
+        }
+        if (unexpected.isNotEmpty()) {
+            invalidApprovalDecision("permissions[$index] has unexpected properties: $unexpected")
+        }
+        val capability = grant["capability"] as? String
+            ?: invalidApprovalDecision("permissions[$index].capability must be a string")
+        if (capability.length !in 1..128) {
+            invalidApprovalDecision("permissions[$index].capability length must be 1...128")
+        }
+        val scope = grant["scope"] as? String
+            ?: invalidApprovalDecision("permissions[$index].scope must be a string")
+        if (scope.length !in 1..1024) {
+            invalidApprovalDecision("permissions[$index].scope length must be 1...1024")
+        }
+        val expiresAt = grant["expiresAt"]
+        if (grant.containsKey("expiresAt") && expiresAt != null && expiresAt !is String) {
+            invalidApprovalDecision("permissions[$index].expiresAt must be a string or null")
+        }
+        PermissionGrant(capability = capability, scope = scope, expiresAt = expiresAt)
+    }
+}
+
+fun parseApprovalDecision(value: Any?): ApprovalDecision {
+    val decision = value as? Map<*, *>
+        ?: invalidApprovalDecision("value must be an object")
+    val kind = decision["kind"] as? String
+        ?: invalidApprovalDecision("kind must be a string")
+    val allowed = when (kind) {
+        "acceptOnce" -> setOf("kind")
+        "acceptForTurn", "acceptForSession" -> setOf("kind", "permissions")
+        "decline", "cancel" -> setOf("kind", "reason")
+        else -> invalidApprovalDecision("unknown kind: $kind")
+    }
+    val unexpected = decision.keys.filter { it !is String || it !in allowed }
+    if (unexpected.isNotEmpty()) {
+        invalidApprovalDecision("unexpected ApprovalDecision properties: $unexpected")
+    }
+    val permissions = when {
+        !decision.containsKey("permissions") -> null
+        decision["permissions"] == null -> invalidApprovalDecision("permissions must not be null")
+        else -> parseApprovalPermissions(decision["permissions"])
+    }
+    val reason = when {
+        !decision.containsKey("reason") -> null
+        decision["reason"] !is String -> invalidApprovalDecision("reason must be a string")
+        else -> decision["reason"] as String
+    }
+    if (reason != null && reason.length > 2048) {
+        invalidApprovalDecision("reason length must be <= 2048")
+    }
+    return when (kind) {
+        "acceptOnce" -> ApprovalDecision.AcceptOnce
+        "acceptForTurn" -> ApprovalDecision.AcceptForTurn(permissions)
+        "acceptForSession" -> ApprovalDecision.AcceptForSession(permissions)
+        "decline" -> ApprovalDecision.Decline(reason)
+        "cancel" -> ApprovalDecision.Cancel(reason)
+        else -> invalidApprovalDecision("unknown kind: $kind")
+    }
+}
+
+private fun approvalPermissionsWireValue(permissions: List<PermissionGrant>): List<Map<String, Any?>> {
+    if (permissions.size > 64) {
+        invalidApprovalDecision("permissions must contain at most 64 entries")
+    }
+    return permissions.mapIndexed { index, grant ->
+        if (grant.capability.length !in 1..128) {
+            invalidApprovalDecision("permissions[$index].capability length must be 1...128")
+        }
+        if (grant.scope.length !in 1..1024) {
+            invalidApprovalDecision("permissions[$index].scope length must be 1...1024")
+        }
+        if (grant.expiresAt != null && grant.expiresAt !is String) {
+            invalidApprovalDecision("permissions[$index].expiresAt must be a string or null")
+        }
+        linkedMapOf<String, Any?>(
+            "capability" to grant.capability,
+            "scope" to grant.scope,
+        ).also { value -> if (grant.expiresAt != null) value["expiresAt"] = grant.expiresAt }
+    }
+}
+
+private fun approvalReasonWireValue(reason: String): String {
+    if (reason.length > 2048) invalidApprovalDecision("reason length must be <= 2048")
+    return reason
+}
+
+fun ApprovalDecision.toWireValue(): Map<String, Any?> = when (this) {
+    ApprovalDecision.AcceptOnce -> linkedMapOf("kind" to "acceptOnce")
+    is ApprovalDecision.AcceptForTurn -> linkedMapOf<String, Any?>("kind" to "acceptForTurn")
+        .also { value -> if (permissions != null) value["permissions"] = approvalPermissionsWireValue(permissions) }
+    is ApprovalDecision.AcceptForSession -> linkedMapOf<String, Any?>("kind" to "acceptForSession")
+        .also { value -> if (permissions != null) value["permissions"] = approvalPermissionsWireValue(permissions) }
+    is ApprovalDecision.Decline -> linkedMapOf<String, Any?>("kind" to "decline")
+        .also { value -> if (reason != null) value["reason"] = approvalReasonWireValue(reason) }
+    is ApprovalDecision.Cancel -> linkedMapOf<String, Any?>("kind" to "cancel")
+        .also { value -> if (reason != null) value["reason"] = approvalReasonWireValue(reason) }
+}`;
+}
+
+function renderSwiftApprovalDecision() {
+  approvalDecisionVariants();
+  return `public enum ApprovalDecision: Codable, Sendable {
+    case acceptOnce
+    case acceptForTurn(permissions: [PermissionGrant]?)
+    case acceptForSession(permissions: [PermissionGrant]?)
+    case decline(reason: String?)
+    case cancel(reason: String?)
+
+    private struct DynamicCodingKey: CodingKey, Hashable {
+        let stringValue: String
+        let intValue: Int?
+
+        init(_ stringValue: String) {
+            self.stringValue = stringValue
+            self.intValue = nil
+        }
+
+        init?(stringValue: String) {
+            self.init(stringValue)
+        }
+
+        init?(intValue: Int) {
+            self.stringValue = String(intValue)
+            self.intValue = intValue
+        }
+    }
+
+    private static func decodingError(
+        _ codingPath: [CodingKey],
+        _ message: String
+    ) -> DecodingError {
+        .dataCorrupted(.init(
+            codingPath: codingPath,
+            debugDescription: "Invalid ApprovalDecision: \\(message)"
+        ))
+    }
+
+    private static func encodingError(
+        _ value: ApprovalDecision,
+        _ codingPath: [CodingKey],
+        _ message: String
+    ) -> EncodingError {
+        .invalidValue(value, .init(
+            codingPath: codingPath,
+            debugDescription: "Invalid ApprovalDecision: \\(message)"
+        ))
+    }
+
+    private static func validate(
+        permissions: [PermissionGrant],
+        decision: ApprovalDecision,
+        codingPath: [CodingKey]
+    ) throws {
+        guard permissions.count <= 64 else {
+            throw encodingError(decision, codingPath, "permissions must contain at most 64 entries")
+        }
+        for (index, grant) in permissions.enumerated() {
+            guard (1...128).contains(grant.capability.count) else {
+                throw encodingError(decision, codingPath, "permissions[\\(index)].capability length must be 1...128")
+            }
+            guard (1...1024).contains(grant.scope.count) else {
+                throw encodingError(decision, codingPath, "permissions[\\(index)].scope length must be 1...1024")
+            }
+            if let expiresAt = grant.expiresAt {
+                switch expiresAt {
+                case .null:
+                    break
+                case .string:
+                    break
+                default:
+                    throw encodingError(decision, codingPath, "permissions[\\(index)].expiresAt must be a string or null")
+                }
+            }
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicCodingKey.self)
+        let kindKey = DynamicCodingKey("kind")
+        guard container.contains(kindKey), !(try container.decodeNil(forKey: kindKey)) else {
+            throw Self.decodingError(container.codingPath, "kind must be a string")
+        }
+        let kind = try container.decode(String.self, forKey: kindKey)
+        let allowed: Set<String>
+        switch kind {
+        case "acceptOnce":
+            allowed = ["kind"]
+        case "acceptForTurn", "acceptForSession":
+            allowed = ["kind", "permissions"]
+        case "decline", "cancel":
+            allowed = ["kind", "reason"]
+        default:
+            throw Self.decodingError(container.codingPath, "unknown kind: \\(kind)")
+        }
+        let unexpected = Set(container.allKeys.map(\\.stringValue)).subtracting(allowed)
+        guard unexpected.isEmpty else {
+            throw Self.decodingError(
+                container.codingPath,
+                "unexpected ApprovalDecision properties: \\(unexpected.sorted())"
+            )
+        }
+
+        func decodePermissions() throws -> [PermissionGrant]? {
+            let key = DynamicCodingKey("permissions")
+            guard container.contains(key) else { return nil }
+            guard !(try container.decodeNil(forKey: key)) else {
+                throw Self.decodingError(container.codingPath, "permissions must not be null")
+            }
+            var entries = try container.nestedUnkeyedContainer(forKey: key)
+            var grants: [PermissionGrant] = []
+            while !entries.isAtEnd {
+                guard grants.count < 64 else {
+                    throw Self.decodingError(entries.codingPath, "permissions must contain at most 64 entries")
+                }
+                let index = grants.count
+                let grant = try entries.nestedContainer(keyedBy: DynamicCodingKey.self)
+                let grantAllowed: Set<String> = ["capability", "scope", "expiresAt"]
+                let grantUnexpected = Set(grant.allKeys.map(\\.stringValue)).subtracting(grantAllowed)
+                guard grantUnexpected.isEmpty else {
+                    throw Self.decodingError(
+                        grant.codingPath,
+                        "permissions[\\(index)] has unexpected properties: \\(grantUnexpected.sorted())"
+                    )
+                }
+                let capability = try grant.decode(String.self, forKey: DynamicCodingKey("capability"))
+                guard (1...128).contains(capability.count) else {
+                    throw Self.decodingError(grant.codingPath, "permissions[\\(index)].capability length must be 1...128")
+                }
+                let scope = try grant.decode(String.self, forKey: DynamicCodingKey("scope"))
+                guard (1...1024).contains(scope.count) else {
+                    throw Self.decodingError(grant.codingPath, "permissions[\\(index)].scope length must be 1...1024")
+                }
+                let expiresAtKey = DynamicCodingKey("expiresAt")
+                let expiresAt: JSONValue?
+                if grant.contains(expiresAtKey) {
+                    expiresAt = try grant.decode(JSONValue.self, forKey: expiresAtKey)
+                } else {
+                    expiresAt = nil
+                }
+                if let expiresAt {
+                    switch expiresAt {
+                    case .null:
+                        break
+                    case .string:
+                        break
+                    default:
+                        throw Self.decodingError(grant.codingPath, "permissions[\\(index)].expiresAt must be a string or null")
+                    }
+                }
+                grants.append(PermissionGrant(
+                    capability: capability,
+                    scope: scope,
+                    expiresAt: expiresAt
+                ))
+            }
+            return grants
+        }
+
+        func decodeReason() throws -> String? {
+            let key = DynamicCodingKey("reason")
+            guard container.contains(key) else { return nil }
+            guard !(try container.decodeNil(forKey: key)) else {
+                throw Self.decodingError(container.codingPath, "reason must not be null")
+            }
+            let reason = try container.decode(String.self, forKey: key)
+            guard reason.count <= 2048 else {
+                throw Self.decodingError(container.codingPath, "reason length must be <= 2048")
+            }
+            return reason
+        }
+
+        switch kind {
+        case "acceptOnce":
+            self = .acceptOnce
+        case "acceptForTurn":
+            self = .acceptForTurn(permissions: try decodePermissions())
+        case "acceptForSession":
+            self = .acceptForSession(permissions: try decodePermissions())
+        case "decline":
+            self = .decline(reason: try decodeReason())
+        case "cancel":
+            self = .cancel(reason: try decodeReason())
+        default:
+            throw Self.decodingError(container.codingPath, "unknown kind: \\(kind)")
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicCodingKey.self)
+        let kindKey = DynamicCodingKey("kind")
+        switch self {
+        case .acceptOnce:
+            try container.encode("acceptOnce", forKey: kindKey)
+        case .acceptForTurn(let permissions):
+            if let permissions { try Self.validate(permissions: permissions, decision: self, codingPath: encoder.codingPath) }
+            try container.encode("acceptForTurn", forKey: kindKey)
+            try container.encodeIfPresent(permissions, forKey: DynamicCodingKey("permissions"))
+        case .acceptForSession(let permissions):
+            if let permissions { try Self.validate(permissions: permissions, decision: self, codingPath: encoder.codingPath) }
+            try container.encode("acceptForSession", forKey: kindKey)
+            try container.encodeIfPresent(permissions, forKey: DynamicCodingKey("permissions"))
+        case .decline(let reason):
+            if let reason, reason.count > 2048 {
+                throw Self.encodingError(self, encoder.codingPath, "reason length must be <= 2048")
+            }
+            try container.encode("decline", forKey: kindKey)
+            try container.encodeIfPresent(reason, forKey: DynamicCodingKey("reason"))
+        case .cancel(let reason):
+            if let reason, reason.count > 2048 {
+                throw Self.encodingError(self, encoder.codingPath, "reason length must be <= 2048")
+            }
+            try container.encode("cancel", forKey: kindKey)
+            try container.encodeIfPresent(reason, forKey: DynamicCodingKey("reason"))
+        }
+    }
+}`;
+}
+
 function renderKotlin() {
   const models = Object.entries(schema.$defs)
     .filter(
@@ -524,6 +906,7 @@ function renderKotlin() {
       return `data class ${name}(\n${fields.join(",\n")}\n)`;
     })
     .join("\n\n");
+  const approvalDecision = renderKotlinApprovalDecision();
   return `// AUTO-GENERATED by @chainlesschain/agent-protocol. DO NOT EDIT.
 package com.chainlesschain.agent.protocol.generated
 
@@ -533,6 +916,8 @@ const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "${digest}"
 typealias JSONValue = Any?
 
 ${models}
+
+${approvalDecision}
 `;
 }
 
@@ -550,13 +935,36 @@ function renderSwift() {
       const fields = Object.entries(definition.properties).map(
         ([field, child]) => {
           const optional = !required.has(field);
-          const type = modelType(child, "swift");
-          return `    public let ${modelFieldName(field, "swift")}: ${optional && !type.endsWith("?") ? `${type}?` : type}`;
+          const rawType = modelType(child, "swift");
+          const type =
+            optional && !rawType.endsWith("?") ? `${rawType}?` : rawType;
+          return { field, optional, type };
         },
       );
-      return `public struct ${name}: Codable, Sendable {\n${fields.join("\n")}\n}`;
+      const declarations = fields.map(
+        ({ field, type }) =>
+          `    public let ${modelFieldName(field, "swift")}: ${type}`,
+      );
+      const parameters = fields.map(
+        ({ field, optional, type }) =>
+          `        ${modelFieldName(field, "swift")}: ${type}${optional ? " = nil" : ""}`,
+      );
+      const assignments = fields.map(
+        ({ field }) =>
+          `        self.${modelFieldName(field, "swift")} = ${modelFieldName(field, "swift")}`,
+      );
+      return `public struct ${name}: Codable, Sendable {
+${declarations.join("\n")}
+
+    public init(
+${parameters.join(",\n")}
+    ) {
+${assignments.join("\n")}
+    }
+}`;
     })
     .join("\n\n");
+  const approvalDecision = renderSwiftApprovalDecision();
   return `// AUTO-GENERATED by @chainlesschain/agent-protocol. DO NOT EDIT.
 import Foundation
 
@@ -595,6 +1003,8 @@ public indirect enum JSONValue: Codable, Sendable {
 }
 
 ${models}
+
+${approvalDecision}
 `;
 }
 

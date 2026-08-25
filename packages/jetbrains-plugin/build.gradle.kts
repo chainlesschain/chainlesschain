@@ -89,6 +89,9 @@ java {
 
 kotlin {
     jvmToolchain(21)
+    sourceSets.named("main") {
+        kotlin.srcDir("../agent-protocol/generated/kotlin")
+    }
 }
 
 // Windows javac defaults to the platform codepage (GBK) — non-ASCII UI
