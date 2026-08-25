@@ -1,12 +1,19 @@
 {
-  "checkedAt": "2026-08-24",
-  "recommendedCliVersion": "0.166.0",
-  "npmLatestCliVersion": "0.166.0",
-  "sourceMainCliVersion": "0.166.0",
-  "openVsxVersion": "0.37.63",
+  "checkedAt": "2026-08-25",
+  "recommendedCliVersion": "0.166.2",
+  "npmLatestCliVersion": "0.166.2",
+  "sourceMainCliVersion": "0.166.2",
+  "cliReleaseTag": "v-npm-0-166-2",
+  "cliReleaseCommit": "f868e142068c33d203601cddd7643fd8ad9c4ffb",
+  "sourceCandidateCommit": "20b1bb5563239bd3ec2d4653ba6c57bdbb6c0d9a",
+  "sourceMainStatus": "unreleased-session-message-fabric-candidate",
+  "agentSdkVersion": "0.2.1",
+  "agentProtocolVersion": "0.1.1",
+  "openVsxVersion": "0.37.66",
   "openVsxDownloadsMilestone": "27,000+",
-  "jetBrainsMarketplaceVersion": "0.4.96",
-  "sourceJetBrainsVersion": "0.4.97",
-  "lastFullyGatedVsCodeVersion": "0.37.63",
-  "lastFullyGatedJetBrainsVersion": "0.4.96"
+  "jetBrainsMarketplaceVersion": "0.4.98",
+  "sourceJetBrainsVersion": "0.4.98",
+  "ideReleaseCommit": "65247a2886009f4dedb9e9f3cd22d3a0abfdd66d",
+  "lastFullyGatedVsCodeVersion": "0.37.66",
+  "lastFullyGatedJetBrainsVersion": "0.4.98"
 }

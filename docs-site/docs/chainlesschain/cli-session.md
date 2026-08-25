@@ -1,6 +1,6 @@
 ﻿# 会话管理 (session)
 
-> Headless 命令。当前生产推荐 CLI 为 Agent Platform `0.166.0`。`session` 同时承载传统会话管理、会话级审批策略、耐久跨会话消息与 session group/批量移动；App Server Thread 是产品协议层的独立身份，恢复时不要与 CLI session ID 混用。IDE 的 Focus View 仍按各自发布版本与平台支持情况提供。
+> Headless 命令。当前生产推荐 CLI 为 Agent Platform `0.166.2`。`session` 同时承载传统会话管理、会话级审批策略、耐久跨会话消息与 session group/批量移动；App Server Thread 是产品协议层的独立身份，恢复时不要与 CLI session ID 混用。IDE 的 Focus View 仍按各自发布版本与平台支持情况提供。
 
 ## 核心特性
 

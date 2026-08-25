@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · Agent Platform CLI 0.166.0 · Agent SDK 0.2.0 · Open VSX 0.37.63 · JetBrains 0.4.96｜App Server · Graph Kernel";
+        "v5.0.3.135 · Agent Platform CLI 0.166.2 · Agent SDK 0.2.1 · Open VSX 0.37.66 · JetBrains 0.4.98｜TeamMailbox v3 · Graph Kernel";
     }
   },
 
@@ -177,7 +177,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.0",
+          text: "🧩 Agent Platform 0.166.2",
           collapsed: false,
           items: [
             {
@@ -242,7 +242,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (0.166.0) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (0.166.2) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1802,7 +1802,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.0) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.2) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {

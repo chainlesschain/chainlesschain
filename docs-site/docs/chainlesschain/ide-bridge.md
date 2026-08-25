@@ -1,10 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本：Design Module 98（机制篇，更新 2026-08-24）| 公开版：VS Code `0.37.63` Open VSX / JetBrains `0.4.96` Marketplace | 源码：`0.37.65` / `0.4.97`**
+> **版本：Design Module 98（机制篇，更新 2026-08-25）| 公开版：VS Code `0.37.66` Open VSX / JetBrains `0.4.98` Marketplace | 源码：`0.37.66` / `0.4.98`**
 >
-> Open VSX `0.37.63` 已公开、累计下载已突破 **2.7 万**；JetBrains Marketplace `0.4.96` 已审核并公开。双端公开安全 Remote Control、耐久跨会话消息投影、会话分组、Focus View、长 transcript 可访问性，并承接 Automation Center、durable workflow 与 Artifact 恢复。微软 VS Code Marketplace 仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
+> Open VSX `0.37.66` 已公开、累计下载已突破 **2.7 万**；JetBrains Marketplace `0.4.98` 已审核、listed 并公开。双端新增无消息内容的 TeamMailbox v3 健康投影，并延续安全 Remote Control、耐久跨会话消息、会话分组、Focus View、Automation Center 与 Artifact 恢复。微软 VS Code Marketplace 仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
 >
-> 当前分支包元数据为 VS Code `0.37.65` / JetBrains `0.4.97`，源码领先不替代 marketplace tag 与安装制品回读；Agent Platform `0.166.0` 发布也不表示 IDE 接入已全部切换到 CC App Server。
+> 当前分支包元数据与公开市场一致，但市场身份仍绑定发布提交 `65247a2886` 和可下载制品回读；后续源码不能仅凭相同版本字段继承。Agent Platform `0.166.2` 的消息 authority 留在 CLI-owned bridge，IDE 只消费无内容健康投影。
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -123,7 +123,7 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 
 ```bash
 npm i -g chainlesschain
-cc --version          # 生产推荐 0.166.0；该桥接路径最低 0.162.39
+cc --version          # 生产推荐 0.166.2；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -142,7 +142,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.86）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.98）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

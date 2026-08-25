@@ -1,6 +1,6 @@
 # Agent Kernel 使用与运维指南
 
-> 适用版本：`chainlesschain@0.166.0`｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员
+> 适用版本：`chainlesschain@0.166.2`｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员
 
 ## 概述
 
@@ -186,7 +186,7 @@ cc serve --app-server --app-server-state-dir .cc-app-server-state
 
 ## 当前边界
 
-- Agent Kernel 随 `chainlesschain@0.166.0` 发布，不是独立 npm 包或公网服务。
+- Agent Kernel 首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`；它不是独立 npm 包或公网服务。
 - Desktop/IDE 并未因此自动全部迁移到 CC App Server。
 - Graph Kernel 发布不代表 Team/Cowork/Scheduler 都已完成 authoritative cutover。
 - 本地测试不替代 exact-SHA 三平台发布门，npm 发布也不等于签名 native 已发行。

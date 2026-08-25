@@ -1,6 +1,6 @@
 # 104. CC App Server 设计
 
-> 状态：stdio MVP 已随 `chainlesschain@0.166.0` 发布（2026-08-24）｜协议版本：v1｜默认存储：hash-chained JSONL｜网络传输：未开放
+> 状态：stdio MVP 首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`（2026-08-25）｜协议版本：v1｜默认存储：hash-chained JSONL｜网络传输：未开放
 
 ## 1. 定位
 

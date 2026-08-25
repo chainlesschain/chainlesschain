@@ -1,11 +1,11 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> ## 当前发布状态（2026-08-22）
+> ## 当前发布状态（2026-08-25）
 >
-> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.61** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **2.7 万**；该状态不表示 Microsoft VS Code Marketplace 已发布。
-> - **JetBrains**：`com.chainlesschain.ide` **0.4.95** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 审核通过并公开。
-> - **当前发布能力**：双端公开安全 Remote Control、跨会话消息的 delivered/refused/full/expired 投影、专用去重可访问性播报、稳定 turn heading 与有界长 transcript；继续承接 `0.37.59` / `0.4.94` 的 durable workflow 与 Artifact 恢复能力。
-> - **源码增量边界**：当前分支包元数据是 VS Code **0.37.63** / JetBrains **0.4.96**。session group/批量移动、Focus View、versioned cancellable diagnostics snapshot、10 万路径 workspace mention index 与 canonical browser evidence 尚未进入上述公开市场版本；IDE 仍只消费 CLI-owned projection，不自行重建 authority。
+> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.66** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **2.7 万**；该状态不表示 Microsoft VS Code Marketplace 已发布。
+> - **JetBrains**：`com.chainlesschain.ide` **0.4.98** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 审核通过、listed 并公开。
+> - **当前发布能力**：双端新增 CLI-owned、无消息内容的 TeamMailbox v3 健康投影，只显示计数、最旧消息年龄、dead-letter 数量和有界状态；subject/body/digest、consumer key、失败原因、凭据和 attempt binding 均不进入 IDE。既有 Remote Control、Sessions Workbench、durable workflow 与 Artifact 恢复继续有效。
+> - **源码与市场边界**：当前分支包元数据与公开市场一致，为 VS Code **0.37.66** / JetBrains **0.4.98**；公开身份绑定发布提交 `65247a2886` 与市场制品回读，后续源码不能仅凭版本字段继承。IDE 仍只消费 CLI-owned projection，不自行重建 Team/Message authority。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。
@@ -15,7 +15,7 @@
 > **本文档是 IDE 桥接的初版规划方案（v1.1，2026-06-10），记录 Phase 0–7 首轮落地。它已不再反映现状——请勿把下方 §1.2 缺口表当作当前状态。**
 >
 > - **当前权威**：[`docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md`](../../CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md)（增量差距与优化建议）。IDE 落地状态另见 [`docs/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md) 与 [`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../CLAUDE_CODE_IDE_GAP_ANALYSIS.md)。
-> - **版本指针**：VS Code 扩展 **0.37.61**（Open VSX live）；JetBrains 插件 **0.4.95**（Marketplace live）；源码包分别为 **0.37.63** / **0.4.96**——正文出现的 `0.2.x` / `0.1.0` 是首发版本号，不是当前版本。
+> - **版本指针**：VS Code 扩展 **0.37.66**（Open VSX live）；JetBrains 插件 **0.4.98**（Marketplace live）；源码包当前一致——正文出现的 `0.2.x` / `0.1.0` 是首发版本号，不是当前版本。
 > - **§1.2 缺口表（下方）是实施前的原始基线**（2026-06-10）；表中"无 / HIGH"等判断均已在 Phase 0–7 及后续 7 个月的批次中落地，逐行 ✅ 标注见表内。
 > - **2026-06-10 之后落地、本文 Phase 日志未覆盖的主要能力**：Session Workbench / Sessions Index、Remote Handoff / Remote QR、IDE Diff Review（逐 hunk / 行批注 / openMultiDiff）、Browser State / Browser Action、managed CLI（检测 + 一键升级）、Artifacts / Policy / Quality 面板、Artifact access/deletion settlement、语义工具（VS symbol / JB PSI）、Capability 双向协商 + N/N-1 降级、跨事件 `trace_id`、事件 `seq` / replay / 背压、remote URI/path mapping、隐式上下文脱敏、操作指纹审批、后台 Agent 面板与 durable workflow recovery 源码增量。
 

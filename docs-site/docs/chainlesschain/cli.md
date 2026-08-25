@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-24）：产品 v5.0.3.135 / Agent Platform CLI 0.166.0（npm latest、主线包元数据与完整门禁已对齐）| Agent SDK 0.2.0 | 175 命令 | Node.js ≥ 22.12.0。稳定版新增 canonical Agent Protocol、stdio CC App Server、Graph Kernel、Graph trace/eval 与受治理 `cc exec` facade。**
+> **当前版本边界（2026-08-25）：产品 v5.0.3.135 / Agent Platform CLI 0.166.2（npm latest、生产推荐与完整发布门对齐）| Agent SDK 0.2.1 | Agent Protocol 0.1.1 | 175 命令 | Node.js ≥ 22.12.0。稳定版为真实 team agent 提供私有消息工具和 TeamMailbox v3；候选代码 `20b1bb5563` 的 SessionMessageFabric 仍未发布。**
 
 ## 概述
 
@@ -13,6 +13,7 @@ ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，�
 - 🧠 **Agent 模式**: Claude Code 风格代理会话，10 工具 + 146 技能 + Plan Mode + /cowork
 - 🎯 **多层技能系统**: 4 层优先级（bundled < marketplace < managed < workspace），自定义技能管理
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
+- 📨 **TeamMailbox v3**: 真实 `cc team --agent` 子进程可使用私有 `team_send|receive|ack|followup`，支持至少一次投递、幂等、稳定 consumer 和 dead-letter
 - 🧩 **产品集成协议**: `cc serve --app-server` 提供耐久 Thread/Turn/Item、结构化审批、背压与断线恢复
 - 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供时间旅行、根因分析和 CI 阈值门
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
@@ -140,7 +141,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.0
+npm install -g chainlesschain@0.166.2
 chainlesschain setup
 chainlesschain start
 ```
@@ -157,7 +158,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.0
+npm install -g chainlesschain@0.166.2
 ```
 
 安装后提供 3 个等价命令：
@@ -414,7 +415,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.166.0` 的不可变 tag `v-npm-0-166-0` 精确指向提交 [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)。同一提交已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、npm Trusted Publishing 与 registry 回读；TypeScript/Python Agent SDK `0.2.0` 也已公开。该证据不自动覆盖 Desktop/iOS、签名 native 或所有产品的 Graph authoritative cutover。
+> `0.166.2` 的不可变 tag `v-npm-0-166-2` 精确指向提交 [`f868e14206`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)。同一提交已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、npm Trusted Publishing 与独立 registry 回读；TypeScript/Python Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已公开。真实 Agent 的消息能力通过宿主私有工具暴露，不是顶层 `cc team send` 子命令。该证据不自动覆盖 `f868e14206` 之后的 SessionMessageFabric 候选、Desktop/iOS 或签名 native。
 
 ---
 

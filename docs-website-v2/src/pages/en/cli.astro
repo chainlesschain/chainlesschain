@@ -7,6 +7,9 @@ import { readFileSync } from 'node:fs';
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
 const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
+const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
+const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 
 // Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
 // the same parser that powers `cc changelog` — no committed snapshot to go
@@ -179,6 +182,7 @@ const categories = [
       ['team run --tasks <file>', 'Declared dependency DAG with budgets, leases, worktrees, and recoverable state'],
       ['team queue init / worker / finalize', 'Shared-filesystem distributed queue v1 with CLI-owned authority digests, leases, and CAS fences'],
       ['team graph inspect / diff / eval', 'GraphRun time travel, root cause, diff, and CI thresholds'],
+      ['team_send / receive / ack / followup', '0.166.2 real-Team-child messaging bound to attempt, lease, and fence authority'],
     ],
   },
   {
@@ -457,7 +461,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest and mainline source are <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>. Canonical Agent Protocol, CC App Server, Agent Kernel, Graph Kernel, and trace/eval are in the stable contract; the TypeScript and Python Agent SDKs are 0.2.0.
+          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest is <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>. Candidate source <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> still carries package metadata <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>, but its custody/SessionMessageFabric changes are not published. Canonical Agent Protocol, CC App Server, Agent Kernel, Graph Kernel, trace/eval, and real-Team-child messaging are stable; the TypeScript and Python Agent SDKs are {AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -638,10 +642,13 @@ const packs = [
           P2-16 Agent Teams uses local state v6 as authority and adds a separate distributed queue v1 for supported shared filesystems. Queue authority digests, leases, CAS, and wall-clock fences prevent stale workers or late results from publishing. A 10,000-task DAG with up to 64 local workers is the validated boundary for one local runner; the shared-filesystem queue is not consensus and is not network-partition tolerant.
         </p>
         <p class="mt-4 text-lg text-muted">
+          CLI <code class="font-mono text-sm">0.166.2</code> gives real <code class="font-mono text-sm">cc team --agent</code> children <code class="font-mono text-sm">team_send / team_receive / team_ack / team_followup</code>. The private local bridge revalidates holder, task, attempt, lease, and fence on every call; TeamMailbox v3 provides at-least-once delivery, idempotency keys, and read/processed/dead-letter terminal states. Mainline idle wake, custody handoff, and the state-backed SessionMessageFabric adapter remain unpublished candidates and are not in that npm tarball.
+        </p>
+        <p class="mt-4 text-lg text-muted">
           The current CLI carries PDH 0.4.59. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted. Native SQLite is now optional, so first install falls back to bundled sql.js WASM when Python, a compiler, or a native prebuild is unavailable; partial reads or incomplete pagination still retain the previous checkpoint for a safe resume.
         </p>
         <p class="mt-4 text-lg text-muted">
-          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, and Agent SDK 0.2.0. Exact SHA <code class="font-mono text-sm">40354eb432</code> passed three-OS CLI CI, Strict Sandbox, and npm publication; the npm/PyPI SDKs also passed installation readback.
+          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, real-Team-child messaging, and Agent SDK {AGENT_SDK_VERSION}. Exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry readback; the npm/PyPI SDKs also passed installation readback.
         </p>
         <p class="mt-4 text-lg text-muted">
           This evidence does not mean every Desktop/IDE host has migrated to App Server or every Team/Cowork/Scheduler adapter uses the Graph authoritative writer. Real-provider three-OS journeys, long overload/fairness soaks, full-product crash/recovery conformance, and signed native delivery remain separate.

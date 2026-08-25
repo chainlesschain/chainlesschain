@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：`chainlesschain@0.166.0`｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：`chainlesschain@0.166.2`（功能自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -52,7 +52,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.0"
+npm install --global "chainlesschain@0.166.2"
 
 # 查看完整投影
 cc team graph inspect <run-id>

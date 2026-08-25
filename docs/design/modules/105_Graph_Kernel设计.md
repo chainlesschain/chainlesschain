@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面已随 `chainlesschain@0.166.0` 发布（2026-08-24）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`（2026-08-25）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
 
 ## 1. 定位
 

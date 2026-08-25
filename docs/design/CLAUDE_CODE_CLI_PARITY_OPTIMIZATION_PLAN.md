@@ -300,7 +300,7 @@ plugin/
 >
 > **4.3 已落地（v6 authority 恢复 + per-task worktree 隔离）**：`cc team run --state <file> --resume` 在每任务 settle 后持久化状态；当前本地状态为 v6，v5 只允许通过一次 `--resume` 迁移，v2–v4 被拒。COMPLETED 任务保持完成；遗弃 lease 只有 dry-run 或显式 `retrySafe: true` 才自动重领，其他真实任务进入 evidence-pinned adjudication。`lib/agent-team/team-worktree.js` `TeamWorktreeCoordinator` 为**每个任务**创建独立 git worktree，并让下游任务组合已验证的 dependency baseline；`integrate({merge})` 顺序 preview 后只合并干净分支，冲突报告但不强合。`cc team run --worktree` 本身就是 shell-worktree 真实执行，`--merge` 仅在预览干净后合并。
 >
-> **4.4 P2-16 完成（更新于 2026-07-31）**：`TeamBudget` 提供 maxTasks/maxTokens/maxUsd/maxWallMs 四维团队预算；本地恢复只允许收紧 cap，并保留已消耗 active wall time而不计进程停机时间。分布式 queue 使用独立 schema v1，全局 wall 从第一次 acquire 开始，此后包含 worker 停机时间，并在执行器返回、checkpoint、commit 与完成发布尾部继续 fencing，超限后不能发布成功。启用 token/USD cap 时，usage 缺失或远端模型无法定价会 fail closed。TeamRunner mailbox 使用有界队列/backpressure，但当前公共 CLI 没有 `cc team send`，分布式 queue 也没有 teammate 消息命令。worktree 按任务创建，以 prepare→persist→remove→persist 清理；VS Code/JetBrains 提供 human-control，跨进程 worker 通过共享可信本地文件系统 durable queue 协调。单进程内 10k task/64 async worker 验证 scheduler 规模；三平台长期 soak 使用 2 个真实 OS worker 验证跨进程故障与恢复。
+> **4.4 P2-16 完成（更新于 2026-08-25）**：`TeamBudget` 提供 maxTasks/maxTokens/maxUsd/maxWallMs 四维团队预算；本地恢复只允许收紧 cap，并保留已消耗 active wall time而不计进程停机时间。分布式 queue 使用独立 schema v1，全局 wall 从第一次 acquire 开始，此后包含 worker 停机时间，并在执行器返回、checkpoint、commit 与完成发布尾部继续 fencing，超限后不能发布成功。启用 token/USD cap 时，usage 缺失或远端模型无法定价会 fail closed。CLI `0.166.2` 不新增顶层 `cc team send` 子命令，而是仅向真实 `cc team --agent` 子进程注入私有 `team_send|receive|ack|followup` 宿主工具；TeamMailbox v3 提供有界至少一次投递、幂等、稳定 consumer 与 ACK/dead-letter。主线后续 SessionMessageFabric/custody handoff 仍是未发布候选。worktree 按任务创建，以 prepare→persist→remove→persist 清理；VS Code/JetBrains 提供 human-control，跨进程 worker 通过共享可信本地文件系统 durable queue 协调。单进程内 10k task/64 async worker 验证 scheduler 规模；三平台长期 soak 使用 2 个真实 OS worker验证跨进程故障与恢复。
 >
 > 上述 queue 不是共识网络队列，`--state` 仍是未签名可信控制面；摘要是一致性、误绑定和回滚锚点而非来源认证。监控必须优先使用 `queue status` 的锁内一致视图，高频直接轮询原始 JSON 不受支持。Agent Team checkpoint authority 为 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`，不能回滚网络、数据库、消息、部署或支付。Node 不提供 `openat`/handle-relative authority，无法排除完整 ABA；Windows spawn 另有检查到创建间的 TOCTOU。POSIX 清理不证明主动 `setsid` 逃逸后代或外部强杀时的 JS `finally`。exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的 `CLI CI`、`CLI Strict Sandbox`、Agent Team short 与三平台长期 soak 已全部成功。
 >
@@ -315,7 +315,7 @@ plugin/
 - 建立团队级共享任务图和依赖关系。
 - 支持 task create/update/claim/release/complete。
 - 使用 lease 防止多个 Agent 重复领取同一任务。
-- 库内 mailbox 支持有界定向消息；公共 CLI 不提供 `cc team send` 或分布式 teammate 消息命令。
+- CLI `0.166.2` 仅向真实 `cc team --agent` 子进程提供私有 `team_send|receive|ack|followup` 工具，不提供顶层 `cc team send` 子命令；后续 SessionMessageFabric 与 custody handoff 保持未发布候选身份。
 - 每个任务可使用独立 Worktree。
 - 增加 teammate idle、failed、shutdown、lost 状态。
 - 主 Agent 异常退出后可恢复团队任务。

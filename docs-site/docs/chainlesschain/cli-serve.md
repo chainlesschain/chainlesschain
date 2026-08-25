@@ -1,6 +1,6 @@
 # 服务入口（serve）：WebSocket Gateway 与 CC App Server
 
-> 适用版本：`chainlesschain@0.166.0`。`chainlesschain serve` 有两个互斥入口：默认启动既有 WebSocket Gateway；`--app-server` 启动面向完整产品集成的 stdio JSON-RPC 服务。本文详述 WebSocket 模式，App Server 请进入独立的 [CC App Server 使用指南](./cli-app-server.md)。
+> 适用版本：`chainlesschain@0.166.2`。`chainlesschain serve` 有两个互斥入口：默认启动既有 WebSocket Gateway；`--app-server` 启动面向完整产品集成的 stdio JSON-RPC 服务。本文详述 WebSocket 模式，App Server 请进入独立的 [CC App Server 使用指南](./cli-app-server.md)。
 
 ## 概述
 

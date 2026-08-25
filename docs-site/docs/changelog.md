@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Added — CLI 0.166.2、Agent SDK 0.2.1、Agent Protocol 0.1.1 与 IDE mailbox health
+
+> `chainlesschain@0.166.2` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-2` 精确指向 [`f868e14206`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668553)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668270)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32779764184)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32781738319)均成功。Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已公开。
+
+- **Team host tools**：真实 `cc team --agent` 子进程获得私有 `team_send`、`team_receive`、`team_ack`、`team_followup`；桥接层逐次重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。
+- **TeamMailbox v3**：稳定 consumer、至少一次投递、幂等键、read/processed/dead-letter 状态及 `--state` checkpoint 进入公开契约。
+- **IDE `0.37.66` / `0.4.98`**：Open VSX 与 JetBrains Marketplace 已公开 TeamMailbox v3 健康投影；投影排除 subject/body/digest、consumer key、失败原因、凭据和 attempt binding，malformed/oversize/duplicate 可选字段失败闭合。
+- **未发布候选**：代码提交 `20b1bb5563` 的 idle followup wake、custody handoff 与 companion SessionMessageFabric 仍未完成正式 npm 发布门。legacy v3 迁移、离线恢复、跨进程限流、processed-before-ACK、poison dead-letter 与 4 MiB pending 上限不能归入稳定 `0.166.2` 契约。
+
 #### Added — Agent Platform CLI 0.166.0 + Agent SDK 0.2.0
 
 > `chainlesschain@0.166.0` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-0` 精确指向 [`40354eb432`](https://github.com/chainlesschain/chainlesschain/commit/40354eb432281c28ed266f2dc6d1458764eb536d)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32707920123)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32707919798)和[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32711432194)均成功。TypeScript `@chainlesschain/agent-sdk@0.2.0` 与 PyPI `chainlesschain-agent-sdk==0.2.0` 也已公开并完成安装回读。

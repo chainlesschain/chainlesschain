@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.166.0`（2026-08-24）。`0.163.8` 新增受治理的 file/hunk merge review，`0.164.0` 加入作用域执行与上下文权限，`0.165.1` 加固远程成员权威与 canonical 执行边界，`0.165.2–0.165.6` 又把 child-call receipt、会话预算、远端结果审阅/应用、workflow recovery、跨会话消息与 MCP 生命周期恢复纳入耐久 authority；`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval` 只读观测入口。以下实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.166.2`（2026-08-25）。`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval`；`0.166.2` 又为真实 `cc team --agent` 子进程公开私有 `team_send|receive|ack|followup` 宿主工具和 TeamMailbox v3。候选代码 `20b1bb5563` 的 idle wake、custody handoff 与 SessionMessageFabric 仍未发布。以下早期实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -696,8 +696,14 @@ Agent Team 当前 checkpoint authority 明确声明：
 不要用高频直接读取队列 JSON 文件代替 `queue status`。原始读取不参与锁协议；Windows 上还
 可能与原子替换发生短暂争用。只读监控若必须访问原始文件，应降低频率并实现退避和重试。
 
-TeamRunner 库内部有有界 mailbox 接口，但当前公共 CLI 没有 `cc team send`，分布式队列也没有
-teammate 消息命令。不要把定向消息当作现有 CLI 工作流契约。
+CLI `0.166.2` 没有顶层 `cc team send` 子命令；消息契约仅通过真实 `cc team --agent` 子进程的私有宿主工具公开：
+
+- `team_send`：定向发送带幂等键的有界消息。
+- `team_receive`：以稳定 consumer 拉取至少一次投递。
+- `team_ack`：推进 read / processed 状态，poison 消息进入 dead-letter。
+- `team_followup`：向指定 teammate 追加受 lease/fence 约束的后续任务。
+
+桥接层每次调用都会重验 holder/task/attempt/lease/fence，credential capability 不进入 prompt 且不可继承。普通 `--exec` shell worker 和 IDE 只有无内容健康投影，不获得消息 authority。候选代码 `20b1bb5563` 的离线恢复、跨进程限流、custody handoff、processed-before-ACK 和 4 MiB pending 上限仍未发布，不能按稳定版使用。
 
 ## 使用示例
 
