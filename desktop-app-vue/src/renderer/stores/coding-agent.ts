@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { createLogger } from "@/utils/logger";
 import type {
   CodingAgentBackgroundTask,
+  CodingAgentApprovalDecision,
   CodingAgentEvent,
   CodingAgentHarnessStatus,
   CodingAgentPatch,
@@ -1379,15 +1380,13 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) return;
       await this.respondApproval({
         approvalType: "plan",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
     },
 
     async respondApproval(payload: {
-      decision: string;
+      decision: CodingAgentApprovalDecision;
       approvalType?: string;
-      status?: string;
-      action?: string;
     }): Promise<void> {
       if (!this.currentSessionId) return;
       await (window as any).electronAPI.codingAgent.respondApproval({
@@ -1401,7 +1400,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) return;
       await this.respondApproval({
         approvalType: "high-risk",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
     },
 
@@ -1409,7 +1408,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) return;
       await this.respondApproval({
         approvalType: "plan",
-        decision: "denied",
+        decision: { kind: "decline" },
       });
     },
 

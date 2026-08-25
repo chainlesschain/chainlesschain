@@ -5,6 +5,9 @@
  */
 
 import type {} from "./ipc.d";
+import type { ApprovalDecision } from "../../../../packages/agent-sdk/src/generated/app-protocol";
+
+export type CodingAgentApprovalDecision = ApprovalDecision;
 
 // ==================== Electron API 接口 ====================
 
@@ -480,9 +483,7 @@ export interface CodingAgentAPI {
   respondApproval(payload: {
     sessionId: string;
     approvalType?: string;
-    decision: string;
-    status?: string;
-    action?: string;
+    decision: CodingAgentApprovalDecision;
   }): Promise<any>;
   confirmHighRiskExecution(sessionId: string): Promise<any>;
   rejectPlan(sessionId: string): Promise<any>;

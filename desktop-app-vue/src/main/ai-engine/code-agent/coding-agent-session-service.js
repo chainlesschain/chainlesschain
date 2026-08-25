@@ -30,6 +30,60 @@ const QUESTION_RESOLVED_EVENT_TYPES = new Set([
   "question.resolved",
 ]);
 
+const LEGACY_APPROVAL_DECISIONS = Object.freeze({
+  granted: Object.freeze({ kind: "acceptOnce" }),
+  approved: Object.freeze({ kind: "acceptOnce" }),
+  approve: Object.freeze({ kind: "acceptOnce" }),
+  confirm: Object.freeze({ kind: "acceptOnce" }),
+  denied: Object.freeze({ kind: "decline" }),
+  rejected: Object.freeze({ kind: "decline" }),
+  reject: Object.freeze({ kind: "decline" }),
+  cancel: Object.freeze({ kind: "cancel" }),
+});
+
+let agentProtocolPromise = null;
+
+function getAgentProtocol() {
+  agentProtocolPromise ||= import("@chainlesschain/agent-protocol");
+  return agentProtocolPromise;
+}
+
+async function normalizeApprovalDecision(payload = {}) {
+  const candidate = firstDefined(
+    payload.decision,
+    payload.status,
+    payload.action,
+  );
+  const decision =
+    typeof candidate === "string"
+      ? LEGACY_APPROVAL_DECISIONS[candidate.toLowerCase()]
+      : candidate;
+
+  if (!decision) {
+    throw new Error("Approval response requires a decision.");
+  }
+
+  const { validateApprovalDecision } = await getAgentProtocol();
+  const validation = validateApprovalDecision(decision);
+  if (!validation.ok) {
+    const details = validation.errors
+      .map((error) => `${error.path} ${error.message}`)
+      .join("; ");
+    throw new Error(`Invalid ApprovalDecision: ${details}`);
+  }
+
+  if (
+    decision.kind === "acceptForTurn" ||
+    decision.kind === "acceptForSession"
+  ) {
+    throw new Error(
+      "Desktop plan approvals do not support persistent permission grants.",
+    );
+  }
+
+  return decision;
+}
+
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null) ?? null;
 }
@@ -1088,22 +1142,11 @@ class CodingAgentSessionService extends EventEmitter {
 
   async respondApproval(sessionId, payload = {}) {
     const session = this._requireSession(sessionId);
-    const decision = String(
-      payload.decision || payload.status || payload.action || "",
-    ).toLowerCase();
+    const decision = await normalizeApprovalDecision(payload);
     const approvalType =
       payload.approvalType || this._inferApprovalType(session);
 
-    if (!decision) {
-      throw new Error("Approval response requires a decision.");
-    }
-
-    if (
-      decision === "granted" ||
-      decision === "approved" ||
-      decision === "approve" ||
-      decision === "confirm"
-    ) {
+    if (decision.kind === "acceptOnce") {
       if (approvalType === "high-risk") {
         const result = await this.confirmHighRiskExecution(sessionId);
         this._storeEvent(
@@ -1113,6 +1156,7 @@ class CodingAgentSessionService extends EventEmitter {
             {
               sessionId,
               approvalType,
+              decision,
               tools: session.highRiskToolNames || [],
             },
             { sessionId },
@@ -1121,7 +1165,8 @@ class CodingAgentSessionService extends EventEmitter {
         return {
           ...result,
           approvalType,
-          decision: "granted",
+          decision,
+          status: "granted",
         };
       }
 
@@ -1129,16 +1174,12 @@ class CodingAgentSessionService extends EventEmitter {
       return {
         ...result,
         approvalType: "plan",
-        decision: "granted",
+        decision,
+        status: "granted",
       };
     }
 
-    if (
-      decision === "denied" ||
-      decision === "rejected" ||
-      decision === "reject" ||
-      decision === "cancel"
-    ) {
+    if (decision.kind === "decline" || decision.kind === "cancel") {
       if (approvalType === "high-risk") {
         session.highRiskConfirmationGranted = false;
         session.updatedAt = new Date().toISOString();
@@ -1149,6 +1190,7 @@ class CodingAgentSessionService extends EventEmitter {
             {
               sessionId,
               approvalType,
+              decision,
               tools: session.highRiskToolNames || [],
             },
             { sessionId },
@@ -1159,7 +1201,8 @@ class CodingAgentSessionService extends EventEmitter {
           success: true,
           sessionId,
           approvalType,
-          decision: "denied",
+          decision,
+          status: "denied",
           highRiskConfirmationGranted: false,
           tools: session.highRiskToolNames || [],
         };
@@ -1169,11 +1212,12 @@ class CodingAgentSessionService extends EventEmitter {
       return {
         ...result,
         approvalType: "plan",
-        decision: "denied",
+        decision,
+        status: "denied",
       };
     }
 
-    throw new Error(`Unsupported approval decision: ${decision}`);
+    throw new Error(`Unsupported approval decision: ${decision.kind}`);
   }
 
   async rejectPlan(sessionId) {

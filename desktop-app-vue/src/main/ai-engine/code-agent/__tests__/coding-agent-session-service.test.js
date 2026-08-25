@@ -650,7 +650,7 @@ describe("CodingAgentSessionService", () => {
     });
   });
 
-  it("accepts generic approval responses for high-risk confirmation", async () => {
+  it("accepts canonical approval responses for high-risk confirmation", async () => {
     await service.createSession();
 
     bridge.emit("message", {
@@ -663,14 +663,15 @@ describe("CodingAgentSessionService", () => {
 
     const result = await service.respondApproval("session-1", {
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
     });
 
     expect(result).toMatchObject({
       success: true,
       sessionId: "session-1",
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
+      status: "granted",
       highRiskConfirmationGranted: true,
     });
     expect(
@@ -680,6 +681,39 @@ describe("CodingAgentSessionService", () => {
           (event) => event.type === CodingAgentEventType.APPROVAL_GRANTED,
         ),
     ).toBe(true);
+  });
+
+  it("keeps legacy approval strings as an N-1 boundary adapter", async () => {
+    await service.createSession();
+
+    const result = await service.respondApproval("session-1", {
+      approvalType: "plan",
+      decision: "denied",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      decision: { kind: "decline" },
+      status: "denied",
+    });
+  });
+
+  it("rejects invalid or unsupported persistent canonical decisions", async () => {
+    await service.createSession();
+
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "high-risk",
+        decision: { kind: "acceptOnce", unexpected: true },
+      }),
+    ).rejects.toThrow("Invalid ApprovalDecision");
+
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "high-risk",
+        decision: { kind: "acceptForSession" },
+      }),
+    ).rejects.toThrow("do not support persistent permission grants");
   });
 
   it("routes structured MCP elicitation answers back to the CLI bridge", async () => {

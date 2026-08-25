@@ -351,7 +351,7 @@ describe("useCodingAgentStore", () => {
     expect(codingAgentApi.respondApproval).toHaveBeenCalledWith({
       sessionId: "session-1",
       approvalType: "plan",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
     });
     expect(codingAgentApi.getSessionState).toHaveBeenCalledWith("session-1");
   });
@@ -366,7 +366,7 @@ describe("useCodingAgentStore", () => {
     expect(codingAgentApi.respondApproval).toHaveBeenCalledWith({
       sessionId: "session-1",
       approvalType: "plan",
-      decision: "denied",
+      decision: { kind: "decline" },
     });
     expect(codingAgentApi.getSessionState).toHaveBeenCalledWith("session-1");
   });
@@ -381,7 +381,7 @@ describe("useCodingAgentStore", () => {
     expect(codingAgentApi.respondApproval).toHaveBeenCalledWith({
       sessionId: "session-1",
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
     });
     expect(codingAgentApi.getSessionState).toHaveBeenCalledWith("session-1");
   });

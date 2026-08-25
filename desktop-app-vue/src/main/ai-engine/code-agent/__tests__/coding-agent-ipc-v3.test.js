@@ -58,7 +58,8 @@ describe("registerCodingAgentIPCV3", () => {
         success: true,
         sessionId: "session-1",
         approvalType: "high-risk",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
+        status: "granted",
       }),
       rejectPlan: vi
         .fn()
@@ -330,7 +331,7 @@ describe("registerCodingAgentIPCV3", () => {
     const payload = {
       sessionId: "session-1",
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
     };
     const result = await ipcMainMock.handlers["coding-agent:respond-approval"](
       {},
@@ -342,7 +343,8 @@ describe("registerCodingAgentIPCV3", () => {
       success: true,
       sessionId: "session-1",
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
+      status: "granted",
     });
   });
 

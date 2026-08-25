@@ -347,7 +347,7 @@ export function useAgentApprovals({
       isThinking.value = true;
       await codingAgentStore.respondApproval({
         approvalType: "plan",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
       if (codingAgentStore.requiresHighRiskConfirmation) {
         isThinking.value = false;
@@ -368,7 +368,7 @@ export function useAgentApprovals({
       await ensureCodingAgentSession();
       await codingAgentStore.respondApproval({
         approvalType: "plan",
-        decision: "denied",
+        decision: { kind: "decline" },
       });
       isThinking.value = false;
     } catch (error) {
@@ -382,7 +382,7 @@ export function useAgentApprovals({
       isThinking.value = true;
       await codingAgentStore.respondApproval({
         approvalType: "high-risk",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
       await continueApprovedPlanExecution();
     } catch (error) {
@@ -396,7 +396,7 @@ export function useAgentApprovals({
       await ensureCodingAgentSession();
       await codingAgentStore.respondApproval({
         approvalType: "high-risk",
-        decision: "denied",
+        decision: { kind: "cancel" },
       });
       isThinking.value = false;
       antMessage.info("High-risk actions were cancelled.");

@@ -1464,7 +1464,7 @@ describe("AIChatPage", () => {
 
       expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
         approvalType: "plan",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
       expect(mockCodingAgentStore.sendMessage).toHaveBeenCalledWith(
         "Proceed with the approved plan and carry out the approved changes.",
@@ -1505,7 +1505,7 @@ describe("AIChatPage", () => {
 
       expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
         approvalType: "high-risk",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       });
       expect(mockCodingAgentStore.sendMessage).toHaveBeenCalledWith(
         "Proceed with the approved plan and carry out the approved changes.",
@@ -1537,7 +1537,7 @@ describe("AIChatPage", () => {
 
       expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
         approvalType: "high-risk",
-        decision: "denied",
+        decision: { kind: "cancel" },
       });
       expect(mockCodingAgentStore.sendMessage).not.toHaveBeenCalled();
       expect(mockMessage.info).toHaveBeenCalledWith(

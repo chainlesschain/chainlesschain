@@ -1222,14 +1222,15 @@ describe("Coding agent lifecycle integration", () => {
       {
         sessionId: "session-x",
         approvalType: "high-risk",
-        decision: "granted",
+        decision: { kind: "acceptOnce" },
       },
     );
     expect(approvalResult).toMatchObject({
       success: true,
       sessionId: "session-x",
       approvalType: "high-risk",
-      decision: "granted",
+      decision: { kind: "acceptOnce" },
+      status: "granted",
     });
 
     const sendResult = await ipcMainMock.handlers["coding-agent:send-message"](
