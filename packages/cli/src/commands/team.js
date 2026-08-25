@@ -26,6 +26,11 @@ import { TeamBudget } from "../lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
 import { TeamAgentStreamParser } from "../lib/agent-team/team-agent-stream.js";
 import { TeamMessageBridge } from "../lib/agent-team/team-message-bridge.js";
+import {
+  computeTeamGraphAuthorityDigest,
+  computeTeamGraphRevisionDigest,
+  projectTeamGraphCollaboration,
+} from "../lib/agent-team/team-graph-projection.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import {
   TeamScopeLock,
@@ -1372,6 +1377,7 @@ export function makeAgentRunTask(opts = {}) {
     messageAuthority = null,
     recipientState = null,
     requestFollowupWake = null,
+    requestHandoff = null,
     mailbox = null,
     budgetReservation = null,
     signal = null,
@@ -1407,6 +1413,7 @@ export function makeAgentRunTask(opts = {}) {
               assertAuthority: messageAuthority,
               recipientState,
               requestFollowupWake,
+              requestHandoff,
               onMutation: opts.onMailboxMutation,
               durable: opts.mailboxDurable === true,
             },
@@ -2583,6 +2590,24 @@ export function registerTeamCommand(program, { logger } = {}) {
         const collaborationUnits = new Map(
           collaborationRun.units.map((unit) => [unit.key, unit]),
         );
+        const teamGraphRunId =
+          resumeSnapshot?.graphProjection?.runId || `team:${stateId}`;
+        const teamGraphRevisionDigest =
+          resumeSnapshot?.graphProjection?.revisionDigest ||
+          computeTeamGraphRevisionDigest(reg);
+        const teamGraphAuthorityDigest =
+          resumeSnapshot?.graphProjection?.authorityDigest ||
+          computeTeamGraphAuthorityDigest({
+            stateId,
+            permissionMode: options.agent ? permissionMode : "default",
+            worktreeRequired: options.worktree === true,
+            checkpointRequired:
+              options.agent === true || options.managedCheckpoint === true,
+            holders: Array.from(
+              { length: Math.min(teammates, Math.max(1, reg.list().length)) },
+              (_, index) => `teammate-${index + 1}`,
+            ),
+          });
         const settleGovernance = (key, status, extra = {}) => {
           const governanceKey = sessionTaskKeyFor(key);
           const unit = collaborationUnits.get(governanceKey);
@@ -2637,6 +2662,14 @@ export function registerTeamCommand(program, { logger } = {}) {
             adjudicationRunId,
             adjudicationCursor,
             execution: executionContract,
+            graphProjection: projectTeamGraphCollaboration({
+              runId: teamGraphRunId,
+              mailbox,
+              registry: reg,
+              recipients: mailbox.status?.().recipients || [],
+              revisionDigest: teamGraphRevisionDigest,
+              authorityDigest: teamGraphAuthorityDigest,
+            }),
           });
         };
 
@@ -2730,6 +2763,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                 messageAuthority = null,
                 recipientState = null,
                 requestFollowupWake = null,
+                requestHandoff = null,
                 mailbox: taskMailbox = null,
                 budgetReservation = null,
                 signal = null,
@@ -2768,6 +2802,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                             assertAuthority: messageAuthority,
                             recipientState,
                             requestFollowupWake,
+                            requestHandoff,
                             onMutation: persist,
                             durable: Boolean(options.state),
                           },
@@ -2929,6 +2964,11 @@ export function registerTeamCommand(program, { logger } = {}) {
           onFollowupMutation: () => {
             persist();
           },
+          onHandoffMutation: () => {
+            persist();
+          },
+          graphRevisionDigest: teamGraphRevisionDigest,
+          graphAuthorityDigest: teamGraphAuthorityDigest,
           onEvent: (e) => {
             if (options.json) console.log(JSON.stringify(e));
             else if (e.type === "task:claimed")

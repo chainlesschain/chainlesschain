@@ -24,7 +24,7 @@
  */
 
 import { SharedTaskList, TASK_STATUS } from "@chainlesschain/session-core";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 export const DEFAULT_LEASE_TTL_MS = 60000;
 export const DEFAULT_MAX_ATTEMPTS = 3;
@@ -33,6 +33,120 @@ export const ADJUDICATION_DECISIONS = Object.freeze({
   ACCEPT: "accept",
   CANCEL: "cancel",
 });
+
+export const TEAM_CUSTODY_HANDOFF_SCHEMA =
+  "chainlesschain.team-custody-handoff/v1";
+export const TEAM_CUSTODY_HANDOFF_STATUSES = Object.freeze([
+  "offered",
+  "accepted",
+  "rejected",
+  "committed",
+  "revoked",
+  "expired",
+]);
+export const DEFAULT_HANDOFF_TTL_MS = 5 * 60 * 1000;
+export const MAX_HANDOFF_TTL_MS = 24 * 60 * 60 * 1000;
+export const MAX_HANDOFF_HISTORY = 64;
+
+const HANDOFF_ACTIVE_STATUSES = new Set(["offered", "accepted"]);
+const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const SAFE_HANDOFF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, stableValue(value[key])]),
+  );
+}
+
+function digestValue(value) {
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(stableValue(value)), "utf8")
+    .digest("hex")}`;
+}
+
+function cloneValue(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function handoffHistory(task) {
+  return Array.isArray(task?.metadata?.custodyHandoffs)
+    ? task.metadata.custodyHandoffs.map((handoff) => cloneValue(handoff))
+    : [];
+}
+
+function currentCommittedHandoff(task) {
+  return [...handoffHistory(task)]
+    .reverse()
+    .find((handoff) => handoff?.status === "committed");
+}
+
+function settleHandoffHistory(task, holder, leaseId, settlement, now) {
+  const history = handoffHistory(task);
+  const handoff = [...history]
+    .reverse()
+    .find(
+      (entry) =>
+        entry?.status === "committed" &&
+        entry.toHolder === holder &&
+        entry.targetLease?.leaseId === leaseId,
+    );
+  if (!handoff || handoff.targetSettledAt != null) return null;
+  handoff.targetSettledAt = now;
+  handoff.targetSettlement = String(settlement || "unknown").slice(0, 128);
+  handoff.updatedAt = now;
+  return history;
+}
+
+function refreshHandoffTargetLease(task, lease, now) {
+  if (!lease?.handoffId) return null;
+  const history = handoffHistory(task);
+  const handoff = [...history]
+    .reverse()
+    .find(
+      (entry) =>
+        entry?.id === lease.handoffId &&
+        entry.status === "committed" &&
+        entry.toHolder === lease.holder &&
+        entry.targetSettledAt == null,
+    );
+  if (!handoff) return null;
+  handoff.targetLease = cloneValue(lease);
+  handoff.targetLeaseRefreshedAt = now;
+  handoff.updatedAt = now;
+  return history;
+}
+
+function normalizedHandoffId(value, createId = randomUUID) {
+  const id = value == null ? createId() : String(value).trim();
+  return SAFE_HANDOFF_ID_PATTERN.test(id) ? id : null;
+}
+
+function normalizedHolder(value) {
+  const holder = String(value || "").trim();
+  return SAFE_HANDOFF_ID_PATTERN.test(holder) ? holder : null;
+}
+
+function normalizedDigest(value) {
+  const digest = String(value || "").trim();
+  return SHA256_PATTERN.test(digest) ? digest : null;
+}
+
+function normalizedArtifactIds(value) {
+  if (value == null) return [];
+  if (!Array.isArray(value) || value.length > 64) return null;
+  const ids = value.map((entry) => String(entry || "").trim());
+  if (
+    ids.some((id) => !SAFE_HANDOFF_ID_PATTERN.test(id)) ||
+    new Set(ids).size !== ids.length
+  ) {
+    return null;
+  }
+  return ids;
+}
 
 export class TaskLeaseRegistry {
   constructor({
@@ -316,6 +430,15 @@ export class TaskLeaseRegistry {
     ) {
       return { ok: false, reason: "terminal" };
     }
+    const committedCustody = currentCommittedHandoff(task);
+    if (committedCustody && committedCustody.toHolder !== holder) {
+      return {
+        ok: false,
+        reason: "custody_transferred",
+        holder: committedCustody.toHolder,
+        handoffId: committedCustody.id,
+      };
+    }
     const unmet = this.unmetDependencies(key);
     if (unmet.length > 0) {
       return { ok: false, reason: "blocked_by_deps", unmet };
@@ -337,23 +460,549 @@ export class TaskLeaseRegistry {
     }
     const ttl = ttlMs > 0 ? ttlMs : this.defaultTtlMs;
     const renewing = existingValid;
+    const nextLeaseId = renewing ? existing.leaseId : this._nextLeaseId();
     const lease = {
       holder,
-      leaseId: renewing ? existing.leaseId : this._nextLeaseId(),
+      leaseId: nextLeaseId,
+      fencingToken: renewing
+        ? (existing.fencingToken ?? existing.leaseId)
+        : nextLeaseId,
       acquiredAt: renewing ? existing.acquiredAt : now,
       expiresAt: now + ttl,
       renewals: renewing ? (existing.renewals || 0) + 1 : 0,
       stolen: !renewing && !!existing,
+      ...(!renewing && existing?.handoffId
+        ? {
+            handoffId: existing.handoffId,
+            transferredFromLeaseId: existing.leaseId,
+            recovered: true,
+          }
+        : {}),
     };
+    const custodyHandoffs = refreshHandoffTargetLease(task, lease, now);
     const ok = this._write(task, {
       status: TASK_STATUS.IN_PROGRESS,
       assignee: holder,
-      metadata: { ...task.metadata, lease },
+      metadata: {
+        ...task.metadata,
+        lease,
+        ...(custodyHandoffs ? { custodyHandoffs } : {}),
+      },
     });
     if (!ok) return { ok: false, reason: "concurrent" };
     this._removeReady(key);
     this._leasedKeys.add(key);
     return { ok: true, lease };
+  }
+
+  /**
+   * Offer the current task lease to one specific teammate. The immutable
+   * revision/authority binding and current lease fence are captured in the same
+   * optimistic task write as the state transition, so a snapshot can never
+   * contain an offer detached from its source custody.
+   */
+  offerHandoff(
+    key,
+    {
+      handoffId = null,
+      holder,
+      leaseId,
+      toHolder,
+      revisionDigest,
+      authorityDigest,
+      artifactIds = [],
+      preconditions = null,
+      summary = null,
+      ttlMs = DEFAULT_HANDOFF_TTL_MS,
+      idempotencyKey = null,
+      now = this._now(),
+    } = {},
+  ) {
+    const id = normalizedHandoffId(handoffId);
+    const source = normalizedHolder(holder);
+    const recipient = normalizedHolder(toHolder);
+    const revision = normalizedDigest(revisionDigest);
+    const authority = normalizedDigest(authorityDigest);
+    const artifacts = normalizedArtifactIds(artifactIds);
+    if (!id) return { ok: false, reason: "invalid_handoff_id" };
+    if (!source || !recipient || source === recipient) {
+      return { ok: false, reason: "invalid_recipient" };
+    }
+    if (!revision) return { ok: false, reason: "invalid_revision_digest" };
+    if (!authority) return { ok: false, reason: "invalid_authority_digest" };
+    if (!artifacts) return { ok: false, reason: "invalid_artifact_ids" };
+    const ttl = Number(ttlMs);
+    if (!Number.isSafeInteger(ttl) || ttl <= 0 || ttl > MAX_HANDOFF_TTL_MS) {
+      return { ok: false, reason: "invalid_ttl" };
+    }
+    const idempotency =
+      idempotencyKey == null
+        ? id
+        : normalizedHandoffId(idempotencyKey, () => id);
+    if (!idempotency) {
+      return { ok: false, reason: "invalid_idempotency_key" };
+    }
+    let cleanSummary;
+    let cleanPreconditions;
+    try {
+      cleanSummary = cloneValue(summary);
+      cleanPreconditions = cloneValue(preconditions);
+    } catch {
+      return { ok: false, reason: "invalid_payload" };
+    }
+    const taskId = this._byKey.get(key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    if (
+      task.status === TASK_STATUS.COMPLETED ||
+      task.status === TASK_STATUS.CANCELLED
+    ) {
+      return { ok: false, reason: "terminal" };
+    }
+    const lease = task.metadata?.lease || null;
+    if (!this._leaseOwned(lease, { holder: source, leaseId, now })) {
+      return { ok: false, reason: "not_holder_or_expired" };
+    }
+    const history = handoffHistory(task);
+    let changedByExpiry = false;
+    for (const handoff of history) {
+      if (
+        HANDOFF_ACTIVE_STATUSES.has(handoff.status) &&
+        handoff.expiresAtMs <= now
+      ) {
+        handoff.status = "expired";
+        handoff.expiredAt = now;
+        handoff.updatedAt = now;
+        changedByExpiry = true;
+      }
+    }
+    const binding = {
+      schema: TEAM_CUSTODY_HANDOFF_SCHEMA,
+      id,
+      taskKey: key,
+      fromHolder: source,
+      fromLeaseId: lease.leaseId,
+      fromFence: lease.fencingToken ?? lease.leaseId,
+      toHolder: recipient,
+      revisionDigest: revision,
+      authorityDigest: authority,
+      artifactIds: artifacts,
+      preconditions: cleanPreconditions,
+      summary: cleanSummary,
+      idempotencyKey: idempotency,
+      ttlMs: ttl,
+    };
+    const bindingDigest = digestValue(binding);
+    const duplicate = history.find((handoff) => handoff.id === id);
+    if (duplicate) {
+      if (duplicate.bindingDigest !== bindingDigest) {
+        return { ok: false, reason: "handoff_id_conflict" };
+      }
+      if (changedByExpiry) {
+        const written = this._write(task, {
+          metadata: { ...task.metadata, custodyHandoffs: history },
+        });
+        if (!written) return { ok: false, reason: "concurrent" };
+      }
+      return { ok: true, idempotent: true, handoff: cloneValue(duplicate) };
+    }
+    const active = history.find((handoff) =>
+      HANDOFF_ACTIVE_STATUSES.has(handoff.status),
+    );
+    if (active) {
+      return {
+        ok: false,
+        reason: "handoff_active",
+        handoffId: active.id,
+      };
+    }
+    const handoff = {
+      ...binding,
+      bindingDigest,
+      expiresAtMs: now + ttl,
+      status: "offered",
+      offeredAt: now,
+      acceptedAt: null,
+      rejectedAt: null,
+      committedAt: null,
+      revokedAt: null,
+      expiredAt: null,
+      targetStartedAt: null,
+      targetSettledAt: null,
+      targetSettlement: null,
+      reason: null,
+      acceptedByAttempt: null,
+      targetLease: null,
+      updatedAt: now,
+    };
+    history.push(handoff);
+    while (history.length > MAX_HANDOFF_HISTORY) history.shift();
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  /** Return one handoff with its owning task, expiring overdue offers first. */
+  findHandoff(handoffId, { now = this._now() } = {}) {
+    const id = normalizedHandoffId(handoffId, () => null);
+    if (!id) return null;
+    this.expireHandoffs({ now });
+    for (const task of this.list()) {
+      const handoff = handoffHistory(task).find((entry) => entry.id === id);
+      if (handoff) return { key: task.key, handoff };
+    }
+    return null;
+  }
+
+  listHandoffs({ now = this._now() } = {}) {
+    this.expireHandoffs({ now });
+    return this.list().flatMap((task) =>
+      handoffHistory(task).map((handoff) => ({
+        key: task.key,
+        handoff,
+      })),
+    );
+  }
+
+  expireHandoffs({ now = this._now() } = {}) {
+    const expired = [];
+    for (const taskView of this.list()) {
+      const taskId = this._byKey.get(taskView.key);
+      const task = taskId ? this._tasks.get(taskId) : null;
+      if (!task) continue;
+      const history = handoffHistory(task);
+      let changed = false;
+      for (const handoff of history) {
+        if (
+          HANDOFF_ACTIVE_STATUSES.has(handoff.status) &&
+          handoff.expiresAtMs <= now
+        ) {
+          handoff.status = "expired";
+          handoff.expiredAt = now;
+          handoff.updatedAt = now;
+          expired.push(cloneValue(handoff));
+          changed = true;
+        }
+      }
+      if (
+        changed &&
+        !this._write(task, {
+          metadata: { ...task.metadata, custodyHandoffs: history },
+        })
+      ) {
+        return { ok: false, reason: "concurrent", expired };
+      }
+    }
+    return { ok: true, expired };
+  }
+
+  acceptHandoff(
+    handoffId,
+    { holder, recipientAttempt = null, now = this._now() } = {},
+  ) {
+    const found = this.findHandoff(handoffId, { now });
+    if (!found) return { ok: false, reason: "not_found" };
+    const taskId = this._byKey.get(found.key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const index = history.findIndex((entry) => entry.id === found.handoff.id);
+    const handoff = history[index];
+    if (handoff.toHolder !== holder) {
+      return { ok: false, reason: "wrong_recipient" };
+    }
+    if (handoff.status === "accepted") {
+      return { ok: true, idempotent: true, handoff: cloneValue(handoff) };
+    }
+    if (handoff.status !== "offered") {
+      return { ok: false, reason: `handoff_${handoff.status}` };
+    }
+    handoff.status = "accepted";
+    handoff.acceptedAt = now;
+    handoff.acceptedByAttempt = cloneValue(recipientAttempt);
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, key: found.key, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  rejectHandoff(
+    handoffId,
+    { holder, reason = "rejected", now = this._now() } = {},
+  ) {
+    const found = this.findHandoff(handoffId, { now });
+    if (!found) return { ok: false, reason: "not_found" };
+    const taskId = this._byKey.get(found.key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === found.handoff.id);
+    if (handoff.toHolder !== holder) {
+      return { ok: false, reason: "wrong_recipient" };
+    }
+    if (handoff.status === "rejected") {
+      return { ok: true, idempotent: true, handoff: cloneValue(handoff) };
+    }
+    if (handoff.status !== "offered") {
+      return { ok: false, reason: `handoff_${handoff.status}` };
+    }
+    handoff.status = "rejected";
+    handoff.rejectedAt = now;
+    handoff.reason = String(reason || "rejected").slice(0, 1024);
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, key: found.key, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  commitHandoff(handoffId, { holder, leaseId, ttlMs, now = this._now() } = {}) {
+    const found = this.findHandoff(handoffId, { now });
+    if (!found) return { ok: false, reason: "not_found" };
+    const taskId = this._byKey.get(found.key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === found.handoff.id);
+    if (
+      handoff.status === "committed" &&
+      handoff.fromHolder === holder &&
+      handoff.fromLeaseId === leaseId
+    ) {
+      const current = currentCommittedHandoff(task);
+      if (current?.id !== handoff.id) {
+        return { ok: false, reason: "handoff_superseded" };
+      }
+      return {
+        ok: true,
+        idempotent: true,
+        key: found.key,
+        handoff: cloneValue(handoff),
+        lease: cloneValue(handoff.targetLease),
+      };
+    }
+    if (handoff.status !== "accepted") {
+      return { ok: false, reason: `handoff_${handoff.status}` };
+    }
+    const lease = task.metadata?.lease || null;
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
+      return { ok: false, reason: "not_holder_or_expired" };
+    }
+    if (
+      handoff.fromHolder !== holder ||
+      handoff.fromLeaseId !== leaseId ||
+      handoff.fromFence !== (lease.fencingToken ?? lease.leaseId)
+    ) {
+      return { ok: false, reason: "source_binding_changed" };
+    }
+    const ttl = ttlMs > 0 ? ttlMs : this.defaultTtlMs;
+    const targetLeaseId = this._nextLeaseId();
+    const targetLease = {
+      holder: handoff.toHolder,
+      leaseId: targetLeaseId,
+      fencingToken: targetLeaseId,
+      acquiredAt: now,
+      expiresAt: now + ttl,
+      renewals: 0,
+      stolen: false,
+      handoffId: handoff.id,
+      transferredFromLeaseId: lease.leaseId,
+    };
+    handoff.status = "committed";
+    handoff.committedAt = now;
+    handoff.targetLease = cloneValue(targetLease);
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      status: TASK_STATUS.IN_PROGRESS,
+      assignee: handoff.toHolder,
+      metadata: {
+        ...task.metadata,
+        lease: targetLease,
+        custodyHandoffs: history,
+      },
+    });
+    if (!ok) return { ok: false, reason: "concurrent" };
+    this._removeReady(found.key);
+    this._leasedKeys.add(found.key);
+    return {
+      ok: true,
+      key: found.key,
+      handoff: cloneValue(handoff),
+      lease: cloneValue(targetLease),
+    };
+  }
+
+  revokeHandoff(
+    handoffId,
+    { holder, leaseId, reason = "revoked", now = this._now() } = {},
+  ) {
+    const found = this.findHandoff(handoffId, { now });
+    if (!found) return { ok: false, reason: "not_found" };
+    const taskId = this._byKey.get(found.key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === found.handoff.id);
+    if (handoff.status === "revoked") {
+      return { ok: true, idempotent: true, handoff: cloneValue(handoff) };
+    }
+    if (!HANDOFF_ACTIVE_STATUSES.has(handoff.status)) {
+      return { ok: false, reason: `handoff_${handoff.status}` };
+    }
+    const lease = task.metadata?.lease || null;
+    if (
+      handoff.fromHolder !== holder ||
+      handoff.fromLeaseId !== leaseId ||
+      !this._leaseOwned(lease, { holder, leaseId, now })
+    ) {
+      return { ok: false, reason: "not_holder_or_expired" };
+    }
+    handoff.status = "revoked";
+    handoff.revokedAt = now;
+    handoff.reason = String(reason || "revoked").slice(0, 1024);
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, key: found.key, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  pendingCommittedHandoffs() {
+    return this.list().flatMap((task) => {
+      const handoff = currentCommittedHandoff(task);
+      if (
+        !handoff ||
+        handoff.targetStartedAt != null ||
+        handoff.targetSettledAt != null ||
+        [TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(task.status)
+      ) {
+        return [];
+      }
+      return [{ key: task.key, handoff, lease: cloneValue(task.lease) }];
+    });
+  }
+
+  refreshCommittedHandoffLease(
+    key,
+    { handoffId, holder, ttlMs, now = this._now() } = {},
+  ) {
+    const taskId = this._byKey.get(key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === handoffId);
+    if (
+      !handoff ||
+      handoff.status !== "committed" ||
+      handoff.toHolder !== holder ||
+      handoff.targetStartedAt != null ||
+      handoff.targetSettledAt != null ||
+      [TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(task.status)
+    ) {
+      return { ok: false, reason: "handoff_not_recoverable" };
+    }
+    const ttl = ttlMs > 0 ? ttlMs : this.defaultTtlMs;
+    const leaseId = this._nextLeaseId();
+    const lease = {
+      holder,
+      leaseId,
+      fencingToken: leaseId,
+      acquiredAt: now,
+      expiresAt: now + ttl,
+      renewals: 0,
+      stolen: false,
+      handoffId,
+      transferredFromLeaseId: handoff.targetLease?.leaseId || null,
+      recovered: true,
+    };
+    handoff.targetLease = cloneValue(lease);
+    handoff.recoveredAt = now;
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      status: TASK_STATUS.IN_PROGRESS,
+      assignee: holder,
+      metadata: { ...task.metadata, lease, custodyHandoffs: history },
+    });
+    if (!ok) return { ok: false, reason: "concurrent" };
+    this._removeReady(key);
+    this._leasedKeys.add(key);
+    return { ok: true, key, handoff: cloneValue(handoff), lease };
+  }
+
+  markHandoffStarted(
+    key,
+    { handoffId, holder, leaseId, now = this._now() } = {},
+  ) {
+    const taskId = this._byKey.get(key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const lease = task.metadata?.lease || null;
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
+      return { ok: false, reason: "not_holder_or_expired" };
+    }
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === handoffId);
+    if (
+      !handoff ||
+      handoff.status !== "committed" ||
+      handoff.toHolder !== holder ||
+      handoff.targetLease?.leaseId !== leaseId
+    ) {
+      return { ok: false, reason: "handoff_not_committed" };
+    }
+    if (handoff.targetStartedAt != null) {
+      return { ok: true, idempotent: true, handoff: cloneValue(handoff) };
+    }
+    handoff.targetStartedAt = now;
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  settleCommittedHandoff(
+    key,
+    { handoffId, holder, leaseId, settlement, now = this._now() } = {},
+  ) {
+    const taskId = this._byKey.get(key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const handoff = history.find((entry) => entry.id === handoffId);
+    if (!handoff || handoff.status !== "committed") {
+      return { ok: false, reason: "handoff_not_committed" };
+    }
+    if (
+      handoff.toHolder !== holder ||
+      handoff.targetLease?.leaseId !== leaseId
+    ) {
+      return { ok: false, reason: "target_binding_changed" };
+    }
+    if (handoff.targetSettledAt != null) {
+      return { ok: true, idempotent: true, handoff: cloneValue(handoff) };
+    }
+    handoff.targetSettledAt = now;
+    handoff.targetSettlement = String(settlement || "unknown").slice(0, 128);
+    handoff.updatedAt = now;
+    const ok = this._write(task, {
+      metadata: { ...task.metadata, custodyHandoffs: history },
+    });
+    return ok
+      ? { ok: true, handoff: cloneValue(handoff) }
+      : { ok: false, reason: "concurrent" };
   }
 
   /** Extend the lease you hold. Fails if you're not the current valid holder. */
@@ -407,9 +1056,21 @@ export class TaskLeaseRegistry {
     if (!this._leaseOwned(lease, { holder, leaseId, now })) {
       return { ok: false, reason: "not_holder_or_expired" };
     }
+    const custodyHandoffs = settleHandoffHistory(
+      task,
+      holder,
+      leaseId,
+      "completed",
+      now,
+    );
     const ok = this._write(task, {
       status: TASK_STATUS.COMPLETED,
-      metadata: { ...task.metadata, lease: null, result },
+      metadata: {
+        ...task.metadata,
+        lease: null,
+        result,
+        ...(custodyHandoffs ? { custodyHandoffs } : {}),
+      },
     });
     if (!ok) return { ok: false, reason: "concurrent" };
     this._leasedKeys.delete(key);
@@ -463,6 +1124,13 @@ export class TaskLeaseRegistry {
             decision: null,
           }
         : task.metadata?.adjudication || null;
+    const custodyHandoffs = settleHandoffHistory(
+      task,
+      holder,
+      leaseId,
+      willRetry ? "retry" : "failed",
+      now,
+    );
     const ok = this._write(task, {
       status: willRetry ? TASK_STATUS.PENDING : TASK_STATUS.CANCELLED,
       assignee: null,
@@ -472,6 +1140,7 @@ export class TaskLeaseRegistry {
         attempts,
         lastError: error ? String(error) : null,
         ...(adjudicationRequest ? { adjudication: adjudicationRequest } : {}),
+        ...(custodyHandoffs ? { custodyHandoffs } : {}),
       },
     });
     if (!ok) return { ok: false, reason: "concurrent" };
@@ -490,13 +1159,29 @@ export class TaskLeaseRegistry {
     const reclaimed = [];
     for (const t of this._tasks.list()) {
       const lease = t.metadata?.lease || null;
+      const custody = currentCommittedHandoff(t);
       if (lease && !this._leaseValid(lease, now)) {
+        // A committed but not-yet-started transfer is a durable dispatch
+        // journal entry. The designated recipient must recover it with a fresh
+        // fence; generic expiry reclamation may not erase or steal custody.
+        if (custody && custody.targetStartedAt == null) continue;
         const fresh = this._tasks.get(t.id); // re-read for current rev
+        const custodyHandoffs = settleHandoffHistory(
+          fresh,
+          lease.holder,
+          lease.leaseId,
+          "lease_expired_retry",
+          now,
+        );
         if (
           this._write(fresh, {
             status: TASK_STATUS.PENDING,
             assignee: null,
-            metadata: { ...fresh.metadata, lease: null },
+            metadata: {
+              ...fresh.metadata,
+              lease: null,
+              ...(custodyHandoffs ? { custodyHandoffs } : {}),
+            },
           })
         ) {
           this._leasedKeys.delete(fresh.metadata?.key);
@@ -540,6 +1225,14 @@ export class TaskLeaseRegistry {
     for (const t of this._tasks.list()) {
       const lease = t.metadata?.lease || null;
       if (!lease) continue;
+      const custody = currentCommittedHandoff(t);
+      if (
+        custody &&
+        custody.targetStartedAt == null &&
+        custody.targetSettledAt == null
+      ) {
+        continue;
+      }
       candidates.push({
         key: t.metadata?.key,
         retry: shouldRetry(t) === true,
@@ -552,9 +1245,19 @@ export class TaskLeaseRegistry {
       const id = this._byKey.get(candidate.key);
       const fresh = id ? this._tasks.get(id) : null;
       if (!fresh?.metadata?.lease) continue;
+      const lease = fresh.metadata.lease;
+      const now = this._now();
+      const custodyHandoffs = settleHandoffHistory(
+        fresh,
+        lease.holder,
+        lease.leaseId,
+        candidate.retry ? "recovery_retry" : "recovery_adjudication",
+        now,
+      );
       const metadata = {
         ...fresh.metadata,
         lease: null,
+        ...(custodyHandoffs ? { custodyHandoffs } : {}),
       };
       if (!candidate.retry) {
         metadata.attempts = (fresh.metadata?.attempts || 0) + 1;
@@ -564,7 +1267,7 @@ export class TaskLeaseRegistry {
           code: "TEAM_TASK_ABANDONED_ADJUDICATION_REQUIRED",
           reason: String(error),
           evidenceDigest: null,
-          requestedAt: this._now(),
+          requestedAt: now,
           decision: null,
         };
       }
@@ -973,6 +1676,15 @@ export class TaskLeaseRegistry {
     ) {
       this._removeReady(key);
       this._leasedKeys.delete(key);
+      return false;
+    }
+    const custody = currentCommittedHandoff(task);
+    if (custody && custody.targetSettledAt == null) {
+      // A committed transfer is a durable dispatch journal, including after
+      // its target lease expires. It is recovered or adjudicated explicitly;
+      // the generic ready frontier must never expose it for lease stealing.
+      this._removeReady(key);
+      this._leasedKeys.add(key);
       return false;
     }
     if (this._leaseValid(task.lease, now)) {

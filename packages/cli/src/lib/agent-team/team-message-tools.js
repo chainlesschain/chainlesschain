@@ -11,6 +11,7 @@ export const TEAM_MESSAGE_TOOL_NAMES = Object.freeze([
   "team_receive",
   "team_ack",
   "team_followup",
+  "team_handoff",
 ]);
 
 const DEFINITIONS = Object.freeze([
@@ -116,6 +117,37 @@ const DEFINITIONS = Object.freeze([
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "team_handoff",
+      description:
+        "Manage explicit task custody transfer. Offer binds the current task revision, authority and lease fence; the recipient must accept before the source can atomically commit a new target lease. Status is read-only; reject/revoke/expire remain durable terminal evidence.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          action: {
+            type: "string",
+            enum: ["offer", "accept", "reject", "commit", "revoke", "status"],
+          },
+          handoff_id: { type: "string", minLength: 1, maxLength: 160 },
+          to: { type: "string", minLength: 1, maxLength: 128 },
+          artifact_ids: {
+            type: "array",
+            maxItems: 64,
+            uniqueItems: true,
+            items: { type: "string", minLength: 1, maxLength: 160 },
+          },
+          preconditions: { description: "JSON acceptance preconditions." },
+          summary: { description: "JSON continuation context." },
+          ttl_ms: { type: "integer", minimum: 1, maximum: 86400000 },
+          reason: { type: "string", maxLength: 1024 },
+        },
+        required: ["action", "handoff_id"],
+      },
+    },
+  },
 ]);
 
 function descriptor(name) {
@@ -171,6 +203,7 @@ export function resolveTeamMessageToolBundle({
     team_receive: "receive",
     team_ack: "ack",
     team_followup: "followup",
+    team_handoff: "handoff",
   };
   const externalToolExecutors = {};
   const externalToolDescriptors = {};

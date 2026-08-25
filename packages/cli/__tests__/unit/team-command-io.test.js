@@ -317,6 +317,17 @@ describe(
         mode: "dry-run",
         permissionMode: "acceptEdits",
       });
+      expect(snap.graphProjection).toMatchObject({
+        schema: "chainlesschain.team-graph-projection/v1",
+        runId: `team:${snap.stateId}`,
+        revisionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        authorityDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        sourceDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        projectionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        messageGraph: { messages: [], edges: [] },
+        handoffs: [],
+        custodyEdges: [],
+      });
       expect(snap.collaborationCursor).toMatchObject({
         runId: snap.collaborationRunId,
         lastSeq: expect.any(Number),

@@ -1678,6 +1678,268 @@ describe("TeamRunner directed messaging", () => {
   });
 });
 
+describe("TeamRunner durable custody handoff", () => {
+  const revisionDigest = `sha256:${"a".repeat(64)}`;
+  const authorityDigest = `sha256:${"b".repeat(64)}`;
+
+  it("runs offer/accept/commit on live attempts and dispatches only the target fence", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "source", title: "source" });
+    reg.addTask({ key: "recipient-turn", title: "recipient turn" });
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const mutations = [];
+    const events = [];
+    let resolveOffered;
+    let resolveAccepted;
+    const offered = new Promise((resolve) => {
+      resolveOffered = resolve;
+    });
+    const accepted = new Promise((resolve) => {
+      resolveAccepted = resolve;
+    });
+    let sourceSignalAborted = false;
+    let targetContext = null;
+
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      mailbox,
+      realtimeMessaging: true,
+      graphRevisionDigest: revisionDigest,
+      graphAuthorityDigest: authorityDigest,
+      onHandoffMutation: (event) => mutations.push(event),
+      onEvent: (event) => events.push(event),
+      runTask: async (context) => {
+        if (context.key === "source" && context.holder === "teammate-1") {
+          const result = context.requestHandoff({
+            action: "offer",
+            handoffId: "handoff-live",
+            to: "teammate-2",
+            artifactIds: ["artifact-1"],
+            preconditions: { tests: "green" },
+            summary: { next: "finish source" },
+            ttlMs: 60_000,
+          });
+          resolveOffered(result);
+          await accepted;
+          context.requestHandoff({
+            action: "commit",
+            handoffId: "handoff-live",
+          });
+          sourceSignalAborted = context.signal.aborted;
+          return { staleSourceResult: true };
+        }
+        if (context.key === "recipient-turn") {
+          await offered;
+          const result = context.requestHandoff({
+            action: "accept",
+            handoffId: "handoff-live",
+          });
+          resolveAccepted(result);
+          return { accepted: true };
+        }
+        if (context.key === "source" && context.holder === "teammate-2") {
+          targetContext = context;
+          return { completedByTarget: true };
+        }
+        throw new Error(
+          `unexpected execution ${context.key}/${context.holder}`,
+        );
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary).toMatchObject({
+      done: true,
+      success: true,
+      executions: 3,
+    });
+    expect(sourceSignalAborted).toBe(true);
+    expect(targetContext).toMatchObject({
+      key: "source",
+      holder: "teammate-2",
+    });
+    expect(targetContext.inbox).toContainEqual(
+      expect.objectContaining({
+        subject: "Committed task custody handoff",
+        body: expect.objectContaining({
+          handoffId: "handoff-live",
+          summary: { next: "finish source" },
+          preconditions: { tests: "green" },
+        }),
+      }),
+    );
+    expect(reg.getTask("source")).toMatchObject({
+      status: "completed",
+      assignee: "teammate-2",
+      metadata: { result: { completedByTarget: true } },
+    });
+    expect(reg.getTask("source").metadata.custodyHandoffs.at(-1)).toMatchObject(
+      {
+        id: "handoff-live",
+        status: "committed",
+        targetSettlement: "completed",
+      },
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "task:failure-discarded",
+        key: "source",
+        holder: "teammate-1",
+        reason: "not_holder_or_expired",
+      }),
+    );
+    expect(mutations.map((event) => event.type)).toEqual(
+      expect.arrayContaining([
+        "handoff:offered",
+        "handoff:accepted",
+        "handoff:committed",
+        "handoff:target-started",
+      ]),
+    );
+  });
+
+  it("recovers a committed-before-dispatch snapshot with a fresh target fence", async () => {
+    let now = 1000;
+    const original = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 100,
+    });
+    original.addTask({ key: "source", title: "source" });
+    const source = original.acquire("source", { holder: "teammate-1" });
+    original.offerHandoff("source", {
+      handoffId: "handoff-recovery",
+      holder: "teammate-1",
+      leaseId: source.lease.leaseId,
+      toHolder: "teammate-2",
+      revisionDigest,
+      authorityDigest,
+      ttlMs: 60_000,
+    });
+    original.acceptHandoff("handoff-recovery", { holder: "teammate-2" });
+    const committed = original.commitHandoff("handoff-recovery", {
+      holder: "teammate-1",
+      leaseId: source.lease.leaseId,
+      ttlMs: 100,
+    });
+    const snapshot = JSON.parse(JSON.stringify(original.snapshot()));
+    now += 200;
+    const restored = TaskLeaseRegistry.restore(snapshot, { now: () => now });
+    const startedSnapshots = [];
+    let execution = null;
+    const runner = new TeamRunner(restored, {
+      teammates: 2,
+      ttlMs: 1000,
+      graphRevisionDigest: revisionDigest,
+      graphAuthorityDigest: authorityDigest,
+      onHandoffMutation: (event) => {
+        if (event.type === "handoff:target-started") {
+          startedSnapshots.push(restored.snapshot());
+        }
+      },
+      runTask: async (context) => {
+        execution = {
+          key: context.key,
+          holder: context.holder,
+          authority: context.messageAuthority(),
+        };
+        return { recovered: true };
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary).toMatchObject({ done: true, success: true, executions: 1 });
+    expect(execution).toMatchObject({ key: "source", holder: "teammate-2" });
+    expect(execution.authority).toMatchObject({
+      holder: "teammate-2",
+      taskKey: "source",
+    });
+    expect(execution.authority.leaseId).not.toBe(committed.lease.leaseId);
+    expect(startedSnapshots).toHaveLength(1);
+    const startedRegistry = TaskLeaseRegistry.restore(startedSnapshots[0], {
+      now: () => now,
+    });
+    expect(
+      startedRegistry.findHandoff("handoff-recovery").handoff.targetStartedAt,
+    ).toBe(now);
+    expect(
+      restored.getTask("source").metadata.custodyHandoffs.at(-1),
+    ).toMatchObject({
+      status: "committed",
+      targetSettledAt: now,
+      targetSettlement: "completed",
+    });
+  });
+
+  it("expires an uncommitted offer and dead-letters its wake notification", async () => {
+    let now = 1000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 1_000_000,
+    });
+    reg.addTask({ key: "source", title: "source" });
+    reg.addTask({ key: "recipient-turn", title: "recipient turn" });
+    const mailbox = new TeamMailbox({
+      now: () => now,
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const mutations = [];
+    let runner;
+    runner = new TeamRunner(reg, {
+      teammates: 2,
+      now: () => now,
+      mailbox,
+      realtimeMessaging: true,
+      graphRevisionDigest: revisionDigest,
+      graphAuthorityDigest: authorityDigest,
+      onHandoffMutation: (event) => mutations.push(event),
+      runTask: async ({ key, holder, requestHandoff }) => {
+        if (key === "source") {
+          expect(holder).toBe("teammate-1");
+          requestHandoff({
+            action: "offer",
+            handoffId: "handoff-expiry",
+            to: "teammate-2",
+            ttlMs: 10,
+          });
+          now += 10;
+          runner._expireHandoffs();
+        }
+        return { ok: true };
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary).toMatchObject({ success: true, executions: 2 });
+    expect(reg.findHandoff("handoff-expiry").handoff).toMatchObject({
+      status: "expired",
+      expiredAt: 1010,
+    });
+    expect(
+      mailbox.snapshot().receipts.map(([, receipt]) => receipt),
+    ).toContainEqual(
+      expect.objectContaining({
+        recipient: "teammate-2",
+        status: "dead_letter",
+        reason: "handoff_expired",
+      }),
+    );
+    expect(mutations).toContainEqual(
+      expect.objectContaining({
+        type: "handoff:expired",
+        handoffId: "handoff-expiry",
+      }),
+    );
+    expect(
+      reg
+        .list()
+        .filter((task) => task.metadata?.teamFollowup)
+        .map((task) => task.key),
+    ).toEqual([]);
+  });
+});
+
 describe("TeamRunner teammate lifecycle", () => {
   it("emits TeammateIdle only for a real transition back to idle", () => {
     const reg = freshRegistry();

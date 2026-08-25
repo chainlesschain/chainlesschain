@@ -35,6 +35,14 @@ function followupMetadata(task) {
   return value && typeof value === "object" ? value : null;
 }
 
+function custodyRecipient(task) {
+  const history = task?.metadata?.custodyHandoffs;
+  if (!Array.isArray(history)) return null;
+  return [...history]
+    .reverse()
+    .find((handoff) => handoff?.status === "committed")?.toHolder;
+}
+
 export class TeamRunner {
   /**
    * @param {TaskLeaseRegistry} registry
@@ -107,6 +115,12 @@ export class TeamRunner {
       typeof opts.onFollowupMutation === "function"
         ? opts.onFollowupMutation
         : null;
+    this.onHandoffMutation =
+      typeof opts.onHandoffMutation === "function"
+        ? opts.onHandoffMutation
+        : null;
+    this.graphRevisionDigest = opts.graphRevisionDigest || null;
+    this.graphAuthorityDigest = opts.graphAuthorityDigest || null;
     this.maxFollowupWakes =
       Number.isSafeInteger(opts.maxFollowupWakes) && opts.maxFollowupWakes > 0
         ? opts.maxFollowupWakes
@@ -138,6 +152,8 @@ export class TeamRunner {
     this._workerCount = 1;
     this._claimControllers = new Set();
     this._claimsByKey = new Map();
+    this._handoffTransfers = new Map();
+    this._handoffExpiryTimers = new Map();
     this._wallTimer = null;
   }
 
@@ -486,6 +502,529 @@ export class TeamRunner {
     return scheduled;
   }
 
+  _persistHandoffMutation(event) {
+    if (!this.onHandoffMutation) return;
+    try {
+      const result = this.onHandoffMutation(event);
+      if (result && typeof result.then === "function") {
+        Promise.resolve(result).catch(() => {});
+        throw new Error("onHandoffMutation must be synchronous");
+      }
+    } catch (error) {
+      const failure =
+        error instanceof Error
+          ? error
+          : new Error(String(error || "handoff persistence failed"));
+      failure.code ||= "TEAM_HANDOFF_PERSIST_FAILED";
+      this.abortRun(failure, { requireAdjudication: true });
+      throw failure;
+    }
+  }
+
+  _handoffMessage(to, handoff, kind, senderAttempt, reason = null) {
+    if (!this.mailbox) return null;
+    const message = this.mailbox.send({
+      from: senderAttempt?.holder || "coordinator",
+      to,
+      subject: `Task custody handoff ${kind}`,
+      body: {
+        kind: `team_handoff_${kind}`,
+        handoffId: handoff.id,
+        taskKey: handoff.taskKey,
+        from: handoff.fromHolder,
+        to: handoff.toHolder,
+        status: handoff.status,
+        ...(reason ? { reason } : {}),
+      },
+      mode: kind === "offered" ? "followup" : "send",
+      idempotencyKey: `team-handoff:${handoff.id}:${kind}`,
+      causationId: handoff.id,
+      correlationId: handoff.id,
+      senderAttempt,
+    });
+    this._persistHandoffMutation({
+      type: "handoff:message",
+      handoffId: handoff.id,
+      kind,
+      messageId: message.id,
+      to,
+    });
+    if (kind === "offered") {
+      this.requestFollowupWake({
+        to,
+        message,
+        senderAttempt,
+      });
+    }
+    return message;
+  }
+
+  _settleHandoffOfferMessage(
+    recipient,
+    handoffId,
+    authority,
+    { status = "processed", reason = null } = {},
+  ) {
+    if (!this.mailbox) return null;
+    const ids = this.mailbox
+      .log()
+      .filter(
+        (message) =>
+          (message.to === recipient || message.to === "*") &&
+          message.body?.kind === "team_handoff_offered" &&
+          message.body?.handoffId === handoffId,
+      )
+      .map((message) => message.id);
+    if (ids.length === 0) return null;
+    try {
+      return this.mailbox.acknowledge(recipient, {
+        messageIds: ids,
+        consumerKey: `team-handoff-${status}:${handoffId}`,
+        status,
+        ...(reason ? { reason } : {}),
+        recipientAttempt: authority,
+      });
+    } catch (error) {
+      // A prior explicit ACK may have used another consumer key. Its terminal
+      // receipt already proves the offer notification cannot spawn an idle
+      // wake, so only propagate non-terminal/structural mailbox failures.
+      const terminal = ids.every((messageId) =>
+        (this.mailbox.snapshot().receipts || []).some(
+          ([, receipt]) =>
+            receipt.recipient === recipient &&
+            receipt.messageId === messageId &&
+            ["processed", "dead_letter"].includes(receipt.status),
+        ),
+      );
+      if (terminal) return null;
+      throw error;
+    }
+  }
+
+  _clearHandoffExpiry(handoffId) {
+    const timer = this._handoffExpiryTimers.get(handoffId);
+    if (timer) clearTimeout(timer);
+    this._handoffExpiryTimers.delete(handoffId);
+  }
+
+  _scheduleHandoffExpiry(handoff) {
+    if (
+      !handoff ||
+      !["offered", "accepted"].includes(handoff.status) ||
+      this._handoffExpiryTimers.has(handoff.id)
+    ) {
+      return;
+    }
+    const milliseconds = Math.max(0, Number(handoff.expiresAtMs) - this._now());
+    const timer = setTimeout(
+      () => {
+        this._handoffExpiryTimers.delete(handoff.id);
+        try {
+          this._expireHandoffs();
+        } catch (error) {
+          this.abortRun(error, { requireAdjudication: true });
+        }
+      },
+      Math.min(milliseconds, 2_147_483_647),
+    );
+    timer.unref?.();
+    this._handoffExpiryTimers.set(handoff.id, timer);
+  }
+
+  _expireHandoffs() {
+    const result = this._assertHandoffResult(
+      this.registry.expireHandoffs(),
+      "expire",
+    );
+    for (const handoff of result.expired) {
+      this._clearHandoffExpiry(handoff.id);
+      const coordinatorAttempt = {
+        holder: "coordinator",
+        taskKey: handoff.taskKey,
+        leaseId: null,
+        fencingToken: null,
+      };
+      this._settleHandoffOfferMessage(
+        handoff.toHolder,
+        handoff.id,
+        coordinatorAttempt,
+        { status: "dead_letter", reason: "handoff_expired" },
+      );
+      this._persistHandoffMutation({
+        type: "handoff:expired",
+        key: handoff.taskKey,
+        handoffId: handoff.id,
+      });
+      this._handoffMessage(
+        handoff.fromHolder,
+        handoff,
+        "expired",
+        coordinatorAttempt,
+        "handoff_expired",
+      );
+    }
+    for (const task of this.registry.list()) {
+      for (const handoff of task.metadata?.custodyHandoffs || []) {
+        this._scheduleHandoffExpiry(handoff);
+      }
+    }
+    return result.expired;
+  }
+
+  _handoffFailure(code, message, details = {}) {
+    const error = new Error(message);
+    error.code = code;
+    Object.assign(error, details);
+    return error;
+  }
+
+  _assertHandoffResult(result, operation) {
+    if (result?.ok) return result;
+    throw this._handoffFailure(
+      `TEAM_HANDOFF_${String(operation).toUpperCase()}_REJECTED`,
+      `Team handoff ${operation} rejected: ${result?.reason || "unknown"}`,
+      { reason: result?.reason || "unknown" },
+    );
+  }
+
+  _queueHandoffTransfer(transfer) {
+    const queue = this._handoffTransfers.get(transfer.holder) || [];
+    if (
+      queue.some(
+        (candidate) =>
+          candidate.key === transfer.key &&
+          candidate.handoffId === transfer.handoffId,
+      )
+    ) {
+      return false;
+    }
+    queue.push(transfer);
+    this._handoffTransfers.set(transfer.holder, queue);
+    this._reservedExecutions += 1;
+    this._emit("handoff:transfer-queued", {
+      key: transfer.key,
+      handoffId: transfer.handoffId,
+      holder: transfer.holder,
+      recovered: transfer.recovered === true,
+    });
+    this._signalProgress();
+    return true;
+  }
+
+  _reserveHandoffTransfer(key, handoff, lease, { recovered = false } = {}) {
+    const holder = handoff.toHolder;
+    if (!this._residentHolders.has(holder)) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_TARGET_NOT_RESIDENT",
+        `Handoff target is not resident in this run: ${holder}`,
+      );
+    }
+    if (this._executions + this._reservedExecutions >= this.maxTasks) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_TASK_BUDGET_EXHAUSTED",
+        "Task execution budget cannot admit the handoff target attempt",
+      );
+    }
+    const task = this.registry.getTask(key);
+    const budgetReservation = this._reserveTaskBudget(key, task, lease);
+    if (!budgetReservation.ok) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_RESOURCE_BUDGET_REJECTED",
+        `Resource budget cannot admit handoff: ${budgetReservation.reason}`,
+        { reason: budgetReservation.reason },
+      );
+    }
+    let sessionWork;
+    try {
+      sessionWork = this._reserveSessionWork(key, lease);
+    } catch (error) {
+      if (budgetReservation.id) {
+        this.budget?.releaseReservation?.(budgetReservation.id);
+      }
+      throw error;
+    }
+    if (!sessionWork.ok) {
+      if (budgetReservation.id) {
+        this.budget?.releaseReservation?.(budgetReservation.id);
+      }
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_SESSION_BUDGET_REJECTED",
+        `Session budget cannot admit handoff: ${sessionWork.reason}`,
+        { reason: sessionWork.reason },
+      );
+    }
+    return {
+      key,
+      handoffId: handoff.id,
+      holder,
+      lease,
+      budgetReservation,
+      sessionWork,
+      recovered,
+    };
+  }
+
+  /** Lease-bound state machine entry point used by the team_handoff tool. */
+  requestHandoff({ action, handoffId, authority, ...args } = {}) {
+    const holder = authority?.holder;
+    if (!holder || !authority?.taskKey || !authority?.leaseId) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_STALE_ATTEMPT",
+        "Handoff requires an active lease-bound task attempt",
+      );
+    }
+    const active = this._claimsByKey.get(authority.taskKey);
+    if (
+      active?.holder !== holder ||
+      active?.leaseId !== authority.leaseId ||
+      active?.fencingToken !== authority.fencingToken
+    ) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_STALE_ATTEMPT",
+        "Handoff authority is no longer active",
+      );
+    }
+    if (action === "offer") {
+      if (!this.graphRevisionDigest || !this.graphAuthorityDigest) {
+        throw this._handoffFailure(
+          "TEAM_HANDOFF_BINDING_UNAVAILABLE",
+          "Graph revision and authority bindings are unavailable",
+        );
+      }
+      if (
+        !args.to ||
+        args.to === "*" ||
+        args.to === "coordinator" ||
+        !this._residentHolders.has(args.to)
+      ) {
+        throw this._handoffFailure(
+          "TEAM_HANDOFF_INVALID_RECIPIENT",
+          "Handoff requires one resident teammate recipient",
+        );
+      }
+      const offered = this._assertHandoffResult(
+        this.registry.offerHandoff(authority.taskKey, {
+          handoffId,
+          holder,
+          leaseId: authority.leaseId,
+          toHolder: args.to,
+          revisionDigest: this.graphRevisionDigest,
+          authorityDigest: this.graphAuthorityDigest,
+          artifactIds: args.artifactIds || [],
+          preconditions: args.preconditions || null,
+          summary: args.summary || null,
+          ttlMs: args.ttlMs,
+          idempotencyKey: handoffId,
+        }),
+        "offer",
+      );
+      this._persistHandoffMutation({
+        type: "handoff:offered",
+        key: authority.taskKey,
+        handoffId,
+      });
+      this._handoffMessage(args.to, offered.handoff, "offered", authority);
+      this._scheduleHandoffExpiry(offered.handoff);
+      return offered;
+    }
+
+    const found = this.registry.findHandoff(handoffId);
+    if (!found) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_NOT_FOUND",
+        `Handoff not found: ${handoffId}`,
+      );
+    }
+    const handoff = found.handoff;
+    if (![handoff.fromHolder, handoff.toHolder].includes(holder)) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_FORBIDDEN",
+        "Only the source or designated recipient can inspect this handoff",
+      );
+    }
+    if (action === "status") {
+      this._persistHandoffMutation({
+        type: "handoff:status",
+        key: found.key,
+        handoffId,
+      });
+      return { ok: true, key: found.key, handoff };
+    }
+    if (action === "accept") {
+      const accepted = this._assertHandoffResult(
+        this.registry.acceptHandoff(handoffId, {
+          holder,
+          recipientAttempt: authority,
+        }),
+        "accept",
+      );
+      this._settleHandoffOfferMessage(holder, handoffId, authority);
+      this._persistHandoffMutation({
+        type: "handoff:accepted",
+        key: found.key,
+        handoffId,
+      });
+      this._handoffMessage(
+        handoff.fromHolder,
+        accepted.handoff,
+        "accepted",
+        authority,
+      );
+      return accepted;
+    }
+    if (action === "reject") {
+      const rejected = this._assertHandoffResult(
+        this.registry.rejectHandoff(handoffId, {
+          holder,
+          reason: args.reason,
+        }),
+        "reject",
+      );
+      this._clearHandoffExpiry(handoffId);
+      this._settleHandoffOfferMessage(holder, handoffId, authority);
+      this._persistHandoffMutation({
+        type: "handoff:rejected",
+        key: found.key,
+        handoffId,
+      });
+      this._handoffMessage(
+        handoff.fromHolder,
+        rejected.handoff,
+        "rejected",
+        authority,
+        args.reason,
+      );
+      return rejected;
+    }
+    if (action === "revoke") {
+      const revoked = this._assertHandoffResult(
+        this.registry.revokeHandoff(handoffId, {
+          holder,
+          leaseId: authority.leaseId,
+          reason: args.reason,
+        }),
+        "revoke",
+      );
+      this._clearHandoffExpiry(handoffId);
+      this._persistHandoffMutation({
+        type: "handoff:revoked",
+        key: found.key,
+        handoffId,
+      });
+      this._handoffMessage(
+        handoff.toHolder,
+        revoked.handoff,
+        "revoked",
+        authority,
+        args.reason,
+      );
+      return revoked;
+    }
+    if (action !== "commit") {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_INVALID_ACTION",
+        `Unknown handoff action: ${String(action || "")}`,
+      );
+    }
+    if (
+      found.key !== authority.taskKey ||
+      handoff.fromHolder !== holder ||
+      handoff.fromLeaseId !== authority.leaseId
+    ) {
+      throw this._handoffFailure(
+        "TEAM_HANDOFF_SOURCE_MISMATCH",
+        "Only the exact source task attempt can commit this handoff",
+      );
+    }
+    const syntheticLease = {
+      leaseId: `handoff-target:${handoff.id}`,
+      holder: handoff.toHolder,
+    };
+    const reserved = this._reserveHandoffTransfer(
+      found.key,
+      handoff,
+      syntheticLease,
+    );
+    let committed;
+    try {
+      committed = this._assertHandoffResult(
+        this.registry.commitHandoff(handoffId, {
+          holder,
+          leaseId: authority.leaseId,
+          ttlMs: this.ttlMs,
+        }),
+        "commit",
+      );
+    } catch (error) {
+      if (reserved.budgetReservation?.id) {
+        this.budget?.releaseReservation?.(reserved.budgetReservation.id);
+      }
+      reserved.sessionWork?.release?.();
+      throw error;
+    }
+    reserved.lease = committed.lease;
+    this._clearHandoffExpiry(handoffId);
+    if (!this._queueHandoffTransfer(reserved)) {
+      if (reserved.budgetReservation?.id) {
+        this.budget?.releaseReservation?.(reserved.budgetReservation.id);
+      }
+      reserved.sessionWork?.release?.();
+    }
+    this._persistHandoffMutation({
+      type: "handoff:committed",
+      key: found.key,
+      handoffId,
+      holder: handoff.toHolder,
+      leaseId: committed.lease.leaseId,
+    });
+    const transferred = this._handoffFailure(
+      "TEAM_HANDOFF_COMMITTED",
+      `Task custody transferred to ${handoff.toHolder}`,
+    );
+    transferred.retryable = false;
+    active.handoffCommitted = { handoffId, error: transferred };
+    try {
+      active.abortController.abort(transferred);
+    } catch {
+      /* the replacement lease already fences every source settlement */
+    }
+    this._signalProgress();
+    return committed;
+  }
+
+  _reconcileCommittedHandoffs() {
+    for (const pending of this.registry.pendingCommittedHandoffs()) {
+      if (!this._residentHolders.has(pending.handoff.toHolder)) {
+        throw this._handoffFailure(
+          "TEAM_HANDOFF_TARGET_NOT_RESIDENT",
+          `Committed handoff target is not resident: ${pending.handoff.toHolder}`,
+        );
+      }
+      const refreshed = this._assertHandoffResult(
+        this.registry.refreshCommittedHandoffLease(pending.key, {
+          handoffId: pending.handoff.id,
+          holder: pending.handoff.toHolder,
+          ttlMs: this.ttlMs,
+        }),
+        "recover",
+      );
+      const transfer = this._reserveHandoffTransfer(
+        pending.key,
+        refreshed.handoff,
+        refreshed.lease,
+        { recovered: true },
+      );
+      this._queueHandoffTransfer(transfer);
+      this._persistHandoffMutation({
+        type: "handoff:recovered",
+        key: pending.key,
+        handoffId: pending.handoff.id,
+        holder: pending.handoff.toHolder,
+        leaseId: refreshed.lease.leaseId,
+      });
+    }
+  }
+
   /** Snapshot of local in-flight claims for an IDE/operator control surface. */
   activeClaims() {
     return Array.from(this._claimsByKey.values()).map((claim) => ({
@@ -663,9 +1202,22 @@ export class TeamRunner {
     }
     this.sessionBudget?.start?.();
     const workers = [];
+    const requiredHandoffWorker = this.registry
+      .pendingCommittedHandoffs()
+      .reduce((maximum, pending) => {
+        const match = /^teammate-(\d+)$/u.exec(pending.handoff.toHolder);
+        return match ? Math.max(maximum, Number(match[1])) : maximum;
+      }, 0);
+    if (requiredHandoffWorker > this.teammates) {
+      const error = new Error(
+        `Committed handoff target requires ${requiredHandoffWorker} teammates, but this run allows ${this.teammates}`,
+      );
+      error.code = "TEAM_HANDOFF_TARGET_NOT_RESIDENT";
+      throw error;
+    }
     const workerCount = Math.min(
       this.teammates,
-      Math.max(1, this.registry.list().length),
+      Math.max(1, this.registry.list().length, requiredHandoffWorker),
     );
     this._workerCount = workerCount;
     const holders = Array.from(
@@ -676,6 +1228,16 @@ export class TeamRunner {
     this.mailbox?.registerRecipients?.(holders);
     for (const holder of holders) {
       this._setState(holder, "idle");
+    }
+    try {
+      this._expireHandoffs();
+      this._reconcileCommittedHandoffs();
+    } catch (error) {
+      if (this._wallTimer) {
+        clearTimeout(this._wallTimer);
+        this._wallTimer = null;
+      }
+      throw error;
     }
     // A prior coordinator may have committed a follow-up message immediately
     // before crashing, before it could materialize the wake task. Reconcile
@@ -689,6 +1251,10 @@ export class TeamRunner {
         clearTimeout(this._wallTimer);
         this._wallTimer = null;
       }
+      for (const timer of this._handoffExpiryTimers.values()) {
+        clearTimeout(timer);
+      }
+      this._handoffExpiryTimers.clear();
     }
     if (this._fatalError) throw this._fatalError;
     const stats = this.registry.stats();
@@ -716,6 +1282,137 @@ export class TeamRunner {
     return summary;
   }
 
+  _takeHandoffTransfer(holder) {
+    const queue = this._handoffTransfers.get(holder) || [];
+    for (let index = 0; index < queue.length; index++) {
+      const transfer = queue[index];
+      if (this._activeKeys.has(transfer.key)) continue;
+      if (this.scopeLock) {
+        const task = this.registry.getTask(transfer.key);
+        const check = this.scopeLock.canAcquire(
+          transfer.key,
+          this.scopeForTask(task, transfer.key),
+        );
+        if (!check.ok) {
+          if (check.code === "TEAM_SCOPE_LOCK_SCOPE_CONFLICT") continue;
+          const error = new Error(
+            check.message ||
+              `invalid task scope ownership for "${transfer.key}"`,
+          );
+          error.code = check.code || "TEAM_SCOPE_LOCK_INVALID_SCOPES";
+          this._setFatal(error, {
+            phase: "handoff-scope-validation",
+            key: transfer.key,
+            holder,
+          });
+          return null;
+        }
+      }
+      queue.splice(index, 1);
+      if (queue.length === 0) this._handoffTransfers.delete(holder);
+      return transfer;
+    }
+    return null;
+  }
+
+  _discardHandoffTransfer(transfer, claim = null) {
+    if (transfer?.budgetReservation?.id) {
+      this.budget?.releaseReservation?.(transfer.budgetReservation.id);
+    }
+    if (claim) this._endClaim(claim);
+    else transfer?.sessionWork?.release?.();
+    this._reservedExecutions = Math.max(0, this._reservedExecutions - 1);
+    this._signalProgress();
+  }
+
+  async _executeHandoffTransfer(holder, transfer) {
+    const current = this.registry.getTask(transfer.key);
+    if (
+      !current?.lease ||
+      current.lease.holder !== holder ||
+      current.lease.leaseId !== transfer.lease?.leaseId
+    ) {
+      this._discardHandoffTransfer(transfer);
+      const error = this._handoffFailure(
+        "TEAM_HANDOFF_TARGET_LEASE_CHANGED",
+        `Committed handoff target lease changed before dispatch: ${transfer.key}`,
+      );
+      this._setFatal(error, {
+        phase: "handoff-dispatch",
+        key: transfer.key,
+        holder,
+      });
+      return;
+    }
+    let claim;
+    try {
+      claim = this._beginClaim(
+        holder,
+        transfer.key,
+        transfer.lease,
+        transfer.budgetReservation,
+        transfer.sessionWork,
+      );
+      claim.handoffId = transfer.handoffId;
+    } catch (error) {
+      this._discardHandoffTransfer(transfer);
+      this._setFatal(error, {
+        phase: "handoff-session-budget-bind",
+        key: transfer.key,
+        holder,
+      });
+      return;
+    }
+    if (!this._acquireScope(holder, transfer.key)) {
+      this._discardHandoffTransfer(transfer, claim);
+      return;
+    }
+    const started = this.registry.markHandoffStarted(transfer.key, {
+      handoffId: transfer.handoffId,
+      holder,
+      leaseId: transfer.lease.leaseId,
+    });
+    if (!started.ok) {
+      const error = this._handoffFailure(
+        "TEAM_HANDOFF_TARGET_START_REJECTED",
+        `Could not durably start handoff target: ${started.reason}`,
+      );
+      this._setFatal(error, {
+        phase: "handoff-start",
+        key: transfer.key,
+        holder,
+      });
+      this._releaseScope(holder, transfer.key);
+      this._discardHandoffTransfer(transfer, claim);
+      return;
+    }
+    try {
+      this._persistHandoffMutation({
+        type: "handoff:target-started",
+        key: transfer.key,
+        handoffId: transfer.handoffId,
+        holder,
+        leaseId: transfer.lease.leaseId,
+        recovered: transfer.recovered === true,
+      });
+    } catch {
+      this._releaseScope(holder, transfer.key);
+      this._discardHandoffTransfer(transfer, claim);
+      return;
+    }
+    if (!(await this._prepareTask(holder, transfer.key, claim))) {
+      this._releaseScope(holder, transfer.key);
+      this._discardHandoffTransfer(transfer, claim);
+      return;
+    }
+    if (this._fatalError || claim.lost) {
+      this._releaseScope(holder, transfer.key);
+      this._discardHandoffTransfer(transfer, claim);
+      return;
+    }
+    await this._execute(holder, transfer.key, claim);
+  }
+
   async _worker(holder) {
     // Each teammate keeps taking claimable work until none is left FOR IT. A
     // task blocked only by a peer's in-flight lease will free up (complete) or
@@ -725,6 +1422,11 @@ export class TeamRunner {
       if (this._fatalError) {
         this._setState(holder, "shutdown", { reason: "fatal-error" });
         return;
+      }
+      const transfer = this._takeHandoffTransfer(holder);
+      if (transfer) {
+        await this._executeHandoffTransfer(holder, transfer);
+        continue;
       }
       const sessionStopReason = this._sessionBudgetStopReason();
       if (sessionStopReason) {
@@ -1387,7 +2089,8 @@ export class TeamRunner {
         const key = this.registry.nextClaimable({ excludeKeys: excluded });
         if (!key) return null;
         const task = this.registry.getTask(key);
-        const targetHolder = followupMetadata(task)?.recipient || null;
+        const targetHolder =
+          followupMetadata(task)?.recipient || custodyRecipient(task) || null;
         if (targetHolder && targetHolder !== holder) {
           excluded.add(key);
           continue;
@@ -1419,7 +2122,8 @@ export class TeamRunner {
     for (const key of claimable) {
       if (this._activeKeys.has(key)) continue;
       const t = this.registry.getTask(key);
-      const targetHolder = followupMetadata(t)?.recipient || null;
+      const targetHolder =
+        followupMetadata(t)?.recipient || custodyRecipient(t) || null;
       if (targetHolder && targetHolder !== holder) continue;
       const score = rank[t?.priority] ?? 1;
       if (score < bestScore) {
@@ -1482,11 +2186,36 @@ export class TeamRunner {
     const renew = () => this._renewClaim(claim);
     // A teammate-scoped messaging handle: post to a peer / broadcast, and read
     // its own inbox (direct messages + unseen broadcasts).
-    const inbox = this.mailbox
+    const mailboxInbox = this.mailbox
       ? this.realtimeMessaging
-        ? this.mailbox.peek(holder)
+        ? this.mailbox.receive(holder, { limit: 100, markRead: true })
         : this.mailbox.drain(holder)
       : [];
+    const custodyHandoff = claim.handoffId
+      ? (task.metadata?.custodyHandoffs || []).find(
+          (handoff) => handoff.id === claim.handoffId,
+        )
+      : null;
+    const inbox = custodyHandoff
+      ? [
+          ...mailboxInbox,
+          {
+            id: null,
+            from: custodyHandoff.fromHolder,
+            to: custodyHandoff.toHolder,
+            subject: "Committed task custody handoff",
+            body: {
+              handoffId: custodyHandoff.id,
+              taskKey: key,
+              summary: custodyHandoff.summary,
+              preconditions: custodyHandoff.preconditions,
+              artifactIds: custodyHandoff.artifactIds || [],
+              revisionDigest: custodyHandoff.revisionDigest,
+              authorityDigest: custodyHandoff.authorityDigest,
+            },
+          },
+        ]
+      : mailboxInbox;
     const messageAuthority = () => {
       const current = this._claimsByKey.get(key);
       if (
@@ -1518,6 +2247,11 @@ export class TeamRunner {
       this.requestFollowupWake({
         ...request,
         senderAttempt: request.senderAttempt || messageAuthority(),
+      });
+    const requestHandoff = (request = {}) =>
+      this.requestHandoff({
+        ...request,
+        authority: request.authority || messageAuthority(),
       });
     const sendMessage = (to, body, subject = null, options = {}) => {
       if (!this.mailbox) return null;
@@ -1592,6 +2326,7 @@ export class TeamRunner {
         messageAuthority,
         recipientState,
         requestFollowupWake,
+        requestHandoff,
         mailbox: this.mailbox,
         budget: this.budget,
         budgetReservation: claim.budgetReservation,
@@ -1606,6 +2341,9 @@ export class TeamRunner {
       }
       if (claim.coordinatorAbort) {
         throw claim.coordinatorAbort;
+      }
+      if (claim.handoffCommitted) {
+        throw claim.handoffCommitted.error;
       }
       this._recordSessionUsage(claim, result);
       if (

@@ -208,7 +208,7 @@ describe("TeamMessageBridge", () => {
     });
   });
 
-  it("exposes the four host tools through the real child tool bundle", async () => {
+  it("exposes the five host tools through the real child tool bundle", async () => {
     const mailbox = new TeamMailbox({
       recipients: ["teammate-1", "teammate-2"],
     });
@@ -218,7 +218,13 @@ describe("TeamMessageBridge", () => {
     });
     expect(
       bundle.extraToolDefinitions.map((tool) => tool.function.name),
-    ).toEqual(["team_send", "team_receive", "team_ack", "team_followup"]);
+    ).toEqual([
+      "team_send",
+      "team_receive",
+      "team_ack",
+      "team_followup",
+      "team_handoff",
+    ]);
     expect(bundle.externalToolDescriptors.team_send).toMatchObject({
       kind: "team-message",
       inheritable: false,
@@ -239,6 +245,52 @@ describe("TeamMessageBridge", () => {
       message: { from: "teammate-1", body: "from real child tool" },
     });
     expect(mailbox.peek("teammate-2")).toHaveLength(1);
+  });
+
+  it("forwards handoff actions with parent-bound authority", async () => {
+    const mailbox = new TeamMailbox({
+      recipients: ["teammate-1", "teammate-2"],
+    });
+    const requests = [];
+    const bridge = await bridgeFor(mailbox, "teammate-1", {
+      requestHandoff: (request) => {
+        requests.push(request);
+        return {
+          ok: true,
+          key: request.authority.taskKey,
+          handoff: { id: request.handoffId, status: "offered" },
+        };
+      },
+    });
+
+    const result = await call(bridge, "handoff", {
+      action: "offer",
+      handoff_id: "handoff-1",
+      to: "teammate-2",
+      artifact_ids: ["artifact-1"],
+      preconditions: { tests: "green" },
+      summary: { next: "review" },
+      ttl_ms: 5000,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      key: "task-teammate-1",
+      handoff: { id: "handoff-1", status: "offered" },
+    });
+    expect(requests).toEqual([
+      expect.objectContaining({
+        action: "offer",
+        handoffId: "handoff-1",
+        to: "teammate-2",
+        artifactIds: ["artifact-1"],
+        authority: {
+          holder: "teammate-1",
+          taskKey: "task-teammate-1",
+          leaseId: "lease-teammate-1",
+          fencingToken: "fence-teammate-1",
+        },
+      }),
+    ]);
   });
 
   it("requires retry-safe message ids and returns bounded multi-message batches", async () => {

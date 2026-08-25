@@ -559,6 +559,344 @@ describe("TaskLeaseRegistry crash resume (session recovery)", () => {
   });
 });
 
+describe("TaskLeaseRegistry custody handoff", () => {
+  const revisionDigest = `sha256:${"a".repeat(64)}`;
+  const authorityDigest = `sha256:${"b".repeat(64)}`;
+
+  function offer(reg, claim, overrides = {}) {
+    return reg.offerHandoff("work", {
+      handoffId: "handoff-1",
+      holder: "source",
+      leaseId: claim.lease.leaseId,
+      toHolder: "target",
+      revisionDigest,
+      authorityDigest,
+      artifactIds: ["artifact-1"],
+      preconditions: { tests: "green" },
+      summary: { objective: "continue the task" },
+      ttlMs: 500,
+      ...overrides,
+    });
+  }
+
+  it("atomically transfers custody and fences every late source write", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 1000 });
+    reg.addTask({ key: "work", title: "Work" });
+    const source = reg.acquire("work", { holder: "source" });
+
+    const offered = offer(reg, source);
+    expect(offered).toMatchObject({
+      ok: true,
+      handoff: {
+        id: "handoff-1",
+        status: "offered",
+        fromHolder: "source",
+        toHolder: "target",
+        revisionDigest,
+        authorityDigest,
+      },
+    });
+    clock.advance(10);
+    expect(offer(reg, source)).toMatchObject({
+      ok: true,
+      idempotent: true,
+      handoff: { expiresAtMs: 1500 },
+    });
+    expect(reg.acceptHandoff("handoff-1", { holder: "intruder" })).toEqual({
+      ok: false,
+      reason: "wrong_recipient",
+    });
+    expect(
+      reg.acceptHandoff("handoff-1", {
+        holder: "target",
+        recipientAttempt: { id: "attempt-target" },
+      }),
+    ).toMatchObject({ ok: true, handoff: { status: "accepted" } });
+
+    const committed = reg.commitHandoff("handoff-1", {
+      holder: "source",
+      leaseId: source.lease.leaseId,
+    });
+    expect(committed).toMatchObject({
+      ok: true,
+      key: "work",
+      handoff: { status: "committed" },
+      lease: {
+        holder: "target",
+        handoffId: "handoff-1",
+        transferredFromLeaseId: source.lease.leaseId,
+      },
+    });
+    expect(committed.lease.leaseId).not.toBe(source.lease.leaseId);
+    expect(reg.getTask("work")).toMatchObject({
+      status: "in_progress",
+      assignee: "target",
+      lease: committed.lease,
+    });
+    expect(
+      reg.complete("work", {
+        holder: "source",
+        leaseId: source.lease.leaseId,
+      }),
+    ).toEqual({ ok: false, reason: "not_holder_or_expired" });
+    expect(reg.acquire("work", { holder: "intruder" })).toMatchObject({
+      ok: false,
+      reason: "custody_transferred",
+      holder: "target",
+    });
+
+    expect(
+      reg.markHandoffStarted("work", {
+        handoffId: "handoff-1",
+        holder: "target",
+        leaseId: committed.lease.leaseId,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(
+      reg.complete("work", {
+        holder: "target",
+        leaseId: committed.lease.leaseId,
+        result: { continued: true },
+      }),
+    ).toEqual({ ok: true });
+    expect(reg.getTask("work").metadata.custodyHandoffs.at(-1)).toMatchObject({
+      id: "handoff-1",
+      status: "committed",
+      targetStartedAt: clock.now(),
+      targetSettledAt: clock.now(),
+      targetSettlement: "completed",
+    });
+  });
+
+  it("makes reject, revoke, expiry, and conflicting retries race-safe", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now });
+    reg.addTask({ key: "work", title: "Work" });
+    const source = reg.acquire("work", { holder: "source" });
+
+    offer(reg, source);
+    expect(
+      reg.rejectHandoff("handoff-1", {
+        holder: "target",
+        reason: "missing capability",
+      }),
+    ).toMatchObject({ ok: true, handoff: { status: "rejected" } });
+    expect(reg.acceptHandoff("handoff-1", { holder: "target" })).toEqual({
+      ok: false,
+      reason: "handoff_rejected",
+    });
+    expect(offer(reg, source, { summary: { objective: "changed" } })).toEqual({
+      ok: false,
+      reason: "handoff_id_conflict",
+    });
+
+    expect(offer(reg, source, { handoffId: "handoff-2" })).toMatchObject({
+      ok: true,
+    });
+    expect(reg.acceptHandoff("handoff-2", { holder: "target" })).toMatchObject({
+      ok: true,
+    });
+    expect(
+      reg.revokeHandoff("handoff-2", {
+        holder: "source",
+        leaseId: source.lease.leaseId,
+        reason: "source resumed",
+      }),
+    ).toMatchObject({ ok: true, handoff: { status: "revoked" } });
+    expect(
+      reg.commitHandoff("handoff-2", {
+        holder: "source",
+        leaseId: source.lease.leaseId,
+      }),
+    ).toEqual({ ok: false, reason: "handoff_revoked" });
+
+    expect(
+      offer(reg, source, { handoffId: "handoff-3", ttlMs: 20 }),
+    ).toMatchObject({ ok: true });
+    clock.advance(20);
+    expect(reg.acceptHandoff("handoff-3", { holder: "target" })).toEqual({
+      ok: false,
+      reason: "handoff_expired",
+    });
+    expect(reg.findHandoff("handoff-3").handoff).toMatchObject({
+      status: "expired",
+      expiredAt: clock.now(),
+    });
+  });
+
+  it("recovers only an unstarted committed recipient with a fresh fence", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 100 });
+    reg.addTask({ key: "work", title: "Work" });
+    const source = reg.acquire("work", { holder: "source" });
+    offer(reg, source);
+    reg.acceptHandoff("handoff-1", { holder: "target" });
+    const committed = reg.commitHandoff("handoff-1", {
+      holder: "source",
+      leaseId: source.lease.leaseId,
+      ttlMs: 100,
+    });
+    const snapshot = JSON.parse(JSON.stringify(reg.snapshot()));
+
+    const resumedClock = makeClock(clock.now() + 200);
+    const resumed = TaskLeaseRegistry.restore(snapshot, {
+      now: resumedClock.now,
+    });
+    expect(resumed.claimable()).toEqual([]);
+    expect(resumed.reclaimExpired()).toEqual([]);
+    expect(resumed.reconcileAbandoned()).toEqual({
+      reclaimed: [],
+      adjudicationRequired: [],
+    });
+    expect(resumed.pendingCommittedHandoffs()).toEqual([
+      expect.objectContaining({
+        key: "work",
+        handoff: expect.objectContaining({
+          id: "handoff-1",
+          toHolder: "target",
+          targetStartedAt: null,
+        }),
+      }),
+    ]);
+
+    const recovered = resumed.refreshCommittedHandoffLease("work", {
+      handoffId: "handoff-1",
+      holder: "target",
+      ttlMs: 1000,
+    });
+    expect(recovered).toMatchObject({ ok: true, lease: { recovered: true } });
+    expect(recovered.lease.leaseId).not.toBe(committed.lease.leaseId);
+    expect(
+      resumed.complete("work", {
+        holder: "target",
+        leaseId: committed.lease.leaseId,
+      }),
+    ).toEqual({ ok: false, reason: "not_holder_or_expired" });
+    expect(
+      resumed.markHandoffStarted("work", {
+        handoffId: "handoff-1",
+        holder: "target",
+        leaseId: recovered.lease.leaseId,
+      }),
+    ).toMatchObject({ ok: true });
+    expect(resumed.pendingCommittedHandoffs()).toEqual([]);
+    expect(
+      resumed.complete("work", {
+        holder: "target",
+        leaseId: recovered.lease.leaseId,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it("routes a crash after target start through retry/adjudication instead of dispatch replay", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 100 });
+    reg.addTask({ key: "work", title: "Work" });
+    const source = reg.acquire("work", { holder: "source" });
+    offer(reg, source);
+    reg.acceptHandoff("handoff-1", { holder: "target" });
+    const committed = reg.commitHandoff("handoff-1", {
+      holder: "source",
+      leaseId: source.lease.leaseId,
+      ttlMs: 100,
+    });
+    reg.markHandoffStarted("work", {
+      handoffId: "handoff-1",
+      holder: "target",
+      leaseId: committed.lease.leaseId,
+    });
+    const restored = TaskLeaseRegistry.restore(
+      JSON.parse(JSON.stringify(reg.snapshot())),
+      { now: clock.now },
+    );
+
+    expect(restored.pendingCommittedHandoffs()).toEqual([]);
+    expect(restored.reconcileAbandoned({ shouldRetry: () => true })).toEqual({
+      reclaimed: ["work"],
+      adjudicationRequired: [],
+    });
+    expect(restored.getTask("work")).toMatchObject({
+      status: "pending",
+      lease: null,
+      metadata: {
+        custodyHandoffs: [
+          expect.objectContaining({
+            id: "handoff-1",
+            targetSettlement: "recovery_retry",
+            targetSettledAt: clock.now(),
+          }),
+        ],
+      },
+    });
+    expect(restored.claimable()).toEqual(["work"]);
+    expect(restored.acquire("work", { holder: "source" })).toMatchObject({
+      ok: false,
+      reason: "custody_transferred",
+      holder: "target",
+    });
+    expect(restored.acquire("work", { holder: "target" })).toMatchObject({
+      ok: true,
+      lease: { holder: "target" },
+    });
+  });
+
+  it("synchronizes a post-expiry target fence back into the custody journal", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 100 });
+    reg.addTask({ key: "work", title: "Work" });
+    const source = reg.acquire("work", { holder: "source" });
+    offer(reg, source);
+    reg.acceptHandoff("handoff-1", { holder: "target" });
+    const committed = reg.commitHandoff("handoff-1", {
+      holder: "source",
+      leaseId: source.lease.leaseId,
+      ttlMs: 100,
+    });
+    reg.markHandoffStarted("work", {
+      handoffId: "handoff-1",
+      holder: "target",
+      leaseId: committed.lease.leaseId,
+    });
+
+    clock.advance(101);
+    const reacquired = reg.acquire("work", {
+      holder: "target",
+      ttlMs: 1000,
+    });
+    expect(reacquired).toMatchObject({
+      ok: true,
+      lease: {
+        holder: "target",
+        handoffId: "handoff-1",
+        transferredFromLeaseId: committed.lease.leaseId,
+        recovered: true,
+      },
+    });
+    expect(reacquired.lease.leaseId).not.toBe(committed.lease.leaseId);
+    expect(reg.findHandoff("handoff-1").handoff.targetLease).toMatchObject({
+      leaseId: reacquired.lease.leaseId,
+      fencingToken: reacquired.lease.fencingToken,
+    });
+    expect(
+      reg.complete("work", {
+        holder: "target",
+        leaseId: committed.lease.leaseId,
+      }),
+    ).toEqual({ ok: false, reason: "not_holder_or_expired" });
+    expect(
+      reg.complete("work", {
+        holder: "target",
+        leaseId: reacquired.lease.leaseId,
+      }),
+    ).toEqual({ ok: true });
+    expect(reg.findHandoff("handoff-1").handoff).toMatchObject({
+      targetSettlement: "completed",
+      targetLease: { leaseId: reacquired.lease.leaseId },
+    });
+  });
+});
+
 describe("TaskLeaseRegistry stats / allDone", () => {
   it("reports counts and completion", () => {
     const clock = makeClock();
