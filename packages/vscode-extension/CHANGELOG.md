@@ -2,6 +2,22 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.66] - CLI 0.166.2 real-time team messaging (2026-08-25)
+
+- Recommend the fully gated public `chainlesschain@0.166.2` CLI and its
+  lease-, attempt-, and fence-bound `team_send`, `team_receive`, `team_ack`,
+  and `team_followup` tools for real `cc team --agent` children.
+- Project bounded TeamMailbox v3 health into Team Monitor: retained messages,
+  pending target deliveries, follow-ups, processed/dead-letter totals,
+  recipient count, delivery attempts, bytes, and backpressure level.
+- Keep message subjects, bodies, payload digests, consumer keys, failure
+  reasons, bridge credentials, and attempt bindings out of the Webview. Unknown,
+  oversized, duplicate, or malformed mailbox metadata fails only that optional
+  projection closed; the task graph remains available and older CLIs keep the
+  established monitor behavior.
+- Exclude local Extension Host evidence under `build/` from the VSIX instead of
+  shipping dozens of development-only reports and diagnostics to every user.
+
 ## [0.37.65] - Recommended CLI 0.165.10 pairing (2026-08-24)
 
 - Recommend the public `chainlesschain@0.165.10` CLI after its exact release

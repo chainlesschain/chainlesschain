@@ -601,6 +601,9 @@ describe("team monitor webview protocol", () => {
     expect(html).toContain("attemptDigest: task.attemptDigest");
     expect(html).toContain("fencingToken: task.fencingToken");
     expect(html).toContain("evidenceDigest: task.evidenceDigest");
+    expect(html).toContain("Realtime mailbox v");
+    expect(html).toContain("retained messages");
+    expect(html).toContain("pending delivery");
   });
 });
 
@@ -1109,6 +1112,42 @@ describe("team monitor CLI controls", () => {
         },
       ],
     });
+  });
+
+  it("includes only content-free realtime mailbox health in webview snapshots", () => {
+    const file = stateFile([task("running", "in_progress")], {
+      mailbox: {
+        version: 3,
+        limits: { maxMessages: 1000, maxTotalBytes: 4 * 1024 * 1024 },
+        log: [
+          {
+            id: 1,
+            from: "coordinator",
+            to: "mate-1",
+            subject: "sensitive-subject",
+            body: "sensitive-body",
+            ts: 1,
+          },
+        ],
+        seq: 1,
+        delivered: [["mate-1", 0]],
+        recipients: ["mate-1"],
+        totalBytes: 128,
+        counters: { acceptedMessages: 1, deliveryAttempts: 0 },
+        receipts: [],
+        idempotency: [],
+      },
+    });
+    const payload = snapshot(file);
+
+    expect(payload.mailbox).toMatchObject({
+      available: true,
+      retainedMessages: 1,
+      pendingDeliveries: 1,
+      recipients: 1,
+    });
+    expect(JSON.stringify(payload)).not.toContain("sensitive-subject");
+    expect(JSON.stringify(payload)).not.toContain("sensitive-body");
   });
 
   it("includes distributed authority and recovery data in webview snapshots", () => {

@@ -21,6 +21,17 @@ const AUTHORITY_DIGEST_PATTERN = /^[a-f0-9]{64}$/;
 const DISTRIBUTED_QUEUE_SCHEMA_VERSION = 1;
 const DISTRIBUTED_QUEUE_KIND = "distributed-queue";
 const LEGACY_TEAM_KIND = "legacy-team";
+const TEAM_MAILBOX_SNAPSHOT_VERSION = 3;
+const MAX_TEAM_MAILBOX_MESSAGES = 1000;
+const MAX_TEAM_MAILBOX_RECEIPTS = 5000;
+// CLI allows 64 active teammates; reserve room for coordinator/system cursors.
+const MAX_TEAM_MAILBOX_RECIPIENTS = 128;
+const TEAM_MAILBOX_RECEIPT_STATUSES = new Set([
+  "delivered",
+  "read",
+  "processed",
+  "dead_letter",
+]);
 
 function hasControlCharacters(value) {
   for (let index = 0; index < value.length; index += 1) {
@@ -236,6 +247,217 @@ function normalizeWorkspaceExecution(value) {
   };
 }
 
+function unavailableMailbox(error) {
+  return { available: false, error };
+}
+
+/**
+ * Project a CLI TeamMailbox v3 snapshot into bounded, content-free health
+ * metadata. Message subjects, bodies, digests, consumer keys, reasons and
+ * attempt bindings deliberately never cross into the IDE view.
+ */
+function normalizeTeamMailbox(value) {
+  if (value == null) return null;
+  if (!plainObject(value)) {
+    return unavailableMailbox("invalid mailbox snapshot");
+  }
+  if (optionalSafeInteger(value.version, { positive: true }) !== 3) {
+    return unavailableMailbox("unsupported mailbox snapshot version");
+  }
+
+  const log = value.log;
+  const rawRecipients = value.recipients;
+  const rawDelivered = value.delivered;
+  const rawReceipts = value.receipts;
+  if (
+    !Array.isArray(log) ||
+    log.length > MAX_TEAM_MAILBOX_MESSAGES ||
+    !Array.isArray(rawRecipients) ||
+    rawRecipients.length > MAX_TEAM_MAILBOX_RECIPIENTS ||
+    !Array.isArray(rawDelivered) ||
+    rawDelivered.length > MAX_TEAM_MAILBOX_RECIPIENTS ||
+    !Array.isArray(rawReceipts) ||
+    rawReceipts.length > MAX_TEAM_MAILBOX_RECEIPTS
+  ) {
+    return unavailableMailbox("mailbox snapshot exceeds IDE projection bounds");
+  }
+  const sequence = optionalSafeInteger(value.seq);
+  if (sequence == null) {
+    return unavailableMailbox("invalid mailbox sequence metadata");
+  }
+
+  const recipients = rawRecipients.map((recipient) =>
+    stableString(recipient, 256),
+  );
+  if (
+    recipients.some((recipient) => recipient == null || recipient === "*") ||
+    new Set(recipients).size !== recipients.length
+  ) {
+    return unavailableMailbox("invalid mailbox recipient metadata");
+  }
+
+  const delivered = new Map();
+  for (const entry of rawDelivered) {
+    if (!Array.isArray(entry) || entry.length !== 2) {
+      return unavailableMailbox("invalid mailbox delivery metadata");
+    }
+    const recipient = stableString(entry[0], 256);
+    const cursor = optionalSafeInteger(entry[1]);
+    if (
+      !recipient ||
+      recipient === "*" ||
+      cursor == null ||
+      cursor > sequence ||
+      delivered.has(recipient)
+    ) {
+      return unavailableMailbox("invalid mailbox delivery metadata");
+    }
+    delivered.set(recipient, cursor);
+  }
+
+  const receipts = new Map();
+  const receiptCounts = {
+    delivered: 0,
+    read: 0,
+    processed: 0,
+    deadLettered: 0,
+  };
+  for (const entry of rawReceipts) {
+    if (!Array.isArray(entry) || entry.length !== 2 || !plainObject(entry[1])) {
+      return unavailableMailbox("invalid mailbox receipt metadata");
+    }
+    const [key, receipt] = entry;
+    const recipient = stableString(receipt.recipient, 256);
+    const messageId = optionalSafeInteger(receipt.messageId, {
+      positive: true,
+    });
+    const status = optionalString(receipt.status);
+    const expectedKey = `${recipient || ""}\0${messageId || ""}`;
+    if (
+      typeof key !== "string" ||
+      key !== expectedKey ||
+      !recipient ||
+      messageId == null ||
+      messageId > sequence ||
+      receipts.has(key) ||
+      !TEAM_MAILBOX_RECEIPT_STATUSES.has(status)
+    ) {
+      return unavailableMailbox("invalid mailbox receipt metadata");
+    }
+    receipts.set(key, status);
+    if (status === "dead_letter") receiptCounts.deadLettered += 1;
+    else receiptCounts[status] += 1;
+  }
+
+  const messages = [];
+  let previousId = 0;
+  let followups = 0;
+  for (const message of log) {
+    if (!plainObject(message)) {
+      return unavailableMailbox("invalid mailbox message metadata");
+    }
+    const id = optionalSafeInteger(message.id, { positive: true });
+    const from = stableString(message.from, 256);
+    const to = stableString(message.to, 256);
+    const mode = message.mode == null ? "send" : optionalString(message.mode);
+    if (
+      id == null ||
+      id <= previousId ||
+      id > sequence ||
+      !from ||
+      !to ||
+      !["send", "followup"].includes(mode)
+    ) {
+      return unavailableMailbox("invalid mailbox message metadata");
+    }
+    previousId = id;
+    if (mode === "followup") followups += 1;
+    messages.push({ id, from, to });
+  }
+
+  let targetDeliveries = 0;
+  let pendingDeliveries = 0;
+  for (const message of messages) {
+    const targets =
+      message.to === "*"
+        ? recipients.filter((recipient) => recipient !== message.from)
+        : [message.to];
+    for (const recipient of targets) {
+      targetDeliveries += 1;
+      const status = receipts.get(`${recipient}\0${message.id}`);
+      const terminal = status === "processed" || status === "dead_letter";
+      if (!terminal && Number(delivered.get(recipient) || 0) < message.id) {
+        pendingDeliveries += 1;
+      }
+    }
+  }
+
+  const limits = plainObject(value.limits) ? value.limits : {};
+  const maxMessages = optionalSafeInteger(limits.maxMessages, {
+    positive: true,
+  });
+  const maxTotalBytes = optionalSafeInteger(limits.maxTotalBytes, {
+    positive: true,
+  });
+  const totalBytes = optionalSafeInteger(value.totalBytes);
+  if (maxMessages == null || maxTotalBytes == null || totalBytes == null) {
+    return unavailableMailbox("invalid mailbox capacity metadata");
+  }
+  const pressureRatio = Math.max(
+    log.length / maxMessages,
+    totalBytes / maxTotalBytes,
+  );
+  const pressureLevel =
+    pressureRatio >= 1
+      ? "full"
+      : pressureRatio >= 0.95
+        ? "critical"
+        : pressureRatio >= 0.8
+          ? "high"
+          : "normal";
+  const counters = plainObject(value.counters) ? value.counters : {};
+  for (const name of [
+    "acceptedMessages",
+    "rejectedMessages",
+    "deliveryAttempts",
+    "processedMessages",
+    "deadLetteredMessages",
+  ]) {
+    if (
+      Object.hasOwn(counters, name) &&
+      optionalSafeInteger(counters[name]) == null
+    ) {
+      return unavailableMailbox("invalid mailbox counter metadata");
+    }
+  }
+  const counter = (name, fallback = 0) =>
+    optionalSafeInteger(counters[name]) ?? fallback;
+
+  return {
+    available: true,
+    version: TEAM_MAILBOX_SNAPSHOT_VERSION,
+    retainedMessages: log.length,
+    acceptedMessages: counter("acceptedMessages", log.length),
+    rejectedMessages: counter("rejectedMessages"),
+    followups,
+    recipients: recipients.length,
+    targetDeliveries,
+    pendingDeliveries,
+    deliveryAttempts: counter("deliveryAttempts"),
+    processedMessages: counter("processedMessages", receiptCounts.processed),
+    deadLetteredMessages: counter(
+      "deadLetteredMessages",
+      receiptCounts.deadLettered,
+    ),
+    receiptCounts,
+    totalBytes,
+    maxMessages,
+    maxTotalBytes,
+    pressureRatio,
+    pressureLevel,
+  };
+}
+
 /**
  * Parse a state-file snapshot (string or object) into a normalized, flat task
  * list plus budget/members. Returns { ok:false, error } rather than throwing
@@ -386,6 +608,7 @@ function parseTeamState(input) {
       tasks,
       members: [],
       budget: plainObject(snap.budget) ? snap.budget : null,
+      mailbox: null,
       finalization: plainObject(snap.finalization) ? snap.finalization : null,
     };
   }
@@ -398,6 +621,7 @@ function parseTeamState(input) {
     tasks,
     members: Array.isArray(snap.members) ? snap.members : [],
     budget: snap.budget && typeof snap.budget === "object" ? snap.budget : null,
+    mailbox: normalizeTeamMailbox(snap.mailbox),
   };
 }
 
@@ -441,6 +665,7 @@ module.exports = {
   parseTeamState,
   summarizeTeam,
   normalizeAdjudication,
+  normalizeTeamMailbox,
   computeTeamControlAttemptDigest,
   computeTeamControlAdjudicationDigest,
   TEAM_STATUSES,

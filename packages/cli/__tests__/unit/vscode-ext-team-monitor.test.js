@@ -24,6 +24,7 @@ function snap(tasks, extra = {}) {
     registry: { registry: { byKey: [] }, tasks: { tasks } },
     members: extra.members || [],
     budget: extra.budget || null,
+    ...(extra.mailbox !== undefined ? { mailbox: extra.mailbox } : {}),
   });
 }
 const task = (id, status, md = {}) => ({
@@ -66,6 +67,116 @@ describe("parseTeamState", () => {
   it("accepts a pre-parsed object as well as a JSON string", () => {
     const obj = JSON.parse(snap([task("a", "pending")]));
     expect(parseTeamState(obj).ok).toBe(true);
+  });
+
+  it("projects CLI 0.166.2 mailbox v3 health without exposing message content", () => {
+    const state = parseTeamState(
+      snap([task("a", "in_progress")], {
+        mailbox: {
+          version: 3,
+          limits: {
+            maxMessageBytes: 65536,
+            maxMessages: 1000,
+            maxTotalBytes: 4 * 1024 * 1024,
+            maxReceiptHistory: 5000,
+            maxIdempotencyHistory: 256,
+          },
+          log: [
+            {
+              id: 1,
+              from: "coordinator",
+              to: "mate-1",
+              subject: "private-subject",
+              body: { secret: "must-not-reach-the-ide" },
+              ts: 1,
+            },
+            {
+              id: 2,
+              from: "mate-1",
+              to: "*",
+              subject: null,
+              body: "follow up privately",
+              mode: "followup",
+              ts: 2,
+            },
+            {
+              id: 3,
+              from: "mate-2",
+              to: "mate-1",
+              subject: null,
+              body: "poison payload",
+              ts: 3,
+            },
+          ],
+          seq: 3,
+          delivered: [
+            ["mate-1", 1],
+            ["mate-2", 0],
+          ],
+          recipients: ["mate-1", "mate-2"],
+          totalBytes: 900,
+          counters: {
+            acceptedMessages: 3,
+            rejectedMessages: 1,
+            deliveryAttempts: 4,
+            processedMessages: 1,
+            deadLetteredMessages: 1,
+          },
+          receipts: [
+            [
+              "mate-1\0" + 1,
+              { recipient: "mate-1", messageId: 1, status: "processed" },
+            ],
+            [
+              "mate-2\0" + 2,
+              { recipient: "mate-2", messageId: 2, status: "read" },
+            ],
+            [
+              "mate-1\0" + 3,
+              { recipient: "mate-1", messageId: 3, status: "dead_letter" },
+            ],
+          ],
+          idempotency: [],
+        },
+      }),
+    );
+
+    expect(state.mailbox).toMatchObject({
+      available: true,
+      version: 3,
+      retainedMessages: 3,
+      acceptedMessages: 3,
+      rejectedMessages: 1,
+      followups: 1,
+      recipients: 2,
+      targetDeliveries: 3,
+      pendingDeliveries: 1,
+      deliveryAttempts: 4,
+      processedMessages: 1,
+      deadLetteredMessages: 1,
+      totalBytes: 900,
+      pressureLevel: "normal",
+    });
+    expect(JSON.stringify(state.mailbox)).not.toContain(
+      "must-not-reach-the-ide",
+    );
+    expect(JSON.stringify(state.mailbox)).not.toContain("private-subject");
+  });
+
+  it("fails the mailbox projection closed without hiding the task graph", () => {
+    const state = parseTeamState(
+      snap([task("a", "pending")], {
+        mailbox: { version: 99, log: [{ body: "secret" }] },
+      }),
+    );
+
+    expect(state.ok).toBe(true);
+    expect(state.tasks).toHaveLength(1);
+    expect(state.mailbox).toEqual({
+      available: false,
+      error: "unsupported mailbox snapshot version",
+    });
+    expect(JSON.stringify(state.mailbox)).not.toContain("secret");
   });
 
   it("fails cleanly on non-JSON, non-object, and a wrong-shape file", () => {

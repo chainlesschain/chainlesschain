@@ -63,6 +63,7 @@ function snapshot(statePath) {
     summary: summarizeTeam(parsed),
     members: parsed.members,
     budget: parsed.budget,
+    mailbox: parsed.mailbox,
   };
 }
 
@@ -1020,6 +1021,12 @@ function renderHtml() {
     node.append(element('div', label, 'k'), element('div', count, 'v'));
     return node;
   }
+  function formatBytes(value) {
+    const bytes = Number(value) || 0;
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
+  }
   function controlButton(label, request, className) {
     const button = element('button', label, 'control ' + (className || 'secondary'));
     const clickBinding = Object.freeze({ ...request });
@@ -1205,6 +1212,35 @@ function renderHtml() {
     if (summary.stale) cards.append(card('stale lease', summary.stale));
     if (summary.adjudicationRequired) {
       cards.append(card('needs decision', summary.adjudicationRequired));
+    }
+    const mailbox = message.mailbox;
+    if (mailbox && mailbox.available === true) {
+      cards.append(
+        card('retained messages', mailbox.retainedMessages || 0),
+        card('pending delivery', mailbox.pendingDeliveries || 0)
+      );
+      if (mailbox.followups) cards.append(card('follow-ups', mailbox.followups));
+      if (mailbox.deadLetteredMessages) {
+        cards.append(card('dead letter', mailbox.deadLetteredMessages));
+      }
+      notice.append(element(
+        'div',
+        'Realtime mailbox v' + mailbox.version +
+          ' · ' + (mailbox.recipients || 0) + ' recipients' +
+          ' · ' + formatBytes(mailbox.totalBytes) + '/' +
+          formatBytes(mailbox.maxTotalBytes) +
+          ' · ' + (mailbox.pressureLevel || 'unknown') + ' pressure' +
+          ' · ' + (mailbox.deliveryAttempts || 0) + ' delivery attempts' +
+          ' · ' + (mailbox.processedMessages || 0) + ' processed',
+        mailbox.pressureLevel === 'normal' ? 'muted' : 'warning'
+      ));
+    } else if (mailbox && mailbox.available === false) {
+      notice.append(element(
+        'div',
+        'Realtime mailbox metadata unavailable: ' +
+          (mailbox.error || 'unsupported snapshot'),
+        'readonly'
+      ));
     }
     cards.append(
       card('blocked', Number(summary.counts && summary.counts.blocked) || 0),

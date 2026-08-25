@@ -4,9 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
@@ -31,6 +33,13 @@ public final class TeamMonitor {
             Pattern.compile("^[a-f0-9]{64}$");
     private static final long MAX_SAFE_INTEGER = 9_007_199_254_740_991L;
     public static final long DISTRIBUTED_QUEUE_SCHEMA_VERSION = 1L;
+    public static final long TEAM_MAILBOX_SNAPSHOT_VERSION = 3L;
+    private static final int MAX_TEAM_MAILBOX_MESSAGES = 1000;
+    private static final int MAX_TEAM_MAILBOX_RECEIPTS = 5000;
+    // CLI allows 64 active teammates; reserve room for coordinator/system cursors.
+    private static final int MAX_TEAM_MAILBOX_RECIPIENTS = 128;
+    private static final Set<String> TEAM_MAILBOX_RECEIPT_STATUSES =
+            Set.of("delivered", "read", "processed", "dead_letter");
 
     private TeamMonitor() {}
 
@@ -85,6 +94,51 @@ public final class TeamMonitor {
             this.checkpointState = checkpointState;
             this.transactionId = transactionId;
             this.recoveryRequired = recoveryRequired;
+        }
+    }
+
+    /** Content-free TeamMailbox v3 health projected for the native monitor. */
+    public static final class Mailbox {
+        public final boolean available;
+        public final String error;
+        public final long version;
+        public final int retainedMessages;
+        public final long acceptedMessages;
+        public final long rejectedMessages;
+        public final int followups;
+        public final int recipients;
+        public final int targetDeliveries;
+        public final int pendingDeliveries;
+        public final long deliveryAttempts;
+        public final long processedMessages;
+        public final long deadLetteredMessages;
+        public final long totalBytes;
+        public final long maxTotalBytes;
+        public final String pressureLevel;
+
+        Mailbox(boolean available, String error, long version,
+                int retainedMessages, long acceptedMessages,
+                long rejectedMessages, int followups, int recipients,
+                int targetDeliveries, int pendingDeliveries,
+                long deliveryAttempts, long processedMessages,
+                long deadLetteredMessages, long totalBytes,
+                long maxTotalBytes, String pressureLevel) {
+            this.available = available;
+            this.error = error;
+            this.version = version;
+            this.retainedMessages = retainedMessages;
+            this.acceptedMessages = acceptedMessages;
+            this.rejectedMessages = rejectedMessages;
+            this.followups = followups;
+            this.recipients = recipients;
+            this.targetDeliveries = targetDeliveries;
+            this.pendingDeliveries = pendingDeliveries;
+            this.deliveryAttempts = deliveryAttempts;
+            this.processedMessages = processedMessages;
+            this.deadLetteredMessages = deadLetteredMessages;
+            this.totalBytes = totalBytes;
+            this.maxTotalBytes = maxTotalBytes;
+            this.pressureLevel = pressureLevel;
         }
     }
 
@@ -156,12 +210,14 @@ public final class TeamMonitor {
         public final List<Map<String, Object>> members;
         /** Budget snapshot {limits:{…},totals:{…}}; null when the state has none. */
         public final Map<String, Object> budget;
+        /** Content-free v3 message health; null when the CLI has no mailbox. */
+        public final Mailbox mailbox;
 
         State(boolean ok, String error, long version, String stateId,
                 boolean distributedQueue, long schemaVersion, String queueId,
                 String authorityDigest, String repoRoot, String runId, Long revision,
                 List<Task> tasks, List<Map<String, Object>> members,
-                Map<String, Object> budget) {
+                Map<String, Object> budget, Mailbox mailbox) {
             this.ok = ok;
             this.error = error;
             this.version = version;
@@ -177,6 +233,7 @@ public final class TeamMonitor {
             this.members = members == null
                     ? new ArrayList<Map<String, Object>>() : members;
             this.budget = budget;
+            this.mailbox = mailbox;
         }
     }
 
@@ -315,9 +372,10 @@ public final class TeamMonitor {
         }
         Map<String, Object> budget = snap.get("budget") instanceof Map
                 ? (Map<String, Object>) snap.get("budget") : null;
+        Mailbox mailbox = distributed ? null : parseMailbox(snap.get("mailbox"));
         return new State(true, null, version, stateId, distributed, schemaVersion,
                 queueId, authorityDigest, repoRoot, runId, revision,
-                tasks, members, budget);
+                tasks, members, budget, mailbox);
     }
 
     /**
@@ -417,6 +475,29 @@ public final class TeamMonitor {
         sb.append("\n");
         String budget = budgetLine(state.budget);
         if (!budget.isEmpty()) sb.append("budget: ").append(budget).append("\n");
+        if (state.mailbox != null) {
+            if (!state.mailbox.available) {
+                sb.append("realtime messages: unavailable (")
+                  .append(state.mailbox.error).append(")\n");
+            } else {
+                Mailbox mailbox = state.mailbox;
+                sb.append("realtime messages: ")
+                  .append(mailbox.retainedMessages).append(" retained | ")
+                  .append(mailbox.pendingDeliveries).append(" pending delivery | ")
+                  .append(mailbox.processedMessages).append(" processed");
+                if (mailbox.followups > 0) {
+                    sb.append(" | ").append(mailbox.followups).append(" follow-up");
+                }
+                if (mailbox.deadLetteredMessages > 0) {
+                    sb.append(" | ").append(mailbox.deadLetteredMessages)
+                      .append(" dead-letter");
+                }
+                sb.append(" | ").append(mailbox.pressureLevel)
+                  .append(" pressure (").append(formatBytes(mailbox.totalBytes))
+                  .append('/').append(formatBytes(mailbox.maxTotalBytes))
+                  .append(")\n");
+            }
+        }
         if (!state.members.isEmpty()) {
             sb.append("members:");
             for (Map<String, Object> m : state.members) {
@@ -491,9 +572,217 @@ public final class TeamMonitor {
 
     // --- internals -----------------------------------------------------------
 
+    private static Mailbox unavailableMailbox(String error) {
+        return new Mailbox(false, error, 0L, 0, 0L, 0L, 0, 0,
+                0, 0, 0L, 0L, 0L, 0L, 0L, "unknown");
+    }
+
+    /**
+     * Parse only bounded delivery health from TeamMailbox v3. Subjects, bodies,
+     * digests, consumer keys, reasons, and attempt bindings are never retained.
+     */
+    private static Mailbox parseMailbox(Object raw) {
+        if (raw == null) return null;
+        if (!(raw instanceof Map)) {
+            return unavailableMailbox("invalid mailbox snapshot");
+        }
+        Map<?, ?> value = (Map<?, ?>) raw;
+        Long version = nonnegativeSafeLong(value.get("version"));
+        if (version == null || version.longValue() != TEAM_MAILBOX_SNAPSHOT_VERSION) {
+            return unavailableMailbox("unsupported mailbox snapshot version");
+        }
+
+        List<?> log = value.get("log") instanceof List
+                ? (List<?>) value.get("log") : null;
+        List<?> rawRecipients = value.get("recipients") instanceof List
+                ? (List<?>) value.get("recipients") : null;
+        List<?> rawDelivered = value.get("delivered") instanceof List
+                ? (List<?>) value.get("delivered") : null;
+        List<?> rawReceipts = value.get("receipts") instanceof List
+                ? (List<?>) value.get("receipts") : null;
+        if (log == null || log.size() > MAX_TEAM_MAILBOX_MESSAGES
+                || rawRecipients == null
+                || rawRecipients.size() > MAX_TEAM_MAILBOX_RECIPIENTS
+                || rawDelivered == null
+                || rawDelivered.size() > MAX_TEAM_MAILBOX_RECIPIENTS
+                || rawReceipts == null
+                || rawReceipts.size() > MAX_TEAM_MAILBOX_RECEIPTS) {
+            return unavailableMailbox(
+                    "mailbox snapshot exceeds IDE projection bounds");
+        }
+        Long sequence = nonnegativeSafeLong(value.get("seq"));
+        if (sequence == null) {
+            return unavailableMailbox("invalid mailbox sequence metadata");
+        }
+
+        List<String> recipients = new ArrayList<String>();
+        Set<String> uniqueRecipients = new HashSet<String>();
+        for (Object rawRecipient : rawRecipients) {
+            String recipient = stableString(rawRecipient, 256);
+            if (recipient == null || "*".equals(recipient)
+                    || !uniqueRecipients.add(recipient)) {
+                return unavailableMailbox("invalid mailbox recipient metadata");
+            }
+            recipients.add(recipient);
+        }
+
+        Map<String, Long> delivered = new LinkedHashMap<String, Long>();
+        for (Object rawEntry : rawDelivered) {
+            if (!(rawEntry instanceof List) || ((List<?>) rawEntry).size() != 2) {
+                return unavailableMailbox("invalid mailbox delivery metadata");
+            }
+            List<?> entry = (List<?>) rawEntry;
+            String recipient = stableString(entry.get(0), 256);
+            Long cursor = nonnegativeSafeLong(entry.get(1));
+            if (recipient == null || "*".equals(recipient) || cursor == null
+                    || cursor.longValue() > sequence.longValue()
+                    || delivered.put(recipient, cursor) != null) {
+                return unavailableMailbox("invalid mailbox delivery metadata");
+            }
+        }
+
+        Map<String, String> receipts = new LinkedHashMap<String, String>();
+        long receiptProcessed = 0L;
+        long receiptDeadLettered = 0L;
+        for (Object rawEntry : rawReceipts) {
+            if (!(rawEntry instanceof List) || ((List<?>) rawEntry).size() != 2) {
+                return unavailableMailbox("invalid mailbox receipt metadata");
+            }
+            List<?> entry = (List<?>) rawEntry;
+            if (!(entry.get(0) instanceof String) || !(entry.get(1) instanceof Map)) {
+                return unavailableMailbox("invalid mailbox receipt metadata");
+            }
+            Map<?, ?> receipt = (Map<?, ?>) entry.get(1);
+            String recipient = stableString(receipt.get("recipient"), 256);
+            Long messageId = nonnegativeSafeLong(receipt.get("messageId"));
+            String status = optionalString(receipt.get("status"));
+            String expectedKey = String.valueOf(recipient) + "\0"
+                    + String.valueOf(messageId);
+            if (recipient == null || messageId == null || messageId <= 0
+                    || messageId.longValue() > sequence.longValue()
+                    || !entry.get(0).equals(expectedKey)
+                    || !TEAM_MAILBOX_RECEIPT_STATUSES.contains(status)
+                    || receipts.put(expectedKey, status) != null) {
+                return unavailableMailbox("invalid mailbox receipt metadata");
+            }
+            if ("processed".equals(status)) receiptProcessed++;
+            if ("dead_letter".equals(status)) receiptDeadLettered++;
+        }
+
+        List<Map<String, Object>> messages =
+                new ArrayList<Map<String, Object>>();
+        long previousId = 0L;
+        int followups = 0;
+        for (Object rawMessage : log) {
+            if (!(rawMessage instanceof Map)) {
+                return unavailableMailbox("invalid mailbox message metadata");
+            }
+            Map<?, ?> message = (Map<?, ?>) rawMessage;
+            Long id = nonnegativeSafeLong(message.get("id"));
+            String from = stableString(message.get("from"), 256);
+            String to = stableString(message.get("to"), 256);
+            String mode = message.get("mode") == null
+                    ? "send" : optionalString(message.get("mode"));
+            if (id == null || id <= previousId
+                    || id.longValue() > sequence.longValue()
+                    || from == null || to == null
+                    || !("send".equals(mode) || "followup".equals(mode))) {
+                return unavailableMailbox("invalid mailbox message metadata");
+            }
+            previousId = id;
+            if ("followup".equals(mode)) followups++;
+            Map<String, Object> projected = new LinkedHashMap<String, Object>();
+            projected.put("id", id);
+            projected.put("from", from);
+            projected.put("to", to);
+            messages.add(projected);
+        }
+
+        int targetDeliveries = 0;
+        int pendingDeliveries = 0;
+        for (Map<String, Object> message : messages) {
+            long id = ((Long) message.get("id")).longValue();
+            String from = (String) message.get("from");
+            String to = (String) message.get("to");
+            List<String> targets = new ArrayList<String>();
+            if ("*".equals(to)) {
+                for (String recipient : recipients) {
+                    if (!recipient.equals(from)) targets.add(recipient);
+                }
+            } else {
+                targets.add(to);
+            }
+            for (String recipient : targets) {
+                targetDeliveries++;
+                String status = receipts.get(recipient + "\0" + id);
+                boolean terminal = "processed".equals(status)
+                        || "dead_letter".equals(status);
+                long cursor = delivered.containsKey(recipient)
+                        ? delivered.get(recipient).longValue() : 0L;
+                if (!terminal && cursor < id) pendingDeliveries++;
+            }
+        }
+
+        Map<?, ?> limits = value.get("limits") instanceof Map
+                ? (Map<?, ?>) value.get("limits") : null;
+        Long maxMessages = limits == null ? null
+                : nonnegativeSafeLong(limits.get("maxMessages"));
+        Long maxTotalBytes = limits == null ? null
+                : nonnegativeSafeLong(limits.get("maxTotalBytes"));
+        Long totalBytes = nonnegativeSafeLong(value.get("totalBytes"));
+        if (maxMessages == null || maxMessages <= 0
+                || maxTotalBytes == null || maxTotalBytes <= 0
+                || totalBytes == null) {
+            return unavailableMailbox("invalid mailbox capacity metadata");
+        }
+        double pressureRatio = Math.max(
+                log.size() / (double) maxMessages.longValue(),
+                totalBytes.longValue() / (double) maxTotalBytes.longValue());
+        String pressureLevel = pressureRatio >= 1.0 ? "full"
+                : pressureRatio >= 0.95 ? "critical"
+                : pressureRatio >= 0.8 ? "high" : "normal";
+
+        Map<?, ?> counters = value.get("counters") instanceof Map
+                ? (Map<?, ?>) value.get("counters") : null;
+        Long accepted = mailboxCounter(counters, "acceptedMessages");
+        Long rejected = mailboxCounter(counters, "rejectedMessages");
+        Long deliveryAttempts = mailboxCounter(counters, "deliveryAttempts");
+        Long processed = mailboxCounter(counters, "processedMessages");
+        Long deadLettered = mailboxCounter(counters, "deadLetteredMessages");
+        if (accepted == null || rejected == null || deliveryAttempts == null
+                || processed == null || deadLettered == null) {
+            return unavailableMailbox("invalid mailbox counter metadata");
+        }
+        if (!countersContains(counters, "acceptedMessages")) {
+            accepted = Long.valueOf(log.size());
+        }
+        if (!countersContains(counters, "processedMessages")) {
+            processed = Long.valueOf(receiptProcessed);
+        }
+        if (!countersContains(counters, "deadLetteredMessages")) {
+            deadLettered = Long.valueOf(receiptDeadLettered);
+        }
+
+        return new Mailbox(true, null, version.longValue(), log.size(),
+                accepted.longValue(), rejected.longValue(), followups,
+                recipients.size(), targetDeliveries, pendingDeliveries,
+                deliveryAttempts.longValue(), processed.longValue(),
+                deadLettered.longValue(), totalBytes.longValue(),
+                maxTotalBytes.longValue(), pressureLevel);
+    }
+
+    private static boolean countersContains(Map<?, ?> counters, String key) {
+        return counters != null && counters.containsKey(key);
+    }
+
+    private static Long mailboxCounter(Map<?, ?> counters, String key) {
+        if (counters == null || !counters.containsKey(key)) return Long.valueOf(0L);
+        return nonnegativeSafeLong(counters.get(key));
+    }
+
     private static State invalidState(String error) {
         return new State(false, error, 0L, null, false, 0L,
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 
     /** Compact one-line budget summary from {limits,totals}; "" when unusable. */
@@ -525,6 +814,14 @@ public final class TeamMonitor {
 
     private static long numOr(Object v, long dflt) {
         return v instanceof Number ? ((Number) v).longValue() : dflt;
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024L) return bytes + " B";
+        if (bytes < 1024L * 1024L) return Math.round(bytes / 1024.0) + " KB";
+        double megabytes = bytes / (1024.0 * 1024.0);
+        return String.format(java.util.Locale.ROOT,
+                megabytes < 10.0 ? "%.1f MB" : "%.0f MB", megabytes);
     }
 
     private static long normalizedVersion(Object value) {

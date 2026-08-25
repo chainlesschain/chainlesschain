@@ -88,6 +88,73 @@ class TeamMonitorTest {
     }
 
     @Test
+    void projectsCli01662MailboxHealthWithoutRetainingMessageContent() {
+        String json = "{\"version\":6,\"stateId\":\"state-6\","
+                + "\"registry\":{\"tasks\":{\"tasks\":[]}},"
+                + "\"mailbox\":{\"version\":3,\"limits\":{"
+                + "\"maxMessages\":1000,\"maxTotalBytes\":4194304},"
+                + "\"log\":["
+                + "{\"id\":1,\"from\":\"coordinator\",\"to\":\"mate-1\","
+                + "\"subject\":\"private-subject\","
+                + "\"body\":\"must-not-reach-the-ide\",\"ts\":1},"
+                + "{\"id\":2,\"from\":\"mate-1\",\"to\":\"*\","
+                + "\"subject\":null,\"body\":\"follow-up body\","
+                + "\"mode\":\"followup\",\"ts\":2},"
+                + "{\"id\":3,\"from\":\"mate-2\",\"to\":\"mate-1\","
+                + "\"subject\":null,\"body\":\"poison\",\"ts\":3}],"
+                + "\"seq\":3,\"delivered\":[[\"mate-1\",1],[\"mate-2\",0]],"
+                + "\"recipients\":[\"mate-1\",\"mate-2\"],\"totalBytes\":900,"
+                + "\"counters\":{\"acceptedMessages\":3,"
+                + "\"rejectedMessages\":1,\"deliveryAttempts\":4,"
+                + "\"processedMessages\":1,\"deadLetteredMessages\":1},"
+                + "\"receipts\":["
+                + "[\"mate-1\\u00001\",{\"recipient\":\"mate-1\","
+                + "\"messageId\":1,\"status\":\"processed\"}],"
+                + "[\"mate-2\\u00002\",{\"recipient\":\"mate-2\","
+                + "\"messageId\":2,\"status\":\"read\"}],"
+                + "[\"mate-1\\u00003\",{\"recipient\":\"mate-1\","
+                + "\"messageId\":3,\"status\":\"dead_letter\"}]],"
+                + "\"idempotency\":[]}}";
+
+        TeamMonitor.State state = TeamMonitor.parse(json);
+        assertTrue(state.ok);
+        assertTrue(state.mailbox.available);
+        assertEquals(3L, state.mailbox.version);
+        assertEquals(3, state.mailbox.retainedMessages);
+        assertEquals(1, state.mailbox.followups);
+        assertEquals(2, state.mailbox.recipients);
+        assertEquals(3, state.mailbox.targetDeliveries);
+        assertEquals(1, state.mailbox.pendingDeliveries);
+        assertEquals(4L, state.mailbox.deliveryAttempts);
+        assertEquals(1L, state.mailbox.processedMessages);
+        assertEquals(1L, state.mailbox.deadLetteredMessages);
+        assertEquals("normal", state.mailbox.pressureLevel);
+
+        String report = TeamMonitor.formatReport(state, 0L);
+        assertTrue(report.contains("realtime messages: 3 retained"), report);
+        assertTrue(report.contains("1 pending delivery"), report);
+        assertTrue(report.contains("1 follow-up"), report);
+        assertTrue(report.contains("1 dead-letter"), report);
+        assertFalse(report.contains("private-subject"), report);
+        assertFalse(report.contains("must-not-reach-the-ide"), report);
+    }
+
+    @Test
+    void unknownMailboxVersionFailsOnlyTheMetadataProjectionClosed() {
+        TeamMonitor.State state = TeamMonitor.parse(
+                "{\"version\":6,\"registry\":{\"tasks\":{\"tasks\":[]}},"
+                + "\"mailbox\":{\"version\":99,\"log\":[{\"body\":\"secret\"}]}}"
+        );
+
+        assertTrue(state.ok);
+        assertFalse(state.mailbox.available);
+        assertEquals("unsupported mailbox snapshot version", state.mailbox.error);
+        String report = TeamMonitor.formatReport(state, 0L);
+        assertTrue(report.contains("realtime messages: unavailable"), report);
+        assertFalse(report.contains("secret"), report);
+    }
+
+    @Test
     void parseIsTolerantOfBadInput() {
         assertFalse(TeamMonitor.parse("{bad").ok);
         assertFalse(TeamMonitor.parse("{\"hello\":1}").ok);

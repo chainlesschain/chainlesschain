@@ -5,3 +5,4 @@
 __tests__/**
 test/**
 node_modules/**
+build/**

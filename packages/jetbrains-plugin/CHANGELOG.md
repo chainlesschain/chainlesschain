@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.98] - CLI 0.166.2 real-time team messaging (2026-08-25)
+
+- Recommend the fully gated public `chainlesschain@0.166.2` CLI and its
+  lease-, attempt-, and fence-bound `team_send`, `team_receive`, `team_ack`,
+  and `team_followup` tools for real `cc team --agent` children.
+- Add bounded, native Team Monitor reporting for TeamMailbox v3 retained and
+  pending deliveries, follow-ups, processed/dead-letter totals, recipient
+  count, bytes, and backpressure level.
+- Never retain or render message subjects, bodies, payload digests, consumer
+  keys, failure reasons, bridge credentials, or attempt bindings. Unknown,
+  oversized, duplicate, or malformed mailbox metadata fails only that optional
+  projection closed, while older CLI task snapshots keep working unchanged.
+
 ## [0.4.97] - Recommended CLI 0.165.10 pairing (2026-08-24)
 
 - Recommend the public `chainlesschain@0.165.10` CLI after its exact release
