@@ -168,7 +168,6 @@ jobs:
           script: echo "Generated AVD snapshot for caching."
 
       - name: Run P1 Integration Tests
-        continue-on-error: true # outer advisory gate: P1 failures do not block the workflow yet
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -177,18 +176,16 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # Inner `|| true` on each gradle line was redundant masking on top
-          # of `continue-on-error: true` — first failure now halts the script
-          # so the step's outcome honestly reflects whether tests passed.
+          # android-emulator-runner executes every script line in a fresh
+          # shell. Keep `cd && gradlew` on one line so the working directory is
+          # effective, and use instrumentation-runner class filters (`--tests`
+          # is only supported by JVM Test tasks).
           script: |
-            set -e
-            cd android-app
-            ./gradlew :core-e2ee:connectedAndroidTest --tests "*E2EEIntegrationTest*" --no-daemon
-            ./gradlew :feature-p2p:connectedAndroidTest --tests "*P2PIntegrationTest*" --no-daemon
-            ./gradlew :feature-ai:connectedAndroidTest --tests "*AI_RAG_IntegrationTest*" --no-daemon
+            cd android-app && ./gradlew :core-e2ee:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.core.e2ee.E2EEIntegrationTest --stacktrace --no-daemon
+            cd android-app && ./gradlew :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.feature.ai.integration.AI_RAG_IntegrationTest --stacktrace --no-daemon
+            cd android-app && ./gradlew :feature-knowledge:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.feature.knowledge.e2e.KnowledgeE2ETest --stacktrace --no-daemon
 
       - name: Run P2 UI Component Tests
-        continue-on-error: true # outer advisory gate: P2 failures do not block the workflow yet
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -198,12 +195,9 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            set -e
-            cd android-app
-            ./gradlew :feature-knowledge:connectedAndroidTest --tests "*KnowledgeUITest*" --no-daemon
-            ./gradlew :feature-ai:connectedAndroidTest --tests "*AIConversationUITest*" --no-daemon
-            ./gradlew :feature-p2p:connectedAndroidTest --tests "*SocialPostUITest*" --no-daemon
-            ./gradlew :feature-project:connectedAndroidTest --tests "*ProjectEditorUITest*" --no-daemon
+            cd android-app && ./gradlew :feature-knowledge:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.feature.knowledge.ui.KnowledgeUITest --stacktrace --no-daemon
+            cd android-app && ./gradlew :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.feature.ai.ui.AIConversationUITest --stacktrace --no-daemon
+            cd android-app && ./gradlew :feature-p2p:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.chainlesschain.android.feature.p2p.ui.EditHistoryDialogTest --stacktrace --no-daemon
 
       - name: Upload Instrumented Test Results
         if: always()

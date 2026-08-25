@@ -951,3 +951,31 @@ test("Android remaining-module unit tests are a blocking gate", () => {
   assert.match(aggregateStep, /\.\/gradlew testDebugUnitTest --no-daemon/);
   assert.doesNotMatch(aggregateStep, /continue-on-error:\s*true/);
 });
+
+test("Android emulator matrix runs real instrumented tests from the project directory", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
+    "utf8",
+  );
+  const matrixStart = workflow.indexOf("  instrumented-tests:");
+  const matrixEnd = workflow.indexOf("  code-coverage:", matrixStart);
+  assert.ok(matrixStart >= 0);
+  assert.ok(matrixEnd > matrixStart);
+  const matrix = workflow.slice(matrixStart, matrixEnd);
+
+  assert.doesNotMatch(matrix, /continue-on-error:\s*true/);
+  assert.doesNotMatch(matrix, /connectedAndroidTest --tests/);
+  assert.doesNotMatch(
+    matrix,
+    /(P2PIntegrationTest|SocialPostUITest|ProjectEditorUITest)/,
+  );
+  assert.doesNotMatch(matrix, /^\s+cd android-app\s*$/m);
+  assert.match(
+    matrix,
+    /cd android-app && \.\/gradlew :core-e2ee:connectedDebugAndroidTest/,
+  );
+  assert.match(
+    matrix,
+    /-Pandroid\.testInstrumentationRunnerArguments\.class=/,
+  );
+});
