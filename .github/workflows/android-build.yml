@@ -5,11 +5,13 @@ on:
     branches: [main, develop]
     paths:
       - "android-app/**"
+      - "packages/agent-protocol/**"
       - ".github/workflows/android-build.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "android-app/**"
+      - "packages/agent-protocol/**"
   # 2026-06-12: manual trigger — push-triggered runs were being cancelled
   # 49/50 by the high push cadence before this long pipeline could finish;
   # workflow_dispatch lets a verification run be launched (and finish) on
@@ -244,21 +246,13 @@ jobs:
 
   # Job 5: Security Scan
   #
-  # KNOWN BROKEN — tracking in #15. `python manage.py scan` is not a registered
-  # MobSF Django management command; the image's entrypoint installs JADX then
-  # Django rejects the override CMD with "Unknown command: 'scan'" and exits 1.
-  # Has been silently failing since daa90243e (Jan 19 2026, initial CI/CD setup).
-  #
-  # Gated with continue-on-error: true so CI is not blocked. The hardened run
-  # block surfaces the real stderr (previously hidden behind the JADX progress
-  # bar) so the next CI run produces an actionable diagnostic. Replace the
-  # invocation with the MobSF REST API (start service, POST /api/v1/upload +
-  # /api/v1/scan + /api/v1/report_json) when somebody picks #15 back up.
+  # MobSF has no `manage.py scan` command. Keep the scanner image immutable,
+  # start its supported service entrypoint, and use the documented REST API.
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [build-debug]
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -283,5 +277,85 @@ jobs:
             echo "::error::No .apk file in apk/ — build-debug job did not produce an APK"
             exit 2
           fi
-          docker run --rm -v "$(pwd)/apk:/apk" opensecurity/mobile-security-framework-mobsf:latest \
-            python manage.py scan /apk/*.apk 2>&1
+
+          # v4.5.2 multi-architecture manifest digest from Docker Hub. Never use
+          # `latest` for a security gate: its command surface changed underneath
+          # this workflow and left the previous scan permanently red.
+          mobsf_image="opensecurity/mobile-security-framework-mobsf@sha256:af94f81f8b13872cdf556327fab58f52d446299fe153be6e1eeec177f31b503b"
+          mobsf_container="mobsf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mobsf_api_key="$(openssl rand -hex 32)"
+          cleanup() {
+            status=$?
+            if [[ $status -ne 0 ]]; then
+              docker logs "$mobsf_container" || true
+            fi
+            docker rm --force "$mobsf_container" >/dev/null 2>&1 || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          docker run --detach \
+            --name "$mobsf_container" \
+            --publish 127.0.0.1:8000:8000 \
+            --env MOBSF_API_KEY="$mobsf_api_key" \
+            "$mobsf_image"
+
+          ready=0
+          for _ in {1..120}; do
+            if curl --fail --silent --show-error \
+              --header "Authorization: $mobsf_api_key" \
+              http://127.0.0.1:8000/api/v1/scans >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ $ready -ne 1 ]]; then
+            echo "::error::MobSF REST API did not become ready within 240 seconds"
+            exit 3
+          fi
+
+          # ABI splits contain the same app bytecode; scan one deterministic
+          # representative instead of spending runner time on three duplicates.
+          apk_path="${apks[0]}"
+          if [[ -f apk/app-arm64-v8a-debug.apk ]]; then
+            apk_path="apk/app-arm64-v8a-debug.apk"
+          fi
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: $mobsf_api_key" \
+            --form "file=@${apk_path};type=application/vnd.android.package-archive" \
+            --output mobsf-upload.json \
+            http://127.0.0.1:8000/api/v1/upload
+
+          scan_hash="$(jq --exit-status --raw-output '.hash' mobsf-upload.json)"
+          scan_type="$(jq --exit-status --raw-output '.scan_type' mobsf-upload.json)"
+          file_name="$(jq --exit-status --raw-output '.file_name' mobsf-upload.json)"
+          curl --fail-with-body --silent --show-error \
+            --max-time 3000 \
+            --header "Authorization: $mobsf_api_key" \
+            --data-urlencode "hash=$scan_hash" \
+            --data-urlencode "scan_type=$scan_type" \
+            --data-urlencode "file_name=$file_name" \
+            --data-urlencode "re_scan=0" \
+            --output mobsf-scan.json \
+            http://127.0.0.1:8000/api/v1/scan
+          jq --exit-status 'type == "object" and (.error? == null)' mobsf-scan.json >/dev/null
+
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: $mobsf_api_key" \
+            --data-urlencode "hash=$scan_hash" \
+            --data-urlencode "scan_type=$scan_type" \
+            --output mobsf-report.json \
+            http://127.0.0.1:8000/api/v1/report_json
+          jq --exit-status 'type == "object" and (.error? == null)' mobsf-report.json >/dev/null
+
+      - name: Upload MobSF Report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mobsf-static-analysis
+          path: |
+            mobsf-upload.json
+            mobsf-scan.json
+            mobsf-report.json
+          if-no-files-found: warn

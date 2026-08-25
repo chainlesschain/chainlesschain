@@ -909,3 +909,25 @@ test("legacy Linux release builds the embedded web panel before packaging", () =
     /name: Install embedded web panel dependencies[\s\S]*?working-directory: packages\/web-panel[\s\S]*?npm ci --legacy-peer-deps[\s\S]*?name: Build embedded web panel[\s\S]*?working-directory: packages\/web-panel[\s\S]*?npm run build/,
   );
 });
+
+test("Android MobSF gate uses an immutable image and the supported REST API", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-build.yml"),
+    "utf8",
+  );
+  const securityScan = workflow.slice(workflow.indexOf("  security-scan:"));
+
+  assert.match(workflow, /- "packages\/agent-protocol\/\*\*"/);
+  assert.doesNotMatch(securityScan, /continue-on-error:\s*true/);
+  assert.doesNotMatch(securityScan, /manage\.py\s+scan/);
+  assert.doesNotMatch(securityScan, /mobile-security-framework-mobsf:latest/);
+  assert.match(
+    securityScan,
+    /mobile-security-framework-mobsf@sha256:[a-f0-9]{64}/,
+  );
+  for (const endpoint of ["upload", "scan", "report_json"]) {
+    assert.match(securityScan, new RegExp(`/api/v1/${endpoint}`));
+  }
+  assert.match(securityScan, /jq --exit-status/);
+  assert.match(securityScan, /name: Upload MobSF Report/);
+});

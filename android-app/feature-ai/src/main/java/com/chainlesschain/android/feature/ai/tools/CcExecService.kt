@@ -5,6 +5,7 @@ import com.chainlesschain.android.feature.localterminal.PtyEnvironment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -119,9 +120,12 @@ class CcExecService @Inject constructor(
 
                 if (exited == null) {
                     destroyProcess(proc)
-                    // Drains will EOF once process dies; await them so we don't leak the
-                    // coroutines on the scope's failure path.
-                    stdoutDrain.await(); stderrDrain.await()
+                    // A subprocess may leave descendants holding inherited pipe file
+                    // descriptors after the direct child dies (for example
+                    // `/bin/sh -c "sleep 30"`). Close our pipe endpoints and cancel the
+                    // drains instead of waiting for an unrelated descendant to exit.
+                    closeProcessPipes(proc)
+                    stdoutDrain.cancelAndJoin(); stderrDrain.cancelAndJoin()
                     CcResult.Error("timeout after ${timeoutMs}ms (process killed)")
                 } else {
                     val stdoutBytes = stdoutDrain.await()
@@ -136,6 +140,7 @@ class CcExecService @Inject constructor(
             }
         } catch (ce: CancellationException) {
             destroyProcess(proc)
+            closeProcessPipes(proc)
             throw ce
         }
     }
@@ -173,6 +178,16 @@ class CcExecService @Inject constructor(
             if (!proc.waitFor(GRACE_KILL_MS, TimeUnit.MILLISECONDS)) proc.destroyForcibly()
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "destroyProcess failed")
+        }
+    }
+
+    private fun closeProcessPipes(proc: Process) {
+        for (stream in listOf(proc.inputStream, proc.errorStream, proc.outputStream)) {
+            try {
+                stream.close()
+            } catch (e: Exception) {
+                Timber.tag(TAG).d(e, "closeProcessPipes failed")
+            }
         }
     }
 
