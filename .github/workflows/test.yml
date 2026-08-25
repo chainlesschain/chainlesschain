@@ -15,7 +15,9 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    # A fail-closed Windows fallback currently needs about 50 minutes including
+    # checkout, install, type-check, and the complete unit roots.
+    timeout-minutes: 75
     # Vitest 4 (vitest-dev/vitest#8297) made birpc respect user-configured
     # timeouts, so the Windows-only 60s onTaskUpdate heartbeat that gated
     # this matrix is gone. continue-on-error stayed on Windows until the
@@ -73,6 +75,10 @@ jobs:
         id: test-selector
         working-directory: ./desktop-app-vue
         shell: bash
+        env:
+          # On push, origin/main already points at HEAD after checkout. Diff the
+          # event's previous branch tip so the selector sees the actual commit.
+          COWORK_PUSH_BASE_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}
         run: |
           echo "🧪 Running Cowork intelligent test selection..."
           node scripts/cowork-ci-test-selector.js

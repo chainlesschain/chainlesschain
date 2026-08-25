@@ -71,6 +71,60 @@ const WALKER_DROPPED_PKGS = [
 const STAGE_STRIP_PATHS = [path.join("node_modules", "chainlesschain")];
 
 const tag = "[asar-surgery]";
+const ASAR_FLUSH_TIMEOUT_MS = 30_000;
+const ASAR_FLUSH_POLL_MS = 25;
+
+function maxPackedPayloadEnd(node) {
+  if (node.files) {
+    return Object.values(node.files).reduce(
+      (maxEnd, child) => Math.max(maxEnd, maxPackedPayloadEnd(child)),
+      0,
+    );
+  }
+
+  if (node.unpacked || typeof node.size !== "number") return 0;
+  return Number(node.offset || 0) + node.size;
+}
+
+/**
+ * @electron/asar resolves createPackageWithOptions() after calling
+ * WriteStream.end(), not after the stream's finish event. Under heavy Windows
+ * CI I/O pressure, an immediate extract can therefore observe the complete
+ * header while the payload still contains unwritten zero bytes. Wait until the
+ * archive reaches the exact size declared by its header before verification or
+ * cleanup of the staging tree.
+ */
+async function waitForArchiveFlush(
+  archivePath,
+  {
+    timeoutMs = ASAR_FLUSH_TIMEOUT_MS,
+    pollIntervalMs = ASAR_FLUSH_POLL_MS,
+  } = {},
+) {
+  const deadline = Date.now() + timeoutMs;
+  let expectedSize = null;
+  let actualSize = null;
+  let lastError = null;
+
+  while (Date.now() <= deadline) {
+    try {
+      const { header, headerSize } = asar.getRawHeader(archivePath);
+      lastError = null;
+      expectedSize = 8 + headerSize + maxPackedPayloadEnd(header);
+      actualSize = fs.statSync(archivePath).size;
+      if (actualSize >= expectedSize) return;
+    } catch (error) {
+      lastError = error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  const detail = lastError
+    ? lastError.message
+    : `expected ${expectedSize} bytes, observed ${actualSize}`;
+  throw new Error(`${tag} timed out waiting for archive flush: ${detail}`);
+}
 
 function isAsarBuild(appOutDir) {
   return fs.existsSync(path.join(appOutDir, "resources", "app.asar"));
@@ -231,6 +285,7 @@ async function runSurgery({ appOutDir, sourceNm }) {
   const repackOpts = {};
   if (unpackDirGlob) repackOpts.unpackDir = unpackDirGlob;
   await asar.createPackageWithOptions(stage, asarPath, repackOpts);
+  await waitForArchiveFlush(asarPath);
 
   // STEP 8: Verification gate — the 4 walker-dropped packages MUST appear
   // at top-level in the new asar header. asar.listPackage uses OS-native
@@ -287,4 +342,5 @@ module.exports = {
   STAGE_STRIP_PATHS,
   collectUnpackedDirsFromDisk,
   buildUnpackDirGlob,
+  waitForArchiveFlush,
 };

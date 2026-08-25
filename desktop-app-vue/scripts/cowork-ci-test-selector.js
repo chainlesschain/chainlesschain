@@ -22,6 +22,7 @@ const CRITICAL_TESTS = [
 ];
 const CI_GATE_INTEGRITY_TEST = "scripts/__tests__/ci-gate-integrity.test.mjs";
 const CI_GATE_INTEGRITY_TRIGGERS = new Set([
+  ".github/workflows/test.yml",
   "desktop-app-vue/scripts/cowork-ci-test-selector.js",
   CI_GATE_INTEGRITY_TEST,
 ]);
@@ -106,13 +107,30 @@ function validateBaseRef(baseRef) {
   return baseRef;
 }
 
+function validateBaseSha(baseSha) {
+  if (
+    typeof baseSha !== "string" ||
+    !/^[0-9a-f]{40}$/i.test(baseSha) ||
+    /^0{40}$/.test(baseSha)
+  ) {
+    throw new SelectionError(
+      "INVALID_BASE_SHA",
+      `Unsafe or invalid base SHA: ${JSON.stringify(baseSha)}`,
+    );
+  }
+
+  return baseSha;
+}
+
 function getChangedFilesCI({
   baseRef = process.env.GITHUB_BASE_REF || "main",
+  baseSha = process.env.COWORK_PUSH_BASE_SHA || "",
   repoRoot = REPO_ROOT,
   spawn = spawnSync,
 } = {}) {
-  const validatedBase = validateBaseRef(baseRef);
-  const comparison = `origin/${validatedBase}...HEAD`;
+  const comparison = baseSha
+    ? `${validateBaseSha(baseSha)}...HEAD`
+    : `origin/${validateBaseRef(baseRef)}...HEAD`;
   const result = spawn(
     "git",
     ["diff", "--name-only", "--diff-filter=ACDMRTUXB", comparison, "--"],
@@ -610,6 +628,15 @@ function parseArgs(argv) {
         throw new SelectionError("INVALID_ARGUMENT", "--base requires a value");
       }
       parsed.baseRef = argv[index];
+    } else if (argument === "--base-sha") {
+      index += 1;
+      if (!argv[index]) {
+        throw new SelectionError(
+          "INVALID_ARGUMENT",
+          "--base-sha requires a value",
+        );
+      }
+      parsed.baseSha = argv[index];
     } else if (argument === "--changed-file") {
       index += 1;
       if (!argv[index]) {
@@ -637,7 +664,11 @@ function main(argv = process.argv.slice(2), dependencies = {}) {
     const changedFiles =
       args.changedFiles.length > 0
         ? args.changedFiles
-        : getChangedFilesCI({ baseRef: args.baseRef, spawn });
+        : getChangedFilesCI({
+            baseRef: args.baseRef,
+            baseSha: args.baseSha,
+            spawn,
+          });
     const selection = createSelection(changedFiles);
     const commands = commandsForSelection(selection);
     const selectedPayload = {
@@ -732,5 +763,6 @@ module.exports = {
   main,
   parseArgs,
   projectRelativePath,
+  validateBaseSha,
   validateBaseRef,
 };

@@ -54,8 +54,14 @@ function runNodeVerdict(source, environment) {
 function extractYamlScript(workflow, anchor) {
   const anchoredWorkflow = workflow.slice(workflow.indexOf(anchor));
   const lines = anchoredWorkflow.split(/\r?\n/);
-  const scriptLineIndex = lines.findIndex((line) => line.trim() === "script: |");
-  assert.notEqual(scriptLineIndex, -1, `Unable to find script block for ${anchor}`);
+  const scriptLineIndex = lines.findIndex(
+    (line) => line.trim() === "script: |",
+  );
+  assert.notEqual(
+    scriptLineIndex,
+    -1,
+    `Unable to find script block for ${anchor}`,
+  );
 
   const scriptIndent = lines[scriptLineIndex].match(/^\s*/)[0].length;
   const contentIndent = scriptIndent + 2;
@@ -122,6 +128,35 @@ test("selector invokes git diff with validated argument arrays", () => {
   assert.throws(
     () => selector.validateBaseRef("main; echo injected"),
     (error) => error.code === "INVALID_BASE_REF",
+  );
+
+  const pushBaseSha = "a".repeat(40);
+  const pushChangedFiles = selector.getChangedFilesCI({
+    baseSha: pushBaseSha,
+    spawn(command, args) {
+      invocation = { command, args };
+      return {
+        status: 0,
+        stdout: ".github/workflows/test.yml\n",
+        stderr: "",
+      };
+    },
+  });
+  assert.deepEqual(pushChangedFiles, [".github/workflows/test.yml"]);
+  assert.deepEqual(invocation.args, [
+    "diff",
+    "--name-only",
+    "--diff-filter=ACDMRTUXB",
+    `${pushBaseSha}...HEAD`,
+    "--",
+  ]);
+  assert.throws(
+    () => selector.validateBaseSha("main; echo injected"),
+    (error) => error.code === "INVALID_BASE_SHA",
+  );
+  assert.throws(
+    () => selector.validateBaseSha("0".repeat(40)),
+    (error) => error.code === "INVALID_BASE_SHA",
   );
 });
 
@@ -680,22 +715,13 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
     /RETRY_TEST_OUTCOME: \$\{\{ steps\.retry-tests\.outcome \}\}/,
   );
   assert.match(workflow, /process\.exit\(1\)/);
-  assert.match(
-    workflow,
-    /const dedupeMarker = `<!-- automated-test-failure:/,
-  );
-  assert.match(
-    workflow,
-    /github\.paginate\(github\.rest\.issues\.listForRepo/,
-  );
+  assert.match(workflow, /const dedupeMarker = `<!-- automated-test-failure:/);
+  assert.match(workflow, /github\.paginate\(github\.rest\.issues\.listForRepo/);
   assert.match(workflow, /labels: 'automated-detection,test-failure'/);
   assert.match(workflow, /state: 'open'/);
   assert.match(workflow, /issues\.createComment\(/);
   assert.match(workflow, /Recorded repeated failure in issue/);
-  assert.doesNotMatch(
-    workflow,
-    /title: `自动测试失败 - \$\{date\}`/,
-  );
+  assert.doesNotMatch(workflow, /title: `自动测试失败 - \$\{date\}`/);
 
   const verdict = extractNodeVerdict(
     workflow,
@@ -798,6 +824,11 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
   assert.match(
     workflow,
     /name: Checkout code[\s\S]*?uses: actions\/checkout@v5[\s\S]*?fetch-depth: 0/,
+  );
+  assert.match(workflow, /timeout-minutes: 75/);
+  assert.match(
+    workflow,
+    /COWORK_PUSH_BASE_SHA: \$\{\{ github\.event_name == 'push' && github\.event\.before \|\| '' \}\}/,
   );
   assert.match(
     workflow,

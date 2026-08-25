@@ -1,14 +1,14 @@
 # ChainlessChain 对照 OpenAI Codex 开源架构的差距与优化建议
 
 > 审计日期：2026-08-24  
-> 最新进展更新：2026-08-25
+> 最新进展更新：2026-08-26
 > ChainlessChain 基线：`3ec94b795e`  
 > 最新 Agent 平台发布验证基线：`40354eb432281c28ed266f2dc6d1458764eb536d`（`v-npm-0-166-0`、`python-agent-sdk-v0.2.0`）
 > 最新 Agent Protocol OIDC 发布验证基线：`882c3c9d7f18ee0cc0c766a2b865f8234f7dc4ed`（`agent-protocol-oidc-v0.1.0`）
 > 最新 Graph 平台协调发布验证基线：`e6a830f340a8dc3214a56b440ebf495624fc12ff`（`v-npm-0-166-1`、`python-agent-sdk-v0.2.1`、`agent-protocol-oidc-v0.1.1`）
 > 最新实时 Team 消息发布验证基线：`f868e142068c33d203601cddd7643fd8ad9c4ffb`（`v-npm-0-166-2`，CLI-only；协议与 SDK 版本不变）
 > 最新未发布 Team/Session 消息验证基线：`20b1bb5563239bd3ec2d4653ba6c57bdbb6c0d9a`（CLI-only；CLI CI 已通过；协议与 SDK 内容及版本不变）
-> 最新未发布结构化审批候选：精确源码提交 `dc855f9adc5027281d113b8b51559497c9a6c534` 已完成同源 `ApprovalDecision` validator、N-1 boolean 兼容和最小范围 turn/session grant，并通过协议、CLI、Strict Sandbox、Python SDK 与桌面 E2E 权威矩阵；后继测试修复提交 `7afc49b93d35eb65b9637cb7a1f7185404dbce01` 的 Windows/macOS/Linux 通用 Unit Tests、Full Suite 与桌面 E2E 也已全绿。protocol `0.1.2`、TS/Python SDK `0.2.2`、CLI `0.166.3` 正在形成新的实际 release commit，仍须以该提交重跑全部发布门禁，不复用旧标签
+> 最新结构化审批正式发布基线：精确提交 `67fdfd25359b7bb6995fed1a89452bcc128daf6d` 已通过协议、CLI、Strict Sandbox、Python SDK、桌面 E2E、通用 CI 与 IDE 权威矩阵，并通过 OIDC 发布 protocol `0.1.2`、TS/Python SDK `0.2.2` 与 CLI `0.166.3`；发布链后继加固提交为 `0830ebea9059bc07d76355ca43c632821ab4faf2`
 > Codex 源码参考基线：`479c8c8924eaafdeb56e86154cd19ff0805839e4`（2026-08-23）  
 > 本机 Codex CLI：`codex-cli 0.149.0`
 
@@ -937,7 +937,15 @@ Graph Eval 不应只统计“多少任务完成”，还应覆盖：
 - `chainlesschain@0.166.3` 已公开，integrity 为 `sha512-Q181wMhEaY5NF3hesAIJqOJk+Irs0igHBETGT4EPzemjNGvmlWmh1s5QIQF1jV/B7iUI88n2zsxWY3vs3ceeKg==`。发布工作流内完成签名 provenance 检查；[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)又证明 registry tarball 与不可变发布制品逐字节一致，并绑定 `67fdfd...` 与 `refs/tags/v-npm-0-166-3`。
 - 原 `E2E Tests` preload 事故和通用 CI WebShell fixture 事故分别由 `dc855f9...` 与 `7afc49b...` 修复；本次发布 SHA 上三平台 E2E、通用 CI fallback/Full Suite 和 IDE 重跑均成功。发布链已闭合，但这些结果不替代真实 provider、长时 soak、跨产品迁移与 authoritative cutover。
 
-## 13. 全量任务完成情况（截至 2026-08-25）
+### 12.1 发布后 CI 加固与 Windows 失败收口（2026-08-26）
+
+发布后加固提交 `0830ebea9059bc07d76355ca43c632821ab4faf2` 已补齐专用 SDK 公网 tarball/provenance 回读、PyPI 缓存传播等待和通用发布入口隔离。该提交的 Docs、Code Quality、协议、CLI CI、CLI Strict Sandbox、E2E、IDE 与 macOS launcher 等门禁成功；后续检查又发现两个不应以重跑掩盖的问题：
+
+- [`Full Test Automation` 运行 `32867101438`](https://github.com/chainlesschain/chainlesschain/actions/runs/32867101438) 仅 Windows job `97864949422` 失败。首次单测在高负载下把并发同步的 `727ms` 墙钟耗时与固定 `<550ms` 阈值比较；诊断重试则在 ASAR 重打包后立即读取到尚未写完、含 NUL 的 `package.json`。当前后继修复改为直接断言活跃数、排队数和峰值并发上限，并依据 ASAR header 声明的完整 payload 长度等待输出落稳后再验证和清理 staging，不再依赖 runner 调度速度。
+- [`CI Tests` 运行 `32867101941`](https://github.com/chainlesschain/chainlesschain/actions/runs/32867101941) 的 Windows Unit job `97864951880` 被取消，并非测试断言失败。push checkout 后 `origin/main` 已等于 `HEAD`，选择器仍比较 `origin/main...HEAD`，错误地产生 `NO_CHANGED_FILES` 并转入完整 fallback；Windows 在 45 分钟 job 上限前仍持续通过测试，最终被平台取消。当前后继修复改用 push 事件的 `before` SHA，严格校验 40 位非零 commit ID，以参数数组执行 diff；完整 fail-closed fallback 上限同步调为 75 分钟，工作流本身也纳入 CI 完整性契约。
+- 本地确定性验证：CI 完整性契约 20/20；同步队列与 ASAR 两文件 25/25，并连续 5 轮共 125 项零失败；ESLint、Prettier 与 `git diff --check` 通过。按仓库规则，以上仍须以本后继提交的干净 GitHub runner 结果作为最终关闭证据；在新 SHA 的 Windows 与跨平台矩阵完成前，不把事故标为权威关闭，也不触发任何新版本发布。
+
+## 13. 全量任务完成情况（截至 2026-08-26）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：9 项已完成、15 项部分完成、2 项待完成。
 

@@ -231,39 +231,36 @@ describe("SyncQueue - 并发同步队列测试", () => {
     });
   });
 
-  describe("性能测试", () => {
-    it("并发执行应该快于串行执行", async () => {
-      const taskDuration = 100; // 每个任务耗时100ms
-
-      const createTask = () => async () => {
-        await new Promise((resolve) => setTimeout(resolve, taskDuration));
-        return "done";
-      };
-
-      // 串行执行6个任务（预期耗时 ~600ms）
-      const serialStart = Date.now();
-      for (let i = 0; i < 6; i++) {
-        await createTask()();
-      }
-      const serialDuration = Date.now() - serialStart;
-
-      // 并发执行6个任务（3并发，预期耗时 ~200ms）
+  describe("并发行为验证", () => {
+    it("应该同时启动任务并遵守并发上限", async () => {
       const concurrentQueue = new SyncQueue(3);
-      const concurrentStart = Date.now();
-      const tasks = Array.from({ length: 6 }, () =>
-        concurrentQueue.enqueue(createTask()),
-      );
-      await Promise.all(tasks);
-      const concurrentDuration = Date.now() - concurrentStart;
+      let releaseFirstWave;
+      const firstWaveGate = new Promise((resolve) => {
+        releaseFirstWave = resolve;
+      });
+      let activeCount = 0;
+      let maxActiveCount = 0;
 
-      // 并发执行应该显著快于串行（至少快2倍）
-      expect(concurrentDuration).toBeLessThan(serialDuration / 2);
-
-      console.log(`串行耗时: ${serialDuration}ms`);
-      console.log(`并发耗时: ${concurrentDuration}ms`);
-      console.log(
-        `性能提升: ${((serialDuration / concurrentDuration) * 100).toFixed(1)}%`,
+      const tasks = Array.from({ length: 6 }, (_, index) =>
+        concurrentQueue.enqueue(async () => {
+          activeCount++;
+          maxActiveCount = Math.max(maxActiveCount, activeCount);
+          await firstWaveGate;
+          activeCount--;
+          return index;
+        }),
       );
+
+      // enqueue 会同步启动第一波任务；无需依赖 CI 主机的墙钟耗时。
+      expect(activeCount).toBe(3);
+      expect(maxActiveCount).toBe(3);
+      expect(concurrentQueue.active).toBe(3);
+      expect(concurrentQueue.length).toBe(3);
+
+      releaseFirstWave();
+      await expect(Promise.all(tasks)).resolves.toEqual([0, 1, 2, 3, 4, 5]);
+      expect(maxActiveCount).toBe(3);
+      expect(concurrentQueue.active).toBe(0);
     });
   });
 });
@@ -401,23 +398,21 @@ describe("DBSyncManager - 并发同步集成测试", () => {
     });
   });
 
-  describe("并发性能验证", () => {
-    it("并发同步应该比串行同步更快", async () => {
-      // 模拟每个表的同步耗时
-      const tableSyncDuration = 100; // 每个表100ms
+  describe("并发上限验证", () => {
+    it("并发同步应该同时处理三个表且不超过上限", async () => {
       const tableCount = 6;
-
-      mockHttpClient.uploadBatch = vi.fn(async () => {
-        await new Promise((resolve) =>
-          setTimeout(resolve, tableSyncDuration / 2),
-        );
-        return { successCount: 1, conflictCount: 0 };
+      let releaseFirstWave;
+      const firstWaveGate = new Promise((resolve) => {
+        releaseFirstWave = resolve;
       });
+      let activeDownloads = 0;
+      let maxActiveDownloads = 0;
 
       mockHttpClient.downloadIncremental = vi.fn(async () => {
-        await new Promise((resolve) =>
-          setTimeout(resolve, tableSyncDuration / 2),
-        );
+        activeDownloads++;
+        maxActiveDownloads = Math.max(maxActiveDownloads, activeDownloads);
+        await firstWaveGate;
+        activeDownloads--;
         return { newRecords: [], updatedRecords: [], deletedIds: [] };
       });
 
@@ -429,20 +424,25 @@ describe("DBSyncManager - 并发同步集成测试", () => {
       // 只同步前6个表
       manager.syncTables = manager.syncTables.slice(0, tableCount);
 
-      const start = Date.now();
-      await manager.syncAfterLogin();
-      const duration = Date.now() - start;
+      const syncPromise = manager.syncAfterLogin();
+      await vi.waitFor(() => {
+        expect(mockHttpClient.downloadIncremental).toHaveBeenCalledTimes(3);
+      });
 
-      // 并发执行（3并发）应该在 (6/3 * 100) = 200ms 左右完成
-      // 串行执行需要 (6 * 100) = 600ms
-      // 给 Windows + CI 调度抖动留余量，仍然显著快于串行 600ms
-      expect(duration).toBeLessThan(550);
+      expect(activeDownloads).toBe(3);
+      expect(maxActiveDownloads).toBe(3);
+      expect(manager.syncQueue.active).toBe(3);
+      expect(manager.syncQueue.length).toBe(3);
 
-      console.log(`并发同步${tableCount}个表耗时: ${duration}ms`);
-      console.log(`预期串行耗时: ${tableCount * tableSyncDuration}ms`);
-      console.log(
-        `性能提升: ${(((tableCount * tableSyncDuration) / duration) * 100).toFixed(1)}%`,
+      releaseFirstWave();
+      const result = await syncPromise;
+
+      expect(result.success).toBe(tableCount);
+      expect(mockHttpClient.downloadIncremental).toHaveBeenCalledTimes(
+        tableCount,
       );
+      expect(maxActiveDownloads).toBe(3);
+      expect(activeDownloads).toBe(0);
     });
   });
 });
