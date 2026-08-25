@@ -90,14 +90,13 @@ jobs:
         working-directory: android-app
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
-      # Test-report generation (no-op aggregation) stays continue-on-error
-      # because failures here are typically gradle-cache transient, not
-      # signals about test status (which the previous step has already
-      # recorded as exit code).
-      - name: Generate Test Report
+      # The root aggregate also executes feature-module tests that are not in
+      # the focused core/app steps above. It is therefore a real test gate, not
+      # report-only work, and must fail the job when any generated JUnit XML
+      # contains a failing test.
+      - name: Run Remaining Module Tests and Generate Report
         if: always()
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew testDebugUnitTest --no-daemon
 
       - name: Upload Test Results

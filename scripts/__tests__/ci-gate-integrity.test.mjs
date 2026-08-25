@@ -931,3 +931,23 @@ test("Android MobSF gate uses an immutable image and the supported REST API", ()
   assert.match(securityScan, /jq --exit-status/);
   assert.match(securityScan, /name: Upload MobSF Report/);
 });
+
+test("Android remaining-module unit tests are a blocking gate", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
+    "utf8",
+  );
+  const aggregateStart = workflow.indexOf(
+    "- name: Run Remaining Module Tests and Generate Report",
+  );
+  const aggregateEnd = workflow.indexOf(
+    "- name: Upload Test Results",
+    aggregateStart,
+  );
+
+  assert.ok(aggregateStart >= 0);
+  assert.ok(aggregateEnd > aggregateStart);
+  const aggregateStep = workflow.slice(aggregateStart, aggregateEnd);
+  assert.match(aggregateStep, /\.\/gradlew testDebugUnitTest --no-daemon/);
+  assert.doesNotMatch(aggregateStep, /continue-on-error:\s*true/);
+});
