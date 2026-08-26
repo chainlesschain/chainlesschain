@@ -1665,6 +1665,9 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   _clearClientOutput(client, { preserveFailure = false } = {}) {
+    if (!Array.isArray(client.outputQueue)) {
+      client.outputQueue = [];
+    }
     client.outputQueue.length = 0;
     client.outputQueuedBytes = 0;
     if (!preserveFailure && !client.outputFailure) {
