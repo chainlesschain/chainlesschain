@@ -1,5 +1,7 @@
 package com.chainlesschain.android.wear.sync
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,14 +19,15 @@ class WearDecisionSenderTest {
 
     @Test
     fun `decision encodes minimal fields when biometricToken null`() {
-        val d = ApprovalDecision(
+        val d = ApprovalDecisionEnvelope.fromDecision(
             requestId = "mp:o-1",
-            approved = true,
+            decision = ApprovalDecision.AcceptOnce,
             decidedAtMs = 1700000000000,
             biometricToken = null,
         )
-        val raw = json.encodeToString(ApprovalDecision.serializer(), d)
+        val raw = json.encodeToString(ApprovalDecisionEnvelope.serializer(), d)
         assertTrue(raw.contains("\"requestId\":\"mp:o-1\""))
+        assertTrue(raw.contains("\"decision\":{\"kind\":\"acceptOnce\"}"))
         assertTrue(raw.contains("\"approved\":true"))
         // encodeDefaults=false 加 biometricToken 是默认 null → 不输出
         assertEquals(false, raw.contains("biometricToken"))
@@ -32,26 +35,27 @@ class WearDecisionSenderTest {
 
     @Test
     fun `decision encodes biometricToken when present`() {
-        val d = ApprovalDecision(
+        val d = ApprovalDecisionEnvelope.fromDecision(
             requestId = "mp:o-2",
-            approved = true,
+            decision = ApprovalDecision.AcceptOnce,
             decidedAtMs = 1700000000000,
             biometricToken = "weak-ok",
         )
-        val raw = json.encodeToString(ApprovalDecision.serializer(), d)
+        val raw = json.encodeToString(ApprovalDecisionEnvelope.serializer(), d)
         assertTrue(raw.contains("\"biometricToken\":\"weak-ok\""))
     }
 
     @Test
     fun `decision can be parsed back symmetrically`() {
-        val d = ApprovalDecision(
+        val d = ApprovalDecisionEnvelope.fromDecision(
             requestId = "sys:42",
-            approved = false,
+            decision = ApprovalDecision.Decline("user-declined"),
             decidedAtMs = 1,
         )
-        val raw = json.encodeToString(ApprovalDecision.serializer(), d)
-        val back = json.decodeFromString(ApprovalDecision.serializer(), raw)
+        val raw = json.encodeToString(ApprovalDecisionEnvelope.serializer(), d)
+        val back = json.decodeFromString(ApprovalDecisionEnvelope.serializer(), raw)
         assertEquals(d, back)
+        assertEquals(ApprovalDecision.Decline("user-declined"), back.resolveDecision())
     }
 
     @Test

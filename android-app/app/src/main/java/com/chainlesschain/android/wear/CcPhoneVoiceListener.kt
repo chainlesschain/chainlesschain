@@ -104,7 +104,7 @@ class CcPhoneVoiceListener : WearableListenerService() {
 
 /**
  * Phone-side wire-format mirror of the wear→phone voice forward payload.
- * Mirrors the [CcPhoneDecisionListener.ApprovalDecisionWire] pattern —
+ * Mirrors the shared approval-envelope pattern —
  * kept local so `:app` does not depend on `:wear-app` (separate APKs).
  *
  * Field names use snake_case to match the wear-side `WearVoiceSender`

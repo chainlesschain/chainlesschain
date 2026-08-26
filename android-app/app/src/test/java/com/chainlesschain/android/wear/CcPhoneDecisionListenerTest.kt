@@ -1,7 +1,9 @@
 package com.chainlesschain.android.wear
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import com.chainlesschain.android.auto.AutoPushBus
 import com.chainlesschain.android.auto.AutoPushEvent
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -18,7 +20,7 @@ import kotlin.test.assertTrue
  *
  * 不实例化 CcPhoneDecisionListener (extends WearableListenerService 需 Android
  * 框架)，只测 static helpers + route 逻辑可以用 AutoPushBus + 反射调到。这里
- * 用最直接路径: 测 companion + ApprovalDecisionWire serialization。
+ * 用最直接路径: 测 companion + shared ApprovalDecisionEnvelope serialization。
  */
 class CcPhoneDecisionListenerTest {
 
@@ -48,27 +50,29 @@ class CcPhoneDecisionListenerTest {
     }
 
     @Test
-    fun `ApprovalDecisionWire roundtrip preserves all fields`() {
+    fun `canonical approval envelope roundtrip preserves all fields`() {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-        val original = ApprovalDecisionWire(
+        val original = ApprovalDecisionEnvelope.fromDecision(
             requestId = "mp:order-42",
-            approved = true,
+            decision = ApprovalDecision.AcceptOnce,
             decidedAtMs = 1_700_000_000_000,
             biometricToken = "weak-ok",
         )
-        val raw = json.encodeToString(ApprovalDecisionWire.serializer(), original)
-        val back = json.decodeFromString(ApprovalDecisionWire.serializer(), raw)
+        val raw = json.encodeToString(ApprovalDecisionEnvelope.serializer(), original)
+        val back = json.decodeFromString(ApprovalDecisionEnvelope.serializer(), raw)
         assertEquals(original, back)
+        assertEquals(ApprovalDecision.AcceptOnce, back.resolveDecision())
     }
 
     @Test
-    fun `ApprovalDecisionWire parses minimal payload (no biometric)`() {
+    fun `N-1 minimal approval payload remains readable as canonical decline`() {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val raw = """{"requestId":"sys:5","approved":false,"decidedAtMs":42}"""
-        val d = json.decodeFromString(ApprovalDecisionWire.serializer(), raw)
+        val d = json.decodeFromString(ApprovalDecisionEnvelope.serializer(), raw)
         assertEquals("sys:5", d.requestId)
         assertEquals(false, d.approved)
         assertEquals(null, d.biometricToken)
+        assertTrue(d.resolveDecision() is ApprovalDecision.Decline)
     }
 
     @Test

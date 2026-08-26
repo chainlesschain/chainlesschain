@@ -1,6 +1,7 @@
 package com.chainlesschain.android.wear.sync
 
 import android.content.Context
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
@@ -10,7 +11,7 @@ import timber.log.Timber
  * v1.2 #20 P0.2 Wear Phase 2 — watch → phone 决策回传。
  *
  * 用户在 [com.chainlesschain.android.wear.WearApprovalActivity] 点同意/拒绝
- * 后调本类 send(decision)。序列化 [ApprovalDecision] 走 message path
+ * 后调本类 send(decision)。序列化 [ApprovalDecisionEnvelope] 走 message path
  * [ApprovalRequest.PATH_DECISION]，发到所有 connected phone node。phone 端的
  * `CcPhoneDecisionListener`（在 :app 模块）反序列化并喂回 AutoPushBus /
  * multisig signer / etc。
@@ -22,8 +23,8 @@ class WearDecisionSender(private val context: Context) {
 
     private val json = Json { encodeDefaults = false }
 
-    suspend fun send(decision: ApprovalDecision): Boolean {
-        val bytes = json.encodeToString(ApprovalDecision.serializer(), decision)
+    suspend fun send(decision: ApprovalDecisionEnvelope): Boolean {
+        val bytes = json.encodeToString(ApprovalDecisionEnvelope.serializer(), decision)
             .toByteArray(Charsets.UTF_8)
         val nodes = runCatching {
             Wearable.getNodeClient(context).connectedNodes.await()

@@ -40,16 +40,3 @@ data class ApprovalRequest(
         const val PATH_DECISION = "/cc/decision"
     }
 }
-
-/**
- * Watch → phone 用户决策回传 payload。phone 端把 approved 喂 multisig.sign /
- * AutoPushBus.userDecision 等。
- */
-@Serializable
-data class ApprovalDecision(
-    val requestId: String,
-    val approved: Boolean,
-    val decidedAtMs: Long,
-    /** 可选 biometric attestation token（Phase 2+） */
-    val biometricToken: String? = null,
-)
