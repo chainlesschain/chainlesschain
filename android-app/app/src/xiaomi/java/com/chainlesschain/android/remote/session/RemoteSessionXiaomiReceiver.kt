@@ -1,6 +1,7 @@
 package com.chainlesschain.android.remote.session
 
 import android.content.Context
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType
 import com.xiaomi.mipush.sdk.MiPushClient
 import com.xiaomi.mipush.sdk.MiPushCommandMessage
 import com.xiaomi.mipush.sdk.MiPushMessage
@@ -41,7 +42,7 @@ class RemoteSessionXiaomiReceiver : PushMessageReceiver() {
         val extra = message?.extra ?: return
         if (extra["type"] != "remote-session.approval-request") return
         val ctx = context ?: return
-        val event = JSONObject().put("type", "approval_request")
+        val event = JSONObject().put("type", AgentStreamEventType.APPROVAL_REQUEST.wireValue)
         extra["sessionId"]?.let { event.put("sessionId", it) }
         extra["clientId"]?.let { event.put("clientId", it) }
         RemoteSessionNotifier(ctx.applicationContext).notifyApproval(event)

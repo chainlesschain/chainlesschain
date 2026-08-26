@@ -1,5 +1,6 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType
 import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import com.chainlesschain.agent.protocol.generated.PermissionGrant
 import com.chainlesschain.agent.protocol.generated.parseApprovalDecision
@@ -133,9 +134,28 @@ class PdhAgentSessionTest {
     }
 
     @Test
+    fun canonical_session_error_yields_error() {
+        assertEquals(
+            PdhAgentEvent.Error("session failed"),
+            PdhAgentSession.parseLine(
+                """{"type":"${AgentStreamEventType.SESSION_ERROR.wireValue}","message":"session failed"}""",
+            ),
+        )
+    }
+
+    @Test
     fun system_and_token_usage_are_ignored() {
-        assertNull(PdhAgentSession.parseLine("""{"type":"system","subtype":"init"}"""))
-        assertNull(PdhAgentSession.parseLine("""{"type":"token_usage","input":10}"""))
+        assertNull(
+            PdhAgentSession.parseLine(
+                """{"type":"${AgentStreamEventType.SYSTEM.wireValue}","subtype":"init"}""",
+            ),
+        )
+        assertNull(
+            PdhAgentSession.parseLine(
+                """{"type":"${AgentStreamEventType.TOKEN_USAGE.wireValue}","input":10}""",
+            ),
+        )
+        assertNull(PdhAgentSession.parseLine("""{"type":"future_event_v2","value":1}"""))
     }
 
     @Test

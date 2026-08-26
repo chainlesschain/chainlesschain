@@ -1,6 +1,7 @@
 package com.chainlesschain.android.remote.session
 
 import android.content.Context
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType
 import com.vivo.push.model.UPSNotificationMessage
 import com.vivo.push.sdk.OpenClientPushMessageReceiver
 import org.json.JSONObject
@@ -36,7 +37,7 @@ class RemoteSessionVivoReceiver : OpenClientPushMessageReceiver() {
     override fun onNotificationMessageClicked(context: Context, message: UPSNotificationMessage) {
         val params = message.params ?: return
         if (params["type"] != "remote-session.approval-request") return
-        val event = JSONObject().put("type", "approval_request")
+        val event = JSONObject().put("type", AgentStreamEventType.APPROVAL_REQUEST.wireValue)
         params["sessionId"]?.let { event.put("sessionId", it) }
         params["clientId"]?.let { event.put("clientId", it) }
         RemoteSessionNotifier(context.applicationContext).notifyApproval(event)

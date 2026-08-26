@@ -1,5 +1,6 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType
 import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import com.chainlesschain.agent.protocol.generated.toWireValue
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
@@ -468,23 +469,25 @@ class PdhAgentSession @Inject constructor(
             } catch (_: Throwable) {
                 return null
             }
-            return when (str(obj, "type")) {
-                "text", "assistant", "assistant_delta" -> {
+            val rawType = str(obj, "type")
+            val eventType = AgentStreamEventType.fromWireValue(rawType)
+            return when {
+                rawType == "text" || rawType == "assistant" || rawType == "assistant_delta" -> {
                     val t = textOf(obj)
                     if (t.isEmpty()) null else PdhAgentEvent.Text(t)
                 }
-                "tool_use" -> PdhAgentEvent.ToolUse(
+                eventType == AgentStreamEventType.TOOL_USE -> PdhAgentEvent.ToolUse(
                     name = str(obj, "name").ifEmpty { str(obj, "tool") },
                     input = obj["input"]?.toString(),
                 )
-                "tool_result" -> {
+                eventType == AgentStreamEventType.TOOL_RESULT -> {
                     val content = toolResultText(obj)
                     // §3.6/§3.5.9: a tool may return status:assist_required as its
                     // result — surface it as a 引导卡, not a plain tool result.
                     parseAssist(content) ?: PdhAgentEvent.ToolResult(content)
                 }
                 // §3.5.9 trust cards (--interactive-approvals + plan mode).
-                "approval_request" -> PdhAgentEvent.ApprovalRequest(
+                eventType == AgentStreamEventType.APPROVAL_REQUEST -> PdhAgentEvent.ApprovalRequest(
                     id = str(obj, "id"),
                     tool = str(obj, "tool"),
                     summary = str(obj, "command")
@@ -493,40 +496,40 @@ class PdhAgentSession @Inject constructor(
                     risk = str(obj, "risk").ifEmpty { null },
                     binding = str(obj, "binding").ifEmpty { null },
                 )
-                "approval_resolved" -> PdhAgentEvent.ApprovalResolved(
+                eventType == AgentStreamEventType.APPROVAL_RESOLVED -> PdhAgentEvent.ApprovalResolved(
                     id = str(obj, "id"),
                     approved = bool(obj, "approved"),
                 )
-                "plan_update" -> PdhAgentEvent.PlanUpdate(
+                eventType == AgentStreamEventType.PLAN_UPDATE -> PdhAgentEvent.PlanUpdate(
                     items = (obj["items"] as? JsonArray)
                         ?.mapNotNull { (it as? JsonObject)?.let { o -> str(o, "title") } }
                         ?.filter { it.isNotEmpty() }
                         ?: emptyList(),
                     phase = str(obj, "state"),
                 )
-                "result" -> PdhAgentEvent.Result(
+                eventType == AgentStreamEventType.RESULT -> PdhAgentEvent.Result(
                     // cc agent puts the final answer in the `result` field
                     // (not `text`); fall back to the streamed text shapes.
                     text = str(obj, "result").ifEmpty { textOf(obj) },
                     isError = bool(obj, "is_error") || str(obj, "subtype").contains("error"),
                 )
-                "error" -> PdhAgentEvent.Error(
+                rawType == "error" || eventType == AgentStreamEventType.SESSION_ERROR -> PdhAgentEvent.Error(
                     str(obj, "message").ifEmpty { str(obj, "error").ifEmpty { "error" } },
                 )
                 // §3.5.13/§3.5.15: cc acks the chat's feedback/resume events so
                 // the UI can confirm the mark / dismiss the 引导卡 authoritatively.
-                "feedback_ack" -> PdhAgentEvent.FeedbackAck(
+                eventType == AgentStreamEventType.FEEDBACK_ACK -> PdhAgentEvent.FeedbackAck(
                     turnId = str(obj, "turn_id").ifEmpty { null },
                     kind = str(obj, "kind"),
                 )
-                "resume_ack" -> PdhAgentEvent.ResumeAck(
+                eventType == AgentStreamEventType.RESUME_ACK -> PdhAgentEvent.ResumeAck(
                     token = str(obj, "token").ifEmpty { null },
                     action = str(obj, "action"),
                 )
                 // §3.5.18: cc reports an egress (cloud-LLM call / egress tool) so
                 // the transparency ledger records what left the device — esp. tool
                 // egress, which the route-based recorder cannot see.
-                "egress" -> PdhAgentEvent.Egress(
+                rawType == "egress" -> PdhAgentEvent.Egress(
                     kind = str(obj, "kind"),
                     channel = str(obj, "channel"),
                     tool = str(obj, "tool").ifEmpty { null },

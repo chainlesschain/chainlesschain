@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.session
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONObject
@@ -29,7 +30,7 @@ class RemoteSessionFirebaseService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
         if (data["type"] != "remote-session.approval-request") return
-        val event = JSONObject().put("type", "approval_request")
+        val event = JSONObject().put("type", AgentStreamEventType.APPROVAL_REQUEST.wireValue)
         data["sessionId"]?.let { event.put("sessionId", it) }
         data["clientId"]?.let { event.put("clientId", it) }
         RemoteSessionNotifier(applicationContext).notifyApproval(event)
