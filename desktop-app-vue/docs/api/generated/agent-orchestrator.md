@@ -203,10 +203,10 @@ getMessageHistory(agentId = null, limit = 50)
 
 ---
 
-## _executeWithTimeout(promise, timeout, timeoutMessage)
+## async _executeWithTimeout(promise, timeout, timeoutMessage, controller)
 
 ```javascript
-_executeWithTimeout(promise, timeout, timeoutMessage)
+async _executeWithTimeout(promise, timeout, timeoutMessage, controller)
 ```
 
 * 带超时的执行

@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 557
+**Total Components**: 558
 
 ---
 
@@ -4121,6 +4121,12 @@
 ### ChatHeader
 
 **File**: `src/renderer/components/chat/ChatHeader.vue`
+
+---
+
+### ArtifactWorkbenchDrawer
+
+**File**: `src/renderer/components/chat/ArtifactWorkbenchDrawer.vue`
 
 ---
 
