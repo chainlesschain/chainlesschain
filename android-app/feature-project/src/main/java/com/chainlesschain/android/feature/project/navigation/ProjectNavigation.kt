@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.project.navigation
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -138,7 +139,9 @@ fun NavGraphBuilder.projectNavGraph(
 
         // 创建项目
         composable(route = ProjectRoute.CREATE) { backStackEntry ->
-            val parentEntry = navController.getBackStackEntry(ProjectRoute.LIST)
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(ProjectRoute.LIST)
+            }
             val viewModel: ProjectViewModel = hiltViewModel(parentEntry)
 
             CreateProjectScreen(

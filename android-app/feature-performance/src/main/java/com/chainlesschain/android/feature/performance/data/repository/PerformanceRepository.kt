@@ -40,7 +40,7 @@ class PerformanceRepository @Inject constructor() {
         val current = _snapshots.value.toMutableList()
         current.add(0, newSnapshot)
         if (current.size > maxSnapshots) {
-            current.removeLast()
+            current.removeAt(current.lastIndex)
         }
         _snapshots.value = current
     }
@@ -122,7 +122,7 @@ class PerformanceRepository @Inject constructor() {
         val current = _alerts.value.toMutableList()
         current.add(0, newAlert)
         if (current.size > maxAlerts) {
-            current.removeLast()
+            current.removeAt(current.lastIndex)
         }
         _alerts.value = current
     }

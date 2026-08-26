@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.navigation
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,11 +96,12 @@ fun NavGraphBuilder.p2pGraph(
             val deviceName = backStackEntry.arguments?.getString("deviceName") ?: ""
 
             val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.PairingViewModel>()
+            val pairingState by viewModel.pairingState.collectAsState()
 
             DevicePairingScreen(
                 deviceId = deviceId,
                 deviceName = deviceName,
-                pairingState = viewModel.pairingState.value,
+                pairingState = pairingState,
                 onCancel = {
                     viewModel.cancelPairing()
                     navController.popBackStack()
@@ -215,11 +217,14 @@ fun NavGraphBuilder.p2pGraph(
         // DID 管理
         composable(route = DID_MANAGEMENT_ROUTE) {
             val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.DIDViewModel>()
+            val didDocument by viewModel.didDocument.collectAsState()
+            val identityKeyFingerprint by viewModel.identityKeyFingerprint.collectAsState()
+            val deviceCount by viewModel.deviceCount.collectAsState()
 
             DIDManagementScreen(
-                didDocument = viewModel.didDocument.value,
-                identityKeyFingerprint = viewModel.identityKeyFingerprint.value,
-                deviceCount = viewModel.deviceCount.value,
+                didDocument = didDocument,
+                identityKeyFingerprint = identityKeyFingerprint,
+                deviceCount = deviceCount,
                 onBack = {
                     navController.popBackStack()
                 },
@@ -241,10 +246,12 @@ fun NavGraphBuilder.p2pGraph(
         // 消息队列
         composable(route = MESSAGE_QUEUE_ROUTE) {
             val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.MessageQueueViewModel>()
+            val outgoingMessages by viewModel.outgoingMessages.collectAsState()
+            val incomingMessages by viewModel.incomingMessages.collectAsState()
 
             MessageQueueScreen(
-                outgoingMessages = viewModel.outgoingMessages.value,
-                incomingMessages = viewModel.incomingMessages.value,
+                outgoingMessages = outgoingMessages,
+                incomingMessages = incomingMessages,
                 onBack = {
                     navController.popBackStack()
                 },

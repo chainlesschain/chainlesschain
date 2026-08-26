@@ -1076,6 +1076,86 @@ test("Android local terminal owns the permission needed for DNS discovery", () =
   );
 });
 
+test("Android lint regressions keep P2P, performance, and project fixes", () => {
+  const androidRoot = path.join(repoRoot, "android-app");
+  const p2pRoot = path.join(androidRoot, "feature-p2p", "src", "main");
+  const p2pManifest = fs.readFileSync(
+    path.join(p2pRoot, "AndroidManifest.xml"),
+    "utf8",
+  );
+  const p2pNavigation = fs.readFileSync(
+    path.join(
+      p2pRoot,
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "p2p",
+      "navigation",
+      "P2PNavigation.kt",
+    ),
+    "utf8",
+  );
+  const performanceRepository = fs.readFileSync(
+    path.join(
+      androidRoot,
+      "feature-performance",
+      "src",
+      "main",
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "performance",
+      "data",
+      "repository",
+      "PerformanceRepository.kt",
+    ),
+    "utf8",
+  );
+  const projectNavigation = fs.readFileSync(
+    path.join(
+      androidRoot,
+      "feature-project",
+      "src",
+      "main",
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "project",
+      "navigation",
+      "ProjectNavigation.kt",
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    p2pManifest,
+    /android:name="android\.permission\.POST_NOTIFICATIONS"/,
+  );
+  assert.match(
+    p2pManifest,
+    /android:name="android\.permission\.FOREGROUND_SERVICE_DATA_SYNC"/,
+  );
+  assert.match(
+    p2pManifest,
+    /android:name="androidx\.work\.impl\.foreground\.SystemForegroundService"/,
+  );
+  assert.match(p2pManifest, /android:foregroundServiceType="dataSync"/);
+  assert.match(p2pNavigation, /\.collectAsState\(\)/);
+  assert.doesNotMatch(p2pNavigation, /viewModel\.[A-Za-z]+\.value/);
+  assert.doesNotMatch(performanceRepository, /\.removeLast\(\)/);
+  assert.match(performanceRepository, /\.removeAt\(current\.lastIndex\)/);
+  assert.match(
+    projectNavigation,
+    /remember\(backStackEntry\)\s*\{\s*navController\.getBackStackEntry\(ProjectRoute\.LIST\)/,
+  );
+});
+
 test("Android coverage produces real reports without masking test failures", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
