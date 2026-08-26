@@ -998,7 +998,7 @@ test("Android lint is a blocking gate", () => {
   assert.ok(lintStart >= 0);
   assert.ok(lintEnd > lintStart);
   const lintStep = workflow.slice(lintStart, lintEnd);
-  assert.match(lintStep, /\.\/gradlew lintDebug --no-daemon/);
+  assert.match(lintStep, /\.\/gradlew lintDebug --continue --no-daemon/);
   assert.doesNotMatch(lintStep, /continue-on-error:\s*true/);
 });
 

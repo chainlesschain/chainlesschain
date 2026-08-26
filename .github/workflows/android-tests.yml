@@ -372,7 +372,9 @@ jobs:
 
       - name: Run Lint
         working-directory: android-app
-        run: ./gradlew lintDebug --no-daemon
+        # Keep independent module lint tasks running so one module does not
+        # hide later errors; Gradle still exits non-zero if any task fails.
+        run: ./gradlew lintDebug --continue --no-daemon
 
       - name: Upload Lint Results
         if: always()
