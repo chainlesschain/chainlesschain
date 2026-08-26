@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.e2ee.protocol
 import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.AESCipher
 import com.chainlesschain.android.core.e2ee.crypto.HKDF
+import com.chainlesschain.android.core.e2ee.crypto.MessageKeys
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import kotlinx.serialization.Serializable
 
@@ -55,7 +56,7 @@ class DoubleRatchet {
         var previousSendChainLength: Int = 0,
 
         /** 跳过的消息密钥（用于处理乱序消息） */
-        val skippedMessageKeys: MutableMap<MessageKeyId, ByteArray> = mutableMapOf()
+        val skippedMessageKeys: MutableMap<MessageKeyId, MessageKeys> = mutableMapOf()
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -231,6 +232,20 @@ class DoubleRatchet {
     ): ByteArray {
         Timber.d("Decrypting message: messageNumber=${message.header.messageNumber}")
 
+        // A delayed message must use the exact key derived before the receive
+        // chain advanced. Consume the cached key only after authentication
+        // succeeds so a tampered replay cannot erase the legitimate key.
+        val skippedKeyId = MessageKeyId(
+            message.header.ratchetKey,
+            message.header.messageNumber
+        )
+        state.skippedMessageKeys[skippedKeyId]?.let { skippedKeys ->
+            val plaintext = AESCipher.decrypt(message.ciphertext, skippedKeys)
+            state.skippedMessageKeys.remove(skippedKeyId)
+            Timber.d("Skipped message decrypted: ${plaintext.size} bytes")
+            return plaintext
+        }
+
         // 检查是否需要执行DH棘轮
         if (!message.header.ratchetKey.contentEquals(state.receiveRatchetKey)) {
             skipMessageKeys(state, message.header.previousChainLength)
@@ -326,7 +341,7 @@ class DoubleRatchet {
             val keyId = MessageKeyId(state.receiveRatchetKey, state.receiveMessageNumber)
 
             // 保存消息密钥（用于后续解密乱序消息）
-            state.skippedMessageKeys[keyId] = messageKeys.cipherKey
+            state.skippedMessageKeys[keyId] = messageKeys
 
             // 更新链密钥
             state.receiveChainKey = HKDF.deriveNextChainKey(state.receiveChainKey)

@@ -378,20 +378,19 @@ class DoubleRatchetTest {
         val msg2 = ratchet.encrypt(aliceState, "Message 2".toByteArray())
         val msg3 = ratchet.encrypt(aliceState, "Message 3".toByteArray())
 
-        // When: Bob receives in order 1, 3 (skips 2)
+        // When: Bob receives in order 3, 1, 2.
+        val plaintext3 = ratchet.decrypt(bobState, msg3)
         val plaintext1 = ratchet.decrypt(bobState, msg1)
-        val plaintext3 = ratchet.decrypt(bobState, msg3) // Skips msg2
 
-        // Then: Messages 1 and 3 decrypt correctly
+        // Then: The newest message and both delayed messages decrypt correctly.
         assertEquals("Message 1", String(plaintext1))
         assertEquals("Message 3", String(plaintext3))
 
-        // Skipped key for message 2 was stored for potential later use
+        // Skipped key for message 2 is stored and consumed exactly once.
         assertTrue(bobState.skippedMessageKeys.size > 0)
-
-        // Note: Current implementation stores skipped keys but doesn't use them for
-        // out-of-order decryption. Attempting to decrypt msg2 now would fail since
-        // the receive chain has already advanced past it.
+        val plaintext2 = ratchet.decrypt(bobState, msg2)
+        assertEquals("Message 2", String(plaintext2))
+        assertTrue(bobState.skippedMessageKeys.isEmpty())
     }
 
     @Test

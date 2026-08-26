@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.e2ee.storage
 
 import android.content.Context
 import timber.log.Timber
+import com.chainlesschain.android.core.e2ee.crypto.MessageKeys
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
 import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
@@ -278,11 +279,13 @@ class SessionStorage(private val context: Context) {
             sendMessageNumber = state.sendMessageNumber,
             receiveMessageNumber = state.receiveMessageNumber,
             previousSendChainLength = state.previousSendChainLength,
-            skippedMessageKeys = state.skippedMessageKeys.map { (header, key) ->
+            skippedMessageKeys = state.skippedMessageKeys.map { (header, keys) ->
                 SkippedMessageKey(
                     publicKey = header.ratchetKey,
                     messageNumber = header.messageNumber,
-                    messageKey = key
+                    messageKey = keys.cipherKey,
+                    macKey = keys.macKey,
+                    iv = keys.iv
                 )
             }
         )
@@ -297,13 +300,27 @@ class SessionStorage(private val context: Context) {
             serialized.sendRatchetPrivateKey
         )
 
-        val skippedMessageKeys = serialized.skippedMessageKeys.associate { skipped ->
+        val skippedMessageKeys = serialized.skippedMessageKeys.mapNotNull { skipped ->
+            val macKey = skipped.macKey
+            val iv = skipped.iv
+            // N-1 sessions stored only the cipher key. Those incomplete keys
+            // cannot authenticate a delayed message and must not be reused.
+            if (skipped.messageKey.size != 32 || macKey?.size != 32 || iv?.size != 16) {
+                return@mapNotNull null
+            }
             val keyId = DoubleRatchet.MessageKeyId(
                 ratchetKey = skipped.publicKey,
                 messageNumber = skipped.messageNumber
             )
-            Pair(keyId, skipped.messageKey)
-        }.toMutableMap()
+            Pair(
+                keyId,
+                MessageKeys(
+                    cipherKey = skipped.messageKey,
+                    macKey = macKey,
+                    iv = iv
+                )
+            )
+        }.toMap().toMutableMap()
 
         return DoubleRatchet.RatchetState(
             rootKey = serialized.rootKey,
@@ -395,7 +412,9 @@ data class SerializedRatchetState(
 data class SkippedMessageKey(
     val publicKey: ByteArray,
     val messageNumber: Int,
-    val messageKey: ByteArray
+    val messageKey: ByteArray,
+    val macKey: ByteArray? = null,
+    val iv: ByteArray? = null
 )
 
 /**
