@@ -1,5 +1,6 @@
 package com.chainlesschain.ide;
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -435,7 +436,7 @@ public final class AgentChatSession {
             // fall through to raw
         }
         Map<String, Object> raw = MiniJson.obj();
-        raw.put("type", "raw");
+        raw.put("type", AgentStreamEventType.RAW.getWireValue());
         raw.put("text", line);
         return raw;
     }

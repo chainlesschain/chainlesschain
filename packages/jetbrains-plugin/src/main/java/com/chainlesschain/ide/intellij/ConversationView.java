@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ContextStatus;
@@ -1498,7 +1499,8 @@ final class ConversationView {
                 CcSettings.getInstance().isLeanContextEnabled());
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
-            if (event != null && "system".equals(event.get("type"))
+            if (event != null
+                    && AgentStreamEventType.SYSTEM.getWireValue().equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {
                 java.util.Set<String> advertised = new java.util.LinkedHashSet<>();
                 Object rawCommands = event.get("slash_commands");
@@ -1546,7 +1548,8 @@ final class ConversationView {
                     SwingUtilities.invokeLater(() -> append(note));
                 }
             }
-            if (event != null && "result".equals(event.get("type"))
+            if (event != null
+                    && AgentStreamEventType.RESULT.getWireValue().equals(event.get("type"))
                     && event.get("turn") instanceof Number) {
                 planReviewTurn = Math.max(
                         planReviewTurn, ((Number) event.get("turn")).intValue());

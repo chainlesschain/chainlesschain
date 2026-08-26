@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,11 +104,19 @@ class ChatEventsTest {
         ChatEvents.TurnState st = new ChatEvents.TurnState();
         Map<String, Object> u = usage(12000L, 300L, 900L);
         Map<String, Object> evt = new LinkedHashMap<>();
-        evt.put("type", "token_usage");
+        evt.put("type", AgentStreamEventType.TOKEN_USAGE.getWireValue());
         evt.put("usage", u);
         Map<String, Object> mapped = ChatEvents.mapAgentEvent(evt, st);
         assertEquals("usage", mapped.get("kind"));
         assertSame(u, mapped.get("usage"));
+    }
+
+    @Test
+    void unknownFutureEventRemainsUiSilent() {
+        Map<String, Object> evt = new LinkedHashMap<>();
+        evt.put("type", "future_event_v2");
+        evt.put("payload", Map.of("preserve", true));
+        assertNull(ChatEvents.mapAgentEvent(evt, new ChatEvents.TurnState()));
     }
 
     @Test

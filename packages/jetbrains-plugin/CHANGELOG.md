@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.100] - Canonical Agent stream event routing (2026-08-26)
+
+- Route the production chat mapper, raw stdout fallback, and conversation
+  lifecycle checks through the schema-generated Kotlin
+  `AgentStreamEventType` instead of duplicating wire discriminator strings.
+- Keep additive future events transport-compatible and UI-silent until a
+  plugin version explicitly implements their projection.
+
 ## [0.4.99] - Canonical Agent stream event inventory (2026-08-26)
 
 - Compile the schema-generated Kotlin `AgentStreamEventType` enum and typed

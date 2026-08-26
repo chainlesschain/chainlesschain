@@ -1,5 +1,6 @@
 package com.chainlesschain.ide;
 
+import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -149,8 +150,12 @@ public final class ChatEvents {
     public static Map<String, Object> mapAgentEvent(
             Map<String, Object> evt, TurnState state) {
         if (evt == null) return null;
-        String type = str(evt, "type", "");
-        if ("system".equals(type)) {
+        AgentStreamEventType type = AgentStreamEventType.Companion.fromWireValue(
+                str(evt, "type", ""));
+        // Additive future events remain accepted by the NDJSON transport but
+        // are UI-silent until this plugin version knows how to project them.
+        if (type == null) return null;
+        if (type == AgentStreamEventType.SYSTEM) {
             if ("init".equals(str(evt, "subtype", ""))) {
                 Map<String, Object> m = ui("init");
                 m.put("model", str(evt, "model", ""));
@@ -160,7 +165,7 @@ public final class ChatEvents {
             }
             return null;
         }
-        if ("stream_event".equals(type)) {
+        if (type == AgentStreamEventType.STREAM_EVENT) {
             Map<String, Object> event = asMap(evt.get("event"));
             Map<String, Object> delta = event == null ? null : asMap(event.get("delta"));
             if (delta != null
@@ -182,13 +187,13 @@ public final class ChatEvents {
             }
             return null;
         }
-        if ("tool_use".equals(type)) {
+        if (type == AgentStreamEventType.TOOL_USE) {
             Map<String, Object> m = ui("tool");
             m.put("tool", str(evt, "tool", "?"));
             m.put("summary", summarizeToolArgs(evt.get("args")));
             return m;
         }
-        if ("tool_result".equals(type)) {
+        if (type == AgentStreamEventType.TOOL_RESULT) {
             Map<String, Object> m = ui("tool_done");
             String tool = str(evt, "tool", "?");
             m.put("tool", tool);
@@ -230,14 +235,14 @@ public final class ChatEvents {
             }
             return m;
         }
-        if ("compaction".equals(type)) {
+        if (type == AgentStreamEventType.COMPACTION) {
             Map<String, Object> stats = asMap(evt.get("stats"));
             Object saved = stats == null ? null : stats.get("saved");
             Map<String, Object> m = ui("info");
             m.put("text", "compacted: saved " + (saved == null ? "?" : saved) + " tokens");
             return m;
         }
-        if ("slash_command_result".equals(type)) {
+        if (type == AgentStreamEventType.SLASH_COMMAND_RESULT) {
             String command = str(evt, "command", "").replaceFirst("^/+", "");
             String fallback = command.isEmpty()
                     ? "session command" : "/" + command;
@@ -262,7 +267,7 @@ public final class ChatEvents {
                     : !text.isEmpty() ? text : fallback + " failed");
             return m;
         }
-        if ("result".equals(type)) {
+        if (type == AgentStreamEventType.RESULT) {
             boolean sawDelta = state.sawDelta;
             state.sawDelta = false; // reset for the next turn
             Map<String, Object> m = ui("turn_end");
@@ -304,7 +309,7 @@ public final class ChatEvents {
             m.put("usage", evt.get("usage"));
             return m;
         }
-        if ("approval_request".equals(type)) {
+        if (type == AgentStreamEventType.APPROVAL_REQUEST) {
             Map<String, Object> m = ui("approval");
             m.put("id", evt.get("id"));
             m.put("tool", evt.get("tool"));
@@ -318,14 +323,14 @@ public final class ChatEvents {
                     ? evt.get("binding") : null);
             return m;
         }
-        if ("approval_resolved".equals(type)) {
+        if (type == AgentStreamEventType.APPROVAL_RESOLVED) {
             Map<String, Object> m = ui("approval_done");
             m.put("id", evt.get("id"));
             m.put("approved", isTrue(evt.get("approved")));
             m.put("via", evt.get("via"));
             return m;
         }
-        if ("question_request".equals(type)) {
+        if (type == AgentStreamEventType.QUESTION_REQUEST) {
             // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
             // BLOCKED on the user. ConversationView pops a dialog and replies
             // {type:"answer",id,answer}.
@@ -350,14 +355,14 @@ public final class ChatEvents {
             }
             return m;
         }
-        if ("question_resolved".equals(type)) {
+        if (type == AgentStreamEventType.QUESTION_RESOLVED) {
             Map<String, Object> m = ui("info");
             m.put("text", "user-answer".equals(String.valueOf(evt.get("via")))
                     ? "✓ answered"
                     : "ask_user_question: no answer — proceeding");
             return m;
         }
-        if ("plan_update".equals(type)) {
+        if (type == AgentStreamEventType.PLAN_UPDATE) {
             Map<String, Object> m = ui("plan");
             m.put("active", isTrue(evt.get("active")));
             m.put("state", evt.get("state"));
@@ -370,7 +375,7 @@ public final class ChatEvents {
             m.put("note", evt.get("note"));
             return m;
         }
-        if ("token_usage".equals(type)) {
+        if (type == AgentStreamEventType.TOKEN_USAGE) {
             // Per-LLM-call usage mid-turn — the panel accumulates these into a
             // live token counter on the status line (turn_end still carries the
             // authoritative turn total). Same contract as the VS Code panel.
@@ -380,14 +385,14 @@ public final class ChatEvents {
             m.put("usage", usage);
             return m;
         }
-        if ("iteration_warning".equals(type)) {
+        if (type == AgentStreamEventType.ITERATION_WARNING) {
             Map<String, Object> m = ui("info");
             Object msg = evt.get("message");
             m.put("text", "⚠ " + (msg instanceof String && !((String) msg).isEmpty()
                     ? msg : "approaching the iteration limit"));
             return m;
         }
-        if ("stream_retry".equals(type)) {
+        if (type == AgentStreamEventType.STREAM_RETRY) {
             // Transient API connection drop mid-stream — without this line the
             // reconnect loop is an unexplained "thinking…" stall.
             Map<String, Object> m = ui("info");
@@ -399,14 +404,14 @@ public final class ChatEvents {
                     + (attempt != null ? " (attempt " + attempt + ")" : ""));
             return m;
         }
-        if ("iteration_budget_exhausted".equals(type)) {
+        if (type == AgentStreamEventType.ITERATION_BUDGET_EXHAUSTED) {
             Map<String, Object> m = ui("info");
             String budget = numText(evt.get("budget"));
             m.put("text", "⏹ turn budget exhausted"
                     + (budget != null ? " (" + budget + " turns)" : ""));
             return m;
         }
-        if ("cost_budget_exhausted".equals(type)) {
+        if (type == AgentStreamEventType.COST_BUDGET_EXHAUSTED) {
             Map<String, Object> m = ui("info");
             String spent = usd(evt.get("spent_usd"));
             String limit = usd(evt.get("limit_usd"));
@@ -415,18 +420,18 @@ public final class ChatEvents {
                             ? " (" + spent + " of " + limit + ")" : ""));
             return m;
         }
-        if ("session_error".equals(type)) {
+        if (type == AgentStreamEventType.SESSION_ERROR) {
             Map<String, Object> m = ui("error");
             Object err = evt.get("error");
             m.put("text", err == null ? "agent session error" : String.valueOf(err));
             return m;
         }
-        if ("raw".equals(type)) {
+        if (type == AgentStreamEventType.RAW) {
             Map<String, Object> m = ui("info");
             m.put("text", str(evt, "text", ""));
             return m;
         }
-        if ("checkpoint".equals(type)) {
+        if (type == AgentStreamEventType.CHECKPOINT) {
             // Auto-snapshot before a mutating tool (git shadow-commit) — a terse
             // trace so /rewind has a visible anchor; VS chat-events.js twin.
             Map<String, Object> m = ui("info");
