@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.ai.data.voice
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
@@ -69,14 +70,7 @@ class WavRecorder @javax.inject.Inject constructor(
         val bufSize = minBuf * 2
 
         val ar = try {
-            // hasPermission() 上面已检查过，此处 RECORD_AUDIO 已确保授予
-            AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                sampleRate,
-                channelConfig,
-                audioFormat,
-                bufSize
-            )
+            createAudioRecord(bufSize)
         } catch (e: SecurityException) {
             Timber.e(e, "WavRecorder.start: AudioRecord SecurityException")
             return false
@@ -112,6 +106,18 @@ class WavRecorder @javax.inject.Inject constructor(
         Timber.i("WavRecorder.start: recording 16kHz mono PCM (bufSize=$bufSize)")
         return true
     }
+
+    // The caller performs an inline framework permission check immediately
+    // before this helper and still handles permission revocation via
+    // SecurityException. Keep the suppression scoped to the guarded API call.
+    @SuppressLint("MissingPermission")
+    private fun createAudioRecord(bufSize: Int): AudioRecord = AudioRecord(
+        MediaRecorder.AudioSource.MIC,
+        sampleRate,
+        channelConfig,
+        audioFormat,
+        bufSize
+    )
 
     /**
      * 停止录音并写入 WAV 文件。返回 null 表示失败 / 空录音。
