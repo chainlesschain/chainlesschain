@@ -243,7 +243,7 @@ class WebSocketSignalingClient @Inject constructor(
         }
     }
 
-    private fun calculateBackoffDelay(attempt: Int): Long {
+    internal fun calculateBackoffDelay(attempt: Int): Long {
         val exponentialDelay = INITIAL_RECONNECT_DELAY_MS * (2.0.pow(attempt - 1)).toLong()
         return min(exponentialDelay, MAX_RECONNECT_DELAY_MS)
     }

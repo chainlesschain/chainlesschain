@@ -90,15 +90,38 @@ jobs:
         working-directory: android-app
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
-      # The root aggregate also executes feature-module tests that are not in
-      # the focused core/app steps above. It is therefore a real test gate, not
-      # report-only work, and must fail the job when any generated JUnit XML
-      # contains a failing test.
+      # Run only modules not covered by the focused core/app steps above. The
+      # former root aggregate repeated every core and app test, then timed out
+      # after 45 minutes in run 32918988966 even though those suites had already
+      # passed. Keep this as a real gate without paying for duplicate work.
       - name: Run Remaining Module Tests and Generate Report
         if: always()
         timeout-minutes: 45
         working-directory: android-app
-        run: ./gradlew testDebugUnitTest --parallel --max-workers=4 --no-daemon
+        run: |
+          ./gradlew \
+            :core-ui:testDebugUnitTest \
+            :core-agent-protocol:testDebugUnitTest \
+            :core-test-helpers:testDebugUnitTest \
+            :data-knowledge:testDebugUnitTest \
+            :data-ai:testDebugUnitTest \
+            :feature-auth:testDebugUnitTest \
+            :feature-knowledge:testDebugUnitTest \
+            :feature-ai:testDebugUnitTest \
+            :feature-p2p:testDebugUnitTest \
+            :feature-project:testDebugUnitTest \
+            :feature-file-browser:testDebugUnitTest \
+            :feature-blockchain:testDebugUnitTest \
+            :feature-enterprise:testDebugUnitTest \
+            :feature-knowledge-graph:testDebugUnitTest \
+            :feature-mcp:testDebugUnitTest \
+            :feature-hooks:testDebugUnitTest \
+            :feature-collaboration:testDebugUnitTest \
+            :feature-performance:testDebugUnitTest \
+            :feature-local-terminal:testDebugUnitTest \
+            :feature-family-guard:testDebugUnitTest \
+            :wear-app:testDebugUnitTest \
+            --parallel --max-workers=4 --no-daemon
 
       - name: Upload Test Results
         if: always()

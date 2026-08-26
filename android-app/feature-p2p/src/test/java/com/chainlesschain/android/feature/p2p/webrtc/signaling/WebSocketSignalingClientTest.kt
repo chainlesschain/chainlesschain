@@ -182,23 +182,14 @@ class WebSocketSignalingClientTest {
     }
 
     @Test
-    fun `reconnection should use exponential backoff`() = runTest {
-        // Given - simulate connection failure
-        every { mockOkHttpClient.newWebSocket(any(), any()) } answers {
-            val listener = secondArg<WebSocketListener>()
-            // Simulate failure
-            listener.onFailure(mockWebSocket, Exception("Connection failed"), null)
-            mockWebSocket
-        }
-
-        client = WebSocketSignalingClient(mockOkHttpClient, json, mockSignalingConfig)
-
-        // When
-        client.connect("did:example:alice", "test-token")
-        advanceUntilIdle()
-
-        // Then - should be in RECONNECTING state
-        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+    fun `reconnection should use exponential backoff`() {
+        assertEquals(1_000L, client.calculateBackoffDelay(1))
+        assertEquals(2_000L, client.calculateBackoffDelay(2))
+        assertEquals(4_000L, client.calculateBackoffDelay(3))
+        assertEquals(8_000L, client.calculateBackoffDelay(4))
+        assertEquals(16_000L, client.calculateBackoffDelay(5))
+        assertEquals(32_000L, client.calculateBackoffDelay(6))
+        assertEquals(32_000L, client.calculateBackoffDelay(10))
     }
 
     /**
