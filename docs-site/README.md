@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-22）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.165.6`，PDH 为 `0.4.59`；Open VSX 为 `0.37.61`，JetBrains Marketplace 为 `0.4.95`。CLI 已公开安全 Remote Control、受治理插件来源/归档、跨会话消息与 MCP 生命周期恢复；源码 `0.37.63` / `0.4.96` 的可扩展 IDE 会话与证据能力仍按后续发行证据分层。
+> 当前文档快照（2026-08-26）：产品版本 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.166.3`，Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`；Open VSX 为 `0.37.68`，JetBrains Marketplace 为 `0.4.98`。IDE Bridge 在 Open VSX 下载量已突破 3 万，VS Code 新版已接入 exact turn/session 授权与无正文 canonical message/handoff 健康投影。
 
 ## 📚 文档内容
 

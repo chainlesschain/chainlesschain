@@ -11,7 +11,7 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-08-25 Current mainline — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
+## 2026-08-26 Current mainline — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
 
 > **Release status:** `chainlesschain@0.166.3` is the current npm `latest` and production recommendation. Immutable tag `v-npm-0-166-3` resolves to exact commit [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d); that SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747), the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998), and [independent registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809). npm reports `latest=0.166.3`.
 >
@@ -21,7 +21,7 @@
 >
 > **Security and UX fixes:** Normal Agent startup remains Docker-optional while explicit strict/workspace-write sandbox policies stay fail-closed. Shell, MCP, IPFS, and Agent Network execution/secret boundaries were tightened; the Web Panel can expose structured MCP tools; and Windows REPL suggestion interactions now preserve IME state.
 >
-> **IDE release status:** Open VSX `0.37.66` and JetBrains Marketplace `0.4.98` are public and verified after publication. Both add a content-free TeamMailbox v3 health projection containing only counts, oldest-message age, dead-letter totals, and bounded status. Subjects/bodies/digests, consumer keys, failure reasons, credentials, and attempt bindings do not enter the IDE. Microsoft VS Code Marketplace and JetBrains author signing remain open.
+> **IDE release and 30k-download milestone:** Open VSX `0.37.68` and JetBrains Marketplace `0.4.98` are public, and ChainlessChain IDE Bridge has passed **30,000 downloads** on Open VSX. The VS Code build consumes CLI `0.166.3`'s canonical approval contract, with one-operation/current-turn/current-session grants bound to the exact capability, scope, and binding. Team Monitor receives bounded content-free message/handoff counters only. Microsoft VS Code Marketplace remains unpublished; stock VS Code users should download the versioned VSIX directly from Open VSX.
 >
 > **Release and source boundary:** `67fdfd2535` includes custody handoffs, the companion `SessionMessageFabric`, and structured approvals in the public packages with a closed exact-SHA release chain. Authoritative Desktop/Cowork/Scheduler adapter cutovers, production relay, signed-native, cross-host, real-provider, and long-soak acceptance remain independently gated and are not implied by npm publication.
 >

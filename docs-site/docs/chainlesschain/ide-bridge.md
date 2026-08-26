@@ -1,10 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本：Design Module 98（机制篇，更新 2026-08-25）| 公开版：VS Code `0.37.66` Open VSX / JetBrains `0.4.98` Marketplace | 源码：`0.37.66` / `0.4.98`**
+> **版本：Design Module 98（机制篇，更新 2026-08-26）| 公开版：VS Code `0.37.68` Open VSX / JetBrains `0.4.98` Marketplace | 源码：`0.37.68` / `0.4.98`**
 >
-> Open VSX `0.37.66` 已公开、累计下载已突破 **2.7 万**；JetBrains Marketplace `0.4.98` 已审核、listed 并公开。双端新增无消息内容的 TeamMailbox v3 健康投影，并延续安全 Remote Control、耐久跨会话消息、会话分组、Focus View、Automation Center 与 Artifact 恢复。微软 VS Code Marketplace 仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
+> Open VSX `0.37.68` 已公开、累计下载已突破 **3 万**；JetBrains Marketplace `0.4.98` 已审核、listed 并公开。VS Code 新版接入 CLI `0.166.3` 的 exact turn/session 结构化审批和无正文 canonical message/handoff 健康投影，并延续安全 Remote Control、会话分组、Focus View、Automation Center 与 Artifact 恢复。微软 VS Code Marketplace 仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
 >
-> 当前分支包元数据与公开市场一致，但市场身份仍绑定发布提交 `65247a2886` 和可下载制品回读；后续源码不能仅凭相同版本字段继承。Agent Platform `0.166.2` 的消息 authority 留在 CLI-owned bridge，IDE 只消费无内容健康投影。
+> Open VSX 市场身份绑定 tag `ide-vscode-v0.37.68` 的发布提交 `3739943468` 与可下载制品回读；后续源码不能仅凭相同版本字段继承。Agent Platform `0.166.3` 的消息、handoff 与授权 authority 仍留在 CLI-owned bridge，IDE 只提交宿主已审阅的决定并消费无内容健康投影。
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -115,6 +115,12 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 面板的 LLM 可经 `chainlesschain.chat.provider` / `chainlesschain.chat.model` 设置单独指定
 (留空 = 跟随 CLI 自身配置)。
 
+### 9. 结构化授权与无正文协作投影（0.37.68）
+
+- **审批选择**：单次批准仍是快速路径；展开后可选「当前回合」、「当前会话」、拒绝或取消。回合/会话授权只复用 CLI 请求中绑定的 exact `capability` / `scope` / `binding`，Webview 不能扩大范围。
+- **兼容性**：CLI 新协议使用 canonical `ApprovalDecision`；旧的 boolean `approval_done` 事件仍保持原形，只有 CLI 发出结构化决定时才增加 `decisionKind`，避免旧宿主被新字段误伤。
+- **Team Monitor**：在 TeamMailbox v3 之外显示 canonical message/follow-up 和 custody handoff 的状态计数。消息正文/摘要、attempt/agent 身份、artifact id 与 authority digest 都不进入 Webview；元数据超限或格式不符时该可选投影失败闭合，不影响任务图。
+
 ## 安装
 
 需要两样东西:**`cc` CLI**(命令行 agent) + **编辑器扩展**(桥接)。
@@ -122,8 +128,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 **1. 安装/升级 `cc` CLI**(实时感知/diff 审批需 ≥ 0.162.39):
 
 ```bash
-npm i -g chainlesschain
-cc --version          # 生产推荐 0.166.2；该桥接路径最低 0.162.39
+npm i -g chainlesschain@0.166.3
+cc --version          # 生产推荐 0.166.3；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -133,7 +139,8 @@ cc ide --help         # 确认有 ide 子命令
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。在用 Open VSX 的编辑器里,扩展面板搜 **ChainlessChain IDE** 一键装。
   > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
-- _（官方 VS Code / 离线）_ 从源码打本地 `.vsix` 装:
+- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.68 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.68/file/chainlesschain.chainlesschain-ide-0.37.68.vsix)，再运行 **Extensions: Install from VSIX...**。
+- _（源码 / 离线）_ 从源码打本地 `.vsix` 安装：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies

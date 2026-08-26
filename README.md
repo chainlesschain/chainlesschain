@@ -11,7 +11,7 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-25 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
+## 2026-08-26 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
 
 > **发布口径**：`chainlesschain@0.166.3` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-3` 精确指向提交 [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)均成功；npm registry 已回读 `latest=0.166.3`。
 >
@@ -21,7 +21,7 @@
 >
 > **安全与体验修复**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合；shell、MCP、IPFS 与 Agent Network 的执行/密钥边界进一步收紧，Web Panel 可展示结构化 MCP 工具；Windows REPL 在建议交互后保留 IME 状态。
 >
-> **IDE 发布状态**：Open VSX `0.37.66` 与 JetBrains Marketplace `0.4.98` 已公开并完成发布后回读。双端新增无消息内容的 TeamMailbox v3 健康投影，只显示计数、最旧消息年龄、dead-letter 数量和有界状态；subject/body/digest、consumer key、失败原因、凭据及 attempt binding 均不进入 IDE。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名仍未配置。
+> **IDE 发布与 3 万下载里程碑**：Open VSX `0.37.68` 与 JetBrains Marketplace `0.4.98` 已公开，ChainlessChain IDE Bridge 在 Open VSX 累计下载突破 **3 万**。VS Code 新版消费 CLI `0.166.3` 的 canonical 审批契约，支持单次/当前回合/当前会话的 exact capability/scope/binding 授权；Team Monitor 只展示无正文 message/handoff 有界计数。微软 VS Code Marketplace 仍未发布，官方 VS Code 请从 Open VSX 直接下载版本化 VSIX。
 >
 > **发布与源码边界**：`67fdfd2535` 已把 custody handoff、companion `SessionMessageFabric` 与结构化审批纳入公开包，并完成精确 SHA 发布闭环；Desktop、Cowork、Scheduler 的 authoritative adapter 切换、生产 relay、签名 native、跨宿主与真实 provider/长时 soak 验收仍按独立证据判断，不能由 npm 发包自动推定完成。
 >
