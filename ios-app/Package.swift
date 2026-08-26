@@ -79,6 +79,8 @@ let package = Package(
         ),
     ],
     dependencies: [
+        // Canonical Agent/App protocol bindings generated from the repository schema.
+        .package(path: "../packages/agent-protocol"),
         // libsignal dep removed — signalapp/libsignal repo root 无 Package.swift
         // (Swift bindings 在 swift/ 子目录)，SPM 无法 resolve。CoreE2EE 源码
         // 实际未 import LibSignalClient，是 dead declaration。
@@ -175,6 +177,7 @@ let package = Package(
             name: "CoreP2P",
             dependencies: [
                 "CoreCommon",
+                .product(name: "CcAgentProtocol", package: "agent-protocol"),
                 // CoreE2EE 暂从 CoreP2P deps 移除 — grep 显示 Modules/CoreP2P/
                 // 实际不 import CoreE2EE，是 stale 声明。CoreE2EE transitively
                 // 拉 CoreSecurity，而 CoreSecurity/CryptoManager.swift 用

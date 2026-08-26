@@ -1,4 +1,8 @@
 import Foundation
+import CcAgentProtocol
+
+/// Canonical schema-generated decision used by the Remote Session wire API.
+public typealias RemoteApprovalDecision = CcAgentProtocol.ApprovalDecision
 
 /// iOS port of the Android `RemoteSessionClient` — WebSocket relay connection +
 /// E2EE pairing handshake. This is the protocol-driven core (transport injected),
@@ -230,11 +234,14 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     @discardableResult
     public func resolveApproval(
         requestId: String,
-        approved: Bool,
+        decision: RemoteApprovalDecision,
         fingerprint: String? = nil,
         binding: String? = nil,
         revision: Any? = nil
     ) -> Bool {
+        guard let (wireDecision, approved) = encodeRemoteApprovalDecision(decision) else {
+            return false
+        }
         let hasDurableTuple = fingerprint != nil || binding != nil || revision != nil
         if hasDurableTuple {
             guard let fingerprint, !fingerprint.isEmpty,
@@ -244,6 +251,7 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             return sendControl([
                 "type": "approval.resolve",
                 "requestId": requestId,
+                "decision": wireDecision,
                 "approved": approved,
                 "fingerprint": fingerprint,
                 "binding": binding,
@@ -253,8 +261,29 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
         return sendControl([
             "type": "approval.resolve",
             "requestId": requestId,
+            "decision": wireDecision,
             "approved": approved,
         ])
+    }
+
+    /// N-1 source compatibility. New callers must construct the generated
+    /// schema type so an unreviewed turn/session grant cannot enter this binary UI.
+    @available(*, deprecated, message: "Use the canonical decision overload")
+    @discardableResult
+    public func resolveApproval(
+        requestId: String,
+        approved: Bool,
+        fingerprint: String? = nil,
+        binding: String? = nil,
+        revision: Any? = nil
+    ) -> Bool {
+        resolveApproval(
+            requestId: requestId,
+            decision: approved ? .acceptOnce : .decline(reason: nil),
+            fingerprint: fingerprint,
+            binding: binding,
+            revision: revision
+        )
     }
 
     @discardableResult
@@ -281,7 +310,7 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             "type": "pair.join",
             "remoteSessionId": pairing.remoteSessionId,
             "token": pairing.pairingToken,
-            "capabilities": ["approval-binding-v1"],
+            "capabilities": ["approval-binding-v1", "approval-decision-v1"],
         ]
         if let pushToken { joinPayload["pushToken"] = pushToken }
         if let pushProvider { joinPayload["pushProvider"] = pushProvider }
@@ -317,6 +346,27 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             return value
         }
         return nil
+    }
+
+    private func encodeRemoteApprovalDecision(
+        _ decision: RemoteApprovalDecision
+    ) -> ([String: Any], Bool)? {
+        let approved: Bool
+        switch decision {
+        case .acceptOnce:
+            approved = true
+        case .decline, .cancel:
+            approved = false
+        case .acceptForTurn, .acceptForSession:
+            // The current binary UI cannot review scoped persistent grants.
+            return nil
+        }
+
+        guard let data = try? JSONEncoder().encode(decision),
+              let value = try? JSONSerialization.jsonObject(with: data),
+              let object = value as? [String: Any]
+        else { return nil }
+        return (object, approved)
     }
 
     // MARK: Inbound
