@@ -14,6 +14,15 @@ import crypto from "node:crypto";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import executionBroker from "./process-execution-broker/index.js";
+import {
+  AGENT_IPC_DEFAULT_LIMITS,
+  boundedTimeout,
+  createBoundedStdinWriter,
+  normalizeAgentIPCLimits,
+  overloadError,
+} from "./agent-ipc-flow-control.js";
+
+export { AGENT_IPC_DEFAULT_LIMITS };
 
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
@@ -34,15 +43,20 @@ export const _deps = {
  */
 
 class AgentIPCBus extends EventEmitter {
-  constructor({ runtimeStore = null } = {}) {
+  constructor({ runtimeStore = null, ...limits } = {}) {
     super();
+    this.limits = normalizeAgentIPCLimits(limits);
     this._runtimeProducer = runtimeStore
       ? new EventRuntimeProducer({ store: runtimeStore, emitter: this })
       : null;
     /** @type {Map<string, {req: InteractionRequest, resolve: Function, reject: Function, timer?: NodeJS.Timeout}>} */
     this._pendingRequests = new Map();
+    /** @type {Map<string, {agentId: string, method: string, resolve: Function, reject: Function, timer: NodeJS.Timeout}>} */
+    this._pendingAgentRequests = new Map();
     /** @type {Map<string, Function>} resolvers by agentId */
     this._agentResolvers = new Map();
+    /** @type {Map<string, {status: Function, close: Function}>} */
+    this._childTransports = new Map();
   }
 
   /**
@@ -51,21 +65,54 @@ class AgentIPCBus extends EventEmitter {
    * @param {(msg: any) => void} sendToWorker
    */
   registerAgent(agentId, sendToWorker) {
+    if (
+      !this._agentResolvers.has(agentId) &&
+      !this._childTransports.has(agentId) &&
+      this._activeAgentCount() >= this.limits.maxAgents
+    ) {
+      throw overloadError(
+        "registered_agents",
+        this.limits.maxAgents,
+        this.limits.overloadRetryAfterMs,
+      );
+    }
     this._agentResolvers.set(agentId, sendToWorker);
     this.emit("agent:registered", { agentId });
   }
 
   unregisterAgent(agentId) {
+    const hadAgent = this._agentResolvers.has(agentId);
+    const hadTransport = this._childTransports.has(agentId);
+    let rejectedPending = false;
     this._agentResolvers.delete(agentId);
     // Reject all pending for this agent
     for (const [reqId, entry] of this._pendingRequests.entries()) {
       if (entry.req.agentId === agentId) {
         if (entry.timer) clearTimeout(entry.timer);
-        entry.reject(new Error(`Agent ${agentId} disconnected while waiting for response`));
+        entry.reject(
+          new Error(`Agent ${agentId} disconnected while waiting for response`),
+        );
         this._pendingRequests.delete(reqId);
+        rejectedPending = true;
       }
     }
-    this.emit("agent:unregistered", { agentId });
+    for (const [requestId, entry] of this._pendingAgentRequests.entries()) {
+      if (entry.agentId === agentId) {
+        clearTimeout(entry.timer);
+        entry.reject(
+          new Error(
+            `Agent ${agentId} disconnected while handling ${entry.method}`,
+          ),
+        );
+        this._pendingAgentRequests.delete(requestId);
+        rejectedPending = true;
+      }
+    }
+    this._childTransports.get(agentId)?.close();
+    this._childTransports.delete(agentId);
+    if (hadAgent || hadTransport || rejectedPending) {
+      this.emit("agent:unregistered", { agentId });
+    }
   }
 
   isAgentRegistered(agentId) {
@@ -78,8 +125,41 @@ class AgentIPCBus extends EventEmitter {
    * @param {Partial<InteractionRequest>} req
    * @returns {Promise<any>}
    */
-  requestInteraction(agentId, req) {
+  requestInteraction(agentId, req = {}) {
+    if (this._pendingRequests.size >= this.limits.maxPendingInteractions) {
+      return Promise.reject(
+        overloadError(
+          "pending_interactions",
+          this.limits.maxPendingInteractions,
+          this.limits.overloadRetryAfterMs,
+        ),
+      );
+    }
+    let pendingForAgent = 0;
+    for (const entry of this._pendingRequests.values()) {
+      if (entry.req.agentId === agentId) pendingForAgent += 1;
+    }
+    if (pendingForAgent >= this.limits.maxPendingInteractionsPerAgent) {
+      return Promise.reject(
+        overloadError(
+          "pending_interactions_per_agent",
+          this.limits.maxPendingInteractionsPerAgent,
+          this.limits.overloadRetryAfterMs,
+        ),
+      );
+    }
+
     const requestId = crypto.randomUUID();
+    let timeoutMs;
+    try {
+      timeoutMs = boundedTimeout(
+        req.timeoutMs,
+        this.limits.interactionTimeoutMs,
+        this.limits.maxInteractionTimeoutMs,
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
     const fullReq = {
       requestId,
       agentId,
@@ -89,7 +169,7 @@ class AgentIPCBus extends EventEmitter {
       prompt: req.prompt,
       choices: req.choices,
       defaultValue: req.defaultValue,
-      timeoutMs: req.timeoutMs || 300000, // 5min default
+      timeoutMs,
       metadata: req.metadata || {},
     };
 
@@ -99,12 +179,21 @@ class AgentIPCBus extends EventEmitter {
         if (fullReq.defaultValue !== undefined) {
           resolve(fullReq.defaultValue);
         } else {
-          reject(new Error(`Interaction request ${requestId} timed out after ${fullReq.timeoutMs}ms`));
+          reject(
+            new Error(
+              `Interaction request ${requestId} timed out after ${fullReq.timeoutMs}ms`,
+            ),
+          );
         }
         this.emit("request:timeout", fullReq);
       }, fullReq.timeoutMs);
 
-      this._pendingRequests.set(requestId, { req: fullReq, resolve, reject, timer });
+      this._pendingRequests.set(requestId, {
+        req: fullReq,
+        resolve,
+        reject,
+        timer,
+      });
       try {
         this._runtimeProducer?.publish(
           { type: "interaction_request", request: fullReq },
@@ -158,12 +247,32 @@ class AgentIPCBus extends EventEmitter {
 
   /** Get pending interaction requests for UI */
   getPendingRequests() {
-    return Array.from(this._pendingRequests.values()).map(e => e.req);
+    return Array.from(this._pendingRequests.values()).map((e) => e.req);
   }
 
   /** Number of pending requests */
   get pendingCount() {
     return this._pendingRequests.size;
+  }
+
+  _activeAgentCount() {
+    return new Set([
+      ...this._agentResolvers.keys(),
+      ...this._childTransports.keys(),
+    ]).size;
+  }
+
+  flowControlStatus() {
+    return {
+      limits: { ...this.limits },
+      activeAgents: this._activeAgentCount(),
+      registeredAgents: this._agentResolvers.size,
+      pendingInteractions: this._pendingRequests.size,
+      pendingAgentRequests: this._pendingAgentRequests.size,
+      childTransports: Array.from(this._childTransports.entries()).map(
+        ([agentId, transport]) => ({ agentId, ...transport.status() }),
+      ),
+    };
   }
 
   /**
@@ -176,7 +285,29 @@ class AgentIPCBus extends EventEmitter {
    */
   async spawnAgentProcess(command, args = [], options = {}) {
     const agentId = options.agentId || crypto.randomUUID();
-    const heartbeatMs = options.heartbeatMs || 30000;
+    if (
+      this._childTransports.has(agentId) ||
+      this._agentResolvers.has(agentId)
+    ) {
+      throw new Error(`Agent ${agentId} is already registered or starting`);
+    }
+    if (this._activeAgentCount() >= this.limits.maxAgents) {
+      throw overloadError(
+        "active_agents",
+        this.limits.maxAgents,
+        this.limits.overloadRetryAfterMs,
+      );
+    }
+    const heartbeatMs = boundedTimeout(
+      options.heartbeatMs,
+      this.limits.agentHeartbeatMs,
+      this.limits.maxAgentHeartbeatMs,
+    );
+    const initTimeoutMs = boundedTimeout(
+      options.initTimeoutMs,
+      this.limits.agentInitTimeoutMs,
+      this.limits.maxAgentInitTimeoutMs,
+    );
 
     return new Promise((resolve, reject) => {
       const spawnOptions = options.spawnOptions || {};
@@ -196,79 +327,224 @@ class AgentIPCBus extends EventEmitter {
         shell: spawnOptions.shell === true,
       });
 
-      let buffer = "";
+      let buffer = Buffer.alloc(0);
       let initialized = false;
       let heartbeatTimer = null;
+      let initTimer = null;
+      let protocolFailed = false;
+      let writer;
+      let stderrDrainListener = null;
+
+      const clearStderrDrainListener = () => {
+        if (!stderrDrainListener) return;
+        process.stderr.off("drain", stderrDrainListener);
+        stderrDrainListener = null;
+      };
+
+      const terminateForProtocolError = (error, details = {}) => {
+        if (protocolFailed) return;
+        protocolFailed = true;
+        buffer = Buffer.alloc(0);
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (initTimer) clearTimeout(initTimer);
+        clearStderrDrainListener();
+        writer?.close();
+        this._childTransports.delete(agentId);
+        if (this.isAgentRegistered(agentId)) this.unregisterAgent(agentId);
+        this.emit("protocol:error", { agentId, error, ...details });
+        if (!initialized) reject(error);
+        child.kill();
+      };
+
+      writer = createBoundedStdinWriter({
+        child,
+        agentId,
+        limits: this.limits,
+        onOverload: (error) => terminateForProtocolError(error),
+      });
+      this._childTransports.set(agentId, writer);
+
+      const handleLine = (lineBuffer) => {
+        if (protocolFailed || lineBuffer.length === 0) return;
+        const line = lineBuffer.toString("utf8");
+        if (!line.trim()) return;
+        try {
+          const msg = JSON.parse(line);
+          this._handleIncomingMessage(agentId, msg, child, writer);
+          if (
+            msg.jsonrpc === "2.0" &&
+            msg.method === "initialize" &&
+            Object.prototype.hasOwnProperty.call(msg, "id") &&
+            !initialized
+          ) {
+            this.registerAgent(agentId, (outMsg) => writer.write(outMsg));
+            writer.write({
+              jsonrpc: "2.0",
+              id: msg.id,
+              result: {
+                protocolVersion: "1.0",
+                agentId,
+                capabilities: { interaction: true, tools: true },
+              },
+            });
+            initialized = true;
+            if (initTimer) clearTimeout(initTimer);
+            heartbeatTimer = setInterval(() => {
+              if (child.exitCode !== null) {
+                clearInterval(heartbeatTimer);
+                return;
+              }
+              try {
+                writer.write({ jsonrpc: "2.0", method: "heartbeat" });
+              } catch {
+                clearInterval(heartbeatTimer);
+              }
+            }, heartbeatMs);
+            resolve({ process: child, agentId });
+          }
+        } catch (error) {
+          if (error?.code === "OVERLOADED") {
+            terminateForProtocolError(error);
+            return;
+          }
+          this.emit("protocol:error", {
+            agentId,
+            error,
+            raw: line.slice(0, 4096),
+          });
+        }
+      };
 
       // Handle stdout: line-delimited JSON-RPC
-      child.stdout.on("data", (chunk) => {
-        buffer += chunk.toString("utf8");
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const msg = JSON.parse(line);
-            this._handleIncomingMessage(agentId, msg, child);
-            if (msg.method === "initialize" && !initialized) {
-              initialized = true;
-              this.registerAgent(agentId, (outMsg) => {
-                child.stdin.write(JSON.stringify(outMsg) + "\n");
-              });
-              // Send initialize response
-              child.stdin.write(JSON.stringify({
-                jsonrpc: "2.0",
-                id: msg.id,
-                result: {
-                  protocolVersion: "1.0",
-                  agentId,
-                  capabilities: { interaction: true, tools: true },
-                },
-              }) + "\n");
-              // Setup heartbeat
-              heartbeatTimer = setInterval(() => {
-                if (child.exitCode !== null) {
-                  clearInterval(heartbeatTimer);
-                  return;
-                }
-                child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "heartbeat" }) + "\n");
-              }, heartbeatMs);
-              resolve({ process: child, agentId });
+      child.stdout.on("data", (rawChunk) => {
+        if (protocolFailed) return;
+        const chunk = Buffer.isBuffer(rawChunk)
+          ? rawChunk
+          : Buffer.from(rawChunk);
+        let offset = 0;
+        while (offset < chunk.length && !protocolFailed) {
+          const newline = chunk.indexOf(0x0a, offset);
+          if (newline === -1) {
+            const tail = chunk.subarray(offset);
+            const nextBytes = buffer.length + tail.length;
+            if (nextBytes > this.limits.maxStdoutLineBytes) {
+              terminateForProtocolError(
+                overloadError(
+                  "stdout_line_bytes",
+                  this.limits.maxStdoutLineBytes,
+                  this.limits.overloadRetryAfterMs,
+                ),
+                { observedBytes: nextBytes },
+              );
+              return;
             }
-          } catch (e) {
-            this.emit("protocol:error", { agentId, error: e, raw: line });
+            buffer =
+              buffer.length === 0
+                ? Buffer.from(tail)
+                : Buffer.concat([buffer, tail], nextBytes);
+            return;
+          }
+
+          const segment = chunk.subarray(offset, newline);
+          const lineBytes = buffer.length + segment.length;
+          if (lineBytes > this.limits.maxStdoutLineBytes) {
+            terminateForProtocolError(
+              overloadError(
+                "stdout_line_bytes",
+                this.limits.maxStdoutLineBytes,
+                this.limits.overloadRetryAfterMs,
+              ),
+              { observedBytes: lineBytes },
+            );
+            return;
+          }
+          const lineBuffer =
+            buffer.length === 0
+              ? segment
+              : Buffer.concat([buffer, segment], lineBytes);
+          buffer = Buffer.alloc(0);
+          handleLine(lineBuffer);
+          offset = newline + 1;
+        }
+      });
+      child.stdout.on("error", (error) => {
+        terminateForProtocolError(error);
+      });
+
+      // Always consume stderr so a verbose child cannot deadlock on a full OS
+      // pipe before its host attaches diagnostics. Each emitted diagnostic is
+      // independently bounded; stderr is never interpreted as protocol data.
+      child.stderr?.on?.("data", (rawChunk) => {
+        const chunk = Buffer.isBuffer(rawChunk)
+          ? rawChunk
+          : Buffer.from(rawChunk);
+        const retainedBytes = Math.min(
+          chunk.length,
+          this.limits.maxStderrChunkBytes,
+        );
+        const data = chunk.subarray(0, retainedBytes).toString("utf8");
+        this.emit("agent:stderr", {
+          agentId,
+          data,
+          observedBytes: chunk.length,
+          truncated: retainedBytes !== chunk.length,
+        });
+        if (options.captureStderr !== false) {
+          const accepted = process.stderr.write(`[agent:${agentId}] ${data}`);
+          if (!accepted && !stderrDrainListener) {
+            child.stderr.pause?.();
+            stderrDrainListener = () => {
+              stderrDrainListener = null;
+              if (child.exitCode === null) child.stderr.resume?.();
+            };
+            process.stderr.once("drain", stderrDrainListener);
           }
         }
       });
-
-      // Handle stderr: pass through to logger
-      child.stderr.on("data", (chunk) => {
-        this.emit("agent:stderr", { agentId, data: chunk.toString("utf8") });
-        if (options.captureStderr !== false) {
-          process.stderr.write(`[agent:${agentId}] ${chunk}`);
-        }
+      child.stderr?.on?.("error", (error) => {
+        this.emit("agent:stderr-error", { agentId, error });
       });
 
       child.on("error", (err) => {
         if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (initTimer) clearTimeout(initTimer);
+        clearStderrDrainListener();
+        protocolFailed = true;
+        buffer = Buffer.alloc(0);
+        if (this.isAgentRegistered(agentId)) {
+          this.unregisterAgent(agentId);
+        } else {
+          writer.close();
+          this._childTransports.delete(agentId);
+        }
         if (!initialized) reject(err);
         this.emit("agent:error", { agentId, error: err });
       });
 
       child.on("exit", (code, signal) => {
         if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (initTimer) clearTimeout(initTimer);
+        clearStderrDrainListener();
+        if (!initialized && !protocolFailed) {
+          protocolFailed = true;
+          reject(
+            new Error(
+              `Agent ${agentId} exited before initialization (code=${code}, signal=${signal ?? "none"})`,
+            ),
+          );
+        }
         this.unregisterAgent(agentId);
         this.emit("agent:exit", { agentId, code, signal });
       });
 
       // Timeout for initialization
-      setTimeout(() => {
+      initTimer = setTimeout(() => {
         if (!initialized) {
-          child.kill();
-          reject(new Error(`Agent ${agentId} initialization timed out`));
+          terminateForProtocolError(
+            new Error(`Agent ${agentId} initialization timed out`),
+          );
         }
-      }, options.initTimeoutMs || 10000);
+      }, initTimeoutMs);
     });
   }
 
@@ -276,48 +552,87 @@ class AgentIPCBus extends EventEmitter {
    * Handle incoming JSON-RPC message from child agent
    * @private
    */
-  _handleIncomingMessage(agentId, msg, child) {
+  _handleIncomingMessage(agentId, msg, child, writer = null) {
     if (!msg.jsonrpc || msg.jsonrpc !== "2.0") {
-      this.emit("protocol:warning", { agentId, msg, reason: "missing jsonrpc version" });
+      this.emit("protocol:warning", {
+        agentId,
+        msg,
+        reason: "missing jsonrpc version",
+      });
       return;
     }
 
+    const hasId = Object.prototype.hasOwnProperty.call(msg, "id");
+    const send = (message) => {
+      if (writer) return writer.write(message);
+      return child.stdin.write(`${JSON.stringify(message)}\n`);
+    };
+    const safeReply = (message) => {
+      try {
+        return send(message);
+      } catch (error) {
+        if (!writer) {
+          this.emit("protocol:error", { agentId, error });
+        }
+        return false;
+      }
+    };
+
     // Handle requests (method + id)
-    if (msg.method && msg.id) {
+    if (msg.method && hasId) {
       if (msg.method === "interaction_request") {
-        this.requestInteraction(agentId, msg.params).then((result) => {
-          child.stdin.write(JSON.stringify({
-            jsonrpc: "2.0",
-            id: msg.id,
-            result,
-          }) + "\n");
-        }).catch((err) => {
-          child.stdin.write(JSON.stringify({
-            jsonrpc: "2.0",
-            id: msg.id,
-            error: { code: -32000, message: err.message },
-          }) + "\n");
-        });
+        this.requestInteraction(agentId, msg.params)
+          .then((result) => {
+            safeReply({ jsonrpc: "2.0", id: msg.id, result });
+          })
+          .catch((err) => {
+            safeReply({
+              jsonrpc: "2.0",
+              id: msg.id,
+              error: {
+                code: err.code === "OVERLOADED" ? -32001 : -32000,
+                message: err.message,
+                ...(err.data ? { data: err.data } : {}),
+              },
+            });
+          });
       } else if (msg.method === "log") {
         this.emit("agent:log", { agentId, params: msg.params });
         // Acknowledge log
-        child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: true }) + "\n");
+        send({ jsonrpc: "2.0", id: msg.id, result: true });
       } else {
         this.emit("agent:request", { agentId, msg });
       }
     }
     // Handle notifications (method, no id)
-    else if (msg.method && !msg.id) {
+    else if (msg.method && !hasId) {
       if (msg.method === "heartbeat") {
         this.emit("agent:heartbeat", { agentId });
       } else if (msg.method === "progress") {
         this.emit("agent:progress", { agentId, params: msg.params });
       } else {
-        this.emit("agent:notification", { agentId, method: msg.method, params: msg.params });
+        this.emit("agent:notification", {
+          agentId,
+          method: msg.method,
+          params: msg.params,
+        });
       }
     }
     // Handle responses (id + result/error)
-    else if (msg.id) {
+    else if (hasId) {
+      const pending = this._pendingAgentRequests.get(msg.id);
+      if (pending && pending.agentId === agentId) {
+        clearTimeout(pending.timer);
+        this._pendingAgentRequests.delete(msg.id);
+        if (msg.error) {
+          const error = new Error(msg.error.message);
+          error.code = msg.error.code;
+          error.data = msg.error.data;
+          pending.reject(error);
+        } else {
+          pending.resolve(msg.result);
+        }
+      }
       this.emit("agent:response", { agentId, msg });
     }
   }
@@ -330,32 +645,79 @@ class AgentIPCBus extends EventEmitter {
    * @param {number} [timeoutMs=30000]
    * @returns {Promise<any>}
    */
-  sendRequest(agentId, method, params = {}, timeoutMs = 30000) {
+  sendRequest(agentId, method, params = {}, timeoutMs = undefined) {
     const sendToWorker = this._agentResolvers.get(agentId);
     if (!sendToWorker) {
       return Promise.reject(new Error(`Agent ${agentId} not registered`));
     }
+    if (
+      this._pendingAgentRequests.size >= this.limits.maxPendingAgentRequests
+    ) {
+      return Promise.reject(
+        overloadError(
+          "pending_agent_requests",
+          this.limits.maxPendingAgentRequests,
+          this.limits.overloadRetryAfterMs,
+        ),
+      );
+    }
+    let pendingForAgent = 0;
+    for (const entry of this._pendingAgentRequests.values()) {
+      if (entry.agentId === agentId) pendingForAgent += 1;
+    }
+    if (pendingForAgent >= this.limits.maxPendingAgentRequestsPerAgent) {
+      return Promise.reject(
+        overloadError(
+          "pending_agent_requests_per_agent",
+          this.limits.maxPendingAgentRequestsPerAgent,
+          this.limits.overloadRetryAfterMs,
+        ),
+      );
+    }
+
+    let effectiveTimeoutMs;
+    try {
+      effectiveTimeoutMs = boundedTimeout(
+        timeoutMs,
+        this.limits.agentRequestTimeoutMs,
+        this.limits.maxAgentRequestTimeoutMs,
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.removeAllListeners(`response:${id}`);
+        this._pendingAgentRequests.delete(id);
         reject(new Error(`Request ${method} to agent ${agentId} timed out`));
-      }, timeoutMs);
+      }, effectiveTimeoutMs);
 
-      const onResponse = (respMsg) => {
-        if (respMsg.msg.id === id) {
-          clearTimeout(timer);
-          this.off("agent:response", onResponse);
-          if (respMsg.msg.error) {
-            reject(new Error(respMsg.msg.error.message));
-          } else {
-            resolve(respMsg.msg.result);
-          }
+      this._pendingAgentRequests.set(id, {
+        agentId,
+        method,
+        resolve,
+        reject,
+        timer,
+      });
+      try {
+        const accepted = sendToWorker({
+          jsonrpc: "2.0",
+          id,
+          method,
+          params,
+        });
+        if (accepted === false) {
+          throw overloadError(
+            "agent_transport",
+            1,
+            this.limits.overloadRetryAfterMs,
+          );
         }
-      };
-      this.on("agent:response", onResponse);
-
-      sendToWorker({ jsonrpc: "2.0", id, method, params });
+      } catch (error) {
+        clearTimeout(timer);
+        this._pendingAgentRequests.delete(id);
+        reject(error);
+      }
     });
   }
 }

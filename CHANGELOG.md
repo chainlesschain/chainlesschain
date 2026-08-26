@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.6: bounded Agent IPC transport
+
+> `chainlesschain` **0.166.5 -> 0.166.6** (release candidate,
+> 2026-08-27).
+
+- **Finite Agent IPC admission**: registered and starting child agents share
+  one cap, while pending interactions and outbound requests have global and
+  per-agent limits with structured `OVERLOADED` retry guidance.
+- **Bounded stdio transport**: stdout JSONL frames, stderr diagnostics, stdin
+  frames, queued messages, and queued bytes are capped. Backpressure drains a
+  finite queue; overflow, early stream failure, and initialization failure
+  terminate and clean up the affected child deterministically.
+- **Lifecycle fencing**: response ownership, disconnect cleanup, late
+  initialization, pre-initialize exit, stream errors, and all request, init,
+  and heartbeat timers are bounded and covered by regression tests.
+- **Release validation**: publication requires this exact candidate to pass
+  Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox`, followed by registry
+  byte, provenance, clean-install, and signature readback.
+
 ### Added - cc CLI 0.166.5 + Agent Protocol 0.1.5 + Agent SDKs 0.2.4: generated stream payload unions
 
 > `chainlesschain` **0.166.4 -> 0.166.5**,

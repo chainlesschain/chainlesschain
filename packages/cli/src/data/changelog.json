@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.6",
+      "cliVersions": ["0.166.5", "0.166.6"],
+      "date": "2026-08-27",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.6: bounded Agent IPC transport",
+          "body": "> `chainlesschain` **0.166.5 -> 0.166.6** (release candidate,\n> 2026-08-27).\n\n- **Finite Agent IPC admission**: registered and starting child agents share\n  one cap, while pending interactions and outbound requests have global and\n  per-agent limits with structured `OVERLOADED` retry guidance.\n- **Bounded stdio transport**: stdout JSONL frames, stderr diagnostics, stdin\n  frames, queued messages, and queued bytes are capped. Backpressure drains a\n  finite queue; overflow, early stream failure, and initialization failure\n  terminate and clean up the affected child deterministically.\n- **Lifecycle fencing**: response ownership, disconnect cleanup, late\n  initialization, pre-initialize exit, stream errors, and all request, init,\n  and heartbeat timers are bounded and covered by regression tests.\n- **Release validation**: publication requires this exact candidate to pass\n  Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox`, followed by registry\n  byte, provenance, clean-install, and signature readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.5",
       "cliVersions": ["0.1.5", "0.2.4", "0.166.4", "0.166.5"],
       "date": "2026-08-26",
