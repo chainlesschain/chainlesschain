@@ -13,8 +13,10 @@ const mockWss = {
 vi.mock("ws", () => ({
   default: {
     Server: vi.fn().mockImplementation(() => mockWss),
+    OPEN: 1,
   },
   Server: vi.fn().mockImplementation(() => mockWss),
+  OPEN: 1,
 }));
 
 // Import after mocks
@@ -184,6 +186,48 @@ describe("BrowserExtensionServer", () => {
       await expect(
         server.sendCommand("client-1", "test.method", {}),
       ).rejects.toThrow("Client not connected");
+    });
+
+    it("should reject commands beyond the pending cap", async () => {
+      server.options.maxPendingCommands = 1;
+      server.clients.set("client-1", {
+        ws: { readyState: 1, bufferedAmount: 0, send: vi.fn() },
+      });
+
+      const first = server.sendCommand("client-1", "first", {});
+      await expect(
+        server.sendCommand("client-1", "second", {}),
+      ).rejects.toMatchObject({ code: "OVERLOADED", retryAfterMs: 100 });
+
+      server.handleMessage(
+        "client-1",
+        Buffer.from(JSON.stringify({ id: 1, result: "ok" })),
+      );
+      await expect(first).resolves.toBe("ok");
+    });
+
+    it("should reject pending commands when a client disconnects", async () => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1, bufferedAmount: 0, send: vi.fn() },
+      });
+      const pending = server.sendCommand("client-1", "long-running", {});
+
+      server.handleDisconnect("client-1");
+
+      await expect(pending).rejects.toThrow("Client disconnected");
+      expect(server.pendingRequests.size).toBe(0);
+    });
+
+    it("should reject a backpressured WebSocket before enqueueing", async () => {
+      server.options.maxBufferedBytes = 1;
+      server.clients.set("client-1", {
+        ws: { readyState: 1, bufferedAmount: 1, send: vi.fn() },
+      });
+
+      await expect(
+        server.sendCommand("client-1", "blocked", {}),
+      ).rejects.toMatchObject({ code: "OVERLOADED" });
+      expect(server.pendingRequests.size).toBe(0);
     });
   });
 });

@@ -1175,12 +1175,15 @@ class UserBrowserHandler extends EventEmitter {
  * CDP 会话类
  */
 class CDPSession {
-  constructor(wsUrl) {
+  constructor(wsUrl, options = {}) {
     this.wsUrl = wsUrl;
     this.ws = null;
     this.requestId = 0;
     this.pendingRequests = new Map();
-    this.timeout = 30000;
+    this.timeout = options.timeout || 30000;
+    this.maxPendingRequests = options.maxPendingRequests || 128;
+    this.maxFrameBytes = options.maxFrameBytes || 1024 * 1024;
+    this.maxBufferedBytes = options.maxBufferedBytes || 4 * 1024 * 1024;
   }
 
   async connect() {
@@ -1208,6 +1211,13 @@ class CDPSession {
   setupMessageHandler() {
     this.ws.on("message", (data) => {
       try {
+        if (Buffer.byteLength(data) > this.maxFrameBytes) {
+          const error = new Error("CDP response exceeds frame limit");
+          error.code = "CC_CDP_FRAME_TOO_LARGE";
+          this._failPending(error);
+          this.ws?.close(1009, "CDP frame too large");
+          return;
+        }
         const message = JSON.parse(data.toString("utf8"));
         if (message.id !== undefined && this.pendingRequests.has(message.id)) {
           const { resolve, reject } = this.pendingRequests.get(message.id);
@@ -1223,14 +1233,37 @@ class CDPSession {
         logger.error("[CDPSession] Message parse error:", error);
       }
     });
+    this.ws.on("close", () => {
+      this._failPending(new Error("CDP Session closed"));
+    });
+    this.ws.on("error", (error) => {
+      this._failPending(error);
+    });
   }
 
   async send(method, params = {}) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("CDP Session not connected");
     }
+    if (this.pendingRequests.size >= this.maxPendingRequests) {
+      const error = new Error("CDP request backlog is full");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
 
     const id = ++this.requestId;
+    const frame = JSON.stringify({ id, method, params });
+    const frameBytes = Buffer.byteLength(frame, "utf8");
+    if (
+      frameBytes > this.maxFrameBytes ||
+      Number(this.ws.bufferedAmount || 0) + frameBytes > this.maxBufferedBytes
+    ) {
+      const error = new Error("CDP output is backpressured");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -1249,17 +1282,35 @@ class CDPSession {
         },
       });
 
-      this.ws.send(JSON.stringify({ id, method, params }));
+      try {
+        this.ws.send(frame, (error) => {
+          if (!error || !this.pendingRequests.has(id)) return;
+          const pending = this.pendingRequests.get(id);
+          this.pendingRequests.delete(id);
+          pending.reject(error);
+        });
+      } catch (error) {
+        this.pendingRequests.delete(id);
+        clearTimeout(timeout);
+        reject(error);
+      }
     });
   }
 
+  _failPending(error) {
+    for (const [requestId, pending] of this.pendingRequests) {
+      this.pendingRequests.delete(requestId);
+      pending.reject(error);
+    }
+  }
+
   close() {
+    this._failPending(new Error("CDP Session closed"));
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
-    this.pendingRequests.clear();
   }
 }
 
-module.exports = { UserBrowserHandler };
+module.exports = { UserBrowserHandler, CDPSession };

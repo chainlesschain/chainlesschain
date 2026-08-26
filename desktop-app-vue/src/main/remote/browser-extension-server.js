@@ -25,7 +25,17 @@ const DEFAULT_CONFIG = {
   maxConnections: 10,
   heartbeatInterval: 30000,
   commandTimeout: 30000,
+  maxPayloadBytes: 1024 * 1024,
+  maxPendingCommands: 128,
+  maxBufferedBytes: 4 * 1024 * 1024,
 };
+
+function overloadedError(message) {
+  const error = new Error(message);
+  error.code = "OVERLOADED";
+  error.retryAfterMs = 100;
+  return error;
+}
 
 /**
  * 浏览器扩展服务器类
@@ -79,6 +89,7 @@ class BrowserExtensionServer extends EventEmitter {
         this.wss = new WebSocket.Server({
           host: this.options.host,
           port: this.options.port,
+          maxPayload: this.options.maxPayloadBytes,
         });
 
         this.wss.on("listening", () => {
@@ -232,6 +243,12 @@ class BrowserExtensionServer extends EventEmitter {
     this.clients.delete(clientId);
     this.stats.currentConnections = this.clients.size;
 
+    for (const [requestId, pending] of this.pendingRequests) {
+      if (pending.clientId !== clientId) continue;
+      this.pendingRequests.delete(requestId);
+      pending.reject(new Error(`Client disconnected: ${clientId}`));
+    }
+
     this.emit("disconnection", { clientId });
   }
 
@@ -243,8 +260,22 @@ class BrowserExtensionServer extends EventEmitter {
     if (!client || client.ws.readyState !== WebSocket.OPEN) {
       throw new Error(`Client not connected: ${clientId}`);
     }
+    if (this.pendingRequests.size >= this.options.maxPendingCommands) {
+      throw overloadedError("Browser extension command backlog is full");
+    }
 
     const id = ++this.requestId;
+    const frame = JSON.stringify({ id, method, params });
+    const frameBytes = Buffer.byteLength(frame, "utf8");
+    if (frameBytes > this.options.maxPayloadBytes) {
+      throw overloadedError("Browser extension command exceeds payload limit");
+    }
+    if (
+      Number(client.ws.bufferedAmount || 0) + frameBytes >
+      this.options.maxBufferedBytes
+    ) {
+      throw overloadedError("Browser extension output is backpressured");
+    }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -262,10 +293,22 @@ class BrowserExtensionServer extends EventEmitter {
           clearTimeout(timeout);
           reject(error);
         },
+        clientId,
       });
 
-      client.ws.send(JSON.stringify({ id, method, params }));
-      this.stats.messagesSent++;
+      try {
+        client.ws.send(frame, (error) => {
+          if (!error || !this.pendingRequests.has(id)) return;
+          const pending = this.pendingRequests.get(id);
+          this.pendingRequests.delete(id);
+          pending.reject(error);
+        });
+        this.stats.messagesSent++;
+      } catch (error) {
+        this.pendingRequests.delete(id);
+        clearTimeout(timeout);
+        reject(error);
+      }
     });
   }
 
@@ -351,6 +394,11 @@ class BrowserExtensionServer extends EventEmitter {
     }
     this.clients.clear();
 
+    for (const [requestId, pending] of this.pendingRequests) {
+      this.pendingRequests.delete(requestId);
+      pending.reject(new Error("Browser extension server stopped"));
+    }
+
     // 关闭服务器
     if (this.wss) {
       return new Promise((resolve) => {
@@ -370,6 +418,7 @@ class BrowserExtensionServer extends EventEmitter {
   getStats() {
     return {
       ...this.stats,
+      pendingCommands: this.pendingRequests.size,
       uptime: this.stats.startTime ? Date.now() - this.stats.startTime : 0,
     };
   }

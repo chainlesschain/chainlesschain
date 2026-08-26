@@ -114,7 +114,7 @@ vi.mock("http", () => ({
 }));
 
 // Import after mocks
-const { UserBrowserHandler } =
+const { UserBrowserHandler, CDPSession } =
   await import("../../../src/main/remote/handlers/user-browser-handler.js");
 
 describe("UserBrowserHandler", () => {
@@ -306,5 +306,43 @@ describe("CDPSession", () => {
     await expect(handler.getTabSession("nonexistent")).rejects.toThrow(
       "Tab not found",
     );
+  });
+
+  it("should reject requests beyond the pending cap", async () => {
+    const session = new CDPSession("ws://localhost", {
+      maxPendingRequests: 1,
+    });
+    session.ws = {
+      readyState: 1,
+      bufferedAmount: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+    };
+
+    const first = session.send("Page.enable");
+    await expect(session.send("Runtime.enable")).rejects.toMatchObject({
+      code: "OVERLOADED",
+      retryAfterMs: 100,
+    });
+
+    session.close();
+    await expect(first).rejects.toThrow("CDP Session closed");
+    expect(session.pendingRequests.size).toBe(0);
+  });
+
+  it("should reject a backpressured CDP socket before enqueueing", async () => {
+    const session = new CDPSession("ws://localhost", {
+      maxBufferedBytes: 1,
+    });
+    session.ws = {
+      readyState: 1,
+      bufferedAmount: 1,
+      send: vi.fn(),
+    };
+
+    await expect(session.send("Page.enable")).rejects.toMatchObject({
+      code: "OVERLOADED",
+    });
+    expect(session.pendingRequests.size).toBe(0);
   });
 });
