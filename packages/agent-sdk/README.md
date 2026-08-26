@@ -62,6 +62,22 @@ Approval callbacks may still return booleans for source compatibility. Direct
 `respondApproval(id, boolean)` calls retain the legacy boolean wire; structured
 decisions echo the request binding and can express scoped turn/session grants.
 
+Product integrations can use `AppServerPilotClient` for the canonical stdio
+App Server without exposing arbitrary JSON-RPC methods:
+
+```ts
+import { AppServerPilotClient } from "@chainlesschain/agent-sdk";
+
+const pilot = new AppServerPilotClient({ cliPath: "cc" });
+const { thread } = await pilot.threadStart({ title: "IDE pilot" });
+await pilot.turnStart({ threadId: thread.id, input: "Run the focused tests" });
+```
+
+The pilot surface contains only the generated `thread/*` and `turn/*`
+capabilities, lazily negotiates the protocol, bounds pending requests, and
+declines server approval requests unless the host supplies a reviewed handler.
+Desktop and VS Code vendor the same compiled CJS client and verify byte parity.
+
 Entries:
 
 - `@chainlesschain/agent-sdk` — Node: `AgentSession` (stream-json spawn

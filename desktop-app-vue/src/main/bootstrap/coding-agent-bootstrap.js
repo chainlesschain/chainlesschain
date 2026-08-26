@@ -4,6 +4,9 @@ const {
 const {
   registerCodingAgentIPCV3,
 } = require("../ai-engine/code-agent/coding-agent-ipc-v3.js");
+const {
+  DesktopAppServerPilot,
+} = require("../ai-engine/code-agent/app-server-pilot.js");
 
 /**
  * Owns the production lifetime of Coding Agent V3.
@@ -28,6 +31,24 @@ function createCodingAgentBootstrap(options = {}) {
       mcpSecurityPolicy: options.mcpSecurityPolicy || null,
       enablePhase5Envelopes: options.enablePhase5Envelopes === true,
     });
+  const appServerPilotEnabled =
+    options.appServerPilotEnabled === true ||
+    (options.appServerPilotEnabled === undefined &&
+      process.env.CHAINLESSCHAIN_CC_APP_SERVER_PILOT === "1");
+  const PilotClass = options.PilotClass || DesktopAppServerPilot;
+  const appServerPilot =
+    options.appServerPilot ||
+    (appServerPilotEnabled
+      ? new PilotClass({
+          cliPath: options.appServerCliPath || service.bridge?.cliEntry,
+          cwd: service.repoRoot,
+          stateDirectory: options.appServerStateDirectory,
+          serverQueueCap: options.appServerQueueCap,
+          maxPendingRequests: options.appServerMaxPendingRequests,
+          requestTimeoutMs: options.appServerRequestTimeoutMs,
+          spawnProcess: options.appServerSpawnProcess,
+        })
+      : null);
 
   let currentWindow = null;
   let removeWindowClosedListener = null;
@@ -60,6 +81,7 @@ function createCodingAgentBootstrap(options = {}) {
     unregisterIPC = registerIPC({
       service,
       ipcMain: options.ipcMain,
+      appServerPilot,
     });
 
     const onClosed = () => {
@@ -96,7 +118,10 @@ function createCodingAgentBootstrap(options = {}) {
       unregisterIPC = null;
     }
 
-    await service.shutdown();
+    await Promise.all([
+      service.shutdown(),
+      appServerPilot?.close?.() || Promise.resolve(),
+    ]);
   }
 
   if (options.mainWindow) {
@@ -105,6 +130,7 @@ function createCodingAgentBootstrap(options = {}) {
 
   return {
     service,
+    appServerPilot,
     attachWindow,
     dispose,
     isDisposed: () => disposed,

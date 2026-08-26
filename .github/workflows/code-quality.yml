@@ -61,7 +61,12 @@ jobs:
 
       - name: Verify canonical Agent stream desktop consumption
         working-directory: ./desktop-app-vue
-        run: npx vitest run src/main/ai-engine/code-agent/__tests__/coding-agent-session-service.test.js
+        run: >-
+          npx vitest run
+          src/main/ai-engine/code-agent/__tests__/coding-agent-session-service.test.js
+          src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js
+          src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js
+          src/main/bootstrap/__tests__/coding-agent-bootstrap.test.js
 
       - name: Upload validation report
         if: failure()

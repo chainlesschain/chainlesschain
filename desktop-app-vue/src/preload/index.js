@@ -298,6 +298,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // 系统配置管理
   codingAgent: {
+    getAppServerPilotStatus: () =>
+      ipcRenderer.invoke("coding-agent:app-server-pilot-status"),
+    startAppServerPilot: () =>
+      ipcRenderer.invoke("coding-agent:app-server-pilot-start"),
+    closeAppServerPilot: () =>
+      ipcRenderer.invoke("coding-agent:app-server-pilot-close"),
+    appServerThreadStart: (payload = {}) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-start", payload),
+    appServerThreadResume: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-resume", payload),
+    appServerThreadFork: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-fork", payload),
+    appServerThreadRead: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-read", payload),
+    appServerThreadList: (payload = {}) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-list", payload),
+    appServerThreadArchive: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-thread-archive", payload),
+    appServerTurnStart: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-turn-start", payload),
+    appServerTurnInterrupt: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-turn-interrupt", payload),
     createSession: (options) =>
       ipcRenderer.invoke("coding-agent:create-session", options),
     startSession: (options) =>

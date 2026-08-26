@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs two legal parallel-tool interleavings through CLI, Desktop, VS Code,
   JetBrains, and Python, requiring the same causal partial order, exact
   approval binding, terminal projection, and declared concurrency classes.
+- **Desktop/IDE App Server pilot**: the SDK now exports a fixed-capability
+  `AppServerPilotClient` with no arbitrary request surface. VS Code exposes an
+  off-by-default command pilot, while Desktop exposes off-by-default fixed IPC
+  methods and routes the shared client through its audited process broker.
+  Both products vendor byte-identical CJS output; approval requests remain
+  fail-closed until a reviewed product UI is attached.
 - **Release validation**: publication requires this exact candidate to pass
   Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
   `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices.

@@ -150,4 +150,41 @@ describe("AppServerClient", () => {
       }),
     );
   });
+
+  it("can start a replacement transport after the server exits", async () => {
+    const children: FakeChild[] = [];
+    const spawn = vi.fn(() => {
+      const child = new FakeChild();
+      children.push(child);
+      return child;
+    });
+    const client = new AppServerClient({
+      spawn: spawn as unknown as AppServerClientOptions["spawn"],
+    });
+
+    const firstStart = client.start();
+    await flush();
+    const firstRequest = JSON.parse(children[0].stdin.written[0]);
+    children[0].stdout.emit(
+      "data",
+      Buffer.from(
+        `${JSON.stringify({ jsonrpc: "2.0", id: firstRequest.id, result: {} })}\n`,
+      ),
+    );
+    await firstStart;
+    children[0].exitCode = 1;
+    children[0].emit("exit", 1);
+
+    const secondStart = client.start();
+    await flush();
+    expect(spawn).toHaveBeenCalledTimes(2);
+    const secondRequest = JSON.parse(children[1].stdin.written[0]);
+    children[1].stdout.emit(
+      "data",
+      Buffer.from(
+        `${JSON.stringify({ jsonrpc: "2.0", id: secondRequest.id, result: {} })}\n`,
+      ),
+    );
+    await expect(secondStart).resolves.toEqual({});
+  });
 });

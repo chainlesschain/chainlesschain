@@ -52,6 +52,7 @@ let _statusBar = null;
 let _treeProvider = null;
 let _preview = null;
 let _remoteControl = null;
+let _appServerPilot = null;
 // Module-level so command callbacks registered in activate() (e.g. the
 // diff.accept/reject keybindings) can reach the facade created per-bridge in
 // startBridge(); reassigned on every restart, nulled on stop.
@@ -80,7 +81,61 @@ function refreshUi() {
   if (_activityLog) refreshDashboard(getState, _activityLog);
 }
 
+function appServerPilotEnabled() {
+  return (
+    vscode.workspace
+      .getConfiguration("chainlesschain.appServer.pilot")
+      .get("enabled", false) === true
+  );
+}
+
+function workspaceCwd() {
+  return vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || process.cwd();
+}
+
+async function ensureAppServerPilot() {
+  if (!appServerPilotEnabled()) {
+    const error = new Error(
+      "CC App Server pilot is disabled; enable " +
+        "chainlesschain.appServer.pilot.enabled first",
+    );
+    error.code = "ERR_APP_SERVER_PILOT_DISABLED";
+    throw error;
+  }
+  if (!_appServerPilot) {
+    const { IdeAppServerPilot } = require("./app-server-pilot.js");
+    const { getResolvedCli } = require("./cli-binary.js");
+    _appServerPilot = new IdeAppServerPilot({
+      getCliPath: getResolvedCli,
+      getCwd: workspaceCwd,
+      clientVersion: require("../package.json").version,
+    });
+    _appServerPilot.on("stderr", (message) =>
+      log(`App Server emitted stderr (${String(message).length} chars)`),
+    );
+    _appServerPilot.on("notification", (notification) =>
+      log(`App Server notification: ${notification?.method || "unknown"}`),
+    );
+    _appServerPilot.on("overloaded", (error) =>
+      log(`App Server overloaded: ${error?.message || error}`),
+    );
+    _appServerPilot.on("error", (error) =>
+      log(`App Server error: ${error?.message || error}`),
+    );
+  }
+  await _appServerPilot.start();
+  return _appServerPilot;
+}
+
 async function stopBridge(context) {
+  if (_appServerPilot) {
+    try {
+      await _appServerPilot.close();
+    } catch {
+      /* best-effort */
+    }
+    _appServerPilot = null;
+  }
   if (_port != null) {
     removeLock(_port);
     _port = null;
@@ -164,6 +219,17 @@ async function startBridge(context) {
         : undefined,
     });
     setResolvedCli(bin);
+    if (appServerPilotEnabled()) {
+      try {
+        const pilot = await ensureAppServerPilot();
+        log(
+          "CC App Server pilot ready " +
+            `(protocol ${pilot.status.capabilities?.protocolVersion || "unknown"})`,
+        );
+      } catch (error) {
+        log(`CC App Server pilot startup failed: ${error?.message || error}`);
+      }
+    }
     const missing = await notifyIfCliMissing(vscode, context);
     if (missing) return; // no usable cc → version checks are moot
     const res = await checkCliVersionAndNotify(vscode, context);
@@ -262,6 +328,112 @@ function activate(context) {
   _output = vscode.window.createOutputChannel("ChainlessChain IDE");
   context.subscriptions.push(_output);
   _activityLog = new ActivityLog({ max: 200 });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "chainlesschain.appServerPilot.status",
+      async () => {
+        if (!appServerPilotEnabled()) {
+          return vscode.window.showInformationMessage(
+            "CC App Server pilot is disabled. Enable " +
+              "chainlesschain.appServer.pilot.enabled to use it.",
+          );
+        }
+        try {
+          const pilot = await ensureAppServerPilot();
+          const status = pilot.status;
+          return vscode.window.showInformationMessage(
+            "CC App Server pilot: " +
+              `${status.running ? "running" : "stopped"}, ` +
+              `protocol ${status.capabilities?.protocolVersion || "unknown"}, ` +
+              `${status.pendingRequestCount} pending request(s)`,
+          );
+        } catch (error) {
+          return vscode.window.showErrorMessage(
+            `CC App Server pilot failed: ${error?.message || error}`,
+          );
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.appServerPilot.startThread",
+      async () => {
+        try {
+          const pilot = await ensureAppServerPilot();
+          const title = await vscode.window.showInputBox({
+            title: "CC App Server Pilot: Start Thread",
+            prompt: "Optional thread title",
+          });
+          if (title === undefined) return undefined;
+          const result = await pilot.threadStart({ title: title || null });
+          const threadId = result?.thread?.id || "unknown";
+          await vscode.window.showInformationMessage(
+            `CC App Server thread started: ${threadId}`,
+          );
+          return result;
+        } catch (error) {
+          return vscode.window.showErrorMessage(
+            `CC App Server thread failed: ${error?.message || error}`,
+          );
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.appServerPilot.startTurn",
+      async () => {
+        try {
+          const pilot = await ensureAppServerPilot();
+          const input = await vscode.window.showInputBox({
+            title: "CC App Server Pilot: Start Turn",
+            prompt: "Instruction for the canonical Agent Kernel",
+            validateInput: (value) =>
+              value.trim() ? null : "A non-empty instruction is required",
+          });
+          if (!input?.trim()) return undefined;
+          if (!pilot.status.lastThreadId) await pilot.threadStart({});
+          const result = await pilot.turnStart({
+            threadId: pilot.status.lastThreadId,
+            input: input.trim(),
+          });
+          const turnId = result?.turn?.id || "unknown";
+          await vscode.window.showInformationMessage(
+            `CC App Server turn started: ${turnId}`,
+          );
+          return result;
+        } catch (error) {
+          return vscode.window.showErrorMessage(
+            `CC App Server turn failed: ${error?.message || error}`,
+          );
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.appServerPilot.interrupt",
+      async () => {
+        try {
+          const pilot = await ensureAppServerPilot();
+          const { lastThreadId, lastTurnId } = pilot.status;
+          if (!lastThreadId || !lastTurnId) {
+            return vscode.window.showWarningMessage(
+              "CC App Server pilot has no active turn to interrupt.",
+            );
+          }
+          const result = await pilot.turnInterrupt({
+            threadId: lastThreadId,
+            turnId: lastTurnId,
+          });
+          await vscode.window.showInformationMessage(
+            `CC App Server turn interrupted: ${lastTurnId}`,
+          );
+          return result;
+        } catch (error) {
+          return vscode.window.showErrorMessage(
+            `CC App Server interrupt failed: ${error?.message || error}`,
+          );
+        }
+      },
+    ),
+  );
 
   // Status bar (always visible; click opens the dashboard).
   _statusBar = createStatusBar(vscode, "chainlesschain.ide.openDashboard");

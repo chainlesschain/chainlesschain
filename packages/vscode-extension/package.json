@@ -70,6 +70,22 @@
         "icon": "$(export)"
       },
       {
+        "command": "chainlesschain.appServerPilot.status",
+        "title": "%cmd.appServerPilot.status.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.startThread",
+        "title": "%cmd.appServerPilot.startThread.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.startTurn",
+        "title": "%cmd.appServerPilot.startTurn.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.interrupt",
+        "title": "%cmd.appServerPilot.interrupt.title%"
+      },
+      {
         "command": "chainlesschain.team.monitor",
         "title": "%cmd.team.monitor.title%",
         "icon": "$(organization)"
@@ -533,6 +549,11 @@
           "default": true,
           "description": "%config.ide.enabled.description%"
         },
+        "chainlesschain.appServer.pilot.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.appServer.pilot.enabled.description%"
+        },
         "chainlesschain.cli.path": {
           "type": "string",
           "default": "cc",
@@ -656,7 +677,7 @@
     "check:agent-sdk": "node scripts/sync-agent-sdk.mjs --check",
     "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
     "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
-    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/automation-center.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/team-monitor-collaboration.test.cjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/app-server-pilot.test.cjs test/automation-center.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/team-monitor-collaboration.test.cjs",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
     "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"

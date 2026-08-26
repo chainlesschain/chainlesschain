@@ -9,6 +9,7 @@ vi.mock("../../../utils/logger.js", () => ({
 }));
 
 const {
+  APP_SERVER_PILOT_IPC_CHANNELS,
   CODING_AGENT_IPC_CHANNELS,
   registerCodingAgentIPCV3,
 } = require("../coding-agent-ipc-v3.js");
@@ -1151,6 +1152,67 @@ describe("registerCodingAgentIPCV3", () => {
       success: false,
       matched: false,
       error: "text is required",
+    });
+  });
+
+  it("fails closed on fixed App Server channels when the pilot is disabled", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-pilot-status"](),
+    ).toMatchObject({ success: true, enabled: false, running: false });
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-thread-list"]({}, {}),
+    ).toMatchObject({
+      success: false,
+      code: "ERR_APP_SERVER_PILOT_DISABLED",
+    });
+    expect(APP_SERVER_PILOT_IPC_CHANNELS).not.toContain(
+      "coding-agent:app-server-request",
+    );
+  });
+
+  it("routes only fixed Thread/Turn operations to an enabled App Server pilot", async () => {
+    const appServerPilot = {
+      status: {
+        enabled: true,
+        running: true,
+        initialized: true,
+        pendingRequestCount: 0,
+      },
+      start: vi.fn().mockResolvedValue({ protocolVersion: 1 }),
+      close: vi.fn().mockResolvedValue(undefined),
+      threadStart: vi.fn().mockResolvedValue({ thread: { id: "thread-1" } }),
+      threadResume: vi.fn(),
+      threadFork: vi.fn(),
+      threadRead: vi.fn(),
+      threadList: vi.fn(),
+      threadArchive: vi.fn(),
+      turnStart: vi.fn().mockResolvedValue({ turn: { id: "turn-1" } }),
+      turnInterrupt: vi.fn(),
+    };
+    registerCodingAgentIPCV3({
+      service,
+      ipcMain: ipcMainMock,
+      appServerPilot,
+    });
+
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-thread-start"](
+        {},
+        { title: "Pilot" },
+      ),
+    ).toEqual({ success: true, result: { thread: { id: "thread-1" } } });
+    expect(appServerPilot.threadStart).toHaveBeenCalledWith({ title: "Pilot" });
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-turn-start"](
+        {},
+        { threadId: "thread-1", input: "hello" },
+      ),
+    ).toEqual({ success: true, result: { turn: { id: "turn-1" } } });
+    expect(appServerPilot.turnStart).toHaveBeenCalledWith({
+      threadId: "thread-1",
+      input: "hello",
     });
   });
 });

@@ -48,3 +48,9 @@ export type {
   AppServerClientOptions,
   AppServerRpcErrorShape,
 } from "./app-server-client.js";
+export { AppServerPilotClient } from "./app-server-pilot-client.js";
+export type {
+  AppServerPilotClientOptions,
+  AppServerPilotStatus,
+  AppServerPilotTransport,
+} from "./app-server-pilot-client.js";

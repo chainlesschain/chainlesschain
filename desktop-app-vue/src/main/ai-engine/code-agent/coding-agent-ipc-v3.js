@@ -8,6 +8,20 @@ const {
   isWorkflowCommand,
 } = require("./workflow-command-runner.js");
 
+const APP_SERVER_PILOT_IPC_CHANNELS = [
+  "coding-agent:app-server-pilot-status",
+  "coding-agent:app-server-pilot-start",
+  "coding-agent:app-server-pilot-close",
+  "coding-agent:app-server-thread-start",
+  "coding-agent:app-server-thread-resume",
+  "coding-agent:app-server-thread-fork",
+  "coding-agent:app-server-thread-read",
+  "coding-agent:app-server-thread-list",
+  "coding-agent:app-server-thread-archive",
+  "coding-agent:app-server-turn-start",
+  "coding-agent:app-server-turn-interrupt",
+];
+
 const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:create-session",
   "coding-agent:start-session",
@@ -68,6 +82,7 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:download-artifact",
   "coding-agent:remove-artifact",
   "coding-agent:adjudicate-artifact-recovery",
+  ...APP_SERVER_PILOT_IPC_CHANNELS,
 ];
 
 function stableDesktopArtifactOperationId(prefix, material) {
@@ -80,6 +95,7 @@ function stableDesktopArtifactOperationId(prefix, material) {
 
 function registerCodingAgentIPCV3(options = {}) {
   const { service, ipcMain: injectedIpcMain } = options;
+  const appServerPilot = options.appServerPilot || null;
 
   if (!service) {
     throw new Error("registerCodingAgentIPCV3 requires a service instance");
@@ -103,6 +119,55 @@ function registerCodingAgentIPCV3(options = {}) {
 
   if (typeof ipc.removeHandler === "function") {
     CODING_AGENT_IPC_CHANNELS.forEach((channel) => ipc.removeHandler(channel));
+  }
+
+  const pilotDisabled = () => ({
+    success: false,
+    code: "ERR_APP_SERVER_PILOT_DISABLED",
+    error:
+      "CC App Server Desktop pilot is disabled; set " +
+      "CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1 before startup",
+  });
+  const runPilot = async (operation, payload) => {
+    if (!appServerPilot) return pilotDisabled();
+    try {
+      const result = await appServerPilot[operation](payload);
+      return { success: true, result };
+    } catch (error) {
+      logger.error(`[CodingAgentIPCV3] App Server ${operation} failed:`, error);
+      return {
+        success: false,
+        code: error?.code || "ERR_APP_SERVER_PILOT",
+        error: error?.message || String(error),
+      };
+    }
+  };
+
+  ipc.handle("coding-agent:app-server-pilot-status", async () => ({
+    success: true,
+    ...(appServerPilot?.status || {
+      enabled: false,
+      surface: "desktop",
+      running: false,
+      initialized: false,
+      pendingRequestCount: 0,
+      capabilities: null,
+      lastError: null,
+    }),
+  }));
+  ipc.handle("coding-agent:app-server-pilot-start", () => runPilot("start"));
+  ipc.handle("coding-agent:app-server-pilot-close", () => runPilot("close"));
+  for (const [channel, operation] of [
+    ["coding-agent:app-server-thread-start", "threadStart"],
+    ["coding-agent:app-server-thread-resume", "threadResume"],
+    ["coding-agent:app-server-thread-fork", "threadFork"],
+    ["coding-agent:app-server-thread-read", "threadRead"],
+    ["coding-agent:app-server-thread-list", "threadList"],
+    ["coding-agent:app-server-thread-archive", "threadArchive"],
+    ["coding-agent:app-server-turn-start", "turnStart"],
+    ["coding-agent:app-server-turn-interrupt", "turnInterrupt"],
+  ]) {
+    ipc.handle(channel, (_event, payload = {}) => runPilot(operation, payload));
   }
 
   const handleCreateSession = async (_event, payload = {}) => {
@@ -976,6 +1041,7 @@ function registerCodingAgentIPCV3(options = {}) {
 }
 
 module.exports = {
+  APP_SERVER_PILOT_IPC_CHANNELS,
   CODING_AGENT_IPC_CHANNELS,
   registerCodingAgentIPCV3,
 };

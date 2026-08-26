@@ -8,6 +8,15 @@ const test = require("node:test");
 
 const extensionRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(extensionRoot, "..", "..");
+const vscodeVendorRoot = path.join(extensionRoot, "src", "vendor", "agent-sdk");
+const desktopVendorRoot = path.join(
+  repoRoot,
+  "desktop-app-vue",
+  "src",
+  "main",
+  "vendor",
+  "agent-sdk",
+);
 const protocol = require("../src/vendor/agent-sdk/generated/app-protocol.js");
 const { buildApprovalResponse } = require("../src/chat/approval-response.js");
 const {
@@ -36,6 +45,32 @@ test("vendored Agent SDK matches the current source and generated output", () =>
       "u",
     ),
   );
+});
+
+test("Desktop and VS Code ship byte-identical shared Agent SDK clients", () => {
+  function collect(root, current = root) {
+    return fs
+      .readdirSync(current, { withFileTypes: true })
+      .flatMap((entry) => {
+        const absolute = path.join(current, entry.name);
+        if (entry.isDirectory()) return collect(root, absolute);
+        const relative = path.relative(root, absolute).replaceAll("\\", "/");
+        return relative === "VENDORED.md" ? [] : [relative];
+      })
+      .sort();
+  }
+
+  const vscodeFiles = collect(vscodeVendorRoot);
+  const desktopFiles = collect(desktopVendorRoot);
+  assert.deepEqual(desktopFiles, vscodeFiles);
+  for (const relative of vscodeFiles) {
+    assert.deepEqual(
+      fs.readFileSync(path.join(desktopVendorRoot, relative)),
+      fs.readFileSync(path.join(vscodeVendorRoot, relative)),
+      relative,
+    );
+  }
+  assert.ok(vscodeFiles.includes("app-server-pilot-client.js"));
 });
 
 test("IDE CI reruns when the SDK or canonical protocol changes", () => {

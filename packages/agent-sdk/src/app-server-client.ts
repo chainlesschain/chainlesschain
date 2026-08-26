@@ -154,6 +154,7 @@ export class AppServerClient extends EventEmitter {
             : `App Server exited unexpectedly (${code ?? "signal"})`,
         ),
       );
+      this.child = null;
       this.emit("exit", code);
     });
 

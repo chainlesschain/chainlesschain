@@ -28,6 +28,7 @@ describe("Coding Agent V3 production bootstrap", () => {
     expect(registerIPC).toHaveBeenCalledWith({
       service,
       ipcMain: undefined,
+      appServerPilot: null,
     });
 
     mainWindow.emit("closed");
@@ -59,5 +60,40 @@ describe("Coding Agent V3 production bootstrap", () => {
     expect(secondUnregister).toHaveBeenCalledTimes(1);
     expect(service.shutdown).toHaveBeenCalledTimes(1);
     expect(controller.isDisposed()).toBe(true);
+  });
+
+  it("constructs and disposes the shared App Server pilot only behind the flag", async () => {
+    const service = {
+      ...createService(),
+      repoRoot: "C:/repo",
+      bridge: { cliEntry: "C:/repo/packages/cli/bin/chainlesschain.js" },
+    };
+    const pilot = {
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const PilotClass = vi.fn(() => pilot);
+    const registerIPC = vi.fn(() => vi.fn());
+    const controller = createCodingAgentBootstrap({
+      service,
+      registerIPC,
+      appServerPilotEnabled: true,
+      PilotClass,
+    });
+
+    controller.attachWindow(new MockWindow());
+    expect(PilotClass).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cliPath: "C:/repo/packages/cli/bin/chainlesschain.js",
+        cwd: "C:/repo",
+      }),
+    );
+    expect(registerIPC).toHaveBeenCalledWith({
+      service,
+      ipcMain: undefined,
+      appServerPilot: pilot,
+    });
+
+    await controller.dispose();
+    expect(pilot.close).toHaveBeenCalledOnce();
   });
 });
