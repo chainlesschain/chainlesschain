@@ -77,10 +77,18 @@ class TeammateTool extends EventEmitter {
       maxAgentsPerTeam: options.maxAgentsPerTeam || 5,
       // 消息保留时间（毫秒）
       messageRetention: options.messageRetention || 24 * 60 * 60 * 1000, // 24小时
+      // 单个团队在内存中保留的最大消息数
+      maxMessagesPerTeam: options.maxMessagesPerTeam || 1000,
       // 是否启用日志
       enableLogging: options.enableLogging !== false,
       ...options,
     };
+    if (
+      !Number.isSafeInteger(this.options.maxMessagesPerTeam) ||
+      this.options.maxMessagesPerTeam <= 0
+    ) {
+      this.options.maxMessagesPerTeam = 1000;
+    }
 
     // 团队映射: teamId -> Team
     this.teams = new Map();
@@ -113,6 +121,18 @@ class TeammateTool extends EventEmitter {
     }
 
     this._log("TeammateTool 已初始化");
+  }
+
+  _appendTeamMessage(teamId, message) {
+    const queue = this.messageQueues.get(teamId);
+    if (!queue) {
+      throw new Error(`团队消息队列不存在: ${teamId}`);
+    }
+    queue.push(message);
+    const limit = this.options.maxMessagesPerTeam;
+    if (queue.length > limit) {
+      queue.splice(0, queue.length - limit);
+    }
   }
 
   /**
@@ -589,13 +609,7 @@ class TeammateTool extends EventEmitter {
     };
 
     // 添加到消息队列
-    const queue = this.messageQueues.get(teamId);
-    queue.push(messageObj);
-
-    // 限制队列长度
-    if (queue.length > 1000) {
-      this.messageQueues.set(teamId, queue.slice(-500));
-    }
+    this._appendTeamMessage(teamId, messageObj);
 
     // 持久化到数据库
     if (this.db) {
@@ -681,8 +695,7 @@ class TeammateTool extends EventEmitter {
     };
 
     // 添加到消息队列
-    const queue = this.messageQueues.get(teamId);
-    queue.push(messageObj);
+    this._appendTeamMessage(teamId, messageObj);
 
     // 持久化到数据库
     if (this.db) {

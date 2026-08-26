@@ -60,6 +60,7 @@ class ExtendedTools9 {
     // 178. MQTT消息代理
     const subscriptions = new Map();
     const messageQueue = [];
+    const MAX_MQTT_MESSAGE_HISTORY = 1000;
 
     functionCaller.registerTool("mqtt_broker", async (params) => {
       const { action, topic, message, qos = 0, retain = false } = params;
@@ -74,6 +75,12 @@ class ExtendedTools9 {
           timestamp: new Date().toISOString(),
         };
         messageQueue.push(msg);
+        if (messageQueue.length > MAX_MQTT_MESSAGE_HISTORY) {
+          messageQueue.splice(
+            0,
+            messageQueue.length - MAX_MQTT_MESSAGE_HISTORY,
+          );
+        }
 
         // 发送给订阅者
         if (subscriptions.has(topic)) {
@@ -98,6 +105,8 @@ class ExtendedTools9 {
           success: true,
           subscriptions: Array.from(subscriptions.keys()),
           messages: messageQueue.slice(-10), // 最近10条消息
+          queued_message_count: messageQueue.length,
+          max_queued_messages: MAX_MQTT_MESSAGE_HISTORY,
         };
       }
 

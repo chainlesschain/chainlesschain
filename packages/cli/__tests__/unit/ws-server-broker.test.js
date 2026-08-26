@@ -60,4 +60,61 @@ describe("WebSocket gateway process Broker", () => {
     });
     expect(server.processes.has("request-1")).toBe(false);
   });
+
+  it("kills a buffered command before retained output exceeds its byte cap", () => {
+    const child = createChild();
+    const server = new ChainlessChainWSServer({
+      spawn: () => child,
+      timeout: 1000,
+      maxCommandOutputBytes: 4,
+    });
+    const sent = [];
+    const ws = {
+      OPEN: 1,
+      readyState: 1,
+      send: (payload) => sent.push(JSON.parse(payload)),
+    };
+
+    server._executeCommand("bounded", ws, "status", false);
+    child.stdout.write(Buffer.from("12345"));
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(sent).toEqual([
+      expect.objectContaining({
+        id: "bounded",
+        type: "error",
+        code: "COMMAND_OUTPUT_TOO_LARGE",
+      }),
+    ]);
+
+    child.emit("close", 0);
+    expect(sent).toHaveLength(1);
+    expect(server.processes.has("bounded")).toBe(false);
+  });
+
+  it("bounds stderr retained before the first streamed stdout frame", () => {
+    const child = createChild();
+    const server = new ChainlessChainWSServer({
+      spawn: () => child,
+      timeout: 1000,
+      maxCommandOutputBytes: 4,
+    });
+    const sent = [];
+    const ws = {
+      OPEN: 1,
+      readyState: 1,
+      send: (payload) => sent.push(JSON.parse(payload)),
+    };
+
+    server._executeCommand("stream-bounded", ws, "status", true);
+    child.stderr.write(Buffer.from("12345"));
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(sent).toEqual([
+      expect.objectContaining({
+        id: "stream-bounded",
+        code: "COMMAND_OUTPUT_TOO_LARGE",
+      }),
+    ]);
+    child.emit("close", 1);
+    expect(sent).toHaveLength(1);
+  });
 });

@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/app-server/**"
+      - "packages/cli/src/gateways/ws/**"
       - "packages/cli/src/commands/serve.js"
       - "packages/cli/scripts/app-server-overload-soak.mjs"
       - "packages/cli/__tests__/unit/app-server*.test.js"
+      - "packages/cli/__tests__/unit/ws-server*.test.js"
       - "packages/cli/package.json"
       - ".github/workflows/app-server-overload-soak.yml"
       - ".github/actions/setup-node-deps/action.yml"
@@ -15,9 +17,11 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/lib/app-server/**"
+      - "packages/cli/src/gateways/ws/**"
       - "packages/cli/src/commands/serve.js"
       - "packages/cli/scripts/app-server-overload-soak.mjs"
       - "packages/cli/__tests__/unit/app-server*.test.js"
+      - "packages/cli/__tests__/unit/ws-server*.test.js"
       - "packages/cli/package.json"
       - ".github/workflows/app-server-overload-soak.yml"
       - ".github/actions/setup-node-deps/action.yml"

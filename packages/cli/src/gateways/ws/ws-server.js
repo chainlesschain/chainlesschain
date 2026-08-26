@@ -174,6 +174,36 @@ const HEARTBEAT_INTERVAL = 30_000;
  */
 const AUTH_TIMEOUT_MS = 15_000;
 
+const LEGACY_WS_FLOW_DEFAULTS = Object.freeze({
+  maxPendingMessages: 128,
+  maxPendingMessageBytes: 8 * 1024 * 1024,
+  maxQueuedOutputMessages: 512,
+  maxQueuedOutputBytes: 8 * 1024 * 1024,
+  maxSocketBufferedBytes: 4 * 1024 * 1024,
+  slowConsumerTimeoutMs: 5_000,
+  maxCommandOutputBytes: 8 * 1024 * 1024,
+});
+
+function boundedInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, maximum);
+}
+
+function frameByteLength(data) {
+  if (typeof data === "string") return Buffer.byteLength(data, "utf8");
+  if (Buffer.isBuffer(data)) return data.byteLength;
+  if (Array.isArray(data)) {
+    return data.reduce((total, part) => total + frameByteLength(part), 0);
+  }
+  if (data?.byteLength != null) return Number(data.byteLength) || 0;
+  return Buffer.byteLength(String(data ?? ""), "utf8");
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 /**
  * Tokenize a command string into an array of arguments.
  * Handles double-quoted and single-quoted strings. Does NOT invoke a shell.
@@ -226,6 +256,13 @@ export class ChainlessChainWSServer extends EventEmitter {
    * @param {string}  [options.token]           - If set, clients must authenticate first
    * @param {number}  [options.maxConnections=10]
    * @param {number}  [options.timeout=30000]   - Command execution timeout (ms)
+   * @param {number}  [options.maxPendingMessages=128]
+   * @param {number}  [options.maxPendingMessageBytes=8388608]
+   * @param {number}  [options.maxQueuedOutputMessages=512]
+   * @param {number}  [options.maxQueuedOutputBytes=8388608]
+   * @param {number}  [options.maxSocketBufferedBytes=4194304]
+   * @param {number}  [options.slowConsumerTimeoutMs=5000]
+   * @param {number}  [options.maxCommandOutputBytes=8388608]
    * @param {Function} [options.spawn]           - Process seam for tests
    */
   constructor(options = {}) {
@@ -251,6 +288,37 @@ export class ChainlessChainWSServer extends EventEmitter {
     // grace window so it can't hold a maxConnections slot forever (see
     // AUTH_TIMEOUT_MS). `??` so an explicit 0 (disable) is honoured.
     this.authTimeoutMs = options.authTimeoutMs ?? AUTH_TIMEOUT_MS;
+    this.maxPendingMessages = boundedInteger(
+      options.maxPendingMessages,
+      LEGACY_WS_FLOW_DEFAULTS.maxPendingMessages,
+      10_000,
+    );
+    this.maxPendingMessageBytes = boundedInteger(
+      options.maxPendingMessageBytes,
+      LEGACY_WS_FLOW_DEFAULTS.maxPendingMessageBytes,
+    );
+    this.maxQueuedOutputMessages = boundedInteger(
+      options.maxQueuedOutputMessages,
+      LEGACY_WS_FLOW_DEFAULTS.maxQueuedOutputMessages,
+      100_000,
+    );
+    this.maxQueuedOutputBytes = boundedInteger(
+      options.maxQueuedOutputBytes,
+      LEGACY_WS_FLOW_DEFAULTS.maxQueuedOutputBytes,
+    );
+    this.maxSocketBufferedBytes = boundedInteger(
+      options.maxSocketBufferedBytes,
+      LEGACY_WS_FLOW_DEFAULTS.maxSocketBufferedBytes,
+    );
+    this.slowConsumerTimeoutMs = boundedInteger(
+      options.slowConsumerTimeoutMs,
+      LEGACY_WS_FLOW_DEFAULTS.slowConsumerTimeoutMs,
+      120_000,
+    );
+    this.maxCommandOutputBytes = boundedInteger(
+      options.maxCommandOutputBytes,
+      LEGACY_WS_FLOW_DEFAULTS.maxCommandOutputBytes,
+    );
     this._spawnProcess = options.spawn || _deps.spawn;
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
@@ -261,6 +329,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Connected clients: clientId → { ws, authenticated, connectedAt } */
     this.clients = new Map();
+    this._clientsBySocket = new WeakMap();
 
     /** Running child processes: requestId → ChildProcess */
     this.processes = new Map();
@@ -455,6 +524,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     // Close all client connections
     for (const [, client] of this.clients) {
+      this._clearClientOutput(client);
       try {
         client.ws.close(1001, "Server shutting down");
       } catch (_err) {
@@ -509,8 +579,16 @@ export class ChainlessChainWSServer extends EventEmitter {
       alive: true,
       authTimer: null,
       membershipConnectionNonce: randomBytes(32).toString("base64url"),
+      pendingMessages: 0,
+      pendingMessageBytes: 0,
+      outputQueue: [],
+      outputQueuedBytes: 0,
+      outputPumping: false,
+      outputFailure: null,
+      lastOverloadAt: 0,
     };
     this.clients.set(clientId, client);
+    this._clientsBySocket.set(ws, client);
 
     // Auth grace timer: a token-protected connection that never sends a valid
     // auth message would otherwise hold a slot forever (the heartbeat only reaps
@@ -537,16 +615,49 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.emit("connection", { clientId, ip: clientIp });
 
     ws.on("message", (data) => {
+      const bytes = frameByteLength(data);
+      let message;
       try {
-        const message = JSON.parse(data.toString("utf8"));
-        this._handleMessage(clientId, ws, message);
+        message = JSON.parse(data.toString("utf8"));
       } catch (_err) {
         this._send(ws, {
           type: "error",
           code: "INVALID_JSON",
           message: "Failed to parse message as JSON",
         });
+        return;
       }
+
+      if (
+        client.pendingMessages >= this.maxPendingMessages ||
+        client.pendingMessageBytes + bytes > this.maxPendingMessageBytes
+      ) {
+        this._sendInputOverloaded(client, message?.id);
+        return;
+      }
+      client.pendingMessages += 1;
+      client.pendingMessageBytes += bytes;
+      void Promise.resolve()
+        .then(() => this._handleMessage(clientId, ws, message))
+        .catch((error) => {
+          this.emit("client-error", {
+            clientId,
+            error: error?.message || String(error),
+          });
+          this._send(ws, {
+            id: message?.id,
+            type: "error",
+            code: "INTERNAL_ERROR",
+            message: "WebSocket request failed",
+          });
+        })
+        .finally(() => {
+          client.pendingMessages = Math.max(0, client.pendingMessages - 1);
+          client.pendingMessageBytes = Math.max(
+            0,
+            client.pendingMessageBytes - bytes,
+          );
+        });
     });
 
     ws.on("close", () => {
@@ -558,7 +669,9 @@ export class ChainlessChainWSServer extends EventEmitter {
       // mirrors the CLI attach detach semantics (an idle worker with no
       // remaining clients finalizes itself).
       cleanupBgAttachments(client);
+      this._clearClientOutput(client);
       this.clients.delete(clientId);
+      this._clientsBySocket.delete(ws);
       try {
         for (const affected of this.remoteSessions.removeClient(clientId)) {
           if (affected.closed)
@@ -616,11 +729,26 @@ export class ChainlessChainWSServer extends EventEmitter {
     return this._dispatcher.dispatch(clientId, ws, message);
   }
 
+  _sendInputOverloaded(client, id) {
+    const now = Date.now();
+    if (now - client.lastOverloadAt < 100 && id == null) return;
+    client.lastOverloadAt = now;
+    this._send(client.ws, {
+      id,
+      type: "error",
+      code: "OVERLOADED",
+      message: "WebSocket request backlog is full",
+      retryAfterMs: 100,
+      retry_after_ms: 100,
+    });
+  }
+
   /** Read the same static + scoped authority used by the Agent Core. */
   async _handlePermissionRulesGet(id, ws) {
     try {
-      const { loadPermissionAuthority } =
-        await import("../../lib/permission-authority.js");
+      const { loadPermissionAuthority } = await import(
+        "../../lib/permission-authority.js"
+      );
       const loaded = loadPermissionAuthority({ cwd: this.projectRoot });
       this._send(ws, {
         id,
@@ -1035,22 +1163,42 @@ export class ChainlessChainWSServer extends EventEmitter {
     this.processes.set(id, child);
     this.emit("command:start", { id, command, stream });
 
-    // Timeout handling
-    const timer = setTimeout(() => {
-      if (this.processes.has(id)) {
+    let settled = false;
+    let timer = null;
+    const settleWithError = (
+      code,
+      message,
+      { kill = true, send = true } = {},
+    ) => {
+      if (settled) return false;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (kill) {
         try {
           child.kill("SIGTERM");
         } catch (_err) {
           // Process may have already exited
         }
-        this.processes.delete(id);
+      }
+      this.processes.delete(id);
+      if (send) {
         this._send(ws, {
           id,
           type: "error",
-          code: "COMMAND_TIMEOUT",
-          message: `Command timed out after ${this.timeout}ms`,
+          code,
+          message,
         });
       }
+      this.emit("command:end", { id, exitCode: null, error: code });
+      return true;
+    };
+
+    // Timeout handling
+    timer = setTimeout(() => {
+      settleWithError(
+        "COMMAND_TIMEOUT",
+        `Command timed out after ${this.timeout}ms`,
+      );
     }, this.timeout);
 
     if (stream) {
@@ -1062,32 +1210,74 @@ export class ChainlessChainWSServer extends EventEmitter {
       // been announced; if there is no stdout, flush it before stream-end.
       let stdoutSeen = false;
       const pendingStderr = [];
+      let pendingStderrBytes = 0;
 
       child.stdout.on("data", (data) => {
+        if (settled) return;
         stdoutSeen = true;
-        this._send(ws, {
-          id,
-          type: "stream-data",
-          channel: "stdout",
-          data: data.toString("utf8"),
-        });
-        while (pendingStderr.length > 0) {
-          this._send(ws, pendingStderr.shift());
+        if (
+          !this._send(ws, {
+            id,
+            type: "stream-data",
+            channel: "stdout",
+            data: data.toString("utf8"),
+          })
+        ) {
+          settleWithError(
+            "COMMAND_OUTPUT_UNAVAILABLE",
+            "Output consumer closed",
+            {
+              send: false,
+            },
+          );
+          return;
         }
+        while (pendingStderr.length > 0) {
+          if (!this._send(ws, pendingStderr.shift())) {
+            settleWithError(
+              "COMMAND_OUTPUT_UNAVAILABLE",
+              "Output consumer closed",
+              { send: false },
+            );
+            return;
+          }
+        }
+        pendingStderrBytes = 0;
       });
 
       child.stderr.on("data", (data) => {
+        if (settled) return;
         const message = {
           id,
           type: "stream-data",
           channel: "stderr",
           data: data.toString("utf8"),
         };
-        if (stdoutSeen) this._send(ws, message);
-        else pendingStderr.push(message);
+        if (stdoutSeen) {
+          if (!this._send(ws, message)) {
+            settleWithError(
+              "COMMAND_OUTPUT_UNAVAILABLE",
+              "Output consumer closed",
+              { send: false },
+            );
+          }
+          return;
+        }
+        pendingStderrBytes += frameByteLength(data);
+        if (pendingStderrBytes > this.maxCommandOutputBytes) {
+          pendingStderr.length = 0;
+          settleWithError(
+            "COMMAND_OUTPUT_TOO_LARGE",
+            `Command output exceeded ${this.maxCommandOutputBytes} bytes`,
+          );
+          return;
+        }
+        pendingStderr.push(message);
       });
 
       child.on("close", (exitCode) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         this.processes.delete(id);
         for (const message of pendingStderr) this._send(ws, message);
@@ -1102,11 +1292,30 @@ export class ChainlessChainWSServer extends EventEmitter {
       // Buffered mode: collect all output then send result
       const stdoutChunks = [];
       const stderrChunks = [];
+      let outputBytes = 0;
 
-      child.stdout.on("data", (data) => stdoutChunks.push(data));
-      child.stderr.on("data", (data) => stderrChunks.push(data));
+      const collectOutput = (data, chunks) => {
+        if (settled) return;
+        const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
+        outputBytes += chunk.byteLength;
+        if (outputBytes > this.maxCommandOutputBytes) {
+          stdoutChunks.length = 0;
+          stderrChunks.length = 0;
+          settleWithError(
+            "COMMAND_OUTPUT_TOO_LARGE",
+            `Command output exceeded ${this.maxCommandOutputBytes} bytes`,
+          );
+          return;
+        }
+        chunks.push(chunk);
+      };
+
+      child.stdout.on("data", (data) => collectOutput(data, stdoutChunks));
+      child.stderr.on("data", (data) => collectOutput(data, stderrChunks));
 
       child.on("close", (exitCode) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         this.processes.delete(id);
 
@@ -1126,13 +1335,8 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
 
     child.on("error", (err) => {
-      clearTimeout(timer);
-      this.processes.delete(id);
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "SPAWN_ERROR",
-        message: err.message,
+      settleWithError("SPAWN_ERROR", err.message, {
+        kill: false,
       });
     });
   }
@@ -1294,8 +1498,9 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — ping/pong heartbeat to detect dead connections */
   async _ensureTaskManager() {
     if (this._taskManager) return this._taskManager;
-    const { BackgroundTaskManager } =
-      await import("../../harness/background-task-manager.js");
+    const { BackgroundTaskManager } = await import(
+      "../../harness/background-task-manager.js"
+    );
     this._taskManager = new BackgroundTaskManager({
       recoverOnStart: true,
       policyCwd: this.projectRoot,
@@ -1340,14 +1545,165 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   /** @private — safe JSON send */
   _send(ws, data) {
-    if (ws.readyState === ws.OPEN) {
+    if (ws.readyState !== ws.OPEN) return false;
+    let frame;
+    try {
+      frame = JSON.stringify(data);
+    } catch (_err) {
+      return false;
+    }
+    const client = this._clientsBySocket.get(ws);
+    if (!client) {
       try {
-        ws.send(JSON.stringify(data));
+        ws.send(frame);
         this._mirrorRemoteSessionEvent(ws, data);
+        return true;
       } catch (_err) {
-        // Connection may have just closed
+        return false;
       }
     }
+    return this._enqueueClientOutput(client, { frame, data });
+  }
+
+  _enqueueClientOutput(client, entry) {
+    if (client.outputFailure || client.ws.readyState !== client.ws.OPEN) {
+      return false;
+    }
+    entry.bytes = Buffer.byteLength(entry.frame, "utf8");
+    if (
+      entry.bytes > this.maxSocketBufferedBytes ||
+      client.outputQueue.length >= this.maxQueuedOutputMessages ||
+      client.outputQueuedBytes + entry.bytes > this.maxQueuedOutputBytes
+    ) {
+      this._tripClientOutput(client, "WebSocket output backlog exceeded");
+      return false;
+    }
+    client.outputQueue.push(entry);
+    client.outputQueuedBytes += entry.bytes;
+    void this._pumpClientOutput(client);
+    return true;
+  }
+
+  async _pumpClientOutput(client) {
+    if (client.outputPumping || client.outputFailure) return;
+    client.outputPumping = true;
+    try {
+      while (client.outputQueue.length > 0 && !client.outputFailure) {
+        const entry = client.outputQueue[0];
+        await this._waitForClientOutput(client, entry.bytes);
+        await this._writeClientFrame(client, entry.frame);
+        client.outputQueue.shift();
+        client.outputQueuedBytes = Math.max(
+          0,
+          client.outputQueuedBytes - entry.bytes,
+        );
+        this._mirrorRemoteSessionEvent(client.ws, entry.data);
+      }
+    } catch (error) {
+      this._tripClientOutput(
+        client,
+        error?.message || "WebSocket slow consumer",
+      );
+    } finally {
+      client.outputPumping = false;
+    }
+  }
+
+  async _waitForClientOutput(client, frameBytes) {
+    const deadline = Date.now() + this.slowConsumerTimeoutMs;
+    while (
+      Number(client.ws.bufferedAmount || 0) + frameBytes >
+      this.maxSocketBufferedBytes
+    ) {
+      if (client.ws.readyState !== client.ws.OPEN) {
+        throw new Error("WebSocket closed before output drained");
+      }
+      if (Date.now() >= deadline) {
+        throw new Error("WebSocket slow consumer deadline exceeded");
+      }
+      await wait(10);
+    }
+  }
+
+  async _writeClientFrame(client, frame) {
+    if (client.ws.readyState !== client.ws.OPEN) {
+      throw new Error("WebSocket closed before output send");
+    }
+    let timer;
+    const write = new Promise((resolve, reject) => {
+      client.ws.send(frame, { binary: false }, (error) =>
+        error ? reject(error) : resolve("sent"),
+      );
+    });
+    const deadline = new Promise((resolve) => {
+      timer = setTimeout(resolve, this.slowConsumerTimeoutMs, "timeout");
+      timer.unref?.();
+    });
+    try {
+      if ((await Promise.race([write, deadline])) === "timeout") {
+        throw new Error("WebSocket output callback deadline exceeded");
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  _tripClientOutput(client, reason) {
+    if (client.outputFailure) return;
+    client.outputFailure = reason;
+    this._clearClientOutput(client, { preserveFailure: true });
+    this.emit("client-error", {
+      clientId: this._clientIdForSocket(client.ws),
+      error: reason,
+      code: "CC_WS_OUTPUT_BACKPRESSURE",
+    });
+    try {
+      client.ws.close(1013, "WebSocket output backpressure");
+    } catch (_err) {
+      client.ws.terminate?.();
+    }
+  }
+
+  _clearClientOutput(client, { preserveFailure = false } = {}) {
+    client.outputQueue.length = 0;
+    client.outputQueuedBytes = 0;
+    if (!preserveFailure && !client.outputFailure) {
+      client.outputFailure = "closed";
+    }
+  }
+
+  _clientIdForSocket(ws) {
+    for (const [clientId, client] of this.clients) {
+      if (client.ws === ws) return clientId;
+    }
+    return null;
+  }
+
+  flowControlStatus() {
+    return Object.freeze({
+      limits: Object.freeze({
+        maxPendingMessages: this.maxPendingMessages,
+        maxPendingMessageBytes: this.maxPendingMessageBytes,
+        maxQueuedOutputMessages: this.maxQueuedOutputMessages,
+        maxQueuedOutputBytes: this.maxQueuedOutputBytes,
+        maxSocketBufferedBytes: this.maxSocketBufferedBytes,
+        slowConsumerTimeoutMs: this.slowConsumerTimeoutMs,
+        maxCommandOutputBytes: this.maxCommandOutputBytes,
+      }),
+      clients: Object.freeze(
+        [...this.clients.entries()].map(([clientId, client]) =>
+          Object.freeze({
+            clientId,
+            pendingMessages: client.pendingMessages,
+            pendingMessageBytes: client.pendingMessageBytes,
+            queuedOutputMessages: client.outputQueue.length,
+            queuedOutputBytes: client.outputQueuedBytes,
+            socketBufferedBytes: Number(client.ws.bufferedAmount || 0),
+            outputFailure: client.outputFailure,
+          }),
+        ),
+      ),
+    });
   }
 
   /** Mirror canonical Agent Session output to paired Remote Session clients. */

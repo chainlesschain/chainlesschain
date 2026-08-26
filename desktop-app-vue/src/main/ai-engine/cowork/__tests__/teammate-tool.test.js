@@ -271,6 +271,18 @@ describe('TeammateTool', () => {
         teammateTool.sendMessage('agent-1', 'agent-3', {})
       ).rejects.toThrow('不在同一团队');
     });
+
+    test('应该限制团队内存消息历史', async () => {
+      teammateTool.options.maxMessagesPerTeam = 2;
+
+      await teammateTool.sendMessage('agent-1', 'agent-2', { sequence: 1 });
+      await teammateTool.sendMessage('agent-1', 'agent-2', { sequence: 2 });
+      await teammateTool.sendMessage('agent-1', 'agent-2', { sequence: 3 });
+
+      const messages = teammateTool.messageQueues.get(team.id);
+      expect(messages).toHaveLength(2);
+      expect(messages.map((entry) => entry.content.sequence)).toEqual([2, 3]);
+    });
   });
 
   // ==========================================

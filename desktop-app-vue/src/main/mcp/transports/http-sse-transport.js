@@ -81,8 +81,15 @@ class HttpSseTransport extends EventEmitter {
       maxRequestBytes: 1024 * 1024,
       maxResponseBytes: 8 * 1024 * 1024,
       maxSseFrameBytes: 1024 * 1024,
+      maxPendingRequests: 128,
       ...config,
     };
+    if (
+      !Number.isSafeInteger(this.config.maxPendingRequests) ||
+      this.config.maxPendingRequests <= 0
+    ) {
+      this.config.maxPendingRequests = 128;
+    }
 
     // Connection state
     this.connectionState = ConnectionState.DISCONNECTED;
@@ -365,6 +372,12 @@ class HttpSseTransport extends EventEmitter {
     }
 
     const requestId = message.id;
+    if (this.pendingResponses.size >= this.config.maxPendingRequests) {
+      const error = new Error("MCP HTTP+SSE request queue is overloaded");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
     this.stats.requestsSent++;
 
     return new Promise((resolve, reject) => {

@@ -208,6 +208,15 @@ describe("ChainlessChainWSServer", () => {
       // Pre-auth slot-exhaustion guard: token-protected connections must
       // authenticate within this window (default 15s).
       expect(server.authTimeoutMs).toBe(15_000);
+      expect(server.flowControlStatus().limits).toEqual({
+        maxPendingMessages: 128,
+        maxPendingMessageBytes: 8 * 1024 * 1024,
+        maxQueuedOutputMessages: 512,
+        maxQueuedOutputBytes: 8 * 1024 * 1024,
+        maxSocketBufferedBytes: 4 * 1024 * 1024,
+        slowConsumerTimeoutMs: 5_000,
+        maxCommandOutputBytes: 8 * 1024 * 1024,
+      });
     });
 
     it("honours authTimeoutMs override (and 0 to disable)", () => {
@@ -227,6 +236,13 @@ describe("ChainlessChainWSServer", () => {
         maxConnections: 5,
         timeout: 5000,
         maxPayloadBytes: 1024,
+        maxPendingMessages: 3,
+        maxPendingMessageBytes: 4096,
+        maxQueuedOutputMessages: 4,
+        maxQueuedOutputBytes: 8192,
+        maxSocketBufferedBytes: 2048,
+        slowConsumerTimeoutMs: 250,
+        maxCommandOutputBytes: 1024,
       });
       expect(server.port).toBe(9999);
       expect(server.host).toBe("0.0.0.0");
@@ -234,6 +250,15 @@ describe("ChainlessChainWSServer", () => {
       expect(server.maxConnections).toBe(5);
       expect(server.timeout).toBe(5000);
       expect(server.maxPayloadBytes).toBe(1024);
+      expect(server.flowControlStatus().limits).toEqual({
+        maxPendingMessages: 3,
+        maxPendingMessageBytes: 4096,
+        maxQueuedOutputMessages: 4,
+        maxQueuedOutputBytes: 8192,
+        maxSocketBufferedBytes: 2048,
+        slowConsumerTimeoutMs: 250,
+        maxCommandOutputBytes: 1024,
+      });
     });
   });
 
@@ -277,6 +302,76 @@ describe("ChainlessChainWSServer", () => {
       await new Promise((r) => setTimeout(r, 100));
       expect(closed).toBeNull(); // an in-cap frame must not trip the size limit
       ws.close();
+    });
+  });
+
+  describe("bounded connection flow control", () => {
+    it("returns OVERLOADED before pending message work exceeds its cap", async () => {
+      port = nextPort();
+      let release;
+      let markStarted;
+      const held = new Promise((resolve) => {
+        release = resolve;
+      });
+      const started = new Promise((resolve) => {
+        markStarted = resolve;
+      });
+      server = new ChainlessChainWSServer({
+        port,
+        maxPendingMessages: 1,
+      });
+      server._dispatcher.dispatch = vi.fn(() => {
+        markStarted();
+        return held;
+      });
+      await server.start();
+      const ws = await connect(port);
+      ws.send(JSON.stringify({ id: "held", type: "ping" }));
+      await started;
+
+      const response = new Promise((resolve) => {
+        ws.once("message", (data) => resolve(JSON.parse(data.toString())));
+      });
+      ws.send(JSON.stringify({ id: "overflow", type: "ping" }));
+      await expect(response).resolves.toMatchObject({
+        id: "overflow",
+        type: "error",
+        code: "OVERLOADED",
+        retryAfterMs: 100,
+        retry_after_ms: 100,
+      });
+      expect(server._dispatcher.dispatch).toHaveBeenCalledTimes(1);
+      expect(server.flowControlStatus().clients[0]).toMatchObject({
+        pendingMessages: 1,
+        queuedOutputMessages: 0,
+      });
+
+      release();
+      await vi.waitFor(() => {
+        expect(server.flowControlStatus().clients[0].pendingMessages).toBe(0);
+      });
+      ws.close();
+    });
+
+    it("disconnects a producer before its output queue can exceed the cap", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({
+        port,
+        maxQueuedOutputMessages: 1,
+      });
+      await server.start();
+      const ws = await connect(port);
+      const client = [...server.clients.values()][0];
+      const close = new Promise((resolve) =>
+        ws.once("close", (code) => resolve(code)),
+      );
+
+      expect(server._send(client.ws, { type: "first" })).toBe(true);
+      expect(server._send(client.ws, { type: "overflow" })).toBe(false);
+      await expect(close).resolves.toBe(1013);
+      expect(client.outputQueue).toHaveLength(0);
+      expect(client.outputQueuedBytes).toBe(0);
+      expect(client.outputFailure).toBe("WebSocket output backlog exceeded");
     });
   });
 

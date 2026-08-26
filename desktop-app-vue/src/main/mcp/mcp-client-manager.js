@@ -299,6 +299,18 @@ class MCPClientManager extends EventEmitter {
           timeout: serverConfig.timeout || 30000,
           useSSL: serverConfig.baseURL?.startsWith("https") || false,
           maxRetries: serverConfig.maxRetries || 3,
+          ...(serverConfig.maxPendingRequests != null
+            ? { maxPendingRequests: serverConfig.maxPendingRequests }
+            : {}),
+          ...(serverConfig.maxRequestBytes != null
+            ? { maxRequestBytes: serverConfig.maxRequestBytes }
+            : {}),
+          ...(serverConfig.maxResponseBytes != null
+            ? { maxResponseBytes: serverConfig.maxResponseBytes }
+            : {}),
+          ...(serverConfig.maxSseFrameBytes != null
+            ? { maxSseFrameBytes: serverConfig.maxSseFrameBytes }
+            : {}),
         });
 
         // Setup HTTP+SSE event handlers

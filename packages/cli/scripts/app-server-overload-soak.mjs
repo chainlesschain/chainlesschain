@@ -17,6 +17,8 @@ const MINIMUM_FORMAL_DURATION_SECONDS = 30 * 60;
 const MAX_RSS_GROWTH_RATIO = 0.1;
 const SERVER_QUEUE_CAP = 8;
 const SERVER_QUEUE_BYTES = 256 * 1024;
+const OUTPUT_QUEUE_CAP = 256;
+const OUTPUT_QUEUE_BYTES = 4 * 1024 * 1024;
 const CLIENT_OUTSTANDING_CAP = 256;
 const SOAK_TOKEN = "app-server-overload-soak-token-0001";
 
@@ -318,6 +320,12 @@ async function main() {
   if (maximumServerQueueBytes > SERVER_QUEUE_BYTES) {
     violations.push("server request byte cap was exceeded");
   }
+  if (maximumOutputQueueItems > OUTPUT_QUEUE_CAP) {
+    violations.push("transport output item cap was exceeded");
+  }
+  if (maximumOutputQueueBytes > OUTPUT_QUEUE_BYTES) {
+    violations.push("transport output byte cap was exceeded");
+  }
   if (
     formal &&
     (rssGrowthRatio == null || rssGrowthRatio > MAX_RSS_GROWTH_RATIO)
@@ -348,6 +356,8 @@ async function main() {
       maximumRssGrowthRatio: MAX_RSS_GROWTH_RATIO,
       serverQueueCap: SERVER_QUEUE_CAP,
       serverQueueBytes: SERVER_QUEUE_BYTES,
+      outputQueueCap: OUTPUT_QUEUE_CAP,
+      outputQueueBytes: OUTPUT_QUEUE_BYTES,
       clientOutstandingCap: CLIENT_OUTSTANDING_CAP,
     },
     traffic: {
