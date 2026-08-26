@@ -1,0 +1,82 @@
+name: App Server Overload Soak
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/app-server/**"
+      - "packages/cli/src/commands/serve.js"
+      - "packages/cli/scripts/app-server-overload-soak.mjs"
+      - "packages/cli/__tests__/unit/app-server*.test.js"
+      - "packages/cli/package.json"
+      - ".github/workflows/app-server-overload-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/app-server/**"
+      - "packages/cli/src/commands/serve.js"
+      - "packages/cli/scripts/app-server-overload-soak.mjs"
+      - "packages/cli/__tests__/unit/app-server*.test.js"
+      - "packages/cli/package.json"
+      - ".github/workflows/app-server-overload-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+      duration_seconds:
+        description: "Formal overload duration"
+        required: true
+        default: "1800"
+        type: choice
+        options: ["1800", "3600"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  app-server-overload:
+    name: Bounded WebSocket overload and RSS
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      CC_APP_SERVER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_APP_SERVER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_APP_SERVER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '1800' }}
+      CC_APP_SERVER_SOAK_OUTPUT: ${{ runner.temp }}/app-server-overload-soak-${{ github.sha }}.json
+    steps:
+      - name: Checkout exact App Server candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_APP_SERVER_SOAK_EXPECTED_SHA }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${CC_APP_SERVER_SOAK_EXPECTED_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run real WebSocket overload soak
+        run: node --expose-gc packages/cli/scripts/app-server-overload-soak.mjs
+
+      - name: Upload immutable overload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-server-overload-${{ env.CC_APP_SERVER_SOAK_MODE }}-${{ env.CC_APP_SERVER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ env.CC_APP_SERVER_SOAK_OUTPUT }}
+          if-no-files-found: error
+          retention-days: 30

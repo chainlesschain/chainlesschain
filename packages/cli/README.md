@@ -1564,6 +1564,38 @@ chainlesschain serve --project /path/to/project         # Default project root f
 
 **Session Protocol** (v0.43.0): WebSocket clients can create stateful agent/chat sessions via `session-create`, send messages via `session-message`, resume previous sessions via `session-resume`, and manage sessions via `session-list`/`session-close`. Supports `slash-command` for in-session commands and `session-answer` for interactive Q&A (SlotFiller/Planner).
 
+### Canonical CC App Server
+
+The canonical Thread/Turn/Item JSON-RPC server uses stdio by default:
+
+```bash
+chainlesschain serve --app-server
+```
+
+An experimental WebSocket transport is available at `/app-server`. It always
+requires a token of at least 32 UTF-8 bytes; use
+`CHAINLESSCHAIN_APP_SERVER_TOKEN` to keep the token out of the process list.
+The required WebSocket subprotocol is
+`chainlesschain.app-server.experimental.v1`.
+
+```bash
+# Loopback-only experimental server; set the token in the environment first
+chainlesschain serve --app-server --app-server-websocket
+
+# Non-loopback binding additionally requires explicit opt-in and TLS
+chainlesschain serve --app-server --app-server-websocket \
+  --host 0.0.0.0 --allow-remote \
+  --app-server-tls-cert /path/to/server.crt \
+  --app-server-tls-key /path/to/server.key
+```
+
+Remote bindings fail closed without TLS, a strong token, and
+`--allow-remote`. The transport caps incoming requests, outgoing messages,
+bytes, payload size, and connections; overload returns JSON-RPC `-32001` with
+`retry_after_ms`, while a slow consumer is disconnected. Tokens in URL query
+strings are not accepted. This transport remains experimental and is not a
+production stability guarantee.
+
 ---
 
 ## Web Management Interface (v0.45.8)

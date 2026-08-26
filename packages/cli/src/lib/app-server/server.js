@@ -109,6 +109,7 @@ export class CcAppServer {
     maxConcurrentRequests = 8,
     requestTimeoutMs = 120_000,
     interruptSettlementMs = 30_000,
+    transport = "stdio",
   } = {}) {
     if (typeof send !== "function") {
       throw new TypeError("CcAppServer requires a send(message) function");
@@ -120,6 +121,7 @@ export class CcAppServer {
     this.createId = createId;
     this.requestTimeoutMs = requestTimeoutMs;
     this.interruptSettlementMs = interruptSettlementMs;
+    this.transport = transport === "websocket" ? "websocket" : "stdio";
     this.initialized = false;
     this.negotiated = null;
     this.client = null;
@@ -319,7 +321,7 @@ export class CcAppServer {
       minimumProtocolVersion: APP_SERVER_MIN_PROTOCOL_VERSION,
       features: this.negotiated.features,
       downgraded: this.negotiated.downgraded,
-      transports: ["stdio"],
+      transports: [this.transport],
       websocket: { stability: "experimental" },
       limits: this.requestQueue.snapshot(),
       schema: {

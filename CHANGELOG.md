@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   methods and routes the shared client through its audited process broker.
   Both products vendor byte-identical CJS output; approval requests remain
   fail-closed until a reviewed product UI is attached.
+- **Experimental authenticated App Server WebSocket**: the canonical server
+  now has a fixed-subprotocol `/app-server` transport with bounded input and
+  output queues, overload retry guidance, payload/connection caps, and a slow
+  consumer breaker. Every binding requires a strong token; non-loopback
+  binding additionally fails closed without explicit opt-in and validated TLS
+  certificate/key files. A SHA-bound 30-minute Actions soak freezes queue and
+  post-warm-up RSS limits before this P1 slice can close.
 - **Release validation**: publication requires this exact candidate to pass
   Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
   `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices.

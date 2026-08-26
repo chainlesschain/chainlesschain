@@ -16,6 +16,10 @@ export function registerServeCommand(program) {
       "Run the canonical CC App Server over stdio instead of the legacy WebSocket server",
     )
     .option(
+      "--app-server-websocket",
+      "Use the experimental canonical App Server WebSocket transport (requires --app-server)",
+    )
+    .option(
       "--app-server-state-dir <path>",
       "Owner-controlled rollout directory for --app-server",
     )
@@ -24,11 +28,19 @@ export function registerServeCommand(program) {
       "Maximum queued App Server requests",
       "256",
     )
+    .option(
+      "--app-server-tls-cert <path>",
+      "TLS certificate for non-loopback App Server WebSocket binding",
+    )
+    .option(
+      "--app-server-tls-key <path>",
+      "TLS private key for non-loopback App Server WebSocket binding",
+    )
     .option("-p, --port <port>", "Port number", "18800")
     .option("-H, --host <host>", "Bind host", "127.0.0.1")
     .option(
       "--token <token>",
-      "Authentication token (required for remote access)",
+      "Authentication token (required for remote access and App Server WebSocket)",
     )
     .option("--max-connections <n>", "Maximum concurrent connections", "10")
     .option(
@@ -59,6 +71,9 @@ export function registerServeCommand(program) {
     )
     .action(async (opts) => {
       try {
+        if (opts.appServerWebsocket && !opts.appServer) {
+          throw new Error("--app-server-websocket requires --app-server");
+        }
         if (opts.appServer) {
           const [
             { runStdioAppServer },
@@ -72,15 +87,53 @@ export function registerServeCommand(program) {
           const stateDirectory = opts.appServerStateDir
             ? path.resolve(opts.appServerStateDir)
             : undefined;
+          const store = new JsonlRolloutStore({ directory: stateDirectory });
+          const cwd = opts.project ? path.resolve(opts.project) : process.cwd();
+          const maxQueuedRequests = Math.max(
+            1,
+            parseInt(opts.appServerQueueCap, 10) || 256,
+          );
+          if (opts.appServerWebsocket) {
+            const { WebSocketAppServerHost } =
+              await import("../lib/app-server/websocket-transport.js");
+            const host = new WebSocketAppServerHost({
+              host: opts.host,
+              port: parseInt(opts.port, 10),
+              token: opts.token || process.env.CHAINLESSCHAIN_APP_SERVER_TOKEN,
+              allowRemote: opts.allowRemote === true,
+              tlsCertPath: opts.appServerTlsCert,
+              tlsKeyPath: opts.appServerTlsKey,
+              maxConnections: parseInt(opts.maxConnections, 10),
+              store,
+              kernelFactory: () => new CliAgentKernelAdapter({ cwd }),
+              maxQueuedRequests,
+            });
+            const info = await host.start();
+            logger.info(
+              `CC App Server WebSocket (${info.stability}) listening on ${info.url}`,
+            );
+            let shutdown;
+            let fail;
+            try {
+              await new Promise((resolve, reject) => {
+                shutdown = () => resolve();
+                fail = (error) => reject(error);
+                process.once("SIGINT", shutdown);
+                process.once("SIGTERM", shutdown);
+                host.once("error", fail);
+              });
+            } finally {
+              process.off("SIGINT", shutdown);
+              process.off("SIGTERM", shutdown);
+              host.off("error", fail);
+              await host.close();
+            }
+            return;
+          }
           await runStdioAppServer({
-            store: new JsonlRolloutStore({ directory: stateDirectory }),
-            kernel: new CliAgentKernelAdapter({
-              cwd: opts.project ? path.resolve(opts.project) : process.cwd(),
-            }),
-            maxQueuedRequests: Math.max(
-              1,
-              parseInt(opts.appServerQueueCap, 10) || 256,
-            ),
+            store,
+            kernel: new CliAgentKernelAdapter({ cwd }),
+            maxQueuedRequests,
           });
           return;
         }
