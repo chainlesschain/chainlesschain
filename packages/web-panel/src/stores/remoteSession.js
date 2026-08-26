@@ -371,7 +371,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       type: "pair.join",
       remoteSessionId: pairing.remoteSessionId,
       token: pairing.pairingToken,
-      capabilities: ["approval-binding-v1"],
+      capabilities: ["approval-binding-v1", "approval-decision-v1"],
     };
     if (pushCredentials?.token) {
       join.pushToken = pushCredentials.token;
@@ -627,7 +627,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
                 remoteSessionId: parsed.remoteSessionId,
                 token: parsed.pairingToken,
                 credentialPublicKey: directCredential.publicKey,
-                capabilities: ["approval-binding-v1"],
+                capabilities: ["approval-binding-v1", "approval-decision-v1"],
               },
             );
             if (
@@ -844,6 +844,10 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     // were never connected, the card is RESTORED so the answer can be retried
     // (the host gate stays pending until its own timeout).
     clearApprovalCard(requestId);
+    // This UI is deliberately binary: approval grants this exact call once;
+    // denial declines it. Keep the old boolean fields as an N-1 projection so
+    // upgraded panels can still control an older host.
+    const decision = approved ? { kind: "acceptOnce" } : { kind: "decline" };
     if (transport.value === "direct") {
       if (!directSocket) {
         error.value = "Remote Session is not connected";
@@ -853,6 +857,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       sendDirectControl({
         type: "approval.resolve",
         requestId,
+        decision,
         answer: approved,
         approved,
         fingerprint: card?.fingerprint || null,
@@ -868,6 +873,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       !sendControl({
         type: "approval.resolve",
         requestId,
+        decision,
         approved,
         fingerprint: card?.fingerprint || null,
         binding: card?.binding || null,

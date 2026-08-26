@@ -154,6 +154,7 @@ describe("remoteSession store", () => {
     expect(active.controls.at(-1)).toMatchObject({
       type: "approval.resolve",
       requestId: "req-1",
+      decision: { kind: "acceptOnce" },
       approved: true,
     });
 
@@ -272,6 +273,7 @@ describe("remoteSession store", () => {
     expect(active.controls.at(-1)).toMatchObject({
       type: "approval.resolve",
       requestId: "req-lost",
+      decision: { kind: "decline" },
       approved: false,
     });
   });
@@ -379,7 +381,7 @@ describe("remoteSession store", () => {
     expect(store.status).toBe("connected");
     expect(FakeRelay.lastJoin).toMatchObject({
       type: "pair.join",
-      capabilities: ["approval-binding-v1"],
+      capabilities: ["approval-binding-v1", "approval-decision-v1"],
       pushToken: '{"endpoint":"https://p.test"}',
       pushProvider: "web",
     });
@@ -422,6 +424,7 @@ describe("remoteSession store", () => {
     expect(active.controls.at(-1)).toMatchObject({
       type: "approval.resolve",
       requestId: "ra-relay-1",
+      decision: { kind: "decline" },
       approved: false,
     });
 

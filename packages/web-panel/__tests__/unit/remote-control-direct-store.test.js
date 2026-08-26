@@ -438,7 +438,7 @@ describe("remoteSession store — direct transport", () => {
       challengeId: "join-challenge-1",
     });
     expect(first.frames[1]).toMatchObject({
-      capabilities: ["approval-binding-v1"],
+      capabilities: ["approval-binding-v1", "approval-decision-v1"],
     });
     expect(typeof join.signature).toBe("string");
     expect(join).not.toHaveProperty("token");
@@ -614,7 +614,7 @@ describe("remoteSession store — direct transport", () => {
     expect(reenabled.frames[2]).toMatchObject({
       token: "reenabled-one-time-token",
       credentialPublicKey: firstPublicKey,
-      capabilities: ["approval-binding-v1"],
+      capabilities: ["approval-binding-v1", "approval-decision-v1"],
     });
     expect(reenabled.frames[3]).not.toHaveProperty("token");
   });
@@ -668,6 +668,7 @@ describe("remoteSession store — direct transport", () => {
     expect(active.published.at(-1).event).toMatchObject({
       type: "approval.resolve",
       requestId: "durable-approval-1",
+      decision: { kind: "acceptOnce" },
       fingerprint: "sha256:request",
       binding: "binding-v1",
       revision: 7,
@@ -703,7 +704,12 @@ describe("remoteSession store — direct transport", () => {
       type: "remote-session-publish",
       remoteSessionId: SESSION_ID,
       seq: 1,
-      event: { type: "approval.resolve", requestId: "ra-1", answer: true },
+      event: {
+        type: "approval.resolve",
+        requestId: "ra-1",
+        decision: { kind: "acceptOnce" },
+        answer: true,
+      },
     });
     expect(typeof publish.commandId).toBe("string");
     expect(publish.commandId.length).toBeGreaterThan(8);
@@ -770,6 +776,7 @@ describe("remoteSession store — direct transport", () => {
     expect(active.published.at(-1).event).toMatchObject({
       type: "approval.resolve",
       requestId: "ra-fail",
+      decision: { kind: "acceptOnce" },
       answer: true,
     });
   });

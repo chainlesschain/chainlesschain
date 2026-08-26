@@ -17,6 +17,10 @@ import {
 } from "../../lib/agent-authority.js";
 import { hasCompleteInteractionBinding } from "../../lib/interaction-binding.js";
 import { REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE } from "../../lib/remote-membership-coordinator.js";
+import {
+  REMOTE_APPROVAL_DECISION_CAPABILITY,
+  requireRemoteApprovalDecision,
+} from "../../lib/remote-approval-decision.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
   prompt: "prompt",
@@ -918,7 +922,14 @@ export async function handleRemoteSessionPublish(
       // fail-safe). The envelope also feeds `describeAuthorityChain` provenance
       // into the audit trail below.
       let approvalEnvelope = null;
+      let approvalDecision = null;
       if (message.event.type === "approval.resolve") {
+        approvalDecision = requireRemoteApprovalDecision(message.event, {
+          requireCanonical:
+            member.capabilities?.includes(
+              REMOTE_APPROVAL_DECISION_CAPABILITY,
+            ) === true,
+        });
         approvalEnvelope = {
           origin: ORIGIN.REMOTE,
           authenticated: true,
@@ -934,8 +945,7 @@ export async function handleRemoteSessionPublish(
               }
             : {}),
         };
-        const approved = message.event.answer ?? message.event.approved;
-        if (approved === true || approved === "true" || approved === "yes") {
+        if (approvalDecision.approved) {
           assertCanApprove(approvalEnvelope);
           if (session.hostPrincipalId) {
             requireRemoteApprovalRequest(server, session, message.event);
@@ -974,10 +984,7 @@ export async function handleRemoteSessionPublish(
       } else if (
         session.hostPrincipalId &&
         message.event.type === "approval.resolve" &&
-        (message.event.answer === true ||
-          message.event.answer === "true" ||
-          message.event.answer === "yes" ||
-          message.event.approved === true)
+        approvalDecision.approved
       ) {
         throw new Error(
           "Server-hosted remote approval is disabled until its dispatch path consumes a durable lease",
@@ -995,17 +1002,12 @@ export async function handleRemoteSessionPublish(
           message.event.type === "approval.resolve" &&
           !serverHosted
         ) {
-          const rawDecision = message.event.answer ?? message.event.approved;
-          const approved =
-            rawDecision === true ||
-            rawDecision === "true" ||
-            rawDecision === "yes";
           const request = requireRemoteApprovalRequest(
             server,
             session,
             message.event,
           );
-          if (approved) {
+          if (approvalDecision.approved) {
             approvalLease = server
               ._requireRemoteMembershipCoordinator()
               .createApprovalLease({
@@ -1046,7 +1048,8 @@ export async function handleRemoteSessionPublish(
                   ? {
                       requestId:
                         message.event.requestId || message.event.approvalId,
-                      approved: message.event.answer ?? message.event.approved,
+                      approved: approvalDecision.approved,
+                      decisionKind: approvalDecision.kind,
                       // Log-safe provenance: which principal/session/authority.
                       authority: describeAuthorityChain(approvalEnvelope || {}),
                       forwarded: true,
@@ -1098,6 +1101,7 @@ export async function handleRemoteSessionPublish(
                   membershipAuthority: membership.authorityVersion,
                   sessionEpoch: membership.sessionEpoch,
                   membershipEpoch: membership.membershipEpoch,
+                  memberCapabilities: [...(member.capabilities || [])],
                 }
               : {}),
             event: message.event,
@@ -1131,7 +1135,8 @@ export async function handleRemoteSessionPublish(
             action: "control.approval",
             detail: {
               requestId: message.event.requestId || message.event.approvalId,
-              approved: message.event.answer ?? message.event.approved,
+              approved: approvalDecision.approved,
+              decisionKind: approvalDecision.kind,
               // Log-safe provenance: which principal/session/authority approved.
               authority: describeAuthorityChain(approvalEnvelope || {}),
             },
@@ -1139,7 +1144,7 @@ export async function handleRemoteSessionPublish(
           await handleSessionAnswer(server, message.id, ws, {
             ...controlMessage,
             requestId: message.event.requestId || message.event.approvalId,
-            answer: message.event.answer ?? message.event.approved,
+            answer: approvalDecision.approved,
             // Echoed approval binding (if any): the host interaction gate rejects
             // a verdict whose binding doesn't match the pending request.
             binding: message.event.binding ?? null,

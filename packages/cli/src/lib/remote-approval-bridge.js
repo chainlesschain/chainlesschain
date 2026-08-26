@@ -52,6 +52,7 @@ import {
   resolveRemoteControlWsUrl,
 } from "./remote-control.js";
 import { logger } from "./logger.js";
+import { normalizeRemoteApprovalDecision } from "./remote-approval-decision.js";
 
 const DEFAULT_DECISION_TIMEOUT_MS = 5 * 60 * 1000;
 const REMOTE_LEASE_AUTHORIZATION_KIND =
@@ -411,24 +412,19 @@ export class RemoteApprovalBridge {
     // The device must echo the complete durable capability tuple. Missing,
     // mismatched, stale, duplicate, or expired resolutions never settle an
     // approval; only the store's successful CAS can return approved=true.
-    const rawAnswer = message.event.answer ?? message.event.approved;
-    const hasDecision =
-      rawAnswer === true ||
-      rawAnswer === false ||
-      rawAnswer === "true" ||
-      rawAnswer === "false" ||
-      rawAnswer === "yes" ||
-      rawAnswer === "no";
-    if (!hasDecision) {
+    const remoteDecision = normalizeRemoteApprovalDecision(message.event, {
+      requireCanonical:
+        message.memberCapabilities?.includes("approval-decision-v1") === true,
+    });
+    if (!remoteDecision.ok) {
       this._recordSecurityError({
         action: "approval.resolve",
         requestId,
-        reason: "decision-required",
+        reason: remoteDecision.reason,
       });
       return;
     }
-    const decision =
-      rawAnswer === true || rawAnswer === "true" || rawAnswer === "yes";
+    const decision = remoteDecision.approved;
     let ackedLease = null;
     // The server creates the lease before forwarding the resolve frame. Keep a
     // strictly request-bound cancellation handle even when durable adoption of

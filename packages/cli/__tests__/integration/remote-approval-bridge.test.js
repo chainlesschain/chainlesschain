@@ -50,7 +50,9 @@ function approvalResolveEvent(request, answer) {
     fingerprint: request.event.fingerprint,
     binding: request.event.binding,
     revision: request.event.revision,
+    decision: answer ? { kind: "acceptOnce" } : { kind: "decline" },
     answer,
+    approved: answer,
   };
 }
 
@@ -163,7 +165,7 @@ describe("remote approval bridge (integration)", () => {
     const challenged = await device.request("remote-session-join-challenge", {
       remoteSessionId: info.remoteSessionId,
       token: bridge.pairing.token,
-      capabilities: ["approval-binding-v1"],
+      capabilities: ["approval-binding-v1", "approval-decision-v1"],
       credentialPublicKey: credential.publicKey,
     });
     const joined = await device.request("remote-session-join", {
