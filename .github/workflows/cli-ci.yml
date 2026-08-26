@@ -73,6 +73,7 @@ jobs:
     with:
       commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: windows-latest
+      unit-shards: 8
 
   test-macos:
     uses: ./.github/workflows/_cli-test.yml

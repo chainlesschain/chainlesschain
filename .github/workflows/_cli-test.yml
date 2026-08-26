@@ -29,7 +29,8 @@ name: _CLI Test (reusable)
 # Inputs:
 #   commit_sha — exact caller commit to checkout and verify
 #   runs-on    — runner OS (default ubuntu-latest)
-#   shards     — number of shards per suite (default 4; must match the matrix below)
+#   shards      — number of E2E shards (default 4; must match its matrix below)
+#   unit-shards — number of unit shards (4 or 8; Windows CI uses 8)
 #   include-e2e — set false to skip the e2e suite (e.g. for fast PR feedback)
 
 on:
@@ -45,7 +46,12 @@ on:
         type: string
         default: "ubuntu-latest"
       shards:
-        description: "Number of shards per suite (must equal the matrix length below)"
+        description: "Number of E2E shards (must equal the E2E matrix length below)"
+        required: false
+        type: number
+        default: 4
+      unit-shards:
+        description: "Number of unit shards (supported values: 4 or 8)"
         required: false
         type: number
         default: 4
@@ -57,12 +63,17 @@ on:
 
 jobs:
   unit:
-    name: "unit (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
+    name: "unit (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.unit-shards }})"
     runs-on: ${{ inputs.runs-on }}
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        # Four Windows shards can keep a two-fork Vitest worker alive for more
+        # than 17 minutes. On hosted Windows runners that has repeatedly ended
+        # with a teardown EPIPE before JUnit is flushed, leaving no safe proof
+        # for the bounded infrastructure retry. Eight shards shorten the IPC
+        # lifetime without weakening assertion or report requirements.
+        shard: ${{ inputs.unit-shards == 8 && fromJSON('[1,2,3,4,5,6,7,8]') || fromJSON('[1,2,3,4]') }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -80,9 +91,9 @@ jobs:
       # hosted forks worker during teardown. Retry once only when the Vitest
       # worker signature and a clean, non-empty JUnit report both prove that
       # exact infrastructure failure; assertion failures remain hard failures.
-      - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.shards }}
+      - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.unit-shards }}
         working-directory: packages/cli
-        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
+        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.unit-shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
       - name: Upload failed unit report
         if: failure()
         uses: actions/upload-artifact@v4
