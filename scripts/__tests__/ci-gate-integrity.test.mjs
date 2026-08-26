@@ -1156,6 +1156,29 @@ test("Android lint regressions keep P2P, performance, and project fixes", () => 
   );
 });
 
+test("Android local terminal unit fake cannot block the test scheduler", () => {
+  const testSource = fs.readFileSync(
+    path.join(
+      repoRoot,
+      "android-app",
+      "feature-local-terminal",
+      "src",
+      "test",
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "localterminal",
+      "LocalPtyClientTest.kt",
+    ),
+    "utf8",
+  );
+
+  assert.match(testSource, /readQueue\.poll\(\)\s*\?:\s*ReadEvent\.Eof/);
+  assert.doesNotMatch(testSource, /readQueue\.take\(\)/);
+});
+
 test("Android coverage produces real reports without masking test failures", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "android-tests.yml"),

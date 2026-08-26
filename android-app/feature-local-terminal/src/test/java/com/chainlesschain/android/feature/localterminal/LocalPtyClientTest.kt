@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.AtomicReference
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalPtyClientTest {
 
-    /** Scriptable fake — defaults are "everything succeeds, read blocks
-     *  forever". Override per-test by replacing the lambdas. */
+    /** Scriptable fake — defaults are "everything succeeds, read reaches
+     *  EOF". Tests enqueue data before starting the client when needed. */
     private class FakePtyNative : PtyNative {
         var openPtyResult: () -> IntArray = { intArrayOf(7, 8) }
         var spawnResult: (Int, Int, String, Array<String>, Array<String>, String?) -> Int =
@@ -45,8 +45,12 @@ class LocalPtyClientTest {
         var waitpidResult: () -> Int = { 0 }
         var closeRc: Int = 0
 
-        /** read() default behaviour: block until [pushChunk]/[pushEof] is
-         *  called. Tests opt into specific scripts via these helpers. */
+        /**
+         * Never block here: unit tests inject a [StandardTestDispatcher], so
+         * blocking its scheduler thread would also prevent runTest's timeout
+         * and cleanup from executing. An empty script deterministically means
+         * EOF; stream tests enqueue their complete script before start().
+         */
         private val readQueue = java.util.concurrent.LinkedBlockingQueue<ReadEvent>()
 
         sealed class ReadEvent {
@@ -90,7 +94,7 @@ class LocalPtyClientTest {
         }
 
         override fun read(masterFd: Int, buffer: ByteArray, offset: Int, length: Int): Int {
-            val event = readQueue.take()
+            val event = readQueue.poll() ?: ReadEvent.Eof
             return when (event) {
                 is ReadEvent.Data -> {
                     val n = minOf(event.bytes.size, length)
@@ -214,8 +218,6 @@ class LocalPtyClientTest {
     fun stdoutFlow_emitsDataChunksInOrder() = runTest {
         val fake = FakePtyNative()
         val client = LocalPtyClient(this, fake, ioDispatcher = StandardTestDispatcher(testScheduler))
-        client.start(makeConfig())
-        advanceUntilIdle()
 
         val received = mutableListOf<ByteArray>()
         val collectorJob = launch {
@@ -225,14 +227,14 @@ class LocalPtyClientTest {
 
         fake.pushChunk("hello".toByteArray())
         fake.pushChunk(" world".toByteArray())
+        fake.pushEof()
+        client.start(makeConfig())
         advanceUntilIdle()
         collectorJob.join()
 
         assertEquals(2, received.size)
         assertEquals("hello", String(received[0]))
         assertEquals(" world", String(received[1]))
-
-        fake.pushEof()
         client.shutdown()
     }
 
@@ -240,11 +242,9 @@ class LocalPtyClientTest {
     fun stdoutFlow_terminatesOnEof() = runTest {
         val fake = FakePtyNative()
         val client = LocalPtyClient(this, fake, ioDispatcher = StandardTestDispatcher(testScheduler))
-        client.start(makeConfig())
-        advanceUntilIdle()
-
         fake.pushChunk("done\n".toByteArray())
         fake.pushEof()
+        client.start(makeConfig())
         advanceUntilIdle()
 
         // After EOF the read loop exits — waitJob hasn't been told to return
@@ -396,13 +396,9 @@ class LocalPtyClientTest {
 
     @Test
     fun shutdown_gracePeriodExpires_escalatesToSigkill() = runTest {
-        // waitpid blocks until pushEof is invoked from outside. To simulate
-        // a stuck child, we just never push it; the shutdown should escalate
-        // after gracePeriodMs.
         val fake = FakePtyNative().apply {
-            // Don't return from waitpid quickly — leave the queue empty so
-            // the read loop blocks. But waitpid itself doesn't read; we need
-            // to drive its behaviour separately. For this test we accept that
+            // waitpid is independent of the scripted read queue. For this test
+            // we accept that
             // waitpid returns instantly with 0; the grace check fires only if
             // waitJob's join doesn't complete before timeout. With the test
             // dispatcher running deterministically, waitJob completes
