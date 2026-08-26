@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   CC_AGENT_PROTOCOL_FEATURES,
   CC_AGENT_PROTOCOL_MIN_VERSION,
@@ -9,10 +9,12 @@ import {
   CC_AGENT_STREAM_EVENT_TYPES,
   CC_AGENT_PROTOCOL_VERSION,
   assertAgentStreamEvent,
+  assertCanonicalAgentStreamEvent,
   assertProtocolCompatible,
   assertApprovalDecision,
   compareProtocolSchemas,
   validateAgentStreamEvent,
+  validateCanonicalAgentStreamEvent,
   validateApprovalDecision,
   validateProtocolDefinition,
   validateProtocolMessage,
@@ -32,6 +34,7 @@ test("public root export matches the canonical schema", () => {
   assert.equal(typeof validateProtocolDefinition, "function");
   assert.equal(typeof validateAgentStreamEvent, "function");
   assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("agent_stream_events"));
+  assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("agent_stream_payloads"));
   assert.deepEqual(
     CC_AGENT_STREAM_EVENT_TYPES,
     CC_AGENT_PROTOCOL_SCHEMA.$defs.AgentStreamEventType.enum,
@@ -70,6 +73,54 @@ test("public validator matches the shared Agent stream event fixture", () => {
       fixture.name,
     );
   }
+});
+
+test("canonical payload validator matches shared positive and negative fixtures", () => {
+  const cases = JSON.parse(
+    readFileSync(
+      new URL(
+        "./fixtures/canonical-agent-stream-payloads.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  for (const fixture of cases) {
+    assert.equal(
+      validateCanonicalAgentStreamEvent(fixture.value).ok,
+      fixture.valid,
+      fixture.name,
+    );
+  }
+  assert.throws(
+    () => assertCanonicalAgentStreamEvent({ type: "tool_use" }),
+    /Invalid canonical AgentStreamEvent/u,
+  );
+});
+
+test("canonical payload union covers every discriminator in the shared corpus", () => {
+  const seen = new Set();
+  const fixtureRoot = new URL("../../agent-sdk/__fixtures__/protocol/", import.meta.url);
+  for (const file of readdirSync(fixtureRoot).filter((name) => name.endsWith(".ndjson"))) {
+    for (const line of readFileSync(new URL(file, fixtureRoot), "utf8")
+      .split(/\r?\n/u)
+      .filter(Boolean)) {
+      const event = JSON.parse(line);
+      if (event.type === "slash_command" || event.type === "totally_new_event_v9") continue;
+      assert.equal(validateCanonicalAgentStreamEvent(event).ok, true, `${file}: ${event.type}`);
+      seen.add(event.type);
+    }
+  }
+  const payloadCases = JSON.parse(
+    readFileSync(
+      new URL("./fixtures/canonical-agent-stream-payloads.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const fixture of payloadCases.filter((entry) => entry.valid)) {
+    seen.add(fixture.value.type);
+  }
+  assert.deepEqual([...seen].sort(), [...CC_AGENT_STREAM_EVENT_TYPES].sort());
 });
 
 test("public validators derive ApprovalDecision from the canonical schema", () => {
@@ -115,7 +166,7 @@ test("package metadata exposes only supported public entry points", () => {
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
   assert.equal(manifest.name, "@chainlesschain/agent-protocol");
-  assert.equal(manifest.version, "0.1.4");
+  assert.equal(manifest.version, "0.1.5");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.license, "MIT");
   assert.equal(manifest.publishConfig.access, "public");

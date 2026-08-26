@@ -195,6 +195,19 @@ export function assertAgentStreamEvent(value: unknown): asserts value is AgentSt
   if (!result.ok) throw new TypeError(\`Invalid AgentStreamEvent: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
 }
 
+export function validateCanonicalAgentStreamEvent(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("CanonicalAgentStreamEvent", value);
+}
+
+export function isCanonicalAgentStreamEvent(value: unknown): value is CanonicalAgentStreamEvent {
+  return validateCanonicalAgentStreamEvent(value).ok;
+}
+
+export function assertCanonicalAgentStreamEvent(value: unknown): asserts value is CanonicalAgentStreamEvent {
+  const result = validateCanonicalAgentStreamEvent(value);
+  if (!result.ok) throw new TypeError(\`Invalid canonical AgentStreamEvent: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
 export function assertProtocolMessage(value: unknown): asserts value is ClientRequest | ClientResponse | ServerRequest | ServerNotification {
   const result = validateProtocolMessage(value);
   if (!result.ok) throw new TypeError(\`Invalid CC Agent protocol message: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
@@ -405,6 +418,9 @@ def validate_approval_decision(value: object) -> tuple[bool, tuple[str, ...]]:
 def validate_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
     return validate_protocol_definition("AgentStreamEventEnvelope", value)
 
+def validate_canonical_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("CanonicalAgentStreamEvent", value)
+
 ${aliases}
 
 ${typedDicts}
@@ -493,6 +509,35 @@ function stringEnumDefinitions() {
       definition.enum.length > 0 &&
       definition.enum.every((value) => typeof value === "string"),
   );
+}
+
+function agentStreamPayloadVariants() {
+  const payload = schema.$defs.AgentStreamEventPayload;
+  if (!payload || !Array.isArray(payload.oneOf)) {
+    throw new Error("AgentStreamEventPayload must remain a oneOf union");
+  }
+  const variants = payload.oneOf.map((branch) => {
+    const ref = branch?.$ref;
+    const name = typeof ref === "string" ? ref.split("/").pop() : null;
+    const definition = name ? schema.$defs[name] : null;
+    const wireValue = definition?.properties?.type?.const;
+    if (!name || typeof wireValue !== "string") {
+      throw new Error(
+        "every AgentStreamEventPayload branch must reference a typed object",
+      );
+    }
+    return { name, wireValue };
+  });
+  const inventory = schema.$defs.AgentStreamEventType?.enum || [];
+  if (
+    variants.length !== inventory.length ||
+    variants.some(({ wireValue }, index) => wireValue !== inventory[index])
+  ) {
+    throw new Error(
+      "AgentStreamEventPayload must cover AgentStreamEventType in canonical order",
+    );
+  }
+  return variants;
 }
 
 function renderKotlinStringEnums() {
@@ -975,6 +1020,9 @@ function renderSwiftApprovalDecision() {
 }
 
 function renderKotlin() {
+  const agentStreamPayloadNames = new Set(
+    agentStreamPayloadVariants().map(({ name }) => name),
+  );
   const models = Object.entries(schema.$defs)
     .filter(
       ([, definition]) =>
@@ -988,11 +1036,17 @@ function renderKotlin() {
       const fields = Object.entries(definition.properties).map(
         ([field, child]) => {
           const optional = !required.has(field);
-          const type = modelType(child, "kotlin");
+          const type =
+            agentStreamPayloadNames.has(name) && field === "type"
+              ? "AgentStreamEventType"
+              : modelType(child, "kotlin");
           return `    val ${modelFieldName(field, "kotlin")}: ${optional && !type.endsWith("?") ? `${type}?` : type}${optional ? " = null" : ""}`;
         },
       );
-      return `data class ${name}(\n${fields.join(",\n")}\n)`;
+      const implementsPayload = agentStreamPayloadNames.has(name)
+        ? " : AgentStreamEventPayload"
+        : "";
+      return `data class ${name}(\n${fields.join(",\n")}\n)${implementsPayload}`;
     })
     .join("\n\n");
   const approvalDecision = renderKotlinApprovalDecision();
@@ -1007,13 +1061,60 @@ typealias JSONValue = Any?
 
 ${stringEnums}
 
+sealed interface AgentStreamEventPayload
+
 ${models}
 
 ${approvalDecision}
 `;
 }
 
+function renderSwiftAgentStreamEventPayload() {
+  const variants = agentStreamPayloadVariants().map(({ name, wireValue }) => ({
+    name,
+    caseName: enumCaseName(wireValue, "swift"),
+  }));
+  const cases = variants
+    .map(({ name, caseName }) => `    case ${caseName}(${name})`)
+    .join("\n");
+  const decodeCases = variants
+    .map(
+      ({ name, caseName }) =>
+        `        case .${caseName}: self = .${caseName}(try ${name}(from: decoder))`,
+    )
+    .join("\n");
+  const encodeCases = variants
+    .map(
+      ({ caseName }) =>
+        `        case .${caseName}(let event): try event.encode(to: encoder)`,
+    )
+    .join("\n");
+  return `public enum AgentStreamEventPayload: Codable, Sendable {
+${cases}
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(AgentStreamEventType.self, forKey: .type) {
+${decodeCases}
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+${encodeCases}
+        }
+    }
+}`;
+}
+
 function renderSwift() {
+  const agentStreamPayloadNames = new Set(
+    agentStreamPayloadVariants().map(({ name }) => name),
+  );
   const models = Object.entries(schema.$defs)
     .filter(
       ([, definition]) =>
@@ -1027,7 +1128,10 @@ function renderSwift() {
       const fields = Object.entries(definition.properties).map(
         ([field, child]) => {
           const optional = !required.has(field);
-          const rawType = modelType(child, "swift");
+          const rawType =
+            agentStreamPayloadNames.has(name) && field === "type"
+              ? "AgentStreamEventType"
+              : modelType(child, "swift");
           const type =
             optional && !rawType.endsWith("?") ? `${rawType}?` : rawType;
           return { field, optional, type };
@@ -1057,6 +1161,7 @@ ${assignments.join("\n")}
     })
     .join("\n\n");
   const approvalDecision = renderSwiftApprovalDecision();
+  const agentStreamEventPayload = renderSwiftAgentStreamEventPayload();
   const stringEnums = renderSwiftStringEnums();
   return `// AUTO-GENERATED by @chainlesschain/agent-protocol. DO NOT EDIT.
 import Foundation
@@ -1098,6 +1203,8 @@ public indirect enum JSONValue: Codable, Sendable {
 ${stringEnums}
 
 ${models}
+
+${agentStreamEventPayload}
 
 ${approvalDecision}
 `;

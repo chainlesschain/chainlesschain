@@ -22,6 +22,7 @@ import {
   CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
   CC_AGENT_STREAM_EVENT_TYPES,
   CC_AGENT_PROTOCOL_VERSION,
+  assertCanonicalAgentStreamEvent,
   assertAgentStreamEvent,
   assertApprovalDecision,
   assertProtocolCompatible,
@@ -33,6 +34,11 @@ console.log(CC_AGENT_STREAM_EVENT_TYPES);
 assertProtocolCompatible(previousSchema, CC_AGENT_PROTOCOL_SCHEMA);
 assertApprovalDecision({ kind: "acceptOnce" });
 assertAgentStreamEvent({ type: "result", subtype: "success" });
+assertCanonicalAgentStreamEvent({
+  type: "result",
+  subtype: "success",
+  is_error: false,
+});
 console.log(validateProtocolMessage(incomingJsonRpcMessage));
 ```
 
@@ -40,8 +46,13 @@ console.log(validateProtocolMessage(incomingJsonRpcMessage));
 `validateApprovalDecision`/`validateAgentStreamEvent` are derived from the
 packaged canonical schema and return `{ ok, errors }`. Their `assert*`
 counterparts throw on invalid input. `CC_AGENT_STREAM_EVENT_TYPES` is the
-generated inventory of known stdout discriminators; transports should still
-preserve unknown future event types for forward compatibility.
+generated inventory of known stdout discriminators. `AgentStreamEventEnvelope`
+and `validateAgentStreamEvent` are the lossless transport boundary and accept
+unknown future event types. `AgentStreamEventPayload` /
+`CanonicalAgentStreamEvent` and `validateCanonicalAgentStreamEvent` validate
+the complete discriminator-specific payload for every currently known event.
+Use the strict validator at application boundaries, while transports should
+still preserve unknown future event types for forward compatibility.
 
 Public subpath exports:
 
@@ -52,7 +63,8 @@ Public subpath exports:
 - `@chainlesschain/agent-protocol/generated/swift` — generated Swift source.
 
 The package version and the protocol version are separate. The current npm
-package is `0.1.4`; the embedded wire protocol is version `1` and declares its
+package release candidate is `0.1.5`; the embedded wire protocol is version
+`1` and declares its
 minimum compatible protocol version in `x-cc-protocol`.
 
 ## Release integrity

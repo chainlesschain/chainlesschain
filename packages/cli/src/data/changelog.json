@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.5",
+      "cliVersions": ["0.1.5", "0.2.4", "0.166.4", "0.166.5"],
+      "date": "2026-08-26",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.5 + Agent Protocol 0.1.5 + Agent SDKs 0.2.4: generated stream payload unions",
+          "body": "> `chainlesschain` **0.166.4 -> 0.166.5**,\n> `@chainlesschain/agent-protocol` **0.1.4 -> 0.1.5**,\n> `@chainlesschain/agent-sdk` **0.2.3 -> 0.2.4**, and\n> `chainlesschain-agent-sdk` **0.2.3 -> 0.2.4** (release candidate,\n> 2026-08-26).\n\n- **Payload-level source of truth**: the canonical schema now defines a\n  discriminator-specific payload for all 37 known Agent stream event types,\n  including their required fields, bounded values, and nested JSON payloads.\n- **Generated unions in every client language**: TypeScript and Python expose\n  `AgentStreamEventPayload` and strict canonical-event validators; Kotlin\n  generates a sealed payload interface; Swift generates a Codable associated\n  value enum. Generator drift fails when the payload and discriminator\n  inventories differ in membership or order.\n- **Strict validation without transport breakage**: hosts can opt into the\n  full `CanonicalAgentStreamEvent` validator for known events while existing\n  lossless envelope guards continue to retain unknown future event types.\n- **Real IDE consumption**: VS Code's production chat mapper admits known\n  events from the vendored generated inventory instead of a duplicate local\n  list. JetBrains compiles the generated payload union alongside its existing\n  generated production routing.\n- **Shared conformance corpus**: protocol, TypeScript SDK, and Python SDK tests\n  validate every canonical discriminator and reject known payloads missing\n  required fields or using an unknown discriminator.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.4",
       "cliVersions": ["0.1.4", "0.2.3", "0.166.3", "0.166.4"],
       "date": "2026-08-26",

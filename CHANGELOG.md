@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.5 + Agent Protocol 0.1.5 + Agent SDKs 0.2.4: generated stream payload unions
+
+> `chainlesschain` **0.166.4 -> 0.166.5**,
+> `@chainlesschain/agent-protocol` **0.1.4 -> 0.1.5**,
+> `@chainlesschain/agent-sdk` **0.2.3 -> 0.2.4**, and
+> `chainlesschain-agent-sdk` **0.2.3 -> 0.2.4** (release candidate,
+> 2026-08-26).
+
+- **Payload-level source of truth**: the canonical schema now defines a
+  discriminator-specific payload for all 37 known Agent stream event types,
+  including their required fields, bounded values, and nested JSON payloads.
+- **Generated unions in every client language**: TypeScript and Python expose
+  `AgentStreamEventPayload` and strict canonical-event validators; Kotlin
+  generates a sealed payload interface; Swift generates a Codable associated
+  value enum. Generator drift fails when the payload and discriminator
+  inventories differ in membership or order.
+- **Strict validation without transport breakage**: hosts can opt into the
+  full `CanonicalAgentStreamEvent` validator for known events while existing
+  lossless envelope guards continue to retain unknown future event types.
+- **Real IDE consumption**: VS Code's production chat mapper admits known
+  events from the vendored generated inventory instead of a duplicate local
+  list. JetBrains compiles the generated payload union alongside its existing
+  generated production routing.
+- **Shared conformance corpus**: protocol, TypeScript SDK, and Python SDK tests
+  validate every canonical discriminator and reject known payloads missing
+  required fields or using an unknown discriminator.
+- **Release validation**: publication requires this exact candidate to pass
+  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
+  `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices.
+
 ### Added - cc CLI 0.166.4 + Agent Protocol 0.1.4 + Agent SDKs 0.2.3: canonical stream event inventory
 
 > `chainlesschain` **0.166.3 -> 0.166.4**,

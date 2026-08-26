@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.101] - Generated Agent stream payload contract (2026-08-26)
+
+- Compile the schema-generated Kotlin sealed payload union for all 37 current
+  Agent stream event discriminators, including discriminator-specific required
+  fields.
+- Retain the generated-enum production routing and lossless unknown-event
+  fallback introduced in 0.4.100.
+
 ## [0.4.100] - Canonical Agent stream event routing (2026-08-26)
 
 - Route the production chat mapper, raw stdout fallback, and conversation

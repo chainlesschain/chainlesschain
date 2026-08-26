@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.70] - Generated Agent stream payload contract (2026-08-26)
+
+- Vendor Agent SDK `0.2.4` and its generated 37-variant canonical payload
+  union plus strict known-event validator.
+- Route the production chat mapper's known-event admission through the
+  generated discriminator inventory instead of maintaining a duplicate list.
+- Preserve additive future events at the transport boundary and keep them
+  UI-silent until the extension explicitly supports their projection.
+
 ## [0.37.69] - Canonical Agent stream event inventory (2026-08-26)
 
 - Vendor Agent SDK `0.2.3`, including the schema-generated known stream-event

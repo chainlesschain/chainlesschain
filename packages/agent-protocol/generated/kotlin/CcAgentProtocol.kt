@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:482b34fd645e656dc246435f91691b870000c3a19735b3cd68719acb6602f509"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:db3fb9d4252552ef169f4fde0101f0376ec3bc92c951b1ca272024091abeb687"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -50,6 +50,8 @@ enum class AgentStreamEventType(val wireValue: String) {
             entries.firstOrNull { it.wireValue == value }
     }
 }
+
+sealed interface AgentStreamEventPayload
 
 data class DataPolicy(
     val origin: String,
@@ -381,6 +383,349 @@ data class AgentStreamEventEnvelope(
     val seq: Long? = null,
     val trace_id: String? = null
 )
+
+data class AgentApprovalRequestStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val session_id: String? = null,
+    val tool: String? = null,
+    val command: String? = null,
+    val risk: String? = null,
+    val rule: String? = null,
+    val reason: String? = null,
+    val binding: String? = null,
+    val requested_permissions: List<PermissionGrant>? = null
+) : AgentStreamEventPayload
+
+data class AgentApprovalResolvedStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val approved: Boolean,
+    val decision: JSONValue? = null,
+    val via: String,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentCheckpointStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val tool: String? = null
+) : AgentStreamEventPayload
+
+data class AgentCompactionStreamEvent(
+    val type: AgentStreamEventType,
+    val stats: JSONValue? = null
+) : AgentStreamEventPayload
+
+data class AgentCompactionDegradedStreamEvent(
+    val type: AgentStreamEventType,
+    val reason: String,
+    val summaryMode: String? = null,
+    val code: String? = null,
+    val commitState: String? = null,
+    val requestId: String? = null
+) : AgentStreamEventPayload
+
+data class AgentCompactionUsageUnknownStreamEvent(
+    val type: AgentStreamEventType,
+    val provider: String? = null,
+    val model: String? = null,
+    val source: String? = null,
+    val reason: String? = null,
+    val usage_outcome: String? = null
+) : AgentStreamEventPayload
+
+data class AgentCostBudgetExhaustedStreamEvent(
+    val type: AgentStreamEventType,
+    val limit_usd: Double? = null,
+    val spent_usd: Double? = null,
+    val session_id: String? = null,
+    val turn: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentElicitationCompleteStreamEvent(
+    val type: AgentStreamEventType,
+    val session_id: String? = null,
+    val server: String? = null,
+    val elicitation_id: String
+) : AgentStreamEventPayload
+
+data class AgentElicitationDeferredStreamEvent(
+    val type: AgentStreamEventType,
+    val session_id: String? = null,
+    val server: String? = null,
+    val request_id: JSONValue? = null,
+    val mode: String,
+    val message: String,
+    val requested_schema: JSONValue? = null,
+    val elicitation_id: String? = null,
+    val url: String? = null,
+    val url_host: String? = null,
+    val reason: String,
+    val wire_action: String
+) : AgentStreamEventPayload
+
+data class AgentFeedbackAckStreamEvent(
+    val type: AgentStreamEventType,
+    val turn_id: String? = null,
+    val kind: String? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentHookProgressStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val hook_event: String,
+    val session_id: String? = null,
+    val parent_id: String? = null,
+    val turn_id: String? = null,
+    val tool_use_id: String? = null,
+    val hook_id: String? = null,
+    val status: String? = null,
+    val decision: String? = null,
+    val duration_ms: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentHookResponseStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val hook_event: String,
+    val session_id: String? = null,
+    val parent_id: String? = null,
+    val turn_id: String? = null,
+    val tool_use_id: String? = null,
+    val decision: String? = null,
+    val blocked: Boolean? = null,
+    val requires_approval: Boolean? = null,
+    val hook_count: Long? = null,
+    val error: String? = null
+) : AgentStreamEventPayload
+
+data class AgentHookStartedStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val hook_event: String,
+    val session_id: String? = null,
+    val parent_id: String? = null,
+    val turn_id: String? = null,
+    val tool_use_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentIterationBudgetExhaustedStreamEvent(
+    val type: AgentStreamEventType,
+    val budget: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentIterationWarningStreamEvent(
+    val type: AgentStreamEventType,
+    val message: String? = null
+) : AgentStreamEventPayload
+
+data class AgentPlanUpdateStreamEvent(
+    val type: AgentStreamEventType,
+    val active: Boolean? = null,
+    val state: String? = null,
+    val plan_id: String? = null,
+    val plan_version: Long? = null,
+    val previous_plan_id: String? = null,
+    val items: List<JSONValue>? = null,
+    val risk: JSONValue? = null,
+    val execution_lock: JSONValue? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentQuestionRequestStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val question: String,
+    val options: List<JSONValue>? = null,
+    val multiSelect: Boolean? = null,
+    val session_id: String? = null,
+    val binding: JSONValue? = null,
+    val metadata: JSONValue? = null
+) : AgentStreamEventPayload
+
+data class AgentQuestionResolvedStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val answer: JSONValue? = null,
+    val via: String? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentQuestionResponseRejectedStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String,
+    val reason: String,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentRawStreamEvent(
+    val type: AgentStreamEventType,
+    val subtype: String? = null,
+    val text: String? = null
+) : AgentStreamEventPayload
+
+data class AgentRecoveryDegradedStreamEvent(
+    val type: AgentStreamEventType,
+    val component: String,
+    val session_id: String? = null,
+    val error: String
+) : AgentStreamEventPayload
+
+data class AgentRemoteControlStreamEvent(
+    val type: AgentStreamEventType,
+    val subtype: String,
+    val pairing_uri: String? = null,
+    val remote_session_id: String? = null,
+    val expires_at: JSONValue? = null,
+    val error: String? = null
+) : AgentStreamEventPayload
+
+data class AgentResultStreamEvent(
+    val type: AgentStreamEventType,
+    val subtype: String,
+    val is_error: Boolean,
+    val result: String? = null,
+    val error: String? = null,
+    val interrupted: Boolean? = null,
+    val session_id: String? = null,
+    val turn: Long? = null,
+    val num_turns: Long? = null,
+    val duration_ms: Long? = null,
+    val tool_calls: Long? = null,
+    val usage: JSONValue? = null,
+    val denials: List<JSONValue>? = null
+) : AgentStreamEventPayload
+
+data class AgentResumeAckStreamEvent(
+    val type: AgentStreamEventType,
+    val token: String? = null,
+    val action: String? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentSessionErrorStreamEvent(
+    val type: AgentStreamEventType,
+    val error: String? = null,
+    val message: String? = null
+) : AgentStreamEventPayload
+
+data class AgentSlashCommandResultStreamEvent(
+    val type: AgentStreamEventType,
+    val request_id: String,
+    val command: String,
+    val ok: Boolean,
+    val text: String? = null,
+    val error: JSONValue? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentContentStreamEvent(
+    val type: AgentStreamEventType,
+    val event: JSONValue
+) : AgentStreamEventPayload
+
+data class AgentStreamRetryStreamEvent(
+    val type: AgentStreamEventType,
+    val attempt: Long? = null,
+    val message: String? = null
+) : AgentStreamEventPayload
+
+data class AgentStructuredResultStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_digest: String,
+    val valid: Boolean,
+    val value: JSONValue,
+    val errors: List<JSONValue>? = null
+) : AgentStreamEventPayload
+
+data class AgentSubagentCompletedStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val subagent_id: String,
+    val parent_id: String,
+    val role: String? = null,
+    val status: String,
+    val background: Boolean,
+    val iteration_count: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentSubagentProgressStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val subagent_id: String,
+    val parent_id: String,
+    val role: String? = null,
+    val event_type: String,
+    val tool: String? = null,
+    val iteration_count: Long? = null,
+    val token_count: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentSubagentStartedStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val subagent_id: String,
+    val parent_id: String,
+    val role: String? = null,
+    val background: Boolean,
+    val max_iterations: Long? = null
+) : AgentStreamEventPayload
+
+data class AgentSystemStreamEvent(
+    val type: AgentStreamEventType,
+    val subtype: String,
+    val session_id: String? = null,
+    val model: String? = null,
+    val provider: String? = null,
+    val permission_mode: String? = null,
+    val tools: List<String>? = null,
+    val slash_commands: List<String>? = null,
+    val input_format: String? = null,
+    val additional_directories: List<String>? = null,
+    val resumed_messages: Long? = null,
+    val turns: Long? = null,
+    val protocol_version: Long? = null,
+    val features: List<String>? = null,
+    val downgraded: Boolean? = null,
+    val disabled_features: List<String>? = null,
+    val ok: Boolean? = null,
+    val reason: String? = null
+) : AgentStreamEventPayload
+
+data class AgentTokenUsageStreamEvent(
+    val type: AgentStreamEventType,
+    val usage: JSONValue? = null
+) : AgentStreamEventPayload
+
+data class AgentToolResultStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String? = null,
+    val plan_item_id: String? = null,
+    val turn: Long? = null,
+    val tool: String,
+    val is_error: Boolean? = null,
+    val error: String? = null,
+    val result: JSONValue? = null,
+    val permission_decision_id: String? = null,
+    val permission_decision: JSONValue? = null
+) : AgentStreamEventPayload
+
+data class AgentToolUseStreamEvent(
+    val type: AgentStreamEventType,
+    val id: String? = null,
+    val plan_item_id: String? = null,
+    val turn: Long? = null,
+    val tool: String,
+    val args: JSONValue? = null
+) : AgentStreamEventPayload
+
+data class AgentUserStreamEvent(
+    val type: AgentStreamEventType,
+    val message: JSONValue? = null,
+    val session_id: String? = null
+) : AgentStreamEventPayload
 
 data class InitializeParams(
     val protocolVersion: Long,

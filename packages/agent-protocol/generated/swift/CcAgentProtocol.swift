@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:482b34fd645e656dc246435f91691b870000c3a19735b3cd68719acb6602f509"
+public let ccAgentProtocolSchemaDigest = "sha256:db3fb9d4252552ef169f4fde0101f0376ec3bc92c951b1ca272024091abeb687"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -1008,6 +1008,961 @@ public struct AgentStreamEventEnvelope: Codable, Sendable {
     }
 }
 
+public struct AgentApprovalRequestStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let session_id: String?
+    public let tool: String?
+    public let command: String?
+    public let risk: String?
+    public let rule: String?
+    public let reason: String?
+    public let binding: String?
+    public let requested_permissions: [PermissionGrant]?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        session_id: String? = nil,
+        tool: String? = nil,
+        command: String? = nil,
+        risk: String? = nil,
+        rule: String? = nil,
+        reason: String? = nil,
+        binding: String? = nil,
+        requested_permissions: [PermissionGrant]? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.session_id = session_id
+        self.tool = tool
+        self.command = command
+        self.risk = risk
+        self.rule = rule
+        self.reason = reason
+        self.binding = binding
+        self.requested_permissions = requested_permissions
+    }
+}
+
+public struct AgentApprovalResolvedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let approved: Bool
+    public let decision: JSONValue?
+    public let via: String
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        approved: Bool,
+        decision: JSONValue? = nil,
+        via: String,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.approved = approved
+        self.decision = decision
+        self.via = via
+        self.session_id = session_id
+    }
+}
+
+public struct AgentCheckpointStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let tool: String?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        tool: String? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.tool = tool
+    }
+}
+
+public struct AgentCompactionStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let stats: JSONValue?
+
+    public init(
+        type: AgentStreamEventType,
+        stats: JSONValue? = nil
+    ) {
+        self.type = type
+        self.stats = stats
+    }
+}
+
+public struct AgentCompactionDegradedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let reason: String
+    public let summaryMode: String?
+    public let code: String?
+    public let commitState: String?
+    public let requestId: String?
+
+    public init(
+        type: AgentStreamEventType,
+        reason: String,
+        summaryMode: String? = nil,
+        code: String? = nil,
+        commitState: String? = nil,
+        requestId: String? = nil
+    ) {
+        self.type = type
+        self.reason = reason
+        self.summaryMode = summaryMode
+        self.code = code
+        self.commitState = commitState
+        self.requestId = requestId
+    }
+}
+
+public struct AgentCompactionUsageUnknownStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let provider: String?
+    public let model: String?
+    public let source: String?
+    public let reason: String?
+    public let usage_outcome: String?
+
+    public init(
+        type: AgentStreamEventType,
+        provider: String? = nil,
+        model: String? = nil,
+        source: String? = nil,
+        reason: String? = nil,
+        usage_outcome: String? = nil
+    ) {
+        self.type = type
+        self.provider = provider
+        self.model = model
+        self.source = source
+        self.reason = reason
+        self.usage_outcome = usage_outcome
+    }
+}
+
+public struct AgentCostBudgetExhaustedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let limit_usd: Double?
+    public let spent_usd: Double?
+    public let session_id: String?
+    public let turn: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        limit_usd: Double? = nil,
+        spent_usd: Double? = nil,
+        session_id: String? = nil,
+        turn: Int? = nil
+    ) {
+        self.type = type
+        self.limit_usd = limit_usd
+        self.spent_usd = spent_usd
+        self.session_id = session_id
+        self.turn = turn
+    }
+}
+
+public struct AgentElicitationCompleteStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let session_id: String?
+    public let server: String?
+    public let elicitation_id: String
+
+    public init(
+        type: AgentStreamEventType,
+        session_id: String? = nil,
+        server: String? = nil,
+        elicitation_id: String
+    ) {
+        self.type = type
+        self.session_id = session_id
+        self.server = server
+        self.elicitation_id = elicitation_id
+    }
+}
+
+public struct AgentElicitationDeferredStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let session_id: String?
+    public let server: String?
+    public let request_id: JSONValue?
+    public let mode: String
+    public let message: String
+    public let requested_schema: JSONValue?
+    public let elicitation_id: String?
+    public let url: String?
+    public let url_host: String?
+    public let reason: String
+    public let wire_action: String
+
+    public init(
+        type: AgentStreamEventType,
+        session_id: String? = nil,
+        server: String? = nil,
+        request_id: JSONValue? = nil,
+        mode: String,
+        message: String,
+        requested_schema: JSONValue? = nil,
+        elicitation_id: String? = nil,
+        url: String? = nil,
+        url_host: String? = nil,
+        reason: String,
+        wire_action: String
+    ) {
+        self.type = type
+        self.session_id = session_id
+        self.server = server
+        self.request_id = request_id
+        self.mode = mode
+        self.message = message
+        self.requested_schema = requested_schema
+        self.elicitation_id = elicitation_id
+        self.url = url
+        self.url_host = url_host
+        self.reason = reason
+        self.wire_action = wire_action
+    }
+}
+
+public struct AgentFeedbackAckStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let turn_id: String?
+    public let kind: String?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        turn_id: String? = nil,
+        kind: String? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.turn_id = turn_id
+        self.kind = kind
+        self.session_id = session_id
+    }
+}
+
+public struct AgentHookProgressStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let hook_event: String
+    public let session_id: String?
+    public let parent_id: String?
+    public let turn_id: String?
+    public let tool_use_id: String?
+    public let hook_id: String?
+    public let status: String?
+    public let decision: String?
+    public let duration_ms: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        hook_event: String,
+        session_id: String? = nil,
+        parent_id: String? = nil,
+        turn_id: String? = nil,
+        tool_use_id: String? = nil,
+        hook_id: String? = nil,
+        status: String? = nil,
+        decision: String? = nil,
+        duration_ms: Int? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.hook_event = hook_event
+        self.session_id = session_id
+        self.parent_id = parent_id
+        self.turn_id = turn_id
+        self.tool_use_id = tool_use_id
+        self.hook_id = hook_id
+        self.status = status
+        self.decision = decision
+        self.duration_ms = duration_ms
+    }
+}
+
+public struct AgentHookResponseStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let hook_event: String
+    public let session_id: String?
+    public let parent_id: String?
+    public let turn_id: String?
+    public let tool_use_id: String?
+    public let decision: String?
+    public let blocked: Bool?
+    public let requires_approval: Bool?
+    public let hook_count: Int?
+    public let error: String?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        hook_event: String,
+        session_id: String? = nil,
+        parent_id: String? = nil,
+        turn_id: String? = nil,
+        tool_use_id: String? = nil,
+        decision: String? = nil,
+        blocked: Bool? = nil,
+        requires_approval: Bool? = nil,
+        hook_count: Int? = nil,
+        error: String? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.hook_event = hook_event
+        self.session_id = session_id
+        self.parent_id = parent_id
+        self.turn_id = turn_id
+        self.tool_use_id = tool_use_id
+        self.decision = decision
+        self.blocked = blocked
+        self.requires_approval = requires_approval
+        self.hook_count = hook_count
+        self.error = error
+    }
+}
+
+public struct AgentHookStartedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let hook_event: String
+    public let session_id: String?
+    public let parent_id: String?
+    public let turn_id: String?
+    public let tool_use_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        hook_event: String,
+        session_id: String? = nil,
+        parent_id: String? = nil,
+        turn_id: String? = nil,
+        tool_use_id: String? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.hook_event = hook_event
+        self.session_id = session_id
+        self.parent_id = parent_id
+        self.turn_id = turn_id
+        self.tool_use_id = tool_use_id
+    }
+}
+
+public struct AgentIterationBudgetExhaustedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let budget: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        budget: Int? = nil
+    ) {
+        self.type = type
+        self.budget = budget
+    }
+}
+
+public struct AgentIterationWarningStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let message: String?
+
+    public init(
+        type: AgentStreamEventType,
+        message: String? = nil
+    ) {
+        self.type = type
+        self.message = message
+    }
+}
+
+public struct AgentPlanUpdateStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let active: Bool?
+    public let state: String?
+    public let plan_id: String?
+    public let plan_version: Int?
+    public let previous_plan_id: String?
+    public let items: [JSONValue]?
+    public let risk: JSONValue?
+    public let execution_lock: JSONValue?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        active: Bool? = nil,
+        state: String? = nil,
+        plan_id: String? = nil,
+        plan_version: Int? = nil,
+        previous_plan_id: String? = nil,
+        items: [JSONValue]? = nil,
+        risk: JSONValue? = nil,
+        execution_lock: JSONValue? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.active = active
+        self.state = state
+        self.plan_id = plan_id
+        self.plan_version = plan_version
+        self.previous_plan_id = previous_plan_id
+        self.items = items
+        self.risk = risk
+        self.execution_lock = execution_lock
+        self.session_id = session_id
+    }
+}
+
+public struct AgentQuestionRequestStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let question: String
+    public let options: [JSONValue]?
+    public let multiSelect: Bool?
+    public let session_id: String?
+    public let binding: JSONValue?
+    public let metadata: JSONValue?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        question: String,
+        options: [JSONValue]? = nil,
+        multiSelect: Bool? = nil,
+        session_id: String? = nil,
+        binding: JSONValue? = nil,
+        metadata: JSONValue? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.question = question
+        self.options = options
+        self.multiSelect = multiSelect
+        self.session_id = session_id
+        self.binding = binding
+        self.metadata = metadata
+    }
+}
+
+public struct AgentQuestionResolvedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let answer: JSONValue?
+    public let via: String?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        answer: JSONValue? = nil,
+        via: String? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.answer = answer
+        self.via = via
+        self.session_id = session_id
+    }
+}
+
+public struct AgentQuestionResponseRejectedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String
+    public let reason: String
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String,
+        reason: String,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.reason = reason
+        self.session_id = session_id
+    }
+}
+
+public struct AgentRawStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let subtype: String?
+    public let text: String?
+
+    public init(
+        type: AgentStreamEventType,
+        subtype: String? = nil,
+        text: String? = nil
+    ) {
+        self.type = type
+        self.subtype = subtype
+        self.text = text
+    }
+}
+
+public struct AgentRecoveryDegradedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let component: String
+    public let session_id: String?
+    public let error: String
+
+    public init(
+        type: AgentStreamEventType,
+        component: String,
+        session_id: String? = nil,
+        error: String
+    ) {
+        self.type = type
+        self.component = component
+        self.session_id = session_id
+        self.error = error
+    }
+}
+
+public struct AgentRemoteControlStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let subtype: String
+    public let pairing_uri: String?
+    public let remote_session_id: String?
+    public let expires_at: JSONValue?
+    public let error: String?
+
+    public init(
+        type: AgentStreamEventType,
+        subtype: String,
+        pairing_uri: String? = nil,
+        remote_session_id: String? = nil,
+        expires_at: JSONValue? = nil,
+        error: String? = nil
+    ) {
+        self.type = type
+        self.subtype = subtype
+        self.pairing_uri = pairing_uri
+        self.remote_session_id = remote_session_id
+        self.expires_at = expires_at
+        self.error = error
+    }
+}
+
+public struct AgentResultStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let subtype: String
+    public let is_error: Bool
+    public let result: String?
+    public let error: String?
+    public let interrupted: Bool?
+    public let session_id: String?
+    public let turn: Int?
+    public let num_turns: Int?
+    public let duration_ms: Int?
+    public let tool_calls: Int?
+    public let usage: JSONValue?
+    public let denials: [JSONValue]?
+
+    public init(
+        type: AgentStreamEventType,
+        subtype: String,
+        is_error: Bool,
+        result: String? = nil,
+        error: String? = nil,
+        interrupted: Bool? = nil,
+        session_id: String? = nil,
+        turn: Int? = nil,
+        num_turns: Int? = nil,
+        duration_ms: Int? = nil,
+        tool_calls: Int? = nil,
+        usage: JSONValue? = nil,
+        denials: [JSONValue]? = nil
+    ) {
+        self.type = type
+        self.subtype = subtype
+        self.is_error = is_error
+        self.result = result
+        self.error = error
+        self.interrupted = interrupted
+        self.session_id = session_id
+        self.turn = turn
+        self.num_turns = num_turns
+        self.duration_ms = duration_ms
+        self.tool_calls = tool_calls
+        self.usage = usage
+        self.denials = denials
+    }
+}
+
+public struct AgentResumeAckStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let token: String?
+    public let action: String?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        token: String? = nil,
+        action: String? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.token = token
+        self.action = action
+        self.session_id = session_id
+    }
+}
+
+public struct AgentSessionErrorStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let error: String?
+    public let message: String?
+
+    public init(
+        type: AgentStreamEventType,
+        error: String? = nil,
+        message: String? = nil
+    ) {
+        self.type = type
+        self.error = error
+        self.message = message
+    }
+}
+
+public struct AgentSlashCommandResultStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let request_id: String
+    public let command: String
+    public let ok: Bool
+    public let text: String?
+    public let error: JSONValue?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        request_id: String,
+        command: String,
+        ok: Bool,
+        text: String? = nil,
+        error: JSONValue? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.request_id = request_id
+        self.command = command
+        self.ok = ok
+        self.text = text
+        self.error = error
+        self.session_id = session_id
+    }
+}
+
+public struct AgentContentStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let event: JSONValue
+
+    public init(
+        type: AgentStreamEventType,
+        event: JSONValue
+    ) {
+        self.type = type
+        self.event = event
+    }
+}
+
+public struct AgentStreamRetryStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let attempt: Int?
+    public let message: String?
+
+    public init(
+        type: AgentStreamEventType,
+        attempt: Int? = nil,
+        message: String? = nil
+    ) {
+        self.type = type
+        self.attempt = attempt
+        self.message = message
+    }
+}
+
+public struct AgentStructuredResultStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_digest: String
+    public let valid: Bool
+    public let value: JSONValue
+    public let errors: [JSONValue]?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_digest: String,
+        valid: Bool,
+        value: JSONValue,
+        errors: [JSONValue]? = nil
+    ) {
+        self.type = type
+        self.schema_digest = schema_digest
+        self.valid = valid
+        self.value = value
+        self.errors = errors
+    }
+}
+
+public struct AgentSubagentCompletedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let subagent_id: String
+    public let parent_id: String
+    public let role: String?
+    public let status: String
+    public let background: Bool
+    public let iteration_count: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        subagent_id: String,
+        parent_id: String,
+        role: String? = nil,
+        status: String,
+        background: Bool,
+        iteration_count: Int? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.subagent_id = subagent_id
+        self.parent_id = parent_id
+        self.role = role
+        self.status = status
+        self.background = background
+        self.iteration_count = iteration_count
+    }
+}
+
+public struct AgentSubagentProgressStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let subagent_id: String
+    public let parent_id: String
+    public let role: String?
+    public let event_type: String
+    public let tool: String?
+    public let iteration_count: Int?
+    public let token_count: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        subagent_id: String,
+        parent_id: String,
+        role: String? = nil,
+        event_type: String,
+        tool: String? = nil,
+        iteration_count: Int? = nil,
+        token_count: Int? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.subagent_id = subagent_id
+        self.parent_id = parent_id
+        self.role = role
+        self.event_type = event_type
+        self.tool = tool
+        self.iteration_count = iteration_count
+        self.token_count = token_count
+    }
+}
+
+public struct AgentSubagentStartedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let subagent_id: String
+    public let parent_id: String
+    public let role: String?
+    public let background: Bool
+    public let max_iterations: Int?
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        subagent_id: String,
+        parent_id: String,
+        role: String? = nil,
+        background: Bool,
+        max_iterations: Int? = nil
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.subagent_id = subagent_id
+        self.parent_id = parent_id
+        self.role = role
+        self.background = background
+        self.max_iterations = max_iterations
+    }
+}
+
+public struct AgentSystemStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let subtype: String
+    public let session_id: String?
+    public let model: String?
+    public let provider: String?
+    public let permission_mode: String?
+    public let tools: [String]?
+    public let slash_commands: [String]?
+    public let input_format: String?
+    public let additional_directories: [String]?
+    public let resumed_messages: Int?
+    public let turns: Int?
+    public let protocol_version: Int?
+    public let features: [String]?
+    public let downgraded: Bool?
+    public let disabled_features: [String]?
+    public let ok: Bool?
+    public let reason: String?
+
+    public init(
+        type: AgentStreamEventType,
+        subtype: String,
+        session_id: String? = nil,
+        model: String? = nil,
+        provider: String? = nil,
+        permission_mode: String? = nil,
+        tools: [String]? = nil,
+        slash_commands: [String]? = nil,
+        input_format: String? = nil,
+        additional_directories: [String]? = nil,
+        resumed_messages: Int? = nil,
+        turns: Int? = nil,
+        protocol_version: Int? = nil,
+        features: [String]? = nil,
+        downgraded: Bool? = nil,
+        disabled_features: [String]? = nil,
+        ok: Bool? = nil,
+        reason: String? = nil
+    ) {
+        self.type = type
+        self.subtype = subtype
+        self.session_id = session_id
+        self.model = model
+        self.provider = provider
+        self.permission_mode = permission_mode
+        self.tools = tools
+        self.slash_commands = slash_commands
+        self.input_format = input_format
+        self.additional_directories = additional_directories
+        self.resumed_messages = resumed_messages
+        self.turns = turns
+        self.protocol_version = protocol_version
+        self.features = features
+        self.downgraded = downgraded
+        self.disabled_features = disabled_features
+        self.ok = ok
+        self.reason = reason
+    }
+}
+
+public struct AgentTokenUsageStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let usage: JSONValue?
+
+    public init(
+        type: AgentStreamEventType,
+        usage: JSONValue? = nil
+    ) {
+        self.type = type
+        self.usage = usage
+    }
+}
+
+public struct AgentToolResultStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String?
+    public let plan_item_id: String?
+    public let turn: Int?
+    public let tool: String
+    public let is_error: Bool?
+    public let error: String?
+    public let result: JSONValue?
+    public let permission_decision_id: String?
+    public let permission_decision: JSONValue?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String? = nil,
+        plan_item_id: String? = nil,
+        turn: Int? = nil,
+        tool: String,
+        is_error: Bool? = nil,
+        error: String? = nil,
+        result: JSONValue? = nil,
+        permission_decision_id: String? = nil,
+        permission_decision: JSONValue? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.plan_item_id = plan_item_id
+        self.turn = turn
+        self.tool = tool
+        self.is_error = is_error
+        self.error = error
+        self.result = result
+        self.permission_decision_id = permission_decision_id
+        self.permission_decision = permission_decision
+    }
+}
+
+public struct AgentToolUseStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let id: String?
+    public let plan_item_id: String?
+    public let turn: Int?
+    public let tool: String
+    public let args: JSONValue?
+
+    public init(
+        type: AgentStreamEventType,
+        id: String? = nil,
+        plan_item_id: String? = nil,
+        turn: Int? = nil,
+        tool: String,
+        args: JSONValue? = nil
+    ) {
+        self.type = type
+        self.id = id
+        self.plan_item_id = plan_item_id
+        self.turn = turn
+        self.tool = tool
+        self.args = args
+    }
+}
+
+public struct AgentUserStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let message: JSONValue?
+    public let session_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        message: JSONValue? = nil,
+        session_id: String? = nil
+    ) {
+        self.type = type
+        self.message = message
+        self.session_id = session_id
+    }
+}
+
 public struct InitializeParams: Codable, Sendable {
     public let protocolVersion: Int
     public let minimumProtocolVersion: Int
@@ -1078,6 +2033,135 @@ public struct ServerNotification: Codable, Sendable {
         self.jsonrpc = jsonrpc
         self.method = method
         self.params = params
+    }
+}
+
+public enum AgentStreamEventPayload: Codable, Sendable {
+    case approvalRequest(AgentApprovalRequestStreamEvent)
+    case approvalResolved(AgentApprovalResolvedStreamEvent)
+    case checkpoint(AgentCheckpointStreamEvent)
+    case compaction(AgentCompactionStreamEvent)
+    case compactionDegraded(AgentCompactionDegradedStreamEvent)
+    case compactionUsageUnknown(AgentCompactionUsageUnknownStreamEvent)
+    case costBudgetExhausted(AgentCostBudgetExhaustedStreamEvent)
+    case elicitationComplete(AgentElicitationCompleteStreamEvent)
+    case elicitationDeferred(AgentElicitationDeferredStreamEvent)
+    case feedbackAck(AgentFeedbackAckStreamEvent)
+    case hookProgress(AgentHookProgressStreamEvent)
+    case hookResponse(AgentHookResponseStreamEvent)
+    case hookStarted(AgentHookStartedStreamEvent)
+    case iterationBudgetExhausted(AgentIterationBudgetExhaustedStreamEvent)
+    case iterationWarning(AgentIterationWarningStreamEvent)
+    case planUpdate(AgentPlanUpdateStreamEvent)
+    case questionRequest(AgentQuestionRequestStreamEvent)
+    case questionResolved(AgentQuestionResolvedStreamEvent)
+    case questionResponseRejected(AgentQuestionResponseRejectedStreamEvent)
+    case raw(AgentRawStreamEvent)
+    case recoveryDegraded(AgentRecoveryDegradedStreamEvent)
+    case remoteControl(AgentRemoteControlStreamEvent)
+    case result(AgentResultStreamEvent)
+    case resumeAck(AgentResumeAckStreamEvent)
+    case sessionError(AgentSessionErrorStreamEvent)
+    case slashCommandResult(AgentSlashCommandResultStreamEvent)
+    case streamEvent(AgentContentStreamEvent)
+    case streamRetry(AgentStreamRetryStreamEvent)
+    case structuredResult(AgentStructuredResultStreamEvent)
+    case subagentCompleted(AgentSubagentCompletedStreamEvent)
+    case subagentProgress(AgentSubagentProgressStreamEvent)
+    case subagentStarted(AgentSubagentStartedStreamEvent)
+    case system(AgentSystemStreamEvent)
+    case tokenUsage(AgentTokenUsageStreamEvent)
+    case toolResult(AgentToolResultStreamEvent)
+    case toolUse(AgentToolUseStreamEvent)
+    case user(AgentUserStreamEvent)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(AgentStreamEventType.self, forKey: .type) {
+        case .approvalRequest: self = .approvalRequest(try AgentApprovalRequestStreamEvent(from: decoder))
+        case .approvalResolved: self = .approvalResolved(try AgentApprovalResolvedStreamEvent(from: decoder))
+        case .checkpoint: self = .checkpoint(try AgentCheckpointStreamEvent(from: decoder))
+        case .compaction: self = .compaction(try AgentCompactionStreamEvent(from: decoder))
+        case .compactionDegraded: self = .compactionDegraded(try AgentCompactionDegradedStreamEvent(from: decoder))
+        case .compactionUsageUnknown: self = .compactionUsageUnknown(try AgentCompactionUsageUnknownStreamEvent(from: decoder))
+        case .costBudgetExhausted: self = .costBudgetExhausted(try AgentCostBudgetExhaustedStreamEvent(from: decoder))
+        case .elicitationComplete: self = .elicitationComplete(try AgentElicitationCompleteStreamEvent(from: decoder))
+        case .elicitationDeferred: self = .elicitationDeferred(try AgentElicitationDeferredStreamEvent(from: decoder))
+        case .feedbackAck: self = .feedbackAck(try AgentFeedbackAckStreamEvent(from: decoder))
+        case .hookProgress: self = .hookProgress(try AgentHookProgressStreamEvent(from: decoder))
+        case .hookResponse: self = .hookResponse(try AgentHookResponseStreamEvent(from: decoder))
+        case .hookStarted: self = .hookStarted(try AgentHookStartedStreamEvent(from: decoder))
+        case .iterationBudgetExhausted: self = .iterationBudgetExhausted(try AgentIterationBudgetExhaustedStreamEvent(from: decoder))
+        case .iterationWarning: self = .iterationWarning(try AgentIterationWarningStreamEvent(from: decoder))
+        case .planUpdate: self = .planUpdate(try AgentPlanUpdateStreamEvent(from: decoder))
+        case .questionRequest: self = .questionRequest(try AgentQuestionRequestStreamEvent(from: decoder))
+        case .questionResolved: self = .questionResolved(try AgentQuestionResolvedStreamEvent(from: decoder))
+        case .questionResponseRejected: self = .questionResponseRejected(try AgentQuestionResponseRejectedStreamEvent(from: decoder))
+        case .raw: self = .raw(try AgentRawStreamEvent(from: decoder))
+        case .recoveryDegraded: self = .recoveryDegraded(try AgentRecoveryDegradedStreamEvent(from: decoder))
+        case .remoteControl: self = .remoteControl(try AgentRemoteControlStreamEvent(from: decoder))
+        case .result: self = .result(try AgentResultStreamEvent(from: decoder))
+        case .resumeAck: self = .resumeAck(try AgentResumeAckStreamEvent(from: decoder))
+        case .sessionError: self = .sessionError(try AgentSessionErrorStreamEvent(from: decoder))
+        case .slashCommandResult: self = .slashCommandResult(try AgentSlashCommandResultStreamEvent(from: decoder))
+        case .streamEvent: self = .streamEvent(try AgentContentStreamEvent(from: decoder))
+        case .streamRetry: self = .streamRetry(try AgentStreamRetryStreamEvent(from: decoder))
+        case .structuredResult: self = .structuredResult(try AgentStructuredResultStreamEvent(from: decoder))
+        case .subagentCompleted: self = .subagentCompleted(try AgentSubagentCompletedStreamEvent(from: decoder))
+        case .subagentProgress: self = .subagentProgress(try AgentSubagentProgressStreamEvent(from: decoder))
+        case .subagentStarted: self = .subagentStarted(try AgentSubagentStartedStreamEvent(from: decoder))
+        case .system: self = .system(try AgentSystemStreamEvent(from: decoder))
+        case .tokenUsage: self = .tokenUsage(try AgentTokenUsageStreamEvent(from: decoder))
+        case .toolResult: self = .toolResult(try AgentToolResultStreamEvent(from: decoder))
+        case .toolUse: self = .toolUse(try AgentToolUseStreamEvent(from: decoder))
+        case .user: self = .user(try AgentUserStreamEvent(from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .approvalRequest(let event): try event.encode(to: encoder)
+        case .approvalResolved(let event): try event.encode(to: encoder)
+        case .checkpoint(let event): try event.encode(to: encoder)
+        case .compaction(let event): try event.encode(to: encoder)
+        case .compactionDegraded(let event): try event.encode(to: encoder)
+        case .compactionUsageUnknown(let event): try event.encode(to: encoder)
+        case .costBudgetExhausted(let event): try event.encode(to: encoder)
+        case .elicitationComplete(let event): try event.encode(to: encoder)
+        case .elicitationDeferred(let event): try event.encode(to: encoder)
+        case .feedbackAck(let event): try event.encode(to: encoder)
+        case .hookProgress(let event): try event.encode(to: encoder)
+        case .hookResponse(let event): try event.encode(to: encoder)
+        case .hookStarted(let event): try event.encode(to: encoder)
+        case .iterationBudgetExhausted(let event): try event.encode(to: encoder)
+        case .iterationWarning(let event): try event.encode(to: encoder)
+        case .planUpdate(let event): try event.encode(to: encoder)
+        case .questionRequest(let event): try event.encode(to: encoder)
+        case .questionResolved(let event): try event.encode(to: encoder)
+        case .questionResponseRejected(let event): try event.encode(to: encoder)
+        case .raw(let event): try event.encode(to: encoder)
+        case .recoveryDegraded(let event): try event.encode(to: encoder)
+        case .remoteControl(let event): try event.encode(to: encoder)
+        case .result(let event): try event.encode(to: encoder)
+        case .resumeAck(let event): try event.encode(to: encoder)
+        case .sessionError(let event): try event.encode(to: encoder)
+        case .slashCommandResult(let event): try event.encode(to: encoder)
+        case .streamEvent(let event): try event.encode(to: encoder)
+        case .streamRetry(let event): try event.encode(to: encoder)
+        case .structuredResult(let event): try event.encode(to: encoder)
+        case .subagentCompleted(let event): try event.encode(to: encoder)
+        case .subagentProgress(let event): try event.encode(to: encoder)
+        case .subagentStarted(let event): try event.encode(to: encoder)
+        case .system(let event): try event.encode(to: encoder)
+        case .tokenUsage(let event): try event.encode(to: encoder)
+        case .toolResult(let event): try event.encode(to: encoder)
+        case .toolUse(let event): try event.encode(to: encoder)
+        case .user(let event): try event.encode(to: encoder)
+        }
     }
 }
 

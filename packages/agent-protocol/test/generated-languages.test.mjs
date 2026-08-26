@@ -7,6 +7,7 @@ function read(relativeUrl) {
 }
 
 test("generated clients preserve protocol field names across language keywords", () => {
+  const typescript = read("../../agent-sdk/src/generated/app-protocol.ts");
   const python = read(
     "../../agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py",
   );
@@ -17,6 +18,8 @@ test("generated clients preserve protocol field names across language keywords",
   assert.doesNotMatch(python, /^\s+from:/mu);
   assert.match(python, /def validate_approval_decision\(/u);
   assert.match(python, /def validate_agent_stream_event\(/u);
+  assert.match(python, /def validate_canonical_agent_stream_event\(/u);
+  assert.match(python, /AgentStreamEventPayload: TypeAlias = Union\[/u);
   assert.match(python, /AgentStreamEventType: TypeAlias = Literal\[/u);
   assert.match(python, /class AgentStreamEventEnvelope\(/u);
   assert.match(kotlin, /val `when`: String/u);
@@ -36,6 +39,11 @@ test("generated clients preserve protocol field names across language keywords",
   assert.match(kotlin, /STRUCTURED_RESULT\("structured_result"\)/u);
   assert.match(kotlin, /data class AgentStreamEventEnvelope\(/u);
   assert.match(kotlin, /val type: AgentStreamEventType/u);
+  assert.match(kotlin, /sealed interface AgentStreamEventPayload/u);
+  assert.match(
+    kotlin,
+    /data class AgentToolUseStreamEvent\([\s\S]*: AgentStreamEventPayload/u,
+  );
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
   assert.match(swift, /public enum ApprovalDecision: Codable, Sendable/u);
   assert.match(
@@ -53,4 +61,11 @@ test("generated clients preserve protocol field names across language keywords",
     /public struct AgentStreamEventEnvelope: Codable, Sendable/u,
   );
   assert.match(swift, /public let type: AgentStreamEventType/u);
+  assert.match(typescript, /export type AgentStreamEventPayload =/u);
+  assert.match(typescript, /export function validateCanonicalAgentStreamEvent/u);
+  assert.match(
+    swift,
+    /public enum AgentStreamEventPayload: Codable, Sendable/u,
+  );
+  assert.match(swift, /case toolUse\(AgentToolUseStreamEvent\)/u);
 });

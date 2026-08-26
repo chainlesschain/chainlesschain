@@ -55,6 +55,25 @@ test("IDE CI reruns when the SDK or canonical protocol changes", () => {
   assert.match(workflow, /run: npm run check:agent-sdk/u);
 });
 
+test("VS Code production mapper admits only generated Agent event types", () => {
+  const generatedTypes = new Set(protocol.CC_AGENT_STREAM_EVENT_TYPES);
+  assert.equal(generatedTypes.has("session_error"), true);
+  assert.deepEqual(
+    mapAgentEvent(
+      { type: "session_error", error: "spawn failed" },
+      createTurnState(),
+    ),
+    { kind: "error", text: "spawn failed" },
+  );
+  assert.equal(
+    mapAgentEvent(
+      { type: "future_event_v2", payload: { preserved: true } },
+      createTurnState(),
+    ),
+    null,
+  );
+});
+
 test("VS Code replays the canonical ApprovalDecision conformance fixture", () => {
   const fixturePath = path.join(
     repoRoot,

@@ -16,6 +16,12 @@
  *   session_error { text }                agent child process failed to start
  */
 
+const {
+  CC_AGENT_STREAM_EVENT_TYPES,
+} = require("../vendor/agent-sdk/generated/app-protocol.js");
+
+const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
+
 /** One-line argument summary for the tool trace (mirrors the CLI's trace). */
 function summarizeToolArgs(args) {
   if (!args || typeof args !== "object") return "";
@@ -84,7 +90,14 @@ function requestedApprovalPermissions(evt) {
  * @returns {object|null} a UI message, or null when the event is UI-silent
  */
 function mapAgentEvent(evt, state) {
-  if (!evt || typeof evt !== "object") return null;
+  if (
+    !evt ||
+    typeof evt !== "object" ||
+    typeof evt.type !== "string" ||
+    !KNOWN_AGENT_STREAM_EVENT_TYPES.has(evt.type)
+  ) {
+    return null;
+  }
   switch (evt.type) {
     case "system":
       if (evt.subtype === "init") {

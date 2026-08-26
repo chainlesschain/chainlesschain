@@ -40,6 +40,13 @@ unknown future event can import `isKnownAgentEvent` from
 lossless transport guard and intentionally accepts any object with a string
 `type`.
 
+For a known event that must satisfy its complete generated payload contract,
+import `CanonicalAgentStreamEvent`, `AgentStreamEventPayload`, and
+`validateCanonicalAgentStreamEvent` from `@chainlesschain/agent-sdk`. The
+strict validator covers all 37 current discriminators; it is opt-in so an SDK
+transport can continue delivering an additive future event without dropping
+it before the host upgrades.
+
 Approval callbacks may still return booleans for source compatibility. Direct
 `respondApproval(id, boolean)` calls retain the legacy boolean wire; structured
 decisions echo the request binding and can express scoped turn/session grants.

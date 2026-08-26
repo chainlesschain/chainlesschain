@@ -48,14 +48,17 @@ from .protocol import (
     parse_event_json,
 )
 from .generated_app_protocol import (
+    AgentStreamEventPayload,
     ApprovalDecision,
     CC_AGENT_STREAM_EVENT_TYPES,
     CC_AGENT_PROTOCOL_FEATURES,
     CC_AGENT_PROTOCOL_MIN_VERSION,
     CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
     CC_AGENT_PROTOCOL_VERSION,
+    CanonicalAgentStreamEvent,
     validate_approval_decision,
     validate_agent_stream_event,
+    validate_canonical_agent_stream_event,
     validate_protocol_definition,
     validate_protocol_message,
 )
@@ -85,10 +88,12 @@ __all__ = [
     "AgentSessionError",
     "AgentSessionOptions",
     "AgentStreamEvent",
+    "AgentStreamEventPayload",
     "ApprovalRequestEvent",
     "ApprovalResolvedEvent",
     "ApprovalDecision",
     "ApprovalVerdict",
+    "CanonicalAgentStreamEvent",
     "CompactionEvent",
     "ContentDeltaEvent",
     "ElicitationCompleteEvent",
@@ -138,6 +143,7 @@ __all__ = [
     "validate_protocol_definition",
     "validate_approval_decision",
     "validate_agent_stream_event",
+    "validate_canonical_agent_stream_event",
 ]
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"

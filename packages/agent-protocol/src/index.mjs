@@ -52,6 +52,10 @@ export function validateAgentStreamEvent(value) {
   return validateProtocolDefinition("AgentStreamEventEnvelope", value);
 }
 
+export function validateCanonicalAgentStreamEvent(value) {
+  return validateProtocolDefinition("CanonicalAgentStreamEvent", value);
+}
+
 export function assertProtocolMessage(value) {
   const result = validateProtocolMessage(value);
   if (!result.ok) {
@@ -79,6 +83,17 @@ export function assertAgentStreamEvent(value) {
   if (!result.ok) {
     throw new TypeError(
       `Invalid AgentStreamEvent: ${result.errors
+        .map((error) => `${error.path} ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+}
+
+export function assertCanonicalAgentStreamEvent(value) {
+  const result = validateCanonicalAgentStreamEvent(value);
+  if (!result.ok) {
+    throw new TypeError(
+      `Invalid canonical AgentStreamEvent: ${result.errors
         .map((error) => `${error.path} ${error.message}`)
         .join("; ")}`,
     );

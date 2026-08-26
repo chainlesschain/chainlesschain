@@ -108,8 +108,11 @@ Unknown `type`s MUST be ignored (forward compatibility), not treated as errors.
 The canonical known discriminator inventory is
 `$defs.AgentStreamEventType` in `@chainlesschain/agent-protocol/schema`; the
 protocol and SDK packages expose generated constants/validators from that same
-definition. It is an inventory and envelope contract in v1, not yet a claim
-that every event payload field has been generated for every client language.
+definition. `$defs.AgentStreamEventPayload` is the one-to-one payload union and
+`$defs.CanonicalAgentStreamEvent` combines it with the common envelope.
+TypeScript, Python, Kotlin, and Swift bindings are generated from those
+definitions. Strict payload validation is opt-in: the transport envelope still
+accepts and preserves unknown future `type` values until a consumer upgrades.
 
 #### 1.2.1 Additive v1 fields (`seq`, `trace_id`, tool-call `id`, permission verdict)
 

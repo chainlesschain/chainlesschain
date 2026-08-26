@@ -24,6 +24,7 @@ from chainlesschain_agent_sdk import (
     parse_event_json,
     validate_approval_decision,
     validate_agent_stream_event,
+    validate_canonical_agent_stream_event,
 )
 
 from tests.event_samples import EVENT_SAMPLES
@@ -45,6 +46,13 @@ AGENT_STREAM_EVENT_FIXTURES = (
     / "test"
     / "fixtures"
     / "agent-stream-events.json"
+)
+CANONICAL_AGENT_STREAM_PAYLOAD_FIXTURES = (
+    PACKAGE_ROOT.parent
+    / "agent-protocol"
+    / "test"
+    / "fixtures"
+    / "canonical-agent-stream-payloads.json"
 )
 
 
@@ -91,6 +99,17 @@ class ProtocolTests(unittest.TestCase):
                 )
         self.assertIn("hook_started", CC_AGENT_STREAM_EVENT_TYPES)
         self.assertIn("structured_result", CC_AGENT_STREAM_EVENT_TYPES)
+
+    def test_shared_canonical_agent_payload_conformance_fixture(self) -> None:
+        fixtures = json.loads(
+            CANONICAL_AGENT_STREAM_PAYLOAD_FIXTURES.read_text(encoding="utf-8")
+        )
+        for fixture in fixtures:
+            with self.subTest(fixture["name"]):
+                self.assertEqual(
+                    validate_canonical_agent_stream_event(fixture["value"])[0],
+                    fixture["valid"],
+                )
 
     def test_approval_events_preserve_binding_and_decision(self) -> None:
         request = parse_event(

@@ -1,0 +1,174 @@
+[
+  {
+    "name": "compaction degradation payload",
+    "valid": true,
+    "value": {
+      "type": "compaction-degraded",
+      "reason": "canonical_compaction_settlement_failed",
+      "summaryMode": "none",
+      "seq": 1,
+      "trace_id": "trace:payloads"
+    }
+  },
+  {
+    "name": "unknown compaction usage payload",
+    "valid": true,
+    "value": {
+      "type": "compaction_usage_unknown",
+      "provider": "openai",
+      "model": "gpt-5",
+      "source": "semantic-compaction",
+      "reason": "provider_transport_outcome_unknown",
+      "usage_outcome": "unknown"
+    }
+  },
+  {
+    "name": "hook started payload",
+    "valid": true,
+    "value": {
+      "type": "hook_started",
+      "schema_version": 1,
+      "hook_event": "PreToolUse",
+      "session_id": "session-1"
+    }
+  },
+  {
+    "name": "hook progress payload",
+    "valid": true,
+    "value": {
+      "type": "hook_progress",
+      "schema_version": 1,
+      "hook_event": "PreToolUse",
+      "hook_id": "hook-1",
+      "status": "completed",
+      "decision": "continue",
+      "duration_ms": 12
+    }
+  },
+  {
+    "name": "hook response payload",
+    "valid": true,
+    "value": {
+      "type": "hook_response",
+      "schema_version": 1,
+      "hook_event": "PreToolUse",
+      "decision": "continue",
+      "blocked": false,
+      "requires_approval": false,
+      "hook_count": 1
+    }
+  },
+  {
+    "name": "rejected question response payload",
+    "valid": true,
+    "value": {
+      "type": "question_response_rejected",
+      "id": "question-1",
+      "reason": "binding_mismatch",
+      "session_id": "session-1"
+    }
+  },
+  {
+    "name": "degraded recovery payload",
+    "valid": true,
+    "value": {
+      "type": "recovery_degraded",
+      "component": "approval_grants",
+      "session_id": "session-1",
+      "error": "persisted grants could not be verified"
+    }
+  },
+  {
+    "name": "remote-control pairing payload",
+    "valid": true,
+    "value": {
+      "type": "remote_control",
+      "subtype": "pairing",
+      "pairing_uri": "cc://pair/session-1",
+      "remote_session_id": "remote-1",
+      "expires_at": 1787756400000
+    }
+  },
+  {
+    "name": "structured result payload",
+    "valid": true,
+    "value": {
+      "type": "structured_result",
+      "schema_digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "valid": true,
+      "value": { "answer": 42 }
+    }
+  },
+  {
+    "name": "subagent started payload",
+    "valid": true,
+    "value": {
+      "type": "subagent_started",
+      "schema_version": 1,
+      "subagent_id": "agent-1",
+      "parent_id": "session-1",
+      "background": true,
+      "max_iterations": 8
+    }
+  },
+  {
+    "name": "subagent progress payload",
+    "valid": true,
+    "value": {
+      "type": "subagent_progress",
+      "schema_version": 1,
+      "subagent_id": "agent-1",
+      "parent_id": "session-1",
+      "event_type": "tool_use",
+      "tool": "read_file",
+      "iteration_count": 1,
+      "token_count": 120
+    }
+  },
+  {
+    "name": "subagent completed payload",
+    "valid": true,
+    "value": {
+      "type": "subagent_completed",
+      "schema_version": 1,
+      "subagent_id": "agent-1",
+      "parent_id": "session-1",
+      "status": "completed",
+      "background": true,
+      "iteration_count": 2
+    }
+  },
+  {
+    "name": "tool use without a tool is invalid",
+    "valid": false,
+    "value": {
+      "type": "tool_use",
+      "args": { "path": "README.md" }
+    }
+  },
+  {
+    "name": "hook lifecycle requires schema version",
+    "valid": false,
+    "value": {
+      "type": "hook_started",
+      "hook_event": "PreToolUse"
+    }
+  },
+  {
+    "name": "structured result requires a digest",
+    "valid": false,
+    "value": {
+      "type": "structured_result",
+      "valid": true,
+      "value": 42
+    }
+  },
+  {
+    "name": "unknown additive discriminator is not a canonical payload",
+    "valid": false,
+    "value": {
+      "type": "future_event_v2",
+      "payload": { "preserved": true }
+    }
+  }
+]

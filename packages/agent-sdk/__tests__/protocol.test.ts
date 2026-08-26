@@ -17,6 +17,7 @@ import {
   isApprovalDecision,
   validateAgentStreamEvent,
   validateApprovalDecision,
+  validateCanonicalAgentStreamEvent,
 } from "../src/generated/app-protocol.js";
 
 describe("protocol type guards", () => {
@@ -92,6 +93,24 @@ describe("protocol type guards", () => {
       expect(validateAgentStreamEvent(value).ok, fixture.name).toBe(
         fixture.valid,
       );
+    }
+  });
+
+  it("matches the shared canonical Agent payload fixture", () => {
+    const fixtures = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../agent-protocol/test/fixtures/canonical-agent-stream-payloads.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as Array<{ name: string; valid: boolean; value: unknown }>;
+    for (const fixture of fixtures) {
+      expect(
+        validateCanonicalAgentStreamEvent(fixture.value).ok,
+        fixture.name,
+      ).toBe(fixture.valid);
     }
   });
 
