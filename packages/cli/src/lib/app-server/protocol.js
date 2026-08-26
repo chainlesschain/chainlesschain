@@ -1,12 +1,5 @@
-import { readFileSync } from "node:fs";
+import schema from "../../generated/cc-agent-protocol.schema.json" with { type: "json" };
 import { validate } from "../json-schema-validate.js";
-
-const schema = JSON.parse(
-  readFileSync(
-    new URL("../../generated/cc-agent-protocol.schema.json", import.meta.url),
-    "utf8",
-  ),
-);
 
 export const APP_SERVER_PROTOCOL_VERSION = schema["x-cc-protocol"].version;
 export const APP_SERVER_MIN_PROTOCOL_VERSION =
