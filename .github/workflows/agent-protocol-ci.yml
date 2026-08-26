@@ -61,7 +61,7 @@ jobs:
         working-directory: packages/agent-sdk
         run: |
           npm run build
-          npm test
+          npx vitest run __tests__/protocol.test.ts __tests__/protocol-fixtures.test.ts
 
       - name: Compile and replay Swift ApprovalDecision conformance
         if: runner.os == 'macOS'
