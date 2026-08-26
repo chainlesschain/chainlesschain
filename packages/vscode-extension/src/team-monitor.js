@@ -32,6 +32,24 @@ const TEAM_MAILBOX_RECEIPT_STATUSES = new Set([
   "processed",
   "dead_letter",
 ]);
+const TEAM_GRAPH_PROJECTION_SCHEMA = "chainlesschain.team-graph-projection/v1";
+const MAX_TEAM_GRAPH_MESSAGES = 5000;
+const MAX_TEAM_GRAPH_HANDOFFS = 1000;
+const TEAM_GRAPH_MESSAGE_STATUSES = new Set([
+  "admitted",
+  "delivered",
+  "read",
+  "processed",
+  "dead_letter",
+]);
+const TEAM_GRAPH_HANDOFF_STATUSES = new Set([
+  "offered",
+  "accepted",
+  "rejected",
+  "committed",
+  "revoked",
+  "expired",
+]);
 
 function hasControlCharacters(value) {
   for (let index = 0; index < value.length; index += 1) {
@@ -458,6 +476,93 @@ function normalizeTeamMailbox(value) {
   };
 }
 
+function unavailableCollaboration(error) {
+  return { available: false, error };
+}
+
+/**
+ * Reduce CLI 0.166.3's canonical Message/Handoff graph to content-free health
+ * counters. Message payloads, payload digests, attempt IDs, agent IDs,
+ * artifact IDs and authority digests never cross the extension-host/Webview
+ * boundary.
+ */
+function normalizeTeamGraphProjection(value) {
+  if (value == null) return null;
+  if (!plainObject(value) || value.schema !== TEAM_GRAPH_PROJECTION_SCHEMA) {
+    return unavailableCollaboration("unsupported collaboration projection");
+  }
+  if (
+    !stableString(value.runId, 256) ||
+    !DIGEST_PATTERN.test(String(value.revisionDigest || "")) ||
+    !DIGEST_PATTERN.test(String(value.authorityDigest || "")) ||
+    !DIGEST_PATTERN.test(String(value.sourceDigest || "")) ||
+    !DIGEST_PATTERN.test(String(value.projectionDigest || "")) ||
+    !plainObject(value.messageGraph) ||
+    !Array.isArray(value.messageGraph.messages) ||
+    !Array.isArray(value.messageGraph.edges) ||
+    !Array.isArray(value.handoffs) ||
+    !Array.isArray(value.custodyEdges) ||
+    value.messageGraph.messages.length > MAX_TEAM_GRAPH_MESSAGES ||
+    value.messageGraph.edges.length > MAX_TEAM_GRAPH_MESSAGES ||
+    value.handoffs.length > MAX_TEAM_GRAPH_HANDOFFS ||
+    value.custodyEdges.length > MAX_TEAM_GRAPH_HANDOFFS
+  ) {
+    return unavailableCollaboration(
+      "collaboration projection exceeds IDE bounds or has invalid authority metadata",
+    );
+  }
+
+  const messageStatuses = Object.fromEntries(
+    [...TEAM_GRAPH_MESSAGE_STATUSES].map((status) => [status, 0]),
+  );
+  let followups = 0;
+  for (const message of value.messageGraph.messages) {
+    if (
+      !plainObject(message) ||
+      !TEAM_GRAPH_MESSAGE_STATUSES.has(message.status) ||
+      !["send", "followup"].includes(message.mode)
+    ) {
+      return unavailableCollaboration("invalid canonical message metadata");
+    }
+    messageStatuses[message.status] += 1;
+    if (message.mode === "followup") followups += 1;
+  }
+
+  const handoffStatuses = Object.fromEntries(
+    [...TEAM_GRAPH_HANDOFF_STATUSES].map((status) => [status, 0]),
+  );
+  for (const handoff of value.handoffs) {
+    if (
+      !plainObject(handoff) ||
+      !TEAM_GRAPH_HANDOFF_STATUSES.has(handoff.status)
+    ) {
+      return unavailableCollaboration("invalid custody handoff metadata");
+    }
+    handoffStatuses[handoff.status] += 1;
+  }
+  for (const edge of value.custodyEdges) {
+    if (
+      !plainObject(edge) ||
+      edge.kind !== "custody_handoff" ||
+      !TEAM_GRAPH_HANDOFF_STATUSES.has(edge.status)
+    ) {
+      return unavailableCollaboration("invalid custody edge metadata");
+    }
+  }
+
+  return {
+    available: true,
+    version: 1,
+    messages: value.messageGraph.messages.length,
+    followups,
+    messageStatuses,
+    handoffs: value.handoffs.length,
+    activeHandoffs: handoffStatuses.offered + handoffStatuses.accepted,
+    handoffStatuses,
+    custodyEdges: value.custodyEdges.length,
+  };
+}
+
 /**
  * Parse a state-file snapshot (string or object) into a normalized, flat task
  * list plus budget/members. Returns { ok:false, error } rather than throwing
@@ -609,6 +714,7 @@ function parseTeamState(input) {
       members: [],
       budget: plainObject(snap.budget) ? snap.budget : null,
       mailbox: null,
+      collaboration: null,
       finalization: plainObject(snap.finalization) ? snap.finalization : null,
     };
   }
@@ -622,6 +728,7 @@ function parseTeamState(input) {
     members: Array.isArray(snap.members) ? snap.members : [],
     budget: snap.budget && typeof snap.budget === "object" ? snap.budget : null,
     mailbox: normalizeTeamMailbox(snap.mailbox),
+    collaboration: normalizeTeamGraphProjection(snap.graphProjection),
   };
 }
 
@@ -666,6 +773,7 @@ module.exports = {
   summarizeTeam,
   normalizeAdjudication,
   normalizeTeamMailbox,
+  normalizeTeamGraphProjection,
   computeTeamControlAttemptDigest,
   computeTeamControlAdjudicationDigest,
   TEAM_STATUSES,

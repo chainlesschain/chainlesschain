@@ -2,6 +2,27 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.68] - Approval event compatibility fix (2026-08-26)
+
+- Preserve the legacy binary `approval_done` event shape by emitting
+  `decisionKind` only for CLI-issued structured approval decisions.
+
+## [0.37.67] - CLI 0.166.3 scoped approvals and durable collaboration (2026-08-26)
+
+- Recommend the fully gated public `chainlesschain@0.166.3` CLI and the
+  canonical Agent Protocol `0.1.2` / Agent SDK `0.2.2` approval contract.
+- Add native, explicitly reviewed approval choices for one operation, the
+  current turn, or the current session, plus deny/cancel. Turn/session grants
+  reuse only the exact capability, scope, and binding supplied by the pending
+  CLI request; Webview messages cannot widen them.
+- Project CLI 0.166.3's durable canonical Message/Handoff graph into Team
+  Monitor as bounded status counters for follow-up deliveries and custody
+  handoffs. Message payloads/digests, attempt and agent identities, artifact
+  IDs, and authority digests never cross into the Webview.
+- Clarify stock Microsoft VS Code installation on the Open VSX Overview: use
+  the versioned VSIX download instead of the generic Install URI, because the
+  extension remains intentionally absent from the Microsoft Marketplace.
+
 ## [0.37.66] - CLI 0.166.2 real-time team messaging (2026-08-25)
 
 - Recommend the fully gated public `chainlesschain@0.166.2` CLI and its

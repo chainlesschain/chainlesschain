@@ -1497,6 +1497,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         btns.className = "buttons";
         const yes = document.createElement("button");
         yes.textContent = "Approve";
+        yes.title = "Approve this exact operation once";
+        const scoped = document.createElement("button");
+        scoped.textContent = "Approval options\u2026";
+        scoped.className = "secondary";
+        scoped.hidden = m.hasScopedPermissions !== true;
         const no = document.createElement("button");
         no.textContent = "Deny";
         no.className = "secondary";
@@ -1509,14 +1514,23 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
               ? { binding: m.binding }
               : {}),
           });
-          yes.disabled = no.disabled = true;
+          yes.disabled = scoped.disabled = no.disabled = true;
           // A keyboard activation must not strand focus on a newly disabled
           // control while the host settles the approval asynchronously.
           input.focus();
         };
         yes.addEventListener("click", () => answer(true));
+        scoped.addEventListener("click", () => {
+          vscode.postMessage({
+            type: "approvalOptions",
+            id: m.id,
+            ...(typeof m.binding === "string" && m.binding
+              ? { binding: m.binding }
+              : {}),
+          });
+        });
         no.addEventListener("click", () => answer(false));
-        btns.appendChild(yes); btns.appendChild(no);
+        btns.appendChild(yes); btns.appendChild(scoped); btns.appendChild(no);
         card.appendChild(q); card.appendChild(btns);
         log.appendChild(card);
         log.scrollTop = log.scrollHeight;
@@ -1528,7 +1542,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           card.className = "approval done";
           const note = document.createElement("div");
           note.className = "info";
-          note.textContent = (m.approved ? "✓ approved" : "✗ denied") +
+          const scopeLabel = m.decisionKind === "acceptForTurn"
+            ? " for this turn"
+            : m.decisionKind === "acceptForSession"
+              ? " for this session"
+              : "";
+          note.textContent = (m.approved ? "✓ approved" + scopeLabel : "✗ denied") +
             (m.via && m.via.indexOf("user") !== 0 ? " (" + m.via + ")" : "");
           card.appendChild(note);
           for (const b of card.querySelectorAll("button")) b.disabled = true;

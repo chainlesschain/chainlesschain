@@ -63,6 +63,15 @@ const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 const WEBVIEW_PROTOCOL_TIMEOUT_MS = 5_000;
 const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
 
+function projectWebviewMessage(message) {
+  if (message?.kind !== "approval") return message;
+  const { permissions, ...publicMessage } = message;
+  return {
+    ...publicMessage,
+    hasScopedPermissions: Array.isArray(permissions) && permissions.length > 0,
+  };
+}
+
 class ChatViewProvider {
   /**
    * @param {*} vscode
@@ -308,7 +317,9 @@ class ChatViewProvider {
 
   _post(msg) {
     if (msg && this.view) {
-      this.view.webview.postMessage(msg).then(undefined, () => {});
+      this.view.webview
+        .postMessage(projectWebviewMessage(msg))
+        .then(undefined, () => {});
     }
   }
 
@@ -2933,6 +2944,122 @@ class ChatViewProvider {
     });
   }
 
+  _sendApprovalDecision(message, conversation = this._convs.active()) {
+    if (!conversation?.session) return false;
+    const pending = this._convs
+      .pendingInteractions(conversation.id)
+      .find(
+        (entry) =>
+          entry?.kind === "approval" &&
+          String(entry.id || "") === String(message?.id || ""),
+      );
+    if (!pending) {
+      this.vscode.window.showWarningMessage(
+        "This approval request is no longer pending.",
+      );
+      return false;
+    }
+    try {
+      conversation.session.sendEvent(buildApprovalResponse(message, pending));
+      return true;
+    } catch (error) {
+      this.vscode.window.showWarningMessage(
+        `Approval was not sent: ${error.message}`,
+      );
+      return false;
+    }
+  }
+
+  async _showApprovalOptions(message) {
+    const conversation = this._convs.active();
+    const pending = conversation
+      ? this._convs
+          .pendingInteractions(conversation.id)
+          .find(
+            (entry) =>
+              entry?.kind === "approval" &&
+              String(entry.id || "") === String(message?.id || ""),
+          )
+      : null;
+    if (!pending || !conversation?.session) {
+      this.vscode.window.showWarningMessage(
+        "This approval request is no longer pending.",
+      );
+      return;
+    }
+    if (
+      message?.binding &&
+      pending.binding &&
+      message.binding !== pending.binding
+    ) {
+      this.vscode.window.showWarningMessage(
+        "Approval binding changed; review the new request instead.",
+      );
+      return;
+    }
+
+    const capabilities = [
+      ...new Set(
+        (pending.permissions || [])
+          .map((permission) => permission.capability)
+          .filter(Boolean),
+      ),
+    ];
+    const scopeDescription = capabilities.length
+      ? capabilities.join(", ").slice(0, 180)
+      : "No reusable permission was supplied by the CLI";
+    const choices = [
+      {
+        label: "$(check) Approve once",
+        description: "Authorize only this exact operation",
+        decisionKind: "acceptOnce",
+      },
+      ...(capabilities.length
+        ? [
+            {
+              label: "$(history) Approve for this turn",
+              description: scopeDescription,
+              detail:
+                "Reuse only the exact CLI-issued capability and scope until this turn ends.",
+              decisionKind: "acceptForTurn",
+            },
+            {
+              label: "$(shield) Approve for this session",
+              description: scopeDescription,
+              detail:
+                "Persist only the exact CLI-issued capability and scope for this chat session.",
+              decisionKind: "acceptForSession",
+            },
+          ]
+        : []),
+      {
+        label: "$(close) Deny",
+        description: "Reject this operation",
+        decisionKind: "decline",
+      },
+      {
+        label: "$(circle-slash) Cancel request",
+        description: "Cancel this approval interaction",
+        decisionKind: "cancel",
+      },
+    ];
+    const picked = await this.vscode.window.showQuickPick(choices, {
+      title: `Approval options: ${pending.tool || "tool"}`,
+      placeHolder:
+        "Choose the narrowest authorization that matches your intent",
+      ignoreFocusOut: true,
+    });
+    if (!picked) return;
+    this._sendApprovalDecision(
+      {
+        id: pending.id,
+        binding: pending.binding,
+        decisionKind: picked.decisionKind,
+      },
+      conversation,
+    );
+  }
+
   /** Reflect the ACTIVE conversation's approval mode in the status bar. */
   _updateModeStatus() {
     if (!this._modeStatus) return;
@@ -3143,7 +3270,19 @@ class ChatViewProvider {
         () => this._reloadLlmConfig(),
       );
     } else if (m.type === "approval") {
-      this.session?.sendEvent(buildApprovalResponse(m));
+      // The Webview owns only the one-shot binary controls. Drop any injected
+      // decisionKind so reusable grants remain gated by the native QuickPick.
+      this._sendApprovalDecision({
+        id: m.id,
+        binding: m.binding,
+        approve: m.approve === true,
+      });
+    } else if (m.type === "approvalOptions") {
+      this._showApprovalOptions(m).catch((error) => {
+        this.vscode.window.showWarningMessage(
+          `Approval options could not be opened: ${error.message}`,
+        );
+      });
     } else if (m.type === "answer") {
       // The in-panel question card's answer (option / text / multi-select, or
       // null when skipped) → unblock the agent's ask_user_question.
