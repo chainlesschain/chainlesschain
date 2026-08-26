@@ -1042,6 +1042,40 @@ test("Android file scan foreground worker declares its WorkManager service type"
   assert.match(manifest, /tools:node="merge"/);
 });
 
+test("Android local terminal owns the permission needed for DNS discovery", () => {
+  const sourceRoot = path.join(
+    repoRoot,
+    "android-app",
+    "feature-local-terminal",
+    "src",
+    "main",
+  );
+  const environment = fs.readFileSync(
+    path.join(
+      sourceRoot,
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "localterminal",
+      "PtyEnvironment.kt",
+    ),
+    "utf8",
+  );
+  const manifest = fs.readFileSync(
+    path.join(sourceRoot, "AndroidManifest.xml"),
+    "utf8",
+  );
+
+  assert.match(environment, /\.activeNetwork\b/);
+  assert.match(environment, /\.getLinkProperties\(/);
+  assert.match(
+    manifest,
+    /android:name="android\.permission\.ACCESS_NETWORK_STATE"/,
+  );
+});
+
 test("Android coverage produces real reports without masking test failures", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
