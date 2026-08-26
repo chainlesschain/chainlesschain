@@ -27,6 +27,10 @@ describe("Coding Agent V3 production surface guard", () => {
       ipcSource,
       /\bipc\.handle\(\s*["'](coding-agent:[^"']+)["']/g,
     );
+    const loopRegisteredChannels = extractChannels(
+      ipcSource,
+      /\[\s*["'](coding-agent:app-server-(?:thread|turn)-[^"']+)["']\s*,\s*["'][^"']+["']\s*\]/g,
+    );
 
     // The legacy respondQuestion and canonical respondElicitation preload
     // methods intentionally share one handler. Pin that compatibility alias
@@ -40,9 +44,9 @@ describe("Coding Agent V3 production surface guard", () => {
     expect(new Set(CODING_AGENT_IPC_CHANNELS).size).toBe(
       CODING_AGENT_IPC_CHANNELS.length,
     );
-    expect([...new Set(registeredChannels)].sort()).toEqual(
-      [...CODING_AGENT_IPC_CHANNELS].sort(),
-    );
+    expect(
+      [...new Set([...registeredChannels, ...loopRegisteredChannels])].sort(),
+    ).toEqual([...CODING_AGENT_IPC_CHANNELS].sort());
     expect([...new Set(preloadChannels)].sort()).toEqual(
       [...CODING_AGENT_IPC_CHANNELS].sort(),
     );

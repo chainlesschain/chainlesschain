@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "events";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 
 vi.mock("crypto", () => ({
   randomUUID: () => "event-id",
@@ -402,9 +403,9 @@ describe("CodingAgentSessionService", () => {
 
   it("consumes the shared canonical approval fixture with exact binding", () => {
     const [request, resolved] = readFileSync(
-      new URL(
+      path.resolve(
+        __dirname,
         "../../../../../../packages/agent-sdk/__fixtures__/protocol/interaction.ndjson",
-        import.meta.url,
       ),
       "utf8",
     )
@@ -440,9 +441,9 @@ describe("CodingAgentSessionService", () => {
   it("keeps canonical causal interleavings on one Desktop session", () => {
     const fixture = JSON.parse(
       readFileSync(
-        new URL(
+        path.resolve(
+          __dirname,
           "../../../../../../packages/agent-sdk/__fixtures__/protocol/causal-conformance.json",
-          import.meta.url,
         ),
         "utf8",
       ),

@@ -71,7 +71,9 @@ describe("Coding Agent V3 production bootstrap", () => {
     const pilot = {
       close: vi.fn().mockResolvedValue(undefined),
     };
-    const PilotClass = vi.fn(() => pilot);
+    const PilotClass = vi.fn(function AppServerPilotMock() {
+      return pilot;
+    });
     const registerIPC = vi.fn(() => vi.fn());
     const controller = createCodingAgentBootstrap({
       service,
