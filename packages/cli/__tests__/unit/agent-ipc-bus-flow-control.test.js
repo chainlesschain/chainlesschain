@@ -326,13 +326,16 @@ describe("AgentIPCBus bounded flow control", () => {
       agentId: "agent-a",
       initTimeoutMs: 1,
     });
+    const rejected = expect(pending).rejects.toThrow(
+      /initialization timed out/,
+    );
     child.stdout.emit(
       "data",
       Buffer.from(`${JSON.stringify({ method: "initialize" })}\n`),
     );
     await vi.advanceTimersByTimeAsync(1);
 
-    await expect(pending).rejects.toThrow(/initialization timed out/);
+    await rejected;
     expect(bus.isAgentRegistered("agent-a")).toBe(false);
     expect(child.stdin.write).not.toHaveBeenCalled();
   });
@@ -404,9 +407,12 @@ describe("AgentIPCBus bounded flow control", () => {
       agentId: "agent-a",
       initTimeoutMs: 1,
     });
+    const rejected = expect(pending).rejects.toThrow(
+      /initialization timed out/,
+    );
     await vi.advanceTimersByTimeAsync(1);
 
-    await expect(pending).rejects.toThrow(/initialization timed out/);
+    await rejected;
     initialize(child);
     expect(child.kill).toHaveBeenCalledTimes(1);
     expect(bus.isAgentRegistered("agent-a")).toBe(false);
