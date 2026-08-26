@@ -99,6 +99,14 @@ test("remote driver calls the existing real host journey after proving remote id
   assert.match(orchestrator, /ssh_host_ed25519_key\.pub/u);
   assert.match(orchestrator, /waitForSshReady/u);
   assert.match(orchestrator, /ConnectTimeout 1/u);
+  assert.match(
+    orchestrator,
+    /retryTransientNetworkOperation\(\s*\(\) => downloadAndUnzipVSCode\(vscodeOptions\)/u,
+  );
+  assert.doesNotMatch(
+    orchestrator,
+    /const vscodeExecutablePath = await downloadAndUnzipVSCode\(vscodeOptions\)/u,
+  );
   assert.match(orchestrator, /preCopyBinding/u);
   assert.match(orchestrator, /candidateBinding[\s\S]*?finalBinding/u);
   assert.match(orchestrator, /sha256sum \/tmp\/chainlesschain-ide\.vsix/u);

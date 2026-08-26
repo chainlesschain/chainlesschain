@@ -8,6 +8,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
+const { retryTransientNetworkOperation } = require("../extension-host/run.cjs");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
 const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "..", "..");
@@ -759,7 +760,12 @@ async function main() {
       runVSCodeCommand,
     } = require("@vscode/test-electron");
     const vscodeOptions = { version: options.vscodeVersion };
-    const vscodeExecutablePath = await downloadAndUnzipVSCode(vscodeOptions);
+    const vscodeExecutablePath = await retryTransientNetworkOperation(
+      () => downloadAndUnzipVSCode(vscodeOptions),
+      {
+        label: `VS Code ${options.vscodeVersion} download for Remote-SSH`,
+      },
+    );
     const localExtensions = path.join(runRoot, "local-extensions");
     const userData = path.join(runRoot, "user-data");
     fs.mkdirSync(path.join(userData, "User"), { recursive: true });
