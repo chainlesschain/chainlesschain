@@ -2,6 +2,11 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.68] - Approval event compatibility fix (2026-08-26)
+
+- Preserve the legacy binary `approval_done` event shape by emitting
+  `decisionKind` only for CLI-issued structured approval decisions.
+
 ## [0.37.67] - CLI 0.166.3 scoped approvals and durable collaboration (2026-08-26)
 
 - Recommend the fully gated public `chainlesschain@0.166.3` CLI and the

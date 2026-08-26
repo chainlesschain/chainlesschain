@@ -237,10 +237,9 @@ function mapAgentEvent(evt, state) {
         kind: "approval_done",
         id: evt.id,
         approved: evt.approved === true,
-        decisionKind:
-          typeof evt.decision?.kind === "string"
-            ? evt.decision.kind.slice(0, 32)
-            : null,
+        ...(typeof evt.decision?.kind === "string"
+          ? { decisionKind: evt.decision.kind.slice(0, 32) }
+          : {}),
         via: evt.via || null,
       };
     case "question_request": {
