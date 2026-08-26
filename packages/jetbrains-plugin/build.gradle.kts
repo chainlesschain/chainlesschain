@@ -71,6 +71,11 @@ dependencies {
     // runs fast and headless. The *SmokeMain harnesses stay as the aggregate
     // gate (smokeTest task); these give per-test isolation + JUnit XML reports.
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    // Production runs inside an IntelliJ host, which provides Kotlin's stdlib.
+    // The isolated smoke/JUnit JVM does not, but main now consumes the
+    // schema-generated Kotlin AgentStreamEventType. Keep stdlib test-only so
+    // kotlin.stdlib.default.dependency=false still prevents bundling it.
+    testRuntimeOnly("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // GUI smoke gate (gap #8): Remote Robot client for src/uiTest/java.
