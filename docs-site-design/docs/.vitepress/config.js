@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · Agent Platform CLI 0.166.2 · Agent SDK 0.2.1 · Open VSX 0.37.66 · JetBrains 0.4.98｜TeamMailbox v3 · Graph Kernel";
+        "v5.0.3.135 · Agent Platform CLI 0.166.3 · Agent SDK 0.2.2 · Open VSX 0.37.68 · JetBrains 0.4.98｜Canonical Protocol · Graph Kernel";
     }
   },
 
@@ -141,6 +141,10 @@ export default defineConfig({
           {
             text: "Agent Kernel 设计 (106) ⭐NEW",
             link: "/modules/m106-agent-kernel",
+          },
+          {
+            text: "单一协议 Schema 与自动代码生成 (107) ⭐NEW",
+            link: "/modules/m107-agent-protocol-codegen",
           },
         ],
       },
@@ -886,7 +890,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.2) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.3) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {
@@ -1008,6 +1012,10 @@ export default defineConfig({
             {
               text: "106 Agent Kernel 设计 ⭐NEW",
               link: "/modules/m106-agent-kernel",
+            },
+            {
+              text: "107 单一协议 Schema 与自动代码生成 ⭐NEW",
+              link: "/modules/m107-agent-protocol-codegen",
             },
           ],
         },

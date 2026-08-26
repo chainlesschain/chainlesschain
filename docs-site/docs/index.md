@@ -24,6 +24,10 @@ features:
     title: Agent Platform 0.166.3
     details: 真实 team agent 消息、canonical message/handoff、custody handoff 与 SessionMessageFabric 已公开；结构化审批支持 exact turn/session grants。
     link: /chainlesschain/cli-team
+  - icon: 🧬
+    title: 单一协议 Schema 与多语言生成
+    details: Agent Protocol v1 以版本化 JSON Schema 统一 TS、Python、Kotlin、Swift 类型、validator、兼容基线与发布门禁。
+    link: /chainlesschain/agent-protocol
   - icon: 🤝
     title: GraphRun 观测与评估
     details: cc team graph 提供耐久事件投影、时间旅行、阻塞根因、diff 与可用于 CI 的 eval 阈值门；默认不展开敏感正文。
@@ -43,7 +47,7 @@ features:
     details: CLI 0.166.3 已在 exact SHA 67fdfd2535 完成三平台 CLI CI、Strict Sandbox、npm 发布和独立回读；Agent SDK 0.2.2 与 Protocol 0.1.2 也已公开。
 ---
 
-> **2026-08-26 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.166.3`，TypeScript/Python Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-3` 的 exact SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立回读。Open VSX `0.37.68` 已公开回读，IDE Bridge 下载量突破 **3 万**；JetBrains `0.4.98` 保持公开。主线已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费 canonical 审批决定。详细入口：[IDE 插件使用指南](/chainlesschain/ide-plugin)、[Agent Team](/chainlesschain/cli-team)、[Agent SDK](/chainlesschain/agent-sdk)与[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
+> **2026-08-26 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.166.3`，TypeScript/Python Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-3` 的 exact SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立回读。Open VSX `0.37.68` 已公开回读，IDE Bridge 下载量突破 **3 万**；JetBrains `0.4.98` 保持公开。主线已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费 canonical 审批决定。详细入口：[Agent Protocol](/chainlesschain/agent-protocol)、[Agent SDK](/chainlesschain/agent-sdk)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[Agent Team](/chainlesschain/cli-team)与[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

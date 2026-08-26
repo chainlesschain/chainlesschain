@@ -459,6 +459,7 @@ npm run test:e2e
 - [CC App Server 使用指南](./cli-app-server.md)
 - [Agent Kernel 使用与运维](./cli-agent-kernel.md)
 - [GraphRun 观测与评估](./cli-team-graph.md)
+- [Agent Protocol：单一 Schema 与多语言生成](./agent-protocol.md)
 - [Agent SDK](./agent-sdk.md)
 - [后台 Agent 与 attach](./cli-background-agents.md)
 - [Agent Team 用户指南](./cli-team.md)

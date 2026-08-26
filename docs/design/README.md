@@ -8,6 +8,7 @@
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
 - Agent Platform `0.166.3` 为真实 `cc team --agent` 子进程提供私有 `team_send|receive|ack|followup` 宿主工具，并公开 canonical message/handoff 投影、custody handoff、state-backed `SessionMessageFabric` 与结构化授权。
+- 单一协议 Schema 与多语言 codegen 已提升为独立模块 107：以 canonical JSON Schema、v1 baseline、确定性生成、跨语言 fixtures 和三平台 CI 统一 CLI/SDK/IDE/native 的 wire contract；公开 `0.1.2` 与源码候选 `0.1.3` 严格分层。
 - 精确发布 SHA `67fdfd2535` 的三平台 CLI CI、Strict Sandbox、npm 发布与独立回读均已闭环；TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 也已公开并完成安装回读。npm 证据不等于 Desktop/native 签名发行或后续 main 增量已经发布。
 - 主线 `7ffa45d820` 已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费同一 canonical `ApprovalDecision`；发布身份仍分别绑定 CLI tag `v-npm-0-166-3` 与 IDE tag `ide-vscode-v0.37.68`。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
@@ -37,7 +38,13 @@
 
 - 从早期 stream-json SDK 方案升级为 Agent Platform 总体设计，覆盖 canonical Schema、多语言 codegen、CC App Server 与 Graph Kernel。
 - 记录 `cc serve --app-server`、`cc team graph inspect|diff|eval`、有界队列、rollout/fork、Effect/reconcile 与 HumanTask 安全不变量。
-- 明确公开 CLI/SDK 与私有协议源、产品入口迁移、真实 provider 旅程和长期 soak 的证据边界。
+- 明确公开 CLI/SDK/Protocol 与后续源码候选、产品入口迁移、真实 provider 旅程和长期 soak 的证据边界。
+
+### `modules/107_单一协议Schema与自动代码生成.md`
+
+- 独立定义 canonical Schema 所有权、wire/package/consumer 三层版本身份与生成物矩阵。
+- 记录 additive/breaking change 规则、v1 baseline、共享 fixtures、跨语言 conformance、三平台 CI 和 npm 发布闭环。
+- 明确 `cc codegen` 是用户代码生成 Agent，不是协议 codegen；完整 legacy stream event union 的生产迁移仍不得写成已完成。
 
 ### `modules/104_CC_App_Server设计.md`
 
@@ -92,14 +99,15 @@
 ### Agent Runtime / 对标主线
 
 1. `modules/103_Agent_SDK平台化方案.md`
-2. `modules/104_CC_App_Server设计.md`
-3. `modules/106_Agent_Kernel设计.md`
-4. `modules/105_Graph_Kernel设计.md`
-5. `modules/78_CLI_Agent_Runtime重构实施计划.md`
-6. `modules/82_CLI_Runtime收口路线图.md`
-7. `modules/85_Hermes_Agent对标实施方案.md`
-8. `modules/88_OpenAgents对标补齐方案.md`
-9. `modules/91_Managed_Agents对标计划.md`
+2. `modules/107_单一协议Schema与自动代码生成.md`
+3. `modules/104_CC_App_Server设计.md`
+4. `modules/106_Agent_Kernel设计.md`
+5. `modules/105_Graph_Kernel设计.md`
+6. `modules/78_CLI_Agent_Runtime重构实施计划.md`
+7. `modules/82_CLI_Runtime收口路线图.md`
+8. `modules/85_Hermes_Agent对标实施方案.md`
+9. `modules/88_OpenAgents对标补齐方案.md`
+10. `modules/91_Managed_Agents对标计划.md`
 
 ### Desktop / Web / 协议联动
 
@@ -114,7 +122,7 @@
 近期与本目录直接相关的新增验证包括：
 
 - CLI `0.166.3@67fdfd2535` exact-SHA：CLI CI 的 Ubuntu/Windows/macOS 完整矩阵、三平台 CLI Strict Sandbox、npm exact-SHA、不可变制品、provenance 与 registry readback 全绿
-- Agent SDK `0.2.1` / Agent Protocol `0.1.1`：TypeScript npm、Python PyPI 与公网安装 smoke 通过
+- Agent SDK `0.2.2` / Agent Protocol `0.1.2`：TypeScript npm、Python PyPI、三平台协议门禁与公网安装 smoke 通过
 - IDE：Open VSX `0.37.68` 与 JetBrains `0.4.98` 已公开回读；TeamMailbox/collaboration projection 在 malformed、oversize、duplicate 时失败闭合；Claude Code Increment Audit 的 36-cell 聚合继续独立判断
 
 - `@chainlesschain/session-core`: `293/293`

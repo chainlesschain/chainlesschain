@@ -566,6 +566,10 @@
     "106_Agent_Kernel设计.md": {
       "docs-site": "106-agent-kernel.md",
       "docs-site-design": "m106-agent-kernel.md"
+    },
+    "107_单一协议Schema与自动代码生成.md": {
+      "docs-site": "107-agent-protocol-codegen.md",
+      "docs-site-design": "m107-agent-protocol-codegen.md"
     }
   }
 }

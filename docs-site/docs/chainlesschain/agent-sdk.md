@@ -40,7 +40,7 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 └──────────┬────────────────────┬──────────────────────┬────────┘
            ▼                    ▼                      ▼
 ┌──────────────────── @chainlesschain/agent-sdk ────────────────┐
-│  protocol.ts   ← 契约单一来源 (PROTOCOL_VERSION=1, 类型+guards) │
+│  protocol.ts   ← legacy stream 兼容层 (类型+guards)             │
 │  agent-session.ts  AgentSession: spawn 双工客户端               │
 │  background.ts     attachBackgroundSession: pipe 接管           │
 │  cli-json.ts       session/checkpoint --json 包装               │
@@ -59,7 +59,7 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 ### `0.2.0` 平台扩展
 
 ```text
-packages/agent-protocol (private canonical schema + baseline)
+packages/agent-protocol (canonical schema + baseline)
    └─ codegen ──► TypeScript / Python / Kotlin / Swift
                          │
                          ▼
@@ -396,7 +396,7 @@ Python 使用同一组语义，字段名改为 snake_case：
 
 | 文件                                                                               | 说明                                                                        |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `packages/agent-sdk/src/protocol.ts`                                               | **契约单一来源**：全事件/输入/帧类型 + guards + `PROTOCOL_VERSION`          |
+| `packages/agent-sdk/src/protocol.ts`                                               | legacy stream-json 兼容类型与 guards；canonical 定义逐步迁入 Agent Protocol |
 | `packages/agent-sdk/src/agent-session.ts`                                          | `AgentSession` spawn 双工客户端（argv 构造 + 事件分发 + 审批/问题自动应答） |
 | `packages/agent-sdk/src/ndjson.ts`                                                 | carry-buffer NDJSON 解码器（含 `flush()`）                                  |
 | `packages/agent-sdk/src/background.ts`                                             | 后台会话 pipe 客户端 + 状态文件读取                                         |
@@ -421,14 +421,15 @@ Python 使用同一组语义，字段名改为 snake_case：
 
 任何对 stream-json 或 App Server 事件的增改都是协议变更，必须**同一提交**内完成以下同步：
 
-1. `packages/agent-sdk/src/protocol.ts`（必要时 bump `PROTOCOL_VERSION`）
-2. `packages/agent-sdk/docs/PROTOCOL.md`
-3. `packages/agent-sdk-python/.../protocol.py` 与共享 fixture conformance tests
-4. JetBrains `ChatEvents.java` / VS Code 消费点（改 SDK 源后重跑 vendor 同步）
-5. `packages/agent-protocol` Schema、v1 baseline 兼容检查与四语言 codegen freshness
+1. `packages/agent-protocol` canonical Schema 与 wire version（必要时进入新协议主版本评审）
+2. 运行协议 codegen，更新 TypeScript/Python/Kotlin/Swift 与 CLI Schema 生成物
+3. 更新共享 fixtures、v1 baseline 兼容检查与跨语言 conformance tests
+4. 同步仍在迁移期的 `packages/agent-sdk/src/protocol.ts`、Python legacy stream 类型与语言中立 `PROTOCOL.md`
+5. 更新 JetBrains / VS Code / Desktop / Mobile 消费点；改 SDK 源后重跑 vendor 同步
 
 ## 相关文档
 
+- [Agent Protocol：单一 Schema 与多语言生成绑定](./agent-protocol.md)
 - [CLI 命令行工具](./cli.md) — `cc agent` 全旗标
 - [检查点](./checkpoint.md) — checkpoint 子命令详解
 - [Agent Team — 任务图团队编排](./cli-team.md)

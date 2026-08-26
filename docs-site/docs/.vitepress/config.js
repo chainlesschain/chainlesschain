@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · Agent Platform CLI 0.166.2 · Agent SDK 0.2.1 · Open VSX 0.37.66 · JetBrains 0.4.98｜TeamMailbox v3 · Graph Kernel";
+        "v5.0.3.135 · Agent Platform CLI 0.166.3 · Agent SDK 0.2.2 · Open VSX 0.37.68 · JetBrains 0.4.98｜Canonical Protocol · Graph Kernel";
     }
   },
 
@@ -177,7 +177,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.2",
+          text: "🧩 Agent Platform 0.166.3",
           collapsed: false,
           items: [
             {
@@ -191,6 +191,10 @@ export default defineConfig({
             {
               text: "GraphRun 观测与评估 ⭐NEW",
               link: "/chainlesschain/cli-team-graph",
+            },
+            {
+              text: "Agent Protocol — Schema 与多语言生成 ⭐NEW",
+              link: "/chainlesschain/agent-protocol",
             },
             {
               text: "Agent SDK — TypeScript + Python",
@@ -242,7 +246,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (0.166.2) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (0.166.3) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1802,7 +1806,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.2) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.3) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {
@@ -1924,6 +1928,10 @@ export default defineConfig({
             {
               text: "106 Agent Kernel 设计 ⭐NEW",
               link: "/design/modules/106-agent-kernel",
+            },
+            {
+              text: "107 单一协议 Schema 与自动代码生成 ⭐NEW",
+              link: "/design/modules/107-agent-protocol-codegen",
             },
             {
               text: "60b CLI指令技能包 ⭐",

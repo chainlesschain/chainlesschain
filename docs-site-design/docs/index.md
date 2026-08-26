@@ -29,6 +29,11 @@ features:
     details: canonical message/handoff、custody handoff、SessionMessageFabric 与结构化审批已发布；模块 98 记录 IDE 宿主信任和无正文投影边界
     link: /modules/m103-agent-sdk-platform
 
+  - icon: 🧬
+    title: 单一协议 Schema 与自动代码生成
+    details: 模块 107 定义 canonical Schema、TS/Python/Kotlin/Swift 确定性 codegen、兼容基线、跨语言 conformance 与发布证据边界
+    link: /modules/m107-agent-protocol-codegen
+
   - icon: 🔐
     title: 安全机制
     details: U盾/SIMKey硬件安全、PQC后量子密码、门限签名、FIDO2、生物识别等安全设计
@@ -46,7 +51,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-08-26 设计核对**：当前产品版本 `5.0.3.135`，npm `latest` 与生产推荐 CLI 为 Agent Platform `0.166.3`，TypeScript/Python Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`。exact SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 的三平台 CLI CI、Strict Sandbox、npm 发布与独立回读均成功；canonical message/handoff、custody handoff、SessionMessageFabric 与 exact turn/session 审批已进入公开契约。Open VSX `0.37.68` 已公开回读并突破 **3 万下载**，JetBrains `0.4.98` 保持公开。主线 `7ffa45d820` 已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费同一 canonical 审批决定。详见 [Agent Platform 总体设计](/modules/m103-agent-sdk-platform)、[IDE 桥接](/modules/m98-ide-bridge)和[运行时实现核对](/cli-runtime-current)。
+> **2026-08-26 设计核对**：当前产品版本 `5.0.3.135`，npm `latest` 与生产推荐 CLI 为 Agent Platform `0.166.3`，TypeScript/Python Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`。exact SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 的三平台 CLI CI、Strict Sandbox、npm 发布与独立回读均成功；canonical message/handoff、custody handoff、SessionMessageFabric 与 exact turn/session 审批已进入公开契约。Open VSX `0.37.68` 已公开回读并突破 **3 万下载**，JetBrains `0.4.98` 保持公开。主线 `7ffa45d820` 已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费同一 canonical 审批决定。详见 [单一协议 Schema 与自动代码生成](/modules/m107-agent-protocol-codegen)、[Agent Platform 总体设计](/modules/m103-agent-sdk-platform)、[IDE 桥接](/modules/m98-ide-bridge)和[运行时实现核对](/cli-runtime-current)。
 
 ## 快速导航
 
@@ -57,7 +62,7 @@ features:
 | **新人开发者**     | [系统设计主文档](/system-design-main) → [知识库模块](/modules/m01-knowledge-base) → [社交模块](/modules/m02-decentralized-social)                                                                           |
 | **安全工程师**     | [安全机制设计](/security-design) → [统一密钥系统](/modules/m21-unified-key) → [数据防泄漏系统](/modules/m24b-dlp-prevention)                                                                                |
 | **AI工程师**       | [AI优化系统](/modules/m06-ai-optimization) → [多代理系统](/modules/m13-multi-agent) → [推理网络](/modules/m38-decentralized-inference)                                                                      |
-| **Agent 平台集成** | [平台总体设计](/modules/m103-agent-sdk-platform) → [CC App Server](/modules/m104-cc-app-server) → [Agent Kernel](/modules/m106-agent-kernel) → [Graph Kernel](/modules/m105-graph-kernel)                   |
+| **Agent 平台集成** | [平台总体设计](/modules/m103-agent-sdk-platform) → [单一协议与 codegen](/modules/m107-agent-protocol-codegen) → [CC App Server](/modules/m104-cc-app-server) → [Agent Kernel](/modules/m106-agent-kernel) → [Graph Kernel](/modules/m105-graph-kernel) |
 | **运维工程师**     | [生产强化](/modules/m29-production-hardening) → [基础设施编排](/modules/m28-infra-orchestration) → [SIEM](/modules/m25-siem)                                                                                |
 | **产品经理**       | [系统设计主文档](/system-design-main) → [实施总结](/implementation-summary)                                                                                                                                 |
 | **v5.0.0 新模块**  | [IPC域分割](/modules/m43-ipc-domain-split) → [A2A协议](/modules/m46-a2a-protocol) → [零知识证明](/modules/m53-zkp-engine) → [低代码平台](/modules/m58-low-code) → [自进化AI](/modules/m65-self-evolving-ai) |

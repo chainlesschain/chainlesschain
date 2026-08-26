@@ -426,6 +426,7 @@ cd packages/jetbrains-plugin && ./gradlew buildPlugin                        # �
 
 ## 相关文档
 
+- [Agent Protocol：单一 Schema 与多语言生成](/chainlesschain/agent-protocol) — IDE、SDK 与 native 宿主共用的 wire contract、validator 和兼容基线
 - [IDE 插件使用指南](/chainlesschain/ide-plugin) — **使用篇**：Chat 面板全功能、Plan 审阅、Diff 评审、后台/协作面板、快捷键与完整设置面（本页是机制篇）
 - [IDE 计划审阅与共享会话索引](/chainlesschain/ide-plan-review) — 桥接之上的 IDE 原生工作流：Plan Review 可编辑 Markdown 审阅文档（inline comments + 批准/拒绝/要求修改/重新生成）、跨 IDE 共享会话索引、`getActiveFile` 工具
 - [PDH Bridge 个人数据 IDE 桥接](/chainlesschain/pdh-bridge) — **姊妹方案**：同样的 App/IDE-as-MCP-server 反转模式，把桥接搬到安卓手机的设备数据采集（module 101）

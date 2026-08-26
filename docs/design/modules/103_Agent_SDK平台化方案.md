@@ -63,6 +63,8 @@ packages/agent-protocol                                   │
 
 ## 4. Canonical Agent Protocol
 
+协议所有权、版本身份、生成器不变量、兼容基线、跨语言 conformance 与发布流程已拆分到独立的 [107 单一协议 Schema 与自动代码生成](./107_单一协议Schema与自动代码生成.md)。本节只保留 Agent Platform 总体架构所需的摘要，避免 SDK、App Server 与各客户端分别维护协议规则。
+
 Schema 位于 `packages/agent-protocol/schema/cc-agent-protocol.schema.json`，冻结的 v1 基线位于 `schema/baselines/v1.json`。生成器必须保持确定性；任何不兼容改动都要先通过 baseline 检查，不能由某个客户端单独扩写协议。
 
 当前生成目标：
@@ -137,7 +139,7 @@ cc team graph eval <run-id> --thresholds '{"deadlocked":{"max":0}}'
 - 真实 child Agent 的 message ACK/handoff 长时恢复与 30 分钟 overload/fairness soak 尚未闭环；
 - `graph-agent-real-journey.yml` 仍需真实 provider secret 下的 Linux/Windows/macOS 聚合全绿；
 - Desktop/IDE 的 Graph topology、timeline 与 HumanTask 交互界面仍未接入；
-- 私有 `@chainlesschain/agent-protocol` 不得写成已经公开发布。
+- Agent Protocol 公开版必须绑定 npm 回读与不可变发布标签；仓库清单中的后续源码候选不得写成已经公开发布。
 
 ## 10. 关键文件
 
@@ -158,3 +160,4 @@ cc team graph eval <run-id> --thresholds '{"deadlocked":{"max":0}}'
 - [GraphRun 观测与评估](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
 - [CLI Runtime 当前实现](../cli-runtime-current.md)
 - [Agent Protocol](../../../packages/agent-sdk/docs/PROTOCOL.md)
+- [107 单一协议 Schema 与自动代码生成](./107_单一协议Schema与自动代码生成.md)
