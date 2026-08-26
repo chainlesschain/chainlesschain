@@ -54,7 +54,7 @@ jobs:
       CC_APP_SERVER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
       CC_APP_SERVER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
       CC_APP_SERVER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '1800' }}
-      CC_APP_SERVER_SOAK_OUTPUT: ${{ runner.temp }}/app-server-overload-soak-${{ github.sha }}.json
+      CC_APP_SERVER_SOAK_OUTPUT: app-server-overload-soak.json
     steps:
       - name: Checkout exact App Server candidate
         uses: actions/checkout@v5
