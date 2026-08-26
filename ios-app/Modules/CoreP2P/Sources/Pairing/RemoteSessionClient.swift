@@ -52,15 +52,33 @@ public struct RemoteSessionReconnectPolicy: Sendable, Equatable {
 public typealias RemoteSessionReconnectScheduler =
     (_ delaySeconds: TimeInterval, _ action: @escaping () -> Void) -> Void
 
-/// A decrypted inbound Remote Session event. `json` is the raw decrypted JSON so
-/// callers can decode whatever fields the event type carries.
+/// A decrypted inbound Remote Session event. Known Agent stream events expose
+/// their schema-generated envelope while `json` preserves the complete payload,
+/// including additive future event types this client does not know yet.
 public struct RemoteSessionEvent: Sendable, Equatable {
     public let type: String
     public let json: String
+    public let agentStreamEnvelope: CcAgentProtocol.AgentStreamEventEnvelope?
 
     public init(type: String, json: String) {
         self.type = type
         self.json = json
+        if let data = json.data(using: .utf8),
+           let envelope = try? JSONDecoder().decode(
+               CcAgentProtocol.AgentStreamEventEnvelope.self,
+               from: data
+           ),
+           envelope.type.rawValue == type {
+            agentStreamEnvelope = envelope
+        } else {
+            agentStreamEnvelope = nil
+        }
+    }
+
+    public static func == (lhs: RemoteSessionEvent, rhs: RemoteSessionEvent) -> Bool {
+        // The typed envelope is deterministically derived from the preserved
+        // JSON, so retain the struct's existing wire-level equality semantics.
+        lhs.type == rhs.type && lhs.json == rhs.json
     }
 }
 

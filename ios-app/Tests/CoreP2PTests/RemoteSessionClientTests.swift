@@ -292,6 +292,33 @@ final class RemoteSessionClientTests: XCTestCase {
         XCTAssertEqual(events.count, 1)
         XCTAssertEqual(events.first?.type, "assistant.delta")
         XCTAssertTrue(events.first?.json.contains("\"text\"") ?? false)
+        XCTAssertNil(events.first?.agentStreamEnvelope)
+    }
+
+    func testKnownAgentStreamEventUsesGeneratedEnvelope() throws {
+        let (client, socket, host) = makeHarness()
+        var events: [RemoteSessionEvent] = []
+        client.onEvent = { events.append($0) }
+
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        socket.listener?.webSocketDidOpen(socket)
+        socket.listener?.webSocket(socket, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(socket, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
+
+        try deliverEncrypted([
+            "type": "token_usage",
+            "seq": 7,
+            "trace_id": "trace-swift-1",
+            "usage": ["input_tokens": 21, "output_tokens": 8],
+        ], from: host, to: socket)
+
+        let event = try XCTUnwrap(events.first)
+        XCTAssertEqual(event.type, "token_usage")
+        XCTAssertEqual(event.agentStreamEnvelope?.type.rawValue, "token_usage")
+        XCTAssertEqual(event.agentStreamEnvelope?.seq, 7)
+        XCTAssertEqual(event.agentStreamEnvelope?.trace_id, "trace-swift-1")
+        XCTAssertTrue(event.json.contains("\"usage\""))
     }
 
     func testSessionRevokedClosesAndReportsRevoked() throws {
