@@ -35,7 +35,15 @@ const ERROR_CODES = {
   NOT_FOUND: -32601,
   INTERNAL_ERROR: -32603,
   INVALID_REQUEST: -32600,
+  OVERLOADED: -32004,
 };
+
+function overloadedError(message) {
+  const error = new Error(message);
+  error.code = "OVERLOADED";
+  error.retryAfterMs = 100;
+  return error;
+}
 
 /**
  * P2P 命令适配器
@@ -54,14 +62,27 @@ class P2PCommandAdapter extends EventEmitter {
       retryDelay: options.retryDelay || 1000,
       enableHeartbeat: options.enableHeartbeat !== false,
       heartbeatInterval: options.heartbeatInterval || 30000, // 30 秒心跳
+      maxPendingRequests: options.maxPendingRequests || 128,
+      maxRunningCommands: options.maxRunningCommands || 128,
+      maxMessageBytes: options.maxMessageBytes || 1024 * 1024,
       ...options,
     };
+    for (const [key, fallback] of [
+      ["maxPendingRequests", 128],
+      ["maxRunningCommands", 128],
+      ["maxMessageBytes", 1024 * 1024],
+    ]) {
+      if (!Number.isSafeInteger(this.options[key]) || this.options[key] <= 0) {
+        this.options[key] = fallback;
+      }
+    }
 
     // 待处理请求（用于匹配响应）
     this.pendingRequests = new Map();
 
     // 运行中的命令（可取消）
     this.runningCommands = new Map();
+    this.admittedInboundCommands = new Set();
 
     // 已注册的移动端设备
     this.registeredDevices = new Map();
@@ -150,6 +171,16 @@ class P2PCommandAdapter extends EventEmitter {
    */
   async handleP2PMessage(peerId, rawMessage) {
     try {
+      const messageBytes = Buffer.byteLength(
+        typeof rawMessage === "string"
+          ? rawMessage
+          : JSON.stringify(rawMessage),
+        "utf8",
+      );
+      if (messageBytes > this.options.maxMessageBytes) {
+        logger.warn("[P2PCommandAdapter] 丢弃超过大小上限的消息");
+        return;
+      }
       // 解析消息
       let message;
       try {
@@ -204,6 +235,23 @@ class P2PCommandAdapter extends EventEmitter {
    */
   async handleCommandRequest(peerId, request) {
     const { id, method, params, auth } = request;
+    const admissionKey = `${peerId}:${id}`;
+
+    if (this.admittedInboundCommands.size >= this.options.maxRunningCommands) {
+      this.sendResponse(peerId, {
+        jsonrpc: "2.0",
+        id,
+        error: {
+          code: ERROR_CODES.OVERLOADED,
+          message: "Command backlog is full",
+          data: { retryAfterMs: 100, retry_after_ms: 100 },
+        },
+      });
+      this.stats.failedRequests++;
+      return;
+    }
+    this.admittedInboundCommands.add(admissionKey);
+    let handedOff = false;
 
     logger.info(`[P2PCommandAdapter] 收到命令: ${method} (id: ${id})`);
     this.stats.totalRequests++;
@@ -262,6 +310,7 @@ class P2PCommandAdapter extends EventEmitter {
         startTime: Date.now(),
         abortController,
         signal: abortController.signal,
+        admissionKey,
       };
 
       // 记录运行中的命令
@@ -276,6 +325,7 @@ class P2PCommandAdapter extends EventEmitter {
         sendResponse: (response) => {
           // 清理运行中命令记录
           this.runningCommands.delete(id);
+          this.admittedInboundCommands.delete(admissionKey);
 
           this.sendResponse(peerId, response);
           // 根据响应结果更新统计
@@ -290,7 +340,9 @@ class P2PCommandAdapter extends EventEmitter {
           }
         },
       });
+      handedOff = true;
     } catch (error) {
+      this.runningCommands.delete(id);
       logger.error("[P2PCommandAdapter] 处理命令请求失败:", error);
 
       // 发送错误响应
@@ -305,6 +357,8 @@ class P2PCommandAdapter extends EventEmitter {
       });
 
       this.stats.failedRequests++;
+    } finally {
+      if (!handedOff) this.admittedInboundCommands.delete(admissionKey);
     }
   }
 
@@ -362,6 +416,7 @@ class P2PCommandAdapter extends EventEmitter {
 
       // 清理
       this.runningCommands.delete(id);
+      this.admittedInboundCommands.delete(runningCommand.admissionKey);
       this.stats.cancelledRequests++;
 
       logger.info(`[P2PCommandAdapter] 命令已取消: ${id}`);
@@ -378,6 +433,7 @@ class P2PCommandAdapter extends EventEmitter {
     if (runningCommand) {
       runningCommand.abortController.abort(reason);
       this.runningCommands.delete(commandId);
+      this.admittedInboundCommands.delete(runningCommand.admissionKey);
       this.stats.cancelledRequests++;
 
       logger.info(`[P2PCommandAdapter] 服务端取消命令: ${commandId}`);
@@ -443,6 +499,9 @@ class P2PCommandAdapter extends EventEmitter {
    * 发送命令（PC -> Android）
    */
   async sendCommand(peerId, method, params, options = {}) {
+    if (this.pendingRequests.size >= this.options.maxPendingRequests) {
+      throw overloadedError("P2P command request backlog is full");
+    }
     const requestId = this.generateRequestId();
     const timeout = options.timeout || this.options.requestTimeout;
     const retries =
@@ -482,10 +541,16 @@ class P2PCommandAdapter extends EventEmitter {
           });
 
           // 发送消息
-          this.sendMessage(peerId, {
-            type: MESSAGE_TYPES.COMMAND_REQUEST,
-            payload: request,
-          });
+          try {
+            this.sendMessage(peerId, {
+              type: MESSAGE_TYPES.COMMAND_REQUEST,
+              payload: request,
+            });
+          } catch (error) {
+            clearTimeout(timeoutTimer);
+            this.pendingRequests.delete(requestId);
+            reject(error);
+          }
         });
       },
       retries,
@@ -546,6 +611,11 @@ class P2PCommandAdapter extends EventEmitter {
   sendMessage(peerId, message) {
     try {
       const messageStr = JSON.stringify(message);
+      if (
+        Buffer.byteLength(messageStr, "utf8") > this.options.maxMessageBytes
+      ) {
+        throw overloadedError("P2P command message exceeds payload limit");
+      }
       this.p2pManager.sendMessage(peerId, messageStr);
     } catch (error) {
       logger.error(`[P2PCommandAdapter] 发送消息失败 to ${peerId}:`, error);
@@ -666,6 +736,7 @@ class P2PCommandAdapter extends EventEmitter {
       connectedDevices: this.registeredDevices.size,
       pendingRequests: this.pendingRequests.size,
       runningCommands: this.runningCommands.size,
+      admittedInboundCommands: this.admittedInboundCommands.size,
       uptime: Date.now() - this.stats.startTime,
     };
   }
@@ -768,6 +839,7 @@ class P2PCommandAdapter extends EventEmitter {
       cmd.abortController.abort("Adapter cleanup");
     }
     this.runningCommands.clear();
+    this.admittedInboundCommands.clear();
 
     // 清理待处理请求
     for (const [id, pending] of this.pendingRequests.entries()) {

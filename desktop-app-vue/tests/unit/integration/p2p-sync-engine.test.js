@@ -196,6 +196,29 @@ describe("P2PSyncEngine", () => {
       expect(p2pManager.handlers["sync:change"]).toBeDefined();
       expect(p2pManager.handlers["sync:conflict"]).toBeDefined();
     });
+
+    test("should bound pending collectors and retained responses", async () => {
+      syncEngine.config.maxPendingRequests = 1;
+      syncEngine.config.maxResponsesPerRequest = 2;
+      syncEngine.config.maxResponseBytesPerRequest = 1024;
+      const collector = syncEngine.createResponseCollector(
+        "request-1",
+        60_000,
+        10,
+      );
+
+      expect(collector.addResponse({ changes: [1] })).toBe(true);
+      expect(collector.addResponse({ changes: [2] })).toBe(true);
+      expect(collector.addResponse({ changes: [3] })).toBe(false);
+      expect(collector.responses).toHaveLength(2);
+      expect(() =>
+        syncEngine.createResponseCollector("request-2", 60_000, 10),
+      ).toThrow("backlog is full");
+
+      collector.cancel();
+      await expect(collector.promise).resolves.toHaveLength(2);
+      syncEngine.pendingRequests.delete("request-1");
+    });
   });
 
   describe("sync state management", () => {

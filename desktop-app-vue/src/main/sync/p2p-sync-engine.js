@@ -66,6 +66,9 @@ class P2PSyncEngine extends EventEmitter {
       defaultStrategy: "lww", // Last-Write-Wins
       responseTimeout: 10000, // 响应超时时间 10秒
       minResponses: 1, // 最少响应数量
+      maxPendingRequests: 32,
+      maxResponsesPerRequest: 128,
+      maxResponseBytesPerRequest: 8 * 1024 * 1024,
     };
 
     // 同步定时器
@@ -300,6 +303,7 @@ class P2PSyncEngine extends EventEmitter {
       return [];
     } finally {
       // 清理收集器
+      this.pendingRequests.get(requestId)?.cancel();
       this.pendingRequests.delete(requestId);
     }
   }
@@ -312,9 +316,26 @@ class P2PSyncEngine extends EventEmitter {
    * @returns {Object} 收集器对象
    */
   createResponseCollector(requestId, timeout, minResponses) {
+    if (this.pendingRequests.size >= this.config.maxPendingRequests) {
+      const error = new Error("P2P sync response collector backlog is full");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
     const responses = [];
     let resolvePromise;
     let timeoutId;
+    let settleTimer = null;
+    let settled = false;
+    let responseBytes = 0;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      clearTimeout(settleTimer);
+      resolvePromise(responses);
+    };
 
     const promise = new Promise((resolve) => {
       resolvePromise = resolve;
@@ -324,30 +345,46 @@ class P2PSyncEngine extends EventEmitter {
         logger.info(
           `[P2PSyncEngine] 响应收集超时: ${requestId}, 已收集 ${responses.length} 个响应`,
         );
-        resolve(responses);
+        finish();
       }, timeout);
     });
 
     const collector = {
       promise,
       responses,
+      get responseBytes() {
+        return responseBytes;
+      },
       addResponse: (response) => {
+        if (settled) return false;
+        const bytes = Buffer.byteLength(JSON.stringify(response), "utf8");
+        if (
+          responses.length >= this.config.maxResponsesPerRequest ||
+          responseBytes + bytes > this.config.maxResponseBytesPerRequest
+        ) {
+          logger.warn(
+            `[P2PSyncEngine] 响应收集器已满，丢弃 ${requestId} 的额外响应`,
+          );
+          return false;
+        }
         responses.push(response);
+        responseBytes += bytes;
         logger.debug(
           `[P2PSyncEngine] 收到响应 ${responses.length} for ${requestId}`,
         );
 
         // 如果达到最小响应数且已有足够响应，提前解决
-        if (responses.length >= minResponses) {
+        if (responses.length >= minResponses && !settleTimer) {
           // 给予额外 2 秒收集更多响应
-          setTimeout(() => {
+          settleTimer = setTimeout(() => {
             if (this.pendingRequests.has(requestId)) {
-              clearTimeout(timeoutId);
-              resolvePromise(responses);
+              finish();
             }
           }, 2000);
         }
+        return true;
       },
+      cancel: finish,
     };
 
     this.pendingRequests.set(requestId, collector);
