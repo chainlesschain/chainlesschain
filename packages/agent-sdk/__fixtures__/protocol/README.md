@@ -43,9 +43,9 @@ tests keep the two panels honest.
     argument-summary truncation, and an empty-summary tool.
   - `interaction.ndjson` — `approval_request` / `approval_resolved` and
     `question_request` / `question_resolved` (answered vs. timed-out),
-    including a runtime interaction binding that both IDE hosts must preserve
-    and MCP form/URL elicitation requests, the restricted form schema, URL
-    safety metadata, and deferred/completion lifecycle events.
+    including exact approval and runtime question bindings that both IDE hosts
+    must preserve, plus MCP form/URL elicitation requests, the restricted form
+    schema, URL safety metadata, and deferred/completion lifecycle events.
   - `misc.ndjson` — `token_usage`, `plan_update`, `compaction`,
     `iteration_warning`, `iteration_budget_exhausted` (info line),
     `stream_retry` (info line — a reconnect loop must not look like a
@@ -57,6 +57,11 @@ tests keep the two panels honest.
     and a fabricated `totally_new_event_v9`).
 - `expected.json` — for each `*.ndjson` file, the ordered array of expected
   projections (one per non-blank line). `_doc` describes the state rule.
+- `causal-conformance.json` — two legal interleavings of the same turn. The
+  shared harness projects stable semantic nodes and causal edges, checks the
+  exact approval binding and terminal result, and proves the declared parallel
+  tool equivalence classes are unordered. CLI, Desktop, VS Code, and JetBrains
+  tests all consume this file directly.
 
 ## Projection
 
@@ -74,7 +79,7 @@ projection** of that map, not the whole map. The projection is:
 | `tool`                  | `kind, tool, summary`                                                                                   |
 | `tool_done`             | `kind, tool, isError, hasNote` (`note != null`)                                                         |
 | `turn_end`              | `kind, isError, text` (may be `null`), `hasUsage` (`usage != null`)                                     |
-| `approval`              | `kind, id, tool, command, risk, rule, reason`                                                           |
+| `approval`              | `kind, id, tool, command, risk, rule, reason, binding`                                                  |
 | `approval_done`         | `kind, id, approved, via`                                                                               |
 | `question`              | `kind, id, question, multiSelect, hasOptions` (`options != null`), `elicitation`, `server`, `hasSchema`, MCP `mode/elicitationId/url/urlHost`, optional exact `binding` |
 | `plan`                  | `kind, active, state`                                                                                   |

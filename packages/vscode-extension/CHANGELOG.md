@@ -8,6 +8,8 @@ All notable changes to this extension are documented here.
   union plus strict known-event validator.
 - Route the production chat mapper's known-event admission through the
   generated discriminator inventory instead of maintaining a duplicate list.
+- Replay the shared causal fixture in both legal parallel-tool orders and
+  require identical UI projections, approval binding, and terminal result.
 - Preserve additive future events at the transport boundary and keep them
   UI-silent until the extension explicitly supports their projection.
 

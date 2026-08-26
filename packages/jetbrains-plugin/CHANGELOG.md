@@ -5,6 +5,8 @@
 - Compile the schema-generated Kotlin sealed payload union for all 37 current
   Agent stream event discriminators, including discriminator-specific required
   fields.
+- Replay the same causal parallel-tool fixture as CLI, Desktop, VS Code, and
+  Python, retaining its exact approval binding and terminal projection.
 - Retain the generated-enum production routing and lossless unknown-event
   fallback introduced in 0.4.100.
 

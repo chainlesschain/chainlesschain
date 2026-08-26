@@ -59,6 +59,10 @@ jobs:
         run: npm run validate:rules
         continue-on-error: false
 
+      - name: Verify canonical Agent stream desktop consumption
+        working-directory: ./desktop-app-vue
+        run: npx vitest run src/main/ai-engine/code-agent/__tests__/coding-agent-session-service.test.js
+
       - name: Upload validation report
         if: failure()
         uses: actions/upload-artifact@v6

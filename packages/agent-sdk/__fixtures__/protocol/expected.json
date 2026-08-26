@@ -98,7 +98,8 @@
       "command": "rm -rf build",
       "risk": "high",
       "rule": null,
-      "reason": "destructive command"
+      "reason": "destructive command",
+      "binding": "ab_0123456789abcdef0123456789abcdef"
     },
     {
       "kind": "approval_done",

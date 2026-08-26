@@ -204,6 +204,87 @@ const LEGACY_TO_UNIFIED_TYPE = Object.freeze({
 });
 
 /**
+ * Project the canonical `cc agent --output-format stream-json` events that
+ * have a lossless Desktop Coding Agent equivalent. This is a semantic mapping
+ * of implemented UI states, not a second discriminator inventory: events with
+ * no equivalent return null and remain available to the raw transport.
+ */
+function projectAgentStreamMessage(message) {
+  if (!message || typeof message !== "object" || Array.isArray(message)) {
+    return null;
+  }
+
+  let type = null;
+  const payload = { ...message };
+  switch (message.type) {
+    case "system":
+      if (message.subtype !== "init") return null;
+      type = CODING_AGENT_EVENT_TYPES.SESSION_STARTED;
+      payload.record = {
+        provider: message.provider || null,
+        model: message.model || null,
+      };
+      break;
+    case "stream_event": {
+      const delta = message.event?.delta;
+      if (delta?.type === "text_delta" && typeof delta.text === "string") {
+        type = CODING_AGENT_EVENT_TYPES.ASSISTANT_DELTA;
+        payload.content = delta.text;
+      } else if (
+        delta?.type === "thinking_delta" &&
+        typeof delta.thinking === "string"
+      ) {
+        type = CODING_AGENT_EVENT_TYPES.ASSISTANT_THOUGHT_SUMMARY;
+        payload.content = delta.thinking;
+      } else {
+        return null;
+      }
+      break;
+    }
+    case "tool_use":
+      type = CODING_AGENT_EVENT_TYPES.TOOL_CALL_STARTED;
+      payload.toolName = message.tool;
+      break;
+    case "tool_result":
+      type =
+        message.is_error === true
+          ? CODING_AGENT_EVENT_TYPES.TOOL_CALL_FAILED
+          : CODING_AGENT_EVENT_TYPES.TOOL_CALL_COMPLETED;
+      payload.toolName = message.tool;
+      break;
+    case "approval_request":
+      type = CODING_AGENT_EVENT_TYPES.APPROVAL_REQUESTED;
+      break;
+    case "approval_resolved":
+      type =
+        message.approved === true
+          ? CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED
+          : CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED;
+      break;
+    case "plan_update":
+      type = CODING_AGENT_EVENT_TYPES.PLAN_UPDATED;
+      break;
+    case "result":
+      type =
+        message.subtype === "interrupted" || message.interrupted === true
+          ? CODING_AGENT_EVENT_TYPES.SESSION_INTERRUPTED
+          : CODING_AGENT_EVENT_TYPES.ASSISTANT_FINAL;
+      payload.content = message.error || message.result || null;
+      payload.isError = message.is_error === true;
+      break;
+    case "session_error":
+      type = CODING_AGENT_EVENT_TYPES.ERROR;
+      payload.message =
+        message.error || message.message || "Agent session failed";
+      break;
+    default:
+      return null;
+  }
+
+  return { type, payload };
+}
+
+/**
  * Map a legacy kebab-case type into the canonical dot-case type.
  * Returns the original input if no mapping exists, so unknown types fall
  * through and the receiver still gets a structured envelope.
@@ -414,4 +495,5 @@ module.exports = {
   wrapLegacyMessage,
   validateCodingAgentEvent,
   mapLegacyType,
+  projectAgentStreamMessage,
 };

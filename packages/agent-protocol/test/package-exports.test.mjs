@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import {
+  assertDeclaredEquivalenceClasses,
+  projectCausalAgentStream,
+} from "../../agent-sdk/__fixtures__/protocol/causal-conformance.mjs";
+import {
   CC_AGENT_PROTOCOL_FEATURES,
   CC_AGENT_PROTOCOL_MIN_VERSION,
   CC_AGENT_PROTOCOL_SCHEMA,
@@ -121,6 +125,49 @@ test("canonical payload union covers every discriminator in the shared corpus", 
     seen.add(fixture.value.type);
   }
   assert.deepEqual([...seen].sort(), [...CC_AGENT_STREAM_EVENT_TYPES].sort());
+});
+
+test("causal Agent stream fixture preserves partial order across interleavings", () => {
+  const fixture = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../agent-sdk/__fixtures__/protocol/causal-conformance.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  assert.equal(
+    fixture.schema,
+    "chainlesschain.agent-stream-causal-conformance/v1",
+  );
+
+  let baseline = null;
+  for (const fixtureCase of fixture.cases) {
+    for (const event of fixtureCase.events) {
+      assert.equal(
+        validateCanonicalAgentStreamEvent(event).ok,
+        true,
+        `${fixtureCase.name}: ${event.type}`,
+      );
+    }
+    const projection = projectCausalAgentStream(fixtureCase.events);
+    assert.deepEqual(projection, {
+      nodes: fixture.expected.nodes,
+      partialOrder: fixture.expected.partialOrder,
+      approvalBinding: fixture.expected.approvalBinding,
+      terminal: fixture.expected.terminal,
+    });
+    assert.equal(
+      assertDeclaredEquivalenceClasses(
+        projection,
+        fixture.expected.equivalenceClasses,
+      ),
+      true,
+    );
+    baseline ??= projection;
+    assert.deepEqual(projection, baseline, fixtureCase.name);
+  }
 });
 
 test("public validators derive ApprovalDecision from the canonical schema", () => {

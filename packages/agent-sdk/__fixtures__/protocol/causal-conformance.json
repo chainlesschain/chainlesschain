@@ -1,0 +1,93 @@
+{
+  "schema": "chainlesschain.agent-stream-causal-conformance/v1",
+  "description": "Two legal interleavings of one Agent turn. Independent tool branches may reorder, but causal edges, approval binding, and terminal projection must remain equivalent.",
+  "cases": [
+    {
+      "name": "read-then-shell",
+      "events": [
+        { "type": "system", "subtype": "init", "session_id": "sess-causal-1", "provider": "openai", "model": "gpt-causal", "seq": 1, "trace_id": "trace-causal-1" },
+        { "type": "approval_request", "id": "appr-causal-1", "session_id": "sess-causal-1", "tool": "run_shell", "command": "npm test", "risk": "medium", "reason": "run verification", "binding": "ab_abcdefabcdefabcdefabcdefabcdefab", "seq": 2, "trace_id": "trace-causal-1" },
+        { "type": "approval_resolved", "id": "appr-causal-1", "approved": true, "decision": { "kind": "acceptOnce" }, "via": "user-approve", "session_id": "sess-causal-1", "seq": 3, "trace_id": "trace-causal-1" },
+        { "type": "tool_use", "id": "tu-read", "turn": 1, "tool": "read_file", "args": { "path": "README.md" }, "seq": 4, "trace_id": "trace-causal-1" },
+        { "type": "tool_use", "id": "tu-shell", "turn": 1, "tool": "run_shell", "args": { "command": "npm test" }, "seq": 5, "trace_id": "trace-causal-1" },
+        { "type": "tool_result", "id": "tu-read", "turn": 1, "tool": "read_file", "is_error": false, "result": { "bytes": 128 }, "seq": 6, "trace_id": "trace-causal-1" },
+        { "type": "tool_result", "id": "tu-shell", "turn": 1, "tool": "run_shell", "is_error": false, "result": { "exit_code": 0 }, "seq": 7, "trace_id": "trace-causal-1" },
+        { "type": "result", "subtype": "success", "is_error": false, "result": "Verified", "session_id": "sess-causal-1", "turn": 1, "num_turns": 1, "tool_calls": 2, "usage": { "input_tokens": 12, "output_tokens": 4 }, "seq": 8, "trace_id": "trace-causal-1" }
+      ]
+    },
+    {
+      "name": "shell-then-read",
+      "events": [
+        { "type": "system", "subtype": "init", "session_id": "sess-causal-1", "provider": "openai", "model": "gpt-causal", "seq": 1, "trace_id": "trace-causal-1" },
+        { "type": "approval_request", "id": "appr-causal-1", "session_id": "sess-causal-1", "tool": "run_shell", "command": "npm test", "risk": "medium", "reason": "run verification", "binding": "ab_abcdefabcdefabcdefabcdefabcdefab", "seq": 2, "trace_id": "trace-causal-1" },
+        { "type": "approval_resolved", "id": "appr-causal-1", "approved": true, "decision": { "kind": "acceptOnce" }, "via": "user-approve", "session_id": "sess-causal-1", "seq": 3, "trace_id": "trace-causal-1" },
+        { "type": "tool_use", "id": "tu-shell", "turn": 1, "tool": "run_shell", "args": { "command": "npm test" }, "seq": 4, "trace_id": "trace-causal-1" },
+        { "type": "tool_use", "id": "tu-read", "turn": 1, "tool": "read_file", "args": { "path": "README.md" }, "seq": 5, "trace_id": "trace-causal-1" },
+        { "type": "tool_result", "id": "tu-shell", "turn": 1, "tool": "run_shell", "is_error": false, "result": { "exit_code": 0 }, "seq": 6, "trace_id": "trace-causal-1" },
+        { "type": "tool_result", "id": "tu-read", "turn": 1, "tool": "read_file", "is_error": false, "result": { "bytes": 128 }, "seq": 7, "trace_id": "trace-causal-1" },
+        { "type": "result", "subtype": "success", "is_error": false, "result": "Verified", "session_id": "sess-causal-1", "turn": 1, "num_turns": 1, "tool_calls": 2, "usage": { "input_tokens": 12, "output_tokens": 4 }, "seq": 8, "trace_id": "trace-causal-1" }
+      ]
+    }
+  ],
+  "expected": {
+    "nodes": [
+      "approval:appr-causal-1:requested",
+      "approval:appr-causal-1:resolved",
+      "session:sess-causal-1:initialized",
+      "tool:tu-read:completed",
+      "tool:tu-read:started",
+      "tool:tu-shell:completed",
+      "tool:tu-shell:started",
+      "turn:sess-causal-1:1:terminal"
+    ],
+    "partialOrder": [
+      ["approval:appr-causal-1:requested", "approval:appr-causal-1:resolved"],
+      ["approval:appr-causal-1:resolved", "tool:tu-read:started"],
+      ["approval:appr-causal-1:resolved", "tool:tu-shell:started"],
+      ["session:sess-causal-1:initialized", "approval:appr-causal-1:requested"],
+      ["tool:tu-read:completed", "turn:sess-causal-1:1:terminal"],
+      ["tool:tu-read:started", "tool:tu-read:completed"],
+      ["tool:tu-shell:completed", "turn:sess-causal-1:1:terminal"],
+      ["tool:tu-shell:started", "tool:tu-shell:completed"]
+    ],
+    "equivalenceClasses": [
+      ["tool:tu-read:started", "tool:tu-shell:started"],
+      ["tool:tu-read:completed", "tool:tu-shell:completed"]
+    ],
+    "approvalBinding": {
+      "id": "appr-causal-1",
+      "binding": "ab_abcdefabcdefabcdefabcdefabcdefab"
+    },
+    "terminal": {
+      "subtype": "success",
+      "isError": false,
+      "result": "Verified",
+      "sessionId": "sess-causal-1",
+      "turn": 1,
+      "toolCalls": 2
+    },
+    "cliSummary": {
+      "provider": "openai",
+      "model": "gpt-causal",
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 4,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "usageRecords": [
+        {
+          "provider": "openai",
+          "model": "gpt-causal",
+          "usage": {
+            "input_tokens": 12,
+            "output_tokens": 4,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ],
+      "terminalResult": true
+    }
+  }
+}

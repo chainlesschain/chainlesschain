@@ -89,6 +89,7 @@ function project(ui: Record<string, unknown> | null): Record<string, unknown> {
         risk: ui.risk ?? null,
         rule: ui.rule ?? null,
         reason: ui.reason ?? null,
+        binding: ui.binding ?? null,
       };
     case "approval_done":
       return { kind, id: ui.id, approved: ui.approved === true, via: ui.via };
@@ -136,6 +137,16 @@ function readFixtureLines(name: string): unknown[] {
 const expected = JSON.parse(
   readFileSync(join(fixturesDir, "expected.json"), "utf8"),
 ) as Record<string, Array<Record<string, unknown>>>;
+
+const causalFixture = JSON.parse(
+  readFileSync(join(fixturesDir, "causal-conformance.json"), "utf8"),
+) as {
+  cases: Array<{ name: string; events: unknown[] }>;
+  expected: {
+    approvalBinding: { id: string; binding: string };
+    terminal: { result: string; isError: boolean };
+  };
+};
 
 const FIXTURE_FILES = [
   "session-lifecycle.ndjson",
@@ -193,6 +204,37 @@ describe("protocol fixture contract (VS Code chat-events twin)", () => {
       state,
     );
     expect(withMeta).toEqual(withoutMeta);
+  });
+
+  it("preserves causal-equivalent IDE projections across legal interleavings", () => {
+    let baseline: string[] | null = null;
+    for (const fixtureCase of causalFixture.cases) {
+      const state = chatEvents.createTurnState();
+      const projections = fixtureCase.events.map((event) =>
+        project(chatEvents.mapAgentEvent(event, state)),
+      );
+      const normalized = projections
+        .map((value) => JSON.stringify(value))
+        .sort();
+      baseline ??= normalized;
+      expect(normalized, fixtureCase.name).toEqual(baseline);
+
+      expect(
+        projections.find((value) => value.kind === "approval"),
+      ).toMatchObject({
+        kind: "approval",
+        id: causalFixture.expected.approvalBinding.id,
+        binding: causalFixture.expected.approvalBinding.binding,
+      });
+      expect(
+        projections.find((value) => value.kind === "turn_end"),
+      ).toMatchObject({
+        kind: "turn_end",
+        isError: causalFixture.expected.terminal.isError,
+        text: causalFixture.expected.terminal.result,
+        hasUsage: true,
+      });
+    }
   });
 });
 

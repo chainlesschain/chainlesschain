@@ -54,6 +54,13 @@ CANONICAL_AGENT_STREAM_PAYLOAD_FIXTURES = (
     / "fixtures"
     / "canonical-agent-stream-payloads.json"
 )
+CAUSAL_AGENT_STREAM_FIXTURE = (
+    PACKAGE_ROOT.parent
+    / "agent-sdk"
+    / "__fixtures__"
+    / "protocol"
+    / "causal-conformance.json"
+)
 
 
 class ProtocolTests(unittest.TestCase):
@@ -110,6 +117,30 @@ class ProtocolTests(unittest.TestCase):
                     validate_canonical_agent_stream_event(fixture["value"])[0],
                     fixture["valid"],
                 )
+
+    def test_shared_causal_agent_stream_fixture_is_lossless(self) -> None:
+        fixture = json.loads(
+            CAUSAL_AGENT_STREAM_FIXTURE.read_text(encoding="utf-8")
+        )
+        baseline = None
+        for fixture_case in fixture["cases"]:
+            events = [parse_event(event) for event in fixture_case["events"]]
+            self.assertEqual(
+                [event.to_dict() for event in events], fixture_case["events"]
+            )
+            normalized = sorted(
+                (
+                    event.type,
+                    event.to_dict().get("id"),
+                    event.to_dict().get("tool"),
+                    event.to_dict().get("binding"),
+                    event.to_dict().get("subtype"),
+                )
+                for event in events
+            )
+            if baseline is None:
+                baseline = normalized
+            self.assertEqual(normalized, baseline, fixture_case["name"])
 
     def test_approval_events_preserve_binding_and_decision(self) -> None:
         request = parse_event(

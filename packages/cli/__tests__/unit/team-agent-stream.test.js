@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   parseTeamAgentStream,
   TeamAgentStreamError,
@@ -10,6 +11,27 @@ function line(event, eol = "\n") {
 }
 
 describe("TeamAgentStreamParser", () => {
+  it("projects the shared causal interleavings to one terminal summary", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../agent-sdk/__fixtures__/protocol/causal-conformance.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+
+    for (const fixtureCase of fixture.cases) {
+      const stream = fixtureCase.events
+        .map((event) => JSON.stringify(event))
+        .join("\n");
+      expect(parseTeamAgentStream(stream), fixtureCase.name).toEqual(
+        fixture.expected.cliSummary,
+      );
+    }
+  });
+
   it("incrementally parses split NDJSON and sums usage including cache tokens", () => {
     const promptSecret = "prompt-secret-甲";
     const resultSecret = "result-secret-乙";

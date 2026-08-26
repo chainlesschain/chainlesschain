@@ -8,6 +8,7 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/**"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
@@ -33,6 +34,7 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
@@ -194,6 +196,9 @@ jobs:
       - name: Verify generated shell completions
         working-directory: packages/cli
         run: npm run commands:completions:check
+      - name: Verify canonical Agent stream causal conformance
+        working-directory: packages/cli
+        run: npx vitest run __tests__/unit/team-agent-stream.test.js src/runtime/__tests__/coding-agent-events.test.js
       - name: Verify CLI startup SLOs
         working-directory: packages/cli
         run: npm run startup:check

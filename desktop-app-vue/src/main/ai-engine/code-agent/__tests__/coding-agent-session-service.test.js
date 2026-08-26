@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "events";
+import { readFileSync } from "node:fs";
 
 vi.mock("crypto", () => ({
   randomUUID: () => "event-id",
@@ -17,6 +18,7 @@ const {
   CODING_AGENT_EVENT_CHANNEL,
   CodingAgentEventType,
   defaultSequenceTracker,
+  validateCodingAgentEvent,
 } = require("../coding-agent-events.js");
 const {
   CodingAgentSessionService,
@@ -396,6 +398,106 @@ describe("CodingAgentSessionService", () => {
     });
     expect(event.eventId).toEqual(expect.any(String));
     expect(event.id).toBe(event.eventId);
+  });
+
+  it("consumes the shared canonical approval fixture with exact binding", () => {
+    const [request, resolved] = readFileSync(
+      new URL(
+        "../../../../../../packages/agent-sdk/__fixtures__/protocol/interaction.ndjson",
+        import.meta.url,
+      ),
+      "utf8",
+    )
+      .split(/\r?\n/u)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((line) => JSON.parse(line));
+
+    bridge.emit("message", request);
+    bridge.emit("message", resolved);
+
+    const events = service.getSessionEvents("sess-fx-1").events;
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      type: CodingAgentEventType.APPROVAL_REQUESTED,
+      sessionId: "sess-fx-1",
+      requestId: "appr-1",
+      sequence: 10,
+      payload: {
+        binding: "ab_0123456789abcdef0123456789abcdef",
+      },
+      meta: { agentStreamType: "approval_request" },
+    });
+    expect(events[1]).toMatchObject({
+      type: CodingAgentEventType.APPROVAL_GRANTED,
+      sessionId: "sess-fx-1",
+      requestId: "appr-1",
+      sequence: 11,
+      meta: { agentStreamType: "approval_resolved" },
+    });
+  });
+
+  it("keeps canonical causal interleavings on one Desktop session", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../../../../packages/agent-sdk/__fixtures__/protocol/causal-conformance.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    let baseline = null;
+
+    for (const fixtureCase of fixture.cases) {
+      const caseBridge = new MockBridge();
+      const caseService = new CodingAgentSessionService({
+        bridge: caseBridge,
+        mainWindow,
+        repoRoot: "C:\\code\\chainlesschain",
+        projectRoot: "C:\\code\\chainlesschain",
+      });
+      for (const event of fixtureCase.events) {
+        caseBridge.emit("message", event);
+      }
+
+      const events = caseService.getSessionEvents("sess-causal-1").events;
+      expect(events, fixtureCase.name).toHaveLength(fixtureCase.events.length);
+      for (const event of events) {
+        expect(validateCodingAgentEvent(event), event.type).toEqual({
+          valid: true,
+          errors: [],
+        });
+      }
+      const normalized = events
+        .map((event) => ({
+          type: event.type,
+          streamType: event.meta.agentStreamType,
+          id: event.payload.id || null,
+          tool: event.payload.tool || null,
+          binding: event.payload.binding || null,
+          content: event.payload.content || null,
+          isError: event.payload.isError === true,
+        }))
+        .map((event) => JSON.stringify(event))
+        .sort();
+      baseline ??= normalized;
+      expect(normalized, fixtureCase.name).toEqual(baseline);
+
+      const approval = events.find(
+        (event) => event.type === CodingAgentEventType.APPROVAL_REQUESTED,
+      );
+      expect(approval.payload.binding).toBe(
+        fixture.expected.approvalBinding.binding,
+      );
+      const terminal = events.find(
+        (event) => event.type === CodingAgentEventType.RESPONSE_COMPLETE,
+      );
+      expect(terminal.payload).toMatchObject({
+        content: fixture.expected.terminal.result,
+        isError: fixture.expected.terminal.isError,
+      });
+    }
   });
 
   it("preserves worktree session metadata when isolation is requested", async () => {

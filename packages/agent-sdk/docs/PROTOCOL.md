@@ -30,6 +30,12 @@ drives the VS Code extension's `chat-events.js`) and the JetBrains twin
 `ChatEvents.java`). A protocol change lands with a fixture update in the
 same commit.
 
+`causal-conformance.json` adds two legal interleavings of one turn. CLI,
+Desktop, VS Code, JetBrains, and Python consume the same file and must retain
+the same approval binding and terminal projection. Its declared parallel tool
+classes are compared as a causal partial order; their wire arrival order is
+intentionally not made authoritative.
+
 ---
 
 ## 1. stream-json duplex (interactive agent session)

@@ -6,6 +6,8 @@ on:
     paths:
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/src/generated/**"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - "packages/agent-sdk/__tests__/protocol-fixtures.test.ts"
       - "packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py"
       - "packages/cli/src/generated/cc-agent-protocol.schema.json"
       - ".github/workflows/agent-protocol-ci.yml"
@@ -15,6 +17,8 @@ on:
     paths:
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/src/generated/**"
+      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - "packages/agent-sdk/__tests__/protocol-fixtures.test.ts"
       - "packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py"
       - "packages/cli/src/generated/cc-agent-protocol.schema.json"
       - ".github/workflows/agent-protocol-ci.yml"

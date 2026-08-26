@@ -1,4 +1,4 @@
-{"type":"approval_request","id":"appr-1","session_id":"sess-fx-1","tool":"run_shell","command":"rm -rf build","risk":"high","rule":null,"reason":"destructive command","seq":10}
+{"type":"approval_request","id":"appr-1","session_id":"sess-fx-1","tool":"run_shell","command":"rm -rf build","risk":"high","rule":null,"reason":"destructive command","binding":"ab_0123456789abcdef0123456789abcdef","seq":10}
 {"type":"approval_resolved","id":"appr-1","approved":true,"via":"user","session_id":"sess-fx-1","seq":11}
 {"type":"approval_resolved","id":"appr-2","approved":false,"via":"timeout","session_id":"sess-fx-1"}
 {"type":"question_request","id":"q-1","question":"Which environment?","options":["dev","prod"],"multiSelect":false,"session_id":"sess-fx-1","seq":12,"binding":{"backgroundAgentId":null,"sessionId":"sess-fx-1","turnId":"turn-fx-1","toolUseId":"tool-fx-1","sequence":1}}

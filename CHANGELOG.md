@@ -32,7 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generated production routing.
 - **Shared conformance corpus**: protocol, TypeScript SDK, and Python SDK tests
   validate every canonical discriminator and reject known payloads missing
-  required fields or using an unknown discriminator.
+  required fields or using an unknown discriminator. A second shared fixture
+  runs two legal parallel-tool interleavings through CLI, Desktop, VS Code,
+  JetBrains, and Python, requiring the same causal partial order, exact
+  approval binding, terminal projection, and declared concurrency classes.
 - **Release validation**: publication requires this exact candidate to pass
   Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
   `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices.

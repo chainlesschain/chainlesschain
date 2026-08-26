@@ -78,6 +78,17 @@ class ProtocolFixturesTest {
     }
 
     @SuppressWarnings("unchecked")
+    private static Map<String, Object> causalDoc() {
+        try {
+            return (Map<String, Object>) MiniJson.parse(Files.readString(
+                    fixturesDir().resolve("causal-conformance.json"),
+                    StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new AssertionError("cannot read causal-conformance.json", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private static List<Object> expectedFor(String file) {
         Object v = expectedDoc().get(file);
         assertTrue(v instanceof List, "missing expected for " + file);
@@ -137,6 +148,7 @@ class ProtocolFixturesTest {
                 p.put("risk", orNull(ui, "risk"));
                 p.put("rule", orNull(ui, "rule"));
                 p.put("reason", orNull(ui, "reason"));
+                p.put("binding", orNull(ui, "binding"));
                 break;
             case "approval_done":
                 p.put("id", ui.get("id"));
@@ -188,6 +200,8 @@ class ProtocolFixturesTest {
         }
         assertTrue(Files.isRegularFile(dir.resolve("expected.json")),
                 "missing expected.json");
+        assertTrue(Files.isRegularFile(dir.resolve("causal-conformance.json")),
+                "missing causal-conformance.json");
         Map<String, Object> exp = expectedDoc();
         for (String f : FIXTURE_FILES) {
             assertTrue(exp.get(f) instanceof List, "missing expected for " + f);
@@ -245,5 +259,49 @@ class ProtocolFixturesTest {
         assertEquals(
                 ChatEvents.mapAgentEvent(withoutMeta, state),
                 ChatEvents.mapAgentEvent(withMeta, state));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void preservesCausalEquivalentProjectionsAcrossLegalInterleavings() {
+        Map<String, Object> fixture = causalDoc();
+        List<Map<String, Object>> cases =
+                (List<Map<String, Object>>) fixture.get("cases");
+        Map<String, Object> expected =
+                (Map<String, Object>) fixture.get("expected");
+        Map<String, Object> expectedBinding =
+                (Map<String, Object>) expected.get("approvalBinding");
+        Map<String, Object> expectedTerminal =
+                (Map<String, Object>) expected.get("terminal");
+        List<String> baseline = null;
+
+        for (Map<String, Object> fixtureCase : cases) {
+            ChatEvents.TurnState state = new ChatEvents.TurnState();
+            List<Map<String, Object>> events =
+                    (List<Map<String, Object>>) fixtureCase.get("events");
+            List<String> normalized = new ArrayList<>();
+            Map<String, Object> approval = null;
+            Map<String, Object> terminal = null;
+            for (Map<String, Object> event : events) {
+                Map<String, Object> projection = project(
+                        ChatEvents.mapAgentEvent(event, state));
+                normalized.add(MiniJson.stringify(projection));
+                if ("approval".equals(projection.get("kind"))) {
+                    approval = projection;
+                }
+                if ("turn_end".equals(projection.get("kind"))) {
+                    terminal = projection;
+                }
+            }
+            normalized.sort(String::compareTo);
+            if (baseline == null) baseline = normalized;
+            assertEquals(baseline, normalized,
+                    String.valueOf(fixtureCase.get("name")));
+            assertEquals(expectedBinding.get("id"), approval.get("id"));
+            assertEquals(expectedBinding.get("binding"), approval.get("binding"));
+            assertEquals(expectedTerminal.get("isError"), terminal.get("isError"));
+            assertEquals(expectedTerminal.get("result"), terminal.get("text"));
+            assertEquals(Boolean.TRUE, terminal.get("hasUsage"));
+        }
     }
 }

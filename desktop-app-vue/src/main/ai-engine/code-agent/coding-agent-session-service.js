@@ -8,6 +8,7 @@ const {
   CODING_AGENT_EVENT_TYPES,
   CodingAgentSequenceTracker,
   createCodingAgentEvent,
+  projectAgentStreamMessage,
 } = require("./coding-agent-events.js");
 const { CodingAgentToolAdapter } = require("./coding-agent-tool-adapter.js");
 const { CodingAgentToolBroker } = require("./coding-agent-tool-broker.js");
@@ -20,6 +21,7 @@ const {
 } = require("../../../../../packages/elicitation-schema");
 
 const MAX_SESSION_EVENTS = 200;
+const MAX_AGENT_STREAM_TRACE_SESSIONS = 256;
 const QUESTION_REQUEST_EVENT_TYPES = new Set([
   "question",
   "question_request",
@@ -237,6 +239,10 @@ class CodingAgentSessionService extends EventEmitter {
 
     this.sessions = new Map();
     this.requestSessionMap = new Map();
+    // Canonical stream events after system/init may omit session_id. Retain a
+    // bounded trace→session correlation so concurrent tool branches and their
+    // terminal result stay attached to the correct Desktop session.
+    this.agentStreamTraceSessions = new Map();
     // Pending human questions are keyed by both session and request. Keeping
     // this binding in the trusted main process prevents a renderer from
     // answering a stale card or a request that belongs to another session.
@@ -514,6 +520,11 @@ class CodingAgentSessionService extends EventEmitter {
       session.highRiskConfirmationGranted = false;
       session.highRiskToolNames = [];
       this._removePendingRequestsForSession(session);
+      for (const [traceId, boundSessionId] of this.agentStreamTraceSessions) {
+        if (boundSessionId === sessionId) {
+          this.agentStreamTraceSessions.delete(traceId);
+        }
+      }
 
       this._storeEvent(
         sessionId,
@@ -1650,13 +1661,34 @@ class CodingAgentSessionService extends EventEmitter {
       message?.payload && typeof message.payload === "object"
         ? message.payload
         : null;
-    const sessionId =
+    const explicitSessionId =
       message.sessionId ||
       message.session_id ||
       messagePayload?.sessionId ||
       messagePayload?.session_id ||
       (message.id ? this.requestSessionMap.get(message.id) : null) ||
       null;
+    const traceId =
+      typeof (message.trace_id || messagePayload?.trace_id) === "string"
+        ? message.trace_id || messagePayload.trace_id
+        : null;
+    const sessionId =
+      explicitSessionId ||
+      (traceId ? this.agentStreamTraceSessions.get(traceId) : null) ||
+      null;
+
+    if (traceId && explicitSessionId) {
+      if (
+        !this.agentStreamTraceSessions.has(traceId) &&
+        this.agentStreamTraceSessions.size >= MAX_AGENT_STREAM_TRACE_SESSIONS
+      ) {
+        const oldestTraceId =
+          this.agentStreamTraceSessions.keys().next().value;
+        this.agentStreamTraceSessions.delete(oldestTraceId);
+      }
+      this.agentStreamTraceSessions.delete(traceId);
+      this.agentStreamTraceSessions.set(traceId, explicitSessionId);
+    }
 
     if (sessionId && !this.sessions.has(sessionId)) {
       if (!this._isExpectedSessionBootstrapMessage(message)) {
@@ -1709,7 +1741,9 @@ class CodingAgentSessionService extends EventEmitter {
 
   _isExpectedSessionBootstrapMessage(message) {
     return (
-      message?.type === "session-created" || message?.type === "session-resumed"
+      message?.type === "session-created" ||
+      message?.type === "session-resumed" ||
+      (message?.type === "system" && message?.subtype === "init")
     );
   }
 
@@ -1726,6 +1760,29 @@ class CodingAgentSessionService extends EventEmitter {
 
     if (QUESTION_REQUEST_EVENT_TYPES.has(message?.type)) {
       return this._normalizeQuestionMessage(message, resolvedSessionId);
+    }
+
+    // Canonical Agent stream events are projected into the existing Desktop
+    // Coding Agent envelope only when a real semantic equivalent exists. The
+    // complete original event remains in payload, including exact approval
+    // bindings and additive fields needed by causal conformance tooling.
+    const agentStreamProjection = projectAgentStreamMessage(message);
+    if (agentStreamProjection) {
+      return this._createEvent(
+        agentStreamProjection.type,
+        agentStreamProjection.payload,
+        {
+          sessionId: resolvedSessionId,
+          requestId: message.id,
+          sequence: Number.isInteger(message.seq) ? message.seq : undefined,
+          meta: {
+            agentStreamType: message.type,
+            ...(typeof message.trace_id === "string"
+              ? { traceId: message.trace_id }
+              : {}),
+          },
+        },
+      );
     }
 
     // CLI runtime now emits unified envelopes natively (source: "cli-runtime").

@@ -13,6 +13,7 @@
 
 import { describe, it, expect } from "vitest";
 import { createRequire } from "module";
+import { readFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const {
@@ -24,6 +25,7 @@ const {
   wrapLegacyMessage,
   validateCodingAgentEvent,
   mapLegacyType,
+  projectAgentStreamMessage,
 } = require("../coding-agent-events.cjs");
 
 const VALID_TYPE = Object.values(CODING_AGENT_EVENT_TYPES)[0];
@@ -44,6 +46,40 @@ describe("mapLegacyType", () => {
 
   it("passes an unknown type through unchanged", () => {
     expect(mapLegacyType("totally.unknown.type")).toBe("totally.unknown.type");
+  });
+});
+
+describe("projectAgentStreamMessage", () => {
+  it("projects the shared canonical approval fixture without losing binding", () => {
+    const [request, resolved] = readFileSync(
+      new URL(
+        "../../../../agent-sdk/__fixtures__/protocol/interaction.ndjson",
+        import.meta.url,
+      ),
+      "utf8",
+    )
+      .split(/\r?\n/u)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((line) => JSON.parse(line));
+
+    expect(projectAgentStreamMessage(request)).toEqual({
+      type: CODING_AGENT_EVENT_TYPES.APPROVAL_REQUESTED,
+      payload: request,
+    });
+    expect(projectAgentStreamMessage(request).payload.binding).toBe(
+      "ab_0123456789abcdef0123456789abcdef",
+    );
+    expect(projectAgentStreamMessage(resolved)).toEqual({
+      type: CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED,
+      payload: resolved,
+    });
+  });
+
+  it("keeps unknown future stream events outside the semantic mapper", () => {
+    expect(
+      projectAgentStreamMessage({ type: "future_event_v9", value: true }),
+    ).toBe(null);
   });
 });
 

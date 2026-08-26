@@ -74,6 +74,42 @@ test("VS Code production mapper admits only generated Agent event types", () => 
   );
 });
 
+test("VS Code preserves causal-equivalent projections across interleavings", () => {
+  const fixture = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repoRoot,
+        "packages",
+        "agent-sdk",
+        "__fixtures__",
+        "protocol",
+        "causal-conformance.json",
+      ),
+      "utf8",
+    ),
+  );
+  let baseline = null;
+
+  for (const fixtureCase of fixture.cases) {
+    const state = createTurnState();
+    const projections = fixtureCase.events.map((event) =>
+      mapAgentEvent(event, state),
+    );
+    const normalized = projections
+      .map((projection) => JSON.stringify(projection))
+      .sort();
+    baseline ||= normalized;
+    assert.deepEqual(normalized, baseline, fixtureCase.name);
+
+    const approval = projections.find((event) => event?.kind === "approval");
+    assert.equal(approval.id, fixture.expected.approvalBinding.id);
+    assert.equal(approval.binding, fixture.expected.approvalBinding.binding);
+    const terminal = projections.find((event) => event?.kind === "turn_end");
+    assert.equal(terminal.isError, fixture.expected.terminal.isError);
+    assert.equal(terminal.text, fixture.expected.terminal.result);
+  }
+});
+
 test("VS Code replays the canonical ApprovalDecision conformance fixture", () => {
   const fixturePath = path.join(
     repoRoot,

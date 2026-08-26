@@ -25,6 +25,7 @@ const {
   wrapLegacyMessage,
   validateCodingAgentEvent,
   mapLegacyType,
+  projectAgentStreamMessage,
 } = sharedCodingAgentEvents;
 
 module.exports = {
@@ -39,4 +40,5 @@ module.exports = {
   wrapLegacyMessage,
   validateCodingAgentEvent,
   mapLegacyType,
+  projectAgentStreamMessage,
 };
