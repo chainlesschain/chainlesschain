@@ -45,11 +45,19 @@ describe("public IDE capability manifest", () => {
   it("renders both host summaries from the same minimum and entry lists", () => {
     const vscode = renderPublicIdeReadmeBlock("vscode");
     const jetbrains = renderPublicIdeReadmeBlock("jetbrains");
-    expect(vscode).toContain("VS Code commands: **52**");
-    expect(jetbrains).toContain("JetBrains actions: **35**");
+    expect(vscode).toContain(
+      `VS Code commands: **${PUBLIC_IDE_CAPABILITY_MANIFEST.surfaces.vscode.commands.length}**`,
+    );
+    expect(jetbrains).toContain(
+      `JetBrains actions: **${PUBLIC_IDE_CAPABILITY_MANIFEST.surfaces.jetbrains.actions.length}**`,
+    );
     for (const text of [vscode, jetbrains]) {
-      expect(text).toContain("cc >= 0.162.190");
-      expect(text).toContain("Bridge capability schema: **v1**");
+      expect(text).toContain(
+        `cc >= ${PUBLIC_IDE_CAPABILITY_MANIFEST.minimumCliVersion}`,
+      );
+      expect(text).toContain(
+        `Bridge capability schema: **v${PUBLIC_IDE_CAPABILITY_MANIFEST.bridge.schemaVersion}**`,
+      );
     }
   });
 });

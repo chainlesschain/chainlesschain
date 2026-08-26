@@ -342,7 +342,7 @@ This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
 The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sections below may require a newer CLI.
 
-- VS Code commands: **52** registered entries
+- VS Code commands: **56** registered entries
 - Doctor entries: `chainlesschain.ide.doctor`, `chainlesschain.remote.doctor`
 - Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
@@ -361,6 +361,10 @@ The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sectio
 - `chainlesschain.sessions.workbench`
 - `chainlesschain.automation.center`
 - `chainlesschain.remote.control`
+- `chainlesschain.appServerPilot.status`
+- `chainlesschain.appServerPilot.startThread`
+- `chainlesschain.appServerPilot.startTurn`
+- `chainlesschain.appServerPilot.interrupt`
 - `chainlesschain.usage.show`
 - `chainlesschain.plugins.manage`
 - `chainlesschain.worktree.tasks`
