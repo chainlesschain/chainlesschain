@@ -122,6 +122,8 @@ jobs:
     timeout-minutes: 60
 
     strategy:
+      # Let both API levels finish so one failure cannot hide another.
+      fail-fast: false
       matrix:
         api-level: [28, 30]
         target: [default]

@@ -18,11 +18,11 @@ android {
         // Hilt-aware test runner — see src/androidTest/.../HiltTestRunner.kt.
         testInstrumentationRunner = "com.chainlesschain.android.feature.ai.HiltTestRunner"
 
-        // W4a: only arm64-v8a + armeabi-v7a ship.
-        //   - x86_64 emulator skipped (whisper.cpp x86 SIMD off; rebuild cost ↑↑)
-        //   - per-ABI splits handled at app module level (App Bundle).
+        // Keep x86_64 available for the GitHub Actions emulator matrix. The
+        // application module still limits release artifacts to the two ARM
+        // ABIs, so this test ABI is not shipped to end users.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
 
         externalNativeBuild {
