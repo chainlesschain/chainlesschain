@@ -1002,6 +1002,46 @@ test("Android lint is a blocking gate", () => {
   assert.doesNotMatch(lintStep, /continue-on-error:\s*true/);
 });
 
+test("Android file scan foreground worker declares its WorkManager service type", () => {
+  const worker = fs.readFileSync(
+    path.join(
+      repoRoot,
+      "android-app",
+      "feature-file-browser",
+      "src",
+      "main",
+      "java",
+      "com",
+      "chainlesschain",
+      "android",
+      "feature",
+      "filebrowser",
+      "worker",
+      "FileScanWorker.kt",
+    ),
+    "utf8",
+  );
+  const manifest = fs.readFileSync(
+    path.join(
+      repoRoot,
+      "android-app",
+      "feature-file-browser",
+      "src",
+      "main",
+      "AndroidManifest.xml",
+    ),
+    "utf8",
+  );
+
+  assert.match(worker, /ServiceInfo\.FOREGROUND_SERVICE_TYPE_DATA_SYNC/);
+  assert.match(
+    manifest,
+    /android:name="androidx\.work\.impl\.foreground\.SystemForegroundService"/,
+  );
+  assert.match(manifest, /android:foregroundServiceType="dataSync"/);
+  assert.match(manifest, /tools:node="merge"/);
+});
+
 test("Android coverage produces real reports without masking test failures", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
