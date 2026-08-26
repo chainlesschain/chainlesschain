@@ -23,8 +23,18 @@ const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class MediaStreamBridge extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.maxPendingRequests =
+      Number.isInteger(options.maxPendingRequests) &&
+      options.maxPendingRequests > 0
+        ? options.maxPendingRequests
+        : 16;
+    this.maxActiveStreams =
+      Number.isInteger(options.maxActiveStreams) &&
+      options.maxActiveStreams > 0
+        ? options.maxActiveStreams
+        : 32;
 
     // 存储媒体流信息
     this.streams = new Map(); // streamId -> { type, tracks, peerId, callId }
@@ -61,6 +71,12 @@ class MediaStreamBridge extends EventEmitter {
    * @returns {Promise<Object>} 媒体流信息
    */
   async requestMediaStream(type, constraints = {}, options = {}) {
+    if (this.pendingRequests.size >= this.maxPendingRequests) {
+      const error = new Error('媒体流请求队列已满');
+      error.code = 'OVERLOADED';
+      error.retryAfterMs = 100;
+      throw error;
+    }
     const requestId = this._generateRequestId();
 
     return new Promise((resolve, reject) => {
@@ -69,6 +85,7 @@ class MediaStreamBridge extends EventEmitter {
         this.pendingRequests.delete(requestId);
         reject(new Error('请求媒体流超时'));
       }, options.timeout || 30000);
+      timeout.unref?.();
 
       // 保存请求
       this.pendingRequests.set(requestId, {
@@ -93,6 +110,20 @@ class MediaStreamBridge extends EventEmitter {
    */
   handleStreamReady(data) {
     const { requestId, streamId, tracks, type } = data;
+    const pending = this.pendingRequests.get(requestId);
+
+    if (
+      !this.streams.has(streamId) &&
+      this.streams.size >= this.maxActiveStreams
+    ) {
+      if (pending) {
+        clearTimeout(pending.timeout);
+        this.pendingRequests.delete(requestId);
+        pending.reject(new Error('活动媒体流数量已达上限'));
+      }
+      this.emit('stop-media-stream', { streamId });
+      return;
+    }
 
     logger.info('[MediaStreamBridge] 媒体流已就绪:', {
       requestId,
@@ -110,7 +141,6 @@ class MediaStreamBridge extends EventEmitter {
     });
 
     // 解决pending请求
-    const pending = this.pendingRequests.get(requestId);
     if (pending) {
       clearTimeout(pending.timeout);
       pending.resolve({

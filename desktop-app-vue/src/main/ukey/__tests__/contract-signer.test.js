@@ -119,6 +119,29 @@ describe("ContractSigner.prepareSign", () => {
     expect(req.simulationResult).toBeNull();
     expect(req.riskReport).toBeDefined();
   });
+
+  it("bounds pending signing requests and prunes expired entries", async () => {
+    signer._maxPendingRequests = 1;
+    signer._requestTtlMs = 10;
+    const first = await signer.prepareSign({
+      to: "0xAddr",
+      data: "0x",
+      value: "0",
+    });
+
+    await expect(
+      signer.prepareSign({ to: "0xAddr", data: "0x", value: "0" }),
+    ).rejects.toMatchObject({ code: "OVERLOADED", retryAfterMs: 100 });
+
+    first.createdAt = Date.now() - 11;
+    const replacement = await signer.prepareSign({
+      to: "0xAddr",
+      data: "0x",
+      value: "0",
+    });
+    expect(replacement.id).not.toBe(first.id);
+    expect(signer._pendingRequests.size).toBe(1);
+  });
 });
 
 // ── sign ──────────────────────────────────────────────────────────────────────

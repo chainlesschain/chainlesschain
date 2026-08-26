@@ -8,7 +8,6 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { BrowserWindow } = require("electron");
 const EventEmitter = require("events");
 
 /**
@@ -232,8 +231,17 @@ const PERMISSION_DETAILS = {
 };
 
 class PermissionDialogManager extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.maxPendingRequests =
+      Number.isInteger(options.maxPendingRequests) &&
+      options.maxPendingRequests > 0
+        ? options.maxPendingRequests
+        : 32;
+    this.requestTimeoutMs =
+      Number.isFinite(options.requestTimeoutMs) && options.requestTimeoutMs > 0
+        ? options.requestTimeoutMs
+        : 5 * 60 * 1000;
 
     // 待处理的权限请求队列
     this.pendingRequests = new Map(); // requestId -> { manifest, resolve, reject }
@@ -264,6 +272,12 @@ class PermissionDialogManager extends EventEmitter {
     if (permissions.length === 0) {
       return { granted: true, permissions: {} };
     }
+    if (this.pendingRequests.size >= this.maxPendingRequests) {
+      const error = new Error("权限请求队列已满");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
 
     // 生成请求ID
     const requestId = `perm_${++this.requestIdCounter}_${Date.now()}`;
@@ -273,6 +287,15 @@ class PermissionDialogManager extends EventEmitter {
 
     // 创建Promise用于等待用户响应
     return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (this.pendingRequests.has(requestId)) {
+          const request = this.pendingRequests.get(requestId);
+          this.pendingRequests.delete(requestId);
+          request.reject(new Error("权限请求超时"));
+        }
+      }, this.requestTimeoutMs);
+      timer.unref?.();
+
       // 存储请求信息
       this.pendingRequests.set(requestId, {
         manifest,
@@ -281,41 +304,37 @@ class PermissionDialogManager extends EventEmitter {
         resolve,
         reject,
         createdAt: Date.now(),
+        timer,
       });
 
       // 通知渲染进程显示对话框
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.mainWindow.webContents.send("plugin:permission-request", {
-          requestId,
-          plugin: {
-            id: manifest.id,
-            name: manifest.name,
-            version: manifest.version,
-            author: manifest.author || "未知",
-            description: manifest.description || "",
-            homepage: manifest.homepage || "",
-          },
-          permissions: permissionDetails,
-          categories: PERMISSION_CATEGORIES,
-          riskLevels: RISK_LEVELS,
-        });
+        try {
+          this.mainWindow.webContents.send("plugin:permission-request", {
+            requestId,
+            plugin: {
+              id: manifest.id,
+              name: manifest.name,
+              version: manifest.version,
+              author: manifest.author || "未知",
+              description: manifest.description || "",
+              homepage: manifest.homepage || "",
+            },
+            permissions: permissionDetails,
+            categories: PERMISSION_CATEGORIES,
+            riskLevels: RISK_LEVELS,
+          });
+        } catch (error) {
+          clearTimeout(timer);
+          this.pendingRequests.delete(requestId);
+          reject(error);
+        }
       } else {
         // 如果主窗口不可用，自动拒绝
         reject(new Error("主窗口不可用，无法显示权限对话框"));
+        clearTimeout(timer);
         this.pendingRequests.delete(requestId);
       }
-
-      // 设置超时（5分钟）
-      setTimeout(
-        () => {
-          if (this.pendingRequests.has(requestId)) {
-            const request = this.pendingRequests.get(requestId);
-            this.pendingRequests.delete(requestId);
-            request.reject(new Error("权限请求超时"));
-          }
-        },
-        5 * 60 * 1000,
-      );
     });
   }
 
@@ -337,6 +356,7 @@ class PermissionDialogManager extends EventEmitter {
 
     // 从队列中移除
     this.pendingRequests.delete(requestId);
+    clearTimeout(request.timer);
 
     // 解析响应
     const { granted, permissions = {}, remember = false } = response;
@@ -379,6 +399,7 @@ class PermissionDialogManager extends EventEmitter {
 
     if (request) {
       this.pendingRequests.delete(requestId);
+      clearTimeout(request.timer);
       request.reject(new Error("用户取消了权限请求"));
     }
   }
@@ -459,6 +480,7 @@ class PermissionDialogManager extends EventEmitter {
    */
   cleanup() {
     for (const [requestId, request] of this.pendingRequests) {
+      clearTimeout(request.timer);
       request.reject(new Error("权限对话框管理器已关闭"));
     }
     this.pendingRequests.clear();

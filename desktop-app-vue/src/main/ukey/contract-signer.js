@@ -13,13 +13,22 @@ const { RiskAnalyzer } = require("./risk-analyzer");
 const { ChainAdapter } = require("./chain-adapter");
 
 class ContractSigner extends EventEmitter {
-  constructor(ukeyManager) {
+  constructor(ukeyManager, options = {}) {
     super();
     this._ukey = ukeyManager;
     this._simulator = new TxSimulator();
     this._riskAnalyzer = new RiskAnalyzer();
     this._chainAdapter = new ChainAdapter();
     this._pendingRequests = new Map();
+    this._maxPendingRequests =
+      Number.isInteger(options.maxPendingRequests) &&
+      options.maxPendingRequests > 0
+        ? options.maxPendingRequests
+        : 32;
+    this._requestTtlMs =
+      Number.isFinite(options.requestTtlMs) && options.requestTtlMs > 0
+        ? options.requestTtlMs
+        : 10 * 60 * 1000;
   }
 
   /**
@@ -28,6 +37,13 @@ class ContractSigner extends EventEmitter {
    * @returns {Promise<object>} SigningRequest
    */
   async prepareSign(txParams) {
+    this._pruneExpiredRequests();
+    if (this._pendingRequests.size >= this._maxPendingRequests) {
+      const error = new Error("Signing request backlog is full");
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      throw error;
+    }
     const chain = txParams.chain || "ethereum";
     console.log(`[ContractSigner] Preparing tx: ${txParams.to} on ${chain}`);
 
@@ -132,6 +148,15 @@ class ContractSigner extends EventEmitter {
     this._pendingRequests.delete(signingRequest.id);
     this.emit("rejected", { id: signingRequest.id });
     console.log(`[ContractSigner] Tx rejected: ${signingRequest.id}`);
+  }
+
+  _pruneExpiredRequests(now = Date.now()) {
+    for (const [requestId, request] of this._pendingRequests) {
+      if (now - request.createdAt > this._requestTtlMs) {
+        this._pendingRequests.delete(requestId);
+        this.emit("expired", { id: requestId });
+      }
+    }
   }
 
   /**
