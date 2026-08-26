@@ -47,8 +47,8 @@ data class ApprovalDecisionEnvelope(
 
     companion object {
         /**
-         * Wear currently exposes a binary UI, so it may issue only least-
-         * privilege accept-once or decline decisions.
+         * Current Android phone/Wear UIs are binary, so they may issue only
+         * least-privilege accept-once or decline decisions.
          */
         fun fromDecision(
             requestId: String,
@@ -72,7 +72,7 @@ data class ApprovalDecisionEnvelope(
                 decision is ApprovalDecision.AcceptOnce ||
                     decision is ApprovalDecision.Decline,
             ) {
-                "Wear binary approval UI cannot issue ${decision::class.simpleName}"
+                "Android binary approval UI cannot issue ${decision::class.simpleName}"
             }
         }
     }

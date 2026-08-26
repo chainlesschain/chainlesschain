@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.session
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
@@ -101,7 +102,7 @@ class RemoteSessionClientIdempotencyTest {
         client.sendPrompt("continue")
         client.resolveApproval(
             requestId = "req-1",
-            approved = true,
+            decision = ApprovalDecision.AcceptOnce,
             fingerprint = "sha256:request-1",
             binding = "binding-1",
             revision = 3,
@@ -112,6 +113,8 @@ class RemoteSessionClientIdempotencyTest {
         assertEquals(3, controls.size)
         assertEquals("prompt", controls[0].getString("type"))
         assertEquals("approval.resolve", controls[1].getString("type"))
+        assertEquals("acceptOnce", controls[1].getJSONObject("decision").getString("kind"))
+        assertTrue(controls[1].getBoolean("approved"))
         assertEquals("sha256:request-1", controls[1].getString("fingerprint"))
         assertEquals("binding-1", controls[1].getString("binding"))
         assertEquals(3, controls[1].getInt("revision"))
@@ -132,11 +135,35 @@ class RemoteSessionClientIdempotencyTest {
         assertTrue(
             !client.resolveApproval(
                 requestId = "req-partial",
-                approved = true,
+                decision = ApprovalDecision.AcceptOnce,
                 fingerprint = "sha256:partial",
             ),
         )
         assertTrue(decryptControls(host, before).isEmpty())
+    }
+
+    @Test
+    fun `binary remote UI rejects persistent grants before send`() {
+        val host = pair()
+        val before = sockets.last().sent.size
+        assertTrue(
+            !client.resolveApproval(
+                requestId = "req-grant",
+                decision = ApprovalDecision.AcceptForSession(),
+            ),
+        )
+        assertTrue(decryptControls(host, before).isEmpty())
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun `N-1 boolean caller is normalized to a canonical decision`() {
+        val host = pair()
+        val before = sockets.last().sent.size
+        assertTrue(client.resolveApproval(requestId = "req-legacy", approved = false))
+        val event = decryptControls(host, before).single()
+        assertEquals("decline", event.getJSONObject("decision").getString("kind"))
+        assertTrue(!event.getBoolean("approved"))
     }
 
     @Test

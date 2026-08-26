@@ -70,6 +70,7 @@ class RemoteSessionClientPushTest {
         assertEquals("pair.join", join.getString("type"))
         assertEquals("token-abc", join.getString("token"))
         assertEquals("approval-binding-v1", join.getJSONArray("capabilities").getString(0))
+        assertEquals("approval-decision-v1", join.getJSONArray("capabilities").getString(1))
         assertEquals("fcm-token-xyz", join.getString("pushToken"))
         assertEquals("fcm", join.getString("pushProvider"))
     }

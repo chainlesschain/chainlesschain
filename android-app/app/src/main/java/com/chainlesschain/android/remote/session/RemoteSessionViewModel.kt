@@ -3,6 +3,7 @@ package com.chainlesschain.android.remote.session
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -99,7 +100,11 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         if (
             client.resolveApproval(
                 requestId = requestId,
-                approved = approved,
+                decision = if (approved) {
+                    ApprovalDecision.AcceptOnce
+                } else {
+                    ApprovalDecision.Decline(reason = "user-declined")
+                },
                 fingerprint = fingerprint,
                 binding = binding,
                 revision = revision,

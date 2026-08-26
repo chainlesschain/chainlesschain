@@ -1,5 +1,7 @@
 package com.chainlesschain.android.remote.session
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -158,7 +160,7 @@ class RemoteSessionClient(
 
     fun resolveApproval(
         requestId: String,
-        approved: Boolean,
+        decision: ApprovalDecision,
         fingerprint: String? = null,
         binding: String? = null,
         revision: Any? = null,
@@ -172,10 +174,18 @@ class RemoteSessionClient(
         ) {
             return false
         }
+        val envelope = runCatching {
+            ApprovalDecisionEnvelope.fromDecision(
+                requestId = requestId,
+                decision = decision,
+                decidedAtMs = System.currentTimeMillis(),
+            )
+        }.getOrElse { return false }
         val event = JSONObject()
             .put("type", "approval.resolve")
             .put("requestId", requestId)
-            .put("approved", approved)
+            .put("decision", JSONObject(requireNotNull(envelope.decision).toString()))
+            .put("approved", envelope.approved)
         if (hasDurableTuple) {
             event.put("fingerprint", fingerprint)
             event.put("binding", binding)
@@ -183,6 +193,22 @@ class RemoteSessionClient(
         }
         return sendControl(event)
     }
+
+    /** N-1 source compatibility; new callers should use the canonical overload. */
+    @Deprecated("Use resolveApproval(requestId, decision, ...) instead")
+    fun resolveApproval(
+        requestId: String,
+        approved: Boolean,
+        fingerprint: String? = null,
+        binding: String? = null,
+        revision: Any? = null,
+    ): Boolean = resolveApproval(
+        requestId = requestId,
+        decision = if (approved) ApprovalDecision.AcceptOnce else ApprovalDecision.Decline(),
+        fingerprint = fingerprint,
+        binding = binding,
+        revision = revision,
+    )
 
     fun interrupt() = sendControl(JSONObject().put("type", "interrupt"))
 
@@ -234,7 +260,12 @@ class RemoteSessionClient(
             .put("type", "pair.join")
             .put("remoteSessionId", activePairing.remoteSessionId)
             .put("token", activePairing.pairingToken)
-            .put("capabilities", JSONArray().put("approval-binding-v1"))
+            .put(
+                "capabilities",
+                JSONArray()
+                    .put("approval-binding-v1")
+                    .put("approval-decision-v1"),
+            )
         pushToken?.let { joinPayload.put("pushToken", it) }
         pushProvider?.let { joinPayload.put("pushProvider", it) }
         val envelope = activeCrypto.encrypt(joinPayload)
