@@ -52,6 +52,32 @@ function permissionDecision(evt) {
   };
 }
 
+function requestedApprovalPermissions(evt) {
+  if (!Array.isArray(evt?.requested_permissions)) return [];
+  return evt.requested_permissions
+    .filter(
+      (permission) =>
+        permission &&
+        typeof permission === "object" &&
+        !Array.isArray(permission) &&
+        typeof permission.capability === "string" &&
+        permission.capability.length > 0 &&
+        permission.capability.length <= 128 &&
+        typeof permission.scope === "string" &&
+        permission.scope.length > 0 &&
+        permission.scope.length <= 1024 &&
+        (permission.expiresAt == null ||
+          (typeof permission.expiresAt === "string" &&
+            !Number.isNaN(Date.parse(permission.expiresAt)))),
+    )
+    .slice(0, 64)
+    .map((permission) => ({
+      capability: permission.capability,
+      scope: permission.scope,
+      ...(permission.expiresAt ? { expiresAt: permission.expiresAt } : {}),
+    }));
+}
+
 /**
  * @param {object} evt    one parsed NDJSON event from the agent child
  * @param {object} state  per-conversation state from createTurnState()
@@ -201,12 +227,20 @@ function mapAgentEvent(evt, state) {
         // Echo the CLI's exact-call binding with the verdict. Newer CLIs use
         // it to reject stale or cross-tool approvals; older CLIs ignore it.
         binding: typeof evt.binding === "string" ? evt.binding : null,
+        // CLI 0.166.3 provides the exact grant that can be retained for the
+        // turn/session. Keep a bounded host-side copy; the Webview never gets
+        // to invent a wider capability or scope.
+        permissions: requestedApprovalPermissions(evt),
       };
     case "approval_resolved":
       return {
         kind: "approval_done",
         id: evt.id,
         approved: evt.approved === true,
+        decisionKind:
+          typeof evt.decision?.kind === "string"
+            ? evt.decision.kind.slice(0, 32)
+            : null,
         via: evt.via || null,
       };
     case "question_request": {

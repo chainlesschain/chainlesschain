@@ -10,6 +10,10 @@ const extensionRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(extensionRoot, "..", "..");
 const protocol = require("../src/vendor/agent-sdk/generated/app-protocol.js");
 const { buildApprovalResponse } = require("../src/chat/approval-response.js");
+const {
+  createTurnState,
+  mapAgentEvent,
+} = require("../src/chat/chat-events.js");
 
 test("vendored Agent SDK matches the current source and generated output", () => {
   const result = spawnSync(
@@ -60,11 +64,18 @@ test("VS Code replays the canonical ApprovalDecision conformance fixture", () =>
 });
 
 test("VS Code emits schema-valid, least-privilege approval responses", () => {
-  const accepted = buildApprovalResponse({
-    id: "approval-1",
-    approve: true,
-    binding: "sha256:exact-call",
-  });
+  const accepted = buildApprovalResponse(
+    {
+      id: "approval-1",
+      approve: true,
+      binding: "sha256:exact-call",
+    },
+    {
+      id: "approval-1",
+      binding: "sha256:exact-call",
+      permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+    },
+  );
   assert.deepEqual(accepted, {
     type: "approval",
     id: "approval-1",
@@ -73,6 +84,33 @@ test("VS Code emits schema-valid, least-privilege approval responses", () => {
     binding: "sha256:exact-call",
   });
   assert.equal(protocol.validateApprovalDecision(accepted.decision).ok, true);
+
+  for (const decisionKind of ["acceptForTurn", "acceptForSession"]) {
+    const scoped = buildApprovalResponse(
+      {
+        id: "approval-1",
+        decisionKind,
+        // A compromised Webview cannot widen the CLI-issued permission.
+        permissions: [{ capability: "tool:run_shell", scope: "*" }],
+      },
+      {
+        id: "approval-1",
+        binding: "sha256:exact-call",
+        permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+      },
+    );
+    assert.deepEqual(scoped, {
+      type: "approval",
+      id: "approval-1",
+      decision: {
+        kind: decisionKind,
+        permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+      },
+      approve: true,
+      binding: "sha256:exact-call",
+    });
+    assert.equal(protocol.validateApprovalDecision(scoped.decision).ok, true);
+  }
 
   const declined = buildApprovalResponse({
     id: "approval-2",
@@ -87,4 +125,45 @@ test("VS Code emits schema-valid, least-privilege approval responses", () => {
     approve: false,
   });
   assert.equal(protocol.validateApprovalDecision(declined.decision).ok, true);
+
+  assert.throws(
+    () =>
+      buildApprovalResponse(
+        { id: "approval-1", approve: true, binding: "sha256:replayed" },
+        { id: "approval-1", binding: "sha256:exact-call" },
+      ),
+    /binding does not match/u,
+  );
+});
+
+test("VS Code retains bounded CLI approval grants and resolution scope", () => {
+  const state = createTurnState();
+  const request = mapAgentEvent(
+    {
+      type: "approval_request",
+      id: "approval-scoped",
+      tool: "run_shell",
+      binding: "ab_0123456789abcdef0123456789abcdef",
+      requested_permissions: [
+        { capability: "tool:run_shell", scope: "npm test" },
+        { capability: "", scope: "must-be-dropped" },
+      ],
+    },
+    state,
+  );
+  assert.deepEqual(request.permissions, [
+    { capability: "tool:run_shell", scope: "npm test" },
+  ]);
+
+  const resolved = mapAgentEvent(
+    {
+      type: "approval_resolved",
+      id: "approval-scoped",
+      approved: true,
+      decision: { kind: "acceptForSession" },
+      via: "user",
+    },
+    state,
+  );
+  assert.equal(resolved.decisionKind, "acceptForSession");
 });

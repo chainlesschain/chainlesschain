@@ -64,6 +64,7 @@ function snapshot(statePath) {
     members: parsed.members,
     budget: parsed.budget,
     mailbox: parsed.mailbox,
+    collaboration: parsed.collaboration,
   };
 }
 
@@ -1239,6 +1240,34 @@ function renderHtml() {
         'div',
         'Realtime mailbox metadata unavailable: ' +
           (mailbox.error || 'unsupported snapshot'),
+        'readonly'
+      ));
+    }
+    const collaboration = message.collaboration;
+    if (collaboration && collaboration.available === true) {
+      cards.append(
+        card('message deliveries', collaboration.messages || 0),
+        card('active handoffs', collaboration.activeHandoffs || 0)
+      );
+      if (collaboration.handoffStatuses && collaboration.handoffStatuses.committed) {
+        cards.append(card('handoffs committed', collaboration.handoffStatuses.committed));
+      }
+      const statuses = collaboration.messageStatuses || {};
+      notice.append(element(
+        'div',
+        'Canonical collaboration v' + collaboration.version +
+          ' · ' + (collaboration.followups || 0) + ' follow-up deliveries' +
+          ' · ' + (statuses.read || 0) + ' read' +
+          ' · ' + (statuses.processed || 0) + ' processed' +
+          ' · ' + (statuses.dead_letter || 0) + ' dead-lettered' +
+          ' · ' + (collaboration.handoffs || 0) + ' custody handoffs',
+        collaboration.activeHandoffs ? 'warning' : 'muted'
+      ));
+    } else if (collaboration && collaboration.available === false) {
+      notice.append(element(
+        'div',
+        'Canonical collaboration metadata unavailable: ' +
+          (collaboration.error || 'unsupported snapshot'),
         'readonly'
       ));
     }

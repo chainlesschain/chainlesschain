@@ -144,7 +144,7 @@ test("conversation manager retains and resolves multiple interactive cards", () 
   assert.deepEqual(conversations.pendingInteractions(background.id), []);
 });
 
-test("ChatViewProvider rehydrates questions and preserves approval bindings", () => {
+test("ChatViewProvider rehydrates questions and preserves approval bindings", async () => {
   const posted = [];
   const sent = [];
   const vscode = {
@@ -188,10 +188,25 @@ test("ChatViewProvider rehydrates questions and preserves approval bindings", ()
     ["question-reload"],
   );
 
+  onEvent({
+    type: "approval_request",
+    id: "approval-bound",
+    tool: "run_shell",
+    binding: "sha256:exact-call",
+    requested_permissions: [
+      { capability: "tool:run_shell", scope: "npm test" },
+    ],
+  });
+  const approvalCard = posted.find(
+    (message) => message.kind === "approval" && message.id === "approval-bound",
+  );
+  assert.equal(approvalCard.hasScopedPermissions, true);
+  assert.equal(Object.hasOwn(approvalCard, "permissions"), false);
   provider._handleMessage({
     type: "approval",
     id: "approval-bound",
     approve: true,
+    decisionKind: "acceptForSession",
     binding: "sha256:exact-call",
   });
   assert.deepEqual(sent.at(-1), {
@@ -200,6 +215,32 @@ test("ChatViewProvider rehydrates questions and preserves approval bindings", ()
     decision: { kind: "acceptOnce" },
     approve: true,
     binding: "sha256:exact-call",
+  });
+
+  vscode.window.showQuickPick = async (choices) =>
+    choices.find((choice) => choice.decisionKind === "acceptForSession");
+  onEvent({
+    type: "approval_request",
+    id: "approval-scoped",
+    tool: "run_shell",
+    binding: "sha256:scoped-call",
+    requested_permissions: [
+      { capability: "tool:run_shell", scope: "npm test" },
+    ],
+  });
+  await provider._showApprovalOptions({
+    id: "approval-scoped",
+    binding: "sha256:scoped-call",
+  });
+  assert.deepEqual(sent.at(-1), {
+    type: "approval",
+    id: "approval-scoped",
+    decision: {
+      kind: "acceptForSession",
+      permissions: [{ capability: "tool:run_shell", scope: "npm test" }],
+    },
+    approve: true,
+    binding: "sha256:scoped-call",
   });
 
   onEvent({ type: "question_resolved", id: "question-reload", via: "timeout" });
@@ -252,7 +293,13 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
   assert.match(html, /log\.setAttribute\("aria-busy", "true"\)/u);
   assert.match(html, /card\.setAttribute\("role", "group"\)/u);
   assert.match(html, /card\.setAttribute\("aria-labelledby", q\.id\)/u);
-  assert.match(html, /yes\.disabled = no\.disabled = true;/u);
+  assert.match(html, /scoped\.textContent = "Approval options…";/u);
+  assert.match(html, /scoped\.hidden = m\.hasScopedPermissions !== true;/u);
+  assert.match(html, /type: "approvalOptions"/u);
+  assert.match(
+    html,
+    /yes\.disabled = scoped\.disabled = no\.disabled = true;/u,
+  );
   assert.match(
     html,
     /control while the host settles[\s\S]{0,160}input\.focus\(\)/u,
