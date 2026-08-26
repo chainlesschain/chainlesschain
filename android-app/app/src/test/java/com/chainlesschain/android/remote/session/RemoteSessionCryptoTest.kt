@@ -47,7 +47,16 @@ class RemoteSessionCryptoTest {
         host.pair(phone.publicKeyBase64(), "pairing-secret")
         phone.pair(host.publicKeyBase64(), "pairing-secret")
         val envelope = host.encrypt(JSONObject().put("type", "ping"))
-        val tampered = envelope.copy(ciphertext = envelope.ciphertext.dropLast(1) + "A")
+        val tamperedCiphertext = Base64.getUrlDecoder().decode(envelope.ciphertext).also {
+            // Flip an authenticated byte. Replacing the final Base64 character
+            // was probabilistic: it was occasionally already "A" (or changed
+            // only unused padding bits), leaving the ciphertext unchanged.
+            it[0] = (it[0].toInt() xor 0x01).toByte()
+        }
+        val tampered = envelope.copy(
+            ciphertext = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(tamperedCiphertext),
+        )
 
         assertThrows(Exception::class.java) { phone.decrypt(tampered) }
         assertEquals("ping", phone.decrypt(envelope).getString("type"))
