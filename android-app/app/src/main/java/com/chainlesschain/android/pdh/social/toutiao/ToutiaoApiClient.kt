@@ -18,6 +18,7 @@ import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.TimeUnit
@@ -1087,7 +1088,9 @@ class ToutiaoApiClient @Inject constructor() {
             .takeIf { INTEGER_TOKEN.matches(it) }
             ?.toLongOrNull()
         is Number -> try {
-            BigDecimal(raw.toString()).toBigIntegerExact().longValueExact()
+            val integer = BigDecimal(raw.toString()).toBigIntegerExact()
+            val candidate = integer.toLong()
+            candidate.takeIf { BigInteger.valueOf(it) == integer }
         } catch (_: ArithmeticException) {
             null
         } catch (_: NumberFormatException) {

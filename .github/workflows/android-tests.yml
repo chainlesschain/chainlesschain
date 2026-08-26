@@ -96,8 +96,9 @@ jobs:
       # contains a failing test.
       - name: Run Remaining Module Tests and Generate Report
         if: always()
+        timeout-minutes: 45
         working-directory: android-app
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --parallel --max-workers=4 --no-daemon
 
       - name: Upload Test Results
         if: always()
@@ -238,19 +239,12 @@ jobs:
 
       - name: Generate Coverage Report
         working-directory: android-app
-        continue-on-error: true
-        run: |
-          # Inner `|| true` removed 2026-05-18 — was redundant masking on top
-          # of `continue-on-error: true`. Step outcome now honestly reflects
-          # whether test/jacoco runs succeeded (matching the sweep in 350157a46
-          # for P1/P2 jobs).
-          ./gradlew test --no-daemon
-          ./gradlew jacocoTestReport --no-daemon
+        run: ./gradlew jacocoTestReport --parallel --max-workers=4 --no-daemon
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: android-app/**/build/reports/jacoco/test/jacocoTestReport.xml
+          files: android-app/**/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -261,12 +255,18 @@ jobs:
         with:
           name: coverage-reports
           path: android-app/**/build/reports/jacoco/
+          if-no-files-found: error
           retention-days: 30
 
-      - name: Check Coverage Thresholds
+      # Existing modules do not yet meet the aspirational 85/80/75 thresholds
+      # in jacoco-config.gradle.kts. Keep that debt visible without claiming it
+      # is a release gate; report generation and missing artifacts are blocking.
+      - name: Audit Coverage Thresholds (advisory)
         working-directory: android-app
         run: |
-          ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold not met, but continuing..."
+          if ! ./gradlew jacocoTestCoverageVerification --no-daemon; then
+            echo "::warning::Coverage thresholds are not met; see the generated report"
+          fi
 
   test-summary:
     name: Test Summary
@@ -310,6 +310,18 @@ jobs:
           echo "Creating test status badge..."
           # Badge creation logic here
 
+      - name: Enforce Test Gate Results
+        if: always()
+        env:
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          INSTRUMENTED_RESULT: ${{ needs.instrumented-tests.result }}
+          COVERAGE_RESULT: ${{ needs.code-coverage.result }}
+        run: |
+          if [[ "$UNIT_RESULT" != "success" || "$INSTRUMENTED_RESULT" != "success" || "$COVERAGE_RESULT" != "success" ]]; then
+            echo "Unit=$UNIT_RESULT Instrumented=$INSTRUMENTED_RESULT Coverage=$COVERAGE_RESULT"
+            exit 1
+          fi
+
   lint-and-detekt:
     name: Lint & Static Analysis
     runs-on: ubuntu-latest
@@ -334,7 +346,6 @@ jobs:
 
       - name: Run Lint
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew lintDebug --no-daemon
 
       - name: Upload Lint Results
@@ -384,28 +395,17 @@ jobs:
           echo "Code Coverage: ${{ needs.code-coverage.result }}"
           echo "Lint: ${{ needs.lint-and-detekt.result }}"
 
-          # Unit tests: hard-fail. App-module continue-on-error was removed
-          # in this commit, so a real test failure now propagates here.
-          if [[ "${{ needs.unit-tests.result }}" == "failure" ]]; then
-            echo "❌ Unit tests failed!"
+          # Every dependency must finish successfully. A cancelled or skipped
+          # test job is not release evidence and must fail this aggregate gate.
+          if [[ "${{ needs.unit-tests.result }}" != "success" || \
+                "${{ needs.instrumented-tests.result }}" != "success" || \
+                "${{ needs.code-coverage.result }}" != "success" || \
+                "${{ needs.lint-and-detekt.result }}" != "success" ]]; then
+            echo "❌ One or more required Android jobs did not succeed"
             exit 1
           fi
 
-          # Instrumented tests: soft signal. Emulator runs are flaky on
-          # GH runners (KVM availability, AVD snapshot cache misses), so
-          # we don't fail the build on instrumented failures yet — but we
-          # DO report them visibly here so the test-summary PR comment is
-          # accurate. Track via the test-results artifact for triage.
-          if [[ "${{ needs.instrumented-tests.result }}" == "failure" ]]; then
-            echo "⚠️ Instrumented tests failed — see uploaded test-results artifact"
-          fi
-
-          if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
-            echo "✅ Unit tests passed"
-            exit 0
-          fi
-
-          echo "⚠️ Some jobs were skipped or cancelled"
+          echo "✅ All required Android jobs succeeded"
           exit 0
 
       - name: Post Status to PR

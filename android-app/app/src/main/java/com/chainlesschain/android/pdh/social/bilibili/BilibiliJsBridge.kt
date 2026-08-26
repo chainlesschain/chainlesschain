@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.bilibili
 
 import android.webkit.JavascriptInterface
+import com.chainlesschain.android.pdh.social.SocialPrefetchJsBridge
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicReference
 
@@ -26,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference
  * 全局单例理由：JavascriptInterface 必须 thread-safe 且要从 WebView JS thread
  * 调回 Kotlin；用 singleton + AtomicReference<callback> 一次性消费最稳。
  */
-object BilibiliJsBridge {
+internal object BilibiliJsBridge : SocialPrefetchJsBridge {
     private val pendingCallback = AtomicReference<((String?) -> Unit)?>(null)
 
     /**
@@ -47,7 +48,7 @@ object BilibiliJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncData(json: String) {
+    override fun onSyncData(json: String) {
         Timber.i("BilibiliJsBridge: onSyncData received len=%d", json.length)
         val cb = pendingCallback.getAndSet(null) ?: run {
             Timber.w("BilibiliJsBridge: onSyncData but no pending callback")
@@ -57,7 +58,7 @@ object BilibiliJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncError(message: String) {
+    override fun onSyncError(message: String) {
         Timber.w("BilibiliJsBridge: onSyncError msg=%s", message)
         val cb = pendingCallback.getAndSet(null) ?: return
         cb(null)

@@ -948,8 +948,89 @@ test("Android remaining-module unit tests are a blocking gate", () => {
   assert.ok(aggregateStart >= 0);
   assert.ok(aggregateEnd > aggregateStart);
   const aggregateStep = workflow.slice(aggregateStart, aggregateEnd);
-  assert.match(aggregateStep, /\.\/gradlew testDebugUnitTest --no-daemon/);
+  assert.match(aggregateStep, /timeout-minutes: 45/);
+  assert.match(
+    aggregateStep,
+    /\.\/gradlew testDebugUnitTest --parallel --max-workers=4 --no-daemon/,
+  );
   assert.doesNotMatch(aggregateStep, /continue-on-error:\s*true/);
+});
+
+test("Android lint is a blocking gate", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
+    "utf8",
+  );
+  const lintStart = workflow.indexOf("- name: Run Lint");
+  const lintEnd = workflow.indexOf("- name: Upload Lint Results", lintStart);
+
+  assert.ok(lintStart >= 0);
+  assert.ok(lintEnd > lintStart);
+  const lintStep = workflow.slice(lintStart, lintEnd);
+  assert.match(lintStep, /\.\/gradlew lintDebug --no-daemon/);
+  assert.doesNotMatch(lintStep, /continue-on-error:\s*true/);
+});
+
+test("Android coverage produces real reports without masking test failures", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
+    "utf8",
+  );
+  const coverageStart = workflow.indexOf("  code-coverage:");
+  const coverageEnd = workflow.indexOf("  test-summary:", coverageStart);
+  assert.ok(coverageStart >= 0);
+  assert.ok(coverageEnd > coverageStart);
+  const coverage = workflow.slice(coverageStart, coverageEnd);
+
+  const generationStart = coverage.indexOf("- name: Generate Coverage Report");
+  const generationEnd = coverage.indexOf(
+    "- name: Upload Coverage to Codecov",
+    generationStart,
+  );
+  const generation = coverage.slice(generationStart, generationEnd);
+  assert.match(
+    generation,
+    /\.\/gradlew jacocoTestReport --parallel --max-workers=4 --no-daemon/,
+  );
+  assert.doesNotMatch(generation, /continue-on-error:\s*true/);
+  assert.match(coverage, /jacoco\/jacocoTestReport\/jacocoTestReport\.xml/);
+  assert.match(coverage, /if-no-files-found: error/);
+  assert.match(coverage, /Audit Coverage Thresholds \(advisory\)/);
+});
+
+test("Android aggregate gates reject failed, cancelled, or skipped dependencies", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
+    "utf8",
+  );
+  const summaryStart = workflow.indexOf("  test-summary:");
+  const summaryEnd = workflow.indexOf("  lint-and-detekt:", summaryStart);
+  const summary = workflow.slice(summaryStart, summaryEnd);
+  assert.match(summary, /name: Enforce Test Gate Results/);
+  for (const result of [
+    "UNIT_RESULT",
+    "INSTRUMENTED_RESULT",
+    "COVERAGE_RESULT",
+  ]) {
+    assert.match(summary, new RegExp(`\\$${result}\\\" != \\\"success\\\"`));
+  }
+
+  const buildStart = workflow.indexOf("  build-status:");
+  const buildStatus = workflow.slice(buildStart);
+  assert.match(buildStatus, /needs\.unit-tests\.result \}\}\" != \"success\"/);
+  assert.match(
+    buildStatus,
+    /needs\.instrumented-tests\.result \}\}\" != \"success\"/,
+  );
+  assert.match(
+    buildStatus,
+    /needs\.code-coverage\.result \}\}\" != \"success\"/,
+  );
+  assert.match(
+    buildStatus,
+    /needs\.lint-and-detekt\.result \}\}\" != \"success\"/,
+  );
+  assert.doesNotMatch(buildStatus, /Some jobs were skipped or cancelled/);
 });
 
 test("Android emulator matrix runs real instrumented tests from the project directory", () => {
@@ -974,8 +1055,5 @@ test("Android emulator matrix runs real instrumented tests from the project dire
     matrix,
     /cd android-app && \.\/gradlew :core-e2ee:connectedDebugAndroidTest/,
   );
-  assert.match(
-    matrix,
-    /-Pandroid\.testInstrumentationRunnerArguments\.class=/,
-  );
+  assert.match(matrix, /-Pandroid\.testInstrumentationRunnerArguments\.class=/);
 });

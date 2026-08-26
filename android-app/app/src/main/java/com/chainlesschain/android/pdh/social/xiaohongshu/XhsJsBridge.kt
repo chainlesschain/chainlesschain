@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.xiaohongshu
 
 import android.webkit.JavascriptInterface
+import com.chainlesschain.android.pdh.social.SocialPrefetchJsBridge
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicReference
 
@@ -25,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference
  * 注意：[XhsLocalCollector.acceptLoginCookie] 必须 a1 字段，JS 端从
  * document.cookie 解出来传上去（避免 Kotlin 侧再 extractA1）。
  */
-object XhsJsBridge {
+internal object XhsJsBridge : SocialPrefetchJsBridge {
     private val pendingCallback = AtomicReference<((String?) -> Unit)?>(null)
 
     fun setPending(callback: (String?) -> Unit) {
@@ -37,7 +38,7 @@ object XhsJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncData(json: String) {
+    override fun onSyncData(json: String) {
         Timber.i("XhsJsBridge: onSyncData received len=%d", json.length)
         val cb = pendingCallback.getAndSet(null) ?: run {
             Timber.w("XhsJsBridge: onSyncData but no pending callback")
@@ -47,7 +48,7 @@ object XhsJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncError(message: String) {
+    override fun onSyncError(message: String) {
         Timber.w("XhsJsBridge: onSyncError msg=%s", message)
         val cb = pendingCallback.getAndSet(null) ?: return
         cb(null)

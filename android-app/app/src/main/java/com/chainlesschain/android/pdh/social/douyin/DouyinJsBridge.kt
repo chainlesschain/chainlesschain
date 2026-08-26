@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.douyin
 
 import android.webkit.JavascriptInterface
+import com.chainlesschain.android.pdh.social.SocialPrefetchJsBridge
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicReference
 
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference
  *   - PREFETCH_JS schema 必须跟 [DouyinLocalCollector] `root` JSON 完全同 shape
  *     (schemaVersion=1, account.secUid, events:[{kind:'profile'|'history'|...}])
  */
-object DouyinJsBridge {
+internal object DouyinJsBridge : SocialPrefetchJsBridge {
     private val pendingCallback = AtomicReference<((String?) -> Unit)?>(null)
 
     fun setPending(callback: (String?) -> Unit) {
@@ -35,7 +36,7 @@ object DouyinJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncData(json: String) {
+    override fun onSyncData(json: String) {
         Timber.i("DouyinJsBridge: onSyncData received len=%d", json.length)
         val cb = pendingCallback.getAndSet(null) ?: run {
             Timber.w("DouyinJsBridge: onSyncData but no pending callback")
@@ -45,7 +46,7 @@ object DouyinJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncError(message: String) {
+    override fun onSyncError(message: String) {
         Timber.w("DouyinJsBridge: onSyncError msg=%s", message)
         val cb = pendingCallback.getAndSet(null) ?: return
         cb(null)

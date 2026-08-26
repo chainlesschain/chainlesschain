@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.toutiao
 
 import android.webkit.JavascriptInterface
+import com.chainlesschain.android.pdh.social.SocialPrefetchJsBridge
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicReference
 
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
  *   - PREFETCH_JS schema 跟 [ToutiaoLocalCollector] root JSON 同 shape:
  *     account.{uid, displayName}, events:[{kind:'profile'|'read'|'collection'|'search'}]
  */
-object ToutiaoJsBridge {
+internal object ToutiaoJsBridge : SocialPrefetchJsBridge {
     private val pendingCallback = AtomicReference<((String?) -> Unit)?>(null)
 
     fun setPending(callback: (String?) -> Unit) {
@@ -32,7 +33,7 @@ object ToutiaoJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncData(json: String) {
+    override fun onSyncData(json: String) {
         Timber.i("ToutiaoJsBridge: onSyncData received len=%d", json.length)
         val cb = pendingCallback.getAndSet(null) ?: run {
             Timber.w("ToutiaoJsBridge: onSyncData but no pending callback")
@@ -42,7 +43,7 @@ object ToutiaoJsBridge {
     }
 
     @JavascriptInterface
-    fun onSyncError(message: String) {
+    override fun onSyncError(message: String) {
         Timber.w("ToutiaoJsBridge: onSyncError msg=%s", message)
         val cb = pendingCallback.getAndSet(null) ?: return
         cb(null)

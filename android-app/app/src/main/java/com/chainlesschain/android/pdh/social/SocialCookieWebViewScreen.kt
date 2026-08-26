@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -116,8 +117,23 @@ internal fun sanitizeWebViewUserAgent(raw: String): String =
  * After this fix only the bridge matching the active platform's cookieDomain
  * is installed.
  */
+/**
+ * Static contract shared by every object passed to [WebView.addJavascriptInterface].
+ *
+ * The concrete bridges repeat these annotations because WebView reflects on the
+ * runtime class. Keeping them on this declared type also lets Android Lint prove
+ * that every exposed method is intentionally annotated.
+ */
+internal interface SocialPrefetchJsBridge {
+    @JavascriptInterface
+    fun onSyncData(json: String)
+
+    @JavascriptInterface
+    fun onSyncError(message: String)
+}
+
 private data class ActiveJsBridge(
-    val instance: Any,
+    val instance: SocialPrefetchJsBridge,
     val jsName: String,
     val setPending: ((String?) -> Unit) -> Unit,
     val clearPending: () -> Unit,
