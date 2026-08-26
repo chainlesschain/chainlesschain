@@ -1043,24 +1043,23 @@ test("Android aggregate gates reject failed, cancelled, or skipped dependencies"
     "INSTRUMENTED_RESULT",
     "COVERAGE_RESULT",
   ]) {
-    assert.match(summary, new RegExp(`\\$${result}\\\" != \\\"success\\\"`));
+    assert.ok(summary.includes(`"$${result}" != "success"`));
   }
 
   const buildStart = workflow.indexOf("  build-status:");
   const buildStatus = workflow.slice(buildStart);
-  assert.match(buildStatus, /needs\.unit-tests\.result \}\}\" != \"success\"/);
-  assert.match(
-    buildStatus,
-    /needs\.instrumented-tests\.result \}\}\" != \"success\"/,
-  );
-  assert.match(
-    buildStatus,
-    /needs\.code-coverage\.result \}\}\" != \"success\"/,
-  );
-  assert.match(
-    buildStatus,
-    /needs\.lint-and-detekt\.result \}\}\" != \"success\"/,
-  );
+  for (const dependency of [
+    "unit-tests",
+    "instrumented-tests",
+    "code-coverage",
+    "lint-and-detekt",
+  ]) {
+    assert.ok(
+      buildStatus.includes(
+        '"${{ needs.' + dependency + '.result }}" != "success"',
+      ),
+    );
+  }
   assert.doesNotMatch(buildStatus, /Some jobs were skipped or cancelled/);
 });
 
