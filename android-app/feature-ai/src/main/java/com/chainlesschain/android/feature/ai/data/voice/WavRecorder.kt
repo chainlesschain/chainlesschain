@@ -49,7 +49,14 @@ class WavRecorder @javax.inject.Inject constructor(
     /** 开始录音；幂等（重复调用先丢弃旧的） */
     override fun start(): Boolean {
         cancel()  // 清理旧实例
-        if (!hasPermission()) {
+        // Keep the framework permission check in this control-flow scope so
+        // Android Lint can prove the AudioRecord constructor is guarded. The
+        // SecurityException catch below still handles revocation after check.
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             Timber.w("WavRecorder.start: no RECORD_AUDIO permission")
             return false
         }
