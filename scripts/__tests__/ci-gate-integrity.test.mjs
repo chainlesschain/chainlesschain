@@ -932,7 +932,7 @@ test("Android MobSF gate uses an immutable image and the supported REST API", ()
   assert.match(securityScan, /name: Upload MobSF Report/);
 });
 
-test("Android remaining-module unit tests are a blocking gate", () => {
+test("Android remaining-module unit tests are a blocking non-duplicating gate", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "android-tests.yml"),
     "utf8",
@@ -948,11 +948,42 @@ test("Android remaining-module unit tests are a blocking gate", () => {
   assert.ok(aggregateStart >= 0);
   assert.ok(aggregateEnd > aggregateStart);
   const aggregateStep = workflow.slice(aggregateStart, aggregateEnd);
+  assert.match(aggregateStep, /if:\s*always\(\)/);
   assert.match(aggregateStep, /timeout-minutes: 45/);
-  assert.match(
-    aggregateStep,
-    /\.\/gradlew testDebugUnitTest --parallel --max-workers=4 --no-daemon/,
-  );
+  assert.doesNotMatch(aggregateStep, /\.\/gradlew\s+testDebugUnitTest\b/);
+  for (const moduleName of [
+    "core-ui",
+    "core-agent-protocol",
+    "core-test-helpers",
+    "data-knowledge",
+    "data-ai",
+    "feature-ai",
+    "feature-p2p",
+    "feature-family-guard",
+    "wear-app",
+  ]) {
+    assert.match(
+      aggregateStep,
+      new RegExp(`:${moduleName}:testDebugUnitTest\\b`),
+    );
+  }
+  for (const alreadyCoveredModule of [
+    "app",
+    "core-common",
+    "core-database",
+    "core-security",
+    "core-did",
+    "core-e2ee",
+    "core-blockchain",
+    "core-network",
+    "core-p2p",
+  ]) {
+    assert.doesNotMatch(
+      aggregateStep,
+      new RegExp(`:${alreadyCoveredModule}:testDebugUnitTest\\b`),
+    );
+  }
+  assert.match(aggregateStep, /--parallel --max-workers=4 --no-daemon/);
   assert.doesNotMatch(aggregateStep, /continue-on-error:\s*true/);
 });
 
