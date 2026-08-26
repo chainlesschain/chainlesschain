@@ -101,6 +101,7 @@ include(":core-did")
 include(":core-e2ee")
 include(":core-ui")
 include(":core-blockchain")
+include(":core-agent-protocol")
 
 // 测试基础设施（共享 Compose UI test 扩展 + Hilt test fixtures）
 // 仅供 androidTestImplementation 消费；main source set 放共享代码，让模块可作普通

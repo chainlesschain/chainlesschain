@@ -1,7 +1,10 @@
 package com.chainlesschain.android.wear
 
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
 import com.chainlesschain.android.auto.AutoApprovalDecision
 import com.chainlesschain.android.auto.AutoPushBus
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
+import com.chainlesschain.android.core.agentprotocol.toLegacyApproved
 import com.chainlesschain.android.push.NotificationPayload
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
@@ -10,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import javax.inject.Inject
@@ -18,7 +20,8 @@ import javax.inject.Inject
 /**
  * v1.2 #20 P0.2 Wear Phase 2 — phone-side decision listener。
  *
- * 接收 watch → phone 的 `/cc/decision` message。反序列化 [ApprovalDecisionWire]
+ * 接收 watch → phone 的 `/cc/decision` message。反序列化
+ * [ApprovalDecisionEnvelope]
  * 后路由：
  *   - id 前缀 "mp:" → marketplace approval：emit AutoPushBus.userDecision，让
  *     Auto Phase 2 已建的 ApprovalCoordinator (后续 commit) 决定走 multisig
@@ -52,41 +55,54 @@ class CcPhoneDecisionListener : WearableListenerService() {
                 Timber.w(it, "CcPhoneDecisionListener: utf-8 decode failed")
                 return
             }
-        val decision = runCatching { json.decodeFromString<ApprovalDecisionWire>(raw) }
+        val envelope = runCatching { json.decodeFromString<ApprovalDecisionEnvelope>(raw) }
             .getOrElse {
-                Timber.w(it, "CcPhoneDecisionListener: malformed payload: $raw")
+                Timber.w(it, "CcPhoneDecisionListener: malformed payload")
+                return
+            }
+        val decision = runCatching { envelope.resolveDecision() }
+            .getOrElse {
+                Timber.w(it, "CcPhoneDecisionListener: invalid approval decision")
                 return
             }
         Timber.i(
-            "CcPhoneDecisionListener: requestId=${decision.requestId} approved=${decision.approved}",
+            "CcPhoneDecisionListener: requestId=${envelope.requestId} " +
+                "decision=${decision::class.simpleName}",
         )
         // 不阻塞 callback 线程，分发到 IO scope。
-        scope.launch { route(decision) }
+        scope.launch { route(envelope, decision) }
     }
 
     /** 测试 hook：路由逻辑可单独验。 */
-    internal suspend fun route(decision: ApprovalDecisionWire) {
-        val resourceType = resourceTypeFromId(decision.requestId)
+    internal suspend fun route(
+        envelope: ApprovalDecisionEnvelope,
+        decision: ApprovalDecision = envelope.resolveDecision(),
+    ) {
+        val resourceType = resourceTypeFromId(envelope.requestId)
         when (resourceType) {
-            "marketplace" -> emitAutoDecision(decision, kind = "marketplace.purchase")
-            "system" -> emitAutoDecision(decision, kind = "system.alert")
+            "marketplace" -> emitAutoDecision(envelope, decision, kind = "marketplace.purchase")
+            "system" -> emitAutoDecision(envelope, decision, kind = "system.alert")
             else -> Timber.w(
-                "CcPhoneDecisionListener.route: unknown requestId prefix → no-op: ${decision.requestId}",
+                "CcPhoneDecisionListener.route: unknown requestId prefix → no-op: ${envelope.requestId}",
             )
         }
     }
 
-    private suspend fun emitAutoDecision(decision: ApprovalDecisionWire, kind: String) {
+    private suspend fun emitAutoDecision(
+        envelope: ApprovalDecisionEnvelope,
+        decision: ApprovalDecision,
+        kind: String,
+    ) {
         // 构造 placeholder NotificationPayload — AutoPushBus.userDecision 需要
         // payload 引用。Phase 3 起换 ApprovalCoordinator 后可直接传 requestId。
         val placeholder = NotificationPayload.SystemAlertNotice(
             title = "wear-decision",
-            body = "${decision.requestId}|$kind",
+            body = "${envelope.requestId}|$kind",
         )
         autoPushBus.userDecision(
             AutoApprovalDecision(
                 payload = placeholder,
-                approved = decision.approved,
+                approved = decision.toLegacyApproved(),
             ),
         )
     }
@@ -103,16 +119,3 @@ class CcPhoneDecisionListener : WearableListenerService() {
         }
     }
 }
-
-/**
- * Phone-side wire-format mirror of wear-app/sync/ApprovalDecision. Kept locally
- * to avoid cross-module dep (:app should not depend on :wear-app — they ship
- * as separate APKs and applicationId-pair via Data Layer protocol).
- */
-@Serializable
-data class ApprovalDecisionWire(
-    val requestId: String,
-    val approved: Boolean,
-    val decidedAtMs: Long,
-    val biometricToken: String? = null,
-)

@@ -33,7 +33,8 @@ import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import com.chainlesschain.android.wear.sync.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
 import com.chainlesschain.android.wear.sync.ApprovalRequest
 import com.chainlesschain.android.wear.sync.WearApprovalStore
 import com.chainlesschain.android.wear.sync.WearDecisionSender
@@ -89,19 +90,24 @@ class WearApprovalActivity : FragmentActivity() {
             MaterialTheme {
                 ApprovalContent(
                     request = request,
-                    onApprove = { handleDecision(request, approved = true) },
-                    onDeny = { handleDecision(request, approved = false) },
+                    onApprove = { handleDecision(request, ApprovalDecision.AcceptOnce) },
+                    onDeny = {
+                        handleDecision(
+                            request,
+                            ApprovalDecision.Decline(reason = "user-declined"),
+                        )
+                    },
                 )
             }
         }
     }
 
-    private fun handleDecision(request: ApprovalRequest, approved: Boolean) {
+    private fun handleDecision(request: ApprovalRequest, decision: ApprovalDecision) {
         // 拒绝路径不需要 biometric，节省用户操作
-        if (approved && request.needsBiometric) {
+        if (decision is ApprovalDecision.AcceptOnce && request.needsBiometric) {
             promptBiometricThenSend(request)
         } else {
-            sendDecision(request, approved, biometricToken = null)
+            sendDecision(request, decision, biometricToken = null)
         }
     }
 
@@ -111,7 +117,11 @@ class WearApprovalActivity : FragmentActivity() {
         if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) {
             Timber.w("WearApprovalActivity: biometric unavailable ($canAuth), fail-safe deny")
             // 不能 biometric 又是高风险 — fail-safe，发送 deny 自动撤销
-            sendDecision(request, approved = false, biometricToken = "no-biometric-available")
+            sendDecision(
+                request,
+                decision = ApprovalDecision.Decline(reason = "biometric-unavailable"),
+                biometricToken = "no-biometric-available",
+            )
             return
         }
         val executor = ContextCompat.getMainExecutor(this)
@@ -120,7 +130,11 @@ class WearApprovalActivity : FragmentActivity() {
             executor,
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    sendDecision(request, approved = true, biometricToken = "weak-ok")
+                    sendDecision(
+                        request,
+                        decision = ApprovalDecision.AcceptOnce,
+                        biometricToken = "weak-ok",
+                    )
                 }
 
                 override fun onAuthenticationFailed() {
@@ -146,12 +160,12 @@ class WearApprovalActivity : FragmentActivity() {
 
     private fun sendDecision(
         request: ApprovalRequest,
-        approved: Boolean,
+        decision: ApprovalDecision,
         biometricToken: String?,
     ) {
-        val decision = ApprovalDecision(
+        val envelope = ApprovalDecisionEnvelope.fromDecision(
             requestId = request.id,
-            approved = approved,
+            decision = decision,
             decidedAtMs = System.currentTimeMillis(),
             biometricToken = biometricToken,
         )
@@ -164,7 +178,7 @@ class WearApprovalActivity : FragmentActivity() {
         // Background async send; finish() once dispatched (success or fail logged)
         Executors.newSingleThreadExecutor().execute {
             try {
-                kotlinx.coroutines.runBlocking { sender.send(decision) }
+                kotlinx.coroutines.runBlocking { sender.send(envelope) }
             } catch (e: Exception) {
                 Timber.e(e, "WearApprovalActivity.sendDecision threw")
             }

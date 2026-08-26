@@ -79,19 +79,6 @@ class ApprovalRequestTest {
     }
 
     @Test
-    fun `ApprovalDecision serialize roundtrip`() {
-        val d = ApprovalDecision(
-            requestId = "mp:order-42",
-            approved = true,
-            decidedAtMs = 1700000000000,
-            biometricToken = "tok-abc",
-        )
-        val raw = json.encodeToString(ApprovalDecision.serializer(), d)
-        val back = json.decodeFromString(ApprovalDecision.serializer(), raw)
-        assertEquals(d, back)
-    }
-
-    @Test
     fun `PATH constants match phone-side contract`() {
         // Phone-side WearPushForwarder.PATH_PUSH 必须 == ApprovalRequest.PATH_PUSH
         // 这两个常量分别在 phone (app) + watch (wear-app) 模块复制定义；
