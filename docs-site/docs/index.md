@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.3 | Agent SDK 0.2.2 | IDE Bridge 3 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.4 | Agent SDK 0.2.3 | IDE Bridge 3 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.3
-    details: 真实 team agent 消息、canonical message/handoff、custody handoff 与 SessionMessageFabric 已公开；结构化审批支持 exact turn/session grants。
+    title: Agent Platform 0.166.4
+    details: 真实 Team 消息、custody 与结构化审批之上，新增由单一 Schema 生成的 37 类 Agent stream 事件清单与跨语言校验。
     link: /chainlesschain/cli-team
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -34,7 +34,7 @@ features:
     link: /chainlesschain/cli-team-graph
   - icon: 🧑‍💻
     title: IDE Bridge 突破 3 万下载
-    details: Open VSX 0.37.68 提供精确作用域审批与无正文协作投影；JetBrains 0.4.98 保持已公开的 TeamMailbox 健康投影。
+    details: Open VSX 0.37.69 与 JetBrains 0.4.99 已消费生成事件类型；VS Code 继续提供精确作用域审批与无正文协作投影。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -44,10 +44,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.3 已在 exact SHA 67fdfd2535 完成三平台 CLI CI、Strict Sandbox、npm 发布和独立回读；Agent SDK 0.2.2 与 Protocol 0.1.2 也已公开。
+    details: CLI/TS SDK 绑定 exact SHA 6b1619926c；Protocol/Python SDK 绑定 e7a059d3ed，三平台门禁、发布与公网回读均已闭环。
 ---
 
-> **2026-08-26 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.166.3`，TypeScript/Python Agent SDK 为 `0.2.2`，Agent Protocol 公开版为 `0.1.2`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-3` 的 exact SHA [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d) 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立回读。Open VSX `0.37.68` 已公开回读，IDE Bridge 下载量突破 **3 万**；JetBrains `0.4.98` 保持公开。主线已让 Desktop、Web、Android/Wear、iOS 与 VS Code 消费 canonical 审批决定。详细入口：[Agent Protocol](/chainlesschain/agent-protocol)、[Agent SDK](/chainlesschain/agent-sdk)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[Agent Team](/chainlesschain/cli-team)与[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
+> **2026-08-26 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.166.4`，TypeScript/Python Agent SDK 为 `0.2.3`，Agent Protocol 公开版为 `0.1.4`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-4` 的 exact SHA [`6b1619926c`](https://github.com/chainlesschain/chainlesschain/commit/6b1619926c5aadc4586e17994b607169b2ae58ae) 已通过三平台 CLI CI、Strict Sandbox、npm/TS SDK 发布与独立回读；Protocol/Python SDK 发布绑定 `e7a059d3ed`。Open VSX `0.37.69` 与 JetBrains `0.4.99` 已公开，IDE Bridge 下载量突破 **3 万**；主线 JetBrains `0.4.100` 进一步让生产 chat mapper 消费生成事件枚举。详细入口：[Agent Protocol](/chainlesschain/agent-protocol)、[Agent SDK](/chainlesschain/agent-sdk)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[Agent Team](/chainlesschain/cli-team)与[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

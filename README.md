@@ -2,34 +2,34 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.3`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.4`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.3 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.4 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-26 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.3 / Agent SDK 0.2.2 / PDH 0.4.59**
+## 2026-08-26 当前主线 — **v5.0.3.135 / Agent Platform CLI 0.166.4 / Agent SDK 0.2.3 / Agent Protocol 0.1.4 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.166.3` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-3` 精确指向提交 [`67fdfd2535`](https://github.com/chainlesschain/chainlesschain/commit/67fdfd25359b7bb6995fed1a89452bcc128daf6d)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32855663231)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32855662747)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32861981998)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32864484809)均成功；npm registry 已回读 `latest=0.166.3`。
+> **发布口径**：`chainlesschain@0.166.4` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-166-4` 精确指向提交 [`6b1619926c`](https://github.com/chainlesschain/chainlesschain/commit/6b1619926c5aadc4586e17994b607169b2ae58ae)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32954164746)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32954183220)与[专用 npm/SDK 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32959864584)均成功；npm registry 已回读 `latest=0.166.4`。
 >
-> **Agent Platform 0.166.3**：在 TeamMailbox v3 基础上公开 idle followup 新 turn、canonical message/handoff 投影、custody handoff 状态机与 state-backed `SessionMessageFabric`；同时加入 schema-derived 结构化审批、exact turn/session grants 和持久 authority-event 恢复。真实 child 工具仍由宿主私有注入并在每次调用时重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。
+> **Agent Platform 0.166.4**：在 `0.166.3` 的 TeamMailbox v3、custody handoff、`SessionMessageFabric` 与结构化审批基础上，新增由 canonical Schema 生成的 **37 类 Agent stream 事件清单与 envelope 校验**。TypeScript、Python、Kotlin、Swift 和 VS Code vendored SDK 共用同一生成源与合法/非法 fixture；传输层继续保留未知未来事件，兼顾严格识别与前向兼容。
 >
-> **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.2`、PyPI `chainlesschain-agent-sdk==0.2.2` 与 npm `@chainlesschain/agent-protocol@0.1.2` 已公开；SDK 新增 canonical ApprovalDecision/binding/requested-permissions 回调，保留 N-1 boolean wire 兼容，并与 CLI 独立安装、独立发版。
+> **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.3`、PyPI `chainlesschain-agent-sdk==0.2.3` 与 npm `@chainlesschain/agent-protocol@0.1.4` 已公开；除 canonical ApprovalDecision/binding/requested-permissions 外，本版导出 `CC_AGENT_STREAM_EVENT_TYPES`、typed envelope 与严格 validator。包版本与 wire protocol v1 独立演进。
 >
 > **安全与体验修复**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合；shell、MCP、IPFS 与 Agent Network 的执行/密钥边界进一步收紧，Web Panel 可展示结构化 MCP 工具；Windows REPL 在建议交互后保留 IME 状态。
 >
-> **IDE 发布与 3 万下载里程碑**：Open VSX `0.37.68` 与 JetBrains Marketplace `0.4.98` 已公开，ChainlessChain IDE Bridge 在 Open VSX 累计下载突破 **3 万**。VS Code 新版消费 CLI `0.166.3` 的 canonical 审批契约，支持单次/当前回合/当前会话的 exact capability/scope/binding 授权；Team Monitor 只展示无正文 message/handoff 有界计数。微软 VS Code Marketplace 仍未发布，官方 VS Code 请从 Open VSX 直接下载版本化 VSIX。
+> **IDE 发布与 3 万下载里程碑**：Open VSX `0.37.69` 与 JetBrains Marketplace `0.4.99` 已公开，ChainlessChain IDE Bridge 在 Open VSX 累计下载突破 **3 万**。两端已消费 Schema 生成的 Agent 事件类型；VS Code 继续支持单次/当前回合/当前会话的精确作用域审批与无正文 message/handoff 有界计数。JetBrains `0.4.100` 已进入主线并让生产 chat mapper 统一走生成事件枚举，但公开安装仍以 Marketplace `0.4.99` 为准。微软 VS Code Marketplace 仍未发布。
 >
-> **发布与源码边界**：`67fdfd2535` 已把 custody handoff、companion `SessionMessageFabric` 与结构化审批纳入公开包，并完成精确 SHA 发布闭环；Desktop、Cowork、Scheduler 的 authoritative adapter 切换、生产 relay、签名 native、跨宿主与真实 provider/长时 soak 验收仍按独立证据判断，不能由 npm 发包自动推定完成。
+> **发布与源码边界**：`6b1619926c` 已把 canonical stream 事件清单纳入 CLI、TS SDK 与 Open VSX 公开包；Protocol/Python SDK 的发布身份绑定 `e7a059d3ed`。当前 `main@33603c631e` 的 JetBrains 生成事件路由属于后续源码增量。Desktop、Cowork、Scheduler 的 authoritative adapter 切换、生产 relay、签名 native、跨宿主与真实 provider/长时 soak 验收仍按独立证据判断。
 >
 > **原生与长期证据边界**：npm 发布不等于 Desktop/native 签名发行。72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据，以及 Linux/Windows/macOS 签名、notarization/updater 与公开 fresh install/upgrade/rollback 回读仍未全部闭环；25 个兼容 alias 因缺少代表性遥测继续保留。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **发布链闭环**：`0.166.3` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环；TypeScript/Python Agent SDK `0.2.2` 与 Agent Protocol `0.1.2` 也已完成 OIDC 发布与公网回读。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
+> **发布链闭环**：`0.166.4` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环；TypeScript/Python Agent SDK `0.2.3` 与 Agent Protocol `0.1.4` 也已完成 OIDC/Trusted Publishing 与公网回读。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
 >
 > 详见 [Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[CC App Server](docs-site/docs/chainlesschain/cli-app-server.md)、[Agent Kernel](docs-site/docs/chainlesschain/cli-agent-kernel.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Agent 平台设计](docs/design/modules/103_Agent_SDK平台化方案.md)、[App Server 设计](docs/design/modules/104_CC_App_Server设计.md)、[Agent Kernel 设计](docs/design/modules/106_Agent_Kernel设计.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)及[更新日志](CHANGELOG.md)。
 

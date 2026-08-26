@@ -1,8 +1,8 @@
 # Agent Protocol：单一 Schema 与多语言生成绑定
 
-> **更新：2026-08-26｜公开基线：`@chainlesschain/agent-protocol@0.1.2`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
+> **更新：2026-08-26｜公开基线：`@chainlesschain/agent-protocol@0.1.4`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
 >
-> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。公开发布状态以 npm、不可变标签、CI 和安装回读为准；仓库源码中的 `0.1.3` 清单及后续增量属于候选代码，不能据此推定已经发布。
+> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.4` 已公开 37 类 canonical Agent stream event discriminator、typed envelope 与同源 validator；公开状态以 npm、不可变标签、CI 和安装回读为准。
 
 ## 概述
 
@@ -16,13 +16,14 @@
 | TypeScript/Python Agent SDK | `AgentSession`、`AppServerClient`、NDJSON/stdio 传输和宿主 API | 单独定义另一套协议语义 |
 | CLI / App Server | 执行状态机、权限、工具、Graph authority | 允许客户端绕过 Schema 扩权 |
 
-当前 canonical Schema 已覆盖 App Server 的 Client/Server request/response/notification、Thread/Turn/Item、结构化审批、工具与 Graph 核心类型。仓库仍有部分 legacy stream-json 事件 union 和客户端适配层处于迁移中，因此“单一 Schema”表示新增 canonical 契约必须从这里产生，不表示所有历史手写类型已经清零。
+当前 canonical Schema 已覆盖 App Server 的 Client/Server request/response/notification、Thread/Turn/Item、结构化审批、工具与 Graph 核心类型，并冻结 37 个现有 Agent stdout event discriminator。每类事件的 payload 级完整 discriminated union 与部分客户端 adapter 仍在迁移，因此“单一 Schema”不表示所有历史手写类型已经清零。
 
 ## 核心特性
 
 - **单一真相源**：`cc-agent-protocol.schema.json` 是 canonical 定义的唯一维护点。
 - **确定性代码生成**：同一 Schema 生成 TypeScript、Python、Kotlin、Swift 与 CLI 内嵌 Schema；生成文件禁止手改。
 - **同源运行时校验**：`validateProtocolMessage`、`validateProtocolDefinition` 和 `validateApprovalDecision` 直接由 Schema 语义驱动。
+- **canonical 事件清单**：`CC_AGENT_STREAM_EVENT_TYPES`、`AgentStreamEventEnvelope` 与 `validateAgentStreamEvent` 从同一 Schema 生成；严格 known-event 判断是 opt-in，transport 继续保留未知未来事件。
 - **兼容性基线**：冻结 `schema/baselines/v1.json`，区分 additive change 与 breaking change。
 - **协议身份**：同时暴露 wire version、minimum compatible version 和 SHA-256 Schema digest。
 - **安全审批**：`ApprovalDecision` 使用严格判别联合；非法值、未知授权类型或 binding 不匹配必须失败闭合。
@@ -60,14 +61,14 @@ packages/agent-protocol/schema/cc-agent-protocol.schema.json
 ### 安装公开稳定版
 
 ```bash
-npm install @chainlesschain/agent-protocol@0.1.2
+npm install @chainlesschain/agent-protocol@0.1.4
 ```
 
 需要传输客户端时，安装对应 SDK：
 
 ```bash
-npm install @chainlesschain/agent-sdk@0.2.2
-pip install chainlesschain-agent-sdk==0.2.2
+npm install @chainlesschain/agent-sdk@0.2.3
+pip install chainlesschain-agent-sdk==0.2.3
 ```
 
 ### 版本与身份字段

@@ -1,8 +1,8 @@
 # 107. 单一协议 Schema 与自动代码生成
 
-> 状态：**canonical 核心已落地，跨客户端迁移进行中**｜公开基线：Agent Protocol `0.1.2`、Agent SDK `0.2.2`、CLI `0.166.3`｜Wire Protocol：v1｜更新：2026-08-26
+> 状态：**canonical 核心与事件清单已落地，payload 级迁移进行中**｜公开基线：Agent Protocol `0.1.4`、Agent SDK `0.2.3`、CLI `0.166.4`｜Wire Protocol：v1｜更新：2026-08-26
 >
-> 仓库 `packages/agent-protocol/package.json` 已声明源码候选 `0.1.3`，但公开能力仍以不可变发布标签、Agent Protocol CI、npm provenance 与 registry readback 为准。源码版本、包版本和 wire 版本必须分开陈述。
+> Protocol `0.1.4` 与 Python SDK `0.2.3` 的发布身份绑定 `e7a059d3ed`，CLI/TypeScript SDK `0.166.4/0.2.3` 绑定 `6b1619926c`。公开能力仍以不可变标签、CI、provenance 与 registry readback 为准；包版本与 wire v1 必须分开陈述。
 
 ## 1. 设计结论
 
@@ -52,10 +52,10 @@ Agent Protocol 必须作为独立基础模块治理，不能继续只作为 Agen
 | --- | --- | --- |
 | Wire Protocol | `1` | 对端能力协商与兼容主线 |
 | Minimum compatible wire version | `1` | 当前实现可安全解释的最低 wire 版本 |
-| 公开 npm 包 | `@chainlesschain/agent-protocol@0.1.2` | 已验证的公开安装基线 |
-| 仓库包清单 | `0.1.3` | 源码候选，不自动代表已发布 |
+| 公开 npm 包 | `@chainlesschain/agent-protocol@0.1.4` | 已验证的公开安装基线 |
+| 仓库包清单 | `0.1.4` | 与公开包一致；后续源码仍须独立验证 |
 | Schema digest | `sha256:` 加 64 位十六进制摘要 | 判断 Schema/生成物是否同源 |
-| CLI / SDK 版本 | CLI `0.166.3`、SDK `0.2.2` | 消费者发布身份，与协议包独立 |
+| CLI / SDK 版本 | CLI `0.166.4`、SDK `0.2.3` | 消费者发布身份，与协议包独立 |
 
 包版本允许在 wire v1 内发布兼容增强、validator 修复和生成器改进。若修改会让既有合法消息失效、改变必填性或枚举语义，则必须进入新的 wire version 设计，不能只提升 npm patch/minor。
 
@@ -275,19 +275,21 @@ Schema/生成器变更
 - TS/Python/Kotlin/Swift 确定性 codegen；
 - CLI 内嵌 Schema 镜像；
 - runtime validator 与严格 `ApprovalDecision`；
+- 37 个现有 Agent stream discriminator 的 canonical `AgentStreamEventType`、typed envelope 与严格 validator；
 - 跨语言关键字、生成物 freshness、package exports 与审批 fixtures；
+- 协议、TS SDK、Python SDK 与 VS Code vendored SDK 共用的合法/非法 stream-event fixtures；
 - 三平台 Agent Protocol CI、Swift 编译重放和 package tarball 检查；
-- Agent Protocol `0.1.2` 与 Agent SDK `0.2.2` 的公开发布证据。
+- Agent Protocol `0.1.4`、TypeScript/Python Agent SDK `0.2.3` 与 CLI `0.166.4` 的公开发布证据。
 
 ### 尚未完成
 
-- 所有 legacy stream-json 事件 union 的全语言生成与生产消费；
+- 每类 stream event 的 payload 级 discriminated union 全量生成与生产消费；
 - CLI、Desktop、VS Code、JetBrains、Android/Wear、iOS 的完整事件流 conformance；
 - 所有客户端手写协议镜像清零；
 - wire v2 的正式演进/RFC 模板与双栈迁移演练；
 - 长时间高吞吐和恶意 payload fuzz/soak 的统一证据。
 
-仓库候选增量可以推进上述工作，但在通过 exact-SHA CI、不可变标签与 registry readback 前只能写成候选，不能列入公开稳定能力。
+JetBrains `0.4.99` 已编译生成 Kotlin enum/envelope；主线 `0.4.100` 进一步让 chat mapper、raw stdout fallback 与 lifecycle checks 走生成事件枚举。其余 Kotlin/Swift/产品消费和 payload 级 union 仍需按 exact-SHA 门禁逐项关闭。
 
 ## 14. 关键文件
 
