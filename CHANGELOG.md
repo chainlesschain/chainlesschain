@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generates a sealed payload interface; Swift generates a Codable associated
   value enum. Generator drift fails when the payload and discriminator
   inventories differ in membership or order.
+- **No SDK mirror union**: the TypeScript SDK's public known-event alias now
+  points directly at the generated canonical union. Python keeps its ergonomic
+  dataclasses as an open runtime hierarchy and derives the handler inventory
+  automatically instead of repeating a 24-class wire union.
 - **Strict validation without transport breakage**: hosts can opt into the
   full `CanonicalAgentStreamEvent` validator for known events while existing
   lossless envelope guards continue to retain unknown future event types.

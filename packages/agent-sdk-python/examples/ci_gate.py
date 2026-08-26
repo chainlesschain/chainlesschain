@@ -227,8 +227,9 @@ def _unknown(consumer: CiEventConsumer, event: UnknownAgentEvent) -> None:
     )
 
 
-# One explicit entry for every class in the TypeScript AgentStreamEvent union,
-# plus the mandatory forward-compatible unknown wrapper.
+# One explicit entry for every ergonomic runtime projection class, plus the
+# mandatory forward-compatible unknown wrapper. The generated schema union is
+# authoritative for wire exhaustiveness.
 EVENT_HANDLERS: Dict[Type[AgentEvent], Handler] = {
     SystemInitEvent: _system_init,
     SystemEndEvent: _system_end,

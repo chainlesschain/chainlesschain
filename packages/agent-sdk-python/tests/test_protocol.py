@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import unittest
 from pathlib import Path
 
@@ -9,6 +8,7 @@ from chainlesschain_agent_sdk import (
     CC_AGENT_STREAM_EVENT_TYPES,
     KNOWN_EVENT_CLASSES,
     PROTOCOL_FEATURES,
+    AgentEvent,
     ApprovalRequestEvent,
     ApprovalResolvedEvent,
     ContentDeltaEvent,
@@ -32,7 +32,6 @@ from tests.event_samples import EVENT_SAMPLES
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = PACKAGE_ROOT.parent / "agent-sdk" / "__fixtures__" / "protocol"
-TYPESCRIPT_PROTOCOL = PACKAGE_ROOT.parent / "agent-sdk" / "src" / "protocol.ts"
 APPROVAL_FIXTURES = (
     PACKAGE_ROOT.parent
     / "agent-protocol"
@@ -177,19 +176,14 @@ class ProtocolTests(unittest.TestCase):
             ("event_seq", "tool_use_id", "permission_decision", "trace_id"),
         )
 
-    def test_event_inventory_matches_typescript_union(self) -> None:
-        source = TYPESCRIPT_PROTOCOL.read_text(encoding="utf-8")
-        match = re.search(
-            r"export type AgentStreamEvent =(?P<body>.*?);",
-            source,
-            flags=re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        names = set(re.findall(r"\|\s+([A-Za-z][A-Za-z0-9]+)", match["body"]))
-        names.discard("UnknownAgentEvent")
+    def test_runtime_projection_inventory_is_derived_from_class_hierarchy(self) -> None:
         self.assertEqual(
-            {event_class.__name__ for event_class in KNOWN_EVENT_CLASSES},
-            names,
+            KNOWN_EVENT_CLASSES,
+            tuple(
+                event_class
+                for event_class in AgentEvent.__subclasses__()
+                if event_class is not UnknownAgentEvent
+            ),
         )
 
     def test_one_sample_maps_to_every_known_event_class(self) -> None:

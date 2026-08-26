@@ -22,7 +22,7 @@
 
 import type {
   ApprovalDecision,
-  AgentStreamEventType,
+  CanonicalAgentStreamEvent,
   PermissionGrant,
 } from "./generated/app-protocol.js";
 import { isAgentStreamEvent as isCanonicalAgentStreamEvent } from "./generated/app-protocol.js";
@@ -73,6 +73,8 @@ export interface StreamEventMeta {
    * resume the same `session_id`).
    */
   trace_id?: string;
+  /** Preserve additive fields on legacy ergonomic refinements. */
+  [key: string]: unknown;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,32 +425,15 @@ export interface UnknownAgentEvent {
   [key: string]: unknown;
 }
 
-export type AgentStreamEvent =
-  | SystemInitEvent
-  | SystemEndEvent
-  | NegotiatedCapabilitiesEvent
-  | ContentDeltaEvent
-  | ToolUseEvent
-  | ToolResultEvent
-  | TokenUsageEvent
-  | ApprovalRequestEvent
-  | ApprovalResolvedEvent
-  | QuestionRequestEvent
-  | QuestionResolvedEvent
-  | ElicitationDeferredEvent
-  | ElicitationCompleteEvent
-  | PlanUpdateEvent
-  | CompactionEvent
-  | StreamRetryEvent
-  | IterationWarningEvent
-  | IterationBudgetExhaustedEvent
-  | RawEvent
-  | ResultEvent
-  | UserEchoEvent
-  | FeedbackAckEvent
-  | ResumeAckEvent
-  | SlashCommandResultEvent
-  | UnknownAgentEvent;
+/**
+ * Canonical wire events come exclusively from the generated schema union.
+ * `UnknownAgentEvent` keeps transport consumers forward compatible with an
+ * additive event emitted by a newer CLI. The named interfaces above remain
+ * source-compatible ergonomic refinements; they are not a second exhaustive
+ * discriminator inventory.
+ */
+export type KnownAgentStreamEvent = CanonicalAgentStreamEvent;
+export type AgentStreamEvent = KnownAgentStreamEvent | UnknownAgentEvent;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent input events (client → CLI stdin), one JSON object per NDJSON line
@@ -825,7 +810,7 @@ export function isAgentEvent(value: unknown): value is AgentStreamEvent {
  */
 export function isKnownAgentEvent(
   value: unknown,
-): value is AgentStreamEvent & { type: AgentStreamEventType } {
+): value is CanonicalAgentStreamEvent {
   return isCanonicalAgentStreamEvent(value);
 }
 

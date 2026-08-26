@@ -89,9 +89,10 @@ matching the TypeScript SDK.
 
 ## Event and callback guarantees
 
-- The 24 classes in `KNOWN_EVENT_CLASSES` mirror the TypeScript
-  `AgentStreamEvent` union. Nested token usage, deltas, questions, and plan
-  records are dataclasses too.
+- The generated `AgentStreamEventPayload` is the authoritative closed wire
+  union. `KNOWN_EVENT_CLASSES` is discovered from the open runtime class
+  hierarchy and exists only for ergonomic dataclass dispatch; it no longer
+  mirrors or redefines the schema discriminator inventory.
 - Every event retains its original object in the read-only `raw` mapping;
   `to_dict()` returns a deep mutable copy, including unknown additive fields.
 - Unknown outer `type` values are delivered as `UnknownAgentEvent` through

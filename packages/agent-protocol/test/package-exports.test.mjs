@@ -230,3 +230,34 @@ test("package metadata exposes only supported public entry points", () => {
     "LICENSE",
   ]);
 });
+
+test("SDK wire event aliases do not mirror the generated union", () => {
+  const typescriptProtocol = readFileSync(
+    new URL("../../agent-sdk/src/protocol.ts", import.meta.url),
+    "utf8",
+  );
+  const pythonProtocol = readFileSync(
+    new URL(
+      "../../agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    typescriptProtocol,
+    /export type KnownAgentStreamEvent = CanonicalAgentStreamEvent;/u,
+  );
+  assert.match(
+    typescriptProtocol,
+    /export type AgentStreamEvent = KnownAgentStreamEvent \| UnknownAgentEvent;/u,
+  );
+  assert.doesNotMatch(
+    typescriptProtocol,
+    /export type AgentStreamEvent\s*=\s*\n\s*\|/u,
+  );
+
+  assert.match(pythonProtocol, /^AgentStreamEvent = AgentEvent$/mu);
+  assert.match(pythonProtocol, /AgentEvent\.__subclasses__\(\)/u);
+  assert.doesNotMatch(pythonProtocol, /^KnownAgentEvent = Union\[/mu);
+});

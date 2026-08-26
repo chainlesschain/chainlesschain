@@ -426,61 +426,19 @@ class UnknownAgentEvent(AgentEvent):
     event_type: str
 
 
-KnownAgentEvent = Union[
-    SystemInitEvent,
-    SystemEndEvent,
-    NegotiatedCapabilitiesEvent,
-    ContentDeltaEvent,
-    ToolUseEvent,
-    ToolResultEvent,
-    TokenUsageEvent,
-    ApprovalRequestEvent,
-    ApprovalResolvedEvent,
-    QuestionRequestEvent,
-    QuestionResolvedEvent,
-    ElicitationDeferredEvent,
-    ElicitationCompleteEvent,
-    PlanUpdateEvent,
-    CompactionEvent,
-    StreamRetryEvent,
-    IterationWarningEvent,
-    IterationBudgetExhaustedEvent,
-    RawEvent,
-    ResultEvent,
-    UserEchoEvent,
-    FeedbackAckEvent,
-    ResumeAckEvent,
-    SlashCommandResultEvent,
-]
-AgentStreamEvent = Union[KnownAgentEvent, UnknownAgentEvent]
+# The generated ``AgentStreamEventPayload`` type is the authoritative closed
+# wire union. Parsed events deliberately expose an open runtime class hierarchy
+# so a newer event can remain lossless as ``UnknownAgentEvent``. This alias no
+# longer duplicates the schema discriminator inventory.
+AgentStreamEvent = AgentEvent
 
-# Public exhaustiveness inventory used by examples/CI consumers. Add a class
-# here whenever the TypeScript AgentStreamEvent union gains a class.
-KNOWN_EVENT_CLASSES: Tuple[Type[AgentEvent], ...] = (
-    SystemInitEvent,
-    SystemEndEvent,
-    NegotiatedCapabilitiesEvent,
-    ContentDeltaEvent,
-    ToolUseEvent,
-    ToolResultEvent,
-    TokenUsageEvent,
-    ApprovalRequestEvent,
-    ApprovalResolvedEvent,
-    QuestionRequestEvent,
-    QuestionResolvedEvent,
-    ElicitationDeferredEvent,
-    ElicitationCompleteEvent,
-    PlanUpdateEvent,
-    CompactionEvent,
-    StreamRetryEvent,
-    IterationWarningEvent,
-    IterationBudgetExhaustedEvent,
-    RawEvent,
-    ResultEvent,
-    UserEchoEvent,
-    FeedbackAckEvent,
-    ResumeAckEvent,
-    SlashCommandResultEvent,
+# Public exhaustiveness inventory for the ergonomic runtime projections. It is
+# derived from the class hierarchy instead of maintaining a second manual
+# event union. UnknownAgentEvent remains a mandatory separate handler.
+KNOWN_EVENT_CLASSES: Tuple[Type[AgentEvent], ...] = tuple(
+    event_class
+    for event_class in AgentEvent.__subclasses__()
+    if event_class is not UnknownAgentEvent
 )
 
 

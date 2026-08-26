@@ -47,6 +47,11 @@ strict validator covers all 37 current discriminators; it is opt-in so an SDK
 transport can continue delivering an additive future event without dropping
 it before the host upgrades.
 
+`KnownAgentStreamEvent` is an alias of the generated
+`CanonicalAgentStreamEvent`; `AgentStreamEvent` adds only the lossless
+`UnknownAgentEvent` fallback. The older named event interfaces remain
+ergonomic refinements and no longer form a separately maintained wire union.
+
 The shared causal conformance fixture runs equivalent parallel-tool
 interleavings through the CLI stream parser, Desktop production envelope,
 VS Code and JetBrains mappers, and Python lossless decoder. It compares causal
