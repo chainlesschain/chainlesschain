@@ -225,6 +225,10 @@ describe("Vitest worker infrastructure retry", () => {
       path.join(repositoryRoot, ".github/workflows/_cli-test.yml"),
       "utf8",
     );
+    const cliWorkflow = fs.readFileSync(
+      path.join(repositoryRoot, ".github/workflows/cli-ci.yml"),
+      "utf8",
+    );
     const unitStep = workflow.slice(
       workflow.indexOf("- name: vitest unit shard"),
       workflow.indexOf("- name: Upload failed unit report"),
@@ -237,8 +241,14 @@ describe("Vitest worker infrastructure retry", () => {
       "node scripts/run-vitest-with-worker-retry.mjs -- run",
     );
     expect(unitStep).toContain(
-      "--shard=${{ matrix.shard }}/${{ inputs.shards }}",
+      "--shard=${{ matrix.shard }}/${{ inputs.unit-shards }}",
     );
+    expect(workflow).toContain("inputs.unit-shards == 8");
+    const windowsCaller = cliWorkflow.slice(
+      cliWorkflow.indexOf("test-windows:"),
+      cliWorkflow.indexOf("test-macos:"),
+    );
+    expect(windowsCaller).toContain("unit-shards: 8");
     expect(unitStep).toContain("--reporter=default --reporter=junit");
     expect(unitStep).toContain(
       "--outputFile.junit=test-results/unit-${{ matrix.shard }}.xml",
