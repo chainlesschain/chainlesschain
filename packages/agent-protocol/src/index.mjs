@@ -27,6 +27,9 @@ export const CC_AGENT_PROTOCOL_MIN_VERSION =
 export const CC_AGENT_PROTOCOL_FEATURES = Object.freeze([
   ...schema["x-cc-protocol"].features,
 ]);
+export const CC_AGENT_STREAM_EVENT_TYPES = Object.freeze([
+  ...schema.$defs.AgentStreamEventType.enum,
+]);
 export const CC_AGENT_PROTOCOL_SCHEMA_DIGEST = `sha256:${createHash("sha256")
   .update(schemaText)
   .digest("hex")}`;
@@ -45,6 +48,10 @@ export function validateApprovalDecision(value) {
   return validateProtocolDefinition("ApprovalDecision", value);
 }
 
+export function validateAgentStreamEvent(value) {
+  return validateProtocolDefinition("AgentStreamEventEnvelope", value);
+}
+
 export function assertProtocolMessage(value) {
   const result = validateProtocolMessage(value);
   if (!result.ok) {
@@ -61,6 +68,17 @@ export function assertApprovalDecision(value) {
   if (!result.ok) {
     throw new TypeError(
       `Invalid ApprovalDecision: ${result.errors
+        .map((error) => `${error.path} ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+}
+
+export function assertAgentStreamEvent(value) {
+  const result = validateAgentStreamEvent(value);
+  if (!result.ok) {
+    throw new TypeError(
+      `Invalid AgentStreamEvent: ${result.errors
         .map((error) => `${error.path} ${error.message}`)
         .join("; ")}`,
     );

@@ -8,7 +8,7 @@ the same Agent Protocol v1 used by `@chainlesschain/agent-sdk`. It starts one
 `cc agent` subprocess, frames its NDJSON stream safely, exposes frozen typed
 events, and performs approval, question, and MCP elicitation round trips.
 
-Version `0.2.2` is available from
+Version `0.2.3` is available from
 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/). Python 3.10 or
 newer is required. This release adds canonical structured approval decisions,
 request bindings, requested permissions, and fail-closed callback handling.
@@ -18,8 +18,8 @@ request bindings, requested permissions, and fail-closed callback handling.
 Install the SDK and a compatible `cc` CLI:
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.2.2"
-npm install --global "chainlesschain@0.166.3"
+python -m pip install "chainlesschain-agent-sdk==0.2.3"
+npm install --global "chainlesschain@0.166.4"
 ```
 
 The Python distribution has no runtime dependencies. The CLI is installed
@@ -95,6 +95,9 @@ matching the TypeScript SDK.
   `to_dict()` returns a deep mutable copy, including unknown additive fields.
 - Unknown outer `type` values are delivered as `UnknownAgentEvent` through
   both `on_event` and async iteration.
+- `CC_AGENT_STREAM_EVENT_TYPES` and `validate_agent_stream_event` expose the
+  canonical known discriminator inventory without changing that lossless
+  unknown-event behavior.
 - NDJSON decoding carries split lines and split UTF-8 code points across
   chunks, accepts CRLF, and flushes a final line without a newline.
 - Approval callback errors answer `approve:false` (fail closed). Question

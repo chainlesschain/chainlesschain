@@ -53,6 +53,16 @@ jobs:
       - name: Run protocol package tests
         run: npm test --workspace=packages/agent-protocol
 
+      - name: Install TypeScript Agent SDK test dependencies
+        working-directory: packages/agent-sdk
+        run: npm ci --ignore-scripts --no-audit --no-fund --workspaces=false
+
+      - name: Build and test the generated TypeScript Agent SDK contract
+        working-directory: packages/agent-sdk
+        run: |
+          npm run build
+          npm test
+
       - name: Compile and replay Swift ApprovalDecision conformance
         if: runner.os == 'macOS'
         shell: bash

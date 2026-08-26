@@ -22,8 +22,10 @@
 
 import type {
   ApprovalDecision,
+  AgentStreamEventType,
   PermissionGrant,
 } from "./generated/app-protocol.js";
+import { isAgentStreamEvent as isCanonicalAgentStreamEvent } from "./generated/app-protocol.js";
 
 export const PROTOCOL_VERSION = 1;
 
@@ -814,6 +816,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function isAgentEvent(value: unknown): value is AgentStreamEvent {
   return isObject(value) && typeof value.type === "string";
+}
+
+/**
+ * True only for event discriminators declared by the canonical protocol
+ * schema. Use `isAgentEvent` when a transport must preserve unknown future
+ * events instead of rejecting them.
+ */
+export function isKnownAgentEvent(
+  value: unknown,
+): value is AgentStreamEvent & { type: AgentStreamEventType } {
+  return isCanonicalAgentStreamEvent(value);
 }
 
 export function isSystemInit(

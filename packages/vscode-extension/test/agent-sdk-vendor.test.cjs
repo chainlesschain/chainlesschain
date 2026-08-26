@@ -23,7 +23,19 @@ test("vendored Agent SDK matches the current source and generated output", () =>
   );
 
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stdout, /agent-sdk v0\.2\.2 is current/);
+  const sourceVersion = JSON.parse(
+    fs.readFileSync(
+      path.join(repoRoot, "packages", "agent-sdk", "package.json"),
+      "utf8",
+    ),
+  ).version;
+  assert.match(
+    result.stdout,
+    new RegExp(
+      `agent-sdk v${sourceVersion.replaceAll(".", "\\.")} is current`,
+      "u",
+    ),
+  );
 });
 
 test("IDE CI reruns when the SDK or canonical protocol changes", () => {

@@ -1,0 +1,68 @@
+[
+  {
+    "name": "known system event with metadata and additive payload",
+    "valid": true,
+    "value": {
+      "type": "system",
+      "subtype": "init",
+      "session_id": "session-1",
+      "seq": 1,
+      "trace_id": "trace:session-1"
+    }
+  },
+  {
+    "name": "known structured result with nested JSON payload",
+    "valid": true,
+    "value": {
+      "type": "structured_result",
+      "value": {
+        "answer": 42,
+        "citations": ["artifact-1"]
+      }
+    }
+  },
+  {
+    "name": "unknown future event remains outside the known inventory",
+    "valid": false,
+    "value": {
+      "type": "future_event_v2",
+      "payload": {
+        "preserve": true
+      }
+    }
+  },
+  {
+    "name": "missing event discriminator",
+    "valid": false,
+    "value": {
+      "seq": 1
+    }
+  },
+  {
+    "name": "invalid zero sequence",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "seq": 0
+    }
+  },
+  {
+    "name": "invalid trace identifier",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "trace_id": "trace with spaces"
+    }
+  },
+  {
+    "name": "undefined is not JSON wire data",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "payload": {
+        "present": true
+      }
+    },
+    "injectUndefinedAt": "payload.missing"
+  }
+]

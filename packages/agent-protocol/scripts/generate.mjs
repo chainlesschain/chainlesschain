@@ -50,12 +50,22 @@ function tsType(node = {}) {
   if (node.type === "array") return `Array<${tsType(node.items || {})}>`;
   if (node.type === "object" || node.properties || node.additionalProperties) {
     const required = new Set(node.required || []);
-    const properties = Object.entries(node.properties || {}).map(
+    const propertyEntries = Object.entries(node.properties || {});
+    const properties = propertyEntries.map(
       ([name, value]) =>
         `${JSON.stringify(name)}${required.has(name) ? "" : "?"}: ${tsType(value)};`,
     );
     if (node.additionalProperties && node.additionalProperties !== false) {
-      properties.push(`[key: string]: ${tsType(node.additionalProperties)};`);
+      // TypeScript includes `undefined` in the apparent type of an optional
+      // property when checking it against a string index signature. The wire
+      // validator still rejects explicit undefined values; this addition only
+      // keeps otherwise valid optional schema properties assignable.
+      const optionalProperty = propertyEntries.some(
+        ([name]) => !required.has(name),
+      );
+      properties.push(
+        `[key: string]: ${tsType(node.additionalProperties)}${optionalProperty ? " | undefined" : ""};`,
+      );
     }
     return `{ ${properties.join(" ")} }`;
   }
@@ -72,6 +82,7 @@ export const CC_AGENT_PROTOCOL_MIN_VERSION = ${protocol.minimumCompatibleVersion
 export const CC_AGENT_PROTOCOL_SCHEMA_DIGEST = ${JSON.stringify(digest)} as const;
 export const CC_AGENT_PROTOCOL_FEATURES = ${JSON.stringify(protocol.features)} as const;
 export const CC_AGENT_PROTOCOL_SCHEMA = ${JSON.stringify(schema, null, 2)} as const;
+export const CC_AGENT_STREAM_EVENT_TYPES = CC_AGENT_PROTOCOL_SCHEMA.$defs.AgentStreamEventType.enum;
 
 export interface ProtocolValidationError { path: string; message: string }
 export interface ProtocolValidationResult { ok: boolean; errors: ProtocolValidationError[] }
@@ -171,6 +182,19 @@ export function assertApprovalDecision(value: unknown): asserts value is Approva
   if (!result.ok) throw new TypeError(\`Invalid ApprovalDecision: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
 }
 
+export function validateAgentStreamEvent(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("AgentStreamEventEnvelope", value);
+}
+
+export function isAgentStreamEvent(value: unknown): value is AgentStreamEventEnvelope {
+  return validateAgentStreamEvent(value).ok;
+}
+
+export function assertAgentStreamEvent(value: unknown): asserts value is AgentStreamEventEnvelope {
+  const result = validateAgentStreamEvent(value);
+  if (!result.ok) throw new TypeError(\`Invalid AgentStreamEvent: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
 export function assertProtocolMessage(value: unknown): asserts value is ClientRequest | ClientResponse | ServerRequest | ServerNotification {
   const result = validateProtocolMessage(value);
   if (!result.ok) throw new TypeError(\`Invalid CC Agent protocol message: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
@@ -255,6 +279,7 @@ CC_AGENT_PROTOCOL_MIN_VERSION = ${protocol.minimumCompatibleVersion}
 CC_AGENT_PROTOCOL_SCHEMA_DIGEST = ${JSON.stringify(digest)}
 CC_AGENT_PROTOCOL_FEATURES = ${JSON.stringify(protocol.features)}
 CC_AGENT_PROTOCOL_SCHEMA: Mapping[str, Any] = json.loads(${JSON.stringify(JSON.stringify(schema))})
+CC_AGENT_STREAM_EVENT_TYPES = tuple(CC_AGENT_PROTOCOL_SCHEMA["$defs"]["AgentStreamEventType"]["enum"])
 
 def _matches_type(value: Any, expected: str) -> bool:
     if expected == "null":
@@ -377,6 +402,9 @@ def validate_protocol_definition(name: str, value: object) -> tuple[bool, tuple[
 def validate_approval_decision(value: object) -> tuple[bool, tuple[str, ...]]:
     return validate_protocol_definition("ApprovalDecision", value)
 
+def validate_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("AgentStreamEventEnvelope", value)
+
 ${aliases}
 
 ${typedDicts}
@@ -388,6 +416,7 @@ function modelType(node, language) {
     const name = refName(node.$ref);
     const target = schema.$defs[name];
     if (name === "JsonValue") return "JSONValue";
+    if (target && Array.isArray(target.enum)) return name;
     if (
       target &&
       !(
@@ -441,6 +470,66 @@ function modelType(node, language) {
                 : `List<${modelType(node.items || {}, language)}>`
               : "JSONValue";
   return nullable ? `${base}?` : base;
+}
+
+function enumCaseName(value, language) {
+  const words = String(value)
+    .split(/[^A-Za-z0-9]+/u)
+    .filter(Boolean);
+  if (language === "kotlin") return words.join("_").toUpperCase();
+  return words
+    .map((word, index) =>
+      index === 0
+        ? word.toLowerCase()
+        : `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`,
+    )
+    .join("");
+}
+
+function stringEnumDefinitions() {
+  return Object.entries(schema.$defs).filter(
+    ([, definition]) =>
+      Array.isArray(definition.enum) &&
+      definition.enum.length > 0 &&
+      definition.enum.every((value) => typeof value === "string"),
+  );
+}
+
+function renderKotlinStringEnums() {
+  return stringEnumDefinitions()
+    .map(([name, definition]) => {
+      const cases = definition.enum
+        .map(
+          (value) =>
+            `    ${enumCaseName(value, "kotlin")}(${JSON.stringify(value)})`,
+        )
+        .join(",\n");
+      return `enum class ${name}(val wireValue: String) {
+${cases};
+
+    companion object {
+        fun fromWireValue(value: String): ${name}? =
+            entries.firstOrNull { it.wireValue == value }
+    }
+}`;
+    })
+    .join("\n\n");
+}
+
+function renderSwiftStringEnums() {
+  return stringEnumDefinitions()
+    .map(([name, definition]) => {
+      const cases = definition.enum
+        .map(
+          (value) =>
+            `    case ${enumCaseName(value, "swift")} = ${JSON.stringify(value)}`,
+        )
+        .join("\n");
+      return `public enum ${name}: String, Codable, Sendable {
+${cases}
+}`;
+    })
+    .join("\n\n");
 }
 
 const kotlinKeywords = new Set([
@@ -907,6 +996,7 @@ function renderKotlin() {
     })
     .join("\n\n");
   const approvalDecision = renderKotlinApprovalDecision();
+  const stringEnums = renderKotlinStringEnums();
   return `// AUTO-GENERATED by @chainlesschain/agent-protocol. DO NOT EDIT.
 package com.chainlesschain.agent.protocol.generated
 
@@ -914,6 +1004,8 @@ const val CC_AGENT_PROTOCOL_VERSION: Int = ${protocol.version}
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = ${protocol.minimumCompatibleVersion}
 const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "${digest}"
 typealias JSONValue = Any?
+
+${stringEnums}
 
 ${models}
 
@@ -965,6 +1057,7 @@ ${assignments.join("\n")}
     })
     .join("\n\n");
   const approvalDecision = renderSwiftApprovalDecision();
+  const stringEnums = renderSwiftStringEnums();
   return `// AUTO-GENERATED by @chainlesschain/agent-protocol. DO NOT EDIT.
 import Foundation
 
@@ -1001,6 +1094,8 @@ public indirect enum JSONValue: Codable, Sendable {
         }
     }
 }
+
+${stringEnums}
 
 ${models}
 

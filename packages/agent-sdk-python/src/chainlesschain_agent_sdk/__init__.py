@@ -49,11 +49,13 @@ from .protocol import (
 )
 from .generated_app_protocol import (
     ApprovalDecision,
+    CC_AGENT_STREAM_EVENT_TYPES,
     CC_AGENT_PROTOCOL_FEATURES,
     CC_AGENT_PROTOCOL_MIN_VERSION,
     CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
     CC_AGENT_PROTOCOL_VERSION,
     validate_approval_decision,
+    validate_agent_stream_event,
     validate_protocol_definition,
     validate_protocol_message,
 )
@@ -74,6 +76,7 @@ __all__ = [
     "CC_AGENT_PROTOCOL_MIN_VERSION",
     "CC_AGENT_PROTOCOL_SCHEMA_DIGEST",
     "CC_AGENT_PROTOCOL_VERSION",
+    "CC_AGENT_STREAM_EVENT_TYPES",
     "MIN_PROTOCOL_VERSION",
     "PROTOCOL_FEATURES",
     "PROTOCOL_VERSION",
@@ -134,6 +137,7 @@ __all__ = [
     "validate_protocol_message",
     "validate_protocol_definition",
     "validate_approval_decision",
+    "validate_agent_stream_event",
 ]
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"

@@ -23,6 +23,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PROTOCOL_FEATURES = exports.MIN_PROTOCOL_VERSION = exports.PROTOCOL_VERSION = void 0;
 exports.isAgentEvent = isAgentEvent;
+exports.isKnownAgentEvent = isKnownAgentEvent;
 exports.isSystemInit = isSystemInit;
 exports.isContentDelta = isContentDelta;
 exports.contentDelta = contentDelta;
@@ -31,6 +32,7 @@ exports.isQuestionRequest = isQuestionRequest;
 exports.isMcpElicitationRequest = isMcpElicitationRequest;
 exports.isResult = isResult;
 exports.isSlashCommandResult = isSlashCommandResult;
+const app_protocol_js_1 = require("./generated/app-protocol.js");
 exports.PROTOCOL_VERSION = 1;
 /**
  * The oldest protocol version the CLI can still negotiate down to (the N-1 in
@@ -60,6 +62,14 @@ function isObject(value) {
 }
 function isAgentEvent(value) {
     return isObject(value) && typeof value.type === "string";
+}
+/**
+ * True only for event discriminators declared by the canonical protocol
+ * schema. Use `isAgentEvent` when a transport must preserve unknown future
+ * events instead of rejecting them.
+ */
+function isKnownAgentEvent(value) {
+    return (0, app_protocol_js_1.isAgentStreamEvent)(value);
 }
 function isSystemInit(event) {
     return (event.type === "system" &&

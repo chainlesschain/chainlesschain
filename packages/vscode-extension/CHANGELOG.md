@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.69] - Canonical Agent stream event inventory (2026-08-26)
+
+- Vendor Agent SDK `0.2.3`, including the schema-generated known stream-event
+  validator and discriminator inventory while preserving unknown future events.
+- Pair the release with Agent Protocol `0.1.4` and CLI `0.166.4`; publication
+  remains gated by the exact candidate's full IDE host matrix.
+
 ## [0.37.68] - Approval event compatibility fix (2026-08-26)
 
 - Preserve the legacy binary `approval_done` event shape by emitting

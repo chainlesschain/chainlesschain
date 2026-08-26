@@ -20,21 +20,28 @@ Node.js 22.12 or newer is required.
 import {
   CC_AGENT_PROTOCOL_SCHEMA,
   CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
+  CC_AGENT_STREAM_EVENT_TYPES,
   CC_AGENT_PROTOCOL_VERSION,
+  assertAgentStreamEvent,
   assertApprovalDecision,
   assertProtocolCompatible,
   validateProtocolMessage,
 } from "@chainlesschain/agent-protocol";
 
 console.log(CC_AGENT_PROTOCOL_VERSION, CC_AGENT_PROTOCOL_SCHEMA_DIGEST);
+console.log(CC_AGENT_STREAM_EVENT_TYPES);
 assertProtocolCompatible(previousSchema, CC_AGENT_PROTOCOL_SCHEMA);
 assertApprovalDecision({ kind: "acceptOnce" });
+assertAgentStreamEvent({ type: "result", subtype: "success" });
 console.log(validateProtocolMessage(incomingJsonRpcMessage));
 ```
 
 `validateProtocolMessage`, `validateProtocolDefinition`, and
-`validateApprovalDecision` are derived from the packaged canonical schema and
-return `{ ok, errors }`. Their `assert*` counterparts throw on invalid input.
+`validateApprovalDecision`/`validateAgentStreamEvent` are derived from the
+packaged canonical schema and return `{ ok, errors }`. Their `assert*`
+counterparts throw on invalid input. `CC_AGENT_STREAM_EVENT_TYPES` is the
+generated inventory of known stdout discriminators; transports should still
+preserve unknown future event types for forward compatibility.
 
 Public subpath exports:
 
@@ -45,7 +52,7 @@ Public subpath exports:
 - `@chainlesschain/agent-protocol/generated/swift` — generated Swift source.
 
 The package version and the protocol version are separate. The current npm
-package is `0.1.3`; the embedded wire protocol is version `1` and declares its
+package is `0.1.4`; the embedded wire protocol is version `1` and declares its
 minimum compatible protocol version in `x-cc-protocol`.
 
 ## Release integrity

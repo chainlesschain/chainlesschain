@@ -16,6 +16,9 @@ test("generated clients preserve protocol field names across language keywords",
   assert.match(python, /"from": "Identifier"/u);
   assert.doesNotMatch(python, /^\s+from:/mu);
   assert.match(python, /def validate_approval_decision\(/u);
+  assert.match(python, /def validate_agent_stream_event\(/u);
+  assert.match(python, /AgentStreamEventType: TypeAlias = Literal\[/u);
+  assert.match(python, /class AgentStreamEventEnvelope\(/u);
   assert.match(kotlin, /val `when`: String/u);
   assert.match(kotlin, /sealed interface ApprovalDecision/u);
   assert.match(
@@ -26,6 +29,13 @@ test("generated clients preserve protocol field names across language keywords",
   assert.match(kotlin, /fun ApprovalDecision\.toWireValue\(\)/u);
   assert.match(kotlin, /approvalPermissionsWireValue/u);
   assert.match(kotlin, /unexpected ApprovalDecision properties/u);
+  assert.match(
+    kotlin,
+    /enum class AgentStreamEventType\(val wireValue: String\)/u,
+  );
+  assert.match(kotlin, /STRUCTURED_RESULT\("structured_result"\)/u);
+  assert.match(kotlin, /data class AgentStreamEventEnvelope\(/u);
+  assert.match(kotlin, /val type: AgentStreamEventType/u);
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
   assert.match(swift, /public enum ApprovalDecision: Codable, Sendable/u);
   assert.match(
@@ -33,4 +43,14 @@ test("generated clients preserve protocol field names across language keywords",
     /case acceptForSession\(permissions: \[PermissionGrant\]\?\)/u,
   );
   assert.match(swift, /unexpected ApprovalDecision properties/u);
+  assert.match(
+    swift,
+    /public enum AgentStreamEventType: String, Codable, Sendable/u,
+  );
+  assert.match(swift, /case structuredResult = "structured_result"/u);
+  assert.match(
+    swift,
+    /public struct AgentStreamEventEnvelope: Codable, Sendable/u,
+  );
+  assert.match(swift, /public let type: AgentStreamEventType/u);
 });

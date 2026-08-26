@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from chainlesschain_agent_sdk import (
+    CC_AGENT_STREAM_EVENT_TYPES,
     KNOWN_EVENT_CLASSES,
     PROTOCOL_FEATURES,
     ApprovalRequestEvent,
@@ -22,6 +23,7 @@ from chainlesschain_agent_sdk import (
     parse_event,
     parse_event_json,
     validate_approval_decision,
+    validate_agent_stream_event,
 )
 
 from tests.event_samples import EVENT_SAMPLES
@@ -36,6 +38,13 @@ APPROVAL_FIXTURES = (
     / "test"
     / "fixtures"
     / "approval-decisions.json"
+)
+AGENT_STREAM_EVENT_FIXTURES = (
+    PACKAGE_ROOT.parent
+    / "agent-protocol"
+    / "test"
+    / "fixtures"
+    / "agent-stream-events.json"
 )
 
 
@@ -67,6 +76,21 @@ class ProtocolTests(unittest.TestCase):
                     validate_approval_decision(fixture["value"])[0],
                     fixture["valid"],
                 )
+
+    def test_shared_agent_stream_event_conformance_fixture(self) -> None:
+        fixtures = json.loads(AGENT_STREAM_EVENT_FIXTURES.read_text(encoding="utf-8"))
+        for fixture in fixtures:
+            with self.subTest(fixture["name"]):
+                # JSON cannot encode Python's undefined sentinel; that case is
+                # exercised by the JavaScript validators.
+                if fixture.get("injectUndefinedAt"):
+                    continue
+                self.assertEqual(
+                    validate_agent_stream_event(fixture["value"])[0],
+                    fixture["valid"],
+                )
+        self.assertIn("hook_started", CC_AGENT_STREAM_EVENT_TYPES)
+        self.assertIn("structured_result", CC_AGENT_STREAM_EVENT_TYPES)
 
     def test_approval_events_preserve_binding_and_decision(self) -> None:
         request = parse_event(

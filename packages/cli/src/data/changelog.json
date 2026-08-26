@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.4",
+      "cliVersions": ["0.1.4", "0.2.3", "0.166.3", "0.166.4"],
+      "date": "2026-08-26",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.4 + Agent Protocol 0.1.4 + Agent SDKs 0.2.3: canonical stream event inventory",
+          "body": "> `chainlesschain` **0.166.3 -> 0.166.4**,\n> `@chainlesschain/agent-protocol` **0.1.3 -> 0.1.4**,\n> `@chainlesschain/agent-sdk` **0.2.2 -> 0.2.3**, and\n> `chainlesschain-agent-sdk` **0.2.2 -> 0.2.3** (release candidate,\n> 2026-08-26).\n\n- **One event discriminator inventory**: the canonical JSON Schema now owns\n  all currently emitted Agent stdout event types, including Hook, subagent,\n  recovery, budget, structured-result, and interaction rejection events.\n- **Generated cross-language contract**: TypeScript and Python receive the\n  event literal inventory, envelope type, and validator; Kotlin and Swift\n  receive generated event enums and typed envelopes from the same definition.\n- **Forward compatibility retained**: SDK transports continue to preserve\n  unknown future events. The new known-event guard is opt-in and does not turn\n  additive provider/runtime events into transport failures.\n- **Shared conformance**: legal and illegal event envelopes run through the\n  protocol, TypeScript SDK, and Python SDK validators; generated-output drift,\n  invalid metadata, and explicit non-JSON values fail the release gate.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the IDE extension matrix before immutable OIDC\n  release tags are created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.3",
       "cliVersions": ["0.1.2", "0.2.2", "0.166.2", "0.166.3"],
       "date": "2026-08-25",

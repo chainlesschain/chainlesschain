@@ -3,8 +3,53 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:2bfdca3e1cc944694d937b5d1b12339a567a56f41dcc9cffddf999fc24392e37"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:482b34fd645e656dc246435f91691b870000c3a19735b3cd68719acb6602f509"
 typealias JSONValue = Any?
+
+enum class AgentStreamEventType(val wireValue: String) {
+    APPROVAL_REQUEST("approval_request"),
+    APPROVAL_RESOLVED("approval_resolved"),
+    CHECKPOINT("checkpoint"),
+    COMPACTION("compaction"),
+    COMPACTION_DEGRADED("compaction-degraded"),
+    COMPACTION_USAGE_UNKNOWN("compaction_usage_unknown"),
+    COST_BUDGET_EXHAUSTED("cost_budget_exhausted"),
+    ELICITATION_COMPLETE("elicitation_complete"),
+    ELICITATION_DEFERRED("elicitation_deferred"),
+    FEEDBACK_ACK("feedback_ack"),
+    HOOK_PROGRESS("hook_progress"),
+    HOOK_RESPONSE("hook_response"),
+    HOOK_STARTED("hook_started"),
+    ITERATION_BUDGET_EXHAUSTED("iteration_budget_exhausted"),
+    ITERATION_WARNING("iteration_warning"),
+    PLAN_UPDATE("plan_update"),
+    QUESTION_REQUEST("question_request"),
+    QUESTION_RESOLVED("question_resolved"),
+    QUESTION_RESPONSE_REJECTED("question_response_rejected"),
+    RAW("raw"),
+    RECOVERY_DEGRADED("recovery_degraded"),
+    REMOTE_CONTROL("remote_control"),
+    RESULT("result"),
+    RESUME_ACK("resume_ack"),
+    SESSION_ERROR("session_error"),
+    SLASH_COMMAND_RESULT("slash_command_result"),
+    STREAM_EVENT("stream_event"),
+    STREAM_RETRY("stream_retry"),
+    STRUCTURED_RESULT("structured_result"),
+    SUBAGENT_COMPLETED("subagent_completed"),
+    SUBAGENT_PROGRESS("subagent_progress"),
+    SUBAGENT_STARTED("subagent_started"),
+    SYSTEM("system"),
+    TOKEN_USAGE("token_usage"),
+    TOOL_RESULT("tool_result"),
+    TOOL_USE("tool_use"),
+    USER("user");
+
+    companion object {
+        fun fromWireValue(value: String): AgentStreamEventType? =
+            entries.firstOrNull { it.wireValue == value }
+    }
+}
 
 data class DataPolicy(
     val origin: String,
@@ -329,6 +374,12 @@ data class GraphRun(
     val graphRevision: Long,
     val createdAt: String,
     val completedAt: JSONValue? = null
+)
+
+data class AgentStreamEventEnvelope(
+    val type: AgentStreamEventType,
+    val seq: Long? = null,
+    val trace_id: String? = null
 )
 
 data class InitializeParams(

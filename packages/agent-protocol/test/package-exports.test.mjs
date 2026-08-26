@@ -6,10 +6,13 @@ import {
   CC_AGENT_PROTOCOL_MIN_VERSION,
   CC_AGENT_PROTOCOL_SCHEMA,
   CC_AGENT_PROTOCOL_SCHEMA_DIGEST,
+  CC_AGENT_STREAM_EVENT_TYPES,
   CC_AGENT_PROTOCOL_VERSION,
+  assertAgentStreamEvent,
   assertProtocolCompatible,
   assertApprovalDecision,
   compareProtocolSchemas,
+  validateAgentStreamEvent,
   validateApprovalDecision,
   validateProtocolDefinition,
   validateProtocolMessage,
@@ -27,6 +30,46 @@ test("public root export matches the canonical schema", () => {
   assert.equal(typeof compareProtocolSchemas, "function");
   assert.equal(typeof validateProtocolMessage, "function");
   assert.equal(typeof validateProtocolDefinition, "function");
+  assert.equal(typeof validateAgentStreamEvent, "function");
+  assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("agent_stream_events"));
+  assert.deepEqual(
+    CC_AGENT_STREAM_EVENT_TYPES,
+    CC_AGENT_PROTOCOL_SCHEMA.$defs.AgentStreamEventType.enum,
+  );
+  assert.equal(Object.isFrozen(CC_AGENT_STREAM_EVENT_TYPES), true);
+});
+
+test("public validator derives the known Agent stream event inventory", () => {
+  assert.ok(CC_AGENT_STREAM_EVENT_TYPES.length >= 30);
+  assert.ok(CC_AGENT_STREAM_EVENT_TYPES.includes("hook_started"));
+  for (const type of CC_AGENT_STREAM_EVENT_TYPES) {
+    assert.equal(validateAgentStreamEvent({ type }).ok, true, type);
+  }
+  assert.equal(validateAgentStreamEvent({ type: "future_event_v2" }).ok, false);
+  assert.throws(
+    () => assertAgentStreamEvent({ type: "result", seq: 0 }),
+    /Invalid AgentStreamEvent/u,
+  );
+});
+
+test("public validator matches the shared Agent stream event fixture", () => {
+  const cases = JSON.parse(
+    readFileSync(
+      new URL("./fixtures/agent-stream-events.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const fixture of cases) {
+    const value = structuredClone(fixture.value);
+    if (fixture.injectUndefinedAt === "payload.missing") {
+      value.payload.missing = undefined;
+    }
+    assert.equal(
+      validateAgentStreamEvent(value).ok,
+      fixture.valid,
+      fixture.name,
+    );
+  }
 });
 
 test("public validators derive ApprovalDecision from the canonical schema", () => {
@@ -72,7 +115,7 @@ test("package metadata exposes only supported public entry points", () => {
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
   assert.equal(manifest.name, "@chainlesschain/agent-protocol");
-  assert.equal(manifest.version, "0.1.3");
+  assert.equal(manifest.version, "0.1.4");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.license, "MIT");
   assert.equal(manifest.publishConfig.access, "public");

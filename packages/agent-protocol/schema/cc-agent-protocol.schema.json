@@ -14,7 +14,8 @@
       "durable_human_task",
       "bounded_transport",
       "graph_effect_receipts",
-      "deterministic_trace"
+      "deterministic_trace",
+      "agent_stream_events"
     ]
   },
   "oneOf": [
@@ -939,6 +940,62 @@
           "anyOf": [{ "$ref": "#/$defs/Timestamp" }, { "type": "null" }]
         }
       }
+    },
+    "AgentStreamEventType": {
+      "enum": [
+        "approval_request",
+        "approval_resolved",
+        "checkpoint",
+        "compaction",
+        "compaction-degraded",
+        "compaction_usage_unknown",
+        "cost_budget_exhausted",
+        "elicitation_complete",
+        "elicitation_deferred",
+        "feedback_ack",
+        "hook_progress",
+        "hook_response",
+        "hook_started",
+        "iteration_budget_exhausted",
+        "iteration_warning",
+        "plan_update",
+        "question_request",
+        "question_resolved",
+        "question_response_rejected",
+        "raw",
+        "recovery_degraded",
+        "remote_control",
+        "result",
+        "resume_ack",
+        "session_error",
+        "slash_command_result",
+        "stream_event",
+        "stream_retry",
+        "structured_result",
+        "subagent_completed",
+        "subagent_progress",
+        "subagent_started",
+        "system",
+        "token_usage",
+        "tool_result",
+        "tool_use",
+        "user"
+      ]
+    },
+    "AgentStreamEventEnvelope": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "$ref": "#/$defs/AgentStreamEventType" },
+        "seq": { "type": "integer", "minimum": 1 },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        }
+      },
+      "additionalProperties": { "$ref": "#/$defs/JsonValue" }
     },
     "InitializeParams": {
       "type": "object",

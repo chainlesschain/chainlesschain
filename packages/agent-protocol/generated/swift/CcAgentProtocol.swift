@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:2bfdca3e1cc944694d937b5d1b12339a567a56f41dcc9cffddf999fc24392e37"
+public let ccAgentProtocolSchemaDigest = "sha256:482b34fd645e656dc246435f91691b870000c3a19735b3cd68719acb6602f509"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -33,6 +33,46 @@ public indirect enum JSONValue: Codable, Sendable {
         case .object(let value): try container.encode(value)
         }
     }
+}
+
+public enum AgentStreamEventType: String, Codable, Sendable {
+    case approvalRequest = "approval_request"
+    case approvalResolved = "approval_resolved"
+    case checkpoint = "checkpoint"
+    case compaction = "compaction"
+    case compactionDegraded = "compaction-degraded"
+    case compactionUsageUnknown = "compaction_usage_unknown"
+    case costBudgetExhausted = "cost_budget_exhausted"
+    case elicitationComplete = "elicitation_complete"
+    case elicitationDeferred = "elicitation_deferred"
+    case feedbackAck = "feedback_ack"
+    case hookProgress = "hook_progress"
+    case hookResponse = "hook_response"
+    case hookStarted = "hook_started"
+    case iterationBudgetExhausted = "iteration_budget_exhausted"
+    case iterationWarning = "iteration_warning"
+    case planUpdate = "plan_update"
+    case questionRequest = "question_request"
+    case questionResolved = "question_resolved"
+    case questionResponseRejected = "question_response_rejected"
+    case raw = "raw"
+    case recoveryDegraded = "recovery_degraded"
+    case remoteControl = "remote_control"
+    case result = "result"
+    case resumeAck = "resume_ack"
+    case sessionError = "session_error"
+    case slashCommandResult = "slash_command_result"
+    case streamEvent = "stream_event"
+    case streamRetry = "stream_retry"
+    case structuredResult = "structured_result"
+    case subagentCompleted = "subagent_completed"
+    case subagentProgress = "subagent_progress"
+    case subagentStarted = "subagent_started"
+    case system = "system"
+    case tokenUsage = "token_usage"
+    case toolResult = "tool_result"
+    case toolUse = "tool_use"
+    case user = "user"
 }
 
 public struct DataPolicy: Codable, Sendable {
@@ -949,6 +989,22 @@ public struct GraphRun: Codable, Sendable {
         self.graphRevision = graphRevision
         self.createdAt = createdAt
         self.completedAt = completedAt
+    }
+}
+
+public struct AgentStreamEventEnvelope: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let seq: Int?
+    public let trace_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        seq: Int? = nil,
+        trace_id: String? = nil
+    ) {
+        self.type = type
+        self.seq = seq
+        self.trace_id = trace_id
     }
 }
 

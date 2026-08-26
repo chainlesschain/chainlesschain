@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 import {
   contentDelta,
   isAgentEvent,
+  isKnownAgentEvent,
   isApprovalRequest,
   isContentDelta,
   isQuestionRequest,
@@ -14,6 +15,7 @@ import {
 } from "../src/protocol.js";
 import {
   isApprovalDecision,
+  validateAgentStreamEvent,
   validateApprovalDecision,
 } from "../src/generated/app-protocol.js";
 
@@ -54,6 +56,68 @@ describe("protocol type guards", () => {
     expect(isAgentEvent(null)).toBe(false);
     expect(isAgentEvent("result")).toBe(false);
     expect(isAgentEvent({ type: 42 })).toBe(false);
+  });
+
+  it("distinguishes canonical event types without breaking future events", () => {
+    expect(isKnownAgentEvent({ type: "structured_result", value: 42 })).toBe(
+      true,
+    );
+    expect(isKnownAgentEvent({ type: "future_event_v2" })).toBe(false);
+    expect(isAgentEvent({ type: "future_event_v2", payload: 1 })).toBe(true);
+    expect(validateAgentStreamEvent({ type: "result", seq: 0 })).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it("matches the shared Agent stream event conformance fixture", () => {
+    const fixtures = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../agent-protocol/test/fixtures/agent-stream-events.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as Array<{
+      name: string;
+      valid: boolean;
+      value: Record<string, unknown>;
+      injectUndefinedAt?: string;
+    }>;
+    for (const fixture of fixtures) {
+      const value = structuredClone(fixture.value);
+      if (fixture.injectUndefinedAt === "payload.missing") {
+        (value.payload as Record<string, unknown>).missing = undefined;
+      }
+      expect(validateAgentStreamEvent(value).ok, fixture.name).toBe(
+        fixture.valid,
+      );
+    }
+  });
+
+  it("recognizes every current output discriminator in the shared NDJSON corpus", () => {
+    const fixtureRoot = new URL("../__fixtures__/protocol/", import.meta.url);
+    const inputOnly = new Set(["slash_command"]);
+    const intentionallyFuture = new Set(["totally_new_event_v9"]);
+    for (const file of readdirSync(fixtureRoot).filter((name) =>
+      name.endsWith(".ndjson"),
+    )) {
+      const lines = readFileSync(new URL(file, fixtureRoot), "utf8")
+        .split(/\r?\n/u)
+        .filter(Boolean);
+      for (const line of lines) {
+        const event = JSON.parse(line) as Record<string, unknown>;
+        if (
+          inputOnly.has(String(event.type)) ||
+          intentionallyFuture.has(String(event.type))
+        ) {
+          continue;
+        }
+        expect(isKnownAgentEvent(event), `${file}: ${String(event.type)}`).toBe(
+          true,
+        );
+      }
+    }
   });
 
   it("isSystemInit matches only init with a session_id", () => {

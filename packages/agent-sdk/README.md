@@ -34,6 +34,12 @@ session.send("run the tests and fix failures");
 const result = await nextResult;
 ```
 
+Hosts that need to distinguish the current canonical event inventory from an
+unknown future event can import `isKnownAgentEvent` from
+`@chainlesschain/agent-sdk/protocol`. The existing `isAgentEvent` remains the
+lossless transport guard and intentionally accepts any object with a string
+`type`.
+
 Approval callbacks may still return booleans for source compatibility. Direct
 `respondApproval(id, boolean)` calls retain the legacy boolean wire; structured
 decisions echo the request binding and can express scoped turn/session grants.

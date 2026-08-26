@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.4 + Agent Protocol 0.1.4 + Agent SDKs 0.2.3: canonical stream event inventory
+
+> `chainlesschain` **0.166.3 -> 0.166.4**,
+> `@chainlesschain/agent-protocol` **0.1.3 -> 0.1.4**,
+> `@chainlesschain/agent-sdk` **0.2.2 -> 0.2.3**, and
+> `chainlesschain-agent-sdk` **0.2.2 -> 0.2.3** (release candidate,
+> 2026-08-26).
+
+- **One event discriminator inventory**: the canonical JSON Schema now owns
+  all currently emitted Agent stdout event types, including Hook, subagent,
+  recovery, budget, structured-result, and interaction rejection events.
+- **Generated cross-language contract**: TypeScript and Python receive the
+  event literal inventory, envelope type, and validator; Kotlin and Swift
+  receive generated event enums and typed envelopes from the same definition.
+- **Forward compatibility retained**: SDK transports continue to preserve
+  unknown future events. The new known-event guard is opt-in and does not turn
+  additive provider/runtime events into transport failures.
+- **Shared conformance**: legal and illegal event envelopes run through the
+  protocol, TypeScript SDK, and Python SDK validators; generated-output drift,
+  invalid metadata, and explicit non-JSON values fail the release gate.
+- **Release validation**: publication requires this exact candidate to pass
+  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
+  `CLI Strict Sandbox`, and the IDE extension matrix before immutable OIDC
+  release tags are created.
+
 ### Added - cc CLI 0.166.3 + Agent Protocol 0.1.2 + Agent SDKs 0.2.2: scoped approvals and durable team authority
 
 > `chainlesschain` **0.166.2 -> 0.166.3**,

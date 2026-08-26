@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.99] - Canonical Agent stream event inventory (2026-08-26)
+
+- Compile the schema-generated Kotlin `AgentStreamEventType` enum and typed
+  envelope from Agent Protocol `0.1.4` instead of reducing the discriminator
+  to an unconstrained string.
+- Keep production event projection behavior unchanged and preserve unknown
+  future events at the transport boundary; publication remains tag-gated.
+
 ## [0.4.98] - CLI 0.166.2 real-time team messaging (2026-08-25)
 
 - Recommend the fully gated public `chainlesschain@0.166.2` CLI and its
