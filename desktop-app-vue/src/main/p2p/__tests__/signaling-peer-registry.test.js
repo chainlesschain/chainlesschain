@@ -29,11 +29,16 @@ describe("SignalingPeerRegistry register/unregister", () => {
   });
 
   it("flags a reconnect and surfaces the previous connection", () => {
-    reg.register("p1", sock("c1"), {}, "mobile");
-    const res = reg.register("p1", sock("c2"), {}, "mobile");
+    const oldSocket = sock("c1");
+    const newSocket = sock("c2");
+    reg.register("p1", oldSocket, {}, "mobile");
+    const res = reg.register("p1", newSocket, {}, "mobile");
     expect(res.isReconnect).toBe(true);
     expect(res.previousConnection).toBeTruthy();
     expect(reg.getStats().duplicateRegistrations).toBe(1);
+    expect(reg.getPeerByConnectionId("c1")).toBeNull();
+    expect(reg.unregister("p1", oldSocket)).toBeNull();
+    expect(reg.getPeer("p1").socket).toBe(newSocket);
   });
 
   it("unregisters a peer and clears its connection mapping", () => {

@@ -5,8 +5,13 @@
  * and monitor the embedded signaling server.
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../utils/logger.js');
+const { ipcMain } = require("electron");
+const { logger } = require("../utils/logger.js");
+let activeIpcMain = ipcMain;
+
+function _setIpcMainForTesting(value) {
+  activeIpcMain = value || ipcMain;
+}
 
 /**
  * Register signaling server IPC handlers
@@ -20,34 +25,34 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
     if (signalingServer) {
       return signalingServer;
     }
-    if (p2pManager && typeof p2pManager.getSignalingServer === 'function') {
+    if (p2pManager && typeof p2pManager.getSignalingServer === "function") {
       return p2pManager.getSignalingServer();
     }
     return null;
   };
 
   if (!signalingServer && !p2pManager) {
-    logger.warn('[SignalingIPC] No signaling server or p2pManager provided');
+    logger.warn("[SignalingIPC] No signaling server or p2pManager provided");
     return;
   }
 
   /**
    * Start the signaling server
    */
-  ipcMain.handle('signaling:start', async (_event, options = {}) => {
+  activeIpcMain.handle("signaling:start", async (_event, options = {}) => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
       if (server.isServerRunning()) {
         return {
           success: true,
-          message: 'Server already running',
+          message: "Server already running",
           stats: server.getStats(),
         };
       }
@@ -64,11 +69,11 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
 
       return {
         success: true,
-        message: 'Server started',
+        message: "Server started",
         stats: server.getStats(),
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to start server:', error);
+      logger.error("[SignalingIPC] Failed to start server:", error);
       return {
         success: false,
         error: error.message,
@@ -79,20 +84,20 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Stop the signaling server
    */
-  ipcMain.handle('signaling:stop', async () => {
+  activeIpcMain.handle("signaling:stop", async () => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: true,
-          message: 'Signaling server not initialized',
+          message: "Signaling server not initialized",
         };
       }
 
       if (!server.isServerRunning()) {
         return {
           success: true,
-          message: 'Server not running',
+          message: "Server not running",
         };
       }
 
@@ -100,10 +105,10 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
 
       return {
         success: true,
-        message: 'Server stopped',
+        message: "Server stopped",
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to stop server:', error);
+      logger.error("[SignalingIPC] Failed to stop server:", error);
       return {
         success: false,
         error: error.message,
@@ -114,7 +119,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Get server status
    */
-  ipcMain.handle('signaling:get-status', async () => {
+  activeIpcMain.handle("signaling:get-status", async () => {
     try {
       const server = getServer();
       if (!server) {
@@ -122,7 +127,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
           success: true,
           isRunning: false,
           initialized: false,
-          message: 'Signaling server not initialized',
+          message: "Signaling server not initialized",
         };
       }
 
@@ -135,7 +140,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
         stats,
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to get status:', error);
+      logger.error("[SignalingIPC] Failed to get status:", error);
       return {
         success: false,
         error: error.message,
@@ -146,42 +151,44 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Get list of connected peers
    */
-  ipcMain.handle('signaling:get-peers', async () => {
-    try {
-      const server = getServer();
-      if (!server) {
+  activeIpcMain.handle(
+    "signaling:get-peers",
+    async (_event, pagination = {}) => {
+      try {
+        const server = getServer();
+        if (!server) {
+          return {
+            success: false,
+            error: "Signaling server not initialized",
+          };
+        }
+
+        const page = server.getPeers(pagination);
+
+        return {
+          success: true,
+          ...page,
+        };
+      } catch (error) {
+        logger.error("[SignalingIPC] Failed to get peers:", error);
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: error.message,
         };
       }
-
-      const peers = server.getPeers();
-
-      return {
-        success: true,
-        peers,
-        count: peers.length,
-      };
-    } catch (error) {
-      logger.error('[SignalingIPC] Failed to get peers:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+    },
+  );
 
   /**
    * Get server statistics
    */
-  ipcMain.handle('signaling:get-stats', async () => {
+  activeIpcMain.handle("signaling:get-stats", async () => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
@@ -192,7 +199,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
         stats,
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to get stats:', error);
+      logger.error("[SignalingIPC] Failed to get stats:", error);
       return {
         success: false,
         error: error.message,
@@ -203,13 +210,13 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Update server configuration
    */
-  ipcMain.handle('signaling:set-config', async (_event, config) => {
+  activeIpcMain.handle("signaling:set-config", async (_event, config) => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
@@ -217,10 +224,10 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
 
       return {
         success: true,
-        message: 'Configuration updated',
+        message: "Configuration updated",
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to set config:', error);
+      logger.error("[SignalingIPC] Failed to set config:", error);
       return {
         success: false,
         error: error.message,
@@ -231,76 +238,84 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Kick a specific peer
    */
-  ipcMain.handle('signaling:kick-peer', async (_event, peerId, reason) => {
-    try {
-      const server = getServer();
-      if (!server) {
+  activeIpcMain.handle(
+    "signaling:kick-peer",
+    async (_event, peerId, reason) => {
+      try {
+        const server = getServer();
+        if (!server) {
+          return {
+            success: false,
+            error: "Signaling server not initialized",
+          };
+        }
+
+        const result = server.kickPeer(peerId, reason);
+
+        return {
+          success: result,
+          message: result
+            ? `Peer ${peerId} kicked`
+            : `Peer ${peerId} not found`,
+        };
+      } catch (error) {
+        logger.error("[SignalingIPC] Failed to kick peer:", error);
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: error.message,
         };
       }
-
-      const result = server.kickPeer(peerId, reason);
-
-      return {
-        success: result,
-        message: result ? `Peer ${peerId} kicked` : `Peer ${peerId} not found`,
-      };
-    } catch (error) {
-      logger.error('[SignalingIPC] Failed to kick peer:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+    },
+  );
 
   /**
    * Broadcast a message to all connected peers
    */
-  ipcMain.handle('signaling:broadcast', async (_event, message, excludePeerId) => {
-    try {
-      const server = getServer();
-      if (!server) {
+  activeIpcMain.handle(
+    "signaling:broadcast",
+    async (_event, message, excludePeerId) => {
+      try {
+        const server = getServer();
+        if (!server) {
+          return {
+            success: false,
+            error: "Signaling server not initialized",
+          };
+        }
+
+        if (!server.isServerRunning()) {
+          return {
+            success: false,
+            error: "Server not running",
+          };
+        }
+
+        server.broadcast(message, excludePeerId);
+
+        return {
+          success: true,
+          message: "Broadcast sent",
+        };
+      } catch (error) {
+        logger.error("[SignalingIPC] Failed to broadcast:", error);
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: error.message,
         };
       }
-
-      if (!server.isServerRunning()) {
-        return {
-          success: false,
-          error: 'Server not running',
-        };
-      }
-
-      server.broadcast(message, excludePeerId);
-
-      return {
-        success: true,
-        message: 'Broadcast sent',
-      };
-    } catch (error) {
-      logger.error('[SignalingIPC] Failed to broadcast:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+    },
+  );
 
   /**
    * Restart the signaling server
    */
-  ipcMain.handle('signaling:restart', async (_event, options = {}) => {
+  activeIpcMain.handle("signaling:restart", async (_event, options = {}) => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
@@ -322,11 +337,11 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
 
       return {
         success: true,
-        message: 'Server restarted',
+        message: "Server restarted",
         stats: server.getStats(),
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to restart server:', error);
+      logger.error("[SignalingIPC] Failed to restart server:", error);
       return {
         success: false,
         error: error.message,
@@ -337,13 +352,13 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Get message queue info for a specific peer
    */
-  ipcMain.handle('signaling:get-queue-info', async (_event, peerId) => {
+  activeIpcMain.handle("signaling:get-queue-info", async (_event, peerId) => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
@@ -357,7 +372,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
           success: true,
           peerId,
           queueSize: messages.length,
-          messages: messages.map(m => ({
+          messages: messages.map((m) => ({
             messageId: m.messageId,
             storedAt: m.storedAt,
             type: m.message?.type,
@@ -371,7 +386,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
         peersWithMessages: server.messageQueue.getPeersWithMessages(),
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to get queue info:', error);
+      logger.error("[SignalingIPC] Failed to get queue info:", error);
       return {
         success: false,
         error: error.message,
@@ -382,20 +397,20 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
   /**
    * Clear message queue for a specific peer
    */
-  ipcMain.handle('signaling:clear-queue', async (_event, peerId) => {
+  activeIpcMain.handle("signaling:clear-queue", async (_event, peerId) => {
     try {
       const server = getServer();
       if (!server) {
         return {
           success: false,
-          error: 'Signaling server not initialized',
+          error: "Signaling server not initialized",
         };
       }
 
       if (!peerId) {
         return {
           success: false,
-          error: 'peerId is required',
+          error: "peerId is required",
         };
       }
 
@@ -407,7 +422,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
         message: `Cleared ${count} messages for ${peerId}`,
       };
     } catch (error) {
-      logger.error('[SignalingIPC] Failed to clear queue:', error);
+      logger.error("[SignalingIPC] Failed to clear queue:", error);
       return {
         success: false,
         error: error.message,
@@ -415,7 +430,7 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
     }
   });
 
-  logger.info('[SignalingIPC] Handlers registered');
+  logger.info("[SignalingIPC] Handlers registered");
 }
 
 /**
@@ -423,27 +438,28 @@ function registerSignalingIPC({ signalingServer, p2pManager }) {
  */
 function unregisterSignalingIPC() {
   const channels = [
-    'signaling:start',
-    'signaling:stop',
-    'signaling:get-status',
-    'signaling:get-peers',
-    'signaling:get-stats',
-    'signaling:set-config',
-    'signaling:kick-peer',
-    'signaling:broadcast',
-    'signaling:restart',
-    'signaling:get-queue-info',
-    'signaling:clear-queue',
+    "signaling:start",
+    "signaling:stop",
+    "signaling:get-status",
+    "signaling:get-peers",
+    "signaling:get-stats",
+    "signaling:set-config",
+    "signaling:kick-peer",
+    "signaling:broadcast",
+    "signaling:restart",
+    "signaling:get-queue-info",
+    "signaling:clear-queue",
   ];
 
   for (const channel of channels) {
-    ipcMain.removeHandler(channel);
+    activeIpcMain.removeHandler(channel);
   }
 
-  logger.info('[SignalingIPC] Handlers unregistered');
+  logger.info("[SignalingIPC] Handlers unregistered");
 }
 
 module.exports = {
+  _setIpcMainForTesting,
   registerSignalingIPC,
   unregisterSignalingIPC,
 };

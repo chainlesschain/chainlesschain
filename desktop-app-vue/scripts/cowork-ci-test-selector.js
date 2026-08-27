@@ -63,6 +63,16 @@ const FULL_UNIT_TRIGGERS = new Set([
 ]);
 const CONTENT_INTEGRATION_WIRING_TEST =
   "tests/unit/api/rss-email-production-wiring.test.js";
+const STANDALONE_SIGNALING_BOUNDS_TEST =
+  "tests/unit/p2p/standalone-signaling-server-bounds.test.js";
+const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
+  ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
+  [
+    "signaling-server/offline-message-store.js",
+    [STANDALONE_SIGNALING_BOUNDS_TEST],
+  ],
+]);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
   ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
@@ -363,6 +373,35 @@ function createSelection(
         file: normalized,
         suite: "cli-unit",
         tests: [...cliContractTests],
+      });
+      continue;
+    }
+
+    const repoContractTests =
+      REPO_SOURCE_CONTRACT_TEST_MAPPINGS.get(normalized);
+    if (repoContractTests) {
+      const missingTests = repoContractTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(projectRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      desktopMapped = true;
+      for (const testFile of repoContractTests) {
+        selectedDesktopTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: [...repoContractTests],
       });
       continue;
     }

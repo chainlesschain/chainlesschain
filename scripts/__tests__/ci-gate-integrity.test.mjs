@@ -201,6 +201,19 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   );
   assert.equal(contentIntegrationSelection.mode, "targeted");
 
+  const standaloneSignalingSelection = selector.createSelection([
+    "signaling-server/index.js",
+    "signaling-server/boundaries.js",
+    "signaling-server/offline-message-store.js",
+  ]);
+  assert.equal(standaloneSignalingSelection.suite, "desktop-unit");
+  assert.equal(standaloneSignalingSelection.mode, "targeted");
+  assert.ok(
+    standaloneSignalingSelection.selectedTests.includes(
+      "tests/unit/p2p/standalone-signaling-server-bounds.test.js",
+    ),
+  );
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });

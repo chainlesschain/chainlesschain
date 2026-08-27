@@ -69,6 +69,10 @@ class SignalingPeerRegistry {
       result.isReconnect = true;
       this.stats.duplicateRegistrations++;
 
+      if (existing.socket?.connectionId) {
+        this.connectionToPeer.delete(existing.socket.connectionId);
+      }
+
       logger.info(
         `[PeerRegistry] Peer ${peerId} reconnecting, closing old connection`,
       );
@@ -98,12 +102,19 @@ class SignalingPeerRegistry {
   /**
    * Unregister a peer
    * @param {string} peerId - Peer identifier to remove
-   * @returns {Object|null} Removed peer info or null if not found
+   * @param {WebSocket} expectedSocket - Optional identity guard for reconnects
+   * @returns {Object|null} Removed peer info or null if not found or replaced
    */
-  unregister(peerId) {
+  unregister(peerId, expectedSocket = null) {
     const peer = this.peers.get(peerId);
 
     if (!peer) {
+      return null;
+    }
+    if (expectedSocket && peer.socket !== expectedSocket) {
+      if (expectedSocket.connectionId) {
+        this.connectionToPeer.delete(expectedSocket.connectionId);
+      }
       return null;
     }
 
@@ -123,16 +134,17 @@ class SignalingPeerRegistry {
   /**
    * Unregister by connection ID (used when socket closes before registration)
    * @param {string} connectionId - Connection identifier
+   * @param {WebSocket} expectedSocket - Optional identity guard for reconnects
    * @returns {Object|null} Removed peer info or null
    */
-  unregisterByConnectionId(connectionId) {
+  unregisterByConnectionId(connectionId, expectedSocket = null) {
     const peerId = this.connectionToPeer.get(connectionId);
 
     if (!peerId) {
       return null;
     }
 
-    return this.unregister(peerId);
+    return this.unregister(peerId, expectedSocket);
   }
 
   /**

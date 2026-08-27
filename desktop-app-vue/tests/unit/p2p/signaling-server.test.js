@@ -7,10 +7,10 @@
  * - SignalingServer (with mocked WebSocket)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock the logger
-vi.mock('../../../src/main/utils/logger.js', () => ({
+vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('../../../src/main/utils/logger.js', () => ({
 }));
 
 // Mock ws module
-vi.mock('ws', () => {
+vi.mock("ws", () => {
   const OPEN = 1;
   const CLOSED = 3;
   const CLOSING = 2;
@@ -51,7 +51,7 @@ vi.mock('ws', () => {
 
     emit(event, data) {
       if (this._listeners[event]) {
-        this._listeners[event].forEach(handler => handler(data));
+        this._listeners[event].forEach((handler) => handler(data));
       }
     }
 
@@ -89,7 +89,7 @@ vi.mock('ws', () => {
 
     emit(event, data) {
       if (this._listeners[event]) {
-        this._listeners[event].forEach(handler => handler(data));
+        this._listeners[event].forEach((handler) => handler(data));
       }
     }
 
@@ -107,10 +107,10 @@ vi.mock('ws', () => {
 });
 
 // Import after mocking
-const SignalingPeerRegistry = require('../../../src/main/p2p/signaling-peer-registry');
-const SignalingMessageQueue = require('../../../src/main/p2p/signaling-message-queue');
+const SignalingPeerRegistry = require("../../../src/main/p2p/signaling-peer-registry");
+const SignalingMessageQueue = require("../../../src/main/p2p/signaling-message-queue");
 
-describe('SignalingPeerRegistry', () => {
+describe("SignalingPeerRegistry", () => {
   let registry;
 
   beforeEach(() => {
@@ -123,22 +123,27 @@ describe('SignalingPeerRegistry', () => {
     registry.clear();
   });
 
-  describe('register', () => {
-    it('should register a new peer', () => {
-      const mockSocket = { connectionId: 'conn-1', readyState: 1 };
-      const result = registry.register('peer-1', mockSocket, { name: 'Test' }, 'desktop');
+  describe("register", () => {
+    it("should register a new peer", () => {
+      const mockSocket = { connectionId: "conn-1", readyState: 1 };
+      const result = registry.register(
+        "peer-1",
+        mockSocket,
+        { name: "Test" },
+        "desktop",
+      );
 
       expect(result.success).toBe(true);
       expect(result.isReconnect).toBe(false);
       expect(registry.getCount()).toBe(1);
     });
 
-    it('should handle duplicate registration', () => {
-      const mockSocket1 = { connectionId: 'conn-1', readyState: 1 };
-      const mockSocket2 = { connectionId: 'conn-2', readyState: 1 };
+    it("should handle duplicate registration", () => {
+      const mockSocket1 = { connectionId: "conn-1", readyState: 1 };
+      const mockSocket2 = { connectionId: "conn-2", readyState: 1 };
 
-      registry.register('peer-1', mockSocket1, {}, 'desktop');
-      const result = registry.register('peer-1', mockSocket2, {}, 'mobile');
+      registry.register("peer-1", mockSocket1, {}, "desktop");
+      const result = registry.register("peer-1", mockSocket2, {}, "mobile");
 
       expect(result.success).toBe(true);
       expect(result.isReconnect).toBe(true);
@@ -146,83 +151,83 @@ describe('SignalingPeerRegistry', () => {
       expect(registry.getCount()).toBe(1);
     });
 
-    it('should track device types', () => {
-      const mockSocket1 = { connectionId: 'conn-1', readyState: 1 };
-      const mockSocket2 = { connectionId: 'conn-2', readyState: 1 };
+    it("should track device types", () => {
+      const mockSocket1 = { connectionId: "conn-1", readyState: 1 };
+      const mockSocket2 = { connectionId: "conn-2", readyState: 1 };
 
-      registry.register('peer-1', mockSocket1, {}, 'desktop');
-      registry.register('peer-2', mockSocket2, {}, 'mobile');
+      registry.register("peer-1", mockSocket1, {}, "desktop");
+      registry.register("peer-2", mockSocket2, {}, "mobile");
 
-      const desktops = registry.getPeersByType('desktop');
-      const mobiles = registry.getPeersByType('mobile');
+      const desktops = registry.getPeersByType("desktop");
+      const mobiles = registry.getPeersByType("mobile");
 
       expect(desktops.length).toBe(1);
       expect(mobiles.length).toBe(1);
     });
   });
 
-  describe('unregister', () => {
-    it('should unregister a peer', () => {
-      const mockSocket = { connectionId: 'conn-1', readyState: 1 };
-      registry.register('peer-1', mockSocket, {}, 'desktop');
+  describe("unregister", () => {
+    it("should unregister a peer", () => {
+      const mockSocket = { connectionId: "conn-1", readyState: 1 };
+      registry.register("peer-1", mockSocket, {}, "desktop");
 
-      const result = registry.unregister('peer-1');
+      const result = registry.unregister("peer-1");
 
       expect(result).not.toBeNull();
       expect(registry.getCount()).toBe(0);
     });
 
-    it('should return null for non-existent peer', () => {
-      const result = registry.unregister('non-existent');
+    it("should return null for non-existent peer", () => {
+      const result = registry.unregister("non-existent");
       expect(result).toBeNull();
     });
   });
 
-  describe('getPeer', () => {
-    it('should return peer info', () => {
-      const mockSocket = { connectionId: 'conn-1', readyState: 1 };
-      registry.register('peer-1', mockSocket, { name: 'Test' }, 'desktop');
+  describe("getPeer", () => {
+    it("should return peer info", () => {
+      const mockSocket = { connectionId: "conn-1", readyState: 1 };
+      registry.register("peer-1", mockSocket, { name: "Test" }, "desktop");
 
-      const peer = registry.getPeer('peer-1');
+      const peer = registry.getPeer("peer-1");
 
       expect(peer).not.toBeNull();
-      expect(peer.deviceType).toBe('desktop');
-      expect(peer.deviceInfo.name).toBe('Test');
+      expect(peer.deviceType).toBe("desktop");
+      expect(peer.deviceInfo.name).toBe("Test");
     });
 
-    it('should return null for non-existent peer', () => {
-      const peer = registry.getPeer('non-existent');
+    it("should return null for non-existent peer", () => {
+      const peer = registry.getPeer("non-existent");
       expect(peer).toBeNull();
     });
   });
 
-  describe('isOnline', () => {
-    it('should return true for online peer', () => {
-      const mockSocket = { connectionId: 'conn-1', readyState: 1 };
-      registry.register('peer-1', mockSocket, {}, 'desktop');
+  describe("isOnline", () => {
+    it("should return true for online peer", () => {
+      const mockSocket = { connectionId: "conn-1", readyState: 1 };
+      registry.register("peer-1", mockSocket, {}, "desktop");
 
-      expect(registry.isOnline('peer-1')).toBe(true);
+      expect(registry.isOnline("peer-1")).toBe(true);
     });
 
-    it('should return false for offline peer', () => {
-      const mockSocket = { connectionId: 'conn-1', readyState: 3 }; // CLOSED
-      registry.register('peer-1', mockSocket, {}, 'desktop');
+    it("should return false for offline peer", () => {
+      const mockSocket = { connectionId: "conn-1", readyState: 3 }; // CLOSED
+      registry.register("peer-1", mockSocket, {}, "desktop");
 
-      expect(registry.isOnline('peer-1')).toBe(false);
+      expect(registry.isOnline("peer-1")).toBe(false);
     });
 
-    it('should return false for non-existent peer', () => {
-      expect(registry.isOnline('non-existent')).toBe(false);
+    it("should return false for non-existent peer", () => {
+      expect(registry.isOnline("non-existent")).toBe(false);
     });
   });
 
-  describe('getStats', () => {
-    it('should return correct statistics', () => {
-      const mockSocket1 = { connectionId: 'conn-1', readyState: 1 };
-      const mockSocket2 = { connectionId: 'conn-2', readyState: 1 };
+  describe("getStats", () => {
+    it("should return correct statistics", () => {
+      const mockSocket1 = { connectionId: "conn-1", readyState: 1 };
+      const mockSocket2 = { connectionId: "conn-2", readyState: 1 };
 
-      registry.register('peer-1', mockSocket1, {}, 'desktop');
-      registry.register('peer-2', mockSocket2, {}, 'mobile');
+      registry.register("peer-1", mockSocket1, {}, "desktop");
+      registry.register("peer-2", mockSocket2, {}, "mobile");
 
       const stats = registry.getStats();
 
@@ -234,7 +239,7 @@ describe('SignalingPeerRegistry', () => {
   });
 });
 
-describe('SignalingMessageQueue', () => {
+describe("SignalingMessageQueue", () => {
   let queue;
 
   beforeEach(() => {
@@ -250,71 +255,73 @@ describe('SignalingMessageQueue', () => {
     queue.clearAll();
   });
 
-  describe('enqueue', () => {
-    it('should enqueue a message', () => {
-      const result = queue.enqueue('peer-1', { type: 'test', data: 'hello' });
+  describe("enqueue", () => {
+    it("should enqueue a message", () => {
+      const result = queue.enqueue("peer-1", { type: "test", data: "hello" });
 
       expect(result.success).toBe(true);
       expect(result.messageId).toBeDefined();
       expect(result.queueSize).toBe(1);
     });
 
-    it('should drop oldest message when queue is full', () => {
+    it("should reject the newest message when queue is full", () => {
+      let result;
       for (let i = 0; i < 6; i++) {
-        queue.enqueue('peer-1', { type: 'test', index: i });
+        result = queue.enqueue("peer-1", { type: "test", index: i });
       }
 
-      expect(queue.getQueueSize('peer-1')).toBe(5);
+      expect(queue.getQueueSize("peer-1")).toBe(5);
+      expect(result).toMatchObject({ success: false, code: "OVERLOADED" });
 
       const stats = queue.getStats();
       expect(stats.totalDropped).toBe(1);
     });
   });
 
-  describe('dequeue', () => {
-    it('should dequeue all messages', () => {
-      queue.enqueue('peer-1', { type: 'msg1' });
-      queue.enqueue('peer-1', { type: 'msg2' });
+  describe("dequeue", () => {
+    it("should dequeue all messages", () => {
+      queue.enqueue("peer-1", { type: "msg1" });
+      queue.enqueue("peer-1", { type: "msg2" });
 
-      const messages = queue.dequeue('peer-1');
+      const messages = queue.dequeue("peer-1");
 
       expect(messages.length).toBe(2);
-      expect(queue.getQueueSize('peer-1')).toBe(0);
+      expect(queue.getQueueSize("peer-1")).toBe(0);
     });
 
-    it('should return empty array for peer with no messages', () => {
-      const messages = queue.dequeue('non-existent');
+    it("should return empty array for peer with no messages", () => {
+      const messages = queue.dequeue("non-existent");
       expect(messages).toEqual([]);
     });
   });
 
-  describe('peek', () => {
-    it('should return messages without removing them', () => {
-      queue.enqueue('peer-1', { type: 'test' });
+  describe("peek", () => {
+    it("should return messages without removing them", () => {
+      queue.enqueue("peer-1", { type: "test" });
 
-      const messages1 = queue.peek('peer-1');
-      const messages2 = queue.peek('peer-1');
+      const messages1 = queue.peek("peer-1");
+      const messages2 = queue.peek("peer-1");
 
       expect(messages1.length).toBe(1);
       expect(messages2.length).toBe(1);
     });
   });
 
-  describe('clearQueue', () => {
-    it('should clear queue for specific peer', () => {
-      queue.enqueue('peer-1', { type: 'msg1' });
-      queue.enqueue('peer-2', { type: 'msg2' });
+  describe("clearQueue", () => {
+    it("should clear queue for specific peer", () => {
+      queue.enqueue("peer-1", { type: "msg1" });
+      queue.enqueue("peer-2", { type: "msg2" });
 
-      const count = queue.clearQueue('peer-1');
+      const count = queue.clearQueue("peer-1");
 
       expect(count).toBe(1);
-      expect(queue.getQueueSize('peer-1')).toBe(0);
-      expect(queue.getQueueSize('peer-2')).toBe(1);
+      expect(queue.getQueueSize("peer-1")).toBe(0);
+      expect(queue.getQueueSize("peer-2")).toBe(1);
     });
   });
 
-  describe('cleanupExpired', () => {
-    it('should remove expired messages', () => {
+  describe("cleanupExpired", () => {
+    it("should remove expired messages", () => {
       // Create queue with very short TTL
       const shortQueue = new SignalingMessageQueue({
         maxQueueSize: 10,
@@ -322,7 +329,7 @@ describe('SignalingMessageQueue', () => {
       });
       shortQueue.initialize();
 
-      shortQueue.enqueue('peer-1', { type: 'test' });
+      shortQueue.enqueue("peer-1", { type: "test" });
 
       // Wait for message to expire
       return new Promise((resolve) => {
@@ -336,11 +343,11 @@ describe('SignalingMessageQueue', () => {
     });
   });
 
-  describe('getStats', () => {
-    it('should return correct statistics', () => {
-      queue.enqueue('peer-1', { type: 'msg1' });
-      queue.enqueue('peer-1', { type: 'msg2' });
-      queue.enqueue('peer-2', { type: 'msg3' });
+  describe("getStats", () => {
+    it("should return correct statistics", () => {
+      queue.enqueue("peer-1", { type: "msg1" });
+      queue.enqueue("peer-1", { type: "msg2" });
+      queue.enqueue("peer-2", { type: "msg3" });
 
       const stats = queue.getStats();
 
@@ -351,8 +358,8 @@ describe('SignalingMessageQueue', () => {
   });
 });
 
-describe('SignalingHandlers', () => {
-  const handlers = require('../../../src/main/p2p/signaling-handlers');
+describe("SignalingHandlers", () => {
+  const handlers = require("../../../src/main/p2p/signaling-handlers");
   let mockRegistry;
   let mockQueue;
   let mockSocket;
@@ -364,7 +371,11 @@ describe('SignalingHandlers', () => {
     broadcastedStatuses = [];
 
     mockRegistry = {
-      register: vi.fn(() => ({ success: true, isReconnect: false, previousConnection: null })),
+      register: vi.fn(() => ({
+        success: true,
+        isReconnect: false,
+        previousConnection: null,
+      })),
       getPeer: vi.fn(),
       isOnline: vi.fn(),
       updateLastSeen: vi.fn(),
@@ -374,13 +385,14 @@ describe('SignalingHandlers', () => {
 
     mockQueue = {
       dequeue: vi.fn(() => []),
-      enqueue: vi.fn(() => ({ success: true, messageId: 'msg-1' })),
+      enqueue: vi.fn(() => ({ success: true, messageId: "msg-1" })),
       peek: vi.fn(() => []),
+      removeMessage: vi.fn(),
     };
 
     mockSocket = {
-      peerId: 'sender-peer',
-      connectionId: 'conn-1',
+      peerId: "sender-peer",
+      connectionId: "conn-1",
       readyState: 1,
     };
   });
@@ -393,123 +405,133 @@ describe('SignalingHandlers', () => {
     broadcastedStatuses.push({ peerId, status, metadata });
   };
 
-  describe('handleRegister', () => {
-    it('should register peer and send confirmation', () => {
+  describe("handleRegister", () => {
+    it("should register peer and send confirmation", () => {
       handlers.handleRegister(
         mockSocket,
-        { peerId: 'new-peer', deviceType: 'desktop', deviceInfo: { name: 'Test' } },
+        {
+          peerId: "new-peer",
+          deviceType: "desktop",
+          deviceInfo: { name: "Test" },
+        },
         mockRegistry,
         mockQueue,
         sendMessage,
-        broadcastPeerStatus
+        broadcastPeerStatus,
       );
 
-      expect(mockRegistry.register).toHaveBeenCalledWith('new-peer', mockSocket, { name: 'Test' }, 'desktop');
+      expect(mockRegistry.register).toHaveBeenCalledWith(
+        "new-peer",
+        mockSocket,
+        { name: "Test" },
+        "desktop",
+      );
       expect(sentMessages.length).toBe(1);
-      expect(sentMessages[0].message.type).toBe('registered');
+      expect(sentMessages[0].message.type).toBe("registered");
       expect(broadcastedStatuses.length).toBe(1);
-      expect(broadcastedStatuses[0].status).toBe('online');
+      expect(broadcastedStatuses[0].status).toBe("online");
     });
 
-    it('should reject registration without peerId', () => {
+    it("should reject registration without peerId", () => {
       handlers.handleRegister(
         mockSocket,
-        { deviceType: 'desktop' },
+        { deviceType: "desktop" },
         mockRegistry,
         mockQueue,
         sendMessage,
-        broadcastPeerStatus
+        broadcastPeerStatus,
       );
 
       expect(mockRegistry.register).not.toHaveBeenCalled();
-      expect(sentMessages[0].message.type).toBe('error');
+      expect(sentMessages[0].message.type).toBe("error");
     });
 
-    it('should deliver offline messages after registration', () => {
-      mockQueue.dequeue.mockReturnValue([
-        { messageId: 'msg-1', message: { type: 'test' }, storedAt: Date.now() },
+    it("should deliver offline messages after registration", () => {
+      mockQueue.peek.mockReturnValue([
+        { messageId: "msg-1", message: { type: "test" }, storedAt: Date.now() },
       ]);
 
       handlers.handleRegister(
         mockSocket,
-        { peerId: 'new-peer', deviceType: 'desktop' },
+        { peerId: "new-peer", deviceType: "desktop" },
         mockRegistry,
         mockQueue,
         sendMessage,
-        broadcastPeerStatus
+        broadcastPeerStatus,
       );
 
       // registered + offline-message
       expect(sentMessages.length).toBe(2);
-      expect(sentMessages[1].message.type).toBe('offline-message');
+      expect(sentMessages[1].message.type).toBe("offline-message");
+      expect(mockQueue.removeMessage).toHaveBeenCalledWith("new-peer", "msg-1");
     });
   });
 
-  describe('handleOffer', () => {
-    it('should forward offer to online peer', () => {
-      const targetSocket = { peerId: 'target', readyState: 1 };
+  describe("handleOffer", () => {
+    it("should forward offer to online peer", () => {
+      const targetSocket = { peerId: "target", readyState: 1 };
       mockRegistry.getPeer.mockReturnValue({ socket: targetSocket });
       mockRegistry.isOnline.mockReturnValue(true);
 
       handlers.handleOffer(
         mockSocket,
-        { to: 'target', offer: { type: 'offer', sdp: 'test-sdp' } },
+        { to: "target", offer: { type: "offer", sdp: "test-sdp" } },
         mockRegistry,
         mockQueue,
-        sendMessage
+        sendMessage,
       );
 
       expect(sentMessages.length).toBe(1);
       expect(sentMessages[0].socket).toBe(targetSocket);
-      expect(sentMessages[0].message.type).toBe('offer');
+      expect(sentMessages[0].message.type).toBe("offer");
     });
 
-    it('should queue offer for offline peer', () => {
+    it("should queue offer for offline peer", () => {
       mockRegistry.getPeer.mockReturnValue(null);
       mockRegistry.isOnline.mockReturnValue(false);
 
       handlers.handleOffer(
         mockSocket,
-        { to: 'target', offer: { type: 'offer', sdp: 'test-sdp' } },
+        { to: "target", offer: { type: "offer", sdp: "test-sdp" } },
         mockRegistry,
         mockQueue,
-        sendMessage
+        sendMessage,
       );
 
       expect(mockQueue.enqueue).toHaveBeenCalled();
-      expect(sentMessages[0].message.type).toBe('peer-offline');
+      expect(sentMessages[0].message.type).toBe("peer-offline");
     });
   });
 
-  describe('handleMessage', () => {
-    it('should forward message to online peer', () => {
-      const targetSocket = { peerId: 'target', readyState: 1 };
+  describe("handleMessage", () => {
+    it("should forward message to online peer", () => {
+      const targetSocket = { peerId: "target", readyState: 1 };
       mockRegistry.getPeer.mockReturnValue({ socket: targetSocket });
       mockRegistry.isOnline.mockReturnValue(true);
 
       handlers.handleMessage(
         mockSocket,
-        { to: 'target', payload: { text: 'hello' } },
+        { to: "target", payload: { text: "hello" } },
         mockRegistry,
         mockQueue,
-        sendMessage
+        sendMessage,
       );
 
       expect(sentMessages.length).toBe(1);
-      expect(sentMessages[0].message.type).toBe('message');
-      expect(sentMessages[0].message.payload.text).toBe('hello');
+      expect(sentMessages[0].message.type).toBe("message");
+      expect(sentMessages[0].message.payload.text).toBe("hello");
     });
 
-    it('should reject message without to field', () => {
+    it("should reject message without to field", () => {
       handlers.handleMessage(
         mockSocket,
-        { payload: { text: 'hello' } },
+        { payload: { text: "hello" } },
         mockRegistry,
         mockQueue,
-        sendMessage
+        sendMessage,
       );
 
-      expect(sentMessages[0].message.type).toBe('error');
+      expect(sentMessages[0].message.type).toBe("error");
     });
   });
 });

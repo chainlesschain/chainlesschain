@@ -23,14 +23,60 @@ describe("SignalingMessageQueue enqueue/dequeue", () => {
     expect(q.getStats().totalEnqueued).toBe(1);
   });
 
-  it("drops the oldest message when the per-peer cap is exceeded", () => {
+  it("rejects atomically when the per-peer cap is exceeded", () => {
     q.setMaxQueueSize(2);
     q.enqueue("p1", { n: 1 });
     q.enqueue("p1", { n: 2 });
-    q.enqueue("p1", { n: 3 }); // cap reached -> drop n:1
+    const rejected = q.enqueue("p1", { n: 3 });
     const pending = q.peek("p1").map((e) => e.message.n);
-    expect(pending).toEqual([2, 3]);
+    expect(rejected).toMatchObject({
+      success: false,
+      code: "OVERLOADED",
+      reason: "PEER_MESSAGE_LIMIT",
+    });
+    expect(pending).toEqual([1, 2]);
     expect(q.getStats().totalDropped).toBe(1);
+    expect(q.getStats().totalRejected).toBe(1);
+  });
+
+  it("bounds peer buckets, total messages, and retained bytes", () => {
+    q = new SignalingMessageQueue({
+      maxQueuePeers: 1,
+      maxQueueSize: 10,
+      maxTotalMessages: 10,
+      maxQueueBytes: 100,
+      maxTotalQueueBytes: 100,
+    });
+    expect(q.enqueue("p1", { n: 1 }).success).toBe(true);
+    expect(q.enqueue("p2", { n: 2 })).toMatchObject({
+      success: false,
+      reason: "OFFLINE_PEER_LIMIT",
+    });
+
+    q = new SignalingMessageQueue({
+      maxQueuePeers: 2,
+      maxQueueSize: 2,
+      maxTotalMessages: 2,
+      maxQueueBytes: 100,
+      maxTotalQueueBytes: 100,
+    });
+    expect(q.enqueue("p1", { n: 1 }).success).toBe(true);
+    expect(q.enqueue("p2", { n: 2 }).success).toBe(true);
+    expect(q.enqueue("p1", { n: 3 })).toMatchObject({
+      success: false,
+      reason: "TOTAL_MESSAGE_LIMIT",
+    });
+    expect(q.getStats()).toMatchObject({ currentQueues: 2, totalMessages: 2 });
+  });
+
+  it("does not retain an invalid or oversized target peer key", () => {
+    q = new SignalingMessageQueue({ maxPeerIdBytes: 4 });
+    expect(q.enqueue("peer-too-long", { n: 1 })).toMatchObject({
+      success: false,
+      code: "INVALID_MESSAGE",
+      reason: "INVALID_TARGET_PEER",
+    });
+    expect(q.getStats()).toMatchObject({ currentQueues: 0, totalMessages: 0 });
   });
 
   it("dequeues all messages and clears the queue", () => {
@@ -75,6 +121,7 @@ describe("SignalingMessageQueue peek/remove/clear", () => {
     q.enqueue("p2", {});
     q.clearAll();
     expect(q.getTotalMessageCount()).toBe(0);
+    expect(q.getStats().totalBytes).toBe(0);
     expect(q.getPeersWithMessages()).toEqual([]);
   });
 });
