@@ -156,6 +156,7 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "network.clearRequestBlocking",
       "network.getRequests",
       "network.mockResponse",
+      "network.clearMocks",
       "network.setThrottling",
       "network.clearThrottling",
       "network.getThrottlingProfiles",

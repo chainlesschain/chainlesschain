@@ -9,11 +9,9 @@
  *  - Timing (page-context Performance API): timing, waterfall, analyze
  *  - Network Information API (page-context navigator.connection): get, onChange
  *
- * Extracted verbatim from background.js (Phase 1 of the split). This is the first
- * handler module with its own module-level state (the interception Maps below)
- * and the first to depend on the shared CDP helper. As an ES module that is
- * imported once, the module-level state is a singleton for the service-worker
- * lifetime — identical semantics to the original background.js top-level consts.
+ * Capture and response-mock state is bounded by count and UTF-8 bytes. Active
+ * tabs own removable debugger listeners; completed capture metadata is retained
+ * only within the registry limits and local to the service-worker lifetime.
  *
  * The `Network.*` debugger-event constants (Network.requestWillBeSent etc.) live
  * inside the handler bodies as CDP event names; the separate `Network.webSocket*`
@@ -23,82 +21,166 @@
  */
 
 /* eslint-disable no-undef */
-/* global chrome, performance, navigator, window, btoa, Date */
+/* global chrome, performance, navigator, window, btoa, TextEncoder, Date */
 
 import { ensureDebuggerAttached } from "./_shared.js";
+import {
+  NetworkCaptureRegistry,
+  NetworkMockRegistry,
+  prepareMockResponse,
+  sanitizeNetworkRequest,
+  sanitizeNetworkResponse,
+  validateBlockingPatterns,
+} from "./network-boundary.js";
 
 // ---------- Interception state (per-tab) ----------
 
-// Network request storage per tab
-const networkRequests = new Map();
-const networkInterceptionEnabled = new Map();
+const networkCaptures = new NetworkCaptureRegistry();
+const networkMocks = new NetworkMockRegistry();
 const requestBlockingPatterns = [];
-const mockResponses = new Map();
 
-export async function enableNetworkInterception(tabId, _patterns = []) {
+function removeDebuggerListeners(resources) {
+  if (!resources) {
+    return;
+  }
+  try {
+    chrome.debugger.onEvent.removeListener(resources.eventListener);
+  } catch {
+    // The event target may already be gone after a tab closes.
+  }
+  try {
+    chrome.debugger.onDetach.removeListener(resources.detachListener);
+  } catch {
+    // The event target may already be gone after a tab closes.
+  }
+}
+
+async function attachDebugger(tabId) {
   try {
     await chrome.debugger.attach({ tabId }, "1.3");
-    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
-
-    networkInterceptionEnabled.set(tabId, true);
-    networkRequests.set(tabId, []);
-
-    // Listen for network events
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      if (source.tabId !== tabId) {
-        return;
-      }
-
-      const requests = networkRequests.get(tabId) || [];
-
-      if (method === "Network.requestWillBeSent") {
-        requests.push({
-          id: params.requestId,
-          url: params.request.url,
-          method: params.request.method,
-          headers: params.request.headers,
-          timestamp: params.timestamp,
-          type: params.type,
-        });
-        networkRequests.set(tabId, requests.slice(-500)); // Keep last 500
-      }
-
-      if (method === "Network.responseReceived") {
-        const req = requests.find((r) => r.id === params.requestId);
-        if (req) {
-          req.status = params.response.status;
-          req.statusText = params.response.statusText;
-          req.responseHeaders = params.response.headers;
-          req.mimeType = params.response.mimeType;
-        }
-      }
-    });
-
-    return { success: true };
+    return true;
   } catch (error) {
+    if (error.message?.includes("already attached")) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function detachDebugger(tabId) {
+  try {
+    await chrome.debugger.detach({ tabId });
+    return null;
+  } catch (error) {
+    return error;
+  }
+}
+
+function transferDebuggerOwnership(fromResources, toControl) {
+  if (!fromResources?.ownsDebugger || !toControl?.resources) {
+    return false;
+  }
+  fromResources.ownsDebugger = false;
+  toControl.resources.ownsDebugger = true;
+  return true;
+}
+
+export async function enableNetworkInterception(tabId, _patterns = []) {
+  const admission = networkCaptures.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+
+  let resources = null;
+  let ownsDebugger = false;
+  const eventListener = (source, method, params) => {
+    if (source?.tabId !== tabId) {
+      return;
+    }
+    if (method === "Network.requestWillBeSent") {
+      networkCaptures.recordRequest(
+        admission.lease,
+        sanitizeNetworkRequest(params),
+      );
+    } else if (method === "Network.responseReceived") {
+      networkCaptures.recordResponse(
+        admission.lease,
+        sanitizeNetworkResponse(params),
+      );
+    }
+  };
+  const detachListener = (source) => {
+    if (source?.tabId !== tabId) {
+      return;
+    }
+    removeDebuggerListeners(resources);
+    networkCaptures.complete(admission.lease);
+  };
+
+  try {
+    ownsDebugger = await attachDebugger(tabId);
+    resources = { eventListener, detachListener, ownsDebugger };
+    chrome.debugger.onEvent.addListener(eventListener);
+    chrome.debugger.onDetach.addListener(detachListener);
+    networkCaptures.bindResources(admission.lease, resources);
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
+    if (!networkCaptures.markActive(admission.lease)) {
+      throw new Error("Network capture detached before startup completed");
+    }
+    return { success: true, limits: networkCaptures.getRequests(tabId).limits };
+  } catch (error) {
+    removeDebuggerListeners(resources);
+    if (ownsDebugger) {
+      await detachDebugger(tabId);
+    }
+    networkCaptures.failStart(admission.lease);
     return { error: error.message };
   }
 }
 
 export async function disableNetworkInterception(tabId) {
-  try {
-    if (networkInterceptionEnabled.get(tabId)) {
-      await chrome.debugger.sendCommand({ tabId }, "Network.disable");
-      await chrome.debugger.detach({ tabId });
-      networkInterceptionEnabled.delete(tabId);
+  const stopAdmission = networkCaptures.beginStop(tabId);
+  if (!stopAdmission.accepted) {
+    if (stopAdmission.code === "NETWORK_CAPTURE_NOT_FOUND") {
+      return { success: true };
     }
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
+    return stopAdmission;
   }
+
+  const { capture } = stopAdmission;
+  let commandError = null;
+  if (capture.resources?.ownsDebugger) {
+    try {
+      await chrome.debugger.sendCommand({ tabId }, "Network.disable");
+    } catch (error) {
+      commandError = error;
+    }
+  }
+  const ownershipTransferred = transferDebuggerOwnership(
+    capture.resources,
+    networkMocks.getControl(tabId),
+  );
+  let detachError = null;
+  if (capture.resources?.ownsDebugger && !ownershipTransferred) {
+    detachError = await detachDebugger(tabId);
+  }
+  removeDebuggerListeners(capture.resources);
+  networkCaptures.complete(capture.lease);
+
+  if (commandError || detachError) {
+    return { error: (commandError || detachError).message };
+  }
+  return { success: true };
 }
 
 export async function setRequestBlocking(patterns) {
-  requestBlockingPatterns.length = 0;
-  requestBlockingPatterns.push(...patterns);
+  const validation = validateBlockingPatterns(patterns);
+  if (!validation.accepted) {
+    return validation;
+  }
 
   // Update declarativeNetRequest rules
-  const rules = patterns.map((pattern, index) => ({
+  const rules = validation.patterns.map((pattern, index) => ({
     id: index + 1,
     priority: 1,
     action: { type: "block" },
@@ -120,18 +202,24 @@ export async function setRequestBlocking(patterns) {
       removeRuleIds: Array.from({ length: 100 }, (_, i) => i + 1),
       addRules: rules,
     });
-    return { success: true, blockedPatterns: patterns };
+    requestBlockingPatterns.length = 0;
+    requestBlockingPatterns.push(...validation.patterns);
+    return {
+      success: true,
+      blockedPatterns: [...requestBlockingPatterns],
+      retainedBytes: validation.totalBytes,
+    };
   } catch (error) {
     return { error: error.message };
   }
 }
 
 export async function clearRequestBlocking() {
-  requestBlockingPatterns.length = 0;
   try {
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: Array.from({ length: 100 }, (_, i) => i + 1),
     });
+    requestBlockingPatterns.length = 0;
     return { success: true };
   } catch (error) {
     return { error: error.message };
@@ -139,44 +227,125 @@ export async function clearRequestBlocking() {
 }
 
 export async function getNetworkRequests(tabId) {
-  return { requests: networkRequests.get(tabId) || [] };
+  return networkCaptures.getRequests(tabId);
 }
 
 export async function mockNetworkResponse(tabId, urlPattern, response) {
-  mockResponses.set(urlPattern, response);
+  const prepared = prepareMockResponse(urlPattern, response);
+  if (!prepared.accepted) {
+    return prepared;
+  }
+  const admission = networkMocks.admit(tabId, prepared.mock);
+  if (!admission.accepted) {
+    return admission;
+  }
 
-  try {
-    await chrome.debugger.attach({ tabId }, "1.3");
-    await chrome.debugger.sendCommand({ tabId }, "Fetch.enable", {
-      patterns: [{ urlPattern }],
-    });
-
-    chrome.debugger.onEvent.addListener(async (source, method, params) => {
-      if (source.tabId !== tabId || method !== "Fetch.requestPaused") {
+  let resources = networkMocks.getControl(tabId)?.resources || null;
+  let ownsDebugger = false;
+  if (admission.created) {
+    const eventListener = (source, method, params) => {
+      if (source?.tabId !== tabId || method !== "Fetch.requestPaused") {
         return;
       }
-
-      const mockResp = mockResponses.get(urlPattern);
-      if (mockResp && params.request.url.includes(urlPattern)) {
-        await chrome.debugger.sendCommand({ tabId }, "Fetch.fulfillRequest", {
-          requestId: params.requestId,
-          responseCode: mockResp.status || 200,
-          responseHeaders: Object.entries(mockResp.headers || {}).map(
-            ([name, value]) => ({ name, value }),
-          ),
-          body: btoa(JSON.stringify(mockResp.body || {})),
+      const mock = networkMocks.getMatch(tabId, params.request?.url);
+      try {
+        const command = mock
+          ? chrome.debugger.sendCommand({ tabId }, "Fetch.fulfillRequest", {
+              requestId: params.requestId,
+              responseCode: mock.status,
+              responseHeaders: mock.headers,
+              body: encodeUtf8Base64(mock.bodyJson),
+            })
+          : chrome.debugger.sendCommand({ tabId }, "Fetch.continueRequest", {
+              requestId: params.requestId,
+            });
+        Promise.resolve(command).catch(() => {
+          // The paused request disappeared with its tab/debugger session.
         });
-      } else {
-        await chrome.debugger.sendCommand({ tabId }, "Fetch.continueRequest", {
-          requestId: params.requestId,
-        });
+      } catch {
+        // Invalidated debugger requests cannot be continued after detachment.
       }
-    });
+    };
+    const detachListener = (source) => {
+      if (source?.tabId !== tabId) {
+        return;
+      }
+      removeDebuggerListeners(resources);
+      networkMocks.clear(tabId);
+    };
 
-    return { success: true };
+    try {
+      ownsDebugger = await attachDebugger(tabId);
+      resources = { eventListener, detachListener, ownsDebugger };
+      chrome.debugger.onEvent.addListener(eventListener);
+      chrome.debugger.onDetach.addListener(detachListener);
+      networkMocks.bindResources(admission.lease, resources);
+    } catch (error) {
+      networkMocks.rollback(admission.rollback);
+      return { error: error.message };
+    }
+  }
+
+  try {
+    await chrome.debugger.sendCommand({ tabId }, "Fetch.enable", {
+      patterns: admission.patterns.map((pattern) => ({ urlPattern: pattern })),
+    });
+    networkMocks.markActive(admission.lease);
+    return { success: true, limits: networkMocks.limits };
   } catch (error) {
+    networkMocks.rollback(admission.rollback);
+    if (admission.created) {
+      removeDebuggerListeners(resources);
+      if (ownsDebugger) {
+        await detachDebugger(tabId);
+      }
+    }
     return { error: error.message };
   }
+}
+
+function encodeUtf8Base64(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + chunkSize),
+    );
+  }
+  return btoa(binary);
+}
+
+export async function clearMockNetworkResponses(tabId) {
+  const control = networkMocks.getControl(tabId);
+  if (!control) {
+    return { success: true };
+  }
+
+  let commandError = null;
+  try {
+    await chrome.debugger.sendCommand({ tabId }, "Fetch.disable");
+  } catch (error) {
+    commandError = error;
+  }
+  if (commandError) {
+    return { error: commandError.message };
+  }
+  const ownershipTransferred = transferDebuggerOwnership(
+    control.resources,
+    networkCaptures.getControl(tabId),
+  );
+  let detachError = null;
+  if (control.resources?.ownsDebugger && !ownershipTransferred) {
+    detachError = await detachDebugger(tabId);
+  }
+  removeDebuggerListeners(control.resources);
+  networkMocks.clear(tabId);
+
+  if (detachError) {
+    return { error: detachError.message };
+  }
+  return { success: true };
 }
 
 // ---------- Throttling (CDP) ----------
@@ -513,6 +682,7 @@ export const networkHandlers = {
   "network.getRequests": ({ tabId }) => getNetworkRequests(tabId),
   "network.mockResponse": ({ tabId, url, response }) =>
     mockNetworkResponse(tabId, url, response),
+  "network.clearMocks": ({ tabId }) => clearMockNetworkResponses(tabId),
   // Throttling
   "network.setThrottling": ({ tabId, conditions }) =>
     setNetworkThrottling(tabId, conditions),
