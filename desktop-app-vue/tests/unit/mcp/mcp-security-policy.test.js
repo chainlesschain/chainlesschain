@@ -497,6 +497,19 @@ describe("MCPSecurityPolicy", () => {
 
       expect(securityPolicy.consentCache.size).toBe(0);
     });
+
+    it("should evict the oldest cached decision at the configured limit", () => {
+      const policy = new MCPSecurityPolicy({ maxConsentCacheEntries: 2 });
+
+      policy._setConsentCache("oldest", "always_allow");
+      policy._setConsentCache("newer", "always_deny");
+      policy._setConsentCache("newest", "always_allow");
+
+      expect(policy.consentCache.size).toBe(2);
+      expect(policy.consentCache.has("oldest")).toBe(false);
+      expect(policy.consentCache.has("newer")).toBe(true);
+      expect(policy.getStatistics().consentCacheEvictions).toBe(1);
+    });
   });
 
   describe("Path Normalization", () => {
@@ -955,7 +968,11 @@ describe("MCPSecurityPolicy", () => {
 
   describe("User Consent Flow", () => {
     it("should use cached always_allow consent", async () => {
-      const cacheKey = 'filesystem:delete_file:{"path":"test.txt"}';
+      const cacheKey = securityPolicy._generateConsentKey(
+        "filesystem",
+        "delete_file",
+        { path: "test.txt" },
+      );
       securityPolicy.consentCache.set(cacheKey, {
         decision: "always_allow",
         timestamp: Date.now(),
@@ -973,7 +990,11 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should reject with cached always_deny consent", async () => {
-      const cacheKey = 'filesystem:delete_file:{"path":"secret.txt"}';
+      const cacheKey = securityPolicy._generateConsentKey(
+        "filesystem",
+        "delete_file",
+        { path: "secret.txt" },
+      );
       securityPolicy.consentCache.set(cacheKey, {
         decision: "always_deny",
         timestamp: Date.now(),
@@ -1005,6 +1026,93 @@ describe("MCPSecurityPolicy", () => {
       );
 
       expect(eventEmitted).toBe(true);
+    });
+
+    it("should bound pending consent globally and per server", async () => {
+      const policy = new MCPSecurityPolicy({
+        consentTimeoutMs: 5000,
+        maxPendingConsentRequests: 2,
+        maxPendingConsentRequestsPerServer: 1,
+      });
+      policy.on("consent-required", () => {
+        // Keep admitted requests pending until the assertions complete.
+      });
+
+      const first = policy._requestUserConsent(
+        "server-a",
+        "delete_file",
+        { path: "a" },
+        "critical",
+      );
+      first.catch(() => {});
+
+      await expect(
+        policy._requestUserConsent(
+          "server-a",
+          "delete_file",
+          { path: "b" },
+          "critical",
+        ),
+      ).rejects.toMatchObject({
+        code: "OVERLOADED",
+        retryAfterMs: 1000,
+        details: expect.objectContaining({ reason: "server-limit" }),
+      });
+
+      const second = policy._requestUserConsent(
+        "server-b",
+        "delete_file",
+        { path: "c" },
+        "critical",
+      );
+      second.catch(() => {});
+
+      await expect(
+        policy._requestUserConsent(
+          "server-c",
+          "delete_file",
+          { path: "d" },
+          "critical",
+        ),
+      ).rejects.toMatchObject({
+        code: "OVERLOADED",
+        details: expect.objectContaining({ reason: "global-limit" }),
+      });
+
+      expect(policy.pendingConsentRequests.size).toBe(2);
+      expect(policy.getStatistics()).toMatchObject({
+        pendingConsentRequests: 2,
+        maxPendingConsentRequests: 2,
+        maxPendingConsentRequestsPerServer: 1,
+        consentOverloads: 2,
+      });
+
+      for (const requestId of policy.pendingConsentRequests.keys()) {
+        policy.cancelConsentRequest(requestId);
+      }
+      await Promise.allSettled([first, second]);
+    });
+
+    it("should remove a pending request when renderer dispatch throws", async () => {
+      const policy = new MCPSecurityPolicy({ consentTimeoutMs: 5000 });
+      policy.setMainWindow({
+        isDestroyed: () => false,
+        webContents: {
+          send: () => {
+            throw new Error("renderer unavailable");
+          },
+        },
+      });
+
+      await expect(
+        policy._requestUserConsent(
+          "filesystem",
+          "delete_file",
+          { path: "test.txt" },
+          "critical",
+        ),
+      ).rejects.toThrow("renderer unavailable");
+      expect(policy.pendingConsentRequests.size).toBe(0);
     });
 
     it("should generate unique request IDs", () => {
@@ -1084,6 +1192,15 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(key1).not.toBe(key2);
+    });
+
+    it("should not retain raw consent parameters in cache keys", () => {
+      const key = securityPolicy._generateConsentKey("server", "tool", {
+        token: "raw-secret-value",
+      });
+
+      expect(key).toMatch(/^[0-9a-f]{64}$/);
+      expect(key).not.toContain("raw-secret-value");
     });
   });
 

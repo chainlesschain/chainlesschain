@@ -11,6 +11,16 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
+const DEFAULT_CONSENT_TIMEOUT_MS = 30000;
+const DEFAULT_MAX_PENDING_CONSENT_REQUESTS = 64;
+const DEFAULT_MAX_PENDING_CONSENT_REQUESTS_PER_SERVER = 8;
+const DEFAULT_MAX_CONSENT_CACHE_ENTRIES = 1024;
+const CONSENT_OVERLOAD_RETRY_AFTER_MS = 1000;
+
+function positiveInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
 const SENSITIVE_AUDIT_KEY =
   /(?:authorization|cookie|credential|password|private.?key|secret|token|api.?key)/i;
 const LARGE_PAYLOAD_KEY = /^(?:body|content|data|input|payload)$/i;
@@ -191,8 +201,32 @@ class MCPSecurityPolicy extends EventEmitter {
     // key: requestId -> { resolve, reject, timeout, timestamp }
     this.pendingConsentRequests = new Map();
 
-    // Consent request timeout (30 seconds)
-    this.CONSENT_TIMEOUT = 30000;
+    // Consent flow control. Limits are deliberately independent from the
+    // renderer so a compromised server cannot allocate an unbounded set of
+    // promises/timers before the UI has a chance to respond.
+    this.CONSENT_TIMEOUT = positiveInteger(
+      config.consentTimeoutMs,
+      DEFAULT_CONSENT_TIMEOUT_MS,
+    );
+    this.maxPendingConsentRequests = positiveInteger(
+      config.maxPendingConsentRequests,
+      DEFAULT_MAX_PENDING_CONSENT_REQUESTS,
+    );
+    this.maxPendingConsentRequestsPerServer = Math.min(
+      this.maxPendingConsentRequests,
+      positiveInteger(
+        config.maxPendingConsentRequestsPerServer,
+        DEFAULT_MAX_PENDING_CONSENT_REQUESTS_PER_SERVER,
+      ),
+    );
+    this.maxConsentCacheEntries = positiveInteger(
+      config.maxConsentCacheEntries,
+      DEFAULT_MAX_CONSENT_CACHE_ENTRIES,
+    );
+    this.consentFlowStats = {
+      overloads: 0,
+      cacheEvictions: 0,
+    };
 
     // Audit log
     this.auditLog = [];
@@ -587,6 +621,8 @@ class MCPSecurityPolicy extends EventEmitter {
   async _requestConsentViaIPC(consentRequest, cacheKey) {
     const { requestId, serverName, toolName } = consentRequest;
 
+    this._assertConsentCapacity(serverName);
+
     return new Promise((resolve, reject) => {
       // Set up timeout
       const timeoutId = setTimeout(() => {
@@ -610,13 +646,21 @@ class MCPSecurityPolicy extends EventEmitter {
         timeout: timeoutId,
         cacheKey,
         timestamp: Date.now(),
+        serverName,
+        toolName,
       });
 
       // Send IPC message to renderer
-      logger.info(
-        `[MCPSecurityPolicy] Sending consent request to renderer: ${requestId}`,
-      );
-      this.mainWindow.webContents.send("mcp:consent-request", consentRequest);
+      try {
+        logger.info(
+          `[MCPSecurityPolicy] Sending consent request to renderer: ${requestId}`,
+        );
+        this.mainWindow.webContents.send("mcp:consent-request", consentRequest);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        this.pendingConsentRequests.delete(requestId);
+        reject(error);
+      }
     });
   }
 
@@ -626,6 +670,8 @@ class MCPSecurityPolicy extends EventEmitter {
    */
   async _requestConsentViaEvent(consentRequest, cacheKey) {
     const { requestId, serverName, toolName } = consentRequest;
+
+    this._assertConsentCapacity(serverName);
 
     return new Promise((resolve, reject) => {
       // Set up timeout
@@ -650,17 +696,80 @@ class MCPSecurityPolicy extends EventEmitter {
         timeout: timeoutId,
         cacheKey,
         timestamp: Date.now(),
+        serverName,
+        toolName,
       });
 
       // Emit event for external handler
-      this.emit("consent-required", {
-        ...consentRequest,
-        respond: (decision) => this.handleConsentResponse(requestId, decision),
-      });
+      try {
+        this.emit("consent-required", {
+          ...consentRequest,
+          respond: (decision) =>
+            this.handleConsentResponse(requestId, decision),
+        });
 
-      logger.info(
-        `[MCPSecurityPolicy] Emitted consent-required event: ${requestId}`,
-      );
+        logger.info(
+          `[MCPSecurityPolicy] Emitted consent-required event: ${requestId}`,
+        );
+      } catch (error) {
+        clearTimeout(timeoutId);
+        this.pendingConsentRequests.delete(requestId);
+        reject(error);
+      }
+    });
+  }
+
+  _assertConsentCapacity(serverName) {
+    let pendingForServer = 0;
+    for (const pending of this.pendingConsentRequests.values()) {
+      if (pending.serverName === serverName) {
+        pendingForServer++;
+      }
+    }
+
+    const globalFull =
+      this.pendingConsentRequests.size >= this.maxPendingConsentRequests;
+    const serverFull =
+      pendingForServer >= this.maxPendingConsentRequestsPerServer;
+    if (!globalFull && !serverFull) {
+      return;
+    }
+
+    const details = {
+      serverName,
+      reason: globalFull ? "global-limit" : "server-limit",
+      pendingRequests: this.pendingConsentRequests.size,
+      pendingForServer,
+      maxPendingRequests: this.maxPendingConsentRequests,
+      maxPendingRequestsPerServer: this.maxPendingConsentRequestsPerServer,
+      retryAfterMs: CONSENT_OVERLOAD_RETRY_AFTER_MS,
+    };
+    const error = new SecurityError("User consent request backlog is full", {
+      ...details,
+      overloaded: true,
+    });
+    error.code = "OVERLOADED";
+    error.retryAfterMs = CONSENT_OVERLOAD_RETRY_AFTER_MS;
+    this.consentFlowStats.overloads++;
+    this.emit("consent-overloaded", details);
+    throw error;
+  }
+
+  _setConsentCache(cacheKey, decision) {
+    if (this.consentCache.has(cacheKey)) {
+      this.consentCache.delete(cacheKey);
+    }
+    while (this.consentCache.size >= this.maxConsentCacheEntries) {
+      const oldestKey = this.consentCache.keys().next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      this.consentCache.delete(oldestKey);
+      this.consentFlowStats.cacheEvictions++;
+    }
+    this.consentCache.set(cacheKey, {
+      decision,
+      timestamp: Date.now(),
     });
   }
 
@@ -693,10 +802,7 @@ class MCPSecurityPolicy extends EventEmitter {
     if (decision === "deny" || decision === "always_deny") {
       // Cache "always deny" decision
       if (decision === "always_deny") {
-        this.consentCache.set(cacheKey, {
-          decision,
-          timestamp: Date.now(),
-        });
+        this._setConsentCache(cacheKey, decision);
       }
 
       reject(
@@ -710,10 +816,7 @@ class MCPSecurityPolicy extends EventEmitter {
     if (decision === "allow" || decision === "always_allow") {
       // Cache "always allow" decision
       if (decision === "always_allow") {
-        this.consentCache.set(cacheKey, {
-          decision,
-          timestamp: Date.now(),
-        });
+        this._setConsentCache(cacheKey, decision);
       }
 
       resolve();
@@ -740,6 +843,8 @@ class MCPSecurityPolicy extends EventEmitter {
     return Array.from(this.pendingConsentRequests.entries()).map(
       ([id, data]) => ({
         requestId: id,
+        serverName: data.serverName,
+        toolName: data.toolName,
         timestamp: data.timestamp,
         age: Date.now() - data.timestamp,
       }),
@@ -773,9 +878,12 @@ class MCPSecurityPolicy extends EventEmitter {
    * @private
    */
   _generateConsentKey(serverName, toolName, params) {
-    // Simple hash: serverName:toolName:paramsHash
-    const paramsHash = JSON.stringify(params);
-    return `${serverName}:${toolName}:${paramsHash}`;
+    // Keep parameters (which may include paths, prompts, or credentials) out of
+    // long-lived Map keys while retaining stable exact-request semantics.
+    return crypto
+      .createHash("sha256")
+      .update(JSON.stringify([String(serverName), String(toolName), params]))
+      .digest("hex");
   }
 
   /**
@@ -1050,6 +1158,13 @@ class MCPSecurityPolicy extends EventEmitter {
       denied,
       allowRate: ((allowed / this.auditLog.length) * 100).toFixed(2) + "%",
       consentCacheSize: this.consentCache.size,
+      maxConsentCacheEntries: this.maxConsentCacheEntries,
+      consentCacheEvictions: this.consentFlowStats.cacheEvictions,
+      pendingConsentRequests: this.pendingConsentRequests.size,
+      maxPendingConsentRequests: this.maxPendingConsentRequests,
+      maxPendingConsentRequestsPerServer:
+        this.maxPendingConsentRequestsPerServer,
+      consentOverloads: this.consentFlowStats.overloads,
       configuredServers: this.serverPermissions.size,
     };
   }
