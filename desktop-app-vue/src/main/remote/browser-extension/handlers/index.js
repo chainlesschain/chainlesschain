@@ -24,6 +24,7 @@ import { selectionDragdropHandlers } from "./selection-dragdrop.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
 import { windowsHandlers } from "./windows.js";
+import { webRTCHandlers } from "./webrtc.js";
 
 export const commandHandlerRegistry = {
   ...tabsHandlers,
@@ -52,6 +53,7 @@ export const commandHandlerRegistry = {
   ...fontsHandlers,
   ...accessibilityHandlers,
   ...performanceHandlers,
+  ...webRTCHandlers,
 };
 
 export { listTabs };
