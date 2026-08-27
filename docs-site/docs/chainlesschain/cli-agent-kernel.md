@@ -201,6 +201,7 @@ cc serve --app-server --app-server-state-dir .cc-app-server-state
 - [GraphRun 观测与评估](./cli-team-graph.md)
 - [Agent SDK](./agent-sdk.md)
 - [Agent 模式](./cli-agent.md)
+- [上下文与记忆](./context-memory.md)
 - [CLI Runtime 当前实现](./cli-runtime-current.md)
 - [设计文档：Agent Kernel](/design/modules/106-agent-kernel)
 - [设计文档：Agent 平台化](/design/modules/103-agent-sdk-platform)

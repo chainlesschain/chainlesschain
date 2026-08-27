@@ -146,6 +146,10 @@ export default defineConfig({
             text: "单一协议 Schema 与自动代码生成 (107) ⭐NEW",
             link: "/modules/m107-agent-protocol-codegen",
           },
+          {
+            text: "Context/Memory Kernel 设计 (108) ⭐NEW",
+            link: "/modules/m108-context-memory-kernel",
+          },
         ],
       },
       {
@@ -1016,6 +1020,10 @@ export default defineConfig({
             {
               text: "107 单一协议 Schema 与自动代码生成 ⭐NEW",
               link: "/modules/m107-agent-protocol-codegen",
+            },
+            {
+              text: "108 Context/Memory Kernel 设计 ⭐NEW",
+              link: "/modules/m108-context-memory-kernel",
             },
           ],
         },
