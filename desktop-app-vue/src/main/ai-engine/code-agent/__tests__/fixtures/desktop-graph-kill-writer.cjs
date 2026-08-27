@@ -3,7 +3,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
-const { DatabaseSync } = require("node:sqlite");
 
 const {
   DesktopGraphRunRegistry,
@@ -12,6 +11,7 @@ const {
   buildWorkflowGraph,
 } = require("../../desktop-graph-execution-adapter.js");
 const { DEFAULT_STAGES } = require("../../../../workflow/workflow-stage.js");
+const { DatabaseManager } = require("../../../../database.js");
 
 async function main() {
   const [databasePath, rolloutDirectory, readyPath] = process.argv.slice(2);
@@ -37,7 +37,13 @@ async function main() {
       ),
     ).href
   );
-  const database = new DatabaseSync(databasePath);
+  const database = new DatabaseManager(databasePath, {
+    encryptionEnabled: false,
+  });
+  await database.initialize();
+  if (database.adapter !== null || typeof database.db?.export !== "function") {
+    throw new Error("kill fixture requires the packaged sql.js database path");
+  }
   const registry = new DesktopGraphRunRegistry({ database });
   const rolloutStore = new rolloutModule.JsonlRolloutStore({
     directory: rolloutDirectory,
@@ -79,12 +85,22 @@ async function main() {
   });
   fs.writeFileSync(
     readyPath,
-    JSON.stringify({ workflowId, graphRunId, eventHead: projection.eventHead }),
+    JSON.stringify({
+      workflowId,
+      graphRunId,
+      eventHead: projection.eventHead,
+      runtime: {
+        electron: process.versions.electron || null,
+        node: process.versions.node,
+      },
+    }),
     { encoding: "utf8", flag: "wx" },
   );
 
-  // Keep the SQLite connection and runtime live until the parent terminates
-  // this process. No graceful close hook is registered intentionally.
+  // Keep the production DatabaseManager and runtime live until the parent
+  // terminates this process. No graceful close hook is registered
+  // intentionally: recovery must rely only on writes persisted before the
+  // externally observed cut point.
   globalThis.__desktopGraphKillFixture = { database, registry, runtime };
   setInterval(() => {}, 1_000);
 }

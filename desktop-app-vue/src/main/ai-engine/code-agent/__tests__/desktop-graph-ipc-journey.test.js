@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -17,6 +16,7 @@ vi.mock("../../../../utils/logger.js", () => ({
 }));
 
 const require = createRequire(import.meta.url);
+const { DatabaseManager } = require("../../../database.js");
 const { AgentCoordinator } = require("../../agents/agent-coordinator.js");
 const { registerAgentsIPC } = require("../../agents/agents-ipc.js");
 const { WorkflowManager } = require("../../../workflow/workflow-pipeline.js");
@@ -148,7 +148,7 @@ async function waitForTask(ipc, taskId, expectedStatus) {
 }
 
 describe("Desktop Graph production IPC journey", () => {
-  it("recovers SQLite and Graph journals after the writer process is killed", async () => {
+  it("recovers the packaged sql.js database and Graph journals after the writer process is killed", async () => {
     const root = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-desktop-graph-kill-reopen-"),
     );
@@ -159,11 +159,21 @@ describe("Desktop Graph production IPC journey", () => {
     let child = null;
     let stderr = "";
     try {
+      const childExecutable =
+        process.env.CC_DESKTOP_GRAPH_KILL_EXECUTABLE || process.execPath;
+      const electronRunAsNode =
+        process.env.CC_DESKTOP_GRAPH_KILL_EXECUTABLE != null;
       child = spawn(
-        process.execPath,
+        childExecutable,
         [KILL_WRITER_FIXTURE, databasePath, rolloutDirectory, readyPath],
         {
           cwd: process.cwd(),
+          env: {
+            ...process.env,
+            CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
+            NODE_ENV: "production",
+            ...(electronRunAsNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+          },
           stdio: ["ignore", "ignore", "pipe"],
         },
       );
@@ -177,12 +187,21 @@ describe("Desktop Graph production IPC journey", () => {
         workflowId: "disk-restart-workflow",
         graphRunId: "desktop-workflow:disk-restart-workflow",
         eventHead: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+        runtime: {
+          electron: electronRunAsNode ? expect.any(String) : null,
+          node: expect.stringMatching(/^\d+\.\d+\.\d+$/u),
+        },
       });
       expect(child.kill()).toBe(true);
       const [exitCode, signal] = await waitForChildExit(child);
       expect(exitCode !== 0 || signal != null).toBe(true);
 
-      database = new DatabaseSync(databasePath);
+      database = new DatabaseManager(databasePath, {
+        encryptionEnabled: false,
+      });
+      await database.initialize();
+      expect(database.adapter).toBeNull();
+      expect(database.db?.export).toBeTypeOf("function");
       const registry = new DesktopGraphRunRegistry({ database });
       expect(
         registry.get("desktop_workflow_manager", cutpoint.workflowId),
@@ -236,7 +255,10 @@ describe("Desktop Graph production IPC journey", () => {
       ).toMatchObject({ lifecycleStatus: "succeeded" });
 
       database.close();
-      database = new DatabaseSync(databasePath);
+      database = new DatabaseManager(databasePath, {
+        encryptionEnabled: false,
+      });
+      await database.initialize();
       const reopened = new DesktopGraphRunRegistry({ database });
       expect(
         reopened.get("desktop_workflow_manager", cutpoint.workflowId),
