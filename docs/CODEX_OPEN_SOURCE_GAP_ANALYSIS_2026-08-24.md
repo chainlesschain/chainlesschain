@@ -713,6 +713,109 @@ Graph Eval 不应只统计“多少任务完成”，还应覆盖：
 
 当前相关单元测试数量和故障覆盖已经很可观，缺口主要是跨运行时 conformance 与真实端到端语义，而不是再堆一批只检查状态枚举的测试。
 
+#### 6.9.6 唯一 authoritative Graph Kernel 的切换方案
+
+这项工作的复杂度应评为 **高（约 8/10）**，但性质是迁移而不是从零重写。共享 Kernel 已经具备 compiler、durable runtime、event store、typed control flow、effect/receipt、artifact/trace 与故障注入基础；真正困难的是在不中断现有任务、不重复外部副作用、不中途丢失 custody/lease 的前提下，把五个生产执行面从“各自写状态”改成“adapter 只提交命令和回读投影，canonical Kernel 是唯一 run-state writer”。
+
+当前仓库已有 [`GraphRuntimeAdapterRegistry`](../packages/cli/src/lib/graph-kernel/adapters.js#L67)、[`compareGraphRuntimeShadow`](../packages/cli/src/lib/graph-kernel/adapters.js#L156) 和 [`assertGraphKernelCutover`](../packages/cli/src/lib/graph-kernel/adapters.js#L207)，能校验 runtime claims、阻止多个 authoritative surface、比较 terminal/causal projection，并要求 shadow 等价、回滚已验证和旧 writer 清零。但截至 2026-08-27，这些门禁除定义外只被 [`graph-kernel-adapters.test.js`](../packages/cli/__tests__/unit/graph-kernel-adapters.test.js) 消费，尚未接入 CLI Team、Cowork、Scheduler、Desktop 或 Browser 的生产启动路径。Team 的 canonical collaboration projection 也明确是只读，`TeamMailbox` 与 `TaskLeaseRegistry` 仍是 authoritative writers：[`team-graph-projection.js`](../packages/cli/src/lib/agent-team/team-graph-projection.js#L261)。因此“切换门禁已具备”只能记为准备完成，不能记为 production cutover 已完成。
+
+##### 6.9.6.1 先修正 authority 模型，再接五个 surface
+
+`surface` 表示命令或产品入口来源，不应成为 run-state authority 的身份。渐进迁移时可能同时有尚未切换的 Desktop run 和已经切换的 CLI Team run；如果只用进程内单个 `authoritativeSurface` 表达全局权威，既不能按 workspace/run 做 canary，也无法安全回滚。建议把注册表扩展为以下两个正交维度：
+
+- `originSurface = cli_team | cowork | scheduler | desktop | browser`：谁提交命令、展示投影或承载兼容 API。
+- `authorityMode = legacy | shadow | canonical`：该 run 的状态由谁写入。只有 `canonical` 模式可写 canonical event head；adapter 永远不能因为来自某个 surface 就获得权威写权限。
+
+每个 GraphRun 还要持久绑定 `authorityGeneration / writerId / graphRevisionDigest / eventHead / adapterVersion / cutoverPolicyDigest`。所有 append、settlement、ACK、handoff、cancel 和 terminal transition 都在写入事务内复核 generation 与 writer lease；旧进程、回滚前实例和迟到 attempt 即使仍持有内存对象，也会因 fence 失效而被拒绝。
+
+建议采用单向、有门禁的迁移状态机：
+
+```text
+LEGACY_ONLY
+  -> SHADOW_REPLAY
+  -> CANARY_CANONICAL
+  -> CANONICAL_DEFAULT
+  -> LEGACY_READ_ONLY
+  -> LEGACY_REMOVED
+```
+
+- `LEGACY_ONLY`：旧 runtime 唯一写入；只允许补充观测和 writer inventory，不改变行为。
+- `SHADOW_REPLAY`：旧 runtime 仍唯一执行真实 provider/tool/file/network effect；canonical Kernel 只消费冻结输入、旧 runtime 已形成的 receipt 和规范化事件，写入隔离的 shadow namespace。禁止调用真实 effect adapter。
+- `CANARY_CANONICAL`：只对显式 workspace、测试租户或新建 run 由 canonical Kernel 执行；旧 runtime 只读生成对照投影。canary run 一经创建不得在同一 generation 内偷偷换回旧 writer。
+- `CANONICAL_DEFAULT`：新 run 默认走 canonical Kernel；不满足 capability/version 的入口失败关闭或明确降级为 planned/simulated，不能静默回旧执行器。
+- `LEGACY_READ_ONLY`：旧状态只允许导入、查询和确定性投影；所有 mutation API 返回稳定的 retired-writer 错误。
+- `LEGACY_REMOVED`：删除旧 dispatch/write 路径和 feature flag 反向分支，只保留有期限的 N-1 只读 importer/upcaster。此阶段的版本回滚是回滚到上一版 canonical Kernel，不再复活旧 writer。
+
+状态只能前进一个阶段。`SHADOW_REPLAY` 和 `CANARY_CANONICAL` 可执行控制面回滚；进入 `LEGACY_READ_ONLY` 后，若必须回退，应由已验证的 migration saga 重新选择 writer generation，而不是让两个 store 同时可写。任何已经发生但 receipt 不确定的外部副作用都进入 `RECONCILIATION_REQUIRED`，不能因为“回滚”而盲目重放或假装撤销。
+
+##### 6.9.6.2 Phase 0：冻结契约与完整 writer inventory
+
+第一步不是改入口，而是生成可由 CI 校验的 `graph-runtime-surfaces.json` 或等价 manifest。每个生产入口至少列出：command/IPC/HTTP/trigger 名称、definition parser、run/task/message/effect/artifact store、实际 mutation 函数、恢复入口、runtime claims、当前 authority、目标 adapter、feature flag 和 owner。库存至少覆盖：
+
+| Surface | 必须纳入 inventory 的现有入口 | 切换后的边界 |
+| ------- | ----------------------------- | ------------ |
+| CLI Team | `cc team`、TeamRunner、TaskLeaseRegistry、distributed queue、mailbox/message adapter、worktree/merge | adapter 提交 Graph command；ready frontier、attempt、message、handoff、artifact 与 terminal 只由 Kernel event head 派生 |
+| Scheduler | daemon、agenda/automation/event/cowork-cron/loop/routine adapters、migration admin | 只拥有 occurrence/trigger authority；通过 durable outbox 创建或唤醒唯一 GraphRun，不再写 Graph terminal |
+| Cowork | workflow definition/facade、CoworkWorkflow、DynamicWorkflowRuntime、parallel/orchestrate bridge | 复用 canonical compiler/runtime/effect journal；旧 facade 只做 schema/CLI 兼容和投影 |
+| Desktop | Coding Agent `$team`、AgentCoordinator、WorkflowEngine、Cowork/Workflow IPC | main process adapter 调用 App Server/Kernel；renderer 只消费 projection，不能写 runtime state |
+| Browser | workflow builder/engine/storage/IPC 与 sub-workflow | 先保持 non-durable/feature-gated；只有 checkpoint、restart hydration、version binding、reconcile 完成后才可申请 durable authority |
+
+CI 必须同时维护允许的 canonical writer allowlist 与 legacy writer denylist。新增入口若没有 manifest 条目、runtime claims 或 authority owner，构建直接失败。迁移期间冻结旧 runtime 的新特性，只接受安全、数据兼容和 cutover blocker 修复，避免 shadow 基线持续漂移。
+
+Phase 0 的交付物是：surface/writer manifest、canonical command/event/terminal mapping、volatile-field normalization allowlist、effect classification、状态迁移版本表、feature-flag policy 和逐 surface 的 owner/回滚 runbook。
+
+##### 6.9.6.3 Phase 1：无副作用 shadow replay 与差异归因
+
+shadow 不能把一个用户任务真实运行两遍。正确路径是：
+
+1. 旧 runtime 按当前生产方式执行，并记录规范化 command、scheduler decision、provider/tool result、effect receipt、message delivery/ACK、artifact digest 与 terminal evidence。
+2. canonical Kernel 在独立 namespace 中消费同一 definition、同一已冻结的非确定性输入和 receipt；provider/tool/file/network adapter 全部替换为 replay adapter。
+3. reducer 分别从旧事件和 canonical events 生成可比较 projection；比较 terminal algebra、artifact digest、causal partial order、attempt/lease/custody、预算守恒和 effect/receipt 数量。
+4. 所有差异分类为 `expected-normalization / legacy-bug / canonical-bug / unsupported / nondeterministic-input-leak`；只有显式版本化 allowlist 可忽略时间戳、进程 ID、随机物理 ID 等非语义字段，禁止用删除 status、digest、lease、message 或 evidence 字段来“修绿”。
+
+现有 `compareGraphRuntimeShadow()` 只比较 terminal 与简化 causal events，生产切换前还需加入：Graph definition/revision、run terminal root cause、node/attempt terminal、assignment/executor、message/handoff/custody、effect/receipt/reconciliation、artifact provenance、budget delta、workspace commit/test receipt 与 projection schema version。比较器应接受稳定的逻辑 ID 映射，但映射本身也必须有 digest 并进入报告。
+
+##### 6.9.6.4 Phase 2：按风险逐面切换，不做全产品 big bang
+
+建议切换顺序如下：
+
+1. **CLI Team**：已有真实执行、lease/fence、worktree、SessionMessageFabric 和 canonical collaboration projection，最适合作为首个 canary。先迁 ready frontier 与 AssignmentAttempt，再迁 message/handoff，最后迁 terminal/artifact；任一阶段仍只允许一个 writer。
+2. **Scheduler**：将 occurrence→GraphRun durable correlation/outbox 设为唯一边界。Scheduler 的成功只代表 start/wake 已耐久接纳；Graph 终态只能从 canonical projection 回读。先迁新 occurrence，历史 occurrence 保持只读。
+3. **Cowork/Dynamic Workflow**：将 definition 编译、loop/subgraph、effect/receipt/reconcile 映射到 canonical IR/runtime。旧 Cowork facade 保留参数和输出兼容，但不得继续维护平行 run state。
+4. **Desktop**：先迁 main-process 执行入口，再迁 renderer projection/UI。Desktop `$team`、AgentCoordinator 和旧 WorkflowEngine 未接入前继续 planned/simulated 或 feature-gated，不能为了兼容返回伪 completed。
+5. **Browser**：最后处理。若本期不实现 durable checkpoint/hydration，则只作为 canonical definition designer 和 non-durable adapter，不能阻塞其他四个 surface 的 cutover，也不能声称全产品 durable。
+
+每个 surface 都依次经过 `shadow → internal canary → opt-in canary → default-on → legacy read-only`，不能因另一个 surface 已通过就借用其结果。切换粒度至少绑定 workspace + run；已有 run 默认由原 writer 执行到终态，新 run 才进入 canary。只有在可证明的 safe point（无 in-flight effect/attempt、event head 与 checkpoint digest 一致、所有消息/ACK 已对账）才能迁移未完成 run。
+
+##### 6.9.6.5 Phase 3：状态迁移、双读与回滚协议
+
+耐久状态迁移应使用显式 saga，而不是启动时 best-effort copy：
+
+```text
+PREPARED -> SNAPSHOT_VERIFIED -> IMPORTED -> SHADOW_VERIFIED
+         -> AUTHORITY_ACTIVATED -> LEGACY_FENCED -> RETIRED
+```
+
+- `PREPARED` 固定 source store identity、schema/version、head/revision、run/task/message/effect/artifact 数量与目标 Kernel version。
+- `SNAPSHOT_VERIFIED` 生成不可变备份及摘要，校验路径、权限、workspace binding 和 writer lease。
+- `IMPORTED` 以幂等 migration id 写入 canonical namespace；重复执行只能得到同一 digest。
+- `SHADOW_VERIFIED` 要求迁移前后 projection 等价，且未知 outcome、pending HumanTask、timer、message、lease、budget 和 artifact 均有去向。
+- `AUTHORITY_ACTIVATED` 用 compare-and-swap 推进 authority generation；从这一点起 canonical writer 生效。
+- `LEGACY_FENCED` 让旧进程和旧 mutation API 稳定失败；不能只依赖 UI 隐藏或 feature flag。
+- `RETIRED` 在观察窗口和回滚演练通过后移除旧 writer，保留只读证据和有期限的 N-1 importer。
+
+双读只用于比较和兼容查询，不能做“哪个 store 有值就信哪个”的 fallback。每次查询必须公开 `authoritySource / authorityGeneration / eventHead / projectionVersion`；canonical store 损坏或缺失时失败关闭并进入恢复流程，不能静默采用更旧的 legacy row。回滚必须证明 RPO=0 的 authoritative event、已发生 effect receipt 不丢失、fence 单调推进，且回滚后同一 logical run 不会生成第二个 external effect。
+
+##### 6.9.6.6 Phase 4：默认切换、旧 writer 下线与发布节奏
+
+默认切换应与删除旧 writer 分成两个发布阶段：
+
+- **Release A（canonical default）**：新 run 默认 canonical；保留受控 rollback 和只读 legacy projection；持续收集无敏感正文的 authority/divergence/overload/recovery 指标。
+- **Release B（legacy read-only）**：所有旧 mutation API 由测试证明失败关闭；仍可导入 N-1 状态和查看历史证据。
+- **Release C（legacy removed）**：静态调用图、入口 manifest 和运行期写探针均证明旧 writer 为零后，删除代码和反向 feature flag；发布说明明确旧状态最低可读版本与迁移工具保留期。
+
+任何阶段出现以下条件都立即 NO-GO：未知 writer、semantic shadow divergence、同一 run 两个有效 writer generation、effect 数量不守恒、artifact/terminal digest 不一致、旧 lease 可继续结算、cancel 后出现 accepted late result、恢复依赖未验证的 legacy fallback，或三平台任一权威矩阵未通过。按现有代码基础，adapter/shadow 接线预计 1～2 周，各 surface 与状态迁移 2～4 周，回滚、跨进程恢复和三平台 soak 2～3 周；仓库侧实现约 4～6 周，完整生产验收约 6～9 周。该估算假设真实 provider secret、Linux/Windows/macOS runner 和 Desktop E2E 环境可用。
+
 ## 7. P2：产品体验和生态增强
 
 ### 7.1 提供稳定的 `cc exec` facade
@@ -835,6 +938,39 @@ Graph Eval 不应只统计“多少任务完成”，还应覆盖：
 23. `[P1-2/P1-10]` CC App Server 设定 per-connection/session queue cap、`OVERLOADED + retry_after_ms` 和慢消费者断路；至少 30 分钟 overload soak 后无队列越界，warm-up 后 RSS 增长趋势低于预先冻结的阈值（建议 10%）。
 24. `[P1-11]` Message/DataRef/ArtifactRef/context item 的 origin/trust/sensitivity/allowedSinks 由可信边界赋值且随派生传播；orchestrate/webhook channel 验签并保留真实 origin，设 body/rate/replay cap；不可信内容不能铸造 approval/capability/control edge。网络和 MCP transport 默认拒绝 loopback/private/link-local/metadata，DNS/redirect 重检，并限制 request/response/SSE frame 与慢流，declassification 可审计。
 25. `[P1-12]` CLI Team、Cowork、Scheduler 与 Desktop/Browser adapter 的 shadow-run 在冻结 fixture 上得到等价 terminal/artifact/event projection；Browser crash/restart 可从 checkpoint hydrate，或明确保持 non-durable/feature-gated；切换有旧新双读、回滚演练和旧 shell 写入口清零，之后只有 canonical Graph Kernel 能写 authoritative run state。
+
+#### 9.1.1 P1-12 authoritative cutover 专项验收矩阵
+
+以下门禁是第 25 项的展开，全部为阻断项。证据必须来自同一精确候选 SHA；本地测试、旧提交、部分平台成功、仅 schema/单元测试通过或“功能看起来正常”都不能替代。指标阈值和 canary 样本必须在运行前随候选提交冻结，失败后不得通过缩小样本、删除字段或放宽 normalization allowlist 使结果转绿。
+
+| Gate | 必须证明 | 最小通过条件与权威证据 |
+| ---- | -------- | ---------------------- |
+| G0 Surface/writer inventory | 所有可能创建、更新、恢复、取消、结算 Graph run/task/message/effect/artifact 的入口均已归类 | machine-readable manifest 覆盖 CLI Team、Cowork、Scheduler、Desktop、Browser 的 command/IPC/trigger/store/mutation function；未分类入口为 0；CI 对新增入口、未知 writer 和缺失 runtime claims 失败 |
+| G1 Authority 与 fencing | 任一 workspace + logical run + generation 同时只有一个有效 writer | 跨进程竞争、旧进程迟到写、重复 daemon、Desktop 重启和 flag 翻转测试中 canonical append 只有一个胜者；stale generation/lease/attempt 的 append、ACK、handoff、effect settlement 和 terminal transition 100% 被拒绝；查询公开 writerId/generation/head |
+| G2 Shadow 语义等价 | 旧 runtime 与 canonical replay 表达相同业务结果，而非只比较 completed/failed | 冻结 corpus 覆盖 success、partial、cancel、timeout、retry、loop exhausted、subgraph、dynamic append、deadlock/livelock、HumanTask、handoff、unknown outcome 与 compensation；terminal/root cause、node/attempt、causal partial order、artifact/commit/test receipt、budget 和 effect/receipt projection 无未解释差异；至少 10,000 个确定性 schedule/fault seeds 零 semantic divergence |
+| G3 Shadow 零副作用 | shadow 不会重复调用 provider/tool、写文件、发网络请求、发送消息或占用真实 scheduler lease | replay adapter 和 effect spy 证明 shadow namespace 的真实 effect 调用数为 0；旧执行形成的每个 receipt 最多被 canonical reducer 消费一次；恶意/缺失 receipt 失败关闭，不能 fallback 到真实 adapter |
+| G4 Definition 与状态迁移 | fresh、N-1 和允许迁移的 in-flight run 可确定导入且不会产生半升级状态 | migration dry-run、备份摘要、幂等 migration id、source/target head 与 entity count 全部一致；在 saga 每个 phase 强杀后重启均收敛到同一 projection；重复导入不新增 event/effect；future schema 和损坏状态失败关闭 |
+| G5 Durable recovery | canonical authority 在进程/宿主异常后恢复同一 logical run，RPO 不依赖 legacy fallback | 对 event append、dispatch、lease、message/ACK、effect/receipt、artifact/checkpoint、authority activation 等持久化 cut point 做 kill/restart；authoritative event RPO=0；恢复后 task/message/effect 不丢失，非幂等 effect 不重放，unknown outcome 进入 reconciliation；自动恢复 RTO 目标预先冻结，建议 CLI/service 不高于 5 分钟 |
+| G6 取消、终态与竞争 | 切换没有重新引入幻影成功、迟到完成或双重 custody | cancel/timeout/stop-on-error 物理停止 descendants 并等待 settlement；late result 被 fence；approval-vs-cancel、handoff commit-vs-revoke、race winner、producer seal-vs-append、occurrence duplicate 和 terminal CAS 均只有一个确定胜者；blocked-root cut 与 run terminal 可重放 |
+| G7 负载、公平性与资源边界 | 新 Kernel 不靠无界队列或饥饿换取等价结果 | 每个生产 adapter 跑至少 30 分钟、达到预先冻结峰值并发/消息/effect 负载的 3 倍；所有 queue/bytes/clients/RPC/attempt 上限不越界，overload 有结构化拒绝且无静默丢失；warm-up 后 RSS 增长建议不超过 10%，P95 延迟回退建议不超过旧基线 10%；fairness 跑满 3 倍 queue-wait SLO 窗口无 starvation |
+| G8 安全与权限单调性 | adapter/cutover 不能绕过 Broker、sandbox、approval、audit 或扩大 child 权限 | Linux/Windows/macOS Strict Sandbox 与负向 IPC/path/process/MCP/network 测试通过；legacy flag、importer、shadow/replay 和 rollback 路径同样经过 capability/authority 校验；child grant、data allowedSinks 和 budget 只可继承或收窄；审计失败时高风险 mutation 拒绝 |
+| G9 产品与真实旅程 | 合成 replay 之外，真实入口能够完成同一 Graph 生命周期 | Linux/Windows/macOS 使用真实 provider secret 完成 compile→run→spawn→message/handoff→tool/effect→artifact/test→merge→terminal，以及 cancel、crash/resume 和 reconciliation；Desktop 通过真实 IPC/main/renderer E2E；Scheduler 通过 duplicate occurrence/crash；Browser 满足 durable journey 或维持 non-durable + feature-gated claim |
+| G10 Canary 与默认切换 | 少量成功样例不能直接升级为全量默认 | 每个 surface 先完成内部和显式 opt-in canary；默认建议至少 1,000 个 replay/synthetic logical runs 加 100 个真实/受控 canary runs，低流量 surface 则覆盖不少于 7 个自然日且全部 eligible runs 纳入；semantic divergence、duplicate effect、authority conflict、lost message/task 和 unexplained terminal change 均为 0 |
+| G11 回滚演练 | 切换开关、authority CAS 或升级失败时能回到已知状态，且不伪造外部副作用回滚 | 分别在 activation 前、activation 后无 effect、effect committed、effect outcome unknown、legacy fenced 和进程崩溃窗口演练；authoritative event RPO=0，writer generation 单调，恢复时间目标预先冻结（建议不高于 15 分钟）；rollback 后同一 logical run 不创建第二次非幂等 effect |
+| G12 旧 writer 下线 | 完成态不是“默认走新内核但旧路径仍可写” | `assertGraphKernelCutover` 输入的 legacyWriteEntrypoints 为空；静态调用图、manifest、运行期 write probe 与负向 API 测试共同证明旧 mutation 为 0；旧入口只读或返回稳定 retired 错误；至少经过一个完整 canonical-default 发布观察窗口和一次回滚演练后才删除反向 flag |
+| G13 可观测与证据 | 线上差异、恢复和 authority 归属可诊断，但不泄漏正文/秘密 | 每个 run 可查询 origin surface、authority mode/generation、definition/revision、event head、adapter/projection version、shadow report digest、migration id、terminal/root-cause 与 receipt/artifact refs；指标有界且只含摘要/计数；trace 重放得到同一 projection digest |
+
+逐 surface 至少还要完成以下专项 journey，不能用另一个 surface 的通过结果代替：
+
+| Surface | 必跑 journey | 切换后禁止继续存在的行为 |
+| ------- | ------------ | ------------------------ |
+| CLI Team | priority/ready frontier、N:M AssignmentAttempt、dynamic append + seal、real child、offline/poison/reorder message、custody handoff、worktree winner merge、cancel/late result、crash/resume | Team snapshot、TaskLeaseRegistry 或旧 mailbox 绕过 canonical generation 直接改变 run terminal/custody；progress/pending 被映射为 success |
+| Scheduler | duplicate occurrence、双 worker claim、lease expiry、outbox response-lost、daemon kill/restart、timer/backlog/DST、pause/resume 与 unknown-outcome adjudication | occurrence succeeded 直接写 Graph succeeded；一次重试创建第二个 logical GraphRun；Scheduler 自己计算 ready frontier |
+| Cowork | typed input/output、parallel write isolation、condition/fan-out、multi-node loop、subgraph digest/depth、effect receipt/reconcile、pause/input、compensation | facade、CoworkWorkflow 或 DynamicWorkflowRuntime 维护第二份可写 run terminal；并行节点共享未证明安全的 cwd；loop cap 仍成功 |
+| Desktop | `$team`、Coding Agent tool/approval、AgentCoordinator、Workflow IPC、窗口关闭/重开、应用 crash/restart、renderer 订阅丢失后重连 | renderer 或 generic IPC 直接写 runtime；旧 engine 返回伪 completed；无主窗口时高风险审批自动允许；重启从内存对象猜状态 |
+| Browser | nested region、loop、try/catch/finally、sub-workflow、cancel propagation、页面/进程重启 | 未实现 hydration 却声明 durable/authoritative；最后一步 cancel 被 completed/failed 覆盖；Browser projection 反写 canonical state |
+
+最终 GO 判定需要同时满足：G0～G13 全绿、五个 surface 的适用 journey 全绿、同一精确 SHA 的 CLI CI/Strict Sandbox/Desktop E2E/受影响 IDE 与真实 provider 三平台聚合 job 全绿，并且不存在开放的 P0/P1 数据损坏、重复副作用、越权或恢复阻断问题。若 Browser 选择继续 non-durable，则可以不取得 Browser durable recovery 证据，但必须 machine-readable 标记 `non_durable + featureGated`，其运行不得冒充 P1-12 的 durable authoritative coverage。
 
 ### 9.2 P2 Definition of Done
 
