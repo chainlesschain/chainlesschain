@@ -3,93 +3,190 @@
  *
  * Phase 17 runtime-debugging surface, three sub-areas:
  *  - WebSocket Debugging (CDP Network domain): enable/disable + connection &
- *    message inspection. Keeps per-tab state and a module-level debugger event
- *    listener that records Network.webSocket* frames.
+ *    message inspection. Uses bounded per-tab state and removable debugger
+ *    listeners to record Network.webSocket* frames.
  *  - Service Worker Management (page-context navigator.serviceWorker): list/
  *    getInfo/unregister/update/postMessage.
  *  - Security Info (CDP Security + page context): certificate/security state,
  *    mixed-content check, site permissions.
  *
- * Extracted verbatim from background.js (Phase 1 of the split). Keeps its own
- * module-level state (webSocketState). As a once-imported ES module, the state
- * Map and the onEvent listener registration are singletons for the
- * service-worker lifetime — identical to the original background.js top-level
- * declarations.
+ * WebSocket connection and frame state is bounded by count and UTF-8 bytes;
+ * disable, failed start, and external debugger detach release physical state.
  *
  * For security.getCertificate and security.checkMixedContent, background.js had
  * TWO same-name definitions (Phase 17 + Phase 21 Security Analysis); function
  * hoisting made the Phase 21 ones effective for BOTH switch cases. This module
  * carries the effective (Phase 21) bodies.
  *
- * ESM only. chrome.* is referenced lazily inside the handler bodies (except the
- * onEvent listener, which registers at import time exactly as before).
+ * ESM only. chrome.* is referenced lazily inside the handler bodies.
  */
 
 /* eslint-disable no-undef */
-/* global chrome, window, WebSocket, Date, navigator, performance, URL, document */
+/* global chrome, window, WebSocket, navigator, performance, URL, document */
+
+import {
+  WebSocketDebugRegistry,
+  sanitizeWebSocketConnection,
+  sanitizeWebSocketFrame,
+  validateWebSocketConnectionId,
+  validateWebSocketOutboundData,
+} from "./websocket-debug-registry.js";
 
 // ---------- WebSocket Debugging ----------
 
-// Store WebSocket debugging state per tab
-const webSocketState = new Map();
+const webSocketDebugRegistry = new WebSocketDebugRegistry();
+
+function removeWebSocketDebugListeners(resources) {
+  if (!resources) {
+    return;
+  }
+  try {
+    chrome.debugger.onEvent.removeListener(resources.eventListener);
+  } catch {
+    // The event target may already be gone after a tab closes.
+  }
+  try {
+    chrome.debugger.onDetach.removeListener(resources.detachListener);
+  } catch {
+    // The event target may already be gone after a tab closes.
+  }
+}
+
+async function attachWebSocketDebugger(tabId) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    return true;
+  } catch (error) {
+    if (error.message?.includes("already attached")) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function detachWebSocketDebugger(tabId) {
+  try {
+    await chrome.debugger.detach({ tabId });
+    return null;
+  } catch (error) {
+    return error;
+  }
+}
 
 export async function enableWebSocketDebugging(tabId) {
-  try {
-    // Check if already attached
-    const state = webSocketState.get(tabId);
-    if (state?.enabled) {
-      return { success: true, message: "Already enabled" };
+  if (webSocketDebugRegistry.getControl(tabId)?.status === "active") {
+    return { success: true, message: "Already enabled" };
+  }
+  const admission = webSocketDebugRegistry.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+
+  let resources = null;
+  let ownsDebugger = false;
+  const eventListener = (source, method, params) => {
+    if (source?.tabId !== tabId) {
+      return;
     }
+    switch (method) {
+      case "Network.webSocketCreated":
+        webSocketDebugRegistry.recordConnection(
+          admission.lease,
+          sanitizeWebSocketConnection(params),
+        );
+        break;
+      case "Network.webSocketClosed":
+        webSocketDebugRegistry.closeConnection(
+          admission.lease,
+          params.requestId,
+        );
+        break;
+      case "Network.webSocketFrameSent":
+      case "Network.webSocketFrameReceived":
+        webSocketDebugRegistry.recordFrame(
+          admission.lease,
+          sanitizeWebSocketFrame(method, params),
+        );
+        break;
+    }
+  };
+  const detachListener = (source) => {
+    if (source?.tabId !== tabId) {
+      return;
+    }
+    removeWebSocketDebugListeners(resources);
+    webSocketDebugRegistry.complete(admission.lease);
+  };
 
-    await chrome.debugger.attach({ tabId }, "1.3");
+  try {
+    ownsDebugger = await attachWebSocketDebugger(tabId);
+    resources = { eventListener, detachListener, ownsDebugger };
+    chrome.debugger.onEvent.addListener(eventListener);
+    chrome.debugger.onDetach.addListener(detachListener);
+    webSocketDebugRegistry.bindResources(admission.lease, resources);
     await chrome.debugger.sendCommand({ tabId }, "Network.enable");
-
-    // Initialize state
-    webSocketState.set(tabId, {
-      enabled: true,
-      connections: new Map(),
-      messages: new Map(),
-    });
-
-    return { success: true };
+    if (!webSocketDebugRegistry.markActive(admission.lease)) {
+      throw new Error("WebSocket debugger detached before startup completed");
+    }
+    return { success: true, limits: webSocketDebugRegistry.getStats().limits };
   } catch (error) {
+    removeWebSocketDebugListeners(resources);
+    if (ownsDebugger) {
+      await detachWebSocketDebugger(tabId);
+    }
+    webSocketDebugRegistry.complete(admission.lease);
     return { error: error.message };
   }
 }
 
 export async function disableWebSocketDebugging(tabId) {
-  try {
-    const state = webSocketState.get(tabId);
-    if (state?.enabled) {
-      await chrome.debugger.detach({ tabId });
-      webSocketState.delete(tabId);
+  const stopAdmission = webSocketDebugRegistry.beginStop(tabId);
+  if (!stopAdmission.accepted) {
+    if (stopAdmission.code === "WEBSOCKET_DEBUG_NOT_FOUND") {
+      return { success: true };
     }
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
+    return stopAdmission;
   }
+
+  const { capture } = stopAdmission;
+  let commandError = null;
+  if (capture.resources?.ownsDebugger) {
+    try {
+      await chrome.debugger.sendCommand({ tabId }, "Network.disable");
+    } catch (error) {
+      commandError = error;
+    }
+  }
+  let detachError = null;
+  if (capture.resources?.ownsDebugger) {
+    detachError = await detachWebSocketDebugger(tabId);
+  }
+  removeWebSocketDebugListeners(capture.resources);
+  webSocketDebugRegistry.complete(capture.lease);
+
+  if (commandError || detachError) {
+    return { error: (commandError || detachError).message };
+  }
+  return { success: true };
 }
 
 export function getWebSocketConnections(tabId) {
-  const state = webSocketState.get(tabId);
-  if (!state) {
-    return { connections: [] };
-  }
-  return {
-    connections: Array.from(state.connections.values()),
-  };
+  return webSocketDebugRegistry.getConnections(tabId);
 }
 
 export function getWebSocketMessages(tabId, connectionId) {
-  const state = webSocketState.get(tabId);
-  if (!state) {
-    return { messages: [] };
-  }
-  const messages = state.messages.get(connectionId) || [];
-  return { messages };
+  return webSocketDebugRegistry.getMessages(tabId, connectionId);
 }
 
 export async function sendWebSocketMessage(tabId, connectionId, data) {
+  const connectionValidation = validateWebSocketConnectionId(connectionId);
+  if (!connectionValidation.accepted) {
+    return connectionValidation;
+  }
+  const validation = validateWebSocketOutboundData(data);
+  if (!validation.accepted) {
+    return validation;
+  }
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
@@ -101,7 +198,7 @@ export async function sendWebSocketMessage(tabId, connectionId, data) {
         }
         return { error: "WebSocket not found or not open" };
       },
-      args: [connectionId, data],
+      args: [connectionValidation.connectionId, validation.data],
     });
     return result[0]?.result || { error: "Failed to send" };
   } catch (error) {
@@ -110,6 +207,10 @@ export async function sendWebSocketMessage(tabId, connectionId, data) {
 }
 
 export async function closeWebSocketConnection(tabId, connectionId) {
+  const connectionValidation = validateWebSocketConnectionId(connectionId);
+  if (!connectionValidation.accepted) {
+    return connectionValidation;
+  }
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
@@ -121,55 +222,12 @@ export async function closeWebSocketConnection(tabId, connectionId) {
         }
         return { error: "WebSocket not found" };
       },
-      args: [connectionId],
+      args: [connectionValidation.connectionId],
     });
     return result[0]?.result || { error: "Failed to close" };
   } catch (error) {
     return { error: error.message };
   }
-}
-
-// Listen for WebSocket events via debugger. Guarded so this module can be
-// imported outside an extension context (e.g. unit tests) where `chrome` is
-// undefined; in the service worker chrome.debugger always exists, so the
-// listener registers exactly as the original background.js top-level code did.
-if (typeof chrome !== "undefined" && chrome.debugger?.onEvent) {
-  chrome.debugger.onEvent.addListener((source, method, params) => {
-    const state = webSocketState.get(source.tabId);
-    if (!state) return;
-
-    switch (method) {
-      case "Network.webSocketCreated":
-        state.connections.set(params.requestId, {
-          id: params.requestId,
-          url: params.url,
-          initiator: params.initiator,
-          createdAt: Date.now(),
-        });
-        state.messages.set(params.requestId, []);
-        break;
-
-      case "Network.webSocketClosed":
-        const conn = state.connections.get(params.requestId);
-        if (conn) {
-          conn.closedAt = Date.now();
-        }
-        break;
-
-      case "Network.webSocketFrameSent":
-      case "Network.webSocketFrameReceived":
-        const messages = state.messages.get(params.requestId);
-        if (messages) {
-          messages.push({
-            type: method === "Network.webSocketFrameSent" ? "sent" : "received",
-            data: params.response.payloadData,
-            opcode: params.response.opcode,
-            timestamp: params.timestamp,
-          });
-        }
-        break;
-    }
-  });
 }
 
 // ---------- Service Worker Management ----------

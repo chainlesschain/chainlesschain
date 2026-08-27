@@ -4,13 +4,13 @@
  * Groups several page-level capabilities that were scattered across background.js:
  *  - Page Operations: content, execute script, screenshot, print, PDF, device
  *    emulation, geolocation override
- *  - CSS Injection: inject / remove user stylesheets (keeps injectedStyles state)
+ *  - CSS Injection: inject / remove bounded user stylesheet state
  *  - Reader Mode (Phase 26): article extract / readable content / metadata
  *  - Web Annotation (Phase 27): highlight / add / get / remove / clear / export
  *
  * page.executeScript and page.screenshot delegate to the shared primitives in
- * _shared.js. devicePresets + injectedStyles are module-level state that moves
- * with these handlers (verified no external refs).
+ * _shared.js. Injected stylesheet state is bounded by tabs, entries, and UTF-8
+ * bytes and is released with its tab.
  *
  * NOT included (left in background.js, entangled with another domain):
  *  - page.setViewport -> setViewport (a duplicated/hoisting-shadowed function
@@ -23,6 +23,7 @@
 /* global chrome, document, window, navigator, Date, JSON */
 
 import { captureScreenshot, executeScript } from "./_shared.js";
+import { InjectedStyleRegistry } from "./injected-style-registry.js";
 
 // ---------- Page Operations ----------
 
@@ -176,47 +177,80 @@ export async function setGeolocation(
 
 // ---------- CSS Injection ----------
 
-const injectedStyles = new Map();
+const injectedStyles = new InjectedStyleRegistry();
+let styleTabRemovalEventTarget = null;
+
+function ensureStyleTabRemovalListener() {
+  const eventTarget = chrome.tabs?.onRemoved;
+  if (!eventTarget || styleTabRemovalEventTarget === eventTarget) {
+    return;
+  }
+  eventTarget.addListener((tabId) => {
+    injectedStyles.clearTab(tabId);
+  });
+  styleTabRemovalEventTarget = eventTarget;
+}
 
 export async function injectCSS(tabId, css, options = {}) {
+  const origin = options?.origin || "USER";
+  const admission = injectedStyles.reserve(tabId, css, origin);
+  if (!admission.accepted) {
+    return admission;
+  }
+  ensureStyleTabRemovalListener();
+  let inserted = false;
   try {
-    const cssId = `chainlesschain-css-${Date.now()}`;
-
     await chrome.scripting.insertCSS({
       target: { tabId },
-      css: css,
-      origin: options.origin || "USER",
+      css,
+      origin,
     });
-
-    const tabStyles = injectedStyles.get(tabId) || [];
-    tabStyles.push({ id: cssId, css });
-    injectedStyles.set(tabId, tabStyles);
-
-    return { success: true, cssId };
+    inserted = true;
+    if (!injectedStyles.markActive(admission.reservation)) {
+      throw new Error("Tab closed before CSS injection completed");
+    }
+    return {
+      success: true,
+      cssId: admission.cssId,
+      retainedBytes: admission.bytes,
+      limits: injectedStyles.getStats().limits,
+    };
   } catch (error) {
+    injectedStyles.rollback(admission.reservation);
+    if (inserted) {
+      try {
+        await chrome.scripting.removeCSS({
+          target: { tabId },
+          css,
+          origin,
+        });
+      } catch {
+        // The tab normally disappeared before the compensating removal.
+      }
+    }
     return { error: error.message };
   }
 }
 
 export async function removeInjectedCSS(tabId, cssId) {
-  try {
-    const tabStyles = injectedStyles.get(tabId) || [];
-    const style = tabStyles.find((s) => s.id === cssId);
-
-    if (style) {
-      await chrome.scripting.removeCSS({
-        target: { tabId },
-        css: style.css,
-      });
-
-      injectedStyles.set(
-        tabId,
-        tabStyles.filter((s) => s.id !== cssId),
-      );
+  const removalAdmission = injectedStyles.beginRemove(tabId, cssId);
+  if (!removalAdmission.accepted) {
+    if (removalAdmission.code === "CSS_STYLE_NOT_FOUND") {
+      return { success: true };
     }
-
+    return removalAdmission;
+  }
+  const { removal } = removalAdmission;
+  try {
+    await chrome.scripting.removeCSS({
+      target: { tabId },
+      css: removal.css,
+      origin: removal.origin,
+    });
+    injectedStyles.completeRemove(removal.reservation);
     return { success: true };
   } catch (error) {
+    injectedStyles.cancelRemove(removal.reservation);
     return { error: error.message };
   }
 }
