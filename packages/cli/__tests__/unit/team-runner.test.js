@@ -309,6 +309,36 @@ describe("TeamRunner events + guards", () => {
     expect(runs).toBe(1);
   });
 
+  it("exposes the settled task and exact lease to durable afterTask observers", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "observed", title: "observed task" });
+    const settlements = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      afterTask: (settlement) => settlements.push(settlement),
+      runTask: async () => ({ output: "done" }),
+    });
+
+    const summary = await runner.run();
+
+    expect(summary.done).toBe(true);
+    expect(settlements).toEqual([
+      expect.objectContaining({
+        key: "observed",
+        status: "completed",
+        task: expect.objectContaining({
+          key: "observed",
+          title: "observed task",
+        }),
+        lease: expect.objectContaining({
+          holder: expect.any(String),
+          leaseId: expect.any(String),
+          fencingToken: expect.any(String),
+        }),
+      }),
+    ]);
+  });
+
   it("does not persist a phantom failure after its fenced lease is stolen", async () => {
     let now = 1000;
     const reg = new TaskLeaseRegistry({

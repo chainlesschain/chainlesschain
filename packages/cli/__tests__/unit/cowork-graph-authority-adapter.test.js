@@ -64,6 +64,49 @@ describe("Cowork Graph terminal authority", () => {
     });
   });
 
+  it("pins an existing canonical run across a ledger rollback", () => {
+    const store = eventStore();
+    let selectedMode = "canonical";
+    const resolveAuthority = ({ runKey }) => {
+      expect(runKey).toMatch(/^cowork:/u);
+      return selectedMode;
+    };
+    const first = new CoworkGraphAuthorityAdapter({
+      mode: "legacy",
+      authorityResolver: resolveAuthority,
+      eventStore: store,
+      createId: ids("rollback-first"),
+    });
+    const claim = first.begin({ workflow: WORKFLOW, admission: ADMISSION });
+    expect(claim.authorityMode).toBe("canonical");
+    first.settleSuccess(claim, { status: "completed" });
+
+    selectedMode = "legacy";
+    const recovered = new CoworkGraphAuthorityAdapter({
+      mode: "legacy",
+      authorityResolver: resolveAuthority,
+      eventStore: store,
+      createId: ids("rollback-recovered"),
+    }).begin({ workflow: WORKFLOW, admission: ADMISSION });
+    expect(recovered).toMatchObject({
+      authorityMode: "canonical",
+      alreadySettled: true,
+    });
+    expect(
+      new CoworkGraphAuthorityAdapter({
+        mode: "canonical",
+        authorityResolver: resolveAuthority,
+        eventStore: store,
+      }).begin({
+        workflow: { ...WORKFLOW, id: "workflow-after-rollback" },
+        admission: {
+          ...ADMISSION,
+          admissionDigest: `sha256:${"c".repeat(64)}`,
+        },
+      }),
+    ).toBeNull();
+  });
+
   it("keeps shadow execution effect-free and detects result divergence", () => {
     const store = eventStore();
     const first = new CoworkGraphAuthorityAdapter({

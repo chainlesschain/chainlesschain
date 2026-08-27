@@ -2599,6 +2599,8 @@ export class TeamRunner {
         await this._notifySettlement({
           key,
           holder,
+          task,
+          lease: claim.lease,
           status: "completed",
           result,
         });
@@ -2732,6 +2734,8 @@ export class TeamRunner {
         await this._notifySettlement({
           key,
           holder,
+          task,
+          lease: claim.lease,
           status: outcome.retry === true ? "pending" : "failed",
           error: failure?.message || String(failure),
           retry: outcome.retry === true,

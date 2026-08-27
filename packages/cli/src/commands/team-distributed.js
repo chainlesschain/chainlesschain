@@ -30,6 +30,7 @@ import { CostBudget } from "../lib/cost-budget.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 import { GraphEventStore } from "../lib/graph-kernel/event-store.js";
+import { createRuntimeGraphCutoverAuthorityResolver } from "../lib/graph-kernel/cutover-authority-resolver.js";
 import { JsonlRolloutStore } from "../lib/app-server/rollout-store.js";
 import {
   SECURE_FILE_IDENTITY_ERROR,
@@ -46,7 +47,11 @@ const MAX_AGENT_USAGE_RECORDS = 64;
 const SHELL_WORKTREE_MODE = "shell-worktree";
 const AGENT_WORKTREE_MODE = "agent-worktree";
 const DISTRIBUTED_MODES = new Set([SHELL_WORKTREE_MODE, AGENT_WORKTREE_MODE]);
-const DISTRIBUTED_GRAPH_AUTHORITY_MODES = new Set(["legacy", "canonical"]);
+const DISTRIBUTED_GRAPH_AUTHORITY_MODES = new Set([
+  "legacy",
+  "shadow",
+  "canonical",
+]);
 const AGENT_OPTION_FIELDS = new Set([
   "permissionMode",
   "model",
@@ -187,7 +192,16 @@ function distributedMode(value = SHELL_WORKTREE_MODE) {
   return mode;
 }
 
-export function distributedGraphAuthorityMode(value, env = process.env) {
+export function distributedGraphAuthorityMode(
+  value,
+  env = process.env,
+  {
+    runKey = undefined,
+    optIn = false,
+    resolver = undefined,
+    resolveCutover = true,
+  } = {},
+) {
   const configured = String(
     value ?? env.CHAINLESSCHAIN_GRAPH_CLI_TEAM ?? "legacy",
   )
@@ -196,10 +210,34 @@ export function distributedGraphAuthorityMode(value, env = process.env) {
   if (!DISTRIBUTED_GRAPH_AUTHORITY_MODES.has(configured)) {
     fail(
       "TEAM_QUEUE_GRAPH_AUTHORITY_UNSUPPORTED",
-      "Distributed Graph authority must be legacy or canonical",
+      "Distributed Graph authority must be legacy, shadow, or canonical",
     );
   }
-  return configured;
+  if (!resolveCutover) return configured;
+  const authorityResolver =
+    resolver ||
+    createRuntimeGraphCutoverAuthorityResolver({
+      env,
+      surface: "cli_team",
+      entryId: "cli-team-distributed",
+      fallbackMode: configured,
+    });
+  const resolved =
+    typeof authorityResolver === "function"
+      ? authorityResolver({ runKey, optIn })
+      : authorityResolver.resolve({
+          runKey,
+          optIn,
+          fallbackMode: configured,
+        });
+  const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+  if (!DISTRIBUTED_GRAPH_AUTHORITY_MODES.has(mode)) {
+    fail(
+      "TEAM_QUEUE_GRAPH_AUTHORITY_UNSUPPORTED",
+      "Distributed Graph authority resolver returned an invalid mode",
+    );
+  }
+  return mode;
 }
 
 function stableAgentText(
@@ -1020,6 +1058,7 @@ function assertAuthority(
   const graphAuthorityMode = distributedGraphAuthorityMode(
     authority?.graphAuthorityMode ?? "legacy",
     {},
+    { resolveCutover: false },
   );
   let agent = null;
   if (authority?.mode === AGENT_WORKTREE_MODE) {
@@ -1348,8 +1387,13 @@ function openPinnedQueue(options, deps) {
   }
   if (
     options.graphAuthority != null &&
-    distributedGraphAuthorityMode(options.graphAuthority, {}) !==
-      authority.graphAuthorityMode
+    distributedGraphAuthorityMode(
+      options.graphAuthority,
+      {},
+      {
+        resolveCutover: false,
+      },
+    ) !== authority.graphAuthorityMode
   ) {
     fail(
       "TEAM_QUEUE_AUTHORITY_MISMATCH",
@@ -1428,6 +1472,11 @@ export function initDistributedQueue(options, dependencyOverrides = {}) {
   const mode = distributedMode(options.mode);
   const graphAuthorityMode = distributedGraphAuthorityMode(
     options.graphAuthority,
+    process.env,
+    {
+      runKey: runId,
+      optIn: options.graphCanaryOptIn === true,
+    },
   );
   if (options.checkpointStateDir && options.managedCheckpoint !== true) {
     fail(
@@ -2372,7 +2421,7 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
     "--worker-id",
   );
   const graphResources =
-    opened.authority.graphAuthorityMode === "canonical"
+    opened.authority.graphAuthorityMode !== "legacy"
       ? distributedGraphResources(opened, deps)
       : null;
   const graphTimeoutMs =
@@ -2384,7 +2433,7 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
       integer: true,
     }) ?? 25;
   const requestGraph = graphResources
-    ? async ({ type, key, task, lease, payload = {} }) => {
+    ? async ({ type, key, task, lease, payload = {}, wait = true }) => {
         const durableLease = attemptLease(
           { ...task, lease, metadata: { ...task?.metadata, lease } },
           key,
@@ -2402,6 +2451,7 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
           lease: durableLease,
           payload,
         });
+        if (!wait) return request;
         const response = await graphResources.bridge.waitForResponse(
           request.requestId,
           {
@@ -2558,19 +2608,60 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
         importCompletedDependencies(coordinator, opened.queue, task);
         importRetryWorkspace(coordinator, task);
         if (requestGraph) {
-          await requestGraph({ type: "dispatch", key, task, lease });
+          if (opened.authority.graphAuthorityMode === "canonical") {
+            await requestGraph({ type: "dispatch", key, task, lease });
+          } else {
+            try {
+              await requestGraph({
+                type: "dispatch",
+                key,
+                task,
+                lease,
+                wait: false,
+              });
+            } catch (error) {
+              events.push({
+                type: "graph_shadow_observation_failed",
+                key,
+                message: error?.message || String(error),
+              });
+            }
+          }
         }
       },
-      canonicalSettlement: requestGraph
-        ? (settlement) =>
-            requestGraph({
-              type: "settle",
-              key: settlement.key,
-              task: settlement.task,
-              lease: settlement.lease,
-              payload: distributedTeamGraphSettlementPayload(settlement),
-            })
-        : null,
+      canonicalSettlement:
+        requestGraph && opened.authority.graphAuthorityMode === "canonical"
+          ? (settlement) =>
+              requestGraph({
+                type: "settle",
+                key: settlement.key,
+                task: settlement.task,
+                lease: settlement.lease,
+                payload: distributedTeamGraphSettlementPayload(settlement),
+              })
+          : null,
+      afterTask:
+        requestGraph && opened.authority.graphAuthorityMode === "shadow"
+          ? async (settlement) => {
+              if (!["completed", "failed"].includes(settlement.status)) return;
+              try {
+                await requestGraph({
+                  type: "settle",
+                  key: settlement.key,
+                  task: settlement.task,
+                  lease: settlement.lease,
+                  payload: distributedTeamGraphSettlementPayload(settlement),
+                  wait: false,
+                });
+              } catch (error) {
+                events.push({
+                  type: "graph_shadow_observation_failed",
+                  key: settlement.key,
+                  message: error?.message || String(error),
+                });
+              }
+            }
+          : null,
       runTask,
       onEvent: (event) => events.push(event),
     });
@@ -2641,10 +2732,10 @@ export async function runDistributedGraphWriter(
 ) {
   const deps = defaultDependencies(dependencyOverrides);
   const opened = openPinnedQueue(options, deps);
-  if (opened.authority.graphAuthorityMode !== "canonical") {
+  if (opened.authority.graphAuthorityMode === "legacy") {
     fail(
       "TEAM_QUEUE_GRAPH_WRITER_NOT_CANONICAL",
-      "Distributed Graph writer requires a queue initialized with canonical Graph authority",
+      "Distributed Graph writer requires a queue initialized with shadow or canonical Graph authority",
     );
   }
   const resources = distributedGraphResources(opened, deps);
@@ -2658,12 +2749,14 @@ export async function runDistributedGraphWriter(
     adapter,
     runId: resources.graphRunId,
     executionMode: opened.authority.mode,
+    authorityMode: opened.authority.graphAuthorityMode,
     budget: opened.snapshot.budget?.limits || {},
   });
   writer.open();
   const pollMs =
     optionalPositive(options.pollMs, "--poll-ms", { integer: true }) ?? 100;
   let processed = 0;
+  let terminalIdlePasses = 0;
   let view;
   for (;;) {
     processed += writer.processPending().length;
@@ -2672,9 +2765,11 @@ export async function runDistributedGraphWriter(
     const terminal =
       view.stats.completed + view.stats.cancelled === view.stats.total &&
       view.stats.adjudicationRequired === 0;
+    terminalIdlePasses =
+      terminal && bridgePending === 0 ? terminalIdlePasses + 1 : 0;
     if (
       options.once === true ||
-      terminal ||
+      terminalIdlePasses >= 2 ||
       (view.stats.leased === 0 &&
         bridgePending === 0 &&
         (view.stats.adjudicationRequired > 0 || view.stats.budget?.reason))
@@ -2686,7 +2781,7 @@ export async function runDistributedGraphWriter(
   const status = writer.status();
   return {
     queueId: view.queueId,
-    graphAuthorityMode: "canonical",
+    graphAuthorityMode: opened.authority.graphAuthorityMode,
     processed,
     stats: view.stats,
     graph: status.graph,
@@ -3405,7 +3500,7 @@ function commonAuthorityOptions(command) {
     .option("--authority-digest <sha256>", "Pinned authority digest")
     .option(
       "--graph-authority <mode>",
-      "Verify pinned Graph authority: legacy or canonical",
+      "Verify pinned Graph authority: legacy, shadow, or canonical",
     );
 }
 
@@ -3435,7 +3530,11 @@ export function registerTeamDistributedCommands(
       )
       .option(
         "--graph-authority <mode>",
-        "Pin Graph authority: legacy or canonical",
+        "Fallback Graph authority: legacy, shadow, or canonical",
+      )
+      .option(
+        "--graph-canary-opt-in",
+        "Opt this new distributed queue into an entry-scoped Graph canary",
       )
       .option("--max-tasks <n>", "Global task-attempt cap")
       .option("--max-tokens <n>", "Global token cap")

@@ -1,3 +1,8 @@
+import path from "node:path";
+import {
+  defaultRolloutStoreDirectory,
+  JsonlRolloutStore,
+} from "../app-server/rollout-store.js";
 import { GraphCutoverLedger } from "./cutover-ledger.js";
 import {
   graphRuntimeEntryManifestDigest,
@@ -157,4 +162,27 @@ export class GraphCutoverAuthorityResolver {
 
 export function createGraphCutoverAuthorityResolver(options) {
   return new GraphCutoverAuthorityResolver(options);
+}
+
+export function createRuntimeGraphCutoverAuthorityResolver({
+  env = process.env,
+  stateDirectory = undefined,
+  ledger = undefined,
+  ...options
+} = {}) {
+  const resolvedLedger =
+    ledger ||
+    new GraphCutoverLedger({
+      store: new JsonlRolloutStore({
+        directory: path.resolve(
+          stateDirectory ||
+            env.CHAINLESSCHAIN_GRAPH_CUTOVER_STATE_DIR ||
+            defaultRolloutStoreDirectory(),
+        ),
+      }),
+    });
+  return new GraphCutoverAuthorityResolver({
+    ...options,
+    ledger: resolvedLedger,
+  });
 }

@@ -292,11 +292,9 @@ export class SchedulerRuntime {
       graphAuthorityMode || schedulerGraphAuthorityMode();
     this.graphAuthority =
       graphAuthority === undefined
-        ? resolvedGraphMode === "legacy"
-          ? null
-          : new SchedulerOccurrenceGraphAuthority({
-              mode: resolvedGraphMode,
-            })
+        ? new SchedulerOccurrenceGraphAuthority({
+            mode: resolvedGraphMode,
+          })
         : graphAuthority;
   }
 
@@ -588,9 +586,12 @@ export class SchedulerRuntime {
         ? adapter.resume(context, resumingControl.checkpoint)
         : adapter.execute(context);
     let graphClaim = null;
+    let graphAuthorityMode = "legacy";
     try {
       let result;
       graphClaim = this.graphAuthority?.begin(context) || null;
+      graphAuthorityMode =
+        graphClaim?.authorityMode || this.graphAuthority?.mode || "legacy";
       if (graphClaim?.alreadySettled) {
         result = graphClaim.result;
       } else if (context.adjudication?.status === "pending") {
@@ -654,20 +655,20 @@ export class SchedulerRuntime {
         aborted.retryable = true;
         throw aborted;
       }
-      if (this.graphAuthority && !graphClaim?.alreadySettled) {
+      if (graphClaim && !graphClaim.alreadySettled) {
         try {
           const graphProjection = this.graphAuthority.settleSuccess(
             context,
             result,
           );
-          if (this.graphAuthority.mode === "canonical") {
+          if (graphAuthorityMode === "canonical") {
             result =
               result && typeof result === "object" && !Array.isArray(result)
                 ? { ...result, graphAuthority: graphProjection }
                 : { value: result ?? null, graphAuthority: graphProjection };
           }
         } catch (graphError) {
-          if (this.graphAuthority.mode === "canonical") throw graphError;
+          if (graphAuthorityMode === "canonical") throw graphError;
         }
       }
       const settled = this.store.settle({
@@ -684,13 +685,13 @@ export class SchedulerRuntime {
     } catch (error) {
       if (leaseError) throw leaseError;
       if (error instanceof SchedulerPauseSignal) {
-        if (this.graphAuthority && !graphClaim?.alreadySettled) {
+        if (graphClaim && !graphClaim.alreadySettled) {
           const knownPause = new Error("scheduler paused at a safe point");
           knownPause.outcomeKnown = true;
           try {
             this.graphAuthority.settleFailure(context, knownPause);
           } catch (graphError) {
-            if (this.graphAuthority.mode === "canonical") throw graphError;
+            if (graphAuthorityMode === "canonical") throw graphError;
           }
         }
         return acknowledgePause(
@@ -701,14 +702,14 @@ export class SchedulerRuntime {
       }
       let policy;
       let settlementError = error;
-      if (this.graphAuthority && !graphClaim?.alreadySettled) {
+      if (graphClaim && !graphClaim.alreadySettled) {
         try {
           const graphProjection = this.graphAuthority.settleFailure(
             context,
             error,
           );
           if (
-            this.graphAuthority.mode === "canonical" &&
+            graphAuthorityMode === "canonical" &&
             graphProjection?.status === "reconciliation_required"
           ) {
             settlementError = runtimeError(
@@ -720,7 +721,7 @@ export class SchedulerRuntime {
             settlementError.retryable = false;
           }
         } catch (graphError) {
-          if (this.graphAuthority.mode === "canonical") {
+          if (graphAuthorityMode === "canonical") {
             settlementError = graphError;
           }
         }

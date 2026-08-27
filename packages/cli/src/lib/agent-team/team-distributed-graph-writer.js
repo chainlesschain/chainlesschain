@@ -368,6 +368,7 @@ export class TeamDistributedGraphWriter {
     adapter,
     runId,
     executionMode,
+    authorityMode = "canonical",
     budget = {},
   } = {}) {
     if (!queue || !bridge || !adapter || !runId || !executionMode) {
@@ -380,6 +381,12 @@ export class TeamDistributedGraphWriter {
     this.adapter = adapter;
     this.runId = runId;
     this.executionMode = executionMode;
+    if (!["shadow", "canonical"].includes(authorityMode)) {
+      throw new TypeError(
+        "distributed Team Graph writer authorityMode must be shadow or canonical",
+      );
+    }
+    this.authorityMode = authorityMode;
     this.budget = budget;
     this.opened = false;
   }
@@ -396,7 +403,7 @@ export class TeamDistributedGraphWriter {
       worktree: true,
       teammates: 1,
       budget: this.budget,
-      authorityMode: "canonical",
+      authorityMode: this.authorityMode,
       dynamic: false,
       recoveryReceipts,
     });
@@ -416,10 +423,23 @@ export class TeamDistributedGraphWriter {
     }
     const task = this.queue.getTask(request.taskKey);
     const lease = leaseForTask(task);
+    let active = this.adapter.attempts.get(request.taskKey) || null;
+    const shadowSettlement =
+      this.authorityMode === "shadow" &&
+      ["settle", "cancel"].includes(request.type) &&
+      active?.attempt?.agentId === request.lease.holder &&
+      active?.attempt?.grant?.legacyLeaseId === request.lease.leaseId &&
+      Number(active?.attempt?.grant?.legacyFence) ===
+        Number(request.lease.fencingToken) &&
+      ((request.payload?.status === "completed" &&
+        task?.status === "completed") ||
+        (request.payload?.status === "failed" &&
+          task?.status === "cancelled"));
     if (
-      !task ||
-      task.status !== "in_progress" ||
-      !sameLease(lease, request.lease)
+      !shadowSettlement &&
+      (!task ||
+        task.status !== "in_progress" ||
+        !sameLease(lease, request.lease))
     ) {
       return this.bridge.respond(request, {
         status: "rejected",
@@ -451,7 +471,7 @@ export class TeamDistributedGraphWriter {
           task,
         });
       }
-      const active = this.adapter.attempts.get(request.taskKey);
+      active = this.adapter.attempts.get(request.taskKey) || null;
       const settled = this.adapter.settleTask({
         key: request.taskKey,
         task,

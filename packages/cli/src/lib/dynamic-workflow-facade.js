@@ -1508,6 +1508,7 @@ export async function executeDynamicWorkflowWithAdmission(
     workflow: prepared.workflow,
     admission: prepared.outcome.admission,
   });
+  const graphAuthorityMode = graphClaim?.authorityMode || "legacy";
   if (graphClaim?.alreadySettled === true) {
     const normalizedRecord = normalizeExecutionRecord(
       graphClaim.record,
@@ -1518,7 +1519,7 @@ export async function executeDynamicWorkflowWithAdmission(
       record: normalizedRecord,
       executionStarted: false,
       graphAuthority: graphClaim.projection,
-      graphAuthorityMode: graphAuthorityAdapter.mode,
+      graphAuthorityMode,
       graphRecovered: true,
     });
   }
@@ -1551,7 +1552,7 @@ export async function executeDynamicWorkflowWithAdmission(
       error,
     );
     if (
-      graphAuthorityAdapter.mode === "canonical" &&
+      graphAuthorityMode === "canonical" &&
       failureProjection?.status === "reconciliation_required"
     ) {
       error.graphRunId = graphClaim?.runId;
@@ -1566,7 +1567,7 @@ export async function executeDynamicWorkflowWithAdmission(
     record: normalizedRecord,
     executionStarted: true,
     graphAuthority: graphProjection,
-    graphAuthorityMode: graphAuthorityAdapter.mode,
+    graphAuthorityMode,
     graphRecovered: false,
   });
 }

@@ -4,6 +4,7 @@ import {
   graphDigest,
 } from "./graph-kernel/compiler.js";
 import { createGraphAuthorityBinding } from "./graph-kernel/authority.js";
+import { createRuntimeGraphCutoverAuthorityResolver } from "./graph-kernel/cutover-authority-resolver.js";
 import { GraphEventStore } from "./graph-kernel/event-store.js";
 import { GraphKernel } from "./graph-kernel/runtime.js";
 
@@ -64,19 +65,50 @@ function graphDefinition(workflow, admission) {
 
 export class CoworkGraphAuthorityAdapter {
   constructor({
-    mode = coworkGraphAuthorityMode(),
+    mode = undefined,
+    authorityResolver = undefined,
+    optIn = false,
     eventStore = new GraphEventStore(),
     now = Date.now,
     createId = randomUUID,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
-    this.mode = mode;
+    this.mode = mode === undefined ? coworkGraphAuthorityMode() : mode;
+    if (!["legacy", "shadow", "canonical"].includes(this.mode)) {
+      throw adapterError(
+        "CC_GRAPH_AUTHORITY_MODE_INVALID",
+        "Cowork Graph authority mode is invalid",
+      );
+    }
+    this.authorityResolver =
+      authorityResolver ||
+      createRuntimeGraphCutoverAuthorityResolver({
+        surface: "cowork",
+        entryId: "cli-cowork",
+        fallbackMode: this.mode,
+      });
+    this.optIn = optIn === true;
     this.eventStore = eventStore;
     this.resultStore = eventStore.rolloutStore;
     this.now = now;
     this.createId = createId;
     this.writerLeaseTtlMs = writerLeaseTtlMs;
     this.active = new Map();
+  }
+
+  _modeFor(runKey) {
+    const resolved =
+      typeof this.authorityResolver === "function"
+        ? this.authorityResolver({ runKey, optIn: this.optIn })
+        : this.authorityResolver.resolve({ runKey, optIn: this.optIn });
+    const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+    if (!["legacy", "shadow", "canonical"].includes(mode)) {
+      throw adapterError(
+        "CC_GRAPH_AUTHORITY_MODE_INVALID",
+        "Cowork Graph authority resolver returned an invalid mode",
+      );
+    }
+    return mode;
   }
 
   runtimeClaims() {
@@ -142,7 +174,6 @@ export class CoworkGraphAuthorityAdapter {
   }
 
   begin({ workflow, admission }) {
-    if (this.mode === "legacy") return null;
     const runId = `cowork:${admission.admissionDigest.slice(7, 55)}`;
     const compiled = graphDefinition(workflow, admission);
     let events = [];
@@ -155,9 +186,11 @@ export class CoworkGraphAuthorityAdapter {
       .reverse()
       .find((event) => event.payload?.state?.authority)?.payload
       .state.authority;
+    const mode = previous?.authorityMode || this._modeFor(runId);
+    if (mode === "legacy") return null;
     const generation = previous ? Number(previous.authorityGeneration) + 1 : 1;
     const authoritySource =
-      this.mode === "shadow" ? "graph_kernel_shadow" : "graph_kernel";
+      mode === "shadow" ? "graph_kernel_shadow" : "graph_kernel";
     const writerId = `cowork-writer:${process.pid}:${generation}`;
     const writerLeaseId = `cowork-lease:${this.createId()}`;
     const kernel = new GraphKernel({
@@ -176,12 +209,6 @@ export class CoworkGraphAuthorityAdapter {
         originSurface: "cowork",
       });
     } else {
-      if (previous.authorityMode !== this.mode) {
-        throw adapterError(
-          "CC_GRAPH_MIGRATION_REQUIRED",
-          "Cowork authority mode changed without a migration saga",
-        );
-      }
       const latest = events.at(-1);
       projection = kernel.recoverRun(runId, {
         authority: createGraphAuthorityBinding({
@@ -216,8 +243,9 @@ export class CoworkGraphAuthorityAdapter {
       const record = this._readResult(runId, outputDigest);
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
-        compareOnly: this.mode === "shadow",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
+        compareOnly: mode === "shadow",
         outputDigest,
         projection,
         record,
@@ -271,8 +299,9 @@ export class CoworkGraphAuthorityAdapter {
       projection = kernel.getRun(runId);
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
-        compareOnly: this.mode === "shadow",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
+        compareOnly: mode === "shadow",
         outputDigest: durableResult.outputDigest,
         projection,
         record: durableResult.record,
@@ -313,26 +342,38 @@ export class CoworkGraphAuthorityAdapter {
         "cc.cowork.workflow-operation/v1",
       ),
     });
-    this.active.set(runId, { runId, kernel, attempt, effect });
+    this.active.set(runId, {
+      runId,
+      authorityMode: mode,
+      kernel,
+      attempt,
+      effect,
+    });
     if (durableResult) {
       const settled = this.settleSuccess(
-        { runId, alreadySettled: false, projection },
+        { runId, authorityMode: mode, alreadySettled: false, projection },
         durableResult.record,
       );
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
-        compareOnly: this.mode === "shadow",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
+        compareOnly: mode === "shadow",
         outputDigest: durableResult.outputDigest,
         projection: settled,
         record: durableResult.record,
       });
     }
-    return Object.freeze({ runId, alreadySettled: false, projection });
+    return Object.freeze({
+      runId,
+      authorityMode: mode,
+      alreadySettled: false,
+      projection,
+    });
   }
 
   settleSuccess(claim, record) {
-    if (this.mode === "legacy") return null;
+    if (!claim || claim.authorityMode === "legacy") return null;
     const outputDigest = graphDigest(record, "cc.cowork.workflow-result/v1");
     if (claim.compareOnly === true) {
       if (outputDigest !== claim.outputDigest) {
@@ -387,7 +428,7 @@ export class CoworkGraphAuthorityAdapter {
   }
 
   settleFailure(claim, error) {
-    if (this.mode === "legacy" || !claim) return null;
+    if (!claim || claim.authorityMode === "legacy") return null;
     const active = this.active.get(claim.runId);
     if (!active) return null;
     const outcomeKnown = error?.outcomeKnown === true;

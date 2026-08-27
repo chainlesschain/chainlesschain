@@ -77,6 +77,45 @@ describe("Scheduler Graph terminal authority", () => {
     });
   });
 
+  it("pins an existing canonical occurrence across a ledger rollback", () => {
+    const store = eventStore();
+    let selectedMode = "canonical";
+    const resolveAuthority = ({ runKey }) => {
+      expect(runKey).toMatch(/^scheduler:/u);
+      return selectedMode;
+    };
+    const first = new SchedulerOccurrenceGraphAuthority({
+      mode: "legacy",
+      authorityResolver: resolveAuthority,
+      eventStore: store,
+      createId: () => "scheduler-rollback-first",
+    });
+    const claim = first.begin(context("occurrence-before-rollback"));
+    expect(claim.authorityMode).toBe("canonical");
+    first.settleSuccess(context("occurrence-before-rollback"), {
+      delivered: true,
+    });
+
+    selectedMode = "legacy";
+    const recovered = new SchedulerOccurrenceGraphAuthority({
+      mode: "legacy",
+      authorityResolver: resolveAuthority,
+      eventStore: store,
+      createId: () => "scheduler-rollback-recovered",
+    }).begin(context("occurrence-before-rollback"));
+    expect(recovered).toMatchObject({
+      authorityMode: "canonical",
+      alreadySettled: true,
+    });
+    expect(
+      new SchedulerOccurrenceGraphAuthority({
+        mode: "canonical",
+        authorityResolver: resolveAuthority,
+        eventStore: store,
+      }).begin(context("occurrence-after-rollback")),
+    ).toBeNull();
+  });
+
   it("does not replay an adapter with an unknown effect outcome", () => {
     const authority = new SchedulerOccurrenceGraphAuthority({
       mode: "canonical",

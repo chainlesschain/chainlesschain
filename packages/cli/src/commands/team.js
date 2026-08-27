@@ -33,6 +33,7 @@ import {
   projectTeamGraphCollaboration,
 } from "../lib/agent-team/team-graph-projection.js";
 import { TeamGraphRuntimeAdapter } from "../lib/agent-team/team-graph-runtime-adapter.js";
+import { createRuntimeGraphCutoverAuthorityResolver } from "../lib/graph-kernel/cutover-authority-resolver.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import {
   TeamScopeLock,
@@ -327,7 +328,11 @@ function teamExecutionMode(options) {
   return "dry-run";
 }
 
-export function teamGraphAuthorityMode(options, env = process.env) {
+export function teamGraphAuthorityMode(
+  options,
+  env = process.env,
+  { runKey = undefined, optIn = false, resolver = undefined } = {},
+) {
   const executionMode = teamExecutionMode(options);
   const configured = String(env.CHAINLESSCHAIN_GRAPH_CLI_TEAM || "")
     .trim()
@@ -337,8 +342,25 @@ export function teamGraphAuthorityMode(options, env = process.env) {
       "CHAINLESSCHAIN_GRAPH_CLI_TEAM must be legacy, shadow, or canonical",
     );
   }
-  if (executionMode === "dry-run") return "shadow";
-  return configured || "legacy";
+  const fallbackMode =
+    executionMode === "dry-run" ? "shadow" : configured || "legacy";
+  const authorityResolver =
+    resolver ||
+    createRuntimeGraphCutoverAuthorityResolver({
+      env,
+      surface: "cli_team",
+      entryId: "cli-team-local",
+      fallbackMode,
+    });
+  const resolved =
+    typeof authorityResolver === "function"
+      ? authorityResolver({ runKey, optIn })
+      : authorityResolver.resolve({ runKey, optIn, fallbackMode });
+  const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+  if (!["legacy", "shadow", "canonical"].includes(mode)) {
+    throw new Error("Team Graph authority resolver returned an invalid mode");
+  }
+  return mode;
 }
 
 function optionWasProvided(command, name) {
@@ -2025,6 +2047,10 @@ export function registerTeamCommand(program, { logger } = {}) {
       "--resume",
       "Restore progress from --state (completed tasks stay done; stale leases freed)",
     )
+    .option(
+      "--graph-canary-opt-in",
+      "Opt this new Team run into an entry-scoped Graph canary",
+    )
     .option("--json", "Emit the event stream as JSON lines")
     .option(
       "--otlp <file>",
@@ -2673,7 +2699,12 @@ export function registerTeamCommand(program, { logger } = {}) {
               (_, index) => `teammate-${index + 1}`,
             ),
           });
-        const graphAuthorityMode = teamGraphAuthorityMode(options);
+        const graphAuthorityMode =
+          resumeSnapshot?.graphProjection?.authorityMode ||
+          teamGraphAuthorityMode(options, process.env, {
+            runKey: teamGraphRunId,
+            optIn: options.graphCanaryOptIn === true,
+          });
         let graphRuntime = null;
         const shadowDivergences = [];
         const recordShadowDivergence = (divergence) => {

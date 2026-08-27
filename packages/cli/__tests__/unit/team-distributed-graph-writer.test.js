@@ -74,13 +74,14 @@ function fixture({ retrySafe = true } = {}) {
       now,
       createId: () => `writer-adapter-${++adapterId}`,
     });
-  const writer = (runtime = adapter()) =>
+  const writer = (runtime = adapter(), authorityMode = "canonical") =>
     new TeamDistributedGraphWriter({
       queue,
       bridge,
       adapter: runtime,
       runId: graphRunId,
       executionMode: "shell-worktree",
+      authorityMode,
       budget: { maxTasks: 2 },
     });
   const request = (type, payload = {}) => {
@@ -98,7 +99,22 @@ function fixture({ retrySafe = true } = {}) {
       payload,
     });
   };
-  return { queue, lease, bridge, eventStore, adapter, writer, request };
+  const completeLegacy = (result) =>
+    registry.complete("build", {
+      holder: lease.holder,
+      leaseId: lease.leaseId,
+      result,
+    });
+  return {
+    queue,
+    lease,
+    bridge,
+    eventStore,
+    adapter,
+    writer,
+    request,
+    completeLegacy,
+  };
 }
 
 describe("distributed Team canonical Graph writer", () => {
@@ -176,6 +192,34 @@ describe("distributed Team canonical Graph writer", () => {
         code: "CC_TEAM_DISTRIBUTED_GRAPH_RESPONSE_FORGED",
       }),
     );
+  });
+
+  it("observes a legacy settlement in shadow without owning queue state", () => {
+    const value = fixture();
+    const writer = value.writer(value.adapter(), "shadow");
+    writer.open();
+    expect(writer.process(value.request("dispatch"))).toMatchObject({
+      status: "applied",
+      graphAuthority: { authoritySource: "graph_kernel_shadow" },
+    });
+    const result = { terminalEvidence: { outputDigest: OUTPUT_DIGEST } };
+    expect(value.completeLegacy(result)).toEqual({ ok: true });
+    const settlement = value.request(
+      "settle",
+      distributedTeamGraphSettlementPayload({
+        task: value.queue.getTask("build"),
+        status: "completed",
+        result,
+      }),
+    );
+    expect(writer.process(settlement)).toMatchObject({
+      status: "applied",
+      graphAuthority: {
+        authoritySource: "graph_kernel_shadow",
+        nodeStatus: "succeeded",
+      },
+    });
+    expect(value.queue.getTask("build").status).toBe("completed");
   });
 
   it("rejects a stale exact queue lease before mutating Graph", () => {

@@ -4,6 +4,7 @@ import {
   graphDigest,
 } from "../graph-kernel/compiler.js";
 import { createGraphAuthorityBinding } from "../graph-kernel/authority.js";
+import { createRuntimeGraphCutoverAuthorityResolver } from "../graph-kernel/cutover-authority-resolver.js";
 import { GraphEventStore } from "../graph-kernel/event-store.js";
 import { GraphKernel } from "../graph-kernel/runtime.js";
 
@@ -75,12 +76,15 @@ export function schedulerGraphAuthorityMode(env = process.env) {
 
 export class SchedulerOccurrenceGraphAuthority {
   constructor({
-    mode = schedulerGraphAuthorityMode(),
+    mode = undefined,
+    authorityResolver = undefined,
+    optIn = false,
     eventStore = new GraphEventStore(),
     now = Date.now,
     createId = randomUUID,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
+    mode = mode === undefined ? schedulerGraphAuthorityMode() : mode;
     if (!["legacy", "shadow", "canonical"].includes(mode)) {
       throw graphError(
         "CC_GRAPH_AUTHORITY_MODE_INVALID",
@@ -88,6 +92,14 @@ export class SchedulerOccurrenceGraphAuthority {
       );
     }
     this.mode = mode;
+    this.authorityResolver =
+      authorityResolver ||
+      createRuntimeGraphCutoverAuthorityResolver({
+        surface: "scheduler",
+        entryId: "cli-scheduler",
+        fallbackMode: mode,
+      });
+    this.optIn = optIn === true;
     this.eventStore = eventStore;
     this.resultStore = eventStore.rolloutStore;
     this.now = now;
@@ -95,6 +107,21 @@ export class SchedulerOccurrenceGraphAuthority {
     this.writerLeaseTtlMs = writerLeaseTtlMs;
     this.active = new Map();
     this.comparisons = new Map();
+  }
+
+  _modeFor(runKey) {
+    const resolved =
+      typeof this.authorityResolver === "function"
+        ? this.authorityResolver({ runKey, optIn: this.optIn })
+        : this.authorityResolver.resolve({ runKey, optIn: this.optIn });
+    const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+    if (!["legacy", "shadow", "canonical"].includes(mode)) {
+      throw graphError(
+        "CC_GRAPH_AUTHORITY_MODE_INVALID",
+        "scheduler Graph authority resolver returned an invalid mode",
+      );
+    }
+    return mode;
   }
 
   runtimeClaims() {
@@ -175,7 +202,6 @@ export class SchedulerOccurrenceGraphAuthority {
   }
 
   begin(context) {
-    if (this.mode === "legacy") return null;
     const runId = id(`scheduler:${context.occurrence.id}`, "scheduler-run");
     const compiled = definitionFor(context);
     let events = [];
@@ -188,9 +214,10 @@ export class SchedulerOccurrenceGraphAuthority {
       .reverse()
       .find((event) => event.payload?.state?.authority)?.payload
       .state.authority;
+    const mode = previous?.authorityMode || this._modeFor(runId);
+    if (mode === "legacy") return null;
     const generation = previous ? Number(previous.authorityGeneration) + 1 : 1;
-    const source =
-      this.mode === "shadow" ? "graph_kernel_shadow" : "graph_kernel";
+    const source = mode === "shadow" ? "graph_kernel_shadow" : "graph_kernel";
     const holder = this._kernel(runId, generation, source);
     let projection;
     if (!events.length) {
@@ -206,19 +233,13 @@ export class SchedulerOccurrenceGraphAuthority {
         },
       });
     } else {
-      if (previous.authorityMode !== this.mode) {
-        throw graphError(
-          "CC_GRAPH_MIGRATION_REQUIRED",
-          "scheduler occurrence authority changed without a migration saga",
-        );
-      }
       const latest = events.at(-1);
       projection = holder.kernel.recoverRun(runId, {
         authority: createGraphAuthorityBinding({
           ...previous,
           logicalRunId: runId,
           originSurface: "scheduler",
-          authorityMode: this.mode,
+          authorityMode: mode,
           authoritySource: source,
           authorityGeneration: generation,
           writerId: holder.writerId,
@@ -248,15 +269,17 @@ export class SchedulerOccurrenceGraphAuthority {
           "scheduler Graph terminal evidence does not match its result receipt",
         );
       }
-      if (this.mode === "shadow") {
+      if (mode === "shadow") {
         this.comparisons.set(context.occurrence.id, {
+          authorityMode: mode,
           outputDigest,
           projection,
         });
       }
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
         projection,
         result: receipt.record,
       });
@@ -307,15 +330,17 @@ export class SchedulerOccurrenceGraphAuthority {
         usage: { turns: 1 },
       });
       projection = holder.kernel.getRun(runId);
-      if (this.mode === "shadow") {
+      if (mode === "shadow") {
         this.comparisons.set(context.occurrence.id, {
+          authorityMode: mode,
           outputDigest: durableResult.outputDigest,
           projection,
         });
       }
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
         projection,
         result: durableResult.record,
       });
@@ -372,30 +397,37 @@ export class SchedulerOccurrenceGraphAuthority {
     });
     this.active.set(context.occurrence.id, {
       runId,
+      authorityMode: mode,
       ...holder,
       attempt,
       effect,
     });
     if (durableResult) {
       const settled = this.settleSuccess(context, durableResult.record);
-      if (this.mode === "shadow") {
+      if (mode === "shadow") {
         this.comparisons.set(context.occurrence.id, {
+          authorityMode: mode,
           outputDigest: durableResult.outputDigest,
           projection: settled,
         });
       }
       return Object.freeze({
         runId,
-        alreadySettled: this.mode === "canonical",
+        authorityMode: mode,
+        alreadySettled: mode === "canonical",
         projection: settled,
         result: durableResult.record,
       });
     }
-    return Object.freeze({ runId, alreadySettled: false, projection });
+    return Object.freeze({
+      runId,
+      authorityMode: mode,
+      alreadySettled: false,
+      projection,
+    });
   }
 
   settleSuccess(context, result) {
-    if (this.mode === "legacy") return null;
     const outputDigest = graphDigest(
       result ?? null,
       "cc.scheduler.adapter-result/v1",
@@ -454,7 +486,6 @@ export class SchedulerOccurrenceGraphAuthority {
   }
 
   settleFailure(context, error) {
-    if (this.mode === "legacy") return null;
     const active = this.active.get(context.occurrence.id);
     if (!active) return null;
     const known = error?.outcomeKnown === true;
