@@ -66,7 +66,7 @@ function registerPhases21to30({
         .catch((e) =>
           logger.warn("[IPC Registry] IPFS init error:", e.message),
         );
-      registerIPFSIPC({ ipfsManager });
+      registerIPFSIPC({ manager: ipfsManager });
       registeredModules.ipfsManager = ipfsManager;
     },
   });

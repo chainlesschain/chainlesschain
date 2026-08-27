@@ -20,6 +20,17 @@ const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const {
+  IPFSBoundaryError,
+  resolveIPFSBoundaries,
+  utf8Bytes,
+  validateBoundedText,
+  validateFilename,
+  serializeMetadata,
+  normalizeContent,
+  resolveReadMaxBytes,
+} = require("./ipfs-boundaries.js");
+const { IPFSContentRuntime } = require("./ipfs-content-runtime.js");
 
 // Lazy-load electron app to support test environments
 let app;
@@ -43,19 +54,29 @@ const WRAPPED_DEK_PREFIX = "cc-ipfs-dek:v1:";
 const DEFAULT_STORAGE_QUOTA_BYTES = 1073741824; // 1GB
 const DEFAULT_GATEWAY_URL = "https://ipfs.io";
 const DEFAULT_EXTERNAL_API_URL = "http://127.0.0.1:5001";
+const ENCRYPTION_OVERHEAD_BYTES = 32;
 
 // ============================================================
 // IPFSManager
 // ============================================================
 
 class IPFSManager extends EventEmitter {
-  constructor({ safeStorage = electronSafeStorage } = {}) {
+  constructor({
+    safeStorage = electronSafeStorage,
+    boundaries = {},
+    fileSystem = fs,
+  } = {}) {
     super();
     this.node = null;
     this.unixfs = null;
     this.jsonCodec = null;
     this.database = null;
     this.safeStorage = safeStorage;
+    this.fileSystem = fileSystem;
+    this.boundaries = resolveIPFSBoundaries(boundaries);
+    this.contentRuntime = new IPFSContentRuntime(() => this.boundaries);
+    this._activeReads = this.contentRuntime.activeReads;
+    this._activeWrites = this.contentRuntime.activeWrites;
     this.initialized = false;
     this.mode = "embedded";
     this.config = {
@@ -76,16 +97,24 @@ class IPFSManager extends EventEmitter {
    * Initialize the IPFS manager with dependencies
    * @param {Object} dependencies - { database, config }
    */
-  async initialize(dependencies) {
+  async initialize(dependencies = {}) {
     if (this.initialized) {
       logger.info("[IPFS] Manager already initialized");
       return;
     }
 
-    this.database = dependencies.database;
+    this.database = dependencies.database || null;
 
+    let configuredLimits = dependencies.boundaries;
     if (dependencies.config) {
-      Object.assign(this.config, dependencies.config);
+      const { limits, ...configOverrides } = dependencies.config;
+      Object.assign(this.config, configOverrides);
+      if (limits !== undefined) {
+        configuredLimits = limits;
+      }
+    }
+    if (configuredLimits !== undefined) {
+      this.boundaries = resolveIPFSBoundaries(configuredLimits);
     }
 
     // Set repo path
@@ -97,7 +126,7 @@ class IPFSManager extends EventEmitter {
     );
 
     // Ensure directory exists
-    fs.mkdirSync(this.config.repoPath, { recursive: true });
+    this.fileSystem.mkdirSync(this.config.repoPath, { recursive: true });
 
     // Ensure database tables exist
     this._ensureTables();
@@ -251,6 +280,45 @@ class IPFSManager extends EventEmitter {
     }
   }
 
+  _validateBoundedText(
+    value,
+    label,
+    { required = true, maxBytes = this.boundaries.maxIdentifierBytes } = {},
+  ) {
+    return validateBoundedText(this.boundaries, value, label, {
+      required,
+      maxBytes,
+    });
+  }
+
+  _validateFilename(filename) {
+    return validateFilename(this.boundaries, filename);
+  }
+
+  _serializeMetadata(metadata) {
+    return serializeMetadata(this.boundaries, metadata);
+  }
+
+  _normalizeContent(content) {
+    return normalizeContent(this.boundaries, content);
+  }
+
+  _resolveReadMaxBytes(requestedMaxBytes) {
+    return resolveReadMaxBytes(this.boundaries, requestedMaxBytes);
+  }
+
+  _acquireWrite() {
+    return this.contentRuntime.acquireWrite();
+  }
+
+  _assertWriteGeneration(token) {
+    this.contentRuntime.assertWriteActive(token);
+  }
+
+  async _readFromUnixfs(cid, maxStoredBytes) {
+    return this.contentRuntime.read(this.unixfs, cid, maxStoredBytes);
+  }
+
   /**
    * Start the IPFS node (embedded Helia or connect to external Kubo)
    */
@@ -271,8 +339,8 @@ class IPFSManager extends EventEmitter {
         const blocksPath = path.join(this.config.repoPath, "blocks");
         const dataPath = path.join(this.config.repoPath, "data");
 
-        fs.mkdirSync(blocksPath, { recursive: true });
-        fs.mkdirSync(dataPath, { recursive: true });
+        this.fileSystem.mkdirSync(blocksPath, { recursive: true });
+        this.fileSystem.mkdirSync(dataPath, { recursive: true });
 
         const blockstore = new FsBlockstore(blocksPath);
         const datastore = new LevelDatastore(dataPath);
@@ -308,6 +376,7 @@ class IPFSManager extends EventEmitter {
    * Stop the IPFS node
    */
   async stopNode() {
+    this.contentRuntime.stop("IPFS node stopped during read");
     if (this.node) {
       try {
         await this.node.stop();
@@ -332,16 +401,32 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
+    const writeToken = this._acquireWrite();
+    try {
+      return await this._addContentAdmitted(content, options, writeToken);
+    } finally {
+      this.contentRuntime.releaseWrite(writeToken);
+    }
+  }
+
+  async _addContentAdmitted(content, options, writeToken) {
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        "options must be an object",
+      );
+    }
+
     const {
       encrypt = this.config.encryptionEnabled,
       metadata = {},
       filename,
     } = options;
 
-    let data = Buffer.isBuffer(content)
-      ? content
-      : Buffer.from(content, "utf-8");
+    let data = this._normalizeContent(content);
     const originalSize = data.length;
+    const safeFilename = this._validateFilename(filename);
+    const serializedMetadata = this._serializeMetadata(metadata);
 
     // Check storage quota
     const currentUsage = this.stats.totalSize || 0;
@@ -367,6 +452,7 @@ class IPFSManager extends EventEmitter {
 
     // Add via unixfs
     const cid = await this.unixfs.addBytes(new Uint8Array(data));
+    this._assertWriteGeneration(writeToken);
     const cidString = cid.toString();
 
     // Pin the content
@@ -379,6 +465,7 @@ class IPFSManager extends EventEmitter {
         error: pinError.message,
       });
     }
+    this._assertWriteGeneration(writeToken);
 
     // Record in database
     const id = uuidv4();
@@ -390,11 +477,11 @@ class IPFSManager extends EventEmitter {
           [
             id,
             cidString,
-            filename || null,
+            safeFilename,
             originalSize,
             encrypted ? 1 : 0,
             wrappedEncryptionKey,
-            JSON.stringify(metadata),
+            serializedMetadata,
           ],
         );
       } catch (dbError) {
@@ -409,13 +496,14 @@ class IPFSManager extends EventEmitter {
       }
     }
 
+    this._assertWriteGeneration(writeToken);
     await this._updateStats();
 
     logger.info("[IPFS] Content added", {
       cid: cidString,
       size: originalSize,
       encrypted,
-      filename,
+      filename: safeFilename,
     });
 
     return {
@@ -435,11 +523,29 @@ class IPFSManager extends EventEmitter {
   async addFile(filePath, options = {}) {
     this._ensureInitialized();
 
-    if (!fs.existsSync(filePath)) {
+    this._validateBoundedText(filePath, "filePath", {
+      maxBytes: this.boundaries.maxPathBytes,
+    });
+    if (!this.fileSystem.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
+    const stat = this.fileSystem.statSync(filePath);
+    if (!stat.isFile()) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        "filePath must reference a regular file",
+      );
+    }
+    if (stat.size > this.boundaries.maxContentBytes) {
+      throw new IPFSBoundaryError(
+        "PAYLOAD_TOO_LARGE",
+        `file exceeds ${this.boundaries.maxContentBytes} bytes`,
+        { limitBytes: this.boundaries.maxContentBytes },
+      );
+    }
+
+    const fileBuffer = this.fileSystem.readFileSync(filePath);
     const filename = options.filename || path.basename(filePath);
 
     return this.addContent(fileBuffer, {
@@ -458,15 +564,17 @@ class IPFSManager extends EventEmitter {
     this._ensureInitialized();
     this._ensureNode();
 
+    this._validateBoundedText(cidString, "cid");
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        "options must be an object",
+      );
+    }
+    const maxBytes = this._resolveReadMaxBytes(options.maxBytes);
+
     const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
-
-    // Collect all bytes from the async iterable
-    const chunks = [];
-    for await (const chunk of this.unixfs.cat(cid)) {
-      chunks.push(chunk);
-    }
-    let data = Buffer.concat(chunks.map((c) => Buffer.from(c)));
 
     // Check database for encryption info and metadata
     let metadata = {};
@@ -476,12 +584,22 @@ class IPFSManager extends EventEmitter {
     if (this.database) {
       try {
         const row = this.database.get(
-          "SELECT encryption_key, encrypted, metadata FROM ipfs_content WHERE cid = ?",
-          [cidString],
+          `SELECT encryption_key, encrypted,
+                  CASE WHEN length(CAST(metadata AS BLOB)) <= ? THEN metadata ELSE NULL END AS metadata,
+                  length(CAST(metadata AS BLOB)) AS metadata_bytes
+             FROM ipfs_content WHERE cid = ?`,
+          [this.boundaries.maxMetadataBytes, cidString],
         );
         if (row) {
           isEncrypted = row.encrypted === 1;
           encryptionKey = row.encryption_key;
+          if (row.metadata_bytes > this.boundaries.maxMetadataBytes) {
+            throw new IPFSBoundaryError(
+              "PAYLOAD_TOO_LARGE",
+              `stored metadata exceeds ${this.boundaries.maxMetadataBytes} bytes`,
+              { limitBytes: this.boundaries.maxMetadataBytes },
+            );
+          }
           try {
             metadata = row.metadata ? JSON.parse(row.metadata) : {};
           } catch (_e) {
@@ -489,21 +607,47 @@ class IPFSManager extends EventEmitter {
           }
         }
       } catch (dbError) {
+        if (dbError instanceof IPFSBoundaryError) throw dbError;
         logger.warn("[IPFS] Could not fetch content metadata from database", {
           error: dbError.message,
         });
       }
     }
 
+    const maxStoredBytes =
+      maxBytes + (isEncrypted ? ENCRYPTION_OVERHEAD_BYTES : 0);
+    let data = await this._readFromUnixfs(cid, maxStoredBytes);
+
     // Decrypt if needed
     if (isEncrypted) {
       try {
         if (!encryptionKey) throw new Error("IPFS wrapped data key is missing");
+        if (utf8Bytes(encryptionKey) > this.boundaries.maxIdentifierBytes) {
+          throw new IPFSBoundaryError(
+            "PAYLOAD_TOO_LARGE",
+            "IPFS wrapped data key exceeds the configured limit",
+            { limitBytes: this.boundaries.maxIdentifierBytes },
+          );
+        }
         data = this._decrypt(data, this._unwrapEncryptionKey(encryptionKey));
+        if (data.length > maxBytes) {
+          throw new IPFSBoundaryError(
+            "PAYLOAD_TOO_LARGE",
+            `decrypted content exceeds ${maxBytes} bytes`,
+            { limitBytes: maxBytes },
+          );
+        }
         logger.info("[IPFS] Content decrypted successfully");
       } catch (decryptError) {
+        if (decryptError instanceof IPFSBoundaryError) throw decryptError;
         throw new Error(`Failed to decrypt content: ${decryptError.message}`);
       }
+    } else if (data.length > maxBytes) {
+      throw new IPFSBoundaryError(
+        "PAYLOAD_TOO_LARGE",
+        `IPFS content exceeds ${maxBytes} bytes`,
+        { limitBytes: maxBytes },
+      );
     }
 
     logger.info("[IPFS] Content retrieved", {
@@ -522,14 +666,17 @@ class IPFSManager extends EventEmitter {
    */
   async getFile(cidString, outputPath) {
     this._ensureInitialized();
+    this._validateBoundedText(outputPath, "outputPath", {
+      maxBytes: this.boundaries.maxPathBytes,
+    });
 
     const { content } = await this.getContent(cidString);
 
     // Ensure output directory exists
     const outputDir = path.dirname(outputPath);
-    fs.mkdirSync(outputDir, { recursive: true });
+    this.fileSystem.mkdirSync(outputDir, { recursive: true });
 
-    fs.writeFileSync(outputPath, content);
+    this.fileSystem.writeFileSync(outputPath, content);
 
     logger.info("[IPFS] File written", {
       cid: cidString,
@@ -548,6 +695,7 @@ class IPFSManager extends EventEmitter {
   async pin(cidString) {
     this._ensureInitialized();
     this._ensureNode();
+    this._validateBoundedText(cidString, "cid");
 
     const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
@@ -589,6 +737,7 @@ class IPFSManager extends EventEmitter {
   async unpin(cidString) {
     this._ensureInitialized();
     this._ensureNode();
+    this._validateBoundedText(cidString, "cid");
 
     const { CID } = await import("multiformats/cid");
     const cid = CID.parse(cidString);
@@ -632,7 +781,34 @@ class IPFSManager extends EventEmitter {
   async listPins(options = {}) {
     this._ensureInitialized();
 
-    const { offset = 0, limit = 50, sortBy = "created_at" } = options;
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        "list options must be an object",
+      );
+    }
+    const {
+      offset = 0,
+      limit = this.boundaries.listLimit,
+      sortBy = "created_at",
+    } = options;
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        "offset must be a non-negative safe integer",
+      );
+    }
+    if (
+      !Number.isSafeInteger(limit) ||
+      limit <= 0 ||
+      limit > this.boundaries.maxListLimit
+    ) {
+      throw new IPFSBoundaryError(
+        "INVALID_ARGUMENT",
+        `limit must be between 1 and ${this.boundaries.maxListLimit}`,
+        { maxLimit: this.boundaries.maxListLimit },
+      );
+    }
 
     // Validate sortBy to prevent SQL injection
     const allowedSortColumns = [
@@ -657,12 +833,15 @@ class IPFSManager extends EventEmitter {
       const total = totalRow?.count || 0;
 
       const rows = this.database.all(
-        `SELECT id, cid, filename, size, pinned, encrypted, knowledge_id, metadata, created_at, updated_at
+        `SELECT id, cid, filename, size, pinned, encrypted, knowledge_id,
+                CASE WHEN length(CAST(metadata AS BLOB)) <= ? THEN metadata ELSE NULL END AS metadata,
+                length(CAST(metadata AS BLOB)) AS metadata_bytes,
+                created_at, updated_at
          FROM ipfs_content
          WHERE pinned = 1
          ORDER BY ${safeSortBy} DESC
          LIMIT ? OFFSET ?`,
-        [limit, offset],
+        [this.boundaries.maxMetadataBytes, limit, offset],
       );
 
       const items = (rows || []).map((row) => ({
@@ -735,16 +914,13 @@ class IPFSManager extends EventEmitter {
     // Clean up unpinned content from DB
     if (this.database) {
       try {
-        const unpinnedRows = this.database.all(
-          "SELECT id, cid, size FROM ipfs_content WHERE pinned = 0",
+        const unpinned = this.database.get(
+          `SELECT COUNT(*) AS count, COALESCE(SUM(size), 0) AS totalSize
+             FROM ipfs_content WHERE pinned = 0`,
         );
-
-        if (unpinnedRows && unpinnedRows.length > 0) {
-          for (const row of unpinnedRows) {
-            freedBytes += row.size || 0;
-            removedItems++;
-          }
-
+        removedItems = Number(unpinned?.count) || 0;
+        freedBytes = Number(unpinned?.totalSize) || 0;
+        if (removedItems > 0) {
           this.database.run("DELETE FROM ipfs_content WHERE pinned = 0");
           logger.info("[IPFS] Removed unpinned content from database", {
             removedItems,
@@ -773,7 +949,7 @@ class IPFSManager extends EventEmitter {
    * @param {number} quotaBytes - New quota in bytes
    */
   async setQuota(quotaBytes) {
-    if (typeof quotaBytes !== "number" || quotaBytes <= 0) {
+    if (!Number.isSafeInteger(quotaBytes) || quotaBytes <= 0) {
       throw new Error("Quota must be a positive number");
     }
 
@@ -791,9 +967,7 @@ class IPFSManager extends EventEmitter {
   async addKnowledgeAttachment(knowledgeId, content, metadata = {}) {
     this._ensureInitialized();
 
-    if (!knowledgeId) {
-      throw new Error("knowledgeId is required");
-    }
+    this._validateBoundedText(knowledgeId, "knowledgeId");
 
     const result = await this.addContent(content, {
       metadata: { ...metadata, knowledgeId },
@@ -830,12 +1004,14 @@ class IPFSManager extends EventEmitter {
    * @param {string} cidString - The CID string
    * @returns {{ content: Buffer, metadata: Object }}
    */
-  async getKnowledgeAttachment(knowledgeId, cidString) {
+  async getKnowledgeAttachment(knowledgeId, cidString, options = {}) {
     this._ensureInitialized();
 
     if (!knowledgeId || !cidString) {
       throw new Error("Both knowledgeId and cid are required");
     }
+    this._validateBoundedText(knowledgeId, "knowledgeId");
+    this._validateBoundedText(cidString, "cid");
 
     // Verify the CID is linked to the given knowledge item
     if (this.database) {
@@ -850,7 +1026,7 @@ class IPFSManager extends EventEmitter {
       }
     }
 
-    const result = await this.getContent(cidString);
+    const result = await this.getContent(cidString, options);
 
     logger.info("[IPFS] Knowledge attachment retrieved", {
       knowledgeId,
@@ -930,6 +1106,8 @@ class IPFSManager extends EventEmitter {
       mode: this.mode,
       peerId: this.node?.libp2p?.peerId?.toString() || null,
       peerCount: this.stats.peerCount,
+      activeReads: this._activeReads.size,
+      activeWrites: this._activeWrites.size,
     };
   }
 

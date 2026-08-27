@@ -214,6 +214,26 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     ),
   );
 
+  const ipfsSelection = selector.createSelection([
+    "desktop-app-vue/src/main/ipc/phases/phase-21-30-enterprise.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-boundaries.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-content-runtime.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-manager.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-ipc.js",
+  ]);
+  for (const relatedTest of [
+    "tests/unit/ipfs/ipfs-production-wiring.test.js",
+    "src/main/ipfs/__tests__/ipfs-boundaries.test.js",
+    "src/main/ipfs/__tests__/ipfs-content-runtime.test.js",
+    "src/main/ipfs/__tests__/ipfs-manager.test.js",
+    "src/main/ipfs/__tests__/ipfs-ipc.test.js",
+  ]) {
+    assert.ok(
+      ipfsSelection.selectedTests.includes(relatedTest),
+      `missing IPFS contract ${relatedTest}`,
+    );
+  }
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });

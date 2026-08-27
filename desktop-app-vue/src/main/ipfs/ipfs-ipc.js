@@ -32,6 +32,83 @@
 
 const { logger } = require("../utils/logger.js");
 const { getIPFSManager } = require("./ipfs-manager.js");
+const {
+  DEFAULT_IPFS_BOUNDARIES,
+  IPFSBoundaryError,
+} = require("./ipfs-boundaries.js");
+
+function errorResponse(error) {
+  const response = {
+    success: false,
+    error: error?.message || "IPFS operation failed",
+  };
+  if (typeof error?.code === "string") response.code = error.code;
+  if (Number.isSafeInteger(error?.retryAfterMs)) {
+    response.retryAfterMs = error.retryAfterMs;
+  }
+  if (typeof error?.reason === "string") response.reason = error.reason;
+  return response;
+}
+
+function getIpcContentLimit(manager) {
+  return (
+    manager.boundaries?.maxIpcContentBytes ||
+    DEFAULT_IPFS_BOUNDARIES.maxIpcContentBytes
+  );
+}
+
+function requirePayload(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new IPFSBoundaryError(
+      "INVALID_ARGUMENT",
+      "IPC payload must be an object",
+    );
+  }
+  return payload;
+}
+
+function boundedReadOptions(manager, options = {}) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw new IPFSBoundaryError(
+      "INVALID_ARGUMENT",
+      "options must be an object",
+    );
+  }
+  const limit = getIpcContentLimit(manager);
+  const requested = options.maxBytes;
+  if (
+    requested !== undefined &&
+    (!Number.isSafeInteger(requested) || requested <= 0 || requested > limit)
+  ) {
+    throw new IPFSBoundaryError(
+      "INVALID_ARGUMENT",
+      `IPC maxBytes must be between 1 and ${limit}`,
+      { limitBytes: limit },
+    );
+  }
+  return { ...options, maxBytes: requested ?? limit };
+}
+
+function encodeContentForIPC(manager, content) {
+  if (!Buffer.isBuffer(content) && !ArrayBuffer.isView(content)) {
+    throw new IPFSBoundaryError(
+      "INVALID_RESPONSE",
+      "IPFS manager returned non-binary content",
+    );
+  }
+  const limit = getIpcContentLimit(manager);
+  if (content.byteLength > limit) {
+    throw new IPFSBoundaryError(
+      "PAYLOAD_TOO_LARGE",
+      `IPC content exceeds ${limit} bytes`,
+      { limitBytes: limit },
+    );
+  }
+  const buffer = Buffer.isBuffer(content)
+    ? content
+    : Buffer.from(content.buffer, content.byteOffset, content.byteLength);
+  return buffer.toString("base64");
+}
 
 /**
  * Register all IPFS IPC handlers
@@ -113,60 +190,67 @@ function registerIPFSIPC(deps = {}) {
   // ----------------------------------------------------------
   // 5. ipfs:add-content
   // ----------------------------------------------------------
-  ipcMain.handle("ipfs:add-content", async (_event, { content, options }) => {
+  ipcMain.handle("ipfs:add-content", async (_event, payload) => {
     try {
+      const { content, options } = requirePayload(payload);
       const result = await manager.addContent(content, options || {});
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPFS-IPC] ipfs:add-content error:", error.message);
-      return { success: false, error: error.message };
+      return errorResponse(error);
     }
   });
 
   // ----------------------------------------------------------
   // 6. ipfs:add-file
   // ----------------------------------------------------------
-  ipcMain.handle("ipfs:add-file", async (_event, { filePath, options }) => {
+  ipcMain.handle("ipfs:add-file", async (_event, payload) => {
     try {
+      const { filePath, options } = requirePayload(payload);
       const result = await manager.addFile(filePath, options || {});
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPFS-IPC] ipfs:add-file error:", error.message);
-      return { success: false, error: error.message };
+      return errorResponse(error);
     }
   });
 
   // ----------------------------------------------------------
   // 7. ipfs:get-content
   // ----------------------------------------------------------
-  ipcMain.handle("ipfs:get-content", async (_event, { cid, options }) => {
+  ipcMain.handle("ipfs:get-content", async (_event, payload) => {
     try {
-      const result = await manager.getContent(cid, options || {});
+      const { cid, options } = requirePayload(payload);
+      const result = await manager.getContent(
+        cid,
+        boundedReadOptions(manager, options || {}),
+      );
       return {
         success: true,
         data: {
           // Convert Buffer to base64 for IPC transfer
-          content: result.content.toString("base64"),
+          content: encodeContentForIPC(manager, result.content),
           contentEncoding: "base64",
           metadata: result.metadata,
         },
       };
     } catch (error) {
       logger.error("[IPFS-IPC] ipfs:get-content error:", error.message);
-      return { success: false, error: error.message };
+      return errorResponse(error);
     }
   });
 
   // ----------------------------------------------------------
   // 8. ipfs:get-file
   // ----------------------------------------------------------
-  ipcMain.handle("ipfs:get-file", async (_event, { cid, outputPath }) => {
+  ipcMain.handle("ipfs:get-file", async (_event, payload) => {
     try {
+      const { cid, outputPath } = requirePayload(payload);
       const result = await manager.getFile(cid, outputPath);
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPFS-IPC] ipfs:get-file error:", error.message);
-      return { success: false, error: error.message };
+      return errorResponse(error);
     }
   });
 
@@ -205,7 +289,7 @@ function registerIPFSIPC(deps = {}) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPFS-IPC] ipfs:list-pins error:", error.message);
-      return { success: false, error: error.message };
+      return errorResponse(error);
     }
   });
 
@@ -270,51 +354,51 @@ function registerIPFSIPC(deps = {}) {
   // ----------------------------------------------------------
   // 16. ipfs:add-knowledge-attachment
   // ----------------------------------------------------------
-  ipcMain.handle(
-    "ipfs:add-knowledge-attachment",
-    async (_event, { knowledgeId, content, metadata }) => {
-      try {
-        const result = await manager.addKnowledgeAttachment(
-          knowledgeId,
-          content,
-          metadata || {},
-        );
-        return { success: true, data: result };
-      } catch (error) {
-        logger.error(
-          "[IPFS-IPC] ipfs:add-knowledge-attachment error:",
-          error.message,
-        );
-        return { success: false, error: error.message };
-      }
-    },
-  );
+  ipcMain.handle("ipfs:add-knowledge-attachment", async (_event, payload) => {
+    try {
+      const { knowledgeId, content, metadata } = requirePayload(payload);
+      const result = await manager.addKnowledgeAttachment(
+        knowledgeId,
+        content,
+        metadata || {},
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error(
+        "[IPFS-IPC] ipfs:add-knowledge-attachment error:",
+        error.message,
+      );
+      return errorResponse(error);
+    }
+  });
 
   // ----------------------------------------------------------
   // 17. ipfs:get-knowledge-attachment
   // ----------------------------------------------------------
-  ipcMain.handle(
-    "ipfs:get-knowledge-attachment",
-    async (_event, { knowledgeId, cid }) => {
-      try {
-        const result = await manager.getKnowledgeAttachment(knowledgeId, cid);
-        return {
-          success: true,
-          data: {
-            content: result.content.toString("base64"),
-            contentEncoding: "base64",
-            metadata: result.metadata,
-          },
-        };
-      } catch (error) {
-        logger.error(
-          "[IPFS-IPC] ipfs:get-knowledge-attachment error:",
-          error.message,
-        );
-        return { success: false, error: error.message };
-      }
-    },
-  );
+  ipcMain.handle("ipfs:get-knowledge-attachment", async (_event, payload) => {
+    try {
+      const { knowledgeId, cid } = requirePayload(payload);
+      const result = await manager.getKnowledgeAttachment(
+        knowledgeId,
+        cid,
+        boundedReadOptions(manager),
+      );
+      return {
+        success: true,
+        data: {
+          content: encodeContentForIPC(manager, result.content),
+          contentEncoding: "base64",
+          metadata: result.metadata,
+        },
+      };
+    } catch (error) {
+      logger.error(
+        "[IPFS-IPC] ipfs:get-knowledge-attachment error:",
+        error.message,
+      );
+      return errorResponse(error);
+    }
+  });
 
   // ----------------------------------------------------------
   // 18. ipfs:get-config
@@ -329,6 +413,7 @@ function registerIPFSIPC(deps = {}) {
           externalApiUrl: manager.config.externalApiUrl,
           encryptionEnabled: manager.config.encryptionEnabled,
           mode: manager.mode,
+          limits: manager.boundaries || DEFAULT_IPFS_BOUNDARIES,
         },
       };
     } catch (error) {
