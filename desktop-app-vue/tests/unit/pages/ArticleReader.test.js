@@ -116,6 +116,40 @@ describe("ArticleReader", () => {
           invoke: vi.fn(),
         },
       },
+      electronAPI: {
+        rss: {
+          getFeed: (feedId) =>
+            global.window.electron.ipcRenderer.invoke("rss:get-feed", feedId),
+          getItems: (options) =>
+            global.window.electron.ipcRenderer.invoke("rss:get-items", options),
+          markAsRead: (itemId) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:mark-as-read",
+              itemId,
+            ),
+          markAsUnread: (itemId) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:mark-as-unread",
+              itemId,
+            ),
+          markAsStarred: (itemId, starred) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:mark-as-starred",
+              itemId,
+              starred,
+            ),
+          archiveItem: (itemId) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:archive-item",
+              itemId,
+            ),
+          saveToKnowledge: (itemId) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:save-to-knowledge",
+              itemId,
+            ),
+        },
+      },
       open: vi.fn(),
     };
 

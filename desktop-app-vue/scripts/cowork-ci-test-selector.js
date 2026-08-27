@@ -61,21 +61,36 @@ const FULL_UNIT_TRIGGERS = new Set([
   "vitest.config.mjs",
   "vitest.config.ts",
 ]);
-const SOURCE_CONTRACT_TEST_MAPPINGS = new Map(
+const CONTENT_INTEGRATION_WIRING_TEST =
+  "tests/unit/api/rss-email-production-wiring.test.js";
+const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
   [
-    "src/main/index.js",
-    "src/preload/index.js",
     "src/renderer/pages/email/AccountManager.vue",
+    [
+      CONTENT_INTEGRATION_WIRING_TEST,
+      "tests/unit/pages/AccountManager.test.js",
+    ],
+  ],
+  [
     "src/renderer/pages/email/EmailComposer.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/EmailComposer.test.js"],
+  ],
+  [
     "src/renderer/pages/email/EmailReader.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/EmailReader.test.js"],
+  ],
+  [
     "src/renderer/pages/rss/ArticleReader.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/ArticleReader.test.js"],
+  ],
+  [
     "src/renderer/pages/rss/FeedList.vue",
-    "src/renderer/types/electron.d.ts",
-  ].map((sourceFile) => [
-    sourceFile,
-    ["tests/unit/api/rss-email-production-wiring.test.js"],
-  ]),
-);
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/FeedList.test.js"],
+  ],
+  ["src/renderer/types/electron.d.ts", [CONTENT_INTEGRATION_WIRING_TEST]],
+]);
 
 class SelectionError extends Error {
   constructor(code, message, details = {}) {

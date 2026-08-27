@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const EmailIPCHandler = require("../../../src/main/api/email-ipc.js");
@@ -200,12 +201,16 @@ describe("Email IPC resource boundaries", () => {
   });
 
   it("uses a main-owned save dialog instead of a renderer path", async () => {
+    const appDataPath = path.join(process.cwd(), "bounded-app-data");
+    const attachmentPath = path.join(appDataPath, "attachments", "report.pdf");
+    const destinationPath = path.join(process.cwd(), "chosen", "report.pdf");
     const copyFile = vi.fn().mockResolvedValue(undefined);
     const showSaveDialog = vi.fn().mockResolvedValue({
       canceled: false,
-      filePath: "C:\\chosen\\report.pdf",
+      filePath: destinationPath,
     });
     const { handler } = createHandler({
+      appDataPath,
       fs: {
         copyFile,
         mkdir: vi.fn(),
@@ -217,37 +222,36 @@ describe("Email IPC resource boundaries", () => {
         get: vi.fn(() => ({
           id: "attachment-1",
           filename: "report.pdf",
-          file_path: "C:\\bounded-app-data\\attachments\\report.pdf",
+          file_path: attachmentPath,
         })),
       }),
     });
 
     await expect(handler.downloadAttachment("attachment-1")).resolves.toEqual({
       success: true,
-      filePath: "C:\\chosen\\report.pdf",
+      filePath: destinationPath,
     });
     expect(showSaveDialog).toHaveBeenCalledWith(
       expect.objectContaining({ defaultPath: "report.pdf" }),
     );
-    expect(copyFile).toHaveBeenCalledWith(
-      "C:\\bounded-app-data\\attachments\\report.pdf",
-      "C:\\chosen\\report.pdf",
-    );
+    expect(copyFile).toHaveBeenCalledWith(attachmentPath, destinationPath);
     handler.cleanup();
   });
 
   it("rejects a database attachment path outside the managed root", async () => {
+    const appDataPath = path.join(process.cwd(), "bounded-app-data");
+    const attachmentRoot = path.join(appDataPath, "attachments");
+    const outsidePath = path.join(process.cwd(), "outside", "secret.txt");
     const copyFile = vi.fn();
     const showSaveDialog = vi.fn();
     const { handler } = createHandler({
+      appDataPath,
       fs: {
         copyFile,
         mkdir: vi.fn(),
         writeFile: vi.fn(),
         realpath: vi.fn(async (value) =>
-          value.endsWith("attachments")
-            ? "C:\\bounded-app-data\\attachments"
-            : "C:\\outside\\secret.txt",
+          value.endsWith("attachments") ? attachmentRoot : outsidePath,
         ),
       },
       showSaveDialog,
@@ -255,7 +259,7 @@ describe("Email IPC resource boundaries", () => {
         get: vi.fn(() => ({
           id: "attachment-1",
           filename: "secret.txt",
-          file_path: "C:\\outside\\secret.txt",
+          file_path: outsidePath,
         })),
       }),
     });

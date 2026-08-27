@@ -189,6 +189,16 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
       "tests/unit/api/rss-email-production-wiring.test.js",
     ),
   );
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/pages/EmailReader.test.js",
+    ),
+  );
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/pages/FeedList.test.js",
+    ),
+  );
   assert.equal(contentIntegrationSelection.mode, "targeted");
 
   const command = selector.commandForSelection(selection, {

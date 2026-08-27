@@ -70,6 +70,51 @@ describe("FeedList", () => {
           invoke: vi.fn(),
         },
       },
+      electronAPI: {
+        rss: {
+          getFeeds: () =>
+            global.window.electron.ipcRenderer.invoke("rss:get-feeds"),
+          getCategories: () =>
+            global.window.electron.ipcRenderer.invoke("rss:get-categories"),
+          validateFeed: (feedUrl) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:validate-feed",
+              feedUrl,
+            ),
+          updateFeed: (feedId, updates) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:update-feed",
+              feedId,
+              updates,
+            ),
+          addFeed: (feedUrl, options) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:add-feed",
+              feedUrl,
+              options,
+            ),
+          fetchFeed: (feedId) =>
+            global.window.electron.ipcRenderer.invoke("rss:fetch-feed", feedId),
+          fetchAllFeeds: () =>
+            global.window.electron.ipcRenderer.invoke("rss:fetch-all-feeds"),
+          removeFeed: (feedId) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:remove-feed",
+              feedId,
+            ),
+          discoverFeeds: (websiteUrl) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:discover-feeds",
+              websiteUrl,
+            ),
+          addCategory: (name, options) =>
+            global.window.electron.ipcRenderer.invoke(
+              "rss:add-category",
+              name,
+              options,
+            ),
+        },
+      },
     };
 
     // Mock feeds data
