@@ -21,9 +21,12 @@ const CRITICAL_TESTS = [
   "tests/unit/did/did-manager.test.js",
 ];
 const CI_GATE_INTEGRITY_TEST = "scripts/__tests__/ci-gate-integrity.test.mjs";
+const OPEN_SOURCE_GAP_AUDIT =
+  "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
 const CI_GATE_INTEGRITY_TRIGGERS = new Set([
   ".github/workflows/test.yml",
   "desktop-app-vue/scripts/cowork-ci-test-selector.js",
+  OPEN_SOURCE_GAP_AUDIT,
   CI_GATE_INTEGRITY_TEST,
 ]);
 const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
@@ -67,6 +70,13 @@ const STANDALONE_SIGNALING_BOUNDS_TEST =
   "tests/unit/p2p/standalone-signaling-server-bounds.test.js";
 const IPFS_PRODUCTION_WIRING_TEST =
   "tests/unit/ipfs/ipfs-production-wiring.test.js";
+const IPFS_TRANSPORT_CONTRACT_TESTS = [
+  IPFS_PRODUCTION_WIRING_TEST,
+  "src/main/ipfs/__tests__/ipfs-boundaries.test.js",
+  "src/main/ipfs/__tests__/ipfs-content-runtime.test.js",
+  "src/main/ipfs/__tests__/ipfs-manager.test.js",
+  "src/main/ipfs/__tests__/ipfs-ipc.test.js",
+];
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
   ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
@@ -78,6 +88,10 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
   ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  ["src/main/ipfs/ipfs-boundaries.js", IPFS_TRANSPORT_CONTRACT_TESTS],
+  ["src/main/ipfs/ipfs-content-runtime.js", IPFS_TRANSPORT_CONTRACT_TESTS],
+  ["src/main/ipfs/ipfs-manager.js", IPFS_TRANSPORT_CONTRACT_TESTS],
+  ["src/main/ipfs/ipfs-ipc.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   [
     "src/main/ipc/phases/phase-21-30-enterprise.js",
     [IPFS_PRODUCTION_WIRING_TEST],

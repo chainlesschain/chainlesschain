@@ -31,6 +31,10 @@ describe("IPFS boundaries", () => {
   });
 
   it("rejects invalid and above-hard-limit configuration", () => {
+    expect(() => resolveIPFSBoundaries([])).toThrow(/must be an object/);
+    expect(() => resolveIPFSBoundaries({ maxContentByte: 1024 })).toThrow(
+      /Unknown IPFS boundary override.*maxContentByte/,
+    );
     expect(() => resolveIPFSBoundaries({ maxConcurrentReads: 0 })).toThrow(
       IPFSBoundaryError,
     );
