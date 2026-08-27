@@ -536,7 +536,6 @@
             "desktop-app-vue/src/main/ai-engine/cowork/agent-pool.js"
           ],
           "mutationFunctions": [
-            "TeammateTool.constructor",
             "TeammateTool.spawnTeam",
             "TeammateTool.requestJoin",
             "TeammateTool.assignTask",

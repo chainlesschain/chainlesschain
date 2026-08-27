@@ -28,6 +28,7 @@ const { AgentPool } = require("./agent-pool.js");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
 const {
   assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
 } = require("../code-agent/desktop-runtime-authority.js");
 
 /**
@@ -57,7 +58,6 @@ const AgentStatus = {
 class TeammateTool extends EventEmitter {
   constructor(dbOrOptions = {}) {
     super();
-    assertDesktopLegacyMutationAllowed("TeammateTool.constructor");
 
     // 兼容性：检测是否传入的是数据库对象（用于测试）
     let options = {};
@@ -87,6 +87,9 @@ class TeammateTool extends EventEmitter {
       enableLogging: options.enableLogging !== false,
       ...options,
     };
+    this.legacyReadOnly = desktopLegacyRuntimeReadOnly(process.env, {
+      entryId: "desktop-legacy-cowork-team",
+    });
     if (
       !Number.isSafeInteger(this.options.maxMessagesPerTeam) ||
       this.options.maxMessagesPerTeam <= 0
@@ -104,7 +107,10 @@ class TeammateTool extends EventEmitter {
     this.messageQueues = new Map();
 
     // 代理池（可选）
-    this.useAgentPool = options.useAgentPool !== false; // 默认启用
+    // A retired runtime must remain constructible for historical reads. Never
+    // warm an AgentPool in read-only mode because doing so creates live agents.
+    this.useAgentPool =
+      !this.legacyReadOnly && options.useAgentPool !== false; // 默认启用
     if (this.useAgentPool) {
       this.agentPool = new AgentPool({
         minSize: options.agentPoolMinSize || 3,
@@ -121,7 +127,11 @@ class TeammateTool extends EventEmitter {
       this._log("代理池已启用");
     } else {
       this.agentPool = null;
-      this._log("代理池未启用，使用传统代理创建模式");
+      this._log(
+        this.legacyReadOnly
+          ? "旧 Cowork runtime 已进入历史只读模式，代理池未启动"
+          : "代理池未启用，使用传统代理创建模式",
+      );
     }
 
     this._log("TeammateTool 已初始化");

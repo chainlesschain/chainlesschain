@@ -261,9 +261,43 @@ describe("Desktop Graph authority retirement", () => {
       expected,
     );
     await expect(new RollbackManager().rollback({})).rejects.toEqual(expected);
-    expect(() => new TeammateTool({ useAgentPool: false })).toThrowError(
-      expected,
-    );
+    const historicalDb = {
+      run: () => {
+        throw new Error("historical read attempted a write");
+      },
+      get: async (sql, params) => {
+        expect(sql).toContain("SELECT * FROM cowork_tasks");
+        expect(params).toEqual(["historical-task"]);
+        return {
+          id: "historical-task",
+          team_id: "historical-team",
+          description: "completed before cutover",
+          status: "completed",
+          priority: 1,
+          assigned_to: "historical-agent",
+          result: JSON.stringify({ ok: true }),
+          created_at: 1,
+          completed_at: 2,
+          metadata: JSON.stringify({ source: "legacy" }),
+        };
+      },
+    };
+    const historicalTeammateTool = new TeammateTool(historicalDb);
+    expect(historicalTeammateTool.legacyReadOnly).toBe(true);
+    expect(historicalTeammateTool.getAgentPoolStatus()).toEqual({
+      enabled: false,
+    });
+    await expect(
+      historicalTeammateTool.getTask("historical-task"),
+    ).resolves.toMatchObject({
+      id: "historical-task",
+      status: "completed",
+      result: { ok: true },
+      metadata: { source: "legacy" },
+    });
+    await expect(
+      historicalTeammateTool.spawnTeam("must-not-write"),
+    ).rejects.toEqual(expected);
   });
 
   it("keeps Browser workflow non-durable and disabled by default", async () => {
