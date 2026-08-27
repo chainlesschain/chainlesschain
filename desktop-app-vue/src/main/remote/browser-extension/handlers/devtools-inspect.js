@@ -25,6 +25,10 @@
 /* global chrome, document, getComputedStyle, parseFloat, parseInt, Math, performance, Date */
 
 import { ensureDebuggerAttached } from "./_shared.js";
+import {
+  HeapSnapshotBoundary,
+  utf8ByteLength,
+} from "./heap-snapshot-boundary.js";
 
 // ---------- Animation Control ----------
 
@@ -579,6 +583,7 @@ export function getCSSCoverageResults(tabId) {
 // ---------- Memory Profiling ----------
 
 const memoryState = new Map();
+const heapSnapshotBoundary = new HeapSnapshotBoundary();
 
 export async function getMemoryInfo(tabId) {
   try {
@@ -610,21 +615,31 @@ export async function getMemoryInfo(tabId) {
 }
 
 export async function takeHeapSnapshot(tabId) {
+  const admission = heapSnapshotBoundary.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+
+  let listenerInstalled = false;
+  let snapshotSize = 0;
+  let chunkCount = 0;
+  const listener = (source, method, params) => {
+    if (
+      source?.tabId === tabId &&
+      method === "HeapProfiler.addHeapSnapshotChunk" &&
+      typeof params?.chunk === "string"
+    ) {
+      snapshotSize += utf8ByteLength(params.chunk);
+      chunkCount += 1;
+    }
+  };
+
   try {
     await ensureDebuggerAttached(tabId);
     await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
 
-    let chunks = [];
-    const listener = (source, method, params) => {
-      if (
-        source.tabId === tabId &&
-        method === "HeapProfiler.addHeapSnapshotChunk"
-      ) {
-        chunks.push(params.chunk);
-      }
-    };
-
     chrome.debugger.onEvent.addListener(listener);
+    listenerInstalled = true;
 
     await chrome.debugger.sendCommand(
       { tabId },
@@ -634,27 +649,35 @@ export async function takeHeapSnapshot(tabId) {
       },
     );
 
-    chrome.debugger.onEvent.removeListener(listener);
-
-    const snapshot = chunks.join("");
-    const snapshotSize = snapshot.length;
-
-    // Store snapshot reference (don't store full data due to size)
-    const snapshotId = `snapshot-${Date.now()}`;
-    memoryState.set(snapshotId, {
-      tabId,
+    const snapshot = heapSnapshotBoundary.remember(admission.lease, {
       size: snapshotSize,
-      timestamp: Date.now(),
+      chunkCount,
     });
+    const stats = heapSnapshotBoundary.getStats();
 
     return {
       success: true,
-      snapshotId,
+      snapshotId: snapshot.snapshotId,
       size: snapshotSize,
+      chunkCount,
       sizeFormatted: `${(snapshotSize / 1024 / 1024).toFixed(2)} MB`,
+      retainedSnapshots: stats.retainedSnapshots,
+      limits: stats.limits,
     };
   } catch (error) {
-    return { error: error.message };
+    return {
+      error: error.message,
+      ...(error.code ? { code: error.code } : {}),
+    };
+  } finally {
+    if (listenerInstalled) {
+      try {
+        chrome.debugger.onEvent.removeListener(listener);
+      } catch {
+        // Admission must still be released if the extension event target closes.
+      }
+    }
+    heapSnapshotBoundary.release(admission.lease);
   }
 }
 
