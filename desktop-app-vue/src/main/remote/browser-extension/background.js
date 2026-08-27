@@ -24,10 +24,6 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
 const WS_URL = "ws://127.0.0.1:18790";
 
-// Request tracking
-let _requestId = 0;
-const pendingRequests = new Map();
-
 // Stats
 const stats = {
   connectTime: null,
@@ -186,19 +182,6 @@ async function handleMessage(data) {
     const message = JSON.parse(data);
     console.log("[ChainlessChain] Received:", message.type || message.method);
 
-    // Handle response to pending request
-    if (message.id && pendingRequests.has(message.id)) {
-      const { resolve, reject } = pendingRequests.get(message.id);
-      pendingRequests.delete(message.id);
-
-      if (message.error) {
-        reject(new Error(message.error.message));
-      } else {
-        resolve(message.result);
-      }
-      return;
-    }
-
     // Handle command from server
     if (message.method) {
       const result = await executeCommand(message.method, message.params || {});
@@ -276,21 +259,9 @@ async function executeCommand(method, params) {
     case "history.delete":
       return await deleteHistory(params.url);
 
-    // Page operations (console + viewport retained; rest moved to page.js)
-    case "page.getConsole":
-      return await getConsoleLogs(params.tabId);
+    // Page viewport remains here; the rest moved to handlers.
     case "page.setViewport":
       return await setViewport(params.tabId, params.width, params.height);
-
-    // Console capture
-    case "console.enable":
-      return await enableConsoleCapture(params.tabId);
-    case "console.disable":
-      return await disableConsoleCapture(params.tabId);
-    case "console.getLogs":
-      return await getConsoleLogs(params.tabId);
-    case "console.clear":
-      return await clearConsoleLogs(params.tabId);
 
     // CSS injection + page content handlers moved to ./handlers/page.js
 
@@ -1147,13 +1118,6 @@ async function executeCommand(method, params) {
 
 // Page Operations (print, pdf) handlers moved to ./handlers/page.js (Phase 1).
 
-// Console logs storage (per tab)
-const consoleLogs = new Map();
-
-async function getConsoleLogs(tabId) {
-  return { logs: consoleLogs.get(tabId) || [] };
-}
-
 async function setViewport(tabId, width, height) {
   try {
     await chrome.debugger.attach({ tabId }, "1.3");
@@ -1181,84 +1145,6 @@ async function setViewport(tabId, width, height) {
 // Browsing data handler moved to ./handlers/storage.js (Phase 1 split).
 
 // Network interception handlers moved to ./handlers/network.js (Phase 1 split).
-
-// ==================== Console Capture ====================
-
-const consoleCaptures = new Map();
-
-async function enableConsoleCapture(tabId) {
-  try {
-    await chrome.debugger.attach({ tabId }, "1.3");
-    await chrome.debugger.sendCommand({ tabId }, "Runtime.enable");
-    await chrome.debugger.sendCommand({ tabId }, "Log.enable");
-
-    consoleCaptures.set(tabId, []);
-
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      if (source.tabId !== tabId) {
-        return;
-      }
-
-      const logs = consoleCaptures.get(tabId) || [];
-
-      if (method === "Runtime.consoleAPICalled") {
-        logs.push({
-          type: params.type,
-          args: params.args.map(
-            (arg) => arg.value || arg.description || arg.type,
-          ),
-          timestamp: params.timestamp,
-          stackTrace: params.stackTrace,
-        });
-        consoleCaptures.set(tabId, logs.slice(-1000)); // Keep last 1000
-      }
-
-      if (method === "Log.entryAdded") {
-        logs.push({
-          type: params.entry.level,
-          text: params.entry.text,
-          url: params.entry.url,
-          lineNumber: params.entry.lineNumber,
-          timestamp: params.entry.timestamp,
-        });
-        consoleCaptures.set(tabId, logs.slice(-1000));
-      }
-
-      if (method === "Runtime.exceptionThrown") {
-        logs.push({
-          type: "error",
-          text: params.exceptionDetails.text,
-          exception: params.exceptionDetails.exception,
-          lineNumber: params.exceptionDetails.lineNumber,
-          columnNumber: params.exceptionDetails.columnNumber,
-          url: params.exceptionDetails.url,
-          timestamp: params.timestamp,
-        });
-        consoleCaptures.set(tabId, logs.slice(-1000));
-      }
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function disableConsoleCapture(tabId) {
-  try {
-    await chrome.debugger.sendCommand({ tabId }, "Runtime.disable");
-    await chrome.debugger.sendCommand({ tabId }, "Log.disable");
-    await chrome.debugger.detach({ tabId });
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function clearConsoleLogs(tabId) {
-  consoleCaptures.set(tabId, []);
-  return { success: true };
-}
 
 // IndexedDB (basic) handlers moved to ./handlers/indexeddb.js (Phase 1 split).
 

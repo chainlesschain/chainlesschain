@@ -12,9 +12,7 @@
  * _shared.js. devicePresets + injectedStyles are module-level state that moves
  * with these handlers (verified no external refs).
  *
- * NOT included (left in background.js, entangled with other domains):
- *  - page.getConsole -> getConsoleLogs (shares consoleLogs Map with the console
- *    capture domain)
+ * NOT included (left in background.js, entangled with another domain):
  *  - page.setViewport -> setViewport (a duplicated/hoisting-shadowed function
  *    shared with the viewport domain's viewport.set)
  *
