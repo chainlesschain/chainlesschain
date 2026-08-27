@@ -28,6 +28,12 @@ const AgentStatus = {
   TERMINATED: "terminated", // 已终止
 };
 
+const DEFAULT_MAX_WAIT_QUEUE = 128;
+
+function positiveInteger(value, fallback) {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
 /**
  * AgentPool 类
  */
@@ -41,6 +47,10 @@ class AgentPool extends EventEmitter {
       idleTimeout: options.idleTimeout || 300000, // 空闲超时5分钟
       warmupOnInit: options.warmupOnInit !== false, // 启动时预热
       enableAutoScaling: options.enableAutoScaling !== false, // 自动伸缩
+      maxWaitQueue: positiveInteger(
+        options.maxWaitQueue,
+        DEFAULT_MAX_WAIT_QUEUE,
+      ),
     };
 
     // 可用代理池
@@ -63,6 +73,7 @@ class AgentPool extends EventEmitter {
       acquisitions: 0,
       releases: 0,
       waitTimeouts: 0,
+      waitOverloads: 0,
       currentWaiting: 0,
     };
 
@@ -160,11 +171,27 @@ class AgentPool extends EventEmitter {
       return agent;
     }
 
-    // 3. 池已满，加入等待队列
+    // 3. 池已满，加入有界等待队列
+    if (this.waitQueue.length >= this.options.maxWaitQueue) {
+      const error = new Error(
+        `代理池等待队列已满 (${this.options.maxWaitQueue})`,
+      );
+      error.code = "OVERLOADED";
+      error.retryAfterMs = 100;
+      this.stats.waitOverloads++;
+      this.emit("wait-queue-overloaded", {
+        waiting: this.waitQueue.length,
+        maxWaiting: this.options.maxWaitQueue,
+        retryAfterMs: error.retryAfterMs,
+      });
+      throw error;
+    }
+
     logger.warn("[AgentPool] 代理池已满，加入等待队列...", {
       available: this.availableAgents.length,
       busy: this.busyAgents.size,
       waiting: this.waitQueue.length,
+      maxWaiting: this.options.maxWaitQueue,
     });
 
     this.stats.currentWaiting++;
@@ -191,6 +218,7 @@ class AgentPool extends EventEmitter {
     if (this.waitQueue.length > 0) {
       const waiter = this.waitQueue.shift();
       this.stats.currentWaiting--;
+      clearTimeout(waiter.timer);
 
       // 重置并分配给等待者
       this._resetAgent(agent, waiter.capabilities);
@@ -364,6 +392,7 @@ class AgentPool extends EventEmitter {
       total: this.availableAgents.length + this.busyAgents.size,
       minSize: this.options.minSize,
       maxSize: this.options.maxSize,
+      maxWaiting: this.options.maxWaitQueue,
     };
   }
 

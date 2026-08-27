@@ -119,6 +119,47 @@ describe("AgentPool", () => {
         assert.ok(error.message.includes("超时"), '错误消息应包含"超时"');
       }
     });
+
+    it("应该在等待队列达到上限时拒绝新请求", async () => {
+      await pool.clear();
+      pool = new AgentPool({
+        minSize: 1,
+        maxSize: 1,
+        maxWaitQueue: 1,
+        warmupOnInit: true,
+      });
+      await pool.initialize();
+      const agent = await pool.acquireAgent();
+
+      const firstWaiter = pool.acquireAgent({}, 5000);
+
+      await assert.rejects(pool.acquireAgent({}, 5000), (error) => {
+        assert.strictEqual(error.code, "OVERLOADED");
+        assert.strictEqual(error.retryAfterMs, 100);
+        return true;
+      });
+      assert.strictEqual(pool.getStatus().waiting, 1);
+      assert.strictEqual(pool.getStatus().maxWaiting, 1);
+      assert.strictEqual(pool.getStats().waitOverloads, 1);
+
+      pool.releaseAgent(agent.id);
+      await firstWaiter;
+    });
+
+    it("应该在等待者获得代理后取消超时计时器", async () => {
+      const agents = [];
+      for (let i = 0; i < 5; i++) {
+        agents.push(await pool.acquireAgent());
+      }
+
+      const waiter = pool.acquireAgent({}, 20);
+      pool.releaseAgent(agents[0].id);
+      await waiter;
+      await new Promise((resolve) => setTimeout(resolve, 40));
+
+      assert.strictEqual(pool.getStats().waitTimeouts, 0);
+      assert.strictEqual(pool.getStatus().waiting, 0);
+    });
   });
 
   describe("释放代理", () => {
@@ -242,7 +283,11 @@ describe("AgentPool", () => {
 
       // 获取代理
       const agent = await pool.acquireAgent();
-      assert.strictEqual(pool.getStatus().available, 0, "获取后应有0个可用代理");
+      assert.strictEqual(
+        pool.getStatus().available,
+        0,
+        "获取后应有0个可用代理",
+      );
 
       // 释放代理
       pool.releaseAgent(agent.id);
