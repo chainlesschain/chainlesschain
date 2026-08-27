@@ -437,20 +437,6 @@ async function executeCommand(method, params) {
     case "workers.getSharedWorkers":
       return await getSharedWorkers(params.tabId);
 
-    // Broadcast Channel
-    case "broadcast.create":
-      return await createBroadcastChannel(params.tabId, params.channelName);
-    case "broadcast.postMessage":
-      return await broadcastMessage(
-        params.tabId,
-        params.channelName,
-        params.message,
-      );
-    case "broadcast.close":
-      return await closeBroadcastChannel(params.tabId, params.channelName);
-    case "broadcast.list":
-      return await listBroadcastChannels(params.tabId);
-
     // Web Audio
     case "audio.getContexts":
       return await getAudioContexts(params.tabId);
@@ -2336,104 +2322,6 @@ async function getSharedWorkers(tabId) {
       },
     });
     return result[0]?.result || { error: "Failed to get shared workers" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-// ==================== Phase 20: Broadcast Channel ====================
-
-async function createBroadcastChannel(tabId, channelName) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (name) => {
-        if (!window.__chainlessBroadcastChannels) {
-          window.__chainlessBroadcastChannels = new Map();
-        }
-        if (window.__chainlessBroadcastChannels.has(name)) {
-          return { error: "Channel already exists" };
-        }
-        const channel = new BroadcastChannel(name);
-        window.__chainlessBroadcastChannels.set(name, {
-          channel,
-          messages: [],
-        });
-        channel.onmessage = (event) => {
-          window.__chainlessBroadcastChannels.get(name).messages.push({
-            data: event.data,
-            timestamp: Date.now(),
-          });
-        };
-        return { success: true, channelName: name };
-      },
-      args: [channelName],
-    });
-    return result[0]?.result || { error: "Failed to create channel" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function broadcastMessage(tabId, channelName, message) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (name, msg) => {
-        const entry = window.__chainlessBroadcastChannels?.get(name);
-        if (entry) {
-          entry.channel.postMessage(msg);
-          return { success: true };
-        }
-        return { error: "Channel not found" };
-      },
-      args: [channelName, message],
-    });
-    return result[0]?.result || { error: "Failed to broadcast" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function closeBroadcastChannel(tabId, channelName) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (name) => {
-        const entry = window.__chainlessBroadcastChannels?.get(name);
-        if (entry) {
-          entry.channel.close();
-          window.__chainlessBroadcastChannels.delete(name);
-          return { success: true };
-        }
-        return { error: "Channel not found" };
-      },
-      args: [channelName],
-    });
-    return result[0]?.result || { error: "Failed to close channel" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function listBroadcastChannels(tabId) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => {
-        const channels = window.__chainlessBroadcastChannels;
-        if (!channels) {
-          return { channels: [] };
-        }
-        return {
-          channels: Array.from(channels.entries()).map(([name, entry]) => ({
-            name,
-            messageCount: entry.messages.length,
-          })),
-        };
-      },
-    });
-    return result[0]?.result || { channels: [] };
   } catch (error) {
     return { error: error.message };
   }

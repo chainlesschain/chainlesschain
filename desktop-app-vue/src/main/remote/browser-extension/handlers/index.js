@@ -1,5 +1,6 @@
 import { accessibilityHandlers } from "./accessibility.js";
 import { bookmarksHandlers } from "./bookmarks.js";
+import { broadcastHandlers } from "./broadcast.js";
 import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
 import { compressionHandlers } from "./compression.js";
@@ -27,6 +28,7 @@ import { windowsHandlers } from "./windows.js";
 export const commandHandlerRegistry = {
   ...tabsHandlers,
   ...bookmarksHandlers,
+  ...broadcastHandlers,
   ...historyHandlers,
   ...clipboardHandlers,
   ...compressionHandlers,
