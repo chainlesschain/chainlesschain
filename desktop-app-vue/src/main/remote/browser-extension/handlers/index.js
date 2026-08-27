@@ -2,6 +2,7 @@ import { accessibilityHandlers } from "./accessibility.js";
 import { bookmarksHandlers } from "./bookmarks.js";
 import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
+import { compressionHandlers } from "./compression.js";
 import { consoleHandlers } from "./console.js";
 import { devtoolsDebugHandlers } from "./devtools-debug.js";
 import { devtoolsInspectHandlers } from "./devtools-inspect.js";
@@ -28,6 +29,7 @@ export const commandHandlerRegistry = {
   ...bookmarksHandlers,
   ...historyHandlers,
   ...clipboardHandlers,
+  ...compressionHandlers,
   ...consoleHandlers,
   ...notificationsHandlers,
   ...downloadsHandlers,
