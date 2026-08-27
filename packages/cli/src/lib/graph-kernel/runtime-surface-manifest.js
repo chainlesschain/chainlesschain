@@ -24,6 +24,11 @@ export const GRAPH_CUTOVER_STRATEGIES = Object.freeze([
   "retire",
   "disabled",
 ]);
+export const GRAPH_RUNTIME_CANDIDATE_CLASSIFICATIONS = Object.freeze([
+  "canonical_agent_kernel_adapter",
+  "tool_free_advisor",
+  "durable_event_transport",
+]);
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_PATH = fileURLToPath(
   new URL("./graph-runtime-surfaces.json", import.meta.url),
 );
@@ -103,14 +108,17 @@ export function graphRuntimeEntryManifestDigest(
 }
 
 function manifestFiles(manifest) {
-  return new Set(
-    manifest.surfaces.flatMap((surface) =>
+  return new Set([
+    ...manifest.surfaces.flatMap((surface) =>
       surface.entries.flatMap((entry) => [
         ...entry.entrypoints,
         ...entry.writerFiles,
       ]),
     ),
-  );
+    ...(manifest.discovery?.classifiedNonWriters || []).flatMap(
+      (candidate) => candidate.files || [],
+    ),
+  ]);
 }
 
 export function discoverUnclassifiedRuntimeWriters(
@@ -286,14 +294,25 @@ export function validateGraphRuntimeSurfaceManifest(
       }
       if (
         entry.cutoverStrategy === "retire" &&
-        (entry.runtimeDurability !== "process_local" ||
+        (entry.runtimeDurability === "non_durable" ||
+          !dispositions?.retire?.length ||
           dispositions?.migrate?.length !== 0 ||
           dispositions?.rebuild?.length !== 0 ||
           dispositions?.disabled?.length !== 0 ||
           entry.recoveryEntrypoints?.length !== 0)
       ) {
         errors.push(
-          `${entry.id}: retire requires process-local state without a recovery entrypoint`,
+          `${entry.id}: retire requires only historical read-only stores without a recovery entrypoint`,
+        );
+      }
+      if (
+        entry.cutoverStrategy === "retire" &&
+        (!entry.replacementEntrypoint ||
+          entry.replacementAuthoritySource !== "graph_kernel" ||
+          entry.retiredStoreAccess !== "historical_read_only")
+      ) {
+        errors.push(
+          `${entry.id}: retire requires a Graph Kernel replacement and historical_read_only store access`,
         );
       }
       if (
@@ -317,6 +336,36 @@ export function validateGraphRuntimeSurfaceManifest(
             errors.push(`${entry.id}: classified file does not exist: ${file}`);
           }
         }
+      }
+    }
+  }
+  const classifiedNonWriters = Array.isArray(
+    manifest?.discovery?.classifiedNonWriters,
+  )
+    ? manifest.discovery.classifiedNonWriters
+    : [];
+  const classifiedNonWriterFiles = new Set();
+  for (const candidate of classifiedNonWriters) {
+    if (
+      !GRAPH_RUNTIME_CANDIDATE_CLASSIFICATIONS.includes(
+        candidate?.classification,
+      ) ||
+      !candidate?.reason ||
+      !Array.isArray(candidate?.files) ||
+      candidate.files.length === 0
+    ) {
+      errors.push(
+        "classified non-writer candidates require files, a supported classification, and a reason",
+      );
+      continue;
+    }
+    for (const file of candidate.files) {
+      if (classifiedNonWriterFiles.has(file)) {
+        errors.push(`classified non-writer file is duplicated: ${file}`);
+      }
+      classifiedNonWriterFiles.add(file);
+      if (requireFiles && !fs.existsSync(path.resolve(repositoryRoot, file))) {
+        errors.push(`classified non-writer file does not exist: ${file}`);
       }
     }
   }

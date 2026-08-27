@@ -1,0 +1,104 @@
+import { createRuntimeGraphCutoverAuthorityResolver } from "./graph-kernel/cutover-authority-resolver.js";
+
+const AUTHORITY_MODES = new Set(["legacy", "shadow", "canonical"]);
+const ENTRYPOINTS = Object.freeze([
+  ["CLIAutonomousAgent.", "cli-legacy-autonomous"],
+  ["Orchestrator.", "cli-legacy-orchestrate"],
+]);
+const resolverCache = new Map();
+
+function authorityError(code, message, details = {}) {
+  const error = new Error(message);
+  error.name = "CLILegacyRuntimeAuthorityError";
+  error.code = code;
+  Object.assign(error, details);
+  return error;
+}
+
+function fallbackMode(env) {
+  const mode = String(env.CHAINLESSCHAIN_GRAPH_COWORK || "legacy")
+    .trim()
+    .toLowerCase();
+  if (!AUTHORITY_MODES.has(mode)) {
+    throw authorityError(
+      "CC_GRAPH_AUTHORITY_MODE_INVALID",
+      "CHAINLESSCHAIN_GRAPH_COWORK must be legacy, shadow, or canonical",
+    );
+  }
+  return mode;
+}
+
+function entryIdFor(entrypoint) {
+  const value = String(entrypoint || "");
+  return ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
+}
+
+export function cliLegacyRuntimeAuthorityMode(env = process.env, options = {}) {
+  const configured = fallbackMode(env);
+  const entryId = options.entryId;
+  if (!entryId) return configured;
+  let resolver = options.resolver;
+  if (!resolver) {
+    const key = `${entryId}\0${configured}\0${
+      env.CHAINLESSCHAIN_GRAPH_CUTOVER_STATE_DIR || ""
+    }`;
+    resolver = resolverCache.get(key);
+    if (!resolver) {
+      resolver = createRuntimeGraphCutoverAuthorityResolver({
+        env,
+        surface: "cowork",
+        entryId,
+        fallbackMode: configured,
+      });
+      resolverCache.set(key, resolver);
+    }
+  }
+  const resolved =
+    typeof resolver === "function"
+      ? resolver({ runKey: options.runKey, optIn: options.optIn === true })
+      : resolver.resolve({
+          runKey: options.runKey,
+          optIn: options.optIn === true,
+          fallbackMode: configured,
+        });
+  const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+  if (!AUTHORITY_MODES.has(mode)) {
+    throw authorityError(
+      "CC_GRAPH_AUTHORITY_MODE_INVALID",
+      "CLI legacy runtime authority resolver returned an invalid mode",
+    );
+  }
+  return mode;
+}
+
+export function assertCLILegacyMutationAllowed(
+  entrypoint,
+  env = process.env,
+  options = {},
+) {
+  const entryId = options.entryId || entryIdFor(entrypoint);
+  const mode =
+    options.authorityMode ||
+    cliLegacyRuntimeAuthorityMode(env, { ...options, entryId });
+  if (
+    mode !== "canonical" &&
+    String(env.CHAINLESSCHAIN_CLI_LEGACY_READ_ONLY || "") !== "1"
+  ) {
+    return Object.freeze({
+      authorityMode: mode,
+      authoritySource:
+        mode === "shadow" ? "graph_kernel_shadow" : "legacy_runtime",
+      legacyReadOnly: false,
+    });
+  }
+  throw authorityError(
+    "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+    `CLI legacy runtime is read-only; '${entrypoint}' must use cc cowork or cc team through Graph Kernel`,
+    {
+      entrypoint: String(entrypoint),
+      entryId,
+      authorityMode: "canonical",
+      authoritySource: "graph_kernel",
+    },
+  );
+}

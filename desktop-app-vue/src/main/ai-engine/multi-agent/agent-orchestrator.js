@@ -408,6 +408,18 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<Array>} 结果数组
    */
   async executeParallel(tasks, options = {}) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.executeParallel",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          options.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.id,
+        optIn: options.graphCanary === true,
+      },
+    );
     const requestedConcurrency =
       options.maxConcurrency || this.config.maxParallelAgents;
     // Agents share a writable workspace. Default to serial execution unless
@@ -461,6 +473,17 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<any>} 最终结果
    */
   async executeChain(tasks) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.executeChain",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          tasks.find((task) => task?.runId || task?.id)?.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.id,
+        optIn: tasks.some((task) => task?.graphCanary === true),
+      },
+    );
     let previousResult = null;
 
     for (let i = 0; i < tasks.length; i++) {

@@ -13,6 +13,9 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -180,6 +183,7 @@ class AutoRemediator extends EventEmitter {
    * @param {Object} [deps.alertManager] - AlertManager instance
    */
   async initialize(db, deps = {}) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.initialize");
     if (this.initialized) {
       return;
     }
@@ -215,6 +219,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Remediation result
    */
   async triggerRemediation(incident) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.triggerRemediation");
     if (!this.initialized || !this.config.enabled) {
       return { status: REMEDIATION_STATUS.SKIPPED, reason: "disabled" };
     }
@@ -389,6 +394,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Created playbook
    */
   createPlaybook(playbook) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.createPlaybook");
     const id =
       playbook.id ||
       `pb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -421,6 +427,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Updated playbook
    */
   updatePlaybook(playbookId, updates) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.updatePlaybook");
     const existing = this.playbooks.get(playbookId);
     if (!existing) {
       throw new Error(`Playbook not found: ${playbookId}`);
@@ -455,6 +462,7 @@ class AutoRemediator extends EventEmitter {
    * Update config
    */
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }

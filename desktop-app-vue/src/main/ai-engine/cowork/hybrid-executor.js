@@ -12,6 +12,9 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /**
  * Execution strategies
@@ -130,6 +133,7 @@ class HybridExecutor extends EventEmitter {
    * Initialize hybrid executor
    */
   async initialize() {
+    assertDesktopLegacyMutationAllowed("HybridExecutor.initialize");
     if (this.initialized) {
       return;
     }
@@ -148,6 +152,7 @@ class HybridExecutor extends EventEmitter {
    * @returns {Promise<Object>} Execution result
    */
   async execute(task) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor.execute");
     const executionId = `exec-${uuidv4().slice(0, 12)}`;
     const startedAt = Date.now();
 

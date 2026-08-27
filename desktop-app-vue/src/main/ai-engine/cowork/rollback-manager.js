@@ -14,6 +14,9 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -70,6 +73,7 @@ class RollbackManager extends EventEmitter {
    * @param {Object} db - Database instance
    */
   async initialize(db) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.initialize");
     if (this.initialized) {
       return;
     }
@@ -93,6 +97,7 @@ class RollbackManager extends EventEmitter {
    * @returns {Object} Rollback result
    */
   async rollback(options = {}) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.rollback");
     if (!this.initialized || !this.config.enabled) {
       return { success: false, error: "RollbackManager disabled" };
     }
@@ -196,6 +201,7 @@ class RollbackManager extends EventEmitter {
    * @returns {string} Snapshot ID
    */
   takeSnapshot(name, config) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.takeSnapshot");
     const snapshotId = `snap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
     this.configSnapshots.set(snapshotId, {
@@ -250,6 +256,7 @@ class RollbackManager extends EventEmitter {
    * Update config
    */
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }

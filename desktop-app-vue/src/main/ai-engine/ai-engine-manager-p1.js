@@ -27,6 +27,9 @@ const FunctionCaller = require("./function-caller");
 const ToolSandbox = require("./tool-sandbox");
 const PerformanceMonitor = require("../monitoring/performance-monitor");
 const { getAIEngineConfig, mergeConfig } = require("./ai-engine-config");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 
 // P1优化模块
 const MultiIntentRecognizer = require("./multi-intent-recognizer");
@@ -78,6 +81,7 @@ class AIEngineManagerP1 {
    * 注入依赖项并初始化所有模块
    */
   async initialize(options = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.initialize");
     try {
       logger.info("[AIEngineManager-P1] 开始初始化...");
 
@@ -213,6 +217,7 @@ class AIEngineManagerP1 {
     onStepUpdate = null,
     askUserCallback = null,
   ) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput");
     const pipelineStartTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
@@ -926,6 +931,9 @@ class AIEngineManagerP1 {
    * @param {number} keepDays - 保留天数
    */
   async cleanOldPerformanceData(keepDays = 30) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerP1.cleanOldPerformanceData",
+    );
     if (this.performanceMonitor) {
       await this.performanceMonitor.cleanOldData(keepDays);
     }

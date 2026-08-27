@@ -421,7 +421,7 @@ class WorkflowEngine extends EventEmitter {
    * 执行工作流
    */
   async execute(workflow, initialVariables = {}) {
-    assertBrowserWorkflowEnabled("remote:workflow:execute");
+    assertBrowserWorkflowEnabled("RemoteWorkflowEngine.execute");
     const workflowId = workflow.id || this.generateWorkflowId();
     const startTime = Date.now();
 
@@ -736,7 +736,7 @@ class WorkflowEngine extends EventEmitter {
    * 取消工作流
    */
   cancelWorkflow(workflowId) {
-    assertBrowserWorkflowEnabled("remote:workflow:cancel");
+    assertBrowserWorkflowEnabled("RemoteWorkflowEngine.cancelWorkflow");
     const running = this.runningWorkflows.get(workflowId);
     if (running) {
       running.state.status = WORKFLOW_STATUS.CANCELLED;

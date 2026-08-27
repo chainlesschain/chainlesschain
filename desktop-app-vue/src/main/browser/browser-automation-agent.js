@@ -7,7 +7,10 @@
  * @since v0.27.0 Phase 3
  */
 
-const { EventEmitter } = require('events');
+const { EventEmitter } = require("events");
+const {
+  assertBrowserWorkflowEnabled,
+} = require("./workflow/browser-workflow-authority");
 
 /**
  * AI 浏览器自动化代理类
@@ -28,14 +31,11 @@ class BrowserAutomationAgent extends EventEmitter {
    * @returns {Promise<Object>} 执行结果
    */
   async execute(targetId, prompt, options = {}) {
-    const {
-      autoSnapshot = true,
-      maxRetries = 2,
-      stream = false
-    } = options;
+    assertBrowserWorkflowEnabled("BrowserAutomationAgent.execute");
+    const { autoSnapshot = true, maxRetries = 2, stream = false } = options;
 
     try {
-      this.emit('execution:started', { targetId, prompt });
+      this.emit("execution:started", { targetId, prompt });
 
       // 1. 获取当前页面快照（如果需要）
       let snapshot = null;
@@ -43,30 +43,30 @@ class BrowserAutomationAgent extends EventEmitter {
         snapshot = await this.browserEngine.takeSnapshot(targetId, {
           interactive: true,
           visible: true,
-          roleRefs: true
+          roleRefs: true,
         });
       }
 
       // 2. 解析指令为操作序列
       const steps = await this.parseCommand(prompt, snapshot);
 
-      this.emit('steps:generated', {
+      this.emit("steps:generated", {
         targetId,
         stepsCount: steps.length,
-        steps
+        steps,
       });
 
       // 3. 执行操作序列
       const results = await this.executeSteps(targetId, steps, {
         maxRetries,
         onProgress: (step, index) => {
-          this.emit('step:progress', {
+          this.emit("step:progress", {
             targetId,
             step,
             index,
-            total: steps.length
+            total: steps.length,
           });
-        }
+        },
       });
 
       // 4. 记录执行历史
@@ -75,34 +75,34 @@ class BrowserAutomationAgent extends EventEmitter {
         steps,
         results,
         timestamp: Date.now(),
-        success: true
+        success: true,
       });
 
-      this.emit('execution:completed', {
+      this.emit("execution:completed", {
         targetId,
         prompt,
         stepsCount: steps.length,
-        results
+        results,
       });
 
       return {
         success: true,
         prompt,
         steps,
-        results
+        results,
       };
     } catch (error) {
       this.executionHistory.push({
         prompt,
         error: error.message,
         timestamp: Date.now(),
-        success: false
+        success: false,
       });
 
-      this.emit('execution:failed', {
+      this.emit("execution:failed", {
         targetId,
         prompt,
-        error: error.message
+        error: error.message,
       });
 
       throw new Error(`Failed to execute AI command: ${error.message}`);
@@ -122,20 +122,20 @@ class BrowserAutomationAgent extends EventEmitter {
 
       // 调用 LLM 服务
       const response = await this.llmService.chat({
-        model: 'gpt-4', // 或使用配置的默认模型
+        model: "gpt-4", // 或使用配置的默认模型
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.1, // 低温度，更确定性
-        response_format: { type: 'json_object' }
+        response_format: { type: "json_object" },
       });
 
       // 解析 JSON 响应
       const parsed = JSON.parse(response.content);
 
       if (!parsed.steps || !Array.isArray(parsed.steps)) {
-        throw new Error('Invalid response format: missing steps array');
+        throw new Error("Invalid response format: missing steps array");
       }
 
       return parsed.steps;
@@ -175,7 +175,7 @@ class BrowserAutomationAgent extends EventEmitter {
             action: step.action,
             success: true,
             result,
-            attempts: attempts + 1
+            attempts: attempts + 1,
           });
           success = true;
         } catch (error) {
@@ -184,10 +184,12 @@ class BrowserAutomationAgent extends EventEmitter {
 
           if (attempts <= maxRetries) {
             // 等待后重试
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * attempts),
+            );
 
             // 如果是元素未找到错误，重新获取快照
-            if (error.message.includes('not found in snapshot')) {
+            if (error.message.includes("not found in snapshot")) {
               await this.browserEngine.takeSnapshot(targetId);
             }
           }
@@ -201,7 +203,7 @@ class BrowserAutomationAgent extends EventEmitter {
           action: step.action,
           success: false,
           error: lastError.message,
-          attempts
+          attempts,
         });
 
         // 根据策略决定是否继续
@@ -225,36 +227,45 @@ class BrowserAutomationAgent extends EventEmitter {
     const { action, ...params } = step;
 
     switch (action) {
-      case 'navigate':
-        return await this.browserEngine.navigate(targetId, params.url, params.options);
+      case "navigate":
+        return await this.browserEngine.navigate(
+          targetId,
+          params.url,
+          params.options,
+        );
 
-      case 'snapshot':
+      case "snapshot":
         return await this.browserEngine.takeSnapshot(targetId, params.options);
 
-      case 'click':
-        return await this.browserEngine.act(targetId, 'click', params.ref, params.options);
+      case "click":
+        return await this.browserEngine.act(
+          targetId,
+          "click",
+          params.ref,
+          params.options,
+        );
 
-      case 'type':
-        return await this.browserEngine.act(targetId, 'type', params.ref, {
+      case "type":
+        return await this.browserEngine.act(targetId, "type", params.ref, {
           text: params.text,
-          ...params.options
+          ...params.options,
         });
 
-      case 'select':
-        return await this.browserEngine.act(targetId, 'select', params.ref, {
+      case "select":
+        return await this.browserEngine.act(targetId, "select", params.ref, {
           value: params.value,
-          ...params.options
+          ...params.options,
         });
 
-      case 'wait': {
+      case "wait": {
         const page = this.browserEngine.getPage(targetId);
-        await page.waitForLoadState(params.state || 'networkidle', {
-          timeout: params.timeout || 30000
+        await page.waitForLoadState(params.state || "networkidle", {
+          timeout: params.timeout || 30000,
         });
         return { waited: true, state: params.state };
       }
 
-      case 'screenshot':
+      case "screenshot":
         return await this.browserEngine.screenshot(targetId, params.options);
 
       default:
@@ -269,15 +280,18 @@ class BrowserAutomationAgent extends EventEmitter {
    * @private
    */
   _buildSystemPrompt(snapshot) {
-    const elementsInfo = snapshot ? `
+    const elementsInfo = snapshot
+      ? `
 
 当前页面元素：
-${snapshot.elements.slice(0, 50).map(el =>
-  `- ${el.ref}: ${el.role} "${el.label}" (tag: ${el.tag})`
-).join('\n')}
+${snapshot.elements
+  .slice(0, 50)
+  .map((el) => `- ${el.ref}: ${el.role} "${el.label}" (tag: ${el.tag})`)
+  .join("\n")}
 
-${snapshot.elementsCount > 50 ? `... 还有 ${snapshot.elementsCount - 50} 个元素` : ''}
-` : '';
+${snapshot.elementsCount > 50 ? `... 还有 ${snapshot.elementsCount - 50} 个元素` : ""}
+`
+      : "";
 
     return `你是一个浏览器自动化 AI 助手。用户会用自然语言描述他们想执行的浏览器操作，你需要将其转换为结构化的操作步骤。
 

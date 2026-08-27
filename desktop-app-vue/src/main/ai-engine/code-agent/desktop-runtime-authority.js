@@ -6,6 +6,23 @@ const {
 
 const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
 const DESKTOP_ENTRYPOINTS = Object.freeze([
+  ["AIEngineManagerP1.", "desktop-legacy-ai-engine"],
+  ["AIEngineManagerOptimized.", "desktop-legacy-ai-engine"],
+  ["AIEngineManager.", "desktop-legacy-ai-engine"],
+  ["TaskPlannerEnhanced.", "desktop-legacy-ai-engine"],
+  ["TaskPlanner.", "desktop-legacy-ai-engine"],
+  ["AutonomousAgentRunner.", "desktop-autonomous-agent"],
+  ["AgentTaskQueue.", "desktop-autonomous-agent"],
+  ["LongRunningTaskManager.", "desktop-long-running-task"],
+  ["TeammateTool.", "desktop-legacy-cowork-team"],
+  ["PipelineOrchestrator.", "desktop-dev-pipeline"],
+  ["DeployAgent.", "desktop-dev-pipeline"],
+  ["PostDeployMonitor.", "desktop-dev-pipeline"],
+  ["AutoRemediator.", "desktop-autonomous-ops"],
+  ["RollbackManager.", "desktop-autonomous-ops"],
+  ["HybridExecutor.", "desktop-hybrid-executor"],
+  ["P2PAgentNetwork.", "desktop-p2p-agent"],
+  ["CrossOrgTaskRouter.", "desktop-p2p-agent"],
   ["WorkflowPipeline.", "desktop-workflow-manager"],
   ["AgentCoordinator.", "desktop-specialized-agents"],
   ["AgentOrchestrator.", "desktop-legacy-multi-agent"],

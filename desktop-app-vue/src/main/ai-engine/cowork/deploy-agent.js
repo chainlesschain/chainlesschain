@@ -13,6 +13,9 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -76,6 +79,7 @@ class DeployAgent extends EventEmitter {
    * @param {Object} deps - Dependencies
    */
   async initialize(db, deps = {}) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.initialize");
     if (this.initialized) {
       return;
     }
@@ -99,6 +103,7 @@ class DeployAgent extends EventEmitter {
    * @returns {Object} Deployment result
    */
   async deploy(options = {}) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.deploy");
     if (!this.initialized) {
       throw new Error("DeployAgent not initialized");
     }
@@ -227,6 +232,7 @@ class DeployAgent extends EventEmitter {
   }
 
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }

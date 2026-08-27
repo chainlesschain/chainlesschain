@@ -10,6 +10,9 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const { looseParseJSON } = require("./response-parser.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
@@ -460,6 +463,7 @@ class TaskPlannerEnhanced extends EventEmitter {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext = {}) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.decomposeTask");
     logger.info("[TaskPlannerEnhanced] 开始拆解任务:", userRequest);
 
     try {
@@ -1046,6 +1050,7 @@ ${userRequest}
    * 保存任务计划到数据库
    */
   async saveTaskPlan(projectId, taskPlan) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.saveTaskPlan");
     try {
       logger.info("[TaskPlannerEnhanced] 准备保存任务计划");
       logger.info("[TaskPlannerEnhanced] projectId:", projectId);
@@ -1266,6 +1271,7 @@ ${userRequest}
    * 更新任务计划状态
    */
   async updateTaskPlan(taskPlanId, updates) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.updateTaskPlan");
     try {
       const fields = [];
       const params = [];
@@ -1299,6 +1305,7 @@ ${userRequest}
    * @returns {Promise<Object>} 执行结果
    */
   async executeTaskPlan(taskPlan, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.executeTaskPlan");
     logger.info("[TaskPlannerEnhanced] 开始执行任务计划:", taskPlan.task_title);
 
     try {
@@ -1585,6 +1592,7 @@ ${userRequest}
    * 执行单个子任务
    */
   async executeSubtask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.executeSubtask");
     logger.info(
       `[TaskPlannerEnhanced] 执行子任务 ${subtask.step}: ${subtask.title}`,
     );
@@ -2005,6 +2013,7 @@ ${userRequest}
    * 取消任务计划
    */
   async cancelTaskPlan(taskPlanId) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.cancelTaskPlan");
     try {
       await this.updateTaskPlan(taskPlanId, {
         status: "cancelled",

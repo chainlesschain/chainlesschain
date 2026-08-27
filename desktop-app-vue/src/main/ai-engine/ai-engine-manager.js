@@ -4,6 +4,9 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const IntentClassifier = require("./intent-classifier");
 const { TaskPlanner } = require("./task-planner");
 const TaskPlannerEnhanced = require("./task-planner-enhanced");
@@ -37,6 +40,7 @@ class AIEngineManager {
    * 注入依赖项并初始化增强版任务规划器
    */
   async initialize() {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.initialize");
     try {
       // 获取LLM管理器
       if (!this.llmManager) {
@@ -241,6 +245,7 @@ class AIEngineManager {
    * @returns {Promise<Object>} 执行结果
    */
   async processUserInput(userInput, context = {}, onStepUpdate = null) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.processUserInput");
     const startTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
@@ -391,6 +396,7 @@ class AIEngineManager {
    * 清除执行历史
    */
   clearHistory() {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.clearHistory");
     this.executionHistory = [];
   }
 

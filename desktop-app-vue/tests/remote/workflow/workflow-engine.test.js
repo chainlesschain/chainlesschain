@@ -19,6 +19,21 @@ const {
   STEP_STATUS,
   WORKFLOW_STATUS,
 } = require("../../../src/main/remote/workflow/workflow-engine");
+const originalBrowserWorkflowExperimental =
+  process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL;
+
+beforeAll(() => {
+  process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL = "1";
+});
+
+afterAll(() => {
+  if (originalBrowserWorkflowExperimental === undefined) {
+    delete process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL;
+  } else {
+    process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL =
+      originalBrowserWorkflowExperimental;
+  }
+});
 
 describe("WorkflowEngine (real implementation)", () => {
   let engine;

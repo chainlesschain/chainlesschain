@@ -22,6 +22,9 @@
  */
 
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -163,6 +166,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {Object} [deps] - Optional module dependencies
    */
   async initialize(db, deps = {}) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.initialize");
     if (this.initialized) {
       return;
     }
@@ -195,6 +199,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @returns {Object} Created pipeline
    */
   async createPipeline(options = {}) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.createPipeline");
     const {
       name,
       template = "feature",
@@ -274,6 +279,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @returns {Object} Updated status
    */
   async startPipeline(pipelineId) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.startPipeline");
     const pipeline = this._getPipeline(pipelineId);
 
     if (
@@ -326,6 +332,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {string} pipelineId
    */
   async pausePipeline(pipelineId) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.pausePipeline");
     const pipeline = this._getPipeline(pipelineId);
 
     if (pipeline.status !== PIPELINE_STATUS.RUNNING) {
@@ -345,6 +352,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {string} pipelineId
    */
   async resumePipeline(pipelineId) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.resumePipeline");
     return this.startPipeline(pipelineId);
   }
 
@@ -354,6 +362,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {string} [reason]
    */
   async cancelPipeline(pipelineId, reason = "") {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.cancelPipeline");
     const pipeline = this._getPipeline(pipelineId);
 
     if (
@@ -458,6 +467,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {Object} [options] - Approval options
    */
   async approveGate(pipelineId, stageId, options = {}) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.approveGate");
     const pipeline = this._getPipeline(pipelineId);
     const stage = pipeline.stages.find((s) => s.id === stageId);
 
@@ -506,6 +516,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {Object} [options] - Rejection options
    */
   async rejectGate(pipelineId, stageId, options = {}) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.rejectGate");
     const pipeline = this._getPipeline(pipelineId);
     const stage = pipeline.stages.find((s) => s.id === stageId);
 
@@ -611,6 +622,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @param {Object} config - Partial config to merge
    */
   configure(config = {}) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator.configure");
     const allowed = [
       "maxConcurrentPipelines",
       "defaultTimeout",
@@ -635,6 +647,7 @@ class PipelineOrchestrator extends EventEmitter {
    * @private
    */
   async _executeStage(pipelineId, stageId) {
+    assertDesktopLegacyMutationAllowed("PipelineOrchestrator._executeStage");
     const pipeline = this._getPipeline(pipelineId);
     const stage = pipeline.stages.find((s) => s.id === stageId);
 

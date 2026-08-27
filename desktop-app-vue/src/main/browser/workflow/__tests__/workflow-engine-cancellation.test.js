@@ -1,10 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 
 vi.mock("../../../utils/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 const { WorkflowEngine, ExecutionStatus } = require("../workflow-engine.js");
+const originalBrowserWorkflowExperimental =
+  process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL;
+
+beforeAll(() => {
+  process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL = "1";
+});
+
+afterAll(() => {
+  if (originalBrowserWorkflowExperimental === undefined) {
+    delete process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL;
+  } else {
+    process.env.CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL =
+      originalBrowserWorkflowExperimental;
+  }
+});
 
 function browserWith(overrides = {}) {
   return {

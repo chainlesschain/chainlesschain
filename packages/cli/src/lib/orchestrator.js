@@ -27,6 +27,7 @@ import { AgentRouter } from "./agent-router.js";
 import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import { assertCLILegacyMutationAllowed } from "./legacy-runtime-authority.js";
 import executionBroker from "./process-execution-broker/index.js";
 import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 
@@ -155,6 +156,7 @@ export class Orchestrator extends EventEmitter {
    * @returns {Promise<object>} Final task record
    */
   async addTask(description, opts = {}) {
+    assertCLILegacyMutationAllowed("Orchestrator.addTask");
     const task = {
       id: generateId("task"),
       description,
@@ -237,6 +239,7 @@ export class Orchestrator extends EventEmitter {
   // ─── Orchestration pipeline ──────────────────────────────────────
 
   async _orchestrate(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._orchestrate");
     try {
       // Step 1: Decompose
       task.subtasks = await this._decompose(task);
@@ -306,6 +309,7 @@ export class Orchestrator extends EventEmitter {
 
   /** Dispatch subtasks to the Claude Code pool. */
   async _dispatch(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._dispatch");
     this.emit("agents:dispatched", { task, count: task.subtasks.length });
     this._log(
       `Dispatching ${task.subtasks.length} subtask(s) to ${this._router.summary().length} agent backend(s)`,
@@ -320,6 +324,7 @@ export class Orchestrator extends EventEmitter {
 
   /** Run CI command and retry loop. */
   async _ciLoop(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._ciLoop");
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       task.status = TASK_STATUS.CI_CHECKING;
       this.emit("ci:checking", { task, attempt });

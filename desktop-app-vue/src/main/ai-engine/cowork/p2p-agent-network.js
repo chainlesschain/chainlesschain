@@ -12,6 +12,9 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /**
  * Message types for the P2P agent protocol
@@ -106,6 +109,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {Object} localDevice - { deviceId, platform, skills[], resources }
    */
   async initialize(localDevice = {}) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.initialize");
     if (this.initialized) {
       logger.warn("[P2PAgentNetwork] Already initialized");
       return;
@@ -317,6 +321,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @returns {Promise<Object>} Task result
    */
   async delegateTask(peerId, task) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.delegateTask");
     const agent = this.remoteAgents.get(peerId);
     if (!agent) {
       throw new Error(`Remote agent not found: ${peerId}`);
@@ -382,6 +387,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {string} taskId
    */
   async cancelDelegatedTask(taskId) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.cancelDelegatedTask");
     const delegation = this.pendingDelegations.get(taskId);
     const remoteTask = this.activeRemoteTasks.get(taskId);
     const peerId = delegation?.peerId || remoteTask?.peerId;
@@ -697,6 +703,7 @@ class P2PAgentNetwork extends EventEmitter {
    * Handle incoming task delegation (we are the executor)
    */
   async _handleTaskDelegation(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskDelegation");
     const { taskId, skillId, input, description } = payload;
 
     // Check if we can execute this skill

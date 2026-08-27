@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   GraphRunAuthorityRegistry,
@@ -20,6 +22,7 @@ import {
 } from "../../src/lib/graph-kernel/cutover-ledger.js";
 
 const EXPIRY = "2030-01-01T00:00:00.000Z";
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../../..");
 
 function binding(overrides = {}) {
   return createGraphAuthorityBinding({
@@ -66,10 +69,10 @@ describe("GraphRun authority and writer inventory", () => {
     expect(validateGraphRuntimeSurfaceManifest(manifest)).toMatchObject({
       valid: true,
       surfaceCount: 5,
-      entryCount: 12,
+      entryCount: 23,
       migratableEntryCount: 7,
-      retirementEntryCount: 3,
-      disabledEntryCount: 2,
+      retirementEntryCount: 13,
+      disabledEntryCount: 3,
       errors: [],
     });
     expect(discoverUnclassifiedRuntimeWriters(manifest)).toEqual([]);
@@ -80,7 +83,7 @@ describe("GraphRun authority and writer inventory", () => {
       existingCanonicalRunRollback: "retain_authority",
     });
     const entries = manifest.surfaces.flatMap((surface) => surface.entries);
-    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(12);
+    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(23);
     expect(
       entries.find((entry) => entry.id === "desktop-specialized-agents"),
     ).toMatchObject({
@@ -98,24 +101,89 @@ describe("GraphRun authority and writer inventory", () => {
       ]),
     });
     expect(
-      entries.filter((entry) => entry.cutoverStrategy === "retire"),
+      entries
+        .filter((entry) => entry.cutoverStrategy === "retire")
+        .map((entry) => entry.id),
     ).toEqual([
+      "cli-legacy-autonomous",
+      "cli-legacy-orchestrate",
+      "desktop-legacy-ai-engine",
+      "desktop-autonomous-agent",
+      "desktop-legacy-cowork-team",
+      "desktop-long-running-task",
+      "desktop-dev-pipeline",
+      "desktop-autonomous-ops",
+      "desktop-hybrid-executor",
+      "desktop-p2p-agent",
+      "desktop-legacy-multi-agent",
+      "desktop-legacy-workflow",
+      "desktop-skill-workflow",
+    ]);
+    for (const entry of entries.filter(
+      (candidate) => candidate.cutoverStrategy === "retire",
+    )) {
+      expect(entry).toMatchObject({
+        replacementEntrypoint: expect.any(String),
+        replacementAuthoritySource: "graph_kernel",
+        retiredStoreAccess: "historical_read_only",
+      });
+      expect(entry.replacementEntrypoint.trim()).not.toBe("");
+      const writerSource = entry.writerFiles
+        .map((file) =>
+          fs.readFileSync(path.resolve(REPOSITORY_ROOT, file), "utf8"),
+        )
+        .join("\n");
+      for (const mutationFunction of entry.mutationFunctions) {
+        expect(writerSource, `${entry.id}/${mutationFunction}`).toContain(
+          `"${mutationFunction}"`,
+        );
+      }
+    }
+    for (const entry of entries.filter(
+      (candidate) => candidate.cutoverStrategy === "disabled",
+    )) {
+      const writerSource = entry.writerFiles
+        .map((file) =>
+          fs.readFileSync(path.resolve(REPOSITORY_ROOT, file), "utf8"),
+        )
+        .join("\n");
+      for (const mutationFunction of entry.mutationFunctions) {
+        expect(writerSource, `${entry.id}/${mutationFunction}`).toContain(
+          `"${mutationFunction}"`,
+        );
+      }
+    }
+    expect(manifest.discovery.classifiedNonWriters).toEqual([
       expect.objectContaining({
-        id: "desktop-legacy-multi-agent",
-        runtimeDurability: "process_local",
-        recoveryEntrypoints: [],
+        classification: "canonical_agent_kernel_adapter",
+        files: expect.arrayContaining([
+          "packages/cli/src/gateways/ws/ws-agent-handler.js",
+          "packages/cli/src/gateways/ws/session-protocol.js",
+        ]),
       }),
       expect.objectContaining({
-        id: "desktop-legacy-workflow",
-        runtimeDurability: "process_local",
-        recoveryEntrypoints: [],
+        classification: "tool_free_advisor",
+        files: ["packages/cli/src/lib/advisor-runtime.js"],
       }),
       expect.objectContaining({
-        id: "desktop-skill-workflow",
-        runtimeDurability: "process_local",
-        recoveryEntrypoints: [],
+        classification: "durable_event_transport",
+        files: ["packages/cli/src/lib/event-runtime-host.js"],
       }),
     ]);
+    expect(
+      entries.find((entry) => entry.id === "desktop-autonomous-agent"),
+    ).toMatchObject({
+      runtimeDurability: "durable",
+      cutoverStrategy: "retire",
+      recoveryEntrypoints: [],
+      storeDispositions: {
+        migrate: [],
+        retire: expect.arrayContaining([
+          "autonomous_goals",
+          "autonomous_task_queue",
+        ]),
+      },
+    });
     expect(
       entries.find((entry) => entry.id === "desktop-workflow-manager"),
     ).toMatchObject({

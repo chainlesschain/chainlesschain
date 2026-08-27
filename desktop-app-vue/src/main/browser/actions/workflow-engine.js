@@ -17,6 +17,9 @@ const { EventEmitter } = require("events");
 const fs = require("fs").promises;
 const path = require("path");
 const vm = require("vm");
+const {
+  assertBrowserWorkflowEnabled,
+} = require("../workflow/browser-workflow-authority.js");
 
 /**
  * 工作流状态
@@ -148,6 +151,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {Promise<Object>}
    */
   async execute(workflowId, options = {}) {
+    assertBrowserWorkflowEnabled("BrowserActionWorkflowEngine.execute");
     const workflow = this.workflows.get(workflowId);
 
     if (!workflow) {
@@ -702,6 +706,7 @@ class WorkflowEngine extends EventEmitter {
    * 暂停工作流
    */
   pause() {
+    assertBrowserWorkflowEnabled("BrowserActionWorkflowEngine.pause");
     if (this.state !== WorkflowState.RUNNING) {
       throw new Error("Workflow is not running");
     }
@@ -716,6 +721,7 @@ class WorkflowEngine extends EventEmitter {
    * 恢复工作流
    */
   resume() {
+    assertBrowserWorkflowEnabled("BrowserActionWorkflowEngine.resume");
     if (this.state !== WorkflowState.PAUSED) {
       throw new Error("Workflow is not paused");
     }
@@ -730,6 +736,7 @@ class WorkflowEngine extends EventEmitter {
    * 取消工作流
    */
   cancel() {
+    assertBrowserWorkflowEnabled("BrowserActionWorkflowEngine.cancel");
     if (
       this.state !== WorkflowState.RUNNING &&
       this.state !== WorkflowState.PAUSED

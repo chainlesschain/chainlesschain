@@ -17,6 +17,9 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -77,6 +80,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @param {Object} deps - { federatedRegistry, agentReputation }
    */
   async initialize(db, deps = {}) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.initialize");
     if (this.initialized) {
       return;
     }
@@ -152,6 +156,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @param {Object} updates - Configuration overrides
    */
   configure(updates = {}) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.configure");
     const validKeys = Object.keys(DEFAULT_CONFIG);
     for (const key of Object.keys(updates)) {
       if (validKeys.includes(key)) {
@@ -179,6 +184,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} Routed task with assigned executor
    */
   async routeTask(task) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.routeTask");
     if (!task || !task.requesterDID || !task.taskType) {
       throw new Error("requesterDID and taskType are required");
     }
@@ -293,6 +299,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} Updated task
    */
   async completeTask(taskId, result = {}) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.completeTask");
     const task = this._activeTasks.get(taskId);
     if (!task) {
       // Try loading from DB
@@ -319,6 +326,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} Updated task
    */
   _finalizeTask(task, result) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._finalizeTask");
     const now = new Date().toISOString();
     const startTime = new Date(task.createdAt).getTime();
     const durationMs = Date.now() - startTime;
@@ -382,6 +390,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} Cancelled task
    */
   cancelTask(taskId) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.cancelTask");
     const task = this._activeTasks.get(taskId) || this._loadTaskFromDB(taskId);
 
     if (!task) {
@@ -736,6 +745,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} New task record
    */
   async retryTask(taskId) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.retryTask");
     const task = this._activeTasks.get(taskId) || this._loadTaskFromDB(taskId);
 
     if (!task) {
