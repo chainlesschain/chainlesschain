@@ -200,7 +200,8 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Object} 执行结果
    */
   async execute(input, context = {}) {
-    const graphMode = this.graphAdapter.mode();
+    const graphRunKey = `desktop-workflow:${this.id}`;
+    const graphMode = this.graphAdapter.mode(graphRunKey);
     this.runAuthorityMode = graphMode;
     if (graphMode === "canonical") {
       return this._executeCanonicalGraph(input, context);
@@ -213,12 +214,17 @@ class WorkflowPipeline extends EventEmitter {
           inputs: graph.inputs,
           runId: `desktop-workflow:${this.id}:shadow`,
           waitForCompletion: false,
+          authorityMode: graphMode,
         });
       } catch (error) {
         this._recordShadowDivergence(error);
       }
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.execute");
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowPipeline.execute",
+      process.env,
+      { authorityMode: graphMode },
+    );
     if (!this.stateMachine.start()) {
       throw new Error("无法启动工作流，当前状态不允许");
     }
@@ -379,6 +385,7 @@ class WorkflowPipeline extends EventEmitter {
         inputs: graph.inputs,
         runId: this.graphRunId,
         waitForCompletion: true,
+        authorityMode: this.runAuthorityMode,
       });
       this.graphAuthority = projection;
       this.graphRunRegistry.updateProjection(
@@ -557,10 +564,13 @@ class WorkflowPipeline extends EventEmitter {
   }
 
   pause() {
-    if (this.graphAdapter.mode() === "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
       throw graphControlError("pause");
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.pause");
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.pause", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.pause()) {
       return false;
     }
@@ -579,10 +589,13 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   resume() {
-    if (this.graphAdapter.mode() === "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
       throw graphControlError("resume");
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.resume");
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.resume", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.resume()) {
       return false;
     }
@@ -604,13 +617,15 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   async cancel(reason = "用户取消") {
-    if (this.graphAdapter.mode() === "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
       if (!this.graphRunId) return false;
       this.graphCancellationPending = true;
       try {
         const projection = await this.graphAdapter.cancel(
           this.graphRunId,
           reason,
+          { authorityMode },
         );
         this.graphAuthority = projection;
         const binding = this.graphRunRegistry.get(
@@ -690,7 +705,9 @@ class WorkflowPipeline extends EventEmitter {
         this.graphCancellationPending = false;
       }
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.cancel");
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.cancel", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.cancel(reason)) {
       return false;
     }
@@ -716,7 +733,8 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Object} 执行结果
    */
   async reconcile(reconciliation) {
-    if (this.graphAdapter.mode() !== "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode !== "canonical") {
       throw graphControlError("reconciliation");
     }
     if (!this.graphRunId) {
@@ -726,6 +744,7 @@ class WorkflowPipeline extends EventEmitter {
       const projection = await this.graphAdapter.reconcile(
         this.graphRunId,
         reconciliation,
+        { authorityMode },
       );
       const binding = this.graphRunRegistry.get(
         WORKFLOW_GRAPH_SURFACE,
@@ -774,10 +793,13 @@ class WorkflowPipeline extends EventEmitter {
   }
 
   retry() {
-    if (this.graphAdapter.mode() === "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
       throw graphControlError("retry");
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.retry");
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.retry", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.retry()) {
       throw new Error("无法重试，当前状态不允许");
     }
@@ -880,11 +902,25 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   overrideQualityGate(gateId, reason = "手动覆盖") {
-    if (this.graphAdapter.mode() === "canonical") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
       throw graphControlError("quality-gate override");
     }
-    assertDesktopLegacyMutationAllowed("WorkflowPipeline.overrideQualityGate");
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowPipeline.overrideQualityGate",
+      process.env,
+      { authorityMode },
+    );
     return this.qualityGateManager.override(gateId, reason);
+  }
+
+  _authorityMode() {
+    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
+    return (
+      binding?.authorityMode ||
+      this.runAuthorityMode ||
+      this.graphAdapter.mode(`desktop-workflow:${this.id}`)
+    );
   }
 
   hydrateGraphBinding(binding) {
@@ -984,17 +1020,21 @@ class WorkflowPipeline extends EventEmitter {
   }
 
   async refreshCanonicalStatus({ resume = true } = {}) {
-    if (this.graphAdapter.mode() !== "canonical" || !this.graphRunId) {
+    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
+    const authorityMode = binding?.authorityMode || this._authorityMode();
+    if (authorityMode !== "canonical" || !this.graphRunId) {
       return this.graphAuthority;
     }
-    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
     try {
       const projection =
         resume && RESUMABLE_GRAPH_STATES.has(binding?.lifecycleStatus)
           ? await this.graphAdapter.resume(this.graphRunId, {
               waitForCompletion: false,
+              authorityMode,
             })
-          : await this.graphAdapter.status(this.graphRunId);
+          : await this.graphAdapter.status(this.graphRunId, {
+              authorityMode,
+            });
       this.graphRunRegistry.updateProjection(
         WORKFLOW_GRAPH_SURFACE,
         this.id,
@@ -1083,7 +1123,7 @@ class WorkflowPipeline extends EventEmitter {
     const projectedStatus = this.reconciliationRequired
       ? "reconciliation_required"
       : state;
-    const authorityMode = this.runAuthorityMode || this.graphAdapter.mode();
+    const authorityMode = this._authorityMode();
 
     return {
       workflowId: this.id,

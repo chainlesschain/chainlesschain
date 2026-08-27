@@ -138,7 +138,11 @@ async function handleCreate(name, definition, context) {
 }
 
 async function handleRun(nameOrId, context) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleRun");
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handleRun",
+    process.env,
+    { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
+  );
   if (!nameOrId) {
     return {
       success: false,
@@ -213,7 +217,11 @@ async function handleStatus(nameOrId) {
 }
 
 async function handlePause(nameOrId) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handlePause");
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handlePause",
+    process.env,
+    { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
+  );
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }
@@ -236,7 +244,11 @@ async function handlePause(nameOrId) {
 }
 
 async function handleResume(nameOrId) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleResume");
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handleResume",
+    process.env,
+    { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
+  );
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }
@@ -259,7 +271,11 @@ async function handleResume(nameOrId) {
 }
 
 async function handleCancel(nameOrId) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleCancel");
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handleCancel",
+    process.env,
+    { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
+  );
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }

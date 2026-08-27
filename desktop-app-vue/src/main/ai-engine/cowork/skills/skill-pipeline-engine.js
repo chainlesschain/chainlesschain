@@ -10,6 +10,9 @@
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../../code-agent/desktop-runtime-authority.js");
 
 // Cap retained pipeline executions so the executions Map can't grow without
 // bound across the life of the main process.
@@ -192,12 +195,17 @@ class SkillPipelineEngine extends EventEmitter {
    * @returns {Promise<object>} PipelineResult
    */
   async executePipeline(pipelineId, initialContext = {}) {
+    const executionId = uuidv4();
+    const runtimeAuthority = assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine.executePipeline",
+      process.env,
+      { runKey: `desktop-skill-pipeline:${executionId}` },
+    );
     const pipeline = this.pipelines.get(pipelineId);
     if (!pipeline) {
       throw new Error(`Pipeline not found: ${pipelineId}`);
     }
 
-    const executionId = uuidv4();
     const execution = {
       id: executionId,
       pipelineId,
@@ -209,6 +217,7 @@ class SkillPipelineEngine extends EventEmitter {
       completedAt: null,
       error: null,
       _pauseResolve: null,
+      authorityMode: runtimeAuthority.authorityMode,
     };
 
     this.executions.set(executionId, execution);
@@ -293,6 +302,14 @@ class SkillPipelineEngine extends EventEmitter {
    */
   pausePipeline(executionId) {
     const execution = this.executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine.pausePipeline",
+      process.env,
+      {
+        runKey: `desktop-skill-pipeline:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution || execution.state !== PipelineState.RUNNING) {
       throw new Error(`Cannot pause execution: ${executionId}`);
     }
@@ -307,6 +324,14 @@ class SkillPipelineEngine extends EventEmitter {
    */
   resumePipeline(executionId) {
     const execution = this.executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine.resumePipeline",
+      process.env,
+      {
+        runKey: `desktop-skill-pipeline:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution || execution.state !== PipelineState.PAUSED) {
       throw new Error(`Cannot resume execution: ${executionId}`);
     }
@@ -325,6 +350,14 @@ class SkillPipelineEngine extends EventEmitter {
    */
   cancelPipeline(executionId) {
     const execution = this.executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine.cancelPipeline",
+      process.env,
+      {
+        runKey: `desktop-skill-pipeline:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution) {
       throw new Error(`Execution not found: ${executionId}`);
     }

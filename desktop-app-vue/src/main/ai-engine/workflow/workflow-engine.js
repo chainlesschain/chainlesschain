@@ -406,13 +406,17 @@ class WorkflowEngine extends EventEmitter {
 
   // Execution
   async executeWorkflow(workflowId, input = {}) {
-    assertDesktopLegacyMutationAllowed("WorkflowEngine.executeWorkflow");
+    const execId = `exec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const runtimeAuthority = assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.executeWorkflow",
+      process.env,
+      { runKey: `desktop-legacy-workflow:${execId}` },
+    );
     const workflow = this._workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow '${workflowId}' not found`);
     }
 
-    const execId = `exec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const execution = {
       id: execId,
       workflowId,
@@ -424,6 +428,7 @@ class WorkflowEngine extends EventEmitter {
       startedAt: Date.now(),
       runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
       terminalEvidence: [],
+      authorityMode: runtimeAuthority.authorityMode,
     };
 
     this._executions.set(execId, execution);
@@ -604,8 +609,15 @@ class WorkflowEngine extends EventEmitter {
   }
 
   pauseExecution(executionId) {
-    assertDesktopLegacyMutationAllowed("WorkflowEngine.pauseExecution");
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.pauseExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution || TERMINAL_EXEC_STATES.has(execution.status)) {
       return null;
     }
@@ -615,8 +627,15 @@ class WorkflowEngine extends EventEmitter {
   }
 
   async resumeExecution(executionId) {
-    assertDesktopLegacyMutationAllowed("WorkflowEngine.resumeExecution");
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.resumeExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     // "paused" = breakpoint / manual pause; "waiting" = approval gate.
     // (Approval pauses set "waiting", so the old `!== "paused"` check made
     // approval workflows wholly unresumable.)
@@ -673,8 +692,15 @@ class WorkflowEngine extends EventEmitter {
   }
 
   rollbackExecution(executionId) {
-    assertDesktopLegacyMutationAllowed("WorkflowEngine.rollbackExecution");
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.rollbackExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution) {
       return null;
     }

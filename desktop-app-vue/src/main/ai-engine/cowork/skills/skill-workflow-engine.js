@@ -231,7 +231,11 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {Promise<object>} Execution result
    */
   async executeWorkflow(workflowId, context = {}) {
-    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.executeWorkflow");
+    assertDesktopLegacyMutationAllowed(
+      "SkillWorkflowEngine.executeWorkflow",
+      process.env,
+      { runKey: `desktop-skill-workflow:${workflowId}` },
+    );
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);

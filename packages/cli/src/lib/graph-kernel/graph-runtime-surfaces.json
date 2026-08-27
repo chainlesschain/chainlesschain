@@ -242,18 +242,28 @@
           "rolloutKey": "desktop/desktop-skill-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-ipc.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/workflow-automation/handler.js"
           ],
           "writerFiles": [
             "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-pipeline-engine.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-engine.js"
           ],
           "mutationFunctions": [
             "SkillWorkflowEngine.executeWorkflow",
+            "SkillPipelineEngine.executePipeline",
+            "SkillPipelineEngine.pausePipeline",
+            "SkillPipelineEngine.resumePipeline",
+            "SkillPipelineEngine.cancelPipeline",
             "WorkflowAutomation.handleRun"
           ],
-          "stores": ["SkillWorkflowEngine.workflows"],
+          "stores": [
+            "SkillPipelineEngine.executions",
+            "SkillPipelineEngine.pipelines",
+            "SkillWorkflowEngine.workflows"
+          ],
           "recoveryEntrypoints": []
         }
       ]
@@ -324,7 +334,8 @@
       "new\\s+AgentCoordinator\\b",
       "new\\s+WorkflowManager\\b",
       "new\\s+WorkflowPipeline\\b",
-      "class\\s+(?:Skill)?WorkflowEngine\\b"
+      "class\\s+(?:Skill)?WorkflowEngine\\b",
+      "class\\s+SkillPipelineEngine\\b"
     ]
   }
 }

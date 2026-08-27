@@ -361,11 +361,16 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Promise<Object>} Orchestration result
    */
   async orchestrate(taskDescription, options = {}) {
-    const graphMode = this.graphAdapter.mode();
-    if (graphMode !== "canonical") {
-      assertDesktopLegacyMutationAllowed("AgentCoordinator.orchestrate");
-    }
     const sessionId = uuidv4();
+    const graphRunId = `desktop-specialized-agents:${sessionId}`;
+    const graphMode = this.graphAdapter.mode(graphRunId);
+    if (graphMode !== "canonical") {
+      assertDesktopLegacyMutationAllowed(
+        "AgentCoordinator.orchestrate",
+        process.env,
+        { authorityMode: graphMode },
+      );
+    }
     const startTime = Date.now();
 
     this.stats.totalOrchestrations++;
@@ -384,6 +389,7 @@ class AgentCoordinator extends EventEmitter {
       subtasks: [],
       results: [],
       errors: [],
+      graphAuthorityMode: graphMode,
     };
 
     this.orchestrationSessions.set(sessionId, session);
@@ -413,8 +419,9 @@ class AgentCoordinator extends EventEmitter {
         const projection = await this.graphAdapter.run({
           definition: graph.definition,
           inputs: graph.inputs,
-          runId: `desktop-specialized-agents:${sessionId}`,
+          runId: graphRunId,
           waitForCompletion: true,
+          authorityMode: graphMode,
         });
         session.graphAuthority = projection;
         results = projectGraphNodes(
@@ -459,13 +466,18 @@ class AgentCoordinator extends EventEmitter {
               inputs: graph.inputs,
               runId: `desktop-specialized-agents:${sessionId}:shadow`,
               waitForCompletion: false,
+              authorityMode: graphMode,
             });
           } catch (error) {
             this._recordShadowDivergence("orchestration", error, { sessionId });
           }
         }
         const strategy = options.strategy || "auto";
-        const legacyOptions = { ...options, __graphObserved: true };
+        const legacyOptions = {
+          ...options,
+          __graphObserved: true,
+          __graphAuthorityMode: graphMode,
+        };
         if (
           strategy === "parallel" ||
           (strategy === "auto" && this._canRunParallel(plan.subtasks))
@@ -655,12 +667,19 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Promise<Object>} Assignment result with task ID and status
    */
   async assignTask(agentId, taskDescription, options = {}) {
-    const graphMode = this.graphAdapter.mode();
+    const taskId = options.__graphTaskId || uuidv4();
+    const graphRunId = `desktop-specialized-task:${taskId}`;
+    const graphMode =
+      options.__graphAuthorityMode || this.graphAdapter.mode(graphRunId);
     if (graphMode === "canonical") {
-      return this._assignTaskCanonical(agentId, taskDescription, options);
+      return this._assignTaskCanonical(agentId, taskDescription, {
+        ...options,
+        __graphTaskId: taskId,
+        __graphAuthorityMode: graphMode,
+      });
     }
     if (graphMode === "shadow" && options.__graphObserved !== true) {
-      const observationId = uuidv4();
+      const observationId = taskId;
       try {
         const graph = buildSpecializedAgentsGraph(
           {
@@ -681,6 +700,7 @@ class AgentCoordinator extends EventEmitter {
           inputs: graph.inputs,
           runId: `desktop-specialized-task:${observationId}:shadow`,
           waitForCompletion: false,
+          authorityMode: graphMode,
         });
       } catch (error) {
         this._recordShadowDivergence("assignment", error, {
@@ -688,7 +708,11 @@ class AgentCoordinator extends EventEmitter {
         });
       }
     }
-    assertDesktopLegacyMutationAllowed("AgentCoordinator.assignTask");
+    assertDesktopLegacyMutationAllowed(
+      "AgentCoordinator.assignTask",
+      process.env,
+      { authorityMode: graphMode },
+    );
     if (!agentId) {
       throw new Error("Agent ID is required for task assignment");
     }
@@ -698,8 +722,6 @@ class AgentCoordinator extends EventEmitter {
     }
 
     const templateType = options.templateType || "unknown";
-    const taskId = uuidv4();
-
     logger.info(
       `[AgentCoordinator] Assigning task ${taskId} to agent ${agentId}`,
     );
@@ -716,6 +738,7 @@ class AgentCoordinator extends EventEmitter {
       status: TASK_STATUS.ASSIGNED,
       assignedAt: Date.now(),
       context: options.context || {},
+      authorityMode: graphMode,
     };
 
     this.activeTasks.set(taskId, taskInfo);
@@ -857,7 +880,8 @@ class AgentCoordinator extends EventEmitter {
   async _assignTaskCanonical(agentId, taskDescription, options = {}) {
     if (!agentId) throw new Error("Agent ID is required for task assignment");
     if (!taskDescription) throw new Error("Task description is required");
-    const taskId = uuidv4();
+    const taskId = options.__graphTaskId || uuidv4();
+    const authorityMode = options.__graphAuthorityMode || "canonical";
     const templateType = options.templateType || "unknown";
     const graphRunId = `desktop-specialized-task:${taskId}`;
     this._createTaskRecord(taskId, agentId, templateType, taskDescription);
@@ -871,6 +895,7 @@ class AgentCoordinator extends EventEmitter {
       context: options.context || {},
       graphRunId,
       authoritySource: "graph_kernel",
+      authorityMode,
     };
     this.activeTasks.set(taskId, taskInfo);
     this._evictTerminalTasks();
@@ -916,6 +941,7 @@ class AgentCoordinator extends EventEmitter {
         inputs: graph.inputs,
         runId: graphRunId,
         waitForCompletion: true,
+        authorityMode,
       });
       const [projected] = projectGraphNodes(projection, [
         { key: taskId, nodeId: graph.taskToNode.get(taskId) },
@@ -1153,6 +1179,7 @@ class AgentCoordinator extends EventEmitter {
         TASK_STATUS.RUNNING,
       graphRunId: binding.graphRunId,
       graphAuthority: binding.lastProjection || null,
+      authorityMode: binding.authorityMode,
       authoritySource: "graph_kernel",
       recovered: true,
     };
@@ -1206,22 +1233,28 @@ class AgentCoordinator extends EventEmitter {
   }
 
   async getTaskStatusAuthoritative(taskId, { resume = true } = {}) {
-    if (this.graphAdapter.mode() !== "canonical") {
-      return this.getTaskStatus(taskId);
-    }
-    const task = this._hydrateCanonicalTask(taskId);
-    if (!task?.graphRunId) return this.getTaskStatus(taskId);
     const binding = this.graphRunRegistry.get(
       SPECIALIZED_AGENTS_GRAPH_SURFACE,
       taskId,
     );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode !== "canonical") {
+      return this.getTaskStatus(taskId);
+    }
+    const task = this._hydrateCanonicalTask(taskId);
+    if (!task?.graphRunId) return this.getTaskStatus(taskId);
     try {
       const projection =
         resume && RESUMABLE_GRAPH_STATES.has(binding?.lifecycleStatus)
           ? await this.graphAdapter.resume(task.graphRunId, {
               waitForCompletion: false,
+              authorityMode,
             })
-          : await this.graphAdapter.status(task.graphRunId);
+          : await this.graphAdapter.status(task.graphRunId, {
+              authorityMode,
+            });
       this._projectCanonicalTask(task, projection);
       return this.getTaskStatus(taskId);
     } catch (error) {
@@ -1297,10 +1330,21 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Object} Cancellation result
    */
   cancelTask(taskId, reason = "") {
-    if (this.graphAdapter.mode() === "canonical") {
-      return this._cancelCanonicalTask(taskId, reason);
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode === "canonical") {
+      return this._cancelCanonicalTask(taskId, reason, authorityMode);
     }
-    assertDesktopLegacyMutationAllowed("AgentCoordinator.cancelTask");
+    assertDesktopLegacyMutationAllowed(
+      "AgentCoordinator.cancelTask",
+      process.env,
+      { authorityMode },
+    );
     const activeTask = this.activeTasks.get(taskId);
 
     if (!activeTask) {
@@ -1345,7 +1389,7 @@ class AgentCoordinator extends EventEmitter {
     };
   }
 
-  async _cancelCanonicalTask(taskId, reason = "") {
+  async _cancelCanonicalTask(taskId, reason = "", authorityMode = "canonical") {
     const activeTask =
       this.activeTasks.get(taskId) || this._hydrateCanonicalTask(taskId);
     if (!activeTask?.graphRunId) {
@@ -1367,6 +1411,7 @@ class AgentCoordinator extends EventEmitter {
       const projection = await this.graphAdapter.cancel(
         activeTask.graphRunId,
         reason || "Desktop user cancelled specialized task",
+        { authorityMode },
       );
       activeTask.graphAuthority = projection;
       activeTask.completedAt = Date.now();
@@ -1503,7 +1548,14 @@ class AgentCoordinator extends EventEmitter {
   }
 
   async reconcileTask(taskId, reconciliation) {
-    if (this.graphAdapter.mode() !== "canonical") {
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode !== "canonical") {
       throw new Error("Graph reconciliation requires canonical authority");
     }
     const task =
@@ -1518,6 +1570,7 @@ class AgentCoordinator extends EventEmitter {
       const projection = await this.graphAdapter.reconcile(
         task.graphRunId,
         reconciliation,
+        { authorityMode },
       );
       this._projectCanonicalTask(task, projection);
       return {

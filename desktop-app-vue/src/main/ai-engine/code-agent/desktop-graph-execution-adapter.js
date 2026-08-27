@@ -254,14 +254,42 @@ class DesktopGraphExecutionAdapter {
       typeof options.clientProvider === "function"
         ? options.clientProvider
         : () => options.client || null;
+    this.entryId =
+      options.entryId ||
+      ({
+        desktop_specialized_agents: "desktop-specialized-agents",
+        desktop_workflow_manager: "desktop-workflow-manager",
+        desktop_team: "desktop-team",
+      }[this.surface] ??
+        null);
     this.authorityMode =
       typeof options.authorityMode === "function"
         ? options.authorityMode
-        : () => desktopGraphAuthorityMode();
+        : ({ runKey, optIn } = {}) =>
+            desktopGraphAuthorityMode(process.env, {
+              entryId: this.entryId,
+              runKey,
+              optIn,
+            });
   }
 
-  mode() {
-    return this.authorityMode();
+  mode(runKey = undefined, { optIn = false } = {}) {
+    return this.authorityMode({
+      entryId: this.entryId,
+      runKey,
+      optIn: optIn === true,
+    });
+  }
+
+  _mode(runId, pinnedMode = undefined, optIn = false) {
+    const mode = pinnedMode || this.mode(runId, { optIn });
+    if (!["legacy", "shadow", "canonical"].includes(mode)) {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_AUTHORITY_INVALID",
+        "Desktop Graph authority mode is invalid",
+      );
+    }
+    return mode;
   }
 
   _client() {
@@ -328,8 +356,15 @@ class DesktopGraphExecutionAdapter {
     return projection;
   }
 
-  async run({ definition, inputs, runId, waitForCompletion = true }) {
-    const mode = this.mode();
+  async run({
+    definition,
+    inputs,
+    runId,
+    waitForCompletion = true,
+    authorityMode = undefined,
+    optIn = false,
+  }) {
+    const mode = this._mode(runId, authorityMode, optIn);
     if (!["shadow", "canonical"].includes(mode)) {
       throw adapterError(
         "CC_DESKTOP_GRAPH_MODE_LEGACY",
@@ -353,8 +388,8 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
-  async status(runId) {
-    const mode = this.mode();
+  async status(runId, { authorityMode = undefined } = {}) {
+    const mode = this._mode(runId, authorityMode);
     const id = graphIdentifier(runId, "desktop-graph-run");
     const client = this._client();
     if (typeof client.graphStatus !== "function") {
@@ -370,8 +405,11 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
-  async resume(runId, { waitForCompletion = false } = {}) {
-    const mode = this.mode();
+  async resume(
+    runId,
+    { waitForCompletion = false, authorityMode = undefined } = {},
+  ) {
+    const mode = this._mode(runId, authorityMode);
     if (mode !== "canonical") {
       throw adapterError(
         "CC_DESKTOP_GRAPH_RESUME_UNSUPPORTED",
@@ -393,8 +431,12 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
-  async cancel(runId, reason = "cancelled by Desktop") {
-    const mode = this.mode();
+  async cancel(
+    runId,
+    reason = "cancelled by Desktop",
+    { authorityMode = undefined } = {},
+  ) {
+    const mode = this._mode(runId, authorityMode);
     const id = graphIdentifier(runId, "desktop-graph-run");
     const client = this._client();
     if (typeof client.graphCancel !== "function") {
@@ -410,8 +452,8 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
-  async reconcile(runId, reconciliation) {
-    const mode = this.mode();
+  async reconcile(runId, reconciliation, { authorityMode = undefined } = {}) {
+    const mode = this._mode(runId, authorityMode);
     if (mode !== "canonical") {
       throw adapterError(
         "CC_DESKTOP_GRAPH_RECONCILE_UNSUPPORTED",

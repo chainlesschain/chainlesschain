@@ -85,6 +85,38 @@ describe("DesktopGraphExecutionAdapter", () => {
     });
   });
 
+  it("uses a stable run key for admission and a pinned mode after rollback", async () => {
+    let selectedMode = "canonical";
+    const authorityMode = vi.fn(({ runKey }) => {
+      expect(runKey).toBe("desktop-workflow:rollback");
+      return selectedMode;
+    });
+    const graphRun = vi.fn(async (request) => projection(request));
+    const graphStatus = vi.fn(async ({ runId }) =>
+      projection({ runId, authorityMode: "canonical" }, { status: "running" }),
+    );
+    const adapter = new DesktopGraphExecutionAdapter({
+      surface: "desktop_workflow_manager",
+      client: { graphRun, graphStatus },
+      authorityMode,
+    });
+    await adapter.run({
+      runId: "desktop-workflow:rollback",
+      definition: { id: "definition" },
+      inputs: {},
+    });
+    selectedMode = "legacy";
+    await expect(
+      adapter.status("desktop-workflow:rollback", {
+        authorityMode: "canonical",
+      }),
+    ).resolves.toMatchObject({
+      authorityMode: "canonical",
+      status: "running",
+    });
+    expect(authorityMode).toHaveBeenCalledTimes(1);
+  });
+
   it("forwards audited reconciliation through the fixed capability", async () => {
     const graphReconcile = vi.fn(async ({ runId }) =>
       projection({ runId, authorityMode: "canonical" }),

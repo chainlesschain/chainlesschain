@@ -1,8 +1,21 @@
 "use strict";
 
-const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
+const {
+  createRuntimeGraphCutoverAuthorityResolver,
+} = require("../../../../../packages/cli/src/lib/graph-kernel/cutover-authority-resolver.js");
 
-function desktopGraphAuthorityMode(env = process.env) {
+const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
+const DESKTOP_ENTRYPOINTS = Object.freeze([
+  ["WorkflowPipeline.", "desktop-workflow-manager"],
+  ["AgentCoordinator.", "desktop-specialized-agents"],
+  ["SkillPipelineEngine.", "desktop-skill-workflow"],
+  ["SkillWorkflowEngine.", "desktop-skill-workflow"],
+  ["WorkflowAutomation.", "desktop-skill-workflow"],
+  ["WorkflowEngine.", "desktop-legacy-workflow"],
+]);
+const resolverCache = new Map();
+
+function fallbackMode(env) {
   const mode = String(env.CHAINLESSCHAIN_GRAPH_DESKTOP || "legacy")
     .trim()
     .toLowerCase();
@@ -16,16 +29,73 @@ function desktopGraphAuthorityMode(env = process.env) {
   return mode;
 }
 
-function desktopLegacyRuntimeReadOnly(env = process.env) {
+function entryIdFor(entrypoint) {
+  const value = String(entrypoint || "");
+  return DESKTOP_ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
+}
+
+function desktopGraphAuthorityMode(env = process.env, options = {}) {
+  const configured = fallbackMode(env);
+  const entryId = options.entryId;
+  if (!entryId) return configured;
+  let resolver = options.resolver;
+  if (!resolver) {
+    const key = `${entryId}\0${configured}\0${
+      env.CHAINLESSCHAIN_GRAPH_CUTOVER_STATE_DIR || ""
+    }`;
+    resolver = resolverCache.get(key);
+    if (!resolver) {
+      resolver = createRuntimeGraphCutoverAuthorityResolver({
+        env,
+        surface: "desktop",
+        entryId,
+        fallbackMode: configured,
+      });
+      resolverCache.set(key, resolver);
+    }
+  }
+  const resolved =
+    typeof resolver === "function"
+      ? resolver({ runKey: options.runKey, optIn: options.optIn === true })
+      : resolver.resolve({
+          runKey: options.runKey,
+          optIn: options.optIn === true,
+          fallbackMode: configured,
+        });
+  const mode = typeof resolved === "string" ? resolved : resolved?.mode;
+  if (!DESKTOP_GRAPH_MODES.includes(mode)) {
+    const error = new Error(
+      "Desktop Graph authority resolver returned an invalid mode",
+    );
+    error.code = "CC_GRAPH_AUTHORITY_MODE_INVALID";
+    throw error;
+  }
+  return mode;
+}
+
+function desktopLegacyRuntimeReadOnly(env = process.env, options = {}) {
   return (
-    desktopGraphAuthorityMode(env) === "canonical" ||
+    desktopGraphAuthorityMode(env, options) === "canonical" ||
     String(env.CHAINLESSCHAIN_DESKTOP_LEGACY_READ_ONLY || "") === "1"
   );
 }
 
-function assertDesktopLegacyMutationAllowed(entrypoint, env = process.env) {
-  const mode = desktopGraphAuthorityMode(env);
-  if (!desktopLegacyRuntimeReadOnly(env)) {
+function assertDesktopLegacyMutationAllowed(
+  entrypoint,
+  env = process.env,
+  options = {},
+) {
+  const entryId = options.entryId || entryIdFor(entrypoint);
+  const mode =
+    options.authorityMode ||
+    desktopGraphAuthorityMode(env, {
+      ...options,
+      entryId,
+    });
+  if (
+    mode !== "canonical" &&
+    String(env.CHAINLESSCHAIN_DESKTOP_LEGACY_READ_ONLY || "") !== "1"
+  ) {
     return Object.freeze({
       authorityMode: mode,
       authoritySource:
@@ -44,9 +114,9 @@ function assertDesktopLegacyMutationAllowed(entrypoint, env = process.env) {
   throw error;
 }
 
-function desktopLegacyRuntimeClaims(env = process.env) {
-  const mode = desktopGraphAuthorityMode(env);
-  const readOnly = desktopLegacyRuntimeReadOnly(env);
+function desktopLegacyRuntimeClaims(env = process.env, options = {}) {
+  const mode = desktopGraphAuthorityMode(env, options);
+  const readOnly = desktopLegacyRuntimeReadOnly(env, options);
   return Object.freeze({
     surface: "desktop",
     originSurface: "desktop",

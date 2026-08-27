@@ -11,6 +11,9 @@ const {
   SkillWorkflowEngine,
 } = require("../../cowork/skills/skill-workflow-engine.js");
 const {
+  SkillPipelineEngine,
+} = require("../../cowork/skills/skill-pipeline-engine.js");
+const {
   assertBrowserWorkflowEnabled,
   browserWorkflowRuntimeClaims,
 } = require("../../../browser/workflow/browser-workflow-authority.js");
@@ -53,6 +56,25 @@ describe("Desktop Graph authority retirement", () => {
     });
   });
 
+  it("resolves a declared Desktop entry with a stable per-run key", () => {
+    const seen = [];
+    expect(
+      desktopGraphAuthorityMode(
+        { CHAINLESSCHAIN_GRAPH_DESKTOP: "legacy" },
+        {
+          entryId: "desktop-workflow-manager",
+          runKey: "desktop-workflow:stable",
+          optIn: true,
+          resolver: (input) => {
+            seen.push(input);
+            return { mode: "canonical" };
+          },
+        },
+      ),
+    ).toBe("canonical");
+    expect(seen).toEqual([{ runKey: "desktop-workflow:stable", optIn: true }]);
+  });
+
   it("fails every classified legacy mutation closed in canonical mode", async () => {
     process.env.CHAINLESSCHAIN_GRAPH_DESKTOP = "canonical";
     const expected = expect.objectContaining({
@@ -93,6 +115,9 @@ describe("Desktop Graph authority retirement", () => {
     ).rejects.toEqual(expected);
     await expect(
       new SkillWorkflowEngine().executeWorkflow("workflow"),
+    ).rejects.toEqual(expected);
+    await expect(
+      new SkillPipelineEngine().executePipeline("pipeline"),
     ).rejects.toEqual(expected);
   });
 

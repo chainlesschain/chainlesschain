@@ -16,6 +16,9 @@ const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 const {
   SubRuntimePool,
 } = require("../../../../code-agent/sub-runtime-pool.js");
+const {
+  desktopGraphAuthorityMode,
+} = require("../../../../code-agent/desktop-runtime-authority.js");
 
 // All side-effect entry points go through `_deps` so tests can inject fakes.
 // `SubRuntimePoolCtor` defaults to the real pool; unit tests override it with
@@ -24,17 +27,12 @@ const _deps = {
   SessionStateManager,
   runHook,
   SubRuntimePoolCtor: SubRuntimePool,
-  graphAuthorityMode: () => {
-    const value = String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "legacy")
-      .trim()
-      .toLowerCase();
-    if (!["legacy", "shadow", "canonical"].includes(value)) {
-      throw new Error(
-        "CHAINLESSCHAIN_GRAPH_DESKTOP must be legacy, shadow, or canonical",
-      );
-    }
-    return value;
-  },
+  graphAuthorityMode: ({ runKey, optIn = false } = {}) =>
+    desktopGraphAuthorityMode(process.env, {
+      entryId: "desktop-team",
+      runKey,
+      optIn,
+    }),
 };
 
 const VALID_ROLES = new Set([
@@ -393,7 +391,38 @@ module.exports = {
 
     let dispatchResults = null;
     let graphAuthority = null;
-    const graphAuthorityMode = _deps.graphAuthorityMode();
+    const appServerPilot = context?.appServerPilot;
+    const graphRunId = graphIdentifier(
+      `desktop-team:${sessionId}`,
+      "desktop-team-run",
+    );
+    if (!dryRun && typeof appServerPilot?.graphStatus === "function") {
+      try {
+        graphAuthority = await appServerPilot.graphStatus({
+          runId: graphRunId,
+        });
+      } catch (error) {
+        if (
+          !["CC_GRAPH_RUN_NOT_FOUND", "CC_ROLLOUT_THREAD_NOT_FOUND"].includes(
+            error?.code,
+          )
+        ) {
+          return {
+            success: false,
+            error: `Graph authority recovery failed: ${error.message}`,
+            message: `$team could not verify prior Graph authority: ${error.message}`,
+          };
+        }
+      }
+    }
+    const graphAuthorityMode =
+      graphAuthority?.authorityMode ||
+      _deps.graphAuthorityMode({
+        runKey: graphRunId,
+        optIn:
+          task?.params?.graphCanaryOptIn === true ||
+          task?.params?.graphCanaryOptIn === "true",
+      });
     if (!dryRun) {
       // In structured mode the pool auto-detects the scheduler, so we
       // forward assignments unchanged (taskId / scopePaths / dependsOn
@@ -407,7 +436,6 @@ module.exports = {
             steps: a.steps,
           }));
       if (["shadow", "canonical"].includes(graphAuthorityMode)) {
-        const appServerPilot = context?.appServerPilot;
         if (!appServerPilot) {
           return {
             success: false,
@@ -420,10 +448,7 @@ module.exports = {
         try {
           graphAuthority = await appServerPilot.graphRun({
             definition: graph.definition,
-            runId: graphIdentifier(
-              `desktop-team:${sessionId}:${graphAuthorityMode}`,
-              "desktop-team-run",
-            ),
+            runId: graphRunId,
             inputs: graph.inputs,
             originSurface: "desktop",
             authorityMode: graphAuthorityMode,
