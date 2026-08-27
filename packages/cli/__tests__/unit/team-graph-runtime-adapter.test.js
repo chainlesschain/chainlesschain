@@ -111,6 +111,200 @@ describe("CLI Team canonical Graph runtime adapter", () => {
     });
   });
 
+  it("observes shadow messages without changing legacy mailbox outcomes", () => {
+    const now = () => 1_800_000_000_000;
+    const source = registry(now);
+    const runtime = adapter(now);
+    runtime.open({
+      registry: source,
+      runId: "team:shadow-messages",
+      executionMode: "agent",
+      teammates: 2,
+      authorityMode: "shadow",
+      dynamic: true,
+    });
+    const lease = source.acquire("build", {
+      holder: "teammate-1",
+      ttlMs: 60_000,
+    }).lease;
+    runtime.beforeTask({
+      key: "build",
+      holder: "teammate-1",
+      task: source.getTask("build"),
+      lease,
+    });
+    const mailbox = new TeamMailbox({
+      now,
+      recipients: ["coordinator", "teammate-1", "teammate-2"],
+    });
+    const divergences = [];
+    const observed = runtime.bindMailbox(mailbox, {
+      onDivergence: (entry) => divergences.push(entry),
+    });
+    const message = observed.send({
+      from: "teammate-1",
+      to: "teammate-2",
+      body: "review",
+      idempotencyKey: "legacy-review-v1",
+      senderAttempt: { taskKey: "build" },
+    });
+    expect(message.idempotencyKey).toBe("legacy-review-v1");
+    expect(observed.receive("teammate-2", { markRead: true })).toHaveLength(1);
+    expect(
+      observed.acknowledge("teammate-2", {
+        messageIds: [message.id],
+        consumerKey: "shadow-review-consumer",
+        status: "processed",
+      }).receipts[0].status,
+    ).toBe("processed");
+    expect(runtime.kernel.collaborationState(runtime.runId)).toMatchObject({
+      messages: [
+        expect.objectContaining({
+          status: "processed",
+          payload: expect.objectContaining({
+            legacyMessageId: message.id,
+            originalIdempotencyKey: "legacy-review-v1",
+          }),
+        }),
+      ],
+      messageConsumers: [
+        expect.objectContaining({
+          consumerKey: "shadow-review-consumer",
+        }),
+      ],
+    });
+    expect(divergences).toEqual([]);
+
+    const originalSend = runtime.kernel.sendMessage.bind(runtime.kernel);
+    runtime.kernel.sendMessage = () => {
+      throw new Error("shadow ledger unavailable");
+    };
+    const legacyWon = observed.send({
+      from: "coordinator",
+      to: "teammate-2",
+      body: "legacy still wins",
+    });
+    runtime.kernel.sendMessage = originalSend;
+    expect(mailbox.log()).toContainEqual(
+      expect.objectContaining({ id: legacyWon.id, body: "legacy still wins" }),
+    );
+    expect(divergences).toContainEqual(
+      expect.objectContaining({
+        phase: "message-send",
+        error: "shadow ledger unavailable",
+      }),
+    );
+  });
+
+  it("mirrors shadow handoff custody only after the legacy transition", () => {
+    const now = () => 1_800_000_000_000;
+    const source = registry(now);
+    const runtime = adapter(now);
+    runtime.open({
+      registry: source,
+      runId: "team:shadow-handoff",
+      executionMode: "agent",
+      teammates: 2,
+      authorityMode: "shadow",
+      dynamic: true,
+    });
+    const divergences = [];
+    const observed = runtime.bindRegistry(source, {
+      onDivergence: (entry) => divergences.push(entry),
+    });
+    const lease = observed.acquire("build", {
+      holder: "teammate-1",
+      ttlMs: 60_000,
+    }).lease;
+    runtime.beforeTask({
+      key: "build",
+      holder: "teammate-1",
+      task: observed.getTask("build"),
+      lease,
+    });
+    expect(
+      observed.offerHandoff("build", {
+        handoffId: "shadow-handoff-build",
+        holder: "teammate-1",
+        leaseId: lease.leaseId,
+        toHolder: "teammate-2",
+        revisionDigest: runtime.status().revisionDigest,
+        authorityDigest: runtime.status().authorityDigest,
+        ttlMs: 60_000,
+      }).ok,
+    ).toBe(true);
+    expect(
+      observed.acceptHandoff("shadow-handoff-build", {
+        holder: "teammate-2",
+      }).ok,
+    ).toBe(true);
+    const committed = observed.commitHandoff("shadow-handoff-build", {
+      holder: "teammate-1",
+      leaseId: lease.leaseId,
+      ttlMs: 60_000,
+    });
+    expect(committed).toMatchObject({
+      ok: true,
+      lease: { holder: "teammate-2" },
+    });
+    expect(runtime.kernel.collaborationState(runtime.runId).handoffs).toEqual([
+      expect.objectContaining({
+        id: "shadow-handoff-build",
+        status: "committed",
+        toAgentId: "teammate-2",
+      }),
+    ]);
+    expect(divergences).toEqual([]);
+  });
+
+  it("marks an in-flight effect unknown on cancellation and rejects its late result", async () => {
+    const now = () => 1_800_000_000_000;
+    const source = registry(now);
+    const runtime = adapter(now);
+    runtime.open({
+      registry: source,
+      runId: "team:cancel-late-result",
+      executionMode: "agent",
+      teammates: 1,
+      authorityMode: "canonical",
+      dynamic: true,
+    });
+    const lease = source.acquire("build", {
+      holder: "teammate-1",
+      ttlMs: 60_000,
+    }).lease;
+    runtime.beforeTask({
+      key: "build",
+      holder: "teammate-1",
+      task: source.getTask("build"),
+      lease,
+    });
+
+    await expect(runtime.cancel("operator cancelled")).resolves.toMatchObject({
+      status: "reconciliation_required",
+    });
+    expect(runtime.kernel.effectState(runtime.runId)).toEqual([
+      expect.objectContaining({
+        status: "unknown",
+      }),
+    ]);
+    expect(() =>
+      runtime.settleTask({
+        key: "build",
+        task: source.getTask("build"),
+        status: "completed",
+        result: { outputDigest: "sha256:" + "7".repeat(64) },
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: expect.stringMatching(
+          /CC_GRAPH_(RUN_TERMINAL|STALE_ATTEMPT_LEASE|EFFECT_ALREADY_SETTLED|EFFECT_TERMINAL_CONFLICT)/,
+        ),
+      }),
+    );
+    expect(runtime.status().status).toBe("reconciliation_required");
+  });
+
   it("compiles the task registry into an evidence-bound GraphDefinition", () => {
     const now = () => 1_800_000_000_000;
     const source = registry(now);

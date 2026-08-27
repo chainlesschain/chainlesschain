@@ -263,6 +263,20 @@ function graphMessageId(projectionKey, recipient) {
   );
 }
 
+function shadowMailboxProjectionKey(runId, message) {
+  return safeIdentifier(
+    `team-shadow-mail:${graphDigest(
+      {
+        runId,
+        legacyMessageId: message?.id ?? null,
+        payloadDigest: message?.payloadDigest ?? null,
+      },
+      "cc.team.shadow-mailbox-projection/v1",
+    ).slice(7, 47)}`,
+    "team-shadow-mail",
+  );
+}
+
 function mailboxPayload(request, projectionKey) {
   return {
     schema: TEAM_MAILBOX_GRAPH_SCHEMA,
@@ -830,6 +844,170 @@ export class TeamGraphRuntimeAdapter {
     return mailbox.drain(recipient);
   }
 
+  _recordShadowDivergence(onDivergence, details, action) {
+    try {
+      return action();
+    } catch (error) {
+      try {
+        onDivergence?.({
+          ...details,
+          code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+          error: error?.message || String(error),
+        });
+      } catch {
+        // Shadow reporting must never become an execution authority.
+      }
+      return null;
+    }
+  }
+
+  _shadowGraphMessage(mailbox, request, projected) {
+    const projectionKey = shadowMailboxProjectionKey(this.runId, projected);
+    const payload = {
+      ...mailboxPayload(request, projectionKey),
+      legacyMessageId: projected.id,
+      legacyPayloadDigest: projected.payloadDigest || null,
+    };
+    const source = this._messageSource(request);
+    const messages = this._mailboxRecipients(mailbox, request).map(
+      (recipient) =>
+        this.kernel.sendMessage(this.runId, {
+          messageId: graphMessageId(projectionKey, recipient),
+          ...source,
+          toAgentId: recipient,
+          mode: payload.mode,
+          payload,
+          causationId: payload.causationId,
+          correlationId: payload.correlationId,
+          dataPolicy: {
+            origin: `graph-shadow:${this.runId}`,
+            trust: "trusted_host",
+            sensitivity: "internal",
+            allowedSinks: [`agent:${recipient}`],
+          },
+        }),
+    );
+    for (const message of messages) {
+      this.kernel.deliverMessage(this.runId, message.id);
+    }
+    return messages;
+  }
+
+  _shadowGraphMessageId(message, recipient) {
+    return graphMessageId(
+      shadowMailboxProjectionKey(this.runId, message),
+      recipient,
+    );
+  }
+
+  _shadowBindMailbox(mailbox, onDivergence) {
+    const adapter = this;
+    const overrides = {
+      send(request = {}) {
+        const projected = mailbox.send(request);
+        adapter._recordShadowDivergence(
+          onDivergence,
+          { phase: "message-send", messageId: projected?.id || null },
+          () => adapter._shadowGraphMessage(mailbox, request, projected),
+        );
+        return projected;
+      },
+      receive(recipient, options = {}) {
+        const messages = mailbox.receive(recipient, options);
+        adapter._recordShadowDivergence(
+          onDivergence,
+          { phase: "message-receive", recipient },
+          () => {
+            for (const message of messages) {
+              adapter.kernel.deliverMessage(
+                adapter.runId,
+                adapter._shadowGraphMessageId(message, recipient),
+              );
+            }
+            if (messages.length > 0) {
+              adapter.kernel.receiveMessages(adapter.runId, recipient, {
+                markRead: options.markRead === true,
+              });
+            }
+          },
+        );
+        return messages;
+      },
+      acknowledge(recipient, options = {}) {
+        const result = mailbox.acknowledge(recipient, options);
+        adapter._recordShadowDivergence(
+          onDivergence,
+          { phase: "message-ack", recipient },
+          () => {
+            const byId = new Map(
+              mailbox.log().map((message) => [message.id, message]),
+            );
+            for (const id of options.messageIds || []) {
+              const message = byId.get(id);
+              if (!message) {
+                throw adapterError(
+                  "CC_TEAM_GRAPH_MESSAGE_PROJECTION_MISSING",
+                  `shadow Team message ${id} is outside the legacy log`,
+                );
+              }
+              const graphId = adapter._shadowGraphMessageId(message, recipient);
+              adapter.kernel.deliverMessage(adapter.runId, graphId);
+              if (options.status === "dead_letter") {
+                adapter.kernel.deadLetterMessage(
+                  adapter.runId,
+                  graphId,
+                  options.reason || "poison_message",
+                );
+              } else if (options.status === "read") {
+                adapter.kernel.receiveMessages(adapter.runId, recipient, {
+                  markRead: true,
+                });
+              } else {
+                adapter.kernel.processMessage(
+                  adapter.runId,
+                  graphId,
+                  recipient,
+                  String(options.consumerKey || ""),
+                );
+              }
+            }
+          },
+        );
+        return result;
+      },
+      drain(recipient) {
+        const messages = mailbox.drain(recipient);
+        adapter._recordShadowDivergence(
+          onDivergence,
+          { phase: "message-drain", recipient },
+          () => {
+            for (const message of messages) {
+              const graphId = adapter._shadowGraphMessageId(message, recipient);
+              adapter.kernel.deliverMessage(adapter.runId, graphId);
+              adapter.kernel.processMessage(
+                adapter.runId,
+                graphId,
+                recipient,
+                safeIdentifier(
+                  `shadow-drain:${recipient}:${message.id}`,
+                  "consumer",
+                ),
+              );
+            }
+          },
+        );
+        return messages;
+      },
+    };
+    return new Proxy(mailbox, {
+      get(target, property, receiver) {
+        if (Object.hasOwn(overrides, property)) return overrides[property];
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+
   _reconcileMailboxProjection(mailbox) {
     const collaboration = this.kernel.collaborationState(this.runId);
     const groups = new Map();
@@ -1158,9 +1336,167 @@ export class TeamGraphRuntimeAdapter {
     }
   }
 
-  bindRegistry(registry) {
+  _shadowBindRegistry(registry, onDivergence) {
+    const adapter = this;
+    const observe = (phase, details, action) =>
+      adapter._recordShadowDivergence(
+        onDivergence,
+        { phase, ...details },
+        action,
+      );
+    const overrides = {
+      addTask(definition) {
+        const result = registry.addTask(definition);
+        if (result?.ok && !result.idempotent) {
+          observe("task-append", { key: definition?.key || null }, () =>
+            adapter.appendTask(registry.getTask(definition.key) || definition),
+          );
+        }
+        return result;
+      },
+      offerHandoff(key, options = {}) {
+        const result = registry.offerHandoff(key, options);
+        if (result?.ok) {
+          observe(
+            "handoff-offer",
+            { key, handoffId: result.handoff?.id || null },
+            () => {
+              const attempt = adapter._activeHandoffAttempt(key);
+              const handoff = result.handoff;
+              return adapter.kernel.offerHandoff(adapter.runId, {
+                handoffId: handoff.id,
+                fromAttemptId: attempt.id,
+                leaseId: attempt.leaseId,
+                fence: attempt.fence,
+                toAgentId: handoff.toHolder,
+                artifactIds: [],
+                preconditions: {
+                  ...(handoff.preconditions || {}),
+                  legacyArtifactIds: [...(handoff.artifactIds || [])],
+                  summary: handoff.summary ?? null,
+                  legacyProjection: {
+                    fromHolder: handoff.fromHolder,
+                    fromLeaseId: handoff.fromLeaseId,
+                    fromFence: handoff.fromFence,
+                    idempotencyKey: handoff.idempotencyKey,
+                  },
+                },
+                ttlMs: handoff.ttlMs,
+              });
+            },
+          );
+        }
+        return result;
+      },
+      acceptHandoff(handoffId, options = {}) {
+        const result = registry.acceptHandoff(handoffId, options);
+        if (result?.ok) {
+          observe("handoff-accept", { handoffId }, () =>
+            adapter.kernel.acceptHandoff(
+              adapter.runId,
+              handoffId,
+              options.holder,
+            ),
+          );
+        }
+        return result;
+      },
+      rejectHandoff(handoffId, options = {}) {
+        const result = registry.rejectHandoff(handoffId, options);
+        if (result?.ok) {
+          observe("handoff-reject", { handoffId }, () =>
+            adapter.kernel.rejectHandoff(
+              adapter.runId,
+              handoffId,
+              options.holder,
+              options.reason,
+            ),
+          );
+        }
+        return result;
+      },
+      commitHandoff(handoffId, options = {}) {
+        const result = registry.commitHandoff(handoffId, options);
+        if (result?.ok) {
+          observe("handoff-commit", { handoffId, key: result.key }, () => {
+            const committed = adapter.kernel.commitHandoff(
+              adapter.runId,
+              handoffId,
+              {
+                attemptId: safeIdentifier(
+                  `team-shadow-attempt:${graphDigest(
+                    {
+                      runId: adapter.runId,
+                      handoffId,
+                      holder: result.handoff.toHolder,
+                    },
+                    "cc.team.shadow-handoff-attempt/v1",
+                  ).slice(7, 39)}`,
+                  "team-shadow-attempt",
+                ),
+                leaseId: safeIdentifier(
+                  `team-shadow-lease:${graphDigest(
+                    { runId: adapter.runId, handoffId },
+                    "cc.team.shadow-handoff-lease/v1",
+                  ).slice(7, 39)}`,
+                  "team-shadow-lease",
+                ),
+                ttlMs: options.ttlMs || adapter.writerLeaseTtlMs,
+              },
+            );
+            adapter.attempts.set(result.key, {
+              attempt: committed.assignmentAttempt,
+              effect: null,
+              handoffId,
+            });
+            return committed;
+          });
+        }
+        return result;
+      },
+      revokeHandoff(handoffId, options = {}) {
+        const result = registry.revokeHandoff(handoffId, options);
+        if (result?.ok) {
+          observe("handoff-revoke", { handoffId, key: result.key }, () => {
+            const found = registry.findHandoff(handoffId);
+            const attempt = adapter._activeHandoffAttempt(
+              result.key || found?.key,
+            );
+            return adapter.kernel.revokeHandoff(
+              adapter.runId,
+              handoffId,
+              attempt.id,
+              attempt.leaseId,
+              attempt.fence,
+            );
+          });
+        }
+        return result;
+      },
+      expireHandoffs(...args) {
+        const result = registry.expireHandoffs(...args);
+        observe("handoff-expire", {}, () => adapter.kernel.tick(adapter.runId));
+        return result;
+      },
+    };
+    return new Proxy(registry, {
+      get(target, property, receiver) {
+        if (Object.hasOwn(overrides, property)) return overrides[property];
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+      set(target, property, value, receiver) {
+        return Reflect.set(target, property, value, receiver);
+      },
+    });
+  }
+
+  bindRegistry(registry, { onDivergence = null } = {}) {
     if (!registry || typeof registry.getTask !== "function") {
       throw new TypeError("bindRegistry requires a Team task registry");
+    }
+    if (this.authorityMode === "shadow") {
+      return this._shadowBindRegistry(registry, onDivergence);
     }
     if (this.authorityMode !== "canonical") return registry;
     this._reconcileHandoffProjection(registry);
@@ -1210,9 +1546,12 @@ export class TeamGraphRuntimeAdapter {
     });
   }
 
-  bindMailbox(mailbox) {
+  bindMailbox(mailbox, { onDivergence = null } = {}) {
     if (!mailbox || typeof mailbox.send !== "function") {
       throw new TypeError("bindMailbox requires a Team mailbox adapter");
+    }
+    if (this.authorityMode === "shadow") {
+      return this._shadowBindMailbox(mailbox, onDivergence);
     }
     if (this.authorityMode !== "canonical") return mailbox;
     this._reconcileMailboxProjection(mailbox);

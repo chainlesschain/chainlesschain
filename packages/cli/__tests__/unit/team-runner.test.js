@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { TaskLeaseRegistry } from "../../src/lib/agent-team/task-lease.js";
 import { TeamRunner } from "../../src/lib/agent-team/team-runner.js";
 import { TeamBudget } from "../../src/lib/agent-team/team-budget.js";
@@ -1217,6 +1217,91 @@ describe("TeamRunner human takeover", () => {
         },
       });
     }
+  });
+
+  it("waits for canonical run cancellation and fences legacy failure settlement", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "remote-write", title: "remote write" });
+    let taskStarted;
+    const started = new Promise((resolve) => {
+      taskStarted = resolve;
+    });
+    let cancellationFinished;
+    const finishCancellation = new Promise((resolve) => {
+      cancellationFinished = resolve;
+    });
+    const canonicalSettlement = vi.fn();
+    const canonicalCancellation = vi.fn(async () => {
+      await finishCancellation;
+      return { status: "reconciliation_required" };
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      canonicalSettlement,
+      canonicalCancellation,
+      runTask: ({ signal }) =>
+        new Promise((resolve, reject) => {
+          taskStarted();
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    });
+
+    const running = runner.run();
+    await started;
+    const failure = new Error("control authority corrupt");
+    failure.code = "TEAM_CONTROL_CORRUPT";
+    runner.abortRun(failure);
+    expect(canonicalCancellation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: "control authority corrupt",
+        requireAdjudication: true,
+      }),
+    );
+    let runSettled = false;
+    running.catch(() => {
+      runSettled = true;
+    });
+    await Promise.resolve();
+    expect(runSettled).toBe(false);
+    cancellationFinished();
+    await expect(running).rejects.toThrow("control authority corrupt");
+    expect(canonicalSettlement).not.toHaveBeenCalled();
+    expect(reg.getTask("remote-write")).toMatchObject({
+      status: "cancelled",
+      metadata: { adjudication: { required: true } },
+    });
+  });
+
+  it("fails closed when canonical run cancellation cannot be recorded", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "remote-write", title: "remote write" });
+    let taskStarted;
+    const started = new Promise((resolve) => {
+      taskStarted = resolve;
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      canonicalCancellation: async () => {
+        throw new Error("graph writer unavailable");
+      },
+      runTask: ({ signal }) =>
+        new Promise((resolve, reject) => {
+          taskStarted();
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    });
+
+    const running = runner.run();
+    await started;
+    runner.abortRun(new Error("control authority corrupt"));
+    await expect(running).rejects.toMatchObject({
+      code: "CC_TEAM_GRAPH_CANCEL_FAILED",
+      message: expect.stringContaining("graph writer unavailable"),
+    });
   });
 });
 

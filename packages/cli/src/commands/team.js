@@ -2676,6 +2676,10 @@ export function registerTeamCommand(program, { logger } = {}) {
         const graphAuthorityMode = teamGraphAuthorityMode(options);
         let graphRuntime = null;
         const shadowDivergences = [];
+        const recordShadowDivergence = (divergence) => {
+          shadowDivergences.push(divergence);
+          while (shadowDivergences.length > 256) shadowDivergences.shift();
+        };
         if (["shadow", "canonical"].includes(graphAuthorityMode)) {
           graphRuntime = new TeamGraphRuntimeAdapter();
           graphRuntime.open({
@@ -2686,11 +2690,18 @@ export function registerTeamCommand(program, { logger } = {}) {
             teammates,
             budget: limits,
             authorityMode: graphAuthorityMode,
-            dynamic: graphAuthorityMode === "canonical",
+            dynamic: true,
           });
           if (graphAuthorityMode === "canonical") {
             reg = graphRuntime.bindRegistry(reg);
             mailbox = graphRuntime.bindMailbox(mailbox);
+          } else {
+            reg = graphRuntime.bindRegistry(reg, {
+              onDivergence: recordShadowDivergence,
+            });
+            mailbox = graphRuntime.bindMailbox(mailbox, {
+              onDivergence: recordShadowDivergence,
+            });
           }
         }
         const settleGovernance = (key, status, extra = {}) => {
@@ -3018,7 +3029,7 @@ export function registerTeamCommand(program, { logger } = {}) {
               try {
                 graphRuntime?.beforeTask(context);
               } catch (error) {
-                shadowDivergences.push({
+                recordShadowDivergence({
                   phase: "assignment",
                   key,
                   code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
@@ -3060,6 +3071,25 @@ export function registerTeamCommand(program, { logger } = {}) {
           shadowSettlement:
             graphAuthorityMode === "shadow" && graphRuntime
               ? (settlement) => graphRuntime.settleTask(settlement)
+              : null,
+          canonicalCancellation:
+            graphAuthorityMode === "canonical" && graphRuntime
+              ? ({ reason }) => graphRuntime.cancel(reason)
+              : null,
+          shadowCancellation:
+            graphAuthorityMode === "shadow" && graphRuntime
+              ? async ({ reason }) => {
+                  try {
+                    return await graphRuntime.cancel(reason);
+                  } catch (error) {
+                    recordShadowDivergence({
+                      phase: "run-cancel",
+                      code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+                      error: error?.message || String(error),
+                    });
+                    return null;
+                  }
+                }
               : null,
           afterTask: ({ key, status, retry }) => {
             const governanceStatus =
@@ -3183,10 +3213,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           throw err;
         }
         if (graphRuntime) {
-          const graphStatus =
-            graphAuthorityMode === "canonical"
-              ? graphRuntime.finalize()
-              : graphRuntime.status();
+          const graphStatus = graphRuntime.finalize();
           summary.graphAuthorityMode = graphAuthorityMode;
           summary.graphRuntime = graphStatus;
           summary.graphShadowDivergences = [...shadowDivergences];
