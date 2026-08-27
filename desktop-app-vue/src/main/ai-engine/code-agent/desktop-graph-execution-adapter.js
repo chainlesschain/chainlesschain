@@ -370,6 +370,29 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
+  async resume(runId, { waitForCompletion = false } = {}) {
+    const mode = this.mode();
+    if (mode !== "canonical") {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_RESUME_UNSUPPORTED",
+        "Desktop Graph resume is only available to the canonical writer",
+      );
+    }
+    const id = graphIdentifier(runId, "desktop-graph-run");
+    const projection = await this._client().graphRun({
+      runId: id,
+      resume: true,
+      waitForCompletion: waitForCompletion === true,
+      idempotencyKey: `${this.surface}:${id}:resume`,
+    });
+    return this._validate(projection, {
+      runId: id,
+      mode,
+      terminal: waitForCompletion === true,
+      allowReconciliation: true,
+    });
+  }
+
   async cancel(runId, reason = "cancelled by Desktop") {
     const mode = this.mode();
     const id = graphIdentifier(runId, "desktop-graph-run");
@@ -385,6 +408,32 @@ class DesktopGraphExecutionAdapter {
       mode,
       allowReconciliation: true,
     });
+  }
+
+  async reconcile(runId, reconciliation) {
+    const mode = this.mode();
+    if (mode !== "canonical") {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_RECONCILE_UNSUPPORTED",
+        "Desktop Graph reconciliation is only available to the canonical writer",
+      );
+    }
+    const id = graphIdentifier(runId, "desktop-graph-run");
+    const client = this._client();
+    if (typeof client.graphReconcile !== "function") {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+        "Graph App Server reconcile capability is unavailable",
+      );
+    }
+    return this._validate(
+      await client.graphReconcile({ runId: id, reconciliation }),
+      {
+        runId: id,
+        mode,
+        allowReconciliation: true,
+      },
+    );
   }
 }
 

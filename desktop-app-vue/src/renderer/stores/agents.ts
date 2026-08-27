@@ -733,6 +733,40 @@ export const useAgentsStore = defineStore("agents", {
       }
     },
 
+    async reconcileTask(
+      taskId: string,
+      reconciliation: Record<string, any>,
+    ): Promise<boolean> {
+      this.error = null;
+      try {
+        const result: IPCResult<AgentTaskHistory> =
+          await window.electronAPI.specializedAgents.reconcileTask(
+            taskId,
+            reconciliation,
+          );
+        const task = normalizeTask(result.data);
+        if (task) {
+          const index = this.taskHistory.findIndex(
+            (entry) => entry.id === taskId,
+          );
+          if (index === -1) this.taskHistory.unshift(task);
+          else
+            this.taskHistory[index] = { ...this.taskHistory[index], ...task };
+        }
+        if (!result.success) {
+          this.error = result.error || "Task reconciliation failed";
+        }
+        return result.success;
+      } catch (error) {
+        this.error = (error as Error).message;
+        agentsLogger.error(
+          "[AgentsStore] Task reconciliation failed:",
+          error as any,
+        );
+        return false;
+      }
+    },
+
     // ==========================================
     // 编排协调 Actions
     // ==========================================

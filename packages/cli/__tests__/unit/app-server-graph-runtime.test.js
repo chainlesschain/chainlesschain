@@ -114,6 +114,99 @@ describe("App Server canonical Graph runtime", () => {
     expect(calls).toBe(1);
   });
 
+  it("settles an audited committed reconciliation from evidence without executor replay", async () => {
+    let calls = 0;
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      executeNode: async () => {
+        calls += 1;
+        throw new Error("connection lost after tool dispatch");
+      },
+    });
+    const unknown = await runtime.run({
+      definition: definition(),
+      runId: "desktop-audited-reconciliation",
+      inputs: { implement: "perform one exact write" },
+      waitForCompletion: true,
+    });
+
+    await expect(
+      runtime.reconcile("desktop-audited-reconciliation", {
+        effectId: unknown.reconciliationEffectIds[0],
+        decision: "committed",
+        receipt: { receiptDigest: EVENT },
+        auditDecisionId: "desktop-human-audit-missing-evidence",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_GRAPH_TERMINAL_EVIDENCE_REQUIRED",
+    });
+    expect(runtime.status("desktop-audited-reconciliation")).toMatchObject({
+      status: "reconciliation_required",
+      reconciliationEffectIds: [unknown.reconciliationEffectIds[0]],
+    });
+
+    const projection = await runtime.reconcile(
+      "desktop-audited-reconciliation",
+      {
+        effectId: unknown.reconciliationEffectIds[0],
+        decision: "committed",
+        receipt: { receiptDigest: EVENT },
+        terminalEvidence: { outputDigest: OUTPUT },
+        auditDecisionId: "desktop-human-audit-1",
+      },
+    );
+
+    expect(calls).toBe(1);
+    expect(projection).toMatchObject({
+      status: "succeeded",
+      reconciliationEffectIds: [],
+      attempts: [
+        expect.objectContaining({ status: "expired" }),
+        expect.objectContaining({
+          status: "accepted",
+          terminalEvidence: { outputDigest: OUTPUT },
+        }),
+      ],
+    });
+  });
+
+  it("resumes a pre-dispatch run from its durable request without Desktop inputs", async () => {
+    const rolloutStore = new MemoryRolloutStore();
+    const first = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async () => {
+        throw new Error("the crashed runtime must not execute");
+      },
+    });
+    first.start({
+      definition: definition("none"),
+      runId: "desktop-resume-from-request",
+      inputs: { implement: "resume exact durable input" },
+    });
+
+    const inputs = [];
+    const recovered = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async ({ input }) => {
+        inputs.push(input.prompt);
+        return {
+          status: "succeeded",
+          terminalEvidence: { outputDigest: OUTPUT },
+        };
+      },
+    });
+    const projection = await recovered.resume("desktop-resume-from-request", {
+      waitForCompletion: true,
+    });
+
+    expect(inputs).toEqual(["resume exact durable input"]);
+    expect(projection).toMatchObject({
+      status: "succeeded",
+      authorityGeneration: 2,
+      authoritySource: "graph_kernel",
+    });
+  });
+
   it("rejects forged success without immutable evidence", () => {
     expect(() =>
       graphExecutorReceipt({ status: "succeeded", terminalEvidence: {} }),

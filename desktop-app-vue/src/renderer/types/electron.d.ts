@@ -1093,6 +1093,10 @@ export interface SpecializedAgentsAPI {
   ): Promise<any>;
   getTaskStatus(taskId: string): Promise<any>;
   cancelTask(taskId: string, reason?: string): Promise<any>;
+  reconcileTask(
+    taskId: string,
+    reconciliation: Record<string, any>,
+  ): Promise<any>;
   orchestrate(
     taskDescription: string,
     options?: Record<string, any>,
@@ -1112,6 +1116,10 @@ export interface WorkflowManagerAPI {
   pause(workflowId: string): Promise<any>;
   resume(workflowId: string): Promise<any>;
   cancel(workflowId: string, reason?: string): Promise<any>;
+  reconcile(
+    workflowId: string,
+    reconciliation: Record<string, any>,
+  ): Promise<any>;
   retry(workflowId: string): Promise<any>;
   getStatus(workflowId: string): Promise<any>;
   getStages(workflowId: string): Promise<any>;

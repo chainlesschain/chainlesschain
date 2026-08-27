@@ -12,6 +12,14 @@ const { AgentCoordinator } = require("../../agents/agent-coordinator.js");
 const { registerAgentsIPC } = require("../../agents/agents-ipc.js");
 const { WorkflowManager } = require("../../../workflow/workflow-pipeline.js");
 const { registerWorkflowIPC } = require("../../../workflow/workflow-ipc.js");
+const {
+  buildSpecializedAgentsGraph,
+  buildWorkflowGraph,
+} = require("../desktop-graph-execution-adapter.js");
+const {
+  DesktopGraphRunRegistry,
+  MemoryDesktopGraphRunStore,
+} = require("../desktop-graph-run-registry.js");
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
 
@@ -33,9 +41,16 @@ function ipcHarness() {
 
 function pilot(runtime) {
   return {
-    graphRun: (request) => runtime.run(request),
+    graphRun: (request) =>
+      request.resume === true
+        ? runtime.resume(request.runId, {
+            waitForCompletion: request.waitForCompletion === true,
+          })
+        : runtime.run(request),
     graphStatus: ({ runId }) => runtime.status(runId),
     graphCancel: ({ runId, reason }) => runtime.cancel(runId, reason),
+    graphReconcile: ({ runId, reconciliation }) =>
+      runtime.reconcile(runId, reconciliation),
   };
 }
 
@@ -66,6 +81,15 @@ async function waitForWorkflow(ipc, workflowId, expectedStatus) {
     await new Promise((resolve) => setImmediate(resolve));
   }
   throw new Error(`workflow ${workflowId} did not reach ${expectedStatus}`);
+}
+
+async function waitForTask(ipc, taskId, expectedStatus) {
+  for (let index = 0; index < 100; index += 1) {
+    const response = await ipc.invoke("agents:get-task-status", { taskId });
+    if (response.data?.status === expectedStatus) return response.data;
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  throw new Error(`task ${taskId} did not reach ${expectedStatus}`);
 }
 
 describe("Desktop Graph production IPC journey", () => {
@@ -226,6 +250,40 @@ describe("Desktop Graph production IPC journey", () => {
         status: "reconciliation_required",
       },
     });
+    const effectId = assigned.data.graphAuthority.reconciliationEffectIds[0];
+    const forged = await ipc.invoke("agents:reconcile-task", {
+      taskId: assigned.data.taskId,
+      reconciliation: {
+        effectId,
+        decision: "committed",
+        receipt: { receiptDigest: "not-a-digest" },
+        terminalEvidence: { outputDigest: OUTPUT },
+        auditDecisionId: "desktop-agent-forged-receipt",
+      },
+    });
+    expect(forged).toMatchObject({
+      success: false,
+      code: "CC_GRAPH_EFFECT_RECEIPT_REQUIRED",
+      reconciliationRequired: true,
+    });
+    const reconciled = await ipc.invoke("agents:reconcile-task", {
+      taskId: assigned.data.taskId,
+      reconciliation: {
+        effectId,
+        decision: "committed",
+        receipt: { receiptDigest: `sha256:${"c".repeat(64)}` },
+        terminalEvidence: { outputDigest: OUTPUT },
+        auditDecisionId: "desktop-agent-audit-1",
+      },
+    });
+    expect(reconciled).toMatchObject({
+      success: true,
+      reconciliationRequired: false,
+      data: {
+        status: "completed",
+        graphAuthority: { status: "succeeded" },
+      },
+    });
     expect(executeNode).toHaveBeenCalledOnce();
     expect(legacyExecute).not.toHaveBeenCalled();
   });
@@ -294,6 +352,169 @@ describe("Desktop Graph production IPC journey", () => {
       },
       reconciliationRequired: true,
     });
+    const reconciled = await ipc.invoke("workflow:reconcile", {
+      workflowId: created.data.workflowId,
+      reconciliation: {
+        effectId: status.data.graphAuthority.reconciliationEffectIds[0],
+        decision: "committed",
+        receipt: { receiptDigest: `sha256:${"c".repeat(64)}` },
+        terminalEvidence: { outputDigest: OUTPUT },
+        auditDecisionId: "desktop-workflow-audit-1",
+      },
+    });
+    expect(reconciled).toMatchObject({
+      success: true,
+      reconciliationRequired: false,
+      data: {
+        overall: { status: "failed" },
+        graphAuthority: {
+          status: "partial",
+          authoritySource: "graph_kernel",
+          reconciliationEffectIds: [],
+        },
+      },
+    });
     expect(executeNode).toHaveBeenCalledOnce();
+  });
+
+  it("hydrates pre-dispatch Agent and Workflow bindings after an app/runtime restart", async () => {
+    const rolloutStore = new MemoryRolloutStore();
+    const crashedRuntime = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async () => {
+        throw new Error("the pre-dispatch runtime must not execute");
+      },
+    });
+    const store = new MemoryDesktopGraphRunStore();
+    const registry = new DesktopGraphRunRegistry({ store });
+
+    const taskId = "restart-task-1";
+    const taskRunId = `desktop-specialized-task:${taskId}`;
+    const taskGraph = buildSpecializedAgentsGraph(
+      {
+        subtasks: [
+          {
+            subtaskId: taskId,
+            subtask: "resume the exact specialized task",
+            agentType: "code-generation",
+            dependencies: [],
+          },
+        ],
+      },
+      taskId,
+      {},
+    );
+    crashedRuntime.start({
+      definition: taskGraph.definition,
+      inputs: taskGraph.inputs,
+      runId: taskRunId,
+    });
+    registry.record({
+      surface: "desktop_specialized_agents",
+      entityId: taskId,
+      graphRunId: taskRunId,
+      authorityMode: "canonical",
+      lifecycleStatus: "running",
+      metadata: {
+        agentId: "restart-agent",
+        templateType: "code-generation",
+        description: "resume the exact specialized task",
+        assignedAt: 1,
+      },
+    });
+
+    const workflowId = "restart-workflow-1";
+    const workflowRunId = `desktop-workflow:${workflowId}`;
+    const workflowShape = new WorkflowManager({
+      graphRunRegistry: new DesktopGraphRunRegistry(),
+      progressEmitter: progressEmitter(),
+      graphAuthorityMode: () => "canonical",
+    }).createWorkflow({
+      id: workflowId,
+      title: "Restart durable workflow",
+    });
+    const workflowGraph = buildWorkflowGraph(workflowShape, {
+      request: "resume the exact workflow",
+    });
+    crashedRuntime.start({
+      definition: workflowGraph.definition,
+      inputs: workflowGraph.inputs,
+      runId: workflowRunId,
+    });
+    registry.record({
+      surface: "desktop_workflow_manager",
+      entityId: workflowId,
+      graphRunId: workflowRunId,
+      authorityMode: "canonical",
+      lifecycleStatus: "running",
+      metadata: {
+        title: "Restart durable workflow",
+        description: "",
+        startedAt: 1,
+      },
+    });
+
+    const executeNode = vi.fn(async () => ({
+      status: "succeeded",
+      terminalEvidence: { outputDigest: OUTPUT },
+    }));
+    const recoveredRuntime = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode,
+    });
+    const agentsIpc = ipcHarness();
+    registerAgentsIPC({
+      ipcMain: agentsIpc.ipcMain,
+      database: null,
+      graphRunRegistry: registry,
+      graphClientProvider: () => pilot(recoveredRuntime),
+      graphAuthorityMode: () => "canonical",
+      createTemplateManager: () => ({}),
+      createAgentRegistry: () => ({}),
+      createAgentCoordinator: (options) => new AgentCoordinator(options),
+    });
+    const workflowIpc = ipcHarness();
+    const recoveredManager = new WorkflowManager({
+      graphRunRegistry: registry,
+      progressEmitter: progressEmitter(),
+      graphClientProvider: () => pilot(recoveredRuntime),
+      graphAuthorityMode: () => "canonical",
+    });
+    registerWorkflowIPC({
+      workflowManager: recoveredManager,
+      ipcMain: workflowIpc.ipcMain,
+    });
+
+    const task = await waitForTask(agentsIpc, taskId, "completed");
+    const workflow = await waitForWorkflow(
+      workflowIpc,
+      workflowId,
+      "completed",
+    );
+
+    expect(task).toMatchObject({
+      graphRunId: taskRunId,
+      authoritySource: "graph_kernel",
+      graphAuthority: {
+        status: "succeeded",
+        authorityGeneration: 2,
+      },
+    });
+    expect(workflow).toMatchObject({
+      graphRunId: workflowRunId,
+      authoritySource: "graph_kernel",
+      graphAuthority: {
+        status: "succeeded",
+        authorityGeneration: 2,
+      },
+    });
+    const stages = await workflowIpc.invoke("workflow:get-stages", {
+      workflowId,
+    });
+    expect(stages.data).toHaveLength(6);
+    expect(stages.data.every((stage) => stage.status === "completed")).toBe(
+      true,
+    );
+    expect(executeNode).toHaveBeenCalledTimes(7);
   });
 });

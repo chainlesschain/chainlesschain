@@ -69,6 +69,8 @@ describe("useAgentsStore", () => {
       mockInvoke("agents:get-task-status", { taskId }),
     cancelTask: (taskId: string, reason: string) =>
       mockInvoke("agents:cancel-task", { taskId, reason }),
+    reconcileTask: (taskId: string, reconciliation: Record<string, any>) =>
+      mockInvoke("agents:reconcile-task", { taskId, reconciliation }),
   };
 
   beforeEach(() => {
@@ -264,6 +266,38 @@ describe("useAgentsStore", () => {
         reconciliationRequired: true,
       });
       expect(store.taskHistory[0].success).toBeUndefined();
+    });
+
+    it("projects audited reconciliation through the fixed capability", async () => {
+      const store = useAgentsStore();
+      store.taskHistory = [task({ id: "graph-task", success: undefined })];
+      const reconciliation = {
+        effectId: "effect-1",
+        decision: "committed",
+        auditDecisionId: "audit-1",
+      };
+      mockInvoke.mockResolvedValueOnce({
+        success: true,
+        data: {
+          taskId: "graph-task",
+          status: "completed",
+          success: true,
+          graphAuthority: { status: "succeeded" },
+        },
+      });
+
+      await expect(
+        store.reconcileTask("graph-task", reconciliation),
+      ).resolves.toBe(true);
+      expect(mockInvoke).toHaveBeenCalledWith("agents:reconcile-task", {
+        taskId: "graph-task",
+        reconciliation,
+      });
+      expect(store.taskHistory[0]).toMatchObject({
+        id: "graph-task",
+        status: "completed",
+        success: true,
+      });
     });
   });
 

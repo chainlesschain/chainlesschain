@@ -43,6 +43,8 @@ const workflowManager = {
   resume: (workflowId: string) => mockInvoke("workflow:resume", { workflowId }),
   cancel: (workflowId: string, reason: string) =>
     mockInvoke("workflow:cancel", { workflowId, reason }),
+  reconcile: (workflowId: string, reconciliation: Record<string, any>) =>
+    mockInvoke("workflow:reconcile", { workflowId, reconciliation }),
   retry: (workflowId: string) => mockInvoke("workflow:retry", { workflowId }),
   delete: (workflowId: string) => mockInvoke("workflow:delete", { workflowId }),
   getStatus: (workflowId: string) =>
@@ -253,6 +255,34 @@ describe("useWorkflowStore", () => {
         overall: { status: "reconciliation_required" },
         authoritySource: "graph_kernel",
         reconciliationRequired: true,
+      });
+    });
+
+    it("projects audited workflow reconciliation through the fixed capability", async () => {
+      const store = useWorkflowStore();
+      store.workflows = [wf("canonical", "reconciliation_required")];
+      store.currentWorkflowId = "canonical";
+      store.currentWorkflow = wf("canonical", "reconciliation_required");
+      const reconciliation = {
+        effectId: "effect-1",
+        decision: "committed",
+        auditDecisionId: "audit-1",
+      };
+      mockInvoke.mockResolvedValueOnce({
+        success: true,
+        data: wf("canonical", "running", 20),
+      });
+
+      const result = await store.reconcileWorkflow("canonical", reconciliation);
+
+      expect(result.success).toBe(true);
+      expect(mockInvoke).toHaveBeenCalledWith("workflow:reconcile", {
+        workflowId: "canonical",
+        reconciliation,
+      });
+      expect(store.currentWorkflow?.overall).toMatchObject({
+        status: "running",
+        percent: 20,
       });
     });
 

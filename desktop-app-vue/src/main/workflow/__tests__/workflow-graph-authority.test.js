@@ -213,7 +213,9 @@ describe("Workflow Graph authority", () => {
     workflow.stateMachine.start();
 
     await expect(manager.deleteWorkflow(workflow.id)).resolves.toBe(false);
+    await expect(manager.deleteWorkflow(workflow.id)).resolves.toBe(false);
     expect(manager.getWorkflow(workflow.id)).toBe(workflow);
     expect(workflow.graphAdapter).toBe(graphAdapter);
+    expect(graphAdapter.cancel).toHaveBeenCalledOnce();
   });
 });

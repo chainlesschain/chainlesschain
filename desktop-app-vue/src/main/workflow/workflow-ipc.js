@@ -176,6 +176,38 @@ class WorkflowIPC {
     });
 
     // 重试工作流
+    this.ipcMain.handle("workflow:reconcile", async (event, payload = {}) => {
+      try {
+        const { workflowId, reconciliation } = payload;
+        if (!workflowId || !reconciliation) {
+          return {
+            success: false,
+            error: "Workflow ID and reconciliation are required",
+          };
+        }
+        const workflow = this.workflowManager.getWorkflow(workflowId);
+        if (!workflow) {
+          return { success: false, error: "Workflow does not exist" };
+        }
+        const projection = await workflow.reconcile(reconciliation);
+        return {
+          success: projection.status !== "reconciliation_required",
+          reconciliationRequired:
+            projection.status === "reconciliation_required",
+          data: workflow.getStatus(),
+        };
+      } catch (error) {
+        const workflow = this.workflowManager.getWorkflow(payload.workflowId);
+        return {
+          success: false,
+          error: error.message,
+          code: error.code,
+          reconciliationRequired: true,
+          data: workflow?.getStatus(),
+        };
+      }
+    });
+
     this.ipcMain.handle("workflow:retry", async (event, payload) => {
       try {
         const { workflowId } = payload;
@@ -212,6 +244,18 @@ class WorkflowIPC {
         const workflow = this.workflowManager.getWorkflow(workflowId);
         if (!workflow) {
           return { success: false, error: "工作流不存在" };
+        }
+
+        try {
+          await workflow.refreshCanonicalStatus({ resume: true });
+        } catch (error) {
+          return {
+            success: false,
+            error: error.message,
+            code: error.code,
+            reconciliationRequired: workflow.reconciliationRequired,
+            data: workflow.getStatus(),
+          };
         }
 
         return {
@@ -400,6 +444,7 @@ class WorkflowIPC {
       "workflow:pause",
       "workflow:resume",
       "workflow:cancel",
+      "workflow:reconcile",
       "workflow:retry",
       "workflow:get-status",
       "workflow:get-stages",

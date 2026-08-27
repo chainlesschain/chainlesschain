@@ -374,7 +374,7 @@ function registerPhases8to9Extras({
   // 第九阶段模块 (工作流系统)
   // ============================================================
 
-  // 工作流管道 (函数模式 - 中等模块，14 handlers)
+  // 工作流管道 (函数模式 - 中等模块，15 handlers)
   safeRegister("Workflow IPC", {
     register: () => {
       const { registerWorkflowIPC } = require("../../workflow/workflow-ipc");
@@ -391,6 +391,7 @@ function registerPhases8to9Extras({
       }
 
       const workflowManager = new WorkflowManager({
+        database: database || null,
         progressEmitter,
         llmService: llmManager,
         graphClientProvider: () =>
@@ -411,14 +412,14 @@ function registerPhases8to9Extras({
         registeredModules.workflowIPC = workflowIPC;
       }
     },
-    handlers: 14,
+    handlers: 15,
     fatal: true,
     continueMessage: "Continuing with other IPC registrations...",
   });
 
   logger.info("[IPC Registry] ========================================");
   logger.info(
-    "[IPC Registry] Phase 8+9 Complete: 21 modules migrated (190 handlers)!",
+    "[IPC Registry] Phase 8+9 Complete: 21 modules migrated (191 handlers)!",
   );
   logger.info("[IPC Registry] ========================================");
 }

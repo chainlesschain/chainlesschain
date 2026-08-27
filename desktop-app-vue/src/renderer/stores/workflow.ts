@@ -356,6 +356,36 @@ export const useWorkflowStore = defineStore("workflow", () => {
     }
   }
 
+  async function reconcileWorkflow(
+    workflowId: string,
+    reconciliation: Record<string, any>,
+  ): Promise<IPCResult> {
+    try {
+      const result: IPCResult<Workflow> =
+        await window.electronAPI.workflowManager.reconcile(
+          workflowId,
+          reconciliation,
+        );
+      if (result.data) {
+        const index = workflows.value.findIndex(
+          (workflow) => workflow.workflowId === workflowId,
+        );
+        if (index >= 0) workflows.value[index] = result.data;
+        if (currentWorkflowId.value === workflowId) {
+          currentWorkflow.value = result.data;
+        }
+      }
+      if (result.success) message.success("Workflow reconciliation accepted");
+      else message.error(result.error || "Workflow reconciliation failed");
+      return result;
+    } catch (error) {
+      message.error(
+        "Workflow reconciliation failed: " + (error as Error).message,
+      );
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
   /**
    * 删除工作流
    * @param workflowId - 工作流ID
@@ -519,6 +549,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     pauseWorkflow,
     resumeWorkflow,
     cancelWorkflow,
+    reconcileWorkflow,
     retryWorkflow,
     deleteWorkflow,
     selectWorkflow,

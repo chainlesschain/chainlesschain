@@ -19,6 +19,7 @@ const AGENTS_IPC_CHANNELS = [
   "agents:assign-task",
   "agents:get-task-status",
   "agents:cancel-task",
+  "agents:reconcile-task",
   "agents:orchestrate",
   "agents:get-plan",
   "agents:get-performance",
@@ -42,6 +43,7 @@ function createDefaultAgentCoordinator({
   templateManager,
   graphClientProvider,
   graphAuthorityMode,
+  graphRunRegistry,
 }) {
   const { AgentCoordinator } = require("./agent-coordinator");
   return new AgentCoordinator({
@@ -50,6 +52,7 @@ function createDefaultAgentCoordinator({
     templateManager,
     graphClientProvider,
     graphAuthorityMode,
+    graphRunRegistry,
   });
 }
 /* v8 ignore stop */
@@ -110,6 +113,7 @@ function registerAgentsIPC(dependencies = {}) {
         templateManager: getTemplateManager(),
         graphClientProvider: dependencies.graphClientProvider,
         graphAuthorityMode: dependencies.graphAuthorityMode,
+        graphRunRegistry: dependencies.graphRunRegistry,
       });
       logger.info("[AgentsIPC] AgentCoordinator initialized");
     }
@@ -320,7 +324,7 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task ID is required" };
       }
 
-      return getAgentCoordinator().getTaskStatus(taskId);
+      return getAgentCoordinator().getTaskStatusAuthoritative(taskId);
     },
   );
 
@@ -337,6 +341,20 @@ function registerAgentsIPC(dependencies = {}) {
         logger.info(`[AgentsIPC] Task cancelled: ${taskId}`);
       }
       return result;
+    },
+  );
+
+  safeHandle(
+    "agents:reconcile-task",
+    "Reconcile task",
+    async (_event, { taskId, reconciliation } = {}) => {
+      if (!taskId || !reconciliation) {
+        return {
+          success: false,
+          error: "Task ID and reconciliation are required",
+        };
+      }
+      return getAgentCoordinator().reconcileTask(taskId, reconciliation);
     },
   );
 

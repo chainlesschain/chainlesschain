@@ -182,6 +182,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("agents:get-task-status", { taskId }),
     cancelTask: (taskId, reason = "") =>
       ipcRenderer.invoke("agents:cancel-task", { taskId, reason }),
+    reconcileTask: (taskId, reconciliation) =>
+      ipcRenderer.invoke("agents:reconcile-task", {
+        taskId,
+        reconciliation,
+      }),
     orchestrate: (taskDescription, options = {}) =>
       ipcRenderer.invoke("agents:orchestrate", {
         taskDescription,
@@ -203,6 +208,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("workflow:resume", { workflowId }),
     cancel: (workflowId, reason = "") =>
       ipcRenderer.invoke("workflow:cancel", { workflowId, reason }),
+    reconcile: (workflowId, reconciliation) =>
+      ipcRenderer.invoke("workflow:reconcile", {
+        workflowId,
+        reconciliation,
+      }),
     retry: (workflowId) => ipcRenderer.invoke("workflow:retry", { workflowId }),
     getStatus: (workflowId) =>
       ipcRenderer.invoke("workflow:get-status", { workflowId }),

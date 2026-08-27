@@ -134,11 +134,11 @@ function registerPhases9to15({
   // ============================================================
 
   safeRegister("Specialized Agents IPC", {
-    handlers: 16,
+    handlers: 17,
     subDetails: [
       "Templates: 5 handlers",
       "Deploy: 4 handlers",
-      "Tasks: 3 handlers",
+      "Tasks: 4 handlers",
       "Coordination: 2 handlers",
       "Analytics: 2 handlers",
     ],

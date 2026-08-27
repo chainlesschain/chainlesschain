@@ -366,6 +366,11 @@ export class CcAppServer {
 
   async _graphRun(rawParams) {
     const params = requireObject(rawParams);
+    if (params.resume === true) {
+      return this.graphRuntime.resume(requiredString(params.runId, "runId"), {
+        waitForCompletion: params.waitForCompletion === true,
+      });
+    }
     return this.graphRuntime.run({
       definition: requireObject(params.definition, "definition"),
       runId: params.runId || this.createId(),

@@ -133,9 +133,9 @@ describe("AgentCoordinator execution truthfulness", () => {
       /^sha256:/,
     );
     expect(legacyExecute).not.toHaveBeenCalled();
-    const persisted = writes.find(({ sql }) =>
-      sql.startsWith("UPDATE agent_task_history"),
-    );
+    const persisted = writes
+      .filter(({ sql }) => sql.startsWith("UPDATE agent_task_history"))
+      .at(-1);
     const receipt = JSON.parse(persisted.args.at(-2));
     expect(receipt).toMatchObject({
       graphRunId: result.data.result.graphRunId,

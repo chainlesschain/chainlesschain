@@ -64,9 +64,11 @@ describe("Desktop Graph production surface guard", () => {
       "agents:assign-task",
       "agents:get-task-status",
       "agents:cancel-task",
+      "agents:reconcile-task",
       "workflow:start",
       "workflow:get-status",
       "workflow:cancel",
+      "workflow:reconcile",
     ]) {
       expect(preload).toContain(`ipcRenderer.invoke("${channel}"`);
     }
@@ -74,11 +76,7 @@ describe("Desktop Graph production surface guard", () => {
     expect(preload).toContain("workflowManager: {");
     expect(agentsStore).toContain("electronAPI.specializedAgents");
     expect(agentsStore).not.toMatch(/electronAPI\.invoke\(["']agents:/u);
-    for (const renderer of [
-      workflowStore,
-      workflowProgress,
-      workflowMonitor,
-    ]) {
+    for (const renderer of [workflowStore, workflowProgress, workflowMonitor]) {
       expect(renderer).toContain("electronAPI.workflowManager");
       expect(renderer).not.toContain("window.ipc");
     }

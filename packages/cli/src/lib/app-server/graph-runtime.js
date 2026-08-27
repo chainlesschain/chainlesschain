@@ -283,6 +283,22 @@ export class AppServerGraphRuntime {
     return Promise.resolve(projection);
   }
 
+  resume(runId, { waitForCompletion = false } = {}) {
+    const id = String(runId || "").trim();
+    if (!id) {
+      throw runtimeError(
+        "CC_GRAPH_RUN_ID_REQUIRED",
+        "Graph resume requires a durable run id",
+      );
+    }
+    const request = this._readRequest(id);
+    return this.run({
+      ...request,
+      runId: id,
+      waitForCompletion: waitForCompletion === true,
+    });
+  }
+
   _drive(runId) {
     if (this.drives.has(runId)) return this.drives.get(runId);
     const drive = this._driveLoop(runId).finally(() => {
@@ -594,7 +610,8 @@ export class AppServerGraphRuntime {
               resumedAttemptId: `app-server-recovery-attempt:${this.createId()}`,
               leaseId: `app-server-recovery-lease:${this.createId()}`,
               ttlMs: this.writerLeaseTtlMs,
-              reason: "immutable executor receipt recovered after writer takeover",
+              reason:
+                "immutable executor receipt recovered after writer takeover",
             });
       kernel.settleAttempt(runId, {
         attemptId: settledAttempt.id,
@@ -673,10 +690,54 @@ export class AppServerGraphRuntime {
     });
   }
 
-  reconcile(runId, input = {}) {
+  async reconcile(runId, input = {}) {
     const id = String(runId);
     const entry = this.runs.get(id) || this._recover(id);
-    return entry.kernel.reconcileEffect(id, input);
+    const effect = entry.kernel
+      .effectState(id)
+      .find((candidate) => candidate.id === input.effectId);
+    if (!effect) {
+      throw runtimeError(
+        "CC_GRAPH_EFFECT_NOT_FOUND",
+        `Graph reconciliation effect was not found: ${input.effectId}`,
+      );
+    }
+    const terminalEvidence =
+      input.decision === "committed"
+        ? evidence({ terminalEvidence: input.terminalEvidence })
+        : null;
+    entry.kernel.reconcileEffect(id, input);
+    if (input.decision === "committed") {
+      const attempt = entry.kernel.assignNode(
+        id,
+        effect.nodeId,
+        "app-server-agent",
+        {
+          ttlMs: this.writerLeaseTtlMs,
+          leaseId: `app-server-reconcile-attempt:${this.createId()}`,
+          grant: {
+            executor: "audited_reconciliation_receipt",
+            auditDecisionId: input.auditDecisionId,
+          },
+        },
+      );
+      entry.kernel.settleAttempt(id, {
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        outcome: "succeeded",
+        evidence: terminalEvidence,
+        usage: { turns: 1 },
+      });
+      const drive = this._drive(id);
+      return input.waitForCompletion === true
+        ? await drive
+        : entry.kernel.getRun(id);
+    }
+    const drive = this._drive(id);
+    return input.waitForCompletion === true
+      ? await drive
+      : entry.kernel.getRun(id);
   }
 }
 

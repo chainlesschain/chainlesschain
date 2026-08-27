@@ -54,6 +54,62 @@ describe("DesktopGraphExecutionAdapter", () => {
     );
   });
 
+  it("resumes a durable canonical run without replaying Desktop inputs", async () => {
+    const graphRun = vi.fn(async (request) =>
+      projection(
+        { ...request, authorityMode: "canonical" },
+        { status: "running" },
+      ),
+    );
+    const adapter = new DesktopGraphExecutionAdapter({
+      surface: "desktop_workflow_manager",
+      client: { graphRun },
+      authorityMode: () => "canonical",
+    });
+
+    await expect(
+      adapter.resume("desktop-workflow:durable", {
+        waitForCompletion: false,
+      }),
+    ).resolves.toMatchObject({
+      id: "desktop-workflow:durable",
+      status: "running",
+      authoritySource: "graph_kernel",
+    });
+    expect(graphRun).toHaveBeenCalledWith({
+      runId: "desktop-workflow:durable",
+      resume: true,
+      waitForCompletion: false,
+      idempotencyKey:
+        "desktop_workflow_manager:desktop-workflow:durable:resume",
+    });
+  });
+
+  it("forwards audited reconciliation through the fixed capability", async () => {
+    const graphReconcile = vi.fn(async ({ runId }) =>
+      projection({ runId, authorityMode: "canonical" }),
+    );
+    const adapter = new DesktopGraphExecutionAdapter({
+      client: { graphRun: vi.fn(), graphReconcile },
+      authorityMode: () => "canonical",
+    });
+    const reconciliation = {
+      effectId: "effect-1",
+      decision: "committed",
+      receipt: { receiptDigest: `sha256:${"c".repeat(64)}` },
+      terminalEvidence: { outputDigest: `sha256:${"d".repeat(64)}` },
+      auditDecisionId: "audit-1",
+    };
+
+    await expect(
+      adapter.reconcile("desktop-reconcile-run", reconciliation),
+    ).resolves.toMatchObject({ status: "succeeded" });
+    expect(graphReconcile).toHaveBeenCalledWith({
+      runId: "desktop-reconcile-run",
+      reconciliation,
+    });
+  });
+
   it("rejects a forged response and a shadow executor attempt", async () => {
     const forged = new DesktopGraphExecutionAdapter({
       client: {
