@@ -37,12 +37,16 @@ function createDefaultAgentCoordinator({
   database,
   agentRegistry,
   templateManager,
+  graphClientProvider,
+  graphAuthorityMode,
 }) {
   const { AgentCoordinator } = require("./agent-coordinator");
   return new AgentCoordinator({
     database,
     agentRegistry,
     templateManager,
+    graphClientProvider,
+    graphAuthorityMode,
   });
 }
 /* v8 ignore stop */
@@ -101,6 +105,8 @@ function registerAgentsIPC(dependencies = {}) {
         database,
         agentRegistry: getAgentRegistry(),
         templateManager: getTemplateManager(),
+        graphClientProvider: dependencies.graphClientProvider,
+        graphAuthorityMode: dependencies.graphAuthorityMode,
       });
       logger.info("[AgentsIPC] AgentCoordinator initialized");
     }
@@ -323,7 +329,7 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task ID is required" };
       }
 
-      const result = getAgentCoordinator().cancelTask(taskId, reason);
+      const result = await getAgentCoordinator().cancelTask(taskId, reason);
       if (result.success) {
         logger.info(`[AgentsIPC] Task cancelled: ${taskId}`);
       }

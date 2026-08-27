@@ -393,6 +393,8 @@ function registerPhases8to9Extras({
       const workflowManager = new WorkflowManager({
         progressEmitter,
         llmService: llmManager,
+        graphClientProvider: () =>
+          app?.codingAgentBootstrap?.appServerPilot || null,
       });
 
       if (mainWindow) {

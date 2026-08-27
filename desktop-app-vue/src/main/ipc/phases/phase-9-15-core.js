@@ -146,7 +146,11 @@ function registerPhases9to15({
       const {
         registerAgentsIPC,
       } = require("../../ai-engine/agents/agents-ipc");
-      registerAgentsIPC({ database: database || null });
+      registerAgentsIPC({
+        database: database || null,
+        graphClientProvider: () =>
+          app?.codingAgentBootstrap?.appServerPilot || null,
+      });
     },
   });
 
