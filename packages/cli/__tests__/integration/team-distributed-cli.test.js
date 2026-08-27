@@ -1132,6 +1132,7 @@ describe("team distributed CLI", () => {
     "runs a real two-process DAG, composes dependency baselines, and finalizes",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         {
@@ -1236,6 +1237,7 @@ describe("team distributed CLI", () => {
     "routes a real worktree task through the canonical distributed Graph writer",
     { timeout: 60_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         {
@@ -2116,6 +2118,7 @@ describe("team distributed CLI", () => {
     "enforces the global queue budget and blocks incomplete finalization",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         { key: "one", command: nodeWrite("one.txt", "one\n") },
@@ -2153,6 +2156,7 @@ describe("team distributed CLI", () => {
     "fails closed on a real sequential merge conflict",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       fs.writeFileSync(path.join(fixture.repo, "shared.txt"), "base\n");
       git(fixture.repo, "add", "shared.txt");
