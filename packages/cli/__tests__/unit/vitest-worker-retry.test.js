@@ -300,4 +300,22 @@ describe("Vitest worker infrastructure retry", () => {
     expect(step).toContain("--outputFile=strict-sandbox-contract-result.json");
     expect(step).not.toContain("continue-on-error");
   });
+
+  it("keeps the npm release preflight behind a bounded clean-report retry", () => {
+    const workflow = fs.readFileSync(
+      path.join(repositoryRoot, ".github/workflows/npm-publish.yml"),
+      "utf8",
+    );
+    const step = workflow.slice(
+      workflow.indexOf("- name: Run CLI tests"),
+      workflow.indexOf("\n  exact-sha-gate:"),
+    );
+    expect(step).toContain(
+      "node scripts/run-vitest-with-worker-retry.mjs -- run",
+    );
+    expect(step).toContain("--reporter=default --reporter=junit");
+    expect(step).toContain("--outputFile.junit=test-results/npm-publish.xml");
+    expect(step).toContain("--silent=passed-only");
+    expect(step).not.toContain("continue-on-error");
+  });
 });

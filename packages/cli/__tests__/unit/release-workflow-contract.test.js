@@ -91,6 +91,19 @@ describe("CLI release workflow contracts", () => {
     );
     const publishJob = text.slice(text.indexOf("  publish:"));
     expect(exactShaJob).toContain("if: ${{ github.event_name == 'push' }}");
+
+    const provenanceStep = text.slice(
+      text.indexOf("- name: Verify published CLI npm provenance"),
+      text.indexOf("- name: Upload public npm readback evidence"),
+    );
+    expect(provenanceStep.indexOf("for ATTEMPT in {1..30}")).toBeLessThan(
+      provenanceStep.indexOf(
+        'npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"',
+      ),
+    );
+    expect(provenanceStep).toContain(
+      "Published chainlesschain@$VERSION is not installable yet",
+    );
     expect(dryRunJob).toContain(
       "if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}",
     );

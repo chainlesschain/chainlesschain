@@ -75,8 +75,14 @@ jobs:
       - name: Run CLI tests
         working-directory: packages/cli
         # Large suites can overwhelm Vitest's reporter RPC when every passing
-        # assertion is streamed. CI still runs the complete suite.
-        run: npx vitest run --silent=passed-only
+        # assertion is streamed. CI still runs the complete suite. If every
+        # recorded assertion passes but the forks worker exits during teardown,
+        # retry once without file parallelism; real test failures remain hard.
+        run: >-
+          node scripts/run-vitest-with-worker-retry.mjs -- run
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/npm-publish.xml
+          --silent=passed-only
 
   exact-sha-gate:
     if: ${{ github.event_name == 'push' }}
@@ -577,12 +583,28 @@ jobs:
           (
             cd "$AUDIT_ROOT"
             npm init --yes >/dev/null
-            npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
           )
           VERIFIED=false
           for ATTEMPT in {1..30}; do
+            INSTALL_ERROR="$AUDIT_ROOT/npm-install.err"
             AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
             AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if [ ! -f "$AUDIT_ROOT/node_modules/chainlesschain/package.json" ]; then
+              if ! (
+                cd "$AUDIT_ROOT"
+                npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION" \
+                  2> "$INSTALL_ERROR"
+              ); then
+                if [ "$ATTEMPT" -eq 30 ]; then
+                  echo "npm did not expose installable chainlesschain@$VERSION after 30 attempts" >&2
+                  cat "$INSTALL_ERROR" >&2 || true
+                  exit 1
+                fi
+                echo "::notice::Published chainlesschain@$VERSION is not installable yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+                sleep 10
+                continue
+              fi
+            fi
             if (
               cd "$AUDIT_ROOT"
               npm audit signatures --include-attestations --json \
@@ -595,6 +617,7 @@ jobs:
             fi
             if [ "$ATTEMPT" -eq 30 ]; then
               echo "npm did not expose valid signed provenance for chainlesschain@$VERSION after 30 attempts" >&2
+              cat "$INSTALL_ERROR" >&2 || true
               cat "$AUDIT_ERROR" >&2 || true
               exit 1
             fi
