@@ -40,6 +40,27 @@ const JSON_RPC_ERRORS = {
   INTERNAL_ERROR: -32603,
 };
 
+const HTTP_SERVER_LIMITS = Object.freeze({
+  maxSseConnections: 64,
+  maxConcurrentRpcRequests: 64,
+  maxRequestBodyBytes: 10 * 1024 * 1024,
+  maxSseEventBytes: 256 * 1024,
+  maxSseBufferedBytes: 1024 * 1024,
+});
+
+const HTTP_SERVER_HARD_LIMITS = Object.freeze({
+  maxSseConnections: 1024,
+  maxConcurrentRpcRequests: 4096,
+  maxRequestBodyBytes: 16 * 1024 * 1024,
+  maxSseEventBytes: 1024 * 1024,
+  maxSseBufferedBytes: 16 * 1024 * 1024,
+});
+
+function boundedPositiveInteger(value, fallback, hardLimit) {
+  if (!Number.isSafeInteger(value) || value <= 0) return fallback;
+  return Math.min(value, hardLimit);
+}
+
 /**
  * Server states
  * @constant
@@ -73,6 +94,11 @@ class MCPHttpServer extends EventEmitter {
    * @param {Object} [config.auth] - Authentication configuration
    * @param {Function[]} [config.middleware] - Middleware functions
    * @param {Object} [config.hooks] - Lifecycle hooks
+   * @param {number} [config.maxSseConnections=64] - Concurrent SSE clients
+   * @param {number} [config.maxConcurrentRpcRequests=64] - In-flight RPC requests
+   * @param {number} [config.maxRequestBodyBytes=10485760] - Retained request bytes
+   * @param {number} [config.maxSseEventBytes=262144] - Encoded SSE event bytes
+   * @param {number} [config.maxSseBufferedBytes=1048576] - Per-client write buffer
    */
   constructor(config = {}) {
     super();
@@ -123,6 +149,38 @@ class MCPHttpServer extends EventEmitter {
     /** @type {Map<string, Object>} Active SSE connections (clientId -> response) */
     this.sseClients = new Map();
 
+    /** @type {number} Active JSON-RPC requests */
+    this.activeRpcRequests = 0;
+
+    /** @type {Readonly<Object>} Admission and retention limits */
+    this.limits = Object.freeze({
+      maxSseConnections: boundedPositiveInteger(
+        config.maxSseConnections,
+        HTTP_SERVER_LIMITS.maxSseConnections,
+        HTTP_SERVER_HARD_LIMITS.maxSseConnections,
+      ),
+      maxConcurrentRpcRequests: boundedPositiveInteger(
+        config.maxConcurrentRpcRequests,
+        HTTP_SERVER_LIMITS.maxConcurrentRpcRequests,
+        HTTP_SERVER_HARD_LIMITS.maxConcurrentRpcRequests,
+      ),
+      maxRequestBodyBytes: boundedPositiveInteger(
+        config.maxRequestBodyBytes,
+        HTTP_SERVER_LIMITS.maxRequestBodyBytes,
+        HTTP_SERVER_HARD_LIMITS.maxRequestBodyBytes,
+      ),
+      maxSseEventBytes: boundedPositiveInteger(
+        config.maxSseEventBytes,
+        HTTP_SERVER_LIMITS.maxSseEventBytes,
+        HTTP_SERVER_HARD_LIMITS.maxSseEventBytes,
+      ),
+      maxSseBufferedBytes: boundedPositiveInteger(
+        config.maxSseBufferedBytes,
+        HTTP_SERVER_LIMITS.maxSseBufferedBytes,
+        HTTP_SERVER_HARD_LIMITS.maxSseBufferedBytes,
+      ),
+    });
+
     /** @type {number} Next JSON-RPC request ID */
     this.nextRequestId = 1;
 
@@ -137,6 +195,11 @@ class MCPHttpServer extends EventEmitter {
       promptGets: 0,
       sseConnectionsTotal: 0,
       activeSSEConnections: 0,
+      sseConnectionsRejected: 0,
+      sseSlowConsumers: 0,
+      sseEventsRejected: 0,
+      rpcRequestsOverloaded: 0,
+      requestBodiesRejected: 0,
       lastError: null,
     };
 
@@ -238,9 +301,9 @@ class MCPHttpServer extends EventEmitter {
       await this._runHooks("onStop");
 
       // Close all SSE connections
-      for (const [clientId, client] of this.sseClients) {
+      for (const clientId of Array.from(this.sseClients.keys())) {
         try {
-          client.res.end();
+          this._closeSseClient(clientId, "server_stopped", true);
           logger.info(`[MCPHttpServer] Closed SSE connection: ${clientId}`);
         } catch (error) {
           logger.warn(
@@ -249,8 +312,7 @@ class MCPHttpServer extends EventEmitter {
           );
         }
       }
-      this.sseClients.clear();
-      this.stats.activeSSEConnections = 0;
+      this.stats.activeSSEConnections = this.sseClients.size;
 
       // Close the HTTP server
       if (this.server) {
@@ -360,9 +422,37 @@ class MCPHttpServer extends EventEmitter {
    * @param {http.ServerResponse} res - HTTP response
    */
   handleSSE(req, res) {
+    if (this.sseClients.size >= this.limits.maxSseConnections) {
+      this.stats.sseConnectionsRejected++;
+      this.stats.requestsFailed++;
+      this._sendOverload(res, "sse_connections");
+      this.emit("overload", {
+        scope: "sse_connections",
+        active: this.sseClients.size,
+        limit: this.limits.maxSseConnections,
+      });
+      return null;
+    }
+
     const clientId = uuidv4();
+    const initialEvent = `data: ${JSON.stringify({
+      type: "connected",
+      clientId,
+    })}\n\n`;
+    const initialEventBytes = Buffer.byteLength(initialEvent);
 
     logger.info(`[MCPHttpServer] New SSE connection: ${clientId}`);
+
+    if (
+      initialEventBytes > this.limits.maxSseEventBytes ||
+      (Number(res.writableLength) || 0) + initialEventBytes >
+        this.limits.maxSseBufferedBytes
+    ) {
+      this.stats.sseConnectionsRejected++;
+      this.stats.requestsFailed++;
+      this._sendOverload(res, "sse_initial_event");
+      return null;
+    }
 
     // Set SSE headers
     res.writeHead(200, {
@@ -372,14 +462,32 @@ class MCPHttpServer extends EventEmitter {
       "X-Client-Id": clientId,
     });
 
-    // Send initial connection event
-    res.write(`data: ${JSON.stringify({ type: "connected", clientId })}\n\n`);
+    // Send initial connection event. A response that is already backpressured
+    // is not admitted into the active client map.
+    let initialAccepted = false;
+    try {
+      initialAccepted = res.write(initialEvent);
+    } catch {
+      // Treat an immediately broken response as a failed admission.
+    }
+    if (!initialAccepted) {
+      this.stats.sseConnectionsRejected++;
+      this.stats.sseSlowConsumers++;
+      this.stats.requestsFailed++;
+      try {
+        res.end();
+      } catch {
+        // The response is already unusable and was never admitted.
+      }
+      return null;
+    }
 
     // Store client connection
     this.sseClients.set(clientId, {
       res,
       connectedAt: Date.now(),
       messagesSent: 0,
+      heartbeatInterval: null,
     });
     this.stats.sseConnectionsTotal++;
     this.stats.activeSSEConnections = this.sseClients.size;
@@ -387,31 +495,37 @@ class MCPHttpServer extends EventEmitter {
     // Handle client disconnect
     req.on("close", () => {
       logger.info(`[MCPHttpServer] SSE connection closed: ${clientId}`);
-      this.sseClients.delete(clientId);
-      this.stats.activeSSEConnections = this.sseClients.size;
-      this.emit("sse-disconnect", { clientId });
+      this._closeSseClient(clientId, "client_closed", false);
     });
 
     // Send heartbeat every 30 seconds to keep connection alive
     const heartbeatInterval = setInterval(() => {
-      if (this.sseClients.has(clientId)) {
-        try {
-          res.write(`: heartbeat\n\n`);
-        } catch (error) {
-          logger.warn(
-            `[MCPHttpServer] Heartbeat failed for ${clientId}:`,
-            error.message,
-          );
-          clearInterval(heartbeatInterval);
-          this.sseClients.delete(clientId);
-          this.stats.activeSSEConnections = this.sseClients.size;
-        }
-      } else {
+      const client = this.sseClients.get(clientId);
+      if (!client) {
         clearInterval(heartbeatInterval);
+        return;
+      }
+      try {
+        const heartbeat = ": heartbeat\n\n";
+        if (
+          this._wouldExceedSseBuffer(client, Buffer.byteLength(heartbeat)) ||
+          !res.write(heartbeat)
+        ) {
+          this._closeSlowSseClient(clientId, "heartbeat_backpressure");
+        }
+      } catch (error) {
+        logger.warn(
+          `[MCPHttpServer] Heartbeat failed for ${clientId}:`,
+          error.message,
+        );
+        this._closeSseClient(clientId, "heartbeat_error", true);
       }
     }, 30000);
+    heartbeatInterval.unref?.();
+    this.sseClients.get(clientId).heartbeatInterval = heartbeatInterval;
 
     this.emit("sse-connect", { clientId });
+    return clientId;
   }
 
   // ===================================
@@ -426,20 +540,60 @@ class MCPHttpServer extends EventEmitter {
    * @param {http.ServerResponse} res - HTTP response
    */
   _handleJsonRpcRequest(req, res) {
-    let body = "";
+    const releaseRpc = this._admitRpcRequest(req, res);
+    if (!releaseRpc) return;
+
+    const chunks = [];
+    let bodyBytes = 0;
+    let rejected = false;
+    let processing = false;
+    const declaredBytes = Number.parseInt(
+      req.headers?.["content-length"] || "",
+      10,
+    );
+
+    const rejectOversizedBody = () => {
+      if (rejected) return;
+      rejected = true;
+      chunks.length = 0;
+      this.stats.requestBodiesRejected++;
+      this.stats.requestsFailed++;
+      this._sendHttpError(
+        res,
+        413,
+        "Payload Too Large",
+        `Request body exceeds ${this.limits.maxRequestBodyBytes} bytes`,
+      );
+      releaseRpc();
+    };
+
+    if (
+      Number.isFinite(declaredBytes) &&
+      declaredBytes > this.limits.maxRequestBodyBytes
+    ) {
+      rejectOversizedBody();
+      req.resume?.();
+      return;
+    }
 
     req.on("data", (chunk) => {
-      body += chunk.toString("utf8");
+      if (rejected) return;
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bodyBytes += bytes.length;
 
-      // Limit body size to 10MB
-      if (body.length > 10 * 1024 * 1024) {
-        this._sendHttpError(res, 413, "Payload Too Large");
-        req.destroy();
+      if (bodyBytes > this.limits.maxRequestBodyBytes) {
+        rejectOversizedBody();
+        return;
       }
+      chunks.push(bytes);
     });
 
-    req.on("end", async () => {
+    req.once("end", async () => {
+      if (rejected) return;
+      processing = true;
       try {
+        const body = Buffer.concat(chunks, bodyBytes).toString("utf8");
+
         // Parse JSON
         let message;
         try {
@@ -505,15 +659,34 @@ class MCPHttpServer extends EventEmitter {
           timestamp: new Date().toISOString(),
         };
 
-        this._sendJsonRpcError(
-          res,
-          null,
-          JSON_RPC_ERRORS.INTERNAL_ERROR,
-          error.message,
-        );
+        if (!res.writableEnded) {
+          this._sendJsonRpcError(
+            res,
+            null,
+            JSON_RPC_ERRORS.INTERNAL_ERROR,
+            error.message,
+          );
+        }
 
         this._runHooks("onError", error);
+      } finally {
+        releaseRpc();
       }
+    });
+
+    req.once("error", (error) => {
+      if (rejected || res.writableEnded) return;
+      rejected = true;
+      chunks.length = 0;
+      this.stats.requestsFailed++;
+      this._sendHttpError(res, 400, "Bad Request", error.message);
+      if (!processing) releaseRpc();
+    });
+
+    req.once("aborted", () => {
+      rejected = true;
+      chunks.length = 0;
+      if (!processing) releaseRpc();
     });
   }
 
@@ -808,20 +981,58 @@ class MCPHttpServer extends EventEmitter {
    */
   _broadcastSSE(message) {
     const data = JSON.stringify(message);
+    const payload = `data: ${data}\n\n`;
+    const payloadBytes = Buffer.byteLength(payload);
 
-    for (const [clientId, client] of this.sseClients) {
+    if (payloadBytes > this.limits.maxSseEventBytes) {
+      this.stats.sseEventsRejected++;
+      this.emit("overload", {
+        scope: "sse_event",
+        bytes: payloadBytes,
+        limit: this.limits.maxSseEventBytes,
+      });
+      return {
+        sent: 0,
+        disconnected: 0,
+        dropped: this.sseClients.size,
+        reason: "event_too_large",
+      };
+    }
+
+    let sent = 0;
+    let disconnected = 0;
+
+    for (const [clientId, client] of Array.from(this.sseClients.entries())) {
+      if (client.res.writableEnded || client.res.destroyed) {
+        if (this._closeSseClient(clientId, "response_closed", false)) {
+          disconnected++;
+        }
+        continue;
+      }
+      if (this._wouldExceedSseBuffer(client, payloadBytes)) {
+        this._closeSlowSseClient(clientId, "buffer_limit");
+        disconnected++;
+        continue;
+      }
       try {
-        client.res.write(`data: ${data}\n\n`);
+        if (!client.res.write(payload)) {
+          this._closeSlowSseClient(clientId, "write_backpressure");
+          disconnected++;
+          continue;
+        }
         client.messagesSent++;
+        sent++;
       } catch (error) {
         logger.warn(
           `[MCPHttpServer] Failed to send SSE to ${clientId}:`,
           error.message,
         );
-        this.sseClients.delete(clientId);
-        this.stats.activeSSEConnections = this.sseClients.size;
+        this._closeSseClient(clientId, "write_error", true);
+        disconnected++;
       }
     }
+
+    return { sent, disconnected, dropped: 0, reason: null };
   }
 
   /**
@@ -831,11 +1042,77 @@ class MCPHttpServer extends EventEmitter {
    * @param {Object} params - Notification parameters
    */
   sendNotification(method, params) {
-    this._broadcastSSE({
+    return this._broadcastSSE({
       jsonrpc: "2.0",
       method,
       params,
     });
+  }
+
+  _wouldExceedSseBuffer(client, additionalBytes) {
+    const bufferedBytes = Number(client?.res?.writableLength) || 0;
+    return bufferedBytes + additionalBytes > this.limits.maxSseBufferedBytes;
+  }
+
+  _closeSseClient(clientId, reason, endResponse) {
+    const client = this.sseClients.get(clientId);
+    if (!client) return false;
+
+    clearInterval(client.heartbeatInterval);
+    this.sseClients.delete(clientId);
+    this.stats.activeSSEConnections = this.sseClients.size;
+    if (endResponse && !client.res.writableEnded) {
+      try {
+        client.res.end();
+      } catch {
+        // The connection is already unusable; removing it is sufficient.
+      }
+    }
+    this.emit("sse-disconnect", { clientId, reason });
+    return true;
+  }
+
+  _closeSlowSseClient(clientId, reason) {
+    this.stats.sseSlowConsumers++;
+    this._closeSseClient(clientId, reason, true);
+  }
+
+  _admitRpcRequest(req, res) {
+    if (this.activeRpcRequests >= this.limits.maxConcurrentRpcRequests) {
+      this.stats.rpcRequestsOverloaded++;
+      this.stats.requestsFailed++;
+      this._sendOverload(res, "rpc_requests");
+      req.resume?.();
+      this.emit("overload", {
+        scope: "rpc_requests",
+        active: this.activeRpcRequests,
+        limit: this.limits.maxConcurrentRpcRequests,
+      });
+      return null;
+    }
+
+    this.activeRpcRequests++;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.activeRpcRequests = Math.max(0, this.activeRpcRequests - 1);
+    };
+  }
+
+  _sendOverload(res, scope, retryAfterMs = 1000) {
+    const body = JSON.stringify({
+      error: "OVERLOADED",
+      scope,
+      retryAfterMs,
+      timestamp: new Date().toISOString(),
+    });
+    res.writeHead(503, {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
+      "Retry-After": String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+    });
+    res.end(body);
   }
 
   // ===================================
@@ -1059,7 +1336,9 @@ class MCPHttpServer extends EventEmitter {
       connections: {
         activeSSE: this.sseClients.size,
         totalSSE: this.stats.sseConnectionsTotal,
+        activeRpc: this.activeRpcRequests,
       },
+      limits: this.limits,
       stats: { ...this.stats },
       timestamp: new Date().toISOString(),
     };
@@ -1085,6 +1364,8 @@ class MCPHttpServer extends EventEmitter {
         ? Date.now() - new Date(this.stats.startedAt).getTime()
         : 0,
       activeSSEConnections: this.sseClients.size,
+      activeRpcRequests: this.activeRpcRequests,
+      limits: this.limits,
       capabilities: {
         tools: this.tools.size,
         resources: this.resources.size,
@@ -1183,4 +1464,6 @@ module.exports = {
   ServerState,
   JSON_RPC_ERRORS,
   MCP_PROTOCOL_VERSION,
+  HTTP_SERVER_LIMITS,
+  HTTP_SERVER_HARD_LIMITS,
 };
