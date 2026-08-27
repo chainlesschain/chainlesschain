@@ -16,13 +16,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
 
 let dir;
+let configDir;
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-team-io-"));
+  configDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-team-home-"));
 });
 afterEach(() => {
   vi.restoreAllMocks();
   try {
     fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(configDir, { recursive: true, force: true });
   } catch {
     /* best-effort */
   }
@@ -379,6 +382,67 @@ describe(
           ),
       ).toBe(false);
       expect(fs.existsSync(`${state}.run-lock`)).toBe(false);
+    });
+
+    it("runs the production shell path under canonical Graph authority", () => {
+      const command = `${JSON.stringify(process.execPath)} -e "process.exit(0)"`;
+      const graph = writeGraph("canonical.json", [
+        { key: "a", title: "a", command },
+        { key: "b", title: "b", command, dependsOn: ["a"] },
+      ]);
+      const state = path.join(configDir, "canonical-state.json");
+      try {
+        execFileSync(
+          process.execPath,
+          [
+            BIN,
+            "team",
+            "run",
+            "--tasks",
+            graph,
+            "--exec",
+            "--teammates",
+            "1",
+            "--state",
+            state,
+          ],
+          {
+            encoding: "utf8",
+            timeout: 60000,
+            cwd: dir,
+            stdio: ["ignore", "pipe", "pipe"],
+            env: {
+              ...process.env,
+              CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
+              CHAINLESSCHAIN_HOME: configDir,
+              CC_COLLABORATION_RUNS_DIR: path.join(
+                dir,
+                "canonical-collaboration-runs",
+              ),
+            },
+          },
+        );
+      } catch (error) {
+        throw new Error(`${error.stdout || ""}${error.stderr || ""}`);
+      }
+      const snapshot = JSON.parse(fs.readFileSync(state, "utf8"));
+      expect(snapshot.graphAuthorityMode).toBe("canonical");
+      expect(snapshot.graphAuthority).toMatchObject({
+        id: `team:${snapshot.stateId}`,
+        authoritySource: "graph_kernel",
+        authorityGeneration: 1,
+        phase: "sealed",
+        status: "succeeded",
+        projectionVersion: 1,
+      });
+      expect(snapshot.graphAuthority.writerId).toMatch(/^cli-team:/u);
+      expect(snapshot.graphAuthority.eventHead).toMatch(
+        /^sha256:[a-f0-9]{64}$/u,
+      );
+      expect(snapshot.registry.tasks.tasks.map((task) => task.status)).toEqual([
+        "completed",
+        "completed",
+      ]);
     });
 
     it("fails closed when --resume has no state file", () => {

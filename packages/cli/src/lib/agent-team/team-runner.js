@@ -134,6 +134,11 @@ export class TeamRunner {
       typeof opts.canonicalSettlement === "function"
         ? opts.canonicalSettlement
         : null;
+    // In canonical rollout the Graph Kernel owns the ready frontier. The task
+    // registry remains a compatibility/lease projection and cannot make a node
+    // executable when Graph still considers it blocked.
+    this.canonicalReady =
+      typeof opts.canonicalReady === "function" ? opts.canonicalReady : null;
     // Shadow settlement observes the already-produced executor outcome and
     // never owns effects. Divergence is visible but cannot change the legacy
     // result while a surface is still in shadow rollout.
@@ -1561,6 +1566,24 @@ export class TeamRunner {
           return;
         }
         // Lost the race to a peer (or it just got blocked) — try another.
+        if (
+          this.canonicalReady &&
+          !["leased", "concurrent", "no_claimable_task"].includes(acq.reason)
+        ) {
+          const error = new Error(
+            `Canonical Graph declared task "${key}" ready but the legacy projection rejected it: ${acq.reason || "unknown"}`,
+          );
+          error.code = "CC_TEAM_GRAPH_LEGACY_PROJECTION_DIVERGED";
+          this._setFatal(error, {
+            phase: "legacy-ready-projection",
+            key,
+            holder,
+            reason: acq.reason || null,
+          });
+          this._setState(holder, "shutdown", { reason: "fatal-error" });
+          this._signalProgress();
+          return;
+        }
         this._setState(holder, "idle");
         await this._tick();
         continue;
@@ -2134,10 +2157,15 @@ export class TeamRunner {
     ) {
       return null;
     }
-    if (typeof this.registry.nextClaimable === "function") {
+    const nextClaimable = this.canonicalReady
+      ? (options) => this.canonicalReady({ holder, ...options })
+      : typeof this.registry.nextClaimable === "function"
+        ? (options) => this.registry.nextClaimable(options)
+        : null;
+    if (nextClaimable) {
       const excluded = new Set(this._activeKeys);
       for (let scanned = 0; scanned < this.maxScopeScan; scanned++) {
-        const key = this.registry.nextClaimable({ excludeKeys: excluded });
+        const key = nextClaimable({ excludeKeys: excluded });
         if (!key) return null;
         const task = this.registry.getTask(key);
         const targetHolder =
@@ -2566,6 +2594,7 @@ export class TeamRunner {
       if (
         this.canonicalSettlement &&
         !claim.canonicalSettled &&
+        failure?.code !== "TEAM_HANDOFF_COMMITTED" &&
         failure?.canonicalSettlementFailed !== true
       ) {
         try {

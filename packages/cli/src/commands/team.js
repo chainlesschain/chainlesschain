@@ -2686,7 +2686,12 @@ export function registerTeamCommand(program, { logger } = {}) {
             teammates,
             budget: limits,
             authorityMode: graphAuthorityMode,
+            dynamic: graphAuthorityMode === "canonical",
           });
+          if (graphAuthorityMode === "canonical") {
+            reg = graphRuntime.bindRegistry(reg);
+            mailbox = graphRuntime.bindMailbox(mailbox);
+          }
         }
         const settleGovernance = (key, status, extra = {}) => {
           const governanceKey = sessionTaskKeyFor(key);
@@ -3047,6 +3052,11 @@ export function registerTeamCommand(program, { logger } = {}) {
             graphAuthorityMode === "canonical" && graphRuntime
               ? (settlement) => graphRuntime.settleTask(settlement)
               : null,
+          canonicalReady:
+            graphAuthorityMode === "canonical" && graphRuntime
+              ? ({ excludeKeys }) =>
+                  graphRuntime.nextReadyTaskKey({ excludeKeys })
+              : null,
           shadowSettlement:
             graphAuthorityMode === "shadow" && graphRuntime
               ? (settlement) => graphRuntime.settleTask(settlement)
@@ -3173,7 +3183,10 @@ export function registerTeamCommand(program, { logger } = {}) {
           throw err;
         }
         if (graphRuntime) {
-          const graphStatus = graphRuntime.status();
+          const graphStatus =
+            graphAuthorityMode === "canonical"
+              ? graphRuntime.finalize()
+              : graphRuntime.status();
           summary.graphAuthorityMode = graphAuthorityMode;
           summary.graphRuntime = graphStatus;
           summary.graphShadowDivergences = [...shadowDivergences];

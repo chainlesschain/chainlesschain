@@ -161,10 +161,25 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
       ],
     });
     expect(recovered.readyNodes(runId)).toEqual([]);
+    expect(() =>
+      recovered.settleAttempt(runId, {
+        attemptId: "attempt-only",
+        leaseId: "lease-only",
+        fence: 1,
+        outcome: "succeeded",
+        evidence: { outputDigest: DIGEST_A },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_STALE_ATTEMPT_AUTHORITY" }),
+    );
+    const resumed = recovered.resumeAttempt(runId, "attempt-only", {
+      resumedAttemptId: "attempt-only-recovered",
+      leaseId: "lease-only-recovered",
+    });
     recovered.settleAttempt(runId, {
-      attemptId: "attempt-only",
-      leaseId: "lease-only",
-      fence: 1,
+      attemptId: resumed.id,
+      leaseId: resumed.leaseId,
+      fence: resumed.fence,
       outcome: "succeeded",
       evidence: { outputDigest: DIGEST_A },
     });
@@ -267,10 +282,25 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
         operationDigest: DIGEST_B,
       }),
     ).toMatchObject({ id: "effect-1", status: "committed" });
+    expect(() =>
+      recovered.settleAttempt(runId, {
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        outcome: "succeeded",
+        evidence: { outputDigest: DIGEST_A },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_STALE_ATTEMPT_AUTHORITY" }),
+    );
+    const resumed = recovered.resumeAttempt(runId, attempt.id, {
+      resumedAttemptId: "attempt-effect-recovered",
+      leaseId: "lease-effect-recovered",
+    });
     recovered.settleAttempt(runId, {
-      attemptId: attempt.id,
-      leaseId: attempt.leaseId,
-      fence: attempt.fence,
+      attemptId: resumed.id,
+      leaseId: resumed.leaseId,
+      fence: resumed.fence,
       outcome: "succeeded",
       evidence: { outputDigest: DIGEST_A },
     });
