@@ -2653,10 +2653,13 @@ export class GraphKernel {
             `assignment attempt not found: ${sourceId}`,
           );
         }
-        if (!ACTIVE_ATTEMPT.has(source.status)) {
+        const auditedRecovery =
+          source.status === "expired" &&
+          source.participationStatus === "reconciled";
+        if (!ACTIVE_ATTEMPT.has(source.status) && !auditedRecovery) {
           throw kernelError(
             "CC_GRAPH_ASSIGNMENT_RESUME_TERMINAL",
-            "only an active assignment can be resumed",
+            "only an active or audited-reconciled assignment can be resumed",
           );
         }
         if (
@@ -2802,17 +2805,25 @@ export class GraphKernel {
   ) {
     const run = this._run(runId);
     const key = String(idempotencyKey || "").trim();
-    const existing = [...run.effects.values()].find(
+    const matching = [...run.effects.values()].filter(
       (effect) => effect.idempotencyKey === key,
     );
-    if (existing) {
-      if (existing.operationDigest !== operationDigest) {
+    if (matching.length > 0) {
+      if (
+        matching.some((effect) => effect.operationDigest !== operationDigest)
+      ) {
         throw kernelError(
           "CC_GRAPH_EFFECT_IDEMPOTENCY_CONFLICT",
           "effect idempotency key was reused for a different operation",
         );
       }
-      return Object.freeze(clone(existing));
+      // A proved/audited failure means the operation did not commit, so a
+      // later fenced attempt must receive a fresh effect boundary. Started,
+      // unknown, and committed effects continue to deduplicate fail-closed.
+      const authoritative = [...matching]
+        .reverse()
+        .find((effect) => effect.status !== "failed");
+      if (authoritative) return Object.freeze(clone(authoritative));
     }
     const id = safeIdentifier(effectId, "effectId");
     return this._transaction(

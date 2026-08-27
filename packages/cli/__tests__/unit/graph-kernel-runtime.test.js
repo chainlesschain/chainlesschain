@@ -666,6 +666,64 @@ describe("canonical Graph Kernel", () => {
     });
   });
 
+  it("opens a fresh fenced effect only after the prior effect proved failed", () => {
+    const { kernel } = createKernel();
+    const compiled = graph([
+      node("effect-retry", {
+        effectClass: "external",
+        idempotencyKey: "effect-retry-key",
+        retryLimit: 1,
+      }),
+    ]);
+    startSealed(kernel, compiled, "run-effect-retry");
+    const first = assign(kernel, "run-effect-retry", "effect-retry");
+    const failed = kernel.beginEffect("run-effect-retry", {
+      effectId: "effect-retry-first",
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      idempotencyKey: "effect-retry-key",
+      operationDigest: DIGEST_B,
+    });
+    kernel.settleEffect("run-effect-retry", {
+      effectId: failed.id,
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      outcome: "failed",
+    });
+    kernel.settleAttempt("run-effect-retry", {
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      outcome: "failed",
+      error: "proved not committed",
+    });
+
+    const retry = assign(
+      kernel,
+      "run-effect-retry",
+      "effect-retry",
+      "agent-2",
+      "2",
+    );
+    expect(
+      kernel.beginEffect("run-effect-retry", {
+        effectId: "effect-retry-second",
+        attemptId: retry.id,
+        leaseId: retry.leaseId,
+        fence: retry.fence,
+        idempotencyKey: "effect-retry-key",
+        operationDigest: DIGEST_B,
+      }),
+    ).toMatchObject({
+      id: "effect-retry-second",
+      attemptId: retry.id,
+      status: "started",
+    });
+    expect(kernel.effectState("run-effect-retry")).toHaveLength(2);
+  });
+
   it("moves an in-flight effect to audited reconciliation after crash recovery", () => {
     const context = createKernel();
     const compiled = graph([

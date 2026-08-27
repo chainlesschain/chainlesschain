@@ -11,6 +11,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { TeamDistributedQueue } from "../lib/agent-team/team-distributed-queue.js";
+import { TeamDistributedGraphBridge } from "../lib/agent-team/team-distributed-graph-bridge.js";
+import {
+  distributedTeamGraphRequestId,
+  distributedTeamGraphRunId,
+  distributedTeamGraphSettlementPayload,
+  TeamDistributedGraphWriter,
+  verifyDistributedTeamGraphResponse,
+} from "../lib/agent-team/team-distributed-graph-writer.js";
+import { TeamGraphRuntimeAdapter } from "../lib/agent-team/team-graph-runtime-adapter.js";
 import { TeamRunner } from "../lib/agent-team/team-runner.js";
 import {
   summarizeWorktreeCheckpoint,
@@ -20,6 +29,8 @@ import { TeamProcessCheckpointBroker } from "../lib/agent-team/team-process-chec
 import { CostBudget } from "../lib/cost-budget.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { GraphEventStore } from "../lib/graph-kernel/event-store.js";
+import { JsonlRolloutStore } from "../lib/app-server/rollout-store.js";
 import {
   SECURE_FILE_IDENTITY_ERROR,
   SecureFileIdentityError,
@@ -35,6 +46,7 @@ const MAX_AGENT_USAGE_RECORDS = 64;
 const SHELL_WORKTREE_MODE = "shell-worktree";
 const AGENT_WORKTREE_MODE = "agent-worktree";
 const DISTRIBUTED_MODES = new Set([SHELL_WORKTREE_MODE, AGENT_WORKTREE_MODE]);
+const DISTRIBUTED_GRAPH_AUTHORITY_MODES = new Set(["legacy", "canonical"]);
 const AGENT_OPTION_FIELDS = new Set([
   "permissionMode",
   "model",
@@ -173,6 +185,21 @@ function distributedMode(value = SHELL_WORKTREE_MODE) {
     );
   }
   return mode;
+}
+
+export function distributedGraphAuthorityMode(value, env = process.env) {
+  const configured = String(
+    value ?? env.CHAINLESSCHAIN_GRAPH_CLI_TEAM ?? "legacy",
+  )
+    .trim()
+    .toLowerCase();
+  if (!DISTRIBUTED_GRAPH_AUTHORITY_MODES.has(configured)) {
+    fail(
+      "TEAM_QUEUE_GRAPH_AUTHORITY_UNSUPPORTED",
+      "Distributed Graph authority must be legacy or canonical",
+    );
+  }
+  return configured;
 }
 
 function stableAgentText(
@@ -947,6 +974,7 @@ function authorityFor({
   mode,
   baseTarget,
   checkpoint,
+  graphAuthorityMode,
   agent = null,
 }) {
   const authority = {
@@ -955,6 +983,7 @@ function authorityFor({
     repoRoot,
     runId,
     mode,
+    graphAuthorityMode,
     baseTarget: {
       branch: baseTarget.branch ?? null,
       commitOid: baseTarget.commitOid,
@@ -988,6 +1017,10 @@ function assertAuthority(
         path.isAbsolute(checkpoint.stateDir)
       : checkpoint.stateDir === null);
   const modeValid = DISTRIBUTED_MODES.has(authority?.mode);
+  const graphAuthorityMode = distributedGraphAuthorityMode(
+    authority?.graphAuthorityMode ?? "legacy",
+    {},
+  );
   let agent = null;
   if (authority?.mode === AGENT_WORKTREE_MODE) {
     agent = normalizeAgentAuthority(authority.agent);
@@ -1001,6 +1034,7 @@ function assertAuthority(
     authority?.kind === AUTHORITY_KIND &&
     authority?.version === AUTHORITY_VERSION &&
     modeValid &&
+    DISTRIBUTED_GRAPH_AUTHORITY_MODES.has(graphAuthorityMode) &&
     authority?.runId === runId &&
     samePath(authority?.repoRoot || "", repoRoot) &&
     typeof authority?.baseTarget?.commitOid === "string" &&
@@ -1039,6 +1073,7 @@ function assertAuthority(
   }
   return {
     ...authority,
+    graphAuthorityMode,
     checkpoint: checkpointAuthority(checkpoint),
     ...(agent ? { agent } : {}),
   };
@@ -1247,6 +1282,11 @@ function workerRegistry(queue, workerId, { settlementForLease = null } = {}) {
 function defaultDependencies(overrides = {}) {
   return {
     Queue: TeamDistributedQueue,
+    GraphBridge: TeamDistributedGraphBridge,
+    GraphWriter: TeamDistributedGraphWriter,
+    GraphAdapter: TeamGraphRuntimeAdapter,
+    GraphEventStore,
+    RolloutStore: JsonlRolloutStore,
     Runner: TeamRunner,
     WorktreeCoordinator: TeamWorktreeCoordinator,
     CheckpointBroker: TeamProcessCheckpointBroker,
@@ -1307,6 +1347,16 @@ function openPinnedQueue(options, deps) {
     );
   }
   if (
+    options.graphAuthority != null &&
+    distributedGraphAuthorityMode(options.graphAuthority, {}) !==
+      authority.graphAuthorityMode
+  ) {
+    fail(
+      "TEAM_QUEUE_AUTHORITY_MISMATCH",
+      `Command requested ${options.graphAuthority} Graph authority, but the pinned queue authority is ${authority.graphAuthorityMode}`,
+    );
+  }
+  if (
     options.managedCheckpoint === true &&
     authority.checkpoint.enabled !== true
   ) {
@@ -1334,6 +1384,36 @@ function openPinnedQueue(options, deps) {
   return { queue, snapshot, authority, repoRoot, statePath, runId };
 }
 
+function distributedGraphResources(opened, deps) {
+  const bridgeDirectory = assertExternalCheckpointStateDir(
+    deps.GraphBridge.directoryForState(opened.statePath),
+    opened.repoRoot,
+    opened.statePath,
+  );
+  const eventDirectory = assertExternalCheckpointStateDir(
+    `${opened.statePath}.graph-runs`,
+    opened.repoRoot,
+    opened.statePath,
+  );
+  const bridge = new deps.GraphBridge({
+    directory: bridgeDirectory,
+    queueId: opened.snapshot.queueId,
+    runId: opened.runId,
+    now: deps.now,
+  });
+  const eventStore = new deps.GraphEventStore({
+    rolloutStore: new deps.RolloutStore({
+      directory: eventDirectory,
+      now: deps.now,
+    }),
+  });
+  const graphRunId = distributedTeamGraphRunId({
+    queueId: opened.snapshot.queueId,
+    runId: opened.runId,
+  });
+  return { bridge, eventStore, graphRunId, bridgeDirectory, eventDirectory };
+}
+
 export function initDistributedQueue(options, dependencyOverrides = {}) {
   if (options.queueId != null || options.authorityDigest != null) {
     fail(
@@ -1346,6 +1426,9 @@ export function initDistributedQueue(options, dependencyOverrides = {}) {
   const runId = requireText(options.runId, "--run-id");
   const statePath = assertExternalStatePath(options.state, repoRoot);
   const mode = distributedMode(options.mode);
+  const graphAuthorityMode = distributedGraphAuthorityMode(
+    options.graphAuthority,
+  );
   if (options.checkpointStateDir && options.managedCheckpoint !== true) {
     fail(
       "TEAM_QUEUE_INVALID_OPTION",
@@ -1406,6 +1489,7 @@ export function initDistributedQueue(options, dependencyOverrides = {}) {
     repoRoot,
     runId,
     mode,
+    graphAuthorityMode,
     baseTarget,
     checkpoint: {
       enabled: options.managedCheckpoint === true,
@@ -1429,6 +1513,7 @@ export function initDistributedQueue(options, dependencyOverrides = {}) {
     repoRoot,
     runId,
     mode,
+    graphAuthorityMode,
     authority,
     budget,
     checkpoint: checkpointAuthority({
@@ -2286,6 +2371,54 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
     options.workerId || `worker-${process.pid}-${crypto.randomUUID()}`,
     "--worker-id",
   );
+  const graphResources =
+    opened.authority.graphAuthorityMode === "canonical"
+      ? distributedGraphResources(opened, deps)
+      : null;
+  const graphTimeoutMs =
+    optionalPositive(options.graphTimeoutMs, "--graph-timeout-ms", {
+      integer: true,
+    }) ?? 30_000;
+  const graphPollMs =
+    optionalPositive(options.graphPollMs, "--graph-poll-ms", {
+      integer: true,
+    }) ?? 25;
+  const requestGraph = graphResources
+    ? async ({ type, key, task, lease, payload = {} }) => {
+        const durableLease = attemptLease(
+          { ...task, lease, metadata: { ...task?.metadata, lease } },
+          key,
+        );
+        const binding = {
+          queueId: opened.snapshot.queueId,
+          taskKey: key,
+          lease: durableLease,
+        };
+        const request = graphResources.bridge.request({
+          requestId: distributedTeamGraphRequestId(type, binding),
+          type,
+          taskKey: key,
+          workerId,
+          lease: durableLease,
+          payload,
+        });
+        const response = await graphResources.bridge.waitForResponse(
+          request.requestId,
+          {
+            timeoutMs: graphTimeoutMs,
+            pollMs: graphPollMs,
+            sleep: deps.sleep,
+          },
+        );
+        verifyDistributedTeamGraphResponse({
+          response,
+          request,
+          eventStore: graphResources.eventStore,
+          runId: graphResources.graphRunId,
+        });
+        return response;
+      }
+    : null;
   const checkpointBroker = opened.authority.checkpoint.enabled
     ? new deps.CheckpointBroker({
         stateDir: opened.authority.checkpoint.stateDir,
@@ -2421,10 +2554,23 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
           ? null
           : wallBudgetForQueueStats(queueStats, opened.queue, deps),
       emitHook: async () => {},
-      beforeTask: ({ task }) => {
+      beforeTask: async ({ key, task, lease }) => {
         importCompletedDependencies(coordinator, opened.queue, task);
         importRetryWorkspace(coordinator, task);
+        if (requestGraph) {
+          await requestGraph({ type: "dispatch", key, task, lease });
+        }
       },
+      canonicalSettlement: requestGraph
+        ? (settlement) =>
+            requestGraph({
+              type: "settle",
+              key: settlement.key,
+              task: settlement.task,
+              lease: settlement.lease,
+              payload: distributedTeamGraphSettlementPayload(settlement),
+            })
+        : null,
       runTask,
       onEvent: (event) => events.push(event),
     });
@@ -2463,8 +2609,17 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
     durableBudgetReason,
     stats: status.stats,
   };
+  const graphBridgeSnapshot = graphResources?.bridge.snapshot() || null;
   return {
     workerId,
+    graphAuthorityMode: opened.authority.graphAuthorityMode,
+    graphBridge: graphResources
+      ? {
+          directory: graphResources.bridgeDirectory,
+          head: graphBridgeSnapshot.head,
+          revision: graphBridgeSnapshot.revision,
+        }
+      : null,
     summary,
     queue: {
       queueId: status.queueId,
@@ -2477,6 +2632,71 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
       .filter((task) => task.status === "completed")
       .map((task) => ({ key: task.key, result: completedResult(task) })),
     events,
+  };
+}
+
+export async function runDistributedGraphWriter(
+  options,
+  dependencyOverrides = {},
+) {
+  const deps = defaultDependencies(dependencyOverrides);
+  const opened = openPinnedQueue(options, deps);
+  if (opened.authority.graphAuthorityMode !== "canonical") {
+    fail(
+      "TEAM_QUEUE_GRAPH_WRITER_NOT_CANONICAL",
+      "Distributed Graph writer requires a queue initialized with canonical Graph authority",
+    );
+  }
+  const resources = distributedGraphResources(opened, deps);
+  const adapter = new deps.GraphAdapter({
+    eventStore: resources.eventStore,
+    now: deps.now,
+  });
+  const writer = new deps.GraphWriter({
+    queue: opened.queue,
+    bridge: resources.bridge,
+    adapter,
+    runId: resources.graphRunId,
+    executionMode: opened.authority.mode,
+    budget: opened.snapshot.budget?.limits || {},
+  });
+  writer.open();
+  const pollMs =
+    optionalPositive(options.pollMs, "--poll-ms", { integer: true }) ?? 100;
+  let processed = 0;
+  let view;
+  for (;;) {
+    processed += writer.processPending().length;
+    view = opened.queue.statusView();
+    const bridgePending = resources.bridge.pending().length;
+    const terminal =
+      view.stats.completed + view.stats.cancelled === view.stats.total &&
+      view.stats.adjudicationRequired === 0;
+    if (
+      options.once === true ||
+      terminal ||
+      (view.stats.leased === 0 &&
+        bridgePending === 0 &&
+        (view.stats.adjudicationRequired > 0 || view.stats.budget?.reason))
+    ) {
+      break;
+    }
+    await deps.sleep(pollMs);
+  }
+  const status = writer.status();
+  return {
+    queueId: view.queueId,
+    graphAuthorityMode: "canonical",
+    processed,
+    stats: view.stats,
+    graph: status.graph,
+    bridge: {
+      directory: resources.bridgeDirectory,
+      eventDirectory: resources.eventDirectory,
+      revision: status.bridge.revision,
+      head: status.bridge.head,
+      pending: status.bridge.requests.length - status.bridge.responses.length,
+    },
   };
 }
 
@@ -3182,7 +3402,11 @@ function baseAuthorityOptions(command) {
 function commonAuthorityOptions(command) {
   return baseAuthorityOptions(command)
     .option("--queue-id <id>", "Pinned queue id")
-    .option("--authority-digest <sha256>", "Pinned authority digest");
+    .option("--authority-digest <sha256>", "Pinned authority digest")
+    .option(
+      "--graph-authority <mode>",
+      "Verify pinned Graph authority: legacy or canonical",
+    );
 }
 
 /** Register beneath the existing `cc team` Commander command. */
@@ -3208,6 +3432,10 @@ export function registerTeamDistributedCommands(
         "--mode <mode>",
         "shell-worktree or agent-worktree",
         SHELL_WORKTREE_MODE,
+      )
+      .option(
+        "--graph-authority <mode>",
+        "Pin Graph authority: legacy or canonical",
       )
       .option("--max-tasks <n>", "Global task-attempt cap")
       .option("--max-tokens <n>", "Global token cap")
@@ -3297,6 +3525,11 @@ export function registerTeamDistributedCommands(
       .option("--renew-every-ms <ms>", "Lease heartbeat interval")
       .option("--max-tasks <n>", "Local execution cap")
       .option(
+        "--graph-timeout-ms <ms>",
+        "Wait limit for the canonical Graph writer response",
+      )
+      .option("--graph-poll-ms <ms>", "Canonical Graph response poll interval")
+      .option(
         "--managed-checkpoint",
         "Require the queue's pinned managed checkpoint authority",
       )
@@ -3308,6 +3541,14 @@ export function registerTeamDistributedCommands(
   ).action(
     action((options) => runDistributedWorker(options, agentDependencies), log),
   );
+
+  commonAuthorityOptions(
+    queue
+      .command("graph-writer")
+      .description("Own the canonical Graph ledger for distributed workers")
+      .option("--poll-ms <ms>", "Bridge request poll interval")
+      .option("--once", "Process the current bridge frontier and exit"),
+  ).action(action(runDistributedGraphWriter, log));
 
   commonAuthorityOptions(
     queue

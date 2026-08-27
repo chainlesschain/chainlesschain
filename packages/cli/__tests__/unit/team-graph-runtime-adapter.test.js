@@ -800,7 +800,7 @@ describe("CLI Team canonical Graph runtime adapter", () => {
       holder: "worker-1:teammate-1",
       ttlMs: 60_000,
     }).lease;
-    const original = first.beforeTask({
+    first.beforeTask({
       key: "build",
       holder: "worker-1:teammate-1",
       task: source.getTask("build"),
@@ -833,18 +833,14 @@ describe("CLI Team canonical Graph runtime adapter", () => {
         ]),
       }),
     ).toMatchObject({ status: "running" });
-    const resumed = recovered.beforeTask({
-      key: "build",
-      holder: "worker-1:teammate-1",
-      task: source.getTask("build"),
-      lease,
-    });
-    expect(resumed.id).not.toBe(original.id);
-    recovered.settleTask({
-      key: "build",
-      task: source.getTask("build"),
+    expect(source.getTask("build")).toMatchObject({
       status: "completed",
-      result: { terminalEvidence: { outputDigest: OUTPUT_DIGEST } },
+      metadata: {
+        canonicalGraphProjection: expect.objectContaining({
+          authorityGeneration: 2,
+          graphStatus: "succeeded",
+        }),
+      },
     });
     expect(recovered.status().nodes).toContainEqual(
       expect.objectContaining({ nodeId: "build", status: "succeeded" }),

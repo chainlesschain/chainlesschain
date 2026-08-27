@@ -513,7 +513,10 @@ export class TeamGraphRuntimeAdapter {
         handoffsBySource.set(handoff.fromAttemptId, list);
       }
       for (const attempt of projection.attempts.filter(
-        (candidate) => candidate.status === "active",
+        (candidate) =>
+          candidate.status === "active" ||
+          (candidate.status === "expired" &&
+            candidate.participationStatus === "reconciled"),
       )) {
         for (const handoff of handoffsBySource.get(attempt.id) || []) {
           this.kernel.expireHandoffForRecovery(this.runId, handoff.id);
@@ -525,6 +528,17 @@ export class TeamGraphRuntimeAdapter {
             ["committed", "failed"].includes(effect.status),
           )
         ) {
+          // A failed audit decision for a dispatch that never received its
+          // authorization response proves no executor side effect began. It
+          // restores the node to pending without charging a second Graph
+          // attempt; the still-live queue lease can request a fresh boundary.
+          if (
+            attempt.status === "expired" &&
+            attempt.participationStatus === "reconciled" &&
+            effects.every((effect) => effect.status === "failed")
+          ) {
+            continue;
+          }
           const resumed = this.kernel.resumeAttempt(this.runId, attempt.id, {
             resumedAttemptId: safeIdentifier(
               `team-attempt-recovery:${graphDigest(
@@ -1428,6 +1442,13 @@ export class TeamGraphRuntimeAdapter {
           "cc.team.operation/v1",
         ),
       });
+      if (effect.attemptId !== attempt.id || effect.status !== "started") {
+        throw adapterError(
+          "CC_TEAM_GRAPH_EFFECT_NOT_EXECUTABLE",
+          "canonical Team effect was already owned or terminal under another attempt",
+          { key, attemptId: attempt.id, effectId: effect.id },
+        );
+      }
     }
     this.attempts.set(key, { attempt, effect });
     return attempt;
