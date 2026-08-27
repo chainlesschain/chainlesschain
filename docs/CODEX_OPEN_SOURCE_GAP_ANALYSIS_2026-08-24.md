@@ -1164,7 +1164,7 @@ Desktop `$team` 不应把现有 pool 换成另一套新 pool。建议按以下�
 - manifest/resolver/ledger/evidence/wiring 聚焦回归 **5 文件 27/27**；ledger + evidence 收紧回归 **2 文件 12/12**；Desktop 主进程扩展回归 **3 文件 18/18**。工作流对应 CLI 大集合首轮为 **18 文件 160/162**，两个失败分别是并行 CPU 压力下 heartbeat timer 重入和真实 Git baseline 超过 120 秒；两个失败项随后独占资源复跑均通过（heartbeat 约 0.4 秒，真实 Git baseline 约 116 秒），未修改生产逻辑来掩盖时序问题。
 - Prettier、修改脚本/fixture `node --check` 与 `git diff --check` 通过。GitHub Actions 仍是三平台/真实 provider 的权威结果；本地 synthetic 60/60 只用于验证聚合器 fail-open/fail-closed 逻辑，不算发布证据。
 
-与并行 P1-10 的最新冲突快照：merge base `1f52714216`、P1-3 `8f42bd6686`、main/P1-10 `a2e40d3dc7`；两侧分别改动 124/89 个已提交文件，交集为 preload、renderer type 与本分析文档 3 个。legacy `merge-tree` 对两个生产文件可自动合并，唯一 content conflict 仍在本 Markdown 的 P1-10 总表/新增章节边界；main 工作区另有尚未提交的 `desktop-app-vue/tests/performance/performance.test.js`，与本批 P1-3 文件不相交且未被改动。因此 **当前没有 P1-3/P1-10 生产代码冲突，可以继续并行**，但最终合并必须手工整合本分析文档，不能整文件择一覆盖。
+与并行 P1-10 的最新冲突快照：merge base `1f52714216`、P1-3 实现提交 `8f42bd6686`、main/P1-10 `ae522375e2`；两侧分别改动 124/90 个已提交文件，交集为 preload、renderer type 与本分析文档 3 个。legacy `merge-tree` 对两个生产文件可自动合并，唯一 content conflict 仍在本 Markdown 的 P1-10 总表/新增章节边界；main 工作树当前洁净。因此 **当前没有 P1-3/P1-10 生产代码冲突，可以继续并行**，但最终合并必须手工整合本分析文档，不能整文件择一覆盖。
 
 更新后的工作量：
 
