@@ -14,6 +14,9 @@ import {
 const REPOSITORY_ROOT = fileURLToPath(new URL("../../../..", import.meta.url));
 const temporaryDirectories = [];
 const RELEASE_COMMIT = "a".repeat(40);
+// The process matrix keeps its own 60-second performance hard gate. The outer
+// test also runs recovery, IDE projection, and three-OS aggregation checks.
+const EVIDENCE_TEST_TIMEOUT_MS = 120_000;
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -139,7 +142,7 @@ describe("cross-session message exact-head evidence", () => {
     expect(() =>
       aggregateSessionMessageFabricEvidence(aggregateOptions),
     ).toThrow();
-  }, 60_000);
+  }, EVIDENCE_TEST_TIMEOUT_MS);
 
   it("is required by both CLI CI and the existing reliability soak", () => {
     const cliCi = fs.readFileSync(
