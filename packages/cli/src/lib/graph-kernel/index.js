@@ -1,4 +1,5 @@
 export * from "./compiler.js";
+export * from "./cutover-ledger.js";
 export * from "./event-store.js";
 export * from "./runtime.js";
 export * from "./trace-reducer.js";

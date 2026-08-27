@@ -6,6 +6,10 @@ import {
   GRAPH_CUTOVER_STAGES,
   GRAPH_PROJECTION_VERSION,
 } from "./authority.js";
+import {
+  GRAPH_CUTOVER_LEDGER_SCHEMA,
+  GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+} from "./cutover-ledger.js";
 
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_SCHEMA =
   "chainlesschain.graph-runtime-surfaces/v1";
@@ -88,6 +92,27 @@ export function validateGraphRuntimeSurfaceManifest(
   if (manifest?.projectionVersion !== GRAPH_PROJECTION_VERSION) {
     errors.push("manifest projectionVersion does not match Graph Kernel");
   }
+  const cutoverPolicy = manifest?.cutoverPolicy;
+  if (
+    cutoverPolicy?.ledgerSchema !== GRAPH_CUTOVER_LEDGER_SCHEMA ||
+    cutoverPolicy?.scope !== "entry" ||
+    cutoverPolicy?.existingCanonicalRunRollback !== "retain_authority"
+  ) {
+    errors.push(
+      "manifest cutoverPolicy does not match the Graph cutover ledger",
+    );
+  }
+  const requiredPlatforms = Array.isArray(cutoverPolicy?.requiredPlatforms)
+    ? [...cutoverPolicy.requiredPlatforms].sort()
+    : [];
+  if (
+    JSON.stringify(requiredPlatforms) !==
+    JSON.stringify([...GRAPH_CUTOVER_REQUIRED_PLATFORMS].sort())
+  ) {
+    errors.push(
+      "manifest cutoverPolicy must require Linux, Windows, and macOS",
+    );
+  }
   const surfaces = Array.isArray(manifest?.surfaces) ? manifest.surfaces : [];
   const names = surfaces.map((surface) => surface.originSurface);
   for (const required of [
@@ -102,6 +127,7 @@ export function validateGraphRuntimeSurfaceManifest(
     }
   }
   const entryIds = new Set();
+  const rolloutKeys = new Set();
   for (const surface of surfaces) {
     if (!GRAPH_CUTOVER_STAGES.includes(surface.currentCutoverStage)) {
       errors.push(`${surface.originSurface}: invalid currentCutoverStage`);
@@ -127,6 +153,14 @@ export function validateGraphRuntimeSurfaceManifest(
         );
       }
       entryIds.add(entry.id);
+      const expectedRolloutKey = `${surface.originSurface}/${entry.id}`;
+      if (
+        entry.rolloutKey !== expectedRolloutKey ||
+        rolloutKeys.has(entry.rolloutKey)
+      ) {
+        errors.push(`${entry.id}: rolloutKey must be unique and entry-scoped`);
+      }
+      rolloutKeys.add(entry.rolloutKey);
       for (const field of [
         "entrypoints",
         "writerFiles",

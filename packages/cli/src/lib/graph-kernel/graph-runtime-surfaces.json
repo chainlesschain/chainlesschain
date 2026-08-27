@@ -2,6 +2,12 @@
   "schema": "chainlesschain.graph-runtime-surfaces/v1",
   "version": 1,
   "projectionVersion": 1,
+  "cutoverPolicy": {
+    "ledgerSchema": "chainlesschain.graph-cutover-ledger/v1",
+    "scope": "entry",
+    "requiredPlatforms": ["linux", "windows", "macos"],
+    "existingCanonicalRunRollback": "retain_authority"
+  },
   "surfaces": [
     {
       "originSurface": "cli_team",
@@ -15,6 +21,7 @@
       "entries": [
         {
           "id": "cli-team-local",
+          "rolloutKey": "cli_team/cli-team-local",
           "entrypoints": [
             "packages/cli/src/commands/team.js",
             "packages/cli/src/lib/agent-team/team-runner.js"
@@ -36,6 +43,7 @@
         },
         {
           "id": "cli-team-distributed",
+          "rolloutKey": "cli_team/cli-team-distributed",
           "entrypoints": [
             "packages/cli/src/commands/team-distributed.js",
             "packages/cli/src/lib/agent-team/team-distributed-queue.js"
@@ -65,6 +73,7 @@
       "entries": [
         {
           "id": "cli-cowork",
+          "rolloutKey": "cowork/cli-cowork",
           "entrypoints": [
             "packages/cli/src/commands/cowork.js",
             "packages/cli/src/lib/cowork-task-runner.js",
@@ -97,6 +106,7 @@
       "entries": [
         {
           "id": "cli-scheduler",
+          "rolloutKey": "scheduler/cli-scheduler",
           "entrypoints": [
             "packages/cli/src/lib/scheduler-kernel/service.js",
             "packages/cli/src/lib/graph-kernel/trigger-adapter.js"
@@ -127,6 +137,7 @@
       "entries": [
         {
           "id": "desktop-team",
+          "rolloutKey": "desktop/desktop-team",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/team/handler.js"
@@ -144,39 +155,72 @@
         },
         {
           "id": "desktop-specialized-agents",
+          "rolloutKey": "desktop/desktop-specialized-agents",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/agents/agents-ipc.js"
           ],
           "writerFiles": [
             "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-run-registry.js",
             "desktop-app-vue/src/main/ai-engine/agents/agent-coordinator.js"
           ],
           "mutationFunctions": [
             "AgentCoordinator.orchestrate",
             "AgentCoordinator.assignTask",
-            "AgentCoordinator.cancelTask"
+            "AgentCoordinator.cancelTask",
+            "AgentCoordinator.reconcileTask",
+            "AgentCoordinator.getTaskStatusAuthoritative"
           ],
-          "stores": ["AgentCoordinator.sessions"],
-          "recoveryEntrypoints": ["agents:get-session"]
+          "stores": [
+            "agent_task_history",
+            "desktop_graph_run_bindings",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "recoveryEntrypoints": [
+            "agents:get-task-status",
+            "agents:cancel-task",
+            "agents:reconcile-task"
+          ]
         },
         {
           "id": "desktop-workflow-manager",
+          "rolloutKey": "desktop/desktop-workflow-manager",
           "entrypoints": [
-            "desktop-app-vue/src/main/ipc/phases/phase-8-9-extras.js"
+            "desktop-app-vue/src/main/ipc/phases/phase-8-9-extras.js",
+            "desktop-app-vue/src/main/workflow/workflow-ipc.js"
           ],
           "writerFiles": [
             "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-run-registry.js",
             "desktop-app-vue/src/main/workflow/workflow-pipeline.js"
           ],
           "mutationFunctions": [
-            "WorkflowManager.executeWorkflow",
-            "WorkflowPipeline.execute"
+            "WorkflowPipeline.execute",
+            "WorkflowPipeline.cancel",
+            "WorkflowPipeline.reconcile",
+            "WorkflowPipeline.refreshCanonicalStatus",
+            "WorkflowManager.deleteWorkflow"
           ],
-          "stores": ["WorkflowManager.workflows", "WorkflowManager.executions"],
-          "recoveryEntrypoints": ["workflow:get-execution"]
+          "stores": [
+            "desktop_graph_run_bindings",
+            "WorkflowManager.workflows",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "recoveryEntrypoints": [
+            "workflow:get-status",
+            "workflow:cancel",
+            "workflow:reconcile"
+          ]
         },
         {
           "id": "desktop-legacy-workflow",
+          "rolloutKey": "desktop/desktop-legacy-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/workflow/workflow-ipc.js"
           ],
@@ -195,6 +239,7 @@
         },
         {
           "id": "desktop-skill-workflow",
+          "rolloutKey": "desktop/desktop-skill-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-ipc.js",
@@ -225,6 +270,7 @@
       "entries": [
         {
           "id": "browser-workflow",
+          "rolloutKey": "browser/browser-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/browser/workflow/workflow-ipc.js",
             "desktop-app-vue/src/main/browser/browser-ipc-workflow.js"
@@ -243,6 +289,7 @@
         },
         {
           "id": "remote-workflow",
+          "rolloutKey": "browser/remote-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/remote/handlers/workflow-handler.js"
           ],

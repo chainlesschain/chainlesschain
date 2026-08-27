@@ -14,6 +14,10 @@ import { compileGraphDefinition } from "../../src/lib/graph-kernel/compiler.js";
 import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
 import { GraphKernel } from "../../src/lib/graph-kernel/runtime.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import {
+  GRAPH_CUTOVER_LEDGER_SCHEMA,
+  GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+} from "../../src/lib/graph-kernel/cutover-ledger.js";
 
 const EXPIRY = "2030-01-01T00:00:00.000Z";
 
@@ -66,6 +70,41 @@ describe("GraphRun authority and writer inventory", () => {
       errors: [],
     });
     expect(discoverUnclassifiedRuntimeWriters(manifest)).toEqual([]);
+    expect(manifest.cutoverPolicy).toEqual({
+      ledgerSchema: GRAPH_CUTOVER_LEDGER_SCHEMA,
+      scope: "entry",
+      requiredPlatforms: [...GRAPH_CUTOVER_REQUIRED_PLATFORMS],
+      existingCanonicalRunRollback: "retain_authority",
+    });
+    const entries = manifest.surfaces.flatMap((surface) => surface.entries);
+    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(11);
+    expect(
+      entries.find((entry) => entry.id === "desktop-specialized-agents"),
+    ).toMatchObject({
+      stores: expect.arrayContaining([
+        "agent_task_history",
+        "desktop_graph_run_bindings",
+        "GraphEventStore",
+      ]),
+      recoveryEntrypoints: expect.arrayContaining([
+        "agents:get-task-status",
+        "agents:cancel-task",
+        "agents:reconcile-task",
+      ]),
+    });
+    expect(
+      entries.find((entry) => entry.id === "desktop-workflow-manager"),
+    ).toMatchObject({
+      stores: expect.arrayContaining([
+        "desktop_graph_run_bindings",
+        "GraphEventStore",
+      ]),
+      recoveryEntrypoints: expect.arrayContaining([
+        "workflow:get-status",
+        "workflow:cancel",
+        "workflow:reconcile",
+      ]),
+    });
   });
 
   it("fences a second writer in the same generation and stale replacement", () => {
