@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -153,11 +153,9 @@ describe("takeHeapSnapshot bounded streaming", () => {
   });
 
   it("keeps the handler source free of snapshot chunk aggregation", () => {
-    const sourcePath = fileURLToPath(
-      new URL(
-        "../../../../../src/main/remote/browser-extension/handlers/devtools-inspect.js",
-        import.meta.url,
-      ),
+    const sourcePath = resolve(
+      process.cwd(),
+      "src/main/remote/browser-extension/handlers/devtools-inspect.js",
     );
     const source = readFileSync(sourcePath, "utf8");
     const takeSnapshotSource = source.slice(
