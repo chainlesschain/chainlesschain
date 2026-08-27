@@ -13,6 +13,34 @@ const { v4: uuidv4 } = require("uuid");
 const https = require("https");
 const http = require("http");
 
+const REMOTE_REGISTRY_FETCH_LIMITS = Object.freeze({
+  timeoutMs: 10000,
+  maxResponseBytes: 2 * 1024 * 1024,
+});
+
+const REMOTE_REGISTRY_FETCH_HARD_LIMITS = Object.freeze({
+  timeoutMs: 60000,
+  maxResponseBytes: 16 * 1024 * 1024,
+});
+
+function boundedPositiveInteger(value, fallback, hardLimit) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
+
+  return Math.min(Math.floor(value), hardLimit);
+}
+
+function createRemoteResponseTooLargeError(limit, received) {
+  const error = new Error(
+    `Remote registry response exceeds ${limit} byte limit`,
+  );
+  error.code = "REMOTE_REGISTRY_RESPONSE_TOO_LARGE";
+  error.limit = limit;
+  error.received = received;
+  return error;
+}
+
 /**
  * Server status constants
  */
@@ -469,15 +497,34 @@ class CommunityRegistry {
   /**
    * @param {Object} options
    * @param {Object} options.database - Database instance for persisting installed server state
+   * @param {string} options.remoteRegistryUrl - Optional remote catalog URL
+   * @param {number} options.remoteFetchTimeout - Remote request timeout in milliseconds
+   * @param {number} options.maxRemoteResponseBytes - Maximum retained response bytes
    */
-  constructor({ database, remoteRegistryUrl } = {}) {
+  constructor({
+    database,
+    remoteRegistryUrl,
+    remoteFetchTimeout,
+    maxRemoteResponseBytes,
+  } = {}) {
     this.database = database;
 
     /** @type {string|null} Remote registry endpoint URL */
     this.remoteRegistryUrl = remoteRegistryUrl || null;
 
     /** @type {number} Remote fetch timeout in milliseconds */
-    this.remoteFetchTimeout = 10000;
+    this.remoteFetchTimeout = boundedPositiveInteger(
+      remoteFetchTimeout,
+      REMOTE_REGISTRY_FETCH_LIMITS.timeoutMs,
+      REMOTE_REGISTRY_FETCH_HARD_LIMITS.timeoutMs,
+    );
+
+    /** @type {number} Maximum bytes retained from a remote catalog response */
+    this.maxRemoteResponseBytes = boundedPositiveInteger(
+      maxRemoteResponseBytes,
+      REMOTE_REGISTRY_FETCH_LIMITS.maxResponseBytes,
+      REMOTE_REGISTRY_FETCH_HARD_LIMITS.maxResponseBytes,
+    );
 
     /** @type {Map<string, Object>} Full catalog of available servers (id -> server info) */
     this.catalog = new Map();
@@ -1235,22 +1282,97 @@ class CommunityRegistry {
     return new Promise((resolve, reject) => {
       const url = new URL(this.remoteRegistryUrl);
       const client = url.protocol === "https:" ? https : http;
+      let settled = false;
+      let chunks = [];
+      let responseBytes = 0;
+
+      const fail = (error) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        chunks.length = 0;
+        reject(error);
+      };
+
+      const succeed = (servers) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        chunks.length = 0;
+        resolve(servers);
+      };
 
       const req = client.get(
         url,
         { timeout: this.remoteFetchTimeout },
         (res) => {
           if (res.statusCode !== 200) {
-            reject(
+            fail(
               new Error(`Remote registry returned status ${res.statusCode}`),
             );
             res.resume();
             return;
           }
 
-          const chunks = [];
-          res.on("data", (chunk) => chunks.push(chunk));
+          const contentLengthHeader = res.headers["content-length"];
+          if (contentLengthHeader !== undefined) {
+            const rawContentLength = Array.isArray(contentLengthHeader)
+              ? contentLengthHeader[0]
+              : contentLengthHeader;
+            const declaredBytes = Number(rawContentLength);
+
+            if (
+              !/^\d+$/.test(String(rawContentLength)) ||
+              !Number.isSafeInteger(declaredBytes)
+            ) {
+              fail(
+                new Error("Remote registry returned invalid Content-Length"),
+              );
+              res.resume();
+              return;
+            }
+
+            if (declaredBytes > this.maxRemoteResponseBytes) {
+              fail(
+                createRemoteResponseTooLargeError(
+                  this.maxRemoteResponseBytes,
+                  declaredBytes,
+                ),
+              );
+              res.resume();
+              return;
+            }
+          }
+
+          res.on("data", (chunk) => {
+            if (settled) {
+              return;
+            }
+
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            responseBytes += buffer.length;
+            if (responseBytes > this.maxRemoteResponseBytes) {
+              fail(
+                createRemoteResponseTooLargeError(
+                  this.maxRemoteResponseBytes,
+                  responseBytes,
+                ),
+              );
+              res.destroy();
+              return;
+            }
+
+            chunks.push(buffer);
+          });
           res.on("end", () => {
+            if (settled) {
+              return;
+            }
+
             try {
               const data = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
               const servers = Array.isArray(data)
@@ -1265,25 +1387,31 @@ class CommunityRegistry {
                   s && typeof s.id === "string" && typeof s.name === "string",
               );
 
-              resolve(valid);
+              succeed(valid);
             } catch (parseError) {
-              reject(
+              fail(
                 new Error(
                   `Failed to parse remote registry response: ${parseError.message}`,
                 ),
               );
             }
           });
+          res.once("aborted", () => {
+            fail(new Error("Remote registry response was aborted"));
+          });
+          res.once("error", (err) => {
+            fail(new Error(`Remote registry response error: ${err.message}`));
+          });
         },
       );
 
       req.on("timeout", () => {
         req.destroy();
-        reject(new Error("Remote registry fetch timed out"));
+        fail(new Error("Remote registry fetch timed out"));
       });
 
       req.on("error", (err) => {
-        reject(new Error(`Remote registry fetch error: ${err.message}`));
+        fail(new Error(`Remote registry fetch error: ${err.message}`));
       });
     });
   }
@@ -1312,4 +1440,6 @@ module.exports = {
   SERVER_STATUS,
   SERVER_CATEGORIES,
   BUILTIN_CATALOG,
+  REMOTE_REGISTRY_FETCH_LIMITS,
+  REMOTE_REGISTRY_FETCH_HARD_LIMITS,
 };
