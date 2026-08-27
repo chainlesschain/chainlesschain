@@ -23,6 +23,17 @@ function platformEvidence(commitSha = COMMIT) {
   }));
 }
 
+function realJourneyPlatformEvidence(commitSha = COMMIT) {
+  return GRAPH_CUTOVER_REQUIRED_PLATFORMS.map((platform) => ({
+    schema: "chainlesschain.graph-agent-real-journey/v1",
+    platform,
+    commitSha,
+    status: "passed",
+    terminalEventDigest: DIGEST("f"),
+    evidenceDigest: DIGEST("e"),
+  }));
+}
+
 function evidence(from, to) {
   if (from === "legacy" && to === "shadow") {
     return {
@@ -216,6 +227,53 @@ describe("GraphCutoverLedger", () => {
       expect.objectContaining({ code: "CC_GRAPH_CUTOVER_SHA_MISMATCH" }),
     );
     expect(ledger.recover("cowork", "cli-cowork").stage).toBe("canary");
+  });
+
+  it("accepts the exact-SHA real journey evidence schema", () => {
+    const ledger = new GraphCutoverLedger({ store: new MemoryRolloutStore() });
+    ledger.begin({
+      surface: "desktop",
+      entryId: "desktop-team",
+      manifestDigest: DIGEST("0"),
+      stores: STORES,
+    });
+    ledger.transition(
+      "desktop",
+      "desktop-team",
+      "shadow",
+      evidence("legacy", "shadow"),
+    );
+    ledger.transition(
+      "desktop",
+      "desktop-team",
+      "canary",
+      evidence("shadow", "canary"),
+    );
+    const incomplete = realJourneyPlatformEvidence();
+    incomplete[0].evidenceDigest = null;
+    expect(() =>
+      ledger.transition("desktop", "desktop-team", "canonical", {
+        ...evidence("canary", "canonical"),
+        platformEvidence: incomplete,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_CUTOVER_PLATFORM_EVIDENCE_REQUIRED",
+      }),
+    );
+    const canonical = ledger.transition(
+      "desktop",
+      "desktop-team",
+      "canonical",
+      {
+        ...evidence("canary", "canonical"),
+        platformEvidence: realJourneyPlatformEvidence(),
+      },
+    );
+    expect(canonical).toMatchObject({
+      stage: "canonical",
+      canaryPercent: 100,
+    });
   });
 
   it("rolls new runs back without transferring existing canonical runs", () => {

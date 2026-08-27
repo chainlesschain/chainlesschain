@@ -107,11 +107,19 @@ function platformEvidence(value) {
       "canonical default requires same-SHA platform evidence",
     );
   }
-  const normalized = value.map((entry) => ({
-    platform: String(entry?.platform || "").toLowerCase(),
-    commitSha: String(entry?.commitSha || "").toLowerCase(),
-    passed: entry?.passed === true,
-  }));
+  const normalized = value.map((entry) => {
+    const realJourney =
+      entry?.schema === "chainlesschain.graph-agent-real-journey/v1" &&
+      entry?.status === "passed" &&
+      DIGEST.test(String(entry?.terminalEventDigest || "")) &&
+      DIGEST.test(String(entry?.evidenceDigest || ""));
+    return {
+      platform: String(entry?.platform || "").toLowerCase(),
+      commitSha: String(entry?.commitSha || "").toLowerCase(),
+      passed: entry?.passed === true || realJourney,
+      sourceEvidenceDigest: realJourney ? entry.evidenceDigest : null,
+    };
+  });
   for (const platform of GRAPH_CUTOVER_REQUIRED_PLATFORMS) {
     const matches = normalized.filter((entry) => entry.platform === platform);
     if (

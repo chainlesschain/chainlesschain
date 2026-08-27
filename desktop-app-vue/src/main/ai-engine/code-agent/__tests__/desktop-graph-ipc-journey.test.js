@@ -86,13 +86,20 @@ function deferred() {
   return { promise, resolve };
 }
 
-async function waitForFile(target, timeoutMs = 10_000) {
+async function waitForChildCutpoint(child, target, stderr, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (fs.existsSync(target)) return;
+    if (child.exitCode != null || child.signalCode != null) {
+      throw new Error(
+        `child writer exited before cut point (${child.exitCode ?? child.signalCode}):\n${stderr()}`,
+      );
+    }
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
-  throw new Error(`timed out waiting for child cut point: ${target}`);
+  throw new Error(
+    `timed out waiting for child cut point: ${target}\n${stderr()}`,
+  );
 }
 
 async function waitForChildExit(child, timeoutMs = 10_000) {
@@ -151,7 +158,6 @@ describe("Desktop Graph production IPC journey", () => {
     let database = null;
     let child = null;
     let stderr = "";
-    let reachedCutpoint = false;
     try {
       child = spawn(
         process.execPath,
@@ -165,8 +171,7 @@ describe("Desktop Graph production IPC journey", () => {
       child.stderr.on("data", (chunk) => {
         stderr += chunk;
       });
-      await waitForFile(readyPath);
-      reachedCutpoint = true;
+      await waitForChildCutpoint(child, readyPath, () => stderr);
       const cutpoint = JSON.parse(fs.readFileSync(readyPath, "utf8"));
       expect(cutpoint).toMatchObject({
         workflowId: "disk-restart-workflow",
@@ -250,9 +255,6 @@ describe("Desktop Graph production IPC journey", () => {
       }
       database?.close();
       fs.rmSync(root, { recursive: true, force: true });
-      if (stderr && !reachedCutpoint) {
-        throw new Error(`child writer failed before cut point:\n${stderr}`);
-      }
     }
   });
 

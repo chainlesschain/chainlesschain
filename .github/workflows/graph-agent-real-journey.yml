@@ -61,12 +61,20 @@ jobs:
         shell: bash
         run: >-
           npx vitest run
+          --testTimeout 60000
+          packages/cli/__tests__/unit/app-server-graph-runtime.test.js
+          packages/cli/__tests__/unit/graph-kernel-authority.test.js
           packages/cli/__tests__/unit/graph-kernel-compiler.test.js
+          packages/cli/__tests__/unit/graph-kernel-cutover-ledger.test.js
           packages/cli/__tests__/unit/graph-kernel-runtime.test.js
           packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
+          packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/unit/team-distributed-graph-bridge.test.js
+          packages/cli/__tests__/unit/team-distributed-graph-writer.test.js
           packages/cli/__tests__/integration/headless-session-resume.test.js
           packages/cli/__tests__/integration/team-worktree-real-git.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
 
       - name: Run real-provider cc exec journey
         shell: bash
