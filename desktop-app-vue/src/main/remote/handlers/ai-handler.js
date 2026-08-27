@@ -13,6 +13,11 @@
 
 const { logger } = require("../../utils/logger");
 const SqlSecurity = require("../../database/sql-security.js");
+const {
+  BoundedPollStreamRegistry,
+  DEFAULT_LIMITS: AI_STREAM_LIMITS,
+  HARD_LIMITS: AI_STREAM_HARD_LIMITS,
+} = require("../streams/bounded-poll-stream-registry.js");
 
 /**
  * Tolerant JSON column parse — a single conversation/agent/template row with a
@@ -44,7 +49,12 @@ class AICommandHandler {
 
     // Phase 6.4 Action 1 — chatStream 状态：streamId → { chunks[], done, cancel }
     // 内存暂存，桌面进程重启清空（mobile 端 streamer reconnect 会重起）
-    this.activeStreams = new Map();
+    this.streamRegistry = new BoundedPollStreamRegistry(options.streamLimits);
+    // Preserve the Phase 6.4 public inspection surface while the registry owns
+    // admission, retained bytes, settlement, and cleanup.
+    this.activeStreams = this.streamRegistry.states;
+    this.streamLimits = this.streamRegistry.limits;
+    this.streamStats = this.streamRegistry.stats;
 
     // Phase 6.4 Action 1 — 确保 ai_conversations + ai_messages 表存在
     // 旧 ai-handler.js 用了 `chat_conversations` 但 schema 里没那张表，所以
@@ -54,6 +64,14 @@ class AICommandHandler {
     logger.info(
       "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method 全完成 + 5 老 + 7 Action1 = 37 method)",
     );
+  }
+
+  get activeStreamCount() {
+    return this.streamRegistry.activeCount;
+  }
+
+  get totalBufferedStreamBytes() {
+    return this.streamRegistry.totalBufferedBytes;
   }
 
   /**
@@ -903,16 +921,9 @@ class AICommandHandler {
     );
 
     // 注册 stream state
-    const streamState = {
-      streamId,
+    const streamState = this.streamRegistry.create(streamId, {
       conversationId,
-      chunks: [], // 累积 token 段
-      done: false,
-      cancelled: false,
-      error: null,
-      startedAt: Date.now(),
-    };
-    this.activeStreams.set(streamId, streamState);
+    });
 
     // upsert conversation + 写 user message
     this._upsertConversation(
@@ -950,7 +961,7 @@ class AICommandHandler {
           ? chunk
           : chunk?.content || chunk?.delta || chunk?.text || "";
       if (text) {
-        streamState.chunks.push(text);
+        this.streamRegistry.append(streamState, text);
       }
     };
 
@@ -973,19 +984,18 @@ class AICommandHandler {
           const text =
             aiResult.content || aiResult.reply || aiResult.message || "";
           if (text) {
-            streamState.chunks.push(text);
+            this.streamRegistry.append(streamState, text);
           }
         } else {
           throw new Error("AI Engine 不可用");
         }
       } catch (err) {
-        streamState.error = err.message || String(err);
         logger.error(`[AIHandler] chatStream ${streamId} 失败:`, err);
+        this.streamRegistry.settle(streamId, streamState, err);
       } finally {
-        streamState.done = true;
         // 写 assistant message 到 DB
         const fullText = streamState.chunks.join("");
-        if (fullText && !streamState.cancelled) {
+        if (fullText && !streamState.cancelled && !streamState.error) {
           this._insertMessage(
             `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             conversationId,
@@ -994,8 +1004,7 @@ class AICommandHandler {
             model,
           );
         }
-        // 5 分钟后自动清 stream state 防内存泄漏
-        setTimeout(() => this.activeStreams.delete(streamId), 5 * 60 * 1000);
+        this.streamRegistry.settle(streamId, streamState);
       }
     })();
 
@@ -1029,7 +1038,9 @@ class AICommandHandler {
       };
     }
 
-    const startIdx = Math.max(0, sinceChunk | 0);
+    const startIdx = Number.isSafeInteger(sinceChunk)
+      ? Math.max(0, sinceChunk)
+      : 0;
     const newChunks = state.chunks.slice(startIdx);
     return {
       success: true,
@@ -1037,7 +1048,11 @@ class AICommandHandler {
       isComplete: state.done,
       nextChunkIdx: state.chunks.length,
       error: state.error || undefined,
+      errorCode: state.errorCode || undefined,
       cancelled: state.cancelled,
+      bufferedBytes: state.bufferedBytes,
+      limit: state.limit,
+      received: state.received,
     };
   }
 
@@ -1051,8 +1066,7 @@ class AICommandHandler {
     if (!state) {
       return { success: true, cancelled: false };
     }
-    state.cancelled = true;
-    state.done = true;
+    this.streamRegistry.cancel(state);
     logger.info(`[AIHandler] cancelStream ${streamId} — 用户取消`);
     return { success: true, cancelled: true };
   }
@@ -1978,15 +1992,9 @@ class AICommandHandler {
     }
 
     const streamId = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const streamState = {
-      chunks: [],
-      done: false,
-      cancelled: false,
-      error: null,
+    const streamState = this.streamRegistry.create(streamId, {
       agentId,
-      startedAt: Date.now(),
-    };
-    this.activeStreams.set(streamId, streamState);
+    });
 
     // 异步跑 agent；不 await（让响应立即返 streamId）
     (async () => {
@@ -1995,14 +2003,14 @@ class AICommandHandler {
           return;
         }
         if (typeof text === "string" && text.length > 0) {
-          streamState.chunks.push(text);
+          this.streamRegistry.append(streamState, text);
         } else if (
           text &&
           typeof text === "object" &&
           typeof text.content === "string"
         ) {
           // 兼容 {content, ...} chunk 格式
-          streamState.chunks.push(text.content);
+          this.streamRegistry.append(streamState, text.content);
         }
       };
       try {
@@ -2017,19 +2025,17 @@ class AICommandHandler {
             out.length > 0 &&
             streamState.chunks.length === 0
           ) {
-            streamState.chunks.push(out);
+            this.streamRegistry.append(streamState, out);
           }
         } else {
           throw new Error("agentManager has no runStream or run method");
         }
       } catch (err) {
         if (!streamState.cancelled) {
-          streamState.error = String(err.message || err);
+          this.streamRegistry.settle(streamId, streamState, err);
         }
       } finally {
-        streamState.done = true;
-        // 5 min 后清理（与 chat stream 一致）
-        setTimeout(() => this.activeStreams.delete(streamId), 5 * 60 * 1000);
+        this.streamRegistry.settle(streamId, streamState);
       }
     })();
 
@@ -2038,3 +2044,5 @@ class AICommandHandler {
 }
 
 module.exports = AICommandHandler;
+module.exports.AI_STREAM_LIMITS = AI_STREAM_LIMITS;
+module.exports.AI_STREAM_HARD_LIMITS = AI_STREAM_HARD_LIMITS;
