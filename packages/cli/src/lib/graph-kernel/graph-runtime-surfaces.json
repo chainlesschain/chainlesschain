@@ -21,6 +21,8 @@
       "entries": [
         {
           "id": "cli-team-local",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "cli_team/cli-team-local",
           "entrypoints": [
             "packages/cli/src/commands/team.js",
@@ -39,10 +41,18 @@
             "TeamMailbox.send"
           ],
           "stores": ["TaskLeaseRegistry", "TeamMailbox"],
+          "storeDispositions": {
+            "migrate": ["TaskLeaseRegistry", "TeamMailbox"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": ["TeamRunner.resume"]
         },
         {
           "id": "cli-team-distributed",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "cli_team/cli-team-distributed",
           "entrypoints": [
             "packages/cli/src/commands/team-distributed.js",
@@ -57,6 +67,12 @@
             "TeamDistributedQueue.finalize"
           ],
           "stores": ["TeamDistributedQueue"],
+          "storeDispositions": {
+            "migrate": ["TeamDistributedQueue"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": ["TeamDistributedQueue.recover"]
         }
       ]
@@ -73,6 +89,8 @@
       "entries": [
         {
           "id": "cli-cowork",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "cowork/cli-cowork",
           "entrypoints": [
             "packages/cli/src/commands/cowork.js",
@@ -90,6 +108,12 @@
             "CoworkTaskRunner.run"
           ],
           "stores": ["DynamicWorkflowRuntimeStore", "CoworkTaskStore"],
+          "storeDispositions": {
+            "migrate": ["DynamicWorkflowRuntimeStore", "CoworkTaskStore"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": ["DynamicWorkflowRuntime.resume"]
         }
       ]
@@ -106,6 +130,8 @@
       "entries": [
         {
           "id": "cli-scheduler",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "scheduler/cli-scheduler",
           "entrypoints": [
             "packages/cli/src/lib/scheduler-kernel/service.js",
@@ -121,6 +147,15 @@
             "SchedulerGraphTriggerAdapter.dispatch"
           ],
           "stores": ["SchedulerKernelStore", "SchedulerGraphDispatchJournal"],
+          "storeDispositions": {
+            "migrate": [
+              "SchedulerKernelStore",
+              "SchedulerGraphDispatchJournal"
+            ],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": ["SchedulerKernelRuntime.recover"]
         }
       ]
@@ -137,6 +172,8 @@
       "entries": [
         {
           "id": "desktop-team",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "desktop/desktop-team",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js",
@@ -150,11 +187,34 @@
             "desktop-app-vue/src/main/sub-runtime/index.js"
           ],
           "mutationFunctions": ["team.execute", "SubRuntimePool.dispatch"],
-          "stores": ["WorkflowSession", "SubRuntimePool"],
-          "recoveryEntrypoints": ["WorkflowSession.load"]
+          "stores": [
+            "SessionStateManager",
+            "SubRuntimePool",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "storeDispositions": {
+            "migrate": [
+              "SessionStateManager",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": ["SubRuntimePool"],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": [
+            "SessionStateManager.load",
+            "graph/status",
+            "graph/resume"
+          ]
         },
         {
           "id": "desktop-specialized-agents",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "desktop/desktop-specialized-agents",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/agents/agents-ipc.js"
@@ -179,6 +239,18 @@
             "AppServerGraphRequestReceipt",
             "AppServerGraphExecutorReceipt"
           ],
+          "storeDispositions": {
+            "migrate": [
+              "agent_task_history",
+              "desktop_graph_run_bindings",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": [
             "agents:get-task-status",
             "agents:cancel-task",
@@ -187,6 +259,8 @@
         },
         {
           "id": "desktop-workflow-manager",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
           "rolloutKey": "desktop/desktop-workflow-manager",
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-8-9-extras.js",
@@ -212,6 +286,17 @@
             "AppServerGraphRequestReceipt",
             "AppServerGraphExecutorReceipt"
           ],
+          "storeDispositions": {
+            "migrate": [
+              "desktop_graph_run_bindings",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": [],
+            "rebuild": ["WorkflowManager.workflows"],
+            "disabled": []
+          },
           "recoveryEntrypoints": [
             "workflow:get-status",
             "workflow:cancel",
@@ -220,6 +305,8 @@
         },
         {
           "id": "desktop-legacy-workflow",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
           "rolloutKey": "desktop/desktop-legacy-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/workflow/workflow-ipc.js"
@@ -235,10 +322,18 @@
             "WorkflowEngine.rollbackExecution"
           ],
           "stores": ["WorkflowEngine.executions"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": ["WorkflowEngine.executions"],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": []
         },
         {
           "id": "desktop-skill-workflow",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
           "rolloutKey": "desktop/desktop-skill-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
@@ -264,6 +359,16 @@
             "SkillPipelineEngine.pipelines",
             "SkillWorkflowEngine.workflows"
           ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "SkillPipelineEngine.executions",
+              "SkillPipelineEngine.pipelines",
+              "SkillWorkflowEngine.workflows"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
           "recoveryEntrypoints": []
         }
       ]
@@ -280,6 +385,8 @@
       "entries": [
         {
           "id": "browser-workflow",
+          "runtimeDurability": "non_durable",
+          "cutoverStrategy": "disabled",
           "rolloutKey": "browser/browser-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/browser/workflow/workflow-ipc.js",
@@ -295,10 +402,21 @@
             "BrowserWorkflowStorage",
             "BrowserWorkflowEngine.executions"
           ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [],
+            "rebuild": [],
+            "disabled": [
+              "BrowserWorkflowStorage",
+              "BrowserWorkflowEngine.executions"
+            ]
+          },
           "recoveryEntrypoints": []
         },
         {
           "id": "remote-workflow",
+          "runtimeDurability": "non_durable",
+          "cutoverStrategy": "disabled",
           "rolloutKey": "browser/remote-workflow",
           "entrypoints": [
             "desktop-app-vue/src/main/remote/handlers/workflow-handler.js"
@@ -309,6 +427,12 @@
           ],
           "mutationFunctions": ["RemoteWorkflowEngine.execute"],
           "stores": ["RemoteWorkflowEngine.executions"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [],
+            "rebuild": [],
+            "disabled": ["RemoteWorkflowEngine.executions"]
+          },
           "recoveryEntrypoints": []
         }
       ]

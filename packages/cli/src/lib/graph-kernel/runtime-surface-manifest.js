@@ -14,6 +14,16 @@ import { graphDigest } from "./compiler.js";
 
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_SCHEMA =
   "chainlesschain.graph-runtime-surfaces/v1";
+export const GRAPH_RUNTIME_DURABILITY = Object.freeze([
+  "durable",
+  "process_local",
+  "non_durable",
+]);
+export const GRAPH_CUTOVER_STRATEGIES = Object.freeze([
+  "migrate",
+  "retire",
+  "disabled",
+]);
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_PATH = fileURLToPath(
   new URL("./graph-runtime-surfaces.json", import.meta.url),
 );
@@ -180,6 +190,7 @@ export function validateGraphRuntimeSurfaceManifest(
   }
   const entryIds = new Set();
   const rolloutKeys = new Set();
+  const strategyCounts = { migrate: 0, retire: 0, disabled: 0 };
   for (const surface of surfaces) {
     if (!GRAPH_CUTOVER_STAGES.includes(surface.currentCutoverStage)) {
       errors.push(`${surface.originSurface}: invalid currentCutoverStage`);
@@ -213,6 +224,14 @@ export function validateGraphRuntimeSurfaceManifest(
         errors.push(`${entry.id}: rolloutKey must be unique and entry-scoped`);
       }
       rolloutKeys.add(entry.rolloutKey);
+      if (!GRAPH_RUNTIME_DURABILITY.includes(entry.runtimeDurability)) {
+        errors.push(`${entry.id}: runtimeDurability is invalid`);
+      }
+      if (!GRAPH_CUTOVER_STRATEGIES.includes(entry.cutoverStrategy)) {
+        errors.push(`${entry.id}: cutoverStrategy is invalid`);
+      } else {
+        strategyCounts[entry.cutoverStrategy] += 1;
+      }
       for (const field of [
         "entrypoints",
         "writerFiles",
@@ -230,6 +249,64 @@ export function validateGraphRuntimeSurfaceManifest(
         errors.push(`${entry.id}: writerFiles are empty`);
       if (!entry.mutationFunctions?.length) {
         errors.push(`${entry.id}: mutationFunctions are empty`);
+      }
+      const dispositions = entry.storeDispositions;
+      const dispositionLists = ["migrate", "retire", "rebuild", "disabled"].map(
+        (disposition) =>
+          Array.isArray(dispositions?.[disposition])
+            ? dispositions[disposition]
+            : null,
+      );
+      if (dispositionLists.some((stores) => stores === null)) {
+        errors.push(
+          `${entry.id}: storeDispositions must declare migrate, retire, rebuild, and disabled arrays`,
+        );
+      } else {
+        const classifiedStores = dispositionLists.flat();
+        const declaredStores = [...(entry.stores || [])].sort();
+        if (
+          new Set(classifiedStores).size !== classifiedStores.length ||
+          JSON.stringify([...classifiedStores].sort()) !==
+            JSON.stringify(declaredStores)
+        ) {
+          errors.push(
+            `${entry.id}: storeDispositions must classify every store exactly once`,
+          );
+        }
+      }
+      if (
+        entry.cutoverStrategy === "migrate" &&
+        (entry.runtimeDurability !== "durable" ||
+          !dispositions?.migrate?.length ||
+          !entry.recoveryEntrypoints?.length)
+      ) {
+        errors.push(
+          `${entry.id}: migrate requires durable stores and a recovery entrypoint`,
+        );
+      }
+      if (
+        entry.cutoverStrategy === "retire" &&
+        (entry.runtimeDurability !== "process_local" ||
+          dispositions?.migrate?.length !== 0 ||
+          dispositions?.rebuild?.length !== 0 ||
+          dispositions?.disabled?.length !== 0 ||
+          entry.recoveryEntrypoints?.length !== 0)
+      ) {
+        errors.push(
+          `${entry.id}: retire requires process-local state without a recovery entrypoint`,
+        );
+      }
+      if (
+        entry.cutoverStrategy === "disabled" &&
+        (entry.runtimeDurability !== "non_durable" ||
+          dispositions?.migrate?.length !== 0 ||
+          dispositions?.retire?.length !== 0 ||
+          dispositions?.rebuild?.length !== 0 ||
+          surface.durability !== "non_durable")
+      ) {
+        errors.push(
+          `${entry.id}: disabled requires a non-durable entry on a non-durable surface`,
+        );
       }
       if (requireFiles) {
         for (const file of [
@@ -258,6 +335,9 @@ export function validateGraphRuntimeSurfaceManifest(
     errors: Object.freeze(errors),
     surfaceCount: surfaces.length,
     entryCount: entryIds.size,
+    migratableEntryCount: strategyCounts.migrate,
+    retirementEntryCount: strategyCounts.retire,
+    disabledEntryCount: strategyCounts.disabled,
     manifest: Object.freeze(clone(manifest)),
   });
 }

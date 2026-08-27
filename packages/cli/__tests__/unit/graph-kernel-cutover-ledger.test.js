@@ -10,6 +10,7 @@ import {
   GRAPH_CUTOVER_REQUIRED_PLATFORMS,
   GraphCutoverLedger,
 } from "../../src/lib/graph-kernel/cutover-ledger.js";
+import { graphStoreEvidenceDigest } from "../../src/lib/graph-kernel/store-cutover-evidence.js";
 
 const DIGEST = (character) => `sha256:${character.repeat(64)}`;
 const COMMIT = "a".repeat(40);
@@ -34,7 +35,35 @@ function realJourneyPlatformEvidence(commitSha = COMMIT) {
   }));
 }
 
-function evidence(from, to) {
+function storeCoverageEvidence(
+  surface = "desktop",
+  entryId = "desktop-specialized-agents",
+  commitSha = COMMIT,
+) {
+  const platformCoverage = STORES.map((store) => ({
+    store,
+    coveredPlatforms: [...GRAPH_CUTOVER_REQUIRED_PLATFORMS].sort(),
+    missingPlatforms: [],
+    complete: true,
+  }));
+  const unsigned = {
+    schema: "chainlesschain.graph-store-cutover-coverage/v1",
+    commitSha,
+    requiredPlatforms: [...GRAPH_CUTOVER_REQUIRED_PLATFORMS].sort(),
+    entries: [
+      {
+        surface,
+        entryId,
+        stores: [...STORES].sort(),
+        platformCoverage,
+        complete: true,
+      },
+    ],
+  };
+  return { ...unsigned, evidenceDigest: graphStoreEvidenceDigest(unsigned) };
+}
+
+function evidence(from, to, entry = {}) {
   if (from === "legacy" && to === "shadow") {
     return {
       inventoryDigest: DIGEST("0"),
@@ -68,6 +97,10 @@ function evidence(from, to) {
         recovered: true,
       })),
       platformEvidence: platformEvidence(),
+      storeCoverageEvidence: storeCoverageEvidence(
+        entry.surface,
+        entry.entryId,
+      ),
     };
   }
   return {
@@ -106,6 +139,7 @@ describe("GraphCutoverLedger", () => {
         ledger.recover("desktop", "desktop-workflow-manager"),
       ).toMatchObject({
         stage: "shadow",
+        cutoverStrategy: "migrate",
         eventSeq: state.eventSeq,
         eventHead: state.eventHead,
         stores: [...STORES].sort(),
@@ -113,6 +147,91 @@ describe("GraphCutoverLedger", () => {
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it("retires process-local writers without inventing durable store migration", () => {
+    const ledger = new GraphCutoverLedger({ store: new MemoryRolloutStore() });
+    let state = ledger.begin({
+      surface: "desktop",
+      entryId: "desktop-legacy-workflow",
+      manifestDigest: DIGEST("0"),
+      stores: [],
+      cutoverStrategy: "retire",
+    });
+    state = ledger.transition(
+      "desktop",
+      "desktop-legacy-workflow",
+      "shadow",
+      evidence("legacy", "shadow"),
+    );
+    state = ledger.transition(
+      "desktop",
+      "desktop-legacy-workflow",
+      "canary",
+      evidence("shadow", "canary"),
+    );
+    expect(() =>
+      ledger.transition(
+        "desktop",
+        "desktop-legacy-workflow",
+        "canonical",
+        evidence("canary", "canonical"),
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_CUTOVER_EVIDENCE_INVALID" }),
+    );
+    state = ledger.transition(
+      "desktop",
+      "desktop-legacy-workflow",
+      "canonical",
+      {
+        canaryReportDigest: DIGEST("3"),
+        canaryRunCount: 10,
+        canaryFailureCount: 0,
+        reconciliationCount: 0,
+        retirementProbeDigest: DIGEST("4"),
+        activeLegacyRunCount: 0,
+        legacyMutationSuccessCount: 0,
+        platformEvidence: platformEvidence(),
+      },
+    );
+    expect(state).toMatchObject({
+      stage: "canonical",
+      cutoverStrategy: "retire",
+      stores: [],
+    });
+  });
+
+  it("keeps disabled non-durable entries outside the rollout ladder", () => {
+    const ledger = new GraphCutoverLedger({ store: new MemoryRolloutStore() });
+    const state = ledger.begin({
+      surface: "browser",
+      entryId: "browser-workflow",
+      manifestDigest: DIGEST("0"),
+      stores: [],
+      cutoverStrategy: "disabled",
+    });
+    expect(state).toMatchObject({
+      stage: "legacy",
+      cutoverStrategy: "disabled",
+      stores: [],
+    });
+    expect(
+      ledger.authorityMode("browser", "browser-workflow", {
+        runKey: "disabled-run",
+        optIn: true,
+      }),
+    ).toBe("legacy");
+    expect(() =>
+      ledger.transition(
+        "browser",
+        "browser-workflow",
+        "shadow",
+        evidence("legacy", "shadow"),
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_CUTOVER_ENTRY_DISABLED" }),
+    );
   });
 
   it("recovers every durable forward cut point through legacy read-only", () => {
@@ -205,7 +324,10 @@ describe("GraphCutoverLedger", () => {
     );
     expect(() =>
       ledger.transition("cowork", "cli-cowork", "canonical", {
-        ...evidence("canary", "canonical"),
+        ...evidence("canary", "canonical", {
+          surface: "cowork",
+          entryId: "cli-cowork",
+        }),
         migrationCutpoints: evidence(
           "canary",
           "canonical",
@@ -220,7 +342,10 @@ describe("GraphCutoverLedger", () => {
     mixed[0].commitSha = "b".repeat(40);
     expect(() =>
       ledger.transition("cowork", "cli-cowork", "canonical", {
-        ...evidence("canary", "canonical"),
+        ...evidence("canary", "canonical", {
+          surface: "cowork",
+          entryId: "cli-cowork",
+        }),
         platformEvidence: mixed,
       }),
     ).toThrowError(
@@ -253,7 +378,10 @@ describe("GraphCutoverLedger", () => {
     incomplete[0].evidenceDigest = null;
     expect(() =>
       ledger.transition("desktop", "desktop-team", "canonical", {
-        ...evidence("canary", "canonical"),
+        ...evidence("canary", "canonical", {
+          surface: "desktop",
+          entryId: "desktop-team",
+        }),
         platformEvidence: incomplete,
       }),
     ).toThrowError(
@@ -261,12 +389,41 @@ describe("GraphCutoverLedger", () => {
         code: "CC_GRAPH_CUTOVER_PLATFORM_EVIDENCE_REQUIRED",
       }),
     );
+    const incompleteStoreMatrix = storeCoverageEvidence(
+      "desktop",
+      "desktop-team",
+    );
+    incompleteStoreMatrix.entries[0].platformCoverage[0].missingPlatforms = [
+      "linux",
+    ];
+    incompleteStoreMatrix.entries[0].platformCoverage[0].complete = false;
+    delete incompleteStoreMatrix.evidenceDigest;
+    incompleteStoreMatrix.evidenceDigest = graphStoreEvidenceDigest(
+      incompleteStoreMatrix,
+    );
+    expect(() =>
+      ledger.transition("desktop", "desktop-team", "canonical", {
+        ...evidence("canary", "canonical", {
+          surface: "desktop",
+          entryId: "desktop-team",
+        }),
+        platformEvidence: realJourneyPlatformEvidence(),
+        storeCoverageEvidence: incompleteStoreMatrix,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_CUTOVER_STORE_MATRIX_INCOMPLETE",
+      }),
+    );
     const canonical = ledger.transition(
       "desktop",
       "desktop-team",
       "canonical",
       {
-        ...evidence("canary", "canonical"),
+        ...evidence("canary", "canonical", {
+          surface: "desktop",
+          entryId: "desktop-team",
+        }),
         platformEvidence: realJourneyPlatformEvidence(),
       },
     );
@@ -318,7 +475,10 @@ describe("GraphCutoverLedger", () => {
       "scheduler",
       "cli-scheduler",
       "canonical",
-      evidence("canary", "canonical"),
+      evidence("canary", "canonical", {
+        surface: "scheduler",
+        entryId: "cli-scheduler",
+      }),
     );
     expect(
       ledger.authorityMode("scheduler", "cli-scheduler", {

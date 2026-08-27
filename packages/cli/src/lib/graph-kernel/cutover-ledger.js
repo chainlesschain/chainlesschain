@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { JsonlRolloutStore } from "../app-server/rollout-store.js";
 import { assertGraphCutoverTransition } from "./authority.js";
 import { graphDigest } from "./compiler.js";
+import { graphStoreEvidenceDigest } from "./store-cutover-evidence.js";
 
 export const GRAPH_CUTOVER_LEDGER_SCHEMA =
   "chainlesschain.graph-cutover-ledger/v1";
@@ -14,6 +15,7 @@ export const GRAPH_CUTOVER_REQUIRED_PLATFORMS = Object.freeze([
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const COMMIT = /^[a-f0-9]{40,64}$/u;
+const CUTOVER_STRATEGIES = new Set(["migrate", "retire", "disabled"]);
 
 function cutoverError(code, message, details = {}) {
   const error = new Error(message);
@@ -45,8 +47,8 @@ function digest(value, field) {
   return text;
 }
 
-function storeInventory(value) {
-  if (!Array.isArray(value) || value.length === 0) {
+function storeInventory(value, { allowEmpty = false } = {}) {
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
     throw cutoverError(
       "CC_GRAPH_CUTOVER_STORE_INVENTORY_REQUIRED",
       "cutover entries require a non-empty durable store inventory",
@@ -60,6 +62,18 @@ function storeInventory(value) {
     );
   }
   return normalized.sort();
+}
+
+function cutoverStrategy(value) {
+  const strategy = String(value || "migrate").trim();
+  if (!CUTOVER_STRATEGIES.has(strategy)) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_STRATEGY_INVALID",
+      "cutoverStrategy must be migrate, retire, or disabled",
+      { cutoverStrategy: value },
+    );
+  }
+  return strategy;
 }
 
 function zero(value, field) {
@@ -189,6 +203,79 @@ function migrationCutpoints(value, stores) {
   );
 }
 
+function storeCoverageEvidence(value, state, commitSha) {
+  if (
+    !value ||
+    value.schema !== "chainlesschain.graph-store-cutover-coverage/v1" ||
+    !DIGEST.test(String(value.evidenceDigest || ""))
+  ) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_STORE_MATRIX_REQUIRED",
+      "canonical default requires the exact-SHA three-platform store matrix",
+    );
+  }
+  const unsigned = { ...value };
+  delete unsigned.evidenceDigest;
+  if (graphStoreEvidenceDigest(unsigned) !== value.evidenceDigest) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_STORE_MATRIX_INVALID",
+      "store cutover matrix digest does not match its contents",
+    );
+  }
+  if (String(value.commitSha || "").toLowerCase() !== commitSha) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_SHA_MISMATCH",
+      "store cutover matrix must bind the platform journey commit SHA",
+    );
+  }
+  const requiredPlatforms = (value.requiredPlatforms || [])
+    .map((platform) => String(platform).toLowerCase())
+    .sort();
+  if (
+    JSON.stringify(requiredPlatforms) !==
+    JSON.stringify([...GRAPH_CUTOVER_REQUIRED_PLATFORMS].sort())
+  ) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_STORE_MATRIX_INCOMPLETE",
+      "store cutover matrix does not require every supported platform",
+    );
+  }
+  const matches = (value.entries || []).filter(
+    (entry) =>
+      entry?.surface === state.surface && entry?.entryId === state.entryId,
+  );
+  const entry = matches.length === 1 ? matches[0] : null;
+  const stores = [...(entry?.stores || [])].sort();
+  const expectedStores = [...state.stores].sort();
+  const platformCoverage = entry?.platformCoverage || [];
+  if (
+    !entry ||
+    entry.complete !== true ||
+    JSON.stringify(stores) !== JSON.stringify(expectedStores) ||
+    platformCoverage.length !== expectedStores.length ||
+    platformCoverage.some(
+      (store) =>
+        store?.complete !== true ||
+        !expectedStores.includes(store.store) ||
+        JSON.stringify([...(store.coveredPlatforms || [])].sort()) !==
+          JSON.stringify(requiredPlatforms) ||
+        (store.missingPlatforms || []).length !== 0,
+    )
+  ) {
+    throw cutoverError(
+      "CC_GRAPH_CUTOVER_STORE_MATRIX_INCOMPLETE",
+      "store cutover matrix does not prove every entry store on all platforms",
+      { surface: state.surface, entryId: state.entryId },
+    );
+  }
+  return {
+    evidenceDigest: value.evidenceDigest,
+    commitSha,
+    requiredPlatforms,
+    storeCount: expectedStores.length,
+  };
+}
+
 function forwardEvidence(from, to, input, state) {
   if (from === "legacy" && to === "shadow") {
     const inventoryDigest = digest(input.inventoryDigest, "inventoryDigest");
@@ -225,7 +312,8 @@ function forwardEvidence(from, to, input, state) {
     };
   }
   if (from === "canary" && to === "canonical") {
-    return {
+    const platforms = platformEvidence(input.platformEvidence);
+    const canonicalEvidence = {
       canaryReportDigest: digest(
         input.canaryReportDigest,
         "canaryReportDigest",
@@ -236,11 +324,36 @@ function forwardEvidence(from, to, input, state) {
         input.reconciliationCount,
         "reconciliationCount",
       ),
+      platformEvidence: platforms,
+    };
+    if (state.cutoverStrategy === "retire") {
+      return {
+        ...canonicalEvidence,
+        retirementProbeDigest: digest(
+          input.retirementProbeDigest,
+          "retirementProbeDigest",
+        ),
+        activeLegacyRunCount: zero(
+          input.activeLegacyRunCount,
+          "activeLegacyRunCount",
+        ),
+        legacyMutationSuccessCount: zero(
+          input.legacyMutationSuccessCount,
+          "legacyMutationSuccessCount",
+        ),
+      };
+    }
+    return {
+      ...canonicalEvidence,
       migrationCutpoints: migrationCutpoints(
         input.migrationCutpoints,
         state.stores,
       ),
-      platformEvidence: platformEvidence(input.platformEvidence),
+      storeCoverageEvidence: storeCoverageEvidence(
+        input.storeCoverageEvidence,
+        state,
+        platforms[0].commitSha,
+      ),
     };
   }
   if (from === "canonical" && to === "legacy_read_only") {
@@ -358,11 +471,20 @@ export class GraphCutoverLedger {
     )}`;
   }
 
-  begin({ surface, entryId, manifestDigest, stores }) {
+  begin({
+    surface,
+    entryId,
+    manifestDigest,
+    stores,
+    cutoverStrategy: strategyInput = "migrate",
+  }) {
     const safeSurface = identifier(surface, "surface");
     const safeEntryId = identifier(entryId, "entryId");
     const safeManifestDigest = digest(manifestDigest, "manifestDigest");
-    const safeStores = storeInventory(stores);
+    const safeCutoverStrategy = cutoverStrategy(strategyInput);
+    const safeStores = storeInventory(stores, {
+      allowEmpty: safeCutoverStrategy !== "migrate",
+    });
     const threadId = this._thread(safeSurface, safeEntryId);
     this.store.start({
       threadId,
@@ -388,6 +510,12 @@ export class GraphCutoverLedger {
           "cutover entry is already bound to a different store inventory",
         );
       }
+      if ((existing.cutoverStrategy || "migrate") !== safeCutoverStrategy) {
+        throw cutoverError(
+          "CC_GRAPH_CUTOVER_STRATEGY_CONFLICT",
+          "cutover entry is already bound to a different strategy",
+        );
+      }
       return projection(existing, events);
     }
     const timestamp = new Date(this.now()).toISOString();
@@ -396,6 +524,7 @@ export class GraphCutoverLedger {
       surface: safeSurface,
       entryId: safeEntryId,
       manifestDigest: safeManifestDigest,
+      cutoverStrategy: safeCutoverStrategy,
       stores: safeStores,
       stage: "legacy",
       canaryPercent: 0,
@@ -443,6 +572,13 @@ export class GraphCutoverLedger {
       );
     }
     if (current.stage === to) return current;
+    if ((current.cutoverStrategy || "migrate") === "disabled") {
+      throw cutoverError(
+        "CC_GRAPH_CUTOVER_ENTRY_DISABLED",
+        "disabled runtime entries cannot advance through rollout stages",
+        { surface, entryId, stage: current.stage, requestedStage: to },
+      );
+    }
     assertGraphCutoverTransition(current.stage, to);
     const normalized = normalizeEvidence(current.stage, to, evidence, current);
     const rollback = [
@@ -491,6 +627,7 @@ export class GraphCutoverLedger {
 
   authorityMode(surface, entryId, { runKey, optIn = false } = {}) {
     const state = this.recover(surface, entryId);
+    if ((state.cutoverStrategy || "migrate") === "disabled") return "legacy";
     if (state.stage === "legacy") return "legacy";
     if (state.stage === "shadow") return "shadow";
     if (["canonical", "legacy_read_only"].includes(state.stage)) {

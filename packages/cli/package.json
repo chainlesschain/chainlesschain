@@ -19,6 +19,8 @@
     "test:watch": "vitest watch",
     "test:scheduler-reliability-soak": "node scripts/scheduler-reliability-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",
+    "graph:store-evidence": "node scripts/graph-store-cutover-evidence.mjs",
+    "test:graph-cli-store-cutover": "node scripts/graph-cli-store-cutover-journey.mjs",
     "lint": "eslint src/ bin/ --ext .js",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
     "sync-skill-packs": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; const r = await generateCliPacks({ force: false }); console.log('Skill packs synced:', r.generated.length, 'generated,', r.skipped.length, 'skipped');\"",

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>P1-3 packaged Graph recovery journey</title>
+  </head>
+  <body>
+    <output id="status">starting</output>
+    <script>
+      window.addEventListener("DOMContentLoaded", async () => {
+        const status = document.getElementById("status");
+        try {
+          const receipt = await window.packagedGraphJourney.start();
+          status.textContent = `${receipt.mode}:${receipt.graphRunId}:${receipt.status}`;
+          await window.packagedGraphJourney.acknowledge({
+            token: receipt.token,
+            renderedStatus: status.textContent,
+            rendererObservedAt: Date.now(),
+          });
+        } catch (error) {
+          status.textContent = `failed:${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>

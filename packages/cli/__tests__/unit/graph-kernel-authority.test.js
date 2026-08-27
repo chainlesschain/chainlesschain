@@ -67,6 +67,9 @@ describe("GraphRun authority and writer inventory", () => {
       valid: true,
       surfaceCount: 5,
       entryCount: 11,
+      migratableEntryCount: 7,
+      retirementEntryCount: 2,
+      disabledEntryCount: 2,
       errors: [],
     });
     expect(discoverUnclassifiedRuntimeWriters(manifest)).toEqual([]);
@@ -81,6 +84,8 @@ describe("GraphRun authority and writer inventory", () => {
     expect(
       entries.find((entry) => entry.id === "desktop-specialized-agents"),
     ).toMatchObject({
+      runtimeDurability: "durable",
+      cutoverStrategy: "migrate",
       stores: expect.arrayContaining([
         "agent_task_history",
         "desktop_graph_run_bindings",
@@ -93,6 +98,20 @@ describe("GraphRun authority and writer inventory", () => {
       ]),
     });
     expect(
+      entries.filter((entry) => entry.cutoverStrategy === "retire"),
+    ).toEqual([
+      expect.objectContaining({
+        id: "desktop-legacy-workflow",
+        runtimeDurability: "process_local",
+        recoveryEntrypoints: [],
+      }),
+      expect.objectContaining({
+        id: "desktop-skill-workflow",
+        runtimeDurability: "process_local",
+        recoveryEntrypoints: [],
+      }),
+    ]);
+    expect(
       entries.find((entry) => entry.id === "desktop-workflow-manager"),
     ).toMatchObject({
       stores: expect.arrayContaining([
@@ -104,6 +123,22 @@ describe("GraphRun authority and writer inventory", () => {
         "workflow:cancel",
         "workflow:reconcile",
       ]),
+    });
+    expect(entries.find((entry) => entry.id === "desktop-team")).toMatchObject({
+      stores: expect.arrayContaining([
+        "SessionStateManager",
+        "SubRuntimePool",
+        "GraphEventStore",
+      ]),
+      storeDispositions: {
+        migrate: expect.arrayContaining([
+          "SessionStateManager",
+          "GraphEventStore",
+        ]),
+        retire: ["SubRuntimePool"],
+        rebuild: [],
+        disabled: [],
+      },
     });
   });
 

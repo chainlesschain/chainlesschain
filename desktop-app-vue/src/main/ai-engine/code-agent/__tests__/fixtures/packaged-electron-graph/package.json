@@ -1,0 +1,6 @@
+{
+  "name": "chainlesschain-packaged-graph-journey",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.cjs"
+}

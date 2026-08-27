@@ -165,4 +165,49 @@ describe("GraphCutoverAuthorityResolver", () => {
       source: "cutover_ledger",
     });
   });
+
+  it("separates staged retirement from disabled non-durable entries", () => {
+    const { manifest } = fixture();
+    const store = new JsonlRolloutStore({
+      directory: fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-graph-cutover-strategies-"),
+      ),
+    });
+    roots.push(store.directory);
+    const ledger = new GraphCutoverLedger({ store });
+    const retirement = new GraphCutoverAuthorityResolver({
+      surface: "desktop",
+      entryId: "desktop-legacy-workflow",
+      manifest,
+      ledger,
+    });
+    expect(retirement.writerStores).toEqual(["WorkflowEngine.executions"]);
+    expect(retirement.stores).toEqual([]);
+    expect(retirement.begin()).toMatchObject({
+      cutoverStrategy: "retire",
+      stores: [],
+    });
+
+    const disabled = new GraphCutoverAuthorityResolver({
+      surface: "browser",
+      entryId: "browser-workflow",
+      manifest,
+      ledger,
+      fallbackMode: "canonical",
+    });
+    expect(disabled.resolve({ optIn: true })).toMatchObject({
+      mode: "legacy",
+      source: "disabled_manifest",
+      cutoverStrategy: "disabled",
+    });
+    expect(disabled.begin()).toMatchObject({
+      cutoverStrategy: "disabled",
+      stores: [],
+    });
+    expect(disabled.resolve({ optIn: true })).toMatchObject({
+      mode: "legacy",
+      stage: "legacy",
+      source: "disabled_manifest",
+    });
+  });
 });

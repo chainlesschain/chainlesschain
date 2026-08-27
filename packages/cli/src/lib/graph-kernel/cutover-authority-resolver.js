@@ -62,7 +62,12 @@ export class GraphCutoverAuthorityResolver {
       this.surface,
       this.entryId,
     );
-    this.stores = [...declared.entry.stores].sort();
+    this.cutoverStrategy = declared.entry.cutoverStrategy;
+    this.writerStores = [...declared.entry.stores].sort();
+    this.stores = [...declared.entry.storeDispositions.migrate].sort();
+    this.retirementStores = [...declared.entry.storeDispositions.retire].sort();
+    this.rebuildStores = [...declared.entry.storeDispositions.rebuild].sort();
+    this.disabledStores = [...declared.entry.storeDispositions.disabled].sort();
     this.ledger = ledger;
     this.fallbackMode =
       fallbackMode === undefined
@@ -97,6 +102,16 @@ export class GraphCutoverAuthorityResolver {
         { expectedStores: this.stores, actualStores: state.stores },
       );
     }
+    if ((state.cutoverStrategy || "migrate") !== this.cutoverStrategy) {
+      throw resolverError(
+        "CC_GRAPH_CUTOVER_STRATEGY_CONFLICT",
+        "cutover authority is bound to a stale entry strategy",
+        {
+          expectedCutoverStrategy: this.cutoverStrategy,
+          actualCutoverStrategy: state.cutoverStrategy || "migrate",
+        },
+      );
+    }
     return state;
   }
 
@@ -106,10 +121,24 @@ export class GraphCutoverAuthorityResolver {
       entryId: this.entryId,
       manifestDigest: this.manifestDigest,
       stores: this.stores,
+      cutoverStrategy: this.cutoverStrategy,
     });
   }
 
   resolve({ runKey, optIn = false, fallbackMode = undefined } = {}) {
+    if (this.cutoverStrategy === "disabled") {
+      const disabledState = this._recover();
+      return Object.freeze({
+        surface: this.surface,
+        entryId: this.entryId,
+        mode: "legacy",
+        stage: disabledState?.stage || null,
+        source: "disabled_manifest",
+        eventHead: disabledState?.eventHead || null,
+        manifestDigest: this.manifestDigest,
+        cutoverStrategy: this.cutoverStrategy,
+      });
+    }
     const state = this._recover();
     if (!state) {
       const mode =
@@ -124,6 +153,7 @@ export class GraphCutoverAuthorityResolver {
         source: "feature_flag_fallback",
         eventHead: null,
         manifestDigest: this.manifestDigest,
+        cutoverStrategy: this.cutoverStrategy,
       });
     }
     if (
@@ -151,6 +181,7 @@ export class GraphCutoverAuthorityResolver {
       manifestDigest: state.manifestDigest,
       canaryPercent: state.canaryPercent,
       optInOnly: state.optInOnly,
+      cutoverStrategy: this.cutoverStrategy,
     });
   }
 
