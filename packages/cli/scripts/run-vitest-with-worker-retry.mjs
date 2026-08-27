@@ -51,6 +51,16 @@ export function jsonOutputPath(args) {
   return hasJsonReporter ? outputOptionValue(args, "outputFile") : null;
 }
 
+export function singleWorkerRetryArgs(args) {
+  const serialized = args.some(
+    (argument) =>
+      argument === "--no-file-parallelism" ||
+      argument === "--fileParallelism=false" ||
+      argument === "--file-parallelism=false",
+  );
+  return serialized ? [...args] : [...args, "--no-file-parallelism"];
+}
+
 function numericXmlAttribute(tag, name) {
   const match = tag.match(new RegExp(`\\b${name}="(\\d+)"`, "u"));
   return match ? Number(match[1]) : null;
@@ -202,9 +212,9 @@ export async function runVitestWithWorkerRetry(
   }
 
   warn(
-    "::warning title=Vitest infrastructure failure::All recorded assertions passed, but Vitest exited non-zero; retrying this suite once.",
+    "::warning title=Vitest infrastructure failure::All recorded assertions passed, but Vitest exited non-zero; retrying this suite once without file parallelism.",
   );
-  const second = await runOnce(args);
+  const second = await runOnce(singleWorkerRetryArgs(args));
   return second.exitCode;
 }
 

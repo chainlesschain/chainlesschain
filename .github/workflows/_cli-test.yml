@@ -88,9 +88,10 @@ jobs:
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
       # A unit shard can complete every recorded assertion and still lose a
-      # hosted forks worker during teardown. Retry once only when the Vitest
-      # worker signature and a clean, non-empty JUnit report both prove that
-      # exact infrastructure failure; assertion failures remain hard failures.
+      # hosted forks worker during teardown. Retry once without file
+      # parallelism only when the Vitest worker signature and a clean,
+      # non-empty JUnit report both prove that exact infrastructure failure;
+      # assertion failures remain hard failures.
       - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.unit-shards }}
         working-directory: packages/cli
         run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.unit-shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
@@ -137,11 +138,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
-      # Retry the whole shard once only when Vitest itself reports a forks
-      # worker exit AND its JUnit report proves that recorded assertions had no
-      # failures/errors. Assertion failures, missing reports, and a failed retry
-      # remain hard failures. This contains the hosted-runner false red seen in
-      # run 32362763916 without weakening the test gate.
+      # Retry the whole shard once without file parallelism only when Vitest
+      # itself reports a forks worker exit AND its JUnit report proves that
+      # recorded assertions had no failures/errors. Assertion failures,
+      # missing reports, and a failed retry remain hard failures. This contains
+      # hosted-runner false reds without weakening the test gate.
       - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
         run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only __tests__/integration/

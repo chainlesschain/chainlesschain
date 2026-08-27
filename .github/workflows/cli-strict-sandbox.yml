@@ -421,8 +421,9 @@ jobs:
       - name: Run platform sandbox contract tests
         working-directory: packages/cli
         # Hosted Windows can occasionally write a complete zero-failure JSON
-        # report and still exit 1 during Vitest teardown. Retry once only when
-        # the report proves every recorded assertion completed successfully.
+        # report and still exit 1 during Vitest teardown. Retry once without
+        # file parallelism only when the report proves every recorded assertion
+        # completed successfully.
         run: >-
           node scripts/run-vitest-with-worker-retry.mjs -- run --reporter=json
           --testTimeout=35000

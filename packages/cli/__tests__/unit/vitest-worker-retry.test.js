@@ -11,6 +11,7 @@ import {
   junitOutputPath,
   runVitestOnce,
   runVitestWithWorkerRetry,
+  singleWorkerRetryArgs,
 } from "../../scripts/run-vitest-with-worker-retry.mjs";
 
 const repositoryRoot = path.resolve(
@@ -142,7 +143,7 @@ describe("Vitest worker infrastructure retry", () => {
     expect(options.windowsHide).toBe(true);
   });
 
-  it("retries once after the exact infrastructure failure and returns the retry result", async () => {
+  it("retries once without file parallelism after the exact infrastructure failure", async () => {
     const runOnce = vi
       .fn()
       .mockResolvedValueOnce({ exitCode: 1, output: workerFailure })
@@ -156,7 +157,20 @@ describe("Vitest worker infrastructure retry", () => {
       ),
     ).resolves.toBe(0);
     expect(runOnce).toHaveBeenCalledTimes(2);
+    expect(runOnce.mock.calls[0][0]).not.toContain("--no-file-parallelism");
+    expect(runOnce.mock.calls[1][0]).toContain("--no-file-parallelism");
     expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it("does not duplicate an existing serialized retry option", () => {
+    expect(singleWorkerRetryArgs(["run", "--no-file-parallelism"])).toEqual([
+      "run",
+      "--no-file-parallelism",
+    ]);
+    expect(singleWorkerRetryArgs(["run", "--fileParallelism=false"])).toEqual([
+      "run",
+      "--fileParallelism=false",
+    ]);
   });
 
   it("retries once when a complete JSON report is clean but Vitest exits non-zero", async () => {
