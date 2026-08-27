@@ -5,7 +5,83 @@
  */
 
 /* eslint-disable no-undef */
-/* global chrome */
+/* global chrome, TextEncoder */
+
+const KIB = 1024;
+const MIB = 1024 * KIB;
+
+const CONTENT_STATE_LIMITS = Object.freeze({
+  maxMutationObservers: 16,
+  maxObserverIdChars: 256,
+  maxSelectorChars: 4096,
+  maxMutationTimeoutMs: 60 * 1000,
+  maxMutations: 1000,
+  maxMutationValueChars: 2048,
+  maxScreenshotCaptures: 100,
+  maxScrollDelayMs: 2000,
+  maxAnnotations: 500,
+  maxAnnotationBytes: 32 * KIB,
+  maxAnnotationTotalBytes: 2 * MIB,
+  maxAnnotationTextChars: 4096,
+  maxAnnotationNoteChars: 8192,
+  maxAnnotationUrlChars: 4096,
+  maxAnnotationSelectorChars: 2048,
+  maxAnnotationXPathChars: 4096,
+  maxAnnotationTags: 20,
+  maxAnnotationTagChars: 128,
+  maxAnnotationIdChars: 256,
+  maxAnnotationTypeChars: 64,
+  maxColorChars: 64,
+  maxTitleChars: 1024,
+});
+
+function contentBoundedText(value, maxChars) {
+  return String(value ?? "").slice(0, maxChars);
+}
+
+function contentFiniteNumber(value, fallback = 0) {
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
+function contentPositiveLimit(value, fallback, hardLimit) {
+  const numericValue = contentFiniteNumber(value, fallback);
+  if (numericValue <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function contentUtf8Bytes(value) {
+  return new TextEncoder().encode(String(value)).byteLength;
+}
+
+function contentSerializedBytes(value) {
+  try {
+    const serialized = JSON.stringify(value);
+    return typeof serialized === "string"
+      ? contentUtf8Bytes(serialized)
+      : Number.POSITIVE_INFINITY;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+function contentOverloaded(scope, limit) {
+  return {
+    accepted: false,
+    error: `${scope} capacity exceeded`,
+    code: "OVERLOADED",
+    scope,
+    retryAfterMs: 1000,
+    limit,
+  };
+}
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -737,61 +813,194 @@ function getNetworkRequests() {
 // ==================== Mutation Observer ====================
 
 const mutationObservers = new Map();
+let mutationObserverSequence = 0;
+
+function finishMutationObservation(observerKey, result) {
+  const record = mutationObservers.get(observerKey);
+  if (!record || record.settled) {
+    return;
+  }
+  record.settled = true;
+  try {
+    record.observer.disconnect();
+  } catch {
+    // The page may already have torn down the observer target.
+  }
+  if (record.timeoutId) {
+    clearTimeout(record.timeoutId);
+  }
+  mutationObservers.delete(observerKey);
+  record.resolve(result);
+}
 
 /**
  * Observe DOM mutations
  */
 function observeMutations(selector, options = {}, observerId) {
   return new Promise((resolve) => {
-    const element = selector ? document.querySelector(selector) : document.body;
+    const safeOptions = options && typeof options === "object" ? options : {};
+    const rawSelector = selector == null ? "" : String(selector);
+    if (rawSelector.length > CONTENT_STATE_LIMITS.maxSelectorChars) {
+      resolve({
+        accepted: false,
+        error: "Mutation selector is too long",
+        code: "INVALID_ARGUMENT",
+        limit: { maxSelectorChars: CONTENT_STATE_LIMITS.maxSelectorChars },
+      });
+      return;
+    }
+    const rawObserverId = observerId == null ? "" : String(observerId);
+    if (rawObserverId.length > CONTENT_STATE_LIMITS.maxObserverIdChars) {
+      resolve({
+        accepted: false,
+        error: "Mutation observer ID is too long",
+        code: "INVALID_ARGUMENT",
+        limit: {
+          maxObserverIdChars: CONTENT_STATE_LIMITS.maxObserverIdChars,
+        },
+      });
+      return;
+    }
+    const observerKey = rawObserverId
+      ? `id:${rawObserverId}`
+      : `anonymous:${++mutationObserverSequence}`;
+    if (rawObserverId && mutationObservers.has(observerKey)) {
+      resolve({
+        accepted: false,
+        error: "Mutation observer ID is already active",
+        code: "CONFLICT",
+        observerId: rawObserverId,
+      });
+      return;
+    }
+    if (mutationObservers.size >= CONTENT_STATE_LIMITS.maxMutationObservers) {
+      resolve(
+        contentOverloaded("mutation_observers", {
+          maxMutationObservers: CONTENT_STATE_LIMITS.maxMutationObservers,
+        }),
+      );
+      return;
+    }
+
+    let element;
+    try {
+      element = rawSelector
+        ? document.querySelector(rawSelector)
+        : document.body;
+    } catch (error) {
+      resolve({
+        accepted: false,
+        error: error.message,
+        code: "INVALID_ARGUMENT",
+      });
+      return;
+    }
     if (!element) {
-      resolve({ error: `Element not found: ${selector}` });
+      resolve({ error: `Element not found: ${rawSelector}` });
       return;
     }
 
     const mutations = [];
-    const timeout = options.timeout || 10000;
+    const maxMutations = contentPositiveLimit(
+      safeOptions.maxMutations,
+      100,
+      CONTENT_STATE_LIMITS.maxMutations,
+    );
+    const timeout = contentPositiveLimit(
+      safeOptions.timeout,
+      10000,
+      CONTENT_STATE_LIMITS.maxMutationTimeoutMs,
+    );
+    let droppedMutations = 0;
 
     const observer = new MutationObserver((mutationList) => {
-      for (const mutation of mutationList) {
+      for (let index = 0; index < mutationList.length; index += 1) {
+        if (mutations.length >= maxMutations) {
+          droppedMutations += mutationList.length - index;
+          break;
+        }
+        const mutation = mutationList[index];
         mutations.push({
           type: mutation.type,
-          target: mutation.target.tagName,
+          target: contentBoundedText(
+            mutation.target?.tagName,
+            CONTENT_STATE_LIMITS.maxMutationValueChars,
+          ),
           addedNodes: mutation.addedNodes.length,
           removedNodes: mutation.removedNodes.length,
-          attributeName: mutation.attributeName,
-          oldValue: mutation.oldValue,
+          attributeName: contentBoundedText(
+            mutation.attributeName,
+            CONTENT_STATE_LIMITS.maxMutationValueChars,
+          ),
+          oldValue: contentBoundedText(
+            mutation.oldValue,
+            CONTENT_STATE_LIMITS.maxMutationValueChars,
+          ),
         });
       }
 
-      if (options.once || mutations.length >= (options.maxMutations || 100)) {
-        observer.disconnect();
-        mutationObservers.delete(observerId);
-        resolve({ mutations, count: mutations.length });
+      if (safeOptions.once || mutations.length >= maxMutations) {
+        finishMutationObservation(observerKey, {
+          accepted: true,
+          mutations,
+          count: mutations.length,
+          droppedMutations,
+          limit: { maxMutations },
+        });
       }
     });
 
-    observer.observe(element, {
-      childList: options.childList !== false,
-      attributes: options.attributes !== false,
-      characterData: options.characterData || false,
-      subtree: options.subtree !== false,
-      attributeOldValue: options.attributeOldValue || false,
-      characterDataOldValue: options.characterDataOldValue || false,
-    });
-
-    if (observerId) {
-      mutationObservers.set(observerId, observer);
+    const record = {
+      observer,
+      resolve,
+      timeoutId: null,
+      settled: false,
+    };
+    mutationObservers.set(observerKey, record);
+    try {
+      observer.observe(element, {
+        childList: safeOptions.childList !== false,
+        attributes: safeOptions.attributes !== false,
+        characterData: safeOptions.characterData === true,
+        subtree: safeOptions.subtree !== false,
+        attributeOldValue: safeOptions.attributeOldValue === true,
+        characterDataOldValue: safeOptions.characterDataOldValue === true,
+      });
+    } catch (error) {
+      finishMutationObservation(observerKey, {
+        accepted: false,
+        error: error.message,
+        code: "INVALID_ARGUMENT",
+      });
+      return;
     }
 
-    // Timeout
-    setTimeout(() => {
-      observer.disconnect();
-      mutationObservers.delete(observerId);
-      resolve({ mutations, count: mutations.length, timedOut: true });
+    if (record.settled) {
+      return;
+    }
+
+    record.timeoutId = setTimeout(() => {
+      finishMutationObservation(observerKey, {
+        accepted: true,
+        mutations,
+        count: mutations.length,
+        droppedMutations,
+        timedOut: true,
+        limit: { maxMutations, maxTimeoutMs: timeout },
+      });
     }, timeout);
   });
 }
+
+window.addEventListener("pagehide", () => {
+  for (const observerKey of Array.from(mutationObservers.keys())) {
+    finishMutationObservation(observerKey, {
+      accepted: false,
+      error: "Page lifecycle ended",
+      code: "CANCELED",
+    });
+  }
+});
 
 /**
  * Extract content from page
@@ -1564,10 +1773,29 @@ function getVisibleArea() {
  * Scroll through page for full-page screenshot
  */
 async function scrollForFullPage(options = {}) {
-  const totalHeight = document.documentElement.scrollHeight;
-  const viewportHeight = window.innerHeight;
-  const scrollStep = options.step || viewportHeight;
-  const delay = options.delay || 100;
+  const safeOptions = options && typeof options === "object" ? options : {};
+  const totalHeight = Math.max(
+    0,
+    contentFiniteNumber(document.documentElement.scrollHeight),
+  );
+  const viewportHeight = Math.max(
+    1,
+    contentFiniteNumber(window.innerHeight, 1),
+  );
+  const scrollStep = contentPositiveLimit(
+    safeOptions.step,
+    viewportHeight,
+    Math.max(1, totalHeight || viewportHeight),
+  );
+  const delay = Math.min(
+    Math.max(0, Math.floor(contentFiniteNumber(safeOptions.delay, 100))),
+    CONTENT_STATE_LIMITS.maxScrollDelayMs,
+  );
+  const maxCaptures = contentPositiveLimit(
+    safeOptions.maxCaptures,
+    CONTENT_STATE_LIMITS.maxScreenshotCaptures,
+    CONTENT_STATE_LIMITS.maxScreenshotCaptures,
+  );
 
   const positions = [];
   let currentScroll = 0;
@@ -1576,7 +1804,7 @@ async function scrollForFullPage(options = {}) {
   window.scrollTo(0, 0);
   await sleep(delay);
 
-  while (currentScroll < totalHeight) {
+  while (currentScroll < totalHeight && positions.length < maxCaptures) {
     positions.push({
       scrollY: currentScroll,
       captureHeight: Math.min(viewportHeight, totalHeight - currentScroll),
@@ -1595,6 +1823,12 @@ async function scrollForFullPage(options = {}) {
     totalHeight,
     viewportHeight,
     totalCaptures: positions.length,
+    droppedCaptures: Math.max(
+      0,
+      Math.ceil(totalHeight / scrollStep) - positions.length,
+    ),
+    truncated: currentScroll < totalHeight,
+    limit: { maxCaptures },
   };
 }
 
@@ -1607,12 +1841,163 @@ function sleep(ms) {
 // Store annotations in memory (will be synced to storage)
 let annotations = [];
 let annotationIdCounter = 0;
+let droppedAnnotations = 0;
+
+function normalizeAnnotation(rawAnnotation) {
+  const source =
+    rawAnnotation && typeof rawAnnotation === "object" ? rawAnnotation : {};
+  const rawTags = Array.isArray(source.tags) ? source.tags : [];
+  const position =
+    source.position && typeof source.position === "object"
+      ? {
+          top: contentFiniteNumber(source.position.top),
+          left: contentFiniteNumber(source.position.left),
+        }
+      : null;
+  return {
+    id: contentBoundedText(
+      source.id,
+      CONTENT_STATE_LIMITS.maxAnnotationIdChars,
+    ),
+    type: contentBoundedText(
+      source.type || "note",
+      CONTENT_STATE_LIMITS.maxAnnotationTypeChars,
+    ),
+    text: contentBoundedText(
+      source.text,
+      CONTENT_STATE_LIMITS.maxAnnotationTextChars,
+    ),
+    note: contentBoundedText(
+      source.note,
+      CONTENT_STATE_LIMITS.maxAnnotationNoteChars,
+    ),
+    color: contentBoundedText(
+      source.color || "#FFEB3B",
+      CONTENT_STATE_LIMITS.maxColorChars,
+    ),
+    url: contentBoundedText(
+      source.url,
+      CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
+    ),
+    selector: contentBoundedText(
+      source.selector,
+      CONTENT_STATE_LIMITS.maxAnnotationSelectorChars,
+    ),
+    xpath: contentBoundedText(
+      source.xpath,
+      CONTENT_STATE_LIMITS.maxAnnotationXPathChars,
+    ),
+    tags: rawTags
+      .slice(0, CONTENT_STATE_LIMITS.maxAnnotationTags)
+      .map((tag) =>
+        contentBoundedText(tag, CONTENT_STATE_LIMITS.maxAnnotationTagChars),
+      ),
+    createdAt: contentBoundedText(source.createdAt, 64),
+    position,
+  };
+}
+
+function getAnnotationRetainedBytes() {
+  return annotations.reduce(
+    (total, annotation) => total + contentSerializedBytes(annotation),
+    0,
+  );
+}
+
+function retainAnnotation(rawAnnotation) {
+  const annotation = normalizeAnnotation(rawAnnotation);
+  if (!annotation.id || !annotation.url) {
+    return {
+      accepted: false,
+      error: "Annotation ID and URL are required",
+      code: "INVALID_ARGUMENT",
+    };
+  }
+  const annotationBytes = contentSerializedBytes(annotation);
+  if (
+    !Number.isFinite(annotationBytes) ||
+    annotationBytes > CONTENT_STATE_LIMITS.maxAnnotationBytes
+  ) {
+    return contentOverloaded("annotation_item_bytes", {
+      maxAnnotationBytes: CONTENT_STATE_LIMITS.maxAnnotationBytes,
+    });
+  }
+  if (annotations.length >= CONTENT_STATE_LIMITS.maxAnnotations) {
+    return contentOverloaded("annotations", {
+      maxAnnotations: CONTENT_STATE_LIMITS.maxAnnotations,
+    });
+  }
+  const retainedBytes = getAnnotationRetainedBytes();
+  if (
+    retainedBytes + annotationBytes >
+    CONTENT_STATE_LIMITS.maxAnnotationTotalBytes
+  ) {
+    return contentOverloaded("annotation_total_bytes", {
+      maxAnnotationTotalBytes: CONTENT_STATE_LIMITS.maxAnnotationTotalBytes,
+    });
+  }
+  annotations.push(annotation);
+  return { accepted: true, annotation, annotationBytes };
+}
+
+function loadBoundedAnnotations(value) {
+  const candidates = Array.isArray(value) ? value : [];
+  const retained = [];
+  let retainedBytes = 0;
+  let dropped = 0;
+  let maxIdCounter = 0;
+  const retainedIds = new Set();
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const annotation = normalizeAnnotation(candidates[index]);
+    const annotationBytes = contentSerializedBytes(annotation);
+    if (
+      !annotation.id ||
+      !annotation.url ||
+      retainedIds.has(annotation.id) ||
+      !Number.isFinite(annotationBytes) ||
+      annotationBytes > CONTENT_STATE_LIMITS.maxAnnotationBytes ||
+      retained.length >= CONTENT_STATE_LIMITS.maxAnnotations ||
+      retainedBytes + annotationBytes >
+        CONTENT_STATE_LIMITS.maxAnnotationTotalBytes
+    ) {
+      dropped += 1;
+      continue;
+    }
+    retained.unshift(annotation);
+    retainedIds.add(annotation.id);
+    retainedBytes += annotationBytes;
+    const idMatch = annotation.id.match(/-(\d+)$/);
+    if (idMatch) {
+      maxIdCounter = Math.max(maxIdCounter, Number(idMatch[1]));
+    }
+  }
+  annotations = retained;
+  droppedAnnotations += dropped;
+  annotationIdCounter = Math.max(annotationIdCounter, maxIdCounter);
+}
+
+function annotationCapacityResult() {
+  if (annotations.length >= CONTENT_STATE_LIMITS.maxAnnotations) {
+    return contentOverloaded("annotations", {
+      maxAnnotations: CONTENT_STATE_LIMITS.maxAnnotations,
+    });
+  }
+  if (
+    getAnnotationRetainedBytes() >= CONTENT_STATE_LIMITS.maxAnnotationTotalBytes
+  ) {
+    return contentOverloaded("annotation_total_bytes", {
+      maxAnnotationTotalBytes: CONTENT_STATE_LIMITS.maxAnnotationTotalBytes,
+    });
+  }
+  return null;
+}
 
 /**
  * Highlight selected text
  */
 function highlightSelection(options = {}) {
   try {
+    options = options && typeof options === "object" ? options : {};
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       return { error: "No text selected" };
@@ -1624,10 +2009,17 @@ function highlightSelection(options = {}) {
     if (!text) {
       return { error: "Selected text is empty" };
     }
+    const capacityError = annotationCapacityResult();
+    if (capacityError) {
+      return capacityError;
+    }
 
     // Create highlight wrapper
     const highlightId = `chainless-highlight-${++annotationIdCounter}`;
-    const color = options.color || "#FFEB3B";
+    const color = contentBoundedText(
+      options.color || "#FFEB3B",
+      CONTENT_STATE_LIMITS.maxColorChars,
+    );
 
     const highlight = document.createElement("mark");
     highlight.id = highlightId;
@@ -1654,11 +2046,11 @@ function highlightSelection(options = {}) {
     selection.removeAllRanges();
 
     // Create annotation object
-    const annotation = {
+    const retention = retainAnnotation({
       id: highlightId,
       type: "highlight",
-      text: text,
-      color: color,
+      text,
+      color,
       note: options.note || "",
       url: window.location.href,
       xpath: getXPath(highlight),
@@ -1667,9 +2059,18 @@ function highlightSelection(options = {}) {
         top: highlight.getBoundingClientRect().top + window.scrollY,
         left: highlight.getBoundingClientRect().left + window.scrollX,
       },
-    };
-
-    annotations.push(annotation);
+    });
+    if (!retention.accepted) {
+      const parent = highlight.parentNode;
+      if (parent) {
+        while (highlight.firstChild) {
+          parent.insertBefore(highlight.firstChild, highlight);
+        }
+        parent.removeChild(highlight);
+      }
+      return retention;
+    }
+    const annotation = retention.annotation;
 
     // Add click handler for editing
     highlight.addEventListener("click", (e) => {
@@ -1694,6 +2095,7 @@ function highlightSelection(options = {}) {
  */
 function addAnnotation(options = {}) {
   try {
+    options = options && typeof options === "object" ? options : {};
     if (!options.text && !options.selector) {
       return { error: "Text or selector required" };
     }
@@ -1702,19 +2104,36 @@ function addAnnotation(options = {}) {
     let text = options.text || "";
 
     if (options.selector) {
-      targetElement = document.querySelector(options.selector);
+      const selector = String(options.selector);
+      if (selector.length > CONTENT_STATE_LIMITS.maxAnnotationSelectorChars) {
+        return {
+          accepted: false,
+          error: "Annotation selector is too long",
+          code: "INVALID_ARGUMENT",
+          limit: {
+            maxAnnotationSelectorChars:
+              CONTENT_STATE_LIMITS.maxAnnotationSelectorChars,
+          },
+        };
+      }
+      targetElement = document.querySelector(selector);
       if (!targetElement) {
-        return { error: `Element not found: ${options.selector}` };
+        return { error: `Element not found: ${selector}` };
       }
       text = targetElement.textContent.trim();
     }
 
+    const capacityError = annotationCapacityResult();
+    if (capacityError) {
+      return capacityError;
+    }
+
     const annotationId = `chainless-annotation-${++annotationIdCounter}`;
 
-    const annotation = {
+    const retention = retainAnnotation({
       id: annotationId,
       type: options.type || "note",
-      text: text.substring(0, 500),
+      text: String(text).substring(0, 500),
       note: options.note || "",
       color: options.color || "#FFEB3B",
       url: window.location.href,
@@ -1728,9 +2147,11 @@ function addAnnotation(options = {}) {
             left: targetElement.getBoundingClientRect().left + window.scrollX,
           }
         : null,
-    };
-
-    annotations.push(annotation);
+    });
+    if (!retention.accepted) {
+      return retention;
+    }
+    const annotation = retention.annotation;
 
     // Add visual indicator if element exists
     if (targetElement && options.showIndicator !== false) {
@@ -1743,7 +2164,7 @@ function addAnnotation(options = {}) {
         top: 0;
         width: 16px;
         height: 16px;
-        background: ${options.color || "#FFEB3B"};
+        background: ${annotation.color};
         border-radius: 50%;
         cursor: pointer;
         z-index: 999999;
@@ -1775,11 +2196,21 @@ function addAnnotation(options = {}) {
  * Get all annotations for current page
  */
 function getAnnotations() {
+  const currentUrl = contentBoundedText(
+    window.location.href,
+    CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
+  );
+  const pageAnnotations = annotations.filter((a) => a.url === currentUrl);
   return {
-    annotations: annotations.filter((a) => a.url === window.location.href),
+    annotations: JSON.parse(JSON.stringify(pageAnnotations)),
     total: annotations.length,
-    currentPage: annotations.filter((a) => a.url === window.location.href)
-      .length,
+    currentPage: pageAnnotations.length,
+    retainedBytes: getAnnotationRetainedBytes(),
+    droppedAnnotations,
+    limit: {
+      maxAnnotations: CONTENT_STATE_LIMITS.maxAnnotations,
+      maxAnnotationTotalBytes: CONTENT_STATE_LIMITS.maxAnnotationTotalBytes,
+    },
   };
 }
 
@@ -1788,8 +2219,30 @@ function getAnnotations() {
  */
 function removeAnnotation(annotationId) {
   try {
+    const rawId = annotationId == null ? "" : String(annotationId);
+    if (rawId.length > CONTENT_STATE_LIMITS.maxAnnotationIdChars) {
+      return {
+        accepted: false,
+        error: "Annotation ID is too long",
+        code: "INVALID_ARGUMENT",
+        limit: {
+          maxAnnotationIdChars: CONTENT_STATE_LIMITS.maxAnnotationIdChars,
+        },
+      };
+    }
+    const normalizedId = contentBoundedText(
+      rawId,
+      CONTENT_STATE_LIMITS.maxAnnotationIdChars,
+    );
+    if (!normalizedId) {
+      return {
+        accepted: false,
+        error: "Annotation ID is required",
+        code: "INVALID_ARGUMENT",
+      };
+    }
     // Remove from DOM
-    const element = document.getElementById(annotationId);
+    const element = document.getElementById(normalizedId);
     if (element) {
       // Unwrap highlight
       const parent = element.parentNode;
@@ -1800,15 +2253,15 @@ function removeAnnotation(annotationId) {
     }
 
     // Remove indicator
-    const indicator = document.querySelector(
-      `[data-annotation-id="${annotationId}"]`,
-    );
+    const indicator = Array.from(
+      document.querySelectorAll("[data-annotation-id]"),
+    ).find((candidate) => candidate.dataset.annotationId === normalizedId);
     if (indicator) {
       indicator.remove();
     }
 
     // Remove from array
-    const index = annotations.findIndex((a) => a.id === annotationId);
+    const index = annotations.findIndex((a) => a.id === normalizedId);
     if (index > -1) {
       annotations.splice(index, 1);
     }
@@ -1841,7 +2294,10 @@ function clearAnnotations() {
       .forEach((el) => el.remove());
 
     // Filter out current page annotations
-    const currentUrl = window.location.href;
+    const currentUrl = contentBoundedText(
+      window.location.href,
+      CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
+    );
     annotations = annotations.filter((a) => a.url !== currentUrl);
 
     saveAnnotationsToStorage();
@@ -1856,16 +2312,23 @@ function clearAnnotations() {
  * Export annotations for current page
  */
 function exportAnnotations() {
-  const pageAnnotations = annotations.filter(
-    (a) => a.url === window.location.href,
+  const currentUrl = contentBoundedText(
+    window.location.href,
+    CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
   );
+  const pageAnnotations = annotations.filter((a) => a.url === currentUrl);
 
   return {
-    url: window.location.href,
-    title: document.title,
+    url: currentUrl,
+    title: contentBoundedText(
+      document.title,
+      CONTENT_STATE_LIMITS.maxTitleChars,
+    ),
     exportedAt: new Date().toISOString(),
-    annotations: pageAnnotations,
+    annotations: JSON.parse(JSON.stringify(pageAnnotations)),
     count: pageAnnotations.length,
+    retainedBytes: getAnnotationRetainedBytes(),
+    droppedAnnotations,
     // Generate markdown summary
     markdown: generateAnnotationsMarkdown(pageAnnotations),
   };
@@ -1875,8 +2338,16 @@ function exportAnnotations() {
  * Generate markdown from annotations
  */
 function generateAnnotationsMarkdown(pageAnnotations) {
-  let md = `# Annotations: ${document.title}\n\n`;
-  md += `**URL:** ${window.location.href}\n`;
+  const title = contentBoundedText(
+    document.title,
+    CONTENT_STATE_LIMITS.maxTitleChars,
+  );
+  const url = contentBoundedText(
+    window.location.href,
+    CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
+  );
+  let md = `# Annotations: ${title}\n\n`;
+  md += `**URL:** ${url}\n`;
   md += `**Exported:** ${new Date().toLocaleString()}\n\n`;
   md += `---\n\n`;
 
@@ -1934,7 +2405,9 @@ function getXPath(element) {
  */
 function saveAnnotationsToStorage() {
   try {
-    chrome.storage.local.set({ annotations: annotations });
+    chrome.storage.local.set({
+      annotations: JSON.parse(JSON.stringify(annotations)),
+    });
   } catch (e) {
     console.error("[ChainlessChain] Failed to save annotations:", e);
   }
@@ -1946,8 +2419,8 @@ function saveAnnotationsToStorage() {
 function loadAnnotationsFromStorage() {
   try {
     chrome.storage.local.get(["annotations"], (result) => {
-      if (result.annotations) {
-        annotations = result.annotations;
+      if (result?.annotations) {
+        loadBoundedAnnotations(result.annotations);
         // Restore highlights for current page
         restoreAnnotations();
       }
@@ -1961,9 +2434,11 @@ function loadAnnotationsFromStorage() {
  * Restore annotations on page load
  */
 function restoreAnnotations() {
-  const pageAnnotations = annotations.filter(
-    (a) => a.url === window.location.href,
+  const currentUrl = contentBoundedText(
+    window.location.href,
+    CONTENT_STATE_LIMITS.maxAnnotationUrlChars,
   );
+  const pageAnnotations = annotations.filter((a) => a.url === currentUrl);
 
   pageAnnotations.forEach((annotation) => {
     if (annotation.xpath) {
