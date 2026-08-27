@@ -61,10 +61,25 @@ function normalizePositiveInteger(value, key, hardLimit) {
 }
 
 function resolveIPFSBoundaries(overrides = {}) {
-  if (overrides === null || typeof overrides !== "object") {
+  if (
+    overrides === null ||
+    typeof overrides !== "object" ||
+    Array.isArray(overrides)
+  ) {
     throw new IPFSBoundaryError(
       "INVALID_CONFIG",
       "IPFS boundary overrides must be an object",
+    );
+  }
+
+  const unknownKeys = Object.keys(overrides).filter(
+    (key) => !Object.hasOwn(DEFAULT_IPFS_BOUNDARIES, key),
+  );
+  if (unknownKeys.length > 0) {
+    throw new IPFSBoundaryError(
+      "INVALID_CONFIG",
+      `Unknown IPFS boundary override(s): ${unknownKeys.join(", ")}`,
+      { unknownKeys },
     );
   }
 

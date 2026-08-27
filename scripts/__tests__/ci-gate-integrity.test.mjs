@@ -233,6 +233,26 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
       `missing IPFS contract ${relatedTest}`,
     );
   }
+  for (const ipfsSource of [
+    "desktop-app-vue/src/main/ipfs/ipfs-boundaries.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-content-runtime.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-manager.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-ipc.js",
+  ]) {
+    const sourceSelection = selector.createSelection([ipfsSource]);
+    for (const relatedTest of [
+      "tests/unit/ipfs/ipfs-production-wiring.test.js",
+      "src/main/ipfs/__tests__/ipfs-boundaries.test.js",
+      "src/main/ipfs/__tests__/ipfs-content-runtime.test.js",
+      "src/main/ipfs/__tests__/ipfs-manager.test.js",
+      "src/main/ipfs/__tests__/ipfs-ipc.test.js",
+    ]) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${ipfsSource} must select ${relatedTest}`,
+      );
+    }
+  }
 
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
@@ -363,6 +383,41 @@ test("selector changes run integrity and CLI contracts without desktop fallback"
   assert.throws(
     () => selector.commandForSelection(selection),
     (error) => error.code === "MULTIPLE_TEST_COMMANDS",
+  );
+});
+
+test("open-source gap audit evidence stays on the integrity gate", () => {
+  const auditFile = "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
+  const auditSelection = selector.createSelection([auditFile]);
+
+  assert.equal(auditSelection.suite, "ci-gate-integrity");
+  assert.equal(auditSelection.mode, "targeted");
+  assert.deepEqual(auditSelection.selectedTests, [
+    "scripts/__tests__/ci-gate-integrity.test.mjs",
+  ]);
+  assert.deepEqual(auditSelection.mappings, [
+    {
+      file: auditFile,
+      suite: "ci-gate-integrity",
+      tests: ["scripts/__tests__/ci-gate-integrity.test.mjs"],
+    },
+  ]);
+
+  const combinedSelection = selector.createSelection([
+    auditFile,
+    "desktop-app-vue/scripts/cowork-ci-test-selector.js",
+    "desktop-app-vue/src/main/ipfs/ipfs-boundaries.js",
+  ]);
+  assert.equal(combinedSelection.suite, "unit-matrix");
+  assert.equal(combinedSelection.mode, "targeted");
+  assert.deepEqual(
+    combinedSelection.testSuites.map((testSuite) => testSuite.suite),
+    ["ci-gate-integrity", "desktop-unit"],
+  );
+  assert.ok(
+    combinedSelection.testSuites.every(
+      (testSuite) => testSuite.mode === "targeted",
+    ),
   );
 });
 
