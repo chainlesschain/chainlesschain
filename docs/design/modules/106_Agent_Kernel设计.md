@@ -1,6 +1,6 @@
 # 106 Agent Kernel 设计
 
-> 状态：Agent Platform `0.166.0` 已发布｜范围：CLI Agent 执行内核｜更新：2026-08-24
+> 状态：Agent Platform `0.166.5` 是完整门禁的生产推荐；npm `latest=0.166.6` 已公开 Agent IPC 有界化，但精确提交门禁未闭环｜范围：CLI Agent 执行内核及跨传输资源边界｜更新：2026-08-27
 
 ## 1. 定位
 
@@ -60,6 +60,7 @@ Sandbox     MCP/Hooks/PTY    Budget/Receipt
 | Agent SDK `AgentSession`     | headless stream                           | NDJSON 双工、恢复、审批/问题事件 |
 | `cc serve`                   | server runtime + WS gateway               | 既有浏览器/IDE 会话              |
 | `cc serve --app-server`      | `CliAgentKernelAdapter` + headless stream | Thread/Turn/Item 产品协议        |
+| `cc serve --app-server --app-server-websocket` | 同一 adapter + 实验 WS transport | 固定协议、强鉴权、逐连接隔离与慢消费者断路 |
 
 入口只能收紧策略。Server/UI/App Server 不得用宿主参数绕过 Kernel 的工作区、权限、sandbox 或 SecretStore authority。
 
@@ -113,6 +114,10 @@ stream 模式使用 Agent Protocol v1 事件表达 init、内容增量、tool us
 
 cleanup 使用有界 deadline 回收 MCP、后台 Shell、远程审批、交互与 Hook。主错误优先保留；若正常路径 cleanup 超时，则返回 cleanup failure 并携带 report。
 
+CLI `0.166.6` 把这一原则扩到 Agent IPC：注册中与运行中的 child 共用 64-agent admission；pending interaction 默认全局 128 / 每 agent 16，agent request 默认全局 256 / 每 agent 32；stdout JSONL 与 stdin frame 各 1 MiB，stderr chunk 64 KiB，stdin 队列 128 条 / 4 MiB。初始化、心跳、交互和请求都受上限与 timeout 约束，过载返回结构化 `OVERLOADED` 和重试建议，并确定性清理受影响 child。
+
+同一轮普查还覆盖旧 WS Gateway、Desktop MCP stdio/HTTP-SSE、Cowork message history、浏览器控制、P2P command/sync、媒体流、权限弹窗与 U-Key 合同签名。各路径现在先做数量/字节 admission，再启动副作用；超限不会通过无界 Promise、Map、数组或 socket buffer 吸收。CLI `0.166.6` 已进入 npm，但这不代表所有模块已迁入 canonical Agent Kernel，也不代表它完成了精确提交发布门。
+
 ## 11. App Server 适配
 
 `CliAgentKernelAdapter` 为每个 App Server Thread 维护一个 headless stream session，同一 Thread 同时只允许一个 active Turn。它把 Agent Protocol 事件映射为 App Server Item/Tool/Approval 事件，把结构化审批决定再写回 Kernel 输入流。
@@ -161,7 +166,7 @@ Graph Kernel 可以把某个 Task/Attempt 派发给 Agent Kernel 执行，但 Ta
 
 ## 17. 迁移与边界
 
-Agent Kernel `0.166.0` 已进入 npm CLI 的公开发行面，但它不是独立 npm 包或远程服务。Desktop/IDE 是否通过 App Server 接入、Team/Cowork 是否由 Graph Kernel authoritative 调度，以及 signed native 是否公开，仍需各自证据，不能由 Kernel 单元测试推导。
+Agent Kernel 自 `0.166.0` 进入 npm CLI 的公开发行面，但它不是独立 npm 包或远程服务。`0.166.5` 的 Desktop/VS Code App Server pilot 只开放固定能力且默认关闭，不表示全量迁移；Team/Cowork 是否由 Graph Kernel authoritative 调度，以及 signed native 是否公开，仍需各自证据，不能由 Kernel 单元测试推导。`0.166.6` Agent IPC/backlog 有界化已公开但门禁未闭环。
 
 ## 18. 相关文档
 

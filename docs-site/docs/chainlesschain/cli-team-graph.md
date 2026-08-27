@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：`chainlesschain@0.166.2`（功能自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`（功能自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门；`0.166.6` 已公开但精确提交门禁未闭环
 
 ## 概述
 
@@ -14,6 +14,26 @@
 - GraphRun 是否满足 CI 阈值？
 
 当前命令只读取已有 GraphRun，不创建、不恢复、不取消任务，也不修改权威状态。GraphRun 由启用 Graph Kernel 的 Team/Cowork/Scheduler 或其他 adapter 产生。
+
+## 先分清 GraphRun 与三类图
+
+`GraphRun` 是把运行身份、revision、权限、预算和事件序列绑定在一起的 envelope，不是一张包办调度、协作和审计的“万能图”。查看输出时应按下表理解：
+
+| 输出 | 用来回答 | 不能据此推断 |
+| --- | --- | --- |
+| `taskGraph` | 哪些任务存在依赖、当前哪些节点可运行或被阻塞 | Agent 父子关系就是任务依赖 |
+| `agentTree` + `attempts` | 哪个 Agent 以哪次 Attempt 执行任务，谁 spawn/等待/交接给谁 | spawn 一个 child 就修改了 Task DAG |
+| `artifactGraph` / `messageGraph` / `timeline` | 已发生事件的产物来源、消息因果、Effect receipt 与时间线 | 投影能够反向结算任务或触发副作用 |
+
+```text
+Occurrence ──start/wake──> GraphRun ──bind revision──> Task runtime
+                                                        │ dispatch Attempt
+                                                        ▼
+                                                    Agent Tree
+Task/Agent runtime ──durable events──> Event Store ──read-only reduce──> Trace/Artifact projection
+```
+
+因此：Scheduler occurrence 显示成功，只说明 GraphRun 的 start/wake 已被耐久接纳；“当前没有 ready task”也不代表 GraphRun 已成功。模型动态创建 child 只改变 Agent Tree，只有经过编译、权限/预算复验和 revision CAS 的显式 graph append 才会改变 Task Graph。`inspect/diff/eval` 只重放事件，不能作为 writer 修改运行状态。
 
 ## 核心特性
 
@@ -52,7 +72,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.2"
+npm install --global "chainlesschain@0.166.5"
 
 # 查看完整投影
 cc team graph inspect <run-id>
@@ -390,6 +410,7 @@ cc team graph eval "$GRAPH_RUN_ID" \
 
 ## 相关文档
 
+- [Graph Kernel 使用与运维](./cli-graph-kernel.md)
 - [Agent Team](./cli-team.md)
 - [CC App Server](./cli-app-server.md)
 - [Agent SDK](./agent-sdk.md)

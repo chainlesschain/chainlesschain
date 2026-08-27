@@ -1,6 +1,6 @@
 # CC App Server 使用指南
 
-> 适用版本：`chainlesschain@0.166.3`、`@chainlesschain/agent-sdk@0.2.2`、`@chainlesschain/agent-protocol@0.1.2`｜传输：stdio JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主
+> 适用版本：`chainlesschain@0.166.5`、`@chainlesschain/agent-sdk@0.2.4`、`@chainlesschain/agent-protocol@0.1.5`｜传输：stdio（默认）/ WebSocket（experimental）JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主
 
 ## 概述
 
@@ -20,6 +20,8 @@ CC App Server 是完整产品集成入口。它在一个长期运行的 `cc` 子
 | 单次脚本/CI 命令                  | `cc exec -p "..."` 或 `cc agent -p "..."`   |
 | 轻量流式会话                      | Agent SDK `AgentSession`                    |
 | 完整产品、持久线程、服务端审批    | Agent SDK `AppServerClient` + CC App Server |
+| Desktop / VS Code 限定试点        | `AppServerPilotClient`（固定 Thread/Turn 方法） |
+| 受控网络实验                      | `cc serve --app-server --app-server-websocket` |
 | 浏览器 Web Panel / 既有 WS 客户端 | `cc serve` 或 `cc ui`                       |
 
 ## 核心特性
@@ -31,14 +33,16 @@ CC App Server 是完整产品集成入口。它在一个长期运行的 `cc` 子
 - **有界背压**：客户端 pending request、Server 请求队列、stdio 输出和单行 JSON 均有明确上限与稳定错误码。
 - **可验证中断**：只有收到 `physicallySettled: true` 才能把 Turn 标记为已停止，晚到成功会被 fence。
 - **SDK 优先**：TypeScript `AppServerClient` 负责进程启动、行缓冲、请求复用、通知和 Server request 回包。
+- **固定能力试点**：`AppServerPilotClient` 不提供 generic RPC，避免 renderer/Webview 把 pilot 变成本机任意请求代理。
+- **实验 WebSocket**：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1`，强 token、远程 TLS、连接/帧/队列/buffer cap 与慢消费者 1013 断路。
 
 ## 系统架构
 
 ```text
 桌面端 / IDE / CI / 自定义宿主
-              │ AppServerClient
+              │ AppServerClient / AppServerPilotClient
               ▼
-      stdio JSON-RPC v1（NDJSON）
+      stdio（默认）或 experimental WebSocket
               │
 ┌─────────────▼──────────────────────────────┐
 │ CC App Server                              │
@@ -57,13 +61,13 @@ stdout 只承载协议帧，诊断写入 stderr。App Server 复用 CLI Agent Ke
 ## 安装
 
 ```bash
-npm install --global "chainlesschain@0.166.3"
-npm install "@chainlesschain/agent-sdk@0.2.2"
+npm install --global "chainlesschain@0.166.5"
+npm install "@chainlesschain/agent-sdk@0.2.4"
 
 cc --version
 ```
 
-`@chainlesschain/agent-sdk` 需要 Node.js ≥ 22.12.0。Python SDK `0.2.0` 携带生成的 App Server 协议类型，但当前公开的进程客户端 `AppServerClient` 位于 TypeScript 包。
+`@chainlesschain/agent-sdk` 需要 Node.js ≥ 22.12.0。Python SDK `0.2.4` 携带生成的 App Server 协议类型，但当前公开的进程客户端 `AppServerClient` / `AppServerPilotClient` 位于 TypeScript 包。
 
 ## 使用示例
 
@@ -126,6 +130,26 @@ cc serve --app-server \
 
 并完成 `initialize`，通常不需要宿主自己拼命令或解析 NDJSON。
 
+### Desktop / VS Code pilot
+
+pilot 仅用于受控迁移，不是默认产品入口：
+
+- VS Code：设置 `chainlesschain.appServer.pilot.enabled=true`，然后从命令面板使用 “App Server Pilot Status / Start Thread / Start Turn / Interrupt”。
+- Desktop：启动前设置 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1`；preload 只提供固定 lifecycle/Thread/Turn IPC，参数上限 256 KiB，子进程经过 Desktop Process Broker。
+- 两端都只开放 `thread/start|resume|fork|read|list|archive` 与 `turn/start|interrupt`。未接入已评审审批 UI 时，服务端审批请求默认 `decline`。
+
+### 实验 WebSocket
+
+```bash
+# 生成并通过环境变量传入至少 32 字节的随机 token
+CHAINLESSCHAIN_APP_SERVER_TOKEN=<strong-random-token> \
+cc serve --app-server --app-server-websocket \
+  --host 127.0.0.1 --port 18800 \
+  --app-server-state-dir .cc-app-server-state
+```
+
+客户端必须连接 `ws://127.0.0.1:18800/app-server`，请求子协议 `chainlesschain.app-server.experimental.v1`，并通过 `Authorization: Bearer ...` 或 `bearer.<base64url-token>` 子协议提交 token。URL query token 不被接受。非 loopback 必须额外提供 `--allow-remote --app-server-tls-cert <cert> --app-server-tls-key <key>`，使用 `wss://`。
+
 ## 配置参考
 
 ```text
@@ -133,13 +157,16 @@ cc serve --app-server [options]
 
 --app-server-state-dir <path>  rollout 存储目录
 --app-server-queue-cap <n>     Server 待处理请求上限，默认 256
+--app-server-websocket         使用实验 App Server WebSocket
+--app-server-tls-cert <path>   非 loopback TLS 证书
+--app-server-tls-key <path>    非 loopback TLS 私钥
 --project <path>               Agent 默认工作区
 ```
 
 注意：
 
-- `--app-server` 使用 stdio，不监听端口；
-- `--port`、`--host`、`--token`、`--allow-remote` 属于旧 WebSocket 模式；
+- `--app-server` 默认使用 stdio；只有加 `--app-server-websocket` 才监听端口；
+- `--port`、`--host`、`--token`、`--allow-remote` 在实验 App Server WebSocket 中控制其独立绑定，不能把 legacy WS 客户端连到 `/app-server`；
 - state directory 应位于当前用户控制的私有目录，不要放进公开静态目录或多人可写共享目录；
 - stdout 是协议通道，日志请从 stderr 读取。
 
@@ -317,7 +344,7 @@ Server 会用 JSON-RPC request `approval/decide` 向客户端发起裁决。`req
 
 当前公开版提供的是容量护栏与可观测指标，不把本机微基准冒充跨平台服务等级。接入验收至少记录以下值：
 
-| 指标                 | 0.166.0 基线 / 口径    | 用途                                                     |
+| 指标                 | 0.166.5 公开口径       | 用途                                                     |
 | -------------------- | ---------------------- | -------------------------------------------------------- |
 | SDK pending requests | 默认最多 256           | 限制宿主同时等待的 RPC 数                                |
 | Server request queue | 默认 256 条、4 MiB     | 慢消费者时返回 `-32001`，不无限吃内存                    |
@@ -326,7 +353,7 @@ Server 会用 JSON-RPC request `approval/decide` 向客户端发起裁决。`req
 | `thread/read` 批量   | 示例建议 `limit: 1000` | 通过 `afterEventSeq` 分页，避免一次加载完整历史          |
 | 端到端延迟           | 未发布统一 SLO         | 应在目标 OS、真实 provider、真实项目与宿主 UI 上单独测量 |
 
-容量调优应同时采集 pending 数、`-32001` 次数、`retry_after_ms`、通知消费延迟、rollout 大小、进程 RSS 与关闭耗时。当前 30 分钟 overload/RSS soak 仍是发布后的独立门，不应填写未经实测的“实际延迟”。
+容量调优应同时采集 pending 数、`-32001` 次数、`retry_after_ms`、通知消费延迟、rollout 大小、进程 RSS 与关闭耗时。`0.166.5@2f5b0f263a` 的 1,800.21 秒权威 soak 共处理 2,427,887 次请求，其中 51,236 次成功、2,376,651 次按设计过载、0 次非预期错误、0 个 drain 残留，RSS 增长 0.762%；这仍不是跨机器固定延迟 SLO。
 
 ## 10. 错误码
 
@@ -426,8 +453,8 @@ SQLite rollout 是运行时能力门控的可选实现。不要假定所有 Node
 
 - 已发布的是 stdio MVP，不是公网服务；
 - Desktop/IDE 尚未全部切换到 App Server；
-- WebSocket transport 仍未作为 CC App Server 的公开稳定入口；
-- 30 分钟 overload/RSS soak、真实 provider 三平台 journey 与全产品 crash/recovery conformance 仍需完成；
+- WebSocket transport 已作为实验入口公开，但不是稳定默认入口；固定路径、子协议、强制 token、远程 TLS 与容量护栏不能关闭；
+- 30 分钟 overload/RSS soak 已在 `0.166.5` 精确候选通过；真实 provider 三平台 journey 与全产品 crash/recovery conformance 仍需完成；
 - App Server 发布不等于 Graph Kernel 已成为所有产品的唯一 writer。
 
 ## 相关文档

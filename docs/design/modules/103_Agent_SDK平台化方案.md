@@ -1,6 +1,6 @@
 # 103. Agent 平台化方案：协议、App Server 与 Graph Kernel
 
-> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；当前公开基线为 CLI `0.166.4`、Agent SDK `0.2.3`、Agent Protocol `0.1.4`（2026-08-26）。37 类 canonical stream event discriminator 已纳入同源生成；产品入口迁移、payload 级 union、真实 provider 旅程与长期过载验证仍按独立门禁推进。
+> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；完整门禁的生产推荐 CLI 为 `0.166.5`，npm `latest` 为 `0.166.6`，Agent SDK 为 `0.2.4`、Agent Protocol 为 `0.1.5`（2026-08-27）。37 类 canonical stream event 的 payload union、跨端 causal conformance、Desktop/VS Code 固定能力 pilot 与 App Server 实验 WebSocket已闭环；`0.166.6` 有界 Agent IPC 已公开，但精确提交门禁未闭环。
 
 ## 1. 目标
 
@@ -15,12 +15,12 @@
 
 | 组件                                   | 发布状态     | 角色                                                                           |
 | -------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
-| `chainlesschain@0.166.4`               | npm `latest` | Team/Session、结构化审批、canonical event inventory、App/Graph Kernel 与 `cc exec` |
-| `@chainlesschain/agent-sdk@0.2.3`      | npm 公开     | `AgentSession`、`AppServerClient`、结构化审批、known-event guard 与 Node/browser 入口 |
-| `chainlesschain-agent-sdk==0.2.3`      | PyPI 公开    | Python ≥ 3.10 异步客户端、结构化审批、生成事件清单与 validator                 |
-| `@chainlesschain/agent-protocol@0.1.4` | npm 公开     | canonical Schema、37-event inventory、runtime validator、v1 baseline 与多语言 codegen |
+| `chainlesschain@0.166.5`               | npm `latest` | Team/Session、结构化审批、payload union、App/Graph Kernel、实验 App Server WS 与 `cc exec` |
+| `@chainlesschain/agent-sdk@0.2.4`      | npm 公开     | `AgentSession`、`AppServerClient`、固定能力 `AppServerPilotClient`、严格 canonical event validator |
+| `chainlesschain-agent-sdk==0.2.4`      | PyPI 公开    | Python ≥ 3.10 异步客户端、结构化审批、生成 payload union 与 validator          |
+| `@chainlesschain/agent-protocol@0.1.5` | npm 公开     | canonical Schema、37-event payload union、causal fixtures、v1 baseline 与四语言 codegen |
 
-CLI `0.166.4` 与 TypeScript SDK `0.2.3` 的发布标签绑定精确提交 `6b1619926c`；Agent Protocol `0.1.4` 与 Python SDK `0.2.3` 的标签绑定 `e7a059d3ed`。三平台门禁、OIDC/Trusted Publishing、provenance 与公网安装回读均已闭环。
+上述协调发布绑定最终候选 `2f5b0f263a`；Protocol/Python 包源码与其更早的发布提交逐字节一致。三平台门禁、OIDC/Trusted Publishing、provenance、公网安装回读，以及 App Server 1,800 秒 overload/RSS soak 均已闭环。后续 CLI `0.166.6@7f18511fbc` 已进入 npm，但它自己的 CLI CI/Strict 门未闭环，不能改写这组发布证据。
 
 ## 3. 总体架构
 
@@ -31,7 +31,7 @@ VS Code / JetBrains / Desktop / CI / custom host
         ▼                         ▼
  AgentSession                 AppServerClient
         │                         │
-        └──────── @chainlesschain/agent-sdk 0.2.3 ────────┐
+        └──────── @chainlesschain/agent-sdk 0.2.4 ────────┐
                                                           │ generated types
 packages/agent-protocol                                   │
   schema/cc-agent-protocol.schema.json                    │
@@ -78,7 +78,7 @@ Schema 位于 `packages/agent-protocol/schema/cc-agent-protocol.schema.json`，�
 
 ## 5. CC App Server
 
-`cc serve --app-server` 通过 stdio 启动 JSON-RPC 服务。`--app-server-state-dir <path>` 指定 owner-controlled rollout 目录，`--app-server-queue-cap <n>` 控制服务端请求队列，默认 256。它与旧 `cc serve` WebSocket Gateway 是两种互斥模式：开启 `--app-server` 后，不监听 WebSocket 端口。
+`cc serve --app-server` 默认通过 stdio 启动 JSON-RPC 服务。`--app-server-state-dir <path>` 指定 owner-controlled rollout 目录，`--app-server-queue-cap <n>` 控制服务端请求队列，默认 256。`--app-server-websocket` 可显式切到实验网络传输；它与旧 `cc serve` WebSocket Gateway 仍是不同协议面，不能混用客户端。
 
 `AppServerClient` 负责：
 
@@ -89,6 +89,10 @@ Schema 位于 `packages/agent-protocol/schema/cc-agent-protocol.schema.json`，�
 - 在过载时返回稳定错误 `-32001`，而不是让队列无界增长。
 
 Rollout 存储默认使用带 hash chain 的 JSONL；SQLite 只有在当前 Node 运行时能力满足时才启用，不能因可选能力缺失破坏默认启动。Thread fork 使用独立身份，避免父线程和分支误写到同一 rollout。
+
+产品 pilot 使用 `AppServerPilotClient` 的固定 capability surface，只开放 `thread/start|resume|fork|read|list|archive` 与 `turn/start|interrupt`。VS Code 通过默认关闭的 `chainlesschain.appServer.pilot.enabled` 启用；Desktop 通过 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 启用并经 Process Broker 启动。两者都不向 renderer/Webview 暴露 generic `request()`，未接入已评审审批 UI 时服务端审批请求失败闭合。
+
+实验 WebSocket 固定路径 `/app-server` 与子协议 `chainlesschain.app-server.experimental.v1`。所有绑定要求至少 32 字节 token；非 loopback 还要求 `--allow-remote`、成对 TLS 证书/私钥与 TLS 1.2+。每连接独立持有 `CcAppServer`，连接数、单帧 payload、receive、服务请求、输出队列、底层 buffer 和清理 deadline 均有界，慢消费者以 1013 断路。
 
 ## 6. Graph Kernel
 
@@ -114,7 +118,7 @@ cc team graph eval <run-id> --thresholds '{"deadlocked":{"max":0}}'
 
 ## 7. 安全边界
 
-- App Server 使用 stdio，不开放远程监听面；未来新增网络传输必须单独定义认证、TLS、队列与来源边界。
+- App Server 默认使用 stdio；实验 WebSocket 固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求 `--allow-remote` 与 TLS cert/key。它不是公网托管服务，也不与旧 `cc serve` Gateway 共用协议。
 - 所有客户端审批默认失败闭合；没有 handler、超时、binding 不匹配或 handler 抛错都不能授权工具。
 - Webhook 入口绑定 HMAC、时间窗、delivery replay、body cap 与 rate limit；可信来源由适配器赋值，不能相信请求体自报。
 - Graph 的 `origin`、`trust`、`sensitivity` 与 `allowedSinks` 随 DataRef/ArtifactRef 传播，declassification 必须显式审计。

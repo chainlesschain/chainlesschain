@@ -29,11 +29,11 @@ const CLI_UPDATES = parseChangelog(
       .trim(),
     status:
       r.cliVersion === CLI_VERSION
-        ? '完整门禁 · npm latest'
-        : r.cliVersion === SOURCE_CLI_VERSION
-          ? '源码候选'
-          : r.cliVersion === NPM_LATEST_CLI_VERSION
-            ? 'npm 最新 · 发布审查中'
+        ? '生产推荐 · 完整门禁'
+        : r.cliVersion === NPM_LATEST_CLI_VERSION
+          ? 'npm latest · 门禁未闭环'
+          : r.cliVersion === SOURCE_CLI_VERSION
+            ? '源码快照'
             : '历史版本',
   }));
 
@@ -186,7 +186,7 @@ const categories = [
       ['cowork status', '查看 cowork 状态'],
       ['team run --tasks <file>', '声明式依赖 DAG：预算、租约、worktree 与可恢复状态'],
       ['team queue init / worker / finalize', '共享文件系统 distributed queue v1：CLI 权威摘要、租约与 CAS fence'],
-      ['team graph inspect / diff / eval', 'GraphRun 时间旅行、根因、差异与 CI 阈值门'],
+      ['team graph inspect / diff / eval', 'GraphRun 只读时间旅行、根因、差异与 CI 阈值门'],
       ['team_send / receive / ack / followup', '0.166.3 真实 Team child 的 attempt/lease/fence 绑定实时消息工具'],
     ],
   },
@@ -231,6 +231,7 @@ const categories = [
     cmds: [
       ['serve', 'WebSocket 服务器（18800）'],
       ['serve --app-server', 'stdio JSON-RPC 产品集成：Thread / Turn / Item / Approval'],
+      ['serve --app-server --app-server-websocket', '实验 App Server WS：固定路径/子协议、强制 token、远程 TLS'],
       ['ui', 'Web 管理面板（18810）'],
       ['stream', 'NDJSON 流式输出'],
     ],
@@ -553,8 +554,8 @@ const packs = [
           ['cc mcp / ide / pdh', '把 MCP server、编辑器、安卓设备的工具喂进 agent 循环；大规模工具面自动 Tool Search 延迟装载 schema，省 10-30% 上下文'],
           ['cc team run', '运行声明式任务 DAG；单个本地 runner 已验证 10,000 任务、最多 64 workers，预算与恢复状态持久化'],
           ['cc team queue', '在受支持的共享文件系统上用 queue v1 协调多进程 worker；authority digest、lease 与 CAS 防止过期写入'],
-          ['cc team graph', 'inspect / diff / eval：GraphRun 投影、时间旅行、阻塞根因和 CI gate'],
-          ['cc serve --app-server', 'stdio 产品入口：耐久 Thread/Turn/Item、结构化审批、背压与恢复'],
+          ['cc team graph', 'inspect / diff / eval：GraphRun 只读投影、时间旅行、阻塞根因和 CI gate；Task Graph、Agent Tree 与 Trace Graph 各守边界'],
+          ['cc serve --app-server', 'stdio 稳定产品入口；另有强制 token、远程 TLS、全链路有界的实验 WebSocket'],
           ['cc auto-mode eval', '用 145 条不可变离线语料审计危险操作分类；门禁失败即非零退出，不执行被评估命令'],
           ['cc output-style', '命名人格叠加系统提示（explanatory / learning）'],
           ['--json-schema', '结构化输出：回答经 JSON Schema 校验，失败自动纠错重试'],
@@ -645,16 +646,16 @@ const packs = [
           P2-16 Agent Teams 以本地 state v6 为权威，并为受支持的共享文件系统提供独立 distributed queue v1；queue authority digest、lease、CAS 与 wall-clock fence 阻止过期 worker 或迟到结果提交。10,000-task DAG / 最多 64 local workers 是单个本地 runner 的已验证调度边界；共享文件系统队列不是共识系统，也不承诺网络分区容错。
         </p>
         <p class="mt-4 text-lg text-muted">
-          CLI <code class="font-mono text-sm">0.166.4</code> 延续真实 <code class="font-mono text-sm">cc team --agent</code> child 的 <code class="font-mono text-sm">team_send / team_receive / team_ack / team_followup</code>、TeamMailbox v3、custody handoff 与 state-backed SessionMessageFabric；本版新增 37 类 Schema 生成的 Agent stream discriminator。严格 known-event 判断是 opt-in，未知未来事件仍由 transport 无损保留。
+          CLI <code class="font-mono text-sm">{CLI_VERSION}</code> 延续真实 <code class="font-mono text-sm">cc team --agent</code> child 的 <code class="font-mono text-sm">team_send / team_receive / team_ack / team_followup</code>、TeamMailbox v3、custody handoff 与 state-backed SessionMessageFabric；37 类 Schema 生成事件已具备 payload discriminated union 和跨端 causal conformance，未知未来事件仍由 transport 无损保留。
         </p>
         <p class="mt-4 text-lg text-muted">
           当前 CLI 搭载 PDH 0.4.59：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 已改为 optional，无 Python/编译器/native prebuild 时首次安装回退内置 sql.js WASM，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry 回读均成功；SDK npm/PyPI 也已完成安装回读。
+          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing、1,800 秒 App Server overload/RSS soak 与独立 registry 回读均成功；SDK npm/PyPI 也已完成安装回读。
         </p>
         <p class="mt-4 text-lg text-muted">
-          该发布证据不表示 Desktop/IDE 已全部迁移到 App Server，也不表示 Team/Cowork/Scheduler 已全部切换为 Graph authoritative writer。真实 provider 三平台 journey、长期 overload/fairness soak、完整产品 crash/recovery conformance 与签名 native 发行继续独立判断。
+          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。Desktop/VS Code 现有固定能力 App Server pilot 不表示全量迁移；npm latest {NPM_LATEST_CLI_VERSION} 已公开，但其精确提交门禁未闭环，生产推荐仍为 {CLI_VERSION}。观测到的后续源码 {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} 不获得新的发布授权。
         </p>
       </div>
     </div>

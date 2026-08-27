@@ -1,7 +1,7 @@
 # ChainlessChain 对照 OpenAI Codex 开源架构的差距与优化建议
 
 > 审计日期：2026-08-24  
-> 最新进展更新：2026-08-26
+> 最新进展更新：2026-08-27
 > ChainlessChain 基线：`3ec94b795e`  
 > 最新 Agent 平台发布验证基线：`40354eb432281c28ed266f2dc6d1458764eb536d`（`v-npm-0-166-0`、`python-agent-sdk-v0.2.0`）
 > 最新 Agent Protocol OIDC 发布验证基线：`882c3c9d7f18ee0cc0c766a2b865f8234f7dc4ed`（`agent-protocol-oidc-v0.1.0`）
@@ -9,7 +9,7 @@
 > 最新实时 Team 消息发布验证基线：`f868e142068c33d203601cddd7643fd8ad9c4ffb`（`v-npm-0-166-2`，CLI-only；协议与 SDK 版本不变）
 > 最新未发布 Team/Session 消息验证基线：`20b1bb5563239bd3ec2d4653ba6c57bdbb6c0d9a`（CLI-only；CLI CI 已通过；协议与 SDK 内容及版本不变）
 > 最新结构化审批正式发布基线：精确提交 `67fdfd25359b7bb6995fed1a89452bcc128daf6d` 已通过协议、CLI、Strict Sandbox、Python SDK、桌面 E2E、通用 CI 与 IDE 权威矩阵，并通过 OIDC 发布 protocol `0.1.2`、TS/Python SDK `0.2.2` 与 CLI `0.166.3`；发布链后继加固提交为 `0830ebea9059bc07d76355ca43c632821ab4faf2`
-> 最新 canonical Agent 事件发布基线：协议/Python 精确提交 `e7a059d3ed759832d63bbfc33127bd472390ed70` 已发布 protocol `0.1.4` 与 Python SDK `0.2.3`；CLI/TS SDK 精确提交 `6b1619926c5aadc4586e17994b607169b2ae58ae` 已发布 CLI `0.166.4`、TS SDK `0.2.3` 与 Open VSX `0.37.69`；JetBrains `0.4.99` 已获批并公开，精确提交 `33603c631eaeffa9c6dd036a53fddb3bcb1dd8b9` 已上传 JetBrains `0.4.100` 并等待 Marketplace 人工审核；后继 iOS 生产消费提交 `afe376246bddf3c86a7b8b87bc82628351892465` 的两套 macOS/iOS 权威门禁已全绿
+> 最新 Agent 平台协调发布基线：最终候选 `2f5b0f263a142fd31daca1396456a8735c2a7ee6` 的权威矩阵与 1,800 秒 App Server soak 全绿；已公开 protocol `0.1.5`、TS/Python SDK `0.2.4`、完整门禁 CLI `0.166.5`、Open VSX `0.37.70` 与 JetBrains Marketplace `0.4.100`，JetBrains `0.4.101` 已上传待审。npm `latest` 已变为 CLI `0.166.6`，tag `v-npm-0-166-6` 指向 `7f18511fbcf87e536add6d5818ebcb9e4d0f7a10`；但该精确提交的 CLI CI 被取消、Strict Sandbox 失败，因此 registry 可见不能继承 `0.166.5` 的生产授权
 > Codex 源码参考基线：`479c8c8924eaafdeb56e86154cd19ff0805839e4`（2026-08-23）  
 > 本机 Codex CLI：`codex-cli 0.149.0`
 
@@ -605,25 +605,38 @@ Codex 公开源码提供动态 Agent Tree 与事后 Trace Graph，ChainlessChain
 | `cc orchestrate` + Cowork parallel         | 会真实启动外部 Agent 并聚合输出                                                                                                                                                                                                                      | 失败可能被报成完成、取消不终止在途 Agent、并行写共享 workspace                                                                                                                                                     |
 | 大量 `*V2 governance overlay`              | profile/task 生命周期与容量原型                                                                                                                                                                                                                      | 多为 module-level `Map` 和手工 `complete-*` 状态转换，不是可跨 CLI 进程恢复的 runtime；应 feature-gate 或改为事件投影                                                                                              |
 
-推荐用一个 GraphRun envelope 管理三种互补图，而不是把它们混成含义不明的单图：
+推荐用一个 GraphRun envelope 绑定三种互补图，但 envelope 本身不是第四种“万能图”。它只统一运行身份、权限、预算、revision 与耐久事件头；真正的控制权仍属于 Task Graph/runtime，Agent Tree 只描述执行拓扑，Artifact/Trace Graph 只做证据投影：
 
 ```mermaid
 flowchart TB
-  S[Trigger & Occurrence Plane<br/>cron · event · resume · timer]
-  R[GraphRun<br/>authority · budget · revision · event log]
-  A[Agent Tree<br/>spawn · message · wait · interrupt]
-  T[Task Graph<br/>dependency · condition · join · retry]
-  D[Artifact & Trace Graph<br/>producer · consumer · receipt · provenance]
-  S -->|idempotent start / wake| R
-  R --> A
-  R --> T
-  R --> D
-  A -->|typed handoff| T
-  T -->|produce / consume| D
-  D -->|evidence / replay| R
+  O[Occurrence Plane<br/>cron · event · resume · timer]
+  R[GraphRun Envelope<br/>run id · authority · budget · revision]
+  T[Task Graph / Runtime<br/>dependency · condition · join · retry]
+  A[Agent Tree<br/>spawn · assignment · message · wait]
+  E[(Append-only Graph Event Store)]
+  P[Artifact / Trace Projections<br/>provenance · timeline · replay · eval]
+
+  O -->|idempotent start / wake command| R
+  R -->|bind immutable revision| T
+  T -->|dispatch AssignmentAttempt| A
+  T -->|state / effect / terminal events| E
+  A -->|agent / message / handoff events| E
+  O -->|occurrence correlation event| E
+  E -.->|deterministic read-only reduce| P
+  E -->|recovery head / CAS evidence| R
 ```
 
-其中 Agent Tree 可以由模型动态扩展，Task Graph 负责确定性依赖和副作用边界，Artifact/Trace Graph 负责证据、因果关系、回放与 Eval。官方也明确指出固定确定性图并不是多智能体模式的最佳场景，因此不要强迫所有协作消息都变成预声明 DAG 节点。
+| 平面 | 权威职责 | 明确不负责 |
+| --- | --- | --- |
+| Trigger / Occurrence | 外部触发、幂等 admission、start/wake dispatch 与 occurrence 终态 | Task ready frontier、GraphRun 终态 |
+| GraphRun envelope | 绑定 run id、definition/revision digest、authority、budget、correlation 与 event head | 用父子关系替代任务依赖；用投影反写调度状态 |
+| Task Graph / runtime | 依赖、condition、join、retry、ready frontier、AssignmentAttempt 与终态 predicate | 表达 Agent 的全部动态协作拓扑 |
+| Agent Tree | spawn、capacity、executor/participant、message、handoff、wait/interrupt 与 residency | 定义 Task 依赖；父子 Agent 不自动生成 DAG 边 |
+| Artifact / Trace projection | 从耐久事件确定性生成 provenance、因果、timeline、回放、diff 与 Eval | 成为 scheduler source of truth 或发起副作用 |
+
+GraphRun 的正常生命周期是：Occurrence 通过幂等准入 → 绑定 immutable revision 并创建/唤醒同一逻辑 run → Task runtime 计算 ready frontier → 向 Agent Tree 分派 `AssignmentAttempt` → runtime 将 attempt、Message/Handoff、Effect/Receipt、Artifact 与终态证据追加到事件账本 → reducer 只读生成 Artifact/Trace 投影。模型可动态 spawn Agent，但这只改变执行拓扑；只有经过 compile、权限/预算复验与 expected-revision CAS 的显式 graph append 才能改变 Task Graph。
+
+失败与恢复必须保持同样边界：Occurrence `succeeded` 只表示 start/wake 已耐久接纳，不代表 GraphRun 成功；“当前无 ready task”也不等于终态；外部 Effect 响应丢失必须依 receipt/reconcile 裁决，不能从 trace 猜测后盲目重放；Trace reducer 可以重建证据，但永远不能反向修改权威 runtime。官方也明确指出固定确定性图并不是多智能体模式的最佳场景，因此不要强迫所有协作消息都变成预声明 DAG 节点。
 
 #### 6.9.2 建立 versioned typed Graph IR 与 effect-before-compile 禁令
 
@@ -1070,6 +1083,16 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 - 精确标签 `ide-vscode-v0.37.70` 的 [IDE 发布运行](https://github.com/chainlesschain/chainlesschain/actions/runs/33020292108) 成功：immutable VSIX、Linux/Windows/macOS stable/minimum host、真实 Remote-SSH container、三操作系统浏览器证据均通过，Open VSX `0.37.70` 已公开并完成 exact VSIX 回读。精确标签 `ide-jetbrains-v0.4.101` 的 [JetBrains 发布运行](https://github.com/chainlesschain/chainlesschain/actions/runs/33020297343) 也成功：Ubuntu/macOS/Windows × 2024.2/2025.2 六个真实宿主、构建、结构、兼容性与 Marketplace 上传均通过；公开列表仍等待 JetBrains 人工审核。该外部审核状态已记录但不阻塞 P1-1 关闭或后续任务推进。
 - Android/iOS 本轮没有应用版本提升、签名商店 artifact 或用户可安装应用候选，因此没有为协议消费变更单独发布移动应用版本。VS Code Marketplace 官方商店仍按 workflow 设计保留为显式手工 backfill；Open VSX 已完成本轮公开发布边界。
 
+### 12.13 CLI 0.166.6 已进入 npm，但精确提交门禁未闭环（2026-08-27）
+
+协调发布完成后，`main` 继续把 P1-10 从 App Server 扩展到 Agent IPC 和既有产品入口。精确提交 `7f18511fbcf87e536add6d5818ebcb9e4d0f7a10` 的 `packages/cli/package.json` 为 `0.166.6`；不可变 tag `v-npm-0-166-6` 已创建，npm 公网回读为 `latest=0.166.6`。但同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33029434942) 被取消，[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33029434768) 失败，不满足仓库规定的 exact-SHA Linux/Windows/macOS 发布门。本节因此同时记录实现与不完整发布事实：
+
+- Agent IPC 现在分别限制累计 Agent（默认 64）、pending interaction（全局 128 / 每 Agent 16）、pending Agent request（全局 256 / 每 Agent 32）、stdout 单行（1 MiB）、stderr chunk（64 KiB）和 stdin frame/queue（1 MiB；128 条 / 4 MiB），并为 initialize、heartbeat、interaction、request 和 drain 建立 deadline；超限返回结构化 `OVERLOADED`，不先创建无界 Promise/Map/缓冲。
+- 旧 WebSocket Gateway、MCP stdio/HTTP-SSE、browser request/control、P2P command/sync、user-mediated permission、媒体流与签名请求也在产生副作用前执行数量/字节 admission。该普查不表示这些入口已迁入 canonical Agent Kernel，更不表示它们共享同一公网协议。
+- 最新性能门继续验证 `SessionMessageFabric`/消息路径的容量不变量；`7f18511fbc` 又把 Vitest worker 基础设施重试串行化，并补测试锁定重试选择/环境，避免重试分片互相争抢资源或 runner 噪声把既有门禁静默降级。虽然 npm 已接收该版本，它仍必须在同一精确 SHA 上重新完成 Linux/Windows/macOS CLI CI、Strict Sandbox、专项 soak、不可变制品和 registry readback，才能获得生产发布资格。
+
+因此生产安装仍固定为 `chainlesschain@0.166.5`；不带版本的 npm 安装会得到 `0.166.6`，文档必须显式提示其门禁未闭环。可以写明 `0.166.6` 是 npm `latest`，但不得把 registry 可见、tag 存在或后续主线修复表述成该精确发布提交已经完成三平台矩阵、签名制品或生产授权。
+
 ## 13. 全量任务完成情况（截至 2026-08-27）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：11 项已完成、13 项部分完成、2 项待完成。
@@ -1093,7 +1116,7 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 | P1     | P1-7  | 触发关联、动态扩图与 termination       | 🟡 部分完成 | occurrence/GraphRun journal、revision CAS、producer lease/seal、quiescence 与 deadlock/livelock 已发布                                                                                                                                                                                                                      | Scheduler/Cowork 生产双写与跨进程竞争 soak                                                                                                                                                                                  |
 | P1     | P1-8  | Effect、Artifact 与 Trace Graph        | 🟡 部分完成 | durable receipt/reconcile/compensation、artifact provenance、append-only event、trace replay/diff 已发布                                                                                                                                                                                                                    | 全产品/跨进程 outbox-inbox 切点与长时恢复矩阵                                                                                                                                                                               |
 | P1     | P1-9  | durable HumanTask 与统一策略事件       | 🟡 部分完成 | HumanTask 核心与 protocol `0.1.3` 已发布；VS Code 可审阅 exact turn/session grant，其余主要端发出 canonical 最小权限决定并保留 binding                                                                                                                                                                                      | Desktop/JetBrains/Android/iOS/Web 的可审阅持久 grant UI、统一 hook/tool policy event、跨产品 cancel/quorum/race/restart conformance                                                                                         |
-| P1     | P1-10 | 有界队列、模块边界与增量 conformance   | 🟡 部分完成 | App Server stdio/WebSocket/SDK 队列有界化；receive/output/bytes/payload/connection cap、`OVERLOADED + retry_after_ms`、慢消费者断路、严格审批、37-event fixture、跨端 causal conformance 与精确 SHA 的 30 分钟 RSS/过载门禁已完成                                                                         | 普查并有界化旧 transport/event/message/tool backlog；拆分剩余超大模块；扩展 crash/recovery/migration conformance matrix                                                                                                     |
+| P1     | P1-10 | 有界队列、模块边界与增量 conformance   | 🟡 部分完成 | `0.166.5` 已完成 App Server stdio/WebSocket/SDK 上限、慢消费者断路、37-event causal conformance 与精确 SHA 的 30 分钟 RSS/过载门；`0.166.6@7f18511fbc` 完成 Agent IPC 全局/per-agent 上限、旧入口 backlog admission 与 Vitest 基础设施重试串行化，并已进入 npm `latest`，但 CLI CI 被取消、Strict Sandbox 失败 | 在 `0.166.6` 精确 SHA 重新跑齐发布矩阵与专项 soak，必要时发布修正版并完成 registry/provenance 回读；拆分剩余超大模块；扩展 crash/recovery/migration conformance matrix                                                                                                                  |
 | P1     | P1-11 | Skill 供应链、数据来源与选择性网络出口 | 🟡 部分完成 | Graph data lineage/declassification 与 webhook HMAC/replay/body/rate cap 已发布                                                                                                                                                                                                                                             | Skill 签名/containment、vendor 原生签名、全产品统一 egress broker                                                                                                                                                           |
 | P1     | P1-12 | Graph Kernel 集成、双写验证与迁移切换  | ⏳ 待完成   | machine-readable claims、single-writer/shadow/cutover gate 已具备；Browser 标明 non-durable                                                                                                                                                                                                                                 | 执行 authoritative 切换、回滚演练、旧 writer/旧 shell 下线                                                                                                                                                                  |
 | P2     | P2-1  | 稳定 `cc exec` facade                  | ✅ 已完成   | `exec` 与 `agent` 共用同一 command/loop/输出契约；manifest/help/completion 和发布矩阵通过                                                                                                                                                                                                                                   | —（真实 provider 旅程归 P2-6）                                                                                                                                                                                              |

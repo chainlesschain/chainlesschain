@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-25）：产品 v5.0.3.135 / Agent Platform CLI 0.166.2（npm latest、生产推荐与完整发布门对齐）| Agent SDK 0.2.1 | Agent Protocol 0.1.1 | 175 命令 | Node.js ≥ 22.12.0。稳定版为真实 team agent 提供私有消息工具和 TeamMailbox v3；候选代码 `20b1bb5563` 的 SessionMessageFabric 仍未发布。**
+> **当前版本边界（2026-08-27）：产品 v5.0.3.135 / Agent Platform CLI 0.166.5（完整门禁的生产推荐）/ npm latest 0.166.6（精确提交门禁未闭环）| Agent SDK 0.2.4 | Agent Protocol 0.1.5 | 175 命令 | Node.js ≥ 22.12.0。推荐版已包含 SessionMessageFabric/custody、payload union、跨端 causal conformance、固定能力 App Server pilot 与实验 WebSocket；0.166.6 又加入有界 Agent IPC。**
 
 ## 概述
 
@@ -15,7 +15,7 @@ ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，�
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - 📨 **TeamMailbox v3**: 真实 `cc team --agent` 子进程可使用私有 `team_send|receive|ack|followup`，支持至少一次投递、幂等、稳定 consumer 和 dead-letter
 - 🧩 **产品集成协议**: `cc serve --app-server` 提供耐久 Thread/Turn/Item、结构化审批、背压与断线恢复
-- 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供时间旅行、根因分析和 CI 阈值门
+- 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供只读时间旅行、根因分析和 CI 阈值门；Task Graph、动态 Agent Tree 与 Artifact/Trace 投影保持不同语义
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
 - 🧪 **30,000+ 测试通过**: 跨桌面 / CLI / web-panel / core packages 共 6 层测试矩阵
 

@@ -1,6 +1,6 @@
 # Agent SDK — TypeScript + Python 智能体接入套件
 
-> **更新: 2026-08-26 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.2.3` / PyPI `chainlesschain-agent-sdk==0.2.3` / npm `@chainlesschain/agent-protocol@0.1.4` / CLI `chainlesschain@0.166.4`） | 协议版本 Agent Protocol v1 | TypeScript + Python SDK，多语言生成协议**
+> **更新: 2026-08-27 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.2.4` / PyPI `chainlesschain-agent-sdk==0.2.4` / npm `@chainlesschain/agent-protocol@0.1.5` / CLI `chainlesschain@0.166.5`） | 协议版本 Agent Protocol v1 | TypeScript + Python SDK，多语言生成协议**
 >
 > Agent SDK 把 `cc agent` 的 stream-json 双工协议固化为**带类型的正式契约**：Node/浏览器使用 TypeScript 包，Python 自动化与 CI 使用 PyPI 包；流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析。VS Code 扩展、web-panel 已迁移到 TypeScript SDK；JetBrains 插件（Kotlin/Java）对齐同一份语言中立协议。
 
@@ -13,11 +13,11 @@
 3. **自行对齐事件词汇表** — `system/init`、`stream_event`、`approval_request`、`result` 等十余种事件的字段名靠读 CLI 源码；
 4. **自行实现审批/恢复语义** — 审批超时 fail-closed、resume 何时真正回放历史，全是隐式约定。
 
-Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 `.d.ts` 的 TypeScript SDK 与带 `py.typed`/dataclass 的 Python SDK——再加一份版本化协议。**协议即契约**（Agent Protocol v1）：`packages/agent-protocol` 的 canonical JSON Schema 生成 TypeScript、Python、Kotlin 与 Swift 绑定，并冻结 v1 baseline 做不兼容变更检查。Agent Protocol `0.1.4` 已作为独立 npm 包公开；SDK 同时携带生成结果，不增加运行时依赖。
+Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 `.d.ts` 的 TypeScript SDK 与带 `py.typed`/dataclass 的 Python SDK——再加一份版本化协议。**协议即契约**（Agent Protocol v1）：`packages/agent-protocol` 的 canonical JSON Schema 生成 TypeScript、Python、Kotlin 与 Swift 绑定，并冻结 v1 baseline 做不兼容变更检查。Agent Protocol `0.1.5` 已作为独立 npm 包公开；SDK 同时携带生成结果，不增加运行时依赖。
 
 ## 核心特性
 
-- 📡 **canonical 事件词汇表**：`0.2.3` 从单一 Schema 生成 37 个已知 Agent stdout discriminator、typed envelope 与 validator；TypeScript 提供 `isKnownAgentEvent`，Python 提供 `CC_AGENT_STREAM_EVENT_TYPES` / `validate_agent_stream_event`。既有 lossless transport guard 仍保留未知未来事件及新增字段，不会因 additive 事件中断事件泵。
+- 📡 **canonical payload union**：`0.2.4` 从单一 Schema 生成 37 个已知 Agent stdout discriminator 的完整 payload-level union、typed envelope 与严格 validator；TypeScript 的 `KnownAgentStreamEvent` 直接指向生成 union，Python 从开放 dataclass 层自动发现便捷 handler。lossless transport 仍保留未知未来事件及新增字段。
 - ✅ **审批回调契约**：`onApproval` 可返回 canonical `acceptOnce / acceptForTurn / acceptForSession / decline / cancel`，请求与响应绑定 operation/args/cwd/policy digest 和最小 `requested_permissions`；异常、非法或 binding 不匹配均失败关闭。旧 boolean callback 与 wire response 保持 N-1 兼容。
 - 🔄 **会话恢复契约**：`sessionId`（新会话首启声明 id）/ `resume`（续既有会话）/ `forkSession`；`init` 事件回传 `session_id` 与 `resumed_messages`。
 - 🐍 **Python 原生异步 API**：`asyncio` 子进程、异步迭代器、同步/协程双形态 callback、冻结 dataclass 与深拷贝 `to_dict()`；approval 异常拒绝、question 异常取消、MCP elicitation 仅显式 `accept` 才放行。
@@ -28,6 +28,7 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 - 🌐 **浏览器安全入口**：`/browser` 子路径零 Node 依赖——协议类型 + NDJSON 解码器 + `bg-*` WebSocket 帧构造/判别（`bgRequest` / `isBgPushFrame`），web-panel 直接消费。
 - 📦 **多语言正式包 + 零依赖**：TypeScript 产 ESM + CJS 两份（`exports` 条件导出），Python 产 universal wheel + sdist；两个包都没有运行时依赖。
 - 🧩 **生成式 App Server 契约**：`0.2.0` 新增 Thread / Turn / Item / Approval JSON-RPC 类型，TypeScript `AppServerClient` 可直接启动 `cc serve --app-server`，并自动执行 initialize 能力协商。
+- 🧪 **固定能力产品 pilot**：`AppServerPilotClient` 只暴露 thread start/resume/fork/read/list/archive 与 turn start/interrupt，不提供 generic `request()`；Desktop/IDE 可在不向 renderer/Webview 开放任意本机 RPC 的前提下试点接入。
 - 🚦 **有界与失败闭合**：客户端 pending request、服务端 request/output queue、NDJSON 单行与请求超时均有上限；未配置服务端审批 handler 时默认拒绝，过载返回稳定 `-32001`。
 
 ## 系统架构
@@ -63,9 +64,10 @@ packages/agent-protocol (canonical schema + baseline)
    └─ codegen ──► TypeScript / Python / Kotlin / Swift
                          │
                          ▼
-@chainlesschain/agent-sdk 0.2.3
+@chainlesschain/agent-sdk 0.2.4
    ├─ AgentSession          cc agent stream-json
-   └─ AppServerClient       cc serve --app-server (stdio JSON-RPC)
+   ├─ AppServerClient       cc serve --app-server (stdio JSON-RPC)
+   └─ AppServerPilotClient  fixed Thread/Turn product surface
                                ├─ thread start/read/resume/fork
                                ├─ turn start/interrupt
                                └─ item/approval notifications
@@ -87,20 +89,20 @@ packages/agent-protocol (canonical schema + baseline)
 ### TypeScript / Node
 
 ```bash
-npm install "@chainlesschain/agent-sdk@0.2.3"
+npm install "@chainlesschain/agent-sdk@0.2.4"
 ```
 
 ### Python
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.2.3"
+python -m pip install "chainlesschain-agent-sdk==0.2.4"
 ```
 
 Python 包已在 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) 公开发布，支持
 Python 3.10、3.11、3.12、3.13。SDK 通过子进程驱动 `cc agent`，因此 CLI 需要单独安装：
 
 ```bash
-npm install --global "chainlesschain@0.166.4"
+npm install --global "chainlesschain@0.166.5"
 cc --version
 ```
 
@@ -438,6 +440,6 @@ Python 使用同一组语义，字段名改为 snake_case：
 - [可靠性评测 + 趋势门](./cli-eval.md)
 - [语义代码智能 — LSP](./cli-code-intel.md)
 - [Cowork 多智能体协作](./cowork.md)
-- [Python SDK 0.2.3（PyPI）](https://pypi.org/project/chainlesschain-agent-sdk/)
+- [Python SDK 0.2.4（PyPI）](https://pypi.org/project/chainlesschain-agent-sdk/)
 - [Python SDK 仓库说明](https://github.com/chainlesschain/chainlesschain/tree/main/packages/agent-sdk-python)
 - 设计文档：`docs/design/modules/103_Agent_SDK平台化方案.md`（设计站同步）

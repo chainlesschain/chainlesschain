@@ -1,11 +1,11 @@
-# CLI Runtime 当前实现核对（Agent Platform 0.166.4）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.5）
 
-> 更新时间：2026-08-26。npm `latest` 与生产推荐版为 Agent Platform `0.166.4`；公开 CLI 能力绑定不可变 tag `v-npm-0-166-4` 的精确 SHA `6b1619926c5aadc4586e17994b607169b2ae58ae`。TypeScript/Python Agent SDK `0.2.3` 与 Agent Protocol `0.1.4` 已公开；Open VSX `0.37.69` 与 JetBrains `0.4.99` 是独立回读的市场版本。
+> 更新时间：2026-08-27。完整门禁的生产推荐版为 Agent Platform `0.166.5`，绑定不可变 tag `v-npm-0-166-5` 的精确 SHA `2f5b0f263a142fd31daca1396456a8735c2a7ee6`。npm `latest` 已变为 `0.166.6`，tag 提交 `7f18511fbc` 的 CLI CI 被取消、Strict Sandbox 失败，不能继承生产授权。TypeScript/Python Agent SDK `0.2.4`、Agent Protocol `0.1.5`、Open VSX `0.37.70` 与 JetBrains `0.4.100` 已公开回读。
 
 ## 版本与证据边界
 
-- `0.166.4` 是当前生产推荐基线。`v-npm-0-166-4` 精确指向 `6b1619926c5aadc4586e17994b607169b2ae58ae`；同一 SHA 的 `CLI CI` `32954164746`、`CLI Strict Sandbox` `32954183220` 与 npm/TS SDK 发布 `32959864584` 均成功。npm 公网回读为 `latest=0.166.4`。
-- `@chainlesschain/agent-sdk@0.2.3`、`chainlesschain-agent-sdk==0.2.3` 与 `@chainlesschain/agent-protocol@0.1.4` 已公开，SDK 与 Protocol 保持独立安装和发版边界。
+- `0.166.5` 是当前生产推荐基线。`v-npm-0-166-5` 精确指向 `2f5b0f263a142fd31daca1396456a8735c2a7ee6`；同一 SHA 的 `CLI CI` `33006394588`、`CLI Strict Sandbox` `33006393969`、协议/SDK/IDE/移动端/E2E/Full/Code Quality 与 App Server soak `33006394148` 均成功。该版本曾完成 npm 公网回读；当前 `latest=0.166.6`，但新版本精确提交门禁未闭环。
+- `@chainlesschain/agent-sdk@0.2.4`、`chainlesschain-agent-sdk==0.2.4` 与 `@chainlesschain/agent-protocol@0.1.5` 已公开，SDK 与 Protocol 保持独立安装和发版边界。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -18,10 +18,12 @@
 - `0.166.1` 协同公开 Agent SDK `0.2.1` 与 Agent Protocol `0.1.1`，继续分离 CLI、SDK、Protocol 的安装和发布证据。
 - `0.166.2` 为真实 `cc team --agent` 子进程注入宿主私有 `team_send`、`team_receive`、`team_ack`、`team_followup` 工具；TeamMailbox v3 提供稳定 consumer、至少一次投递、幂等、read/processed/dead-letter 与 `--state` checkpoint。桥接调用重验 holder/task/attempt/lease/fence，凭据不进入 prompt 且不可继承。
 - `0.166.4` 在 custody handoff、SessionMessageFabric 与结构化审批之上，公开 37 类 canonical Agent stream discriminator、typed envelope 与严格 validator；协议与两套 SDK 协调升级为 `0.1.4/0.2.3`。
-- `cc serve --app-server` 以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。
+- `0.166.5` 公开 37 类事件的 payload discriminated union、四语言/主要客户端消费、跨端 causal conformance、Desktop/VS Code 固定能力 App Server pilot 与实验 WebSocket；协议与两套 SDK 升级为 `0.1.5/0.2.4`。
+- npm `0.166.6` 进一步有界化 Agent IPC 全局/per-agent 数量、stdio frame/queue 和 timeout，以及旧 WS/MCP/browser/P2P/permission/media/signing backlog；registry 已公开，但完整门禁闭环前不能按生产推荐版使用。
+- `cc serve --app-server` 默认以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。`--app-server-websocket` 是强制 token、远程 TLS 与固定子协议的实验入口。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
-- IDE 当前公开版本为 Open VSX `0.37.69` 与 JetBrains `0.4.99`，且已完成发布后回读；双端消费 Schema 生成事件类型。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
-- CLI/SDK/Protocol `0.166.4/0.2.3/0.1.4` 的发布门已经完成；37-event inventory 已属于公开契约，但 payload 级完整 union、Desktop/Cowork/Scheduler、生产 relay、跨宿主和签名 native 验收仍需独立判断。
+- IDE 当前公开版本为 Open VSX `0.37.70` 与 JetBrains `0.4.100`，且已完成发布后回读；JetBrains `0.4.101` 已上传待审。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- CLI/SDK/Protocol `0.166.5/0.2.4/0.1.5` 的发布门已经完成；payload union 与 causal conformance 已属于公开契约，但 Desktop/Cowork/Scheduler authoritative cutover、生产 relay、真实 provider 与签名 native 验收仍需独立判断。
 
 ## 当前边界
 
@@ -335,10 +337,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 公开版 `0.37.69` / JetBrains `0.4.99` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE 公开版 `0.37.70` / JetBrains `0.4.100` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.69`；JetBrains Marketplace 当前公开 `0.4.99`。双端消费 Schema 生成事件 enum/envelope 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影。主线 JetBrains `0.4.100` 将生产 chat 路由切到生成 enum。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- Open VSX 当前公开 `0.37.70`；JetBrains Marketplace 当前公开 `0.4.100`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影。VS Code 另有默认关闭的固定能力 App Server pilot；JetBrains `0.4.101` 已上传待审。Microsoft VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -390,9 +392,9 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.4` 的精确正式发布提交为 [`6b1619926c5aadc4586e17994b607169b2ae58ae`](https://github.com/chainlesschain/chainlesschain/commit/6b1619926c5aadc4586e17994b607169b2ae58ae)。该提交的 [CLI CI run 32954164746](https://github.com/chainlesschain/chainlesschain/actions/runs/32954164746)、[CLI Strict Sandbox run 32954183220](https://github.com/chainlesschain/chainlesschain/actions/runs/32954183220)与[npm/TS SDK publish run 32959864584](https://github.com/chainlesschain/chainlesschain/actions/runs/32959864584)均成功；npm `latest` 已回读为 `0.166.4`。Agent Protocol `0.1.4` 与 Python SDK `0.2.3` 的公开发布绑定 `e7a059d3ed` 并完成公网回读。
+`0.166.5` 的精确正式发布提交为 [`2f5b0f263a142fd31daca1396456a8735c2a7ee6`](https://github.com/chainlesschain/chainlesschain/commit/2f5b0f263a142fd31daca1396456a8735c2a7ee6)。该提交的 [CLI CI run 33006394588](https://github.com/chainlesschain/chainlesschain/actions/runs/33006394588)、[CLI Strict Sandbox run 33006393969](https://github.com/chainlesschain/chainlesschain/actions/runs/33006393969)、协议/SDK/IDE/移动端/E2E/Full/Code Quality 与 [App Server soak run 33006394148](https://github.com/chainlesschain/chainlesschain/actions/runs/33006394148) 均成功；npm `latest` 已回读为 `0.166.5`，Agent Protocol `0.1.5` 与两套 SDK `0.2.4` 也完成公网回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；`6b1619926c` 之后的源码增量不能继承 `v-npm-0-166-4` 的发布授权。当前 `main@33603c631e` 的 JetBrains `0.4.100` 仍按独立源码/市场身份处理。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；`2f5b0f263a` 之后的源码增量不能继承 `v-npm-0-166-5` 的发布授权。CLI `0.166.6@7f18511fbc` 虽已进入 npm `latest`，但门禁未闭环；JetBrains `0.4.101` 仍按独立市场身份处理。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
 

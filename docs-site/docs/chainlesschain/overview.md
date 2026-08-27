@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-26）：v5.0.3.135 | Agent Platform CLI 0.166.4（npm latest / 生产推荐）| Agent SDK 0.2.3 | Agent Protocol 0.1.4 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.69 | JetBrains Marketplace 0.4.99 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-27）：v5.0.3.135 | Agent Platform CLI 0.166.5（npm latest / 生产推荐）| Agent SDK 0.2.4 | Agent Protocol 0.1.5 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.70 | JetBrains Marketplace 0.4.100 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.166.4` 延续真实 Team child 消息、custody handoff、`SessionMessageFabric`、结构化审批、CC App Server 与 Agent/Graph Kernel，并公开由单一 Schema 生成的 37 类 Agent stream event 清单。CLI/TS SDK 精确 SHA `6b1619926c` 与 Protocol/Python SDK SHA `e7a059d3ed` 的门禁、发布及公网回读均成功。Open VSX `0.37.69` 与 JetBrains `0.4.99` 已公开；主线 JetBrains `0.4.100` 的生成事件路由、完整 payload union、签名 native 与长期 soak 继续按独立发行证据处理。
+> **当前能力与发布边界**：生产推荐 CLI `0.166.5` 延续真实 Team child 消息、custody handoff、`SessionMessageFabric`、结构化审批与 Agent/Graph Kernel，37 类 Agent stream event 已从单一 Schema 生成 payload union 并通过跨端 causal conformance；Desktop/VS Code 固定能力 App Server pilot、强鉴权/TLS/有界背压的实验 WebSocket 与 1,800 秒 overload/RSS soak 已闭环。精确提交 `2f5b0f263a` 的权威矩阵及公网回读成功。npm `latest=0.166.6` 已公开 Agent IPC/legacy backlog 有界化，但标签提交 `7f18511fbc` 的 CLI CI 被取消、Strict Sandbox 失败，不能继承生产授权。Open VSX `0.37.70` 与 JetBrains `0.4.100` 已公开；JetBrains `0.4.101` 已上传待审。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

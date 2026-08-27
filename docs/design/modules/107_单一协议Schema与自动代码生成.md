@@ -1,8 +1,8 @@
 # 107. 单一协议 Schema 与自动代码生成
 
-> 状态：**canonical 核心与事件清单已落地，payload 级迁移进行中**｜公开基线：Agent Protocol `0.1.4`、Agent SDK `0.2.3`、CLI `0.166.4`｜Wire Protocol：v1｜更新：2026-08-26
+> 状态：**canonical 核心、37-event payload union 与主要生产消费已闭环**｜公开基线：Agent Protocol `0.1.5`、Agent SDK `0.2.4`、CLI `0.166.5`｜Wire Protocol：v1｜更新：2026-08-27
 >
-> Protocol `0.1.4` 与 Python SDK `0.2.3` 的发布身份绑定 `e7a059d3ed`，CLI/TypeScript SDK `0.166.4/0.2.3` 绑定 `6b1619926c`。公开能力仍以不可变标签、CI、provenance 与 registry readback 为准；包版本与 wire v1 必须分开陈述。
+> 协调发布最终候选为 `2f5b0f263a`：Protocol `0.1.5`、TypeScript/Python SDK `0.2.4`、CLI `0.166.5` 与 Open VSX `0.37.70` 已完成不可变标签、CI、provenance 与 registry/marketplace readback。包版本与 wire v1 必须分开陈述；CLI `0.166.6@7f18511fbc` 已进入 npm，但其精确提交门禁未闭环，不属于上述完整发布证据。
 
 ## 1. 设计结论
 
@@ -52,10 +52,10 @@ Agent Protocol 必须作为独立基础模块治理，不能继续只作为 Agen
 | --- | --- | --- |
 | Wire Protocol | `1` | 对端能力协商与兼容主线 |
 | Minimum compatible wire version | `1` | 当前实现可安全解释的最低 wire 版本 |
-| 公开 npm 包 | `@chainlesschain/agent-protocol@0.1.4` | 已验证的公开安装基线 |
-| 仓库包清单 | `0.1.4` | 与公开包一致；后续源码仍须独立验证 |
+| 公开 npm 包 | `@chainlesschain/agent-protocol@0.1.5` | 已验证的公开安装基线 |
+| 仓库包清单 | `0.1.5` | 与公开包一致；后续源码仍须独立验证 |
 | Schema digest | `sha256:` 加 64 位十六进制摘要 | 判断 Schema/生成物是否同源 |
-| CLI / SDK 版本 | CLI `0.166.4`、SDK `0.2.3` | 消费者发布身份，与协议包独立 |
+| CLI / SDK 版本 | CLI `0.166.5`、SDK `0.2.4` | 消费者发布身份，与协议包独立 |
 
 包版本允许在 wire v1 内发布兼容增强、validator 修复和生成器改进。若修改会让既有合法消息失效、改变必填性或枚举语义，则必须进入新的 wire version 设计，不能只提升 npm patch/minor。
 
@@ -238,12 +238,12 @@ Schema/生成器变更
 
 | 消费端 | 目标状态 | 当前边界 |
 | --- | --- | --- |
-| TypeScript SDK | 生成类型 + validator + transport client | canonical App Server/审批已纳管；legacy stream union 继续收口 |
-| Python SDK | 与 TS 同源生成模型和 fixture | 已发布 SDK；完整事件 union 继续收口 |
-| VS Code / Web | 通过 SDK 或同步生成物消费 | canonical 审批已进入生产路径；禁止 Webview 自行扩权 |
-| JetBrains / Android / Wear | Kotlin 生成绑定 + adapter | 审批 union 已对齐；其余手写事件逐类迁移 |
-| iOS/macOS | Swift 生成绑定 + host policy | 审批决定已消费；完整事件流 conformance 继续补齐 |
-| Desktop / CLI | boundary validator + canonical state mapping | 仍需清理重复手写 union，并补完整端到端 conformance |
+| TypeScript SDK | 生成类型 + validator + transport client | `KnownAgentStreamEvent` 直接别名生成的 canonical union，无第二份 wire union |
+| Python SDK | 与 TS 同源生成模型和 fixture | 严格 payload union 已生成；开放 dataclass 层只保留 ergonomic dispatch |
+| VS Code / Web | 通过 SDK 或同步生成物消费 | VS Code 生产 mapper 消费生成 inventory；Webview 不获得协议扩权 |
+| JetBrains / Android / Wear | Kotlin 生成绑定 + adapter | JetBrains 与 Android 主要生产入口消费生成 enum/payload；未知事件保持兼容 |
+| iOS/macOS | Swift 生成绑定 + host policy | RemoteSession 消费生成 envelope，原始未知 JSON 继续保留 |
+| Desktop / CLI | boundary validator + canonical state mapping | 共用 causal fixture，Desktop 有界关联 trace，CLI 提供语义投影 |
 
 迁移顺序优先安全敏感类型，再迁移生命周期与诊断事件：
 
@@ -275,21 +275,21 @@ Schema/生成器变更
 - TS/Python/Kotlin/Swift 确定性 codegen；
 - CLI 内嵌 Schema 镜像；
 - runtime validator 与严格 `ApprovalDecision`；
-- 37 个现有 Agent stream discriminator 的 canonical `AgentStreamEventType`、typed envelope 与严格 validator；
+- 37 个现有 Agent stream discriminator 的 canonical `AgentStreamEventType`、payload-level discriminated union、typed envelope 与严格 validator；
 - 跨语言关键字、生成物 freshness、package exports 与审批 fixtures；
-- 协议、TS SDK、Python SDK 与 VS Code vendored SDK 共用的合法/非法 stream-event fixtures；
-- 三平台 Agent Protocol CI、Swift 编译重放和 package tarball 检查；
-- Agent Protocol `0.1.4`、TypeScript/Python Agent SDK `0.2.3` 与 CLI `0.166.4` 的公开发布证据。
+- 协议、TS/Python SDK、CLI、Desktop、VS Code 与 JetBrains 共用的合法/非法及 causal interleaving fixtures；
+- JetBrains/Android/iOS 主要生产消费迁移，未知未来事件保持 transport 可见；
+- 三平台 Agent Protocol CI、Swift 编译重放、Android/iOS/Desktop/IDE consumer 门与 package tarball 检查；
+- Agent Protocol `0.1.5`、TypeScript/Python Agent SDK `0.2.4`、CLI `0.166.5` 与 Open VSX `0.37.70` 的公开发布证据。
 
 ### 尚未完成
 
-- 每类 stream event 的 payload 级 discriminated union 全量生成与生产消费；
-- CLI、Desktop、VS Code、JetBrains、Android/Wear、iOS 的完整事件流 conformance；
-- 所有客户端手写协议镜像清零；
+- 低流量 legacy/custom adapter 的剩余手写展示投影清零；
+- 更长时间、高吞吐、崩溃恢复与恶意 payload fuzz 的全产品统一矩阵；
 - wire v2 的正式演进/RFC 模板与双栈迁移演练；
-- 长时间高吞吐和恶意 payload fuzz/soak 的统一证据。
+- Android/iOS 可安装签名应用版本与 native 商店发行仍按各产品单独取证。
 
-JetBrains `0.4.99` 已编译生成 Kotlin enum/envelope；主线 `0.4.100` 进一步让 chat mapper、raw stdout fallback 与 lifecycle checks 走生成事件枚举。其余 Kotlin/Swift/产品消费和 payload 级 union 仍需按 exact-SHA 门禁逐项关闭。
+JetBrains Marketplace `0.4.100` 已公开并让 chat mapper、raw stdout fallback 与 lifecycle checks 走生成事件枚举；主线 `0.4.101` 已上传待审。Open VSX `0.37.70` 已公开。市场状态与 Desktop/mobile/native 应用发行身份仍需分别陈述。
 
 ## 14. 关键文件
 

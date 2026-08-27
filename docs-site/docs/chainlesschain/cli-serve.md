@@ -1,6 +1,6 @@
 # 服务入口（serve）：WebSocket Gateway 与 CC App Server
 
-> 适用版本：`chainlesschain@0.166.2`。`chainlesschain serve` 有两个互斥入口：默认启动既有 WebSocket Gateway；`--app-server` 启动面向完整产品集成的 stdio JSON-RPC 服务。本文详述 WebSocket 模式，App Server 请进入独立的 [CC App Server 使用指南](./cli-app-server.md)。
+> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`；后者精确提交门禁未闭环。`chainlesschain serve` 默认启动既有 WebSocket Gateway；`--app-server` 默认启动 stdio JSON-RPC，显式加 `--app-server-websocket` 才启动独立的实验 App Server WebSocket。两个 WS 协议面不可混用，App Server 详见[独立指南](./cli-app-server.md)。
 
 ## 概述
 
@@ -30,6 +30,7 @@ App Server 使用 stdio，不监听端口；WebSocket 的 `--port`、`--host`、
 - **压缩观测**: 按 provider/model 维度的压缩命中率、节省 token 数、策略分布等统计数据
 - **最大连接数**: 默认最多 10 个并发连接，可通过 `--max-connections` 调整
 - **命令超时**: 默认 30 秒超时，可通过 `--timeout` 调整
+- **有界背压**: 每连接输入/输出消息数和字节数、socket buffered bytes、单命令累计输出与慢消费者等待都有默认上限；过载只终止受影响请求/连接
 - **命令黑名单**: `serve`、`chat`、`agent`、`setup` 等交互式命令被禁止通过 WS 执行
 
 ## 系统架构
@@ -90,8 +91,11 @@ Client (浏览器/IDE/脚本)
 # CLI 启动参数
 chainlesschain serve [options]
   --app-server                   # 改为启动 stdio CC App Server（与 WS 模式互斥）
+  --app-server-websocket         # App Server 改用实验 WebSocket（必须同时 --app-server）
   --app-server-state-dir <path>  # App Server rollout 私有目录
   --app-server-queue-cap <n>     # App Server 请求队列上限（默认 256）
+  --app-server-tls-cert <path>   # 非 loopback App Server WS TLS 证书
+  --app-server-tls-key <path>    # 非 loopback App Server WS TLS 私钥
   -p, --port <port>             # WebSocket 端口 (默认 18800)
   -H, --host <host>             # 绑定地址 (默认 127.0.0.1)
   --token <token>               # 认证 token（远程访问必填）
@@ -108,6 +112,7 @@ CC_WS_TOKEN=<token>             # 等同于 --token
 CC_WS_ALLOW_REMOTE=1            # 等同于 --allow-remote
 CC_WS_MAX_CONNECTIONS=10        # 等同于 --max-connections
 CC_WS_TIMEOUT=30000             # 等同于 --timeout
+CHAINLESSCHAIN_APP_SERVER_TOKEN=<至少32字节随机值> # 实验 App Server WS token
 
 # 命令黑名单（不可通过 WS 执行）
 serve / chat / agent / setup
@@ -154,7 +159,7 @@ packages/cli/__tests__/
 
 - **命令分词**: 使用内置 `tokenizeCommand` 安全分词器，从不调用 `spawn` 的 `shell: true`
 - **命令黑名单**: 交互式命令 (`serve` / `chat` / `agent` / `setup`) 禁止通过 WS 执行
-- **长度限制**: 消息体超过 1MB 自动拒绝，防止内存耗尽攻击
+- **长度限制**：legacy WebSocket 默认 `maxPayload` 为 32 MiB，仍受消息/命令字段和有界队列的更细上限约束；CC App Server 实验 WebSocket 的请求 payload 上限为 1 MiB。两种入口不要混用口径。
 
 ### 2. 权限控制
 

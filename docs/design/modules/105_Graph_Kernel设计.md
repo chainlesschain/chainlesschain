@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`（2026-08-25）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；完整门禁的生产推荐为 `0.166.5`，npm `latest` 为 `0.166.6`（精确提交门禁未闭环，2026-08-27）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
 
 ## 1. 定位
 
@@ -13,15 +13,36 @@ Graph Kernel 与 CC App Server 分工明确：
 | CC App Server | 产品接入、Thread/Turn/Item/Approval、协议协商、rollout | Task DAG 调度与多 Agent 资源竞争 |
 | Graph Kernel  | Graph IR、调度、消息、Effect、HumanTask、事件与投影    | UI transport、客户端生命周期协议 |
 
-## 2. 三类图
+## 2. GraphRun 与三类图
 
-系统不把所有关系混成一张图：
+`GraphRun` 是 authority envelope，不是把所有关系混在一起的第四种“万能图”。它绑定 run id、definition/revision digest、trace/correlation、权限、预算与事件 head；三类图共享这些身份，但各自只有一种职责：
 
-1. **Task Graph**：运行前编译的确定性依赖 DAG，回答“哪些任务必须先完成”；
-2. **Agent Tree**：运行时动态的 Agent、capacity 与 AssignmentAttempt，回答“谁在执行”；
-3. **Artifact/Trace Graph**：运行后由 append-only 事件投影出的产物、消息、Effect 和时间线，回答“发生了什么、证据在哪里”。
+| 平面 | 回答的问题 | 权威职责 | 明确不负责 |
+| --- | --- | --- | --- |
+| Task Graph / runtime | 哪些任务何时可以运行？ | 确定性依赖、condition、join、retry、ready frontier、Attempt 与终态 predicate | 表达动态 Agent 父子关系 |
+| Agent Tree | 谁在执行和协作？ | spawn、capacity、AssignmentAttempt、message、handoff、wait/interrupt 与 residency | 定义 Task 依赖；父子关系不自动生成 DAG 边 |
+| Artifact/Trace projection | 发生了什么，证据在哪里？ | 从 append-only 事件确定性生成 provenance、因果、timeline、replay、diff 与 Eval | 作为 scheduler source of truth 或反向写 runtime |
 
-三者共享 run id、revision digest、trace/correlation、权限、预算与事件序列，但不能互相代替。Agent Tree 的父子关系不是任务依赖，Artifact 边也不是调度边。
+```mermaid
+flowchart TB
+  O[Occurrence Plane<br/>cron · event · resume · timer]
+  R[GraphRun Envelope<br/>run id · authority · budget · revision]
+  T[Task Graph / Runtime<br/>dependency · condition · join · retry]
+  A[Agent Tree<br/>spawn · assignment · message · wait]
+  E[(Append-only Graph Event Store)]
+  P[Artifact / Trace Projections<br/>provenance · timeline · replay · eval]
+
+  O -->|idempotent start / wake command| R
+  R -->|bind immutable revision| T
+  T -->|dispatch AssignmentAttempt| A
+  T -->|state / effect / terminal events| E
+  A -->|agent / message / handoff events| E
+  O -->|occurrence correlation event| E
+  E -.->|deterministic read-only reduce| P
+  E -->|recovery head / CAS evidence| R
+```
+
+箭头语义也不能混用：`start/wake` 是命令，`dispatch AssignmentAttempt` 是调度，指向 event store 的边是耐久事实，虚线 reduce 是只读投影。Agent 动态 spawn 只改变执行拓扑；只有通过 compile、权限/预算复验和 expected-revision CAS 的显式 append 才改变 Task Graph。
 
 ## 3. 架构
 
@@ -54,6 +75,21 @@ GraphEventStore (append-only hash-chained rollout)
        └─ runtime adapter shadow/cutover evidence
 ```
 
+### 3.1 现有执行面的收敛职责
+
+Canonical Graph Kernel 不是再造一个平行 scheduler，而是把已有真实能力收敛到上述职责边界：
+
+| 现有执行面 | 复用到 canonical kernel 的能力 | 收敛要求 |
+| --- | --- | --- |
+| CLI Scheduler Kernel | occurrence identity、temporal admission、lease/fence、retry/dead-letter 与 unknown-outcome adjudication | 只负责 Trigger/Occurrence；以 journal 关联唯一逻辑 GraphRun，不计算 Task ready frontier |
+| CLI `cc team` | 依赖 DAG、priority、Task lease/fence、预算、scope、worktree/checkpoint/merge 与分布式恢复 | 收敛为 Task runtime/AssignmentAttempt adapter；补齐 typed contract、revision CAS 和 authoritative event writer |
+| CLI Cowork / Dynamic Workflow | condition、fan-out、loop、retry/timeout、definition digest、Effect/Receipt 与 Artifact lineage | 收敛为 Graph Compiler、structured control 与 Effect adapter；并行写必须进入 scope/worktree 隔离 |
+| Desktop Browser Workflow | condition、nested loop、try/catch/finally 与 sub-workflow | 作为 Region/LoopRegion/SubgraphCall adapter；补 restart hydration、parent binding、cycle/depth guard 与取消级联 |
+| 旧 Workflow/AgentCoordinator/`$team` | designer、UI、模板与兼容状态 | 降级为 designer/simulator 或只读投影，不能继续声明 phantom success |
+| `*V2` governance overlay | profile、容量与策略原型 | feature-gate，或改为耐久事件投影；进程内 `Map` 不能冒充可恢复 runtime |
+
+收敛完成的判据不是“存在同名类”，而是同一 adapter contract、同一事件账本、唯一 authoritative writer、shadow projection 等价、rollback drill 通过并关闭 legacy write entrypoint。
+
 ## 4. GraphDefinition 与编译器
 
 `compileGraphDefinition()` 接受纯 JSON GraphDefinition。当前支持版本范围为 v1；canonical JSON 对 key 排序并拒绝非有限数字、函数、Symbol、BigInt、循环/重复对象和非 plain object，随后生成 domain-separated SHA-256 digest。
@@ -71,19 +107,48 @@ GraphEventStore (append-only hash-chained rollout)
 
 失败抛出 `GraphCompileError`，code 为 `CC_GRAPH_COMPILE_FAILED`，diagnostics 按 path/code 稳定排序，并明确 `effectStarted: false`。
 
+### 4.1 Versioned typed Graph IR
+
+Canonical IR 至少包含以下一等实体，不能把它们压回 prompt 字符串或一个宽泛的 `task.status`：
+
+| 实体 | 绑定内容 |
+| --- | --- |
+| `GraphDefinition / GraphRevision` | version、immutable digest、typed node/edge、预算与权限上界 |
+| `GraphRun / TriggerBinding / OccurrenceRef` | 运行身份、revision、authority、correlation、event head 与幂等 admission |
+| `TaskNode / Edge` | capability/role、tools/skills、typed input/output、acceptance、permission、budget、write-set、retry、effect class 与 compensation |
+| `Region / LoopRegion / SubgraphCall / IterationFrame` | 显式 entry/exit、bounded iteration、digest pin、budget slice、cancel/compensation boundary 与 call-cycle/depth guard |
+| `AgentRuntime / AssignmentAttempt` | 真实 executor/participant、capacity slot、role、grant、lease/fence 与 participation status |
+| `Message / Handoff / HumanTask / Decision` | 因果消息、custody 状态机、人工 claim/quorum、operation digest、TTL 与 CAS |
+| `ArtifactRef / Receipt / WaitReason` | 不可变产物、外部 Effect 证据、消费者、retention 与确定性等待根因 |
+
+边区分 control、data、message、review、merge 与 compensation，并支持 `success/failure/always/timeout/cancel` 传播；join 支持 `all/any/quorum/race`。Task 依赖保持无环，循环和递归只能通过有界 Region/Subgraph 展开为 `(nodeId, iterationPath, attempt)` 唯一的无环执行尝试。
+
+Message、DataRef 与 ArtifactRef 还携带可信 dispatch 赋值的 `origin/trust/sensitivity/allowedSinks`。解密、降级或跨信任域发送必须绑定审计化 declassification decision；不可信内容不能自行变成 approval、Graph control edge 或新增 capability。
+
 ## 5. GraphRun 生命周期
 
 GraphRun 从 immutable compiled graph 与 revision digest 启动。运行时允许在 producer lease 下追加经过编译的新图片段；append 使用 revision CAS，seal 后禁止继续扩展。
 
+一次正常运行按以下边界推进：
+
+1. Scheduler occurrence 通过幂等 admission，仅提交 start/wake 命令；
+2. GraphRun 绑定 immutable revision、authority 与预算，同一 occurrence 重试仍关联同一逻辑 run；
+3. Task runtime 计算 ready frontier，并向 Agent Tree 分派 `AssignmentAttempt`；
+4. Attempt、Message/Handoff、Effect/Receipt、Artifact 与状态转换追加到事件账本；
+5. terminal predicate 成立后结算 run；projector 始终只读消费事件并生成调试/Eval 投影。
+
 ```text
-created → running ─┬─ succeeded
-                   ├─ failed
-                   ├─ cancelled
-                   ├─ deadlocked
-                   └─ reconciliation_required
+created → running/open ──seal──> running/sealed
+             │                         ├─ waiting_input / waiting_external
+             │                         ├─ waiting_human / reconciliation_required
+             │                         └─ succeeded / failed / partial / cancelled
+             │                            blocked / deadlocked / budget_exhausted
+             └─ producer lease + revision CAS append（仅 open）
 ```
 
-Quiescence 不等于成功：当没有 ready/running work 时，还要检查 active producer lease、待处理消息、未决 handoff、HumanTask 和 unknown Effect，才能判断成功、等待、死锁或需要对账。
+Quiescence 不等于成功：当没有 ready/running work 时，还要检查 active producer lease、待处理消息、未决 handoff、HumanTask、timer/child/revision 和 unknown Effect，才能判断成功、等待、死锁或需要对账。Occurrence `succeeded` 只表示 start/wake 已耐久接纳，不代表 GraphRun 成功；外部 Effect 响应丢失必须依据 receipt/reconcile 裁决，不能从 Trace 投影猜测后盲目重放。
+
+运行终态采用确定性代数：全部取消才是 `cancelled`，成功与失败/取消并存为 `partial`，失败依赖产生 `upstream_failed/blocked-root`，循环上限产生 `budget_exhausted`。`reconciliation_required` 是必须继续裁决的非成功状态，不能通过 UI 文案改写为 completed。
 
 ## 6. 调度、Attempt 与 fencing
 
@@ -99,6 +164,14 @@ Task node 与执行尝试采用 N:M 模型：一个 node 可以有多个 Assignm
 
 `renewAttempt`、`beginEffect`、`settleEffect`、`registerArtifact` 与 `settleAttempt` 都复核 lease/fence。取消、租约过期或新 fence 生效后的迟到结果不能改变权威状态。
 
+调度还必须同时处理：
+
+- 依赖后代的 priority donation、等待 aging 与 critical-path boost，避免 priority inversion 和长期饥饿；
+- `all/any/quorum/race` join，以及 race loser cancellation；
+- workspace write-set 静态冲突检查和运行时 active scope 冲突；并行可写节点默认使用独立 worktree，不能把 checkpoint 当成外部副作用补偿；
+- cancel/timeout 停止新分派、级联中断 child、等待在途 settlement，再以 fencing 拒绝 late result；
+- Task/Agent/Message/Scope/Lease/Timer/Human/Join wait-for graph，以及 progress digest 重复形成的 livelock 诊断。
+
 ## 7. Effect、Receipt 与补偿
 
 外部副作用使用两阶段语义：
@@ -110,6 +183,8 @@ Task node 与执行尝试采用 N:M 模型：一个 node 可以有多个 Assignm
 5. 需要时由显式 compensation node 处理，不把“反向执行”假设成天然可逆。
 
 Graph Kernel 不宣称全局 exactly-once。正确口径是 durable admission、幂等身份、at-least-once delivery 与 unknown-outcome reconciliation。
+
+Graph state、lease、Message 和 Effect Receipt 之间的跨组件提交使用 transactional outbox/inbox 或等价 journal 收敛。必须覆盖“状态已提交但消息未发”“任务已派发但 lease 未落账”“Effect 已发生但 Receipt 丢失”“processed 已发生但 ACK 未持久化”等 crash cut point；恢复依靠 inbox dedup、fencing 与 reconcile，而不是进程内回调顺序。
 
 ## 8. Artifact
 
@@ -226,7 +301,14 @@ cc team graph eval <run-id> [--thresholds <json>]
 
 ## 16. 发布状态与未决项
 
-已发布：GraphDefinition v1 编译、Graph runtime 核心、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。
+已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`cc team plan/run/queue` 提供真实任务 DAG，但不能等同于所有产品面已经使用 canonical writer。
+
+| 层级 | 当前状态 | 对外口径 |
+| --- | --- | --- |
+| Compiler / Runtime / Event Store | 源码核心已发布并有聚焦测试 | 内核能力存在；不等于稳定公共 writer API |
+| `cc team graph` | `inspect/diff/eval` 已公开 | 只读已有 GraphRun，不创建、恢复或取消 |
+| Team/Cowork/Scheduler | 具备可复用真实能力与 adapter contract | authoritative cutover 仍逐面验收 |
+| Desktop/Browser/IDE | claims、pilot、shadow/cutover 机制已有 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated |
 
 未关闭：
 
@@ -253,7 +335,8 @@ cc team graph eval <run-id> [--thresholds <json>]
 
 ## 18. 相关文档
 
-- [GraphRun 用户指南](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
+- [Graph Kernel 用户指南](../../../docs-site/docs/chainlesschain/cli-graph-kernel.md)
+- [GraphRun 观测子指南](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
 - [CC App Server 设计](./104_CC_App_Server设计.md)
 - [Agent 平台化方案](./103_Agent_SDK平台化方案.md)
 - [Agent Team 用户指南](../../../docs-site/docs/chainlesschain/cli-team.md)

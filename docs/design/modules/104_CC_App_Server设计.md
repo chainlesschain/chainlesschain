@@ -1,6 +1,6 @@
 # 104. CC App Server 设计
 
-> 状态：stdio MVP 首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`（2026-08-25）｜协议版本：v1｜默认存储：hash-chained JSONL｜网络传输：未开放
+> 状态：stdio MVP 首次随 `chainlesschain@0.166.0` 发布；固定能力 Desktop/VS Code pilot 与实验 WebSocket 随 `chainlesschain@0.166.5` / Agent SDK `0.2.4` 完成发布闭环（2026-08-27）｜协议版本：v1｜默认传输：stdio｜网络传输：experimental
 
 ## 1. 定位
 
@@ -28,26 +28,25 @@ App Server 负责把宿主接入 Agent Kernel，并把权威生命周期持久�
 
 ### 2.2 非目标
 
-- v1 不提供 TCP/WebSocket/公网监听；
+- WebSocket 仍是 experimental，不升级为默认传输或公网托管服务；
 - 不承诺外部副作用 exactly-once；
 - 不允许 App Server 绕过 CLI 的审批、预算、sandbox 或 egress policy；
 - 不声称 Desktop/IDE 已经全部迁移；
-- 不把私有 `@chainlesschain/agent-protocol` 当作公开 npm 依赖。
+- 不把 npm 包已公开误写成 renderer/Webview 可以绕过宿主直接调用的通用 RPC 权限。
 
 ## 3. 分层架构
 
 ```text
 Host application
-  └─ @chainlesschain/agent-sdk AppServerClient
+  └─ @chainlesschain/agent-sdk AppServerClient / AppServerPilotClient
        ├─ bounded pending requests
        ├─ generated protocol validation
        └─ approval/decide handler (default decline)
-             │ stdin/stdout · one JSON-RPC object per line
-             ▼
-       StdioAppServerTransport
-       ├─ 1 MiB input line cap
-       ├─ bounded output queue
-       └─ stdout protocol / stderr diagnostics split
+             │
+             ├─ stdio · one JSON-RPC object per line
+             │    └─ 1 MiB line cap + bounded output queue
+             └─ experimental WebSocket
+                  └─ /app-server + fixed subprotocol + token/TLS + slow-consumer breaker
              ▼
        CcAppServer
        ├─ initialize + feature negotiation
@@ -63,7 +62,7 @@ Host application
 
 ## 4. 启动与传输
 
-公开入口：
+默认稳定入口：
 
 ```bash
 cc serve --app-server \
@@ -72,7 +71,18 @@ cc serve --app-server \
   --project <workspace>
 ```
 
-启用 `--app-server` 后，`serve` 不再启动旧 WebSocket 服务，`--port`、`--host` 与 `--allow-remote` 不参与 App Server 传输。v1 仅使用 stdio：stdin 接收 UTF-8 JSONL，stdout 只输出 JSON-RPC，stderr 只承载诊断信息。
+不带 `--app-server-websocket` 时，`--app-server` 不监听端口：stdin 接收 UTF-8 JSONL，stdout 只输出 JSON-RPC，stderr 只承载诊断信息。它不会启动旧 WebSocket Gateway。
+
+实验 WebSocket 入口：
+
+```bash
+CHAINLESSCHAIN_APP_SERVER_TOKEN=<至少32字节随机值> \
+cc serve --app-server --app-server-websocket \
+  --host 127.0.0.1 --port 18800 \
+  --app-server-state-dir <private-directory>
+```
+
+固定路径为 `/app-server`，固定子协议为 `chainlesschain.app-server.experimental.v1`。所有绑定均要求至少 32 字节 token；URL query token 不被采信。非 loopback 还必须同时提供 `--allow-remote`、`--app-server-tls-cert` 与 `--app-server-tls-key`。TLS 文件必须是 ≤1 MiB 的非符号链接普通文件；POSIX 私钥不得对 group/other 开放，证书与私钥需匹配并支持 TLS 1.2+。
 
 Transport 默认约束：
 
@@ -83,6 +93,17 @@ Transport 默认约束：
 | Server 请求队列  | 256 条 / 4 MiB | 返回 `-32001` 与 `retry_after_ms`        |
 | SDK pending 请求 |            256 | 客户端本地返回 `-32001`                  |
 | SDK 请求超时     |         120 秒 | 返回 `-32010`，不把超时解释为成功        |
+
+WebSocket 额外默认约束：单帧 1 MiB、每连接输出 256 条 / 4 MiB、底层 buffered 2 MiB、慢消费者 5 秒、待处理 receive 512、连接清理 10 秒。输入过载返回 `-32001` 与 `retry_after_ms`；输出过载或慢消费者使用 1013 关闭连接。正式 1,800 秒 soak 共回收 2,427,887 个请求，意外错误和遗留请求均为 0，warm-up 后 RSS 增长 0.762%，低于 10% 门槛。
+
+## 4.1 Desktop / VS Code 固定能力 pilot
+
+`AppServerPilotClient` 刻意不暴露 generic `request()`，只提供：
+
+- `thread/start|resume|fork|read|list|archive`
+- `turn/start|interrupt`
+
+VS Code pilot 默认关闭，通过 `chainlesschain.appServer.pilot.enabled` 开启；Desktop 通过 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 开启。Desktop preload 只暴露固定 lifecycle/Thread/Turn IPC，单次参数必须是普通 JSON object 且不超过 256 KiB，子进程强制经过 Desktop Process Broker。两端在接入已评审审批 UI 前都对服务端审批请求返回 canonical decline。
 
 ## 5. 协议协商
 
@@ -212,15 +233,15 @@ SQLite store 使用 `node:sqlite`，只有运行时能力存在时才能选择�
 1. 自定义宿主先通过 `AppServerClient` 试点，不直接手写 transport；
 2. IDE/Desktop 以 feature flag 双读 App Server 与现有会话投影；
 3. 对 frozen fixture 做事件、终态、Artifact 与审批 shadow diff；
-4. 完成 30 分钟 overload/RSS 门、断线恢复、crash cut-point 与回滚演练；
+4. 以已完成的 30 分钟 overload/RSS 门为容量基线，继续补断线恢复、crash cut-point 与回滚演练；
 5. 每个产品单独切换 writer，旧路径清零后才宣称 authoritative；
 6. 网络传输如需加入，另立协议与威胁模型，不复用旧 WS 的安全假设。
 
 ## 13. 验证与未决边界
 
-已完成：协议 codegen/兼容性、App Server lifecycle、rollout hash chain/恢复/分支、客户端 bounded pending、队列过载、Codex adapter 与三平台 CLI/Strict 发布矩阵。
+已完成：协议 codegen/兼容性、App Server lifecycle、rollout hash chain/恢复/分支、客户端 bounded pending、队列过载、Codex adapter、实验 WebSocket、Desktop/VS Code 固定能力 pilot、三平台 CLI/Strict 发布矩阵，以及 `0.166.5@2f5b0f263a` 的 1,800.21 秒 overload/RSS soak（2,427,887 requests、0 unexpected、0 drain leftovers、RSS +0.762%）。
 
-未完成：Desktop/IDE 全量迁移、30 分钟过载 soak、真实 provider 三平台 Graph Agent journey、网络 transport、全产品 crash/recovery conformance 与签名 native 发行。
+未完成：Desktop/IDE 全量迁移、WebSocket 稳定化、真实 provider 三平台 Graph Agent journey、全产品 crash/recovery conformance 与签名 native 发行。实验网络入口和局部 pilot 不能冒充全量 cutover。
 
 ## 14. 关键文件
 

@@ -2,7 +2,9 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import rootPkg from '../../../package.json';
 import releaseSizes from '../data/release-sizes.json';
+import releaseStatus from '../data/release-status.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
 ---
@@ -22,6 +24,9 @@ const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releas
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
           不是浏览器套壳，不是 web 包装。原生文件系统访问、硬件 U-Key 直连、本地 Ollama 深度集成 —
           GUI 该有的体验，Electron 该给的性能。
+        </p>
+        <p class="mt-4 text-sm text-muted leading-relaxed max-w-3xl">
+          CLI {CLI_VERSION} 提供默认关闭的 Desktop App Server pilot：仅开放固定 Thread/Turn 方法，子进程继续由 Process Broker 管理，参数上限 256 KiB；审批 UI 未接入时保持拒绝。它是迁移试点，不表示桌面端已全量切换。
         </p>
         <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
           <a href="#download" class="btn-ember">下载桌面版 ↓</a>

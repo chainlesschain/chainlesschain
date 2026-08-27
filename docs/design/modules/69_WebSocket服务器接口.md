@@ -2,14 +2,16 @@
 
 **版本**: v5.0.2.10  
 **创建日期**: 2026-03-14  
-**最近更新**: 2026-04-06  
-**状态**: 已实现，且已进入 Runtime / Gateway / Event 统一阶段
+**最近更新**: 2026-08-27
+**状态**: 旧 Gateway 已实现并完成 backlog 有界化；canonical App Server WebSocket 为独立 experimental transport
 
 ---
 
 ## 1. 背景
 
 `chainlesschain serve` 为 CLI 提供远程调用入口，使 IDE 插件、Web Panel、自动化脚本和其他前端可以通过 WebSocket 驱动 CLI 能力。
+
+当前存在两个不可混用的 WebSocket 协议面：默认 `cc serve` 仍是本模块描述的 legacy Gateway；`cc serve --app-server --app-server-websocket` 则承载 canonical Thread/Turn/Item JSON-RPC，固定路径 `/app-server` 与子协议 `chainlesschain.app-server.experimental.v1`。后者的安全与状态机设计见[104 CC App Server](./104_CC_App_Server设计.md)。
 
 最早版本主要解决两类问题：
 
@@ -74,6 +76,12 @@ WS 层对应其中的 `gateways/ws`，它的职责应当是：
 - 标准事件发射
 
 而不是直接堆放业务逻辑。
+
+### 2.5 有界背压
+
+legacy Gateway 默认限制每连接 128 条 / 8 MiB 待处理输入、512 条 / 8 MiB 待发送输出、4 MiB socket buffered bytes、8 MiB 单命令累计输出和 5 秒慢消费者等待；消息、字节、socket buffer 或命令输出任一超限都会返回过载或关闭受影响连接。认证、请求、流输出和 cleanup 都有 deadline，断线时必须结算 pending 请求并回收 timer/listener。
+
+App Server WebSocket 另有独立的 1 MiB payload、连接数、receive、请求队列、输出队列和清理上限，不继承 legacy Gateway 的命令协议或认证消息。所有 App Server WebSocket 绑定都要求至少 32 字节 token；非 loopback 还要求显式远程授权和 TLS。
 
 ---
 

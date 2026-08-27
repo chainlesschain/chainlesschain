@@ -1,6 +1,6 @@
 # Agent Kernel 使用与运维指南
 
-> 适用版本：`chainlesschain@0.166.2`｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员
+> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员；`0.166.6` 已公开但精确提交门禁未闭环
 
 ## 概述
 
@@ -106,6 +106,8 @@ cc serve --app-server --app-server-state-dir .cc-app-server-state
 
 这仍复用 Agent Kernel；Thread/Turn/Item、审批转发和 rollout 由 App Server 管理。不要同时另起一个绕过权限/沙箱的自定义工具执行器。
 
+需要试验网络传输时可额外启用 `--app-server-websocket`。它固定使用 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议；所有绑定都要求至少 32 字节 token，非 loopback 还要求显式 `--allow-remote` 与 TLS。该入口仍是 experimental，不替代默认 stdio。
+
 ## 性能指标
 
 当前公开版明确的是容量护栏与运行观测字段，不发布脱离 provider/项目/OS 的统一延迟 SLO：
@@ -186,14 +188,16 @@ cc serve --app-server --app-server-state-dir .cc-app-server-state
 
 ## 当前边界
 
-- Agent Kernel 首次随 `chainlesschain@0.166.0` 发布，当前稳定基线为 `0.166.2`；它不是独立 npm 包或公网服务。
-- Desktop/IDE 并未因此自动全部迁移到 CC App Server。
+- Agent Kernel 首次随 `chainlesschain@0.166.0` 发布，当前公开稳定基线为 `0.166.5`；它不是独立 npm 包或公网服务。
+- Desktop/VS Code 已有默认关闭、固定 Thread/Turn 方法的 App Server pilot，但并未因此自动全部迁移；审批 UI 未接入时仍拒绝。
+- CLI `0.166.6` 为 Agent 数量、pending interaction/request、stdio frame/queue 和 timeout 增加全局及 per-agent 上限；该版本已进入 npm，但精确提交的 CLI CI 被取消、Strict Sandbox 失败，不能按完整门禁生产版承诺。
 - Graph Kernel 发布不代表 Team/Cowork/Scheduler 都已完成 authoritative cutover。
 - 本地测试不替代 exact-SHA 三平台发布门，npm 发布也不等于签名 native 已发行。
 
 ## 相关文档
 
 - [CC App Server 使用指南](./cli-app-server.md)
+- [Graph Kernel 使用与运维](./cli-graph-kernel.md)
 - [GraphRun 观测与评估](./cli-team-graph.md)
 - [Agent SDK](./agent-sdk.md)
 - [Agent 模式](./cli-agent.md)

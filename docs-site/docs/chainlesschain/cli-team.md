@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.166.2`（2026-08-25）。`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval`；`0.166.2` 又为真实 `cc team --agent` 子进程公开私有 `team_send|receive|ack|followup` 宿主工具和 TeamMailbox v3。候选代码 `20b1bb5563` 的 idle wake、custody handoff 与 SessionMessageFabric 仍未发布。以下早期实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.166.5`，npm `latest` 为 `0.166.6`（2026-08-27）。`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval`，`0.166.2` 公开真实 child 的私有消息工具，`0.166.3` 已公开 idle wake、custody handoff、SessionMessageFabric 与结构化审批，`0.166.5` 又补齐 payload union 与跨端 causal conformance；`0.166.6` 增加有界 Agent IPC，但其精确提交门禁未闭环。以下早期实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -696,14 +696,14 @@ Agent Team 当前 checkpoint authority 明确声明：
 不要用高频直接读取队列 JSON 文件代替 `queue status`。原始读取不参与锁协议；Windows 上还
 可能与原子替换发生短暂争用。只读监控若必须访问原始文件，应降低频率并实现退避和重试。
 
-CLI `0.166.2` 没有顶层 `cc team send` 子命令；消息契约仅通过真实 `cc team --agent` 子进程的私有宿主工具公开：
+CLI `0.166.5` 没有顶层 `cc team send` 子命令；消息契约仅通过真实 `cc team --agent` 子进程的私有宿主工具公开：
 
 - `team_send`：定向发送带幂等键的有界消息。
 - `team_receive`：以稳定 consumer 拉取至少一次投递。
 - `team_ack`：推进 read / processed 状态，poison 消息进入 dead-letter。
 - `team_followup`：向指定 teammate 追加受 lease/fence 约束的后续任务。
 
-桥接层每次调用都会重验 holder/task/attempt/lease/fence，credential capability 不进入 prompt 且不可继承。普通 `--exec` shell worker 和 IDE 只有无内容健康投影，不获得消息 authority。候选代码 `20b1bb5563` 的离线恢复、跨进程限流、custody handoff、processed-before-ACK 和 4 MiB pending 上限仍未发布，不能按稳定版使用。
+桥接层每次调用都会重验 holder/task/attempt/lease/fence，credential capability 不进入 prompt 且不可继承。普通 `--exec` shell worker 和 IDE 的无内容健康投影不获得消息 authority。离线恢复、跨进程限流、custody handoff、processed-before-ACK、4 MiB pending 上限与 canonical message/handoff 投影已随 `0.166.3+` 公开；仍未关闭的是更长时间的离线/poison/reorder soak、真实 provider 多 Agent 旅程、跨机器 custody 以及其他产品 adapter 的 authoritative 切换。
 
 ## 使用示例
 
@@ -851,6 +851,7 @@ npm run test:integration -- team
 
 ## 相关文档
 
+- [Graph Kernel 使用与运维](./cli-graph-kernel.md)
 - [CLI Agent 模式](./cli-agent.md)
 - [CLI 安全沙箱](./cli-sandbox.md)
 - [Checkpoint 与回滚](./checkpoint.md)

@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · Agent Platform CLI 0.166.4 · Agent SDK 0.2.3 · Open VSX 0.37.69 · JetBrains 0.4.99｜Canonical Protocol · Graph Kernel";
+        "v5.0.3.135 · CLI 0.166.5 推荐 / npm latest 0.166.6 · Agent SDK 0.2.4 · Open VSX 0.37.70 · JetBrains 0.4.100｜Canonical Protocol · Graph Kernel";
     }
   },
 

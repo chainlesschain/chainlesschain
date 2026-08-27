@@ -145,10 +145,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：npm <code class="font-mono">latest</code> 与生产推荐版为 Agent Platform <code class="font-mono">{CLI_VERSION}</code>。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry 回读；公开版在真实 Team 消息、custody 与结构化审批之上，新增从 canonical Schema 生成的 37 类 Agent stream 事件清单和跨语言 validator。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
+          发布说明：生产推荐版仍为完整门禁的 Agent Platform <code class="font-mono">{CLI_VERSION}</code>；npm <code class="font-mono">latest</code> 已更新为 <code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>，但其精确提交的 CLI CI 被取消、Strict Sandbox 失败，不能继承旧版本发布授权。推荐版不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing、1,800 秒 App Server overload/RSS soak 与独立 registry 回读。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3 万；两端消费 Schema 生成的 Agent 事件类型，VS Code 继续提供精确作用域授权与无正文 message/handoff 计数。主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 的 JetBrains 0.4.100 进一步将生产事件路由切到生成枚举；Desktop/App Server 全量迁移、payload 级完整 union、签名 native 与长期验收继续独立取证。
+          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3 万；VS Code 提供默认关闭、固定能力的 App Server pilot。npm {NPM_LATEST_CLI_VERSION} 已包含 Agent IPC 与 legacy backlog 有界化，但 registry 可见不等于完整发布门；观测到的后续主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> / CLI <code class="font-mono">{SOURCE_CLI_VERSION}</code> 仅含发布与 IDE 元数据维护。Graph authoritative adapter 切换、签名 native 与真实 provider 旅程继续独立取证。
         </p>
 
         <!-- Trust badges -->
