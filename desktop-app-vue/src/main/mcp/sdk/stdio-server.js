@@ -9,7 +9,7 @@
  * are written to stdout. Diagnostic logging goes to stderr.
  *
  * Features:
- * - Line-delimited JSON-RPC 2.0 message processing
+ * - Byte-bounded line-delimited JSON-RPC 2.0 message processing
  * - Tool, resource, and prompt serving
  * - Notification broadcasting via stdout
  * - Graceful shutdown with pending request cleanup
@@ -19,15 +19,15 @@
  * @module mcp/sdk/stdio-server
  */
 
-const { logger } = require('../../utils/logger.js');
-const { EventEmitter } = require('events');
-const readline = require('readline');
+const { logger } = require("../../utils/logger.js");
+const { EventEmitter } = require("events");
+const { BoundedLineReader } = require("./bounded-line-reader.js");
 
 /**
  * MCP protocol version supported by this server
  * @constant
  */
-const MCP_PROTOCOL_VERSION = '2024-11-05';
+const MCP_PROTOCOL_VERSION = "2024-11-05";
 
 /**
  * JSON-RPC 2.0 error codes
@@ -39,25 +39,49 @@ const JSON_RPC_ERRORS = {
   METHOD_NOT_FOUND: -32601,
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
+  SERVER_OVERLOADED: -32001,
 };
+
+const STDIO_SERVER_LIMITS = Object.freeze({
+  maxInputLineBytes: 1024 * 1024,
+  maxConcurrentMessages: 64,
+  maxOutputMessageBytes: 1024 * 1024,
+  maxQueuedOutputMessages: 256,
+  maxQueuedOutputBytes: 8 * 1024 * 1024,
+  outputDrainTimeoutMs: 5000,
+});
+
+const STDIO_SERVER_HARD_LIMITS = Object.freeze({
+  maxInputLineBytes: 16 * 1024 * 1024,
+  maxConcurrentMessages: 4096,
+  maxOutputMessageBytes: 16 * 1024 * 1024,
+  maxQueuedOutputMessages: 4096,
+  maxQueuedOutputBytes: 64 * 1024 * 1024,
+  outputDrainTimeoutMs: 60000,
+});
+
+function boundedPositiveInteger(value, fallback, hardLimit) {
+  if (!Number.isSafeInteger(value) || value <= 0) return fallback;
+  return Math.min(value, hardLimit);
+}
 
 /**
  * Server states
  * @constant
  */
 const ServerState = {
-  STOPPED: 'stopped',
-  STARTING: 'starting',
-  RUNNING: 'running',
-  STOPPING: 'stopping',
-  ERROR: 'error',
+  STOPPED: "stopped",
+  STARTING: "starting",
+  RUNNING: "running",
+  STOPPING: "stopping",
+  ERROR: "error",
 };
 
 /**
  * Stdio-based MCP server implementation.
  *
  * Reads JSON-RPC 2.0 messages from stdin (one per line) and writes
- * responses to stdout. Uses readline for efficient line-by-line parsing.
+ * responses to stdout through bounded input and output state machines.
  */
 class MCPStdioServer extends EventEmitter {
   /**
@@ -72,18 +96,26 @@ class MCPStdioServer extends EventEmitter {
    * @param {Map<string, Object>} config.prompts - Registered prompts (name -> definition)
    * @param {Function[]} [config.middleware] - Middleware functions
    * @param {Object} [config.hooks] - Lifecycle hooks
+   * @param {NodeJS.ReadableStream} [config.input=process.stdin] - Input stream
+   * @param {NodeJS.WritableStream} [config.output=process.stdout] - Output stream
+   * @param {number} [config.maxInputLineBytes=1048576] - Input frame bytes
+   * @param {number} [config.maxConcurrentMessages=64] - In-flight handlers
+   * @param {number} [config.maxOutputMessageBytes=1048576] - Output frame bytes
+   * @param {number} [config.maxQueuedOutputMessages=256] - Queued writes
+   * @param {number} [config.maxQueuedOutputBytes=8388608] - Queued write bytes
+   * @param {number} [config.outputDrainTimeoutMs=5000] - Drain deadline
    */
   constructor(config = {}) {
     super();
 
     /** @type {string} Server name */
-    this.name = config.name || 'mcp-stdio-server';
+    this.name = config.name || "mcp-stdio-server";
 
     /** @type {string} Server version */
-    this.version = config.version || '1.0.0';
+    this.version = config.version || "1.0.0";
 
     /** @type {string} Server description */
-    this.description = config.description || '';
+    this.description = config.description || "";
 
     /** @type {Map<string, Object>} Registered tools */
     this.tools = config.tools || new Map();
@@ -107,8 +139,55 @@ class MCPStdioServer extends EventEmitter {
       onPromptGet: [],
     };
 
-    /** @type {readline.Interface|null} Readline interface for stdin */
-    this.rl = null;
+    /** @type {NodeJS.ReadableStream} Input stream */
+    this.input = config.input || process.stdin;
+
+    /** @type {NodeJS.WritableStream} Output stream */
+    this.output = config.output || process.stdout;
+
+    /** @type {Readonly<Object>} Admission and I/O limits */
+    this.limits = Object.freeze({
+      maxInputLineBytes: boundedPositiveInteger(
+        config.maxInputLineBytes,
+        STDIO_SERVER_LIMITS.maxInputLineBytes,
+        STDIO_SERVER_HARD_LIMITS.maxInputLineBytes,
+      ),
+      maxConcurrentMessages: boundedPositiveInteger(
+        config.maxConcurrentMessages,
+        STDIO_SERVER_LIMITS.maxConcurrentMessages,
+        STDIO_SERVER_HARD_LIMITS.maxConcurrentMessages,
+      ),
+      maxOutputMessageBytes: boundedPositiveInteger(
+        config.maxOutputMessageBytes,
+        STDIO_SERVER_LIMITS.maxOutputMessageBytes,
+        STDIO_SERVER_HARD_LIMITS.maxOutputMessageBytes,
+      ),
+      maxQueuedOutputMessages: boundedPositiveInteger(
+        config.maxQueuedOutputMessages,
+        STDIO_SERVER_LIMITS.maxQueuedOutputMessages,
+        STDIO_SERVER_HARD_LIMITS.maxQueuedOutputMessages,
+      ),
+      maxQueuedOutputBytes: boundedPositiveInteger(
+        config.maxQueuedOutputBytes,
+        STDIO_SERVER_LIMITS.maxQueuedOutputBytes,
+        STDIO_SERVER_HARD_LIMITS.maxQueuedOutputBytes,
+      ),
+      outputDrainTimeoutMs: boundedPositiveInteger(
+        config.outputDrainTimeoutMs,
+        STDIO_SERVER_LIMITS.outputDrainTimeoutMs,
+        STDIO_SERVER_HARD_LIMITS.outputDrainTimeoutMs,
+      ),
+    });
+
+    this.lineReader = new BoundedLineReader(this.limits.maxInputLineBytes);
+    this.activeMessages = 0;
+    this._outputQueue = [];
+    this._queuedOutputBytes = 0;
+    this._outputActive = false;
+    this._outputFailure = null;
+    this._inputFailed = false;
+    this._inputHandlers = null;
+    this._outputErrorHandler = null;
 
     /** @type {string} Current server state */
     this.state = ServerState.STOPPED;
@@ -125,11 +204,16 @@ class MCPStdioServer extends EventEmitter {
       resourceReads: 0,
       promptGets: 0,
       errors: 0,
+      inputLinesRejected: 0,
+      messagesOverloaded: 0,
+      outputMessagesRejected: 0,
+      outputQueueOverloaded: 0,
+      outputSlowConsumers: 0,
       lastError: null,
     };
 
     logger.info(
-      `[MCPStdioServer] Created server "${this.name}" v${this.version}`
+      `[MCPStdioServer] Created server "${this.name}" v${this.version}`,
     );
   }
 
@@ -146,63 +230,38 @@ class MCPStdioServer extends EventEmitter {
    */
   async start() {
     if (this.state === ServerState.RUNNING) {
-      logger.warn('[MCPStdioServer] Server is already running');
+      logger.warn("[MCPStdioServer] Server is already running");
       return;
     }
 
     this.state = ServerState.STARTING;
 
     try {
-      logger.info('[MCPStdioServer] Starting stdio server...');
+      logger.info("[MCPStdioServer] Starting stdio server...");
 
       // Run onStart hooks
-      await this._runHooks('onStart');
+      await this._runHooks("onStart");
 
-      // Set up readline for stdin
-      this.rl = readline.createInterface({
-        input: process.stdin,
-        crlfDelay: Infinity,
-        terminal: false,
-      });
-
-      // Handle incoming lines
-      this.rl.on('line', (line) => {
-        this._handleLine(line);
-      });
-
-      // Handle stdin close
-      this.rl.on('close', () => {
-        logger.info('[MCPStdioServer] stdin closed');
-        this.stop();
-      });
-
-      // Handle stdin errors
-      process.stdin.on('error', (error) => {
-        logger.error('[MCPStdioServer] stdin error:', error);
-        this.stats.errors++;
-        this.stats.lastError = {
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        };
-        this._runHooks('onError', error);
-        this.emit('error', error);
-      });
+      this.lineReader.reset();
+      this._outputFailure = null;
+      this._inputFailed = false;
+      this._attachStreams();
 
       this.state = ServerState.RUNNING;
       this.stats.startedAt = new Date().toISOString();
 
       logger.info(
-        `[MCPStdioServer] Server "${this.name}" v${this.version} ready`
+        `[MCPStdioServer] Server "${this.name}" v${this.version} ready`,
       );
       logger.info(
         `[MCPStdioServer] Capabilities: ${this.tools.size} tools, ` +
-          `${this.resources.size} resources, ${this.prompts.size} prompts`
+          `${this.resources.size} resources, ${this.prompts.size} prompts`,
       );
 
-      this.emit('started');
+      this.emit("started");
     } catch (error) {
       this.state = ServerState.ERROR;
-      logger.error('[MCPStdioServer] Failed to start:', error);
+      logger.error("[MCPStdioServer] Failed to start:", error);
       throw error;
     }
   }
@@ -210,43 +269,150 @@ class MCPStdioServer extends EventEmitter {
   /**
    * Stop the stdio server
    *
-   * Closes readline, cleans up, and emits a stopped event.
+   * Detaches streams, settles queued writes, and emits a stopped event.
    *
    * @returns {Promise<void>} Resolves when server is stopped
    */
   async stop() {
-    if (this.state === ServerState.STOPPED) {
+    if (
+      this.state === ServerState.STOPPED ||
+      this.state === ServerState.STOPPING
+    ) {
       return;
     }
 
     this.state = ServerState.STOPPING;
-    logger.info('[MCPStdioServer] Stopping server...');
+    this._inputFailed = true;
+    logger.info("[MCPStdioServer] Stopping server...");
 
     try {
       // Run onStop hooks
-      await this._runHooks('onStop');
+      await this._runHooks("onStop");
 
-      // Close readline
-      if (this.rl) {
-        this.rl.close();
-        this.rl = null;
-      }
+      this._detachStreams();
+      this.lineReader.reset();
+      this._failOutputQueue("SERVER_STOPPED", "MCP stdio server stopped");
 
       this.state = ServerState.STOPPED;
       this.initialized = false;
 
-      logger.info('[MCPStdioServer] Server stopped');
-      this.emit('stopped');
+      logger.info("[MCPStdioServer] Server stopped");
+      this.emit("stopped");
     } catch (error) {
       this.state = ServerState.ERROR;
-      logger.error('[MCPStdioServer] Error stopping server:', error);
+      logger.error("[MCPStdioServer] Error stopping server:", error);
       throw error;
     }
+  }
+
+  _attachStreams() {
+    const onData = (chunk) => this._handleInputChunk(chunk);
+    const onEnd = () => {
+      if (!this._inputFailed) {
+        for (const line of this.lineReader.finish()) this._handleLine(line);
+      }
+      logger.info("[MCPStdioServer] stdin ended");
+      void this.stop();
+    };
+    const onClose = () => {
+      logger.info("[MCPStdioServer] stdin closed");
+      void this.stop();
+    };
+    const onInputError = (error) => {
+      this._handleStreamError("stdin", error);
+      void this.stop();
+    };
+    const onOutputError = (error) => {
+      this._handleStreamError("stdout", error);
+      this._failOutputQueue(
+        "CC_MCP_STDIO_OUTPUT_ERROR",
+        error.message || "MCP stdio output failed",
+      );
+      void this.stop();
+    };
+
+    this._inputHandlers = { onData, onEnd, onClose, onInputError };
+    this._outputErrorHandler = onOutputError;
+    this.input.on("data", onData);
+    this.input.once("end", onEnd);
+    this.input.once("close", onClose);
+    this.input.once("error", onInputError);
+    this.output.once("error", onOutputError);
+    this.input.resume?.();
+  }
+
+  _detachStreams() {
+    const handlers = this._inputHandlers;
+    if (handlers) {
+      this.input.removeListener("data", handlers.onData);
+      this.input.removeListener("end", handlers.onEnd);
+      this.input.removeListener("close", handlers.onClose);
+      this.input.removeListener("error", handlers.onInputError);
+      this._inputHandlers = null;
+    }
+    if (this._outputErrorHandler) {
+      this.output.removeListener("error", this._outputErrorHandler);
+      this._outputErrorHandler = null;
+    }
+    this.input.pause?.();
+  }
+
+  _handleStreamError(streamName, error) {
+    logger.error(`[MCPStdioServer] ${streamName} error:`, error);
+    this.stats.errors++;
+    this.stats.lastError = {
+      message: error.message,
+      stream: streamName,
+      timestamp: new Date().toISOString(),
+    };
+    this._runHooks("onError", error);
+    this.emit("stream-error", { stream: streamName, error });
   }
 
   // ===================================
   // Message Processing
   // ===================================
+
+  /**
+   * Feed a raw stdin chunk through the bounded line reader.
+   *
+   * @private
+   * @param {Buffer|string} chunk - Raw stdin bytes
+   */
+  _handleInputChunk(chunk) {
+    if (this._inputFailed) return;
+    try {
+      this.lineReader.push(chunk, (line) => {
+        if (this._inputFailed) return false;
+        this._handleLine(line);
+        return !this._inputFailed;
+      });
+    } catch (error) {
+      if (this._inputFailed) return;
+      this._inputFailed = true;
+      this.stats.inputLinesRejected++;
+      this.stats.errors++;
+      this.stats.lastError = {
+        message: error.message,
+        code: error.code,
+        timestamp: new Date().toISOString(),
+      };
+      this.input.pause?.();
+      this.emit("overload", {
+        scope: "input_line",
+        limit: this.limits.maxInputLineBytes,
+        code: error.code,
+      });
+      Promise.resolve(
+        this.sendError(
+          null,
+          JSON_RPC_ERRORS.SERVER_OVERLOADED,
+          "OVERLOADED: stdio input line exceeds configured limit",
+          { maxInputLineBytes: this.limits.maxInputLineBytes },
+        ),
+      ).finally(() => void this.stop());
+    }
+  }
 
   /**
    * Handle a raw line from stdin
@@ -262,13 +428,15 @@ class MCPStdioServer extends EventEmitter {
     }
 
     // Skip comment lines (some transports send diagnostic info)
-    if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+    if (trimmed.startsWith("#") || trimmed.startsWith("//")) {
       return;
     }
 
     this.stats.messagesReceived++;
 
-    this.handleMessage(trimmed);
+    void this.handleMessage(trimmed).catch((error) => {
+      this._handleStreamError("message_handler", error);
+    });
   }
 
   /**
@@ -277,31 +445,86 @@ class MCPStdioServer extends EventEmitter {
    * @param {string} rawMessage - Raw JSON string
    */
   async handleMessage(rawMessage) {
+    const release = this._admitMessage();
+    if (!release) {
+      this._inputFailed = true;
+      this.input.pause?.();
+      try {
+        await this.sendError(
+          null,
+          JSON_RPC_ERRORS.SERVER_OVERLOADED,
+          "OVERLOADED: too many concurrent stdio messages",
+          {
+            retryAfterMs: 100,
+            limit: this.limits.maxConcurrentMessages,
+          },
+        );
+        return { accepted: false, code: "OVERLOADED", retryAfterMs: 100 };
+      } finally {
+        void this.stop();
+      }
+    }
+
+    try {
+      return await this._processMessage(rawMessage);
+    } finally {
+      release();
+    }
+  }
+
+  _admitMessage() {
+    if (this.activeMessages >= this.limits.maxConcurrentMessages) {
+      this.stats.messagesOverloaded++;
+      this.stats.errors++;
+      this.emit("overload", {
+        scope: "message_handlers",
+        active: this.activeMessages,
+        limit: this.limits.maxConcurrentMessages,
+      });
+      return null;
+    }
+    this.activeMessages++;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.activeMessages = Math.max(0, this.activeMessages - 1);
+    };
+  }
+
+  async _processMessage(rawMessage) {
     let message;
 
     // Parse JSON
     try {
       message = JSON.parse(rawMessage);
     } catch (parseError) {
-      logger.error('[MCPStdioServer] Failed to parse message:', parseError.message);
-      this.sendError(null, JSON_RPC_ERRORS.PARSE_ERROR, 'Parse error: invalid JSON');
+      logger.error(
+        "[MCPStdioServer] Failed to parse message:",
+        parseError.message,
+      );
+      await this.sendError(
+        null,
+        JSON_RPC_ERRORS.PARSE_ERROR,
+        "Parse error: invalid JSON",
+      );
       this.stats.errors++;
       return;
     }
 
     // Validate JSON-RPC format
-    if (!message.jsonrpc || message.jsonrpc !== '2.0') {
-      this.sendError(
-        message.id || null,
+    if (!message.jsonrpc || message.jsonrpc !== "2.0") {
+      await this.sendError(
+        message.id ?? null,
         JSON_RPC_ERRORS.INVALID_REQUEST,
-        'Invalid JSON-RPC version. Must be "2.0".'
+        'Invalid JSON-RPC version. Must be "2.0".',
       );
       this.stats.errors++;
       return;
     }
 
     logger.info(
-      `[MCPStdioServer] Received: ${message.method || 'response'} (id: ${message.id || 'none'})`
+      `[MCPStdioServer] Received: ${message.method || "response"} (id: ${message.id || "none"})`,
     );
 
     // Run middleware pipeline
@@ -309,18 +532,22 @@ class MCPStdioServer extends EventEmitter {
       const middlewareResult = await this._runMiddleware(message);
       if (middlewareResult && middlewareResult.blocked) {
         if (message.id !== undefined) {
-          this.sendError(
+          await this.sendError(
             message.id,
             JSON_RPC_ERRORS.INTERNAL_ERROR,
-            middlewareResult.reason || 'Request blocked by middleware'
+            middlewareResult.reason || "Request blocked by middleware",
           );
         }
         return;
       }
     } catch (error) {
-      logger.error('[MCPStdioServer] Middleware error:', error);
+      logger.error("[MCPStdioServer] Middleware error:", error);
       if (message.id !== undefined) {
-        this.sendError(message.id, JSON_RPC_ERRORS.INTERNAL_ERROR, error.message);
+        await this.sendError(
+          message.id,
+          JSON_RPC_ERRORS.INTERNAL_ERROR,
+          error.message,
+        );
       }
       return;
     }
@@ -331,7 +558,7 @@ class MCPStdioServer extends EventEmitter {
 
       // Only send response for requests (not notifications)
       if (message.id !== undefined) {
-        this.sendResponse(message.id, result);
+        await this.sendResponse(message.id, result);
       }
     } catch (error) {
       logger.error(`[MCPStdioServer] Method "${message.method}" error:`, error);
@@ -344,10 +571,10 @@ class MCPStdioServer extends EventEmitter {
 
       if (message.id !== undefined) {
         const errorCode = error.code || JSON_RPC_ERRORS.INTERNAL_ERROR;
-        this.sendError(message.id, errorCode, error.message);
+        await this.sendError(message.id, errorCode, error.message);
       }
 
-      this._runHooks('onError', error);
+      this._runHooks("onError", error);
     }
   }
 
@@ -362,40 +589,39 @@ class MCPStdioServer extends EventEmitter {
     const { method, params = {} } = message;
 
     switch (method) {
-      case 'initialize':
+      case "initialize":
         return this._handleInitialize(params);
 
-      case 'notifications/initialized':
+      case "notifications/initialized":
         this.initialized = true;
-        logger.info('[MCPStdioServer] Client initialized');
+        logger.info("[MCPStdioServer] Client initialized");
         return { acknowledged: true };
 
-      case 'tools/list':
+      case "tools/list":
         return this._handleListTools(params);
 
-      case 'tools/call':
+      case "tools/call":
         return this._handleToolCall(params.name, params.arguments || {});
 
-      case 'resources/list':
+      case "resources/list":
         return this._handleListResources(params);
 
-      case 'resources/read':
+      case "resources/read":
         return this._handleResourceRead(params.uri);
 
-      case 'prompts/list':
+      case "prompts/list":
         return this._handleListPrompts(params);
 
-      case 'prompts/get':
+      case "prompts/get":
         return this._handlePromptGet(params.name, params.arguments || {});
 
-      case 'ping':
-        return { status: 'pong', timestamp: Date.now() };
+      case "ping":
+        return { status: "pong", timestamp: Date.now() };
 
       default:
-        throw Object.assign(
-          new Error(`Method not found: ${method}`),
-          { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-        );
+        throw Object.assign(new Error(`Method not found: ${method}`), {
+          code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+        });
     }
   }
 
@@ -412,8 +638,8 @@ class MCPStdioServer extends EventEmitter {
    */
   _handleInitialize(params) {
     logger.info(
-      `[MCPStdioServer] Initialize from client: ${params?.clientInfo?.name || 'unknown'} ` +
-        `v${params?.clientInfo?.version || 'unknown'}`
+      `[MCPStdioServer] Initialize from client: ${params?.clientInfo?.name || "unknown"} ` +
+        `v${params?.clientInfo?.version || "unknown"}`,
     );
 
     return {
@@ -466,16 +692,15 @@ class MCPStdioServer extends EventEmitter {
 
     const toolDef = this.tools.get(toolName);
     if (!toolDef) {
-      throw Object.assign(
-        new Error(`Unknown tool: ${toolName}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown tool: ${toolName}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.toolCalls++;
 
     // Run onToolCall hooks
-    await this._runHooks('onToolCall', { toolName, params });
+    await this._runHooks("onToolCall", { toolName, params });
 
     try {
       const startTime = Date.now();
@@ -485,21 +710,23 @@ class MCPStdioServer extends EventEmitter {
 
       const latency = Date.now() - startTime;
 
-      logger.info(`[MCPStdioServer] Tool "${toolName}" completed in ${latency}ms`);
+      logger.info(
+        `[MCPStdioServer] Tool "${toolName}" completed in ${latency}ms`,
+      );
 
-      this.emit('tool-called', { toolName, params, result, latency });
+      this.emit("tool-called", { toolName, params, result, latency });
 
       // Format result in MCP content format
       return this._formatToolResult(result);
     } catch (error) {
       logger.error(`[MCPStdioServer] Tool "${toolName}" failed:`, error);
 
-      this.emit('tool-error', { toolName, params, error });
+      this.emit("tool-error", { toolName, params, error });
 
       return {
         content: [
           {
-            type: 'text',
+            type: "text",
             text: `Error executing tool "${toolName}": ${error.message}`,
           },
         ],
@@ -543,28 +770,27 @@ class MCPStdioServer extends EventEmitter {
 
     const resourceDef = this.resources.get(uri);
     if (!resourceDef) {
-      throw Object.assign(
-        new Error(`Unknown resource: ${uri}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown resource: ${uri}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.resourceReads++;
 
     // Run onResourceRead hooks
-    await this._runHooks('onResourceRead', { uri });
+    await this._runHooks("onResourceRead", { uri });
 
     try {
       const result = await resourceDef.handler();
 
-      this.emit('resource-read', { uri, result });
+      this.emit("resource-read", { uri, result });
 
       return {
         contents: [
           {
             uri,
-            mimeType: resourceDef.mimeType || 'application/json',
-            text: typeof result === 'string' ? result : JSON.stringify(result),
+            mimeType: resourceDef.mimeType || "application/json",
+            text: typeof result === "string" ? result : JSON.stringify(result),
           },
         ],
       };
@@ -609,28 +835,30 @@ class MCPStdioServer extends EventEmitter {
 
     const promptDef = this.prompts.get(promptName);
     if (!promptDef) {
-      throw Object.assign(
-        new Error(`Unknown prompt: ${promptName}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown prompt: ${promptName}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.promptGets++;
 
     // Run onPromptGet hooks
-    await this._runHooks('onPromptGet', { promptName, params });
+    await this._runHooks("onPromptGet", { promptName, params });
 
     try {
       const result = await promptDef.handler(params);
 
-      this.emit('prompt-get', { promptName, params, result });
+      this.emit("prompt-get", { promptName, params, result });
 
       return {
         description: promptDef.description,
         messages: result.messages || [],
       };
     } catch (error) {
-      logger.error(`[MCPStdioServer] Prompt "${promptName}" get failed:`, error);
+      logger.error(
+        `[MCPStdioServer] Prompt "${promptName}" get failed:`,
+        error,
+      );
       throw error;
     }
   }
@@ -647,12 +875,12 @@ class MCPStdioServer extends EventEmitter {
    */
   sendResponse(id, result) {
     const response = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       result,
     };
 
-    this._writeToStdout(response);
+    return this._writeToStdout(response);
   }
 
   /**
@@ -665,7 +893,7 @@ class MCPStdioServer extends EventEmitter {
    */
   sendError(id, code, message, data) {
     const response = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       error: {
         code,
@@ -674,7 +902,7 @@ class MCPStdioServer extends EventEmitter {
       },
     };
 
-    this._writeToStdout(response);
+    return this._writeToStdout(response);
   }
 
   /**
@@ -688,12 +916,12 @@ class MCPStdioServer extends EventEmitter {
    */
   sendNotification(method, params) {
     const notification = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       method,
       params,
     };
 
-    this._writeToStdout(notification);
+    return this._writeToStdout(notification);
   }
 
   /**
@@ -705,13 +933,169 @@ class MCPStdioServer extends EventEmitter {
    * @param {Object} message - JSON-RPC message
    */
   _writeToStdout(message) {
+    let payload;
+    let substituted = false;
     try {
-      const serialized = JSON.stringify(message);
-      process.stdout.write(serialized + '\n');
-      this.stats.messagesSent++;
+      payload = `${JSON.stringify(message)}\n`;
     } catch (error) {
-      logger.error('[MCPStdioServer] Failed to write to stdout:', error);
+      logger.error("[MCPStdioServer] Failed to write to stdout:", error);
       this.stats.errors++;
+      this.stats.outputMessagesRejected++;
+      return Promise.resolve({
+        accepted: false,
+        code: "CC_MCP_STDIO_SERIALIZE_ERROR",
+      });
+    }
+
+    let bytes = Buffer.byteLength(payload);
+    if (bytes > this.limits.maxOutputMessageBytes) {
+      this.stats.errors++;
+      this.stats.outputMessagesRejected++;
+      this.emit("overload", {
+        scope: "output_message",
+        bytes,
+        limit: this.limits.maxOutputMessageBytes,
+      });
+      if (message.id === undefined) {
+        return Promise.resolve({
+          accepted: false,
+          code: "CC_MCP_STDIO_MESSAGE_TOO_LARGE",
+          maxOutputMessageBytes: this.limits.maxOutputMessageBytes,
+        });
+      }
+      payload = `${JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        error: {
+          code: JSON_RPC_ERRORS.SERVER_OVERLOADED,
+          message: "OVERLOADED: stdio response exceeds configured limit",
+          data: {
+            maxOutputMessageBytes: this.limits.maxOutputMessageBytes,
+          },
+        },
+      })}\n`;
+      substituted = true;
+      bytes = Buffer.byteLength(payload);
+      if (bytes > this.limits.maxOutputMessageBytes) {
+        return Promise.resolve({
+          accepted: false,
+          code: "CC_MCP_STDIO_MESSAGE_TOO_LARGE",
+          maxOutputMessageBytes: this.limits.maxOutputMessageBytes,
+        });
+      }
+    }
+
+    if (
+      this._outputQueue.length >= this.limits.maxQueuedOutputMessages ||
+      this._queuedOutputBytes + bytes > this.limits.maxQueuedOutputBytes
+    ) {
+      this.stats.errors++;
+      this.stats.outputQueueOverloaded++;
+      this.emit("overload", {
+        scope: "output_queue",
+        queuedMessages: this._outputQueue.length,
+        queuedBytes: this._queuedOutputBytes,
+        limits: this.limits,
+      });
+      queueMicrotask(() => {
+        this._failOutputQueue(
+          "OVERLOADED",
+          "MCP stdio output queue is overloaded",
+        );
+        void this.stop();
+      });
+      return Promise.resolve({
+        accepted: false,
+        code: "OVERLOADED",
+        retryAfterMs: 100,
+      });
+    }
+
+    if (this._outputFailure) {
+      return Promise.resolve({ accepted: false, ...this._outputFailure });
+    }
+
+    return new Promise((resolve) => {
+      this._outputQueue.push({
+        payload,
+        bytes,
+        resolve,
+        settled: false,
+        substituted,
+      });
+      this._queuedOutputBytes += bytes;
+      this._pumpOutputQueue();
+    });
+  }
+
+  _pumpOutputQueue() {
+    if (this._outputActive || this._outputQueue.length === 0) return;
+    const entry = this._outputQueue[0];
+    this._outputActive = true;
+    try {
+      if (this.output.write(entry.payload)) {
+        this._settleOutput(entry);
+        return;
+      }
+    } catch (error) {
+      this._failOutputQueue(
+        "CC_MCP_STDIO_OUTPUT_ERROR",
+        error.message || "MCP stdio output failed",
+      );
+      void this.stop();
+      return;
+    }
+
+    entry.onDrain = () => this._settleOutput(entry);
+    entry.drainTimer = setTimeout(() => {
+      this.stats.outputSlowConsumers++;
+      this.stats.errors++;
+      this.emit("overload", {
+        scope: "output_drain",
+        timeoutMs: this.limits.outputDrainTimeoutMs,
+      });
+      this._failOutputQueue(
+        "CC_MCP_STDIO_SLOW_CONSUMER",
+        "MCP stdio output remained backpressured",
+      );
+      void this.stop();
+    }, this.limits.outputDrainTimeoutMs);
+    entry.drainTimer.unref?.();
+    this.output.once("drain", entry.onDrain);
+  }
+
+  _settleOutput(entry) {
+    if (entry.settled || this._outputQueue[0] !== entry) return;
+    entry.settled = true;
+    clearTimeout(entry.drainTimer);
+    this.output.removeListener("drain", entry.onDrain);
+    this._outputQueue.shift();
+    this._queuedOutputBytes = Math.max(
+      0,
+      this._queuedOutputBytes - entry.bytes,
+    );
+    this._outputActive = false;
+    this.stats.messagesSent++;
+    entry.resolve({
+      accepted: true,
+      bytes: entry.bytes,
+      substituted: entry.substituted,
+    });
+    this._pumpOutputQueue();
+  }
+
+  _failOutputQueue(code, message) {
+    if (!this._outputFailure) this._outputFailure = { code, message };
+    const failure = this._outputFailure;
+    const queue = this._outputQueue.splice(0);
+    this._queuedOutputBytes = 0;
+    this._outputActive = false;
+    for (const entry of queue) {
+      if (entry.settled) continue;
+      entry.settled = true;
+      clearTimeout(entry.drainTimer);
+      this.output.removeListener("drain", entry.onDrain);
+      entry.resolve({ accepted: false, ...failure });
     }
   }
 
@@ -732,6 +1116,11 @@ class MCPStdioServer extends EventEmitter {
       uptime: this.stats.startedAt
         ? Date.now() - new Date(this.stats.startedAt).getTime()
         : 0,
+      activeMessages: this.activeMessages,
+      queuedOutputMessages: this._outputQueue.length,
+      queuedOutputBytes: this._queuedOutputBytes,
+      outputFailure: this._outputFailure?.code || null,
+      limits: this.limits,
       capabilities: {
         tools: this.tools.size,
         resources: this.resources.size,
@@ -769,10 +1158,10 @@ class MCPStdioServer extends EventEmitter {
     // Convert to MCP content format
     let textContent;
 
-    if (typeof result === 'string') {
+    if (typeof result === "string") {
       textContent = result;
     } else if (result === null || result === undefined) {
-      textContent = 'null';
+      textContent = "null";
     } else {
       try {
         textContent = JSON.stringify(result, null, 2);
@@ -784,7 +1173,7 @@ class MCPStdioServer extends EventEmitter {
     return {
       content: [
         {
-          type: 'text',
+          type: "text",
           text: textContent,
         },
       ],
@@ -826,7 +1215,7 @@ class MCPStdioServer extends EventEmitter {
           return result;
         }
       } catch (error) {
-        logger.error('[MCPStdioServer] Middleware error:', error);
+        logger.error("[MCPStdioServer] Middleware error:", error);
         return { blocked: true, reason: error.message };
       }
     }
@@ -839,4 +1228,6 @@ module.exports = {
   ServerState,
   JSON_RPC_ERRORS,
   MCP_PROTOCOL_VERSION,
+  STDIO_SERVER_LIMITS,
+  STDIO_SERVER_HARD_LIMITS,
 };
