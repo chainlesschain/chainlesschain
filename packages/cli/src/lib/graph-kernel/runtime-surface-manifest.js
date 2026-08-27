@@ -10,6 +10,7 @@ import {
   GRAPH_CUTOVER_LEDGER_SCHEMA,
   GRAPH_CUTOVER_REQUIRED_PLATFORMS,
 } from "./cutover-ledger.js";
+import { graphDigest } from "./compiler.js";
 
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_SCHEMA =
   "chainlesschain.graph-runtime-surfaces/v1";
@@ -37,6 +38,57 @@ export function loadGraphRuntimeSurfaceManifest(
 ) {
   return Object.freeze(
     JSON.parse(fs.readFileSync(path.resolve(manifestPath), "utf8")),
+  );
+}
+
+export function graphRuntimeSurfaceEntry(manifest, surfaceName, entryId) {
+  const surface = (manifest?.surfaces || []).find(
+    (candidate) => candidate.originSurface === surfaceName,
+  );
+  const entry = (surface?.entries || []).find(
+    (candidate) => candidate.id === entryId,
+  );
+  if (!surface || !entry) {
+    const error = new Error(
+      `Graph runtime entry is not declared: ${surfaceName}/${entryId}`,
+    );
+    error.name = "GraphRuntimeSurfaceManifestError";
+    error.code = "CC_GRAPH_RUNTIME_ENTRY_NOT_DECLARED";
+    error.surface = String(surfaceName || "");
+    error.entryId = String(entryId || "");
+    throw error;
+  }
+  return Object.freeze({
+    surface: Object.freeze(clone(surface)),
+    entry: Object.freeze(clone(entry)),
+  });
+}
+
+export function graphRuntimeEntryManifestDigest(
+  manifest,
+  surfaceName,
+  entryId,
+) {
+  const { surface, entry } = graphRuntimeSurfaceEntry(
+    manifest,
+    surfaceName,
+    entryId,
+  );
+  return graphDigest(
+    {
+      manifestSchema: manifest.schema,
+      manifestVersion: manifest.version,
+      projectionVersion: manifest.projectionVersion,
+      cutoverPolicy: manifest.cutoverPolicy,
+      surface: {
+        originSurface: surface.originSurface,
+        durability: surface.durability,
+        targetAuthoritySource: surface.targetAuthoritySource,
+        featureFlag: surface.featureFlag,
+      },
+      entry,
+    },
+    "cc.graph.runtime-surface-entry/v1",
   );
 }
 
