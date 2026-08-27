@@ -542,10 +542,7 @@ const sanitizedContent = computed(() => {
 // 方法
 const loadMailboxes = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:get-mailboxes",
-      accountId.value,
-    );
+    const result = await window.electronAPI.email.getMailboxes(accountId.value);
 
     if (result?.success) {
       mailboxes.value = result.mailboxes || [];
@@ -564,10 +561,7 @@ const loadMailboxes = async () => {
 
 const syncMailboxes = async () => {
   try {
-    await window.electron.ipcRenderer.invoke(
-      "email:sync-mailboxes",
-      accountId.value,
-    );
+    await window.electronAPI.email.syncMailboxes(accountId.value);
     message.success("邮箱同步成功");
     await loadMailboxes();
   } catch (error) {
@@ -590,10 +584,7 @@ const loadEmails = async (mailboxId) => {
       options.isStarred = true;
     }
 
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:get-emails",
-      options,
-    );
+    const result = await window.electronAPI.email.getEmails(options);
 
     if (result?.success) {
       emails.value = result.emails || [];
@@ -621,15 +612,11 @@ const syncEmails = async () => {
       return;
     }
 
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:fetch-emails",
-      accountId.value,
-      {
-        mailbox: mailbox.name,
-        limit: 50,
-        unseen: true,
-      },
-    );
+    const result = await window.electronAPI.email.fetchEmails(accountId.value, {
+      mailbox: mailbox.name,
+      limit: 50,
+      unseen: true,
+    });
 
     if (result?.success) {
       message.success(`已同步 ${result.count || 0} 封新邮件`);
@@ -643,7 +630,13 @@ const syncEmails = async () => {
 };
 
 const selectEmail = async (email) => {
-  selectedEmail.value = email;
+  try {
+    const result = await window.electronAPI.email.getEmail(email.id);
+    selectedEmail.value = result?.email || email;
+  } catch (error) {
+    message.error("加载邮件失败: " + error.message);
+    return;
+  }
 
   // 加载附件
   await loadAttachments(email.id);
@@ -651,7 +644,7 @@ const selectEmail = async (email) => {
   // 标记为已读
   if (!email.is_read) {
     try {
-      await window.electron.ipcRenderer.invoke("email:mark-as-read", email.id);
+      await window.electronAPI.email.markAsRead(email.id);
       email.is_read = 1;
     } catch (error) {
       logger.error("标记已读失败:", error);
@@ -661,10 +654,7 @@ const selectEmail = async (email) => {
 
 const loadAttachments = async (emailId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:get-attachments",
-      emailId,
-    );
+    const result = await window.electronAPI.email.getAttachments(emailId);
 
     if (result?.success) {
       attachments.value = result.attachments || [];
@@ -679,18 +669,10 @@ const downloadAttachment = async (attachment) => {
   attachment.downloading = true;
 
   try {
-    const { dialog } = window.electron;
-    const result = await dialog.showSaveDialog({
-      defaultPath: attachment.filename,
-    });
-
-    if (!result.canceled && result.filePath) {
-      await window.electron.ipcRenderer.invoke(
-        "email:download-attachment",
-        attachment.id,
-        result.filePath,
-      );
-
+    const result = await window.electronAPI.email.downloadAttachment(
+      attachment.id,
+    );
+    if (result?.success) {
       message.success("附件下载成功");
     }
   } catch (error) {
@@ -708,8 +690,7 @@ const toggleStar = async () => {
   const newStarred = !selectedEmail.value.is_starred;
 
   try {
-    await window.electron.ipcRenderer.invoke(
-      "email:mark-as-starred",
+    await window.electronAPI.email.markAsStarred(
       selectedEmail.value.id,
       newStarred,
     );
@@ -733,8 +714,7 @@ const saveToKnowledge = async () => {
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:save-to-knowledge",
+    const result = await window.electronAPI.email.saveToKnowledge(
       selectedEmail.value.id,
     );
 
@@ -771,38 +751,26 @@ const handleMenuClick = async ({ key }) => {
   try {
     switch (key) {
       case "markRead":
-        await window.electron.ipcRenderer.invoke(
-          "email:mark-as-read",
-          selectedEmail.value.id,
-        );
+        await window.electronAPI.email.markAsRead(selectedEmail.value.id);
         selectedEmail.value.is_read = 1;
         message.success("已标记为已读");
         break;
 
       case "markUnread":
-        await window.electron.ipcRenderer.invoke(
-          "email:mark-as-unread",
-          selectedEmail.value.id,
-        );
+        await window.electronAPI.email.markAsUnread(selectedEmail.value.id);
         selectedEmail.value.is_read = 0;
         message.success("已标记为未读");
         break;
 
       case "archive":
-        await window.electron.ipcRenderer.invoke(
-          "email:archive-email",
-          selectedEmail.value.id,
-        );
+        await window.electronAPI.email.archiveEmail(selectedEmail.value.id);
         message.success("已归档");
         await loadEmails(selectedMailbox.value[0]);
         selectedEmail.value = null;
         break;
 
       case "delete":
-        await window.electron.ipcRenderer.invoke(
-          "email:delete-email",
-          selectedEmail.value.id,
-        );
+        await window.electronAPI.email.deleteEmail(selectedEmail.value.id);
         message.success("已删除");
         await loadEmails(selectedMailbox.value[0]);
         selectedEmail.value = null;
@@ -841,10 +809,7 @@ const onMailboxSelect = async (keys) => {
 const loadDrafts = async () => {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:get-drafts",
-      accountId.value,
-    );
+    const result = await window.electronAPI.email.getDrafts(accountId.value);
 
     if (result?.success) {
       drafts.value = result.drafts || [];
@@ -856,9 +821,14 @@ const loadDrafts = async () => {
   }
 };
 
-const selectDraft = (draft) => {
-  selectedDraft.value = draft;
-  selectedEmail.value = null;
+const selectDraft = async (draft) => {
+  try {
+    const result = await window.electronAPI.email.getDraft(draft.id);
+    selectedDraft.value = result?.draft || draft;
+    selectedEmail.value = null;
+  } catch (error) {
+    message.error("加载草稿失败: " + error.message);
+  }
 };
 
 const editDraft = (draft) => {
@@ -877,7 +847,7 @@ const editDraft = (draft) => {
 
 const deleteDraft = async (draft) => {
   try {
-    await window.electron.ipcRenderer.invoke("email:delete-draft", draft.id);
+    await window.electronAPI.email.deleteDraft(draft.id);
     message.success("草稿已删除");
     await loadDrafts();
     if (selectedDraft.value?.id === draft.id) {

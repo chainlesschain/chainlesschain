@@ -1,14 +1,8 @@
 <template>
   <div class="email-account-manager">
-    <a-card
-      title="邮件账户管理"
-      :bordered="false"
-    >
+    <a-card title="邮件账户管理" :bordered="false">
       <template #extra>
-        <a-button
-          type="primary"
-          @click="showAddAccountModal"
-        >
+        <a-button type="primary" @click="showAddAccountModal">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -47,11 +41,7 @@
               </a-tooltip>
 
               <a-tooltip title="设置">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="editAccount(item)"
-                >
+                <a-button type="text" size="small" @click="editAccount(item)">
                   <SettingOutlined />
                 </a-button>
               </a-tooltip>
@@ -60,11 +50,7 @@
                 title="确定要删除这个账户吗？"
                 @confirm="deleteAccount(item.id)"
               >
-                <a-button
-                  type="text"
-                  size="small"
-                  danger
-                >
+                <a-button type="text" size="small" danger>
                   <DeleteOutlined />
                 </a-button>
               </a-popconfirm>
@@ -80,7 +66,9 @@
               </template>
 
               <template #title>
-                <a @click="viewEmails(item)">{{ item.display_name || item.email }}</a>
+                <a @click="viewEmails(item)">{{
+                  item.display_name || item.email
+                }}</a>
                 <a-tag
                   v-if="item.status === 'error'"
                   color="error"
@@ -95,11 +83,7 @@
                 >
                   已暂停
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="success"
-                  style="margin-left: 8px"
-                >
+                <a-tag v-else color="success" style="margin-left: 8px">
                   正常
                 </a-tag>
               </template>
@@ -108,7 +92,9 @@
                 <div>{{ item.email }}</div>
                 <div style="margin-top: 4px; font-size: 12px; color: #999">
                   <span>IMAP: {{ item.imap_host }}:{{ item.imap_port }}</span>
-                  <span style="margin-left: 16px">SMTP: {{ item.smtp_host }}:{{ item.smtp_port }}</span>
+                  <span style="margin-left: 16px"
+                    >SMTP: {{ item.smtp_host }}:{{ item.smtp_port }}</span
+                  >
                 </div>
                 <div style="margin-top: 4px; font-size: 12px; color: #999">
                   <span v-if="item.last_sync_at">
@@ -136,14 +122,8 @@
       width="600px"
       @ok="handleSaveAccount"
     >
-      <a-form
-        :model="accountForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="邮箱地址"
-          required
-        >
+      <a-form :model="accountForm" layout="vertical">
+        <a-form-item label="邮箱地址" required>
           <a-input
             v-model:value="accountForm.email"
             placeholder="user@example.com"
@@ -158,10 +138,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="密码"
-          required
-        >
+        <a-form-item label="密码" required>
           <a-input-password
             v-model:value="accountForm.password"
             placeholder="邮箱密码或应用专用密码"
@@ -175,10 +152,7 @@
 
         <a-row :gutter="16">
           <a-col :span="16">
-            <a-form-item
-              label="IMAP 服务器"
-              required
-            >
+            <a-form-item label="IMAP 服务器" required>
               <a-input
                 v-model:value="accountForm.imapHost"
                 placeholder="imap.example.com"
@@ -186,10 +160,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="8">
-            <a-form-item
-              label="端口"
-              required
-            >
+            <a-form-item label="端口" required>
               <a-input-number
                 v-model:value="accountForm.imapPort"
                 :min="1"
@@ -210,10 +181,7 @@
 
         <a-row :gutter="16">
           <a-col :span="16">
-            <a-form-item
-              label="SMTP 服务器"
-              required
-            >
+            <a-form-item label="SMTP 服务器" required>
               <a-input
                 v-model:value="accountForm.smtpHost"
                 placeholder="smtp.example.com"
@@ -221,10 +189,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="8">
-            <a-form-item
-              label="端口"
-              required
-            >
+            <a-form-item label="端口" required>
               <a-input-number
                 v-model:value="accountForm.smtpPort"
                 :min="1"
@@ -261,10 +226,7 @@
         <a-divider />
 
         <a-space>
-          <a-button
-            :loading="testing"
-            @click="testConnection"
-          >
+          <a-button :loading="testing" @click="testConnection">
             <CheckCircleOutlined /> 测试连接
           </a-button>
 
@@ -273,10 +235,7 @@
           </a-button>
         </a-space>
 
-        <div
-          v-if="testResult"
-          style="margin-top: 12px"
-        >
+        <div v-if="testResult" style="margin-top: 12px">
           <a-alert
             :type="testResult.success ? 'success' : 'error'"
             :message="testResult.success ? '连接成功' : '连接失败'"
@@ -294,10 +253,7 @@
       width="500px"
       @ok="applyPreset"
     >
-      <a-list
-        :data-source="presets"
-        size="small"
-      >
+      <a-list :data-source="presets" size="small">
         <template #renderItem="{ item }">
           <a-list-item
             style="cursor: pointer"
@@ -309,8 +265,8 @@
                 {{ item.name }}
               </template>
               <template #description>
-                IMAP: {{ item.imapHost }}:{{ item.imapPort }} |
-                SMTP: {{ item.smtpHost }}:{{ item.smtpPort }}
+                IMAP: {{ item.imapHost }}:{{ item.imapPort }} | SMTP:
+                {{ item.smtpHost }}:{{ item.smtpPort }}
               </template>
             </a-list-item-meta>
             <template #actions>
@@ -327,12 +283,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 import {
   PlusOutlined,
   SyncOutlined,
@@ -343,10 +299,10 @@ import {
   MailOutlined,
   CheckCircleOutlined,
   ThunderboltOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const router = useRouter();
 
@@ -364,60 +320,60 @@ const presetModalVisible = ref(false);
 const selectedPreset = ref(null);
 const presets = [
   {
-    name: 'Gmail',
-    imapHost: 'imap.gmail.com',
+    name: "Gmail",
+    imapHost: "imap.gmail.com",
     imapPort: 993,
     imapTls: true,
-    smtpHost: 'smtp.gmail.com',
+    smtpHost: "smtp.gmail.com",
     smtpPort: 587,
     smtpSecure: false,
   },
   {
-    name: 'Outlook/Hotmail',
-    imapHost: 'outlook.office365.com',
+    name: "Outlook/Hotmail",
+    imapHost: "outlook.office365.com",
     imapPort: 993,
     imapTls: true,
-    smtpHost: 'smtp.office365.com',
+    smtpHost: "smtp.office365.com",
     smtpPort: 587,
     smtpSecure: false,
   },
   {
-    name: 'QQ 邮箱',
-    imapHost: 'imap.qq.com',
+    name: "QQ 邮箱",
+    imapHost: "imap.qq.com",
     imapPort: 993,
     imapTls: true,
-    smtpHost: 'smtp.qq.com',
+    smtpHost: "smtp.qq.com",
     smtpPort: 587,
     smtpSecure: false,
   },
   {
-    name: '163 邮箱',
-    imapHost: 'imap.163.com',
+    name: "163 邮箱",
+    imapHost: "imap.163.com",
     imapPort: 993,
     imapTls: true,
-    smtpHost: 'smtp.163.com',
+    smtpHost: "smtp.163.com",
     smtpPort: 465,
     smtpSecure: true,
   },
   {
-    name: '126 邮箱',
-    imapHost: 'imap.126.com',
+    name: "126 邮箱",
+    imapHost: "imap.126.com",
     imapPort: 993,
     imapTls: true,
-    smtpHost: 'smtp.126.com',
+    smtpHost: "smtp.126.com",
     smtpPort: 465,
     smtpSecure: true,
   },
 ];
 
 const accountForm = reactive({
-  email: '',
-  displayName: '',
-  password: '',
-  imapHost: '',
+  email: "",
+  displayName: "",
+  password: "",
+  imapHost: "",
   imapPort: 993,
   imapTls: true,
-  smtpHost: '',
+  smtpHost: "",
   smtpPort: 587,
   smtpSecure: false,
   syncFrequency: 300,
@@ -428,12 +384,12 @@ const accountForm = reactive({
 const loadAccounts = async () => {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('email:get-accounts');
+    const result = await window.electronAPI.email.getAccounts();
     if (result.success) {
       accounts.value = result.accounts;
     }
   } catch (error) {
-    message.error('加载账户失败: ' + error.message);
+    message.error("加载账户失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -447,13 +403,13 @@ const showAddAccountModal = () => {
 };
 
 const resetForm = () => {
-  accountForm.email = '';
-  accountForm.displayName = '';
-  accountForm.password = '';
-  accountForm.imapHost = '';
+  accountForm.email = "";
+  accountForm.displayName = "";
+  accountForm.password = "";
+  accountForm.imapHost = "";
   accountForm.imapPort = 993;
   accountForm.imapTls = true;
-  accountForm.smtpHost = '';
+  accountForm.smtpHost = "";
   accountForm.smtpPort = 587;
   accountForm.smtpSecure = false;
   accountForm.syncFrequency = 300;
@@ -461,13 +417,13 @@ const resetForm = () => {
 };
 
 const handleSaveAccount = async () => {
-  if (!accountForm.email || !accountForm.password) {
-    message.error('请填写邮箱地址和密码');
+  if (!accountForm.email || (!editingAccount.value && !accountForm.password)) {
+    message.error("请填写邮箱地址和密码");
     return;
   }
 
   if (!accountForm.imapHost || !accountForm.smtpHost) {
-    message.error('请填写 IMAP 和 SMTP 服务器地址');
+    message.error("请填写 IMAP 和 SMTP 服务器地址");
     return;
   }
 
@@ -475,29 +431,28 @@ const handleSaveAccount = async () => {
   try {
     if (editingAccount.value) {
       // 更新账户
-      const result = await window.electron.ipcRenderer.invoke(
-        'email:update-account',
+      const result = await window.electronAPI.email.updateAccount(
         editingAccount.value.id,
-        accountForm
+        accountForm,
       );
 
       if (result.success) {
-        message.success('账户更新成功');
+        message.success("账户更新成功");
         accountModalVisible.value = false;
         await loadAccounts();
       }
     } else {
       // 添加账户
-      const result = await window.electron.ipcRenderer.invoke('email:add-account', accountForm);
+      const result = await window.electronAPI.email.addAccount(accountForm);
 
       if (result.success) {
-        message.success('账户添加成功');
+        message.success("账户添加成功");
         accountModalVisible.value = false;
         await loadAccounts();
       }
     }
   } catch (error) {
-    message.error('保存失败: ' + error.message);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -505,7 +460,7 @@ const handleSaveAccount = async () => {
 
 const testConnection = async () => {
   if (!accountForm.email || !accountForm.password) {
-    message.error('请填写邮箱地址和密码');
+    message.error("请填写邮箱地址和密码");
     return;
   }
 
@@ -513,7 +468,7 @@ const testConnection = async () => {
   testResult.value = null;
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('email:test-connection', accountForm);
+    const result = await window.electronAPI.email.testConnection(accountForm);
 
     if (result.success && result.result.success) {
       testResult.value = {
@@ -523,7 +478,7 @@ const testConnection = async () => {
     } else {
       testResult.value = {
         success: false,
-        message: result.result.error || '连接失败',
+        message: result.result.error || "连接失败",
       };
     }
   } catch (error) {
@@ -543,7 +498,7 @@ const usePreset = () => {
 
 const applyPreset = () => {
   if (!selectedPreset.value) {
-    message.warning('请选择一个预设');
+    message.warning("请选择一个预设");
     return;
   }
 
@@ -555,14 +510,14 @@ const applyPreset = () => {
   accountForm.smtpSecure = selectedPreset.value.smtpSecure;
 
   presetModalVisible.value = false;
-  message.success('已应用预设配置');
+  message.success("已应用预设配置");
 };
 
 const editAccount = (account) => {
   editingAccount.value = account;
   accountForm.email = account.email;
   accountForm.displayName = account.display_name;
-  accountForm.password = ''; // 不显示密码
+  accountForm.password = ""; // 不显示密码
   accountForm.imapHost = account.imap_host;
   accountForm.imapPort = account.imap_port;
   accountForm.imapTls = account.imap_tls === 1;
@@ -577,24 +532,24 @@ const editAccount = (account) => {
 
 const deleteAccount = async (accountId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('email:remove-account', accountId);
+    const result = await window.electronAPI.email.removeAccount(accountId);
     if (result.success) {
-      message.success('账户已删除');
+      message.success("账户已删除");
       await loadAccounts();
     }
   } catch (error) {
-    message.error('删除失败: ' + error.message);
+    message.error("删除失败: " + error.message);
   }
 };
 
 const syncAccount = async (accountId) => {
-  const account = accounts.value.find(a => a.id === accountId);
+  const account = accounts.value.find((a) => a.id === accountId);
   if (account) {
     account.syncing = true;
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('email:fetch-emails', accountId, {
+    const result = await window.electronAPI.email.fetchEmails(accountId, {
       limit: 50,
       unseen: true,
     });
@@ -604,7 +559,7 @@ const syncAccount = async (accountId) => {
       await loadAccounts();
     }
   } catch (error) {
-    message.error('同步失败: ' + error.message);
+    message.error("同步失败: " + error.message);
   } finally {
     if (account) {
       account.syncing = false;
@@ -613,19 +568,19 @@ const syncAccount = async (accountId) => {
 };
 
 const toggleAccountStatus = async (account) => {
-  const newStatus = account.status === 'active' ? 'paused' : 'active';
+  const newStatus = account.status === "active" ? "paused" : "active";
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('email:update-account', account.id, {
+    const result = await window.electronAPI.email.updateAccount(account.id, {
       status: newStatus,
     });
 
     if (result.success) {
-      message.success(newStatus === 'active' ? '已启用' : '已暂停');
+      message.success(newStatus === "active" ? "已启用" : "已暂停");
       await loadAccounts();
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 

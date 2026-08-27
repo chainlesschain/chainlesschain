@@ -12,12 +12,19 @@ vi.mock("@/utils/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-import { RequestBatcher } from "@/utils/request-batcher";
+import {
+  HARD_REQUEST_BATCHER_LIMITS,
+  RequestBatcher,
+} from "@/utils/request-batcher";
 
 class StubBatcher extends RequestBatcher {
   apiCalls: Array<{ endpoint: string; params: any }> = [];
   batchCalls: Array<{ endpoint: string; batchParams: any[] }> = [];
   responder: (endpoint: string, params: any) => any = () => ({ ok: true });
+  batchResponder: (endpoint: string, batchParams: any[]) => Promise<any[]> = (
+    _endpoint,
+    batchParams,
+  ) => Promise.resolve(batchParams.map((p, idx) => ({ idx, p })));
 
   protected async executeAPI(endpoint: string, params: any): Promise<any> {
     this.apiCalls.push({ endpoint, params });
@@ -28,7 +35,7 @@ class StubBatcher extends RequestBatcher {
     batchParams: any[],
   ): Promise<any[]> {
     this.batchCalls.push({ endpoint, batchParams });
-    return batchParams.map((p, idx) => ({ idx, p }));
+    return this.batchResponder(endpoint, batchParams);
   }
 }
 
@@ -60,6 +67,35 @@ describe("request-batcher — caching", () => {
     await b.request("/c", { a: 1 }, { enableBatching: false });
     await b.request("/c", { a: 1 }, { enableBatching: false, skipCache: true });
     expect(b.apiCalls).toHaveLength(2);
+  });
+
+  it("evicts least-recent cache entries and detaches cached values", async () => {
+    const b = make({ maxCacheEntries: 2 });
+    b.responder = (_endpoint, params) => ({ value: params.value });
+    const first = await b.request(
+      "/a",
+      { value: "a" },
+      { enableBatching: false },
+    );
+    first.value = "mutated";
+    await b.request("/b", { value: "b" }, { enableBatching: false });
+    expect(
+      await b.request("/a", { value: "a" }, { enableBatching: false }),
+    ).toEqual({ value: "a" });
+    await b.request("/c", { value: "c" }, { enableBatching: false });
+
+    expect(b.getStats().cacheSize).toBe(2);
+    await b.request("/b", { value: "b" }, { enableBatching: false });
+    expect(b.apiCalls).toHaveLength(4);
+    expect(b.getStats().cacheBytes).toBeGreaterThan(0);
+  });
+
+  it("does not retain an oversized cache entry", async () => {
+    const b = make({ maxCacheEntryBytes: 64, maxCacheBytes: 128 });
+    b.responder = () => ({ payload: "x".repeat(256) });
+    await b.request("/large", {}, { enableBatching: false });
+    expect(b.getStats().cacheSize).toBe(0);
+    expect(b.getStats().cacheBytes).toBe(0);
   });
 });
 
@@ -104,6 +140,107 @@ describe("request-batcher — batching", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("bounds executing batches and releases the next ready batch", async () => {
+    const b = make({
+      maxBatchSize: 1,
+      maxConcurrentBatches: 1,
+      batchWindow: 60_000,
+    });
+    const resolvers: Array<(value: any[]) => void> = [];
+    b.batchResponder = (_endpoint, batchParams) =>
+      new Promise((resolve) => {
+        resolvers.push(() =>
+          resolve(batchParams.map((params, idx) => ({ idx, p: params }))),
+        );
+      });
+
+    const first = b.request("/first", { value: 1 });
+    const second = b.request("/second", { value: 2 });
+    expect(b.getStats()).toMatchObject({ activeBatches: 1, pendingBatches: 1 });
+
+    resolvers.shift()?.([]);
+    await first;
+    await vi.waitFor(() => expect(b.batchCalls).toHaveLength(2));
+    expect(b.getStats().activeBatches).toBe(1);
+    resolvers.shift()?.([]);
+    await second;
+    expect(b.getStats()).toMatchObject({ activeBatches: 0, pendingBatches: 0 });
+  });
+});
+
+describe("request-batcher — admission bounds", () => {
+  it("clamps caller limits to hard ceilings", () => {
+    const b = make(
+      Object.fromEntries(
+        Object.keys(HARD_REQUEST_BATCHER_LIMITS).map((key) => [
+          key,
+          Number.MAX_SAFE_INTEGER,
+        ]),
+      ),
+    );
+    const options = (
+      b as unknown as {
+        options: Record<string, number>;
+      }
+    ).options;
+    for (const [key, value] of Object.entries(HARD_REQUEST_BATCHER_LIMITS)) {
+      expect(options[key]).toBe(value);
+    }
+  });
+
+  it("rejects oversized and circular request payloads before retention", async () => {
+    const b = make({ maxRequestBytes: 64 });
+    await expect(
+      b.request("/large", { payload: "x".repeat(256) }),
+    ).rejects.toMatchObject({
+      code: "INVALID_ARGUMENT",
+      scope: "request_payload",
+    });
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    await expect(b.request("/circular", circular)).rejects.toMatchObject({
+      code: "INVALID_ARGUMENT",
+      scope: "request_payload",
+    });
+  });
+
+  it("bounds pending endpoint dimensions and cancels waiters on destroy", async () => {
+    const b = make({ maxPendingBatches: 2, batchWindow: 60_000 });
+    const first = b.request("/one", { value: 1 });
+    const second = b.request("/two", { value: 2 });
+    await expect(b.request("/three", { value: 3 })).rejects.toMatchObject({
+      code: "OVERLOADED",
+      scope: "request_batches",
+    });
+    const firstCanceled = expect(first).rejects.toMatchObject({
+      code: "CANCELED",
+    });
+    const secondCanceled = expect(second).rejects.toMatchObject({
+      code: "CANCELED",
+    });
+    b.destroy();
+    await firstCanceled;
+    await secondCanceled;
+    await expect(b.request("/after-destroy")).rejects.toMatchObject({
+      code: "CANCELED",
+    });
+  });
+
+  it("bounds immediate in-flight requests", async () => {
+    const b = make({ maxInflightRequests: 1 });
+    let release: (value: unknown) => void = () => {};
+    b.responder = () => new Promise((resolve) => (release = resolve));
+    const first = b.request("/one", { value: 1 }, { enableBatching: false });
+    await expect(
+      b.request("/two", { value: 2 }, { enableBatching: false }),
+    ).rejects.toMatchObject({
+      code: "OVERLOADED",
+      scope: "request_inflight",
+    });
+    release({ ok: true });
+    await expect(first).resolves.toEqual({ ok: true });
   });
 });
 

@@ -1,5 +1,6 @@
 import { accessibilityHandlers } from "./accessibility.js";
 import { bookmarksHandlers } from "./bookmarks.js";
+import { broadcastHandlers } from "./broadcast.js";
 import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
 import { compressionHandlers } from "./compression.js";
@@ -23,10 +24,12 @@ import { selectionDragdropHandlers } from "./selection-dragdrop.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
 import { windowsHandlers } from "./windows.js";
+import { webRTCHandlers } from "./webrtc.js";
 
 export const commandHandlerRegistry = {
   ...tabsHandlers,
   ...bookmarksHandlers,
+  ...broadcastHandlers,
   ...historyHandlers,
   ...clipboardHandlers,
   ...compressionHandlers,
@@ -50,6 +53,7 @@ export const commandHandlerRegistry = {
   ...fontsHandlers,
   ...accessibilityHandlers,
   ...performanceHandlers,
+  ...webRTCHandlers,
 };
 
 export { listTabs };

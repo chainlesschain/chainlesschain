@@ -357,6 +357,96 @@ contextBridge.exposeInMainWorld("electronAPI", {
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
+  // Fixed RSS capability surface. These channels remain usable while the
+  // legacy generic renderer IPC bridge is disabled by default.
+  rss: {
+    addFeed: (feedUrl, options) =>
+      ipcRenderer.invoke("rss:add-feed", feedUrl, options),
+    removeFeed: (feedId) => ipcRenderer.invoke("rss:remove-feed", feedId),
+    updateFeed: (feedId, updates) =>
+      ipcRenderer.invoke("rss:update-feed", feedId, updates),
+    getFeeds: (options) => ipcRenderer.invoke("rss:get-feeds", options),
+    getFeed: (feedId) => ipcRenderer.invoke("rss:get-feed", feedId),
+    fetchFeed: (feedId) => ipcRenderer.invoke("rss:fetch-feed", feedId),
+    fetchAllFeeds: () => ipcRenderer.invoke("rss:fetch-all-feeds"),
+    getItems: (options) => ipcRenderer.invoke("rss:get-items", options),
+    getItem: (itemId) => ipcRenderer.invoke("rss:get-item", itemId),
+    markAsRead: (itemId) => ipcRenderer.invoke("rss:mark-as-read", itemId),
+    markAsUnread: (itemId) => ipcRenderer.invoke("rss:mark-as-unread", itemId),
+    markAsStarred: (itemId, starred) =>
+      ipcRenderer.invoke("rss:mark-as-starred", itemId, starred),
+    archiveItem: (itemId) => ipcRenderer.invoke("rss:archive-item", itemId),
+    saveToKnowledge: (itemId) =>
+      ipcRenderer.invoke("rss:save-to-knowledge", itemId),
+    addCategory: (name, options) =>
+      ipcRenderer.invoke("rss:add-category", name, options),
+    getCategories: (options) =>
+      ipcRenderer.invoke("rss:get-categories", options),
+    assignCategory: (feedId, categoryId) =>
+      ipcRenderer.invoke("rss:assign-category", feedId, categoryId),
+    discoverFeeds: (websiteUrl) =>
+      ipcRenderer.invoke("rss:discover-feeds", websiteUrl),
+    validateFeed: (feedUrl) => ipcRenderer.invoke("rss:validate-feed", feedUrl),
+    startAutoSync: (feedId) =>
+      ipcRenderer.invoke("rss:start-auto-sync", feedId),
+    stopAutoSync: (feedId) => ipcRenderer.invoke("rss:stop-auto-sync", feedId),
+  },
+
+  // Fixed Email capability surface. Attachment destinations are deliberately
+  // absent: the main process owns the native save dialog.
+  email: {
+    addAccount: (config) => ipcRenderer.invoke("email:add-account", config),
+    removeAccount: (accountId) =>
+      ipcRenderer.invoke("email:remove-account", accountId),
+    updateAccount: (accountId, updates) =>
+      ipcRenderer.invoke("email:update-account", accountId, updates),
+    getAccounts: () => ipcRenderer.invoke("email:get-accounts"),
+    getAccount: (accountId) =>
+      ipcRenderer.invoke("email:get-account", accountId),
+    testConnection: (config) =>
+      ipcRenderer.invoke("email:test-connection", config),
+    getMailboxes: (accountId) =>
+      ipcRenderer.invoke("email:get-mailboxes", accountId),
+    syncMailboxes: (accountId) =>
+      ipcRenderer.invoke("email:sync-mailboxes", accountId),
+    fetchEmails: (accountId, options) =>
+      ipcRenderer.invoke("email:fetch-emails", accountId, options),
+    getEmails: (options) => ipcRenderer.invoke("email:get-emails", options),
+    getEmail: (emailId) => ipcRenderer.invoke("email:get-email", emailId),
+    markAsRead: (emailId) => ipcRenderer.invoke("email:mark-as-read", emailId),
+    markAsUnread: (emailId) =>
+      ipcRenderer.invoke("email:mark-as-unread", emailId),
+    markAsStarred: (emailId, starred) =>
+      ipcRenderer.invoke("email:mark-as-starred", emailId, starred),
+    saveDraft: (accountId, draftData) =>
+      ipcRenderer.invoke("email:save-draft", accountId, draftData),
+    getDrafts: (accountId) => ipcRenderer.invoke("email:get-drafts", accountId),
+    getDraft: (draftId) => ipcRenderer.invoke("email:get-draft", draftId),
+    deleteDraft: (draftId) => ipcRenderer.invoke("email:delete-draft", draftId),
+    archiveEmail: (emailId) =>
+      ipcRenderer.invoke("email:archive-email", emailId),
+    deleteEmail: (emailId) => ipcRenderer.invoke("email:delete-email", emailId),
+    sendEmail: (accountId, mailOptions) =>
+      ipcRenderer.invoke("email:send-email", accountId, mailOptions),
+    saveToKnowledge: (emailId) =>
+      ipcRenderer.invoke("email:save-to-knowledge", emailId),
+    getAttachments: (emailId) =>
+      ipcRenderer.invoke("email:get-attachments", emailId),
+    downloadAttachment: (attachmentId) =>
+      ipcRenderer.invoke("email:download-attachment", attachmentId),
+    addLabel: (name, options) =>
+      ipcRenderer.invoke("email:add-label", name, options),
+    getLabels: () => ipcRenderer.invoke("email:get-labels"),
+    assignLabel: (emailId, labelId) =>
+      ipcRenderer.invoke("email:assign-label", emailId, labelId),
+    removeLabel: (emailId, labelId) =>
+      ipcRenderer.invoke("email:remove-label", emailId, labelId),
+    startAutoSync: (accountId) =>
+      ipcRenderer.invoke("email:start-auto-sync", accountId),
+    stopAutoSync: (accountId) =>
+      ipcRenderer.invoke("email:stop-auto-sync", accountId),
+  },
+
   // 对话管理
   conversation: {
     create: (conversationData) =>

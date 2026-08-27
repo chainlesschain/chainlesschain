@@ -22,6 +22,7 @@ class MockDatabaseAdapter {
     this.files = [];
     this.notes = [];
     this.queryCount = 0;
+    this.projectListCache = null;
   }
 
   async insertProject(project) {
@@ -32,6 +33,7 @@ class MockDatabaseAdapter {
       createdAt: Date.now(),
     };
     this.projects.push(newProject);
+    this.projectListCache = null;
     return newProject;
   }
 
@@ -41,8 +43,13 @@ class MockDatabaseAdapter {
   }
 
   async getAllProjects() {
+    if (this.projectListCache !== null) {
+      return [...this.projectListCache];
+    }
+
     this.queryCount++;
-    return [...this.projects];
+    this.projectListCache = [...this.projects];
+    return [...this.projectListCache];
   }
 
   async getProjectById(id) {
@@ -55,6 +62,7 @@ class MockDatabaseAdapter {
     const index = this.projects.findIndex((p) => p.id === id);
     if (index >= 0) {
       this.projects[index] = { ...this.projects[index], ...updates };
+      this.projectListCache = null;
       return this.projects[index];
     }
     return null;
@@ -65,6 +73,7 @@ class MockDatabaseAdapter {
     const index = this.projects.findIndex((p) => p.id === id);
     if (index >= 0) {
       this.projects.splice(index, 1);
+      this.projectListCache = null;
       return true;
     }
     return false;
@@ -107,6 +116,7 @@ class MockDatabaseAdapter {
     this.files = [];
     this.notes = [];
     this.queryCount = 0;
+    this.projectListCache = null;
   }
 
   getQueryCount() {
@@ -352,20 +362,20 @@ describe('性能与负载测试', () => {
       // 第一次加载
       const queryCountBefore = db.getQueryCount();
       const firstLoad = metrics.start('first-load');
-      await db.getAllProjects();
+      const firstProjects = await db.getAllProjects();
       const firstLoadResult = metrics.end(firstLoad);
 
-      // 模拟缓存：第二次加载应该更快
+      // 第二次加载应该命中缓存，不再执行数据库查询
       const secondLoad = metrics.start('second-load');
-      await db.getAllProjects();
+      const secondProjects = await db.getAllProjects();
       const secondLoadResult = metrics.end(secondLoad);
 
-      // 第二次加载不应该比第一次慢很多（模拟缓存效果）
-      // 在真实场景中，第二次加载应该从缓存读取
       console.log(`  第一次加载: ${firstLoadResult.duration.toFixed(2)}ms`);
       console.log(`  第二次加载: ${secondLoadResult.duration.toFixed(2)}ms`);
 
-      expect(secondLoadResult.duration).toBeLessThan(firstLoadResult.duration * 1.5);
+      expect(firstProjects).toHaveLength(500);
+      expect(secondProjects).toEqual(firstProjects);
+      expect(db.getQueryCount()).toBe(queryCountBefore + 1);
     });
   });
 

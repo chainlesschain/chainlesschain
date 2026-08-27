@@ -1035,6 +1035,63 @@ export interface MultimediaAPI {
   getVideoInfo(path: string): Promise<any>;
 }
 
+export interface RSSAPI {
+  addFeed(feedUrl: string, options?: any): Promise<any>;
+  removeFeed(feedId: string): Promise<any>;
+  updateFeed(feedId: string, updates: any): Promise<any>;
+  getFeeds(options?: any): Promise<any>;
+  getFeed(feedId: string): Promise<any>;
+  fetchFeed(feedId: string): Promise<any>;
+  fetchAllFeeds(): Promise<any>;
+  getItems(options?: any): Promise<any>;
+  getItem(itemId: string): Promise<any>;
+  markAsRead(itemId: string): Promise<any>;
+  markAsUnread(itemId: string): Promise<any>;
+  markAsStarred(itemId: string, starred?: boolean): Promise<any>;
+  archiveItem(itemId: string): Promise<any>;
+  saveToKnowledge(itemId: string): Promise<any>;
+  addCategory(name: string, options?: any): Promise<any>;
+  getCategories(options?: any): Promise<any>;
+  assignCategory(feedId: string, categoryId: string): Promise<any>;
+  discoverFeeds(websiteUrl: string): Promise<any>;
+  validateFeed(feedUrl: string): Promise<any>;
+  startAutoSync(feedId: string): Promise<any>;
+  stopAutoSync(feedId: string): Promise<any>;
+}
+
+export interface EmailAPI {
+  addAccount(config: any): Promise<any>;
+  removeAccount(accountId: string): Promise<any>;
+  updateAccount(accountId: string, updates: any): Promise<any>;
+  getAccounts(): Promise<any>;
+  getAccount(accountId: string): Promise<any>;
+  testConnection(config: any): Promise<any>;
+  getMailboxes(accountId: string): Promise<any>;
+  syncMailboxes(accountId: string): Promise<any>;
+  fetchEmails(accountId: string, options?: any): Promise<any>;
+  getEmails(options?: any): Promise<any>;
+  getEmail(emailId: string): Promise<any>;
+  markAsRead(emailId: string): Promise<any>;
+  markAsUnread(emailId: string): Promise<any>;
+  markAsStarred(emailId: string, starred?: boolean): Promise<any>;
+  saveDraft(accountId: string, draftData: any): Promise<any>;
+  getDrafts(accountId: string): Promise<any>;
+  getDraft(draftId: string): Promise<any>;
+  deleteDraft(draftId: string): Promise<any>;
+  archiveEmail(emailId: string): Promise<any>;
+  deleteEmail(emailId: string): Promise<any>;
+  sendEmail(accountId: string, mailOptions: any): Promise<any>;
+  saveToKnowledge(emailId: string): Promise<any>;
+  getAttachments(emailId: string): Promise<any>;
+  downloadAttachment(attachmentId: string): Promise<any>;
+  addLabel(name: string, options?: any): Promise<any>;
+  getLabels(): Promise<any>;
+  assignLabel(emailId: string, labelId: string): Promise<any>;
+  removeLabel(emailId: string, labelId: string): Promise<any>;
+  startAutoSync(accountId: string): Promise<any>;
+  stopAutoSync(accountId: string): Promise<any>;
+}
+
 /**
  * 主 Electron API 接口
  */
@@ -1070,6 +1127,8 @@ export interface ElectronAPI {
   rag: RAGAPI;
   mcp: MCPAPI;
   multimedia: MultimediaAPI;
+  rss: RSSAPI;
+  email: EmailAPI;
   config: ConfigAPI;
 }
 

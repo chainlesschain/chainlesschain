@@ -16,9 +16,11 @@
 const { logger } = require('../utils/logger.js');
 const defaultIpcGuard = require('../ipc/ipc-guard');
 const { StreamController, StreamStatus, createStreamController } = require('./stream-controller.js');
+const { StreamControllerRegistry } = require('./stream-controller-registry.js');
 
 // 活跃的流控制器管理
-const activeControllers = new Map();
+const streamControllerRegistry = new StreamControllerRegistry();
+const STREAM_CONTROLLER_REGISTRY_LIMITS = streamControllerRegistry.limits;
 
 /**
  * 创建或获取流控制器
@@ -27,22 +29,15 @@ const activeControllers = new Map();
  * @returns {StreamController} 控制器实例
  */
 function getOrCreateController(streamId, options = {}) {
-  if (!activeControllers.has(streamId)) {
-    const controller = createStreamController(options);
-    activeControllers.set(streamId, controller);
+  const { controller, created } = streamControllerRegistry.getOrCreate(
+    streamId,
+    () => createStreamController(options),
+  );
+  if (created) {
 
     // 监听完成/取消/错误事件，自动清理
     const cleanup = () => {
-      setTimeout(() => {
-        if (activeControllers.has(streamId)) {
-          const ctrl = activeControllers.get(streamId);
-          if (ctrl.status === StreamStatus.COMPLETED ||
-              ctrl.status === StreamStatus.CANCELLED ||
-              ctrl.status === StreamStatus.ERROR) {
-            activeControllers.delete(streamId);
-          }
-        }
-      }, 30000); // 30秒后清理已完成的控制器
+      streamControllerRegistry.scheduleTerminalDelete(streamId, 30000);
     };
 
     controller.on('complete', cleanup);
@@ -50,7 +45,7 @@ function getOrCreateController(streamId, options = {}) {
     controller.on('stream-error', cleanup);
   }
 
-  return activeControllers.get(streamId);
+  return controller;
 }
 
 /**
@@ -93,9 +88,18 @@ function registerStreamControllerIPC({
    */
   ipcMain.handle('stream:create', async (_event, options = {}) => {
     try {
-      const streamId = options.streamId || `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const normalizedOptions = options && typeof options === 'object'
+        ? options
+        : {};
+      const streamId = normalizedOptions.streamId || `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      if (activeControllers.has(streamId)) {
+      const streamIdValidation =
+        streamControllerRegistry.validateStreamId(streamId);
+      if (!streamIdValidation.accepted) {
+        return { success: false, ...streamIdValidation };
+      }
+
+      if (streamControllerRegistry.has(streamId)) {
         return {
           success: false,
           error: `Stream ${streamId} already exists`,
@@ -103,7 +107,11 @@ function registerStreamControllerIPC({
       }
 
       const controller = getOrCreateController(streamId, {
-        enableBuffering: options.enableBuffering || false,
+        enableBuffering: normalizedOptions.enableBuffering === true,
+        maxBufferedChunks: normalizedOptions.maxBufferedChunks,
+        maxBufferedBytes: normalizedOptions.maxBufferedBytes,
+        maxBufferedChunkBytes: normalizedOptions.maxBufferedChunkBytes,
+        maxPauseWaiters: normalizedOptions.maxPauseWaiters,
       });
 
       logger.info('[Stream Controller IPC] 流控制器已创建:', streamId);
@@ -112,12 +120,20 @@ function registerStreamControllerIPC({
         success: true,
         streamId,
         status: controller.status,
+        limits: {
+          ...STREAM_CONTROLLER_REGISTRY_LIMITS,
+          ...controller.bufferLimits,
+        },
       };
     } catch (error) {
       logger.error('[Stream Controller IPC] 创建流控制器失败:', error);
       return {
         success: false,
         error: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.scope ? { scope: error.scope } : {}),
+        ...(error.retryAfterMs ? { retryAfterMs: error.retryAfterMs } : {}),
+        ...(error.limit ? { limit: error.limit } : {}),
       };
     }
   });
@@ -138,7 +154,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -182,7 +198,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -226,7 +242,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: true,
@@ -235,7 +251,7 @@ function registerStreamControllerIPC({
       }
 
       controller.destroy();
-      activeControllers.delete(streamId);
+      streamControllerRegistry.delete(streamId);
 
       logger.info('[Stream Controller IPC] 流控制器已销毁:', streamId);
 
@@ -273,7 +289,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -316,7 +332,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -360,7 +376,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -409,7 +425,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -452,7 +468,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -486,7 +502,7 @@ function registerStreamControllerIPC({
     try {
       const streams = [];
 
-      for (const [streamId, controller] of activeControllers.entries()) {
+      for (const [streamId, controller] of streamControllerRegistry.entries()) {
         streams.push({
           streamId,
           status: controller.status,
@@ -530,7 +546,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -571,7 +587,7 @@ function registerStreamControllerIPC({
         };
       }
 
-      const controller = activeControllers.get(streamId);
+      const controller = streamControllerRegistry.get(streamId);
       if (!controller) {
         return {
           success: false,
@@ -644,10 +660,7 @@ function unregisterStreamControllerIPC({ ipcMain: injectedIpcMain, ipcGuard: inj
   }
 
   // 清理所有活跃的控制器
-  for (const [streamId, controller] of activeControllers.entries()) {
-    controller.destroy();
-  }
-  activeControllers.clear();
+  destroyAllStreamControllers();
 
   ipcGuard.unmarkModuleRegistered('stream-controller-ipc');
   logger.info('[Stream Controller IPC] Handlers unregistered');
@@ -659,7 +672,7 @@ function unregisterStreamControllerIPC({ ipcMain: injectedIpcMain, ipcGuard: inj
  * @returns {StreamController|undefined}
  */
 function getActiveController(streamId) {
-  return activeControllers.get(streamId);
+  return streamControllerRegistry.get(streamId);
 }
 
 /**
@@ -667,14 +680,25 @@ function getActiveController(streamId) {
  * @returns {number}
  */
 function getActiveControllerCount() {
-  return activeControllers.size;
+  return streamControllerRegistry.size;
+}
+
+function destroyAllStreamControllers() {
+  streamControllerRegistry.destroyAll();
+}
+
+function getStreamControllerRegistryStats() {
+  return streamControllerRegistry.getStats();
 }
 
 module.exports = {
+  STREAM_CONTROLLER_REGISTRY_LIMITS,
   registerStreamControllerIPC,
   unregisterStreamControllerIPC,
   getOrCreateController,
   getActiveController,
   getActiveControllerCount,
+  destroyAllStreamControllers,
+  getStreamControllerRegistryStats,
   StreamStatus,
 };

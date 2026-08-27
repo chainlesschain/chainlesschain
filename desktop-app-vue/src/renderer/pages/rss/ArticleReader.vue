@@ -267,10 +267,7 @@ const sanitizedContent = computed(() => {
 // 方法
 const loadFeed = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:get-feed",
-      feedId.value,
-    );
+    const result = await window.electronAPI.rss.getFeed(feedId.value);
     if (result.success) {
       feedTitle.value = result.feed.title;
     }
@@ -290,10 +287,7 @@ const loadArticles = async () => {
       options.isStarred = true;
     }
 
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:get-items",
-      options,
-    );
+    const result = await window.electronAPI.rss.getItems(options);
     if (result.success) {
       articles.value = result.items;
     }
@@ -310,7 +304,7 @@ const selectArticle = async (article) => {
   // 标记为已读
   if (!article.is_read) {
     try {
-      await window.electron.ipcRenderer.invoke("rss:mark-as-read", article.id);
+      await window.electronAPI.rss.markAsRead(article.id);
       article.is_read = 1;
     } catch (error) {
       logger.error("标记已读失败:", error);
@@ -326,8 +320,7 @@ const toggleStar = async () => {
   const newStarred = !selectedArticle.value.is_starred;
 
   try {
-    await window.electron.ipcRenderer.invoke(
-      "rss:mark-as-starred",
+    await window.electronAPI.rss.markAsStarred(
       selectedArticle.value.id,
       newStarred,
     );
@@ -354,8 +347,7 @@ const saveToKnowledge = async () => {
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:save-to-knowledge",
+    const result = await window.electronAPI.rss.saveToKnowledge(
       selectedArticle.value.id,
     );
 
@@ -381,19 +373,13 @@ const handleMenuClick = async ({ key }) => {
   try {
     switch (key) {
       case "markRead":
-        await window.electron.ipcRenderer.invoke(
-          "rss:mark-as-read",
-          selectedArticle.value.id,
-        );
+        await window.electronAPI.rss.markAsRead(selectedArticle.value.id);
         selectedArticle.value.is_read = 1;
         message.success("已标记为已读");
         break;
 
       case "markUnread": {
-        await window.electron.ipcRenderer.invoke(
-          "rss:mark-as-unread",
-          selectedArticle.value.id,
-        );
+        await window.electronAPI.rss.markAsUnread(selectedArticle.value.id);
         selectedArticle.value.is_read = 0;
 
         // 更新列表中的状态
@@ -409,10 +395,7 @@ const handleMenuClick = async ({ key }) => {
       }
 
       case "archive":
-        await window.electron.ipcRenderer.invoke(
-          "rss:archive-item",
-          selectedArticle.value.id,
-        );
+        await window.electronAPI.rss.archiveItem(selectedArticle.value.id);
         message.success("已归档");
         await loadArticles();
         selectedArticle.value = null;

@@ -3,7 +3,7 @@
  */
 
 /* eslint-disable no-undef */
-/* global chrome, Blob, CompressionStream, DecompressionStream, TextEncoder, TextDecoder, Uint8Array, Array */
+/* global chrome, CompressionStream, DecompressionStream, TextEncoder, TextDecoder, Uint8Array, Array, ReadableStream */
 
 import { utf8ByteLength } from "./heap-snapshot-boundary.js";
 
@@ -184,8 +184,13 @@ export async function compressPayloadInPage(
   }
   try {
     const inputBytes = new TextEncoder().encode(inputData);
-    const reader = new Blob([inputBytes])
-      .stream()
+    const inputStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(inputBytes);
+        controller.close();
+      },
+    });
+    const reader = inputStream
       .pipeThrough(new CompressionStream(format))
       .getReader();
     const chunks = [];
@@ -244,8 +249,14 @@ export async function decompressPayloadInPage(
     return { error: "DecompressionStream not supported" };
   }
   try {
-    const reader = new Blob([new Uint8Array(compressedData)])
-      .stream()
+    const inputBytes = new Uint8Array(compressedData);
+    const inputStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(inputBytes);
+        controller.close();
+      },
+    });
+    const reader = inputStream
       .pipeThrough(new DecompressionStream(format))
       .getReader();
     const decoder = new TextDecoder();

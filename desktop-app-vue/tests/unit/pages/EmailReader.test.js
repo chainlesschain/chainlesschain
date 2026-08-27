@@ -63,8 +63,82 @@ global.window = {
     ipcRenderer: {
       invoke: vi.fn(),
     },
-    dialog: {
-      showSaveDialog: vi.fn(),
+  },
+  electronAPI: {
+    email: {
+      getMailboxes: (accountId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:get-mailboxes",
+          accountId,
+        ),
+      syncMailboxes: (accountId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:sync-mailboxes",
+          accountId,
+        ),
+      getEmails: (options) =>
+        global.window.electron.ipcRenderer.invoke("email:get-emails", options),
+      fetchEmails: (accountId, options) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:fetch-emails",
+          accountId,
+          options,
+        ),
+      getEmail: (emailId) =>
+        global.window.electron.ipcRenderer.invoke("email:get-email", emailId),
+      markAsRead: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:mark-as-read",
+          emailId,
+        ),
+      markAsUnread: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:mark-as-unread",
+          emailId,
+        ),
+      markAsStarred: (emailId, starred) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:mark-as-starred",
+          emailId,
+          starred,
+        ),
+      archiveEmail: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:archive-email",
+          emailId,
+        ),
+      deleteEmail: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:delete-email",
+          emailId,
+        ),
+      saveToKnowledge: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:save-to-knowledge",
+          emailId,
+        ),
+      getAttachments: (emailId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:get-attachments",
+          emailId,
+        ),
+      downloadAttachment: (attachmentId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:download-attachment",
+          attachmentId,
+        ),
+      getDrafts: (accountId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:get-drafts",
+          accountId,
+        ),
+      getDraft: (draftId) =>
+        global.window.electron.ipcRenderer.invoke("email:get-draft", draftId),
+      deleteDraft: (draftId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:delete-draft",
+          draftId,
+        ),
     },
   },
 };
@@ -530,11 +604,6 @@ describe("EmailReader.vue", () => {
     });
 
     it("应该能下载附件", async () => {
-      window.electron.dialog.showSaveDialog.mockResolvedValue({
-        canceled: false,
-        filePath: "/path/to/save/document.pdf",
-      });
-
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
       });
@@ -548,13 +617,13 @@ describe("EmailReader.vue", () => {
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         "email:download-attachment",
         "attach-1",
-        "/path/to/save/document.pdf",
       );
       expect(message.success).toHaveBeenCalledWith("附件下载成功");
     });
 
     it("应该处理用户取消下载", async () => {
-      window.electron.dialog.showSaveDialog.mockResolvedValue({
+      window.electron.ipcRenderer.invoke.mockResolvedValue({
+        success: false,
         canceled: true,
       });
 
@@ -567,15 +636,11 @@ describe("EmailReader.vue", () => {
       const downloadCall = calls.find(
         (call) => call[0] === "email:download-attachment",
       );
-      expect(downloadCall).toBeUndefined();
+      expect(downloadCall).toEqual(["email:download-attachment", "attach-1"]);
+      expect(mockMessage.success).not.toHaveBeenCalled();
     });
 
     it("应该处理下载失败", async () => {
-      window.electron.dialog.showSaveDialog.mockResolvedValue({
-        canceled: false,
-        filePath: "/path/to/save/document.pdf",
-      });
-
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("下载失败"),
       );
@@ -806,7 +871,7 @@ describe("EmailReader.vue", () => {
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         "email:mark-as-unread",
-        "email-1"
+        "email-1",
       );
       expect(message.success).toHaveBeenCalledWith("已标记为未读");
       expect(wrapper.vm.selectedEmail.is_read).toBe(0);
@@ -892,7 +957,7 @@ describe("EmailReader.vue", () => {
     it.skip("应该计算未读数量", async () => {
       wrapper = createWrapper();
       wrapper.vm.emails.length = 0;
-      mockEmails.forEach(email => wrapper.vm.emails.push(email));
+      mockEmails.forEach((email) => wrapper.vm.emails.push(email));
       await wrapper.vm.$nextTick();
 
       expect(wrapper.vm.unreadCount).toBe(1);

@@ -6,15 +6,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { Notification } = require("electron");
 const path = require("path");
+const {
+  NotificationBoundaryError,
+  boundedCount,
+  cloneBoundedNavigation,
+  createNotificationLimits,
+  projectNavigationItems,
+  truncateUtf8,
+} = require("./notification-manager-boundaries.js");
 
 class APINotificationManager {
-  constructor() {
+  constructor(options = {}) {
+    this.limits = createNotificationLimits(options.limits || options);
+    this.NotificationClass =
+      options.NotificationClass || require("electron").Notification;
     this.enabled = true;
-    this.notificationQueue = [];
-    this.isProcessing = false;
     this.mainWindow = null;
+    this.activeNotifications = new Map();
+    this.destroyed = false;
   }
 
   /**
@@ -22,7 +32,11 @@ class APINotificationManager {
    * @param {BrowserWindow} window - Electron 主窗口
    */
   setMainWindow(window) {
+    if (this.destroyed) {
+      return false;
+    }
     this.mainWindow = window;
+    return true;
   }
 
   /**
@@ -32,189 +46,329 @@ class APINotificationManager {
     this.enabled = enabled;
   }
 
+  _boundedText(value) {
+    return truncateUtf8(value, this.limits.maxTextBytes);
+  }
+
+  _rejection(code, scope, extra = {}) {
+    return {
+      accepted: false,
+      code,
+      scope,
+      ...extra,
+    };
+  }
+
+  _showNotification(options, onClick = null) {
+    if (this.destroyed) {
+      return this._rejection("CANCELED", "api_notifications");
+    }
+    if (!this.enabled) {
+      return this._rejection("DISABLED", "api_notifications");
+    }
+    if (this.activeNotifications.size >= this.limits.maxActiveNotifications) {
+      return this._rejection("OVERLOADED", "api_notifications", {
+        retryAfterMs: 1000,
+        limit: {
+          maxActiveNotifications: this.limits.maxActiveNotifications,
+        },
+      });
+    }
+
+    let notification;
+    try {
+      notification = new this.NotificationClass(options);
+    } catch (error) {
+      logger.error("[Notification] 创建系统通知失败", error);
+      return this._rejection("DELIVERY_FAILED", "api_notifications");
+    }
+
+    let released = false;
+    let timer = null;
+    const release = () => {
+      if (released) {
+        return;
+      }
+      released = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      this.activeNotifications.delete(notification);
+    };
+    notification.once?.("close", release);
+    notification.once?.("failed", release);
+    if (typeof onClick === "function") {
+      notification.on?.("click", () => {
+        release();
+        try {
+          onClick();
+        } catch (error) {
+          logger.error("[Notification] 点击处理失败", error);
+        } finally {
+          notification.close?.();
+        }
+      });
+    }
+
+    timer = setTimeout(() => {
+      release();
+      notification.close?.();
+    }, this.limits.notificationTtlMs);
+    timer.unref?.();
+    this.activeNotifications.set(notification, timer);
+
+    try {
+      notification.show();
+      return { accepted: true };
+    } catch (error) {
+      release();
+      logger.error("[Notification] 显示系统通知失败", error);
+      return this._rejection("DELIVERY_FAILED", "api_notifications");
+    }
+  }
+
+  getStats() {
+    return {
+      enabled: this.enabled,
+      destroyed: this.destroyed,
+      activeNotifications: this.activeNotifications.size,
+      maxActiveNotifications: this.limits.maxActiveNotifications,
+    };
+  }
+
   /**
    * RSS 新文章通知
    */
   notifyNewArticles(feedTitle, count, items = []) {
-    if (!this.enabled || count === 0) {
-      return;
+    const normalizedCount = boundedCount(count);
+    if (normalizedCount === 0) {
+      return this._rejection("INVALID_ARGUMENT", "rss_notification_count");
     }
+    const boundedFeedTitle = this._boundedText(feedTitle);
+    const boundedItems = projectNavigationItems(
+      items,
+      this.limits.maxClickItems,
+      this.limits.maxTextBytes,
+      ["id", "link", "title"],
+    );
 
-    const notification = new Notification({
-      title: "RSS 新文章",
-      body: `${feedTitle} 有 ${count} 篇新文章`,
-      icon: this.getIconPath("rss"),
-      silent: false,
-      urgency: "normal",
-    });
+    const result = this._showNotification(
+      {
+        title: "RSS 新文章",
+        body: this._boundedText(
+          `${boundedFeedTitle} 有 ${normalizedCount} 篇新文章`,
+        ),
+        icon: this.getIconPath("rss"),
+        silent: false,
+        urgency: "normal",
+      },
+      () => {
+        logger.info("[Notification] 用户点击了 RSS 通知");
+        this.openRSSReader(boundedFeedTitle, boundedItems);
+      },
+    );
 
-    notification.on("click", () => {
-      logger.info("[Notification] 用户点击了 RSS 通知");
-      this.openRSSReader(feedTitle, items);
-    });
-
-    notification.show();
-
-    // 记录通知
-    this.logNotification("rss", "new_articles", {
-      feedTitle,
-      count,
-      items: items.slice(0, 5).map((item) => item.title),
-    });
+    if (result.accepted) {
+      this.logNotification("rss", "new_articles", {
+        feedTitle: boundedFeedTitle,
+        count: normalizedCount,
+        items: boundedItems.slice(0, 5).map((item) => item.title),
+      });
+    }
+    return result;
   }
 
   /**
    * 新邮件通知
    */
   notifyNewEmails(accountEmail, count, emails = []) {
-    if (!this.enabled || count === 0) {
-      return;
+    const normalizedCount = boundedCount(count);
+    if (normalizedCount === 0) {
+      return this._rejection("INVALID_ARGUMENT", "email_notification_count");
     }
+    const boundedAccountEmail = this._boundedText(accountEmail);
+    const boundedEmails = projectNavigationItems(
+      emails,
+      this.limits.maxClickItems,
+      this.limits.maxTextBytes,
+      ["id", "messageId", "subject"],
+    );
 
-    const notification = new Notification({
-      title: "新邮件",
-      body: `${accountEmail} 收到 ${count} 封新邮件`,
-      icon: this.getIconPath("email"),
-      silent: false,
-      urgency: "normal",
-    });
+    const result = this._showNotification(
+      {
+        title: "新邮件",
+        body: this._boundedText(
+          `${boundedAccountEmail} 收到 ${normalizedCount} 封新邮件`,
+        ),
+        icon: this.getIconPath("email"),
+        silent: false,
+        urgency: "normal",
+      },
+      () => {
+        logger.info("[Notification] 用户点击了邮件通知");
+        this.openEmailReader(boundedAccountEmail, boundedEmails);
+      },
+    );
 
-    notification.on("click", () => {
-      logger.info("[Notification] 用户点击了邮件通知");
-      this.openEmailReader(accountEmail, emails);
-    });
-
-    notification.show();
-
-    // 记录通知
-    this.logNotification("email", "new_emails", {
-      accountEmail,
-      count,
-      subjects: emails.slice(0, 5).map((email) => email.subject),
-    });
+    if (result.accepted) {
+      this.logNotification("email", "new_emails", {
+        accountEmail: boundedAccountEmail,
+        count: normalizedCount,
+        subjects: boundedEmails.slice(0, 5).map((email) => email.subject),
+      });
+    }
+    return result;
   }
 
   /**
    * RSS 同步错误通知
    */
   notifyRSSError(feedTitle, error) {
-    if (!this.enabled) {
-      return;
-    }
+    const boundedFeedTitle = this._boundedText(feedTitle);
+    const boundedError = this._boundedText(error);
 
-    const notification = new Notification({
+    const result = this._showNotification({
       title: "RSS 同步失败",
-      body: `${feedTitle}: ${error}`,
+      body: this._boundedText(`${boundedFeedTitle}: ${boundedError}`),
       icon: this.getIconPath("error"),
       silent: false,
       urgency: "critical",
     });
 
-    notification.show();
-
-    this.logNotification("rss", "sync_error", {
-      feedTitle,
-      error,
-    });
+    if (result.accepted) {
+      this.logNotification("rss", "sync_error", {
+        feedTitle: boundedFeedTitle,
+        error: boundedError,
+      });
+    }
+    return result;
   }
 
   /**
    * 邮件同步错误通知
    */
   notifyEmailError(accountEmail, error) {
-    if (!this.enabled) {
-      return;
-    }
+    const boundedAccountEmail = this._boundedText(accountEmail);
+    const boundedError = this._boundedText(error);
 
-    const notification = new Notification({
+    const result = this._showNotification({
       title: "邮件同步失败",
-      body: `${accountEmail}: ${error}`,
+      body: this._boundedText(`${boundedAccountEmail}: ${boundedError}`),
       icon: this.getIconPath("error"),
       silent: false,
       urgency: "critical",
     });
 
-    notification.show();
-
-    this.logNotification("email", "sync_error", {
-      accountEmail,
-      error,
-    });
+    if (result.accepted) {
+      this.logNotification("email", "sync_error", {
+        accountEmail: boundedAccountEmail,
+        error: boundedError,
+      });
+    }
+    return result;
   }
 
   /**
    * 邮件发送成功通知
    */
   notifyEmailSent(to, subject) {
-    if (!this.enabled) {
-      return;
-    }
+    const boundedTo = this._boundedText(to);
+    const boundedSubject = this._boundedText(subject);
 
-    const notification = new Notification({
+    const result = this._showNotification({
       title: "邮件已发送",
-      body: `收件人: ${to}\n主题: ${subject}`,
+      body: this._boundedText(`收件人: ${boundedTo}\n主题: ${boundedSubject}`),
       icon: this.getIconPath("email"),
       silent: true,
       urgency: "low",
     });
 
-    notification.show();
-
-    this.logNotification("email", "sent", {
-      to,
-      subject,
-    });
+    if (result.accepted) {
+      this.logNotification("email", "sent", {
+        to: boundedTo,
+        subject: boundedSubject,
+      });
+    }
+    return result;
   }
 
   /**
    * 批量通知（避免通知轰炸）
    */
   notifyBatch(notifications) {
-    if (!this.enabled || notifications.length === 0) {
-      return;
+    if (!Array.isArray(notifications) || notifications.length === 0) {
+      return this._rejection("INVALID_ARGUMENT", "notification_batch");
     }
 
-    // 合并相同类型的通知
-    const grouped = this.groupNotifications(notifications);
+    const admittedNotifications = notifications.slice(
+      0,
+      this.limits.maxBatchNotifications,
+    );
+    const grouped = this.groupNotifications(admittedNotifications);
+    const deliveryResults = [];
 
-    for (const [type, items] of Object.entries(grouped)) {
+    for (const [type, items] of grouped) {
       if (type === "rss") {
-        const totalCount = items.reduce((sum, item) => sum + item.count, 0);
+        const totalCount = items.reduce(
+          (sum, item) => Math.min(sum + item.count, Number.MAX_SAFE_INTEGER),
+          0,
+        );
         const feedCount = items.length;
 
-        const notification = new Notification({
-          title: "RSS 更新",
-          body: `${feedCount} 个订阅源有 ${totalCount} 篇新文章`,
-          icon: this.getIconPath("rss"),
-        });
-
-        notification.show();
+        deliveryResults.push(
+          this._showNotification({
+            title: "RSS 更新",
+            body: `${feedCount} 个订阅源有 ${totalCount} 篇新文章`,
+            icon: this.getIconPath("rss"),
+          }),
+        );
       } else if (type === "email") {
-        const totalCount = items.reduce((sum, item) => sum + item.count, 0);
+        const totalCount = items.reduce(
+          (sum, item) => Math.min(sum + item.count, Number.MAX_SAFE_INTEGER),
+          0,
+        );
         const accountCount = items.length;
 
-        const notification = new Notification({
-          title: "邮件更新",
-          body: `${accountCount} 个账户收到 ${totalCount} 封新邮件`,
-          icon: this.getIconPath("email"),
-        });
-
-        notification.show();
+        deliveryResults.push(
+          this._showNotification({
+            title: "邮件更新",
+            body: `${accountCount} 个账户收到 ${totalCount} 封新邮件`,
+            icon: this.getIconPath("email"),
+          }),
+        );
       }
     }
+
+    return {
+      accepted: deliveryResults.some((result) => result.accepted),
+      deliveryResults,
+      admitted: admittedNotifications.length,
+      dropped: notifications.length - admittedNotifications.length,
+    };
   }
 
   /**
    * 分组通知
    */
   groupNotifications(notifications) {
-    const grouped = {};
+    const grouped = new Map();
 
     for (const notif of notifications) {
-      if (!grouped[notif.type]) {
-        grouped[notif.type] = [];
+      let type;
+      let count;
+      try {
+        type = notif?.type;
+        count = boundedCount(notif?.count);
+      } catch {
+        continue;
       }
-      grouped[notif.type].push(notif);
+      if ((type !== "rss" && type !== "email") || count === 0) {
+        continue;
+      }
+      if (!grouped.has(type)) {
+        grouped.set(type, []);
+      }
+      grouped.get(type).push({ type, count });
     }
 
     return grouped;
@@ -236,7 +390,7 @@ class APINotificationManager {
     const possiblePaths = [
       path.join(__dirname, "../../assets", iconFile),
       path.join(__dirname, "../../../assets", iconFile),
-      path.join(process.resourcesPath, "assets", iconFile),
+      path.join(process.resourcesPath || __dirname, "assets", iconFile),
     ];
 
     // 返回第一个存在的路径，或者默认路径
@@ -272,6 +426,14 @@ class APINotificationManager {
       return;
     }
 
+    const boundedFeedTitle = this._boundedText(feedTitle);
+    const boundedItems = projectNavigationItems(
+      items,
+      this.limits.maxClickItems,
+      this.limits.maxTextBytes,
+      ["id", "link"],
+    );
+
     // 激活窗口
     if (this.mainWindow.isMinimized()) {
       this.mainWindow.restore();
@@ -282,12 +444,12 @@ class APINotificationManager {
     this.mainWindow.webContents.send("notification:navigate", {
       route: "/rss",
       params: {
-        feedTitle,
-        highlightItems: items.slice(0, 10).map((item) => item.id || item.link),
+        feedTitle: boundedFeedTitle,
+        highlightItems: boundedItems.map((item) => item.id || item.link),
       },
     });
 
-    logger.info(`[Notification] 打开 RSS 阅读器: ${feedTitle}`);
+    logger.info(`[Notification] 打开 RSS 阅读器: ${boundedFeedTitle}`);
   }
 
   /**
@@ -301,6 +463,14 @@ class APINotificationManager {
       return;
     }
 
+    const boundedAccountEmail = this._boundedText(accountEmail);
+    const boundedEmails = projectNavigationItems(
+      emails,
+      this.limits.maxClickItems,
+      this.limits.maxTextBytes,
+      ["id", "messageId"],
+    );
+
     // 激活窗口
     if (this.mainWindow.isMinimized()) {
       this.mainWindow.restore();
@@ -311,15 +481,15 @@ class APINotificationManager {
     this.mainWindow.webContents.send("notification:navigate", {
       route: "/email",
       params: {
-        account: accountEmail,
+        account: boundedAccountEmail,
         folder: "inbox",
-        highlightEmails: emails
-          .slice(0, 10)
-          .map((email) => email.id || email.messageId),
+        highlightEmails: boundedEmails.map(
+          (email) => email.id || email.messageId,
+        ),
       },
     });
 
-    logger.info(`[Notification] 打开邮件阅读器: ${accountEmail}`);
+    logger.info(`[Notification] 打开邮件阅读器: ${boundedAccountEmail}`);
   }
 
   /**
@@ -333,6 +503,24 @@ class APINotificationManager {
       return false;
     }
 
+    let boundedParams;
+    try {
+      boundedParams = cloneBoundedNavigation(
+        params,
+        this.limits.maxNavigationBytes,
+      );
+    } catch (error) {
+      if (error instanceof NotificationBoundaryError) {
+        logger.warn("[Notification] 导航参数超过边界", {
+          code: error.code,
+          scope: error.scope,
+        });
+        return false;
+      }
+      throw error;
+    }
+    const boundedRoute = this._boundedText(route);
+
     // 激活窗口
     if (this.mainWindow.isMinimized()) {
       this.mainWindow.restore();
@@ -341,8 +529,8 @@ class APINotificationManager {
 
     // 发送导航事件
     this.mainWindow.webContents.send("notification:navigate", {
-      route,
-      params,
+      route: boundedRoute,
+      params: boundedParams,
     });
 
     return true;
@@ -352,18 +540,34 @@ class APINotificationManager {
    * 清理资源
    */
   cleanup() {
-    this.notificationQueue = [];
-    this.isProcessing = false;
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
+    for (const [notification, timer] of [
+      ...this.activeNotifications.entries(),
+    ]) {
+      clearTimeout(timer);
+      try {
+        notification.close?.();
+      } catch (error) {
+        logger.warn("[Notification] 关闭系统通知失败", error);
+      }
+    }
+    this.activeNotifications.clear();
     this.mainWindow = null;
+    if (instance === this) {
+      instance = null;
+    }
   }
 }
 
 // 单例模式
 let instance = null;
 
-function getAPINotificationManager() {
+function getAPINotificationManager(options) {
   if (!instance) {
-    instance = new APINotificationManager();
+    instance = new APINotificationManager(options);
   }
   return instance;
 }

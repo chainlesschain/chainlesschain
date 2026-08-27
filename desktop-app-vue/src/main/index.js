@@ -1519,6 +1519,33 @@ class ChainlessChainApp {
         logger.error("[Main] Failed to ensure U-Key IPC handlers:", ukeyError);
       }
     }
+    this.initializeContentIntegrationIPC();
+  }
+
+  initializeContentIntegrationIPC() {
+    if (!this.rssIPCHandler) {
+      try {
+        const RSSIPCHandler = require("./api/rss-ipc");
+        this.rssIPCHandler = new RSSIPCHandler(this.database);
+        logger.info("[Main] RSS fixed-capability IPC registered");
+      } catch (error) {
+        logger.error("[Main] RSS IPC initialization failed:", error);
+      }
+    }
+
+    if (!this.emailIPCHandler) {
+      try {
+        const EmailIPCHandler = require("./api/email-ipc");
+        this.emailIPCHandler = new EmailIPCHandler(this.database, {
+          appDataPath: app.getPath("userData"),
+        });
+        logger.info("[Main] Email fixed-capability IPC registered");
+      } catch (error) {
+        // Email credentials fail closed: RSS remains available, while Email is
+        // not registered until encrypted credential migration can succeed.
+        logger.error("[Main] Email IPC initialization failed:", error);
+      }
+    }
   }
 
   /**
@@ -2824,6 +2851,17 @@ class ChainlessChainApp {
     if (this._trayMemoryInterval) {
       clearInterval(this._trayMemoryInterval);
       this._trayMemoryInterval = null;
+    }
+
+    for (const handlerName of ["rssIPCHandler", "emailIPCHandler"]) {
+      const handler = this[handlerName];
+      if (!handler) continue;
+      try {
+        handler.cleanup();
+      } catch (error) {
+        logger.warn(`[Main] ${handlerName} cleanup error:`, error.message);
+      }
+      this[handlerName] = null;
     }
 
     // Destroy tray BEFORE rest of cleanup so the system-tray icon disappears

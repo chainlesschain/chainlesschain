@@ -6,21 +6,75 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
 const { v4: uuidv4 } = require("uuid");
 const RSSFetcher = require("./rss-fetcher");
-const { getAPINotificationManager } = require("./notification-manager");
+const {
+  RSSIPCBoundaryError,
+  assertBoundedString,
+  boundedQueryLimit,
+  boundedQueryOffset,
+  boundedSyncSeconds,
+  createRSSIPCLimits,
+  normalizeFeedUpdates,
+} = require("./rss-ipc-boundaries.js");
+
+const RSS_IPC_CHANNELS = Object.freeze([
+  "rss:add-feed",
+  "rss:remove-feed",
+  "rss:update-feed",
+  "rss:get-feeds",
+  "rss:get-feed",
+  "rss:fetch-feed",
+  "rss:fetch-all-feeds",
+  "rss:get-items",
+  "rss:get-item",
+  "rss:mark-as-read",
+  "rss:mark-as-unread",
+  "rss:mark-as-starred",
+  "rss:archive-item",
+  "rss:save-to-knowledge",
+  "rss:add-category",
+  "rss:get-categories",
+  "rss:assign-category",
+  "rss:discover-feeds",
+  "rss:validate-feed",
+  "rss:start-auto-sync",
+  "rss:stop-auto-sync",
+]);
 
 class RSSIPCHandler {
-  constructor(database) {
+  constructor(database, options = {}) {
     this.database = database;
-    this.rssFetcher = new RSSFetcher();
+    this.limits = createRSSIPCLimits(options.limits || options);
+    this.ipcMain = options.ipcMain || require("electron").ipcMain;
+    this.rssFetcher = options.rssFetcher || new RSSFetcher(options.fetcher);
     this.syncIntervals = new Map(); // 存储自动同步定时器
-    this.notificationManager = getAPINotificationManager();
-    this.registerHandlers();
+    this.syncInFlight = new Set();
+    this.notificationManager =
+      options.notificationManager ||
+      require("./notification-manager").getAPINotificationManager();
+    this.handlersRegistered = false;
+    this.cleanedUp = false;
+    if (options.registerHandlers !== false) {
+      this.registerHandlers();
+    }
   }
 
   registerHandlers() {
+    if (this.cleanedUp) {
+      throw new RSSIPCBoundaryError(
+        "CANCELED",
+        "rss_ipc_lifecycle",
+        "RSS IPC handler has been cleaned up",
+      );
+    }
+    if (this.handlersRegistered) {
+      return;
+    }
+    if (!this.ipcMain?.handle) {
+      throw new Error("Electron ipcMain.handle is unavailable");
+    }
+    const { ipcMain } = this;
     // RSS 订阅源管理
     ipcMain.handle("rss:add-feed", async (event, feedUrl, options = {}) => {
       return this.addFeed(feedUrl, options);
@@ -113,6 +167,7 @@ class RSSIPCHandler {
       return this.stopAutoSync(feedId);
     });
 
+    this.handlersRegistered = true;
     logger.info("[RSSIPCHandler] RSS IPC handlers registered");
   }
 
@@ -144,8 +199,14 @@ class RSSIPCHandler {
         feedData.link,
         feedData.language,
         feedData.image?.url || null,
-        options.category || null,
-        options.updateFrequency || 3600,
+        options.category == null
+          ? null
+          : assertBoundedString(
+              options.category,
+              "rss_feed_category",
+              this.limits.maxTextBytes,
+            ),
+        boundedSyncSeconds(options.updateFrequency, this.limits),
         now,
         feedData.lastBuildDate,
         "active",
@@ -197,13 +258,14 @@ class RSSIPCHandler {
    */
   async updateFeed(feedId, updates) {
     try {
-      const fields = [];
-      const values = [];
-
-      for (const [key, value] of Object.entries(updates)) {
-        fields.push(`${key} = ?`);
-        values.push(value);
-      }
+      assertBoundedString(feedId, "rss_feed_id", this.limits.maxIdBytes);
+      const normalizedUpdates = normalizeFeedUpdates(
+        updates,
+        this.limits,
+        (value) => this.rssFetcher.isValidUrl(value),
+      );
+      const fields = normalizedUpdates.map(([column]) => `${column} = ?`);
+      const values = normalizedUpdates.map(([, value]) => value);
 
       fields.push("updated_at = ?");
       values.push(Date.now());
@@ -245,6 +307,18 @@ class RSSIPCHandler {
       }
 
       query += " ORDER BY title ASC";
+
+      const limit = boundedQueryLimit(
+        options.limit,
+        this.limits.maxFeedRows,
+        this.limits.maxFeedRows,
+      );
+      const offset = boundedQueryOffset(
+        options.offset,
+        this.limits.maxFeedRows,
+      );
+      query += " LIMIT ? OFFSET ?";
+      params.push(limit, offset);
 
       const stmt = this.database.db.prepare(query);
       const feeds = stmt.all(params);
@@ -312,15 +386,17 @@ class RSSIPCHandler {
 
       query += " ORDER BY pub_date DESC";
 
-      if (options.limit) {
-        // options.limit comes from the renderer — bind it as a parameter (not
-        // raw interpolation) so it can't inject SQL. LIMIT accepts a ? in SQLite.
-        const limit = Number.parseInt(options.limit, 10);
-        if (Number.isInteger(limit) && limit > 0) {
-          query += " LIMIT ?";
-          params.push(limit);
-        }
-      }
+      const limit = boundedQueryLimit(
+        options.limit,
+        this.limits.maxItemRows,
+        this.limits.maxItemRows,
+      );
+      const offset = boundedQueryOffset(
+        options.offset,
+        this.limits.maxItemRows,
+      );
+      query += " LIMIT ? OFFSET ?";
+      params.push(limit, offset);
 
       const stmt = this.database.db.prepare(query);
       const items = stmt.all(params);
@@ -546,14 +622,19 @@ class RSSIPCHandler {
   async fetchAllFeeds() {
     try {
       const stmt = this.database.db.prepare(
-        "SELECT id FROM rss_feeds WHERE status = 'active'",
+        "SELECT id FROM rss_feeds WHERE status = 'active' LIMIT ?",
       );
-      const feeds = stmt.all([]);
+      const feeds = stmt.all([this.limits.maxFetchAllFeeds + 1]);
+      const truncated = feeds.length > this.limits.maxFetchAllFeeds;
+      if (truncated) {
+        feeds.pop();
+      }
 
       const results = {
         success: 0,
         failed: 0,
         total: feeds.length,
+        truncated,
       };
 
       for (const feed of feeds) {
@@ -584,7 +665,10 @@ class RSSIPCHandler {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    for (const item of items) {
+    const boundedItems = Array.isArray(items)
+      ? items.slice(0, this.limits.maxSavedItems)
+      : [];
+    for (const item of boundedItems) {
       const itemId = uuidv4();
       stmt.run([
         itemId,
@@ -634,12 +718,21 @@ class RSSIPCHandler {
   /**
    * 获取分类列表
    */
-  async getCategories() {
+  async getCategories(options = {}) {
     try {
       const stmt = this.database.db.prepare(
-        "SELECT * FROM rss_categories ORDER BY sort_order, name",
+        "SELECT * FROM rss_categories ORDER BY sort_order, name LIMIT ? OFFSET ?",
       );
-      const categories = stmt.all([]);
+      const limit = boundedQueryLimit(
+        options.limit,
+        this.limits.maxCategoryRows,
+        this.limits.maxCategoryRows,
+      );
+      const offset = boundedQueryOffset(
+        options.offset,
+        this.limits.maxCategoryRows,
+      );
+      const categories = stmt.all([limit, offset]);
 
       return { success: true, categories };
     } catch (error) {
@@ -698,8 +791,21 @@ class RSSIPCHandler {
    */
   startAutoSync(feedId) {
     try {
+      assertBoundedString(feedId, "rss_feed_id", this.limits.maxIdBytes);
       // 如果已存在，先停止
       this.stopAutoSync(feedId);
+
+      if (this.syncIntervals.size >= this.limits.maxSyncIntervals) {
+        throw new RSSIPCBoundaryError(
+          "OVERLOADED",
+          "rss_auto_sync",
+          "RSS auto-sync interval limit reached",
+          {
+            retryAfterMs: 1000,
+            limit: { maxSyncIntervals: this.limits.maxSyncIntervals },
+          },
+        );
+      }
 
       const feedStmt = this.database.db.prepare(
         "SELECT update_frequency FROM rss_feeds WHERE id = ?",
@@ -710,14 +816,24 @@ class RSSIPCHandler {
         return { success: false, error: "订阅源不存在" };
       }
 
+      const syncSeconds = boundedSyncSeconds(
+        feed.update_frequency,
+        this.limits,
+      );
       const interval = setInterval(async () => {
+        if (this.syncInFlight.has(feedId)) {
+          return;
+        }
+        this.syncInFlight.add(feedId);
         try {
           await this.fetchFeed(feedId);
           logger.info(`[RSSIPCHandler] 自动同步完成: ${feedId}`);
         } catch (error) {
           logger.error(`[RSSIPCHandler] 自动同步失败: ${feedId}`, error);
+        } finally {
+          this.syncInFlight.delete(feedId);
         }
-      }, feed.update_frequency * 1000);
+      }, syncSeconds * 1000);
 
       this.syncIntervals.set(feedId, interval);
 
@@ -744,12 +860,26 @@ class RSSIPCHandler {
    * 清理资源
    */
   cleanup() {
+    if (this.cleanedUp) {
+      return;
+    }
+    this.cleanedUp = true;
     // 停止所有自动同步
-    for (const [feedId, interval] of this.syncIntervals) {
+    for (const interval of this.syncIntervals.values()) {
       clearInterval(interval);
     }
     this.syncIntervals.clear();
+    this.syncInFlight.clear();
+    this.rssFetcher.destroy?.();
+    if (this.handlersRegistered && this.ipcMain?.removeHandler) {
+      for (const channel of RSS_IPC_CHANNELS) {
+        this.ipcMain.removeHandler(channel);
+      }
+    }
+    this.handlersRegistered = false;
   }
 }
 
 module.exports = RSSIPCHandler;
+module.exports.RSSIPCHandler = RSSIPCHandler;
+module.exports.RSS_IPC_CHANNELS = RSS_IPC_CHANNELS;

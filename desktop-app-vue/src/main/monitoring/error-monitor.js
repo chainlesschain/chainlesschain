@@ -15,16 +15,192 @@ const { logger } = require("../utils/logger.js");
 const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 const path = require("path");
-const { app } = require("electron");
 const { EventEmitter } = require("events");
+
+let electronApp = null;
+let electronLoadError = null;
+try {
+  ({ app: electronApp } = require("electron"));
+} catch (error) {
+  electronLoadError = error;
+}
+
+const DEFAULT_ERROR_MONITOR_LIMITS = Object.freeze({
+  maxErrors: 1000,
+  maxMessageBytes: 8 * 1024,
+  maxStackBytes: 32 * 1024,
+  maxTypeBytes: 256,
+  maxRetainedBytes: 4 * 1024 * 1024,
+  maxConcurrentCaptures: 32,
+  maxLogFileBytes: 5 * 1024 * 1024,
+  maxLogFiles: 14,
+  maxAutoFixMessageBytes: 4 * 1024,
+});
+
+const HARD_ERROR_MONITOR_LIMITS = Object.freeze({
+  maxErrors: 10_000,
+  maxMessageBytes: 1024 * 1024,
+  maxStackBytes: 4 * 1024 * 1024,
+  maxTypeBytes: 4 * 1024,
+  maxRetainedBytes: 64 * 1024 * 1024,
+  maxConcurrentCaptures: 256,
+  maxLogFileBytes: 64 * 1024 * 1024,
+  maxLogFiles: 100,
+  maxAutoFixMessageBytes: 64 * 1024,
+});
+
+function boundedPositiveInteger(value, fallback, hardLimit) {
+  const boundedFallback = Math.min(fallback, hardLimit);
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return boundedFallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return boundedFallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function safeString(value, fallback = "") {
+  try {
+    return value == null ? fallback : String(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function safeProperty(value, key, fallback = undefined) {
+  try {
+    return value?.[key] ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function truncateUtf8(value, maxBytes) {
+  const text = safeString(value);
+  const encoded = Buffer.from(text, "utf8");
+  if (encoded.length <= maxBytes) {
+    return text;
+  }
+  let end = maxBytes;
+  while (end > 0) {
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(
+        encoded.subarray(0, end),
+      );
+    } catch {
+      end--;
+    }
+  }
+  return "";
+}
+
+function estimateErrorReportBytes(report) {
+  const autoFixBytes = report.autoFixResult
+    ? Buffer.byteLength(JSON.stringify(report.autoFixResult), "utf8")
+    : 0;
+  return (
+    Buffer.byteLength(report.type || "", "utf8") +
+    Buffer.byteLength(report.message || "", "utf8") +
+    Buffer.byteLength(report.stack || "", "utf8") +
+    autoFixBytes +
+    256
+  );
+}
+
+function cloneErrorReport(report) {
+  return {
+    ...report,
+    memory: report.memory ? { ...report.memory } : report.memory,
+    autoFixResult: report.autoFixResult
+      ? { ...report.autoFixResult }
+      : report.autoFixResult,
+  };
+}
 
 class ErrorMonitor extends EventEmitter {
   constructor(options = {}) {
     super();
 
+    const maxMessageBytes = boundedPositiveInteger(
+      options.maxMessageBytes,
+      DEFAULT_ERROR_MONITOR_LIMITS.maxMessageBytes,
+      HARD_ERROR_MONITOR_LIMITS.maxMessageBytes,
+    );
+    const maxStackBytes = boundedPositiveInteger(
+      options.maxStackBytes,
+      DEFAULT_ERROR_MONITOR_LIMITS.maxStackBytes,
+      HARD_ERROR_MONITOR_LIMITS.maxStackBytes,
+    );
+    const maxTypeBytes = boundedPositiveInteger(
+      options.maxTypeBytes,
+      DEFAULT_ERROR_MONITOR_LIMITS.maxTypeBytes,
+      HARD_ERROR_MONITOR_LIMITS.maxTypeBytes,
+    );
+    this.limits = {
+      maxErrors: boundedPositiveInteger(
+        options.maxErrors,
+        DEFAULT_ERROR_MONITOR_LIMITS.maxErrors,
+        HARD_ERROR_MONITOR_LIMITS.maxErrors,
+      ),
+      maxMessageBytes,
+      maxStackBytes,
+      maxTypeBytes,
+      maxRetainedBytes: boundedPositiveInteger(
+        options.maxRetainedBytes,
+        DEFAULT_ERROR_MONITOR_LIMITS.maxRetainedBytes,
+        HARD_ERROR_MONITOR_LIMITS.maxRetainedBytes,
+      ),
+      maxConcurrentCaptures: boundedPositiveInteger(
+        options.maxConcurrentCaptures,
+        DEFAULT_ERROR_MONITOR_LIMITS.maxConcurrentCaptures,
+        HARD_ERROR_MONITOR_LIMITS.maxConcurrentCaptures,
+      ),
+      maxLogFileBytes: Math.max(
+        (maxMessageBytes + maxStackBytes + maxTypeBytes) * 6 + 8192,
+        boundedPositiveInteger(
+          options.maxLogFileBytes,
+          DEFAULT_ERROR_MONITOR_LIMITS.maxLogFileBytes,
+          HARD_ERROR_MONITOR_LIMITS.maxLogFileBytes,
+        ),
+      ),
+      maxLogFiles: boundedPositiveInteger(
+        options.maxLogFiles,
+        DEFAULT_ERROR_MONITOR_LIMITS.maxLogFiles,
+        HARD_ERROR_MONITOR_LIMITS.maxLogFiles,
+      ),
+      maxAutoFixMessageBytes: boundedPositiveInteger(
+        options.maxAutoFixMessageBytes,
+        DEFAULT_ERROR_MONITOR_LIMITS.maxAutoFixMessageBytes,
+        HARD_ERROR_MONITOR_LIMITS.maxAutoFixMessageBytes,
+      ),
+    };
     this.errors = [];
-    this.maxErrors = 1000;
-    this.logPath = path.join(app.getPath("userData"), "error-logs");
+    this.maxErrors = this.limits.maxErrors;
+    this.errorSizes = new WeakMap();
+    this.retainedErrorBytes = 0;
+    this.activeCaptures = 0;
+    this.destroyed = false;
+    this.globalHandlers = null;
+    this.logWriteChain = Promise.resolve();
+    this.currentLogDate = null;
+    this.currentLogFile = null;
+    this.logFileSequence = 0;
+    if (typeof options.logPath === "string" && options.logPath.trim()) {
+      this.logPath = path.resolve(options.logPath);
+    } else {
+      const appInstance = options.app || electronApp;
+      if (!appInstance || typeof appInstance.getPath !== "function") {
+        throw (
+          electronLoadError ||
+          new Error("Electron app or an explicit error log path is required")
+        );
+      }
+      this.logPath = path.join(appInstance.getPath("userData"), "error-logs");
+    }
 
     // 🔥 新增：LLM 智能诊断支持
     this.llmManager = options.llmManager || null;
@@ -73,29 +249,41 @@ class ErrorMonitor extends EventEmitter {
    * 设置全局错误处理器
    */
   setupGlobalErrorHandlers() {
-    // 捕获未处理的异常
-    process.on("uncaughtException", (error) => {
-      // 忽略 EPIPE 错误（管道已关闭，通常发生在应用关闭时）
-      if (error.code === "EPIPE") {
+    if (this.globalHandlers) {
+      return;
+    }
+    const uncaughtException = (error) => {
+      if (safeProperty(error, "code") === "EPIPE") {
         logger.info("[ErrorMonitor] Ignoring EPIPE error (broken pipe)");
         return;
       }
 
       logger.error("Uncaught Exception:", error);
       this.captureError("UNCAUGHT_EXCEPTION", error);
-    });
-
-    // 捕获未处理的Promise拒绝
-    process.on("unhandledRejection", (reason, promise) => {
+    };
+    const unhandledRejection = (reason, promise) => {
       logger.error("Unhandled Rejection at:", promise, "reason:", reason);
       this.captureError("UNHANDLED_REJECTION", reason);
-    });
+    };
+    const warning = (warningValue) => {
+      logger.warn("Warning:", warningValue);
+      this.captureError("WARNING", warningValue);
+    };
+
+    // 捕获未处理的异常
+    process.on("uncaughtException", uncaughtException);
+
+    // 捕获未处理的Promise拒绝
+    process.on("unhandledRejection", unhandledRejection);
 
     // 捕获警告
-    process.on("warning", (warning) => {
-      logger.warn("Warning:", warning);
-      this.captureError("WARNING", warning);
-    });
+    process.on("warning", warning);
+
+    this.globalHandlers = {
+      uncaughtException,
+      unhandledRejection,
+      warning,
+    };
   }
 
   /**
@@ -465,10 +653,55 @@ class ErrorMonitor extends EventEmitter {
    * 捕获错误
    */
   async captureError(type, error) {
+    if (this.destroyed) {
+      return {
+        accepted: false,
+        code: "CANCELED",
+        scope: "error_capture",
+      };
+    }
+    if (this.activeCaptures >= this.limits.maxConcurrentCaptures) {
+      return {
+        accepted: false,
+        code: "OVERLOADED",
+        scope: "error_capture",
+        retryAfterMs: 100,
+        limit: {
+          maxConcurrentCaptures: this.limits.maxConcurrentCaptures,
+        },
+      };
+    }
+
+    this.activeCaptures++;
+    try {
+      return await this._captureErrorInternal(type, error);
+    } catch (captureError) {
+      logger.error("[ErrorMonitor] Error capture failed:", captureError);
+      return {
+        accepted: false,
+        code: "CANCELED",
+        scope: "error_capture",
+        error: truncateUtf8(
+          captureError?.message || captureError,
+          this.limits.maxAutoFixMessageBytes,
+        ),
+      };
+    } finally {
+      this.activeCaptures--;
+    }
+  }
+
+  async _captureErrorInternal(type, error) {
     const errorReport = {
-      type,
-      message: error?.message || String(error),
-      stack: error?.stack || "",
+      type: truncateUtf8(type, this.limits.maxTypeBytes),
+      message: truncateUtf8(
+        safeProperty(error, "message", safeString(error)),
+        this.limits.maxMessageBytes,
+      ),
+      stack: truncateUtf8(
+        safeProperty(error, "stack", ""),
+        this.limits.maxStackBytes,
+      ),
       timestamp: new Date().toISOString(),
       pid: process.pid,
       memory: process.memoryUsage(),
@@ -476,10 +709,7 @@ class ErrorMonitor extends EventEmitter {
     };
 
     // 添加到内存缓存
-    this.errors.push(errorReport);
-    if (this.errors.length > this.maxErrors) {
-      this.errors.shift();
-    }
+    this._retainError(errorReport);
 
     // 保存到日志文件
     await this.saveErrorLog(errorReport);
@@ -487,12 +717,62 @@ class ErrorMonitor extends EventEmitter {
     // 尝试自动修复
     const fixResult = await this.analyzeAndFix(errorReport);
 
-    if (fixResult.attempted) {
-      errorReport.autoFixResult = fixResult;
-      logger.info("[Error Monitor] Auto-fix result:", fixResult);
+    if (safeProperty(fixResult, "attempted", false) === true) {
+      errorReport.autoFixResult = {
+        attempted: true,
+        success: safeProperty(fixResult, "success", false) === true,
+        errorType: truncateUtf8(
+          safeProperty(fixResult, "errorType", "UNKNOWN"),
+          this.limits.maxTypeBytes,
+        ),
+        message: truncateUtf8(
+          safeProperty(fixResult, "message", ""),
+          this.limits.maxAutoFixMessageBytes,
+        ),
+      };
+      this._refreshRetainedErrorSize(errorReport);
+      logger.info(
+        "[Error Monitor] Auto-fix result:",
+        errorReport.autoFixResult,
+      );
     }
 
-    return errorReport;
+    return cloneErrorReport(errorReport);
+  }
+
+  _retainError(errorReport) {
+    const retainedBytes = estimateErrorReportBytes(errorReport);
+    this.errors.push(errorReport);
+    this.errorSizes.set(errorReport, retainedBytes);
+    this.retainedErrorBytes += retainedBytes;
+    this._pruneRetainedErrors();
+  }
+
+  _refreshRetainedErrorSize(errorReport) {
+    const previousBytes = this.errorSizes.get(errorReport);
+    if (previousBytes === undefined) {
+      return;
+    }
+    const retainedBytes = estimateErrorReportBytes(errorReport);
+    this.errorSizes.set(errorReport, retainedBytes);
+    this.retainedErrorBytes += retainedBytes - previousBytes;
+    this._pruneRetainedErrors();
+  }
+
+  _pruneRetainedErrors() {
+    while (
+      this.errors.length > this.maxErrors ||
+      this.retainedErrorBytes > this.limits.maxRetainedBytes
+    ) {
+      const evicted = this.errors.shift();
+      if (!evicted) {
+        this.retainedErrorBytes = 0;
+        break;
+      }
+      this.retainedErrorBytes -= this.errorSizes.get(evicted) || 0;
+      this.errorSizes.delete(evicted);
+    }
+    this.retainedErrorBytes = Math.max(0, this.retainedErrorBytes);
   }
 
   /**
@@ -923,16 +1203,70 @@ class ErrorMonitor extends EventEmitter {
    * 保存错误日志
    */
   async saveErrorLog(errorReport) {
-    try {
-      await fs.mkdir(this.logPath, { recursive: true });
-
-      const filename = `error-${new Date().toISOString().split("T")[0]}.log`;
-      const logFile = path.join(this.logPath, filename);
-
-      const logEntry = JSON.stringify(errorReport, null, 2) + "\n---\n";
-      await fs.appendFile(logFile, logEntry);
-    } catch (error) {
+    const writeTask = this.logWriteChain.then(() =>
+      this._writeErrorLog(errorReport),
+    );
+    this.logWriteChain = writeTask.catch((error) => {
       logger.error("Failed to save error log:", error);
+    });
+    await this.logWriteChain;
+  }
+
+  async _writeErrorLog(errorReport) {
+    await fs.mkdir(this.logPath, { recursive: true });
+
+    const logDate = new Date().toISOString().split("T")[0];
+    if (this.currentLogDate !== logDate || !this.currentLogFile) {
+      this.currentLogDate = logDate;
+      this.currentLogFile = path.join(this.logPath, `error-${logDate}.log`);
+      this.logFileSequence = 0;
+      await this._pruneErrorLogFiles(this.limits.maxLogFiles - 1);
+    }
+
+    const logEntry = `${JSON.stringify(errorReport, null, 2)}\n---\n`;
+    const logEntryBytes = Buffer.byteLength(logEntry, "utf8");
+    let currentSize = 0;
+    try {
+      currentSize = (await fs.stat(this.currentLogFile)).size;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    if (currentSize + logEntryBytes > this.limits.maxLogFileBytes) {
+      this.logFileSequence++;
+      this.currentLogFile = path.join(
+        this.logPath,
+        `error-${logDate}-${Date.now()}-${this.logFileSequence}.log`,
+      );
+      await this._pruneErrorLogFiles(this.limits.maxLogFiles - 1);
+    }
+
+    await fs.appendFile(this.currentLogFile, logEntry);
+  }
+
+  async _pruneErrorLogFiles(keepCount) {
+    const entries = await fs.readdir(this.logPath, { withFileTypes: true });
+    const logFiles = await Promise.all(
+      entries
+        .filter(
+          (entry) => entry.isFile() && /^error-.*\.log$/.test(entry.name),
+        )
+        .map(async (entry) => {
+          const filePath = path.join(this.logPath, entry.name);
+          const fileStats = await fs.stat(filePath);
+          return { filePath, name: entry.name, mtimeMs: fileStats.mtimeMs };
+        }),
+    );
+    logFiles.sort(
+      (left, right) =>
+        left.mtimeMs - right.mtimeMs || left.name.localeCompare(right.name),
+    );
+
+    while (logFiles.length > keepCount) {
+      const oldest = logFiles.shift();
+      await fs.unlink(oldest.filePath);
     }
   }
 
@@ -942,8 +1276,13 @@ class ErrorMonitor extends EventEmitter {
   getBasicErrorStats() {
     const stats = {
       total: this.errors.length,
-      byType: {},
-      recentErrors: this.errors.slice(-10),
+      byType: Object.create(null),
+      recentErrors: this.errors.slice(-10).map(cloneErrorReport),
+      retainedBytes: this.retainedErrorBytes,
+      maxRetainedBytes: this.limits.maxRetainedBytes,
+      maxErrors: this.maxErrors,
+      activeCaptures: this.activeCaptures,
+      maxConcurrentCaptures: this.limits.maxConcurrentCaptures,
     };
 
     this.errors.forEach((error) => {
@@ -958,6 +1297,32 @@ class ErrorMonitor extends EventEmitter {
    */
   clearErrors() {
     this.errors = [];
+    this.errorSizes = new WeakMap();
+    this.retainedErrorBytes = 0;
+  }
+
+  destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
+    if (this.globalHandlers) {
+      process.removeListener(
+        "uncaughtException",
+        this.globalHandlers.uncaughtException,
+      );
+      process.removeListener(
+        "unhandledRejection",
+        this.globalHandlers.unhandledRejection,
+      );
+      process.removeListener("warning", this.globalHandlers.warning);
+      this.globalHandlers = null;
+    }
+    this.removeAllListeners();
+    this.clearErrors();
+    if (errorMonitorInstance === this) {
+      errorMonitorInstance = null;
+    }
   }
 
   /**
@@ -2981,6 +3346,8 @@ function getErrorMonitor() {
 }
 
 module.exports = {
+  DEFAULT_ERROR_MONITOR_LIMITS,
+  HARD_ERROR_MONITOR_LIMITS,
   ErrorMonitor,
   getErrorMonitor,
 };

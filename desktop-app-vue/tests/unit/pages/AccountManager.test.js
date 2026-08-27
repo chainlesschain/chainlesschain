@@ -94,6 +94,29 @@ global.window.electron = {
     invoke: vi.fn(),
   },
 };
+global.window.electronAPI = {
+  email: {
+    getAccounts: () => window.electron.ipcRenderer.invoke("email:get-accounts"),
+    updateAccount: (accountId, updates) =>
+      window.electron.ipcRenderer.invoke(
+        "email:update-account",
+        accountId,
+        updates,
+      ),
+    addAccount: (config) =>
+      window.electron.ipcRenderer.invoke("email:add-account", config),
+    testConnection: (config) =>
+      window.electron.ipcRenderer.invoke("email:test-connection", config),
+    removeAccount: (accountId) =>
+      window.electron.ipcRenderer.invoke("email:remove-account", accountId),
+    fetchEmails: (accountId, options) =>
+      window.electron.ipcRenderer.invoke(
+        "email:fetch-emails",
+        accountId,
+        options,
+      ),
+  },
+};
 
 describe("AccountManager.vue", () => {
   let wrapper;

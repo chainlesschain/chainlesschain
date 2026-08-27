@@ -6,6 +6,80 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  DEFAULT_SIGNALING_LIMITS,
+  serializedBytes,
+} = require("./signaling-boundaries");
+
+function enqueueOffline(socket, queue, peerId, message, sendMessage) {
+  const result = queue.enqueue(peerId, message);
+  if (result.success) {
+    return true;
+  }
+
+  sendMessage(socket, {
+    type: "error",
+    code: result.code || "OVERLOADED",
+    error:
+      result.code === "INVALID_MESSAGE"
+        ? "Invalid signaling message"
+        : "Signaling server is overloaded",
+    reason: result.reason,
+    retryAfterMs: result.retryAfterMs,
+    timestamp: Date.now(),
+  });
+  return false;
+}
+
+function createPeerPage(socket, message, registry, limits = {}) {
+  const defaultPageSize =
+    limits.peerListPageSize || DEFAULT_SIGNALING_LIMITS.peerListPageSize;
+  const maximumPageSize =
+    limits.peerListMaxPageSize || DEFAULT_SIGNALING_LIMITS.peerListMaxPageSize;
+  const maxResponseBytes =
+    limits.maxMessageBytes || DEFAULT_SIGNALING_LIMITS.maxMessageBytes;
+  const requestedCursor = Number(message?.cursor || 0);
+  const cursor =
+    Number.isSafeInteger(requestedCursor) && requestedCursor >= 0
+      ? requestedCursor
+      : 0;
+  const requestedLimit = Number(message?.limit || defaultPageSize);
+  const pageLimit =
+    Number.isSafeInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, maximumPageSize)
+      : defaultPageSize;
+  const onlinePeers = registry
+    .getOnlinePeers()
+    .filter((peer) => peer.peerId !== socket.peerId);
+  const peers = [];
+
+  for (
+    let index = cursor;
+    index < onlinePeers.length && peers.length < pageLimit;
+    index += 1
+  ) {
+    const candidate = [...peers, onlinePeers[index]];
+    if (
+      serializedBytes({ type: "peers-list", peers: candidate }) >
+      maxResponseBytes
+    ) {
+      break;
+    }
+    peers.push(onlinePeers[index]);
+  }
+
+  const nextCursor =
+    cursor + peers.length < onlinePeers.length ? cursor + peers.length : null;
+  return {
+    type: "peers-list",
+    peers,
+    count: peers.length,
+    total: onlinePeers.length,
+    cursor,
+    nextCursor,
+    timestamp: Date.now(),
+  };
+}
 
 /**
  * Handle peer registration
@@ -80,19 +154,25 @@ function handleRegister(
   });
 
   // Deliver any pending offline messages
-  const pendingMessages = queue.dequeue(peerId);
+  const pendingMessages = queue.peek(peerId);
   if (pendingMessages.length > 0) {
     logger.info(
       `[Handlers] 递送 ${pendingMessages.length} 条离线消息给 ${peerId}`,
     );
 
     for (const entry of pendingMessages) {
-      sendMessage(socket, {
+      const delivered = sendMessage(socket, {
         type: "offline-message",
         originalMessage: entry.message,
         storedAt: entry.storedAt,
         deliveredAt: Date.now(),
       });
+      if (delivered === false) {
+        break;
+      }
+      if (typeof queue.removeMessage === "function") {
+        queue.removeMessage(peerId, entry.messageId);
+      }
     }
   }
 
@@ -140,7 +220,7 @@ function handleOffer(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
   const offerPayload = offer || sdp; // Support both formats
 
   const forwardMessage = {
@@ -178,7 +258,9 @@ function handleOffer(socket, message, registry, queue, sendMessage) {
     } else if (targetPeer.isLocal) {
       // Target is local PC without socket (MobileBridge not yet connected)
       // Queue the message for later delivery when MobileBridge connects
-      queue.enqueue(to, forwardMessage);
+      if (!enqueueOffline(socket, queue, to, forwardMessage, sendMessage)) {
+        return;
+      }
       logger.info(
         `[Handlers] ⏳ 目标是本地PC但MobileBridge未连接，Offer已入队: ${from} -> ${to}`,
       );
@@ -192,14 +274,16 @@ function handleOffer(socket, message, registry, queue, sendMessage) {
       });
     } else {
       // Should not happen, but handle gracefully
-      queue.enqueue(to, forwardMessage);
+      enqueueOffline(socket, queue, to, forwardMessage, sendMessage);
       logger.warn(
         `[Handlers] ⚠ 目标在线但无socket，Offer已入队: ${from} -> ${to}`,
       );
     }
   } else {
     // Target is offline, queue the message
-    queue.enqueue(to, forwardMessage);
+    if (!enqueueOffline(socket, queue, to, forwardMessage, sendMessage)) {
+      return;
+    }
 
     // Notify sender that target is offline
     sendMessage(socket, {
@@ -233,7 +317,7 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
   const answerPayload = answer || sdp;
 
   const forwardMessage = {
@@ -254,7 +338,9 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded answer: ${from} -> ${to}`);
   } else {
-    queue.enqueue(to, forwardMessage);
+    if (!enqueueOffline(socket, queue, to, forwardMessage, sendMessage)) {
+      return;
+    }
 
     sendMessage(socket, {
       type: "peer-offline",
@@ -287,7 +373,7 @@ function handleIceCandidate(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
 
   const forwardMessage = {
     type: "ice-candidate",
@@ -307,7 +393,7 @@ function handleIceCandidate(socket, message, registry, queue, sendMessage) {
     registry.updateLastSeen(to);
     // Don't log every ICE candidate to avoid spam
   } else {
-    queue.enqueue(to, forwardMessage);
+    enqueueOffline(socket, queue, to, forwardMessage, sendMessage);
   }
 }
 
@@ -340,7 +426,7 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
 
   const forwardMessage = {
     type: "ice-candidates",
@@ -360,7 +446,7 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
       `[Handlers] Forwarded ${candidates.length} ICE candidates: ${from} -> ${to}`,
     );
   } else {
-    queue.enqueue(to, forwardMessage);
+    enqueueOffline(socket, queue, to, forwardMessage, sendMessage);
     logger.info(
       `[Handlers] Target offline, queued ${candidates.length} ICE candidates: ${from} -> ${to}`,
     );
@@ -396,7 +482,7 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
 
   const forwardMessage = {
     type: "message",
@@ -413,7 +499,9 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded message: ${from} -> ${to}`);
   } else {
-    queue.enqueue(to, forwardMessage);
+    if (!enqueueOffline(socket, queue, to, forwardMessage, sendMessage)) {
+      return;
+    }
 
     sendMessage(socket, {
       type: "peer-offline",
@@ -433,7 +521,13 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
  * @param {SignalingPeerRegistry} registry - Peer registry
  * @param {Function} sendMessage - Function to send messages
  */
-function handlePeerStatusRequest(socket, message, registry, sendMessage) {
+function handlePeerStatusRequest(
+  socket,
+  message,
+  registry,
+  sendMessage,
+  limits,
+) {
   const { peerId } = message;
 
   if (peerId) {
@@ -450,15 +544,7 @@ function handlePeerStatusRequest(socket, message, registry, sendMessage) {
       timestamp: Date.now(),
     });
   } else {
-    // Get all peers
-    const onlinePeers = registry.getOnlinePeers();
-
-    sendMessage(socket, {
-      type: "peers-list",
-      peers: onlinePeers,
-      count: onlinePeers.length,
-      timestamp: Date.now(),
-    });
+    sendMessage(socket, createPeerPage(socket, message, registry, limits));
   }
 }
 
@@ -468,18 +554,8 @@ function handlePeerStatusRequest(socket, message, registry, sendMessage) {
  * @param {SignalingPeerRegistry} registry - Peer registry
  * @param {Function} sendMessage - Function to send messages
  */
-function handleGetPeers(socket, registry, sendMessage) {
-  const onlinePeers = registry.getOnlinePeers();
-
-  // Exclude the requesting peer from the list
-  const peers = onlinePeers.filter((peer) => peer.peerId !== socket.peerId);
-
-  sendMessage(socket, {
-    type: "peers-list",
-    peers,
-    count: peers.length,
-    timestamp: Date.now(),
-  });
+function handleGetPeers(socket, message, registry, sendMessage, limits) {
+  sendMessage(socket, createPeerPage(socket, message, registry, limits));
 }
 
 /**
@@ -502,7 +578,7 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
     return;
   }
 
-  const from = socket.peerId || message.from;
+  const from = socket.peerId;
   const forwardMessage = {
     ...message,
     from,
@@ -518,7 +594,9 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
     registry.updateLastSeen(to);
     logger.info(`[Handlers] Forwarded ${message.type}: ${from} -> ${to}`);
   } else {
-    queue.enqueue(to, forwardMessage);
+    if (!enqueueOffline(socket, queue, to, forwardMessage, sendMessage)) {
+      return;
+    }
 
     sendMessage(socket, {
       type: "peer-offline",

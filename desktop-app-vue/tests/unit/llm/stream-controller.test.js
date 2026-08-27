@@ -42,6 +42,8 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
 describe("StreamController", () => {
   let StreamController;
   let StreamStatus;
+  let DEFAULT_STREAM_CONTROLLER_LIMITS;
+  let HARD_STREAM_CONTROLLER_LIMITS;
   let controller;
 
   beforeEach(async () => {
@@ -51,6 +53,9 @@ describe("StreamController", () => {
     const module = await import("../../../src/main/llm/stream-controller.js");
     StreamController = module.StreamController;
     StreamStatus = module.StreamStatus;
+    DEFAULT_STREAM_CONTROLLER_LIMITS =
+      module.DEFAULT_STREAM_CONTROLLER_LIMITS;
+    HARD_STREAM_CONTROLLER_LIMITS = module.HARD_STREAM_CONTROLLER_LIMITS;
   });
 
   afterEach(() => {
@@ -99,6 +104,23 @@ describe("StreamController", () => {
       controller = new StreamController({ enableBuffering: true });
 
       expect(controller.options.enableBuffering).toBe(true);
+    });
+
+    it("应该使用有限默认值并把配置钳制到硬上限", () => {
+      controller = new StreamController();
+      expect(controller.bufferLimits).toEqual(
+        DEFAULT_STREAM_CONTROLLER_LIMITS,
+      );
+      const hard = new StreamController(
+        Object.fromEntries(
+          Object.keys(HARD_STREAM_CONTROLLER_LIMITS).map((key) => [
+            key,
+            Number.MAX_SAFE_INTEGER,
+          ]),
+        ),
+      );
+      expect(hard.bufferLimits).toEqual(HARD_STREAM_CONTROLLER_LIMITS);
+      hard.destroy();
     });
 
     it("应该创建AbortController", () => {
@@ -216,6 +238,38 @@ describe("StreamController", () => {
 
       expect(controller.totalChunks).toBe(3);
     });
+
+    it("应该按数量和字节保留最新的有界缓冲", async () => {
+      controller = new StreamController({
+        enableBuffering: true,
+        maxBufferedChunks: 2,
+        maxBufferedBytes: 10,
+        maxBufferedChunkBytes: 8,
+      });
+      controller.start();
+
+      await controller.processChunk("aaaaaa");
+      await controller.processChunk("bbbbbb");
+      await controller.processChunk("x".repeat(9));
+
+      expect(controller.getBuffer()).toEqual(["bbbbbb"]);
+      expect(controller.getStats()).toMatchObject({
+        bufferedChunks: 1,
+        bufferedBytes: 6,
+        droppedBufferedChunks: 2,
+      });
+    });
+
+    it("不应在缓冲中保留循环或不可序列化对象", async () => {
+      controller = new StreamController({ enableBuffering: true });
+      controller.start();
+      const circular = {};
+      circular.self = circular;
+
+      await expect(controller.processChunk(circular)).resolves.toBe(true);
+      expect(controller.getBuffer()).toEqual([]);
+      expect(controller.getStats().droppedBufferedChunks).toBe(1);
+    });
   });
 
   describe("pause", () => {
@@ -303,6 +357,41 @@ describe("StreamController", () => {
 
       // 现在应该处理完成
       expect(chunkProcessed).toBe(true);
+    });
+
+    it("应该限制暂停期间的等待队列", async () => {
+      controller = new StreamController({ maxPauseWaiters: 1 });
+      controller.start();
+      controller.pause();
+
+      const first = controller.processChunk({ text: "first" });
+      await expect(
+        controller.processChunk({ text: "overflow" }),
+      ).resolves.toBe(false);
+      expect(controller.getStats()).toMatchObject({
+        pauseWaiters: 1,
+        droppedPausedChunks: 1,
+      });
+
+      controller.cancel();
+      await expect(first).resolves.toBe(false);
+    });
+
+    it("releases paused chunks when the stream reaches a terminal state", async () => {
+      controller = new StreamController();
+      controller.start();
+      controller.pause();
+
+      const pendingChunk = controller.processChunk({ text: "pending" });
+      expect(controller.getStats().pauseWaiters).toBe(1);
+      controller.complete();
+
+      await expect(pendingChunk).resolves.toBe(false);
+      expect(controller.getStats()).toMatchObject({
+        status: StreamStatus.COMPLETED,
+        isPaused: false,
+        pauseWaiters: 0,
+      });
     });
   });
 
@@ -482,6 +571,17 @@ describe("StreamController", () => {
 
       // 原始缓冲区不应该被修改
       expect(controller.buffer.length).toBe(1);
+    });
+
+    it("does not expose retained object references", async () => {
+      controller = new StreamController({ enableBuffering: true });
+      controller.start();
+      await controller.processChunk({ nested: { value: "original" } });
+
+      const buffer = controller.getBuffer();
+      buffer[0].nested.value = "mutated";
+
+      expect(controller.getBuffer()[0].nested.value).toBe("original");
     });
   });
 

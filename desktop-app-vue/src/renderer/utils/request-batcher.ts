@@ -35,6 +35,124 @@ export interface RequestBatcherOptions {
   retryDelay?: number;
   /** Debug mode */
   debug?: boolean;
+  /** Maximum distinct batches waiting for execution */
+  maxPendingBatches?: number;
+  /** Maximum batches executing concurrently */
+  maxConcurrentBatches?: number;
+  /** Maximum immediate requests executing concurrently */
+  maxInflightRequests?: number;
+  /** Maximum retained cache entries */
+  maxCacheEntries?: number;
+  /** Maximum bytes retained by one cache entry */
+  maxCacheEntryBytes?: number;
+  /** Maximum bytes retained by the cache */
+  maxCacheBytes?: number;
+  /** Maximum serialized request bytes */
+  maxRequestBytes?: number;
+  /** Maximum endpoint characters */
+  maxEndpointChars?: number;
+}
+
+const KIB = 1024;
+const MIB = 1024 * KIB;
+
+export const DEFAULT_REQUEST_BATCHER_LIMITS = Object.freeze({
+  maxBatchSize: 10,
+  maxPendingBatches: 64,
+  maxConcurrentBatches: 16,
+  maxInflightRequests: 128,
+  maxCacheEntries: 512,
+  maxCacheEntryBytes: 256 * KIB,
+  maxCacheBytes: 4 * MIB,
+  maxRequestBytes: 64 * KIB,
+  maxEndpointChars: 2048,
+});
+
+export const HARD_REQUEST_BATCHER_LIMITS = Object.freeze({
+  maxBatchSize: 1000,
+  maxPendingBatches: 512,
+  maxConcurrentBatches: 128,
+  maxInflightRequests: 1024,
+  maxCacheEntries: 4096,
+  maxCacheEntryBytes: MIB,
+  maxCacheBytes: 32 * MIB,
+  maxRequestBytes: MIB,
+  maxEndpointChars: 8192,
+});
+
+export class RequestBatcherError extends Error {
+  code: "OVERLOADED" | "INVALID_ARGUMENT" | "CANCELED";
+  scope: string;
+  retryAfterMs?: number;
+  limit?: Record<string, number>;
+
+  constructor(
+    message: string,
+    options: {
+      code: "OVERLOADED" | "INVALID_ARGUMENT" | "CANCELED";
+      scope: string;
+      retryAfterMs?: number;
+      limit?: Record<string, number>;
+    },
+  ) {
+    super(message);
+    this.name = "RequestBatcherError";
+    this.code = options.code;
+    this.scope = options.scope;
+    this.retryAfterMs = options.retryAfterMs;
+    this.limit = options.limit;
+  }
+}
+
+function normalizedPositiveInteger(
+  value: unknown,
+  fallback: number,
+  hardLimit: number,
+): number {
+  let numericValue: number;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function normalizedNonNegativeInteger(
+  value: unknown,
+  fallback: number,
+  hardLimit: number,
+): number {
+  let numericValue: number;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function jsonBytes(
+  value: unknown,
+): { serialized: string; bytes: number } | null {
+  try {
+    const serialized = JSON.stringify(value);
+    if (typeof serialized !== "string") {
+      return null;
+    }
+    return {
+      serialized,
+      bytes: new TextEncoder().encode(serialized).byteLength,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -77,6 +195,7 @@ interface BatchState {
   endpoint: string;
   requests: PendingRequest[];
   timer: ReturnType<typeof setTimeout> | null;
+  ready: boolean;
 }
 
 /**
@@ -85,6 +204,7 @@ interface BatchState {
 interface CacheEntry {
   data: any;
   timestamp: number;
+  bytes: number;
 }
 
 /**
@@ -111,6 +231,8 @@ export interface ExtendedStats extends RequestBatcherStats {
   cacheSize: number;
   inflightRequests: number;
   pendingBatches: number;
+  activeBatches: number;
+  cacheBytes: number;
 }
 
 // ==================== Request Batcher Class ====================
@@ -120,28 +242,92 @@ class RequestBatcher {
   private pendingRequests: Map<string, BatchState> = new Map();
   private inflightRequests: Map<string, Promise<any>> = new Map();
   private cache: Map<string, CacheEntry> = new Map();
-  private requestQueue: any[] = [];
+  private cacheBytes = 0;
+  private activeBatches = 0;
+  private destroyed = false;
   private stats: RequestBatcherStats;
   private _cacheCleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: RequestBatcherOptions = {}) {
+    const maxCacheBytes = normalizedPositiveInteger(
+      options.maxCacheBytes,
+      DEFAULT_REQUEST_BATCHER_LIMITS.maxCacheBytes,
+      HARD_REQUEST_BATCHER_LIMITS.maxCacheBytes,
+    );
     // Configuration
     this.options = {
-      batchWindow: options.batchWindow ?? 50,
-      maxBatchSize: options.maxBatchSize ?? 10,
+      batchWindow: normalizedNonNegativeInteger(
+        options.batchWindow,
+        50,
+        60 * 1000,
+      ),
+      maxBatchSize: normalizedPositiveInteger(
+        options.maxBatchSize,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxBatchSize,
+        HARD_REQUEST_BATCHER_LIMITS.maxBatchSize,
+      ),
       enableCache: options.enableCache !== false,
-      cacheTTL: options.cacheTTL ?? 5 * 60 * 1000,
+      cacheTTL: normalizedNonNegativeInteger(
+        options.cacheTTL,
+        5 * 60 * 1000,
+        24 * 60 * 60 * 1000,
+      ),
       enableDeduplication: options.enableDeduplication !== false,
-      maxRetries: options.maxRetries ?? 3,
-      retryDelay: options.retryDelay ?? 1000,
+      maxRetries: normalizedNonNegativeInteger(options.maxRetries, 3, 10),
+      retryDelay: normalizedNonNegativeInteger(
+        options.retryDelay,
+        1000,
+        60 * 1000,
+      ),
       debug: options.debug ?? false,
+      maxPendingBatches: normalizedPositiveInteger(
+        options.maxPendingBatches,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxPendingBatches,
+        HARD_REQUEST_BATCHER_LIMITS.maxPendingBatches,
+      ),
+      maxConcurrentBatches: normalizedPositiveInteger(
+        options.maxConcurrentBatches,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxConcurrentBatches,
+        HARD_REQUEST_BATCHER_LIMITS.maxConcurrentBatches,
+      ),
+      maxInflightRequests: normalizedPositiveInteger(
+        options.maxInflightRequests,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxInflightRequests,
+        HARD_REQUEST_BATCHER_LIMITS.maxInflightRequests,
+      ),
+      maxCacheEntries: normalizedPositiveInteger(
+        options.maxCacheEntries,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxCacheEntries,
+        HARD_REQUEST_BATCHER_LIMITS.maxCacheEntries,
+      ),
+      maxCacheEntryBytes: Math.min(
+        maxCacheBytes,
+        normalizedPositiveInteger(
+          options.maxCacheEntryBytes,
+          DEFAULT_REQUEST_BATCHER_LIMITS.maxCacheEntryBytes,
+          HARD_REQUEST_BATCHER_LIMITS.maxCacheEntryBytes,
+        ),
+      ),
+      maxCacheBytes,
+      maxRequestBytes: normalizedPositiveInteger(
+        options.maxRequestBytes,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxRequestBytes,
+        HARD_REQUEST_BATCHER_LIMITS.maxRequestBytes,
+      ),
+      maxEndpointChars: normalizedPositiveInteger(
+        options.maxEndpointChars,
+        DEFAULT_REQUEST_BATCHER_LIMITS.maxEndpointChars,
+        HARD_REQUEST_BATCHER_LIMITS.maxEndpointChars,
+      ),
     };
 
     // State
     this.pendingRequests = new Map();
     this.inflightRequests = new Map();
     this.cache = new Map();
-    this.requestQueue = [];
+    this.cacheBytes = 0;
+    this.activeBatches = 0;
+    this.destroyed = false;
 
     // Statistics
     this.stats = {
@@ -161,7 +347,9 @@ class RequestBatcher {
     this.startCacheCleanup();
 
     if (this.options.debug) {
-      logger.info("[RequestBatcher] Initialized with options:", { options: this.options });
+      logger.info("[RequestBatcher] Initialized with options:", {
+        options: this.options,
+      });
     }
   }
 
@@ -175,12 +363,28 @@ class RequestBatcher {
   async request<T = any>(
     endpoint: string,
     params: RequestParams = {},
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<T> {
+    if (this.destroyed) {
+      throw new RequestBatcherError("Request batcher is destroyed", {
+        code: "CANCELED",
+        scope: "request_batcher",
+      });
+    }
+    const normalized = this.normalizeRequest(endpoint, params, options);
+    endpoint = normalized.endpoint;
+    params = normalized.params;
+    options = normalized.options;
     this.stats.totalRequests++;
 
-    const requestKey = this.generateRequestKey(endpoint, params);
-    const cacheKey = this.generateCacheKey(endpoint, params);
+    const requestKey = this.validateRetainedKey(
+      this.generateRequestKey(endpoint, params),
+      "request_key",
+    );
+    const cacheKey = this.validateRetainedKey(
+      this.generateCacheKey(endpoint, params),
+      "request_cache_key",
+    );
 
     // 1. Check cache
     if (this.options.enableCache && !options.skipCache) {
@@ -221,21 +425,52 @@ class RequestBatcher {
   private addToBatch<T>(
     endpoint: string,
     params: RequestParams,
-    options: RequestOptions
+    options: RequestOptions,
   ): Promise<T> {
-    const batchKey = this.getBatchKey(endpoint);
+    const batchKey = this.validateRetainedKey(
+      this.getBatchKey(endpoint),
+      "request_batch_key",
+    );
 
     return new Promise((resolve, reject) => {
       // Get or create batch
       let batch = this.pendingRequests.get(batchKey);
 
       if (!batch) {
+        if (this.pendingRequests.size >= this.options.maxPendingBatches) {
+          this.stats.failedRequests++;
+          reject(
+            new RequestBatcherError("Pending batch capacity exceeded", {
+              code: "OVERLOADED",
+              scope: "request_batches",
+              retryAfterMs: this.options.batchWindow || 1,
+              limit: {
+                maxPendingBatches: this.options.maxPendingBatches,
+              },
+            }),
+          );
+          return;
+        }
         batch = {
           endpoint,
           requests: [],
           timer: null,
+          ready: false,
         };
         this.pendingRequests.set(batchKey, batch);
+      }
+
+      if (batch.requests.length >= this.options.maxBatchSize) {
+        this.stats.failedRequests++;
+        reject(
+          new RequestBatcherError("Request batch capacity exceeded", {
+            code: "OVERLOADED",
+            scope: "request_batch",
+            retryAfterMs: this.options.batchWindow || 1,
+            limit: { maxBatchSize: this.options.maxBatchSize },
+          }),
+        );
+        return;
       }
 
       // Add request to batch
@@ -249,14 +484,18 @@ class RequestBatcher {
       // Clear existing timer
       if (batch.timer) {
         clearTimeout(batch.timer);
+        batch.timer = null;
       }
 
       // Execute batch if size limit reached
       if (batch.requests.length >= this.options.maxBatchSize) {
+        batch.ready = true;
         this.executeBatch(batchKey);
       } else {
         // Set timer to execute batch after window
         batch.timer = setTimeout(() => {
+          batch.timer = null;
+          batch.ready = true;
           this.executeBatch(batchKey);
         }, this.options.batchWindow);
       }
@@ -272,7 +511,25 @@ class RequestBatcher {
       return;
     }
 
+    if (this.activeBatches >= this.options.maxConcurrentBatches) {
+      if (!batch.timer) {
+        batch.timer = setTimeout(
+          () => {
+            batch.timer = null;
+            this.executeBatch(batchKey);
+          },
+          Math.max(1, this.options.batchWindow),
+        );
+      }
+      return;
+    }
+
     this.pendingRequests.delete(batchKey);
+    if (batch.timer) {
+      clearTimeout(batch.timer);
+      batch.timer = null;
+    }
+    this.activeBatches++;
 
     const { endpoint, requests } = batch;
     const batchSize = requests.length;
@@ -302,7 +559,10 @@ class RequestBatcher {
       // Resolve individual promises
       requests.forEach((req, index) => {
         const result = results[index];
-        const cacheKey = this.generateCacheKey(endpoint, req.params);
+        const cacheKey = this.validateRetainedKey(
+          this.generateCacheKey(endpoint, req.params),
+          "request_cache_key",
+        );
 
         // Cache result
         if (this.options.enableCache && !req.options.skipCache) {
@@ -325,6 +585,18 @@ class RequestBatcher {
       requests.forEach((req) => {
         req.reject(error);
       });
+    } finally {
+      this.activeBatches--;
+      for (const [pendingKey, pendingBatch] of [
+        ...this.pendingRequests.entries(),
+      ]) {
+        if (this.activeBatches >= this.options.maxConcurrentBatches) {
+          break;
+        }
+        if (pendingBatch.ready) {
+          this.executeBatch(pendingKey);
+        }
+      }
     }
   }
 
@@ -334,10 +606,27 @@ class RequestBatcher {
   private async executeSingle<T>(
     endpoint: string,
     params: RequestParams,
-    options: RequestOptions
+    options: RequestOptions,
   ): Promise<T> {
-    const requestKey = this.generateRequestKey(endpoint, params);
-    const cacheKey = this.generateCacheKey(endpoint, params);
+    if (this.inflightRequests.size >= this.options.maxInflightRequests) {
+      this.stats.failedRequests++;
+      throw new RequestBatcherError("In-flight request capacity exceeded", {
+        code: "OVERLOADED",
+        scope: "request_inflight",
+        retryAfterMs: 1000,
+        limit: {
+          maxInflightRequests: this.options.maxInflightRequests,
+        },
+      });
+    }
+    const requestKey = this.validateRetainedKey(
+      this.generateRequestKey(endpoint, params),
+      "request_key",
+    );
+    const cacheKey = this.validateRetainedKey(
+      this.generateCacheKey(endpoint, params),
+      "request_cache_key",
+    );
 
     const startTime = performance.now();
 
@@ -373,7 +662,10 @@ class RequestBatcher {
   /**
    * Execute batch API call (override this method)
    */
-  protected async executeBatchAPI(endpoint: string, batchParams: RequestParams[]): Promise<any[]> {
+  protected async executeBatchAPI(
+    endpoint: string,
+    batchParams: RequestParams[],
+  ): Promise<any[]> {
     // Default implementation: call individual APIs in parallel
     // Override this method to implement actual batch API
     const results = await Promise.all(
@@ -388,7 +680,7 @@ class RequestBatcher {
   protected async executeAPI(
     endpoint: string,
     params: RequestParams,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<any> {
     // Default implementation using fetch
     // Override this method to use your API client (axios, etc.)
@@ -420,6 +712,57 @@ class RequestBatcher {
   }
 
   /**
+   * Validate and detach request data before retaining it in a queue or map.
+   */
+  private normalizeRequest(
+    endpoint: unknown,
+    params: RequestParams,
+    options: RequestOptions,
+  ): {
+    endpoint: string;
+    params: RequestParams;
+    options: RequestOptions;
+  } {
+    const normalizedEndpoint = String(endpoint ?? "");
+    if (normalizedEndpoint.length > this.options.maxEndpointChars) {
+      throw new RequestBatcherError("Endpoint is too long", {
+        code: "INVALID_ARGUMENT",
+        scope: "request_endpoint",
+        limit: { maxEndpointChars: this.options.maxEndpointChars },
+      });
+    }
+    const payload = jsonBytes({
+      endpoint: normalizedEndpoint,
+      params,
+      options,
+    });
+    if (!payload) {
+      throw new RequestBatcherError("Request payload is not serializable", {
+        code: "INVALID_ARGUMENT",
+        scope: "request_payload",
+        limit: { maxRequestBytes: this.options.maxRequestBytes },
+      });
+    }
+    if (payload.bytes > this.options.maxRequestBytes) {
+      throw new RequestBatcherError("Request payload is too large", {
+        code: "INVALID_ARGUMENT",
+        scope: "request_payload",
+        limit: { maxRequestBytes: this.options.maxRequestBytes },
+      });
+    }
+    const detached = JSON.parse(payload.serialized) as {
+      endpoint: string;
+      params?: RequestParams;
+      options?: RequestOptions;
+    };
+    return {
+      endpoint: detached.endpoint,
+      params: detached.params || {},
+      options: detached.options || {},
+    };
+  }
+
+  /**
    * Get batch key for grouping requests
    */
   protected getBatchKey(endpoint: string): string {
@@ -427,10 +770,27 @@ class RequestBatcher {
     return endpoint;
   }
 
+  private validateRetainedKey(value: unknown, scope: string): string {
+    const key = String(value ?? "");
+    if (
+      new TextEncoder().encode(key).byteLength > this.options.maxRequestBytes
+    ) {
+      throw new RequestBatcherError("Request key is too large", {
+        code: "INVALID_ARGUMENT",
+        scope,
+        limit: { maxRequestBytes: this.options.maxRequestBytes },
+      });
+    }
+    return key;
+  }
+
   /**
    * Generate unique request key
    */
-  protected generateRequestKey(endpoint: string, params: RequestParams): string {
+  protected generateRequestKey(
+    endpoint: string,
+    params: RequestParams,
+  ): string {
     return `${endpoint}:${JSON.stringify(params)}`;
   }
 
@@ -454,21 +814,56 @@ class RequestBatcher {
     const age = Date.now() - entry.timestamp;
 
     if (age > this.options.cacheTTL) {
+      this.cacheBytes = Math.max(0, this.cacheBytes - entry.bytes);
       this.cache.delete(key);
       return null;
     }
 
-    return entry.data;
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+    return JSON.parse(JSON.stringify(entry.data));
   }
 
   /**
    * Set cache
    */
   private setCache(key: string, data: any): void {
+    if (this.destroyed) {
+      return;
+    }
+    const encoded = jsonBytes(data);
+    const retainedBytes =
+      (encoded?.bytes || 0) + new TextEncoder().encode(key).byteLength;
+    if (
+      !encoded ||
+      retainedBytes > this.options.maxCacheEntryBytes ||
+      retainedBytes > this.options.maxCacheBytes
+    ) {
+      return;
+    }
+    const existing = this.cache.get(key);
+    if (existing) {
+      this.cacheBytes = Math.max(0, this.cacheBytes - existing.bytes);
+      this.cache.delete(key);
+    }
+    while (
+      this.cache.size >= this.options.maxCacheEntries ||
+      this.cacheBytes + retainedBytes > this.options.maxCacheBytes
+    ) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      const oldest = this.cache.get(oldestKey);
+      this.cache.delete(oldestKey);
+      this.cacheBytes = Math.max(0, this.cacheBytes - (oldest?.bytes || 0));
+    }
     this.cache.set(key, {
-      data,
+      data: JSON.parse(encoded.serialized),
       timestamp: Date.now(),
+      bytes: retainedBytes,
     });
+    this.cacheBytes += retainedBytes;
   }
 
   /**
@@ -476,6 +871,7 @@ class RequestBatcher {
    */
   clearCache(): void {
     this.cache.clear();
+    this.cacheBytes = 0;
     if (this.options.debug) {
       logger.info("[RequestBatcher] Cache cleared");
     }
@@ -494,6 +890,7 @@ class RequestBatcher {
 
       for (const [key, entry] of this.cache.entries()) {
         if (now - entry.timestamp > this.options.cacheTTL) {
+          this.cacheBytes = Math.max(0, this.cacheBytes - entry.bytes);
           this.cache.delete(key);
           cleaned++;
         }
@@ -566,8 +963,10 @@ class RequestBatcher {
       cacheHitRate: `${cacheHitRate}%`,
       bandwidthSavedKB: Math.round(this.stats.bandwidthSaved / 1024),
       cacheSize: this.cache.size,
+      cacheBytes: this.cacheBytes,
       inflightRequests: this.inflightRequests.size,
       pendingBatches: this.pendingRequests.size,
+      activeBatches: this.activeBatches,
     };
   }
 
@@ -575,6 +974,10 @@ class RequestBatcher {
    * Destroy and cleanup
    */
   destroy(): void {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
     // Stop cache cleanup interval
     this.stopCacheCleanup();
 
@@ -583,11 +986,17 @@ class RequestBatcher {
       if (batch.timer) {
         clearTimeout(batch.timer);
       }
+      const error = new RequestBatcherError("Request batcher was destroyed", {
+        code: "CANCELED",
+        scope: "request_batcher",
+      });
+      batch.requests.forEach((request) => request.reject(error));
     });
 
     this.pendingRequests.clear();
     this.inflightRequests.clear();
     this.cache.clear();
+    this.cacheBytes = 0;
 
     if (this.options.debug) {
       logger.info("[RequestBatcher] Destroyed");
@@ -601,7 +1010,9 @@ let batcherInstance: RequestBatcher | null = null;
 /**
  * Get or create request batcher instance
  */
-export function getRequestBatcher(options?: RequestBatcherOptions): RequestBatcher {
+export function getRequestBatcher(
+  options?: RequestBatcherOptions,
+): RequestBatcher {
   if (!batcherInstance) {
     batcherInstance = new RequestBatcher(options);
   }
@@ -614,7 +1025,7 @@ export function getRequestBatcher(options?: RequestBatcherOptions): RequestBatch
 export async function batchedRequest<T = any>(
   endpoint: string,
   params?: RequestParams,
-  options?: RequestOptions
+  options?: RequestOptions,
 ): Promise<T> {
   const batcher = getRequestBatcher();
   return batcher.request<T>(endpoint, params, options);

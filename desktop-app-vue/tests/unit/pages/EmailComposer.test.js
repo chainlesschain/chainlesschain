@@ -12,6 +12,7 @@ const mockMessage = vi.hoisted(() => ({
 
 vi.mock("ant-design-vue", () => ({
   message: mockMessage,
+  Upload: { LIST_IGNORE: "LIST_IGNORE" },
 }));
 
 // Mock Electron IPC
@@ -19,6 +20,27 @@ global.window = {
   electron: {
     ipcRenderer: {
       invoke: vi.fn(),
+    },
+  },
+  electronAPI: {
+    email: {
+      sendEmail: (accountId, mailOptions) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:send-email",
+          accountId,
+          mailOptions,
+        ),
+      deleteDraft: (draftId) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:delete-draft",
+          draftId,
+        ),
+      saveDraft: (accountId, draftData) =>
+        global.window.electron.ipcRenderer.invoke(
+          "email:save-draft",
+          accountId,
+          draftData,
+        ),
     },
   },
 };
@@ -316,7 +338,7 @@ describe("EmailComposer.vue", () => {
 
   // 附件测试
   describe("Attachments", () => {
-    it("应该能添加附件", () => {
+    it("应该允许 Upload 管理合规附件", () => {
       wrapper = createWrapper();
 
       const file = {
@@ -326,7 +348,7 @@ describe("EmailComposer.vue", () => {
 
       const result = wrapper.vm.beforeUpload(file);
 
-      expect(wrapper.vm.fileList).toContainEqual(file);
+      expect(wrapper.vm.fileList).toEqual([]);
       expect(result).toBe(false); // 阻止自动上传
     });
 
@@ -339,11 +361,12 @@ describe("EmailComposer.vue", () => {
         size: 30 * 1024 * 1024, // 30MB
       };
 
-      wrapper.vm.beforeUpload(file);
+      const result = wrapper.vm.beforeUpload(file);
 
-      expect(message.warning).toHaveBeenCalledWith(
-        expect.stringContaining("文件过大"),
+      expect(message.error).toHaveBeenCalledWith(
+        expect.stringContaining("超过 25MB"),
       );
+      expect(result).toBe("LIST_IGNORE");
     });
 
     it("应该能移除附件", () => {
@@ -391,7 +414,9 @@ describe("EmailComposer.vue", () => {
         name: "test.pdf",
         size: 1024,
         originFileObj: {
-          path: "/path/to/test.pdf",
+          name: "test.pdf",
+          type: "application/pdf",
+          arrayBuffer: vi.fn(async () => new Uint8Array([1, 2, 3]).buffer),
         },
       };
 
@@ -409,6 +434,8 @@ describe("EmailComposer.vue", () => {
           attachments: expect.arrayContaining([
             expect.objectContaining({
               filename: "test.pdf",
+              contentType: "application/pdf",
+              content: expect.any(Uint8Array),
             }),
           ]),
         }),
@@ -492,6 +519,7 @@ describe("EmailComposer.vue", () => {
 
       document.body.innerHTML = '<div class="html-editor"><textarea /></div>';
       const textarea = document.querySelector(".html-editor textarea");
+      textarea.value = "测试文本";
       textarea.selectionStart = 0;
       textarea.selectionEnd = 4;
 
@@ -669,14 +697,17 @@ describe("EmailComposer.vue", () => {
   describe("Draft Functionality", () => {
     it("应该保存草稿", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockResolvedValueOnce({ success: true, draftId: 'draft-1' });
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce({
+        success: true,
+        draftId: "draft-1",
+      });
 
       await wrapper.vm.saveDraft();
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         "email:save-draft",
         "account-123",
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(mockMessage.success).toHaveBeenCalledWith("草稿已保存");
     });

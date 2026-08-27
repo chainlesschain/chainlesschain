@@ -61,6 +61,46 @@ const FULL_UNIT_TRIGGERS = new Set([
   "vitest.config.mjs",
   "vitest.config.ts",
 ]);
+const CONTENT_INTEGRATION_WIRING_TEST =
+  "tests/unit/api/rss-email-production-wiring.test.js";
+const STANDALONE_SIGNALING_BOUNDS_TEST =
+  "tests/unit/p2p/standalone-signaling-server-bounds.test.js";
+const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
+  ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
+  [
+    "signaling-server/offline-message-store.js",
+    [STANDALONE_SIGNALING_BOUNDS_TEST],
+  ],
+]);
+const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  [
+    "src/renderer/pages/email/AccountManager.vue",
+    [
+      CONTENT_INTEGRATION_WIRING_TEST,
+      "tests/unit/pages/AccountManager.test.js",
+    ],
+  ],
+  [
+    "src/renderer/pages/email/EmailComposer.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/EmailComposer.test.js"],
+  ],
+  [
+    "src/renderer/pages/email/EmailReader.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/EmailReader.test.js"],
+  ],
+  [
+    "src/renderer/pages/rss/ArticleReader.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/ArticleReader.test.js"],
+  ],
+  [
+    "src/renderer/pages/rss/FeedList.vue",
+    [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/FeedList.test.js"],
+  ],
+  ["src/renderer/types/electron.d.ts", [CONTENT_INTEGRATION_WIRING_TEST]],
+]);
 
 class SelectionError extends Error {
   constructor(code, message, details = {}) {
@@ -337,6 +377,35 @@ function createSelection(
       continue;
     }
 
+    const repoContractTests =
+      REPO_SOURCE_CONTRACT_TEST_MAPPINGS.get(normalized);
+    if (repoContractTests) {
+      const missingTests = repoContractTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(projectRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      desktopMapped = true;
+      for (const testFile of repoContractTests) {
+        selectedDesktopTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: [...repoContractTests],
+      });
+      continue;
+    }
+
     if (
       IDE_DEDICATED_GATE_PREFIXES.some((prefix) =>
         normalized.startsWith(prefix),
@@ -362,6 +431,33 @@ function createSelection(
     if (FULL_UNIT_TRIGGERS.has(relativeFile)) {
       fullDesktopUnit = true;
       mappings.push({ file: normalized, suite: "desktop-unit", mode: "full" });
+      continue;
+    }
+
+    const contractTests = SOURCE_CONTRACT_TEST_MAPPINGS.get(relativeFile);
+    if (contractTests) {
+      const missingTests = contractTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(projectRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      for (const testFile of contractTests) {
+        selectedDesktopTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: [...contractTests],
+      });
       continue;
     }
 

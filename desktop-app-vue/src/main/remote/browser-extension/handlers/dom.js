@@ -4,19 +4,25 @@
  * Two related areas:
  *  - Element Interactions (page context): hover/focus/blur, text selection,
  *    get/set attribute, bounding rect, visibility, wait-for-selector, drag&drop
- *  - DOM Mutation Observer (Phase 18, page context + per-tab mutationState):
- *    start/stop observing, get/clear the mutation log
+ *  - DOM Mutation Observer (Phase 18): bounded page/service-worker state,
+ *    start/stop observing, and get/clear mutation logs
  *
  * Extracted verbatim from background.js (Phase 1 of the split). All handlers run
  * in page context via chrome.scripting.executeScript — no CDP, no shared-layer
- * dependency. mutationState moves with the observer handlers (verified no
- * external refs).
+ * dependency. Mutation records are bounded by count and UTF-8 bytes.
  *
  * ESM only. chrome.* is referenced lazily inside the handler bodies.
  */
 
 /* eslint-disable no-undef */
-/* global chrome, document, window, MouseEvent, DragEvent, DataTransfer, MutationObserver, Date, setTimeout, Promise */
+/* global chrome, document, window, MouseEvent, DragEvent, DataTransfer, MutationObserver, Date, JSON, TextEncoder, setTimeout, Promise */
+
+import {
+  ActivePageMonitorRegistry,
+  MUTATION_MONITOR_LIMITS,
+  validateMutationMonitorOptions,
+  validatePageMonitorSelector,
+} from "./page-monitor-boundary.js";
 
 // ---------- Element Interactions ----------
 
@@ -312,108 +318,263 @@ export async function dragAndDrop(tabId, sourceSelector, targetSelector) {
 
 // ---------- DOM Mutation Observer (Phase 18) ----------
 
-const mutationState = new Map();
+const mutationMonitors = new ActivePageMonitorRegistry({ kind: "mutation" });
+let mutationMonitorTabRemovalTarget = null;
+
+function ensureMutationMonitorTabRemovalListener() {
+  const eventTarget = chrome.tabs?.onRemoved;
+  if (!eventTarget || mutationMonitorTabRemovalTarget === eventTarget) {
+    return;
+  }
+  eventTarget.addListener((tabId) => {
+    mutationMonitors.clearTab(tabId);
+  });
+  mutationMonitorTabRemovalTarget = eventTarget;
+}
+
+export function installMutationMonitorInPage(selector, options, limits) {
+  const target = selector ? document.querySelector(selector) : document.body;
+  if (!target) {
+    return { error: "Target element not found" };
+  }
+  const previous = window.__chainlessMutationMonitor;
+  if (previous?.observer) {
+    previous.observer.disconnect();
+    previous.observer = null;
+    previous.active = false;
+  }
+
+  const truncate = (value, maxChars) =>
+    typeof value === "string" ? value.slice(0, maxChars) : "";
+  const monitor = {
+    active: true,
+    observer: null,
+    mutations: [],
+    retainedBytes: 0,
+    droppedMutations: 0,
+    limits,
+  };
+
+  try {
+    monitor.observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        const mutationTarget = mutation.target || {};
+        const tagName = truncate(
+          mutationTarget.tagName || mutationTarget.nodeName,
+          limits.maxTargetChars,
+        );
+        const id = truncate(mutationTarget.id, limits.maxTargetChars);
+        const entry = {
+          type: truncate(mutation.type, 64),
+          target: `${tagName}${id ? `#${id}` : ""}`.slice(
+            0,
+            limits.maxTargetChars,
+          ),
+          attributeName: truncate(
+            mutation.attributeName,
+            limits.maxAttributeChars,
+          ),
+          oldValue: truncate(mutation.oldValue, limits.maxOldValueChars),
+          addedNodes: Number.isFinite(Number(mutation.addedNodes?.length))
+            ? Number(mutation.addedNodes.length)
+            : 0,
+          removedNodes: Number.isFinite(Number(mutation.removedNodes?.length))
+            ? Number(mutation.removedNodes.length)
+            : 0,
+          timestamp: Date.now(),
+        };
+        let bytes;
+        try {
+          bytes = new TextEncoder().encode(JSON.stringify(entry)).byteLength;
+        } catch {
+          monitor.droppedMutations += 1;
+          continue;
+        }
+        if (bytes <= 0 || bytes > limits.maxEntryBytes) {
+          monitor.droppedMutations += 1;
+          continue;
+        }
+        while (
+          monitor.mutations.length >= limits.maxEntries ||
+          monitor.retainedBytes + bytes > limits.maxTotalBytes
+        ) {
+          const oldest = monitor.mutations.shift();
+          if (!oldest) {
+            monitor.droppedMutations += 1;
+            break;
+          }
+          monitor.retainedBytes -= oldest.__bytes;
+          monitor.droppedMutations += 1;
+        }
+        if (monitor.retainedBytes + bytes <= limits.maxTotalBytes) {
+          monitor.mutations.push({ ...entry, __bytes: bytes });
+          monitor.retainedBytes += bytes;
+        }
+      }
+    });
+    monitor.observer.observe(target, options);
+  } catch (error) {
+    monitor.observer?.disconnect();
+    return { error: error.message };
+  }
+
+  window.__chainlessMutationMonitor = monitor;
+  return {
+    success: true,
+    targetSelector: selector || "body",
+    limits,
+  };
+}
+
+export function stopMutationMonitorInPage() {
+  const monitor = window.__chainlessMutationMonitor;
+  if (monitor?.observer) {
+    monitor.observer.disconnect();
+    monitor.observer = null;
+    monitor.active = false;
+  }
+  return { success: true };
+}
+
+export function readMutationMonitorInPage() {
+  const monitor = window.__chainlessMutationMonitor;
+  if (!monitor) {
+    return {
+      mutations: [],
+      count: 0,
+      droppedMutations: 0,
+      retainedBytes: 0,
+      status: "inactive",
+    };
+  }
+  return {
+    mutations: monitor.mutations.map(({ __bytes: _bytes, ...entry }) => entry),
+    count: monitor.mutations.length,
+    droppedMutations: monitor.droppedMutations,
+    retainedBytes: monitor.retainedBytes,
+    status: monitor.active ? "active" : "inactive",
+    limits: monitor.limits,
+  };
+}
+
+export function clearMutationMonitorInPage() {
+  const monitor = window.__chainlessMutationMonitor;
+  if (monitor) {
+    monitor.mutations.length = 0;
+    monitor.retainedBytes = 0;
+    monitor.droppedMutations = 0;
+  }
+  return { success: true };
+}
 
 export async function startMutationObserver(tabId, selector, options = {}) {
+  const selectorValidation = validatePageMonitorSelector(selector);
+  if (!selectorValidation.accepted) {
+    return selectorValidation;
+  }
+  const optionsValidation = validateMutationMonitorOptions(options);
+  if (!optionsValidation.accepted) {
+    return optionsValidation;
+  }
+
+  if (mutationMonitors.getControl(tabId)?.status === "active") {
+    const stopped = await stopMutationObserver(tabId);
+    if (!stopped.success) {
+      return stopped;
+    }
+  }
+  const admission = mutationMonitors.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+  ensureMutationMonitorTabRemovalListener();
+
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: (sel, opts) => {
-        // Clean up existing observer
-        if (window.__chainlessMutationObserver) {
-          window.__chainlessMutationObserver.disconnect();
-        }
-        window.__chainlessMutationLog = [];
-
-        const target = sel ? document.querySelector(sel) : document.body;
-        if (!target) return { error: "Target element not found" };
-
-        const config = {
-          attributes: opts.attributes !== false,
-          childList: opts.childList !== false,
-          subtree: opts.subtree !== false,
-          characterData: opts.characterData || false,
-          attributeOldValue: opts.attributeOldValue || false,
-          characterDataOldValue: opts.characterDataOldValue || false,
-        };
-
-        window.__chainlessMutationObserver = new MutationObserver(
-          (mutations) => {
-            mutations.forEach((mutation) => {
-              window.__chainlessMutationLog.push({
-                type: mutation.type,
-                target:
-                  mutation.target.tagName +
-                  (mutation.target.id ? `#${mutation.target.id}` : ""),
-                attributeName: mutation.attributeName,
-                oldValue: mutation.oldValue,
-                addedNodes: mutation.addedNodes.length,
-                removedNodes: mutation.removedNodes.length,
-                timestamp: Date.now(),
-              });
-              // Keep log size manageable
-              if (window.__chainlessMutationLog.length > 1000) {
-                window.__chainlessMutationLog.shift();
-              }
-            });
-          },
-        );
-
-        window.__chainlessMutationObserver.observe(target, config);
-        return { success: true, targetSelector: sel || "body" };
-      },
-      args: [selector, options],
+      func: installMutationMonitorInPage,
+      args: [
+        selectorValidation.selector,
+        optionsValidation.options,
+        MUTATION_MONITOR_LIMITS,
+      ],
     });
-
-    mutationState.set(tabId, { started: Date.now(), selector });
-    return result[0]?.result || { error: "Failed to start observer" };
+    const pageResult = result[0]?.result || {
+      error: "Failed to start observer",
+    };
+    if (pageResult.error) {
+      mutationMonitors.complete(admission.lease);
+      return pageResult;
+    }
+    if (!mutationMonitors.markActive(admission.lease)) {
+      throw new Error("Mutation monitor tab closed during startup");
+    }
+    return {
+      ...pageResult,
+      admissionLimits: mutationMonitors.getStats().limits,
+    };
   } catch (error) {
+    mutationMonitors.complete(admission.lease);
     return { error: error.message };
   }
 }
 
 export async function stopMutationObserver(tabId) {
+  const stopAdmission = mutationMonitors.beginStop(tabId);
+  if (
+    !stopAdmission.accepted &&
+    stopAdmission.code !== "PAGE_MONITOR_NOT_FOUND"
+  ) {
+    return stopAdmission;
+  }
   try {
-    await chrome.scripting.executeScript({
+    const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
-        if (window.__chainlessMutationObserver) {
-          window.__chainlessMutationObserver.disconnect();
-          window.__chainlessMutationObserver = null;
-        }
-      },
+      func: stopMutationMonitorInPage,
     });
-    mutationState.delete(tabId);
-    return { success: true };
+    const pageResult = result[0]?.result || {
+      error: "Failed to stop observer",
+    };
+    if (pageResult.error) {
+      if (stopAdmission.accepted) {
+        mutationMonitors.cancelStop(stopAdmission.lease);
+      }
+      return pageResult;
+    }
+    if (stopAdmission.accepted) {
+      mutationMonitors.complete(stopAdmission.lease);
+    }
+    return pageResult;
+  } catch (error) {
+    if (stopAdmission.accepted) {
+      mutationMonitors.cancelStop(stopAdmission.lease);
+    }
+    return { error: error.message };
+  }
+}
+
+export async function getMutationLog(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: readMutationMonitorInPage,
+    });
+    return result[0]?.result || { mutations: [] };
   } catch (error) {
     return { error: error.message };
   }
 }
 
-export function getMutationLog(tabId) {
-  return chrome.scripting
-    .executeScript({
+export async function clearMutationLog(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
-        return {
-          mutations: window.__chainlessMutationLog || [],
-          count: window.__chainlessMutationLog?.length || 0,
-        };
-      },
-    })
-    .then((result) => result[0]?.result || { mutations: [] });
-}
-
-export function clearMutationLog(tabId) {
-  return chrome.scripting
-    .executeScript({
-      target: { tabId },
-      func: () => {
-        window.__chainlessMutationLog = [];
-        return { success: true };
-      },
-    })
-    .then((result) => result[0]?.result || { success: false });
+      func: clearMutationMonitorInPage,
+    });
+    return result[0]?.result || { success: false };
+  } catch (error) {
+    return { error: error.message };
+  }
 }
 
 export const domHandlers = {

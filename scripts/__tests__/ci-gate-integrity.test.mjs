@@ -102,6 +102,9 @@ test("selector invokes git diff with validated argument arrays", () => {
   let invocation;
   const changedFiles = selector.getChangedFilesCI({
     baseRef: "feature/safe-ref",
+    // Isolate the base-ref contract from COWORK_PUSH_BASE_SHA injected by
+    // push workflows. A real push must still prefer that exact SHA.
+    baseSha: "",
     spawn(command, args, options) {
       invocation = { command, args, options };
       return {
@@ -173,6 +176,43 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     ),
   );
   assert.ok(selection.selectedTests.every((file) => !file.includes("\\")));
+
+  const contentIntegrationSelection = selector.createSelection([
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/preload/index.js",
+    "desktop-app-vue/src/renderer/pages/email/EmailReader.vue",
+    "desktop-app-vue/src/renderer/pages/rss/FeedList.vue",
+    "desktop-app-vue/src/renderer/types/electron.d.ts",
+  ]);
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/api/rss-email-production-wiring.test.js",
+    ),
+  );
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/pages/EmailReader.test.js",
+    ),
+  );
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/pages/FeedList.test.js",
+    ),
+  );
+  assert.equal(contentIntegrationSelection.mode, "targeted");
+
+  const standaloneSignalingSelection = selector.createSelection([
+    "signaling-server/index.js",
+    "signaling-server/boundaries.js",
+    "signaling-server/offline-message-store.js",
+  ]);
+  assert.equal(standaloneSignalingSelection.suite, "desktop-unit");
+  assert.equal(standaloneSignalingSelection.mode, "targeted");
+  assert.ok(
+    standaloneSignalingSelection.selectedTests.includes(
+      "tests/unit/p2p/standalone-signaling-server-bounds.test.js",
+    ),
+  );
 
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",

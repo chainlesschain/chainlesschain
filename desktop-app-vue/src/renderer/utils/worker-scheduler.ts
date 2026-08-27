@@ -11,14 +11,14 @@
  * - Worker health monitoring
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // ==================== 类型定义 ====================
 
 /**
  * 任务优先级
  */
-export type TaskPriority = 'high' | 'normal' | 'low';
+export type TaskPriority = "high" | "normal" | "low";
 
 /**
  * 优先级映射
@@ -28,6 +28,88 @@ export const PriorityMap: Record<TaskPriority, number> = {
   normal: 2,
   low: 1,
 };
+
+export const DEFAULT_WORKER_SCHEDULER_LIMITS = Object.freeze({
+  maxWorkers: 16,
+  maxQueuedTasks: 100,
+  maxPools: 32,
+  maxRecurringTasks: 64,
+  maxPoolNameChars: 128,
+  minRecurringIntervalMs: 100,
+  maxRecurringIntervalMs: 24 * 60 * 60 * 1000,
+  maxTaskTimeoutMs: 5 * 60 * 1000,
+  maxTaskRetries: 10,
+});
+
+export const HARD_WORKER_SCHEDULER_LIMITS = Object.freeze({
+  maxWorkers: 64,
+  maxQueuedTasks: 1000,
+  maxPools: 128,
+  maxRecurringTasks: 512,
+  maxPoolNameChars: 512,
+  minRecurringIntervalMs: 10,
+  maxRecurringIntervalMs: 7 * 24 * 60 * 60 * 1000,
+  maxTaskTimeoutMs: 30 * 60 * 1000,
+  maxTaskRetries: 20,
+});
+
+export class WorkerSchedulerError extends Error {
+  code: "OVERLOADED" | "INVALID_ARGUMENT" | "CANCELED";
+  scope: string;
+  retryAfterMs?: number;
+  limit?: Record<string, number>;
+
+  constructor(
+    message: string,
+    options: {
+      code: "OVERLOADED" | "INVALID_ARGUMENT" | "CANCELED";
+      scope: string;
+      retryAfterMs?: number;
+      limit?: Record<string, number>;
+    },
+  ) {
+    super(message);
+    this.name = "WorkerSchedulerError";
+    this.code = options.code;
+    this.scope = options.scope;
+    this.retryAfterMs = options.retryAfterMs;
+    this.limit = options.limit;
+  }
+}
+
+function boundedPositiveInteger(
+  value: unknown,
+  fallback: number,
+  hardLimit: number,
+): number {
+  let numericValue: number;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function boundedNonNegativeInteger(
+  value: unknown,
+  fallback: number,
+  hardLimit: number,
+): number {
+  let numericValue: number;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
 
 /**
  * Worker Pool 选项
@@ -41,6 +123,23 @@ export interface WorkerPoolOptions {
   idleTimeout?: number;
   /** 是否开启调试日志 */
   debug?: boolean;
+}
+
+export interface TaskSchedulerOptions {
+  maxPools?: number;
+  maxRecurringTasks?: number;
+  maxPoolNameChars?: number;
+  minRecurringIntervalMs?: number;
+  maxRecurringIntervalMs?: number;
+}
+
+export interface WorkerSchedulerAdmissionResult {
+  accepted: boolean;
+  existing?: boolean;
+  code?: "OVERLOADED" | "INVALID_ARGUMENT" | "CANCELED";
+  scope?: string;
+  retryAfterMs?: number;
+  limit?: Record<string, number>;
 }
 
 /**
@@ -75,7 +174,7 @@ export interface Task<T = any, R = any> {
  * Worker 消息类型
  */
 export interface WorkerTaskMessage<T = any> {
-  type: 'task';
+  type: "task";
   id: number;
   data: T;
 }
@@ -84,7 +183,7 @@ export interface WorkerTaskMessage<T = any> {
  * Worker 结果消息
  */
 export interface WorkerResultMessage<T = any> {
-  type: 'result';
+  type: "result";
   id: number;
   data?: T;
   error?: string;
@@ -124,6 +223,8 @@ export interface ScheduledTask<T = any> {
   data: T;
   interval: number;
   intervalId: ReturnType<typeof setInterval>;
+  running: boolean;
+  skippedRuns: number;
 }
 
 /**
@@ -145,14 +246,37 @@ export class WorkerPool {
   private busy: PoolWorker[];
   private taskQueue: Task[];
   private taskId: number;
+  private terminated: boolean;
 
   constructor(workerScript: string | URL, options: WorkerPoolOptions = {}) {
     this.workerScript = workerScript;
+    const detectedWorkers =
+      (typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4) ||
+      4;
     this.options = {
-      size: options.size || (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4) || 4,
-      maxTasks: options.maxTasks || 100,
-      idleTimeout: options.idleTimeout || 30000, // 30s
-      debug: options.debug || false,
+      size: boundedPositiveInteger(
+        options.size,
+        Math.min(
+          boundedPositiveInteger(
+            detectedWorkers,
+            4,
+            HARD_WORKER_SCHEDULER_LIMITS.maxWorkers,
+          ),
+          DEFAULT_WORKER_SCHEDULER_LIMITS.maxWorkers,
+        ),
+        HARD_WORKER_SCHEDULER_LIMITS.maxWorkers,
+      ),
+      maxTasks: boundedPositiveInteger(
+        options.maxTasks,
+        DEFAULT_WORKER_SCHEDULER_LIMITS.maxQueuedTasks,
+        HARD_WORKER_SCHEDULER_LIMITS.maxQueuedTasks,
+      ),
+      idleTimeout: boundedNonNegativeInteger(
+        options.idleTimeout,
+        30000,
+        HARD_WORKER_SCHEDULER_LIMITS.maxTaskTimeoutMs,
+      ),
+      debug: options.debug === true,
     };
 
     this.workers = [];
@@ -160,6 +284,7 @@ export class WorkerPool {
     this.busy = [];
     this.taskQueue = [];
     this.taskId = 0;
+    this.terminated = false;
 
     this.init();
   }
@@ -175,7 +300,9 @@ export class WorkerPool {
     }
 
     if (this.options.debug) {
-      logger.info(`[WorkerPool] Created pool with ${this.options.size} workers`);
+      logger.info(
+        `[WorkerPool] Created pool with ${this.options.size} workers`,
+      );
     }
   }
 
@@ -190,11 +317,14 @@ export class WorkerPool {
     worker.currentTask = null;
     worker.idleTimer = null;
 
-    worker.addEventListener('message', (event: MessageEvent<WorkerResultMessage>) => {
-      this.handleWorkerMessage(worker, event);
-    });
+    worker.addEventListener(
+      "message",
+      (event: MessageEvent<WorkerResultMessage>) => {
+        this.handleWorkerMessage(worker, event);
+      },
+    );
 
-    worker.addEventListener('error', (error: ErrorEvent) => {
+    worker.addEventListener("error", (error: ErrorEvent) => {
       this.handleWorkerError(worker, error);
     });
 
@@ -204,12 +334,30 @@ export class WorkerPool {
   /**
    * Execute task
    */
-  async execute<T = any, R = any>(data: T, options: TaskExecuteOptions = {}): Promise<R> {
-    const {
-      priority = 'normal',
-      timeout = 30000,
-      retries = 0,
-    } = options;
+  async execute<T = any, R = any>(
+    data: T,
+    options: TaskExecuteOptions = {},
+  ): Promise<R> {
+    if (this.terminated) {
+      throw new WorkerSchedulerError("Worker pool is terminated", {
+        code: "CANCELED",
+        scope: "worker_pool",
+      });
+    }
+    const { priority: requestedPriority = "normal" } = options;
+    const priority = Object.hasOwn(PriorityMap, requestedPriority)
+      ? requestedPriority
+      : "normal";
+    const timeout = boundedNonNegativeInteger(
+      options.timeout,
+      30000,
+      HARD_WORKER_SCHEDULER_LIMITS.maxTaskTimeoutMs,
+    );
+    const retries = boundedNonNegativeInteger(
+      options.retries,
+      0,
+      HARD_WORKER_SCHEDULER_LIMITS.maxTaskRetries,
+    );
 
     return new Promise<R>((resolve, reject) => {
       const task: Task<T, R> = {
@@ -226,7 +374,9 @@ export class WorkerPool {
       };
 
       // Add to queue
-      this.enqueueTask(task);
+      if (!this.enqueueTask(task)) {
+        return;
+      }
 
       // Try to execute immediately
       this.processQueue();
@@ -236,11 +386,27 @@ export class WorkerPool {
   /**
    * Enqueue task
    */
-  private enqueueTask(task: Task): void {
+  private enqueueTask(task: Task): boolean {
+    if (this.terminated) {
+      task.reject(
+        new WorkerSchedulerError("Worker pool is terminated", {
+          code: "CANCELED",
+          scope: "worker_pool",
+        }),
+      );
+      return false;
+    }
     // Check queue limit
     if (this.taskQueue.length >= this.options.maxTasks) {
-      task.reject(new Error('Task queue is full'));
-      return;
+      task.reject(
+        new WorkerSchedulerError("Worker task queue is full", {
+          code: "OVERLOADED",
+          scope: "worker_tasks",
+          retryAfterMs: 1000,
+          limit: { maxQueuedTasks: this.options.maxTasks },
+        }),
+      );
+      return false;
     }
 
     this.taskQueue.push(task);
@@ -249,8 +415,11 @@ export class WorkerPool {
     this.sortQueue();
 
     if (this.options.debug) {
-      logger.info(`[WorkerPool] Task ${task.id} enqueued (priority: ${task.priority})`);
+      logger.info(
+        `[WorkerPool] Task ${task.id} enqueued (priority: ${task.priority})`,
+      );
     }
+    return true;
   }
 
   /**
@@ -259,7 +428,9 @@ export class WorkerPool {
   private sortQueue(): void {
     this.taskQueue.sort((a, b) => {
       const priorityDiff = PriorityMap[b.priority] - PriorityMap[a.priority];
-      if (priorityDiff !== 0) { return priorityDiff; }
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
 
       // Same priority, FIFO
       return a.createdAt - b.createdAt;
@@ -283,7 +454,9 @@ export class WorkerPool {
    */
   private executeTask(worker: PoolWorker, task: Task): void {
     worker.currentTask = task;
-    this.busy.push(worker);
+    if (!this.busy.includes(worker)) {
+      this.busy.push(worker);
+    }
 
     // Clear idle timer
     if (worker.idleTimer) {
@@ -300,24 +473,41 @@ export class WorkerPool {
 
     // Send task to worker
     const message: WorkerTaskMessage = {
-      type: 'task',
+      type: "task",
       id: task.id,
       data: task.data,
     };
-    worker.postMessage(message);
+    try {
+      worker.postMessage(message);
+    } catch (error) {
+      this.handleTaskError(
+        worker,
+        task,
+        error instanceof Error ? error.message : String(error),
+      );
+      return;
+    }
 
     if (this.options.debug) {
-      logger.info(`[WorkerPool] Task ${task.id} assigned to worker ${worker.poolId}`);
+      logger.info(
+        `[WorkerPool] Task ${task.id} assigned to worker ${worker.poolId}`,
+      );
     }
   }
 
   /**
    * Handle worker message
    */
-  private handleWorkerMessage(worker: PoolWorker, event: MessageEvent<WorkerResultMessage>): void {
+  private handleWorkerMessage(
+    worker: PoolWorker,
+    event: MessageEvent<WorkerResultMessage>,
+  ): void {
+    if (this.terminated || !this.workers.includes(worker)) {
+      return;
+    }
     const { type, id, data, error } = event.data;
 
-    if (type === 'result') {
+    if (type === "result") {
       const task = worker.currentTask;
 
       if (!task || task.id !== id) {
@@ -343,7 +533,11 @@ export class WorkerPool {
   /**
    * Handle task success
    */
-  private handleTaskSuccess<T>(worker: PoolWorker, task: Task<any, T>, result: T): void {
+  private handleTaskSuccess<T>(
+    worker: PoolWorker,
+    task: Task<any, T>,
+    result: T,
+  ): void {
     worker.tasksCompleted++;
     task.resolve(result);
 
@@ -359,19 +553,24 @@ export class WorkerPool {
    * Handle task error
    */
   private handleTaskError(worker: PoolWorker, task: Task, error: string): void {
+    if (task.timeoutId) {
+      clearTimeout(task.timeoutId);
+      task.timeoutId = null;
+    }
     if (task.remainingRetries > 0) {
       task.remainingRetries--;
 
       if (this.options.debug) {
-        logger.info(`[WorkerPool] Retrying task ${task.id} (${task.remainingRetries} retries left)`);
+        logger.info(
+          `[WorkerPool] Retrying task ${task.id} (${task.remainingRetries} retries left)`,
+        );
       }
 
       // Re-enqueue task
       this.enqueueTask(task);
       this.releaseWorker(worker);
-      this.processQueue();
     } else {
-      task.reject(new Error(error || 'Worker task failed'));
+      task.reject(new Error(error || "Worker task failed"));
 
       if (this.options.debug) {
         logger.error(`[WorkerPool] Task ${task.id} failed:`, error);
@@ -385,10 +584,21 @@ export class WorkerPool {
    * Handle task timeout
    */
   private handleTaskTimeout(worker: PoolWorker, task: Task): void {
-    logger.warn(`[WorkerPool] Task ${task.id} timed out after ${task.timeout}ms`);
+    if (
+      this.terminated ||
+      worker.currentTask !== task ||
+      !this.workers.includes(worker)
+    ) {
+      return;
+    }
+    logger.warn(
+      `[WorkerPool] Task ${task.id} timed out after ${task.timeout}ms`,
+    );
 
     // Terminate worker (it's stuck)
     worker.terminate();
+    worker.currentTask = null;
+    task.timeoutId = null;
 
     // Create new worker
     const newWorker = this.createWorker(worker.poolId);
@@ -401,17 +611,17 @@ export class WorkerPool {
       this.busy.splice(busyIndex, 1);
     }
 
-    // Add new worker to available
-    this.available.push(newWorker);
-
     // Retry task if retries available
-    this.handleTaskError(newWorker, task, 'Task timeout');
+    this.handleTaskError(newWorker, task, "Task timeout");
   }
 
   /**
    * Handle worker error
    */
   private handleWorkerError(worker: PoolWorker, error: ErrorEvent): void {
+    if (this.terminated || !this.workers.includes(worker)) {
+      return;
+    }
     logger.error(`[WorkerPool] Worker ${worker.poolId} error:`, error);
 
     if (worker.currentTask) {
@@ -431,13 +641,21 @@ export class WorkerPool {
       this.busy.splice(busyIndex, 1);
     }
 
-    this.available.push(worker);
+    if (this.terminated) {
+      worker.terminate();
+      return;
+    }
+    if (!this.available.includes(worker)) {
+      this.available.push(worker);
+    }
 
     // Set idle timer
     worker.idleTimer = setTimeout(() => {
       // Worker has been idle for too long, could terminate if needed
       if (this.options.debug) {
-        logger.info(`[WorkerPool] Worker ${worker.poolId} has been idle for ${this.options.idleTimeout}ms`);
+        logger.info(
+          `[WorkerPool] Worker ${worker.poolId} has been idle for ${this.options.idleTimeout}ms`,
+        );
       }
     }, this.options.idleTimeout);
 
@@ -449,7 +667,36 @@ export class WorkerPool {
    * Terminate all workers
    */
   terminate(): void {
+    if (this.terminated) {
+      return;
+    }
+    this.terminated = true;
+    const cancellation = new WorkerSchedulerError(
+      "Worker pool was terminated",
+      {
+        code: "CANCELED",
+        scope: "worker_pool",
+      },
+    );
+    this.taskQueue.forEach((task) => {
+      if (task.timeoutId) {
+        clearTimeout(task.timeoutId);
+      }
+      task.reject(cancellation);
+    });
     this.workers.forEach((worker) => {
+      if (worker.idleTimer) {
+        clearTimeout(worker.idleTimer);
+        worker.idleTimer = null;
+      }
+      if (worker.currentTask) {
+        if (worker.currentTask.timeoutId) {
+          clearTimeout(worker.currentTask.timeoutId);
+          worker.currentTask.timeoutId = null;
+        }
+        worker.currentTask.reject(cancellation);
+        worker.currentTask = null;
+      }
       worker.terminate();
     });
 
@@ -459,7 +706,7 @@ export class WorkerPool {
     this.taskQueue = [];
 
     if (this.options.debug) {
-      logger.info('[WorkerPool] Pool terminated');
+      logger.info("[WorkerPool] Pool terminated");
     }
   }
 
@@ -472,7 +719,10 @@ export class WorkerPool {
       available: this.available.length,
       busy: this.busy.length,
       queued: this.taskQueue.length,
-      tasksCompleted: this.workers.reduce((sum, w) => sum + w.tasksCompleted, 0),
+      tasksCompleted: this.workers.reduce(
+        (sum, w) => sum + w.tasksCompleted,
+        0,
+      ),
     };
   }
 }
@@ -486,25 +736,100 @@ export class WorkerPool {
 export class TaskScheduler {
   private pools: Map<string, WorkerPool>;
   private scheduledTasks: Map<string, ScheduledTask>;
+  private options: Required<TaskSchedulerOptions>;
+  private recurringSequence: number;
+  private terminated: boolean;
 
-  constructor() {
+  constructor(options: TaskSchedulerOptions = {}) {
     this.pools = new Map();
     this.scheduledTasks = new Map();
+    const maxRecurringIntervalMs = Math.max(
+      boundedPositiveInteger(
+        options.maxRecurringIntervalMs,
+        DEFAULT_WORKER_SCHEDULER_LIMITS.maxRecurringIntervalMs,
+        HARD_WORKER_SCHEDULER_LIMITS.maxRecurringIntervalMs,
+      ),
+      HARD_WORKER_SCHEDULER_LIMITS.minRecurringIntervalMs,
+    );
+    this.options = {
+      maxPools: boundedPositiveInteger(
+        options.maxPools,
+        DEFAULT_WORKER_SCHEDULER_LIMITS.maxPools,
+        HARD_WORKER_SCHEDULER_LIMITS.maxPools,
+      ),
+      maxRecurringTasks: boundedPositiveInteger(
+        options.maxRecurringTasks,
+        DEFAULT_WORKER_SCHEDULER_LIMITS.maxRecurringTasks,
+        HARD_WORKER_SCHEDULER_LIMITS.maxRecurringTasks,
+      ),
+      maxPoolNameChars: boundedPositiveInteger(
+        options.maxPoolNameChars,
+        DEFAULT_WORKER_SCHEDULER_LIMITS.maxPoolNameChars,
+        HARD_WORKER_SCHEDULER_LIMITS.maxPoolNameChars,
+      ),
+      minRecurringIntervalMs: Math.min(
+        Math.max(
+          boundedPositiveInteger(
+            options.minRecurringIntervalMs,
+            DEFAULT_WORKER_SCHEDULER_LIMITS.minRecurringIntervalMs,
+            HARD_WORKER_SCHEDULER_LIMITS.maxRecurringIntervalMs,
+          ),
+          HARD_WORKER_SCHEDULER_LIMITS.minRecurringIntervalMs,
+        ),
+        maxRecurringIntervalMs,
+      ),
+      maxRecurringIntervalMs,
+    };
+    this.recurringSequence = 0;
+    this.terminated = false;
   }
 
   /**
    * Register worker pool
    */
-  registerPool(name: string, workerScript: string | URL, options?: WorkerPoolOptions): void {
+  registerPool(
+    name: string,
+    workerScript: string | URL,
+    options?: WorkerPoolOptions,
+  ): WorkerSchedulerAdmissionResult {
+    if (this.terminated) {
+      return {
+        accepted: false,
+        code: "CANCELED",
+        scope: "worker_scheduler",
+      };
+    }
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      name.length > this.options.maxPoolNameChars
+    ) {
+      return {
+        accepted: false,
+        code: "INVALID_ARGUMENT",
+        scope: "worker_pool_name",
+        limit: { maxPoolNameChars: this.options.maxPoolNameChars },
+      };
+    }
     if (this.pools.has(name)) {
       logger.warn(`[TaskScheduler] Pool "${name}" already exists`);
-      return;
+      return { accepted: true, existing: true };
+    }
+    if (this.pools.size >= this.options.maxPools) {
+      return {
+        accepted: false,
+        code: "OVERLOADED",
+        scope: "worker_pools",
+        retryAfterMs: 1000,
+        limit: { maxPools: this.options.maxPools },
+      };
     }
 
     const pool = new WorkerPool(workerScript, options);
     this.pools.set(name, pool);
 
     logger.info(`[TaskScheduler] Registered pool: ${name}`);
+    return { accepted: true };
   }
 
   /**
@@ -513,12 +838,21 @@ export class TaskScheduler {
   async schedule<T = any, R = any>(
     poolName: string,
     data: T,
-    options: TaskExecuteOptions = {}
+    options: TaskExecuteOptions = {},
   ): Promise<R> {
+    if (this.terminated) {
+      throw new WorkerSchedulerError("Task scheduler is terminated", {
+        code: "CANCELED",
+        scope: "worker_scheduler",
+      });
+    }
     const pool = this.pools.get(poolName);
 
     if (!pool) {
-      throw new Error(`Pool "${poolName}" not found`);
+      throw new WorkerSchedulerError(`Pool "${poolName}" not found`, {
+        code: "INVALID_ARGUMENT",
+        scope: "worker_pool",
+      });
     }
 
     return pool.execute<T, R>(data, options);
@@ -531,25 +865,74 @@ export class TaskScheduler {
     poolName: string,
     data: T,
     interval: number,
-    options: TaskExecuteOptions = {}
+    options: TaskExecuteOptions = {},
   ): string {
-    const taskId = `${poolName}-${Date.now()}`;
+    if (this.terminated) {
+      throw new WorkerSchedulerError("Task scheduler is terminated", {
+        code: "CANCELED",
+        scope: "worker_scheduler",
+      });
+    }
+    if (
+      typeof poolName !== "string" ||
+      !poolName.trim() ||
+      poolName.length > this.options.maxPoolNameChars ||
+      !this.pools.has(poolName)
+    ) {
+      throw new WorkerSchedulerError(`Pool "${poolName}" not found`, {
+        code: "INVALID_ARGUMENT",
+        scope: "worker_pool",
+      });
+    }
+    if (this.scheduledTasks.size >= this.options.maxRecurringTasks) {
+      throw new WorkerSchedulerError("Recurring task capacity exceeded", {
+        code: "OVERLOADED",
+        scope: "worker_recurring_tasks",
+        retryAfterMs: this.options.minRecurringIntervalMs,
+        limit: { maxRecurringTasks: this.options.maxRecurringTasks },
+      });
+    }
+    const normalizedInterval = Math.min(
+      Math.max(
+        boundedPositiveInteger(
+          interval,
+          this.options.minRecurringIntervalMs,
+          this.options.maxRecurringIntervalMs,
+        ),
+        this.options.minRecurringIntervalMs,
+      ),
+      this.options.maxRecurringIntervalMs,
+    );
+    const taskId = `${poolName}-${Date.now()}-${++this.recurringSequence}`;
 
     const execute = async (): Promise<void> => {
+      const scheduledTask = this.scheduledTasks.get(taskId);
+      if (!scheduledTask) {
+        return;
+      }
+      if (scheduledTask.running) {
+        scheduledTask.skippedRuns++;
+        return;
+      }
+      scheduledTask.running = true;
       try {
         await this.schedule(poolName, data, options);
       } catch (error) {
         logger.error(`[TaskScheduler] Recurring task error:`, error);
+      } finally {
+        scheduledTask.running = false;
       }
     };
 
-    const intervalId = setInterval(execute, interval);
+    const intervalId = setInterval(execute, normalizedInterval);
 
     this.scheduledTasks.set(taskId, {
       poolName,
       data,
-      interval,
+      interval: normalizedInterval,
       intervalId,
+      running: false,
+      skippedRuns: 0,
     });
 
     // Execute immediately
@@ -582,19 +965,19 @@ export class TaskScheduler {
    * Get all pool stats
    */
   getAllStats(): AllPoolStats {
-    const stats: AllPoolStats = {};
-
-    this.pools.forEach((pool, name) => {
-      stats[name] = pool.getStats();
-    });
-
-    return stats;
+    return Object.fromEntries(
+      [...this.pools.entries()].map(([name, pool]) => [name, pool.getStats()]),
+    );
   }
 
   /**
    * Terminate all pools
    */
   terminate(): void {
+    if (this.terminated) {
+      return;
+    }
+    this.terminated = true;
     this.pools.forEach((pool) => {
       pool.terminate();
     });
@@ -605,7 +988,7 @@ export class TaskScheduler {
     });
     this.scheduledTasks.clear();
 
-    logger.info('[TaskScheduler] All pools terminated');
+    logger.info("[TaskScheduler] All pools terminated");
   }
 }
 

@@ -92,6 +92,8 @@ describe("compression boundaries", () => {
     const input = "bounded compression 你好 ".repeat(50);
     expect(compressPayloadInPage.toString()).not.toContain("overloaded(");
     expect(decompressPayloadInPage.toString()).not.toContain("overloaded(");
+    expect(compressPayloadInPage.toString()).not.toContain("new Blob");
+    expect(decompressPayloadInPage.toString()).not.toContain("new Blob");
     const compressed = await compressPayloadInPage(input, "gzip", 64 * 1024);
     expect(compressed).toMatchObject({
       originalSize: new TextEncoder().encode(input).byteLength,

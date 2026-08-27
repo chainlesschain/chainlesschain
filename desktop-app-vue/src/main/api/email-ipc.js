@@ -6,22 +6,117 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
 const { v4: uuidv4 } = require("uuid");
 const EmailClient = require("./email-client");
 const fs = require("fs").promises;
 const path = require("path");
+const crypto = require("crypto");
+const {
+  EmailIPCBoundaryError,
+  assertBoundedString,
+  boundedQueryLimit,
+  boundedSyncSeconds,
+  createEmailIPCLimits,
+  normalizeAccountConfig,
+  normalizeAccountUpdates,
+  normalizeDraftData,
+  normalizeEmailListOptions,
+  normalizeFetchOptions,
+  normalizeMailOptions,
+  truncateUtf8,
+} = require("./email-ipc-boundaries.js");
+const { EmailCredentialStore } = require("./email-credential-store.js");
+
+const EMAIL_IPC_CHANNELS = Object.freeze([
+  "email:add-account",
+  "email:remove-account",
+  "email:update-account",
+  "email:get-accounts",
+  "email:get-account",
+  "email:test-connection",
+  "email:get-mailboxes",
+  "email:sync-mailboxes",
+  "email:fetch-emails",
+  "email:get-emails",
+  "email:get-email",
+  "email:mark-as-read",
+  "email:mark-as-unread",
+  "email:mark-as-starred",
+  "email:save-draft",
+  "email:get-drafts",
+  "email:get-draft",
+  "email:delete-draft",
+  "email:archive-email",
+  "email:delete-email",
+  "email:send-email",
+  "email:save-to-knowledge",
+  "email:get-attachments",
+  "email:download-attachment",
+  "email:add-label",
+  "email:get-labels",
+  "email:assign-label",
+  "email:remove-label",
+  "email:start-auto-sync",
+  "email:stop-auto-sync",
+]);
 
 class EmailIPCHandler {
-  constructor(database, appDataPath) {
+  constructor(database, appDataPathOrOptions, maybeOptions = {}) {
+    const options =
+      typeof appDataPathOrOptions === "string"
+        ? maybeOptions
+        : appDataPathOrOptions || {};
     this.database = database;
-    this.appDataPath = appDataPath;
-    this.emailClients = new Map(); // 存储邮件客户端实例
-    this.syncIntervals = new Map(); // 存储自动同步定时器
-    this.registerHandlers();
+    this.appDataPath =
+      typeof appDataPathOrOptions === "string"
+        ? appDataPathOrOptions
+        : options.appDataPath;
+    if (!this.appDataPath) {
+      throw new Error("Email IPC requires an application data path");
+    }
+    this.limits = createEmailIPCLimits(options.limits || options);
+    this.ipcMain = options.ipcMain || require("electron").ipcMain;
+    this.clientFactory =
+      options.clientFactory || (() => new EmailClient({ limits: this.limits }));
+    this.credentialStore =
+      options.credentialStore ||
+      new EmailCredentialStore({
+        limits: this.limits,
+        storagePath: path.join(this.appDataPath, "email-credentials.enc"),
+      });
+    this.showSaveDialog =
+      options.showSaveDialog ||
+      ((dialogOptions) =>
+        require("electron").dialog.showSaveDialog(dialogOptions));
+    this.fs = options.fs || fs;
+    this.setInterval = options.setInterval || setInterval;
+    this.clearInterval = options.clearInterval || clearInterval;
+    this.emailClients = new Map();
+    this.syncIntervals = new Map();
+    this.fetchInFlight = new Set();
+    this.handlersRegistered = false;
+    this.cleanedUp = false;
+    if (options.migrateCredentials !== false) {
+      this.credentialStore.migrateDatabase(this.database);
+    }
+    if (options.registerHandlers !== false) {
+      this.registerHandlers();
+    }
   }
 
   registerHandlers() {
+    if (this.cleanedUp) {
+      throw new EmailIPCBoundaryError(
+        "CANCELED",
+        "email_ipc_lifecycle",
+        "Email IPC handler has been cleaned up",
+      );
+    }
+    if (this.handlersRegistered) return;
+    if (!this.ipcMain?.handle) {
+      throw new Error("Electron ipcMain.handle is unavailable");
+    }
+    const { ipcMain } = this;
     // 邮件账户管理
     ipcMain.handle("email:add-account", async (event, config) => {
       return this.addAccount(config);
@@ -98,6 +193,10 @@ class EmailIPCHandler {
       return this.getDrafts(accountId);
     });
 
+    ipcMain.handle("email:get-draft", async (event, draftId) => {
+      return this.getDraft(draftId);
+    });
+
     ipcMain.handle("email:delete-draft", async (event, draftId) => {
       return this.deleteDraft(draftId);
     });
@@ -126,12 +225,9 @@ class EmailIPCHandler {
       return this.getAttachments(emailId);
     });
 
-    ipcMain.handle(
-      "email:download-attachment",
-      async (event, attachmentId, savePath) => {
-        return this.downloadAttachment(attachmentId, savePath);
-      },
-    );
+    ipcMain.handle("email:download-attachment", async (event, attachmentId) => {
+      return this.downloadAttachment(attachmentId);
+    });
 
     // 标签管理
     ipcMain.handle("email:add-label", async (event, name, options = {}) => {
@@ -159,6 +255,7 @@ class EmailIPCHandler {
       return this.stopAutoSync(accountId);
     });
 
+    this.handlersRegistered = true;
     logger.info("[EmailIPCHandler] Email IPC handlers registered");
   }
 
@@ -166,11 +263,81 @@ class EmailIPCHandler {
    * 获取或创建邮件客户端
    */
   getEmailClient(accountId) {
-    if (!this.emailClients.has(accountId)) {
-      const client = new EmailClient();
-      this.emailClients.set(accountId, client);
+    this.assertActive();
+    this.assertId(accountId, "email_account_id");
+    if (this.emailClients.has(accountId)) {
+      throw new EmailIPCBoundaryError(
+        "OVERLOADED",
+        "email_account_operation",
+        "Another email operation is already active for this account",
+      );
     }
-    return this.emailClients.get(accountId);
+    if (this.emailClients.size >= this.limits.maxClients) {
+      throw new EmailIPCBoundaryError(
+        "OVERLOADED",
+        "email_clients",
+        "Email client capacity is exhausted",
+        { limit: { maxItems: this.limits.maxClients } },
+      );
+    }
+    const client = this.clientFactory();
+    this.emailClients.set(accountId, client);
+    return client;
+  }
+
+  releaseEmailClient(accountId, client) {
+    try {
+      client?.disconnect();
+    } catch (error) {
+      logger.warn("[EmailIPCHandler] email client release failed:", error);
+    } finally {
+      if (this.emailClients.get(accountId) === client) {
+        this.emailClients.delete(accountId);
+      }
+    }
+  }
+
+  assertActive() {
+    if (this.cleanedUp) {
+      throw new EmailIPCBoundaryError(
+        "CANCELED",
+        "email_ipc_lifecycle",
+        "Email IPC handler has been cleaned up",
+      );
+    }
+  }
+
+  assertId(value, scope = "email_id") {
+    this.assertActive();
+    return assertBoundedString(value, scope, this.limits.maxIdBytes);
+  }
+
+  getAccountRecord(accountId) {
+    const id = this.assertId(accountId, "email_account_id");
+    const account = this.database.db
+      .prepare("SELECT * FROM email_accounts WHERE id = ?")
+      .get([id]);
+    if (!account) {
+      throw new EmailIPCBoundaryError(
+        "NOT_FOUND",
+        "email_account",
+        "Email account does not exist",
+      );
+    }
+    return account;
+  }
+
+  configureClient(client, account) {
+    client.configure({
+      email: account.email,
+      password: this.credentialStore.getPassword(account.id, account.password),
+      imapHost: account.imap_host,
+      imapPort: account.imap_port,
+      imapTls: account.imap_tls === 1,
+      smtpHost: account.smtp_host,
+      smtpPort: account.smtp_port,
+      smtpSecure: account.smtp_secure === 1,
+    });
   }
 
   /**
@@ -178,9 +345,22 @@ class EmailIPCHandler {
    */
   async addAccount(config) {
     try {
-      // 测试连接
-      const client = new EmailClient();
-      client.configure(config);
+      this.assertActive();
+      const normalized = normalizeAccountConfig(config, this.limits);
+      const row = this.database.db
+        .prepare("SELECT COUNT(*) AS count FROM email_accounts")
+        .get([]);
+      if (Number(row?.count || 0) >= this.limits.maxAccounts) {
+        throw new EmailIPCBoundaryError(
+          "OVERLOADED",
+          "email_accounts",
+          "Email account capacity is exhausted",
+          { limit: { maxItems: this.limits.maxAccounts } },
+        );
+      }
+
+      const client = this.clientFactory();
+      client.configure(normalized);
       const testResult = await client.testConnection();
 
       if (!testResult.success) {
@@ -189,6 +369,10 @@ class EmailIPCHandler {
 
       const accountId = uuidv4();
       const now = Date.now();
+      const credentialRef = this.credentialStore.setPassword(
+        accountId,
+        normalized.password,
+      );
 
       // 保存账户
       const stmt = this.database.db.prepare(`
@@ -199,28 +383,40 @@ class EmailIPCHandler {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run([
-        accountId,
-        config.email,
-        config.displayName || config.email,
-        config.imapHost,
-        config.imapPort || 993,
-        config.imapTls !== false ? 1 : 0,
-        config.smtpHost,
-        config.smtpPort || 587,
-        config.smtpSecure ? 1 : 0,
-        config.password,
-        "active",
-        config.syncFrequency || 300,
-        now,
-        now,
-      ]);
+      try {
+        stmt.run([
+          accountId,
+          normalized.email,
+          normalized.displayName,
+          normalized.imapHost,
+          normalized.imapPort,
+          normalized.imapTls ? 1 : 0,
+          normalized.smtpHost,
+          normalized.smtpPort,
+          normalized.smtpSecure ? 1 : 0,
+          credentialRef,
+          "active",
+          normalized.syncFrequency,
+          now,
+          now,
+        ]);
+      } catch (error) {
+        try {
+          this.credentialStore.deletePassword(accountId);
+        } catch (cleanupError) {
+          logger.warn(
+            "[EmailIPCHandler] failed to roll back email credential:",
+            cleanupError.message,
+          );
+        }
+        throw error;
+      }
 
       // 同步邮箱列表
       await this.syncMailboxes(accountId);
 
       // 启动自动同步
-      if (config.autoSync !== false) {
+      if (normalized.autoSync) {
         this.startAutoSync(accountId);
       }
 
@@ -236,21 +432,30 @@ class EmailIPCHandler {
    */
   async removeAccount(accountId) {
     try {
-      // 停止自动同步
-      this.stopAutoSync(accountId);
-
-      // 断开连接
-      const client = this.emailClients.get(accountId);
-      if (client) {
-        client.disconnect();
-        this.emailClients.delete(accountId);
+      const id = this.assertId(accountId, "email_account_id");
+      if (this.emailClients.has(id)) {
+        throw new EmailIPCBoundaryError(
+          "OVERLOADED",
+          "email_account_operation",
+          "Cannot remove an account while an email operation is active",
+        );
       }
+      // 停止自动同步
+      this.stopAutoSync(id);
 
       // 删除账户
       const stmt = this.database.db.prepare(
         "DELETE FROM email_accounts WHERE id = ?",
       );
-      stmt.run([accountId]);
+      stmt.run([id]);
+      try {
+        this.credentialStore.deletePassword(id);
+      } catch (credentialError) {
+        logger.warn(
+          "[EmailIPCHandler] orphaned credential cleanup failed:",
+          credentialError.message,
+        );
+      }
 
       return { success: true };
     } catch (error) {
@@ -264,26 +469,39 @@ class EmailIPCHandler {
    */
   async updateAccount(accountId, updates) {
     try {
-      const fields = [];
-      const values = [];
-
-      for (const [key, value] of Object.entries(updates)) {
-        fields.push(`${key} = ?`);
-        values.push(value);
+      const account = this.getAccountRecord(accountId);
+      if (this.emailClients.has(account.id)) {
+        throw new EmailIPCBoundaryError(
+          "OVERLOADED",
+          "email_account_operation",
+          "Cannot update an account while an email operation is active",
+        );
+      }
+      const { normalized, password, autoSync } = normalizeAccountUpdates(
+        updates,
+        this.limits,
+      );
+      const fields = normalized.map(([column]) => `${column} = ?`);
+      const values = normalized.map(([, value]) => value);
+      if (password !== undefined) {
+        fields.push("password = ?");
+        values.push(this.credentialStore.setPassword(account.id, password));
+      }
+      if (fields.length > 0) {
+        fields.push("updated_at = ?");
+        values.push(Date.now(), account.id);
+        this.database.db
+          .prepare(
+            `UPDATE email_accounts SET ${fields.join(", ")} WHERE id = ?`,
+          )
+          .run(values);
       }
 
-      fields.push("updated_at = ?");
-      values.push(Date.now());
-      values.push(accountId);
-
-      const stmt = this.database.db.prepare(`
-        UPDATE email_accounts SET ${fields.join(", ")} WHERE id = ?
-      `);
-      stmt.run(values);
-
       // 如果更新了配置，需要重新配置客户端
-      if (this.emailClients.has(accountId)) {
-        this.emailClients.delete(accountId);
+      if (autoSync === true) {
+        this.startAutoSync(account.id);
+      } else if (autoSync === false) {
+        this.stopAutoSync(account.id);
       }
 
       return { success: true };
@@ -298,15 +516,14 @@ class EmailIPCHandler {
    */
   async getAccounts() {
     try {
+      this.assertActive();
       const stmt = this.database.db.prepare(
-        "SELECT * FROM email_accounts ORDER BY email",
+        `SELECT id, email, display_name, imap_host, imap_port, imap_tls,
+                smtp_host, smtp_port, smtp_secure, status, error_message,
+                last_sync_at, sync_frequency, created_at, updated_at
+         FROM email_accounts ORDER BY email LIMIT ?`,
       );
-      const accounts = stmt.all([]);
-
-      // 不返回密码
-      accounts.forEach((account) => {
-        delete account.password;
-      });
+      const accounts = stmt.all([this.limits.maxAccounts]);
 
       return { success: true, accounts };
     } catch (error) {
@@ -320,14 +537,7 @@ class EmailIPCHandler {
    */
   async getAccount(accountId) {
     try {
-      const stmt = this.database.db.prepare(
-        "SELECT * FROM email_accounts WHERE id = ?",
-      );
-      const account = stmt.get([accountId]);
-
-      if (!account) {
-        throw new Error("账户不存在");
-      }
+      const account = this.getAccountRecord(accountId);
 
       delete account.password;
 
@@ -343,8 +553,10 @@ class EmailIPCHandler {
    */
   async testConnection(config) {
     try {
-      const client = new EmailClient();
-      client.configure(config);
+      this.assertActive();
+      const normalized = normalizeAccountConfig(config, this.limits);
+      const client = this.clientFactory();
+      client.configure(normalized);
       const result = await client.testConnection();
 
       return { success: true, result };
@@ -358,45 +570,34 @@ class EmailIPCHandler {
    * 同步邮箱列表
    */
   async syncMailboxes(accountId) {
+    let client;
     try {
-      const accountStmt = this.database.db.prepare(
-        "SELECT * FROM email_accounts WHERE id = ?",
-      );
-      const account = accountStmt.get([accountId]);
-
-      if (!account) {
-        throw new Error("账户不存在");
-      }
-
-      const client = this.getEmailClient(accountId);
-      client.configure({
-        email: account.email,
-        password: account.password,
-        imapHost: account.imap_host,
-        imapPort: account.imap_port,
-        imapTls: account.imap_tls === 1,
-        smtpHost: account.smtp_host,
-        smtpPort: account.smtp_port,
-        smtpSecure: account.smtp_secure === 1,
-      });
+      const account = this.getAccountRecord(accountId);
+      client = this.getEmailClient(account.id);
+      this.configureClient(client, account);
 
       await client.connect();
       const mailboxes = await client.getMailboxes();
-      client.disconnect();
 
       // 保存邮箱
       const stmt = this.database.db.prepare(`
-        INSERT OR REPLACE INTO email_mailboxes (
+        INSERT INTO email_mailboxes (
           id, account_id, name, display_name, delimiter, flags, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(account_id, name) DO UPDATE SET
+          display_name = excluded.display_name,
+          delimiter = excluded.delimiter,
+          flags = excluded.flags
       `);
 
-      const flattenMailboxes = (boxes, prefix = "") => {
+      const flattenMailboxes = (boxes) => {
         const result = [];
-        for (const box of boxes) {
+        const pending = Array.isArray(boxes) ? [...boxes] : [];
+        while (pending.length > 0 && result.length < this.limits.maxMailboxes) {
+          const box = pending.shift();
           result.push(box);
           if (box.children && box.children.length > 0) {
-            result.push(...flattenMailboxes(box.children, box.name));
+            pending.unshift(...box.children);
           }
         }
         return result;
@@ -408,7 +609,7 @@ class EmailIPCHandler {
         const mailboxId = uuidv4();
         stmt.run([
           mailboxId,
-          accountId,
+          account.id,
           mailbox.name,
           mailbox.displayName,
           mailbox.delimiter,
@@ -421,6 +622,8 @@ class EmailIPCHandler {
     } catch (error) {
       logger.error("[EmailIPCHandler] 同步邮箱失败:", error);
       throw error;
+    } finally {
+      if (client) this.releaseEmailClient(accountId, client);
     }
   }
 
@@ -429,10 +632,11 @@ class EmailIPCHandler {
    */
   async getMailboxes(accountId) {
     try {
+      const id = this.assertId(accountId, "email_account_id");
       const stmt = this.database.db.prepare(
-        "SELECT * FROM email_mailboxes WHERE account_id = ? ORDER BY name",
+        "SELECT * FROM email_mailboxes WHERE account_id = ? ORDER BY name LIMIT ?",
       );
-      const mailboxes = stmt.all([accountId]);
+      const mailboxes = stmt.all([id, this.limits.maxMailboxes]);
 
       return { success: true, mailboxes };
     } catch (error) {
@@ -445,52 +649,61 @@ class EmailIPCHandler {
    * 获取邮件
    */
   async fetchEmails(accountId, options = {}) {
+    let id;
+    let client;
+    let admitted = false;
     try {
-      const accountStmt = this.database.db.prepare(
-        "SELECT * FROM email_accounts WHERE id = ?",
-      );
-      const account = accountStmt.get([accountId]);
-
-      if (!account) {
-        throw new Error("账户不存在");
+      id = this.assertId(accountId, "email_account_id");
+      const normalizedOptions = normalizeFetchOptions(options, this.limits);
+      if (
+        this.fetchInFlight.has(id) ||
+        this.fetchInFlight.size >= this.limits.maxConcurrentFetches
+      ) {
+        throw new EmailIPCBoundaryError(
+          "OVERLOADED",
+          "email_fetches",
+          "Email fetch capacity is exhausted",
+          { limit: { maxConcurrent: this.limits.maxConcurrentFetches } },
+        );
       }
+      this.fetchInFlight.add(id);
+      admitted = true;
+      const account = this.getAccountRecord(id);
 
-      const client = this.getEmailClient(accountId);
-      client.configure({
-        email: account.email,
-        password: account.password,
-        imapHost: account.imap_host,
-        imapPort: account.imap_port,
-        imapTls: account.imap_tls === 1,
-        smtpHost: account.smtp_host,
-        smtpPort: account.smtp_port,
-        smtpSecure: account.smtp_secure === 1,
-      });
+      client = this.getEmailClient(id);
+      this.configureClient(client, account);
 
       await client.connect();
-      const emails = await client.fetchEmails(options);
-      client.disconnect();
+      const emails = await client.fetchEmails(normalizedOptions);
 
       // 保存邮件
-      await this.saveEmails(accountId, options.mailbox || "INBOX", emails);
+      await this.saveEmails(id, normalizedOptions.mailbox, emails);
 
       // 更新同步时间
       const updateStmt = this.database.db.prepare(
         "UPDATE email_accounts SET last_sync_at = ? WHERE id = ?",
       );
-      updateStmt.run([Date.now(), accountId]);
+      updateStmt.run([Date.now(), id]);
 
       return { success: true, count: emails.length };
     } catch (error) {
       logger.error("[EmailIPCHandler] 获取邮件失败:", error);
 
       // 更新错误状态
-      const updateStmt = this.database.db.prepare(
-        "UPDATE email_accounts SET status = 'error', error_message = ? WHERE id = ?",
-      );
-      updateStmt.run([error.message, accountId]);
+      if (id) {
+        const updateStmt = this.database.db.prepare(
+          "UPDATE email_accounts SET status = 'error', error_message = ? WHERE id = ?",
+        );
+        updateStmt.run([
+          truncateUtf8(error.message, this.limits.maxMetadataBytes),
+          id,
+        ]);
+      }
 
       throw error;
+    } finally {
+      if (client && id) this.releaseEmailClient(id, client);
+      if (admitted) this.fetchInFlight.delete(id);
     }
   }
 
@@ -498,11 +711,24 @@ class EmailIPCHandler {
    * 保存邮件到数据库
    */
   async saveEmails(accountId, mailboxName, emails) {
+    const id = this.assertId(accountId, "email_account_id");
+    const boundedMailboxName = assertBoundedString(
+      mailboxName,
+      "email_mailbox_name",
+      this.limits.maxAddressBytes,
+    );
+    if (!Array.isArray(emails)) {
+      throw new EmailIPCBoundaryError(
+        "INVALID_ARGUMENT",
+        "emails",
+        "Emails must be an array",
+      );
+    }
     // 获取邮箱 ID
     const mailboxStmt = this.database.db.prepare(
       "SELECT id FROM email_mailboxes WHERE account_id = ? AND name = ?",
     );
-    const mailbox = mailboxStmt.get([accountId, mailboxName]);
+    const mailbox = mailboxStmt.get([id, boundedMailboxName]);
 
     if (!mailbox) {
       throw new Error("邮箱不存在");
@@ -522,48 +748,62 @@ class EmailIPCHandler {
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    for (const email of emails) {
+    for (const email of emails.slice(0, this.limits.maxEmails)) {
       const emailId = uuidv4();
 
-      emailStmt.run([
+      const runResult = emailStmt.run([
         emailId,
-        accountId,
+        id,
         mailbox.id,
-        email.messageId,
+        truncateUtf8(email.messageId, this.limits.maxIdBytes),
         email.uid,
-        email.subject,
-        email.from,
-        email.to,
-        email.cc,
+        truncateUtf8(email.subject, this.limits.maxSubjectBytes),
+        truncateUtf8(email.from, this.limits.maxAddressBytes),
+        truncateUtf8(email.to, this.limits.maxAddressBytes),
+        truncateUtf8(email.cc, this.limits.maxAddressBytes),
         email.date,
-        email.text,
-        email.html,
-        email.attachments.length > 0 ? 1 : 0,
+        truncateUtf8(email.text, this.limits.maxTextBytes),
+        truncateUtf8(email.html, this.limits.maxHtmlBytes),
+        Array.isArray(email.attachments) && email.attachments.length > 0
+          ? 1
+          : 0,
         Date.now(),
       ]);
+      if (runResult?.changes === 0) continue;
 
       // 保存附件
-      for (const attachment of email.attachments) {
+      for (const attachment of (email.attachments || []).slice(
+        0,
+        this.limits.maxOutgoingAttachments,
+      )) {
+        const content = Buffer.isBuffer(attachment.content)
+          ? attachment.content
+          : Buffer.from(attachment.content || []);
+        if (content.byteLength > this.limits.maxAttachmentBytes) continue;
         const attachmentId = uuidv4();
+        const accountDirectory = crypto
+          .createHash("sha256")
+          .update(id)
+          .digest("hex");
         const attachmentPath = path.join(
           this.appDataPath,
           "attachments",
-          accountId,
+          accountDirectory,
           attachmentId,
         );
 
         // 创建目录
-        await fs.mkdir(path.dirname(attachmentPath), { recursive: true });
+        await this.fs.mkdir(path.dirname(attachmentPath), { recursive: true });
 
         // 保存附件文件
-        await fs.writeFile(attachmentPath, attachment.content);
+        await this.fs.writeFile(attachmentPath, content);
 
         attachmentStmt.run([
           attachmentId,
           emailId,
-          attachment.filename,
-          attachment.contentType,
-          attachment.size,
+          truncateUtf8(attachment.filename, this.limits.maxMetadataBytes),
+          truncateUtf8(attachment.contentType, this.limits.maxMetadataBytes),
+          content.byteLength,
           attachmentPath,
           Date.now(),
         ]);
@@ -576,50 +816,47 @@ class EmailIPCHandler {
    */
   async getEmails(options = {}) {
     try {
-      let query = "SELECT * FROM emails";
+      this.assertActive();
+      const normalizedOptions = normalizeEmailListOptions(options, this.limits);
+      let query = `SELECT id, account_id, mailbox_id, message_id, uid, subject,
+                          from_address, to_address, cc_address, date,
+                          has_attachments, is_read, is_starred, is_archived,
+                          knowledge_item_id, created_at
+                   FROM emails`;
       const conditions = [];
       const params = [];
 
-      if (options.accountId) {
+      if (normalizedOptions.accountId) {
         conditions.push("account_id = ?");
-        params.push(options.accountId);
+        params.push(normalizedOptions.accountId);
       }
 
-      if (options.mailboxId) {
+      if (normalizedOptions.mailboxId) {
         conditions.push("mailbox_id = ?");
-        params.push(options.mailboxId);
+        params.push(normalizedOptions.mailboxId);
       }
 
-      if (options.isRead !== undefined) {
+      if (normalizedOptions.isRead !== undefined) {
         conditions.push("is_read = ?");
-        params.push(options.isRead ? 1 : 0);
+        params.push(normalizedOptions.isRead ? 1 : 0);
       }
 
-      if (options.isStarred !== undefined) {
+      if (normalizedOptions.isStarred !== undefined) {
         conditions.push("is_starred = ?");
-        params.push(options.isStarred ? 1 : 0);
+        params.push(normalizedOptions.isStarred ? 1 : 0);
       }
 
-      if (options.isArchived !== undefined) {
+      if (normalizedOptions.isArchived !== undefined) {
         conditions.push("is_archived = ?");
-        params.push(options.isArchived ? 1 : 0);
+        params.push(normalizedOptions.isArchived ? 1 : 0);
       }
 
       if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
       }
 
-      query += " ORDER BY date DESC";
-
-      if (options.limit) {
-        // options.limit comes from the renderer — bind it as a parameter (not
-        // raw interpolation) so it can't inject SQL. LIMIT accepts a ? in SQLite.
-        const limit = Number.parseInt(options.limit, 10);
-        if (Number.isInteger(limit) && limit > 0) {
-          query += " LIMIT ?";
-          params.push(limit);
-        }
-      }
+      query += " ORDER BY date DESC LIMIT ? OFFSET ?";
+      params.push(normalizedOptions.limit, normalizedOptions.offset);
 
       const stmt = this.database.db.prepare(query);
       const emails = stmt.all(params);
@@ -636,10 +873,21 @@ class EmailIPCHandler {
    */
   async getEmail(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare(
-        "SELECT * FROM emails WHERE id = ?",
+        `SELECT id, account_id, mailbox_id, message_id, uid,
+                subject, from_address, to_address, cc_address, date,
+                CAST(substr(CAST(text_content AS BLOB), 1, ?) AS TEXT) AS text_content,
+                CAST(substr(CAST(html_content AS BLOB), 1, ?) AS TEXT) AS html_content,
+                has_attachments, is_read, is_starred, is_archived,
+                knowledge_item_id, created_at
+         FROM emails WHERE id = ?`,
       );
-      const email = stmt.get([emailId]);
+      const email = stmt.get([
+        this.limits.maxTextBytes,
+        this.limits.maxHtmlBytes,
+        id,
+      ]);
 
       if (!email) {
         throw new Error("邮件不存在");
@@ -657,10 +905,11 @@ class EmailIPCHandler {
    */
   async markAsRead(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare(
         "UPDATE emails SET is_read = 1 WHERE id = ?",
       );
-      stmt.run([emailId]);
+      stmt.run([id]);
 
       return { success: true };
     } catch (error) {
@@ -674,10 +923,11 @@ class EmailIPCHandler {
    */
   async markAsUnread(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare(
         "UPDATE emails SET is_read = 0 WHERE id = ?",
       );
-      stmt.run([emailId]);
+      stmt.run([id]);
 
       return { success: true };
     } catch (error) {
@@ -691,10 +941,18 @@ class EmailIPCHandler {
    */
   async markAsStarred(emailId, starred = true) {
     try {
+      const id = this.assertId(emailId);
+      if (typeof starred !== "boolean") {
+        throw new EmailIPCBoundaryError(
+          "INVALID_ARGUMENT",
+          "email_starred",
+          "starred must be a boolean",
+        );
+      }
       const stmt = this.database.db.prepare(
         "UPDATE emails SET is_starred = ? WHERE id = ?",
       );
-      stmt.run([starred ? 1 : 0, emailId]);
+      stmt.run([starred ? 1 : 0, id]);
 
       return { success: true };
     } catch (error) {
@@ -708,10 +966,11 @@ class EmailIPCHandler {
    */
   async archiveEmail(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare(
         "UPDATE emails SET is_archived = 1 WHERE id = ?",
       );
-      stmt.run([emailId]);
+      stmt.run([id]);
 
       return { success: true };
     } catch (error) {
@@ -725,8 +984,9 @@ class EmailIPCHandler {
    */
   async deleteEmail(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare("DELETE FROM emails WHERE id = ?");
-      stmt.run([emailId]);
+      stmt.run([id]);
 
       return { success: true };
     } catch (error) {
@@ -739,34 +999,22 @@ class EmailIPCHandler {
    * 发送邮件
    */
   async sendEmail(accountId, mailOptions) {
+    let account;
+    let client;
     try {
-      const accountStmt = this.database.db.prepare(
-        "SELECT * FROM email_accounts WHERE id = ?",
-      );
-      const account = accountStmt.get([accountId]);
+      account = this.getAccountRecord(accountId);
+      const normalizedMail = normalizeMailOptions(mailOptions, this.limits);
+      client = this.getEmailClient(account.id);
+      this.configureClient(client, account);
 
-      if (!account) {
-        throw new Error("账户不存在");
-      }
-
-      const client = this.getEmailClient(accountId);
-      client.configure({
-        email: account.email,
-        password: account.password,
-        imapHost: account.imap_host,
-        imapPort: account.imap_port,
-        imapTls: account.imap_tls === 1,
-        smtpHost: account.smtp_host,
-        smtpPort: account.smtp_port,
-        smtpSecure: account.smtp_secure === 1,
-      });
-
-      const result = await client.sendEmail(mailOptions);
+      const result = await client.sendEmail(normalizedMail);
 
       return { success: true, result };
     } catch (error) {
       logger.error("[EmailIPCHandler] 发送邮件失败:", error);
       throw error;
+    } finally {
+      if (client && account) this.releaseEmailClient(account.id, client);
     }
   }
 
@@ -775,11 +1023,13 @@ class EmailIPCHandler {
    */
   async saveDraft(accountId, draftData) {
     try {
-      const draftId = draftData.id || uuidv4();
+      const id = this.assertId(accountId, "email_account_id");
+      const normalizedDraft = normalizeDraftData(draftData, this.limits);
+      const draftId = normalizedDraft.id || uuidv4();
       const now = Date.now();
 
       // 检查是否是更新已有草稿
-      if (draftData.id) {
+      if (normalizedDraft.id) {
         const updateStmt = this.database.db.prepare(`
           UPDATE email_drafts SET
             to_address = ?,
@@ -790,19 +1040,20 @@ class EmailIPCHandler {
             html_content = ?,
             attachments = ?,
             updated_at = ?
-          WHERE id = ?
+          WHERE id = ? AND account_id = ?
         `);
 
         updateStmt.run([
-          JSON.stringify(draftData.to || []),
-          JSON.stringify(draftData.cc || []),
-          JSON.stringify(draftData.bcc || []),
-          draftData.subject || "",
-          draftData.text || "",
-          draftData.html || "",
-          JSON.stringify(draftData.attachments || []),
+          JSON.stringify(normalizedDraft.to),
+          JSON.stringify(normalizedDraft.cc),
+          JSON.stringify(normalizedDraft.bcc),
+          normalizedDraft.subject,
+          normalizedDraft.text,
+          normalizedDraft.html,
+          JSON.stringify(normalizedDraft.attachments),
           now,
-          draftData.id,
+          normalizedDraft.id,
+          id,
         ]);
       } else {
         // 创建新草稿
@@ -816,16 +1067,16 @@ class EmailIPCHandler {
 
         insertStmt.run([
           draftId,
-          accountId,
-          JSON.stringify(draftData.to || []),
-          JSON.stringify(draftData.cc || []),
-          JSON.stringify(draftData.bcc || []),
-          draftData.subject || "",
-          draftData.text || "",
-          draftData.html || "",
-          JSON.stringify(draftData.attachments || []),
-          draftData.replyToId || null,
-          draftData.forwardId || null,
+          id,
+          JSON.stringify(normalizedDraft.to),
+          JSON.stringify(normalizedDraft.cc),
+          JSON.stringify(normalizedDraft.bcc),
+          normalizedDraft.subject,
+          normalizedDraft.text,
+          normalizedDraft.html,
+          JSON.stringify(normalizedDraft.attachments),
+          normalizedDraft.replyToId,
+          normalizedDraft.forwardId,
           now,
           now,
         ]);
@@ -843,15 +1094,22 @@ class EmailIPCHandler {
    */
   async getDrafts(accountId) {
     try {
+      const id = this.assertId(accountId, "email_account_id");
       const stmt = this.database.db.prepare(
-        "SELECT * FROM email_drafts WHERE account_id = ? ORDER BY updated_at DESC",
+        `SELECT id, account_id, to_address, cc_address, bcc_address,
+                subject, created_at, updated_at
+         FROM email_drafts
+         WHERE account_id = ? ORDER BY updated_at DESC LIMIT ?`,
       );
-      const drafts = stmt.all([accountId]);
+      const drafts = stmt.all([id, this.limits.maxDrafts]);
 
       // 解析 JSON 字段（per-field 守卫：一条坏草稿不应让整个草稿列表抛错返失败）
       const safeArr = (raw) => {
         try {
-          return JSON.parse(raw || "[]");
+          const parsed = JSON.parse(raw || "[]");
+          return Array.isArray(parsed)
+            ? parsed.slice(0, this.limits.maxOutgoingAttachments * 10)
+            : [];
         } catch {
           return [];
         }
@@ -870,15 +1128,59 @@ class EmailIPCHandler {
     }
   }
 
+  async getDraft(draftId) {
+    try {
+      const id = this.assertId(draftId, "email_draft_id");
+      const draft = this.database.db
+        .prepare(
+          `SELECT id, account_id, to_address, cc_address, bcc_address,
+                  subject,
+                  CAST(substr(CAST(text_content AS BLOB), 1, ?) AS TEXT) AS text_content,
+                  CAST(substr(CAST(html_content AS BLOB), 1, ?) AS TEXT) AS html_content,
+                  attachments, reply_to_id, forward_id, created_at, updated_at
+           FROM email_drafts WHERE id = ?`,
+        )
+        .get([this.limits.maxTextBytes, this.limits.maxHtmlBytes, id]);
+      if (!draft) {
+        throw new EmailIPCBoundaryError(
+          "NOT_FOUND",
+          "email_draft",
+          "Email draft does not exist",
+        );
+      }
+      const parseArray = (raw, maxItems) => {
+        try {
+          const parsed = JSON.parse(raw || "[]");
+          return Array.isArray(parsed) ? parsed.slice(0, maxItems) : [];
+        } catch {
+          return [];
+        }
+      };
+      const maxAddresses = this.limits.maxOutgoingAttachments * 10;
+      draft.to_address = parseArray(draft.to_address, maxAddresses);
+      draft.cc_address = parseArray(draft.cc_address, maxAddresses);
+      draft.bcc_address = parseArray(draft.bcc_address, maxAddresses);
+      draft.attachments = parseArray(
+        draft.attachments,
+        this.limits.maxOutgoingAttachments,
+      );
+      return { success: true, draft };
+    } catch (error) {
+      logger.error("[EmailIPCHandler] 获取草稿失败:", error);
+      throw error;
+    }
+  }
+
   /**
    * 删除草稿
    */
   async deleteDraft(draftId) {
     try {
+      const id = this.assertId(draftId, "email_draft_id");
       const stmt = this.database.db.prepare(
         "DELETE FROM email_drafts WHERE id = ?",
       );
-      stmt.run([draftId]);
+      stmt.run([id]);
 
       return { success: true };
     } catch (error) {
@@ -892,20 +1194,17 @@ class EmailIPCHandler {
    */
   async saveToKnowledge(emailId) {
     try {
-      const emailStmt = this.database.db.prepare(
-        "SELECT * FROM emails WHERE id = ?",
-      );
-      const email = emailStmt.get([emailId]);
-
-      if (!email) {
-        throw new Error("邮件不存在");
-      }
+      const id = this.assertId(emailId);
+      const { email } = await this.getEmail(id);
 
       // 创建知识库条目
       const knowledgeId = uuidv4();
       const now = Date.now();
 
-      const content = `# ${email.subject}\n\n**发件人:** ${email.from_address}\n**收件人:** ${email.to_address}\n**日期:** ${email.date}\n\n---\n\n${email.text_content || email.html_content}`;
+      const content = truncateUtf8(
+        `# ${email.subject}\n\n**发件人:** ${email.from_address}\n**收件人:** ${email.to_address}\n**日期:** ${email.date}\n\n---\n\n${email.text_content || email.html_content}`,
+        this.limits.maxHtmlBytes,
+      );
 
       const knowledgeStmt = this.database.db.prepare(`
         INSERT INTO knowledge_items (
@@ -915,7 +1214,7 @@ class EmailIPCHandler {
 
       knowledgeStmt.run([
         knowledgeId,
-        email.subject,
+        truncateUtf8(email.subject, this.limits.maxSubjectBytes),
         "document",
         content,
         now,
@@ -927,7 +1226,7 @@ class EmailIPCHandler {
       const updateStmt = this.database.db.prepare(
         "UPDATE emails SET knowledge_item_id = ? WHERE id = ?",
       );
-      updateStmt.run([knowledgeId, emailId]);
+      updateStmt.run([knowledgeId, id]);
 
       return { success: true, knowledgeId };
     } catch (error) {
@@ -941,10 +1240,12 @@ class EmailIPCHandler {
    */
   async getAttachments(emailId) {
     try {
+      const id = this.assertId(emailId);
       const stmt = this.database.db.prepare(
-        "SELECT * FROM email_attachments WHERE email_id = ?",
+        `SELECT id, email_id, filename, content_type, size, created_at
+         FROM email_attachments WHERE email_id = ? LIMIT ?`,
       );
-      const attachments = stmt.all([emailId]);
+      const attachments = stmt.all([id, this.limits.maxAttachments]);
 
       return { success: true, attachments };
     } catch (error) {
@@ -956,21 +1257,44 @@ class EmailIPCHandler {
   /**
    * 下载附件
    */
-  async downloadAttachment(attachmentId, savePath) {
+  async downloadAttachment(attachmentId) {
     try {
+      const id = this.assertId(attachmentId, "email_attachment_id");
       const stmt = this.database.db.prepare(
         "SELECT * FROM email_attachments WHERE id = ?",
       );
-      const attachment = stmt.get([attachmentId]);
+      const attachment = stmt.get([id]);
 
       if (!attachment) {
         throw new Error("附件不存在");
       }
 
-      // 复制文件
-      await fs.copyFile(attachment.file_path, savePath);
+      const attachmentRoot = await this.fs.realpath(
+        path.join(this.appDataPath, "attachments"),
+      );
+      const sourcePath = await this.fs.realpath(attachment.file_path);
+      const relativeSource = path.relative(attachmentRoot, sourcePath);
+      if (relativeSource.startsWith("..") || path.isAbsolute(relativeSource)) {
+        throw new EmailIPCBoundaryError(
+          "PATH_OUTSIDE_ROOT",
+          "email_attachment_source",
+          "Email attachment is outside the managed attachment directory",
+        );
+      }
 
-      return { success: true };
+      const dialogResult = await this.showSaveDialog({
+        title: "保存邮件附件",
+        defaultPath: path.basename(attachment.filename || "attachment"),
+      });
+      if (dialogResult?.canceled || !dialogResult?.filePath) {
+        return { success: false, canceled: true };
+      }
+
+      // The destination comes from Electron's trusted native dialog, never
+      // from a renderer-controlled IPC argument.
+      await this.fs.copyFile(sourcePath, dialogResult.filePath);
+
+      return { success: true, filePath: dialogResult.filePath };
     } catch (error) {
       logger.error("[EmailIPCHandler] 下载附件失败:", error);
       throw error;
@@ -982,19 +1306,35 @@ class EmailIPCHandler {
    */
   async addLabel(name, options = {}) {
     try {
+      this.assertActive();
+      const labelName = assertBoundedString(
+        name,
+        "email_label_name",
+        this.limits.maxSubjectBytes,
+      );
+      const color =
+        options.color == null
+          ? "#1890ff"
+          : assertBoundedString(
+              options.color,
+              "email_label_color",
+              this.limits.maxMetadataBytes,
+            );
+      const icon =
+        options.icon == null
+          ? null
+          : assertBoundedString(
+              options.icon,
+              "email_label_icon",
+              this.limits.maxMetadataBytes,
+            );
       const labelId = uuidv4();
       const stmt = this.database.db.prepare(`
         INSERT INTO email_labels (id, name, color, icon, created_at)
         VALUES (?, ?, ?, ?, ?)
       `);
 
-      stmt.run([
-        labelId,
-        name,
-        options.color || "#1890ff",
-        options.icon || null,
-        Date.now(),
-      ]);
+      stmt.run([labelId, labelName, color, icon, Date.now()]);
 
       return { success: true, labelId };
     } catch (error) {
@@ -1008,10 +1348,11 @@ class EmailIPCHandler {
    */
   async getLabels() {
     try {
+      this.assertActive();
       const stmt = this.database.db.prepare(
-        "SELECT * FROM email_labels ORDER BY name",
+        "SELECT * FROM email_labels ORDER BY name LIMIT ?",
       );
-      const labels = stmt.all([]);
+      const labels = stmt.all([this.limits.maxLabels]);
 
       return { success: true, labels };
     } catch (error) {
@@ -1025,12 +1366,14 @@ class EmailIPCHandler {
    */
   async assignLabel(emailId, labelId) {
     try {
+      const boundedEmailId = this.assertId(emailId);
+      const boundedLabelId = this.assertId(labelId, "email_label_id");
       const stmt = this.database.db.prepare(`
         INSERT OR IGNORE INTO email_label_mappings (email_id, label_id, created_at)
         VALUES (?, ?, ?)
       `);
 
-      stmt.run([emailId, labelId, Date.now()]);
+      stmt.run([boundedEmailId, boundedLabelId, Date.now()]);
 
       return { success: true };
     } catch (error) {
@@ -1044,10 +1387,12 @@ class EmailIPCHandler {
    */
   async removeLabel(emailId, labelId) {
     try {
+      const boundedEmailId = this.assertId(emailId);
+      const boundedLabelId = this.assertId(labelId, "email_label_id");
       const stmt = this.database.db.prepare(
         "DELETE FROM email_label_mappings WHERE email_id = ? AND label_id = ?",
       );
-      stmt.run([emailId, labelId]);
+      stmt.run([boundedEmailId, boundedLabelId]);
 
       return { success: true };
     } catch (error) {
@@ -1061,28 +1406,45 @@ class EmailIPCHandler {
    */
   startAutoSync(accountId) {
     try {
-      // 如果已存在，先停止
-      this.stopAutoSync(accountId);
+      const id = this.assertId(accountId, "email_account_id");
+      const existing = this.syncIntervals.get(id);
+      if (existing) {
+        this.clearInterval(existing);
+        this.syncIntervals.delete(id);
+      }
+      if (this.syncIntervals.size >= this.limits.maxSyncIntervals) {
+        throw new EmailIPCBoundaryError(
+          "OVERLOADED",
+          "email_sync_intervals",
+          "Email auto-sync timer capacity is exhausted",
+          { limit: { maxItems: this.limits.maxSyncIntervals } },
+        );
+      }
 
       const accountStmt = this.database.db.prepare(
         "SELECT sync_frequency FROM email_accounts WHERE id = ?",
       );
-      const account = accountStmt.get([accountId]);
+      const account = accountStmt.get([id]);
 
       if (!account) {
         return { success: false, error: "账户不存在" };
       }
 
-      const interval = setInterval(async () => {
+      const syncFrequency = boundedSyncSeconds(
+        account.sync_frequency,
+        this.limits,
+      );
+      const interval = this.setInterval(async () => {
+        if (this.cleanedUp || this.fetchInFlight.has(id)) return;
         try {
-          await this.fetchEmails(accountId, { limit: 50, unseen: true });
-          logger.info(`[EmailIPCHandler] 自动同步完成: ${accountId}`);
+          await this.fetchEmails(id, { limit: 50, unseen: true });
+          logger.info(`[EmailIPCHandler] 自动同步完成: ${id}`);
         } catch (error) {
-          logger.error(`[EmailIPCHandler] 自动同步失败: ${accountId}`, error);
+          logger.error(`[EmailIPCHandler] 自动同步失败: ${id}`, error);
         }
-      }, account.sync_frequency * 1000);
+      }, syncFrequency * 1000);
 
-      this.syncIntervals.set(accountId, interval);
+      this.syncIntervals.set(id, interval);
 
       return { success: true };
     } catch (error) {
@@ -1095,10 +1457,11 @@ class EmailIPCHandler {
    * 停止自动同步
    */
   stopAutoSync(accountId) {
-    const interval = this.syncIntervals.get(accountId);
+    const id = this.assertId(accountId, "email_account_id");
+    const interval = this.syncIntervals.get(id);
     if (interval) {
-      clearInterval(interval);
-      this.syncIntervals.delete(accountId);
+      this.clearInterval(interval);
+      this.syncIntervals.delete(id);
     }
     return { success: true };
   }
@@ -1107,18 +1470,33 @@ class EmailIPCHandler {
    * 清理资源
    */
   cleanup() {
+    if (this.cleanedUp) return;
+    this.cleanedUp = true;
     // 停止所有自动同步
-    for (const [accountId, interval] of this.syncIntervals) {
-      clearInterval(interval);
+    for (const interval of this.syncIntervals.values()) {
+      this.clearInterval(interval);
     }
     this.syncIntervals.clear();
 
     // 断开所有连接
-    for (const [accountId, client] of this.emailClients) {
-      client.disconnect();
+    for (const client of this.emailClients.values()) {
+      try {
+        client.disconnect();
+      } catch (error) {
+        logger.warn("[EmailIPCHandler] email client cleanup failed:", error);
+      }
     }
     this.emailClients.clear();
+    this.fetchInFlight.clear();
+
+    if (this.handlersRegistered) {
+      for (const channel of EMAIL_IPC_CHANNELS) {
+        this.ipcMain.removeHandler?.(channel);
+      }
+      this.handlersRegistered = false;
+    }
   }
 }
 
 module.exports = EmailIPCHandler;
+module.exports.EMAIL_IPC_CHANNELS = EMAIL_IPC_CHANNELS;

@@ -37,17 +37,123 @@ const DEFAULT_CONFIG = {
   enableHierarchy: true, // 启用层级进度
 };
 
+const KIB = 1024;
+
+const DEFAULT_PROGRESS_LIMITS = Object.freeze({
+  maxTasks: 128,
+  maxTaskIdBytes: 256,
+  maxTitleBytes: KIB,
+  maxDescriptionBytes: 8 * KIB,
+  maxMessageBytes: 8 * KIB,
+  maxMetadataBytes: 64 * KIB,
+  maxResultBytes: 64 * KIB,
+  maxChildTasks: 128,
+  maxTotalSteps: 1_000_000,
+});
+
+const HARD_PROGRESS_LIMITS = Object.freeze({
+  maxTasks: 1024,
+  maxTaskIdBytes: KIB,
+  maxTitleBytes: 4 * KIB,
+  maxDescriptionBytes: 32 * KIB,
+  maxMessageBytes: 32 * KIB,
+  maxMetadataBytes: 256 * KIB,
+  maxResultBytes: 256 * KIB,
+  maxChildTasks: 512,
+  maxTotalSteps: 10_000_000,
+});
+
+const TERMINAL_PROGRESS_STAGES = new Set([
+  ProgressStage.COMPLETED,
+  ProgressStage.FAILED,
+  ProgressStage.CANCELLED,
+]);
+const VALID_PROGRESS_STAGES = new Set(Object.values(ProgressStage));
+
+function normalizeLimit(value, fallback, hardLimit) {
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function createProgressError(result) {
+  const error = new Error(result.error);
+  Object.assign(error, result);
+  return error;
+}
+
+function truncateUtf8(value, maxBytes) {
+  const normalized = typeof value === "string" ? value : String(value ?? "");
+  const bytes = Buffer.from(normalized, "utf8");
+  if (bytes.length <= maxBytes) {
+    return normalized;
+  }
+  let end = maxBytes;
+  while (end > 0 && (bytes[end] & 0xc0) === 0x80) {
+    end -= 1;
+  }
+  return bytes.subarray(0, end).toString("utf8");
+}
+
+function prepareJsonWithinLimit(value, maxBytes, fallback = {}) {
+  try {
+    const serialized = JSON.stringify(value);
+    if (
+      typeof serialized !== "string" ||
+      Buffer.byteLength(serialized, "utf8") > maxBytes
+    ) {
+      return { accepted: false, value: fallback };
+    }
+    return { accepted: true, value: JSON.parse(serialized) };
+  } catch {
+    return { accepted: false, value: fallback };
+  }
+}
+
+function normalizeFiniteNumber(value, fallback) {
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
 /**
  * 统一进度通知器类
  */
 class ProgressEmitter extends EventEmitter {
   constructor(config = {}) {
     super();
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const normalizedConfig = config && typeof config === "object" ? config : {};
+    this.config = { ...DEFAULT_CONFIG, ...normalizedConfig };
+    this.limits = Object.freeze(
+      Object.fromEntries(
+        Object.keys(DEFAULT_PROGRESS_LIMITS).map((key) => [
+          key,
+          normalizeLimit(
+            normalizedConfig[key],
+            DEFAULT_PROGRESS_LIMITS[key],
+            HARD_PROGRESS_LIMITS[key],
+          ),
+        ]),
+      ),
+    );
 
     // 任务追踪
     this.tasks = new Map();
     this.taskHierarchy = new Map(); // taskId -> parentTaskId
+    this.cleanupTimers = new Map();
+    this.droppedTasks = 0;
+    this.droppedPayloads = 0;
 
     // 节流控制
     this.lastEmitTime = new Map();
@@ -74,29 +180,90 @@ class ProgressEmitter extends EventEmitter {
    * @returns {Object} 任务追踪器
    */
   createTracker(taskId, options = {}) {
+    const idValidation = this.validateTaskId(taskId);
+    if (!idValidation.accepted) {
+      throw createProgressError(idValidation);
+    }
+    if (this.tasks.has(taskId)) {
+      throw createProgressError({
+        accepted: false,
+        error: `Task ${taskId} already exists`,
+        code: "ALREADY_EXISTS",
+        scope: "progress_tasks",
+      });
+    }
+    const normalizedOptions =
+      options && typeof options === "object" ? options : {};
     const {
       title = taskId, // 任务标题
       description = "", // 任务描述
       totalSteps = 100, // 总步数（用于计算百分比）
       parentTaskId = null, // 父任务ID（层级进度）
       metadata = {}, // 元数据
-    } = options;
+    } = normalizedOptions;
+
+    let normalizedParentTaskId = null;
+    if (parentTaskId !== null && parentTaskId !== undefined) {
+      const parentValidation = this.validateTaskId(parentTaskId);
+      if (!parentValidation.accepted) {
+        throw createProgressError(parentValidation);
+      }
+      normalizedParentTaskId = parentTaskId;
+      const parentTask = this.tasks.get(parentTaskId);
+      if (
+        parentTask &&
+        parentTask.childTasks.length >= this.limits.maxChildTasks
+      ) {
+        this.droppedTasks += 1;
+        throw createProgressError({
+          accepted: false,
+          error: "Progress child task capacity exceeded",
+          code: "OVERLOADED",
+          scope: "progress_child_tasks",
+          retryAfterMs: 1000,
+          limit: { maxChildTasks: this.limits.maxChildTasks },
+        });
+      }
+    }
+
+    const preparedMetadata = prepareJsonWithinLimit(
+      metadata,
+      this.limits.maxMetadataBytes,
+      {},
+    );
+    if (!preparedMetadata.accepted) {
+      this.droppedPayloads += 1;
+    }
+
+    while (this.tasks.size >= this.limits.maxTasks) {
+      if (!this.evictOldestTerminalTask()) {
+        this.droppedTasks += 1;
+        throw createProgressError({
+          accepted: false,
+          error: "Progress task capacity exceeded",
+          code: "OVERLOADED",
+          scope: "progress_tasks",
+          retryAfterMs: 1000,
+          limit: { maxTasks: this.limits.maxTasks },
+        });
+      }
+    }
 
     // 初始化任务信息
     const taskInfo = {
-      taskId: taskId,
-      title: title,
-      description: description,
+      taskId,
+      title: truncateUtf8(title, this.limits.maxTitleBytes),
+      description: truncateUtf8(description, this.limits.maxDescriptionBytes),
       stage: ProgressStage.PENDING,
       percent: 0,
       currentStep: 0,
-      totalSteps: totalSteps,
+      totalSteps: normalizeLimit(totalSteps, 100, this.limits.maxTotalSteps),
       startTime: Date.now(),
       endTime: null,
       duration: 0,
       message: "",
-      metadata: metadata,
-      parentTaskId: parentTaskId,
+      metadata: preparedMetadata.value,
+      parentTaskId: normalizedParentTaskId,
       childTasks: [],
       error: null,
     };
@@ -104,9 +271,9 @@ class ProgressEmitter extends EventEmitter {
     this.tasks.set(taskId, taskInfo);
 
     // 设置层级关系
-    if (parentTaskId) {
-      this.taskHierarchy.set(taskId, parentTaskId);
-      const parent = this.tasks.get(parentTaskId);
+    if (normalizedParentTaskId) {
+      this.taskHierarchy.set(taskId, normalizedParentTaskId);
+      const parent = this.tasks.get(normalizedParentTaskId);
       if (parent) {
         parent.childTasks.push(taskId);
       }
@@ -116,7 +283,10 @@ class ProgressEmitter extends EventEmitter {
     this.emitProgress(taskId, {
       stage: ProgressStage.PENDING,
       percent: 0,
-      message: `任务创建: ${title}`,
+      message: truncateUtf8(
+        `任务创建: ${taskInfo.title}`,
+        this.limits.maxMessageBytes,
+      ),
     });
 
     // 返回追踪器对象
@@ -132,18 +302,19 @@ class ProgressEmitter extends EventEmitter {
           return;
         }
 
+        const normalizedIncrement = normalizeFiniteNumber(increment, 1);
         task.currentStep = Math.min(
-          task.currentStep + increment,
+          Math.max(task.currentStep + normalizedIncrement, 0),
           task.totalSteps,
         );
         task.percent = Math.round((task.currentStep / task.totalSteps) * 100);
-        task.message = message;
+        task.message = truncateUtf8(message, this.limits.maxMessageBytes);
 
         this.emitProgress(taskId, {
           percent: task.percent,
           currentStep: task.currentStep,
           totalSteps: task.totalSteps,
-          message: message,
+          message: task.message,
         });
       },
 
@@ -158,13 +329,16 @@ class ProgressEmitter extends EventEmitter {
           return;
         }
 
-        task.percent = Math.min(Math.max(percent, 0), 100);
+        task.percent = Math.min(
+          Math.max(normalizeFiniteNumber(percent, task.percent), 0),
+          100,
+        );
         task.currentStep = Math.round((task.percent / 100) * task.totalSteps);
-        task.message = message;
+        task.message = truncateUtf8(message, this.limits.maxMessageBytes);
 
         this.emitProgress(taskId, {
           percent: task.percent,
-          message: message,
+          message: task.message,
         });
       },
 
@@ -175,17 +349,36 @@ class ProgressEmitter extends EventEmitter {
        */
       setStage: (stage, message = "") => {
         const task = this.tasks.get(taskId);
-        if (!task) {
+        if (!task || TERMINAL_PROGRESS_STAGES.has(task.stage)) {
           return;
         }
 
+        if (!VALID_PROGRESS_STAGES.has(stage)) {
+          return;
+        }
         task.stage = stage;
-        task.message = message;
+        task.message = truncateUtf8(message, this.limits.maxMessageBytes);
+        if (TERMINAL_PROGRESS_STAGES.has(stage)) {
+          task.endTime = Date.now();
+          task.duration = task.endTime - task.startTime;
+          if (stage === ProgressStage.COMPLETED) {
+            task.percent = 100;
+          }
+        }
 
         this.emitProgress(taskId, {
           stage: stage,
-          message: message,
+          percent: task.percent,
+          message: task.message,
+          duration: task.duration,
         });
+        if (TERMINAL_PROGRESS_STAGES.has(stage)) {
+          this.updateParentProgress(taskId);
+          this.scheduleTaskRemoval(
+            taskId,
+            stage === ProgressStage.FAILED ? 10000 : 5000,
+          );
+        }
       },
 
       /**
@@ -194,21 +387,33 @@ class ProgressEmitter extends EventEmitter {
        */
       complete: (result = {}) => {
         const task = this.tasks.get(taskId);
-        if (!task) {
+        if (!task || TERMINAL_PROGRESS_STAGES.has(task.stage)) {
           return;
+        }
+
+        const preparedResult = prepareJsonWithinLimit(
+          result,
+          this.limits.maxResultBytes,
+          {},
+        );
+        if (!preparedResult.accepted) {
+          this.droppedPayloads += 1;
         }
 
         task.stage = ProgressStage.COMPLETED;
         task.percent = 100;
         task.endTime = Date.now();
         task.duration = task.endTime - task.startTime;
-        task.message = result.message || "任务完成";
+        task.message = truncateUtf8(
+          preparedResult.value?.message || "任务完成",
+          this.limits.maxMessageBytes,
+        );
 
         this.emitProgress(taskId, {
           stage: ProgressStage.COMPLETED,
           percent: 100,
           message: task.message,
-          result: result,
+          result: preparedResult.value,
           duration: task.duration,
         });
 
@@ -216,9 +421,7 @@ class ProgressEmitter extends EventEmitter {
         this.updateParentProgress(taskId);
 
         // 延迟清理（5秒后）
-        setTimeout(() => {
-          this.removeTask(taskId);
-        }, 5000);
+        this.scheduleTaskRemoval(taskId, 5000);
       },
 
       /**
@@ -227,17 +430,23 @@ class ProgressEmitter extends EventEmitter {
        */
       error: (error) => {
         const task = this.tasks.get(taskId);
-        if (!task) {
+        if (!task || TERMINAL_PROGRESS_STAGES.has(task.stage)) {
           return;
         }
 
-        const errorMessage = error instanceof Error ? error.message : error;
+        const errorMessage = truncateUtf8(
+          error instanceof Error ? error.message : error,
+          this.limits.maxMessageBytes,
+        );
 
         task.stage = ProgressStage.FAILED;
         task.endTime = Date.now();
         task.duration = task.endTime - task.startTime;
         task.error = errorMessage;
-        task.message = `任务失败: ${errorMessage}`;
+        task.message = truncateUtf8(
+          `任务失败: ${errorMessage}`,
+          this.limits.maxMessageBytes,
+        );
 
         this.emitProgress(taskId, {
           stage: ProgressStage.FAILED,
@@ -250,9 +459,7 @@ class ProgressEmitter extends EventEmitter {
         this.updateParentProgress(taskId);
 
         // 延迟清理（10秒后）
-        setTimeout(() => {
-          this.removeTask(taskId);
-        }, 10000);
+        this.scheduleTaskRemoval(taskId, 10000);
       },
 
       /**
@@ -261,14 +468,22 @@ class ProgressEmitter extends EventEmitter {
        */
       cancel: (reason = "用户取消") => {
         const task = this.tasks.get(taskId);
-        if (!task) {
+        if (!task || TERMINAL_PROGRESS_STAGES.has(task.stage)) {
           return;
         }
+
+        const normalizedReason = truncateUtf8(
+          reason,
+          this.limits.maxMessageBytes,
+        );
 
         task.stage = ProgressStage.CANCELLED;
         task.endTime = Date.now();
         task.duration = task.endTime - task.startTime;
-        task.message = `任务已取消: ${reason}`;
+        task.message = truncateUtf8(
+          `任务已取消: ${normalizedReason}`,
+          this.limits.maxMessageBytes,
+        );
 
         this.emitProgress(taskId, {
           stage: ProgressStage.CANCELLED,
@@ -277,9 +492,7 @@ class ProgressEmitter extends EventEmitter {
         });
 
         // 延迟清理（5秒后）
-        setTimeout(() => {
-          this.removeTask(taskId);
-        }, 5000);
+        this.scheduleTaskRemoval(taskId, 5000);
       },
 
       /**
@@ -287,9 +500,64 @@ class ProgressEmitter extends EventEmitter {
        * @returns {Object} 任务信息
        */
       getInfo: () => {
-        return this.tasks.get(taskId);
+        return this.getTask(taskId);
       },
     };
+  }
+
+  validateTaskId(taskId) {
+    if (typeof taskId !== "string" || taskId.length === 0) {
+      return {
+        accepted: false,
+        error: "taskId must be a non-empty string",
+        code: "INVALID_ARGUMENT",
+      };
+    }
+    if (Buffer.byteLength(taskId, "utf8") > this.limits.maxTaskIdBytes) {
+      return {
+        accepted: false,
+        error: "taskId is too large",
+        code: "OVERLOADED",
+        scope: "progress_task_id",
+        retryAfterMs: 1000,
+        limit: { maxTaskIdBytes: this.limits.maxTaskIdBytes },
+      };
+    }
+    return { accepted: true, taskId };
+  }
+
+  hasTask(taskId) {
+    return this.tasks.has(taskId);
+  }
+
+  evictOldestTerminalTask() {
+    for (const [taskId, task] of this.tasks.entries()) {
+      if (TERMINAL_PROGRESS_STAGES.has(task.stage)) {
+        this.removeTask(taskId);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  scheduleTaskRemoval(taskId, delayMs) {
+    if (!this.tasks.has(taskId)) {
+      return false;
+    }
+    if (this.cleanupTimers.has(taskId)) {
+      clearTimeout(this.cleanupTimers.get(taskId));
+    }
+    const boundedDelayMs = Math.max(
+      0,
+      Math.min(normalizeFiniteNumber(delayMs, 5000), 60_000),
+    );
+    const cleanupTimer = setTimeout(() => {
+      this.cleanupTimers.delete(taskId);
+      this.removeTask(taskId);
+    }, boundedDelayMs);
+    cleanupTimer.unref?.();
+    this.cleanupTimers.set(taskId, cleanupTimer);
+    return true;
   }
 
   /**
@@ -304,16 +572,14 @@ class ProgressEmitter extends EventEmitter {
     }
 
     // 更新任务信息
-    Object.assign(task, progress);
+    const retainedProgress = { ...progress };
+    delete retainedProgress.result;
+    Object.assign(task, retainedProgress);
 
     // 节流控制（除非是完成/失败/取消事件）
     const now = Date.now();
     const lastEmit = this.lastEmitTime.get(taskId) || 0;
-    const isTerminalStage = [
-      ProgressStage.COMPLETED,
-      ProgressStage.FAILED,
-      ProgressStage.CANCELLED,
-    ].includes(task.stage);
+    const isTerminalStage = TERMINAL_PROGRESS_STAGES.has(task.stage);
 
     if (!isTerminalStage && now - lastEmit < this.config.throttleInterval) {
       return; // 节流跳过
@@ -333,7 +599,7 @@ class ProgressEmitter extends EventEmitter {
       message: task.message,
       startTime: task.startTime,
       duration: task.duration,
-      metadata: task.metadata,
+      metadata: JSON.parse(JSON.stringify(task.metadata)),
       ...progress,
     };
 
@@ -425,6 +691,9 @@ class ProgressEmitter extends EventEmitter {
       percent: avgPercent,
       message: `子任务进度: ${completedCount}/${childIds.length} 已完成`,
     });
+    if (parentTask.stage === ProgressStage.COMPLETED) {
+      this.scheduleTaskRemoval(parentTaskId, 5000);
+    }
   }
 
   /**
@@ -491,9 +760,35 @@ class ProgressEmitter extends EventEmitter {
    * @param {string} taskId - 任务ID
    */
   removeTask(taskId) {
-    this.tasks.delete(taskId);
+    if (this.cleanupTimers.has(taskId)) {
+      clearTimeout(this.cleanupTimers.get(taskId));
+      this.cleanupTimers.delete(taskId);
+    }
+
+    const task = this.tasks.get(taskId);
+    if (task?.parentTaskId) {
+      const parentTask = this.tasks.get(task.parentTaskId);
+      if (parentTask) {
+        parentTask.childTasks = parentTask.childTasks.filter(
+          (childTaskId) => childTaskId !== taskId,
+        );
+      }
+    }
+    for (const childTaskId of task?.childTasks || []) {
+      this.taskHierarchy.delete(childTaskId);
+      const childTask = this.tasks.get(childTaskId);
+      if (childTask) {
+        childTask.parentTaskId = null;
+      }
+    }
+
+    const removed = this.tasks.delete(taskId);
     this.taskHierarchy.delete(taskId);
     this.lastEmitTime.delete(taskId);
+    if (removed) {
+      this.emit("task-removed", { taskId });
+    }
+    return removed;
   }
 
   /**
@@ -502,8 +797,8 @@ class ProgressEmitter extends EventEmitter {
    */
   getActiveTasks() {
     const tasks = [];
-    for (const [taskId, taskInfo] of this.tasks.entries()) {
-      tasks.push({ ...taskInfo });
+    for (const taskInfo of this.tasks.values()) {
+      tasks.push(JSON.parse(JSON.stringify(taskInfo)));
     }
     return tasks;
   }
@@ -514,21 +809,43 @@ class ProgressEmitter extends EventEmitter {
    * @returns {Object|null} 任务信息
    */
   getTask(taskId) {
-    return this.tasks.get(taskId) || null;
+    const task = this.tasks.get(taskId);
+    return task ? JSON.parse(JSON.stringify(task)) : null;
+  }
+
+  getStats() {
+    return {
+      taskCount: this.tasks.size,
+      hierarchyCount: this.taskHierarchy.size,
+      cleanupTimerCount: this.cleanupTimers.size,
+      droppedTasks: this.droppedTasks,
+      droppedPayloads: this.droppedPayloads,
+      limits: this.limits,
+    };
   }
 
   /**
    * 清空所有任务
    */
   clearAll() {
+    const removedTaskIds = [...this.tasks.keys()];
+    for (const cleanupTimer of this.cleanupTimers.values()) {
+      clearTimeout(cleanupTimer);
+    }
+    this.cleanupTimers.clear();
     this.tasks.clear();
     this.taskHierarchy.clear();
     this.lastEmitTime.clear();
+    for (const taskId of removedTaskIds) {
+      this.emit("task-removed", { taskId });
+    }
     logger.info("[ProgressEmitter] 所有任务已清空");
   }
 }
 
 // 导出枚举和类
 ProgressEmitter.Stage = ProgressStage;
+ProgressEmitter.DEFAULT_LIMITS = DEFAULT_PROGRESS_LIMITS;
+ProgressEmitter.HARD_LIMITS = HARD_PROGRESS_LIMITS;
 
 module.exports = ProgressEmitter;

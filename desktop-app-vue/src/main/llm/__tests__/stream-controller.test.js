@@ -495,6 +495,12 @@ describe('StreamController', () => {
         startTime: controller.startTime,
         endTime: null,
         isPaused: false,
+        bufferedChunks: 0,
+        bufferedBytes: 0,
+        droppedBufferedChunks: 0,
+        pauseWaiters: 0,
+        droppedPausedChunks: 0,
+        bufferLimits: controller.bufferLimits,
       });
     });
 
