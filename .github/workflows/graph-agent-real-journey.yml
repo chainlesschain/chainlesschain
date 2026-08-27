@@ -71,10 +71,16 @@ jobs:
           packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
           packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/unit/runtime-entry-cutover-wiring.test.js
+          packages/cli/__tests__/unit/cowork-graph-authority-adapter.test.js
+          packages/cli/__tests__/unit/scheduler-graph-authority-adapter.test.js
           packages/cli/__tests__/unit/team-distributed-graph-bridge.test.js
           packages/cli/__tests__/unit/team-distributed-graph-writer.test.js
+          packages/cli/__tests__/unit/team-runner.test.js
           packages/cli/__tests__/integration/headless-session-resume.test.js
           packages/cli/__tests__/integration/team-worktree-real-git.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-runtime-authority.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
 
       - name: Re-run Desktop kill and reopen through the Electron runtime
