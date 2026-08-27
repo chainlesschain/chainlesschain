@@ -132,6 +132,7 @@ describe("API notification manager resource boundaries", () => {
     manager.cleanup();
     manager.cleanup();
     expect(FakeNotification.instances[0].close).toHaveBeenCalledTimes(1);
+    expect(manager.setMainWindow({})).toBe(false);
     expect(manager.notifyEmailSent("a@example.com", "after")).toMatchObject({
       accepted: false,
       code: "CANCELED",

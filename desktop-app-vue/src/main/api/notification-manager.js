@@ -32,7 +32,11 @@ class APINotificationManager {
    * @param {BrowserWindow} window - Electron 主窗口
    */
   setMainWindow(window) {
+    if (this.destroyed) {
+      return false;
+    }
     this.mainWindow = window;
+    return true;
   }
 
   /**
