@@ -66,9 +66,9 @@ describe("GraphRun authority and writer inventory", () => {
     expect(validateGraphRuntimeSurfaceManifest(manifest)).toMatchObject({
       valid: true,
       surfaceCount: 5,
-      entryCount: 11,
+      entryCount: 12,
       migratableEntryCount: 7,
-      retirementEntryCount: 2,
+      retirementEntryCount: 3,
       disabledEntryCount: 2,
       errors: [],
     });
@@ -80,7 +80,7 @@ describe("GraphRun authority and writer inventory", () => {
       existingCanonicalRunRollback: "retain_authority",
     });
     const entries = manifest.surfaces.flatMap((surface) => surface.entries);
-    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(11);
+    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(12);
     expect(
       entries.find((entry) => entry.id === "desktop-specialized-agents"),
     ).toMatchObject({
@@ -100,6 +100,11 @@ describe("GraphRun authority and writer inventory", () => {
     expect(
       entries.filter((entry) => entry.cutoverStrategy === "retire"),
     ).toEqual([
+      expect.objectContaining({
+        id: "desktop-legacy-multi-agent",
+        runtimeDurability: "process_local",
+        recoveryEntrypoints: [],
+      }),
       expect.objectContaining({
         id: "desktop-legacy-workflow",
         runtimeDurability: "process_local",

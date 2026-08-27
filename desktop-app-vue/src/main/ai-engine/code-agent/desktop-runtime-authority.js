@@ -8,6 +8,7 @@ const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
 const DESKTOP_ENTRYPOINTS = Object.freeze([
   ["WorkflowPipeline.", "desktop-workflow-manager"],
   ["AgentCoordinator.", "desktop-specialized-agents"],
+  ["AgentOrchestrator.", "desktop-legacy-multi-agent"],
   ["SkillPipelineEngine.", "desktop-skill-workflow"],
   ["SkillWorkflowEngine.", "desktop-skill-workflow"],
   ["WorkflowAutomation.", "desktop-skill-workflow"],

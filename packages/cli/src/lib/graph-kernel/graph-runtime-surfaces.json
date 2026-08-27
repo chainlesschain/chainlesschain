@@ -304,6 +304,45 @@
           ]
         },
         {
+          "id": "desktop-legacy-multi-agent",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-legacy-multi-agent",
+          "entrypoints": [
+            "desktop-app-vue/src/main/index.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/multi-agent-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/index.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/agent-orchestrator.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/specialized-agent.js"
+          ],
+          "mutationFunctions": [
+            "AgentOrchestrator.dispatch",
+            "AgentOrchestrator.executeParallel",
+            "AgentOrchestrator.executeChain",
+            "AgentOrchestrator.sendMessage",
+            "AgentOrchestrator.broadcast"
+          ],
+          "stores": [
+            "AgentOrchestrator.activeExecutions",
+            "AgentOrchestrator.executionHistory",
+            "AgentOrchestrator.messageQueue"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "AgentOrchestrator.activeExecutions",
+              "AgentOrchestrator.executionHistory",
+              "AgentOrchestrator.messageQueue"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
           "id": "desktop-legacy-workflow",
           "runtimeDurability": "process_local",
           "cutoverStrategy": "retire",
@@ -445,6 +484,7 @@
       "packages/cli/src/lib/scheduler-kernel",
       "desktop-app-vue/src/main/ai-engine/agents",
       "desktop-app-vue/src/main/ai-engine/code-agent",
+      "desktop-app-vue/src/main/ai-engine/multi-agent",
       "desktop-app-vue/src/main/ai-engine/cowork/skills",
       "desktop-app-vue/src/main/ai-engine/workflow",
       "desktop-app-vue/src/main/browser/workflow",
@@ -456,6 +496,7 @@
       "new\\s+TeamRunner\\b",
       "new\\s+SubRuntimePool(?:Ctor)?\\b",
       "new\\s+AgentCoordinator\\b",
+      "(?:new\\s+AgentOrchestrator|getAgentOrchestrator)\\b",
       "new\\s+WorkflowManager\\b",
       "new\\s+WorkflowPipeline\\b",
       "class\\s+(?:Skill)?WorkflowEngine\\b",

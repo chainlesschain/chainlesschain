@@ -14,6 +14,9 @@
 
 const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 function normalizedWriteScopes(task) {
   if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {
@@ -229,6 +232,15 @@ class AgentOrchestrator extends EventEmitter {
   async dispatch(task) {
     const startTime = Date.now();
     const executionId = `exec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.dispatch",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey: task?.runId || task?.id || executionId,
+        optIn: task?.graphCanary === true,
+      },
+    );
 
     this.stats.totalTasks++;
 
@@ -481,6 +493,18 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<any>} 响应
    */
   async sendMessage(fromAgent, toAgent, message) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.sendMessage",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          message?.runId ||
+          message?.id ||
+          `${String(fromAgent)}:${String(toAgent)}`,
+        optIn: message?.graphCanary === true,
+      },
+    );
     const targetAgent = this.agents.get(toAgent);
 
     if (!targetAgent) {
@@ -519,6 +543,15 @@ class AgentOrchestrator extends EventEmitter {
    * @param {Object} message - 消息内容
    */
   async broadcast(fromAgent, message) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.broadcast",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey: message?.runId || message?.id || String(fromAgent),
+        optIn: message?.graphCanary === true,
+      },
+    );
     const results = [];
 
     for (const [agentId, agent] of this.agents) {

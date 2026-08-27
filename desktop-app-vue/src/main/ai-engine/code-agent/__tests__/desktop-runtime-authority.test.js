@@ -5,6 +5,9 @@ const {
   desktopLegacyRuntimeClaims,
 } = require("../desktop-runtime-authority.js");
 const { AgentCoordinator } = require("../../agents/agent-coordinator.js");
+const {
+  AgentOrchestrator,
+} = require("../../multi-agent/agent-orchestrator.js");
 const { WorkflowPipeline } = require("../../../workflow/workflow-pipeline.js");
 const { WorkflowEngine } = require("../../workflow/workflow-engine.js");
 const {
@@ -98,6 +101,14 @@ describe("Desktop Graph authority retirement", () => {
         code: "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
       }),
     );
+    await expect(
+      new AgentOrchestrator().dispatch({ id: "legacy-task", type: "code" }),
+    ).rejects.toEqual(expected);
+    await expect(
+      new AgentOrchestrator().sendMessage("agent-a", "agent-b", {
+        id: "legacy-message",
+      }),
+    ).rejects.toEqual(expected);
     await expect(
       new AgentCoordinator().cancelTask("task"),
     ).resolves.toMatchObject({

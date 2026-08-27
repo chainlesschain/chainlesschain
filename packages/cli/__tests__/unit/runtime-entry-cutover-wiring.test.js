@@ -77,13 +77,13 @@ describe("runtime entry cutover wiring", () => {
         })),
       );
 
-    expect(entries).toHaveLength(9);
+    expect(entries).toHaveLength(10);
     expect(
       entries.filter((entry) => entry.cutoverStrategy === "migrate"),
     ).toHaveLength(7);
     expect(
       entries.filter((entry) => entry.cutoverStrategy === "retire"),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     for (const entry of entries) {
       const resolver = new GraphCutoverAuthorityResolver({
         ...entry,
