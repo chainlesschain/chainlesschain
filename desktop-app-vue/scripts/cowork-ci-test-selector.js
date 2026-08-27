@@ -65,6 +65,8 @@ const CONTENT_INTEGRATION_WIRING_TEST =
   "tests/unit/api/rss-email-production-wiring.test.js";
 const STANDALONE_SIGNALING_BOUNDS_TEST =
   "tests/unit/p2p/standalone-signaling-server-bounds.test.js";
+const IPFS_PRODUCTION_WIRING_TEST =
+  "tests/unit/ipfs/ipfs-production-wiring.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
   ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
@@ -76,6 +78,10 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
   ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  [
+    "src/main/ipc/phases/phase-21-30-enterprise.js",
+    [IPFS_PRODUCTION_WIRING_TEST],
+  ],
   [
     "src/renderer/pages/email/AccountManager.vue",
     [

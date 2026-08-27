@@ -46,6 +46,9 @@ function createMockManager() {
     addKnowledgeAttachment: vi.fn(),
     getKnowledgeAttachment: vi.fn(),
     mode: "embedded",
+    boundaries: {
+      maxIpcContentBytes: 1024,
+    },
     config: {
       gatewayUrl: "http://localhost:8080",
       storageQuotaBytes: 1073741824,
@@ -159,6 +162,22 @@ describe("IPFS IPC Handlers", () => {
     expect(mockManager.addContent).toHaveBeenCalledWith("data", {});
   });
 
+  it("ipfs content handlers reject malformed payloads structurally", async () => {
+    for (const channel of [
+      "ipfs:add-content",
+      "ipfs:add-file",
+      "ipfs:get-content",
+      "ipfs:get-file",
+      "ipfs:add-knowledge-attachment",
+      "ipfs:get-knowledge-attachment",
+    ]) {
+      await expect(handlers[channel]({}, null)).resolves.toMatchObject({
+        success: false,
+        code: "INVALID_ARGUMENT",
+      });
+    }
+  });
+
   it("ipfs:add-file should pass filePath", async () => {
     mockManager.addFile.mockResolvedValue({ cid: "QmFile" });
     const result = await handlers["ipfs:add-file"](
@@ -181,6 +200,47 @@ describe("IPFS IPC Handlers", () => {
     expect(result.success).toBe(true);
     expect(result.data.content).toBe(buf.toString("base64"));
     expect(result.data.contentEncoding).toBe("base64");
+    expect(mockManager.getContent).toHaveBeenCalledWith("QmTest", {
+      maxBytes: 1024,
+    });
+  });
+
+  it("ipfs:get-content rejects output before oversized base64 expansion", async () => {
+    mockManager.boundaries.maxIpcContentBytes = 4;
+    mockManager.getContent.mockResolvedValue({
+      content: Buffer.from("12345"),
+      metadata: {},
+    });
+
+    const result = await handlers["ipfs:get-content"](
+      {},
+      { cid: "QmTest", options: {} },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      code: "PAYLOAD_TOO_LARGE",
+    });
+  });
+
+  it("ipfs:get-content preserves retryable overload details", async () => {
+    const error = Object.assign(new Error("busy"), {
+      code: "OVERLOADED",
+      reason: "read admission full",
+      retryAfterMs: 250,
+    });
+    mockManager.getContent.mockRejectedValue(error);
+
+    const result = await handlers["ipfs:get-content"](
+      {},
+      { cid: "QmTest", options: {} },
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "busy",
+      code: "OVERLOADED",
+      reason: "read admission full",
+      retryAfterMs: 250,
+    });
   });
 
   it("ipfs:get-file delegates", async () => {
@@ -285,6 +345,11 @@ describe("IPFS IPC Handlers", () => {
     expect(result.success).toBe(true);
     expect(result.data.content).toBe(buf.toString("base64"));
     expect(result.data.contentEncoding).toBe("base64");
+    expect(mockManager.getKnowledgeAttachment).toHaveBeenCalledWith(
+      "n1",
+      "Qm",
+      { maxBytes: 1024 },
+    );
   });
 
   it("ipfs:get-config returns config", async () => {
@@ -294,5 +359,6 @@ describe("IPFS IPC Handlers", () => {
     expect(result.data).toHaveProperty("gatewayUrl");
     expect(result.data).toHaveProperty("mode");
     expect(result.data).toHaveProperty("encryptionEnabled");
+    expect(result.data.limits).toEqual(mockManager.boundaries);
   });
 });

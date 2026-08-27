@@ -30,6 +30,7 @@ vi.mock("fs", () => ({
   readFileSync: vi.fn(() => Buffer.from("file content")),
   writeFileSync: vi.fn(),
   existsSync: vi.fn(() => true),
+  statSync: vi.fn(() => ({ isFile: () => true, size: 12 })),
 }));
 
 vi.mock("electron", () => ({
@@ -62,6 +63,8 @@ vi.mock("multiformats/cid", () => ({
 }));
 
 const { IPFSManager } = require("../ipfs-manager.js");
+
+const VALID_CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
 
 // ----------------------------------------------------------------
 // Helper: mock database
@@ -130,6 +133,7 @@ describe("IPFSManager", () => {
     if (manager.node) {
       await manager.stopNode();
     }
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -163,6 +167,20 @@ describe("IPFSManager", () => {
       });
       expect(manager.config.encryptionEnabled).toBe(true);
       expect(manager.config.gatewayUrl).toBe("https://custom.gateway");
+    });
+
+    it("validates configured content boundaries", async () => {
+      await manager.initialize({
+        database: mockDb,
+        config: {
+          limits: {
+            maxContentBytes: 1024,
+            maxIpcContentBytes: 512,
+          },
+        },
+      });
+      expect(manager.boundaries.maxContentBytes).toBe(1024);
+      expect(manager.boundaries.maxIpcContentBytes).toBe(512);
     });
 
     it("calls _ensureTables() to create DB tables", async () => {
@@ -398,6 +416,218 @@ describe("IPFSManager", () => {
       const result = await manager.addContent(Buffer.from("buffer content"));
       expect(result.cid).toBe("QmBufferCID");
     });
+
+    it("rejects oversized content before calling unixfs", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { maxContentBytes: 5, maxIpcContentBytes: 5 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      manager.unixfs = makeMockUnixfs("QmNeverAdded");
+
+      await expect(manager.addContent("123456")).rejects.toMatchObject({
+        code: "PAYLOAD_TOO_LARGE",
+      });
+      expect(manager.unixfs.addBytes).not.toHaveBeenCalled();
+    });
+
+    it("rejects oversized metadata before calling unixfs", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { maxMetadataBytes: 8 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      manager.unixfs = makeMockUnixfs("QmNeverAdded");
+
+      await expect(
+        manager.addContent("ok", { metadata: { value: "too long" } }),
+      ).rejects.toMatchObject({ code: "PAYLOAD_TOO_LARGE" });
+      expect(manager.unixfs.addBytes).not.toHaveBeenCalled();
+    });
+
+    it("bounds concurrent writes and fences a late completion after stop", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { maxConcurrentWrites: 1, retryAfterMs: 25 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      let resolveAdd;
+      manager.unixfs = {
+        addBytes: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              resolveAdd = resolve;
+            }),
+        ),
+      };
+      mockDb.run.mockClear();
+
+      const firstWrite = manager.addContent("first").catch((error) => error);
+      await vi.waitFor(() => {
+        expect(manager.unixfs.addBytes).toHaveBeenCalledOnce();
+        expect(manager._activeWrites.size).toBe(1);
+      });
+      await expect(manager.addContent("second")).rejects.toMatchObject({
+        code: "OVERLOADED",
+        reason: "write admission full",
+        retryAfterMs: 25,
+      });
+
+      await manager.stopNode();
+      resolveAdd({ toString: () => "QmLate" });
+      expect(await firstWrite).toMatchObject({ code: "CANCELLED" });
+      expect(
+        mockDb.run.mock.calls.some(([sql]) =>
+          sql.includes("INSERT INTO ipfs_content"),
+        ),
+      ).toBe(false);
+      expect(manager._activeWrites.size).toBe(0);
+    });
+  });
+
+  describe("addFile()", () => {
+    beforeEach(async () => {
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      manager.unixfs = makeMockUnixfs("QmFileCID");
+    });
+
+    it("rejects an oversized file before reading it", async () => {
+      const fileSystem = {
+        mkdirSync: vi.fn(),
+        existsSync: vi.fn(() => true),
+        statSync: vi.fn(() => ({ isFile: () => true, size: 6 })),
+        readFileSync: vi.fn(() => Buffer.from("123456")),
+        writeFileSync: vi.fn(),
+      };
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        fileSystem,
+        boundaries: { maxContentBytes: 5, maxIpcContentBytes: 5 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      manager.unixfs = makeMockUnixfs("QmFileCID");
+
+      await expect(manager.addFile("/large.bin")).rejects.toMatchObject({
+        code: "PAYLOAD_TOO_LARGE",
+      });
+      expect(fileSystem.readFileSync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getContent() bounded reads", () => {
+    beforeEach(async () => {
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+    });
+
+    it("rejects a stream that exceeds the byte budget and closes it", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { maxContentBytes: 5, maxIpcContentBytes: 5 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      const iterator = {
+        index: 0,
+        next: vi.fn(async function () {
+          const chunks = [Buffer.from("123"), Buffer.from("456")];
+          return this.index < chunks.length
+            ? { value: chunks[this.index++], done: false }
+            : { done: true };
+        }),
+        return: vi.fn(async () => ({ done: true })),
+      };
+      manager.unixfs = {
+        cat: vi.fn(() => ({ [Symbol.asyncIterator]: () => iterator })),
+      };
+
+      await expect(manager.getContent(VALID_CID)).rejects.toMatchObject({
+        code: "PAYLOAD_TOO_LARGE",
+      });
+      expect(iterator.return).toHaveBeenCalledOnce();
+      expect(manager._activeReads.size).toBe(0);
+    });
+
+    it("rejects excessive zero-byte chunks", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { maxReadChunks: 2 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      manager.unixfs = {
+        cat: vi.fn(async function* () {
+          yield Buffer.alloc(0);
+          yield Buffer.alloc(0);
+          yield Buffer.alloc(0);
+        }),
+      };
+
+      await expect(manager.getContent(VALID_CID)).rejects.toMatchObject({
+        code: "TOO_MANY_CHUNKS",
+      });
+      expect(manager._activeReads.size).toBe(0);
+    });
+
+    it("returns structured overload and stop cancels the retained read", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: {
+          maxConcurrentReads: 1,
+          readTimeoutMs: 1000,
+          retryAfterMs: 25,
+        },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      const iterator = {
+        next: vi.fn(() => new Promise(() => {})),
+        return: vi.fn(async () => ({ done: true })),
+      };
+      manager.unixfs = {
+        cat: vi.fn(() => ({ [Symbol.asyncIterator]: () => iterator })),
+      };
+
+      const firstRead = manager.getContent(VALID_CID).catch((error) => error);
+      await vi.waitFor(() => expect(manager._activeReads.size).toBe(1));
+      await expect(manager.getContent(VALID_CID)).rejects.toMatchObject({
+        code: "OVERLOADED",
+        retryAfterMs: 25,
+      });
+
+      await manager.stopNode();
+      expect(await firstRead).toMatchObject({ code: "CANCELLED" });
+      expect(iterator.return).toHaveBeenCalledOnce();
+      expect(manager._activeReads.size).toBe(0);
+    });
+
+    it("times out a stalled iterator and releases admission", async () => {
+      manager = new IPFSManager({
+        safeStorage: makeSafeStorage(),
+        boundaries: { readTimeoutMs: 20 },
+      });
+      await manager.initialize({ database: mockDb });
+      manager.node = makeMockNode();
+      const iterator = {
+        next: vi.fn(() => new Promise(() => {})),
+        return: vi.fn(async () => ({ done: true })),
+      };
+      manager.unixfs = {
+        cat: vi.fn(() => ({ [Symbol.asyncIterator]: () => iterator })),
+      };
+
+      await expect(manager.getContent(VALID_CID)).rejects.toMatchObject({
+        code: "DEADLINE_EXCEEDED",
+        timeoutMs: 20,
+      });
+      expect(iterator.return).toHaveBeenCalledOnce();
+      expect(manager._activeReads.size).toBe(0);
+    });
   });
 
   // ----------------------------------------------------------------
@@ -497,6 +727,14 @@ describe("IPFSManager", () => {
         manager.listPins({ sortBy: "; DROP TABLE ipfs_content--" }),
       ).resolves.toBeDefined();
     });
+
+    it("rejects an above-limit page before querying rows", async () => {
+      mockDb.all.mockClear();
+      await expect(
+        manager.listPins({ limit: manager.boundaries.maxListLimit + 1 }),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+      expect(mockDb.all).not.toHaveBeenCalled();
+    });
   });
 
   // ----------------------------------------------------------------
@@ -536,22 +774,25 @@ describe("IPFSManager", () => {
   describe("garbageCollect()", () => {
     it("returns { freedBytes, removedItems } structure", async () => {
       await manager.initialize({ database: mockDb });
-      mockDb.all = vi.fn(() => [
-        { id: "unpinned-1", cid: "QmOld1", size: 200 },
-        { id: "unpinned-2", cid: "QmOld2", size: 300 },
-      ]);
-      mockDb.get = vi.fn(() => ({ count: 0, totalSize: 0 }));
+      mockDb.all.mockClear();
+      mockDb.get = vi
+        .fn()
+        .mockReturnValueOnce({ count: 2, totalSize: 500 })
+        .mockReturnValue({ count: 0, totalSize: 0 });
 
       const result = await manager.garbageCollect();
 
       expect(result.freedBytes).toBe(500);
       expect(result.removedItems).toBe(2);
+      expect(mockDb.all).not.toHaveBeenCalled();
     });
 
     it("deletes unpinned records from DB", async () => {
       await manager.initialize({ database: mockDb });
-      mockDb.all = vi.fn(() => [{ id: "unpin-1", cid: "QmGone", size: 100 }]);
-      mockDb.get = vi.fn(() => ({ count: 0, totalSize: 0 }));
+      mockDb.get = vi
+        .fn()
+        .mockReturnValueOnce({ count: 1, totalSize: 100 })
+        .mockReturnValue({ count: 0, totalSize: 0 });
 
       await manager.garbageCollect();
 
@@ -564,7 +805,6 @@ describe("IPFSManager", () => {
       await manager.initialize({ database: mockDb });
       const mockNode = makeMockNode();
       manager.node = mockNode;
-      mockDb.all = vi.fn(() => []);
       mockDb.get = vi.fn(() => ({ count: 0, totalSize: 0 }));
 
       await manager.garbageCollect();
@@ -574,7 +814,6 @@ describe("IPFSManager", () => {
 
     it("returns 0 freed bytes when no unpinned content", async () => {
       await manager.initialize({ database: mockDb });
-      mockDb.all = vi.fn(() => []);
       mockDb.get = vi.fn(() => ({ count: 0, totalSize: 0 }));
 
       const result = await manager.garbageCollect();
