@@ -17,6 +17,21 @@ export interface OfflineQueueItem {
   timestamp: number;
 }
 
+export interface OfflineAdmissionResult {
+  accepted: boolean;
+  id?: string;
+  code?: "OVERLOADED" | "INVALID_ARGUMENT";
+  scope?: "offline_queue" | "offline_listeners";
+  retryAfterMs?: number;
+  limit?: Record<string, number>;
+}
+
+export const OFFLINE_MANAGER_LIMITS = Object.freeze({
+  maxQueueItems: 128,
+  maxListeners: 64,
+  connectionTimeoutMs: 10_000,
+});
+
 /**
  * 网络状态监听器
  */
@@ -32,10 +47,10 @@ export interface UseOfflineReturn {
   isOnline: ComputedRef<boolean>;
   isOffline: ComputedRef<boolean>;
   offlineQueue: ComputedRef<OfflineQueueItem[]>;
-  addToQueue: (action: () => Promise<void>) => void;
+  addToQueue: (action: () => Promise<void>) => OfflineAdmissionResult;
   processQueue: () => Promise<void>;
   clearQueue: () => void;
-  addListener: (listener: NetworkListener) => void;
+  addListener: (listener: NetworkListener) => OfflineAdmissionResult;
   removeListener: (listener: NetworkListener) => void;
 }
 
@@ -51,6 +66,11 @@ class OfflineManager {
   private _boundHandleOnline: () => void;
   private _boundHandleOffline: () => void;
   private _checkConnectionTimer: ReturnType<typeof setInterval> | null;
+  private connectionCheckPromise: Promise<void> | null;
+  private connectionAbortController: AbortController | null;
+  private processingPromise: Promise<void> | null;
+  private reservedQueueSlots: number;
+  private queueVersion: number;
 
   constructor() {
     this.isOnline = ref(
@@ -62,6 +82,11 @@ class OfflineManager {
     this._boundHandleOnline = this.handleOnline.bind(this);
     this._boundHandleOffline = this.handleOffline.bind(this);
     this._checkConnectionTimer = null;
+    this.connectionCheckPromise = null;
+    this.connectionAbortController = null;
+    this.processingPromise = null;
+    this.reservedQueueSlots = 0;
+    this.queueVersion = 0;
 
     this.init();
   }
@@ -105,10 +130,28 @@ class OfflineManager {
    * 检查连接
    */
   async checkConnection(): Promise<void> {
+    if (this.connectionCheckPromise) {
+      return this.connectionCheckPromise;
+    }
+    this.connectionCheckPromise = this.performConnectionCheck();
+    try {
+      await this.connectionCheckPromise;
+    } finally {
+      this.connectionCheckPromise = null;
+    }
+  }
+
+  private async performConnectionCheck(): Promise<void> {
+    const abortController = new AbortController();
+    this.connectionAbortController = abortController;
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, OFFLINE_MANAGER_LIMITS.connectionTimeoutMs);
     try {
       const response = await fetch("/api/ping", {
         method: "HEAD",
         cache: "no-cache",
+        signal: abortController.signal,
       });
       const online = response.ok;
 
@@ -125,38 +168,77 @@ class OfflineManager {
         this.isOnline.value = false;
         this.notifyListeners("offline");
       }
+    } finally {
+      clearTimeout(timeoutId);
+      if (this.connectionAbortController === abortController) {
+        this.connectionAbortController = null;
+      }
     }
   }
 
   /**
    * 添加到离线队列
    */
-  addToQueue(action: () => Promise<void>): void {
+  addToQueue(action: () => Promise<void>): OfflineAdmissionResult {
+    if (typeof action !== "function") {
+      return { accepted: false, code: "INVALID_ARGUMENT" };
+    }
+    if (
+      this.offlineQueue.value.length + this.reservedQueueSlots >=
+      OFFLINE_MANAGER_LIMITS.maxQueueItems
+    ) {
+      return {
+        accepted: false,
+        code: "OVERLOADED",
+        scope: "offline_queue",
+        retryAfterMs: 1000,
+        limit: { maxQueueItems: OFFLINE_MANAGER_LIMITS.maxQueueItems },
+      };
+    }
+    const id = `action-${Date.now()}-${Math.random()}`;
     this.offlineQueue.value.push({
-      id: `action-${Date.now()}-${Math.random()}`,
+      id,
       action,
       timestamp: Date.now(),
     });
 
     this.saveQueue();
+    return { accepted: true, id };
   }
 
   /**
    * 处理队列
    */
   async processQueue(): Promise<void> {
-    if (this.offlineQueue.value.length === 0) {
+    if (this.processingPromise) {
+      return this.processingPromise;
+    }
+    this.processingPromise = this.drainQueue();
+    try {
+      await this.processingPromise;
+    } finally {
+      this.processingPromise = null;
+    }
+  }
+
+  private async drainQueue(): Promise<void> {
+    const initialCount = Math.min(
+      this.offlineQueue.value.length,
+      OFFLINE_MANAGER_LIMITS.maxQueueItems,
+    );
+    if (initialCount === 0) {
       return;
     }
 
-    logger.info(
-      `[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`,
-    );
+    logger.info(`[OfflineManager] Processing ${initialCount} queued actions`);
 
-    const queue = [...this.offlineQueue.value];
-    this.offlineQueue.value = [];
-
-    for (const item of queue) {
+    for (let index = 0; index < initialCount; index += 1) {
+      const item = this.offlineQueue.value.shift();
+      if (!item) {
+        break;
+      }
+      const itemQueueVersion = this.queueVersion;
+      this.reservedQueueSlots++;
       try {
         await item.action();
         logger.info(
@@ -164,7 +246,14 @@ class OfflineManager {
         );
       } catch (error) {
         logger.error(`[OfflineManager] Action ${item.id} failed:`, error);
-        this.offlineQueue.value.push(item);
+        if (
+          itemQueueVersion === this.queueVersion &&
+          this.offlineQueue.value.length < OFFLINE_MANAGER_LIMITS.maxQueueItems
+        ) {
+          this.offlineQueue.value.push(item);
+        }
+      } finally {
+        this.reservedQueueSlots--;
       }
     }
 
@@ -175,6 +264,7 @@ class OfflineManager {
    * 清空队列
    */
   clearQueue(): void {
+    this.queueVersion++;
     this.offlineQueue.value = [];
     this.saveQueue();
   }
@@ -197,8 +287,24 @@ class OfflineManager {
   /**
    * 添加监听器
    */
-  addListener(listener: NetworkListener): void {
+  addListener(listener: NetworkListener): OfflineAdmissionResult {
+    if (typeof listener !== "function") {
+      return { accepted: false, code: "INVALID_ARGUMENT" };
+    }
+    if (this.listeners.includes(listener)) {
+      return { accepted: true };
+    }
+    if (this.listeners.length >= OFFLINE_MANAGER_LIMITS.maxListeners) {
+      return {
+        accepted: false,
+        code: "OVERLOADED",
+        scope: "offline_listeners",
+        retryAfterMs: 1000,
+        limit: { maxListeners: OFFLINE_MANAGER_LIMITS.maxListeners },
+      };
+    }
     this.listeners.push(listener);
+    return { accepted: true };
   }
 
   /**
@@ -235,6 +341,10 @@ class OfflineManager {
       clearInterval(this._checkConnectionTimer);
       this._checkConnectionTimer = null;
     }
+    this.connectionAbortController?.abort();
+    this.connectionAbortController = null;
+    this.listeners = [];
+    this.clearQueue();
   }
 }
 
