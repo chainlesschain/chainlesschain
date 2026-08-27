@@ -4,23 +4,52 @@
  *
  * events.*: enumerate an element's event listeners (via CDP
  * DOMDebugger.getEventListeners), remove listeners (clone-and-replace), and
- * monitor/log live events in page context. Keeps per-tab eventMonitorState.
+ * monitor/log live events in page context with bounded page and service-worker
+ * state.
  *
  * Extracted verbatim from background.js (Phase 1 of the split). getEventListeners
  * uses the shared CDP helper; the rest run in page context via executeScript.
- * eventMonitorState moves with the handlers (verified no external refs).
+ * Monitor admission and page logs are bounded by tabs, count, and UTF-8 bytes.
  *
  * ESM only. chrome.* is referenced lazily inside the handler bodies.
  */
 
 /* eslint-disable no-undef */
-/* global chrome, document, window, Date, Object */
+/* global chrome, document, window, Date, JSON, TextEncoder, Array */
 
 import { ensureDebuggerAttached } from "./_shared.js";
+import {
+  ActivePageMonitorRegistry,
+  EVENT_MONITOR_LIMITS,
+  validateEventMonitorTypes,
+  validatePageMonitorSelector,
+} from "./page-monitor-boundary.js";
 
-const eventMonitorState = new Map();
+const eventMonitors = new ActivePageMonitorRegistry({ kind: "event" });
+let eventMonitorTabRemovalTarget = null;
+
+function ensureEventMonitorTabRemovalListener() {
+  const eventTarget = chrome.tabs?.onRemoved;
+  if (!eventTarget || eventMonitorTabRemovalTarget === eventTarget) {
+    return;
+  }
+  eventTarget.addListener((tabId) => {
+    eventMonitors.clearTab(tabId);
+  });
+  eventMonitorTabRemovalTarget = eventTarget;
+}
 
 export async function getEventListeners(tabId, selector) {
+  const selectorValidation = validatePageMonitorSelector(selector);
+  if (!selectorValidation.accepted || !selectorValidation.selector) {
+    return selectorValidation.accepted
+      ? {
+          accepted: false,
+          error: "Event listener selector must be a non-empty string",
+          code: "INVALID_ARGUMENT",
+        }
+      : selectorValidation;
+  }
   try {
     await ensureDebuggerAttached(tabId);
     await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
@@ -31,7 +60,7 @@ export async function getEventListeners(tabId, selector) {
       "DOM.querySelector",
       {
         nodeId: doc.root.nodeId,
-        selector: selector,
+        selector: selectorValidation.selector,
       },
     );
 
@@ -52,17 +81,28 @@ export async function getEventListeners(tabId, selector) {
       },
     );
 
+    const rawListeners = Array.isArray(listeners.listeners)
+      ? listeners.listeners
+      : [];
+    const retainedListeners = rawListeners.slice(
+      0,
+      EVENT_MONITOR_LIMITS.maxReturnedListeners,
+    );
     return {
-      listeners: listeners.listeners.map((l) => ({
-        type: l.type,
+      listeners: retainedListeners.map((l) => ({
+        type: typeof l.type === "string" ? l.type.slice(0, 64) : "",
         useCapture: l.useCapture,
         passive: l.passive,
         once: l.once,
         handler: l.handler?.description?.substring(0, 200),
-        scriptId: l.scriptId,
+        scriptId:
+          typeof l.scriptId === "string" ? l.scriptId.slice(0, 256) : "",
         lineNumber: l.lineNumber,
         columnNumber: l.columnNumber,
       })),
+      totalListeners: rawListeners.length,
+      truncated: rawListeners.length > retainedListeners.length,
+      limits: EVENT_MONITOR_LIMITS,
     };
   } catch (error) {
     return { error: error.message };
@@ -70,6 +110,20 @@ export async function getEventListeners(tabId, selector) {
 }
 
 export async function removeEventListener(tabId, selector, eventType) {
+  const selectorValidation = validatePageMonitorSelector(selector);
+  if (!selectorValidation.accepted || !selectorValidation.selector) {
+    return selectorValidation.accepted
+      ? {
+          accepted: false,
+          error: "Event listener selector must be a non-empty string",
+          code: "INVALID_ARGUMENT",
+        }
+      : selectorValidation;
+  }
+  const typeValidation = validateEventMonitorTypes([eventType]);
+  if (!typeValidation.accepted) {
+    return typeValidation;
+  }
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
@@ -82,7 +136,7 @@ export async function removeEventListener(tabId, selector, eventType) {
         el.parentNode.replaceChild(clone, el);
         return { success: true, eventType: type };
       },
-      args: [selector, eventType],
+      args: [selectorValidation.selector, typeValidation.eventTypes[0]],
     });
     return result[0]?.result || { error: "Failed to remove listener" };
   } catch (error) {
@@ -90,96 +144,259 @@ export async function removeEventListener(tabId, selector, eventType) {
   }
 }
 
+export function installEventMonitorInPage(selector, eventTypes, limits) {
+  const target = selector ? document.querySelector(selector) : document;
+  if (!target) {
+    return { error: "Target element not found" };
+  }
+
+  const previous = window.__chainlessEventMonitor;
+  if (previous?.target && Array.isArray(previous.handlers)) {
+    for (const [type, handler] of previous.handlers) {
+      previous.target.removeEventListener(type, handler, true);
+    }
+    previous.handlers = [];
+    previous.target = null;
+    previous.active = false;
+  }
+
+  const defaultTypes = [
+    "click",
+    "keydown",
+    "keyup",
+    "input",
+    "change",
+    "focus",
+    "blur",
+    "submit",
+  ];
+  const typesToMonitor = eventTypes.length > 0 ? eventTypes : defaultTypes;
+  const monitor = {
+    active: true,
+    target,
+    handlers: [],
+    events: [],
+    retainedBytes: 0,
+    droppedEvents: 0,
+    limits,
+  };
+  const truncate = (value, maxChars) => {
+    if (typeof value === "string") {
+      return value.slice(0, maxChars);
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value).slice(0, maxChars);
+    }
+    return "";
+  };
+
+  try {
+    for (const type of typesToMonitor) {
+      const handler = (event) => {
+        const eventTarget = event.target || {};
+        const tagName = truncate(
+          eventTarget.tagName || eventTarget.nodeName,
+          limits.maxTargetChars,
+        );
+        const id = truncate(eventTarget.id, limits.maxTargetChars);
+        const inputType = truncate(eventTarget.type, 32).toLowerCase();
+        let value = "";
+        try {
+          value =
+            inputType === "password"
+              ? "[REDACTED]"
+              : truncate(eventTarget.value, limits.maxValueChars);
+        } catch {
+          value = "";
+        }
+        const entry = {
+          type: truncate(event.type, limits.maxKeyChars),
+          target: `${tagName}${id ? `#${id}` : ""}`.slice(
+            0,
+            limits.maxTargetChars,
+          ),
+          timestamp: Date.now(),
+          key: truncate(event.key, limits.maxKeyChars),
+          code: truncate(event.code, limits.maxKeyChars),
+          button: Number.isFinite(Number(event.button))
+            ? Number(event.button)
+            : undefined,
+          clientX: Number.isFinite(Number(event.clientX))
+            ? Number(event.clientX)
+            : undefined,
+          clientY: Number.isFinite(Number(event.clientY))
+            ? Number(event.clientY)
+            : undefined,
+          value,
+        };
+        let bytes;
+        try {
+          bytes = new TextEncoder().encode(JSON.stringify(entry)).byteLength;
+        } catch {
+          monitor.droppedEvents += 1;
+          return;
+        }
+        if (bytes <= 0 || bytes > limits.maxEntryBytes) {
+          monitor.droppedEvents += 1;
+          return;
+        }
+        while (
+          monitor.events.length >= limits.maxEntries ||
+          monitor.retainedBytes + bytes > limits.maxTotalBytes
+        ) {
+          const oldest = monitor.events.shift();
+          if (!oldest) {
+            monitor.droppedEvents += 1;
+            return;
+          }
+          monitor.retainedBytes -= oldest.__bytes;
+          monitor.droppedEvents += 1;
+        }
+        monitor.events.push({ ...entry, __bytes: bytes });
+        monitor.retainedBytes += bytes;
+      };
+      monitor.handlers.push([type, handler]);
+      target.addEventListener(type, handler, true);
+    }
+  } catch (error) {
+    for (const [type, handler] of monitor.handlers) {
+      target.removeEventListener(type, handler, true);
+    }
+    return { error: error.message };
+  }
+
+  window.__chainlessEventMonitor = monitor;
+  return { success: true, monitoredTypes: typesToMonitor, limits };
+}
+
+export function stopEventMonitorInPage() {
+  const monitor = window.__chainlessEventMonitor;
+  if (monitor?.target && Array.isArray(monitor.handlers)) {
+    for (const [type, handler] of monitor.handlers) {
+      monitor.target.removeEventListener(type, handler, true);
+    }
+    monitor.handlers = [];
+    monitor.target = null;
+    monitor.active = false;
+  }
+  return { success: true };
+}
+
+export function readEventMonitorInPage() {
+  const monitor = window.__chainlessEventMonitor;
+  if (!monitor) {
+    return {
+      events: [],
+      count: 0,
+      droppedEvents: 0,
+      retainedBytes: 0,
+      status: "inactive",
+    };
+  }
+  return {
+    events: monitor.events.map(({ __bytes: _bytes, ...entry }) => entry),
+    count: monitor.events.length,
+    droppedEvents: monitor.droppedEvents,
+    retainedBytes: monitor.retainedBytes,
+    status: monitor.active ? "active" : "inactive",
+    limits: monitor.limits,
+  };
+}
+
 export async function startEventMonitor(tabId, selector, eventTypes = []) {
+  const selectorValidation = validatePageMonitorSelector(selector);
+  if (!selectorValidation.accepted) {
+    return selectorValidation;
+  }
+  const typeValidation = validateEventMonitorTypes(eventTypes);
+  if (!typeValidation.accepted) {
+    return typeValidation;
+  }
+
+  if (eventMonitors.getControl(tabId)?.status === "active") {
+    const stopped = await stopEventMonitor(tabId);
+    if (!stopped.success) {
+      return stopped;
+    }
+  }
+  const admission = eventMonitors.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+  ensureEventMonitorTabRemovalListener();
+
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: (sel, types) => {
-        window.__chainlessEventLog = [];
-
-        const target = sel ? document.querySelector(sel) : document;
-        if (sel && !target) return { error: "Target element not found" };
-
-        const defaultTypes = [
-          "click",
-          "keydown",
-          "keyup",
-          "input",
-          "change",
-          "focus",
-          "blur",
-          "submit",
-        ];
-        const typesToMonitor = types.length > 0 ? types : defaultTypes;
-
-        window.__chainlessEventHandlers = {};
-        typesToMonitor.forEach((type) => {
-          const handler = (event) => {
-            window.__chainlessEventLog.push({
-              type: event.type,
-              target:
-                event.target.tagName +
-                (event.target.id ? `#${event.target.id}` : ""),
-              timestamp: Date.now(),
-              key: event.key,
-              code: event.code,
-              button: event.button,
-              clientX: event.clientX,
-              clientY: event.clientY,
-              value: event.target.value?.substring?.(0, 100),
-            });
-            if (window.__chainlessEventLog.length > 500) {
-              window.__chainlessEventLog.shift();
-            }
-          };
-          window.__chainlessEventHandlers[type] = handler;
-          target.addEventListener(type, handler, true);
-        });
-
-        return { success: true, monitoredTypes: typesToMonitor };
-      },
-      args: [selector, eventTypes],
+      func: installEventMonitorInPage,
+      args: [
+        selectorValidation.selector,
+        typeValidation.eventTypes,
+        EVENT_MONITOR_LIMITS,
+      ],
     });
-
-    eventMonitorState.set(tabId, { started: Date.now() });
-    return result[0]?.result || { error: "Failed to start monitor" };
+    const pageResult = result[0]?.result || {
+      error: "Failed to start monitor",
+    };
+    if (pageResult.error) {
+      eventMonitors.complete(admission.lease);
+      return pageResult;
+    }
+    if (!eventMonitors.markActive(admission.lease)) {
+      throw new Error("Event monitor tab closed during startup");
+    }
+    return {
+      ...pageResult,
+      admissionLimits: eventMonitors.getStats().limits,
+    };
   } catch (error) {
+    eventMonitors.complete(admission.lease);
     return { error: error.message };
   }
 }
 
 export async function stopEventMonitor(tabId) {
+  const stopAdmission = eventMonitors.beginStop(tabId);
+  if (
+    !stopAdmission.accepted &&
+    stopAdmission.code !== "PAGE_MONITOR_NOT_FOUND"
+  ) {
+    return stopAdmission;
+  }
   try {
-    await chrome.scripting.executeScript({
+    const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
-        if (window.__chainlessEventHandlers) {
-          Object.entries(window.__chainlessEventHandlers).forEach(
-            ([type, handler]) => {
-              document.removeEventListener(type, handler, true);
-            },
-          );
-          window.__chainlessEventHandlers = null;
-        }
-      },
+      func: stopEventMonitorInPage,
     });
-    eventMonitorState.delete(tabId);
-    return { success: true };
+    const pageResult = result[0]?.result || { error: "Failed to stop monitor" };
+    if (pageResult.error) {
+      if (stopAdmission.accepted) {
+        eventMonitors.cancelStop(stopAdmission.lease);
+      }
+      return pageResult;
+    }
+    if (stopAdmission.accepted) {
+      eventMonitors.complete(stopAdmission.lease);
+    }
+    return pageResult;
   } catch (error) {
+    if (stopAdmission.accepted) {
+      eventMonitors.cancelStop(stopAdmission.lease);
+    }
     return { error: error.message };
   }
 }
 
-export function getEventLog(tabId) {
-  return chrome.scripting
-    .executeScript({
+export async function getEventLog(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => ({
-        events: window.__chainlessEventLog || [],
-        count: window.__chainlessEventLog?.length || 0,
-      }),
-    })
-    .then((result) => result[0]?.result || { events: [] });
+      func: readEventMonitorInPage,
+    });
+    return result[0]?.result || { events: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
 }
 
 export const eventsHandlers = {
