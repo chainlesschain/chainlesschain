@@ -654,7 +654,11 @@ class OptimisticUpdateManager {
 
       let result: R;
       let responseTime = 0;
-      while (true) {
+      for (
+        let attempt = 0;
+        attempt <= this.options.maxRetries;
+        attempt++
+      ) {
         const startTime = performance.now();
         try {
           result = await apiCall();
