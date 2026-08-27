@@ -9,6 +9,56 @@
 const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 
+const KIB = 1024;
+const MIB = KIB * KIB;
+
+const DEFAULT_STREAM_CONTROLLER_LIMITS = Object.freeze({
+  maxBufferedChunks: 1000,
+  maxBufferedBytes: 4 * MIB,
+  maxBufferedChunkBytes: 256 * KIB,
+  maxPauseWaiters: 128,
+});
+
+const HARD_STREAM_CONTROLLER_LIMITS = Object.freeze({
+  maxBufferedChunks: 10_000,
+  maxBufferedBytes: 16 * MIB,
+  maxBufferedChunkBytes: MIB,
+  maxPauseWaiters: 1024,
+});
+
+function normalizeLimit(value, fallback, hardLimit) {
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return fallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function prepareBufferedChunk(chunk, maxBytes) {
+  try {
+    if (typeof chunk === "string") {
+      const bytes = Buffer.byteLength(chunk, "utf8");
+      return bytes <= maxBytes ? { value: chunk, bytes } : null;
+    }
+    const serialized = JSON.stringify(chunk);
+    if (typeof serialized !== "string") {
+      return null;
+    }
+    const bytes = Buffer.byteLength(serialized, "utf8");
+    if (bytes > maxBytes) {
+      return null;
+    }
+    return { value: JSON.parse(serialized), bytes };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 流式输出状态
  */
@@ -29,12 +79,43 @@ class StreamController extends EventEmitter {
     super();
 
     this.options = options;
+    const maxBufferedBytes = normalizeLimit(
+      options.maxBufferedBytes,
+      DEFAULT_STREAM_CONTROLLER_LIMITS.maxBufferedBytes,
+      HARD_STREAM_CONTROLLER_LIMITS.maxBufferedBytes,
+    );
+    const maxBufferedChunkBytes = Math.min(
+      maxBufferedBytes,
+      normalizeLimit(
+        options.maxBufferedChunkBytes,
+        DEFAULT_STREAM_CONTROLLER_LIMITS.maxBufferedChunkBytes,
+        HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunkBytes,
+      ),
+    );
+    this.bufferLimits = Object.freeze({
+      maxBufferedChunks: normalizeLimit(
+        options.maxBufferedChunks,
+        DEFAULT_STREAM_CONTROLLER_LIMITS.maxBufferedChunks,
+        HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunks,
+      ),
+      maxBufferedBytes,
+      maxBufferedChunkBytes,
+      maxPauseWaiters: normalizeLimit(
+        options.maxPauseWaiters,
+        DEFAULT_STREAM_CONTROLLER_LIMITS.maxPauseWaiters,
+        HARD_STREAM_CONTROLLER_LIMITS.maxPauseWaiters,
+      ),
+    });
     this.status = StreamStatus.IDLE;
     this.abortController = new AbortController();
     this.isPaused = false;
     this.totalChunks = 0;
     this.processedChunks = 0;
     this.buffer = [];
+    this.bufferEntryBytes = [];
+    this.bufferedBytes = 0;
+    this.droppedBufferedChunks = 0;
+    this.droppedPausedChunks = 0;
     this.startTime = null;
     this.endTime = null;
     this.pauseResolvers = [];
@@ -74,7 +155,10 @@ class StreamController extends EventEmitter {
 
     // 如果暂停，等待恢复
     if (this.isPaused) {
-      await this.waitForResume();
+      const resumed = await this.waitForResume();
+      if (!resumed) {
+        return false;
+      }
     }
 
     // 再次检查取消状态
@@ -88,7 +172,7 @@ class StreamController extends EventEmitter {
 
     // 如果启用缓冲，添加到缓冲区
     if (this.options.enableBuffering) {
-      this.buffer.push(chunk);
+      this.retainBufferedChunk(chunk);
     }
 
     this.emit("chunk", {
@@ -127,27 +211,37 @@ class StreamController extends EventEmitter {
     this.status = StreamStatus.RUNNING;
 
     // 解析所有等待中的promise
-    while (this.pauseResolvers.length > 0) {
-      const resolve = this.pauseResolvers.shift();
-      resolve();
-    }
+    this.releasePauseWaiters(true);
 
     this.emit("resume", { timestamp: Date.now() });
   }
 
   /**
    * 等待恢复
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} Whether processing should resume
    */
   waitForResume() {
     return new Promise((resolve) => {
       if (!this.isPaused) {
-        resolve();
+        resolve(true);
+        return;
+      }
+
+      if (this.pauseResolvers.length >= this.bufferLimits.maxPauseWaiters) {
+        this.droppedPausedChunks += 1;
+        resolve(false);
         return;
       }
 
       this.pauseResolvers.push(resolve);
     });
+  }
+
+  releasePauseWaiters(resumed) {
+    while (this.pauseResolvers.length > 0) {
+      const resolve = this.pauseResolvers.shift();
+      resolve(resumed);
+    }
   }
 
   /**
@@ -164,13 +258,11 @@ class StreamController extends EventEmitter {
 
     this.abortController.abort(reason);
     this.status = StreamStatus.CANCELLED;
+    this.isPaused = false;
     this.endTime = Date.now();
 
     // 清空暂停等待队列
-    while (this.pauseResolvers.length > 0) {
-      const resolve = this.pauseResolvers.shift();
-      resolve();
-    }
+    this.releasePauseWaiters(false);
 
     this.emit("cancel", {
       reason,
@@ -189,7 +281,9 @@ class StreamController extends EventEmitter {
     }
 
     this.status = StreamStatus.COMPLETED;
+    this.isPaused = false;
     this.endTime = Date.now();
+    this.releasePauseWaiters(false);
 
     const stats = this.getStats();
 
@@ -206,7 +300,9 @@ class StreamController extends EventEmitter {
    */
   error(error) {
     this.status = StreamStatus.ERROR;
+    this.isPaused = false;
     this.endTime = Date.now();
+    this.releasePauseWaiters(false);
 
     // 使用 stream-error 而非 error，避免 Node.js EventEmitter
     // 在无监听器时抛出 ERR_UNHANDLED_ERROR
@@ -237,7 +333,46 @@ class StreamController extends EventEmitter {
       startTime: this.startTime,
       endTime: this.endTime,
       isPaused: this.isPaused,
+      bufferedChunks: this.buffer.length,
+      bufferedBytes: this.bufferedBytes,
+      droppedBufferedChunks: this.droppedBufferedChunks,
+      pauseWaiters: this.pauseResolvers.length,
+      droppedPausedChunks: this.droppedPausedChunks,
+      bufferLimits: this.bufferLimits,
     };
+  }
+
+  /**
+   * Retain a JSON-safe chunk inside the configured count and byte ring.
+   * @param {*} chunk - Stream chunk
+   * @returns {boolean} Whether the chunk was retained
+   */
+  retainBufferedChunk(chunk) {
+    const prepared = prepareBufferedChunk(
+      chunk,
+      this.bufferLimits.maxBufferedChunkBytes,
+    );
+    if (!prepared) {
+      this.droppedBufferedChunks += 1;
+      return false;
+    }
+
+    while (
+      this.buffer.length >= this.bufferLimits.maxBufferedChunks ||
+      this.bufferedBytes + prepared.bytes > this.bufferLimits.maxBufferedBytes
+    ) {
+      if (this.buffer.length === 0) {
+        this.droppedBufferedChunks += 1;
+        return false;
+      }
+      this.buffer.shift();
+      this.bufferedBytes -= this.bufferEntryBytes.shift();
+      this.droppedBufferedChunks += 1;
+    }
+    this.buffer.push(prepared.value);
+    this.bufferEntryBytes.push(prepared.bytes);
+    this.bufferedBytes += prepared.bytes;
+    return true;
   }
 
   /**
@@ -245,7 +380,7 @@ class StreamController extends EventEmitter {
    * @returns {Array} 缓冲的chunks
    */
   getBuffer() {
-    return [...this.buffer];
+    return JSON.parse(JSON.stringify(this.buffer));
   }
 
   /**
@@ -253,18 +388,25 @@ class StreamController extends EventEmitter {
    */
   clearBuffer() {
     this.buffer = [];
+    this.bufferEntryBytes = [];
+    this.bufferedBytes = 0;
   }
 
   /**
    * 重置控制器
    */
   reset() {
+    this.releasePauseWaiters(false);
     this.status = StreamStatus.IDLE;
     this.abortController = new AbortController();
     this.isPaused = false;
     this.totalChunks = 0;
     this.processedChunks = 0;
     this.buffer = [];
+    this.bufferEntryBytes = [];
+    this.bufferedBytes = 0;
+    this.droppedBufferedChunks = 0;
+    this.droppedPausedChunks = 0;
     this.startTime = null;
     this.endTime = null;
     this.pauseResolvers = [];
@@ -291,6 +433,8 @@ function createStreamController(options = {}) {
 }
 
 module.exports = {
+  DEFAULT_STREAM_CONTROLLER_LIMITS,
+  HARD_STREAM_CONTROLLER_LIMITS,
   StreamController,
   StreamStatus,
   createStreamController,
