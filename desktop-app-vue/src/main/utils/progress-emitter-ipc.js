@@ -29,9 +29,15 @@
 
 const { logger } = require('./logger.js');
 const ProgressEmitter = require('./progress-emitter.js');
+const TERMINAL_PROGRESS_STAGES = new Set([
+  ProgressEmitter.Stage.COMPLETED,
+  ProgressEmitter.Stage.FAILED,
+  ProgressEmitter.Stage.CANCELLED,
+]);
 
 // 单例实例
 let progressEmitter = null;
+let trackerCleanupListener = null;
 
 // 活动追踪器映射（taskId -> tracker object）
 const activeTrackers = new Map();
@@ -40,9 +46,9 @@ const activeTrackers = new Map();
  * 获取或创建 ProgressEmitter 实例
  * @returns {ProgressEmitter}
  */
-function getProgressEmitter() {
+function getProgressEmitter(config = {}) {
   if (!progressEmitter) {
-    progressEmitter = new ProgressEmitter();
+    progressEmitter = new ProgressEmitter(config);
   }
   return progressEmitter;
 }
@@ -53,9 +59,10 @@ function getProgressEmitter() {
  * @param {Object} options.ipcMain - Electron ipcMain
  * @param {Object} options.ipcGuard - IPC 防重复注册守卫
  * @param {BrowserWindow} options.mainWindow - 主窗口（可选）
+ * @param {Object} options.progressEmitterConfig - 有界任务配置（可选）
  */
 function registerProgressEmitterIPC(options = {}) {
-  const { ipcMain, ipcGuard, mainWindow } = options;
+  const { ipcMain, ipcGuard, mainWindow, progressEmitterConfig } = options;
 
   if (!ipcMain) {
     throw new Error('ipcMain is required for registerProgressEmitterIPC');
@@ -69,7 +76,14 @@ function registerProgressEmitterIPC(options = {}) {
 
   logger.info('[ProgressEmitter-IPC] 注册 IPC handlers...');
 
-  const emitter = getProgressEmitter();
+  const emitter = getProgressEmitter(progressEmitterConfig);
+  if (trackerCleanupListener) {
+    emitter.removeListener('task-removed', trackerCleanupListener);
+  }
+  trackerCleanupListener = ({ taskId }) => {
+    activeTrackers.delete(taskId);
+  };
+  emitter.on('task-removed', trackerCleanupListener);
 
   // 设置主窗口（如果提供）
   if (mainWindow) {
@@ -94,7 +108,7 @@ function registerProgressEmitterIPC(options = {}) {
       }
 
       // 检查是否已存在
-      if (activeTrackers.has(taskId)) {
+      if (activeTrackers.has(taskId) || emitter.hasTask(taskId)) {
         return {
           success: false,
           error: `任务 ${taskId} 已存在`,
@@ -126,6 +140,10 @@ function registerProgressEmitterIPC(options = {}) {
       return {
         success: false,
         error: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.scope ? { scope: error.scope } : {}),
+        ...(error.retryAfterMs ? { retryAfterMs: error.retryAfterMs } : {}),
+        ...(error.limit ? { limit: error.limit } : {}),
       };
     }
   });
@@ -351,6 +369,9 @@ function registerProgressEmitterIPC(options = {}) {
       }
 
       tracker.setStage(stage, message);
+      if (TERMINAL_PROGRESS_STAGES.has(stage)) {
+        activeTrackers.delete(taskId);
+      }
 
       const taskInfo = tracker.getInfo();
 
@@ -388,11 +409,7 @@ function registerProgressEmitterIPC(options = {}) {
       tracker.complete(result);
 
       const taskInfo = tracker.getInfo();
-
-      // 延迟清理追踪器
-      setTimeout(() => {
-        activeTrackers.delete(taskId);
-      }, 5000);
+      activeTrackers.delete(taskId);
 
       logger.info(`[ProgressEmitter-IPC] 任务完成: ${taskId}`);
 
@@ -429,11 +446,7 @@ function registerProgressEmitterIPC(options = {}) {
       tracker.error(errorMessage || '未知错误');
 
       const taskInfo = tracker.getInfo();
-
-      // 延迟清理追踪器
-      setTimeout(() => {
-        activeTrackers.delete(taskId);
-      }, 10000);
+      activeTrackers.delete(taskId);
 
       logger.info(`[ProgressEmitter-IPC] 任务失败: ${taskId} - ${errorMessage}`);
 
@@ -470,11 +483,7 @@ function registerProgressEmitterIPC(options = {}) {
       tracker.cancel(reason);
 
       const taskInfo = tracker.getInfo();
-
-      // 延迟清理追踪器
-      setTimeout(() => {
-        activeTrackers.delete(taskId);
-      }, 5000);
+      activeTrackers.delete(taskId);
 
       logger.info(`[ProgressEmitter-IPC] 任务取消: ${taskId} - ${reason}`);
 
@@ -500,7 +509,7 @@ function registerProgressEmitterIPC(options = {}) {
    */
   ipcMain.handle('progress:clear-all', async () => {
     try {
-      const count = activeTrackers.size;
+      const count = emitter.getStats().taskCount;
 
       emitter.clearAll();
       activeTrackers.clear();
@@ -530,8 +539,9 @@ function registerProgressEmitterIPC(options = {}) {
         success: true,
         config: { ...emitter.config },
         stages: { ...ProgressEmitter.Stage },
-        activeTaskCount: emitter.getActiveTasks().length,
+        activeTaskCount: emitter.getStats().taskCount,
         trackerCount: activeTrackers.size,
+        boundary: emitter.getStats(),
       };
     } catch (error) {
       logger.error('[ProgressEmitter-IPC] 获取配置失败:', error);
@@ -593,6 +603,10 @@ function unregisterProgressEmitterIPC(options = {}) {
 
   // 清理单例
   if (progressEmitter) {
+    if (trackerCleanupListener) {
+      progressEmitter.removeListener('task-removed', trackerCleanupListener);
+      trackerCleanupListener = null;
+    }
     progressEmitter.clearAll();
     progressEmitter = null;
   }

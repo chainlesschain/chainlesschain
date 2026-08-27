@@ -171,3 +171,139 @@ describe("progress-emitter — IPC forwarding (integration)", () => {
     expect(() => t.step("go", 5)).not.toThrow();
   });
 });
+
+describe("progress-emitter — bounded retention", () => {
+  it("uses finite defaults and clamps configured limits to hard ceilings", () => {
+    const pe = make();
+    expect(pe.limits).toEqual(ProgressEmitter.DEFAULT_LIMITS);
+
+    const hard = make(
+      Object.fromEntries(
+        Object.keys(ProgressEmitter.HARD_LIMITS).map((key) => [
+          key,
+          Number.MAX_SAFE_INTEGER,
+        ]),
+      ),
+    );
+    expect(hard.limits).toEqual(ProgressEmitter.HARD_LIMITS);
+  });
+
+  it("rejects active-task overflow with structured retry metadata", () => {
+    const pe = make({ maxTasks: 2 });
+    pe.createTracker("one");
+    pe.createTracker("two");
+
+    let overload;
+    try {
+      pe.createTracker("three");
+    } catch (error) {
+      overload = error;
+    }
+
+    expect(overload).toMatchObject({
+      code: "OVERLOADED",
+      scope: "progress_tasks",
+      retryAfterMs: 1000,
+      limit: { maxTasks: 2 },
+    });
+    expect(pe.getStats()).toMatchObject({ taskCount: 2, droppedTasks: 1 });
+  });
+
+  it("evicts the oldest terminal task and its cleanup timer", () => {
+    const pe = make({ maxTasks: 2 });
+    const oldest = pe.createTracker("oldest");
+    pe.createTracker("active");
+    oldest.complete();
+    expect(pe.getStats().cleanupTimerCount).toBe(1);
+
+    pe.createTracker("replacement");
+
+    expect(pe.hasTask("oldest")).toBe(false);
+    expect(pe.hasTask("replacement")).toBe(true);
+    expect(pe.getStats().cleanupTimerCount).toBe(0);
+  });
+
+  it("clears delayed cleanup before reusing a removed task ID", () => {
+    const pe = make();
+    const first = pe.createTracker("reused");
+    first.cancel();
+    pe.removeTask("reused");
+    pe.createTracker("reused");
+
+    vi.advanceTimersByTime(5000);
+
+    expect(pe.hasTask("reused")).toBe(true);
+    expect(pe.getStats().cleanupTimerCount).toBe(0);
+  });
+
+  it("retains terminal setStage compatibility with bounded cleanup", () => {
+    const pe = make();
+    const tracker = pe.createTracker("stage-terminal");
+
+    tracker.setStage(ProgressEmitter.Stage.COMPLETED, "done");
+
+    expect(tracker.getInfo()).toMatchObject({
+      stage: STAGE.COMPLETED,
+      percent: 100,
+      message: "done",
+    });
+    expect(pe.getStats().cleanupTimerCount).toBe(1);
+  });
+
+  it("bounds UTF-8 fields and drops oversized metadata", () => {
+    const pe = make({
+      maxTitleBytes: 4,
+      maxMessageBytes: 4,
+      maxMetadataBytes: 8,
+    });
+    const tracker = pe.createTracker("bounded", {
+      title: "你好",
+      metadata: { value: "oversized" },
+    });
+    tracker.step("世界", 1);
+    const task = tracker.getInfo();
+
+    expect(Buffer.byteLength(task.title, "utf8")).toBeLessThanOrEqual(4);
+    expect(Buffer.byteLength(task.message, "utf8")).toBeLessThanOrEqual(4);
+    expect(task.metadata).toEqual({});
+    expect(pe.getStats().droppedPayloads).toBe(1);
+  });
+
+  it("bounds task identifiers by UTF-8 bytes before retaining a key", () => {
+    const pe = make({ maxTaskIdBytes: 4 });
+
+    expect(() => pe.createTracker("你好")).toThrow("taskId is too large");
+    expect(pe.getStats().taskCount).toBe(0);
+  });
+
+  it("bounds the number of children retained by a parent", () => {
+    const pe = make({ maxChildTasks: 1 });
+    pe.createTracker("parent");
+    pe.createTracker("child-one", { parentTaskId: "parent" });
+
+    let overload;
+    try {
+      pe.createTracker("child-two", { parentTaskId: "parent" });
+    } catch (error) {
+      overload = error;
+    }
+
+    expect(overload).toMatchObject({
+      code: "OVERLOADED",
+      scope: "progress_child_tasks",
+      limit: { maxChildTasks: 1 },
+    });
+    expect(pe.getTask("parent").childTasks).toEqual(["child-one"]);
+  });
+
+  it("returns detached task snapshots and prunes parent child references", () => {
+    const pe = make();
+    pe.createTracker("parent");
+    pe.createTracker("child", { parentTaskId: "parent" });
+    const snapshot = pe.getTask("parent");
+    snapshot.childTasks.push("external");
+    pe.removeTask("child");
+
+    expect(pe.getTask("parent").childTasks).toEqual([]);
+  });
+});
