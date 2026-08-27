@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertExactCommitSha,
   createGraphStoreCutoverEvidence,
   graphStoreCutoverCoverage,
   normalizeGraphStoreCutoverEvidence,
@@ -78,6 +79,23 @@ function packagedEvidence(commitSha = "a".repeat(40)) {
 }
 
 describe("Graph store cutover evidence", () => {
+  it("binds an expected commit to the checked-out exact HEAD", () => {
+    const commitSha = "a".repeat(40);
+    expect(
+      assertExactCommitSha(` ${commitSha.toUpperCase()} `, commitSha),
+    ).toBe(commitSha);
+    expect(() => assertExactCommitSha("b".repeat(40), commitSha)).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_STORE_EVIDENCE_SHA_MISMATCH",
+        expectedCommit: "b".repeat(40),
+        actualCommit: commitSha,
+      }),
+    );
+    expect(() => assertExactCommitSha(commitSha, "not-a-sha")).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_STORE_EVIDENCE_INVALID" }),
+    );
+  });
+
   it("normalizes a real store receipt envelope and detects tampering", () => {
     const evidence = packagedEvidence();
     expect(normalizeGraphStoreCutoverEvidence(evidence)).toEqual(evidence);

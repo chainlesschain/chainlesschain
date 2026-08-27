@@ -41,6 +41,29 @@ export function graphStoreEvidenceDigest(value) {
     .digest("hex")}`;
 }
 
+export function assertExactCommitSha(expectedCommit, actualCommit) {
+  const actual = String(actualCommit || "")
+    .trim()
+    .toLowerCase();
+  const expected = String(expectedCommit || "")
+    .trim()
+    .toLowerCase();
+  if (!COMMIT.test(actual) || (expected && !COMMIT.test(expected))) {
+    throw evidenceError(
+      "CC_GRAPH_STORE_EVIDENCE_INVALID",
+      "expected and actual commit SHAs must be exact hexadecimal identities",
+    );
+  }
+  if (expected && expected !== actual) {
+    throw evidenceError(
+      "CC_GRAPH_STORE_EVIDENCE_SHA_MISMATCH",
+      `expected commit ${expected} does not match checked-out HEAD ${actual}`,
+      { expectedCommit: expected, actualCommit: actual },
+    );
+  }
+  return actual;
+}
+
 function exactDigest(value, field) {
   const output = String(value || "");
   if (!DIGEST.test(output)) {

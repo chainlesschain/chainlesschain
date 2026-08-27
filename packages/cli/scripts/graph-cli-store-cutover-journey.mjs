@@ -33,6 +33,7 @@ import { createExecutionLocationBinding } from "../src/lib/execution-location-co
 import { GraphEventStore } from "../src/lib/graph-kernel/event-store.js";
 import { SchedulerGraphDispatchJournal } from "../src/lib/graph-kernel/trigger-adapter.js";
 import {
+  assertExactCommitSha,
   createGraphStoreCutoverEvidence,
   graphStoreEvidenceDigest,
 } from "../src/lib/graph-kernel/store-cutover-evidence.js";
@@ -701,18 +702,15 @@ function terminateWriter(child) {
 }
 
 function currentCommitSha(explicit) {
-  const value = String(
-    explicit ||
-      execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }),
-  )
-    .trim()
-    .toLowerCase();
-  if (!/^[a-f0-9]{40,64}$/u.test(value))
-    throw new Error("commit SHA is invalid");
-  return value;
+  const actual = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: path.resolve(path.dirname(SELF), "../../.."),
+    encoding: "utf8",
+  });
+  return assertExactCommitSha(explicit, actual);
 }
 
 async function runJourney(options) {
+  const commitSha = currentCommitSha(options.commitSha);
   const root = mkdtempSync(path.join(tmpdir(), "cc-p1-3-cli-store-writer-"));
   const rollbackRoot = mkdtempSync(
     path.join(tmpdir(), "cc-p1-3-cli-store-rollback-"),
@@ -774,7 +772,6 @@ async function runJourney(options) {
         rpoLossCount: 0,
         recovered: true,
       }));
-    const commitSha = currentCommitSha(options.commitSha);
     const sourceReceipts = {
       writerCutpointDigest: digest({
         pid: writer.message.pid,
