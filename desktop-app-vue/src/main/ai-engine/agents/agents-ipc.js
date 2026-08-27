@@ -1,7 +1,10 @@
 "use strict";
 
-const { ipcMain: electronIpcMain } = require("electron");
 const { logger } = require("../../utils/logger.js");
+
+function defaultIpcMain() {
+  return require("electron").ipcMain;
+}
 
 const AGENTS_IPC_CHANNELS = [
   "agents:list-templates",
@@ -66,7 +69,7 @@ function removeExistingHandlers(ipc) {
 }
 
 function registerAgentsIPC(dependencies = {}) {
-  const ipc = dependencies.ipcMain || electronIpcMain;
+  const ipc = dependencies.ipcMain || defaultIpcMain();
   const { database } = dependencies;
 
   const createTemplateManager =
@@ -388,7 +391,7 @@ function registerAgentsIPC(dependencies = {}) {
 }
 
 function unregisterAgentsIPC({ ipcMain: injectedIpcMain } = {}) {
-  const ipc = injectedIpcMain || electronIpcMain;
+  const ipc = injectedIpcMain || defaultIpcMain();
   if (typeof ipc.removeHandler === "function") {
     AGENTS_IPC_CHANNELS.forEach((channel) => {
       ipc.removeHandler(channel);

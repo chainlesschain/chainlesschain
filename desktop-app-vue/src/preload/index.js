@@ -34,6 +34,15 @@ function legacyOn(channel, func, once = false) {
   );
 }
 
+function fixedSubscription(channel, handler) {
+  if (typeof handler !== "function") {
+    throw new TypeError(`${channel} subscription requires a handler`);
+  }
+  const listener = (_event, data) => handler(data);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 /**
  * 清理对象中的 undefined 值
  * Electron IPC 不支持传递 undefined 值，需要转换为 null 或移除
@@ -143,6 +152,82 @@ contextBridge.exposeInMainWorld("electronAPI", {
   auth: {
     verifyPassword: (username, password) =>
       ipcRenderer.invoke("auth:verify-password", username, password),
+  },
+
+  specializedAgents: {
+    listTemplates: (filters = {}) =>
+      ipcRenderer.invoke("agents:list-templates", { filters }),
+    getTemplate: (templateId) =>
+      ipcRenderer.invoke("agents:get-template", { templateId }),
+    createTemplate: (template) =>
+      ipcRenderer.invoke("agents:create-template", { template }),
+    updateTemplate: (templateId, updates) =>
+      ipcRenderer.invoke("agents:update-template", { templateId, updates }),
+    deleteTemplate: (templateId) =>
+      ipcRenderer.invoke("agents:delete-template", { templateId }),
+    deployAgent: (templateId, config = {}) =>
+      ipcRenderer.invoke("agents:deploy-agent", { templateId, config }),
+    terminateAgent: (agentId, reason = "") =>
+      ipcRenderer.invoke("agents:terminate-agent", { agentId, reason }),
+    listInstances: () => ipcRenderer.invoke("agents:list-instances", {}),
+    getStatus: (agentId) =>
+      ipcRenderer.invoke("agents:get-status", { agentId }),
+    assignTask: (agentId, taskDescription, options = {}) =>
+      ipcRenderer.invoke("agents:assign-task", {
+        agentId,
+        taskDescription,
+        options,
+      }),
+    getTaskStatus: (taskId) =>
+      ipcRenderer.invoke("agents:get-task-status", { taskId }),
+    cancelTask: (taskId, reason = "") =>
+      ipcRenderer.invoke("agents:cancel-task", { taskId, reason }),
+    orchestrate: (taskDescription, options = {}) =>
+      ipcRenderer.invoke("agents:orchestrate", {
+        taskDescription,
+        options,
+      }),
+    getPlan: (taskDescription, options = {}) =>
+      ipcRenderer.invoke("agents:get-plan", { taskDescription, options }),
+    getPerformance: (options = {}) =>
+      ipcRenderer.invoke("agents:get-performance", { options }),
+    getStatistics: () => ipcRenderer.invoke("agents:get-statistics", {}),
+  },
+
+  workflowManager: {
+    create: (options = {}) => ipcRenderer.invoke("workflow:create", options),
+    start: (workflowId, input, context = {}) =>
+      ipcRenderer.invoke("workflow:start", { workflowId, input, context }),
+    pause: (workflowId) => ipcRenderer.invoke("workflow:pause", { workflowId }),
+    resume: (workflowId) =>
+      ipcRenderer.invoke("workflow:resume", { workflowId }),
+    cancel: (workflowId, reason = "") =>
+      ipcRenderer.invoke("workflow:cancel", { workflowId, reason }),
+    retry: (workflowId) => ipcRenderer.invoke("workflow:retry", { workflowId }),
+    getStatus: (workflowId) =>
+      ipcRenderer.invoke("workflow:get-status", { workflowId }),
+    getStages: (workflowId) =>
+      ipcRenderer.invoke("workflow:get-stages", { workflowId }),
+    getLogs: (workflowId, limit = 100) =>
+      ipcRenderer.invoke("workflow:get-logs", { workflowId, limit }),
+    getGates: (workflowId) =>
+      ipcRenderer.invoke("workflow:get-gates", { workflowId }),
+    overrideGate: (workflowId, gateId, reason = "") =>
+      ipcRenderer.invoke("workflow:override-gate", {
+        workflowId,
+        gateId,
+        reason,
+      }),
+    getAll: () => ipcRenderer.invoke("workflow:get-all"),
+    delete: (workflowId) =>
+      ipcRenderer.invoke("workflow:delete", { workflowId }),
+    createAndStart: (options = {}) =>
+      ipcRenderer.invoke("workflow:create-and-start", options),
+    onProgress: (handler) => fixedSubscription("workflow:progress", handler),
+    onStageComplete: (handler) =>
+      fixedSubscription("workflow:stage-complete", handler),
+    onComplete: (handler) => fixedSubscription("workflow:complete", handler),
+    onError: (handler) => fixedSubscription("workflow:error", handler),
   },
 
   // 数据库操作

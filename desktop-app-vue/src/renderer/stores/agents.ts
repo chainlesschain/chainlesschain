@@ -54,8 +54,14 @@ export interface AgentTaskHistory {
   started_at?: number;
   completed_at?: number;
   success?: boolean;
-  result?: string;
+  result?: any;
   tokens_used?: number;
+  status?: string;
+  graphRunId?: string;
+  graphAuthority?: Record<string, any> | null;
+  authoritySource?: string;
+  reconciliationRequired?: boolean;
+  [key: string]: any;
 }
 
 /**
@@ -121,6 +127,19 @@ interface IPCResult<T = any> {
   status?: any;
   error?: string;
   message?: string;
+  reconciliationRequired?: boolean;
+}
+
+function normalizeTask(value: any): AgentTaskHistory | null {
+  if (!value) return null;
+  return {
+    ...value,
+    id: value.id || value.taskId,
+    agent_id: value.agent_id || value.agentId,
+    template_type: value.template_type || value.templateType || "unknown",
+    task_description: value.task_description || value.description,
+    completed_at: value.completed_at || value.completedAt,
+  };
 }
 
 /**
@@ -267,9 +286,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentTemplate[]> = await (
-          window as any
-        ).electronAPI.invoke("agents:template-list");
+        const result: IPCResult<AgentTemplate[]> =
+          await window.electronAPI.specializedAgents.listTemplates();
 
         if (result.success) {
           this.templates = result.templates || result.data || [];
@@ -296,9 +314,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentTemplate> = await (
-          window as any
-        ).electronAPI.invoke("agents:template-get", { templateId });
+        const result: IPCResult<AgentTemplate> =
+          await window.electronAPI.specializedAgents.getTemplate(templateId);
 
         if (result.success) {
           const template = result.template || result.data || null;
@@ -329,9 +346,10 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentTemplate> = await (
-          window as any
-        ).electronAPI.invoke("agents:template-create", { templateData });
+        const result: IPCResult<AgentTemplate> =
+          await window.electronAPI.specializedAgents.createTemplate(
+            templateData,
+          );
 
         if (result.success) {
           const template = result.template || result.data || null;
@@ -365,10 +383,11 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult = await (window as any).electronAPI.invoke(
-          "agents:template-update",
-          { templateId, updates },
-        );
+        const result: IPCResult =
+          await window.electronAPI.specializedAgents.updateTemplate(
+            templateId,
+            updates,
+          );
 
         if (result.success) {
           // 更新本地缓存
@@ -406,10 +425,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult = await (window as any).electronAPI.invoke(
-          "agents:template-delete",
-          { templateId },
-        );
+        const result: IPCResult =
+          await window.electronAPI.specializedAgents.deleteTemplate(templateId);
 
         if (result.success) {
           // 从列表中移除
@@ -454,9 +471,11 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentInstance> = await (
-          window as any
-        ).electronAPI.invoke("agents:deploy", { templateId, config });
+        const result: IPCResult<AgentInstance> =
+          await window.electronAPI.specializedAgents.deployAgent(
+            templateId,
+            config,
+          );
 
         if (result.success) {
           const instance = result.instance || result.data || null;
@@ -489,10 +508,11 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult = await (window as any).electronAPI.invoke(
-          "agents:terminate",
-          { instanceId, reason },
-        );
+        const result: IPCResult =
+          await window.electronAPI.specializedAgents.terminateAgent(
+            instanceId,
+            reason,
+          );
 
         if (result.success) {
           // 从实例列表中移除
@@ -523,9 +543,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentInstance[]> = await (
-          window as any
-        ).electronAPI.invoke("agents:instance-list");
+        const result: IPCResult<AgentInstance[]> =
+          await window.electronAPI.specializedAgents.listInstances();
 
         if (result.success) {
           this.instances = result.instances || result.data || [];
@@ -551,10 +570,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult = await (window as any).electronAPI.invoke(
-          "agents:get-status",
-          { instanceId },
-        );
+        const result: IPCResult =
+          await window.electronAPI.specializedAgents.getStatus(instanceId);
 
         if (result.success) {
           // 更新实例列表中的状态
@@ -595,16 +612,15 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentTaskHistory> = await (
-          window as any
-        ).electronAPI.invoke("agents:task-assign", {
-          instanceId,
-          taskDescription,
-          context,
-        });
+        const result: IPCResult<AgentTaskHistory> =
+          await window.electronAPI.specializedAgents.assignTask(
+            instanceId,
+            taskDescription,
+            { context: context || {} },
+          );
 
         if (result.success) {
-          const task = result.task || result.data || null;
+          const task = normalizeTask(result.task || result.data);
           if (task) {
             this.taskHistory.unshift(task);
           }
@@ -643,12 +659,11 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentTaskHistory> = await (
-          window as any
-        ).electronAPI.invoke("agents:task-status", { taskId });
+        const result: IPCResult<AgentTaskHistory> =
+          await window.electronAPI.specializedAgents.getTaskStatus(taskId);
 
         if (result.success) {
-          const task = result.task || result.data || null;
+          const task = normalizeTask(result.task || result.data);
 
           // 更新任务历史列表中的记录
           if (task) {
@@ -679,10 +694,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult = await (window as any).electronAPI.invoke(
-          "agents:task-cancel",
-          { taskId, reason },
-        );
+        const result: IPCResult =
+          await window.electronAPI.specializedAgents.cancelTask(taskId, reason);
 
         if (result.success) {
           // 更新任务历史记录
@@ -696,6 +709,19 @@ export const useAgentsStore = defineStore("agents", {
           agentsLogger.info(`取消任务成功: ${taskId}`, reason);
           return true;
         } else {
+          if (result.reconciliationRequired && result.data) {
+            const task = normalizeTask({
+              ...result.data,
+              reconciliationRequired: true,
+            });
+            const index = this.taskHistory.findIndex((t) => t.id === taskId);
+            if (task && index !== -1) {
+              this.taskHistory[index] = {
+                ...this.taskHistory[index],
+                ...task,
+              };
+            }
+          }
           this.error = result.error || "取消任务失败";
           agentsLogger.error("[AgentsStore] 取消任务失败:", result.error);
           return false;
@@ -722,12 +748,11 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<OrchestrationPlan> = await (
-          window as any
-        ).electronAPI.invoke("agents:orchestrate", {
-          taskDescription,
-          options,
-        });
+        const result: IPCResult<OrchestrationPlan> =
+          await window.electronAPI.specializedAgents.orchestrate(
+            taskDescription,
+            options,
+          );
 
         if (result.success) {
           const plan = result.plan || result.data || null;
@@ -751,18 +776,23 @@ export const useAgentsStore = defineStore("agents", {
     /**
      * 获取当前编排计划
      */
-    async getPlan(planId: string): Promise<OrchestrationPlan | null> {
+    async getPlan(
+      taskDescription: string,
+      options?: Record<string, any>,
+    ): Promise<OrchestrationPlan | null> {
       this.error = null;
 
       try {
-        const result: IPCResult<OrchestrationPlan> = await (
-          window as any
-        ).electronAPI.invoke("agents:get-plan", { planId });
+        const result: IPCResult<OrchestrationPlan> =
+          await window.electronAPI.specializedAgents.getPlan(
+            taskDescription,
+            options,
+          );
 
         if (result.success) {
           const plan = result.plan || result.data || null;
           this.orchestrationPlan = plan;
-          agentsLogger.info(`获取编排计划成功: ${planId}`);
+          agentsLogger.info(`获取编排计划成功: ${taskDescription}`);
           return plan;
         } else {
           this.error = result.error || "获取编排计划失败";
@@ -788,9 +818,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentPerformance[]> = await (
-          window as any
-        ).electronAPI.invoke("agents:performance");
+        const result: IPCResult<AgentPerformance[]> =
+          await window.electronAPI.specializedAgents.getPerformance();
 
         if (result.success) {
           this.performance = result.performance || result.data || [];
@@ -817,9 +846,8 @@ export const useAgentsStore = defineStore("agents", {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentStatistics> = await (
-          window as any
-        ).electronAPI.invoke("agents:statistics");
+        const result: IPCResult<AgentStatistics> =
+          await window.electronAPI.specializedAgents.getStatistics();
 
         if (result.success) {
           this.statistics = result.statistics || result.data || null;

@@ -1049,6 +1049,8 @@ export interface ElectronAPI {
   // 模块化 API
   ukey: UKeyAPI;
   auth: AuthAPI;
+  specializedAgents: SpecializedAgentsAPI;
+  workflowManager: WorkflowManagerAPI;
   conversation: ConversationAPI;
   db: DatabaseAPI;
   llm: LLMAPI;
@@ -1069,6 +1071,64 @@ export interface ElectronAPI {
   mcp: MCPAPI;
   multimedia: MultimediaAPI;
   config: ConfigAPI;
+}
+
+export interface SpecializedAgentsAPI {
+  listTemplates(filters?: Record<string, any>): Promise<any>;
+  getTemplate(templateId: string): Promise<any>;
+  createTemplate(template: Record<string, any>): Promise<any>;
+  updateTemplate(
+    templateId: string,
+    updates: Record<string, any>,
+  ): Promise<any>;
+  deleteTemplate(templateId: string): Promise<any>;
+  deployAgent(templateId: string, config?: Record<string, any>): Promise<any>;
+  terminateAgent(agentId: string, reason?: string): Promise<any>;
+  listInstances(): Promise<any>;
+  getStatus(agentId: string): Promise<any>;
+  assignTask(
+    agentId: string,
+    taskDescription: string,
+    options?: Record<string, any>,
+  ): Promise<any>;
+  getTaskStatus(taskId: string): Promise<any>;
+  cancelTask(taskId: string, reason?: string): Promise<any>;
+  orchestrate(
+    taskDescription: string,
+    options?: Record<string, any>,
+  ): Promise<any>;
+  getPlan(taskDescription: string, options?: Record<string, any>): Promise<any>;
+  getPerformance(options?: Record<string, any>): Promise<any>;
+  getStatistics(): Promise<any>;
+}
+
+export interface WorkflowManagerAPI {
+  create(options?: Record<string, any>): Promise<any>;
+  start(
+    workflowId: string,
+    input: any,
+    context?: Record<string, any>,
+  ): Promise<any>;
+  pause(workflowId: string): Promise<any>;
+  resume(workflowId: string): Promise<any>;
+  cancel(workflowId: string, reason?: string): Promise<any>;
+  retry(workflowId: string): Promise<any>;
+  getStatus(workflowId: string): Promise<any>;
+  getStages(workflowId: string): Promise<any>;
+  getLogs(workflowId: string, limit?: number): Promise<any>;
+  getGates(workflowId: string): Promise<any>;
+  overrideGate(
+    workflowId: string,
+    gateId: string,
+    reason?: string,
+  ): Promise<any>;
+  getAll(): Promise<any>;
+  delete(workflowId: string): Promise<any>;
+  createAndStart(options?: Record<string, any>): Promise<any>;
+  onProgress(handler: (data: any) => void): () => void;
+  onStageComplete(handler: (data: any) => void): () => void;
+  onComplete(handler: (data: any) => void): () => void;
+  onError(handler: (data: any) => void): () => void;
 }
 
 // ==================== 配置 API ====================

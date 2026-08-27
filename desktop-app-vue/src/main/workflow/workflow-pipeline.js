@@ -80,6 +80,7 @@ class WorkflowPipeline extends EventEmitter {
     this.graphRunId = null;
     this.graphShadowDivergences = [];
     this.reconciliationRequired = false;
+    this.graphCancellationPending = false;
     this.runAuthorityMode = null;
     this.progressTracker = null;
 
@@ -399,6 +400,21 @@ class WorkflowPipeline extends EventEmitter {
       };
     } catch (error) {
       if (error.projection) this.graphAuthority = error.projection;
+      if (
+        this.graphCancellationPending &&
+        error.code === "CC_DESKTOP_GRAPH_TERMINAL_REQUIRED"
+      ) {
+        this._log(
+          "info",
+          "Desktop Graph execution yielded to an in-flight cancellation",
+        );
+        return {
+          success: false,
+          cancellationPending: true,
+          workflowId: this.id,
+          graphAuthority: this.graphAuthority,
+        };
+      }
       this.reconciliationRequired =
         error.code === "CC_GRAPH_RECONCILIATION_REQUIRED";
       this.endTime = Date.now();
@@ -544,6 +560,7 @@ class WorkflowPipeline extends EventEmitter {
   async cancel(reason = "用户取消") {
     if (this.graphAdapter.mode() === "canonical") {
       if (!this.graphRunId) return false;
+      this.graphCancellationPending = true;
       try {
         const projection = await this.graphAdapter.cancel(
           this.graphRunId,
@@ -552,6 +569,20 @@ class WorkflowPipeline extends EventEmitter {
         this.graphAuthority = projection;
         if (projection.status === "reconciliation_required") {
           this.reconciliationRequired = true;
+          this.endTime = Date.now();
+          const error = new Error(
+            "Desktop Graph cancellation left an unknown effect requiring reconciliation",
+          );
+          error.code = "CC_GRAPH_RECONCILIATION_REQUIRED";
+          if (this.stateMachine.getState() === WorkflowState.RUNNING) {
+            this.stateMachine.fail(error.message);
+          }
+          this.progressTracker?.error(error);
+          this.emit("workflow:error", {
+            ...this._getWorkflowInfo(),
+            error: error.message,
+            code: error.code,
+          });
           return false;
         }
         if (projection.status !== "cancelled") return false;
@@ -573,6 +604,8 @@ class WorkflowPipeline extends EventEmitter {
           `Desktop Graph cancellation failed: ${error.message}`,
         );
         return false;
+      } finally {
+        this.graphCancellationPending = false;
       }
     }
     assertDesktopLegacyMutationAllowed("WorkflowPipeline.cancel");
@@ -773,6 +806,9 @@ class WorkflowPipeline extends EventEmitter {
    */
   _getWorkflowInfo() {
     const state = this.stateMachine.getState();
+    const projectedStatus = this.reconciliationRequired
+      ? "reconciliation_required"
+      : state;
     const authorityMode = this.runAuthorityMode || this.graphAdapter.mode();
 
     return {
@@ -783,7 +819,7 @@ class WorkflowPipeline extends EventEmitter {
         percent: this._calculateOverallProgress(),
         stage: this.currentStageIndex + 1,
         totalStages: this.stages.length,
-        status: state,
+        status: projectedStatus,
         elapsedTime: this.startTime ? Date.now() - this.startTime : 0,
       },
       currentStage:

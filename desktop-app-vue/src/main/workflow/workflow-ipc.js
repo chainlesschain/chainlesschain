@@ -21,8 +21,11 @@
  * v0.27.0: 新建文件
  */
 
-const { ipcMain, BrowserWindow } = require("electron");
 const { logger } = require("../utils/logger.js");
+
+function electronDependencies() {
+  return require("electron");
+}
 
 /**
  * 工作流 IPC 处理器类
@@ -30,7 +33,9 @@ const { logger } = require("../utils/logger.js");
 class WorkflowIPC {
   constructor(workflowManager, options = {}) {
     this.workflowManager = workflowManager;
-    this.ipcMain = options.ipcMain || ipcMain;
+    const electron = options.ipcMain ? null : electronDependencies();
+    this.ipcMain = options.ipcMain || electron.ipcMain;
+    this.BrowserWindow = options.BrowserWindow || electron?.BrowserWindow;
 
     // 设置 IPC 处理器
     this._setupIPCHandlers();
@@ -150,9 +155,19 @@ class WorkflowIPC {
         }
 
         const result = await workflow.cancel(reason);
+        const status = workflow.getStatus();
         return {
           success: result,
-          error: result ? null : "无法取消，当前状态不允许",
+          code: status.reconciliationRequired
+            ? "CC_GRAPH_RECONCILIATION_REQUIRED"
+            : undefined,
+          reconciliationRequired: status.reconciliationRequired,
+          data: status,
+          error: result
+            ? null
+            : status.reconciliationRequired
+              ? "Graph effect outcome requires reconciliation"
+              : "无法取消，当前状态不允许",
         };
       } catch (error) {
         logger.error("[WorkflowIPC] 取消工作流失败:", error);
@@ -367,7 +382,7 @@ class WorkflowIPC {
    * @param {any} data - 数据
    */
   broadcast(channel, data) {
-    const windows = BrowserWindow.getAllWindows();
+    const windows = this.BrowserWindow?.getAllWindows?.() || [];
     windows.forEach((win) => {
       if (win.webContents) {
         win.webContents.send(channel, data);

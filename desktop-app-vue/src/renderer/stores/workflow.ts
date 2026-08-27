@@ -7,16 +7,23 @@
  * v0.30.0: 迁移到 TypeScript
  */
 
-import { defineStore } from 'pinia';
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
-import { message } from 'ant-design-vue';
+import { defineStore } from "pinia";
+import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { message } from "ant-design-vue";
 
 // ==================== 类型定义 ====================
 
 /**
  * 工作流状态类型
  */
-export type WorkflowStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type WorkflowStatus =
+  | "pending"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "reconciliation_required";
 
 /**
  * 工作流总体状态
@@ -33,7 +40,7 @@ export interface WorkflowOverall {
  */
 export interface WorkflowLog {
   timestamp: number;
-  level: 'info' | 'warn' | 'error';
+  level: "info" | "warn" | "error";
   message: string;
   [key: string]: any;
 }
@@ -76,6 +83,8 @@ export interface WorkflowContext {
 export interface IPCResult<T = any> {
   success: boolean;
   data?: T;
+  code?: string;
+  reconciliationRequired?: boolean;
   error?: string;
   message?: string;
 }
@@ -92,7 +101,8 @@ export interface WorkflowProgressData {
 
 // ==================== Store ====================
 
-export const useWorkflowStore = defineStore('workflow', () => {
+export const useWorkflowStore = defineStore("workflow", () => {
+  const eventDisposers: Array<() => void> = [];
   // ==================== State ====================
 
   // 所有工作流列表
@@ -116,35 +126,35 @@ export const useWorkflowStore = defineStore('workflow', () => {
    * 获取运行中的工作流
    */
   const runningWorkflows: ComputedRef<Workflow[]> = computed(() => {
-    return workflows.value.filter((w) => w.overall?.status === 'running');
+    return workflows.value.filter((w) => w.overall?.status === "running");
   });
 
   /**
    * 获取已完成的工作流
    */
   const completedWorkflows: ComputedRef<Workflow[]> = computed(() => {
-    return workflows.value.filter((w) => w.overall?.status === 'completed');
+    return workflows.value.filter((w) => w.overall?.status === "completed");
   });
 
   /**
    * 获取失败的工作流
    */
   const failedWorkflows: ComputedRef<Workflow[]> = computed(() => {
-    return workflows.value.filter((w) => w.overall?.status === 'failed');
+    return workflows.value.filter((w) => w.overall?.status === "failed");
   });
 
   /**
    * 当前工作流是否正在运行
    */
   const isCurrentRunning: ComputedRef<boolean> = computed(() => {
-    return currentWorkflow.value?.overall?.status === 'running';
+    return currentWorkflow.value?.overall?.status === "running";
   });
 
   /**
    * 当前工作流是否已暂停
    */
   const isCurrentPaused: ComputedRef<boolean> = computed(() => {
-    return currentWorkflow.value?.overall?.status === 'paused';
+    return currentWorkflow.value?.overall?.status === "paused";
   });
 
   /**
@@ -162,12 +172,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
   async function loadWorkflows(): Promise<void> {
     loading.value = true;
     try {
-      const result: IPCResult<Workflow[]> = await (window as any).ipc.invoke('workflow:get-all');
+      const result: IPCResult<Workflow[]> =
+        await window.electronAPI.workflowManager.getAll();
       if (result.success && result.data) {
         workflows.value = result.data;
       }
     } catch (error) {
-      console.error('加载工作流失败:', error);
+      console.error("加载工作流失败:", error);
     } finally {
       loading.value = false;
     }
@@ -178,22 +189,22 @@ export const useWorkflowStore = defineStore('workflow', () => {
    * @param options - 工作流选项
    * @returns 创建结果
    */
-  async function createWorkflow(options: WorkflowCreateOptions): Promise<Workflow | null> {
+  async function createWorkflow(
+    options: WorkflowCreateOptions,
+  ): Promise<Workflow | null> {
     loading.value = true;
     try {
-      const result: IPCResult<Workflow> = await (window as any).ipc.invoke(
-        'workflow:create',
-        options
-      );
+      const result: IPCResult<Workflow> =
+        await window.electronAPI.workflowManager.create(options);
       if (result.success && result.data) {
         await loadWorkflows();
         return result.data;
       } else {
-        message.error(result.error || '创建失败');
+        message.error(result.error || "创建失败");
         return null;
       }
     } catch (error) {
-      message.error('创建失败: ' + (error as Error).message);
+      message.error("创建失败: " + (error as Error).message);
       return null;
     } finally {
       loading.value = false;
@@ -206,24 +217,22 @@ export const useWorkflowStore = defineStore('workflow', () => {
    * @returns 创建结果
    */
   async function createAndStartWorkflow(
-    options: WorkflowCreateOptions
+    options: WorkflowCreateOptions,
   ): Promise<{ workflowId: string } | null> {
     loading.value = true;
     try {
-      const result: IPCResult<{ workflowId: string }> = await (window as any).ipc.invoke(
-        'workflow:create-and-start',
-        options
-      );
+      const result: IPCResult<{ workflowId: string }> =
+        await window.electronAPI.workflowManager.createAndStart(options);
       if (result.success && result.data) {
         currentWorkflowId.value = result.data.workflowId;
         await loadWorkflows();
         return result.data;
       } else {
-        message.error(result.error || '创建失败');
+        message.error(result.error || "创建失败");
         return null;
       }
     } catch (error) {
-      message.error('创建失败: ' + (error as Error).message);
+      message.error("创建失败: " + (error as Error).message);
       return null;
     } finally {
       loading.value = false;
@@ -239,20 +248,20 @@ export const useWorkflowStore = defineStore('workflow', () => {
   async function startWorkflow(
     workflowId: string,
     input: any,
-    context: WorkflowContext = {}
+    context: WorkflowContext = {},
   ): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:start', {
+      const result: IPCResult = await window.electronAPI.workflowManager.start(
         workflowId,
         input,
         context,
-      });
+      );
       if (!result.success) {
-        message.error(result.error || '启动失败');
+        message.error(result.error || "启动失败");
       }
       return result;
     } catch (error) {
-      message.error('启动失败: ' + (error as Error).message);
+      message.error("启动失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -263,15 +272,16 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function pauseWorkflow(workflowId: string): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:pause', { workflowId });
+      const result: IPCResult =
+        await window.electronAPI.workflowManager.pause(workflowId);
       if (result.success) {
-        message.success('工作流已暂停');
+        message.success("工作流已暂停");
       } else {
-        message.error(result.error || '暂停失败');
+        message.error(result.error || "暂停失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -282,15 +292,16 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function resumeWorkflow(workflowId: string): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:resume', { workflowId });
+      const result: IPCResult =
+        await window.electronAPI.workflowManager.resume(workflowId);
       if (result.success) {
-        message.success('工作流已恢复');
+        message.success("工作流已恢复");
       } else {
-        message.error(result.error || '恢复失败');
+        message.error(result.error || "恢复失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -302,22 +313,25 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function cancelWorkflow(
     workflowId: string,
-    reason: string = '用户取消'
+    reason: string = "用户取消",
   ): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:cancel', {
+      const result: IPCResult = await window.electronAPI.workflowManager.cancel(
         workflowId,
         reason,
-      });
+      );
       if (result.success) {
-        message.success('工作流已取消');
+        message.success("工作流已取消");
         await loadWorkflows();
       } else {
-        message.error(result.error || '取消失败');
+        if (result.data && currentWorkflowId.value === workflowId) {
+          currentWorkflow.value = result.data as Workflow;
+        }
+        message.error(result.error || "取消失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -328,15 +342,16 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function retryWorkflow(workflowId: string): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:retry', { workflowId });
+      const result: IPCResult =
+        await window.electronAPI.workflowManager.retry(workflowId);
       if (result.success) {
-        message.success('工作流重试中');
+        message.success("工作流重试中");
       } else {
-        message.error(result.error || '重试失败');
+        message.error(result.error || "重试失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -347,20 +362,21 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function deleteWorkflow(workflowId: string): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:delete', { workflowId });
+      const result: IPCResult =
+        await window.electronAPI.workflowManager.delete(workflowId);
       if (result.success) {
-        message.success('工作流已删除');
+        message.success("工作流已删除");
         if (currentWorkflowId.value === workflowId) {
           currentWorkflowId.value = null;
           currentWorkflow.value = null;
         }
         await loadWorkflows();
       } else {
-        message.error(result.error || '删除失败');
+        message.error(result.error || "删除失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -384,14 +400,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   async function loadWorkflowDetail(workflowId: string): Promise<void> {
     try {
-      const result: IPCResult<Workflow> = await (window as any).ipc.invoke('workflow:get-status', {
-        workflowId,
-      });
+      const result: IPCResult<Workflow> =
+        await window.electronAPI.workflowManager.getStatus(workflowId);
       if (result.success && result.data) {
         currentWorkflow.value = result.data;
       }
     } catch (error) {
-      console.error('加载工作流详情失败:', error);
+      console.error("加载工作流详情失败:", error);
     }
   }
 
@@ -404,22 +419,23 @@ export const useWorkflowStore = defineStore('workflow', () => {
   async function overrideQualityGate(
     workflowId: string,
     gateId: string,
-    reason: string = '手动覆盖'
+    reason: string = "手动覆盖",
   ): Promise<IPCResult> {
     try {
-      const result: IPCResult = await (window as any).ipc.invoke('workflow:override-gate', {
-        workflowId,
-        gateId,
-        reason,
-      });
+      const result: IPCResult =
+        await window.electronAPI.workflowManager.overrideGate(
+          workflowId,
+          gateId,
+          reason,
+        );
       if (result.success) {
-        message.success('门禁已跳过');
+        message.success("门禁已跳过");
       } else {
-        message.error(result.error || '操作失败');
+        message.error(result.error || "操作失败");
       }
       return result;
     } catch (error) {
-      message.error('操作失败: ' + (error as Error).message);
+      message.error("操作失败: " + (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   }
@@ -430,7 +446,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   function handleWorkflowProgress(data: WorkflowProgressData): void {
     // 更新列表中的工作流
-    const index = workflows.value.findIndex((w) => w.workflowId === data.workflowId);
+    const index = workflows.value.findIndex(
+      (w) => w.workflowId === data.workflowId,
+    );
     if (index >= 0) {
       workflows.value[index] = {
         ...workflows.value[index],
@@ -453,28 +471,26 @@ export const useWorkflowStore = defineStore('workflow', () => {
    * 初始化事件监听
    */
   function initEventListeners(): void {
-    if ((window as any).ipc) {
-      (window as any).ipc.on('workflow:progress', handleWorkflowProgress);
-      (window as any).ipc.on('workflow:complete', (data: WorkflowProgressData) => {
+    cleanupEventListeners();
+    const api = window.electronAPI.workflowManager;
+    eventDisposers.push(
+      api.onProgress(handleWorkflowProgress),
+      api.onComplete((data: WorkflowProgressData) => {
         handleWorkflowProgress(data);
         loadWorkflows();
-      });
-      (window as any).ipc.on('workflow:error', (data: WorkflowProgressData) => {
+      }),
+      api.onError((data: WorkflowProgressData) => {
         handleWorkflowProgress(data);
         loadWorkflows();
-      });
-    }
+      }),
+    );
   }
 
   /**
    * 清理事件监听
    */
   function cleanupEventListeners(): void {
-    if ((window as any).ipc) {
-      (window as any).ipc.off('workflow:progress', handleWorkflowProgress);
-      (window as any).ipc.off('workflow:complete');
-      (window as any).ipc.off('workflow:error');
-    }
+    for (const dispose of eventDisposers.splice(0)) dispose();
   }
 
   // ==================== Return ====================

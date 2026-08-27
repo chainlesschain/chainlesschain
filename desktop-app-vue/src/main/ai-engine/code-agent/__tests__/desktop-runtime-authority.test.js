@@ -62,16 +62,32 @@ describe("Desktop Graph authority retirement", () => {
     expect(() => assertDesktopLegacyMutationAllowed("fixture")).toThrowError(
       expected,
     );
-    await expect(new AgentCoordinator().orchestrate("task")).rejects.toEqual(
-      expected,
+    await expect(new AgentCoordinator().orchestrate("task")).resolves.toEqual(
+      expect.objectContaining({
+        success: false,
+        code: "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+      }),
     );
     await expect(
       new AgentCoordinator().assignTask("agent", "task"),
-    ).rejects.toEqual(expected);
-    expect(() => new AgentCoordinator().cancelTask("task")).toThrowError(
-      expected,
+    ).resolves.toEqual(
+      expect.objectContaining({
+        success: false,
+        code: "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+      }),
     );
-    await expect(new WorkflowPipeline().execute({})).rejects.toEqual(expected);
+    await expect(
+      new AgentCoordinator().cancelTask("task"),
+    ).resolves.toMatchObject({
+      success: false,
+      error: expect.stringContaining("Active Graph task not found"),
+    });
+    await expect(new WorkflowPipeline().execute({})).resolves.toEqual(
+      expect.objectContaining({
+        success: false,
+        code: "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+      }),
+    );
     await expect(
       new WorkflowEngine().executeWorkflow("workflow"),
     ).rejects.toEqual(expected);

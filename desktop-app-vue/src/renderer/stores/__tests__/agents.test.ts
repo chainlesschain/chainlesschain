@@ -56,11 +56,25 @@ function task(overrides: Partial<AgentTaskHistory> = {}): AgentTaskHistory {
 
 describe("useAgentsStore", () => {
   const mockInvoke = vi.fn();
+  const specializedAgents = {
+    listTemplates: (...args: any[]) =>
+      mockInvoke("agents:list-templates", { filters: args[0] || {} }),
+    assignTask: (agentId: string, taskDescription: string, options: any) =>
+      mockInvoke("agents:assign-task", {
+        agentId,
+        taskDescription,
+        options,
+      }),
+    getTaskStatus: (taskId: string) =>
+      mockInvoke("agents:get-task-status", { taskId }),
+    cancelTask: (taskId: string, reason: string) =>
+      mockInvoke("agents:cancel-task", { taskId, reason }),
+  };
 
   beforeEach(() => {
     setActivePinia(createPinia());
     mockInvoke.mockReset().mockResolvedValue({ success: true });
-    (window as any).electronAPI = { invoke: mockInvoke };
+    (window as any).electronAPI = { specializedAgents };
   });
 
   afterEach(() => {
@@ -166,7 +180,9 @@ describe("useAgentsStore", () => {
         templates: [tmpl({ id: "x" })],
       });
       await store.fetchTemplates();
-      expect(mockInvoke).toHaveBeenCalledWith("agents:template-list");
+      expect(mockInvoke).toHaveBeenCalledWith("agents:list-templates", {
+        filters: {},
+      });
       expect(store.templates.map((t) => t.id)).toEqual(["x"]);
       expect(store.loading).toBe(false);
     });
@@ -185,6 +201,69 @@ describe("useAgentsStore", () => {
       await store.fetchTemplates(); // does not throw
       expect(store.error).toBe("boom");
       expect(store.loading).toBe(false);
+    });
+  });
+
+  describe("canonical task projection", () => {
+    it("uses the fixed assignment capability and retains Graph authority", async () => {
+      const store = useAgentsStore();
+      mockInvoke.mockResolvedValueOnce({
+        success: true,
+        data: {
+          taskId: "graph-task",
+          agentId: "agent-1",
+          status: "completed",
+          graphRunId: "desktop-specialized-task:graph-task",
+          authoritySource: "graph_kernel",
+          graphAuthority: {
+            authorityGeneration: 2,
+            writerId: "desktop-writer",
+            eventHead: `sha256:${"a".repeat(64)}`,
+          },
+        },
+      });
+
+      const task = await store.assignTask("agent-1", "implement", {
+        repo: "workspace",
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith("agents:assign-task", {
+        agentId: "agent-1",
+        taskDescription: "implement",
+        options: { context: { repo: "workspace" } },
+      });
+      expect(task).toMatchObject({
+        id: "graph-task",
+        agent_id: "agent-1",
+        graphRunId: "desktop-specialized-task:graph-task",
+        authoritySource: "graph_kernel",
+        graphAuthority: {
+          authorityGeneration: 2,
+          writerId: "desktop-writer",
+        },
+      });
+    });
+
+    it("projects reconciliation without falsely marking a task cancelled", async () => {
+      const store = useAgentsStore();
+      store.taskHistory = [task({ id: "graph-task", success: undefined })];
+      mockInvoke.mockResolvedValueOnce({
+        success: false,
+        reconciliationRequired: true,
+        data: {
+          taskId: "graph-task",
+          status: "reconciliation_required",
+          graphAuthority: { authoritySource: "graph_kernel" },
+        },
+      });
+
+      await expect(store.cancelTask("graph-task", "stop")).resolves.toBe(false);
+      expect(store.taskHistory[0]).toMatchObject({
+        id: "graph-task",
+        status: "reconciliation_required",
+        reconciliationRequired: true,
+      });
+      expect(store.taskHistory[0].success).toBeUndefined();
     });
   });
 

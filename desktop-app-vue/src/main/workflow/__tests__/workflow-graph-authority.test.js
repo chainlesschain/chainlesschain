@@ -160,8 +160,11 @@ describe("Workflow Graph authority", () => {
     workflow.stateMachine.start();
 
     await expect(workflow.cancel("stop")).resolves.toBe(false);
-    expect(workflow.stateMachine.getState()).toBe("running");
-    expect(workflow.getStatus().reconciliationRequired).toBe(true);
+    expect(workflow.stateMachine.getState()).toBe("failed");
+    expect(workflow.getStatus()).toMatchObject({
+      overall: { status: "reconciliation_required" },
+      reconciliationRequired: true,
+    });
   });
 
   it("fails closed for controls that the canonical Graph API does not expose", () => {

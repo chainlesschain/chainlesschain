@@ -10,8 +10,8 @@
  *    matches), selectWorkflow(null) (clears current), pauseWorkflow,
  *    createAndStartWorkflow (records currentWorkflowId)
  *
- * NB: setup-style store calling (window as any).ipc.invoke directly and using
- * ant-design-vue's `message`, which we mock to keep tests headless.
+ * NB: the fixed workflowManager preload capability and ant-design-vue's
+ * `message` are mocked to keep tests headless.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -30,6 +30,29 @@ import { useWorkflowStore } from "../workflow";
 import type { Workflow, WorkflowStatus } from "../workflow";
 
 const mockInvoke = vi.fn();
+const mockOn = vi.fn((_channel: string, _handler: any) => vi.fn());
+
+const workflowManager = {
+  getAll: () => mockInvoke("workflow:get-all"),
+  create: (options: any) => mockInvoke("workflow:create", options),
+  createAndStart: (options: any) =>
+    mockInvoke("workflow:create-and-start", options),
+  start: (workflowId: string, input: any, context: any) =>
+    mockInvoke("workflow:start", { workflowId, input, context }),
+  pause: (workflowId: string) => mockInvoke("workflow:pause", { workflowId }),
+  resume: (workflowId: string) => mockInvoke("workflow:resume", { workflowId }),
+  cancel: (workflowId: string, reason: string) =>
+    mockInvoke("workflow:cancel", { workflowId, reason }),
+  retry: (workflowId: string) => mockInvoke("workflow:retry", { workflowId }),
+  delete: (workflowId: string) => mockInvoke("workflow:delete", { workflowId }),
+  getStatus: (workflowId: string) =>
+    mockInvoke("workflow:get-status", { workflowId }),
+  overrideGate: (workflowId: string, gateId: string, reason: string) =>
+    mockInvoke("workflow:override-gate", { workflowId, gateId, reason }),
+  onProgress: (handler: any) => mockOn("workflow:progress", handler),
+  onComplete: (handler: any) => mockOn("workflow:complete", handler),
+  onError: (handler: any) => mockOn("workflow:error", handler),
+};
 
 function wf(workflowId: string, status: WorkflowStatus, percent = 0): Workflow {
   return {
@@ -43,12 +66,13 @@ describe("useWorkflowStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockInvoke.mockReset().mockResolvedValue({ success: true, data: [] });
-    (window as any).ipc = { invoke: mockInvoke, on: vi.fn(), off: vi.fn() };
+    mockOn.mockClear();
+    (window as any).electronAPI = { workflowManager };
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    delete (window as any).ipc;
+    delete (window as any).electronAPI;
   });
 
   // -------------------------------------------------------------------------
@@ -197,6 +221,41 @@ describe("useWorkflowStore", () => {
       expect(result).toEqual({ success: false, error: "denied" });
     });
 
+    it("retains reconciliation authority when cancellation cannot be proven", async () => {
+      const store = useWorkflowStore();
+      store.currentWorkflowId = "canonical";
+      store.currentWorkflow = wf("canonical", "running");
+      mockInvoke.mockResolvedValueOnce({
+        success: false,
+        code: "CC_GRAPH_RECONCILIATION_REQUIRED",
+        reconciliationRequired: true,
+        error: "Graph effect outcome requires reconciliation",
+        data: {
+          workflowId: "canonical",
+          overall: { status: "reconciliation_required", percent: 0 },
+          authoritySource: "graph_kernel",
+          graphAuthority: { status: "reconciliation_required" },
+          reconciliationRequired: true,
+        },
+      });
+
+      const result = await store.cancelWorkflow("canonical", "stop");
+
+      expect(mockInvoke).toHaveBeenCalledWith("workflow:cancel", {
+        workflowId: "canonical",
+        reason: "stop",
+      });
+      expect(result).toMatchObject({
+        success: false,
+        reconciliationRequired: true,
+      });
+      expect(store.currentWorkflow).toMatchObject({
+        overall: { status: "reconciliation_required" },
+        authoritySource: "graph_kernel",
+        reconciliationRequired: true,
+      });
+    });
+
     it("createAndStartWorkflow records the new id and reloads", async () => {
       const store = useWorkflowStore();
       mockInvoke
@@ -210,6 +269,42 @@ describe("useWorkflowStore", () => {
       );
       expect(result?.workflowId).toBe("n1");
       expect(store.currentWorkflowId).toBe("n1");
+    });
+
+    it("retains canonical writer and reconciliation fields from status", async () => {
+      const store = useWorkflowStore();
+      mockInvoke.mockResolvedValueOnce({
+        success: true,
+        data: {
+          workflowId: "canonical",
+          authorityMode: "canonical",
+          authoritySource: "graph_kernel",
+          graphRunId: "desktop-workflow:canonical",
+          graphAuthority: {
+            authorityGeneration: 4,
+            writerId: "desktop-workflow-writer",
+            eventHead: `sha256:${"a".repeat(64)}`,
+            projectionVersion: 1,
+          },
+          reconciliationRequired: true,
+        },
+      });
+
+      await store.selectWorkflow("canonical");
+
+      expect(mockInvoke).toHaveBeenCalledWith("workflow:get-status", {
+        workflowId: "canonical",
+      });
+      expect(store.currentWorkflow).toMatchObject({
+        authorityMode: "canonical",
+        authoritySource: "graph_kernel",
+        graphRunId: "desktop-workflow:canonical",
+        graphAuthority: {
+          authorityGeneration: 4,
+          writerId: "desktop-workflow-writer",
+        },
+        reconciliationRequired: true,
+      });
     });
   });
 });

@@ -48,4 +48,39 @@ describe("Desktop Graph production surface guard", () => {
       'throw graphControlError("quality-gate override")',
     );
   });
+
+  it("exposes fixed renderer capabilities with exact production channels", () => {
+    const preload = source("../../../../preload/index.js");
+    const agentsStore = source("../../../../renderer/stores/agents.ts");
+    const workflowStore = source("../../../../renderer/stores/workflow.ts");
+    const workflowProgress = source(
+      "../../../../renderer/components/workflow/WorkflowProgress.vue",
+    );
+    const workflowMonitor = source(
+      "../../../../renderer/pages/WorkflowMonitorPage.vue",
+    );
+
+    for (const channel of [
+      "agents:assign-task",
+      "agents:get-task-status",
+      "agents:cancel-task",
+      "workflow:start",
+      "workflow:get-status",
+      "workflow:cancel",
+    ]) {
+      expect(preload).toContain(`ipcRenderer.invoke("${channel}"`);
+    }
+    expect(preload).toContain("specializedAgents: {");
+    expect(preload).toContain("workflowManager: {");
+    expect(agentsStore).toContain("electronAPI.specializedAgents");
+    expect(agentsStore).not.toMatch(/electronAPI\.invoke\(["']agents:/u);
+    for (const renderer of [
+      workflowStore,
+      workflowProgress,
+      workflowMonitor,
+    ]) {
+      expect(renderer).toContain("electronAPI.workflowManager");
+      expect(renderer).not.toContain("window.ipc");
+    }
+  });
 });
