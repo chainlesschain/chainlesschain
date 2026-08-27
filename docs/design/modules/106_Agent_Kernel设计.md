@@ -173,4 +173,5 @@ Agent Kernel 自 `0.166.0` 进入 npm CLI 的公开发行面，但它不是独�
 - [103 Agent SDK 平台化方案](./103_Agent_SDK平台化方案.md)
 - [104 CC App Server 设计](./104_CC_App_Server设计.md)
 - [105 Graph Kernel 设计](./105_Graph_Kernel设计.md)
+- [108 Context/Memory Kernel 设计](./108_Context_Memory_Kernel设计.md)
 - [CLI Runtime 当前实现](../cli-runtime-current.md)

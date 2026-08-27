@@ -9,6 +9,7 @@
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
 - Agent Platform `0.166.5` 首次公开 Schema 生成的 37 类 stream event payload discriminated union、typed envelope 与严格 validator；`0.166.6` 延续真实 Team child 消息、custody 与结构化授权，并补齐 Agent IPC 及 legacy transport 的全局/per-agent 容量边界。
 - 单一协议 Schema 与多语言 codegen 已提升为独立模块 107：canonical JSON Schema 同源生成 TS/Python/Kotlin/Swift 与 VS Code/Desktop vendor；跨端 causal conformance 固定并行工具交错、审批 binding 与终态投影，未知未来事件仍由 transport 无损透传。
+- 上下文构建、压缩与记忆生命周期已提升为独立模块 108：先冻结 ContextItem、MemoryRecord、compaction rollout 和删除 receipt，再以无副作用 shadow 推进 CLI、Desktop、IDE 的单一 writer 切换；当前仍是提案，不冒充 authoritative cutover 已完成。
 - 前序精确发布 SHA `2f5b0f263a` 的 Protocol、Python SDK、CLI CI、Strict Sandbox、IDE、Android、iOS、Desktop、E2E、Full/Code Quality 与 1,800 秒 App Server overload/RSS soak 均通过；Protocol `0.1.5`、TS/Python SDK `0.2.4`、CLI `0.166.5` 和 Open VSX `0.37.70` 已完成公网回读。该长期 soak 继续作为前序证据，不归因到 `0.166.6@f2a249bf3d`。
 - Desktop 与 VS Code 已接入默认关闭、仅暴露固定 Thread/Turn 方法的 `AppServerPilotClient`；审批 UI 未接入前保持 canonical decline，Desktop 子进程继续经过 Process Broker。
 - App Server 新增实验 WebSocket：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求显式远程授权与 TLS；连接、payload、请求、输出、buffer 和清理时间全部有界。
@@ -64,6 +65,11 @@
 - 单独记录模型/工具主循环、runtime policy、权限、沙箱、预算、输出背压、中断和有界 cleanup。
 - 说明 CLI、SDK、WebSocket 与 App Server 如何复用同一内核，以及 Agent Kernel 与 Graph authority 的结算边界。
 
+### `modules/108_Context_Memory_Kernel设计.md`
+
+- 单独记录上下文预算、压缩状态机、记忆作用域与生命周期、来源/敏感度传播、外置内容引用、删除对账和跨端等价性。
+- 明确现有 CLI/Desktop/session-core 多套实现只是迁移输入；共享契约、shadow、canonical writer、legacy fenced/retired 必须分阶段验收。
+
 ### `CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md`
 
 - P2-14 保持“限定范围完成”，不把 Process Broker coverage 扩写成宿主机所有写入保证。
@@ -105,12 +111,13 @@
 2. `modules/107_单一协议Schema与自动代码生成.md`
 3. `modules/104_CC_App_Server设计.md`
 4. `modules/106_Agent_Kernel设计.md`
-5. `modules/105_Graph_Kernel设计.md`
-6. `modules/78_CLI_Agent_Runtime重构实施计划.md`
-7. `modules/82_CLI_Runtime收口路线图.md`
-8. `modules/85_Hermes_Agent对标实施方案.md`
-9. `modules/88_OpenAgents对标补齐方案.md`
-10. `modules/91_Managed_Agents对标计划.md`
+5. `modules/108_Context_Memory_Kernel设计.md`
+6. `modules/105_Graph_Kernel设计.md`
+7. `modules/78_CLI_Agent_Runtime重构实施计划.md`
+8. `modules/82_CLI_Runtime收口路线图.md`
+9. `modules/85_Hermes_Agent对标实施方案.md`
+10. `modules/88_OpenAgents对标补齐方案.md`
+11. `modules/91_Managed_Agents对标计划.md`
 
 ### Desktop / Web / 协议联动
 

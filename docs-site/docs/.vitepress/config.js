@@ -189,6 +189,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-agent-kernel",
             },
             {
+              text: "上下文与记忆 ⭐NEW",
+              link: "/chainlesschain/context-memory",
+            },
+            {
               text: "Graph Kernel 使用与运维 ⭐NEW",
               link: "/chainlesschain/cli-graph-kernel",
             },
@@ -1936,6 +1940,10 @@ export default defineConfig({
             {
               text: "107 单一协议 Schema 与自动代码生成 ⭐NEW",
               link: "/design/modules/107-agent-protocol-codegen",
+            },
+            {
+              text: "108 Context/Memory Kernel 设计 ⭐NEW",
+              link: "/design/modules/108-context-memory-kernel",
             },
             {
               text: "60b CLI指令技能包 ⭐",

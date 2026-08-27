@@ -570,6 +570,10 @@
     "107_单一协议Schema与自动代码生成.md": {
       "docs-site": "107-agent-protocol-codegen.md",
       "docs-site-design": "m107-agent-protocol-codegen.md"
+    },
+    "108_Context_Memory_Kernel设计.md": {
+      "docs-site": "108-context-memory-kernel.md",
+      "docs-site-design": "m108-context-memory-kernel.md"
     }
   }
 }
