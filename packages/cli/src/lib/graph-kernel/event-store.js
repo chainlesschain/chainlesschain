@@ -32,15 +32,29 @@ export class GraphEventStore {
     return this.head(runId);
   }
 
-  append(runId, type, payload, { idempotencyKey = null, traceId = null } = {}) {
+  append(
+    runId,
+    type,
+    payload,
+    {
+      idempotencyKey = null,
+      traceId = null,
+      authority = null,
+      expectedRevision = undefined,
+      expectedHeadHash = undefined,
+    } = {},
+  ) {
     const record = this.rolloutStore.append({
       threadId: runId,
       eventType: `graph.${type}`,
       traceId,
       idempotencyKey,
+      expectedRevision,
+      expectedHeadHash,
       payload: {
         schema: GRAPH_EVENT_SCHEMA,
         type,
+        authority: clone(authority),
         ...clone(payload),
       },
     });

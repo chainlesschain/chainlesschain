@@ -14,6 +14,9 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
+const {
   RUNTIME_MODE,
   createRuntimeClaims,
   hasTerminalSuccessEvidence,
@@ -324,6 +327,7 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Promise<Object>} Orchestration result
    */
   async orchestrate(taskDescription, options = {}) {
+    assertDesktopLegacyMutationAllowed("AgentCoordinator.orchestrate");
     const sessionId = uuidv4();
     const startTime = Date.now();
 
@@ -546,6 +550,7 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Promise<Object>} Assignment result with task ID and status
    */
   async assignTask(agentId, taskDescription, options = {}) {
+    assertDesktopLegacyMutationAllowed("AgentCoordinator.assignTask");
     if (!agentId) {
       throw new Error("Agent ID is required for task assignment");
     }
@@ -828,6 +833,7 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Object} Cancellation result
    */
   cancelTask(taskId, reason = "") {
+    assertDesktopLegacyMutationAllowed("AgentCoordinator.cancelTask");
     const activeTask = this.activeTasks.get(taskId);
 
     if (!activeTask) {

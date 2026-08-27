@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { BoundedAsyncQueue, QueueOverloadedError } from "./bounded-queue.js";
 import { CliAgentKernelAdapter } from "./cli-agent-kernel-adapter.js";
 import { JsonlRolloutStore } from "./rollout-store.js";
+import { AppServerGraphRuntime } from "./graph-runtime.js";
+import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import {
   APP_SERVER_MIN_PROTOCOL_VERSION,
   APP_SERVER_PROTOCOL_VERSION,
@@ -110,6 +112,7 @@ export class CcAppServer {
     requestTimeoutMs = 120_000,
     interruptSettlementMs = 30_000,
     transport = "stdio",
+    graphRuntime = null,
   } = {}) {
     if (typeof send !== "function") {
       throw new TypeError("CcAppServer requires a send(message) function");
@@ -122,6 +125,17 @@ export class CcAppServer {
     this.requestTimeoutMs = requestTimeoutMs;
     this.interruptSettlementMs = interruptSettlementMs;
     this.transport = transport === "websocket" ? "websocket" : "stdio";
+    this.graphRuntime =
+      graphRuntime ||
+      new AppServerGraphRuntime({
+        rolloutStore: store,
+        now,
+        createId,
+        executeNode: (context) => this._executeGraphNode(context),
+        onEvent: (event) => {
+          void this._notify("graph/event", event).catch(() => {});
+        },
+      });
     this.initialized = false;
     this.negotiated = null;
     this.client = null;
@@ -278,6 +292,11 @@ export class CcAppServer {
       "thread/archive": () => this._threadArchive(message.params),
       "turn/start": () => this._turnStart(message.params),
       "turn/interrupt": () => this._turnInterrupt(message.params),
+      "graph/compile": () => this._graphCompile(message.params),
+      "graph/run": () => this._graphRun(message.params),
+      "graph/status": () => this._graphStatus(message.params),
+      "graph/cancel": () => this._graphCancel(message.params),
+      "graph/reconcile": () => this._graphReconcile(message.params),
     };
     const handler = handlers[method];
     if (!handler) {
@@ -324,11 +343,127 @@ export class CcAppServer {
       transports: [this.transport],
       websocket: { stability: "experimental" },
       limits: this.requestQueue.snapshot(),
+      graphRuntime: this.graphRuntime.runtimeClaims(),
       schema: {
         id: APP_SERVER_SCHEMA.$id,
         version: APP_SERVER_PROTOCOL_VERSION,
       },
     });
+  }
+
+  _graphCompile(rawParams) {
+    const params = requireObject(rawParams);
+    const compiled = compileGraphDefinition(
+      requireObject(params.definition, "definition"),
+    );
+    return {
+      definitionId: compiled.definitionId,
+      revision: compiled.revision,
+      revisionDigest: compiled.revisionDigest,
+      topologicalOrder: [...compiled.topologicalOrder],
+    };
+  }
+
+  async _graphRun(rawParams) {
+    const params = requireObject(rawParams);
+    return this.graphRuntime.run({
+      definition: requireObject(params.definition, "definition"),
+      runId: params.runId || this.createId(),
+      inputs: params.inputs || {},
+      originSurface: params.originSurface || "desktop",
+      agentCapacity: params.agentCapacity,
+      authorityMode: params.authorityMode || "canonical",
+      waitForCompletion: params.waitForCompletion === true,
+    });
+  }
+
+  _graphStatus(rawParams) {
+    const params = requireObject(rawParams);
+    return this.graphRuntime.status(requiredString(params.runId, "runId"));
+  }
+
+  _graphCancel(rawParams) {
+    const params = requireObject(rawParams);
+    return this.graphRuntime.cancel(
+      requiredString(params.runId, "runId"),
+      params.reason || "cancelled by App Server client",
+    );
+  }
+
+  _graphReconcile(rawParams) {
+    const params = requireObject(rawParams);
+    return this.graphRuntime.reconcile(
+      requiredString(params.runId, "runId"),
+      requireObject(params.reconciliation, "reconciliation"),
+    );
+  }
+
+  async _executeGraphNode({ runId, nodeId, attempt, input, signal }) {
+    const threadId = `graph-agent:${runId}:${nodeId}`;
+    const turn = { id: attempt.id, threadId };
+    const onAbort = () => {
+      void this.kernel.interruptTurn?.(threadId, attempt.id);
+    };
+    signal?.addEventListener?.("abort", onAbort, { once: true });
+    try {
+      const result = await this.kernel.startTurn({
+        threadId,
+        turnId: attempt.id,
+        input: requiredString(input?.prompt, `inputs.${nodeId}.prompt`),
+        options: input?.options || {},
+        emit: (event) =>
+          this._notify("graph/event", {
+            type: "graph/agent-event",
+            runId,
+            nodeId,
+            attemptId: attempt.id,
+            event,
+          }),
+        requestApproval: (event) => this._requestApproval(turn, event),
+      });
+      const failed = result?.is_error === true || result?.subtype === "error";
+      const output = typeof result?.result === "string" ? result.result : "";
+      const receiptThreadId = `graph-executor:${runId}`;
+      this.store.start({
+        threadId: receiptThreadId,
+        title: `Graph executor receipts for ${runId}`,
+        metadata: { kind: "graph_executor_receipts", graphRunId: runId },
+      });
+      const events = this.store.read(receiptThreadId);
+      const receiptEvent = this.store.append({
+        threadId: receiptThreadId,
+        turnId: attempt.id,
+        eventType: failed ? "executor.failed" : "executor.succeeded",
+        idempotencyKey: `graph-executor:${attempt.id}`,
+        payload: {
+          runId,
+          nodeId,
+          attemptId: attempt.id,
+          status: failed ? "failed" : "succeeded",
+          outputDigest: output ? digest(output) : null,
+          error: failed ? String(result?.error || "Agent turn failed") : null,
+        },
+        expectedRevision: events.at(-1)?.seq,
+        expectedHeadHash: events.at(-1)?.hash,
+      });
+      if (failed) {
+        return {
+          status: "failed",
+          outcomeKnown: true,
+          error: result?.error || "Agent turn failed",
+        };
+      }
+      return {
+        status: "succeeded",
+        terminalEvidence: {
+          eventDigest: receiptEvent.hash,
+          outputDigest: output ? digest(output) : null,
+        },
+        usage: result?.usage || {},
+      };
+    } finally {
+      signal?.removeEventListener?.("abort", onAbort);
+    }
   }
 
   async _notify(method, params, rollout = null) {

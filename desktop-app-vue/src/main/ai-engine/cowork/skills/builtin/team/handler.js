@@ -7,6 +7,7 @@
  */
 
 const path = require("path");
+const { createHash } = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
 const {
   SessionStateManager,
@@ -23,6 +24,17 @@ const _deps = {
   SessionStateManager,
   runHook,
   SubRuntimePoolCtor: SubRuntimePool,
+  graphAuthorityMode: () => {
+    const value = String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "legacy")
+      .trim()
+      .toLowerCase();
+    if (!["legacy", "shadow", "canonical"].includes(value)) {
+      throw new Error(
+        "CHAINLESSCHAIN_GRAPH_DESKTOP must be legacy, shadow, or canonical",
+      );
+    }
+    return value;
+  },
 };
 
 const VALID_ROLES = new Set([
@@ -91,6 +103,106 @@ function distributeSteps(steps, size) {
     buckets[idx % size].push(step);
   });
   return buckets;
+}
+
+function graphIdentifier(value, prefix) {
+  const text = String(value || "").trim();
+  if (/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/.test(text)) return text;
+  return `${prefix}-${createHash("sha256")
+    .update(text, "utf8")
+    .digest("hex")
+    .slice(0, 32)}`;
+}
+
+function buildDesktopTeamGraph(assignments, sessionId) {
+  const taskToNode = new Map(
+    assignments.map((assignment, index) => [
+      assignment.taskId || `member-${index + 1}`,
+      graphIdentifier(
+        assignment.taskId || `member-${index + 1}`,
+        "desktop-team-node",
+      ),
+    ]),
+  );
+  const nodes = assignments.map((assignment, index) => {
+    const taskId = assignment.taskId || `member-${index + 1}`;
+    const nodeId = taskToNode.get(taskId);
+    const writeSet = Array.isArray(assignment.scopePaths)
+      ? assignment.scopePaths.filter(Boolean)
+      : [];
+    return {
+      id: nodeId,
+      kind: "task",
+      dependsOn: (assignment.dependsOn || []).map((dependency) => {
+        const target = taskToNode.get(dependency);
+        if (!target) {
+          throw new Error(
+            `Desktop Team task ${taskId} depends on unknown task ${dependency}`,
+          );
+        }
+        return target;
+      }),
+      inputs: [],
+      outputs: [],
+      effectClass: "workspace_write",
+      idempotencyKey: `desktop-team:${sessionId}:${nodeId}`,
+      workspaceIsolation: "declared_scope",
+      writeSet: writeSet.length ? writeSet : ["**"],
+      retryLimit: 0,
+    };
+  });
+  const definition = {
+    schemaVersion: 1,
+    id: graphIdentifier(`desktop-team:${sessionId}`, "desktop-team"),
+    revision: 1,
+    nodes,
+    edges: [],
+    loops: [],
+    subgraphCalls: [],
+    budget: { turns: Math.max(1, assignments.length) },
+    allowedCapabilities: [],
+    metadata: { originSurface: "desktop", sessionId },
+  };
+  const inputs = Object.fromEntries(
+    assignments.map((assignment, index) => {
+      const taskId = assignment.taskId || `member-${index + 1}`;
+      return [
+        taskToNode.get(taskId),
+        {
+          prompt: [
+            `You are the ${assignment.ownerRole || assignment.role || "executor"} for an approved Desktop Team task.`,
+            "Complete the following steps inside the approved workspace and return verifiable results:",
+            ...(assignment.steps || []).map((step) => `- ${step}`),
+          ].join("\n"),
+        },
+      ];
+    }),
+  );
+  return { definition, inputs, taskToNode };
+}
+
+function graphDispatchResults(assignments, taskToNode, projection) {
+  return assignments.map((assignment, index) => {
+    const taskId = assignment.taskId || `member-${index + 1}`;
+    const nodeId = taskToNode.get(taskId);
+    const node = projection.nodes?.find((entry) => entry.nodeId === nodeId);
+    const attempt = projection.attempts?.find(
+      (entry) => entry.nodeId === nodeId && entry.status === "accepted",
+    );
+    return {
+      memberIdx: assignment.memberIdx,
+      memberId: `graph:${projection.id}:${nodeId}`,
+      ...(assignment.taskId ? { taskId: assignment.taskId } : {}),
+      success: node?.status === "succeeded" && Boolean(attempt),
+      blocked: ["blocked", "skipped", "upstream_failed"].includes(node?.status),
+      error:
+        node?.status === "succeeded"
+          ? null
+          : `canonical Graph node settled as ${node?.status || "unknown"}`,
+      terminalEvidence: attempt?.terminalEvidence || null,
+      graphAttemptId: attempt?.id || null,
+    };
+  });
 }
 
 /**
@@ -280,6 +392,8 @@ module.exports = {
       task?.params?.dryRun === true || task?.params?.dryRun === "true";
 
     let dispatchResults = null;
+    let graphAuthority = null;
+    const graphAuthorityMode = _deps.graphAuthorityMode();
     if (!dryRun) {
       // In structured mode the pool auto-detects the scheduler, so we
       // forward assignments unchanged (taskId / scopePaths / dependsOn
@@ -292,22 +406,63 @@ module.exports = {
             role: a.role,
             steps: a.steps,
           }));
-      const pool = new _deps.SubRuntimePoolCtor({ maxSize: size });
-      try {
-        dispatchResults = await pool.dispatch({
-          projectRoot,
-          sessionId,
-          assignments: dispatchAssignments,
-        });
-      } catch (err) {
-        await pool.shutdown();
-        return {
-          success: false,
-          error: `sub-runtime dispatch failed: ${err.message}`,
-          message: `$team dispatch failed: ${err.message}`,
-        };
-      } finally {
-        await pool.shutdown();
+      if (["shadow", "canonical"].includes(graphAuthorityMode)) {
+        const appServerPilot = context?.appServerPilot;
+        if (!appServerPilot) {
+          return {
+            success: false,
+            error: "canonical Graph App Server capability is unavailable",
+            message:
+              "$team requires the fixed App Server graph capability for shadow/canonical rollout",
+          };
+        }
+        const graph = buildDesktopTeamGraph(dispatchAssignments, sessionId);
+        try {
+          graphAuthority = await appServerPilot.graphRun({
+            definition: graph.definition,
+            runId: graphIdentifier(
+              `desktop-team:${sessionId}:${graphAuthorityMode}`,
+              "desktop-team-run",
+            ),
+            inputs: graph.inputs,
+            originSurface: "desktop",
+            authorityMode: graphAuthorityMode,
+            waitForCompletion: graphAuthorityMode === "canonical",
+            idempotencyKey: `desktop-team:${sessionId}:${graphAuthorityMode}`,
+          });
+          if (graphAuthorityMode === "canonical") {
+            dispatchResults = graphDispatchResults(
+              dispatchAssignments,
+              graph.taskToNode,
+              graphAuthority,
+            );
+          }
+        } catch (err) {
+          return {
+            success: false,
+            error: `canonical Graph dispatch failed: ${err.message}`,
+            message: `$team Graph dispatch failed: ${err.message}`,
+          };
+        }
+      }
+      if (graphAuthorityMode !== "canonical") {
+        const pool = new _deps.SubRuntimePoolCtor({ maxSize: size });
+        try {
+          dispatchResults = await pool.dispatch({
+            projectRoot,
+            sessionId,
+            assignments: dispatchAssignments,
+          });
+        } catch (err) {
+          await pool.shutdown();
+          return {
+            success: false,
+            error: `sub-runtime dispatch failed: ${err.message}`,
+            message: `$team dispatch failed: ${err.message}`,
+          };
+        } finally {
+          await pool.shutdown();
+        }
       }
     }
 
@@ -387,6 +542,8 @@ module.exports = {
         role,
         assignments,
         dispatchResults,
+        graphAuthorityMode,
+        graphAuthority,
         dryRun,
         structured: useStructured,
         taskCount,
@@ -442,3 +599,4 @@ module.exports.parseSpec = parseSpec;
 module.exports.extractPlanSteps = extractPlanSteps;
 module.exports.distributeSteps = distributeSteps;
 module.exports.buildStructuredAssignments = buildStructuredAssignments;
+module.exports.buildDesktopTeamGraph = buildDesktopTeamGraph;

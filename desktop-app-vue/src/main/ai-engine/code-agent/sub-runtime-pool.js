@@ -411,6 +411,19 @@ class SubRuntimePool extends EventEmitter {
    *   [{ memberIdx, role, steps: [...] }, ...]
    */
   async dispatch({ projectRoot, sessionId, assignments }) {
+    if (
+      ["canonical", "legacy_read_only"].includes(
+        String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "")
+          .trim()
+          .toLowerCase(),
+      )
+    ) {
+      const error = new Error(
+        "SubRuntimePool is a retired Desktop writer under canonical Graph authority",
+      );
+      error.code = "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY";
+      throw error;
+    }
     if (!projectRoot || !sessionId || !Array.isArray(assignments)) {
       throw new Error(
         "SubRuntimePool.dispatch: projectRoot, sessionId, assignments required",

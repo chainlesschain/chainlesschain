@@ -12,6 +12,9 @@ const { createIPCErrorHandler } = require("../../utils/ipc-error-handler");
 const { WorkflowEngine } = require("./workflow-engine");
 const { WorkflowStorage } = require("./workflow-storage");
 const {
+  assertBrowserWorkflowEnabled,
+} = require("./browser-workflow-authority.js");
+const {
   createWorkflow,
   condition,
   and,
@@ -224,6 +227,7 @@ function registerWorkflowIPC() {
   ipcMain.handle(
     "browser:workflow:execute",
     withErrorHandler(async (event, workflowId, options = {}) => {
+      assertBrowserWorkflowEnabled("browser:workflow:execute");
       const storage = getWorkflowStorage();
       const engine = getWorkflowEngine();
 
@@ -256,6 +260,7 @@ function registerWorkflowIPC() {
   ipcMain.handle(
     "browser:workflow:executeInline",
     withErrorHandler(async (event, workflow, options = {}) => {
+      assertBrowserWorkflowEnabled("browser:workflow:executeInline");
       const engine = getWorkflowEngine();
 
       logger.info("[WorkflowIPC] Executing inline workflow", {
@@ -277,6 +282,7 @@ function registerWorkflowIPC() {
   ipcMain.handle(
     "browser:workflow:pause",
     withErrorHandler(async (event, executionId) => {
+      assertBrowserWorkflowEnabled("browser:workflow:pause");
       const engine = getWorkflowEngine();
       const result = engine.pause(executionId);
 
@@ -297,6 +303,7 @@ function registerWorkflowIPC() {
   ipcMain.handle(
     "browser:workflow:resume",
     withErrorHandler(async (event, executionId) => {
+      assertBrowserWorkflowEnabled("browser:workflow:resume");
       const engine = getWorkflowEngine();
       const result = engine.resume(executionId);
 
@@ -317,6 +324,7 @@ function registerWorkflowIPC() {
   ipcMain.handle(
     "browser:workflow:cancel",
     withErrorHandler(async (event, executionId) => {
+      assertBrowserWorkflowEnabled("browser:workflow:cancel");
       const engine = getWorkflowEngine();
       const result = engine.cancel(executionId);
 

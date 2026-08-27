@@ -5,6 +5,9 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../../../../code-agent/desktop-runtime-authority.js");
 
 let workflowEngine = null;
 
@@ -135,6 +138,7 @@ async function handleCreate(name, definition, context) {
 }
 
 async function handleRun(nameOrId, context) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleRun");
   if (!nameOrId) {
     return {
       success: false,
@@ -209,6 +213,7 @@ async function handleStatus(nameOrId) {
 }
 
 async function handlePause(nameOrId) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handlePause");
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }
@@ -231,6 +236,7 @@ async function handlePause(nameOrId) {
 }
 
 async function handleResume(nameOrId) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleResume");
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }
@@ -253,6 +259,7 @@ async function handleResume(nameOrId) {
 }
 
 async function handleCancel(nameOrId) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleCancel");
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }

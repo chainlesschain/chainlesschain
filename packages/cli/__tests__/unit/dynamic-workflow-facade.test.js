@@ -15,6 +15,9 @@ import {
   executeDynamicWorkflowWithAdmission,
 } from "../../src/lib/dynamic-workflow-facade.js";
 import { COWORK_WORKFLOW_RUN_RECORD_SCHEMA } from "../../src/lib/cowork-workflow.js";
+import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { CoworkGraphAuthorityAdapter } from "../../src/lib/cowork-graph-authority-adapter.js";
+import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
 import { createExecutionLocationBinding } from "../../src/lib/execution-location-contract.js";
 import {
   createCoworkWorkflowRecord,
@@ -485,6 +488,42 @@ describe("dynamic workflow run admission", () => {
     expect(result.preflightDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
     expect(verifyAuthorities).toHaveBeenCalledTimes(1);
     expect(executor).not.toHaveBeenCalled();
+  });
+
+  it("recovers a canonical Cowork result without replaying the executor", async () => {
+    let nextId = 0;
+    const graphAuthorityAdapter = new CoworkGraphAuthorityAdapter({
+      mode: "canonical",
+      eventStore: new GraphEventStore({
+        rolloutStore: new MemoryRolloutStore(),
+      }),
+      createId: () => `cowork-facade-${++nextId}`,
+    });
+    const executor = vi.fn(async (options) => successfulRunRecord(options));
+    const first = await executeDynamicWorkflowWithAdmission(runInput(), {
+      executeWorkflow: executor,
+      graphAuthorityAdapter,
+      verifyAuthorities: authorityVerifier(),
+    });
+    const recovered = await executeDynamicWorkflowWithAdmission(runInput(), {
+      executeWorkflow: executor,
+      graphAuthorityAdapter,
+      verifyAuthorities: authorityVerifier(),
+    });
+
+    expect(executor).toHaveBeenCalledTimes(1);
+    expect(first).toMatchObject({
+      executionStarted: true,
+      graphAuthorityMode: "canonical",
+      graphRecovered: false,
+      graphAuthority: { authoritySource: "graph_kernel" },
+    });
+    expect(recovered).toMatchObject({
+      executionStarted: false,
+      graphRecovered: true,
+      graphAuthority: { authorityGeneration: 2 },
+      record: first.record,
+    });
   });
 
   it("blocks a valid legacy definition authority instead of executing it", async () => {

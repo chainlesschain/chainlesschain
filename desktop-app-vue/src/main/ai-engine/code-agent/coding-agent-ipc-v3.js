@@ -1013,6 +1013,9 @@ function registerCodingAgentIPCV3(options = {}) {
         const ctx = {
           sessionId: sessionId || undefined,
           projectRoot: projectRoot || service.projectRoot || process.cwd(),
+          // Main-process-only fixed capability. Renderer payload cannot
+          // replace this object or gain the generic App Server request API.
+          appServerPilot,
         };
         return await runWorkflowCommand(text, ctx);
       } catch (error) {

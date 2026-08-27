@@ -16,6 +16,9 @@
 const { logger } = require("../../utils/logger");
 const { EventEmitter } = require("events");
 const crypto = require("crypto");
+const {
+  assertBrowserWorkflowEnabled,
+} = require("../../browser/workflow/browser-workflow-authority.js");
 
 /**
  * 工作流状态
@@ -418,6 +421,7 @@ class WorkflowEngine extends EventEmitter {
    * 执行工作流
    */
   async execute(workflow, initialVariables = {}) {
+    assertBrowserWorkflowEnabled("remote:workflow:execute");
     const workflowId = workflow.id || this.generateWorkflowId();
     const startTime = Date.now();
 
@@ -732,6 +736,7 @@ class WorkflowEngine extends EventEmitter {
    * 取消工作流
    */
   cancelWorkflow(workflowId) {
+    assertBrowserWorkflowEnabled("remote:workflow:cancel");
     const running = this.runningWorkflows.get(workflowId);
     if (running) {
       running.state.status = WORKFLOW_STATUS.CANCELLED;

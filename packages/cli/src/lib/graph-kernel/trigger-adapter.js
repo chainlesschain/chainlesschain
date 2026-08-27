@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { MemoryRolloutStore } from "../app-server/rollout-store.js";
+import { createGraphAuthorityBinding } from "./authority.js";
 
 const JOURNAL_THREAD_ID = "scheduler-graph-dispatch";
 
@@ -61,6 +62,61 @@ export class SchedulerGraphTriggerAdapter {
     this.journal = journal;
   }
 
+  runtimeClaims() {
+    return Object.freeze({
+      originSurface: "scheduler",
+      surface: "scheduler",
+      execution: "real",
+      persistence: "durable",
+      isolated: true,
+      terminalEvidence: true,
+      authorityModes: Object.freeze(["canonical"]),
+      featureGated: true,
+    });
+  }
+
+  _recover(runId) {
+    try {
+      return this.kernel.recoverRun(runId);
+    } catch (error) {
+      if (error?.code !== "CC_GRAPH_STALE_WRITER") throw error;
+    }
+    const events = this.kernel.eventStore.read(runId);
+    const latest = events.at(-1);
+    const previous = [...events]
+      .reverse()
+      .find((event) => event.payload?.state?.authority)?.payload
+      .state.authority;
+    const writer = this.kernel.writerIdentity;
+    if (
+      !latest ||
+      !previous ||
+      Number(writer.authorityGeneration) <= Number(previous.authorityGeneration)
+    ) {
+      const error = new Error(
+        "scheduler recovery requires an explicitly higher Graph writer generation",
+      );
+      error.code = "CC_GRAPH_STALE_GENERATION";
+      throw error;
+    }
+    return this.kernel.recoverRun(runId, {
+      authority: createGraphAuthorityBinding({
+        ...previous,
+        logicalRunId: runId,
+        originSurface: "scheduler",
+        authorityMode: "canonical",
+        authoritySource: "graph_kernel",
+        authorityGeneration: writer.authorityGeneration,
+        writerId: writer.writerId,
+        writerLeaseId: writer.writerLeaseId,
+        writerLeaseExpiresAt: new Date(
+          this.kernel.now() + this.kernel.writerLeaseTtlMs,
+        ).toISOString(),
+        eventHead: latest.hash,
+      }),
+    });
+  }
+
   dispatch(occurrence, compiledGraph, options = {}) {
     const key = dispatchKey(occurrence);
     const digest = keyDigest(key);
@@ -72,7 +128,7 @@ export class SchedulerGraphTriggerAdapter {
       try {
         run = this.kernel.getRun(existing.runId);
       } catch {
-        run = this.kernel.recoverRun(existing.runId);
+        run = this._recover(existing.runId);
       }
       return Object.freeze({
         occurrenceStatus: "succeeded",
@@ -86,7 +142,7 @@ export class SchedulerGraphTriggerAdapter {
       .find((entry) => entry.phase === "pending");
     if (pending) {
       try {
-        const graphRun = this.kernel.recoverRun(pending.runId);
+        const graphRun = this._recover(pending.runId);
         if (graphRun.revisionDigest !== compiledGraph.revisionDigest) {
           const error = new Error(
             "pending scheduler dispatch is bound to a different GraphRevision",
@@ -127,6 +183,7 @@ export class SchedulerGraphTriggerAdapter {
       const graphRun = this.kernel.startRun(compiledGraph, {
         ...options,
         runId,
+        originSurface: "scheduler",
         occurrenceRef: {
           jobRevision: occurrence.jobRevision,
           occurrenceId: occurrence.occurrenceId || occurrence.idempotencyKey,
@@ -173,7 +230,7 @@ export class SchedulerGraphTriggerAdapter {
     try {
       graphRun = this.kernel.getRun(accepted.runId);
     } catch {
-      graphRun = this.kernel.recoverRun(accepted.runId);
+      graphRun = this._recover(accepted.runId);
     }
     return Object.freeze({
       occurrenceStatus: "succeeded",

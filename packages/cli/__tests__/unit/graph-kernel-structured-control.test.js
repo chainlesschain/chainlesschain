@@ -11,6 +11,7 @@ import {
 } from "../../src/lib/graph-kernel/runtime.js";
 import { reduceGraphTrace } from "../../src/lib/graph-kernel/trace-reducer.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { createGraphAuthorityBinding } from "../../src/lib/graph-kernel/authority.js";
 
 const DIGEST = `sha256:${"a".repeat(64)}`;
 const CONDITION_EVIDENCE = `sha256:${"c".repeat(64)}`;
@@ -56,6 +57,43 @@ function createContext(eventStore = null) {
       createId: () => `generated-${++generatedId}`,
     }),
   };
+}
+
+function recoverWithKernel(kernel, eventStore, runId, now) {
+  const events = eventStore.read(runId);
+  const latest = events.at(-1);
+  const previous = [...events]
+    .reverse()
+    .find((event) => event.payload?.state?.authority).payload.state.authority;
+  return kernel.recoverRun(runId, {
+    authority: createGraphAuthorityBinding({
+      ...previous,
+      authorityGeneration: kernel.writerIdentity.authorityGeneration,
+      writerId: kernel.writerIdentity.writerId,
+      writerLeaseId: kernel.writerIdentity.writerLeaseId,
+      writerLeaseExpiresAt: new Date(now() + 60_000).toISOString(),
+      eventHead: latest.hash,
+    }),
+  });
+}
+
+function recoverContext(eventStore, runId) {
+  const now = () => 1_700_000_000_000;
+  const events = eventStore.read(runId);
+  const previous = [...events]
+    .reverse()
+    .find((event) => event.payload?.state?.authority).payload.state.authority;
+  const authorityGeneration = previous.authorityGeneration + 1;
+  const kernel = new GraphKernel({
+    eventStore,
+    now,
+    writerId: `structured-recovery-writer-${authorityGeneration}`,
+    writerLeaseId: `structured-recovery-lease-${authorityGeneration}`,
+    authoritySource: previous.authoritySource,
+    authorityGeneration,
+  });
+  const projection = recoverWithKernel(kernel, eventStore, runId, now);
+  return { eventStore, kernel, now, projection };
 }
 
 function succeed(kernel, runId, attempt) {
@@ -174,10 +212,11 @@ describe("Graph Kernel structured control flow", () => {
     executeNode(context.kernel, "run-loop-cap", "inspect");
     executeNode(context.kernel, "run-loop-cap", "judge");
 
-    const recovered = createContext(context.eventStore).kernel;
-    expect(recovered.recoverRun("run-loop-cap").status).toBe(
-      "waiting_external",
+    const { kernel: recovered, projection } = recoverContext(
+      context.eventStore,
+      "run-loop-cap",
     );
+    expect(projection.status).toBe("waiting_external");
     recovered.advanceLoop("run-loop-cap", {
       regionId: "quality-loop",
       continueLoop: true,
@@ -215,8 +254,16 @@ describe("Graph Kernel structured control flow", () => {
     });
     expect(terminal.iterationFrames.at(-1).status).toBe("exhausted");
 
-    const recoveredTerminal = createContext(context.eventStore).kernel;
-    expect(recoveredTerminal.recoverRun("run-loop-cap")).toEqual(terminal);
+    const { projection: recoveredTerminal } = recoverContext(
+      context.eventStore,
+      "run-loop-cap",
+    );
+    expect(recoveredTerminal).toMatchObject({
+      status: terminal.status,
+      nodes: terminal.nodes,
+      loops: terminal.loops,
+      iterationFrames: terminal.iterationFrames,
+    });
   });
 
   it("does not unlock a loop exit when another region branch fails", () => {
@@ -386,8 +433,10 @@ describe("Graph Kernel structured control flow", () => {
       },
     ]);
 
-    const recovered = createContext(context.eventStore).kernel;
-    recovered.recoverRun("run-effect-loop");
+    const { kernel: recovered } = recoverContext(
+      context.eventStore,
+      "run-effect-loop",
+    );
     for (const iteration of [1, 0]) {
       expect(recovered.readyNodes("run-effect-loop")).toEqual([
         expect.objectContaining({
@@ -513,10 +562,19 @@ describe("Graph Kernel structured control flow", () => {
       revisionDigest: child.revisionDigest,
     });
 
-    const recovered = createContext(context.eventStore).kernel;
-    expect(recovered.recoverRun("run-parent")).toMatchObject({
+    const { kernel: recovered, projection: recoveredParent } = recoverContext(
+      context.eventStore,
+      "run-parent",
+    );
+    expect(recoveredParent).toMatchObject({
       subgraphRuns: [expect.objectContaining({ status: "running" })],
     });
+    recoverWithKernel(
+      recovered,
+      context.eventStore,
+      started.relation.childRunId,
+      () => 1_700_000_000_000,
+    );
     const replay = recovered.startSubgraph("run-parent", "call-child", child);
     expect(replay.relation.childRunId).toBe(started.relation.childRunId);
     executeNode(recovered, replay.relation.childRunId, "child-task");

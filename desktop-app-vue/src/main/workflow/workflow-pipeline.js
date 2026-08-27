@@ -14,6 +14,9 @@
  */
 
 const { EventEmitter } = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../ai-engine/code-agent/desktop-runtime-authority.js");
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -157,6 +160,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Object} 执行结果
    */
   async execute(input, context = {}) {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.execute");
     if (!this.stateMachine.start()) {
       throw new Error("无法启动工作流，当前状态不允许");
     }
@@ -270,6 +274,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   pause() {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.pause");
     if (!this.stateMachine.pause()) {
       return false;
     }
@@ -288,6 +293,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   resume() {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.resume");
     if (!this.stateMachine.resume()) {
       return false;
     }
@@ -309,6 +315,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   cancel(reason = "用户取消") {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.cancel");
     if (!this.stateMachine.cancel(reason)) {
       return false;
     }
@@ -334,6 +341,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Object} 执行结果
    */
   async retry() {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.retry");
     if (!this.stateMachine.retry()) {
       throw new Error("无法重试，当前状态不允许");
     }
@@ -436,6 +444,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   overrideQualityGate(gateId, reason = "手动覆盖") {
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.overrideQualityGate");
     return this.qualityGateManager.override(gateId, reason);
   }
 

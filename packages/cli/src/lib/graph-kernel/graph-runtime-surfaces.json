@@ -1,0 +1,283 @@
+{
+  "schema": "chainlesschain.graph-runtime-surfaces/v1",
+  "version": 1,
+  "projectionVersion": 1,
+  "surfaces": [
+    {
+      "originSurface": "cli_team",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_CLI_TEAM",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-team-local",
+          "entrypoints": [
+            "packages/cli/src/commands/team.js",
+            "packages/cli/src/lib/agent-team/team-runner.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/agent-team/team-graph-runtime-adapter.js",
+            "packages/cli/src/lib/agent-team/team-runner.js",
+            "packages/cli/src/lib/agent-team/task-lease.js",
+            "packages/cli/src/lib/agent-team/team-mailbox.js"
+          ],
+          "mutationFunctions": [
+            "TeamRunner.start",
+            "TaskLeaseRegistry.claim",
+            "TaskLeaseRegistry.complete",
+            "TeamMailbox.send"
+          ],
+          "stores": ["TaskLeaseRegistry", "TeamMailbox"],
+          "recoveryEntrypoints": ["TeamRunner.resume"]
+        },
+        {
+          "id": "cli-team-distributed",
+          "entrypoints": [
+            "packages/cli/src/commands/team-distributed.js",
+            "packages/cli/src/lib/agent-team/team-distributed-queue.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/agent-team/team-distributed-queue.js",
+            "packages/cli/src/lib/agent-team/team-graph-projection.js"
+          ],
+          "mutationFunctions": [
+            "TeamDistributedQueue.claim",
+            "TeamDistributedQueue.finalize"
+          ],
+          "stores": ["TeamDistributedQueue"],
+          "recoveryEntrypoints": ["TeamDistributedQueue.recover"]
+        }
+      ]
+    },
+    {
+      "originSurface": "cowork",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_COWORK",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-cowork",
+          "entrypoints": [
+            "packages/cli/src/commands/cowork.js",
+            "packages/cli/src/lib/cowork-task-runner.js",
+            "packages/cli/src/lib/dynamic-workflow-facade.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/cowork-graph-authority-adapter.js",
+            "packages/cli/src/lib/dynamic-workflow-facade.js",
+            "packages/cli/src/lib/dynamic-workflow-runtime.js",
+            "packages/cli/src/lib/cowork-task-runner.js"
+          ],
+          "mutationFunctions": [
+            "DynamicWorkflowRuntime.execute",
+            "CoworkTaskRunner.run"
+          ],
+          "stores": ["DynamicWorkflowRuntimeStore", "CoworkTaskStore"],
+          "recoveryEntrypoints": ["DynamicWorkflowRuntime.resume"]
+        }
+      ]
+    },
+    {
+      "originSurface": "scheduler",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_SCHEDULER",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-scheduler",
+          "entrypoints": [
+            "packages/cli/src/lib/scheduler-kernel/service.js",
+            "packages/cli/src/lib/graph-kernel/trigger-adapter.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/scheduler-kernel/graph-authority-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/runtime.js",
+            "packages/cli/src/lib/scheduler-kernel/service.js"
+          ],
+          "mutationFunctions": [
+            "SchedulerKernelRuntime.dispatch",
+            "SchedulerGraphTriggerAdapter.dispatch"
+          ],
+          "stores": ["SchedulerKernelStore", "SchedulerGraphDispatchJournal"],
+          "recoveryEntrypoints": ["SchedulerKernelRuntime.recover"]
+        }
+      ]
+    },
+    {
+      "originSurface": "desktop",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_DESKTOP",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "desktop-team",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/team/handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/team/handler.js",
+            "packages/cli/src/lib/app-server/graph-runtime.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js",
+            "desktop-app-vue/src/main/sub-runtime/index.js"
+          ],
+          "mutationFunctions": ["team.execute", "SubRuntimePool.dispatch"],
+          "stores": ["WorkflowSession", "SubRuntimePool"],
+          "recoveryEntrypoints": ["WorkflowSession.load"]
+        },
+        {
+          "id": "desktop-specialized-agents",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/agents/agents-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/agents/agent-coordinator.js"
+          ],
+          "mutationFunctions": [
+            "AgentCoordinator.orchestrate",
+            "AgentCoordinator.assignTask",
+            "AgentCoordinator.cancelTask"
+          ],
+          "stores": ["AgentCoordinator.sessions"],
+          "recoveryEntrypoints": ["agents:get-session"]
+        },
+        {
+          "id": "desktop-workflow-manager",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-8-9-extras.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/workflow/workflow-pipeline.js"
+          ],
+          "mutationFunctions": [
+            "WorkflowManager.executeWorkflow",
+            "WorkflowPipeline.execute"
+          ],
+          "stores": ["WorkflowManager.workflows", "WorkflowManager.executions"],
+          "recoveryEntrypoints": ["workflow:get-execution"]
+        },
+        {
+          "id": "desktop-legacy-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/workflow/workflow-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/workflow/workflow-engine.js"
+          ],
+          "mutationFunctions": [
+            "WorkflowEngine.executeWorkflow",
+            "WorkflowEngine.pauseExecution",
+            "WorkflowEngine.resumeExecution",
+            "WorkflowEngine.rollbackExecution"
+          ],
+          "stores": ["WorkflowEngine.executions"],
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-skill-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-ipc.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/workflow-automation/handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-engine.js"
+          ],
+          "mutationFunctions": [
+            "SkillWorkflowEngine.executeWorkflow",
+            "WorkflowAutomation.handleRun"
+          ],
+          "stores": ["SkillWorkflowEngine.workflows"],
+          "recoveryEntrypoints": []
+        }
+      ]
+    },
+    {
+      "originSurface": "browser",
+      "durability": "non_durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "legacy_runtime",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL",
+        "default": "disabled"
+      },
+      "entries": [
+        {
+          "id": "browser-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/browser/workflow/workflow-ipc.js",
+            "desktop-app-vue/src/main/browser/browser-ipc-workflow.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/browser/workflow/browser-workflow-authority.js",
+            "desktop-app-vue/src/main/browser/workflow/workflow-engine.js",
+            "desktop-app-vue/src/main/browser/actions/workflow-engine.js"
+          ],
+          "mutationFunctions": ["BrowserWorkflowEngine.execute"],
+          "stores": [
+            "BrowserWorkflowStorage",
+            "BrowserWorkflowEngine.executions"
+          ],
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "remote-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/remote/handlers/workflow-handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/browser/workflow/browser-workflow-authority.js",
+            "desktop-app-vue/src/main/remote/workflow/workflow-engine.js"
+          ],
+          "mutationFunctions": ["RemoteWorkflowEngine.execute"],
+          "stores": ["RemoteWorkflowEngine.executions"],
+          "recoveryEntrypoints": []
+        }
+      ]
+    }
+  ],
+  "discovery": {
+    "roots": [
+      "packages/cli/src/commands",
+      "packages/cli/src/lib/agent-team",
+      "packages/cli/src/lib/scheduler-kernel",
+      "desktop-app-vue/src/main/ai-engine/agents",
+      "desktop-app-vue/src/main/ai-engine/code-agent",
+      "desktop-app-vue/src/main/ai-engine/cowork/skills",
+      "desktop-app-vue/src/main/ai-engine/workflow",
+      "desktop-app-vue/src/main/browser/workflow",
+      "desktop-app-vue/src/main/browser/actions",
+      "desktop-app-vue/src/main/remote/workflow",
+      "desktop-app-vue/src/main/workflow"
+    ],
+    "writerPatterns": [
+      "new\\s+TeamRunner\\b",
+      "new\\s+SubRuntimePool(?:Ctor)?\\b",
+      "new\\s+AgentCoordinator\\b",
+      "new\\s+WorkflowManager\\b",
+      "new\\s+WorkflowPipeline\\b",
+      "class\\s+(?:Skill)?WorkflowEngine\\b"
+    ]
+  }
+}

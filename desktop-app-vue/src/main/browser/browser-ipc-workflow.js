@@ -9,6 +9,9 @@
 
 function registerWorkflowHandlers(ctx) {
   const { _ipcMain, _getBrowserEngine, withErrorHandler } = ctx;
+  const {
+    assertBrowserWorkflowEnabled,
+  } = require("./workflow/browser-workflow-authority.js");
 
   // ==================== Phase 7: Action Replay (v0.33.0) ====================
 
@@ -252,6 +255,7 @@ function registerWorkflowHandlers(ctx) {
   _ipcMain.handle(
     "browser-inline:workflow:execute",
     withErrorHandler(async (event, workflowId, options = {}) => {
+      assertBrowserWorkflowEnabled("browser-inline:workflow:execute");
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
       return workflow.execute(workflowId, options);
@@ -265,6 +269,7 @@ function registerWorkflowHandlers(ctx) {
   _ipcMain.handle(
     "browser-inline:workflow:pause",
     withErrorHandler(async (event) => {
+      assertBrowserWorkflowEnabled("browser-inline:workflow:pause");
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
       return workflow.pause();
@@ -278,6 +283,7 @@ function registerWorkflowHandlers(ctx) {
   _ipcMain.handle(
     "browser-inline:workflow:resume",
     withErrorHandler(async (event) => {
+      assertBrowserWorkflowEnabled("browser-inline:workflow:resume");
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
       return workflow.resume();
@@ -291,6 +297,7 @@ function registerWorkflowHandlers(ctx) {
   _ipcMain.handle(
     "browser-inline:workflow:cancel",
     withErrorHandler(async (event) => {
+      assertBrowserWorkflowEnabled("browser-inline:workflow:cancel");
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
       return workflow.cancel();

@@ -57,6 +57,20 @@ const _deps = {
 };
 
 async function handleRun(msg) {
+  if (
+    ["canonical", "legacy_read_only"].includes(
+      String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "")
+        .trim()
+        .toLowerCase(),
+    )
+  ) {
+    _deps.write({
+      type: "error",
+      code: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
+      error: "legacy Desktop sub-runtime is retired under Graph authority",
+    });
+    return;
+  }
   const { projectRoot, sessionId, assignment } = msg;
   if (!projectRoot || !sessionId || !assignment) {
     _deps.write({

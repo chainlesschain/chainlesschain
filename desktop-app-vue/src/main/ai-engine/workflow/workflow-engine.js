@@ -3,6 +3,9 @@
  * Phase 82: Agentic Workflow Engine with DAG execution
  */
 const EventEmitter = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 const { logger } = require("../../utils/logger.js");
 const {
   RUNTIME_MODE,
@@ -403,6 +406,7 @@ class WorkflowEngine extends EventEmitter {
 
   // Execution
   async executeWorkflow(workflowId, input = {}) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.executeWorkflow");
     const workflow = this._workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow '${workflowId}' not found`);
@@ -600,6 +604,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   pauseExecution(executionId) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.pauseExecution");
     const execution = this._executions.get(executionId);
     if (!execution || TERMINAL_EXEC_STATES.has(execution.status)) {
       return null;
@@ -610,6 +615,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   async resumeExecution(executionId) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.resumeExecution");
     const execution = this._executions.get(executionId);
     // "paused" = breakpoint / manual pause; "waiting" = approval gate.
     // (Approval pauses set "waiting", so the old `!== "paused"` check made
@@ -667,6 +673,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   rollbackExecution(executionId) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.rollbackExecution");
     const execution = this._executions.get(executionId);
     if (!execution) {
       return null;

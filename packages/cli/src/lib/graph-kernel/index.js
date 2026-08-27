@@ -5,3 +5,6 @@ export * from "./trace-reducer.js";
 export * from "./eval.js";
 export * from "./trigger-adapter.js";
 export * from "./adapters.js";
+export * from "./authority.js";
+export * from "./runtime-surface-manifest.js";
+export * from "./migration-saga.js";

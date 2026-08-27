@@ -126,6 +126,21 @@ export class TeamRunner {
       typeof opts.beforeTask === "function" ? opts.beforeTask : null;
     this.afterTask =
       typeof opts.afterTask === "function" ? opts.afterTask : null;
+    // Canonical Graph settlement happens after the executor has physically
+    // settled but before the legacy registry projection is updated. This hook
+    // is fail-closed: a Graph write failure cannot be converted into legacy
+    // task success.
+    this.canonicalSettlement =
+      typeof opts.canonicalSettlement === "function"
+        ? opts.canonicalSettlement
+        : null;
+    // Shadow settlement observes the already-produced executor outcome and
+    // never owns effects. Divergence is visible but cannot change the legacy
+    // result while a surface is still in shadow rollout.
+    this.shadowSettlement =
+      typeof opts.shadowSettlement === "function"
+        ? opts.shadowSettlement
+        : null;
     // A lease that expires and is reacquired receives a new fencing identity.
     // Persist that identity synchronously before the executor can settle under
     // it. Ordinary renewals keep the same identity and do not call this hook.
@@ -2432,11 +2447,47 @@ export class TeamRunner {
           throw error;
         }
       }
+      if (this.canonicalSettlement) {
+        try {
+          await this.canonicalSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "completed",
+            result,
+          });
+          claim.canonicalSettled = true;
+        } catch (error) {
+          error.canonicalSettlementFailed = true;
+          throw error;
+        }
+      }
       const done = this.registry.complete(key, {
         holder,
         leaseId: claim.leaseId,
         result,
       });
+      if (this.shadowSettlement) {
+        try {
+          await this.shadowSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "completed",
+            result,
+            legacyAccepted: done.ok === true,
+          });
+        } catch (error) {
+          this._emit("task:shadow-diverged", {
+            key,
+            holder,
+            code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+            error: error?.message || String(error),
+          });
+        }
+      }
       if (done.ok) {
         if (span) span.end();
         this._setState(holder, "completed-task", {
@@ -2455,6 +2506,18 @@ export class TeamRunner {
           result,
         });
       } else {
+        if (claim.canonicalSettled) {
+          const error = new Error(
+            `Legacy Team projection rejected canonical completion for ${key}: ${done.reason || "lease_lost"}`,
+          );
+          error.code = "CC_TEAM_LEGACY_PROJECTION_DIVERGED";
+          error.retryable = false;
+          this._setFatal(error, {
+            phase: "legacy-projection",
+            key,
+            holder,
+          });
+        }
         if (span) {
           span.setAttribute("team.completion_discarded", true);
           span.end();
@@ -2500,6 +2563,31 @@ export class TeamRunner {
         claim.budgetSettled = true;
       }
       this._recordSessionUsage(claim, failure);
+      if (
+        this.canonicalSettlement &&
+        !claim.canonicalSettled &&
+        failure?.canonicalSettlementFailed !== true
+      ) {
+        try {
+          await this.canonicalSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "failed",
+            error: failure,
+          });
+          claim.canonicalSettled = true;
+        } catch (canonicalError) {
+          canonicalError.cause ||= failure;
+          canonicalError.canonicalSettlementFailed = true;
+          this._setFatal(canonicalError, {
+            phase: "canonical-settlement",
+            key,
+            holder,
+          });
+        }
+      }
       const outcome = this.registry.fail(key, {
         holder,
         leaseId: claim.leaseId,
@@ -2507,6 +2595,26 @@ export class TeamRunner {
         retryable: failure?.retryable !== false,
         adjudication: failure?.adjudication || null,
       });
+      if (this.shadowSettlement) {
+        try {
+          await this.shadowSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "failed",
+            error: failure,
+            legacyAccepted: outcome?.ok === true,
+          });
+        } catch (shadowError) {
+          this._emit("task:shadow-diverged", {
+            key,
+            holder,
+            code: shadowError?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+            error: shadowError?.message || String(shadowError),
+          });
+        }
+      }
       if (outcome?.ok) {
         this._setState(holder, "failed-task", {
           error: failure?.message || String(failure),
@@ -2533,6 +2641,18 @@ export class TeamRunner {
           requestId: failure?.adjudication?.requestId || null,
         });
       } else {
+        if (claim.canonicalSettled) {
+          const error = new Error(
+            `Legacy Team projection rejected canonical failure for ${key}: ${outcome?.reason || "lease_lost"}`,
+          );
+          error.code = "CC_TEAM_LEGACY_PROJECTION_DIVERGED";
+          error.retryable = false;
+          this._setFatal(error, {
+            phase: "legacy-projection",
+            key,
+            holder,
+          });
+        }
         this._emit("task:failure-discarded", {
           key,
           holder,

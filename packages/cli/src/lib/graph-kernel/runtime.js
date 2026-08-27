@@ -7,6 +7,11 @@ import {
   writeScopesOverlap,
 } from "./compiler.js";
 import { GraphEventStore } from "./event-store.js";
+import {
+  GRAPH_PROJECTION_VERSION,
+  assertGraphAuthorityWriter,
+  createGraphAuthorityBinding,
+} from "./authority.js";
 
 export const GRAPH_RUN_PHASES = Object.freeze(["open", "sealed"]);
 export const GRAPH_RUN_STATUSES = Object.freeze([
@@ -358,6 +363,7 @@ function stateSnapshot(run) {
     revisionDigest: run.revisionDigest,
     occurrenceRef: run.occurrenceRef,
     authorityDigest: run.authorityDigest,
+    authority: clone(run.authority),
     budget: run.budget,
     budgetUsed: run.budgetUsed,
     budgetReserved: run.budgetReserved,
@@ -404,6 +410,13 @@ function restoreState(run, snapshot, compiled = null) {
   run.revisionDigest = snapshot.revisionDigest;
   run.occurrenceRef = clone(snapshot.occurrenceRef);
   run.authorityDigest = snapshot.authorityDigest;
+  if (!snapshot.authority) {
+    throw kernelError(
+      "CC_GRAPH_AUTHORITY_MIGRATION_REQUIRED",
+      "legacy GraphRun snapshot has no writer authority; import it at a verified safe point",
+    );
+  }
+  run.authority = createGraphAuthorityBinding(snapshot.authority);
   run.budget = clone(snapshot.budget);
   run.budgetUsed = clone(snapshot.budgetUsed);
   run.budgetReserved = clone(snapshot.budgetReserved || emptyBudgetUsage());
@@ -473,6 +486,15 @@ function runProjection(run) {
     status: run.status,
     graphRevision: run.graphRevision,
     authorityDigest: run.authorityDigest,
+    originSurface: run.authority.originSurface,
+    authoritySource: run.authority.authoritySource,
+    authorityMode: run.authority.authorityMode,
+    authorityGeneration: run.authority.authorityGeneration,
+    writerId: run.authority.writerId,
+    writerLeaseId: run.authority.writerLeaseId,
+    writerLeaseExpiresAt: run.authority.writerLeaseExpiresAt,
+    eventHead: run.authority.eventHead,
+    projectionVersion: run.authority.projectionVersion,
     budget: clone(run.budget),
     budgetUsed: clone(run.budgetUsed),
     budgetReserved: clone(run.budgetReserved),
@@ -527,10 +549,47 @@ function runProjection(run) {
   });
 }
 
-function buildRun(compiled, options, now) {
+function buildRun(compiled, options, now, writerIdentity, writerLeaseTtlMs) {
   const createdAt = nowIso(now);
+  const id = safeIdentifier(options.runId || randomUUID(), "runId");
+  const authority = createGraphAuthorityBinding(
+    options.authority || {
+      logicalRunId: id,
+      originSurface: options.originSurface || "cli_team",
+      authorityMode:
+        writerIdentity.authoritySource === "graph_kernel_shadow"
+          ? "shadow"
+          : "canonical",
+      authoritySource: writerIdentity.authoritySource,
+      authorityGeneration:
+        options.authorityGeneration || writerIdentity.authorityGeneration,
+      writerId: writerIdentity.writerId,
+      writerLeaseId: writerIdentity.writerLeaseId,
+      writerLeaseExpiresAt: new Date(
+        now() + Math.max(1, Number(writerLeaseTtlMs)),
+      ).toISOString(),
+      eventHead: null,
+      projectionVersion: GRAPH_PROJECTION_VERSION,
+    },
+  );
+  if (authority.logicalRunId !== id) {
+    throw kernelError(
+      "CC_GRAPH_AUTHORITY_RUN_MISMATCH",
+      "Graph authority must be bound to the exact logical run id",
+    );
+  }
+  if (authority.authorityMode === "legacy") {
+    throw kernelError(
+      "CC_GRAPH_NON_CANONICAL_WRITER",
+      "legacy authority cannot mutate Graph Kernel state",
+    );
+  }
+  assertGraphAuthorityWriter(authority, writerIdentity, {
+    now: now(),
+    requireCanonical: false,
+  });
   const run = {
-    id: safeIdentifier(options.runId || randomUUID(), "runId"),
+    id,
     compiled,
     phase: "open",
     status: "running",
@@ -547,6 +606,7 @@ function buildRun(compiled, options, now) {
         },
         "cc.graph.authority/v1",
       ),
+    authority,
     budget: clone(options.budget || compiled.definition.budget || {}),
     budgetUsed: emptyBudgetUsage(),
     budgetReserved: emptyBudgetUsage(),
@@ -1187,6 +1247,11 @@ export class GraphKernel {
     agingWindowMs = 1000,
     maxPendingMessagesPerAgent = 100,
     maxLivelockRepeats = 8,
+    writerId = `graph-kernel:${process.pid}:${randomUUID()}`,
+    writerLeaseId = `graph-kernel-lease:${randomUUID()}`,
+    authoritySource = "graph_kernel",
+    authorityGeneration = 1,
+    writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     this.eventStore = eventStore;
     this.now = now;
@@ -1197,6 +1262,13 @@ export class GraphKernel {
       Number(maxPendingMessagesPerAgent) || 100,
     );
     this.maxLivelockRepeats = Math.max(2, Number(maxLivelockRepeats) || 8);
+    this.writerIdentity = Object.freeze({
+      authoritySource,
+      authorityGeneration: Math.max(1, Number(authorityGeneration) || 1),
+      writerId: safeIdentifier(writerId, "writerId"),
+      writerLeaseId: safeIdentifier(writerLeaseId, "writerLeaseId"),
+    });
+    this.writerLeaseTtlMs = Math.max(1, Number(writerLeaseTtlMs) || 1);
     this.runs = new Map();
     this.occurrences = new Map();
   }
@@ -1233,6 +1305,19 @@ export class GraphKernel {
         `GraphRun is terminal: ${run.status}`,
       );
     }
+    const expectedHeadHash = run.lastEvent?.hash || run.authority.eventHead;
+    const expectedRevision = run.lastEvent?.seq;
+    if (run.authority.authorityMode === "legacy") {
+      throw kernelError(
+        "CC_GRAPH_NON_CANONICAL_WRITER",
+        "legacy authority cannot mutate Graph Kernel state",
+      );
+    }
+    assertGraphAuthorityWriter(run.authority, this.writerIdentity, {
+      now: this.now(),
+      expectedEventHead: expectedHeadHash,
+      requireCanonical: false,
+    });
     const before = stateSnapshot(run);
     try {
       const result = mutator();
@@ -1245,9 +1330,16 @@ export class GraphKernel {
         {
           idempotencyKey: options.idempotencyKey || null,
           traceId: options.traceId || null,
+          authority: run.authority,
+          expectedRevision,
+          expectedHeadHash,
         },
       );
       run.lastEvent = event;
+      run.authority = createGraphAuthorityBinding({
+        ...run.authority,
+        eventHead: event.hash,
+      });
       return result;
     } catch (error) {
       restoreState(run, before);
@@ -1271,16 +1363,32 @@ export class GraphKernel {
       }
       return runProjection(existing);
     }
-    const run = buildRun(compiled, options, this.now);
+    const run = buildRun(
+      compiled,
+      options,
+      this.now,
+      this.writerIdentity,
+      this.writerLeaseTtlMs,
+    );
     if (this.runs.has(run.id)) {
       throw kernelError(
         "CC_GRAPH_RUN_CONFLICT",
         `GraphRun id already exists: ${run.id}`,
       );
     }
-    this.eventStore.start(run.id, {
+    const initialHead = this.eventStore.start(run.id, {
       definitionId: compiled.definitionId,
       revisionDigest: compiled.revisionDigest,
+      originSurface: run.authority.originSurface,
+      authorityMode: run.authority.authorityMode,
+      authorityGeneration: run.authority.authorityGeneration,
+      writerId: run.authority.writerId,
+      projectionVersion: run.authority.projectionVersion,
+    });
+    run.lastEvent = initialHead;
+    run.authority = createGraphAuthorityBinding({
+      ...run.authority,
+      eventHead: initialHead.hash,
     });
     this.runs.set(run.id, run);
     try {
@@ -1306,7 +1414,7 @@ export class GraphKernel {
     return runProjection(run);
   }
 
-  recoverRun(runId) {
+  recoverRun(runId, { authority = null } = {}) {
     const id = safeIdentifier(runId, "runId");
     const events = this.eventStore.read(id);
     const latest = [...events]
@@ -1322,7 +1430,67 @@ export class GraphKernel {
     const run = { id, lastEvent: latest };
     restoreState(run, snapshot);
     run.lastEvent = latest;
+    run.authority = createGraphAuthorityBinding({
+      ...run.authority,
+      eventHead: latest.hash,
+    });
     this.runs.set(id, run);
+    if (authority) {
+      const nextAuthority = createGraphAuthorityBinding({
+        ...authority,
+        logicalRunId: id,
+        eventHead: latest.hash,
+      });
+      const previousAuthority = run.authority;
+      if (
+        nextAuthority.authorityGeneration <=
+        previousAuthority.authorityGeneration
+      ) {
+        this.runs.delete(id);
+        throw kernelError(
+          "CC_GRAPH_STALE_GENERATION",
+          "recovery authority must use a higher writer generation",
+        );
+      }
+      assertGraphAuthorityWriter(nextAuthority, this.writerIdentity, {
+        now: this.now(),
+        expectedEventHead: latest.hash,
+        requireCanonical: false,
+      });
+      run.authority = nextAuthority;
+      try {
+        this._transaction(
+          run,
+          "run.authority_transferred",
+          {
+            previousAuthoritySource: previousAuthority.authoritySource,
+            previousAuthorityGeneration: previousAuthority.authorityGeneration,
+            previousWriterId: previousAuthority.writerId,
+            authorityGeneration: nextAuthority.authorityGeneration,
+            writerId: nextAuthority.writerId,
+          },
+          () => {},
+          {
+            allowTerminal: true,
+            idempotencyKey: `authority-transfer:${nextAuthority.authorityGeneration}`,
+          },
+        );
+      } catch (error) {
+        this.runs.delete(id);
+        throw error;
+      }
+    } else {
+      try {
+        assertGraphAuthorityWriter(run.authority, this.writerIdentity, {
+          now: this.now(),
+          expectedEventHead: latest.hash,
+          requireCanonical: false,
+        });
+      } catch (error) {
+        this.runs.delete(id);
+        throw error;
+      }
+    }
     if (run.occurrenceRef) {
       const key = `${run.occurrenceRef.jobRevision || ""}\0${run.occurrenceRef.occurrenceId || run.occurrenceRef.idempotencyKey || ""}`;
       this.occurrences.set(key, id);
@@ -1942,6 +2110,12 @@ export class GraphKernel {
     } else {
       this.startRun(childCompiled, {
         runId: id,
+        originSurface: parent.authority.originSurface,
+        authority: {
+          ...parent.authority,
+          logicalRunId: id,
+          eventHead: null,
+        },
         parentRunRef: {
           runId: parent.id,
           nodeId: safeNodeId,
