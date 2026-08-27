@@ -102,6 +102,9 @@ test("selector invokes git diff with validated argument arrays", () => {
   let invocation;
   const changedFiles = selector.getChangedFilesCI({
     baseRef: "feature/safe-ref",
+    // Isolate the base-ref contract from COWORK_PUSH_BASE_SHA injected by
+    // push workflows. A real push must still prefer that exact SHA.
+    baseSha: "",
     spawn(command, args, options) {
       invocation = { command, args, options };
       return {
