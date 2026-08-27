@@ -328,6 +328,7 @@ export class TeamGraphRuntimeAdapter {
     budget = {},
     authorityMode = "canonical",
     dynamic = false,
+    recoveryReceipts = null,
   }) {
     if (!["shadow", "canonical"].includes(authorityMode)) {
       throw adapterError(
@@ -442,6 +443,52 @@ export class TeamGraphRuntimeAdapter {
           "persisted canonical Team Graph does not match the resumed task definition",
         );
       }
+    }
+    if (projection.status === "reconciliation_required" && recoveryReceipts) {
+      const receipts =
+        recoveryReceipts instanceof Map
+          ? recoveryReceipts
+          : new Map(Object.entries(recoveryReceipts));
+      for (const effect of this.kernel
+        .effectState(this.runId)
+        .filter((candidate) => candidate.status === "unknown")) {
+        const key = this.nodeToTask.get(effect.nodeId);
+        const recovery = key ? receipts.get(key) : null;
+        if (!recovery) continue;
+        const decision =
+          recovery.decision ||
+          (recovery.status === "completed" ? "committed" : "failed");
+        const receiptDigest =
+          recovery.receiptDigest ||
+          recovery.terminalEvidence?.outputDigest ||
+          null;
+        this.kernel.reconcileEffect(this.runId, {
+          effectId: effect.id,
+          decision,
+          receipt:
+            decision === "committed"
+              ? {
+                  receiptDigest,
+                  terminalEvidence: recovery.terminalEvidence || null,
+                }
+              : null,
+          auditDecisionId: safeIdentifier(
+            recovery.auditDecisionId ||
+              `team-recovery:${graphDigest(
+                {
+                  runId: this.runId,
+                  key,
+                  effectId: effect.id,
+                  decision,
+                  receiptDigest,
+                },
+                "cc.team.recovery-decision/v1",
+              ).slice(7, 39)}`,
+            "team-recovery",
+          ),
+        });
+      }
+      projection = this.kernel.getRun(this.runId);
     }
     if (projection.status === "reconciliation_required") {
       throw adapterError(
@@ -1342,6 +1389,8 @@ export class TeamGraphRuntimeAdapter {
             holder,
             legacyLeaseId: lease?.leaseId || null,
             legacyFence: lease?.fencingToken ?? null,
+            authorityGeneration: this.kernel.getRun(this.runId)
+              .authorityGeneration,
           },
           "cc.team.assignment/v1",
         ).slice(7, 39)}`,

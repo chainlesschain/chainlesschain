@@ -778,6 +778,82 @@ describe("CLI Team canonical Graph runtime adapter", () => {
     });
   });
 
+  it("uses a durable distributed receipt to reconcile a writer crash", () => {
+    const now = () => 1_800_000_000_000;
+    const source = registry(now);
+    const eventStore = new GraphEventStore({
+      rolloutStore: new MemoryRolloutStore({ now }),
+    });
+    const first = new TeamGraphRuntimeAdapter({
+      eventStore,
+      now,
+      createId: () => "distributed-receipt-first",
+    });
+    first.open({
+      registry: source,
+      runId: "team:distributed-receipt-recovery",
+      executionMode: "shell-worktree",
+      worktree: true,
+      teammates: 1,
+    });
+    const lease = source.acquire("build", {
+      holder: "worker-1:teammate-1",
+      ttlMs: 60_000,
+    }).lease;
+    const original = first.beforeTask({
+      key: "build",
+      holder: "worker-1:teammate-1",
+      task: source.getTask("build"),
+      lease,
+    });
+
+    const recovered = new TeamGraphRuntimeAdapter({
+      eventStore,
+      now,
+      createId: () => "distributed-receipt-recovered",
+    });
+    expect(
+      recovered.open({
+        registry: source,
+        runId: "team:distributed-receipt-recovery",
+        executionMode: "shell-worktree",
+        worktree: true,
+        teammates: 1,
+        recoveryReceipts: new Map([
+          [
+            "build",
+            {
+              status: "completed",
+              decision: "committed",
+              receiptDigest: OUTPUT_DIGEST,
+              terminalEvidence: { outputDigest: OUTPUT_DIGEST },
+              auditDecisionId: "distributed-result-build",
+            },
+          ],
+        ]),
+      }),
+    ).toMatchObject({ status: "running" });
+    const resumed = recovered.beforeTask({
+      key: "build",
+      holder: "worker-1:teammate-1",
+      task: source.getTask("build"),
+      lease,
+    });
+    expect(resumed.id).not.toBe(original.id);
+    recovered.settleTask({
+      key: "build",
+      task: source.getTask("build"),
+      status: "completed",
+      result: { terminalEvidence: { outputDigest: OUTPUT_DIGEST } },
+    });
+    expect(recovered.status().nodes).toContainEqual(
+      expect.objectContaining({ nodeId: "build", status: "succeeded" }),
+    );
+    expect(
+      recovered.events().filter((event) => event.type === "effect.reconciled"),
+    ).toHaveLength(1);
+  });
+
   it("requires an explicit migration saga before changing authority mode", () => {
     const now = () => 1_800_000_000_000;
     const source = registry(now);
