@@ -45,12 +45,33 @@ function retirementContractFor(entryId) {
     "cowork",
     entryId,
   ).entry;
+  const replacementTargets = (entry.replacementEntryIds || []).map(
+    (replacementEntryId) => {
+      for (const surface of runtimeManifest.surfaces || []) {
+        const target = (surface.entries || []).find(
+          (candidate) => candidate.id === replacementEntryId,
+        );
+        if (!target) continue;
+        return Object.freeze({
+          entryId: target.id,
+          originSurface: surface.originSurface,
+          rolloutKey: target.rolloutKey,
+          entrypoints: Object.freeze([...(target.entrypoints || [])]),
+          recoveryEntrypoints: Object.freeze([
+            ...(target.recoveryEntrypoints || []),
+          ]),
+        });
+      }
+      return null;
+    },
+  );
   return Object.freeze({
     replacementEntrypoint: entry.replacementEntrypoint || null,
     replacementEntryIds: Object.freeze([...(entry.replacementEntryIds || [])]),
     historicalReadFunctions: Object.freeze([
       ...(entry.historicalReadFunctions || []),
     ]),
+    replacementTargets: Object.freeze(replacementTargets.filter(Boolean)),
   });
 }
 
@@ -124,6 +145,7 @@ export function assertCLILegacyMutationAllowed(
       replacementEntryIds: retirementContract?.replacementEntryIds || [],
       historicalReadFunctions:
         retirementContract?.historicalReadFunctions || [],
+      replacementTargets: retirementContract?.replacementTargets || [],
       authorityMode: "canonical",
       authoritySource: "graph_kernel",
     },

@@ -74,6 +74,7 @@ describe("GraphRun authority and writer inventory", () => {
       retirementEntryCount: 13,
       disabledEntryCount: 3,
       replacementEdgeCount: 15,
+      replacementTargetEntryCount: 6,
       historicalReadFunctionCount: 32,
       retiredMutationFunctionCount: 360,
       errors: [],

@@ -64,12 +64,33 @@ function retirementContractFor(entryId) {
   );
   const entry = desktop?.entries.find((candidate) => candidate.id === entryId);
   if (!entry) return null;
+  const replacementTargets = (entry.replacementEntryIds || []).map(
+    (replacementEntryId) => {
+      for (const surface of graphRuntimeSurfaceManifest.surfaces || []) {
+        const target = (surface.entries || []).find(
+          (candidate) => candidate.id === replacementEntryId,
+        );
+        if (!target) continue;
+        return Object.freeze({
+          entryId: target.id,
+          originSurface: surface.originSurface,
+          rolloutKey: target.rolloutKey,
+          entrypoints: Object.freeze([...(target.entrypoints || [])]),
+          recoveryEntrypoints: Object.freeze([
+            ...(target.recoveryEntrypoints || []),
+          ]),
+        });
+      }
+      return null;
+    },
+  );
   return Object.freeze({
     replacementEntrypoint: entry.replacementEntrypoint || null,
     replacementEntryIds: Object.freeze([...(entry.replacementEntryIds || [])]),
     historicalReadFunctions: Object.freeze([
       ...(entry.historicalReadFunctions || []),
     ]),
+    replacementTargets: Object.freeze(replacementTargets.filter(Boolean)),
   });
 }
 
@@ -155,6 +176,7 @@ function assertDesktopLegacyMutationAllowed(
   error.replacementEntryIds = retirementContract?.replacementEntryIds || [];
   error.historicalReadFunctions =
     retirementContract?.historicalReadFunctions || [];
+  error.replacementTargets = retirementContract?.replacementTargets || [];
   error.authorityMode = "canonical";
   error.authoritySource = "graph_kernel";
   throw error;

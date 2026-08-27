@@ -181,6 +181,14 @@ describe("Desktop Graph authority retirement", () => {
       replacementEntrypoint: expect.any(String),
       replacementEntryIds: expect.arrayContaining([expect.any(String)]),
       historicalReadFunctions: expect.arrayContaining([expect.any(String)]),
+      replacementTargets: expect.arrayContaining([
+        expect.objectContaining({
+          entryId: expect.any(String),
+          rolloutKey: expect.any(String),
+          entrypoints: expect.arrayContaining([expect.any(String)]),
+          recoveryEntrypoints: expect.arrayContaining([expect.any(String)]),
+        }),
+      ]),
     });
     expect(() =>
       assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput"),

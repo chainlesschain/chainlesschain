@@ -352,6 +352,7 @@ export function validateGraphRuntimeSurfaceManifest(
   let replacementEdgeCount = 0;
   let historicalReadFunctionCount = 0;
   let retiredMutationFunctionCount = 0;
+  const replacementTargetEntryIds = new Set();
   for (const surface of surfaces) {
     for (const entry of surface.entries || []) {
       if (entry.cutoverStrategy !== "retire") continue;
@@ -366,6 +367,7 @@ export function validateGraphRuntimeSurfaceManifest(
       }
       for (const replacementEntryId of replacementEntryIds) {
         replacementEdgeCount += 1;
+        replacementTargetEntryIds.add(replacementEntryId);
         const replacement = entriesById.get(replacementEntryId);
         if (!replacement || replacement.cutoverStrategy !== "migrate") {
           errors.push(
@@ -471,6 +473,7 @@ export function validateGraphRuntimeSurfaceManifest(
     retirementEntryCount: strategyCounts.retire,
     disabledEntryCount: strategyCounts.disabled,
     replacementEdgeCount,
+    replacementTargetEntryCount: replacementTargetEntryIds.size,
     historicalReadFunctionCount,
     retiredMutationFunctionCount,
     manifest: Object.freeze(clone(manifest)),

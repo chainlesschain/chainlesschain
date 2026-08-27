@@ -181,7 +181,10 @@ describe("GraphCutoverAuthorityResolver", () => {
       manifest,
       ledger,
     });
-    expect(retirement.writerStores).toEqual(["WorkflowEngine.executions"]);
+    expect(retirement.writerStores).toEqual([
+      "workflow_executions",
+      "workflows",
+    ]);
     expect(retirement.stores).toEqual([]);
     expect(retirement.begin()).toMatchObject({
       cutoverStrategy: "retire",

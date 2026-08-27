@@ -50,6 +50,14 @@ describe("CLI legacy runtime authority", () => {
       replacementEntrypoint: expect.any(String),
       replacementEntryIds: expect.arrayContaining([expect.any(String)]),
       historicalReadFunctions: expect.arrayContaining([expect.any(String)]),
+      replacementTargets: expect.arrayContaining([
+        expect.objectContaining({
+          entryId: expect.any(String),
+          rolloutKey: expect.any(String),
+          entrypoints: expect.arrayContaining([expect.any(String)]),
+          recoveryEntrypoints: expect.arrayContaining([expect.any(String)]),
+        }),
+      ]),
     });
     expect(() =>
       assertCLILegacyMutationAllowed("CLIAutonomousAgent.submitGoal"),
@@ -61,6 +69,17 @@ describe("CLI legacy runtime authority", () => {
         historicalReadFunctions: expect.arrayContaining([
           "CLIAutonomousAgent.getGoalStatus",
         ]),
+        replacementTargets: [
+          expect.objectContaining({
+            entryId: "cli-cowork",
+            originSurface: "cowork",
+            rolloutKey: "cowork/cli-cowork",
+            entrypoints: expect.arrayContaining([
+              "packages/cli/src/commands/cowork.js",
+            ]),
+            recoveryEntrypoints: ["DynamicWorkflowRuntime.resume"],
+          }),
+        ],
       }),
     );
 
