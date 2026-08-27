@@ -179,10 +179,11 @@ describe("Desktop Graph authority retirement", () => {
     const expected = expect.objectContaining({
       code: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
       authoritySource: "graph_kernel",
+      replacementEntrypoint: expect.any(String),
     });
-    expect(() => assertDesktopLegacyMutationAllowed("fixture")).toThrowError(
-      expected,
-    );
+    expect(() =>
+      assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput"),
+    ).toThrowError(expected);
     await expect(new AgentCoordinator().orchestrate("task")).resolves.toEqual(
       expect.objectContaining({
         success: false,

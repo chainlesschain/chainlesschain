@@ -47,10 +47,16 @@ describe("CLI legacy runtime authority", () => {
     const expected = expect.objectContaining({
       code: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
       authoritySource: "graph_kernel",
+      replacementEntrypoint: expect.any(String),
     });
     expect(() =>
       assertCLILegacyMutationAllowed("CLIAutonomousAgent.submitGoal"),
-    ).toThrowError(expected);
+    ).toThrowError(
+      expect.objectContaining({
+        replacementEntrypoint:
+          "cc cowork run through the canonical Graph Kernel adapter",
+      }),
+    );
 
     const autonomous = new CLIAutonomousAgent();
     autonomous.initialize({});

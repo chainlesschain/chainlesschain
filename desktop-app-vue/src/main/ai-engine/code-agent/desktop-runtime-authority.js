@@ -3,6 +3,9 @@
 const {
   createRuntimeGraphCutoverAuthorityResolver,
 } = require("../../../../../packages/cli/src/lib/graph-kernel/cutover-authority-resolver.js");
+const graphRuntimeSurfaceManifest = require(
+  "../../../../../packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json",
+);
 
 const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
 const DESKTOP_ENTRYPOINTS = Object.freeze([
@@ -50,6 +53,15 @@ function fallbackMode(env) {
 function entryIdFor(entrypoint) {
   const value = String(entrypoint || "");
   return DESKTOP_ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
+}
+
+function replacementEntrypointFor(entryId) {
+  if (!entryId) return null;
+  const desktop = graphRuntimeSurfaceManifest.surfaces.find(
+    (surface) => surface.originSurface === "desktop",
+  );
+  return desktop?.entries.find((entry) => entry.id === entryId)
+    ?.replacementEntrypoint;
 }
 
 function desktopGraphAuthorityMode(env = process.env, options = {}) {
@@ -121,12 +133,15 @@ function assertDesktopLegacyMutationAllowed(
       legacyReadOnly: false,
     });
   }
+  const replacementEntrypoint = replacementEntrypointFor(entryId);
   const error = new Error(
-    `Desktop legacy runtime is read-only; '${entrypoint}' must use the fixed Graph App Server adapter`,
+    `Desktop legacy runtime is read-only; '${entrypoint}' must use ${replacementEntrypoint || "the fixed Graph App Server adapter"}`,
   );
   error.name = "DesktopRuntimeAuthorityError";
   error.code = "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY";
   error.entrypoint = String(entrypoint);
+  error.entryId = entryId;
+  error.replacementEntrypoint = replacementEntrypoint;
   error.authorityMode = "canonical";
   error.authoritySource = "graph_kernel";
   throw error;

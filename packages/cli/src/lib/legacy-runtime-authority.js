@@ -1,4 +1,8 @@
 import { createRuntimeGraphCutoverAuthorityResolver } from "./graph-kernel/cutover-authority-resolver.js";
+import {
+  graphRuntimeSurfaceEntry,
+  loadGraphRuntimeSurfaceManifest,
+} from "./graph-kernel/runtime-surface-manifest.js";
 
 const AUTHORITY_MODES = new Set(["legacy", "shadow", "canonical"]);
 const ENTRYPOINTS = Object.freeze([
@@ -6,6 +10,7 @@ const ENTRYPOINTS = Object.freeze([
   ["Orchestrator.", "cli-legacy-orchestrate"],
 ]);
 const resolverCache = new Map();
+const runtimeManifest = loadGraphRuntimeSurfaceManifest();
 
 function authorityError(code, message, details = {}) {
   const error = new Error(message);
@@ -31,6 +36,12 @@ function fallbackMode(env) {
 function entryIdFor(entrypoint) {
   const value = String(entrypoint || "");
   return ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
+}
+
+function replacementEntrypointFor(entryId) {
+  if (!entryId) return null;
+  return graphRuntimeSurfaceEntry(runtimeManifest, "cowork", entryId).entry
+    .replacementEntrypoint;
 }
 
 export function cliLegacyRuntimeAuthorityMode(env = process.env, options = {}) {
@@ -91,12 +102,14 @@ export function assertCLILegacyMutationAllowed(
       legacyReadOnly: false,
     });
   }
+  const replacementEntrypoint = replacementEntrypointFor(entryId);
   throw authorityError(
     "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
-    `CLI legacy runtime is read-only; '${entrypoint}' must use cc cowork or cc team through Graph Kernel`,
+    `CLI legacy runtime is read-only; '${entrypoint}' must use ${replacementEntrypoint || "the canonical Graph Kernel entrypoint"}`,
     {
       entrypoint: String(entrypoint),
       entryId,
+      replacementEntrypoint,
       authorityMode: "canonical",
       authoritySource: "graph_kernel",
     },
