@@ -4657,7 +4657,7 @@ desktop-app-vue/src/main/mcp/
 ├── mcp-performance-monitor.js     # 性能监控
 ├── mcp-ipc.js                     # IPC 处理器
 ├── transports/
-│   └── stdio-transport.js         # Stdio 通信层
+│   └── brokered-stdio-client-transport.js # 经进程代理隔离、具备有界 I/O 的 Stdio 通信层
 └── servers/
     ├── server-registry.json       # 可信服务器白名单
     └── server-configs/            # 服务器配置模板

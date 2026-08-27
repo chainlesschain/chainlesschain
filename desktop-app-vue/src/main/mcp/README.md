@@ -37,7 +37,7 @@ desktop-app-vue/src/main/
 │   ├── mcp-config-loader.js          # Configuration management
 │   ├── mcp-performance-monitor.js    # Performance tracking
 │   ├── transports/
-│   │   ├── stdio-transport.js        # Stdio communication layer (local servers)
+│   │   ├── brokered-stdio-client-transport.js # Brokered stdio with bounded I/O
 │   │   └── http-sse-transport.js     # HTTP+SSE transport (remote servers) ✅ Implemented
 │   ├── servers/
 │   │   ├── server-registry.json      # Trusted server whitelist
