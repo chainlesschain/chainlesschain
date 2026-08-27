@@ -18,6 +18,8 @@
 
 import { ensureDebuggerAttached } from "./_shared.js";
 
+export const MAX_LIFECYCLE_LOG_ENTRIES = 256;
+
 export async function getPageLifecycleState(tabId) {
   try {
     const result = await chrome.scripting.executeScript({
@@ -40,10 +42,24 @@ export async function subscribeLifecycleChanges(tabId) {
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
+      func: (maxEntries) => {
+        if (window.__chainlessLifecycleHandlers) {
+          window.__chainlessLifecycleHandlers.forEach(
+            ({ target, type, handler }) => {
+              target.removeEventListener(type, handler);
+            },
+          );
+        }
+
         window.__chainlessLifecycleLog = [];
+        window.__chainlessLifecycleDropped = 0;
+        window.__chainlessLifecycleHandlers = [];
 
         const logChange = (type, data) => {
+          if (window.__chainlessLifecycleLog.length >= maxEntries) {
+            window.__chainlessLifecycleLog.shift();
+            window.__chainlessLifecycleDropped += 1;
+          }
           window.__chainlessLifecycleLog.push({
             type,
             timestamp: Date.now(),
@@ -51,25 +67,31 @@ export async function subscribeLifecycleChanges(tabId) {
           });
         };
 
-        document.addEventListener("visibilitychange", () => {
+        const subscribe = (target, type, handler) => {
+          target.addEventListener(type, handler);
+          window.__chainlessLifecycleHandlers.push({ target, type, handler });
+        };
+
+        subscribe(document, "visibilitychange", () => {
           logChange("visibilitychange", {
             visibilityState: document.visibilityState,
           });
         });
 
-        window.addEventListener("focus", () => logChange("focus", {}));
-        window.addEventListener("blur", () => logChange("blur", {}));
-        window.addEventListener("freeze", () => logChange("freeze", {}));
-        window.addEventListener("resume", () => logChange("resume", {}));
-        window.addEventListener("pageshow", (e) =>
+        subscribe(window, "focus", () => logChange("focus", {}));
+        subscribe(window, "blur", () => logChange("blur", {}));
+        subscribe(window, "freeze", () => logChange("freeze", {}));
+        subscribe(window, "resume", () => logChange("resume", {}));
+        subscribe(window, "pageshow", (e) =>
           logChange("pageshow", { persisted: e.persisted }),
         );
-        window.addEventListener("pagehide", (e) =>
+        subscribe(window, "pagehide", (e) =>
           logChange("pagehide", { persisted: e.persisted }),
         );
 
-        return { success: true };
+        return { success: true, maxEntries };
       },
+      args: [MAX_LIFECYCLE_LOG_ENTRIES],
     });
     return result[0]?.result || { error: "Failed to subscribe" };
   } catch (error) {

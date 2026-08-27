@@ -10,7 +10,7 @@
  *
  * Extracted verbatim from background.js (Phase 1 of the split). Most handlers
  * run in page context via executeScript; start/stop trace use the CDP Tracing
- * domain (raw chrome.debugger) and keep per-tab performanceTraces state.
+ * domain (raw chrome.debugger) and keep bounded per-tab aggregate state.
  *
  * NOTE: background.js defined getPerformanceMetrics and getPerformanceEntries
  * TWICE each (basic + Phase 21); hoisting made the Phase 21 versions effective
@@ -21,6 +21,8 @@
 
 /* eslint-disable no-undef */
 /* global chrome, window, performance, document, Math, Date */
+
+import { PerformanceTraceRegistry } from "./performance-trace-registry.js";
 
 // ---------- Metrics / entries (effective Phase 21 definitions) ----------
 
@@ -92,53 +94,116 @@ export async function getPerformanceEntries(tabId, type = null) {
 
 // ---------- Tracing (CDP) ----------
 
-const performanceTraces = new Map();
+const performanceTraceRegistry = new PerformanceTraceRegistry();
+
+function removeTraceListener(listener) {
+  if (!listener) {
+    return;
+  }
+  try {
+    chrome.debugger.onEvent.removeListener(listener);
+  } catch {
+    // The debugger event target can disappear when a tab closes.
+  }
+}
+
+async function detachTraceDebugger(tabId) {
+  try {
+    await chrome.debugger.detach({ tabId });
+    return null;
+  } catch (error) {
+    return error;
+  }
+}
 
 export async function startPerformanceTrace(tabId) {
+  const admission = performanceTraceRegistry.admit(tabId);
+  if (!admission.accepted) {
+    return admission;
+  }
+
+  let debuggerAttached = false;
+  let listenerInstalled = false;
+  const listener = (source, method, params) => {
+    if (
+      source?.tabId !== tabId ||
+      method !== "Tracing.dataCollected" ||
+      !Array.isArray(params?.value)
+    ) {
+      return;
+    }
+    performanceTraceRegistry.recordEventBatch(
+      admission.lease,
+      params.value.length,
+    );
+  };
+
   try {
     await chrome.debugger.attach({ tabId }, "1.3");
+    debuggerAttached = true;
+    chrome.debugger.onEvent.addListener(listener);
+    listenerInstalled = true;
+    performanceTraceRegistry.bindListener(admission.lease, listener);
+
     await chrome.debugger.sendCommand({ tabId }, "Tracing.start", {
       categories:
         "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline",
       options: "sampling-frequency=10000",
     });
+    performanceTraceRegistry.markActive(admission.lease);
 
-    performanceTraces.set(tabId, { startTime: Date.now(), events: [] });
-
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      if (source.tabId !== tabId || method !== "Tracing.dataCollected") {
-        return;
-      }
-
-      const trace = performanceTraces.get(tabId);
-      if (trace) {
-        trace.events.push(...params.value);
-      }
-    });
-
-    return { success: true };
+    return {
+      success: true,
+      limits: performanceTraceRegistry.getStats().limits,
+    };
   } catch (error) {
+    if (listenerInstalled) {
+      removeTraceListener(listener);
+    }
+    if (debuggerAttached) {
+      await detachTraceDebugger(tabId);
+    }
+    performanceTraceRegistry.release(admission.lease);
     return { error: error.message };
   }
 }
 
 export async function stopPerformanceTrace(tabId) {
+  const stopAdmission = performanceTraceRegistry.beginStop(tabId);
+  if (!stopAdmission.accepted) {
+    return {
+      error: stopAdmission.error,
+      code: stopAdmission.code,
+      ...(stopAdmission.retryAfterMs
+        ? { retryAfterMs: stopAdmission.retryAfterMs }
+        : {}),
+    };
+  }
+  const { trace } = stopAdmission;
+
+  let commandError = null;
   try {
     await chrome.debugger.sendCommand({ tabId }, "Tracing.end");
-
-    const trace = performanceTraces.get(tabId);
-    performanceTraces.delete(tabId);
-
-    await chrome.debugger.detach({ tabId });
-
-    return {
-      success: true,
-      duration: Date.now() - (trace?.startTime || 0),
-      eventCount: trace?.events?.length || 0,
-    };
   } catch (error) {
+    commandError = error;
+  }
+
+  const detachError = await detachTraceDebugger(tabId);
+  removeTraceListener(trace.listener);
+  const settledTrace = performanceTraceRegistry.release(trace.lease);
+
+  if (commandError || detachError) {
+    const error = commandError || detachError;
     return { error: error.message };
   }
+
+  return {
+    success: true,
+    duration: Date.now() - settledTrace.startedAt,
+    eventCount: settledTrace.eventCount,
+    eventCountExact: settledTrace.eventCountExact,
+    limits: performanceTraceRegistry.getStats().limits,
+  };
 }
 
 // ---------- Phase 21 metrics ----------

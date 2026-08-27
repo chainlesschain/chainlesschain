@@ -11,12 +11,10 @@
  *  - Memory Profiling (page performance.memory + CDP HeapProfiler): info, heap
  *    snapshot, allocation sampling, force GC; keeps memoryState
  *
- * Extracted verbatim from background.js (Phase 1 of the split). Imports the
- * shared CDP helper and keeps its own module-level state (coverageState,
- * memoryState) — once-imported ES module singletons, identical to the original
- * background.js top-level declarations. All chrome.* / debugger listeners are
- * referenced lazily inside function bodies, so the module imports cleanly
- * outside an extension context.
+ * Extracted from background.js (Phase 1 of the split). Imports the shared CDP
+ * helper and keeps bounded module-level coverage, sampling, and snapshot state.
+ * All chrome.* / debugger listeners are referenced lazily inside function
+ * bodies, so the module imports cleanly outside an extension context.
  *
  * ESM only.
  */
@@ -436,6 +434,25 @@ export async function forceElementState(tabId, selector, state) {
 // ---------- Coverage Analysis ----------
 
 const coverageState = new Map();
+export const DEVTOOLS_PROFILING_LIMITS = Object.freeze({
+  maxCoverageStates: 64,
+  maxRetainedJSScripts: 1000,
+  maxRetainedCSSRules: 100,
+  maxActiveMemorySamplings: 16,
+  maxCoverageUrlChars: 2048,
+  minMemorySamplingInterval: 1024,
+  maxMemorySamplingInterval: 1024 * 1024,
+});
+
+function setBoundedCoverageState(key, state) {
+  if (coverageState.has(key)) {
+    coverageState.delete(key);
+  }
+  while (coverageState.size >= DEVTOOLS_PROFILING_LIMITS.maxCoverageStates) {
+    coverageState.delete(coverageState.keys().next().value);
+  }
+  coverageState.set(key, state);
+}
 
 export async function startJSCoverage(tabId, options = {}) {
   try {
@@ -450,8 +467,11 @@ export async function startJSCoverage(tabId, options = {}) {
       },
     );
 
-    coverageState.set(`js-${tabId}`, { started: Date.now() });
-    return { success: true };
+    setBoundedCoverageState(`js-${tabId}`, {
+      started: Date.now(),
+      status: "active",
+    });
+    return { success: true, limits: DEVTOOLS_PROFILING_LIMITS };
   } catch (error) {
     return { error: error.message };
   }
@@ -469,18 +489,14 @@ export async function stopJSCoverage(tabId) {
     );
 
     const state = coverageState.get(`js-${tabId}`);
-    coverageState.set(`js-${tabId}`, {
-      ...state,
-      result: result.result,
-      stopped: Date.now(),
-    });
+    const scripts = Array.isArray(result.result) ? result.result : [];
 
     // Calculate summary
     let totalBytes = 0;
     let coveredBytes = 0;
-    result.result.forEach((script) => {
-      script.functions.forEach((fn) => {
-        fn.ranges.forEach((range) => {
+    scripts.forEach((script) => {
+      (script.functions || []).forEach((fn) => {
+        (fn.ranges || []).forEach((range) => {
           const rangeSize = range.endOffset - range.startOffset;
           totalBytes += rangeSize;
           if (range.count > 0) {
@@ -490,10 +506,31 @@ export async function stopJSCoverage(tabId) {
       });
     });
 
+    const retainedScripts = scripts
+      .slice(0, DEVTOOLS_PROFILING_LIMITS.maxRetainedJSScripts)
+      .map((script) => ({
+        scriptId: script.scriptId,
+        url:
+          typeof script.url === "string"
+            ? script.url.slice(0, DEVTOOLS_PROFILING_LIMITS.maxCoverageUrlChars)
+            : "",
+        functions: Array.isArray(script.functions)
+          ? script.functions.length
+          : 0,
+      }));
+    setBoundedCoverageState(`js-${tabId}`, {
+      started: state?.started,
+      stopped: Date.now(),
+      status: "stopped",
+      result: retainedScripts,
+      totalScripts: scripts.length,
+      truncated: scripts.length > retainedScripts.length,
+    });
+
     return {
       success: true,
       summary: {
-        totalScripts: result.result.length,
+        totalScripts: scripts.length,
         totalBytes,
         coveredBytes,
         coveragePercent:
@@ -511,8 +548,11 @@ export async function startCSSCoverage(tabId) {
     await chrome.debugger.sendCommand({ tabId }, "CSS.enable");
     await chrome.debugger.sendCommand({ tabId }, "CSS.startRuleUsageTracking");
 
-    coverageState.set(`css-${tabId}`, { started: Date.now() });
-    return { success: true };
+    setBoundedCoverageState(`css-${tabId}`, {
+      started: Date.now(),
+      status: "active",
+    });
+    return { success: true, limits: DEVTOOLS_PROFILING_LIMITS };
   } catch (error) {
     return { error: error.message };
   }
@@ -526,15 +566,23 @@ export async function stopCSSCoverage(tabId) {
     );
 
     const state = coverageState.get(`css-${tabId}`);
-    coverageState.set(`css-${tabId}`, {
-      ...state,
-      result: result.ruleUsage,
-      stopped: Date.now(),
-    });
+    const rules = Array.isArray(result.ruleUsage) ? result.ruleUsage : [];
 
     // Calculate summary
-    const usedRules = result.ruleUsage.filter((r) => r.used).length;
-    const totalRules = result.ruleUsage.length;
+    const usedRules = rules.filter((r) => r.used).length;
+    const totalRules = rules.length;
+    const retainedRules = rules.slice(
+      0,
+      DEVTOOLS_PROFILING_LIMITS.maxRetainedCSSRules,
+    );
+    setBoundedCoverageState(`css-${tabId}`, {
+      started: state?.started,
+      stopped: Date.now(),
+      status: "stopped",
+      result: retainedRules,
+      totalRules,
+      truncated: totalRules > retainedRules.length,
+    });
 
     return {
       success: true,
@@ -557,11 +605,9 @@ export function getJSCoverageResults(tabId) {
     return { error: "No JS coverage data available" };
   }
   return {
-    scripts: state.result.map((script) => ({
-      scriptId: script.scriptId,
-      url: script.url,
-      functions: script.functions.length,
-    })),
+    scripts: state.result,
+    totalScripts: state.totalScripts,
+    truncated: state.truncated,
     started: state.started,
     stopped: state.stopped,
   };
@@ -573,8 +619,9 @@ export function getCSSCoverageResults(tabId) {
     return { error: "No CSS coverage data available" };
   }
   return {
-    rules: state.result.slice(0, 100), // Limit to first 100 rules
-    totalRules: state.result.length,
+    rules: state.result,
+    totalRules: state.totalRules,
+    truncated: state.truncated,
     started: state.started,
     stopped: state.stopped,
   };
@@ -584,6 +631,45 @@ export function getCSSCoverageResults(tabId) {
 
 const memoryState = new Map();
 const heapSnapshotBoundary = new HeapSnapshotBoundary();
+
+function createMemorySamplingStateError(state) {
+  if (!state) {
+    return {
+      error: "No active memory sampling for this tab",
+      code: "MEMORY_SAMPLING_NOT_ACTIVE",
+    };
+  }
+  return {
+    error:
+      state.status === "starting"
+        ? "Memory sampling is still starting"
+        : "Memory sampling is already stopping",
+    code:
+      state.status === "starting"
+        ? "MEMORY_SAMPLING_STARTING"
+        : "MEMORY_SAMPLING_STOPPING",
+    retryAfterMs: 1000,
+  };
+}
+
+function normalizeSamplingInterval(options) {
+  let value;
+  try {
+    value = Number(options?.samplingInterval);
+  } catch {
+    value = Number.NaN;
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    return 32768;
+  }
+  return Math.min(
+    Math.max(
+      Math.floor(value),
+      DEVTOOLS_PROFILING_LIMITS.minMemorySamplingInterval,
+    ),
+    DEVTOOLS_PROFILING_LIMITS.maxMemorySamplingInterval,
+  );
+}
 
 export async function getMemoryInfo(tabId) {
   try {
@@ -682,47 +768,98 @@ export async function takeHeapSnapshot(tabId) {
 }
 
 export async function startMemorySampling(tabId, options = {}) {
+  if (memoryState.has(tabId)) {
+    return {
+      accepted: false,
+      error: "Memory sampling is already active for this tab",
+      code: "OVERLOADED",
+      scope: "memory_sampling_tab",
+      retryAfterMs: 1000,
+      limit: { maxActiveMemorySamplingsPerTab: 1 },
+    };
+  }
+  if (memoryState.size >= DEVTOOLS_PROFILING_LIMITS.maxActiveMemorySamplings) {
+    return {
+      accepted: false,
+      error: "Memory sampling capacity exceeded",
+      code: "OVERLOADED",
+      scope: "memory_samplings",
+      retryAfterMs: 1000,
+      limit: {
+        maxActiveMemorySamplings:
+          DEVTOOLS_PROFILING_LIMITS.maxActiveMemorySamplings,
+      },
+    };
+  }
+
+  const samplingInterval = normalizeSamplingInterval(options);
+  const state = { started: Date.now(), status: "starting" };
+  memoryState.set(tabId, state);
   try {
     await ensureDebuggerAttached(tabId);
     await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
     await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.startSampling", {
-      samplingInterval: options.samplingInterval || 32768,
+      samplingInterval,
     });
 
-    memoryState.set(`sampling-${tabId}`, { started: Date.now() });
-    return { success: true };
+    state.status = "active";
+    return {
+      success: true,
+      samplingInterval,
+      limits: DEVTOOLS_PROFILING_LIMITS,
+    };
   } catch (error) {
+    memoryState.delete(tabId);
     return { error: error.message };
   }
 }
 
 export async function stopMemorySampling(tabId) {
+  const state = memoryState.get(tabId);
+  if (!state || state.status !== "active") {
+    return createMemorySamplingStateError(state);
+  }
+  state.status = "stopping";
+
   try {
     const result = await chrome.debugger.sendCommand(
       { tabId },
       "HeapProfiler.stopSampling",
     );
 
-    const state = memoryState.get(`sampling-${tabId}`);
-    memoryState.set(`sampling-${tabId}`, {
-      ...state,
-      result: result.profile,
-      stopped: Date.now(),
-    });
-
     // Calculate summary
-    const samples = result.profile.samples || [];
-    const totalSize = samples.reduce((sum, s) => sum + (s.size || 0), 0);
+    const samples = Array.isArray(result.profile?.samples)
+      ? result.profile.samples
+      : [];
+    let totalSize = 0;
+    let totalSizeExact = true;
+    for (const sample of samples) {
+      const size =
+        typeof sample?.size === "number" &&
+        Number.isSafeInteger(sample.size) &&
+        sample.size > 0
+          ? sample.size
+          : 0;
+      if (size > Number.MAX_SAFE_INTEGER - totalSize) {
+        totalSize = Number.MAX_SAFE_INTEGER;
+        totalSizeExact = false;
+      } else {
+        totalSize += size;
+      }
+    }
+    memoryState.delete(tabId);
 
     return {
       success: true,
       summary: {
         sampleCount: samples.length,
         totalAllocatedSize: totalSize,
-        duration: state ? Date.now() - state.started : 0,
+        totalAllocatedSizeExact: totalSizeExact,
+        duration: Date.now() - state.started,
       },
     };
   } catch (error) {
+    state.status = "active";
     return { error: error.message };
   }
 }
