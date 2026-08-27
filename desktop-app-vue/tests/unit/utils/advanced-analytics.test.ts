@@ -19,7 +19,9 @@ vi.mock("@/utils/adaptive-performance", () => ({
   default: { getStats: () => ({ tier: "high" }) },
 }));
 
-import analytics from "@/utils/advanced-analytics";
+import analytics, {
+  ADVANCED_ANALYTICS_LIMITS,
+} from "@/utils/advanced-analytics";
 
 beforeAll(() => analytics.stop()); // halt the constructor's intervals + listeners
 beforeEach(() => {
@@ -35,6 +37,42 @@ describe("advanced-analytics — trackEvent", () => {
     expect(analytics.getSummary().eventsTracked).toBe(3);
     expect(analytics.exportData().userBehavior.fileEdits).toHaveLength(2);
   });
+
+  it("bounds retained events, distinct types, and individual payloads", () => {
+    analytics.trackEvent("large", {
+      payload: "x".repeat(ADVANCED_ANALYTICS_LIMITS.maxEventDataBytes + 1),
+    });
+    expect(analytics.exportData().events.at(-1)?.data).toEqual({
+      dropped: true,
+      reason: "PAYLOAD_TOO_LARGE",
+    });
+
+    for (
+      let index = 0;
+      index < ADVANCED_ANALYTICS_LIMITS.maxEventTypes + 20;
+      index += 1
+    ) {
+      analytics.trackEvent(`type-${index}`);
+    }
+    const internal = analytics as unknown as {
+      eventTypes: Map<string, number>;
+    };
+    expect(internal.eventTypes.size).toBeLessThanOrEqual(
+      ADVANCED_ANALYTICS_LIMITS.maxEventTypes,
+    );
+    expect(internal.eventTypes.get("__overflow__")).toBeGreaterThan(0);
+
+    for (
+      let index = 0;
+      index < ADVANCED_ANALYTICS_LIMITS.maxEvents;
+      index += 1
+    ) {
+      analytics.trackEvent("repeat");
+    }
+    expect(analytics.exportData().events).toHaveLength(
+      ADVANCED_ANALYTICS_LIMITS.maxEvents,
+    );
+  });
 });
 
 describe("advanced-analytics — features + errors + warnings", () => {
@@ -46,6 +84,21 @@ describe("advanced-analytics — features + errors + warnings", () => {
     expect(analytics.getSummary().eventsTracked).toBe(2); // each emits an event
   });
 
+  it("buckets feature dimensions after the configured capacity", () => {
+    for (
+      let index = 0;
+      index < ADVANCED_ANALYTICS_LIMITS.maxFeatureKeys + 20;
+      index += 1
+    ) {
+      analytics.trackFeature(`feature-${index}`);
+    }
+    const usage = analytics.exportData().featureUsage;
+    expect(usage.length).toBeLessThanOrEqual(
+      ADVANCED_ANALYTICS_LIMITS.maxFeatureKeys,
+    );
+    expect(usage).toContainEqual(["__overflow__", 21]);
+  });
+
   it("trackError / trackWarning accumulate and surface in the summary", () => {
     analytics.trackError({ message: "boom" });
     analytics.trackWarning({ message: "careful" });
@@ -54,6 +107,73 @@ describe("advanced-analytics — features + errors + warnings", () => {
     expect(s.warnings).toBe(1);
     // each also emits its own analytics event
     expect(s.eventsTracked).toBe(2);
+  });
+
+  it("bounds error and warning records and handles circular payloads", () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    analytics.trackError(circular);
+    for (let index = 0; index < 55; index += 1) {
+      analytics.trackWarning({ message: `warning-${index}` });
+    }
+
+    const dump = analytics.exportData();
+    expect(dump.errors[0]).toMatchObject({
+      dropped: true,
+      reason: "PAYLOAD_NOT_SERIALIZABLE",
+    });
+    expect(dump.warnings).toHaveLength(ADVANCED_ANALYTICS_LIMITS.maxWarnings);
+  });
+});
+
+describe("advanced-analytics — persisted history bounds", () => {
+  it("normalizes loaded trend arrays and feature dimensions", () => {
+    localStorage.setItem(
+      "analytics-history",
+      JSON.stringify({
+        performanceTrends: {
+          fileLoadTimes: Array.from({ length: 150 }, (_, index) => ({
+            timestamp: index,
+            value: index,
+          })),
+          renderTimes: [],
+          memoryUsage: [],
+          cachePerformance: [],
+        },
+        featureUsage: Array.from({ length: 300 }, (_, index) => [
+          `feature-${index}`,
+          1,
+        ]),
+      }),
+    );
+
+    (
+      analytics as unknown as {
+        loadHistory: () => void;
+      }
+    ).loadHistory();
+    const dump = analytics.exportData();
+    expect(dump.performanceTrends.fileLoadTimes).toHaveLength(
+      ADVANCED_ANALYTICS_LIMITS.maxTrendPoints,
+    );
+    expect(dump.featureUsage.length).toBeLessThanOrEqual(
+      ADVANCED_ANALYTICS_LIMITS.maxFeatureKeys,
+    );
+    expect(dump.featureUsage).toContainEqual(["__overflow__", 45]);
+  });
+
+  it("removes an oversized historical payload before parsing it", () => {
+    localStorage.setItem(
+      "analytics-history",
+      "x".repeat(ADVANCED_ANALYTICS_LIMITS.maxHistoryBytes + 1),
+    );
+
+    (
+      analytics as unknown as {
+        loadHistory: () => void;
+      }
+    ).loadHistory();
+    expect(localStorage.getItem("analytics-history")).toBeNull();
   });
 });
 
@@ -64,11 +184,16 @@ describe("advanced-analytics — analyze() fileLoadTrend", () => {
     // change is (50-0)/0 = Infinity and leaks into the report.
     const fileLoadTimes = [
       { timestamp: 1, value: 0 },
-      ...Array.from({ length: 10 }, (_, i) => ({ timestamp: i + 2, value: 50 })),
+      ...Array.from({ length: 10 }, (_, i) => ({
+        timestamp: i + 2,
+        value: 50,
+      })),
     ];
-    (analytics as unknown as {
-      performanceTrends: { fileLoadTimes: typeof fileLoadTimes };
-    }).performanceTrends.fileLoadTimes = fileLoadTimes;
+    (
+      analytics as unknown as {
+        performanceTrends: { fileLoadTimes: typeof fileLoadTimes };
+      }
+    ).performanceTrends.fileLoadTimes = fileLoadTimes;
 
     const trend = analytics.analyze().performance.fileLoadTrend;
     expect(trend).toBeDefined();
@@ -105,5 +230,15 @@ describe("advanced-analytics — summary / report / export / clear", () => {
     analytics.clearData();
     expect(analytics.getSummary().eventsTracked).toBe(0);
     expect(analytics.exportData().errors).toHaveLength(0);
+  });
+
+  it("returns detached report and export snapshots", () => {
+    analytics.trackEvent("file-open", { path: "a.ts" });
+    const exported = analytics.exportData();
+    exported.events[0].data.path = "mutated.ts";
+    exported.userBehavior.fileEdits.length = 0;
+
+    expect(analytics.exportData().events[0].data.path).toBe("a.ts");
+    expect(analytics.exportData().userBehavior.fileEdits).toHaveLength(1);
   });
 });
