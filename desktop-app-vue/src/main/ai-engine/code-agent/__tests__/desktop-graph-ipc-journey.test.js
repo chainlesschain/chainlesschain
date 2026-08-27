@@ -1,6 +1,15 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { MemoryRolloutStore } from "../../../../../../packages/cli/src/lib/app-server/rollout-store.js";
+import {
+  JsonlRolloutStore,
+  MemoryRolloutStore,
+} from "../../../../../../packages/cli/src/lib/app-server/rollout-store.js";
 import { AppServerGraphRuntime } from "../../../../../../packages/cli/src/lib/app-server/graph-runtime.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
@@ -22,6 +31,9 @@ const {
 } = require("../desktop-graph-run-registry.js");
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
+const KILL_WRITER_FIXTURE = fileURLToPath(
+  new URL("./fixtures/desktop-graph-kill-writer.cjs", import.meta.url),
+);
 
 function ipcHarness() {
   const handlers = new Map();
@@ -74,6 +86,42 @@ function deferred() {
   return { promise, resolve };
 }
 
+async function waitForFile(target, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(target)) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error(`timed out waiting for child cut point: ${target}`);
+}
+
+async function waitForChildExit(child, timeoutMs = 10_000) {
+  if (child.exitCode != null || child.signalCode != null) {
+    return [child.exitCode, child.signalCode];
+  }
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("timed out terminating child writer"));
+    }, timeoutMs);
+    const onExit = (code, signal) => {
+      cleanup();
+      resolve([code, signal]);
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      clearTimeout(timeout);
+      child.off("exit", onExit);
+      child.off("error", onError);
+    };
+    child.once("exit", onExit);
+    child.once("error", onError);
+  });
+}
+
 async function waitForWorkflow(ipc, workflowId, expectedStatus) {
   for (let index = 0; index < 100; index += 1) {
     const response = await ipc.invoke("workflow:get-status", { workflowId });
@@ -93,6 +141,121 @@ async function waitForTask(ipc, taskId, expectedStatus) {
 }
 
 describe("Desktop Graph production IPC journey", () => {
+  it("recovers SQLite and Graph journals after the writer process is killed", async () => {
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-desktop-graph-kill-reopen-"),
+    );
+    const databasePath = path.join(root, "desktop.db");
+    const rolloutDirectory = path.join(root, "rollouts");
+    const readyPath = path.join(root, "writer-ready.json");
+    let database = null;
+    let child = null;
+    let stderr = "";
+    let reachedCutpoint = false;
+    try {
+      child = spawn(
+        process.execPath,
+        [KILL_WRITER_FIXTURE, databasePath, rolloutDirectory, readyPath],
+        {
+          cwd: process.cwd(),
+          stdio: ["ignore", "ignore", "pipe"],
+        },
+      );
+      child.stderr.setEncoding("utf8");
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk;
+      });
+      await waitForFile(readyPath);
+      reachedCutpoint = true;
+      const cutpoint = JSON.parse(fs.readFileSync(readyPath, "utf8"));
+      expect(cutpoint).toMatchObject({
+        workflowId: "disk-restart-workflow",
+        graphRunId: "desktop-workflow:disk-restart-workflow",
+        eventHead: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      });
+      expect(child.kill()).toBe(true);
+      const [exitCode, signal] = await waitForChildExit(child);
+      expect(exitCode !== 0 || signal != null).toBe(true);
+
+      database = new DatabaseSync(databasePath);
+      const registry = new DesktopGraphRunRegistry({ database });
+      expect(
+        registry.get("desktop_workflow_manager", cutpoint.workflowId),
+      ).toMatchObject({
+        graphRunId: cutpoint.graphRunId,
+        lifecycleStatus: "running",
+        lastProjection: { eventHead: cutpoint.eventHead },
+      });
+
+      const executeNode = vi.fn(async ({ input }) => ({
+        status: "succeeded",
+        terminalEvidence: { outputDigest: OUTPUT },
+        recoveredPrompt: input.prompt,
+      }));
+      const runtime = new AppServerGraphRuntime({
+        rolloutStore: new JsonlRolloutStore({ directory: rolloutDirectory }),
+        executeNode,
+      });
+      const workflowManager = new WorkflowManager({
+        database,
+        progressEmitter: progressEmitter(),
+        graphClientProvider: () => pilot(runtime),
+        graphAuthorityMode: () => "canonical",
+      });
+      const workflowIpc = ipcHarness();
+      registerWorkflowIPC({
+        workflowManager,
+        ipcMain: workflowIpc.ipcMain,
+      });
+      const completed = await waitForWorkflow(
+        workflowIpc,
+        cutpoint.workflowId,
+        "completed",
+      );
+      expect(completed).toMatchObject({
+        graphRunId: cutpoint.graphRunId,
+        authoritySource: "graph_kernel",
+        graphAuthority: {
+          status: "succeeded",
+          authorityGeneration: 2,
+        },
+      });
+      expect(executeNode).toHaveBeenCalledTimes(6);
+      expect(
+        executeNode.mock.calls.every(([request]) =>
+          request.input.prompt.includes("resume the exact durable input"),
+        ),
+      ).toBe(true);
+      expect(
+        registry.get("desktop_workflow_manager", cutpoint.workflowId),
+      ).toMatchObject({ lifecycleStatus: "succeeded" });
+
+      database.close();
+      database = new DatabaseSync(databasePath);
+      const reopened = new DesktopGraphRunRegistry({ database });
+      expect(
+        reopened.get("desktop_workflow_manager", cutpoint.workflowId),
+      ).toMatchObject({
+        graphRunId: cutpoint.graphRunId,
+        lifecycleStatus: "succeeded",
+        lastProjection: {
+          status: "succeeded",
+          authorityGeneration: 2,
+        },
+      });
+    } finally {
+      if (child && child.exitCode == null && child.signalCode == null) {
+        child.kill();
+        await waitForChildExit(child).catch(() => {});
+      }
+      database?.close();
+      fs.rmSync(root, { recursive: true, force: true });
+      if (stderr && !reachedCutpoint) {
+        throw new Error(`child writer failed before cut point:\n${stderr}`);
+      }
+    }
+  });
+
   it("fails closed before bootstrap, then executes Agents and Workflow through one real Graph runtime", async () => {
     const executeNode = vi.fn(async () => ({
       status: "succeeded",
