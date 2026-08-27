@@ -310,6 +310,9 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      - name: Verify Marketplace Overview coherence
+        run: npm run check:marketplace-overview
+
       - name: Verify vendored Agent SDK freshness
         run: npm run check:agent-sdk
 
@@ -941,6 +944,9 @@ jobs:
           else
             echo "Validated matching JetBrains version sources: $gradle_version"
           fi
+
+      - name: Verify JetBrains release metadata coherence
+        run: node scripts/verify-release-metadata.mjs
 
       # Pure-core regression gate: 300+ assertions over the vscode-parity pure
       # layers (PureLogicSmokeMain exits 1 on any failure). Runs before the

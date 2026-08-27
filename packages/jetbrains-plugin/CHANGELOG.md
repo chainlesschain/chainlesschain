@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.102] - Release metadata coherence and bounded Agent IPC pairing (2026-08-27)
+
+- Align the release compatibility guide with plugin `0.4.102` and the fully
+  gated public `chainlesschain@0.166.6` CLI pairing.
+- Document the CLI's bounded Agent IPC child-process admission, queues, frames,
+  diagnostics, backpressure, retry hints, timeouts, and disconnect cleanup.
+- Add a release gate that derives the expected plugin and CLI versions from
+  their source manifests and rejects stale README or changelog metadata.
+
 ## [0.4.101] - Generated Agent stream payload contract (2026-08-26)
 
 - Compile the schema-generated Kotlin sealed payload union for all 37 current

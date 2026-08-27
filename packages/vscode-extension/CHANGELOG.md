@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.71] - Marketplace Overview coherence (2026-08-27)
+
+- Align the packaged Open VSX Overview, marketplace description, immutable tag,
+  direct VSIX links, verification example, and install command with extension
+  `0.37.71` and the fully gated CLI `0.166.6` pairing.
+- Add a release gate that derives the expected extension and CLI versions from
+  their package manifests and rejects stale Overview metadata before packaging.
+- Document CLI `0.166.6` bounded Agent IPC child-process flow control while
+  retaining the generated Agent SDK `0.2.4` payload contract from `0.37.70`.
+
 ## [0.37.70] - Generated Agent stream payload contract (2026-08-26)
 
 - Vendor Agent SDK `0.2.4` and its generated 37-variant canonical payload
