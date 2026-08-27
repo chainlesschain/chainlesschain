@@ -127,17 +127,27 @@
           "replacementEntrypoint": "cc cowork run through the canonical Graph Kernel adapter",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-cowork"],
+          "historicalReadFunctions": [
+            "CLIAutonomousAgent.getGoalStatus",
+            "CLIAutonomousAgent.listGoals"
+          ],
           "entrypoints": ["packages/cli/src/repl/agent-repl.js"],
           "writerFiles": [
             "packages/cli/src/lib/legacy-runtime-authority.js",
             "packages/cli/src/lib/autonomous-agent.js"
           ],
           "mutationFunctions": [
+            "CLIAutonomousAgent.initialize",
             "CLIAutonomousAgent.submitGoal",
+            "CLIAutonomousAgent._pruneGoals",
             "CLIAutonomousAgent.pauseGoal",
             "CLIAutonomousAgent.resumeGoal",
             "CLIAutonomousAgent.cancelGoal",
-            "CLIAutonomousAgent._runReActLoop"
+            "CLIAutonomousAgent._runReActLoop",
+            "CLIAutonomousAgent._decomposeGoal",
+            "CLIAutonomousAgent._executeStep",
+            "CLIAutonomousAgent._selfCorrect"
           ],
           "stores": ["CLIAutonomousAgent._goals"],
           "storeDispositions": {
@@ -156,6 +166,8 @@
           "replacementEntrypoint": "cc team run or cc cowork run through the canonical Graph Kernel adapter",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-team-local", "cli-cowork"],
+          "historicalReadFunctions": ["Orchestrator.status"],
           "entrypoints": [
             "packages/cli/src/commands/orchestrate.js",
             "packages/cli/src/gateways/ws/action-protocol.js",
@@ -167,9 +179,15 @@
           ],
           "mutationFunctions": [
             "Orchestrator.addTask",
+            "Orchestrator.startCronWatch",
+            "Orchestrator.stopCronWatch",
             "Orchestrator._orchestrate",
+            "Orchestrator._decompose",
             "Orchestrator._dispatch",
-            "Orchestrator._ciLoop"
+            "Orchestrator._ciLoop",
+            "Orchestrator._runCI",
+            "Orchestrator._pruneTasks",
+            "Orchestrator._cronTick"
           ],
           "stores": ["Orchestrator._tasks"],
           "storeDispositions": {
@@ -396,6 +414,12 @@
           "replacementEntrypoint": "Desktop Coding Agent through the fixed CC App Server capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "AIEngineManager.getExecutionHistory",
+            "TaskPlannerEnhanced.getTaskPlanHistory",
+            "TaskPlannerEnhanced.getTaskPlan"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/bootstrap/ai-initializer.js",
             "desktop-app-vue/src/main/ai-engine/ai-engine-ipc.js",
@@ -416,14 +440,24 @@
           ],
           "mutationFunctions": [
             "AIEngineManager.initialize",
+            "AIEngineManager.initializeWorkflowOptimizations",
             "AIEngineManager.processUserInput",
             "AIEngineManager.clearHistory",
+            "AIEngineManager.registerTool",
+            "AIEngineManager.unregisterTool",
             "AIEngineManagerOptimized.initialize",
             "AIEngineManagerOptimized.processUserInput",
             "AIEngineManagerOptimized.cleanOldPerformanceData",
+            "AIEngineManagerOptimized.setUserId",
+            "AIEngineManagerOptimized.registerTool",
+            "AIEngineManagerOptimized.unregisterTool",
             "AIEngineManagerP1.initialize",
             "AIEngineManagerP1.processUserInput",
             "AIEngineManagerP1.cleanOldPerformanceData",
+            "AIEngineManagerP1._executeTaskSteps",
+            "AIEngineManagerP1.setUserId",
+            "AIEngineManagerP1.registerTool",
+            "AIEngineManagerP1.unregisterTool",
             "TaskPlanner.initialize",
             "TaskPlanner.decomposeTask",
             "TaskPlannerEnhanced.decomposeTask",
@@ -431,7 +465,40 @@
             "TaskPlannerEnhanced.updateTaskPlan",
             "TaskPlannerEnhanced.executeTaskPlan",
             "TaskPlannerEnhanced.executeSubtask",
-            "TaskPlannerEnhanced.cancelTaskPlan"
+            "TaskPlannerEnhanced.executeWebEngineTask",
+            "TaskPlannerEnhanced.executeDocumentEngineTask",
+            "TaskPlannerEnhanced.executeDataEngineTask",
+            "TaskPlannerEnhanced.executePPTEngineTask",
+            "TaskPlannerEnhanced.executeWordEngineTask",
+            "TaskPlannerEnhanced.executeCodeEngineTask",
+            "TaskPlannerEnhanced.executeImageEngineTask",
+            "TaskPlannerEnhanced.executeGenericTask",
+            "TaskPlannerEnhanced.queryBackendAI",
+            "TaskPlannerEnhanced.cancelTaskPlan",
+            "CheckpointValidator.validateCheckpoint",
+            "CheckpointValidator.llmQualityCheck",
+            "CheckpointValidator.saveValidationHistory",
+            "CheckpointValidator.setConfig",
+            "SelfCorrectionLoop.executeWithCorrection",
+            "SelfCorrectionLoop.executePlan",
+            "SelfCorrectionLoop.llmBasedDiagnosis",
+            "SelfCorrectionLoop.generateCorrectionPlan",
+            "SelfCorrectionLoop.correctMissingDependency",
+            "SelfCorrectionLoop.correctInvalidParams",
+            "SelfCorrectionLoop.correctTimeout",
+            "SelfCorrectionLoop.correctFileNotFound",
+            "SelfCorrectionLoop.correctNetworkError",
+            "SelfCorrectionLoop.correctOutOfMemory",
+            "SelfCorrectionLoop.correctSyntaxError",
+            "SelfCorrectionLoop.llmBasedCorrection",
+            "SelfCorrectionLoop.saveExecutionHistory",
+            "SelfCorrectionLoop.setConfig",
+            "PerformanceMonitor.initDatabase",
+            "PerformanceMonitor.recordPhase",
+            "PerformanceMonitor._retainRecord",
+            "PerformanceMonitor._evictRecord",
+            "PerformanceMonitor.clearMemoryMetrics",
+            "PerformanceMonitor.cleanOldData"
           ],
           "stores": [
             "AIEngineManager.executionHistory",
@@ -470,6 +537,14 @@
           "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "AutonomousAgentRunner.getGoalStatus",
+            "AutonomousAgentRunner.getGoalHistory",
+            "AutonomousAgentRunner.getGoalSteps",
+            "AutonomousAgentRunner.getGoalLogs",
+            "AgentTaskQueue.getQueueStatus"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-21-30-enterprise.js",
             "desktop-app-vue/src/main/ai-engine/autonomous/autonomous-ipc.js"
@@ -481,21 +556,49 @@
           ],
           "mutationFunctions": [
             "AutonomousAgentRunner.initialize",
+            "AutonomousAgentRunner._ensureTables",
             "AutonomousAgentRunner.submitGoal",
+            "AutonomousAgentRunner._drainQueue",
             "AutonomousAgentRunner._executeGoal",
+            "AutonomousAgentRunner._reason",
+            "AutonomousAgentRunner._act",
+            "AutonomousAgentRunner._observe",
+            "AutonomousAgentRunner._decomposeGoal",
+            "AutonomousAgentRunner._replanOnFailure",
             "AutonomousAgentRunner.pauseGoal",
             "AutonomousAgentRunner.resumeGoal",
             "AutonomousAgentRunner.cancelGoal",
+            "AutonomousAgentRunner.requestUserInput",
             "AutonomousAgentRunner.provideUserInput",
+            "AutonomousAgentRunner.updateConfig",
             "AutonomousAgentRunner.retryGoal",
             "AutonomousAgentRunner.clearHistory",
+            "AutonomousAgentRunner.exportGoal",
+            "AutonomousAgentRunner._executeSkill",
+            "AutonomousAgentRunner._executeTool",
+            "AutonomousAgentRunner._executeSearch",
+            "AutonomousAgentRunner._executeFileOp",
+            "AutonomousAgentRunner._executeAskUser",
+            "AutonomousAgentRunner._waitForResume",
+            "AutonomousAgentRunner._waitForInput",
+            "AutonomousAgentRunner._checkpoint",
+            "AutonomousAgentRunner._completeGoal",
+            "AutonomousAgentRunner._failGoal",
+            "AutonomousAgentRunner._logStep",
+            "AutonomousAgentRunner._saveGoalToDB",
+            "AutonomousAgentRunner._updateGoalInDB",
+            "AutonomousAgentRunner._saveStepToDB",
             "AgentTaskQueue.initialize",
+            "AgentTaskQueue._ensureTables",
             "AgentTaskQueue.enqueue",
             "AgentTaskQueue.dequeue",
             "AgentTaskQueue.remove",
             "AgentTaskQueue.markComplete",
+            "AgentTaskQueue.reSort",
             "AgentTaskQueue.updatePriority",
-            "AgentTaskQueue.clear"
+            "AgentTaskQueue.clear",
+            "AgentTaskQueue._saveItemToDB",
+            "AgentTaskQueue._updateItemInDB"
           ],
           "stores": [
             "autonomous_goals",
@@ -524,6 +627,13 @@
           "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "TeammateTool.discoverTeams",
+            "TeammateTool.getAgent",
+            "TeammateTool.getTask",
+            "TeammateTool.getMetrics"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
             "desktop-app-vue/src/main/ai-engine/cowork/cowork-api-server.js",
@@ -554,7 +664,29 @@
             "TeammateTool.addAgent",
             "TeammateTool.disbandTeam",
             "TeammateTool.updateTaskStatus",
-            "TeammateTool.cleanup"
+            "TeammateTool.cleanup",
+            "TeammateTool._appendTeamMessage",
+            "TeammateTool._ensureDataDir",
+            "TeammateTool._saveTeamConfig",
+            "AgentPool.initialize",
+            "AgentPool.acquireAgent",
+            "AgentPool.releaseAgent",
+            "AgentPool._waitForAgent",
+            "AgentPool._createAgent",
+            "AgentPool._resetAgent",
+            "AgentPool._destroyAgent",
+            "AgentPool._startIdleTimer",
+            "AgentPool._clearIdleTimer",
+            "AgentPool.clear",
+            "AgentPool.shrink",
+            "AgentPool.acquireByCapabilities",
+            "AgentPool._warmResetAgent",
+            "AgentPool._checkMemoryPressure",
+            "AgentPool.startHealthCheck",
+            "AgentPool.stopHealthCheck",
+            "AgentPool._pingAgents",
+            "AgentPool.returnToPool",
+            "AgentPool.acquireIsolatedAgent"
           ],
           "stores": [
             "TeammateTool.teams",
@@ -593,6 +725,12 @@
           "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "LongRunningTaskManager.listTasks",
+            "LongRunningTaskManager.getTask",
+            "LongRunningTaskManager.getCheckpoints"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
             "desktop-app-vue/src/main/ipc/phases/phase-9-15-core.js"
@@ -607,8 +745,19 @@
             "LongRunningTaskManager.pauseTask",
             "LongRunningTaskManager.resumeTask",
             "LongRunningTaskManager.cancelTask",
+            "LongRunningTaskManager._ensureDataDir",
+            "LongRunningTaskManager._executeTask",
+            "LongRunningTaskManager._executeSteps",
+            "LongRunningTaskManager._handleTaskSuccess",
+            "LongRunningTaskManager._handleTaskFailure",
+            "LongRunningTaskManager._markTaskFailed",
             "LongRunningTaskManager.createCheckpoint",
             "LongRunningTaskManager.restoreFromCheckpoint",
+            "LongRunningTaskManager._startCheckpointTimer",
+            "LongRunningTaskManager._stopCheckpointTimer",
+            "LongRunningTaskManager._saveTask",
+            "LongRunningTaskManager._saveTaskResult",
+            "LongRunningTaskManager.cleanupCompletedTasks",
             "LongRunningTaskManager.retryTask"
           ],
           "stores": [
@@ -636,6 +785,12 @@
           "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "PipelineOrchestrator.getAllPipelines",
+            "PipelineOrchestrator.getStatus",
+            "PipelineOrchestrator.getArtifacts"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
             "desktop-app-vue/src/main/ai-engine/cowork/pipeline-ipc.js"
@@ -657,12 +812,37 @@
             "PipelineOrchestrator.rejectGate",
             "PipelineOrchestrator.configure",
             "PipelineOrchestrator._executeStage",
+            "PipelineOrchestrator._registerStageHandlers",
+            "PipelineOrchestrator._completePipeline",
+            "PipelineOrchestrator._failPipeline",
+            "PipelineOrchestrator._ensureTables",
+            "PipelineOrchestrator._savePipeline",
+            "PipelineOrchestrator._updatePipelineDB",
+            "PipelineOrchestrator._saveStage",
+            "PipelineOrchestrator._updateStageDB",
+            "PipelineOrchestrator._saveArtifact",
             "DeployAgent.initialize",
             "DeployAgent.deploy",
             "DeployAgent.configure",
+            "DeployAgent._prepare",
+            "DeployAgent._executeDeploy",
+            "DeployAgent._prepareGitPR",
+            "DeployAgent._deployGitPR",
+            "DeployAgent._prepareDocker",
+            "DeployAgent._deployDocker",
+            "DeployAgent._prepareNpmPublish",
+            "DeployAgent._deployNpmPublish",
+            "DeployAgent._deployLocal",
+            "DeployAgent._deployStaging",
+            "DeployAgent._verify",
+            "DeployAgent._updateDeployStatus",
             "PostDeployMonitor.initialize",
             "PostDeployMonitor.startMonitoring",
-            "PostDeployMonitor.configure"
+            "PostDeployMonitor.stopMonitoring",
+            "PostDeployMonitor.configure",
+            "PostDeployMonitor.destroy",
+            "PostDeployMonitor._performCheck",
+            "PostDeployMonitor._completeMonitoring"
           ],
           "stores": [
             "dev_pipelines",
@@ -693,6 +873,11 @@
           "replacementEntrypoint": "operator-authored Graph workflow through Desktop WorkflowManager",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "AutoRemediator.getPlaybooks",
+            "RollbackManager.getHistory"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
             "desktop-app-vue/src/main/ai-engine/cowork/autonomous-ops-ipc.js"
@@ -708,10 +893,22 @@
             "AutoRemediator.createPlaybook",
             "AutoRemediator.updatePlaybook",
             "AutoRemediator.configure",
+            "AutoRemediator._executeStep",
+            "AutoRemediator._runAction",
+            "AutoRemediator._performRollback",
+            "AutoRemediator._setCooldown",
+            "AutoRemediator._savePlaybook",
+            "AutoRemediator._updatePlaybookDB",
+            "AutoRemediator._updatePlaybookStats",
             "RollbackManager.initialize",
             "RollbackManager.rollback",
             "RollbackManager.takeSnapshot",
-            "RollbackManager.configure"
+            "RollbackManager.configure",
+            "RollbackManager._gitRevert",
+            "RollbackManager._dockerRollback",
+            "RollbackManager._configRestore",
+            "RollbackManager._serviceRestart",
+            "RollbackManager._undoSteps"
           ],
           "stores": [
             "ops_remediation_playbooks",
@@ -742,6 +939,8 @@
           "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": ["HybridExecutor.getStats"],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
             "desktop-app-vue/src/main/ai-engine/cowork/cowork-v2-ipc.js",
@@ -754,7 +953,16 @@
           ],
           "mutationFunctions": [
             "HybridExecutor.initialize",
-            "HybridExecutor.execute"
+            "HybridExecutor.execute",
+            "HybridExecutor.executeBatch",
+            "HybridExecutor._executeWithStrategy",
+            "HybridExecutor._executeLocal",
+            "HybridExecutor._executeRemote",
+            "HybridExecutor._executeLocalFirst",
+            "HybridExecutor._executeRemoteFirst",
+            "HybridExecutor._executeBestFit",
+            "HybridExecutor._executeLoadBalanced",
+            "HybridExecutor._recordExecution"
           ],
           "stores": [
             "HybridExecutor.activeExecutions",
@@ -779,6 +987,11 @@
           "replacementEntrypoint": "CLI Team distributed Graph adapter",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-team-distributed"],
+          "historicalReadFunctions": [
+            "P2PAgentNetwork.getStats",
+            "CrossOrgTaskRouter.getTaskLog"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
             "desktop-app-vue/src/main/ai-engine/cowork/cowork-v2-ipc.js"
@@ -790,16 +1003,52 @@
           ],
           "mutationFunctions": [
             "P2PAgentNetwork.initialize",
+            "P2PAgentNetwork.announcePresence",
+            "P2PAgentNetwork.registerRemoteAgent",
+            "P2PAgentNetwork.unregisterRemoteAgent",
             "P2PAgentNetwork.delegateTask",
             "P2PAgentNetwork.cancelDelegatedTask",
+            "P2PAgentNetwork.queryRemoteSkill",
+            "P2PAgentNetwork.inviteToTeam",
+            "P2PAgentNetwork.syncTeamState",
+            "P2PAgentNetwork.shutdown",
+            "P2PAgentNetwork._handlePeerMessage",
+            "P2PAgentNetwork._handleAgentAnnounce",
+            "P2PAgentNetwork._handleHeartbeat",
             "P2PAgentNetwork._handleTaskDelegation",
+            "P2PAgentNetwork._handleTaskAccept",
+            "P2PAgentNetwork._handleTaskReject",
+            "P2PAgentNetwork._handleTaskProgress",
+            "P2PAgentNetwork._handleTaskResult",
+            "P2PAgentNetwork._handleTaskCancel",
+            "P2PAgentNetwork._handleSkillQuery",
+            "P2PAgentNetwork._handleSkillResponse",
+            "P2PAgentNetwork._handleTeamInvite",
+            "P2PAgentNetwork._handleTeamInviteResponse",
+            "P2PAgentNetwork._startHeartbeat",
+            "P2PAgentNetwork._sendToPeer",
+            "P2PAgentNetwork._broadcastToPeers",
+            "P2PAgentNetwork._onPeerConnected",
+            "P2PAgentNetwork._onPeerDisconnected",
+            "P2PAgentNetwork._ensureTables",
+            "P2PAgentNetwork._persistRemoteAgent",
             "CrossOrgTaskRouter.initialize",
+            "CrossOrgTaskRouter._ensureTables",
             "CrossOrgTaskRouter.configure",
             "CrossOrgTaskRouter.routeTask",
             "CrossOrgTaskRouter.completeTask",
             "CrossOrgTaskRouter._finalizeTask",
             "CrossOrgTaskRouter.cancelTask",
-            "CrossOrgTaskRouter.retryTask"
+            "CrossOrgTaskRouter.findBestExecutor",
+            "CrossOrgTaskRouter._discoverCandidates",
+            "CrossOrgTaskRouter._selectRoundRobin",
+            "CrossOrgTaskRouter._startTaskTimeout",
+            "CrossOrgTaskRouter.retryTask",
+            "CrossOrgTaskRouter._startCleanupTimer",
+            "CrossOrgTaskRouter._cleanupStaleTasks",
+            "CrossOrgTaskRouter.destroy",
+            "CrossOrgTaskRouter._persistTask",
+            "CrossOrgTaskRouter._updateTaskInDB"
           ],
           "stores": [
             "P2PAgentNetwork.pendingDelegations",
@@ -830,6 +1079,11 @@
           "replacementEntrypoint": "Desktop Specialized Agents or $team through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-specialized-agents", "desktop-team"],
+          "historicalReadFunctions": [
+            "AgentOrchestrator.getExecutionHistory",
+            "AgentOrchestrator.getMessageHistory"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/index.js",
             "desktop-app-vue/src/main/ai-engine/multi-agent/multi-agent-ipc.js"
@@ -841,11 +1095,18 @@
             "desktop-app-vue/src/main/ai-engine/multi-agent/specialized-agent.js"
           ],
           "mutationFunctions": [
+            "AgentOrchestrator.unbindStateBus",
+            "AgentOrchestrator.registerAgent",
+            "AgentOrchestrator.registerAgents",
+            "AgentOrchestrator.unregisterAgent",
             "AgentOrchestrator.dispatch",
             "AgentOrchestrator.executeParallel",
             "AgentOrchestrator.executeChain",
             "AgentOrchestrator.sendMessage",
-            "AgentOrchestrator.broadcast"
+            "AgentOrchestrator.broadcast",
+            "AgentOrchestrator._updateStats",
+            "AgentOrchestrator._recordHistory",
+            "AgentOrchestrator.resetStats"
           ],
           "stores": [
             "AgentOrchestrator.activeExecutions",
@@ -866,12 +1127,17 @@
         },
         {
           "id": "desktop-legacy-workflow",
-          "runtimeDurability": "process_local",
+          "runtimeDurability": "durable",
           "cutoverStrategy": "retire",
           "rolloutKey": "desktop/desktop-legacy-workflow",
           "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "WorkflowEngine.getExecutionLog",
+            "WorkflowEngine.getAllWorkflows"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ai-engine/workflow/workflow-ipc.js"
           ],
@@ -880,15 +1146,26 @@
             "desktop-app-vue/src/main/ai-engine/workflow/workflow-engine.js"
           ],
           "mutationFunctions": [
+            "WorkflowEngine.initialize",
+            "WorkflowEngine._ensureTables",
+            "WorkflowEngine._loadDefaultTemplates",
+            "WorkflowEngine.createWorkflow",
+            "WorkflowEngine._persistWorkflow",
             "WorkflowEngine.executeWorkflow",
+            "WorkflowEngine._executeStages",
             "WorkflowEngine.pauseExecution",
             "WorkflowEngine.resumeExecution",
-            "WorkflowEngine.rollbackExecution"
+            "WorkflowEngine.rollbackExecution",
+            "WorkflowEngine._persistExecution",
+            "WorkflowEngine.importWorkflow",
+            "WorkflowEngine._evictOldExecutions",
+            "WorkflowEngine.setBreakpoint",
+            "WorkflowEngine.removeBreakpoint"
           ],
-          "stores": ["WorkflowEngine.executions"],
+          "stores": ["workflows", "workflow_executions"],
           "storeDispositions": {
             "migrate": [],
-            "retire": ["WorkflowEngine.executions"],
+            "retire": ["workflows", "workflow_executions"],
             "rebuild": [],
             "disabled": []
           },
@@ -902,6 +1179,11 @@
           "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
           "replacementAuthoritySource": "graph_kernel",
           "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "SkillWorkflowEngine.listWorkflows",
+            "SkillPipelineEngine.listPipelines"
+          ],
           "entrypoints": [
             "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
             "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js",
@@ -915,15 +1197,35 @@
             "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/workflow-automation/handler.js"
           ],
           "mutationFunctions": [
+            "SkillWorkflowEngine.createWorkflow",
+            "SkillWorkflowEngine.updateNodePosition",
+            "SkillWorkflowEngine.updateNodeData",
+            "SkillWorkflowEngine.addNode",
+            "SkillWorkflowEngine.removeNode",
+            "SkillWorkflowEngine.addConnection",
+            "SkillWorkflowEngine.removeConnection",
             "SkillWorkflowEngine.executeWorkflow",
+            "SkillWorkflowEngine.deleteWorkflow",
+            "SkillWorkflowEngine.saveWorkflow",
+            "SkillWorkflowEngine.importFromPipeline",
+            "SkillPipelineEngine.createPipeline",
             "SkillPipelineEngine.executePipeline",
             "SkillPipelineEngine.pausePipeline",
             "SkillPipelineEngine.resumePipeline",
             "SkillPipelineEngine.cancelPipeline",
+            "SkillPipelineEngine.savePipeline",
+            "SkillPipelineEngine.deletePipeline",
+            "SkillPipelineEngine._executeSteps",
+            "SkillPipelineEngine._executeSkillStep",
+            "SkillPipelineEngine._executeConditionStep",
+            "SkillPipelineEngine._executeParallelStep",
+            "SkillPipelineEngine._executeLoopStep",
+            "WorkflowAutomation.handleCreate",
             "WorkflowAutomation.handleRun",
             "WorkflowAutomation.handlePause",
             "WorkflowAutomation.handleResume",
-            "WorkflowAutomation.handleCancel"
+            "WorkflowAutomation.handleCancel",
+            "WorkflowAutomation.handleDelete"
           ],
           "stores": [
             "SkillPipelineEngine.executions",

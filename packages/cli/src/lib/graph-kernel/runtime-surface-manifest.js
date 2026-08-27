@@ -37,6 +37,10 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
 function walkJavaScriptFiles(directory, output = []) {
   if (!fs.existsSync(directory)) return output;
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -197,6 +201,7 @@ export function validateGraphRuntimeSurfaceManifest(
     }
   }
   const entryIds = new Set();
+  const entriesById = new Map();
   const rolloutKeys = new Set();
   const strategyCounts = { migrate: 0, retire: 0, disabled: 0 };
   for (const surface of surfaces) {
@@ -224,6 +229,7 @@ export function validateGraphRuntimeSurfaceManifest(
         );
       }
       entryIds.add(entry.id);
+      if (entry.id) entriesById.set(entry.id, entry);
       const expectedRolloutKey = `${surface.originSurface}/${entry.id}`;
       if (
         entry.rolloutKey !== expectedRolloutKey ||
@@ -309,10 +315,14 @@ export function validateGraphRuntimeSurfaceManifest(
         entry.cutoverStrategy === "retire" &&
         (!entry.replacementEntrypoint ||
           entry.replacementAuthoritySource !== "graph_kernel" ||
-          entry.retiredStoreAccess !== "historical_read_only")
+          entry.retiredStoreAccess !== "historical_read_only" ||
+          !Array.isArray(entry.replacementEntryIds) ||
+          entry.replacementEntryIds.length === 0 ||
+          !Array.isArray(entry.historicalReadFunctions) ||
+          entry.historicalReadFunctions.length === 0)
       ) {
         errors.push(
-          `${entry.id}: retire requires a Graph Kernel replacement and historical_read_only store access`,
+          `${entry.id}: retire requires Graph Kernel replacement entry ids and historical read functions`,
         );
       }
       if (
@@ -334,6 +344,79 @@ export function validateGraphRuntimeSurfaceManifest(
         ]) {
           if (!fs.existsSync(path.resolve(repositoryRoot, file))) {
             errors.push(`${entry.id}: classified file does not exist: ${file}`);
+          }
+        }
+      }
+    }
+  }
+  let replacementEdgeCount = 0;
+  let historicalReadFunctionCount = 0;
+  let retiredMutationFunctionCount = 0;
+  for (const surface of surfaces) {
+    for (const entry of surface.entries || []) {
+      if (entry.cutoverStrategy !== "retire") continue;
+      retiredMutationFunctionCount += Array.isArray(entry.mutationFunctions)
+        ? entry.mutationFunctions.length
+        : 0;
+      const replacementEntryIds = Array.isArray(entry.replacementEntryIds)
+        ? entry.replacementEntryIds
+        : [];
+      if (new Set(replacementEntryIds).size !== replacementEntryIds.length) {
+        errors.push(`${entry.id}: replacementEntryIds must be unique`);
+      }
+      for (const replacementEntryId of replacementEntryIds) {
+        replacementEdgeCount += 1;
+        const replacement = entriesById.get(replacementEntryId);
+        if (!replacement || replacement.cutoverStrategy !== "migrate") {
+          errors.push(
+            `${entry.id}: replacement entry must exist and migrate: ${replacementEntryId}`,
+          );
+        }
+      }
+
+      const historicalReadFunctions = Array.isArray(
+        entry.historicalReadFunctions,
+      )
+        ? entry.historicalReadFunctions
+        : [];
+      if (
+        new Set(historicalReadFunctions).size !== historicalReadFunctions.length
+      ) {
+        errors.push(`${entry.id}: historicalReadFunctions must be unique`);
+      }
+      historicalReadFunctionCount += historicalReadFunctions.length;
+      if (requireFiles && historicalReadFunctions.length > 0) {
+        const writerSource = (entry.writerFiles || [])
+          .map((file) => path.resolve(repositoryRoot, file))
+          .filter((file) => fs.existsSync(file))
+          .map((file) => fs.readFileSync(file, "utf8"))
+          .join("\n");
+        for (const qualifiedFunction of historicalReadFunctions) {
+          const match = /^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/u.exec(
+            qualifiedFunction,
+          );
+          if (!match) {
+            errors.push(
+              `${entry.id}: historical read function is not class-qualified: ${qualifiedFunction}`,
+            );
+            continue;
+          }
+          const [, className, methodName] = match;
+          const classPattern = new RegExp(
+            `\\bclass\\s+${escapeRegExp(className)}\\b`,
+            "u",
+          );
+          const methodPattern = new RegExp(
+            `\\b(?:async\\s+)?${escapeRegExp(methodName)}\\s*\\(`,
+            "u",
+          );
+          if (
+            !classPattern.test(writerSource) ||
+            !methodPattern.test(writerSource)
+          ) {
+            errors.push(
+              `${entry.id}: historical read function is not implemented: ${qualifiedFunction}`,
+            );
           }
         }
       }
@@ -387,6 +470,9 @@ export function validateGraphRuntimeSurfaceManifest(
     migratableEntryCount: strategyCounts.migrate,
     retirementEntryCount: strategyCounts.retire,
     disabledEntryCount: strategyCounts.disabled,
+    replacementEdgeCount,
+    historicalReadFunctionCount,
+    retiredMutationFunctionCount,
     manifest: Object.freeze(clone(manifest)),
   });
 }

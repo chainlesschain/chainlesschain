@@ -514,6 +514,7 @@ class AIEngineManagerOptimized {
    * @param {string} userId - 用户ID
    */
   setUserId(userId) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerOptimized.setUserId");
     this.userId = userId;
   }
 
@@ -548,6 +549,7 @@ class AIEngineManagerOptimized {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, implementation, schema = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerOptimized.registerTool");
     this.functionCaller.registerTool(name, implementation, schema);
   }
 
@@ -556,6 +558,9 @@ class AIEngineManagerOptimized {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerOptimized.unregisterTool",
+    );
     this.functionCaller.unregisterTool(name);
   }
 

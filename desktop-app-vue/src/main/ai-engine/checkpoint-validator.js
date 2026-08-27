@@ -1,4 +1,7 @@
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const { looseParseJSON } = require("./response-parser.js");
 
 /**
@@ -67,6 +70,9 @@ class CheckpointValidator {
    * @returns {Object} 校验结果
    */
   async validateCheckpoint(stepIndex, result, plan, options = {}) {
+    assertDesktopLegacyMutationAllowed(
+      "CheckpointValidator.validateCheckpoint",
+    );
     const { skipLLMCheck = false, strictMode = this.config.enableStrictMode } =
       options;
 
@@ -383,6 +389,7 @@ class CheckpointValidator {
    * @returns {Object} 校验结果
    */
   async llmQualityCheck(result, step) {
+    assertDesktopLegacyMutationAllowed("CheckpointValidator.llmQualityCheck");
     const validation = {
       type: "llm_quality",
       critical: false,
@@ -487,6 +494,9 @@ ${this.formatResultForDisplay(result)}
    * @returns {void}
    */
   async saveValidationHistory(summary) {
+    assertDesktopLegacyMutationAllowed(
+      "CheckpointValidator.saveValidationHistory",
+    );
     if (!this.database) {
       return;
     }
@@ -589,6 +599,7 @@ ${this.formatResultForDisplay(result)}
    * @returns {void}
    */
   setConfig(config) {
+    assertDesktopLegacyMutationAllowed("CheckpointValidator.setConfig");
     Object.assign(this.config, config);
   }
 

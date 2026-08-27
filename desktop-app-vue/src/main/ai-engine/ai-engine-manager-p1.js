@@ -673,6 +673,7 @@ class AIEngineManagerP1 {
     intentIndex,
     onStepUpdate,
   ) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1._executeTaskSteps");
     const results = [];
     let failedStepIndex = null;
 
@@ -923,6 +924,7 @@ class AIEngineManagerP1 {
    * @param {string} userId - 用户ID
    */
   setUserId(userId) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.setUserId");
     this.userId = userId;
   }
 
@@ -968,6 +970,7 @@ class AIEngineManagerP1 {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, implementation, schema = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.registerTool");
     this.functionCaller.registerTool(name, implementation, schema);
   }
 
@@ -976,6 +979,7 @@ class AIEngineManagerP1 {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.unregisterTool");
     this.functionCaller.unregisterTool(name);
   }
 

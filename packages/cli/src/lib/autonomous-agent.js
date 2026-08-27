@@ -68,6 +68,7 @@ export class CLIAutonomousAgent extends EventEmitter {
     maxGoals,
     iterationBudget,
   } = {}) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.initialize");
     this._llmChat = llmChat || null;
     this._toolExecutor = toolExecutor || null;
     this._hookManager = hookManager || null;
@@ -126,6 +127,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * the cap rather than losing live work.
    */
   _pruneGoals() {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._pruneGoals");
     if (this._goals.size <= this._maxGoals) return;
     for (const [id, g] of this._goals) {
       if (this._goals.size <= this._maxGoals) break;
@@ -348,6 +350,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * Decompose a goal into executable steps using LLM.
    */
   async _decomposeGoal(goal) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._decomposeGoal");
     if (!this._llmChat) {
       // No LLM — create a single step
       return [
@@ -412,6 +415,7 @@ Only return the JSON array, no other text.`;
    * Execute a single step using the tool executor.
    */
   async _executeStep(step) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._executeStep");
     if (!step.tool || !this._toolExecutor) {
       // No tool specified or no executor — skip as informational
       return "No tool action required";
@@ -425,6 +429,7 @@ Only return the JSON array, no other text.`;
    * Returns true if a correction was applied.
    */
   async _selfCorrect(goal, error) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._selfCorrect");
     if (!this._llmChat) return false;
 
     try {

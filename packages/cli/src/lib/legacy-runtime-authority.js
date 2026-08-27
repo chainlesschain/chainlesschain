@@ -38,10 +38,20 @@ function entryIdFor(entrypoint) {
   return ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
 }
 
-function replacementEntrypointFor(entryId) {
+function retirementContractFor(entryId) {
   if (!entryId) return null;
-  return graphRuntimeSurfaceEntry(runtimeManifest, "cowork", entryId).entry
-    .replacementEntrypoint;
+  const entry = graphRuntimeSurfaceEntry(
+    runtimeManifest,
+    "cowork",
+    entryId,
+  ).entry;
+  return Object.freeze({
+    replacementEntrypoint: entry.replacementEntrypoint || null,
+    replacementEntryIds: Object.freeze([...(entry.replacementEntryIds || [])]),
+    historicalReadFunctions: Object.freeze([
+      ...(entry.historicalReadFunctions || []),
+    ]),
+  });
 }
 
 export function cliLegacyRuntimeAuthorityMode(env = process.env, options = {}) {
@@ -102,7 +112,8 @@ export function assertCLILegacyMutationAllowed(
       legacyReadOnly: false,
     });
   }
-  const replacementEntrypoint = replacementEntrypointFor(entryId);
+  const retirementContract = retirementContractFor(entryId);
+  const replacementEntrypoint = retirementContract?.replacementEntrypoint;
   throw authorityError(
     "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
     `CLI legacy runtime is read-only; '${entrypoint}' must use ${replacementEntrypoint || "the canonical Graph Kernel entrypoint"}`,
@@ -110,8 +121,18 @@ export function assertCLILegacyMutationAllowed(
       entrypoint: String(entrypoint),
       entryId,
       replacementEntrypoint,
+      replacementEntryIds: retirementContract?.replacementEntryIds || [],
+      historicalReadFunctions:
+        retirementContract?.historicalReadFunctions || [],
       authorityMode: "canonical",
       authoritySource: "graph_kernel",
     },
+  );
+}
+
+export function cliLegacyRuntimeReadOnly(env = process.env, options = {}) {
+  return (
+    cliLegacyRuntimeAuthorityMode(env, options) === "canonical" ||
+    String(env.CHAINLESSCHAIN_CLI_LEGACY_READ_ONLY || "") === "1"
   );
 }

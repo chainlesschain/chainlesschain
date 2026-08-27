@@ -164,6 +164,7 @@ class SkillPipelineEngine extends EventEmitter {
    * @returns {string} Pipeline ID
    */
   createPipeline(definition) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine.createPipeline");
     const id = definition.id || uuidv4();
     const pipeline = {
       id,
@@ -429,6 +430,7 @@ class SkillPipelineEngine extends EventEmitter {
    * @param {object} updates
    */
   savePipeline(pipelineId, updates = {}) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine.savePipeline");
     const pipeline = this.pipelines.get(pipelineId);
     if (!pipeline) {
       throw new Error(`Pipeline not found: ${pipelineId}`);
@@ -442,6 +444,7 @@ class SkillPipelineEngine extends EventEmitter {
    * @param {string} pipelineId
    */
   deletePipeline(pipelineId) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine.deletePipeline");
     if (!this.pipelines.has(pipelineId)) {
       throw new Error(`Pipeline not found: ${pipelineId}`);
     }
@@ -456,6 +459,7 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeSteps(execution, steps) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine._executeSteps");
     // Pause/cancel state lives on the ROOT execution. Nested branches
     // (condition/loop/parallel) run with a shallow COPY of `execution`, so
     // reading execution.state here would read a frozen "running" snapshot and
@@ -587,6 +591,7 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeSkillStep(step, context) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine._executeSkillStep");
     if (!this.skillRegistry) {
       throw new Error("SkillRegistry not available");
     }
@@ -638,6 +643,9 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeConditionStep(step, execution) {
+    assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine._executeConditionStep",
+    );
     const result = evaluateExpression(step.expression, execution.context);
 
     if (result && step.trueBranch) {
@@ -667,6 +675,9 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeParallelStep(step, execution) {
+    assertDesktopLegacyMutationAllowed(
+      "SkillPipelineEngine._executeParallelStep",
+    );
     if (!step.branches || !Array.isArray(step.branches)) {
       throw new Error("Parallel step requires branches array");
     }
@@ -741,6 +752,7 @@ class SkillPipelineEngine extends EventEmitter {
 
   /** @private */
   async _executeLoopStep(step, execution) {
+    assertDesktopLegacyMutationAllowed("SkillPipelineEngine._executeLoopStep");
     const items = resolveDeep(step.items, execution.context);
     const resolvedItems = typeof items === "string" ? JSON.parse(items) : items;
 

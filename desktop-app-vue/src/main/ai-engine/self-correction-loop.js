@@ -1,4 +1,7 @@
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const { looseParseJSON } = require("./response-parser.js");
 
 /**
@@ -98,6 +101,9 @@ class SelfCorrectionLoop {
    * @returns {Object} 执行结果
    */
   async executeWithCorrection(plan, executor, options = {}) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.executeWithCorrection",
+    );
     const {
       maxRetries = this.config.maxRetries,
       onProgress = null,
@@ -207,6 +213,7 @@ class SelfCorrectionLoop {
    * @returns {Object} 执行结果
    */
   async executePlan(plan, executor) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.executePlan");
     const steps = plan.subtasks || plan.steps || [];
     const results = [];
     let successCount = 0;
@@ -302,6 +309,7 @@ class SelfCorrectionLoop {
    * @returns {Object} 诊断结果
    */
   async llmBasedDiagnosis(failedSteps) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.llmBasedDiagnosis");
     const prompt = `
 分析以下步骤执行失败的原因:
 
@@ -373,6 +381,9 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async generateCorrectionPlan(originalPlan, failedResult, diagnosis) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.generateCorrectionPlan",
+    );
     const strategy = diagnosis.strategy;
 
     // 尝试使用预定义策略
@@ -418,6 +429,9 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctMissingDependency(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.correctMissingDependency",
+    );
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -447,6 +461,9 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctInvalidParams(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.correctInvalidParams",
+    );
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -476,6 +493,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctTimeout(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.correctTimeout");
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -506,6 +524,9 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctFileNotFound(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.correctFileNotFound",
+    );
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -538,6 +559,9 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctNetworkError(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.correctNetworkError",
+    );
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -567,6 +591,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctOutOfMemory(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.correctOutOfMemory");
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -603,6 +628,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async correctSyntaxError(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.correctSyntaxError");
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
@@ -632,6 +658,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    * @returns {Object} 修正计划
    */
   async llmBasedCorrection(plan, result, diagnosis) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.llmBasedCorrection");
     const prompt = `
 任务执行失败，请生成修正方案。
 
@@ -693,6 +720,9 @@ ${JSON.stringify(plan, null, 2)}
    * @returns {void}
    */
   async saveExecutionHistory(plan, result, corrections, success) {
+    assertDesktopLegacyMutationAllowed(
+      "SelfCorrectionLoop.saveExecutionHistory",
+    );
     if (!this.database || !this.config.saveHistory) {
       return;
     }
@@ -799,6 +829,7 @@ ${JSON.stringify(plan, null, 2)}
    * @returns {void}
    */
   setConfig(config) {
+    assertDesktopLegacyMutationAllowed("SelfCorrectionLoop.setConfig");
     Object.assign(this.config, config);
   }
 

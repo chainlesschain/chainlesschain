@@ -461,6 +461,7 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _ensureDataDir() {
+    assertDesktopLegacyMutationAllowed("LongRunningTaskManager._ensureDataDir");
     try {
       await fs.mkdir(this.options.dataDir, { recursive: true });
       await fs.mkdir(path.join(this.options.dataDir, "checkpoints"), {
@@ -740,6 +741,7 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _executeTask(task) {
+    assertDesktopLegacyMutationAllowed("LongRunningTaskManager._executeTask");
     try {
       this._log(`开始执行任务: ${task.name} (${task.id})`);
 
@@ -772,6 +774,7 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _executeSteps(task) {
+    assertDesktopLegacyMutationAllowed("LongRunningTaskManager._executeSteps");
     const context = this._createTaskContext(task);
 
     for (let i = task.currentStep; i < task.steps.length; i++) {
@@ -856,6 +859,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _handleTaskSuccess(task, result) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._handleTaskSuccess",
+    );
     task.status = TaskStatus.COMPLETED;
     task.completedAt = Date.now();
     task.progress = 1;
@@ -878,6 +884,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _handleTaskFailure(task, error) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._handleTaskFailure",
+    );
     this._log(`任务失败: ${task.name}, 错误: ${error.message}`, "error");
 
     task.retryCount++;
@@ -910,6 +919,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _markTaskFailed(task, error) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._markTaskFailed",
+    );
     task.status = TaskStatus.FAILED;
     task.completedAt = Date.now();
     task.error = {
@@ -1053,6 +1065,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   _startCheckpointTimer(taskId) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._startCheckpointTimer",
+    );
     if (this.checkpointTimers.has(taskId)) {
       return; // 已有定时器
     }
@@ -1081,6 +1096,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   _stopCheckpointTimer(taskId) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._stopCheckpointTimer",
+    );
     const timer = this.checkpointTimers.get(taskId);
     if (timer) {
       clearInterval(timer);
@@ -1097,6 +1115,7 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _saveTask(task) {
+    assertDesktopLegacyMutationAllowed("LongRunningTaskManager._saveTask");
     const taskFile = path.join(this.options.dataDir, `${task.id}.json`);
     await fs.writeFile(taskFile, JSON.stringify(task, null, 2), "utf-8");
   }
@@ -1106,6 +1125,9 @@ class LongRunningTaskManager extends EventEmitter {
    * @private
    */
   async _saveTaskResult(task) {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager._saveTaskResult",
+    );
     if (!task.result) {
       return;
     }
@@ -1172,6 +1194,9 @@ class LongRunningTaskManager extends EventEmitter {
    * 清理已完成的任务
    */
   async cleanupCompletedTasks() {
+    assertDesktopLegacyMutationAllowed(
+      "LongRunningTaskManager.cleanupCompletedTasks",
+    );
     const now = Date.now();
     const retentionTime = this.options.retentionDays * 24 * 60 * 60 * 1000;
 

@@ -30,14 +30,13 @@ const {
 } = require("../../cowork/pipeline-orchestrator.js");
 const { HybridExecutor } = require("../../cowork/hybrid-executor.js");
 const { P2PAgentNetwork } = require("../../cowork/p2p-agent-network.js");
-const {
-  CrossOrgTaskRouter,
-} = require("../../cowork/cross-org-task-router.js");
+const { CrossOrgTaskRouter } = require("../../cowork/cross-org-task-router.js");
 const { DeployAgent } = require("../../cowork/deploy-agent.js");
 const { PostDeployMonitor } = require("../../cowork/post-deploy-monitor.js");
 const { AutoRemediator } = require("../../cowork/auto-remediator.js");
 const { RollbackManager } = require("../../cowork/rollback-manager.js");
 const { TeammateTool } = require("../../cowork/teammate-tool.js");
+const { AgentPool } = require("../../cowork/agent-pool.js");
 const {
   BrowserAutomationAgent,
 } = require("../../../browser/browser-automation-agent.js");
@@ -180,6 +179,8 @@ describe("Desktop Graph authority retirement", () => {
       code: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
       authoritySource: "graph_kernel",
       replacementEntrypoint: expect.any(String),
+      replacementEntryIds: expect.arrayContaining([expect.any(String)]),
+      historicalReadFunctions: expect.arrayContaining([expect.any(String)]),
     });
     expect(() =>
       assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput"),
@@ -212,6 +213,9 @@ describe("Desktop Graph authority retirement", () => {
     await expect(new AgentOrchestrator().executeChain([])).rejects.toEqual(
       expected,
     );
+    expect(() =>
+      new AgentOrchestrator().registerAgent({ agentId: "legacy-agent" }),
+    ).toThrowError(expected);
     await expect(
       new AgentCoordinator().cancelTask("task"),
     ).resolves.toMatchObject({
@@ -227,6 +231,9 @@ describe("Desktop Graph authority retirement", () => {
     await expect(
       new WorkflowEngine().executeWorkflow("workflow"),
     ).rejects.toEqual(expected);
+    expect(() =>
+      new WorkflowEngine().createWorkflow({ name: "must-not-write" }),
+    ).toThrowError(expected);
     await expect(
       new SkillWorkflowEngine().executeWorkflow("workflow"),
     ).rejects.toEqual(expected);
@@ -234,36 +241,281 @@ describe("Desktop Graph authority retirement", () => {
       new SkillPipelineEngine().executePipeline("pipeline"),
     ).rejects.toEqual(expected);
     expect(() =>
+      new SkillWorkflowEngine().createWorkflow({ name: "must-not-write" }),
+    ).toThrowError(expected);
+    expect(() =>
+      new SkillPipelineEngine().createPipeline({ name: "must-not-write" }),
+    ).toThrowError(expected);
+    expect(() =>
       assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput"),
     ).toThrowError(expected);
-    expect(() => new AutonomousAgentRunner().initialize({})).toThrowError(
-      expected,
-    );
-    await expect(new AgentTaskQueue().initialize(null)).rejects.toEqual(
-      expected,
-    );
+    const historicalGoalRow = {
+      id: "historical-goal",
+      description: "completed before cutover",
+      priority: 1,
+      status: "completed",
+      tool_permissions: "[]",
+      context: "{}",
+      plan: "{}",
+      result: "done",
+      step_count: 1,
+      tokens_used: 2,
+      error_message: null,
+      created_by: "user",
+      created_at: "2026-08-27T00:00:00.000Z",
+      updated_at: "2026-08-27T00:01:00.000Z",
+      completed_at: "2026-08-27T00:01:00.000Z",
+    };
+    const historicalGoalDb = {
+      exec: () => {
+        throw new Error("historical goal read attempted schema mutation");
+      },
+      prepare: (sql) => ({
+        get: () => {
+          expect(sql).toContain("SELECT * FROM autonomous_goals");
+          return historicalGoalRow;
+        },
+      }),
+    };
+    const historicalRunner = new AutonomousAgentRunner();
+    expect(() =>
+      historicalRunner.initialize({ database: historicalGoalDb }),
+    ).not.toThrow();
+    expect(historicalRunner.legacyReadOnly).toBe(true);
+    await expect(
+      historicalRunner.getGoalStatus("historical-goal"),
+    ).resolves.toMatchObject({
+      success: true,
+      data: { id: "historical-goal", status: "completed" },
+    });
+    await expect(
+      historicalRunner.submitGoal({ description: "must not execute" }),
+    ).rejects.toEqual(expected);
+    expect(() =>
+      historicalRunner.updateConfig({ maxStepsPerGoal: 2 }),
+    ).toThrowError(expected);
+
+    const historicalQueueDb = {
+      exec: () => {
+        throw new Error("historical queue read attempted schema mutation");
+      },
+      run: () => {
+        throw new Error("historical queue read attempted a write");
+      },
+      prepare: (sql) => ({
+        all: () =>
+          sql.includes("status = 'queued'")
+            ? [
+                {
+                  id: "historical-queue-item",
+                  goal_id: "historical-goal",
+                  priority: 1,
+                  description: "queued before cutover",
+                  status: "queued",
+                  created_at: "2026-08-27T00:00:00.000Z",
+                  started_at: null,
+                  completed_at: null,
+                },
+              ]
+            : [],
+        get: () => ({ count: 0 }),
+      }),
+    };
+    const historicalQueue = new AgentTaskQueue();
+    await expect(
+      historicalQueue.initialize(historicalQueueDb),
+    ).resolves.toBeUndefined();
+    expect(historicalQueue.legacyReadOnly).toBe(true);
+    await expect(historicalQueue.getQueueStatus()).resolves.toMatchObject({
+      success: true,
+      data: { pending: 1 },
+    });
+    await expect(
+      historicalQueue.enqueue({ goalId: "must-not-write" }),
+    ).rejects.toEqual(expected);
+    expect(() => historicalQueue.reSort()).toThrowError(expected);
+    await expect(new AgentPool().initialize()).rejects.toEqual(expected);
     await expect(
       new LongRunningTaskManager().createTask({ name: "legacy task" }),
     ).rejects.toEqual(expected);
-    await expect(new PipelineOrchestrator().initialize(null)).rejects.toEqual(
-      expected,
-    );
+    const historicalPipelineDb = {
+      prepare: (sql) => ({
+        all: () =>
+          sql.includes("FROM dev_pipelines")
+            ? [
+                {
+                  id: "historical-pipeline",
+                  name: "completed before cutover",
+                  template: "feature",
+                  requirement: "legacy requirement",
+                  spec_json: "{}",
+                  status: "completed",
+                  current_stage: null,
+                  config: "{}",
+                  metrics: "{}",
+                  created_by: "user",
+                  created_at: "2026-08-27T00:00:00.000Z",
+                  updated_at: "2026-08-27T00:01:00.000Z",
+                  completed_at: "2026-08-27T00:01:00.000Z",
+                },
+              ]
+            : [],
+        run: () => {
+          throw new Error("historical pipeline read attempted a write");
+        },
+      }),
+    };
+    const historicalPipeline = new PipelineOrchestrator();
+    await expect(
+      historicalPipeline.initialize(historicalPipelineDb),
+    ).resolves.toBeUndefined();
+    expect(historicalPipeline.legacyReadOnly).toBe(true);
+    expect(historicalPipeline.getAllPipelines()).toEqual([
+      expect.objectContaining({
+        id: "historical-pipeline",
+        status: "completed",
+      }),
+    ]);
+    await expect(
+      historicalPipeline.startPipeline("historical-pipeline"),
+    ).rejects.toEqual(expected);
     await expect(new HybridExecutor().initialize()).rejects.toEqual(expected);
-    await expect(new P2PAgentNetwork().initialize()).rejects.toEqual(expected);
-    await expect(new CrossOrgTaskRouter().initialize()).rejects.toEqual(
+    await expect(new HybridExecutor().executeBatch([])).rejects.toEqual(
       expected,
     );
+    const historicalP2P = new P2PAgentNetwork({
+      mobileBridge: {
+        on: () => {
+          throw new Error("historical P2P read attached a transport listener");
+        },
+      },
+      database: {
+        exec: () => {
+          throw new Error("historical P2P read attempted schema mutation");
+        },
+      },
+    });
+    await expect(historicalP2P.initialize()).resolves.toBeUndefined();
+    expect(historicalP2P).toMatchObject({
+      legacyReadOnly: true,
+      initialized: true,
+      _heartbeatTimer: null,
+      _heartbeatCheckTimer: null,
+    });
+    await expect(historicalP2P.announcePresence()).rejects.toEqual(expected);
+    expect(() => historicalP2P._startHeartbeat()).toThrowError(expected);
+
+    const historicalTaskRow = {
+      id: "historical-route",
+      task_id: "historical-route",
+      requester_did: "did:requester",
+      executor_did: "did:executor",
+      task_type: "legacy",
+      description: "completed before cutover",
+      status: "completed",
+      input_hash: "input",
+      output_hash: "output",
+      credential_proof: null,
+      duration_ms: 5,
+      result: JSON.stringify({ ok: true }),
+      created_at: "2026-08-27T00:00:00.000Z",
+      completed_at: "2026-08-27T00:01:00.000Z",
+    };
+    const historicalRouterDb = {
+      exec: () => {
+        throw new Error("historical route read attempted schema mutation");
+      },
+      run: () => {
+        throw new Error("historical route read attempted a write");
+      },
+      prepare: (sql) => ({
+        all: () =>
+          sql.includes("status IN ('pending', 'routing', 'executing')")
+            ? []
+            : [historicalTaskRow],
+      }),
+    };
+    const historicalRouter = new CrossOrgTaskRouter();
+    await expect(
+      historicalRouter.initialize(historicalRouterDb),
+    ).resolves.toBeUndefined();
+    expect(historicalRouter.legacyReadOnly).toBe(true);
+    expect(historicalRouter._cleanupTimer).toBeNull();
+    expect(historicalRouter.getTaskLog()).toEqual([
+      expect.objectContaining({
+        taskId: "historical-route",
+        status: "completed",
+      }),
+    ]);
+    await expect(
+      historicalRouter.routeTask({
+        requesterDID: "did:new",
+        taskType: "must-not-write",
+      }),
+    ).rejects.toEqual(expected);
+    expect(() => historicalRouter.destroy()).toThrowError(expected);
     await expect(new DeployAgent().deploy({})).rejects.toEqual(expected);
     expect(() => new PostDeployMonitor().startMonitoring({})).toThrowError(
       expected,
     );
-    await expect(new AutoRemediator().triggerRemediation({})).rejects.toEqual(
+    const historicalRemediationDb = {
+      prepare: () => ({
+        all: () => [
+          {
+            id: "historical-playbook",
+            name: "legacy playbook",
+            description: "read only",
+            trigger_config: "{}",
+            steps: "[]",
+            rollback_on_failure: 1,
+            notify_channels: "[]",
+            active: 1,
+            success_count: 1,
+            failure_count: 0,
+            avg_duration_ms: 5,
+            created_at: "2026-08-27T00:00:00.000Z",
+          },
+        ],
+        run: () => {
+          throw new Error("historical remediation read attempted a write");
+        },
+      }),
+    };
+    const historicalRemediator = new AutoRemediator();
+    await expect(
+      historicalRemediator.initialize(historicalRemediationDb),
+    ).resolves.toBeUndefined();
+    expect(historicalRemediator.legacyReadOnly).toBe(true);
+    expect(historicalRemediator.getPlaybooks()).toEqual([
+      expect.objectContaining({ id: "historical-playbook" }),
+    ]);
+    await expect(historicalRemediator.triggerRemediation({})).rejects.toEqual(
       expected,
     );
-    await expect(new RollbackManager().rollback({})).rejects.toEqual(expected);
+
+    const historicalRollback = new RollbackManager();
+    await expect(historicalRollback.initialize(null)).resolves.toBeUndefined();
+    expect(historicalRollback.legacyReadOnly).toBe(true);
+    expect(historicalRollback.getHistory()).toEqual([]);
+    await expect(historicalRollback.rollback({})).rejects.toEqual(expected);
     const historicalDb = {
       run: () => {
         throw new Error("historical read attempted a write");
+      },
+      all: async (sql, params) => {
+        expect(sql).toContain("FROM cowork_teams");
+        expect(params).toEqual([]);
+        return [
+          {
+            id: "historical-team",
+            name: "completed before cutover",
+            status: "completed",
+            max_agents: 5,
+            created_at: 1,
+            metadata: JSON.stringify({ allowDynamicJoin: false }),
+            agent_count: 2,
+          },
+        ];
       },
       get: async (sql, params) => {
         expect(sql).toContain("SELECT * FROM cowork_tasks");
@@ -287,6 +539,13 @@ describe("Desktop Graph authority retirement", () => {
     expect(historicalTeammateTool.getAgentPoolStatus()).toEqual({
       enabled: false,
     });
+    await expect(historicalTeammateTool.discoverTeams()).resolves.toEqual([
+      expect.objectContaining({
+        id: "historical-team",
+        status: "completed",
+        agentCount: 2,
+      }),
+    ]);
     await expect(
       historicalTeammateTool.getTask("historical-task"),
     ).resolves.toMatchObject({
@@ -298,6 +557,45 @@ describe("Desktop Graph authority retirement", () => {
     await expect(
       historicalTeammateTool.spawnTeam("must-not-write"),
     ).rejects.toEqual(expected);
+
+    const historicalWorkflowDb = {
+      exec: () => {
+        throw new Error("historical workflow read attempted schema mutation");
+      },
+      prepare: (sql) => ({
+        all: () =>
+          sql.includes("FROM workflows")
+            ? [
+                {
+                  id: "historical-workflow",
+                  name: "completed before cutover",
+                  description: "read only",
+                  dag: JSON.stringify({ stages: [], edges: [] }),
+                  version: 1,
+                  status: "completed",
+                },
+              ]
+            : [],
+        get: () =>
+          sql.includes("FROM workflow_executions")
+            ? { log: JSON.stringify([{ status: "completed" }]) }
+            : null,
+        run: () => {
+          throw new Error("historical workflow read attempted a write");
+        },
+      }),
+    };
+    const historicalWorkflow = new WorkflowEngine();
+    await expect(
+      historicalWorkflow.initialize(historicalWorkflowDb),
+    ).resolves.toBeUndefined();
+    expect(historicalWorkflow.legacyReadOnly).toBe(true);
+    expect(historicalWorkflow.getAllWorkflows()).toEqual([
+      expect.objectContaining({ id: "historical-workflow" }),
+    ]);
+    expect(historicalWorkflow.getExecutionLog("historical-execution")).toEqual([
+      { status: "completed" },
+    ]);
   });
 
   it("keeps Browser workflow non-durable and disabled by default", async () => {

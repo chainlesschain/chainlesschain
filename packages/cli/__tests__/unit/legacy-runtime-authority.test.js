@@ -48,6 +48,8 @@ describe("CLI legacy runtime authority", () => {
       code: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
       authoritySource: "graph_kernel",
       replacementEntrypoint: expect.any(String),
+      replacementEntryIds: expect.arrayContaining([expect.any(String)]),
+      historicalReadFunctions: expect.arrayContaining([expect.any(String)]),
     });
     expect(() =>
       assertCLILegacyMutationAllowed("CLIAutonomousAgent.submitGoal"),
@@ -55,16 +57,21 @@ describe("CLI legacy runtime authority", () => {
       expect.objectContaining({
         replacementEntrypoint:
           "cc cowork run through the canonical Graph Kernel adapter",
+        replacementEntryIds: ["cli-cowork"],
+        historicalReadFunctions: expect.arrayContaining([
+          "CLIAutonomousAgent.getGoalStatus",
+        ]),
       }),
     );
 
     const autonomous = new CLIAutonomousAgent();
-    autonomous.initialize({});
+    expect(() => autonomous.initialize({})).toThrowError(expected);
     await expect(autonomous.submitGoal("legacy goal")).rejects.toEqual(
       expected,
     );
 
     const orchestrator = Object.create(Orchestrator.prototype);
     await expect(orchestrator.addTask("legacy task")).rejects.toEqual(expected);
+    expect(() => orchestrator.startCronWatch()).toThrowError(expected);
   });
 });

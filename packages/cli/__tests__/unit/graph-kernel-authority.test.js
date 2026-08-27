@@ -73,6 +73,9 @@ describe("GraphRun authority and writer inventory", () => {
       migratableEntryCount: 7,
       retirementEntryCount: 13,
       disabledEntryCount: 3,
+      replacementEdgeCount: 15,
+      historicalReadFunctionCount: 32,
+      retiredMutationFunctionCount: 360,
       errors: [],
     });
     expect(discoverUnclassifiedRuntimeWriters(manifest)).toEqual([]);
@@ -126,8 +129,17 @@ describe("GraphRun authority and writer inventory", () => {
         replacementEntrypoint: expect.any(String),
         replacementAuthoritySource: "graph_kernel",
         retiredStoreAccess: "historical_read_only",
+        replacementEntryIds: expect.any(Array),
+        historicalReadFunctions: expect.any(Array),
       });
       expect(entry.replacementEntrypoint.trim()).not.toBe("");
+      expect(entry.replacementEntryIds.length).toBeGreaterThan(0);
+      expect(entry.historicalReadFunctions.length).toBeGreaterThan(0);
+      for (const replacementEntryId of entry.replacementEntryIds) {
+        expect(
+          entries.find((candidate) => candidate.id === replacementEntryId),
+        ).toMatchObject({ cutoverStrategy: "migrate" });
+      }
       const writerSource = entry.writerFiles
         .map((file) =>
           fs.readFileSync(path.resolve(REPOSITORY_ROOT, file), "utf8"),
@@ -197,6 +209,18 @@ describe("GraphRun authority and writer inventory", () => {
         "workflow:reconcile",
       ]),
     });
+    expect(
+      entries.find((entry) => entry.id === "desktop-legacy-workflow"),
+    ).toMatchObject({
+      runtimeDurability: "durable",
+      stores: ["workflows", "workflow_executions"],
+      storeDispositions: {
+        migrate: [],
+        retire: ["workflows", "workflow_executions"],
+        rebuild: [],
+        disabled: [],
+      },
+    });
     expect(entries.find((entry) => entry.id === "desktop-team")).toMatchObject({
       stores: expect.arrayContaining([
         "SessionStateManager",
@@ -212,6 +236,31 @@ describe("GraphRun authority and writer inventory", () => {
         rebuild: [],
         disabled: [],
       },
+    });
+  });
+
+  it("rejects stale retirement targets and missing historical readers", () => {
+    const manifest = JSON.parse(
+      JSON.stringify(loadGraphRuntimeSurfaceManifest()),
+    );
+    const retired = manifest.surfaces
+      .flatMap((surface) => surface.entries)
+      .find((entry) => entry.id === "cli-legacy-autonomous");
+    retired.replacementEntryIds = ["deleted-canonical-entry"];
+    retired.historicalReadFunctions = [];
+    expect(
+      validateGraphRuntimeSurfaceManifest(manifest, {
+        requireFiles: false,
+        discoverWriters: false,
+      }),
+    ).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining([
+        expect.stringContaining("historical read functions"),
+        expect.stringContaining(
+          "replacement entry must exist and migrate: deleted-canonical-entry",
+        ),
+      ]),
     });
   });
 

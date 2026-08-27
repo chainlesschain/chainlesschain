@@ -214,6 +214,7 @@ class HybridExecutor extends EventEmitter {
    * @returns {Promise<Object[]>} Results array (same order as tasks)
    */
   async executeBatch(tasks, options = {}) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor.executeBatch");
     const concurrency = options.concurrency || 3;
     const results = new Array(tasks.length).fill(null);
     const errors = new Array(tasks.length).fill(null);
@@ -252,6 +253,7 @@ class HybridExecutor extends EventEmitter {
   // ============================================================
 
   async _executeWithStrategy(executionId, task, strategy, weight, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeWithStrategy");
     switch (strategy) {
       case EXEC_STRATEGY.LOCAL_ONLY:
         return this._executeLocal(task, timeout);
@@ -277,6 +279,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeLocal(task, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeLocal");
     if (!this.skillRegistry) {
       throw new Error("Local skill registry not available");
     }
@@ -299,6 +302,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeRemote(task, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeRemote");
     const target = this._findBestRemoteDevice(task.skillId);
     if (!target) {
       throw new Error(`No remote device available for skill: ${task.skillId}`);
@@ -321,6 +325,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeLocalFirst(task, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeLocalFirst");
     // Try local
     try {
       if (this.skillRegistry?.getSkill(task.skillId)) {
@@ -338,6 +343,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeRemoteFirst(task, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeRemoteFirst");
     // Try remote
     try {
       const target = this._findBestRemoteDevice(task.skillId);
@@ -356,6 +362,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeBestFit(task, weight, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeBestFit");
     // Score local vs remote
     const localScore = this._scoreLocalExecution(task.skillId, weight);
     const remoteTarget = this._findBestRemoteDevice(task.skillId);
@@ -398,6 +405,7 @@ class HybridExecutor extends EventEmitter {
   }
 
   async _executeLoadBalanced(task, timeout) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._executeLoadBalanced");
     // Count recent executions per device
     const recentCutoff = Date.now() - this.config.loadBalanceWindow;
     const loadMap = new Map();
@@ -536,6 +544,7 @@ class HybridExecutor extends EventEmitter {
   // ============================================================
 
   _recordExecution(executionId, task, result, duration, failed) {
+    assertDesktopLegacyMutationAllowed("HybridExecutor._recordExecution");
     this.stats.totalExecutions++;
     if (failed) {
       this.stats.failures++;

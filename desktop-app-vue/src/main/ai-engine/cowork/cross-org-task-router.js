@@ -19,6 +19,7 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const {
   assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
 } = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
@@ -80,6 +81,20 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @param {Object} deps - { federatedRegistry, agentReputation }
    */
   async initialize(db, deps = {}) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-p2p-agent",
+      })
+    ) {
+      this.db = db;
+      this.legacyReadOnly = true;
+      await this._loadActiveTasks();
+      this.initialized = true;
+      logger.info(
+        `[TaskRouter] Initialized for historical reads with ${this._activeTasks.size} active task records`,
+      );
+      return;
+    }
     assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.initialize");
     if (this.initialized) {
       return;
@@ -103,6 +118,7 @@ class CrossOrgTaskRouter extends EventEmitter {
   // ============================================================
 
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._ensureTables");
     if (!this.db) {
       return;
     }
@@ -478,6 +494,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object|null} Best executor agent
    */
   async findBestExecutor(requirements = {}, options = {}) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.findBestExecutor");
     const strategy = options.strategy || this._config.defaultStrategy;
     const excludeDID = options.excludeDID || null;
 
@@ -521,6 +538,9 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Array} Candidate agents
    */
   async _discoverCandidates(requirements) {
+    assertDesktopLegacyMutationAllowed(
+      "CrossOrgTaskRouter._discoverCandidates",
+    );
     if (!this._federatedRegistry) {
       logger.warn("[TaskRouter] No federated registry available");
       return [];
@@ -625,6 +645,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @returns {Object} Selected agent
    */
   _selectRoundRobin(candidates) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._selectRoundRobin");
     if (candidates.length === 0) {
       return null;
     }
@@ -692,6 +713,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * @param {string} taskId - Task ID
    */
   _startTaskTimeout(taskId) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._startTaskTimeout");
     const timeoutMs = this._config.taskTimeoutMs;
 
     setTimeout(() => {
@@ -870,6 +892,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * Start periodic cleanup of stale tasks
    */
   _startCleanupTimer() {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._startCleanupTimer");
     if (this._cleanupTimer) {
       clearInterval(this._cleanupTimer);
     }
@@ -888,6 +911,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * Clean up tasks stuck in routing/executing state beyond timeout
    */
   _cleanupStaleTasks() {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._cleanupStaleTasks");
     const now = Date.now();
     let cleaned = 0;
 
@@ -928,6 +952,7 @@ class CrossOrgTaskRouter extends EventEmitter {
    * Destroy the router and clean up timers
    */
   destroy() {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter.destroy");
     if (this._cleanupTimer) {
       clearInterval(this._cleanupTimer);
       this._cleanupTimer = null;
@@ -943,6 +968,7 @@ class CrossOrgTaskRouter extends EventEmitter {
   // ============================================================
 
   _persistTask(task) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._persistTask");
     try {
       this.db.run(
         `INSERT INTO federated_task_log
@@ -974,6 +1000,7 @@ class CrossOrgTaskRouter extends EventEmitter {
   }
 
   _updateTaskInDB(task) {
+    assertDesktopLegacyMutationAllowed("CrossOrgTaskRouter._updateTaskInDB");
     try {
       this.db.run(
         `UPDATE federated_task_log

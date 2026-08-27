@@ -3,9 +3,7 @@
 const {
   createRuntimeGraphCutoverAuthorityResolver,
 } = require("../../../../../packages/cli/src/lib/graph-kernel/cutover-authority-resolver.js");
-const graphRuntimeSurfaceManifest = require(
-  "../../../../../packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json",
-);
+const graphRuntimeSurfaceManifest = require("../../../../../packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json");
 
 const DESKTOP_GRAPH_MODES = Object.freeze(["legacy", "shadow", "canonical"]);
 const DESKTOP_ENTRYPOINTS = Object.freeze([
@@ -14,10 +12,14 @@ const DESKTOP_ENTRYPOINTS = Object.freeze([
   ["AIEngineManager.", "desktop-legacy-ai-engine"],
   ["TaskPlannerEnhanced.", "desktop-legacy-ai-engine"],
   ["TaskPlanner.", "desktop-legacy-ai-engine"],
+  ["CheckpointValidator.", "desktop-legacy-ai-engine"],
+  ["SelfCorrectionLoop.", "desktop-legacy-ai-engine"],
+  ["PerformanceMonitor.", "desktop-legacy-ai-engine"],
   ["AutonomousAgentRunner.", "desktop-autonomous-agent"],
   ["AgentTaskQueue.", "desktop-autonomous-agent"],
   ["LongRunningTaskManager.", "desktop-long-running-task"],
   ["TeammateTool.", "desktop-legacy-cowork-team"],
+  ["AgentPool.", "desktop-legacy-cowork-team"],
   ["PipelineOrchestrator.", "desktop-dev-pipeline"],
   ["DeployAgent.", "desktop-dev-pipeline"],
   ["PostDeployMonitor.", "desktop-dev-pipeline"],
@@ -55,13 +57,20 @@ function entryIdFor(entrypoint) {
   return DESKTOP_ENTRYPOINTS.find(([prefix]) => value.startsWith(prefix))?.[1];
 }
 
-function replacementEntrypointFor(entryId) {
+function retirementContractFor(entryId) {
   if (!entryId) return null;
   const desktop = graphRuntimeSurfaceManifest.surfaces.find(
     (surface) => surface.originSurface === "desktop",
   );
-  return desktop?.entries.find((entry) => entry.id === entryId)
-    ?.replacementEntrypoint;
+  const entry = desktop?.entries.find((candidate) => candidate.id === entryId);
+  if (!entry) return null;
+  return Object.freeze({
+    replacementEntrypoint: entry.replacementEntrypoint || null,
+    replacementEntryIds: Object.freeze([...(entry.replacementEntryIds || [])]),
+    historicalReadFunctions: Object.freeze([
+      ...(entry.historicalReadFunctions || []),
+    ]),
+  });
 }
 
 function desktopGraphAuthorityMode(env = process.env, options = {}) {
@@ -133,7 +142,8 @@ function assertDesktopLegacyMutationAllowed(
       legacyReadOnly: false,
     });
   }
-  const replacementEntrypoint = replacementEntrypointFor(entryId);
+  const retirementContract = retirementContractFor(entryId);
+  const replacementEntrypoint = retirementContract?.replacementEntrypoint;
   const error = new Error(
     `Desktop legacy runtime is read-only; '${entrypoint}' must use ${replacementEntrypoint || "the fixed Graph App Server adapter"}`,
   );
@@ -142,6 +152,9 @@ function assertDesktopLegacyMutationAllowed(
   error.entrypoint = String(entrypoint);
   error.entryId = entryId;
   error.replacementEntrypoint = replacementEntrypoint;
+  error.replacementEntryIds = retirementContract?.replacementEntryIds || [];
+  error.historicalReadFunctions =
+    retirementContract?.historicalReadFunctions || [];
   error.authorityMode = "canonical";
   error.authoritySource = "graph_kernel";
   throw error;

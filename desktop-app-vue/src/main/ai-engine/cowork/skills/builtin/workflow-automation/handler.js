@@ -107,6 +107,7 @@ function getEngine() {
 }
 
 async function handleCreate(name, definition, context) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleCreate");
   if (!name) {
     return {
       success: false,
@@ -298,6 +299,7 @@ async function handleCancel(nameOrId) {
 }
 
 async function handleDelete(nameOrId) {
+  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleDelete");
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }

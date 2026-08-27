@@ -145,6 +145,7 @@ class PostDeployMonitor extends EventEmitter {
    * @returns {Object} Final status
    */
   stopMonitoring(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.stopMonitoring");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return null;
@@ -205,6 +206,7 @@ class PostDeployMonitor extends EventEmitter {
    * Cleanup all watchers
    */
   destroy() {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.destroy");
     for (const [id, watcher] of this.activeWatchers) {
       clearInterval(watcher._checkInterval);
       clearTimeout(watcher._windowTimeout);
@@ -217,6 +219,7 @@ class PostDeployMonitor extends EventEmitter {
   // ============================================================
 
   _performCheck(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor._performCheck");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return;
@@ -322,6 +325,7 @@ class PostDeployMonitor extends EventEmitter {
   }
 
   _completeMonitoring(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor._completeMonitoring");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return null;

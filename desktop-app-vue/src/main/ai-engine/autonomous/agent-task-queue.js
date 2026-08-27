@@ -16,6 +16,7 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const {
   assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
 } = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
@@ -59,6 +60,20 @@ class AgentTaskQueue extends EventEmitter {
    * @param {Object} database - Database manager instance
    */
   async initialize(database) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-autonomous-agent",
+      })
+    ) {
+      this.database = database || null;
+      this.legacyReadOnly = true;
+      await this._loadFromDB();
+      this.initialized = true;
+      logger.info(
+        `[AgentTaskQueue] Initialized for historical reads with ${this.queue.length} queued tasks`,
+      );
+      return;
+    }
     assertDesktopLegacyMutationAllowed("AgentTaskQueue.initialize");
     if (this.initialized) {
       return;
@@ -80,6 +95,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._ensureTables");
     if (!this.database) {
       return;
     }
@@ -356,6 +372,7 @@ class AgentTaskQueue extends EventEmitter {
    * Useful after dynamic priority changes
    */
   reSort() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.reSort");
     this.queue.sort((a, b) => {
       if (a.priority !== b.priority) {
         return a.priority - b.priority;
@@ -485,6 +502,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _saveItemToDB(item) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._saveItemToDB");
     if (!this.database) {
       return;
     }
@@ -515,6 +533,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _updateItemInDB(itemId, fields) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._updateItemInDB");
     if (!this.database) {
       return;
     }

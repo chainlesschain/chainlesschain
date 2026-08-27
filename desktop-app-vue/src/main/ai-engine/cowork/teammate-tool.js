@@ -109,8 +109,7 @@ class TeammateTool extends EventEmitter {
     // 代理池（可选）
     // A retired runtime must remain constructible for historical reads. Never
     // warm an AgentPool in read-only mode because doing so creates live agents.
-    this.useAgentPool =
-      !this.legacyReadOnly && options.useAgentPool !== false; // 默认启用
+    this.useAgentPool = !this.legacyReadOnly && options.useAgentPool !== false; // 默认启用
     if (this.useAgentPool) {
       this.agentPool = new AgentPool({
         minSize: options.agentPoolMinSize || 3,
@@ -138,6 +137,7 @@ class TeammateTool extends EventEmitter {
   }
 
   _appendTeamMessage(teamId, message) {
+    assertDesktopLegacyMutationAllowed("TeammateTool._appendTeamMessage");
     const queue = this.messageQueues.get(teamId);
     if (!queue) {
       throw new Error(`团队消息队列不存在: ${teamId}`);
@@ -162,6 +162,7 @@ class TeammateTool extends EventEmitter {
    * @private
    */
   async _ensureDataDir() {
+    assertDesktopLegacyMutationAllowed("TeammateTool._ensureDataDir");
     try {
       await fs.mkdir(this.options.dataDir, { recursive: true });
       await fs.mkdir(path.join(this.options.dataDir, "teams"), {
@@ -280,6 +281,43 @@ class TeammateTool extends EventEmitter {
    */
   async discoverTeams(filters = {}) {
     let teams = Array.from(this.teams.values());
+    if (this.legacyReadOnly && this.db) {
+      try {
+        const sql = `SELECT t.id, t.name, t.status, t.max_agents, t.created_at,
+          t.metadata, COUNT(a.id) AS agent_count
+          FROM cowork_teams t
+          LEFT JOIN cowork_agents a ON a.team_id = t.id
+          GROUP BY t.id, t.name, t.status, t.max_agents, t.created_at, t.metadata
+          ORDER BY t.created_at DESC`;
+        const rows =
+          typeof this.db.all === "function"
+            ? await this.db.all(sql, [])
+            : this.db.prepare(sql).all();
+        teams = rows.map((row) => {
+          let metadata = {};
+          try {
+            metadata = row.metadata ? JSON.parse(row.metadata) : {};
+          } catch {
+            metadata = {};
+          }
+          return {
+            id: row.id,
+            name: row.name,
+            status: row.status,
+            maxAgents: row.max_agents,
+            agentCount: Number(row.agent_count) || 0,
+            config: metadata.config || metadata,
+            metadata: {
+              ...metadata,
+              createdAt: metadata.createdAt || row.created_at,
+            },
+          };
+        });
+      } catch (error) {
+        this._log(`读取历史团队失败: ${error.message}`, "error");
+        throw error;
+      }
+    }
 
     // 兼容性：默认过滤掉archived团队
     if (!filters.includeArchived) {
@@ -298,16 +336,20 @@ class TeammateTool extends EventEmitter {
     }
 
     if (filters.maxAgents) {
-      teams = teams.filter((t) => t.agents.length < t.maxAgents);
+      teams = teams.filter(
+        (t) =>
+          (Array.isArray(t.agents) ? t.agents.length : t.agentCount || 0) <
+          t.maxAgents,
+      );
     }
 
     return teams.map((t) => ({
       id: t.id,
       name: t.name,
       status: t.status,
-      agentCount: t.agents.length,
+      agentCount: Array.isArray(t.agents) ? t.agents.length : t.agentCount || 0,
       maxAgents: t.maxAgents,
-      allowDynamicJoin: t.config.allowDynamicJoin,
+      allowDynamicJoin: t.config?.allowDynamicJoin,
       createdAt: t.metadata.createdAt,
     }));
   }
@@ -1373,6 +1415,7 @@ class TeammateTool extends EventEmitter {
    * @private
    */
   async _saveTeamConfig(team) {
+    assertDesktopLegacyMutationAllowed("TeammateTool._saveTeamConfig");
     const teamDir = path.join(this.options.dataDir, "teams", team.id);
     const configFile = path.join(teamDir, "config.json");
 

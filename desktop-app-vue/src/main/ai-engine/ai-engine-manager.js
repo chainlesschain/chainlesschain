@@ -85,6 +85,9 @@ class AIEngineManager {
    * @private
    */
   async initializeWorkflowOptimizations() {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManager.initializeWorkflowOptimizations",
+    );
     try {
       // 读取配置 (M2: 异步加载，避免启动期阻塞事件循环)
       const config = await this._loadWorkflowConfigAsync();
@@ -407,6 +410,7 @@ class AIEngineManager {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, handler, schema) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.registerTool");
     this.functionCaller.registerTool(name, handler, schema);
   }
 
@@ -415,6 +419,7 @@ class AIEngineManager {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.unregisterTool");
     this.functionCaller.unregisterTool(name);
   }
 
