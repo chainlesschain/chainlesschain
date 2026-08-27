@@ -1068,7 +1068,7 @@ class MCPStdioServer extends EventEmitter {
     if (entry.settled || this._outputQueue[0] !== entry) return;
     entry.settled = true;
     clearTimeout(entry.drainTimer);
-    this.output.removeListener("drain", entry.onDrain);
+    if (entry.onDrain) this.output.removeListener("drain", entry.onDrain);
     this._outputQueue.shift();
     this._queuedOutputBytes = Math.max(
       0,
@@ -1094,7 +1094,7 @@ class MCPStdioServer extends EventEmitter {
       if (entry.settled) continue;
       entry.settled = true;
       clearTimeout(entry.drainTimer);
-      this.output.removeListener("drain", entry.onDrain);
+      if (entry.onDrain) this.output.removeListener("drain", entry.onDrain);
       entry.resolve({ accepted: false, ...failure });
     }
   }
