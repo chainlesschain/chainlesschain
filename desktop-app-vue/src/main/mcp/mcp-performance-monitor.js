@@ -9,39 +9,106 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const crypto = require("crypto");
+
+const DEFAULT_RETENTION = Object.freeze({
+  connectionSamples: 512,
+  latencySamplesPerSeries: 512,
+  toolSeries: 256,
+  serverSeries: 128,
+  memorySamples: 100,
+  errors: 100,
+  seriesNameBytes: 256,
+  errorTextBytes: 8192,
+  errorContextBytes: 16384,
+});
+const MAX_RETENTION = Object.freeze({
+  connectionSamples: 10000,
+  latencySamplesPerSeries: 10000,
+  toolSeries: 2048,
+  serverSeries: 1024,
+  memorySamples: 10000,
+  errors: 1000,
+  seriesNameBytes: 1024,
+  errorTextBytes: 65536,
+  errorContextBytes: 262144,
+});
+const OVERFLOW_SERIES = Symbol("mcp-performance-overflow");
+const OVERFLOW_SERIES_NAME = "__other__";
+const SUPPORTED_BASELINES = new Set(["directCall", "stdioCall"]);
+
+function boundedPositiveInteger(value, fallback, maximum) {
+  return Number.isSafeInteger(value) && value > 0
+    ? Math.min(value, maximum)
+    : fallback;
+}
+
+function pushBounded(target, value, limit) {
+  target.push(value);
+  const dropped = Math.max(0, target.length - limit);
+  if (dropped > 0) {
+    target.splice(0, dropped);
+  }
+  return dropped;
+}
 
 class MCPPerformanceMonitor extends EventEmitter {
-  constructor() {
+  constructor(config = {}) {
     super();
 
-    // Performance metrics
-    this.metrics = {
-      // Connection metrics
-      connections: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        times: [], // Connection times in ms
-      },
-
-      // Tool call metrics
-      toolCalls: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        byTool: new Map(), // toolName -> { count, latencies, errors }
-        byServer: new Map(), // serverName -> { count, latencies, errors }
-      },
-
-      // Memory usage
-      memory: {
-        samples: [],
-        lastSample: null,
-      },
-
-      // Error tracking
-      errors: [],
+    this.retention = {
+      connectionSamples: boundedPositiveInteger(
+        config.maxConnectionSamples,
+        DEFAULT_RETENTION.connectionSamples,
+        MAX_RETENTION.connectionSamples,
+      ),
+      latencySamplesPerSeries: boundedPositiveInteger(
+        config.maxLatencySamplesPerSeries,
+        DEFAULT_RETENTION.latencySamplesPerSeries,
+        MAX_RETENTION.latencySamplesPerSeries,
+      ),
+      toolSeries: boundedPositiveInteger(
+        config.maxToolSeries,
+        DEFAULT_RETENTION.toolSeries,
+        MAX_RETENTION.toolSeries,
+      ),
+      serverSeries: boundedPositiveInteger(
+        config.maxServerSeries,
+        DEFAULT_RETENTION.serverSeries,
+        MAX_RETENTION.serverSeries,
+      ),
+      memorySamples: boundedPositiveInteger(
+        config.maxMemorySamples,
+        DEFAULT_RETENTION.memorySamples,
+        MAX_RETENTION.memorySamples,
+      ),
+      errors: boundedPositiveInteger(
+        config.maxErrors,
+        DEFAULT_RETENTION.errors,
+        MAX_RETENTION.errors,
+      ),
+      seriesNameBytes: boundedPositiveInteger(
+        config.maxSeriesNameBytes,
+        DEFAULT_RETENTION.seriesNameBytes,
+        MAX_RETENTION.seriesNameBytes,
+      ),
+      errorTextBytes: boundedPositiveInteger(
+        config.maxErrorTextBytes,
+        DEFAULT_RETENTION.errorTextBytes,
+        MAX_RETENTION.errorTextBytes,
+      ),
+      errorContextBytes: boundedPositiveInteger(
+        config.maxErrorContextBytes,
+        DEFAULT_RETENTION.errorContextBytes,
+        MAX_RETENTION.errorContextBytes,
+      ),
     };
+    this.retentionStats = this._createRetentionStats();
+
+    // Performance metrics are retained in bounded recent windows. Lifetime
+    // counters remain exact, while latency percentiles describe the retained
+    // window advertised by getSummary().retention.
+    this.metrics = this._createEmptyMetrics();
 
     // Benchmark baselines (for comparison)
     this.baselines = {
@@ -64,7 +131,11 @@ class MCPPerformanceMonitor extends EventEmitter {
 
     if (success) {
       this.metrics.connections.successful++;
-      this.metrics.connections.times.push(duration);
+      this.retentionStats.connectionSamplesDropped += pushBounded(
+        this.metrics.connections.times,
+        duration,
+        this.retention.connectionSamples,
+      );
     } else {
       this.metrics.connections.failed++;
     }
@@ -93,34 +164,37 @@ class MCPPerformanceMonitor extends EventEmitter {
       this.metrics.toolCalls.failed++;
     }
 
-    // Record by tool
-    if (!this.metrics.toolCalls.byTool.has(toolName)) {
-      this.metrics.toolCalls.byTool.set(toolName, {
-        count: 0,
-        latencies: [],
-        errors: 0,
-      });
-    }
-
-    const toolMetrics = this.metrics.toolCalls.byTool.get(toolName);
+    // Record by tool. Once the dimension cap is reached, unseen names are
+    // aggregated into one fixed overflow bucket instead of becoming new keys.
+    const toolMetrics = this._getOrCreateSeries(
+      this.metrics.toolCalls.byTool,
+      toolName,
+      this.retention.toolSeries,
+      "tool",
+    );
     toolMetrics.count++;
-    toolMetrics.latencies.push(duration);
+    this.retentionStats.toolLatencySamplesDropped += pushBounded(
+      toolMetrics.latencies,
+      duration,
+      this.retention.latencySamplesPerSeries,
+    );
     if (!success) {
       toolMetrics.errors++;
     }
 
-    // Record by server
-    if (!this.metrics.toolCalls.byServer.has(serverName)) {
-      this.metrics.toolCalls.byServer.set(serverName, {
-        count: 0,
-        latencies: [],
-        errors: 0,
-      });
-    }
-
-    const serverMetrics = this.metrics.toolCalls.byServer.get(serverName);
+    // Record by server using the same bounded high-cardinality policy.
+    const serverMetrics = this._getOrCreateSeries(
+      this.metrics.toolCalls.byServer,
+      serverName,
+      this.retention.serverSeries,
+      "server",
+    );
     serverMetrics.count++;
-    serverMetrics.latencies.push(duration);
+    this.retentionStats.serverLatencySamplesDropped += pushBounded(
+      serverMetrics.latencies,
+      duration,
+      this.retention.latencySamplesPerSeries,
+    );
     if (!success) {
       serverMetrics.errors++;
     }
@@ -141,18 +215,26 @@ class MCPPerformanceMonitor extends EventEmitter {
    * @param {Object} context - Error context
    */
   recordError(type, error, context = {}) {
-    this.metrics.errors.push({
-      timestamp: Date.now(),
-      type,
-      message: error.message,
-      stack: error.stack,
-      context,
-    });
-
-    // Keep only last 100 errors
-    if (this.metrics.errors.length > 100) {
-      this.metrics.errors.shift();
-    }
+    const errorType = this._boundText(type);
+    const message = this._boundText(error?.message || String(error));
+    const stack = this._boundText(error?.stack || "");
+    const boundedContext = this._boundContext(context);
+    this.retentionStats.errorPayloadsTruncated +=
+      Number(errorType.truncated) +
+      Number(message.truncated) +
+      Number(stack.truncated) +
+      Number(boundedContext.truncated);
+    this.retentionStats.errorsDropped += pushBounded(
+      this.metrics.errors,
+      {
+        timestamp: Date.now(),
+        type: errorType.value,
+        message: message.value,
+        stack: stack.value,
+        context: boundedContext.value,
+      },
+      this.retention.errors,
+    );
 
     this.emit("error-recorded", { type, error, context });
   }
@@ -171,13 +253,12 @@ class MCPPerformanceMonitor extends EventEmitter {
       rss: usage.rss,
     };
 
-    this.metrics.memory.samples.push(sample);
+    this.retentionStats.memorySamplesDropped += pushBounded(
+      this.metrics.memory.samples,
+      sample,
+      this.retention.memorySamples,
+    );
     this.metrics.memory.lastSample = sample;
-
-    // Keep only last 100 samples
-    if (this.metrics.memory.samples.length > 100) {
-      this.metrics.memory.samples.shift();
-    }
 
     return sample;
   }
@@ -188,6 +269,9 @@ class MCPPerformanceMonitor extends EventEmitter {
    * @param {number} latency - Average latency in ms
    */
   setBaseline(type, latency) {
+    if (!SUPPORTED_BASELINES.has(type)) {
+      throw new TypeError(`Unsupported MCP performance baseline: ${type}`);
+    }
     this.baselines[type] = latency;
 
     // Calculate overhead if both baselines are set
@@ -246,6 +330,19 @@ class MCPPerformanceMonitor extends EventEmitter {
       errors: {
         total: this.metrics.errors.length,
         recent: this.metrics.errors.slice(-10),
+      },
+
+      retention: {
+        limits: { ...this.retention },
+        retained: {
+          connectionSamples: this.metrics.connections.times.length,
+          toolSeries: this.metrics.toolCalls.byTool.size,
+          serverSeries: this.metrics.toolCalls.byServer.size,
+          memorySamples: this.metrics.memory.samples.length,
+          errors: this.metrics.errors.length,
+        },
+        stats: { ...this.retentionStats },
+        overflowSeriesName: OVERFLOW_SERIES_NAME,
       },
     };
   }
@@ -319,7 +416,18 @@ class MCPPerformanceMonitor extends EventEmitter {
    * Reset all metrics
    */
   reset() {
-    this.metrics = {
+    this.metrics = this._createEmptyMetrics();
+    this.retentionStats = this._createRetentionStats();
+
+    logger.info("[MCPPerformanceMonitor] Metrics reset");
+  }
+
+  // ===================================
+  // Private Methods
+  // ===================================
+
+  _createEmptyMetrics() {
+    return {
       connections: { total: 0, successful: 0, failed: 0, times: [] },
       toolCalls: {
         total: 0,
@@ -331,20 +439,103 @@ class MCPPerformanceMonitor extends EventEmitter {
       memory: { samples: [], lastSample: null },
       errors: [],
     };
-
-    logger.info("[MCPPerformanceMonitor] Metrics reset");
   }
 
-  // ===================================
-  // Private Methods
-  // ===================================
+  _createRetentionStats() {
+    return {
+      connectionSamplesDropped: 0,
+      toolLatencySamplesDropped: 0,
+      serverLatencySamplesDropped: 0,
+      memorySamplesDropped: 0,
+      errorsDropped: 0,
+      overflowToolCalls: 0,
+      overflowServerCalls: 0,
+      seriesNamesHashed: 0,
+      errorPayloadsTruncated: 0,
+    };
+  }
+
+  _normalizeSeriesName(value) {
+    const name = String(value ?? "");
+    if (
+      name !== OVERFLOW_SERIES_NAME &&
+      Buffer.byteLength(name, "utf8") <= this.retention.seriesNameBytes
+    ) {
+      return name;
+    }
+    this.retentionStats.seriesNamesHashed++;
+    return `sha256:${crypto.createHash("sha256").update(name).digest("hex")}`;
+  }
+
+  _getOrCreateSeries(seriesMap, rawName, maxSeries, dimension) {
+    const name = this._normalizeSeriesName(rawName);
+    let key = name;
+    if (!seriesMap.has(name) && seriesMap.size >= maxSeries - 1) {
+      key = OVERFLOW_SERIES;
+      if (dimension === "tool") {
+        this.retentionStats.overflowToolCalls++;
+      } else {
+        this.retentionStats.overflowServerCalls++;
+      }
+    }
+
+    if (!seriesMap.has(key)) {
+      seriesMap.set(key, { count: 0, latencies: [], errors: 0 });
+    }
+    return seriesMap.get(key);
+  }
+
+  _boundText(value) {
+    const text = String(value ?? "");
+    const bytes = Buffer.from(text, "utf8");
+    if (bytes.length <= this.retention.errorTextBytes) {
+      return { value: text, truncated: false };
+    }
+
+    let bounded = bytes
+      .subarray(0, this.retention.errorTextBytes)
+      .toString("utf8");
+    while (
+      bounded.length > 0 &&
+      Buffer.byteLength(bounded, "utf8") > this.retention.errorTextBytes
+    ) {
+      bounded = bounded.slice(0, -1);
+    }
+    return { value: bounded, truncated: true };
+  }
+
+  _boundContext(context) {
+    try {
+      const serialized = JSON.stringify(context ?? {});
+      if (serialized === undefined) {
+        return { value: {}, truncated: true };
+      }
+      const byteLength = Buffer.byteLength(serialized, "utf8");
+      if (byteLength <= this.retention.errorContextBytes) {
+        return { value: JSON.parse(serialized), truncated: false };
+      }
+      return {
+        value: {
+          truncated: true,
+          byteLength,
+          sha256: crypto.createHash("sha256").update(serialized).digest("hex"),
+        },
+        truncated: true,
+      };
+    } catch (_error) {
+      return {
+        value: { truncated: true, reason: "unserializable" },
+        truncated: true,
+      };
+    }
+  }
 
   _getToolStatistics() {
     const stats = [];
 
     for (const [toolName, metrics] of this.metrics.toolCalls.byTool.entries()) {
       stats.push({
-        name: toolName,
+        name: toolName === OVERFLOW_SERIES ? OVERFLOW_SERIES_NAME : toolName,
         count: metrics.count,
         avgLatency: this._average(metrics.latencies),
         minLatency: this._min(metrics.latencies),
@@ -365,7 +556,8 @@ class MCPPerformanceMonitor extends EventEmitter {
       metrics,
     ] of this.metrics.toolCalls.byServer.entries()) {
       stats.push({
-        name: serverName,
+        name:
+          serverName === OVERFLOW_SERIES ? OVERFLOW_SERIES_NAME : serverName,
         count: metrics.count,
         avgLatency: this._average(metrics.latencies),
         minLatency: this._min(metrics.latencies),

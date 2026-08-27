@@ -57,6 +57,19 @@ describe("MCPPerformanceMonitor", () => {
       const summary = monitor.getSummary();
       expect(summary.connections.successRate).toBe("66.7%");
     });
+
+    it("should retain a bounded recent connection window", () => {
+      monitor = new MCPPerformanceMonitor({ maxConnectionSamples: 2 });
+      monitor.recordConnection("server1", 10, true);
+      monitor.recordConnection("server2", 20, true);
+      monitor.recordConnection("server3", 30, true);
+
+      const summary = monitor.getSummary();
+      expect(summary.connections.total).toBe(3);
+      expect(summary.connections.avgTime).toBe(25);
+      expect(summary.retention.retained.connectionSamples).toBe(2);
+      expect(summary.retention.stats.connectionSamplesDropped).toBe(1);
+    });
   });
 
   describe("Tool Call Recording", () => {
@@ -122,6 +135,59 @@ describe("MCPPerformanceMonitor", () => {
       const toolStats = summary.byTool.find((t) => t.name === "read_file");
       expect(toolStats.errors).toBe(2);
     });
+
+    it("should bound latency samples while preserving exact call counts", () => {
+      monitor = new MCPPerformanceMonitor({ maxLatencySamplesPerSeries: 2 });
+      monitor.recordToolCall("filesystem", "read_file", 10, true);
+      monitor.recordToolCall("filesystem", "read_file", 20, true);
+      monitor.recordToolCall("filesystem", "read_file", 30, true);
+
+      const summary = monitor.getSummary();
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
+      expect(toolStats.count).toBe(3);
+      expect(toolStats.avgLatency).toBe(25);
+      expect(summary.retention.stats.toolLatencySamplesDropped).toBe(1);
+      expect(summary.retention.stats.serverLatencySamplesDropped).toBe(1);
+    });
+
+    it("should aggregate high-cardinality tool and server names", () => {
+      monitor = new MCPPerformanceMonitor({
+        maxToolSeries: 3,
+        maxServerSeries: 2,
+      });
+
+      for (let index = 1; index <= 4; index++) {
+        monitor.recordToolCall(
+          `server-${index}`,
+          `tool-${index}`,
+          index * 10,
+          true,
+        );
+      }
+
+      const summary = monitor.getSummary();
+      expect(summary.byTool).toHaveLength(3);
+      expect(summary.byServer).toHaveLength(2);
+      expect(
+        summary.byTool.find((item) => item.name === "__other__").count,
+      ).toBe(2);
+      expect(
+        summary.byServer.find((item) => item.name === "__other__").count,
+      ).toBe(3);
+      expect(summary.retention.stats.overflowToolCalls).toBe(2);
+      expect(summary.retention.stats.overflowServerCalls).toBe(3);
+    });
+
+    it("should hash oversized series names instead of retaining them", () => {
+      monitor = new MCPPerformanceMonitor({ maxSeriesNameBytes: 8 });
+      const oversizedName = "sensitive-tool-name";
+      monitor.recordToolCall("server", oversizedName, 10, true);
+
+      const summary = monitor.getSummary();
+      expect(summary.byTool[0].name).toMatch(/^sha256:[0-9a-f]{64}$/);
+      expect(summary.byTool[0].name).not.toContain(oversizedName);
+      expect(summary.retention.stats.seriesNamesHashed).toBe(1);
+    });
   });
 
   describe("Server Statistics", () => {
@@ -182,6 +248,42 @@ describe("MCPPerformanceMonitor", () => {
       // Internal storage limits to 100
       expect(summary.errors.total).toBeLessThanOrEqual(100);
     });
+
+    it("should bound retained error count and payload bytes", () => {
+      monitor = new MCPPerformanceMonitor({
+        maxErrors: 2,
+        maxErrorTextBytes: 8,
+        maxErrorContextBytes: 24,
+      });
+      const context = { secret: "x".repeat(100) };
+
+      monitor.recordError(
+        "tool_call",
+        new Error("first-error-message"),
+        context,
+      );
+      let summary = monitor.getSummary();
+      expect(summary.errors.recent[0].context).toMatchObject({
+        truncated: true,
+        byteLength: expect.any(Number),
+        sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+      });
+      expect(JSON.stringify(summary.errors.recent[0].context)).not.toContain(
+        context.secret,
+      );
+
+      monitor.recordError("tool_call", new Error("second-error-message"), {});
+      monitor.recordError("tool_call", new Error("third-error-message"), {});
+      context.secret = "mutated-after-recording";
+
+      summary = monitor.getSummary();
+      expect(summary.errors.total).toBe(2);
+      expect(
+        Buffer.byteLength(summary.errors.recent[0].message, "utf8"),
+      ).toBeLessThanOrEqual(8);
+      expect(summary.retention.stats.errorsDropped).toBe(1);
+      expect(summary.retention.stats.errorPayloadsTruncated).toBeGreaterThan(0);
+    });
   });
 
   describe("Memory Sampling", () => {
@@ -202,6 +304,17 @@ describe("MCPPerformanceMonitor", () => {
 
       const summary = monitor.getSummary();
       expect(summary.memory.avgHeapUsed).toBeGreaterThan(0);
+    });
+
+    it("should retain only the configured memory sample window", () => {
+      monitor = new MCPPerformanceMonitor({ maxMemorySamples: 2 });
+      monitor.sampleMemory();
+      monitor.sampleMemory();
+      monitor.sampleMemory();
+
+      const summary = monitor.getSummary();
+      expect(summary.retention.retained.memorySamples).toBe(2);
+      expect(summary.retention.stats.memorySamplesDropped).toBe(1);
     });
   });
 
@@ -295,6 +408,17 @@ describe("MCPPerformanceMonitor", () => {
       const summary = monitor.getSummary();
       expect(summary.baselines.overhead).toBe(40);
     });
+
+    it("should reject unknown baseline dimensions", () => {
+      expect(() => monitor.setBaseline("attacker-controlled", 10)).toThrow(
+        "Unsupported MCP performance baseline",
+      );
+      expect(Object.keys(monitor.getSummary().baselines)).toEqual([
+        "directCall",
+        "stdioCall",
+        "overhead",
+      ]);
+    });
   });
 
   describe("Reset", () => {
@@ -309,6 +433,11 @@ describe("MCPPerformanceMonitor", () => {
       expect(summary.connections.total).toBe(0);
       expect(summary.toolCalls.total).toBe(0);
       expect(summary.errors.total).toBe(0);
+      expect(summary.retention.stats).toMatchObject({
+        connectionSamplesDropped: 0,
+        toolLatencySamplesDropped: 0,
+        errorsDropped: 0,
+      });
     });
   });
 
