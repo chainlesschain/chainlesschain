@@ -1,12 +1,162 @@
 const { logger } = require("../utils/logger.js");
 
+const DEFAULT_PERFORMANCE_MONITOR_LIMITS = Object.freeze({
+  maxSamplesPerPhase: 1000,
+  maxMetadataBytes: 32 * 1024,
+  maxRetainedBytes: 4 * 1024 * 1024,
+  maxIdentifierChars: 256,
+  maxReportRowsPerPhase: 10_000,
+  maxSessionRows: 10_000,
+  maxExportRows: 10_000,
+  maxBottleneckRows: 100,
+  maxTimeRangeMs: 365 * 24 * 60 * 60 * 1000,
+});
+
+const HARD_PERFORMANCE_MONITOR_LIMITS = Object.freeze({
+  maxSamplesPerPhase: 10_000,
+  maxMetadataBytes: 1024 * 1024,
+  maxRetainedBytes: 64 * 1024 * 1024,
+  maxIdentifierChars: 2048,
+  maxReportRowsPerPhase: 100_000,
+  maxSessionRows: 100_000,
+  maxExportRows: 100_000,
+  maxBottleneckRows: 1000,
+  maxTimeRangeMs: 10 * 365 * 24 * 60 * 60 * 1000,
+});
+
+class PerformanceMonitorError extends Error {
+  constructor(message, { code, scope, retryAfterMs, limit } = {}) {
+    super(message);
+    this.name = "PerformanceMonitorError";
+    this.code = code;
+    this.scope = scope;
+    this.retryAfterMs = retryAfterMs;
+    this.limit = limit;
+  }
+}
+
+function boundedPositiveInteger(value, fallback, hardLimit) {
+  const boundedFallback = Math.min(fallback, hardLimit);
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return boundedFallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return boundedFallback;
+  }
+  return Math.min(Math.floor(numericValue), hardLimit);
+}
+
+function boundedNonNegativeNumber(value, fallback, hardLimit) {
+  const boundedFallback = Math.min(fallback, hardLimit);
+  let numericValue;
+  try {
+    numericValue = Number(value);
+  } catch {
+    return boundedFallback;
+  }
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return boundedFallback;
+  }
+  return Math.min(numericValue, hardLimit);
+}
+
+function cloneBoundedJson(value, maxBytes) {
+  const seen = new WeakSet();
+  let nodes = 0;
+  let estimatedBytes = 0;
+
+  const clone = (current, depth) => {
+    nodes++;
+    if (nodes > 10_000 || depth > 32) {
+      throw new Error("metadata structure is too deep or complex");
+    }
+    if (current === null) {
+      estimatedBytes += 4;
+      return null;
+    }
+    if (typeof current === "string") {
+      estimatedBytes += Buffer.byteLength(current, "utf8") + 2;
+      if (estimatedBytes > maxBytes) {
+        throw new Error("metadata exceeds byte limit");
+      }
+      return current;
+    }
+    if (typeof current === "number") {
+      if (!Number.isFinite(current)) {
+        throw new Error("metadata contains a non-finite number");
+      }
+      estimatedBytes += 24;
+      return current;
+    }
+    if (typeof current === "boolean") {
+      estimatedBytes += 5;
+      return current;
+    }
+    if (typeof current !== "object") {
+      throw new Error("metadata contains a non-JSON value");
+    }
+    if (seen.has(current)) {
+      throw new Error("metadata contains a cycle");
+    }
+    seen.add(current);
+
+    if (Array.isArray(current)) {
+      estimatedBytes += current.length + 2;
+      if (estimatedBytes > maxBytes) {
+        throw new Error("metadata exceeds byte limit");
+      }
+      const result = current.map((item) => clone(item, depth + 1));
+      seen.delete(current);
+      return result;
+    }
+
+    const prototype = Object.getPrototypeOf(current);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error("metadata must contain only plain JSON objects");
+    }
+    const result = {};
+    for (const key of Object.keys(current)) {
+      const descriptor = Object.getOwnPropertyDescriptor(current, key);
+      if (!descriptor || !("value" in descriptor)) {
+        throw new Error("metadata accessors are not allowed");
+      }
+      estimatedBytes += Buffer.byteLength(key, "utf8") + 3;
+      if (estimatedBytes > maxBytes) {
+        throw new Error("metadata exceeds byte limit");
+      }
+      Object.defineProperty(result, key, {
+        value: clone(descriptor.value, depth + 1),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    seen.delete(current);
+    return result;
+  };
+
+  const cloned = clone(value ?? {}, 0);
+  const serialized = JSON.stringify(cloned);
+  const bytes = Buffer.byteLength(serialized, "utf8");
+  if (bytes > maxBytes) {
+    throw new Error("metadata exceeds byte limit");
+  }
+  return { value: cloned, serialized, bytes };
+}
+
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
-function safeParse(raw, fallback) {
+function safeParse(raw, fallback, maxBytes = Infinity) {
   if (raw == null || raw === "") {
     return fallback;
   }
+  if (Buffer.byteLength(String(raw), "utf8") > maxBytes) {
+    return fallback;
+  }
   try {
-    return JSON.parse(raw);
+    return cloneBoundedJson(JSON.parse(raw), maxBytes).value;
   } catch (err) {
     logger.warn(
       `[PerformanceMonitor] Bad JSON column, fallback: ${err.message}`,
@@ -14,6 +164,18 @@ function safeParse(raw, fallback) {
     return fallback;
   }
 }
+
+const PERFORMANCE_PHASES = Object.freeze([
+  "intent_recognition",
+  "multi_intent_recognition",
+  "task_planning",
+  "hierarchical_planning",
+  "tool_execution",
+  "rag_retrieval",
+  "llm_calls",
+  "total_pipeline",
+  "total_pipeline_p1",
+]);
 
 /**
  * 性能监控系统 (Performance Monitor)
@@ -28,17 +190,69 @@ function safeParse(raw, fallback) {
  */
 
 class PerformanceMonitor {
-  constructor(database) {
+  constructor(database, options = {}) {
     this.database = database;
+    this.limits = {
+      maxSamplesPerPhase: boundedPositiveInteger(
+        options.maxSamplesPerPhase,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxSamplesPerPhase,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxSamplesPerPhase,
+      ),
+      maxMetadataBytes: boundedPositiveInteger(
+        options.maxMetadataBytes,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxMetadataBytes,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxMetadataBytes,
+      ),
+      maxRetainedBytes: boundedPositiveInteger(
+        options.maxRetainedBytes,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxRetainedBytes,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxRetainedBytes,
+      ),
+      maxIdentifierChars: boundedPositiveInteger(
+        options.maxIdentifierChars,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxIdentifierChars,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxIdentifierChars,
+      ),
+      maxReportRowsPerPhase: boundedPositiveInteger(
+        options.maxReportRowsPerPhase,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxReportRowsPerPhase,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxReportRowsPerPhase,
+      ),
+      maxSessionRows: boundedPositiveInteger(
+        options.maxSessionRows,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxSessionRows,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxSessionRows,
+      ),
+      maxExportRows: boundedPositiveInteger(
+        options.maxExportRows,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxExportRows,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxExportRows,
+      ),
+      maxBottleneckRows: boundedPositiveInteger(
+        options.maxBottleneckRows,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxBottleneckRows,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxBottleneckRows,
+      ),
+      maxTimeRangeMs: boundedPositiveInteger(
+        options.maxTimeRangeMs,
+        DEFAULT_PERFORMANCE_MONITOR_LIMITS.maxTimeRangeMs,
+        HARD_PERFORMANCE_MONITOR_LIMITS.maxTimeRangeMs,
+      ),
+    };
+    this.metricSizes = new WeakMap();
+    this.retainedMetricBytes = 0;
 
     // 内存缓存（用于快速统计）
     this.metrics = {
       intent_recognition: [],
+      multi_intent_recognition: [],
       task_planning: [],
+      hierarchical_planning: [],
       tool_execution: [],
       rag_retrieval: [],
       llm_calls: [],
       total_pipeline: [],
+      total_pipeline_p1: [],
     };
 
     // 性能阈值配置
@@ -105,23 +319,84 @@ class PerformanceMonitor {
     userId = null,
     sessionId = null,
   ) {
+    if (!PERFORMANCE_PHASES.includes(phase)) {
+      throw new PerformanceMonitorError("Unknown performance phase", {
+        code: "INVALID_ARGUMENT",
+        scope: "performance_phase",
+      });
+    }
+    let normalizedDuration;
+    try {
+      normalizedDuration = Number(duration);
+    } catch {
+      normalizedDuration = NaN;
+    }
+    if (
+      !Number.isFinite(normalizedDuration) ||
+      normalizedDuration < 0 ||
+      normalizedDuration > this.limits.maxTimeRangeMs
+    ) {
+      throw new PerformanceMonitorError("Invalid performance duration", {
+        code: "INVALID_ARGUMENT",
+        scope: "performance_duration",
+        limit: { maxDurationMs: this.limits.maxTimeRangeMs },
+      });
+    }
+    const normalizeIdentifier = (value, name) => {
+      if (value == null) {
+        return null;
+      }
+      if (
+        typeof value !== "string" ||
+        value.length > this.limits.maxIdentifierChars
+      ) {
+        throw new PerformanceMonitorError(`Invalid ${name}`, {
+          code: "INVALID_ARGUMENT",
+          scope: "performance_identifier",
+          limit: { maxIdentifierChars: this.limits.maxIdentifierChars },
+        });
+      }
+      return value;
+    };
+    let normalizedMetadata;
+    try {
+      normalizedMetadata = cloneBoundedJson(
+        metadata,
+        this.limits.maxMetadataBytes,
+      );
+    } catch (error) {
+      throw new PerformanceMonitorError(
+        `Invalid performance metadata: ${error.message}`,
+        {
+          code: "INVALID_ARGUMENT",
+          scope: "performance_metadata",
+          limit: { maxMetadataBytes: this.limits.maxMetadataBytes },
+        },
+      );
+    }
+    const normalizedUserId = normalizeIdentifier(userId, "userId");
+    const normalizedSessionId = normalizeIdentifier(sessionId, "sessionId");
     const record = {
       phase,
-      duration,
-      metadata,
+      duration: normalizedDuration,
+      metadata: normalizedMetadata.value,
       timestamp: Date.now(),
-      userId,
-      sessionId,
+      userId: normalizedUserId,
+      sessionId: normalizedSessionId,
     };
 
     // 添加到内存缓存
     if (this.metrics[phase]) {
-      this.metrics[phase].push(record);
+      const retainedBytes =
+        normalizedMetadata.bytes +
+        Buffer.byteLength(phase, "utf8") +
+        Buffer.byteLength(normalizedUserId || "", "utf8") +
+        Buffer.byteLength(normalizedSessionId || "", "utf8") +
+        64;
+      this._retainRecord(phase, record, retainedBytes);
 
       // 限制内存缓存大小（最多保留最近1000条）
-      if (this.metrics[phase].length > 1000) {
-        this.metrics[phase].shift();
-      }
+      // Count and global-byte pruning are handled together by _retainRecord.
     }
 
     // 持久化到数据库
@@ -134,11 +409,11 @@ class PerformanceMonitor {
         `,
           [
             phase,
-            duration,
-            JSON.stringify(metadata),
+            normalizedDuration,
+            normalizedMetadata.serialized,
             record.timestamp,
-            userId,
-            sessionId,
+            normalizedUserId,
+            normalizedSessionId,
           ],
         );
       } catch (error) {
@@ -147,7 +422,64 @@ class PerformanceMonitor {
     }
 
     // 检查是否超过阈值
-    this.checkThreshold(phase, duration, metadata);
+    this.checkThreshold(phase, normalizedDuration, normalizedMetadata.value);
+  }
+
+  _retainRecord(phase, record, retainedBytes) {
+    const records = this.metrics[phase];
+    records.push(record);
+    this.metricSizes.set(record, retainedBytes);
+    this.retainedMetricBytes += retainedBytes;
+
+    while (records.length > this.limits.maxSamplesPerPhase) {
+      this._evictRecord(records.shift());
+    }
+    while (this.retainedMetricBytes > this.limits.maxRetainedBytes) {
+      let oldestPhase = null;
+      let oldestTimestamp = Infinity;
+      for (const candidatePhase of PERFORMANCE_PHASES) {
+        const candidate = this.metrics[candidatePhase][0];
+        if (candidate && candidate.timestamp < oldestTimestamp) {
+          oldestTimestamp = candidate.timestamp;
+          oldestPhase = candidatePhase;
+        }
+      }
+      if (!oldestPhase) {
+        this.retainedMetricBytes = 0;
+        break;
+      }
+      this._evictRecord(this.metrics[oldestPhase].shift());
+    }
+  }
+
+  _evictRecord(record) {
+    if (!record) {
+      return;
+    }
+    this.retainedMetricBytes = Math.max(
+      0,
+      this.retainedMetricBytes - (this.metricSizes.get(record) || 0),
+    );
+    this.metricSizes.delete(record);
+  }
+
+  getRetentionStats() {
+    return {
+      retainedBytes: this.retainedMetricBytes,
+      maxRetainedBytes: this.limits.maxRetainedBytes,
+      maxSamplesPerPhase: this.limits.maxSamplesPerPhase,
+      samplesByPhase: Object.fromEntries(
+        PERFORMANCE_PHASES.map((phase) => [phase, this.metrics[phase].length]),
+      ),
+    };
+  }
+
+  clearMemoryMetrics() {
+    for (const phase of PERFORMANCE_PHASES) {
+      this.metrics[phase] = [];
+    }
+    this.metricSizes = new WeakMap();
+    this.retainedMetricBytes = 0;
   }
 
   /**
@@ -178,9 +510,14 @@ class PerformanceMonitor {
    * @returns {Promise<Object>} 性能报告
    */
   async generateReport(timeRange = 7 * 24 * 60 * 60 * 1000) {
-    const since = Date.now() - timeRange;
+    const normalizedTimeRange = boundedNonNegativeNumber(
+      timeRange,
+      7 * 24 * 60 * 60 * 1000,
+      this.limits.maxTimeRangeMs,
+    );
+    const since = Date.now() - normalizedTimeRange;
     const report = {
-      timeRange: this.formatTimeRange(timeRange),
+      timeRange: this.formatTimeRange(normalizedTimeRange),
       generatedAt: new Date().toISOString(),
       phases: {},
     };
@@ -207,29 +544,31 @@ class PerformanceMonitor {
     try {
       const rows = await this.database.all(
         `
-        SELECT duration, metadata
+        SELECT duration
         FROM performance_metrics
         WHERE phase = ? AND created_at > ?
         ORDER BY created_at DESC
+        LIMIT ?
       `,
-        [phase, since],
+        [phase, since, this.limits.maxReportRowsPerPhase],
       );
 
-      if (rows.length === 0) {
+      const boundedRows = rows.slice(0, this.limits.maxReportRowsPerPhase);
+      if (boundedRows.length === 0) {
         return null;
       }
 
-      const durations = rows.map((r) => r.duration);
+      const durations = boundedRows.map((r) => r.duration);
 
       return {
-        count: rows.length,
+        count: boundedRows.length,
         avg: Math.round(this.average(durations)),
         p50: Math.round(this.percentile(durations, 50)),
         p90: Math.round(this.percentile(durations, 90)),
         p95: Math.round(this.percentile(durations, 95)),
         p99: Math.round(this.percentile(durations, 99)),
-        max: Math.round(Math.max(...durations)),
-        min: Math.round(Math.min(...durations)),
+        max: Math.round(durations.reduce((max, value) => Math.max(max, value))),
+        min: Math.round(durations.reduce((min, value) => Math.min(min, value))),
         unit: "ms",
       };
     } catch (error) {
@@ -250,18 +589,35 @@ class PerformanceMonitor {
     }
 
     try {
+      const normalizedThreshold = boundedNonNegativeNumber(
+        threshold,
+        5000,
+        this.limits.maxTimeRangeMs,
+      );
+      const normalizedLimit = boundedPositiveInteger(
+        limit,
+        20,
+        this.limits.maxBottleneckRows,
+      );
       const slowQueries = await this.database.all(
         `
-        SELECT phase, duration, metadata, created_at, session_id
+        SELECT substr(phase, 1, 64) AS phase, duration,
+               substr(metadata, 1, ?) AS metadata, created_at,
+               substr(session_id, 1, ?) AS session_id
         FROM performance_metrics
         WHERE duration > ?
         ORDER BY duration DESC
         LIMIT ?
       `,
-        [threshold, limit],
+        [
+          this.limits.maxMetadataBytes,
+          this.limits.maxIdentifierChars,
+          normalizedThreshold,
+          normalizedLimit,
+        ],
       );
 
-      return slowQueries.map((q) => {
+      return slowQueries.slice(0, normalizedLimit).map((q) => {
         // Validate timestamp
         let timestamp;
         try {
@@ -276,7 +632,7 @@ class PerformanceMonitor {
         return {
           phase: q.phase,
           duration: Math.round(q.duration),
-          metadata: safeParse(q.metadata, {}),
+          metadata: safeParse(q.metadata, {}, this.limits.maxMetadataBytes),
           timestamp,
           sessionId: q.session_id,
         };
@@ -410,26 +766,40 @@ class PerformanceMonitor {
     if (!this.database) {
       return null;
     }
+    if (
+      typeof sessionId !== "string" ||
+      !sessionId ||
+      sessionId.length > this.limits.maxIdentifierChars
+    ) {
+      throw new PerformanceMonitorError("Invalid sessionId", {
+        code: "INVALID_ARGUMENT",
+        scope: "performance_identifier",
+        limit: { maxIdentifierChars: this.limits.maxIdentifierChars },
+      });
+    }
 
     try {
       const rows = await this.database.all(
         `
-        SELECT phase, duration, metadata, created_at
+        SELECT substr(phase, 1, 64) AS phase, duration,
+               substr(metadata, 1, ?) AS metadata, created_at
         FROM performance_metrics
         WHERE session_id = ?
         ORDER BY created_at ASC
+        LIMIT ?
       `,
-        [sessionId],
+        [this.limits.maxMetadataBytes, sessionId, this.limits.maxSessionRows],
       );
 
-      if (rows.length === 0) {
+      const boundedRows = rows.slice(0, this.limits.maxSessionRows);
+      if (boundedRows.length === 0) {
         return null;
       }
 
-      const phaseBreakdown = {};
+      const phaseBreakdown = Object.create(null);
       let totalDuration = 0;
 
-      for (const row of rows) {
+      for (const row of boundedRows) {
         const phase = row.phase;
         totalDuration += row.duration;
 
@@ -445,7 +815,7 @@ class PerformanceMonitor {
         phaseBreakdown[phase].totalDuration += row.duration;
         phaseBreakdown[phase].records.push({
           duration: row.duration,
-          metadata: safeParse(row.metadata, {}),
+          metadata: safeParse(row.metadata, {}, this.limits.maxMetadataBytes),
           timestamp: row.created_at,
         });
       }
@@ -454,9 +824,9 @@ class PerformanceMonitor {
         sessionId,
         totalDuration: Math.round(totalDuration),
         phaseCount: Object.keys(phaseBreakdown).length,
-        recordCount: rows.length,
+        recordCount: boundedRows.length,
         phaseBreakdown,
-        timeline: rows.map((r) => ({
+        timeline: boundedRows.map((r) => ({
           phase: r.phase,
           duration: r.duration,
           timestamp: r.created_at,
@@ -526,18 +896,21 @@ class PerformanceMonitor {
         SELECT duration
         FROM performance_metrics
         WHERE phase = ? AND created_at >= ? AND created_at <= ?
+        ORDER BY created_at DESC
+        LIMIT ?
       `,
-        [phase, startTime, endTime],
+        [phase, startTime, endTime, this.limits.maxReportRowsPerPhase],
       );
 
-      if (rows.length === 0) {
+      const boundedRows = rows.slice(0, this.limits.maxReportRowsPerPhase);
+      if (boundedRows.length === 0) {
         return null;
       }
 
-      const durations = rows.map((r) => r.duration);
+      const durations = boundedRows.map((r) => r.duration);
 
       return {
-        count: rows.length,
+        count: boundedRows.length,
         avg: this.average(durations),
         p90: this.percentile(durations, 90),
         p95: this.percentile(durations, 95),
@@ -637,23 +1010,43 @@ class PerformanceMonitor {
     }
 
     try {
-      const since = Date.now() - timeRange;
+      const normalizedTimeRange = boundedNonNegativeNumber(
+        timeRange,
+        7 * 24 * 60 * 60 * 1000,
+        this.limits.maxTimeRangeMs,
+      );
+      const since = Date.now() - normalizedTimeRange;
 
       const rows = await this.database.all(
         `
-        SELECT *
+        SELECT id, substr(phase, 1, 64) AS phase, duration,
+               substr(metadata, 1, ?) AS metadata, created_at,
+               substr(user_id, 1, ?) AS user_id,
+               substr(session_id, 1, ?) AS session_id
         FROM performance_metrics
         WHERE created_at > ?
         ORDER BY created_at DESC
+        LIMIT ?
       `,
-        [since],
+        [
+          this.limits.maxMetadataBytes,
+          this.limits.maxIdentifierChars,
+          this.limits.maxIdentifierChars,
+          since,
+          this.limits.maxExportRows,
+        ],
       );
 
-      return rows.map((row) => ({
-        ...row,
-        metadata: safeParse(row.metadata, {}),
-        created_at: new Date(row.created_at).toISOString(),
-      }));
+      return rows.slice(0, this.limits.maxExportRows).map((row) => {
+        const createdAt = new Date(row.created_at);
+        return {
+          ...row,
+          metadata: safeParse(row.metadata, {}, this.limits.maxMetadataBytes),
+          created_at: Number.isNaN(createdAt.getTime())
+            ? null
+            : createdAt.toISOString(),
+        };
+      });
     } catch (error) {
       logger.error("[PerformanceMonitor] 导出数据失败:", error);
       return [];
@@ -662,3 +1055,9 @@ class PerformanceMonitor {
 }
 
 module.exports = PerformanceMonitor;
+module.exports.PerformanceMonitorError = PerformanceMonitorError;
+module.exports.DEFAULT_PERFORMANCE_MONITOR_LIMITS =
+  DEFAULT_PERFORMANCE_MONITOR_LIMITS;
+module.exports.HARD_PERFORMANCE_MONITOR_LIMITS =
+  HARD_PERFORMANCE_MONITOR_LIMITS;
+module.exports.PERFORMANCE_PHASES = PERFORMANCE_PHASES;
