@@ -1,6 +1,6 @@
 # 服务入口（serve）：WebSocket Gateway 与 CC App Server
 
-> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`；后者精确提交门禁未闭环。`chainlesschain serve` 默认启动既有 WebSocket Gateway；`--app-server` 默认启动 stdio JSON-RPC，显式加 `--app-server-websocket` 才启动独立的实验 App Server WebSocket。两个 WS 协议面不可混用，App Server 详见[独立指南](./cli-app-server.md)。
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.6`（精确发布 SHA `f2a249bf3d`）。`chainlesschain serve` 默认启动既有 WebSocket Gateway；`--app-server` 默认启动 stdio JSON-RPC，显式加 `--app-server-websocket` 才启动独立的实验 App Server WebSocket。两个 WS 协议面不可混用，App Server 详见[独立指南](./cli-app-server.md)。
 
 ## 概述
 

@@ -1,8 +1,8 @@
 # 107. 单一协议 Schema 与自动代码生成
 
-> 状态：**canonical 核心、37-event payload union 与主要生产消费已闭环**｜公开基线：Agent Protocol `0.1.5`、Agent SDK `0.2.4`、CLI `0.166.5`｜Wire Protocol：v1｜更新：2026-08-27
+> 状态：**canonical 核心、37-event payload union 与主要生产消费已闭环**｜公开基线：Agent Protocol `0.1.5`、Agent SDK `0.2.4`、CLI `0.166.6`｜Wire Protocol：v1｜更新：2026-08-27
 >
-> 协调发布最终候选为 `2f5b0f263a`：Protocol `0.1.5`、TypeScript/Python SDK `0.2.4`、CLI `0.166.5` 与 Open VSX `0.37.70` 已完成不可变标签、CI、provenance 与 registry/marketplace readback。包版本与 wire v1 必须分开陈述；CLI `0.166.6@7f18511fbc` 已进入 npm，但其精确提交门禁未闭环，不属于上述完整发布证据。
+> payload union 协调发布候选 `2f5b0f263a` 已完成 Protocol `0.1.5`、TypeScript/Python SDK `0.2.4`、CLI `0.166.5` 与 Open VSX `0.37.70` 的不可变标签、CI、provenance 与公网回读；后续 CLI-only `0.166.6@f2a249bf3d` 与 Open VSX `0.37.71@42d516c0dd` 也已完成各自精确发布闭环。包版本与 wire v1 必须分开陈述。
 
 ## 1. 设计结论
 
@@ -55,7 +55,7 @@ Agent Protocol 必须作为独立基础模块治理，不能继续只作为 Agen
 | 公开 npm 包 | `@chainlesschain/agent-protocol@0.1.5` | 已验证的公开安装基线 |
 | 仓库包清单 | `0.1.5` | 与公开包一致；后续源码仍须独立验证 |
 | Schema digest | `sha256:` 加 64 位十六进制摘要 | 判断 Schema/生成物是否同源 |
-| CLI / SDK 版本 | CLI `0.166.5`、SDK `0.2.4` | 消费者发布身份，与协议包独立 |
+| CLI / SDK 版本 | CLI `0.166.6`、SDK `0.2.4` | 消费者发布身份，与协议包独立 |
 
 包版本允许在 wire v1 内发布兼容增强、validator 修复和生成器改进。若修改会让既有合法消息失效、改变必填性或枚举语义，则必须进入新的 wire version 设计，不能只提升 npm patch/minor。
 
@@ -280,7 +280,7 @@ Schema/生成器变更
 - 协议、TS/Python SDK、CLI、Desktop、VS Code 与 JetBrains 共用的合法/非法及 causal interleaving fixtures；
 - JetBrains/Android/iOS 主要生产消费迁移，未知未来事件保持 transport 可见；
 - 三平台 Agent Protocol CI、Swift 编译重放、Android/iOS/Desktop/IDE consumer 门与 package tarball 检查；
-- Agent Protocol `0.1.5`、TypeScript/Python Agent SDK `0.2.4`、CLI `0.166.5` 与 Open VSX `0.37.70` 的公开发布证据。
+- Agent Protocol `0.1.5`、TypeScript/Python Agent SDK `0.2.4`、CLI `0.166.6` 与 Open VSX `0.37.71` 的公开发布证据；其中 CLI-only/IDE patch 不重复发布未变字节的 Protocol/SDK。
 
 ### 尚未完成
 
@@ -289,7 +289,7 @@ Schema/生成器变更
 - wire v2 的正式演进/RFC 模板与双栈迁移演练；
 - Android/iOS 可安装签名应用版本与 native 商店发行仍按各产品单独取证。
 
-JetBrains Marketplace `0.4.100` 已公开并让 chat mapper、raw stdout fallback 与 lifecycle checks 走生成事件枚举；主线 `0.4.101` 已上传待审。Open VSX `0.37.70` 已公开。市场状态与 Desktop/mobile/native 应用发行身份仍需分别陈述。
+JetBrains Marketplace `0.4.100` 已公开并让 chat mapper、raw stdout fallback 与 lifecycle checks 走生成事件枚举；源码/上传身份 `0.4.102` 已通过六宿主发布门并待审。Open VSX `0.37.71` 已公开。市场状态与 Desktop/mobile/native 应用发行身份仍需分别陈述。
 
 ## 14. 关键文件
 

@@ -31,7 +31,7 @@ const CLI_UPDATES = parseChangelog(
       r.cliVersion === CLI_VERSION
         ? '生产推荐 · 完整门禁'
         : r.cliVersion === NPM_LATEST_CLI_VERSION
-          ? 'npm latest · 门禁未闭环'
+          ? 'npm latest'
           : r.cliVersion === SOURCE_CLI_VERSION
             ? '源码快照'
             : '历史版本',
@@ -466,7 +466,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>。精确发布提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已公开 37 类 canonical Agent stream 事件清单、跨语言 envelope/validator，并延续 custody、SessionMessageFabric 与结构化审批；当前主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 的 JetBrains 路由增量不改变 npm 发布身份。TypeScript/Python Agent SDK 为 {AGENT_SDK_VERSION}。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>。精确发布提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已公开 37 类 canonical Agent stream 事件清单、跨语言 envelope/validator，并延续 custody、SessionMessageFabric 与结构化审批；当前主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 还包含 IDE 发布维护及 Desktop Cowork AgentPool 有界等待队列，不改变 npm 发布身份。TypeScript/Python Agent SDK 为 {AGENT_SDK_VERSION}。
         </p>
 
         <!-- Install tabs -->
@@ -652,10 +652,10 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.59：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 已改为 optional，无 Python/编译器/native prebuild 时首次安装回退内置 sql.js WASM，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing、1,800 秒 App Server overload/RSS soak 与独立 registry 回读均成功；SDK npm/PyPI 也已完成安装回读。
+          Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读均成功；前序 `0.166.5` 的 1,800 秒 App Server overload/RSS soak 与 SDK npm/PyPI 安装回读继续提供对应专项证据。
         </p>
         <p class="mt-4 text-lg text-muted">
-          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。Desktop/VS Code 现有固定能力 App Server pilot 不表示全量迁移；npm latest {NPM_LATEST_CLI_VERSION} 已公开，但其精确提交门禁未闭环，生产推荐仍为 {CLI_VERSION}。观测到的后续源码 {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} 不获得新的发布授权。
+          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。Desktop/VS Code 现有固定能力 App Server pilot 不表示全量迁移；npm latest 与生产推荐均为 {NPM_LATEST_CLI_VERSION}，精确发布 SHA 为 {CLI_RELEASE_COMMIT}。观测到的后续源码 {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} 不自动获得新的 CLI 发布授权。
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 # Cowork 多智能体协作系统
 
-> **适用版本：CLI 0.163.6（npm latest、生产推荐一致）| Cowork Cron 已接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
+> **适用版本：CLI 0.166.6（npm latest、生产推荐一致）| `c64c4bcac6` 已将 Desktop AgentPool 等待队列有界化，当前源码 `a8484915fa` 已把该行为纳入 Vitest 单元门 | Cowork Cron 已接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
 >
 > 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 
@@ -320,7 +320,7 @@ AgentPool 实现代理资源的池化复用，减少创建/销毁开销，提升
 │                                                   │
 │  ┌─────────────────────────────────────────────┐  │
 │  │              等待队列 (waitQueue)              │  │
-│  │  满载时请求排队，释放后按 FIFO 分配           │  │
+│  │  默认最多 128 个 waiter，释放后按 FIFO 分配    │  │
 │  └─────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────┘
 ```
@@ -331,10 +331,13 @@ AgentPool 实现代理资源的池化复用，减少创建/销毁开销，提升
 {
   minSize: 3,              // 预创建代理数（热启动）
   maxSize: 10,             // 最大代理数（硬上限）
+  maxWaitQueue: 128,       // 等待请求硬上限（必须为正整数）
   idleTimeout: 300000,     // 空闲超时（5分钟后销毁）
-  warmup: true,            // 初始化时预热
+  warmupOnInit: true,      // 初始化时预热
 }
 ```
+
+池和等待队列都满时，`acquireAgent()` 不再继续积压，而是立即抛出 `code="OVERLOADED"` 的错误，并携带 `retryAfterMs=100`。调用方应限速或在退避后重试，不能把该错误当成普通超时。
 
 ### 代理获取与释放
 
@@ -373,10 +376,15 @@ const stats = agentPool.getStats();
 //   destroyed: 5,       // 销毁数
 //   acquisitions: 57,   // 获取次数
 //   releases: 52,       // 释放次数
+//   waitTimeouts: 0,     // 等待超时次数
+//   waitOverloads: 0,    // 等待队列满载拒绝次数
+//   currentWaiting: 0,   // 当前等待数
 //   reuseRate: "73.68%",// 复用率
 //   avgReuseCount: "2.80"
 // }
 ```
+
+`agentPool.getStatus()` 还会返回 `waiting` 与 `maxWaiting`。监控时应同时观察二者和 `waitOverloads`；只有 `waiting < maxWaiting` 才代表队列仍有接纳容量。
 
 ## FileSandbox — 文件沙箱安全系统
 
@@ -1383,6 +1391,8 @@ CLI 主配置默认位于 `~/.chainlesschain/config.json`；如果设置 `CHAINL
 }
 ```
 
+当前 `TeammateTool` 使用 AgentPool 内部的 `maxWaitQueue=128` 默认值；该上限尚未暴露为单独的 `agentPoolMaxWaitQueue` 配置项。需要直接构造 `AgentPool` 的内部集成可以传入 `maxWaitQueue`。
+
 ### FileSandbox 配置
 
 ```javascript
@@ -1659,7 +1669,8 @@ cc cowork share import ./packet.json --require-signed --trust <did>
 1. 增加 `maxSize` 配置（默认 10）
 2. 检查是否有代理未正确释放（leak）
 3. 减少 `idleTimeout` 加快回收
-4. 查看 `agentPool.getStats()` 分析复用率
+4. 查看 `agentPool.getStatus()` 的 `waiting/maxWaiting` 和 `agentPool.getStats()` 的 `waitOverloads`
+5. 若收到 `OVERLOADED`，按 `retryAfterMs` 退避并限制上游并发；不要无界立即重试
 
 **Q: 文件访问被拒绝?**
 

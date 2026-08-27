@@ -1,6 +1,6 @@
 # 长任务调度 — Monitor / Cron / Push（`cc agenda`）
 
-> **适用版本：CLI 0.163.6（npm latest）· 更新：2026-08-12 | wakeup/cron/monitor 均接入统一 Scheduler Kernel | IANA 时区 + missed-run collapse + standalone daemon | 多渠道推送**
+> **适用版本：CLI 0.166.6（生产推荐与 npm latest 一致）· 更新：2026-08-27 | wakeup/cron/monitor 均接入统一 Scheduler Kernel | IANA 时区 + missed-run collapse + standalone daemon | 多渠道推送**
 >
 > 一次性的 Agent turn 无法给自己续命定时器。`cc agenda` 补齐了这个缺口：Agent 用 `schedule` 工具把「过一会儿/按 cron/满足条件时」的意图**持久化**下来，`cc agenda run`（由 `cc loop` 或系统 cron 常驻触发）在到点时真正执行——重新拉起 `cc agent`、或跑监控命令并在命中停止条件时经 `notify` 推送通知。
 

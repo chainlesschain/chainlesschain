@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-27）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 为 `0.166.5`，npm `latest` 为 `0.166.6`；后者精确提交的 CLI CI 被取消、Strict Sandbox 失败，不能继承生产授权。Agent SDK 为 `0.2.4`，Agent Protocol 公开版为 `0.1.5`，PDH 为 `0.4.59`；Open VSX 为 `0.37.70`，JetBrains Marketplace 为 `0.4.100`。
+> 当前文档快照（2026-08-27）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.6@f2a249bf3d`；其三平台 CLI CI、Strict Sandbox、不可变制品、provenance 与独立公网回读均已闭环。Agent SDK 为 `0.2.4`，Agent Protocol 公开版为 `0.1.5`，PDH 为 `0.4.59`；Open VSX 为 `0.37.71`，JetBrains Marketplace 为 `0.4.100`，JetBrains 源码/上传身份为待审的 `0.4.102`。`c64c4bcac6` 增加 Desktop Cowork AgentPool 默认 128 的有界等待队列，当前主线 `a8484915fa` 再将其纳入 Vitest 单元门，均属于发布后源码维护。
 
 ## 📚 文档内容
 

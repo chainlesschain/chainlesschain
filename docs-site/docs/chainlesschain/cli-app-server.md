@@ -1,6 +1,6 @@
 # CC App Server 使用指南
 
-> 适用版本：`chainlesschain@0.166.5`、`@chainlesschain/agent-sdk@0.2.4`、`@chainlesschain/agent-protocol@0.1.5`｜传输：stdio（默认）/ WebSocket（experimental）JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主
+> 适用版本：`chainlesschain@0.166.6`、`@chainlesschain/agent-sdk@0.2.4`、`@chainlesschain/agent-protocol@0.1.5`｜传输：stdio（默认）/ WebSocket（experimental）JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主；App Server pilot/WS 的专项 soak 证据来自前序 `0.166.5`
 
 ## 概述
 
@@ -61,7 +61,7 @@ stdout 只承载协议帧，诊断写入 stderr。App Server 复用 CLI Agent Ke
 ## 安装
 
 ```bash
-npm install --global "chainlesschain@0.166.5"
+npm install --global "chainlesschain@0.166.6"
 npm install "@chainlesschain/agent-sdk@0.2.4"
 
 cc --version

@@ -2,34 +2,34 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.5`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.6`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.5 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.6 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-27 当前主线 — **v5.0.3.135 / CLI 0.166.5 生产推荐 · npm latest 0.166.6 / Agent SDK 0.2.4 / Agent Protocol 0.1.5 / PDH 0.4.59**
+## 2026-08-27 当前主线 — **v5.0.3.135 / CLI 0.166.6 生产推荐与 npm latest / Agent SDK 0.2.4 / Agent Protocol 0.1.5 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.166.5` 仍是完整门禁的生产推荐版；不可变 tag `v-npm-0-166-5` 精确指向提交 [`2f5b0f263a`](https://github.com/chainlesschain/chainlesschain/commit/2f5b0f263a142fd31daca1396456a8735c2a7ee6)，该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33006394588)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33006393969)、[Agent Protocol](https://github.com/chainlesschain/chainlesschain/actions/runs/33006393605)、[Python SDK](https://github.com/chainlesschain/chainlesschain/actions/runs/33006393608)与[App Server soak](https://github.com/chainlesschain/chainlesschain/actions/runs/33006394148)均成功。npm registry 已回读 `latest=0.166.6`，其 tag `v-npm-0-166-6` 指向 `7f18511fbc`，但该精确提交的 CLI CI 被取消、Strict Sandbox 失败，因此不能继承 `0.166.5` 的发布授权。
+> **发布口径**：`chainlesschain@0.166.6` 是当前完整门禁的生产推荐版与 npm `latest`；不可变 tag `v-npm-0-166-6` 精确指向提交 [`f2a249bf3d`](https://github.com/chainlesschain/chainlesschain/commit/f2a249bf3daf77af32ab84cfe5d567485f08b3e7)，该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33030279940)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33030279716)与[独立 npm 制品/provenance 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33033884686)均成功。较早 `7f18511fbc` 候选的取消/失败记录保留为发布异常历史，不再代表当前标签身份。
 >
-> **Agent Platform 0.166.5**：37 类 canonical Agent stream event 已从 discriminator/envelope 校验扩展到 payload discriminated union；TypeScript、Python、Kotlin、Swift、Desktop 与 VS Code 共用生成源、合法/非法 fixture 和跨端 causal conformance。Desktop/VS Code 提供默认关闭、仅暴露固定 Thread/Turn 方法的 App Server pilot；App Server WebSocket 以强制 token、远程 TLS 与有界背压的 experimental 入口公开。
+> **Agent Platform 0.166.6**：继承 `0.166.5` 的 37 类 canonical payload discriminated union、四语言生成源、跨端 causal conformance、Desktop/VS Code 固定能力 App Server pilot 与 experimental WebSocket；本版再为 Agent IPC 注册/启动、交互、请求、stdio 帧/队列和 deadline 建立全局/per-agent 上限。
 >
 > **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.4`、PyPI `chainlesschain-agent-sdk==0.2.4` 与 npm `@chainlesschain/agent-protocol@0.1.5` 已公开；除事件清单、typed envelope 与严格 validator 外，本版导出逐事件 payload union，并保持未知未来事件无损透传。包版本与 wire protocol v1 独立演进。
 >
-> **安全与容量边界**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合。App Server 的 request/output/payload/socket/cleanup 全链路有界；CLI `0.166.6` 又加入 legacy WS、MCP、浏览器控制、P2P、权限、媒体、签名 backlog admission，以及 Agent IPC 全局/per-agent 上限。该版本已进入 npm registry，但精确提交门禁未闭环，生产仍固定 `0.166.5`。
+> **安全与容量边界**：默认 Agent 启动继续不强制 Docker，显式 strict/workspace-write 沙箱仍失败闭合。App Server 的 request/output/payload/socket/cleanup 全链路有界；CLI `0.166.6` 又加入 legacy WS、MCP、浏览器控制、P2P、权限、媒体、签名 backlog admission，以及 Agent IPC 全局/per-agent 上限，并已完成精确提交发布闭环。后续主线还把 Desktop Cowork AgentPool 等待队列默认限制为 128，满载时返回 `OVERLOADED` 与 100ms 重试提示。
 >
-> **IDE 发布与 3 万下载里程碑**：Open VSX `0.37.70` 与 JetBrains Marketplace `0.4.100` 已公开，ChainlessChain IDE Bridge 在 Open VSX 累计下载突破 **3 万**。两端消费 Schema 生成事件类型；VS Code 保留精确作用域审批、无正文 message/handoff 有界计数及 App Server pilot。JetBrains `0.4.101` 已上传待市场审核，不能冒充公开安装版；微软 VS Code Marketplace 仍未发布。
+> **IDE 发布与 3 万下载里程碑**：Open VSX `0.37.71` 与 JetBrains Marketplace `0.4.100` 已公开，ChainlessChain IDE Bridge 在 Open VSX 累计下载突破 **3 万**。VS Code `0.37.71` 在 `0.37.70` 的 Schema 生成 payload contract 上补齐市场 Overview/安装链接一致性并说明有界 Agent IPC；JetBrains 源码/上传身份已推进到 `0.4.102`，仍待市场审核，不能冒充公开安装版。微软 VS Code Marketplace 仍未发布，推荐搭配完整门禁 CLI `0.166.6`。
 >
-> **发布与源码边界**：`2f5b0f263a` 是完整门禁的 `0.166.5` 精确发布提交；`7f18511fbc` 是已公开但门禁未闭环的 `0.166.6` 精确标签提交。观测到的后续主线 `42d516c0dd` 只包含发布测试与 IDE 元数据维护，不构成新的 CLI 发布身份。Desktop/Cowork/Scheduler 的 Graph authoritative adapter 切换、生产 relay、签名 native 与真实 provider 旅程仍按独立证据判断。GraphRun 只统一运行身份、权限、预算与 revision；Task Graph、动态 Agent Tree、Artifact/Trace 证据投影不得混成同一种图。
+> **发布与源码边界**：`f2a249bf3d` 是完整门禁的 `0.166.6` 精确发布提交；`42d516c0dd` 是 VS Code `0.37.71` / JetBrains `0.4.102` 的 IDE 发布身份；`c64c4bcac6` 增加 Desktop Cowork AgentPool 等待队列容量保护，当前主线 `a8484915fa` 再将对应回归移入 Vitest 单元门。后三者都不构成新的 CLI 发布身份。Desktop/Cowork/Scheduler 的 Graph authoritative adapter 切换、生产 relay、签名 native 与真实 provider 旅程仍按独立证据判断。GraphRun 只统一运行身份、权限、预算与 revision；Task Graph、动态 Agent Tree、Artifact/Trace 证据投影不得混成同一种图。
 >
 > **原生与长期证据边界**：npm 发布不等于 Desktop/native 签名发行。72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据，以及 Linux/Windows/macOS 签名、notarization/updater 与公开 fresh install/upgrade/rollback 回读仍未全部闭环；25 个兼容 alias 因缺少代表性遥测继续保留。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **发布链闭环**：`0.166.5` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环；`0.166.6` 目前只有 tag/npm 公网事实，不能写成完整门禁版。TypeScript/Python Agent SDK `0.2.4` 与 Agent Protocol `0.1.5` 已完成公网回读。`0.166.5` 精确提交的 1,800.21 秒 App Server soak 处理 2,427,887 次请求，非预期错误与 drain 残留均为 0，RSS 增长 0.762%。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
+> **发布链闭环**：`0.166.6@f2a249bf3d` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环。TypeScript/Python Agent SDK `0.2.4` 与 Agent Protocol `0.1.5` 未发生包字节变化并保持已公开状态。其前序 `0.166.5` 精确提交的 1,800.21 秒 App Server soak 处理 2,427,887 次请求，非预期错误与 drain 残留均为 0，RSS 增长 0.762%。PDH 保持 `0.4.59`（native SQLite 为可选，保留 `sql.js` fallback）。
 >
 > 详见 [Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[CC App Server](docs-site/docs/chainlesschain/cli-app-server.md)、[Agent Kernel](docs-site/docs/chainlesschain/cli-agent-kernel.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Agent 平台设计](docs/design/modules/103_Agent_SDK平台化方案.md)、[App Server 设计](docs/design/modules/104_CC_App_Server设计.md)、[Agent Kernel 设计](docs/design/modules/106_Agent_Kernel设计.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)及[更新日志](CHANGELOG.md)。
 

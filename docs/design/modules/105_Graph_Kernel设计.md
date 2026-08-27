@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；完整门禁的生产推荐为 `0.166.5`，npm `latest` 为 `0.166.6`（精确提交门禁未闭环，2026-08-27）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；完整门禁的生产推荐与 npm `latest` 均为 `0.166.6@f2a249bf3d`（2026-08-27）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
 
 ## 1. 定位
 
@@ -23,24 +23,9 @@ Graph Kernel 与 CC App Server 分工明确：
 | Agent Tree | 谁在执行和协作？ | spawn、capacity、AssignmentAttempt、message、handoff、wait/interrupt 与 residency | 定义 Task 依赖；父子关系不自动生成 DAG 边 |
 | Artifact/Trace projection | 发生了什么，证据在哪里？ | 从 append-only 事件确定性生成 provenance、因果、timeline、replay、diff 与 Eval | 作为 scheduler source of truth 或反向写 runtime |
 
-```mermaid
-flowchart TB
-  O[Occurrence Plane<br/>cron · event · resume · timer]
-  R[GraphRun Envelope<br/>run id · authority · budget · revision]
-  T[Task Graph / Runtime<br/>dependency · condition · join · retry]
-  A[Agent Tree<br/>spawn · assignment · message · wait]
-  E[(Append-only Graph Event Store)]
-  P[Artifact / Trace Projections<br/>provenance · timeline · replay · eval]
+![GraphRun、Task Graph、Agent Tree 与 Artifact/Trace 投影关系图](/graph-kernel-planes.svg)
 
-  O -->|idempotent start / wake command| R
-  R -->|bind immutable revision| T
-  T -->|dispatch AssignmentAttempt| A
-  T -->|state / effect / terminal events| E
-  A -->|agent / message / handoff events| E
-  O -->|occurrence correlation event| E
-  E -.->|deterministic read-only reduce| P
-  E -->|recovery head / CAS evidence| R
-```
+> 实线表示命令、调度或耐久事件；虚线只表示确定性只读投影。
 
 箭头语义也不能混用：`start/wake` 是命令，`dispatch AssignmentAttempt` 是调度，指向 event store 的边是耐久事实，虚线 reduce 是只读投影。Agent 动态 spawn 只改变执行拓扑；只有通过 compile、权限/预算复验和 expected-revision CAS 的显式 append 才改变 Task Graph。
 

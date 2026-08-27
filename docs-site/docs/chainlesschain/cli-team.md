@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.166.5`，npm `latest` 为 `0.166.6`（2026-08-27）。`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval`，`0.166.2` 公开真实 child 的私有消息工具，`0.166.3` 已公开 idle wake、custody handoff、SessionMessageFabric 与结构化审批，`0.166.5` 又补齐 payload union 与跨端 causal conformance；`0.166.6` 增加有界 Agent IPC，但其精确提交门禁未闭环。以下早期实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版与 npm `latest` 均为 `0.166.6@f2a249bf3d`（2026-08-27）。`0.166.0` 新增 Graph Kernel 与 `cc team graph inspect|diff|eval`，`0.166.2` 公开真实 child 的私有消息工具，`0.166.3` 已公开 idle wake、custody handoff、SessionMessageFabric 与结构化审批，`0.166.5` 补齐 payload union 与跨端 causal conformance，`0.166.6` 再增加并完整门禁有界 Agent IPC。以下早期实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -696,7 +696,7 @@ Agent Team 当前 checkpoint authority 明确声明：
 不要用高频直接读取队列 JSON 文件代替 `queue status`。原始读取不参与锁协议；Windows 上还
 可能与原子替换发生短暂争用。只读监控若必须访问原始文件，应降低频率并实现退避和重试。
 
-CLI `0.166.5` 没有顶层 `cc team send` 子命令；消息契约仅通过真实 `cc team --agent` 子进程的私有宿主工具公开：
+CLI `0.166.6` 没有顶层 `cc team send` 子命令；消息契约仅通过真实 `cc team --agent` 子进程的私有宿主工具公开：
 
 - `team_send`：定向发送带幂等键的有界消息。
 - `team_receive`：以稳定 consumer 拉取至少一次投递。

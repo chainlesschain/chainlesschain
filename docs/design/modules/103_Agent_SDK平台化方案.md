@@ -1,6 +1,6 @@
 # 103. Agent 平台化方案：协议、App Server 与 Graph Kernel
 
-> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；完整门禁的生产推荐 CLI 为 `0.166.5`，npm `latest` 为 `0.166.6`，Agent SDK 为 `0.2.4`、Agent Protocol 为 `0.1.5`（2026-08-27）。37 类 canonical stream event 的 payload union、跨端 causal conformance、Desktop/VS Code 固定能力 pilot 与 App Server 实验 WebSocket已闭环；`0.166.6` 有界 Agent IPC 已公开，但精确提交门禁未闭环。
+> 状态：核心首次随 Agent Platform `0.166.0` 与 TypeScript/Python Agent SDK `0.2.0` 发布；完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.6`，Agent SDK 为 `0.2.4`、Agent Protocol 为 `0.1.5`（2026-08-27）。37 类 canonical stream event 的 payload union、跨端 causal conformance、Desktop/VS Code 固定能力 pilot、App Server 实验 WebSocket与有界 Agent IPC 均已进入公开闭环。
 
 ## 1. 目标
 
@@ -15,12 +15,12 @@
 
 | 组件                                   | 发布状态     | 角色                                                                           |
 | -------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
-| `chainlesschain@0.166.5`               | npm `latest` | Team/Session、结构化审批、payload union、App/Graph Kernel、实验 App Server WS 与 `cc exec` |
+| `chainlesschain@0.166.6`               | npm `latest` | Team/Session、结构化审批、payload union、App/Graph Kernel、实验 App Server WS、有界 Agent IPC 与 `cc exec` |
 | `@chainlesschain/agent-sdk@0.2.4`      | npm 公开     | `AgentSession`、`AppServerClient`、固定能力 `AppServerPilotClient`、严格 canonical event validator |
 | `chainlesschain-agent-sdk==0.2.4`      | PyPI 公开    | Python ≥ 3.10 异步客户端、结构化审批、生成 payload union 与 validator          |
 | `@chainlesschain/agent-protocol@0.1.5` | npm 公开     | canonical Schema、37-event payload union、causal fixtures、v1 baseline 与四语言 codegen |
 
-上述协调发布绑定最终候选 `2f5b0f263a`；Protocol/Python 包源码与其更早的发布提交逐字节一致。三平台门禁、OIDC/Trusted Publishing、provenance、公网安装回读，以及 App Server 1,800 秒 overload/RSS soak 均已闭环。后续 CLI `0.166.6@7f18511fbc` 已进入 npm，但它自己的 CLI CI/Strict 门未闭环，不能改写这组发布证据。
+payload union / App Server 协调发布绑定候选 `2f5b0f263a`，其 1,800 秒 overload/RSS soak 已闭环；CLI-only `0.166.6` 则绑定不可变标签 `v-npm-0-166-6` 的精确候选 `f2a249bf3d`，三平台 CLI CI、Strict Sandbox、OIDC 制品、provenance 与独立公网回读均已闭环。Protocol/Python 包在本轮无字节变化，无需重复发布。
 
 ## 3. 总体架构
 

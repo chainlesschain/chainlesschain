@@ -1,6 +1,6 @@
 # Graph Kernel 使用与运维指南
 
-> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`｜核心与只读观测面自 `0.166.0` 起公开｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon；`0.166.6` 已公开但精确提交门禁未闭环
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.6`（精确发布 SHA `f2a249bf3d`）｜核心与只读观测面自 `0.166.0` 起公开｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
 
 ## 概述
 
@@ -26,25 +26,9 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 ## 系统架构
 
-```text
-cron / event / resume / timer
-             │ idempotent start or wake
-             ▼
-      GraphRun envelope
- run id · authority · budget · revision
-             │
-             ▼
-       Task Graph runtime ──dispatch Attempt──> Agent Tree
-             │                                  │
-             └──── state/effect/artifact ───────┘
-                              │ durable facts
-                              ▼
-                    append-only Event Store
-                              │ read-only reduce
-                              ▼
-                 Artifact / Trace projections
-                  inspect · diff · eval · replay
-```
+![GraphRun、Task Graph、Agent Tree 与 Artifact/Trace 投影关系图](/graph-kernel-planes.svg)
+
+> 实线表示命令、调度或耐久事件；虚线只表示确定性只读投影。
 
 必须按以下边界理解输出：
 
@@ -58,7 +42,7 @@ cron / event / resume / timer
 
 ### 当前可用性
 
-| 能力 | `0.166.5` 用户口径 | 使用边界 |
+| 能力 | `0.166.6` 用户口径 | 使用边界 |
 | --- | --- | --- |
 | Team DAG 计划与执行 | 已公开：`cc team plan/run/queue` | 仍是迁移中的产品 adapter，不能据此宣称所有运行面已 canonical cutover |
 | GraphDefinition v1 compiler/runtime | 源码核心已发布 | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成 |
@@ -72,7 +56,7 @@ cron / event / resume / timer
 ### 1. 安装生产推荐版
 
 ```bash
-npm install --global "chainlesschain@0.166.5"
+npm install --global "chainlesschain@0.166.6"
 cc team --help
 ```
 

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="980" viewBox="0 0 1180 980" role="img" aria-labelledby="title desc">
+  <title id="title">GraphRun 与 Graph Kernel 三类图关系</title>
+  <desc id="desc">Occurrence Plane 启动 GraphRun，GraphRun 绑定 Task Graph revision，Task Graph 分派 Agent Tree；运行事实进入 append-only Event Store，再只读生成 Artifact 与 Trace 投影，Event Store 也向 GraphRun 提供恢复头和 CAS 证据。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .node { fill: #ffffff; stroke: #2563eb; stroke-width: 2; rx: 14; filter: url(#shadow); }
+      .store { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 2.5; rx: 42; }
+      .projection { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; rx: 14; filter: url(#shadow); }
+      .title { font: 700 25px Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #0f172a; text-anchor: middle; }
+      .meta { font: 18px Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #475569; text-anchor: middle; }
+      .edge { fill: none; stroke: #2563eb; stroke-width: 2.5; marker-end: url(#arrow); }
+      .event-edge { fill: none; stroke: #2563eb; stroke-width: 2.5; marker-end: url(#arrow); }
+      .reduce { fill: none; stroke: #64748b; stroke-width: 2.5; stroke-dasharray: 9 8; marker-end: url(#arrow-muted); }
+      .edge-label-bg { fill: #f8fafc; opacity: 0.96; rx: 7; }
+      .edge-label { font: 16px Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #334155; text-anchor: middle; }
+      .legend-title { font: 700 18px Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #0f172a; }
+      .legend { font: 15px Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #475569; }
+      @media (prefers-color-scheme: dark) {
+        .canvas { fill: #111827; }
+        .node { fill: #1f2937; stroke: #38bdf8; }
+        .store { fill: #172554; stroke: #60a5fa; }
+        .projection { fill: #052e16; stroke: #4ade80; }
+        .title, .legend-title { fill: #f8fafc; }
+        .meta, .legend { fill: #cbd5e1; }
+        .edge, .event-edge { stroke: #38bdf8; }
+        .reduce { stroke: #94a3b8; }
+        .edge-label-bg { fill: #111827; }
+        .edge-label { fill: #e2e8f0; }
+      }
+    </style>
+  </defs>
+
+  <rect class="canvas" x="0" y="0" width="1180" height="980" rx="20"/>
+
+  <rect class="node" x="350" y="48" width="480" height="112"/>
+  <text class="title" x="590" y="91">Occurrence Plane</text>
+  <text class="meta" x="590" y="127">cron · event · resume · timer</text>
+
+  <rect class="node" x="350" y="226" width="480" height="124"/>
+  <text class="title" x="590" y="273">GraphRun Envelope</text>
+  <text class="meta" x="590" y="310">run id · authority · budget · revision</text>
+
+  <rect class="node" x="350" y="416" width="480" height="124"/>
+  <text class="title" x="590" y="463">Task Graph / Runtime</text>
+  <text class="meta" x="590" y="500">dependency · condition · join · retry</text>
+
+  <rect class="node" x="350" y="606" width="480" height="124"/>
+  <text class="title" x="590" y="653">Agent Tree</text>
+  <text class="meta" x="590" y="690">spawn · assignment · message · wait</text>
+
+  <rect class="store" x="350" y="796" width="480" height="84"/>
+  <text class="title" x="590" y="846">Append-only Graph Event Store</text>
+
+  <rect class="projection" x="350" y="914" width="480" height="58"/>
+  <text class="title" x="590" y="950">Artifact / Trace Projections</text>
+
+  <path class="edge" d="M590 160 L590 226"/>
+  <rect class="edge-label-bg" x="430" y="180" width="320" height="28"/>
+  <text class="edge-label" x="590" y="200">idempotent start / wake command</text>
+
+  <path class="edge" d="M590 350 L590 416"/>
+  <rect class="edge-label-bg" x="478" y="370" width="224" height="28"/>
+  <text class="edge-label" x="590" y="390">bind immutable revision</text>
+
+  <path class="edge" d="M590 540 L590 606"/>
+  <rect class="edge-label-bg" x="455" y="560" width="270" height="28"/>
+  <text class="edge-label" x="590" y="580">dispatch AssignmentAttempt</text>
+
+  <path class="event-edge" d="M500 540 C320 610 250 702 400 796"/>
+  <rect class="edge-label-bg" x="122" y="645" width="288" height="28"/>
+  <text class="edge-label" x="266" y="665">state / effect / terminal events</text>
+
+  <path class="event-edge" d="M590 730 L590 796"/>
+  <rect class="edge-label-bg" x="432" y="750" width="316" height="28"/>
+  <text class="edge-label" x="590" y="770">agent / message / handoff events</text>
+
+  <path class="event-edge" d="M830 104 C1058 160 1075 610 830 830"/>
+  <rect class="edge-label-bg" x="865" y="465" width="272" height="28"/>
+  <text class="edge-label" x="1001" y="485">occurrence correlation event</text>
+
+  <path class="reduce" d="M590 880 L590 914"/>
+  <rect class="edge-label-bg" x="437" y="884" width="306" height="25"/>
+  <text class="edge-label" x="590" y="902">deterministic read-only reduce</text>
+
+  <path class="event-edge" d="M350 838 C86 790 80 312 350 288"/>
+  <rect class="edge-label-bg" x="25" y="538" width="260" height="28"/>
+  <text class="edge-label" x="155" y="558">recovery head / CAS evidence</text>
+
+  <g transform="translate(28,36)">
+    <text class="legend-title" x="0" y="0">箭头语义</text>
+    <line x1="0" y1="28" x2="48" y2="28" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <text class="legend" x="62" y="33">命令 / 调度 / 耐久事件</text>
+    <line x1="0" y1="58" x2="48" y2="58" stroke="#64748b" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow-muted)"/>
+    <text class="legend" x="62" y="63">只读确定性投影</text>
+  </g>
+</svg>

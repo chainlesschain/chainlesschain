@@ -1,6 +1,6 @@
 # 106 Agent Kernel 设计
 
-> 状态：Agent Platform `0.166.5` 是完整门禁的生产推荐；npm `latest=0.166.6` 已公开 Agent IPC 有界化，但精确提交门禁未闭环｜范围：CLI Agent 执行内核及跨传输资源边界｜更新：2026-08-27
+> 状态：Agent Platform `0.166.6@f2a249bf3d` 是完整门禁的生产推荐与 npm `latest`，已公开 Agent IPC 有界化｜范围：CLI Agent 执行内核及跨传输资源边界｜更新：2026-08-27
 
 ## 1. 定位
 
@@ -166,7 +166,7 @@ Graph Kernel 可以把某个 Task/Attempt 派发给 Agent Kernel 执行，但 Ta
 
 ## 17. 迁移与边界
 
-Agent Kernel 自 `0.166.0` 进入 npm CLI 的公开发行面，但它不是独立 npm 包或远程服务。`0.166.5` 的 Desktop/VS Code App Server pilot 只开放固定能力且默认关闭，不表示全量迁移；Team/Cowork 是否由 Graph Kernel authoritative 调度，以及 signed native 是否公开，仍需各自证据，不能由 Kernel 单元测试推导。`0.166.6` Agent IPC/backlog 有界化已公开但门禁未闭环。
+Agent Kernel 自 `0.166.0` 进入 npm CLI 的公开发行面，但它不是独立 npm 包或远程服务。`0.166.5` 引入的 Desktop/VS Code App Server pilot 只开放固定能力且默认关闭，不表示全量迁移；Team/Cowork 是否由 Graph Kernel authoritative 调度，以及 signed native 是否公开，仍需各自证据，不能由 Kernel 单元测试推导。`0.166.6` Agent IPC/backlog 有界化已在 `f2a249bf3d` 完成精确发布闭环。
 
 ## 18. 相关文档
 

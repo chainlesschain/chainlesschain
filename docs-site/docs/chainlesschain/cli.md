@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-27）：产品 v5.0.3.135 / Agent Platform CLI 0.166.5（完整门禁的生产推荐）/ npm latest 0.166.6（精确提交门禁未闭环）| Agent SDK 0.2.4 | Agent Protocol 0.1.5 | 175 命令 | Node.js ≥ 22.12.0。推荐版已包含 SessionMessageFabric/custody、payload union、跨端 causal conformance、固定能力 App Server pilot 与实验 WebSocket；0.166.6 又加入有界 Agent IPC。**
+> **当前版本边界（2026-08-27）：产品 v5.0.3.135 / Agent Platform CLI 0.166.6（完整门禁的生产推荐与 npm latest，精确发布 SHA `f2a249bf3d`）| Agent SDK 0.2.4 | Agent Protocol 0.1.5 | 175 命令 | Node.js ≥ 22.12.0。当前版包含 SessionMessageFabric/custody、payload union、跨端 causal conformance、固定能力 App Server pilot、实验 WebSocket与有界 Agent IPC。**
 
 ## 概述
 

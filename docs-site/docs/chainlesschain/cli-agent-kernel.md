@@ -1,6 +1,6 @@
 # Agent Kernel 使用与运维指南
 
-> 适用版本：生产推荐 `chainlesschain@0.166.5`，npm `latest` 为 `0.166.6`｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员；`0.166.6` 已公开但精确提交门禁未闭环
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.6`（精确发布 SHA `f2a249bf3d`）｜性质：CLI 内置执行内核，不是独立 daemon 或独立安装包｜适用对象：CLI 用户、SDK/App Server 集成方与运维人员
 
 ## 概述
 
@@ -188,9 +188,9 @@ cc serve --app-server --app-server-state-dir .cc-app-server-state
 
 ## 当前边界
 
-- Agent Kernel 首次随 `chainlesschain@0.166.0` 发布，当前公开稳定基线为 `0.166.5`；它不是独立 npm 包或公网服务。
+- Agent Kernel 首次随 `chainlesschain@0.166.0` 发布，当前公开稳定基线为 `0.166.6`；它不是独立 npm 包或公网服务。
 - Desktop/VS Code 已有默认关闭、固定 Thread/Turn 方法的 App Server pilot，但并未因此自动全部迁移；审批 UI 未接入时仍拒绝。
-- CLI `0.166.6` 为 Agent 数量、pending interaction/request、stdio frame/queue 和 timeout 增加全局及 per-agent 上限；该版本已进入 npm，但精确提交的 CLI CI 被取消、Strict Sandbox 失败，不能按完整门禁生产版承诺。
+- CLI `0.166.6` 为 Agent 数量、pending interaction/request、stdio frame/queue 和 timeout 增加全局及 per-agent 上限；精确发布 SHA `f2a249bf3d` 的三平台 CLI CI、Strict Sandbox 与独立 npm 制品/provenance 回读均已成功，可按完整门禁生产版承诺。
 - Graph Kernel 发布不代表 Team/Cowork/Scheduler 都已完成 authoritative cutover。
 - 本地测试不替代 exact-SHA 三平台发布门，npm 发布也不等于签名 native 已发行。
 

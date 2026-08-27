@@ -145,10 +145,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：生产推荐版仍为完整门禁的 Agent Platform <code class="font-mono">{CLI_VERSION}</code>；npm <code class="font-mono">latest</code> 已更新为 <code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>，但其精确提交的 CLI CI 被取消、Strict Sandbox 失败，不能继承旧版本发布授权。推荐版不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing、1,800 秒 App Server overload/RSS soak 与独立 registry 回读。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
+          发布说明：完整门禁的 Agent Platform <code class="font-mono">{CLI_VERSION}</code> 同时是生产推荐版与 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>）。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读；1,800 秒 App Server overload/RSS soak 属于其前序 0.166.5 的长期证据。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3 万；VS Code 提供默认关闭、固定能力的 App Server pilot。npm {NPM_LATEST_CLI_VERSION} 已包含 Agent IPC 与 legacy backlog 有界化，但 registry 可见不等于完整发布门；观测到的后续主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> / CLI <code class="font-mono">{SOURCE_CLI_VERSION}</code> 仅含发布与 IDE 元数据维护。Graph authoritative adapter 切换、签名 native 与真实 provider 旅程继续独立取证。
+          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3 万；VS Code 提供默认关闭、固定能力的 App Server pilot。当前 npm {NPM_LATEST_CLI_VERSION} 已完整门禁 Agent IPC 与 legacy backlog 有界化；后续主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> / CLI <code class="font-mono">{SOURCE_CLI_VERSION}</code> 又把 Desktop Cowork AgentPool 等待队列默认限制为 128，满载时以 <code class="font-mono">OVERLOADED</code> 快速失败，但不构成新的 CLI 发布身份。Graph authoritative adapter 切换、签名 native 与真实 provider 旅程继续独立取证。
         </p>
 
         <!-- Trust badges -->
