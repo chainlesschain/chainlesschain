@@ -3,6 +3,7 @@
  * 测试 IMAP/SMTP 邮件客户端功能
  */
 
+import { EventEmitter } from "node:events";
 import { describe, it, expect, beforeEach } from "vitest";
 import EmailClient from "../../../src/main/api/email-client.js";
 
@@ -176,6 +177,49 @@ describe("EmailClient", () => {
       expect(parsed[0].name).toBe("INBOX");
       expect(parsed[0].children).toHaveLength(1);
       expect(parsed[0].children[0].name).toBe("INBOX/Archive");
+    });
+
+    it("bounds mailbox count and nesting depth", () => {
+      client = new EmailClient({ maxMailboxes: 2, maxMailboxDepth: 1 });
+      const parsed = client.parseMailboxes({
+        INBOX: {
+          delimiter: "/",
+          children: {
+            Nested: { delimiter: "/", children: {} },
+          },
+        },
+        Sent: { delimiter: "/", children: {} },
+        Archive: { delimiter: "/", children: {} },
+      });
+
+      expect(parsed).toHaveLength(2);
+      expect(parsed[0].children).toEqual([]);
+    });
+  });
+
+  describe("Raw message admission", () => {
+    it("rejects a message before retaining bytes above the hard budget", async () => {
+      client = new EmailClient({
+        maxRawMessageBytes: 4,
+        maxRawBatchBytes: 8,
+        simpleParser: async () => ({ subject: "not reached" }),
+      });
+      const message = new EventEmitter();
+      const stream = new EventEmitter();
+      stream.pause = () => {};
+      const parsing = client.readAndParseMessage(message, 1, {
+        bytes: 0,
+        error: null,
+      });
+
+      message.emit("body", stream);
+      stream.emit("data", Buffer.from("12345"));
+      message.emit("end");
+
+      await expect(parsing).rejects.toMatchObject({
+        code: "OVERLOADED",
+        scope: "email_raw_message",
+      });
     });
   });
 });

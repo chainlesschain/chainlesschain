@@ -10,17 +10,29 @@ const Imap = require("imap");
 const { simpleParser } = require("mailparser");
 const nodemailer = require("nodemailer");
 const { EventEmitter } = require("events");
+const {
+  EmailIPCBoundaryError,
+  createEmailIPCLimits,
+  normalizeAccountConfig,
+  normalizeFetchOptions,
+  normalizeMailOptions,
+  truncateUtf8,
+} = require("./email-ipc-boundaries.js");
 
 class EmailClient extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.limits = createEmailIPCLimits(options.limits || options);
+    this.ImapClass = options.ImapClass || Imap;
+    this.simpleParser = options.simpleParser || simpleParser;
+    this.nodemailer = options.nodemailer || nodemailer;
     this.imapConnection = null;
     this.smtpTransporter = null;
     this.config = null;
 
     // 连接池管理
     this.connectionPool = new Map();
-    this.maxConnections = 5;
+    this.maxConnections = Math.min(5, this.limits.maxClients);
     this.connectionTimeout = 10 * 60 * 1000; // 10分钟连接超时
   }
 
@@ -29,22 +41,29 @@ class EmailClient extends EventEmitter {
    * @param {object} config - 邮件配置
    */
   configure(config) {
+    const normalized = normalizeAccountConfig(config, this.limits);
     this.config = {
       imap: {
-        user: config.email,
-        password: config.password,
-        host: config.imapHost || this.getDefaultImapHost(config.email),
-        port: config.imapPort || 993,
-        tls: config.imapTls !== false,
-        tlsOptions: { rejectUnauthorized: false },
+        user: normalized.email,
+        password: normalized.password,
+        host: normalized.imapHost,
+        port: normalized.imapPort,
+        tls: normalized.imapTls,
+        tlsOptions: { rejectUnauthorized: true },
+        connTimeout: 15_000,
+        authTimeout: 15_000,
+        socketTimeout: 60_000,
       },
       smtp: {
-        host: config.smtpHost || this.getDefaultSmtpHost(config.email),
-        port: config.smtpPort || 587,
-        secure: config.smtpSecure || false,
+        host: normalized.smtpHost,
+        port: normalized.smtpPort,
+        secure: normalized.smtpSecure,
+        connectionTimeout: 15_000,
+        greetingTimeout: 15_000,
+        socketTimeout: 60_000,
         auth: {
-          user: config.email,
-          pass: config.password,
+          user: normalized.email,
+          pass: normalized.password,
         },
       },
     };
@@ -198,7 +217,7 @@ class EmailClient extends EventEmitter {
         return;
       }
 
-      this.imapConnection = new Imap(this.config.imap);
+      this.imapConnection = new this.ImapClass(this.config.imap);
 
       this.imapConnection.once("ready", () => {
         logger.info("[EmailClient] IMAP 连接成功");
@@ -208,7 +227,9 @@ class EmailClient extends EventEmitter {
 
       this.imapConnection.once("error", (err) => {
         logger.error("[EmailClient] IMAP 连接错误:", err);
-        this.emit("error", err);
+        if (this.listenerCount("error") > 0) {
+          this.emit("error", err);
+        }
         reject(err);
       });
 
@@ -262,6 +283,14 @@ class EmailClient extends EventEmitter {
       }
       this.imapConnection = null;
     }
+    if (this.smtpTransporter) {
+      try {
+        this.smtpTransporter.close?.();
+      } catch (error) {
+        logger.error("[EmailClient] 关闭 SMTP 连接失败:", error);
+      }
+      this.smtpTransporter = null;
+    }
   }
 
   /**
@@ -313,12 +342,10 @@ class EmailClient extends EventEmitter {
    * @param {object} options - 选项
    */
   async fetchEmails(options = {}) {
-    const {
-      mailbox = "INBOX",
-      limit = 50,
-      unseen = false,
-      since = null,
-    } = options;
+    const { mailbox, limit, unseen, since } = normalizeFetchOptions(
+      options,
+      this.limits,
+    );
 
     try {
       await this.openMailbox(mailbox);
@@ -356,41 +383,30 @@ class EmailClient extends EventEmitter {
           });
 
           const emails = [];
-
-          // Track each message's async parse so the fetch "end" event waits for
-          // them — simpleParser is async, so resolving on "end" directly returned
-          // a partial/empty array (parsed pushes landed after resolution).
           const parsePromises = [];
+          const batchBudget = { bytes: 0, error: null };
 
           fetch.on("message", (msg, seqno) => {
-            let buffer = "";
-
-            msg.on("body", (stream, info) => {
-              stream.on("data", (chunk) => {
-                buffer += chunk.toString("utf8");
-              });
-            });
-
-            msg.once("end", () => {
-              parsePromises.push(
-                (async () => {
-                  try {
-                    const parsed = await simpleParser(buffer);
-                    emails.push(this.normalizeEmail(parsed, seqno));
-                  } catch (error) {
-                    logger.error("[EmailClient] 解析邮件失败:", error);
-                  }
-                })(),
-              );
-            });
+            parsePromises.push(
+              this.readAndParseMessage(msg, seqno, batchBudget).then(
+                (email) => {
+                  emails.push(email);
+                },
+              ),
+            );
           });
 
           fetch.once("error", (err) => {
             reject(err);
           });
 
-          fetch.once("end", () => {
-            Promise.all(parsePromises).then(() => resolve(emails));
+          fetch.once("end", async () => {
+            try {
+              await Promise.all(parsePromises);
+              resolve(emails.slice(0, limit));
+            } catch (error) {
+              reject(error);
+            }
           });
         });
       });
@@ -414,26 +430,25 @@ class EmailClient extends EventEmitter {
           struct: true,
         });
 
-        let buffer = "";
+        let parsePromise = null;
+        const batchBudget = { bytes: 0, error: null };
 
         fetch.on("message", (msg, seqno) => {
-          msg.on("body", (stream, info) => {
-            stream.on("data", (chunk) => {
-              buffer += chunk.toString("utf8");
-            });
-          });
-
-          msg.once("end", async () => {
-            try {
-              const parsed = await simpleParser(buffer);
-              resolve(this.normalizeEmail(parsed, seqno));
-            } catch (error) {
-              reject(error);
-            }
-          });
+          parsePromise = this.readAndParseMessage(msg, seqno, batchBudget);
         });
 
         fetch.once("error", reject);
+        fetch.once("end", async () => {
+          if (!parsePromise) {
+            reject(new Error("Email not found"));
+            return;
+          }
+          try {
+            resolve(await parsePromise);
+          } catch (error) {
+            reject(error);
+          }
+        });
       });
     } catch (error) {
       logger.error("[EmailClient] 获取邮件失败:", error);
@@ -500,17 +515,16 @@ class EmailClient extends EventEmitter {
    */
   async sendEmail(mailOptions) {
     try {
+      const normalized = normalizeMailOptions(mailOptions, this.limits);
       if (!this.smtpTransporter) {
-        this.smtpTransporter = nodemailer.createTransport(this.config.smtp);
+        this.smtpTransporter = this.nodemailer.createTransport(
+          this.config.smtp,
+        );
       }
 
       const info = await this.smtpTransporter.sendMail({
         from: this.config.imap.user,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-        text: mailOptions.text,
-        html: mailOptions.html,
-        attachments: mailOptions.attachments,
+        ...normalized,
       });
 
       logger.info("[EmailClient] 邮件发送成功:", info.messageId);
@@ -531,41 +545,158 @@ class EmailClient extends EventEmitter {
    * 标准化邮件数据
    */
   normalizeEmail(parsed, seqno) {
+    let retainedAttachmentBytes = 0;
+    let attachmentsTruncated = false;
+    const attachments = [];
+    for (const attachment of parsed.attachments || []) {
+      if (attachments.length >= this.limits.maxOutgoingAttachments) {
+        attachmentsTruncated = true;
+        break;
+      }
+      const content = Buffer.isBuffer(attachment.content)
+        ? attachment.content
+        : Buffer.from(attachment.content || []);
+      if (
+        content.byteLength > this.limits.maxAttachmentBytes ||
+        retainedAttachmentBytes + content.byteLength >
+          this.limits.maxOutgoingAttachmentBytes
+      ) {
+        attachmentsTruncated = true;
+        continue;
+      }
+      retainedAttachmentBytes += content.byteLength;
+      attachments.push({
+        filename: truncateUtf8(
+          attachment.filename || "attachment",
+          this.limits.maxMetadataBytes,
+        ),
+        contentType: truncateUtf8(
+          attachment.contentType || "application/octet-stream",
+          this.limits.maxMetadataBytes,
+        ),
+        size: Math.min(
+          Number.isFinite(Number(attachment.size))
+            ? Math.max(0, Number(attachment.size))
+            : content.byteLength,
+          this.limits.maxAttachmentBytes,
+        ),
+        content,
+      });
+    }
     return {
       uid: seqno,
-      messageId: parsed.messageId,
-      subject: parsed.subject || "(无主题)",
-      from: parsed.from ? parsed.from.text : "",
-      to: parsed.to ? parsed.to.text : "",
-      cc: parsed.cc ? parsed.cc.text : "",
+      messageId: truncateUtf8(
+        parsed.messageId || `local-${seqno}`,
+        this.limits.maxIdBytes,
+      ),
+      subject: truncateUtf8(
+        parsed.subject || "(无主题)",
+        this.limits.maxSubjectBytes,
+      ),
+      from: truncateUtf8(
+        parsed.from ? parsed.from.text : "",
+        this.limits.maxAddressBytes,
+      ),
+      to: truncateUtf8(
+        parsed.to ? parsed.to.text : "",
+        this.limits.maxAddressBytes,
+      ),
+      cc: truncateUtf8(
+        parsed.cc ? parsed.cc.text : "",
+        this.limits.maxAddressBytes,
+      ),
       date: parsed.date || new Date(),
-      text: parsed.text || "",
-      html: parsed.html || "",
-      attachments: (parsed.attachments || []).map((att) => ({
-        filename: att.filename,
-        contentType: att.contentType,
-        size: att.size,
-        content: att.content,
-      })),
+      text: truncateUtf8(parsed.text || "", this.limits.maxTextBytes),
+      html: truncateUtf8(parsed.html || "", this.limits.maxHtmlBytes),
+      attachments,
+      attachmentsTruncated,
     };
+  }
+
+  readAndParseMessage(message, seqno, batchBudget) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      let messageBytes = 0;
+      let streamError = null;
+
+      message.on("body", (stream) => {
+        stream.on("data", (value) => {
+          if (streamError || batchBudget.error) return;
+          const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+          messageBytes += chunk.byteLength;
+          batchBudget.bytes += chunk.byteLength;
+          if (
+            messageBytes > this.limits.maxRawMessageBytes ||
+            batchBudget.bytes > this.limits.maxRawBatchBytes
+          ) {
+            streamError = new EmailIPCBoundaryError(
+              "OVERLOADED",
+              "email_raw_message",
+              "Incoming email exceeds the configured byte limit",
+              {
+                limit: {
+                  maxMessageBytes: this.limits.maxRawMessageBytes,
+                  maxBatchBytes: this.limits.maxRawBatchBytes,
+                },
+              },
+            );
+            batchBudget.error = streamError;
+            chunks.length = 0;
+            reject(streamError);
+            return;
+          }
+          chunks.push(chunk);
+        });
+        stream.once?.("error", (error) => {
+          streamError = error;
+          reject(error);
+        });
+      });
+
+      message.once("end", async () => {
+        if (streamError || batchBudget.error) {
+          reject(streamError || batchBudget.error);
+          return;
+        }
+        try {
+          const parsed = await this.simpleParser(Buffer.concat(chunks));
+          resolve(this.normalizeEmail(parsed, seqno));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
   }
 
   /**
    * 解析邮箱列表
    */
-  parseMailboxes(boxes, prefix = "") {
+  parseMailboxes(boxes, prefix = "", state = { count: 0 }, depth = 0) {
     const result = [];
 
-    for (const [name, box] of Object.entries(boxes)) {
+    if (
+      !boxes ||
+      depth >= this.limits.maxMailboxDepth ||
+      state.count >= this.limits.maxMailboxes
+    ) {
+      return result;
+    }
+    for (const name in boxes) {
+      if (!Object.prototype.hasOwnProperty.call(boxes, name)) continue;
+      if (state.count >= this.limits.maxMailboxes) break;
+      const box = boxes[name];
       const fullName = prefix ? `${prefix}/${name}` : name;
+      state.count += 1;
 
       result.push({
-        name: fullName,
-        displayName: name,
-        delimiter: box.delimiter,
-        flags: box.attribs || [],
+        name: truncateUtf8(fullName, this.limits.maxAddressBytes),
+        displayName: truncateUtf8(name, this.limits.maxAddressBytes),
+        delimiter: truncateUtf8(box.delimiter || "/", 16),
+        flags: (Array.isArray(box.attribs) ? box.attribs : [])
+          .slice(0, 32)
+          .map((flag) => truncateUtf8(flag, 256)),
         children: box.children
-          ? this.parseMailboxes(box.children, fullName)
+          ? this.parseMailboxes(box.children, fullName, state, depth + 1)
           : [],
       });
     }
@@ -616,8 +747,6 @@ class EmailClient extends EventEmitter {
     try {
       await this.connect();
       const mailboxes = await this.getMailboxes();
-      this.disconnect();
-
       return {
         success: true,
         mailboxes: mailboxes.length,
@@ -627,6 +756,8 @@ class EmailClient extends EventEmitter {
         success: false,
         error: error.message,
       };
+    } finally {
+      this.disconnect();
     }
   }
 }

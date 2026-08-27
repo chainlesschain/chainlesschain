@@ -1,16 +1,10 @@
 <template>
   <div class="rss-feed-manager">
-    <a-card
-      title="RSS 订阅管理"
-      :bordered="false"
-    >
+    <a-card title="RSS 订阅管理" :bordered="false">
       <!-- 工具栏 -->
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showAddFeedModal"
-          >
+          <a-button type="primary" @click="showAddFeedModal">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -22,10 +16,7 @@
             </template>
             发现订阅
           </a-button>
-          <a-button
-            :loading="refreshing"
-            @click="refreshAllFeeds"
-          >
+          <a-button :loading="refreshing" @click="refreshAllFeeds">
             <template #icon>
               <ReloadOutlined />
             </template>
@@ -38,17 +29,9 @@
       <a-row :gutter="16">
         <!-- 左侧：分类列表 -->
         <a-col :span="6">
-          <a-card
-            title="分类"
-            size="small"
-            :bordered="false"
-          >
+          <a-card title="分类" size="small" :bordered="false">
             <template #extra>
-              <a-button
-                type="link"
-                size="small"
-                @click="showAddCategoryModal"
-              >
+              <a-button type="link" size="small" @click="showAddCategoryModal">
                 <PlusOutlined />
               </a-button>
             </template>
@@ -77,10 +60,7 @@
                 收藏文章
               </a-menu-item>
               <a-menu-divider />
-              <a-menu-item
-                v-for="category in categories"
-                :key="category.id"
-              >
+              <a-menu-item v-for="category in categories" :key="category.id">
                 <template #icon>
                   <FolderOutlined :style="{ color: category.color }" />
                 </template>
@@ -111,11 +91,7 @@
                     </a-button>
                   </a-tooltip>
                   <a-tooltip title="编辑">
-                    <a-button
-                      type="text"
-                      size="small"
-                      @click="editFeed(item)"
-                    >
+                    <a-button type="text" size="small" @click="editFeed(item)">
                       <EditOutlined />
                     </a-button>
                   </a-tooltip>
@@ -123,11 +99,7 @@
                     title="确定要删除这个订阅源吗？"
                     @confirm="deleteFeed(item.id)"
                   >
-                    <a-button
-                      type="text"
-                      size="small"
-                      danger
-                    >
+                    <a-button type="text" size="small" danger>
                       <DeleteOutlined />
                     </a-button>
                   </a-popconfirm>
@@ -135,10 +107,7 @@
 
                 <a-list-item-meta>
                   <template #avatar>
-                    <a-avatar
-                      v-if="item.image_url"
-                      :src="item.image_url"
-                    >
+                    <a-avatar v-if="item.image_url" :src="item.image_url">
                       <template #icon>
                         <ReadOutlined />
                       </template>
@@ -197,14 +166,8 @@
       :confirm-loading="addingFeed"
       @ok="handleAddFeed"
     >
-      <a-form
-        :model="feedForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="Feed URL"
-          required
-        >
+      <a-form :model="feedForm" layout="vertical">
+        <a-form-item label="Feed URL" required>
           <a-input
             v-model:value="feedForm.url"
             placeholder="https://example.com/feed.xml"
@@ -308,21 +271,12 @@
       title="添加分类"
       @ok="handleAddCategory"
     >
-      <a-form
-        :model="categoryForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="分类名称"
-          required
-        >
+      <a-form :model="categoryForm" layout="vertical">
+        <a-form-item label="分类名称" required>
           <a-input v-model:value="categoryForm.name" />
         </a-form-item>
         <a-form-item label="颜色">
-          <a-input
-            v-model:value="categoryForm.color"
-            type="color"
-          />
+          <a-input v-model:value="categoryForm.color" type="color" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -415,7 +369,7 @@ const filteredFeeds = computed(() => {
 const loadFeeds = async () => {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke("rss:get-feeds");
+    const result = await window.electronAPI.rss.getFeeds();
     if (result.success) {
       feeds.value = result.feeds;
     }
@@ -428,8 +382,7 @@ const loadFeeds = async () => {
 
 const loadCategories = async () => {
   try {
-    const result =
-      await window.electron.ipcRenderer.invoke("rss:get-categories");
+    const result = await window.electronAPI.rss.getCategories();
     if (result.success) {
       categories.value = result.categories;
     }
@@ -450,13 +403,12 @@ const showAddFeedModal = () => {
 };
 
 const validateFeed = async () => {
-  if (!feedForm.url) {return;}
+  if (!feedForm.url) {
+    return;
+  }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:validate-feed",
-      feedForm.url,
-    );
+    const result = await window.electronAPI.rss.validateFeed(feedForm.url);
     if (result.success && result.validation.valid) {
       feedValidation.valid = true;
       feedValidation.title = result.validation.title;
@@ -482,8 +434,7 @@ const handleAddFeed = async () => {
   try {
     if (editingFeedId.value) {
       // 更新现有订阅源
-      const result = await window.electron.ipcRenderer.invoke(
-        "rss:update-feed",
+      const result = await window.electronAPI.rss.updateFeed(
         editingFeedId.value,
         {
           url: feedForm.url,
@@ -500,15 +451,11 @@ const handleAddFeed = async () => {
       }
     } else {
       // 添加新订阅源
-      const result = await window.electron.ipcRenderer.invoke(
-        "rss:add-feed",
-        feedForm.url,
-        {
-          category: feedForm.category,
-          updateFrequency: feedForm.updateFrequency,
-          autoSync: feedForm.autoSync,
-        },
-      );
+      const result = await window.electronAPI.rss.addFeed(feedForm.url, {
+        category: feedForm.category,
+        updateFrequency: feedForm.updateFrequency,
+        autoSync: feedForm.autoSync,
+      });
 
       if (result.success) {
         message.success("订阅添加成功");
@@ -534,10 +481,7 @@ const refreshFeed = async (feedId) => {
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:fetch-feed",
-      feedId,
-    );
+    const result = await window.electronAPI.rss.fetchFeed(feedId);
     if (result.success) {
       message.success(`已获取 ${result.itemCount} 篇新文章`);
       await loadFeeds();
@@ -554,9 +498,7 @@ const refreshFeed = async (feedId) => {
 const refreshAllFeeds = async () => {
   refreshing.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:fetch-all-feeds",
-    );
+    const result = await window.electronAPI.rss.fetchAllFeeds();
     if (result.success) {
       message.success(
         `刷新完成: 成功 ${result.results.success}, 失败 ${result.results.failed}`,
@@ -572,10 +514,7 @@ const refreshAllFeeds = async () => {
 
 const deleteFeed = async (feedId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:remove-feed",
-      feedId,
-    );
+    const result = await window.electronAPI.rss.removeFeed(feedId);
     if (result.success) {
       message.success("订阅已删除");
       await loadFeeds();
@@ -622,8 +561,7 @@ const handleDiscoverFeeds = async () => {
 
   discovering.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:discover-feeds",
+    const result = await window.electronAPI.rss.discoverFeeds(
       discoverUrl.value,
     );
 
@@ -662,13 +600,9 @@ const handleAddCategory = async () => {
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke(
-      "rss:add-category",
-      categoryForm.name,
-      {
-        color: categoryForm.color,
-      },
-    );
+    const result = await window.electronAPI.rss.addCategory(categoryForm.name, {
+      color: categoryForm.color,
+    });
 
     if (result.success) {
       message.success("分类添加成功");

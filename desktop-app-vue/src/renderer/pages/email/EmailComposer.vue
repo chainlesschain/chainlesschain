@@ -8,14 +8,8 @@
     @cancel="handleCancel"
     @update:open="emit('update:visible', $event)"
   >
-    <a-form
-      :model="emailForm"
-      layout="vertical"
-    >
-      <a-form-item
-        label="收件人"
-        required
-      >
+    <a-form :model="emailForm" layout="vertical">
+      <a-form-item label="收件人" required>
         <a-select
           v-model:value="emailForm.to"
           mode="tags"
@@ -51,67 +45,37 @@
         </a-col>
       </a-row>
 
-      <a-form-item
-        label="主题"
-        required
-      >
-        <a-input
-          v-model:value="emailForm.subject"
-          placeholder="邮件主题"
-        />
+      <a-form-item label="主题" required>
+        <a-input v-model:value="emailForm.subject" placeholder="邮件主题" />
       </a-form-item>
 
-      <a-form-item
-        label="内容"
-        required
-      >
+      <a-form-item label="内容" required>
         <a-tabs v-model:active-key="contentType">
-          <a-tab-pane
-            key="text"
-            tab="纯文本"
-          >
+          <a-tab-pane key="text" tab="纯文本">
             <a-textarea
               v-model:value="emailForm.text"
               :rows="12"
               placeholder="输入邮件内容..."
             />
           </a-tab-pane>
-          <a-tab-pane
-            key="html"
-            tab="富文本"
-          >
+          <a-tab-pane key="html" tab="富文本">
             <div class="html-editor">
               <div class="editor-toolbar">
                 <a-space>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('bold')"
-                  >
+                  <a-button size="small" @click="insertFormat('bold')">
                     <BoldOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('italic')"
-                  >
+                  <a-button size="small" @click="insertFormat('italic')">
                     <ItalicOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('underline')"
-                  >
+                  <a-button size="small" @click="insertFormat('underline')">
                     <UnderlineOutlined />
                   </a-button>
                   <a-divider type="vertical" />
-                  <a-button
-                    size="small"
-                    @click="insertFormat('link')"
-                  >
+                  <a-button size="small" @click="insertFormat('link')">
                     <LinkOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('image')"
-                  >
+                  <a-button size="small" @click="insertFormat('image')">
                     <PictureOutlined />
                   </a-button>
                 </a-space>
@@ -140,12 +104,7 @@
           style="margin-top: 8px; font-size: 12px; color: #999"
         >
           总大小: {{ formatSize(totalSize) }}
-          <span
-            v-if="totalSize > 25 * 1024 * 1024"
-            style="color: #ff4d4f"
-          >
-            (建议不超过 25MB)
-          </span>
+          <span>（最多 10 个附件，合计不超过 25MB）</span>
         </div>
       </a-form-item>
 
@@ -174,17 +133,9 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="saveDraft">
-          <SaveOutlined /> 保存草稿
-        </a-button>
-        <a-button @click="handleCancel">
-          取消
-        </a-button>
-        <a-button
-          type="primary"
-          :loading="sending"
-          @click="sendEmail"
-        >
+        <a-button @click="saveDraft"> <SaveOutlined /> 保存草稿 </a-button>
+        <a-button @click="handleCancel"> 取消 </a-button>
+        <a-button type="primary" :loading="sending" @click="sendEmail">
           <SendOutlined /> 发送
         </a-button>
       </a-space>
@@ -194,7 +145,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from "vue";
-import { message } from "ant-design-vue";
+import { message, Upload } from "ant-design-vue";
 import {
   MailOutlined,
   PaperClipOutlined,
@@ -239,6 +190,8 @@ const currentDraftId = ref(null);
 const sending = ref(false);
 const contentType = ref("text");
 const fileList = ref([]);
+const MAX_ATTACHMENT_COUNT = 10;
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
 const emailForm = reactive({
   to: [],
@@ -256,12 +209,18 @@ const totalSize = computed(() => {
 
 // 方法
 const beforeUpload = (file) => {
-  // 检查文件大小
-  if (file.size > 25 * 1024 * 1024) {
-    message.warning(`${file.name} 文件过大，建议不超过 25MB`);
+  if (fileList.value.length >= MAX_ATTACHMENT_COUNT) {
+    message.error(`最多只能添加 ${MAX_ATTACHMENT_COUNT} 个附件`);
+    return Upload.LIST_IGNORE;
   }
-
-  fileList.value.push(file);
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    message.error(`${file.name} 超过 25MB 附件上限`);
+    return Upload.LIST_IGNORE;
+  }
+  if (totalSize.value + file.size > MAX_ATTACHMENT_BYTES) {
+    message.error("附件总大小不能超过 25MB");
+    return Upload.LIST_IGNORE;
+  }
   return false; // 阻止自动上传
 };
 
@@ -331,39 +290,36 @@ const sendEmail = async () => {
     // 准备附件
     const attachments = await Promise.all(
       fileList.value.map(async (file) => {
+        const source = file.originFileObj || file;
+        if (typeof source.arrayBuffer !== "function") {
+          throw new Error(`无法读取附件: ${file.name}`);
+        }
         return {
-          filename: file.name,
-          path: file.path || file.originFileObj?.path,
-          content: file.originFileObj,
+          filename: source.name || file.name,
+          contentType: source.type || file.type,
+          content: new Uint8Array(await source.arrayBuffer()),
         };
       }),
     );
 
     // 发送邮件
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:send-email",
-      props.accountId,
-      {
-        to: emailForm.to.join(", "),
-        cc: emailForm.cc.length > 0 ? emailForm.cc.join(", ") : undefined,
-        bcc: emailForm.bcc.length > 0 ? emailForm.bcc.join(", ") : undefined,
-        subject: emailForm.subject,
-        text: contentType.value === "text" ? emailForm.text : undefined,
-        html: contentType.value === "html" ? emailForm.html : undefined,
-        attachments: attachments.length > 0 ? attachments : undefined,
-        inReplyTo: props.replyTo?.message_id,
-        references: props.replyTo?.message_id,
-      },
-    );
+    const result = await window.electronAPI.email.sendEmail(props.accountId, {
+      to: emailForm.to.join(", "),
+      cc: emailForm.cc.length > 0 ? emailForm.cc.join(", ") : undefined,
+      bcc: emailForm.bcc.length > 0 ? emailForm.bcc.join(", ") : undefined,
+      subject: emailForm.subject,
+      text: contentType.value === "text" ? emailForm.text : undefined,
+      html: contentType.value === "html" ? emailForm.html : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
+      inReplyTo: props.replyTo?.message_id,
+      references: props.replyTo?.message_id,
+    });
 
     if (result?.success) {
       // 如果是从草稿发送的，删除草稿
       if (currentDraftId.value) {
         try {
-          await window.electron.ipcRenderer.invoke(
-            "email:delete-draft",
-            currentDraftId.value,
-          );
+          await window.electronAPI.email.deleteDraft(currentDraftId.value);
         } catch (e) {
           // 静默忽略删除草稿失败
           console.warn("删除草稿失败:", e);
@@ -400,8 +356,7 @@ const saveDraft = async () => {
       forwardId: props.forward?.id || null,
     };
 
-    const result = await window.electron.ipcRenderer.invoke(
-      "email:save-draft",
+    const result = await window.electronAPI.email.saveDraft(
       props.accountId,
       draftData,
     );

@@ -61,6 +61,21 @@ const FULL_UNIT_TRIGGERS = new Set([
   "vitest.config.mjs",
   "vitest.config.ts",
 ]);
+const SOURCE_CONTRACT_TEST_MAPPINGS = new Map(
+  [
+    "src/main/index.js",
+    "src/preload/index.js",
+    "src/renderer/pages/email/AccountManager.vue",
+    "src/renderer/pages/email/EmailComposer.vue",
+    "src/renderer/pages/email/EmailReader.vue",
+    "src/renderer/pages/rss/ArticleReader.vue",
+    "src/renderer/pages/rss/FeedList.vue",
+    "src/renderer/types/electron.d.ts",
+  ].map((sourceFile) => [
+    sourceFile,
+    ["tests/unit/api/rss-email-production-wiring.test.js"],
+  ]),
+);
 
 class SelectionError extends Error {
   constructor(code, message, details = {}) {
@@ -362,6 +377,33 @@ function createSelection(
     if (FULL_UNIT_TRIGGERS.has(relativeFile)) {
       fullDesktopUnit = true;
       mappings.push({ file: normalized, suite: "desktop-unit", mode: "full" });
+      continue;
+    }
+
+    const contractTests = SOURCE_CONTRACT_TEST_MAPPINGS.get(relativeFile);
+    if (contractTests) {
+      const missingTests = contractTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(projectRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      for (const testFile of contractTests) {
+        selectedDesktopTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: [...contractTests],
+      });
       continue;
     }
 

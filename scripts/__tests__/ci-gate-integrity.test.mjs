@@ -174,6 +174,20 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   );
   assert.ok(selection.selectedTests.every((file) => !file.includes("\\")));
 
+  const contentIntegrationSelection = selector.createSelection([
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/preload/index.js",
+    "desktop-app-vue/src/renderer/pages/email/EmailReader.vue",
+    "desktop-app-vue/src/renderer/pages/rss/FeedList.vue",
+    "desktop-app-vue/src/renderer/types/electron.d.ts",
+  ]);
+  assert.ok(
+    contentIntegrationSelection.selectedTests.includes(
+      "tests/unit/api/rss-email-production-wiring.test.js",
+    ),
+  );
+  assert.equal(contentIntegrationSelection.mode, "targeted");
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });
