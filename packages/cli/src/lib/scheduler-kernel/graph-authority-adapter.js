@@ -286,10 +286,22 @@ export class SchedulerOccurrenceGraphAuthority {
       (attempt) => attempt.nodeId === "dispatch" && attempt.status === "active",
     );
     if (durableResult && recoverableAttempt) {
+      const settlementAttempt =
+        recoverableAttempt.authorityGeneration ===
+          projection.authorityGeneration &&
+        recoverableAttempt.writerId === projection.writerId
+          ? recoverableAttempt
+          : holder.kernel.resumeAttempt(runId, recoverableAttempt.id, {
+              resumedAttemptId: `scheduler-recovery-attempt:${this.createId()}`,
+              leaseId: `scheduler-recovery-lease:${this.createId()}`,
+              ttlMs: this.writerLeaseTtlMs,
+              reason:
+                "durable Scheduler result recovered after writer takeover",
+            });
       holder.kernel.settleAttempt(runId, {
-        attemptId: recoverableAttempt.id,
-        leaseId: recoverableAttempt.leaseId,
-        fence: recoverableAttempt.fence,
+        attemptId: settlementAttempt.id,
+        leaseId: settlementAttempt.leaseId,
+        fence: settlementAttempt.fence,
         outcome: "succeeded",
         evidence: { outputDigest: durableResult.outputDigest },
         usage: { turns: 1 },

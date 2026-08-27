@@ -171,16 +171,30 @@ describe("App Server canonical Graph runtime", () => {
         throw new Error("must not replay");
       },
     });
-    const projection = await recovered.run({
+    const recoveryRequest = {
       definition: definition(),
       runId: "desktop-team-receipt-cutpoint",
       inputs: { implement: "do exact work" },
       waitForCompletion: true,
+    };
+    eventStore.arm("assignment.resumed");
+    expect(() => recovered.run(recoveryRequest)).toThrow(
+      "crash after assignment.resumed",
+    );
+    expect(replays).toBe(0);
+
+    const recoveredAgain = new AppServerGraphRuntime({
+      eventStore,
+      executeNode: async () => {
+        replays += 1;
+        throw new Error("must not replay");
+      },
     });
+    const projection = await recoveredAgain.run(recoveryRequest);
     expect(replays).toBe(0);
     expect(projection).toMatchObject({
       status: "succeeded",
-      authorityGeneration: 2,
+      authorityGeneration: 3,
       authoritySource: "graph_kernel",
     });
   });

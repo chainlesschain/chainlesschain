@@ -555,6 +555,20 @@ export class AppServerGraphRuntime {
     if (receipts.size === 0) return kernel.getRun(runId);
 
     let state = this._latestState(runId);
+    const attempts = new Map(state.attempts || []);
+    const receiptForAttempt = (attempt) => {
+      const visited = new Set();
+      let current = attempt;
+      while (current && !visited.has(current.id)) {
+        visited.add(current.id);
+        const receipt = receipts.get(current.id);
+        if (receipt) return receipt;
+        current = current.resumedFromAttemptId
+          ? attempts.get(current.resumedFromAttemptId)
+          : null;
+      }
+      return null;
+    };
     const effectsByAttempt = new Map();
     for (const [, effect] of state.effects || []) {
       const values = effectsByAttempt.get(effect.attemptId) || [];
@@ -563,7 +577,7 @@ export class AppServerGraphRuntime {
     }
     for (const [, attempt] of state.attempts || []) {
       if (attempt.status !== "active") continue;
-      const receipt = receipts.get(attempt.id);
+      const receipt = receiptForAttempt(attempt);
       if (!receipt || receipt.nodeId !== attempt.nodeId) continue;
       const effects = effectsByAttempt.get(attempt.id) || [];
       const expectedEffectStatus =
@@ -571,10 +585,21 @@ export class AppServerGraphRuntime {
       if (effects.some((effect) => effect.status !== expectedEffectStatus)) {
         continue;
       }
+      const authority = kernel.getRun(runId);
+      const settledAttempt =
+        attempt.authorityGeneration === authority.authorityGeneration &&
+        attempt.writerId === authority.writerId
+          ? attempt
+          : kernel.resumeAttempt(runId, attempt.id, {
+              resumedAttemptId: `app-server-recovery-attempt:${this.createId()}`,
+              leaseId: `app-server-recovery-lease:${this.createId()}`,
+              ttlMs: this.writerLeaseTtlMs,
+              reason: "immutable executor receipt recovered after writer takeover",
+            });
       kernel.settleAttempt(runId, {
-        attemptId: attempt.id,
-        leaseId: attempt.leaseId,
-        fence: attempt.fence,
+        attemptId: settledAttempt.id,
+        leaseId: settledAttempt.leaseId,
+        fence: settledAttempt.fence,
         outcome: receipt.status,
         evidence:
           receipt.status === "succeeded"
