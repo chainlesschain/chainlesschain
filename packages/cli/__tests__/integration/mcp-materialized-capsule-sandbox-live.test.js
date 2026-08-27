@@ -332,7 +332,8 @@ function enumerateLinuxProcesses() {
 function enumerateWindowsProcesses() {
   const script = [
     "$ErrorActionPreference = 'Stop'",
-    "$rows = @(Get-CimInstance Win32_Process | ForEach-Object {",
+    "$query = 'SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process'",
+    "$rows = @(Get-CimInstance -Query $query | ForEach-Object {",
     "  [pscustomobject]@{",
     "    platform = 'win32'",
     "    pid = [int]$_.ProcessId",
@@ -1437,6 +1438,14 @@ function materializeProbe({
 }
 
 describe("materialized MCP capsule host observer helpers", () => {
+  it("projects only the Windows process identity fields used by the observer", () => {
+    const source = enumerateWindowsProcesses.toString();
+    expect(source).toContain(
+      "SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process",
+    );
+    expect(source).not.toContain("Get-CimInstance Win32_Process");
+  });
+
   it("re-executes Linux children through the exact Broker-mounted runtime", () => {
     expect(LINUX_CHILD_RUNTIME_PATH).toBe("/opt/chainless/runtime/node");
     expect(resolveChildRuntimePath("linux", "/proc/self/fd/3")).toBe(
