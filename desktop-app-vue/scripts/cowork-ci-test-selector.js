@@ -212,6 +212,13 @@ const SOCIAL_STARTUP_POLICY_TESTS = [
   "src/main/bootstrap/__tests__/social-startup-policy.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
+const SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS = [
+  "src/main/social/__tests__/owned-source-listeners.test.js",
+  "src/main/social/__tests__/friend-manager.test.js",
+  "src/main/social/__tests__/post-manager.test.js",
+  "src/main/social/__tests__/community-manager.test.js",
+  "src/main/social/__tests__/channel-manager.test.js",
+];
 const DEEP_LINK_LIFECYCLE_TESTS = [
   "src/main/system/__tests__/deep-link-handler-lifecycle.test.js",
 ];
@@ -494,6 +501,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     ],
   ]),
   ["src/main/bootstrap/social-startup-policy.js", SOCIAL_STARTUP_POLICY_TESTS],
+  [
+    "src/main/social/owned-source-listeners.js",
+    SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS,
+  ],
   ["src/main/system/deep-link-handler.js", DEEP_LINK_LIFECYCLE_TESTS],
   ...[
     "src/main/social/gossip-boundaries.js",

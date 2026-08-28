@@ -31,6 +31,7 @@ function safeParse(raw, fallback) {
 }
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const { OwnedSourceListeners } = require("./owned-source-listeners.js");
 const {
   signPayloadWithIdentity,
   verifyPayloadAgainstDid,
@@ -118,6 +119,10 @@ class PostManager extends EventEmitter {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.friendManager = friendManager;
+    this.p2pListeners = new OwnedSourceListeners(this.p2pManager, {
+      logger,
+      label: "PostManager",
+    });
 
     this.initialized = false;
   }
@@ -217,12 +222,12 @@ class PostManager extends EventEmitter {
     }
 
     // 监听新动态同步
-    this.p2pManager.on("post:received", async ({ post }) => {
+    this.p2pListeners.listen("post:received", async ({ post }) => {
       await this.handlePostReceived(post);
     });
 
     // 监听点赞同步
-    this.p2pManager.on(
+    this.p2pListeners.listen(
       "post-like:received",
       async ({ postId, userDid, authorPubkey, signature }) => {
         await this.handleLikeReceived(postId, userDid, authorPubkey, signature);
@@ -230,7 +235,7 @@ class PostManager extends EventEmitter {
     );
 
     // 监听评论同步
-    this.p2pManager.on("post-comment:received", async ({ comment }) => {
+    this.p2pListeners.listen("post-comment:received", async ({ comment }) => {
       await this.handleCommentReceived(comment);
     });
 
@@ -1119,6 +1124,7 @@ class PostManager extends EventEmitter {
   async close() {
     logger.info("[PostManager] 关闭动态管理器");
 
+    await this.p2pListeners.close();
     this.removeAllListeners();
     this.initialized = false;
   }

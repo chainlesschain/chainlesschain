@@ -10,6 +10,7 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const { OwnedSourceListeners } = require("./owned-source-listeners.js");
 
 /**
  * 好友关系状态
@@ -52,6 +53,10 @@ class FriendManager extends EventEmitter {
 
     // 在线状态缓存 Map<friendDid, status>
     this.onlineStatus = new Map();
+    this.p2pListeners = new OwnedSourceListeners(this.p2pManager, {
+      logger,
+      label: "FriendManager",
+    });
 
     this.initialized = false;
   }
@@ -181,13 +186,13 @@ class FriendManager extends EventEmitter {
     }
 
     // 监听节点连接事件
-    this.p2pManager.on("peer:connected", ({ peerId }) => {
-      this.handlePeerConnected(peerId);
+    this.p2pListeners.listen("peer:connected", async ({ peerId }) => {
+      await this.handlePeerConnected(peerId);
     });
 
     // 监听节点断开事件
-    this.p2pManager.on("peer:disconnected", ({ peerId }) => {
-      this.handlePeerDisconnected(peerId);
+    this.p2pListeners.listen("peer:disconnected", async ({ peerId }) => {
+      await this.handlePeerDisconnected(peerId);
     });
 
     logger.info("[FriendManager] P2P 事件监听器已设置");
@@ -878,6 +883,7 @@ class FriendManager extends EventEmitter {
   async close() {
     logger.info("[FriendManager] 关闭好友管理器");
 
+    await this.p2pListeners.close();
     this.onlineStatus.clear();
     this.removeAllListeners();
     this.initialized = false;

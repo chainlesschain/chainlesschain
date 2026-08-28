@@ -29,6 +29,7 @@ function safeParse(raw, fallback) {
 }
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const { OwnedSourceListeners } = require("./owned-source-listeners.js");
 const {
   signPayloadWithIdentity,
   verifyPayloadAgainstDid,
@@ -82,6 +83,10 @@ class ChannelManager extends EventEmitter {
     this.database = database;
     this.didManager = didManager;
     this.p2pManager = p2pManager;
+    this.p2pListeners = new OwnedSourceListeners(this.p2pManager, {
+      logger,
+      label: "ChannelManager",
+    });
 
     this.initialized = false;
   }
@@ -228,7 +233,7 @@ class ChannelManager extends EventEmitter {
       return;
     }
 
-    this.p2pManager.on(
+    this.p2pListeners.listen(
       "channel:message-received",
       async ({ channelId, message }) => {
         try {
@@ -1166,6 +1171,7 @@ class ChannelManager extends EventEmitter {
    */
   async close() {
     logger.info("[ChannelManager] Closing channel manager");
+    await this.p2pListeners.close();
     this.removeAllListeners();
     this.initialized = false;
   }

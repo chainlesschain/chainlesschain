@@ -19,6 +19,8 @@ const { registerSocialInitializers } = require("../social-initializer");
 const {
   ACTIVE_SOCIAL_MODULES,
   DORMANT_SOCIAL_MODULES,
+  SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_FOUNDATION_MANAGER_CLEANUP,
   SOCIAL_INITIALIZER_MODULES,
   SOCIAL_STARTUP_PHASE_MODULES,
   applySocialStartupPolicy,
@@ -141,5 +143,48 @@ describe("social startup policy", () => {
     ]) {
       expect(mainSource).toContain(`["${name}", "${method}"]`);
     }
+  });
+
+  it("closes active business managers and shared foundations in dependency order", () => {
+    expect(SOCIAL_BUSINESS_MANAGER_CLEANUP).toEqual([
+      ["governanceEngine", "close"],
+      ["contentModerator", "close"],
+      ["vcTemplateManager", "close"],
+      ["vcManager", "close"],
+      ["channelManager", "close"],
+      ["communityManager", "close"],
+      ["postManager", "close"],
+      ["friendManager", "close"],
+      ["contactManager", "close"],
+    ]);
+    expect(SOCIAL_FOUNDATION_MANAGER_CLEANUP).toEqual([
+      ["p2pManager", "close"],
+      ["didManager", "close"],
+    ]);
+    for (const [name] of [
+      ...SOCIAL_BUSINESS_MANAGER_CLEANUP,
+      ...SOCIAL_FOUNDATION_MANAGER_CLEANUP,
+    ]) {
+      expect(ACTIVE_SOCIAL_MODULES).toContain(name);
+    }
+
+    const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+    const mainSource = readFileSync(
+      path.resolve(testDirectory, "..", "..", "index.js"),
+      "utf8",
+    );
+    const businessCleanup = mainSource.indexOf(
+      "of SOCIAL_BUSINESS_MANAGER_CLEANUP",
+    );
+    const mobileCleanup = mainSource.indexOf("if (this.mobileBridge)");
+    const remoteCleanup = mainSource.indexOf("if (this.remoteGateway)");
+    const foundationCleanup = mainSource.indexOf(
+      "of SOCIAL_FOUNDATION_MANAGER_CLEANUP",
+    );
+
+    expect(businessCleanup).toBeGreaterThan(-1);
+    expect(mobileCleanup).toBeGreaterThan(businessCleanup);
+    expect(remoteCleanup).toBeGreaterThan(mobileCleanup);
+    expect(foundationCleanup).toBeGreaterThan(remoteCleanup);
   });
 });

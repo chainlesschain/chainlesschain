@@ -878,4 +878,16 @@ describe("ChannelManager", () => {
       expect(fresh.initialized).toBe(false);
     });
   });
+
+  describe("close()", () => {
+    it("should detach the P2P source listener", async () => {
+      await manager.initialize();
+
+      const [[eventName, listener]] = mockP2PManager.on.mock.calls;
+      await manager.close();
+
+      expect(mockP2PManager.off).toHaveBeenCalledWith(eventName, listener);
+      expect(manager.initialized).toBe(false);
+    });
+  });
 });

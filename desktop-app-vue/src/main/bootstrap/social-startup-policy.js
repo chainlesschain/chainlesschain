@@ -74,6 +74,25 @@ const SOCIAL_INITIALIZER_MODULES = Object.freeze([
   ...ACTIVE_SOCIAL_MODULES,
   ...DORMANT_SOCIAL_MODULES,
 ]);
+const SOCIAL_BUSINESS_MANAGER_CLEANUP = Object.freeze(
+  [
+    ["governanceEngine", "close"],
+    ["contentModerator", "close"],
+    ["vcTemplateManager", "close"],
+    ["vcManager", "close"],
+    ["channelManager", "close"],
+    ["communityManager", "close"],
+    ["postManager", "close"],
+    ["friendManager", "close"],
+    ["contactManager", "close"],
+  ].map(Object.freeze),
+);
+const SOCIAL_FOUNDATION_MANAGER_CLEANUP = Object.freeze(
+  [
+    ["p2pManager", "close"],
+    ["didManager", "close"],
+  ].map(Object.freeze),
+);
 const ACTIVE_SOCIAL_MODULE_SET = new Set(ACTIVE_SOCIAL_MODULES);
 const DORMANT_SOCIAL_MODULE_SET = new Set(DORMANT_SOCIAL_MODULES);
 
@@ -104,6 +123,8 @@ function applySocialStartupPolicy(config) {
 module.exports = {
   ACTIVE_SOCIAL_MODULES,
   DORMANT_SOCIAL_MODULES,
+  SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_FOUNDATION_MANAGER_CLEANUP,
   SOCIAL_INITIALIZER_MODULES,
   SOCIAL_STARTUP_PHASE_MODULES,
   applySocialStartupPolicy,

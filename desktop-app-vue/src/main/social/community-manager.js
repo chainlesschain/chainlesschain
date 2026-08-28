@@ -11,6 +11,7 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const SqlSecurity = require("../database/sql-security.js");
+const { OwnedSourceListeners } = require("./owned-source-listeners.js");
 
 /**
  * Community status constants
@@ -47,6 +48,10 @@ class CommunityManager extends EventEmitter {
     this.database = database;
     this.didManager = didManager;
     this.p2pManager = p2pManager;
+    this.p2pListeners = new OwnedSourceListeners(this.p2pManager, {
+      logger,
+      label: "CommunityManager",
+    });
 
     this.initialized = false;
   }
@@ -129,7 +134,7 @@ class CommunityManager extends EventEmitter {
       return;
     }
 
-    this.p2pManager.on(
+    this.p2pListeners.listen(
       "community:join-request",
       async ({ communityId, memberDid }) => {
         try {
@@ -143,7 +148,7 @@ class CommunityManager extends EventEmitter {
       },
     );
 
-    this.p2pManager.on("community:sync", async ({ community }) => {
+    this.p2pListeners.listen("community:sync", async ({ community }) => {
       try {
         await this.handleCommunitySync(community);
       } catch (error) {
@@ -997,6 +1002,7 @@ class CommunityManager extends EventEmitter {
    */
   async close() {
     logger.info("[CommunityManager] Closing community manager");
+    await this.p2pListeners.close();
     this.removeAllListeners();
     this.initialized = false;
   }

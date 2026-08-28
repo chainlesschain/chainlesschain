@@ -725,9 +725,16 @@ describe("PostManager", () => {
 
   // ─── close ────────────────────────────────────────────────────────────
   describe("close", () => {
-    it("should reset initialized flag", async () => {
-      pm.initialized = true;
+    it("should detach P2P listeners and reset initialized flag", async () => {
+      await pm.initialize();
+
+      const registered = mockP2P.on.mock.calls;
       await pm.close();
+
+      expect(registered).toHaveLength(3);
+      for (const [eventName, listener] of registered) {
+        expect(mockP2P.off).toHaveBeenCalledWith(eventName, listener);
+      }
       expect(pm.initialized).toBe(false);
     });
   });

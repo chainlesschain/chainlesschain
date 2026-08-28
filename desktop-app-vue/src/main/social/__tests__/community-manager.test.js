@@ -34,7 +34,12 @@ vi.mock("uuid", () => ({
 }));
 
 // ─── Import module under test ─────────────────────────────────────────────────
-const { CommunityManager, CommunityStatus, MemberRole, MemberStatus } = require("../community-manager");
+const {
+  CommunityManager,
+  CommunityStatus,
+  MemberRole,
+  MemberStatus,
+} = require("../community-manager");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +119,11 @@ describe("CommunityManager", () => {
     mockDatabase = createMockDatabase();
     mockDIDManager = createMockDIDManager();
     mockP2PManager = createMockP2PManager();
-    manager = new CommunityManager(mockDatabase, mockDIDManager, mockP2PManager);
+    manager = new CommunityManager(
+      mockDatabase,
+      mockDIDManager,
+      mockP2PManager,
+    );
     vi.clearAllMocks();
   });
 
@@ -129,7 +138,9 @@ describe("CommunityManager", () => {
       const allExecSql = execCalls.join("\n");
 
       expect(allExecSql).toContain("CREATE TABLE IF NOT EXISTS communities");
-      expect(allExecSql).toContain("CREATE TABLE IF NOT EXISTS community_members");
+      expect(allExecSql).toContain(
+        "CREATE TABLE IF NOT EXISTS community_members",
+      );
       expect(manager.initialized).toBe(true);
     });
 
@@ -158,12 +169,22 @@ describe("CommunityManager", () => {
 
     it("should register P2P event listeners when p2pManager is provided", async () => {
       await manager.initialize();
-      expect(mockP2PManager.on).toHaveBeenCalledWith("community:join-request", expect.any(Function));
-      expect(mockP2PManager.on).toHaveBeenCalledWith("community:sync", expect.any(Function));
+      expect(mockP2PManager.on).toHaveBeenCalledWith(
+        "community:join-request",
+        expect.any(Function),
+      );
+      expect(mockP2PManager.on).toHaveBeenCalledWith(
+        "community:sync",
+        expect.any(Function),
+      );
     });
 
     it("should skip P2P listener setup when no p2pManager is provided", async () => {
-      const managerNoPeer = new CommunityManager(mockDatabase, mockDIDManager, null);
+      const managerNoPeer = new CommunityManager(
+        mockDatabase,
+        mockDIDManager,
+        null,
+      );
       // Should not throw
       await managerNoPeer.initialize();
       expect(managerNoPeer.initialized).toBe(true);
@@ -248,11 +269,15 @@ describe("CommunityManager", () => {
 
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
-      await expect(manager.createCommunity({ name: "Test" })).rejects.toThrow("User not logged in");
+      await expect(manager.createCommunity({ name: "Test" })).rejects.toThrow(
+        "User not logged in",
+      );
     });
 
     it("should use default values for optional fields", async () => {
-      const community = await manager.createCommunity({ name: "Defaults Community" });
+      const community = await manager.createCommunity({
+        name: "Defaults Community",
+      });
       expect(community.description).toBe("");
       expect(community.icon_url).toBe("");
       expect(community.rules_md).toBe("");
@@ -291,7 +316,10 @@ describe("CommunityManager", () => {
     });
 
     it("should return communities from database", async () => {
-      const rows = [makeCommunityRow(), makeCommunityRow({ id: "community-002", name: "Second" })];
+      const rows = [
+        makeCommunityRow(),
+        makeCommunityRow({ id: "community-002", name: "Second" }),
+      ];
       mockDatabase.db._prep.all.mockReturnValue(rows);
 
       const result = await manager.getCommunities();
@@ -378,7 +406,10 @@ describe("CommunityManager", () => {
       const listener = vi.fn();
       manager.on("community:member-joined", listener);
 
-      const result = await manager.joinCommunity("community-001", "did:test:bob");
+      const result = await manager.joinCommunity(
+        "community-001",
+        "did:test:bob",
+      );
       expect(result).toEqual({ success: true });
       expect(listener).toHaveBeenCalledWith({
         communityId: "community-001",
@@ -417,7 +448,10 @@ describe("CommunityManager", () => {
     });
 
     it("should throw if community has reached member limit", async () => {
-      const community = makeCommunityRow({ member_count: 1000, member_limit: 1000 });
+      const community = makeCommunityRow({
+        member_count: 1000,
+        member_limit: 1000,
+      });
       mockDatabase.db._prep.get.mockReturnValueOnce(community);
       await expect(
         manager.joinCommunity("community-001", "did:test:bob"),
@@ -455,7 +489,10 @@ describe("CommunityManager", () => {
         .mockReturnValueOnce(community)
         .mockReturnValueOnce(leftMember);
 
-      const result = await manager.joinCommunity("community-001", "did:test:alice");
+      const result = await manager.joinCommunity(
+        "community-001",
+        "did:test:alice",
+      );
       expect(result).toEqual({ success: true });
 
       // Should UPDATE (not INSERT) for the existing record
@@ -543,7 +580,11 @@ describe("CommunityManager", () => {
     it("should return members array", async () => {
       const rows = [
         makeMemberRow({ role: "owner" }),
-        makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "member" }),
+        makeMemberRow({
+          id: "member-002",
+          member_did: "did:test:bob",
+          role: "member",
+        }),
       ];
       mockDatabase.db._prep.all.mockReturnValue(rows);
 
@@ -577,7 +618,11 @@ describe("CommunityManager", () => {
 
     it("should promote a member to moderator when requester is owner", async () => {
       const requester = makeMemberRow({ role: "owner" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "member" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "member",
+      });
 
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester) // requester lookup
@@ -586,7 +631,11 @@ describe("CommunityManager", () => {
       const listener = vi.fn();
       manager.on("community:member-promoted", listener);
 
-      const result = await manager.promoteMember("community-001", "did:test:bob", MemberRole.MODERATOR);
+      const result = await manager.promoteMember(
+        "community-001",
+        "did:test:bob",
+        MemberRole.MODERATOR,
+      );
       expect(result).toEqual({ success: true });
       expect(listener).toHaveBeenCalledWith({
         communityId: "community-001",
@@ -600,19 +649,31 @@ describe("CommunityManager", () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(requester);
 
       await expect(
-        manager.promoteMember("community-001", "did:test:bob", MemberRole.MODERATOR),
+        manager.promoteMember(
+          "community-001",
+          "did:test:bob",
+          MemberRole.MODERATOR,
+        ),
       ).rejects.toThrow("Insufficient permissions to promote members");
     });
 
     it("should throw if non-owner tries to promote to admin", async () => {
       const requester = makeMemberRow({ role: "admin" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "member" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "member",
+      });
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
         .mockReturnValueOnce(target);
 
       await expect(
-        manager.promoteMember("community-001", "did:test:bob", MemberRole.ADMIN),
+        manager.promoteMember(
+          "community-001",
+          "did:test:bob",
+          MemberRole.ADMIN,
+        ),
       ).rejects.toThrow("Only the owner can promote to admin");
     });
 
@@ -623,13 +684,21 @@ describe("CommunityManager", () => {
         .mockReturnValueOnce(null); // target not found
 
       await expect(
-        manager.promoteMember("community-001", "did:test:bob", MemberRole.MODERATOR),
+        manager.promoteMember(
+          "community-001",
+          "did:test:bob",
+          MemberRole.MODERATOR,
+        ),
       ).rejects.toThrow("Target member not found");
     });
 
     it("should throw if newRole is invalid", async () => {
       const requester = makeMemberRow({ role: "owner" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "member" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "member",
+      });
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
         .mockReturnValueOnce(target);
@@ -642,7 +711,11 @@ describe("CommunityManager", () => {
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
       await expect(
-        manager.promoteMember("community-001", "did:test:bob", MemberRole.MODERATOR),
+        manager.promoteMember(
+          "community-001",
+          "did:test:bob",
+          MemberRole.MODERATOR,
+        ),
       ).rejects.toThrow("User not logged in");
     });
   });
@@ -670,7 +743,10 @@ describe("CommunityManager", () => {
       const listener = vi.fn();
       manager.on("community:member-demoted", listener);
 
-      const result = await manager.demoteMember("community-001", "did:test:bob");
+      const result = await manager.demoteMember(
+        "community-001",
+        "did:test:bob",
+      );
       expect(result).toEqual({ success: true });
       expect(listener).toHaveBeenCalledWith({
         communityId: "community-001",
@@ -689,7 +765,11 @@ describe("CommunityManager", () => {
 
     it("should throw if target is the owner", async () => {
       const requester = makeMemberRow({ role: "owner" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "owner" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "owner",
+      });
 
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
@@ -761,7 +841,11 @@ describe("CommunityManager", () => {
     it("should throw if trying to ban someone with equal or higher role", async () => {
       // Moderator cannot ban an admin
       const requester = makeMemberRow({ role: "moderator" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "admin" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "admin",
+      });
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
         .mockReturnValueOnce(target);
@@ -773,7 +857,11 @@ describe("CommunityManager", () => {
 
     it("should throw if trying to ban the owner", async () => {
       const requester = makeMemberRow({ role: "admin" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:owner", role: "owner" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:owner",
+        role: "owner",
+      });
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
         .mockReturnValueOnce(target);
@@ -796,7 +884,11 @@ describe("CommunityManager", () => {
 
     it("should decrement member_count when banning", async () => {
       const requester = makeMemberRow({ role: "owner" });
-      const target = makeMemberRow({ id: "member-002", member_did: "did:test:bob", role: "member" });
+      const target = makeMemberRow({
+        id: "member-002",
+        member_did: "did:test:bob",
+        role: "member",
+      });
       mockDatabase.db._prep.get
         .mockReturnValueOnce(requester)
         .mockReturnValueOnce(target);
@@ -838,7 +930,10 @@ describe("CommunityManager", () => {
     });
 
     it("should return all active communities when query is empty", async () => {
-      const rows = [makeCommunityRow(), makeCommunityRow({ id: "c2", name: "Another" })];
+      const rows = [
+        makeCommunityRow(),
+        makeCommunityRow({ id: "c2", name: "Another" }),
+      ];
       mockDatabase.db._prep.all.mockReturnValue(rows);
 
       const result = await manager.searchCommunities("");
@@ -902,6 +997,21 @@ describe("CommunityManager", () => {
     it("should start with initialized = false", () => {
       const fresh = new CommunityManager(mockDatabase, mockDIDManager);
       expect(fresh.initialized).toBe(false);
+    });
+  });
+
+  describe("close()", () => {
+    it("should detach every P2P source listener", async () => {
+      await manager.initialize();
+
+      const registered = mockP2PManager.on.mock.calls;
+      await manager.close();
+
+      expect(registered).toHaveLength(2);
+      for (const [eventName, listener] of registered) {
+        expect(mockP2PManager.off).toHaveBeenCalledWith(eventName, listener);
+      }
+      expect(manager.initialized).toBe(false);
     });
   });
 });

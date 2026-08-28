@@ -586,6 +586,23 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const socialSourceListenerContracts = [
+    "src/main/social/__tests__/owned-source-listeners.test.js",
+    "src/main/social/__tests__/friend-manager.test.js",
+    "src/main/social/__tests__/post-manager.test.js",
+    "src/main/social/__tests__/community-manager.test.js",
+    "src/main/social/__tests__/channel-manager.test.js",
+  ];
+  const socialSourceListenerSelection = selector.createSelection([
+    "desktop-app-vue/src/main/social/owned-source-listeners.js",
+  ]);
+  for (const contract of socialSourceListenerContracts) {
+    assert.ok(
+      socialSourceListenerSelection.selectedTests.includes(contract),
+      `owned-source-listeners.js must select ${contract}`,
+    );
+  }
+
   const deepLinkLifecycleContract =
     "src/main/system/__tests__/deep-link-handler-lifecycle.test.js";
   for (const source of [

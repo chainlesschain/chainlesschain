@@ -60,6 +60,10 @@ const {
   getAllModules,
   setupP2PPostInit,
 } = require("./bootstrap");
+const {
+  SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_FOUNDATION_MANAGER_CLEANUP,
+} = require("./bootstrap/social-startup-policy");
 
 // 是否使用旧版单阶段启动（回退开关）
 const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
@@ -3018,6 +3022,19 @@ class ChainlessChainApp {
       }
       this.gossipProtocol = null;
     }
+    for (const [managerName, closeMethod] of SOCIAL_BUSINESS_MANAGER_CLEANUP) {
+      const manager = this[managerName];
+      if (!manager) {
+        continue;
+      }
+      try {
+        await manager[closeMethod]?.();
+        logger.info(`[Main] ${managerName} cleanup completed`);
+      } catch (error) {
+        logger.error(`[Main] ${managerName} cleanup error:`, error);
+      }
+      this[managerName] = null;
+    }
     if (this.deepLinkHandler) {
       try {
         this.deepLinkHandler.destroy();
@@ -3066,6 +3083,26 @@ class ChainlessChainApp {
       } catch (error) {
         logger.error("[Main] RemoteGateway cleanup error:", error);
       }
+    }
+
+    // MobileBridge/RemoteGateway and every active business manager have now
+    // stopped accepting work. Release the shared transports last so their
+    // close paths cannot race a torn-down P2P/DID foundation.
+    for (const [
+      managerName,
+      closeMethod,
+    ] of SOCIAL_FOUNDATION_MANAGER_CLEANUP) {
+      const manager = this[managerName];
+      if (!manager) {
+        continue;
+      }
+      try {
+        await manager[closeMethod]?.();
+        logger.info(`[Main] ${managerName} cleanup completed`);
+      } catch (error) {
+        logger.error(`[Main] ${managerName} cleanup error:`, error);
+      }
+      this[managerName] = null;
     }
 
     // 清理浏览器资源

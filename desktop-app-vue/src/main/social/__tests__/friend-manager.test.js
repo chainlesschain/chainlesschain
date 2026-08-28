@@ -545,10 +545,17 @@ describe("FriendManager", () => {
 
   // ─── close ────────────────────────────────────────────────────────────
   describe("close", () => {
-    it("should clear state", async () => {
-      fm.initialized = true;
+    it("should detach P2P listeners and clear state", async () => {
+      await fm.initialize();
       fm.onlineStatus.set("did:test:bob", { status: "online" });
+
+      const registered = mockP2P.on.mock.calls;
       await fm.close();
+
+      expect(registered).toHaveLength(2);
+      for (const [eventName, listener] of registered) {
+        expect(mockP2P.off).toHaveBeenCalledWith(eventName, listener);
+      }
       expect(fm.initialized).toBe(false);
       expect(fm.onlineStatus.size).toBe(0);
     });
