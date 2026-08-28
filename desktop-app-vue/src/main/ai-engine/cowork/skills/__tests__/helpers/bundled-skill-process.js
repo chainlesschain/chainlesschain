@@ -17,6 +17,7 @@ export function createTestProcessContext(
       authorityId: options.authorityId || `test:${skillId}:process`,
       allowedRoots,
       allowedEntrypoints: options.allowedEntrypoints || [],
+      approvedInvocations: options.approvedInvocations || [],
     },
     {
       executeFileSync,

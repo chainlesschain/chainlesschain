@@ -114,6 +114,7 @@ const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-environment-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-git-process-handlers.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-media-process-handlers.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-local-service-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-network-diagnostics-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-process-broker.test.js",

@@ -7,6 +7,9 @@
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Constants ───────────────────────────────────────
 
@@ -57,144 +60,160 @@ function formatBytes(bytes) {
 
 // ── Video Operations ────────────────────────────────
 
-function getVideoInfo(filePath) {
-  return new Promise((resolve, reject) => {
-    try {
-      const ffmpeg = require("fluent-ffmpeg");
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          resolve({
-            file: path.basename(filePath),
-            error: `ffprobe error: ${err.message}`,
-          });
-          return;
-        }
+function runMediaCommand(context, projectRoot, file, args, timeout) {
+  return requireBundledSkillProcessBroker(
+    context,
+    "video-toolkit",
+  ).execFileSync(file, args, { cwd: projectRoot, timeout });
+}
 
-        const video = metadata.streams.find((s) => s.codec_type === "video");
-        const audio = metadata.streams.find((s) => s.codec_type === "audio");
-        const subs = metadata.streams.filter(
-          (s) => s.codec_type === "subtitle",
-        );
-
-        resolve({
-          file: path.basename(filePath),
-          duration: metadata.format.duration,
-          durationFormatted: formatDuration(metadata.format.duration),
-          size: metadata.format.size,
-          sizeFormatted: formatBytes(metadata.format.size),
-          bitrate: metadata.format.bit_rate,
-          format: metadata.format.format_name,
-          video: video
-            ? {
-                codec: video.codec_name,
-                width: video.width,
-                height: video.height,
-                fps:
-                  (video.r_frame_rate && video.r_frame_rate.includes("/")
-                    ? video.r_frame_rate
-                        .split("/")
-                        .reduce((a, b) => Number(a) / Number(b))
-                    : Number(video.r_frame_rate)) || 0,
-                bitrate: video.bit_rate,
-              }
-            : null,
-          audio: audio
-            ? {
-                codec: audio.codec_name,
-                sampleRate: audio.sample_rate,
-                channels: audio.channels,
-                bitrate: audio.bit_rate,
-              }
-            : null,
-          subtitles: subs.length,
-        });
-      });
-    } catch (err) {
-      resolve({
-        file: path.basename(filePath),
-        error: `ffmpeg not available: ${err.message}`,
-      });
+async function getVideoInfo(filePath, context, projectRoot) {
+  try {
+    const metadata = JSON.parse(
+      runMediaCommand(
+        context,
+        projectRoot,
+        "ffprobe",
+        [
+          "-v",
+          "error",
+          "-show_format",
+          "-show_streams",
+          "-of",
+          "json",
+          filePath,
+        ],
+        60_000,
+      ),
+    );
+    const video = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "video",
+    );
+    const audio = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "audio",
+    );
+    const subs = (metadata.streams || []).filter(
+      (stream) => stream.codec_type === "subtitle",
+    );
+    return {
+      file: path.basename(filePath),
+      duration: metadata.format?.duration,
+      durationFormatted: formatDuration(metadata.format?.duration),
+      size: metadata.format?.size,
+      sizeFormatted: formatBytes(metadata.format?.size),
+      bitrate: metadata.format?.bit_rate,
+      format: metadata.format?.format_name,
+      video: video
+        ? {
+            codec: video.codec_name,
+            width: video.width,
+            height: video.height,
+            fps:
+              (video.r_frame_rate && video.r_frame_rate.includes("/")
+                ? video.r_frame_rate
+                    .split("/")
+                    .reduce((a, b) => Number(a) / Number(b))
+                : Number(video.r_frame_rate)) || 0,
+            bitrate: video.bit_rate,
+          }
+        : null,
+      audio: audio
+        ? {
+            codec: audio.codec_name,
+            sampleRate: audio.sample_rate,
+            channels: audio.channels,
+            bitrate: audio.bit_rate,
+          }
+        : null,
+      subtitles: subs.length,
+    };
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
     }
-  });
+    return {
+      file: path.basename(filePath),
+      error: `ffprobe error: ${error.message}`,
+    };
+  }
 }
 
-function extractThumbnail(filePath, time, outputPath) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = require("fluent-ffmpeg");
-    const output = outputPath || filePath.replace(/\.\w+$/, "_thumb.png");
-
-    ffmpeg(filePath)
-      .seekInput(time || "00:00:01")
-      .frames(1)
-      .output(output)
-      .on("end", () => resolve({ output, success: true }))
-      .on("error", (err) => resolve({ error: err.message, success: false }))
-      .run();
-  });
-}
-
-function extractAudio(filePath, outputPath, format) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = require("fluent-ffmpeg");
-    const ext = format || "mp3";
-    const output = outputPath || filePath.replace(/\.\w+$/, `.${ext}`);
-
-    ffmpeg(filePath)
-      .noVideo()
-      .audioCodec(
-        ext === "mp3" ? "libmp3lame" : ext === "wav" ? "pcm_s16le" : "aac",
-      )
-      .output(output)
-      .on("end", () => resolve({ output, format: ext, success: true }))
-      .on("error", (err) => resolve({ error: err.message, success: false }))
-      .run();
-  });
-}
-
-function compressVideo(filePath, quality, outputPath) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = require("fluent-ffmpeg");
-    const preset = COMPRESSION_PRESETS[quality] || COMPRESSION_PRESETS["720p"];
-    const output = outputPath || filePath.replace(/(\.\w+)$/, `_${quality}$1`);
-
-    ffmpeg(filePath)
-      .size(`${preset.width}x${preset.height}`)
-      .videoBitrate(preset.videoBitrate)
-      .output(output)
-      .on("end", () => resolve({ output, quality, success: true }))
-      .on("error", (err) => resolve({ error: err.message, success: false }))
-      .run();
-  });
-}
-
-function clipVideo(filePath, start, end, outputPath) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = require("fluent-ffmpeg");
-    const output = outputPath || filePath.replace(/(\.\w+)$/, `_clip$1`);
-
-    let cmd = ffmpeg(filePath).seekInput(start);
-    if (end) {
-      cmd = cmd.duration(end);
+async function runFfmpeg(context, projectRoot, args, result) {
+  try {
+    runMediaCommand(context, projectRoot, "ffmpeg", args, 300_000);
+    return { ...result, success: true };
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
     }
-    cmd
-      .output(output)
-      .outputOptions("-c copy")
-      .on("end", () => resolve({ output, start, end, success: true }))
-      .on("error", (err) => resolve({ error: err.message, success: false }))
-      .run();
-  });
+    return { error: error.message, success: false };
+  }
 }
 
-function convertVideo(filePath, targetFormat, outputPath) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = require("fluent-ffmpeg");
-    const output = outputPath || filePath.replace(/\.\w+$/, `.${targetFormat}`);
+function extractThumbnail(filePath, time, outputPath, context, projectRoot) {
+  const output = outputPath || filePath.replace(/\.\w+$/, "_thumb.png");
+  return runFfmpeg(
+    context,
+    projectRoot,
+    ["-y", "-ss", time || "00:00:01", "-i", filePath, "-frames:v", "1", output],
+    { output },
+  );
+}
 
-    ffmpeg(filePath)
-      .output(output)
-      .on("end", () => resolve({ output, format: targetFormat, success: true }))
-      .on("error", (err) => resolve({ error: err.message, success: false }))
-      .run();
+function extractAudio(filePath, outputPath, format, context, projectRoot) {
+  const ext = format || "mp3";
+  const output = outputPath || filePath.replace(/\.\w+$/, `.${ext}`);
+  const codec =
+    ext === "mp3" ? "libmp3lame" : ext === "wav" ? "pcm_s16le" : "aac";
+  return runFfmpeg(
+    context,
+    projectRoot,
+    ["-y", "-i", filePath, "-vn", "-acodec", codec, output],
+    { output, format: ext },
+  );
+}
+
+function compressVideo(filePath, quality, outputPath, context, projectRoot) {
+  const preset = COMPRESSION_PRESETS[quality] || COMPRESSION_PRESETS["720p"];
+  const output = outputPath || filePath.replace(/(\.\w+)$/, `_${quality}$1`);
+  return runFfmpeg(
+    context,
+    projectRoot,
+    [
+      "-y",
+      "-i",
+      filePath,
+      "-vf",
+      `scale=${preset.width}:${preset.height}`,
+      "-b:v",
+      preset.videoBitrate,
+      output,
+    ],
+    { output, quality },
+  );
+}
+
+function clipVideo(filePath, start, end, outputPath, context, projectRoot) {
+  const output = outputPath || filePath.replace(/(\.\w+)$/, `_clip$1`);
+  const args = ["-y", "-ss", start, "-i", filePath];
+  if (end) {
+    args.push("-t", end);
+  }
+  args.push("-c", "copy", output);
+  return runFfmpeg(context, projectRoot, args, { output, start, end });
+}
+
+function convertVideo(
+  filePath,
+  targetFormat,
+  outputPath,
+  context,
+  projectRoot,
+) {
+  const output = outputPath || filePath.replace(/\.\w+$/, `.${targetFormat}`);
+  return runFfmpeg(context, projectRoot, ["-y", "-i", filePath, output], {
+    output,
+    format: targetFormat,
   });
 }
 
@@ -256,7 +275,7 @@ module.exports = {
 
       switch (action) {
         case "info": {
-          const info = await getVideoInfo(filePath);
+          const info = await getVideoInfo(filePath, context, projectRoot);
           if (info.error) {
             return { success: false, error: info.error, message: info.error };
           }
@@ -276,7 +295,13 @@ module.exports = {
             ? resolvePath(outputMatch[1], projectRoot)
             : undefined;
 
-          const result = await extractThumbnail(filePath, time, outputPath);
+          const result = await extractThumbnail(
+            filePath,
+            time,
+            outputPath,
+            context,
+            projectRoot,
+          );
           return {
             success: result.success,
             result,
@@ -289,12 +314,25 @@ module.exports = {
         case "extract-audio": {
           const fmtMatch = input.match(/--format\s+(\S+)/);
           const fmt = fmtMatch ? fmtMatch[1] : "mp3";
+          if (!["mp3", "wav", "aac", "m4a"].includes(fmt)) {
+            return {
+              success: false,
+              error: `Unsupported audio format: ${fmt}`,
+              message: "Supported audio formats: mp3, wav, aac, m4a",
+            };
+          }
           const outputMatch = input.match(/--output\s+(\S+)/);
           const outputPath = outputMatch
             ? resolvePath(outputMatch[1], projectRoot)
             : undefined;
 
-          const result = await extractAudio(filePath, outputPath, fmt);
+          const result = await extractAudio(
+            filePath,
+            outputPath,
+            fmt,
+            context,
+            projectRoot,
+          );
           return {
             success: result.success,
             result,
@@ -320,7 +358,13 @@ module.exports = {
             };
           }
 
-          const result = await compressVideo(filePath, quality, outputPath);
+          const result = await compressVideo(
+            filePath,
+            quality,
+            outputPath,
+            context,
+            projectRoot,
+          );
           return {
             success: result.success,
             result,
@@ -351,6 +395,8 @@ module.exports = {
             startMatch[1],
             endMatch ? endMatch[1] : null,
             outputPath,
+            context,
+            projectRoot,
           );
           return {
             success: result.success,
@@ -370,13 +416,29 @@ module.exports = {
               message: "Specify --to <format>",
             };
           }
+          const targetFormat = toMatch[1].toLowerCase();
+          if (
+            !["mp4", "mkv", "mov", "webm", "avi", "m4v"].includes(targetFormat)
+          ) {
+            return {
+              success: false,
+              error: `Unsupported target format: ${targetFormat}`,
+              message: "Supported video formats: mp4, mkv, mov, webm, avi, m4v",
+            };
+          }
 
           const outputMatch = input.match(/--output\s+(\S+)/);
           const outputPath = outputMatch
             ? resolvePath(outputMatch[1], projectRoot)
             : undefined;
 
-          const result = await convertVideo(filePath, toMatch[1], outputPath);
+          const result = await convertVideo(
+            filePath,
+            targetFormat,
+            outputPath,
+            context,
+            projectRoot,
+          );
           return {
             success: result.success,
             result,

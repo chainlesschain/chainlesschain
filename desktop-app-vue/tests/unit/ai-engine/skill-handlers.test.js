@@ -31,23 +31,25 @@ import { execFileSync } from "node:child_process";
 import { createEnvironmentContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-environment.js";
 import { createTestProcessContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
 
-function createGitProcessContext(skillId, projectRoot) {
+function createGitProcessContext(skillId, projectRoot, options = {}) {
   return {
     projectRoot,
     workspaceRoot: projectRoot,
     workspacePath: projectRoot,
     ...createTestProcessContext(
       skillId,
-      ({ file, args, cwd, timeout, maxBuffer }) =>
+      ({ file, args, cwd, timeout, maxBuffer, input, env }) =>
         execFileSync(file, args, {
           cwd,
           timeout,
           maxBuffer,
           encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
+          input,
+          env,
+          stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
           windowsHide: true,
         }),
-      { allowedRoots: [projectRoot] },
+      { allowedRoots: [projectRoot], ...options },
     ),
   };
 }
@@ -90,7 +92,11 @@ describe("Skill Handlers", () => {
     });
 
     it("should run full diagnostics by default", async () => {
-      const result = await handler.execute({ input: "" }, {});
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "" },
+        createGitProcessContext("env-doctor", projectRoot),
+      );
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
       expect(result.result.runtimes).toBeDefined();
@@ -100,7 +106,11 @@ describe("Skill Handlers", () => {
     });
 
     it("should check runtimes category", async () => {
-      const result = await handler.execute({ input: "--check runtimes" }, {});
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--check runtimes" },
+        createGitProcessContext("env-doctor", projectRoot),
+      );
       expect(result.success).toBe(true);
       expect(result.result).toBeInstanceOf(Array);
       // Node.js should always be detected in test environment
@@ -120,14 +130,22 @@ describe("Skill Handlers", () => {
     });
 
     it("should generate fix commands", async () => {
-      const result = await handler.execute({ input: "--fix" }, {});
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--fix" },
+        createGitProcessContext("env-doctor", projectRoot),
+      );
       expect(result.success).toBe(true);
       expect(result.fixCommands).toBeDefined();
       expect(result.message).toBeDefined();
     });
 
     it("should run preflight check", async () => {
-      const result = await handler.execute({ input: "--preflight" }, {});
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--preflight" },
+        createGitProcessContext("env-doctor", projectRoot),
+      );
       expect(typeof result.success).toBe("boolean");
       expect(result.result).toBeDefined();
       expect(result.critical).toBeInstanceOf(Array);
@@ -652,7 +670,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--dry-run" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("release-manager", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result.currentVersion).toBeDefined();
@@ -1229,7 +1247,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--evaluate vitest" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("research-agent", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
@@ -1737,9 +1755,13 @@ describe("Skill Handlers", () => {
     });
 
     it("should list providers", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--providers" },
-        createEnvironmentContext("audio-transcriber"),
+        {
+          ...createEnvironmentContext("audio-transcriber"),
+          ...createGitProcessContext("audio-transcriber", projectRoot),
+        },
       );
       expect(result.success).toBe(true);
       expect(result.result.providers).toBeDefined();

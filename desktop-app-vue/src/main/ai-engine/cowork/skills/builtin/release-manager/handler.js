@@ -7,8 +7,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 module.exports = {
   async init(skill) {
@@ -24,15 +26,23 @@ module.exports = {
     try {
       switch (action) {
         case "bump":
-          return await handleBump(options.bumpType, options.targetDir);
+          return await handleBump(options.bumpType, options.targetDir, context);
         case "changelog":
-          return await handleChangelog(options.range, options.targetDir);
+          return await handleChangelog(
+            options.range,
+            options.targetDir,
+            context,
+          );
         case "dry-run":
-          return await handleDryRun(options.targetDir);
+          return await handleDryRun(options.targetDir, context);
         case "release-notes":
-          return await handleReleaseNotes(options.range, options.targetDir);
+          return await handleReleaseNotes(
+            options.range,
+            options.targetDir,
+            context,
+          );
         default:
-          return await handleDryRun(options.targetDir);
+          return await handleDryRun(options.targetDir, context);
       }
     } catch (error) {
       logger.error(`[ReleaseManager] Error: ${error.message}`);
@@ -82,15 +92,16 @@ function parseInput(input, context) {
   return { action, options };
 }
 
-function runGit(cmd, cwd) {
+function runGit(args, cwd, context) {
   try {
-    return execSync(cmd, {
-      encoding: "utf-8",
-      cwd,
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
+    return requireBundledSkillProcessBroker(context, "release-manager")
+      .execFileSync("git", args, { cwd, timeout: 15_000 })
+      .toString("utf8")
+      .trim();
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }
@@ -108,15 +119,16 @@ function getCurrentVersion(targetDir) {
   return "0.0.0";
 }
 
-function getLatestTag(targetDir) {
-  return runGit("git describe --tags --abbrev=0 2>/dev/null", targetDir);
+function getLatestTag(targetDir, context) {
+  return runGit(["describe", "--tags", "--abbrev=0"], targetDir, context);
 }
 
-function getCommitsSinceTag(targetDir, tag) {
+function getCommitsSinceTag(targetDir, tag, context) {
   const range = tag ? `${tag}..HEAD` : "HEAD~50..HEAD";
   const output = runGit(
-    `git log ${range} --pretty=format:"%H|%s|%an|%ad" --date=short`,
+    ["log", range, "--pretty=format:%H|%s|%an|%ad", "--date=short"],
     targetDir,
+    context,
   );
   if (!output) {
     return [];
@@ -225,10 +237,10 @@ function groupCommits(commits) {
   return groups;
 }
 
-async function handleBump(bumpType, targetDir) {
+async function handleBump(bumpType, targetDir, context) {
   const currentVersion = getCurrentVersion(targetDir);
-  const tag = getLatestTag(targetDir);
-  const commits = getCommitsSinceTag(targetDir, tag);
+  const tag = getLatestTag(targetDir, context);
+  const commits = getCommitsSinceTag(targetDir, tag, context);
   const bump = calculateBump(commits, bumpType);
   const newVersion = bumpVersion(currentVersion, bump);
   const versionFiles = findVersionFiles(targetDir);
@@ -256,10 +268,10 @@ async function handleBump(bumpType, targetDir) {
   };
 }
 
-async function handleChangelog(range, targetDir) {
-  const tag = getLatestTag(targetDir);
+async function handleChangelog(range, targetDir, context) {
+  const tag = getLatestTag(targetDir, context);
   const effectiveRange = range || (tag ? `${tag}..HEAD` : null);
-  const commits = getCommitsSinceTag(targetDir, tag);
+  const commits = getCommitsSinceTag(targetDir, tag, context);
 
   if (commits.length === 0) {
     return {
@@ -309,10 +321,10 @@ async function handleChangelog(range, targetDir) {
   };
 }
 
-async function handleDryRun(targetDir) {
+async function handleDryRun(targetDir, context) {
   const currentVersion = getCurrentVersion(targetDir);
-  const tag = getLatestTag(targetDir);
-  const commits = getCommitsSinceTag(targetDir, tag);
+  const tag = getLatestTag(targetDir, context);
+  const commits = getCommitsSinceTag(targetDir, tag, context);
   const bump = calculateBump(commits, "auto");
   const newVersion = bumpVersion(currentVersion, bump);
   const versionFiles = findVersionFiles(targetDir);
@@ -351,9 +363,9 @@ async function handleDryRun(targetDir) {
   };
 }
 
-async function handleReleaseNotes(range, targetDir) {
-  const tag = getLatestTag(targetDir);
-  const commits = getCommitsSinceTag(targetDir, tag);
+async function handleReleaseNotes(range, targetDir, context) {
+  const tag = getLatestTag(targetDir, context);
+  const commits = getCommitsSinceTag(targetDir, tag, context);
   const currentVersion = getCurrentVersion(targetDir);
   const bump = calculateBump(commits, "auto");
   const newVersion = bumpVersion(currentVersion, bump);

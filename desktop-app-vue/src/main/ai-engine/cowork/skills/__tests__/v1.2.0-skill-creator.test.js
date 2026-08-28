@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 // ─── Mock logger (必须在 require 之前) ────────────────────────────────────────
 vi.mock("../../../../utils/logger.js", () => ({
@@ -33,8 +34,38 @@ const rawExecute = handler.execute.bind(handler);
 const environmentContext = createEnvironmentContext("skill-creator", {
   PATH: "test-runtime-path",
 });
+let processAdapter = () => ({ status: 1, stdout: "", error: null });
+const processContext = createTestProcessContext(
+  "skill-creator",
+  (request) => {
+    const result = processAdapter(request.file, request.args, {
+      cwd: request.cwd,
+      env: request.env,
+      timeout: request.timeout,
+    });
+    if (result?.error) {
+      throw result.error;
+    }
+    if (result?.status !== 0) {
+      const error = new Error(`test process exited ${result?.status}`);
+      error.status = result?.status;
+      error.stdout = result?.stdout || "";
+      error.stderr = result?.stderr || "";
+      throw error;
+    }
+    return result?.stdout || "";
+  },
+  {
+    allowedRoots: [process.cwd()],
+    allowedEntrypoints: [process.argv[1]],
+  },
+);
 handler.execute = (task, context = {}, skill) =>
-  rawExecute(task, { ...environmentContext, ...context }, skill);
+  rawExecute(
+    task,
+    { ...environmentContext, ...processContext, ...context },
+    skill,
+  );
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
@@ -137,12 +168,11 @@ function smartSpawn({
 }
 
 // ─── Save / restore _deps ─────────────────────────────────────────────────────
-let origSpawnSync;
 let origFs;
 let origGetManagedSkillsRoot;
 
 beforeEach(() => {
-  origSpawnSync = handler._deps.spawnSync;
+  processAdapter = unavailableSpawn();
   origFs = handler._deps.fs;
   origGetManagedSkillsRoot = handler._deps.getManagedSkillsRoot;
   handler._deps.getManagedSkillsRoot = () => BUILTIN_DIR;
@@ -150,7 +180,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  handler._deps.spawnSync = origSpawnSync;
+  processAdapter = unavailableSpawn();
   handler._deps.fs = origFs;
   handler._deps.getManagedSkillsRoot = origGetManagedSkillsRoot;
 });
@@ -160,11 +190,11 @@ afterEach(() => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("_deps structure", () => {
-  it("exports _deps with fs, path, spawnSync", () => {
+  it("exports filesystem dependencies without a native process adapter", () => {
     expect(typeof handler._deps).toBe("object");
     expect(typeof handler._deps.fs).toBe("object");
     expect(typeof handler._deps.path).toBe("object");
-    expect(typeof handler._deps.spawnSync).toBe("function");
+    expect(handler._deps.spawnSync).toBeUndefined();
     expect(typeof handler._deps.getManagedSkillsRoot).toBe("function");
   });
 });
@@ -208,7 +238,7 @@ describe("parseInput / action routing", () => {
   });
 
   it("'optimize <name> --advanced' → optimize-description", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     const mockFs = createMockFs({
       [skillPath("ultrathink", "SKILL.md")]: makeSkillMd({
         name: "ultrathink",
@@ -225,7 +255,7 @@ describe("parseInput / action routing", () => {
   });
 
   it("'optimize <name> --advanced --iterations 3' → maxIterations=3", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     const mockFs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -241,7 +271,7 @@ describe("parseInput / action routing", () => {
   });
 
   it("'optimize-description <name>' → optimize-description", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     const mockFs = createMockFs({
       [skillPath("code-review", "SKILL.md")]: makeSkillMd({
         name: "code-review",
@@ -258,7 +288,7 @@ describe("parseInput / action routing", () => {
   });
 
   it("'optimize-description <name> --iterations 2' → maxIterations=2 (stops early)", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     const mockFs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -610,7 +640,7 @@ describe("callLLM() via _deps.spawnSync", () => {
       stdout: "not valid json for eval queries",
       error: null,
     });
-    handler._deps.spawnSync = mockSpawn;
+    processAdapter = mockSpawn;
     handler._deps.fs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -627,7 +657,7 @@ describe("callLLM() via _deps.spawnSync", () => {
   });
 
   it("returns null (→ evalQueries null) when spawnSync fails (status != 0)", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     handler._deps.fs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -642,7 +672,7 @@ describe("callLLM() via _deps.spawnSync", () => {
   });
 
   it("returns null when spawnSync throws (error object present)", async () => {
-    handler._deps.spawnSync = vi.fn().mockReturnValue({
+    processAdapter = vi.fn().mockReturnValue({
       status: 0,
       stdout: "irrelevant",
       error: new Error("SPAWN_FAILED"),
@@ -687,7 +717,7 @@ describe("handleOptimizeDescription() - error paths", () => {
       [skillPath("x", "SKILL.md")]:
         "---\nname: x\nhandler: ./handler.js\n---\n",
     });
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     const r = await handler.execute(
       { input: "optimize-description x" },
       {},
@@ -699,7 +729,7 @@ describe("handleOptimizeDescription() - error paths", () => {
   });
 
   it("fails gracefully when LLM unavailable — action field present, includes hint", async () => {
-    handler._deps.spawnSync = unavailableSpawn();
+    processAdapter = unavailableSpawn();
     handler._deps.fs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -716,7 +746,7 @@ describe("handleOptimizeDescription() - error paths", () => {
   });
 
   it("fails gracefully when LLM returns invalid JSON for eval queries", async () => {
-    handler._deps.spawnSync = fixedResponseSpawn("This is not JSON at all");
+    processAdapter = fixedResponseSpawn("This is not JSON at all");
     handler._deps.fs = createMockFs({
       [skillPath("x", "SKILL.md")]: makeSkillMd({ name: "x" }),
     });
@@ -752,7 +782,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
   }
 
   it("returns success=true with eval query count", async () => {
-    handler._deps.spawnSync = smartSpawn({
+    processAdapter = smartSpawn({
       improvedDesc: "Better description with trigger keywords",
     });
     handler._deps.fs = buildMockFs();
@@ -775,7 +805,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
     // So score on test = 50%
     // improvedDesc returned by LLM, score checked again...
     // This test just verifies the loop runs and returns a result
-    handler._deps.spawnSync = smartSpawn({
+    processAdapter = smartSpawn({
       triggerYes: true,
       improvedDesc:
         "Use this skill specifically when reviewing code, analyzing PRs, or doing code audits",
@@ -797,7 +827,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
   it("writes improved description back to SKILL.md", async () => {
     const improvedDesc =
       "Use specifically for code review and PR analysis tasks";
-    handler._deps.spawnSync = smartSpawn({ triggerYes: false, improvedDesc });
+    processAdapter = smartSpawn({ triggerYes: false, improvedDesc });
     // triggerYes=false: should_trigger=true → triggered=false → incorrect
     //                   should_not_trigger=false → triggered=false → correct
     // train score = 10/20 = 0.5; failures = 10 should_trigger items
@@ -819,7 +849,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
   });
 
   it("includes iteration details in result", async () => {
-    handler._deps.spawnSync = smartSpawn({ improvedDesc: "Improved version" });
+    processAdapter = smartSpawn({ improvedDesc: "Improved version" });
     handler._deps.fs = buildMockFs();
 
     const r = await handler.execute(
@@ -832,7 +862,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
   });
 
   it("saves results.json to .opt-workspace", async () => {
-    handler._deps.spawnSync = smartSpawn({ improvedDesc: "Better version" });
+    processAdapter = smartSpawn({ improvedDesc: "Better version" });
     const mockFs = buildMockFs();
     handler._deps.fs = mockFs;
 
@@ -855,7 +885,7 @@ describe("handleOptimizeDescription() - successful optimization", () => {
 
   it("does not write SKILL.md when description not improved", async () => {
     // Make improvedDesc identical to original → no improvement
-    handler._deps.spawnSync = smartSpawn({ improvedDesc: originalDesc });
+    processAdapter = smartSpawn({ improvedDesc: originalDesc });
     const mockFs = buildMockFs();
     handler._deps.fs = mockFs;
 

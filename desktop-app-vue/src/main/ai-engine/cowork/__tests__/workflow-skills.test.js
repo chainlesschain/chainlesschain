@@ -30,6 +30,38 @@ const ralph = require("../skills/builtin/ralph/handler.js");
 const team = require("../skills/builtin/team/handler.js");
 const verify = require("../skills/builtin/verify/handler.js");
 const complete = require("../skills/builtin/complete/handler.js");
+const {
+  createBundledSkillProcessBroker,
+} = require("../skills/bundled-skill-process-broker.js");
+
+const rawVerifyExecute = verify.execute.bind(verify);
+const VERIFY_TEST_COMMANDS = [
+  "pass 1",
+  "pass 2",
+  "ok one",
+  "fail one",
+  "fail now",
+  "fail me",
+  "pass first",
+  "pass second",
+  "pass three",
+].map((command) => {
+  const [file, ...args] = command.split(" ");
+  return { file, args };
+});
+let verifyProcessAdapter = () => "";
+verify.execute = (task, context = {}) => {
+  const processBroker = createBundledSkillProcessBroker(
+    {
+      skillId: "verify",
+      authorityId: "test:verify:process",
+      allowedRoots: [context.projectRoot],
+      approvedInvocations: VERIFY_TEST_COMMANDS,
+    },
+    { executeFileSync: verifyProcessAdapter, auditSink: () => {} },
+  );
+  return rawVerifyExecute(task, { ...context, processBroker });
+};
 
 function makeTmpRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "cc-workflow-"));
@@ -713,14 +745,14 @@ describe("$team handler", () => {
 
 describe("$verify handler", () => {
   let projectRoot;
-  let originalExecSync;
   const sessionId = "verify-sess";
 
   // Fake execSync driver: maps command substring → {exitCode, stdout}.
   // On non-zero exitCode we throw the same shape that child_process.execSync
   // throws on failure, so runCheck can extract err.status/stdout/stderr.
   function installFakeExec(map) {
-    verify._deps.execSync = vi.fn((cmd) => {
+    verifyProcessAdapter = vi.fn((request) => {
+      const cmd = [request.file, ...request.args].join(" ");
       for (const [substr, outcome] of Object.entries(map)) {
         if (cmd.includes(substr)) {
           if (outcome.exitCode === 0) {
@@ -740,7 +772,7 @@ describe("$verify handler", () => {
 
   beforeEach(async () => {
     projectRoot = makeTmpRoot();
-    originalExecSync = verify._deps.execSync;
+    verifyProcessAdapter = () => "";
     await deepInterview.execute(
       { params: { goal: "verify goal", sessionId } },
       { projectRoot },
@@ -755,7 +787,7 @@ describe("$verify handler", () => {
     );
   });
   afterEach(() => {
-    verify._deps.execSync = originalExecSync;
+    verifyProcessAdapter = () => "";
     cleanup(projectRoot);
   });
 

@@ -8,11 +8,13 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { spawnSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 function defaultManagedSkillsRoot() {
   let userDataPath = path.join(os.homedir(), ".chainlesschain");
@@ -29,7 +31,6 @@ function defaultManagedSkillsRoot() {
 const _deps = {
   fs,
   path,
-  spawnSync,
   getManagedSkillsRoot: defaultManagedSkillsRoot,
 };
 
@@ -84,11 +85,23 @@ module.exports = {
             parsed.name,
             parsed.maxIterations,
             {
-              ...requireBundledSkillEnvironmentBroker(
+              environment: {
+                ...requireBundledSkillEnvironmentBroker(
+                  context,
+                  "skill-creator",
+                ).snapshot(),
+                CHAINLESSCHAIN_QUIET: "1",
+              },
+              processBroker: requireBundledSkillProcessBroker(
                 context,
                 "skill-creator",
-              ).snapshot(),
-              CHAINLESSCHAIN_QUIET: "1",
+              ),
+              cliEntrypoint: context.cliEntrypoint || process.argv[1],
+              cwd:
+                context.projectRoot ||
+                context.workspaceRoot ||
+                context.workspacePath ||
+                process.cwd(),
             },
           );
         case "validate":
@@ -172,23 +185,25 @@ function parseInput(input) {
  * Works when running inside `chainlesschain agent` or `chainlesschain skill run`.
  * Returns null on failure (non-CLI env, timeout, etc.).
  */
-function callLLM(prompt, runtimeEnv) {
+function callLLM(prompt, runtime) {
   try {
-    const result = _deps.spawnSync(
-      process.execPath,
-      [process.argv[1], "ask", prompt],
-      {
-        encoding: "utf-8",
-        timeout: 60000,
-        windowsHide: true,
-        env: runtimeEnv,
-      },
-    );
-    if (result.error || result.status !== 0) {
+    if (!runtime.cliEntrypoint) {
       return null;
     }
-    return (result.stdout || "").trim() || null;
-  } catch {
+    const output = runtime.processBroker.execFileSync(
+      "node",
+      [runtime.cliEntrypoint, "ask", prompt],
+      {
+        cwd: runtime.cwd,
+        env: runtime.environment,
+        timeout: 60_000,
+      },
+    );
+    return (output || "").toString("utf8").trim() || null;
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }

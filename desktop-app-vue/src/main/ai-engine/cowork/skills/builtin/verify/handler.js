@@ -7,15 +7,17 @@
  * non-passing result routes the session to fix-loop (Gate V4) or
  * failed, depending on the retry budget.
  *
- * All side-effect entry points (execSync, fs) are routed through
- * `_deps` so tests can inject fakes without fighting the Vitest
- * forks-pool CJS trap.
+ * Filesystem entry points are routed through `_deps`; process execution uses
+ * the branded, shell-free bundled Skill process authority.
  */
 
 const path = require("path");
 const fs = require("fs");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  parseShellFreeCommand,
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
@@ -24,7 +26,6 @@ const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 const _deps = {
   SessionStateManager,
   runHook,
-  execSync,
   fs,
 };
 
@@ -148,17 +149,19 @@ function defaultChecksForProject(projectRoot) {
 }
 
 /**
- * Run a single check through `_deps.execSync`. Returns a verify.json
+ * Run a single check through the process authority. Returns a verify.json
  * check entry with status "passed" or "failed" and a short summary.
  */
-function runCheck(check, cwd) {
+function runCheck(check, cwd, context) {
   const startedAt = Date.now();
   try {
-    const stdout = _deps.execSync(check.command, {
+    const invocation = parseShellFreeCommand(check.command);
+    const stdout = requireBundledSkillProcessBroker(
+      context,
+      "verify",
+    ).execFileSync(invocation.file, invocation.args, {
       cwd,
-      encoding: "utf-8",
       timeout: check.timeout,
-      stdio: ["pipe", "pipe", "pipe"],
     });
     return {
       id: check.id,
@@ -294,7 +297,7 @@ module.exports = {
     const cwd = task?.params?.cwd || projectRoot;
     const results = [];
     for (const check of checks) {
-      const res = runCheck(check, cwd);
+      const res = runCheck(check, cwd, context);
       results.push(res);
       // Append progress so the parent log reflects verify activity.
       try {

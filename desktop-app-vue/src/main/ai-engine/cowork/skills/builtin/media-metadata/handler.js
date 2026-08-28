@@ -7,6 +7,9 @@
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Type Detection ──────────────────────────────────
 
@@ -126,134 +129,129 @@ async function extractImageMeta(filePath) {
   }
 }
 
-function extractAudioMeta(filePath) {
-  return new Promise((resolve) => {
-    try {
-      const ffmpeg = require("fluent-ffmpeg");
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          resolve({
-            type: "audio",
-            file: path.basename(filePath),
-            error: `ffprobe error: ${err.message}`,
-          });
-          return;
-        }
-
-        const audio = metadata.streams.find((s) => s.codec_type === "audio");
-        resolve({
-          type: "audio",
-          file: path.basename(filePath),
-          duration: metadata.format.duration,
-          durationFormatted: formatDuration(metadata.format.duration),
-          codec: audio ? audio.codec_name : "unknown",
-          sampleRate: audio ? parseInt(audio.sample_rate) : 0,
-          channels: audio ? audio.channels : 0,
-          bitrate: metadata.format.bit_rate
-            ? parseInt(metadata.format.bit_rate)
-            : 0,
-          bitrateFormatted: metadata.format.bit_rate
-            ? `${Math.round(parseInt(metadata.format.bit_rate) / 1000)} kbps`
-            : "N/A",
-          format: metadata.format.format_name,
-          fileSize: parseInt(metadata.format.size) || 0,
-          fileSizeFormatted: formatBytes(metadata.format.size),
-          tags: metadata.format.tags || {},
-        });
-      });
-    } catch (err) {
-      resolve({
-        type: "audio",
-        file: path.basename(filePath),
-        error: `ffmpeg not available: ${err.message}`,
-      });
-    }
-  });
+function probeMedia(filePath, context, projectRoot) {
+  return JSON.parse(
+    requireBundledSkillProcessBroker(context, "media-metadata").execFileSync(
+      "ffprobe",
+      ["-v", "error", "-show_format", "-show_streams", "-of", "json", filePath],
+      { cwd: projectRoot, timeout: 60_000 },
+    ),
+  );
 }
 
-function extractVideoMeta(filePath) {
-  return new Promise((resolve) => {
-    try {
-      const ffmpeg = require("fluent-ffmpeg");
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          resolve({
-            type: "video",
-            file: path.basename(filePath),
-            error: `ffprobe error: ${err.message}`,
-          });
-          return;
-        }
-
-        const video = metadata.streams.find((s) => s.codec_type === "video");
-        const audio = metadata.streams.find((s) => s.codec_type === "audio");
-        const subs = metadata.streams.filter(
-          (s) => s.codec_type === "subtitle",
-        );
-
-        resolve({
-          type: "video",
-          file: path.basename(filePath),
-          duration: metadata.format.duration,
-          durationFormatted: formatDuration(metadata.format.duration),
-          format: metadata.format.format_name,
-          fileSize: parseInt(metadata.format.size) || 0,
-          fileSizeFormatted: formatBytes(metadata.format.size),
-          bitrate: metadata.format.bit_rate
-            ? parseInt(metadata.format.bit_rate)
-            : 0,
-          video: video
-            ? {
-                codec: video.codec_name,
-                width: video.width,
-                height: video.height,
-                fps: video.r_frame_rate
-                  ? parseFloat(
-                      video.r_frame_rate.includes("/")
-                        ? video.r_frame_rate
-                            .split("/")
-                            .reduce((a, b) => Number(a) / Number(b))
-                        : Number(video.r_frame_rate),
-                    ).toFixed(1)
-                  : "N/A",
-                bitrate: video.bit_rate
-                  ? `${Math.round(parseInt(video.bit_rate) / 1000)} kbps`
-                  : "N/A",
-              }
-            : null,
-          audio: audio
-            ? {
-                codec: audio.codec_name,
-                sampleRate: audio.sample_rate,
-                channels: audio.channels,
-                bitrate: audio.bit_rate
-                  ? `${Math.round(parseInt(audio.bit_rate) / 1000)} kbps`
-                  : "N/A",
-              }
-            : null,
-          subtitleTracks: subs.length,
-          tags: metadata.format.tags || {},
-        });
-      });
-    } catch (err) {
-      resolve({
-        type: "video",
-        file: path.basename(filePath),
-        error: `ffmpeg not available: ${err.message}`,
-      });
+async function extractAudioMeta(filePath, context, projectRoot) {
+  try {
+    const metadata = probeMedia(filePath, context, projectRoot);
+    const audio = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "audio",
+    );
+    return {
+      type: "audio",
+      file: path.basename(filePath),
+      duration: metadata.format?.duration,
+      durationFormatted: formatDuration(metadata.format?.duration),
+      codec: audio ? audio.codec_name : "unknown",
+      sampleRate: audio ? parseInt(audio.sample_rate) : 0,
+      channels: audio ? audio.channels : 0,
+      bitrate: metadata.format?.bit_rate
+        ? parseInt(metadata.format.bit_rate)
+        : 0,
+      bitrateFormatted: metadata.format?.bit_rate
+        ? `${Math.round(parseInt(metadata.format.bit_rate) / 1000)} kbps`
+        : "N/A",
+      format: metadata.format?.format_name,
+      fileSize: parseInt(metadata.format?.size) || 0,
+      fileSizeFormatted: formatBytes(metadata.format?.size),
+      tags: metadata.format?.tags || {},
+    };
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
     }
-  });
+    return {
+      type: "audio",
+      file: path.basename(filePath),
+      error: `ffprobe error: ${error.message}`,
+    };
+  }
 }
 
-async function extractMeta(filePath) {
+async function extractVideoMeta(filePath, context, projectRoot) {
+  try {
+    const metadata = probeMedia(filePath, context, projectRoot);
+    const video = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "video",
+    );
+    const audio = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "audio",
+    );
+    const subs = (metadata.streams || []).filter(
+      (stream) => stream.codec_type === "subtitle",
+    );
+    return {
+      type: "video",
+      file: path.basename(filePath),
+      duration: metadata.format?.duration,
+      durationFormatted: formatDuration(metadata.format?.duration),
+      format: metadata.format?.format_name,
+      fileSize: parseInt(metadata.format?.size) || 0,
+      fileSizeFormatted: formatBytes(metadata.format?.size),
+      bitrate: metadata.format?.bit_rate
+        ? parseInt(metadata.format.bit_rate)
+        : 0,
+      video: video
+        ? {
+            codec: video.codec_name,
+            width: video.width,
+            height: video.height,
+            fps: video.r_frame_rate
+              ? parseFloat(
+                  video.r_frame_rate.includes("/")
+                    ? video.r_frame_rate
+                        .split("/")
+                        .reduce((a, b) => Number(a) / Number(b))
+                    : Number(video.r_frame_rate),
+                ).toFixed(1)
+              : "N/A",
+            bitrate: video.bit_rate
+              ? `${Math.round(parseInt(video.bit_rate) / 1000)} kbps`
+              : "N/A",
+          }
+        : null,
+      audio: audio
+        ? {
+            codec: audio.codec_name,
+            sampleRate: audio.sample_rate,
+            channels: audio.channels,
+            bitrate: audio.bit_rate
+              ? `${Math.round(parseInt(audio.bit_rate) / 1000)} kbps`
+              : "N/A",
+          }
+        : null,
+      subtitleTracks: subs.length,
+      tags: metadata.format?.tags || {},
+    };
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
+    return {
+      type: "video",
+      file: path.basename(filePath),
+      error: `ffprobe error: ${error.message}`,
+    };
+  }
+}
+
+async function extractMeta(filePath, context, projectRoot) {
   const type = detectMediaType(filePath);
   switch (type) {
     case "image":
       return await extractImageMeta(filePath);
     case "audio":
-      return await extractAudioMeta(filePath);
+      return await extractAudioMeta(filePath, context, projectRoot);
     case "video":
-      return await extractVideoMeta(filePath);
+      return await extractVideoMeta(filePath, context, projectRoot);
     default:
       return {
         type: "unknown",
@@ -360,7 +358,11 @@ module.exports = {
 
         const results = [];
         for (const file of files.slice(0, 30)) {
-          const meta = await extractMeta(path.join(dir, file));
+          const meta = await extractMeta(
+            path.join(dir, file),
+            context,
+            projectRoot,
+          );
           results.push(meta);
         }
 
@@ -417,11 +419,11 @@ module.exports = {
       if (action === "image") {
         meta = await extractImageMeta(filePath);
       } else if (action === "audio") {
-        meta = await extractAudioMeta(filePath);
+        meta = await extractAudioMeta(filePath, context, projectRoot);
       } else if (action === "video") {
-        meta = await extractVideoMeta(filePath);
+        meta = await extractVideoMeta(filePath, context, projectRoot);
       } else {
-        meta = await extractMeta(filePath);
+        meta = await extractMeta(filePath, context, projectRoot);
       }
 
       const formatMatch = input.match(/--format\s+(\S+)/);

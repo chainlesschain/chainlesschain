@@ -6,14 +6,7 @@ version: 1.0.0
 category: utility
 user-invocable: true
 tags: [clipboard, history, copy, paste, pin, search, privacy]
-capabilities:
-  [
-    clipboard_read,
-    clipboard_write,
-    clipboard_history,
-    clipboard_search,
-    clipboard_pin,
-  ]
+capabilities: [clipboard_read, clipboard_write, clipboard_history, clipboard_search, clipboard_pin]
 tools:
   - clipboard_read
   - clipboard_write
@@ -37,7 +30,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, host:electron, host:logger, process:cwd, process:execute, runtime:time, system:inspect]
+execution-capabilities: [data:result, data:task, host:electron, host:logger, host:process, process:cwd, process:execute, runtime:time, system:inspect]
 handler: ./handler.js
 ---
 

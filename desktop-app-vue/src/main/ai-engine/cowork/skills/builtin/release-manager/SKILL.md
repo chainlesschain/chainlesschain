@@ -6,19 +6,12 @@ version: 1.0.0
 category: devops
 user-invocable: true
 tags: [release, version, changelog, tag, semver, github-release]
-capabilities:
-  [
-    version-calculation,
-    changelog-generation,
-    tag-creation,
-    release-notes,
-    multi-platform,
-  ]
+capabilities: [version-calculation, changelog-generation, tag-creation, release-notes, multi-platform]
 tools:
   - file_reader
   - file_writer
   - command_executor
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill to manage the release lifecycle. Calculate semantic version bumps

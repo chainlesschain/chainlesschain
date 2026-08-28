@@ -6,8 +6,7 @@ version: 1.0.0
 category: devops
 user-invocable: true
 tags: [environment, doctor, diagnostics, port, docker, health, setup]
-capabilities:
-  [runtime-detection, port-check, service-health, config-validation, auto-fix]
+capabilities: [runtime-detection, port-check, service-health, config-validation, auto-fix]
 tools:
   - file_reader
   - command_executor
@@ -26,7 +25,7 @@ examples:
     output: "Auto-fix: Starting Redis container... Starting Ollama service... All services running."
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, network:socket, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, network:socket, process:cwd, process:execute, system:inspect]
 handler: ./handler.js
 ---
 

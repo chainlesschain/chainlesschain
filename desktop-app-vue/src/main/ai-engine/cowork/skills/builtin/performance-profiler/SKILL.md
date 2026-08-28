@@ -5,18 +5,8 @@ description: Application performance profiling - runtime snapshots, benchmarking
 version: 1.0.0
 category: devops
 user-invocable: true
-tags:
-  [performance, profiling, bottleneck, latency, metrics, benchmark, optimize]
-capabilities:
-  [
-    performance-snapshot,
-    command-benchmark,
-    memory-analysis,
-    startup-timing,
-    snapshot-comparison,
-    script-profiling,
-    report-generation,
-  ]
+tags: [performance, profiling, bottleneck, latency, metrics, benchmark, optimize]
+capabilities: [performance-snapshot, command-benchmark, memory-analysis, startup-timing, snapshot-comparison, script-profiling, report-generation]
 tools:
   - process_info
   - command_executor
@@ -42,7 +32,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd, process:execute, runtime:time, runtime:timers, system:inspect]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, host:process, process:cwd, process:execute, runtime:time, runtime:timers, system:inspect]
 handler: ./handler.js
 ---
 
