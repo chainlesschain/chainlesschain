@@ -428,6 +428,26 @@ test("selector maps graph compiler changes to the CLI compiler contract", () => 
   ]);
 });
 
+test("selector maps team authority contract updates to exact CLI tests", () => {
+  const changedTests = [
+    "packages/cli/__tests__/unit/team-command-broker.test.js",
+    "packages/cli/__tests__/unit/team-runner-scope.test.js",
+  ];
+  const expectedTests = [
+    "__tests__/unit/team-command-broker.test.js",
+    "__tests__/unit/team-runner-scope.test.js",
+  ];
+  const selection = selector.createSelection(changedTests);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, expectedTests);
+  assert.deepEqual(
+    selection.mappings.map((mapping) => mapping.tests),
+    expectedTests.map((testFile) => [testFile]),
+  );
+});
+
 test("selector changes run integrity and CLI contracts without desktop fallback", () => {
   const selection = selector.createSelection([
     ...cliWindowsSandboxContractChanges,

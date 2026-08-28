@@ -155,7 +155,12 @@ describe("team command process Broker", () => {
     });
     child.emit("close", 0);
 
-    await expect(completed).resolves.toEqual({ code: 0 });
+    await expect(completed).resolves.toEqual({
+      code: 0,
+      terminalEvidence: {
+        outputDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
+    });
     expect(_deps.spawn).toHaveBeenCalledWith(
       "npm run build",
       [],
@@ -297,6 +302,9 @@ describe("team command process Broker", () => {
           },
         },
       ],
+      terminalEvidence: {
+        outputDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
     });
     expect(stdin).toBe("private teammate prompt");
     const [file, args, options] = _deps.spawn.mock.calls[0];
@@ -364,7 +372,12 @@ describe("team command process Broker", () => {
     await vi.waitFor(() => expect(_deps.spawn).toHaveBeenCalledOnce());
     child.stdout.write(`${JSON.stringify({ type: "result" })}\n`);
     child.emit("close", 0);
-    await expect(completed).resolves.toEqual({ code: 0 });
+    await expect(completed).resolves.toEqual({
+      code: 0,
+      terminalEvidence: {
+        outputDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
+    });
 
     expect(childEnvironment).toMatchObject({
       CC_TEAM_MESSAGE_BRIDGE_PROTOCOL: "1",

@@ -39,6 +39,14 @@ const CLI_CONTRACT_TEST_MAPPINGS = new Map([
     ["__tests__/unit/graph-kernel-compiler.test.js"],
   ],
   [
+    "packages/cli/__tests__/unit/team-command-broker.test.js",
+    ["__tests__/unit/team-command-broker.test.js"],
+  ],
+  [
+    "packages/cli/__tests__/unit/team-runner-scope.test.js",
+    ["__tests__/unit/team-runner-scope.test.js"],
+  ],
+  [
     "packages/cli/__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
     [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[0]],
   ],
