@@ -18,6 +18,9 @@ describe("Desktop packaged Graph fixture contract", () => {
     const preload = readFixture("preload.cjs");
 
     expect(writer).toContain("/* global require, __dirname, process */");
+    expect(writer).toContain("DesktopGraphRunRegistry");
+    expect(writer).toContain("fs.writeFileSync");
+    expect(writer).toContain("setInterval(() => {}, 1_000)");
     expect(main).toContain("/* global require, __dirname, process */");
     expect(preload).toContain("/* global require */");
     for (const source of [writer, main, preload]) {

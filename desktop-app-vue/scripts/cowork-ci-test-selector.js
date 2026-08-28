@@ -88,8 +88,6 @@ const COLLAB_RUNTIME_CONTRACT_TESTS = [
   "src/renderer/stores/__tests__/collab.test.ts",
   "src/renderer/utils/__tests__/yjs-ipc-provider.test.ts",
 ];
-const DESKTOP_GRAPH_IPC_JOURNEY_TEST =
-  "src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js";
 const DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST =
   "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
@@ -103,7 +101,7 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   [
     "src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
-    [DESKTOP_GRAPH_IPC_JOURNEY_TEST],
+    [DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST],
   ],
   ...[
     "src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/main.cjs",

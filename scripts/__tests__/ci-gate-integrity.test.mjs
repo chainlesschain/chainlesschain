@@ -298,7 +298,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
-      "src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js",
+      "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
     ],
     ...["main.cjs", "preload.cjs", "renderer.html", "package.json"].map(
       (fixtureName) => [
