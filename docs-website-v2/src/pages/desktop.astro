@@ -28,6 +28,9 @@ const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releas
         <p class="mt-4 text-sm text-muted leading-relaxed max-w-3xl">
           CLI {CLI_VERSION} 提供默认关闭的 Desktop App Server pilot：仅开放固定 Thread/Turn 方法，子进程继续由 Process Broker 管理，参数上限 256 KiB；审批 UI 未接入时保持拒绝。它是迁移试点，不表示桌面端已全量切换。
         </p>
+        <p class="mt-3 text-sm text-muted leading-relaxed max-w-3xl">
+          2026-08-28 Desktop 源码快照新增 Graph Run Debugger，可从 AI 对话、工作流监控和 Agent Dashboard 查看拓扑、时间线、预算、Trace 与因果关系；Cowork 外部 Skill 采用签名校验和一次性隔离 Worker，内置 Skill 的网络、进程与环境访问改走有界审计 Broker。该源码增量不冒充 npm CLI 制品。
+        </p>
         <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
           <a href="#download" class="btn-ember">下载桌面版 ↓</a>
           <a href="/cli" class="btn-ghost">偏好命令行？</a>

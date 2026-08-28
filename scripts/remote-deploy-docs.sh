@@ -16,6 +16,8 @@
 #   scripts/remote-deploy-docs.sh                      # build+deploy all 3
 #   scripts/remote-deploy-docs.sh 20260615-docfix docs # just docs, custom stamp
 #   scripts/remote-deploy-docs.sh "" design www        # design+www, auto stamp
+#   DOCS_DEPLOY_SKIP_BUILD=1 scripts/remote-deploy-docs.sh 20260615-verified
+#     # reuse already-built dist directories; count/index validation still runs
 #
 # Requires: OpenSSH key-auth to the server (ssh/scp, no password). See memory
 # deploy_putty_fallback_no_paramiko for the PuTTY fallback when key-auth is down.
@@ -52,9 +54,13 @@ for site in "${SITES[@]}"; do
   tar="/tmp/deploy-$site-$STAMP.tar.gz"
   echo "===== $site -> $domain (min html $minhtml, stamp $STAMP) ====="
 
-  # 1. build
-  echo "[$site] building..."
-  ( cd "$src" && npm run build ) || { echo "!! $site build failed"; fail=1; continue; }
+  # 1. build (or reuse a separately verified build)
+  if [ "${DOCS_DEPLOY_SKIP_BUILD:-0}" = "1" ]; then
+    echo "[$site] reusing existing build (DOCS_DEPLOY_SKIP_BUILD=1)..."
+  else
+    echo "[$site] building..."
+    ( cd "$src" && npm run build ) || { echo "!! $site build failed"; fail=1; continue; }
+  fi
   n=$(find "$dist" -name "*.html" | wc -l)
   echo "[$site] built $n html"
   if [ "$n" -lt "$minhtml" ]; then echo "!! $site html $n < $minhtml — skip"; fail=1; continue; fi

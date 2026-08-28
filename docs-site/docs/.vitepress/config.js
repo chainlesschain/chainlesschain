@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.6 推荐 / npm latest · Agent SDK 0.2.4 · Open VSX 0.37.71 · JetBrains 0.4.100｜Canonical Protocol · Graph Kernel";
+        "v5.0.3.135 · CLI 0.166.7 推荐 / npm latest · Agent SDK 0.2.4 · Open VSX 0.37.72 · JetBrains 0.4.103｜Graph authoritative cutover · Desktop Skill brokers";
     }
   },
 
@@ -177,7 +177,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.5（推荐）",
+          text: "🧩 Agent Platform 0.166.7（推荐）",
           collapsed: false,
           items: [
             {
@@ -199,6 +199,10 @@ export default defineConfig({
             {
               text: "GraphRun 观测与评估 ⭐NEW",
               link: "/chainlesschain/cli-team-graph",
+            },
+            {
+              text: "Desktop Graph 调试与 Skill 安全 ⭐NEW",
+              link: "/chainlesschain/desktop-graph-skill-security",
             },
             {
               text: "Agent Protocol — Schema 与多语言生成 ⭐NEW",
@@ -1944,6 +1948,10 @@ export default defineConfig({
             {
               text: "108 Context/Memory Kernel 设计 ⭐NEW",
               link: "/design/modules/108-context-memory-kernel",
+            },
+            {
+              text: "109 Desktop Cowork Skill 执行安全 ⭐NEW",
+              link: "/design/modules/109_Desktop_Cowork_Skill_Execution_Security",
             },
             {
               text: "60b CLI指令技能包 ⭐",

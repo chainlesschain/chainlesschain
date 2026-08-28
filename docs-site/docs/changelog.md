@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+#### Added — CLI 0.166.7 Graph 权威入口与 Desktop Graph / Skill 安全源码增量
+
+> `chainlesschain@0.166.7` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-7` 精确指向 [`19834a1845`](https://github.com/chainlesschain/chainlesschain/commit/19834a18457c1b763b5a7a2cfada713340e7c273)；同一发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181913)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181656)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181649)均成功。Open VSX `0.37.72` 与 JetBrains `0.4.103` 也已公开。
+
+- **Graph authoritative entry**：CLI 入口通过 cutover ledger、entry-scoped store、migration/canary gate 与真实 journey 验证，legacy mutation 在已切换入口失败闭合；GraphRun 的 authority、revision、lease/fence 与恢复语义成为权威写路径。
+- **Desktop Graph Run Debugger（源码）**：AI 对话、工作流监控与 Agent Dashboard 可查看 topology、timeline、budget heatmap、trace overlay、causality 与只读 time travel。
+- **Cowork Skill 执行安全（源码）**：外部 Handler 使用 Ed25519 身份、摘要重读与一次性隔离 Worker；内置 Handler 的网络、shell 进程、本地模型、诊断与环境值访问使用有界、按 authority 审计的 Broker。shell Broker 还约束 executable、subcommand、cwd、timeout、buffer 与 entrypoint，审计不保留 argv 或输出。
+- **协作生命周期（远端主线源码）**：`5edef7544b` 及其前序提交为 federated model transport、collaboration recovery/document/awareness、gossip protocol 与 mesh retained state 增加容量、时间和清理边界。
+- **发布边界**：Desktop `2286267dea` 与远端主线 `5edef7544b` 都晚于 `0.166.7@19834a1845`，不得表述为 npm 制品内容。
+
 #### Added — CLI 0.166.2、Agent SDK 0.2.1、Agent Protocol 0.1.1 与 IDE mailbox health
 
 > `chainlesschain@0.166.2` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-2` 精确指向 [`f868e14206`](https://github.com/chainlesschain/chainlesschain/commit/f868e142068c33d203601cddd7643fd8ad9c4ffb)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668553)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32775668270)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32779764184)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32781738319)均成功。Agent SDK `0.2.1` 与 Agent Protocol `0.1.1` 也已公开。

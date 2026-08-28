@@ -16,10 +16,10 @@ const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // fallback can drift ahead of npm during dev, so the pinned value is the norm.
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseSizes.cliVersion || releaseStatus.npmLatestCliVersion;
-const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const AGENT_PROTOCOL_VERSION = releaseStatus.agentProtocolVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
@@ -95,7 +95,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 项发明专利' },
   { icon: '🔒', label: '军事级加密' },
-  { icon: '⭐', label: 'Open VSX 插件下载 3 万+' },
+  { icon: '⭐', label: 'Open VSX 插件下载 3.1 万+' },
   { icon: '✅', label: '等保三级认证' },
   { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -111,7 +111,7 @@ const badges = [
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">已验证 CLI v{CLI_VERSION}</span>
           <span class="chip">175 命令</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载突破 3 万</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载突破 3.1 万</a>
           <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 ChainlessChain 系列 npm 包月下载 5 万+</a>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>
@@ -148,7 +148,7 @@ const badges = [
           发布说明：完整门禁的 Agent Platform <code class="font-mono">{CLI_VERSION}</code> 同时是生产推荐版与 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>）。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读；1,800 秒 App Server overload/RSS soak 属于其前序 0.166.5 的长期证据。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3 万；VS Code 提供默认关闭、固定能力的 App Server pilot。当前 npm {NPM_LATEST_CLI_VERSION} 已完整门禁 Agent IPC 与 legacy backlog 有界化；后续主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> / CLI <code class="font-mono">{SOURCE_CLI_VERSION}</code> 又把 Desktop Cowork AgentPool 等待队列默认限制为 128，满载时以 <code class="font-mono">OVERLOADED</code> 快速失败，但不构成新的 CLI 发布身份。Graph authoritative adapter 切换、签名 native 与真实 provider 旅程继续独立取证。
+          Open VSX {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION} 已公开回读，IDE Bridge 下载量已突破 3.1 万。npm {NPM_LATEST_CLI_VERSION} 已完成 Graph authoritative entry 切换；发布后的 Desktop 源码 <code class="font-mono">{DESKTOP_SOURCE_COMMIT}</code> 增加 Graph Run Debugger，并将外部 Skill 签名/隔离与内置 Skill 网络、进程、环境访问收进有界 Broker。远端主线 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 继续有界化协作、联邦与 gossip 生命周期；二者都不构成新的 CLI 发布身份。签名 native 与真实 provider 旅程继续独立取证。
         </p>
 
         <!-- Trust badges -->
@@ -535,7 +535,7 @@ const badges = [
             <div class="text-sm text-muted mt-1">内置 Skills</div>
           </div>
           <div>
-            <div class="font-display text-4xl text-ember">30,000+</div>
+            <div class="font-display text-4xl text-ember">31,000+</div>
             <div class="text-sm text-muted mt-1">测试用例</div>
           </div>
         </div>

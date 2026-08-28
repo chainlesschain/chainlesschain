@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Desktop Graph Run Debugger and governed Cowork Skill execution
+
+> Desktop source updates recorded from `3e4d70eb52` through `2286267dea`
+> (2026-08-28). These commits are later than, and are not included in, the
+> npm CLI `0.166.7` artifact.
+
+- Add a read-only Graph Run Debugger to AI Chat, Workflow Monitor, and Agent
+  Dashboard with topology, timeline, budget heatmap, trace, causality, and
+  revision replay views.
+- Require external executable Skill handlers to carry a trusted Ed25519
+  signature and explicit capability manifest, then run their verified source
+  snapshot in a one-shot isolated worker through ProcessExecutionBroker.
+- Bind every bundled handler to a generated capability catalog containing its
+  source digest and reviewed capability set; CI rejects handler, manifest, or
+  catalog drift.
+- Move fixed-domain, dynamic-public, media/model, loopback-service, and network
+  diagnostic access behind separate bounded host brokers with explicit
+  authority, target policy, SSRF protection, quotas, and audit events.
+- Remove raw environment reads from reviewed bundled handlers. The environment
+  broker returns only per-Skill logical keys under an exact authority, caps
+  values and snapshots, and never writes secret values into audit events.
+- Replace direct shell/process calls in the migrated PR, worktree, Kubernetes,
+  and PDH handlers with a branded per-Skill process broker. Executable,
+  subcommand, cwd, timeout, buffer, and entrypoint policy fail closed; audit
+  records omit argument values and adapter output.
+
+### Added - cc CLI 0.166.7: authoritative Graph Kernel cutover
+
+> `chainlesschain` **0.166.6 -> 0.166.7**, published 2026-08-28 from exact
+> commit `19834a18457c1b763b5a7a2cfada713340e7c273`.
+
+- **Canonical execution authority**: CLI graph, Team, distributed-team,
+  Cowork, Scheduler, and App Server entry points now resolve through the
+  Graph Kernel cutover ledger instead of silently retaining parallel mutation
+  paths.
+- **Durable fencing and recovery**: graph writers, leases, receipts, takeover,
+  migration, and crash/resume flows are bound to persisted authority and
+  checked-out source evidence so stale owners cannot resume mutations.
+- **Legacy containment**: retired runtimes retain explicitly read-only history
+  access while unclassified or mutating legacy routes fail closed and report
+  their canonical replacement targets.
+- **Release validation**: the exact SHA passed Linux/Windows/macOS `CLI CI`
+  and `CLI Strict Sandbox`; immutable package, Trusted Publishing, npm
+  provenance, public-registry readback, Open VSX `0.37.72`, and JetBrains
+  Marketplace `0.4.103` were verified independently.
+
 ### Fixed - cc CLI 0.166.6: bounded Agent IPC transport
 
 > `chainlesschain` **0.166.5 -> 0.166.6** (release candidate,

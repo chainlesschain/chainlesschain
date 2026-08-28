@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.6`（精确发布 SHA `f2a249bf3d`；功能自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.7`（精确发布 SHA `19834a1845`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -14,6 +14,8 @@
 - GraphRun 是否满足 CI 阈值？
 
 当前命令只读取已有 GraphRun，不创建、不恢复、不取消任务，也不修改权威状态。GraphRun 由启用 Graph Kernel 的 Team/Cowork/Scheduler 或其他 adapter 产生。
+
+`0.166.7` 已将 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server 入口接入持久 cutover ledger；恢复、takeover 与 migration 都复核 store、writer、lease/fence、revision 和 checked-out source evidence。Retired runtime 只保留明确的只读历史入口，未分类或尝试修改状态的 legacy route 会失败闭合并提示 canonical replacement。Desktop/Browser/IDE 是否完成切换仍需按各自证据判断。
 
 ## 先分清 GraphRun 与三类图
 
@@ -72,7 +74,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.6"
+npm install --global "chainlesschain@0.166.7"
 
 # 查看完整投影
 cc team graph inspect <run-id>
@@ -345,6 +347,18 @@ cc team graph eval "$GRAPH_RUN_ID" \
 2. 核对 from/to Attempt 与 lease/fence；
 3. 查看相关 Message 是否 processed/dead-letter；
 4. 不要把 accepted 误写为 committed。
+
+## Desktop Graph Run Debugger
+
+2026-08-28 Desktop 源码在 CLI JSON 观测面之外增加了只读可视化调试器：
+
+- AI Chat 在当前 Coding Agent 会话存在 Task Graph 时自动显示；
+- Workflow Monitor 选择带 Graph 历史的运行后显示；
+- Agent Dashboard 的任务历史中，对带 `graphAuthority` 的记录点击“调试 Graph”。
+
+可在 Topology、Timeline、Budget heatmap、Trace overlay 与 Causality 五个视图之间切换。历史事件超过一个 revision 时，拖动 Time travel 滑块可回到旧帧，界面会显示节点新增、移除和状态差异；点击 Live 返回当前 revision。
+
+该组件只读取投影，不修改 GraphRun；消息和 Artifact 正文不会进入 Renderer overlay。Desktop 源码增量也不属于 npm CLI `0.166.7` 制品。详细操作与 Skill 安全边界见 [Desktop Graph 调试与 Skill 安全执行](/chainlesschain/desktop-graph-skill-security)。
 
 ## 测试覆盖
 

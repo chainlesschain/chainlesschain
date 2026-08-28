@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.5 推荐 / npm latest 0.166.6 · Agent SDK 0.2.4 · Open VSX 0.37.70 · JetBrains 0.4.100｜Canonical Protocol · Graph Kernel";
+        "v5.0.3.135 · CLI / npm latest 0.166.7 · Agent SDK 0.2.4 · Open VSX 0.37.72 · JetBrains 0.4.103｜Graph Authority · Desktop Skill Security";
     }
   },
 
@@ -149,6 +149,10 @@ export default defineConfig({
           {
             text: "Context/Memory Kernel 设计 (108) ⭐NEW",
             link: "/modules/m108-context-memory-kernel",
+          },
+          {
+            text: "Desktop Cowork Skill 执行安全 (109) ⭐NEW",
+            link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
           },
         ],
       },
@@ -1024,6 +1028,10 @@ export default defineConfig({
             {
               text: "108 Context/Memory Kernel 设计 ⭐NEW",
               link: "/modules/m108-context-memory-kernel",
+            },
+            {
+              text: "109 Desktop Cowork Skill 执行安全 ⭐NEW",
+              link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
             },
           ],
         },

@@ -16,10 +16,10 @@ const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // fallback can drift ahead of npm during dev, so the pinned value is the norm.
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseSizes.cliVersion || releaseStatus.npmLatestCliVersion;
-const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const AGENT_PROTOCOL_VERSION = releaseStatus.agentProtocolVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
@@ -151,7 +151,7 @@ const badges = [
           Release note: fully gated Agent Platform <code class="font-mono">{CLI_VERSION}</code> is both the production recommendation and npm <code class="font-mono">latest</code> (<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>). Immutable tag <code class="font-mono">{CLI_RELEASE_TAG}</code> at exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry/provenance readback. The 1,800-second App Server overload/RSS soak remains long-running evidence from its 0.166.5 predecessor. The TypeScript/Python Agent SDK is <code class="font-mono">{AGENT_SDK_VERSION}</code>; Agent Protocol is <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>.
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} and JetBrains {JETBRAINS_VERSION} are public and read back, and IDE Bridge has passed 30,000 downloads. VS Code adds a default-off, fixed-capability App Server pilot. npm {NPM_LATEST_CLI_VERSION} fully gates bounded Agent IPC and legacy-backlog admission; later mainline <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> / CLI <code class="font-mono">{SOURCE_CLI_VERSION}</code> additionally caps the Desktop Cowork AgentPool wait queue at 128 by default and fails fast with <code class="font-mono">OVERLOADED</code>, without creating a new CLI release identity. Authoritative Graph adapter cutover, signed native delivery, and real-provider journeys remain separate.
+          Open VSX {VSCODE_VERSION} and JetBrains {JETBRAINS_VERSION} are public and read back, and IDE Bridge has passed 31,000 downloads. npm {NPM_LATEST_CLI_VERSION} completes the Graph authoritative-entry cutover. Post-release Desktop source <code class="font-mono">{DESKTOP_SOURCE_COMMIT}</code> adds the Graph Run Debugger, signed isolated external Skills, and bounded network, process, and environment brokers for bundled Skills. Remote mainline <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> continues bounding collaboration, federation, and gossip lifecycles; neither source line creates a new CLI release identity. Signed native delivery and real-provider journeys remain separate.
         </p>
 
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
@@ -531,7 +531,7 @@ const badges = [
             <div class="text-sm text-muted mt-1">Built-in skills</div>
           </div>
           <div>
-            <div class="font-display text-4xl text-ember">30,000+</div>
+            <div class="font-display text-4xl text-ember">31,000+</div>
             <div class="text-sm text-muted mt-1">Tests</div>
           </div>
         </div>

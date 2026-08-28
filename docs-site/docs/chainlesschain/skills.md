@@ -1,12 +1,12 @@
 # Skills 技能系统
 
-> **版本: v5.0.1 | 138内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **文档快照：2026-08-28 | 146 个内置技能 | Agent Skills 开放标准 | 签名外部执行与能力代理**
 
-Skills 系统提供 146 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 141/141 (100%)。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。2026-08-28 的 Desktop 源码为全部内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker；网络、模型、媒体、诊断、shell 进程和环境值访问等高风险宿主表面也改由有界 Broker 执行，秘密、argv 与 adapter 输出不进入审计记录。
 
 ## 概述
 
-Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通过 SKILL.md Markdown 格式定义技能的提示词、工具集、参数和门控检查。系统内置 138 个技能覆盖开发、测试、安全、DevOps 等 18 个类别，采用四层加载机制（workspace > managed > marketplace > bundled）支持优先级覆盖，并通过统一工具注册表聚合 FunctionCaller、MCP 和 Skills 三大工具系统。
+Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通过 SKILL.md Markdown 格式定义技能的提示词、工具集、参数和门控检查。系统内置 146 个技能覆盖开发、测试、安全、DevOps 等 18 个类别，采用四层加载机制（workspace > managed > marketplace > bundled）支持优先级覆盖，并通过统一工具注册表聚合 FunctionCaller、MCP 和 Skills 三大工具系统。
 
 ## 核心特性
 
@@ -14,7 +14,7 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
 - 📄 **Markdown 技能定义**: 使用 SKILL.md 格式声明提示词、工具集、参数和门控检查
 - 📦 **四层加载机制**: workspace > managed > marketplace > bundled 优先级覆盖
 - 🔌 **统一工具注册表**: 聚合 FunctionCaller (60+)、MCP (8 servers)、Skills (50) 三大工具系统
-- 🔒 **门控检查**: 平台、二进制依赖、环境变量和自定义检查，确保安全执行
+- 🔒 **执行安全**: 内置 Handler 绑定生成能力目录；外部 Handler 必须签名并在一次性隔离 Worker 中通过宿主能力端口执行
 - 🧩 **Agent Skills 标准**: 13 个扩展字段，支持技能发现、组合和远程调用
 
 ## 系统架构
@@ -28,7 +28,7 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
 │  └────┬────┘  └─────┬─────┘  └───┬────┘ │
 │       │             │            │       │
 │  ┌────▼─────────────▼────────────▼────┐  │
-│  │       Skill Registry (138)         │  │
+│  │       Skill Registry (146)         │  │
 │  └────────────────┬───────────────────┘  │
 │                   │                      │
 │  ┌────────────────▼───────────────────┐  │
@@ -44,6 +44,22 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
   │ Checks  │ │ (17ch)  │ │ Skills  │
   └─────────┘ └─────────┘ └─────────┘
 ```
+
+## 2026-08-28 执行安全更新
+
+Skill 被发现不代表它已经获得执行权。真正运行前，Desktop 会重新读取 `SKILL.md`、Handler 与 `.skill-lock.json`，核对真实路径、文件大小、SHA-256、Ed25519 签名、可信 key 和 `execution-capabilities`。发现后被替换的文件会以 digest drift 失败闭合。
+
+| Skill 类型 | 当前执行方式 |
+| --- | --- |
+| 应用内置 Handler | 仅在包内真实路径、Handler 摘要与生成能力目录完全一致时进入主进程 |
+| 外部签名 Handler | 捕获已验证源码快照，由 ProcessExecutionBroker 启动一次性隔离 Worker |
+| 无 Handler 的 Markdown Skill | 只作为提示词/说明加载，不获得 Node.js 或宿主能力 |
+
+外部 Worker 不直接持有 Electron、数据库、MCP client、网络模块或 `child_process`。Handler 只能请求清单中已声明、当前 authority 已批准且宿主确实连接的能力端口；请求数、执行时间、协议 frame、stderr 和结果大小都有上限。
+
+内置网络 Skill 也不因“随包发布”而获得任意外联：固定服务使用精确域名策略，动态目标需要显式 declassification decision，DNS 解析后会拒绝私网/loopback/link-local/multicast 和混合地址。ping/traceroute 通过固定命令、字面 argv 与 `shell:false` 执行。
+
+用户操作、报错处理和 Graph 调试入口见 [Desktop Graph 调试与 Skill 安全执行](/chainlesschain/desktop-graph-skill-security)。详细安全不变量见 [模块 109：Desktop Cowork Skill 执行安全设计](/design/modules/109_Desktop_Cowork_Skill_Execution_Security)。
 
 ## 配置参考
 

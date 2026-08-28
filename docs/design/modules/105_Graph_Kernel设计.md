@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；完整门禁的生产推荐与 npm `latest` 均为 `0.166.6@f2a249bf3d`（2026-08-27）｜GraphDefinition v1｜Graph event v1｜authoritative 产品切换尚未完成
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；CLI、Team、distributed-team、Cowork、Scheduler 与 App Server 的 authoritative entry cutover 已随完整门禁的 `0.166.7@19834a1845` 发布（2026-08-28）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 等产品面的切换继续独立验收
 
 ## 1. 定位
 
@@ -274,6 +274,25 @@ cc team graph eval <run-id> [--thresholds <json>]
 
 不满足任一条件时 `assertGraphKernelCutover` 失败闭合。
 
+### 14.1 CLI 0.166.7 authoritative cutover
+
+`0.166.7` 将 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server 入口统一接入持久 cutover ledger 和 authority resolver。每次入口运行绑定 checked-out source evidence、entry、store、writer 与 revision；takeover、恢复和 migration saga 复核 lease/fence 与耐久 head。过期 owner、错误 store 或不匹配源码不能继续写入。
+
+Retired runtime 只保留显式只读历史投影；未分类或仍尝试 mutation 的 legacy route 失败闭合并返回 canonical replacement target。这里的“authoritative”只覆盖上述 CLI 产品入口，不把 Desktop、Browser 或 IDE 自动视为完成切换。
+
+### 14.2 Desktop Graph Run Debugger
+
+Desktop 源码提交 `3e4d70eb52` 与 `8995ca2488` 增加只读 Graph Run Debugger，并在 AI Chat、Workflow Monitor 与 Agent Dashboard 任务历史中消费 canonical Graph/history：
+
+- Topology：节点依赖、状态、critical path、slack 与 blocked root；
+- Timeline：耐久事件时间线；
+- Budget heatmap：节点预算使用率；
+- Trace overlay：Attempt、Artifact 与 Effect 证据；
+- Causality：任务、消息、审批、租约与 Artifact 的元数据因果链；
+- replay slider：按历史 revision/time frame 回放并展示节点增删、状态差异。
+
+Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 Artifact 正文不进入 overlay；历史来源没有耐久事件时必须显示缺口，不能从 UI 状态反推或补写权威事实。该 Desktop 源码增量不属于 npm CLI `0.166.7` 制品。
+
 ## 15. 安全不变量
 
 - 编译先于 Effect，非法图不能产生副作用；
@@ -286,24 +305,25 @@ cc team graph eval <run-id> [--thresholds <json>]
 
 ## 16. 发布状态与未决项
 
-已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`cc team plan/run/queue` 提供真实任务 DAG，但不能等同于所有产品面已经使用 canonical writer。
+已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 进一步完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换、耐久 fencing/recovery 和 legacy mutation containment；这仍不能外推为所有 Desktop/Browser/IDE 产品面已完成切换。
 
 | 层级 | 当前状态 | 对外口径 |
 | --- | --- | --- |
 | Compiler / Runtime / Event Store | 源码核心已发布并有聚焦测试 | 内核能力存在；不等于稳定公共 writer API |
 | `cc team graph` | `inspect/diff/eval` 已公开 | 只读已有 GraphRun，不创建、恢复或取消 |
-| Team/Cowork/Scheduler | 具备可复用真实能力与 adapter contract | authoritative cutover 仍逐面验收 |
-| Desktop/Browser/IDE | claims、pilot、shadow/cutover 机制已有 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated |
+| CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.7` 已通过 cutover ledger 解析唯一 writer | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合 |
+| Desktop | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
+| Browser/IDE | claims、pilot、shadow/cutover 机制已有 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated |
 
 未关闭：
 
-- CLI Team/Cowork/Scheduler/Desktop/Browser 的 authoritative 切换；
+- Desktop/Browser/IDE 的 authoritative 切换；
 - loop/subgraph 完整生产执行语义；
 - 逆依赖补偿执行器和全部 durable cut-point fault matrix；
 - 真实 child Agent message/handoff 长时恢复；
 - 30 分钟 overload/fairness soak；
 - 真实 provider 的 Linux/Windows/macOS Graph Agent journey；
-- Desktop/IDE topology、timeline 与 HumanTask UI。
+- Desktop HumanTask 决策 UI 与 IDE 原生 topology/timeline UI；Desktop 只读 Graph Debugger 已完成。
 
 ## 17. 关键文件
 
@@ -315,8 +335,11 @@ cc team graph eval <run-id> [--thresholds <json>]
 | `packages/cli/src/lib/graph-kernel/trace-reducer.js`   | 投影、time travel、diff、blocked root               |
 | `packages/cli/src/lib/graph-kernel/eval.js`            | 指标、threshold 与 suite                            |
 | `packages/cli/src/lib/graph-kernel/adapters.js`        | claims、shadow diff 与 cutover gate                 |
+| `packages/cli/src/lib/graph-kernel/cutover-ledger.js`  | entry/store/writer authority 与耐久切换证据         |
+| `packages/cli/src/lib/graph-kernel/authority.js`       | writer、lease、receipt 与恢复 authority             |
 | `packages/cli/src/lib/graph-kernel/trigger-adapter.js` | Scheduler occurrence → GraphRun dispatch journal    |
 | `packages/cli/src/commands/graph.js`                   | `cc team graph` 只读命令                            |
+| `desktop-app-vue/src/renderer/components/graph/GraphRunDebugger.vue` | Desktop topology/timeline/budget/trace/causality 只读调试器 |
 
 ## 18. 相关文档
 

@@ -1,6 +1,6 @@
 # Graph Kernel 使用与运维指南
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.6`（精确发布 SHA `f2a249bf3d`）｜核心与只读观测面自 `0.166.0` 起公开｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.7`（精确发布 SHA `19834a1845`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
 
 ## 概述
 
@@ -8,7 +8,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 用户通常不会直接启动名为 `graph-kernel` 的服务。目前公开入口分成两类：
 
-- `cc team plan/run/queue` 提供真实任务 DAG、lease/fence、预算、worktree 与恢复能力，但产品 adapter 的 canonical authoritative 切换尚未全部完成；
+- `cc team plan/run/queue` 提供真实任务 DAG、lease/fence、预算、worktree 与恢复能力；`0.166.7` 的 entry-scoped store 与 cutover ledger 已将受支持 CLI 入口切到 canonical authoritative writer；
 - `cc team graph inspect/diff/eval` 只读取已经存在的 canonical GraphRun 事件账本，用于观测、时间旅行、差异分析和质量门，不创建、恢复或取消 GraphRun。
 
 因此，GraphRun ID 不能用 Team state ID、Thread ID、Turn ID 或 task key 代替。只有已经接入 canonical writer 的 adapter 才会返回可供 `cc team graph` 使用的 GraphRun ID。
@@ -42,13 +42,13 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 ### 当前可用性
 
-| 能力 | `0.166.6` 用户口径 | 使用边界 |
+| 能力 | `0.166.7` 用户口径 | 使用边界 |
 | --- | --- | --- |
-| Team DAG 计划与执行 | 已公开：`cc team plan/run/queue` | 仍是迁移中的产品 adapter，不能据此宣称所有运行面已 canonical cutover |
+| Team DAG 计划与执行 | 已公开：`cc team plan/run/queue` | 受支持 CLI 入口已 canonical cutover；Desktop/Browser/IDE 等其他产品面仍按各自迁移证据判断 |
 | GraphDefinition v1 compiler/runtime | 源码核心已发布 | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成 |
 | GraphRun 观测 | 已公开：`cc team graph inspect/diff/eval` | 只读；必须已有 GraphRun event store 与真实 run ID |
 | Scheduler occurrence 映射 | 内核具备幂等映射与恢复契约 | occurrence 与 GraphRun 是两个状态机 |
-| Desktop/Cowork/Browser 接入 | adapter claims、shadow/cutover gate 已有 | authoritative writer 切换尚未全部完成 |
+| Desktop/Cowork/Browser 接入 | CLI entry cutover gate 已发布；Desktop Graph 调试器已有源码实现 | 非 CLI 产品面仍按各自 cutover 与发布身份判断，调试器只读投影不授予写权限 |
 | 动态扩图、Loop/Subgraph、Handoff、HumanTask | 内核契约与聚焦测试已有 | 生产可用性仍取决于具体 adapter、真实 provider journey 和发布门 |
 
 ## 使用示例
@@ -56,7 +56,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 ### 1. 安装生产推荐版
 
 ```bash
-npm install --global "chainlesschain@0.166.6"
+npm install --global "chainlesschain@0.166.7"
 cc team --help
 ```
 
