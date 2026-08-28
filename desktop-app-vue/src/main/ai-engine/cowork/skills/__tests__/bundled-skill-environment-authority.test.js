@@ -43,7 +43,15 @@ afterEach(() => {
 });
 
 describe("production bundled Skill environment authority", () => {
-  it("resolves configured LLM and encrypted Git credentials without env fallback", () => {
+  it("resolves only configured encrypted product credentials without env fallback", () => {
+    const skillCredentials = new Map([
+      ["google-client-id", "google-client-id-value"],
+      ["google-client-secret", "google-client-secret-value"],
+      ["google-refresh-token", "google-refresh-token-value"],
+      ["google-access-token", "google-access-token-value"],
+      ["notion-api-key", "notion-secret"],
+      ["tavily-api-key", "tavily-secret"],
+    ]);
     const resolver = createDefaultSecretResolver({
       getLLMConfig: () => ({
         get: (key, fallback) =>
@@ -55,12 +63,29 @@ describe("production bundled Skill environment authority", () => {
       getGitConfig: () => ({
         getAuth: () => ({ token: "github-secret" }),
       }),
+      getBundledSkillCredentialStore: () => ({
+        get: (key) => skillCredentials.get(key) || null,
+      }),
     });
 
     expect(resolver({ key: "openai-api-key" })).toBe("openai-secret");
     expect(resolver({ key: "google-api-key" })).toBe("google-secret");
     expect(resolver({ key: "github-token" })).toBe("github-secret");
-    expect(resolver({ key: "tavily-api-key" })).toBeNull();
+    expect(resolver({ key: "google-client-id" })).toBe(
+      "google-client-id-value",
+    );
+    expect(resolver({ key: "google-client-secret" })).toBe(
+      "google-client-secret-value",
+    );
+    expect(resolver({ key: "google-refresh-token" })).toBe(
+      "google-refresh-token-value",
+    );
+    expect(resolver({ key: "google-access-token" })).toBe(
+      "google-access-token-value",
+    );
+    expect(resolver({ key: "notion-api-key" })).toBe("notion-secret");
+    expect(resolver({ key: "tavily-api-key" })).toBe("tavily-secret");
+    expect(resolver({ key: "unreviewed-secret" })).toBeNull();
   });
 
   it("requires a centralized host policy decision", async () => {

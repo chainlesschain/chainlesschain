@@ -79,6 +79,14 @@ function createDefaultSecretResolver(options = {}) {
       const { getGitConfig } = require("../../../git/git-config");
       return getGitConfig();
     });
+  const bundledSkillCredentialStoreResolver =
+    options.getBundledSkillCredentialStore ||
+    (() => {
+      const {
+        getBundledSkillCredentialStore,
+      } = require("./bundled-skill-credential-store");
+      return getBundledSkillCredentialStore();
+    });
 
   return function resolveDefaultSecret({ key }) {
     if (key === "openai-api-key") {
@@ -89,6 +97,18 @@ function createDefaultSecretResolver(options = {}) {
     }
     if (key === "github-token") {
       return gitConfigResolver().getAuth()?.token || null;
+    }
+    if (
+      [
+        "google-client-id",
+        "google-client-secret",
+        "google-refresh-token",
+        "google-access-token",
+        "notion-api-key",
+        "tavily-api-key",
+      ].includes(key)
+    ) {
+      return bundledSkillCredentialStoreResolver().get(key) || null;
     }
     return null;
   };

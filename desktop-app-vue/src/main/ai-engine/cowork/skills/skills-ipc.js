@@ -28,6 +28,13 @@ const {
 const {
   createBundledSkillNetworkAuthorityFactory,
 } = require("./bundled-skill-network-authority");
+const {
+  getBundledSkillCredentialStore,
+} = require("./bundled-skill-credential-store");
+const {
+  registerBundledSkillCredentialIPC,
+  unregisterBundledSkillCredentialIPC,
+} = require("./bundled-skill-credential-ipc");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -43,6 +50,8 @@ function registerSkillsIPC(options = {}) {
 
   // 获取或创建注册表
   const registry = getSkillRegistry();
+  const credentialStore =
+    options.bundledSkillCredentialStore || getBundledSkillCredentialStore();
 
   // 创建加载器
   const loader = new SkillLoader({
@@ -89,6 +98,7 @@ function registerSkillsIPC(options = {}) {
   registry.setBundledSkillEnvironmentAuthorityFactory(
     createBundledSkillEnvironmentAuthorityFactory({
       getWorkspacePath: () => loader.options.workspacePath,
+      getBundledSkillCredentialStore: () => credentialStore,
     }),
   );
   registry.setBundledSkillProcessAuthorityFactory(
@@ -101,11 +111,11 @@ function registerSkillsIPC(options = {}) {
   );
 
   // Hooks 集成
-  let skillHookId = null;
+  let _skillHookId = null;
   if (hookSystem) {
     const { HookPriority, HookResult } = require("../../../hooks");
 
-    skillHookId = hookSystem.register({
+    _skillHookId = hookSystem.register({
       event: "PreToolUse",
       name: "skills:execution-hook",
       priority: HookPriority.NORMAL,
@@ -124,6 +134,8 @@ function registerSkillsIPC(options = {}) {
   }
 
   logger.info("[SkillsIPC] Registering IPC handlers...");
+
+  registerBundledSkillCredentialIPC({ hookSystem, credentialStore });
 
   // ==================== 技能加载 ====================
 
@@ -661,9 +673,9 @@ function registerSkillsIPC(options = {}) {
     }
   });
 
-  logger.info("[SkillsIPC] Registered 17 IPC handlers");
+  logger.info("[SkillsIPC] Registered 18 IPC handlers");
 
-  return { registry, loader };
+  return { registry, loader, credentialStore };
 }
 
 /**
@@ -737,6 +749,7 @@ module.exports = {
  * 注销 Skills IPC 处理器
  */
 function unregisterSkillsIPC() {
+  unregisterBundledSkillCredentialIPC();
   const channels = [
     "skills:load-all",
     "skills:reload",

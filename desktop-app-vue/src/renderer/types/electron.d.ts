@@ -1149,6 +1149,7 @@ export interface ElectronAPI {
   // 模块化 API
   ukey: UKeyAPI;
   collab: CollabAPI;
+  markdownSkills: MarkdownSkillsAPI;
   auth: AuthAPI;
   specializedAgents: SpecializedAgentsAPI;
   workflowManager: WorkflowManagerAPI;
@@ -1259,6 +1260,38 @@ export interface ConfigAPI {
   set(key: string, value: any): Promise<any>;
   reset(): Promise<any>;
   exportEnv(filePath: string): Promise<any>;
+}
+
+export type BundledSkillCredentialKey =
+  | "google-client-id"
+  | "google-client-secret"
+  | "google-refresh-token"
+  | "google-access-token"
+  | "notion-api-key"
+  | "tavily-api-key";
+
+export interface MarkdownSkillsCredentialResult {
+  success: boolean;
+  configured?: boolean;
+  error?: string;
+  prevented?: boolean;
+}
+
+export interface MarkdownSkillsCredentialStatusResult {
+  success: boolean;
+  configured?: Partial<Record<BundledSkillCredentialKey, boolean>>;
+  error?: string;
+}
+
+export interface MarkdownSkillsAPI {
+  getCredentialStatus(): Promise<MarkdownSkillsCredentialStatusResult>;
+  setCredential(
+    key: BundledSkillCredentialKey,
+    value: string,
+  ): Promise<MarkdownSkillsCredentialResult>;
+  clearCredential(
+    key: BundledSkillCredentialKey,
+  ): Promise<MarkdownSkillsCredentialResult>;
 }
 
 // ==================== 全局类型扩展 ====================

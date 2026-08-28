@@ -172,7 +172,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       } = require("../../ai-engine/cowork/skills/skills-ipc");
       registerSkillsIPC({ hookSystem, workspacePath: process.cwd() });
     },
-    handlers: 17,
+    handlers: 18,
   });
 
   // 🔥 跨设备技能同步 (7 handlers)

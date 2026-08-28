@@ -9,7 +9,9 @@ function legacyGenericIpcEnabled(env = process.env) {
 }
 
 function assertLegacyGenericIpcEnabled(env = process.env) {
-  if (legacyGenericIpcEnabled(env)) return;
+  if (legacyGenericIpcEnabled(env)) {
+    return;
+  }
   const error = new Error(
     "Generic renderer IPC is disabled; use a fixed preload capability API",
   );
@@ -205,6 +207,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       subscribeCollab("collab:yjs-remote-update", callback),
     onAwarenessUpdate: (callback) =>
       subscribeCollab("collab:yjs-awareness-update", callback),
+  },
+
+  // Fixed bundled Skill credential capabilities. Stored plaintext is never
+  // exposed back to the renderer; only configured status can be queried.
+  markdownSkills: {
+    getCredentialStatus: () => ipcRenderer.invoke("skills:credential-status"),
+    setCredential: (key, value) =>
+      ipcRenderer.invoke("skills:set-credential", { key, value }),
+    clearCredential: (key) =>
+      ipcRenderer.invoke("skills:clear-credential", { key }),
   },
 
   // 认证相关 - 密码登录
