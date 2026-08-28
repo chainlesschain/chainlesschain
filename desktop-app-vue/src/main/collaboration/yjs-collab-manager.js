@@ -30,12 +30,18 @@ function safeParse(raw, fallback) {
 const Y = require("yjs");
 const { encoding, decoding } = require("lib0");
 const EventEmitter = require("events");
+const {
+  CollabBoundaryError,
+  createCollabBoundaries,
+  assertDocumentId,
+} = require("./collab-boundaries");
 
 class YjsCollabManager extends EventEmitter {
-  constructor(p2pManager, database) {
+  constructor(p2pManager, database, options = {}) {
     super();
     this.p2pManager = p2pManager;
     this.database = database;
+    this.boundaries = createCollabBoundaries(options.boundaries);
 
     // Map of document ID to Yjs document
     this.documents = new Map();
@@ -76,6 +82,7 @@ class YjsCollabManager extends EventEmitter {
           // Read document ID
           const docIdBuffer = await this._readFromStream(stream);
           const docId = new TextDecoder().decode(docIdBuffer);
+          assertDocumentId(docId, this.boundaries);
 
           // Get or create Yjs document
           const ydoc = this.getDocument(docId);
@@ -127,6 +134,7 @@ class YjsCollabManager extends EventEmitter {
           const awarenessBuffer = await this._readFromStream(stream);
           const decoder = decoding.createDecoder(awarenessBuffer);
           const docId = decoding.readVarString(decoder);
+          assertDocumentId(docId, this.boundaries);
           const awarenessUpdate = decoding.readVarUint8Array(decoder);
 
           // Apply awareness update
@@ -145,6 +153,7 @@ class YjsCollabManager extends EventEmitter {
    * Get or create a Yjs document for the given ID
    */
   getDocument(docId) {
+    assertDocumentId(docId, this.boundaries);
     if (!this.documents.has(docId)) {
       const ydoc = new Y.Doc();
 
@@ -591,9 +600,108 @@ class YjsCollabManager extends EventEmitter {
   async _readFromStream(stream) {
     return new Promise((resolve, reject) => {
       const chunks = [];
-      stream.on("data", (chunk) => chunks.push(chunk));
-      stream.on("end", () => resolve(Buffer.concat(chunks)));
-      stream.on("error", reject);
+      let totalBytes = 0;
+      let chunkCount = 0;
+      let settled = false;
+
+      const removeListener = (event, listener) => {
+        if (typeof stream.off === "function") {
+          stream.off(event, listener);
+        } else if (typeof stream.removeListener === "function") {
+          stream.removeListener(event, listener);
+        }
+      };
+      const cleanup = () => {
+        clearTimeout(timer);
+        removeListener("data", onData);
+        removeListener("end", onEnd);
+        removeListener("error", onError);
+      };
+      const fail = (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        if (typeof stream.abort === "function") {
+          try {
+            const pendingAbort = stream.abort(error);
+            pendingAbort?.catch?.(() => {});
+          } catch (_abortError) {
+            // The boundary error remains the authoritative failure.
+          }
+        }
+        reject(error);
+      };
+      const onData = (chunk) => {
+        if (settled) {
+          return;
+        }
+
+        let normalized;
+        try {
+          normalized = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        } catch (_error) {
+          fail(
+            new CollabBoundaryError(
+              "ERR_COLLAB_STREAM_CHUNK_INVALID",
+              "Yjs stream emitted a non-binary chunk",
+            ),
+          );
+          return;
+        }
+
+        chunkCount += 1;
+        totalBytes += normalized.byteLength;
+        if (chunkCount > this.boundaries.maxStreamChunks) {
+          fail(
+            new CollabBoundaryError(
+              "ERR_COLLAB_STREAM_CHUNKS_EXCEEDED",
+              `Yjs stream exceeded ${this.boundaries.maxStreamChunks} chunks`,
+              {
+                chunkCount,
+                limitChunks: this.boundaries.maxStreamChunks,
+              },
+            ),
+          );
+          return;
+        }
+        if (totalBytes > this.boundaries.maxStreamBytes) {
+          fail(
+            new CollabBoundaryError(
+              "ERR_COLLAB_STREAM_BYTES_EXCEEDED",
+              `Yjs stream exceeded ${this.boundaries.maxStreamBytes} bytes`,
+              { totalBytes, limitBytes: this.boundaries.maxStreamBytes },
+            ),
+          );
+          return;
+        }
+
+        chunks.push(normalized);
+      };
+      const onEnd = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(Buffer.concat(chunks, totalBytes));
+      };
+      const onError = (error) => fail(error);
+      const timer = setTimeout(() => {
+        fail(
+          new CollabBoundaryError(
+            "ERR_COLLAB_STREAM_TIMEOUT",
+            `Yjs stream did not finish within ${this.boundaries.streamReadTimeoutMs} ms`,
+            { timeoutMs: this.boundaries.streamReadTimeoutMs },
+          ),
+        );
+      }, this.boundaries.streamReadTimeoutMs);
+      timer.unref?.();
+
+      stream.on("data", onData);
+      stream.on("end", onEnd);
+      stream.on("error", onError);
     });
   }
 

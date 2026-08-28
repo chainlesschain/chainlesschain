@@ -17,6 +17,15 @@ const _mockIpcMain = {
   on: vi.fn(),
   removeHandler: vi.fn(),
 };
+const _registeredCollabModules = new Set();
+const _mockIpcGuard = {
+  isModuleRegistered: (name) => _registeredCollabModules.has(name),
+  markModuleRegistered: (name) => _registeredCollabModules.add(name),
+  safeRegisterHandler: (channel, handler) => {
+    _mockIpcMain.handle(channel, handler);
+    return true;
+  },
+};
 vi.mock("electron", () => ({
   ipcMain: _mockIpcMain,
   app: { getPath: vi.fn(() => "/mock/userData") },
@@ -25,24 +34,55 @@ vi.mock("electron", () => ({
 // Mock yjs
 vi.mock("yjs", () => {
   class MockYText {
-    constructor() { this._content = ""; this._listeners = []; }
-    get length() { return this._content.length; }
-    insert(pos, str) { this._content = this._content.slice(0, pos) + str + this._content.slice(pos); }
-    delete(pos, len) { this._content = this._content.slice(0, pos) + this._content.slice(pos + len); }
-    toString() { return this._content; }
+    constructor() {
+      this._content = "";
+      this._listeners = [];
+    }
+    get length() {
+      return this._content.length;
+    }
+    insert(pos, str) {
+      this._content =
+        this._content.slice(0, pos) + str + this._content.slice(pos);
+    }
+    delete(pos, len) {
+      this._content =
+        this._content.slice(0, pos) + this._content.slice(pos + len);
+    }
+    toString() {
+      return this._content;
+    }
   }
   class MockYMap {
-    constructor() { this._data = new Map(); }
-    set(k, v) { this._data.set(k, v); }
-    get(k) { return this._data.get(k); }
-    forEach(fn) { this._data.forEach(fn); }
-    has(k) { return this._data.has(k); }
+    constructor() {
+      this._data = new Map();
+    }
+    set(k, v) {
+      this._data.set(k, v);
+    }
+    get(k) {
+      return this._data.get(k);
+    }
+    forEach(fn) {
+      this._data.forEach(fn);
+    }
+    has(k) {
+      return this._data.has(k);
+    }
   }
   class MockYArray {
-    constructor() { this._items = []; }
-    push(items) { this._items.push(...items); }
-    toArray() { return [...this._items]; }
-    get length() { return this._items.length; }
+    constructor() {
+      this._items = [];
+    }
+    push(items) {
+      this._items.push(...items);
+    }
+    toArray() {
+      return [...this._items];
+    }
+    get length() {
+      return this._items.length;
+    }
   }
   class MockDoc {
     constructor() {
@@ -52,20 +92,33 @@ vi.mock("yjs", () => {
       this._arrays = {};
     }
     getText(name) {
-      if (!this._texts[name]) {this._texts[name] = new MockYText();}
+      if (!this._texts[name]) {
+        this._texts[name] = new MockYText();
+      }
       return this._texts[name];
     }
     getMap(name) {
-      if (!this._maps[name]) {this._maps[name] = new MockYMap();}
+      if (!this._maps[name]) {
+        this._maps[name] = new MockYMap();
+      }
       return this._maps[name];
     }
     getArray(name) {
-      if (!this._arrays[name]) {this._arrays[name] = new MockYArray();}
+      if (!this._arrays[name]) {
+        this._arrays[name] = new MockYArray();
+      }
       return this._arrays[name];
     }
-    transact(fn) { fn(); this._listeners.forEach(cb => cb(new Uint8Array([1, 2, 3]), null)); }
-    on(event, cb) { this._listeners.push(cb); }
-    destroy() { this._listeners = []; }
+    transact(fn) {
+      fn();
+      this._listeners.forEach((cb) => cb(new Uint8Array([1, 2, 3]), null));
+    }
+    on(event, cb) {
+      this._listeners.push(cb);
+    }
+    destroy() {
+      this._listeners = [];
+    }
   }
   return {
     Doc: MockDoc,
@@ -172,7 +225,11 @@ describe("YjsCRDTEngine", () => {
 
   it("applyOperation throws for unknown document", () => {
     expect(() =>
-      engine.applyOperation("no-doc", { type: "insert", position: 0, content: "x" }),
+      engine.applyOperation("no-doc", {
+        type: "insert",
+        position: 0,
+        content: "x",
+      }),
     ).toThrow();
   });
 
@@ -345,11 +402,14 @@ describe("WebRTCYjsProvider", () => {
 
   it("handles peer message with unknown roomId gracefully", () => {
     expect(() => {
-      provider._handlePeerMessage("peer-x", JSON.stringify({
-        type: MSG_TYPE.SYNC_UPDATE,
-        roomId: "unknown-room",
-        update: [1, 2, 3],
-      }));
+      provider._handlePeerMessage(
+        "peer-x",
+        JSON.stringify({
+          type: MSG_TYPE.SYNC_UPDATE,
+          roomId: "unknown-room",
+          update: [1, 2, 3],
+        }),
+      );
     }).not.toThrow();
   });
 
@@ -563,7 +623,10 @@ describe("CollabGitIntegration", () => {
 
   it("initialize sets up listeners", async () => {
     await integration.initialize();
-    expect(mockEngine.on).toHaveBeenCalledWith("document:update", expect.any(Function));
+    expect(mockEngine.on).toHaveBeenCalledWith(
+      "document:update",
+      expect.any(Function),
+    );
   });
 
   it("getStats returns statistics object", () => {
@@ -653,12 +716,7 @@ describe("registerCollabIPC", () => {
   beforeEach(() => {
     // Reset the _mockIpcMain call history (handle is vi.fn() defined at file level)
     _mockIpcMain.handle.mockClear();
-
-    // Reset real ipc-guard state so each test starts fresh
-    const ipcGuardModule = require("../../ipc/ipc-guard");
-    if (typeof ipcGuardModule.resetAll === "function") {
-      ipcGuardModule.resetAll();
-    }
+    _registeredCollabModules.clear();
 
     mockEngine = {
       getMarkdown: vi.fn().mockReturnValue("content"),
@@ -688,7 +746,9 @@ describe("registerCollabIPC", () => {
       on: vi.fn(),
     };
     mockGitInteg = {
-      createVersionSnapshot: vi.fn().mockResolvedValue({ id: "s1", version: 1 }),
+      createVersionSnapshot: vi
+        .fn()
+        .mockResolvedValue({ id: "s1", version: 1 }),
       getVersionSnapshots: vi.fn().mockReturnValue([]),
       restoreSnapshot: vi.fn().mockResolvedValue({ success: true }),
     };
@@ -702,7 +762,7 @@ describe("registerCollabIPC", () => {
         sessionManager: mockSession,
         gitIntegration: mockGitInteg,
         mainWindow: null,
-        _deps: { ipcMain: _mockIpcMain },
+        _deps: { ipcMain: _mockIpcMain, ipcGuard: _mockIpcGuard },
       });
     }).not.toThrow();
   });
@@ -714,21 +774,58 @@ describe("registerCollabIPC", () => {
       sessionManager: mockSession,
       gitIntegration: mockGitInteg,
       mainWindow: null,
-      _deps: { ipcMain: _mockIpcMain },
+      _deps: { ipcMain: _mockIpcMain, ipcGuard: _mockIpcGuard },
     });
     // Should register handles
     expect(_mockIpcMain.handle.mock.calls.length).toBeGreaterThan(0);
   });
 
+  it("skips channels owned by the canonical realtime bridge", () => {
+    const excludedChannels = [
+      "collab:get-awareness",
+      "collab:update-cursor",
+      "collab:yjs-connect",
+      "collab:yjs-disconnect",
+    ];
+    registerCollabIPC({
+      yjsEngine: mockEngine,
+      yjsProvider: mockProvider,
+      sessionManager: mockSession,
+      gitIntegration: mockGitInteg,
+      excludedChannels,
+      _deps: { ipcMain: _mockIpcMain, ipcGuard: _mockIpcGuard },
+    });
+
+    const registeredChannels = _mockIpcMain.handle.mock.calls.map(
+      ([channel]) => channel,
+    );
+    expect(registeredChannels).not.toEqual(
+      expect.arrayContaining(excludedChannels),
+    );
+    expect(registeredChannels).toContain("collab:create-room");
+  });
+
   it("skips re-registration if already registered", () => {
-    const deps = { _deps: { ipcMain: _mockIpcMain } };
+    const deps = {
+      _deps: { ipcMain: _mockIpcMain, ipcGuard: _mockIpcGuard },
+    };
     // First call registers
-    registerCollabIPC({ yjsEngine: mockEngine, yjsProvider: mockProvider, sessionManager: mockSession, ...deps });
+    registerCollabIPC({
+      yjsEngine: mockEngine,
+      yjsProvider: mockProvider,
+      sessionManager: mockSession,
+      ...deps,
+    });
     const firstCallCount = _mockIpcMain.handle.mock.calls.length;
     expect(firstCallCount).toBeGreaterThan(0);
 
     // Second call should skip (already registered)
-    registerCollabIPC({ yjsEngine: mockEngine, yjsProvider: mockProvider, sessionManager: mockSession, ...deps });
+    registerCollabIPC({
+      yjsEngine: mockEngine,
+      yjsProvider: mockProvider,
+      sessionManager: mockSession,
+      ...deps,
+    });
     // handle should NOT have been called again
     expect(_mockIpcMain.handle.mock.calls.length).toBe(firstCallCount);
   });

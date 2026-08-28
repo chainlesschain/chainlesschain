@@ -8,7 +8,6 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const ipcGuard = require("../ipc/ipc-guard");
 
 /**
  * Register all Collaboration IPC handlers
@@ -18,6 +17,8 @@ const ipcGuard = require("../ipc/ipc-guard");
  * @param {Object} [dependencies.sessionManager] - CollabSessionManager instance
  * @param {Object} [dependencies.gitIntegration] - CollabGitIntegration instance
  * @param {Object} [dependencies.mainWindow] - Electron main window
+ * @param {string[]} [dependencies.excludedChannels] - Channels owned by the
+ *   canonical realtime collaboration bridge
  * @param {Object} [_deps={}] - Optional dependency overrides for testing
  * @param {Object} [_deps.ipcMain] - ipcMain instance (injected in tests)
  */
@@ -27,9 +28,29 @@ function registerCollabIPC({
   sessionManager,
   gitIntegration,
   mainWindow,
+  excludedChannels = [],
   _deps = {},
 }) {
-  const ipcMain = _deps.ipcMain !== undefined ? _deps.ipcMain : require("electron").ipcMain;
+  const ipcGuard = _deps.ipcGuard || require("../ipc/ipc-guard");
+  const electronIpcMain =
+    _deps.ipcMain !== undefined ? _deps.ipcMain : require("electron").ipcMain;
+  const excludedChannelSet = new Set(excludedChannels);
+  let registeredHandlerCount = 0;
+  const ipcMain = {
+    handle(channel, handler) {
+      if (excludedChannelSet.has(channel)) {
+        logger.info(
+          `[Collab IPC] Skipping ${channel}; owned by realtime collaboration`,
+        );
+        return;
+      }
+      registeredHandlerCount += 1;
+      if (_deps.ipcMain !== undefined) {
+        return electronIpcMain.handle(channel, handler);
+      }
+      return ipcGuard.safeRegisterHandler(channel, handler, "collab-ipc");
+    },
+  };
   if (ipcGuard.isModuleRegistered("collab-ipc")) {
     logger.info("[Collab IPC] Handlers already registered, skipping...");
     return;
@@ -444,7 +465,7 @@ function registerCollabIPC({
 
   // Mark module as registered
   ipcGuard.markModuleRegistered("collab-ipc");
-  logger.info("[Collab IPC] Registered 22 handlers");
+  logger.info(`[Collab IPC] Registered ${registeredHandlerCount} handlers`);
 
   // ============================================================
   // Event Forwarding to Renderer

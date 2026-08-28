@@ -1092,6 +1092,12 @@ export interface EmailAPI {
   stopAutoSync(accountId: string): Promise<any>;
 }
 
+export interface CollabAPI {
+  invoke<T = any>(channel: string, params?: any): Promise<T>;
+  onRemoteUpdate(listener: (data: any) => void): () => void;
+  onAwarenessUpdate(listener: (data: any) => void): () => void;
+}
+
 /**
  * 主 Electron API 接口
  */
@@ -1105,6 +1111,7 @@ export interface ElectronAPI {
 
   // 模块化 API
   ukey: UKeyAPI;
+  collab: CollabAPI;
   auth: AuthAPI;
   specializedAgents: SpecializedAgentsAPI;
   workflowManager: WorkflowManagerAPI;

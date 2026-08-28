@@ -77,6 +77,17 @@ const IPFS_TRANSPORT_CONTRACT_TESTS = [
   "src/main/ipfs/__tests__/ipfs-manager.test.js",
   "src/main/ipfs/__tests__/ipfs-ipc.test.js",
 ];
+const COLLAB_RUNTIME_CONTRACT_TESTS = [
+  "src/main/collaboration/__tests__/collab-boundaries.test.js",
+  "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
+  "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
+  "src/main/collab/__tests__/collab.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+  "src/main/ipc/__tests__/phase-34-collab-wiring.test.js",
+  "src/preload/__tests__/legacy-ipc-policy.test.js",
+  "src/renderer/stores/__tests__/collab.test.ts",
+  "src/renderer/utils/__tests__/yjs-ipc-provider.test.ts",
+];
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
   ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
@@ -86,8 +97,14 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
 ]);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
-  ["src/main/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
-  ["src/preload/index.js", [CONTENT_INTEGRATION_WIRING_TEST]],
+  [
+    "src/main/index.js",
+    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+  ],
+  [
+    "src/preload/index.js",
+    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+  ],
   ["src/main/ipfs/ipfs-boundaries.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   ["src/main/ipfs/ipfs-content-runtime.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   ["src/main/ipfs/ipfs-manager.js", IPFS_TRANSPORT_CONTRACT_TESTS],
@@ -96,6 +113,25 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     "src/main/ipc/phases/phase-21-30-enterprise.js",
     [IPFS_PRODUCTION_WIRING_TEST],
   ],
+  [
+    "src/main/collaboration/collab-boundaries.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/collaboration/yjs-collab-manager.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/collaboration/realtime-collab-ipc.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
+  [
+    "src/main/ipc/phases/phase-33-40-collab-ops.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  ["src/renderer/stores/collab.ts", COLLAB_RUNTIME_CONTRACT_TESTS],
+  ["src/renderer/utils/yjs-ipc-provider.ts", COLLAB_RUNTIME_CONTRACT_TESTS],
   [
     "src/renderer/pages/email/AccountManager.vue",
     [
@@ -119,7 +155,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     "src/renderer/pages/rss/FeedList.vue",
     [CONTENT_INTEGRATION_WIRING_TEST, "tests/unit/pages/FeedList.test.js"],
   ],
-  ["src/renderer/types/electron.d.ts", [CONTENT_INTEGRATION_WIRING_TEST]],
+  [
+    "src/renderer/types/electron.d.ts",
+    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+  ],
 ]);
 
 class SelectionError extends Error {

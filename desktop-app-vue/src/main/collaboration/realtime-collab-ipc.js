@@ -1,7 +1,7 @@
 /**
  * Real-time Collaboration IPC Handlers
  *
- * Provides 21 IPC handlers for real-time collaborative editing:
+ * Provides 22 IPC handlers for real-time collaborative editing:
  * - Document open/close
  * - Sync update/receive
  * - Awareness (cursor/selection)
@@ -18,6 +18,13 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  CollabBoundaryError,
+  createCollabBoundaries,
+  assertDocumentId,
+  normalizeUpdate,
+  assertAwarenessState,
+} = require("./collab-boundaries");
 
 /**
  * Register all real-time collaboration IPC handlers
@@ -31,13 +38,27 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
   // In tests we inject mocks via _deps to avoid resolving the npm electron stub.
   // yjs is ESM-only, so require('yjs') fails in CJS test environments; inject via _deps.Y.
   const _electron = _deps.ipcMain !== undefined ? null : require("electron");
-  const ipcMain =
+  const electronIpcMain =
     _deps.ipcMain !== undefined ? _deps.ipcMain : _electron.ipcMain;
+  const ipcGuard =
+    _deps.ipcMain !== undefined ? null : require("../ipc/ipc-guard");
+  const ipcMain =
+    _deps.ipcMain !== undefined
+      ? electronIpcMain
+      : {
+          handle: (channel, handler) =>
+            ipcGuard.safeRegisterHandler(
+              channel,
+              handler,
+              "realtime-collab-ipc",
+            ),
+        };
   const BrowserWindow =
     _deps.BrowserWindow !== undefined
       ? _deps.BrowserWindow
       : _electron.BrowserWindow;
   const getY = () => (_deps.Y !== undefined ? _deps.Y : require("yjs"));
+  const boundaries = createCollabBoundaries(_deps.boundaries);
   // Returns the yjsCollabManager instance; injectable for tests to avoid require() interop issues.
   const getYjsManager =
     _deps.getYjsManager !== undefined
@@ -67,7 +88,7 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
   // (sender, docId) key and unsubscribe when the renderer window is destroyed.
   const changeSubscriptions = new Map(); // key `${senderId}:${docId}` -> unsubscribe
 
-  logger.info("[IPC] 注册实时协作IPC处理器 (21个handlers)");
+  logger.info("[IPC] 注册实时协作IPC处理器 (22个handlers)");
 
   // ========================================
   // 1. Document Open/Close
@@ -627,11 +648,8 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
    */
   ipcMain.handle("collab:yjs-connect", async (_event, params) => {
     try {
-      const { documentId } = params;
-
-      if (!documentId) {
-        throw new Error("Missing required parameter: documentId");
-      }
+      const { documentId } = params || {};
+      assertDocumentId(documentId, boundaries);
 
       // Get or create Y.Doc via yjs-collab-manager
       let initialState = null;
@@ -646,10 +664,24 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
 
           if (doc) {
             const Y = getY();
-            initialState = Array.from(Y.encodeStateAsUpdate(doc));
+            const encodedState = Y.encodeStateAsUpdate(doc);
+            if (encodedState.byteLength > boundaries.maxIpcUpdateBytes) {
+              throw new CollabBoundaryError(
+                "ERR_COLLAB_UPDATE_TOO_LARGE",
+                `Initial Yjs state exceeds ${boundaries.maxIpcUpdateBytes} bytes`,
+                {
+                  byteLength: encodedState.byteLength,
+                  limitBytes: boundaries.maxIpcUpdateBytes,
+                },
+              );
+            }
+            initialState = Array.from(encodedState);
           }
         }
       } catch (e) {
+        if (e instanceof CollabBoundaryError) {
+          throw e;
+        }
         logger.warn(
           "[IPC] collab:yjs-connect - Could not get initial state:",
           e.message,
@@ -667,7 +699,7 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
       };
     } catch (error) {
       logger.error("[IPC] collab:yjs-connect failed:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message, code: error.code };
     }
   });
 
@@ -678,15 +710,12 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
    */
   ipcMain.handle("collab:yjs-update", async (_event, params) => {
     try {
-      const { documentId, update } = params;
-
-      if (!documentId || !update) {
-        throw new Error("Missing required parameters: documentId, update");
-      }
+      const { documentId, update } = params || {};
+      assertDocumentId(documentId, boundaries);
 
       // Apply update to main process Y.Doc
       const Y = getY();
-      const updateArray = new Uint8Array(update);
+      const updateArray = normalizeUpdate(update, boundaries);
 
       try {
         const yjsManager = getYjsManager();
@@ -715,7 +744,7 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
           db.prepare(
             `INSERT INTO collab_yjs_updates (id, knowledge_id, update_data, origin, created_at)
              VALUES (?, ?, ?, ?, datetime('now'))`,
-          ).run(uuidv4(), documentId, Buffer.from(update), "local");
+          ).run(uuidv4(), documentId, Buffer.from(updateArray), "local");
         } catch (dbErr) {
           // Database table may not exist yet - log but do not fail
           logger.warn(
@@ -746,7 +775,51 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
       return { success: true };
     } catch (error) {
       logger.error("[IPC] collab:yjs-update failed:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message, code: error.code };
+    }
+  });
+
+  /**
+   * Receive bounded renderer awareness state and relay it to other windows.
+   * @channel collab:yjs-awareness-update
+   */
+  ipcMain.handle("collab:yjs-awareness-update", async (_event, params) => {
+    try {
+      const { documentId, awarenessState, clientId } = params || {};
+      assertDocumentId(documentId, boundaries);
+      assertAwarenessState(awarenessState, boundaries);
+      if (!Number.isSafeInteger(clientId) || clientId < 0) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_AWARENESS_INVALID",
+          "clientId must be a non-negative safe integer",
+        );
+      }
+
+      const yjsManager = getYjsManager();
+      if (yjsManager?.getAwareness) {
+        const awareness = yjsManager.getAwareness(documentId);
+        awareness.states.set(clientId, awarenessState);
+        awareness.meta.set(clientId, {
+          peerId: `renderer:${_event?.sender?.id ?? "unknown"}`,
+          lastUpdate: Date.now(),
+        });
+      }
+
+      const payload = {
+        documentId,
+        states: [{ clientId, state: awarenessState }],
+      };
+      const senderWebContentsId = _event?.sender?.id;
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.webContents.id !== senderWebContentsId) {
+          win.webContents.send("collab:yjs-awareness-update", payload);
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      logger.error("[IPC] collab:yjs-awareness-update failed:", error);
+      return { success: false, error: error.message, code: error.code };
     }
   });
 
@@ -756,22 +829,19 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
    */
   ipcMain.handle("collab:yjs-disconnect", async (_event, params) => {
     try {
-      const { documentId } = params;
-
-      if (!documentId) {
-        throw new Error("Missing required parameter: documentId");
-      }
+      const { documentId } = params || {};
+      assertDocumentId(documentId, boundaries);
 
       logger.info(`[IPC] Yjs disconnect: ${documentId}`);
 
       return { success: true };
     } catch (error) {
       logger.error("[IPC] collab:yjs-disconnect failed:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message, code: error.code };
     }
   });
 
-  logger.info("[IPC] 实时协作IPC处理器注册完成 (21个handlers)");
+  logger.info("[IPC] 实时协作IPC处理器注册完成 (22个handlers)");
 }
 
 module.exports = {

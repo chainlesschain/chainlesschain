@@ -15,6 +15,71 @@
  * Extracted from ipc-registry.js as part of H2 file split.
  */
 
+const REALTIME_COLLAB_CHANNELS = Object.freeze([
+  "collab:get-awareness",
+  "collab:update-cursor",
+  "collab:yjs-connect",
+  "collab:yjs-disconnect",
+]);
+
+function registerPhase34Collaboration({
+  deps,
+  registeredModules,
+  logger,
+  modules = {},
+}) {
+  const { app } = deps;
+  let yjsCollabManager = null;
+  let realtimeCollabManager = null;
+
+  if (deps.database) {
+    const YjsCollabManager =
+      modules.YjsCollabManager ||
+      require("../../collaboration/yjs-collab-manager");
+    const getRealtimeCollabManager =
+      modules.getRealtimeCollabManager ||
+      require("../../collaboration/realtime-collab-manager")
+        .getRealtimeCollabManager;
+    const registerRealtimeCollabIPC =
+      modules.registerRealtimeCollabIPC ||
+      require("../../collaboration/realtime-collab-ipc")
+        .registerRealtimeCollabIPC;
+
+    realtimeCollabManager = getRealtimeCollabManager(deps.database);
+    yjsCollabManager = realtimeCollabManager?.yjsCollabManager || null;
+    if (!yjsCollabManager) {
+      yjsCollabManager = new YjsCollabManager(
+        deps.p2pManager || null,
+        deps.database,
+      );
+      realtimeCollabManager.setYjsManager(yjsCollabManager);
+    }
+
+    registerRealtimeCollabIPC(deps.database, {
+      getRealtimeManager: () => realtimeCollabManager,
+      getYjsManager: () => yjsCollabManager,
+    });
+    registeredModules.realtimeCollabManager = realtimeCollabManager;
+    registeredModules.yjsCollabManager = yjsCollabManager;
+  } else {
+    logger.warn(
+      "[IPC Registry] Realtime collaboration disabled: database unavailable",
+    );
+  }
+
+  const registerCollabIPC =
+    modules.registerCollabIPC ||
+    require("../../collab/collab-ipc").registerCollabIPC;
+  registerCollabIPC({
+    yjsEngine: app?.yjsEngine || null,
+    yjsProvider: app?.yjsProvider || null,
+    sessionManager: app?.collabSessionManager || null,
+    gitIntegration: app?.collabGitIntegration || null,
+    mainWindow: deps.mainWindow || null,
+    excludedChannels: realtimeCollabManager ? REALTIME_COLLAB_CHANNELS : [],
+  });
+}
+
 function registerPhases33to40({
   safeRegister,
   logger,
@@ -45,17 +110,9 @@ function registerPhases33to40({
   // ============================================================
 
   safeRegister("Collaboration IPC", {
-    handlers: 22,
-    register: () => {
-      const { registerCollabIPC } = require("../../collab/collab-ipc");
-      registerCollabIPC({
-        yjsEngine: app?.yjsEngine || null,
-        yjsProvider: app?.yjsProvider || null,
-        sessionManager: app?.collabSessionManager || null,
-        gitIntegration: app?.collabGitIntegration || null,
-        mainWindow: app?.mainWindow || null,
-      });
-    },
+    handlers: 39,
+    register: () =>
+      registerPhase34Collaboration({ deps, registeredModules, logger }),
   });
 
   logger.info("[IPC Registry] ========================================");
@@ -550,4 +607,8 @@ function registerPhases33to40({
   logger.info("[IPC Registry] ========================================");
 }
 
-module.exports = { registerPhases33to40 };
+module.exports = {
+  REALTIME_COLLAB_CHANNELS,
+  registerPhase34Collaboration,
+  registerPhases33to40,
+};
