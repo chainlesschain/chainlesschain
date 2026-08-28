@@ -6,12 +6,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/planning-with-files/handler.js");
+const handler = withTestFilesystemHandler(
+  require("../builtin/planning-with-files/handler.js"),
+  "planning-with-files",
+);
 
 describe("planning-with-files handler", () => {
   let tempDir;

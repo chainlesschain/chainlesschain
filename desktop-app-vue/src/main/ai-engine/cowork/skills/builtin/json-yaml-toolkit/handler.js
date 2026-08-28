@@ -6,7 +6,10 @@
  * Modes: --format, --minify, --validate, --convert, --query, --diff, --gen-schema
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -1247,3 +1250,8 @@ function formatTomlValue(val) {
   }
   return '"' + String(val) + '"';
 }
+
+module.exports = withBundledSkillFilesystem(
+  "json-yaml-toolkit",
+  module.exports,
+);

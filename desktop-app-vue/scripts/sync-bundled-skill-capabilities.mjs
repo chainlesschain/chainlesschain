@@ -240,6 +240,9 @@ function classifyInternalModule(moduleName) {
   if (normalized.includes("bundled-skill-environment-broker")) {
     return ["host:environment"];
   }
+  if (normalized.includes("bundled-skill-filesystem-broker")) {
+    return ["host:filesystem"];
+  }
   if (normalized.includes("bundled-skill-process-broker")) {
     return ["host:process", "process:execute"];
   }
@@ -311,8 +314,12 @@ function collectFsBindings(ast) {
     const required = requiredModule(node.init);
     if (!required) return;
     const coreName = required.moduleName?.replace(/^node:/, "");
-    if (coreName !== "fs") return;
+    const bundledBroker = required.moduleName
+      ?.replace(/\\/g, "/")
+      .includes("bundled-skill-filesystem-broker");
+    if (coreName !== "fs" && !bundledBroker) return;
     if (node.id.type === "Identifier") {
+      if (bundledBroker) return;
       objectBindings.add(node.id.name);
       return;
     }
@@ -325,7 +332,12 @@ function collectFsBindings(ast) {
             : String(property.key.value || "");
         const local =
           property.value.type === "Identifier" ? property.value.name : null;
-        if (imported && local) functionBindings.set(local, imported);
+        if (!imported || !local) continue;
+        if (bundledBroker) {
+          if (imported === "bundledSkillFs") objectBindings.add(local);
+        } else {
+          functionBindings.set(local, imported);
+        }
       }
     }
   });

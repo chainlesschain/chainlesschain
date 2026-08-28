@@ -5,7 +5,10 @@
  * HTML, TSV, and TXT. Supports batch conversion and format detection.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -714,3 +717,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("data-exporter", module.exports);

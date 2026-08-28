@@ -67,12 +67,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "architect-mode": Object.freeze([
-    "ca46fa7f92e87bf118af2fd1e42e19dc50ab6ddad1bce5e970c51c1e725d19c4",
+    "e292e31d472ce2d67402a7007da73bb84e41715abaf20b230b5eb05a6ab9917b",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:crypto",
@@ -301,12 +302,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "csv-processor": Object.freeze([
-    "88b477f7810e1fc1f40a0c314e831a679069b8cf1a6edbdb64a9a0acf6cc927b",
+    "657033be3190dad8686fbc310d4839fec87f14cc94e918d1e8ce1ac672a88a76",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -332,12 +334,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "data-exporter": Object.freeze([
-    "87a3a7fb651f942c8a6f6de0f6231452de5df974b97e5549ba583424d9e5d98c",
+    "44adb45703b8df7e0550e4a6aba51334bb8b7590be2435b7d49a802b40744626",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -513,12 +516,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "env-file-manager": Object.freeze([
-    "f2baf2480f73274267f142a33a8ea941bf5e66016c017ab408be58388c844e12",
+    "b2af6d0b2637c8fe3b3e8eed9271da30e33691673288f3290a19cf1110b044ad",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -692,13 +696,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "image-generator": Object.freeze([
-    "711bf7c77f1920683653e261ab41c889a3e30eb82c8825429c09b663010308e2",
+    "2758d5f977126ed946786e10e9c44e7a7bfc17aa9a1a04d4b8492322912c4558",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "host:media",
       "host:network",
@@ -719,12 +724,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "json-yaml-toolkit": Object.freeze([
-    "205b5822cc3dcd73fe5c4ce639629385837118580532ae62e9727e11143775f2",
+    "7b90edcd01604f75f9364d85ea3e5701a82c2702fc9c7420f4604dd7500319b3",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -775,12 +781,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "markdown-enhancer": Object.freeze([
-    "d5073a1032ca317a9022947d3c03c753f7f31c8413da72ca8417e4602459d292",
+    "d8173d8220eeb25e4c6cf92ce3fbaf444f8313cff68015424208b1b45cb33b2a",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -803,12 +810,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "memory-insights": Object.freeze([
-    "18ade82459fd8431deae6d028e48fd95a5ac6d418f1abe937d94ef4de4917956",
+    "cf8be057a0cc13fc3259ef2c5104c803076020ccc918bfba71d186e820363edb",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -975,12 +983,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "performance-profiler": Object.freeze([
-    "4b6ecc41406873e1e8feb66c1d8f42d791d7c348bbe11088331a82426e3dcc01",
+    "ef1da188260009b13d08b8a18d5e5c84faa76ba5c5ccce32d3a7251592ad29ec",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -991,12 +1000,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "planning-with-files": Object.freeze([
-    "3f163f19092f4481f27db3405c811801154a2211ed1cc1151fb46d84def82461",
+    "1d4aaa8bb8a4daa2a672382d9c35ef5233c3cb8b78b584c98dbf38a44b58e4e9",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -1142,12 +1152,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "rules-engine": Object.freeze([
-    "bdc670f4df30cfcad9f2ff61353df92958927e3e4bf401cce75d05d8b7a48cab",
+    "89772c515dff791325a04a08811ae124012bbd40b8abf8ebbbe7113e00d6ec06",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1210,12 +1221,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger", "host:rag"]),
   ]),
   "snippet-library": Object.freeze([
-    "8c4aa7f3d264ac706e3e9be8ba668877639e91f8149c44fd46b8296dd5e7d9f3",
+    "0be17d039b1d597fa612835dcd31c07685e3faf29835a0f738f40f7bf7a0285a",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -1232,13 +1244,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "subtitle-generator": Object.freeze([
-    "97d47ca23a661e9cbcda6924539856bc07f47a44f1a61c8d2812b53fe0702bc3",
+    "4aefc69194499a651bef8c71ac889cb32f516ac9199a52f62420bc8bddef7652",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1450,13 +1463,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "word-generator": Object.freeze([
-    "e132252f4e048adbb7004143c89e88e0b7d7bd2c071ce35adaa34d4b9e935644",
+    "b6f57935f64d7d3060c28431c035d3f161e00f2e9f3665600a66433e76fb5ad7",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),

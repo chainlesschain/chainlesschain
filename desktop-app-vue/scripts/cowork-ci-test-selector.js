@@ -113,6 +113,7 @@ const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-environment-broker.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-filesystem-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-git-process-handlers.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-media-process-handlers.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-local-service-broker.test.js",
@@ -323,6 +324,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/main/ai-engine/cowork/skills/bundled-skill-network-diagnostics-broker.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/bundled-skill-filesystem-broker.js",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [

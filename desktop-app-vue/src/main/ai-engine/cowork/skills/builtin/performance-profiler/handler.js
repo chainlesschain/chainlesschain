@@ -7,7 +7,10 @@
  * generation. Uses only Node.js built-in APIs (no external dependencies).
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const os = require("os");
 const { logger } = require("../../../../../utils/logger.js");
@@ -829,3 +832,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "performance-profiler",
+  module.exports,
+);
