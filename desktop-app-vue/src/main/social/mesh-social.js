@@ -19,6 +19,13 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const {
+  MeshSocialBoundaryError,
+  createMeshSocialBoundaries,
+  assertMeshPeerId,
+  normalizeMeshData,
+  normalizeMeshPeer,
+} = require("./mesh-social-boundaries");
 
 // ============================================================
 // Constants
@@ -31,25 +38,28 @@ const CONNECTION_TYPES = {
   NONE: "none",
 };
 
-const DISCOVERY_INTERVAL_MS = 5000;
-const PEER_TIMEOUT_MS = 30000;
-const MAX_SYNC_QUEUE_SIZE = 1000;
-
 // ============================================================
 // MeshSocial
 // ============================================================
 
 class MeshSocial extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
 
+    this.boundaries = createMeshSocialBoundaries(options.boundaries || {});
+    this._now =
+      typeof options.now === "function" ? options.now : () => Date.now();
+
     this.initialized = false;
+    this._destroyed = false;
 
     // In-memory peer registry: Map<peerId, { id, alias, lastSeen, connectionType, metadata }>
     this.peers = new Map();
 
     // Message queue for offline-to-online sync
     this.syncQueue = [];
+    this._syncQueueBytes = 0;
+    this._syncPromise = null;
 
     // Discovery state
     this._discoveryActive = false;
@@ -63,6 +73,10 @@ class MeshSocial extends EventEmitter {
    * Initialize mesh social manager
    */
   async initialize() {
+    this._assertUsable();
+    if (this.initialized) {
+      return;
+    }
     logger.info("[MeshSocial] Initializing mesh social manager...");
 
     try {
@@ -84,6 +98,7 @@ class MeshSocial extends EventEmitter {
    */
   async startDiscovery() {
     try {
+      this._requireReady();
       if (this._discoveryActive) {
         logger.info("[MeshSocial] Discovery already active");
         return { success: true, status: "already_active" };
@@ -94,7 +109,8 @@ class MeshSocial extends EventEmitter {
       // Start periodic peer cleanup (remove stale peers)
       this._discoveryInterval = setInterval(() => {
         this._cleanupStalePeers();
-      }, DISCOVERY_INTERVAL_MS);
+      }, this.boundaries.discoveryIntervalMs);
+      this._discoveryInterval.unref?.();
 
       logger.info("[MeshSocial] Peer discovery started");
 
@@ -116,6 +132,7 @@ class MeshSocial extends EventEmitter {
    */
   async stopDiscovery() {
     try {
+      this._assertUsable();
       if (!this._discoveryActive) {
         logger.info("[MeshSocial] Discovery already inactive");
         return { success: true, status: "already_inactive" };
@@ -148,18 +165,19 @@ class MeshSocial extends EventEmitter {
    */
   async getNearbyPeers() {
     try {
-      const now = Date.now();
+      this._requireReady();
+      const now = this._now();
       const peers = [];
 
-      for (const [peerId, peer] of this.peers) {
+      for (const peer of this.peers.values()) {
         // Only include peers seen recently
-        if (now - peer.lastSeen < PEER_TIMEOUT_MS) {
+        if (now - peer.lastSeen < this.boundaries.peerTtlMs) {
           peers.push({
             id: peer.id,
             alias: peer.alias,
             connectionType: peer.connectionType,
             lastSeen: peer.lastSeen,
-            metadata: peer.metadata || {},
+            metadata: structuredCloneJson(peer.metadata),
           });
         }
       }
@@ -180,37 +198,32 @@ class MeshSocial extends EventEmitter {
    */
   async sendViaMesh(peerId, data) {
     try {
-      if (!peerId) {
-        throw new Error("Peer ID is required");
-      }
-
-      if (data === undefined || data === null) {
-        throw new Error("Data is required");
-      }
-
-      const peer = this.peers.get(peerId);
+      this._requireReady();
+      const normalizedPeerId = assertMeshPeerId(peerId, this.boundaries);
+      const normalizedData = normalizeMeshData(data, this.boundaries).value;
+      const peer = this.peers.get(normalizedPeerId);
 
       if (!peer) {
-        throw new Error(`Peer not found: ${peerId}`);
+        throw new Error(`Peer not found: ${normalizedPeerId}`);
       }
 
       // Check if peer is still reachable
-      const now = Date.now();
-      if (now - peer.lastSeen > PEER_TIMEOUT_MS) {
-        throw new Error(`Peer is no longer reachable: ${peerId}`);
+      const now = this._now();
+      if (now - peer.lastSeen > this.boundaries.peerTtlMs) {
+        throw new Error(`Peer is no longer reachable: ${normalizedPeerId}`);
       }
 
       const message = {
         id: uuidv4(),
         from: "self",
-        to: peerId,
-        data,
+        to: normalizedPeerId,
+        data: normalizedData,
         timestamp: now,
         type: "direct",
       };
 
       // Simulate message delivery
-      logger.info("[MeshSocial] Sent mesh message to:", peerId);
+      logger.info("[MeshSocial] Sent mesh message to:", normalizedPeerId);
 
       this.emit("mesh:message", {
         direction: "outgoing",
@@ -220,7 +233,7 @@ class MeshSocial extends EventEmitter {
       return {
         success: true,
         messageId: message.id,
-        deliveredTo: peerId,
+        deliveredTo: normalizedPeerId,
       };
     } catch (error) {
       logger.error("[MeshSocial] Failed to send via mesh:", error);
@@ -236,15 +249,13 @@ class MeshSocial extends EventEmitter {
    */
   async broadcastMesh(data) {
     try {
-      if (data === undefined || data === null) {
-        throw new Error("Data is required");
-      }
-
-      const now = Date.now();
+      this._requireReady();
+      const normalizedData = normalizeMeshData(data, this.boundaries).value;
+      const now = this._now();
       const reachablePeers = [];
 
       for (const [peerId, peer] of this.peers) {
-        if (now - peer.lastSeen < PEER_TIMEOUT_MS) {
+        if (now - peer.lastSeen < this.boundaries.peerTtlMs) {
           reachablePeers.push(peerId);
         }
       }
@@ -253,7 +264,7 @@ class MeshSocial extends EventEmitter {
         id: uuidv4(),
         from: "self",
         to: "broadcast",
-        data,
+        data: normalizedData,
         timestamp: now,
         type: "broadcast",
       };
@@ -288,6 +299,7 @@ class MeshSocial extends EventEmitter {
    * @returns {string} The connection type
    */
   getConnectionType() {
+    this._assertUsable();
     return this._connectionType;
   }
 
@@ -297,6 +309,7 @@ class MeshSocial extends EventEmitter {
    * @returns {boolean} True if offline
    */
   isOfflineMode() {
+    this._assertUsable();
     return (
       this._connectionType === CONNECTION_TYPES.BLUETOOTH ||
       this._connectionType === CONNECTION_TYPES.WIFI_DIRECT ||
@@ -312,22 +325,20 @@ class MeshSocial extends EventEmitter {
    */
   async syncWhenOnline(data) {
     try {
-      if (data === undefined || data === null) {
-        throw new Error("Data is required");
-      }
-
-      if (this.syncQueue.length >= MAX_SYNC_QUEUE_SIZE) {
-        throw new Error("Sync queue is full");
-      }
+      this._requireReady();
+      const normalized = normalizeMeshData(data, this.boundaries);
+      this._assertSyncCapacity(normalized.byteLength);
 
       const entry = {
         id: uuidv4(),
-        data,
-        queuedAt: Date.now(),
+        data: normalized.value,
+        byteLength: normalized.byteLength,
+        queuedAt: this._now(),
         synced: false,
       };
 
       this.syncQueue.push(entry);
+      this._syncQueueBytes += entry.byteLength;
 
       logger.info(
         "[MeshSocial] Queued data for sync. Queue size:",
@@ -364,23 +375,49 @@ class MeshSocial extends EventEmitter {
    * @param {Object} [peerInfo.metadata] - Additional metadata
    */
   registerPeer(peerId, peerInfo = {}) {
-    const isNew = !this.peers.has(peerId);
+    this._requireReady();
+    if (
+      peerInfo === null ||
+      typeof peerInfo !== "object" ||
+      Array.isArray(peerInfo)
+    ) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_PEER_INVALID",
+        "peerInfo must be a plain object",
+      );
+    }
+    const candidateInfo = {
+      ...peerInfo,
+      connectionType:
+        peerInfo.connectionType === undefined
+          ? CONNECTION_TYPES.WIFI_DIRECT
+          : peerInfo.connectionType,
+    };
+    this._assertConnectionType(candidateInfo.connectionType);
+    const peer = normalizeMeshPeer(
+      peerId,
+      candidateInfo,
+      this.boundaries,
+      this._now(),
+    );
+    const isNew = !this.peers.has(peer.id);
+    if (isNew && this.peers.size >= this.boundaries.maxPeers) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_PEER_CAPACITY",
+        `Mesh peer capacity of ${this.boundaries.maxPeers} has been reached`,
+        { limit: this.boundaries.maxPeers },
+      );
+    }
 
-    this.peers.set(peerId, {
-      id: peerId,
-      alias: peerInfo.alias || `peer-${peerId.substring(0, 8)}`,
-      connectionType: peerInfo.connectionType || CONNECTION_TYPES.WIFI_DIRECT,
-      lastSeen: Date.now(),
-      metadata: peerInfo.metadata || {},
-    });
+    this.peers.set(peer.id, peer);
 
     if (isNew) {
-      logger.info("[MeshSocial] Discovered new peer:", peerId);
+      logger.info("[MeshSocial] Discovered new peer:", peer.id);
 
       this.emit("peer:discovered", {
-        peerId,
-        alias: peerInfo.alias,
-        connectionType: peerInfo.connectionType,
+        peerId: peer.id,
+        alias: peer.alias,
+        connectionType: peer.connectionType,
       });
     }
   }
@@ -391,14 +428,16 @@ class MeshSocial extends EventEmitter {
    * @param {string} peerId - The peer ID to remove
    */
   removePeer(peerId) {
-    if (this.peers.has(peerId)) {
-      const peer = this.peers.get(peerId);
-      this.peers.delete(peerId);
+    this._requireReady();
+    const normalizedPeerId = assertMeshPeerId(peerId, this.boundaries);
+    if (this.peers.has(normalizedPeerId)) {
+      const peer = this.peers.get(normalizedPeerId);
+      this.peers.delete(normalizedPeerId);
 
-      logger.info("[MeshSocial] Peer lost:", peerId);
+      logger.info("[MeshSocial] Peer lost:", normalizedPeerId);
 
       this.emit("peer:lost", {
-        peerId,
+        peerId: normalizedPeerId,
         alias: peer.alias,
       });
     }
@@ -410,6 +449,8 @@ class MeshSocial extends EventEmitter {
    * @param {string} connectionType - The new connection type
    */
   setConnectionType(connectionType) {
+    this._requireReady();
+    this._assertConnectionType(connectionType);
     const oldType = this._connectionType;
     this._connectionType = connectionType;
 
@@ -423,7 +464,12 @@ class MeshSocial extends EventEmitter {
       });
     }
 
-    logger.info("[MeshSocial] Connection type changed:", oldType, "->", connectionType);
+    logger.info(
+      "[MeshSocial] Connection type changed:",
+      oldType,
+      "->",
+      connectionType,
+    );
   }
 
   // ============================================================
@@ -435,11 +481,14 @@ class MeshSocial extends EventEmitter {
    * @private
    */
   _cleanupStalePeers() {
-    const now = Date.now();
+    if (this._destroyed) {
+      return;
+    }
+    const now = this._now();
     const staleIds = [];
 
     for (const [peerId, peer] of this.peers) {
-      if (now - peer.lastSeen > PEER_TIMEOUT_MS) {
+      if (now - peer.lastSeen > this.boundaries.peerTtlMs) {
         staleIds.push(peerId);
       }
     }
@@ -454,6 +503,18 @@ class MeshSocial extends EventEmitter {
    * @private
    */
   async _processSyncQueue() {
+    if (this._syncPromise) {
+      return this._syncPromise;
+    }
+    this._syncPromise = this._processSyncQueueOnce();
+    try {
+      return await this._syncPromise;
+    } finally {
+      this._syncPromise = null;
+    }
+  }
+
+  async _processSyncQueueOnce() {
     if (this.syncQueue.length === 0) {
       return;
     }
@@ -471,7 +532,7 @@ class MeshSocial extends EventEmitter {
         try {
           // In production, this would send data to the server/P2P network
           entry.synced = true;
-          entry.syncedAt = Date.now();
+          entry.syncedAt = this._now();
           processed.push(entry.id);
         } catch (error) {
           logger.warn(
@@ -485,6 +546,10 @@ class MeshSocial extends EventEmitter {
 
     // Remove synced entries
     this.syncQueue = this.syncQueue.filter((entry) => !entry.synced);
+    this._syncQueueBytes = this.syncQueue.reduce(
+      (total, entry) => total + entry.byteLength,
+      0,
+    );
 
     logger.info(
       "[MeshSocial] Synced",
@@ -497,16 +562,82 @@ class MeshSocial extends EventEmitter {
   /**
    * Close the mesh social manager
    */
-  async close() {
+  _assertUsable() {
+    if (this._destroyed) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_DESTROYED",
+        "Mesh social manager has been destroyed",
+      );
+    }
+  }
+
+  _requireReady() {
+    this._assertUsable();
+    if (!this.initialized) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_NOT_INITIALIZED",
+        "Mesh social manager is not initialized",
+      );
+    }
+  }
+
+  _assertConnectionType(connectionType) {
+    if (!Object.values(CONNECTION_TYPES).includes(connectionType)) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_CONNECTION_TYPE",
+        `Unsupported mesh connection type: ${connectionType}`,
+      );
+    }
+  }
+
+  _assertSyncCapacity(nextBytes) {
+    if (this.syncQueue.length >= this.boundaries.maxSyncEntries) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_SYNC_CAPACITY",
+        `Mesh sync queue entry capacity of ${this.boundaries.maxSyncEntries} has been reached`,
+        { limit: this.boundaries.maxSyncEntries },
+      );
+    }
+    if (this._syncQueueBytes + nextBytes > this.boundaries.maxSyncBytes) {
+      throw new MeshSocialBoundaryError(
+        "ERR_MESH_SYNC_CAPACITY",
+        `Mesh sync queue byte capacity of ${this.boundaries.maxSyncBytes} would be exceeded`,
+        {
+          retainedBytes: this._syncQueueBytes,
+          nextBytes,
+          limitBytes: this.boundaries.maxSyncBytes,
+        },
+      );
+    }
+  }
+
+  async destroy() {
+    if (this._destroyed) {
+      return;
+    }
     logger.info("[MeshSocial] Closing mesh social manager");
 
-    await this.stopDiscovery();
+    this._destroyed = true;
+    this._discoveryActive = false;
+    if (this._discoveryInterval) {
+      clearInterval(this._discoveryInterval);
+      this._discoveryInterval = null;
+    }
 
     this.peers.clear();
     this.syncQueue = [];
+    this._syncQueueBytes = 0;
     this.removeAllListeners();
     this.initialized = false;
   }
+
+  async close() {
+    await this.destroy();
+  }
+}
+
+function structuredCloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 module.exports = {
