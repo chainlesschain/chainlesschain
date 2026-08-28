@@ -1,92 +1,69 @@
 /**
  * Network Diagnostics Skill Handler
  *
- * Ping, DNS lookup, port check, port scan, local IP, traceroute, HTTP check.
- * Uses only Node.js built-in modules (dns, net, os, child_process, http, https).
+ * Ping, DNS lookup, port check, port scan, local IP, traceroute, HTTPS check.
+ * Privileged diagnostics are delegated to host-created, branded authorities.
  */
 
-const dns = require("dns");
-const net = require("net");
 const os = require("os");
-const { execSync } = require("child_process");
-const http = require("http");
-const https = require("https");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillNetworkDiagnosticsBroker,
+} = require("../../bundled-skill-network-diagnostics-broker.js");
+
+const DNS_TYPES = Object.freeze([
+  "A",
+  "AAAA",
+  "MX",
+  "TXT",
+  "NS",
+  "CNAME",
+  "SOA",
+]);
 
 function parseInput(input) {
   const parts = (input || "").trim().split(/\s+/);
   const opts = {};
   let action = "help";
   for (let i = 0; i < parts.length; i++) {
-    const p = parts[i];
-    if (p === "--ping" || p === "ping") {
+    const part = parts[i];
+    if (part === "--ping" || part === "ping") {
       action = "ping";
       opts.host = parts[++i] || "";
-    } else if (p === "--dns" || p === "dns") {
+    } else if (part === "--dns" || part === "dns") {
       action = "dns";
       opts.domain = parts[++i] || "";
-    } else if (p === "--port" || p === "port") {
+    } else if (part === "--port" || part === "port") {
       action = "port";
       opts.host = parts[++i] || "";
       opts.port = parseInt(parts[++i], 10) || 0;
-    } else if (p === "--ports" || p === "ports") {
+    } else if (part === "--ports" || part === "ports") {
       action = "ports";
       opts.host = parts[++i] || "";
-    } else if (p === "--ip" || p === "ip") {
+    } else if (part === "--ip" || part === "ip") {
       action = "ip";
-    } else if (p === "--trace" || p === "trace") {
+    } else if (part === "--trace" || part === "trace") {
       action = "trace";
       opts.host = parts[++i] || "";
-    } else if (p === "--check" || p === "check") {
+    } else if (part === "--check" || part === "check") {
       action = "check";
       opts.url = parts[++i] || "";
-    } else if (p === "--count") {
-      const n = parseInt(parts[++i], 10);
-      if (n > 0 && n <= 100) {
-        opts.count = n;
-      }
-    } else if (p === "--type") {
+    } else if (part === "--count") {
+      const count = parseInt(parts[++i], 10);
+      if (count > 0 && count <= 10) opts.count = count;
+    } else if (part === "--type") {
       opts.type = (parts[++i] || "A").toUpperCase();
-    } else if (p === "--range") {
+    } else if (part === "--range") {
       opts.range = parts[++i] || "";
     }
   }
   return { action, opts };
 }
 
-function runCmd(cmd, timeout = 30000) {
-  try {
-    return execSync(cmd, {
-      encoding: "utf-8",
-      timeout,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch (e) {
-    return e.stdout ? e.stdout.toString("utf8").trim() : null;
-  }
-}
-
-function checkPort(host, port, timeout = 5000) {
-  return new Promise((resolve) => {
-    const sock = new net.Socket();
-    let done = false;
-    const finish = (open) => {
-      if (done) {
-        return;
-      }
-      done = true;
-      sock.destroy();
-      resolve({ port, open });
-    };
-    sock.setTimeout(timeout);
-    sock.on("connect", () => finish(true));
-    sock.on("timeout", () => finish(false));
-    sock.on("error", () => finish(false));
-    sock.connect(port, host);
-  });
-}
-
-async function handlePing(opts) {
+async function handlePing(opts, broker) {
   const host = opts.host;
   if (!host) {
     return {
@@ -96,10 +73,9 @@ async function handlePing(opts) {
     };
   }
   const count = opts.count || 4;
-  const isWin = os.platform() === "win32";
-  const cmd = isWin ? `ping -n ${count} ${host}` : `ping -c ${count} ${host}`;
-  logger.info(`[network-diagnostics] Ping: ${cmd}`);
-  const output = runCmd(cmd, 30000);
+  const isWindows = os.platform() === "win32";
+  logger.info(`[network-diagnostics] Ping: ${host} count=${count}`);
+  const output = await broker.runPing({ target: host, count });
   if (!output) {
     return {
       success: false,
@@ -109,47 +85,51 @@ async function handlePing(opts) {
   }
 
   const times = [];
-  const re = isWin
+  const timePattern = isWindows
     ? /[=<](\d+(?:\.\d+)?)ms/gi
     : /time[=<](\d+(?:\.\d+)?)\s*ms/gi;
-  let m;
-  while ((m = re.exec(output)) !== null) {
-    times.push(parseFloat(m[1]));
+  let match;
+  while ((match = timePattern.exec(output)) !== null) {
+    times.push(parseFloat(match[1]));
   }
-  const lossM = output.match(/(\d+)%\s*(packet\s*)?loss/i);
-  const loss = lossM ? parseInt(lossM[1], 10) : null;
-  const recvM = output.match(
-    isWin ? /Received\s*=\s*(\d+)/i : /(\d+)\s+(packets?\s+)?received/i,
+  const lossMatch = output.match(/(\d+)%\s*(packet\s*)?loss/i);
+  const loss = lossMatch ? parseInt(lossMatch[1], 10) : null;
+  const receivedMatch = output.match(
+    isWindows ? /Received\s*=\s*(\d+)/i : /(\d+)\s+(packets?\s+)?received/i,
   );
-  const received = recvM ? parseInt(recvM[1], 10) : times.length;
-  const avg = times.length
-    ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(2)
+  const received = receivedMatch
+    ? parseInt(receivedMatch[1], 10)
+    : times.length;
+  const average = times.length
+    ? (times.reduce((left, right) => left + right, 0) / times.length).toFixed(2)
     : null;
-  const min = times.length ? Math.min(...times).toFixed(2) : null;
-  const max = times.length ? Math.max(...times).toFixed(2) : null;
-
+  const minimum = times.length ? Math.min(...times).toFixed(2) : null;
+  const maximum = times.length ? Math.max(...times).toFixed(2) : null;
   const info = {
     host,
     transmitted: count,
     received,
     packetLoss: loss !== null ? `${loss}%` : "unknown",
     times,
-    min: min && `${min}ms`,
-    avg: avg && `${avg}ms`,
-    max: max && `${max}ms`,
+    min: minimum && `${minimum}ms`,
+    avg: average && `${average}ms`,
+    max: maximum && `${maximum}ms`,
     reachable: received > 0,
   };
-  const msg = [
-    `## Ping ${host}`,
-    `**Packets**: ${count} sent, ${received} received${loss !== null ? `, ${loss}% loss` : ""}`,
-    times.length
-      ? `**RTT**: min=${min}ms, avg=${avg}ms, max=${max}ms`
-      : "**RTT**: No responses",
-  ];
-  return { success: true, result: info, message: msg.join("\n") };
+  return {
+    success: true,
+    result: info,
+    message: [
+      `## Ping ${host}`,
+      `**Packets**: ${count} sent, ${received} received${loss !== null ? `, ${loss}% loss` : ""}`,
+      times.length
+        ? `**RTT**: min=${minimum}ms, avg=${average}ms, max=${maximum}ms`
+        : "**RTT**: No responses",
+    ].join("\n"),
+  };
 }
 
-async function handleDns(opts) {
+async function handleDns(opts, broker) {
   const domain = opts.domain;
   if (!domain) {
     return {
@@ -159,64 +139,37 @@ async function handleDns(opts) {
     };
   }
   const type = opts.type || "A";
-  const resolver = new dns.promises.Resolver();
-  logger.info(`[network-diagnostics] DNS: ${domain} type=${type}`);
-  try {
-    let records;
-    switch (type) {
-      case "A":
-        records = await resolver.resolve4(domain);
-        break;
-      case "AAAA":
-        records = await resolver.resolve6(domain);
-        break;
-      case "MX":
-        records = (await resolver.resolveMx(domain))
-          .sort((a, b) => a.priority - b.priority)
-          .map((r) => `${r.priority} ${r.exchange}`);
-        break;
-      case "TXT":
-        records = (await resolver.resolveTxt(domain)).map((r) => r.join(""));
-        break;
-      case "NS":
-        records = await resolver.resolveNs(domain);
-        break;
-      case "CNAME":
-        records = await resolver.resolveCname(domain);
-        break;
-      case "SOA": {
-        const s = await resolver.resolveSoa(domain);
-        records = [
-          `nsname=${s.nsname} hostmaster=${s.hostmaster} serial=${s.serial}`,
-        ];
-        break;
-      }
-      default:
-        return {
-          success: false,
-          result: null,
-          message: `Unsupported type: ${type}. Use A|AAAA|MX|TXT|NS|CNAME|SOA`,
-        };
-    }
-    const info = { domain, type, records };
-    const msg = [
-      `## DNS: ${domain} (${type})`,
-      `**Records** (${records.length}):`,
-      ...records.map((r) => `  ${r}`),
-    ];
-    return { success: true, result: info, message: msg.join("\n") };
-  } catch (e) {
+  if (!DNS_TYPES.includes(type)) {
     return {
       success: false,
-      result: { domain, type, error: e.code || e.message },
-      message: `DNS failed: ${domain} (${type}): ${e.code || e.message}`,
+      result: null,
+      message: `Unsupported type: ${type}. Use ${DNS_TYPES.join("|")}`,
+    };
+  }
+  logger.info(`[network-diagnostics] DNS: ${domain} type=${type}`);
+  try {
+    const records = await broker.resolveDns({ target: domain, type });
+    return {
+      success: true,
+      result: { domain, type, records },
+      message: [
+        `## DNS: ${domain} (${type})`,
+        `**Records** (${records.length}):`,
+        ...records.map((record) => `  ${record}`),
+      ].join("\n"),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      result: { domain, type, error: error.code || error.message },
+      message: `DNS failed: ${domain} (${type}): ${error.code || error.message}`,
     };
   }
 }
 
-async function handlePort(opts) {
+async function handlePort(opts, broker) {
   const { host, port } = opts;
-  if (!host || !port || port < 1 || port > 65535) {
+  if (!host || !port || port < 1 || port > 65_535) {
     return {
       success: false,
       result: null,
@@ -224,16 +177,20 @@ async function handlePort(opts) {
     };
   }
   logger.info(`[network-diagnostics] Port check: ${host}:${port}`);
-  const r = await checkPort(host, port, 5000);
-  const status = r.open ? "OPEN" : "CLOSED";
+  const result = await broker.checkPort({
+    target: host,
+    port,
+    timeoutMs: 5000,
+  });
+  const status = result.open ? "OPEN" : "CLOSED";
   return {
     success: true,
-    result: { host, port, open: r.open, status },
+    result: { host, port, open: result.open, status },
     message: `## Port ${host}:${port}\n**Status**: ${status}`,
   };
 }
 
-async function handlePortScan(opts) {
+async function handlePortScan(opts, broker) {
   const { host, range } = opts;
   if (!host || !range) {
     return {
@@ -242,109 +199,121 @@ async function handlePortScan(opts) {
       message: "Usage: --ports <host> --range <start>-<end> (max 100)",
     };
   }
-  const [s, e] = range.split("-").map(Number);
-  if (isNaN(s) || isNaN(e) || s < 1 || e > 65535 || s > e) {
+  const [start, end] = range.split("-").map(Number);
+  if (
+    !Number.isSafeInteger(start) ||
+    !Number.isSafeInteger(end) ||
+    start < 1 ||
+    end > 65_535 ||
+    start > end
+  ) {
     return {
       success: false,
       result: null,
       message: "Invalid range. Format: <start>-<end>",
     };
   }
-  if (e - s + 1 > 100) {
+  if (end - start + 1 > 100) {
     return {
       success: false,
       result: null,
-      message: `Range too large (${e - s + 1}). Max 100 ports.`,
+      message: `Range too large (${end - start + 1}). Max 100 ports.`,
     };
   }
-  logger.info(`[network-diagnostics] Port scan: ${host} ${s}-${e}`);
-  const results = await Promise.all(
-    Array.from({ length: e - s + 1 }, (_, i) => checkPort(host, s + i, 3000)),
+  logger.info(`[network-diagnostics] Port scan: ${host} ${start}-${end}`);
+  const ports = Array.from(
+    { length: end - start + 1 },
+    (_, index) => start + index,
   );
-  const open = results.filter((r) => r.open);
+  const results = [];
+  for (let offset = 0; offset < ports.length; offset += 10) {
+    results.push(
+      ...(await Promise.all(
+        ports
+          .slice(offset, offset + 10)
+          .map((port) =>
+            broker.checkPort({ target: host, port, timeoutMs: 3000 }),
+          ),
+      )),
+    );
+  }
+  const open = results.filter((result) => result.open);
   const info = {
     host,
-    rangeStart: s,
-    rangeEnd: e,
-    totalScanned: e - s + 1,
+    rangeStart: start,
+    rangeEnd: end,
+    totalScanned: ports.length,
     openCount: open.length,
-    openPorts: open.map((r) => r.port),
+    openPorts: open.map((result) => result.port),
   };
-  const lines = open.length
-    ? open.map((r) => `  ${r.port} OPEN`).join("\n")
-    : "  None";
   return {
     success: true,
     result: info,
     message: [
-      `## Port Scan: ${host} (${s}-${e})`,
-      `**Scanned**: ${e - s + 1}  **Open**: ${open.length}`,
+      `## Port Scan: ${host} (${start}-${end})`,
+      `**Scanned**: ${ports.length}  **Open**: ${open.length}`,
       "",
-      lines,
+      open.length
+        ? open.map((result) => `  ${result.port} OPEN`).join("\n")
+        : "  None",
     ].join("\n"),
   };
 }
 
 async function handleIp() {
-  const ifaces = os.networkInterfaces();
-  const result = [],
-    extV4 = [];
-  for (const [name, addrs] of Object.entries(ifaces)) {
-    const entries = (addrs || []).map((a) => ({
-      address: a.address,
-      family: a.family,
-      netmask: a.netmask,
-      mac: a.mac,
-      internal: a.internal,
+  const interfaces = [];
+  const externalIPv4 = [];
+  for (const [name, addresses] of Object.entries(os.networkInterfaces())) {
+    const entries = (addresses || []).map((address) => ({
+      address: address.address,
+      family: address.family,
+      netmask: address.netmask,
+      mac: address.mac,
+      internal: address.internal,
     }));
-    result.push({ name, addresses: entries });
-    for (const a of entries) {
-      if (!a.internal && a.family === "IPv4") {
-        extV4.push({ iface: name, address: a.address });
+    interfaces.push({ name, addresses: entries });
+    for (const address of entries) {
+      if (!address.internal && address.family === "IPv4") {
+        externalIPv4.push({ iface: name, address: address.address });
       }
     }
   }
-  const info = {
-    hostname: os.hostname(),
-    interfaces: result,
-    externalIPv4: extV4,
-  };
-  const ifLines = result
+  const hostname = os.hostname();
+  const info = { hostname, interfaces, externalIPv4 };
+  const interfaceLines = interfaces
     .map(
-      (i) =>
-        `  **${i.name}**: ${i.addresses.map((a) => `${a.family}=${a.address}`).join(", ")}`,
+      (entry) =>
+        `  **${entry.name}**: ${entry.addresses.map((address) => `${address.family}=${address.address}`).join(", ")}`,
     )
     .join("\n");
-  const primary = extV4.length
-    ? extV4.map((e) => `  ${e.iface}: ${e.address}`).join("\n")
+  const primary = externalIPv4.length
+    ? externalIPv4
+        .map((entry) => `  ${entry.iface}: ${entry.address}`)
+        .join("\n")
     : "  No external IPv4";
   return {
     success: true,
     result: info,
     message: [
-      `## Local IPs`,
-      `**Hostname**: ${os.hostname()}`,
+      "## Local IPs",
+      `**Hostname**: ${hostname}`,
       "",
       "### Primary IPv4",
       primary,
       "",
       "### All Interfaces",
-      ifLines,
+      interfaceLines,
     ].join("\n"),
   };
 }
 
-async function handleTrace(opts) {
+async function handleTrace(opts, broker) {
   const host = opts.host;
   if (!host) {
     return { success: false, result: null, message: "Usage: --trace <host>" };
   }
-  const isWin = os.platform() === "win32";
-  const cmd = isWin
-    ? `tracert -d -w 3000 ${host}`
-    : `traceroute -n -w 3 ${host}`;
-  logger.info(`[network-diagnostics] Traceroute: ${cmd}`);
-  const output = runCmd(cmd, 60000);
+  logger.info(`[network-diagnostics] Traceroute: ${host}`);
+  const output = await broker.runTrace({ target: host });
   if (!output) {
     return {
       success: false,
@@ -354,33 +323,23 @@ async function handleTrace(opts) {
   }
   const hops = [];
   for (const line of output.split("\n")) {
-    const hm = line.match(/^\s*(\d+)\s+/);
-    if (!hm) {
-      continue;
-    }
-    const hopNum = parseInt(hm[1], 10);
-    const ipM = line.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+    const hopMatch = line.match(/^\s*(\d+)\s+/);
+    if (!hopMatch) continue;
+    const ipMatch = line.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
     const times = [];
-    const tr = /(\d+(?:\.\d+)?)\s*ms/gi;
-    let tm;
-    while ((tm = tr.exec(line)) !== null) {
-      times.push(parseFloat(tm[1]));
+    const timePattern = /(\d+(?:\.\d+)?)\s*ms/gi;
+    let timeMatch;
+    while ((timeMatch = timePattern.exec(line)) !== null) {
+      times.push(parseFloat(timeMatch[1]));
     }
     const timeout = line.includes("*") && !times.length;
     hops.push({
-      hop: hopNum,
-      ip: ipM ? ipM[1] : timeout ? "*" : "?",
+      hop: parseInt(hopMatch[1], 10),
+      ip: ipMatch ? ipMatch[1] : timeout ? "*" : "?",
       times,
       timeout,
     });
   }
-  const hopLines = hops
-    .map((h) =>
-      h.timeout
-        ? `  ${h.hop}. * * *`
-        : `  ${h.hop}. ${h.ip}  ${h.times.map((t) => t + "ms").join(" / ")}`,
-    )
-    .join("\n");
   return {
     success: true,
     result: { host, hops },
@@ -388,93 +347,81 @@ async function handleTrace(opts) {
       `## Traceroute: ${host}`,
       `**Hops**: ${hops.length}`,
       "",
-      hopLines || "  No data",
+      hops
+        .map((hop) =>
+          hop.timeout
+            ? `  ${hop.hop}. * * *`
+            : `  ${hop.hop}. ${hop.ip}  ${hop.times.map((time) => `${time}ms`).join(" / ")}`,
+        )
+        .join("\n") || "  No data",
     ].join("\n"),
   };
 }
 
-async function handleCheck(opts) {
+async function handleCheck(opts, broker) {
   const url = opts.url;
   if (!url) {
     return { success: false, result: null, message: "Usage: --check <url>" };
   }
-  logger.info(`[network-diagnostics] HTTP check: ${url}`);
-  return new Promise((resolve) => {
-    let parsed;
-    try {
-      parsed = new URL(url);
-    } catch {
-      resolve({
-        success: false,
-        result: { url },
-        message: `Invalid URL: ${url}`,
-      });
-      return;
-    }
-    const isS = parsed.protocol === "https:";
-    const start = Date.now();
-    const req = (isS ? https : http).request(
-      {
-        hostname: parsed.hostname,
-        port: parsed.port || (isS ? 443 : 80),
-        path: parsed.pathname + parsed.search,
-        method: "GET",
-        timeout: 10000,
-        headers: { "User-Agent": "ChainlessChain-NetworkDiagnostics/1.0" },
-      },
-      (res) => {
-        let body = "";
-        res.on("data", (c) => {
-          if (body.length < 1024) {
-            body += c;
-          }
-        });
-        res.on("end", () => {
-          const ms = Date.now() - start;
-          const ct = res.headers["content-type"] || "unknown";
-          const sv = res.headers["server"] || "unknown";
-          const info = {
-            url,
-            statusCode: res.statusCode,
-            statusMessage: res.statusMessage,
-            responseTime: `${ms}ms`,
-            contentType: ct,
-            server: sv,
-            reachable: true,
-          };
-          resolve({
-            success: true,
-            result: info,
-            message: [
-              `## HTTP: ${url}`,
-              `**Status**: ${res.statusCode} ${res.statusMessage}`,
-              `**Time**: ${ms}ms`,
-              `**Type**: ${ct}`,
-              `**Server**: ${sv}`,
-            ].join("\n"),
-          });
-        });
-      },
-    );
-    req.on("timeout", () => {
-      req.destroy();
-      const ms = Date.now() - start;
-      resolve({
-        success: false,
-        result: { url, reachable: false, error: "timeout" },
-        message: `HTTP timeout: ${url} (${ms}ms)`,
-      });
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return {
+      success: false,
+      result: { url },
+      message: `Invalid URL: ${url}`,
+    };
+  }
+  if (parsed.protocol !== "https:") {
+    return {
+      success: false,
+      result: { url },
+      message: `HTTPS is required: ${url}`,
+    };
+  }
+  logger.info(`[network-diagnostics] HTTPS check: ${url}`);
+  try {
+    const response = await broker.request({
+      url: parsed.toString(),
+      method: "GET",
+      timeout: 10_000,
+      maxResponseBytes: 1024,
+      headers: { "User-Agent": "ChainlessChain-NetworkDiagnostics/1.0" },
     });
-    req.on("error", (e) => {
-      const ms = Date.now() - start;
-      resolve({
-        success: false,
-        result: { url, reachable: false, error: e.code || e.message },
-        message: `HTTP error: ${url} — ${e.code || e.message} (${ms}ms)`,
-      });
-    });
-    req.end();
-  });
+    const contentType = response.headers["content-type"] || "unknown";
+    const server = response.headers.server || "unknown";
+    const responseTime = `${response.duration}ms`;
+    return {
+      success: true,
+      result: {
+        url,
+        statusCode: response.status,
+        statusMessage: response.statusText,
+        responseTime,
+        contentType,
+        server,
+        reachable: true,
+      },
+      message: [
+        `## HTTPS: ${url}`,
+        `**Status**: ${response.status} ${response.statusText}`,
+        `**Time**: ${responseTime}`,
+        `**Type**: ${contentType}`,
+        `**Server**: ${server}`,
+      ].join("\n"),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      result: {
+        url,
+        reachable: false,
+        error: error.code || error.message,
+      },
+      message: `HTTPS error: ${url} — ${error.code || error.message}`,
+    };
+  }
 }
 
 function showUsage() {
@@ -490,7 +437,7 @@ function showUsage() {
       "  --ports <host> --range <start>-<end>   Port scan (max 100)",
       "  --ip                                   Local IPs",
       "  --trace <host>                         Traceroute",
-      "  --check <url>                          HTTP check",
+      "  --check <url>                          HTTPS check",
     ].join("\n"),
   };
 }
@@ -502,39 +449,52 @@ module.exports = {
     );
   },
 
-  async execute(task, context, _skill) {
+  async execute(task, context = {}, _skill) {
     const input = (
       task?.params?.input ||
       task?.input ||
       task?.action ||
       ""
     ).trim();
-    const projectRoot =
-      context?.projectRoot ||
-      context?.workspaceRoot ||
-      context?.workspacePath ||
-      process.cwd();
     const { action, opts } = parseInput(input);
-    logger.info(`[network-diagnostics] Action: ${action}`, {
-      opts,
-      projectRoot,
-    });
+    logger.info(`[network-diagnostics] Action: ${action}`, { opts });
     try {
       switch (action) {
         case "ping":
-          return await handlePing(opts);
+          return await handlePing(
+            opts,
+            requireBundledSkillNetworkDiagnosticsBroker(context),
+          );
         case "dns":
-          return await handleDns(opts);
+          return await handleDns(
+            opts,
+            requireBundledSkillNetworkDiagnosticsBroker(context),
+          );
         case "port":
-          return await handlePort(opts);
+          return await handlePort(
+            opts,
+            requireBundledSkillNetworkDiagnosticsBroker(context),
+          );
         case "ports":
-          return await handlePortScan(opts);
+          return await handlePortScan(
+            opts,
+            requireBundledSkillNetworkDiagnosticsBroker(context),
+          );
         case "ip":
           return await handleIp();
         case "trace":
-          return await handleTrace(opts);
+          return await handleTrace(
+            opts,
+            requireBundledSkillNetworkDiagnosticsBroker(context),
+          );
         case "check":
-          return await handleCheck(opts);
+          return await handleCheck(
+            opts,
+            requireBundledSkillRuntimeNetworkBroker(
+              context,
+              "network-diagnostics",
+            ),
+          );
         default:
           return showUsage();
       }
@@ -542,8 +502,8 @@ module.exports = {
       logger.error(`[network-diagnostics] Error: ${error.message}`);
       return {
         success: false,
-        result: { error: error.message },
-        message: `Network diagnostics failed: ${error.message}`,
+        result: { error: error.code || error.message },
+        message: `Network diagnostics failed: ${error.code || error.message}`,
       };
     }
   },

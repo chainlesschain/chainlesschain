@@ -829,16 +829,15 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "network-diagnostics": Object.freeze([
-    "0190015f7bb784bb5abf9efaa663256c9a4893ae874314ae201e7986d885d736",
+    "fd9c432cfeb3f038f1841c614cc287ac74ab05bd79ca5adbac339be3b5f9f27b",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:network",
       "network:http",
       "network:socket",
-      "process:cwd",
       "process:execute",
-      "runtime:time",
       "system:inspect",
     ]),
   ]),

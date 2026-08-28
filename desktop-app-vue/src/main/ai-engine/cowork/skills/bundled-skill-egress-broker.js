@@ -26,6 +26,7 @@ const MAX_REDIRECTS = 5;
 const RUNTIME_BROKER_SKILL_IDS = Object.freeze([
   "api-gateway",
   "http-client",
+  "network-diagnostics",
   "summarizer",
 ]);
 const runtimeBrokerMetadata = new WeakMap();

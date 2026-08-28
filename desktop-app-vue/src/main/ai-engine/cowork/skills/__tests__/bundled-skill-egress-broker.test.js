@@ -33,6 +33,7 @@ const BROKERED_SKILL_IDS = Object.freeze([
 const RUNTIME_BROKERED_SKILL_IDS = Object.freeze([
   "api-gateway",
   "http-client",
+  "network-diagnostics",
   "summarizer",
 ]);
 

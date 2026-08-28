@@ -1,7 +1,7 @@
 ---
 name: network-diagnostics
 display-name: Network Diagnostics
-description: Network troubleshooting tools - ping, DNS lookup, port scan, traceroute, HTTP check, local IP
+description: Network troubleshooting tools - ping, DNS lookup, bounded port scan, traceroute, HTTPS check, local IP
 version: 1.0.0
 category: devops
 user-invocable: true
@@ -14,9 +14,11 @@ tools:
 instructions: |
   Use this skill when the user needs to diagnose network connectivity issues,
   check DNS resolution, scan ports, trace routes to hosts, or verify HTTP
-  endpoints. All operations use Node.js built-in modules (dns, net, os,
-  child_process, http, https) with no external dependencies. Supports
-  cross-platform operation on Windows, macOS, and Linux.
+  endpoints. Remote operations require host-created authorities for exact
+  targets, operations, DNS types, TCP ports, private-network access, and HTTPS
+  declassification. Ping and traceroute use fixed argv through
+  ProcessExecutionBroker; raw handler network and shell access is disabled.
+  Supports cross-platform operation on Windows, macOS, and Linux.
 examples:
   - input: "/network-diagnostics --ping google.com --count 5"
     output: "Ping google.com: 5 packets sent, avg 12.3ms, min 10.1ms, max 15.8ms"
@@ -31,13 +33,13 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, host:logger, network:http, network:socket, process:cwd, process:execute, runtime:time, system:inspect]
+execution-capabilities: [data:result, data:task, host:logger, host:network, network:http, network:socket, process:execute, system:inspect]
 handler: ./handler.js
 ---
 
 # Network Diagnostics
 
-Network troubleshooting toolkit using Node.js built-in modules.
+Network troubleshooting toolkit using bounded host broker authorities.
 
 ## Features
 
@@ -49,7 +51,7 @@ Network troubleshooting toolkit using Node.js built-in modules.
 | Port Scan  | `--ports <host> --range <start-end>` | Scan a range of TCP ports (max 100)  |
 | Local IP   | `--ip`                               | Show local network interfaces and IP |
 | Traceroute | `--trace <host>`                     | Trace route to a remote host         |
-| HTTP Check | `--check <url>`                      | HTTP connectivity and response time  |
+| HTTPS Check | `--check <url>`                     | HTTPS connectivity and response time |
 | Help       | _(no arguments)_                     | Show usage information               |
 
 ## Examples

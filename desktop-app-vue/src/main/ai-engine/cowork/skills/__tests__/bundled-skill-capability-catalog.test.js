@@ -24,7 +24,7 @@ describe("bundled Skill capability catalog", () => {
     expect(result.stdout).toContain("filesystem:read=");
     expect(result.stdout).toContain("process:execute=");
     expect(result.stdout).toContain("network:http=");
-    expect(result.stdout).toContain("host:network=13");
+    expect(result.stdout).toContain("host:network=14");
   });
 
   it("keeps brokered HTTPS as an explicit network capability", async () => {
@@ -38,6 +38,24 @@ describe("bundled Skill capability catalog", () => {
         "brokered-network-fixture",
       ),
     ).toEqual(["data:result", "data:task", "host:network", "network:http"]);
+  });
+
+  it("keeps brokered network diagnostics as explicit socket and process capabilities", async () => {
+    const { inferCapabilities } =
+      await import("../../../../../../scripts/sync-bundled-skill-capabilities.mjs");
+
+    expect(
+      inferCapabilities(
+        'require("../../bundled-skill-network-diagnostics-broker.js");',
+        "brokered-network-diagnostics-fixture",
+      ),
+    ).toEqual([
+      "data:result",
+      "data:task",
+      "host:network",
+      "network:socket",
+      "process:execute",
+    ]);
   });
 
   it("fails closed for unknown modules and fs operations", async () => {
