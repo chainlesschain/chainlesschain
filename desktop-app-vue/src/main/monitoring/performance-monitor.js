@@ -1,4 +1,7 @@
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../ai-engine/code-agent/desktop-runtime-authority.js");
 
 const DEFAULT_PERFORMANCE_MONITOR_LIMITS = Object.freeze({
   maxSamplesPerPhase: 1000,
@@ -274,6 +277,7 @@ class PerformanceMonitor {
    * @private
    */
   async initDatabase() {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor.initDatabase");
     if (!this.database) {
       return;
     }
@@ -319,6 +323,7 @@ class PerformanceMonitor {
     userId = null,
     sessionId = null,
   ) {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor.recordPhase");
     if (!PERFORMANCE_PHASES.includes(phase)) {
       throw new PerformanceMonitorError("Unknown performance phase", {
         code: "INVALID_ARGUMENT",
@@ -426,6 +431,7 @@ class PerformanceMonitor {
   }
 
   _retainRecord(phase, record, retainedBytes) {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor._retainRecord");
     const records = this.metrics[phase];
     records.push(record);
     this.metricSizes.set(record, retainedBytes);
@@ -453,6 +459,7 @@ class PerformanceMonitor {
   }
 
   _evictRecord(record) {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor._evictRecord");
     if (!record) {
       return;
     }
@@ -475,6 +482,7 @@ class PerformanceMonitor {
   }
 
   clearMemoryMetrics() {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor.clearMemoryMetrics");
     for (const phase of PERFORMANCE_PHASES) {
       this.metrics[phase] = [];
     }
@@ -976,6 +984,7 @@ class PerformanceMonitor {
    * @param {number} keepDays - 保留天数
    */
   async cleanOldData(keepDays = 30) {
+    assertDesktopLegacyMutationAllowed("PerformanceMonitor.cleanOldData");
     if (!this.database) {
       return;
     }

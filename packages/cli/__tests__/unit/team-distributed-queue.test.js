@@ -161,6 +161,72 @@ afterEach(() => {
 });
 
 describe("TeamDistributedQueue durable registry adapter", () => {
+  it("persists custody handoff atomically in the distributed queue", () => {
+    const clock = makeClock();
+    const filePath = tempState();
+    const queue = createQueue(filePath, {
+      now: clock.now,
+      defaultTtlMs: 60_000,
+    });
+    const claimed = queue.claim({ holder: "worker-a", ttlMs: 60_000 });
+    expect(claimed).toMatchObject({ ok: true, key: "build" });
+    expect(
+      queue.offerHandoff("build", {
+        handoffId: "distributed-handoff-1",
+        holder: "worker-a",
+        leaseId: claimed.lease.leaseId,
+        toHolder: "worker-b",
+        revisionDigest: `sha256:${"a".repeat(64)}`,
+        authorityDigest: `sha256:${"b".repeat(64)}`,
+        ttlMs: 30_000,
+      }).ok,
+    ).toBe(true);
+    expect(
+      queue.acceptHandoff("distributed-handoff-1", {
+        holder: "worker-b",
+        recipientAttempt: { holder: "worker-b" },
+      }).ok,
+    ).toBe(true);
+    const committed = queue.commitHandoff("distributed-handoff-1", {
+      holder: "worker-a",
+      leaseId: claimed.lease.leaseId,
+      ttlMs: 60_000,
+    });
+    expect(committed).toMatchObject({
+      ok: true,
+      lease: { holder: "worker-b" },
+    });
+    expect(
+      queue.complete("build", {
+        holder: "worker-a",
+        leaseId: claimed.lease.leaseId,
+        result: "stale",
+      }),
+    ).toMatchObject({ ok: false });
+    expect(
+      queue.complete("build", {
+        holder: "worker-b",
+        leaseId: committed.lease.leaseId,
+        result: "done",
+      }).ok,
+    ).toBe(true);
+
+    const reopened = TeamDistributedQueue.open({
+      filePath,
+      now: clock.now,
+      id: deterministicIds("reopened"),
+      processId: 101,
+      isProcessAlive: (pid) => pid === 101,
+    });
+    expect(reopened.findHandoff("distributed-handoff-1")).toMatchObject({
+      key: "build",
+      handoff: {
+        status: "committed",
+        targetSettlement: "completed",
+      },
+    });
+  });
+
   it("bridges a zero-device queue path only on affected Windows libuv", () => {
     const filePath = tempState();
     const runtimeFs = projectedFileSystem(filePath, { dev: 0n });

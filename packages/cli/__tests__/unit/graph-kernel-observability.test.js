@@ -390,11 +390,16 @@ describe("Graph trace, eval, and trigger contracts", () => {
       occurrenceId: occurrence.occurrenceId,
       definitionDigest: compiled.revisionDigest,
     });
-    value.kernel.startRun(compiled, { runId, occurrenceRef: occurrence });
+    value.kernel.startRun(compiled, {
+      runId,
+      originSurface: "scheduler",
+      occurrenceRef: occurrence,
+    });
 
     const recoveredKernel = new GraphKernel({
       eventStore: value.eventStore,
       now: () => 1_700_000_000_000,
+      authorityGeneration: 2,
     });
     const adapter = new SchedulerGraphTriggerAdapter({
       kernel: recoveredKernel,

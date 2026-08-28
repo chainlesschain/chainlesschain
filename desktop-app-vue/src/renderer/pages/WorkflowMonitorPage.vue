@@ -206,6 +206,7 @@ const completedWorkflow = ref({});
 const completedStages = ref([]);
 const completedGates = ref({});
 const workflowProgressRef = ref(null);
+let disposeProgress = null;
 
 // 方法
 const goBack = () => {
@@ -219,7 +220,7 @@ const goBack = () => {
 const refreshWorkflows = async () => {
   loading.value = true;
   try {
-    const result = await window.ipc.invoke("workflow:get-all");
+    const result = await window.electronAPI.workflowManager.getAll();
     if (result.success) {
       workflows.value = result.data;
     }
@@ -246,7 +247,7 @@ const handleCreateWorkflow = async () => {
   }
 
   try {
-    const result = await window.ipc.invoke("workflow:create-and-start", {
+    const result = await window.electronAPI.workflowManager.createAndStart({
       title: createForm.value.title,
       description: createForm.value.description,
       input: {
@@ -274,7 +275,7 @@ const selectWorkflow = (workflowId) => {
 
 const pauseWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke("workflow:pause", { workflowId });
+    const result = await window.electronAPI.workflowManager.pause(workflowId);
     if (result.success) {
       message.success("工作流已暂停");
       refreshWorkflows();
@@ -288,7 +289,7 @@ const pauseWorkflow = async (workflowId) => {
 
 const resumeWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke("workflow:resume", { workflowId });
+    const result = await window.electronAPI.workflowManager.resume(workflowId);
     if (result.success) {
       message.success("工作流已恢复");
       refreshWorkflows();
@@ -302,7 +303,7 @@ const resumeWorkflow = async (workflowId) => {
 
 const deleteWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke("workflow:delete", { workflowId });
+    const result = await window.electronAPI.workflowManager.delete(workflowId);
     if (result.success) {
       message.success("工作流已删除");
       if (selectedWorkflowId.value === workflowId) {
@@ -323,16 +324,16 @@ const handleWorkflowComplete = async (data) => {
 
   // 获取详细信息
   try {
-    const stagesResult = await window.ipc.invoke("workflow:get-stages", {
-      workflowId: selectedWorkflowId.value,
-    });
+    const stagesResult = await window.electronAPI.workflowManager.getStages(
+      selectedWorkflowId.value,
+    );
     if (stagesResult.success) {
       completedStages.value = stagesResult.data;
     }
 
-    const gatesResult = await window.ipc.invoke("workflow:get-gates", {
-      workflowId: selectedWorkflowId.value,
-    });
+    const gatesResult = await window.electronAPI.workflowManager.getGates(
+      selectedWorkflowId.value,
+    );
     if (gatesResult.success) {
       completedGates.value = gatesResult.data;
     }
@@ -353,9 +354,9 @@ const handleWorkflowError = (data) => {
 
 const handleRetry = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:retry", {
-      workflowId: selectedWorkflowId.value,
-    });
+    const result = await window.electronAPI.workflowManager.retry(
+      selectedWorkflowId.value,
+    );
     if (result.success) {
       message.success("工作流重试中");
       showSummary.value = false;
@@ -660,15 +661,13 @@ onMounted(() => {
   refreshWorkflows();
 
   // 监听工作流更新事件
-  if (window.ipc) {
-    window.ipc.on("workflow:progress", handleWorkflowUpdate);
-  }
+  disposeProgress =
+    window.electronAPI.workflowManager.onProgress(handleWorkflowUpdate);
 });
 
 onUnmounted(() => {
-  if (window.ipc) {
-    window.ipc.off("workflow:progress", handleWorkflowUpdate);
-  }
+  disposeProgress?.();
+  disposeProgress = null;
 });
 </script>
 

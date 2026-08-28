@@ -9,6 +9,9 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const IntentClassifier = require("./intent-classifier");
 const SlotFiller = require("./slot-filler");
 const { TaskPlanner } = require("./task-planner");
@@ -55,6 +58,7 @@ class AIEngineManagerOptimized {
    * 注入依赖项并初始化所有模块
    */
   async initialize(options = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerOptimized.initialize");
     try {
       logger.info("[AIEngineManager-Optimized] 开始初始化...");
 
@@ -135,6 +139,9 @@ class AIEngineManagerOptimized {
     onStepUpdate = null,
     askUserCallback = null,
   ) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerOptimized.processUserInput",
+    );
     const pipelineStartTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
@@ -507,6 +514,7 @@ class AIEngineManagerOptimized {
    * @param {string} userId - 用户ID
    */
   setUserId(userId) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerOptimized.setUserId");
     this.userId = userId;
   }
 
@@ -515,6 +523,9 @@ class AIEngineManagerOptimized {
    * @param {number} keepDays - 保留天数
    */
   async cleanOldPerformanceData(keepDays = 30) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerOptimized.cleanOldPerformanceData",
+    );
     if (this.performanceMonitor) {
       await this.performanceMonitor.cleanOldData(keepDays);
     }
@@ -538,6 +549,7 @@ class AIEngineManagerOptimized {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, implementation, schema = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerOptimized.registerTool");
     this.functionCaller.registerTool(name, implementation, schema);
   }
 
@@ -546,6 +558,9 @@ class AIEngineManagerOptimized {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerOptimized.unregisterTool",
+    );
     this.functionCaller.unregisterTool(name);
   }
 

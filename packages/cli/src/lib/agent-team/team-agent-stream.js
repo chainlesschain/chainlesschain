@@ -7,6 +7,7 @@
  * are never copied into parser state or returned to callers.
  */
 
+import { createHash } from "node:crypto";
 import { TextDecoder } from "node:util";
 
 export const DEFAULT_TEAM_AGENT_MAX_LINE_BYTES = 1024 * 1024;
@@ -96,6 +97,7 @@ export class TeamAgentStreamParser {
   #tokenUsageEvents = 0;
   #usageByIdentity = new Map();
   #sawTerminalResult = false;
+  #terminalResultDigest = null;
   #finished = false;
   #failed = null;
   #finalSummary = null;
@@ -204,6 +206,16 @@ export class TeamAgentStreamParser {
     return this.#copyLiveSummary();
   }
 
+  /**
+   * Return an immutable digest of the exact terminal result record without
+   * retaining or exposing its prompt/result body.
+   */
+  terminalEvidence() {
+    return this.#terminalResultDigest
+      ? Object.freeze({ outputDigest: this.#terminalResultDigest })
+      : null;
+  }
+
   #copyLiveSummary() {
     return {
       provider: this.#provider,
@@ -291,6 +303,9 @@ export class TeamAgentStreamParser {
     }
     if (line.trim() === "") return;
 
+    const lineDigest = `sha256:${createHash("sha256")
+      .update(line, "utf8")
+      .digest("hex")}`;
     let event;
     try {
       event = JSON.parse(line);
@@ -345,6 +360,7 @@ export class TeamAgentStreamParser {
 
     if (event.type === "result") {
       this.#sawTerminalResult = true;
+      this.#terminalResultDigest = lineDigest;
       this.#lastResultProvider =
         typeof event.provider === "string" ? event.provider : this.#provider;
       this.#lastResultModel =

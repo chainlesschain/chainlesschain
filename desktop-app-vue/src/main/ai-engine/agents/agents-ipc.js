@@ -1,7 +1,10 @@
 "use strict";
 
-const { ipcMain: electronIpcMain } = require("electron");
 const { logger } = require("../../utils/logger.js");
+
+function defaultIpcMain() {
+  return require("electron").ipcMain;
+}
 
 const AGENTS_IPC_CHANNELS = [
   "agents:list-templates",
@@ -16,6 +19,7 @@ const AGENTS_IPC_CHANNELS = [
   "agents:assign-task",
   "agents:get-task-status",
   "agents:cancel-task",
+  "agents:reconcile-task",
   "agents:orchestrate",
   "agents:get-plan",
   "agents:get-performance",
@@ -37,12 +41,18 @@ function createDefaultAgentCoordinator({
   database,
   agentRegistry,
   templateManager,
+  graphClientProvider,
+  graphAuthorityMode,
+  graphRunRegistry,
 }) {
   const { AgentCoordinator } = require("./agent-coordinator");
   return new AgentCoordinator({
     database,
     agentRegistry,
     templateManager,
+    graphClientProvider,
+    graphAuthorityMode,
+    graphRunRegistry,
   });
 }
 /* v8 ignore stop */
@@ -62,7 +72,7 @@ function removeExistingHandlers(ipc) {
 }
 
 function registerAgentsIPC(dependencies = {}) {
-  const ipc = dependencies.ipcMain || electronIpcMain;
+  const ipc = dependencies.ipcMain || defaultIpcMain();
   const { database } = dependencies;
 
   const createTemplateManager =
@@ -101,6 +111,9 @@ function registerAgentsIPC(dependencies = {}) {
         database,
         agentRegistry: getAgentRegistry(),
         templateManager: getTemplateManager(),
+        graphClientProvider: dependencies.graphClientProvider,
+        graphAuthorityMode: dependencies.graphAuthorityMode,
+        graphRunRegistry: dependencies.graphRunRegistry,
       });
       logger.info("[AgentsIPC] AgentCoordinator initialized");
     }
@@ -311,7 +324,7 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task ID is required" };
       }
 
-      return getAgentCoordinator().getTaskStatus(taskId);
+      return getAgentCoordinator().getTaskStatusAuthoritative(taskId);
     },
   );
 
@@ -323,11 +336,25 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task ID is required" };
       }
 
-      const result = getAgentCoordinator().cancelTask(taskId, reason);
+      const result = await getAgentCoordinator().cancelTask(taskId, reason);
       if (result.success) {
         logger.info(`[AgentsIPC] Task cancelled: ${taskId}`);
       }
       return result;
+    },
+  );
+
+  safeHandle(
+    "agents:reconcile-task",
+    "Reconcile task",
+    async (_event, { taskId, reconciliation } = {}) => {
+      if (!taskId || !reconciliation) {
+        return {
+          success: false,
+          error: "Task ID and reconciliation are required",
+        };
+      }
+      return getAgentCoordinator().reconcileTask(taskId, reconciliation);
     },
   );
 
@@ -382,7 +409,7 @@ function registerAgentsIPC(dependencies = {}) {
 }
 
 function unregisterAgentsIPC({ ipcMain: injectedIpcMain } = {}) {
-  const ipc = injectedIpcMain || electronIpcMain;
+  const ipc = injectedIpcMain || defaultIpcMain();
   if (typeof ipc.removeHandler === "function") {
     AGENTS_IPC_CHANNELS.forEach((channel) => {
       ipc.removeHandler(channel);

@@ -6,6 +6,7 @@ import {
   deriveDataPolicy,
 } from "../../src/lib/graph-kernel/runtime.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { createGraphAuthorityBinding } from "../../src/lib/graph-kernel/authority.js";
 
 const DIGEST_A = `sha256:${"a".repeat(64)}`;
 const DIGEST_B = `sha256:${"b".repeat(64)}`;
@@ -59,6 +60,36 @@ function createKernel(options = {}) {
       current += ms;
     },
   };
+}
+
+function recoverKernel(eventStore, runId, now = () => 1_700_000_000_000) {
+  const events = eventStore.read(runId);
+  const latest = events.at(-1);
+  const previous = [...events]
+    .reverse()
+    .find((event) => event.payload?.state?.authority).payload.state.authority;
+  const authorityGeneration = previous.authorityGeneration + 1;
+  const writerId = `runtime-recovery-writer-${authorityGeneration}`;
+  const writerLeaseId = `runtime-recovery-lease-${authorityGeneration}`;
+  const kernel = new GraphKernel({
+    eventStore,
+    now,
+    writerId,
+    writerLeaseId,
+    authoritySource: previous.authoritySource,
+    authorityGeneration,
+  });
+  const projection = kernel.recoverRun(runId, {
+    authority: createGraphAuthorityBinding({
+      ...previous,
+      authorityGeneration,
+      writerId,
+      writerLeaseId,
+      writerLeaseExpiresAt: new Date(now() + 60_000).toISOString(),
+      eventHead: latest.hash,
+    }),
+  });
+  return { kernel, projection };
 }
 
 function startSealed(kernel, compiled, runId = "run-1", options = {}) {
@@ -205,11 +236,14 @@ describe("canonical Graph Kernel", () => {
       budgetUsed: { turns: 2, tokens: 30 },
     });
 
-    const recoveredKernel = new GraphKernel({
-      eventStore: context.eventStore,
-      now: () => 1_700_000_000_000,
+    const { kernel: recoveredKernel, projection: recoveredProjection } =
+      recoverKernel(context.eventStore, "run-recovery");
+    expect(recoveredProjection).toMatchObject({
+      status: terminal.status,
+      nodes: terminal.nodes,
+      budgetUsed: terminal.budgetUsed,
+      authorityGeneration: 2,
     });
-    expect(recoveredKernel.recoverRun("run-recovery")).toEqual(terminal);
     expect(
       recoveredKernel.events("run-recovery").at(-1).payload.state.status,
     ).toBe("succeeded");
@@ -632,6 +666,64 @@ describe("canonical Graph Kernel", () => {
     });
   });
 
+  it("opens a fresh fenced effect only after the prior effect proved failed", () => {
+    const { kernel } = createKernel();
+    const compiled = graph([
+      node("effect-retry", {
+        effectClass: "external",
+        idempotencyKey: "effect-retry-key",
+        retryLimit: 1,
+      }),
+    ]);
+    startSealed(kernel, compiled, "run-effect-retry");
+    const first = assign(kernel, "run-effect-retry", "effect-retry");
+    const failed = kernel.beginEffect("run-effect-retry", {
+      effectId: "effect-retry-first",
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      idempotencyKey: "effect-retry-key",
+      operationDigest: DIGEST_B,
+    });
+    kernel.settleEffect("run-effect-retry", {
+      effectId: failed.id,
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      outcome: "failed",
+    });
+    kernel.settleAttempt("run-effect-retry", {
+      attemptId: first.id,
+      leaseId: first.leaseId,
+      fence: first.fence,
+      outcome: "failed",
+      error: "proved not committed",
+    });
+
+    const retry = assign(
+      kernel,
+      "run-effect-retry",
+      "effect-retry",
+      "agent-2",
+      "2",
+    );
+    expect(
+      kernel.beginEffect("run-effect-retry", {
+        effectId: "effect-retry-second",
+        attemptId: retry.id,
+        leaseId: retry.leaseId,
+        fence: retry.fence,
+        idempotencyKey: "effect-retry-key",
+        operationDigest: DIGEST_B,
+      }),
+    ).toMatchObject({
+      id: "effect-retry-second",
+      attemptId: retry.id,
+      status: "started",
+    });
+    expect(kernel.effectState("run-effect-retry")).toHaveLength(2);
+  });
+
   it("moves an in-flight effect to audited reconciliation after crash recovery", () => {
     const context = createKernel();
     const compiled = graph([
@@ -651,11 +743,11 @@ describe("canonical Graph Kernel", () => {
       operationDigest: DIGEST_B,
     });
 
-    const recovered = new GraphKernel({
-      eventStore: context.eventStore,
-      now: () => 1_700_000_000_000,
-    });
-    expect(recovered.recoverRun("run-effect-crash")).toMatchObject({
+    const { kernel: recovered, projection } = recoverKernel(
+      context.eventStore,
+      "run-effect-crash",
+    );
+    expect(projection).toMatchObject({
       status: "reconciliation_required",
       reconciliationEffectIds: ["effect-crash"],
     });
@@ -774,13 +866,9 @@ describe("canonical Graph Kernel", () => {
       ],
     });
 
-    const recovered = new GraphKernel({
-      eventStore: context.eventStore,
-      now: () => 1_700_000_000_000,
-    });
-    expect(recovered.recoverRun("run-compensation").compensation.status).toBe(
-      "running",
-    );
+    const { kernel: recovered, projection: recoveredProjection } =
+      recoverKernel(context.eventStore, "run-compensation");
+    expect(recoveredProjection.compensation.status).toBe("running");
     expect(recovered.readyNodes("run-compensation")).toEqual([
       expect.objectContaining({
         nodeId: "undo-b",

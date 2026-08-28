@@ -35,6 +35,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:coding-agent:integration": "vitest run tests/integration/coding-agent-hosted-tools.integration.test.js",
+    "test:graph-packaged-electron": "node scripts/graph-packaged-electron-journey.mjs",
     "test:coding-agent:mvp": "node scripts/verify-coding-agent-mvp.js",
     "test:coding-agent:parity": "node scripts/verify-coding-agent-parity.js",
     "test:coding-agent:parity:list": "node scripts/verify-coding-agent-parity.js --list",

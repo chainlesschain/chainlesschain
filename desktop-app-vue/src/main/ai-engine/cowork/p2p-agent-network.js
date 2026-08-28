@@ -12,6 +12,10 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /**
  * Message types for the P2P agent protocol
@@ -106,6 +110,19 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {Object} localDevice - { deviceId, platform, skills[], resources }
    */
   async initialize(localDevice = {}) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-p2p-agent",
+      })
+    ) {
+      this.legacyReadOnly = true;
+      this.initialized = true;
+      logger.info(
+        "[P2PAgentNetwork] Initialized for historical reads without transport listeners or heartbeat",
+      );
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.initialize");
     if (this.initialized) {
       logger.warn("[P2PAgentNetwork] Already initialized");
       return;
@@ -158,6 +175,7 @@ class P2PAgentNetwork extends EventEmitter {
    * Announce local agent capabilities to all connected peers
    */
   async announcePresence() {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.announcePresence");
     const message = {
       type: P2P_MSG_TYPES.AGENT_ANNOUNCE,
       payload: {
@@ -176,6 +194,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {Object} deviceInfo - Remote device capabilities
    */
   registerRemoteAgent(peerId, deviceInfo) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.registerRemoteAgent");
     if (this.remoteAgents.size >= this.config.maxRemoteAgents) {
       logger.warn(
         `[P2PAgentNetwork] Max remote agents reached (${this.config.maxRemoteAgents})`,
@@ -216,6 +235,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {string} reason
    */
   unregisterRemoteAgent(peerId, reason = "departed") {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.unregisterRemoteAgent");
     const agent = this.remoteAgents.get(peerId);
     if (!agent) {
       return;
@@ -317,6 +337,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @returns {Promise<Object>} Task result
    */
   async delegateTask(peerId, task) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.delegateTask");
     const agent = this.remoteAgents.get(peerId);
     if (!agent) {
       throw new Error(`Remote agent not found: ${peerId}`);
@@ -382,6 +403,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {string} taskId
    */
   async cancelDelegatedTask(taskId) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.cancelDelegatedTask");
     const delegation = this.pendingDelegations.get(taskId);
     const remoteTask = this.activeRemoteTasks.get(taskId);
     const peerId = delegation?.peerId || remoteTask?.peerId;
@@ -417,6 +439,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @returns {Promise<Object[]>} Responding peers with skill info
    */
   async queryRemoteSkill(skillId, timeout = 10000) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.queryRemoteSkill");
     const queryId = `sq-${uuidv4().slice(0, 8)}`;
     const responses = [];
 
@@ -452,6 +475,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @returns {Promise<boolean>} Whether invitation was accepted
    */
   async inviteToTeam(peerId, teamId, role = {}) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.inviteToTeam");
     const agent = this.remoteAgents.get(peerId);
     if (!agent) {
       throw new Error(`Remote agent not found: ${peerId}`);
@@ -491,6 +515,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @param {Object} teamState - Serialized team state
    */
   async syncTeamState(teamId, teamState) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.syncTeamState");
     const teamPeers = this._getTeamPeers(teamId);
     const message = {
       type: P2P_MSG_TYPES.TEAM_SYNC,
@@ -542,6 +567,7 @@ class P2PAgentNetwork extends EventEmitter {
    * Cleanup and shutdown
    */
   async shutdown() {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork.shutdown");
     // Announce departure
     await this._broadcastToPeers({
       type: P2P_MSG_TYPES.AGENT_DEPART,
@@ -587,6 +613,7 @@ class P2PAgentNetwork extends EventEmitter {
    * @private
    */
   _handlePeerMessage(peerId, data) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handlePeerMessage");
     let message;
     try {
       message = typeof data === "string" ? JSON.parse(data) : data;
@@ -652,6 +679,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleAgentAnnounce(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleAgentAnnounce");
     const existing = this.remoteAgents.get(peerId);
     if (existing) {
       // Update existing agent info
@@ -683,6 +711,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleHeartbeat(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleHeartbeat");
     const agent = this.remoteAgents.get(peerId);
     if (agent) {
       agent.lastHeartbeat = Date.now();
@@ -697,6 +726,7 @@ class P2PAgentNetwork extends EventEmitter {
    * Handle incoming task delegation (we are the executor)
    */
   async _handleTaskDelegation(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskDelegation");
     const { taskId, skillId, input, description } = payload;
 
     // Check if we can execute this skill
@@ -760,6 +790,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTaskAccept(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskAccept");
     const delegation = this.pendingDelegations.get(payload.taskId);
     if (!delegation) {
       return;
@@ -779,6 +810,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTaskReject(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskReject");
     const delegation = this.pendingDelegations.get(payload.taskId);
     if (!delegation) {
       return;
@@ -797,6 +829,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTaskProgress(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskProgress");
     const remoteTask = this.activeRemoteTasks.get(payload.taskId);
     if (remoteTask) {
       remoteTask.progress = payload.progress || 0;
@@ -810,6 +843,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTaskResult(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskResult");
     const { taskId, success, result, error } = payload;
 
     // Check pending delegations first
@@ -845,11 +879,13 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTaskCancel(_peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTaskCancel");
     // We are the executor — cancel local execution
     this.emit("task-cancel-requested", { taskId: payload.taskId });
   }
 
   _handleSkillQuery(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleSkillQuery");
     const { queryId, skillId } = payload;
     const hasSkill = this.skillRegistry
       ? !!this.skillRegistry.getSkill(skillId)
@@ -875,10 +911,12 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleSkillResponse(_peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleSkillResponse");
     this.emit(`skill-response:${payload.queryId}`, payload);
   }
 
   _handleTeamInvite(peerId, payload) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._handleTeamInvite");
     // Auto-accept invitations (configurable policy)
     const accepted = true;
     this._sendToPeer(peerId, {
@@ -898,6 +936,9 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _handleTeamInviteResponse(_peerId, payload) {
+    assertDesktopLegacyMutationAllowed(
+      "P2PAgentNetwork._handleTeamInviteResponse",
+    );
     this.emit(`team-invite-response:${payload.inviteId}`, payload);
   }
 
@@ -906,6 +947,7 @@ class P2PAgentNetwork extends EventEmitter {
   // ============================================================
 
   _startHeartbeat() {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._startHeartbeat");
     this._heartbeatTimer = setInterval(() => {
       this._broadcastToPeers({
         type: P2P_MSG_TYPES.AGENT_HEARTBEAT,
@@ -943,6 +985,7 @@ class P2PAgentNetwork extends EventEmitter {
   // ============================================================
 
   async _sendToPeer(peerId, message) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._sendToPeer");
     if (!this.mobileBridge) {
       throw new Error("MobileBridge not available");
     }
@@ -953,6 +996,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   async _broadcastToPeers(message) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._broadcastToPeers");
     if (!this.mobileBridge) {
       return;
     }
@@ -974,6 +1018,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _onPeerConnected(peerId) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._onPeerConnected");
     // Send our announcement to newly connected peer
     this._sendToPeer(peerId, {
       type: P2P_MSG_TYPES.AGENT_ANNOUNCE,
@@ -990,6 +1035,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _onPeerDisconnected(peerId) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._onPeerDisconnected");
     this.unregisterRemoteAgent(peerId, "disconnected");
   }
 
@@ -1077,6 +1123,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._ensureTables");
     try {
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS p2p_remote_agents (
@@ -1113,6 +1160,7 @@ class P2PAgentNetwork extends EventEmitter {
   }
 
   _persistRemoteAgent(agent) {
+    assertDesktopLegacyMutationAllowed("P2PAgentNetwork._persistRemoteAgent");
     try {
       this.db.run(
         `INSERT OR REPLACE INTO p2p_remote_agents

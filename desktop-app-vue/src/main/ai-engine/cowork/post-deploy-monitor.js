@@ -12,6 +12,9 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -62,6 +65,7 @@ class PostDeployMonitor extends EventEmitter {
    * @param {Object} deps - Dependencies
    */
   async initialize(deps = {}) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.initialize");
     if (this.initialized) {
       return;
     }
@@ -86,6 +90,7 @@ class PostDeployMonitor extends EventEmitter {
    * @returns {Object} Watcher info
    */
   startMonitoring(options = {}) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.startMonitoring");
     if (!this.initialized) {
       throw new Error("PostDeployMonitor not initialized");
     }
@@ -140,6 +145,7 @@ class PostDeployMonitor extends EventEmitter {
    * @returns {Object} Final status
    */
   stopMonitoring(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.stopMonitoring");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return null;
@@ -191,6 +197,7 @@ class PostDeployMonitor extends EventEmitter {
   }
 
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }
@@ -199,6 +206,7 @@ class PostDeployMonitor extends EventEmitter {
    * Cleanup all watchers
    */
   destroy() {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor.destroy");
     for (const [id, watcher] of this.activeWatchers) {
       clearInterval(watcher._checkInterval);
       clearTimeout(watcher._windowTimeout);
@@ -211,6 +219,7 @@ class PostDeployMonitor extends EventEmitter {
   // ============================================================
 
   _performCheck(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor._performCheck");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return;
@@ -316,6 +325,7 @@ class PostDeployMonitor extends EventEmitter {
   }
 
   _completeMonitoring(watchId) {
+    assertDesktopLegacyMutationAllowed("PostDeployMonitor._completeMonitoring");
     const watcher = this.activeWatchers.get(watchId);
     if (!watcher) {
       return null;

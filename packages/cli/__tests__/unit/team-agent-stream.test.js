@@ -113,6 +113,9 @@ describe("TeamAgentStreamParser", () => {
     expect(Object.getOwnPropertyNames(parser)).toEqual([]);
     expect(JSON.stringify(parser)).not.toContain(promptSecret);
     expect(JSON.stringify(parser)).not.toContain(resultSecret);
+    expect(parser.terminalEvidence()).toEqual({
+      outputDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
   });
 
   it("falls back to the last result usage when no token_usage event exists", () => {

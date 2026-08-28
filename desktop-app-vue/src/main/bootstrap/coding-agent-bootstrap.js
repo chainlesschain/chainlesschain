@@ -34,7 +34,12 @@ function createCodingAgentBootstrap(options = {}) {
   const appServerPilotEnabled =
     options.appServerPilotEnabled === true ||
     (options.appServerPilotEnabled === undefined &&
-      process.env.CHAINLESSCHAIN_CC_APP_SERVER_PILOT === "1");
+      (process.env.CHAINLESSCHAIN_CC_APP_SERVER_PILOT === "1" ||
+        ["shadow", "canonical"].includes(
+          String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "")
+            .trim()
+            .toLowerCase(),
+        )));
   const PilotClass = options.PilotClass || DesktopAppServerPilot;
   const appServerPilot =
     options.appServerPilot ||

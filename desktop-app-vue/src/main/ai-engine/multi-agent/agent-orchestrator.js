@@ -14,6 +14,10 @@
 
 const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 function normalizedWriteScopes(task) {
   if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {
@@ -78,10 +82,13 @@ class AgentOrchestrator extends EventEmitter {
       failedTasks: 0,
       agentUsage: {},
     };
+    this.legacyReadOnly = desktopLegacyRuntimeReadOnly(process.env, {
+      entryId: "desktop-legacy-multi-agent",
+    });
 
     // L1: 订阅 LLM 状态总线 — provider 切换 / 服务暂停时清理任务上下文
     this._stateBusSubscriptions = [];
-    if (options.enableStateBus !== false) {
+    if (!this.legacyReadOnly && options.enableStateBus !== false) {
       try {
         const { getLLMStateBus, Events } = require("../../llm/llm-state-bus");
         const bus = getLLMStateBus();
@@ -125,6 +132,7 @@ class AgentOrchestrator extends EventEmitter {
    * L1: 解绑状态总线订阅 (在销毁前调用)
    */
   unbindStateBus() {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator.unbindStateBus");
     if (this._stateBusSubscriptions && this._stateBusSubscriptions.length > 0) {
       try {
         const { getLLMStateBus } = require("../../llm/llm-state-bus");
@@ -148,6 +156,7 @@ class AgentOrchestrator extends EventEmitter {
    * @param {SpecializedAgent} agent - Agent 实例
    */
   registerAgent(agent) {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator.registerAgent");
     if (!agent.agentId) {
       throw new Error("Agent must have an agentId");
     }
@@ -180,6 +189,7 @@ class AgentOrchestrator extends EventEmitter {
    * @param {Array<SpecializedAgent>} agents - Agent 数组
    */
   registerAgents(agents) {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator.registerAgents");
     for (const agent of agents) {
       this.registerAgent(agent);
     }
@@ -190,6 +200,7 @@ class AgentOrchestrator extends EventEmitter {
    * @param {string} agentId - Agent ID
    */
   unregisterAgent(agentId) {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator.unregisterAgent");
     if (this.agents.has(agentId)) {
       this.agents.delete(agentId);
       this._log(`Agent 已注销: ${agentId}`);
@@ -229,6 +240,15 @@ class AgentOrchestrator extends EventEmitter {
   async dispatch(task) {
     const startTime = Date.now();
     const executionId = `exec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.dispatch",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey: task?.runId || task?.id || executionId,
+        optIn: task?.graphCanary === true,
+      },
+    );
 
     this.stats.totalTasks++;
 
@@ -396,6 +416,18 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<Array>} 结果数组
    */
   async executeParallel(tasks, options = {}) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.executeParallel",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          options.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.id,
+        optIn: options.graphCanary === true,
+      },
+    );
     const requestedConcurrency =
       options.maxConcurrency || this.config.maxParallelAgents;
     // Agents share a writable workspace. Default to serial execution unless
@@ -449,6 +481,17 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<any>} 最终结果
    */
   async executeChain(tasks) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.executeChain",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          tasks.find((task) => task?.runId || task?.id)?.runId ||
+          tasks.find((task) => task?.runId || task?.id)?.id,
+        optIn: tasks.some((task) => task?.graphCanary === true),
+      },
+    );
     let previousResult = null;
 
     for (let i = 0; i < tasks.length; i++) {
@@ -481,6 +524,18 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<any>} 响应
    */
   async sendMessage(fromAgent, toAgent, message) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.sendMessage",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey:
+          message?.runId ||
+          message?.id ||
+          `${String(fromAgent)}:${String(toAgent)}`,
+        optIn: message?.graphCanary === true,
+      },
+    );
     const targetAgent = this.agents.get(toAgent);
 
     if (!targetAgent) {
@@ -519,6 +574,15 @@ class AgentOrchestrator extends EventEmitter {
    * @param {Object} message - 消息内容
    */
   async broadcast(fromAgent, message) {
+    assertDesktopLegacyMutationAllowed(
+      "AgentOrchestrator.broadcast",
+      process.env,
+      {
+        entryId: "desktop-legacy-multi-agent",
+        runKey: message?.runId || message?.id || String(fromAgent),
+        optIn: message?.graphCanary === true,
+      },
+    );
     const results = [];
 
     for (const [agentId, agent] of this.agents) {
@@ -593,6 +657,7 @@ class AgentOrchestrator extends EventEmitter {
    * @private
    */
   _updateStats(agentId, success, duration) {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator._updateStats");
     if (!this.stats.agentUsage[agentId]) {
       this.stats.agentUsage[agentId] = {
         invocations: 0,
@@ -618,6 +683,7 @@ class AgentOrchestrator extends EventEmitter {
    * @private
    */
   _recordHistory(executionId, task, agentId, result, error, duration) {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator._recordHistory");
     this.executionHistory.push({
       executionId,
       task: { type: task.type, input: task.input },
@@ -682,6 +748,7 @@ class AgentOrchestrator extends EventEmitter {
    * 重置统计
    */
   resetStats() {
+    assertDesktopLegacyMutationAllowed("AgentOrchestrator.resetStats");
     this.stats = {
       totalTasks: 0,
       completedTasks: 0,

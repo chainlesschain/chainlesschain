@@ -148,6 +148,26 @@ export class AppServerPilotClient extends EventEmitter {
     return this.call("turn/interrupt", params);
   }
 
+  graphCompile(params: JsonValue): Promise<unknown> {
+    return this.call("graph/compile", params);
+  }
+
+  graphRun(params: JsonValue): Promise<unknown> {
+    return this.call("graph/run", params);
+  }
+
+  graphStatus(params: JsonValue): Promise<unknown> {
+    return this.call("graph/status", params);
+  }
+
+  graphCancel(params: JsonValue): Promise<unknown> {
+    return this.call("graph/cancel", params);
+  }
+
+  graphReconcile(params: JsonValue): Promise<unknown> {
+    return this.call("graph/reconcile", params);
+  }
+
   private async call(
     method: AppServerMethod,
     params: JsonValue,

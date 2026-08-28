@@ -8,6 +8,9 @@ const { logger } = require("../utils/logger.js");
 const { looseParseJSON } = require("./response-parser.js");
 const { getLLMService } = require("../llm/llm-manager");
 const { getProjectRAGManager } = require("../project/project-rag");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 
 /**
  * 任务规划器
@@ -23,6 +26,7 @@ class TaskPlanner {
    * 初始化
    */
   async initialize() {
+    assertDesktopLegacyMutationAllowed("TaskPlanner.initialize");
     if (this.initialized) {
       return;
     }
@@ -48,6 +52,7 @@ class TaskPlanner {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext) {
+    assertDesktopLegacyMutationAllowed("TaskPlanner.decomposeTask");
     logger.info("[TaskPlanner] 开始拆解任务:", userRequest);
 
     await this.initialize();

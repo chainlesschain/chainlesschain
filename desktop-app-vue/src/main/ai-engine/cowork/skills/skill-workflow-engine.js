@@ -11,6 +11,9 @@
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../../code-agent/desktop-runtime-authority.js");
 
 /**
  * Node types for workflow visual editor
@@ -49,6 +52,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {string} Workflow ID
    */
   createWorkflow(definition = {}) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.createWorkflow");
     const id = definition.id || uuidv4();
     const workflow = {
       id,
@@ -94,6 +98,9 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {object} position - { x, y }
    */
   updateNodePosition(workflowId, nodeId, position) {
+    assertDesktopLegacyMutationAllowed(
+      "SkillWorkflowEngine.updateNodePosition",
+    );
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -116,6 +123,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {object} data - Node data updates
    */
   updateNodeData(workflowId, nodeId, data) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.updateNodeData");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -138,6 +146,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {string} Node ID
    */
   addNode(workflowId, node) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.addNode");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -163,6 +172,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {string} nodeId
    */
   removeNode(workflowId, nodeId) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.removeNode");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -183,6 +193,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {string} Edge ID
    */
   addConnection(workflowId, edge) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.addConnection");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -211,6 +222,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {string} edgeId
    */
   removeConnection(workflowId, edgeId) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.removeConnection");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -228,6 +240,11 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {Promise<object>} Execution result
    */
   async executeWorkflow(workflowId, context = {}) {
+    assertDesktopLegacyMutationAllowed(
+      "SkillWorkflowEngine.executeWorkflow",
+      process.env,
+      { runKey: `desktop-skill-workflow:${workflowId}` },
+    );
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -356,6 +373,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {string} workflowId
    */
   deleteWorkflow(workflowId) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.deleteWorkflow");
     if (!this.workflows.has(workflowId)) {
       throw new Error(`Workflow not found: ${workflowId}`);
     }
@@ -370,6 +388,7 @@ class SkillWorkflowEngine extends EventEmitter {
    * @param {object} updates
    */
   saveWorkflow(workflowId, updates = {}) {
+    assertDesktopLegacyMutationAllowed("SkillWorkflowEngine.saveWorkflow");
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow not found: ${workflowId}`);
@@ -411,6 +430,9 @@ class SkillWorkflowEngine extends EventEmitter {
    * @returns {string} New workflow ID
    */
   importFromPipeline(pipelineId) {
+    assertDesktopLegacyMutationAllowed(
+      "SkillWorkflowEngine.importFromPipeline",
+    );
     if (!this.pipelineEngine) {
       throw new Error("PipelineEngine not available");
     }

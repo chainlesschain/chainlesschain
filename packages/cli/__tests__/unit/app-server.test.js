@@ -51,6 +51,86 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
+  it("exposes fixed canonical Graph compile/run/status capabilities", async () => {
+    const messages = [];
+    const kernel = {
+      async startTurn({ input }) {
+        return {
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          result: `completed: ${input}`,
+        };
+      },
+      close: vi.fn(),
+    };
+    const server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel,
+      send: async (message) => messages.push(message),
+    });
+    const graph = {
+      schemaVersion: 1,
+      id: "desktop-team",
+      revision: 1,
+      nodes: [
+        {
+          id: "task-1",
+          kind: "task",
+          dependsOn: [],
+          inputs: [],
+          outputs: [],
+          effectClass: "workspace_write",
+          idempotencyKey: "desktop-task-1-v1",
+          workspaceIsolation: "declared_scope",
+          writeSet: ["src/**"],
+        },
+      ],
+      edges: [],
+      loops: [],
+      subgraphCalls: [],
+      budget: { turns: 2 },
+      allowedCapabilities: [],
+    };
+    const initialized = await server.receive(initialize());
+    expect(initialized.result.graphRuntime).toMatchObject({
+      originSurface: "desktop",
+      execution: "real",
+      persistence: "durable",
+      authorityModes: ["shadow", "canonical"],
+    });
+    const compiled = await server.receive(
+      request(2, "graph/compile", { definition: graph }),
+    );
+    expect(compiled.result).toMatchObject({
+      definitionId: "desktop-team",
+      topologicalOrder: ["task-1"],
+      revisionDigest: expect.stringMatching(/^sha256:/),
+    });
+    const run = await server.receive(
+      request(3, "graph/run", {
+        definition: graph,
+        runId: "desktop-team-run",
+        inputs: { "task-1": { prompt: "implement approved task" } },
+        waitForCompletion: true,
+      }),
+    );
+    expect(run.result).toMatchObject({
+      status: "succeeded",
+      originSurface: "desktop",
+      authoritySource: "graph_kernel",
+      eventHead: expect.stringMatching(/^sha256:/),
+    });
+    const status = await server.receive(
+      request(4, "graph/status", { runId: "desktop-team-run" }),
+    );
+    expect(status.result.status).toBe("succeeded");
+    expect(messages.some((message) => message.method === "graph/event")).toBe(
+      true,
+    );
+    await server.close();
+  });
+
   it("validates ApprovalDecision from the canonical schema", () => {
     expect(validateApprovalDecision({ kind: "acceptOnce" }).ok).toBe(true);
     expect(

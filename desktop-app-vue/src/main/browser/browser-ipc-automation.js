@@ -7,6 +7,9 @@
  * @module browser/browser-ipc-automation
  */
 const { logger } = require("../utils/logger");
+const {
+  assertBrowserWorkflowEnabled,
+} = require("./workflow/browser-workflow-authority");
 
 function registerAutomationHandlers(ctx) {
   const { _ipcMain, _getBrowserEngine, _getAutomationAgent, withErrorHandler } =
@@ -150,6 +153,7 @@ function registerAutomationHandlers(ctx) {
   _ipcMain.handle(
     "browser:aiExecute",
     withErrorHandler(async (event, targetId, prompt, options = {}) => {
+      assertBrowserWorkflowEnabled("browser:aiExecute");
       const agent = _getAutomationAgent();
 
       if (!agent.llmService) {

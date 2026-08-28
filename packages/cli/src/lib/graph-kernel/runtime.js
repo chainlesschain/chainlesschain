@@ -7,6 +7,11 @@ import {
   writeScopesOverlap,
 } from "./compiler.js";
 import { GraphEventStore } from "./event-store.js";
+import {
+  GRAPH_PROJECTION_VERSION,
+  assertGraphAuthorityWriter,
+  createGraphAuthorityBinding,
+} from "./authority.js";
 
 export const GRAPH_RUN_PHASES = Object.freeze(["open", "sealed"]);
 export const GRAPH_RUN_STATUSES = Object.freeze([
@@ -358,6 +363,7 @@ function stateSnapshot(run) {
     revisionDigest: run.revisionDigest,
     occurrenceRef: run.occurrenceRef,
     authorityDigest: run.authorityDigest,
+    authority: clone(run.authority),
     budget: run.budget,
     budgetUsed: run.budgetUsed,
     budgetReserved: run.budgetReserved,
@@ -404,6 +410,13 @@ function restoreState(run, snapshot, compiled = null) {
   run.revisionDigest = snapshot.revisionDigest;
   run.occurrenceRef = clone(snapshot.occurrenceRef);
   run.authorityDigest = snapshot.authorityDigest;
+  if (!snapshot.authority) {
+    throw kernelError(
+      "CC_GRAPH_AUTHORITY_MIGRATION_REQUIRED",
+      "legacy GraphRun snapshot has no writer authority; import it at a verified safe point",
+    );
+  }
+  run.authority = createGraphAuthorityBinding(snapshot.authority);
   run.budget = clone(snapshot.budget);
   run.budgetUsed = clone(snapshot.budgetUsed);
   run.budgetReserved = clone(snapshot.budgetReserved || emptyBudgetUsage());
@@ -473,6 +486,15 @@ function runProjection(run) {
     status: run.status,
     graphRevision: run.graphRevision,
     authorityDigest: run.authorityDigest,
+    originSurface: run.authority.originSurface,
+    authoritySource: run.authority.authoritySource,
+    authorityMode: run.authority.authorityMode,
+    authorityGeneration: run.authority.authorityGeneration,
+    writerId: run.authority.writerId,
+    writerLeaseId: run.authority.writerLeaseId,
+    writerLeaseExpiresAt: run.authority.writerLeaseExpiresAt,
+    eventHead: run.authority.eventHead,
+    projectionVersion: run.authority.projectionVersion,
     budget: clone(run.budget),
     budgetUsed: clone(run.budgetUsed),
     budgetReserved: clone(run.budgetReserved),
@@ -527,10 +549,47 @@ function runProjection(run) {
   });
 }
 
-function buildRun(compiled, options, now) {
+function buildRun(compiled, options, now, writerIdentity, writerLeaseTtlMs) {
   const createdAt = nowIso(now);
+  const id = safeIdentifier(options.runId || randomUUID(), "runId");
+  const authority = createGraphAuthorityBinding(
+    options.authority || {
+      logicalRunId: id,
+      originSurface: options.originSurface || "cli_team",
+      authorityMode:
+        writerIdentity.authoritySource === "graph_kernel_shadow"
+          ? "shadow"
+          : "canonical",
+      authoritySource: writerIdentity.authoritySource,
+      authorityGeneration:
+        options.authorityGeneration || writerIdentity.authorityGeneration,
+      writerId: writerIdentity.writerId,
+      writerLeaseId: writerIdentity.writerLeaseId,
+      writerLeaseExpiresAt: new Date(
+        now() + Math.max(1, Number(writerLeaseTtlMs)),
+      ).toISOString(),
+      eventHead: null,
+      projectionVersion: GRAPH_PROJECTION_VERSION,
+    },
+  );
+  if (authority.logicalRunId !== id) {
+    throw kernelError(
+      "CC_GRAPH_AUTHORITY_RUN_MISMATCH",
+      "Graph authority must be bound to the exact logical run id",
+    );
+  }
+  if (authority.authorityMode === "legacy") {
+    throw kernelError(
+      "CC_GRAPH_NON_CANONICAL_WRITER",
+      "legacy authority cannot mutate Graph Kernel state",
+    );
+  }
+  assertGraphAuthorityWriter(authority, writerIdentity, {
+    now: now(),
+    requireCanonical: false,
+  });
   const run = {
-    id: safeIdentifier(options.runId || randomUUID(), "runId"),
+    id,
     compiled,
     phase: "open",
     status: "running",
@@ -547,6 +606,7 @@ function buildRun(compiled, options, now) {
         },
         "cc.graph.authority/v1",
       ),
+    authority,
     budget: clone(options.budget || compiled.definition.budget || {}),
     budgetUsed: emptyBudgetUsage(),
     budgetReserved: emptyBudgetUsage(),
@@ -885,6 +945,7 @@ function sweepExpirations(run, now) {
       handoff.expiresAtMs <= now
     ) {
       handoff.status = "expired";
+      handoff.expiredAt = nowIso(() => now);
       handoff.updatedAt = nowIso(() => now);
       changed = true;
     }
@@ -1187,6 +1248,11 @@ export class GraphKernel {
     agingWindowMs = 1000,
     maxPendingMessagesPerAgent = 100,
     maxLivelockRepeats = 8,
+    writerId = `graph-kernel:${process.pid}:${randomUUID()}`,
+    writerLeaseId = `graph-kernel-lease:${randomUUID()}`,
+    authoritySource = "graph_kernel",
+    authorityGeneration = 1,
+    writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     this.eventStore = eventStore;
     this.now = now;
@@ -1197,6 +1263,13 @@ export class GraphKernel {
       Number(maxPendingMessagesPerAgent) || 100,
     );
     this.maxLivelockRepeats = Math.max(2, Number(maxLivelockRepeats) || 8);
+    this.writerIdentity = Object.freeze({
+      authoritySource,
+      authorityGeneration: Math.max(1, Number(authorityGeneration) || 1),
+      writerId: safeIdentifier(writerId, "writerId"),
+      writerLeaseId: safeIdentifier(writerLeaseId, "writerLeaseId"),
+    });
+    this.writerLeaseTtlMs = Math.max(1, Number(writerLeaseTtlMs) || 1);
     this.runs = new Map();
     this.occurrences = new Map();
   }
@@ -1233,6 +1306,19 @@ export class GraphKernel {
         `GraphRun is terminal: ${run.status}`,
       );
     }
+    const expectedHeadHash = run.lastEvent?.hash || run.authority.eventHead;
+    const expectedRevision = run.lastEvent?.seq;
+    if (run.authority.authorityMode === "legacy") {
+      throw kernelError(
+        "CC_GRAPH_NON_CANONICAL_WRITER",
+        "legacy authority cannot mutate Graph Kernel state",
+      );
+    }
+    assertGraphAuthorityWriter(run.authority, this.writerIdentity, {
+      now: this.now(),
+      expectedEventHead: expectedHeadHash,
+      requireCanonical: false,
+    });
     const before = stateSnapshot(run);
     try {
       const result = mutator();
@@ -1245,9 +1331,16 @@ export class GraphKernel {
         {
           idempotencyKey: options.idempotencyKey || null,
           traceId: options.traceId || null,
+          authority: run.authority,
+          expectedRevision,
+          expectedHeadHash,
         },
       );
       run.lastEvent = event;
+      run.authority = createGraphAuthorityBinding({
+        ...run.authority,
+        eventHead: event.hash,
+      });
       return result;
     } catch (error) {
       restoreState(run, before);
@@ -1271,16 +1364,32 @@ export class GraphKernel {
       }
       return runProjection(existing);
     }
-    const run = buildRun(compiled, options, this.now);
+    const run = buildRun(
+      compiled,
+      options,
+      this.now,
+      this.writerIdentity,
+      this.writerLeaseTtlMs,
+    );
     if (this.runs.has(run.id)) {
       throw kernelError(
         "CC_GRAPH_RUN_CONFLICT",
         `GraphRun id already exists: ${run.id}`,
       );
     }
-    this.eventStore.start(run.id, {
+    const initialHead = this.eventStore.start(run.id, {
       definitionId: compiled.definitionId,
       revisionDigest: compiled.revisionDigest,
+      originSurface: run.authority.originSurface,
+      authorityMode: run.authority.authorityMode,
+      authorityGeneration: run.authority.authorityGeneration,
+      writerId: run.authority.writerId,
+      projectionVersion: run.authority.projectionVersion,
+    });
+    run.lastEvent = initialHead;
+    run.authority = createGraphAuthorityBinding({
+      ...run.authority,
+      eventHead: initialHead.hash,
     });
     this.runs.set(run.id, run);
     try {
@@ -1306,7 +1415,7 @@ export class GraphKernel {
     return runProjection(run);
   }
 
-  recoverRun(runId) {
+  recoverRun(runId, { authority = null } = {}) {
     const id = safeIdentifier(runId, "runId");
     const events = this.eventStore.read(id);
     const latest = [...events]
@@ -1322,7 +1431,67 @@ export class GraphKernel {
     const run = { id, lastEvent: latest };
     restoreState(run, snapshot);
     run.lastEvent = latest;
+    run.authority = createGraphAuthorityBinding({
+      ...run.authority,
+      eventHead: latest.hash,
+    });
     this.runs.set(id, run);
+    if (authority) {
+      const nextAuthority = createGraphAuthorityBinding({
+        ...authority,
+        logicalRunId: id,
+        eventHead: latest.hash,
+      });
+      const previousAuthority = run.authority;
+      if (
+        nextAuthority.authorityGeneration <=
+        previousAuthority.authorityGeneration
+      ) {
+        this.runs.delete(id);
+        throw kernelError(
+          "CC_GRAPH_STALE_GENERATION",
+          "recovery authority must use a higher writer generation",
+        );
+      }
+      assertGraphAuthorityWriter(nextAuthority, this.writerIdentity, {
+        now: this.now(),
+        expectedEventHead: latest.hash,
+        requireCanonical: false,
+      });
+      run.authority = nextAuthority;
+      try {
+        this._transaction(
+          run,
+          "run.authority_transferred",
+          {
+            previousAuthoritySource: previousAuthority.authoritySource,
+            previousAuthorityGeneration: previousAuthority.authorityGeneration,
+            previousWriterId: previousAuthority.writerId,
+            authorityGeneration: nextAuthority.authorityGeneration,
+            writerId: nextAuthority.writerId,
+          },
+          () => {},
+          {
+            allowTerminal: true,
+            idempotencyKey: `authority-transfer:${nextAuthority.authorityGeneration}`,
+          },
+        );
+      } catch (error) {
+        this.runs.delete(id);
+        throw error;
+      }
+    } else {
+      try {
+        assertGraphAuthorityWriter(run.authority, this.writerIdentity, {
+          now: this.now(),
+          expectedEventHead: latest.hash,
+          requireCanonical: false,
+        });
+      } catch (error) {
+        this.runs.delete(id);
+        throw error;
+      }
+    }
     if (run.occurrenceRef) {
       const key = `${run.occurrenceRef.jobRevision || ""}\0${run.occurrenceRef.occurrenceId || run.occurrenceRef.idempotencyKey || ""}`;
       this.occurrences.set(key, id);
@@ -1365,6 +1534,52 @@ export class GraphKernel {
 
   events(runId, options = {}) {
     return this.eventStore.read(safeIdentifier(runId, "runId"), options);
+  }
+
+  collaborationState(runId) {
+    const run = this._run(runId);
+    return Object.freeze({
+      messages: Object.freeze(
+        [...run.messages.values()]
+          .sort(
+            (left, right) =>
+              left.createdAt.localeCompare(right.createdAt) ||
+              left.id.localeCompare(right.id),
+          )
+          .map((message) => Object.freeze(clone(message))),
+      ),
+      messageConsumers: Object.freeze(
+        [...run.messageConsumers.values()]
+          .sort(
+            (left, right) =>
+              left.processedAt.localeCompare(right.processedAt) ||
+              left.messageId.localeCompare(right.messageId),
+          )
+          .map((receipt) => Object.freeze(clone(receipt))),
+      ),
+      handoffs: Object.freeze(
+        [...run.handoffs.values()]
+          .sort(
+            (left, right) =>
+              left.createdAt.localeCompare(right.createdAt) ||
+              left.id.localeCompare(right.id),
+          )
+          .map((handoff) => Object.freeze(clone(handoff))),
+      ),
+    });
+  }
+
+  effectState(runId) {
+    const run = this._run(runId);
+    return Object.freeze(
+      [...run.effects.values()]
+        .sort(
+          (left, right) =>
+            left.createdAt.localeCompare(right.createdAt) ||
+            left.id.localeCompare(right.id),
+        )
+        .map((effect) => Object.freeze(clone(effect))),
+    );
   }
 
   registerAgent(runId, { agentId, capacity = 1, resident = true } = {}) {
@@ -1471,6 +1686,7 @@ export class GraphKernel {
       edges = [],
       loops = [],
       subgraphCalls = [],
+      metadataPatch = {},
     } = {},
   ) {
     const run = this._run(runId);
@@ -1483,6 +1699,7 @@ export class GraphKernel {
       edges,
       loops,
       subgraphCalls,
+      metadataPatch,
     };
     const requestDigest = graphDigest(request, "cc.graph.append-request/v1");
     const replay = run.requestCache.get(key);
@@ -1538,6 +1755,10 @@ export class GraphKernel {
             ...clone(run.compiled.definition.subgraphCalls),
             ...clone(subgraphCalls),
           ],
+          metadata: {
+            ...clone(run.compiled.definition.metadata || {}),
+            ...clone(metadataPatch || {}),
+          },
         };
         const compiled = compileGraphDefinition(definition, {
           subgraphs: persistedSubgraphRegistry(
@@ -1942,6 +2163,12 @@ export class GraphKernel {
     } else {
       this.startRun(childCompiled, {
         runId: id,
+        originSurface: parent.authority.originSurface,
+        authority: {
+          ...parent.authority,
+          logicalRunId: id,
+          eventHead: null,
+        },
         parentRunRef: {
           runId: parent.id,
           nodeId: safeNodeId,
@@ -2257,6 +2484,8 @@ export class GraphKernel {
             : null,
           leaseId: safeIdentifier(leaseId, "leaseId"),
           fence,
+          authorityGeneration: run.authority.authorityGeneration,
+          writerId: run.authority.writerId,
           status: "active",
           participationStatus: "active",
           grant: clone(grant),
@@ -2266,6 +2495,7 @@ export class GraphKernel {
           expiresAtMs: now + finitePositive(ttlMs, 60_000),
           terminalEvidence: null,
           usage: null,
+          error: null,
         };
         run.attempts.set(id, attempt);
         state.attemptIds.push(id);
@@ -2291,9 +2521,261 @@ export class GraphKernel {
     });
   }
 
+  /**
+   * Recover a dispatch that was durably assigned by an older writer but never
+   * crossed the effect boundary.  Once an effect record exists its outcome can
+   * no longer be inferred from the absence of a terminal attempt, so recovery
+   * must go through reconciliation instead of silently replaying the task.
+   */
+  reclaimAttempt(
+    runId,
+    attemptId,
+    { reason = "writer generation takeover" } = {},
+  ) {
+    const run = this._run(runId);
+    const id = safeIdentifier(attemptId, "attemptId");
+    return this._transaction(
+      run,
+      "assignment.reclaimed",
+      { attemptId: id, reason },
+      () => {
+        const attempt = run.attempts.get(id);
+        if (!attempt) {
+          throw kernelError(
+            "CC_GRAPH_ATTEMPT_NOT_FOUND",
+            `assignment attempt not found: ${id}`,
+          );
+        }
+        if (
+          attempt.status === "expired" &&
+          attempt.participationStatus === "lost"
+        ) {
+          return attemptProjection(attempt);
+        }
+        if (!ACTIVE_ATTEMPT.has(attempt.status)) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RECLAIM_TERMINAL",
+            "only an active assignment can be reclaimed",
+          );
+        }
+        if (
+          Number(attempt.authorityGeneration || 0) >=
+          run.authority.authorityGeneration
+        ) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RECLAIM_STALE_WRITER",
+            "an assignment can only be reclaimed by a higher authority generation",
+          );
+        }
+        const effects = [...run.effects.values()].filter(
+          (effect) => effect.attemptId === attempt.id,
+        );
+        if (effects.length > 0) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RECLAIM_UNSAFE",
+            "an assignment with an effect record requires audited reconciliation",
+            { effectIds: effects.map((effect) => effect.id).sort() },
+          );
+        }
+        const state = run.nodeStates.get(attempt.nodeId);
+        if (
+          !state ||
+          state.acceptedAttemptId ||
+          !["running", "pending"].includes(state.status)
+        ) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RECLAIM_UNSAFE",
+            "assignment state is not safe to return to the ready frontier",
+          );
+        }
+        const now = this.now();
+        attempt.status = "expired";
+        attempt.participationStatus = "lost";
+        attempt.error = String(reason).slice(0, 4096);
+        attempt.updatedAt = nowIso(() => now);
+        state.status = "pending";
+        state.updatedAt = nowIso(() => now);
+        const agent = run.agents.get(attempt.agentId);
+        if (agent) {
+          agent.status = "idle";
+          agent.updatedAt = nowIso(() => now);
+        }
+        propagate(run, () => now);
+        if (refreshLoopStates(run, () => now)) propagate(run, () => now);
+        run.status = classifyQuiescence(run, now);
+        run.completedAt = TERMINAL_RUN.has(run.status)
+          ? nowIso(() => now)
+          : null;
+        return attemptProjection(attempt);
+      },
+      {
+        idempotencyKey: `assignment-reclaim:${id}:${run.authority.authorityGeneration}`,
+      },
+    );
+  }
+
+  /**
+   * Rotate a safely recoverable assignment into the current writer generation.
+   * A persisted attempt is never reused after takeover: callers receive a new
+   * lease/fence, while terminal effect receipts retain an explicit custody
+   * chain. An in-flight/unknown effect remains reconciliation-only.
+   */
+  resumeAttempt(
+    runId,
+    attemptId,
+    {
+      resumedAttemptId = this.createId(),
+      leaseId = this.createId(),
+      ttlMs = 60_000,
+      reason = "writer generation takeover",
+    } = {},
+  ) {
+    const run = this._run(runId);
+    const sourceId = safeIdentifier(attemptId, "attemptId");
+    const successorId = safeIdentifier(resumedAttemptId, "attemptId");
+    return this._transaction(
+      run,
+      "assignment.resumed",
+      { attemptId: sourceId, resumedAttemptId: successorId, reason },
+      () => {
+        const existing = [...run.attempts.values()].find(
+          (candidate) =>
+            candidate.resumedFromAttemptId === sourceId &&
+            candidate.authorityGeneration ===
+              run.authority.authorityGeneration &&
+            candidate.writerId === run.authority.writerId,
+        );
+        if (existing) return attemptProjection(existing);
+        const source = run.attempts.get(sourceId);
+        if (!source) {
+          throw kernelError(
+            "CC_GRAPH_ATTEMPT_NOT_FOUND",
+            `assignment attempt not found: ${sourceId}`,
+          );
+        }
+        const auditedRecovery =
+          source.status === "expired" &&
+          source.participationStatus === "reconciled";
+        if (!ACTIVE_ATTEMPT.has(source.status) && !auditedRecovery) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RESUME_TERMINAL",
+            "only an active or audited-reconciled assignment can be resumed",
+          );
+        }
+        if (
+          Number(source.authorityGeneration || 0) >=
+          run.authority.authorityGeneration
+        ) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RESUME_STALE_WRITER",
+            "an assignment can only be resumed by a higher authority generation",
+          );
+        }
+        const effects = [...run.effects.values()].filter(
+          (effect) => effect.attemptId === source.id,
+        );
+        const unsafe = effects.filter((effect) =>
+          ["started", "unknown"].includes(effect.status),
+        );
+        if (unsafe.length > 0) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RESUME_UNSAFE",
+            "an assignment with an unresolved effect requires audited reconciliation",
+            { effectIds: unsafe.map((effect) => effect.id).sort() },
+          );
+        }
+        const state = run.nodeStates.get(source.nodeId);
+        if (
+          !state ||
+          state.acceptedAttemptId ||
+          !["running", "pending"].includes(state.status)
+        ) {
+          throw kernelError(
+            "CC_GRAPH_ASSIGNMENT_RESUME_UNSAFE",
+            "assignment state is not safe to rotate into the new generation",
+          );
+        }
+        if (run.attempts.has(successorId)) {
+          throw kernelError(
+            "CC_GRAPH_ATTEMPT_ID_CONFLICT",
+            `assignment attempt already exists: ${successorId}`,
+          );
+        }
+        const now = this.now();
+        source.status = "expired";
+        source.participationStatus = "superseded";
+        source.error = String(reason).slice(0, 4096);
+        source.updatedAt = nowIso(() => now);
+        const fence = (run.fenceCounters.get(source.nodeId) || 0) + 1;
+        run.fenceCounters.set(source.nodeId, fence);
+        const successor = {
+          ...clone(source),
+          id: successorId,
+          attempt:
+            [...run.attempts.values()].filter(
+              (candidate) =>
+                candidate.nodeId === source.nodeId &&
+                JSON.stringify(candidate.iterationPath || []) ===
+                  JSON.stringify(source.iterationPath || []),
+            ).length + 1,
+          leaseId: safeIdentifier(leaseId, "leaseId"),
+          fence,
+          authorityGeneration: run.authority.authorityGeneration,
+          writerId: run.authority.writerId,
+          status: "active",
+          participationStatus: "active",
+          resumedFromAttemptId: source.id,
+          resumeReason: String(reason).slice(0, 4096),
+          createdAt: nowIso(() => now),
+          updatedAt: nowIso(() => now),
+          expiresAt: nowIso(() => now + finitePositive(ttlMs, 60_000)),
+          expiresAtMs: now + finitePositive(ttlMs, 60_000),
+          terminalEvidence: null,
+          usage: null,
+          error: null,
+        };
+        for (const effect of effects) {
+          effect.custodyHistory ||= [];
+          effect.custodyHistory.push({
+            fromAttemptId: source.id,
+            fromLeaseId: source.leaseId,
+            fromFence: source.fence,
+            toAttemptId: successor.id,
+            toLeaseId: successor.leaseId,
+            toFence: successor.fence,
+            reason: "authority_generation_takeover",
+            transferredAt: nowIso(() => now),
+          });
+          effect.attemptId = successor.id;
+          effect.leaseId = successor.leaseId;
+          effect.fence = successor.fence;
+          effect.updatedAt = nowIso(() => now);
+        }
+        run.attempts.set(successor.id, successor);
+        state.attemptIds.push(successor.id);
+        state.status = "running";
+        state.updatedAt = nowIso(() => now);
+        return attemptProjection(successor);
+      },
+      {
+        idempotencyKey: `assignment-resume:${sourceId}:${run.authority.authorityGeneration}`,
+      },
+    );
+  }
+
   _requireAttemptLease(run, attemptId, leaseId, fence, statuses = ["active"]) {
     const attempt = run.attempts.get(safeIdentifier(attemptId, "attemptId"));
     const now = this.now();
+    if (
+      attempt &&
+      (attempt.authorityGeneration !== run.authority.authorityGeneration ||
+        attempt.writerId !== run.authority.writerId)
+    ) {
+      throw kernelError(
+        "CC_GRAPH_STALE_ATTEMPT_AUTHORITY",
+        "attempt belongs to a stale authority generation or writer",
+      );
+    }
     if (
       !attempt ||
       attempt.leaseId !== safeIdentifier(leaseId, "leaseId") ||
@@ -2323,17 +2805,25 @@ export class GraphKernel {
   ) {
     const run = this._run(runId);
     const key = String(idempotencyKey || "").trim();
-    const existing = [...run.effects.values()].find(
+    const matching = [...run.effects.values()].filter(
       (effect) => effect.idempotencyKey === key,
     );
-    if (existing) {
-      if (existing.operationDigest !== operationDigest) {
+    if (matching.length > 0) {
+      if (
+        matching.some((effect) => effect.operationDigest !== operationDigest)
+      ) {
         throw kernelError(
           "CC_GRAPH_EFFECT_IDEMPOTENCY_CONFLICT",
           "effect idempotency key was reused for a different operation",
         );
       }
-      return Object.freeze(clone(existing));
+      // A proved/audited failure means the operation did not commit, so a
+      // later fenced attempt must receive a fresh effect boundary. Started,
+      // unknown, and committed effects continue to deduplicate fail-closed.
+      const authoritative = [...matching]
+        .reverse()
+        .find((effect) => effect.status !== "failed");
+      if (authoritative) return Object.freeze(clone(authoritative));
     }
     const id = safeIdentifier(effectId, "effectId");
     return this._transaction(
@@ -3003,6 +3493,7 @@ export class GraphKernel {
       dataPolicy,
       causationId = null,
       correlationId = null,
+      systemSource = null,
       ttlMs = 24 * 60 * 60 * 1000,
     } = {},
   ) {
@@ -3010,7 +3501,15 @@ export class GraphKernel {
     const id = safeIdentifier(messageId, "messageId");
     const recipient = safeIdentifier(toAgentId, "toAgentId");
     const contentDigest = graphDigest(
-      { recipient, mode, payload, causationId, correlationId },
+      {
+        recipient,
+        mode,
+        payload,
+        causationId,
+        correlationId,
+        fromAttemptId: fromAttemptId || null,
+        systemSource: systemSource || null,
+      },
       "cc.graph.message/v1",
     );
     const existing = run.messages.get(id);
@@ -3028,12 +3527,13 @@ export class GraphKernel {
       "message.admitted",
       { messageId: id, toAgentId: recipient, mode },
       () => {
-        const attempt = this._requireAttemptLease(
-          run,
-          fromAttemptId,
-          leaseId,
-          fence,
-        );
+        const source =
+          systemSource == null
+            ? null
+            : safeIdentifier(systemSource, "systemSource");
+        const attempt = source
+          ? null
+          : this._requireAttemptLease(run, fromAttemptId, leaseId, fence);
         const policy = validateDataPolicy(dataPolicy);
         const sink = `agent:${recipient}`;
         if (!sinkAllowed(policy, sink)) {
@@ -3067,9 +3567,12 @@ export class GraphKernel {
         const message = {
           id,
           runId: run.id,
-          fromAttemptId: attempt.id,
-          fromLeaseId: attempt.leaseId,
-          fromFence: attempt.fence,
+          fromAttemptId: attempt?.id || null,
+          fromLeaseId: attempt?.leaseId || null,
+          fromFence: attempt?.fence ?? null,
+          systemSource: source,
+          sourceAuthorityGeneration: run.authority.authorityGeneration,
+          sourceWriterId: run.authority.writerId,
           toAgentId: recipient,
           causationId,
           correlationId,
@@ -3165,6 +3668,16 @@ export class GraphKernel {
     if (run.messageConsumers.has(dedupKey)) {
       return Object.freeze(clone(run.messageConsumers.get(dedupKey)));
     }
+    const priorConsumer = [...run.messageConsumers.values()].find(
+      (receipt) => receipt.messageId === id && receipt.agentId === recipient,
+    );
+    if (priorConsumer) {
+      throw kernelError(
+        "CC_GRAPH_MESSAGE_CONSUMER_CONFLICT",
+        "message was already processed by another consumer key",
+        { consumerKey: priorConsumer.consumerKey },
+      );
+    }
     return this._transaction(
       run,
       "message.processed",
@@ -3244,13 +3757,33 @@ export class GraphKernel {
   ) {
     const run = this._run(runId);
     const id = safeIdentifier(handoffId, "handoffId");
+    const requestDigest = graphDigest(
+      {
+        fromAttemptId,
+        leaseId,
+        fence,
+        toAgentId,
+        artifactIds,
+        preconditions,
+        ttlMs,
+      },
+      "cc.graph.handoff-request/v1",
+    );
     return this._transaction(
       run,
       "handoff.offered",
       { handoffId: id, fromAttemptId, toAgentId },
       () => {
         const existing = run.handoffs.get(id);
-        if (existing) return Object.freeze(clone(existing));
+        if (existing) {
+          if (existing.requestDigest !== requestDigest) {
+            throw kernelError(
+              "CC_GRAPH_HANDOFF_ID_CONFLICT",
+              "handoffId was reused with different custody content",
+            );
+          }
+          return Object.freeze(clone(existing));
+        }
         const attempt = this._requireAttemptLease(
           run,
           fromAttemptId,
@@ -3278,6 +3811,7 @@ export class GraphKernel {
           authorityDigest: run.authorityDigest,
           artifactIds: [...artifactIds],
           preconditions: clone(preconditions),
+          requestDigest,
           status: "offered",
           createdAt: nowIso(() => now),
           updatedAt: nowIso(() => now),
@@ -3301,6 +3835,9 @@ export class GraphKernel {
       { handoffId: id, agentId: recipient },
       () => {
         const handoff = run.handoffs.get(id);
+        if (handoff?.status === "accepted" && handoff.toAgentId === recipient) {
+          return Object.freeze(clone(handoff));
+        }
         if (
           !handoff ||
           handoff.status !== "offered" ||
@@ -3313,7 +3850,8 @@ export class GraphKernel {
           );
         }
         handoff.status = "accepted";
-        handoff.updatedAt = nowIso(this.now);
+        handoff.acceptedAt = nowIso(this.now);
+        handoff.updatedAt = handoff.acceptedAt;
         return Object.freeze(clone(handoff));
       },
     );
@@ -3329,6 +3867,9 @@ export class GraphKernel {
       { handoffId: id, reason },
       () => {
         const handoff = run.handoffs.get(id);
+        if (handoff?.status === "rejected" && handoff.toAgentId === recipient) {
+          return Object.freeze(clone(handoff));
+        }
         if (
           !handoff ||
           handoff.status !== "offered" ||
@@ -3341,7 +3882,8 @@ export class GraphKernel {
         }
         handoff.status = "rejected";
         handoff.reason = String(reason).slice(0, 1024);
-        handoff.updatedAt = nowIso(this.now);
+        handoff.rejectedAt = nowIso(this.now);
+        handoff.updatedAt = handoff.rejectedAt;
         return Object.freeze(clone(handoff));
       },
     );
@@ -3364,6 +3906,21 @@ export class GraphKernel {
       { handoffId: id },
       () => {
         const handoff = run.handoffs.get(id);
+        if (handoff?.status === "committed") {
+          const assignmentAttempt = run.attempts.get(
+            handoff.committedAttemptId,
+          );
+          if (!assignmentAttempt) {
+            throw kernelError(
+              "CC_GRAPH_HANDOFF_COMMIT_CORRUPT",
+              "committed handoff is missing its assignment attempt",
+            );
+          }
+          return Object.freeze({
+            handoff: Object.freeze(clone(handoff)),
+            assignmentAttempt: attemptProjection(assignmentAttempt),
+          });
+        }
         if (!handoff || handoff.status !== "accepted") {
           throw kernelError(
             "CC_GRAPH_HANDOFF_NOT_COMMITTABLE",
@@ -3407,8 +3964,12 @@ export class GraphKernel {
           attempt: attemptNumber,
           agentId: handoff.toAgentId,
           role: "executor",
+          compensationForNodeId: sender.compensationForNodeId || null,
+          effectIdempotencyKey: sender.effectIdempotencyKey || null,
           leaseId: safeIdentifier(leaseId, "leaseId"),
           fence,
+          authorityGeneration: run.authority.authorityGeneration,
+          writerId: run.authority.writerId,
           status: "active",
           participationStatus: "active",
           grant: clone(sender.grant),
@@ -3419,15 +3980,87 @@ export class GraphKernel {
           terminalEvidence: null,
           usage: null,
         };
+        for (const effect of run.effects.values()) {
+          if (effect.attemptId !== sender.id) continue;
+          if (effect.status !== "started") {
+            throw kernelError(
+              "CC_GRAPH_HANDOFF_EFFECT_TERMINAL",
+              "custody cannot transfer after the source effect became terminal",
+              { effectId: effect.id, effectStatus: effect.status },
+            );
+          }
+          effect.custodyHistory ||= [];
+          effect.custodyHistory.push({
+            fromAttemptId: sender.id,
+            fromLeaseId: sender.leaseId,
+            fromFence: sender.fence,
+            toAttemptId: newAttempt.id,
+            toLeaseId: newAttempt.leaseId,
+            toFence: newAttempt.fence,
+            handoffId: handoff.id,
+            transferredAt: nowIso(() => now),
+          });
+          effect.attemptId = newAttempt.id;
+          effect.leaseId = newAttempt.leaseId;
+          effect.fence = newAttempt.fence;
+          effect.updatedAt = nowIso(() => now);
+        }
         run.attempts.set(newAttempt.id, newAttempt);
         run.nodeStates.get(sender.nodeId).attemptIds.push(newAttempt.id);
         handoff.status = "committed";
         handoff.committedAttemptId = newAttempt.id;
-        handoff.updatedAt = nowIso(() => now);
+        handoff.committedAt = nowIso(() => now);
+        handoff.updatedAt = handoff.committedAt;
         return Object.freeze({
           handoff: Object.freeze(clone(handoff)),
           assignmentAttempt: attemptProjection(newAttempt),
         });
+      },
+    );
+  }
+
+  expireHandoffForRecovery(
+    runId,
+    handoffId,
+    { reason = "source writer generation was superseded" } = {},
+  ) {
+    const run = this._run(runId);
+    const id = safeIdentifier(handoffId, "handoffId");
+    return this._transaction(
+      run,
+      "handoff.expired",
+      { handoffId: id, reason },
+      () => {
+        const handoff = run.handoffs.get(id);
+        if (handoff?.status === "expired") {
+          return Object.freeze(clone(handoff));
+        }
+        if (!handoff || !["offered", "accepted"].includes(handoff.status)) {
+          throw kernelError(
+            "CC_GRAPH_HANDOFF_NOT_RECOVERY_EXPIRABLE",
+            "only an open handoff can expire during writer recovery",
+          );
+        }
+        const source = run.attempts.get(handoff.fromAttemptId);
+        if (
+          !source ||
+          Number(source.authorityGeneration || 0) >=
+            run.authority.authorityGeneration
+        ) {
+          throw kernelError(
+            "CC_GRAPH_HANDOFF_RECOVERY_AUTHORITY_INVALID",
+            "handoff recovery requires a source from an older authority generation",
+          );
+        }
+        const now = this.now();
+        handoff.status = "expired";
+        handoff.reason = String(reason).slice(0, 1024);
+        handoff.expiredAt = nowIso(() => now);
+        handoff.updatedAt = nowIso(() => now);
+        return Object.freeze(clone(handoff));
+      },
+      {
+        idempotencyKey: `handoff-recovery-expire:${id}:${run.authority.authorityGeneration}`,
       },
     );
   }
@@ -3437,6 +4070,9 @@ export class GraphKernel {
     const id = safeIdentifier(handoffId, "handoffId");
     return this._transaction(run, "handoff.revoked", { handoffId: id }, () => {
       const handoff = run.handoffs.get(id);
+      if (handoff?.status === "revoked") {
+        return Object.freeze(clone(handoff));
+      }
       if (!handoff || !["offered", "accepted"].includes(handoff.status)) {
         throw kernelError(
           "CC_GRAPH_HANDOFF_NOT_REVOKABLE",
@@ -3451,7 +4087,8 @@ export class GraphKernel {
         );
       }
       handoff.status = "revoked";
-      handoff.updatedAt = nowIso(this.now);
+      handoff.revokedAt = nowIso(this.now);
+      handoff.updatedAt = handoff.revokedAt;
       return Object.freeze(clone(handoff));
     });
   }

@@ -9,6 +9,7 @@
 
 import { EventEmitter } from "events";
 import { firstBalancedJson } from "./json-schema-output.js";
+import { assertCLILegacyMutationAllowed } from "./legacy-runtime-authority.js";
 
 // Exported for test injection
 export const _deps = {
@@ -67,6 +68,7 @@ export class CLIAutonomousAgent extends EventEmitter {
     maxGoals,
     iterationBudget,
   } = {}) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.initialize");
     this._llmChat = llmChat || null;
     this._toolExecutor = toolExecutor || null;
     this._hookManager = hookManager || null;
@@ -84,6 +86,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * @returns {{ goalId: string }}
    */
   async submitGoal(description, { tokenBudget = 50000 } = {}) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.submitGoal");
     if (!this._initialized) throw new Error("Agent not initialized");
     if (!description) throw new Error("Goal description required");
 
@@ -124,6 +127,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * the cap rather than losing live work.
    */
   _pruneGoals() {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._pruneGoals");
     if (this._goals.size <= this._maxGoals) return;
     for (const [id, g] of this._goals) {
       if (this._goals.size <= this._maxGoals) break;
@@ -141,6 +145,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * Pause a running goal.
    */
   pauseGoal(goalId) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.pauseGoal");
     const goal = this._goals.get(goalId);
     if (!goal) return { error: "Goal not found" };
     if (goal.status !== GoalStatus.RUNNING)
@@ -156,6 +161,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * Resume a paused goal.
    */
   resumeGoal(goalId) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.resumeGoal");
     const goal = this._goals.get(goalId);
     if (!goal) return { error: "Goal not found" };
     if (goal.status !== GoalStatus.PAUSED)
@@ -178,6 +184,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * Cancel a goal.
    */
   cancelGoal(goalId) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent.cancelGoal");
     const goal = this._goals.get(goalId);
     if (!goal) return { error: "Goal not found" };
 
@@ -228,6 +235,7 @@ export class CLIAutonomousAgent extends EventEmitter {
   // ─── ReAct Loop ─────────────────────────────────────────────
 
   async _runReActLoop(goal) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._runReActLoop");
     goal.status = GoalStatus.RUNNING;
     this.emit("goal:started", { goalId: goal.id });
 
@@ -342,6 +350,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    * Decompose a goal into executable steps using LLM.
    */
   async _decomposeGoal(goal) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._decomposeGoal");
     if (!this._llmChat) {
       // No LLM — create a single step
       return [
@@ -406,6 +415,7 @@ Only return the JSON array, no other text.`;
    * Execute a single step using the tool executor.
    */
   async _executeStep(step) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._executeStep");
     if (!step.tool || !this._toolExecutor) {
       // No tool specified or no executor — skip as informational
       return "No tool action required";
@@ -419,6 +429,7 @@ Only return the JSON array, no other text.`;
    * Returns true if a correction was applied.
    */
   async _selfCorrect(goal, error) {
+    assertCLILegacyMutationAllowed("CLIAutonomousAgent._selfCorrect");
     if (!this._llmChat) return false;
 
     try {

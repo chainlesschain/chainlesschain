@@ -174,6 +174,7 @@ const elapsedTime = ref(0);
 const gatesExpanded = ref(true);
 const logsExpanded = ref(true);
 const elapsedTimer = ref(null);
+const eventDisposers = [];
 
 // 计算属性
 const currentStageIndex = computed(() => {
@@ -311,9 +312,9 @@ const toggleLogsExpand = () => {
 // IPC 操作
 const handlePause = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:pause", {
-      workflowId: props.workflowId,
-    });
+    const result = await window.electronAPI.workflowManager.pause(
+      props.workflowId,
+    );
     if (!result.success) {
       message.error(result.error || "暂停失败");
     }
@@ -324,9 +325,9 @@ const handlePause = async () => {
 
 const handleResume = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:resume", {
-      workflowId: props.workflowId,
-    });
+    const result = await window.electronAPI.workflowManager.resume(
+      props.workflowId,
+    );
     if (!result.success) {
       message.error(result.error || "恢复失败");
     }
@@ -337,9 +338,9 @@ const handleResume = async () => {
 
 const handleRetry = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:retry", {
-      workflowId: props.workflowId,
-    });
+    const result = await window.electronAPI.workflowManager.retry(
+      props.workflowId,
+    );
     if (!result.success) {
       message.error(result.error || "重试失败");
     }
@@ -350,10 +351,10 @@ const handleRetry = async () => {
 
 const handleCancel = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:cancel", {
-      workflowId: props.workflowId,
-      reason: "用户取消",
-    });
+    const result = await window.electronAPI.workflowManager.cancel(
+      props.workflowId,
+      "用户取消",
+    );
     if (!result.success) {
       message.error(result.error || "取消失败");
     }
@@ -364,11 +365,11 @@ const handleCancel = async () => {
 
 const handleGateOverride = async (gateId) => {
   try {
-    const result = await window.ipc.invoke("workflow:override-gate", {
-      workflowId: props.workflowId,
+    const result = await window.electronAPI.workflowManager.overrideGate(
+      props.workflowId,
       gateId,
-      reason: "手动覆盖",
-    });
+      "手动覆盖",
+    );
     if (result.success) {
       message.success("门禁已跳过");
     } else {
@@ -382,9 +383,9 @@ const handleGateOverride = async (gateId) => {
 // 数据加载
 const loadWorkflowStatus = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:get-status", {
-      workflowId: props.workflowId,
-    });
+    const result = await window.electronAPI.workflowManager.getStatus(
+      props.workflowId,
+    );
     if (result.success) {
       workflow.value = result.data;
       qualityGates.value = result.data.qualityGates || {};
@@ -397,9 +398,9 @@ const loadWorkflowStatus = async () => {
 
 const loadStages = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:get-stages", {
-      workflowId: props.workflowId,
-    });
+    const result = await window.electronAPI.workflowManager.getStages(
+      props.workflowId,
+    );
     if (result.success) {
       stages.value = result.data;
     }
@@ -410,10 +411,10 @@ const loadStages = async () => {
 
 const loadLogs = async () => {
   try {
-    const result = await window.ipc.invoke("workflow:get-logs", {
-      workflowId: props.workflowId,
-      limit: 100,
-    });
+    const result = await window.electronAPI.workflowManager.getLogs(
+      props.workflowId,
+      100,
+    );
     if (result.success) {
       logs.value = result.data;
     }
@@ -468,12 +469,13 @@ onMounted(() => {
   }, 1000);
 
   // 监听事件
-  if (window.ipc) {
-    window.ipc.on("workflow:progress", handleWorkflowProgress);
-    window.ipc.on("workflow:stage-complete", handleWorkflowStageChange);
-    window.ipc.on("workflow:complete", handleWorkflowComplete);
-    window.ipc.on("workflow:error", handleWorkflowError);
-  }
+  const api = window.electronAPI.workflowManager;
+  eventDisposers.push(
+    api.onProgress(handleWorkflowProgress),
+    api.onStageComplete(handleWorkflowStageChange),
+    api.onComplete(handleWorkflowComplete),
+    api.onError(handleWorkflowError),
+  );
 });
 
 onUnmounted(() => {
@@ -481,12 +483,7 @@ onUnmounted(() => {
     clearInterval(elapsedTimer.value);
   }
 
-  if (window.ipc) {
-    window.ipc.off("workflow:progress", handleWorkflowProgress);
-    window.ipc.off("workflow:stage-complete", handleWorkflowStageChange);
-    window.ipc.off("workflow:complete", handleWorkflowComplete);
-    window.ipc.off("workflow:error", handleWorkflowError);
-  }
+  for (const dispose of eventDisposers.splice(0)) dispose();
 });
 
 // 暴露方法

@@ -17,6 +17,9 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /**
  * 代理状态
@@ -95,6 +98,7 @@ class AgentPool extends EventEmitter {
    * 初始化代理池（预热）
    */
   async initialize() {
+    assertDesktopLegacyMutationAllowed("AgentPool.initialize");
     if (this.initialized) {
       logger.warn("[AgentPool] 代理池已初始化");
       return;
@@ -131,6 +135,7 @@ class AgentPool extends EventEmitter {
    * @returns {Promise<Object>} 代理对象
    */
   async acquireAgent(capabilities = {}, timeout = 30000) {
+    assertDesktopLegacyMutationAllowed("AgentPool.acquireAgent");
     this.stats.acquisitions++;
 
     // 1. 尝试从可用池中获取
@@ -204,6 +209,7 @@ class AgentPool extends EventEmitter {
    * @param {string} agentId - 代理ID
    */
   releaseAgent(agentId) {
+    assertDesktopLegacyMutationAllowed("AgentPool.releaseAgent");
     const agent = this.busyAgents.get(agentId);
 
     if (!agent) {
@@ -257,6 +263,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _waitForAgent(capabilities, timeout) {
+    assertDesktopLegacyMutationAllowed("AgentPool._waitForAgent");
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         // 从队列中移除
@@ -287,6 +294,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   async _createAgent(agentId, capabilities = {}) {
+    assertDesktopLegacyMutationAllowed("AgentPool._createAgent");
     const agent = {
       id: `agent_${agentId}`,
       status: AgentStatus.IDLE,
@@ -316,6 +324,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _resetAgent(agent, capabilities = {}) {
+    assertDesktopLegacyMutationAllowed("AgentPool._resetAgent");
     agent.status = AgentStatus.BUSY;
     agent.capabilities = capabilities.capabilities || [];
     agent.role = capabilities.role || "worker";
@@ -333,6 +342,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _destroyAgent(agent) {
+    assertDesktopLegacyMutationAllowed("AgentPool._destroyAgent");
     agent.status = AgentStatus.TERMINATED;
 
     this._clearIdleTimer(agent.id);
@@ -354,6 +364,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _startIdleTimer(agentId) {
+    assertDesktopLegacyMutationAllowed("AgentPool._startIdleTimer");
     if (this.idleTimers.has(agentId)) {
       return;
     }
@@ -374,6 +385,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _clearIdleTimer(agentId) {
+    assertDesktopLegacyMutationAllowed("AgentPool._clearIdleTimer");
     const timer = this.idleTimers.get(agentId);
     if (timer) {
       clearTimeout(timer);
@@ -417,6 +429,7 @@ class AgentPool extends EventEmitter {
    * 清空代理池
    */
   async clear() {
+    assertDesktopLegacyMutationAllowed("AgentPool.clear");
     logger.info("[AgentPool] 清空代理池...");
 
     // v1.1.0: 停止健康检查
@@ -468,6 +481,7 @@ class AgentPool extends EventEmitter {
    * 自动缩容（移除多余空闲代理）
    */
   async shrink() {
+    assertDesktopLegacyMutationAllowed("AgentPool.shrink");
     if (!this.options.enableAutoScaling) {
       return;
     }
@@ -500,6 +514,7 @@ class AgentPool extends EventEmitter {
    * @returns {Object|null} Agent instance
    */
   acquireByCapabilities(capabilities = []) {
+    assertDesktopLegacyMutationAllowed("AgentPool.acquireByCapabilities");
     // Try to find a warm agent with matching capabilities
     for (const [type, pool] of this._pools) {
       for (let i = 0; i < pool.length; i++) {
@@ -522,6 +537,7 @@ class AgentPool extends EventEmitter {
    * @param {Object} agent - Agent instance
    */
   _warmResetAgent(agent) {
+    assertDesktopLegacyMutationAllowed("AgentPool._warmResetAgent");
     if (!agent) {
       return;
     }
@@ -550,6 +566,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _checkMemoryPressure() {
+    assertDesktopLegacyMutationAllowed("AgentPool._checkMemoryPressure");
     const memUsage = process.memoryUsage();
     const heapRatio = memUsage.heapUsed / memUsage.heapTotal;
 
@@ -588,6 +605,7 @@ class AgentPool extends EventEmitter {
    * @param {number} [intervalMs=60000] - 检查间隔
    */
   startHealthCheck(intervalMs = 60000) {
+    assertDesktopLegacyMutationAllowed("AgentPool.startHealthCheck");
     if (this._healthCheckInterval) {
       return;
     }
@@ -604,6 +622,7 @@ class AgentPool extends EventEmitter {
    * 停止健康检查
    */
   stopHealthCheck() {
+    assertDesktopLegacyMutationAllowed("AgentPool.stopHealthCheck");
     if (this._healthCheckInterval) {
       clearInterval(this._healthCheckInterval);
       this._healthCheckInterval = null;
@@ -615,6 +634,7 @@ class AgentPool extends EventEmitter {
    * @private
    */
   _pingAgents() {
+    assertDesktopLegacyMutationAllowed("AgentPool._pingAgents");
     for (const [type, pool] of this._pools) {
       for (let i = pool.length - 1; i >= 0; i--) {
         const agent = pool[i];
@@ -657,6 +677,7 @@ class AgentPool extends EventEmitter {
    * @param {Object} agent - Agent 实例
    */
   returnToPool(agentType, agent) {
+    assertDesktopLegacyMutationAllowed("AgentPool.returnToPool");
     if (!this._pools.has(agentType)) {
       this._pools.set(agentType, []);
     }
@@ -705,6 +726,7 @@ class AgentPool extends EventEmitter {
    * @returns {Promise<{ agent: object, subContext: SubAgentContext }>}
    */
   async acquireIsolatedAgent(options = {}) {
+    assertDesktopLegacyMutationAllowed("AgentPool.acquireIsolatedAgent");
     const agent = await this.acquireAgent(options.capabilities || {});
 
     const subCtx = new SubAgentContext({

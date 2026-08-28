@@ -360,6 +360,7 @@ describe("$ralph handler", () => {
 describe("$team handler", () => {
   let projectRoot;
   let originalPoolCtor;
+  let originalGraphAuthorityMode;
   const sessionId = "s1";
 
   // Fake pool that fulfills the dispatch contract without spawning anything.
@@ -388,7 +389,9 @@ describe("$team handler", () => {
   beforeEach(async () => {
     projectRoot = makeTmpRoot();
     originalPoolCtor = team._deps.SubRuntimePoolCtor;
+    originalGraphAuthorityMode = team._deps.graphAuthorityMode;
     team._deps.SubRuntimePoolCtor = FakeSubRuntimePool;
+    team._deps.graphAuthorityMode = () => "legacy";
     await deepInterview.execute(
       { params: { goal: "g", sessionId } },
       { projectRoot },
@@ -406,6 +409,7 @@ describe("$team handler", () => {
   });
   afterEach(() => {
     team._deps.SubRuntimePoolCtor = originalPoolCtor;
+    team._deps.graphAuthorityMode = originalGraphAuthorityMode;
     cleanup(projectRoot);
   });
 
@@ -542,6 +546,102 @@ describe("$team handler", () => {
       expect(res.success).toBe(true);
       const payload = mgr.readTasks(sessionId);
       expect(payload.tasks[0].status).toBe("completed");
+    });
+
+    it("routes canonical Desktop Team through the fixed App Server Graph capability", async () => {
+      const mgr = new SessionStateManager({ projectRoot });
+      mgr.writeTasks(sessionId, {
+        tasks: [
+          {
+            id: "t1",
+            title: "implement",
+            ownerRole: "executor",
+            scopePaths: ["src"],
+            status: "pending",
+          },
+        ],
+      });
+      team._deps.graphAuthorityMode = () => "canonical";
+      team._deps.SubRuntimePoolCtor = class RetiredPool {
+        constructor() {
+          throw new Error("legacy pool must not be constructed");
+        }
+      };
+      const graphRun = vi.fn(async (request) => ({
+        id: request.runId,
+        status: "succeeded",
+        authoritySource: "graph_kernel",
+        authorityMode: "canonical",
+        authorityGeneration: 1,
+        writerId: "app-server-writer",
+        eventHead: `sha256:${"a".repeat(64)}`,
+        projectionVersion: 1,
+        nodes: [{ nodeId: "t1", status: "succeeded" }],
+        attempts: [
+          {
+            id: "attempt-1",
+            nodeId: "t1",
+            status: "accepted",
+            terminalEvidence: {
+              outputDigest: `sha256:${"b".repeat(64)}`,
+            },
+          },
+        ],
+      }));
+      const res = await team.execute(
+        { params: { sessionId } },
+        { projectRoot, appServerPilot: { graphRun } },
+      );
+      expect(res.success).toBe(true);
+      expect(graphRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          originSurface: "desktop",
+          authorityMode: "canonical",
+          waitForCompletion: true,
+        }),
+      );
+      expect(res.result.graphAuthority).toMatchObject({
+        status: "succeeded",
+        authoritySource: "graph_kernel",
+      });
+      expect(res.result.dispatchResults[0]).toMatchObject({
+        taskId: "t1",
+        success: true,
+        graphAttemptId: "attempt-1",
+      });
+    });
+
+    it("keeps shadow Graph effect-free while the legacy projection runs", async () => {
+      const mgr = new SessionStateManager({ projectRoot });
+      mgr.writeTasks(sessionId, {
+        tasks: [
+          { id: "t1", title: "x", ownerRole: "executor", status: "pending" },
+        ],
+      });
+      team._deps.graphAuthorityMode = () => "shadow";
+      const graphRun = vi.fn(async (request) => ({
+        id: request.runId,
+        status: "running",
+        authoritySource: "graph_kernel_shadow",
+        authorityMode: "shadow",
+        nodes: [{ nodeId: "t1", status: "pending" }],
+        attempts: [],
+      }));
+      const res = await team.execute(
+        { params: { sessionId } },
+        { projectRoot, appServerPilot: { graphRun } },
+      );
+      expect(res.success).toBe(true);
+      expect(graphRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authorityMode: "shadow",
+          waitForCompletion: false,
+        }),
+      );
+      expect(res.result.dispatchResults[0].success).toBe(true);
+      expect(res.result.graphAuthority.authoritySource).toBe(
+        "graph_kernel_shadow",
+      );
     });
 
     it("rejects unknown ownerRole base", async () => {

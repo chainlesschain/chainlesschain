@@ -1,4 +1,9 @@
 import { graphDigest } from "./compiler.js";
+import {
+  GRAPH_AUTHORITY_MODES,
+  GraphRunAuthorityRegistry,
+  createGraphAuthorityBinding,
+} from "./authority.js";
 
 export const GRAPH_RUNTIME_SURFACES = Object.freeze([
   "cli_team",
@@ -22,8 +27,16 @@ function contractError(code, message, details = {}) {
 
 export function validateRuntimeClaims(claims) {
   const errors = [];
-  if (!GRAPH_RUNTIME_SURFACES.includes(claims?.surface)) {
-    errors.push("surface must identify a known execution plane");
+  const originSurface = claims?.originSurface || claims?.surface;
+  if (!GRAPH_RUNTIME_SURFACES.includes(originSurface)) {
+    errors.push("originSurface must identify a known execution plane");
+  }
+  if (
+    claims?.originSurface &&
+    claims?.surface &&
+    claims.originSurface !== claims.surface
+  ) {
+    errors.push("surface compatibility alias must match originSurface");
   }
   if (!new Set(["real", "simulated", "planned"]).has(claims?.execution)) {
     errors.push("execution must be real, simulated, or planned");
@@ -37,7 +50,21 @@ export function validateRuntimeClaims(claims) {
   if (typeof claims?.terminalEvidence !== "boolean") {
     errors.push("terminalEvidence must be explicit");
   }
-  if (claims?.surface === "browser") {
+  if (
+    !Array.isArray(claims?.authorityModes) ||
+    claims.authorityModes.length === 0 ||
+    claims.authorityModes.some((mode) => !GRAPH_AUTHORITY_MODES.includes(mode))
+  ) {
+    errors.push(
+      "authorityModes must declare supported per-run authority modes",
+    );
+  }
+  if (claims?.authoritative === true) {
+    errors.push(
+      "authoritative is not a surface claim; authority must be bound per GraphRun",
+    );
+  }
+  if (originSurface === "browser") {
     if (
       claims.persistence !== "non_durable" &&
       claims.restartHydration !== true
@@ -49,13 +76,13 @@ export function validateRuntimeClaims(claims) {
     }
   }
   if (
-    claims?.authoritative === true &&
+    claims?.authorityModes?.includes("canonical") &&
     (claims.execution !== "real" ||
       claims.persistence !== "durable" ||
       claims.terminalEvidence !== true)
   ) {
     errors.push(
-      "authoritative runtime requires real durable evidence-bound execution",
+      "canonical authority requires real durable evidence-bound execution",
     );
   }
   return Object.freeze({
@@ -65,9 +92,9 @@ export function validateRuntimeClaims(claims) {
 }
 
 export class GraphRuntimeAdapterRegistry {
-  constructor() {
+  constructor({ authorityRegistry = new GraphRunAuthorityRegistry() } = {}) {
     this.adapters = new Map();
-    this.authoritativeSurface = null;
+    this.authorityRegistry = authorityRegistry;
   }
 
   register(adapter) {
@@ -78,6 +105,8 @@ export class GraphRuntimeAdapterRegistry {
       );
     }
     const claims = clone(adapter.runtimeClaims());
+    claims.originSurface ||= claims.surface;
+    claims.surface ||= claims.originSurface;
     const validation = validateRuntimeClaims(claims);
     if (!validation.valid) {
       throw contractError(
@@ -86,23 +115,17 @@ export class GraphRuntimeAdapterRegistry {
         { errors: validation.errors },
       );
     }
-    if (claims.authoritative) {
-      if (
-        this.authoritativeSurface &&
-        this.authoritativeSurface !== claims.surface
-      ) {
-        throw contractError(
-          "CC_GRAPH_MULTIPLE_AUTHORITATIVE_WRITERS",
-          "only one Graph Kernel adapter may write authoritative run state",
-        );
-      }
-      this.authoritativeSurface = claims.surface;
+    if (this.adapters.has(claims.originSurface)) {
+      throw contractError(
+        "CC_GRAPH_ADAPTER_ALREADY_REGISTERED",
+        `graph runtime adapter is already registered: ${claims.originSurface}`,
+      );
     }
-    this.adapters.set(claims.surface, {
+    this.adapters.set(claims.originSurface, {
       adapter,
       claims: Object.freeze(claims),
     });
-    return this.claims(claims.surface);
+    return this.claims(claims.originSurface);
   }
 
   claims(surface) {
@@ -120,6 +143,56 @@ export class GraphRuntimeAdapterRegistry {
 
   adapter(surface) {
     return this.adapters.get(surface)?.adapter || null;
+  }
+
+  bindRunAuthority(originSurface, input, options = {}) {
+    const claims = this.claims(originSurface);
+    if (!claims) {
+      throw contractError(
+        "CC_GRAPH_ADAPTER_NOT_REGISTERED",
+        `graph runtime adapter is not registered: ${originSurface}`,
+      );
+    }
+    const authorityMode = String(input?.authorityMode || "");
+    if (!claims.authorityModes.includes(authorityMode)) {
+      throw contractError(
+        "CC_GRAPH_AUTHORITY_MODE_UNSUPPORTED",
+        `${originSurface} does not support ${authorityMode} authority`,
+      );
+    }
+    if (originSurface === "browser" && authorityMode === "canonical") {
+      throw contractError(
+        "CC_GRAPH_BROWSER_NON_DURABLE",
+        "browser runtime cannot acquire canonical authority while non-durable",
+      );
+    }
+    const authoritySource =
+      authorityMode === "canonical"
+        ? "graph_kernel"
+        : authorityMode === "shadow"
+          ? "graph_kernel_shadow"
+          : "legacy_runtime";
+    const binding = createGraphAuthorityBinding({
+      ...input,
+      originSurface,
+      authorityMode,
+      authoritySource,
+    });
+    return this.authorityRegistry.bind(binding, options);
+  }
+
+  runAuthority(logicalRunId) {
+    return this.authorityRegistry.get(logicalRunId);
+  }
+
+  transitionSurface(originSurface, stage) {
+    if (!this.adapters.has(originSurface)) {
+      throw contractError(
+        "CC_GRAPH_ADAPTER_NOT_REGISTERED",
+        `graph runtime adapter is not registered: ${originSurface}`,
+      );
+    }
+    return this.authorityRegistry.transition(originSurface, stage);
   }
 }
 

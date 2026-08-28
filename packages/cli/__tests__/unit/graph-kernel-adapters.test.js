@@ -16,7 +16,10 @@ function claims(surface, overrides = {}) {
     persistence: surface === "browser" ? "non_durable" : "durable",
     isolated: true,
     terminalEvidence: true,
-    authoritative: false,
+    authorityModes:
+      surface === "browser"
+        ? ["legacy", "shadow"]
+        : ["legacy", "shadow", "canonical"],
     featureGated: surface === "browser",
     ...overrides,
   };
@@ -63,18 +66,76 @@ describe("Graph runtime adapter migration contracts", () => {
     );
   });
 
-  it("permits only one authoritative writer", () => {
+  it("binds authority per logical run instead of globally per surface", () => {
     const registry = new GraphRuntimeAdapterRegistry();
     registry.register({
-      runtimeClaims: () => claims("cli_team", { authoritative: true }),
+      runtimeClaims: () => claims("cli_team"),
     });
+    registry.register({
+      runtimeClaims: () => claims("cowork"),
+    });
+    const lease = {
+      logicalRunId: "run-1",
+      authorityMode: "canonical",
+      authorityGeneration: 1,
+      writerId: "writer-cli",
+      writerLeaseId: "lease-cli",
+      writerLeaseExpiresAt: "2030-01-01T00:00:00.000Z",
+      eventHead: null,
+      projectionVersion: 1,
+    };
+    expect(registry.bindRunAuthority("cli_team", lease)).toMatchObject({
+      logicalRunId: "run-1",
+      originSurface: "cli_team",
+      authoritySource: "graph_kernel",
+    });
+    expect(
+      registry.bindRunAuthority("cowork", {
+        ...lease,
+        logicalRunId: "run-2",
+        writerId: "writer-cowork",
+        writerLeaseId: "lease-cowork",
+      }),
+    ).toMatchObject({ logicalRunId: "run-2", originSurface: "cowork" });
     expect(() =>
-      registry.register({
-        runtimeClaims: () => claims("cowork", { authoritative: true }),
+      registry.bindRunAuthority("cowork", {
+        ...lease,
+        writerId: "writer-cowork",
+        writerLeaseId: "lease-cowork",
       }),
     ).toThrowError(
       expect.objectContaining({
         code: "CC_GRAPH_MULTIPLE_AUTHORITATIVE_WRITERS",
+      }),
+    );
+  });
+
+  it("does not let static claims or a non-durable browser acquire authority", () => {
+    expect(() =>
+      new GraphRuntimeAdapterRegistry().register({
+        runtimeClaims: () => claims("cli_team", { authoritative: true }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_ADAPTER_CLAIMS_INVALID" }),
+    );
+    const registry = new GraphRuntimeAdapterRegistry();
+    registry.register({
+      runtimeClaims: () => claims("browser"),
+    });
+    expect(() =>
+      registry.bindRunAuthority("browser", {
+        logicalRunId: "browser-run",
+        authorityMode: "canonical",
+        authorityGeneration: 1,
+        writerId: "browser-writer",
+        writerLeaseId: "browser-lease",
+        writerLeaseExpiresAt: "2030-01-01T00:00:00.000Z",
+        eventHead: null,
+        projectionVersion: 1,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_AUTHORITY_MODE_UNSUPPORTED",
       }),
     );
   });

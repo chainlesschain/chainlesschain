@@ -125,6 +125,26 @@ class DesktopAppServerPilot extends EventEmitter {
   turnInterrupt(params) {
     return this.client.turnInterrupt(normalizeParams(params));
   }
+
+  graphCompile(params) {
+    return this.client.graphCompile(normalizeParams(params));
+  }
+
+  graphRun(params) {
+    return this.client.graphRun(normalizeParams(params));
+  }
+
+  graphStatus(params) {
+    return this.client.graphStatus(normalizeParams(params));
+  }
+
+  graphCancel(params) {
+    return this.client.graphCancel(normalizeParams(params));
+  }
+
+  graphReconcile(params) {
+    return this.client.graphReconcile(normalizeParams(params));
+  }
 }
 
 module.exports = {

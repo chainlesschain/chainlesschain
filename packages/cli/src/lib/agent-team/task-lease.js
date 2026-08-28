@@ -325,6 +325,7 @@ export class TaskLeaseRegistry {
       attempts: t.metadata?.attempts || 0,
       lease: lease ? { ...lease } : null,
       assignee: t.assignee,
+      createdBy: t.createdBy ?? null,
       rev: t.rev,
       // Full metadata is exposed so executors can read user payload
       // (e.g. a task's shell `command` or agent `prompt`) — it carries the
@@ -1463,6 +1464,320 @@ export class TaskLeaseRegistry {
     this._tasks = SharedTaskList.restore(snapshot, { now: this._now });
     this._rebuildIndexes();
     return { ok: true, priorStatus };
+  }
+
+  /**
+   * Repair the compatibility task view from a terminal canonical Graph node.
+   * This exceptional path may correct a fail-closed recovery cancellation when
+   * the immutable Graph ledger proves that the effect/attempt already settled.
+   */
+  applyCanonicalTaskProjection(
+    key,
+    {
+      runId,
+      nodeId,
+      graphStatus,
+      authorityGeneration,
+      eventHead,
+      revisionDigest,
+      evidence = null,
+      now = this._now(),
+    } = {},
+  ) {
+    const terminalStatus =
+      graphStatus === "succeeded"
+        ? TASK_STATUS.COMPLETED
+        : ["failed", "blocked", "cancelled"].includes(graphStatus)
+          ? TASK_STATUS.CANCELLED
+          : null;
+    if (!terminalStatus) {
+      return { ok: false, reason: "graph_not_terminal" };
+    }
+    if (
+      !SAFE_HANDOFF_ID_PATTERN.test(String(runId || "")) ||
+      !SAFE_HANDOFF_ID_PATTERN.test(String(nodeId || "")) ||
+      !Number.isSafeInteger(Number(authorityGeneration)) ||
+      Number(authorityGeneration) < 1 ||
+      !SHA256_PATTERN.test(String(eventHead || "")) ||
+      !SHA256_PATTERN.test(String(revisionDigest || ""))
+    ) {
+      return { ok: false, reason: "invalid_graph_binding" };
+    }
+    let cleanEvidence;
+    try {
+      cleanEvidence = cloneValue(evidence);
+    } catch {
+      return { ok: false, reason: "invalid_graph_evidence" };
+    }
+    const binding = {
+      schema: "chainlesschain.team-graph-task-projection/v1",
+      runId: String(runId),
+      nodeId: String(nodeId),
+      graphStatus,
+      authorityGeneration: Number(authorityGeneration),
+      eventHead: String(eventHead),
+      revisionDigest: String(revisionDigest),
+      evidence: cleanEvidence,
+    };
+    const projectionDigest = digestValue(binding);
+    const id = this._byKey.get(key);
+    const task = id ? this._tasks.get(id) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const prior = task.metadata?.canonicalGraphProjection || null;
+    if (prior?.projectionDigest === projectionDigest) {
+      return {
+        ok: true,
+        idempotent: true,
+        status: task.status,
+        projectionDigest,
+      };
+    }
+    if (
+      prior &&
+      (prior.runId !== binding.runId ||
+        prior.nodeId !== binding.nodeId ||
+        prior.revisionDigest !== binding.revisionDigest ||
+        prior.graphStatus !== binding.graphStatus)
+    ) {
+      return { ok: false, reason: "graph_projection_conflict" };
+    }
+    const snapshot = this._tasks.snapshot();
+    const stored = snapshot.tasks.find((candidate) => candidate.id === task.id);
+    if (!stored || stored.rev !== task.rev) {
+      return { ok: false, reason: "concurrent" };
+    }
+    const projectedAt = Number.isFinite(Number(now))
+      ? Number(now)
+      : this._now();
+    const metadata = {
+      ...stored.metadata,
+      lease: null,
+      canonicalGraphProjection: {
+        ...binding,
+        projectionDigest,
+        projectedAt,
+      },
+    };
+    delete metadata.adjudication;
+    if (terminalStatus === TASK_STATUS.COMPLETED) {
+      metadata.result = {
+        canonicalGraph: true,
+        terminalEvidence: cleanEvidence,
+      };
+      delete metadata.lastError;
+    } else {
+      metadata.lastError = `canonical Graph node settled ${graphStatus}`;
+    }
+    stored.status = terminalStatus;
+    stored.assignee = null;
+    stored.updatedAt = projectedAt;
+    stored.rev += 1;
+    stored.metadata = metadata;
+    stored.history = [
+      ...(stored.history || []),
+      {
+        ts: projectedAt,
+        actor: "graph-kernel",
+        action: "canonical-projection-repaired",
+        changes: ["status", "assignee", "metadata"],
+        graphStatus,
+        projectionDigest,
+      },
+    ];
+    this._tasks = SharedTaskList.restore(snapshot, { now: this._now });
+    this._rebuildIndexes();
+    if (terminalStatus === TASK_STATUS.COMPLETED) {
+      for (const dependent of this._dependentsByKey.get(key) || []) {
+        this._enqueueIfReady(dependent, projectedAt);
+      }
+    }
+    return { ok: true, status: terminalStatus, projectionDigest };
+  }
+
+  applyCanonicalHandoffProjection(
+    key,
+    { handoff: source, targetLease = null, now = this._now() } = {},
+  ) {
+    if (!source || typeof source !== "object") {
+      return { ok: false, reason: "invalid_handoff_projection" };
+    }
+    const id = normalizedHandoffId(source.id, () => null);
+    const fromHolder = normalizedHolder(source.fromHolder);
+    const toHolder = normalizedHolder(source.toHolder);
+    const revisionDigest = normalizedDigest(source.revisionDigest);
+    const authorityDigest = normalizedDigest(source.authorityDigest);
+    const artifactIds = normalizedArtifactIds(source.artifactIds);
+    const status = String(source.status || "");
+    const ttlMs = Number(source.ttlMs);
+    if (
+      !id ||
+      !fromHolder ||
+      !toHolder ||
+      fromHolder === toHolder ||
+      !revisionDigest ||
+      !authorityDigest ||
+      !artifactIds ||
+      !TEAM_CUSTODY_HANDOFF_STATUSES.includes(status) ||
+      !Number.isSafeInteger(ttlMs) ||
+      ttlMs <= 0 ||
+      ttlMs > MAX_HANDOFF_TTL_MS ||
+      source.taskKey !== key ||
+      typeof source.fromLeaseId !== "string" ||
+      source.fromLeaseId.length === 0 ||
+      !["string", "number"].includes(typeof source.fromFence)
+    ) {
+      return { ok: false, reason: "invalid_handoff_projection" };
+    }
+    let preconditions;
+    let summary;
+    try {
+      preconditions = cloneValue(source.preconditions);
+      summary = cloneValue(source.summary);
+    } catch {
+      return { ok: false, reason: "invalid_handoff_projection" };
+    }
+    const idempotencyKey = normalizedHandoffId(
+      source.idempotencyKey,
+      () => null,
+    );
+    if (!idempotencyKey) {
+      return { ok: false, reason: "invalid_handoff_projection" };
+    }
+    const binding = {
+      schema: TEAM_CUSTODY_HANDOFF_SCHEMA,
+      id,
+      taskKey: key,
+      fromHolder,
+      fromLeaseId: source.fromLeaseId,
+      fromFence: source.fromFence,
+      toHolder,
+      revisionDigest,
+      authorityDigest,
+      artifactIds,
+      preconditions,
+      summary,
+      idempotencyKey,
+      ttlMs,
+    };
+    const bindingDigest = digestValue(binding);
+    if (source.bindingDigest && source.bindingDigest !== bindingDigest) {
+      return { ok: false, reason: "handoff_binding_conflict" };
+    }
+    let cleanTargetLease = null;
+    if (status === "committed") {
+      try {
+        cleanTargetLease = cloneValue(targetLease || source.targetLease);
+      } catch {
+        return { ok: false, reason: "invalid_target_lease" };
+      }
+      if (
+        !cleanTargetLease ||
+        cleanTargetLease.holder !== toHolder ||
+        typeof cleanTargetLease.leaseId !== "string" ||
+        cleanTargetLease.leaseId.length === 0 ||
+        !Number.isFinite(Number(cleanTargetLease.expiresAt))
+      ) {
+        return { ok: false, reason: "invalid_target_lease" };
+      }
+    }
+    const taskId = this._byKey.get(key);
+    const task = taskId ? this._tasks.get(taskId) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const history = handoffHistory(task);
+    const existing = history.find((entry) => entry.id === id);
+    if (existing && existing.bindingDigest !== bindingDigest) {
+      return { ok: false, reason: "handoff_binding_conflict" };
+    }
+    if (existing && existing.status !== status) {
+      const transitions = {
+        offered: new Set([
+          "accepted",
+          "rejected",
+          "committed",
+          "revoked",
+          "expired",
+        ]),
+        accepted: new Set(["committed", "revoked", "expired"]),
+      };
+      if (!transitions[existing.status]?.has(status)) {
+        return { ok: false, reason: "handoff_projection_regressed" };
+      }
+    }
+    if (existing?.status === status) {
+      return { ok: true, idempotent: true, handoff: cloneValue(existing) };
+    }
+    const projectedAt = Number.isFinite(Number(now))
+      ? Number(now)
+      : this._now();
+    const projected = {
+      ...(existing || binding),
+      ...binding,
+      bindingDigest,
+      expiresAtMs: Number(source.expiresAtMs),
+      status,
+      offeredAt: Number(source.offeredAt),
+      acceptedAt: source.acceptedAt == null ? null : Number(source.acceptedAt),
+      rejectedAt: source.rejectedAt == null ? null : Number(source.rejectedAt),
+      committedAt:
+        source.committedAt == null ? null : Number(source.committedAt),
+      revokedAt: source.revokedAt == null ? null : Number(source.revokedAt),
+      expiredAt: source.expiredAt == null ? null : Number(source.expiredAt),
+      targetStartedAt: existing?.targetStartedAt ?? null,
+      targetSettledAt: existing?.targetSettledAt ?? null,
+      targetSettlement: existing?.targetSettlement ?? null,
+      reason:
+        source.reason == null ? null : String(source.reason).slice(0, 1024),
+      acceptedByAttempt: existing?.acceptedByAttempt ?? null,
+      targetLease:
+        status === "committed"
+          ? cloneValue(existing?.targetLease || cleanTargetLease)
+          : null,
+      canonicalProjectedAt: projectedAt,
+      updatedAt: Number(source.updatedAt) || projectedAt,
+    };
+    if (existing) {
+      history[history.indexOf(existing)] = projected;
+    } else {
+      history.push(projected);
+      while (history.length > MAX_HANDOFF_HISTORY) history.shift();
+    }
+    const snapshot = this._tasks.snapshot();
+    const stored = snapshot.tasks.find((candidate) => candidate.id === task.id);
+    if (!stored || stored.rev !== task.rev) {
+      return { ok: false, reason: "concurrent" };
+    }
+    stored.rev += 1;
+    stored.updatedAt = projectedAt;
+    stored.metadata = { ...stored.metadata, custodyHandoffs: history };
+    if (
+      status === "committed" &&
+      ![TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(stored.status)
+    ) {
+      stored.status = TASK_STATUS.IN_PROGRESS;
+      stored.assignee = toHolder;
+      stored.metadata.lease = cloneValue(projected.targetLease);
+    } else if (
+      status === "expired" &&
+      stored.metadata?.lease?.leaseId === binding.fromLeaseId
+    ) {
+      stored.status = TASK_STATUS.PENDING;
+      stored.assignee = null;
+      stored.metadata.lease = null;
+    }
+    stored.history = [
+      ...(stored.history || []),
+      {
+        ts: projectedAt,
+        actor: "graph-kernel",
+        action: "canonical-handoff-projected",
+        changes: ["status", "assignee", "metadata"],
+        handoffId: id,
+        handoffStatus: status,
+      },
+    ];
+    this._tasks = SharedTaskList.restore(snapshot, { now: this._now });
+    this._rebuildIndexes();
+    return { ok: true, handoff: cloneValue(projected) };
   }
 
   /** Bind a pending adjudication to its immutable durable case evidence. */

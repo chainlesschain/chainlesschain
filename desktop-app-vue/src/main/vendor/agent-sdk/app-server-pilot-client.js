@@ -98,6 +98,21 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     turnInterrupt(params) {
         return this.call("turn/interrupt", params);
     }
+    graphCompile(params) {
+        return this.call("graph/compile", params);
+    }
+    graphRun(params) {
+        return this.call("graph/run", params);
+    }
+    graphStatus(params) {
+        return this.call("graph/status", params);
+    }
+    graphCancel(params) {
+        return this.call("graph/cancel", params);
+    }
+    graphReconcile(params) {
+        return this.call("graph/reconcile", params);
+    }
     async call(method, params) {
         await this.start();
         return this.transport.request(method, params);

@@ -10,6 +10,9 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const { looseParseJSON } = require("./response-parser.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
@@ -460,6 +463,7 @@ class TaskPlannerEnhanced extends EventEmitter {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext = {}) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.decomposeTask");
     logger.info("[TaskPlannerEnhanced] 开始拆解任务:", userRequest);
 
     try {
@@ -1046,6 +1050,7 @@ ${userRequest}
    * 保存任务计划到数据库
    */
   async saveTaskPlan(projectId, taskPlan) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.saveTaskPlan");
     try {
       logger.info("[TaskPlannerEnhanced] 准备保存任务计划");
       logger.info("[TaskPlannerEnhanced] projectId:", projectId);
@@ -1266,6 +1271,7 @@ ${userRequest}
    * 更新任务计划状态
    */
   async updateTaskPlan(taskPlanId, updates) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.updateTaskPlan");
     try {
       const fields = [];
       const params = [];
@@ -1299,6 +1305,7 @@ ${userRequest}
    * @returns {Promise<Object>} 执行结果
    */
   async executeTaskPlan(taskPlan, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.executeTaskPlan");
     logger.info("[TaskPlannerEnhanced] 开始执行任务计划:", taskPlan.task_title);
 
     try {
@@ -1585,6 +1592,7 @@ ${userRequest}
    * 执行单个子任务
    */
   async executeSubtask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.executeSubtask");
     logger.info(
       `[TaskPlannerEnhanced] 执行子任务 ${subtask.step}: ${subtask.title}`,
     );
@@ -1663,6 +1671,9 @@ ${userRequest}
    * 执行Web引擎任务
    */
   async executeWebEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeWebEngineTask",
+    );
     const webEngine = this.loadEngine("web-engine");
     const { action, description, output_files } = subtask;
 
@@ -1684,6 +1695,9 @@ ${userRequest}
    * 执行文档引擎任务
    */
   async executeDocumentEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeDocumentEngineTask",
+    );
     const documentEngine = this.loadEngine("document-engine");
     const { action, description, output_files } = subtask;
 
@@ -1704,6 +1718,9 @@ ${userRequest}
    * 执行数据引擎任务
    */
   async executeDataEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeDataEngineTask",
+    );
     const dataEngine = this.loadEngine("data-engine");
     const { action, description, output_files } = subtask;
 
@@ -1724,6 +1741,9 @@ ${userRequest}
    * 执行PPT引擎任务
    */
   async executePPTEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executePPTEngineTask",
+    );
     try {
       const pptEngine = this.loadEngine("ppt-engine");
       const { action, description, output_files } = subtask;
@@ -1756,6 +1776,9 @@ ${userRequest}
    * 执行Word引擎任务
    */
   async executeWordEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeWordEngineTask",
+    );
     try {
       const wordEngine = this.loadEngine("word-engine");
       const { action, description, output_files } = subtask;
@@ -1781,6 +1804,9 @@ ${userRequest}
    * 执行代码引擎任务
    */
   async executeCodeEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeCodeEngineTask",
+    );
     logger.info(`[TaskPlannerEnhanced] 代码引擎 - ${subtask.action}`);
 
     // 使用LLM生成代码
@@ -1803,6 +1829,9 @@ ${userRequest}
    * 执行图像引擎任务
    */
   async executeImageEngineTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeImageEngineTask",
+    );
     logger.info(`[TaskPlannerEnhanced] 图像引擎 - ${subtask.action}`);
 
     // 图像引擎通常需要调用外部API（Stable Diffusion等）
@@ -1818,6 +1847,9 @@ ${userRequest}
    * 执行通用任务（使用LLM）
    */
   async executeGenericTask(subtask, projectContext, progressCallback) {
+    assertDesktopLegacyMutationAllowed(
+      "TaskPlannerEnhanced.executeGenericTask",
+    );
     logger.info(`[TaskPlannerEnhanced] 通用任务执行: ${subtask.title}`);
 
     const response = await this.llmManager.query(subtask.description, {
@@ -1885,6 +1917,7 @@ ${userRequest}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt, options = {}) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.queryBackendAI");
     const https = require("https");
     const http = require("http");
     const { URL } = require("url");
@@ -2005,6 +2038,7 @@ ${userRequest}
    * 取消任务计划
    */
   async cancelTaskPlan(taskPlanId) {
+    assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.cancelTaskPlan");
     try {
       await this.updateTaskPlan(taskPlanId, {
         status: "cancelled",

@@ -1,0 +1,1427 @@
+{
+  "schema": "chainlesschain.graph-runtime-surfaces/v1",
+  "version": 1,
+  "projectionVersion": 1,
+  "cutoverPolicy": {
+    "ledgerSchema": "chainlesschain.graph-cutover-ledger/v1",
+    "scope": "entry",
+    "requiredPlatforms": ["linux", "windows", "macos"],
+    "existingCanonicalRunRollback": "retain_authority"
+  },
+  "surfaces": [
+    {
+      "originSurface": "cli_team",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_CLI_TEAM",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-team-local",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "cli_team/cli-team-local",
+          "entrypoints": [
+            "packages/cli/src/commands/team.js",
+            "packages/cli/src/lib/agent-team/team-runner.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/agent-team/team-graph-runtime-adapter.js",
+            "packages/cli/src/lib/agent-team/team-runner.js",
+            "packages/cli/src/lib/agent-team/task-lease.js",
+            "packages/cli/src/lib/agent-team/team-mailbox.js"
+          ],
+          "mutationFunctions": [
+            "TeamRunner.start",
+            "TaskLeaseRegistry.claim",
+            "TaskLeaseRegistry.complete",
+            "TeamMailbox.send"
+          ],
+          "stores": ["TaskLeaseRegistry", "TeamMailbox"],
+          "storeDispositions": {
+            "migrate": ["TaskLeaseRegistry", "TeamMailbox"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": ["TeamRunner.resume"]
+        },
+        {
+          "id": "cli-team-distributed",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "cli_team/cli-team-distributed",
+          "entrypoints": [
+            "packages/cli/src/commands/team-distributed.js",
+            "packages/cli/src/lib/agent-team/team-distributed-queue.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/agent-team/team-distributed-queue.js",
+            "packages/cli/src/lib/agent-team/team-graph-projection.js"
+          ],
+          "mutationFunctions": [
+            "TeamDistributedQueue.claim",
+            "TeamDistributedQueue.finalize"
+          ],
+          "stores": ["TeamDistributedQueue"],
+          "storeDispositions": {
+            "migrate": ["TeamDistributedQueue"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": ["TeamDistributedQueue.recover"]
+        }
+      ]
+    },
+    {
+      "originSurface": "cowork",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_COWORK",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-cowork",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "cowork/cli-cowork",
+          "entrypoints": [
+            "packages/cli/src/commands/cowork.js",
+            "packages/cli/src/gateways/ws/action-protocol.js",
+            "packages/cli/src/lib/cowork-task-runner.js",
+            "packages/cli/src/lib/cowork-workflow.js",
+            "packages/cli/src/lib/dynamic-workflow-facade.js",
+            "packages/cli/src/lib/dynamic-workflow-runtime.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/cowork-graph-authority-adapter.js",
+            "packages/cli/src/lib/dynamic-workflow-facade.js",
+            "packages/cli/src/lib/dynamic-workflow-runtime.js",
+            "packages/cli/src/lib/cowork-task-runner.js"
+          ],
+          "mutationFunctions": [
+            "DynamicWorkflowRuntime.execute",
+            "CoworkTaskRunner.run"
+          ],
+          "stores": ["DynamicWorkflowRuntimeStore", "CoworkTaskStore"],
+          "storeDispositions": {
+            "migrate": ["DynamicWorkflowRuntimeStore", "CoworkTaskStore"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": ["DynamicWorkflowRuntime.resume"]
+        },
+        {
+          "id": "cli-legacy-autonomous",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "cowork/cli-legacy-autonomous",
+          "replacementEntrypoint": "cc cowork run through the canonical Graph Kernel adapter",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-cowork"],
+          "historicalReadFunctions": [
+            "CLIAutonomousAgent.getGoalStatus",
+            "CLIAutonomousAgent.listGoals"
+          ],
+          "entrypoints": ["packages/cli/src/repl/agent-repl.js"],
+          "writerFiles": [
+            "packages/cli/src/lib/legacy-runtime-authority.js",
+            "packages/cli/src/lib/autonomous-agent.js"
+          ],
+          "mutationFunctions": [
+            "CLIAutonomousAgent.initialize",
+            "CLIAutonomousAgent.submitGoal",
+            "CLIAutonomousAgent._pruneGoals",
+            "CLIAutonomousAgent.pauseGoal",
+            "CLIAutonomousAgent.resumeGoal",
+            "CLIAutonomousAgent.cancelGoal",
+            "CLIAutonomousAgent._runReActLoop",
+            "CLIAutonomousAgent._decomposeGoal",
+            "CLIAutonomousAgent._executeStep",
+            "CLIAutonomousAgent._selfCorrect"
+          ],
+          "stores": ["CLIAutonomousAgent._goals"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": ["CLIAutonomousAgent._goals"],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "cli-legacy-orchestrate",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "cowork/cli-legacy-orchestrate",
+          "replacementEntrypoint": "cc team run or cc cowork run through the canonical Graph Kernel adapter",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-team-local", "cli-cowork"],
+          "historicalReadFunctions": ["Orchestrator.status"],
+          "entrypoints": [
+            "packages/cli/src/commands/orchestrate.js",
+            "packages/cli/src/gateways/ws/action-protocol.js",
+            "packages/cli/src/lib/cowork-task-runner.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/legacy-runtime-authority.js",
+            "packages/cli/src/lib/orchestrator.js"
+          ],
+          "mutationFunctions": [
+            "Orchestrator.addTask",
+            "Orchestrator.startCronWatch",
+            "Orchestrator.stopCronWatch",
+            "Orchestrator._orchestrate",
+            "Orchestrator._decompose",
+            "Orchestrator._dispatch",
+            "Orchestrator._ciLoop",
+            "Orchestrator._runCI",
+            "Orchestrator._pruneTasks",
+            "Orchestrator._cronTick"
+          ],
+          "stores": ["Orchestrator._tasks"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": ["Orchestrator._tasks"],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        }
+      ]
+    },
+    {
+      "originSurface": "scheduler",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_SCHEDULER",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "cli-scheduler",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "scheduler/cli-scheduler",
+          "entrypoints": [
+            "packages/cli/src/commands/scheduler-daemon.js",
+            "packages/cli/src/commands/agenda.js",
+            "packages/cli/src/commands/automation.js",
+            "packages/cli/src/commands/loop.js",
+            "packages/cli/src/commands/routine.js",
+            "packages/cli/src/commands/cowork.js",
+            "packages/cli/src/lib/scheduler-kernel/service.js",
+            "packages/cli/src/lib/graph-kernel/trigger-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/agenda-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/automation-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/automation-event-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/cowork-cron-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/loop-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/routine-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/migration-admin.js",
+            "packages/cli/src/lib/scheduler-kernel/migration-rollback-admin.js"
+          ],
+          "writerFiles": [
+            "packages/cli/src/lib/scheduler-kernel/graph-authority-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/agenda-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/automation-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/automation-event-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/cowork-cron-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/loop-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/routine-adapter.js",
+            "packages/cli/src/lib/scheduler-kernel/runtime.js",
+            "packages/cli/src/lib/scheduler-kernel/service.js",
+            "packages/cli/src/lib/scheduler-kernel/store.js"
+          ],
+          "mutationFunctions": [
+            "SchedulerKernelRuntime.dispatch",
+            "SchedulerGraphTriggerAdapter.dispatch"
+          ],
+          "stores": ["SchedulerKernelStore", "SchedulerGraphDispatchJournal"],
+          "storeDispositions": {
+            "migrate": [
+              "SchedulerKernelStore",
+              "SchedulerGraphDispatchJournal"
+            ],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": ["SchedulerKernelRuntime.recover"]
+        }
+      ]
+    },
+    {
+      "originSurface": "desktop",
+      "durability": "durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "graph_kernel",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_GRAPH_DESKTOP",
+        "default": "legacy"
+      },
+      "entries": [
+        {
+          "id": "desktop-team",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "desktop/desktop-team",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/team/handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/team/handler.js",
+            "packages/cli/src/lib/app-server/graph-runtime.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js",
+            "desktop-app-vue/src/main/sub-runtime/index.js"
+          ],
+          "mutationFunctions": ["team.execute", "SubRuntimePool.dispatch"],
+          "stores": [
+            "SessionStateManager",
+            "SubRuntimePool",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "storeDispositions": {
+            "migrate": [
+              "SessionStateManager",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": ["SubRuntimePool"],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": [
+            "SessionStateManager.load",
+            "graph/status",
+            "graph/resume"
+          ]
+        },
+        {
+          "id": "desktop-specialized-agents",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "desktop/desktop-specialized-agents",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/agents/agents-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-run-registry.js",
+            "desktop-app-vue/src/main/ai-engine/agents/agent-coordinator.js"
+          ],
+          "mutationFunctions": [
+            "AgentCoordinator.orchestrate",
+            "AgentCoordinator.assignTask",
+            "AgentCoordinator.cancelTask",
+            "AgentCoordinator.reconcileTask",
+            "AgentCoordinator.getTaskStatusAuthoritative"
+          ],
+          "stores": [
+            "agent_task_history",
+            "desktop_graph_run_bindings",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "storeDispositions": {
+            "migrate": [
+              "agent_task_history",
+              "desktop_graph_run_bindings",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": [
+            "agents:get-task-status",
+            "agents:cancel-task",
+            "agents:reconcile-task"
+          ]
+        },
+        {
+          "id": "desktop-workflow-manager",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "desktop/desktop-workflow-manager",
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-8-9-extras.js",
+            "desktop-app-vue/src/main/workflow/workflow-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-run-registry.js",
+            "desktop-app-vue/src/main/workflow/workflow-pipeline.js"
+          ],
+          "mutationFunctions": [
+            "WorkflowPipeline.execute",
+            "WorkflowPipeline.cancel",
+            "WorkflowPipeline.reconcile",
+            "WorkflowPipeline.refreshCanonicalStatus",
+            "WorkflowManager.deleteWorkflow"
+          ],
+          "stores": [
+            "desktop_graph_run_bindings",
+            "WorkflowManager.workflows",
+            "GraphEventStore",
+            "AppServerGraphRequestReceipt",
+            "AppServerGraphExecutorReceipt"
+          ],
+          "storeDispositions": {
+            "migrate": [
+              "desktop_graph_run_bindings",
+              "GraphEventStore",
+              "AppServerGraphRequestReceipt",
+              "AppServerGraphExecutorReceipt"
+            ],
+            "retire": [],
+            "rebuild": ["WorkflowManager.workflows"],
+            "disabled": []
+          },
+          "recoveryEntrypoints": [
+            "workflow:get-status",
+            "workflow:cancel",
+            "workflow:reconcile"
+          ]
+        },
+        {
+          "id": "desktop-legacy-ai-engine",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-legacy-ai-engine",
+          "replacementEntrypoint": "Desktop Coding Agent through the fixed CC App Server capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "AIEngineManager.getExecutionHistory",
+            "TaskPlannerEnhanced.getTaskPlanHistory",
+            "TaskPlannerEnhanced.getTaskPlan"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/bootstrap/ai-initializer.js",
+            "desktop-app-vue/src/main/ai-engine/ai-engine-ipc.js",
+            "desktop-app-vue/src/main/project/project-ai-ipc-planning.js",
+            "desktop-app-vue/src/main/project/automation-manager.js",
+            "desktop-app-vue/src/main/skill-tool-system/doc-generator.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/ai-engine-manager.js",
+            "desktop-app-vue/src/main/ai-engine/ai-engine-manager-optimized.js",
+            "desktop-app-vue/src/main/ai-engine/ai-engine-manager-p1.js",
+            "desktop-app-vue/src/main/ai-engine/task-planner.js",
+            "desktop-app-vue/src/main/ai-engine/task-planner-enhanced.js",
+            "desktop-app-vue/src/main/ai-engine/checkpoint-validator.js",
+            "desktop-app-vue/src/main/ai-engine/self-correction-loop.js",
+            "desktop-app-vue/src/main/monitoring/performance-monitor.js"
+          ],
+          "mutationFunctions": [
+            "AIEngineManager.initialize",
+            "AIEngineManager.initializeWorkflowOptimizations",
+            "AIEngineManager.processUserInput",
+            "AIEngineManager.clearHistory",
+            "AIEngineManager.registerTool",
+            "AIEngineManager.unregisterTool",
+            "AIEngineManagerOptimized.initialize",
+            "AIEngineManagerOptimized.processUserInput",
+            "AIEngineManagerOptimized.cleanOldPerformanceData",
+            "AIEngineManagerOptimized.setUserId",
+            "AIEngineManagerOptimized.registerTool",
+            "AIEngineManagerOptimized.unregisterTool",
+            "AIEngineManagerP1.initialize",
+            "AIEngineManagerP1.processUserInput",
+            "AIEngineManagerP1.cleanOldPerformanceData",
+            "AIEngineManagerP1._executeTaskSteps",
+            "AIEngineManagerP1.setUserId",
+            "AIEngineManagerP1.registerTool",
+            "AIEngineManagerP1.unregisterTool",
+            "TaskPlanner.initialize",
+            "TaskPlanner.decomposeTask",
+            "TaskPlannerEnhanced.decomposeTask",
+            "TaskPlannerEnhanced.saveTaskPlan",
+            "TaskPlannerEnhanced.updateTaskPlan",
+            "TaskPlannerEnhanced.executeTaskPlan",
+            "TaskPlannerEnhanced.executeSubtask",
+            "TaskPlannerEnhanced.executeWebEngineTask",
+            "TaskPlannerEnhanced.executeDocumentEngineTask",
+            "TaskPlannerEnhanced.executeDataEngineTask",
+            "TaskPlannerEnhanced.executePPTEngineTask",
+            "TaskPlannerEnhanced.executeWordEngineTask",
+            "TaskPlannerEnhanced.executeCodeEngineTask",
+            "TaskPlannerEnhanced.executeImageEngineTask",
+            "TaskPlannerEnhanced.executeGenericTask",
+            "TaskPlannerEnhanced.queryBackendAI",
+            "TaskPlannerEnhanced.cancelTaskPlan",
+            "CheckpointValidator.validateCheckpoint",
+            "CheckpointValidator.llmQualityCheck",
+            "CheckpointValidator.saveValidationHistory",
+            "CheckpointValidator.setConfig",
+            "SelfCorrectionLoop.executeWithCorrection",
+            "SelfCorrectionLoop.executePlan",
+            "SelfCorrectionLoop.llmBasedDiagnosis",
+            "SelfCorrectionLoop.generateCorrectionPlan",
+            "SelfCorrectionLoop.correctMissingDependency",
+            "SelfCorrectionLoop.correctInvalidParams",
+            "SelfCorrectionLoop.correctTimeout",
+            "SelfCorrectionLoop.correctFileNotFound",
+            "SelfCorrectionLoop.correctNetworkError",
+            "SelfCorrectionLoop.correctOutOfMemory",
+            "SelfCorrectionLoop.correctSyntaxError",
+            "SelfCorrectionLoop.llmBasedCorrection",
+            "SelfCorrectionLoop.saveExecutionHistory",
+            "SelfCorrectionLoop.setConfig",
+            "PerformanceMonitor.initDatabase",
+            "PerformanceMonitor.recordPhase",
+            "PerformanceMonitor._retainRecord",
+            "PerformanceMonitor._evictRecord",
+            "PerformanceMonitor.clearMemoryMetrics",
+            "PerformanceMonitor.cleanOldData"
+          ],
+          "stores": [
+            "AIEngineManager.executionHistory",
+            "AIEngineManagerOptimized.executionHistory",
+            "AIEngineManagerP1.executionHistory",
+            "project_task_plans",
+            "performance_metrics",
+            "multi_intent_history",
+            "hierarchical_planning_history",
+            "self_correction_history",
+            "checkpoint_validations"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "AIEngineManager.executionHistory",
+              "AIEngineManagerOptimized.executionHistory",
+              "AIEngineManagerP1.executionHistory",
+              "project_task_plans",
+              "performance_metrics",
+              "multi_intent_history",
+              "hierarchical_planning_history",
+              "self_correction_history",
+              "checkpoint_validations"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-autonomous-agent",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-autonomous-agent",
+          "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "AutonomousAgentRunner.getGoalStatus",
+            "AutonomousAgentRunner.getGoalHistory",
+            "AutonomousAgentRunner.getGoalSteps",
+            "AutonomousAgentRunner.getGoalLogs",
+            "AgentTaskQueue.getQueueStatus"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-21-30-enterprise.js",
+            "desktop-app-vue/src/main/ai-engine/autonomous/autonomous-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/autonomous/autonomous-agent-runner.js",
+            "desktop-app-vue/src/main/ai-engine/autonomous/agent-task-queue.js"
+          ],
+          "mutationFunctions": [
+            "AutonomousAgentRunner.initialize",
+            "AutonomousAgentRunner._ensureTables",
+            "AutonomousAgentRunner.submitGoal",
+            "AutonomousAgentRunner._drainQueue",
+            "AutonomousAgentRunner._executeGoal",
+            "AutonomousAgentRunner._reason",
+            "AutonomousAgentRunner._act",
+            "AutonomousAgentRunner._observe",
+            "AutonomousAgentRunner._decomposeGoal",
+            "AutonomousAgentRunner._replanOnFailure",
+            "AutonomousAgentRunner.pauseGoal",
+            "AutonomousAgentRunner.resumeGoal",
+            "AutonomousAgentRunner.cancelGoal",
+            "AutonomousAgentRunner.requestUserInput",
+            "AutonomousAgentRunner.provideUserInput",
+            "AutonomousAgentRunner.updateConfig",
+            "AutonomousAgentRunner.retryGoal",
+            "AutonomousAgentRunner.clearHistory",
+            "AutonomousAgentRunner.exportGoal",
+            "AutonomousAgentRunner._executeSkill",
+            "AutonomousAgentRunner._executeTool",
+            "AutonomousAgentRunner._executeSearch",
+            "AutonomousAgentRunner._executeFileOp",
+            "AutonomousAgentRunner._executeAskUser",
+            "AutonomousAgentRunner._waitForResume",
+            "AutonomousAgentRunner._waitForInput",
+            "AutonomousAgentRunner._checkpoint",
+            "AutonomousAgentRunner._completeGoal",
+            "AutonomousAgentRunner._failGoal",
+            "AutonomousAgentRunner._logStep",
+            "AutonomousAgentRunner._saveGoalToDB",
+            "AutonomousAgentRunner._updateGoalInDB",
+            "AutonomousAgentRunner._saveStepToDB",
+            "AgentTaskQueue.initialize",
+            "AgentTaskQueue._ensureTables",
+            "AgentTaskQueue.enqueue",
+            "AgentTaskQueue.dequeue",
+            "AgentTaskQueue.remove",
+            "AgentTaskQueue.markComplete",
+            "AgentTaskQueue.reSort",
+            "AgentTaskQueue.updatePriority",
+            "AgentTaskQueue.clear",
+            "AgentTaskQueue._saveItemToDB",
+            "AgentTaskQueue._updateItemInDB"
+          ],
+          "stores": [
+            "autonomous_goals",
+            "autonomous_goal_steps",
+            "autonomous_goal_logs",
+            "autonomous_task_queue"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "autonomous_goals",
+              "autonomous_goal_steps",
+              "autonomous_goal_logs",
+              "autonomous_task_queue"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-legacy-cowork-team",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-legacy-cowork-team",
+          "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": [
+            "TeammateTool.discoverTeams",
+            "TeammateTool.getAgent",
+            "TeammateTool.getTask",
+            "TeammateTool.getMetrics"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/cowork-api-server.js",
+            "desktop-app-vue/src/main/ipc/phases/phase-9-15-core.js",
+            "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/teammate-tool.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/agent-pool.js"
+          ],
+          "mutationFunctions": [
+            "TeammateTool.spawnTeam",
+            "TeammateTool.requestJoin",
+            "TeammateTool.assignTask",
+            "TeammateTool.assignTaskIsolated",
+            "TeammateTool.broadcastMessage",
+            "TeammateTool.sendMessage",
+            "TeammateTool.voteOnDecision",
+            "TeammateTool.terminateAgent",
+            "TeammateTool.mergeResults",
+            "TeammateTool.createCheckpoint",
+            "TeammateTool.updateTeamConfig",
+            "TeammateTool.pauseTeam",
+            "TeammateTool.resumeTeam",
+            "TeammateTool.cleanupOldMessages",
+            "TeammateTool.destroyTeam",
+            "TeammateTool.addAgent",
+            "TeammateTool.disbandTeam",
+            "TeammateTool.updateTaskStatus",
+            "TeammateTool.cleanup",
+            "TeammateTool._appendTeamMessage",
+            "TeammateTool._ensureDataDir",
+            "TeammateTool._saveTeamConfig",
+            "AgentPool.initialize",
+            "AgentPool.acquireAgent",
+            "AgentPool.releaseAgent",
+            "AgentPool._waitForAgent",
+            "AgentPool._createAgent",
+            "AgentPool._resetAgent",
+            "AgentPool._destroyAgent",
+            "AgentPool._startIdleTimer",
+            "AgentPool._clearIdleTimer",
+            "AgentPool.clear",
+            "AgentPool.shrink",
+            "AgentPool.acquireByCapabilities",
+            "AgentPool._warmResetAgent",
+            "AgentPool._checkMemoryPressure",
+            "AgentPool.startHealthCheck",
+            "AgentPool.stopHealthCheck",
+            "AgentPool._pingAgents",
+            "AgentPool.returnToPool",
+            "AgentPool.acquireIsolatedAgent"
+          ],
+          "stores": [
+            "TeammateTool.teams",
+            "TeammateTool.agents",
+            "TeammateTool.messageQueues",
+            "TeammateTool.teamFiles",
+            "cowork_teams",
+            "cowork_agents",
+            "cowork_tasks",
+            "cowork_messages",
+            "cowork_checkpoints"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "TeammateTool.teams",
+              "TeammateTool.agents",
+              "TeammateTool.messageQueues",
+              "TeammateTool.teamFiles",
+              "cowork_teams",
+              "cowork_agents",
+              "cowork_tasks",
+              "cowork_messages",
+              "cowork_checkpoints"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-long-running-task",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-long-running-task",
+          "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "LongRunningTaskManager.listTasks",
+            "LongRunningTaskManager.getTask",
+            "LongRunningTaskManager.getCheckpoints"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
+            "desktop-app-vue/src/main/ipc/phases/phase-9-15-core.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/long-running-task-manager.js"
+          ],
+          "mutationFunctions": [
+            "LongRunningTaskManager.createTask",
+            "LongRunningTaskManager.startTask",
+            "LongRunningTaskManager.pauseTask",
+            "LongRunningTaskManager.resumeTask",
+            "LongRunningTaskManager.cancelTask",
+            "LongRunningTaskManager._ensureDataDir",
+            "LongRunningTaskManager._executeTask",
+            "LongRunningTaskManager._executeSteps",
+            "LongRunningTaskManager._handleTaskSuccess",
+            "LongRunningTaskManager._handleTaskFailure",
+            "LongRunningTaskManager._markTaskFailed",
+            "LongRunningTaskManager.createCheckpoint",
+            "LongRunningTaskManager.restoreFromCheckpoint",
+            "LongRunningTaskManager._startCheckpointTimer",
+            "LongRunningTaskManager._stopCheckpointTimer",
+            "LongRunningTaskManager._saveTask",
+            "LongRunningTaskManager._saveTaskResult",
+            "LongRunningTaskManager.cleanupCompletedTasks",
+            "LongRunningTaskManager.retryTask"
+          ],
+          "stores": [
+            "LongRunningTaskManager.activeTasks",
+            "LongRunningTaskManager.taskFiles",
+            "cowork_checkpoints"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "LongRunningTaskManager.activeTasks",
+              "LongRunningTaskManager.taskFiles",
+              "cowork_checkpoints"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-dev-pipeline",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-dev-pipeline",
+          "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "PipelineOrchestrator.getAllPipelines",
+            "PipelineOrchestrator.getStatus",
+            "PipelineOrchestrator.getArtifacts"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/pipeline-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/pipeline-orchestrator.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/deploy-agent.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/post-deploy-monitor.js"
+          ],
+          "mutationFunctions": [
+            "PipelineOrchestrator.initialize",
+            "PipelineOrchestrator.createPipeline",
+            "PipelineOrchestrator.startPipeline",
+            "PipelineOrchestrator.pausePipeline",
+            "PipelineOrchestrator.resumePipeline",
+            "PipelineOrchestrator.cancelPipeline",
+            "PipelineOrchestrator.approveGate",
+            "PipelineOrchestrator.rejectGate",
+            "PipelineOrchestrator.configure",
+            "PipelineOrchestrator._executeStage",
+            "PipelineOrchestrator._registerStageHandlers",
+            "PipelineOrchestrator._completePipeline",
+            "PipelineOrchestrator._failPipeline",
+            "PipelineOrchestrator._ensureTables",
+            "PipelineOrchestrator._savePipeline",
+            "PipelineOrchestrator._updatePipelineDB",
+            "PipelineOrchestrator._saveStage",
+            "PipelineOrchestrator._updateStageDB",
+            "PipelineOrchestrator._saveArtifact",
+            "DeployAgent.initialize",
+            "DeployAgent.deploy",
+            "DeployAgent.configure",
+            "DeployAgent._prepare",
+            "DeployAgent._executeDeploy",
+            "DeployAgent._prepareGitPR",
+            "DeployAgent._deployGitPR",
+            "DeployAgent._prepareDocker",
+            "DeployAgent._deployDocker",
+            "DeployAgent._prepareNpmPublish",
+            "DeployAgent._deployNpmPublish",
+            "DeployAgent._deployLocal",
+            "DeployAgent._deployStaging",
+            "DeployAgent._verify",
+            "DeployAgent._updateDeployStatus",
+            "PostDeployMonitor.initialize",
+            "PostDeployMonitor.startMonitoring",
+            "PostDeployMonitor.stopMonitoring",
+            "PostDeployMonitor.configure",
+            "PostDeployMonitor.destroy",
+            "PostDeployMonitor._performCheck",
+            "PostDeployMonitor._completeMonitoring"
+          ],
+          "stores": [
+            "dev_pipelines",
+            "dev_pipeline_stages",
+            "dev_pipeline_artifacts",
+            "DeployAgent.activeDeployments",
+            "PostDeployMonitor.activeWatchers"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "dev_pipelines",
+              "dev_pipeline_stages",
+              "dev_pipeline_artifacts",
+              "DeployAgent.activeDeployments",
+              "PostDeployMonitor.activeWatchers"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-autonomous-ops",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-autonomous-ops",
+          "replacementEntrypoint": "operator-authored Graph workflow through Desktop WorkflowManager",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "AutoRemediator.getPlaybooks",
+            "RollbackManager.getHistory"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/autonomous-ops-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/rollback-manager.js"
+          ],
+          "mutationFunctions": [
+            "AutoRemediator.initialize",
+            "AutoRemediator.triggerRemediation",
+            "AutoRemediator.createPlaybook",
+            "AutoRemediator.updatePlaybook",
+            "AutoRemediator.configure",
+            "AutoRemediator._executeStep",
+            "AutoRemediator._runAction",
+            "AutoRemediator._performRollback",
+            "AutoRemediator._setCooldown",
+            "AutoRemediator._savePlaybook",
+            "AutoRemediator._updatePlaybookDB",
+            "AutoRemediator._updatePlaybookStats",
+            "RollbackManager.initialize",
+            "RollbackManager.rollback",
+            "RollbackManager.takeSnapshot",
+            "RollbackManager.configure",
+            "RollbackManager._gitRevert",
+            "RollbackManager._dockerRollback",
+            "RollbackManager._configRestore",
+            "RollbackManager._serviceRestart",
+            "RollbackManager._undoSteps"
+          ],
+          "stores": [
+            "ops_remediation_playbooks",
+            "AutoRemediator.activeRemediations",
+            "AutoRemediator.cooldowns",
+            "RollbackManager.history",
+            "RollbackManager.configSnapshots"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "ops_remediation_playbooks",
+              "AutoRemediator.activeRemediations",
+              "AutoRemediator.cooldowns",
+              "RollbackManager.history",
+              "RollbackManager.configSnapshots"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-hybrid-executor",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-hybrid-executor",
+          "replacementEntrypoint": "Desktop $team through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-team"],
+          "historicalReadFunctions": ["HybridExecutor.getStats"],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/cowork-v2-ipc.js",
+            "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/decentralized-network-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/hybrid-executor.js"
+          ],
+          "mutationFunctions": [
+            "HybridExecutor.initialize",
+            "HybridExecutor.execute",
+            "HybridExecutor.executeBatch",
+            "HybridExecutor._executeWithStrategy",
+            "HybridExecutor._executeLocal",
+            "HybridExecutor._executeRemote",
+            "HybridExecutor._executeLocalFirst",
+            "HybridExecutor._executeRemoteFirst",
+            "HybridExecutor._executeBestFit",
+            "HybridExecutor._executeLoadBalanced",
+            "HybridExecutor._recordExecution"
+          ],
+          "stores": [
+            "HybridExecutor.activeExecutions",
+            "HybridExecutor.executionHistory"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "HybridExecutor.activeExecutions",
+              "HybridExecutor.executionHistory"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-p2p-agent",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-p2p-agent",
+          "replacementEntrypoint": "CLI Team distributed Graph adapter",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["cli-team-distributed"],
+          "historicalReadFunctions": [
+            "P2PAgentNetwork.getStats",
+            "CrossOrgTaskRouter.getTaskLog"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/cowork-v2-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/p2p-agent-network.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js"
+          ],
+          "mutationFunctions": [
+            "P2PAgentNetwork.initialize",
+            "P2PAgentNetwork.announcePresence",
+            "P2PAgentNetwork.registerRemoteAgent",
+            "P2PAgentNetwork.unregisterRemoteAgent",
+            "P2PAgentNetwork.delegateTask",
+            "P2PAgentNetwork.cancelDelegatedTask",
+            "P2PAgentNetwork.queryRemoteSkill",
+            "P2PAgentNetwork.inviteToTeam",
+            "P2PAgentNetwork.syncTeamState",
+            "P2PAgentNetwork.shutdown",
+            "P2PAgentNetwork._handlePeerMessage",
+            "P2PAgentNetwork._handleAgentAnnounce",
+            "P2PAgentNetwork._handleHeartbeat",
+            "P2PAgentNetwork._handleTaskDelegation",
+            "P2PAgentNetwork._handleTaskAccept",
+            "P2PAgentNetwork._handleTaskReject",
+            "P2PAgentNetwork._handleTaskProgress",
+            "P2PAgentNetwork._handleTaskResult",
+            "P2PAgentNetwork._handleTaskCancel",
+            "P2PAgentNetwork._handleSkillQuery",
+            "P2PAgentNetwork._handleSkillResponse",
+            "P2PAgentNetwork._handleTeamInvite",
+            "P2PAgentNetwork._handleTeamInviteResponse",
+            "P2PAgentNetwork._startHeartbeat",
+            "P2PAgentNetwork._sendToPeer",
+            "P2PAgentNetwork._broadcastToPeers",
+            "P2PAgentNetwork._onPeerConnected",
+            "P2PAgentNetwork._onPeerDisconnected",
+            "P2PAgentNetwork._ensureTables",
+            "P2PAgentNetwork._persistRemoteAgent",
+            "CrossOrgTaskRouter.initialize",
+            "CrossOrgTaskRouter._ensureTables",
+            "CrossOrgTaskRouter.configure",
+            "CrossOrgTaskRouter.routeTask",
+            "CrossOrgTaskRouter.completeTask",
+            "CrossOrgTaskRouter._finalizeTask",
+            "CrossOrgTaskRouter.cancelTask",
+            "CrossOrgTaskRouter.findBestExecutor",
+            "CrossOrgTaskRouter._discoverCandidates",
+            "CrossOrgTaskRouter._selectRoundRobin",
+            "CrossOrgTaskRouter._startTaskTimeout",
+            "CrossOrgTaskRouter.retryTask",
+            "CrossOrgTaskRouter._startCleanupTimer",
+            "CrossOrgTaskRouter._cleanupStaleTasks",
+            "CrossOrgTaskRouter.destroy",
+            "CrossOrgTaskRouter._persistTask",
+            "CrossOrgTaskRouter._updateTaskInDB"
+          ],
+          "stores": [
+            "P2PAgentNetwork.pendingDelegations",
+            "P2PAgentNetwork.activeRemoteTasks",
+            "p2p_remote_tasks",
+            "CrossOrgTaskRouter._activeTasks",
+            "federated_task_log"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "P2PAgentNetwork.pendingDelegations",
+              "P2PAgentNetwork.activeRemoteTasks",
+              "p2p_remote_tasks",
+              "CrossOrgTaskRouter._activeTasks",
+              "federated_task_log"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-legacy-multi-agent",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-legacy-multi-agent",
+          "replacementEntrypoint": "Desktop Specialized Agents or $team through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-specialized-agents", "desktop-team"],
+          "historicalReadFunctions": [
+            "AgentOrchestrator.getExecutionHistory",
+            "AgentOrchestrator.getMessageHistory"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/index.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/multi-agent-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/index.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/agent-orchestrator.js",
+            "desktop-app-vue/src/main/ai-engine/multi-agent/specialized-agent.js"
+          ],
+          "mutationFunctions": [
+            "AgentOrchestrator.unbindStateBus",
+            "AgentOrchestrator.registerAgent",
+            "AgentOrchestrator.registerAgents",
+            "AgentOrchestrator.unregisterAgent",
+            "AgentOrchestrator.dispatch",
+            "AgentOrchestrator.executeParallel",
+            "AgentOrchestrator.executeChain",
+            "AgentOrchestrator.sendMessage",
+            "AgentOrchestrator.broadcast",
+            "AgentOrchestrator._updateStats",
+            "AgentOrchestrator._recordHistory",
+            "AgentOrchestrator.resetStats"
+          ],
+          "stores": [
+            "AgentOrchestrator.activeExecutions",
+            "AgentOrchestrator.executionHistory",
+            "AgentOrchestrator.messageQueue"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "AgentOrchestrator.activeExecutions",
+              "AgentOrchestrator.executionHistory",
+              "AgentOrchestrator.messageQueue"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-legacy-workflow",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-legacy-workflow",
+          "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "WorkflowEngine.getExecutionLog",
+            "WorkflowEngine.getAllWorkflows"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ai-engine/workflow/workflow-ipc.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/workflow/workflow-engine.js"
+          ],
+          "mutationFunctions": [
+            "WorkflowEngine.initialize",
+            "WorkflowEngine._ensureTables",
+            "WorkflowEngine._loadDefaultTemplates",
+            "WorkflowEngine.createWorkflow",
+            "WorkflowEngine._persistWorkflow",
+            "WorkflowEngine.executeWorkflow",
+            "WorkflowEngine._executeStages",
+            "WorkflowEngine.pauseExecution",
+            "WorkflowEngine.resumeExecution",
+            "WorkflowEngine.rollbackExecution",
+            "WorkflowEngine._persistExecution",
+            "WorkflowEngine.importWorkflow",
+            "WorkflowEngine._evictOldExecutions",
+            "WorkflowEngine.setBreakpoint",
+            "WorkflowEngine.removeBreakpoint"
+          ],
+          "stores": ["workflows", "workflow_executions"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": ["workflows", "workflow_executions"],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "desktop-skill-workflow",
+          "runtimeDurability": "process_local",
+          "cutoverStrategy": "retire",
+          "rolloutKey": "desktop/desktop-skill-workflow",
+          "replacementEntrypoint": "Desktop WorkflowManager through the fixed CC App Server Graph capability",
+          "replacementAuthoritySource": "graph_kernel",
+          "retiredStoreAccess": "historical_read_only",
+          "replacementEntryIds": ["desktop-workflow-manager"],
+          "historicalReadFunctions": [
+            "SkillWorkflowEngine.listWorkflows",
+            "SkillPipelineEngine.listPipelines"
+          ],
+          "entrypoints": [
+            "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-ipc.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/workflow-automation/handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/ai-engine/code-agent/desktop-runtime-authority.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-pipeline-engine.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-workflow-engine.js",
+            "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/workflow-automation/handler.js"
+          ],
+          "mutationFunctions": [
+            "SkillWorkflowEngine.createWorkflow",
+            "SkillWorkflowEngine.updateNodePosition",
+            "SkillWorkflowEngine.updateNodeData",
+            "SkillWorkflowEngine.addNode",
+            "SkillWorkflowEngine.removeNode",
+            "SkillWorkflowEngine.addConnection",
+            "SkillWorkflowEngine.removeConnection",
+            "SkillWorkflowEngine.executeWorkflow",
+            "SkillWorkflowEngine.deleteWorkflow",
+            "SkillWorkflowEngine.saveWorkflow",
+            "SkillWorkflowEngine.importFromPipeline",
+            "SkillPipelineEngine.createPipeline",
+            "SkillPipelineEngine.executePipeline",
+            "SkillPipelineEngine.pausePipeline",
+            "SkillPipelineEngine.resumePipeline",
+            "SkillPipelineEngine.cancelPipeline",
+            "SkillPipelineEngine.savePipeline",
+            "SkillPipelineEngine.deletePipeline",
+            "SkillPipelineEngine._executeSteps",
+            "SkillPipelineEngine._executeSkillStep",
+            "SkillPipelineEngine._executeConditionStep",
+            "SkillPipelineEngine._executeParallelStep",
+            "SkillPipelineEngine._executeLoopStep",
+            "WorkflowAutomation.handleCreate",
+            "WorkflowAutomation.handleRun",
+            "WorkflowAutomation.handlePause",
+            "WorkflowAutomation.handleResume",
+            "WorkflowAutomation.handleCancel",
+            "WorkflowAutomation.handleDelete"
+          ],
+          "stores": [
+            "SkillPipelineEngine.executions",
+            "SkillPipelineEngine.pipelines",
+            "SkillWorkflowEngine.workflows"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [
+              "SkillPipelineEngine.executions",
+              "SkillPipelineEngine.pipelines",
+              "SkillWorkflowEngine.workflows"
+            ],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": []
+        }
+      ]
+    },
+    {
+      "originSurface": "browser",
+      "durability": "non_durable",
+      "currentCutoverStage": "legacy",
+      "targetAuthoritySource": "legacy_runtime",
+      "featureFlag": {
+        "name": "CHAINLESSCHAIN_BROWSER_WORKFLOW_EXPERIMENTAL",
+        "default": "disabled"
+      },
+      "entries": [
+        {
+          "id": "browser-workflow",
+          "runtimeDurability": "non_durable",
+          "cutoverStrategy": "disabled",
+          "rolloutKey": "browser/browser-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/browser/workflow/workflow-ipc.js",
+            "desktop-app-vue/src/main/browser/browser-ipc-workflow.js",
+            "desktop-app-vue/src/main/browser/workflow/workflow-builder.js",
+            "desktop-app-vue/src/main/browser/workflow/workflow-storage.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/browser/workflow/browser-workflow-authority.js",
+            "desktop-app-vue/src/main/browser/workflow/workflow-engine.js",
+            "desktop-app-vue/src/main/browser/workflow/workflow-storage.js",
+            "desktop-app-vue/src/main/browser/workflow/control-flow.js",
+            "desktop-app-vue/src/main/browser/actions/workflow-engine.js"
+          ],
+          "mutationFunctions": [
+            "BrowserWorkflowEngine.executeWorkflow",
+            "BrowserWorkflowEngine.pause",
+            "BrowserWorkflowEngine.resume",
+            "BrowserWorkflowEngine.cancel",
+            "BrowserActionWorkflowEngine.execute",
+            "BrowserActionWorkflowEngine.pause",
+            "BrowserActionWorkflowEngine.resume",
+            "BrowserActionWorkflowEngine.cancel"
+          ],
+          "stores": [
+            "BrowserWorkflowStorage",
+            "BrowserWorkflowEngine.executions"
+          ],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [],
+            "rebuild": [],
+            "disabled": [
+              "BrowserWorkflowStorage",
+              "BrowserWorkflowEngine.executions"
+            ]
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "remote-workflow",
+          "runtimeDurability": "non_durable",
+          "cutoverStrategy": "disabled",
+          "rolloutKey": "browser/remote-workflow",
+          "entrypoints": [
+            "desktop-app-vue/src/main/remote/handlers/workflow-handler.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/browser/workflow/browser-workflow-authority.js",
+            "desktop-app-vue/src/main/remote/workflow/workflow-engine.js"
+          ],
+          "mutationFunctions": [
+            "RemoteWorkflowEngine.execute",
+            "RemoteWorkflowEngine.cancelWorkflow"
+          ],
+          "stores": ["RemoteWorkflowEngine.executions"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [],
+            "rebuild": [],
+            "disabled": ["RemoteWorkflowEngine.executions"]
+          },
+          "recoveryEntrypoints": []
+        },
+        {
+          "id": "browser-ai-automation",
+          "runtimeDurability": "non_durable",
+          "cutoverStrategy": "disabled",
+          "rolloutKey": "browser/browser-ai-automation",
+          "entrypoints": [
+            "desktop-app-vue/src/main/browser/browser-ipc.js",
+            "desktop-app-vue/src/main/browser/browser-ipc-automation.js"
+          ],
+          "writerFiles": [
+            "desktop-app-vue/src/main/browser/workflow/browser-workflow-authority.js",
+            "desktop-app-vue/src/main/browser/browser-automation-agent.js"
+          ],
+          "mutationFunctions": ["BrowserAutomationAgent.execute"],
+          "stores": ["BrowserAutomationAgent.executionHistory"],
+          "storeDispositions": {
+            "migrate": [],
+            "retire": [],
+            "rebuild": [],
+            "disabled": ["BrowserAutomationAgent.executionHistory"]
+          },
+          "recoveryEntrypoints": []
+        }
+      ]
+    }
+  ],
+  "discovery": {
+    "roots": [
+      "packages/cli/src/commands",
+      "packages/cli/src/repl",
+      "packages/cli/src/gateways/ws",
+      "packages/cli/src/lib",
+      "packages/cli/src/lib/agent-team",
+      "packages/cli/src/lib/scheduler-kernel",
+      "desktop-app-vue/src/main/ai-engine/agents",
+      "desktop-app-vue/src/main/ai-engine",
+      "desktop-app-vue/src/main/ai-engine/autonomous",
+      "desktop-app-vue/src/main/ai-engine/code-agent",
+      "desktop-app-vue/src/main/ai-engine/multi-agent",
+      "desktop-app-vue/src/main/ai-engine/cowork/skills",
+      "desktop-app-vue/src/main/ai-engine/workflow",
+      "desktop-app-vue/src/main/browser/workflow",
+      "desktop-app-vue/src/main/browser",
+      "desktop-app-vue/src/main/browser/actions",
+      "desktop-app-vue/src/main/remote/workflow",
+      "desktop-app-vue/src/main/workflow"
+    ],
+    "writerPatterns": [
+      "new\\s+TeamRunner\\b",
+      "new\\s+SubRuntimePool(?:Ctor)?\\b",
+      "new\\s+AgentCoordinator\\b",
+      "(?:new\\s+AgentOrchestrator|getAgentOrchestrator)\\b",
+      "new\\s+WorkflowManager\\b",
+      "new\\s+WorkflowPipeline\\b",
+      "class\\s+(?:Skill)?WorkflowEngine\\b",
+      "class\\s+SkillPipelineEngine\\b",
+      "class\\s+CLIAutonomousAgent\\b",
+      "new\\s+CLIAutonomousAgent\\b",
+      "class\\s+Orchestrator\\b",
+      "new\\s+Orchestrator\\b",
+      "class\\s+AIEngineManagerP1\\b",
+      "(?:class\\s+AutonomousAgentRunner|getAutonomousAgentRunner)\\b",
+      "class\\s+LongRunningTaskManager\\b",
+      "(?:class\\s+PipelineOrchestrator|getPipelineOrchestrator)\\b",
+      "(?:class\\s+HybridExecutor|getHybridExecutor)\\b",
+      "(?:class\\s+P2PAgentNetwork|getP2PAgentNetwork)\\b",
+      "(?:class\\s+BrowserAutomationAgent|new\\s+BrowserAutomationAgent)\\b",
+      "class\\s+AIEngineManager(?:Optimized)?\\b",
+      "class\\s+TaskPlanner(?:Enhanced)?\\b",
+      "(?:class\\s+DeployAgent|getDeployAgent)\\b",
+      "(?:class\\s+PostDeployMonitor|getPostDeployMonitor)\\b",
+      "(?:class\\s+AutoRemediator|getAutoRemediator)\\b",
+      "(?:class\\s+RollbackManager|getRollbackManager)\\b",
+      "(?:class\\s+CrossOrgTaskRouter|getCrossOrgTaskRouter)\\b",
+      "class\\s+TeammateTool\\b",
+      "(?:class\\s+WSAgentHandler|new\\s+WSAgentHandler)\\b",
+      "class\\s+AdvisorRuntime\\b",
+      "class\\s+EventRuntimeHost\\b"
+    ],
+    "classifiedNonWriters": [
+      {
+        "classification": "canonical_agent_kernel_adapter",
+        "reason": "WS only transports turns and consumes the canonical packages/cli/src/runtime/agent-core.js agentLoop; it does not own a second model/tool loop or Graph settlement writer.",
+        "files": [
+          "packages/cli/src/gateways/ws/ws-agent-handler.js",
+          "packages/cli/src/gateways/ws/session-protocol.js"
+        ]
+      },
+      {
+        "classification": "tool_free_advisor",
+        "reason": "Advisor calls a secondary model with an empty tool allow-list and can only inject guidance at a canonical model boundary.",
+        "files": ["packages/cli/src/lib/advisor-runtime.js"]
+      },
+      {
+        "classification": "durable_event_transport",
+        "reason": "EventRuntimeHost drains durable inbox/outbox records into registered hook handlers; it does not create, execute, or settle Graph runs.",
+        "files": ["packages/cli/src/lib/event-runtime-host.js"]
+      }
+    ]
+  }
+}

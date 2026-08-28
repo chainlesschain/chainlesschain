@@ -1213,7 +1213,10 @@
         "type": { "const": "question_request" },
         "id": { "type": "string", "minLength": 1, "maxLength": 160 },
         "question": { "type": "string", "minLength": 1, "maxLength": 8192 },
-        "options": { "type": "array", "items": { "$ref": "#/$defs/JsonValue" } },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/JsonValue" }
+        },
         "multiSelect": { "type": "boolean" },
         "session_id": { "type": "string", "maxLength": 160 },
         "binding": { "$ref": "#/$defs/JsonValue" },
@@ -1353,7 +1356,14 @@
     },
     "AgentSubagentCompletedStreamEvent": {
       "type": "object",
-      "required": ["type", "schema_version", "subagent_id", "parent_id", "status", "background"],
+      "required": [
+        "type",
+        "schema_version",
+        "subagent_id",
+        "parent_id",
+        "status",
+        "background"
+      ],
       "properties": {
         "type": { "const": "subagent_completed" },
         "schema_version": { "const": 1 },
@@ -1367,7 +1377,13 @@
     },
     "AgentSubagentProgressStreamEvent": {
       "type": "object",
-      "required": ["type", "schema_version", "subagent_id", "parent_id", "event_type"],
+      "required": [
+        "type",
+        "schema_version",
+        "subagent_id",
+        "parent_id",
+        "event_type"
+      ],
       "properties": {
         "type": { "const": "subagent_progress" },
         "schema_version": { "const": 1 },
@@ -1382,7 +1398,13 @@
     },
     "AgentSubagentStartedStreamEvent": {
       "type": "object",
-      "required": ["type", "schema_version", "subagent_id", "parent_id", "background"],
+      "required": [
+        "type",
+        "schema_version",
+        "subagent_id",
+        "parent_id",
+        "background"
+      ],
       "properties": {
         "type": { "const": "subagent_started" },
         "schema_version": { "const": 1 },
@@ -1406,7 +1428,10 @@
         "tools": { "type": "array", "items": { "type": "string" } },
         "slash_commands": { "type": "array", "items": { "type": "string" } },
         "input_format": { "type": "string", "maxLength": 64 },
-        "additional_directories": { "type": "array", "items": { "type": "string" } },
+        "additional_directories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "resumed_messages": { "type": "integer", "minimum": 0 },
         "turns": { "type": "integer", "minimum": 0 },
         "protocol_version": { "type": ["integer", "null"], "minimum": 1 },
@@ -1437,7 +1462,10 @@
         "is_error": { "type": "boolean" },
         "error": { "type": ["string", "null"] },
         "result": { "$ref": "#/$defs/JsonValue" },
-        "permission_decision_id": { "type": ["string", "null"], "maxLength": 160 },
+        "permission_decision_id": {
+          "type": ["string", "null"],
+          "maxLength": 160
+        },
         "permission_decision": { "$ref": "#/$defs/JsonValue" }
       }
     },
@@ -1464,43 +1492,43 @@
     },
     "AgentStreamEventPayload": {
       "oneOf": [
-            { "$ref": "#/$defs/AgentApprovalRequestStreamEvent" },
-            { "$ref": "#/$defs/AgentApprovalResolvedStreamEvent" },
-            { "$ref": "#/$defs/AgentCheckpointStreamEvent" },
-            { "$ref": "#/$defs/AgentCompactionStreamEvent" },
-            { "$ref": "#/$defs/AgentCompactionDegradedStreamEvent" },
-            { "$ref": "#/$defs/AgentCompactionUsageUnknownStreamEvent" },
-            { "$ref": "#/$defs/AgentCostBudgetExhaustedStreamEvent" },
-            { "$ref": "#/$defs/AgentElicitationCompleteStreamEvent" },
-            { "$ref": "#/$defs/AgentElicitationDeferredStreamEvent" },
-            { "$ref": "#/$defs/AgentFeedbackAckStreamEvent" },
-            { "$ref": "#/$defs/AgentHookProgressStreamEvent" },
-            { "$ref": "#/$defs/AgentHookResponseStreamEvent" },
-            { "$ref": "#/$defs/AgentHookStartedStreamEvent" },
-            { "$ref": "#/$defs/AgentIterationBudgetExhaustedStreamEvent" },
-            { "$ref": "#/$defs/AgentIterationWarningStreamEvent" },
-            { "$ref": "#/$defs/AgentPlanUpdateStreamEvent" },
-            { "$ref": "#/$defs/AgentQuestionRequestStreamEvent" },
-            { "$ref": "#/$defs/AgentQuestionResolvedStreamEvent" },
-            { "$ref": "#/$defs/AgentQuestionResponseRejectedStreamEvent" },
-            { "$ref": "#/$defs/AgentRawStreamEvent" },
-            { "$ref": "#/$defs/AgentRecoveryDegradedStreamEvent" },
-            { "$ref": "#/$defs/AgentRemoteControlStreamEvent" },
-            { "$ref": "#/$defs/AgentResultStreamEvent" },
-            { "$ref": "#/$defs/AgentResumeAckStreamEvent" },
-            { "$ref": "#/$defs/AgentSessionErrorStreamEvent" },
-            { "$ref": "#/$defs/AgentSlashCommandResultStreamEvent" },
-            { "$ref": "#/$defs/AgentContentStreamEvent" },
-            { "$ref": "#/$defs/AgentStreamRetryStreamEvent" },
-            { "$ref": "#/$defs/AgentStructuredResultStreamEvent" },
-            { "$ref": "#/$defs/AgentSubagentCompletedStreamEvent" },
-            { "$ref": "#/$defs/AgentSubagentProgressStreamEvent" },
-            { "$ref": "#/$defs/AgentSubagentStartedStreamEvent" },
-            { "$ref": "#/$defs/AgentSystemStreamEvent" },
-            { "$ref": "#/$defs/AgentTokenUsageStreamEvent" },
-            { "$ref": "#/$defs/AgentToolResultStreamEvent" },
-            { "$ref": "#/$defs/AgentToolUseStreamEvent" },
-            { "$ref": "#/$defs/AgentUserStreamEvent" }
+        { "$ref": "#/$defs/AgentApprovalRequestStreamEvent" },
+        { "$ref": "#/$defs/AgentApprovalResolvedStreamEvent" },
+        { "$ref": "#/$defs/AgentCheckpointStreamEvent" },
+        { "$ref": "#/$defs/AgentCompactionStreamEvent" },
+        { "$ref": "#/$defs/AgentCompactionDegradedStreamEvent" },
+        { "$ref": "#/$defs/AgentCompactionUsageUnknownStreamEvent" },
+        { "$ref": "#/$defs/AgentCostBudgetExhaustedStreamEvent" },
+        { "$ref": "#/$defs/AgentElicitationCompleteStreamEvent" },
+        { "$ref": "#/$defs/AgentElicitationDeferredStreamEvent" },
+        { "$ref": "#/$defs/AgentFeedbackAckStreamEvent" },
+        { "$ref": "#/$defs/AgentHookProgressStreamEvent" },
+        { "$ref": "#/$defs/AgentHookResponseStreamEvent" },
+        { "$ref": "#/$defs/AgentHookStartedStreamEvent" },
+        { "$ref": "#/$defs/AgentIterationBudgetExhaustedStreamEvent" },
+        { "$ref": "#/$defs/AgentIterationWarningStreamEvent" },
+        { "$ref": "#/$defs/AgentPlanUpdateStreamEvent" },
+        { "$ref": "#/$defs/AgentQuestionRequestStreamEvent" },
+        { "$ref": "#/$defs/AgentQuestionResolvedStreamEvent" },
+        { "$ref": "#/$defs/AgentQuestionResponseRejectedStreamEvent" },
+        { "$ref": "#/$defs/AgentRawStreamEvent" },
+        { "$ref": "#/$defs/AgentRecoveryDegradedStreamEvent" },
+        { "$ref": "#/$defs/AgentRemoteControlStreamEvent" },
+        { "$ref": "#/$defs/AgentResultStreamEvent" },
+        { "$ref": "#/$defs/AgentResumeAckStreamEvent" },
+        { "$ref": "#/$defs/AgentSessionErrorStreamEvent" },
+        { "$ref": "#/$defs/AgentSlashCommandResultStreamEvent" },
+        { "$ref": "#/$defs/AgentContentStreamEvent" },
+        { "$ref": "#/$defs/AgentStreamRetryStreamEvent" },
+        { "$ref": "#/$defs/AgentStructuredResultStreamEvent" },
+        { "$ref": "#/$defs/AgentSubagentCompletedStreamEvent" },
+        { "$ref": "#/$defs/AgentSubagentProgressStreamEvent" },
+        { "$ref": "#/$defs/AgentSubagentStartedStreamEvent" },
+        { "$ref": "#/$defs/AgentSystemStreamEvent" },
+        { "$ref": "#/$defs/AgentTokenUsageStreamEvent" },
+        { "$ref": "#/$defs/AgentToolResultStreamEvent" },
+        { "$ref": "#/$defs/AgentToolUseStreamEvent" },
+        { "$ref": "#/$defs/AgentUserStreamEvent" }
       ]
     },
     "CanonicalAgentStreamEvent": {
@@ -1564,7 +1592,12 @@
                     "thread/list",
                     "thread/archive",
                     "turn/start",
-                    "turn/interrupt"
+                    "turn/interrupt",
+                    "graph/compile",
+                    "graph/run",
+                    "graph/status",
+                    "graph/cancel",
+                    "graph/reconcile"
                   ]
                 }
               }

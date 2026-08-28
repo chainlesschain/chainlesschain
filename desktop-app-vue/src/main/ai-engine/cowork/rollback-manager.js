@@ -14,6 +14,10 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -70,6 +74,18 @@ class RollbackManager extends EventEmitter {
    * @param {Object} db - Database instance
    */
   async initialize(db) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-autonomous-ops",
+      })
+    ) {
+      this.db = db;
+      this.legacyReadOnly = true;
+      this.initialized = true;
+      logger.info("[RollbackManager] Initialized for historical reads only");
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("RollbackManager.initialize");
     if (this.initialized) {
       return;
     }
@@ -93,6 +109,7 @@ class RollbackManager extends EventEmitter {
    * @returns {Object} Rollback result
    */
   async rollback(options = {}) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.rollback");
     if (!this.initialized || !this.config.enabled) {
       return { success: false, error: "RollbackManager disabled" };
     }
@@ -196,6 +213,7 @@ class RollbackManager extends EventEmitter {
    * @returns {string} Snapshot ID
    */
   takeSnapshot(name, config) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.takeSnapshot");
     const snapshotId = `snap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
     this.configSnapshots.set(snapshotId, {
@@ -250,6 +268,7 @@ class RollbackManager extends EventEmitter {
    * Update config
    */
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("RollbackManager.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }
@@ -259,6 +278,7 @@ class RollbackManager extends EventEmitter {
   // ============================================================
 
   async _gitRevert(options) {
+    assertDesktopLegacyMutationAllowed("RollbackManager._gitRevert");
     // Git revert via isomorphic-git or shell command
     try {
       const target = options.target || {};
@@ -290,6 +310,7 @@ class RollbackManager extends EventEmitter {
   }
 
   async _dockerRollback(options) {
+    assertDesktopLegacyMutationAllowed("RollbackManager._dockerRollback");
     const target = options.target || {};
     const service = target.service;
     const previousImage = target.previousImage;
@@ -319,6 +340,7 @@ class RollbackManager extends EventEmitter {
   }
 
   async _configRestore(options) {
+    assertDesktopLegacyMutationAllowed("RollbackManager._configRestore");
     const target = options.target || {};
     const snapshotId = target.snapshotId;
 
@@ -345,6 +367,7 @@ class RollbackManager extends EventEmitter {
   }
 
   async _serviceRestart(options) {
+    assertDesktopLegacyMutationAllowed("RollbackManager._serviceRestart");
     const target = options.target || {};
     const service = target.service || "main";
 
@@ -363,6 +386,7 @@ class RollbackManager extends EventEmitter {
   }
 
   async _undoSteps(completedSteps) {
+    assertDesktopLegacyMutationAllowed("RollbackManager._undoSteps");
     if (!completedSteps || completedSteps.length === 0) {
       return { success: true, message: "No steps to undo" };
     }

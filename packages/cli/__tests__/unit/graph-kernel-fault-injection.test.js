@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileGraphDefinition } from "../../src/lib/graph-kernel/compiler.js";
 import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
 import { GraphKernel } from "../../src/lib/graph-kernel/runtime.js";
+import { createGraphAuthorityBinding } from "../../src/lib/graph-kernel/authority.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
 
 const DIGEST_A = `sha256:${"a".repeat(64)}`;
@@ -97,8 +98,32 @@ function assign(kernel, runId, nodeId) {
 }
 
 function recover(durable, runId) {
-  const kernel = new GraphKernel({ eventStore: durable, now: () => NOW });
-  kernel.recoverRun(runId);
+  const events = durable.read(runId);
+  const latest = events.at(-1);
+  const previous = [...events]
+    .reverse()
+    .find((event) => event.payload?.state?.authority).payload.state.authority;
+  const authorityGeneration = previous.authorityGeneration + 1;
+  const writerId = `fault-recovery-writer-${authorityGeneration}`;
+  const writerLeaseId = `fault-recovery-lease-${authorityGeneration}`;
+  const kernel = new GraphKernel({
+    eventStore: durable,
+    now: () => NOW,
+    writerId,
+    writerLeaseId,
+    authoritySource: previous.authoritySource,
+    authorityGeneration,
+  });
+  kernel.recoverRun(runId, {
+    authority: createGraphAuthorityBinding({
+      ...previous,
+      authorityGeneration,
+      writerId,
+      writerLeaseId,
+      writerLeaseExpiresAt: new Date(NOW + 60_000).toISOString(),
+      eventHead: latest.hash,
+    }),
+  });
   return kernel;
 }
 
@@ -136,10 +161,25 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
       ],
     });
     expect(recovered.readyNodes(runId)).toEqual([]);
+    expect(() =>
+      recovered.settleAttempt(runId, {
+        attemptId: "attempt-only",
+        leaseId: "lease-only",
+        fence: 1,
+        outcome: "succeeded",
+        evidence: { outputDigest: DIGEST_A },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_STALE_ATTEMPT_AUTHORITY" }),
+    );
+    const resumed = recovered.resumeAttempt(runId, "attempt-only", {
+      resumedAttemptId: "attempt-only-recovered",
+      leaseId: "lease-only-recovered",
+    });
     recovered.settleAttempt(runId, {
-      attemptId: "attempt-only",
-      leaseId: "lease-only",
-      fence: 1,
+      attemptId: resumed.id,
+      leaseId: resumed.leaseId,
+      fence: resumed.fence,
       outcome: "succeeded",
       evidence: { outputDigest: DIGEST_A },
     });
@@ -242,10 +282,25 @@ describe("Graph Kernel durable cutpoint fault injection", () => {
         operationDigest: DIGEST_B,
       }),
     ).toMatchObject({ id: "effect-1", status: "committed" });
+    expect(() =>
+      recovered.settleAttempt(runId, {
+        attemptId: attempt.id,
+        leaseId: attempt.leaseId,
+        fence: attempt.fence,
+        outcome: "succeeded",
+        evidence: { outputDigest: DIGEST_A },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_GRAPH_STALE_ATTEMPT_AUTHORITY" }),
+    );
+    const resumed = recovered.resumeAttempt(runId, attempt.id, {
+      resumedAttemptId: "attempt-effect-recovered",
+      leaseId: "lease-effect-recovered",
+    });
     recovered.settleAttempt(runId, {
-      attemptId: attempt.id,
-      leaseId: attempt.leaseId,
-      fence: attempt.fence,
+      attemptId: resumed.id,
+      leaseId: resumed.leaseId,
+      fence: resumed.fence,
       outcome: "succeeded",
       evidence: { outputDigest: DIGEST_A },
     });

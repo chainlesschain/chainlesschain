@@ -13,6 +13,10 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -180,6 +184,21 @@ class AutoRemediator extends EventEmitter {
    * @param {Object} [deps.alertManager] - AlertManager instance
    */
   async initialize(db, deps = {}) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-autonomous-ops",
+      })
+    ) {
+      this.db = db;
+      this.legacyReadOnly = true;
+      this._loadPlaybooks();
+      this.initialized = true;
+      logger.info(
+        `[AutoRemediator] Initialized for historical reads with ${this.playbooks.size} playbooks`,
+      );
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("AutoRemediator.initialize");
     if (this.initialized) {
       return;
     }
@@ -215,6 +234,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Remediation result
    */
   async triggerRemediation(incident) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.triggerRemediation");
     if (!this.initialized || !this.config.enabled) {
       return { status: REMEDIATION_STATUS.SKIPPED, reason: "disabled" };
     }
@@ -389,6 +409,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Created playbook
    */
   createPlaybook(playbook) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.createPlaybook");
     const id =
       playbook.id ||
       `pb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -421,6 +442,7 @@ class AutoRemediator extends EventEmitter {
    * @returns {Object} Updated playbook
    */
   updatePlaybook(playbookId, updates) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.updatePlaybook");
     const existing = this.playbooks.get(playbookId);
     if (!existing) {
       throw new Error(`Playbook not found: ${playbookId}`);
@@ -455,6 +477,7 @@ class AutoRemediator extends EventEmitter {
    * Update config
    */
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }
@@ -506,6 +529,7 @@ class AutoRemediator extends EventEmitter {
   // ============================================================
 
   async _executeStep(step, incident, stepIndex) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._executeStep");
     const timeout = step.timeout || this.config.defaultStepTimeoutMs;
     const startTime = Date.now();
 
@@ -536,6 +560,7 @@ class AutoRemediator extends EventEmitter {
   }
 
   async _runAction(step, incident) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._runAction");
     // Simulated action execution — in production these would interface
     // with actual system management APIs
     switch (step.action) {
@@ -605,6 +630,7 @@ class AutoRemediator extends EventEmitter {
   // ============================================================
 
   async _performRollback(remediationId, stepResults, incident) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._performRollback");
     try {
       if (!this.rollbackManager?.initialized) {
         return { success: false, error: "RollbackManager not available" };
@@ -639,6 +665,7 @@ class AutoRemediator extends EventEmitter {
   }
 
   _setCooldown(key) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._setCooldown");
     this.cooldowns.set(key, Date.now() + this.config.cooldownMs);
   }
 
@@ -679,6 +706,7 @@ class AutoRemediator extends EventEmitter {
   }
 
   _savePlaybook(pb) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._savePlaybook");
     if (!this.db) {
       return;
     }
@@ -706,6 +734,7 @@ class AutoRemediator extends EventEmitter {
   }
 
   _updatePlaybookDB(pb) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._updatePlaybookDB");
     if (!this.db) {
       return;
     }
@@ -733,6 +762,7 @@ class AutoRemediator extends EventEmitter {
   }
 
   _updatePlaybookStats(playbookId, success, duration) {
+    assertDesktopLegacyMutationAllowed("AutoRemediator._updatePlaybookStats");
     // Keep the in-memory cache (read by getPlaybooks/getPlaybook) in sync with
     // the persisted stats. Previously only the DB row was updated, so those
     // getters returned stale success/failure/avg-duration until the next restart

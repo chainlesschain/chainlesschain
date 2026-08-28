@@ -2848,11 +2848,27 @@ function createTables(dbManager, logger) {
         tokens_used INTEGER
       );
 
+      -- Desktop Graph 运行绑定（跨应用重启恢复 status/cancel/reconcile）
+      CREATE TABLE IF NOT EXISTS desktop_graph_run_bindings (
+        surface TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        graph_run_id TEXT NOT NULL UNIQUE,
+        authority_mode TEXT NOT NULL,
+        lifecycle_status TEXT NOT NULL,
+        metadata TEXT NOT NULL,
+        last_projection TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (surface, entity_id)
+      );
+
       -- 代理模块索引
       CREATE INDEX IF NOT EXISTS idx_agent_templates_type ON agent_templates(type);
       CREATE INDEX IF NOT EXISTS idx_agent_templates_enabled ON agent_templates(enabled);
       CREATE INDEX IF NOT EXISTS idx_agent_task_history_agent ON agent_task_history(agent_id);
       CREATE INDEX IF NOT EXISTS idx_agent_task_history_type ON agent_task_history(template_type);
+      CREATE INDEX IF NOT EXISTS idx_desktop_graph_run_bindings_status
+        ON desktop_graph_run_bindings(surface, lifecycle_status, updated_at);
 
       -- ============================================================
       -- SSO 企业认证模块 (v0.34.0)

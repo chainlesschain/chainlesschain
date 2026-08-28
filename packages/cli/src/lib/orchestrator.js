@@ -27,6 +27,10 @@ import { AgentRouter } from "./agent-router.js";
 import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import {
+  assertCLILegacyMutationAllowed,
+  cliLegacyRuntimeReadOnly,
+} from "./legacy-runtime-authority.js";
 import executionBroker from "./process-execution-broker/index.js";
 import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 
@@ -108,6 +112,20 @@ export class Orchestrator extends EventEmitter {
     /** @type {Map<string, object>} taskId → task */
     this._tasks = new Map();
 
+    this._legacyReadOnly = cliLegacyRuntimeReadOnly(process.env, {
+      entryId: "cli-legacy-orchestrate",
+    });
+    if (this._legacyReadOnly) {
+      this._router = new AgentRouter({
+        backends: [],
+        maxParallel: this.maxParallel,
+      });
+      this.notifier = { isConfigured: false };
+      this._chat = null;
+      this._cronTimer = null;
+      return;
+    }
+
     // Multi-path agent router
     this._router =
       options.agentRouter ||
@@ -155,6 +173,7 @@ export class Orchestrator extends EventEmitter {
    * @returns {Promise<object>} Final task record
    */
   async addTask(description, opts = {}) {
+    assertCLILegacyMutationAllowed("Orchestrator.addTask");
     const task = {
       id: generateId("task"),
       description,
@@ -222,12 +241,14 @@ export class Orchestrator extends EventEmitter {
    * @param {number} intervalMs - Poll interval (default 600_000 = 10 min)
    */
   startCronWatch(intervalMs = 600_000) {
+    assertCLILegacyMutationAllowed("Orchestrator.startCronWatch");
     if (this._cronTimer) return;
     this._log(`Cron watch started (every ${Math.round(intervalMs / 60_000)}m)`);
     this._cronTimer = setInterval(() => this._cronTick(), intervalMs);
   }
 
   stopCronWatch() {
+    assertCLILegacyMutationAllowed("Orchestrator.stopCronWatch");
     if (this._cronTimer) {
       clearInterval(this._cronTimer);
       this._cronTimer = null;
@@ -237,6 +258,7 @@ export class Orchestrator extends EventEmitter {
   // ─── Orchestration pipeline ──────────────────────────────────────
 
   async _orchestrate(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._orchestrate");
     try {
       // Step 1: Decompose
       task.subtasks = await this._decompose(task);
@@ -264,6 +286,7 @@ export class Orchestrator extends EventEmitter {
 
   /** LLM-driven task decomposition into coding subtasks. */
   async _decompose(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._decompose");
     task.status = TASK_STATUS.DECOMPOSING;
     this.emit("task:decomposing", task);
 
@@ -306,6 +329,7 @@ export class Orchestrator extends EventEmitter {
 
   /** Dispatch subtasks to the Claude Code pool. */
   async _dispatch(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._dispatch");
     this.emit("agents:dispatched", { task, count: task.subtasks.length });
     this._log(
       `Dispatching ${task.subtasks.length} subtask(s) to ${this._router.summary().length} agent backend(s)`,
@@ -320,6 +344,7 @@ export class Orchestrator extends EventEmitter {
 
   /** Run CI command and retry loop. */
   async _ciLoop(task) {
+    assertCLILegacyMutationAllowed("Orchestrator._ciLoop");
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       task.status = TASK_STATUS.CI_CHECKING;
       this.emit("ci:checking", { task, attempt });
@@ -398,6 +423,7 @@ export class Orchestrator extends EventEmitter {
 
   /** Execute CI command and parse results. */
   _runCI(cwd) {
+    assertCLILegacyMutationAllowed("Orchestrator._runCI");
     try {
       const output = _deps.execSync(this.ciCommand, {
         cwd,
@@ -465,6 +491,7 @@ export class Orchestrator extends EventEmitter {
    * the caller has already seen via task:complete / task:failed events.
    */
   _pruneTasks() {
+    assertCLILegacyMutationAllowed("Orchestrator._pruneTasks");
     if (this._tasks.size <= this.maxTasks) return;
     for (const [id, t] of this._tasks) {
       if (this._tasks.size <= this.maxTasks) break;
@@ -478,6 +505,7 @@ export class Orchestrator extends EventEmitter {
   }
 
   async _cronTick() {
+    assertCLILegacyMutationAllowed("Orchestrator._cronTick");
     this.emit("cron:tick", { at: new Date().toISOString() });
     // Override this method or listen to the event to add input source polling
   }

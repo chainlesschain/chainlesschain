@@ -26,6 +26,7 @@ import {
 } from "../../src/lib/secure-file-identity.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const cliBin = path.resolve(here, "../../bin/chainlesschain.js");
 const workerFixture = path.resolve(
   here,
   "../fixtures/team-distributed-cli-worker.mjs",
@@ -201,6 +202,61 @@ function spawnWorker({ state, repo, runId, workerId, mode = "run" }) {
         return;
       }
       resolve({ code, output, stdout, stderr });
+    });
+  });
+}
+
+function spawnGraphWriterCli({ state, repo, runId }) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        cliBin,
+        "team",
+        "queue",
+        "graph-writer",
+        "--state",
+        state,
+        "--repo",
+        repo,
+        "--run-id",
+        runId,
+        "--graph-authority",
+        "canonical",
+        "--poll-ms",
+        "25",
+        "--json",
+      ],
+      {
+        cwd: repo,
+        shell: false,
+        windowsHide: true,
+        env: { ...process.env },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      try {
+        resolve({ code, output: JSON.parse(stdout.trim()), stdout, stderr });
+      } catch (error) {
+        reject(
+          new Error(
+            `Invalid Graph writer CLI output (${code}): ${stdout}\n${stderr}`,
+            { cause: error },
+          ),
+        );
+      }
     });
   });
 }
@@ -1076,6 +1132,7 @@ describe("team distributed CLI", () => {
     "runs a real two-process DAG, composes dependency baselines, and finalizes",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         {
@@ -1173,6 +1230,116 @@ describe("team distributed CLI", () => {
           .readFileSync(path.join(fixture.repo, "join.txt"), "utf8")
           .replaceAll("\r\n", "\n"),
       ).toBe("joined\n");
+    },
+  );
+
+  it(
+    "routes a real worktree task through the canonical distributed Graph writer",
+    { timeout: 60_000 },
+    async () => {
+      useDeterministicProcessTreeSandbox();
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "canonical",
+          command: nodeWrite("canonical.txt", "canonical\n"),
+        },
+      ]);
+      const initialized = initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "canonical-distributed",
+        tasks: fixture.graph,
+        graphAuthority: "canonical",
+      });
+      expect(initialized.authority.graphAuthorityMode).toBe("canonical");
+
+      const [writerProcess, worker] = await Promise.all([
+        spawnGraphWriterCli({
+          ...fixture,
+          runId: "canonical-distributed",
+        }),
+        runDistributedWorker({
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "canonical-distributed",
+          graphAuthority: "canonical",
+          workerId: "canonical-worker",
+          graphTimeoutMs: 30_000,
+          graphPollMs: 10,
+        }),
+      ]);
+
+      expect(worker).toMatchObject({
+        graphAuthorityMode: "canonical",
+        summary: { success: true, executions: 1 },
+      });
+      expect(writerProcess.code, writerProcess).toBe(0);
+      expect(writerProcess.output).toMatchObject({
+        graphAuthorityMode: "canonical",
+        processed: 2,
+        graph: {
+          status: "succeeded",
+          authoritySource: "graph_kernel",
+        },
+        bridge: { pending: 0 },
+      });
+      expect(
+        distributedQueueStatus({
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "canonical-distributed",
+        }).tasks[0],
+      ).toMatchObject({
+        status: "completed",
+        metadata: { result: { commitOid: expect.any(String) } },
+      });
+    },
+  );
+
+  it(
+    "does not enter the executor when the canonical Graph writer is absent",
+    { timeout: 30_000 },
+    async () => {
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        { key: "fenced", command: "must-not-execute" },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "canonical-writer-absent",
+        tasks: fixture.graph,
+        graphAuthority: "canonical",
+      });
+      const runTask = vi.fn(async () => ({ unexpected: true }));
+
+      await expect(
+        runDistributedWorker(
+          {
+            state: fixture.state,
+            repo: fixture.repo,
+            runId: "canonical-writer-absent",
+            workerId: "fenced-worker",
+            graphTimeoutMs: 20,
+            graphPollMs: 1,
+          },
+          {
+            WorktreeCoordinator: lightweightWorktreeCoordinator(runTask),
+          },
+        ),
+      ).rejects.toMatchObject({
+        code: "CC_TEAM_DISTRIBUTED_GRAPH_RESPONSE_TIMEOUT",
+      });
+
+      expect(runTask).not.toHaveBeenCalled();
+      expect(
+        distributedQueueStatus({
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "canonical-writer-absent",
+        }).tasks[0].status,
+      ).toBe("pending");
     },
   );
 
@@ -1951,6 +2118,7 @@ describe("team distributed CLI", () => {
     "enforces the global queue budget and blocks incomplete finalization",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         { key: "one", command: nodeWrite("one.txt", "one\n") },
@@ -1988,6 +2156,7 @@ describe("team distributed CLI", () => {
     "fails closed on a real sequential merge conflict",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       fs.writeFileSync(path.join(fixture.repo, "shared.txt"), "base\n");
       git(fixture.repo, "add", "shared.txt");

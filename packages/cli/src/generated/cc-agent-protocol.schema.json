@@ -3390,7 +3390,12 @@
                     "thread/list",
                     "thread/archive",
                     "turn/start",
-                    "turn/interrupt"
+                    "turn/interrupt",
+                    "graph/compile",
+                    "graph/run",
+                    "graph/status",
+                    "graph/cancel",
+                    "graph/reconcile"
                   ]
                 }
               }

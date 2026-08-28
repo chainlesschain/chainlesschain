@@ -14,6 +14,17 @@
  */
 
 const { EventEmitter } = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../ai-engine/code-agent/desktop-runtime-authority.js");
+const {
+  DesktopGraphExecutionAdapter,
+  buildWorkflowGraph,
+  projectGraphNodes,
+} = require("../ai-engine/code-agent/desktop-graph-execution-adapter.js");
+const {
+  DesktopGraphRunRegistry,
+} = require("../ai-engine/code-agent/desktop-graph-run-registry.js");
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -23,6 +34,20 @@ const {
 const { QualityGateManager, GateStatus } = require("./quality-gate-manager.js");
 const { WorkflowStageFactory, StageStatus } = require("./workflow-stage.js");
 const ProgressEmitter = require("../utils/progress-emitter.js");
+
+const MAX_SHADOW_DIVERGENCES = 256;
+const WORKFLOW_GRAPH_SURFACE = "desktop_workflow_manager";
+const RESUMABLE_GRAPH_STATES = new Set(["running", "pending", "open"]);
+
+function graphControlError(operation) {
+  const error = new Error(
+    `Desktop Graph does not expose a safe ${operation} capability`,
+  );
+  error.name = "DesktopGraphControlError";
+  error.code = "CC_DESKTOP_GRAPH_CONTROL_UNSUPPORTED";
+  error.operation = operation;
+  return error;
+}
 
 /**
  * 工作流管道类
@@ -47,6 +72,24 @@ class WorkflowPipeline extends EventEmitter {
         autoForwardToIPC: true,
         throttleInterval: 100,
       });
+    this.graphAdapter =
+      options.graphAdapter ||
+      new DesktopGraphExecutionAdapter({
+        surface: "desktop_workflow_manager",
+        clientProvider: options.graphClientProvider || (() => null),
+        ...(typeof options.graphAuthorityMode === "function"
+          ? { authorityMode: options.graphAuthorityMode }
+          : {}),
+      });
+    this.graphAuthority = null;
+    this.graphRunId = null;
+    this.graphShadowDivergences = [];
+    this.reconciliationRequired = false;
+    this.graphCancellationPending = false;
+    this.graphRunRegistry =
+      options.graphRunRegistry || new DesktopGraphRunRegistry();
+    this.runAuthorityMode = null;
+    this.progressTracker = null;
 
     // 阶段管理
     this.stages = [];
@@ -157,6 +200,31 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Object} 执行结果
    */
   async execute(input, context = {}) {
+    const graphRunKey = `desktop-workflow:${this.id}`;
+    const graphMode = this.graphAdapter.mode(graphRunKey);
+    this.runAuthorityMode = graphMode;
+    if (graphMode === "canonical") {
+      return this._executeCanonicalGraph(input, context);
+    }
+    if (graphMode === "shadow") {
+      try {
+        const graph = buildWorkflowGraph(this, input);
+        this.graphAuthority = await this.graphAdapter.run({
+          definition: graph.definition,
+          inputs: graph.inputs,
+          runId: `desktop-workflow:${this.id}:shadow`,
+          waitForCompletion: false,
+          authorityMode: graphMode,
+        });
+      } catch (error) {
+        this._recordShadowDivergence(error);
+      }
+    }
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowPipeline.execute",
+      process.env,
+      { authorityMode: graphMode },
+    );
     if (!this.stateMachine.start()) {
       throw new Error("无法启动工作流，当前状态不允许");
     }
@@ -173,6 +241,7 @@ class WorkflowPipeline extends EventEmitter {
       totalSteps: this.stages.length * 100,
       metadata: { type: "workflow" },
     });
+    this.progressTracker = tracker;
 
     this._log("info", "工作流开始执行");
     this.emit("workflow:start", this._getWorkflowInfo());
@@ -240,6 +309,8 @@ class WorkflowPipeline extends EventEmitter {
         workflowId: this.id,
         results: this.results,
         duration: this.endTime - this.startTime,
+        graphAuthority: this.graphAuthority,
+        graphShadowDivergences: [...this.graphShadowDivergences],
       };
     } catch (error) {
       this.stateMachine.fail(error.message);
@@ -261,6 +332,8 @@ class WorkflowPipeline extends EventEmitter {
             ? this.stages[this.currentStageIndex].id
             : null,
         duration: this.endTime - this.startTime,
+        graphAuthority: this.graphAuthority,
+        graphShadowDivergences: [...this.graphShadowDivergences],
       };
     }
   }
@@ -269,7 +342,235 @@ class WorkflowPipeline extends EventEmitter {
    * 暂停工作流
    * @returns {boolean} 是否成功
    */
+  async _executeCanonicalGraph(input, context = {}) {
+    if (!this.stateMachine.start()) {
+      throw new Error("Unable to start Desktop workflow in its current state");
+    }
+    this.input = input;
+    this.context = context;
+    this.startTime = Date.now();
+    this.results = {};
+    this.reconciliationRequired = false;
+    this.graphRunId = `desktop-workflow:${this.id}`;
+    this.graphRunRegistry.record({
+      surface: WORKFLOW_GRAPH_SURFACE,
+      entityId: this.id,
+      graphRunId: this.graphRunId,
+      authorityMode: "canonical",
+      lifecycleStatus: WorkflowState.RUNNING,
+      metadata: {
+        title: this.title,
+        description: this.description,
+        startedAt: this.startTime,
+      },
+    });
+    const tracker = this.progressEmitter.createTracker(this.id, {
+      title: this.title,
+      description: this.description,
+      totalSteps: this.stages.length * 100,
+      metadata: {
+        type: "workflow",
+        authoritySource: "graph_kernel",
+        graphRunId: this.graphRunId,
+      },
+    });
+    this.progressTracker = tracker;
+    this._log("info", "Desktop workflow delegated to canonical Graph Kernel");
+    this.emit("workflow:start", this._getWorkflowInfo());
+
+    try {
+      const graph = buildWorkflowGraph(this, input);
+      const projection = await this.graphAdapter.run({
+        definition: graph.definition,
+        inputs: graph.inputs,
+        runId: this.graphRunId,
+        waitForCompletion: true,
+        authorityMode: this.runAuthorityMode,
+      });
+      this.graphAuthority = projection;
+      this.graphRunRegistry.updateProjection(
+        WORKFLOW_GRAPH_SURFACE,
+        this.id,
+        projection,
+      );
+      const projectedStages = projectGraphNodes(
+        projection,
+        this.stages.map((stage) => ({
+          key: stage.id,
+          nodeId: graph.stageToNode.get(stage.id),
+        })),
+      );
+      this._projectCanonicalStages(projectedStages, tracker);
+      if (
+        projection.status !== "succeeded" ||
+        projectedStages.some((stage) => !stage.success)
+      ) {
+        const error = new Error(
+          `Desktop workflow Graph settled as ${projection.status}`,
+        );
+        error.code = "CC_DESKTOP_GRAPH_EXECUTION_FAILED";
+        throw error;
+      }
+
+      this.stateMachine.complete();
+      this.endTime = Date.now();
+      tracker.complete({
+        message: "Desktop Graph workflow completed",
+        results: this.results,
+      });
+      this.emit("workflow:complete", {
+        ...this._getWorkflowInfo(),
+        results: this.results,
+      });
+      return {
+        success: true,
+        workflowId: this.id,
+        results: this.results,
+        duration: this.endTime - this.startTime,
+        graphAuthority: projection,
+      };
+    } catch (error) {
+      if (error.projection) this.graphAuthority = error.projection;
+      if (
+        this.graphCancellationPending &&
+        error.code === "CC_DESKTOP_GRAPH_TERMINAL_REQUIRED"
+      ) {
+        this._log(
+          "info",
+          "Desktop Graph execution yielded to an in-flight cancellation",
+        );
+        return {
+          success: false,
+          cancellationPending: true,
+          workflowId: this.id,
+          graphAuthority: this.graphAuthority,
+        };
+      }
+      const definitelyNotStarted = [
+        "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+        "CC_DESKTOP_GRAPH_MODE_LEGACY",
+      ].includes(error.code);
+      this.reconciliationRequired =
+        error.code === "CC_GRAPH_RECONCILIATION_REQUIRED" ||
+        (!definitelyNotStarted && !error.projection);
+      if (definitelyNotStarted && !error.projection) {
+        this.graphRunRegistry.delete(WORKFLOW_GRAPH_SURFACE, this.id);
+      } else {
+        const binding = this.graphRunRegistry.get(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+        );
+        if (binding) {
+          this.graphRunRegistry.record({
+            ...binding,
+            lifecycleStatus: this.reconciliationRequired
+              ? "reconciliation_required"
+              : WorkflowState.FAILED,
+            lastProjection: this.graphAuthority,
+          });
+        }
+      }
+      this.endTime = Date.now();
+      if (this.stateMachine.getState() === WorkflowState.CANCELLED) {
+        tracker.cancel("Desktop Graph workflow cancelled");
+        return {
+          success: false,
+          cancelled: true,
+          workflowId: this.id,
+          duration: this.endTime - this.startTime,
+          graphAuthority: this.graphAuthority,
+        };
+      }
+      this.stateMachine.fail(error.message);
+      tracker.error(error);
+      this._log("error", `Desktop Graph workflow failed: ${error.message}`);
+      this.emit("workflow:error", {
+        ...this._getWorkflowInfo(),
+        error: error.message,
+        code: error.code,
+      });
+      return {
+        success: false,
+        workflowId: this.id,
+        error: error.message,
+        code: error.code,
+        reconciliationRequired: this.reconciliationRequired,
+        failedStage:
+          this.currentStageIndex >= 0
+            ? this.stages[this.currentStageIndex].id
+            : null,
+        duration: this.endTime - this.startTime,
+        graphAuthority: this.graphAuthority,
+      };
+    }
+  }
+
+  _projectCanonicalStages(projectedStages, tracker) {
+    const completedAt = Date.now();
+    projectedStages.forEach((projected, index) => {
+      const stage = this.stages[index];
+      this.currentStageIndex = index;
+      const succeeded = projected.success === true;
+      stage.status = succeeded ? StageStatus.COMPLETED : StageStatus.FAILED;
+      stage.progress = succeeded ? 100 : 0;
+      stage.startTime = this.startTime;
+      stage.endTime = completedAt;
+      stage.duration = completedAt - this.startTime;
+      stage.result = projected;
+      stage.error = succeeded ? null : projected.error;
+      for (const step of stage.steps) {
+        stage.stepStatuses[step.id] = {
+          status: succeeded ? StageStatus.COMPLETED : StageStatus.FAILED,
+          progress: succeeded ? 100 : 0,
+          message: succeeded
+            ? "settled by canonical Graph node"
+            : projected.error,
+          startTime: this.startTime,
+          endTime: completedAt,
+          duration: completedAt - this.startTime,
+        };
+      }
+      this.results[stage.id] = projected;
+      tracker?.setPercent(
+        Math.round(((index + 1) / this.stages.length) * 100),
+        `${succeeded ? "Completed" : "Failed"} Graph stage: ${stage.name}`,
+      );
+      this.emit(
+        succeeded ? "workflow:stage-complete" : "workflow:stage-error",
+        {
+          ...stage.getStatus(),
+          stageIndex: index,
+          result: projected,
+          error: projected.error,
+          authoritySource: "graph_kernel",
+        },
+      );
+    });
+  }
+
+  _recordShadowDivergence(error) {
+    this.graphShadowDivergences.push({
+      workflowId: this.id,
+      code: error.code || "CC_DESKTOP_GRAPH_SHADOW_DIVERGENCE",
+      message: error.message,
+      timestamp: Date.now(),
+    });
+    if (this.graphShadowDivergences.length > MAX_SHADOW_DIVERGENCES) {
+      this.graphShadowDivergences.splice(
+        0,
+        this.graphShadowDivergences.length - MAX_SHADOW_DIVERGENCES,
+      );
+    }
+  }
+
   pause() {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
+      throw graphControlError("pause");
+    }
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.pause", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.pause()) {
       return false;
     }
@@ -288,6 +589,13 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   resume() {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
+      throw graphControlError("resume");
+    }
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.resume", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.resume()) {
       return false;
     }
@@ -308,7 +616,98 @@ class WorkflowPipeline extends EventEmitter {
    * @param {string} reason - 取消原因
    * @returns {boolean} 是否成功
    */
-  cancel(reason = "用户取消") {
+  async cancel(reason = "用户取消") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
+      if (!this.graphRunId) return false;
+      this.graphCancellationPending = true;
+      try {
+        const projection = await this.graphAdapter.cancel(
+          this.graphRunId,
+          reason,
+          { authorityMode },
+        );
+        this.graphAuthority = projection;
+        const binding = this.graphRunRegistry.get(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+        );
+        if (binding) {
+          this.graphRunRegistry.updateProjection(
+            WORKFLOW_GRAPH_SURFACE,
+            this.id,
+            projection,
+          );
+        } else {
+          this.graphRunRegistry.record({
+            surface: WORKFLOW_GRAPH_SURFACE,
+            entityId: this.id,
+            graphRunId: this.graphRunId,
+            authorityMode: "canonical",
+            lifecycleStatus: projection.status,
+            metadata: {
+              title: this.title,
+              description: this.description,
+              startedAt: this.startTime,
+            },
+            lastProjection: projection,
+          });
+        }
+        if (projection.status === "reconciliation_required") {
+          this.reconciliationRequired = true;
+          this.endTime = Date.now();
+          const error = new Error(
+            "Desktop Graph cancellation left an unknown effect requiring reconciliation",
+          );
+          error.code = "CC_GRAPH_RECONCILIATION_REQUIRED";
+          if (this.stateMachine.getState() === WorkflowState.RUNNING) {
+            this.stateMachine.fail(error.message);
+          }
+          this.progressTracker?.error(error);
+          this.emit("workflow:error", {
+            ...this._getWorkflowInfo(),
+            error: error.message,
+            code: error.code,
+          });
+          return false;
+        }
+        if (projection.status !== "cancelled") return false;
+        if (this.stateMachine.getState() !== WorkflowState.CANCELLED) {
+          if (!this.stateMachine.cancel(reason)) return false;
+        }
+        this.endTime = Date.now();
+        this.progressTracker?.cancel(reason);
+        this.emit("workflow:cancelled", {
+          ...this._getWorkflowInfo(),
+          reason,
+        });
+        return true;
+      } catch (error) {
+        if (error.projection) this.graphAuthority = error.projection;
+        this.reconciliationRequired = true;
+        const binding = this.graphRunRegistry.get(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+        );
+        if (binding) {
+          this.graphRunRegistry.record({
+            ...binding,
+            lifecycleStatus: "reconciliation_required",
+            lastProjection: error.projection || binding.lastProjection,
+          });
+        }
+        this._log(
+          "error",
+          `Desktop Graph cancellation failed: ${error.message}`,
+        );
+        return false;
+      } finally {
+        this.graphCancellationPending = false;
+      }
+    }
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.cancel", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.cancel(reason)) {
       return false;
     }
@@ -333,7 +732,74 @@ class WorkflowPipeline extends EventEmitter {
    * 重试失败的工作流
    * @returns {Object} 执行结果
    */
-  async retry() {
+  async reconcile(reconciliation) {
+    const authorityMode = this._authorityMode();
+    if (authorityMode !== "canonical") {
+      throw graphControlError("reconciliation");
+    }
+    if (!this.graphRunId) {
+      throw new Error(`Workflow Graph run not found: ${this.id}`);
+    }
+    try {
+      const projection = await this.graphAdapter.reconcile(
+        this.graphRunId,
+        reconciliation,
+        { authorityMode },
+      );
+      const binding = this.graphRunRegistry.get(
+        WORKFLOW_GRAPH_SURFACE,
+        this.id,
+      );
+      if (binding) {
+        this.graphRunRegistry.updateProjection(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+          projection,
+        );
+      } else {
+        this.graphRunRegistry.record({
+          surface: WORKFLOW_GRAPH_SURFACE,
+          entityId: this.id,
+          graphRunId: this.graphRunId,
+          authorityMode: "canonical",
+          lifecycleStatus: projection.status,
+          metadata: {
+            title: this.title,
+            description: this.description,
+            startedAt: this.startTime,
+          },
+          lastProjection: projection,
+        });
+      }
+      this._applyRecoveredGraphProjection(projection);
+      return projection;
+    } catch (error) {
+      if (error.projection) {
+        const binding = this.graphRunRegistry.get(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+        );
+        if (binding) {
+          this.graphRunRegistry.updateProjection(
+            WORKFLOW_GRAPH_SURFACE,
+            this.id,
+            error.projection,
+          );
+        }
+        this._applyRecoveredGraphProjection(error.projection);
+      }
+      throw error;
+    }
+  }
+
+  retry() {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
+      throw graphControlError("retry");
+    }
+    assertDesktopLegacyMutationAllowed("WorkflowPipeline.retry", process.env, {
+      authorityMode,
+    });
     if (!this.stateMachine.retry()) {
       throw new Error("无法重试，当前状态不允许");
     }
@@ -436,7 +902,163 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {boolean} 是否成功
    */
   overrideQualityGate(gateId, reason = "手动覆盖") {
+    const authorityMode = this._authorityMode();
+    if (authorityMode === "canonical") {
+      throw graphControlError("quality-gate override");
+    }
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowPipeline.overrideQualityGate",
+      process.env,
+      { authorityMode },
+    );
     return this.qualityGateManager.override(gateId, reason);
+  }
+
+  _authorityMode() {
+    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
+    return (
+      binding?.authorityMode ||
+      this.runAuthorityMode ||
+      this.graphAdapter.mode(`desktop-workflow:${this.id}`)
+    );
+  }
+
+  hydrateGraphBinding(binding) {
+    if (
+      !binding ||
+      binding.surface !== WORKFLOW_GRAPH_SURFACE ||
+      binding.entityId !== this.id
+    ) {
+      throw new Error("Workflow Graph binding does not match this workflow");
+    }
+    this.graphRunId = binding.graphRunId;
+    this.runAuthorityMode = binding.authorityMode;
+    this.graphAuthority = binding.lastProjection || null;
+    this.startTime = binding.metadata?.startedAt || binding.createdAt || null;
+    this.reconciliationRequired =
+      binding.lifecycleStatus === "reconciliation_required" ||
+      binding.lastProjection?.status === "reconciliation_required";
+    const graphStatus =
+      binding.lastProjection?.status || binding.lifecycleStatus;
+    if (graphStatus === "succeeded") {
+      this.stateMachine.state = WorkflowState.COMPLETED;
+      this.endTime = binding.updatedAt;
+    } else if (graphStatus === "cancelled") {
+      this.stateMachine.state = WorkflowState.CANCELLED;
+      this.endTime = binding.updatedAt;
+    } else if (
+      this.reconciliationRequired ||
+      (graphStatus && !RESUMABLE_GRAPH_STATES.has(graphStatus))
+    ) {
+      this.stateMachine.state = WorkflowState.FAILED;
+      this.endTime = binding.updatedAt;
+    } else {
+      this.stateMachine.state = WorkflowState.RUNNING;
+    }
+    return this;
+  }
+
+  _ensureRunningForGraphProjection() {
+    const state = this.stateMachine.getState();
+    if (state === WorkflowState.IDLE) return this.stateMachine.start();
+    if (state === WorkflowState.FAILED) return this.stateMachine.retry();
+    if (state === WorkflowState.PAUSED) return this.stateMachine.resume();
+    return state === WorkflowState.RUNNING;
+  }
+
+  _applyRecoveredGraphProjection(projection) {
+    this.graphAuthority = projection;
+    this.reconciliationRequired =
+      projection.status === "reconciliation_required";
+    if (RESUMABLE_GRAPH_STATES.has(projection.status)) {
+      this._ensureRunningForGraphProjection();
+      return;
+    }
+    if (projection.status === "succeeded") {
+      const alreadyCompleted =
+        this.stateMachine.getState() === WorkflowState.COMPLETED;
+      if (!alreadyCompleted) this._ensureRunningForGraphProjection();
+      const graph = buildWorkflowGraph(this, null);
+      this._projectCanonicalStages(
+        projectGraphNodes(
+          projection,
+          this.stages.map((stage) => ({
+            key: stage.id,
+            nodeId: graph.stageToNode.get(stage.id),
+          })),
+        ),
+        null,
+      );
+      if (!alreadyCompleted) this.stateMachine.complete();
+      this.endTime = Date.now();
+      if (!alreadyCompleted) {
+        this.emit("workflow:complete", {
+          ...this._getWorkflowInfo(),
+          results: this.results,
+        });
+      }
+      return;
+    }
+    if (projection.status === "cancelled") {
+      if (this.stateMachine.getState() === WorkflowState.CANCELLED) return;
+      if (this.stateMachine.getState() === WorkflowState.FAILED) {
+        this.stateMachine.retry();
+      }
+      this.stateMachine.cancel("recovered authoritative Graph cancellation");
+      this.endTime = Date.now();
+      return;
+    }
+    if (this.stateMachine.getState() !== WorkflowState.FAILED) {
+      this._ensureRunningForGraphProjection();
+      this.stateMachine.fail(
+        projection.status === "reconciliation_required"
+          ? "Graph effect outcome requires reconciliation"
+          : `Graph settled as ${projection.status}`,
+      );
+    }
+    this.endTime = Date.now();
+  }
+
+  async refreshCanonicalStatus({ resume = true } = {}) {
+    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
+    const authorityMode = binding?.authorityMode || this._authorityMode();
+    if (authorityMode !== "canonical" || !this.graphRunId) {
+      return this.graphAuthority;
+    }
+    try {
+      const projection =
+        resume && RESUMABLE_GRAPH_STATES.has(binding?.lifecycleStatus)
+          ? await this.graphAdapter.resume(this.graphRunId, {
+              waitForCompletion: false,
+              authorityMode,
+            })
+          : await this.graphAdapter.status(this.graphRunId, {
+              authorityMode,
+            });
+      this.graphRunRegistry.updateProjection(
+        WORKFLOW_GRAPH_SURFACE,
+        this.id,
+        projection,
+      );
+      this._applyRecoveredGraphProjection(projection);
+      return projection;
+    } catch (error) {
+      if (error.projection) {
+        this.graphRunRegistry.updateProjection(
+          WORKFLOW_GRAPH_SURFACE,
+          this.id,
+          error.projection,
+        );
+        this._applyRecoveredGraphProjection(error.projection);
+      } else if (binding) {
+        this.reconciliationRequired = true;
+        this.graphRunRegistry.record({
+          ...binding,
+          lifecycleStatus: "reconciliation_required",
+        });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -498,6 +1120,10 @@ class WorkflowPipeline extends EventEmitter {
    */
   _getWorkflowInfo() {
     const state = this.stateMachine.getState();
+    const projectedStatus = this.reconciliationRequired
+      ? "reconciliation_required"
+      : state;
+    const authorityMode = this._authorityMode();
 
     return {
       workflowId: this.id,
@@ -507,7 +1133,7 @@ class WorkflowPipeline extends EventEmitter {
         percent: this._calculateOverallProgress(),
         stage: this.currentStageIndex + 1,
         totalStages: this.stages.length,
-        status: state,
+        status: projectedStatus,
         elapsedTime: this.startTime ? Date.now() - this.startTime : 0,
       },
       currentStage:
@@ -516,6 +1142,17 @@ class WorkflowPipeline extends EventEmitter {
           : null,
       qualityGates: this.qualityGateManager.getAllStatuses(),
       recentLogs: this.logs.slice(-10),
+      graphRunId: this.graphRunId,
+      authorityMode,
+      authoritySource:
+        authorityMode === "canonical"
+          ? "graph_kernel"
+          : authorityMode === "shadow"
+            ? "graph_kernel_shadow"
+            : "legacy_runtime",
+      graphAuthority: this.graphAuthority,
+      graphShadowDivergences: [...this.graphShadowDivergences],
+      reconciliationRequired: this.reconciliationRequired,
     };
   }
 
@@ -612,6 +1249,10 @@ class WorkflowPipeline extends EventEmitter {
       logs: this.logs,
       startTime: this.startTime,
       endTime: this.endTime,
+      graphRunId: this.graphRunId,
+      graphAuthority: this.graphAuthority,
+      runAuthorityMode: this.runAuthorityMode,
+      reconciliationRequired: this.reconciliationRequired,
     };
   }
 }
@@ -626,9 +1267,47 @@ class WorkflowManager extends EventEmitter {
     this.workflows = new Map();
     this.progressEmitter = options.progressEmitter;
     this.llmService = options.llmService;
+    this.graphAdapter =
+      options.graphAdapter ||
+      new DesktopGraphExecutionAdapter({
+        surface: "desktop_workflow_manager",
+        clientProvider: options.graphClientProvider || (() => null),
+        ...(typeof options.graphAuthorityMode === "function"
+          ? { authorityMode: options.graphAuthorityMode }
+          : {}),
+      });
+    this.graphRunRegistry =
+      options.graphRunRegistry ||
+      new DesktopGraphRunRegistry({
+        database:
+          options.database && typeof options.database.exec === "function"
+            ? options.database
+            : null,
+      });
     this.mainWindow = null;
 
+    this.hydrateGraphBindings();
+
     logger.info("[WorkflowManager] 初始化工作流管理器");
+  }
+
+  hydrateGraphBindings() {
+    for (const binding of this.graphRunRegistry.list(WORKFLOW_GRAPH_SURFACE)) {
+      if (this.workflows.has(binding.entityId)) continue;
+      const workflow = new WorkflowPipeline({
+        id: binding.entityId,
+        title: binding.metadata?.title,
+        description: binding.metadata?.description,
+        progressEmitter: this.progressEmitter,
+        llmService: this.llmService,
+        graphAdapter: this.graphAdapter,
+        graphRunRegistry: this.graphRunRegistry,
+      });
+      workflow.hydrateGraphBinding(binding);
+      this.workflows.set(workflow.id, workflow);
+      this._forwardWorkflowEvents(workflow);
+    }
+    return this.workflows.size;
   }
 
   /**
@@ -652,6 +1331,8 @@ class WorkflowManager extends EventEmitter {
       ...options,
       progressEmitter: this.progressEmitter,
       llmService: this.llmService,
+      graphAdapter: this.graphAdapter,
+      graphRunRegistry: this.graphRunRegistry,
     });
 
     this.workflows.set(workflow.id, workflow);
@@ -685,19 +1366,24 @@ class WorkflowManager extends EventEmitter {
    * @param {string} workflowId - 工作流ID
    * @returns {boolean} 是否成功
    */
-  deleteWorkflow(workflowId) {
+  async deleteWorkflow(workflowId) {
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
+      return false;
+    }
+    if (workflow.reconciliationRequired) {
       return false;
     }
 
     // 如果正在运行，先取消
     if (workflow.stateMachine.isRunning()) {
-      workflow.cancel("工作流被删除");
+      const cancelled = await workflow.cancel("工作流被删除");
+      if (!cancelled) return false;
     }
 
     workflow.removeAllListeners();
     this.workflows.delete(workflowId);
+    this.graphRunRegistry.delete(WORKFLOW_GRAPH_SURFACE, workflowId);
 
     logger.info(`[WorkflowManager] 删除工作流: ${workflowId}`);
     return true;

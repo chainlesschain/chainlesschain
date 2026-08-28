@@ -29,6 +29,11 @@ class FakePilotClient extends EventEmitter {
       "threadArchive",
       "turnStart",
       "turnInterrupt",
+      "graphCompile",
+      "graphRun",
+      "graphStatus",
+      "graphCancel",
+      "graphReconcile",
     ]) {
       this[method] = vi.fn(async (params) => ({ method, params }));
     }
@@ -55,6 +60,12 @@ describe("DesktopAppServerPilot", () => {
       params: { threadId: "thread-1", input: "hello" },
     });
     expect("request" in pilot).toBe(false);
+    expect(
+      await pilot.graphRun({ runId: "graph-1", definition: { id: "d" } }),
+    ).toEqual({
+      method: "graphRun",
+      params: { runId: "graph-1", definition: { id: "d" } },
+    });
     expect(pilot.status).toMatchObject({ enabled: true, surface: "desktop" });
 
     expect(

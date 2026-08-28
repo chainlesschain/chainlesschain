@@ -116,6 +116,36 @@ function buildRecord(input, previous, now) {
   return Object.freeze({ ...record, hash: recordHash(record) });
 }
 
+function assertExpectedHead(input, records) {
+  const previous = records.at(-1) || null;
+  if (
+    input.expectedRevision !== undefined &&
+    Number(input.expectedRevision) !== Number(previous?.event_seq || 0)
+  ) {
+    throw storeError(
+      "CC_ROLLOUT_HEAD_CONFLICT",
+      "rollout revision changed before append",
+      {
+        expectedRevision: Number(input.expectedRevision),
+        actualRevision: Number(previous?.event_seq || 0),
+      },
+    );
+  }
+  if (
+    input.expectedHeadHash !== undefined &&
+    input.expectedHeadHash !== (previous?.hash || null)
+  ) {
+    throw storeError(
+      "CC_ROLLOUT_HEAD_CONFLICT",
+      "rollout event head changed before append",
+      {
+        expectedHeadHash: input.expectedHeadHash,
+        actualHeadHash: previous?.hash || null,
+      },
+    );
+  }
+}
+
 function verifyRecords(records, expectedThreadId = null) {
   let previous = null;
   for (const record of records) {
@@ -309,6 +339,7 @@ export class JsonlRolloutStore {
             return clone(duplicate);
           }
         }
+        assertExpectedHead(input, records);
         const record = buildRecord(input, records.at(-1), this.now);
         fs.appendFileSync(file, `${JSON.stringify(record)}\n`, "utf8");
         return clone(record);
@@ -498,6 +529,7 @@ export class MemoryRolloutStore {
       }
       return clone(duplicate);
     }
+    assertExpectedHead(input, records);
     const record = buildRecord(input, records.at(-1), this.now);
     records.push(record);
     return clone(record);

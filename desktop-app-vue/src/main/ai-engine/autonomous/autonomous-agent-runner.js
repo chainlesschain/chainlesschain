@@ -19,6 +19,10 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
 const { looseParseJSON } = require("../response-parser.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -82,6 +86,20 @@ class AutonomousAgentRunner extends EventEmitter {
    * @param {Object} dependencies - { database, llmManager, skillExecutor, toolRegistry, taskQueue }
    */
   initialize(dependencies) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-autonomous-agent",
+      })
+    ) {
+      this.database = dependencies?.database || null;
+      this.legacyReadOnly = true;
+      this.initialized = true;
+      logger.info(
+        "[AutonomousAgent] Runner initialized for historical reads only",
+      );
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.initialize");
     if (this.initialized) {
       return;
     }
@@ -102,6 +120,7 @@ class AutonomousAgentRunner extends EventEmitter {
    * @private
    */
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._ensureTables");
     if (!this.database) {
       return;
     }
@@ -174,6 +193,7 @@ class AutonomousAgentRunner extends EventEmitter {
    * @returns {Object} Goal record with status
    */
   async submitGoal(goalSpec) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.submitGoal");
     if (!this.initialized) {
       return { success: false, error: "Runner not initialized" };
     }
@@ -314,6 +334,7 @@ class AutonomousAgentRunner extends EventEmitter {
    * @private
    */
   _drainQueue() {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._drainQueue");
     const limit = this.config.maxConcurrentGoals;
     let running = Array.from(this.activeGoals.values()).filter(
       (g) => g.status === GOAL_STATUS.RUNNING,
@@ -355,6 +376,7 @@ class AutonomousAgentRunner extends EventEmitter {
    * @private
    */
   async _executeGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       logger.warn(`[AutonomousAgent] Goal ${goalId} not found in active goals`);
@@ -483,6 +505,7 @@ class AutonomousAgentRunner extends EventEmitter {
    * @private
    */
   async _reason(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._reason");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       throw new Error(`Goal ${goalId} not found`);
@@ -637,6 +660,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _act(goalId, action) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._act");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return { success: false, output: null, error: "Goal not found" };
@@ -740,6 +764,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _observe(goalId, reasoning, actionResult, stepStartTime) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._observe");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return;
@@ -795,6 +820,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _decomposeGoal(description, context) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._decomposeGoal");
     const contextStr =
       context && Object.keys(context).length > 0
         ? `\nContext: ${JSON.stringify(context)}`
@@ -854,6 +880,9 @@ Keep it practical (3-10 steps). Respond ONLY with valid JSON.`;
    * @private
    */
   async _replanOnFailure(goalId, error) {
+    assertDesktopLegacyMutationAllowed(
+      "AutonomousAgentRunner._replanOnFailure",
+    );
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return false;
@@ -953,6 +982,7 @@ Respond ONLY with valid JSON.`;
    * @param {string} goalId
    */
   async pauseGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.pauseGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return { success: false, error: "Goal not found" };
@@ -984,6 +1014,7 @@ Respond ONLY with valid JSON.`;
    * @param {string} goalId
    */
   async resumeGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.resumeGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return { success: false, error: "Goal not found" };
@@ -1021,6 +1052,7 @@ Respond ONLY with valid JSON.`;
    * @param {string} goalId
    */
   async cancelGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.cancelGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return { success: false, error: "Goal not found" };
@@ -1071,6 +1103,9 @@ Respond ONLY with valid JSON.`;
    * @param {Array} options
    */
   async requestUserInput(goalId, question, options) {
+    assertDesktopLegacyMutationAllowed(
+      "AutonomousAgentRunner.requestUserInput",
+    );
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return;
@@ -1103,6 +1138,9 @@ Respond ONLY with valid JSON.`;
    * @param {string} input
    */
   async provideUserInput(goalId, input) {
+    assertDesktopLegacyMutationAllowed(
+      "AutonomousAgentRunner.provideUserInput",
+    );
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return { success: false, error: "Goal not found" };
@@ -1361,6 +1399,7 @@ Respond ONLY with valid JSON.`;
    * @param {Object} config
    */
   updateConfig(config) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.updateConfig");
     if (config.maxStepsPerGoal !== undefined) {
       this.config.maxStepsPerGoal = Math.max(
         1,
@@ -1510,6 +1549,7 @@ Respond ONLY with valid JSON.`;
    * @returns {Object}
    */
   async clearHistory(before) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.clearHistory");
     if (!this.database) {
       return { success: false, error: "Database not available" };
     }
@@ -1576,6 +1616,7 @@ Respond ONLY with valid JSON.`;
    * @returns {Object}
    */
   async exportGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.exportGoal");
     if (!this.database) {
       return { success: false, error: "Database not available" };
     }
@@ -1638,6 +1679,7 @@ Respond ONLY with valid JSON.`;
    * @returns {Object}
    */
   async retryGoal(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner.retryGoal");
     if (!this.database) {
       return { success: false, error: "Database not available" };
     }
@@ -1687,6 +1729,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeSkill(skillName, params) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeSkill");
     if (
       this.skillExecutor &&
       typeof this.skillExecutor.execute === "function"
@@ -1712,6 +1755,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeTool(toolName, params) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeTool");
     if (this.toolRegistry) {
       try {
         const tool = this.toolRegistry.tools?.get?.(toolName);
@@ -1738,6 +1782,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeSearch(params) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeSearch");
     const query = params.query || params.description || "";
     if (!query) {
       return { success: false, error: "No search query provided" };
@@ -1771,6 +1816,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeFileOp(operation, params) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeFileOp");
     const filePath = params.path || params.filePath || "";
     if (!filePath) {
       return { success: false, error: "No file path provided" };
@@ -1804,6 +1850,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeAskUser(goalId, question, options) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._executeAskUser");
     await this.requestUserInput(
       goalId,
       question || "Please provide input",
@@ -1857,6 +1904,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _waitForResume(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._waitForResume");
     return new Promise((resolve) => {
       const goal = this.activeGoals.get(goalId);
       if (goal) {
@@ -1872,6 +1920,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _waitForInput(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._waitForInput");
     return new Promise((resolve) => {
       const goal = this.activeGoals.get(goalId);
       if (goal) {
@@ -1887,6 +1936,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _checkpoint(goalId) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._checkpoint");
     const goal = this.activeGoals.get(goalId);
     if (!goal || !this.database) {
       return;
@@ -1912,6 +1962,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _completeGoal(goalId, result) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._completeGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return;
@@ -1956,6 +2007,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _failGoal(goalId, reason) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._failGoal");
     const goal = this.activeGoals.get(goalId);
     if (!goal) {
       return;
@@ -1994,6 +2046,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _logStep(goalId, type, content) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._logStep");
     if (!this.database) {
       return;
     }
@@ -2017,6 +2070,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _saveGoalToDB(goalState) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._saveGoalToDB");
     if (!this.database) {
       return;
     }
@@ -2051,6 +2105,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _updateGoalInDB(goalId, fields) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._updateGoalInDB");
     if (!this.database) {
       return;
     }
@@ -2083,6 +2138,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _saveStepToDB(step) {
+    assertDesktopLegacyMutationAllowed("AutonomousAgentRunner._saveStepToDB");
     if (!this.database) {
       return;
     }

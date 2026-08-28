@@ -11,6 +11,9 @@ const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../utils/logger");
 const { VariableManager, VariableScope } = require("./workflow-variables");
 const { ControlFlowManager, StepType } = require("./control-flow");
+const {
+  assertBrowserWorkflowEnabled,
+} = require("./browser-workflow-authority.js");
 
 /**
  * Execution status enum
@@ -117,6 +120,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {Promise<Object>} Execution result
    */
   async executeWorkflow(workflow, options = {}) {
+    assertBrowserWorkflowEnabled("BrowserWorkflowEngine.executeWorkflow");
     const executionId = options.executionId || uuidv4();
     const context = new ExecutionContext(executionId, workflow, options);
 
@@ -413,6 +417,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {boolean} Success
    */
   pause(executionId) {
+    assertBrowserWorkflowEnabled("BrowserWorkflowEngine.pause");
     const context = this.executions.get(executionId);
     if (!context || context.status !== ExecutionStatus.RUNNING) {
       return false;
@@ -428,6 +433,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {boolean} Success
    */
   resume(executionId) {
+    assertBrowserWorkflowEnabled("BrowserWorkflowEngine.resume");
     const context = this.executions.get(executionId);
     if (!context || context.status !== ExecutionStatus.PAUSED) {
       return false;
@@ -451,6 +457,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {boolean} Success
    */
   cancel(executionId) {
+    assertBrowserWorkflowEnabled("BrowserWorkflowEngine.cancel");
     const context = this.executions.get(executionId);
     if (!context) {
       return false;

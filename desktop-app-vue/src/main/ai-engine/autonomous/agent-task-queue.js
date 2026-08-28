@@ -14,6 +14,10 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -56,6 +60,21 @@ class AgentTaskQueue extends EventEmitter {
    * @param {Object} database - Database manager instance
    */
   async initialize(database) {
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-autonomous-agent",
+      })
+    ) {
+      this.database = database || null;
+      this.legacyReadOnly = true;
+      await this._loadFromDB();
+      this.initialized = true;
+      logger.info(
+        `[AgentTaskQueue] Initialized for historical reads with ${this.queue.length} queued tasks`,
+      );
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.initialize");
     if (this.initialized) {
       return;
     }
@@ -67,7 +86,7 @@ class AgentTaskQueue extends EventEmitter {
 
     this.initialized = true;
     logger.info(
-      `[AgentTaskQueue] Initialized with ${this.queue.length} queued tasks`
+      `[AgentTaskQueue] Initialized with ${this.queue.length} queued tasks`,
     );
   }
 
@@ -76,6 +95,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._ensureTables");
     if (!this.database) {
       return;
     }
@@ -113,6 +133,7 @@ class AgentTaskQueue extends EventEmitter {
    * @returns {Object} Enqueued task
    */
   async enqueue(task) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.enqueue");
     if (!task || !task.goalId) {
       throw new Error("Task must have a goalId");
     }
@@ -145,7 +166,7 @@ class AgentTaskQueue extends EventEmitter {
     this._saveItemToDB(queueItem);
 
     logger.info(
-      `[AgentTaskQueue] Enqueued task ${queueItem.id} for goal ${queueItem.goalId} (priority: ${queueItem.priority}, queue size: ${this.queue.length})`
+      `[AgentTaskQueue] Enqueued task ${queueItem.id} for goal ${queueItem.goalId} (priority: ${queueItem.priority}, queue size: ${this.queue.length})`,
     );
 
     this.emit("task-enqueued", {
@@ -163,6 +184,7 @@ class AgentTaskQueue extends EventEmitter {
    * @returns {Object|null} Dequeued task or null if empty
    */
   async dequeue() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.dequeue");
     if (this.queue.length === 0) {
       return null;
     }
@@ -180,7 +202,7 @@ class AgentTaskQueue extends EventEmitter {
     });
 
     logger.info(
-      `[AgentTaskQueue] Dequeued task ${task.id} for goal ${task.goalId} (remaining: ${this.queue.length})`
+      `[AgentTaskQueue] Dequeued task ${task.id} for goal ${task.goalId} (remaining: ${this.queue.length})`,
     );
 
     this.emit("task-dequeued", {
@@ -206,6 +228,7 @@ class AgentTaskQueue extends EventEmitter {
    * @returns {boolean} Whether a task was removed
    */
   async remove(goalId) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.remove");
     const index = this.queue.findIndex((item) => item.goalId === goalId);
 
     if (index === -1) {
@@ -221,7 +244,7 @@ class AgentTaskQueue extends EventEmitter {
     });
 
     logger.info(
-      `[AgentTaskQueue] Removed task for goal ${goalId} (queue size: ${this.queue.length})`
+      `[AgentTaskQueue] Removed task for goal ${goalId} (queue size: ${this.queue.length})`,
     );
 
     this.emit("task-removed", {
@@ -239,6 +262,7 @@ class AgentTaskQueue extends EventEmitter {
    * @param {string} status - Final status ('completed', 'failed', 'cancelled')
    */
   async markComplete(goalId, status = "completed") {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.markComplete");
     this.activeCount = Math.max(0, this.activeCount - 1);
 
     // Update DB if we can find the task record
@@ -246,7 +270,7 @@ class AgentTaskQueue extends EventEmitter {
       try {
         this.database.run(
           "UPDATE autonomous_task_queue SET status = ?, completed_at = ? WHERE goal_id = ? AND status = 'active'",
-          [status, new Date().toISOString(), goalId]
+          [status, new Date().toISOString(), goalId],
         );
         if (this.database.saveToFile) {
           this.database.saveToFile();
@@ -257,7 +281,7 @@ class AgentTaskQueue extends EventEmitter {
     }
 
     logger.info(
-      `[AgentTaskQueue] Task for goal ${goalId} marked as ${status} (active: ${this.activeCount})`
+      `[AgentTaskQueue] Task for goal ${goalId} marked as ${status} (active: ${this.activeCount})`,
     );
 
     this.emit("task-completed", {
@@ -291,21 +315,21 @@ class AgentTaskQueue extends EventEmitter {
       try {
         const processedRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status IN ('completed', 'failed', 'cancelled')"
+            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status IN ('completed', 'failed', 'cancelled')",
           )
           .get();
         totalProcessed = processedRow?.count || 0;
 
         const completedRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'completed'"
+            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'completed'",
           )
           .get();
         totalCompleted = completedRow?.count || 0;
 
         const failedRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'failed'"
+            "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'failed'",
           )
           .get();
         totalFailed = failedRow?.count || 0;
@@ -348,6 +372,7 @@ class AgentTaskQueue extends EventEmitter {
    * Useful after dynamic priority changes
    */
   reSort() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.reSort");
     this.queue.sort((a, b) => {
       if (a.priority !== b.priority) {
         return a.priority - b.priority;
@@ -367,6 +392,7 @@ class AgentTaskQueue extends EventEmitter {
    * @returns {boolean}
    */
   async updatePriority(goalId, newPriority) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.updatePriority");
     const item = this.queue.find((i) => i.goalId === goalId);
     if (!item) {
       return false;
@@ -380,7 +406,7 @@ class AgentTaskQueue extends EventEmitter {
       try {
         this.database.run(
           "UPDATE autonomous_task_queue SET priority = ? WHERE goal_id = ? AND status = 'queued'",
-          [item.priority, goalId]
+          [item.priority, goalId],
         );
         if (this.database.saveToFile) {
           this.database.saveToFile();
@@ -399,6 +425,7 @@ class AgentTaskQueue extends EventEmitter {
    * @returns {number} Number of items removed
    */
   async clear() {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue.clear");
     const count = this.queue.length;
     const goalIds = this.queue.map((item) => item.goalId);
 
@@ -409,7 +436,7 @@ class AgentTaskQueue extends EventEmitter {
       try {
         this.database.run(
           "UPDATE autonomous_task_queue SET status = 'removed', completed_at = ? WHERE status = 'queued'",
-          [new Date().toISOString()]
+          [new Date().toISOString()],
         );
         if (this.database.saveToFile) {
           this.database.saveToFile();
@@ -441,7 +468,7 @@ class AgentTaskQueue extends EventEmitter {
     try {
       const rows = this.database
         .prepare(
-          "SELECT * FROM autonomous_task_queue WHERE status = 'queued' ORDER BY priority ASC, created_at ASC"
+          "SELECT * FROM autonomous_task_queue WHERE status = 'queued' ORDER BY priority ASC, created_at ASC",
         )
         .all();
 
@@ -461,7 +488,7 @@ class AgentTaskQueue extends EventEmitter {
       // Count active tasks to restore activeCount
       const activeRow = this.database
         .prepare(
-          "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'active'"
+          "SELECT COUNT(*) as count FROM autonomous_task_queue WHERE status = 'active'",
         )
         .get();
       this.activeCount = activeRow?.count || 0;
@@ -475,6 +502,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _saveItemToDB(item) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._saveItemToDB");
     if (!this.database) {
       return;
     }
@@ -490,7 +518,7 @@ class AgentTaskQueue extends EventEmitter {
           item.description,
           item.status,
           item.createdAt,
-        ]
+        ],
       );
       if (this.database.saveToFile) {
         this.database.saveToFile();
@@ -505,6 +533,7 @@ class AgentTaskQueue extends EventEmitter {
    * @private
    */
   _updateItemInDB(itemId, fields) {
+    assertDesktopLegacyMutationAllowed("AgentTaskQueue._updateItemInDB");
     if (!this.database) {
       return;
     }
@@ -522,7 +551,7 @@ class AgentTaskQueue extends EventEmitter {
 
       this.database.run(
         `UPDATE autonomous_task_queue SET ${setClauses.join(", ")} WHERE id = ?`,
-        values
+        values,
       );
       if (this.database.saveToFile) {
         this.database.saveToFile();

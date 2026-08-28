@@ -24,6 +24,7 @@ import {
   normalizeWorkflowDefinitionDigest,
 } from "./workflow-definition-contract.js";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
+import { CoworkGraphAuthorityAdapter } from "./cowork-graph-authority-adapter.js";
 
 export const DYNAMIC_WORKFLOW_DEFINITION_SCHEMA = WORKFLOW_DEFINITION_SCHEMA;
 export const DYNAMIC_WORKFLOW_PREFLIGHT_SCHEMA =
@@ -100,7 +101,11 @@ const RUN_INPUT_FIELDS = new Set([
   "execution",
   "onAdmitted",
 ]);
-const RUN_DEPENDENCY_FIELDS = new Set(["executeWorkflow", "verifyAuthorities"]);
+const RUN_DEPENDENCY_FIELDS = new Set([
+  "executeWorkflow",
+  "graphAuthorityAdapter",
+  "verifyAuthorities",
+]);
 const VERIFIED_AUTHORITIES_FIELDS = new Set([
   "definitionAuthority",
   "executionLocationAuthority",
@@ -1003,6 +1008,19 @@ function normalizeRunDependencies(deps) {
       "executeWorkflow dependency must be a function",
     );
   }
+  if (
+    Object.hasOwn(snapshot, "graphAuthorityAdapter") &&
+    (!snapshot.graphAuthorityAdapter ||
+      typeof snapshot.graphAuthorityAdapter.begin !== "function" ||
+      typeof snapshot.graphAuthorityAdapter.settleSuccess !== "function" ||
+      typeof snapshot.graphAuthorityAdapter.settleFailure !== "function" ||
+      utilTypes.isProxy(snapshot.graphAuthorityAdapter))
+  ) {
+    throw admissionError(
+      DYNAMIC_WORKFLOW_EXECUTION_OPTIONS_INVALID_CODE,
+      "graphAuthorityAdapter dependency is invalid",
+    );
+  }
   return snapshot;
 }
 
@@ -1480,28 +1498,77 @@ export async function executeDynamicWorkflowWithAdmission(
       prepared.outcome.preflight,
     );
   }
-  const policy = prepared.outcome.admission.executionPolicy;
-  const record = await executor({
-    cwd: policy.cwd,
-    continueOnError: policy.continueOnError,
-    pipeline: policy.pipeline,
-    llmOptions: Object.freeze({
-      provider: policy.provider,
-      model: policy.model,
-    }),
-    onStepStart: execution.onStepStart,
-    onStepComplete: execution.onStepComplete,
+  const graphAuthorityAdapter = Object.hasOwn(
+    dependencies,
+    "graphAuthorityAdapter",
+  )
+    ? dependencies.graphAuthorityAdapter
+    : new CoworkGraphAuthorityAdapter();
+  const graphClaim = graphAuthorityAdapter.begin({
     workflow: prepared.workflow,
-    definitionDigest: prepared.outcome.admission.definitionDigest,
-    maxParallel: prepared.outcome.admission.maxParallel,
-    runAdmission: prepared.outcome.admission,
+    admission: prepared.outcome.admission,
   });
-  const normalizedRecord = normalizeExecutionRecord(record, prepared);
+  const graphAuthorityMode = graphClaim?.authorityMode || "legacy";
+  if (graphClaim?.alreadySettled === true) {
+    const normalizedRecord = normalizeExecutionRecord(
+      graphClaim.record,
+      prepared,
+    );
+    return Object.freeze({
+      ...prepared.outcome,
+      record: normalizedRecord,
+      executionStarted: false,
+      graphAuthority: graphClaim.projection,
+      graphAuthorityMode,
+      graphRecovered: true,
+    });
+  }
+  const policy = prepared.outcome.admission.executionPolicy;
+  let normalizedRecord;
+  let graphProjection = graphClaim?.projection ?? null;
+  try {
+    const record = await executor({
+      cwd: policy.cwd,
+      continueOnError: policy.continueOnError,
+      pipeline: policy.pipeline,
+      llmOptions: Object.freeze({
+        provider: policy.provider,
+        model: policy.model,
+      }),
+      onStepStart: execution.onStepStart,
+      onStepComplete: execution.onStepComplete,
+      workflow: prepared.workflow,
+      definitionDigest: prepared.outcome.admission.definitionDigest,
+      maxParallel: prepared.outcome.admission.maxParallel,
+      runAdmission: prepared.outcome.admission,
+    });
+    normalizedRecord = normalizeExecutionRecord(record, prepared);
+    graphProjection =
+      graphAuthorityAdapter.settleSuccess(graphClaim, normalizedRecord) ??
+      graphProjection;
+  } catch (error) {
+    const failureProjection = graphAuthorityAdapter.settleFailure(
+      graphClaim,
+      error,
+    );
+    if (
+      graphAuthorityMode === "canonical" &&
+      failureProjection?.status === "reconciliation_required"
+    ) {
+      error.graphRunId = graphClaim?.runId;
+      error.graphAuthority = failureProjection;
+      error.reconciliationRequired = true;
+    }
+    throw error;
+  }
 
   return Object.freeze({
     ...prepared.outcome,
     record: normalizedRecord,
     executionStarted: true,
+    graphAuthority: graphProjection,
+    graphAuthorityMode,
+    graphRecovered: false,
   });
 }
 

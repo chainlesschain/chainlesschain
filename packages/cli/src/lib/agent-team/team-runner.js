@@ -126,6 +126,37 @@ export class TeamRunner {
       typeof opts.beforeTask === "function" ? opts.beforeTask : null;
     this.afterTask =
       typeof opts.afterTask === "function" ? opts.afterTask : null;
+    // Canonical Graph settlement happens after the executor has physically
+    // settled but before the legacy registry projection is updated. This hook
+    // is fail-closed: a Graph write failure cannot be converted into legacy
+    // task success.
+    this.canonicalSettlement =
+      typeof opts.canonicalSettlement === "function"
+        ? opts.canonicalSettlement
+        : null;
+    // In canonical rollout the Graph Kernel owns the ready frontier. The task
+    // registry remains a compatibility/lease projection and cannot make a node
+    // executable when Graph still considers it blocked.
+    this.canonicalReady =
+      typeof opts.canonicalReady === "function" ? opts.canonicalReady : null;
+    // Shadow settlement observes the already-produced executor outcome and
+    // never owns effects. Divergence is visible but cannot change the legacy
+    // result while a surface is still in shadow rollout.
+    this.shadowSettlement =
+      typeof opts.shadowSettlement === "function"
+        ? opts.shadowSettlement
+        : null;
+    // Whole-run cancellation follows the same rollout contract as settlement.
+    // Canonical cancellation is fail-closed and must finish before run() can
+    // return/throw; shadow cancellation is observation-only.
+    this.canonicalCancellation =
+      typeof opts.canonicalCancellation === "function"
+        ? opts.canonicalCancellation
+        : null;
+    this.shadowCancellation =
+      typeof opts.shadowCancellation === "function"
+        ? opts.shadowCancellation
+        : null;
     // A lease that expires and is reacquired receives a new fencing identity.
     // Persist that identity synchronously before the executor can settle under
     // it. Ordinary renewals keep the same identity and do not call this hook.
@@ -169,6 +200,10 @@ export class TeamRunner {
     this._budgetStopped = false;
     this._registryBudgetReason = null;
     this._fatalError = null;
+    this._canonicalCancellationRequested = false;
+    this._shadowCancellationRequested = false;
+    this._cancellationPromise = null;
+    this._cancellationFailure = null;
     // Idle workers wait on graph progress instead of polling the full graph
     // through setTimeout(0). This matters once a team has many workers but only
     // a narrow DAG frontier.
@@ -1164,6 +1199,7 @@ export class TeamRunner {
         requestedAt: this._now(),
       };
     }
+    this._requestRunCancellation(failure);
     this._setFatal(failure, { phase: "external-control" });
     for (const claim of this._claimsByKey.values()) {
       claim.coordinatorAbort = failure;
@@ -1174,6 +1210,58 @@ export class TeamRunner {
       }
     }
     return { ok: true, activeClaims: this._claimsByKey.size };
+  }
+
+  _requestRunCancellation(failure) {
+    const request = {
+      reason: failure.message,
+      error: failure,
+      requireAdjudication: failure.adjudication != null,
+    };
+    if (this.canonicalCancellation && !this._canonicalCancellationRequested) {
+      this._canonicalCancellationRequested = true;
+      let cancellation;
+      try {
+        cancellation = this.canonicalCancellation(request);
+      } catch (error) {
+        cancellation = Promise.reject(error);
+      }
+      this._cancellationPromise = Promise.resolve(cancellation).catch(
+        (error) => {
+          const authorityFailure = new Error(
+            `Canonical Team Graph cancellation failed: ${error?.message || String(error)}`,
+            { cause: error },
+          );
+          authorityFailure.code = "CC_TEAM_GRAPH_CANCEL_FAILED";
+          authorityFailure.retryable = false;
+          authorityFailure.abortCause = failure;
+          this._cancellationFailure = authorityFailure;
+        },
+      );
+    }
+    if (this.shadowCancellation && !this._shadowCancellationRequested) {
+      this._shadowCancellationRequested = true;
+      let observation;
+      try {
+        observation = this.shadowCancellation(request);
+      } catch (error) {
+        observation = Promise.reject(error);
+      }
+      const shadow = Promise.resolve(observation).catch((error) => {
+        this._emit("run:shadow-cancel-diverged", {
+          code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+          error: error?.message || String(error),
+        });
+      });
+      this._cancellationPromise = this._cancellationPromise
+        ? Promise.all([this._cancellationPromise, shadow])
+        : shadow;
+    }
+  }
+
+  async _awaitRunCancellation() {
+    await this._cancellationPromise;
+    if (this._cancellationFailure) throw this._cancellationFailure;
   }
 
   /**
@@ -1291,6 +1379,7 @@ export class TeamRunner {
         clearTimeout(timer);
       }
       this._handoffExpiryTimers.clear();
+      await this._awaitRunCancellation();
     }
     if (this._fatalError) throw this._fatalError;
     const stats = this.registry.stats();
@@ -1546,6 +1635,24 @@ export class TeamRunner {
           return;
         }
         // Lost the race to a peer (or it just got blocked) — try another.
+        if (
+          this.canonicalReady &&
+          !["leased", "concurrent", "no_claimable_task"].includes(acq.reason)
+        ) {
+          const error = new Error(
+            `Canonical Graph declared task "${key}" ready but the legacy projection rejected it: ${acq.reason || "unknown"}`,
+          );
+          error.code = "CC_TEAM_GRAPH_LEGACY_PROJECTION_DIVERGED";
+          this._setFatal(error, {
+            phase: "legacy-ready-projection",
+            key,
+            holder,
+            reason: acq.reason || null,
+          });
+          this._setState(holder, "shutdown", { reason: "fatal-error" });
+          this._signalProgress();
+          return;
+        }
         this._setState(holder, "idle");
         await this._tick();
         continue;
@@ -2119,10 +2226,15 @@ export class TeamRunner {
     ) {
       return null;
     }
-    if (typeof this.registry.nextClaimable === "function") {
+    const nextClaimable = this.canonicalReady
+      ? (options) => this.canonicalReady({ holder, ...options })
+      : typeof this.registry.nextClaimable === "function"
+        ? (options) => this.registry.nextClaimable(options)
+        : null;
+    if (nextClaimable) {
       const excluded = new Set(this._activeKeys);
       for (let scanned = 0; scanned < this.maxScopeScan; scanned++) {
-        const key = this.registry.nextClaimable({ excludeKeys: excluded });
+        const key = nextClaimable({ excludeKeys: excluded });
         if (!key) return null;
         const task = this.registry.getTask(key);
         const targetHolder =
@@ -2432,11 +2544,47 @@ export class TeamRunner {
           throw error;
         }
       }
+      if (this.canonicalSettlement) {
+        try {
+          await this.canonicalSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "completed",
+            result,
+          });
+          claim.canonicalSettled = true;
+        } catch (error) {
+          error.canonicalSettlementFailed = true;
+          throw error;
+        }
+      }
       const done = this.registry.complete(key, {
         holder,
         leaseId: claim.leaseId,
         result,
       });
+      if (this.shadowSettlement) {
+        try {
+          await this.shadowSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "completed",
+            result,
+            legacyAccepted: done.ok === true,
+          });
+        } catch (error) {
+          this._emit("task:shadow-diverged", {
+            key,
+            holder,
+            code: error?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+            error: error?.message || String(error),
+          });
+        }
+      }
       if (done.ok) {
         if (span) span.end();
         this._setState(holder, "completed-task", {
@@ -2451,10 +2599,24 @@ export class TeamRunner {
         await this._notifySettlement({
           key,
           holder,
+          task,
+          lease: claim.lease,
           status: "completed",
           result,
         });
       } else {
+        if (claim.canonicalSettled) {
+          const error = new Error(
+            `Legacy Team projection rejected canonical completion for ${key}: ${done.reason || "lease_lost"}`,
+          );
+          error.code = "CC_TEAM_LEGACY_PROJECTION_DIVERGED";
+          error.retryable = false;
+          this._setFatal(error, {
+            phase: "legacy-projection",
+            key,
+            holder,
+          });
+        }
         if (span) {
           span.setAttribute("team.completion_discarded", true);
           span.end();
@@ -2500,6 +2662,33 @@ export class TeamRunner {
         claim.budgetSettled = true;
       }
       this._recordSessionUsage(claim, failure);
+      if (
+        this.canonicalSettlement &&
+        !claim.canonicalSettled &&
+        !(this._canonicalCancellationRequested && claim.coordinatorAbort) &&
+        failure?.code !== "TEAM_HANDOFF_COMMITTED" &&
+        failure?.canonicalSettlementFailed !== true
+      ) {
+        try {
+          await this.canonicalSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "failed",
+            error: failure,
+          });
+          claim.canonicalSettled = true;
+        } catch (canonicalError) {
+          canonicalError.cause ||= failure;
+          canonicalError.canonicalSettlementFailed = true;
+          this._setFatal(canonicalError, {
+            phase: "canonical-settlement",
+            key,
+            holder,
+          });
+        }
+      }
       const outcome = this.registry.fail(key, {
         holder,
         leaseId: claim.leaseId,
@@ -2507,6 +2696,26 @@ export class TeamRunner {
         retryable: failure?.retryable !== false,
         adjudication: failure?.adjudication || null,
       });
+      if (this.shadowSettlement) {
+        try {
+          await this.shadowSettlement({
+            key,
+            task,
+            holder,
+            lease: claim.lease,
+            status: "failed",
+            error: failure,
+            legacyAccepted: outcome?.ok === true,
+          });
+        } catch (shadowError) {
+          this._emit("task:shadow-diverged", {
+            key,
+            holder,
+            code: shadowError?.code || "CC_TEAM_GRAPH_SHADOW_DIVERGED",
+            error: shadowError?.message || String(shadowError),
+          });
+        }
+      }
       if (outcome?.ok) {
         this._setState(holder, "failed-task", {
           error: failure?.message || String(failure),
@@ -2525,6 +2734,8 @@ export class TeamRunner {
         await this._notifySettlement({
           key,
           holder,
+          task,
+          lease: claim.lease,
           status: outcome.retry === true ? "pending" : "failed",
           error: failure?.message || String(failure),
           retry: outcome.retry === true,
@@ -2533,6 +2744,18 @@ export class TeamRunner {
           requestId: failure?.adjudication?.requestId || null,
         });
       } else {
+        if (claim.canonicalSettled) {
+          const error = new Error(
+            `Legacy Team projection rejected canonical failure for ${key}: ${outcome?.reason || "lease_lost"}`,
+          );
+          error.code = "CC_TEAM_LEGACY_PROJECTION_DIVERGED";
+          error.retryable = false;
+          this._setFatal(error, {
+            phase: "legacy-projection",
+            key,
+            holder,
+          });
+        }
         this._emit("task:failure-discarded", {
           key,
           holder,

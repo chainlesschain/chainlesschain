@@ -27,6 +27,9 @@ const FunctionCaller = require("./function-caller");
 const ToolSandbox = require("./tool-sandbox");
 const PerformanceMonitor = require("../monitoring/performance-monitor");
 const { getAIEngineConfig, mergeConfig } = require("./ai-engine-config");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 
 // P1优化模块
 const MultiIntentRecognizer = require("./multi-intent-recognizer");
@@ -78,6 +81,7 @@ class AIEngineManagerP1 {
    * 注入依赖项并初始化所有模块
    */
   async initialize(options = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.initialize");
     try {
       logger.info("[AIEngineManager-P1] 开始初始化...");
 
@@ -213,6 +217,7 @@ class AIEngineManagerP1 {
     onStepUpdate = null,
     askUserCallback = null,
   ) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.processUserInput");
     const pipelineStartTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
@@ -668,6 +673,7 @@ class AIEngineManagerP1 {
     intentIndex,
     onStepUpdate,
   ) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1._executeTaskSteps");
     const results = [];
     let failedStepIndex = null;
 
@@ -918,6 +924,7 @@ class AIEngineManagerP1 {
    * @param {string} userId - 用户ID
    */
   setUserId(userId) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.setUserId");
     this.userId = userId;
   }
 
@@ -926,6 +933,9 @@ class AIEngineManagerP1 {
    * @param {number} keepDays - 保留天数
    */
   async cleanOldPerformanceData(keepDays = 30) {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManagerP1.cleanOldPerformanceData",
+    );
     if (this.performanceMonitor) {
       await this.performanceMonitor.cleanOldData(keepDays);
     }
@@ -960,6 +970,7 @@ class AIEngineManagerP1 {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, implementation, schema = {}) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.registerTool");
     this.functionCaller.registerTool(name, implementation, schema);
   }
 
@@ -968,6 +979,7 @@ class AIEngineManagerP1 {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed("AIEngineManagerP1.unregisterTool");
     this.functionCaller.unregisterTool(name);
   }
 

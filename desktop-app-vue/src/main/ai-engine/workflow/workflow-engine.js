@@ -3,6 +3,10 @@
  * Phase 82: Agentic Workflow Engine with DAG execution
  */
 const EventEmitter = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 const { logger } = require("../../utils/logger.js");
 const {
   RUNTIME_MODE,
@@ -60,6 +64,20 @@ class WorkflowEngine extends EventEmitter {
       return;
     }
     this.db = db;
+    if (
+      desktopLegacyRuntimeReadOnly(process.env, {
+        entryId: "desktop-legacy-workflow",
+      })
+    ) {
+      await this._loadWorkflows();
+      this.initialized = true;
+      this.legacyReadOnly = true;
+      logger.info(
+        `[WorkflowEngine] Historical read-only mode: ${this._workflows.size} workflows loaded`,
+      );
+      return;
+    }
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.initialize");
     this._ensureTables();
     await this._loadWorkflows();
     this._loadDefaultTemplates();
@@ -70,6 +88,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   _ensureTables() {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._ensureTables");
     try {
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS workflows (
@@ -125,6 +144,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   _loadDefaultTemplates() {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._loadDefaultTemplates");
     const templates = [
       {
         id: "tmpl-data-pipeline",
@@ -269,6 +289,7 @@ class WorkflowEngine extends EventEmitter {
 
   // Workflow CRUD
   createWorkflow(definition) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.createWorkflow");
     const id =
       definition.id ||
       `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -377,6 +398,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   _persistWorkflow(workflow) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._persistWorkflow");
     try {
       this.db
         .prepare(
@@ -403,12 +425,17 @@ class WorkflowEngine extends EventEmitter {
 
   // Execution
   async executeWorkflow(workflowId, input = {}) {
+    const execId = `exec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const runtimeAuthority = assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.executeWorkflow",
+      process.env,
+      { runKey: `desktop-legacy-workflow:${execId}` },
+    );
     const workflow = this._workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow '${workflowId}' not found`);
     }
 
-    const execId = `exec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const execution = {
       id: execId,
       workflowId,
@@ -420,6 +447,7 @@ class WorkflowEngine extends EventEmitter {
       startedAt: Date.now(),
       runtimeClaims: WORKFLOW_SIMULATION_CLAIMS,
       terminalEvidence: [],
+      authorityMode: runtimeAuthority.authorityMode,
     };
 
     this._executions.set(execId, execution);
@@ -470,6 +498,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   async _executeStages(execution, entryStages, allStages, opts = {}) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._executeStages");
     // In-degree (Kahn's) topological execution: each stage runs exactly ONCE,
     // only after ALL of its parents have completed. The previous recursive DFS
     // followed every `next` edge independently, so a convergence ("diamond")
@@ -601,6 +630,14 @@ class WorkflowEngine extends EventEmitter {
 
   pauseExecution(executionId) {
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.pauseExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution || TERMINAL_EXEC_STATES.has(execution.status)) {
       return null;
     }
@@ -611,6 +648,14 @@ class WorkflowEngine extends EventEmitter {
 
   async resumeExecution(executionId) {
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.resumeExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     // "paused" = breakpoint / manual pause; "waiting" = approval gate.
     // (Approval pauses set "waiting", so the old `!== "paused"` check made
     // approval workflows wholly unresumable.)
@@ -668,6 +713,14 @@ class WorkflowEngine extends EventEmitter {
 
   rollbackExecution(executionId) {
     const execution = this._executions.get(executionId);
+    assertDesktopLegacyMutationAllowed(
+      "WorkflowEngine.rollbackExecution",
+      process.env,
+      {
+        runKey: `desktop-legacy-workflow:${executionId}`,
+        authorityMode: execution?.authorityMode,
+      },
+    );
     if (!execution) {
       return null;
     }
@@ -683,6 +736,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   _persistExecution(execution) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._persistExecution");
     try {
       this.db
         .prepare(
@@ -718,6 +772,7 @@ class WorkflowEngine extends EventEmitter {
   }
 
   importWorkflow(workflowData) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.importWorkflow");
     return this.createWorkflow(workflowData);
   }
 
@@ -731,10 +786,21 @@ class WorkflowEngine extends EventEmitter {
 
   getExecutionLog(executionId) {
     const execution = this._executions.get(executionId);
-    if (!execution) {
+    if (execution) {
+      return execution.log;
+    }
+    if (!this.db) return null;
+    try {
+      const row = this.db
+        .prepare("SELECT log FROM workflow_executions WHERE id = ?")
+        .get(executionId);
+      return row ? safeParse(row.log, []) : null;
+    } catch (error) {
+      logger.warn(
+        `[WorkflowEngine] Failed to read historical execution ${executionId}: ${error.message}`,
+      );
       return null;
     }
-    return execution.log;
   }
 
   // Bound the in-memory execution map. Evicts the oldest *terminal* executions
@@ -742,6 +808,7 @@ class WorkflowEngine extends EventEmitter {
   // are never evicted so pause/resume/rollback keep working. Evicted executions
   // remain persisted in workflow_executions.
   _evictOldExecutions() {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine._evictOldExecutions");
     if (this._executions.size <= this.maxExecutions) {
       return;
     }
@@ -757,11 +824,13 @@ class WorkflowEngine extends EventEmitter {
   }
 
   setBreakpoint(workflowId, stageId) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.setBreakpoint");
     this._breakpoints.add(`${workflowId}:${stageId}`);
     return true;
   }
 
   removeBreakpoint(workflowId, stageId) {
+    assertDesktopLegacyMutationAllowed("WorkflowEngine.removeBreakpoint");
     return this._breakpoints.delete(`${workflowId}:${stageId}`);
   }
 

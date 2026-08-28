@@ -61,12 +61,62 @@ jobs:
         shell: bash
         run: >-
           npx vitest run
+          --testTimeout 60000
+          packages/cli/__tests__/unit/app-server-graph-runtime.test.js
+          packages/cli/__tests__/unit/graph-kernel-authority.test.js
           packages/cli/__tests__/unit/graph-kernel-compiler.test.js
+          packages/cli/__tests__/unit/graph-kernel-cutover-authority-resolver.test.js
+          packages/cli/__tests__/unit/graph-kernel-cutover-ledger.test.js
           packages/cli/__tests__/unit/graph-kernel-runtime.test.js
           packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
+          packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/unit/graph-store-cutover-evidence.test.js
+          packages/cli/__tests__/unit/runtime-entry-cutover-wiring.test.js
+          packages/cli/__tests__/unit/cowork-graph-authority-adapter.test.js
+          packages/cli/__tests__/unit/scheduler-graph-authority-adapter.test.js
+          packages/cli/__tests__/unit/team-distributed-graph-bridge.test.js
+          packages/cli/__tests__/unit/team-distributed-graph-writer.test.js
+          packages/cli/__tests__/unit/team-runner.test.js
           packages/cli/__tests__/integration/headless-session-resume.test.js
           packages/cli/__tests__/integration/team-worktree-real-git.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-runtime-authority.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
+
+      - name: Re-run Desktop kill and reopen through the Electron runtime
+        shell: bash
+        run: |
+          ELECTRON_EXECUTABLE="$(node -e 'process.stdout.write(require("electron"))')"
+          CC_DESKTOP_GRAPH_KILL_EXECUTABLE="${ELECTRON_EXECUTABLE}" \
+            npx vitest run --testTimeout 90000 \
+            desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
+
+      - name: Run packaged ASAR and BrowserWindow kill-reopen journey
+        shell: bash
+        run: |
+          OUTPUT_PATH="${RUNNER_TEMP}/desktop-packaged-graph-${{ matrix.platform }}.json"
+          if [[ "${{ matrix.platform }}" == "linux" ]]; then
+            xvfb-run -a node desktop-app-vue/scripts/graph-packaged-electron-journey.mjs --output "${OUTPUT_PATH}"
+          else
+            node desktop-app-vue/scripts/graph-packaged-electron-journey.mjs --output "${OUTPUT_PATH}"
+          fi
+
+      - name: Kill and recover every CLI durable store cutpoint
+        shell: bash
+        run: |
+          node packages/cli/scripts/graph-cli-store-cutover-journey.mjs \
+            --expected-commit "${JOURNEY_SHA}" \
+            --output "${RUNNER_TEMP}/cli-store-cutover-${{ matrix.platform }}.json"
+
+      - name: Verify this platform's store receipts
+        shell: bash
+        run: |
+          node packages/cli/scripts/graph-store-cutover-evidence.mjs \
+            --evidence "${RUNNER_TEMP}/desktop-packaged-graph-${{ matrix.platform }}.json" \
+            --evidence "${RUNNER_TEMP}/cli-store-cutover-${{ matrix.platform }}.json" \
+            --expected-commit "${JOURNEY_SHA}" \
+            --output "${RUNNER_TEMP}/graph-store-coverage-${{ matrix.platform }}.json"
 
       - name: Run real-provider cc exec journey
         shell: bash
@@ -84,6 +134,17 @@ jobs:
         with:
           name: graph-agent-real-journey-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-agent-journey-${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: desktop-packaged-graph-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/desktop-packaged-graph-${{ matrix.platform }}.json
+            ${{ runner.temp }}/cli-store-cutover-${{ matrix.platform }}.json
+            ${{ runner.temp }}/graph-store-coverage-${{ matrix.platform }}.json
           if-no-files-found: error
           retention-days: 90
 
@@ -105,10 +166,24 @@ jobs:
         with:
           ref: ${{ env.JOURNEY_SHA }}
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
       - uses: actions/download-artifact@v7
         with:
           pattern: graph-agent-real-journey-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-agent-evidence
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: desktop-packaged-graph-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-store-evidence
           merge-multiple: true
 
       - name: Verify exact SHA and all platform evidence
@@ -118,9 +193,24 @@ jobs:
           --commit-sha "${JOURNEY_SHA}"
           --output "${RUNNER_TEMP}/graph-agent-real-journey-matrix.json"
 
+      - name: Require all durable stores on the exact three-platform SHA
+        run: >-
+          node packages/cli/scripts/graph-store-cutover-evidence.mjs
+          --evidence-dir "${RUNNER_TEMP}/graph-store-evidence"
+          --expected-commit "${JOURNEY_SHA}"
+          --require-complete
+          --output "${RUNNER_TEMP}/graph-store-cutover-matrix.json"
+
       - uses: actions/upload-artifact@v6
         with:
           name: graph-agent-real-journey-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-agent-real-journey-matrix.json
+          if-no-files-found: error
+          retention-days: 180
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: graph-store-cutover-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-store-cutover-matrix.json
           if-no-files-found: error
           retention-days: 180

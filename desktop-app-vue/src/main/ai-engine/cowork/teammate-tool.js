@@ -26,6 +26,10 @@ const fs = require("fs").promises;
 const EventEmitter = require("events");
 const { AgentPool } = require("./agent-pool.js");
 const { SubAgentContext } = require("../agents/sub-agent-context.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+  desktopLegacyRuntimeReadOnly,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 /**
  * 团队状态
@@ -83,6 +87,9 @@ class TeammateTool extends EventEmitter {
       enableLogging: options.enableLogging !== false,
       ...options,
     };
+    this.legacyReadOnly = desktopLegacyRuntimeReadOnly(process.env, {
+      entryId: "desktop-legacy-cowork-team",
+    });
     if (
       !Number.isSafeInteger(this.options.maxMessagesPerTeam) ||
       this.options.maxMessagesPerTeam <= 0
@@ -100,7 +107,9 @@ class TeammateTool extends EventEmitter {
     this.messageQueues = new Map();
 
     // 代理池（可选）
-    this.useAgentPool = options.useAgentPool !== false; // 默认启用
+    // A retired runtime must remain constructible for historical reads. Never
+    // warm an AgentPool in read-only mode because doing so creates live agents.
+    this.useAgentPool = !this.legacyReadOnly && options.useAgentPool !== false; // 默认启用
     if (this.useAgentPool) {
       this.agentPool = new AgentPool({
         minSize: options.agentPoolMinSize || 3,
@@ -117,13 +126,18 @@ class TeammateTool extends EventEmitter {
       this._log("代理池已启用");
     } else {
       this.agentPool = null;
-      this._log("代理池未启用，使用传统代理创建模式");
+      this._log(
+        this.legacyReadOnly
+          ? "旧 Cowork runtime 已进入历史只读模式，代理池未启动"
+          : "代理池未启用，使用传统代理创建模式",
+      );
     }
 
     this._log("TeammateTool 已初始化");
   }
 
   _appendTeamMessage(teamId, message) {
+    assertDesktopLegacyMutationAllowed("TeammateTool._appendTeamMessage");
     const queue = this.messageQueues.get(teamId);
     if (!queue) {
       throw new Error(`团队消息队列不存在: ${teamId}`);
@@ -148,6 +162,7 @@ class TeammateTool extends EventEmitter {
    * @private
    */
   async _ensureDataDir() {
+    assertDesktopLegacyMutationAllowed("TeammateTool._ensureDataDir");
     try {
       await fs.mkdir(this.options.dataDir, { recursive: true });
       await fs.mkdir(path.join(this.options.dataDir, "teams"), {
@@ -173,6 +188,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 团队对象
    */
   async spawnTeam(teamName, config = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.spawnTeam");
     // 检查团队数量限制（不包括已归档的团队）
     const activeTeamsCount = Array.from(this.teams.values()).filter(
       (t) => t.status !== "archived",
@@ -265,6 +281,43 @@ class TeammateTool extends EventEmitter {
    */
   async discoverTeams(filters = {}) {
     let teams = Array.from(this.teams.values());
+    if (this.legacyReadOnly && this.db) {
+      try {
+        const sql = `SELECT t.id, t.name, t.status, t.max_agents, t.created_at,
+          t.metadata, COUNT(a.id) AS agent_count
+          FROM cowork_teams t
+          LEFT JOIN cowork_agents a ON a.team_id = t.id
+          GROUP BY t.id, t.name, t.status, t.max_agents, t.created_at, t.metadata
+          ORDER BY t.created_at DESC`;
+        const rows =
+          typeof this.db.all === "function"
+            ? await this.db.all(sql, [])
+            : this.db.prepare(sql).all();
+        teams = rows.map((row) => {
+          let metadata = {};
+          try {
+            metadata = row.metadata ? JSON.parse(row.metadata) : {};
+          } catch {
+            metadata = {};
+          }
+          return {
+            id: row.id,
+            name: row.name,
+            status: row.status,
+            maxAgents: row.max_agents,
+            agentCount: Number(row.agent_count) || 0,
+            config: metadata.config || metadata,
+            metadata: {
+              ...metadata,
+              createdAt: metadata.createdAt || row.created_at,
+            },
+          };
+        });
+      } catch (error) {
+        this._log(`读取历史团队失败: ${error.message}`, "error");
+        throw error;
+      }
+    }
 
     // 兼容性：默认过滤掉archived团队
     if (!filters.includeArchived) {
@@ -283,16 +336,20 @@ class TeammateTool extends EventEmitter {
     }
 
     if (filters.maxAgents) {
-      teams = teams.filter((t) => t.agents.length < t.maxAgents);
+      teams = teams.filter(
+        (t) =>
+          (Array.isArray(t.agents) ? t.agents.length : t.agentCount || 0) <
+          t.maxAgents,
+      );
     }
 
     return teams.map((t) => ({
       id: t.id,
       name: t.name,
       status: t.status,
-      agentCount: t.agents.length,
+      agentCount: Array.isArray(t.agents) ? t.agents.length : t.agentCount || 0,
       maxAgents: t.maxAgents,
-      allowDynamicJoin: t.config.allowDynamicJoin,
+      allowDynamicJoin: t.config?.allowDynamicJoin,
       createdAt: t.metadata.createdAt,
     }));
   }
@@ -305,6 +362,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 加入结果
    */
   async requestJoin(teamId, agentId, agentInfo = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.requestJoin");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -410,6 +468,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 分配结果
    */
   async assignTask(teamId, agentIdOrTask, task) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.assignTask");
     // 检测调用模式：2参数 vs 3参数
     let agentId;
 
@@ -539,6 +598,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<object>} Task result with summary
    */
   async assignTaskIsolated(teamId, task, options = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.assignTaskIsolated");
     const team = this.teams.get(teamId);
     if (!team) {
       throw new Error(`团队不存在: ${teamId}`);
@@ -591,6 +651,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 广播结果
    */
   async broadcastMessage(teamId, fromAgent, message) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.broadcastMessage");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -667,6 +728,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 发送结果
    */
   async sendMessage(fromAgent, toAgent, message) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.sendMessage");
     const sender = this.agents.get(fromAgent);
     const receiver = this.agents.get(toAgent);
 
@@ -734,6 +796,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 投票结果
    */
   async voteOnDecision(teamId, decision, votes = []) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.voteOnDecision");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -863,6 +926,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 终止结果
    */
   async terminateAgent(agentId, reason = "") {
+    assertDesktopLegacyMutationAllowed("TeammateTool.terminateAgent");
     const agent = this.agents.get(agentId);
 
     if (!agent) {
@@ -931,6 +995,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 合并后的结果
    */
   async mergeResults(teamId, results, strategy = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.mergeResults");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1059,6 +1124,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 检查点信息
    */
   async createCheckpoint(teamId, metadata = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.createCheckpoint");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1135,6 +1201,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 更新结果
    */
   async updateTeamConfig(teamId, config) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.updateTeamConfig");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1168,6 +1235,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 暂停结果
    */
   async pauseTeam(teamId) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.pauseTeam");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1220,6 +1288,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<Object>} 恢复结果
    */
   async resumeTeam(teamId) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.resumeTeam");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1346,6 +1415,7 @@ class TeammateTool extends EventEmitter {
    * @private
    */
   async _saveTeamConfig(team) {
+    assertDesktopLegacyMutationAllowed("TeammateTool._saveTeamConfig");
     const teamDir = path.join(this.options.dataDir, "teams", team.id);
     const configFile = path.join(teamDir, "config.json");
 
@@ -1401,6 +1471,7 @@ class TeammateTool extends EventEmitter {
    * 清理过期消息
    */
   async cleanupOldMessages() {
+    assertDesktopLegacyMutationAllowed("TeammateTool.cleanupOldMessages");
     const now = Date.now();
     const retention = this.options.messageRetention;
 
@@ -1417,6 +1488,7 @@ class TeammateTool extends EventEmitter {
    * @param {string} teamId - 团队 ID
    */
   async destroyTeam(teamId) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.destroyTeam");
     const team = this.teams.get(teamId);
 
     if (!team) {
@@ -1481,6 +1553,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<object>} 代理对象
    */
   async addAgent(teamId, agentInfo = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.addAgent");
     const agentId = `agent_${Date.now()}_${require("uuid").v4().slice(0, 8)}`;
     const result = await this.requestJoin(teamId, agentId, agentInfo);
 
@@ -1511,6 +1584,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<object>} 结果
    */
   async disbandTeam(teamId) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.disbandTeam");
     return await this.destroyTeam(teamId);
   }
 
@@ -1617,6 +1691,7 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<object>} 更新后的任务
    */
   async updateTaskStatus(taskId, status, result = {}) {
+    assertDesktopLegacyMutationAllowed("TeammateTool.updateTaskStatus");
     if (this.db) {
       try {
         const now = Date.now();
@@ -1741,6 +1816,7 @@ class TeammateTool extends EventEmitter {
    * 清理资源（销毁代理池等）
    */
   async cleanup() {
+    assertDesktopLegacyMutationAllowed("TeammateTool.cleanup");
     this._log("[TeammateTool] 开始清理资源...");
 
     // 清理代理池

@@ -13,6 +13,9 @@
 
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
 
 // ============================================================
 // Constants
@@ -76,6 +79,7 @@ class DeployAgent extends EventEmitter {
    * @param {Object} deps - Dependencies
    */
   async initialize(db, deps = {}) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.initialize");
     if (this.initialized) {
       return;
     }
@@ -99,6 +103,7 @@ class DeployAgent extends EventEmitter {
    * @returns {Object} Deployment result
    */
   async deploy(options = {}) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.deploy");
     if (!this.initialized) {
       throw new Error("DeployAgent not initialized");
     }
@@ -227,6 +232,7 @@ class DeployAgent extends EventEmitter {
   }
 
   configure(updates) {
+    assertDesktopLegacyMutationAllowed("DeployAgent.configure");
     Object.assign(this.config, updates);
     return this.getConfig();
   }
@@ -236,6 +242,7 @@ class DeployAgent extends EventEmitter {
   // ============================================================
 
   async _prepare(strategy, options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._prepare");
     switch (strategy) {
       case DEPLOY_STRATEGY.GIT_PR:
         return this._prepareGitPR(options);
@@ -249,6 +256,7 @@ class DeployAgent extends EventEmitter {
   }
 
   async _executeDeploy(strategy, options, prepResult) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._executeDeploy");
     if (this.config.dryRun) {
       logger.info(`[DeployAgent] Dry run — skipping actual deployment`);
       return { dryRun: true, strategy, ...prepResult };
@@ -271,6 +279,7 @@ class DeployAgent extends EventEmitter {
   }
 
   async _prepareGitPR(options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._prepareGitPR");
     const branchName = this.config.autoCreateBranch
       ? `${this.config.branchPrefix}${options.pipelineId || "unknown"}`
       : options.branch || "main";
@@ -280,6 +289,7 @@ class DeployAgent extends EventEmitter {
   }
 
   async _deployGitPR(options, prepResult) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._deployGitPR");
     const branchName = prepResult.branchName;
     this.emit("git:commit-and-push", {
       branchName,
@@ -295,6 +305,7 @@ class DeployAgent extends EventEmitter {
   }
 
   async _prepareDocker(options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._prepareDocker");
     const imageName =
       options.imageName || `chainlesschain/${options.pipelineId || "app"}`;
     const tag = options.tag || `pipeline-${Date.now()}`;
@@ -302,6 +313,7 @@ class DeployAgent extends EventEmitter {
   }
 
   async _deployDocker(options, prepResult) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._deployDocker");
     this.emit("docker:build", {
       imageName: prepResult.imageName,
       tag: prepResult.tag,
@@ -319,10 +331,12 @@ class DeployAgent extends EventEmitter {
   }
 
   async _prepareNpmPublish(options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._prepareNpmPublish");
     return { packageName: options.packageName, prepared: true };
   }
 
   async _deployNpmPublish(options, prepResult) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._deployNpmPublish");
     this.emit("npm:publish", {
       packageName: prepResult.packageName,
       version: options.version || "patch",
@@ -331,11 +345,13 @@ class DeployAgent extends EventEmitter {
   }
 
   async _deployLocal(options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._deployLocal");
     this.emit("local:deploy", { artifacts: options.artifacts });
     return { local: true, simulated: true };
   }
 
   async _deployStaging(options) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._deployStaging");
     this.emit("staging:deploy", { artifacts: options.artifacts });
     return { staging: true, simulated: true };
   }
@@ -345,6 +361,7 @@ class DeployAgent extends EventEmitter {
   // ============================================================
 
   async _verify(strategy, deployResult) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._verify");
     try {
       // Emit event for external smoke test runner
       this.emit("deploy:smoke-test", { strategy, deployResult });
@@ -357,6 +374,7 @@ class DeployAgent extends EventEmitter {
   }
 
   _updateDeployStatus(deployId, status) {
+    assertDesktopLegacyMutationAllowed("DeployAgent._updateDeployStatus");
     const deployment = this.activeDeployments.get(deployId);
     if (deployment) {
       deployment.status = status;

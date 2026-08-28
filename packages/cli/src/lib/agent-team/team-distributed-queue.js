@@ -171,6 +171,8 @@ const INTERNAL_METADATA = new Set([
   "workspaceExecution",
   "workspaceExecutionHistory",
   "workspaceRecovery",
+  "custodyHandoffs",
+  "canonicalGraphProjection",
 ]);
 
 export class TeamDistributedQueueError extends Error {
@@ -3297,6 +3299,10 @@ export class TeamDistributedQueue {
     return this._inspect(({ registry }) => registry.defaultTtlMs);
   }
 
+  get maxAttempts() {
+    return this._inspect(({ registry }) => registry.maxAttempts);
+  }
+
   getTask(key) {
     return this._inspect(({ registry }) => registry.getTask(key));
   }
@@ -3377,6 +3383,251 @@ export class TeamDistributedQueue {
         this._acquireInTransaction(context, key, options),
       ),
     );
+  }
+
+  offerHandoff(key, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const result = registry.offerHandoff(key, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) markChanged();
+      return result;
+    });
+  }
+
+  findHandoff(handoffId, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const expired = registry.expireHandoffs({ now: options.now ?? now });
+      if (expired.expired?.length > 0) markChanged();
+      return registry.findHandoff(handoffId, { now: options.now ?? now });
+    });
+  }
+
+  acceptHandoff(handoffId, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const result = registry.acceptHandoff(handoffId, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) markChanged();
+      return result;
+    });
+  }
+
+  rejectHandoff(handoffId, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const result = registry.rejectHandoff(handoffId, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) markChanged();
+      return result;
+    });
+  }
+
+  commitHandoff(handoffId, options = {}) {
+    return this._mutate(({ registry, state, now, markChanged }) => {
+      const result = registry.commitHandoff(handoffId, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (!result.ok || result.idempotent) return result;
+      const taskId = registry._byKey.get(result.key);
+      const task = taskId ? registry._tasks.get(taskId) : null;
+      if (!task?.metadata?.lease) {
+        throw queueError(
+          "TEAM_QUEUE_CONCURRENT_MUTATION",
+          `Could not attach durable handoff lease for task "${result.key}"`,
+          this.filePath,
+        );
+      }
+      const fencingToken = state.nextFence;
+      const lease = {
+        ...task.metadata.lease,
+        ownerPid: this._processId,
+        fencingToken,
+      };
+      const custodyHandoffs = (task.metadata.custodyHandoffs || []).map(
+        (handoff) =>
+          handoff.id === handoffId && handoff.status === "committed"
+            ? {
+                ...handoff,
+                targetLease: cloneJson(lease, "durable handoff lease"),
+                targetLeaseRefreshedAt: options.now ?? now,
+              }
+            : handoff,
+      );
+      if (
+        !registry._write(task, {
+          metadata: {
+            ...task.metadata,
+            lease,
+            custodyHandoffs,
+          },
+        })
+      ) {
+        throw queueError(
+          "TEAM_QUEUE_CONCURRENT_MUTATION",
+          `Could not persist durable handoff lease for task "${result.key}"`,
+          this.filePath,
+        );
+      }
+      const reservation = state.budget.reservations.find(
+        (item) => item.leaseId === options.leaseId,
+      );
+      if (!reservation || reservation.taskKey !== result.key) {
+        throw queueError(
+          "TEAM_QUEUE_BUDGET_RESERVATION_MISSING",
+          `Handoff source lease has no budget reservation for task "${result.key}"`,
+          this.filePath,
+        );
+      }
+      reservation.leaseId = lease.leaseId;
+      state.nextFence += 1;
+      markChanged();
+      return {
+        ...result,
+        lease,
+        handoff: {
+          ...result.handoff,
+          targetLease: cloneJson(lease, "durable handoff lease"),
+        },
+      };
+    });
+  }
+
+  revokeHandoff(handoffId, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const result = registry.revokeHandoff(handoffId, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) markChanged();
+      return result;
+    });
+  }
+
+  expireHandoffs(options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const expired = registry.expireHandoffs({ now: options.now ?? now });
+      if (expired.expired?.length > 0) markChanged();
+      return expired;
+    });
+  }
+
+  applyCanonicalTaskProjection(key, options = {}) {
+    return this._mutate(({ registry, state, now, markChanged }) => {
+      const result = registry.applyCanonicalTaskProjection(key, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) {
+        state.graph = graphFromRegistrySnapshot(registry.snapshot());
+        markChanged();
+      }
+      return result;
+    });
+  }
+
+  applyCanonicalHandoffProjection(key, options = {}) {
+    return this._mutate(({ registry, state, now, markChanged }) => {
+      const result = registry.applyCanonicalHandoffProjection(key, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) {
+        state.graph = graphFromRegistrySnapshot(registry.snapshot());
+        markChanged();
+      }
+      return result;
+    });
+  }
+
+  pendingCommittedHandoffs() {
+    return this._inspect(({ registry }) => registry.pendingCommittedHandoffs());
+  }
+
+  refreshCommittedHandoffLease(key, options = {}) {
+    return this._mutate(({ registry, state, now, markChanged }) => {
+      const previousLeaseId = registry.getTask(key)?.lease?.leaseId || null;
+      const result = registry.refreshCommittedHandoffLease(key, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (!result.ok || result.idempotent) return result;
+      const taskId = registry._byKey.get(key);
+      const task = taskId ? registry._tasks.get(taskId) : null;
+      if (!task?.metadata?.lease) {
+        throw queueError(
+          "TEAM_QUEUE_CONCURRENT_MUTATION",
+          `Could not refresh durable handoff lease for task "${key}"`,
+          this.filePath,
+        );
+      }
+      const lease = {
+        ...task.metadata.lease,
+        ownerPid: this._processId,
+        fencingToken: state.nextFence,
+      };
+      const custodyHandoffs = (task.metadata.custodyHandoffs || []).map(
+        (handoff) =>
+          handoff.id === options.handoffId && handoff.status === "committed"
+            ? {
+                ...handoff,
+                targetLease: cloneJson(lease, "durable handoff lease"),
+                targetLeaseRefreshedAt: options.now ?? now,
+              }
+            : handoff,
+      );
+      if (
+        !registry._write(task, {
+          metadata: {
+            ...task.metadata,
+            lease,
+            custodyHandoffs,
+          },
+        })
+      ) {
+        throw queueError(
+          "TEAM_QUEUE_CONCURRENT_MUTATION",
+          `Could not persist refreshed handoff lease for task "${key}"`,
+          this.filePath,
+        );
+      }
+      const reservation = state.budget.reservations.find(
+        (item) => item.leaseId === previousLeaseId,
+      );
+      if (!reservation || reservation.taskKey !== key) {
+        throw queueError(
+          "TEAM_QUEUE_BUDGET_RESERVATION_MISSING",
+          `Handoff lease has no budget reservation for task "${key}"`,
+          this.filePath,
+        );
+      }
+      reservation.leaseId = lease.leaseId;
+      state.nextFence += 1;
+      markChanged();
+      return {
+        ...result,
+        lease,
+        handoff: {
+          ...result.handoff,
+          targetLease: cloneJson(lease, "durable handoff lease"),
+        },
+      };
+    });
+  }
+
+  markHandoffStarted(key, options = {}) {
+    return this._mutate(({ registry, now, markChanged }) => {
+      const result = registry.markHandoffStarted(key, {
+        ...options,
+        now: options.now ?? now,
+      });
+      if (result.ok && !result.idempotent) markChanged();
+      return result;
+    });
   }
 
   /**

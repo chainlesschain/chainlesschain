@@ -4,6 +4,9 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("./code-agent/desktop-runtime-authority.js");
 const IntentClassifier = require("./intent-classifier");
 const { TaskPlanner } = require("./task-planner");
 const TaskPlannerEnhanced = require("./task-planner-enhanced");
@@ -37,6 +40,7 @@ class AIEngineManager {
    * 注入依赖项并初始化增强版任务规划器
    */
   async initialize() {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.initialize");
     try {
       // 获取LLM管理器
       if (!this.llmManager) {
@@ -81,6 +85,9 @@ class AIEngineManager {
    * @private
    */
   async initializeWorkflowOptimizations() {
+    assertDesktopLegacyMutationAllowed(
+      "AIEngineManager.initializeWorkflowOptimizations",
+    );
     try {
       // 读取配置 (M2: 异步加载，避免启动期阻塞事件循环)
       const config = await this._loadWorkflowConfigAsync();
@@ -241,6 +248,7 @@ class AIEngineManager {
    * @returns {Promise<Object>} 执行结果
    */
   async processUserInput(userInput, context = {}, onStepUpdate = null) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.processUserInput");
     const startTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
@@ -391,6 +399,7 @@ class AIEngineManager {
    * 清除执行历史
    */
   clearHistory() {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.clearHistory");
     this.executionHistory = [];
   }
 
@@ -401,6 +410,7 @@ class AIEngineManager {
    * @param {Object} schema - 工具参数schema
    */
   registerTool(name, handler, schema) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.registerTool");
     this.functionCaller.registerTool(name, handler, schema);
   }
 
@@ -409,6 +419,7 @@ class AIEngineManager {
    * @param {string} name - 工具名称
    */
   unregisterTool(name) {
+    assertDesktopLegacyMutationAllowed("AIEngineManager.unregisterTool");
     this.functionCaller.unregisterTool(name);
   }
 

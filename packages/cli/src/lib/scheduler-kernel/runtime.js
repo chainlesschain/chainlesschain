@@ -11,6 +11,10 @@ import {
   normalizeJson,
   normalizeRuntimeControlCapability,
 } from "./contract.js";
+import {
+  SchedulerOccurrenceGraphAuthority,
+  schedulerGraphAuthorityMode,
+} from "./graph-authority-adapter.js";
 
 export const DEFAULT_RUNTIME_LEASE_MS = 60_000;
 export const MIN_RUNTIME_LEASE_MS = 1_000;
@@ -255,6 +259,8 @@ export class SchedulerRuntime {
     renewIntervalMs,
     setIntervalFn = setInterval,
     clearIntervalFn = clearInterval,
+    graphAuthority = undefined,
+    graphAuthorityMode = undefined,
   } = {}) {
     this.store = assertStore(store);
     this.adapters = normalizeAdapters(adapters);
@@ -282,6 +288,14 @@ export class SchedulerRuntime {
     }
     this.setIntervalFn = setIntervalFn;
     this.clearIntervalFn = clearIntervalFn;
+    const resolvedGraphMode =
+      graphAuthorityMode || schedulerGraphAuthorityMode();
+    this.graphAuthority =
+      graphAuthority === undefined
+        ? new SchedulerOccurrenceGraphAuthority({
+            mode: resolvedGraphMode,
+          })
+        : graphAuthority;
   }
 
   registerAdapter(adapter) {
@@ -571,9 +585,16 @@ export class SchedulerRuntime {
       RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT
         ? adapter.resume(context, resumingControl.checkpoint)
         : adapter.execute(context);
+    let graphClaim = null;
+    let graphAuthorityMode = "legacy";
     try {
       let result;
-      if (context.adjudication?.status === "pending") {
+      graphClaim = this.graphAuthority?.begin(context) || null;
+      graphAuthorityMode =
+        graphClaim?.authorityMode || this.graphAuthority?.mode || "legacy";
+      if (graphClaim?.alreadySettled) {
+        result = graphClaim.result;
+      } else if (context.adjudication?.status === "pending") {
         const allowedAttempts =
           context.adjudication.decision === "confirmed_applied"
             ? [
@@ -634,6 +655,22 @@ export class SchedulerRuntime {
         aborted.retryable = true;
         throw aborted;
       }
+      if (graphClaim && !graphClaim.alreadySettled) {
+        try {
+          const graphProjection = this.graphAuthority.settleSuccess(
+            context,
+            result,
+          );
+          if (graphAuthorityMode === "canonical") {
+            result =
+              result && typeof result === "object" && !Array.isArray(result)
+                ? { ...result, graphAuthority: graphProjection }
+                : { value: result ?? null, graphAuthority: graphProjection };
+          }
+        } catch (graphError) {
+          if (graphAuthorityMode === "canonical") throw graphError;
+        }
+      }
       const settled = this.store.settle({
         occurrenceId: occurrence.id,
         ownerId: this.ownerId,
@@ -648,6 +685,15 @@ export class SchedulerRuntime {
     } catch (error) {
       if (leaseError) throw leaseError;
       if (error instanceof SchedulerPauseSignal) {
+        if (graphClaim && !graphClaim.alreadySettled) {
+          const knownPause = new Error("scheduler paused at a safe point");
+          knownPause.outcomeKnown = true;
+          try {
+            this.graphAuthority.settleFailure(context, knownPause);
+          } catch (graphError) {
+            if (graphAuthorityMode === "canonical") throw graphError;
+          }
+        }
         return acknowledgePause(
           error.control,
           RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT,
@@ -656,8 +702,35 @@ export class SchedulerRuntime {
       }
       let policy;
       let settlementError = error;
+      if (graphClaim && !graphClaim.alreadySettled) {
+        try {
+          const graphProjection = this.graphAuthority.settleFailure(
+            context,
+            error,
+          );
+          if (
+            graphAuthorityMode === "canonical" &&
+            graphProjection?.status === "reconciliation_required"
+          ) {
+            settlementError = runtimeError(
+              "CC_GRAPH_RECONCILIATION_REQUIRED",
+              "Scheduler adapter effect outcome is unknown and requires Graph reconciliation",
+              { graphRunId: graphProjection.id },
+              error,
+            );
+            settlementError.retryable = false;
+          }
+        } catch (graphError) {
+          if (graphAuthorityMode === "canonical") {
+            settlementError = graphError;
+          }
+        }
+      }
       try {
-        policy = executionPolicy(error, adapter, context);
+        policy =
+          settlementError?.code === "CC_GRAPH_RECONCILIATION_REQUIRED"
+            ? { retryable: false }
+            : executionPolicy(settlementError, adapter, context);
       } catch (classificationError) {
         settlementError = runtimeError(
           "SCHEDULER_RUNTIME_ERROR_POLICY_FAILED",

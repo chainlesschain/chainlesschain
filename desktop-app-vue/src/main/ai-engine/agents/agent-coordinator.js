@@ -14,6 +14,17 @@ const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../code-agent/desktop-runtime-authority.js");
+const {
+  DesktopGraphExecutionAdapter,
+  buildSpecializedAgentsGraph,
+  projectGraphNodes,
+} = require("../code-agent/desktop-graph-execution-adapter.js");
+const {
+  DesktopGraphRunRegistry,
+} = require("../code-agent/desktop-graph-run-registry.js");
+const {
   RUNTIME_MODE,
   createRuntimeClaims,
   hasTerminalSuccessEvidence,
@@ -240,6 +251,8 @@ const MAX_ACTIVE_TASKS = 500;
 // orchestrationSessions is set per orchestrate() call and only read via .size,
 // never removed during operation — so it leaks one session object per run.
 const MAX_ORCHESTRATION_SESSIONS = 200;
+const SPECIALIZED_AGENTS_GRAPH_SURFACE = "desktop_specialized_agents";
+const RESUMABLE_GRAPH_STATES = new Set(["running", "pending", "open"]);
 const TERMINAL_TASK_STATES = new Set([
   TASK_STATUS.COMPLETED,
   TASK_STATUS.FAILED,
@@ -270,12 +283,36 @@ class AgentCoordinator extends EventEmitter {
    * @param {Object} options.agentRegistry - AgentRegistry instance
    * @param {Object} options.templateManager - AgentTemplateManager instance
    */
-  constructor({ database, agentRegistry, templateManager } = {}) {
+  constructor({
+    database,
+    agentRegistry,
+    templateManager,
+    graphAdapter = null,
+    graphClientProvider = null,
+    graphAuthorityMode = null,
+    graphRunRegistry = null,
+  } = {}) {
     super();
 
     this.database = database;
     this.agentRegistry = agentRegistry;
     this.templateManager = templateManager;
+    this.graphAdapter =
+      graphAdapter ||
+      new DesktopGraphExecutionAdapter({
+        surface: "desktop_specialized_agents",
+        clientProvider: graphClientProvider || (() => null),
+        ...(typeof graphAuthorityMode === "function"
+          ? { authorityMode: graphAuthorityMode }
+          : {}),
+      });
+    this.shadowDivergences = [];
+    this.graphRunRegistry =
+      graphRunRegistry ||
+      new DesktopGraphRunRegistry({
+        database:
+          database && typeof database.exec === "function" ? database : null,
+      });
 
     // Active task tracking
     this.activeTasks = new Map();
@@ -325,6 +362,15 @@ class AgentCoordinator extends EventEmitter {
    */
   async orchestrate(taskDescription, options = {}) {
     const sessionId = uuidv4();
+    const graphRunId = `desktop-specialized-agents:${sessionId}`;
+    const graphMode = this.graphAdapter.mode(graphRunId);
+    if (graphMode !== "canonical") {
+      assertDesktopLegacyMutationAllowed(
+        "AgentCoordinator.orchestrate",
+        process.env,
+        { authorityMode: graphMode },
+      );
+    }
     const startTime = Date.now();
 
     this.stats.totalOrchestrations++;
@@ -343,6 +389,7 @@ class AgentCoordinator extends EventEmitter {
       subtasks: [],
       results: [],
       errors: [],
+      graphAuthorityMode: graphMode,
     };
 
     this.orchestrationSessions.set(sessionId, session);
@@ -364,25 +411,89 @@ class AgentCoordinator extends EventEmitter {
 
       this.emit("orchestration:plan-ready", { sessionId, plan });
 
-      // Step 2: Execute subtasks
-      const strategy = options.strategy || "auto";
+      // Canonical mode never calls the legacy agent registry. Shadow mode
+      // records an effect-free Graph projection before the legacy writer runs.
       let results;
-
-      if (
-        strategy === "parallel" ||
-        (strategy === "auto" && this._canRunParallel(plan.subtasks))
-      ) {
-        results = await this._executeParallel(
-          sessionId,
-          plan.subtasks,
-          options,
-        );
+      if (graphMode === "canonical") {
+        const graph = buildSpecializedAgentsGraph(plan, sessionId, options);
+        const projection = await this.graphAdapter.run({
+          definition: graph.definition,
+          inputs: graph.inputs,
+          runId: graphRunId,
+          waitForCompletion: true,
+          authorityMode: graphMode,
+        });
+        session.graphAuthority = projection;
+        results = projectGraphNodes(
+          projection,
+          plan.subtasks.map((subtask, index) => {
+            const subtaskId =
+              subtask.subtaskId || subtask.id || `subtask-${index + 1}`;
+            return {
+              key: subtaskId,
+              nodeId: graph.taskToNode.get(subtaskId),
+              metadata: {
+                subtaskId,
+                agentType: subtask.agentType,
+                duration: 0,
+              },
+            };
+          }),
+        ).map(({ key: _key, ...result }) => ({
+          ...result,
+          result: {
+            graphRunId: result.graphRunId,
+            graphAttemptId: result.graphAttemptId,
+            terminalEvidence: result.terminalEvidence,
+          },
+        }));
+        if (
+          projection.status !== "succeeded" ||
+          results.some((result) => !result.success)
+        ) {
+          const error = new Error(
+            `Specialized Agent Graph settled as ${projection.status}`,
+          );
+          error.code = "CC_DESKTOP_GRAPH_EXECUTION_FAILED";
+          throw error;
+        }
       } else {
-        results = await this._executeSequential(
-          sessionId,
-          plan.subtasks,
-          options,
-        );
+        if (graphMode === "shadow") {
+          try {
+            const graph = buildSpecializedAgentsGraph(plan, sessionId, options);
+            session.graphAuthority = await this.graphAdapter.run({
+              definition: graph.definition,
+              inputs: graph.inputs,
+              runId: `desktop-specialized-agents:${sessionId}:shadow`,
+              waitForCompletion: false,
+              authorityMode: graphMode,
+            });
+          } catch (error) {
+            this._recordShadowDivergence("orchestration", error, { sessionId });
+          }
+        }
+        const strategy = options.strategy || "auto";
+        const legacyOptions = {
+          ...options,
+          __graphObserved: true,
+          __graphAuthorityMode: graphMode,
+        };
+        if (
+          strategy === "parallel" ||
+          (strategy === "auto" && this._canRunParallel(plan.subtasks))
+        ) {
+          results = await this._executeParallel(
+            sessionId,
+            plan.subtasks,
+            legacyOptions,
+          );
+        } else {
+          results = await this._executeSequential(
+            sessionId,
+            plan.subtasks,
+            legacyOptions,
+          );
+        }
       }
 
       session.results = results;
@@ -416,10 +527,16 @@ class AgentCoordinator extends EventEmitter {
           subtaskCount: plan.subtasks.length,
           successCount: results.filter((r) => r.success).length,
           failureCount: results.filter((r) => !r.success).length,
+          graphAuthority: session.graphAuthority || null,
+          graphShadowDivergences: [...this.shadowDivergences],
         },
       };
     } catch (error) {
-      session.status = TASK_STATUS.FAILED;
+      if (error.projection) session.graphAuthority = error.projection;
+      session.status =
+        error.code === "CC_GRAPH_RECONCILIATION_REQUIRED"
+          ? "reconciliation_required"
+          : TASK_STATUS.FAILED;
       session.error = error.message;
       session.completedTime = Date.now();
 
@@ -433,10 +550,14 @@ class AgentCoordinator extends EventEmitter {
       return {
         success: false,
         error: error.message,
+        code: error.code,
+        reconciliationRequired:
+          error.code === "CC_GRAPH_RECONCILIATION_REQUIRED",
         data: {
           sessionId,
           partialResults: session.results,
           errors: session.errors,
+          graphAuthority: session.graphAuthority || null,
         },
       };
     }
@@ -546,6 +667,52 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Promise<Object>} Assignment result with task ID and status
    */
   async assignTask(agentId, taskDescription, options = {}) {
+    const taskId = options.__graphTaskId || uuidv4();
+    const graphRunId = `desktop-specialized-task:${taskId}`;
+    const graphMode =
+      options.__graphAuthorityMode || this.graphAdapter.mode(graphRunId);
+    if (graphMode === "canonical") {
+      return this._assignTaskCanonical(agentId, taskDescription, {
+        ...options,
+        __graphTaskId: taskId,
+        __graphAuthorityMode: graphMode,
+      });
+    }
+    if (graphMode === "shadow" && options.__graphObserved !== true) {
+      const observationId = taskId;
+      try {
+        const graph = buildSpecializedAgentsGraph(
+          {
+            subtasks: [
+              {
+                subtaskId: observationId,
+                subtask: taskDescription,
+                agentType: options.templateType || "unknown",
+                dependencies: [],
+              },
+            ],
+          },
+          observationId,
+          options,
+        );
+        await this.graphAdapter.run({
+          definition: graph.definition,
+          inputs: graph.inputs,
+          runId: `desktop-specialized-task:${observationId}:shadow`,
+          waitForCompletion: false,
+          authorityMode: graphMode,
+        });
+      } catch (error) {
+        this._recordShadowDivergence("assignment", error, {
+          taskId: observationId,
+        });
+      }
+    }
+    assertDesktopLegacyMutationAllowed(
+      "AgentCoordinator.assignTask",
+      process.env,
+      { authorityMode: graphMode },
+    );
     if (!agentId) {
       throw new Error("Agent ID is required for task assignment");
     }
@@ -555,8 +722,6 @@ class AgentCoordinator extends EventEmitter {
     }
 
     const templateType = options.templateType || "unknown";
-    const taskId = uuidv4();
-
     logger.info(
       `[AgentCoordinator] Assigning task ${taskId} to agent ${agentId}`,
     );
@@ -573,6 +738,7 @@ class AgentCoordinator extends EventEmitter {
       status: TASK_STATUS.ASSIGNED,
       assignedAt: Date.now(),
       context: options.context || {},
+      authorityMode: graphMode,
     };
 
     this.activeTasks.set(taskId, taskInfo);
@@ -711,6 +877,171 @@ class AgentCoordinator extends EventEmitter {
     }
   }
 
+  async _assignTaskCanonical(agentId, taskDescription, options = {}) {
+    if (!agentId) throw new Error("Agent ID is required for task assignment");
+    if (!taskDescription) throw new Error("Task description is required");
+    const taskId = options.__graphTaskId || uuidv4();
+    const authorityMode = options.__graphAuthorityMode || "canonical";
+    const templateType = options.templateType || "unknown";
+    const graphRunId = `desktop-specialized-task:${taskId}`;
+    this._createTaskRecord(taskId, agentId, templateType, taskDescription);
+    const taskInfo = {
+      id: taskId,
+      agentId,
+      templateType,
+      description: taskDescription,
+      status: TASK_STATUS.RUNNING,
+      assignedAt: Date.now(),
+      context: options.context || {},
+      graphRunId,
+      authoritySource: "graph_kernel",
+      authorityMode,
+    };
+    this.activeTasks.set(taskId, taskInfo);
+    this._evictTerminalTasks();
+    this.stats.totalAssignments++;
+    this.graphRunRegistry.record({
+      surface: SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      entityId: taskId,
+      graphRunId,
+      authorityMode: "canonical",
+      lifecycleStatus: TASK_STATUS.RUNNING,
+      metadata: {
+        agentId,
+        templateType,
+        description: taskDescription,
+        assignedAt: taskInfo.assignedAt,
+      },
+    });
+    this._updateTaskRecord(taskId, {
+      result: JSON.stringify({
+        graphRunId,
+        authoritySource: "graph_kernel",
+        status: TASK_STATUS.RUNNING,
+      }),
+    });
+    this.emit("task:assigned", { taskId, agentId, templateType, graphRunId });
+    const graph = buildSpecializedAgentsGraph(
+      {
+        subtasks: [
+          {
+            subtaskId: taskId,
+            subtask: taskDescription,
+            agentType: templateType,
+            dependencies: [],
+          },
+        ],
+      },
+      taskId,
+      options,
+    );
+    try {
+      const projection = await this.graphAdapter.run({
+        definition: graph.definition,
+        inputs: graph.inputs,
+        runId: graphRunId,
+        waitForCompletion: true,
+        authorityMode,
+      });
+      const [projected] = projectGraphNodes(projection, [
+        { key: taskId, nodeId: graph.taskToNode.get(taskId) },
+      ]);
+      if (!projected.success || projection.status !== "succeeded") {
+        const error = new Error(
+          projected.error || "canonical Graph task failed",
+        );
+        error.code = "CC_DESKTOP_GRAPH_EXECUTION_FAILED";
+        error.projection = projection;
+        throw error;
+      }
+      taskInfo.status = TASK_STATUS.COMPLETED;
+      taskInfo.result = projected;
+      taskInfo.graphAuthority = projection;
+      taskInfo.completedAt = Date.now();
+      this.graphRunRegistry.updateProjection(
+        SPECIALIZED_AGENTS_GRAPH_SURFACE,
+        taskId,
+        projection,
+      );
+      this._updateTaskRecord(taskId, {
+        status: TASK_STATUS.COMPLETED,
+        completed_at: taskInfo.completedAt,
+        success: 1,
+        result: JSON.stringify({
+          result: projected,
+          graphAuthority: projection,
+          graphRunId,
+        }),
+      });
+      this.emit("task:completed", { taskId, agentId, result: projected });
+      return {
+        success: true,
+        data: {
+          taskId,
+          agentId,
+          status: TASK_STATUS.COMPLETED,
+          result: projected,
+          graphAuthority: projection,
+        },
+      };
+    } catch (error) {
+      if (error.projection) taskInfo.graphAuthority = error.projection;
+      const definitelyNotStarted = [
+        "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+        "CC_DESKTOP_GRAPH_MODE_LEGACY",
+      ].includes(error.code);
+      taskInfo.status =
+        error.code === "CC_GRAPH_RECONCILIATION_REQUIRED" ||
+        (!definitelyNotStarted && !error.projection)
+          ? "reconciliation_required"
+          : TASK_STATUS.FAILED;
+      taskInfo.error = error.message;
+      taskInfo.completedAt = Date.now();
+      if (definitelyNotStarted && !error.projection) {
+        this.graphRunRegistry.delete(SPECIALIZED_AGENTS_GRAPH_SURFACE, taskId);
+      } else {
+        this.graphRunRegistry.record({
+          surface: SPECIALIZED_AGENTS_GRAPH_SURFACE,
+          entityId: taskId,
+          graphRunId,
+          authorityMode: "canonical",
+          lifecycleStatus: taskInfo.status,
+          metadata: {
+            agentId,
+            templateType,
+            description: taskDescription,
+            assignedAt: taskInfo.assignedAt,
+          },
+          lastProjection: taskInfo.graphAuthority || null,
+        });
+      }
+      this._updateTaskRecord(taskId, {
+        status: taskInfo.status,
+        completed_at: taskInfo.completedAt,
+        success: 0,
+        result: JSON.stringify({
+          error: error.message,
+          code: error.code,
+          graphAuthority: error.projection || null,
+          graphRunId,
+        }),
+      });
+      this.emit("task:failed", { taskId, agentId, error: error.message });
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        reconciliationRequired: taskInfo.status === "reconciliation_required",
+        data: {
+          taskId,
+          agentId,
+          status: taskInfo.status,
+          graphAuthority: taskInfo.graphAuthority || null,
+        },
+      };
+    }
+  }
+
   // ==========================================
   // Task Status and Control
   // ==========================================
@@ -736,6 +1067,11 @@ class AgentCoordinator extends EventEmitter {
           completedAt: activeTask.completedAt || null,
           result: activeTask.result || null,
           error: activeTask.error || null,
+          graphRunId: activeTask.graphRunId || null,
+          graphAuthority: activeTask.graphAuthority || null,
+          authoritySource: activeTask.authoritySource || "legacy_runtime",
+          reconciliationRequired:
+            activeTask.status === "reconciliation_required",
         },
       };
     }
@@ -748,6 +1084,24 @@ class AgentCoordinator extends EventEmitter {
           .get(taskId);
 
         if (record) {
+          const storedResult = record.result ? JSON.parse(record.result) : null;
+          const graphAuthority =
+            storedResult?.graphAuthority ||
+            storedResult?.result?.graphAuthority ||
+            null;
+          const graphRunId =
+            storedResult?.graphRunId ||
+            storedResult?.result?.graphRunId ||
+            graphAuthority?.id ||
+            null;
+          const status =
+            storedResult?.status ||
+            this._taskStatusFromGraph(graphAuthority?.status) ||
+            (record.success === 1
+              ? TASK_STATUS.COMPLETED
+              : record.completed_at
+                ? TASK_STATUS.FAILED
+                : TASK_STATUS.RUNNING);
           return {
             success: true,
             data: {
@@ -758,8 +1112,13 @@ class AgentCoordinator extends EventEmitter {
               startedAt: record.started_at,
               completedAt: record.completed_at,
               success: record.success === 1,
-              result: record.result ? JSON.parse(record.result) : null,
+              status,
+              result: storedResult,
               tokensUsed: record.tokens_used,
+              graphRunId,
+              graphAuthority,
+              authoritySource: graphRunId ? "graph_kernel" : "legacy_runtime",
+              reconciliationRequired: status === "reconciliation_required",
             },
           };
         }
@@ -774,6 +1133,149 @@ class AgentCoordinator extends EventEmitter {
       success: false,
       error: `Task not found: ${taskId}`,
     };
+  }
+
+  _taskStatusFromGraph(status) {
+    if (
+      [
+        TASK_STATUS.COMPLETED,
+        TASK_STATUS.FAILED,
+        TASK_STATUS.CANCELLED,
+      ].includes(status)
+    ) {
+      return status;
+    }
+    if (status === "succeeded") return TASK_STATUS.COMPLETED;
+    if (status === "cancelled") return TASK_STATUS.CANCELLED;
+    if (status === "reconciliation_required") {
+      return "reconciliation_required";
+    }
+    if (["running", "pending", "open"].includes(status)) {
+      return TASK_STATUS.RUNNING;
+    }
+    if (status) return TASK_STATUS.FAILED;
+    return null;
+  }
+
+  _hydrateCanonicalTask(taskId) {
+    const existing = this.activeTasks.get(taskId);
+    if (existing) return existing;
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    if (!binding) return null;
+    const metadata = binding.metadata || {};
+    const task = {
+      id: taskId,
+      agentId: metadata.agentId || "recovered-agent",
+      templateType: metadata.templateType || "unknown",
+      description: metadata.description || "",
+      assignedAt: metadata.assignedAt || binding.createdAt,
+      completedAt: null,
+      status:
+        this._taskStatusFromGraph(binding.lastProjection?.status) ||
+        this._taskStatusFromGraph(binding.lifecycleStatus) ||
+        TASK_STATUS.RUNNING,
+      graphRunId: binding.graphRunId,
+      graphAuthority: binding.lastProjection || null,
+      authorityMode: binding.authorityMode,
+      authoritySource: "graph_kernel",
+      recovered: true,
+    };
+    this.activeTasks.set(taskId, task);
+    this._evictTerminalTasks();
+    return task;
+  }
+
+  _projectCanonicalTask(task, projection) {
+    task.graphAuthority = projection;
+    task.graphRunId = projection.id;
+    task.authoritySource = "graph_kernel";
+    task.status = this._taskStatusFromGraph(projection.status);
+    const terminal = [
+      TASK_STATUS.COMPLETED,
+      TASK_STATUS.FAILED,
+      TASK_STATUS.CANCELLED,
+      "reconciliation_required",
+    ].includes(task.status);
+    if (terminal) task.completedAt = Date.now();
+    if (task.status === TASK_STATUS.COMPLETED) {
+      const accepted = (projection.attempts || []).find(
+        (attempt) => attempt.status === "accepted",
+      );
+      task.result = accepted
+        ? {
+            success: true,
+            graphRunId: projection.id,
+            graphAttemptId: accepted.id,
+            terminalEvidence: accepted.terminalEvidence,
+          }
+        : { success: true, graphRunId: projection.id };
+    }
+    this.graphRunRegistry.updateProjection(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      task.id,
+      projection,
+    );
+    this._updateTaskRecord(task.id, {
+      completed_at: terminal ? task.completedAt : null,
+      success: task.status === TASK_STATUS.COMPLETED ? 1 : terminal ? 0 : null,
+      result: JSON.stringify({
+        status: task.status,
+        result: task.result || null,
+        reconciliationRequired: task.status === "reconciliation_required",
+        graphRunId: projection.id,
+        graphAuthority: projection,
+      }),
+    });
+    return task;
+  }
+
+  async getTaskStatusAuthoritative(taskId, { resume = true } = {}) {
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode !== "canonical") {
+      return this.getTaskStatus(taskId);
+    }
+    const task = this._hydrateCanonicalTask(taskId);
+    if (!task?.graphRunId) return this.getTaskStatus(taskId);
+    try {
+      const projection =
+        resume && RESUMABLE_GRAPH_STATES.has(binding?.lifecycleStatus)
+          ? await this.graphAdapter.resume(task.graphRunId, {
+              waitForCompletion: false,
+              authorityMode,
+            })
+          : await this.graphAdapter.status(task.graphRunId, {
+              authorityMode,
+            });
+      this._projectCanonicalTask(task, projection);
+      return this.getTaskStatus(taskId);
+    } catch (error) {
+      task.status = "reconciliation_required";
+      task.error = error.message;
+      if (error.projection) {
+        this._projectCanonicalTask(task, error.projection);
+      } else if (binding) {
+        this.graphRunRegistry.record({
+          ...binding,
+          lifecycleStatus: "reconciliation_required",
+        });
+      }
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        reconciliationRequired: true,
+        data: this.getTaskStatus(taskId).data,
+      };
+    }
   }
 
   /**
@@ -828,6 +1330,21 @@ class AgentCoordinator extends EventEmitter {
    * @returns {Object} Cancellation result
    */
   cancelTask(taskId, reason = "") {
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode === "canonical") {
+      return this._cancelCanonicalTask(taskId, reason, authorityMode);
+    }
+    assertDesktopLegacyMutationAllowed(
+      "AgentCoordinator.cancelTask",
+      process.env,
+      { authorityMode },
+    );
     const activeTask = this.activeTasks.get(taskId);
 
     if (!activeTask) {
@@ -870,6 +1387,207 @@ class AgentCoordinator extends EventEmitter {
         reason,
       },
     };
+  }
+
+  async _cancelCanonicalTask(taskId, reason = "", authorityMode = "canonical") {
+    const activeTask =
+      this.activeTasks.get(taskId) || this._hydrateCanonicalTask(taskId);
+    if (!activeTask?.graphRunId) {
+      return {
+        success: false,
+        error: `Active Graph task not found: ${taskId}`,
+      };
+    }
+    if (
+      [TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(activeTask.status)
+    ) {
+      return {
+        success: false,
+        error: `Task ${taskId} is already ${activeTask.status}`,
+      };
+    }
+    try {
+      activeTask.status = "cancelling";
+      const projection = await this.graphAdapter.cancel(
+        activeTask.graphRunId,
+        reason || "Desktop user cancelled specialized task",
+        { authorityMode },
+      );
+      activeTask.graphAuthority = projection;
+      activeTask.completedAt = Date.now();
+      const binding = this.graphRunRegistry.get(
+        SPECIALIZED_AGENTS_GRAPH_SURFACE,
+        taskId,
+      );
+      if (binding) {
+        this.graphRunRegistry.updateProjection(
+          SPECIALIZED_AGENTS_GRAPH_SURFACE,
+          taskId,
+          projection,
+        );
+      } else {
+        this.graphRunRegistry.record({
+          surface: SPECIALIZED_AGENTS_GRAPH_SURFACE,
+          entityId: taskId,
+          graphRunId: activeTask.graphRunId,
+          authorityMode: "canonical",
+          lifecycleStatus: projection.status,
+          metadata: {
+            agentId: activeTask.agentId,
+            templateType: activeTask.templateType,
+            description: activeTask.description,
+            assignedAt: activeTask.assignedAt,
+          },
+          lastProjection: projection,
+        });
+      }
+      if (projection.status === "reconciliation_required") {
+        activeTask.status = "reconciliation_required";
+        activeTask.error = "Graph effect outcome requires reconciliation";
+        this._updateTaskRecord(taskId, {
+          status: activeTask.status,
+          completed_at: activeTask.completedAt,
+          success: 0,
+          result: JSON.stringify({
+            reconciliationRequired: true,
+            graphRunId: activeTask.graphRunId,
+            graphAuthority: projection,
+          }),
+        });
+        return {
+          success: false,
+          reconciliationRequired: true,
+          data: {
+            taskId,
+            status: activeTask.status,
+            graphAuthority: projection,
+          },
+        };
+      }
+      if (projection.status !== "cancelled") {
+        activeTask.status = "reconciliation_required";
+        activeTask.error = `Graph cancel settled as ${projection.status}`;
+        this._updateTaskRecord(taskId, {
+          completed_at: activeTask.completedAt,
+          success: 0,
+          result: JSON.stringify({
+            reconciliationRequired: true,
+            graphRunId: activeTask.graphRunId,
+            graphStatus: projection.status,
+            graphAuthority: projection,
+          }),
+        });
+        return {
+          success: false,
+          reconciliationRequired: true,
+          data: {
+            taskId,
+            status: activeTask.status,
+            graphAuthority: projection,
+          },
+        };
+      }
+      activeTask.status = TASK_STATUS.CANCELLED;
+      activeTask.cancelReason = reason;
+      this._updateTaskRecord(taskId, {
+        status: TASK_STATUS.CANCELLED,
+        completed_at: activeTask.completedAt,
+        success: 0,
+        result: JSON.stringify({
+          cancelled: true,
+          reason,
+          graphRunId: activeTask.graphRunId,
+          graphAuthority: projection,
+        }),
+      });
+      this.emit("task:cancelled", { taskId, reason });
+      return {
+        success: true,
+        data: {
+          taskId,
+          status: TASK_STATUS.CANCELLED,
+          reason,
+          graphAuthority: projection,
+        },
+      };
+    } catch (error) {
+      if (error.projection) activeTask.graphAuthority = error.projection;
+      activeTask.status = "reconciliation_required";
+      activeTask.error = error.message;
+      activeTask.completedAt = Date.now();
+      const binding = this.graphRunRegistry.get(
+        SPECIALIZED_AGENTS_GRAPH_SURFACE,
+        taskId,
+      );
+      if (binding) {
+        this.graphRunRegistry.record({
+          ...binding,
+          lifecycleStatus: "reconciliation_required",
+          lastProjection: error.projection || binding.lastProjection,
+        });
+      }
+      this._updateTaskRecord(taskId, {
+        completed_at: activeTask.completedAt,
+        success: 0,
+        result: JSON.stringify({
+          reconciliationRequired: true,
+          graphRunId: activeTask.graphRunId,
+          graphAuthority: error.projection || null,
+          error: error.message,
+          code: error.code,
+        }),
+      });
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        reconciliationRequired: true,
+        data: { taskId, status: activeTask.status },
+      };
+    }
+  }
+
+  async reconcileTask(taskId, reconciliation) {
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const authorityMode =
+      binding?.authorityMode ||
+      this.graphAdapter.mode(`desktop-specialized-task:${taskId}`);
+    if (authorityMode !== "canonical") {
+      throw new Error("Graph reconciliation requires canonical authority");
+    }
+    const task =
+      this.activeTasks.get(taskId) || this._hydrateCanonicalTask(taskId);
+    if (!task?.graphRunId) {
+      return {
+        success: false,
+        error: `Active Graph task not found: ${taskId}`,
+      };
+    }
+    try {
+      const projection = await this.graphAdapter.reconcile(
+        task.graphRunId,
+        reconciliation,
+        { authorityMode },
+      );
+      this._projectCanonicalTask(task, projection);
+      return {
+        success: projection.status !== "reconciliation_required",
+        reconciliationRequired: projection.status === "reconciliation_required",
+        data: this.getTaskStatus(taskId).data,
+      };
+    } catch (error) {
+      if (error.projection) this._projectCanonicalTask(task, error.projection);
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        reconciliationRequired: true,
+        data: this.getTaskStatus(taskId).data,
+      };
+    }
   }
 
   // ==========================================
@@ -1623,6 +2341,7 @@ class AgentCoordinator extends EventEmitter {
           const assignResult = await this.assignTask(agentId, subtask.subtask, {
             templateType: subtask.agentType,
             context,
+            __graphObserved: options.__graphObserved === true,
           });
           result = assignResult;
         } else {
@@ -1820,6 +2539,7 @@ class AgentCoordinator extends EventEmitter {
                 result = await this.assignTask(agentId, subtask.subtask, {
                   templateType: subtask.agentType,
                   context: options.context || {},
+                  __graphObserved: options.__graphObserved === true,
                 });
               } else {
                 result = {
@@ -2076,6 +2796,19 @@ class AgentCoordinator extends EventEmitter {
       this.stats.averageOrchestrationTime = Math.round(
         (this.stats.averageOrchestrationTime * (total - 1) + duration) / total,
       );
+    }
+  }
+
+  _recordShadowDivergence(phase, error, details = {}) {
+    this.shadowDivergences.push({
+      phase,
+      ...details,
+      code: error?.code || "CC_DESKTOP_GRAPH_SHADOW_DIVERGED",
+      error: error?.message || String(error),
+      timestamp: Date.now(),
+    });
+    while (this.shadowDivergences.length > 256) {
+      this.shadowDivergences.shift();
     }
   }
 
