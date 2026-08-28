@@ -113,6 +113,12 @@ const FEDERATED_TRANSPORT_CONTRACT_TESTS = [
   "src/main/federated/__tests__/federated-learning-manager.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
+const SOCIAL_COLLAB_CONTRACT_TESTS = [
+  "src/main/social/__tests__/collab-sync-boundaries.test.js",
+  "src/main/social/__tests__/collab-engine.test.js",
+  "src/main/social/__tests__/collab-awareness.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+];
 const DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST =
   "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
@@ -145,6 +151,7 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
       CONTENT_INTEGRATION_WIRING_TEST,
       ...COLLAB_RUNTIME_CONTRACT_TESTS,
       ...FEDERATED_TRANSPORT_CONTRACT_TESTS,
+      ...SOCIAL_COLLAB_CONTRACT_TESTS,
     ],
   ],
   [
@@ -196,6 +203,15 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     "src/main/ipc/phases/phase-31-ai-models.js",
     FEDERATED_TRANSPORT_CONTRACT_TESTS,
   ],
+  ...[
+    "src/main/social/social-collab-boundaries.js",
+    "src/main/social/social-collab-transport.js",
+    "src/main/social/collab-sync.js",
+    "src/main/social/collab-social-ipc.js",
+    "src/main/bootstrap/social-initializer.js",
+    "src/main/bootstrap/index.js",
+    "src/main/ipc/phases/phase-3-4-social.js",
+  ].map((sourcePath) => [sourcePath, SOCIAL_COLLAB_CONTRACT_TESTS]),
   ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   [
     "src/main/ipc/phases/phase-33-40-collab-ops.js",

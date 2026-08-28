@@ -338,6 +338,32 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const socialCollabContracts = [
+    "src/main/social/__tests__/collab-sync-boundaries.test.js",
+    "src/main/social/__tests__/collab-engine.test.js",
+    "src/main/social/__tests__/collab-awareness.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const socialCollabSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/social/social-collab-boundaries.js",
+    "desktop-app-vue/src/main/social/social-collab-transport.js",
+    "desktop-app-vue/src/main/social/collab-sync.js",
+    "desktop-app-vue/src/main/social/collab-social-ipc.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-3-4-social.js",
+  ];
+  for (const source of socialCollabSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of socialCollabContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",

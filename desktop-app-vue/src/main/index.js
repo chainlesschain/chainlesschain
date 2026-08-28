@@ -534,6 +534,7 @@ class ChainlessChainApp {
     this.contactManager = instances.contactManager;
     this.friendManager = instances.friendManager;
     this.postManager = instances.postManager;
+    this.collabSync = instances.collabSync;
     this.organizationManager = instances.organizationManager;
     this.collaborationManager = instances.collaborationManager;
     this.syncEngine = instances.syncEngine;
@@ -2950,6 +2951,15 @@ class ChainlessChainApp {
         logger.error("[Main] Federated learning cleanup error:", error);
       }
       this.federatedManager = null;
+    }
+    if (this.collabSync) {
+      try {
+        await this.collabSync.destroy?.();
+        logger.info("[Main] Social collaboration cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Social collaboration cleanup error:", error);
+      }
+      this.collabSync = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).
