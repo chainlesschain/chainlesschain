@@ -140,6 +140,7 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
     // 模拟 YjsCollabManager
     yjsCollabManager = {
+      applyUpdate: vi.fn(),
       getDocument: vi.fn((docId) => ({
         on: vi.fn(),
         off: vi.fn(),
@@ -624,7 +625,11 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(yjsCollabManager.getDocument).toHaveBeenCalledWith(payload.docId);
+      expect(yjsCollabManager.applyUpdate).toHaveBeenCalledWith(
+        payload.docId,
+        new Uint8Array(payload.update),
+        "network",
+      );
     });
 
     it("should handle concurrent updates", async () => {
@@ -1372,7 +1377,11 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(yjsCollabManager.getDocument).toHaveBeenCalledWith(docId);
+      expect(yjsCollabManager.applyUpdate).toHaveBeenCalledWith(
+        docId,
+        updateData,
+        "network",
+      );
     });
 
     it("should receive Yjs updates", async () => {
@@ -1393,8 +1402,11 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Verify that getDocument was called with the correct docId
-      expect(yjsCollabManager.getDocument).toHaveBeenCalledWith(docId);
+      expect(yjsCollabManager.applyUpdate).toHaveBeenCalledWith(
+        docId,
+        updateData,
+        "network",
+      );
     });
 
     it("should merge CRDT states", async () => {
@@ -1423,8 +1435,18 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 30));
 
-      // getDocument 应该被调用多次
-      expect(yjsCollabManager.getDocument).toHaveBeenCalledTimes(2);
+      expect(yjsCollabManager.applyUpdate).toHaveBeenNthCalledWith(
+        1,
+        docId,
+        update1,
+        "network",
+      );
+      expect(yjsCollabManager.applyUpdate).toHaveBeenNthCalledWith(
+        2,
+        docId,
+        update2,
+        "network",
+      );
     });
 
     it("should handle Yjs awareness updates", async () => {
