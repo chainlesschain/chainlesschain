@@ -33,6 +33,15 @@ import { createEnvironmentContext } from "../../../src/main/ai-engine/cowork/ski
 import { withTestFilesystemHandler } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-filesystem.js";
 import { createTestProcessContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
 
+function loadFilesystemHandler(skillId) {
+  return withTestFilesystemHandler(
+    require(
+      `../../../src/main/ai-engine/cowork/skills/builtin/${skillId}/handler.js`,
+    ),
+    skillId,
+  );
+}
+
 function createGitProcessContext(skillId, projectRoot, options = {}) {
   return {
     projectRoot,
@@ -81,7 +90,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/env-doctor/handler.js");
+      handler = loadFilesystemHandler("env-doctor");
     });
 
     afterEach(() => {
@@ -161,7 +170,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/repo-map/handler.js");
+      handler = loadFilesystemHandler("repo-map");
     });
 
     it("should export init and execute functions", () => {
@@ -229,7 +238,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/context-loader/handler.js");
+      handler = loadFilesystemHandler("context-loader");
     });
 
     it("should export init and execute functions", () => {
@@ -286,7 +295,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/lint-and-fix/handler.js");
+      handler = loadFilesystemHandler("lint-and-fix");
     });
 
     it("should export init and execute functions", () => {
@@ -329,7 +338,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/test-and-fix/handler.js");
+      handler = loadFilesystemHandler("test-and-fix");
     });
 
     it("should export init and execute functions", () => {
@@ -362,7 +371,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/refactor/handler.js");
+      handler = loadFilesystemHandler("refactor");
     });
 
     it("should export init and execute functions", () => {
@@ -399,7 +408,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/doc-generator/handler.js");
+      handler = loadFilesystemHandler("doc-generator");
     });
 
     it("should export init and execute functions", () => {
@@ -438,7 +447,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/api-tester/handler.js");
+      handler = loadFilesystemHandler("api-tester");
     });
 
     it("should export init and execute functions", () => {
@@ -478,7 +487,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/onboard-project/handler.js");
+      handler = loadFilesystemHandler("onboard-project");
     });
 
     it("should export init and execute functions", () => {
@@ -515,7 +524,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/dependency-analyzer/handler.js");
+      handler = loadFilesystemHandler("dependency-analyzer");
     });
 
     it("should export init and execute functions", () => {
@@ -598,7 +607,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/db-migration/handler.js");
+      handler = loadFilesystemHandler("db-migration");
     });
 
     it("should export init and execute functions", () => {
@@ -634,7 +643,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/vulnerability-scanner/handler.js");
+      handler = loadFilesystemHandler("vulnerability-scanner");
     });
 
     it("should export init and execute functions", () => {
@@ -643,13 +652,25 @@ describe("Skill Handlers", () => {
     });
 
     it("should perform license audit", async () => {
-      const projectRoot = path.resolve(__dirname, "../../..");
-      const result = await handler.execute(
-        { input: "--licenses" },
-        { workspacePath: projectRoot },
+      const projectRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "vulnerability-scanner-test-"),
       );
-      expect(result.success).toBe(true);
-      expect(result.result.licenses).toBeDefined();
+      const dependencyRoot = path.join(projectRoot, "node_modules", "example");
+      fs.mkdirSync(dependencyRoot, { recursive: true });
+      fs.writeFileSync(
+        path.join(dependencyRoot, "package.json"),
+        JSON.stringify({ name: "example", version: "1.0.0", license: "MIT" }),
+      );
+      try {
+        const result = await handler.execute(
+          { input: "--licenses" },
+          { workspacePath: projectRoot },
+        );
+        expect(result.success).toBe(true);
+        expect(result.result.licenses).toBeDefined();
+      } finally {
+        fs.rmSync(projectRoot, { recursive: true, force: true });
+      }
     });
   });
 
@@ -660,7 +681,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/release-manager/handler.js");
+      handler = loadFilesystemHandler("release-manager");
     });
 
     it("should export init and execute functions", () => {
@@ -719,7 +740,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/security-audit/handler.js");
+      handler = loadFilesystemHandler("security-audit");
     });
 
     it("should export init and execute functions", () => {
@@ -746,7 +767,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/devops-automation/handler.js");
+      handler = loadFilesystemHandler("devops-automation");
     });
 
     it("should export init and execute functions", () => {
@@ -792,7 +813,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/code-review/handler.js");
+      handler = loadFilesystemHandler("code-review");
     });
 
     it("should export init and execute functions", () => {
@@ -858,7 +879,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/explain-code/handler.js");
+      handler = loadFilesystemHandler("explain-code");
     });
 
     it("should export init and execute functions", () => {
@@ -892,7 +913,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/data-analysis/handler.js");
+      handler = loadFilesystemHandler("data-analysis");
     });
 
     it("should export init and execute functions", () => {
@@ -908,7 +929,7 @@ describe("Skill Handlers", () => {
 
     it("should handle non-existent file", async () => {
       const result = await handler.execute(
-        { action: "/nonexistent/data.csv" },
+        { action: path.join(os.tmpdir(), "nonexistent", "data.csv") },
         {},
       );
       expect(result.success).toBe(false);
@@ -923,7 +944,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/test-generator/handler.js");
+      handler = loadFilesystemHandler("test-generator");
     });
 
     it("should export init and execute functions", () => {
@@ -958,7 +979,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/performance-optimizer/handler.js");
+      handler = loadFilesystemHandler("performance-optimizer");
     });
 
     it("should export init and execute functions", () => {
@@ -1057,7 +1078,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/bugbot/handler.js");
+      handler = loadFilesystemHandler("bugbot");
     });
 
     it("should export init and execute functions", () => {
@@ -1188,7 +1209,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/impact-analyzer/handler.js");
+      handler = loadFilesystemHandler("impact-analyzer");
     });
 
     it("should export init and execute functions", () => {
@@ -1314,7 +1335,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/codebase-qa/handler.js");
+      handler = loadFilesystemHandler("codebase-qa");
     });
 
     it("should export init and execute functions", () => {
@@ -1425,7 +1446,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/code-translator/handler.js");
+      handler = loadFilesystemHandler("code-translator");
     });
 
     it("should export init and execute functions", () => {
@@ -1638,7 +1659,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/doc-converter/handler.js");
+      handler = loadFilesystemHandler("doc-converter");
     });
 
     it("should export init and execute functions", () => {
@@ -1721,7 +1742,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/doc-comparator/handler.js");
+      handler = loadFilesystemHandler("doc-comparator");
     });
 
     it("should export init and execute functions", () => {
@@ -1865,7 +1886,7 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/media-metadata/handler.js");
+      handler = loadFilesystemHandler("media-metadata");
     });
 
     it("should export init and execute functions", () => {
@@ -1881,7 +1902,9 @@ describe("Skill Handlers", () => {
 
     it("should handle non-existent file", async () => {
       const result = await handler.execute(
-        { input: "--extract /nonexistent/photo.jpg" },
+        {
+          input: `--extract ${path.join(os.tmpdir(), "nonexistent", "photo.jpg")}`,
+        },
         {},
       );
       expect(result.success).toBe(false);
