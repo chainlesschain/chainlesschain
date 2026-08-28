@@ -37,6 +37,18 @@ const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
 ];
 const CLI_CONTRACT_TEST_MAPPINGS = new Map([
   [
+    "packages/cli/__tests__/integration/skill-creator-handler.test.js",
+    ["__tests__/integration/skill-creator-handler.test.js"],
+  ],
+  [
+    "packages/cli/__tests__/unit/vscode-ext-chat-approval-dot.test.js",
+    ["__tests__/unit/vscode-ext-chat-approval-dot.test.js"],
+  ],
+  [
+    "packages/cli/src/data/changelog.json",
+    ["__tests__/unit/changelog-artifact-parity.test.js"],
+  ],
+  [
     "packages/cli/src/lib/graph-kernel/compiler.js",
     ["__tests__/unit/graph-kernel-compiler.test.js"],
   ],

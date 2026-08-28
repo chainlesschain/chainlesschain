@@ -897,6 +897,32 @@ test("selector maps graph compiler changes to the CLI compiler contract", () => 
   ]);
 });
 
+test("selector maps integrated CLI authority and changelog changes to exact contracts", () => {
+  const changedFiles = [
+    "packages/cli/__tests__/integration/skill-creator-handler.test.js",
+    "packages/cli/__tests__/unit/vscode-ext-chat-approval-dot.test.js",
+    "packages/cli/src/data/changelog.json",
+  ];
+  const expectedTests = [
+    "__tests__/integration/skill-creator-handler.test.js",
+    "__tests__/unit/changelog-artifact-parity.test.js",
+    "__tests__/unit/vscode-ext-chat-approval-dot.test.js",
+  ];
+  const selection = selector.createSelection(changedFiles);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, expectedTests);
+  assert.deepEqual(
+    selection.mappings.map((mapping) => mapping.tests),
+    [
+      ["__tests__/integration/skill-creator-handler.test.js"],
+      ["__tests__/unit/vscode-ext-chat-approval-dot.test.js"],
+      ["__tests__/unit/changelog-artifact-parity.test.js"],
+    ],
+  );
+});
+
 test("selector maps team authority contract updates to exact CLI tests", () => {
   const changedTests = [
     "packages/cli/__tests__/unit/team-command-broker.test.js",
