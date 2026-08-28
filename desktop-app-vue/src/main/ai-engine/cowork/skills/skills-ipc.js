@@ -25,6 +25,9 @@ const {
 const {
   createBundledSkillProcessAuthorityFactory,
 } = require("./bundled-skill-process-authority");
+const {
+  createBundledSkillNetworkAuthorityFactory,
+} = require("./bundled-skill-network-authority");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -92,6 +95,9 @@ function registerSkillsIPC(options = {}) {
     createBundledSkillProcessAuthorityFactory({
       getWorkspacePath: () => loader.options.workspacePath,
     }),
+  );
+  registry.setBundledSkillNetworkAuthorityFactory(
+    createBundledSkillNetworkAuthorityFactory(),
   );
 
   // Hooks 集成
@@ -758,6 +764,7 @@ function unregisterSkillsIPC() {
   registry.setBundledSkillFilesystemAuthorityFactory(null);
   registry.setBundledSkillEnvironmentAuthorityFactory(null);
   registry.setBundledSkillProcessAuthorityFactory(null);
+  registry.setBundledSkillNetworkAuthorityFactory(null);
 
   logger.info("[SkillsIPC] Unregistered all IPC handlers");
 }

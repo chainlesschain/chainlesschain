@@ -32,6 +32,7 @@ class SkillRegistry extends EventEmitter {
     this._bundledSkillFilesystemAuthorityFactory = null;
     this._bundledSkillEnvironmentAuthorityFactory = null;
     this._bundledSkillProcessAuthorityFactory = null;
+    this._bundledSkillNetworkAuthorityFactory = null;
     if (Object.hasOwn(options, "executionAuthorizer")) {
       this.setExecutionAuthorizer(options.executionAuthorizer);
     }
@@ -48,6 +49,11 @@ class SkillRegistry extends EventEmitter {
     if (Object.hasOwn(options, "bundledSkillProcessAuthorityFactory")) {
       this.setBundledSkillProcessAuthorityFactory(
         options.bundledSkillProcessAuthorityFactory,
+      );
+    }
+    if (Object.hasOwn(options, "bundledSkillNetworkAuthorityFactory")) {
+      this.setBundledSkillNetworkAuthorityFactory(
+        options.bundledSkillNetworkAuthorityFactory,
       );
     }
 
@@ -410,6 +416,15 @@ class SkillRegistry extends EventEmitter {
     this._bundledSkillProcessAuthorityFactory = factory;
   }
 
+  setBundledSkillNetworkAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill network authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillNetworkAuthorityFactory = factory;
+  }
+
   async _authorizeExecution(skill, task, context) {
     let decision = null;
     const policyAuthorized = typeof this._executionAuthorizer === "function";
@@ -461,6 +476,11 @@ class SkillRegistry extends EventEmitter {
       executionSecurity?.packageOwned === true &&
       executionSecurity?.bundledCapabilityMigrated === true &&
       catalogEntry?.executionCapabilities.includes("host:process");
+    const needsNetworkAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:network");
     let executionContext =
       context && typeof context === "object" ? context : Object.create(null);
 
@@ -550,6 +570,31 @@ class SkillRegistry extends EventEmitter {
         ...(authority.cliEntrypoint
           ? { cliEntrypoint: authority.cliEntrypoint }
           : {}),
+      };
+    }
+
+    if (
+      needsNetworkAuthority &&
+      typeof this._bundledSkillNetworkAuthorityFactory === "function"
+    ) {
+      const authority = await this._bundledSkillNetworkAuthorityFactory({
+        skillId: skill.skillId,
+        task,
+        context: executionContext,
+        executionDecision,
+      });
+      if (!authority || typeof authority !== "object") {
+        const error = new Error(
+          `Network authority factory returned no policy for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_NETWORK_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      executionContext = {
+        ...executionContext,
+        networkBroker: authority.networkBroker || null,
+        localServiceBroker: authority.localServiceBroker || null,
+        networkDiagnosticsBroker: authority.networkDiagnosticsBroker || null,
       };
     }
 
