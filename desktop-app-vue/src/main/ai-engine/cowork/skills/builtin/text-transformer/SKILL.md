@@ -8,6 +8,7 @@ user-invocable: true
 tags: [text, encode, decode, base64, url, hash, transform, case, convert]
 capabilities:
   [base64, url-encode, html-encode, hash, case-convert, string-transform]
+execution-capabilities: [data:result, data:task, runtime:crypto]
 tools:
   - text_encode
   - text_decode

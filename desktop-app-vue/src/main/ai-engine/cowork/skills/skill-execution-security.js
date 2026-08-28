@@ -11,6 +11,9 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const {
+  BUNDLED_SKILL_CAPABILITY_CATALOG,
+} = require("./bundled-skill-capability-catalog.js");
 
 const LOCK_FILENAME = ".skill-lock.json";
 const LOCK_VERSION = 1;
@@ -153,6 +156,92 @@ function canonicalJson(value) {
 
 function sha256Canonical(value) {
   return crypto.createHash("sha256").update(canonicalJson(value)).digest("hex");
+}
+
+function sameCapabilities(actual, expected) {
+  return (
+    actual.length === expected.length &&
+    actual.every((capability, index) => capability === expected[index])
+  );
+}
+
+function inspectBundledCapabilityAudit({
+  definition,
+  bundledRelativePath,
+  handler,
+  handlerFile,
+  capabilityResult,
+}) {
+  const catalogEntry =
+    BUNDLED_SKILL_CAPABILITY_CATALOG[bundledRelativePath] || null;
+  const rawCapabilities = definition.executionCapabilities;
+  const hasCapabilityDeclaration = Array.isArray(rawCapabilities)
+    ? rawCapabilities.length > 0
+    : rawCapabilities != null;
+
+  if (!catalogEntry) {
+    if (hasCapabilityDeclaration) {
+      return Object.freeze({
+        migrated: false,
+        valid: false,
+        reason: `bundled Skill path "${bundledRelativePath}" declares execution capabilities without a reviewed catalog entry`,
+      });
+    }
+    return Object.freeze({
+      migrated: false,
+      valid: true,
+      reason: null,
+    });
+  }
+
+  if (String(definition.name || "") !== catalogEntry.skillId) {
+    return Object.freeze({
+      migrated: true,
+      valid: false,
+      reason: `reviewed bundled Skill path "${bundledRelativePath}" must declare name "${catalogEntry.skillId}"`,
+    });
+  }
+  if (!capabilityResult.valid) {
+    return Object.freeze({
+      migrated: true,
+      valid: false,
+      reason: `reviewed bundled Skill has an invalid capability manifest: ${capabilityResult.reason}`,
+    });
+  }
+  if (
+    !sameCapabilities(
+      capabilityResult.capabilities,
+      catalogEntry.executionCapabilities,
+    )
+  ) {
+    return Object.freeze({
+      migrated: true,
+      valid: false,
+      reason: `reviewed bundled Skill capability set does not match the catalog`,
+    });
+  }
+  if (handler.relativePath !== catalogEntry.handlerRelativePath) {
+    return Object.freeze({
+      migrated: true,
+      valid: false,
+      reason: `reviewed bundled Skill handler path does not match the catalog`,
+    });
+  }
+
+  if (handlerFile.sha256 !== catalogEntry.sourceSha256) {
+    return Object.freeze({
+      migrated: true,
+      valid: false,
+      reason: `reviewed bundled Skill handler source does not match the audited digest`,
+      sourceSha256: handlerFile.sha256,
+    });
+  }
+  return Object.freeze({
+    migrated: true,
+    valid: true,
+    reason: null,
+    sourceSha256: handlerFile.sha256,
+  });
 }
 
 function normalizeTrustedFingerprints(value) {
@@ -439,11 +528,31 @@ function inspectSkillExecution(definition, options = {}) {
   );
 
   let packageOwned = false;
+  let bundledCapabilityAudit = null;
   if (definition.source === "bundled" && options.trustedBundledRoot) {
     const bundledRoot = canonicalRealPath(options.trustedBundledRoot);
     packageOwned = isContained(bundledRoot, preflight.skillRealPath, {
       allowRoot: false,
     });
+    if (packageOwned) {
+      const bundledRelativePath = path
+        .relative(bundledRoot, preflight.skillRealPath)
+        .replace(/\\/g, "/");
+      bundledCapabilityAudit = inspectBundledCapabilityAudit({
+        definition,
+        bundledRelativePath,
+        handler,
+        handlerFile,
+        capabilityResult,
+      });
+      if (!bundledCapabilityAudit.valid) {
+        throw securityError(
+          "CC_BUNDLED_SKILL_CAPABILITY_AUDIT_FAILED",
+          `Bundled skill "${definition.name || "unknown"}" failed its capability audit: ${bundledCapabilityAudit.reason}`,
+          { bundledRelativePath },
+        );
+      }
+    }
   }
 
   return Object.freeze({
@@ -451,6 +560,9 @@ function inspectSkillExecution(definition, options = {}) {
     executable:
       packageOwned || (lock.signed && lock.trusted && capabilityResult.valid),
     packageOwned,
+    bundledCapabilityMigrated: bundledCapabilityAudit?.migrated === true,
+    bundledCapabilityAuditDigest:
+      bundledCapabilityAudit?.sourceSha256 || null,
     skillRootRealPath: preflight.skillRealPath,
     handlerRealPath: handler.handlerRealPath,
     handlerRelativePath: handler.relativePath,

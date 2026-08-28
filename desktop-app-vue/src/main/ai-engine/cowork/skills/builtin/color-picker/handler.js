@@ -5,8 +5,6 @@
  * Actions: --convert, --palette, --contrast, --lighten, --darken, --mix, --random, --named
  */
 
-const { logger } = require("../../../../../utils/logger.js");
-
 // ── CSS Named Colors (140 standard colors) ──────────────────────────
 
 const CSS_NAMED_COLORS = {
@@ -481,23 +479,15 @@ function formatColorLine(color) {
 // ── Handler ─────────────────────────────────────────────────────────
 
 module.exports = {
-  async init(skill) {
-    logger.info("[color-picker] init: " + (skill?.name || "color-picker"));
-  },
+  async init() {},
 
-  async execute(task, context, _skill) {
+  async execute(task, _context, _skill) {
     const input = (
       task?.params?.input ||
       task?.input ||
       task?.action ||
       ""
     ).trim();
-    const _projectRoot =
-      context?.projectRoot ||
-      context?.workspaceRoot ||
-      context?.workspacePath ||
-      process.cwd();
-
     const isConvert = /--convert\s/i.test(input);
     const isPalette = /--palette\s/i.test(input);
     const isContrast = /--contrast\s/i.test(input);
@@ -1008,11 +998,10 @@ module.exports = {
       // Default: treat as --convert
       return await module.exports.execute(
         { input: "--convert " + input },
-        context,
+        _context,
         _skill,
       );
     } catch (err) {
-      logger.error("[color-picker] Error:", err);
       return {
         success: false,
         error: err.message,

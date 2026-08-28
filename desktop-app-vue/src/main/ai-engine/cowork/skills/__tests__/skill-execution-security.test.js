@@ -3,14 +3,29 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { MarkdownSkill } from "../markdown-skill.js";
+import { SkillMdParser } from "../skill-md-parser.js";
 import {
   LOCK_FILENAME,
   buildSkillSignatureLock,
   inspectSkillExecution,
   preflightSkillPath,
 } from "../skill-execution-security.js";
+
+const TEST_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
+const BUILTIN_SKILL_ROOT = path.resolve(TEST_DIRECTORY, "..", "builtin");
+const AUDITED_BUNDLED_SKILLS = [
+  {
+    skillId: "color-picker",
+    executionCapabilities: ["data:result", "data:task", "runtime:random"],
+  },
+  {
+    skillId: "text-transformer",
+    executionCapabilities: ["data:result", "data:task", "runtime:crypto"],
+  },
+];
 
 function writeSkill(root, overrides = {}) {
   const skillDir = path.join(root, overrides.dirName || "test-skill");
@@ -270,8 +285,101 @@ describe("skill execution supply-chain boundary", () => {
     ).toBeUndefined();
   });
 
-  it("permits package-owned bundled handlers but detects post-discovery drift", async () => {
+  it.each(AUDITED_BUNDLED_SKILLS)(
+    "enforces the shipped $skillId capability audit",
+    async ({ skillId, executionCapabilities }) => {
+      const sourcePath = path.join(BUILTIN_SKILL_ROOT, skillId, "SKILL.md");
+      const parser = new SkillMdParser({ strictValidation: false });
+      const definition = await parser.parseFile(sourcePath);
+      definition.source = "bundled";
+
+      const inspection = inspectSkillExecution(definition, {
+        allowedRoot: BUILTIN_SKILL_ROOT,
+        trustedBundledRoot: BUILTIN_SKILL_ROOT,
+      });
+
+      expect(inspection).toMatchObject({
+        packageOwned: true,
+        bundledCapabilityMigrated: true,
+        capabilityManifestValid: true,
+        executionCapabilities,
+      });
+      expect(inspection.bundledCapabilityAuditDigest).toMatch(/^[a-f0-9]{64}$/);
+    },
+  );
+
+  it("rejects capability broadening or handler drift for an audited bundled Skill", () => {
+    const auditedHandler = fs.readFileSync(
+      path.join(BUILTIN_SKILL_ROOT, "text-transformer", "handler.js"),
+      "utf8",
+    );
+    const policy = {
+      allowedRoot: tempDir,
+      trustedBundledRoot: tempDir,
+      trustedSkillKeySha256: [],
+    };
+    const broadened = writeSkill(tempDir, {
+      name: "text-transformer",
+      dirName: "text-transformer",
+      source: "bundled",
+      executionCapabilities: [
+        "data:result",
+        "data:task",
+        "runtime:crypto",
+        "filesystem:read",
+      ],
+      handler: auditedHandler,
+    });
+
+    expect(() =>
+      inspectSkillExecution(broadened.definition, policy),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_BUNDLED_SKILL_CAPABILITY_AUDIT_FAILED",
+      }),
+    );
+
+    const driftRoot = path.join(tempDir, "drift-root");
+    const drifted = writeSkill(driftRoot, {
+      name: "text-transformer",
+      dirName: "text-transformer",
+      source: "bundled",
+      executionCapabilities: ["data:result", "data:task", "runtime:crypto"],
+      handler: `${auditedHandler}\n// unreviewed source drift\n`,
+    });
+    expect(() =>
+      inspectSkillExecution(drifted.definition, {
+        ...policy,
+        allowedRoot: driftRoot,
+        trustedBundledRoot: driftRoot,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_BUNDLED_SKILL_CAPABILITY_AUDIT_FAILED",
+      }),
+    );
+  });
+
+  it("rejects an execution capability declaration without a bundled audit entry", () => {
     const fixture = writeSkill(tempDir, { source: "bundled" });
+
+    expect(() =>
+      inspectSkillExecution(fixture.definition, {
+        allowedRoot: tempDir,
+        trustedBundledRoot: tempDir,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_BUNDLED_SKILL_CAPABILITY_AUDIT_FAILED",
+      }),
+    );
+  });
+
+  it("permits package-owned bundled handlers but detects post-discovery drift", async () => {
+    const fixture = writeSkill(tempDir, {
+      source: "bundled",
+      executionCapabilities: [],
+    });
     const policy = {
       allowedRoot: tempDir,
       trustedBundledRoot: tempDir,
@@ -293,6 +401,7 @@ describe("skill execution supply-chain boundary", () => {
       name: "drift-skill",
       dirName: "drift-skill",
       source: "bundled",
+      executionCapabilities: [],
     });
     driftFixture.definition._skillSecurityPolicy = policy;
     driftFixture.definition._executionSecurity = inspectSkillExecution(

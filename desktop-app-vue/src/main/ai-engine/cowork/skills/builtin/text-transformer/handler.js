@@ -7,8 +7,7 @@
  *          --camel, --snake, --kebab, --reverse, --count, --trim, --slug
  */
 
-const crypto = require("crypto");
-const { logger } = require("../../../../../utils/logger.js");
+const crypto = require("node:crypto");
 
 // ── Argument parsing ────────────────────────────────────────────────
 
@@ -272,25 +271,15 @@ function detectAction(input) {
 // ── Handler ─────────────────────────────────────────────────────────
 
 module.exports = {
-  async init(skill) {
-    logger.info(
-      "[text-transformer] init: " + (skill?.name || "text-transformer"),
-    );
-  },
+  async init() {},
 
-  async execute(task, context, _skill) {
+  async execute(task, _context, _skill) {
     const input = (
       task?.params?.input ||
       task?.input ||
       task?.action ||
       ""
     ).trim();
-    const _projectRoot =
-      context?.projectRoot ||
-      context?.workspaceRoot ||
-      context?.workspacePath ||
-      process.cwd();
-
     if (!input) {
       return {
         success: true,
@@ -354,7 +343,6 @@ module.exports = {
 
       return ACTIONS[action](text);
     } catch (err) {
-      logger.error("[text-transformer] Error:", err);
       return {
         success: false,
         result: { error: err.message },

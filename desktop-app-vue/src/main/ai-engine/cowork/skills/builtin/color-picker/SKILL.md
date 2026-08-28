@@ -17,6 +17,7 @@ capabilities:
     color_random,
     color_named,
   ]
+execution-capabilities: [data:result, data:task, runtime:random]
 tools:
   - color_convert
   - color_palette

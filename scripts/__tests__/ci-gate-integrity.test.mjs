@@ -314,6 +314,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   ];
   for (const skillSupplyChainSource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-execution-security.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/markdown-skill.js",
@@ -328,6 +329,28 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
       assert.ok(
         sourceSelection.selectedTests.includes(relatedTest),
         `${skillSupplyChainSource} must select ${relatedTest}`,
+      );
+    }
+  }
+
+  for (const bundledSkillCapabilitySource of [
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/color-picker/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/color-picker/handler.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/text-transformer/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/text-transformer/handler.js",
+  ]) {
+    const sourceSelection = selector.createSelection([
+      bundledSkillCapabilitySource,
+    ]);
+    for (const relatedTest of [
+      "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
+      "tests/unit/ai-engine/skill-handlers.test.js",
+      "tests/unit/ai-engine/color-picker-handler.test.js",
+    ]) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${bundledSkillCapabilitySource} must select ${relatedTest}`,
       );
     }
   }

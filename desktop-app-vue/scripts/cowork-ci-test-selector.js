@@ -108,6 +108,11 @@ const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/skill-sync-security.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js",
 ];
+const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
+  ...SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  "tests/unit/ai-engine/skill-handlers.test.js",
+  "tests/unit/ai-engine/color-picker-handler.test.js",
+];
 
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
   "src/main/collaboration/__tests__/collab-boundaries.test.js",
@@ -171,6 +176,26 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   [
     "src/main/ai-engine/cowork/skills/skill-execution-security.js",
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/color-picker/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/color-picker/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/text-transformer/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/text-transformer/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [
     "src/main/ai-engine/cowork/skills/external-skill-executor.js",
