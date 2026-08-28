@@ -8,12 +8,19 @@
 const path = require("path");
 const { app } = require("electron");
 const { logger } = require("../utils/logger.js");
+const { applySocialStartupPolicy } = require("./social-startup-policy");
 
 /**
  * 注册社交模块初始化器
  * @param {import('./initializer-factory').InitializerFactory} factory - 初始化器工厂
  */
-function registerSocialInitializers(factory) {
+function registerSocialInitializers(initializerFactory) {
+  const factory = {
+    register(config) {
+      initializerFactory.register(applySocialStartupPolicy(config));
+    },
+  };
+
   // ========================================
   // DID 管理器
   // ========================================

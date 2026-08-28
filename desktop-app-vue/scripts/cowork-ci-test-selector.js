@@ -208,6 +208,10 @@ const MESH_SOCIAL_CONTRACT_TESTS = [
   "src/main/social/__tests__/mesh-social-boundaries.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
+const SOCIAL_STARTUP_POLICY_TESTS = [
+  "src/main/bootstrap/__tests__/social-startup-policy.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+];
 const DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST =
   "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
@@ -248,7 +252,7 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
       ...FEDERATED_TRANSPORT_CONTRACT_TESTS,
       ...SOCIAL_COLLAB_CONTRACT_TESTS,
       ...GOSSIP_CONTRACT_TESTS,
-      ...MESH_SOCIAL_CONTRACT_TESTS,
+      ...SOCIAL_STARTUP_POLICY_TESTS,
     ],
   ],
   [
@@ -476,8 +480,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
       ...SOCIAL_COLLAB_CONTRACT_TESTS,
       ...GOSSIP_CONTRACT_TESTS,
       ...MESH_SOCIAL_CONTRACT_TESTS,
+      ...SOCIAL_STARTUP_POLICY_TESTS,
     ],
   ]),
+  ["src/main/bootstrap/social-startup-policy.js", SOCIAL_STARTUP_POLICY_TESTS],
   ...[
     "src/main/social/gossip-boundaries.js",
     "src/main/social/gossip-protocol.js",
@@ -489,7 +495,11 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ].map((sourcePath) => [sourcePath, MESH_SOCIAL_CONTRACT_TESTS]),
   [
     "src/main/ipc/phases/phase-3-4-social.js",
-    [...SOCIAL_COLLAB_CONTRACT_TESTS, ...MESH_SOCIAL_CONTRACT_TESTS],
+    [
+      ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...MESH_SOCIAL_CONTRACT_TESTS,
+      ...SOCIAL_STARTUP_POLICY_TESTS,
+    ],
   ],
   ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   [

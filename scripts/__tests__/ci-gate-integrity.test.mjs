@@ -548,7 +548,6 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     "src/main/ipc/__tests__/phase-modules.test.js",
   ];
   const meshSocialSources = [
-    "desktop-app-vue/src/main/index.js",
     "desktop-app-vue/src/main/social/mesh-social-boundaries.js",
     "desktop-app-vue/src/main/social/mesh-social.js",
     "desktop-app-vue/src/main/social/future-ipc.js",
@@ -559,6 +558,27 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   for (const source of meshSocialSources) {
     const sourceSelection = selector.createSelection([source]);
     for (const contract of meshSocialContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const socialStartupPolicyContracts = [
+    "src/main/bootstrap/__tests__/social-startup-policy.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const socialStartupPolicySources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-startup-policy.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-3-4-social.js",
+  ];
+  for (const source of socialStartupPolicySources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of socialStartupPolicyContracts) {
       assert.ok(
         sourceSelection.selectedTests.includes(contract),
         `${source} must select ${contract}`,

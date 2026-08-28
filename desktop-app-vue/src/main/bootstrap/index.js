@@ -14,6 +14,7 @@ const {
   registerSocialInitializers,
   setupP2PPostInit,
 } = require("./social-initializer");
+const { SOCIAL_STARTUP_PHASE_MODULES } = require("./social-startup-policy");
 const { registerAIInitializers } = require("./ai-initializer");
 const { registerTradeInitializers } = require("./trade-initializer");
 const {
@@ -72,69 +73,12 @@ const INIT_PHASES = [
   {
     name: "阶段 6: 社交网络",
     progress: 65,
-    // social-initializer.js registers 30+ factory items; the original 5
-    // listed below pre-date the community/MTC/photo/call/collab waves.
-    // Items registered but missing from this list never get instantiated
-    // (runPhased only runs phase.modules, no transitive resolution),
-    // which is why autoArchiveScheduler / communityManager / etc. were
-    // silently null at runtime. runParallel awaits depPromise so
-    // intra-phase dependency order is fine.
-    modules: [
-      "didManager",
-      "p2pManager",
-      "contactManager",
-      "friendManager",
-      "postManager",
-      // Community + governance + gossip
-      "communityManager",
-      "channelManager",
-      "governanceEngine",
-      "gossipProtocol",
-      "contentModerator",
-      // MTC envelope / archive / federation / cross-fed
-      "crossFedTrust",
-      "governanceMultiSig",
-      "channelEnvelopeArchiver",
-      "archiveProviderFactory",
-      "autoArchiveScheduler",
-      "channelEventBatcher",
-      "mtcFederationManager",
-      "channelEnvelopeDistribution",
-      "mtcAutoBridge",
-      "gossipReceiver",
-      // Voice / video calls
-      "callManager",
-      "callSignaling",
-      "mediaEngine",
-      "sfuRelay",
-      // Shared albums + photo pipeline
-      "sharedAlbumManager",
-      "photoEncryptor",
-      "photoSync",
-      "exifStripper",
-      // Realtime collaboration (CRDT)
-      "collabEngine",
-      "collabSync",
-      "collabAwareness",
-      "docVersionManager",
-      // Time machine + memory generator
-      "timeMachine",
-      "memoryGenerator",
-    ],
+    modules: SOCIAL_STARTUP_PHASE_MODULES[6],
   },
   {
     name: "阶段 7: 企业功能",
     progress: 75,
-    modules: [
-      "organizationManager",
-      "collaborationManager",
-      "syncEngine",
-      "vcManager",
-      "vcTemplateManager",
-      // deepLinkHandler depends on organizationManager (same phase OK,
-      // runParallel awaits depPromise).
-      "deepLinkHandler",
-    ],
+    modules: SOCIAL_STARTUP_PHASE_MODULES[7],
   },
   {
     name: "阶段 8: AI 引擎",
@@ -159,7 +103,7 @@ const INIT_PHASES = [
       "aiScheduler",
       "chatSkillBridge",
       "interactiveTaskPlanner",
-      "remoteGateway",
+      ...SOCIAL_STARTUP_PHASE_MODULES[9],
     ],
   },
   {

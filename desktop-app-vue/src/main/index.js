@@ -538,7 +538,6 @@ class ChainlessChainApp {
     this.collabSync = instances.collabSync;
     this.collabAwareness = instances.collabAwareness;
     this.gossipProtocol = instances.gossipProtocol;
-    this.meshSocial = instances.meshSocial;
     this.organizationManager = instances.organizationManager;
     this.collaborationManager = instances.collaborationManager;
     this.syncEngine = instances.syncEngine;
@@ -2994,15 +2993,6 @@ class ChainlessChainApp {
         logger.error("[Main] Gossip protocol cleanup error:", error);
       }
       this.gossipProtocol = null;
-    }
-    if (this.meshSocial) {
-      try {
-        await this.meshSocial.destroy?.();
-        logger.info("[Main] Mesh social cleanup completed");
-      } catch (error) {
-        logger.error("[Main] Mesh social cleanup error:", error);
-      }
-      this.meshSocial = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).

@@ -1,7 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -14,6 +11,9 @@ const {
   MeshSocialBoundaryError,
   createMeshSocialBoundaries,
 } = require("../mesh-social-boundaries");
+const {
+  getSocialStartupDisposition,
+} = require("../../bootstrap/social-startup-policy");
 
 const managers = [];
 
@@ -153,14 +153,7 @@ describe("mesh social boundaries", () => {
     });
   });
 
-  it("owns the startup instance without exposing the simulated transport over IPC", () => {
-    const testDirectory = path.dirname(fileURLToPath(import.meta.url));
-    const mainSource = readFileSync(
-      path.resolve(testDirectory, "..", "..", "index.js"),
-      "utf8",
-    );
-    expect(mainSource).toContain("this.meshSocial = instances.meshSocial");
-    expect(mainSource).not.toContain("meshSocial: this.meshSocial");
-    expect(mainSource).toContain("await this.meshSocial.destroy?.()");
+  it("keeps the simulated transport dormant until a real adapter owns it", () => {
+    expect(getSocialStartupDisposition("meshSocial")).toBe("dormant");
   });
 });
