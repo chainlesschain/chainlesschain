@@ -295,6 +295,31 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const graphFixtureMappings = new Map([
+    [
+      "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
+      "src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js",
+    ],
+    ...["main.cjs", "preload.cjs", "renderer.html", "package.json"].map(
+      (fixtureName) => [
+        `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/${fixtureName}`,
+        "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
+      ],
+    ),
+    [
+      "desktop-app-vue/scripts/graph-packaged-electron-journey.mjs",
+      "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
+    ],
+  ]);
+  for (const [fixturePath, contractTest] of graphFixtureMappings) {
+    const fixtureSelection = selector.createSelection([fixturePath]);
+    assert.equal(fixtureSelection.mode, "targeted");
+    assert.ok(
+      fixtureSelection.selectedTests.includes(contractTest),
+      `${fixturePath} must select ${contractTest}`,
+    );
+  }
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });

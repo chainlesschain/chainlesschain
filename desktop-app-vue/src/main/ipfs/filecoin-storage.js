@@ -233,7 +233,7 @@ class FilecoinStorage extends EventEmitter {
     deal.renewal_count = (deal.renewal_count || 0) + 1;
 
     const additionalCost =
-      (deal.size_bytes || 1024) * 0.000001 * (additionalEpochs / (518400 || 1));
+      (deal.size_bytes || 1024) * 0.000001 * (additionalEpochs / 518400);
     deal.price_fil += additionalCost;
 
     if (this.database && this.database.db) {
