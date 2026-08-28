@@ -2,10 +2,12 @@
  * Free Model Manager Skill Handler
  */
 const { logger } = require("../../../../../utils/logger.js");
-const http = require("http");
-const https = require("https");
-
-const _deps = { http, https };
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillLocalServiceBroker,
+} = require("../../bundled-skill-local-service-broker.js");
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
 const HF_API = "https://huggingface.co/api";
@@ -135,7 +137,6 @@ const MODEL_CATALOG = [
 ];
 
 module.exports = {
-  _deps,
   async init(skill) {
     logger.info("[FreeModelManager] Initialized");
   },
@@ -147,15 +148,15 @@ module.exports = {
     try {
       switch (parsed.action) {
         case "list-local":
-          return await handleListLocal();
+          return await handleListLocal(context);
         case "pull":
-          return await handlePull(parsed.target);
+          return await handlePull(parsed.target, context);
         case "search":
-          return await handleSearch(parsed.query, parsed.options);
+          return await handleSearch(parsed.query, parsed.options, context);
         case "info":
-          return await handleInfo(parsed.target);
+          return await handleInfo(parsed.target, context);
         case "remove":
-          return await handleRemove(parsed.target);
+          return await handleRemove(parsed.target, context);
         default:
           return {
             success: false,
@@ -190,10 +191,10 @@ function parseInput(input) {
   };
 }
 
-async function handleListLocal() {
+async function handleListLocal(context) {
   let models;
   try {
-    const data = await ollamaRequest("GET", "/api/tags");
+    const data = await ollamaRequest(context, "GET", "/api/tags");
     models = data.models || [];
   } catch (err) {
     return {
@@ -227,7 +228,7 @@ async function handleListLocal() {
   };
 }
 
-async function handlePull(modelName) {
+async function handlePull(modelName, context) {
   if (!modelName) {
     return {
       success: false,
@@ -237,7 +238,7 @@ async function handlePull(modelName) {
 
   // Verify Ollama is accessible
   try {
-    await ollamaRequest("GET", "/api/tags");
+    await ollamaRequest(context, "GET", "/api/tags");
   } catch (err) {
     return {
       success: false,
@@ -248,6 +249,7 @@ async function handlePull(modelName) {
   // Start the pull (non-streaming to get final status)
   try {
     const data = await ollamaRequest(
+      context,
       "POST",
       "/api/pull",
       { name: modelName, stream: false },
@@ -268,7 +270,7 @@ async function handlePull(modelName) {
   }
 }
 
-async function handleSearch(query, options) {
+async function handleSearch(query, options, context) {
   if (!query) {
     return {
       success: false,
@@ -301,6 +303,7 @@ async function handleSearch(query, options) {
   if (options.source === "huggingface" || options.source === "hf") {
     try {
       const hfResults = await fetchJSON(
+        context,
         `${HF_API}/models?search=${encodeURIComponent(query)}&sort=likes&direction=-1&limit=15&filter=text-generation`,
       );
       if (Array.isArray(hfResults)) {
@@ -333,7 +336,7 @@ async function handleSearch(query, options) {
   };
 }
 
-async function handleInfo(modelName) {
+async function handleInfo(modelName, context) {
   if (!modelName) {
     return {
       success: false,
@@ -343,7 +346,9 @@ async function handleInfo(modelName) {
 
   // Try Ollama first (local model)
   try {
-    const data = await ollamaRequest("POST", "/api/show", { name: modelName });
+    const data = await ollamaRequest(context, "POST", "/api/show", {
+      name: modelName,
+    });
 
     const info = {
       name: modelName,
@@ -382,7 +387,7 @@ async function handleInfo(modelName) {
   }
 }
 
-async function handleRemove(modelName) {
+async function handleRemove(modelName, context) {
   if (!modelName) {
     return {
       success: false,
@@ -391,7 +396,9 @@ async function handleRemove(modelName) {
   }
 
   try {
-    await ollamaRequest("DELETE", "/api/delete", { name: modelName });
+    await ollamaRequest(context, "DELETE", "/api/delete", {
+      name: modelName,
+    });
     return {
       success: true,
       action: "remove",
@@ -406,88 +413,65 @@ async function handleRemove(modelName) {
   }
 }
 
-function ollamaRequest(method, path, body = null, timeout = 30000) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(OLLAMA_HOST);
-    const transport = parsed.protocol === "https:" ? _deps.https : _deps.http;
-
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
-      path,
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "ChainlessChain/1.2.0",
-      },
-    };
-
-    const req = transport.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          // Ollama streaming responses are newline-delimited JSON; take the last complete object
-          if (data.includes("\n")) {
-            const lines = data.trim().split("\n").filter(Boolean);
-            const lastLine = lines[lines.length - 1];
-            resolve(JSON.parse(lastLine));
-          } else {
-            resolve(JSON.parse(data));
-          }
-        } catch (_parseErr) {
-          logger.warn(
-            "[FreeModelManager] Failed to parse JSON response from %s",
-            path,
-          );
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({ status: "success", raw: data });
-          } else {
-            reject(
-              new Error(
-                `Ollama returned status ${res.statusCode}: ${data.substring(0, 200)}`,
-              ),
-            );
-          }
-        }
-      });
-    });
-
-    req.on("error", (err) =>
-      reject(new Error(`Ollama connection failed: ${err.message}`)),
+async function ollamaRequest(
+  context,
+  method,
+  path,
+  body = null,
+  timeout = 30000,
+) {
+  const broker = requireBundledSkillLocalServiceBroker(
+    context,
+    "free-model-manager",
+    "ollama",
+  );
+  let response;
+  try {
+    response = await broker.request({ path, method, body, timeout });
+  } catch (error) {
+    throw new Error(`Ollama connection failed: ${error.message}`);
+  }
+  const data = response.body;
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `Ollama returned status ${response.status}: ${data.substring(0, 200)}`,
     );
-    req.setTimeout(timeout, () => {
-      req.destroy();
-      reject(new Error("Ollama request timed out"));
-    });
-
-    if (body) {
-      req.write(JSON.stringify(body));
+  }
+  try {
+    if (data.includes("\n")) {
+      const lines = data.trim().split("\n").filter(Boolean);
+      return JSON.parse(lines[lines.length - 1]);
     }
-    req.end();
-  });
+    return JSON.parse(data);
+  } catch (_parseErr) {
+    logger.warn(
+      "[FreeModelManager] Failed to parse JSON response from %s",
+      path,
+    );
+    return { status: "success", raw: data };
+  }
 }
 
-function fetchJSON(url) {
-  return new Promise((resolve, reject) => {
-    _deps.https
-      .get(
-        url,
-        { headers: { "User-Agent": "ChainlessChain/1.2.0" } },
-        (res) => {
-          let data = "";
-          res.on("data", (chunk) => (data += chunk));
-          res.on("end", () => {
-            try {
-              resolve(JSON.parse(data));
-            } catch (_err) {
-              reject(new Error(`Failed to parse response from ${url}`));
-            }
-          });
-        },
-      )
-      .on("error", (err) => reject(err));
+async function fetchJSON(context, url) {
+  const broker = requireBundledSkillRuntimeNetworkBroker(
+    context,
+    "free-model-manager",
+  );
+  const response = await broker.request({
+    url,
+    method: "GET",
+    headers: { "User-Agent": "ChainlessChain/1.2.0" },
+    timeout: 30_000,
+    maxResponseBytes: 4 * 1024 * 1024,
   });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Hugging Face returned status ${response.status}`);
+  }
+  try {
+    return JSON.parse(response.body);
+  } catch (_err) {
+    throw new Error(`Failed to parse response from ${url}`);
+  }
 }
 
 function formatBytes(bytes) {

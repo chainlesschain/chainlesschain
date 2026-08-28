@@ -6,7 +6,11 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
 
 // ── Audio Info ──────────────────────────────────────
 
@@ -111,7 +115,50 @@ function detectProviders() {
 
 // ── Transcription ───────────────────────────────────
 
-async function transcribeWithAPI(filePath, language) {
+function createWhisperMultipartBody(filePath, language) {
+  const boundary = `----ChainlessChain${crypto.randomBytes(16).toString("hex")}`;
+  const chunks = [];
+  const appendField = (name, value) => {
+    chunks.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+        "utf8",
+      ),
+    );
+  };
+  const fileName = path.basename(filePath).replace(/["\r\n]/g, "_");
+  const contentTypes = {
+    ".flac": "audio/flac",
+    ".m4a": "audio/mp4",
+    ".mp3": "audio/mpeg",
+    ".mp4": "audio/mp4",
+    ".mpeg": "audio/mpeg",
+    ".mpga": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".wav": "audio/wav",
+    ".webm": "audio/webm",
+  };
+  chunks.push(
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName}"\r\nContent-Type: ${contentTypes[path.extname(fileName).toLowerCase()] || "application/octet-stream"}\r\n\r\n`,
+      "utf8",
+    ),
+    fs.readFileSync(filePath),
+    Buffer.from("\r\n", "utf8"),
+  );
+  appendField("model", "whisper-1");
+  if (language) {
+    appendField("language", language);
+  }
+  appendField("response_format", "verbose_json");
+  chunks.push(Buffer.from(`--${boundary}--\r\n`, "utf8"));
+  return {
+    body: Buffer.concat(chunks),
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}
+
+async function transcribeWithAPI(filePath, language, context) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return {
@@ -120,31 +167,33 @@ async function transcribeWithAPI(filePath, language) {
   }
 
   try {
-    const formData = new FormData();
-    const fileBuffer = fs.readFileSync(filePath);
-    const blob = new Blob([fileBuffer]);
-    formData.append("file", blob, path.basename(filePath));
-    formData.append("model", "whisper-1");
-    if (language) {
-      formData.append("language", language);
+    if (fs.statSync(filePath).size > 25 * 1024 * 1024) {
+      return { error: "Whisper API accepts audio files up to 25MB." };
     }
-    formData.append("response_format", "verbose_json");
-
-    const response = await fetch(
-      "https://api.openai.com/v1/audio/transcriptions",
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: formData,
-      },
+    const multipart = createWhisperMultipartBody(filePath, language);
+    const broker = requireBundledSkillRuntimeNetworkBroker(
+      context,
+      "audio-transcriber",
     );
+    const response = await broker.request({
+      url: "https://api.openai.com/v1/audio/transcriptions",
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": multipart.contentType,
+      },
+      body: multipart.body,
+      timeout: 120_000,
+      maxResponseBytes: 2 * 1024 * 1024,
+    });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return { error: `Whisper API error (${response.status}): ${errText}` };
+    if (response.status < 200 || response.status >= 300) {
+      return {
+        error: `Whisper API error (${response.status}): ${response.body}`,
+      };
     }
 
-    const data = await response.json();
+    const data = JSON.parse(response.body);
     return {
       text: data.text,
       language: data.language,
@@ -302,7 +351,7 @@ module.exports = {
 
       let result;
       if (available.find((p) => p.name === "whisper-api")) {
-        result = await transcribeWithAPI(filePath, language);
+        result = await transcribeWithAPI(filePath, language, context);
       } else if (available.find((p) => p.name === "local-whisper")) {
         result = await transcribeLocal(filePath, language);
       } else {

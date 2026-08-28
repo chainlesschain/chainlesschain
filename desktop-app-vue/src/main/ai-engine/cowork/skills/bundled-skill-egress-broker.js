@@ -31,6 +31,16 @@ const RUNTIME_BROKER_SKILL_IDS = Object.freeze([
 const runtimeBrokerMetadata = new WeakMap();
 
 const BUNDLED_SKILL_EGRESS_POLICIES = Object.freeze({
+  "audio-transcriber": Object.freeze({
+    allowedDomains: Object.freeze(["api.openai.com"]),
+    maxRequestBytes: 26 * 1024 * 1024,
+    maxResponseBytes: 2 * 1024 * 1024,
+  }),
+  "free-model-manager": Object.freeze({
+    allowedDomains: Object.freeze(["huggingface.co"]),
+    maxRequestBytes: 256 * 1024,
+    maxResponseBytes: 4 * 1024 * 1024,
+  }),
   "github-manager": Object.freeze({
     allowedDomains: Object.freeze(["api.github.com"]),
   }),
@@ -59,6 +69,11 @@ const BUNDLED_SKILL_EGRESS_POLICIES = Object.freeze({
   }),
   "youtube-summarizer": Object.freeze({
     allowedDomains: Object.freeze(["youtube.com", "*.youtube.com"]),
+  }),
+  "image-generator": Object.freeze({
+    allowedDomains: Object.freeze(["api.openai.com"]),
+    maxRequestBytes: 2 * 1024 * 1024,
+    maxResponseBytes: 32 * 1024 * 1024,
   }),
 });
 
@@ -335,13 +350,23 @@ function emitAudit(auditSink, base, outcome, reason = null) {
 function createPolicyHttpsClient(normalizedSkillId, policy, deps = {}) {
   const https = deps.https || nodeHttps;
   const auditSink = deps.auditSink || defaultAuditSink;
+  const policyMaxRequestBytes = positiveInteger(
+    policy.maxRequestBytes,
+    DEFAULT_MAX_REQUEST_BYTES,
+  );
+  const policyMaxResponseBytes = positiveInteger(
+    policy.maxResponseBytes,
+    DEFAULT_MAX_RESPONSE_BYTES,
+  );
   const maxRequestBytes = positiveInteger(
     deps.maxRequestBytes,
-    DEFAULT_MAX_REQUEST_BYTES,
+    policyMaxRequestBytes,
+    policyMaxRequestBytes,
   );
   const maxResponseBytes = positiveInteger(
     deps.maxResponseBytes,
-    DEFAULT_MAX_RESPONSE_BYTES,
+    policyMaxResponseBytes,
+    policyMaxResponseBytes,
   );
   const timeoutMs = positiveInteger(
     deps.timeoutMs,
@@ -517,9 +542,7 @@ function headersForRedirect(headers, fromUrl, toUrl) {
   return redirected;
 }
 
-function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
-  const policy = normalizeRuntimePolicy(options);
-
+function createHighLevelNetworkBroker(policy, deps = {}) {
   function requestOnce({
     url,
     method,
@@ -614,7 +637,11 @@ function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
       );
     }
     let body = serializeRequestBody(requestOptions.body);
-    if (body != null && chunkBytes(body) > DEFAULT_MAX_REQUEST_BYTES) {
+    const maxRequestBytes = positiveInteger(
+      policy.maxRequestBytes,
+      DEFAULT_MAX_REQUEST_BYTES,
+    );
+    if (body != null && chunkBytes(body) > maxRequestBytes) {
       throw brokerError(
         "CC_BUNDLED_SKILL_EGRESS_REQUEST_TOO_LARGE",
         "Runtime network request exceeds the approved byte limit",
@@ -623,8 +650,8 @@ function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
     let headers = normalizeRuntimeHeaders(requestOptions.headers || {}, body);
     const maxResponseBytes = positiveInteger(
       requestOptions.maxResponseBytes,
-      DEFAULT_MAX_RESPONSE_BYTES,
-      DEFAULT_MAX_RESPONSE_BYTES,
+      positiveInteger(policy.maxResponseBytes, DEFAULT_MAX_RESPONSE_BYTES),
+      positiveInteger(policy.maxResponseBytes, DEFAULT_MAX_RESPONSE_BYTES),
     );
     const timeoutMs = positiveInteger(
       requestOptions.timeout,
@@ -689,6 +716,20 @@ function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
   return broker;
 }
 
+function createBundledSkillFixedNetworkBroker(skillId, deps = {}) {
+  const normalizedSkillId = String(skillId || "").trim();
+  const fixedPolicy = normalizePolicy(normalizedSkillId);
+  const policy = Object.freeze({
+    skillId: normalizedSkillId,
+    ...fixedPolicy,
+  });
+  return createHighLevelNetworkBroker(policy, deps);
+}
+
+function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
+  return createHighLevelNetworkBroker(normalizeRuntimePolicy(options), deps);
+}
+
 function requireBundledSkillRuntimeNetworkBroker(context, skillId) {
   const broker = context?.networkBroker;
   const metadata =
@@ -712,6 +753,7 @@ function requireBundledSkillRuntimeNetworkBroker(context, skillId) {
 
 module.exports = {
   BUNDLED_SKILL_EGRESS_POLICIES,
+  createBundledSkillFixedNetworkBroker,
   createBundledSkillHttpsClient,
   createBundledSkillRuntimeNetworkBroker,
   requireBundledSkillRuntimeNetworkBroker,

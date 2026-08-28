@@ -80,7 +80,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "audio-transcriber": Object.freeze([
-    "2dbe7399231e8db89c52f871b527f29a4d3eac500843a7b568defeb924821dc1",
+    "ff92d409a900b1ecfa6bd05562b43b1d467d2359ac5376220f2d5cb26fa7fa32",
     Object.freeze([
       "data:result",
       "data:task",
@@ -88,9 +88,11 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
       "filesystem:read",
       "host:logger",
       "host:media",
+      "host:network",
       "network:http",
       "process:cwd",
       "process:execute",
+      "runtime:crypto",
     ]),
   ]),
   "auto-context": Object.freeze([
@@ -566,12 +568,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "free-model-manager": Object.freeze([
-    "7e296c92ec9878dfe642424f6c8e96de4bcb3dbdf2f1f8a9384749f9ebf9547b",
+    "710ba24e9811e14bb364ca3fe45fd8d8144598de76d71da2d5265e3f18e8217d",
     Object.freeze([
       "data:result",
       "data:task",
       "environment:read",
       "host:logger",
+      "host:network",
       "network:http",
     ]),
   ]),
@@ -674,7 +677,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "image-generator": Object.freeze([
-    "768c53d9e72f3cf57127a926c314024a67c15ad949916a07360289ea2652004a",
+    "cec0582ba226b57a85f12a357051f7164bc435ae4d9ab2f942a82649c520c2ab",
     Object.freeze([
       "data:result",
       "data:task",
@@ -683,6 +686,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
       "filesystem:write",
       "host:logger",
       "host:media",
+      "host:network",
       "network:http",
       "process:cwd",
     ]),

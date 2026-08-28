@@ -1,45 +1,39 @@
 /**
- * Unit tests for free-model-manager skill handler (v1.2.0)
- * Uses _deps injection for http/https mocking
+ * Unit tests for free-model-manager Skill handler (v1.2.0).
+ * Uses branded fixed-public and loopback-only service brokers.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 const handler = require("../builtin/free-model-manager/handler.js");
+const {
+  createBundledSkillFixedNetworkBroker,
+} = require("../bundled-skill-egress-broker.js");
+const {
+  createBundledSkillLocalServiceBroker,
+} = require("../bundled-skill-local-service-broker.js");
 
-function createMockTransport(statusCode, body) {
+function createMockTransport(statusCode, body, error = null) {
   return {
-    request: vi.fn((opts, cb) => {
-      const res = new EventEmitter();
-      res.statusCode = statusCode;
-      process.nextTick(() => {
-        res.emit(
-          "data",
-          typeof body === "string" ? body : JSON.stringify(body),
-        );
-        res.emit("end");
-      });
-      if (cb) {
-        cb(res);
-      }
+    request: vi.fn((_options, callback) => {
       const req = new EventEmitter();
       req.end = vi.fn();
-      req.write = vi.fn();
       req.destroy = vi.fn();
       req.setTimeout = vi.fn();
-      return req;
-    }),
-    get: vi.fn((url, opts, cb) => {
-      if (typeof opts === "function") {
-        cb = opts;
-        opts = {};
+      if (error) {
+        process.nextTick(() => req.emit("error", error));
+        return req;
       }
       const res = new EventEmitter();
       res.statusCode = statusCode;
+      res.statusMessage = statusCode === 200 ? "OK" : "Error";
+      res.headers = { "content-type": "application/json" };
+      res.destroy = vi.fn();
+      callback(res);
       process.nextTick(() => {
         res.emit(
           "data",
@@ -47,71 +41,95 @@ function createMockTransport(statusCode, body) {
         );
         res.emit("end");
       });
-      if (cb) {
-        cb(res);
-      }
-      const req = new EventEmitter();
-      req.on = vi.fn().mockReturnThis();
       return req;
     }),
+  };
+}
+
+function createLocalContext(body, error = null) {
+  const http = createMockTransport(200, body, error);
+  return {
+    http,
+    context: {
+      localServiceBroker: createBundledSkillLocalServiceBroker(
+        {
+          skillId: "free-model-manager",
+          serviceId: "ollama",
+          baseUrl: "http://localhost:11434/",
+          authorityId: "test:ollama",
+        },
+        { http, auditSink: vi.fn() },
+      ),
+    },
+  };
+}
+
+function createPublicContext(body) {
+  const https = createMockTransport(200, body);
+  return {
+    https,
+    context: {
+      networkBroker: createBundledSkillFixedNetworkBroker(
+        "free-model-manager",
+        { https, auditSink: vi.fn() },
+      ),
+    },
   };
 }
 
 describe("free-model-manager handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    if (handler._deps) {
-      const mock = createMockTransport(200, { models: [] });
-      handler._deps.http = mock;
-      handler._deps.https = mock;
-    }
   });
 
   describe("execute() - list-local", () => {
     it("should list local Ollama models", async () => {
-      if (handler._deps) {
-        handler._deps.http = createMockTransport(200, {
-          models: [
-            {
-              name: "llama3:8b",
-              size: 4700000000,
-              modified_at: "2026-01-01",
-              digest: "abc123def456",
-              details: {
-                family: "llama",
-                parameter_size: "8B",
-                quantization_level: "Q4_0",
-              },
+      const { context } = createLocalContext({
+        models: [
+          {
+            name: "llama3:8b",
+            size: 4700000000,
+            modified_at: "2026-01-01",
+            digest: "abc123def456",
+            details: {
+              family: "llama",
+              parameter_size: "8B",
+              quantization_level: "Q4_0",
             },
-          ],
-        });
-      }
-      const result = await handler.execute({ input: "list-local" }, {}, {});
+          },
+        ],
+      });
+      const result = await handler.execute(
+        { input: "list-local" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-local");
-      expect(result.result.models.length).toBeGreaterThan(0);
       expect(result.result.models[0].name).toBe("llama3:8b");
     });
 
     it("should handle Ollama connection failure", async () => {
-      if (handler._deps) {
-        handler._deps.http = {
-          request: vi.fn((opts, cb) => {
-            const req = new EventEmitter();
-            req.end = vi.fn();
-            req.write = vi.fn();
-            req.destroy = vi.fn();
-            req.setTimeout = vi.fn();
-            process.nextTick(() =>
-              req.emit("error", new Error("ECONNREFUSED")),
-            );
-            return req;
-          }),
-        };
-      }
-      const result = await handler.execute({ input: "list-local" }, {}, {});
+      const { context } = createLocalContext(null, new Error("ECONNREFUSED"));
+      const result = await handler.execute(
+        { input: "list-local" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Cannot connect to Ollama");
+    });
+
+    it("should reject an unbranded local broker", async () => {
+      const request = vi.fn();
+      const result = await handler.execute(
+        { input: "list-local" },
+        { localServiceBroker: { request } },
+        {},
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Cannot connect to Ollama");
+      expect(request).not.toHaveBeenCalled();
     });
   });
 
@@ -120,12 +138,9 @@ describe("free-model-manager handler", () => {
       const result = await handler.execute({ input: "search code" }, {}, {});
       expect(result.success).toBe(true);
       expect(result.action).toBe("search");
-      expect(result.result.results.length).toBeGreaterThan(0);
-      // Should find code-related models in catalog
-      const codeModels = result.result.results.filter(
-        (m) => m.category === "code",
-      );
-      expect(codeModels.length).toBeGreaterThan(0);
+      expect(
+        result.result.results.some((model) => model.category === "code"),
+      ).toBe(true);
     });
 
     it("should return error for empty query", async () => {
@@ -133,21 +148,37 @@ describe("free-model-manager handler", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should search by model name", async () => {
-      const result = await handler.execute({ input: "search llama" }, {}, {});
+    it("should search Hugging Face through the fixed public broker", async () => {
+      const { context, https } = createPublicContext([
+        { modelId: "org/model", likes: 4, downloads: 10 },
+      ]);
+      const result = await handler.execute(
+        { input: "search code --source huggingface" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
-      expect(result.result.results.some((m) => m.name.includes("llama"))).toBe(
-        true,
+      expect(
+        result.result.results.some(
+          (model) =>
+            model.source === "huggingface" && model.name === "org/model",
+        ),
+      ).toBe(true);
+      expect(https.request).toHaveBeenCalledWith(
+        expect.objectContaining({ hostname: "huggingface.co", port: 443 }),
+        expect.any(Function),
       );
     });
   });
 
   describe("execute() - pull", () => {
     it("should pull a model", async () => {
-      if (handler._deps) {
-        handler._deps.http = createMockTransport(200, { status: "success" });
-      }
-      const result = await handler.execute({ input: "pull llama3:8b" }, {}, {});
+      const { context } = createLocalContext({ status: "success" });
+      const result = await handler.execute(
+        { input: "pull llama3:8b" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("pull");
       expect(result.result.model).toBe("llama3:8b");
@@ -161,16 +192,18 @@ describe("free-model-manager handler", () => {
 
   describe("execute() - info", () => {
     it("should get model info from Ollama", async () => {
-      if (handler._deps) {
-        handler._deps.http = createMockTransport(200, {
-          modelfile: "FROM llama3",
-          parameters: "num_ctx 4096",
-          template: "{{ .Prompt }}",
-          details: { family: "llama", parameter_size: "8B" },
-          license: "MIT",
-        });
-      }
-      const result = await handler.execute({ input: "info llama3:8b" }, {}, {});
+      const { context } = createLocalContext({
+        modelfile: "FROM llama3",
+        parameters: "num_ctx 4096",
+        template: "{{ .Prompt }}",
+        details: { family: "llama", parameter_size: "8B" },
+        license: "MIT",
+      });
+      const result = await handler.execute(
+        { input: "info llama3:8b" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("info");
       expect(result.result.source).toBe("ollama-local");
@@ -184,12 +217,10 @@ describe("free-model-manager handler", () => {
 
   describe("execute() - remove", () => {
     it("should remove a model", async () => {
-      if (handler._deps) {
-        handler._deps.http = createMockTransport(200, { status: "success" });
-      }
+      const { context } = createLocalContext({ status: "success" });
       const result = await handler.execute(
         { input: "remove llama3:8b" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -203,11 +234,9 @@ describe("free-model-manager handler", () => {
     });
   });
 
-  describe("execute() - unknown action", () => {
-    it("should return error for unknown action", async () => {
-      const result = await handler.execute({ input: "update llama3" }, {}, {});
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Unknown action");
-    });
+  it("should return error for unknown action", async () => {
+    const result = await handler.execute({ input: "update llama3" }, {}, {});
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unknown action");
   });
 });

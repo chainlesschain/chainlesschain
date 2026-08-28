@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const require = createRequire(import.meta.url);
 const {
   BUNDLED_SKILL_EGRESS_POLICIES,
+  createBundledSkillFixedNetworkBroker,
   createBundledSkillHttpsClient,
   createBundledSkillRuntimeNetworkBroker,
   requireBundledSkillRuntimeNetworkBroker,
@@ -18,8 +19,11 @@ const SKILLS_DIRECTORY = path.resolve(
   "..",
 );
 const BROKERED_SKILL_IDS = Object.freeze([
+  "audio-transcriber",
+  "free-model-manager",
   "github-manager",
   "google-workspace",
+  "image-generator",
   "news-monitor",
   "notion",
   "tavily-search",
@@ -81,6 +85,7 @@ describe("bundled Skill egress broker", () => {
         /require\(["'](?:node:)?https?["']\)/,
       );
       expect(source, skillId).not.toMatch(/require\(["']axios["']\)/);
+      expect(source, skillId).not.toMatch(/\bfetch\s*\(/);
       if (RUNTIME_BROKERED_SKILL_IDS.includes(skillId)) {
         expect(source, skillId).toContain(
           "requireBundledSkillRuntimeNetworkBroker",
@@ -184,6 +189,26 @@ describe("bundled Skill egress broker", () => {
         code: "CC_BUNDLED_SKILL_NETWORK_AUTHORITY_MISMATCH",
       }),
     );
+  });
+
+  it("brands a high-level fixed-policy broker without accepting new domains", async () => {
+    const broker = createBundledSkillFixedNetworkBroker("image-generator", {
+      https: harness.https,
+      auditSink: vi.fn(),
+    });
+    expect(
+      requireBundledSkillRuntimeNetworkBroker(
+        { networkBroker: broker },
+        "image-generator",
+      ),
+    ).toBe(broker);
+
+    await expect(
+      broker.request({ url: "https://example.com/image", method: "POST" }),
+    ).rejects.toMatchObject({
+      code: "CC_BUNDLED_SKILL_EGRESS_DOMAIN_DENIED",
+    });
+    expect(harness.https.request).not.toHaveBeenCalled();
   });
 
   it("serves a bounded runtime request and audits its decision ID", async () => {

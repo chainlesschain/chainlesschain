@@ -9,6 +9,12 @@
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillLocalServiceBroker,
+} = require("../../bundled-skill-local-service-broker.js");
 
 // ── Size Presets ────────────────────────────────────────────────────
 
@@ -105,11 +111,16 @@ function getDefaultProvider() {
 
 // ── Generate via Stable Diffusion ───────────────────────────────────
 
-async function generateSD(prompt, size, endpoint) {
-  const axios = require("axios");
-  const response = await axios.post(
-    endpoint + "/sdapi/v1/txt2img",
-    {
+async function generateSD(prompt, size, context) {
+  const broker = requireBundledSkillLocalServiceBroker(
+    context,
+    "image-generator",
+    "stable-diffusion",
+  );
+  const response = await broker.request({
+    path: "/sdapi/v1/txt2img",
+    method: "POST",
+    body: {
       prompt: prompt,
       width: size.width,
       height: size.height,
@@ -117,23 +128,24 @@ async function generateSD(prompt, size, endpoint) {
       cfg_scale: 7,
       sampler_name: "Euler a",
     },
-    { timeout: 120000 },
-  );
+    timeout: 120000,
+    maxResponseBytes: 32 * 1024 * 1024,
+  });
 
-  if (
-    response.data &&
-    response.data.images &&
-    response.data.images.length > 0
-  ) {
-    return Buffer.from(response.data.images[0], "base64");
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Stable Diffusion returned status ${response.status}`);
+  }
+  const data = JSON.parse(response.body);
+
+  if (data && data.images && data.images.length > 0) {
+    return Buffer.from(data.images[0], "base64");
   }
   throw new Error("No image returned from Stable Diffusion");
 }
 
 // ── Generate via DALL-E ─────────────────────────────────────────────
 
-async function generateDALLE(prompt, size, apiKey) {
-  const axios = require("axios");
+async function generateDALLE(prompt, size, apiKey, context) {
   const sizeStr = size.width + "x" + size.height;
   const validSizes = [
     "256x256",
@@ -144,26 +156,35 @@ async function generateDALLE(prompt, size, apiKey) {
   ];
   const requestSize = validSizes.includes(sizeStr) ? sizeStr : "1024x1024";
 
-  const response = await axios.post(
-    AI_PROVIDERS.dalle.endpoint,
-    {
+  const broker = requireBundledSkillRuntimeNetworkBroker(
+    context,
+    "image-generator",
+  );
+  const response = await broker.request({
+    url: AI_PROVIDERS.dalle.endpoint,
+    method: "POST",
+    body: {
       model: "dall-e-3",
       prompt: prompt,
       n: 1,
       size: requestSize,
       response_format: "b64_json",
     },
-    {
-      headers: {
-        Authorization: "Bearer " + apiKey,
-        "Content-Type": "application/json",
-      },
-      timeout: 120000,
+    headers: {
+      Authorization: "Bearer " + apiKey,
+      "Content-Type": "application/json",
     },
-  );
+    timeout: 120000,
+    maxResponseBytes: 32 * 1024 * 1024,
+  });
 
-  if (response.data && response.data.data && response.data.data.length > 0) {
-    return Buffer.from(response.data.data[0].b64_json, "base64");
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`DALL-E returned status ${response.status}`);
+  }
+  const data = JSON.parse(response.body);
+
+  if (data && data.data && data.data.length > 0) {
+    return Buffer.from(data.data[0].b64_json, "base64");
   }
   throw new Error("No image returned from DALL-E");
 }
@@ -217,7 +238,7 @@ async function enhanceImage(filePath, operations, outputPath) {
 
 // ── Action Handlers ─────────────────────────────────────────────────
 
-async function handleGenerate(input, projectRoot) {
+async function handleGenerate(input, projectRoot, context) {
   const promptMatch =
     input.match(/--generate\s+"([^"]+)"/i) ||
     input.match(/--generate\s+'([^']+)'/i) ||
@@ -299,9 +320,9 @@ async function handleGenerate(input, projectRoot) {
 
   let imageBuffer;
   if (requestedProvider === "stable-diffusion") {
-    imageBuffer = await generateSD(prompt, size, envValue);
+    imageBuffer = await generateSD(prompt, size, context);
   } else if (requestedProvider === "dalle") {
-    imageBuffer = await generateDALLE(prompt, size, envValue);
+    imageBuffer = await generateDALLE(prompt, size, envValue, context);
   }
 
   fs.writeFileSync(outputFile, imageBuffer);
@@ -533,7 +554,7 @@ module.exports = {
       }
 
       if (/--generate/i.test(input)) {
-        return await handleGenerate(input, projectRoot);
+        return await handleGenerate(input, projectRoot, context);
       }
 
       if (/--enhance/i.test(input)) {
