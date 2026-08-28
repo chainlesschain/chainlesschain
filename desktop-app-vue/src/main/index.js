@@ -2942,6 +2942,15 @@ class ChainlessChainApp {
       }
       this.ipcModules = null;
     }
+    if (this.federatedManager) {
+      try {
+        this.federatedManager.destroy?.();
+        logger.info("[Main] Federated learning cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Federated learning cleanup error:", error);
+      }
+      this.federatedManager = null;
+    }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).
     if (this._desktopPortFile) {

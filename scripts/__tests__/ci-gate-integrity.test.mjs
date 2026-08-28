@@ -303,6 +303,41 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const orgKnowledgeSyncContract =
+    "tests/unit/enterprise/org-knowledge-sync.test.js";
+  for (const yjsOrgSource of [
+    "desktop-app-vue/src/main/collaboration/yjs-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/org-knowledge-sync-manager.js",
+  ]) {
+    const sourceSelection = selector.createSelection([yjsOrgSource]);
+    assert.ok(
+      sourceSelection.selectedTests.includes(orgKnowledgeSyncContract),
+      `${yjsOrgSource} must select ${orgKnowledgeSyncContract}`,
+    );
+  }
+
+  const federatedTransportContracts = [
+    "src/main/federated/__tests__/model-parameter-sync-boundaries.test.js",
+    "src/main/federated/__tests__/federated-learning-manager.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const federatedTransportSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/federated/federated-transport-boundaries.js",
+    "desktop-app-vue/src/main/federated/model-parameter-sync.js",
+    "desktop-app-vue/src/main/federated/federated-learning-manager.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-31-ai-models.js",
+  ];
+  for (const source of federatedTransportSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of federatedTransportContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
