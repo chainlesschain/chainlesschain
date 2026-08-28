@@ -12,7 +12,7 @@ const SMOKE_PROFILE = Object.freeze({
   durationSeconds: 1,
   rounds: 1,
   steadyOccurrencesPerRound: 4,
-  leaseMs: 1_000,
+  leaseMs: 5_000,
   pollMs: 10,
   checkpointIntervalSeconds: 1,
   cleanupDeadlineMs: 10_000,
