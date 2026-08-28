@@ -10,9 +10,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawn, execFileSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 import { TaskLeaseRegistry } from "../src/lib/agent-team/task-lease.js";
 import { TeamMailbox } from "../src/lib/agent-team/team-mailbox.js";
 import { TeamDistributedQueue } from "../src/lib/agent-team/team-distributed-queue.js";
@@ -44,6 +43,29 @@ import {
 } from "../src/lib/workflow-definition-contract.js";
 
 const SELF = fileURLToPath(import.meta.url);
+let DatabaseSync;
+try {
+  ({ DatabaseSync } = await import("node:sqlite"));
+} catch (error) {
+  if (
+    error?.code !== "ERR_UNKNOWN_BUILTIN_MODULE" ||
+    process.execArgv.includes("--experimental-sqlite")
+  ) {
+    throw error;
+  }
+  const relaunched = spawnSync(
+    process.execPath,
+    ["--experimental-sqlite", SELF, ...process.argv.slice(2)],
+    {
+      cwd: process.cwd(),
+      env: { ...process.env },
+      stdio: "inherit",
+      windowsHide: true,
+    },
+  );
+  if (relaunched.error) throw relaunched.error;
+  process.exit(relaunched.status ?? 1);
+}
 const JOURNEY_SCHEMA = "chainlesschain.graph-cli-store-cutover-journey/v1";
 const RUN_ID = "p1-3-cli-store-cutover";
 const DYNAMIC_RUN_ID = `${RUN_ID}-dynamic`;
@@ -634,12 +656,16 @@ async function recoverStores(root) {
 
 function spawnWriter(root) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [SELF, "--writer-root", root], {
-      cwd: process.cwd(),
-      env: { ...process.env },
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true,
-    });
+    const child = spawn(
+      process.execPath,
+      [...process.execArgv, SELF, "--writer-root", root],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env },
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      },
+    );
     let stdout = "";
     let stderr = "";
     let settled = false;

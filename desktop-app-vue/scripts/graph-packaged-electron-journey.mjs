@@ -322,7 +322,7 @@ async function assemblePackage(root) {
   let layout = electronLayout(packageDirectory);
   fs.cpSync(layout.source, packageDirectory, {
     recursive: true,
-    dereference: true,
+    dereference: process.platform !== "darwin",
     force: true,
   });
   fs.mkdirSync(layout.resources, { recursive: true });
@@ -545,7 +545,10 @@ async function main() {
       "writer Desktop binding was not persisted at the Graph cutpoint",
     );
 
-    assertion(writerProcess.child.kill(), "failed to kill packaged writer");
+    assertion(
+      writerProcess.child.kill("SIGKILL"),
+      "failed to kill packaged writer",
+    );
     const killed = await waitForExit(writerProcess);
     assertion(
       killed.code !== 0 || killed.signal != null,
