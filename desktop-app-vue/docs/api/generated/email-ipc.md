@@ -257,10 +257,10 @@ async getAttachments(emailId)
 
 ---
 
-## async downloadAttachment(attachmentId, savePath)
+## async downloadAttachment(attachmentId)
 
 ```javascript
-async downloadAttachment(attachmentId, savePath)
+async downloadAttachment(attachmentId)
 ```
 
 * 下载附件

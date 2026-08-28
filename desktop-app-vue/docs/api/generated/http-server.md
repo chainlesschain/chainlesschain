@@ -94,6 +94,11 @@ constructor(config =
    * @param {Object} [config.auth] - Authentication configuration
    * @param {Function[]} [config.middleware] - Middleware functions
    * @param {Object} [config.hooks] - Lifecycle hooks
+   * @param {number} [config.maxSseConnections=64] - Concurrent SSE clients
+   * @param {number} [config.maxConcurrentRpcRequests=64] - In-flight RPC requests
+   * @param {number} [config.maxRequestBodyBytes=10485760] - Retained request bytes
+   * @param {number} [config.maxSseEventBytes=262144] - Encoded SSE event bytes
+   * @param {number} [config.maxSseBufferedBytes=1048576] - Per-client write buffer
 
 ---
 
@@ -224,6 +229,26 @@ this.sseClients = new Map();
 ```
 
 @type {Map<string, Object>} Active SSE connections (clientId -> response)
+
+---
+
+## this.activeRpcRequests = 0;
+
+```javascript
+this.activeRpcRequests = 0;
+```
+
+@type {number} Active JSON-RPC requests
+
+---
+
+## this.limits = Object.freeze(
+
+```javascript
+this.limits = Object.freeze(
+```
+
+@type {Readonly<Object>} Admission and retention limits
 
 ---
 

@@ -97,7 +97,7 @@ waitForResume()
 ```
 
 * 等待恢复
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} Whether processing should resume
 
 ---
 
@@ -142,6 +142,18 @@ getStats()
 
 * 获取统计信息
    * @returns {Object} 统计信息
+
+---
+
+## retainBufferedChunk(chunk)
+
+```javascript
+retainBufferedChunk(chunk)
+```
+
+* Retain a JSON-safe chunk inside the configured count and byte ring.
+   * @param {*} chunk - Stream chunk
+   * @returns {boolean} Whether the chunk was retained
 
 ---
 

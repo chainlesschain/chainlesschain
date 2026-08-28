@@ -20,10 +20,10 @@ const
 
 ---
 
-## register(app)
+## _unregisterAppListeners()
 
 ```javascript
-register(app)
+_unregisterAppListeners()
 ```
 
 * 注册协议处理器

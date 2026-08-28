@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 557
+**Total Components**: 560
 
 ---
 
@@ -743,6 +743,12 @@
 **File**: `src/renderer/pages/settings/panes/SpeechRecognitionPane.vue`
 
 **Description**: 引擎选择
+
+---
+
+### SkillCredentialsPane
+
+**File**: `src/renderer/pages/settings/panes/SkillCredentialsPane.vue`
 
 ---
 
@@ -3584,6 +3590,12 @@
 
 ---
 
+### GraphRunDebugger
+
+**File**: `src/renderer/components/graph/GraphRunDebugger.vue`
+
+---
+
 ### GraphInteractionPanel
 
 **File**: `src/renderer/components/graph/GraphInteractionPanel.vue`
@@ -4121,6 +4133,12 @@
 ### ChatHeader
 
 **File**: `src/renderer/components/chat/ChatHeader.vue`
+
+---
+
+### ArtifactWorkbenchDrawer
+
+**File**: `src/renderer/components/chat/ArtifactWorkbenchDrawer.vue`
 
 ---
 

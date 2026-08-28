@@ -55,6 +55,27 @@ getDocument(docId)
 
 ---
 
+## sweepRetainedState(now = this._now())
+
+```javascript
+sweepRetainedState(now = this._now())
+```
+
+* Remove expired awareness entries and unreferenced idle documents. The
+   * sweep is operation-driven, avoiding a process-lifetime interval handle.
+
+---
+
+## applyUpdate(docId, update, origin = "local")
+
+```javascript
+applyUpdate(docId, update, origin = "local")
+```
+
+Apply a validated update through the manager-owned persistence path.
+
+---
+
 ## _attachUpdateListener(docId, ydoc)
 
 ```javascript
@@ -75,6 +96,17 @@ getAwareness(docId)
 ```
 
 * Get or create awareness state for a document
+
+---
+
+## setAwarenessState(docId, clientId, state, meta =
+
+```javascript
+setAwarenessState(docId, clientId, state, meta =
+```
+
+* Store one validated awareness state without allowing renderer or peer
+   * callers to bypass the per-document retained-state boundary.
 
 ---
 
@@ -188,10 +220,10 @@ async _saveUpdate(docId, update)
 
 ---
 
-## async _loadDocument(docId, ydoc)
+## _loadDocument(docId, ydoc)
 
 ```javascript
-async _loadDocument(docId, ydoc)
+_loadDocument(docId, ydoc)
 ```
 
 * Load document from database
@@ -228,10 +260,10 @@ _encodeAwarenessUpdate(awareness)
 
 ---
 
-## _applyAwarenessUpdate(awareness, update, peerId)
+## _applyAwarenessUpdate(docId, awareness, update, peerId)
 
 ```javascript
-_applyAwarenessUpdate(awareness, update, peerId)
+_applyAwarenessUpdate(docId, awareness, update, peerId)
 ```
 
 * Helper: Apply awareness update

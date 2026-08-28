@@ -88,10 +88,10 @@ setServerPermissions(serverName, permissions)
 
 ---
 
-## async validateToolExecution(serverName, toolName, params)
+## async validateToolExecution(
 
 ```javascript
-async validateToolExecution(serverName, toolName, params)
+async validateToolExecution(
 ```
 
 * Validate tool execution
@@ -240,10 +240,10 @@ _generateConsentKey(serverName, toolName, params)
 
 ---
 
-## _logAudit(decision, serverName, toolName, params, details)
+## _logAudit(
 
 ```javascript
-_logAudit(decision, serverName, toolName, params, details)
+_logAudit(
 ```
 
 * Log to audit trail

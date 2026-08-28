@@ -20,11 +20,9 @@ import
  *  - Timing (page-context Performance API): timing, waterfall, analyze
  *  - Network Information API (page-context navigator.connection): get, onChange
  *
- * Extracted verbatim from background.js (Phase 1 of the split). This is the first
- * handler module with its own module-level state (the interception Maps below)
- * and the first to depend on the shared CDP helper. As an ES module that is
- * imported once, the module-level state is a singleton for the service-worker
- * lifetime — identical semantics to the original background.js top-level consts.
+ * Capture and response-mock state is bounded by count and UTF-8 bytes. Active
+ * tabs own removable debugger listeners; completed capture metadata is retained
+ * only within the registry limits and local to the service-worker lifetime.
  *
  * The `Network.*` debugger-event constants (Network.requestWillBeSent etc.) live
  * inside the handler bodies as CDP event names; the separate `Network.webSocket*`
