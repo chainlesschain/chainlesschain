@@ -2269,25 +2269,60 @@ describe("Skill Handlers", () => {
       expect(result.error).toContain("network broker is unavailable");
     });
 
-    it("should delegate network access to the host broker", async () => {
-      const request = vi.fn().mockResolvedValue({
-        status: 200,
-        statusText: "OK",
-        headers: { "content-type": "text/plain" },
-        body: "brokered",
-        duration: 1,
-      });
+    it("should reject an unbranded host network broker", async () => {
+      const request = vi.fn();
       const result = await handler.execute(
         { input: "--get https://example.com" },
-        { networkBroker: { request }, workspaceRoot: process.cwd() },
+        { networkBroker: { request } },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Trusted runtime network broker");
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it("should delegate network access to the host broker", async () => {
+      const { EventEmitter } = require("node:events");
+      const {
+        createBundledSkillRuntimeNetworkBroker,
+      } = require("../../../src/main/ai-engine/cowork/skills/bundled-skill-egress-broker.js");
+      const https = {
+        request: vi.fn((_options, callback) => {
+          const req = new EventEmitter();
+          req.end = vi.fn();
+          req.destroy = vi.fn();
+          req.setTimeout = vi.fn();
+          const res = new EventEmitter();
+          res.statusCode = 200;
+          res.statusMessage = "OK";
+          res.headers = { "content-type": "text/plain" };
+          res.destroy = vi.fn();
+          callback(res);
+          process.nextTick(() => {
+            res.emit("data", "brokered");
+            res.emit("end");
+          });
+          return req;
+        }),
+      };
+      const networkBroker = createBundledSkillRuntimeNetworkBroker(
+        {
+          skillId: "http-client",
+          allowedDomains: ["example.com"],
+          declassificationId: "test:http-client",
+        },
+        { https, auditSink: vi.fn() },
+      );
+      const result = await handler.execute(
+        { input: "--get https://example.com" },
+        { networkBroker },
       );
       expect(result.success).toBe(true);
-      expect(request).toHaveBeenCalledWith(
+      expect(https.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: "https://example.com",
+          hostname: "example.com",
           method: "GET",
-          origin: "cowork-skill:http-client",
         }),
+        expect.any(Function),
       );
     });
   });

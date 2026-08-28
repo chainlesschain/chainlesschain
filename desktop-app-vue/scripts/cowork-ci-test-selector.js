@@ -119,6 +119,8 @@ const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-tavily-search.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-weather.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-youtube-summarizer.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-api-gateway.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-summarizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",

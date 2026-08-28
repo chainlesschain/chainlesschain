@@ -8,6 +8,9 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
 
 const DEFAULT_TIMEOUT = 30000;
 const MAX_BODY_DISPLAY = 3000;
@@ -215,12 +218,6 @@ module.exports = {
       task?.action ||
       ""
     ).trim();
-    const projectRoot =
-      context?.projectRoot ||
-      context?.workspaceRoot ||
-      context?.workspacePath ||
-      process.cwd();
-
     logger.info(`[HTTPClient] Input: ${input.substring(0, 120)}`);
 
     if (!input) {
@@ -280,23 +277,17 @@ module.exports = {
     );
 
     try {
-      const networkBroker = context?.networkBroker;
-      if (!networkBroker || typeof networkBroker.request !== "function") {
-        const unavailable = new Error(
-          "Cowork network broker is unavailable; raw HTTP execution is disabled",
-        );
-        unavailable.code = "COWORK_NETWORK_BROKER_UNAVAILABLE";
-        throw unavailable;
-      }
+      const networkBroker = requireBundledSkillRuntimeNetworkBroker(
+        context,
+        "http-client",
+      );
       const res = await networkBroker.request({
         url: options.url,
         method: options.method,
         headers: options.headers,
         body: options.body,
         timeout: options.timeout,
-        maxResponseBytes: MAX_BODY_DISPLAY,
-        origin: "cowork-skill:http-client",
-        workspaceRoot: projectRoot,
+        maxResponseBytes: 8 * 1024 * 1024,
       });
 
       const contentType = res.headers["content-type"] || "";

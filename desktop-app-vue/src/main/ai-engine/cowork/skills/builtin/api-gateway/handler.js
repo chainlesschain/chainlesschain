@@ -2,12 +2,13 @@
  * API Gateway Skill Handler
  */
 const { logger } = require("../../../../../utils/logger.js");
-const https = require("https");
-const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
 
-const _deps = { https, http, fs, path };
+const _deps = { fs, path };
 
 const CONFIG_DIR = path.join(
   process.env.APPDATA || process.env.HOME || ".",
@@ -62,7 +63,12 @@ module.exports = {
     try {
       switch (parsed.action) {
         case "call":
-          return await handleCall(parsed.method, parsed.url, parsed.options);
+          return await handleCall(
+            parsed.method,
+            parsed.url,
+            parsed.options,
+            context,
+          );
         case "register":
           return handleRegister(
             parsed.name,
@@ -73,7 +79,7 @@ module.exports = {
         case "list":
           return handleList(parsed.options);
         case "chain":
-          return await handleChain(parsed.chainSteps);
+          return await handleChain(parsed.chainSteps, context);
         default:
           return {
             success: false,
@@ -164,7 +170,7 @@ function parseInput(input) {
   };
 }
 
-async function handleCall(method, url, options) {
+async function handleCall(method, url, options, context) {
   if (!url) {
     return {
       success: false,
@@ -180,10 +186,10 @@ async function handleCall(method, url, options) {
     options.headers = { ...reg.headers, ...options.headers };
   }
 
-  if (!url.startsWith("http")) {
+  if (!url.startsWith("https://")) {
     return {
       success: false,
-      error: `Invalid URL: ${url}. Must start with http:// or https://`,
+      error: `Invalid URL: ${url}. Must start with https://`,
     };
   }
 
@@ -193,6 +199,7 @@ async function handleCall(method, url, options) {
     url,
     options.headers,
     options.body,
+    context,
   );
   const duration = Date.now() - startTime;
 
@@ -232,10 +239,10 @@ function handleRegister(name, method, url, options) {
       error: "Provide a name. Usage: register <name> <METHOD> <URL>",
     };
   }
-  if (!url || !url.startsWith("http")) {
+  if (!url || !url.startsWith("https://")) {
     return {
       success: false,
-      error: "Provide a valid URL starting with http:// or https://",
+      error: "Provide a valid URL starting with https://",
     };
   }
 
@@ -284,7 +291,7 @@ function handleList(options) {
   };
 }
 
-async function handleChain(chainSteps) {
+async function handleChain(chainSteps, context) {
   if (!chainSteps.length) {
     return {
       success: false,
@@ -317,7 +324,13 @@ async function handleChain(chainSteps) {
       url = url.replace(`{${k}}`, encodeURIComponent(resolvedValue));
     }
 
-    const response = await makeRequest(reg.method, url, reg.headers, null);
+    const response = await makeRequest(
+      reg.method,
+      url,
+      reg.headers,
+      null,
+      context,
+    );
     let body = response.body;
     try {
       body = JSON.parse(body);
@@ -351,53 +364,26 @@ function getNestedValue(obj, path) {
     .reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), obj);
 }
 
-function makeRequest(method, url, headers = {}, body = null) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const transport = parsed.protocol === "https:" ? _deps.https : _deps.http;
-
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
-      path: parsed.pathname + parsed.search,
-      method,
-      headers: {
-        "User-Agent": "ChainlessChain-APIGateway/1.2.0",
-        Accept: "application/json",
-        ...headers,
-      },
-    };
-
-    if (body) {
-      const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
-      options.headers["Content-Type"] =
-        options.headers["Content-Type"] || "application/json";
-      options.headers["Content-Length"] = Buffer.byteLength(bodyStr);
-    }
-
-    const req = transport.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () =>
-        resolve({
-          statusCode: res.statusCode,
-          headers: res.headers,
-          body: data,
-        }),
-      );
-    });
-
-    req.on("error", (err) =>
-      reject(new Error(`Request failed: ${err.message}`)),
-    );
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(new Error("Request timed out after 30s"));
-    });
-
-    if (body) {
-      req.write(typeof body === "string" ? body : JSON.stringify(body));
-    }
-    req.end();
+async function makeRequest(method, url, headers = {}, body = null, context) {
+  const networkBroker = requireBundledSkillRuntimeNetworkBroker(
+    context,
+    "api-gateway",
+  );
+  const response = await networkBroker.request({
+    url,
+    method,
+    headers: {
+      "User-Agent": "ChainlessChain-APIGateway/1.2.0",
+      Accept: "application/json",
+      ...headers,
+    },
+    body,
+    timeout: 30_000,
+    maxResponseBytes: 1024 * 1024,
   });
+  return {
+    statusCode: response.status,
+    headers: response.headers,
+    body: response.body,
+  };
 }

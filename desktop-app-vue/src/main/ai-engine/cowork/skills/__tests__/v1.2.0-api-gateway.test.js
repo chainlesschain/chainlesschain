@@ -1,6 +1,6 @@
 /**
  * Unit tests for api-gateway skill handler (v1.2.0)
- * Uses _deps injection for fs/https/http mocking
+ * Uses _deps injection for fs and a branded runtime network broker
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
@@ -10,6 +10,9 @@ vi.mock("../../../../utils/logger.js", () => ({
 }));
 
 const handler = require("../builtin/api-gateway/handler.js");
+const {
+  createBundledSkillRuntimeNetworkBroker,
+} = require("../bundled-skill-egress-broker.js");
 
 function createMockTransport(statusCode, body, headers = {}) {
   return {
@@ -37,6 +40,21 @@ function createMockTransport(statusCode, body, headers = {}) {
   };
 }
 
+function createNetworkContext(
+  transport = createMockTransport(200, { message: "ok" }),
+) {
+  return {
+    networkBroker: createBundledSkillRuntimeNetworkBroker(
+      {
+        skillId: "api-gateway",
+        allowedDomains: ["api.example.com", "example.com"],
+        declassificationId: "test:api-gateway",
+      },
+      { https: transport, auditSink: vi.fn() },
+    ),
+  };
+}
+
 describe("api-gateway handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,9 +63,6 @@ describe("api-gateway handler", () => {
     }
 
     if (handler._deps) {
-      const mockTransport = createMockTransport(200, { message: "ok" });
-      handler._deps.https = mockTransport;
-      handler._deps.http = mockTransport;
       handler._deps.fs = {
         existsSync: vi.fn().mockReturnValue(false),
         mkdirSync: vi.fn(),
@@ -61,7 +76,7 @@ describe("api-gateway handler", () => {
     it("should make an API call", async () => {
       const result = await handler.execute(
         { input: "call GET https://api.example.com/v1/status" },
-        {},
+        createNetworkContext(),
         {},
       );
       expect(result.success).toBe(true);
@@ -92,9 +107,25 @@ describe("api-gateway handler", () => {
         {},
         {},
       );
-      const result = await handler.execute({ input: "call GET myapi" }, {}, {});
+      const result = await handler.execute(
+        { input: "call GET myapi" },
+        createNetworkContext(),
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.result.statusCode).toBe(200);
+    });
+
+    it("should reject an unbranded network broker", async () => {
+      const request = vi.fn();
+      const result = await handler.execute(
+        { input: "call GET https://api.example.com/v1/status" },
+        { networkBroker: { request } },
+        {},
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Trusted runtime network broker");
+      expect(request).not.toHaveBeenCalled();
     });
   });
 

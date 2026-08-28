@@ -43,7 +43,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "api-gateway": Object.freeze([
-    "b3004677e0c03a16137c6a45fa9ce665377740ae74ec742ad4f9fb681e27c57a",
+    "f24f7de1c1f57cc5b7d111b07557b557b4c5d0b31b9b69ace80a24ae406ab633",
     Object.freeze([
       "data:result",
       "data:task",
@@ -51,6 +51,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
       "filesystem:read",
       "filesystem:write",
       "host:logger",
+      "host:network",
       "network:http",
       "runtime:time",
     ]),
@@ -638,8 +639,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "http-client": Object.freeze([
-    "b340c44140949364d7560a9bd0ba419b21a7ac127a10f1acac7a298f3a17de58",
-    Object.freeze(["data:result", "data:task", "host:logger", "process:cwd"]),
+    "4ccd3d94c3e12936d2bc401d56a23de83e465a3abb18d46960fd2ad6fdce7ec3",
+    Object.freeze([
+      "data:result",
+      "data:task",
+      "host:logger",
+      "host:network",
+      "network:http",
+    ]),
   ]),
   humanizer: Object.freeze([
     "68a0915b0890e1efbf23f8dee2d66f5820136757e90da5709fa134a481c18982",
@@ -1205,12 +1212,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   summarizer: Object.freeze([
-    "fbcf06930c203faccb47e092ba9a8dbc9662a3a63c76b2f24f7721b10afb5af2",
+    "4ec073f26bdc3445db04acb712530f2f63dedf4f72bd7ea847cd0aaeef929239",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:network",
       "network:http",
     ]),
   ]),

@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 const {
   BUNDLED_SKILL_EGRESS_POLICIES,
   createBundledSkillHttpsClient,
+  createBundledSkillRuntimeNetworkBroker,
+  requireBundledSkillRuntimeNetworkBroker,
 } = require("../bundled-skill-egress-broker.js");
 
 const SKILLS_DIRECTORY = path.resolve(
@@ -24,6 +26,11 @@ const BROKERED_SKILL_IDS = Object.freeze([
   "weather",
   "youtube-summarizer",
 ]);
+const RUNTIME_BROKERED_SKILL_IDS = Object.freeze([
+  "api-gateway",
+  "http-client",
+  "summarizer",
+]);
 
 function createHttpsHarness() {
   const calls = [];
@@ -31,10 +38,11 @@ function createHttpsHarness() {
     request: vi.fn((options, callback) => {
       const req = new EventEmitter();
       req.write = vi.fn(() => true);
-      req.end = vi.fn(() => req);
+      const end = vi.fn(() => req);
+      req.end = end;
       req.setTimeout = vi.fn();
       req.destroy = vi.fn();
-      calls.push({ options, callback, req });
+      calls.push({ options, callback, req, end });
       return req;
     }),
   };
@@ -60,7 +68,10 @@ describe("bundled Skill egress broker", () => {
   });
 
   it("keeps every migrated handler off raw HTTP modules", () => {
-    for (const skillId of BROKERED_SKILL_IDS) {
+    for (const skillId of [
+      ...BROKERED_SKILL_IDS,
+      ...RUNTIME_BROKERED_SKILL_IDS,
+    ]) {
       const source = readFileSync(
         path.join(SKILLS_DIRECTORY, "builtin", skillId, "handler.js"),
         "utf8",
@@ -70,7 +81,219 @@ describe("bundled Skill egress broker", () => {
         /require\(["'](?:node:)?https?["']\)/,
       );
       expect(source, skillId).not.toMatch(/require\(["']axios["']\)/);
+      if (RUNTIME_BROKERED_SKILL_IDS.includes(skillId)) {
+        expect(source, skillId).toContain(
+          "requireBundledSkillRuntimeNetworkBroker",
+        );
+        expect(source, skillId).not.toContain(
+          "createBundledSkillRuntimeNetworkBroker",
+        );
+      }
     }
+  });
+
+  it.each([
+    ["missing policy", undefined, "CC_BUNDLED_SKILL_NETWORK_POLICY_INVALID"],
+    [
+      "unapproved Skill",
+      {
+        skillId: "weather",
+        allowedDomains: ["example.com"],
+        declassificationId: "decision:1",
+      },
+      "CC_BUNDLED_SKILL_NETWORK_SKILL_DENIED",
+    ],
+    [
+      "empty domains",
+      {
+        skillId: "summarizer",
+        allowedDomains: [],
+        declassificationId: "decision:1",
+      },
+      "CC_BUNDLED_SKILL_NETWORK_DOMAINS_REQUIRED",
+    ],
+    [
+      "wildcard domain",
+      {
+        skillId: "summarizer",
+        allowedDomains: ["*.com"],
+        declassificationId: "decision:1",
+      },
+      "CC_BUNDLED_SKILL_NETWORK_DOMAIN_INVALID",
+    ],
+    [
+      "IP literal",
+      {
+        skillId: "summarizer",
+        allowedDomains: ["127.0.0.1"],
+        declassificationId: "decision:1",
+      },
+      "CC_BUNDLED_SKILL_NETWORK_DOMAIN_INVALID",
+    ],
+    [
+      "missing declassification decision",
+      {
+        skillId: "summarizer",
+        allowedDomains: ["example.com"],
+      },
+      "CC_BUNDLED_SKILL_NETWORK_DECLASSIFICATION_REQUIRED",
+    ],
+  ])("rejects runtime policy with %s", (_label, policy, code) => {
+    expect(() =>
+      createBundledSkillRuntimeNetworkBroker(policy, {
+        https: harness.https,
+        auditSink: vi.fn(),
+      }),
+    ).toThrow(expect.objectContaining({ code }));
+    expect(harness.https.request).not.toHaveBeenCalled();
+  });
+
+  it("requires an authentic broker scoped to the executing Skill", () => {
+    const broker = createBundledSkillRuntimeNetworkBroker(
+      {
+        skillId: "summarizer",
+        allowedDomains: ["example.com"],
+        declassificationId: "decision:summary-1",
+      },
+      { https: harness.https, auditSink: vi.fn() },
+    );
+
+    expect(
+      requireBundledSkillRuntimeNetworkBroker(
+        { networkBroker: broker },
+        "summarizer",
+      ),
+    ).toBe(broker);
+    expect(() =>
+      requireBundledSkillRuntimeNetworkBroker(
+        { networkBroker: { request: vi.fn() } },
+        "summarizer",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_BUNDLED_SKILL_NETWORK_BROKER_UNAVAILABLE",
+      }),
+    );
+    expect(() =>
+      requireBundledSkillRuntimeNetworkBroker(
+        { networkBroker: broker },
+        "http-client",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_BUNDLED_SKILL_NETWORK_AUTHORITY_MISMATCH",
+      }),
+    );
+  });
+
+  it("serves a bounded runtime request and audits its decision ID", async () => {
+    const auditSink = vi.fn();
+    const broker = createBundledSkillRuntimeNetworkBroker(
+      {
+        skillId: "http-client",
+        allowedDomains: ["example.com"],
+        declassificationId: "decision:http-42",
+      },
+      { https: harness.https, auditSink },
+    );
+    const responsePromise = broker.request({
+      url: "https://example.com/data?secret=not-audited",
+      method: "POST",
+      headers: { Authorization: "Bearer not-audited" },
+      body: "payload",
+      timeout: 1234,
+      maxResponseBytes: 1024,
+    });
+    const res = new EventEmitter();
+    res.statusCode = 201;
+    res.statusMessage = "Created";
+    res.headers = { "Content-Type": "application/json" };
+    res.destroy = vi.fn();
+    harness.calls[0].callback(res);
+    res.emit("data", '{"ok":true}');
+    res.emit("end");
+
+    await expect(responsePromise).resolves.toMatchObject({
+      status: 201,
+      statusText: "Created",
+      headers: { "content-type": "application/json" },
+      body: '{"ok":true}',
+    });
+    expect(harness.calls[0].end.mock.calls[0][0]).toBe("payload");
+    expect(harness.calls[0].req.setTimeout).toHaveBeenCalledWith(
+      1234,
+      expect.any(Function),
+    );
+    expect(auditSink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillId: "http-client",
+        declassificationId: "decision:http-42",
+        hostname: "example.com",
+      }),
+    );
+    expect(JSON.stringify(auditSink.mock.calls)).not.toContain("not-audited");
+  });
+
+  it("revalidates redirects and strips credentials across origins", async () => {
+    const broker = createBundledSkillRuntimeNetworkBroker(
+      {
+        skillId: "api-gateway",
+        allowedDomains: ["api.example.com", "login.example.com"],
+        declassificationId: "decision:redirect-1",
+      },
+      { https: harness.https, auditSink: vi.fn() },
+    );
+    const responsePromise = broker.request({
+      url: "https://api.example.com/start",
+      headers: { Authorization: "Bearer secret", Cookie: "session=secret" },
+    });
+    const first = new EventEmitter();
+    first.statusCode = 302;
+    first.headers = { location: "https://login.example.com/final" };
+    first.destroy = vi.fn();
+    harness.calls[0].callback(first);
+    first.emit("end");
+    await vi.waitFor(() => expect(harness.calls).toHaveLength(2));
+    const second = new EventEmitter();
+    second.statusCode = 200;
+    second.statusMessage = "OK";
+    second.headers = {};
+    second.destroy = vi.fn();
+    harness.calls[1].callback(second);
+    second.emit("data", "done");
+    second.emit("end");
+
+    await expect(responsePromise).resolves.toMatchObject({
+      status: 200,
+      body: "done",
+    });
+    expect(harness.calls[1].options.headers).not.toHaveProperty(
+      "Authorization",
+    );
+    expect(harness.calls[1].options.headers).not.toHaveProperty("Cookie");
+  });
+
+  it("denies a redirect to a domain outside the runtime allowlist", async () => {
+    const broker = createBundledSkillRuntimeNetworkBroker(
+      {
+        skillId: "summarizer",
+        allowedDomains: ["example.com"],
+        declassificationId: "decision:redirect-2",
+      },
+      { https: harness.https, auditSink: vi.fn() },
+    );
+    const responsePromise = broker.request({ url: "https://example.com/" });
+    const first = new EventEmitter();
+    first.statusCode = 302;
+    first.headers = { location: "https://attacker.example.net/" };
+    first.destroy = vi.fn();
+    harness.calls[0].callback(first);
+    first.emit("end");
+
+    await expect(responsePromise).rejects.toMatchObject({
+      code: "CC_BUNDLED_SKILL_EGRESS_DOMAIN_DENIED",
+    });
+    expect(harness.calls).toHaveLength(1);
   });
 
   it("pins HTTPS, port, DNS lookup, SNI, limits, and minimal audit fields", () => {

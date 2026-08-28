@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Fixed-policy HTTPS broker for package-owned bundled Skills.
+ * HTTPS brokers for package-owned bundled Skills.
  *
  * Bundled handlers receive a Node-compatible `request`/`get` surface, while
  * this module owns domain allowlists, DNS/IP validation, TLS requirements,
@@ -10,6 +10,7 @@
  */
 
 const nodeHttps = require("node:https");
+const nodeNet = require("node:net");
 const {
   createValidatedLookup,
   domainAllowed,
@@ -20,6 +21,14 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_REQUEST_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_TIMEOUT_MS = 120_000;
+const MAX_RUNTIME_DOMAINS = 64;
+const MAX_REDIRECTS = 5;
+const RUNTIME_BROKER_SKILL_IDS = Object.freeze([
+  "api-gateway",
+  "http-client",
+  "summarizer",
+]);
+const runtimeBrokerMetadata = new WeakMap();
 
 const BUNDLED_SKILL_EGRESS_POLICIES = Object.freeze({
   "github-manager": Object.freeze({
@@ -61,7 +70,9 @@ function brokerError(code, message) {
 }
 
 function positiveInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
-  if (!Number.isSafeInteger(value) || value <= 0) return fallback;
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    return fallback;
+  }
   return Math.min(value, maximum);
 }
 
@@ -74,6 +85,81 @@ function normalizePolicy(skillId) {
     );
   }
   return policy;
+}
+
+function normalizeSkillId(skillId) {
+  const normalized = String(skillId || "").trim();
+  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(normalized)) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_SKILL_INVALID",
+      "Runtime network broker requires a valid bundled Skill ID",
+    );
+  }
+  if (!RUNTIME_BROKER_SKILL_IDS.includes(normalized)) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_SKILL_DENIED",
+      `Bundled Skill ${normalized} is not approved for runtime network policy`,
+    );
+  }
+  return normalized;
+}
+
+function normalizeAllowedDomain(entry) {
+  const candidate = String(entry || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.$/, "");
+  const hostname = candidate;
+  const labels = hostname.split(".");
+  if (
+    !candidate ||
+    candidate.includes("*") ||
+    candidate.includes(":") ||
+    candidate.includes("/") ||
+    nodeNet.isIP(hostname) !== 0 ||
+    labels.length < 2 ||
+    hostname.length > 253 ||
+    labels.some(
+      (label) => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label),
+    )
+  ) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_DOMAIN_INVALID",
+      `Runtime network broker received an invalid domain policy entry: ${candidate || "<empty>"}`,
+    );
+  }
+  return hostname;
+}
+
+function normalizeRuntimePolicy(options) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_POLICY_INVALID",
+      "Runtime network broker requires an explicit policy",
+    );
+  }
+  const skillId = normalizeSkillId(options.skillId);
+  if (
+    !Array.isArray(options.allowedDomains) ||
+    options.allowedDomains.length === 0 ||
+    options.allowedDomains.length > MAX_RUNTIME_DOMAINS
+  ) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_DOMAINS_REQUIRED",
+      `Runtime network broker requires 1-${MAX_RUNTIME_DOMAINS} explicit domains`,
+    );
+  }
+  const allowedDomains = Object.freeze(
+    [...new Set(options.allowedDomains.map(normalizeAllowedDomain))].sort(),
+  );
+  const declassificationId = String(options.declassificationId || "").trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(declassificationId)) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_DECLASSIFICATION_REQUIRED",
+      "Runtime network broker requires a stable declassification decision ID",
+    );
+  }
+  return Object.freeze({ skillId, allowedDomains, declassificationId });
 }
 
 function parseRequestArguments(input, options, callback) {
@@ -165,7 +251,9 @@ function assertRequestAllowed(skillId, policy, url, options) {
 }
 
 function chunkBytes(chunk, encoding) {
-  if (chunk == null) return 0;
+  if (chunk == null) {
+    return 0;
+  }
   if (Buffer.isBuffer(chunk) || ArrayBuffer.isView(chunk)) {
     return chunk.byteLength;
   }
@@ -244,9 +332,7 @@ function emitAudit(auditSink, base, outcome, reason = null) {
   );
 }
 
-function createBundledSkillHttpsClient(skillId, deps = {}) {
-  const normalizedSkillId = String(skillId || "").trim();
-  const policy = normalizePolicy(normalizedSkillId);
+function createPolicyHttpsClient(normalizedSkillId, policy, deps = {}) {
   const https = deps.https || nodeHttps;
   const auditSink = deps.auditSink || defaultAuditSink;
   const maxRequestBytes = positiveInteger(
@@ -273,6 +359,9 @@ function createBundledSkillHttpsClient(skillId, deps = {}) {
     const method = String(parsed.options.method || "GET").toUpperCase();
     const auditBase = Object.freeze({
       skillId: normalizedSkillId,
+      ...(policy.declassificationId
+        ? { declassificationId: policy.declassificationId }
+        : {}),
       method,
       hostname: parsed.url.hostname,
       port: parsed.url.port ? Number(parsed.url.port) : 443,
@@ -304,6 +393,8 @@ function createBundledSkillHttpsClient(skillId, deps = {}) {
     delete safeOptions.createConnection;
     delete safeOptions.agent;
 
+    // The response closure needs the request object after https.request returns.
+    // eslint-disable-next-line prefer-const
     let req;
     const recordViolation = (error) =>
       emitAudit(auditSink, auditBase, "blocked", error.code);
@@ -352,7 +443,276 @@ function createBundledSkillHttpsClient(skillId, deps = {}) {
   return Object.freeze({ get, request });
 }
 
+function createBundledSkillHttpsClient(skillId, deps = {}) {
+  const normalizedSkillId = String(skillId || "").trim();
+  return createPolicyHttpsClient(
+    normalizedSkillId,
+    normalizePolicy(normalizedSkillId),
+    deps,
+  );
+}
+
+function normalizeResponseHeaders(headers) {
+  const normalized = {};
+  for (const [name, value] of Object.entries(headers || {})) {
+    if (value != null) {
+      normalized[String(name).toLowerCase()] = value;
+    }
+  }
+  return normalized;
+}
+
+function serializeRequestBody(body) {
+  if (body == null) {
+    return null;
+  }
+  if (Buffer.isBuffer(body) || ArrayBuffer.isView(body)) {
+    return body;
+  }
+  if (typeof body === "string") {
+    return body;
+  }
+  return JSON.stringify(body);
+}
+
+function normalizeRuntimeHeaders(headers, body) {
+  if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_HEADERS_INVALID",
+      "Runtime network request headers must be an object",
+    );
+  }
+  const normalized = { ...headers };
+  for (const name of Object.keys(normalized)) {
+    const lower = name.toLowerCase();
+    if (lower === "transfer-encoding") {
+      throw brokerError(
+        "CC_BUNDLED_SKILL_NETWORK_HEADER_DENIED",
+        "Runtime network request cannot set Transfer-Encoding",
+      );
+    }
+    if (lower === "content-length") {
+      delete normalized[name];
+    }
+  }
+  if (body != null) {
+    normalized["Content-Length"] = chunkBytes(body);
+  }
+  return normalized;
+}
+
+function headersForRedirect(headers, fromUrl, toUrl) {
+  const redirected = { ...(headers || {}) };
+  if (fromUrl.origin !== toUrl.origin) {
+    for (const name of Object.keys(redirected)) {
+      if (
+        ["authorization", "cookie", "proxy-authorization"].includes(
+          name.toLowerCase(),
+        )
+      ) {
+        delete redirected[name];
+      }
+    }
+  }
+  return redirected;
+}
+
+function createBundledSkillRuntimeNetworkBroker(options, deps = {}) {
+  const policy = normalizeRuntimePolicy(options);
+
+  function requestOnce({
+    url,
+    method,
+    headers,
+    body,
+    timeoutMs,
+    maxResponseBytes,
+  }) {
+    return new Promise((resolve, reject) => {
+      const client = createPolicyHttpsClient(policy.skillId, policy, {
+        ...deps,
+        timeoutMs,
+      });
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        callback(value);
+      };
+      let req;
+      try {
+        req = client.request(url, { method, headers }, (res) => {
+          const chunks = [];
+          let receivedBytes = 0;
+          res.on("data", (chunk) => {
+            const buffer = Buffer.isBuffer(chunk)
+              ? chunk
+              : Buffer.from(String(chunk));
+            receivedBytes += buffer.byteLength;
+            if (receivedBytes > maxResponseBytes) {
+              const error = brokerError(
+                "CC_BUNDLED_SKILL_NETWORK_RESPONSE_TOO_LARGE",
+                "Runtime network response exceeds the approved byte limit",
+              );
+              res.destroy?.(error);
+              req.destroy?.(error);
+              finish(reject, error);
+              return;
+            }
+            chunks.push(buffer);
+          });
+          res.on("error", (error) => finish(reject, error));
+          res.on("end", () =>
+            finish(resolve, {
+              status: Number(res.statusCode || 0),
+              statusText: String(res.statusMessage || ""),
+              headers: normalizeResponseHeaders(res.headers),
+              body: Buffer.concat(chunks).toString("utf8"),
+            }),
+          );
+        });
+      } catch (error) {
+        finish(reject, error);
+        return;
+      }
+      req.on?.("error", (error) => finish(reject, error));
+      if (body == null) {
+        req.end();
+      } else {
+        req.end(body);
+      }
+    });
+  }
+
+  async function request(requestOptions = {}) {
+    if (
+      !requestOptions ||
+      typeof requestOptions !== "object" ||
+      Array.isArray(requestOptions)
+    ) {
+      throw brokerError(
+        "CC_BUNDLED_SKILL_NETWORK_REQUEST_INVALID",
+        "Runtime network broker requires request options",
+      );
+    }
+    let currentUrl;
+    try {
+      currentUrl = new URL(String(requestOptions.url || ""));
+    } catch {
+      throw brokerError(
+        "CC_BUNDLED_SKILL_EGRESS_URL_INVALID",
+        "Runtime network broker requires a valid URL",
+      );
+    }
+    let method = String(requestOptions.method || "GET").toUpperCase();
+    if (!/^[A-Z]{1,16}$/.test(method)) {
+      throw brokerError(
+        "CC_BUNDLED_SKILL_NETWORK_METHOD_INVALID",
+        "Runtime network request method is invalid",
+      );
+    }
+    let body = serializeRequestBody(requestOptions.body);
+    if (body != null && chunkBytes(body) > DEFAULT_MAX_REQUEST_BYTES) {
+      throw brokerError(
+        "CC_BUNDLED_SKILL_EGRESS_REQUEST_TOO_LARGE",
+        "Runtime network request exceeds the approved byte limit",
+      );
+    }
+    let headers = normalizeRuntimeHeaders(requestOptions.headers || {}, body);
+    const maxResponseBytes = positiveInteger(
+      requestOptions.maxResponseBytes,
+      DEFAULT_MAX_RESPONSE_BYTES,
+      DEFAULT_MAX_RESPONSE_BYTES,
+    );
+    const timeoutMs = positiveInteger(
+      requestOptions.timeout,
+      DEFAULT_TIMEOUT_MS,
+      MAX_TIMEOUT_MS,
+    );
+    const startedAt = Date.now();
+
+    for (let redirectCount = 0; ; redirectCount += 1) {
+      const response = await requestOnce({
+        url: currentUrl,
+        method,
+        headers,
+        body,
+        timeoutMs,
+        maxResponseBytes,
+      });
+      const location = Array.isArray(response.headers.location)
+        ? response.headers.location[0]
+        : response.headers.location;
+      if (![301, 302, 303, 307, 308].includes(response.status) || !location) {
+        return Object.freeze({
+          ...response,
+          duration: Date.now() - startedAt,
+        });
+      }
+      if (redirectCount >= MAX_REDIRECTS) {
+        throw brokerError(
+          "CC_BUNDLED_SKILL_NETWORK_REDIRECT_LIMIT",
+          `Runtime network request exceeded ${MAX_REDIRECTS} redirects`,
+        );
+      }
+      let redirectedUrl;
+      try {
+        redirectedUrl = new URL(String(location), currentUrl);
+      } catch {
+        throw brokerError(
+          "CC_BUNDLED_SKILL_NETWORK_REDIRECT_INVALID",
+          "Runtime network response supplied an invalid redirect URL",
+        );
+      }
+      headers = headersForRedirect(headers, currentUrl, redirectedUrl);
+      if (
+        response.status === 303 ||
+        ((response.status === 301 || response.status === 302) &&
+          method === "POST")
+      ) {
+        method = "GET";
+        body = null;
+        for (const name of Object.keys(headers)) {
+          if (["content-length", "content-type"].includes(name.toLowerCase())) {
+            delete headers[name];
+          }
+        }
+      }
+      currentUrl = redirectedUrl;
+    }
+  }
+
+  const broker = Object.freeze({ request });
+  runtimeBrokerMetadata.set(broker, policy);
+  return broker;
+}
+
+function requireBundledSkillRuntimeNetworkBroker(context, skillId) {
+  const broker = context?.networkBroker;
+  const metadata =
+    broker && typeof broker === "object"
+      ? runtimeBrokerMetadata.get(broker)
+      : undefined;
+  if (!metadata || typeof broker.request !== "function") {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_BROKER_UNAVAILABLE",
+      "Trusted runtime network broker is unavailable; raw HTTP execution is disabled",
+    );
+  }
+  if (metadata.skillId !== skillId) {
+    throw brokerError(
+      "CC_BUNDLED_SKILL_NETWORK_AUTHORITY_MISMATCH",
+      `Runtime network broker is scoped to ${metadata.skillId}, not ${skillId}`,
+    );
+  }
+  return broker;
+}
+
 module.exports = {
   BUNDLED_SKILL_EGRESS_POLICIES,
   createBundledSkillHttpsClient,
+  createBundledSkillRuntimeNetworkBroker,
+  requireBundledSkillRuntimeNetworkBroker,
 };

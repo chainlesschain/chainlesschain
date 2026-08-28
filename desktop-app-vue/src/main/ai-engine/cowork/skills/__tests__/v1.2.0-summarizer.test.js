@@ -2,6 +2,7 @@
  * Unit tests for summarizer skill handler (v1.2.0)
  * Tests pure text summarization and _deps for URL/file operations
  */
+import { EventEmitter } from "node:events";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../utils/logger.js", () => ({
@@ -9,6 +10,44 @@ vi.mock("../../../../utils/logger.js", () => ({
 }));
 
 const handler = require("../builtin/summarizer/handler.js");
+const {
+  createBundledSkillRuntimeNetworkBroker,
+} = require("../bundled-skill-egress-broker.js");
+
+function createNetworkContext(body, allowedDomains = ["example.com"]) {
+  const https = {
+    request: vi.fn((_options, callback) => {
+      const req = new EventEmitter();
+      req.end = vi.fn();
+      req.destroy = vi.fn();
+      req.setTimeout = vi.fn();
+      const res = new EventEmitter();
+      res.statusCode = 200;
+      res.statusMessage = "OK";
+      res.headers = { "content-type": "text/html" };
+      res.destroy = vi.fn();
+      callback(res);
+      process.nextTick(() => {
+        res.emit("data", body);
+        res.emit("end");
+      });
+      return req;
+    }),
+  };
+  return {
+    https,
+    context: {
+      networkBroker: createBundledSkillRuntimeNetworkBroker(
+        {
+          skillId: "summarizer",
+          allowedDomains,
+          declassificationId: "test:summarizer",
+        },
+        { https, auditSink: vi.fn() },
+      ),
+    },
+  };
+}
 
 describe("summarizer handler", () => {
   beforeEach(() => {
@@ -170,39 +209,28 @@ describe("summarizer handler", () => {
 
   describe("execute() - auto-detect action", () => {
     it("should detect URL input", async () => {
-      // This will fail to fetch since we haven't mocked HTTP, but tests the routing
-      if (handler._deps) {
-        const { EventEmitter } = require("events");
-        handler._deps.https = {
-          get: vi.fn((url, opts, cb) => {
-            if (typeof opts === "function") {
-              cb = opts;
-            }
-            const res = new EventEmitter();
-            res.statusCode = 200;
-            process.nextTick(() => {
-              res.emit(
-                "data",
-                "<html><body><p>Hello world this is a test page with enough content to summarize properly for the algorithm.</p></body></html>",
-              );
-              res.emit("end");
-            });
-            if (cb) {
-              cb(res);
-            }
-            const req = new EventEmitter();
-            req.on = vi.fn().mockReturnThis();
-            return req;
-          }),
-        };
-      }
-      // Even if mock doesn't work perfectly, test the parsing
+      const { context } = createNetworkContext(
+        "<html><body><p>Hello world this is a test page with enough content to summarize properly for the algorithm.</p></body></html>",
+      );
       const result = await handler.execute(
         { input: "https://example.com" },
-        {},
+        context,
         {},
       );
       expect(result.action).toBe("summarize-url");
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject an unbranded network broker", async () => {
+      const request = vi.fn();
+      const result = await handler.execute(
+        { input: "https://example.com" },
+        { networkBroker: { request } },
+        {},
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Trusted runtime network broker");
+      expect(request).not.toHaveBeenCalled();
     });
   });
 

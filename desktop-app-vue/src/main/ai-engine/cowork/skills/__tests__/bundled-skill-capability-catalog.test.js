@@ -24,7 +24,7 @@ describe("bundled Skill capability catalog", () => {
     expect(result.stdout).toContain("filesystem:read=");
     expect(result.stdout).toContain("process:execute=");
     expect(result.stdout).toContain("network:http=");
-    expect(result.stdout).toContain("host:network=7");
+    expect(result.stdout).toContain("host:network=10");
   });
 
   it("keeps brokered HTTPS as an explicit network capability", async () => {

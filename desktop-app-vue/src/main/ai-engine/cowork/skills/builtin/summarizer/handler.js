@@ -6,12 +6,13 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const https = require("https");
-const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const {
+  requireBundledSkillRuntimeNetworkBroker,
+} = require("../../bundled-skill-egress-broker.js");
 
-const _deps = { https, http, fs, path };
+const _deps = { fs, path };
 
 const SENTENCES_FOR_SUMMARY = 5;
 const YOUTUBE_REGEX =
@@ -30,7 +31,7 @@ module.exports = {
     try {
       switch (parsed.action) {
         case "summarize-url":
-          return await handleSummarizeUrl(parsed.target);
+          return await handleSummarizeUrl(parsed.target, context);
         case "summarize-text":
           return handleSummarizeText(parsed.target);
         case "summarize-file":
@@ -74,7 +75,7 @@ function parseInput(input) {
   return { action: "summarize-text", target: trimmed };
 }
 
-async function handleSummarizeUrl(url) {
+async function handleSummarizeUrl(url, context) {
   if (!url) {
     return {
       success: false,
@@ -86,10 +87,10 @@ async function handleSummarizeUrl(url) {
   // Check if it's a YouTube URL
   const ytMatch = url.match(YOUTUBE_REGEX);
   if (ytMatch) {
-    return await handleYouTube(ytMatch[1], url);
+    return await handleYouTube(ytMatch[1], url, context);
   }
 
-  const content = await fetchUrl(url);
+  const content = await fetchUrl(url, context);
   if (!content) {
     return {
       success: false,
@@ -189,10 +190,10 @@ function handleSummarizeFile(filePath) {
   };
 }
 
-async function handleYouTube(videoId, originalUrl) {
+async function handleYouTube(videoId, originalUrl, context) {
   // Try to fetch video info page for title and description
   const infoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  const html = await fetchUrl(infoUrl);
+  const html = await fetchUrl(infoUrl, context);
 
   let title = "Unknown Video";
   let description = "";
@@ -368,49 +369,29 @@ function stripMarkdown(md) {
     .trim();
 }
 
-function fetchUrl(url) {
-  return new Promise((resolve) => {
-    const client = url.startsWith("https") ? _deps.https : _deps.http;
-
-    const request = client.get(
+async function fetchUrl(url, context) {
+  const networkBroker = requireBundledSkillRuntimeNetworkBroker(
+    context,
+    "summarizer",
+  );
+  try {
+    const response = await networkBroker.request({
       url,
-      {
-        headers: {
-          "User-Agent": "ChainlessChain/1.2.0",
-          Accept: "text/html,application/xhtml+xml,text/plain,*/*",
-        },
-        timeout: 15000,
+      method: "GET",
+      headers: {
+        "User-Agent": "ChainlessChain/1.2.0",
+        Accept: "text/html,application/xhtml+xml,text/plain,*/*",
       },
-      (res) => {
-        // Handle redirects
-        if (
-          res.statusCode >= 300 &&
-          res.statusCode < 400 &&
-          res.headers.location
-        ) {
-          fetchUrl(res.headers.location)
-            .then(resolve)
-            .catch(() => resolve(null));
-          return;
-        }
-
-        if (res.statusCode !== 200) {
-          resolve(null);
-          return;
-        }
-
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => resolve(data));
-      },
-    );
-
-    request.on("error", () => resolve(null));
-    request.on("timeout", () => {
-      request.destroy();
-      resolve(null);
+      timeout: 15_000,
+      maxResponseBytes: 2 * 1024 * 1024,
     });
-  });
+    return response.status === 200 ? response.body : null;
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_")) {
+      throw error;
+    }
+    return null;
+  }
 }
 
 const STOP_WORDS = new Set([
