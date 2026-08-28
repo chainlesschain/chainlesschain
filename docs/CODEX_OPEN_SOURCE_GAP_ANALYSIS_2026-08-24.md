@@ -2144,6 +2144,17 @@ P1-11 仍保持“部分完成”：仓库现在已有 OpenAI、Google API key �
 
 P1-9 继续保持“部分完成”：共享语料现由 Graph、Desktop、VS Code 与 JetBrains 消费；仍需 Android/iOS/Web 接入、JetBrains/移动端/Web 的可审阅持久 grant UI、各客户端多人 quorum/职责分离产品面，以及 §12.52～§12.53 协议/SDK/CLI 增量的精确 SHA 三平台权威门禁、发布与 registry/provenance 回读。
 
+### 12.58 P1-11 Google OAuth、Notion、Tavily 加密产品配置（2026-08-28）
+
+`1b1faa7202` 关闭 §12.56 保留的第三方凭据产品入口，不再要求用户通过宿主环境变量向 bundled Skill 注入秘密：
+
+- 新增独立 `bundled-skill-credentials.enc`，只允许 Google OAuth client ID/client secret/refresh token/access token、Notion API key 与 Tavily API key 六个固定键，单值最多 16 KiB。存储版本、键和值在每次读取时重新校验；密文不存在时返回未配置，密文损坏、版本漂移或持久化失败时统一失败关闭。
+- main process 新增 `credential-status`、`set-credential`、`clear-credential` 三个固定 IPC capability。renderer 只能查询布尔配置状态，不能读回已存明文；写入/清除必须经过 `PreToolUse` Hook，Hook 只接收操作、固定键、值字节数和 SHA-256，不接收 secret 本身。Hook 缺失、报错或拒绝均不会改变存储。
+- System Settings 新增“Skill 凭据”面板，输入只用于一次写入，保存后立即清空；preload 没有暴露任意 key/value 读取能力。生产 environment authority 仅在 Skill 执行审批与 policy authorization 均通过后，从 main-owned encrypted store 解析六个键，并继续禁止 `process.env` fallback。OpenAI、Google API key 与 GitHub token 仍分别复用既有 safeStorage-backed LLM/Git 配置。
+- 完整 bundled Skill 回归为 69 files、1,100/1,100，preload 与 SystemSettings 回归为 2 files、5/5；`vue-tsc --noEmit`、严格 ESLint、Prettier、145/145 capability audit 与 `git diff --check` 全部通过。本切片没有形成签名 Desktop 安装包，也没有改变公开包版本。
+
+P1-11 继续保持“部分完成”，但仓库内已无已知 bundled Skill capability、filesystem/environment/process/network authority、审批/去分类接线或产品凭据入口缺口。唯一剩余关闭条件是：对同一精确提交在 Linux、Windows、macOS 生成受信签名安装包，完成真实安装、启动与对应 Skill 旅程，并保留可核验的权威矩阵；本地单测、未签名包或不同 SHA 的分散结果都不能替代该验收。
+
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：12 项已完成、14 项部分完成、0 项待完成。
