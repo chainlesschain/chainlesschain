@@ -560,8 +560,11 @@ export async function runTeamFairnessSoak({
         scopeWaiter?.queueWaitMs >= profile.scopeHoldMs &&
         scopeWaiter.queueWaitMs <= profile.queueWaitSloMs,
       nonConflictingLowAged:
-        independent?.schedulingPriority?.sloUrgent === true &&
-        independent?.schedulingPriority?.aging > 0,
+        independent?.queueWaitMs >= profile.agingWindowMs &&
+        independent?.schedulingPriority?.aging > 0 &&
+        independent?.schedulingPriority?.total >= 2 &&
+        Date.parse(independent?.claimedAt) >= producerStartMs &&
+        Date.parse(independent?.claimedAt) <= producerCompletedMs,
       nonConflictingLowServedWithinSlo:
         independent?.queueWaitMs >= 0 &&
         independent.queueWaitMs <= profile.queueWaitSloMs,
@@ -737,10 +740,11 @@ export function validateTeamFairnessEvidence(value, options = {}) {
   }
   if (
     !Number.isFinite(independent?.queueWaitMs) ||
-    independent.queueWaitMs < 0 ||
+    independent.queueWaitMs < value?.profile?.agingWindowMs ||
     independent.queueWaitMs > slo ||
-    independent?.schedulingPriority?.sloUrgent !== true ||
-    independent?.schedulingPriority?.aging <= 0
+    independent?.schedulingPriority?.aging <= 0 ||
+    independent?.schedulingPriority?.total < 2 ||
+    !Number.isFinite(Date.parse(independent?.claimedAt))
   ) {
     issues.push("aging observation");
   }

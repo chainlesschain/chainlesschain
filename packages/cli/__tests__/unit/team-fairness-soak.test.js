@@ -104,8 +104,9 @@ function formalEvidence(operatingSystem) {
       },
       scopeWaiter: { queueWaitMs: 8_010 },
       independentLow: {
+        claimedAt: "2026-08-29T00:00:05.100Z",
         queueWaitMs: 7_550,
-        schedulingPriority: { sloUrgent: true, aging: 3 },
+        schedulingPriority: { sloUrgent: true, aging: 3, total: 3 },
       },
       scopeDonationCount: 1,
       firstScopeDonation: {
@@ -174,9 +175,17 @@ describe("Team fairness soak", () => {
         dependencyLow: {
           schedulingPriority: { donation: 2, criticalPathBoost: 1 },
         },
-        independentLow: { schedulingPriority: { sloUrgent: true } },
+        independentLow: {
+          schedulingPriority: { aging: expect.any(Number) },
+        },
         scopeDonationCount: expect.any(Number),
       });
+      expect(
+        report.observations.independentLow.schedulingPriority.aging,
+      ).toBeGreaterThan(0);
+      expect(
+        report.observations.independentLow.schedulingPriority.total,
+      ).toBeGreaterThanOrEqual(2);
       expect(JSON.parse(readFileSync(output, "utf8"))).toEqual(report);
     },
   );
@@ -184,6 +193,19 @@ describe("Team fairness soak", () => {
   it("rejects a forged passing boolean when the queue wait exceeded the SLO", () => {
     const evidence = formalEvidence("linux");
     evidence.observations.independentLow.queueWaitMs = 10_001;
+    signEvidence(evidence);
+
+    expect(() =>
+      validateTeamFairnessEvidence(evidence, {
+        releaseCommit: RELEASE_COMMIT,
+        mode: "formal",
+      }),
+    ).toThrow(/aging observation/u);
+  });
+
+  it("rejects an aging claim made before one complete aging window", () => {
+    const evidence = formalEvidence("linux");
+    evidence.observations.independentLow.queueWaitMs = 2_499;
     signEvidence(evidence);
 
     expect(() =>
