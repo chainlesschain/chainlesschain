@@ -93,22 +93,18 @@ describe("FederatedLearningManager", () => {
       const calls = mockDb.exec.mock.calls.map((c) => c[0]);
 
       // Should create federated_rounds table
-      const roundsTable = calls.find((c) =>
-        c.includes("federated_rounds")
-      );
+      const roundsTable = calls.find((c) => c.includes("federated_rounds"));
       expect(roundsTable).toBeDefined();
       expect(roundsTable).toContain("CREATE TABLE IF NOT EXISTS");
 
       // Should create federated_peers table
-      const peersTable = calls.find((c) =>
-        c.includes("federated_peers")
-      );
+      const peersTable = calls.find((c) => c.includes("federated_peers"));
       expect(peersTable).toBeDefined();
       expect(peersTable).toContain("CREATE TABLE IF NOT EXISTS");
 
       // Should create indexes
       const indexCalls = calls.filter((c) =>
-        c.includes("CREATE INDEX IF NOT EXISTS")
+        c.includes("CREATE INDEX IF NOT EXISTS"),
       );
       expect(indexCalls.length).toBeGreaterThanOrEqual(2);
     });
@@ -158,7 +154,7 @@ describe("FederatedLearningManager", () => {
 
     it("should throw if modelId is missing", async () => {
       await expect(manager.createRound({})).rejects.toThrow(
-        "modelId is required"
+        "modelId is required",
       );
     });
 
@@ -168,7 +164,7 @@ describe("FederatedLearningManager", () => {
       // The prepare call for INSERT should have been made
       const prepareCalls = mockDb.prepare.mock.calls;
       const insertCall = prepareCalls.find((c) =>
-        c[0].includes("INSERT INTO federated_rounds")
+        c[0].includes("INSERT INTO federated_rounds"),
       );
       expect(insertCall).toBeDefined();
     });
@@ -241,9 +237,9 @@ describe("FederatedLearningManager", () => {
         });
       });
 
-      await expect(
-        manager.joinRound("nonexistent", "peer-1")
-      ).rejects.toThrow("Round nonexistent not found");
+      await expect(manager.joinRound("nonexistent", "peer-1")).rejects.toThrow(
+        "Round nonexistent not found",
+      );
     });
 
     it("should throw if round is not recruiting", async () => {
@@ -261,17 +257,17 @@ describe("FederatedLearningManager", () => {
         return makePrepStmt();
       });
 
-      await expect(
-        manager.joinRound("round-1", "peer-1")
-      ).rejects.toThrow("not accepting participants");
+      await expect(manager.joinRound("round-1", "peer-1")).rejects.toThrow(
+        "not accepting participants",
+      );
     });
 
     it("should throw if roundId or peerId is missing", async () => {
       await expect(manager.joinRound(null, "peer-1")).rejects.toThrow(
-        "roundId and peerId are required"
+        "roundId and peerId are required",
       );
       await expect(manager.joinRound("round-1", null)).rejects.toThrow(
-        "roundId and peerId are required"
+        "roundId and peerId are required",
       );
     });
 
@@ -331,7 +327,7 @@ describe("FederatedLearningManager", () => {
       });
 
       await expect(
-        manager.leaveRound("round-1", "unknown-peer")
+        manager.leaveRound("round-1", "unknown-peer"),
       ).rejects.toThrow("Peer unknown-peer not found in round round-1");
     });
 
@@ -371,7 +367,7 @@ describe("FederatedLearningManager", () => {
         }
         if (
           sql.includes(
-            "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ?"
+            "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ?",
           )
         ) {
           return makePrepStmt({
@@ -397,7 +393,7 @@ describe("FederatedLearningManager", () => {
       const result = await manager.submitGradients(
         "round-1",
         "peer-a",
-        [0.1, 0.2, 0.3]
+        [0.1, 0.2, 0.3],
       );
 
       expect(result).toBeDefined();
@@ -409,11 +405,11 @@ describe("FederatedLearningManager", () => {
 
     it("should throw if gradients is not a non-empty array", async () => {
       await expect(
-        manager.submitGradients("round-1", "peer-a", [])
+        manager.submitGradients("round-1", "peer-a", []),
       ).rejects.toThrow("Gradients must be a non-empty array");
 
       await expect(
-        manager.submitGradients("round-1", "peer-a", "not-array")
+        manager.submitGradients("round-1", "peer-a", "not-array"),
       ).rejects.toThrow("Gradients must be a non-empty array");
     });
 
@@ -425,7 +421,7 @@ describe("FederatedLearningManager", () => {
       });
 
       await expect(
-        manager.submitGradients("bad-round", "peer-a", [1, 2])
+        manager.submitGradients("bad-round", "peer-a", [1, 2]),
       ).rejects.toThrow("Round bad-round not found");
     });
 
@@ -442,7 +438,7 @@ describe("FederatedLearningManager", () => {
         }
         if (
           sql.includes(
-            "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ?"
+            "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ?",
           )
         ) {
           return makePrepStmt({
@@ -497,7 +493,7 @@ describe("FederatedLearningManager", () => {
         }
         if (
           sql.includes(
-            "SELECT * FROM federated_peers WHERE round_id = ? AND status = 'submitted'"
+            "SELECT * FROM federated_peers WHERE round_id = ? AND status = 'submitted'",
           )
         ) {
           return makePrepStmt({
@@ -547,7 +543,7 @@ describe("FederatedLearningManager", () => {
       });
 
       await expect(manager.aggregate("round-1")).rejects.toThrow(
-        "No gradients available"
+        "No gradients available",
       );
     });
 
@@ -757,7 +753,7 @@ describe("FederatedLearningManager", () => {
 
     it("should throw if roundId is missing", async () => {
       await expect(manager.getPeers(null)).rejects.toThrow(
-        "roundId is required"
+        "roundId is required",
       );
     });
   });
@@ -796,9 +792,29 @@ describe("FederatedLearningManager", () => {
         });
       });
 
-      await expect(
-        manager.getGlobalModel("nonexistent")
-      ).rejects.toThrow("Round nonexistent not found");
+      await expect(manager.getGlobalModel("nonexistent")).rejects.toThrow(
+        "Round nonexistent not found",
+      );
+    });
+  });
+
+  describe("destroy()", () => {
+    it("releases transport handlers and retained round state", () => {
+      const dispose = vi.fn();
+      const transport = { destroy: vi.fn() };
+      manager._disposeModelSyncHandler = dispose;
+      manager.modelSync = transport;
+      manager.dpInstances.set("round-1", {});
+      manager.gradientStore.set("round-1", new Map());
+      manager.initialized = true;
+
+      manager.destroy();
+
+      expect(dispose).toHaveBeenCalledOnce();
+      expect(transport.destroy).toHaveBeenCalledOnce();
+      expect(manager.dpInstances.size).toBe(0);
+      expect(manager.gradientStore.size).toBe(0);
+      expect(manager.initialized).toBe(false);
     });
   });
 });

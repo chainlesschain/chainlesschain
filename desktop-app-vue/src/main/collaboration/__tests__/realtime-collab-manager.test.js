@@ -221,7 +221,7 @@ describe("RealtimeCollabManager", () => {
     it("should store update and return success", async () => {
       const result = await manager.syncUpdate(
         "doc-1",
-        "binary-data",
+        Uint8Array.from([1, 2, 3]),
         "did:user:1",
         5,
       );
@@ -234,7 +234,12 @@ describe("RealtimeCollabManager", () => {
       const callback = vi.fn();
       manager.subscribeToChanges("doc-1", callback);
 
-      await manager.syncUpdate("doc-1", "binary-data", "did:user:1", 5);
+      await manager.syncUpdate(
+        "doc-1",
+        Uint8Array.from([1, 2, 3]),
+        "did:user:1",
+        5,
+      );
 
       expect(callback).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -952,7 +957,7 @@ describe("RealtimeCollabManager", () => {
 
       unsubscribe();
 
-      expect(manager.documentSubscribers.get("doc-1").size).toBe(0);
+      expect(manager.documentSubscribers.has("doc-1")).toBe(false);
     });
 
     it("should support multiple subscribers for the same document", () => {

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const OUTPUT_TAIL_LIMIT = 1024 * 1024;
 const WORKER_POOL_ERROR = "[vitest-pool]: Worker forks emitted error.";
 const UNEXPECTED_EXIT_ERROR = "Worker exited unexpectedly";
+const WORKER_EPIPE_ERROR = "Caused by: Error: write EPIPE";
 const require = createRequire(import.meta.url);
 const vitestCliPath = path.join(
   path.dirname(require.resolve("vitest/package.json")),
@@ -121,7 +122,8 @@ export function isRetryableVitestWorkerFailure({
   const exactWorkerFailure =
     typeof output === "string" &&
     output.includes(WORKER_POOL_ERROR) &&
-    output.includes(UNEXPECTED_EXIT_ERROR);
+    (output.includes(UNEXPECTED_EXIT_ERROR) ||
+      output.includes(WORKER_EPIPE_ERROR));
   return (
     exitCode !== 0 &&
     ((exactWorkerFailure && junitHasTestsAndNoFailures(junitXml)) ||

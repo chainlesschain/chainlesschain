@@ -778,9 +778,11 @@ class OrgKnowledgeSyncManager extends EventEmitter {
 
       // Apply Yjs update
       if (this.yjsCollabManager) {
-        const ydoc = this.yjsCollabManager.getDocument(docId);
-        const Y = require("yjs");
-        Y.applyUpdate(ydoc, new Uint8Array(update), "network");
+        this.yjsCollabManager.applyUpdate(
+          docId,
+          new Uint8Array(update),
+          "network",
+        );
       }
     } catch (error) {
       logger.error("[OrgKnowledgeSync] Error handling Yjs update:", error);
@@ -798,6 +800,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       if (this.yjsCollabManager) {
         const awarenessState = this.yjsCollabManager.getAwareness(docId);
         this.yjsCollabManager._applyAwarenessUpdate(
+          docId,
           awarenessState,
           new Uint8Array(awareness),
           from,

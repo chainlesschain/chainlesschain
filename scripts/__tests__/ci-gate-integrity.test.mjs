@@ -413,6 +413,10 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   const collabContractTests = [
     "src/main/collaboration/__tests__/collab-boundaries.test.js",
+    "src/main/collaboration/__tests__/collab-recovery-conformance.test.js",
+    "src/main/collaboration/__tests__/collab-retained-state.test.js",
+    "src/main/collaboration/__tests__/org-knowledge-sync-manager.test.js",
+    "src/main/collaboration/__tests__/realtime-collab-manager.test.js",
     "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
     "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
     "src/main/collab/__tests__/collab.test.js",
@@ -424,9 +428,13 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   ];
   const collabSources = [
     "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/collaboration/__tests__/fixtures/yjs-crash-writer.mjs",
     "desktop-app-vue/src/main/collaboration/collab-boundaries.js",
     "desktop-app-vue/src/main/collaboration/yjs-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/realtime-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/org-knowledge-sync-manager.js",
     "desktop-app-vue/src/main/collaboration/realtime-collab-ipc.js",
+    "desktop-app-vue/src/main/collab/collab-session-manager.js",
     "desktop-app-vue/src/main/collab/collab-ipc.js",
     "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
     "desktop-app-vue/src/preload/index.js",
@@ -450,6 +458,137 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
         `${collabSource} must select ${relatedTest}`,
       );
     }
+  }
+
+  const orgKnowledgeSyncContract =
+    "tests/unit/enterprise/org-knowledge-sync.test.js";
+  for (const yjsOrgSource of [
+    "desktop-app-vue/src/main/collaboration/yjs-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/org-knowledge-sync-manager.js",
+  ]) {
+    const sourceSelection = selector.createSelection([yjsOrgSource]);
+    assert.ok(
+      sourceSelection.selectedTests.includes(orgKnowledgeSyncContract),
+      `${yjsOrgSource} must select ${orgKnowledgeSyncContract}`,
+    );
+  }
+
+  const federatedTransportContracts = [
+    "src/main/federated/__tests__/model-parameter-sync-boundaries.test.js",
+    "src/main/federated/__tests__/federated-learning-manager.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const federatedTransportSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/federated/federated-transport-boundaries.js",
+    "desktop-app-vue/src/main/federated/model-parameter-sync.js",
+    "desktop-app-vue/src/main/federated/federated-learning-manager.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-31-ai-models.js",
+  ];
+  for (const source of federatedTransportSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of federatedTransportContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const socialCollabContracts = [
+    "src/main/social/__tests__/collab-sync-boundaries.test.js",
+    "src/main/social/__tests__/collab-engine.test.js",
+    "src/main/social/__tests__/collab-awareness.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const socialCollabSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/social/social-collab-boundaries.js",
+    "desktop-app-vue/src/main/social/social-collab-transport.js",
+    "desktop-app-vue/src/main/social/collab-sync.js",
+    "desktop-app-vue/src/main/social/collab-social-ipc.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-3-4-social.js",
+  ];
+  for (const source of socialCollabSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of socialCollabContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const gossipContracts = [
+    "src/main/social/__tests__/gossip-boundaries.test.js",
+    "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
+    "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+  ];
+  const gossipSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/social/gossip-boundaries.js",
+    "desktop-app-vue/src/main/social/gossip-protocol.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+  ];
+  for (const source of gossipSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of gossipContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const meshSocialContracts = [
+    "src/main/social/__tests__/mesh-social-boundaries.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+  ];
+  const meshSocialSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/social/mesh-social-boundaries.js",
+    "desktop-app-vue/src/main/social/mesh-social.js",
+    "desktop-app-vue/src/main/social/future-ipc.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-3-4-social.js",
+  ];
+  for (const source of meshSocialSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of meshSocialContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const graphFixtureMappings = new Map([
+    [
+      "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
+      "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
+    ],
+    ...["main.cjs", "preload.cjs", "renderer.html", "package.json"].map(
+      (fixtureName) => [
+        `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/${fixtureName}`,
+        "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
+      ],
+    ),
+    [
+      "desktop-app-vue/scripts/graph-packaged-electron-journey.mjs",
+      "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js",
+    ],
+  ]);
+  for (const [fixturePath, contractTest] of graphFixtureMappings) {
+    const fixtureSelection = selector.createSelection([fixturePath]);
+    assert.equal(fixtureSelection.mode, "targeted");
+    assert.ok(
+      fixtureSelection.selectedTests.includes(contractTest),
+      `${fixturePath} must select ${contractTest}`,
+    );
   }
 
   const command = selector.commandForSelection(selection, {
@@ -541,6 +680,43 @@ test("selector maps exact Windows sandbox support paths to CLI contracts", () =>
     cliWindowsSandboxContractTests,
   );
   assert.ok(!command.args.includes("--pool=threads"));
+});
+
+test("selector maps graph compiler changes to the CLI compiler contract", () => {
+  const compilerPath = "packages/cli/src/lib/graph-kernel/compiler.js";
+  const compilerTest = "__tests__/unit/graph-kernel-compiler.test.js";
+  const selection = selector.createSelection([compilerPath]);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, [compilerTest]);
+  assert.deepEqual(selection.mappings, [
+    {
+      file: compilerPath,
+      suite: "cli-unit",
+      tests: [compilerTest],
+    },
+  ]);
+});
+
+test("selector maps team authority contract updates to exact CLI tests", () => {
+  const changedTests = [
+    "packages/cli/__tests__/unit/team-command-broker.test.js",
+    "packages/cli/__tests__/unit/team-runner-scope.test.js",
+  ];
+  const expectedTests = [
+    "__tests__/unit/team-command-broker.test.js",
+    "__tests__/unit/team-runner-scope.test.js",
+  ];
+  const selection = selector.createSelection(changedTests);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, expectedTests);
+  assert.deepEqual(
+    selection.mappings.map((mapping) => mapping.tests),
+    expectedTests.map((testFile) => [testFile]),
+  );
 });
 
 test("selector changes run integrity and CLI contracts without desktop fallback", () => {

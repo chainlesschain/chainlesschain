@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* global require */
 "use strict";
 
 const { contextBridge, ipcRenderer } = require("electron");

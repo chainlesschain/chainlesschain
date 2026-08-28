@@ -1,558 +1,417 @@
 /**
  * Social Collaboration Sync
  *
- * P2P document synchronization protocol for social collaborative editing.
- * Handles real-time sync of document updates between peers using the
- * /chainlesschain/social-collab/1.0.0 protocol.
+ * Bounded P2P document synchronization for social collaborative editing.
+ * Transport framing and lifecycle are owned by SocialCollabTransport; this
+ * module owns only document/peer session state and Yjs integration.
  *
  * @module social/collab-sync
  * @version 0.41.0
  */
 
-const { logger } = require("../utils/logger.js");
+"use strict";
+
 const EventEmitter = require("events");
-
-/**
- * Protocol identifier for social collaboration sync
- */
-const PROTOCOL_SOCIAL_COLLAB = "/chainlesschain/social-collab/1.0.0";
-
-/**
- * Message types for the sync protocol
- */
-const MessageType = {
-  UPDATE: "update",
-  FULL_STATE_REQUEST: "full_state_request",
-  FULL_STATE_RESPONSE: "full_state_response",
-  SYNC_START: "sync_start",
-  SYNC_STOP: "sync_stop",
-};
+const { logger } = require("../utils/logger.js");
+const {
+  SOCIAL_COLLAB_MESSAGE_TYPES: MessageType,
+  SocialCollabBoundaryError,
+  createSocialCollabBoundaries,
+  assertSocialDocumentId,
+  assertSocialPeerId,
+  normalizeSocialCollabUpdate,
+  normalizeSocialCollabMessage,
+} = require("./social-collab-boundaries");
+const {
+  SocialCollabTransport,
+  PROTOCOL_SOCIAL_COLLAB,
+} = require("./social-collab-transport");
 
 class CollabSync extends EventEmitter {
-  /**
-   * @param {Object} p2pManager - P2P network manager
-   * @param {Object} yjsCollabManager - Yjs collaboration manager (optional)
-   */
-  constructor(p2pManager, yjsCollabManager = null) {
+  constructor(p2pManager, yjsCollabManager = null, options = {}) {
     super();
-
     this.p2pManager = p2pManager;
     this.yjsCollabManager = yjsCollabManager;
-
-    // Active sync sessions: docId -> { peers: Set<peerId>, active: boolean }
+    this.boundaries = createSocialCollabBoundaries(options.boundaries || {});
+    this.transport = null;
     this.syncSessions = new Map();
-
-    // Pending updates queue: docId -> [{ peerId, data, timestamp }]
-    this.pendingUpdates = new Map();
-
     this.initialized = false;
+    this._destroyed = false;
   }
 
-  /**
-   * Initialize the sync module
-   */
   async initialize() {
+    if (this._destroyed) {
+      throw this._destroyedError();
+    }
+    if (this.initialized) {
+      return;
+    }
     logger.info("[CollabSync] Initializing...");
-
+    const transport = new SocialCollabTransport({
+      p2pManager: this.p2pManager,
+      boundaries: this.boundaries,
+      onMessage: (peerId, message) =>
+        this.handleIncomingUpdate(peerId, message),
+    });
+    transport.on("peer:connected", (peerId) =>
+      this._handlePeerConnected(peerId),
+    );
+    transport.on("peer:disconnected", (peerId) =>
+      this._handlePeerDisconnected(peerId),
+    );
+    transport.on("boundary-error", (error) =>
+      this.emit("boundary-error", error),
+    );
     try {
-      this._setupP2PListeners();
+      await transport.initialize();
+      this.transport = transport;
       this.initialized = true;
       logger.info("[CollabSync] Initialized successfully");
     } catch (error) {
+      await transport.destroy().catch(() => {});
       logger.error("[CollabSync] Initialization failed:", error);
       throw error;
     }
   }
 
-  /**
-   * Set up P2P protocol handlers
-   */
-  _setupP2PListeners() {
-    if (!this.p2pManager) {
-      logger.warn("[CollabSync] P2P manager not available, sync disabled");
-      return;
-    }
-
-    // Handle incoming sync protocol messages
-    if (
-      this.p2pManager.node &&
-      typeof this.p2pManager.node.handle === "function"
-    ) {
-      this.p2pManager.node.handle(
-        PROTOCOL_SOCIAL_COLLAB,
-        async ({ stream, connection }) => {
-          try {
-            const peerId = connection.remotePeer.toString();
-            await this._handleIncomingStream(peerId, stream);
-          } catch (error) {
-            logger.error("[CollabSync] Error handling incoming stream:", error);
-          }
-        },
-      );
-    }
-
-    // Listen for peer connection/disconnection events
-    if (typeof this.p2pManager.on === "function") {
-      this.p2pManager.on("peer:connected", ({ peerId }) => {
-        this._handlePeerConnected(peerId);
-      });
-
-      this.p2pManager.on("peer:disconnected", ({ peerId }) => {
-        this._handlePeerDisconnected(peerId);
-      });
-    }
-
-    logger.info("[CollabSync] P2P listeners configured");
-  }
-
-  /**
-   * Start syncing a document with a specific peer
-   * @param {string} docId - Document ID
-   * @param {string} peerId - Peer ID to sync with
-   * @returns {Object} Result
-   */
   async startSync(docId, peerId) {
-    try {
-      if (!docId || !peerId) {
-        throw new Error("Document ID and peer ID are required");
+    this._requireReady();
+    const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+    const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+    const { session, created } = this._ensureSession(normalizedDocId);
+    const alreadyRetained = session.peers.has(normalizedPeerId);
+    if (
+      !alreadyRetained &&
+      session.peers.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      if (created) {
+        this.syncSessions.delete(normalizedDocId);
       }
-
-      // Initialize sync session if not exists
-      if (!this.syncSessions.has(docId)) {
-        this.syncSessions.set(docId, { peers: new Set(), active: true });
-      }
-
-      const session = this.syncSessions.get(docId);
-      session.peers.add(peerId);
-      session.active = true;
-
-      // Send sync start message to peer
-      await this._sendMessage(peerId, {
-        type: MessageType.SYNC_START,
-        docId,
-        timestamp: Date.now(),
-      });
-
-      // Request full state from peer to ensure we're in sync
-      await this.requestFullState(docId, peerId);
-
-      this.emit("sync:connected", { docId, peerId });
-      logger.info(
-        `[CollabSync] Sync started for doc ${docId} with peer ${peerId}`,
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PEER_CAPACITY",
+        `Document already retains ${this.boundaries.maxPeersPerDocument} peers`,
+        { docId: normalizedDocId, limit: this.boundaries.maxPeersPerDocument },
       );
+    }
 
-      return { success: true, docId, peerId };
+    session.peers.add(normalizedPeerId);
+    session.active = true;
+    const deadlineAt = this.transport.createDeadline();
+    try {
+      await this._sendMessage(
+        normalizedPeerId,
+        {
+          type: MessageType.SYNC_START,
+          docId: normalizedDocId,
+          timestamp: Date.now(),
+        },
+        deadlineAt,
+      );
+      await this._sendMessage(
+        normalizedPeerId,
+        {
+          type: MessageType.FULL_STATE_REQUEST,
+          docId: normalizedDocId,
+          timestamp: Date.now(),
+        },
+        deadlineAt,
+      );
     } catch (error) {
-      logger.error("[CollabSync] Error starting sync:", error);
+      if (!alreadyRetained) {
+        session.peers.delete(normalizedPeerId);
+      }
+      if (session.peers.size === 0) {
+        this.syncSessions.delete(normalizedDocId);
+      }
       throw error;
     }
+
+    this.emit("sync:connected", {
+      docId: normalizedDocId,
+      peerId: normalizedPeerId,
+    });
+    logger.info(
+      `[CollabSync] Sync started for doc ${normalizedDocId} with peer ${normalizedPeerId}`,
+    );
+    return {
+      success: true,
+      docId: normalizedDocId,
+      peerId: normalizedPeerId,
+    };
   }
 
-  /**
-   * Stop syncing a document (with all peers or a specific peer)
-   * @param {string} docId - Document ID
-   * @param {string} [peerId] - Optional specific peer to stop syncing with
-   * @returns {Object} Result
-   */
   async stopSync(docId, peerId = null) {
-    try {
-      if (!docId) {
-        throw new Error("Document ID is required");
+    this._requireReady();
+    const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+    const session = this.syncSessions.get(normalizedDocId);
+    if (!session) {
+      return { success: true };
+    }
+
+    const deadlineAt = this.transport.createDeadline();
+    if (peerId !== null && peerId !== undefined) {
+      const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+      session.peers.delete(normalizedPeerId);
+      if (session.peers.size === 0) {
+        this.syncSessions.delete(normalizedDocId);
       }
-
-      const session = this.syncSessions.get(docId);
-      if (!session) {
-        return { success: true };
-      }
-
-      if (peerId) {
-        // Stop sync with specific peer
-        session.peers.delete(peerId);
-
-        await this._sendMessage(peerId, {
+      await this._sendMessage(
+        normalizedPeerId,
+        {
           type: MessageType.SYNC_STOP,
-          docId,
+          docId: normalizedDocId,
           timestamp: Date.now(),
-        }).catch(() => {
-          // Peer may already be disconnected
+        },
+        deadlineAt,
+      ).catch(() => {});
+      this.emit("sync:disconnected", {
+        docId: normalizedDocId,
+        peerId: normalizedPeerId,
+      });
+    } else {
+      const peers = [...session.peers];
+      this.syncSessions.delete(normalizedDocId);
+      for (const retainedPeerId of peers) {
+        await this._sendMessage(
+          retainedPeerId,
+          {
+            type: MessageType.SYNC_STOP,
+            docId: normalizedDocId,
+            timestamp: Date.now(),
+          },
+          deadlineAt,
+        ).catch(() => {});
+        this.emit("sync:disconnected", {
+          docId: normalizedDocId,
+          peerId: retainedPeerId,
         });
+      }
+    }
+    return { success: true };
+  }
 
-        this.emit("sync:disconnected", { docId, peerId });
-        logger.info(
-          `[CollabSync] Sync stopped for doc ${docId} with peer ${peerId}`,
+  async broadcastUpdate(docId, update) {
+    this._requireReady();
+    const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+    const updateBytes = normalizeSocialCollabUpdate(update, this.boundaries);
+    const session = this.syncSessions.get(normalizedDocId);
+    if (!session?.active || session.peers.size === 0) {
+      return { success: true, peersNotified: 0 };
+    }
+
+    const message = {
+      type: MessageType.UPDATE,
+      docId: normalizedDocId,
+      data: Array.from(updateBytes),
+      timestamp: Date.now(),
+    };
+    const deadlineAt = this.transport.createDeadline();
+    let peersNotified = 0;
+    for (const retainedPeerId of session.peers) {
+      try {
+        await this._sendMessage(retainedPeerId, message, deadlineAt);
+        peersNotified += 1;
+      } catch (error) {
+        logger.warn(
+          `[CollabSync] Failed to send update to peer ${retainedPeerId}:`,
+          error.message,
         );
+      }
+    }
+    this.emit("sync:update", { docId: normalizedDocId, peersNotified });
+    return { success: true, peersNotified };
+  }
 
-        if (session.peers.size === 0) {
-          session.active = false;
+  async requestFullState(docId, peerId) {
+    this._requireReady();
+    const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+    const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+    await this._sendMessage(normalizedPeerId, {
+      type: MessageType.FULL_STATE_REQUEST,
+      docId: normalizedDocId,
+      timestamp: Date.now(),
+    });
+    return { success: true };
+  }
+
+  async handleIncomingUpdate(peerId, data) {
+    if (this._destroyed) {
+      throw this._destroyedError();
+    }
+    const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+    const message = normalizeSocialCollabMessage(data, this.boundaries);
+    const { type, docId } = message;
+
+    switch (type) {
+      case MessageType.UPDATE:
+      case MessageType.FULL_STATE_RESPONSE: {
+        const updateBytes = normalizeSocialCollabUpdate(
+          message.data,
+          this.boundaries,
+        );
+        if (this.yjsCollabManager) {
+          this.yjsCollabManager.applyUpdate(docId, updateBytes, "network");
+        }
+        this.emit("sync:update", {
+          docId,
+          peerId: normalizedPeerId,
+          ...(type === MessageType.UPDATE
+            ? { data: updateBytes }
+            : { fullState: true }),
+        });
+        break;
+      }
+
+      case MessageType.FULL_STATE_REQUEST: {
+        if (this.yjsCollabManager) {
+          const Y = require("yjs");
+          const ydoc = this.yjsCollabManager.getDocument(docId);
+          const state = Y.encodeStateAsUpdate(ydoc);
+          await this._sendMessage(normalizedPeerId, {
+            type: MessageType.FULL_STATE_RESPONSE,
+            docId,
+            data: Array.from(state),
+            timestamp: Date.now(),
+          });
+        }
+        break;
+      }
+
+      case MessageType.SYNC_START:
+        this._retainPeer(docId, normalizedPeerId);
+        this.emit("sync:connected", {
+          docId,
+          peerId: normalizedPeerId,
+        });
+        break;
+
+      case MessageType.SYNC_STOP: {
+        const session = this.syncSessions.get(docId);
+        session?.peers.delete(normalizedPeerId);
+        if (session?.peers.size === 0) {
           this.syncSessions.delete(docId);
         }
-      } else {
-        // Stop sync with all peers
-        for (const pid of session.peers) {
-          await this._sendMessage(pid, {
-            type: MessageType.SYNC_STOP,
-            docId,
-            timestamp: Date.now(),
-          }).catch(() => {
-            // Peer may already be disconnected
-          });
-
-          this.emit("sync:disconnected", { docId, peerId: pid });
-        }
-
-        session.peers.clear();
-        session.active = false;
-        this.syncSessions.delete(docId);
-        logger.info(`[CollabSync] All sync stopped for doc ${docId}`);
+        this.emit("sync:disconnected", {
+          docId,
+          peerId: normalizedPeerId,
+        });
+        break;
       }
-
-      return { success: true };
-    } catch (error) {
-      logger.error("[CollabSync] Error stopping sync:", error);
-      throw error;
     }
   }
 
-  /**
-   * Broadcast a document update to all syncing peers
-   * @param {string} docId - Document ID
-   * @param {Uint8Array|Buffer} update - The update data (Yjs update or raw bytes)
-   * @returns {Object} Result with count of peers notified
-   */
-  async broadcastUpdate(docId, update) {
-    try {
-      if (!docId || !update) {
-        throw new Error("Document ID and update data are required");
-      }
-
-      const session = this.syncSessions.get(docId);
-      if (!session || !session.active || session.peers.size === 0) {
-        return { success: true, peersNotified: 0 };
-      }
-
-      let peersNotified = 0;
-      const updatePayload = {
-        type: MessageType.UPDATE,
-        docId,
-        data: Array.from(
-          update instanceof Buffer ? update : new Uint8Array(update),
-        ),
-        timestamp: Date.now(),
-      };
-
-      for (const peerId of session.peers) {
-        try {
-          await this._sendMessage(peerId, updatePayload);
-          peersNotified++;
-        } catch (error) {
-          logger.warn(
-            `[CollabSync] Failed to send update to peer ${peerId}:`,
-            error.message,
-          );
-        }
-      }
-
-      this.emit("sync:update", { docId, peersNotified });
-
-      return { success: true, peersNotified };
-    } catch (error) {
-      logger.error("[CollabSync] Error broadcasting update:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Request the full document state from a peer
-   * @param {string} docId - Document ID
-   * @param {string} peerId - Peer to request from
-   * @returns {Object} Result
-   */
-  async requestFullState(docId, peerId) {
-    try {
-      if (!docId || !peerId) {
-        throw new Error("Document ID and peer ID are required");
-      }
-
-      await this._sendMessage(peerId, {
-        type: MessageType.FULL_STATE_REQUEST,
-        docId,
-        timestamp: Date.now(),
-      });
-
-      logger.info(
-        `[CollabSync] Full state requested for doc ${docId} from peer ${peerId}`,
-      );
-
-      return { success: true };
-    } catch (error) {
-      logger.error("[CollabSync] Error requesting full state:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Handle an incoming update from a peer
-   * @param {string} peerId - Peer that sent the update
-   * @param {Object} data - Message data
-   */
-  async handleIncomingUpdate(peerId, data) {
-    try {
-      if (!peerId || !data) {
-        return;
-      }
-
-      const { type, docId } = data;
-
-      switch (type) {
-        case MessageType.UPDATE: {
-          const updateBytes = new Uint8Array(data.data);
-
-          // Apply to Yjs document if available
-          if (this.yjsCollabManager) {
-            try {
-              const ydoc = this.yjsCollabManager.getDocument(docId);
-              if (ydoc) {
-                const Y = require("yjs");
-                Y.applyUpdate(ydoc, updateBytes, "network");
-              }
-            } catch (err) {
-              logger.warn(
-                "[CollabSync] Failed to apply Yjs update:",
-                err.message,
-              );
-            }
-          }
-
-          this.emit("sync:update", { docId, peerId, data: updateBytes });
-          break;
-        }
-
-        case MessageType.FULL_STATE_REQUEST: {
-          // Send full state back to the requesting peer
-          if (this.yjsCollabManager) {
-            try {
-              const ydoc = this.yjsCollabManager.getDocument(docId);
-              if (ydoc) {
-                const Y = require("yjs");
-                const state = Y.encodeStateAsUpdate(ydoc);
-                await this._sendMessage(peerId, {
-                  type: MessageType.FULL_STATE_RESPONSE,
-                  docId,
-                  data: Array.from(state),
-                  timestamp: Date.now(),
-                });
-              }
-            } catch (err) {
-              logger.warn(
-                "[CollabSync] Failed to send full state:",
-                err.message,
-              );
-            }
-          }
-          break;
-        }
-
-        case MessageType.FULL_STATE_RESPONSE: {
-          const stateBytes = new Uint8Array(data.data);
-
-          if (this.yjsCollabManager) {
-            try {
-              const ydoc = this.yjsCollabManager.getDocument(docId);
-              if (ydoc) {
-                const Y = require("yjs");
-                Y.applyUpdate(ydoc, stateBytes, "network");
-              }
-            } catch (err) {
-              logger.warn(
-                "[CollabSync] Failed to apply full state:",
-                err.message,
-              );
-            }
-          }
-
-          this.emit("sync:update", { docId, peerId, fullState: true });
-          break;
-        }
-
-        case MessageType.SYNC_START: {
-          // Peer wants to start syncing - add them to our session
-          if (!this.syncSessions.has(docId)) {
-            this.syncSessions.set(docId, { peers: new Set(), active: true });
-          }
-          this.syncSessions.get(docId).peers.add(peerId);
-
-          this.emit("sync:connected", { docId, peerId });
-          logger.info(
-            `[CollabSync] Peer ${peerId} joined sync for doc ${docId}`,
-          );
-          break;
-        }
-
-        case MessageType.SYNC_STOP: {
-          // Peer wants to stop syncing
-          const session = this.syncSessions.get(docId);
-          if (session) {
-            session.peers.delete(peerId);
-            if (session.peers.size === 0) {
-              this.syncSessions.delete(docId);
-            }
-          }
-
-          this.emit("sync:disconnected", { docId, peerId });
-          logger.info(`[CollabSync] Peer ${peerId} left sync for doc ${docId}`);
-          break;
-        }
-
-        default:
-          logger.warn(`[CollabSync] Unknown message type: ${type}`);
-      }
-    } catch (error) {
-      logger.error("[CollabSync] Error handling incoming update:", error);
-    }
-  }
-
-  /**
-   * Get the list of peers syncing a specific document
-   * @param {string} docId - Document ID
-   * @returns {string[]} List of peer IDs
-   */
   getSyncPeers(docId) {
     const session = this.syncSessions.get(docId);
-    if (!session) {
-      return [];
-    }
-    return Array.from(session.peers);
+    return session ? Array.from(session.peers) : [];
   }
 
-  /**
-   * Check if a document is actively syncing
-   * @param {string} docId - Document ID
-   * @returns {boolean}
-   */
   isSyncing(docId) {
     const session = this.syncSessions.get(docId);
-    return session ? session.active && session.peers.size > 0 : false;
+    return Boolean(session?.active && session.peers.size > 0);
   }
 
-  // ========================================
-  // Internal Methods
-  // ========================================
-
-  /**
-   * Handle incoming P2P stream
-   */
-  async _handleIncomingStream(peerId, stream) {
-    try {
-      const chunks = [];
-
-      await new Promise((resolve, reject) => {
-        // Clear the timeout on end/error, otherwise the 30s timer stays pending
-        // after the stream resolves (orphan handles accumulate under P2P traffic).
-        const timer = setTimeout(() => resolve(), 30000);
-        if (timer.unref) {
-          timer.unref();
-        }
-        stream.on("data", (chunk) => chunks.push(chunk));
-        stream.on("end", () => {
-          clearTimeout(timer);
-          resolve();
-        });
-        stream.on("error", (err) => {
-          clearTimeout(timer);
-          reject(err);
-        });
-      });
-
-      if (chunks.length === 0) {
-        return;
-      }
-
-      const raw = Buffer.concat(chunks);
-      const data = JSON.parse(raw.toString("utf-8"));
-
-      await this.handleIncomingUpdate(peerId, data);
-    } catch (error) {
-      logger.error(`[CollabSync] Error handling stream from ${peerId}:`, error);
+  _ensureSession(docId) {
+    let session = this.syncSessions.get(docId);
+    if (session) {
+      return { session, created: false };
     }
-  }
-
-  /**
-   * Send a message to a peer via P2P
-   */
-  async _sendMessage(peerId, message) {
-    if (!this.p2pManager || !this.p2pManager.node) {
-      throw new Error("P2P manager not available");
-    }
-
-    try {
-      const stream = await this.p2pManager.node.dialProtocol(
-        peerId,
-        PROTOCOL_SOCIAL_COLLAB,
+    if (this.syncSessions.size >= this.boundaries.maxActiveDocuments) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_DOCUMENT_CAPACITY",
+        `Social collaboration already retains ${this.boundaries.maxActiveDocuments} documents`,
+        { limit: this.boundaries.maxActiveDocuments },
       );
-
-      const payload = Buffer.from(JSON.stringify(message), "utf-8");
-
-      await new Promise((resolve, reject) => {
-        stream.write(payload, (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      stream.close();
-    } catch (error) {
-      throw new Error(`Failed to send message to ${peerId}: ${error.message}`);
     }
+    session = { peers: new Set(), active: true };
+    this.syncSessions.set(docId, session);
+    return { session, created: true };
   }
 
-  /**
-   * Handle peer connected event
-   */
+  _retainPeer(docId, peerId) {
+    const { session, created } = this._ensureSession(docId);
+    if (
+      !session.peers.has(peerId) &&
+      session.peers.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      if (created) {
+        this.syncSessions.delete(docId);
+      }
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PEER_CAPACITY",
+        `Document already retains ${this.boundaries.maxPeersPerDocument} peers`,
+        { docId, limit: this.boundaries.maxPeersPerDocument },
+      );
+    }
+    session.peers.add(peerId);
+    session.active = true;
+  }
+
+  _sendMessage(peerId, message, deadlineAt) {
+    this._requireReady();
+    return this.transport.send(peerId, message, deadlineAt);
+  }
+
   _handlePeerConnected(peerId) {
-    // Auto-resume sync for any documents that had this peer
-    for (const [docId, session] of this.syncSessions) {
-      if (session.peers.has(peerId) && session.active) {
-        this.emit("sync:connected", { docId, peerId });
-        logger.info(`[CollabSync] Peer ${peerId} reconnected for doc ${docId}`);
+    try {
+      const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+      for (const [docId, session] of this.syncSessions) {
+        if (session.active && session.peers.has(normalizedPeerId)) {
+          this.emit("sync:connected", { docId, peerId: normalizedPeerId });
+        }
       }
+    } catch (_error) {
+      // Ignore malformed manager events at the trust boundary.
     }
   }
 
-  /**
-   * Handle peer disconnected event
-   */
   _handlePeerDisconnected(peerId) {
-    for (const [docId, session] of this.syncSessions) {
-      if (session.peers.has(peerId)) {
-        this.emit("sync:disconnected", { docId, peerId });
-        logger.info(
-          `[CollabSync] Peer ${peerId} disconnected from doc ${docId}`,
-        );
+    try {
+      const normalizedPeerId = assertSocialPeerId(peerId, this.boundaries);
+      for (const [docId, session] of this.syncSessions) {
+        if (session.peers.has(normalizedPeerId)) {
+          this.emit("sync:disconnected", {
+            docId,
+            peerId: normalizedPeerId,
+          });
+        }
       }
+    } catch (_error) {
+      // Ignore malformed manager events at the trust boundary.
     }
   }
 
-  /**
-   * Clean up resources
-   */
-  async destroy() {
-    // Stop all active sync sessions
-    for (const [docId] of this.syncSessions) {
-      try {
-        await this.stopSync(docId);
-      } catch (err) {
-        // Ignore errors during cleanup
-      }
+  _requireReady() {
+    if (this._destroyed) {
+      throw this._destroyedError();
     }
+    if (!this.initialized || !this.transport) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_NOT_INITIALIZED",
+        "Social collaboration sync is not initialized",
+      );
+    }
+  }
 
+  _destroyedError() {
+    return new SocialCollabBoundaryError(
+      "ERR_SOCIAL_COLLAB_DESTROYED",
+      "Social collaboration sync has been destroyed",
+    );
+  }
+
+  async destroy() {
+    if (this._destroyed) {
+      return;
+    }
+    this._destroyed = true;
+    const transport = this.transport;
+    this.transport = null;
+    await transport?.destroy();
     this.syncSessions.clear();
-    this.pendingUpdates.clear();
-    this.removeAllListeners();
+    this.p2pManager = null;
+    this.yjsCollabManager = null;
     this.initialized = false;
-
+    this.removeAllListeners();
     logger.info("[CollabSync] Destroyed");
   }
 }

@@ -75,7 +75,7 @@ describe("agents-ipc", () => {
       assignTask: vi
         .fn()
         .mockResolvedValue({ success: true, taskId: "task-1" }),
-      getTaskStatus: vi
+      getTaskStatusAuthoritative: vi
         .fn()
         .mockReturnValue({ success: true, status: "running" }),
       getTaskGraphHistory: vi.fn().mockResolvedValue({
@@ -337,7 +337,9 @@ describe("agents-ipc", () => {
         taskId: "task-1",
       },
     );
-    expect(agentCoordinator.getTaskStatus).toHaveBeenCalledWith("task-1");
+    expect(agentCoordinator.getTaskStatusAuthoritative).toHaveBeenCalledWith(
+      "task-1",
+    );
     expect(taskStatusResult.status).toBe("running");
 
     const graphHistoryResult = await ipcMainMock.handlers[

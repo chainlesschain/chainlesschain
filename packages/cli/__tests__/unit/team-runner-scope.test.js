@@ -301,14 +301,32 @@ describe("TeamRunner durable hook failures with scope ownership", () => {
 
     await expect(runner.run()).rejects.toThrow("settlement persistence failed");
     expect(executed).toEqual(["first"]);
-    expect(settlements).toEqual([
-      {
-        key: "first",
+    expect(settlements).toHaveLength(1);
+    const [settlement] = settlements;
+    expect(settlement).toMatchObject({
+      key: "first",
+      holder: "teammate-1",
+      status: "completed",
+      result: "first-result",
+      lease: {
         holder: "teammate-1",
-        status: "completed",
-        result: "first-result",
+        leaseId: expect.any(String),
+        fencingToken: expect.any(String),
       },
-    ]);
+      task: {
+        key: "first",
+        assignee: "teammate-1",
+        lease: {
+          holder: "teammate-1",
+          leaseId: expect.any(String),
+          fencingToken: expect.any(String),
+        },
+      },
+    });
+    expect(settlement.lease.leaseId).toBe(settlement.task.lease.leaseId);
+    expect(settlement.lease.fencingToken).toBe(
+      settlement.task.lease.fencingToken,
+    );
     expect(registry.getTask("first")).toMatchObject({
       status: "completed",
       lease: null,

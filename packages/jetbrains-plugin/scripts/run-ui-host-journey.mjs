@@ -131,6 +131,11 @@ function openProcessLogs(logRoot, label) {
 
 function launchGradle(args, logRoot, label, options = {}) {
   const logs = openProcessLogs(logRoot, label);
+  const captured = { stdout: "", stderr: "" };
+  const capture = (stream, chunk) => {
+    const limit = 250_000;
+    captured[stream] = `${captured[stream]}${String(chunk)}`.slice(-limit);
+  };
   const child = spawn(gradleExecutable(), args, {
     cwd: PACKAGE_ROOT,
     env: options.env || process.env,
@@ -141,6 +146,8 @@ function launchGradle(args, logRoot, label, options = {}) {
   });
   child.stdout.pipe(logs.stdout);
   child.stderr.pipe(logs.stderr);
+  child.stdout.on("data", (chunk) => capture("stdout", chunk));
+  child.stderr.on("data", (chunk) => capture("stderr", chunk));
   child.stdout.pipe(process.stdout, { end: false });
   child.stderr.pipe(process.stderr, { end: false });
   const closeLogs = () => {
@@ -149,7 +156,7 @@ function launchGradle(args, logRoot, label, options = {}) {
   };
   child.once("close", closeLogs);
   child.once("error", closeLogs);
-  return { child, logs };
+  return { child, logs, captured };
 }
 
 function shellQuote(value) {
@@ -215,21 +222,27 @@ export function createFakeCliEnvironment(
 }
 
 async function runGradle(args, logRoot, label) {
-  const { child } = launchGradle(args, logRoot, label);
+  const { child, captured } = launchGradle(args, logRoot, label);
   const exitCode = await new Promise((resolve, reject) => {
     child.once("error", reject);
-    child.once("exit", (code, signal) => {
+    child.once("close", (code, signal) => {
       if (code === 0) resolve(0);
       else {
-        reject(
-          new Error(
-            `${label} failed with ${signal ? `signal ${signal}` : `exit ${code}`}`,
-          ),
+        const error = new Error(
+          `${label} failed with ${signal ? `signal ${signal}` : `exit ${code}`}`,
         );
+        error.processOutput = `${captured.stdout}\n${captured.stderr}`;
+        reject(error);
       }
     });
   });
   return exitCode;
+}
+
+export function isRobotStartupFailure(error) {
+  return /robot server at http:\/\/(?:127\.0\.0\.1|localhost):\d+ did not come up within \d+s/u.test(
+    String(error?.processOutput || ""),
+  );
 }
 
 async function robotReady(robotUrl) {
@@ -607,46 +620,61 @@ export async function runJourney(options) {
     const fixtureEnvironment = createFakeCliEnvironment(logRoot);
     const hostPhases = [];
     for (const phase of ["initial", "restart"]) {
-      const launched = launchGradle(
-        ["runIdeForUiTests", ...gradleOptions],
-        logRoot,
-        `sandbox-ide-${phase}`,
-        {
-          detached: true,
-          env: fixtureEnvironment,
-        },
-      );
-      ideProcess = launched.child;
-      const phaseStartedAt = new Date().toISOString();
-      try {
-        await waitForRobot(
-          ideProcess,
-          options.robotUrl,
-          options.startupTimeoutMs,
-        );
-        await runGradle(
-          [
-            "uiSmokeTest",
-            "--rerun-tasks",
-            `-Dui.robot.url=${options.robotUrl}`,
-            `-Dui.journey.phase=${phase}`,
-            `-Dui.metrics.path=${metricsPath}`,
-            ...gradleOptions,
-          ],
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        const suffix = attempt === 1 ? "" : `-retry-${attempt}`;
+        const launched = launchGradle(
+          ["runIdeForUiTests", ...gradleOptions],
           logRoot,
-          `ui-smoke-${phase}`,
+          `sandbox-ide-${phase}${suffix}`,
+          {
+            detached: true,
+            env: fixtureEnvironment,
+          },
         );
-        hostPhases.push({
-          phase,
-          processId: ideProcess.pid,
-          startedAt: phaseStartedAt,
-          completedAt: new Date().toISOString(),
-        });
-      } finally {
-        await stopProcessTree(ideProcess);
-        ideProcess = null;
+        ideProcess = launched.child;
+        const phaseStartedAt = new Date().toISOString();
+        let phaseError = null;
+        try {
+          await waitForRobot(
+            ideProcess,
+            options.robotUrl,
+            options.startupTimeoutMs,
+          );
+          await runGradle(
+            [
+              "uiSmokeTest",
+              "--rerun-tasks",
+              `-Dui.robot.url=${options.robotUrl}`,
+              `-Dui.journey.phase=${phase}`,
+              `-Dui.metrics.path=${metricsPath}`,
+              ...gradleOptions,
+            ],
+            logRoot,
+            `ui-smoke-${phase}${suffix}`,
+          );
+          hostPhases.push({
+            phase,
+            attempt,
+            processId: ideProcess.pid,
+            startedAt: phaseStartedAt,
+            completedAt: new Date().toISOString(),
+          });
+        } catch (error) {
+          phaseError = error;
+        } finally {
+          await stopProcessTree(ideProcess);
+          ideProcess = null;
+        }
+        await waitForRobotStopped(options.robotUrl);
+        if (!phaseError) break;
+        if (attempt === 1 && isRobotStartupFailure(phaseError)) {
+          process.stderr.write(
+            `[jetbrains-ui-host] ${phase} Robot startup timed out; restarting the IDE once\n`,
+          );
+          continue;
+        }
+        throw phaseError;
       }
-      await waitForRobotStopped(options.robotUrl);
     }
     const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
     const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);

@@ -1,13 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import graphProtocolSchema from "../../generated/cc-agent-protocol.schema.json" with { type: "json" };
 import { validate } from "../json-schema-validate.js";
-
-const graphProtocolSchema = JSON.parse(
-  readFileSync(
-    new URL("../../generated/cc-agent-protocol.schema.json", import.meta.url),
-    "utf8",
-  ),
-);
 
 export const GRAPH_DEFINITION_VERSION = 1;
 export const GRAPH_DEFINITION_MIN_VERSION = Math.max(

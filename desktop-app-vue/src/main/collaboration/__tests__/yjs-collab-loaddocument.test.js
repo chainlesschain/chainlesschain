@@ -15,9 +15,24 @@ vi.mock("../../utils/logger.js", () => ({
 const Y = require("yjs");
 const YjsCollabManager = require("../yjs-collab-manager");
 
-/** Mock database whose update query returns the given rows. */
-function mockDb(rows) {
-  const db = { prepare: () => ({ all: () => rows }) };
+/** Mock database whose bounded replay queries return the given rows/stats. */
+function mockDb(rows, stats = {}) {
+  const totalBytes = rows.reduce(
+    (total, row) => total + Buffer.byteLength(row.update_data),
+    0,
+  );
+  const db = {
+    prepare: (sql) =>
+      sql.includes("COUNT(*)")
+        ? {
+            get: () => ({
+              update_count: rows.length,
+              total_bytes: totalBytes,
+              ...stats,
+            }),
+          }
+        : { all: () => rows },
+  };
   return { getDatabase: () => db };
 }
 
@@ -59,5 +74,15 @@ describe("YjsCollabManager._loadDocument corrupt-update resilience", () => {
     const ydoc = new Y.Doc();
     await mgr._loadDocument("doc-2", ydoc);
     expect(ydoc.getMap("m").get("k")).toBe("v");
+  });
+
+  it("fails closed before replay when retained update count exceeds the limit", () => {
+    const mgr = new YjsCollabManager(null, mockDb([], { update_count: 3 }), {
+      boundaries: { maxReplayUpdates: 2 },
+    });
+
+    expect(() => mgr._loadDocument("doc-over-limit", new Y.Doc())).toThrowError(
+      expect.objectContaining({ code: "ERR_COLLAB_REPLAY_LIMIT" }),
+    );
   });
 });

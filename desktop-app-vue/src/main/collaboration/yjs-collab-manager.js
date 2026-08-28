@@ -34,6 +34,8 @@ const {
   CollabBoundaryError,
   createCollabBoundaries,
   assertDocumentId,
+  normalizeUpdate,
+  assertAwarenessState,
 } = require("./collab-boundaries");
 
 class YjsCollabManager extends EventEmitter {
@@ -42,6 +44,7 @@ class YjsCollabManager extends EventEmitter {
     this.p2pManager = p2pManager;
     this.database = database;
     this.boundaries = createCollabBoundaries(options.boundaries);
+    this._now = typeof options.now === "function" ? options.now : Date.now;
 
     // Map of document ID to Yjs document
     this.documents = new Map();
@@ -51,6 +54,15 @@ class YjsCollabManager extends EventEmitter {
 
     // Map of document ID to connected peers
     this.documentPeers = new Map();
+
+    // Current connection token per document/peer. A reconnect replaces the
+    // token so late data/close events from the old stream cannot mutate or
+    // release the new connection.
+    this._peerConnections = new Map();
+
+    // Last activity is tracked separately so inactive documents can be evicted
+    // without walking or serializing the Y.Doc itself.
+    this._documentActivity = new Map();
 
     // Protocol for Yjs sync
     this.PROTOCOL_YIJS_SYNC = "/chainlesschain/yjs-sync/1.0.0";
@@ -75,17 +87,21 @@ class YjsCollabManager extends EventEmitter {
     this.p2pManager.node.handle(
       this.PROTOCOL_YIJS_SYNC,
       async ({ stream, connection }) => {
+        let docId = null;
+        let peerId = null;
+        let connectionToken = null;
         try {
-          const peerId = connection.remotePeer.toString();
+          peerId = connection.remotePeer.toString();
           logger.info(`[YjsCollab] Received sync connection from ${peerId}`);
 
           // Read document ID
           const docIdBuffer = await this._readFromStream(stream);
-          const docId = new TextDecoder().decode(docIdBuffer);
+          docId = new TextDecoder().decode(docIdBuffer);
           assertDocumentId(docId, this.boundaries);
 
           // Get or create Yjs document
           const ydoc = this.getDocument(docId);
+          connectionToken = this._retainDocumentPeer(docId, peerId);
 
           // Send initial sync state
           const stateVector = Y.encodeStateVector(ydoc);
@@ -94,30 +110,29 @@ class YjsCollabManager extends EventEmitter {
           // Receive and apply updates
           stream.on("data", (data) => {
             try {
-              Y.applyUpdate(ydoc, data);
-              this.emit("document-updated", { docId, peerId });
+              this._applyPeerUpdate(docId, peerId, connectionToken, data);
             } catch (error) {
               logger.error("[YjsCollab] Error applying update:", error);
             }
           });
 
-          // Track peer for this document
-          if (!this.documentPeers.has(docId)) {
-            this.documentPeers.set(docId, new Set());
-          }
-          this.documentPeers.get(docId).add(peerId);
-
           // Clean up on disconnect
           stream.on("close", () => {
-            const peers = this.documentPeers.get(docId);
-            if (peers) {
-              peers.delete(peerId);
+            if (this._releaseDocumentPeer(docId, peerId, connectionToken)) {
+              logger.info(
+                `[YjsCollab] Peer ${peerId} disconnected from document ${docId}`,
+              );
             }
-            logger.info(
-              `[YjsCollab] Peer ${peerId} disconnected from document ${docId}`,
-            );
           });
         } catch (error) {
+          if (connectionToken) {
+            this._releaseDocumentPeer(docId, peerId, connectionToken);
+          }
+          try {
+            stream.abort?.(error);
+          } catch (_abortError) {
+            // The collaboration boundary error remains authoritative.
+          }
           logger.error("[YjsCollab] Error handling sync:", error);
         }
       },
@@ -139,7 +154,7 @@ class YjsCollabManager extends EventEmitter {
 
           // Apply awareness update
           const awareness = this.getAwareness(docId);
-          this._applyAwarenessUpdate(awareness, awarenessUpdate, peerId);
+          this._applyAwarenessUpdate(docId, awareness, awarenessUpdate, peerId);
 
           this.emit("awareness-updated", { docId, peerId });
         } catch (error) {
@@ -154,19 +169,199 @@ class YjsCollabManager extends EventEmitter {
    */
   getDocument(docId) {
     assertDocumentId(docId, this.boundaries);
+    this.sweepRetainedState();
     if (!this.documents.has(docId)) {
+      this._ensureDocumentCapacity(docId);
       const ydoc = new Y.Doc();
 
       // Listen for updates (extracted so restoreSnapshot can re-attach it).
       this._attachUpdateListener(docId, ydoc);
 
-      this.documents.set(docId, ydoc);
-
-      // Load existing updates from database
-      this._loadDocument(docId, ydoc);
+      try {
+        // Replay is synchronous because better-sqlite3 is synchronous. Returning
+        // a mutable document before replay has finished creates a race where a
+        // renderer observes stale state and local writes interleave with restore.
+        this._loadDocument(docId, ydoc);
+        this.documents.set(docId, ydoc);
+      } catch (error) {
+        ydoc.destroy?.();
+        throw error;
+      }
     }
 
+    this._touchDocument(docId);
     return this.documents.get(docId);
+  }
+
+  _touchDocument(docId, now = this._now()) {
+    if (this.documents.has(docId)) {
+      this._documentActivity.set(docId, now);
+    }
+  }
+
+  _isDocumentRetained(docId) {
+    if ((this.documentPeers.get(docId)?.size || 0) > 0) {
+      return true;
+    }
+    return this.awareness.get(docId)?.states?.has("local") === true;
+  }
+
+  _retainDocumentPeer(docId, peerId, token = Symbol("yjs-peer")) {
+    assertDocumentId(docId, this.boundaries);
+    if (typeof peerId !== "string" || peerId.length === 0) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_PEER_INVALID",
+        "peerId must be a non-empty string",
+      );
+    }
+    const peerIdBytes = Buffer.byteLength(peerId, "utf8");
+    if (peerIdBytes > this.boundaries.maxPeerIdBytes) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_PEER_INVALID",
+        `peerId exceeds ${this.boundaries.maxPeerIdBytes} bytes`,
+        { peerIdBytes, limitBytes: this.boundaries.maxPeerIdBytes },
+      );
+    }
+
+    if (!this.documentPeers.has(docId)) {
+      this.documentPeers.set(docId, new Set());
+    }
+    const peers = this.documentPeers.get(docId);
+    if (
+      !peers.has(peerId) &&
+      peers.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      if (peers.size === 0) {
+        this.documentPeers.delete(docId);
+      }
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_PEER_CAPACITY",
+        `Document ${docId} already has ${this.boundaries.maxPeersPerDocument} peers`,
+        { documentId: docId, limit: this.boundaries.maxPeersPerDocument },
+      );
+    }
+
+    if (!this._peerConnections.has(docId)) {
+      this._peerConnections.set(docId, new Map());
+    }
+    peers.add(peerId);
+    this._peerConnections.get(docId).set(peerId, token);
+    this._touchDocument(docId);
+    return token;
+  }
+
+  _releaseDocumentPeer(docId, peerId, token) {
+    const connections = this._peerConnections.get(docId);
+    if (!connections || connections.get(peerId) !== token) {
+      return false;
+    }
+
+    connections.delete(peerId);
+    if (connections.size === 0) {
+      this._peerConnections.delete(docId);
+    }
+    const peers = this.documentPeers.get(docId);
+    peers?.delete(peerId);
+    if (peers?.size === 0) {
+      this.documentPeers.delete(docId);
+    }
+    this._touchDocument(docId);
+    return true;
+  }
+
+  _applyPeerUpdate(docId, peerId, token, update) {
+    if (this._peerConnections.get(docId)?.get(peerId) !== token) {
+      return false;
+    }
+    this.applyUpdate(docId, update, "network");
+    this.emit("document-updated", { docId, peerId });
+    return true;
+  }
+
+  _evictDocument(docId, reason) {
+    const ydoc = this.documents.get(docId);
+    if (!ydoc) {
+      return false;
+    }
+    ydoc.destroy?.();
+    this.documents.delete(docId);
+    this.awareness.delete(docId);
+    this.documentPeers.delete(docId);
+    this._peerConnections.delete(docId);
+    this._documentActivity.delete(docId);
+    this.emit("document-evicted", { docId, reason });
+    return true;
+  }
+
+  _ensureDocumentCapacity(incomingDocId) {
+    if (this.documents.size < this.boundaries.maxActiveDocuments) {
+      return;
+    }
+
+    const evictable = [...this._documentActivity.entries()]
+      .filter(([docId]) => !this._isDocumentRetained(docId))
+      .sort((left, right) => left[1] - right[1]);
+    if (evictable.length > 0) {
+      this._evictDocument(evictable[0][0], "capacity");
+      return;
+    }
+
+    throw new CollabBoundaryError(
+      "ERR_COLLAB_DOCUMENT_CAPACITY",
+      `Cannot retain more than ${this.boundaries.maxActiveDocuments} active Yjs documents`,
+      {
+        documentId: incomingDocId,
+        activeDocuments: this.documents.size,
+        limit: this.boundaries.maxActiveDocuments,
+      },
+    );
+  }
+
+  /**
+   * Remove expired awareness entries and unreferenced idle documents. The
+   * sweep is operation-driven, avoiding a process-lifetime interval handle.
+   */
+  sweepRetainedState(now = this._now()) {
+    let awarenessStatesRemoved = 0;
+    let documentsEvicted = 0;
+
+    for (const [docId, awareness] of this.awareness) {
+      for (const [clientId, meta] of awareness.meta) {
+        if (
+          clientId !== "local" &&
+          now - Number(meta?.lastUpdate || 0) >=
+            this.boundaries.awarenessStateTtlMs
+        ) {
+          awareness.meta.delete(clientId);
+          awareness.states.delete(clientId);
+          awarenessStatesRemoved += 1;
+        }
+      }
+      if (awareness.states.size === 0 && !this.documents.has(docId)) {
+        this.awareness.delete(docId);
+      }
+    }
+
+    for (const [docId, lastActivity] of this._documentActivity) {
+      if (
+        !this._isDocumentRetained(docId) &&
+        now - lastActivity >= this.boundaries.documentIdleTtlMs &&
+        this._evictDocument(docId, "idle-ttl")
+      ) {
+        documentsEvicted += 1;
+      }
+    }
+
+    return { awarenessStatesRemoved, documentsEvicted };
+  }
+
+  /** Apply a validated update through the manager-owned persistence path. */
+  applyUpdate(docId, update, origin = "local") {
+    const normalized = normalizeUpdate(update, this.boundaries);
+    const ydoc = this.getDocument(docId);
+    Y.applyUpdate(ydoc, normalized, origin);
+    this._touchDocument(docId);
+    return ydoc;
   }
 
   /**
@@ -177,11 +372,17 @@ class YjsCollabManager extends EventEmitter {
    */
   _attachUpdateListener(docId, ydoc) {
     ydoc.on("update", (update, origin) => {
-      // Don't broadcast updates that came from network
+      // Database replay is already durable and must not append duplicate rows.
+      if (origin === "replay") {
+        return;
+      }
+
+      // Don't broadcast updates that came from network, but do persist them:
+      // otherwise a successful remote merge disappears after process restart.
       if (origin !== "network") {
         this._broadcastUpdate(docId, update);
-        this._saveUpdate(docId, update);
       }
+      this._saveUpdate(docId, update);
     });
   }
 
@@ -189,6 +390,8 @@ class YjsCollabManager extends EventEmitter {
    * Get or create awareness state for a document
    */
   getAwareness(docId) {
+    assertDocumentId(docId, this.boundaries);
+    this.sweepRetainedState();
     if (!this.awareness.has(docId)) {
       const ydoc = this.getDocument(docId);
       const awareness = {
@@ -200,7 +403,60 @@ class YjsCollabManager extends EventEmitter {
       this.awareness.set(docId, awareness);
     }
 
+    this._touchDocument(docId);
     return this.awareness.get(docId);
+  }
+
+  /**
+   * Store one validated awareness state without allowing renderer or peer
+   * callers to bypass the per-document retained-state boundary.
+   */
+  setAwarenessState(docId, clientId, state, meta = {}) {
+    assertAwarenessState(state, this.boundaries);
+    const validNumericClientId =
+      Number.isSafeInteger(clientId) && clientId >= 0;
+    const validStringClientId =
+      typeof clientId === "string" &&
+      clientId.length > 0 &&
+      Buffer.byteLength(clientId, "utf8") <= this.boundaries.maxPeerIdBytes;
+    if (!validNumericClientId && !validStringClientId) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_AWARENESS_INVALID",
+        "Awareness clientId must be a bounded string or non-negative safe integer",
+      );
+    }
+    if (
+      meta.peerId !== undefined &&
+      (typeof meta.peerId !== "string" ||
+        Buffer.byteLength(meta.peerId, "utf8") > this.boundaries.maxPeerIdBytes)
+    ) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_PEER_INVALID",
+        `Awareness peerId exceeds ${this.boundaries.maxPeerIdBytes} bytes`,
+      );
+    }
+    const awareness = this.getAwareness(docId);
+    if (
+      !awareness.states.has(clientId) &&
+      awareness.states.size >= this.boundaries.maxAwarenessStatesPerDocument
+    ) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_AWARENESS_CAPACITY",
+        `Awareness state exceeds ${this.boundaries.maxAwarenessStatesPerDocument} clients`,
+        {
+          documentId: docId,
+          limit: this.boundaries.maxAwarenessStatesPerDocument,
+        },
+      );
+    }
+
+    awareness.states.set(clientId, state);
+    awareness.meta.set(clientId, {
+      peerId: meta.peerId ?? null,
+      lastUpdate: this._now(),
+    });
+    this._touchDocument(docId);
+    return awareness;
   }
 
   /**
@@ -222,7 +478,7 @@ class YjsCollabManager extends EventEmitter {
         selection: null,
       };
 
-      awareness.states.set("local", localState);
+      this.setAwarenessState(docId, "local", localState, { peerId: "local" });
 
       // Broadcast awareness to peers
       await this._broadcastAwareness(docId, organizationId);
@@ -258,10 +514,12 @@ class YjsCollabManager extends EventEmitter {
       const peers = this.documentPeers.get(docId);
       if (peers) {
         peers.clear();
+        this.documentPeers.delete(docId);
       }
+      this._peerConnections.delete(docId);
 
-      // Keep document in memory for a while in case user reopens
-      // Will be garbage collected eventually
+      // Keep document in memory for the bounded idle TTL in case it is reopened.
+      this._touchDocument(docId);
 
       logger.info(`[YjsCollab] Closed document ${docId}`);
     } catch (error) {
@@ -293,6 +551,7 @@ class YjsCollabManager extends EventEmitter {
    * Get all users currently editing a document
    */
   getActiveUsers(docId) {
+    this.sweepRetainedState();
     const awareness = this.awareness.get(docId);
     if (!awareness) {
       return [];
@@ -379,6 +638,12 @@ class YjsCollabManager extends EventEmitter {
       // Re-attach the update listener — the restored doc is brand new and would
       // otherwise drop (not broadcast/persist) every subsequent local edit.
       this._attachUpdateListener(docId, restoredDoc);
+      const awareness = this.awareness.get(docId);
+      if (awareness) {
+        awareness.doc = restoredDoc;
+      }
+      ydoc.destroy?.();
+      this._touchDocument(docId);
 
       // Broadcast update to all peers
       const update = Y.encodeStateAsUpdate(restoredDoc);
@@ -395,6 +660,19 @@ class YjsCollabManager extends EventEmitter {
    * Get version history for a document
    */
   async getVersionHistory(docId, limit = 50) {
+    assertDocumentId(docId, this.boundaries);
+    if (
+      !Number.isSafeInteger(limit) ||
+      limit <= 0 ||
+      limit > this.boundaries.maxVersionHistoryEntries
+    ) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_HISTORY_LIMIT",
+        `Version history limit must be between 1 and ${this.boundaries.maxVersionHistoryEntries}`,
+        { limit, limitEntries: this.boundaries.maxVersionHistoryEntries },
+      );
+    }
+
     try {
       const db = this.database.getDatabase();
       const snapshots = db
@@ -416,6 +694,9 @@ class YjsCollabManager extends EventEmitter {
       }));
     } catch (error) {
       logger.error("[YjsCollab] Error getting version history:", error);
+      if (error instanceof CollabBoundaryError) {
+        throw error;
+      }
       return [];
     }
   }
@@ -544,7 +825,7 @@ class YjsCollabManager extends EventEmitter {
         ) VALUES (?, ?, ?)
       `);
 
-      stmt.run(docId, Buffer.from(update), Date.now());
+      stmt.run(docId, Buffer.from(update), this._now());
     } catch (error) {
       logger.error("[YjsCollab] Error saving update:", error);
     }
@@ -553,9 +834,38 @@ class YjsCollabManager extends EventEmitter {
   /**
    * Load document from database
    */
-  async _loadDocument(docId, ydoc) {
+  _loadDocument(docId, ydoc) {
     try {
       const db = this.database.getDatabase();
+      const replayStats = db
+        .prepare(
+          `
+        SELECT COUNT(*) AS update_count,
+               COALESCE(SUM(LENGTH(update_data)), 0) AS total_bytes
+        FROM knowledge_yjs_updates
+        WHERE knowledge_id = ?
+      `,
+        )
+        .get(docId) || { update_count: 0, total_bytes: 0 };
+      const updateCount = Number(replayStats.update_count || 0);
+      const replayBytes = Number(replayStats.total_bytes || 0);
+      if (
+        updateCount > this.boundaries.maxReplayUpdates ||
+        replayBytes > this.boundaries.maxReplayBytes
+      ) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_REPLAY_LIMIT",
+          `Stored Yjs replay for ${docId} exceeds the configured boundary`,
+          {
+            documentId: docId,
+            updateCount,
+            replayBytes,
+            limitUpdates: this.boundaries.maxReplayUpdates,
+            limitBytes: this.boundaries.maxReplayBytes,
+          },
+        );
+      }
+
       const updates = db
         .prepare(
           `
@@ -563,9 +873,21 @@ class YjsCollabManager extends EventEmitter {
         FROM knowledge_yjs_updates
         WHERE knowledge_id = ?
         ORDER BY created_at ASC
+        LIMIT ?
       `,
         )
-        .all(docId);
+        .all(docId, this.boundaries.maxReplayUpdates + 1);
+      if (updates.length > this.boundaries.maxReplayUpdates) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_REPLAY_LIMIT",
+          `Stored Yjs replay for ${docId} exceeds ${this.boundaries.maxReplayUpdates} updates`,
+          {
+            documentId: docId,
+            updateCount: updates.length,
+            limitUpdates: this.boundaries.maxReplayUpdates,
+          },
+        );
+      }
 
       // Apply all updates. Guard each one (like the snapshot path above): a
       // single corrupt/truncated update_data row must NOT throw out of the loop
@@ -573,9 +895,23 @@ class YjsCollabManager extends EventEmitter {
       // to a stale state. Skip the bad update and keep applying the rest.
       let applied = 0;
       let skipped = 0;
+      let appliedBytes = 0;
       for (const { update_data } of updates) {
+        const byteLength = Buffer.byteLength(update_data || Buffer.alloc(0));
+        appliedBytes += byteLength;
+        if (appliedBytes > this.boundaries.maxReplayBytes) {
+          throw new CollabBoundaryError(
+            "ERR_COLLAB_REPLAY_LIMIT",
+            `Stored Yjs replay for ${docId} exceeds ${this.boundaries.maxReplayBytes} bytes`,
+            {
+              documentId: docId,
+              replayBytes: appliedBytes,
+              limitBytes: this.boundaries.maxReplayBytes,
+            },
+          );
+        }
         try {
-          Y.applyUpdate(ydoc, update_data, "network");
+          Y.applyUpdate(ydoc, update_data, "replay");
           applied++;
         } catch (error) {
           skipped++;
@@ -589,8 +925,17 @@ class YjsCollabManager extends EventEmitter {
         `[YjsCollab] Loaded ${applied}/${updates.length} updates for document ${docId}` +
           (skipped ? ` (${skipped} corrupt skipped)` : ""),
       );
+      return { applied, skipped, replayBytes: appliedBytes };
     } catch (error) {
       logger.error("[YjsCollab] Error loading document:", error);
+      if (error instanceof CollabBoundaryError) {
+        throw error;
+      }
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_REPLAY_FAILED",
+        `Unable to replay stored Yjs updates for ${docId}`,
+        { documentId: docId, causeCode: error?.code || null },
+      );
     }
   }
 
@@ -739,8 +1084,9 @@ class YjsCollabManager extends EventEmitter {
   /**
    * Helper: Apply awareness update
    */
-  _applyAwarenessUpdate(awareness, update, peerId) {
+  _applyAwarenessUpdate(docId, awareness, update, peerId) {
     try {
+      this.sweepRetainedState();
       const decoder = decoding.createDecoder(update);
       const numStates = decoding.readVarUint(decoder);
 
@@ -749,14 +1095,24 @@ class YjsCollabManager extends EventEmitter {
         const stateJson = decoding.readVarString(decoder);
         const state = JSON.parse(stateJson);
 
-        awareness.states.set(clientId, state);
-        awareness.meta.set(clientId, {
-          peerId,
-          lastUpdate: Date.now(),
-        });
+        if (
+          !awareness.states.has(clientId) &&
+          awareness.states.size >= this.boundaries.maxAwarenessStatesPerDocument
+        ) {
+          throw new CollabBoundaryError(
+            "ERR_COLLAB_AWARENESS_CAPACITY",
+            `Awareness state exceeds ${this.boundaries.maxAwarenessStatesPerDocument} clients`,
+            { limit: this.boundaries.maxAwarenessStatesPerDocument },
+          );
+        }
+
+        this.setAwarenessState(docId, clientId, state, { peerId });
       }
     } catch (error) {
       logger.error("[YjsCollab] Error applying awareness update:", error);
+      if (error instanceof CollabBoundaryError) {
+        throw error;
+      }
     }
   }
 
@@ -809,14 +1165,15 @@ class YjsCollabManager extends EventEmitter {
    * Clean up resources
    */
   destroy() {
-    // Close all documents
-    for (const [docId] of this.documents) {
-      this.closeDocument(docId);
+    for (const ydoc of this.documents.values()) {
+      ydoc.destroy?.();
     }
 
     this.documents.clear();
     this.awareness.clear();
     this.documentPeers.clear();
+    this._peerConnections.clear();
+    this._documentActivity.clear();
 
     this.removeAllListeners();
   }

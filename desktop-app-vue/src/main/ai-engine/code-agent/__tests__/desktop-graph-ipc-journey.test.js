@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
   JsonlRolloutStore,
@@ -31,8 +30,8 @@ const {
 } = require("../desktop-graph-run-registry.js");
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
-const KILL_WRITER_FIXTURE = fileURLToPath(
-  new URL("./fixtures/desktop-graph-kill-writer.cjs", import.meta.url),
+const KILL_WRITER_FIXTURE = require.resolve(
+  "./fixtures/desktop-graph-kill-writer.cjs",
 );
 
 function ipcHarness() {

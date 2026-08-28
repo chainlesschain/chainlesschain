@@ -534,6 +534,11 @@ class ChainlessChainApp {
     this.contactManager = instances.contactManager;
     this.friendManager = instances.friendManager;
     this.postManager = instances.postManager;
+    this.collabEngine = instances.collabEngine;
+    this.collabSync = instances.collabSync;
+    this.collabAwareness = instances.collabAwareness;
+    this.gossipProtocol = instances.gossipProtocol;
+    this.meshSocial = instances.meshSocial;
     this.organizationManager = instances.organizationManager;
     this.collaborationManager = instances.collaborationManager;
     this.syncEngine = instances.syncEngine;
@@ -2941,6 +2946,63 @@ class ChainlessChainApp {
         logger.error("[Main] Realtime collaboration cleanup error:", error);
       }
       this.ipcModules = null;
+    }
+    if (this.federatedManager) {
+      try {
+        this.federatedManager.destroy?.();
+        logger.info("[Main] Federated learning cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Federated learning cleanup error:", error);
+      }
+      this.federatedManager = null;
+    }
+    if (this.collabSync) {
+      try {
+        await this.collabSync.destroy?.();
+        logger.info("[Main] Social collaboration cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Social collaboration cleanup error:", error);
+      }
+      this.collabSync = null;
+    }
+    if (this.collabAwareness) {
+      try {
+        await this.collabAwareness.destroy?.();
+        logger.info("[Main] Social awareness cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Social awareness cleanup error:", error);
+      }
+      this.collabAwareness = null;
+    }
+    if (this.collabEngine) {
+      try {
+        await this.collabEngine.destroy?.();
+        logger.info("[Main] Social collaboration engine cleanup completed");
+      } catch (error) {
+        logger.error(
+          "[Main] Social collaboration engine cleanup error:",
+          error,
+        );
+      }
+      this.collabEngine = null;
+    }
+    if (this.gossipProtocol) {
+      try {
+        await this.gossipProtocol.destroy?.();
+        logger.info("[Main] Gossip protocol cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Gossip protocol cleanup error:", error);
+      }
+      this.gossipProtocol = null;
+    }
+    if (this.meshSocial) {
+      try {
+        await this.meshSocial.destroy?.();
+        logger.info("[Main] Mesh social cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Mesh social cleanup error:", error);
+      }
+      this.meshSocial = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).

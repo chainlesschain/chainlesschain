@@ -33,7 +33,19 @@ const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
   "__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
   "__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
 ];
-const CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS = new Map([
+const CLI_CONTRACT_TEST_MAPPINGS = new Map([
+  [
+    "packages/cli/src/lib/graph-kernel/compiler.js",
+    ["__tests__/unit/graph-kernel-compiler.test.js"],
+  ],
+  [
+    "packages/cli/__tests__/unit/team-command-broker.test.js",
+    ["__tests__/unit/team-command-broker.test.js"],
+  ],
+  [
+    "packages/cli/__tests__/unit/team-runner-scope.test.js",
+    ["__tests__/unit/team-runner-scope.test.js"],
+  ],
   [
     "packages/cli/__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
     [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[0]],
@@ -159,6 +171,10 @@ const SOURCE_PREFIX_CONTRACT_TEST_MAPPINGS = [
 
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
   "src/main/collaboration/__tests__/collab-boundaries.test.js",
+  "src/main/collaboration/__tests__/collab-recovery-conformance.test.js",
+  "src/main/collaboration/__tests__/collab-retained-state.test.js",
+  "src/main/collaboration/__tests__/org-knowledge-sync-manager.test.js",
+  "src/main/collaboration/__tests__/realtime-collab-manager.test.js",
   "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
   "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
   "src/main/collab/__tests__/collab.test.js",
@@ -168,6 +184,32 @@ const COLLAB_RUNTIME_CONTRACT_TESTS = [
   "src/renderer/stores/__tests__/collab.test.ts",
   "src/renderer/utils/__tests__/yjs-ipc-provider.test.ts",
 ];
+const YJS_ORG_INTEGRATION_CONTRACT_TESTS = [
+  ...COLLAB_RUNTIME_CONTRACT_TESTS,
+  "tests/unit/enterprise/org-knowledge-sync.test.js",
+];
+const FEDERATED_TRANSPORT_CONTRACT_TESTS = [
+  "src/main/federated/__tests__/model-parameter-sync-boundaries.test.js",
+  "src/main/federated/__tests__/federated-learning-manager.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+];
+const SOCIAL_COLLAB_CONTRACT_TESTS = [
+  "src/main/social/__tests__/collab-sync-boundaries.test.js",
+  "src/main/social/__tests__/collab-engine.test.js",
+  "src/main/social/__tests__/collab-awareness.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+];
+const GOSSIP_CONTRACT_TESTS = [
+  "src/main/social/__tests__/gossip-boundaries.test.js",
+  "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
+  "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+];
+const MESH_SOCIAL_CONTRACT_TESTS = [
+  "src/main/social/__tests__/mesh-social-boundaries.test.js",
+  "src/main/ipc/__tests__/phase-modules.test.js",
+];
+const DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST =
+  "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
   ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
@@ -184,8 +226,30 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["electron-builder.yml", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
   ["forge.config.js", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
   [
+    "src/main/collaboration/__tests__/fixtures/yjs-crash-writer.mjs",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
+    [DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST],
+  ],
+  ...[
+    "src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/main.cjs",
+    "src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/preload.cjs",
+    "src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/renderer.html",
+    "src/main/ai-engine/code-agent/__tests__/fixtures/packaged-electron-graph/package.json",
+    "scripts/graph-packaged-electron-journey.mjs",
+  ].map((fixturePath) => [fixturePath, [DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST]]),
+  [
     "src/main/index.js",
-    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+    [
+      CONTENT_INTEGRATION_WIRING_TEST,
+      ...COLLAB_RUNTIME_CONTRACT_TESTS,
+      ...FEDERATED_TRANSPORT_CONTRACT_TESTS,
+      ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...GOSSIP_CONTRACT_TESTS,
+      ...MESH_SOCIAL_CONTRACT_TESTS,
+    ],
   ],
   [
     "src/preload/index.js",
@@ -366,11 +430,66 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/main/collaboration/yjs-collab-manager.js",
+    YJS_ORG_INTEGRATION_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/collaboration/realtime-collab-manager.js",
     COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/collaboration/org-knowledge-sync-manager.js",
+    YJS_ORG_INTEGRATION_CONTRACT_TESTS,
   ],
   [
     "src/main/collaboration/realtime-collab-ipc.js",
     COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  ["src/main/collab/collab-session-manager.js", COLLAB_RUNTIME_CONTRACT_TESTS],
+  [
+    "src/main/federated/federated-transport-boundaries.js",
+    FEDERATED_TRANSPORT_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/federated/model-parameter-sync.js",
+    FEDERATED_TRANSPORT_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/federated/federated-learning-manager.js",
+    FEDERATED_TRANSPORT_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ipc/phases/phase-31-ai-models.js",
+    FEDERATED_TRANSPORT_CONTRACT_TESTS,
+  ],
+  ...[
+    "src/main/social/social-collab-boundaries.js",
+    "src/main/social/social-collab-transport.js",
+    "src/main/social/collab-sync.js",
+    "src/main/social/collab-social-ipc.js",
+  ].map((sourcePath) => [sourcePath, SOCIAL_COLLAB_CONTRACT_TESTS]),
+  ...[
+    "src/main/bootstrap/social-initializer.js",
+    "src/main/bootstrap/index.js",
+  ].map((sourcePath) => [
+    sourcePath,
+    [
+      ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...GOSSIP_CONTRACT_TESTS,
+      ...MESH_SOCIAL_CONTRACT_TESTS,
+    ],
+  ]),
+  ...[
+    "src/main/social/gossip-boundaries.js",
+    "src/main/social/gossip-protocol.js",
+  ].map((sourcePath) => [sourcePath, GOSSIP_CONTRACT_TESTS]),
+  ...[
+    "src/main/social/mesh-social-boundaries.js",
+    "src/main/social/mesh-social.js",
+    "src/main/social/future-ipc.js",
+  ].map((sourcePath) => [sourcePath, MESH_SOCIAL_CONTRACT_TESTS]),
+  [
+    "src/main/ipc/phases/phase-3-4-social.js",
+    [...SOCIAL_COLLAB_CONTRACT_TESTS, ...MESH_SOCIAL_CONTRACT_TESTS],
   ],
   ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   [
@@ -659,8 +778,7 @@ function createSelection(
       continue;
     }
 
-    const cliContractTests =
-      CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS.get(normalized);
+    const cliContractTests = CLI_CONTRACT_TEST_MAPPINGS.get(normalized);
     if (cliContractTests) {
       const missingTests = cliContractTests.filter(
         (testFile) =>

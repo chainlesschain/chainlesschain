@@ -36,17 +36,23 @@ const workerFailure = [
   "[vitest-pool]: Worker forks emitted error.",
   "Caused by: Error: Worker exited unexpectedly",
 ].join("\n");
+const workerEpipeFailure = [
+  "[vitest-pool]: Worker forks emitted error.",
+  "Caused by: Error: write EPIPE",
+].join("\n");
 
 describe("Vitest worker infrastructure retry", () => {
   it("recognizes only a completed zero-failure JUnit run with the exact worker error", () => {
     expect(junitHasTestsAndNoFailures(cleanJunit)).toBe(true);
-    expect(
-      isRetryableVitestWorkerFailure({
-        exitCode: 1,
-        output: workerFailure,
-        junitXml: cleanJunit,
-      }),
-    ).toBe(true);
+    for (const output of [workerFailure, workerEpipeFailure]) {
+      expect(
+        isRetryableVitestWorkerFailure({
+          exitCode: 1,
+          output,
+          junitXml: cleanJunit,
+        }),
+      ).toBe(true);
+    }
 
     for (const candidate of [
       cleanJunit.replace('failures="0"', 'failures="1"'),
@@ -66,6 +72,13 @@ describe("Vitest worker infrastructure retry", () => {
       isRetryableVitestWorkerFailure({
         exitCode: 1,
         output: "AssertionError: expected true to be false",
+        junitXml: cleanJunit,
+      }),
+    ).toBe(false);
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: "Caused by: Error: write EPIPE",
         junitXml: cleanJunit,
       }),
     ).toBe(false);
@@ -143,10 +156,10 @@ describe("Vitest worker infrastructure retry", () => {
     expect(options.windowsHide).toBe(true);
   });
 
-  it("retries once without file parallelism after the exact infrastructure failure", async () => {
+  it("retries once without file parallelism after a clean worker transport failure", async () => {
     const runOnce = vi
       .fn()
-      .mockResolvedValueOnce({ exitCode: 1, output: workerFailure })
+      .mockResolvedValueOnce({ exitCode: 1, output: workerEpipeFailure })
       .mockResolvedValueOnce({ exitCode: 0, output: "passed" });
     const warn = vi.fn();
 

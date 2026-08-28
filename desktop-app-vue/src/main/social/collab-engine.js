@@ -12,6 +12,12 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const {
+  SocialCollabBoundaryError,
+  createSocialCollabBoundaries,
+  assertSocialDocumentId,
+  assertSocialPeerId,
+} = require("./social-collab-boundaries");
 
 /**
  * Content types for collaborative documents
@@ -64,23 +70,32 @@ class SocialCollabEngine extends EventEmitter {
    * @param {Object} didManager - DID identity manager
    * @param {Object} yjsCollabManager - Yjs collaboration manager (optional)
    */
-  constructor(database, didManager, yjsCollabManager = null) {
+  constructor(database, didManager, yjsCollabManager = null, options = {}) {
     super();
 
     this.database = database;
     this.didManager = didManager;
     this.yjsCollabManager = yjsCollabManager;
+    this.boundaries = createSocialCollabBoundaries(options.boundaries || {});
+    this._now =
+      typeof options.now === "function" ? options.now : () => Date.now();
 
     // Track open documents in memory
     this.openDocuments = new Map(); // docId -> { ydoc, users: Set }
 
     this.initialized = false;
+    this._destroyed = false;
+    this._generation = 0;
   }
 
   /**
    * Initialize the collaboration engine
    */
   async initialize() {
+    this._assertUsable();
+    if (this.initialized) {
+      return;
+    }
     logger.info("[SocialCollabEngine] Initializing...");
 
     try {
@@ -154,17 +169,31 @@ class SocialCollabEngine extends EventEmitter {
     visibility = Visibility.PRIVATE,
   }) {
     try {
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      this._assertUsable();
+      const currentDid = this._requireCurrentDid();
 
       if (!title || typeof title !== "string" || title.trim().length === 0) {
         throw new Error("Document title is required");
       }
+      const normalizedTitle = title.trim();
+      this._assertBoundedText(
+        normalizedTitle,
+        this.boundaries.maxDocumentTitleBytes,
+        "Document title",
+      );
+      const normalizedContentType = this._assertEnum(
+        contentType,
+        ContentType,
+        "content type",
+      );
+      const normalizedVisibility = this._assertEnum(
+        visibility,
+        Visibility,
+        "visibility",
+      );
 
       const db = this.database.db || this.database.getDatabase();
-      const now = Date.now();
+      const now = this._now();
       const docId = uuidv4();
 
       db.prepare(
@@ -173,14 +202,22 @@ class SocialCollabEngine extends EventEmitter {
           id, title, content_type, owner_did, visibility, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
       `,
-      ).run(docId, title.trim(), contentType, currentDid, visibility, now, now);
+      ).run(
+        docId,
+        normalizedTitle,
+        normalizedContentType,
+        currentDid,
+        normalizedVisibility,
+        now,
+        now,
+      );
 
       const document = {
         id: docId,
-        title: title.trim(),
-        contentType,
+        title: normalizedTitle,
+        contentType: normalizedContentType,
         ownerDid: currentDid,
-        visibility,
+        visibility: normalizedVisibility,
         status: DocStatus.ACTIVE,
         createdAt: now,
         updatedAt: now,
@@ -202,17 +239,23 @@ class SocialCollabEngine extends EventEmitter {
    * @returns {Object} Document info and Yjs handle
    */
   async openDocument(docId) {
+    let normalizedDocId = null;
+    let currentDid = null;
+    let addedUser = false;
+    let openedYjsManager = null;
+    let openedInYjs = false;
     try {
+      this._assertUsable();
       if (!docId) {
         throw new Error("Document ID is required");
       }
+      normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      currentDid = this._requireCurrentDid();
 
-      const document = await this.getDocumentById(docId);
+      const generation = this._generation;
+      const document = await this.getDocumentById(normalizedDocId);
+      this._assertGeneration(generation);
       if (!document) {
         throw new Error("Document not found");
       }
@@ -222,23 +265,36 @@ class SocialCollabEngine extends EventEmitter {
       }
 
       // Check access permission
-      const hasAccess = await this._checkAccess(docId, currentDid, document);
+      const hasAccess = await this._checkAccess(
+        normalizedDocId,
+        currentDid,
+        document,
+      );
+      this._assertGeneration(generation);
       if (!hasAccess) {
         throw new Error("Access denied");
       }
 
-      // Track open document
-      if (!this.openDocuments.has(docId)) {
-        this.openDocuments.set(docId, { users: new Set() });
+      this._assertOpenCapacity(normalizedDocId, currentDid);
+      if (!this.openDocuments.has(normalizedDocId)) {
+        this.openDocuments.set(normalizedDocId, { users: new Set() });
       }
-      this.openDocuments.get(docId).users.add(currentDid);
+      const entry = this.openDocuments.get(normalizedDocId);
+      addedUser = !entry.users.has(currentDid);
+      entry.users.add(currentDid);
 
       // Open in Yjs if manager is available
       let yjsHandle = null;
-      if (this.yjsCollabManager) {
+      openedYjsManager = this.yjsCollabManager;
+      if (openedYjsManager) {
         try {
-          yjsHandle = await this.yjsCollabManager.openDocument(docId);
+          yjsHandle = await openedYjsManager.openDocument(normalizedDocId);
+          openedInYjs = true;
+          this._assertGeneration(generation);
         } catch (err) {
+          if (this._destroyed || generation !== this._generation) {
+            throw this._destroyedError();
+          }
           logger.warn(
             "[SocialCollabEngine] Yjs open failed, continuing without CRDT:",
             err.message,
@@ -246,18 +302,34 @@ class SocialCollabEngine extends EventEmitter {
         }
       }
 
-      this.emit("document:opened", { docId, userDid: currentDid });
+      const collaborators = Array.from(
+        this.openDocuments.get(normalizedDocId).users,
+      );
+      this.emit("document:opened", {
+        docId: normalizedDocId,
+        userDid: currentDid,
+      });
       logger.info(
-        `[SocialCollabEngine] Document ${docId} opened by ${currentDid}`,
+        `[SocialCollabEngine] Document ${normalizedDocId} opened by ${currentDid}`,
       );
 
       return {
         success: true,
         document,
         yjsHandle,
-        collaborators: Array.from(this.openDocuments.get(docId).users),
+        collaborators,
       };
     } catch (error) {
+      if (openedInYjs && openedYjsManager && normalizedDocId) {
+        openedYjsManager.closeDocument?.(normalizedDocId)?.catch?.(() => {});
+      }
+      if (addedUser && normalizedDocId && currentDid) {
+        const entry = this.openDocuments.get(normalizedDocId);
+        entry?.users.delete(currentDid);
+        if (entry?.users.size === 0) {
+          this.openDocuments.delete(normalizedDocId);
+        }
+      }
       logger.error("[SocialCollabEngine] Error opening document:", error);
       throw error;
     }
@@ -269,32 +341,43 @@ class SocialCollabEngine extends EventEmitter {
    */
   async closeDocument(docId) {
     try {
+      this._assertUsable();
+      const generation = this._generation;
       if (!docId) {
         throw new Error("Document ID is required");
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
       const currentDid = this._getCurrentDid();
 
-      const entry = this.openDocuments.get(docId);
+      const entry = this.openDocuments.get(normalizedDocId);
       if (entry) {
         entry.users.delete(currentDid);
         if (entry.users.size === 0) {
-          this.openDocuments.delete(docId);
+          this.openDocuments.delete(normalizedDocId);
         }
       }
 
       // Close in Yjs if manager is available
       if (this.yjsCollabManager) {
         try {
-          await this.yjsCollabManager.closeDocument(docId);
+          await this.yjsCollabManager.closeDocument(normalizedDocId);
+          this._assertGeneration(generation);
         } catch (err) {
+          if (this._destroyed || generation !== this._generation) {
+            throw this._destroyedError();
+          }
           logger.warn("[SocialCollabEngine] Yjs close failed:", err.message);
         }
       }
 
-      this.emit("document:closed", { docId, userDid: currentDid });
+      this._assertGeneration(generation);
+      this.emit("document:closed", {
+        docId: normalizedDocId,
+        userDid: currentDid,
+      });
       logger.info(
-        `[SocialCollabEngine] Document ${docId} closed by ${currentDid}`,
+        `[SocialCollabEngine] Document ${normalizedDocId} closed by ${currentDid}`,
       );
 
       return { success: true };
@@ -318,21 +401,31 @@ class SocialCollabEngine extends EventEmitter {
     permission = InvitePermission.EDITOR,
   }) {
     try {
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      this._assertUsable();
+      const generation = this._generation;
+      const currentDid = this._requireCurrentDid();
 
       if (!docId || !inviteeDid) {
         throw new Error("Document ID and invitee DID are required");
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const normalizedInviteeDid = assertSocialPeerId(
+        inviteeDid,
+        this.boundaries,
+      );
+      const normalizedPermission = this._assertEnum(
+        permission,
+        InvitePermission,
+        "invite permission",
+      );
 
-      if (currentDid === inviteeDid) {
+      if (currentDid === normalizedInviteeDid) {
         throw new Error("Cannot invite yourself");
       }
 
       // Only the owner can invite
-      const document = await this.getDocumentById(docId);
+      const document = await this.getDocumentById(normalizedDocId);
+      this._assertGeneration(generation);
       if (!document) {
         throw new Error("Document not found");
       }
@@ -342,7 +435,7 @@ class SocialCollabEngine extends EventEmitter {
       }
 
       const db = this.database.db || this.database.getDatabase();
-      const now = Date.now();
+      const now = this._now();
       const inviteId = uuidv4();
 
       // Use INSERT OR REPLACE to handle the UNIQUE constraint
@@ -352,21 +445,28 @@ class SocialCollabEngine extends EventEmitter {
           id, doc_id, inviter_did, invitee_did, permission, status, created_at
         ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
       `,
-      ).run(inviteId, docId, currentDid, inviteeDid, permission, now);
+      ).run(
+        inviteId,
+        normalizedDocId,
+        currentDid,
+        normalizedInviteeDid,
+        normalizedPermission,
+        now,
+      );
 
       const invite = {
         id: inviteId,
-        docId,
+        docId: normalizedDocId,
         inviterDid: currentDid,
-        inviteeDid,
-        permission,
+        inviteeDid: normalizedInviteeDid,
+        permission: normalizedPermission,
         status: InviteStatus.PENDING,
         createdAt: now,
       };
 
       this.emit("invite:sent", invite);
       logger.info(
-        `[SocialCollabEngine] Invite sent to ${inviteeDid} for doc ${docId}`,
+        `[SocialCollabEngine] Invite sent to ${normalizedInviteeDid} for doc ${normalizedDocId}`,
       );
 
       return { success: true, invite };
@@ -390,12 +490,19 @@ class SocialCollabEngine extends EventEmitter {
     offset = 0,
   } = {}) {
     try {
+      this._assertUsable();
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
         return { success: true, documents: [] };
       }
 
       const db = this.database.db || this.database.getDatabase();
+      const normalizedStatus = this._assertEnum(
+        status,
+        DocStatus,
+        "document status",
+      );
+      const pagination = this._normalizePagination(limit, offset);
 
       const documents = db
         .prepare(
@@ -406,7 +513,7 @@ class SocialCollabEngine extends EventEmitter {
         LIMIT ? OFFSET ?
       `,
         )
-        .all(currentDid, status, limit, offset);
+        .all(currentDid, normalizedStatus, pagination.limit, pagination.offset);
 
       return {
         success: true,
@@ -427,12 +534,14 @@ class SocialCollabEngine extends EventEmitter {
    */
   async getSharedDocuments({ limit = 50, offset = 0 } = {}) {
     try {
+      this._assertUsable();
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
         return { success: true, documents: [] };
       }
 
       const db = this.database.db || this.database.getDatabase();
+      const pagination = this._normalizePagination(limit, offset);
 
       const documents = db
         .prepare(
@@ -445,7 +554,7 @@ class SocialCollabEngine extends EventEmitter {
         LIMIT ? OFFSET ?
       `,
         )
-        .all(currentDid, limit, offset);
+        .all(currentDid, pagination.limit, pagination.offset);
 
       return {
         success: true,
@@ -471,16 +580,17 @@ class SocialCollabEngine extends EventEmitter {
    */
   async archiveDocument(docId) {
     try {
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      this._assertUsable();
+      const generation = this._generation;
+      const currentDid = this._requireCurrentDid();
 
       if (!docId) {
         throw new Error("Document ID is required");
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
-      const document = await this.getDocumentById(docId);
+      const document = await this.getDocumentById(normalizedDocId);
+      this._assertGeneration(generation);
       if (!document) {
         throw new Error("Document not found");
       }
@@ -490,7 +600,7 @@ class SocialCollabEngine extends EventEmitter {
       }
 
       const db = this.database.db || this.database.getDatabase();
-      const now = Date.now();
+      const now = this._now();
 
       db.prepare(
         `
@@ -498,15 +608,18 @@ class SocialCollabEngine extends EventEmitter {
         SET status = 'archived', updated_at = ?
         WHERE id = ?
       `,
-      ).run(now, docId);
+      ).run(now, normalizedDocId);
 
       // Close the document if it's open
-      if (this.openDocuments.has(docId)) {
-        this.openDocuments.delete(docId);
+      if (this.openDocuments.has(normalizedDocId)) {
+        this.openDocuments.delete(normalizedDocId);
       }
 
-      this.emit("document:archived", { docId, userDid: currentDid });
-      logger.info(`[SocialCollabEngine] Document ${docId} archived`);
+      this.emit("document:archived", {
+        docId: normalizedDocId,
+        userDid: currentDid,
+      });
+      logger.info(`[SocialCollabEngine] Document ${normalizedDocId} archived`);
 
       return { success: true };
     } catch (error) {
@@ -525,6 +638,7 @@ class SocialCollabEngine extends EventEmitter {
       if (!docId) {
         return null;
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
       const db = this.database.db || this.database.getDatabase();
 
@@ -534,7 +648,7 @@ class SocialCollabEngine extends EventEmitter {
         SELECT * FROM social_collab_documents WHERE id = ?
       `,
         )
-        .get(docId);
+        .get(normalizedDocId);
 
       if (!row) {
         return null;
@@ -554,10 +668,12 @@ class SocialCollabEngine extends EventEmitter {
    */
   async acceptInvite(inviteId) {
     try {
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      this._assertUsable();
+      const currentDid = this._requireCurrentDid();
+      const normalizedInviteId = assertSocialDocumentId(
+        inviteId,
+        this.boundaries,
+      );
 
       const db = this.database.db || this.database.getDatabase();
 
@@ -567,7 +683,7 @@ class SocialCollabEngine extends EventEmitter {
         SELECT * FROM social_collab_invites WHERE id = ? AND invitee_did = ?
       `,
         )
-        .get(inviteId, currentDid);
+        .get(normalizedInviteId, currentDid);
 
       if (!invite) {
         throw new Error("Invite not found");
@@ -581,15 +697,15 @@ class SocialCollabEngine extends EventEmitter {
         `
         UPDATE social_collab_invites SET status = 'accepted' WHERE id = ?
       `,
-      ).run(inviteId);
+      ).run(normalizedInviteId);
 
       this.emit("invite:accepted", {
-        inviteId,
+        inviteId: normalizedInviteId,
         docId: invite.doc_id,
         userDid: currentDid,
       });
       logger.info(
-        `[SocialCollabEngine] Invite ${inviteId} accepted by ${currentDid}`,
+        `[SocialCollabEngine] Invite ${normalizedInviteId} accepted by ${currentDid}`,
       );
 
       return { success: true, docId: invite.doc_id };
@@ -606,10 +722,12 @@ class SocialCollabEngine extends EventEmitter {
    */
   async rejectInvite(inviteId) {
     try {
-      const currentDid = this._getCurrentDid();
-      if (!currentDid) {
-        throw new Error("User identity not available");
-      }
+      this._assertUsable();
+      const currentDid = this._requireCurrentDid();
+      const normalizedInviteId = assertSocialDocumentId(
+        inviteId,
+        this.boundaries,
+      );
 
       const db = this.database.db || this.database.getDatabase();
 
@@ -619,7 +737,7 @@ class SocialCollabEngine extends EventEmitter {
         SELECT * FROM social_collab_invites WHERE id = ? AND invitee_did = ?
       `,
         )
-        .get(inviteId, currentDid);
+        .get(normalizedInviteId, currentDid);
 
       if (!invite) {
         throw new Error("Invite not found");
@@ -629,15 +747,15 @@ class SocialCollabEngine extends EventEmitter {
         `
         UPDATE social_collab_invites SET status = 'rejected' WHERE id = ?
       `,
-      ).run(inviteId);
+      ).run(normalizedInviteId);
 
       this.emit("invite:rejected", {
-        inviteId,
+        inviteId: normalizedInviteId,
         docId: invite.doc_id,
         userDid: currentDid,
       });
       logger.info(
-        `[SocialCollabEngine] Invite ${inviteId} rejected by ${currentDid}`,
+        `[SocialCollabEngine] Invite ${normalizedInviteId} rejected by ${currentDid}`,
       );
 
       return { success: true };
@@ -651,14 +769,16 @@ class SocialCollabEngine extends EventEmitter {
    * Get pending invites for the current user
    * @returns {Object} List of pending invites
    */
-  async getPendingInvites() {
+  async getPendingInvites({ limit = 50, offset = 0 } = {}) {
     try {
+      this._assertUsable();
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
         return { success: true, invites: [] };
       }
 
       const db = this.database.db || this.database.getDatabase();
+      const pagination = this._normalizePagination(limit, offset);
 
       const invites = db
         .prepare(
@@ -668,9 +788,10 @@ class SocialCollabEngine extends EventEmitter {
         INNER JOIN social_collab_documents d ON i.doc_id = d.id
         WHERE i.invitee_did = ? AND i.status = 'pending' AND d.status = 'active'
         ORDER BY i.created_at DESC
+        LIMIT ? OFFSET ?
       `,
         )
-        .all(currentDid);
+        .all(currentDid, pagination.limit, pagination.offset);
 
       return {
         success: true,
@@ -699,6 +820,126 @@ class SocialCollabEngine extends EventEmitter {
   // ========================================
   // Helper Methods
   // ========================================
+
+  _assertUsable() {
+    if (this._destroyed) {
+      throw this._destroyedError();
+    }
+  }
+
+  _destroyedError() {
+    return new SocialCollabBoundaryError(
+      "ERR_SOCIAL_COLLAB_DESTROYED",
+      "Social collaboration engine has been destroyed",
+    );
+  }
+
+  _assertGeneration(generation) {
+    if (this._destroyed || generation !== this._generation) {
+      throw this._destroyedError();
+    }
+  }
+
+  _requireCurrentDid() {
+    const currentDid = this._getCurrentDid();
+    if (!currentDid) {
+      throw new Error("User identity not available");
+    }
+    return assertSocialPeerId(currentDid, this.boundaries);
+  }
+
+  _assertEnum(value, enumObject, name) {
+    if (!Object.values(enumObject).includes(value)) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_VALUE_INVALID",
+        `Invalid ${name}`,
+        { value },
+      );
+    }
+    return value;
+  }
+
+  _assertBoundedText(value, maxBytes, name) {
+    const byteLength = Buffer.byteLength(value, "utf8");
+    if (byteLength > maxBytes) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_VALUE_TOO_LARGE",
+        `${name} exceeds ${maxBytes} bytes`,
+        { byteLength, limitBytes: maxBytes },
+      );
+    }
+    return value;
+  }
+
+  _normalizePagination(limit, offset) {
+    if (
+      !Number.isSafeInteger(limit) ||
+      limit <= 0 ||
+      limit > this.boundaries.maxQueryItems
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_QUERY_INVALID",
+        `Query limit must be between 1 and ${this.boundaries.maxQueryItems}`,
+      );
+    }
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset > this.boundaries.maxQueryOffset
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_QUERY_INVALID",
+        `Query offset must be between 0 and ${this.boundaries.maxQueryOffset}`,
+      );
+    }
+    return { limit, offset };
+  }
+
+  _assertOpenCapacity(docId, did) {
+    const entry = this.openDocuments.get(docId);
+    if (!entry) {
+      if (this.openDocuments.size >= this.boundaries.maxActiveDocuments) {
+        throw new SocialCollabBoundaryError(
+          "ERR_SOCIAL_COLLAB_DOCUMENT_CAPACITY",
+          `Social collaboration document capacity ${this.boundaries.maxActiveDocuments} reached`,
+        );
+      }
+      return;
+    }
+    if (
+      !entry.users.has(did) &&
+      entry.users.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PEER_CAPACITY",
+        `Social collaboration peer capacity ${this.boundaries.maxPeersPerDocument} reached for ${docId}`,
+      );
+    }
+  }
+
+  async _settleWithDeadline(promise, message) {
+    let timer;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          timer = setTimeout(() => {
+            reject(
+              new SocialCollabBoundaryError(
+                "ERR_SOCIAL_COLLAB_DEADLINE",
+                message,
+              ),
+            );
+          }, this.boundaries.streamDeadlineMs);
+          timer.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
 
   /**
    * Check if a user has access to a document
@@ -779,7 +1020,7 @@ class SocialCollabEngine extends EventEmitter {
     try {
       const identity = this.didManager?.getCurrentIdentity?.();
       return identity?.did || null;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -804,18 +1045,37 @@ class SocialCollabEngine extends EventEmitter {
    * Clean up resources
    */
   async destroy() {
-    // Close all open documents
-    for (const [docId] of this.openDocuments) {
-      try {
-        await this.closeDocument(docId);
-      } catch (err) {
-        // Ignore errors during cleanup
-      }
+    if (this._destroyed) {
+      return;
     }
-
+    this._destroyed = true;
+    this._generation += 1;
+    const openDocumentIds = Array.from(this.openDocuments.keys());
+    const yjsCollabManager = this.yjsCollabManager;
     this.openDocuments.clear();
     this.removeAllListeners();
     this.initialized = false;
+    this.yjsCollabManager = null;
+
+    if (yjsCollabManager?.closeDocument && openDocumentIds.length > 0) {
+      try {
+        await this._settleWithDeadline(
+          Promise.allSettled(
+            openDocumentIds.map((docId) =>
+              Promise.resolve().then(() =>
+                yjsCollabManager.closeDocument(docId),
+              ),
+            ),
+          ),
+          "Timed out closing social collaboration documents",
+        );
+      } catch (error) {
+        logger.warn(
+          "[SocialCollabEngine] Document cleanup did not settle:",
+          error.message,
+        );
+      }
+    }
 
     logger.info("[SocialCollabEngine] Destroyed");
   }

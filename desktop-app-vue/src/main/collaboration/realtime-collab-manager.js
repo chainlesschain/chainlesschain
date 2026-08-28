@@ -33,12 +33,22 @@ function safeParse(raw, fallback) {
 }
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const {
+  CollabBoundaryError,
+  createCollabBoundaries,
+  assertDocumentId,
+  normalizeUpdate,
+} = require("./collab-boundaries");
 
 class RealtimeCollabManager extends EventEmitter {
-  constructor(database, yjsCollabManager = null) {
+  constructor(database, yjsCollabManager = null, options = {}) {
     super();
     this.database = database;
     this.yjsCollabManager = yjsCollabManager;
+    this.boundaries =
+      yjsCollabManager?.boundaries ||
+      createCollabBoundaries(options.boundaries);
+    this._now = typeof options.now === "function" ? options.now : Date.now;
     this.activeLocks = new Map(); // docId -> [locks]
     this.documentSubscribers = new Map(); // docId -> Set<callback>
     this.lockExpiryTimers = new Map(); // lockId -> timer
@@ -49,6 +59,9 @@ class RealtimeCollabManager extends EventEmitter {
    */
   setYjsManager(yjsManager) {
     this.yjsCollabManager = yjsManager;
+    if (yjsManager?.boundaries) {
+      this.boundaries = yjsManager.boundaries;
+    }
   }
 
   // ========================================
@@ -181,17 +194,25 @@ class RealtimeCollabManager extends EventEmitter {
    */
   async syncUpdate(docId, update, userDid, version) {
     try {
+      assertDocumentId(docId, this.boundaries);
+      const normalizedUpdate = normalizeUpdate(update, this.boundaries);
       const db = this.database.getDatabase();
-      const now = Date.now();
+      const now = this._now();
 
-      // Store the update
-      db.prepare(
-        `
-        INSERT INTO knowledge_yjs_updates (
-          knowledge_id, update_data, created_at
-        ) VALUES (?, ?, ?)
-      `,
-      ).run(docId, update, now);
+      // Route through the manager-owned Y.Doc when available so the in-memory
+      // document and its persistence listener observe the same update exactly
+      // once. Startup fallbacks without Yjs still persist directly.
+      if (this.yjsCollabManager?.applyUpdate) {
+        this.yjsCollabManager.applyUpdate(docId, normalizedUpdate, "local");
+      } else {
+        db.prepare(
+          `
+          INSERT INTO knowledge_yjs_updates (
+            knowledge_id, update_data, created_at
+          ) VALUES (?, ?, ?)
+        `,
+        ).run(docId, Buffer.from(normalizedUpdate), now);
+      }
 
       // Update last activity
       db.prepare(
@@ -225,26 +246,71 @@ class RealtimeCollabManager extends EventEmitter {
    */
   async receiveUpdate(docId, fromVersion) {
     try {
+      assertDocumentId(docId, this.boundaries);
+      const normalizedVersion = fromVersion ?? 0;
+      if (!Number.isSafeInteger(normalizedVersion) || normalizedVersion < 0) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_VERSION_INVALID",
+          "fromVersion must be a non-negative safe integer",
+          { fromVersion },
+        );
+      }
       const db = this.database.getDatabase();
 
-      // Get all updates since the given version
-      const updates = db
+      const rows = db
         .prepare(
           `
-        SELECT update_data, created_at
+        SELECT id, update_data, created_at
         FROM knowledge_yjs_updates
         WHERE knowledge_id = ? AND id > ?
         ORDER BY id ASC
+        LIMIT ?
       `,
         )
-        .all(docId, fromVersion || 0);
+        .all(docId, normalizedVersion, this.boundaries.maxReceiveUpdates + 1);
+
+      const updates = [];
+      let totalBytes = 0;
+      let hasMore = rows.length > this.boundaries.maxReceiveUpdates;
+      for (const [index, row] of rows.entries()) {
+        if (updates.length >= this.boundaries.maxReceiveUpdates) {
+          hasMore = true;
+          break;
+        }
+        const byteLength = Buffer.byteLength(
+          row.update_data || Buffer.alloc(0),
+        );
+        if (byteLength > this.boundaries.maxReceiveBytes) {
+          throw new CollabBoundaryError(
+            "ERR_COLLAB_RECEIVE_LIMIT",
+            `Stored Yjs update exceeds ${this.boundaries.maxReceiveBytes} receive bytes`,
+            {
+              documentId: docId,
+              updateId: row.id ?? null,
+              byteLength,
+              limitBytes: this.boundaries.maxReceiveBytes,
+            },
+          );
+        }
+        if (totalBytes + byteLength > this.boundaries.maxReceiveBytes) {
+          hasMore = true;
+          break;
+        }
+        totalBytes += byteLength;
+        updates.push({
+          data: row.update_data,
+          timestamp: row.created_at,
+          version: row.id ?? normalizedVersion + index + 1,
+        });
+      }
+
+      const nextVersion = updates.at(-1)?.version ?? normalizedVersion;
 
       return {
         success: true,
-        updates: updates.map((u) => ({
-          data: u.update_data,
-          timestamp: u.created_at,
-        })),
+        updates,
+        hasMore,
+        nextVersion,
       };
     } catch (error) {
       logger.error("[RealtimeCollab] Error receiving updates:", error);
@@ -895,6 +961,19 @@ class RealtimeCollabManager extends EventEmitter {
    */
   async getDocumentHistory(docId, options = {}) {
     try {
+      assertDocumentId(docId, this.boundaries);
+      const limit = options.limit ?? 50;
+      if (
+        !Number.isSafeInteger(limit) ||
+        limit <= 0 ||
+        limit > this.boundaries.maxVersionHistoryEntries
+      ) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_HISTORY_LIMIT",
+          `Version history limit must be between 1 and ${this.boundaries.maxVersionHistoryEntries}`,
+          { limit, limitEntries: this.boundaries.maxVersionHistoryEntries },
+        );
+      }
       const db = this.database.getDatabase();
 
       const snapshots = db
@@ -907,7 +986,7 @@ class RealtimeCollabManager extends EventEmitter {
         LIMIT ?
       `,
         )
-        .all(docId, options.limit || 50);
+        .all(docId, limit);
 
       return {
         success: true,
@@ -1034,15 +1113,36 @@ class RealtimeCollabManager extends EventEmitter {
    * Subscribe to document changes
    */
   subscribeToChanges(docId, callback) {
+    assertDocumentId(docId, this.boundaries);
+    if (typeof callback !== "function") {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_SUBSCRIBER_INVALID",
+        "Collaboration subscriber must be a function",
+      );
+    }
     if (!this.documentSubscribers.has(docId)) {
       this.documentSubscribers.set(docId, new Set());
     }
-    this.documentSubscribers.get(docId).add(callback);
+    const subscribers = this.documentSubscribers.get(docId);
+    if (
+      !subscribers.has(callback) &&
+      subscribers.size >= this.boundaries.maxSubscribersPerDocument
+    ) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_SUBSCRIBER_CAPACITY",
+        `Document ${docId} already has ${this.boundaries.maxSubscribersPerDocument} subscribers`,
+        { documentId: docId, limit: this.boundaries.maxSubscribersPerDocument },
+      );
+    }
+    subscribers.add(callback);
 
     return () => {
       const subscribers = this.documentSubscribers.get(docId);
       if (subscribers) {
         subscribers.delete(callback);
+        if (subscribers.size === 0) {
+          this.documentSubscribers.delete(docId);
+        }
       }
     };
   }

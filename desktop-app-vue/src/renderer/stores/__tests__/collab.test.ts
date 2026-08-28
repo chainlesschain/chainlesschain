@@ -142,7 +142,7 @@ describe("useCollabStore", () => {
 
       await store.openDocument("doc-1", "did:me", "Alice");
       await store.closeDocument("doc-1", "did:me");
-      await store.syncUpdate("doc-1", { update: [1] } as any, "did:me");
+      await store.syncUpdate("doc-1", [1], "did:me");
       await store.updateCursor("doc-1", "did:me", {
         line: 2,
         column: 3,

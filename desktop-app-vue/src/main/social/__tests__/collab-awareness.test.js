@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -13,12 +16,15 @@ describe("CollabAwareness", () => {
     aw = new CollabAwareness();
   });
   afterEach(() => {
+    void aw.destroy();
     vi.useRealTimers();
   });
 
   describe("_assignColor", () => {
     it("is deterministic for the same DID", () => {
-      expect(aw._assignColor("did:key:alice")).toBe(aw._assignColor("did:key:alice"));
+      expect(aw._assignColor("did:key:alice")).toBe(
+        aw._assignColor("did:key:alice"),
+      );
     });
     it("always returns a valid color (incl. empty/null DID)", () => {
       const HEX = /^#[0-9A-F]{6}$/i;
@@ -30,7 +36,9 @@ describe("CollabAwareness", () => {
     });
     it("distributes across more than one color", () => {
       const seen = new Set();
-      for (let i = 0; i < 50; i++) seen.add(aw._assignColor(`did:${i}`));
+      for (let i = 0; i < 50; i++) {
+        seen.add(aw._assignColor(`did:${i}`));
+      }
       expect(seen.size).toBeGreaterThan(1);
     });
   });
@@ -82,7 +90,11 @@ describe("CollabAwareness", () => {
         { line: 1 },
         { start: { line: 1 }, end: { line: 2, column: 4 } },
       );
-      expect(r.cursor.selection.start).toEqual({ line: 1, column: 0, offset: 0 });
+      expect(r.cursor.selection.start).toEqual({
+        line: 1,
+        column: 0,
+        offset: 0,
+      });
       expect(r.cursor.selection.end).toEqual({ line: 2, column: 4, offset: 0 });
     });
   });
@@ -96,7 +108,11 @@ describe("CollabAwareness", () => {
     it("adds a remote cursor, auto-creating a profile, and emits user:joined once", () => {
       const joined = vi.fn();
       aw.on("user:joined", joined);
-      aw.updateRemoteCursor("doc", { did: "did:bob", name: "Bob", position: { line: 3 } });
+      aw.updateRemoteCursor("doc", {
+        did: "did:bob",
+        name: "Bob",
+        position: { line: 3 },
+      });
       aw.updateRemoteCursor("doc", { did: "did:bob", position: { line: 4 } });
       expect(joined).toHaveBeenCalledOnce(); // only the first time
       expect(aw.getActiveUserCount("doc")).toBe(1);
@@ -155,6 +171,127 @@ describe("CollabAwareness", () => {
       aw.updateRemoteCursor("doc", { did: "a", position: { line: 1 } });
       aw.clearDocument("doc");
       expect(aw.getActiveUserCount("doc")).toBe(0);
+    });
+  });
+
+  describe("retention and input boundaries", () => {
+    it("rejects new documents at capacity without retaining an empty map", () => {
+      aw = new CollabAwareness(null, {
+        boundaries: { maxActiveDocuments: 1, maxProfiles: 2 },
+      });
+      aw.setLocalProfile("did:me", "Me");
+      expect(aw.setLocalCursor("doc-1", { line: 1 }).success).toBe(true);
+
+      const rejected = aw.setLocalCursor("doc-2", { line: 2 });
+
+      expect(rejected.success).toBe(false);
+      expect(rejected.error).toMatch(/document capacity/i);
+      expect([...aw.cursors.keys()]).toEqual(["doc-1"]);
+    });
+
+    it("rejects excess peers transactionally without retaining a profile", () => {
+      aw = new CollabAwareness(null, {
+        boundaries: { maxPeersPerDocument: 1, maxProfiles: 3 },
+      });
+      aw.updateRemoteCursor("doc", {
+        did: "did:alice",
+        position: { line: 1 },
+      });
+
+      aw.updateRemoteCursor("doc", {
+        did: "did:bob",
+        position: { line: 2 },
+      });
+
+      expect([...aw.cursors.get("doc").keys()]).toEqual(["did:alice"]);
+      expect(aw.userProfiles.has("did:bob")).toBe(false);
+    });
+
+    it("bounds retained profiles", () => {
+      aw = new CollabAwareness(null, {
+        boundaries: { maxProfiles: 1 },
+      });
+      aw.setUserProfile("did:alice", "Alice");
+
+      expect(() => aw.setUserProfile("did:bob", "Bob")).toThrow(
+        /profile capacity/i,
+      );
+      expect(aw.userProfiles.size).toBe(1);
+    });
+
+    it("stores only normalized cursor fields and rejects invalid coordinates", () => {
+      aw.updateRemoteCursor("doc", {
+        did: "did:alice",
+        name: "Alice",
+        position: { line: 3, ignored: "x".repeat(10_000) },
+      });
+
+      expect(aw.cursors.get("doc").get("did:alice").position).toEqual({
+        line: 3,
+        column: 0,
+        offset: 0,
+      });
+      aw.updateRemoteCursor("invalid", {
+        did: "did:bob",
+        position: { line: -1 },
+      });
+      expect(aw.cursors.has("invalid")).toBe(false);
+      expect(aw.userProfiles.has("did:bob")).toBe(false);
+    });
+
+    it("rejects oversized names before retaining state", () => {
+      aw = new CollabAwareness(null, {
+        boundaries: { maxDisplayNameBytes: 4 },
+      });
+
+      expect(() => aw.setUserProfile("did:alice", "Alice")).toThrow(
+        /display name exceeds/i,
+      );
+      expect(aw.userProfiles.size).toBe(0);
+    });
+
+    it("reclaims stale unreferenced remote profiles", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      aw.updateRemoteCursor("doc", {
+        did: "did:alice",
+        position: { line: 1 },
+      });
+
+      vi.setSystemTime(120_000);
+      aw._cleanupStaleCursors();
+
+      expect(aw.cursors.has("doc")).toBe(false);
+      expect(aw.userProfiles.has("did:alice")).toBe(false);
+    });
+  });
+
+  describe("lifecycle", () => {
+    it("initializes once, releases its timer, and fences later mutations", async () => {
+      vi.useFakeTimers();
+      await aw.initialize();
+      await aw.initialize();
+      expect(vi.getTimerCount()).toBe(1);
+
+      await aw.destroy();
+
+      expect(vi.getTimerCount()).toBe(0);
+      expect(() => aw.setLocalProfile("did:me", "Me")).toThrow(
+        /has been destroyed/i,
+      );
+      expect(await aw.destroy()).toBeUndefined();
+    });
+
+    it("keeps application shutdown wired to the production instance", () => {
+      const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+      const mainSource = readFileSync(
+        path.resolve(testDirectory, "..", "..", "index.js"),
+        "utf8",
+      );
+      expect(mainSource).toContain(
+        "this.collabAwareness = instances.collabAwareness",
+      );
+      expect(mainSource).toContain("await this.collabAwareness.destroy?.()");
     });
   });
 });

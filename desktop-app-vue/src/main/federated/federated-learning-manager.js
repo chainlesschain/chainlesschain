@@ -27,7 +27,7 @@ class FederatedLearningManager extends EventEmitter {
    * @param {Object} options.database - Database manager instance
    * @param {Object} options.p2pManager - P2P network manager instance
    */
-  constructor({ database, p2pManager }) {
+  constructor({ database, p2pManager, transportBoundaries = {} }) {
     super();
     this.database = database;
     this.p2pManager = p2pManager;
@@ -37,6 +37,8 @@ class FederatedLearningManager extends EventEmitter {
     this.dpInstances = new Map(); // roundId -> DifferentialPrivacy
     this.gradientStore = new Map(); // roundId -> Map<peerId, gradients>
     this.protocol = FEDERATED_PROTOCOL;
+    this.transportBoundaries = transportBoundaries;
+    this._disposeModelSyncHandler = null;
 
     logger.info("[FederatedLearning] Manager created");
   }
@@ -63,11 +65,14 @@ class FederatedLearningManager extends EventEmitter {
     if (this.p2pManager) {
       this.modelSync = new ModelParameterSync({
         p2pManager: this.p2pManager,
+        boundaries: this.transportBoundaries,
       });
 
-      this.modelSync.onMessage(async ({ peerId, message }) => {
-        await this._handleP2PMessage(peerId, message);
-      });
+      this._disposeModelSyncHandler = this.modelSync.onMessage(
+        async ({ peerId, message }) => {
+          await this._handleP2PMessage(peerId, message);
+        },
+      );
     }
 
     this.initialized = true;
@@ -82,7 +87,9 @@ class FederatedLearningManager extends EventEmitter {
   _ensureTables() {
     const db = this._getDb();
     if (!db) {
-      logger.warn("[FederatedLearning] No database available, skipping table creation");
+      logger.warn(
+        "[FederatedLearning] No database available, skipping table creation",
+      );
       return;
     }
 
@@ -133,7 +140,7 @@ class FederatedLearningManager extends EventEmitter {
       logger.info("[FederatedLearning] Database tables ensured");
     } catch (error) {
       logger.error(
-        `[FederatedLearning] Failed to create tables: ${error.message}`
+        `[FederatedLearning] Failed to create tables: ${error.message}`,
       );
     }
   }
@@ -144,7 +151,9 @@ class FederatedLearningManager extends EventEmitter {
    * @returns {Object|null}
    */
   _getDb() {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
     return this.database.db || this.database;
   }
 
@@ -161,7 +170,7 @@ class FederatedLearningManager extends EventEmitter {
           await this.submitGradients(
             message.roundId,
             peerId,
-            message.gradients
+            message.gradients,
           );
           break;
 
@@ -175,12 +184,12 @@ class FederatedLearningManager extends EventEmitter {
 
         default:
           logger.debug(
-            `[FederatedLearning] Unhandled P2P message type: ${message.type}`
+            `[FederatedLearning] Unhandled P2P message type: ${message.type}`,
           );
       }
     } catch (error) {
       logger.error(
-        `[FederatedLearning] Error handling P2P message from ${peerId}: ${error.message}`
+        `[FederatedLearning] Error handling P2P message from ${peerId}: ${error.message}`,
       );
     }
   }
@@ -270,11 +279,11 @@ class FederatedLearningManager extends EventEmitter {
         roundObj.max_participants,
         roundObj.round_timeout_ms,
         roundObj.created_at,
-        roundObj.updated_at
+        roundObj.updated_at,
       );
     } catch (error) {
       logger.error(
-        `[FederatedLearning] Failed to insert round: ${error.message}`
+        `[FederatedLearning] Failed to insert round: ${error.message}`,
       );
       throw error;
     }
@@ -288,13 +297,13 @@ class FederatedLearningManager extends EventEmitter {
         await this.modelSync.broadcastRound(roundObj);
       } catch (error) {
         logger.warn(
-          `[FederatedLearning] Failed to broadcast round: ${error.message}`
+          `[FederatedLearning] Failed to broadcast round: ${error.message}`,
         );
       }
     }
 
     logger.info(
-      `[FederatedLearning] Created round ${roundId} for model ${config.modelId}, method=${aggregationMethod}`
+      `[FederatedLearning] Created round ${roundId} for model ${config.modelId}, method=${aggregationMethod}`,
     );
 
     this.emit("round-created", roundObj);
@@ -319,9 +328,7 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     // Verify round exists and is in recruiting status
-    const roundStmt = db.prepare(
-      "SELECT * FROM federated_rounds WHERE id = ?"
-    );
+    const roundStmt = db.prepare("SELECT * FROM federated_rounds WHERE id = ?");
     const round = roundStmt.get(roundId);
 
     if (!round) {
@@ -330,19 +337,19 @@ class FederatedLearningManager extends EventEmitter {
 
     if (round.status !== "recruiting" && round.status !== "created") {
       throw new Error(
-        `Round ${roundId} is not accepting participants (status: ${round.status})`
+        `Round ${roundId} is not accepting participants (status: ${round.status})`,
       );
     }
 
     // Check max participants
     const countStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'",
     );
     const { count } = countStmt.get(roundId);
 
     if (count >= round.max_participants) {
       throw new Error(
-        `Round ${roundId} has reached maximum participants (${round.max_participants})`
+        `Round ${roundId} has reached maximum participants (${round.max_participants})`,
       );
     }
 
@@ -358,10 +365,7 @@ class FederatedLearningManager extends EventEmitter {
       insertStmt.run(peersId, roundId, peerId, now);
     } catch (error) {
       // Handle unique constraint violation (peer already joined)
-      if (
-        error.message &&
-        error.message.includes("UNIQUE constraint failed")
-      ) {
+      if (error.message && error.message.includes("UNIQUE constraint failed")) {
         throw new Error(`Peer ${peerId} has already joined round ${roundId}`);
       }
       throw error;
@@ -369,13 +373,13 @@ class FederatedLearningManager extends EventEmitter {
 
     // Update round status to 'training' if min participants reached
     const newCountStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'",
     );
     const { count: newCount } = newCountStmt.get(roundId);
 
     if (newCount >= round.min_participants && round.status === "recruiting") {
       const updateStmt = db.prepare(
-        "UPDATE federated_rounds SET status = 'training', updated_at = ? WHERE id = ?"
+        "UPDATE federated_rounds SET status = 'training', updated_at = ? WHERE id = ?",
       );
       updateStmt.run(Date.now(), roundId);
     }
@@ -392,7 +396,7 @@ class FederatedLearningManager extends EventEmitter {
     };
 
     logger.info(
-      `[FederatedLearning] Peer ${peerId} joined round ${roundId} (${newCount}/${round.max_participants})`
+      `[FederatedLearning] Peer ${peerId} joined round ${roundId} (${newCount}/${round.max_participants})`,
     );
 
     this.emit("peer-joined", enrollment);
@@ -417,14 +421,12 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     const stmt = db.prepare(
-      "UPDATE federated_peers SET status = 'left' WHERE round_id = ? AND peer_id = ?"
+      "UPDATE federated_peers SET status = 'left' WHERE round_id = ? AND peer_id = ?",
     );
     const result = stmt.run(roundId, peerId);
 
     if (result.changes === 0) {
-      throw new Error(
-        `Peer ${peerId} not found in round ${roundId}`
-      );
+      throw new Error(`Peer ${peerId} not found in round ${roundId}`);
     }
 
     // Remove from gradient store
@@ -433,9 +435,7 @@ class FederatedLearningManager extends EventEmitter {
       roundGradients.delete(peerId);
     }
 
-    logger.info(
-      `[FederatedLearning] Peer ${peerId} left round ${roundId}`
-    );
+    logger.info(`[FederatedLearning] Peer ${peerId} left round ${roundId}`);
 
     const leaveInfo = { roundId, peerId, status: "left" };
     this.emit("peer-left", leaveInfo);
@@ -469,9 +469,7 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     // Verify round exists
-    const roundStmt = db.prepare(
-      "SELECT * FROM federated_rounds WHERE id = ?"
-    );
+    const roundStmt = db.prepare("SELECT * FROM federated_rounds WHERE id = ?");
     const round = roundStmt.get(roundId);
 
     if (!round) {
@@ -484,13 +482,13 @@ class FederatedLearningManager extends EventEmitter {
       round.status !== "created"
     ) {
       throw new Error(
-        `Round ${roundId} is not accepting gradients (status: ${round.status})`
+        `Round ${roundId} is not accepting gradients (status: ${round.status})`,
       );
     }
 
     // Verify peer is enrolled
     const peerStmt = db.prepare(
-      "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ? AND status != 'left'"
+      "SELECT * FROM federated_peers WHERE round_id = ? AND peer_id = ? AND status != 'left'",
     );
     const peer = peerStmt.get(roundId, peerId);
 
@@ -504,7 +502,7 @@ class FederatedLearningManager extends EventEmitter {
     if (dpInstance) {
       processedGradients = dpInstance.applyDP(gradients);
       logger.info(
-        `[FederatedLearning] Applied DP to gradients from peer ${peerId}`
+        `[FederatedLearning] Applied DP to gradients from peer ${peerId}`,
       );
     }
 
@@ -524,16 +522,10 @@ class FederatedLearningManager extends EventEmitter {
       SET status = 'submitted', gradient_hash = ?, local_samples = ?, submitted_at = ?
       WHERE round_id = ? AND peer_id = ?
     `);
-    updateStmt.run(
-      gradientHash,
-      gradients.length,
-      now,
-      roundId,
-      peerId
-    );
+    updateStmt.run(gradientHash, gradients.length, now, roundId, peerId);
 
     logger.info(
-      `[FederatedLearning] Peer ${peerId} submitted gradients for round ${roundId}: ${gradients.length} parameters`
+      `[FederatedLearning] Peer ${peerId} submitted gradients for round ${roundId}: ${gradients.length} parameters`,
     );
 
     const submission = {
@@ -549,25 +541,28 @@ class FederatedLearningManager extends EventEmitter {
 
     // Check if all active participants have submitted
     const activePeersStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'",
     );
     const { count: activePeers } = activePeersStmt.get(roundId);
 
     const submittedStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status = 'submitted'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status = 'submitted'",
     );
     const { count: submittedCount } = submittedStmt.get(roundId);
 
-    if (submittedCount >= activePeers && activePeers >= round.min_participants) {
+    if (
+      submittedCount >= activePeers &&
+      activePeers >= round.min_participants
+    ) {
       logger.info(
-        `[FederatedLearning] All ${submittedCount} participants submitted for round ${roundId}, triggering aggregation`
+        `[FederatedLearning] All ${submittedCount} participants submitted for round ${roundId}, triggering aggregation`,
       );
 
       try {
         await this.aggregate(roundId);
       } catch (error) {
         logger.error(
-          `[FederatedLearning] Auto-aggregation failed for round ${roundId}: ${error.message}`
+          `[FederatedLearning] Auto-aggregation failed for round ${roundId}: ${error.message}`,
         );
       }
     }
@@ -596,9 +591,7 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     // Get round info
-    const roundStmt = db.prepare(
-      "SELECT * FROM federated_rounds WHERE id = ?"
-    );
+    const roundStmt = db.prepare("SELECT * FROM federated_rounds WHERE id = ?");
     const round = roundStmt.get(roundId);
 
     if (!round) {
@@ -607,7 +600,7 @@ class FederatedLearningManager extends EventEmitter {
 
     // Update status to aggregating
     const updateStatusStmt = db.prepare(
-      "UPDATE federated_rounds SET status = 'aggregating', updated_at = ? WHERE id = ?"
+      "UPDATE federated_rounds SET status = 'aggregating', updated_at = ? WHERE id = ?",
     );
     updateStatusStmt.run(Date.now(), roundId);
 
@@ -623,7 +616,7 @@ class FederatedLearningManager extends EventEmitter {
 
     // Get peer info for weights
     const peersStmt = db.prepare(
-      "SELECT * FROM federated_peers WHERE round_id = ? AND status = 'submitted'"
+      "SELECT * FROM federated_peers WHERE round_id = ? AND status = 'submitted'",
     );
     const peers = peersStmt.all(roundId);
 
@@ -639,23 +632,21 @@ class FederatedLearningManager extends EventEmitter {
 
     if (gradientArrays.length === 0) {
       const failStmt = db.prepare(
-        "UPDATE federated_rounds SET status = 'failed', updated_at = ? WHERE id = ?"
+        "UPDATE federated_rounds SET status = 'failed', updated_at = ? WHERE id = ?",
       );
       failStmt.run(Date.now(), roundId);
-      throw new Error(
-        `No valid gradients to aggregate for round ${roundId}`
-      );
+      throw new Error(`No valid gradients to aggregate for round ${roundId}`);
     }
 
     // Validate gradients
     const validation = this.aggregator.validateGradients(gradientArrays);
     if (!validation.valid) {
       const failStmt = db.prepare(
-        "UPDATE federated_rounds SET status = 'failed', updated_at = ? WHERE id = ?"
+        "UPDATE federated_rounds SET status = 'failed', updated_at = ? WHERE id = ?",
       );
       failStmt.run(Date.now(), roundId);
       throw new Error(
-        `Gradient validation failed: ${validation.errors.join("; ")}`
+        `Gradient validation failed: ${validation.errors.join("; ")}`,
       );
     }
 
@@ -673,7 +664,7 @@ class FederatedLearningManager extends EventEmitter {
         gradientArrays,
         weights,
         globalModel,
-        mu
+        mu,
       );
     } else {
       aggregated = this.aggregator.aggregateFedAvg(gradientArrays, weights);
@@ -682,13 +673,13 @@ class FederatedLearningManager extends EventEmitter {
     // Compute contribution scores
     const scores = this.aggregator.computeContributionScores(
       gradientArrays,
-      aggregated
+      aggregated,
     );
 
     // Update peer contribution scores
     for (let i = 0; i < peerIds.length; i++) {
       const scoreStmt = db.prepare(
-        "UPDATE federated_peers SET contribution_score = ?, status = 'aggregated' WHERE round_id = ? AND peer_id = ?"
+        "UPDATE federated_peers SET contribution_score = ?, status = 'aggregated' WHERE round_id = ? AND peer_id = ?",
       );
       scoreStmt.run(scores[i], roundId, peerIds[i]);
     }
@@ -712,7 +703,7 @@ class FederatedLearningManager extends EventEmitter {
         await this.modelSync.broadcastAggregation(roundId, globalModelHash);
       } catch (error) {
         logger.warn(
-          `[FederatedLearning] Failed to broadcast aggregation: ${error.message}`
+          `[FederatedLearning] Failed to broadcast aggregation: ${error.message}`,
         );
       }
     }
@@ -725,7 +716,7 @@ class FederatedLearningManager extends EventEmitter {
       globalModelHash: globalModelHash,
       roundNumber: newRoundNumber,
       contributionScores: Object.fromEntries(
-        peerIds.map((id, i) => [id, scores[i]])
+        peerIds.map((id, i) => [id, scores[i]]),
       ),
       aggregatedAt: now,
     };
@@ -734,7 +725,7 @@ class FederatedLearningManager extends EventEmitter {
     this.gradientStore.delete(roundId);
 
     logger.info(
-      `[FederatedLearning] Aggregation complete for round ${roundId}: ${gradientArrays.length} participants, round #${newRoundNumber}`
+      `[FederatedLearning] Aggregation complete for round ${roundId}: ${gradientArrays.length} participants, round #${newRoundNumber}`,
     );
 
     this.emit("aggregation-complete", result);
@@ -757,9 +748,7 @@ class FederatedLearningManager extends EventEmitter {
       return null;
     }
 
-    const roundStmt = db.prepare(
-      "SELECT * FROM federated_rounds WHERE id = ?"
-    );
+    const roundStmt = db.prepare("SELECT * FROM federated_rounds WHERE id = ?");
     const round = roundStmt.get(roundId);
 
     if (!round) {
@@ -768,12 +757,12 @@ class FederatedLearningManager extends EventEmitter {
 
     // Get participant counts
     const totalStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status != 'left'",
     );
     const { count: totalPeers } = totalStmt.get(roundId);
 
     const submittedStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status = 'submitted'"
+      "SELECT COUNT(*) as count FROM federated_peers WHERE round_id = ? AND status = 'submitted'",
     );
     const { count: submittedPeers } = submittedStmt.get(roundId);
 
@@ -891,19 +880,19 @@ class FederatedLearningManager extends EventEmitter {
       const db = this._getDb();
       if (db) {
         const stmt = db.prepare(
-          "UPDATE federated_rounds SET dp_config = ?, updated_at = ? WHERE id = ?"
+          "UPDATE federated_rounds SET dp_config = ?, updated_at = ? WHERE id = ?",
         );
         stmt.run(JSON.stringify(dpConfig), Date.now(), config.roundId);
       }
 
       logger.info(
-        `[FederatedLearning] DP config applied to round ${config.roundId}: epsilon=${dpConfig.epsilon}`
+        `[FederatedLearning] DP config applied to round ${config.roundId}: epsilon=${dpConfig.epsilon}`,
       );
     } else {
       // Store as default config
       this.defaultDPConfig = dpConfig;
       logger.info(
-        `[FederatedLearning] Default DP config set: epsilon=${dpConfig.epsilon}`
+        `[FederatedLearning] Default DP config set: epsilon=${dpConfig.epsilon}`,
       );
     }
 
@@ -927,7 +916,7 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     const stmt = db.prepare(
-      "SELECT * FROM federated_peers WHERE round_id = ? ORDER BY joined_at ASC"
+      "SELECT * FROM federated_peers WHERE round_id = ? ORDER BY joined_at ASC",
     );
     const rows = stmt.all(roundId);
 
@@ -961,7 +950,7 @@ class FederatedLearningManager extends EventEmitter {
     }
 
     const stmt = db.prepare(
-      "SELECT id, model_id, global_model_hash, round_number, aggregation_method, status FROM federated_rounds WHERE id = ?"
+      "SELECT id, model_id, global_model_hash, round_number, aggregation_method, status FROM federated_rounds WHERE id = ?",
     );
     const round = stmt.get(roundId);
 
@@ -1006,6 +995,17 @@ class FederatedLearningManager extends EventEmitter {
     // Convert to unsigned 32-bit and then to hex
     const unsigned = hash >>> 0;
     return unsigned.toString(16).padStart(8, "0");
+  }
+
+  destroy() {
+    this._disposeModelSyncHandler?.();
+    this._disposeModelSyncHandler = null;
+    this.modelSync?.destroy?.();
+    this.modelSync = null;
+    this.dpInstances.clear();
+    this.gradientStore.clear();
+    this.initialized = false;
+    this.removeAllListeners();
   }
 }
 
