@@ -405,6 +405,39 @@ class DesktopGraphExecutionAdapter {
     });
   }
 
+  async history(
+    runId,
+    { afterSeq = 0, limit = 1_000, snapshotLimit = 200 } = {},
+  ) {
+    const id = graphIdentifier(runId, "desktop-graph-run");
+    const client = this._client();
+    if (typeof client.graphHistory !== "function") {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_CAPABILITY_UNAVAILABLE",
+        "Graph App Server history capability is unavailable",
+      );
+    }
+    const history = await client.graphHistory({
+      runId: id,
+      afterSeq,
+      limit,
+      snapshotLimit,
+    });
+    if (
+      history?.schema !== "chainlesschain.graph-debug-history/v1" ||
+      history?.runId !== id ||
+      !Array.isArray(history.events) ||
+      !Array.isArray(history.snapshots) ||
+      history.current?.runId !== id
+    ) {
+      throw adapterError(
+        "CC_DESKTOP_GRAPH_HISTORY_INVALID",
+        "Graph history is not bound to the requested Desktop run",
+      );
+    }
+    return history;
+  }
+
   async resume(
     runId,
     { waitForCompletion = false, authorityMode = undefined } = {},

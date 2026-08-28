@@ -239,6 +239,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       }),
     getTaskStatus: (taskId) =>
       ipcRenderer.invoke("agents:get-task-status", { taskId }),
+    getGraphHistory: (taskId, options = {}) =>
+      ipcRenderer.invoke("agents:get-graph-history", { taskId, ...options }),
     cancelTask: (taskId, reason = "") =>
       ipcRenderer.invoke("agents:cancel-task", { taskId, reason }),
     reconcileTask: (taskId, reconciliation) =>
@@ -275,6 +277,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     retry: (workflowId) => ipcRenderer.invoke("workflow:retry", { workflowId }),
     getStatus: (workflowId) =>
       ipcRenderer.invoke("workflow:get-status", { workflowId }),
+    getGraphHistory: (workflowId, options = {}) =>
+      ipcRenderer.invoke("workflow:get-graph-history", {
+        workflowId,
+        ...options,
+      }),
     getStages: (workflowId) =>
       ipcRenderer.invoke("workflow:get-stages", { workflowId }),
     getLogs: (workflowId, limit = 100) =>

@@ -6,9 +6,11 @@
  * @module ai-engine/cowork/skills/markdown-skill
  */
 
-const path = require("path");
 const { BaseSkill } = require("./base-skill");
-const { logger } = require("../../../utils/logger.js");
+const {
+  assertSkillHandlerExecution,
+  captureExternalHandlerSource,
+} = require("./skill-execution-security");
 
 /**
  * MarkdownSkill 类
@@ -54,6 +56,16 @@ class MarkdownSkill extends BaseSkill {
     this.inputSchema = definition.inputSchema || null;
     this.outputSchema = definition.outputSchema || null;
     this.author = definition.author || "";
+    this.executionCapabilities = definition.executionCapabilities || [];
+
+    // Host-assigned execution authority. The loader attaches these values
+    // after parsing, so untrusted frontmatter cannot replace them.
+    this._executionSecurity = definition._executionSecurity || null;
+    this._skillSecurityPolicy = definition._skillSecurityPolicy || {};
+    this._externalHandlerExecutor =
+      typeof definition._externalHandlerExecutor === "function"
+        ? definition._externalHandlerExecutor
+        : null;
 
     // handler 模块（延迟加载）
     this._handler = null;
@@ -95,6 +107,8 @@ class MarkdownSkill extends BaseSkill {
       this.dependencies = fullDefinition.dependencies || this.dependencies;
       this.inputSchema = fullDefinition.inputSchema || this.inputSchema;
       this.outputSchema = fullDefinition.outputSchema || this.outputSchema;
+      this.executionCapabilities =
+        fullDefinition.executionCapabilities || this.executionCapabilities;
 
       this._bodyLoaded = true;
       this._log("Fully loaded (lazy)");
@@ -147,7 +161,38 @@ class MarkdownSkill extends BaseSkill {
 
     // 如果有 handler，加载并执行
     if (this.definition.handler) {
-      const handler = await this._loadHandler();
+      const authority = assertSkillHandlerExecution(
+        this.definition,
+        this._executionSecurity,
+        this._skillSecurityPolicy,
+      );
+      this._executionSecurity = authority;
+      this.definition._executionSecurity = authority;
+
+      if (!authority.packageOwned) {
+        if (!this._externalHandlerExecutor) {
+          const error = new Error(
+            `External skill "${this.skillId}" cannot load its handler into Electron main; an isolated executor is required`,
+          );
+          error.name = "SkillExecutionSecurityError";
+          error.code = "CC_SKILL_EXTERNAL_HANDLER_ISOLATION_REQUIRED";
+          throw error;
+        }
+        const handlerSource = captureExternalHandlerSource(authority);
+        return await this._externalHandlerExecutor({
+          skillId: this.skillId,
+          source: this.source,
+          handlerFileName: authority.handlerRelativePath,
+          handlerSource,
+          contentDigest: authority.contentDigest,
+          publicKeySha256: authority.publicKeySha256,
+          executionCapabilities: [...authority.executionCapabilities],
+          task,
+          context,
+        });
+      }
+
+      const handler = await this._loadHandler(authority);
 
       if (handler && typeof handler.execute === "function") {
         return await handler.execute(task, context, this);
@@ -179,7 +224,7 @@ class MarkdownSkill extends BaseSkill {
    * @private
    * @returns {Promise<object|function>}
    */
-  async _loadHandler() {
+  async _loadHandler(authority = null) {
     if (this._handlerLoaded) {
       return this._handler;
     }
@@ -190,9 +235,22 @@ class MarkdownSkill extends BaseSkill {
     }
 
     try {
-      // handler 路径相对于 SKILL.md 所在目录
-      const skillDir = path.dirname(this.sourcePath);
-      const handlerPath = path.resolve(skillDir, this.definition.handler);
+      const executionAuthority =
+        authority ||
+        assertSkillHandlerExecution(
+          this.definition,
+          this._executionSecurity,
+          this._skillSecurityPolicy,
+        );
+      if (!executionAuthority.packageOwned) {
+        const error = new Error(
+          "External skill handlers must use the isolated executor",
+        );
+        error.name = "SkillExecutionSecurityError";
+        error.code = "CC_SKILL_EXTERNAL_HANDLER_ISOLATION_REQUIRED";
+        throw error;
+      }
+      const handlerPath = executionAuthority.handlerRealPath;
 
       this._log(`Loading handler from: ${handlerPath}`);
 
@@ -222,7 +280,12 @@ class MarkdownSkill extends BaseSkill {
   async reloadHandler() {
     this._handler = null;
     this._handlerLoaded = false;
-    await this._loadHandler();
+    const authority = assertSkillHandlerExecution(
+      this.definition,
+      this._executionSecurity,
+      this._skillSecurityPolicy,
+    );
+    await this._loadHandler(authority);
     this._log("Handler reloaded");
   }
 
@@ -251,6 +314,20 @@ class MarkdownSkill extends BaseSkill {
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
       author: this.author,
+      executionCapabilities: this.executionCapabilities,
+      executionSecurity: this._executionSecurity
+        ? {
+            mode: this._executionSecurity.mode,
+            executable: this._executionSecurity.executable === true,
+            packageOwned: this._executionSecurity.packageOwned === true,
+            signed: this._executionSecurity.signed === true,
+            trusted: this._executionSecurity.trusted === true,
+            publicKeySha256: this._executionSecurity.publicKeySha256 || null,
+            capabilityManifestValid:
+              this._executionSecurity.capabilityManifestValid === true,
+            signatureReason: this._executionSecurity.signatureReason || null,
+          }
+        : null,
     };
   }
 
@@ -270,6 +347,16 @@ class MarkdownSkill extends BaseSkill {
    */
   getDefinition() {
     return this.definition;
+  }
+
+  /** Return a structured-clone-safe definition without host security ports. */
+  getPublicDefinition() {
+    const definition = { ...this.definition };
+    delete definition._executionSecurity;
+    delete definition._skillSecurityPolicy;
+    delete definition._externalHandlerExecutor;
+    delete definition._sourceContentSha256;
+    return definition;
   }
 }
 

@@ -1,0 +1,249 @@
+{
+  "schema": "chainlesschain.graph-debug-history/v1",
+  "runId": "cross-product-fault-run",
+  "afterSeq": 0,
+  "nextAfterSeq": 4,
+  "hasMore": false,
+  "truncatedSnapshots": false,
+  "eventCount": 4,
+  "events": [
+    {
+      "seq": 1,
+      "timestamp": "2026-08-28T00:00:00.000Z",
+      "type": "run.started",
+      "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "seq": 2,
+      "timestamp": "2026-08-28T00:00:01.000Z",
+      "type": "attempt.started",
+      "hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "seq": 3,
+      "timestamp": "2026-08-28T00:00:02.000Z",
+      "type": "attempt.failed",
+      "hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "seq": 4,
+      "timestamp": "2026-08-28T00:00:03.000Z",
+      "type": "run.settled",
+      "hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ],
+  "snapshots": [
+    {
+      "seq": 1,
+      "timestamp": "2026-08-28T00:00:00.000Z",
+      "type": "run.started",
+      "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "projection": {
+        "schema": "chainlesschain.graph-trace-projection/v1",
+        "runId": "cross-product-fault-run",
+        "throughSeq": 1,
+        "eventHeadHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "definitionId": "cross-product-fault-definition",
+        "graphRevision": 1,
+        "revisionDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "running",
+        "taskGraph": {
+          "nodes": [
+            {
+              "id": "prepare",
+              "status": "running",
+              "blockedRoot": null,
+              "attemptIds": ["attempt-1"]
+            },
+            {
+              "id": "build",
+              "status": "pending",
+              "blockedRoot": null,
+              "attemptIds": []
+            },
+            {
+              "id": "deploy",
+              "status": "pending",
+              "blockedRoot": null,
+              "attemptIds": []
+            }
+          ],
+          "edges": [
+            {
+              "id": "dependency:prepare:build",
+              "from": "prepare",
+              "to": "build",
+              "kind": "control"
+            },
+            {
+              "id": "dependency:build:deploy",
+              "from": "build",
+              "to": "deploy",
+              "kind": "control"
+            }
+          ]
+        },
+        "artifactGraph": { "artifacts": [], "edges": [] },
+        "attempts": [
+          { "id": "attempt-1", "nodeId": "prepare", "status": "running" }
+        ],
+        "effects": [],
+        "messageGraph": { "messages": [], "edges": [] },
+        "timeline": [
+          {
+            "seq": 1,
+            "timestamp": "2026-08-28T00:00:00.000Z",
+            "type": "run.started",
+            "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 4,
+      "timestamp": "2026-08-28T00:00:03.000Z",
+      "type": "run.settled",
+      "hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "projection": {
+        "schema": "chainlesschain.graph-trace-projection/v1",
+        "runId": "cross-product-fault-run",
+        "throughSeq": 4,
+        "eventHeadHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "definitionId": "cross-product-fault-definition",
+        "graphRevision": 2,
+        "revisionDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "status": "failed",
+        "taskGraph": {
+          "nodes": [
+            {
+              "id": "prepare",
+              "status": "failed",
+              "blockedRoot": null,
+              "attemptIds": ["attempt-1"]
+            },
+            {
+              "id": "build",
+              "status": "blocked",
+              "blockedRoot": "prepare",
+              "attemptIds": []
+            },
+            {
+              "id": "deploy",
+              "status": "blocked",
+              "blockedRoot": "build",
+              "attemptIds": []
+            }
+          ],
+          "edges": [
+            {
+              "id": "dependency:prepare:build",
+              "from": "prepare",
+              "to": "build",
+              "kind": "control"
+            },
+            {
+              "id": "dependency:build:deploy",
+              "from": "build",
+              "to": "deploy",
+              "kind": "control"
+            }
+          ]
+        },
+        "artifactGraph": { "artifacts": [], "edges": [] },
+        "attempts": [
+          { "id": "attempt-1", "nodeId": "prepare", "status": "failed" }
+        ],
+        "effects": [],
+        "messageGraph": { "messages": [], "edges": [] },
+        "timeline": [
+          {
+            "seq": 1,
+            "timestamp": "2026-08-28T00:00:00.000Z",
+            "type": "run.started",
+            "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "seq": 4,
+            "timestamp": "2026-08-28T00:00:03.000Z",
+            "type": "run.settled",
+            "hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        ]
+      }
+    }
+  ],
+  "current": {
+    "schema": "chainlesschain.graph-trace-projection/v1",
+    "runId": "cross-product-fault-run",
+    "throughSeq": 4,
+    "eventHeadHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "definitionId": "cross-product-fault-definition",
+    "graphRevision": 2,
+    "revisionDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "status": "failed",
+    "taskGraph": {
+      "nodes": [
+        {
+          "id": "prepare",
+          "status": "failed",
+          "blockedRoot": null,
+          "attemptIds": ["attempt-1"]
+        },
+        {
+          "id": "build",
+          "status": "blocked",
+          "blockedRoot": "prepare",
+          "attemptIds": []
+        },
+        {
+          "id": "deploy",
+          "status": "blocked",
+          "blockedRoot": "build",
+          "attemptIds": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "dependency:prepare:build",
+          "from": "prepare",
+          "to": "build",
+          "kind": "control"
+        },
+        {
+          "id": "dependency:build:deploy",
+          "from": "build",
+          "to": "deploy",
+          "kind": "control"
+        }
+      ]
+    },
+    "artifactGraph": { "artifacts": [], "edges": [] },
+    "attempts": [
+      { "id": "attempt-1", "nodeId": "prepare", "status": "failed" }
+    ],
+    "effects": [],
+    "messageGraph": { "messages": [], "edges": [] },
+    "timeline": [
+      {
+        "seq": 1,
+        "timestamp": "2026-08-28T00:00:00.000Z",
+        "type": "run.started",
+        "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "seq": 4,
+        "timestamp": "2026-08-28T00:00:03.000Z",
+        "type": "run.settled",
+        "hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ]
+  },
+  "expected": {
+    "blockedNodeId": "deploy",
+    "blockedRoot": "prepare",
+    "blockedChain": ["deploy", "build", "prepare"],
+    "fromSeq": 1,
+    "toSeq": 4,
+    "changedNodeIds": ["build", "deploy", "prepare"]
+  }
+}

@@ -816,6 +816,38 @@ function diffGraphs(previousGraph, currentGraph) {
   return { added, removed, statusChanged };
 }
 
+function graphDebugHistoryView(history, fallbackGraph = null) {
+  if (
+    !history ||
+    history.schema !== "chainlesschain.graph-debug-history/v1" ||
+    !Array.isArray(history.snapshots)
+  ) {
+    return { graph: fallbackGraph, events: [] };
+  }
+  const snapshots = history.snapshots.slice(-MAX_REPLAY_FRAMES);
+  return {
+    graph:
+      history.current && typeof history.current === "object"
+        ? history.current
+        : snapshots.at(-1)?.projection || fallbackGraph,
+    events: snapshots
+      .filter(
+        (snapshot) =>
+          snapshot &&
+          typeof snapshot === "object" &&
+          snapshot.projection &&
+          typeof snapshot.projection === "object",
+      )
+      .map((snapshot) => ({
+        seq: snapshot.seq,
+        timestamp: snapshot.timestamp,
+        type: snapshot.type,
+        hash: snapshot.hash,
+        payload: { graph: snapshot.projection },
+      })),
+  };
+}
+
 function createGraphDebuggerProjection(graph, events = []) {
   const topology = topologicalProjection(graph);
   const timeline = eventProjection([
@@ -853,5 +885,6 @@ export {
   evidenceProjection,
   buildReplayFrames,
   diffGraphs,
+  graphDebugHistoryView,
   createGraphDebuggerProjection,
 };

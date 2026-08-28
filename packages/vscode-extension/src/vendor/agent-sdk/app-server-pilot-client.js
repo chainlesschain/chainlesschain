@@ -107,6 +107,9 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     graphStatus(params) {
         return this.call("graph/status", params);
     }
+    graphHistory(params) {
+        return this.call("graph/history", params);
+    }
     graphCancel(params) {
         return this.call("graph/cancel", params);
     }

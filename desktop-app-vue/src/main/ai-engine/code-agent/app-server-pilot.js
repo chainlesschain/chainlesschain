@@ -138,6 +138,10 @@ class DesktopAppServerPilot extends EventEmitter {
     return this.client.graphStatus(normalizeParams(params));
   }
 
+  graphHistory(params) {
+    return this.client.graphHistory(normalizeParams(params));
+  }
+
   graphCancel(params) {
     return this.client.graphCancel(normalizeParams(params));
   }

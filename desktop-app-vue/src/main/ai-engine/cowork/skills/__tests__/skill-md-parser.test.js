@@ -51,6 +51,7 @@ description: Test
 display-name: My Skill
 user-invocable: false
 supported-file-types: [.txt, .md]
+execution-capabilities: [data:task, broker:filesystem-read]
 ---
 `;
 
@@ -59,6 +60,10 @@ supported-file-types: [.txt, .md]
       expect(result.displayName).toBe("My Skill");
       expect(result.userInvocable).toBe(false);
       expect(result.supportedFileTypes).toEqual([".txt", ".md"]);
+      expect(result.executionCapabilities).toEqual([
+        "data:task",
+        "broker:filesystem-read",
+      ]);
     });
 
     it("should parse requires section", () => {

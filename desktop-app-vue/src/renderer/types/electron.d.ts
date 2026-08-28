@@ -1152,6 +1152,10 @@ export interface SpecializedAgentsAPI {
   terminateAgent(agentId: string, reason?: string): Promise<any>;
   listInstances(): Promise<any>;
   getStatus(agentId: string): Promise<any>;
+  getGraphHistory(
+    taskId: string,
+    options?: { afterSeq?: number; limit?: number; snapshotLimit?: number },
+  ): Promise<any>;
   assignTask(
     agentId: string,
     taskDescription: string,
@@ -1188,6 +1192,10 @@ export interface WorkflowManagerAPI {
   ): Promise<any>;
   retry(workflowId: string): Promise<any>;
   getStatus(workflowId: string): Promise<any>;
+  getGraphHistory(
+    workflowId: string,
+    options?: { afterSeq?: number; limit?: number; snapshotLimit?: number },
+  ): Promise<any>;
   getStages(workflowId: string): Promise<any>;
   getLogs(workflowId: string, limit?: number): Promise<any>;
   getGates(workflowId: string): Promise<any>;

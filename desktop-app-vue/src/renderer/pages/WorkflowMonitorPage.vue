@@ -126,6 +126,7 @@
       <GraphRunDebugger
         v-if="selectedWorkflowGraph"
         :graph="selectedWorkflowGraph"
+        :events="selectedWorkflowEvents"
       />
 
       <!-- 完成摘要 -->
@@ -176,7 +177,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { h } from "vue";
@@ -194,6 +195,7 @@ import {
 import { WorkflowProgress, WorkflowSummary } from "@/components/workflow";
 import CanonicalWorkflowPanel from "@/components/workflow/CanonicalWorkflowPanel.vue";
 import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
+import { graphDebugHistoryView } from "@/components/graph/graphRunDebuggerUtils.js";
 
 const router = useRouter();
 
@@ -212,13 +214,49 @@ const completedWorkflow = ref({});
 const completedStages = ref([]);
 const completedGates = ref({});
 const workflowProgressRef = ref(null);
+const selectedGraphHistory = ref(null);
 let disposeProgress = null;
-const selectedWorkflowGraph = computed(
+const selectedWorkflowFallbackGraph = computed(
   () =>
     workflows.value.find(
       (workflow) => workflow.workflowId === selectedWorkflowId.value,
     )?.graphAuthority || null,
 );
+const selectedGraphHistoryView = computed(() =>
+  graphDebugHistoryView(
+    selectedGraphHistory.value,
+    selectedWorkflowFallbackGraph.value,
+  ),
+);
+const selectedWorkflowGraph = computed(
+  () => selectedGraphHistoryView.value.graph,
+);
+const selectedWorkflowEvents = computed(
+  () => selectedGraphHistoryView.value.events,
+);
+
+const loadSelectedWorkflowHistory = async (workflowId) => {
+  if (!workflowId) {
+    selectedGraphHistory.value = null;
+    return;
+  }
+  try {
+    const result = await window.electronAPI.workflowManager.getGraphHistory(
+      workflowId,
+      { limit: 1000, snapshotLimit: 200 },
+    );
+    if (selectedWorkflowId.value !== workflowId) return;
+    selectedGraphHistory.value = result.success ? result.data : null;
+  } catch {
+    if (selectedWorkflowId.value === workflowId) {
+      selectedGraphHistory.value = null;
+    }
+  }
+};
+
+watch(selectedWorkflowId, (workflowId) => {
+  void loadSelectedWorkflowHistory(workflowId);
+});
 
 // 方法
 const goBack = () => {
@@ -354,6 +392,7 @@ const handleWorkflowComplete = async (data) => {
   }
 
   showSummary.value = true;
+  await loadSelectedWorkflowHistory(selectedWorkflowId.value);
   refreshWorkflows();
 };
 
@@ -361,6 +400,7 @@ const handleWorkflowError = (data) => {
   message.error("工作流执行失败: " + data.error);
   completedWorkflow.value = { ...data, success: false };
   showSummary.value = true;
+  void loadSelectedWorkflowHistory(selectedWorkflowId.value);
   refreshWorkflows();
 };
 

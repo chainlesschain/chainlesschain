@@ -6,6 +6,11 @@ import {
 import { createGraphAuthorityBinding } from "../graph-kernel/authority.js";
 import { GraphEventStore } from "../graph-kernel/event-store.js";
 import { GraphKernel } from "../graph-kernel/runtime.js";
+import {
+  diffGraphTrace,
+  locateBlockedRoot,
+  reduceGraphTrace,
+} from "../graph-kernel/trace-reducer.js";
 
 const TERMINAL = new Set([
   "succeeded",
@@ -19,6 +24,10 @@ const TERMINAL = new Set([
   "compensation_failed",
 ]);
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const DEFAULT_HISTORY_EVENT_LIMIT = 1_000;
+const MAX_HISTORY_EVENT_LIMIT = 2_000;
+const DEFAULT_HISTORY_SNAPSHOT_LIMIT = 200;
+const MAX_HISTORY_SNAPSHOT_LIMIT = 200;
 
 function runtimeError(code, message, details = {}) {
   const error = new Error(message);
@@ -71,6 +80,51 @@ function nodeInput(inputs, nodeId) {
     return { ...value, prompt: String(value.prompt || value.input || "") };
   }
   return { prompt: "" };
+}
+
+function boundedInteger(value, fallback, { min = 0, max } = {}) {
+  if (value === undefined || value === null) return fallback;
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < min || number > max) {
+    throw runtimeError(
+      "CC_GRAPH_HISTORY_RANGE_INVALID",
+      `Graph history range must be an integer between ${min} and ${max}`,
+    );
+  }
+  return number;
+}
+
+function debuggerProjection(projection) {
+  return Object.freeze({
+    ...projection,
+    timeline: Object.freeze(
+      (projection.timeline || []).map((event) =>
+        Object.freeze({
+          seq: event.seq,
+          timestamp: event.timestamp,
+          type: event.type,
+          hash: event.hash,
+        }),
+      ),
+    ),
+    effects: Object.freeze(
+      (projection.effects || []).map((effect) =>
+        Object.freeze({
+          id: effect.id,
+          nodeId: effect.nodeId ?? null,
+          attemptId: effect.attemptId ?? null,
+          status: effect.status,
+          iterationPath: Object.freeze([...(effect.iterationPath || [])]),
+          receiptDigest: DIGEST.test(
+            String(effect.receipt?.receiptDigest || ""),
+          )
+            ? effect.receipt.receiptDigest
+            : null,
+          compensationEffectId: effect.compensationEffectId ?? null,
+        }),
+      ),
+    ),
+  });
 }
 
 /**
@@ -449,6 +503,100 @@ export class AppServerGraphRuntime {
     const id = String(runId);
     const entry = this.runs.get(id) || this._recover(id);
     return entry.kernel.getRun(id);
+  }
+
+  history(
+    runId,
+    {
+      afterSeq = 0,
+      limit = DEFAULT_HISTORY_EVENT_LIMIT,
+      snapshotLimit = DEFAULT_HISTORY_SNAPSHOT_LIMIT,
+    } = {},
+  ) {
+    const id = String(runId);
+    const cursor = boundedInteger(afterSeq, 0, {
+      min: 0,
+      max: Number.MAX_SAFE_INTEGER,
+    });
+    const eventLimit = boundedInteger(limit, DEFAULT_HISTORY_EVENT_LIMIT, {
+      min: 1,
+      max: MAX_HISTORY_EVENT_LIMIT,
+    });
+    const projectionLimit = boundedInteger(
+      snapshotLimit,
+      DEFAULT_HISTORY_SNAPSHOT_LIMIT,
+      { min: 1, max: MAX_HISTORY_SNAPSHOT_LIMIT },
+    );
+    const head = this.eventStore.head(id);
+    const effectiveCursor =
+      cursor === 0 && head.seq > eventLimit ? head.seq - eventLimit : cursor;
+    const selected = this.eventStore.read(id, {
+      afterSeq: effectiveCursor,
+      limit: eventLimit + 1,
+    });
+    const hasMore = selected.length > eventLimit;
+    const events = selected.slice(0, eventLimit);
+    const stateEvents = events.filter(
+      (event) => event.payload?.state?.version === 1,
+    );
+    if (stateEvents.length === 0) {
+      throw runtimeError(
+        "CC_GRAPH_TRACE_STATE_MISSING",
+        `Graph history has no runtime snapshot after sequence ${effectiveCursor}: ${id}`,
+      );
+    }
+    const snapshotEvents = stateEvents.slice(-projectionLimit);
+    const snapshots = snapshotEvents.map((event) => {
+      const through = events.filter((candidate) => candidate.seq <= event.seq);
+      return Object.freeze({
+        seq: event.seq,
+        timestamp: event.timestamp,
+        type: event.type,
+        hash: event.hash,
+        projection: debuggerProjection(reduceGraphTrace(through)),
+      });
+    });
+    const diffs = snapshots
+      .slice(1)
+      .map((snapshot, index) =>
+        diffGraphTrace(snapshots[index].projection, snapshot.projection),
+      );
+    const current = snapshots.at(-1).projection;
+    const blockedRoots = Object.freeze(
+      current.taskGraph.nodes
+        .filter((node) => node.blockedRoot)
+        .map((node) =>
+          Object.freeze({
+            nodeId: node.id,
+            ...locateBlockedRoot(current, node.id),
+          }),
+        ),
+    );
+    return Object.freeze({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: id,
+      requestedAfterSeq: cursor,
+      afterSeq: effectiveCursor,
+      nextAfterSeq: events.at(-1)?.seq || effectiveCursor,
+      hasMore,
+      truncatedBefore: effectiveCursor > cursor,
+      truncatedSnapshots: stateEvents.length > projectionLimit,
+      eventCount: events.length,
+      events: Object.freeze(
+        events.map((event) =>
+          Object.freeze({
+            seq: event.seq,
+            timestamp: event.timestamp,
+            type: event.type,
+            hash: event.hash,
+          }),
+        ),
+      ),
+      snapshots: Object.freeze(snapshots),
+      diffs: Object.freeze(diffs),
+      blockedRoots,
+      current,
+    });
   }
 
   _recover(runId) {

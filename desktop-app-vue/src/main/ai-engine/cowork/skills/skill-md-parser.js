@@ -8,6 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { logger } = require("../../../utils/logger.js");
 
 // 尝试加载 gray-matter，如果不存在则使用简易解析
@@ -51,7 +52,6 @@ function simpleFrontmatterParser(content) {
   // 简易 YAML 解析（支持嵌套对象）
   const data = {};
   const stack = [{ obj: data, indent: -1 }];
-  let currentKey = null;
   let currentArray = null;
 
   for (const line of yamlLines) {
@@ -93,14 +93,12 @@ function simpleFrontmatterParser(content) {
         const newObj = {};
         parent[key] = newObj;
         stack.push({ obj: newObj, indent });
-        currentKey = null;
         currentArray = null;
         continue;
       }
 
       // 数组开始（空数组标记）
       if (value === "[]") {
-        currentKey = key;
         currentArray = [];
         parent[key] = currentArray;
         continue;
@@ -114,7 +112,6 @@ function simpleFrontmatterParser(content) {
           .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
           .filter((s) => s);
         parent[key] = items;
-        currentKey = null;
         currentArray = null;
         continue;
       }
@@ -135,7 +132,6 @@ function simpleFrontmatterParser(content) {
       }
 
       parent[key] = value;
-      currentKey = key;
       currentArray = null;
     }
   }
@@ -220,6 +216,7 @@ class SkillMdParser {
       // 执行配置
       handler: normalized.handler || null,
       capabilities: normalized.capabilities || [],
+      executionCapabilities: normalized.executionCapabilities || [],
       supportedFileTypes: normalized.supportedFileTypes || [],
 
       // Agent Skills Open Standard fields
@@ -238,6 +235,13 @@ class SkillMdParser {
 
       // Markdown 正文
       body: body.trim(),
+
+      // Bind parsed execution metadata to the exact SKILL.md bytes. The
+      // execution boundary re-reads the file and rejects a mismatched parse.
+      _sourceContentSha256: crypto
+        .createHash("sha256")
+        .update(content, "utf8")
+        .digest("hex"),
 
       // 原始 frontmatter
       _raw: frontmatter,
@@ -335,7 +339,7 @@ class SkillMdParser {
     const lines = content.split("\n");
 
     if (lines[0].trim() !== "---") {
-      return this._createStub({}, sourcePath);
+      return this._createStub({}, sourcePath, content);
     }
 
     let endIndex = -1;
@@ -347,7 +351,7 @@ class SkillMdParser {
     }
 
     if (endIndex === -1) {
-      return this._createStub({}, sourcePath);
+      return this._createStub({}, sourcePath, content);
     }
 
     // Only parse the YAML portion, skip body entirely
@@ -358,14 +362,14 @@ class SkillMdParser {
     const frontmatter = parsed.data || {};
     const normalized = this._normalizeFields(frontmatter);
 
-    return this._createStub(normalized, sourcePath);
+    return this._createStub(normalized, sourcePath, content);
   }
 
   /**
    * 创建轻量级 SkillDefinitionStub
    * @private
    */
-  _createStub(normalized, sourcePath) {
+  _createStub(normalized, sourcePath, sourceContent = "") {
     return {
       name: normalized.name || path.basename(path.dirname(sourcePath)),
       description: normalized.description || "",
@@ -374,6 +378,7 @@ class SkillMdParser {
       category: normalized.category || "custom",
       tags: normalized.tags || [],
       handler: normalized.handler || null,
+      executionCapabilities: normalized.executionCapabilities || [],
       os: normalized.os || ["win32", "darwin", "linux"],
       requires: {
         bins: normalized.requires?.bins || [],
@@ -384,6 +389,10 @@ class SkillMdParser {
       hidden: normalized.hidden === true,
       source: normalized.source || "unknown",
       sourcePath,
+      _sourceContentSha256: crypto
+        .createHash("sha256")
+        .update(sourceContent, "utf8")
+        .digest("hex"),
       // Mark as stub (metadata only)
       _isStub: true,
       _bodyLoaded: false,
@@ -413,6 +422,8 @@ class SkillMdParser {
       enabled: "enabled",
       handler: "handler",
       capabilities: "capabilities",
+      "execution-capabilities": "executionCapabilities",
+      executionCapabilities: "executionCapabilities",
       "supported-file-types": "supportedFileTypes",
       supportedFileTypes: "supportedFileTypes",
       // Agent Skills Open Standard fields

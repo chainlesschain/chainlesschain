@@ -295,6 +295,7 @@ export class CcAppServer {
       "graph/compile": () => this._graphCompile(message.params),
       "graph/run": () => this._graphRun(message.params),
       "graph/status": () => this._graphStatus(message.params),
+      "graph/history": () => this._graphHistory(message.params),
       "graph/cancel": () => this._graphCancel(message.params),
       "graph/reconcile": () => this._graphReconcile(message.params),
     };
@@ -385,6 +386,15 @@ export class CcAppServer {
   _graphStatus(rawParams) {
     const params = requireObject(rawParams);
     return this.graphRuntime.status(requiredString(params.runId, "runId"));
+  }
+
+  _graphHistory(rawParams) {
+    const params = requireObject(rawParams);
+    return this.graphRuntime.history(requiredString(params.runId, "runId"), {
+      afterSeq: params.afterSeq,
+      limit: params.limit,
+      snapshotLimit: params.snapshotLimit,
+    });
   }
 
   _graphCancel(rawParams) {

@@ -18,6 +18,7 @@ const AGENTS_IPC_CHANNELS = [
   "agents:get-status",
   "agents:assign-task",
   "agents:get-task-status",
+  "agents:get-graph-history",
   "agents:cancel-task",
   "agents:reconcile-task",
   "agents:orchestrate",
@@ -324,7 +325,28 @@ function registerAgentsIPC(dependencies = {}) {
         return { success: false, error: "Task ID is required" };
       }
 
-      return getAgentCoordinator().getTaskStatusAuthoritative(taskId);
+      const coordinator = getAgentCoordinator();
+      return typeof coordinator.getTaskStatusAuthoritative === "function"
+        ? coordinator.getTaskStatusAuthoritative(taskId)
+        : coordinator.getTaskStatus(taskId);
+    },
+  );
+
+  safeHandle(
+    "agents:get-graph-history",
+    "Get Graph history",
+    async (
+      _event,
+      { taskId, afterSeq = 0, limit = 1000, snapshotLimit = 200 } = {},
+    ) => {
+      if (!taskId) {
+        return { success: false, error: "Task ID is required" };
+      }
+      return getAgentCoordinator().getTaskGraphHistory(taskId, {
+        afterSeq,
+        limit,
+        snapshotLimit,
+      });
     },
   );
 

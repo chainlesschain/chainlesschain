@@ -117,6 +117,44 @@ describe("DesktopGraphExecutionAdapter", () => {
     expect(authorityMode).toHaveBeenCalledTimes(1);
   });
 
+  it("loads only run-bound history through the fixed capability", async () => {
+    const graphHistory = vi.fn(async ({ runId }) => ({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId,
+      events: [],
+      snapshots: [],
+      current: { runId, status: "running" },
+    }));
+    const adapter = new DesktopGraphExecutionAdapter({
+      client: { graphRun: vi.fn(), graphHistory },
+      authorityMode: () => "canonical",
+    });
+
+    await expect(
+      adapter.history("desktop-history", { limit: 10, snapshotLimit: 5 }),
+    ).resolves.toMatchObject({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "desktop-history",
+    });
+    expect(graphHistory).toHaveBeenCalledWith({
+      runId: "desktop-history",
+      afterSeq: 0,
+      limit: 10,
+      snapshotLimit: 5,
+    });
+
+    graphHistory.mockResolvedValueOnce({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "other-run",
+      events: [],
+      snapshots: [],
+      current: { runId: "other-run" },
+    });
+    await expect(adapter.history("desktop-history")).rejects.toMatchObject({
+      code: "CC_DESKTOP_GRAPH_HISTORY_INVALID",
+    });
+  });
+
   it("forwards audited reconciliation through the fixed capability", async () => {
     const graphReconcile = vi.fn(async ({ runId }) =>
       projection({ runId, authorityMode: "canonical" }),

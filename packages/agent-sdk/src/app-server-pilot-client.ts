@@ -160,6 +160,10 @@ export class AppServerPilotClient extends EventEmitter {
     return this.call("graph/status", params);
   }
 
+  graphHistory(params: JsonValue): Promise<unknown> {
+    return this.call("graph/history", params);
+  }
+
   graphCancel(params: JsonValue): Promise<unknown> {
     return this.call("graph/cancel", params);
   }

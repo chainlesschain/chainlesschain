@@ -2,7 +2,7 @@
  * MarkdownSkill 单元测试
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { MarkdownSkill } from "../markdown-skill.js";
 
 describe("MarkdownSkill", () => {
@@ -192,6 +192,23 @@ describe("MarkdownSkill", () => {
       expect(retrieved).toBe(skill.definition);
       expect(retrieved.name).toBe("def-skill");
       expect(retrieved.version).toBe("2.0.0");
+    });
+
+    it("does not expose host execution authority through public definitions", () => {
+      const executor = async () => ({});
+      const skill = new MarkdownSkill({
+        name: "secured-skill",
+        description: "Test",
+        _executionSecurity: { contentDigest: "secret-digest" },
+        _skillSecurityPolicy: { trustedSkillKeySha256: ["secret-key"] },
+        _externalHandlerExecutor: executor,
+      });
+
+      expect(skill.getPublicDefinition()).toEqual({
+        name: "secured-skill",
+        description: "Test",
+      });
+      expect(skill.getDefinition()._externalHandlerExecutor).toBe(executor);
     });
   });
 });

@@ -35,6 +35,11 @@ const TEAM_MAILBOX_RECEIPT_STATUSES = new Set([
 const TEAM_GRAPH_PROJECTION_SCHEMA = "chainlesschain.team-graph-projection/v1";
 const MAX_TEAM_GRAPH_MESSAGES = 5000;
 const MAX_TEAM_GRAPH_HANDOFFS = 1000;
+const GRAPH_DEBUG_HISTORY_SCHEMA = "chainlesschain.graph-debug-history/v1";
+const GRAPH_TRACE_PROJECTION_SCHEMA =
+  "chainlesschain.graph-trace-projection/v1";
+const MAX_GRAPH_DEBUG_SNAPSHOTS = 200;
+const MAX_GRAPH_DEBUG_NODES = 250;
 const TEAM_GRAPH_MESSAGE_STATUSES = new Set([
   "admitted",
   "delivered",
@@ -768,12 +773,135 @@ function summarizeTeam(state, { now = Date.now() } = {}) {
   };
 }
 
+function graphDebugNodes(projection) {
+  if (
+    !plainObject(projection) ||
+    projection.schema !== GRAPH_TRACE_PROJECTION_SCHEMA ||
+    !plainObject(projection.taskGraph) ||
+    !Array.isArray(projection.taskGraph.nodes) ||
+    projection.taskGraph.nodes.length > MAX_GRAPH_DEBUG_NODES
+  ) {
+    throw new Error("invalid Graph debug projection");
+  }
+  return projection.taskGraph.nodes.map((node) => {
+    if (!plainObject(node)) throw new Error("invalid Graph debug node");
+    const id = stableString(node.id, 256);
+    const status = stableString(node.status, 160);
+    const blockedRoot =
+      node.blockedRoot == null ? null : stableString(node.blockedRoot, 256);
+    if (!id || !status || (node.blockedRoot != null && !blockedRoot)) {
+      throw new Error("invalid Graph debug node identity");
+    }
+    return Object.freeze({ id, status, blockedRoot });
+  });
+}
+
+function graphBlockedRoot(nodes, nodeId) {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  let cursor = byId.get(nodeId) || null;
+  const chain = [];
+  const seen = new Set();
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    chain.push(cursor.id);
+    if (!cursor.blockedRoot || cursor.blockedRoot === cursor.id) break;
+    cursor = byId.get(cursor.blockedRoot) || null;
+  }
+  return Object.freeze({
+    root: chain.at(-1) || null,
+    chain: Object.freeze(chain),
+  });
+}
+
+function parseGraphDebugHistory(history) {
+  if (
+    !plainObject(history) ||
+    history.schema !== GRAPH_DEBUG_HISTORY_SCHEMA ||
+    !stableString(history.runId, 256) ||
+    !Array.isArray(history.snapshots) ||
+    history.snapshots.length === 0 ||
+    history.snapshots.length > MAX_GRAPH_DEBUG_SNAPSHOTS
+  ) {
+    throw new Error("invalid Graph debug history");
+  }
+  const snapshots = history.snapshots.map((snapshot) => {
+    if (
+      !plainObject(snapshot) ||
+      !Number.isSafeInteger(snapshot.seq) ||
+      snapshot.seq < 1
+    ) {
+      throw new Error("invalid Graph debug snapshot");
+    }
+    const projection = snapshot.projection;
+    if (
+      projection?.runId !== history.runId ||
+      projection?.throughSeq !== snapshot.seq
+    ) {
+      throw new Error("Graph debug snapshot is not bound to its run/sequence");
+    }
+    return Object.freeze({
+      seq: snapshot.seq,
+      status: stableString(projection.status, 160) || "unknown",
+      graphRevision: optionalSafeInteger(projection.graphRevision),
+      revisionDigest: DIGEST_PATTERN.test(
+        String(projection.revisionDigest || ""),
+      )
+        ? projection.revisionDigest
+        : null,
+      nodes: Object.freeze(graphDebugNodes(projection)),
+    });
+  });
+  const current = snapshots.at(-1);
+  const currentNodeIds = new Set(current.nodes.map((node) => node.id));
+  const blockedRoots = Object.freeze(
+    current.nodes
+      .filter(
+        (node) => node.blockedRoot && currentNodeIds.has(node.blockedRoot),
+      )
+      .map((node) =>
+        Object.freeze({
+          nodeId: node.id,
+          ...graphBlockedRoot(current.nodes, node.id),
+        }),
+      ),
+  );
+  const revisions = Object.freeze(
+    snapshots.slice(1).map((snapshot, index) => {
+      const previous = new Map(
+        snapshots[index].nodes.map((node) => [node.id, node.status]),
+      );
+      const currentStatuses = new Map(
+        snapshot.nodes.map((node) => [node.id, node.status]),
+      );
+      const changedNodeIds = [
+        ...new Set([...previous.keys(), ...currentStatuses.keys()]),
+      ]
+        .filter((id) => previous.get(id) !== currentStatuses.get(id))
+        .sort();
+      return Object.freeze({
+        fromSeq: snapshots[index].seq,
+        toSeq: snapshot.seq,
+        changedNodeIds: Object.freeze(changedNodeIds),
+      });
+    }),
+  );
+  return Object.freeze({
+    schema: GRAPH_DEBUG_HISTORY_SCHEMA,
+    runId: history.runId,
+    snapshots: Object.freeze(snapshots),
+    current,
+    revisions,
+    blockedRoots,
+  });
+}
+
 module.exports = {
   parseTeamState,
   summarizeTeam,
   normalizeAdjudication,
   normalizeTeamMailbox,
   normalizeTeamGraphProjection,
+  parseGraphDebugHistory,
   computeTeamControlAttemptDigest,
   computeTeamControlAdjudicationDigest,
   TEAM_STATUSES,

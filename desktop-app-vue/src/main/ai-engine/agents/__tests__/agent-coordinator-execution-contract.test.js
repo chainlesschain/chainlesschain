@@ -59,6 +59,37 @@ function canonicalProjection(request, status = "succeeded") {
 }
 
 describe("AgentCoordinator execution truthfulness", () => {
+  it("reads Graph history only from a bound task run", async () => {
+    const history = {
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "desktop-specialized-task:task-history",
+    };
+    const graphAdapter = { history: vi.fn(async () => history) };
+    const coordinator = new AgentCoordinator({ graphAdapter });
+    coordinator.activeTasks.set("task-history", {
+      id: "task-history",
+      status: "running",
+      graphRunId: history.runId,
+    });
+
+    await expect(
+      coordinator.getTaskGraphHistory("task-history", {
+        limit: 10,
+        snapshotLimit: 5,
+      }),
+    ).resolves.toEqual({ success: true, data: history });
+    expect(graphAdapter.history).toHaveBeenCalledWith(history.runId, {
+      limit: 10,
+      snapshotLimit: 5,
+    });
+    await expect(
+      coordinator.getTaskGraphHistory("missing-task"),
+    ).resolves.toMatchObject({
+      success: false,
+      code: "CC_DESKTOP_GRAPH_BINDING_NOT_FOUND",
+    });
+  });
+
   it("keeps metadata-only agents pending instead of completing them", async () => {
     const coordinator = new AgentCoordinator({
       agentRegistry: { getInstance: () => ({ id: "metadata-only" }) },

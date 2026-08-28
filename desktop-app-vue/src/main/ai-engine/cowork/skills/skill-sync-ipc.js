@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-const { ipcMain } = require("electron");
+const { ipcMain: electronIpcMain } = require("electron");
 const { logger } = require("../../../utils/logger.js");
 
 let syncManager = null;
@@ -16,9 +16,14 @@ let syncManager = null;
  * Register skill sync IPC handlers
  * @param {Object} options
  * @param {import('./skill-sync-manager').SkillSyncManager} options.syncManager
+ * @param {Electron.IpcMain} [options.ipcMain] - Injectable test/runtime port
  */
 function registerSkillSyncIPC(options = {}) {
   syncManager = options.syncManager || null;
+  const ipcMain = options.ipcMain || electronIpcMain;
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    throw new TypeError("ipcMain.handle is required");
+  }
 
   logger.info("[SkillSyncIPC] Registering 7 handlers...");
 
@@ -42,7 +47,7 @@ function registerSkillSyncIPC(options = {}) {
       if (!syncManager) {
         return { success: false, error: "SyncManager not initialized" };
       }
-      const result = syncManager.importSkill(pkg);
+      const result = await syncManager.importSkill(pkg);
       return { success: true, data: result };
     } catch (error) {
       logger.error("[SkillSyncIPC] import error:", error.message);
@@ -51,24 +56,18 @@ function registerSkillSyncIPC(options = {}) {
   });
 
   // 3. Get skills from connected peer
-  ipcMain.handle(
-    "skills:sync:get-peer-catalog",
-    async (_event, { peerId }) => {
-      try {
-        if (!syncManager) {
-          return { success: false, error: "SyncManager not initialized" };
-        }
-        await syncManager.requestPeerCatalog(peerId);
-        return { success: true, message: "Catalog request sent" };
-      } catch (error) {
-        logger.error(
-          "[SkillSyncIPC] get-peer-catalog error:",
-          error.message,
-        );
-        return { success: false, error: error.message };
+  ipcMain.handle("skills:sync:get-peer-catalog", async (_event, { peerId }) => {
+    try {
+      if (!syncManager) {
+        return { success: false, error: "SyncManager not initialized" };
       }
-    },
-  );
+      await syncManager.requestPeerCatalog(peerId);
+      return { success: true, message: "Catalog request sent" };
+    } catch (error) {
+      logger.error("[SkillSyncIPC] get-peer-catalog error:", error.message);
+      return { success: false, error: error.message };
+    }
+  });
 
   // 4. Download specific skill from peer
   ipcMain.handle(
@@ -81,10 +80,7 @@ function registerSkillSyncIPC(options = {}) {
         await syncManager.downloadFromPeer(peerId, skillId);
         return { success: true, message: "Download request sent" };
       } catch (error) {
-        logger.error(
-          "[SkillSyncIPC] download-from-peer error:",
-          error.message,
-        );
+        logger.error("[SkillSyncIPC] download-from-peer error:", error.message);
         return { success: false, error: error.message };
       }
     },
@@ -99,10 +95,7 @@ function registerSkillSyncIPC(options = {}) {
       const result = await syncManager.broadcastCatalog();
       return { success: true, data: result };
     } catch (error) {
-      logger.error(
-        "[SkillSyncIPC] broadcast-catalog error:",
-        error.message,
-      );
+      logger.error("[SkillSyncIPC] broadcast-catalog error:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -116,10 +109,7 @@ function registerSkillSyncIPC(options = {}) {
       const status = syncManager.getSyncStatus();
       return { success: true, data: status };
     } catch (error) {
-      logger.error(
-        "[SkillSyncIPC] get-sync-status error:",
-        error.message,
-      );
+      logger.error("[SkillSyncIPC] get-sync-status error:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -132,17 +122,14 @@ function registerSkillSyncIPC(options = {}) {
         if (!syncManager) {
           return { success: false, error: "SyncManager not initialized" };
         }
-        const result = syncManager.resolveConflict(
+        const result = await syncManager.resolveConflict(
           skillId,
           resolution,
           remotePkg,
         );
         return { success: true, data: result };
       } catch (error) {
-        logger.error(
-          "[SkillSyncIPC] resolve-conflict error:",
-          error.message,
-        );
+        logger.error("[SkillSyncIPC] resolve-conflict error:", error.message);
         return { success: false, error: error.message };
       }
     },

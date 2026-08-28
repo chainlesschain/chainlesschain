@@ -268,6 +268,35 @@ class WorkflowIPC {
       }
     });
 
+    this.ipcMain.handle(
+      "workflow:get-graph-history",
+      async (event, payload) => {
+        try {
+          const {
+            workflowId,
+            afterSeq = 0,
+            limit = 1000,
+            snapshotLimit = 200,
+          } = payload || {};
+          const workflow = this.workflowManager.getWorkflow(workflowId);
+          if (!workflow) {
+            return { success: false, error: "工作流不存在" };
+          }
+          return {
+            success: true,
+            data: await workflow.getGraphHistory({
+              afterSeq,
+              limit,
+              snapshotLimit,
+            }),
+          };
+        } catch (error) {
+          logger.error("[WorkflowIPC] 获取 Graph 历史失败:", error);
+          return { success: false, error: error.message, code: error.code };
+        }
+      },
+    );
+
     // 获取阶段列表
     this.ipcMain.handle("workflow:get-stages", async (event, payload) => {
       try {
@@ -447,6 +476,7 @@ class WorkflowIPC {
       "workflow:reconcile",
       "workflow:retry",
       "workflow:get-status",
+      "workflow:get-graph-history",
       "workflow:get-stages",
       "workflow:get-logs",
       "workflow:get-gates",

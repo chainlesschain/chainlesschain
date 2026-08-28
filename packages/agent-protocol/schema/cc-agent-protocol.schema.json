@@ -1596,6 +1596,7 @@
                     "graph/compile",
                     "graph/run",
                     "graph/status",
+                    "graph/history",
                     "graph/cancel",
                     "graph/reconcile"
                   ]

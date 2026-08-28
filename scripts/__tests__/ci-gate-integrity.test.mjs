@@ -265,6 +265,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     const sourceSelection = selector.createSelection([graphDebuggerSource]);
     for (const relatedTest of [
       "tests/unit/components/graphRunDebuggerUtils.test.js",
+      "tests/unit/components/graphDebugHistoryCrossProduct.test.js",
       "tests/unit/components/GraphRunDebugger.smoke.test.js",
       "tests/unit/components/GraphRunDebugger.wiring.test.js",
       "tests/unit/pages/useAiChatHarnessGraph.test.js",
@@ -273,6 +274,60 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
       assert.ok(
         sourceSelection.selectedTests.includes(relatedTest),
         `${graphDebuggerSource} must select ${relatedTest}`,
+      );
+    }
+  }
+
+  for (const graphHistorySource of [
+    "desktop-app-vue/src/main/ai-engine/code-agent/app-server-pilot.js",
+    "desktop-app-vue/src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+    "desktop-app-vue/src/main/ai-engine/agents/agent-coordinator.js",
+    "desktop-app-vue/src/main/ai-engine/agents/agents-ipc.js",
+    "desktop-app-vue/src/main/workflow/workflow-pipeline.js",
+    "desktop-app-vue/src/main/workflow/workflow-ipc.js",
+  ]) {
+    const sourceSelection = selector.createSelection([graphHistorySource]);
+    for (const relatedTest of [
+      "src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js",
+      "src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js",
+      "src/main/workflow/__tests__/workflow-graph-authority.test.js",
+      "src/main/workflow/__tests__/workflow-ipc-graph-history.test.js",
+      "tests/unit/ai-engine/agents/agents-ipc.test.js",
+      "src/main/ai-engine/agents/__tests__/agent-coordinator-execution-contract.test.js",
+    ]) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${graphHistorySource} must select ${relatedTest}`,
+      );
+    }
+  }
+
+  const skillSupplyChainTests = [
+    "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/markdown-skill.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/skill-loader.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/skill-loader-unit.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/skill-lazy-load.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/skill-sync-security.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js",
+  ];
+  for (const skillSupplyChainSource of [
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-execution-security.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/markdown-skill.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-sync-manager.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-sync-ipc.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
+  ]) {
+    const sourceSelection = selector.createSelection([skillSupplyChainSource]);
+    for (const relatedTest of skillSupplyChainTests) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${skillSupplyChainSource} must select ${relatedTest}`,
       );
     }
   }

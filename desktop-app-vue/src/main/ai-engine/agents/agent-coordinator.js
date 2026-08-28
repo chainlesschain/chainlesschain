@@ -1135,6 +1135,34 @@ class AgentCoordinator extends EventEmitter {
     };
   }
 
+  async getTaskGraphHistory(taskId, options = {}) {
+    const binding = this.graphRunRegistry.get(
+      SPECIALIZED_AGENTS_GRAPH_SURFACE,
+      taskId,
+    );
+    const activeTask = this.activeTasks.get(taskId);
+    const graphRunId = activeTask?.graphRunId || binding?.graphRunId;
+    if (!graphRunId) {
+      return {
+        success: false,
+        error: `Graph task not found: ${taskId}`,
+        code: "CC_DESKTOP_GRAPH_BINDING_NOT_FOUND",
+      };
+    }
+    try {
+      return {
+        success: true,
+        data: await this.graphAdapter.history(graphRunId, options),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+      };
+    }
+  }
+
   _taskStatusFromGraph(status) {
     if (
       [

@@ -7,22 +7,60 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const { spawnSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
 
-const BUILTIN_DIR = path.resolve(__dirname, "..");
+function defaultManagedSkillsRoot() {
+  let userDataPath = path.join(os.homedir(), ".chainlesschain");
+  try {
+    const { app } = require("electron");
+    if (app?.getPath) userDataPath = app.getPath("userData");
+  } catch {
+    // CLI/test fallback matches SkillLoader.getLayerPaths().
+  }
+  return path.join(userDataPath, "skills");
+}
 
 // Injectable dependencies for testing
-const _deps = { fs, path, spawnSync };
+const _deps = {
+  fs,
+  path,
+  spawnSync,
+  getManagedSkillsRoot: defaultManagedSkillsRoot,
+};
+
+function resolveSkillDir(name) {
+  if (typeof name !== "string" || !/^[a-z][a-z0-9-]{0,127}$/.test(name)) {
+    const error = new Error(
+      "Skill name must start with a letter and contain only letters, digits, or hyphens",
+    );
+    error.code = "CC_SKILL_NAME_INVALID";
+    throw error;
+  }
+  const root = _deps.path.resolve(_deps.getManagedSkillsRoot());
+  const target = _deps.path.resolve(root, name);
+  const relative = _deps.path.relative(root, target);
+  if (
+    !relative ||
+    relative.startsWith("..") ||
+    _deps.path.isAbsolute(relative)
+  ) {
+    const error = new Error("Skill path escapes the managed skills root");
+    error.code = "CC_SKILL_ROOT_ESCAPE";
+    throw error;
+  }
+  return target;
+}
 
 module.exports = {
   _deps,
 
-  async init(_skill) {
+  async init() {
     logger.info("[SkillCreator] Initialized");
   },
 
-  async execute(task, context = {}, skill) {
+  async execute(task, context = {}) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
@@ -57,7 +95,11 @@ module.exports = {
       }
     } catch (error) {
       logger.error("[SkillCreator] Error:", error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.message,
+        ...(error.code ? { code: error.code } : {}),
+      };
     }
   },
 };
@@ -136,7 +178,7 @@ function callLLM(prompt) {
       return null;
     }
     return (result.stdout || "").trim() || null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -182,7 +224,7 @@ Format:
       (q) =>
         typeof q.query === "string" && typeof q.should_trigger === "boolean",
     );
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -278,7 +320,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
     };
   }
 
-  const skillDir = _deps.path.join(BUILTIN_DIR, name);
+  const skillDir = resolveSkillDir(name);
   const skillMdPath = _deps.path.join(skillDir, "SKILL.md");
 
   if (!_deps.fs.existsSync(skillMdPath)) {
@@ -434,7 +476,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
       JSON.stringify(results, null, 2),
       "utf-8",
     );
-  } catch (_e) {
+  } catch {
     // Non-critical — don't fail if workspace write fails
   }
 
@@ -486,6 +528,7 @@ category: ${category}
 user-invocable: true
 tags: [${skillName.split("-").join(", ")}]
 capabilities: [${skillName}-action]
+execution-capabilities: [data:task, data:result]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [${skillName}-tool]
@@ -525,17 +568,11 @@ ${description || "[Add skill description here]"}
  * ${displayName} Skill Handler
  */
 
-const { logger } = require("../../../../../utils/logger.js");
-
 module.exports = {
-  async init(skill) {
-    logger.info("[${displayName.replace(/\s/g, "")}] Initialized");
-  },
+  async init() {},
 
-  async execute(task, context = {}, skill) {
+  async execute(task) {
     const input = task.input || task.args || "";
-
-    logger.info(\`[${displayName.replace(/\s/g, "")}] Input: "\${input}"\`);
 
     try {
       // TODO: Implement skill logic
@@ -546,14 +583,16 @@ module.exports = {
         message: "${displayName} executed successfully.",
       };
     } catch (error) {
-      logger.error("[${displayName.replace(/\s/g, "")}] Error:", error);
       return { success: false, error: error.message };
     }
   },
 };
 `;
 
-  const skillDir = _deps.path.join(BUILTIN_DIR, skillName);
+  if (!skillName) {
+    return { success: false, error: "Skill name is invalid." };
+  }
+  const skillDir = resolveSkillDir(skillName);
   const files = {
     "SKILL.md": skillMd,
     "handler.js": handlerJs,
@@ -598,23 +637,21 @@ async function handleTest(name, testInput, context) {
     return { success: false, error: "No skill name provided." };
   }
 
-  const skillDir = _deps.path.join(BUILTIN_DIR, name);
-  const handlerPath = _deps.path.join(skillDir, "handler.js");
-
-  if (!_deps.fs.existsSync(handlerPath)) {
-    return { success: false, error: `Skill handler not found: ${handlerPath}` };
-  }
-
   try {
-    const handler = require(handlerPath);
-    if (typeof handler.init === "function") {
-      await handler.init({});
+    resolveSkillDir(name);
+    const { getSkillRegistry } = require("../../skill-registry");
+    const registry = getSkillRegistry();
+    const skill = registry.getSkill(name);
+    if (!skill) {
+      return {
+        success: false,
+        error: `Skill is not loaded in the managed registry: ${name}`,
+      };
     }
-
-    const result = await handler.execute(
+    const result = await registry.executeSkill(
+      name,
       { input: testInput || "test", args: testInput || "test" },
       context,
-      {},
     );
 
     return {
@@ -631,6 +668,7 @@ async function handleTest(name, testInput, context) {
       action: "test",
       skillName: name,
       error: error.message,
+      ...(error.code ? { code: error.code } : {}),
       message: `Test failed: ${error.message}`,
     };
   }
@@ -641,7 +679,7 @@ function handleOptimize(name) {
     return { success: false, error: "No skill name provided." };
   }
 
-  const skillMdPath = _deps.path.join(BUILTIN_DIR, name, "SKILL.md");
+  const skillMdPath = _deps.path.join(resolveSkillDir(name), "SKILL.md");
   if (!_deps.fs.existsSync(skillMdPath)) {
     return { success: false, error: `SKILL.md not found for "${name}".` };
   }
@@ -686,7 +724,7 @@ function handleValidate(name) {
     return { success: false, error: "No skill name/path provided." };
   }
 
-  const skillDir = _deps.path.join(BUILTIN_DIR, name);
+  const skillDir = resolveSkillDir(name);
   const skillMdPath = _deps.path.join(skillDir, "SKILL.md");
   const handlerPath = _deps.path.join(skillDir, "handler.js");
 
@@ -729,22 +767,18 @@ function handleValidate(name) {
   } else {
     checks.push("handler.js exists");
 
-    try {
-      const handler = require(handlerPath);
-      if (typeof handler.execute !== "function") {
-        issues.push("handler.js missing execute() function");
-      } else {
-        checks.push("Has execute() function");
-      }
-      if (typeof handler.init !== "function") {
-        issues.push(
-          "handler.js missing init() function (optional but recommended)",
-        );
-      } else {
-        checks.push("Has init() function");
-      }
-    } catch (err) {
-      issues.push(`handler.js load error: ${err.message}`);
+    const handlerSource = _deps.fs.readFileSync(handlerPath, "utf8");
+    if (!/(?:async\s+)?execute\s*\(/.test(handlerSource)) {
+      issues.push("handler.js missing execute() function");
+    } else {
+      checks.push("Has execute() function");
+    }
+    if (!/(?:async\s+)?init\s*\(/.test(handlerSource)) {
+      issues.push(
+        "handler.js missing init() function (optional but recommended)",
+      );
+    } else {
+      checks.push("Has init() function");
     }
   }
 
@@ -824,12 +858,8 @@ const SKILL_TEMPLATES = {
     handler: `/**
  * Basic Greeter Skill Handler
  */
-const { logger } = require("../../../../../utils/logger.js");
-
 module.exports = {
-  async init(skill) {
-    logger.info("[Greeter] Initialized");
-  },
+  async init() {},
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -852,6 +882,7 @@ version: 1.0.0
 category: general
 user-invocable: true
 tags: [greeter, hello, demo]
+execution-capabilities: [data:task, data:result]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |
@@ -880,16 +911,12 @@ A simple skill that demonstrates the basic handler structure.
     handler: `/**
  * Task Tracker Skill Handler — Multi-action template
  */
-const { logger } = require("../../../../../utils/logger.js");
-
 let tasks = [];
 
 module.exports = {
   _resetState() { tasks = []; },
 
-  async init(skill) {
-    logger.info("[TaskTracker] Initialized");
-  },
+  async init() {},
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -933,6 +960,7 @@ version: 1.0.0
 category: productivity
 user-invocable: true
 tags: [tasks, tracker, productivity]
+execution-capabilities: [data:task, data:result]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |
@@ -959,7 +987,6 @@ A multi-action skill template demonstrating create/list/complete/stats pattern.
     handler: `/**
  * API Caller Skill Handler — API integration template with _deps
  */
-const { logger } = require("../../../../../utils/logger.js");
 const https = require("https");
 
 const _deps = { https };
@@ -967,9 +994,7 @@ const _deps = { https };
 module.exports = {
   _deps,
 
-  async init(skill) {
-    logger.info("[APICaller] Initialized");
-  },
+  async init() {},
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -989,7 +1014,6 @@ module.exports = {
         default: return { success: false, error: \`Unknown action: \${action}. Use: status, search\` };
       }
     } catch (error) {
-      logger.error("[APICaller] Error:", error);
       return { success: false, error: error.message };
     }
   },
@@ -1031,6 +1055,7 @@ version: 1.0.0
 category: automation
 user-invocable: true
 tags: [api, rest, integration]
+execution-capabilities: [data:task, data:result, env:read, network:https]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |
@@ -1055,7 +1080,6 @@ Demonstrates the _deps injection pattern for testable API calls.
     handler: `/**
  * File Processor Skill Handler — File processing template with _deps
  */
-const { logger } = require("../../../../../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 
@@ -1064,9 +1088,7 @@ const _deps = { fs, path };
 module.exports = {
   _deps,
 
-  async init(skill) {
-    logger.info("[FileProcessor] Initialized");
-  },
+  async init() {},
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -1130,6 +1152,7 @@ version: 1.0.0
 category: productivity
 user-invocable: true
 tags: [file, markdown, analysis]
+execution-capabilities: [data:task, data:result, filesystem:read]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |
@@ -1154,12 +1177,8 @@ Demonstrates the _deps injection pattern for testable file system operations.
     handler: `/**
  * Code Analyzer Skill Handler — Pure regex-based code analysis
  */
-const { logger } = require("../../../../../utils/logger.js");
-
 module.exports = {
-  async init(skill) {
-    logger.info("[CodeAnalyzer] Initialized");
-  },
+  async init() {},
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -1226,6 +1245,7 @@ version: 1.0.0
 category: development
 user-invocable: true
 tags: [code, analysis, complexity, metrics]
+execution-capabilities: [data:task, data:result]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |

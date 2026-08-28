@@ -238,8 +238,9 @@
           </template>
         </a-table>
         <GraphRunDebugger
-          v-if="selectedGraphTask?.graphAuthority"
-          :graph="selectedGraphTask.graphAuthority"
+          v-if="selectedGraphView.graph"
+          :graph="selectedGraphView.graph"
+          :events="selectedGraphView.events"
         />
       </a-tab-pane>
 
@@ -344,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, h } from "vue";
+import { computed, ref, watch, h } from "vue";
 import { message, Modal } from "ant-design-vue";
 import type { TableColumnType } from "ant-design-vue";
 import {
@@ -364,6 +365,7 @@ import type {
 } from "../stores/agents";
 import { createLogger } from "@/utils/logger";
 import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
+import { graphDebugHistoryView } from "@/components/graph/graphRunDebuggerUtils.js";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 defineEmits<{ (e: "update:open", value: boolean): void }>();
@@ -377,6 +379,13 @@ const orchestrating = ref(false);
 const orchestrationResult = ref<OrchestrationPlan | null>(null);
 const orchestrateForm = ref({ taskDescription: "" });
 const selectedGraphTask = ref<AgentTaskHistory | null>(null);
+const selectedGraphHistory = ref<Record<string, any> | null>(null);
+const selectedGraphView = computed(() =>
+  graphDebugHistoryView(
+    selectedGraphHistory.value,
+    selectedGraphTask.value?.graphAuthority || null,
+  ),
+);
 
 const instanceColumns: TableColumnType[] = [
   { title: "ID", dataIndex: "id", key: "id", width: 120, ellipsis: true },
@@ -464,8 +473,20 @@ async function handleRefresh() {
   message.success("刷新成功");
 }
 
-function handleDebugGraph(task: AgentTaskHistory) {
+async function handleDebugGraph(task: AgentTaskHistory) {
   selectedGraphTask.value = task;
+  selectedGraphHistory.value = null;
+  try {
+    const result = await window.electronAPI.specializedAgents.getGraphHistory(
+      task.id,
+      { limit: 1000, snapshotLimit: 200 },
+    );
+    if (selectedGraphTask.value?.id === task.id && result.success) {
+      selectedGraphHistory.value = result.data;
+    }
+  } catch (error) {
+    agentLogger.warn("Graph 历史加载失败，使用当前投影:", error);
+  }
 }
 
 function showOrchestrateModal() {

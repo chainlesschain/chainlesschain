@@ -967,7 +967,11 @@ function registerCoworkIPC(dependencies = {}) {
         }
 
         // 获取技能定义
-        const definition = skill.getDefinition ? skill.getDefinition() : null;
+        const definition = skill.getPublicDefinition
+          ? skill.getPublicDefinition()
+          : skill.getDefinition
+            ? skill.getDefinition()
+            : null;
         if (!definition) {
           // 非 MarkdownSkill，返回默认结果
           return {
@@ -1007,7 +1011,11 @@ function registerCoworkIPC(dependencies = {}) {
         return { success: false, error: `技能不存在: ${skillId}` };
       }
 
-      const definition = skill.getDefinition ? skill.getDefinition() : null;
+      const definition = skill.getPublicDefinition
+        ? skill.getPublicDefinition()
+        : skill.getDefinition
+          ? skill.getDefinition()
+          : null;
       if (!definition) {
         // 非 MarkdownSkill
         return {

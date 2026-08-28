@@ -78,6 +78,15 @@ describe("agents-ipc", () => {
       getTaskStatus: vi
         .fn()
         .mockReturnValue({ success: true, status: "running" }),
+      getTaskGraphHistory: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          schema: "chainlesschain.graph-debug-history/v1",
+          runId: "graph-1",
+          events: [],
+          snapshots: [],
+        },
+      }),
       cancelTask: vi.fn().mockReturnValue({ success: true, cancelled: true }),
       orchestrate: vi.fn().mockResolvedValue({ success: true, result: "done" }),
       getPlan: vi.fn().mockReturnValue({ stages: 2 }),
@@ -330,6 +339,22 @@ describe("agents-ipc", () => {
     );
     expect(agentCoordinator.getTaskStatus).toHaveBeenCalledWith("task-1");
     expect(taskStatusResult.status).toBe("running");
+
+    const graphHistoryResult = await ipcMainMock.handlers[
+      "agents:get-graph-history"
+    ](
+      {},
+      {
+        taskId: "task-1",
+        limit: 10,
+        snapshotLimit: 5,
+      },
+    );
+    expect(agentCoordinator.getTaskGraphHistory).toHaveBeenCalledWith(
+      "task-1",
+      { afterSeq: 0, limit: 10, snapshotLimit: 5 },
+    );
+    expect(graphHistoryResult.success).toBe(true);
 
     const cancelResult = await ipcMainMock.handlers["agents:cancel-task"](
       {},

@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:a43ecfcb3cd2c728afd12522fd6bf755fb0ab503558a74315e744a71604fbed5"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:70fac74c12ca615d20428218e77df613d54f0473e7398d5332ce95148628995f"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {

@@ -55,6 +55,67 @@ class CrashAfterGraphAppendStore extends GraphEventStore {
 }
 
 describe("App Server canonical Graph runtime", () => {
+  it("returns bounded metadata-only durable history and validates ranges", async () => {
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      executeNode: async () => ({
+        status: "succeeded",
+        terminalEvidence: { eventDigest: EVENT, outputDigest: OUTPUT },
+        receipt: {
+          receiptDigest: EVENT,
+          secretBody: "must-not-reach-debug-history",
+        },
+      }),
+    });
+    await runtime.run({
+      definition: definition(),
+      runId: "desktop-debug-history",
+      inputs: { implement: { prompt: "private task body" } },
+      waitForCompletion: true,
+    });
+
+    const history = runtime.history("desktop-debug-history", {
+      limit: 2_000,
+      snapshotLimit: 200,
+    });
+    expect(history).toMatchObject({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "desktop-debug-history",
+      hasMore: false,
+      current: { status: "succeeded" },
+    });
+    expect(
+      history.events.every((event) => !Object.hasOwn(event, "payload")),
+    ).toBe(true);
+    expect(JSON.stringify(history)).not.toContain("private task body");
+    expect(JSON.stringify(history)).not.toContain(
+      "must-not-reach-debug-history",
+    );
+    expect(history.current.effects[0]).toEqual(
+      expect.objectContaining({
+        receiptDigest: EVENT,
+        status: "committed",
+      }),
+    );
+    expect(history.diffs).toHaveLength(history.snapshots.length - 1);
+    const tail = runtime.history("desktop-debug-history", {
+      limit: 2,
+      snapshotLimit: 2,
+    });
+    expect(tail).toMatchObject({
+      requestedAfterSeq: 0,
+      truncatedBefore: true,
+      hasMore: false,
+      current: { status: "succeeded" },
+    });
+    expect(tail.events).toHaveLength(2);
+    expect(() =>
+      runtime.history("desktop-debug-history", { limit: 2_001 }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_GRAPH_HISTORY_RANGE_INVALID" }),
+    );
+  });
+
   it("drives a real executor through attempt, effect receipt, and terminal state", async () => {
     const store = new MemoryRolloutStore();
     const calls = [];

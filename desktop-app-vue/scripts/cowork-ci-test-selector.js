@@ -79,10 +79,33 @@ const IPFS_TRANSPORT_CONTRACT_TESTS = [
 ];
 const GRAPH_DEBUGGER_CONTRACT_TESTS = [
   "tests/unit/components/graphRunDebuggerUtils.test.js",
+  "tests/unit/components/graphDebugHistoryCrossProduct.test.js",
   "tests/unit/components/GraphRunDebugger.smoke.test.js",
   "tests/unit/components/GraphRunDebugger.wiring.test.js",
   "tests/unit/pages/useAiChatHarnessGraph.test.js",
   "tests/unit/pages/AIChatPage.test.js",
+];
+const GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS = [
+  "src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js",
+  "src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js",
+  "src/main/workflow/__tests__/workflow-graph-authority.test.js",
+  "src/main/workflow/__tests__/workflow-ipc-graph-history.test.js",
+  "tests/unit/ai-engine/agents/agents-ipc.test.js",
+  "src/main/ai-engine/agents/__tests__/agent-coordinator-parallel.test.js",
+  "src/main/ai-engine/agents/__tests__/agent-coordinator-execution-contract.test.js",
+  "src/main/ai-engine/agents/__tests__/agent-coordinator-eviction.test.js",
+  "src/main/ai-engine/agents/__tests__/agent-coordinator-sessions-eviction.test.js",
+  "tests/unit/ai-engine/agents/agent-coordinator-select.test.js",
+];
+const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
+  "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/markdown-skill.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/skill-loader.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/skill-loader-unit.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/skill-lazy-load.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/skill-sync-security.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js",
 ];
 
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
@@ -103,6 +126,10 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     "signaling-server/offline-message-store.js",
     [STANDALONE_SIGNALING_BOUNDS_TEST],
   ],
+  [
+    "tests/fixtures/graph-debug-history/blocked-root-revision-v1.json",
+    ["tests/unit/components/graphDebugHistoryCrossProduct.test.js"],
+  ],
 ]);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   [
@@ -111,7 +138,68 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/preload/index.js",
-    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+    [
+      CONTENT_INTEGRATION_WIRING_TEST,
+      ...COLLAB_RUNTIME_CONTRACT_TESTS,
+      ...GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+    ],
+  ],
+  [
+    "src/main/ai-engine/code-agent/app-server-pilot.js",
+    GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/code-agent/desktop-graph-execution-adapter.js",
+    GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/agents/agent-coordinator.js",
+    GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/agents/agents-ipc.js",
+    GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/workflow/workflow-pipeline.js",
+    GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+  ],
+  ["src/main/workflow/workflow-ipc.js", GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS],
+  [
+    "src/main/ai-engine/cowork/skills/skill-execution-security.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/skill-md-parser.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/skill-loader.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/markdown-skill.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/skills-ipc.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/skill-sync-manager.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/skill-sync-ipc.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/cowork-ipc.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
   ["src/main/ipfs/ipfs-boundaries.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   ["src/main/ipfs/ipfs-content-runtime.js", IPFS_TRANSPORT_CONTRACT_TESTS],
@@ -177,7 +265,11 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/renderer/types/electron.d.ts",
-    [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
+    [
+      CONTENT_INTEGRATION_WIRING_TEST,
+      ...COLLAB_RUNTIME_CONTRACT_TESTS,
+      ...GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS,
+    ],
   ],
 ]);
 

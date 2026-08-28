@@ -6,6 +6,7 @@ import {
   buildReplayFrames,
   createGraphDebuggerProjection,
   diffGraphs,
+  graphDebugHistoryView,
   topologicalProjection,
 } from "../../../src/renderer/components/graph/graphRunDebuggerUtils.js";
 
@@ -20,6 +21,39 @@ function node(id, dependsOn, durationMs, status = "completed", metadata = {}) {
 }
 
 describe("graphRunDebuggerUtils", () => {
+  it("converts bounded App Server history into replay events", () => {
+    const first = {
+      id: "run-1",
+      projectionVersion: 1,
+      nodes: [{ id: "a", status: "running" }],
+    };
+    const second = {
+      id: "run-1",
+      projectionVersion: 2,
+      nodes: [{ id: "a", status: "succeeded" }],
+    };
+    const view = graphDebugHistoryView(
+      {
+        schema: "chainlesschain.graph-debug-history/v1",
+        current: second,
+        snapshots: [
+          { seq: 1, timestamp: 1, type: "run.started", projection: first },
+          { seq: 2, timestamp: 2, type: "run.settled", projection: second },
+        ],
+      },
+      first,
+    );
+    expect(view.graph).toBe(second);
+    expect(view.events).toEqual([
+      expect.objectContaining({ seq: 1, payload: { graph: first } }),
+      expect.objectContaining({ seq: 2, payload: { graph: second } }),
+    ]);
+    expect(graphDebugHistoryView(null, first)).toEqual({
+      graph: first,
+      events: [],
+    });
+  });
+
   it("projects a DAG with a forward critical path and CPM slack", () => {
     const topology = topologicalProjection({
       graphId: "graph-1",

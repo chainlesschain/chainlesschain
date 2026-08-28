@@ -63,6 +63,34 @@ function graphProjection(request, status = "succeeded") {
 }
 
 describe("Workflow Graph authority", () => {
+  it("loads durable Graph history through the workflow binding", async () => {
+    const history = {
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "desktop-workflow:history-workflow",
+      events: [],
+      snapshots: [],
+    };
+    const graphAdapter = {
+      mode: () => "canonical",
+      history: vi.fn(async () => history),
+    };
+    const workflow = new WorkflowPipeline({
+      id: "history-workflow",
+      graphAdapter,
+      progressEmitter: progressEmitter(),
+      qualityGateManager: qualityGates(),
+    });
+    workflow.graphRunId = history.runId;
+
+    await expect(
+      workflow.getGraphHistory({ limit: 10, snapshotLimit: 5 }),
+    ).resolves.toBe(history);
+    expect(graphAdapter.history).toHaveBeenCalledWith(history.runId, {
+      limit: 10,
+      snapshotLimit: 5,
+    });
+  });
+
   it("projects canonical Graph evidence without invoking a legacy stage executor", async () => {
     const legacyExecutor = vi.fn(async () => ({ legacy: true }));
     const graphAdapter = {

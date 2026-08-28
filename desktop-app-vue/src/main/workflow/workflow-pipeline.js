@@ -1069,6 +1069,17 @@ class WorkflowPipeline extends EventEmitter {
     return this._getWorkflowInfo();
   }
 
+  async getGraphHistory(options = {}) {
+    const binding = this.graphRunRegistry.get(WORKFLOW_GRAPH_SURFACE, this.id);
+    const runId = this.graphRunId || binding?.graphRunId;
+    if (!runId) {
+      const error = new Error(`Workflow Graph run not found: ${this.id}`);
+      error.code = "CC_DESKTOP_GRAPH_BINDING_NOT_FOUND";
+      throw error;
+    }
+    return this.graphAdapter.history(runId, options);
+  }
+
   /**
    * 获取阶段列表
    * @returns {Array} 阶段信息列表

@@ -32,6 +32,7 @@ class FakePilotClient extends EventEmitter {
       "graphCompile",
       "graphRun",
       "graphStatus",
+      "graphHistory",
       "graphCancel",
       "graphReconcile",
     ]) {
@@ -67,6 +68,12 @@ describe("DesktopAppServerPilot", () => {
       params: { runId: "graph-1", definition: { id: "d" } },
     });
     expect(pilot.status).toMatchObject({ enabled: true, surface: "desktop" });
+    await expect(
+      pilot.graphHistory({ runId: "graph-1", snapshotLimit: 20 }),
+    ).resolves.toEqual({
+      method: "graphHistory",
+      params: { runId: "graph-1", snapshotLimit: 20 },
+    });
 
     expect(
       FakePilotClient.options.spawn("node", ["cli.js"], {

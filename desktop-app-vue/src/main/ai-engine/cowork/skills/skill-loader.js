@@ -15,6 +15,20 @@ const { logger } = require("../../../utils/logger.js");
 const { SkillMdParser } = require("./skill-md-parser");
 const { SkillGating } = require("./skill-gating");
 const { MarkdownSkill } = require("./markdown-skill");
+const {
+  preflightSkillPath,
+  inspectSkillExecution,
+} = require("./skill-execution-security");
+
+function configuredTrustedSkillKeys(options) {
+  if (Array.isArray(options.trustedSkillKeySha256)) {
+    return options.trustedSkillKeySha256;
+  }
+  return String(process.env.CHAINLESSCHAIN_TRUSTED_SKILL_KEY_SHA256 || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
 
 /**
  * 技能层级优先级
@@ -45,6 +59,11 @@ class SkillLoader extends EventEmitter {
 
     this.parser = new SkillMdParser({ strictValidation: false });
     this.gating = new SkillGating();
+    this.trustedSkillKeySha256 = configuredTrustedSkillKeys(options);
+    this.externalHandlerExecutor =
+      typeof options.externalHandlerExecutor === "function"
+        ? options.externalHandlerExecutor
+        : null;
 
     // 存储各层级的技能定义
     this.layerDefinitions = {
@@ -56,6 +75,21 @@ class SkillLoader extends EventEmitter {
 
     // 合并后的技能（按优先级）
     this.resolvedSkills = new Map();
+  }
+
+  _attachExecutionSecurity(definition, layer, allowedRoot) {
+    const layerPaths = this.getLayerPaths();
+    definition._skillSecurityPolicy = {
+      allowedRoot,
+      trustedBundledRoot: layerPaths.bundled,
+      trustedSkillKeySha256: [...this.trustedSkillKeySha256],
+    };
+    definition._externalHandlerExecutor = this.externalHandlerExecutor;
+    definition._executionSecurity = inspectSkillExecution(definition, {
+      ...definition._skillSecurityPolicy,
+      allowMissingHandler: true,
+    });
+    return definition;
   }
 
   /**
@@ -168,8 +202,16 @@ class SkillLoader extends EventEmitter {
       try {
         // 解析 SKILL.md
         // v1.1.0: Use metadata-only parsing for faster startup
-        const definition = await this.parser.parseMetadataOnly(skillMdPath);
+        const preflight = preflightSkillPath(skillDir, layerPath);
+        const definition = await this.parser.parseMetadataOnly(
+          preflight.skillMdRealPath,
+        );
         definition.source = layer;
+        this._attachExecutionSecurity(
+          definition,
+          layer,
+          preflight.rootRealPath,
+        );
 
         // 门控检查
         if (this.options.autoGating) {
@@ -329,9 +371,10 @@ class SkillLoader extends EventEmitter {
    * 加载单个指定目录的技能（完整解析）
    * @param {string} skillDir - 技能目录路径
    * @param {string} layer - 来源层级
+   * @param {string} [allowedRoot] - Trusted containing root for this load
    * @returns {Promise<object|null>} SkillDefinition or null
    */
-  async loadSingleSkill(skillDir, layer = "managed") {
+  async loadSingleSkill(skillDir, layer = "managed", allowedRoot = skillDir) {
     const skillMdPath = path.join(skillDir, "SKILL.md");
 
     // M2: 异步存在性检查
@@ -344,8 +387,10 @@ class SkillLoader extends EventEmitter {
 
     try {
       // Full parse for single skill loading
-      const definition = await this.parser.parseFile(skillMdPath);
+      const preflight = preflightSkillPath(skillDir, allowedRoot);
+      const definition = await this.parser.parseFile(preflight.skillMdRealPath);
       definition.source = layer;
+      this._attachExecutionSecurity(definition, layer, preflight.rootRealPath);
 
       // Gating check
       if (this.options.autoGating) {

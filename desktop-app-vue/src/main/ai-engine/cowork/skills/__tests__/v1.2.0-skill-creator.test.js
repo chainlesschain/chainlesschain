@@ -132,16 +132,20 @@ function smartSpawn({
 // ─── Save / restore _deps ─────────────────────────────────────────────────────
 let origSpawnSync;
 let origFs;
+let origGetManagedSkillsRoot;
 
 beforeEach(() => {
   origSpawnSync = handler._deps.spawnSync;
   origFs = handler._deps.fs;
+  origGetManagedSkillsRoot = handler._deps.getManagedSkillsRoot;
+  handler._deps.getManagedSkillsRoot = () => BUILTIN_DIR;
   vi.clearAllMocks();
 });
 
 afterEach(() => {
   handler._deps.spawnSync = origSpawnSync;
   handler._deps.fs = origFs;
+  handler._deps.getManagedSkillsRoot = origGetManagedSkillsRoot;
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -154,6 +158,7 @@ describe("_deps structure", () => {
     expect(typeof handler._deps.fs).toBe("object");
     expect(typeof handler._deps.path).toBe("object");
     expect(typeof handler._deps.spawnSync).toBe("function");
+    expect(typeof handler._deps.getManagedSkillsRoot).toBe("function");
   });
 });
 
@@ -259,6 +264,21 @@ describe("parseInput / action routing", () => {
     );
     expect(r.action).toBe("optimize-description");
   });
+
+  it.each(["optimize", "optimize-description", "validate", "test"])(
+    "rejects path traversal in the %s action",
+    async (action) => {
+      const r = await handler.execute(
+        { input: `${action} ../../outside` },
+        {},
+        {},
+      );
+      expect(r).toMatchObject({
+        success: false,
+        code: "CC_SKILL_NAME_INVALID",
+      });
+    },
+  );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -316,6 +336,25 @@ describe("handleGetTemplate()", () => {
     expect(r.success).toBe(true);
     expect(r.files["handler.js"]).toContain("create");
     expect(r.files["handler.js"]).toContain("complete");
+  });
+
+  it.each([
+    "basic",
+    "multi-action",
+    "api-integration",
+    "file-processor",
+    "code-analyzer",
+  ])("returns a containment-ready %s template", async (templateName) => {
+    const r = await handler.execute(
+      { input: `get-template ${templateName}` },
+      {},
+      {},
+    );
+
+    expect(r.files["SKILL.md"]).toContain("execution-capabilities:");
+    expect(r.files["handler.js"]).not.toContain(
+      "../../../../../utils/logger.js",
+    );
   });
 
   it("fails on unknown template name", async () => {
@@ -401,6 +440,9 @@ describe("handleCreate()", () => {
     expect(content).toContain("name: test-unit");
     expect(content).toContain("version: 1.0.0");
     expect(content).toContain("handler: ./handler.js");
+    expect(content).toContain(
+      "execution-capabilities: [data:task, data:result]",
+    );
   });
 
   it("generated handler.js has init() and execute() exports", async () => {
@@ -414,6 +456,7 @@ describe("handleCreate()", () => {
     const code = handlerCall[1];
     expect(code).toContain("async init(");
     expect(code).toContain("async execute(");
+    expect(code).not.toContain("require(");
   });
 });
 

@@ -51,7 +51,7 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
-  it("exposes fixed canonical Graph compile/run/status capabilities", async () => {
+  it("exposes fixed canonical Graph compile/run/status/history capabilities", async () => {
     const messages = [];
     const kernel = {
       async startTurn({ input }) {
@@ -125,6 +125,28 @@ describe("CC App Server", () => {
       request(4, "graph/status", { runId: "desktop-team-run" }),
     );
     expect(status.result.status).toBe("succeeded");
+    const history = await server.receive(
+      request(5, "graph/history", {
+        runId: "desktop-team-run",
+        limit: 100,
+        snapshotLimit: 20,
+      }),
+    );
+    expect(history.result).toMatchObject({
+      schema: "chainlesschain.graph-debug-history/v1",
+      runId: "desktop-team-run",
+      hasMore: false,
+      current: {
+        schema: "chainlesschain.graph-trace-projection/v1",
+        status: "succeeded",
+        runId: "desktop-team-run",
+      },
+    });
+    expect(history.result.events.length).toBeGreaterThan(0);
+    expect(history.result.snapshots.length).toBeGreaterThan(1);
+    expect(history.result.diffs.length).toBe(
+      history.result.snapshots.length - 1,
+    );
     expect(messages.some((message) => message.method === "graph/event")).toBe(
       true,
     );

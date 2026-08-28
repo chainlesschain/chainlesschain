@@ -37,11 +37,18 @@ describe("AppServerPilotClient", () => {
       method: "turn/start",
       params: { threadId: "thread-1", input: "hello" },
     });
+    await expect(
+      pilot.graphHistory({ runId: "graph-1", snapshotLimit: 20 }),
+    ).resolves.toEqual({
+      method: "graph/history",
+      params: { runId: "graph-1", snapshotLimit: 20 },
+    });
 
     expect(transport.start).toHaveBeenCalledTimes(1);
     expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
       "thread/list",
       "turn/start",
+      "graph/history",
     ]);
     expect("request" in pilot).toBe(false);
     expect(pilot.status).toMatchObject({
