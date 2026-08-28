@@ -252,6 +252,226 @@ test("ChatViewProvider rehydrates questions and preserves approval bindings", as
   );
 });
 
+test("VS Code settles approvals against the shared HumanTask conformance fixture", () => {
+  const fixture = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "agent-protocol",
+        "test",
+        "fixtures",
+        "human-task-settlement-conformance.json",
+      ),
+      "utf8",
+    ),
+  );
+
+  for (const scenario of fixture.scenarios.filter(({ surfaces }) =>
+    surfaces.includes("vscode"),
+  )) {
+    const posted = [];
+    const sent = [];
+    const warnings = [];
+    const vscode = {
+      commands: { executeCommand() {} },
+      window: {
+        showWarningMessage(message) {
+          warnings.push(message);
+        },
+      },
+      workspace: {
+        workspaceFolders: [{ uri: { fsPath: "C:\\workspace" } }],
+        getConfiguration: () => ({ get: () => undefined }),
+      },
+    };
+    const provider = new ChatViewProvider(vscode, {});
+    provider.view = {
+      webview: {
+        postMessage(message) {
+          posted.push(message);
+          return Promise.resolve(true);
+        },
+      },
+    };
+    provider._handleMessage({ type: "ready" });
+    const conversation = provider._convs.active();
+    const attachSession = () => {
+      let running = true;
+      provider._convs.setSession(conversation.id, {
+        get running() {
+          return running;
+        },
+        sendEvent(event) {
+          if (!running) return false;
+          sent.push(event);
+          return true;
+        },
+        stop() {
+          running = false;
+        },
+      });
+      conversation.turnActive = true;
+    };
+    attachSession();
+
+    const onEvent = provider._makeOnEvent(conversation.id);
+    const requestId = `approval-${scenario.name}`;
+    const binding = `ab_${scenario.name}`;
+    onEvent({
+      type: "approval_request",
+      id: requestId,
+      tool: "run_shell",
+      binding,
+      requested_permissions: [
+        {
+          capability: "tool:run_shell",
+          scope: `exact:${scenario.name}`,
+        },
+      ],
+    });
+    let rejectedResponses = 0;
+    let unresolvedDecision = null;
+    const resolveDecision = () => {
+      if (!unresolvedDecision) return;
+      onEvent({
+        type: "approval_resolved",
+        id: requestId,
+        approved: unresolvedDecision === "approve",
+        decision: {
+          kind: unresolvedDecision === "approve" ? "acceptOnce" : "decline",
+        },
+        via: "fixture-authority",
+      });
+      unresolvedDecision = null;
+    };
+
+    for (const step of scenario.steps) {
+      if (step.action === "restart") {
+        resolveDecision();
+        provider._stopSession(conversation);
+        attachSession();
+        assert.equal(step.expect.vscode, "settled", scenario.name);
+        continue;
+      }
+      if (step.action === "cancel") {
+        assert.equal(
+          provider._interruptConversation(conversation),
+          true,
+          scenario.name,
+        );
+        assert.equal(step.expect.vscode, "settled", scenario.name);
+        continue;
+      }
+      assert.ok(
+        step.action === "approve" || step.action === "decline",
+        `${scenario.name}: unsupported VS Code action ${step.action}`,
+      );
+      const accepted = provider._sendApprovalDecision(
+        {
+          id: requestId,
+          binding,
+          decisionKind: step.action === "approve" ? "acceptOnce" : "decline",
+          approve: step.action === "approve",
+        },
+        conversation,
+      );
+      if (step.expect.vscode === "settled") {
+        assert.equal(accepted, true, scenario.name);
+        unresolvedDecision = step.action;
+      } else {
+        assert.equal(accepted, false, scenario.name);
+        rejectedResponses += 1;
+      }
+    }
+    resolveDecision();
+
+    const expected = scenario.expected.vscode;
+    assert.equal(
+      provider._convs
+        .pendingInteractions(conversation.id)
+        .filter(({ kind }) => kind === "approval").length,
+      expected.pending_approvals,
+      scenario.name,
+    );
+    assert.equal(
+      sent.filter(({ type }) => type === "approval").length,
+      expected.sent_decisions,
+      scenario.name,
+    );
+    assert.equal(
+      sent.filter(({ type }) => type === "interrupt").length,
+      expected.interrupts,
+      scenario.name,
+    );
+    assert.equal(rejectedResponses, expected.rejected_responses, scenario.name);
+    assert.equal(warnings.length, rejectedResponses, scenario.name);
+  }
+});
+
+test("VS Code rolls back a local approval reservation when transport rejects it", () => {
+  const warnings = [];
+  const posted = [];
+  const vscode = {
+    commands: { executeCommand() {} },
+    window: { showWarningMessage: (message) => warnings.push(message) },
+    workspace: {
+      workspaceFolders: [{ uri: { fsPath: "C:\\workspace" } }],
+      getConfiguration: () => ({ get: () => undefined }),
+    },
+  };
+  const provider = new ChatViewProvider(vscode, {});
+  provider.view = {
+    webview: {
+      postMessage(message) {
+        posted.push(message);
+        return Promise.resolve(true);
+      },
+    },
+  };
+  const conversation = provider._activeConv();
+  let acceptTransport = false;
+  provider._convs.setSession(conversation.id, {
+    running: true,
+    sendEvent: () => acceptTransport,
+  });
+  provider._makeOnEvent(conversation.id)({
+    type: "approval_request",
+    id: "approval-rollback",
+    tool: "run_shell",
+    binding: "ab_rollback",
+  });
+
+  assert.equal(
+    provider._sendApprovalDecision(
+      { id: "approval-rollback", binding: "ab_rollback", approve: true },
+      conversation,
+    ),
+    false,
+  );
+  assert.equal(
+    provider._convs.pendingInteractions(conversation.id)[0].settlementStatus,
+    "pending",
+  );
+  acceptTransport = true;
+  assert.equal(
+    provider._sendApprovalDecision(
+      { id: "approval-rollback", binding: "ab_rollback", approve: true },
+      conversation,
+    ),
+    true,
+  );
+  assert.equal(warnings.length, 1);
+  assert.equal(
+    posted.some(
+      (message) =>
+        message.kind === "approval_retry" && message.id === "approval-rollback",
+    ),
+    true,
+  );
+});
+
 test("chat HTML exposes keyboard and screen-reader semantics", () => {
   const html = buildChatHtml({
     cspSource: "vscode-webview:",
@@ -304,6 +524,7 @@ test("chat HTML exposes keyboard and screen-reader semantics", () => {
     html,
     /control while the host settles[\s\S]{0,160}input\.focus\(\)/u,
   );
+  assert.match(html, /case "approval_retry"[\s\S]{0,240}b\.disabled = false/u);
   assert.match(html, /:focus-visible \{ outline:2px solid/u);
 });
 

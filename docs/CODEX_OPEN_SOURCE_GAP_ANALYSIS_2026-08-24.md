@@ -2096,7 +2096,18 @@ P1-9 继续保持“部分完成”：§12.52 当时留下的共享 approval-vs-
 - Desktop Coding Agent 直接读取同一 fixture 并执行其支持的 4 个单审批场景，走真实 `session-answer` settlement CAS，而不是测试内伪造状态。重复响应、interrupt 后迟到响应、resume 后旧 transport card，以及已决定后重启再响应均只有一个结果；Graph 的 durable task 可在恢复后继续决定，而 Desktop 的易失 UI card 明确失效，二者语义差异由 fixture 分 surface 声明。
 - canonical HumanTask schema 以 additive 字段补齐 operation/authority digest、quorum、separation-of-duties、decision ledger、claim expiry、时间戳和 reason；TypeScript、Python、Kotlin、Swift、CLI 内嵌 schema 及 Desktop/VS Code vendored Agent SDK 已统一重新生成。协议 14/14、CLI HumanTask/Graph Kernel 24/24、Desktop session 50/50、TS SDK 非真实 CLI E2E 66/66 与 Python 3.12 SDK 31/31 通过；TS SDK build、protocol codegen check 与两份 vendored SDK freshness check 通过。
 
-P1-9 继续保持“部分完成”：本节关闭了共享语料、Graph 全场景和 Desktop 单审批竞态/重启消费，但 JetBrains/Android/iOS/Web 尚未消费该 fixture，Desktop/其他客户端也没有多人 quorum/职责分离产品面；本轮协议/SDK/CLI 变更仍需精确 SHA 的三平台权威门禁、版本发布及 registry/provenance 回读。
+P1-9 继续保持“部分完成”：本节关闭了共享语料、Graph 全场景和 Desktop 单审批竞态/重启消费；VS Code 的同语料消费与 transport-card CAS 随后由 §12.54 关闭。JetBrains/Android/iOS/Web 仍未消费该 fixture，Desktop/IDE/其他客户端也没有多人 quorum/职责分离产品面；本轮协议/SDK/CLI 变更仍需精确 SHA 的三平台权威门禁、版本发布及 registry/provenance 回读。
+
+### 12.54 P1-9 VS Code transport-card CAS 与共享结算语料消费（2026-08-28）
+
+本切片继续 §12.53，不触碰其他窗口负责的 P1-11 Skill authority：
+
+- 产品无关 HumanTask fixture 新增 `vscode` surface；VS Code 真实 `ChatViewProvider` 直接执行 decision 赢后重复响应、cancel 赢后迟到决定、未决 card 重启失效、已决结果跨重启保持这 4 个适用场景。Graph 仍执行全部 7 个场景，Desktop 与 VS Code 各执行 4 个单审批场景，差异继续由同一 fixture 的 per-surface expectation 显式声明。
+- `ConversationManager` 为 approval transport card 增加 `pending → responding/interrupting` 本地 CAS。它不是新的 durable authority：CLI 仍决定最终结算；本地状态只保证同一 IDE card 在权威结果返回前最多写出一个 response，并阻止重复点击、迟到点击或重复投递的 request 重新打开正在结算的 card。
+- `_sendApprovalDecision()` 现在检查 `sendEvent()` 的真实返回值。stdin 不可用、写入拒绝或构造响应失败时会按精确状态回滚为 pending、给 Webview 发 `approval_retry` 重新启用按钮并显示警告，不再把未写入的决定报告为成功。interrupt 先原子保留待处理 approval，只有 CLI transport 接受 interrupt 后才使旧 card 失效；interrupt 写入失败会回滚保留，session stop/restart 继续清除旧 card。
+- VS Code 完整 unit suite 134/134、协议 14/14、CLI 共享 fixture 7/7、Desktop session 50/50 通过；相关源码 ESLint 与 Prettier 通过。本切片只扩展既有 fixture 和 VS Code 内部实现，没有改变 canonical schema 或公开包版本，因此未重新生成或发布协议/SDK/CLI/IDE 制品。
+
+P1-9 继续保持“部分完成”：共享语料现由 Graph、Desktop 与 VS Code 消费；仍需 JetBrains/Android/iOS/Web 接入、各客户端多人 quorum/职责分离产品面，以及 §12.52～12.53 协议/SDK/CLI 增量的精确 SHA 三平台权威门禁、发布与 registry/provenance 回读。
 
 ## 13. 全量任务完成情况（截至 2026-08-28）
 

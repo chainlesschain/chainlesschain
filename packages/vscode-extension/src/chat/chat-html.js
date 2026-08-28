@@ -1560,6 +1560,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         );
         break;
       }
+      case "approval_retry": {
+        const card = document.getElementById("appr-" + m.id);
+        if (card) {
+          for (const b of card.querySelectorAll("button")) b.disabled = false;
+        }
+        break;
+      }
       case "plan":
         renderPlan(m);
         break;

@@ -159,8 +159,16 @@ class ConversationManager {
       (entry) =>
         entry?.kind === payload.kind && String(entry?.id || "") === requestId,
     );
-    if (index >= 0) c.pendingInteractions[index] = payload;
-    else c.pendingInteractions.push(payload);
+    const current = index >= 0 ? c.pendingInteractions[index] : null;
+    const next =
+      payload.kind === "approval"
+        ? {
+            ...payload,
+            settlementStatus: current?.settlementStatus || "pending",
+          }
+        : payload;
+    if (index >= 0) c.pendingInteractions[index] = next;
+    else c.pendingInteractions.push(next);
     c.pendingApproval = c.pendingInteractions[0] || null;
     return c;
   }
@@ -171,6 +179,43 @@ class ConversationManager {
     return c && Array.isArray(c.pendingInteractions)
       ? c.pendingInteractions.slice()
       : [];
+  }
+
+  /**
+   * Atomically reserve one approval transport card for a response or cancel.
+   * The CLI remains the durable settlement authority; this local CAS only
+   * prevents one IDE card from writing duplicate/conflicting responses while
+   * the authoritative result is still in flight.
+   */
+  beginApprovalSettlement(id, requestId, status = "responding") {
+    const c = this.get(id);
+    if (!c || !Array.isArray(c.pendingInteractions)) return null;
+    const wanted = String(requestId || "");
+    const entry = c.pendingInteractions.find(
+      (candidate) =>
+        candidate?.kind === "approval" &&
+        String(candidate.id || "") === wanted &&
+        (candidate.settlementStatus || "pending") === "pending",
+    );
+    if (!entry) return null;
+    entry.settlementStatus = String(status || "responding");
+    return { ...entry };
+  }
+
+  /** Release a failed local reservation without reviving a newer state. */
+  rollbackApprovalSettlement(id, requestId, status = "responding") {
+    const c = this.get(id);
+    if (!c || !Array.isArray(c.pendingInteractions)) return false;
+    const wanted = String(requestId || "");
+    const entry = c.pendingInteractions.find(
+      (candidate) =>
+        candidate?.kind === "approval" &&
+        String(candidate.id || "") === wanted &&
+        candidate.settlementStatus === status,
+    );
+    if (!entry) return false;
+    entry.settlementStatus = "pending";
+    return true;
   }
 
   /** Clear one resolved interaction, or every interaction when id is omitted. */

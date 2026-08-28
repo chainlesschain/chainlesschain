@@ -1,23 +1,31 @@
 {
   "schema_version": 1,
-  "surfaces": ["graph", "desktop"],
+  "surfaces": ["graph", "desktop", "vscode"],
   "actions": ["approve", "decline", "cancel", "restart", "advance"],
   "scenarios": [
     {
       "name": "decision-wins-duplicate-response",
-      "surfaces": ["graph", "desktop"],
+      "surfaces": ["graph", "desktop", "vscode"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled", "desktop": "settled" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled"
+          }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "rejected", "desktop": "rejected" }
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected"
+          }
         }
       ],
       "expected": {
@@ -34,23 +42,37 @@
           "granted_events": 1,
           "interrupted_events": 0,
           "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "cancel-wins-late-decision",
-      "surfaces": ["graph", "desktop"],
+      "surfaces": ["graph", "desktop", "vscode"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
         {
           "action": "cancel",
-          "expect": { "graph": "settled", "desktop": "settled" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled"
+          }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "rejected", "desktop": "rejected" }
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected"
+          }
         }
       ],
       "expected": {
@@ -67,23 +89,37 @@
           "granted_events": 0,
           "interrupted_events": 1,
           "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "restart-recovers-durable-task-but-invalidates-transport-card",
-      "surfaces": ["graph", "desktop"],
+      "surfaces": ["graph", "desktop", "vscode"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
         {
           "action": "restart",
-          "expect": { "graph": "settled", "desktop": "settled" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled"
+          }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled", "desktop": "rejected" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "rejected",
+            "vscode": "rejected"
+          }
         }
       ],
       "expected": {
@@ -100,28 +136,46 @@
           "granted_events": 0,
           "interrupted_events": 0,
           "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "decision-persists-across-restart",
-      "surfaces": ["graph", "desktop"],
+      "surfaces": ["graph", "desktop", "vscode"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled", "desktop": "settled" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled"
+          }
         },
         {
           "action": "restart",
-          "expect": { "graph": "settled", "desktop": "settled" }
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled"
+          }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-2",
-          "expect": { "graph": "rejected", "desktop": "rejected" }
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected"
+          }
         }
       ],
       "expected": {
@@ -137,6 +191,12 @@
           "pending_approvals": 0,
           "granted_events": 1,
           "interrupted_events": 0,
+          "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
           "rejected_responses": 1
         }
       }
