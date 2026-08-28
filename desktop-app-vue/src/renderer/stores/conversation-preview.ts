@@ -78,8 +78,12 @@ function now(): number {
   return Date.now();
 }
 
+let idSequence = 0;
+
 function makeId(prefix: string): string {
-  return `${prefix}-${now()}-${Math.floor(Math.random() * 1000)}`;
+  idSequence += 1;
+  const entropy = Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${now()}-${idSequence.toString(36)}-${entropy}`;
 }
 
 function createBlankFiles(): PreviewFileNode[] {

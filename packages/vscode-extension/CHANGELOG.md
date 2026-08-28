@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.72] - CLI 0.166.7 Graph Kernel compatibility (2026-08-28)
+
+- Re-certify the packaged extension against `chainlesschain@0.166.7` and its
+  authoritative Graph Kernel entry routing, durable cutover ledger, fenced
+  recovery, and fail-closed legacy mutation boundaries.
+- Keep IDE projections read-only and CLI-authoritative while carrying forward
+  the generated Agent SDK `0.2.4` payload contract and all governed action
+  previews from `0.37.71`.
+- Require the immutable VSIX and the exact candidate to pass the Linux,
+  Windows, macOS, Remote-SSH, browser-evidence, and native ARM64 gates before
+  marketplace publication.
+
 ## [0.37.71] - Marketplace Overview coherence (2026-08-27)
 
 - Align the packaged Open VSX Overview, marketplace description, immutable tag,

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import {
   useConversationPreviewStore,
@@ -190,6 +190,8 @@ describe("useConversationPreviewStore", () => {
   });
 
   it("select() only accepts known ids", () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     const store = useConversationPreviewStore();
     store.restore();
     const firstId = store.createBlank();

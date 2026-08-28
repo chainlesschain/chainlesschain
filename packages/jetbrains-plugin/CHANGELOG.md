@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.103] - CLI 0.166.7 Graph Kernel compatibility (2026-08-28)
+
+- Re-certify the plugin against `chainlesschain@0.166.7` and its authoritative
+  Graph Kernel entry routing, persisted cutover evidence, fenced takeover and
+  recovery, and fail-closed legacy mutation boundaries.
+- Keep IDE projections read-only and CLI-authoritative while carrying forward
+  the generated Agent Protocol payload contract and governed action previews
+  from `0.4.102`.
+- Require the exact plugin candidate to pass the six-host JetBrains matrix,
+  shared IDE journey aggregate, browser evidence, and native ARM64 validation
+  before Marketplace upload.
+
 ## [0.4.102] - Release metadata coherence and bounded Agent IPC pairing (2026-08-27)
 
 - Align the release compatibility guide with plugin `0.4.102` and the fully
