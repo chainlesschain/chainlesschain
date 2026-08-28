@@ -1,7 +1,7 @@
 /**
  * 集成测试 — skill-creator handler (v1.2.0)
  *
- * 直接加载 handler.js，通过 _deps 注入控制 fs / spawnSync，
+ * 直接加载 handler.js，通过 branded host authority 注入 filesystem / process，
  * 测试跨模块边界的真实逻辑（create→validate 生命周期、optimize-description 完整循环）。
  */
 
@@ -13,18 +13,11 @@ import {
   beforeAll,
   beforeEach,
   afterEach,
-  afterAll,
 } from "vitest";
 import { createRequire } from "node:module";
-import {
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-  mkdirSync,
-  existsSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve, dirname } from "node:path";
+import { EventEmitter } from "node:events";
+import * as nativeFs from "node:fs";
+import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,7 +28,21 @@ const handlerPath = resolve(
   __dirname,
   "../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js",
 );
+const repoRoot = resolve(__dirname, "../../../..");
+const builtinSkillsRoot = resolve(dirname(handlerPath), "..");
 const req = createRequire(pathToFileURL(handlerPath).href);
+const { createBundledSkillFilesystemBroker } = req(
+  resolve(dirname(handlerPath), "../../bundled-skill-filesystem-broker.js"),
+);
+const { createBundledSkillEnvironmentBroker } = req(
+  resolve(dirname(handlerPath), "../../bundled-skill-environment-broker.js"),
+);
+const { createBundledSkillProcessBroker } = req(
+  resolve(dirname(handlerPath), "../../bundled-skill-process-broker.js"),
+);
+const { getSkillRegistry } = req(
+  resolve(dirname(handlerPath), "../../skill-registry.js"),
+);
 
 // Logger is loaded as a side-effect; no need to mock it in integration tests
 let handler;
@@ -44,39 +51,77 @@ beforeAll(() => {
 });
 
 // ─── Save / restore _deps ─────────────────────────────────────────────────────
-let origFs;
-let origSpawnSync;
+let origManagedSkillsRoot;
 
 beforeEach(() => {
-  origFs = handler._deps.fs;
-  origSpawnSync = handler._deps.spawnSync;
+  origManagedSkillsRoot = handler._deps.getManagedSkillsRoot;
+  handler._deps.getManagedSkillsRoot = () => builtinSkillsRoot;
 });
 
 afterEach(() => {
-  handler._deps.fs = origFs;
-  handler._deps.spawnSync = origSpawnSync;
+  handler._deps.getManagedSkillsRoot = origManagedSkillsRoot;
   vi.clearAllMocks();
 });
 
-// ─── Temp dir for filesystem tests ───────────────────────────────────────────
-let tmpDir;
-beforeAll(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "cc-skill-creator-int-"));
-});
-afterAll(() => {
-  try {
-    rmSync(tmpDir, { recursive: true, force: true });
-  } catch {
-    /* ignore */
-  }
-});
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function makeMockSpawn(behaviour) {
-  return vi.fn().mockImplementation((_exe, args) => {
-    const prompt = args[2] || "";
-    return behaviour(prompt);
-  });
+function makeMockProcess(behaviour) {
+  return vi.fn().mockImplementation(({ args }) => behaviour(args[2] || ""));
+}
+
+function createExecutionContext({
+  executeFileSync,
+  swallowWrites = false,
+} = {}) {
+  const filesystemBroker = createBundledSkillFilesystemBroker(
+    {
+      skillId: "skill-creator",
+      authorityId: "test:skill-creator:filesystem",
+      allowedRoots: [builtinSkillsRoot],
+      allowedOperations: [
+        "existsSync",
+        "mkdirSync",
+        "readFileSync",
+        "writeFileSync",
+      ],
+      cwd: builtinSkillsRoot,
+    },
+    {
+      invoke: ({ operation, args }) => {
+        if (swallowWrites && operation === "writeFileSync") return undefined;
+        return nativeFs[operation](...args);
+      },
+      auditSink() {},
+    },
+  );
+  const environmentBroker = createBundledSkillEnvironmentBroker(
+    {
+      skillId: "skill-creator",
+      authorityId: "test:skill-creator:environment",
+    },
+    {
+      resolveValue: () => null,
+      auditSink() {},
+    },
+  );
+  const processBroker = createBundledSkillProcessBroker(
+    {
+      skillId: "skill-creator",
+      authorityId: "test:skill-creator:process",
+      allowedRoots: [repoRoot],
+      allowedEntrypoints: [handlerPath],
+    },
+    {
+      executeFileSync: executeFileSync || (() => ""),
+      auditSink() {},
+    },
+  );
+  return {
+    host: { filesystem: filesystemBroker },
+    environmentBroker,
+    processBroker,
+    cliEntrypoint: handlerPath,
+    projectRoot: repoRoot,
+  };
 }
 
 const EVAL_QUERIES_JSON = JSON.stringify([
@@ -93,18 +138,18 @@ const EVAL_QUERIES_JSON = JSON.stringify([
 function smartSpawnFn({
   improvedDesc = "Improved description with better trigger accuracy",
 } = {}) {
-  return makeMockSpawn((prompt) => {
+  return makeMockProcess((prompt) => {
     if (prompt.includes("20 realistic test queries")) {
-      return { status: 0, stdout: EVAL_QUERIES_JSON, error: null };
+      return EVAL_QUERIES_JSON;
     }
     if (prompt.includes("Would you invoke this skill")) {
       // Alternate YES/NO to create mixed results and force improvement
-      return { status: 0, stdout: "YES", error: null };
+      return "YES";
     }
     if (prompt.includes("Improve this skill description")) {
-      return { status: 0, stdout: improvedDesc, error: null };
+      return improvedDesc;
     }
-    return { status: 0, stdout: "YES", error: null };
+    return "YES";
   });
 }
 
@@ -120,25 +165,26 @@ describe("list-templates integration", () => {
     expect(r.templates.every((t) => t.name && t.description)).toBe(true);
   });
 
-  it("get-template api-integration has _deps pattern", async () => {
+  it("get-template api-integration uses isolated host capabilities", async () => {
     const r = await handler.execute(
       { input: "get-template api-integration" },
       {},
       {},
     );
     expect(r.success).toBe(true);
-    expect(r.files["handler.js"]).toContain("_deps");
-    expect(r.files["handler.js"]).toContain("https");
+    expect(r.files["handler.js"]).toContain("chainlesschain.capabilities.call");
+    expect(r.files["handler.js"]).toContain('"env:read"');
+    expect(r.files["handler.js"]).toContain('"network:https"');
   });
 
-  it("get-template file-processor has _deps.fs and _deps.path", async () => {
+  it("get-template file-processor uses isolated filesystem capability", async () => {
     const r = await handler.execute(
       { input: "get-template file-processor" },
       {},
       {},
     );
-    expect(r.files["handler.js"]).toContain("_deps.fs");
-    expect(r.files["handler.js"]).toContain("_deps.path");
+    expect(r.files["handler.js"]).toContain("chainlesschain.capabilities.call");
+    expect(r.files["handler.js"]).toContain('"filesystem:read"');
   });
 });
 
@@ -146,31 +192,13 @@ describe("list-templates integration", () => {
 // create → validate lifecycle (real temp filesystem)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe("create → validate lifecycle (real temp fs via _deps override)", () => {
-  // Override BUILTIN_DIR by patching _deps.path to redirect to tmpDir
-  let patchedPath;
-
-  beforeEach(() => {
-    patchedPath = {
-      ...handler._deps.path,
-      join: (...args) => {
-        // Redirect builtin dir references to tmpDir
-        const result = join(...args);
-        // The handler builds: path.join(BUILTIN_DIR, skillName, ...)
-        // We intercept by keeping real path.join but the BUILTIN_DIR
-        // is baked into the handler closure — we can't redirect it directly.
-        // So we use real fs and real BUILTIN_DIR for this test group.
-        return result;
-      },
-    };
-  });
-
+describe("create → validate lifecycle (branded filesystem authority)", () => {
   it("creates files in real builtin dir when skill doesn't exist (uses alreadyExists path)", async () => {
     // We test with a definitely existing skill to hit the alreadyExists path
     // (avoids actually creating new files in the codebase)
     const r = await handler.execute(
       { input: 'create ultrathink "Ultra thinking skill"' },
-      {},
+      createExecutionContext(),
       {},
     );
     expect(r.success).toBe(true);
@@ -180,7 +208,11 @@ describe("create → validate lifecycle (real temp fs via _deps override)", () =
   });
 
   it("validate reports valid for existing builtin skill (code-review)", async () => {
-    const r = await handler.execute({ input: "validate code-review" }, {}, {});
+    const r = await handler.execute(
+      { input: "validate code-review" },
+      createExecutionContext(),
+      {},
+    );
     expect(r.success).toBe(true);
     expect(r.valid).toBe(true);
     expect(r.issues).toHaveLength(0);
@@ -190,7 +222,7 @@ describe("create → validate lifecycle (real temp fs via _deps override)", () =
   it("validate reports issues for nonexistent skill", async () => {
     const r = await handler.execute(
       { input: "validate skill-that-does-not-exist-xyz" },
-      {},
+      createExecutionContext(),
       {},
     );
     expect(r.success).toBe(false);
@@ -199,15 +231,28 @@ describe("create → validate lifecycle (real temp fs via _deps override)", () =
   });
 
   it("test action runs handler for existing skill (smart-search)", async () => {
-    const r = await handler.execute(
-      { input: "test smart-search search query" },
-      {},
-      {},
-    );
-    // Should execute without throwing, success depends on handler
-    expect(r).toBeDefined();
-    expect(r.action).toBe("test");
-    expect(r.skillName).toBe("smart-search");
+    const registry = getSkillRegistry();
+    const skill = Object.assign(new EventEmitter(), {
+      skillId: "smart-search",
+      name: "Smart Search",
+      source: "test",
+      config: { enabled: true },
+      executeWithMetrics: vi.fn(async () => ({ success: true })),
+    });
+    registry.register(skill);
+    try {
+      const r = await handler.execute(
+        { input: "test smart-search search query" },
+        createExecutionContext(),
+        {},
+      );
+      expect(r).toBeDefined();
+      expect(r.action).toBe("test");
+      expect(r.skillName).toBe("smart-search");
+      expect(skill.executeWithMetrics).toHaveBeenCalledOnce();
+    } finally {
+      registry.unregister(skill.skillId);
+    }
   });
 });
 
@@ -217,7 +262,11 @@ describe("create → validate lifecycle (real temp fs via _deps override)", () =
 
 describe("optimize quick (real builtin skills)", () => {
   it("optimize on existing skill returns suggestions or clean result", async () => {
-    const r = await handler.execute({ input: "optimize code-review" }, {}, {});
+    const r = await handler.execute(
+      { input: "optimize code-review" },
+      createExecutionContext(),
+      {},
+    );
     expect(r.success).toBe(true);
     expect(r.action).toBe("optimize");
     expect(r.currentDescription).toBeDefined();
@@ -226,7 +275,11 @@ describe("optimize quick (real builtin skills)", () => {
   });
 
   it("optimize on smart-search returns current description", async () => {
-    const r = await handler.execute({ input: "optimize smart-search" }, {}, {});
+    const r = await handler.execute(
+      { input: "optimize smart-search" },
+      createExecutionContext(),
+      {},
+    );
     expect(r.success).toBe(true);
     expect(typeof r.currentDescription).toBe("string");
     expect(r.currentDescription.length).toBeGreaterThan(0);
@@ -238,25 +291,15 @@ describe("optimize quick (real builtin skills)", () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("optimize-description with mocked LLM (real builtin SKILL.md)", () => {
-  // Intercept writeFileSync to prevent tests from modifying real builtin SKILL.md files
-  beforeEach(() => {
-    const realFs = handler._deps.fs;
-    handler._deps.fs = {
-      ...realFs,
-      writeFileSync: vi.fn(), // swallow all writes — tests verify via return values
-      mkdirSync: vi.fn(),
-    };
-  });
-
   it("runs full optimization loop and returns result with all fields", async () => {
-    handler._deps.spawnSync = smartSpawnFn({
+    const executeFileSync = smartSpawnFn({
       improvedDesc:
         "Better: use for code review, PR analysis, and audit tasks specifically",
     });
 
     const r = await handler.execute(
       { input: "optimize-description code-review --iterations 2" },
-      {},
+      createExecutionContext({ executeFileSync, swallowWrites: true }),
       {},
     );
     expect(r.success).toBe(true);
@@ -272,15 +315,13 @@ describe("optimize-description with mocked LLM (real builtin SKILL.md)", () => {
   });
 
   it("gracefully fails when LLM is unavailable (status=1)", async () => {
-    handler._deps.spawnSync = vi.fn().mockReturnValue({
-      status: 1,
-      stdout: "",
-      error: null,
+    const executeFileSync = vi.fn(() => {
+      throw new Error("LLM unavailable");
     });
 
     const r = await handler.execute(
       { input: "optimize-description smart-search" },
-      {},
+      createExecutionContext({ executeFileSync, swallowWrites: true }),
       {},
     );
     expect(r.success).toBe(false);
@@ -290,28 +331,23 @@ describe("optimize-description with mocked LLM (real builtin SKILL.md)", () => {
 
   it("respects --iterations limit", async () => {
     let callCount = 0;
-    handler._deps.spawnSync = vi.fn().mockImplementation((_exe, args) => {
-      const prompt = args[2] || "";
+    const executeFileSync = makeMockProcess((prompt) => {
       callCount++;
       if (prompt.includes("20 realistic test queries")) {
-        return { status: 0, stdout: EVAL_QUERIES_JSON, error: null };
+        return EVAL_QUERIES_JSON;
       }
       if (prompt.includes("Improve this skill description")) {
-        return {
-          status: 0,
-          stdout: `Improved version ${callCount}`,
-          error: null,
-        };
+        return `Improved version ${callCount}`;
       }
-      return { status: 0, stdout: "NO", error: null }; // All NO → half score
+      return "NO"; // All NO → half score
     });
 
     await handler.execute(
       { input: "optimize-description code-review --iterations 1" },
-      {},
+      createExecutionContext({ executeFileSync, swallowWrites: true }),
       {},
     );
-    // Should have called spawnSync: 1 (eval queries) + 20 (train eval) + 1 (improve) + 8 (test eval) = 30
+    // The broker should observe at most one iteration of bounded LLM calls.
     // i.e., no more than 1 iteration worth of calls (plus initial test)
     expect(callCount).toBeLessThan(50); // reasonably bounded
   });
