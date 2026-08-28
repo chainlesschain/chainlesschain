@@ -1280,6 +1280,12 @@ Desktop `$team` 不应把现有 pool 换成另一套新 pool。建议按以下�
 
 本地定向验证为 cutover ledger 8/8、resolver/manifest/CLI cutover 15/15，共 23/23；目标 ESLint、Prettier 与 `git diff --check` 通过。该提交把“13 retire 替代入口可达性与旧 writer 零成功观察”从人工文字要求升级为不可省略的证据契约，**但没有伪造真实产品流量或观察窗口**。下一步是在最终候选 SHA 上由 GitHub Actions 重新跑三平台 Graph/Agent matrix，并由真实 staged rollout 为 15 条 replacement edge、360 个旧 mutation、32 个历史只读方法及逐 writer 观察生成合法 evidence；在这些 artifact 实际存在前，P1-3/P1-12 继续保持 `🟡 部分完成`。若真实部署环境、provider secret 或观察窗口不可用，应转入下一个未完成任务，不把外部阻碍误记为仓库完成。
 
+###### 6.9.6.7.20 2026-08-29 跨日期 cutover journey 回归与修复
+
+retirement evidence 候选的首次远端验证 [Graph Agent Real Journey run 33188749893](https://github.com/chainlesschain/chainlesschain/actions/runs/33188749893) 在精确 SHA `dd62b791551b7081d367bcc54a69a1c8d52252a8` 上失败。Linux、Windows、macOS 的 deterministic Graph/Desktop 与打包 Electron 步骤均先通过，随后三平台都在 “Kill and recover every CLI durable store cutpoint” 以同一 `TEAM_QUEUE_INVALID_MUTATION: invalid distributed queue state fields` 失败；聚合门按设计拒绝部分矩阵。该 run 因此不是候选通过证据。
+
+本地按同一脚本复现后确认不是 retirement contract 运行时回归，而是 [`graph-cli-store-cutover-journey.mjs`](../packages/cli/scripts/graph-cli-store-cutover-journey.mjs) 的跨日期 fixture 漂移：distributed queue 创建使用真实 `Date.now()`，reopen/recovery 却固定在 `2026-08-28T02:00:00Z`。当日历进入 8 月 29 日后，恢复时钟早于 queue `createdAt`，状态验证会在所有平台必然失败。提交 `a66ca5422a` 把 queue 创建时钟固定到同一 cut-point epoch；修复后本地完整 CLI store kill/reopen journey 及 store evidence aggregator 均通过。失败候选之后排队、但尚未包含该修复的 run 已取消，避免把已知坏 SHA 继续消耗 runner；下一次权威判断只接受包含该修复的精确 SHA 三平台矩阵。
+
 ## 7. P2：产品体验和生态增强
 
 ### 7.1 提供稳定的 `cc exec` facade
