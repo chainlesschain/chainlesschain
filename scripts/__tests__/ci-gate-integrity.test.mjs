@@ -256,6 +256,10 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   const collabContractTests = [
     "src/main/collaboration/__tests__/collab-boundaries.test.js",
+    "src/main/collaboration/__tests__/collab-recovery-conformance.test.js",
+    "src/main/collaboration/__tests__/collab-retained-state.test.js",
+    "src/main/collaboration/__tests__/org-knowledge-sync-manager.test.js",
+    "src/main/collaboration/__tests__/realtime-collab-manager.test.js",
     "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
     "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
     "src/main/collab/__tests__/collab.test.js",
@@ -267,9 +271,13 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   ];
   const collabSources = [
     "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/collaboration/__tests__/fixtures/yjs-crash-writer.mjs",
     "desktop-app-vue/src/main/collaboration/collab-boundaries.js",
     "desktop-app-vue/src/main/collaboration/yjs-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/realtime-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/org-knowledge-sync-manager.js",
     "desktop-app-vue/src/main/collaboration/realtime-collab-ipc.js",
+    "desktop-app-vue/src/main/collab/collab-session-manager.js",
     "desktop-app-vue/src/main/collab/collab-ipc.js",
     "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
     "desktop-app-vue/src/preload/index.js",

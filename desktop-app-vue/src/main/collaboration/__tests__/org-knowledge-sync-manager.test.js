@@ -55,6 +55,7 @@ function createMockP2PNetwork() {
 
 function createMockYjsCollabManager() {
   return {
+    applyUpdate: vi.fn(),
     getDocument: vi.fn(),
     getAwareness: vi.fn(),
     _applyAwarenessUpdate: vi.fn(),

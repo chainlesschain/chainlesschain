@@ -523,6 +523,31 @@ describe("Yjs Collab IPC Handlers", () => {
         code: "ERR_COLLAB_AWARENESS_TOO_LARGE",
       });
     });
+
+    it("rejects awareness states beyond the per-document client capacity", async () => {
+      const { registerRealtimeCollabIPC } =
+        await import("../realtime-collab-ipc.js");
+      config.awareness.states.set(1, { user: "existing" });
+      registerRealtimeCollabIPC(baseDb, {
+        ...mockDeps,
+        boundaries: { maxAwarenessStatesPerDocument: 1 },
+      });
+
+      const result = await capturedHandlers["collab:yjs-awareness-update"](
+        { sender: { id: 1 } },
+        {
+          documentId: "awareness-doc",
+          clientId: 2,
+          awarenessState: { user: "new" },
+        },
+      );
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
+      expect(result).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_AWARENESS_CAPACITY",
+      });
+    });
   });
 
   // -------------------------------------------------------------------------

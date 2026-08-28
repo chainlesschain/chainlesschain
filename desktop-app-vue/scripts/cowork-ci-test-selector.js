@@ -91,6 +91,10 @@ const IPFS_TRANSPORT_CONTRACT_TESTS = [
 ];
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
   "src/main/collaboration/__tests__/collab-boundaries.test.js",
+  "src/main/collaboration/__tests__/collab-recovery-conformance.test.js",
+  "src/main/collaboration/__tests__/collab-retained-state.test.js",
+  "src/main/collaboration/__tests__/org-knowledge-sync-manager.test.js",
+  "src/main/collaboration/__tests__/realtime-collab-manager.test.js",
   "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
   "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
   "src/main/collab/__tests__/collab.test.js",
@@ -111,6 +115,10 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
 ]);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  [
+    "src/main/collaboration/__tests__/fixtures/yjs-crash-writer.mjs",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
   [
     "src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
     [DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST],
@@ -147,9 +155,18 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     COLLAB_RUNTIME_CONTRACT_TESTS,
   ],
   [
+    "src/main/collaboration/realtime-collab-manager.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/collaboration/org-knowledge-sync-manager.js",
+    COLLAB_RUNTIME_CONTRACT_TESTS,
+  ],
+  [
     "src/main/collaboration/realtime-collab-ipc.js",
     COLLAB_RUNTIME_CONTRACT_TESTS,
   ],
+  ["src/main/collab/collab-session-manager.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   [
     "src/main/ipc/phases/phase-33-40-collab-ops.js",

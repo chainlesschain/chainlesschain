@@ -174,13 +174,7 @@ export interface CollabLoadingState {
 /**
  * 同步更新数据
  */
-export interface SyncUpdate {
-  type: "insert" | "delete" | "replace";
-  position?: number;
-  content?: string;
-  length?: number;
-  [key: string]: any;
-}
+export type SyncUpdate = Uint8Array | number[];
 
 /**
  * 评论数据（创建）

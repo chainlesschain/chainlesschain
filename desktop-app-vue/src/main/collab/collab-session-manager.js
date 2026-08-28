@@ -9,6 +9,12 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const {
+  CollabBoundaryError,
+  createCollabBoundaries,
+  assertDocumentId,
+  normalizeUpdate,
+} = require("../collaboration/collab-boundaries");
 
 // Room status
 const ROOM_STATUS = {
@@ -53,6 +59,8 @@ class CollabSessionManager extends EventEmitter {
     this.p2pManager = options.p2pManager || null;
     this.db = options.database || null;
     this.mainWindow = options.mainWindow || null;
+    this.boundaries = createCollabBoundaries(options.boundaries);
+    this._now = typeof options.now === "function" ? options.now : Date.now;
 
     // Active rooms (roomId -> room info)
     this.activeRooms = new Map();
@@ -65,6 +73,7 @@ class CollabSessionManager extends EventEmitter {
 
     // Offline edit buffer
     this._offlineEdits = new Map(); // documentId -> [updates]
+    this._offlineEditStats = new Map(); // documentId -> { bytes, lastUpdated }
   }
 
   /**
@@ -455,12 +464,56 @@ class CollabSessionManager extends EventEmitter {
    * @param {Uint8Array} update - Yjs update
    */
   bufferOfflineEdit(documentId, update) {
-    if (!this._offlineEdits.has(documentId)) {
-      this._offlineEdits.set(documentId, []);
+    assertDocumentId(documentId, this.boundaries);
+    const normalizedUpdate = normalizeUpdate(update, this.boundaries);
+    const now = this._now();
+    this.sweepOfflineEdits(now);
+
+    const isNewDocument = !this._offlineEdits.has(documentId);
+    if (isNewDocument) {
+      if (this._offlineEdits.size >= this.boundaries.maxOfflineDocuments) {
+        throw new CollabBoundaryError(
+          "ERR_COLLAB_OFFLINE_BACKLOG",
+          `Offline backlog already retains ${this.boundaries.maxOfflineDocuments} documents`,
+          {
+            documentId,
+            retainedDocuments: this._offlineEdits.size,
+            limitDocuments: this.boundaries.maxOfflineDocuments,
+          },
+        );
+      }
     }
-    this._offlineEdits.get(documentId).push({
-      update,
-      timestamp: Date.now(),
+    const edits = this._offlineEdits.get(documentId) || [];
+    const stats = this._offlineEditStats.get(documentId) || {
+      bytes: 0,
+      lastUpdated: now,
+    };
+    if (
+      edits.length >= this.boundaries.maxOfflineEditsPerDocument ||
+      stats.bytes + normalizedUpdate.byteLength >
+        this.boundaries.maxOfflineBytesPerDocument
+    ) {
+      throw new CollabBoundaryError(
+        "ERR_COLLAB_OFFLINE_BACKLOG",
+        `Offline backlog for ${documentId} exceeds its configured boundary`,
+        {
+          documentId,
+          editCount: edits.length,
+          backlogBytes: stats.bytes,
+          incomingBytes: normalizedUpdate.byteLength,
+          limitEdits: this.boundaries.maxOfflineEditsPerDocument,
+          limitBytes: this.boundaries.maxOfflineBytesPerDocument,
+        },
+      );
+    }
+
+    if (isNewDocument) {
+      this._offlineEdits.set(documentId, edits);
+    }
+    edits.push({ update: normalizedUpdate, timestamp: now });
+    this._offlineEditStats.set(documentId, {
+      bytes: stats.bytes + normalizedUpdate.byteLength,
+      lastUpdated: now,
     });
 
     // Persist to database
@@ -474,10 +527,50 @@ class CollabSessionManager extends EventEmitter {
           roomId || "",
           documentId,
           this.localUser.did,
-          Buffer.from(update),
+          Buffer.from(normalizedUpdate),
         ],
       );
     }
+  }
+
+  /** Remove stale in-memory and persisted unapplied offline edits. */
+  sweepOfflineEdits(now = this._now()) {
+    let documentsRemoved = 0;
+    let editsRemoved = 0;
+    const cutoff = now - this.boundaries.offlineEditTtlMs;
+
+    for (const [documentId, edits] of this._offlineEdits) {
+      const retained = edits.filter((edit) => edit.timestamp > cutoff);
+      if (retained.length === edits.length) {
+        continue;
+      }
+      editsRemoved += edits.length - retained.length;
+      if (retained.length === 0) {
+        this._offlineEdits.delete(documentId);
+        this._offlineEditStats.delete(documentId);
+        documentsRemoved += 1;
+      } else {
+        this._offlineEdits.set(documentId, retained);
+        this._offlineEditStats.set(documentId, {
+          bytes: retained.reduce(
+            (total, edit) => total + edit.update.byteLength,
+            0,
+          ),
+          lastUpdated: retained.at(-1).timestamp,
+        });
+      }
+    }
+
+    // Run persisted GC even after a restart, when no in-memory backlog exists.
+    if (this.db) {
+      this.db.run(
+        `DELETE FROM collab_offline_edits
+         WHERE applied_at IS NULL AND created_at < datetime(?, 'unixepoch')`,
+        [Math.floor(cutoff / 1000)],
+      );
+    }
+
+    return { documentsRemoved, editsRemoved };
   }
 
   /**
@@ -500,6 +593,7 @@ class CollabSessionManager extends EventEmitter {
     }
 
     this._offlineEdits.delete(documentId);
+    this._offlineEditStats.delete(documentId);
 
     // Mark as applied in database
     if (this.db) {
@@ -596,6 +690,7 @@ class CollabSessionManager extends EventEmitter {
     }
     this.activeRooms.clear();
     this._offlineEdits.clear();
+    this._offlineEditStats.clear();
     this.removeAllListeners();
     logger.info("[CollabSessionManager] Destroyed");
   }

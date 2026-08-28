@@ -796,8 +796,25 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
       }
 
       const yjsManager = getYjsManager();
-      if (yjsManager?.getAwareness) {
+      if (yjsManager?.setAwarenessState) {
+        yjsManager.setAwarenessState(documentId, clientId, awarenessState, {
+          peerId: `renderer:${_event?.sender?.id ?? "unknown"}`,
+        });
+      } else if (yjsManager?.getAwareness) {
         const awareness = yjsManager.getAwareness(documentId);
+        const maxStates =
+          yjsManager.boundaries?.maxAwarenessStatesPerDocument ??
+          boundaries.maxAwarenessStatesPerDocument;
+        if (
+          !awareness.states.has(clientId) &&
+          awareness.states.size >= maxStates
+        ) {
+          throw new CollabBoundaryError(
+            "ERR_COLLAB_AWARENESS_CAPACITY",
+            `Awareness state exceeds ${maxStates} clients`,
+            { documentId, limit: maxStates },
+          );
+        }
         awareness.states.set(clientId, awarenessState);
         awareness.meta.set(clientId, {
           peerId: `renderer:${_event?.sender?.id ?? "unknown"}`,
