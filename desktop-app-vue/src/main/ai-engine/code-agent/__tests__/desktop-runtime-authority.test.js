@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+
+const DESKTOP_ROOT = path.resolve(import.meta.dirname, "../../../../..");
+
 const {
   assertDesktopLegacyMutationAllowed,
   desktopGraphAuthorityMode,
@@ -123,7 +126,7 @@ describe("Desktop Graph authority retirement", () => {
     ]);
     for (const [file, entrypoints] of guarded) {
       const source = fs
-        .readFileSync(path.resolve(process.cwd(), file), "utf8")
+        .readFileSync(path.resolve(DESKTOP_ROOT, file), "utf8")
         .replace(/\s+/gu, "");
       for (const entrypoint of entrypoints) {
         expect(source).toContain(
