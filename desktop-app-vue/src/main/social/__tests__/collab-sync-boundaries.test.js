@@ -341,6 +341,19 @@ describe("social collaboration boundaries", () => {
       "utf8",
     );
     expect(mainSource).toContain("this.collabSync = instances.collabSync");
-    expect(mainSource).toContain("await this.collabSync.destroy?.()");
+    expect(mainSource).toContain(
+      "cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP",
+    );
+    const policySource = readFileSync(
+      path.resolve(
+        testDirectory,
+        "..",
+        "..",
+        "bootstrap",
+        "social-startup-policy.js",
+      ),
+      "utf8",
+    );
+    expect(policySource).toContain('["collabSync", "destroy"]');
   });
 });

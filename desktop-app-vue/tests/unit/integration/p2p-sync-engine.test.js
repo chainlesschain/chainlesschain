@@ -116,6 +116,11 @@ class MockP2PManager {
   on(event, handler) {
     this.handlers[event] = handler;
   }
+  off(event, handler) {
+    if (this.handlers[event] === handler) {
+      delete this.handlers[event];
+    }
+  }
   async broadcastToOrg(orgId, message) {
     this.messages.push({ orgId, message });
     return true;
@@ -175,10 +180,8 @@ describe("P2PSyncEngine", () => {
     await syncEngine.initialize();
   });
 
-  afterEach(() => {
-    if (syncEngine) {
-      syncEngine.stopAutoSync();
-    }
+  afterEach(async () => {
+    await syncEngine?.close?.();
     db.close();
   });
 

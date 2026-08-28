@@ -95,6 +95,14 @@ describe("OrgP2PNetwork Unit Tests", () => {
               p2pManager._messageHandlers = p2pManager._messageHandlers || [];
               p2pManager._messageHandlers.push({ event, handler });
             }),
+            removeEventListener: vi.fn((event, handler) => {
+              p2pManager._messageHandlers = (
+                p2pManager._messageHandlers || []
+              ).filter(
+                (registered) =>
+                  registered.event !== event || registered.handler !== handler,
+              );
+            }),
           },
         },
       },
@@ -104,7 +112,8 @@ describe("OrgP2PNetwork Unit Tests", () => {
     orgP2PNetwork = new OrgP2PNetwork(p2pManager, didManager, db);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await orgP2PNetwork?.cleanup?.();
     // Close the real DB connection so the native handle doesn't leak per test.
     try {
       db?.close();
@@ -520,10 +529,12 @@ describe("OrgP2PNetwork Unit Tests", () => {
           services: {
             pubsub: {
               subscribe: vi.fn(async () => {}),
+              unsubscribe: vi.fn(async () => {}),
               publish: vi.fn(async () => {
                 throw new Error("Broadcast failed");
               }),
               addEventListener: vi.fn(),
+              removeEventListener: vi.fn(),
             },
           },
         },
@@ -544,6 +555,7 @@ describe("OrgP2PNetwork Unit Tests", () => {
       await expect(
         failingNetwork.broadcastMessage(mockOrgId, message),
       ).rejects.toThrow("Broadcast failed");
+      await failingNetwork.cleanup();
     });
 
     it("should handle broadcast timeout", async () => {

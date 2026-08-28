@@ -16,6 +16,10 @@ function safeParse(raw, fallback) {
 const crypto = require("crypto");
 const { EventEmitter } = require("events");
 const {
+  DEFAULT_CLOSE_TIMEOUT_MS,
+  OwnedSourceListeners,
+} = require("../social/owned-source-listeners.js");
+const {
   signPayloadWithIdentity,
   verifyPayloadAgainstDid,
 } = require("../did/did-signer.js");
@@ -69,6 +73,7 @@ class P2PSyncEngine extends EventEmitter {
       maxPendingRequests: 32,
       maxResponsesPerRequest: 128,
       maxResponseBytesPerRequest: 8 * 1024 * 1024,
+      closeTimeoutMs: DEFAULT_CLOSE_TIMEOUT_MS,
     };
 
     // 同步定时器
@@ -82,6 +87,14 @@ class P2PSyncEngine extends EventEmitter {
 
     // 响应收集器
     this.pendingRequests = new Map();
+
+    this.closed = false;
+    this.closePromise = null;
+    this.backgroundTasks = new Map();
+    this.p2pListeners = new OwnedSourceListeners(this.p2pManager, {
+      logger,
+      label: "P2PSyncEngine",
+    });
   }
 
   /**
@@ -89,6 +102,9 @@ class P2PSyncEngine extends EventEmitter {
    * @returns {Promise<void>}
    */
   async initialize() {
+    if (this.closed) {
+      throw new Error("[P2PSyncEngine] 同步引擎已关闭");
+    }
     logger.info("[P2PSyncEngine] 初始化同步引擎...");
 
     // 获取本地 DID
@@ -104,10 +120,18 @@ class P2PSyncEngine extends EventEmitter {
 
     // 注册 P2P 消息处理器
     if (this.p2pManager) {
-      this.p2pManager.on("sync:request", this.handleSyncRequest.bind(this));
-      this.p2pManager.on("sync:response", this.handleSyncResponse.bind(this));
-      this.p2pManager.on("sync:change", this.handleSyncChange.bind(this));
-      this.p2pManager.on("sync:conflict", this.handleSyncConflict.bind(this));
+      this.p2pListeners.listen("sync:request", (...args) =>
+        this.handleSyncRequest(...args),
+      );
+      this.p2pListeners.listen("sync:response", (...args) =>
+        this.handleSyncResponse(...args),
+      );
+      this.p2pListeners.listen("sync:change", (...args) =>
+        this.handleSyncChange(...args),
+      );
+      this.p2pListeners.listen("sync:conflict", (...args) =>
+        this.handleSyncConflict(...args),
+      );
     }
 
     logger.info("[P2PSyncEngine] ✓ 同步引擎初始化完成");
@@ -126,6 +150,9 @@ class P2PSyncEngine extends EventEmitter {
    * @param {string} orgId - 组织ID
    */
   startAutoSync(orgId) {
+    if (this.closed) {
+      throw new Error("[P2PSyncEngine] 同步引擎已关闭");
+    }
     if (this.syncTimer) {
       this.stopAutoSync();
     }
@@ -133,27 +160,43 @@ class P2PSyncEngine extends EventEmitter {
     logger.info(`[P2PSyncEngine] 启动自动同步: ${orgId}`);
 
     // 定期同步
-    this.syncTimer = setInterval(async () => {
-      try {
-        await this.sync(orgId);
-      } catch (error) {
-        logger.error("[P2PSyncEngine] 自动同步失败:", error);
-      }
+    this.syncTimer = setInterval(() => {
+      void this._runBackgroundTask("sync", () => this.sync(orgId));
     }, this.config.syncInterval);
+    this.syncTimer.unref?.();
 
     // 定期处理离线队列
-    this.queueTimer = setInterval(async () => {
-      try {
-        await this.processQueue(orgId);
-      } catch (error) {
-        logger.error("[P2PSyncEngine] 队列处理失败:", error);
-      }
+    this.queueTimer = setInterval(() => {
+      void this._runBackgroundTask("queue", () => this.processQueue(orgId));
     }, this.config.queueProcessInterval);
+    this.queueTimer.unref?.();
 
     // 立即执行一次同步
-    this.sync(orgId).catch((error) => {
-      logger.error("[P2PSyncEngine] 初始同步失败:", error);
-    });
+    void this._runBackgroundTask("sync", () => this.sync(orgId));
+  }
+
+  _runBackgroundTask(name, operation) {
+    if (this.closed) {
+      return Promise.resolve(false);
+    }
+    const existing = this.backgroundTasks.get(name);
+    if (existing) {
+      return existing;
+    }
+
+    const task = Promise.resolve()
+      .then(operation)
+      .catch((error) => {
+        logger.error(`[P2PSyncEngine] ${name} 后台任务失败:`, error);
+        return false;
+      })
+      .finally(() => {
+        if (this.backgroundTasks.get(name) === task) {
+          this.backgroundTasks.delete(name);
+        }
+      });
+    this.backgroundTasks.set(name, task);
+    return task;
   }
 
   /**
@@ -171,6 +214,53 @@ class P2PSyncEngine extends EventEmitter {
     }
 
     logger.info("[P2PSyncEngine] 自动同步已停止");
+  }
+
+  async close() {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+
+    this.closed = true;
+    this.stopAutoSync();
+    const sourceClosing = this.p2pListeners.close();
+    for (const collector of this.pendingRequests.values()) {
+      collector.cancel?.();
+    }
+    this.pendingRequests.clear();
+
+    this.closePromise = (async () => {
+      await sourceClosing;
+
+      const pending = [...this.backgroundTasks.values()];
+      if (pending.length > 0) {
+        let timeoutHandle;
+        const drained = await Promise.race([
+          Promise.allSettled(pending).then(() => true),
+          new Promise((resolve) => {
+            timeoutHandle = setTimeout(
+              () => resolve(false),
+              this.config.closeTimeoutMs,
+            );
+            timeoutHandle.unref?.();
+          }),
+        ]);
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (!drained) {
+          logger.warn(
+            `[P2PSyncEngine] close timed out with ${pending.length} background task(s) still in flight`,
+          );
+        }
+      }
+
+      this.backgroundTasks.clear();
+      this.pendingRequests.clear();
+      this.mainWindow = null;
+      this.removeAllListeners();
+    })();
+    return this.closePromise;
   }
 
   /**
@@ -316,6 +406,9 @@ class P2PSyncEngine extends EventEmitter {
    * @returns {Object} 收集器对象
    */
   createResponseCollector(requestId, timeout, minResponses) {
+    if (this.closed) {
+      throw new Error("[P2PSyncEngine] 同步引擎已关闭");
+    }
     if (this.pendingRequests.size >= this.config.maxPendingRequests) {
       const error = new Error("P2P sync response collector backlog is full");
       error.code = "OVERLOADED";

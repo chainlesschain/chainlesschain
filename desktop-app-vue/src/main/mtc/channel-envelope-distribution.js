@@ -27,6 +27,11 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  jsonBytesWithinLimit,
+  resolveMtcRuntimeLimits,
+  waitForTasksBounded,
+} = require("./mtc-runtime-boundaries.js");
 
 const TOPIC_PREFIX = "cc.community.";
 const TOPIC_SUFFIX = ".envelopes";
@@ -81,9 +86,11 @@ class ChannelEnvelopeDistribution extends EventEmitter {
         ? opts.getCommunityMembers
         : null;
     this._requestTimeoutMs = opts.requestTimeoutMs || REQUEST_TIMEOUT_MS;
+    this._limits = resolveMtcRuntimeLimits(opts.limits || {});
 
     this._communitySubs = new Map(); // communityId → unsubscribe fn (gossipsub)
     this._inflight = new Map(); // requestId → { resolve, reject, timer }
+    this._inboundTasks = new Set();
     this._reqCounter = 0;
     this._initialized = false;
     this._closed = false;
@@ -104,18 +111,13 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     // Hook batcher: every successful close publishes the landmark
     this._batcherUnhook = this._batcher.onBatchClosed(
       ({ communityId, batchId, treeHeadId, landmark, manifest }) => {
-        this._publishLandmark(
-          communityId,
-          batchId,
-          treeHeadId,
-          landmark,
-          manifest,
-        ).catch((err) =>
-          logger.warn(
-            "[ChannelEnvelopeDist] auto-publish failed for batch " +
-              batchId +
-              ": " +
-              err.message,
+        this._trackInboundTask(() =>
+          this._publishLandmark(
+            communityId,
+            batchId,
+            treeHeadId,
+            landmark,
+            manifest,
           ),
         );
       },
@@ -123,7 +125,8 @@ class ChannelEnvelopeDistribution extends EventEmitter {
 
     // Hook p2pManager typed message events (dispatchTypedMessage routes
     // type='mtc:envelope-request' to this event)
-    this._reqListener = (req) => this._onEnvelopeRequest(req);
+    this._reqListener = (req) =>
+      this._trackInboundTask(() => this._onEnvelopeRequest(req));
     this._p2p.on("mtc:envelope-request", this._reqListener);
 
     this._respListener = (resp) => this._onEnvelopeResponse(resp);
@@ -208,6 +211,8 @@ class ChannelEnvelopeDistribution extends EventEmitter {
       }
     }
     this._communitySubs.clear();
+    await waitForTasksBounded(this._inboundTasks, this._limits.closeTimeoutMs);
+    this._inboundTasks.clear();
     this._initialized = false;
     this.removeAllListeners();
   }
@@ -222,6 +227,11 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     this._assertReady();
     if (this._communitySubs.has(communityId)) {
       return;
+    }
+    if (this._communitySubs.size >= this._limits.maxSubscriptions) {
+      throw new Error(
+        "ChannelEnvelopeDistribution subscription limit exceeded",
+      );
     }
     if (!this._fed.isInitialized || !this._fed.isInitialized()) {
       logger.warn(
@@ -243,14 +253,14 @@ class ChannelEnvelopeDistribution extends EventEmitter {
       // _handleIncomingLandmark is async (trust filter does an await).
       // We don't return its promise (gossipsub handler signature is sync)
       // so we attach a catch to swallow late rejections.
-      Promise.resolve(this._handleIncomingLandmark(communityId, payload)).catch(
-        (err) =>
-          logger.warn(
-            "[ChannelEnvelopeDist] inbound landmark handler threw: " +
-              err.message,
-          ),
+      this._trackInboundTask(() =>
+        this._handleIncomingLandmark(communityId, payload),
       );
     });
+    if (this._closed) {
+      this._fed.unsubscribeCommunity(syntheticId);
+      throw new Error("ChannelEnvelopeDistribution closed during subscribe");
+    }
     this._communitySubs.set(communityId, () => {
       try {
         this._fed.unsubscribeCommunity(syntheticId);
@@ -283,7 +293,22 @@ class ChannelEnvelopeDistribution extends EventEmitter {
    */
   async requestEnvelope(peerId, communityId, messageId) {
     this._assertReady();
+    if (this._inflight.size >= this._limits.maxInflightRequests) {
+      throw new Error("ChannelEnvelopeDistribution request backlog exceeded");
+    }
     const requestId = "req-" + Date.now() + "-" + ++this._reqCounter;
+
+    const request = {
+      type: "mtc:envelope-request",
+      communityId,
+      messageId,
+      requestId,
+    };
+    jsonBytesWithinLimit(
+      request,
+      this._limits.maxPayloadBytes,
+      "MTC envelope request",
+    );
 
     const promise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -291,16 +316,12 @@ class ChannelEnvelopeDistribution extends EventEmitter {
           resolve(null); // treat timeout as not-found, not an error
         }
       }, this._requestTimeoutMs);
+      timer.unref?.();
       this._inflight.set(requestId, { resolve, reject, timer });
     });
 
     try {
-      await this._p2p.sendMessage(peerId, {
-        type: "mtc:envelope-request",
-        communityId,
-        messageId,
-        requestId,
-      });
+      await this._p2p.sendMessage(peerId, request);
     } catch (err) {
       const pending = this._inflight.get(requestId);
       if (pending) {
@@ -335,6 +356,11 @@ class ChannelEnvelopeDistribution extends EventEmitter {
       manifest,
       publishedAt: new Date().toISOString(),
     };
+    jsonBytesWithinLimit(
+      wirePayload,
+      this._limits.maxPayloadBytes,
+      "MTC landmark",
+    );
     const result = await this._fed.publishCommunityEvent(
       syntheticId,
       wirePayload,
@@ -399,6 +425,9 @@ class ChannelEnvelopeDistribution extends EventEmitter {
           batchId: payload.batchId,
           reason: "membership lookup failed: " + err.message,
         });
+        return;
+      }
+      if (this._closed) {
         return;
       }
       if (!members.includes(issuerDID)) {
@@ -472,6 +501,11 @@ class ChannelEnvelopeDistribution extends EventEmitter {
       );
       if (found.found && !found.staging) {
         const fs = require("fs");
+        if (
+          fs.statSync(found.envelopePath).size > this._limits.maxPayloadBytes
+        ) {
+          throw new RangeError("stored MTC envelope exceeds byte limit");
+        }
         foundEnvelope = JSON.parse(
           fs.readFileSync(found.envelopePath, "utf-8"),
         );
@@ -487,7 +521,7 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     }
 
     try {
-      await this._p2p.sendMessage(fromPeerId, {
+      const response = {
         type: "mtc:envelope-response",
         requestId: reqEvent.requestId,
         communityId: reqEvent.communityId,
@@ -495,7 +529,13 @@ class ChannelEnvelopeDistribution extends EventEmitter {
         found: !!foundEnvelope,
         envelope: foundEnvelope || undefined,
         batchId: batchId || undefined,
-      });
+      };
+      jsonBytesWithinLimit(
+        response,
+        this._limits.maxPayloadBytes,
+        "MTC envelope response",
+      );
+      await this._p2p.sendMessage(fromPeerId, response);
     } catch (err) {
       logger.warn(
         "[ChannelEnvelopeDist] response send failed to " +
@@ -522,6 +562,16 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     this._inflight.delete(respEvent.requestId);
 
     if (respEvent.found && respEvent.envelope) {
+      try {
+        jsonBytesWithinLimit(
+          respEvent,
+          this._limits.maxPayloadBytes,
+          "MTC envelope response",
+        );
+      } catch (_error) {
+        pending.resolve(null);
+        return;
+      }
       // Cache it locally so the next findEnvelope hits without a round-trip
       try {
         this._batcher.storeRemoteEnvelope(
@@ -550,6 +600,36 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     if (!this._initialized) {
       throw new Error("ChannelEnvelopeDistribution not initialized");
     }
+  }
+
+  _trackInboundTask(factory) {
+    if (this._closed) {
+      return false;
+    }
+    if (this._inboundTasks.size >= this._limits.maxInboundTasks) {
+      logger.warn("[ChannelEnvelopeDist] inbound task capacity exceeded");
+      return false;
+    }
+    let result;
+    try {
+      result = factory();
+    } catch (err) {
+      logger.warn("[ChannelEnvelopeDist] background task failed:", err.message);
+      return false;
+    }
+    if (!result || typeof result.then !== "function") {
+      return true;
+    }
+    const task = Promise.resolve(result)
+      .catch((err) =>
+        logger.warn(
+          "[ChannelEnvelopeDist] background task failed:",
+          err.message,
+        ),
+      )
+      .finally(() => this._inboundTasks.delete(task));
+    this._inboundTasks.add(task);
+    return true;
   }
 }
 

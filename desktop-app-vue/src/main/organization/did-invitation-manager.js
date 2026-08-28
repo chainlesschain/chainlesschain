@@ -14,6 +14,13 @@ const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const QRCode = require("qrcode");
 
+const DID_INVITATION_PROTOCOL = "/chainlesschain/did-invitation/1.0.0";
+const MAX_DID_INVITATION_BYTES = 64 * 1024;
+const MAX_DID_INVITATION_CHUNKS = 256;
+const MAX_CONCURRENT_DID_INVITATION_STREAMS = 16;
+const DID_INVITATION_STREAM_TIMEOUT_MS = 10000;
+const DID_INVITATION_CLOSE_TIMEOUT_MS = 5000;
+
 // Tolerate a corrupt metadata_json column so one malformed row doesn't throw out
 // of an invitation/link list .map and fail the whole list (outer catch → []).
 function safeParseMetadata(raw) {
@@ -56,6 +63,13 @@ class DIDInvitationManager {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.orgManager = orgManager;
+    this.closed = false;
+    this.closePromise = null;
+    this.protocolHandler = null;
+    this.handlerRegistration = null;
+    this.protocolDetachPromise = null;
+    this.inFlightHandlers = new Set();
+    this.activeStreams = new Set();
 
     // 初始化数据库表
     this.initializeDatabase();
@@ -140,43 +154,206 @@ class DIDInvitationManager {
    * 注册P2P消息处理器
    */
   registerP2PHandlers() {
-    if (!this.p2pManager) {
+    if (this.closed) {
+      throw new Error("[DIDInvitationManager] 管理器已关闭");
+    }
+    const node = this.p2pManager?.node;
+    if (!node) {
       logger.warn("[DIDInvitationManager] P2P Manager未初始化");
       return;
     }
+    if (this.protocolHandler) {
+      return;
+    }
+    if (
+      typeof node.handle !== "function" ||
+      typeof node.unhandle !== "function"
+    ) {
+      throw new Error(
+        "[DIDInvitationManager] P2P node must support detachable protocol handlers",
+      );
+    }
 
-    // 注册DID邀请协议处理器
-    this.p2pManager.node?.handle(
-      "/chainlesschain/did-invitation/1.0.0",
-      async ({ stream, connection }) => {
-        try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const invitationData = Buffer.concat(data);
-          const invitation = JSON.parse(invitationData.toString());
-          const senderPeerId = connection.remotePeer.toString();
-
-          logger.info(
-            "[DIDInvitationManager] 收到DID邀请:",
-            invitation.invitationId,
-          );
-
-          // 处理邀请
-          await this.handleIncomingInvitation(invitation, senderPeerId);
-
-          // 发送确认响应
-          await stream.write(Buffer.from(JSON.stringify({ success: true })));
-          await stream.close();
-        } catch (error) {
-          logger.error("[DIDInvitationManager] 处理DID邀请失败:", error);
-        }
-      },
+    this.protocolHandler = ({ stream, connection }) => {
+      if (this.closed) {
+        const aborting = stream?.abort?.(
+          new Error("DID invitation manager is closed"),
+        );
+        aborting?.catch?.(() => {});
+        return;
+      }
+      if (this.inFlightHandlers.size >= MAX_CONCURRENT_DID_INVITATION_STREAMS) {
+        const error = new Error("DID invitation stream admission is full");
+        error.code = "OVERLOADED";
+        const aborting = stream?.abort?.(error);
+        aborting?.catch?.(() => {});
+        return;
+      }
+      const task = this._handleProtocolStream(stream, connection);
+      this.inFlightHandlers.add(task);
+      void task.finally(() => this.inFlightHandlers.delete(task));
+      return task;
+    };
+    const registration = node.handle(
+      DID_INVITATION_PROTOCOL,
+      this.protocolHandler,
     );
+    this.handlerRegistration = Promise.resolve(registration)
+      .then(async () => {
+        if (this.closed) {
+          await this._detachProtocol();
+        }
+        return true;
+      })
+      .catch((error) => {
+        logger.error(
+          "[DIDInvitationManager] P2P处理器注册失败:",
+          error?.message || error,
+        );
+        return false;
+      });
 
     logger.info("[DIDInvitationManager] ✓ P2P处理器已注册");
+  }
+
+  _detachProtocol() {
+    if (this.protocolDetachPromise) {
+      return this.protocolDetachPromise;
+    }
+    const node = this.p2pManager?.node;
+    this.protocolDetachPromise =
+      node && typeof node.unhandle === "function"
+        ? Promise.resolve().then(() => node.unhandle(DID_INVITATION_PROTOCOL))
+        : Promise.resolve();
+    return this.protocolDetachPromise;
+  }
+
+  async _handleProtocolStream(stream, connection) {
+    this.activeStreams.add(stream);
+    const streamTimeout = setTimeout(() => {
+      const error = new Error("DID invitation stream timed out");
+      error.code = "TIMEOUT";
+      try {
+        const aborting = stream?.abort?.(error);
+        aborting?.catch?.(() => {});
+      } catch (_error) {
+        // The handler's bounded admission slot remains until the stream exits.
+      }
+    }, DID_INVITATION_STREAM_TIMEOUT_MS);
+    streamTimeout.unref?.();
+    try {
+      const data = [];
+      let totalBytes = 0;
+      let chunkCount = 0;
+      for await (const chunk of stream.source) {
+        if (this.closed) {
+          throw new Error("DID invitation manager is closed");
+        }
+        const bytes = chunk.subarray();
+        chunkCount += 1;
+        totalBytes += bytes.byteLength;
+        if (
+          chunkCount > MAX_DID_INVITATION_CHUNKS ||
+          totalBytes > MAX_DID_INVITATION_BYTES
+        ) {
+          const error = new Error("DID invitation payload exceeds byte limit");
+          error.code = "OVERLOADED";
+          throw error;
+        }
+        data.push(bytes);
+      }
+
+      const invitationData = Buffer.concat(data, totalBytes);
+      const invitation = JSON.parse(invitationData.toString());
+      const senderPeerId = connection.remotePeer.toString();
+
+      logger.info(
+        "[DIDInvitationManager] 收到DID邀请:",
+        invitation.invitationId,
+      );
+      await this.handleIncomingInvitation(invitation, senderPeerId);
+      if (this.closed) {
+        throw new Error("DID invitation manager is closed");
+      }
+      await stream.write(Buffer.from(JSON.stringify({ success: true })));
+      await stream.close();
+    } catch (error) {
+      try {
+        await stream?.abort?.(error);
+      } catch (_abortError) {
+        // The original protocol error remains authoritative.
+      }
+      logger.error("[DIDInvitationManager] 处理DID邀请失败:", error);
+    } finally {
+      clearTimeout(streamTimeout);
+      this.activeStreams.delete(stream);
+    }
+  }
+
+  async _waitBounded(promise, label) {
+    let timeoutHandle;
+    const completed = await Promise.race([
+      Promise.resolve(promise).then(
+        () => true,
+        (error) => {
+          logger.warn(
+            `[DIDInvitationManager] ${label} failed during close:`,
+            error?.message || error,
+          );
+          return true;
+        },
+      ),
+      new Promise((resolve) => {
+        timeoutHandle = setTimeout(
+          () => resolve(false),
+          DID_INVITATION_CLOSE_TIMEOUT_MS,
+        );
+        timeoutHandle.unref?.();
+      }),
+    ]);
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+    if (!completed) {
+      logger.warn(
+        `[DIDInvitationManager] close timed out waiting for ${label}`,
+      );
+    }
+    return completed;
+  }
+
+  async close() {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+
+    this.closed = true;
+    const closeError = new Error("DID invitation manager is closed");
+    for (const stream of this.activeStreams) {
+      try {
+        const aborting = stream?.abort?.(closeError);
+        aborting?.catch?.(() => {});
+      } catch (_error) {
+        // Continue fencing every active stream.
+      }
+    }
+
+    this.closePromise = (async () => {
+      await this._waitBounded(this.handlerRegistration, "handler registration");
+      await this._waitBounded(this._detachProtocol(), "protocol detach");
+      await this._waitBounded(
+        Promise.allSettled([...this.inFlightHandlers]),
+        `${this.inFlightHandlers.size} in-flight handler(s)`,
+      );
+
+      this.activeStreams.clear();
+      this.inFlightHandlers.clear();
+      this.protocolHandler = null;
+      this.handlerRegistration = null;
+      this.protocolDetachPromise = null;
+      this.p2pManager = null;
+    })();
+    return this.closePromise;
   }
 
   /**
@@ -1839,6 +2016,10 @@ class DIDInvitationManager {
 }
 
 module.exports = {
+  DID_INVITATION_PROTOCOL,
+  MAX_DID_INVITATION_BYTES,
+  MAX_DID_INVITATION_CHUNKS,
+  MAX_CONCURRENT_DID_INVITATION_STREAMS,
   DIDInvitationManager,
   InvitationStatus,
   InvitationType,

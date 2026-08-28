@@ -1,0 +1,120 @@
+{
+  "schema": "chainlesschain.p1-10-conformance-matrix/v1",
+  "externalEvidenceGate": "scripts/p1-10-external-evidence-gate.mjs",
+  "scenarios": [
+    {
+      "id": "causal-agent-stream",
+      "interface": "agent-stream causal ordering",
+      "fixtures": [
+        "packages/agent-sdk/__fixtures__/protocol/causal-conformance.json"
+      ],
+      "cells": [
+        {
+          "host": "cli",
+          "status": "repo-local",
+          "consumerTest": "packages/cli/__tests__/unit/team-agent-stream.test.js"
+        },
+        {
+          "host": "desktop",
+          "status": "repo-local",
+          "consumerTest": "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-session-service.test.js"
+        },
+        {
+          "host": "vscode",
+          "status": "repo-local",
+          "consumerTest": "packages/vscode-extension/test/agent-sdk-vendor.test.cjs"
+        },
+        {
+          "host": "jetbrains",
+          "status": "repo-local",
+          "consumerTest": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ProtocolFixturesTest.java"
+        },
+        {
+          "host": "python-sdk",
+          "status": "repo-local",
+          "consumerTest": "packages/agent-sdk-python/tests/test_protocol.py"
+        },
+        {
+          "host": "real-multi-host",
+          "status": "external-required",
+          "evidenceScenario": "real-multi-host-causal-agent-stream"
+        }
+      ]
+    },
+    {
+      "id": "graph-definition-migration",
+      "interface": "old adapter to graph kernel definition migration",
+      "fixtures": [
+        "packages/cli/__tests__/fixtures/graph-kernel/definition-v0-minimal.json",
+        "packages/cli/__tests__/fixtures/graph-kernel/definition-v0-typed.json",
+        "packages/cli/__tests__/fixtures/graph-kernel/definition-v1-minimal.json",
+        "packages/cli/__tests__/fixtures/graph-kernel/definition-v1-typed.json"
+      ],
+      "cells": [
+        {
+          "host": "old-adapter-v0",
+          "status": "repo-local",
+          "consumerTest": "packages/cli/__tests__/unit/graph-kernel-compiler.test.js"
+        },
+        {
+          "host": "new-kernel-v1",
+          "status": "repo-local",
+          "consumerTest": "packages/cli/__tests__/unit/graph-kernel-compiler.test.js"
+        },
+        {
+          "host": "migration-saga",
+          "status": "repo-local",
+          "consumerTest": "packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js"
+        }
+      ]
+    },
+    {
+      "id": "collaboration-crash-recovery",
+      "interface": "durable collaboration update recovery",
+      "fixtures": [
+        "desktop-app-vue/src/main/collaboration/__tests__/fixtures/yjs-crash-writer.mjs"
+      ],
+      "cells": [
+        {
+          "host": "desktop-node",
+          "status": "repo-local",
+          "consumerTest": "desktop-app-vue/src/main/collaboration/__tests__/collab-recovery-conformance.test.js"
+        },
+        {
+          "host": "packaged-electron",
+          "status": "external-required",
+          "evidenceScenario": "packaged-electron-collaboration-crash-recovery"
+        }
+      ]
+    },
+    {
+      "id": "p2p-federation-roundtrip",
+      "interface": "MTC gossipsub roundtrip",
+      "fixtures": [],
+      "cells": [
+        {
+          "host": "two-real-libp2p-nodes",
+          "status": "repo-local",
+          "consumerTest": "desktop-app-vue/src/main/mtc/__tests__/mtc-federation-roundtrip.test.js"
+        },
+        {
+          "host": "two-physical-hosts",
+          "status": "external-required",
+          "evidenceScenario": "two-physical-host-mtc-roundtrip"
+        }
+      ]
+    },
+    {
+      "id": "bounded-runtime-soak",
+      "interface": "bounded backlog and lifecycle stability",
+      "fixtures": [],
+      "cells": [
+        {
+          "host": "long-running-desktop",
+          "status": "external-required",
+          "evidenceScenario": "long-running-desktop-soak"
+        }
+      ]
+    }
+  ]
+}

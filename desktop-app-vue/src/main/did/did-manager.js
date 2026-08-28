@@ -58,6 +58,9 @@ class DIDManager extends EventEmitter {
     this.autoRepublishTimer = null;
     this.autoRepublishEnabled = false;
     this.autoRepublishInterval = 24 * 60 * 60 * 1000; // 默认 24 小时
+    this.republishPromise = null;
+    this.closePromise = null;
+    this.closed = false;
   }
 
   /**
@@ -73,6 +76,9 @@ class DIDManager extends EventEmitter {
    * 初始化 DID 管理器
    */
   async initialize() {
+    if (this.closed) {
+      throw new Error("DIDManager closed");
+    }
     logger.info("[DIDManager] 初始化 DID 管理器...");
 
     try {
@@ -1114,6 +1120,7 @@ class DIDManager extends EventEmitter {
         logger.error("[DIDManager] 自动重新发布失败:", error);
       }
     }, this.autoRepublishInterval);
+    this.autoRepublishTimer.unref?.();
 
     this.emit("auto-republish-started", {
       interval: this.autoRepublishInterval,
@@ -1139,6 +1146,21 @@ class DIDManager extends EventEmitter {
    * @returns {Promise<Object>} 重新发布结果
    */
   async republishAllDIDs() {
+    if (this.closed) {
+      throw new Error("DIDManager closed");
+    }
+    if (this.republishPromise) {
+      return this.republishPromise;
+    }
+    this.republishPromise = this._republishAllDIDs();
+    try {
+      return await this.republishPromise;
+    } finally {
+      this.republishPromise = null;
+    }
+  }
+
+  async _republishAllDIDs() {
     if (!this.p2pManager || !this.p2pManager.isInitialized()) {
       logger.info("[DIDManager] P2P 未初始化，跳过重新发布");
       return {
@@ -1159,7 +1181,10 @@ class DIDManager extends EventEmitter {
 
     try {
       // 获取所有身份
-      const identities = this.getAllIdentities();
+      const identities = this.getAllIdentities().slice(
+        0,
+        this.updater.config.maxManagedDids,
+      );
 
       for (const identity of identities) {
         try {
@@ -1365,10 +1390,29 @@ class DIDManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+    this.closePromise = this._close();
+    return this.closePromise;
+  }
+
+  async _close() {
     logger.info("[DIDManager] 关闭 DID 管理器");
+    this.closed = true;
 
     // 停止自动重新发布
     this.stopAutoRepublish();
+
+    if (this.republishPromise) {
+      let timer;
+      const timeout = new Promise((resolve) => {
+        timer = setTimeout(resolve, 5_000);
+        timer.unref?.();
+      });
+      await Promise.race([this.republishPromise.catch(() => {}), timeout]);
+      clearTimeout(timer);
+    }
 
     // 释放子对象的定时器/监听器：DIDCache 的 cleanupTimer 在 initialize() 里
     // 无条件启动，DIDUpdater 持有 update/republish 定时器。两者都有 destroy()，

@@ -6,19 +6,31 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+const nativeFs = require("node:fs");
+const nativePath = require("node:path");
+
 vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../skills/builtin/security-audit/handler.js");
+const rawHandler = require("../skills/builtin/security-audit/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("../skills/__tests__/helpers/bundled-skill-filesystem.js");
+
+let testFs = nativeFs;
+const handler = withTestFilesystemHandler(rawHandler, "security-audit", {
+  allowedRoots: [nativePath.parse(process.cwd()).root],
+  invoke: ({ operation, args }) => testFs[operation](...args),
+});
 
 describe("SecurityAudit Handler", () => {
   beforeEach(() => {
     handler._baselineStore.clear();
     handler._integrityStore.clear();
-    // Reset _deps to default
-    handler._deps.fs = require("fs");
-    handler._deps.path = require("path");
+    // Reset the test authority and injectable pure dependencies to defaults.
+    testFs = nativeFs;
+    handler._deps.path = nativePath;
     handler._deps.crypto = require("crypto");
   });
 
@@ -34,7 +46,7 @@ describe("SecurityAudit Handler", () => {
     it("should scan for secrets and return findings", async () => {
       const mockContent = 'const key = "AKIAFAKETESTKEY00001";';
 
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readdirSync: vi
@@ -63,7 +75,7 @@ describe("SecurityAudit Handler", () => {
     });
 
     it("should detect GitHub PAT", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readdirSync: vi
@@ -98,7 +110,7 @@ describe("SecurityAudit Handler", () => {
     });
 
     it("should detect Stripe keys", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readdirSync: vi
@@ -132,7 +144,7 @@ describe("SecurityAudit Handler", () => {
 
   describe("execute - owasp", () => {
     it("should detect SQL injection patterns", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readdirSync: vi
@@ -167,7 +179,7 @@ describe("SecurityAudit Handler", () => {
 
   describe("execute - drift", () => {
     it("should create baseline from critical files", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readdirSync: vi.fn().mockReturnValue([
           {
@@ -199,7 +211,7 @@ describe("SecurityAudit Handler", () => {
         mtime: "2024-01-01T00:00:00.000Z",
       });
 
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readdirSync: vi.fn().mockReturnValue([
           {
@@ -234,7 +246,7 @@ describe("SecurityAudit Handler", () => {
 
       handler._baselineStore.set("package.json", { hash, size: 12, mtime: "" });
 
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readdirSync: vi.fn().mockReturnValue([
           {
@@ -272,7 +284,7 @@ describe("SecurityAudit Handler", () => {
 
   describe("execute - integrity", () => {
     it("should generate checksums", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readdirSync: vi
           .fn()
@@ -315,7 +327,7 @@ describe("SecurityAudit Handler", () => {
         devDependencies: { moment: "^2.29.0" },
       });
 
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readFileSync: vi.fn().mockReturnValue(pkg),
@@ -338,7 +350,7 @@ describe("SecurityAudit Handler", () => {
     });
 
     it("should fail when no package.json", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(false),
       };
       handler._deps.path = {
@@ -355,7 +367,7 @@ describe("SecurityAudit Handler", () => {
 
   describe("execute - full audit", () => {
     it("should run both secrets and owasp scan", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         statSync: vi.fn().mockReturnValue({ isDirectory: () => true }),
         readdirSync: vi.fn().mockReturnValue([]),
