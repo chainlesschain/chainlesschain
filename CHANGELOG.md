@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
+
+> `chainlesschain` **0.166.7 -> 0.166.8**,
+> `@chainlesschain/agent-protocol` **0.1.5 -> 0.1.6**,
+> `@chainlesschain/agent-sdk` **0.2.4 -> 0.2.5**, and
+> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (release candidate,
+> 2026-08-29).
+> VS Code **0.37.72 -> 0.37.73** and JetBrains
+> **0.4.103 -> 0.4.104** carry the paired governed review surfaces.
+
+- **Durable Graph history**: fixed App Server/SDK clients expose bounded,
+  metadata-only event and snapshot history for blocked-root, revision-diff,
+  and time-travel debugging across CLI, Desktop, and VS Code.
+- **Recoverable HumanTask quorum**: Graph human nodes persist exact
+  revision/attempt/operation bindings, release Agent capacity while waiting,
+  and enforce single-winner cancel/decision CAS, quorum, and separation of
+  duties through the Desktop product surface.
+- **IDE review parity**: VS Code adds bounded Graph history/diff projection;
+  both IDEs enforce revision-bound approval grants and single-winner
+  settlement without accepting UI-derived authority.
+- **Migration and retirement evidence**: N-1 definition backups, rollback
+  digests, replay validation, replacement reachability, historical reads, and
+  zero-success legacy-writer observations are bound to durable exact-SHA
+  evidence rather than prose-only rollout claims.
+- **Reliability gates**: temporal message custody, dependency/scope fairness,
+  cross-process DAG recovery, effect idempotency, and worktree cleanup have
+  explicit bounded artifacts and fail-closed aggregate checks.
+- **Release validation**: publication requires this exact candidate to pass
+  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
+  `CLI Strict Sandbox`, the Graph real-journey matrix, immutable package
+  checks, and public-registry provenance readback.
+
 ### Added - Desktop Graph Run Debugger and governed Cowork Skill execution
 
 > Desktop source updates recorded from `3e4d70eb52` through `2286267dea`

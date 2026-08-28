@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.73] - Durable Graph review and settlement (2026-08-29)
+
+- Project bounded CLI-owned Graph history, revision diff, and time-travel
+  evidence without importing event payloads or mutation authority into the
+  Webview.
+- Bind approval grants and terminal decisions to the exact operation,
+  revision, attempt, and settlement winner; stale or duplicate UI responses
+  fail closed.
+- Vendor Agent SDK `0.2.5` and pair the candidate with CLI `0.166.8`; require
+  the complete exact-SHA IDE host matrix before publication.
+
 ## [0.37.72] - CLI 0.166.7 Graph Kernel compatibility (2026-08-28)
 
 - Re-certify the packaged extension against `chainlesschain@0.166.7` and its

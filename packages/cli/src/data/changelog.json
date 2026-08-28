@@ -3,6 +3,26 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.8",
+      "cliVersions": [
+        "0.1.6",
+        "0.2.5",
+        "0.4.104",
+        "0.37.73",
+        "0.166.7",
+        "0.166.8"
+      ],
+      "date": "2026-08-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery",
+          "body": "> `chainlesschain` **0.166.7 -> 0.166.8**,\n> `@chainlesschain/agent-protocol` **0.1.5 -> 0.1.6**,\n> `@chainlesschain/agent-sdk` **0.2.4 -> 0.2.5**, and\n> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (release candidate,\n> 2026-08-29).\n> VS Code **0.37.72 -> 0.37.73** and JetBrains\n> **0.4.103 -> 0.4.104** carry the paired governed review surfaces.\n\n- **Durable Graph history**: fixed App Server/SDK clients expose bounded,\n  metadata-only event and snapshot history for blocked-root, revision-diff,\n  and time-travel debugging across CLI, Desktop, and VS Code.\n- **Recoverable HumanTask quorum**: Graph human nodes persist exact\n  revision/attempt/operation bindings, release Agent capacity while waiting,\n  and enforce single-winner cancel/decision CAS, quorum, and separation of\n  duties through the Desktop product surface.\n- **IDE review parity**: VS Code adds bounded Graph history/diff projection;\n  both IDEs enforce revision-bound approval grants and single-winner\n  settlement without accepting UI-derived authority.\n- **Migration and retirement evidence**: N-1 definition backups, rollback\n  digests, replay validation, replacement reachability, historical reads, and\n  zero-success legacy-writer observations are bound to durable exact-SHA\n  evidence rather than prose-only rollout claims.\n- **Reliability gates**: temporal message custody, dependency/scope fairness,\n  cross-process DAG recovery, effect idempotency, and worktree cleanup have\n  explicit bounded artifacts and fail-closed aggregate checks.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, the Graph real-journey matrix, immutable package\n  checks, and public-registry provenance readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.7",
       "cliVersions": ["0.166.6", "0.166.7"],
       "date": "2026-08-28",

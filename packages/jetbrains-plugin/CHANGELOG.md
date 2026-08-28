@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.104] - Revision-bound approval settlement (2026-08-29)
+
+- Bind native approval grants and decisions to the CLI-issued operation,
+  revision, attempt, and settlement identity instead of trusting display
+  state.
+- Enforce a durable single-winner settlement registry so duplicate, stale,
+  canceled, or conflicting responses fail closed across view reloads.
+- Pair the candidate with CLI `0.166.8` and require the complete exact-SHA
+  six-host JetBrains and shared IDE journey matrices before publication.
+
 ## [0.4.103] - CLI 0.166.7 Graph Kernel compatibility (2026-08-28)
 
 - Re-certify the plugin against `chainlesschain@0.166.7` and its authoritative
