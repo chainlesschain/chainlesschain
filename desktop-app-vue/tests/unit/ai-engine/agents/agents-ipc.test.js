@@ -75,7 +75,7 @@ describe("agents-ipc", () => {
       assignTask: vi
         .fn()
         .mockResolvedValue({ success: true, taskId: "task-1" }),
-      getTaskStatus: vi
+      getTaskStatusAuthoritative: vi
         .fn()
         .mockReturnValue({ success: true, status: "running" }),
       cancelTask: vi.fn().mockReturnValue({ success: true, cancelled: true }),
@@ -328,7 +328,9 @@ describe("agents-ipc", () => {
         taskId: "task-1",
       },
     );
-    expect(agentCoordinator.getTaskStatus).toHaveBeenCalledWith("task-1");
+    expect(agentCoordinator.getTaskStatusAuthoritative).toHaveBeenCalledWith(
+      "task-1",
+    );
     expect(taskStatusResult.status).toBe("running");
 
     const cancelResult = await ipcMainMock.handlers["agents:cancel-task"](

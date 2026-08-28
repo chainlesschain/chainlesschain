@@ -631,12 +631,12 @@ describe("工作流管理器 - 多工作流管理测试", () => {
     expect(retrieved).toBe(wf);
   });
 
-  test("应该能够删除工作流", () => {
+  test("应该能够删除工作流", async () => {
     const wf = workflowManager.createWorkflow({
       title: "测试工作流",
       qualityGateManager: mockQualityGateManager,
     });
-    const deleted = workflowManager.deleteWorkflow(wf.id);
+    const deleted = await workflowManager.deleteWorkflow(wf.id);
 
     expect(deleted).toBe(true);
     expect(workflowManager.workflows.size).toBe(0);
