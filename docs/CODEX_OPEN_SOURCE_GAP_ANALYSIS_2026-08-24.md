@@ -2133,6 +2133,17 @@ P1-11 继续保持“部分完成”：仓库内 bundled Skill 的 filesystem/en
 
 P1-11 仍保持“部分完成”：仓库现在已有 OpenAI、Google API key 与 GitHub token 的受信生产来源；Google OAuth client/secret/access/refresh token、Notion 和 Tavily 尚无产品配置入口，因此继续稳定返回未配置，而非读取环境变量。三平台签名 Desktop 的真实安装、启动与 Skill 旅程仍是外部权威关闭条件。
 
+### 12.57 P1-9 JetBrains transport-card CAS 与共享结算语料消费（2026-08-28）
+
+本切片继续 §12.53～§12.54，并继续避开其他窗口负责的 P1-11 文件：
+
+- 产品无关 HumanTask fixture 新增 `jetbrains` surface；JetBrains 生产使用的 `ApprovalSettlementRegistry` 直接执行 decision 赢后重复响应、cancel 赢后迟到决定、未决 card 重启失效、已决结果跨重启保持这 4 个适用场景。Graph 继续执行全部 7 个场景，Desktop、VS Code 与 JetBrains 各执行相同的 4 个单审批场景，差异仍由同一 fixture 的 per-surface expectation 显式声明。
+- `ConversationView` 的 Approve/Deny 不再点击后立即删除 card 并忽略后台写入结果，而是先做 `pending → responding` 原子保留、禁用两个按钮，再检查真实 `AgentChatSession.sendEvent()` 返回值。stdin 不可用、写入拒绝或响应构造失败会按精确状态回滚为 pending、重新启用按钮并给出可重试提示；成功写入只报告“response sent”，继续等待 CLI 的 authoritative `approval_resolved` 删除 card，不把 transport acceptance 冒充最终授权。
+- Stop 先把所有 pending card 原子保留为 `interrupting`；只有 interrupt 被 transport 接受才清除这些 card，失败则回滚并重新启用。强停、模式/LLM 重启、异常 child exit、turn 终结和 tab dispose 会统一使旧 transport card 失效；该本地 registry 不持久化 HumanTask，也不替代 CLI durable authority。
+- JDK 21 下 JetBrains 生产源码与测试源码完整编译，新增 settlement fixture/并发单赢家/transport rollback 3 项及既有 canonical response 3 项全部通过；完整 JetBrains suite 为 83 suites、778 tests、0 failure/error（3 项既有 skip）。协议 fixture 完整性 1/1、CLI Graph 7/7、Desktop session 50/50、VS Code host/DOM 16/16 通过，`git diff --check` 无错误。本切片没有改变 canonical schema 或公开包版本，也没有发布新的 JetBrains 制品。
+
+P1-9 继续保持“部分完成”：共享语料现由 Graph、Desktop、VS Code 与 JetBrains 消费；仍需 Android/iOS/Web 接入、JetBrains/移动端/Web 的可审阅持久 grant UI、各客户端多人 quorum/职责分离产品面，以及 §12.52～§12.53 协议/SDK/CLI 增量的精确 SHA 三平台权威门禁、发布与 registry/provenance 回读。
+
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：12 项已完成、14 项部分完成、0 项待完成。

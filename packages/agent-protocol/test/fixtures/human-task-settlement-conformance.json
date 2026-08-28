@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "surfaces": ["graph", "desktop", "vscode"],
+  "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
   "actions": ["approve", "decline", "cancel", "restart", "advance"],
   "scenarios": [
     {
       "name": "decision-wins-duplicate-response",
-      "surfaces": ["graph", "desktop", "vscode"],
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -15,7 +15,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "settled",
-            "vscode": "settled"
+            "vscode": "settled",
+            "jetbrains": "settled"
           }
         },
         {
@@ -24,7 +25,8 @@
           "expect": {
             "graph": "rejected",
             "desktop": "rejected",
-            "vscode": "rejected"
+            "vscode": "rejected",
+            "jetbrains": "rejected"
           }
         }
       ],
@@ -48,12 +50,18 @@
           "sent_decisions": 1,
           "interrupts": 0,
           "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "cancel-wins-late-decision",
-      "surfaces": ["graph", "desktop", "vscode"],
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -62,7 +70,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "settled",
-            "vscode": "settled"
+            "vscode": "settled",
+            "jetbrains": "settled"
           }
         },
         {
@@ -71,7 +80,8 @@
           "expect": {
             "graph": "rejected",
             "desktop": "rejected",
-            "vscode": "rejected"
+            "vscode": "rejected",
+            "jetbrains": "rejected"
           }
         }
       ],
@@ -95,12 +105,18 @@
           "sent_decisions": 0,
           "interrupts": 1,
           "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "restart-recovers-durable-task-but-invalidates-transport-card",
-      "surfaces": ["graph", "desktop", "vscode"],
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -109,7 +125,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "settled",
-            "vscode": "settled"
+            "vscode": "settled",
+            "jetbrains": "settled"
           }
         },
         {
@@ -118,7 +135,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "rejected",
-            "vscode": "rejected"
+            "vscode": "rejected",
+            "jetbrains": "rejected"
           }
         }
       ],
@@ -142,12 +160,18 @@
           "sent_decisions": 0,
           "interrupts": 0,
           "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "decision-persists-across-restart",
-      "surfaces": ["graph", "desktop", "vscode"],
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -157,7 +181,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "settled",
-            "vscode": "settled"
+            "vscode": "settled",
+            "jetbrains": "settled"
           }
         },
         {
@@ -165,7 +190,8 @@
           "expect": {
             "graph": "settled",
             "desktop": "settled",
-            "vscode": "settled"
+            "vscode": "settled",
+            "jetbrains": "settled"
           }
         },
         {
@@ -174,7 +200,8 @@
           "expect": {
             "graph": "rejected",
             "desktop": "rejected",
-            "vscode": "rejected"
+            "vscode": "rejected",
+            "jetbrains": "rejected"
           }
         }
       ],
@@ -194,6 +221,12 @@
           "rejected_responses": 1
         },
         "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "jetbrains": {
           "pending_approvals": 0,
           "sent_decisions": 1,
           "interrupts": 0,

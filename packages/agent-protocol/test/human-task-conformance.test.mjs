@@ -14,7 +14,12 @@ const fixture = JSON.parse(
 
 test("HumanTask settlement fixture is bounded and surface-complete", () => {
   assert.equal(fixture.schema_version, 1);
-  assert.deepEqual(fixture.surfaces, ["graph", "desktop", "vscode"]);
+  assert.deepEqual(fixture.surfaces, [
+    "graph",
+    "desktop",
+    "vscode",
+    "jetbrains",
+  ]);
   assert.ok(fixture.scenarios.length > 0 && fixture.scenarios.length <= 64);
 
   const knownSurfaces = new Set(fixture.surfaces);

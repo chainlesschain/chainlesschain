@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.ApprovalSettlementRegistry;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ContextStatus;
 import com.chainlesschain.ide.CliLauncher;
@@ -79,6 +80,23 @@ final class ConversationView {
         void newConversation();
     }
 
+    private static final class ApprovalCard {
+        final JComponent component;
+        final JButton approve;
+        final JButton deny;
+
+        ApprovalCard(JComponent component, JButton approve, JButton deny) {
+            this.component = component;
+            this.approve = approve;
+            this.deny = deny;
+        }
+
+        void setEnabled(boolean enabled) {
+            approve.setEnabled(enabled);
+            deny.setEnabled(enabled);
+        }
+    }
+
     private final Project project;
     private final ConversationManager.Conversation conv;
     private final SessionIdSink sessionIdSink;
@@ -96,7 +114,9 @@ final class ConversationView {
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
-    private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
+    private final Map<String, ApprovalCard> approvalCards = new LinkedHashMap<>();
+    private final ApprovalSettlementRegistry approvalSettlements =
+            new ApprovalSettlementRegistry();
     private JComponent planCard;
     private Map<String, Object> currentPlanUi;
     private File planReviewFile;
@@ -263,12 +283,25 @@ final class ConversationView {
                 interruptRequested = null;
                 conv.session = null;
                 turnActive = false;
+                invalidateApprovalCards();
                 append("⏹ force-stopped the agent process — next message restarts it\n");
                 ApplicationManager.getApplication().executeOnPooledThread(s::stop);
                 return;
             }
+            List<String> reservedApprovals = approvalSettlements.beginInterrupt();
+            for (String id : reservedApprovals) setApprovalCardEnabled(id, false);
             interruptRequested = s;
-            ApplicationManager.getApplication().executeOnPooledThread(s::interrupt);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                boolean outcome;
+                try {
+                    outcome = s.interrupt();
+                } catch (RuntimeException ignored) {
+                    outcome = false;
+                }
+                final boolean sent = outcome;
+                SwingUtilities.invokeLater(() -> finishInterrupt(
+                        s, reservedApprovals, sent));
+            });
         });
         // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
         // Slash-command completion: typing '/' at the line start pops a chooser too.
@@ -1370,6 +1403,7 @@ final class ConversationView {
      * the EDT before invoking this, so the next spawn reads the new values.
      */
     void restartForModeChange() {
+        invalidateApprovalCards();
         conv.turnState = new ChatEvents.TurnState();
         sessionSlashCommands = null;
         pendingSessionSlashCommands.clear();
@@ -1560,6 +1594,7 @@ final class ConversationView {
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
+            invalidateApprovalCards();
             indexConversation("stopped");
             append("\n── agent exited (" + code + ") — next message restarts ──\n");
             transcript.announce("Status", "stopped", "status:stopped:" + code);
@@ -1627,6 +1662,7 @@ final class ConversationView {
             contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
             turnActive = false;
+            invalidateApprovalCards();
             indexConversation("completed");
             Object text = ui.get("text");
             // The final result text only arrives here when nothing streamed; run
@@ -1953,14 +1989,30 @@ final class ConversationView {
      * so an approval/answer can never overtake the turn it belongs to.
      */
     private void queueSessionEvent(Map<String, Object> ev) {
+        queueSessionEvent(ev, null);
+    }
+
+    private void queueSessionEvent(
+            Map<String, Object> ev, java.util.function.Consumer<Boolean> completion) {
         try {
             sendExecutor.execute(() -> {
-                if (disposed) return;
-                AgentChatSession s = liveSession();
-                if (s != null) s.sendEvent(ev);
+                boolean sent = false;
+                if (!disposed) {
+                    AgentChatSession s = liveSession();
+                    try {
+                        sent = s != null && s.sendEvent(ev);
+                    } catch (RuntimeException ignored) {
+                        sent = false;
+                    }
+                }
+                if (completion != null) {
+                    final boolean accepted = sent;
+                    SwingUtilities.invokeLater(() -> completion.accept(accepted));
+                }
             });
         } catch (java.util.concurrent.RejectedExecutionException ignored) {
             // executor already shut down (dispose in progress) — child is gone too
+            if (completion != null) SwingUtilities.invokeLater(() -> completion.accept(false));
         }
     }
 
@@ -2011,8 +2063,9 @@ final class ConversationView {
     /** Tool-permission approval card → sends a canonical structured decision. */
     @SuppressWarnings("unchecked")
     private void showApprovalCard(Map<String, Object> ui) {
-        final String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
-        if (id.isEmpty() || approvalCards.containsKey(id)) return;
+        final String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id")).trim();
+        if (id.isEmpty() || approvalCards.containsKey(id)
+                || !approvalSettlements.open(id)) return;
 
         StringBuilder q = new StringBuilder("Allow ");
         q.append(ui.get("tool") != null ? ui.get("tool") : "tool");
@@ -2036,35 +2089,93 @@ final class ConversationView {
         btns.add(deny);
         card.add(btns, BorderLayout.SOUTH);
 
-        approvalCards.put(id, card);
+        approvalCards.put(id, new ApprovalCard(card, approve, deny));
         cardsPanel.add(card);
         cardsPanel.revalidate();
         cardsPanel.repaint();
     }
 
     private void respondApproval(String id, boolean approve, String binding) {
-        Map<String, Object> ev = com.chainlesschain.ide.ApprovalResponses.response(
-                id, approve, binding);
-        queueSessionEvent(ev); // blocking stdin write — never on the EDT
+        if (!approvalSettlements.beginDecision(id)) {
+            append("⚠ approval request is no longer pending (" + id + ")\n");
+            return;
+        }
+        setApprovalCardEnabled(id, false);
+        final Map<String, Object> ev;
+        try {
+            ev = com.chainlesschain.ide.ApprovalResponses.response(id, approve, binding);
+        } catch (RuntimeException error) {
+            finishApprovalDecision(id, approve, false);
+            return;
+        }
+        queueSessionEvent(ev, sent -> finishApprovalDecision(id, approve, sent));
+    }
+
+    private void finishApprovalDecision(String id, boolean approve, boolean sent) {
+        if (!approvalSettlements.complete(
+                id, ApprovalSettlementRegistry.Status.RESPONDING, sent)) return;
+        if (!sent) {
+            setApprovalCardEnabled(id, true);
+            indexConversation("waiting_approval");
+            append("⚠ approval response was not sent; review and retry (" + id + ")\n");
+            transcript.announce("Permission request", "response failed; retry available",
+                    "permission-retry:" + id);
+            return;
+        }
         indexConversation("running");
-        removeApprovalCard(id);
-        append("ℹ " + (approve ? "approved" : "denied") + " (" + id + ")\n");
-        transcript.announce("Permission request", approve ? "approved" : "denied",
-                "permission-done:" + id);
+        append("ℹ " + (approve ? "approval" : "denial")
+                + " response sent (" + id + ")\n");
+        transcript.announce("Permission request", "response sent",
+                "permission-sent:" + id);
+    }
+
+    private void finishInterrupt(
+            AgentChatSession session, List<String> reservedApprovals, boolean sent) {
+        for (String id : reservedApprovals) {
+            boolean current = approvalSettlements.complete(
+                    id, ApprovalSettlementRegistry.Status.INTERRUPTING, sent);
+            if (!current) continue;
+            if (sent) removeApprovalCard(id);
+            else setApprovalCardEnabled(id, true);
+        }
+        if (!sent && interruptRequested == session) {
+            interruptRequested = null;
+            append("⚠ stop request was not sent; retry or force-stop the session\n");
+        }
     }
 
     private void resolveApprovalCard(Map<String, Object> ui) {
         Object id = ui.get("id");
-        if (id != null) removeApprovalCard(String.valueOf(id));
+        if (id != null) {
+            String requestId = String.valueOf(id);
+            approvalSettlements.resolve(requestId);
+            removeApprovalCard(requestId);
+        }
     }
 
     private void removeApprovalCard(String id) {
-        JComponent card = approvalCards.remove(id);
+        ApprovalCard card = approvalCards.remove(id);
         if (card != null) {
-            cardsPanel.remove(card);
+            cardsPanel.remove(card.component);
             cardsPanel.revalidate();
             cardsPanel.repaint();
         }
+    }
+
+    private void setApprovalCardEnabled(String id, boolean enabled) {
+        ApprovalCard card = approvalCards.get(id);
+        if (card != null) card.setEnabled(enabled);
+    }
+
+    private void invalidateApprovalCards() {
+        approvalSettlements.invalidateAll();
+        if (approvalCards.isEmpty()) return;
+        for (ApprovalCard card : approvalCards.values()) {
+            cardsPanel.remove(card.component);
+        }
+        approvalCards.clear();
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
     }
 
     /** Plan card with the step list + Approve/Reject → sends {type:plan,action}. */
@@ -2537,6 +2648,7 @@ final class ConversationView {
 
     void dispose() {
         disposed = true; // gates ensureSession + every queued task body
+        invalidateApprovalCards();
         if (currentPlanUi != null && Boolean.TRUE.equals(currentPlanUi.get("active"))) {
             Map<String, Object> previous = PlanReview.findPersistedState(
                     readPersistedPlanReviewStates(), conv.sessionId, conv.id);
