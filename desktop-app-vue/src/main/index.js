@@ -534,6 +534,7 @@ class ChainlessChainApp {
     this.contactManager = instances.contactManager;
     this.friendManager = instances.friendManager;
     this.postManager = instances.postManager;
+    this.collabEngine = instances.collabEngine;
     this.collabSync = instances.collabSync;
     this.collabAwareness = instances.collabAwareness;
     this.organizationManager = instances.organizationManager;
@@ -2970,6 +2971,18 @@ class ChainlessChainApp {
         logger.error("[Main] Social awareness cleanup error:", error);
       }
       this.collabAwareness = null;
+    }
+    if (this.collabEngine) {
+      try {
+        await this.collabEngine.destroy?.();
+        logger.info("[Main] Social collaboration engine cleanup completed");
+      } catch (error) {
+        logger.error(
+          "[Main] Social collaboration engine cleanup error:",
+          error,
+        );
+      }
+      this.collabEngine = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).
