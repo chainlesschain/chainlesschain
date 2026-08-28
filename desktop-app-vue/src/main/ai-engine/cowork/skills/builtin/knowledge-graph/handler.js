@@ -17,11 +17,14 @@
  *        --ontology, --validate
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 // ── In-memory graph store ───────────────────────────────────────────
 
@@ -396,7 +399,7 @@ async function handleExtract(filePath, projectRoot) {
   const resolved = _deps.path.isAbsolute(filePath)
     ? filePath
     : _deps.path.resolve(projectRoot, filePath);
-  if (!_deps.fs.existsSync(resolved)) {
+  if (!fs.existsSync(resolved)) {
     return {
       success: false,
       error: "File not found: " + resolved,
@@ -405,7 +408,7 @@ async function handleExtract(filePath, projectRoot) {
   }
   let content;
   try {
-    content = _deps.fs.readFileSync(resolved, "utf-8");
+    content = fs.readFileSync(resolved, "utf-8");
   } catch (err) {
     return { success: false, error: "Cannot read file: " + err.message };
   }
@@ -1030,12 +1033,12 @@ async function handleLoad(filePath, projectRoot) {
   const resolved = _deps.path.isAbsolute(filePath)
     ? filePath
     : _deps.path.resolve(projectRoot, filePath);
-  if (!_deps.fs.existsSync(resolved)) {
+  if (!fs.existsSync(resolved)) {
     return { success: false, error: "File not found: " + resolved };
   }
   let content;
   try {
-    content = _deps.fs.readFileSync(resolved, "utf-8");
+    content = fs.readFileSync(resolved, "utf-8");
   } catch (err) {
     return { success: false, error: "Cannot read: " + err.message };
   }
@@ -1165,3 +1168,5 @@ module.exports = {
   _deps,
   _graph: graph,
 };
+
+module.exports = withBundledSkillFilesystem("knowledge-graph", module.exports);

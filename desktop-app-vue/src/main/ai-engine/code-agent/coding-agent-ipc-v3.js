@@ -43,6 +43,8 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:approve-plan",
   "coding-agent:confirm-high-risk-execution",
   "coding-agent:respond-approval",
+  "coding-agent:list-approval-grants",
+  "coding-agent:revoke-approval-grant",
   "coding-agent:reject-plan",
   "coding-agent:close-session",
   "coding-agent:cancel-session",
@@ -534,6 +536,30 @@ function registerCodingAgentIPCV3(options = {}) {
       return { success: false, error: error.message };
     }
   });
+
+  ipc.handle("coding-agent:list-approval-grants", async (_event, sessionId) => {
+    try {
+      return await service.listApprovalGrants(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] list-approval-grants failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:revoke-approval-grant",
+    async (_event, payload = {}) => {
+      try {
+        return await service.revokeApprovalGrant(
+          payload.sessionId,
+          payload.grantId,
+        );
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] revoke-approval-grant failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   ipc.handle("coding-agent:reject-plan", async (_event, sessionId) => {
     try {

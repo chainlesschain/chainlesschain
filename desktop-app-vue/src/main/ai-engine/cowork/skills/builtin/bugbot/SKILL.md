@@ -86,7 +86,7 @@ cost: low
 os: [win32, darwin, linux]
 author: ChainlessChain
 license: MIT
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, process:cwd, process:execute]
 handler: ./handler.js
 ---
 

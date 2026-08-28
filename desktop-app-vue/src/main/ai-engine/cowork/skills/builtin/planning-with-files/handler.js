@@ -4,7 +4,10 @@
  * Manus-style persistent markdown planning with 3-file pattern.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -20,7 +23,9 @@ module.exports = {
     const parsed = parseInput(input);
     const planDir = resolvePlanDir(context);
 
-    logger.info(`[PlanningWithFiles] Action: ${parsed.action}, Dir: ${planDir}`);
+    logger.info(
+      `[PlanningWithFiles] Action: ${parsed.action}, Dir: ${planDir}`,
+    );
 
     try {
       switch (parsed.action) {
@@ -161,10 +166,7 @@ function handleUpdate(planDir, phase, status) {
   const phaseNum = parseInt(phase, 10) || 1;
 
   // Update checkbox for the phase
-  const phaseRegex = new RegExp(
-    `- \\[[ x]\\] Phase ${phaseNum}:`,
-    "i",
-  );
+  const phaseRegex = new RegExp(`- \\[[ x]\\] Phase ${phaseNum}:`, "i");
 
   if (status === "completed" || status === "done") {
     content = content.replace(phaseRegex, `- [x] Phase ${phaseNum}:`);
@@ -322,3 +324,8 @@ function appendToProgress(planDir, text) {
     fs.appendFileSync(progressFile, entry, "utf8");
   }
 }
+
+module.exports = withBundledSkillFilesystem(
+  "planning-with-files",
+  module.exports,
+);

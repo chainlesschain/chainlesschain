@@ -3,7 +3,10 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 
 const FORMATS = {
@@ -328,3 +331,8 @@ function readJSON(dir, name) {
     return null;
   }
 }
+
+module.exports = withBundledSkillFilesystem(
+  "cursor-rules-generator",
+  module.exports,
+);

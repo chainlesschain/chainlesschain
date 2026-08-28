@@ -1,14 +1,16 @@
 /**
- * Read-only, session-scoped slash commands for the stream-json protocol.
+ * Session-scoped slash commands for the stream-json protocol.
  *
  * These commands are handled by the live headless-stream process so their
  * output describes this session (model, loaded memory, MCP connections, hooks,
  * permissions and background tasks). They never become a user/model turn.
  *
- * The first protocol version is deliberately read-only. Mutating REPL forms
- * such as `/agents new`, `/tasks kill` and `/permissions <mode>` fail with a
- * stable error code instead of silently discarding their arguments.
+ * General configuration stays read-only. The one bounded mutation is exact
+ * approval-grant revocation through `/permissions revoke <grantId>`; it is
+ * delegated to the live session's authoritative grant ledger.
  */
+
+import { APPROVAL_GRANTS_SCHEMA } from "../lib/approval-grant-ledger.js";
 
 export const SESSION_SLASH_COMMANDS = Object.freeze([
   "status",
@@ -320,13 +322,62 @@ async function runHooks(context, deps) {
   return success(formatSettingsHooks(context.settingsHooks));
 }
 
+function approvalGrantProjection(action, grants, revoked = null) {
+  return JSON.stringify({
+    schema: APPROVAL_GRANTS_SCHEMA,
+    action,
+    grants: Array.isArray(grants) ? grants : [],
+    ...(revoked ? { revoked } : {}),
+  });
+}
+
 async function runPermissions(context, deps) {
-  if (context.event.argumentText) {
+  const argument = context.event.argumentText.trim();
+  if (argument === "grants" || argument === "grants list") {
+    if (typeof context.listApprovalGrants !== "function") {
+      return failure(
+        "APPROVAL_GRANT_AUTHORITY_UNAVAILABLE",
+        "The live session approval grant authority is unavailable.",
+      );
+    }
+    const grants = await context.listApprovalGrants();
+    return success(approvalGrantProjection("list", grants));
+  }
+
+  const revoke = /^revoke\s+(grant_[0-9a-f]{64})$/u.exec(argument);
+  if (revoke) {
+    if (
+      typeof context.revokeApprovalGrant !== "function" ||
+      typeof context.listApprovalGrants !== "function"
+    ) {
+      return failure(
+        "APPROVAL_GRANT_AUTHORITY_UNAVAILABLE",
+        "The live session approval grant authority is unavailable.",
+      );
+    }
+    const result = await context.revokeApprovalGrant(revoke[1]);
+    if (!result?.success) {
+      return failure(
+        "APPROVAL_GRANT_REVOKE_FAILED",
+        result?.error || "Approval grant could not be revoked.",
+      );
+    }
+    return success(
+      approvalGrantProjection(
+        "revoke",
+        await context.listApprovalGrants(),
+        result.grant,
+      ),
+    );
+  }
+
+  if (argument) {
     return failure(
       "UNSUPPORTED_ARGUMENTS",
       "Changing permission mode through /permissions is not supported over " +
         "stream-json. Start a new session with --permission-mode <mode>; use " +
-        "/permissions without arguments to inspect the active rules.",
+        "/permissions without arguments to inspect the active rules or " +
+        "/permissions grants to review reusable grants.",
     );
   }
   const { renderPermissions: defaultRenderer } =

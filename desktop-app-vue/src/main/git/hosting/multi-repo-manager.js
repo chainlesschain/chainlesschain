@@ -44,7 +44,10 @@ class MultiRepoManager extends EventEmitter {
   async initialize() {
     if (this.gitConfig) {
       const config = this.gitConfig.getAll();
-      const providerConfigs = config.providers || [];
+      const providerConfigs =
+        typeof this.gitConfig.getProviderConfigs === "function"
+          ? this.gitConfig.getProviderConfigs()
+          : config.providers || [];
 
       for (const provConfig of providerConfigs) {
         this.addProvider(provConfig.name, provConfig);
@@ -195,10 +198,10 @@ class MultiRepoManager extends EventEmitter {
 
   /**
    * Get HTTP plugin with proxy support
-   * @param {Object} providerConfig
+   * @param {Object} _providerConfig
    * @returns {Object}
    */
-  _getHttpPlugin(providerConfig) {
+  _getHttpPlugin(_providerConfig) {
     const http = require("isomorphic-git/http/node");
 
     if (!this.proxyConfig.enabled) {

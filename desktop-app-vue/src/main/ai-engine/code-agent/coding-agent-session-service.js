@@ -74,16 +74,43 @@ async function normalizeApprovalDecision(payload = {}) {
     throw new Error(`Invalid ApprovalDecision: ${details}`);
   }
 
-  if (
-    decision.kind === "acceptForTurn" ||
-    decision.kind === "acceptForSession"
-  ) {
-    throw new Error(
-      "Desktop plan approvals do not support persistent permission grants.",
-    );
-  }
-
   return decision;
+}
+
+function normalizeRequestedPermissions(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter(
+      (permission) =>
+        permission &&
+        typeof permission === "object" &&
+        !Array.isArray(permission) &&
+        typeof permission.capability === "string" &&
+        permission.capability.length > 0 &&
+        permission.capability.length <= 128 &&
+        typeof permission.scope === "string" &&
+        permission.scope.length > 0 &&
+        permission.scope.length <= 1024 &&
+        (permission.expiresAt == null ||
+          (typeof permission.expiresAt === "string" &&
+            !Number.isNaN(Date.parse(permission.expiresAt)))),
+    )
+    .slice(0, 64)
+    .map((permission) => ({
+      capability: permission.capability,
+      scope: permission.scope,
+      ...(permission.expiresAt ? { expiresAt: permission.expiresAt } : {}),
+    }));
+}
+
+function samePermission(left, right) {
+  return (
+    left?.capability === right?.capability &&
+    left?.scope === right?.scope &&
+    (left?.expiresAt || null) === (right?.expiresAt || null)
+  );
 }
 
 function firstDefined(...values) {
@@ -247,6 +274,10 @@ class CodingAgentSessionService extends EventEmitter {
     // this binding in the trusted main process prevents a renderer from
     // answering a stale card or a request that belongs to another session.
     this.pendingQuestions = new Map();
+    // Tool approval requests are distinct from ordinary questions. The
+    // trusted main process retains the binding and exact reusable permission
+    // set; renderer responses may choose a lifetime but cannot replace either.
+    this.pendingApprovals = new Map();
     this.globalEventSequence = 0;
     // Per-instance tracker so monotonic sequences are scoped to this service
     // instead of leaking through the process-global defaultSequenceTracker.
@@ -379,6 +410,7 @@ class CodingAgentSessionService extends EventEmitter {
       requiresHighRiskConfirmation: false,
       highRiskConfirmationGranted: false,
       highRiskToolNames: [],
+      approvalGrants: existing.approvalGrants || [],
       worktree: response.record?.worktree || existing.worktree || null,
       worktreeIsolation:
         response.record?.worktreeIsolation === true ||
@@ -386,6 +418,7 @@ class CodingAgentSessionService extends EventEmitter {
     };
     this.sessions.set(sessionId, session);
     await this._syncSessionPolicy(session);
+    await this._refreshApprovalGrants(session).catch(() => undefined);
 
     return {
       success: true,
@@ -412,6 +445,7 @@ class CodingAgentSessionService extends EventEmitter {
       highRiskConfirmationGranted:
         existing.highRiskConfirmationGranted === true,
       highRiskToolNames: existing.highRiskToolNames || [],
+      approvalGrants: existing.approvalGrants || [],
       projectRoot:
         response.record?.projectRoot ||
         existing.projectRoot ||
@@ -432,6 +466,7 @@ class CodingAgentSessionService extends EventEmitter {
     session.record = response.record || null;
     this.sessions.set(sessionId, session);
     await this._syncSessionPolicy(session);
+    await this._refreshApprovalGrants(session).catch(() => undefined);
 
     return {
       success: true,
@@ -457,6 +492,62 @@ class CodingAgentSessionService extends EventEmitter {
   async setPermissionRule(payload = {}) {
     await this.ensureReady();
     return this.bridge.setPermissionRule(payload);
+  }
+
+  async _refreshApprovalGrants(sessionOrId) {
+    const session =
+      typeof sessionOrId === "string"
+        ? this.sessions.get(sessionOrId)
+        : sessionOrId;
+    if (!session) {
+      throw new Error("Coding agent session not found");
+    }
+    if (typeof this.bridge.listApprovalGrants !== "function") {
+      session.approvalGrants ||= [];
+      return session.approvalGrants;
+    }
+    const response = await this.bridge.listApprovalGrants(session.sessionId);
+    session.approvalGrants = Array.isArray(response?.grants)
+      ? response.grants
+      : [];
+    session.updatedAt = new Date().toISOString();
+    return session.approvalGrants;
+  }
+
+  async listApprovalGrants(sessionId) {
+    const session = this._requireSession(sessionId);
+    const grants = await this._refreshApprovalGrants(session);
+    return { success: true, sessionId, grants };
+  }
+
+  async revokeApprovalGrant(sessionId, grantId) {
+    const session = this._requireSession(sessionId);
+    if (typeof this.bridge.revokeApprovalGrant !== "function") {
+      throw new Error("Approval grant authority is unavailable");
+    }
+    const response = await this.bridge.revokeApprovalGrant(sessionId, grantId);
+    session.approvalGrants = Array.isArray(response?.grants)
+      ? response.grants
+      : [];
+    session.updatedAt = new Date().toISOString();
+    this._storeEvent(
+      sessionId,
+      this._createEvent(
+        CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED,
+        {
+          source: "approval-grant-revocation",
+          grantId,
+          revoked: response?.revoked || null,
+        },
+        { sessionId },
+      ),
+    );
+    return {
+      success: true,
+      sessionId,
+      revoked: response?.revoked || null,
+      grants: session.approvalGrants,
+    };
   }
 
   async createRemoteSession(sessionId, options = {}) {
@@ -520,6 +611,7 @@ class CodingAgentSessionService extends EventEmitter {
       session.highRiskConfirmationGranted = false;
       session.highRiskToolNames = [];
       this._removePendingRequestsForSession(session);
+      this._removePendingApprovalsForSession(sessionId);
       for (const [traceId, boundSessionId] of this.agentStreamTraceSessions) {
         if (boundSessionId === sessionId) {
           this.agentStreamTraceSessions.delete(traceId);
@@ -1157,6 +1249,19 @@ class CodingAgentSessionService extends EventEmitter {
     const approvalType =
       payload.approvalType || this._inferApprovalType(session);
 
+    if (payload.requestId || approvalType === "tool") {
+      return this._respondToolApproval(session, payload, decision);
+    }
+
+    if (
+      decision.kind === "acceptForTurn" ||
+      decision.kind === "acceptForSession"
+    ) {
+      throw new Error(
+        "Persistent grants require an exact pending tool approval request.",
+      );
+    }
+
     if (decision.kind === "acceptOnce") {
       if (approvalType === "high-risk") {
         const result = await this.confirmHighRiskExecution(sessionId);
@@ -1231,6 +1336,149 @@ class CodingAgentSessionService extends EventEmitter {
     throw new Error(`Unsupported approval decision: ${decision.kind}`);
   }
 
+  async _respondToolApproval(session, payload, decision) {
+    const requestId = normalizeCorrelationId(payload.requestId);
+    if (!requestId) {
+      throw new Error("Tool approval requestId is required");
+    }
+    const approvalKey = this._approvalKey(session.sessionId, requestId);
+    const pending = this.pendingApprovals.get(approvalKey);
+    if (!pending) {
+      const belongsToAnotherSession = [...this.pendingApprovals.values()].some(
+        (approval) =>
+          approval.requestId === requestId &&
+          approval.sessionId !== String(session.sessionId),
+      );
+      if (belongsToAnotherSession) {
+        throw new Error(
+          `Approval request ${requestId} belongs to a different session`,
+        );
+      }
+      throw new Error(`Approval request is no longer pending: ${requestId}`);
+    }
+    if (pending.status !== "pending") {
+      throw new Error(`Approval request is already settling: ${requestId}`);
+    }
+    if (
+      payload.binding &&
+      (!pending.binding || payload.binding !== pending.binding)
+    ) {
+      throw new Error(`Approval binding does not match request ${requestId}`);
+    }
+
+    const approved = [
+      "acceptOnce",
+      "acceptForTurn",
+      "acceptForSession",
+    ].includes(decision.kind);
+    if (approved && !pending.binding) {
+      throw new Error(`Approval request binding is required: ${requestId}`);
+    }
+
+    let boundDecision = decision;
+    if (
+      decision.kind === "acceptForTurn" ||
+      decision.kind === "acceptForSession"
+    ) {
+      if (pending.requestedPermissions.length === 0) {
+        throw new Error(
+          `Approval request has no reusable permission: ${requestId}`,
+        );
+      }
+      if (
+        Array.isArray(decision.permissions) &&
+        decision.permissions.some(
+          (permission) =>
+            !pending.requestedPermissions.some((trusted) =>
+              samePermission(permission, trusted),
+            ),
+        )
+      ) {
+        throw new Error(`Approval permissions exceed request ${requestId}`);
+      }
+      boundDecision = {
+        kind: decision.kind,
+        permissions: pending.requestedPermissions.map((permission) => ({
+          ...permission,
+        })),
+      };
+      const { validateApprovalDecision } = await getAgentProtocol();
+      const validation = validateApprovalDecision(boundDecision);
+      if (!validation.ok) {
+        throw new Error(`Invalid bound ApprovalDecision for ${requestId}`);
+      }
+    }
+
+    pending.status = "settling";
+    const answerPayload = {
+      sessionId: session.sessionId,
+      requestId,
+      answer: { decision: boundDecision },
+      binding: pending.binding,
+    };
+    try {
+      if (typeof this.bridge.request === "function") {
+        const response = await this.bridge.request(
+          "session-answer",
+          answerPayload,
+          ["command.response", "result"],
+        );
+        if (response?.success === false || response?.settled === false) {
+          throw new Error(
+            `Approval request lost the settlement race: ${requestId}`,
+          );
+        }
+      } else {
+        this.bridge.send({
+          id: `approval-answer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "session-answer",
+          ...answerPayload,
+        });
+      }
+    } catch (error) {
+      pending.status = "pending";
+      throw error;
+    }
+
+    this.pendingApprovals.delete(approvalKey);
+    session.status = "running";
+    session.updatedAt = new Date().toISOString();
+    this._storeEvent(
+      session.sessionId,
+      this._createEvent(
+        approved
+          ? CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED
+          : CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED,
+        {
+          source: "desktop-tool-approval",
+          approvalType: "tool",
+          requestId,
+          decision: boundDecision,
+          tool: pending.tool,
+          risk: pending.risk,
+          binding: pending.binding,
+          requestedPermissions: pending.requestedPermissions,
+        },
+        { sessionId: session.sessionId, requestId },
+      ),
+    );
+    if (
+      decision.kind === "acceptForTurn" ||
+      decision.kind === "acceptForSession"
+    ) {
+      await this._refreshApprovalGrants(session);
+    }
+    return {
+      success: true,
+      sessionId: session.sessionId,
+      requestId,
+      approvalType: "tool",
+      decision: boundDecision,
+      status: approved ? "granted" : "denied",
+      grants: session.approvalGrants || [],
+    };
+  }
+
   async rejectPlan(sessionId) {
     return this._sendSlashCommand(sessionId, "/plan reject");
   }
@@ -1265,6 +1513,22 @@ class CodingAgentSessionService extends EventEmitter {
         pendingQuestions: [...this.pendingQuestions.values()]
           .filter((question) => question.sessionId === String(sessionId))
           .map((question) => ({ ...question })),
+        pendingApprovals: [...this.pendingApprovals.values()]
+          .filter((approval) => approval.sessionId === String(sessionId))
+          .map((approval) => ({
+            ...approval,
+            requestedPermissions: approval.requestedPermissions.map(
+              (permission) => ({ ...permission }),
+            ),
+          })),
+        approvalGrants: Array.isArray(session.approvalGrants)
+          ? session.approvalGrants.map((grant) => ({
+              ...grant,
+              permission: grant.permission
+                ? { ...grant.permission }
+                : grant.permission,
+            }))
+          : [],
         lastPlanSummary: session.lastPlanSummary || null,
         lastPlanItems: Array.isArray(session.lastPlanItems)
           ? [...session.lastPlanItems]
@@ -1682,8 +1946,7 @@ class CodingAgentSessionService extends EventEmitter {
         !this.agentStreamTraceSessions.has(traceId) &&
         this.agentStreamTraceSessions.size >= MAX_AGENT_STREAM_TRACE_SESSIONS
       ) {
-        const oldestTraceId =
-          this.agentStreamTraceSessions.keys().next().value;
+        const oldestTraceId = this.agentStreamTraceSessions.keys().next().value;
         this.agentStreamTraceSessions.delete(oldestTraceId);
       }
       this.agentStreamTraceSessions.delete(traceId);
@@ -1714,13 +1977,21 @@ class CodingAgentSessionService extends EventEmitter {
         requiresHighRiskConfirmation: false,
         highRiskConfirmationGranted: false,
         highRiskToolNames: [],
+        approvalGrants: [],
       });
     }
 
     const normalized = this._normalizeMessage(message, sessionId);
     if (sessionId) {
       if (QUESTION_REQUEST_EVENT_TYPES.has(normalized.type)) {
-        this._trackPendingQuestion(sessionId, normalized);
+        if (
+          normalized.payload?.approval &&
+          typeof normalized.payload.approval === "object"
+        ) {
+          this._trackPendingApproval(sessionId, normalized);
+        } else {
+          this._trackPendingQuestion(sessionId, normalized);
+        }
       } else if (QUESTION_RESOLVED_EVENT_TYPES.has(normalized.type)) {
         this._resolvePendingQuestionFromEvent(sessionId, normalized);
       }
@@ -1903,6 +2174,51 @@ class CodingAgentSessionService extends EventEmitter {
     return `${String(sessionId)}\u0000${String(requestId)}`;
   }
 
+  _approvalKey(sessionId, requestId) {
+    return `${String(sessionId)}\u0000${String(requestId)}`;
+  }
+
+  _trackPendingApproval(sessionId, event) {
+    const session = this.sessions.get(sessionId);
+    const requestId = this._questionRequestId(event);
+    const payload = event.payload || {};
+    const approval = payload.approval || {};
+    if (!session || !requestId) {
+      logger.warn(
+        `[CodingAgentSessionService] Ignoring approval without session/request binding session=${sessionId || "-"} request=${requestId || "-"}`,
+      );
+      return;
+    }
+    const binding =
+      typeof payload.binding === "string" && payload.binding
+        ? payload.binding
+        : null;
+    const requestedPermissions = normalizeRequestedPermissions(
+      firstDefined(
+        approval.requestedPermissions,
+        approval.requested_permissions,
+        payload.requestedPermissions,
+        payload.requested_permissions,
+      ),
+    );
+    const pending = {
+      sessionId: String(sessionId),
+      requestId,
+      binding,
+      tool: typeof approval.tool === "string" ? approval.tool : null,
+      command: typeof approval.command === "string" ? approval.command : null,
+      risk: typeof approval.risk === "string" ? approval.risk : null,
+      rule: typeof approval.rule === "string" ? approval.rule : null,
+      question: typeof payload.question === "string" ? payload.question : null,
+      requestedPermissions,
+      receivedAt: event.timestamp || new Date().toISOString(),
+      status: "pending",
+    };
+    this.pendingApprovals.set(this._approvalKey(sessionId, requestId), pending);
+    session.status = "waiting_approval";
+    session.updatedAt = pending.receivedAt;
+  }
+
   _trackPendingQuestion(sessionId, event) {
     const session = this.sessions.get(sessionId);
     const requestId = this._questionRequestId(event);
@@ -2013,6 +2329,7 @@ class CodingAgentSessionService extends EventEmitter {
       case CODING_AGENT_EVENT_TYPES.SESSION_STARTED:
       case CODING_AGENT_EVENT_TYPES.SESSION_RESUMED:
         this._removePendingQuestionsForSession(sessionId);
+        this._removePendingApprovalsForSession(sessionId);
         session.status = "ready";
         session.planModeState = "inactive";
         session.lastPlanItems = [];
@@ -2054,6 +2371,7 @@ class CodingAgentSessionService extends EventEmitter {
         break;
       case CODING_AGENT_EVENT_TYPES.ASSISTANT_FINAL:
         this._removePendingQuestionsForSession(sessionId);
+        this._removePendingApprovalsForSession(sessionId);
         session.status = "ready";
         if (event.payload.content) {
           session.history.push({
@@ -2111,6 +2429,7 @@ class CodingAgentSessionService extends EventEmitter {
         break;
       case CODING_AGENT_EVENT_TYPES.ERROR:
         this._removePendingQuestionsForSession(sessionId);
+        this._removePendingApprovalsForSession(sessionId);
         session.status = "failed";
         this._completePendingRequest(session, event.requestId);
         break;
@@ -2411,12 +2730,21 @@ class CodingAgentSessionService extends EventEmitter {
 
     session.pendingRequests = [];
     this._removePendingQuestionsForSession(session.sessionId);
+    this._removePendingApprovalsForSession(session.sessionId);
   }
 
   _removePendingQuestionsForSession(sessionId) {
     for (const [questionKey, question] of this.pendingQuestions.entries()) {
       if (question.sessionId === String(sessionId)) {
         this.pendingQuestions.delete(questionKey);
+      }
+    }
+  }
+
+  _removePendingApprovalsForSession(sessionId) {
+    for (const [approvalKey, approval] of this.pendingApprovals.entries()) {
+      if (approval.sessionId === String(sessionId)) {
+        this.pendingApprovals.delete(approvalKey);
       }
     }
   }

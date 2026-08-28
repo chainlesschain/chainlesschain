@@ -46,6 +46,14 @@ function permissionKey(permission) {
   return `${permission.capability}\0${permission.scope}`;
 }
 
+function grantId(sessionId, lifetime, permission) {
+  return `grant_${createHash("sha256")
+    .update(
+      `${String(sessionId)}\0${String(lifetime)}\0${permissionKey(permission)}`,
+    )
+    .digest("hex")}`;
+}
+
 function livePermission(permission, now) {
   const validation = validateAppServerDefinition("PermissionGrant", permission);
   if (!validation.ok) return false;
@@ -100,6 +108,67 @@ export class ApprovalGrantLedger {
       grants.delete(key);
     }
     return false;
+  }
+
+  listGrants() {
+    const now = this.now();
+    const grants = [];
+    for (const [lifetime, entries] of [
+      ["turn", this.turnGrants],
+      ["session", this.sessionGrants],
+    ]) {
+      for (const [key, entry] of entries) {
+        if (!livePermission(entry.permission, now)) {
+          entries.delete(key);
+          continue;
+        }
+        grants.push(
+          Object.freeze({
+            grantId: grantId(this.sessionId, lifetime, entry.permission),
+            lifetime,
+            permission: Object.freeze({ ...entry.permission }),
+            binding: entry.binding,
+            grantedAt: entry.grantedAt,
+            ...(lifetime === "turn" ? { turnId: this.turnId } : {}),
+          }),
+        );
+      }
+    }
+    return Object.freeze(grants);
+  }
+
+  revoke(grantIdValue) {
+    const requestedId = String(grantIdValue || "");
+    for (const [lifetime, entries] of [
+      ["turn", this.turnGrants],
+      ["session", this.sessionGrants],
+    ]) {
+      for (const [key, entry] of entries) {
+        if (
+          grantId(this.sessionId, lifetime, entry.permission) !== requestedId
+        ) {
+          continue;
+        }
+        entries.delete(key);
+        if (lifetime === "session") this.revision += 1;
+        return Object.freeze({
+          revoked: true,
+          persistedScope: lifetime === "session",
+          grant: Object.freeze({
+            grantId: requestedId,
+            lifetime,
+            permission: Object.freeze({ ...entry.permission }),
+            binding: entry.binding,
+            grantedAt: entry.grantedAt,
+          }),
+        });
+      }
+    }
+    return Object.freeze({
+      revoked: false,
+      persistedScope: false,
+      grant: null,
+    });
   }
 
   applyDecision(decision, requiredPermission, binding) {

@@ -29,6 +29,11 @@ import { runnableTaskModel } from "../../lib/runnable-provider.js";
 import { PlanState } from "../../lib/plan-mode.js";
 import { CLISlotFiller } from "../../lib/slot-filler.js";
 import { createAbortError, isAbortError } from "../../lib/abort-utils.js";
+import { addHooksV2EventObserver } from "../../lib/hooks-v2-producers.js";
+import {
+  projectHookPolicyDecision,
+  projectToolPolicyDecision,
+} from "../../lib/policy-decision-event.js";
 import {
   resolveRegisteredHostHooksV2Workspace,
   runWithHostHooksV2Workspace,
@@ -1081,6 +1086,7 @@ export class WSAgentHandler {
       this._approvalGate = await createWsApprovalGate({
         sessionId: this.session.id,
         interaction: this.interaction,
+        cwd: this.session.projectRoot,
       });
     }
     return this._approvalGate;
@@ -1234,7 +1240,11 @@ export class WSAgentHandler {
       });
       const mcpRecoveryRuntime = this._ensureMcpRecoveryRuntime();
 
-      // Run agent loop
+      // Run agent loop. Turn-scoped approval grants are reset before the
+      // model/tool boundary for every user message; session grants remain in
+      // the verified authority ledger owned by the session-scoped gate.
+      const approvalGate = await this._ensureApprovalGate();
+      approvalGate?.beginTurn?.(requestId || `turn-${Date.now()}`);
       const loopOptions = {
         provider: session.provider,
         model: activeModel,
@@ -1265,7 +1275,7 @@ export class WSAgentHandler {
         sessionBudget: this._sessionBudget,
         // P0 authority: null unless opted in (byte-identical default — agent
         // core already defaults `options.approvalGate || null`).
-        approvalGate: await this._ensureApprovalGate(),
+        approvalGate,
         // Canonical WS history is compacted before ws_turn_prepare. Compaction
         // inside agent-core would include the staged pending user, which is not
         // part of the canonical message projection until turn settlement.
@@ -1435,7 +1445,23 @@ export class WSAgentHandler {
                 tool: event.tool,
                 result: event.result,
                 error: event.error,
+                permission_decision_id: event.permission_decision_id || null,
+                permission_decision: event.permission_decision || null,
               });
+              {
+                const policyEvent = projectToolPolicyDecision(event, {
+                  sessionId: session.id,
+                  turnId: event.turn_id,
+                  toolUseId: event.tool_use_id,
+                });
+                if (policyEvent) {
+                  const { type: _type, ...payload } = policyEvent;
+                  this.interaction.emit("policy-decision", {
+                    requestId,
+                    ...payload,
+                  });
+                }
+              }
               if (
                 event.tool === "todo_write" &&
                 currentTodoWrite &&
@@ -1583,13 +1609,29 @@ export class WSAgentHandler {
             )
           : executeAgentTurn();
 
-      if (session.mcpClient?.withElicitationContext) {
-        await session.mcpClient.withElicitationContext(
-          session.id,
-          runAgentTurn,
-        );
-      } else {
-        await runAgentTurn();
+      const removeHookPolicyObserver = addHooksV2EventObserver(
+        session.id,
+        (event) => {
+          const policyEvent = projectHookPolicyDecision(event);
+          if (!policyEvent) return;
+          const { type: _type, ...payload } = policyEvent;
+          this.interaction.emit("policy-decision", {
+            requestId,
+            ...payload,
+          });
+        },
+      );
+      try {
+        if (session.mcpClient?.withElicitationContext) {
+          await session.mcpClient.withElicitationContext(
+            session.id,
+            runAgentTurn,
+          );
+        } else {
+          await runAgentTurn();
+        }
+      } finally {
+        removeHookPolicyObserver();
       }
       if (session.canonicalJsonlSession === true && !canonicalTurn?.settled) {
         const error = new Error(
@@ -1712,6 +1754,20 @@ export class WSAgentHandler {
         this._activeRequestId = null;
       }
     }
+  }
+
+  async listApprovalGrants() {
+    const gate = await this._ensureApprovalGate();
+    if (!gate?.listGrants) return [];
+    return gate.listGrants();
+  }
+
+  async revokeApprovalGrant(grantId) {
+    const gate = await this._ensureApprovalGate();
+    if (!gate?.revokeGrant) {
+      return { success: false, error: "Approval grant authority unavailable" };
+    }
+    return gate.revokeGrant(grantId);
   }
 
   async interrupt() {

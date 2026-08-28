@@ -5,7 +5,10 @@
  * .chainlesschain/memory/ for overviews, health scores,
  * keywords, trends, gaps, and comprehensive reports.
  */
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -717,3 +720,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("memory-insights", module.exports);

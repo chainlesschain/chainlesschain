@@ -6,8 +6,7 @@ version: 1.0.0
 category: system
 user-invocable: true
 tags: [system, monitor, cpu, memory, disk, network, process, health]
-capabilities:
-  [system_info, system_cpu, system_memory, system_disk, system_processes]
+capabilities: [system_info, system_cpu, system_memory, system_disk, system_processes]
 tools:
   - system_info
   - system_cpu
@@ -32,7 +31,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute, system:inspect]
+execution-capabilities: [data:result, data:task, host:logger, host:process, process:cwd, process:execute, system:inspect]
 handler: ./handler.js
 ---
 

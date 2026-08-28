@@ -7,15 +7,20 @@
  * non-passing result routes the session to fix-loop (Gate V4) or
  * failed, depending on the retry budget.
  *
- * All side-effect entry points (execSync, fs) are routed through
- * `_deps` so tests can inject fakes without fighting the Vitest
- * forks-pool CJS trap.
+ * Filesystem entry points are routed through `_deps`; process execution uses
+ * the branded, shell-free bundled Skill process authority.
  */
 
 const path = require("path");
-const fs = require("fs");
-const { execSync } = require("child_process");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  parseShellFreeCommand,
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
@@ -24,8 +29,6 @@ const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 const _deps = {
   SessionStateManager,
   runHook,
-  execSync,
-  fs,
 };
 
 const DEFAULT_TIMEOUT_MS = 180_000;
@@ -111,9 +114,9 @@ function collectTaskChecks(tasksPayload) {
 function defaultChecksForProject(projectRoot) {
   const checks = [];
   const pkgPath = path.join(projectRoot, "package.json");
-  if (_deps.fs.existsSync(pkgPath)) {
+  if (fs.existsSync(pkgPath)) {
     try {
-      const pkg = JSON.parse(_deps.fs.readFileSync(pkgPath, "utf-8"));
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
       const scripts = pkg.scripts || {};
       if (scripts.test) {
         checks.push({
@@ -127,15 +130,15 @@ function defaultChecksForProject(projectRoot) {
     }
   }
   if (checks.length === 0) {
-    if (_deps.fs.existsSync(path.join(projectRoot, "pom.xml"))) {
+    if (fs.existsSync(path.join(projectRoot, "pom.xml"))) {
       checks.push({
         id: "mvn-test",
         command: "mvn test -q",
         timeout: DEFAULT_TIMEOUT_MS,
       });
     } else if (
-      _deps.fs.existsSync(path.join(projectRoot, "pyproject.toml")) ||
-      _deps.fs.existsSync(path.join(projectRoot, "requirements.txt"))
+      fs.existsSync(path.join(projectRoot, "pyproject.toml")) ||
+      fs.existsSync(path.join(projectRoot, "requirements.txt"))
     ) {
       checks.push({
         id: "pytest",
@@ -148,17 +151,19 @@ function defaultChecksForProject(projectRoot) {
 }
 
 /**
- * Run a single check through `_deps.execSync`. Returns a verify.json
+ * Run a single check through the process authority. Returns a verify.json
  * check entry with status "passed" or "failed" and a short summary.
  */
-function runCheck(check, cwd) {
+function runCheck(check, cwd, context) {
   const startedAt = Date.now();
   try {
-    const stdout = _deps.execSync(check.command, {
+    const invocation = parseShellFreeCommand(check.command);
+    const stdout = requireBundledSkillProcessBroker(
+      context,
+      "verify",
+    ).execFileSync(invocation.file, invocation.args, {
       cwd,
-      encoding: "utf-8",
       timeout: check.timeout,
-      stdio: ["pipe", "pipe", "pipe"],
     });
     return {
       id: check.id,
@@ -294,7 +299,7 @@ module.exports = {
     const cwd = task?.params?.cwd || projectRoot;
     const results = [];
     for (const check of checks) {
-      const res = runCheck(check, cwd);
+      const res = runCheck(check, cwd, context);
       results.push(res);
       // Append progress so the parent log reflects verify activity.
       try {
@@ -418,3 +423,5 @@ module.exports.defaultChecksForProject = defaultChecksForProject;
 module.exports.runCheck = runCheck;
 module.exports.aggregateStatus = aggregateStatus;
 module.exports.summarizeOutput = summarizeOutput;
+
+module.exports = withBundledSkillFilesystem("verify", module.exports);

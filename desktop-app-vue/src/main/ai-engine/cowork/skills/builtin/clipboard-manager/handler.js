@@ -6,8 +6,10 @@
  * Actions: --read, --write, --history, --search, --pin, --unpin, --pins, --clear
  */
 
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const history = []; // Array of { text, timestamp, pinned }
 const MAX_HISTORY = 100;
@@ -22,7 +24,7 @@ const SENSITIVE_PATTERNS = [
   },
 ];
 
-function readClipboard() {
+function readClipboard(context, projectRoot) {
   try {
     return require("electron").clipboard.readText();
   } catch (_e) {
@@ -30,19 +32,25 @@ function readClipboard() {
   }
   const p = process.platform;
   try {
-    const cmd =
+    const [file, args] =
       p === "win32"
-        ? "powershell -command Get-Clipboard"
+        ? [
+            "powershell",
+            ["-NoProfile", "-NonInteractive", "-Command", "Get-Clipboard"],
+          ]
         : p === "darwin"
-          ? "pbpaste"
-          : "xclip -selection clipboard -o";
-    return execSync(cmd, { encoding: "utf-8", timeout: 5000 }).trim();
+          ? ["pbpaste", []]
+          : ["xclip", ["-selection", "clipboard", "-o"]];
+    return requireBundledSkillProcessBroker(context, "clipboard-manager")
+      .execFileSync(file, args, { cwd: projectRoot, timeout: 5_000 })
+      .toString("utf8")
+      .trim();
   } catch (err) {
     throw new Error("Failed to read clipboard: " + err.message);
   }
 }
 
-function writeClipboard(text) {
+function writeClipboard(text, context, projectRoot) {
   try {
     require("electron").clipboard.writeText(text);
     return;
@@ -51,13 +59,21 @@ function writeClipboard(text) {
   }
   const p = process.platform;
   try {
-    const cmd =
+    const [file, args] =
       p === "win32"
-        ? "clip"
+        ? ["clip", []]
         : p === "darwin"
-          ? "pbcopy"
-          : "xclip -selection clipboard";
-    execSync(cmd, { input: text, encoding: "utf-8", timeout: 5000 });
+          ? ["pbcopy", []]
+          : ["xclip", ["-selection", "clipboard"]];
+    requireBundledSkillProcessBroker(context, "clipboard-manager").execFileSync(
+      file,
+      args,
+      {
+        cwd: projectRoot,
+        input: text,
+        timeout: 5_000,
+      },
+    );
   } catch (err) {
     throw new Error("Failed to write clipboard: " + err.message);
   }
@@ -112,8 +128,8 @@ function validIndex(input, flag) {
   return { idx };
 }
 
-function handleRead() {
-  const text = readClipboard();
+function handleRead(context, projectRoot) {
+  const text = readClipboard(context, projectRoot);
   addToHistory(text);
   const warnings = detectSensitive(text);
   const result = { text, length: text.length, type: "text" };
@@ -134,7 +150,7 @@ function handleRead() {
   return { success: true, result, message: msg };
 }
 
-function handleWrite(input) {
+function handleWrite(input, context, projectRoot) {
   const m = input.match(/--write\s+(?:"([^"]+)"|'([^']+)'|(\S+))/i);
   if (!m) {
     return {
@@ -144,7 +160,7 @@ function handleWrite(input) {
     };
   }
   const text = m[1] || m[2] || m[3];
-  writeClipboard(text);
+  writeClipboard(text, context, projectRoot);
   addToHistory(text);
   return {
     success: true,
@@ -231,14 +247,12 @@ function handleSearch(input) {
     success: true,
     result: {
       query,
-      matches: matches
-        .slice(0, 50)
-        .map((e) => ({
-          index: e.index,
-          text: trunc(e.text, 200),
-          timestamp: e.timestamp,
-          pinned: e.pinned,
-        })),
+      matches: matches.slice(0, 50).map((e) => ({
+        index: e.index,
+        text: trunc(e.text, 200),
+        timestamp: e.timestamp,
+        pinned: e.pinned,
+      })),
       matchCount: matches.length,
     },
     message: msg,
@@ -372,7 +386,7 @@ module.exports = {
 
     try {
       if (/--write\b/i.test(input)) {
-        return handleWrite(input);
+        return handleWrite(input, context, projectRoot);
       }
       if (/--history\b/i.test(input)) {
         return handleHistory(input);
@@ -393,7 +407,7 @@ module.exports = {
         return handleClear();
       }
       if (/--read\b/i.test(input) || !input) {
-        return handleRead();
+        return handleRead(context, projectRoot);
       }
 
       return {

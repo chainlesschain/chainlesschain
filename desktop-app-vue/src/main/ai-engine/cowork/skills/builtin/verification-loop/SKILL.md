@@ -5,27 +5,8 @@ description: 6-stage automated verification pipeline producing READY/NOT READY v
 version: 1.0.0
 category: quality
 user-invocable: true
-tags:
-  [
-    verification,
-    build,
-    typecheck,
-    lint,
-    test,
-    security,
-    diff-review,
-    ci,
-    quality,
-  ]
-capabilities:
-  [
-    build-verification,
-    type-checking,
-    lint-checking,
-    test-execution,
-    security-scanning,
-    diff-review,
-  ]
+tags: [verification, build, typecheck, lint, test, security, diff-review, ci, quality]
+capabilities: [build-verification, type-checking, lint-checking, test-execution, security-scanning, diff-review]
 tools:
   - command_executor
   - file_reader
@@ -46,7 +27,7 @@ examples:
 model-hints: sonnet
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:skill, process:cwd, process:execute, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, host:skill, process:cwd, process:execute, runtime:time, system:inspect]
 handler: ./handler.js
 ---
 

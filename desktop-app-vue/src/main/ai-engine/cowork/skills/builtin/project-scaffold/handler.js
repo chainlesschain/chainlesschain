@@ -146,8 +146,6 @@ TODO: Add skill description.
  * ${displayName} Skill Handler
  */
 
-const fs = require("fs");
-const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
 module.exports = {

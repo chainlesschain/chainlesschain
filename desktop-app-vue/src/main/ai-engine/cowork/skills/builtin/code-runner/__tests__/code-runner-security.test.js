@@ -4,8 +4,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createEnvironmentContext } from "../../../__tests__/helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "../../../__tests__/helpers/bundled-skill-filesystem.js";
 
-const handler = require("../handler.js");
+const handler = withTestFilesystemHandler(
+  require("../handler.js"),
+  "code-runner",
+);
 const originalLoader = handler._deps.loadProcessBroker;
 const temporaryRoots = [];
 const environmentContext = createEnvironmentContext("code-runner", {

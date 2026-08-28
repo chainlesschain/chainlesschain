@@ -12,7 +12,13 @@ vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/debugging-strategies/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("./helpers/bundled-skill-filesystem.js");
+const handler = withTestFilesystemHandler(
+  require("../builtin/debugging-strategies/handler.js"),
+  "debugging-strategies",
+);
 
 describe("debugging-strategies handler", () => {
   let tempDir;

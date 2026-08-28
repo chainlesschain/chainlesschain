@@ -55,6 +55,10 @@ const CODING_AGENT_EVENT_TYPES = Object.freeze({
   APPROVAL_DENIED: "approval.denied",
   APPROVAL_EXPIRED: "approval.expired",
 
+  // Policy decisions from both Hook and tool admission surfaces use one
+  // bounded, digest-bearing payload so hosts never need to parse tool errors.
+  POLICY_DECISION: "policy.decision",
+
   // Context compaction
   CONTEXT_COMPACTION_STARTED: "context.compaction.started",
   CONTEXT_COMPACTION_COMPLETED: "context.compaction.completed",
@@ -173,6 +177,7 @@ const LEGACY_TO_UNIFIED_TYPE = Object.freeze({
   "approval-granted": CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED,
   "approval-denied": CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED,
   "approval-expired": CODING_AGENT_EVENT_TYPES.APPROVAL_EXPIRED,
+  "policy-decision": CODING_AGENT_EVENT_TYPES.POLICY_DECISION,
   "high-risk-confirmation-required":
     CODING_AGENT_EVENT_TYPES.HIGH_RISK_CONFIRMATION_REQUIRED,
   "high-risk-confirmed": CODING_AGENT_EVENT_TYPES.HIGH_RISK_CONFIRMED,
@@ -261,6 +266,9 @@ function projectAgentStreamMessage(message) {
           ? CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED
           : CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED;
       break;
+    case "policy_decision":
+      type = CODING_AGENT_EVENT_TYPES.POLICY_DECISION;
+      break;
     case "plan_update":
       type = CODING_AGENT_EVENT_TYPES.PLAN_UPDATED;
       break;
@@ -344,19 +352,14 @@ const defaultSequenceTracker = new CodingAgentSequenceTracker();
  */
 function createCodingAgentEvent(type, payload = {}, context = {}) {
   if (payload && typeof payload !== "object") {
-    throw new TypeError(
-      "createCodingAgentEvent: payload must be an object",
-    );
+    throw new TypeError("createCodingAgentEvent: payload must be an object");
   }
 
   const normalizedType = mapLegacyType(type);
   const tracker = context.tracker || defaultSequenceTracker;
-  const sessionId =
-    context.sessionId || (payload && payload.sessionId) || null;
+  const sessionId = context.sessionId || (payload && payload.sessionId) || null;
   const requestId =
-    context.requestId ||
-    (payload && (payload.requestId || payload.id)) ||
-    null;
+    context.requestId || (payload && (payload.requestId || payload.id)) || null;
 
   let sequence;
   if (Number.isInteger(context.sequence)) {
@@ -404,9 +407,7 @@ function createCodingAgentEvent(type, payload = {}, context = {}) {
  */
 function wrapLegacyMessage(message, context = {}) {
   if (!message || typeof message !== "object") {
-    throw new TypeError(
-      "wrapLegacyMessage: message must be a non-null object",
-    );
+    throw new TypeError("wrapLegacyMessage: message must be a non-null object");
   }
 
   const { type, ...payload } = message;
@@ -475,6 +476,7 @@ const CodingAgentEventType = Object.freeze({
   APPROVAL_REQUESTED: CODING_AGENT_EVENT_TYPES.APPROVAL_REQUESTED,
   APPROVAL_GRANTED: CODING_AGENT_EVENT_TYPES.APPROVAL_GRANTED,
   APPROVAL_DENIED: CODING_AGENT_EVENT_TYPES.APPROVAL_DENIED,
+  POLICY_DECISION: CODING_AGENT_EVENT_TYPES.POLICY_DECISION,
   HIGH_RISK_CONFIRMATION_REQUIRED:
     CODING_AGENT_EVENT_TYPES.HIGH_RISK_CONFIRMATION_REQUIRED,
   HIGH_RISK_CONFIRMED: CODING_AGENT_EVENT_TYPES.HIGH_RISK_CONFIRMED,

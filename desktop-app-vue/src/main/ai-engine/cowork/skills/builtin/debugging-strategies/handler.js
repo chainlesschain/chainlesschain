@@ -5,11 +5,14 @@
  * hypothesis, rubber-duck, root-cause, red-flags, defense, session.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 // ── Mode definitions ─────────────────────────────────────────────
 const MODES = {
@@ -312,9 +315,9 @@ function generateTrace(description, context) {
 
   if (targetPath) {
     try {
-      const stat = _deps.fs.statSync(targetPath);
+      const stat = fs.statSync(targetPath);
       if (stat.isFile()) {
-        const content = _deps.fs.readFileSync(targetPath, "utf-8");
+        const content = fs.readFileSync(targetPath, "utf-8");
         const lineCount = content.split("\n").length;
         const funcMatches =
           content.match(
@@ -1158,3 +1161,8 @@ async function execute(task, context, _skill) {
 }
 
 module.exports = { init, execute, _deps, _sessionStore: sessionStore };
+
+module.exports = withBundledSkillFilesystem(
+  "debugging-strategies",
+  module.exports,
+);

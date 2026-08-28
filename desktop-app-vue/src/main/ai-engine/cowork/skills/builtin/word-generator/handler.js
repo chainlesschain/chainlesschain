@@ -5,7 +5,10 @@
  * Uses the docx library for writing and mammoth for reading.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -401,3 +404,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("word-generator", module.exports);

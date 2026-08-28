@@ -11,12 +11,15 @@
  * - Additional secret patterns (GitHub, Slack, Google, Stripe, DB URLs)
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const crypto = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
 
-const _deps = { fs, path, crypto, logger };
+const _deps = { path, crypto, logger };
 
 const IGNORE_DIRS = new Set([
   "node_modules",
@@ -264,10 +267,7 @@ function parseInput(input, context) {
       action = "cve";
     } else if (p && !p.startsWith("-")) {
       const resolved = _deps.path.resolve(options.targetDir, p);
-      if (
-        _deps.fs.existsSync(resolved) &&
-        _deps.fs.statSync(resolved).isDirectory()
-      ) {
+      if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
         options.targetDir = resolved;
       }
     }
@@ -278,13 +278,13 @@ function parseInput(input, context) {
 
 function collectFiles(dir, maxDepth = 6, depth = 0) {
   const files = [];
-  if (depth > maxDepth || !_deps.fs.existsSync(dir)) {
+  if (depth > maxDepth || !fs.existsSync(dir)) {
     return files;
   }
 
   let entries;
   try {
-    entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
+    entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return files;
   }
@@ -355,7 +355,7 @@ async function handleSecrets(targetDir) {
   for (const file of files) {
     let content;
     try {
-      content = _deps.fs.readFileSync(file, "utf-8");
+      content = fs.readFileSync(file, "utf-8");
     } catch {
       continue;
     }
@@ -382,7 +382,7 @@ async function handleOWASP(targetDir) {
   for (const file of files) {
     let content;
     try {
-      content = _deps.fs.readFileSync(file, "utf-8");
+      content = fs.readFileSync(file, "utf-8");
     } catch {
       continue;
     }
@@ -409,7 +409,7 @@ async function handleFullAudit(targetDir) {
   for (const file of files) {
     let content;
     try {
-      content = _deps.fs.readFileSync(file, "utf-8");
+      content = fs.readFileSync(file, "utf-8");
     } catch {
       continue;
     }
@@ -435,14 +435,14 @@ async function handleFullAudit(targetDir) {
 // ── Drift Detection ─────────────────────────────────────────────────
 
 function computeFileHash(filePath) {
-  const content = _deps.fs.readFileSync(filePath);
+  const content = fs.readFileSync(filePath);
   return _deps.crypto.createHash("sha256").update(content).digest("hex");
 }
 
 function findCriticalFiles(dir) {
   const files = [];
   try {
-    const entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile()) {
         continue;
@@ -470,7 +470,7 @@ function handleDriftBaseline(targetDir) {
 
   for (const file of files) {
     try {
-      const stat = _deps.fs.statSync(file);
+      const stat = fs.statSync(file);
       const hash = computeFileHash(file);
       const relPath = _deps.path.relative(targetDir, file);
       baselineStore.set(relPath, {
@@ -515,7 +515,7 @@ function handleDriftCheck(targetDir) {
   // Check existing baseline files
   for (const [relPath, baseline] of baselineStore) {
     const fullPath = _deps.path.resolve(targetDir, relPath);
-    if (!_deps.fs.existsSync(fullPath)) {
+    if (!fs.existsSync(fullPath)) {
       changes.removed.push(relPath);
       continue;
     }
@@ -580,11 +580,11 @@ function handleDriftCheck(targetDir) {
 
 function collectAllFiles(dir, maxDepth = 4, depth = 0) {
   const files = [];
-  if (depth > maxDepth || !_deps.fs.existsSync(dir)) {
+  if (depth > maxDepth || !fs.existsSync(dir)) {
     return files;
   }
   try {
-    const entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (
         entry.isDirectory() &&
@@ -658,7 +658,7 @@ function handleIntegrityVerify(targetDir) {
 
   for (const [relPath, expectedHash] of integrityStore) {
     const fullPath = _deps.path.resolve(targetDir, relPath);
-    if (!_deps.fs.existsSync(fullPath)) {
+    if (!fs.existsSync(fullPath)) {
       results.missing.push(relPath);
       continue;
     }
@@ -710,7 +710,7 @@ function handleIntegrityVerify(targetDir) {
 
 function handleCVE(targetDir) {
   const pkgPath = _deps.path.join(targetDir, "package.json");
-  if (!_deps.fs.existsSync(pkgPath)) {
+  if (!fs.existsSync(pkgPath)) {
     return {
       success: false,
       error: "No package.json found.",
@@ -721,7 +721,7 @@ function handleCVE(targetDir) {
 
   let pkg;
   try {
-    pkg = JSON.parse(_deps.fs.readFileSync(pkgPath, "utf-8"));
+    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   } catch (err) {
     return { success: false, error: `Invalid package.json: ${err.message}` };
   }
@@ -894,3 +894,5 @@ function formatReport(title, findings, fileCount) {
     `\n\nNote: This is a static pattern-based scan. Manual review is recommended for critical findings.`
   );
 }
+
+module.exports = withBundledSkillFilesystem("security-audit", module.exports);

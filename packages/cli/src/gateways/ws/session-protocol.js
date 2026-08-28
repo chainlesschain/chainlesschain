@@ -606,9 +606,11 @@ async function ensureSessionHandler(
       if (budgetConfig.enabled) {
         const priceTable =
           budgetConfig.limits.maxUsd != null
-            ? wsBudgetDependency(server, "mergePricing", mergePricing)(
-                server.sessionManager.config?.llm?.pricing,
-              )
+            ? wsBudgetDependency(
+                server,
+                "mergePricing",
+                mergePricing,
+              )(server.sessionManager.config?.llm?.pricing)
             : undefined;
         sessionBudgetRoot = wsBudgetDependency(
           server,
@@ -627,9 +629,7 @@ async function ensureSessionHandler(
             sessionBudgetRoot.budget ||
           typeof sessionBudgetRoot.close !== "function"
         ) {
-          const error = new Error(
-            "WebSocket session budget root is invalid",
-          );
+          const error = new Error("WebSocket session budget root is invalid");
           error.code = "CC_SESSION_BUDGET_ROOT_INVALID";
           throw error;
         }
@@ -746,9 +746,7 @@ export async function handleSessionCreate(server, id, ws, message) {
       worktreeIsolation,
       systemPromptExtension,
       shellPolicyOverrides,
-      sessionBudgetRoot: sessionBudgetRoot.enabled
-        ? sessionBudgetRoot
-        : null,
+      sessionBudgetRoot: sessionBudgetRoot.enabled ? sessionBudgetRoot : null,
       requireDurable: sessionBudgetRoot.enabled,
     });
     createdSessionId = sessionId;
@@ -1487,16 +1485,96 @@ export function handleSessionAnswer(server, id, ws, message) {
   }
 
   const session = server.sessionManager.getSession(sessionId);
+  let settlement = null;
+  let settlementAttempted = false;
   if (session && session.interaction && session.interaction.resolveAnswer) {
-    session.interaction.resolveAnswer(requestId, answer, binding);
+    settlementAttempted = true;
+    settlement = session.interaction.resolveAnswer(requestId, answer, binding);
   }
+
+  // New adapters return an explicit settlement result. Legacy/custom
+  // interactions return undefined and preserve the historical success ACK.
+  const settled = settlementAttempted && settlement?.settled !== false;
 
   server._send(
     ws,
     envelopeResponse(
       CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
       id,
-      { success: true },
+      {
+        success: settled,
+        settled,
+        ...(settlement?.reason ? { reason: settlement.reason } : {}),
+      },
+      sessionId,
+    ),
+  );
+}
+
+export async function handleApprovalGrantsList(server, id, ws, message) {
+  const sessionId = message.sessionId;
+  const session = server.sessionManager?.getSession?.(sessionId) || null;
+  const handler = server.sessionHandlers?.get?.(sessionId) || null;
+  if (!session || !handler?.listApprovalGrants) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "APPROVAL_GRANT_SESSION_UNAVAILABLE",
+        "Approval grant session is not active",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  const grants = await handler.listApprovalGrants();
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true, grants },
+      sessionId,
+    ),
+  );
+}
+
+export async function handleApprovalGrantRevoke(server, id, ws, message) {
+  const sessionId = message.sessionId;
+  const grantId = String(message.grantId || "");
+  const handler = server.sessionHandlers?.get?.(sessionId) || null;
+  if (!grantId || !handler?.revokeApprovalGrant) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "APPROVAL_GRANT_REVOKE_INVALID",
+        "An active approval grant and grantId are required",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  const result = await handler.revokeApprovalGrant(grantId);
+  if (!result?.success) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "APPROVAL_GRANT_REVOKE_FAILED",
+        result?.error || "Approval grant could not be revoked",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  const grants = await handler.listApprovalGrants();
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true, revoked: result.grant, grants },
       sessionId,
     ),
   );

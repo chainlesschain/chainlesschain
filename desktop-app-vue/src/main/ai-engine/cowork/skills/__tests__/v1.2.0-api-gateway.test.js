@@ -4,13 +4,21 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import path from "node:path";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/api-gateway/handler.js");
+const filesystemRoot = path.parse(process.cwd()).root;
+const baseHandler = require("../builtin/api-gateway/handler.js");
+const handler = withTestFilesystemHandler(baseHandler, "api-gateway", {
+  allowedRoots: [filesystemRoot],
+  cwd: filesystemRoot,
+  invoke: ({ operation, args }) => handler._deps.fs[operation](...args),
+});
 const {
   createBundledSkillRuntimeNetworkBroker,
 } = require("../bundled-skill-egress-broker.js");

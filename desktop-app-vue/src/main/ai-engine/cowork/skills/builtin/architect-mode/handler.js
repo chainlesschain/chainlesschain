@@ -11,7 +11,10 @@
  *   --execute    - execute a previously generated plan by ID
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const crypto = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
@@ -857,6 +860,8 @@ function applyModification(content, file, task) {
   lines.splice(insertIndex, 0, ...marker);
   return lines.join("\n");
 }
+
+module.exports = withBundledSkillFilesystem("architect-mode", module.exports);
 
 // -- Plan Formatting ---------------------------------------------------------
 

@@ -255,6 +255,35 @@ export interface CodingAgentPendingQuestion {
   expiresAt?: number | null;
 }
 
+export interface CodingAgentPermissionGrant {
+  capability: string;
+  scope: string;
+  expiresAt?: string;
+}
+
+export interface CodingAgentPendingApproval {
+  sessionId: string;
+  requestId: string;
+  binding?: string | null;
+  tool?: string | null;
+  command?: string | null;
+  risk?: string | null;
+  rule?: string | null;
+  question?: string | null;
+  requestedPermissions: CodingAgentPermissionGrant[];
+  receivedAt?: string;
+  status?: "pending" | "settling";
+}
+
+export interface CodingAgentApprovalGrant {
+  grantId: string;
+  lifetime: "turn" | "session";
+  permission: CodingAgentPermissionGrant;
+  binding: string;
+  grantedAt: string;
+  turnId?: string | null;
+}
+
 export interface CodingAgentToolDescriptor {
   name: string;
   description: string;
@@ -311,6 +340,8 @@ export interface CodingAgentSessionState {
   history?: Array<{ role: string; content: string }>;
   pendingRequests?: string[];
   pendingQuestions?: CodingAgentPendingQuestion[];
+  pendingApprovals?: CodingAgentPendingApproval[];
+  approvalGrants?: CodingAgentApprovalGrant[];
   lastPlanSummary?: string | null;
   lastPlanItems?: any[];
   planModeState?: string | null;
@@ -483,7 +514,13 @@ export interface CodingAgentAPI {
   respondApproval(payload: {
     sessionId: string;
     approvalType?: string;
+    requestId?: string;
     decision: CodingAgentApprovalDecision;
+  }): Promise<any>;
+  listApprovalGrants(sessionId: string): Promise<any>;
+  revokeApprovalGrant(payload: {
+    sessionId: string;
+    grantId: string;
   }): Promise<any>;
   confirmHighRiskExecution(sessionId: string): Promise<any>;
   rejectPlan(sessionId: string): Promise<any>;
@@ -1112,6 +1149,7 @@ export interface ElectronAPI {
   // 模块化 API
   ukey: UKeyAPI;
   collab: CollabAPI;
+  markdownSkills: MarkdownSkillsAPI;
   auth: AuthAPI;
   specializedAgents: SpecializedAgentsAPI;
   workflowManager: WorkflowManagerAPI;
@@ -1222,6 +1260,38 @@ export interface ConfigAPI {
   set(key: string, value: any): Promise<any>;
   reset(): Promise<any>;
   exportEnv(filePath: string): Promise<any>;
+}
+
+export type BundledSkillCredentialKey =
+  | "google-client-id"
+  | "google-client-secret"
+  | "google-refresh-token"
+  | "google-access-token"
+  | "notion-api-key"
+  | "tavily-api-key";
+
+export interface MarkdownSkillsCredentialResult {
+  success: boolean;
+  configured?: boolean;
+  error?: string;
+  prevented?: boolean;
+}
+
+export interface MarkdownSkillsCredentialStatusResult {
+  success: boolean;
+  configured?: Partial<Record<BundledSkillCredentialKey, boolean>>;
+  error?: string;
+}
+
+export interface MarkdownSkillsAPI {
+  getCredentialStatus(): Promise<MarkdownSkillsCredentialStatusResult>;
+  setCredential(
+    key: BundledSkillCredentialKey,
+    value: string,
+  ): Promise<MarkdownSkillsCredentialResult>;
+  clearCredential(
+    key: BundledSkillCredentialKey,
+  ): Promise<MarkdownSkillsCredentialResult>;
 }
 
 // ==================== 全局类型扩展 ====================

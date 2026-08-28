@@ -6,10 +6,15 @@
  * Modes: --compare, --solve, --evaluate, --docs
  */
 
-const { execSync } = require("child_process");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Known error patterns ────────────────────────────────────────────
 
@@ -148,12 +153,15 @@ function getInstalledPackageInfo(projectRoot, packageName) {
   }
 }
 
-function npmInfo(packageName) {
+function npmInfo(packageName, projectRoot, context) {
   try {
-    const raw = execSync("npm view " + packageName + " --json 2>/dev/null", {
-      encoding: "utf-8",
-      timeout: 15000,
-    });
+    const raw = requireBundledSkillProcessBroker(context, "research-agent")
+      .execFileSync(
+        process.platform === "win32" ? "npm.cmd" : "npm",
+        ["view", packageName, "--json"],
+        { cwd: projectRoot, timeout: 15_000 },
+      )
+      .toString("utf8");
     const data = JSON.parse(raw);
     return {
       name: data.name,
@@ -165,7 +173,10 @@ function npmInfo(packageName) {
       maintainers: (data.maintainers || []).length,
       modified: data.time?.modified || null,
     };
-  } catch (_e) {
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }
@@ -250,7 +261,7 @@ function searchProjectFiles(projectRoot, topic, maxResults) {
 
 // ── Mode handlers ───────────────────────────────────────────────────
 
-function handleCompare(args, projectRoot) {
+function handleCompare(args, projectRoot, context) {
   if (args.length < 2) {
     return {
       success: false,
@@ -260,8 +271,12 @@ function handleCompare(args, projectRoot) {
   }
   const lib1 = args[0],
     lib2 = args[1];
-  const info1 = getInstalledPackageInfo(projectRoot, lib1) || npmInfo(lib1);
-  const info2 = getInstalledPackageInfo(projectRoot, lib2) || npmInfo(lib2);
+  const info1 =
+    getInstalledPackageInfo(projectRoot, lib1) ||
+    npmInfo(lib1, projectRoot, context);
+  const info2 =
+    getInstalledPackageInfo(projectRoot, lib2) ||
+    npmInfo(lib2, projectRoot, context);
   const fields = [
     "version",
     "license",
@@ -449,7 +464,7 @@ function handleSolve(args) {
   };
 }
 
-function handleEvaluate(args, projectRoot) {
+function handleEvaluate(args, projectRoot, context) {
   const libName = args[0];
   if (!libName) {
     return {
@@ -459,7 +474,7 @@ function handleEvaluate(args, projectRoot) {
     };
   }
   const localInfo = getInstalledPackageInfo(projectRoot, libName);
-  const remoteInfo = npmInfo(libName);
+  const remoteInfo = npmInfo(libName, projectRoot, context);
   const info = localInfo || remoteInfo;
   const rootPkg = readPackageJson(projectRoot);
   const allDeps = Object.assign(
@@ -471,14 +486,28 @@ function handleEvaluate(args, projectRoot) {
   const projectVersion = allDeps[libName] || null;
   let vulnerabilities = null;
   if (inProject) {
+    let auditRaw = null;
     try {
-      const auditRaw = execSync("npm audit --json 2>/dev/null", {
-        cwd: projectRoot,
-        encoding: "utf-8",
-        timeout: 20000,
-      });
-      const audit = JSON.parse(auditRaw);
-      const vulns = audit.vulnerabilities?.[libName];
+      auditRaw = requireBundledSkillProcessBroker(
+        context,
+        "research-agent",
+      ).execFileSync(
+        process.platform === "win32" ? "npm.cmd" : "npm",
+        ["audit", "--json"],
+        {
+          cwd: projectRoot,
+          timeout: 20_000,
+        },
+      );
+    } catch (error) {
+      if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+        throw error;
+      }
+      auditRaw = error.stdout || null;
+    }
+    try {
+      const audit = auditRaw ? JSON.parse(auditRaw) : null;
+      const vulns = audit?.vulnerabilities?.[libName];
       if (vulns) {
         vulnerabilities = {
           severity: vulns.severity,
@@ -490,7 +519,7 @@ function handleEvaluate(args, projectRoot) {
           fixAvailable: vulns.fixAvailable || false,
         };
       }
-    } catch (_e) {
+    } catch {
       /* audit unavailable */
     }
   }
@@ -669,13 +698,17 @@ module.exports = {
 
     try {
       if (compareMatch) {
-        return handleCompare(compareMatch[1].trim().split(/\s+/), projectRoot);
+        return handleCompare(
+          compareMatch[1].trim().split(/\s+/),
+          projectRoot,
+          context,
+        );
       }
       if (solveMatch) {
         return handleSolve(solveMatch[1].trim().split(/\s+/));
       }
       if (evaluateMatch) {
-        return handleEvaluate([evaluateMatch[1].trim()], projectRoot);
+        return handleEvaluate([evaluateMatch[1].trim()], projectRoot, context);
       }
       if (docsMatch) {
         return handleDocs([docsMatch[1].trim()], projectRoot);
@@ -704,3 +737,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("research-agent", module.exports);

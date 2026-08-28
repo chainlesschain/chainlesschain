@@ -18,7 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill to discover, test, and validate IPC handlers and REST API endpoints.

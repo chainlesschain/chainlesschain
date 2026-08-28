@@ -7,10 +7,9 @@ category: media
 user-invocable: true
 tags: [metadata, exif, media, image, audio, video]
 capabilities: [image-metadata, audio-metadata, video-metadata, batch-extract]
-supported-file-types:
-  [jpg, jpeg, png, gif, webp, mp3, wav, flac, mp4, avi, mkv, mov]
+supported-file-types: [jpg, jpeg, png, gif, webp, mp3, wav, flac, mp4, avi, mkv, mov]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:media, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:media, host:process, process:cwd, process:execute]
 handler: ./handler.js
 tools:
   - file_read

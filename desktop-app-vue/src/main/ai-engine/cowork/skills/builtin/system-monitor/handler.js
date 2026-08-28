@@ -3,12 +3,14 @@
  *
  * Monitors system resources: CPU, memory, disk, network interfaces,
  * running processes, uptime, and overall health assessment.
- * Uses only Node.js built-in os module and child_process.
+ * Uses Node.js os plus a branded, shell-free process authority.
  */
 
 const os = require("os");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -39,14 +41,16 @@ function formatUptime(seconds) {
   return parts.join(" ");
 }
 
-function runCmd(cmd) {
+function runCmd(context, projectRoot, file, args) {
   try {
-    return execSync(cmd, {
-      encoding: "utf-8",
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
+    return requireBundledSkillProcessBroker(context, "system-monitor")
+      .execFileSync(file, args, { cwd: projectRoot, timeout: 15_000 })
+      .toString("utf8")
+      .trim();
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }
@@ -201,14 +205,17 @@ function getMemoryDetails() {
   return { success: true, result: info, message };
 }
 
-function getDiskDetails() {
+function getDiskDetails(context, projectRoot) {
   const platform = os.platform();
   const drives = [];
 
   if (platform === "win32") {
-    const output = runCmd(
-      "wmic logicaldisk get caption,size,freespace /format:csv",
-    );
+    const output = runCmd(context, projectRoot, "wmic", [
+      "logicaldisk",
+      "get",
+      "caption,size,freespace",
+      "/format:csv",
+    ]);
     if (output) {
       const lines = output.split("\n").filter((l) => l.trim());
       for (let i = 1; i < lines.length; i++) {
@@ -233,9 +240,11 @@ function getDiskDetails() {
       }
     }
   } else {
-    const output = runCmd(
-      "df -h --output=target,size,used,avail,pcent 2>/dev/null || df -h",
-    );
+    const output =
+      runCmd(context, projectRoot, "df", [
+        "-h",
+        "--output=target,size,used,avail,pcent",
+      ]) || runCmd(context, projectRoot, "df", ["-h"]);
     if (output) {
       const lines = output.split("\n").filter((l) => l.trim());
       for (let i = 1; i < lines.length; i++) {
@@ -274,12 +283,16 @@ function getDiskDetails() {
   return { success: true, result: { drives }, message };
 }
 
-function getProcesses(topN) {
+function getProcesses(topN, context, projectRoot) {
   const platform = os.platform();
   const processes = [];
 
   if (platform === "win32") {
-    const output = runCmd("tasklist /fo csv /nh");
+    const output = runCmd(context, projectRoot, "tasklist", [
+      "/fo",
+      "csv",
+      "/nh",
+    ]);
     if (output) {
       const lines = output.split("\n").filter((l) => l.trim());
       for (const line of lines) {
@@ -297,7 +310,9 @@ function getProcesses(topN) {
       processes.sort((a, b) => b.memKB - a.memKB);
     }
   } else {
-    const output = runCmd("ps aux --sort=-%cpu 2>/dev/null || ps aux");
+    const output =
+      runCmd(context, projectRoot, "ps", ["aux", "--sort=-%cpu"]) ||
+      runCmd(context, projectRoot, "ps", ["aux"]);
     if (output) {
       const lines = output.split("\n").filter((l) => l.trim());
       for (let i = 1; i < lines.length; i++) {
@@ -370,7 +385,7 @@ function getNetworkInfo() {
   return { success: true, result: { interfaces: result }, message };
 }
 
-function getHealthScore() {
+function getHealthScore(context, projectRoot) {
   const cpuUsage = getCpuUsage();
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
@@ -400,7 +415,7 @@ function getHealthScore() {
   }
 
   // Disk check
-  const diskResult = getDiskDetails();
+  const diskResult = getDiskDetails(context, projectRoot);
   const drives = diskResult.result.drives || [];
   for (const d of drives) {
     if (d.usageNum >= 90) {
@@ -484,13 +499,13 @@ module.exports = {
         case "memory":
           return getMemoryDetails();
         case "disk":
-          return getDiskDetails();
+          return getDiskDetails(context, projectRoot);
         case "processes":
-          return getProcesses(options.top);
+          return getProcesses(options.top, context, projectRoot);
         case "network":
           return getNetworkInfo();
         case "health":
-          return getHealthScore();
+          return getHealthScore(context, projectRoot);
         case "overview":
         default:
           return getOverview();

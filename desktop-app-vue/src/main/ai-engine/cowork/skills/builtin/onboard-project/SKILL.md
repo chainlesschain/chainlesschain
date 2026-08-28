@@ -16,7 +16,7 @@ capabilities:
 tools:
   - file_reader
   - code_analyzer
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when a user opens a new or unfamiliar project and needs to quickly

@@ -5,19 +5,29 @@
  * Docker services, and configuration validation.
  */
 
-const { execSync } = require("child_process");
 const net = require("net");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const RUNTIMES = [
-  { name: "Node.js", cmd: "node --version", minVersion: "18.0.0" },
-  { name: "npm", cmd: "npm --version", minVersion: "9.0.0" },
-  { name: "Java", cmd: "java --version", minVersion: "17" },
-  { name: "Python", cmd: "python --version", minVersion: "3.9" },
-  { name: "Docker", cmd: "docker --version", minVersion: "24.0" },
-  { name: "Git", cmd: "git --version", minVersion: "2.30" },
+  { name: "Node.js", file: "node", args: ["--version"], minVersion: "18.0.0" },
+  {
+    name: "npm",
+    file: process.platform === "win32" ? "npm.cmd" : "npm",
+    args: ["--version"],
+    minVersion: "9.0.0",
+  },
+  { name: "Java", file: "java", args: ["--version"], minVersion: "17" },
+  { name: "Python", file: "python", args: ["--version"], minVersion: "3.9" },
+  { name: "Docker", file: "docker", args: ["--version"], minVersion: "24.0" },
+  { name: "Git", file: "git", args: ["--version"], minVersion: "2.30" },
 ];
 
 const PORTS = [
@@ -39,19 +49,28 @@ module.exports = {
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
     const { action, options } = parseInput(input);
+    const workspacePath =
+      context.workspacePath ||
+      context.workspaceRoot ||
+      context.projectRoot ||
+      process.cwd();
 
     logger.info(`[EnvDoctor] Action: ${action}`, { options });
 
     try {
       switch (action) {
         case "check":
-          return await handleCheck(options.category);
+          return await handleCheck(options.category, context, workspacePath);
         case "fix":
-          return await handleFix();
+          return await handleFix(context, workspacePath);
         case "preflight":
-          return await handlePreflight();
+          return await handlePreflight(context, workspacePath);
         default:
-          return await handleFullDiagnostics(options.verbose);
+          return await handleFullDiagnostics(
+            options.verbose,
+            context,
+            workspacePath,
+          );
       }
     } catch (error) {
       logger.error(`[EnvDoctor] Error: ${error.message}`);
@@ -86,14 +105,16 @@ function parseInput(input) {
   return { action, options };
 }
 
-function runCmd(cmd) {
+function runCmd(context, cwd, file, args) {
   try {
-    return execSync(cmd, {
-      encoding: "utf-8",
-      timeout: 10000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
+    return requireBundledSkillProcessBroker(context, "env-doctor")
+      .execFileSync(file, args, { cwd, timeout: 10_000 })
+      .toString("utf8")
+      .trim();
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }
@@ -134,10 +155,10 @@ function checkPort(port) {
   });
 }
 
-async function checkRuntimes() {
+async function checkRuntimes(context, workspacePath) {
   const results = [];
   for (const rt of RUNTIMES) {
-    const output = runCmd(rt.cmd);
+    const output = runCmd(context, workspacePath, rt.file, rt.args);
     const version = extractVersion(output);
     const ok = version ? compareVersions(version, rt.minVersion) >= 0 : false;
     results.push({
@@ -163,10 +184,12 @@ async function checkPorts() {
   return results;
 }
 
-function checkDocker() {
-  const output = runCmd(
-    "docker ps --format '{{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
-  );
+function checkDocker(context, workspacePath) {
+  const output = runCmd(context, workspacePath, "docker", [
+    "ps",
+    "--format",
+    "{{.Names}}\\t{{.Status}}\\t{{.Ports}}",
+  ]);
   if (!output) {
     return { available: false, containers: [] };
   }
@@ -267,11 +290,10 @@ function formatReport(runtimes, ports, docker, envCheck) {
   return lines.join("\n");
 }
 
-async function handleFullDiagnostics(verbose) {
-  const runtimes = await checkRuntimes();
+async function handleFullDiagnostics(verbose, context, workspacePath) {
+  const runtimes = await checkRuntimes(context, workspacePath);
   const ports = await checkPorts();
-  const docker = checkDocker();
-  const workspacePath = process.cwd();
+  const docker = checkDocker(context, workspacePath);
   const envCheck = checkEnvConfig(workspacePath);
 
   const report = formatReport(runtimes, ports, docker, envCheck);
@@ -287,9 +309,9 @@ async function handleFullDiagnostics(verbose) {
   };
 }
 
-async function handleCheck(category) {
+async function handleCheck(category, context, workspacePath) {
   if (category === "runtimes") {
-    const runtimes = await checkRuntimes();
+    const runtimes = await checkRuntimes(context, workspacePath);
     return {
       success: true,
       result: runtimes,
@@ -309,7 +331,7 @@ async function handleCheck(category) {
     };
   }
   if (category === "docker") {
-    const docker = checkDocker();
+    const docker = checkDocker(context, workspacePath);
     return {
       success: true,
       result: docker,
@@ -320,12 +342,12 @@ async function handleCheck(category) {
         : "Docker not available",
     };
   }
-  return await handleFullDiagnostics(false);
+  return await handleFullDiagnostics(false, context, workspacePath);
 }
 
-async function handleFix() {
+async function handleFix(context, workspacePath) {
   const fixCommands = [];
-  const docker = checkDocker();
+  const docker = checkDocker(context, workspacePath);
 
   if (docker.available) {
     for (const c of docker.containers) {
@@ -335,7 +357,7 @@ async function handleFix() {
     }
   }
 
-  const runtimes = await checkRuntimes();
+  const runtimes = await checkRuntimes(context, workspacePath);
   for (const r of runtimes) {
     if (!r.ok && r.version === "not found") {
       fixCommands.push(`# Install ${r.name}: please install manually`);
@@ -352,8 +374,8 @@ async function handleFix() {
   };
 }
 
-async function handlePreflight() {
-  const result = await handleFullDiagnostics(false);
+async function handlePreflight(context, workspacePath) {
+  const result = await handleFullDiagnostics(false, context, workspacePath);
   const critical = [];
 
   if (result.result.runtimes.some((r) => r.name === "Node.js" && !r.ok)) {
@@ -373,3 +395,5 @@ async function handlePreflight() {
         : `❌ Preflight issues:\n${critical.map((c) => `  - ${c}`).join("\n")}`,
   };
 }
+
+module.exports = withBundledSkillFilesystem("env-doctor", module.exports);

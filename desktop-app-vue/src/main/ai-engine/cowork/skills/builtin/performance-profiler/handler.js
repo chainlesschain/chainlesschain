@@ -7,11 +7,17 @@
  * generation. Uses only Node.js built-in APIs (no external dependencies).
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const os = require("os");
-const { execSync, execFileSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  parseShellFreeCommand,
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -240,7 +246,7 @@ function doSnapshot() {
   };
 }
 
-function doBenchmark(command, runs, projectRoot) {
+function doBenchmark(command, runs, projectRoot, context) {
   if (!command) {
     return {
       success: false,
@@ -251,17 +257,23 @@ function doBenchmark(command, runs, projectRoot) {
 
   const timings = [];
   const errors = [];
+  const invocation = parseShellFreeCommand(command);
+  const processBroker = requireBundledSkillProcessBroker(
+    context,
+    "performance-profiler",
+  );
 
   for (let i = 0; i < runs; i++) {
     const start = hrtimeMs();
     try {
-      execSync(command, {
+      processBroker.execFileSync(invocation.file, invocation.args, {
         cwd: projectRoot,
-        encoding: "utf-8",
-        timeout: 60000,
-        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 60_000,
       });
     } catch (err) {
+      if (String(err?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+        throw err;
+      }
       errors.push({ run: i + 1, message: err.message.slice(0, 120) });
     }
     const elapsed = hrtimeMs() - start;
@@ -415,7 +427,7 @@ async function doMemoryAnalysis() {
   return { success: true, result, message: lines.join("\n") };
 }
 
-function doStartup(command, projectRoot) {
+function doStartup(command, projectRoot, context) {
   if (!command) {
     return {
       success: false,
@@ -427,16 +439,22 @@ function doStartup(command, projectRoot) {
   let exitCode = 0;
   let stdout = "";
   let stderr = "";
+  const invocation = parseShellFreeCommand(command);
+  const processBroker = requireBundledSkillProcessBroker(
+    context,
+    "performance-profiler",
+  );
 
   const start = hrtimeMs();
   try {
-    stdout = execSync(command, {
+    stdout = processBroker.execFileSync(invocation.file, invocation.args, {
       cwd: projectRoot,
-      encoding: "utf-8",
-      timeout: 30000,
-      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 30_000,
     });
   } catch (err) {
+    if (String(err?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw err;
+    }
     exitCode = err.status || 1;
     stderr = (err.stderr || "").slice(0, 500);
     stdout = (err.stdout || "").slice(0, 500);
@@ -557,7 +575,7 @@ function doCompare(file1, file2, projectRoot) {
   return { success: true, result, message: lines.join("\n") };
 }
 
-function doProfile(targetFile, duration, projectRoot) {
+function doProfile(targetFile, duration, projectRoot, context) {
   if (!targetFile) {
     return {
       success: false,
@@ -606,13 +624,17 @@ function doProfile(targetFile, duration, projectRoot) {
 
   const start = hrtimeMs();
   try {
-    stdout = execFileSync("node", [resolved], {
+    stdout = requireBundledSkillProcessBroker(
+      context,
+      "performance-profiler",
+    ).execFileSync("node", [resolved], {
       cwd: projectRoot,
-      encoding: "utf-8",
       timeout: duration * 1000,
-      stdio: ["pipe", "pipe", "pipe"],
     });
   } catch (err) {
+    if (String(err?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw err;
+    }
     exitCode = err.status || 1;
     stderr = (err.stderr || "").slice(0, 500);
     stdout = (err.stdout || "").slice(0, 500);
@@ -785,15 +807,15 @@ module.exports = {
     try {
       switch (action) {
         case "benchmark":
-          return doBenchmark(command, runs, projectRoot);
+          return doBenchmark(command, runs, projectRoot, context);
         case "memory":
           return await doMemoryAnalysis();
         case "startup":
-          return doStartup(command, projectRoot);
+          return doStartup(command, projectRoot, context);
         case "compare":
           return doCompare(file1, file2, projectRoot);
         case "profile":
-          return doProfile(targetFile, duration, projectRoot);
+          return doProfile(targetFile, duration, projectRoot, context);
         case "report":
           return doReport(outputFile, projectRoot);
         case "snapshot":
@@ -810,3 +832,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "performance-profiler",
+  module.exports,
+);

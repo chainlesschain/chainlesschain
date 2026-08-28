@@ -3,12 +3,21 @@
  *
  * File compression and decompression: ZIP creation/extraction, directory
  * compression, archive listing, and size analysis.
- * Uses adm-zip for ZIP operations.
+ * Uses a bounded in-memory ZIP codec; all host I/O stays behind filesystem
+ * authority.
  */
 
-const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  extractArchiveTo,
+  inspectArchive,
+  writeArchiveFromFiles,
+} = require("../../bundled-skill-archive-codec.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
 // ── Helpers ─────────────────────────────────────────
 
@@ -77,9 +86,7 @@ function parseFlags(input) {
 // ── Compress ────────────────────────────────────────
 
 function compressFiles(paths, outputPath, projectRoot) {
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip();
-
+  const archiveFiles = [];
   let fileCount = 0;
   let totalOriginalSize = 0;
 
@@ -98,12 +105,15 @@ function compressFiles(paths, outputPath, projectRoot) {
       const files = getFilesRecursive(resolved);
       for (const file of files) {
         const relativePath = path.relative(path.dirname(resolved), file);
-        zip.addLocalFile(file, path.dirname(relativePath));
+        archiveFiles.push({
+          name: relativePath.replace(/\\/g, "/"),
+          path: file,
+        });
         totalOriginalSize += fs.statSync(file).size;
         fileCount++;
       }
     } else {
-      zip.addLocalFile(resolved);
+      archiveFiles.push({ name: path.basename(resolved), path: resolved });
       totalOriginalSize += stat.size;
       fileCount++;
     }
@@ -123,9 +133,10 @@ function compressFiles(paths, outputPath, projectRoot) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  zip.writeZip(resolvedOutput);
-
-  const compressedSize = fs.statSync(resolvedOutput).size;
+  const { archiveSize: compressedSize } = writeArchiveFromFiles(
+    resolvedOutput,
+    archiveFiles,
+  );
   const ratio =
     totalOriginalSize > 0
       ? ((compressedSize / totalOriginalSize) * 100).toFixed(1)
@@ -147,54 +158,37 @@ function compressFiles(paths, outputPath, projectRoot) {
 // ── Extract ─────────────────────────────────────────
 
 function extractArchive(zipPath, targetDir) {
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip(zipPath);
-  const entries = zip.getEntries();
-
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-
-  zip.extractAllTo(targetDir, true);
-
-  const fileEntries = entries.filter((e) => !e.isDirectory);
-  let totalSize = 0;
-  for (const entry of fileEntries) {
-    totalSize += entry.header.size;
-  }
+  const { fileCount, totalSize } = extractArchiveTo(zipPath, targetDir);
 
   return {
     success: true,
     result: {
       target: targetDir,
-      fileCount: fileEntries.length,
+      fileCount,
       totalSize,
     },
-    message: `## Extracted ${path.basename(zipPath)}\n\n- **Files extracted**: ${fileEntries.length}\n- **Total size**: ${formatBytes(totalSize)}\n- **Target directory**: ${targetDir}`,
+    message: `## Extracted ${path.basename(zipPath)}\n\n- **Files extracted**: ${fileCount}\n- **Total size**: ${formatBytes(totalSize)}\n- **Target directory**: ${targetDir}`,
   };
 }
 
 // ── List ────────────────────────────────────────────
 
 function listArchive(zipPath) {
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip(zipPath);
-  const entries = zip.getEntries();
+  const { entries } = inspectArchive(zipPath);
 
   const MAX_DISPLAY = 50;
-  const fileEntries = entries.filter((e) => !e.isDirectory);
+  const fileEntries = entries.filter((entry) => !entry.isDirectory);
 
   const rows = fileEntries.slice(0, MAX_DISPLAY).map((entry) => {
-    const method =
-      entry.header.compressedSize < entry.header.size ? "deflate" : "store";
-    return `| ${entry.entryName} | ${formatBytes(entry.header.size)} | ${formatBytes(entry.header.compressedSize)} | ${method} |`;
+    const method = entry.compressedSize < entry.size ? "deflate" : "store";
+    return `| ${entry.name} | ${formatBytes(entry.size)} | ${formatBytes(entry.compressedSize)} | ${method} |`;
   });
 
   let totalCompressed = 0;
   let totalOriginal = 0;
   for (const entry of fileEntries) {
-    totalCompressed += entry.header.compressedSize;
-    totalOriginal += entry.header.size;
+    totalCompressed += entry.compressedSize;
+    totalOriginal += entry.size;
   }
 
   const truncated =
@@ -209,9 +203,9 @@ function listArchive(zipPath) {
       totalCompressed,
       totalOriginal,
       entries: fileEntries.slice(0, MAX_DISPLAY).map((e) => ({
-        name: e.entryName,
-        size: e.header.size,
-        compressedSize: e.header.compressedSize,
+        name: e.name,
+        size: e.size,
+        compressedSize: e.compressedSize,
       })),
     },
     message: `## Archive Contents: ${path.basename(zipPath)}\n\n**Entries**: ${fileEntries.length} files\n\n| Name | Original | Compressed | Method |\n|------|----------|------------|--------|\n${rows.join("\n")}${truncated}\n\n**Total**: ${formatBytes(totalOriginal)} original, ${formatBytes(totalCompressed)} compressed`,
@@ -221,12 +215,10 @@ function listArchive(zipPath) {
 // ── Info ────────────────────────────────────────────
 
 function archiveInfo(zipPath) {
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip(zipPath);
-  const entries = zip.getEntries();
+  const { entries } = inspectArchive(zipPath);
 
-  const fileEntries = entries.filter((e) => !e.isDirectory);
-  const dirEntries = entries.filter((e) => e.isDirectory);
+  const fileEntries = entries.filter((entry) => !entry.isDirectory);
+  const dirEntries = entries.filter((entry) => entry.isDirectory);
 
   let totalCompressed = 0;
   let totalOriginal = 0;
@@ -234,14 +226,14 @@ function archiveInfo(zipPath) {
   let smallest = { name: "", size: Infinity };
 
   for (const entry of fileEntries) {
-    totalCompressed += entry.header.compressedSize;
-    totalOriginal += entry.header.size;
+    totalCompressed += entry.compressedSize;
+    totalOriginal += entry.size;
 
-    if (entry.header.size > largest.size) {
-      largest = { name: entry.entryName, size: entry.header.size };
+    if (entry.size > largest.size) {
+      largest = { name: entry.name, size: entry.size };
     }
-    if (entry.header.size < smallest.size) {
-      smallest = { name: entry.entryName, size: entry.header.size };
+    if (entry.size < smallest.size) {
+      smallest = { name: entry.name, size: entry.size };
     }
   }
 
@@ -401,3 +393,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("file-compressor", module.exports);

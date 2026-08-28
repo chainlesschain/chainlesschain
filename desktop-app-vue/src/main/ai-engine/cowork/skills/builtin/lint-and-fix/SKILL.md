@@ -27,7 +27,7 @@ examples:
     output: "Lint report: 23 errors, 56 warnings across 15 files. No changes applied."
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, process:cwd, process:execute, system:inspect]
 handler: ./handler.js
 ---
 

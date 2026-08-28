@@ -12,6 +12,10 @@ const {
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const https = createBundledSkillHttpsClient("google-workspace");
 
 const _deps = { https };
@@ -483,7 +487,6 @@ async function handleDriveUpload(parsed, creds) {
     };
   }
 
-  const fs = require("fs");
   const path = require("path");
 
   if (!fs.existsSync(filePath)) {
@@ -531,3 +534,5 @@ async function handleDriveUpload(parsed, creds) {
     message: `Upload initiated for "${fileName}" (${(fileSize / 1024).toFixed(1)} KB) to folder "${parsed.params.folder}". Complete the upload with the resumable session.`,
   };
 }
+
+module.exports = withBundledSkillFilesystem("google-workspace", module.exports);

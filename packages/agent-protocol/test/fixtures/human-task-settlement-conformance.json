@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+  "actions": ["approve", "decline", "cancel", "restart", "advance"],
+  "scenarios": [
+    {
+      "name": "decision-wins-duplicate-response",
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "quorum": 1,
+      "separation_of_duties": false,
+      "steps": [
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled",
+            "jetbrains": "settled"
+          }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected",
+            "jetbrains": "rejected"
+          }
+        }
+      ],
+      "expected": {
+        "winner": "approve",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "pending",
+          "run_status": "running",
+          "decision_count": 1,
+          "decision_kind": "acceptOnce"
+        },
+        "desktop": {
+          "pending_approvals": 0,
+          "granted_events": 1,
+          "interrupted_events": 0,
+          "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        }
+      }
+    },
+    {
+      "name": "cancel-wins-late-decision",
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "quorum": 1,
+      "separation_of_duties": false,
+      "steps": [
+        {
+          "action": "cancel",
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled",
+            "jetbrains": "settled"
+          }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected",
+            "jetbrains": "rejected"
+          }
+        }
+      ],
+      "expected": {
+        "winner": "cancel",
+        "graph": {
+          "task_status": "cancelled",
+          "node_status": "cancelled",
+          "run_status": "cancelled",
+          "decision_count": 0,
+          "decision_kind": null
+        },
+        "desktop": {
+          "pending_approvals": 0,
+          "granted_events": 0,
+          "interrupted_events": 1,
+          "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
+        }
+      }
+    },
+    {
+      "name": "restart-recovers-durable-task-but-invalidates-transport-card",
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "quorum": 1,
+      "separation_of_duties": false,
+      "steps": [
+        {
+          "action": "restart",
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled",
+            "jetbrains": "settled"
+          }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": {
+            "graph": "settled",
+            "desktop": "rejected",
+            "vscode": "rejected",
+            "jetbrains": "rejected"
+          }
+        }
+      ],
+      "expected": {
+        "winner": "approve",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "pending",
+          "run_status": "running",
+          "decision_count": 1,
+          "decision_kind": "acceptOnce"
+        },
+        "desktop": {
+          "pending_approvals": 0,
+          "granted_events": 0,
+          "interrupted_events": 0,
+          "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
+        }
+      }
+    },
+    {
+      "name": "decision-persists-across-restart",
+      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "quorum": 1,
+      "separation_of_duties": false,
+      "steps": [
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled",
+            "jetbrains": "settled"
+          }
+        },
+        {
+          "action": "restart",
+          "expect": {
+            "graph": "settled",
+            "desktop": "settled",
+            "vscode": "settled",
+            "jetbrains": "settled"
+          }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-2",
+          "expect": {
+            "graph": "rejected",
+            "desktop": "rejected",
+            "vscode": "rejected",
+            "jetbrains": "rejected"
+          }
+        }
+      ],
+      "expected": {
+        "winner": "approve",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "pending",
+          "run_status": "running",
+          "decision_count": 1,
+          "decision_kind": "acceptOnce"
+        },
+        "desktop": {
+          "pending_approvals": 0,
+          "granted_events": 1,
+          "interrupted_events": 0,
+          "rejected_responses": 1
+        },
+        "vscode": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        }
+      }
+    },
+    {
+      "name": "quorum-requires-all-accepted-decisions",
+      "surfaces": ["graph"],
+      "quorum": 2,
+      "separation_of_duties": true,
+      "steps": [
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": { "graph": "settled" }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-2",
+          "expect": { "graph": "settled" }
+        }
+      ],
+      "expected": {
+        "winner": "approve",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "pending",
+          "run_status": "running",
+          "decision_count": 2,
+          "decision_kind": "acceptOnce"
+        }
+      }
+    },
+    {
+      "name": "separation-of-duties-rejects-repeat-actor",
+      "surfaces": ["graph"],
+      "quorum": 2,
+      "separation_of_duties": true,
+      "steps": [
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": { "graph": "settled" }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-1",
+          "expect": { "graph": "rejected" }
+        },
+        {
+          "action": "advance",
+          "milliseconds": 20,
+          "expect": { "graph": "settled" }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-2",
+          "expect": { "graph": "settled" }
+        }
+      ],
+      "expected": {
+        "winner": "approve",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "pending",
+          "run_status": "running",
+          "decision_count": 2,
+          "decision_kind": "acceptOnce"
+        }
+      }
+    },
+    {
+      "name": "decline-short-circuits-quorum",
+      "surfaces": ["graph"],
+      "quorum": 2,
+      "separation_of_duties": true,
+      "steps": [
+        {
+          "action": "decline",
+          "actor_id": "reviewer-1",
+          "expect": { "graph": "settled" }
+        },
+        {
+          "action": "approve",
+          "actor_id": "reviewer-2",
+          "expect": { "graph": "rejected" }
+        }
+      ],
+      "expected": {
+        "winner": "decline",
+        "graph": {
+          "task_status": "decided",
+          "node_status": "failed",
+          "run_status": "failed",
+          "decision_count": 1,
+          "decision_kind": "decline"
+        }
+      }
+    }
+  ]
+}

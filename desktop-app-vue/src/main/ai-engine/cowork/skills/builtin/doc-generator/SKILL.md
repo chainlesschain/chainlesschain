@@ -19,7 +19,7 @@ tools:
   - file_writer
   - code_analyzer
 supported-file-types: [js, ts, py, java, kt, vue, jsx, tsx]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, process:cwd, process:execute]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs to generate documentation from source code.

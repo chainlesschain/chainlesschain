@@ -6,7 +6,10 @@
  * Modes: --schema, --type, --count
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const crypto = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
@@ -651,3 +654,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "mock-data-generator",
+  module.exports,
+);

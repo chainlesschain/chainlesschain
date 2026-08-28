@@ -105,6 +105,10 @@ describe("createWsApprovalGate", () => {
       deps: {
         loadSingletons: async () => ({ getApprovalGate: async () => inner }),
         loadSessionCore: () => import("@chainlesschain/session-core"),
+        sessionStore: {
+          findLatestEvent: () => null,
+          appendAuthorityEvent: () => true,
+        },
         ...(confirmer ? { confirmer } : {}),
       },
     };
@@ -221,5 +225,58 @@ describe("createWsApprovalGate", () => {
     const res2 = await pending2;
     expect(res2.decision).toBe("allow");
     expect(res2.via).toBe("user-confirm");
+  });
+
+  it("persists, restores, reviews and revokes an exact session grant", async () => {
+    let persisted = null;
+    const sessionStore = {
+      findLatestEvent: vi.fn(() =>
+        persisted ? { type: "approval_grants", data: persisted } : null,
+      ),
+      appendAuthorityEvent: vi.fn((_sessionId, _type, data) => {
+        persisted = structuredClone(data);
+        return { success: true };
+      }),
+    };
+    const interaction = {
+      askApproval: vi.fn(async () => ({ kind: "acceptForSession" })),
+    };
+    const { deps } = makeDeps();
+    deps.sessionStore = sessionStore;
+    const gate = await createWsApprovalGate({
+      sessionId: "sess-persist",
+      interaction,
+      cwd: "C:/repo",
+      deps,
+    });
+    gate.beginTurn("turn-1");
+    const context = {
+      sessionId: "sess-persist",
+      riskLevel: "high",
+      tool: "run_shell",
+      args: { command: "npm test" },
+    };
+    expect((await gate.decide(context)).decision).toBe("allow");
+    expect(sessionStore.appendAuthorityEvent).toHaveBeenCalledTimes(1);
+    const [grant] = gate.listGrants();
+    expect(grant).toMatchObject({
+      lifetime: "session",
+      permission: { capability: "tool:run_shell" },
+    });
+
+    const restoredInteraction = { askApproval: vi.fn() };
+    const restored = await createWsApprovalGate({
+      sessionId: "sess-persist",
+      interaction: restoredInteraction,
+      cwd: "C:/repo",
+      deps,
+    });
+    restored.beginTurn("turn-2");
+    expect((await restored.decide(context)).decision).toBe("allow");
+    expect(restoredInteraction.askApproval).not.toHaveBeenCalled();
+    expect(restored.revokeGrant(grant.grantId)).toMatchObject({
+      success: true,
+    });
+    expect(restored.listGrants()).toEqual([]);
   });
 });

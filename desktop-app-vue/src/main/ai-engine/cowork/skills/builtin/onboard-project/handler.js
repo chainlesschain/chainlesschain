@@ -5,7 +5,10 @@
  * a comprehensive onboarding document. Inspired by Continue.dev's /onboard.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -448,3 +451,5 @@ async function handleReviewer(targetDir) {
     message: sections.join("\n"),
   };
 }
+
+module.exports = withBundledSkillFilesystem("onboard-project", module.exports);

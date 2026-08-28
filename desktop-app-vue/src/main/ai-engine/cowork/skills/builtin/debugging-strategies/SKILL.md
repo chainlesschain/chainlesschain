@@ -26,7 +26,7 @@ capabilities:
     session-tracking,
   ]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 ---
 

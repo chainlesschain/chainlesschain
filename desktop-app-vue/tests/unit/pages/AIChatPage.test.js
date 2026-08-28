@@ -73,6 +73,7 @@ const mockCodingAgentStore = vi.hoisted(() => ({
   showPlan: vi.fn().mockResolvedValue(),
   enterPlanMode: vi.fn().mockResolvedValue(),
   respondApproval: vi.fn().mockResolvedValue(),
+  revokeApprovalGrant: vi.fn().mockResolvedValue(),
   enterReview: vi.fn().mockResolvedValue(null),
   submitReviewComment: vi.fn().mockResolvedValue(null),
   resolveReview: vi.fn().mockResolvedValue(null),
@@ -233,6 +234,7 @@ describe("AIChatPage", () => {
     mockCodingAgentStore.showPlan.mockClear();
     mockCodingAgentStore.enterPlanMode.mockClear();
     mockCodingAgentStore.respondApproval.mockClear();
+    mockCodingAgentStore.revokeApprovalGrant.mockClear();
     mockCodingAgentStore.sendMessage.mockClear();
     mockCodingAgentStore.sendMessage.mockResolvedValue({
       success: true,
@@ -1542,6 +1544,68 @@ describe("AIChatPage", () => {
       expect(mockCodingAgentStore.sendMessage).not.toHaveBeenCalled();
       expect(mockMessage.info).toHaveBeenCalledWith(
         "High-risk actions were cancelled.",
+      );
+    });
+
+    it("renders an exact tool approval and sends only the chosen lifetime", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "inactive",
+        pendingApprovals: [
+          {
+            sessionId: "session-1",
+            requestId: "approval-1",
+            binding: "ab_trusted",
+            tool: "run_shell",
+            command: "npm test",
+            risk: "high",
+            status: "pending",
+            requestedPermissions: [
+              { capability: "tool:run_shell", scope: "exact-scope" },
+            ],
+          },
+        ],
+        approvalGrants: [],
+      };
+
+      await mountApprovalPage();
+      expect(wrapper.text()).toContain("Approve run_shell?");
+      expect(wrapper.text()).toContain("npm test");
+      expect(wrapper.text()).toContain("Approve for Session");
+
+      await wrapper.vm.handleToolApproval("acceptForSession");
+      expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
+        approvalType: "tool",
+        requestId: "approval-1",
+        decision: { kind: "acceptForSession" },
+      });
+    });
+
+    it("reviews and revokes a reusable session grant", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "inactive",
+        pendingApprovals: [],
+        approvalGrants: [
+          {
+            grantId: "grant-1",
+            lifetime: "session",
+            permission: {
+              capability: "tool:run_shell",
+              scope: "exact-scope",
+            },
+          },
+        ],
+      };
+
+      await mountApprovalPage();
+      expect(wrapper.text()).toContain("Session approval grants");
+      expect(wrapper.text()).toContain("tool:run_shell");
+      await wrapper.vm.handleRevokeApprovalGrant("grant-1");
+      expect(mockCodingAgentStore.revokeApprovalGrant).toHaveBeenCalledWith(
+        "grant-1",
       );
     });
   });

@@ -3,6 +3,7 @@ import { createLogger } from "@/utils/logger";
 import type {
   CodingAgentBackgroundTask,
   CodingAgentApprovalDecision,
+  CodingAgentApprovalGrant,
   CodingAgentEvent,
   CodingAgentHarnessStatus,
   CodingAgentPatch,
@@ -1387,13 +1388,49 @@ export const useCodingAgentStore = defineStore("coding-agent", {
     async respondApproval(payload: {
       decision: CodingAgentApprovalDecision;
       approvalType?: string;
+      requestId?: string;
     }): Promise<void> {
       if (!this.currentSessionId) return;
-      await (window as any).electronAPI.codingAgent.respondApproval({
+      const result = await (
+        window as any
+      ).electronAPI.codingAgent.respondApproval({
         sessionId: this.currentSessionId,
         ...payload,
       });
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to respond to approval");
+      }
       await this.fetchSessionState(this.currentSessionId);
+    },
+
+    async loadApprovalGrants(): Promise<CodingAgentApprovalGrant[]> {
+      if (!this.currentSessionId) return [];
+      const result = await (
+        window as any
+      ).electronAPI.codingAgent.listApprovalGrants(this.currentSessionId);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to list approval grants");
+      }
+      if (this.currentSession) {
+        this.currentSession.approvalGrants = result.grants || [];
+      }
+      return result.grants || [];
+    },
+
+    async revokeApprovalGrant(grantId: string): Promise<void> {
+      if (!this.currentSessionId) return;
+      const result = await (
+        window as any
+      ).electronAPI.codingAgent.revokeApprovalGrant({
+        sessionId: this.currentSessionId,
+        grantId,
+      });
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to revoke approval grant");
+      }
+      if (this.currentSession) {
+        this.currentSession.approvalGrants = result.grants || [];
+      }
     },
 
     async confirmHighRiskExecution(): Promise<void> {

@@ -19,6 +19,20 @@ describe("useCodingAgentStore", () => {
 
     codingAgentApi = {
       respondApproval: vi.fn().mockResolvedValue({ success: true }),
+      listApprovalGrants: vi.fn().mockResolvedValue({
+        success: true,
+        grants: [
+          {
+            grantId: "grant-1",
+            lifetime: "session",
+            permission: { capability: "tool:run_shell", scope: "exact" },
+          },
+        ],
+      }),
+      revokeApprovalGrant: vi.fn().mockResolvedValue({
+        success: true,
+        grants: [],
+      }),
       respondQuestion: vi.fn().mockResolvedValue({
         success: true,
         sessionId: "session-1",
@@ -384,6 +398,24 @@ describe("useCodingAgentStore", () => {
       decision: { kind: "acceptOnce" },
     });
     expect(codingAgentApi.getSessionState).toHaveBeenCalledWith("session-1");
+  });
+
+  it("reviews and revokes session approval grants", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    store.currentSession = { sessionId: "session-1", status: "ready" } as any;
+
+    const grants = await store.loadApprovalGrants();
+    expect(grants[0]?.grantId).toBe("grant-1");
+    expect(store.currentSession.approvalGrants).toHaveLength(1);
+
+    await store.revokeApprovalGrant("grant-1");
+    expect(codingAgentApi.revokeApprovalGrant).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      grantId: "grant-1",
+    });
+    expect(store.currentSession.approvalGrants).toEqual([]);
   });
 
   it("interrupt routes through the interrupt IPC handler", async () => {

@@ -259,6 +259,42 @@
   gap: 8px;
 }
 
+.approval-command {
+  max-width: min(100%, 720px);
+  overflow-wrap: anywhere;
+  color: #7c2d12;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+
+.approval-permission {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+.approval-grant-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(245, 158, 11, 0.14);
+}
+
+.approval-grant-row + .approval-grant-row {
+  margin-top: 8px;
+}
+
 .approval-panel-actions {
   display: flex;
   flex-wrap: wrap;

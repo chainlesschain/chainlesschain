@@ -6,6 +6,7 @@ const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { getGitCredentialStore } = require("./git-credential-store");
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)
@@ -63,10 +64,89 @@ const DEFAULT_CONFIG = {
  * Git配置管理器
  */
 class GitConfig {
-  constructor() {
-    this.configPath = this.getConfigPath();
+  constructor(options = {}) {
+    this.configPath = options.configPath || this.getConfigPath();
+    this.credentialStore = options.credentialStore || getGitCredentialStore();
     this.config = { ...DEFAULT_CONFIG };
     this.loaded = false;
+  }
+
+  _sealAuth(auth, scope) {
+    if (!auth || typeof auth !== "object" || Array.isArray(auth)) {
+      return { auth: auth || null, changed: false };
+    }
+    const secrets = {};
+    if (typeof auth.token === "string" && auth.token) {
+      secrets.token = auth.token;
+    }
+    if (typeof auth.password === "string" && auth.password) {
+      secrets.password = auth.password;
+    }
+    if (Object.keys(secrets).length === 0) {
+      return { auth: { ...auth }, changed: false };
+    }
+    const references = this.credentialStore.set(scope, secrets);
+    const sealed = { ...auth, ...references };
+    delete sealed.token;
+    delete sealed.password;
+    return { auth: sealed, changed: true };
+  }
+
+  _resolveAuth(auth) {
+    if (!auth || typeof auth !== "object" || Array.isArray(auth)) {
+      return null;
+    }
+    const resolved = { ...auth };
+    if (auth.tokenRef) {
+      resolved.token = this.credentialStore.get(auth.tokenRef);
+    }
+    if (auth.passwordRef) {
+      resolved.password = this.credentialStore.get(auth.passwordRef);
+    }
+    delete resolved.tokenRef;
+    delete resolved.passwordRef;
+    return resolved;
+  }
+
+  _sealCredentials() {
+    let changed = false;
+    const root = this._sealAuth(this.config.auth, "default");
+    this.config.auth = root.auth;
+    changed ||= root.changed;
+
+    if (Array.isArray(this.config.providers)) {
+      this.config.providers = this.config.providers.map((provider, index) => {
+        if (!provider || typeof provider !== "object") {
+          return provider;
+        }
+        const scope = `provider:${provider.name || provider.type || index}`;
+        const result = this._sealAuth(provider.auth, scope);
+        changed ||= result.changed;
+        return { ...provider, auth: result.auth };
+      });
+    }
+    return changed;
+  }
+
+  _writeConfigSync() {
+    const dir = path.dirname(this.configPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(
+      this.configPath,
+      JSON.stringify(this.config, null, 2),
+      "utf8",
+    );
+  }
+
+  async _writeConfigAsync() {
+    await _deps.fsp.mkdir(path.dirname(this.configPath), { recursive: true });
+    await _deps.fsp.writeFile(
+      this.configPath,
+      JSON.stringify(this.config, null, 2),
+      "utf8",
+    );
   }
 
   /**
@@ -90,6 +170,10 @@ class GitConfig {
           ...DEFAULT_CONFIG,
           ...savedConfig,
         };
+
+        if (this._sealCredentials()) {
+          this._writeConfigSync();
+        }
 
         this.loaded = true;
         // 加载配置时使用直接console.log，因为gitLog还未初始化
@@ -122,6 +206,9 @@ class GitConfig {
         ...DEFAULT_CONFIG,
         ...savedConfig,
       };
+      if (this._sealCredentials()) {
+        await this._writeConfigAsync();
+      }
       this.loaded = true;
       if (this.config.enableLogging) {
         logger.info("[GitConfig] 配置加载成功");
@@ -143,16 +230,8 @@ class GitConfig {
    */
   save() {
     try {
-      const dir = path.dirname(this.configPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      fs.writeFileSync(
-        this.configPath,
-        JSON.stringify(this.config, null, 2),
-        "utf8",
-      );
+      this._sealCredentials();
+      this._writeConfigSync();
 
       if (this.config.enableLogging) {
         logger.info("[GitConfig] 配置保存成功");
@@ -186,6 +265,9 @@ class GitConfig {
    * 设置配置项
    */
   set(key, value) {
+    if (key === "auth") {
+      return this.setAuth(value);
+    }
     const keys = key.split(".");
     let target = this.config;
 
@@ -204,15 +286,47 @@ class GitConfig {
    * 获取全部配置
    */
   getAll() {
-    return { ...this.config };
+    const publicConfig = JSON.parse(JSON.stringify(this.config));
+    const redactAuth = (auth) => {
+      if (!auth || typeof auth !== "object") {
+        return auth || null;
+      }
+      const result = { ...auth };
+      const credentialConfigured = Boolean(
+        result.tokenRef || result.passwordRef,
+      );
+      delete result.tokenRef;
+      delete result.passwordRef;
+      delete result.token;
+      delete result.password;
+      return { ...result, credentialConfigured };
+    };
+    publicConfig.auth = redactAuth(publicConfig.auth);
+    if (Array.isArray(publicConfig.providers)) {
+      publicConfig.providers = publicConfig.providers.map((provider) => ({
+        ...provider,
+        auth: redactAuth(provider?.auth),
+      }));
+    }
+    return publicConfig;
+  }
+
+  getProviderConfigs() {
+    return Array.isArray(this.config.providers)
+      ? this.config.providers.map((provider) => ({
+          ...provider,
+          auth: this._resolveAuth(provider?.auth),
+        }))
+      : [];
   }
 
   /**
    * 重置为默认配置
    */
   reset() {
+    this.credentialStore.clearAll();
     this.config = { ...DEFAULT_CONFIG };
-    this.save();
+    return this.save();
   }
 
   // 便捷方法
@@ -258,12 +372,21 @@ class GitConfig {
   }
 
   getAuth() {
-    return this.config.auth;
+    return this._resolveAuth(this.config.auth);
   }
 
   setAuth(auth) {
-    this.config.auth = auth;
-    this.save();
+    if (auth == null) {
+      this.credentialStore.clear("default");
+      this.config.auth = null;
+    } else {
+      const sealed = this._sealAuth(auth, "default");
+      this.config.auth = sealed.auth;
+    }
+    if (!this.save()) {
+      throw new Error("Unable to persist Git credential references");
+    }
+    return true;
   }
 
   isAutoSyncEnabled() {

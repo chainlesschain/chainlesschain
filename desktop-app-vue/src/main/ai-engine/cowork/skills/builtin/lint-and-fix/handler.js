@@ -6,10 +6,15 @@
  * pattern inspired by Aider.
  */
 
-const { execSync } = require("child_process");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const LINTER_CONFIGS = {
   eslint: {
@@ -23,8 +28,8 @@ const LINTER_CONFIGS = {
       "eslint.config.mjs",
       "eslint.config.cjs",
     ],
-    runCmd: "npx eslint --format json",
-    fixCmd: "npx eslint --fix --format json",
+    runArgs: ["eslint", "--format", "json"],
+    fixArgs: ["eslint", "--fix", "--format", "json"],
     lang: "js/ts",
   },
   prettier: {
@@ -37,8 +42,8 @@ const LINTER_CONFIGS = {
       "prettier.config.js",
       "prettier.config.cjs",
     ],
-    runCmd: "npx prettier --check",
-    fixCmd: "npx prettier --write",
+    runArgs: ["prettier", "--check"],
+    fixArgs: ["prettier", "--write"],
     lang: "js/ts/css",
   },
 };
@@ -78,10 +83,17 @@ module.exports = {
           targetPath,
           workspaceRoot,
           options.strict,
+          context,
         );
       }
 
-      return await handleLintAndFix(linter, targetPath, workspaceRoot, options);
+      return await handleLintAndFix(
+        linter,
+        targetPath,
+        workspaceRoot,
+        options,
+        context,
+      );
     } catch (error) {
       logger.error(`[LintAndFix] Error: ${error.message}`);
       return {
@@ -164,19 +176,22 @@ function detectLinter(projectRoot) {
   return null;
 }
 
-function runLinter(linter, targetPath, projectRoot, fix = false) {
-  const cmd = fix ? linter.fixCmd : linter.runCmd;
-  const fullCmd = `${cmd} "${targetPath}"`;
+function runLinter(linter, targetPath, projectRoot, fix, context) {
+  const args = [...(fix ? linter.fixArgs : linter.runArgs), targetPath];
 
   try {
-    const output = execSync(fullCmd, {
-      encoding: "utf-8",
+    const output = requireBundledSkillProcessBroker(
+      context,
+      "lint-and-fix",
+    ).execFileSync(process.platform === "win32" ? "npx.cmd" : "npx", args, {
       cwd: projectRoot,
-      timeout: 60000,
-      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 60_000,
     });
     return { success: true, output, issues: [] };
   } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     const output = (error.stdout || "") + (error.stderr || "");
     const issues = parseLintOutput(output, linter.key);
     return { success: false, output, issues };
@@ -252,8 +267,14 @@ function formatIssues(issues) {
   return { summary, details: details.join("\n") };
 }
 
-async function handleCheckOnly(linter, targetPath, projectRoot, strict) {
-  const result = runLinter(linter, targetPath, projectRoot, false);
+async function handleCheckOnly(
+  linter,
+  targetPath,
+  projectRoot,
+  strict,
+  context,
+) {
+  const result = runLinter(linter, targetPath, projectRoot, false, context);
   const issues = strict
     ? result.issues
     : result.issues.filter((i) => i.severity === "error");
@@ -280,7 +301,13 @@ async function handleCheckOnly(linter, targetPath, projectRoot, strict) {
   };
 }
 
-async function handleLintAndFix(linter, targetPath, projectRoot, options) {
+async function handleLintAndFix(
+  linter,
+  targetPath,
+  projectRoot,
+  options,
+  context,
+) {
   const rounds = [];
   let iteration = 0;
   let totalFixed = 0;
@@ -289,10 +316,16 @@ async function handleLintAndFix(linter, targetPath, projectRoot, options) {
     iteration++;
 
     // Run with --fix first
-    const fixResult = runLinter(linter, targetPath, projectRoot, true);
+    const fixResult = runLinter(linter, targetPath, projectRoot, true, context);
 
     // Run again to check remaining
-    const checkResult = runLinter(linter, targetPath, projectRoot, false);
+    const checkResult = runLinter(
+      linter,
+      targetPath,
+      projectRoot,
+      false,
+      context,
+    );
     const remaining = options.strict
       ? checkResult.issues
       : checkResult.issues.filter((i) => i.severity === "error");
@@ -352,3 +385,5 @@ async function handleLintAndFix(linter, targetPath, projectRoot, options) {
     message: lines.join("\n"),
   };
 }
+
+module.exports = withBundledSkillFilesystem("lint-and-fix", module.exports);

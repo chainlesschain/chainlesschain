@@ -18,7 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill for database schema management tasks. Inspect current schema from

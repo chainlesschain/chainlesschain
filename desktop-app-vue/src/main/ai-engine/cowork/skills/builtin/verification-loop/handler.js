@@ -8,10 +8,15 @@
  * Inspired by the everything-claude-code verification loop pattern.
  */
 
-const { execSync } = require("child_process");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const ALL_STAGES = [
   "build",
@@ -62,22 +67,22 @@ module.exports = {
 
         switch (stage) {
           case "build":
-            stageResult = stageBuild(workspaceRoot, projectType);
+            stageResult = stageBuild(workspaceRoot, projectType, context);
             break;
           case "typecheck":
-            stageResult = stageTypeCheck(workspaceRoot, projectType);
+            stageResult = stageTypeCheck(workspaceRoot, projectType, context);
             break;
           case "lint":
-            stageResult = stageLint(workspaceRoot, projectType);
+            stageResult = stageLint(workspaceRoot, projectType, context);
             break;
           case "test":
-            stageResult = stageTest(workspaceRoot, projectType);
+            stageResult = stageTest(workspaceRoot, projectType, context);
             break;
           case "security":
             stageResult = await stageSecurity(workspaceRoot, context);
             break;
           case "diffreview":
-            stageResult = stageDiffReview(workspaceRoot);
+            stageResult = stageDiffReview(workspaceRoot, context);
             break;
           default:
             stageResult = { passed: false, details: `Unknown stage: ${stage}` };
@@ -191,16 +196,20 @@ function safeReadJSON(filePath) {
   }
 }
 
-function runCommand(cmd, cwd, timeoutMs = 120000) {
+function runCommand(file, args, cwd, timeoutMs, context) {
   try {
-    const output = execSync(cmd, {
-      encoding: "utf-8",
+    const output = requireBundledSkillProcessBroker(
+      context,
+      "verification-loop",
+    ).execFileSync(file, args, {
       cwd,
       timeout: timeoutMs,
-      stdio: ["pipe", "pipe", "pipe"],
     });
     return { exitCode: 0, output: output || "" };
   } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return {
       exitCode: error.status || 1,
       output: (error.stdout || "") + (error.stderr || ""),
@@ -212,28 +221,30 @@ function runCommand(cmd, cwd, timeoutMs = 120000) {
 // Stage Implementations
 // ============================================================
 
-function stageBuild(projectRoot, projectType) {
+function stageBuild(projectRoot, projectType, context) {
   logger.info("[VerificationLoop] Stage: Build");
 
-  let cmd;
+  let file;
+  let args;
   switch (projectType) {
     case "typescript":
     case "nodejs": {
       const pkg = safeReadJSON(path.join(projectRoot, "package.json"));
       const scripts = pkg.scripts || {};
       if (scripts.build) {
-        cmd = "npm run build";
+        file = process.platform === "win32" ? "npm.cmd" : "npm";
+        args = ["run", "build"];
       } else if (scripts["build:main"]) {
-        cmd = "npm run build:main";
+        file = process.platform === "win32" ? "npm.cmd" : "npm";
+        args = ["run", "build:main"];
       } else {
         return { passed: true, details: "No build script found, skipping" };
       }
       break;
     }
     case "java":
-      cmd = fs.existsSync(path.join(projectRoot, "mvnw"))
-        ? "./mvnw compile -q"
-        : "mvn compile -q";
+      file = process.platform === "win32" ? "mvn.cmd" : "mvn";
+      args = ["compile", "-q"];
       break;
     case "python":
       return { passed: true, details: "Python: no compile step needed" };
@@ -241,7 +252,7 @@ function stageBuild(projectRoot, projectType) {
       return { passed: true, details: "No build step detected" };
   }
 
-  const result = runCommand(cmd, projectRoot, 180000);
+  const result = runCommand(file, args, projectRoot, 180_000, context);
   if (result.exitCode === 0) {
     return { passed: true, details: "Clean build" };
   }
@@ -255,7 +266,7 @@ function stageBuild(projectRoot, projectType) {
   };
 }
 
-function stageTypeCheck(projectRoot, projectType) {
+function stageTypeCheck(projectRoot, projectType, context) {
   logger.info("[VerificationLoop] Stage: TypeCheck");
 
   if (projectType === "typescript") {
@@ -263,7 +274,13 @@ function stageTypeCheck(projectRoot, projectType) {
     if (!hasTsConfig) {
       return { passed: true, details: "No tsconfig.json, skipping" };
     }
-    const result = runCommand("npx tsc --noEmit", projectRoot, 120000);
+    const result = runCommand(
+      process.platform === "win32" ? "npx.cmd" : "npx",
+      ["tsc", "--noEmit"],
+      projectRoot,
+      120_000,
+      context,
+    );
     if (result.exitCode === 0) {
       return { passed: true, details: "0 type errors" };
     }
@@ -276,9 +293,11 @@ function stageTypeCheck(projectRoot, projectType) {
 
   if (projectType === "python") {
     const result = runCommand(
-      "python -m mypy . --ignore-missing-imports",
+      "python",
+      ["-m", "mypy", ".", "--ignore-missing-imports"],
       projectRoot,
-      120000,
+      120_000,
+      context,
     );
     if (result.exitCode === 0) {
       return { passed: true, details: "mypy: 0 errors" };
@@ -293,31 +312,35 @@ function stageTypeCheck(projectRoot, projectType) {
   return { passed: true, details: "No type checker applicable" };
 }
 
-function stageLint(projectRoot, projectType) {
+function stageLint(projectRoot, projectType, context) {
   logger.info("[VerificationLoop] Stage: Lint");
 
-  let cmd;
+  let file;
+  let args;
   switch (projectType) {
     case "typescript":
     case "nodejs": {
       const pkg = safeReadJSON(path.join(projectRoot, "package.json"));
       const scripts = pkg.scripts || {};
       if (scripts.lint) {
-        cmd = "npm run lint";
+        file = process.platform === "win32" ? "npm.cmd" : "npm";
+        args = ["run", "lint"];
       } else if (
         fs.existsSync(path.join(projectRoot, ".eslintrc.js")) ||
         fs.existsSync(path.join(projectRoot, ".eslintrc.json")) ||
         fs.existsSync(path.join(projectRoot, "eslint.config.js")) ||
         fs.existsSync(path.join(projectRoot, "eslint.config.mjs"))
       ) {
-        cmd = "npx eslint . --max-warnings=0";
+        file = process.platform === "win32" ? "npx.cmd" : "npx";
+        args = ["eslint", ".", "--max-warnings=0"];
       } else {
         return { passed: true, details: "No linter configured" };
       }
       break;
     }
     case "python":
-      cmd = "python -m flake8 . --count --statistics";
+      file = "python";
+      args = ["-m", "flake8", ".", "--count", "--statistics"];
       break;
     case "java":
       return { passed: true, details: "Java: lint via build plugins" };
@@ -325,7 +348,7 @@ function stageLint(projectRoot, projectType) {
       return { passed: true, details: "No linter detected" };
   }
 
-  const result = runCommand(cmd, projectRoot, 60000);
+  const result = runCommand(file, args, projectRoot, 60_000, context);
   if (result.exitCode === 0) {
     return { passed: true, details: "0 lint issues" };
   }
@@ -336,10 +359,11 @@ function stageLint(projectRoot, projectType) {
   return { passed: false, details: `Lint: ${issueCount}` };
 }
 
-function stageTest(projectRoot, projectType) {
+function stageTest(projectRoot, projectType, context) {
   logger.info("[VerificationLoop] Stage: Test");
 
-  let cmd;
+  let file;
+  let args;
   switch (projectType) {
     case "typescript":
     case "nodejs": {
@@ -347,29 +371,32 @@ function stageTest(projectRoot, projectType) {
       const scripts = pkg.scripts || {};
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       if (scripts.test) {
-        cmd = "npm test";
+        file = process.platform === "win32" ? "npm.cmd" : "npm";
+        args = ["test"];
       } else if (deps.vitest) {
-        cmd = "npx vitest run";
+        file = process.platform === "win32" ? "npx.cmd" : "npx";
+        args = ["vitest", "run"];
       } else if (deps.jest) {
-        cmd = "npx jest";
+        file = process.platform === "win32" ? "npx.cmd" : "npx";
+        args = ["jest"];
       } else {
         return { passed: true, details: "No test runner configured" };
       }
       break;
     }
     case "python":
-      cmd = "python -m pytest --tb=short -q";
+      file = "python";
+      args = ["-m", "pytest", "--tb=short", "-q"];
       break;
     case "java":
-      cmd = fs.existsSync(path.join(projectRoot, "mvnw"))
-        ? "./mvnw test -q"
-        : "mvn test -q";
+      file = process.platform === "win32" ? "mvn.cmd" : "mvn";
+      args = ["test", "-q"];
       break;
     default:
       return { passed: true, details: "No test runner detected" };
   }
 
-  const result = runCommand(cmd, projectRoot, 180000);
+  const result = runCommand(file, args, projectRoot, 180_000, context);
   if (result.exitCode === 0) {
     const passedMatch = result.output.match(/(\d+)\s+passed/);
     const count = passedMatch ? passedMatch[1] : "all";
@@ -421,10 +448,16 @@ async function stageSecurity(projectRoot, context) {
   }
 }
 
-function stageDiffReview(projectRoot) {
+function stageDiffReview(projectRoot, context) {
   logger.info("[VerificationLoop] Stage: DiffReview");
 
-  const diffResult = runCommand("git diff --stat", projectRoot, 30000);
+  const diffResult = runCommand(
+    "git",
+    ["diff", "--stat"],
+    projectRoot,
+    30_000,
+    context,
+  );
   if (diffResult.exitCode !== 0) {
     return { passed: true, details: "Not a git repo or no git, skipped" };
   }
@@ -435,7 +468,7 @@ function stageDiffReview(projectRoot) {
   }
 
   // Get the full diff for analysis
-  const fullDiff = runCommand("git diff", projectRoot, 30000);
+  const fullDiff = runCommand("git", ["diff"], projectRoot, 30_000, context);
   const diffContent = fullDiff.output || "";
   const lines = diffContent.split("\n");
 
@@ -545,3 +578,8 @@ function generateVerdict(
     message: lines.join("\n"),
   };
 }
+
+module.exports = withBundledSkillFilesystem(
+  "verification-loop",
+  module.exports,
+);

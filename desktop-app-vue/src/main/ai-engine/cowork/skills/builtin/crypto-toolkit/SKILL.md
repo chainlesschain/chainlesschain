@@ -37,7 +37,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
-execution-capabilities: [data:result, data:task, filesystem:read, host:cryptography, host:logger, process:cwd, runtime:crypto]
+execution-capabilities: [data:result, data:task, filesystem:read, host:cryptography, host:filesystem, host:logger, process:cwd, runtime:crypto]
 handler: ./handler.js
 ---
 

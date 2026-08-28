@@ -615,6 +615,67 @@ describe("Integration: WebSocket Session Workflow", () => {
     // The authenticated channel forwards the opaque runtime `binding`.
     // InteractionAdapter remains the sole authority that can accept it.
     expect(resolveAnswer).toHaveBeenCalledWith("q-1", "yes", binding);
+    expect(lastSent(ws)).toMatchObject({
+      id: "req-answer",
+      type: "command.response",
+      success: true,
+      settled: true,
+    });
+  });
+
+  it("session-answer fails when the session has no settlement authority", () => {
+    const sm = mockSessionManager({
+      getSession: vi.fn().mockReturnValue({
+        id: "test-session-1",
+        interaction: null,
+      }),
+    });
+    setupServer(sm);
+
+    server._handleMessage("client-1", ws, {
+      id: "req-no-authority",
+      type: "session-answer",
+      sessionId: "test-session-1",
+      requestId: "q-unowned",
+      answer: "yes",
+    });
+
+    expect(lastSent(ws)).toMatchObject({
+      id: "req-no-authority",
+      type: "command.response",
+      success: false,
+      settled: false,
+    });
+  });
+
+  it("session-answer reports a lost interrupt/cancel settlement race", () => {
+    const resolveAnswer = vi.fn().mockReturnValue({
+      settled: false,
+      reason: "not_pending",
+    });
+    const sm = mockSessionManager({
+      getSession: vi.fn().mockReturnValue({
+        id: "test-session-1",
+        interaction: { resolveAnswer },
+      }),
+    });
+    setupServer(sm);
+
+    server._handleMessage("client-1", ws, {
+      id: "req-stale-answer",
+      type: "session-answer",
+      sessionId: "test-session-1",
+      requestId: "q-interrupted",
+      answer: { decision: { kind: "acceptOnce" } },
+    });
+
+    expect(lastSent(ws)).toMatchObject({
+      id: "req-stale-answer",
+      type: "command.response",
+      success: false,
+      settled: false,
+      reason: "not_pending",
+    });
   });
 
   // ─── ws-server handles session messages in switch ───────────────────

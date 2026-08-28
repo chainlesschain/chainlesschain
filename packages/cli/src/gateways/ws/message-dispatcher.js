@@ -182,6 +182,10 @@ export function createWsMessageDispatcher(server) {
           handleConfigSetSecret(server, id, ws, message),
         "slash-command": () => server._handleSlashCommand(id, ws, message),
         "session-answer": () => server._handleSessionAnswer(id, ws, message),
+        "approval-grants-list": () =>
+          server._handleApprovalGrantsList(id, ws, message),
+        "approval-grant-revoke": () =>
+          server._handleApprovalGrantRevoke(id, ws, message),
         "remote-session-create": () =>
           handleRemoteSessionCreate(server, clientId, ws, message),
         "remote-session-close": () =>

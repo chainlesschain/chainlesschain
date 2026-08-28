@@ -7,12 +7,21 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { withTestFilesystemHandler } from "../skills/__tests__/helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../skills/builtin/proactive-agent/handler.js");
+const filesystemRoot = path.parse(process.cwd()).root;
+const baseHandler = require("../skills/builtin/proactive-agent/handler.js");
+const handler = withTestFilesystemHandler(baseHandler, "proactive-agent", {
+  allowedRoots: [filesystemRoot],
+  cwd: filesystemRoot,
+  invoke: ({ operation, args }) => (handler._deps.fs || fs)[operation](...args),
+});
 
 describe("ProactiveAgent Handler", () => {
   beforeEach(() => {

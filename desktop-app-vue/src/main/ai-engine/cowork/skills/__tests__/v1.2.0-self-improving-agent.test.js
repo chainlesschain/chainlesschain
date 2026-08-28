@@ -3,13 +3,21 @@
  * Uses _deps injection for fs/path mocking
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import path from "node:path";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/self-improving-agent/handler.js");
+const filesystemRoot = path.parse(process.cwd()).root;
+const baseHandler = require("../builtin/self-improving-agent/handler.js");
+const handler = withTestFilesystemHandler(baseHandler, "self-improving-agent", {
+  allowedRoots: [filesystemRoot],
+  cwd: filesystemRoot,
+  invoke: ({ operation, args }) => handler._deps.fs[operation](...args),
+});
 const rawExecute = handler.execute.bind(handler);
 const environmentContext = createEnvironmentContext("self-improving-agent", {
   "data-directory": "/mock/self-improving",

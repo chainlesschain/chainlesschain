@@ -5,10 +5,15 @@
  * performs change impact analysis, and checks npm audit vulnerabilities.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const IGNORE_DIRS = new Set([
   "node_modules",
@@ -38,7 +43,7 @@ module.exports = {
         case "circular":
           return await handleCircular(options.targetDir);
         case "vulnerabilities":
-          return await handleVulnerabilities(options.targetDir);
+          return await handleVulnerabilities(options.targetDir, context);
         case "licenses":
           return await handleLicenses(options.targetDir);
         default:
@@ -375,18 +380,27 @@ async function handleCircular(targetDir) {
   };
 }
 
-async function handleVulnerabilities(targetDir) {
+async function handleVulnerabilities(targetDir, context) {
   let auditOutput;
   try {
-    auditOutput = execSync("npm audit --json 2>/dev/null", {
-      encoding: "utf-8",
-      cwd: targetDir,
-      timeout: 30000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    auditOutput = requireBundledSkillProcessBroker(
+      context,
+      "dependency-analyzer",
+    ).execFileSync(
+      process.platform === "win32" ? "npm.cmd" : "npm",
+      ["audit", "--json"],
+      {
+        cwd: targetDir,
+        timeout: 30_000,
+      },
+    );
   } catch (err) {
     // npm audit returns non-zero when vulnerabilities exist
-    auditOutput = err.stdout || "";
+    if (err.stdout) {
+      auditOutput = err.stdout;
+    } else {
+      throw err;
+    }
   }
 
   if (!auditOutput) {
@@ -509,3 +523,8 @@ async function handleLicenses(targetDir) {
     message: report,
   };
 }
+
+module.exports = withBundledSkillFilesystem(
+  "dependency-analyzer",
+  module.exports,
+);

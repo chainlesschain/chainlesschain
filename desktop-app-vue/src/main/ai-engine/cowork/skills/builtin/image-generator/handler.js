@@ -6,7 +6,10 @@
  * Modes: --generate, --enhance, --presets, --providers
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 const {
@@ -597,3 +600,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("image-generator", module.exports);

@@ -9,11 +9,14 @@
  * - Backlog management (add, list, prioritize, remove)
  */
 
-const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
-const _deps = { fs, path, os: require("os") };
+const _deps = { path, os: require("os") };
 
 const watchers = new Map();
 const planStore = new Map();
@@ -149,12 +152,12 @@ function handleWatch(parsed) {
   }
 
   const resolvedPath = _deps.path.resolve(watchPath);
-  if (!_deps.fs.existsSync(resolvedPath)) {
+  if (!fs.existsSync(resolvedPath)) {
     return { success: false, error: `Path not found: ${resolvedPath}` };
   }
 
   const id = generateId();
-  const watcher = _deps.fs.watch(
+  const watcher = fs.watch(
     resolvedPath,
     { recursive: true },
     (eventType, filename) => {
@@ -292,8 +295,8 @@ function handlePattern(parsed) {
   let lastSize = 0;
 
   try {
-    if (_deps.fs.existsSync(resolvedPath)) {
-      lastSize = _deps.fs.statSync(resolvedPath).size;
+    if (fs.existsSync(resolvedPath)) {
+      lastSize = fs.statSync(resolvedPath).size;
     }
   } catch {
     // file may not exist yet
@@ -301,19 +304,20 @@ function handlePattern(parsed) {
 
   const interval = setInterval(() => {
     try {
-      if (!_deps.fs.existsSync(resolvedPath)) {
+      if (!fs.existsSync(resolvedPath)) {
         return;
       }
-      const stat = _deps.fs.statSync(resolvedPath);
+      const stat = fs.statSync(resolvedPath);
       if (stat.size <= lastSize) {
         return;
       }
 
-      const fd = _deps.fs.openSync(resolvedPath, "r");
-      const buf = Buffer.alloc(stat.size - lastSize);
-      _deps.fs.readSync(fd, buf, 0, buf.length, lastSize);
-      _deps.fs.closeSync(fd);
-      lastSize = stat.size;
+      const content = fs.readFileSync(resolvedPath);
+      if (!Buffer.isBuffer(content) || content.length <= lastSize) {
+        return;
+      }
+      const buf = content.subarray(lastSize);
+      lastSize = content.length;
 
       const newContent = buf.toString("utf8");
       const regex = new RegExp(pattern, "g");
@@ -700,7 +704,7 @@ function qualityBuild(projectRoot) {
   ];
   const found = [];
   for (const f of buildFiles) {
-    if (_deps.fs.existsSync(_deps.path.join(projectRoot, f))) {
+    if (fs.existsSync(_deps.path.join(projectRoot, f))) {
       found.push(f);
     }
   }
@@ -720,7 +724,7 @@ function qualityTest(projectRoot) {
   const foundDirs = [];
   for (const d of testDirs) {
     const full = _deps.path.join(projectRoot, d);
-    if (_deps.fs.existsSync(full)) {
+    if (fs.existsSync(full)) {
       foundDirs.push(d);
     }
   }
@@ -744,7 +748,7 @@ function qualityLint(projectRoot) {
   ];
   const found = [];
   for (const f of lintConfigs) {
-    if (_deps.fs.existsSync(_deps.path.join(projectRoot, f))) {
+    if (fs.existsSync(_deps.path.join(projectRoot, f))) {
       found.push(f);
     }
   }
@@ -774,12 +778,12 @@ function qualityDebt(projectRoot) {
 
   // Quick scan of src directory
   const srcDir = _deps.path.join(projectRoot, "src");
-  if (_deps.fs.existsSync(srcDir)) {
+  if (fs.existsSync(srcDir)) {
     const files = collectCodeFiles(srcDir, 3);
     for (const file of files.slice(0, 100)) {
       let content;
       try {
-        content = _deps.fs.readFileSync(file, "utf-8");
+        content = fs.readFileSync(file, "utf-8");
       } catch {
         continue;
       }
@@ -850,7 +854,7 @@ function collectCodeFiles(dir, maxDepth, depth = 0) {
     return files;
   }
   try {
-    const entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (
         entry.isDirectory() &&
@@ -994,3 +998,5 @@ function backlogRemove(id) {
   backlogStore.delete(id);
   return { success: true, message: `Backlog item "${id}" removed.` };
 }
+
+module.exports = withBundledSkillFilesystem("proactive-agent", module.exports);

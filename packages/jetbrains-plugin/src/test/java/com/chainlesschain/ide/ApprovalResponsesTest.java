@@ -3,6 +3,7 @@ package com.chainlesschain.ide;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.chainlesschain.agent.protocol.generated.CcAgentProtocolKt;
 import java.nio.file.Files;
@@ -47,6 +48,31 @@ class ApprovalResponsesTest {
         assertEquals(canonicalDecision("decline-with-reason").get("kind"),
                 decision(response).get("kind"));
         assertFalse(response.containsKey("binding"));
+    }
+
+    @Test
+    void emitsExactTurnAndSessionGrantsFromTrustedRequestPermissions() {
+        List<Map<String, Object>> permissions = List.of(Map.of(
+                "capability", "tool:run_shell",
+                "scope", "{\"command\":\"npm test\"}"));
+
+        for (String kind : List.of("acceptForTurn", "acceptForSession")) {
+            Map<String, Object> response = ApprovalResponses.response(
+                    "approval-scoped", kind, permissions, "sha256:exact-call");
+            assertEquals(Boolean.TRUE, response.get("approve"));
+            assertEquals(kind, decision(response).get("kind"));
+            assertEquals(permissions, decision(response).get("permissions"));
+        }
+    }
+
+    @Test
+    void reusableDecisionFailsClosedWithoutValidCliPermission() {
+        assertThrows(IllegalArgumentException.class, () -> ApprovalResponses.response(
+                "approval-empty", "acceptForSession", List.of(), "sha256:exact"));
+        assertThrows(IllegalArgumentException.class, () -> ApprovalResponses.response(
+                "approval-wide", "acceptForTurn",
+                List.of(Map.of("capability", "tool:run_shell", "scope", "")),
+                "sha256:exact"));
     }
 
     @SuppressWarnings("unchecked")

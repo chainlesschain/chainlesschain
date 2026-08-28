@@ -6,7 +6,10 @@
  * Inspired by Aider's repository map technique.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -419,3 +422,5 @@ async function handleFind(dir, symbolName) {
     message: `Found '${symbolName}' in ${results.length} files:\n${lines.join("\n")}`,
   };
 }
+
+module.exports = withBundledSkillFilesystem("repo-map", module.exports);

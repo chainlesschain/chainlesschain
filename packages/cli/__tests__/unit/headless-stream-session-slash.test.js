@@ -327,6 +327,48 @@ describe("executeSessionSlashCommand", () => {
     expect(missing).toMatchObject({ ok: false, code: "NOT_FOUND" });
   });
 
+  it("reviews and revokes exact grants through the live session authority", async () => {
+    const grant = {
+      grantId: `grant_${"a".repeat(64)}`,
+      lifetime: "session",
+      permission: { capability: "tool:run_shell", scope: "npm test" },
+      binding: "sha256:exact-call",
+      grantedAt: "2026-08-28T08:00:00.000Z",
+    };
+    let active = [grant];
+    const context = {
+      ...baseContext,
+      listApprovalGrants: () => active,
+      revokeApprovalGrant: (grantId) => {
+        if (grantId !== grant.grantId) return { success: false };
+        active = [];
+        return { success: true, grant };
+      },
+    };
+
+    const listed = await executeSessionSlashCommand(
+      slash("permissions", "grants"),
+      context,
+    );
+    expect(JSON.parse(listed.output)).toEqual({
+      schema: "chainlesschain.approval-grants/v1",
+      action: "list",
+      grants: [grant],
+    });
+
+    const revoked = await executeSessionSlashCommand(
+      slash("permissions", `revoke ${grant.grantId}`),
+      context,
+    );
+    expect(JSON.parse(revoked.output)).toEqual({
+      schema: "chainlesschain.approval-grants/v1",
+      action: "revoke",
+      grants: [],
+      revoked: grant,
+    });
+    expect(active).toEqual([]);
+  });
+
   it("rejects unknown commands, ignored arguments and every mutating form", async () => {
     await expect(
       executeSessionSlashCommand(slash("nope"), baseContext),
@@ -459,7 +501,63 @@ describe("runAgentHeadlessStream slash_command integration", () => {
         turns: 0,
       });
     },
+    20_000,
   );
+
+  it("binds grant review and revocation to the headless session ledger", async () => {
+    const lines = [];
+    const missingGrantId = `grant_${"b".repeat(64)}`;
+    const outcome = await runAgentHeadlessStream(
+      {
+        cwd: process.cwd(),
+        provider: "openai",
+        model: "gpt-test",
+        expandFileRefs: false,
+        ephemeral: true,
+      },
+      {
+        input: input(
+          {
+            type: "slash_command",
+            command: "permissions",
+            args: "grants",
+            request_id: "grants-list",
+          },
+          {
+            type: "slash_command",
+            command: "permissions",
+            args: `revoke ${missingGrantId}`,
+            request_id: "grants-revoke-missing",
+          },
+        ),
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        resolveAgentMcp: async () => null,
+        agentLoop: vi.fn(),
+        writeOut: (line) => lines.push(line),
+        writeErr: () => {},
+        genTraceId: () => "trace-approval-grants",
+      },
+    );
+
+    const results = emitted(lines).filter(
+      (event) => event.type === "slash_command_result",
+    );
+    expect(JSON.parse(results[0].text)).toEqual({
+      schema: "chainlesschain.approval-grants/v1",
+      action: "list",
+      grants: [],
+    });
+    expect(results[1]).toMatchObject({
+      request_id: "grants-revoke-missing",
+      ok: false,
+      error: {
+        code: "APPROVAL_GRANT_REVOKE_FAILED",
+        message: "Approval grant was not found",
+      },
+    });
+    expect(outcome).toEqual({ exitCode: 0, turns: 0 });
+  });
 
   it("emits correlated results without invoking or counting a model turn", async () => {
     const lines = [];

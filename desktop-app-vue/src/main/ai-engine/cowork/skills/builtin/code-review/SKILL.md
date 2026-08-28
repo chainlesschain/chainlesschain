@@ -9,7 +9,7 @@ tags: [code, review, quality, development]
 capabilities: [code-analysis, suggestions]
 supported-file-types: [js, ts, py, java, go, rs, c, cpp, vue, jsx, tsx]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

@@ -6,31 +6,36 @@
  * pattern inspired by Aider.
  */
 
-const { execSync } = require("child_process");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const TEST_RUNNERS = {
   vitest: {
     name: "Vitest",
     configs: ["vitest.config.ts", "vitest.config.js", "vitest.config.mts"],
-    runCmd: "npx vitest run --reporter=json",
-    runFileCmd: "npx vitest run --reporter=json",
+    file: process.platform === "win32" ? "npx.cmd" : "npx",
+    args: ["vitest", "run", "--reporter=json"],
     lang: "js/ts",
   },
   jest: {
     name: "Jest",
     configs: ["jest.config.js", "jest.config.ts", "jest.config.cjs"],
-    runCmd: "npx jest --json",
-    runFileCmd: "npx jest --json",
+    file: process.platform === "win32" ? "npx.cmd" : "npx",
+    args: ["jest", "--json"],
     lang: "js/ts",
   },
   pytest: {
     name: "Pytest",
     configs: ["pytest.ini", "pyproject.toml", "setup.cfg"],
-    runCmd: "python -m pytest --tb=short -q",
-    runFileCmd: "python -m pytest --tb=short -q",
+    file: "python",
+    args: ["-m", "pytest", "--tb=short", "-q"],
     lang: "python",
   },
 };
@@ -63,7 +68,13 @@ module.exports = {
         };
       }
 
-      return await handleTestRun(runner, targetPath, workspaceRoot, options);
+      return await handleTestRun(
+        runner,
+        targetPath,
+        workspaceRoot,
+        options,
+        context,
+      );
     } catch (error) {
       logger.error(`[TestAndFix] Error: ${error.message}`);
       return {
@@ -154,20 +165,22 @@ function detectTestRunner(projectRoot) {
   return null;
 }
 
-function runTests(runner, targetPath, projectRoot) {
-  const cmd = targetPath
-    ? `${runner.runFileCmd} "${targetPath}"`
-    : runner.runCmd;
+function runTests(runner, targetPath, projectRoot, context) {
+  const args = targetPath ? [...runner.args, targetPath] : runner.args;
 
   try {
-    const output = execSync(cmd, {
-      encoding: "utf-8",
+    const output = requireBundledSkillProcessBroker(
+      context,
+      "test-and-fix",
+    ).execFileSync(runner.file, args, {
       cwd: projectRoot,
-      timeout: 120000,
-      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 120_000,
     });
     return parseTestOutput(output, runner.key);
   } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     const output = (error.stdout || "") + (error.stderr || "");
     return parseTestOutput(output, runner.key);
   }
@@ -274,8 +287,14 @@ function parseTestOutput(output, runnerKey) {
   return result;
 }
 
-async function handleTestRun(runner, targetPath, projectRoot, options) {
-  const testResult = runTests(runner, targetPath, projectRoot);
+async function handleTestRun(
+  runner,
+  targetPath,
+  projectRoot,
+  options,
+  context,
+) {
+  const testResult = runTests(runner, targetPath, projectRoot, context);
 
   const lines = [
     `Test & Fix Report`,
@@ -332,3 +351,5 @@ async function handleTestRun(runner, targetPath, projectRoot, options) {
     message: lines.join("\n"),
   };
 }
+
+module.exports = withBundledSkillFilesystem("test-and-fix", module.exports);

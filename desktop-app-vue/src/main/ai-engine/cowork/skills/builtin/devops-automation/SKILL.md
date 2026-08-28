@@ -11,7 +11,7 @@ tools:
   - file_reader
   - file_writer
   - command_executor
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs CI/CD pipeline configuration, Dockerfile

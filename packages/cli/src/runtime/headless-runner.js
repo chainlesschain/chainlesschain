@@ -89,6 +89,10 @@ import {
   executeHooksV2Event,
   resolvePromptExpansion,
 } from "../lib/hooks-v2-producers.js";
+import {
+  projectHookPolicyDecision,
+  projectToolPolicyDecision,
+} from "../lib/policy-decision-event.js";
 import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
@@ -731,7 +735,11 @@ async function runAgentHeadlessInWorkspace(
   if (includeHookEvents) {
     const subscribeHookEvents =
       deps.addHooksV2EventObserver || addHooksV2EventObserver;
-    removeHookObserver = subscribeHookEvents(sessionId, queuePendingHookEvent);
+    removeHookObserver = subscribeHookEvents(sessionId, (event) => {
+      queuePendingHookEvent(event);
+      const policyEvent = projectHookPolicyDecision(event);
+      if (policyEvent) queuePendingHookEvent(policyEvent);
+    });
   }
 
   const emitHeadlessError = (resultMsg) => {
@@ -3098,6 +3106,14 @@ async function runAgentHeadlessInWorkspace(
                 ? { permission_decision: event.permission_decision }
                 : {}),
             });
+            if (includeHookEvents) {
+              const policyEvent = projectToolPolicyDecision(event, {
+                sessionId,
+                turnId: event.turn_id,
+                toolUseId: event.tool_use_id,
+              });
+              if (policyEvent) emitStream(policyEvent);
+            }
             const settledCall =
               (event.tool_use_id
                 ? activeToolCalls.get(event.tool_use_id)

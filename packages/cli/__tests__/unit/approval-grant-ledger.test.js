@@ -105,4 +105,45 @@ describe("ApprovalGrantLedger", () => {
       ).granted,
     ).toEqual([]);
   });
+
+  it("lists stable review records and revokes turn or session grants", () => {
+    const ledger = new ApprovalGrantLedger({
+      sessionId: "session-1",
+      now: () => NOW,
+    });
+    ledger.beginTurn("turn-1");
+    const turnPermission = permission("npm test");
+    const sessionPermission = permission("npm run build");
+    ledger.applyDecision({ kind: "acceptForTurn" }, turnPermission, "ab_turn");
+    ledger.applyDecision(
+      { kind: "acceptForSession" },
+      sessionPermission,
+      "ab_session",
+    );
+
+    const grants = ledger.listGrants();
+    expect(grants).toHaveLength(2);
+    expect(grants.map((grant) => grant.lifetime).sort()).toEqual([
+      "session",
+      "turn",
+    ]);
+    expect(grants.every((grant) => grant.grantId.startsWith("grant_"))).toBe(
+      true,
+    );
+
+    const turnGrant = grants.find((grant) => grant.lifetime === "turn");
+    const sessionGrant = grants.find((grant) => grant.lifetime === "session");
+    expect(ledger.revoke(turnGrant.grantId)).toMatchObject({
+      revoked: true,
+      persistedScope: false,
+    });
+    expect(ledger.allows(turnPermission)).toBe(false);
+    const revision = ledger.revision;
+    expect(ledger.revoke(sessionGrant.grantId)).toMatchObject({
+      revoked: true,
+      persistedScope: true,
+    });
+    expect(ledger.revision).toBe(revision + 1);
+    expect(ledger.allows(sessionPermission)).toBe(false);
+  });
 });

@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:70fac74c12ca615d20428218e77df613d54f0473e7398d5332ce95148628995f"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:8034b1d0903660879df7ae8f1e5a856e753dfee5cf5e054069bff578731afc3b"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -43,7 +43,8 @@ enum class AgentStreamEventType(val wireValue: String) {
     TOKEN_USAGE("token_usage"),
     TOOL_RESULT("tool_result"),
     TOOL_USE("tool_use"),
-    USER("user");
+    USER("user"),
+    POLICY_DECISION("policy_decision");
 
     companion object {
         fun fromWireValue(value: String): AgentStreamEventType? =
@@ -350,6 +351,12 @@ data class Handoff(
     val expiresAt: String
 )
 
+data class HumanTaskDecision(
+    val actorId: String,
+    val decision: JSONValue,
+    val decidedAt: String
+)
+
 data class HumanTask(
     val id: String,
     val runId: String,
@@ -357,11 +364,20 @@ data class HumanTask(
     val nodeId: String,
     val attemptId: String,
     val operationDigest: String,
+    val operation: JSONValue? = null,
+    val authorityDigest: String? = null,
     val status: String,
+    val quorum: Long? = null,
+    val separationOfDuties: Boolean? = null,
+    val decisions: List<HumanTaskDecision>? = null,
     val claimActorId: JSONValue? = null,
     val claimLeaseId: JSONValue? = null,
+    val claimExpiresAt: JSONValue? = null,
     val nonce: String,
     val expiresAt: String,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val reason: String? = null,
     val decision: JSONValue? = null
 )
 
@@ -532,6 +548,24 @@ data class AgentPlanUpdateStreamEvent(
     val risk: JSONValue? = null,
     val execution_lock: JSONValue? = null,
     val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentPolicyDecisionStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val decision_id: String,
+    val source: String,
+    val decision: String,
+    val session_id: String? = null,
+    val turn_id: String? = null,
+    val tool_use_id: String? = null,
+    val tool: String? = null,
+    val hook_event: String? = null,
+    val via: String? = null,
+    val rule: String? = null,
+    val reason: String? = null,
+    val chain: List<JSONValue>? = null,
+    val policy_digest: String
 ) : AgentStreamEventPayload
 
 data class AgentQuestionRequestStreamEvent(

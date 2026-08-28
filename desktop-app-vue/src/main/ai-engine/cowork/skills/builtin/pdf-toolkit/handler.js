@@ -5,7 +5,10 @@
  * Uses pdf-parse for text extraction and tesseract.js for OCR.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -299,3 +302,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("pdf-toolkit", module.exports);

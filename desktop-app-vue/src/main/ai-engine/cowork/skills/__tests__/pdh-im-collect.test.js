@@ -8,7 +8,8 @@
  * (vi.mock("child_process") does not work for inlined CJS —
  * see .claude/rules/testing.md), so no real subprocess is spawned.
  */
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createTestFilesystemContext } from "./helpers/bundled-skill-filesystem.js";
 import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 vi.mock("../../../../utils/logger.js", () => {
@@ -18,14 +19,32 @@ vi.mock("../../../../utils/logger.js", () => {
 
 const handler = require("../builtin/pdh-im-collect/handler.js");
 
-const origFs = handler._deps.fs;
 let context;
+
+function executionContext(processAdapter) {
+  const processContext = createTestProcessContext(
+    "pdh-im-collect",
+    processAdapter,
+  );
+  const filesystemContext = createTestFilesystemContext("pdh-im-collect", {
+    invoke: ({ operation }) => {
+      if (operation === "existsSync") return false;
+      throw new Error(`Unexpected filesystem operation: ${operation}`);
+    },
+  });
+  return {
+    ...processContext,
+    host: {
+      ...processContext.host,
+      ...filesystemContext.host,
+    },
+  };
+}
 
 // cc CLI absent: `cc --version` throws and no workspace CLI on disk →
 // resolveCcPrefix() returns null and the skill degrades to guidance-only.
 function ccAbsent() {
-  handler._deps.fs = { existsSync: vi.fn(() => false) };
-  context = createTestProcessContext("pdh-im-collect", () => {
+  context = executionContext(() => {
     throw new Error("command not found: cc");
   });
 }
@@ -41,16 +60,11 @@ function ccPresent(responder) {
     }
     return responder(cmd);
   });
-  handler._deps.fs = { existsSync: vi.fn(() => false) };
-  context = createTestProcessContext("pdh-im-collect", executeFileSync);
+  context = executionContext(executeFileSync);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-});
-
-afterAll(() => {
-  handler._deps.fs = origFs;
 });
 
 describe("pdh-im-collect handler", () => {

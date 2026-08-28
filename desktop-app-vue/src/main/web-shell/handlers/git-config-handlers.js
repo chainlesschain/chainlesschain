@@ -11,9 +11,8 @@
  *   git.config-clear  → 关 enabled + 清 auth（保留 remoteUrl / repoPath
  *                       方便用户参考；要彻底重置就清完整段后重输）
  *
- * 注：git-config.json 当前是**明文落盘**（已存在的安全 issue，跨 phase
- * 不在范围内修）—— mask 行为只影响渲染端展示，不动落盘。设计文档
- * §2.3 提了这条债务。
+ * Git token/password 由 GitConfig 迁入独立加密 credential store；
+ * git-config.json 与 renderer 视图都只保留非秘密元数据。
  */
 
 const PROVIDER_ID = "git";
@@ -37,7 +36,7 @@ function _maskValue(v) {
  */
 function _shape(cfg) {
   const all = cfg.getAll();
-  const auth = all.auth || {};
+  const auth = cfg.getAuth?.() || all.auth || {};
   const sanitizedAuth = {
     username: auth.username || "",
     password: auth.password ? _maskValue(auth.password) : "",
@@ -183,7 +182,7 @@ function createGitConfigHandlers(options = {}) {
       try {
         const { getGitConfig } = require("../../git/git-config");
         return getGitConfig();
-      } catch (err) {
+      } catch (_err) {
         return null;
       }
     });

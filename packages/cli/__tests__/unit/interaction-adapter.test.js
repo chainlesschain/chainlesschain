@@ -350,6 +350,41 @@ describe("WebSocketInteractionAdapter", () => {
     expect(await promise).toBe(true);
   });
 
+  it("askApproval preserves the structured lifetime and requires binding echo", async () => {
+    const promise = adapter.askApproval("Approve run_shell?", {
+      binding: "ab_structured",
+      approval: {
+        tool: "run_shell",
+        requestedPermissions: [
+          { capability: "tool:run_shell", scope: "exact" },
+        ],
+      },
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.approval.requestedPermissions).toHaveLength(1);
+    const settlement = adapter.resolveAnswer(
+      sent.requestId,
+      { decision: { kind: "acceptForSession" } },
+      sent.binding,
+    );
+    expect(settlement).toEqual({ settled: true, reason: "resolved" });
+    expect(await promise).toEqual({ kind: "acceptForSession" });
+
+    const missingBinding = adapter.askApproval("Approve again?", {
+      binding: "ab_structured_2",
+      approval: { tool: "run_shell" },
+    });
+    const sent2 = JSON.parse(ws.send.mock.calls[1][0]);
+    const deniedSettlement = adapter.resolveAnswer(sent2.requestId, {
+      decision: { kind: "acceptForTurn" },
+    });
+    expect(deniedSettlement).toEqual({
+      settled: true,
+      reason: "binding_mismatch_denied",
+    });
+    expect(await missingBinding).toEqual({ kind: "decline" });
+  });
+
   it("resolveAnswer resolves pending promise", async () => {
     const promise = adapter.askInput("Q?");
     const sent = JSON.parse(ws.send.mock.calls[0][0]);
@@ -361,8 +396,10 @@ describe("WebSocketInteractionAdapter", () => {
   });
 
   it("resolveAnswer ignores unknown requestId", () => {
-    // Should not throw
-    adapter.resolveAnswer("unknown-request-id", "answer");
+    expect(adapter.resolveAnswer("unknown-request-id", "answer")).toEqual({
+      settled: false,
+      reason: "not_pending",
+    });
     expect(adapter._pending.size).toBe(0);
   });
 
@@ -386,7 +423,10 @@ describe("WebSocketInteractionAdapter", () => {
     });
     const sent = JSON.parse(ws.send.mock.calls[0][0]);
     // A question-answer carrying the host-tool's requestId must be ignored…
-    adapter.resolveAnswer(sent.requestId, "malicious-string");
+    expect(adapter.resolveAnswer(sent.requestId, "malicious-string")).toEqual({
+      settled: false,
+      reason: "kind_mismatch",
+    });
     await Promise.resolve();
     expect(settled).toBe(false);
     expect(adapter._pending.size).toBe(1); // still pending

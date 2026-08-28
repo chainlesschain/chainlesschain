@@ -9,13 +9,16 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
 const path = require("path");
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 let dataDir = null;
 let historyPath = null;
@@ -69,8 +72,8 @@ function ensureDataDir() {
     throw new Error("Self-improving data directory authority is required");
   }
   const dir = dataDir;
-  if (!_deps.fs.existsSync(dir)) {
-    _deps.fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
   historyPath = _deps.path.join(dir, "history.json");
   learningsPath = _deps.path.join(dir, "learnings.json");
@@ -79,8 +82,8 @@ function ensureDataDir() {
 function loadHistory() {
   ensureDataDir();
   try {
-    if (_deps.fs.existsSync(historyPath)) {
-      const raw = _deps.fs.readFileSync(historyPath, "utf-8");
+    if (fs.existsSync(historyPath)) {
+      const raw = fs.readFileSync(historyPath, "utf-8");
       history = JSON.parse(raw);
     }
   } catch (err) {
@@ -91,11 +94,7 @@ function loadHistory() {
 function saveHistory() {
   ensureDataDir();
   try {
-    _deps.fs.writeFileSync(
-      historyPath,
-      JSON.stringify(history, null, 2),
-      "utf-8",
-    );
+    fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), "utf-8");
   } catch (err) {
     logger.error("[SelfImprove] Failed to save history:", err.message);
   }
@@ -104,8 +103,8 @@ function saveHistory() {
 function loadLearnings() {
   ensureDataDir();
   try {
-    if (_deps.fs.existsSync(learningsPath)) {
-      const raw = _deps.fs.readFileSync(learningsPath, "utf-8");
+    if (fs.existsSync(learningsPath)) {
+      const raw = fs.readFileSync(learningsPath, "utf-8");
       learnings = JSON.parse(raw);
     }
   } catch (err) {
@@ -116,7 +115,7 @@ function loadLearnings() {
 function saveLearnings() {
   ensureDataDir();
   try {
-    _deps.fs.writeFileSync(
+    fs.writeFileSync(
       learningsPath,
       JSON.stringify(learnings, null, 2),
       "utf-8",
@@ -1065,3 +1064,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "self-improving-agent",
+  module.exports,
+);

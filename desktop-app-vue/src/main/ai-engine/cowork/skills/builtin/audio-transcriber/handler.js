@@ -4,7 +4,10 @@
  * Speech-to-text transcription using Whisper API or local engines.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const crypto = require("crypto");
 const { logger } = require("../../../../../utils/logger.js");
@@ -14,44 +17,47 @@ const {
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Audio Info ──────────────────────────────────────
 
-function getAudioInfo(filePath) {
-  return new Promise((resolve, reject) => {
-    try {
-      const ffmpeg = require("fluent-ffmpeg");
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          resolve({
-            file: path.basename(filePath),
-            size: fs.statSync(filePath).size,
-            error: `ffprobe error: ${err.message}`,
-          });
-          return;
-        }
-
-        const audio = metadata.streams.find((s) => s.codec_type === "audio");
-        resolve({
-          file: path.basename(filePath),
-          duration: metadata.format.duration,
-          durationFormatted: formatDuration(metadata.format.duration || 0),
-          codec: audio ? audio.codec_name : "unknown",
-          sampleRate: audio ? audio.sample_rate : 0,
-          channels: audio ? audio.channels : 0,
-          bitrate: metadata.format.bit_rate,
-          size: metadata.format.size,
-          format: metadata.format.format_name,
-        });
-      });
-    } catch (err) {
-      resolve({
-        file: path.basename(filePath),
-        size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 0,
-        error: `ffmpeg not available: ${err.message}`,
-      });
+async function getAudioInfo(filePath, context, projectRoot) {
+  try {
+    const output = requireBundledSkillProcessBroker(
+      context,
+      "audio-transcriber",
+    ).execFileSync(
+      "ffprobe",
+      ["-v", "error", "-show_format", "-show_streams", "-of", "json", filePath],
+      { cwd: projectRoot, timeout: 60_000 },
+    );
+    const metadata = JSON.parse(output);
+    const audio = (metadata.streams || []).find(
+      (stream) => stream.codec_type === "audio",
+    );
+    return {
+      file: path.basename(filePath),
+      duration: Number(metadata.format?.duration || 0),
+      durationFormatted: formatDuration(metadata.format?.duration || 0),
+      codec: audio ? audio.codec_name : "unknown",
+      sampleRate: audio ? audio.sample_rate : 0,
+      channels: audio ? audio.channels : 0,
+      bitrate: metadata.format?.bit_rate,
+      size: metadata.format?.size,
+      format: metadata.format?.format_name,
+    };
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
     }
-  });
+    return {
+      file: path.basename(filePath),
+      size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 0,
+      error: `ffprobe error: ${error.message}`,
+    };
+  }
 }
 
 function formatDuration(seconds) {
@@ -79,7 +85,7 @@ function formatBytes(bytes) {
 
 // ── Provider Detection ──────────────────────────────
 
-function detectProviders(context) {
+function detectProviders(context, projectRoot) {
   const providers = [];
   const environment = requireBundledSkillEnvironmentBroker(
     context,
@@ -102,8 +108,14 @@ function detectProviders(context) {
 
   // Check for local whisper
   try {
-    const { execSync } = require("child_process");
-    execSync("whisper --help", { stdio: "pipe", encoding: "utf-8" });
+    requireBundledSkillProcessBroker(context, "audio-transcriber").execFileSync(
+      "whisper",
+      ["--help"],
+      {
+        cwd: projectRoot,
+        timeout: 5_000,
+      },
+    );
     providers.push({
       name: "local-whisper",
       available: true,
@@ -216,17 +228,19 @@ async function transcribeWithAPI(filePath, language, context) {
   }
 }
 
-async function transcribeLocal(filePath, language) {
+async function transcribeLocal(filePath, language, projectRoot, context) {
   try {
-    const { execSync } = require("child_process");
-    const langFlag = language ? `--language ${language}` : "";
-    const output = execSync(
-      `whisper "${filePath}" --output_format json ${langFlag}`,
-      {
-        encoding: "utf-8",
-        timeout: 300000,
-      },
-    );
+    const args = [filePath, "--output_format", "json"];
+    if (language) {
+      args.push("--language", language);
+    }
+    const output = requireBundledSkillProcessBroker(
+      context,
+      "audio-transcriber",
+    ).execFileSync("whisper", args, {
+      cwd: projectRoot,
+      timeout: 300_000,
+    });
     const result = JSON.parse(output);
     return { text: result.text, segments: result.segments || [] };
   } catch (err) {
@@ -294,7 +308,7 @@ module.exports = {
 
     try {
       if (input.includes("--providers")) {
-        const providers = detectProviders(context);
+        const providers = detectProviders(context, projectRoot);
         return {
           success: true,
           result: { providers },
@@ -321,7 +335,7 @@ module.exports = {
           };
         }
 
-        const info = await getAudioInfo(filePath);
+        const info = await getAudioInfo(filePath, context, projectRoot);
         return {
           success: true,
           result: info,
@@ -357,16 +371,21 @@ module.exports = {
       const language = langMatch ? langMatch[1] : null;
 
       // Try providers in order
-      const providers = detectProviders(context);
+      const providers = detectProviders(context, projectRoot);
       const available = providers.filter((p) => p.available);
 
       let result;
       if (available.find((p) => p.name === "whisper-api")) {
         result = await transcribeWithAPI(filePath, language, context);
       } else if (available.find((p) => p.name === "local-whisper")) {
-        result = await transcribeLocal(filePath, language);
+        result = await transcribeLocal(
+          filePath,
+          language,
+          projectRoot,
+          context,
+        );
       } else {
-        const info = await getAudioInfo(filePath);
+        const info = await getAudioInfo(filePath, context, projectRoot);
         return {
           success: true,
           result: { info, providers },
@@ -412,3 +431,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "audio-transcriber",
+  module.exports,
+);

@@ -6,13 +6,16 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const {
   requireBundledSkillRuntimeNetworkBroker,
 } = require("../../bundled-skill-egress-broker.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 const SENTENCES_FOR_SUMMARY = 5;
 const YOUTUBE_REGEX =
@@ -68,7 +71,7 @@ function parseInput(input) {
     return { action: "summarize-url", target: trimmed };
   }
 
-  if (_deps.fs.existsSync(trimmed) || trimmed.match(/^[./\\]/)) {
+  if (fs.existsSync(trimmed) || trimmed.match(/^[./\\]/)) {
     return { action: "summarize-file", target: trimmed };
   }
 
@@ -150,7 +153,7 @@ function handleSummarizeFile(filePath) {
   }
 
   const resolved = _deps.path.resolve(filePath);
-  if (!_deps.fs.existsSync(resolved)) {
+  if (!fs.existsSync(resolved)) {
     return {
       success: false,
       action: "summarize-file",
@@ -158,7 +161,7 @@ function handleSummarizeFile(filePath) {
     };
   }
 
-  const stat = _deps.fs.statSync(resolved);
+  const stat = fs.statSync(resolved);
   if (stat.size > 10 * 1024 * 1024) {
     return {
       success: false,
@@ -167,7 +170,7 @@ function handleSummarizeFile(filePath) {
     };
   }
 
-  let content = _deps.fs.readFileSync(resolved, "utf-8");
+  let content = fs.readFileSync(resolved, "utf-8");
   const ext = _deps.path.extname(resolved).toLowerCase();
 
   // Strip HTML/Markdown formatting if needed
@@ -468,3 +471,5 @@ const STOP_WORDS = new Set([
   "think",
   "thought",
 ]);
+
+module.exports = withBundledSkillFilesystem("summarizer", module.exports);

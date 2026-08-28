@@ -8,6 +8,10 @@
 
 const { logger } = require("../../../utils/logger.js");
 const EventEmitter = require("events");
+const nodeCrypto = require("node:crypto");
+const {
+  BUNDLED_SKILL_CAPABILITY_CATALOG,
+} = require("./bundled-skill-capability-catalog");
 
 /**
  * SkillRegistry 类
@@ -24,6 +28,34 @@ class SkillRegistry extends EventEmitter {
       maxSkills: options.maxSkills || 1000,
       ...options,
     };
+    this._executionAuthorizer = null;
+    this._bundledSkillFilesystemAuthorityFactory = null;
+    this._bundledSkillEnvironmentAuthorityFactory = null;
+    this._bundledSkillProcessAuthorityFactory = null;
+    this._bundledSkillNetworkAuthorityFactory = null;
+    if (Object.hasOwn(options, "executionAuthorizer")) {
+      this.setExecutionAuthorizer(options.executionAuthorizer);
+    }
+    if (Object.hasOwn(options, "bundledSkillFilesystemAuthorityFactory")) {
+      this.setBundledSkillFilesystemAuthorityFactory(
+        options.bundledSkillFilesystemAuthorityFactory,
+      );
+    }
+    if (Object.hasOwn(options, "bundledSkillEnvironmentAuthorityFactory")) {
+      this.setBundledSkillEnvironmentAuthorityFactory(
+        options.bundledSkillEnvironmentAuthorityFactory,
+      );
+    }
+    if (Object.hasOwn(options, "bundledSkillProcessAuthorityFactory")) {
+      this.setBundledSkillProcessAuthorityFactory(
+        options.bundledSkillProcessAuthorityFactory,
+      );
+    }
+    if (Object.hasOwn(options, "bundledSkillNetworkAuthorityFactory")) {
+      this.setBundledSkillNetworkAuthorityFactory(
+        options.bundledSkillNetworkAuthorityFactory,
+      );
+    }
 
     // 技能映射: skillId -> Skill
     this.skills = new Map();
@@ -297,7 +329,7 @@ class SkillRegistry extends EventEmitter {
       throw new Error(`技能已禁用: ${skillId}`);
     }
 
-    return await skill.executeWithMetrics(task, context);
+    return await this._executeWithHostAuthority(skill, task, context);
   }
 
   /**
@@ -327,15 +359,255 @@ class SkillRegistry extends EventEmitter {
 
       this._log(`自动选择技能: ${bestSkill.name} (${bestSkill.skillId})`);
 
-      return await bestSkill.executeWithMetrics(taskObj, context);
+      return await this._executeWithHostAuthority(bestSkill, taskObj, context);
     } catch (error) {
       // 兼容性：捕获错误并返回失败结果而不是抛出异常
       this._log(`任务执行失败: ${error.message}`, "error");
       return {
         success: false,
         error: error.message,
+        ...(error.prevented === true ? { prevented: true } : {}),
       };
     }
+  }
+
+  /**
+   * Configure the trusted host policy decision used by every registry entry.
+   * @param {Function|null} authorizer
+   */
+  setExecutionAuthorizer(authorizer) {
+    if (authorizer !== null && typeof authorizer !== "function") {
+      throw new TypeError(
+        "Skill execution authorizer must be a function or null",
+      );
+    }
+    this._executionAuthorizer = authorizer;
+  }
+
+  /**
+   * Configure production filesystem authority creation for reviewed bundled
+   * Skills. Renderer-provided host ports are always replaced by this factory.
+   * @param {Function|null} factory
+   */
+  setBundledSkillFilesystemAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill filesystem authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillFilesystemAuthorityFactory = factory;
+  }
+
+  setBundledSkillEnvironmentAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill environment authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillEnvironmentAuthorityFactory = factory;
+  }
+
+  setBundledSkillProcessAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill process authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillProcessAuthorityFactory = factory;
+  }
+
+  setBundledSkillNetworkAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill network authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillNetworkAuthorityFactory = factory;
+  }
+
+  async _authorizeExecution(skill, task, context) {
+    let decision = null;
+    const policyAuthorized = typeof this._executionAuthorizer === "function";
+    if (policyAuthorized) {
+      decision = await this._executionAuthorizer({
+        skillId: skill.skillId,
+        task,
+        context,
+      });
+    }
+    if (decision === false || decision?.approved === false) {
+      const error = new Error(
+        decision?.reason || `Skill execution prevented: ${skill.skillId}`,
+      );
+      error.code = "CC_SKILL_EXECUTION_PREVENTED";
+      error.prevented = true;
+      throw error;
+    }
+    return Object.freeze({
+      approved: true,
+      policyAuthorized,
+      authorityId:
+        typeof decision?.authorityId === "string" && decision.authorityId
+          ? decision.authorityId
+          : `skill-execution:${nodeCrypto.randomUUID()}`,
+    });
+  }
+
+  async _prepareExecutionContext(skill, task, context) {
+    const executionDecision = await this._authorizeExecution(
+      skill,
+      task,
+      context,
+    );
+    const catalogEntry = BUNDLED_SKILL_CAPABILITY_CATALOG[skill.skillId];
+    const executionSecurity = skill._executionSecurity;
+    const needsFilesystemAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:filesystem");
+    const needsEnvironmentAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:environment");
+    const needsProcessAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:process");
+    const needsNetworkAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:network");
+    let executionContext =
+      context && typeof context === "object" ? context : Object.create(null);
+
+    if (
+      needsFilesystemAuthority &&
+      typeof this._bundledSkillFilesystemAuthorityFactory === "function"
+    ) {
+      const authority = await this._bundledSkillFilesystemAuthorityFactory({
+        skillId: skill.skillId,
+        task,
+        context: executionContext,
+        executionDecision,
+      });
+      if (!authority?.filesystem) {
+        const error = new Error(
+          `Filesystem authority factory returned no broker for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_FILESYSTEM_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      const originalHost =
+        executionContext.host && typeof executionContext.host === "object"
+          ? executionContext.host
+          : Object.create(null);
+      executionContext = {
+        ...executionContext,
+        projectRoot: authority.workspaceRoot,
+        workspaceRoot: authority.workspaceRoot,
+        workspacePath: authority.workspaceRoot,
+        host: {
+          ...originalHost,
+          filesystem: authority.filesystem,
+          ...(authority.filesystemTempRoot
+            ? { filesystemTempRoot: authority.filesystemTempRoot }
+            : {}),
+        },
+      };
+    }
+
+    if (
+      needsEnvironmentAuthority &&
+      typeof this._bundledSkillEnvironmentAuthorityFactory === "function"
+    ) {
+      const environmentBroker =
+        await this._bundledSkillEnvironmentAuthorityFactory({
+          skillId: skill.skillId,
+          task,
+          context: executionContext,
+          executionDecision,
+        });
+      if (!environmentBroker) {
+        const error = new Error(
+          `Environment authority factory returned no broker for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_ENVIRONMENT_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      executionContext = {
+        ...executionContext,
+        environmentBroker,
+      };
+    }
+
+    if (
+      needsProcessAuthority &&
+      typeof this._bundledSkillProcessAuthorityFactory === "function"
+    ) {
+      const authority = await this._bundledSkillProcessAuthorityFactory({
+        skillId: skill.skillId,
+        task,
+        context: executionContext,
+        executionDecision,
+      });
+      if (!authority?.processBroker) {
+        const error = new Error(
+          `Process authority factory returned no broker for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_PROCESS_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      executionContext = {
+        ...executionContext,
+        projectRoot: authority.workspaceRoot,
+        workspaceRoot: authority.workspaceRoot,
+        workspacePath: authority.workspaceRoot,
+        processBroker: authority.processBroker,
+        ...(authority.cliEntrypoint
+          ? { cliEntrypoint: authority.cliEntrypoint }
+          : {}),
+      };
+    }
+
+    if (
+      needsNetworkAuthority &&
+      typeof this._bundledSkillNetworkAuthorityFactory === "function"
+    ) {
+      const authority = await this._bundledSkillNetworkAuthorityFactory({
+        skillId: skill.skillId,
+        task,
+        context: executionContext,
+        executionDecision,
+      });
+      if (!authority || typeof authority !== "object") {
+        const error = new Error(
+          `Network authority factory returned no policy for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_NETWORK_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      executionContext = {
+        ...executionContext,
+        networkBroker: authority.networkBroker || null,
+        localServiceBroker: authority.localServiceBroker || null,
+        networkDiagnosticsBroker: authority.networkDiagnosticsBroker || null,
+      };
+    }
+
+    return executionContext;
+  }
+
+  async _executeWithHostAuthority(skill, task, context) {
+    const executionContext = await this._prepareExecutionContext(
+      skill,
+      task,
+      context,
+    );
+    return await skill.executeWithMetrics(task, executionContext);
   }
 
   // ==========================================

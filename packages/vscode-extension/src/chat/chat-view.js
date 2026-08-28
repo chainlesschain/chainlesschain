@@ -2946,13 +2946,11 @@ class ChatViewProvider {
 
   _sendApprovalDecision(message, conversation = this._convs.active()) {
     if (!conversation?.session) return false;
-    const pending = this._convs
-      .pendingInteractions(conversation.id)
-      .find(
-        (entry) =>
-          entry?.kind === "approval" &&
-          String(entry.id || "") === String(message?.id || ""),
-      );
+    const pending = this._convs.beginApprovalSettlement(
+      conversation.id,
+      message?.id,
+      "responding",
+    );
     if (!pending) {
       this.vscode.window.showWarningMessage(
         "This approval request is no longer pending.",
@@ -2960,9 +2958,23 @@ class ChatViewProvider {
       return false;
     }
     try {
-      conversation.session.sendEvent(buildApprovalResponse(message, pending));
+      const sent = conversation.session.sendEvent(
+        buildApprovalResponse(message, pending),
+      );
+      if (!sent) {
+        throw new Error("agent session did not accept the response");
+      }
       return true;
     } catch (error) {
+      this._convs.rollbackApprovalSettlement(
+        conversation.id,
+        pending.id,
+        "responding",
+      );
+      this._postFrom(conversation.id, {
+        kind: "approval_retry",
+        id: pending.id,
+      });
       this.vscode.window.showWarningMessage(
         `Approval was not sent: ${error.message}`,
       );
@@ -2978,7 +2990,8 @@ class ChatViewProvider {
           .find(
             (entry) =>
               entry?.kind === "approval" &&
-              String(entry.id || "") === String(message?.id || ""),
+              String(entry.id || "") === String(message?.id || "") &&
+              (entry.settlementStatus || "pending") === "pending",
           )
       : null;
     if (!pending || !conversation?.session) {
@@ -3058,6 +3071,60 @@ class ChatViewProvider {
       },
       conversation,
     );
+  }
+
+  _interruptConversation(conversation = this._activeConv()) {
+    if (!conversation?.session?.running || !conversation.turnActive) {
+      this._post({ kind: "info", text: "/stop: no active turn" });
+      return false;
+    }
+
+    const reserved = this._convs
+      .pendingInteractions(conversation.id)
+      .filter((entry) => entry?.kind === "approval")
+      .map((entry) =>
+        this._convs.beginApprovalSettlement(
+          conversation.id,
+          entry.id,
+          "interrupting",
+        ),
+      )
+      .filter(Boolean);
+    let sent = false;
+    try {
+      sent = conversation.session.sendEvent({ type: "interrupt" }) === true;
+    } catch {
+      sent = false;
+    }
+    if (!sent) {
+      for (const approval of reserved) {
+        this._convs.rollbackApprovalSettlement(
+          conversation.id,
+          approval.id,
+          "interrupting",
+        );
+      }
+      this._post({
+        kind: "error",
+        text: "/stop: could not reach the agent session",
+      });
+      return false;
+    }
+
+    let cleared = false;
+    for (const approval of reserved) {
+      cleared =
+        Boolean(this._convs.clearApproval(conversation.id, approval.id)) ||
+        cleared;
+      this._postFrom(conversation.id, {
+        kind: "approval_done",
+        id: approval.id,
+        approved: false,
+        via: "session-interrupted",
+      });
+    }
+    if (cleared) this._postTabs();
+    return true;
   }
 
   /** Reflect the ACTIVE conversation's approval mode in the status bar. */
@@ -3341,15 +3408,7 @@ class ChatViewProvider {
       );
     } else if (m.type === "interrupt") {
       // Abort the in-flight turn only — the conversation/child stays alive.
-      const conv = this._activeConv();
-      if (!conv.session?.running || !conv.turnActive) {
-        this._post({ kind: "info", text: "/stop: no active turn" });
-      } else if (!conv.session.sendEvent({ type: "interrupt" })) {
-        this._post({
-          kind: "error",
-          text: "/stop: could not reach the agent session",
-        });
-      }
+      this._interruptConversation(this._activeConv());
     } else if (m.type === "compact") {
       // Manual /compact (Claude-Code IDE parity): ask the child to trim its
       // live history between turns. The CLI answers with a `compaction`

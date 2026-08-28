@@ -5,14 +5,19 @@
  * v1.2.0: Added LLM-driven description optimization loop (optimize-description).
  */
 
-const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { spawnSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
 function defaultManagedSkillsRoot() {
   let userDataPath = path.join(os.homedir(), ".chainlesschain");
@@ -27,9 +32,7 @@ function defaultManagedSkillsRoot() {
 
 // Injectable dependencies for testing
 const _deps = {
-  fs,
   path,
-  spawnSync,
   getManagedSkillsRoot: defaultManagedSkillsRoot,
 };
 
@@ -84,11 +87,23 @@ module.exports = {
             parsed.name,
             parsed.maxIterations,
             {
-              ...requireBundledSkillEnvironmentBroker(
+              environment: {
+                ...requireBundledSkillEnvironmentBroker(
+                  context,
+                  "skill-creator",
+                ).snapshot(),
+                CHAINLESSCHAIN_QUIET: "1",
+              },
+              processBroker: requireBundledSkillProcessBroker(
                 context,
                 "skill-creator",
-              ).snapshot(),
-              CHAINLESSCHAIN_QUIET: "1",
+              ),
+              cliEntrypoint: context.cliEntrypoint || process.argv[1],
+              cwd:
+                context.projectRoot ||
+                context.workspaceRoot ||
+                context.workspacePath ||
+                process.cwd(),
             },
           );
         case "validate":
@@ -172,23 +187,25 @@ function parseInput(input) {
  * Works when running inside `chainlesschain agent` or `chainlesschain skill run`.
  * Returns null on failure (non-CLI env, timeout, etc.).
  */
-function callLLM(prompt, runtimeEnv) {
+function callLLM(prompt, runtime) {
   try {
-    const result = _deps.spawnSync(
-      process.execPath,
-      [process.argv[1], "ask", prompt],
-      {
-        encoding: "utf-8",
-        timeout: 60000,
-        windowsHide: true,
-        env: runtimeEnv,
-      },
-    );
-    if (result.error || result.status !== 0) {
+    if (!runtime.cliEntrypoint) {
       return null;
     }
-    return (result.stdout || "").trim() || null;
-  } catch {
+    const output = runtime.processBroker.execFileSync(
+      "node",
+      [runtime.cliEntrypoint, "ask", prompt],
+      {
+        cwd: runtime.cwd,
+        env: runtime.environment,
+        timeout: 60_000,
+      },
+    );
+    return (output || "").toString("utf8").trim() || null;
+  } catch (error) {
+    if (String(error?.code || "").startsWith("CC_BUNDLED_SKILL_PROCESS_")) {
+      throw error;
+    }
     return null;
   }
 }
@@ -343,7 +360,7 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
   const skillDir = resolveSkillDir(name);
   const skillMdPath = _deps.path.join(skillDir, "SKILL.md");
 
-  if (!_deps.fs.existsSync(skillMdPath)) {
+  if (!fs.existsSync(skillMdPath)) {
     return {
       success: false,
       action: "optimize-description",
@@ -352,7 +369,7 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
     };
   }
 
-  const content = _deps.fs.readFileSync(skillMdPath, "utf-8");
+  const content = fs.readFileSync(skillMdPath, "utf-8");
   const descMatch = content.match(/^description:\s*(.+)/m);
   const originalDesc = descMatch ? descMatch[1].trim() : "";
 
@@ -481,15 +498,15 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
       /^(description:\s*).+/m,
       `$1${bestDesc}`,
     );
-    _deps.fs.writeFileSync(skillMdPath, updatedContent, "utf-8");
+    fs.writeFileSync(skillMdPath, updatedContent, "utf-8");
     logger.info(`[SkillCreator] SKILL.md updated with best description.`);
   }
 
   // Step 6: Save results to workspace
   try {
     const workspaceDir = _deps.path.join(skillDir, ".opt-workspace");
-    if (!_deps.fs.existsSync(workspaceDir)) {
-      _deps.fs.mkdirSync(workspaceDir, { recursive: true });
+    if (!fs.existsSync(workspaceDir)) {
+      fs.mkdirSync(workspaceDir, { recursive: true });
     }
     const results = {
       skillName: name,
@@ -504,7 +521,7 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
         split: idx < splitIdx ? "train" : "test",
       })),
     };
-    _deps.fs.writeFileSync(
+    fs.writeFileSync(
       _deps.path.join(workspaceDir, "results.json"),
       JSON.stringify(results, null, 2),
       "utf-8",
@@ -631,14 +648,10 @@ module.exports = {
     "handler.js": handlerJs,
   };
 
-  if (!_deps.fs.existsSync(skillDir)) {
-    _deps.fs.mkdirSync(skillDir, { recursive: true });
-    _deps.fs.writeFileSync(
-      _deps.path.join(skillDir, "SKILL.md"),
-      skillMd,
-      "utf8",
-    );
-    _deps.fs.writeFileSync(
+  if (!fs.existsSync(skillDir)) {
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(_deps.path.join(skillDir, "SKILL.md"), skillMd, "utf8");
+    fs.writeFileSync(
       _deps.path.join(skillDir, "handler.js"),
       handlerJs,
       "utf8",
@@ -713,11 +726,11 @@ function handleOptimize(name) {
   }
 
   const skillMdPath = _deps.path.join(resolveSkillDir(name), "SKILL.md");
-  if (!_deps.fs.existsSync(skillMdPath)) {
+  if (!fs.existsSync(skillMdPath)) {
     return { success: false, error: `SKILL.md not found for "${name}".` };
   }
 
-  const content = _deps.fs.readFileSync(skillMdPath, "utf8");
+  const content = fs.readFileSync(skillMdPath, "utf8");
   const descMatch = content.match(/description:\s*(.+)/);
   const currentDesc = descMatch ? descMatch[1].trim() : "";
 
@@ -764,11 +777,11 @@ function handleValidate(name) {
   const issues = [];
   const checks = [];
 
-  if (!_deps.fs.existsSync(skillMdPath)) {
+  if (!fs.existsSync(skillMdPath)) {
     issues.push("SKILL.md not found");
   } else {
     checks.push("SKILL.md exists");
-    const content = _deps.fs.readFileSync(skillMdPath, "utf8");
+    const content = fs.readFileSync(skillMdPath, "utf8");
 
     if (!content.startsWith("---")) {
       issues.push("Missing YAML frontmatter (---) at start");
@@ -795,12 +808,12 @@ function handleValidate(name) {
     }
   }
 
-  if (!_deps.fs.existsSync(handlerPath)) {
+  if (!fs.existsSync(handlerPath)) {
     issues.push("handler.js not found");
   } else {
     checks.push("handler.js exists");
 
-    const handlerSource = _deps.fs.readFileSync(handlerPath, "utf8");
+    const handlerSource = fs.readFileSync(handlerPath, "utf8");
     if (!/(?:async\s+)?execute\s*\(/.test(handlerSource)) {
       issues.push("handler.js missing execute() function");
     } else {
@@ -1323,3 +1336,5 @@ function guessCategory(text) {
   }
   return "general";
 }
+
+module.exports = withBundledSkillFilesystem("skill-creator", module.exports);

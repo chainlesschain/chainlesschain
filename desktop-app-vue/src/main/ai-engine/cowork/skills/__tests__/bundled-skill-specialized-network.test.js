@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 const { logger } = vi.hoisted(() => ({
   logger: {
@@ -26,8 +27,14 @@ vi.mock("child_process", () => ({
   }),
 }));
 
-const audioHandler = require("../builtin/audio-transcriber/handler.js");
-const imageHandler = require("../builtin/image-generator/handler.js");
+const audioHandler = withTestFilesystemHandler(
+  require("../builtin/audio-transcriber/handler.js"),
+  "audio-transcriber",
+);
+const imageHandler = withTestFilesystemHandler(
+  require("../builtin/image-generator/handler.js"),
+  "image-generator",
+);
 const {
   createBundledSkillFixedNetworkBroker,
 } = require("../bundled-skill-egress-broker.js");

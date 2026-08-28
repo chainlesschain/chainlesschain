@@ -452,6 +452,14 @@
           <LLMPane v-model:config="config" />
         </a-tab-pane>
 
+        <a-tab-pane key="skill-credentials">
+          <template #tab>
+            <LockOutlined />
+            Skill 凭据
+          </template>
+          <SkillCredentialsPane />
+        </a-tab-pane>
+
         <!-- 向量数据库配置 -->
         <a-tab-pane key="vector" tab="向量数据库">
           <template #tab>
@@ -720,6 +728,7 @@ import { deepMerge } from "./systemSettingsUtils";
 import P2PNetworkPane from "./panes/P2PNetworkPane.vue";
 import SpeechRecognitionPane from "./panes/SpeechRecognitionPane.vue";
 import LLMPane from "./panes/LLMPane.vue";
+import SkillCredentialsPane from "./panes/SkillCredentialsPane.vue";
 import DatabasePane from "./panes/DatabasePane.vue";
 import ProjectPane from "./panes/ProjectPane.vue";
 import PerformancePane from "./panes/PerformancePane.vue";

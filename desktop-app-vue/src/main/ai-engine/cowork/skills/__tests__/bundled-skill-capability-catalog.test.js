@@ -78,6 +78,7 @@ describe("bundled Skill capability catalog", () => {
     const { inferCapabilities } = await import(
       pathToFileURL(AUDIT_SCRIPT).href
     );
+    const auditDetails = {};
     const capabilities = inferCapabilities(
       `const fs = require("fs");
        fs.readFileSync("input");
@@ -87,6 +88,7 @@ describe("bundled Skill capability catalog", () => {
        Date.now();
        import(moduleName);`,
       "classification-fixture",
+      auditDetails,
     );
 
     expect(capabilities).toEqual([
@@ -98,6 +100,10 @@ describe("bundled Skill capability catalog", () => {
       "network:http",
       "runtime:random",
       "runtime:time",
+    ]);
+    expect(auditDetails.filesystemOperations).toEqual([
+      "readFileSync",
+      "writeFileSync",
     ]);
   });
 });
