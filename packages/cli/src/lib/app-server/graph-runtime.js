@@ -260,7 +260,8 @@ export class AppServerGraphRuntime {
     const compiled = compileGraphDefinition(definition);
     const id = String(runId);
     const request = {
-      definition: compiled.definition,
+      definition:
+        compiled.definitionMigration?.backupDefinition || compiled.definition,
       inputs: { ...inputs },
       originSurface,
       agentCapacity: Math.max(1, Number(agentCapacity) || 1),

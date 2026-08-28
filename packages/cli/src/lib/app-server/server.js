@@ -361,6 +361,17 @@ export class CcAppServer {
       definitionId: compiled.definitionId,
       revision: compiled.revision,
       revisionDigest: compiled.revisionDigest,
+      migratedFrom: compiled.migratedFrom,
+      definitionMigration: compiled.definitionMigration
+        ? {
+            schema: compiled.definitionMigration.schema,
+            fromVersion: compiled.definitionMigration.fromVersion,
+            toVersion: compiled.definitionMigration.toVersion,
+            revisionDigest: compiled.definitionMigration.revisionDigest,
+            rollbackDigest: compiled.definitionMigration.rollbackDigest,
+            backupAvailable: true,
+          }
+        : null,
       topologicalOrder: [...compiled.topologicalOrder],
     };
   }

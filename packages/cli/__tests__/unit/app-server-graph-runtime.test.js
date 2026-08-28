@@ -39,6 +39,17 @@ function definition(effectClass = "workspace_write") {
   };
 }
 
+function legacyDefinition() {
+  return {
+    schemaVersion: 0,
+    id: "app-server-legacy-graph",
+    revision: 1,
+    nodes: [{ id: "implement", dependsOn: [] }],
+    edges: [],
+    metadata: { source: "n-minus-one-production-request" },
+  };
+}
+
 class CrashAfterGraphAppendStore extends GraphEventStore {
   arm(type) {
     this.crashType = type;
@@ -265,6 +276,66 @@ describe("App Server canonical Graph runtime", () => {
       status: "succeeded",
       authorityGeneration: 2,
       authoritySource: "graph_kernel",
+    });
+  });
+
+  it("persists and revalidates an N-1 definition backup across App Server recovery", async () => {
+    const rolloutStore = new MemoryRolloutStore();
+    const first = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async () => {
+        throw new Error("the pre-crash runtime must not execute");
+      },
+    });
+    const started = first.start({
+      definition: legacyDefinition(),
+      runId: "desktop-definition-migration",
+      inputs: { implement: "resume the migrated definition" },
+    });
+    expect(started.definitionMigration).toMatchObject({
+      schema: "chainlesschain.graph-definition-migration/v1",
+      fromVersion: 0,
+      toVersion: 1,
+      revisionDigest: started.revisionDigest,
+      backupAvailable: true,
+    });
+    expect(
+      first._readRequest("desktop-definition-migration").definition,
+    ).toEqual(legacyDefinition());
+    const durableSnapshot = first.eventStore
+      .read("desktop-definition-migration")
+      .at(-1).payload.state;
+    expect(durableSnapshot.definition.schemaVersion).toBe(1);
+    expect(durableSnapshot.definitionMigration).toMatchObject({
+      backupDefinition: legacyDefinition(),
+      revisionDigest: started.revisionDigest,
+    });
+
+    const prompts = [];
+    const recovered = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async ({ input }) => {
+        prompts.push(input.prompt);
+        return {
+          status: "succeeded",
+          terminalEvidence: { outputDigest: OUTPUT },
+        };
+      },
+    });
+    const completed = await recovered.resume("desktop-definition-migration", {
+      waitForCompletion: true,
+    });
+    expect(prompts).toEqual(["resume the migrated definition"]);
+    expect(completed).toMatchObject({
+      status: "succeeded",
+      authorityGeneration: 2,
+      definitionMigration: {
+        fromVersion: 0,
+        toVersion: 1,
+        revisionDigest: started.revisionDigest,
+        rollbackDigest: started.definitionMigration.rollbackDigest,
+        backupAvailable: true,
+      },
     });
   });
 
