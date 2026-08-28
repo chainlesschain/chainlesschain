@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.ApprovalGrants;
 import com.chainlesschain.ide.ApprovalSettlementRegistry;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ContextStatus;
@@ -82,18 +83,23 @@ final class ConversationView {
 
     private static final class ApprovalCard {
         final JComponent component;
-        final JButton approve;
-        final JButton deny;
+        final List<JButton> controls;
 
-        ApprovalCard(JComponent component, JButton approve, JButton deny) {
+        ApprovalCard(JComponent component, JButton... controls) {
             this.component = component;
-            this.approve = approve;
-            this.deny = deny;
+            this.controls = java.util.Arrays.asList(controls);
         }
 
         void setEnabled(boolean enabled) {
-            approve.setEnabled(enabled);
-            deny.setEnabled(enabled);
+            for (JButton control : controls) control.setEnabled(enabled);
+        }
+    }
+
+    private static final class ApprovalGrantCommand {
+        final String action;
+
+        ApprovalGrantCommand(String action) {
+            this.action = action;
         }
     }
 
@@ -173,6 +179,8 @@ final class ConversationView {
     private volatile java.util.Set<String> sessionSlashCommands;
     private final java.util.Set<String> pendingSessionSlashCommands =
             java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.concurrent.ConcurrentMap<String, ApprovalGrantCommand>
+            pendingApprovalGrantCommands = new java.util.concurrent.ConcurrentHashMap<>();
     // This tab's last successfully-sent user prompt, for /retry (regenerate).
     // Per-view (= per-conversation), so a retry never replays another tab's
     // prompt (mirrors the VS Code panel's lastSentByTab). EDT-only.
@@ -244,6 +252,13 @@ final class ConversationView {
             menu.show(llmBtn, 0, llmBtn.getHeight());
         });
         buttons.add(llmBtn);
+        JButton grantsBtn = new JButton("Grants");
+        grantsBtn.getAccessibleContext().setAccessibleName(
+                "Review reusable approval grants");
+        grantsBtn.setToolTipText(
+                "Review and revoke exact permissions retained for this turn or session");
+        grantsBtn.addActionListener(ev -> requestApprovalGrants());
+        buttons.add(grantsBtn);
         buttons.add(sendBtn);
         buttons.add(stopBtn);
         JPanel buttonRow = new JPanel(new BorderLayout());
@@ -283,6 +298,7 @@ final class ConversationView {
                 interruptRequested = null;
                 conv.session = null;
                 turnActive = false;
+                pendingApprovalGrantCommands.clear();
                 invalidateApprovalCards();
                 append("⏹ force-stopped the agent process — next message restarts it\n");
                 ApplicationManager.getApplication().executeOnPooledThread(s::stop);
@@ -836,6 +852,12 @@ final class ConversationView {
     private void runSessionSlashCommand(
             SlashCommands.Definition definition, String rawArgs) {
         final String args = rawArgs == null ? "" : rawArgs.trim();
+        if ("permissions".equals(definition.target)
+                && ("grants".equalsIgnoreCase(args)
+                    || "grants list".equalsIgnoreCase(args))) {
+            requestApprovalGrants();
+            return;
+        }
         if (args.length() > 4096) {
             append(definition.name + ": arguments are too long\n");
             return;
@@ -879,6 +901,176 @@ final class ConversationView {
         } catch (java.util.concurrent.RejectedExecutionException ignored) {
             append(definition.name + ": agent session is closed\n");
         }
+    }
+
+    private void requestApprovalGrants() {
+        sendApprovalGrantCommand("list", "grants");
+    }
+
+    private void revokeApprovalGrant(String grantId) {
+        sendApprovalGrantCommand("revoke", "revoke " + grantId);
+    }
+
+    /** Send a correlated control request to the live CLI-owned grant ledger. */
+    private void sendApprovalGrantCommand(String action, String args) {
+        SlashCommands.Definition definition = SlashCommands.find("/permissions");
+        if (definition == null) return;
+        try {
+            sendExecutor.execute(() -> {
+                if (disposed) return;
+                String requestId = "grant-" + java.util.UUID.randomUUID();
+                try {
+                    ensureSession();
+                    AgentChatSession session = liveSession();
+                    java.util.Set<String> advertised = sessionSlashCommands;
+                    if (advertised != null && !advertised.contains("permissions")) {
+                        SwingUtilities.invokeLater(() -> append(
+                                "Grant management requires a newer cc CLI. "
+                                + "Upgrade the CLI and retry.\n"));
+                        return;
+                    }
+                    if (advertised == null) pendingSessionSlashCommands.add("permissions");
+                    pendingApprovalGrantCommands.put(
+                            requestId, new ApprovalGrantCommand(action));
+                    Map<String, Object> event = SlashCommands.sessionEvent(
+                            definition, args, requestId);
+                    boolean sent = session != null && session.sendEvent(event);
+                    if (!sent) {
+                        pendingApprovalGrantCommands.remove(requestId);
+                        pendingSessionSlashCommands.remove("permissions");
+                        SwingUtilities.invokeLater(() -> append(
+                                "Grants: could not reach the agent session\n"));
+                    }
+                } catch (IOException error) {
+                    pendingApprovalGrantCommands.remove(requestId);
+                    final String message = error.getMessage();
+                    SwingUtilities.invokeLater(() -> append(
+                            "Grants: could not start the agent session: "
+                            + message + "\n"));
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+            append("Grants: agent session is closed\n");
+        }
+    }
+
+    private boolean handleApprovalGrantCommandEvent(Map<String, Object> event) {
+        if (event == null
+                || !AgentStreamEventType.SLASH_COMMAND_RESULT.getWireValue()
+                        .equals(event.get("type"))) return false;
+        Object rawId = event.get("request_id");
+        if (!(rawId instanceof String)) return false;
+        ApprovalGrantCommand command = pendingApprovalGrantCommands.remove(rawId);
+        if (command == null) return false;
+        SwingUtilities.invokeLater(() -> handleApprovalGrantCommandResult(command, event));
+        return true;
+    }
+
+    private void handleApprovalGrantCommandResult(
+            ApprovalGrantCommand command, Map<String, Object> event) {
+        if (!Boolean.TRUE.equals(event.get("ok"))) {
+            String message = "Approval grant command failed";
+            Object error = event.get("error");
+            if (error instanceof Map && ((Map<?, ?>) error).get("message") != null) {
+                message = String.valueOf(((Map<?, ?>) error).get("message"));
+            }
+            if ("UNSUPPORTED_ARGUMENTS".equals(errorCode(error))) {
+                message = "Grant review requires a newer cc CLI. Upgrade the CLI and retry.";
+            }
+            append("⚠ " + message + "\n");
+            com.intellij.openapi.ui.Messages.showWarningDialog(
+                    project, message, "Approval Grants");
+            return;
+        }
+        try {
+            ApprovalGrants.Projection projection = ApprovalGrants.parse(
+                    String.valueOf(event.get("text")));
+            if (!command.action.equals(projection.action)) {
+                throw new IllegalArgumentException("grant action correlation mismatch");
+            }
+            if (projection.revoked != null) {
+                append("ℹ revoked " + projection.revoked.lifetime
+                        + " grant for " + projection.revoked.capability + "\n");
+            }
+            showApprovalGrantManager(projection.grants);
+        } catch (RuntimeException error) {
+            append("⚠ the CLI returned an invalid approval grant projection\n");
+            com.intellij.openapi.ui.Messages.showErrorDialog(
+                    project,
+                    "The live CLI returned an invalid approval grant projection. "
+                            + "No local grant state was changed.",
+                    "Approval Grants");
+        }
+    }
+
+    private static String errorCode(Object error) {
+        if (!(error instanceof Map) || ((Map<?, ?>) error).get("code") == null) return "";
+        return String.valueOf(((Map<?, ?>) error).get("code"));
+    }
+
+    private void showApprovalGrantManager(List<ApprovalGrants.Grant> grants) {
+        if (grants.isEmpty()) {
+            com.intellij.openapi.ui.Messages.showInfoMessage(
+                    project,
+                    "No reusable approval grants are active in this agent session.",
+                    "Approval Grants");
+            return;
+        }
+
+        javax.swing.JList<ApprovalGrants.Grant> list = new javax.swing.JList<>(
+                grants.toArray(new ApprovalGrants.Grant[0]));
+        list.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        list.setSelectedIndex(0);
+        JTextArea details = new JTextArea();
+        details.setEditable(false);
+        details.setLineWrap(true);
+        details.setWrapStyleWord(true);
+        details.setRows(8);
+        Runnable refreshDetails = () -> {
+            ApprovalGrants.Grant grant = list.getSelectedValue();
+            details.setText(grant == null ? "" : approvalGrantDetails(grant));
+            details.setCaretPosition(0);
+        };
+        list.addListSelectionListener(event -> refreshDetails.run());
+        refreshDetails.run();
+
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.add(new JLabel(
+                "Select an exact turn/session permission to inspect and revoke."),
+                BorderLayout.NORTH);
+        JScrollPane listScroll = new JScrollPane(list);
+        listScroll.setPreferredSize(new java.awt.Dimension(680, 150));
+        panel.add(listScroll, BorderLayout.CENTER);
+        panel.add(new JScrollPane(details), BorderLayout.SOUTH);
+
+        com.intellij.openapi.ui.DialogBuilder builder =
+                new com.intellij.openapi.ui.DialogBuilder(project);
+        builder.setTitle("Approval Grants");
+        builder.setCenterPanel(panel);
+        builder.addOkAction().setText("Revoke Selected");
+        builder.addCancelAction().setText("Close");
+        if (builder.show() != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) return;
+        ApprovalGrants.Grant selected = list.getSelectedValue();
+        if (selected == null) return;
+        int confirmed = com.intellij.openapi.ui.Messages.showYesNoDialog(
+                project,
+                "Revoke this exact " + selected.lifetime + " grant?\n\n"
+                        + approvalGrantDetails(selected),
+                "Revoke Approval Grant", null);
+        if (confirmed == com.intellij.openapi.ui.Messages.YES) {
+            revokeApprovalGrant(selected.grantId);
+        }
+    }
+
+    private static String approvalGrantDetails(ApprovalGrants.Grant grant) {
+        StringBuilder text = new StringBuilder();
+        text.append("Lifetime: ").append(grant.lifetimeLabel())
+                .append("\nCapability: ").append(grant.capability)
+                .append("\nExact scope: ").append(grant.scope)
+                .append("\nGranted: ").append(grant.grantedAt);
+        if (grant.expiresAt != null) text.append("\nExpires: ").append(grant.expiresAt);
+        if (grant.turnId != null) text.append("\nTurn: ").append(grant.turnId);
+        return text.toString();
     }
 
     /** Run one of the three VS Code-parity top-level CLI routes off the EDT. */
@@ -1407,6 +1599,7 @@ final class ConversationView {
         conv.turnState = new ChatEvents.TurnState();
         sessionSlashCommands = null;
         pendingSessionSlashCommands.clear();
+        pendingApprovalGrantCommands.clear();
         indexConversation("stopped");
         try {
             sendExecutor.execute(() -> {
@@ -1469,6 +1662,7 @@ final class ConversationView {
 
         sessionSlashCommands = null;
         pendingSessionSlashCommands.clear();
+        pendingApprovalGrantCommands.clear();
         AgentChatSession.Options o = new AgentChatSession.Options();
         String basePath = project.getBasePath();
         if (basePath != null) o.cwd = new File(basePath);
@@ -1588,12 +1782,14 @@ final class ConversationView {
                 planReviewTurn = Math.max(
                         planReviewTurn, ((Number) event.get("turn")).intValue());
             }
+            if (handleApprovalGrantCommandEvent(event)) return;
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
             SwingUtilities.invokeLater(() -> render(ui));
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
+            pendingApprovalGrantCommands.clear();
             invalidateApprovalCards();
             indexConversation("stopped");
             append("\n── agent exited (" + code + ") — next message restarts ──\n");
@@ -2075,27 +2271,87 @@ final class ConversationView {
         if (ui.get("reason") != null) q.append("\n").append(ui.get("reason"));
         transcript.announce("Permission request", q.toString(), "permission:" + id);
 
+        List<Map<String, Object>> permissions = new ArrayList<>();
+        if (ui.get("permissions") instanceof List) {
+            for (Object value : (List<?>) ui.get("permissions")) {
+                if (value instanceof Map) {
+                    permissions.add((Map<String, Object>) value);
+                }
+            }
+        }
+        StringBuilder display = new StringBuilder(escapeHtml(q.toString()));
+        for (Map<String, Object> permission : permissions) {
+            display.append("\n\nCapability: ")
+                    .append(escapeHtml(String.valueOf(permission.get("capability"))))
+                    .append("\nExact scope: ")
+                    .append(escapeHtml(String.valueOf(permission.get("scope"))));
+            if (permission.get("expiresAt") != null) {
+                display.append("\nExpires: ")
+                        .append(escapeHtml(String.valueOf(permission.get("expiresAt"))));
+            }
+        }
+
         JPanel card = new JPanel(new BorderLayout(4, 4));
         card.setBorder(BorderFactory.createLineBorder(WARN));
-        card.add(htmlLabel(q.toString()), BorderLayout.CENTER);
+        card.add(htmlLabel(display.toString()), BorderLayout.CENTER);
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
-        JButton approve = new JButton("Approve");
+        JButton approve = new JButton("Approve Once");
+        JButton grant = new JButton("Grant…");
         JButton deny = new JButton("Deny");
+        JButton cancel = new JButton("Cancel Request");
         String binding = ui.get("binding") instanceof String
                 ? String.valueOf(ui.get("binding")) : null;
-        approve.addActionListener(e -> respondApproval(id, true, binding));
-        deny.addActionListener(e -> respondApproval(id, false, binding));
+        approve.addActionListener(e -> respondApproval(
+                id, "acceptOnce", permissions, binding));
+        grant.addActionListener(e -> showGrantDecision(id, permissions, binding));
+        deny.addActionListener(e -> respondApproval(
+                id, "decline", permissions, binding));
+        cancel.addActionListener(e -> respondApproval(
+                id, "cancel", permissions, binding));
         btns.add(approve);
+        if (!permissions.isEmpty()) btns.add(grant);
         btns.add(deny);
+        btns.add(cancel);
         card.add(btns, BorderLayout.SOUTH);
 
-        approvalCards.put(id, new ApprovalCard(card, approve, deny));
+        approvalCards.put(id, permissions.isEmpty()
+                ? new ApprovalCard(card, approve, deny, cancel)
+                : new ApprovalCard(card, approve, grant, deny, cancel));
         cardsPanel.add(card);
         cardsPanel.revalidate();
         cardsPanel.repaint();
     }
 
-    private void respondApproval(String id, boolean approve, String binding) {
+    private void showGrantDecision(
+            String id, List<Map<String, Object>> permissions, String binding) {
+        if (permissions.isEmpty()) return;
+        StringBuilder exact = new StringBuilder(
+                "Reusable access is limited to the exact CLI-requested scope:\n\n");
+        for (Map<String, Object> permission : permissions) {
+            exact.append(String.valueOf(permission.get("capability")))
+                    .append("\n")
+                    .append(String.valueOf(permission.get("scope")))
+                    .append("\n\n");
+        }
+        exact.append("A session grant remains active until this agent session ends "
+                + "or you revoke it from Grants.");
+        int choice = com.intellij.openapi.ui.Messages.showDialog(
+                project, exact.toString(), "Grant Exact Permission",
+                new String[] {
+                        "Grant for Current Turn",
+                        "Grant for Current Session",
+                        "Back"
+                }, 0, null);
+        if (choice == 0) {
+            respondApproval(id, "acceptForTurn", permissions, binding);
+        } else if (choice == 1) {
+            respondApproval(id, "acceptForSession", permissions, binding);
+        }
+    }
+
+    private void respondApproval(
+            String id, String decisionKind,
+            List<Map<String, Object>> permissions, String binding) {
         if (!approvalSettlements.beginDecision(id)) {
             append("⚠ approval request is no longer pending (" + id + ")\n");
             return;
@@ -2103,15 +2359,17 @@ final class ConversationView {
         setApprovalCardEnabled(id, false);
         final Map<String, Object> ev;
         try {
-            ev = com.chainlesschain.ide.ApprovalResponses.response(id, approve, binding);
+            ev = com.chainlesschain.ide.ApprovalResponses.response(
+                    id, decisionKind, permissions, binding);
         } catch (RuntimeException error) {
-            finishApprovalDecision(id, approve, false);
+            finishApprovalDecision(id, decisionKind, false);
             return;
         }
-        queueSessionEvent(ev, sent -> finishApprovalDecision(id, approve, sent));
+        queueSessionEvent(ev, sent -> finishApprovalDecision(id, decisionKind, sent));
     }
 
-    private void finishApprovalDecision(String id, boolean approve, boolean sent) {
+    private void finishApprovalDecision(
+            String id, String decisionKind, boolean sent) {
         if (!approvalSettlements.complete(
                 id, ApprovalSettlementRegistry.Status.RESPONDING, sent)) return;
         if (!sent) {
@@ -2123,10 +2381,18 @@ final class ConversationView {
             return;
         }
         indexConversation("running");
-        append("ℹ " + (approve ? "approval" : "denial")
+        append("ℹ " + approvalDecisionLabel(decisionKind)
                 + " response sent (" + id + ")\n");
         transcript.announce("Permission request", "response sent",
                 "permission-sent:" + id);
+    }
+
+    private static String approvalDecisionLabel(String decisionKind) {
+        if ("acceptForTurn".equals(decisionKind)) return "turn grant";
+        if ("acceptForSession".equals(decisionKind)) return "session grant";
+        if ("acceptOnce".equals(decisionKind)) return "one-time approval";
+        if ("cancel".equals(decisionKind)) return "cancellation";
+        return "denial";
     }
 
     private void finishInterrupt(
@@ -2648,6 +2914,7 @@ final class ConversationView {
 
     void dispose() {
         disposed = true; // gates ensureSession + every queued task body
+        pendingApprovalGrantCommands.clear();
         invalidateApprovalCards();
         if (currentPlanUi != null && Boolean.TRUE.equals(currentPlanUi.get("active"))) {
             Map<String, Object> previous = PlanReview.findPersistedState(

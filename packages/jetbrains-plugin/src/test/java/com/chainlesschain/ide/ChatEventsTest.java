@@ -86,17 +86,25 @@ class ChatEventsTest {
     // ── mapAgentEvent ───────────────────────────────────────────────────────
 
     @Test
-    void approvalRequestPreservesExactCallBinding() {
+    void approvalRequestPreservesBindingAndOnlyBoundedExactPermissions() {
         Map<String, Object> evt = new LinkedHashMap<>();
         evt.put("type", "approval_request");
         evt.put("id", "approval-1");
         evt.put("tool", "run_shell");
         evt.put("binding", "sha256:exact-call");
+        evt.put("requested_permissions", List.of(
+                Map.of("capability", "tool:run_shell", "scope", "npm test"),
+                Map.of("capability", "", "scope", "must be dropped"),
+                Map.of("capability", "tool:expired", "scope", "x",
+                        "expiresAt", "not-a-date")));
 
         Map<String, Object> ui =
                 ChatEvents.mapAgentEvent(evt, new ChatEvents.TurnState());
         assertEquals("approval", ui.get("kind"));
         assertEquals("sha256:exact-call", ui.get("binding"));
+        assertEquals(List.of(Map.of(
+                "capability", "tool:run_shell", "scope", "npm test")),
+                ui.get("permissions"));
     }
 
     @Test

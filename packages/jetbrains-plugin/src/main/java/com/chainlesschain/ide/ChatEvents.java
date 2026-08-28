@@ -1,7 +1,10 @@
 package com.chainlesschain.ide;
 
 import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +144,41 @@ public final class ChatEvents {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> asMap(Object v) {
         return v instanceof Map ? (Map<String, Object>) v : null;
+    }
+
+    private static List<Map<String, Object>> requestedApprovalPermissions(Object raw) {
+        if (!(raw instanceof List)) return Collections.emptyList();
+        List<?> values = (List<?>) raw;
+        if (values.size() > 64) return Collections.emptyList();
+        List<Map<String, Object>> permissions = new ArrayList<>();
+        for (Object value : values) {
+            Map<String, Object> candidate = asMap(value);
+            if (candidate == null) continue;
+            Object capabilityValue = candidate.get("capability");
+            Object scopeValue = candidate.get("scope");
+            if (!(capabilityValue instanceof String)
+                    || ((String) capabilityValue).isEmpty()
+                    || ((String) capabilityValue).length() > 128
+                    || !(scopeValue instanceof String)
+                    || ((String) scopeValue).isEmpty()
+                    || ((String) scopeValue).length() > 1024) continue;
+            Object expiryValue = candidate.get("expiresAt");
+            if (expiryValue != null) {
+                if (!(expiryValue instanceof String)
+                        || ((String) expiryValue).length() > 64) continue;
+                try {
+                    Instant.parse((String) expiryValue);
+                } catch (DateTimeParseException error) {
+                    continue;
+                }
+            }
+            Map<String, Object> permission = new LinkedHashMap<>();
+            permission.put("capability", capabilityValue);
+            permission.put("scope", scopeValue);
+            if (expiryValue != null) permission.put("expiresAt", expiryValue);
+            permissions.add(Collections.unmodifiableMap(permission));
+        }
+        return Collections.unmodifiableList(permissions);
     }
 
     /**
@@ -321,6 +359,10 @@ public final class ChatEvents {
             // it and the CLI can reject stale or cross-tool responses.
             m.put("binding", evt.get("binding") instanceof String
                     ? evt.get("binding") : null);
+            // Reusable decisions may only echo this bounded host-side copy.
+            // ConversationView never accepts capability/scope from a button.
+            m.put("permissions", requestedApprovalPermissions(
+                    evt.get("requested_permissions")));
             return m;
         }
         if (type == AgentStreamEventType.APPROVAL_RESOLVED) {

@@ -2137,13 +2137,13 @@ async function runAgentHeadlessStreamInWorkspace(
       });
     }
   }
-  const persistApprovalGrants = () => {
+  const persistApprovalGrants = (ledger = approvalGrantLedger) => {
     if (!persist || approvalGrantPersistenceError) return false;
     try {
       const persisted = store.appendAuthorityEvent(
         sessionId,
         APPROVAL_GRANTS_EVENT,
-        approvalGrantLedger.toJSON(),
+        ledger.toJSON(),
       );
       if (persisted === false) {
         throw new Error("session store rejected approval grants");
@@ -2153,6 +2153,41 @@ async function runAgentHeadlessStreamInWorkspace(
       approvalGrantPersistenceError = error;
       return false;
     }
+  };
+  const listApprovalGrants = () => approvalGrantLedger.listGrants();
+  const revokeApprovalGrant = (grantId) => {
+    const existing = approvalGrantLedger
+      .listGrants()
+      .find((grant) => grant.grantId === String(grantId || ""));
+    if (!existing) {
+      return { success: false, error: "Approval grant was not found" };
+    }
+    if (existing.lifetime === "turn") {
+      const result = approvalGrantLedger.revoke(grantId);
+      return { success: result.revoked, grant: result.grant };
+    }
+
+    // Session revocation is a copy/persist/swap transaction. Preserve current
+    // turn grants in the candidate, but never expose it as active until its
+    // authority event has been appended successfully.
+    const candidate = ApprovalGrantLedger.fromJSON(
+      approvalGrantLedger.toJSON(),
+      { sessionId },
+    );
+    candidate.turnId = approvalGrantLedger.turnId;
+    candidate.turnGrants = new Map(approvalGrantLedger.turnGrants);
+    const result = candidate.revoke(grantId);
+    if (!result.revoked) {
+      return { success: false, error: "Approval grant was not found" };
+    }
+    if (persist && !persistApprovalGrants(candidate)) {
+      return {
+        success: false,
+        error: "Approval grant revocation could not be persisted",
+      };
+    }
+    approvalGrantLedger = candidate;
+    return { success: true, grant: result.grant };
   };
 
   // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
@@ -3593,6 +3628,8 @@ async function runAgentHeadlessStreamInWorkspace(
             projectMemoryEnabled:
               options.projectMemory !== false &&
               process.env.CC_PROJECT_MEMORY !== "0",
+            listApprovalGrants,
+            revokeApprovalGrant,
           },
           deps.sessionSlashCommandDeps || {},
         );
