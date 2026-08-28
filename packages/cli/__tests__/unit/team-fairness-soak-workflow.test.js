@@ -10,6 +10,10 @@ const WORKFLOW_PATH = resolve(
   REPOSITORY_ROOT,
   ".github/workflows/cli-team-fairness-soak.yml",
 );
+const GRAPH_JOURNEY_WORKFLOW_PATH = resolve(
+  REPOSITORY_ROOT,
+  ".github/workflows/graph-agent-real-journey.yml",
+);
 
 function workflowSource() {
   return readFileSync(WORKFLOW_PATH, "utf8");
@@ -61,5 +65,17 @@ describe("Team fairness soak workflow contract", () => {
     expect(workflow).not.toContain("if-no-files-found: warn");
     expect(workflow.match(/if-no-files-found: error/gu)).toHaveLength(2);
     expect(workflow.match(/retention-days: 90/gu)).toHaveLength(2);
+  });
+
+  it("also attaches the formal gate to the dispatchable Graph journey", () => {
+    const workflow = readFileSync(GRAPH_JOURNEY_WORKFLOW_PATH, "utf8");
+    expect(workflow).toContain("CC_TEAM_FAIRNESS_MODE: formal");
+    expect(workflow).toContain("npm run test:cli-team-fairness-soak");
+    expect(workflow).toContain(
+      "pattern: team-fairness-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}",
+    );
+    expect(workflow).toContain("--verify-evidence-dir");
+    expect(workflow).toContain("--mode formal");
+    expect(workflow).toContain("team-fairness-matrix-");
   });
 });
