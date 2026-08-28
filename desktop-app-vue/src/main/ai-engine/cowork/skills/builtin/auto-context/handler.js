@@ -6,10 +6,12 @@
  * Modes: --detect, --budget, --files
  */
 
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const CODE_EXTS = new Set([
   ".js",
@@ -140,17 +142,18 @@ function collectSourceFiles(dir) {
   return results;
 }
 
-function getRecentlyModified(projectRoot) {
+function getRecentlyModified(projectRoot, processBroker) {
   try {
-    const output = execSync(
-      "git log --diff-filter=M --name-only --pretty=format: -n 20",
+    const output = processBroker.execFileSync(
+      "git",
+      ["log", "--diff-filter=M", "--name-only", "--pretty=format:", "-n", "20"],
       {
         cwd: projectRoot,
-        encoding: "utf-8",
         timeout: 5000,
       },
     );
     return output
+      .toString("utf8")
       .split("\n")
       .filter(Boolean)
       .map((f) => f.trim());
@@ -318,9 +321,13 @@ module.exports = {
         };
       }
 
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "auto-context",
+      );
       const keywords = extractQueryKeywords(query);
       const allFiles = collectSourceFiles(projectRoot);
-      const recentFiles = getRecentlyModified(projectRoot);
+      const recentFiles = getRecentlyModified(projectRoot, processBroker);
 
       // Score all files
       const scored = allFiles

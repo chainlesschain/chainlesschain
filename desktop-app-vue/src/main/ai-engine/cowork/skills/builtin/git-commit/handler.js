@@ -6,9 +6,11 @@
  * commit format (feat, fix, docs, style, refactor, test, chore, perf).
  */
 
-const { execSync } = require("child_process");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Commit type detection ──────────────────────────────────────────
 
@@ -26,16 +28,14 @@ const TYPE_HINTS = [
   { type: "perf", patterns: [/perf|optim|cache|speed/i] },
 ];
 
-function git(cmd, cwd) {
-  try {
-    return execSync("git " + cmd, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd,
-      encoding: "utf-8",
       timeout: 10000,
-    }).trim();
-  } catch (err) {
-    return err.stdout?.trim() || "";
-  }
+    })
+    .toString("utf8")
+    .trim();
 }
 
 function detectType(diff, files) {
@@ -107,11 +107,23 @@ module.exports = {
     const userType = typeMatch ? typeMatch[1] : null;
 
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "git-commit",
+      );
       // 1. Check for staged changes
-      const staged = git("diff --cached --name-only", projectRoot);
+      const staged = git(
+        ["diff", "--cached", "--name-only"],
+        projectRoot,
+        processBroker,
+      );
       if (!staged) {
         // Check for any changes
-        const status = git("status --porcelain", projectRoot);
+        const status = git(
+          ["status", "--porcelain"],
+          projectRoot,
+          processBroker,
+        );
         return {
           success: true,
           result: {
@@ -128,8 +140,12 @@ module.exports = {
       const files = staged.split("\n").filter(Boolean);
 
       // 2. Get diff content
-      const diff = git("diff --cached --stat", projectRoot);
-      const fullDiff = git("diff --cached", projectRoot);
+      const diff = git(
+        ["diff", "--cached", "--stat"],
+        projectRoot,
+        processBroker,
+      );
+      const fullDiff = git(["diff", "--cached"], projectRoot, processBroker);
       const { added, removed, hunks } = summarizeChanges(fullDiff);
 
       // 3. Detect type and scope
@@ -171,8 +187,9 @@ module.exports = {
 
       // 6. Commit
       const commitResult = git(
-        `commit -m "${title.replace(/"/g, '\\"')}"`,
+        ["commit", "-m", title],
         projectRoot,
+        processBroker,
       );
 
       return {

@@ -9,8 +9,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const CODE_EXTS = new Set([
   ".js",
@@ -219,18 +221,14 @@ function collectFiles(dir, maxFiles) {
   return results;
 }
 
-function runGit(args, cwd) {
-  try {
-    return execSync("git " + args, {
-      cwd: cwd,
-      encoding: "utf-8",
+function runGit(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
+      cwd,
       timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch (err) {
-    logger.warn("[bugbot] git failed: git " + args + " - " + err.message);
-    return "";
-  }
+    })
+    .toString("utf8")
+    .trim();
 }
 
 function detectCustomPattern(id, lines, lineFilter) {
@@ -464,15 +462,15 @@ function modeScan(targetPath, projectRoot, severityFilter) {
   };
 }
 
-function modeDiff(ref, projectRoot, severityFilter) {
+function modeDiff(ref, projectRoot, severityFilter, processBroker) {
   let diffText;
   if (!ref || ref === "staged") {
-    diffText = runGit("diff --cached", projectRoot);
+    diffText = runGit(["diff", "--cached"], projectRoot, processBroker);
     if (!diffText) {
-      diffText = runGit("diff HEAD~1", projectRoot);
+      diffText = runGit(["diff", "HEAD~1"], projectRoot, processBroker);
     }
   } else {
-    diffText = runGit("diff " + ref, projectRoot);
+    diffText = runGit(["diff", ref], projectRoot, processBroker);
   }
   if (!diffText) {
     return {
@@ -521,10 +519,17 @@ function modeDiff(ref, projectRoot, severityFilter) {
   };
 }
 
-function modeWatch(projectRoot) {
+function modeWatch(projectRoot, processBroker) {
   const logOutput = runGit(
-    'log --since="7 days ago" --name-only --pretty=format: --diff-filter=ACMR',
+    [
+      "log",
+      "--since=7 days ago",
+      "--name-only",
+      "--pretty=format:",
+      "--diff-filter=ACMR",
+    ],
     projectRoot,
+    processBroker,
   );
   if (!logOutput) {
     return {
@@ -639,10 +644,23 @@ module.exports = {
 
     try {
       switch (args.mode) {
-        case "diff":
-          return modeDiff(args.target, projectRoot, args.severityFilter);
+        case "diff": {
+          const processBroker = requireBundledSkillProcessBroker(
+            context,
+            "bugbot",
+          );
+          return modeDiff(
+            args.target,
+            projectRoot,
+            args.severityFilter,
+            processBroker,
+          );
+        }
         case "watch":
-          return modeWatch(projectRoot);
+          return modeWatch(
+            projectRoot,
+            requireBundledSkillProcessBroker(context, "bugbot"),
+          );
         case "scan":
         default: {
           let targetPath = args.target || projectRoot;

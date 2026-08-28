@@ -27,7 +27,30 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import path from "path";
 import fs from "fs";
+import { execFileSync } from "node:child_process";
 import { createEnvironmentContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-environment.js";
+import { createTestProcessContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
+
+function createGitProcessContext(skillId, projectRoot) {
+  return {
+    projectRoot,
+    workspaceRoot: projectRoot,
+    workspacePath: projectRoot,
+    ...createTestProcessContext(
+      skillId,
+      ({ file, args, cwd, timeout, maxBuffer }) =>
+        execFileSync(file, args, {
+          cwd,
+          timeout,
+          maxBuffer,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true,
+        }),
+      { allowedRoots: [projectRoot] },
+    ),
+  };
+}
 
 // Mock logger
 vi.mock("../../../src/main/utils/logger.js", () => ({
@@ -800,7 +823,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { action: "--dry-run" },
-        { projectRoot },
+        createGitProcessContext("git-commit", projectRoot),
       );
       expect(result.success).toBe(true);
       // Either suggests a commit (if staged) or says no staged changes
@@ -1099,7 +1122,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--stats" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("diff-previewer", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.message).toBeDefined();
@@ -1125,7 +1148,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--analyze" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("commit-splitter", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
@@ -1312,7 +1335,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--detect permission system" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("auto-context", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result.files).toBeDefined();
@@ -1446,7 +1469,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--generate" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("changelog-generator", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result.stats).toBeDefined();
@@ -1513,7 +1536,7 @@ describe("Skill Handlers", () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--hotspots" },
-        { workspacePath: projectRoot },
+        createGitProcessContext("git-history-analyzer", projectRoot),
       );
       expect(result.success).toBe(true);
       expect(result.result.analysis.hotspots).toBeDefined();

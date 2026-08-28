@@ -5,8 +5,10 @@
  * Modes: --generate, --since, --unreleased, --format
  */
 
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Conventional commit categories ──────────────────────────────────
 
@@ -26,26 +28,30 @@ const COMMIT_TYPES = {
 
 // ── Git helpers ─────────────────────────────────────────────────────
 
-function git(cmd, cwd) {
-  try {
-    return execSync("git " + cmd, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd,
-      encoding: "utf-8",
       timeout: 15000,
-    }).trim();
-  } catch (_e) {
-    return "";
+    })
+    .toString("utf8")
+    .trim();
+}
+
+function getLatestTag(cwd, processBroker) {
+  try {
+    return (
+      git(["describe", "--tags", "--abbrev=0"], cwd, processBroker) || null
+    );
+  } catch {
+    return null;
   }
 }
 
-function getLatestTag(cwd) {
-  return git("describe --tags --abbrev=0 2>/dev/null", cwd) || null;
-}
-
-function getCommitsSince(since, cwd) {
+function getCommitsSince(since, cwd, processBroker) {
   const range = since ? since + "..HEAD" : "HEAD";
   const format = "--pretty=format:%H|%s|%an|%ai|%b---END---";
-  const raw = git("log " + range + " " + format, cwd);
+  const raw = git(["log", range, format], cwd, processBroker);
   if (!raw) {
     return [];
   }
@@ -87,8 +93,8 @@ function getCommitsSince(since, cwd) {
     .filter(Boolean);
 }
 
-function getAllTags(cwd) {
-  const raw = git("tag --sort=-creatordate", cwd);
+function getAllTags(cwd, processBroker) {
+  const raw = git(["tag", "--sort=-creatordate"], cwd, processBroker);
   return raw ? raw.split("\n").filter(Boolean) : [];
 }
 
@@ -247,8 +253,16 @@ module.exports = {
     const outputFormat = formatMatch ? formatMatch[1].toLowerCase() : "md";
 
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "changelog-generator",
+      );
       // Verify git repo
-      const isGit = git("rev-parse --is-inside-work-tree", projectRoot);
+      const isGit = git(
+        ["rev-parse", "--is-inside-work-tree"],
+        projectRoot,
+        processBroker,
+      );
       if (isGit !== "true") {
         return {
           success: false,
@@ -264,7 +278,7 @@ module.exports = {
         since = sinceMatch[1];
         title = "Changelog since " + since;
       } else if (isUnreleased || isGenerate) {
-        since = getLatestTag(projectRoot);
+        since = getLatestTag(projectRoot, processBroker);
         if (since) {
           title = "Unreleased (since " + since + ")";
         } else {
@@ -272,7 +286,7 @@ module.exports = {
         }
       }
 
-      const commits = getCommitsSince(since, projectRoot);
+      const commits = getCommitsSince(since, projectRoot, processBroker);
       if (commits.length === 0) {
         return {
           success: true,

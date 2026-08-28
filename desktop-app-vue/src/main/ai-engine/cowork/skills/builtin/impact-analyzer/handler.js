@@ -7,10 +7,12 @@
  * Modes: --file, --function, --diff
  */
 
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const CODE_EXTS = new Set([
   ".js",
@@ -125,16 +127,14 @@ function resolveImport(fromDir, spec) {
 
 // ── Reverse graph & helpers ──────────────────────────────────────
 
-function git(cmd, cwd) {
-  try {
-    return execSync("git " + cmd, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd,
-      encoding: "utf-8",
       timeout: 10000,
-    }).trim();
-  } catch (_e) {
-    return "";
-  }
+    })
+    .toString("utf8")
+    .trim();
 }
 
 function buildReverseGraph(allFiles) {
@@ -318,9 +318,13 @@ function analyzeFile(targetFile, projectRoot, allFiles, reverseGraph) {
   };
 }
 
-async function analyzeDiff(projectRoot, allFiles, reverseGraph) {
-  const diffFiles = git("diff --name-only", projectRoot);
-  const stagedFiles = git("diff --cached --name-only", projectRoot);
+async function analyzeDiff(projectRoot, allFiles, reverseGraph, processBroker) {
+  const diffFiles = git(["diff", "--name-only"], projectRoot, processBroker);
+  const stagedFiles = git(
+    ["diff", "--cached", "--name-only"],
+    projectRoot,
+    processBroker,
+  );
   const combined = [
     ...new Set([
       ...diffFiles.split("\n").filter(Boolean),
@@ -462,7 +466,16 @@ module.exports = {
       const reverseGraph = buildReverseGraph(allFiles);
 
       if (isDiff) {
-        return await analyzeDiff(projectRoot, allFiles, reverseGraph);
+        const processBroker = requireBundledSkillProcessBroker(
+          context,
+          "impact-analyzer",
+        );
+        return await analyzeDiff(
+          projectRoot,
+          allFiles,
+          reverseGraph,
+          processBroker,
+        );
       }
       if (funcMatch) {
         return analyzeFunction(funcMatch[1], projectRoot, allFiles);

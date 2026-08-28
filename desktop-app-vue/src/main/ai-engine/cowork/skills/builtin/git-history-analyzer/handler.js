@@ -6,28 +6,32 @@
  * Modes: --hotspots, --contributors, --churn, --coupling
  */
 
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Git helpers ─────────────────────────────────────────────────────
 
-function git(cmd, cwd) {
-  try {
-    return execSync("git " + cmd, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd,
-      encoding: "utf-8",
       timeout: 30000,
-    }).trim();
-  } catch (_e) {
-    return "";
-  }
+    })
+    .toString("utf8")
+    .trim();
 }
 
 // ── Hotspot analysis ────────────────────────────────────────────────
 
-function analyzeHotspots(cwd, limit) {
+function analyzeHotspots(cwd, limit, processBroker) {
   limit = limit || 200;
-  const raw = git("log --pretty=format: --name-only -n " + limit, cwd);
+  const raw = git(
+    ["log", "--pretty=format:", "--name-only", "-n", String(limit)],
+    cwd,
+    processBroker,
+  );
   if (!raw) {
     return { hotspots: [], totalCommits: 0 };
   }
@@ -51,17 +55,22 @@ function analyzeHotspots(cwd, limit) {
     .slice(0, 30)
     .map(([file, changes]) => ({ file, changes }));
 
-  const totalCommits = parseInt(git("rev-list --count HEAD", cwd)) || 0;
+  const totalCommits =
+    parseInt(git(["rev-list", "--count", "HEAD"], cwd, processBroker)) || 0;
 
   return { hotspots, totalCommits };
 }
 
 // ── Contributor analysis ────────────────────────────────────────────
 
-function analyzeContributors(cwd, limit) {
+function analyzeContributors(cwd, limit, processBroker) {
   limit = limit || 500;
   // Get shortlog
-  const shortlog = git("shortlog -sn --all -n " + limit, cwd);
+  const shortlog = git(
+    ["shortlog", "-sn", "--all", "-n", String(limit)],
+    cwd,
+    processBroker,
+  );
   const contributors = [];
 
   if (shortlog) {
@@ -79,11 +88,16 @@ function analyzeContributors(cwd, limit) {
   // Get detailed stats for top contributors
   for (const contrib of contributors.slice(0, 10)) {
     const stats = git(
-      'log --author="' +
-        contrib.name +
-        '" --pretty=tformat: --numstat -n ' +
-        limit,
+      [
+        "log",
+        `--author=${contrib.name}`,
+        "--pretty=tformat:",
+        "--numstat",
+        "-n",
+        String(limit),
+      ],
       cwd,
+      processBroker,
     );
     let added = 0,
       deleted = 0,
@@ -106,8 +120,9 @@ function analyzeContributors(cwd, limit) {
 
     // Active hours
     const hours = git(
-      'log --author="' + contrib.name + '" --pretty=format:%H -n 50',
+      ["log", `--author=${contrib.name}`, "--pretty=format:%H", "-n", "50"],
       cwd,
+      processBroker,
     );
     if (hours) {
       const hourCounts = {};
@@ -131,9 +146,13 @@ function analyzeContributors(cwd, limit) {
 
 // ── Churn analysis ──────────────────────────────────────────────────
 
-function analyzeChurn(cwd, limit) {
+function analyzeChurn(cwd, limit, processBroker) {
   limit = limit || 200;
-  const raw = git("log --pretty=tformat: --numstat -n " + limit, cwd);
+  const raw = git(
+    ["log", "--pretty=tformat:", "--numstat", "-n", String(limit)],
+    cwd,
+    processBroker,
+  );
   if (!raw) {
     return { files: [], totalAdded: 0, totalDeleted: 0 };
   }
@@ -194,11 +213,12 @@ function analyzeChurn(cwd, limit) {
 
 // ── Coupling analysis ───────────────────────────────────────────────
 
-function analyzeCoupling(cwd, limit) {
+function analyzeCoupling(cwd, limit, processBroker) {
   limit = limit || 200;
   const raw = git(
-    "log --pretty=format:---COMMIT--- --name-only -n " + limit,
+    ["log", "--pretty=format:---COMMIT---", "--name-only", "-n", String(limit)],
     cwd,
+    processBroker,
   );
   if (!raw) {
     return { couples: [] };
@@ -280,7 +300,15 @@ module.exports = {
     const limit = limitMatch ? Math.min(parseInt(limitMatch[1]), 1000) : 200;
 
     try {
-      const isGit = git("rev-parse --is-inside-work-tree", projectRoot);
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "git-history-analyzer",
+      );
+      const isGit = git(
+        ["rev-parse", "--is-inside-work-tree"],
+        projectRoot,
+        processBroker,
+      );
       if (isGit !== "true") {
         return {
           success: false,
@@ -290,7 +318,11 @@ module.exports = {
       }
 
       if (isHotspots) {
-        const { hotspots, totalCommits } = analyzeHotspots(projectRoot, limit);
+        const { hotspots, totalCommits } = analyzeHotspots(
+          projectRoot,
+          limit,
+          processBroker,
+        );
         const recommendations = [];
         if (hotspots.length > 0 && hotspots[0].changes > 20) {
           recommendations.push(
@@ -330,7 +362,11 @@ module.exports = {
       }
 
       if (isContributors) {
-        const { contributors } = analyzeContributors(projectRoot, limit);
+        const { contributors } = analyzeContributors(
+          projectRoot,
+          limit,
+          processBroker,
+        );
         let msg = "Contributor Analysis\n" + "=".repeat(30) + "\n";
         msg += contributors.length + " contributors\n\n";
         msg += contributors
@@ -360,7 +396,7 @@ module.exports = {
       }
 
       if (isChurn) {
-        const churn = analyzeChurn(projectRoot, limit);
+        const churn = analyzeChurn(projectRoot, limit, processBroker);
         const recommendations = [];
         const highChurn = churn.files.filter((f) => f.churnRate > 80);
         if (highChurn.length > 0) {
@@ -416,7 +452,7 @@ module.exports = {
       }
 
       if (isCoupling) {
-        const coupling = analyzeCoupling(projectRoot, limit);
+        const coupling = analyzeCoupling(projectRoot, limit, processBroker);
         const recommendations = [];
         const strongCouples = coupling.couples.filter((c) => c.strength > 70);
         if (strongCouples.length > 0) {
@@ -471,7 +507,11 @@ module.exports = {
       }
 
       // Default: hotspots
-      const { hotspots, totalCommits } = analyzeHotspots(projectRoot, limit);
+      const { hotspots, totalCommits } = analyzeHotspots(
+        projectRoot,
+        limit,
+        processBroker,
+      );
       let msg = "Change Hotspots (default)\n" + "=".repeat(30) + "\n";
       msg += hotspots
         .slice(0, 15)

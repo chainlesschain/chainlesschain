@@ -7,9 +7,11 @@
  * relationships (test files with source, config together, docs together).
  */
 
-const { execSync } = require("child_process");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Commit type patterns ────────────────────────────────────────────
 
@@ -32,16 +34,14 @@ const TYPE_PATTERNS = [
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function git(cmd, cwd) {
-  try {
-    return execSync("git " + cmd, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd,
-      encoding: "utf-8",
       timeout: 15000,
-    }).trim();
-  } catch (err) {
-    return err.stdout?.trim() || "";
-  }
+    })
+    .toString("utf8")
+    .trim();
 }
 
 function detectFileType(filePath) {
@@ -216,7 +216,15 @@ module.exports = {
     const isDryRun = /--dry-run/i.test(input);
 
     try {
-      const statusRaw = git("status --porcelain", projectRoot);
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "commit-splitter",
+      );
+      const statusRaw = git(
+        ["status", "--porcelain"],
+        projectRoot,
+        processBroker,
+      );
       if (!statusRaw) {
         return {
           success: true,
@@ -227,10 +235,18 @@ module.exports = {
 
       const statusLines = statusRaw.split("\n").filter(Boolean);
       const allFiles = statusLines.map((l) => l.substring(3).trim());
-      const modifiedFiles = git("diff --name-only", projectRoot)
+      const modifiedFiles = git(
+        ["diff", "--name-only"],
+        projectRoot,
+        processBroker,
+      )
         .split("\n")
         .filter(Boolean);
-      const stagedFiles = git("diff --cached --name-only", projectRoot)
+      const stagedFiles = git(
+        ["diff", "--cached", "--name-only"],
+        projectRoot,
+        processBroker,
+      )
         .split("\n")
         .filter(Boolean);
       const untrackedFiles = statusLines

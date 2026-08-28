@@ -96,12 +96,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "auto-context": Object.freeze([
-    "b7ad249058b48c393434eea1e87a7360dea42278a604111bfc137bb63fe8e898",
+    "5440b4745ad8f093998b24bed2323a066eec3311265810b8aa451e7ba326aacc",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -128,22 +129,24 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:browser", "host:logger"]),
   ]),
   bugbot: Object.freeze([
-    "eafc0b426d7b428488b3a79b88d0a5f60bf0bf0fc0fe9efabdb083b1a672938f",
+    "7537f41e4a941786a38f03fa8c942c95b88a20100967b69d4d4041f13dde77f4",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
   ]),
   "changelog-generator": Object.freeze([
-    "8829ae3e9a4e414ce4a859e8ac97968889b6dfbf7bbf24214b7fb51a899cb7bd",
+    "68b466bbf7bf8e9db1d38174a56bc6072a3994101e10abec367b6dcbcef22149",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
       "runtime:time",
@@ -224,11 +227,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "runtime:random"]),
   ]),
   "commit-splitter": Object.freeze([
-    "1495c1baa9c9f8777c107caad7f4a90abe7447ce1bc9743f96e0724b7df19703",
+    "080307ad9fe1c369800fd02519f1f6613683d84500229229009674eb3f0559b2",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -426,12 +430,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "diff-previewer": Object.freeze([
-    "0cf678408aa6871551951dabe70383c01a6be82407eee9704d4fae11b278a4cd",
+    "157c5786209168cf3a3ebd86761881822a15a81e89ac4db4a0ed12b98a7fac9f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -469,12 +474,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "doc-generator": Object.freeze([
-    "7249b5b747a7234f25a9ddeaa2658e733674f600ccb1de52983cf698247aa0ad",
+    "c3dcef01f24ef39d2d0cc78c32183c6a1a05a1d8f3e9b3de3e535706999e79d7",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -534,12 +540,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "fault-localizer": Object.freeze([
-    "481265321942531e2a35ef467f87dd438c7bdc766c0fabe023af323988f66dca",
+    "bf0f06b90ebcccd18171290c4005669a58d82e434e4a8e5534e9f2096b63161a",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
       "runtime:time",
@@ -583,21 +590,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "git-commit": Object.freeze([
-    "eab2a6adbd9558166af92108c84cc1cea75fa70bc8dc01da6d8d9c5c59041d25",
+    "40b5c512ccd71e4b2b5efd26fd660b207bbc09b804696c35563650905617bc37",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
   ]),
   "git-history-analyzer": Object.freeze([
-    "4276477bd63400373ca1ab11623dc4eb1605dca599ded5dc4ec8b7065370fe85",
+    "2830f70ae7fcbd162c846a7200243c51db499bd7f720fbea78003717a86f58cd",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -693,12 +702,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "impact-analyzer": Object.freeze([
-    "7ae96a6eb3fdacedf1710ef65380d3f3a3da11d4f2505707b19e8170fa8f6aaa",
+    "54a4811da9105ad914418e5f05c3d978ad97e0b563cb70b17b6db18cadb4172c",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),

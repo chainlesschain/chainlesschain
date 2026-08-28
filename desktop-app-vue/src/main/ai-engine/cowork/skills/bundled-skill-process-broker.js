@@ -23,6 +23,8 @@ const MAX_ALLOWED_ENTRYPOINTS = 8;
 const SAFE_REF_RE = /^[A-Za-z0-9._/#-]{1,200}$/;
 const SAFE_GIT_RANGE_RE =
   /^[A-Za-z0-9._/-]{1,200}(?:\.\.[A-Za-z0-9._/-]{1,200})?$/;
+const SAFE_GIT_REVISION_RE =
+  /^[A-Za-z0-9._/#~^-]{1,200}(?:(?:\.\.|\.\.\.)[A-Za-z0-9._/#~^-]{1,200})?$/;
 const SAFE_K8S_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,252}$/;
 
 function exactArgs(args, expected) {
@@ -40,19 +42,47 @@ function isSafeGitRange(value) {
   return SAFE_GIT_RANGE_RE.test(value);
 }
 
+function isSafeGitRevision(value) {
+  return (
+    typeof value === "string" &&
+    !value.startsWith("-") &&
+    SAFE_GIT_REVISION_RE.test(value)
+  );
+}
+
+function isBoundedPositiveInteger(value, max = 1000) {
+  return /^(?:[1-9]\d{0,3})$/.test(value) && Number(value) <= max;
+}
+
 function isSafeK8sName(value) {
   return SAFE_K8S_NAME_RE.test(value);
 }
 
 function validateCreatePr(file, args) {
-  if (file !== "git") return false;
-  if (exactArgs(args, ["rev-parse", "--abbrev-ref", "HEAD"])) return true;
-  if (exactArgs(args, ["diff", "--stat", "HEAD~1"])) return true;
-  if (exactArgs(args, ["diff", "--stat", "--cached"])) return true;
-  if (exactArgs(args, ["diff", "--cached", "--stat"])) return true;
-  if (exactArgs(args, ["status", "--short"])) return true;
-  if (exactArgs(args, ["log", "--oneline", "-10"])) return true;
-  if (exactArgs(args, ["log", "--oneline", "-20"])) return true;
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["rev-parse", "--abbrev-ref", "HEAD"])) {
+    return true;
+  }
+  if (exactArgs(args, ["diff", "--stat", "HEAD~1"])) {
+    return true;
+  }
+  if (exactArgs(args, ["diff", "--stat", "--cached"])) {
+    return true;
+  }
+  if (exactArgs(args, ["diff", "--cached", "--stat"])) {
+    return true;
+  }
+  if (exactArgs(args, ["status", "--short"])) {
+    return true;
+  }
+  if (exactArgs(args, ["log", "--oneline", "-10"])) {
+    return true;
+  }
+  if (exactArgs(args, ["log", "--oneline", "-20"])) {
+    return true;
+  }
   return (
     args.length === 3 &&
     args[0] === "log" &&
@@ -62,17 +92,27 @@ function validateCreatePr(file, args) {
 }
 
 function validateGitWorktree(file, args) {
-  if (file !== "git") return false;
-  if (exactArgs(args, ["worktree", "list", "--porcelain"])) return true;
-  if (exactArgs(args, ["worktree", "prune", "-v"])) return true;
-  if (exactArgs(args, ["status", "--short"])) return true;
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["worktree", "list", "--porcelain"])) {
+    return true;
+  }
+  if (exactArgs(args, ["worktree", "prune", "-v"])) {
+    return true;
+  }
+  if (exactArgs(args, ["status", "--short"])) {
+    return true;
+  }
   if (
     args.length === 3 &&
     exactArgs(args.slice(0, 2), ["rev-parse", "--verify"])
   ) {
     return isSafeRef(args[2]);
   }
-  if (args.length === 2 && args[0] === "branch") return isSafeRef(args[1]);
+  if (args.length === 2 && args[0] === "branch") {
+    return isSafeRef(args[1]);
+  }
   if (args.length === 4 && exactArgs(args.slice(0, 2), ["worktree", "add"])) {
     return args[2].length > 0 && isSafeRef(args[3]);
   }
@@ -84,9 +124,15 @@ function validateGitWorktree(file, args) {
 }
 
 function validateK8s(file, args) {
-  if (file !== "kubectl") return false;
-  if (exactArgs(args, ["get", "deployments", "-o", "wide"])) return true;
-  if (exactArgs(args, ["get", "pods", "-o", "wide"])) return true;
+  if (file !== "kubectl") {
+    return false;
+  }
+  if (exactArgs(args, ["get", "deployments", "-o", "wide"])) {
+    return true;
+  }
+  if (exactArgs(args, ["get", "pods", "-o", "wide"])) {
+    return true;
+  }
   if (
     args.length === 5 &&
     exactArgs(args.slice(0, 2), ["get", "deployment"]) &&
@@ -129,7 +175,9 @@ function validatePrReviewer(file, args) {
       ])
     );
   }
-  if (file !== "git") return false;
+  if (file !== "git") {
+    return false;
+  }
   if (
     args.length === 3 &&
     args[0] === "log" &&
@@ -150,10 +198,18 @@ function validatePrReviewer(file, args) {
 }
 
 function validateCcArgs(args) {
-  if (exactArgs(args, ["--version"])) return true;
-  if (exactArgs(args, ["hub", "readiness", "--json"])) return true;
-  if (exactArgs(args, ["hub", "sync-adapter", "wechat-pc"])) return true;
-  if (exactArgs(args, ["hub", "stats"])) return true;
+  if (exactArgs(args, ["--version"])) {
+    return true;
+  }
+  if (exactArgs(args, ["hub", "readiness", "--json"])) {
+    return true;
+  }
+  if (exactArgs(args, ["hub", "sync-adapter", "wechat-pc"])) {
+    return true;
+  }
+  if (exactArgs(args, ["hub", "stats"])) {
+    return true;
+  }
   return (
     args.length === 5 &&
     exactArgs(args.slice(0, 4), [
@@ -168,8 +224,12 @@ function validateCcArgs(args) {
 }
 
 function validatePdh(file, args, policy) {
-  if (file === "cc") return validateCcArgs(args);
-  if (file !== "node" || args.length < 2) return false;
+  if (file === "cc") {
+    return validateCcArgs(args);
+  }
+  if (file !== "node" || args.length < 2) {
+    return false;
+  }
   const entrypoint = canonicalExistingPath(args[0]);
   return (
     policy.allowedEntrypoints.includes(entrypoint) &&
@@ -177,14 +237,249 @@ function validatePdh(file, args, policy) {
   );
 }
 
+function validateAutoContext(file, args) {
+  return (
+    file === "git" &&
+    exactArgs(args, [
+      "log",
+      "--diff-filter=M",
+      "--name-only",
+      "--pretty=format:",
+      "-n",
+      "20",
+    ])
+  );
+}
+
+function validateBugbot(file, args) {
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["diff", "--cached"])) {
+    return true;
+  }
+  if (exactArgs(args, ["diff", "HEAD~1"])) {
+    return true;
+  }
+  if (
+    exactArgs(args, [
+      "log",
+      "--since=7 days ago",
+      "--name-only",
+      "--pretty=format:",
+      "--diff-filter=ACMR",
+    ])
+  ) {
+    return true;
+  }
+  return args.length === 2 && args[0] === "diff" && isSafeGitRevision(args[1]);
+}
+
+function validateChangelogGenerator(file, args) {
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["describe", "--tags", "--abbrev=0"])) {
+    return true;
+  }
+  if (exactArgs(args, ["tag", "--sort=-creatordate"])) {
+    return true;
+  }
+  if (exactArgs(args, ["rev-parse", "--is-inside-work-tree"])) {
+    return true;
+  }
+  return (
+    args.length === 3 &&
+    args[0] === "log" &&
+    isSafeGitRevision(args[1]) &&
+    args[2] === "--pretty=format:%H|%s|%an|%ai|%b---END---"
+  );
+}
+
+function validateCommitSplitter(file, args) {
+  return (
+    file === "git" &&
+    [
+      ["status", "--porcelain"],
+      ["diff", "--name-only"],
+      ["diff", "--cached", "--name-only"],
+    ].some((expected) => exactArgs(args, expected))
+  );
+}
+
+function canonicalPathWithinRoots(value, cwd, policy) {
+  try {
+    const candidate = canonicalExistingPath(
+      nodePath.isAbsolute(value) ? value : nodePath.resolve(cwd, value),
+    );
+    return policy.allowedRoots.some((root) => isWithinRoot(candidate, root));
+  } catch {
+    return false;
+  }
+}
+
+function validateDiffPreviewer(file, args, policy, cwd) {
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["diff"]) || exactArgs(args, ["diff", "--cached"])) {
+    return true;
+  }
+  return (
+    args.length === 5 &&
+    exactArgs(args.slice(0, 3), ["diff", "--no-index", "--"]) &&
+    canonicalPathWithinRoots(args[3], cwd, policy) &&
+    canonicalPathWithinRoots(args[4], cwd, policy)
+  );
+}
+
+function validateDocGenerator(file, args) {
+  return (
+    file === "git" &&
+    args.length === 4 &&
+    args[0] === "log" &&
+    isSafeGitRevision(args[1]) &&
+    args[2] === "--pretty=format:%H|%s|%an|%ad" &&
+    args[3] === "--date=short"
+  );
+}
+
+function validateFaultLocalizer(file, args, policy, cwd) {
+  return (
+    file === "git" &&
+    args.length === 5 &&
+    exactArgs(args.slice(0, 4), ["log", "-1", "--format=%ct", "--"]) &&
+    canonicalPathWithinRoots(args[4], cwd, policy)
+  );
+}
+
+function validateGitCommit(file, args) {
+  if (file !== "git") {
+    return false;
+  }
+  if (
+    [
+      ["diff", "--cached", "--name-only"],
+      ["status", "--porcelain"],
+      ["diff", "--cached", "--stat"],
+      ["diff", "--cached"],
+    ].some((expected) => exactArgs(args, expected))
+  ) {
+    return true;
+  }
+  return (
+    args.length === 3 &&
+    exactArgs(args.slice(0, 2), ["commit", "-m"]) &&
+    args[2].length > 0 &&
+    args[2].length <= 512
+  );
+}
+
+function validateGitHistoryAnalyzer(file, args) {
+  if (file !== "git") {
+    return false;
+  }
+  if (exactArgs(args, ["rev-parse", "--is-inside-work-tree"])) {
+    return true;
+  }
+  if (exactArgs(args, ["rev-list", "--count", "HEAD"])) {
+    return true;
+  }
+  if (
+    args.length === 5 &&
+    args[0] === "log" &&
+    [
+      ["--pretty=format:", "--name-only"],
+      ["--pretty=tformat:", "--numstat"],
+      ["--pretty=format:---COMMIT---", "--name-only"],
+    ].some((shape) => exactArgs(args.slice(1, 3), shape)) &&
+    args[3] === "-n" &&
+    isBoundedPositiveInteger(args[4])
+  ) {
+    return true;
+  }
+  if (
+    args.length === 5 &&
+    exactArgs(args.slice(0, 4), ["shortlog", "-sn", "--all", "-n"])
+  ) {
+    return isBoundedPositiveInteger(args[4]);
+  }
+  if (
+    args.length === 6 &&
+    args[0] === "log" &&
+    args[1].startsWith("--author=") &&
+    args[1].length <= 264 &&
+    args[2] === "--pretty=tformat:" &&
+    args[3] === "--numstat" &&
+    args[4] === "-n"
+  ) {
+    return isBoundedPositiveInteger(args[5]);
+  }
+  return (
+    args.length === 5 &&
+    args[0] === "log" &&
+    args[1].startsWith("--author=") &&
+    args[1].length <= 264 &&
+    exactArgs(args.slice(2), ["--pretty=format:%H", "-n", "50"])
+  );
+}
+
+function validateImpactAnalyzer(file, args) {
+  return (
+    file === "git" &&
+    (exactArgs(args, ["diff", "--name-only"]) ||
+      exactArgs(args, ["diff", "--cached", "--name-only"]))
+  );
+}
+
 const BUNDLED_SKILL_PROCESS_POLICIES = Object.freeze({
+  "auto-context": Object.freeze({
+    maxTimeoutMs: 5_000,
+    validate: validateAutoContext,
+  }),
+  bugbot: Object.freeze({
+    maxTimeoutMs: 15_000,
+    validate: validateBugbot,
+  }),
+  "changelog-generator": Object.freeze({
+    maxTimeoutMs: 15_000,
+    validate: validateChangelogGenerator,
+  }),
+  "commit-splitter": Object.freeze({
+    maxTimeoutMs: 15_000,
+    validate: validateCommitSplitter,
+  }),
   "create-pr": Object.freeze({
     maxTimeoutMs: 10_000,
     validate: validateCreatePr,
   }),
+  "diff-previewer": Object.freeze({
+    maxTimeoutMs: 30_000,
+    validate: validateDiffPreviewer,
+  }),
+  "doc-generator": Object.freeze({
+    maxTimeoutMs: 15_000,
+    validate: validateDocGenerator,
+  }),
+  "fault-localizer": Object.freeze({
+    maxTimeoutMs: 10_000,
+    validate: validateFaultLocalizer,
+  }),
+  "git-commit": Object.freeze({
+    maxTimeoutMs: 10_000,
+    validate: validateGitCommit,
+  }),
+  "git-history-analyzer": Object.freeze({
+    maxTimeoutMs: 30_000,
+    validate: validateGitHistoryAnalyzer,
+  }),
   "git-worktree-manager": Object.freeze({
     maxTimeoutMs: 30_000,
     validate: validateGitWorktree,
+  }),
+  "impact-analyzer": Object.freeze({
+    maxTimeoutMs: 10_000,
+    validate: validateImpactAnalyzer,
   }),
   "k8s-deployer": Object.freeze({
     maxTimeoutMs: 30_000,
@@ -354,7 +649,7 @@ function createBundledSkillProcessBroker(options, deps = {}) {
         "Process working directory is outside approved roots",
       );
     }
-    if (!policy.reviewed.validate(normalizedFile, args, policy)) {
+    if (!policy.reviewed.validate(normalizedFile, args, policy, cwd)) {
       audit(normalizedFile, args, cwd, "denied", "invocation_denied");
       throw processError(
         "CC_BUNDLED_SKILL_PROCESS_INVOCATION_DENIED",

@@ -11,7 +11,7 @@ capabilities:
 tools:
   - file_reader
   - git_operations
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute]
 handler: ./handler.js
 instructions: |
   Use this skill when the user wants to preview changes before applying them,

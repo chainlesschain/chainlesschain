@@ -7,8 +7,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 const CODE_EXTS = new Set(["js", "mjs", "ts", "tsx", "jsx", "vue"]);
 const IGNORE_DIRS = new Set([
@@ -38,7 +40,11 @@ module.exports = {
         case "ipc-reference":
           return await handleIPCReference(options.targetDir);
         case "changelog":
-          return await handleChangelog(options.range, options.targetDir);
+          return await handleChangelog(
+            options.range,
+            options.targetDir,
+            requireBundledSkillProcessBroker(context, "doc-generator"),
+          );
         case "readme":
           return await handleReadme(options.targetDir);
         default:
@@ -283,20 +289,23 @@ async function handleIPCReference(targetDir) {
   };
 }
 
-async function handleChangelog(range, targetDir) {
+async function handleChangelog(range, targetDir, processBroker) {
   const gitRange = range || "HEAD~20..HEAD";
   let logOutput;
 
   try {
-    logOutput = execSync(
-      `git log ${gitRange} --pretty=format:"%H|%s|%an|%ad" --date=short`,
-      {
-        encoding: "utf-8",
-        cwd: targetDir,
-        timeout: 15000,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    ).trim();
+    logOutput = processBroker
+      .execFileSync(
+        "git",
+        ["log", gitRange, "--pretty=format:%H|%s|%an|%ad", "--date=short"],
+        {
+          encoding: "utf-8",
+          cwd: targetDir,
+          timeout: 15000,
+        },
+      )
+      .toString("utf8")
+      .trim();
   } catch {
     return {
       success: false,

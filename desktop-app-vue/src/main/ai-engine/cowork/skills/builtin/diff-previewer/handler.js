@@ -8,8 +8,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // -- Unified Diff Parser -----------------------------------------------
 
@@ -109,13 +111,9 @@ function estimateTokens(text) {
 
 // -- Git Helpers -------------------------------------------------------
 
-function runGit(args, cwd) {
+function runGit(args, cwd, processBroker) {
   try {
-    return execSync("git " + args, {
-      cwd,
-      encoding: "utf-8",
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    return processBroker.execFileSync("git", args, { cwd }).toString("utf8");
   } catch (err) {
     if (err.stderr && err.stderr.includes("not a git repository")) {
       throw new Error(
@@ -126,7 +124,7 @@ function runGit(args, cwd) {
     if (err.stdout !== undefined) {
       return err.stdout || "";
     }
-    throw new Error(`git ${args} failed: ${err.message}`);
+    throw new Error(`git ${args.join(" ")} failed: ${err.message}`);
   }
 }
 
@@ -189,9 +187,9 @@ function directoryBreakdown(files) {
 
 // -- Mode: --staged / --unstaged ---------------------------------------
 
-function modeGitDiff(projectRoot, staged) {
-  const gitArgs = staged ? "diff --cached" : "diff";
-  const diffText = runGit(gitArgs, projectRoot);
+function modeGitDiff(projectRoot, staged, processBroker) {
+  const gitArgs = staged ? ["diff", "--cached"] : ["diff"];
+  const diffText = runGit(gitArgs, projectRoot, processBroker);
   const files = parseUnifiedDiff(diffText);
 
   if (files.length === 0) {
@@ -233,7 +231,7 @@ function modeGitDiff(projectRoot, staged) {
 
 // -- Mode: --compare ---------------------------------------------------
 
-function modeCompare(projectRoot, file1, file2) {
+function modeCompare(projectRoot, file1, file2, processBroker) {
   if (!file1 || !file2) {
     return {
       success: false,
@@ -267,14 +265,11 @@ function modeCompare(projectRoot, file1, file2) {
   // Use git diff --no-index for file comparison (works outside git repos too)
   let diffText = "";
   try {
-    diffText = execSync(
-      'git diff --no-index -- "' + abs1 + '" "' + abs2 + '"',
-      {
+    diffText = processBroker
+      .execFileSync("git", ["diff", "--no-index", "--", abs1, abs2], {
         cwd: projectRoot,
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      },
-    );
+      })
+      .toString("utf8");
   } catch (err) {
     // git diff --no-index returns exit code 1 when files differ (not an error)
     if (err.stdout) {
@@ -314,9 +309,9 @@ function modeCompare(projectRoot, file1, file2) {
 
 // -- Mode: --stats -----------------------------------------------------
 
-function modeStats(projectRoot) {
-  const stagedFull = runGit("diff --cached", projectRoot);
-  const unstagedFull = runGit("diff", projectRoot);
+function modeStats(projectRoot, processBroker) {
+  const stagedFull = runGit(["diff", "--cached"], projectRoot, processBroker);
+  const unstagedFull = runGit(["diff"], projectRoot, processBroker);
 
   const stagedFiles = parseUnifiedDiff(stagedFull);
   const unstagedFiles = parseUnifiedDiff(unstagedFull);
@@ -366,9 +361,9 @@ function modeStats(projectRoot) {
 
 // -- Mode: --summary ---------------------------------------------------
 
-function modeSummary(projectRoot) {
-  const stagedFull = runGit("diff --cached", projectRoot);
-  const unstagedFull = runGit("diff", projectRoot);
+function modeSummary(projectRoot, processBroker) {
+  const stagedFull = runGit(["diff", "--cached"], projectRoot, processBroker);
+  const unstagedFull = runGit(["diff"], projectRoot, processBroker);
 
   const stagedFiles = parseUnifiedDiff(stagedFull);
   const unstagedFiles = parseUnifiedDiff(unstagedFull);
@@ -448,26 +443,30 @@ module.exports = {
     const arg2 = parts[2] || "";
 
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "diff-previewer",
+      );
       switch (mode) {
         case "--staged":
-          return modeGitDiff(projectRoot, true);
+          return modeGitDiff(projectRoot, true, processBroker);
 
         case "--unstaged":
-          return modeGitDiff(projectRoot, false);
+          return modeGitDiff(projectRoot, false, processBroker);
 
         case "--compare":
-          return modeCompare(projectRoot, arg1, arg2);
+          return modeCompare(projectRoot, arg1, arg2, processBroker);
 
         case "--stats":
-          return modeStats(projectRoot);
+          return modeStats(projectRoot, processBroker);
 
         case "--summary":
-          return modeSummary(projectRoot);
+          return modeSummary(projectRoot, processBroker);
 
         default:
           // Default to unstaged diff if mode is unrecognized
           if (!mode.startsWith("--")) {
-            return modeGitDiff(projectRoot, false);
+            return modeGitDiff(projectRoot, false, processBroker);
           }
           return {
             success: false,

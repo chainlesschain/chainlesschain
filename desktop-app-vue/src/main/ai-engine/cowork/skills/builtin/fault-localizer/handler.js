@@ -9,8 +9,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -260,14 +262,15 @@ function checkParamValidation(lines, targetLine) {
   return { score: Math.max(0, score) };
 }
 
-function checkGitRecency(filePath, projectRoot) {
+function checkGitRecency(filePath, projectRoot, processBroker) {
   try {
-    const result = execSync('git log -1 --format=%ct -- "' + filePath + '"', {
-      cwd: projectRoot,
-      encoding: "utf-8",
-      timeout: 10000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
+    const result = processBroker
+      .execFileSync("git", ["log", "-1", "--format=%ct", "--", filePath], {
+        cwd: projectRoot,
+        timeout: 10000,
+      })
+      .toString("utf8")
+      .trim();
     if (!result) {
       return { daysAgo: Infinity, score: 0 };
     }
@@ -291,7 +294,7 @@ function checkGitRecency(filePath, projectRoot) {
 
 // ── Suspiciousness Ranking ─────────────────────────────────────────
 
-function rankSuspiciousness(frames, projectRoot, contextLines) {
+function rankSuspiciousness(frames, projectRoot, contextLines, processBroker) {
   const ranked = [];
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
@@ -313,7 +316,7 @@ function rankSuspiciousness(frames, projectRoot, contextLines) {
       complexityResult = measureComplexity(source.lines, frame.line);
       errorHandlingResult = checkErrorHandling(source.lines, frame.line);
       paramResult = checkParamValidation(source.lines, frame.line);
-      gitResult = checkGitRecency(frame.file, projectRoot);
+      gitResult = checkGitRecency(frame.file, projectRoot, processBroker);
     }
 
     const score =
@@ -394,7 +397,7 @@ function generateFixSuggestion(errorType, errorMessage, topLocation) {
 
 // ── Mode Handlers ──────────────────────────────────────────────────
 
-function modeTrace(input, projectRoot, contextLines) {
+function modeTrace(input, projectRoot, contextLines, processBroker) {
   const errorInfo = extractErrorInfo(input);
   const parsed = parseStackTrace(input);
 
@@ -411,6 +414,7 @@ function modeTrace(input, projectRoot, contextLines) {
     parsed.frames,
     projectRoot,
     contextLines,
+    processBroker,
   );
   const suggestedFix = generateFixSuggestion(
     errorInfo.errorType,
@@ -455,7 +459,7 @@ function modeTrace(input, projectRoot, contextLines) {
   };
 }
 
-function modeTest(input, projectRoot, contextLines) {
+function modeTest(input, projectRoot, contextLines, processBroker) {
   const errorInfo = extractErrorInfo(input);
   const failMatch = input.match(/FAIL\s+(\S+)/);
   const testFile = failMatch ? failMatch[1] : null;
@@ -490,7 +494,7 @@ function modeTest(input, projectRoot, contextLines) {
 
   const suspiciousLocations =
     frames.length > 0
-      ? rankSuspiciousness(frames, projectRoot, contextLines)
+      ? rankSuspiciousness(frames, projectRoot, contextLines, processBroker)
       : [];
   const suggestedFix =
     frames.length > 0
@@ -707,14 +711,28 @@ module.exports = {
     );
 
     try {
+      const processBroker =
+        args.mode === "error"
+          ? null
+          : requireBundledSkillProcessBroker(context, "fault-localizer");
       switch (args.mode) {
         case "test":
-          return modeTest(args.input, projectRoot, args.contextLines);
+          return modeTest(
+            args.input,
+            projectRoot,
+            args.contextLines,
+            processBroker,
+          );
         case "error":
           return modeError(args.input, projectRoot);
         case "trace":
         default:
-          return modeTrace(args.input, projectRoot, args.contextLines);
+          return modeTrace(
+            args.input,
+            projectRoot,
+            args.contextLines,
+            processBroker,
+          );
       }
     } catch (err) {
       logger.error("[fault-localizer] execution error: " + err.message);
