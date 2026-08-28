@@ -1676,11 +1676,32 @@ FEISHU_WEBHOOK_URL=...    FEISHU_SECRET=...     # Feishu (飞书)
 **Incoming webhooks** — receive task commands from IM platforms:
 
 ```bash
+# ChainlessChain HMAC mode (backward-compatible default)
+CC_ORCHESTRATE_WEBHOOK_SECRET=replace-with-at-least-16-characters \
+  chainlesschain orchestrate --webhook
+
+# Vendor-native mode (configure only the channels you expose; an
+# unconfigured channel fails closed with HTTP 503)
+CC_ORCHESTRATE_DINGTALK_SECRET=... \
+CC_ORCHESTRATE_FEISHU_ENCRYPT_KEY=... \
+CC_ORCHESTRATE_WECOM_TOKEN=... \
+CC_ORCHESTRATE_WECOM_ENCODING_AES_KEY=... \
+CC_ORCHESTRATE_WECOM_RECEIVE_ID=... \
+  chainlesschain orchestrate --webhook --webhook-auth-mode vendor
+
 chainlesschain orchestrate --webhook --webhook-port 18820
 # POST /wecom    (WeCom XML)
 # POST /dingtalk (DingTalk JSON)
 # POST /feishu   (Feishu JSON + challenge verification)
 ```
+
+`vendor` mode does not fall back to the `X-CC-*` headers. It verifies
+DingTalk's `timestamp`/`sign` headers, Feishu's `X-Lark-*` signature over the
+raw request, and WeCom's `msg_signature` query value. Feishu and WeCom encrypted
+payloads are decrypted only after signature verification; WeCom callback URL
+verification is available via signed `GET /wecom`. `DINGTALK_SECRET`,
+`FEISHU_ENCRYPT_KEY`, `WECOM_TOKEN`, `WECOM_ENCODING_AES_KEY`, and
+`WECOM_RECEIVE_ID` remain supported aliases for the channel-specific variables.
 
 **WebSocket integration** — trigger via `{ "type": "orchestrate", "task": "...", "cwd": "..." }`, receive real-time `orchestrate:event` progress events and final `orchestrate:done`.
 

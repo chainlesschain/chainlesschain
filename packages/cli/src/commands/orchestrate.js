@@ -63,6 +63,11 @@ export function registerOrchestrateCommand(program) {
       "CC_ORCHESTRATE_WEBHOOK_SECRET",
     )
     .option(
+      "--webhook-auth-mode <mode>",
+      "Webhook authentication: cc|vendor",
+      "cc",
+    )
+    .option(
       "--webhook-max-body-bytes <n>",
       "Maximum authenticated webhook request body",
       "262144",
@@ -530,8 +535,30 @@ async function _webhookMode(cwd, options) {
   if (!/^[A-Z_][A-Z0-9_]{0,127}$/u.test(secretEnvironmentName)) {
     throw new Error("--webhook-secret-env must be a valid environment name");
   }
+  const webhookAuthMode = String(options.webhookAuthMode || "cc").toLowerCase();
+  if (!new Set(["cc", "vendor"]).has(webhookAuthMode)) {
+    throw new Error("--webhook-auth-mode must be cc or vendor");
+  }
   const securityGate = new WebhookSecurityGate({
-    secret: process.env[secretEnvironmentName],
+    authMode: webhookAuthMode,
+    secret:
+      webhookAuthMode === "cc" ? process.env[secretEnvironmentName] : undefined,
+    vendorCredentials: {
+      dingtalkSecret:
+        process.env.CC_ORCHESTRATE_DINGTALK_SECRET ||
+        process.env.DINGTALK_SECRET,
+      feishuEncryptKey:
+        process.env.CC_ORCHESTRATE_FEISHU_ENCRYPT_KEY ||
+        process.env.FEISHU_ENCRYPT_KEY,
+      wecomToken:
+        process.env.CC_ORCHESTRATE_WECOM_TOKEN || process.env.WECOM_TOKEN,
+      wecomEncodingAesKey:
+        process.env.CC_ORCHESTRATE_WECOM_ENCODING_AES_KEY ||
+        process.env.WECOM_ENCODING_AES_KEY,
+      wecomReceiveId:
+        process.env.CC_ORCHESTRATE_WECOM_RECEIVE_ID ||
+        process.env.WECOM_RECEIVE_ID,
+    },
     maxRequestsPerMinute: parseInt(options.webhookRateLimit, 10) || 30,
   });
   const maxBodyBytes = Math.max(
@@ -540,13 +567,9 @@ async function _webhookMode(cwd, options) {
   );
 
   const server = createServer(async (req, res) => {
-    if (req.method !== "POST") {
-      res.writeHead(405);
-      res.end("Method Not Allowed");
-      return;
-    }
-
-    const url = req.url?.split("?")[0] || "/";
+    const requestUrl = new URL(req.url || "/", "http://127.0.0.1");
+    const url = requestUrl.pathname;
+    const query = Object.fromEntries(requestUrl.searchParams.entries());
     const channel =
       url === "/wecom"
         ? "wecom"
@@ -558,6 +581,32 @@ async function _webhookMode(cwd, options) {
     if (!channel) {
       res.writeHead(404);
       res.end("Not Found");
+      return;
+    }
+    if (
+      req.method === "GET" &&
+      channel === "wecom" &&
+      webhookAuthMode === "vendor"
+    ) {
+      try {
+        const verified = securityGate.verifyWeComUrl({
+          query,
+          remoteAddress: req.socket.remoteAddress || "unknown",
+        });
+        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end(verified.echo);
+      } catch (error) {
+        if (error?.retryAfterSeconds) {
+          res.setHeader("Retry-After", String(error.retryAfterSeconds));
+        }
+        res.writeHead(error?.statusCode || 401);
+        res.end("Unauthorized");
+      }
+      return;
+    }
+    if (req.method !== "POST") {
+      res.writeHead(405);
+      res.end("Method Not Allowed");
       return;
     }
     if (Number(req.headers["content-length"] || 0) > maxBodyBytes) {
@@ -584,7 +633,7 @@ async function _webhookMode(cwd, options) {
       if (bodyRejected) return;
       // Decode once: per-chunk toString() would corrupt a multi-byte UTF-8
       // char (e.g. Chinese IM webhook text) split across a chunk boundary.
-      const body = Buffer.concat(bodyChunks).toString("utf-8");
+      let body = Buffer.concat(bodyChunks).toString("utf-8");
       let taskText = null;
       let source = `webhook:${channel}`;
       let verified;
@@ -594,8 +643,10 @@ async function _webhookMode(cwd, options) {
           channel,
           headers: req.headers,
           body,
+          query,
           remoteAddress: req.socket.remoteAddress || "unknown",
         });
+        body = verified.body;
       } catch (error) {
         if (error?.retryAfterSeconds) {
           res.setHeader("Retry-After", String(error.retryAfterSeconds));
@@ -673,6 +724,7 @@ async function _webhookMode(cwd, options) {
     console.log(
       `  ${chalk.gray("Feishu:")}   POST http://localhost:${port}/feishu`,
     );
+    console.log(`  ${chalk.gray("Auth:")}     ${webhookAuthMode}`);
     console.log(chalk.gray("\n  Press Ctrl+C to stop\n"));
   });
 

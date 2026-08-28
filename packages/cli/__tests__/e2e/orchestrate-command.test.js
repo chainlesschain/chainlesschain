@@ -14,7 +14,10 @@ import { describe, it, expect, afterAll } from "vitest";
 import { execSync, spawn } from "node:child_process";
 import http from "node:http";
 import { testHome, freePort, CLI_BIN as bin } from "./_helpers/cli-e2e.js";
-import { signWebhookBody } from "../../src/lib/webhook-security.js";
+import {
+  signDingTalkWebhook,
+  signWebhookBody,
+} from "../../src/lib/webhook-security.js";
 
 const WEBHOOK_SECRET = "orchestrate-e2e-secret-32-characters";
 
@@ -408,5 +411,104 @@ describe("E2E: orchestrate --webhook server", () => {
     const json = JSON.parse(response.body);
     // Feishu challenge-response: { challenge: "test-challenge-token" }
     expect(json.challenge).toBe("test-challenge-token");
+  }, 30000);
+
+  it("accepts DingTalk native signatures in explicit vendor mode", async () => {
+    const port = await freePort();
+    const proc = spawn(
+      "node",
+      [
+        bin,
+        "orchestrate",
+        "--webhook",
+        "--webhook-auth-mode",
+        "vendor",
+        "--webhook-port",
+        String(port),
+      ],
+      {
+        encoding: "utf8",
+        env: childEnv({
+          FORCE_COLOR: "0",
+          CC_ORCHESTRATE_DINGTALK_SECRET: WEBHOOK_SECRET,
+        }),
+      },
+    );
+
+    try {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("vendor webhook server timeout")),
+          20000,
+        );
+        let output = "";
+        let resolved = false;
+        const inspect = (chunk) => {
+          if (resolved) return;
+          output += chunk.toString();
+          if (!output.includes("Webhook")) return;
+          resolved = true;
+          clearTimeout(timeout);
+          resolve();
+        };
+        proc.stdout.on("data", inspect);
+        proc.stderr.on("data", inspect);
+        proc.on("error", reject);
+      });
+
+      const timestamp = String(Date.now());
+      const body = JSON.stringify({
+        msgId: "dingtalk-native-e2e-1",
+        msgtype: "text",
+        text: { content: "Verify vendor signature" },
+      });
+      const response = await new Promise((resolve, reject) => {
+        const startedAt = Date.now();
+        const send = () => {
+          const req = http.request(
+            {
+              hostname: "127.0.0.1",
+              port,
+              path: "/dingtalk",
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Content-Length": Buffer.byteLength(body),
+                timestamp,
+                sign: signDingTalkWebhook(WEBHOOK_SECRET, timestamp),
+              },
+            },
+            (res) => {
+              let data = "";
+              res.on("data", (chunk) => (data += chunk));
+              res.on("end", () =>
+                resolve({ status: res.statusCode, body: data }),
+              );
+            },
+          );
+          req.on("error", (error) => {
+            if (
+              error.code === "ECONNREFUSED" &&
+              Date.now() - startedAt <= 5000
+            ) {
+              setTimeout(send, 200);
+              return;
+            }
+            reject(error);
+          });
+          req.write(body);
+          req.end();
+        };
+        send();
+      });
+
+      expect(response.status).toBe(200);
+      expect(JSON.parse(response.body).message).toContain(
+        "Verify vendor signature",
+      );
+    } finally {
+      proc.kill("SIGTERM");
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }, 30000);
 });
