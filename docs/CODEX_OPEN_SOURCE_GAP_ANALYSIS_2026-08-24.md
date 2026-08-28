@@ -2051,7 +2051,7 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 - `audio-transcriber`、`media-metadata` 与 `video-toolkit` 同时移除 `fluent-ffmpeg` 隐式 spawn。ffprobe/ffmpeg 只允许固定参数形状、已存在且位于 approved root 的输入，以及 realpath parent 仍位于 root、扩展名受限且不覆盖输入的输出；时间、codec、scale、bitrate 和格式均为有限集合，shell 操作符只会成为普通 argv 并因策略不匹配被拒绝。由此 §12.42 留下的 2 个独立媒体执行面和 audio 的第二执行通道一并关闭。
 - 公共 process policy 从 15 扩至 31 个 Skill，catalog `host:process` 从 15 增至 31，`process:execute` 保持真实总数 33。余下两个未记为 `host:process` 的 `code-runner` 与 `network-diagnostics` 已分别使用既有专用 execution/diagnostics broker，因此 33/33 个 bundled process executor 均已有 branded authority；raw `child_process` 与 `fluent-ffmpeg` handler 扫描均归零。catalog、16 份 manifest 与 handler SHA-256 已重新同步并验证 145/145。
 - 新增媒体 handler 契约，覆盖真实 ffprobe JSON、ffmpeg argv、option injection、输出逃逸、缺失 branded authority 和禁止重新引入隐式媒体 spawn；公共 broker 契约覆盖全部最终批固定命令、精确 authority invocation、stdin/environment 上限、entrypoint pin、路径 containment 与审计脱敏。最终 selector 的 CI integrity 为 33/33、Desktop Vitest 为 51 files、1,014/1,014，合计 52 files、1,047/1,047 全部通过。
-- 在本切片时点，P1-11 仍因 filesystem 路径/操作 authority、生产 SecretStore/配置/network/process authority、真实 approval/declassification 接线和三平台签名 Desktop 验收而保持“部分完成”；filesystem 与生产 host 接线随后由 §12.51、§12.55 关闭。当前只保留未配置第三方服务的受信 credential provider 与三平台签名 Desktop 权威验收；测试 adapter 仍不作为生产授权证据。
+- 在本切片时点，P1-11 仍因 filesystem 路径/操作 authority、生产 SecretStore/配置/network/process authority、真实 approval/declassification 接线和三平台签名 Desktop 验收而保持“部分完成”；filesystem、生产 host 及 GitHub credential 接线随后由 §12.51、§12.55～12.56 关闭。当前只保留尚无产品配置入口的 Google OAuth client/token、Notion、Tavily credential provider 与三平台签名 Desktop 权威验收；测试 adapter 仍不作为生产授权证据。
 
 ### 12.50 P1-9 Desktop 可审阅 turn/session grant 与撤销链路（2026-08-28）
 
@@ -2115,12 +2115,23 @@ P1-9 继续保持“部分完成”：共享语料现由 Graph、Desktop 与 VS 
 
 - `c87cac8ec3` 将余下 63 个只读 handler 迁入 filesystem proxy；bundled executable Skill 的 84/84 个 filesystem reader（其中 21 个 writer）现在都经 exact-skill branded authority，handler 原生 `fs` 导入归零。145/145 capability catalog 为每个 Skill 固定精确操作集合与 workspace、skill-temp 等 root class，生产 filesystem factory 只从 main-owned workspace 派生真实根目录，`code-runner` 只能获得自己的临时子目录。
 - `d18465f137` 在唯一 `SkillRegistry` 入口集中执行 `PreToolUse` Hook；prevent、Hook 异常、缺失批准或 policy authorization 都失败关闭。main process 创建不可伪造的 execution decision，并覆盖 renderer 传入的 filesystem host port；workspace 设置同样先规范化既有目录并经过 Hook。
-- `3bdadbc163` 接入生产 environment authority。OpenAI key 只从 safeStorage-backed LLM 配置读取；runtime/rollout 只暴露固定、broker-reviewed 的最小环境键，路径只能来自 workspace 内派生值或显式可信 resolver。缺失的 GitHub、Google、Notion、Tavily 等第三方 SecretStore/config provider 返回空值，不回退读取 `process.env`。
+- `3bdadbc163` 接入生产 environment authority。OpenAI key 只从 safeStorage-backed LLM 配置读取；runtime/rollout 只暴露固定、broker-reviewed 的最小环境键，路径只能来自 workspace 内派生值或显式可信 resolver。该切片时点缺失的 GitHub/Google provider 随后由 §12.56 接入；尚无产品配置入口的 Google OAuth client/token、Notion、Tavily 继续返回空值，不回退读取 `process.env`。
 - `b94126711d` 通过 DesktopProcessBroker 执行生产子进程，继续强制 exact argv、`shell: false`、workspace 内 cwd、固定最小环境、输出上限及 origin/provenance；没有可信 entrypoint/invocation resolver 时不会动态合成 benchmark 或 verify grant，renderer 提供的 process broker 会被覆盖。
 - `ef252a908f` 接入生产网络与去分类 authority。固定域名 Skill 复用审计策略；`api-gateway`、`http-client`、`network-diagnostics`、`summarizer` 只能从已批准任务中派生精确 HTTPS hostname 与 decision binding，没有目标时不授予网络 broker。Ollama/Stable Diffusion 默认只允许固定 loopback 服务；诊断权限绑定精确 operation、target、DNS type、port/有界范围，私网诊断默认拒绝。所有 renderer 提供的 network/local-service/diagnostics port 均被 main process 替换。
 - production filesystem/environment/process/network authority 的聚焦回归分别通过；最终完整 Skill suite 为 68 files、1,094/1,094，capability audit 仍为 145/145。新增源码 ESLint 无错误，保留的两条未使用变量 warning 来自既有 registry/IPC 代码；`git diff --check` 与语法检查通过。
 
 P1-11 继续保持“部分完成”：仓库内 bundled Skill 的 filesystem/environment/process/network host authority、审批与去分类接线已经闭环，但未配置的第三方服务仍需要各自受信 SecretStore/config provider；同时尚未在 Linux、Windows、macOS 对签名打包 Desktop 完成真实安装、启动及对应 Skill 旅程。完成同一精确 SHA 的权威矩阵之前，不把本地 1,094 项回归写成生产发布验收。
+
+### 12.56 P1-11 GitHub 加密凭据迁移与 bundled Skill 复用（2026-08-28）
+
+用户指出 Git 同步设置已有 GitHub token 后，本切片沿真实生产读取链补齐了安全迁移与 Skill resolver，而不是重新允许 `process.env.GITHUB_TOKEN`：
+
+- 新增独立 `git-credentials.enc` 存储，默认 Git auth 与多 provider 的 token/password 均以 SHA-256 scope 绑定并受 16 KiB 单值、64 scope 上限约束。`git-config.json` 只保留 `cc-git-secret:v1:*` 不透明引用；迁移严格先持久化加密副本、再清除明文，存储失败时不改写原文件并让当前配置失败关闭，保留可重试恢复路径。
+- `GitConfig.getAuth()` 与 `getProviderConfigs()` 只在 main process 内解析引用；`getAll()`、Git IPC 和 WebShell 只返回非秘密元数据及 `credentialConfigured`，不再把 masked token 当成安全边界。清除默认 auth 或 reset 会同步删除相应加密凭据。
+- bundled environment resolver 的 `github-token` 复用上述 GitHub auth，`google-api-key` 复用既有 safeStorage-backed LLM Google 配置；两者都不回退读取宿主环境。GitHub Skill 的 Setup 文档同步改为 ChainlessChain Git settings，不再指导设置 `GITHUB_TOKEN`。
+- Git migration/store、Git provider、WebShell 与完整 bundled Skill 回归共 75 files、1,240/1,240 通过；相关 ESLint 无错误、Prettier、语法检查与 `git diff --check` 通过。
+
+P1-11 仍保持“部分完成”：仓库现在已有 OpenAI、Google API key 与 GitHub token 的受信生产来源；Google OAuth client/secret/access/refresh token、Notion 和 Tavily 尚无产品配置入口，因此继续稳定返回未配置，而非读取环境变量。三平台签名 Desktop 的真实安装、启动与 Skill 旅程仍是外部权威关闭条件。
 
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
