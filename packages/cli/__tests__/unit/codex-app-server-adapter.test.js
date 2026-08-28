@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import {
+  CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
   CODEX_APP_SERVER_FEATURE_FLAG,
   CodexAppServerAdapter,
   isCodexAppServerVersionCompatible,
@@ -40,16 +41,21 @@ class FakeClient extends EventEmitter {
   }
 }
 
-const matrix = [{ min: "0.150.0", maxExclusive: "0.200.0" }];
+const matrix = CODEX_APP_SERVER_COMPATIBILITY_MATRIX;
 
 describe("optional Codex App Server adapter", () => {
   it("uses a fail-closed compatibility matrix", () => {
     expect(isCodexAppServerVersionCompatible("codex-cli 0.165.0", matrix)).toBe(
-      true,
-    );
-    expect(isCodexAppServerVersionCompatible("codex-cli 0.200.0", matrix)).toBe(
       false,
     );
+    expect(isCodexAppServerVersionCompatible("codex-cli 0.150.1", matrix)).toBe(
+      true,
+    );
+    expect(isCodexAppServerVersionCompatible("0.150.2", matrix)).toBe(false);
+    expect(isCodexAppServerVersionCompatible("0.150.1-beta.1", matrix)).toBe(
+      false,
+    );
+    expect(isCodexAppServerVersionCompatible("0.150.01", matrix)).toBe(false);
     expect(isCodexAppServerVersionCompatible("unknown", matrix)).toBe(false);
     expect(isCodexAppServerVersionCompatible("0.165.0", [])).toBe(false);
   });
@@ -62,7 +68,7 @@ describe("optional Codex App Server adapter", () => {
     const adapter = new CodexAppServerAdapter({
       client: new FakeClient(),
       fallback,
-      upstreamVersion: "0.165.0",
+      upstreamVersion: "0.150.1",
       compatibilityMatrix: matrix,
       enabled: false,
     });
@@ -85,7 +91,7 @@ describe("optional Codex App Server adapter", () => {
     const adapter = new CodexAppServerAdapter({
       client: new FakeClient(),
       fallback,
-      upstreamVersion: "codex-cli 0.165.0",
+      upstreamVersion: "codex-cli 0.150.1",
       compatibilityMatrix: matrix,
       enabled: true,
     });

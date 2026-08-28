@@ -2,6 +2,11 @@ import { EventEmitter } from "node:events";
 
 export const CODEX_APP_SERVER_PROTOCOL = "codex-app-server-experimental-v1";
 export const CODEX_APP_SERVER_FEATURE_FLAG = "CC_EXPERIMENTAL_CODEX_APP_SERVER";
+export const CODEX_APP_SERVER_COMPATIBILITY_MATRIX = Object.freeze([
+  Object.freeze({ version: "0.149.0" }),
+  Object.freeze({ version: "0.150.0" }),
+  Object.freeze({ version: "0.150.1" }),
+]);
 
 function adapterError(code, message, details = {}) {
   const error = new Error(message);
@@ -12,30 +17,16 @@ function adapterError(code, message, details = {}) {
 }
 
 function parseVersion(value) {
-  const match = String(value || "").match(/(\d+)\.(\d+)\.(\d+)/u);
-  return match ? match.slice(1).map(Number) : null;
-}
-
-function compareVersion(left, right) {
-  for (let index = 0; index < 3; index += 1) {
-    if (left[index] !== right[index]) return left[index] - right[index];
-  }
-  return 0;
+  const match = String(value || "")
+    .trim()
+    .match(/^(?:codex(?:-cli)?\s+)?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u);
+  return match ? match.slice(1).map(Number).join(".") : null;
 }
 
 export function isCodexAppServerVersionCompatible(version, matrix = []) {
   const parsed = parseVersion(version);
   if (!parsed || !Array.isArray(matrix) || matrix.length === 0) return false;
-  return matrix.some((range) => {
-    const minimum = parseVersion(range.min);
-    const maximum = parseVersion(range.maxExclusive);
-    return (
-      minimum &&
-      maximum &&
-      compareVersion(parsed, minimum) >= 0 &&
-      compareVersion(parsed, maximum) < 0
-    );
-  });
+  return matrix.some((entry) => parseVersion(entry?.version) === parsed);
 }
 
 function projectNotification(notification) {
@@ -103,7 +94,7 @@ export class CodexAppServerAdapter extends EventEmitter {
     client,
     fallback,
     upstreamVersion,
-    compatibilityMatrix = [],
+    compatibilityMatrix = CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
     enabled = process.env[CODEX_APP_SERVER_FEATURE_FLAG] === "1",
     timeoutMs = 120_000,
   } = {}) {

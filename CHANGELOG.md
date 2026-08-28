@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.9: governed real-UI Record & Replay
+### Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates
 
 > `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,
 > 2026-08-29). Agent Protocol and Agent SDK candidate versions remain
@@ -27,6 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cross-platform authority**: a dedicated exact-SHA GitHub Actions matrix
   runs the positive journey and an active network-escape probe in real Chromium
   on Linux, Windows, and macOS, then refuses partial evidence in its aggregate.
+- **Exact Codex admission**: the optional experimental App Server adapter now
+  admits only explicitly listed upstream patch versions; prereleases and
+  unverified future patches fail closed to the stable `codex exec --json`
+  fallback before turn admission.
+- **Version-bound App Server evidence**: a second exact-SHA Actions matrix
+  generates each upstream version's own schema and exercises the documented
+  `initialize -> initialized -> thread/list` stdio lifecycle on Linux,
+  Windows, and macOS without making a model request.
+- **Removal readiness**: every compatibility job proves that production CLI
+  source has no dependency on the optional adapter and that the stable Codex
+  JSONL fallback still executes and projects terminal output independently.
 
 ### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
 
