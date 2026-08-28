@@ -76,6 +76,91 @@ describe("TaskLeaseRegistry.addTask", () => {
   );
 });
 
+describe("TaskLeaseRegistry fairness scheduling", () => {
+  it("donates a blocked high-priority descendant to its low dependency", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({
+      now: clock.now,
+      queueWaitSloMs: 10_000,
+      agingWindowMs: 2_500,
+    });
+    reg.addTask({ key: "ordinary-high", title: "high", priority: "high" });
+    reg.addTask({ key: "dependency-low", title: "low", priority: "low" });
+    reg.addTask({
+      key: "dependent-high",
+      title: "dependent",
+      priority: "high",
+      dependsOn: ["dependency-low"],
+    });
+
+    expect(reg.schedulingPriority("dependency-low")).toMatchObject({
+      base: 0,
+      donation: 2,
+      criticalPathBoost: 1,
+      total: 3,
+      queueWaitSloMs: 10_000,
+    });
+    expect(reg.nextClaimable()).toBe("dependency-low");
+  });
+
+  it("promotes an old low-priority task before the queue-wait SLO", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({
+      now: clock.now,
+      queueWaitSloMs: 400,
+      agingWindowMs: 100,
+    });
+    reg.addTask({ key: "old-low", title: "low", priority: "low" });
+    expect(reg.nextClaimable()).toBe("old-low");
+    reg.addTask({ key: "first-high", title: "high", priority: "high" });
+    expect(reg.nextClaimable()).toBe("first-high");
+    const first = reg.acquire("first-high", { holder: "worker" });
+    expect(first.ok).toBe(true);
+    expect(
+      reg.complete("first-high", {
+        holder: "worker",
+        leaseId: first.lease.leaseId,
+      }).ok,
+    ).toBe(true);
+
+    clock.advance(300);
+    reg.addTask({ key: "new-high", title: "new high", priority: "high" });
+    expect(reg.schedulingPriority("old-low")).toMatchObject({
+      sloUrgent: true,
+      sloBoost: 10_000,
+      queueWaitMs: 300,
+    });
+    expect(reg.nextClaimable()).toBe("old-low");
+  });
+
+  it("preserves the fairness clock and SLO across durable restore", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({
+      now: clock.now,
+      queueWaitSloMs: 400,
+      agingWindowMs: 100,
+    });
+    reg.addTask({ key: "waiting-low", title: "waiting", priority: "low" });
+    clock.advance(250);
+    const restored = TaskLeaseRegistry.restore(
+      JSON.parse(JSON.stringify(reg.snapshot())),
+      { now: clock.now },
+    );
+    clock.advance(50);
+
+    expect(restored.schedulingPriority("waiting-low")).toMatchObject({
+      sloUrgent: true,
+      queueWaitMs: 300,
+      queueWaitSloMs: 400,
+    });
+    expect(restored.snapshot().registry).toMatchObject({
+      queueWaitSloMs: 400,
+      agingWindowMs: 100,
+      readySinceByKey: [["waiting-low", 1000]],
+    });
+  });
+});
+
 describe("TaskLeaseRegistry exclusive lease (no double-processing)", () => {
   let reg, clock;
   beforeEach(() => {

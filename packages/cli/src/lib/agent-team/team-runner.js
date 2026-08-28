@@ -211,6 +211,7 @@ export class TeamRunner {
     this._workerCount = 1;
     this._claimControllers = new Set();
     this._claimsByKey = new Map();
+    this._scopeDonations = new Map();
     this._handoffTransfers = new Map();
     this._handoffExpiryTimers = new Map();
     this._wallTimer = null;
@@ -221,6 +222,53 @@ export class TeamRunner {
       this.onEvent({ type, ts: this._now(), ...extra });
     } catch {
       /* event sink is best-effort */
+    }
+  }
+
+  /** Wake idle workers after a producer durably appends new tasks. */
+  notifyWorkAvailable() {
+    this._signalProgress();
+  }
+
+  /** Current dependency/aging priority plus scope-wait donations. */
+  priorityContext(key) {
+    return Object.freeze({
+      scheduling:
+        this.registry.schedulingPriority?.(key, { now: this._now() }) || null,
+      scopeDonations: Object.freeze(
+        [...(this._scopeDonations.get(key) || [])].map((entry) =>
+          Object.freeze({ ...entry }),
+        ),
+      ),
+    });
+  }
+
+  _recordScopeDonation(waiterKey, conflicts) {
+    const scheduling =
+      this.registry.schedulingPriority?.(waiterKey, { now: this._now() }) ||
+      null;
+    for (const conflict of conflicts || []) {
+      const holderKey = conflict?.key;
+      if (!holderKey || !this._activeKeys.has(holderKey)) continue;
+      const current = this._scopeDonations.get(holderKey) || [];
+      const previous = current.find((entry) => entry.waiterKey === waiterKey);
+      const donation = {
+        holderKey,
+        waiterKey,
+        waiterPriority: scheduling,
+        observedAt: this._now(),
+      };
+      if (
+        previous &&
+        Number(previous.waiterPriority?.total || 0) >=
+          Number(scheduling?.total || 0)
+      ) {
+        continue;
+      }
+      const next = current.filter((entry) => entry.waiterKey !== waiterKey);
+      next.push(donation);
+      this._scopeDonations.set(holderKey, next);
+      this._emit("task:priority-donated", donation);
     }
   }
 
@@ -1620,6 +1668,8 @@ export class TeamRunner {
         this._setState(holder, "shutdown", { reason: "no-more-work" });
         return; // no claimable + nothing in flight → this worker is finished
       }
+      const schedulingPriority =
+        this.registry.schedulingPriority?.(key, { now: this._now() }) || null;
       const acq = this.registry.acquire(key, { holder, ttlMs: this.ttlMs });
       if (!acq.ok) {
         if (
@@ -1736,6 +1786,7 @@ export class TeamRunner {
           budgetReservation,
           sessionWork,
         );
+        claim.schedulingPriority = schedulingPriority;
       } catch (error) {
         this._reservedExecutions = Math.max(0, this._reservedExecutions - 1);
         this.registry.release(key, {
@@ -2257,6 +2308,7 @@ export class TeamRunner {
           this._setFatal(error, { phase: "scope-validation", key });
           return null;
         }
+        this._recordScopeDonation(key, check.conflicts);
         excluded.add(key);
       }
       return null;
@@ -2312,6 +2364,7 @@ export class TeamRunner {
   _releaseScope(holder, key) {
     if (!this.scopeLock) return;
     const released = this.scopeLock.release(key);
+    this._scopeDonations.delete(key);
     if (released?.ok) {
       this._emit("task:scope-released", {
         key,
@@ -2330,7 +2383,12 @@ export class TeamRunner {
     this._inFlight++;
     this._maxInFlight = Math.max(this._maxInFlight, this._inFlight);
     this._setState(holder, "running", { key, sessionTaskKey });
-    this._emit("task:claimed", { key, holder, attempts: task.attempts });
+    this._emit("task:claimed", {
+      key,
+      holder,
+      attempts: task.attempts,
+      schedulingPriority: claim.schedulingPriority || null,
+    });
     const renew = () => this._renewClaim(claim);
     // A teammate-scoped messaging handle: post to a peer / broadcast, and read
     // its own inbox (direct messages + unseen broadcasts).
@@ -2471,6 +2529,7 @@ export class TeamRunner {
         task,
         holder,
         renew,
+        priorityContext: () => this.priorityContext(key),
         inbox,
         sendMessage,
         messageAuthority,

@@ -18,6 +18,7 @@
     "test:all": "vitest run && vitest run --config vitest.e2e.config.js __tests__/e2e/",
     "test:watch": "vitest watch",
     "test:scheduler-reliability-soak": "node scripts/scheduler-reliability-soak.mjs",
+    "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",
     "graph:store-evidence": "node scripts/graph-store-cutover-evidence.mjs",
     "test:graph-cli-store-cutover": "node scripts/graph-cli-store-cutover-journey.mjs",
