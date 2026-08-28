@@ -774,7 +774,14 @@ async function main() {
     if (KEEP) {
       process.stderr.write(`kept packaged Electron journey at ${root}\n`);
     } else {
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, {
+        recursive: true,
+        force: true,
+        // Windows can retain the terminated Electron executable handle for a
+        // short interval after the child exit event has been observed.
+        maxRetries: process.platform === "win32" ? 10 : 0,
+        retryDelay: 250,
+      });
     }
   }
 }
