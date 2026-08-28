@@ -326,12 +326,19 @@ describe("Skill Handlers", () => {
     });
 
     it("should handle missing linter gracefully", async () => {
-      const result = await handler.execute(
-        { input: "/tmp --check-only" },
-        { workspacePath: "/tmp" },
+      const projectRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "lint-and-fix-test-"),
       );
-      expect(result.success).toBe(false);
-      expect(result.message).toContain("No linter");
+      try {
+        const result = await handler.execute(
+          { input: "--check-only" },
+          { workspacePath: projectRoot },
+        );
+        expect(result.success).toBe(false);
+        expect(result.message).toContain("No linter");
+      } finally {
+        fs.rmSync(projectRoot, { recursive: true, force: true });
+      }
     });
   });
 
@@ -359,12 +366,19 @@ describe("Skill Handlers", () => {
     });
 
     it("should handle missing test framework gracefully", async () => {
-      const result = await handler.execute(
-        { input: "" },
-        { workspacePath: "/tmp" },
+      const projectRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "test-and-fix-test-"),
       );
-      expect(result.success).toBe(false);
-      expect(result.message).toContain("No test framework");
+      try {
+        const result = await handler.execute(
+          { input: "" },
+          { workspacePath: projectRoot },
+        );
+        expect(result.success).toBe(false);
+        expect(result.message).toContain("No test framework");
+      } finally {
+        fs.rmSync(projectRoot, { recursive: true, force: true });
+      }
     });
   });
 
