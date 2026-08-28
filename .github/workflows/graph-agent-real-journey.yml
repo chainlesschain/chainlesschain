@@ -63,6 +63,8 @@ jobs:
           npx vitest run
           --testTimeout 60000
           packages/cli/__tests__/unit/app-server-graph-runtime.test.js
+          packages/cli/__tests__/unit/app-server.test.js
+          packages/cli/__tests__/unit/human-task-settlement-conformance.test.js
           packages/cli/__tests__/unit/graph-kernel-authority.test.js
           packages/cli/__tests__/unit/graph-kernel-compiler.test.js
           packages/cli/__tests__/unit/graph-kernel-cutover-authority-resolver.test.js
@@ -83,6 +85,15 @@ jobs:
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-runtime-authority.test.js
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js
+
+      - name: Verify the shared HumanTask settlement fixture
+        run: node --test packages/agent-protocol/test/human-task-conformance.test.mjs
+
+      - name: Exercise the Desktop quorum approval product surface
+        working-directory: desktop-app-vue
+        run: npx vitest run src/renderer/components/graph/__tests__/GraphRunDebugger.test.ts
 
       - name: Re-run Desktop kill and reopen through the Electron runtime
         shell: bash
