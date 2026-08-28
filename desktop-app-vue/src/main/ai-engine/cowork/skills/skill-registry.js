@@ -31,6 +31,7 @@ class SkillRegistry extends EventEmitter {
     this._executionAuthorizer = null;
     this._bundledSkillFilesystemAuthorityFactory = null;
     this._bundledSkillEnvironmentAuthorityFactory = null;
+    this._bundledSkillProcessAuthorityFactory = null;
     if (Object.hasOwn(options, "executionAuthorizer")) {
       this.setExecutionAuthorizer(options.executionAuthorizer);
     }
@@ -42,6 +43,11 @@ class SkillRegistry extends EventEmitter {
     if (Object.hasOwn(options, "bundledSkillEnvironmentAuthorityFactory")) {
       this.setBundledSkillEnvironmentAuthorityFactory(
         options.bundledSkillEnvironmentAuthorityFactory,
+      );
+    }
+    if (Object.hasOwn(options, "bundledSkillProcessAuthorityFactory")) {
+      this.setBundledSkillProcessAuthorityFactory(
+        options.bundledSkillProcessAuthorityFactory,
       );
     }
 
@@ -395,6 +401,15 @@ class SkillRegistry extends EventEmitter {
     this._bundledSkillEnvironmentAuthorityFactory = factory;
   }
 
+  setBundledSkillProcessAuthorityFactory(factory) {
+    if (factory !== null && typeof factory !== "function") {
+      throw new TypeError(
+        "Bundled Skill process authority factory must be a function or null",
+      );
+    }
+    this._bundledSkillProcessAuthorityFactory = factory;
+  }
+
   async _authorizeExecution(skill, task, context) {
     let decision = null;
     const policyAuthorized = typeof this._executionAuthorizer === "function";
@@ -441,6 +456,11 @@ class SkillRegistry extends EventEmitter {
       executionSecurity?.packageOwned === true &&
       executionSecurity?.bundledCapabilityMigrated === true &&
       catalogEntry?.executionCapabilities.includes("host:environment");
+    const needsProcessAuthority =
+      skill.source === "bundled" &&
+      executionSecurity?.packageOwned === true &&
+      executionSecurity?.bundledCapabilityMigrated === true &&
+      catalogEntry?.executionCapabilities.includes("host:process");
     let executionContext =
       context && typeof context === "object" ? context : Object.create(null);
 
@@ -501,6 +521,35 @@ class SkillRegistry extends EventEmitter {
       executionContext = {
         ...executionContext,
         environmentBroker,
+      };
+    }
+
+    if (
+      needsProcessAuthority &&
+      typeof this._bundledSkillProcessAuthorityFactory === "function"
+    ) {
+      const authority = await this._bundledSkillProcessAuthorityFactory({
+        skillId: skill.skillId,
+        task,
+        context: executionContext,
+        executionDecision,
+      });
+      if (!authority?.processBroker) {
+        const error = new Error(
+          `Process authority factory returned no broker for ${skill.skillId}`,
+        );
+        error.code = "CC_BUNDLED_SKILL_PROCESS_AUTHORITY_REQUIRED";
+        throw error;
+      }
+      executionContext = {
+        ...executionContext,
+        projectRoot: authority.workspaceRoot,
+        workspaceRoot: authority.workspaceRoot,
+        workspacePath: authority.workspaceRoot,
+        processBroker: authority.processBroker,
+        ...(authority.cliEntrypoint
+          ? { cliEntrypoint: authority.cliEntrypoint }
+          : {}),
       };
     }
 
