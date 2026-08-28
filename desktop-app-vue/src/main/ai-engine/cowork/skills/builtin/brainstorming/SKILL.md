@@ -7,6 +7,7 @@ category: general
 user-invocable: true
 tags: [brainstorming, ideation, creativity, thinking]
 capabilities: [idea-generation, mind-mapping, swot-analysis, six-hats, scamper]
+execution-capabilities: [data:result, data:task]
 os: [win32, darwin, linux]
 handler: ./handler.js
 ---

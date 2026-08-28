@@ -335,18 +335,31 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   for (const bundledSkillCapabilitySource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/brainstorming/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/brainstorming/handler.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/color-picker/SKILL.md",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/color-picker/handler.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/humanizer/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/humanizer/handler.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/terraform-iac/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/terraform-iac/handler.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/text-transformer/SKILL.md",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/text-transformer/handler.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/ultrathink/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/ultrathink/handler.js",
   ]) {
     const sourceSelection = selector.createSelection([
       bundledSkillCapabilitySource,
     ]);
     for (const relatedTest of [
       "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-ultrathink.test.js",
       "tests/unit/ai-engine/skill-handlers.test.js",
       "tests/unit/ai-engine/color-picker-handler.test.js",
+      "tests/unit/ai-engine/humanizer-handler.test.js",
     ]) {
       assert.ok(
         sourceSelection.selectedTests.includes(relatedTest),

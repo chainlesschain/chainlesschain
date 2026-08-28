@@ -7,6 +7,7 @@ category: productivity
 user-invocable: true
 tags: [writing, humanize, tone, rewrite, ai-detection, natural-language, editing]
 capabilities: [text-humanization, ai-pattern-detection, tone-adjustment, style-analysis]
+execution-capabilities: [data:result, data:task]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [humanize-text, analyze-text, adjust-tone]

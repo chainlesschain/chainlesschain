@@ -18,14 +18,38 @@ const TEST_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const BUILTIN_SKILL_ROOT = path.resolve(TEST_DIRECTORY, "..", "builtin");
 const AUDITED_BUNDLED_SKILLS = [
   {
+    skillId: "brainstorming",
+    executionCapabilities: ["data:result", "data:task"],
+  },
+  {
     skillId: "color-picker",
     executionCapabilities: ["data:result", "data:task", "runtime:random"],
+  },
+  {
+    skillId: "humanizer",
+    executionCapabilities: ["data:result", "data:task"],
+  },
+  {
+    skillId: "terraform-iac",
+    executionCapabilities: ["data:result", "data:task"],
   },
   {
     skillId: "text-transformer",
     executionCapabilities: ["data:result", "data:task", "runtime:crypto"],
   },
+  {
+    skillId: "ultrathink",
+    executionCapabilities: ["data:result", "data:task"],
+  },
 ];
+const PURE_DATA_BUNDLED_SKILLS = [
+  "brainstorming",
+  "humanizer",
+  "terraform-iac",
+  "ultrathink",
+];
+const PRIVILEGED_RUNTIME_PATTERN =
+  /\brequire\s*\(|\bimport\s*\(|\bprocess\.|\bglobalThis\b|\bglobal\.|\bfetch\s*\(|\bWebSocket\b|\bset(?:Timeout|Interval)\s*\(|\bDate(?:\.|\s*\()|\bMath\.random\s*\(|\beval\s*\(|\bFunction\s*\(|\b__dirname\b|\b__filename\b/;
 
 function writeSkill(root, overrides = {}) {
   const skillDir = path.join(root, overrides.dirName || "test-skill");
@@ -305,6 +329,18 @@ describe("skill execution supply-chain boundary", () => {
         executionCapabilities,
       });
       expect(inspection.bundledCapabilityAuditDigest).toMatch(/^[a-f0-9]{64}$/);
+    },
+  );
+
+  it.each(PURE_DATA_BUNDLED_SKILLS)(
+    "keeps the %s data-only handler free of privileged runtime APIs",
+    (skillId) => {
+      const source = fs.readFileSync(
+        path.join(BUILTIN_SKILL_ROOT, skillId, "handler.js"),
+        "utf8",
+      );
+
+      expect(source).not.toMatch(PRIVILEGED_RUNTIME_PATTERN);
     },
   );
 

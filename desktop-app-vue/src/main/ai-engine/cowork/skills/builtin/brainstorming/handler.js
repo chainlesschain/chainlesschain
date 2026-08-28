@@ -5,8 +5,6 @@
  * ideate, mindmap, swot, sixhats, scamper.
  */
 
-const { logger } = require("../../../../../utils/logger.js");
-
 // ── Mode definitions ─────────────────────────────────────────────
 const MODES = {
   ideate: "ideate",
@@ -279,13 +277,9 @@ function generateScamper(topic) {
 // ── Handler ──────────────────────────────────────────────────────
 
 module.exports = {
-  async init(skill) {
-    logger.info(
-      `[brainstorming] handler initialized for "${skill?.name || "brainstorming"}"`,
-    );
-  },
+  async init() {},
 
-  async execute(task, context, _skill) {
+  async execute(task, _context, _skill) {
     const raw = task?.params?.input || task?.input || task?.action || "";
     const { mode, topic } = parseInput(raw);
 
@@ -318,8 +312,6 @@ module.exports = {
           break;
       }
 
-      logger.info(`[brainstorming] generated ${mode} for topic: ${topic}`);
-
       return {
         success: true,
         output: result.output,
@@ -327,7 +319,6 @@ module.exports = {
         message: `Generated ${mode} brainstorming for: ${topic}`,
       };
     } catch (err) {
-      logger.error("[brainstorming] Error:", err.message);
       return {
         success: false,
         output: `Error: ${err.message}`,

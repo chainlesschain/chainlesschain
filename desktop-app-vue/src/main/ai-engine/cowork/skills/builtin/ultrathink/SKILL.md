@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [thinking, reasoning, analysis, chain-of-thought, deep-thinking, problem-solving]
 capabilities: [extended-thinking, decomposition, multi-perspective, constraint-analysis, solution-synthesis]
+execution-capabilities: [data:result, data:task]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [ultrathink-analyze, ultrathink-decompose, ultrathink-evaluate]

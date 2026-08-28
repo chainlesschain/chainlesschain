@@ -110,8 +110,13 @@ const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
 ];
 const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
   ...SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-ultrathink.test.js",
   "tests/unit/ai-engine/skill-handlers.test.js",
   "tests/unit/ai-engine/color-picker-handler.test.js",
+  "tests/unit/ai-engine/humanizer-handler.test.js",
 ];
 
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
@@ -182,6 +187,14 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [
+    "src/main/ai-engine/cowork/skills/builtin/brainstorming/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/brainstorming/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
     "src/main/ai-engine/cowork/skills/builtin/color-picker/SKILL.md",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
@@ -190,11 +203,35 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [
+    "src/main/ai-engine/cowork/skills/builtin/humanizer/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/humanizer/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/terraform-iac/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/terraform-iac/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
     "src/main/ai-engine/cowork/skills/builtin/text-transformer/SKILL.md",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [
     "src/main/ai-engine/cowork/skills/builtin/text-transformer/handler.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/ultrathink/SKILL.md",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/builtin/ultrathink/handler.js",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [

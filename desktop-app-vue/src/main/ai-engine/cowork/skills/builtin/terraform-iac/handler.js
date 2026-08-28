@@ -2,8 +2,6 @@
  * Terraform IaC Skill Handler
  */
 
-const { logger } = require("../../../../../utils/logger.js");
-
 const TEMPLATES = {
   "aws-vpc": {
     provider: "aws",
@@ -68,11 +66,9 @@ const TEMPLATES = {
 };
 
 module.exports = {
-  async init(skill) {
-    logger.info("[TerraformIaC] Initialized");
-  },
+  async init() {},
 
-  async execute(task, context = {}, skill) {
+  async execute(task, _context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
@@ -85,12 +81,11 @@ module.exports = {
         case "template":
           return handleTemplate(parsed.name);
         case "validate":
-          return handleValidate(context);
+          return handleValidate();
         default:
           return { success: false, error: `Unknown action: ${parsed.action}` };
       }
     } catch (error) {
-      logger.error("[TerraformIaC] Error:", error);
       return { success: false, error: error.message };
     }
   },
@@ -246,7 +241,7 @@ function handleTemplate(name) {
   };
 }
 
-function handleValidate(context) {
+function handleValidate() {
   return {
     success: true,
     action: "validate",

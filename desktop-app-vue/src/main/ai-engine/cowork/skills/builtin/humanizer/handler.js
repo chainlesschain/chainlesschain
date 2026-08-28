@@ -1,8 +1,6 @@
 /**
  * Text Humanizer Skill Handler
  */
-const { logger } = require("../../../../../utils/logger.js");
-
 // Common AI writing patterns with replacements
 const AI_PATTERNS = [
   {
@@ -204,11 +202,9 @@ const STRUCTURE_PATTERNS = [
 ];
 
 module.exports = {
-  async init(skill) {
-    logger.info("[Humanizer] Initialized");
-  },
+  async init() {},
 
-  async execute(task, context = {}, skill) {
+  async execute(task, _context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
@@ -227,7 +223,6 @@ module.exports = {
           };
       }
     } catch (error) {
-      logger.error("[Humanizer] Error:", error);
       return { success: false, error: error.message };
     }
   },

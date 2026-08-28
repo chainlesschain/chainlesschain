@@ -3,30 +3,25 @@
  * Extended thinking / deep reasoning mode
  */
 
-const { logger } = require("../../../../../utils/logger.js");
-
 module.exports = {
-  async init(skill) {
-    logger.info("[UltraThink] Initialized");
-  },
+  async init() {},
 
-  async execute(task, context = {}, skill) {
+  async execute(task, _context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
     try {
       switch (parsed.action) {
         case "analyze":
-          return handleAnalyze(parsed.problem, context);
+          return handleAnalyze(parsed.problem);
         case "decompose":
-          return handleDecompose(parsed.problem, context);
+          return handleDecompose(parsed.problem);
         case "evaluate":
-          return handleEvaluate(parsed.problem, context);
+          return handleEvaluate(parsed.problem);
         default:
-          return handleAnalyze(parsed.problem, context);
+          return handleAnalyze(parsed.problem);
       }
     } catch (error) {
-      logger.error("[UltraThink] Error:", error);
       return { success: false, error: error.message };
     }
   },
@@ -47,7 +42,7 @@ function parseInput(input) {
   return { action: "analyze", problem: input.trim().replace(/"/g, "") };
 }
 
-function handleAnalyze(problem, context) {
+function handleAnalyze(problem) {
   const thinking = {
     phase: "deep-analysis",
     steps: [
@@ -107,7 +102,7 @@ function handleAnalyze(problem, context) {
   };
 }
 
-function handleDecompose(problem, context) {
+function handleDecompose(problem) {
   const thinking = {
     phase: "decomposition",
     steps: [
@@ -167,7 +162,7 @@ function handleDecompose(problem, context) {
   };
 }
 
-function handleEvaluate(problem, context) {
+function handleEvaluate(problem) {
   const thinking = {
     phase: "evaluation",
     steps: [

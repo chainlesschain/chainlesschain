@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [terraform, iac, infrastructure, cloud, aws, gcp, azure, opentofu, hcl]
 capabilities: [hcl-generation, module-patterns, state-management, cloud-templates, security-hardening]
+execution-capabilities: [data:result, data:task]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [terraform-generate, terraform-validate, terraform-template]
