@@ -17,6 +17,7 @@ test("HumanTask settlement fixture is bounded and surface-complete", () => {
   assert.deepEqual(fixture.surfaces, [
     "graph",
     "desktop",
+    "desktop_app_server",
     "vscode",
     "jetbrains",
     "android",

@@ -153,6 +153,96 @@ describe("CC App Server", () => {
     await server.close();
   });
 
+  it("round-trips distinct actors through a durable quorum HumanTask", async () => {
+    const messages = [];
+    const server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel: { close: vi.fn() },
+      send: async (message) => messages.push(message),
+    });
+    const graph = {
+      schemaVersion: 1,
+      id: "desktop-human-review",
+      revision: 1,
+      nodes: [
+        {
+          id: "review",
+          kind: "human",
+          dependsOn: [],
+          inputs: [],
+          outputs: [],
+          effectClass: "none",
+          join: "quorum",
+          quorum: 2,
+        },
+      ],
+      edges: [],
+      loops: [],
+      subgraphCalls: [],
+      budget: { turns: 1 },
+      allowedCapabilities: [],
+    };
+    await server.receive(initialize());
+    const runPromise = server.receive(
+      request(2, "graph/run", {
+        definition: graph,
+        runId: "desktop-human-review-run",
+        inputs: { review: { prompt: "Publish exact release SHA" } },
+        waitForCompletion: true,
+      }),
+    );
+
+    for (const [index, actorId] of [
+      "did:chainless:reviewer-1",
+      "did:chainless:reviewer-2",
+    ].entries()) {
+      await waitFor(
+        () =>
+          messages.filter((message) => message.method === "humanTask/decide")
+            .length > index,
+      );
+      const prompt = messages.filter(
+        (message) => message.method === "humanTask/decide",
+      )[index];
+      expect(prompt.params.task).toMatchObject({
+        runId: "desktop-human-review-run",
+        nodeId: "review",
+        status: "open",
+        quorum: 2,
+        separationOfDuties: true,
+        operation: { prompt: "Publish exact release SHA" },
+      });
+      await server.receive({
+        jsonrpc: "2.0",
+        id: prompt.id,
+        result: {
+          humanTaskId: prompt.params.task.id,
+          runId: prompt.params.task.runId,
+          revisionDigest: prompt.params.task.revisionDigest,
+          operationDigest: prompt.params.task.operationDigest,
+          nonce: prompt.params.task.nonce,
+          actorId,
+          decision: { kind: "acceptOnce" },
+        },
+      });
+    }
+
+    await expect(runPromise).resolves.toMatchObject({
+      result: { status: "succeeded" },
+    });
+    expect(
+      messages.filter((message) => message.method === "humanTask/decide"),
+    ).toHaveLength(2);
+    expect(
+      messages.filter(
+        (message) =>
+          message.method === "graph/event" &&
+          message.params.type === "graph/human-task-decided",
+      ),
+    ).toHaveLength(2);
+    await server.close();
+  });
+
   it("validates ApprovalDecision from the canonical schema", () => {
     expect(validateApprovalDecision({ kind: "acceptOnce" }).ok).toBe(true);
     expect(

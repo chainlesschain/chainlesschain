@@ -1203,6 +1203,13 @@ function classifyQuiescence(run, now) {
     return "running";
   }
   if (
+    [...run.humanTasks.values()].some((task) =>
+      ["open", "claimed"].includes(task.status),
+    )
+  ) {
+    return "waiting_human";
+  }
+  if (
     [...run.attempts.values()].some((attempt) =>
       ACTIVE_ATTEMPT.has(attempt.status),
     )
@@ -1222,13 +1229,6 @@ function classifyQuiescence(run, now) {
     )
   ) {
     return "reconciliation_required";
-  }
-  if (
-    [...run.humanTasks.values()].some((task) =>
-      ["open", "claimed"].includes(task.status),
-    )
-  ) {
-    return "waiting_human";
   }
   if (
     [...run.messages.values()].some((message) =>
@@ -4364,6 +4364,9 @@ export class GraphKernel {
         }
         task.updatedAt = nowIso(() => now);
         run.status = classifyQuiescence(run, now);
+        if (TERMINAL_RUN.has(run.status)) {
+          run.completedAt = nowIso(() => now);
+        }
         return humanTaskProjection(task);
       },
     );

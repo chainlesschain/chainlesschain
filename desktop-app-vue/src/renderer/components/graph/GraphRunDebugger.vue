@@ -24,6 +24,76 @@
       </div>
     </header>
 
+    <section
+      v-if="pendingHumanTasks.length"
+      class="human-task-review"
+      data-testid="graph-human-task-review"
+    >
+      <div class="human-task-heading">
+        <div>
+          <strong>Human review required</strong>
+          <p>Decisions are bound to this exact graph revision and operation.</p>
+        </div>
+        <span>{{ pendingHumanTasks.length }} pending</span>
+      </div>
+      <article
+        v-for="task in pendingHumanTasks"
+        :key="`${task.id}:${task.decisions?.length || 0}`"
+        class="human-task-card"
+      >
+        <div class="human-task-metadata">
+          <strong>{{ task.nodeId }}</strong>
+          <span>
+            {{ acceptedDecisionCount(task) }}/{{ task.quorum || 1 }} approvals
+          </span>
+          <span v-if="task.separationOfDuties">distinct reviewers</span>
+        </div>
+        <pre>{{ formatHumanOperation(task.operation) }}</pre>
+        <dl>
+          <div>
+            <dt>Revision</dt>
+            <dd>{{ task.revisionDigest }}</dd>
+          </div>
+          <div>
+            <dt>Operation</dt>
+            <dd>{{ task.operationDigest }}</dd>
+          </div>
+          <div>
+            <dt>Expires</dt>
+            <dd>{{ task.expiresAt || "--" }}</dd>
+          </div>
+        </dl>
+        <div class="human-task-actions">
+          <button
+            type="button"
+            :disabled="settlingHumanTaskId === task.id"
+            @click="settleHumanTask(task, 'acceptOnce')"
+          >
+            Approve exact operation
+          </button>
+          <button
+            type="button"
+            class="secondary"
+            :disabled="settlingHumanTaskId === task.id"
+            @click="settleHumanTask(task, 'decline')"
+          >
+            Decline
+          </button>
+          <button
+            type="button"
+            class="danger"
+            :disabled="settlingHumanTaskId === task.id"
+            @click="settleHumanTask(task, 'cancel')"
+          >
+            Cancel run
+          </button>
+        </div>
+      </article>
+      <p v-if="humanTaskError" class="human-task-error" role="alert">
+        {{ humanTaskError }}
+      </p>
+    </section>
+
     <div class="debugger-toolbar" role="tablist" aria-label="Graph views">
       <button
         v-for="view in views"
@@ -403,7 +473,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   buildReplayFrames,
   createGraphDebuggerProjection,
@@ -425,6 +495,11 @@ const views = [
 const activeView = ref("topology");
 const replayIndex = ref(0);
 const selectedNodeId = ref("");
+const humanTasks = ref([]);
+const settlingHumanTaskId = ref("");
+const humanTaskError = ref("");
+let unsubscribeHumanTasks = null;
+let unsubscribeHumanTaskSettlements = null;
 
 const frames = computed(() => buildReplayFrames(props.graph, props.events));
 watch(
@@ -437,6 +512,21 @@ watch(
 
 const activeGraph = computed(
   () => frames.value[replayIndex.value]?.graph || props.graph,
+);
+const activeRunId = computed(() =>
+  String(
+    activeGraph.value?.runId ||
+      activeGraph.value?.id ||
+      activeGraph.value?.graphRunId ||
+      "",
+  ),
+);
+const pendingHumanTasks = computed(() =>
+  humanTasks.value.filter(
+    (task) =>
+      task?.runId === activeRunId.value &&
+      ["open", "claimed"].includes(task?.status),
+  ),
 );
 const activeEvents = computed(() => {
   const frame = frames.value[replayIndex.value];
@@ -585,6 +675,105 @@ function selectBudgetNode(nodeId) {
   selectedNodeId.value = nodeId;
   activeView.value = "topology";
 }
+
+function upsertHumanTask(task) {
+  if (!task || typeof task !== "object" || !task.id) {
+    return;
+  }
+  const index = humanTasks.value.findIndex(
+    (candidate) => candidate.id === task.id,
+  );
+  if (index >= 0) {
+    humanTasks.value.splice(index, 1, task);
+  } else {
+    humanTasks.value.push(task);
+  }
+}
+
+function acceptedDecisionCount(task) {
+  return (task?.decisions || []).filter((entry) =>
+    ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(
+      entry?.decision?.kind,
+    ),
+  ).length;
+}
+
+function formatHumanOperation(operation) {
+  try {
+    return JSON.stringify(operation ?? {}, null, 2);
+  } catch {
+    return "[operation is not serializable]";
+  }
+}
+
+async function settleHumanTask(task, kind) {
+  const api = window.electronAPI?.codingAgent;
+  if (typeof api?.appServerHumanTaskDecide !== "function") {
+    humanTaskError.value = "Desktop HumanTask authority is unavailable.";
+    return;
+  }
+  const submittedDecisionCount = task.decisions?.length || 0;
+  settlingHumanTaskId.value = task.id;
+  humanTaskError.value = "";
+  try {
+    const result = await api.appServerHumanTaskDecide({
+      humanTaskId: task.id,
+      runId: task.runId,
+      revisionDigest: task.revisionDigest,
+      operationDigest: task.operationDigest,
+      nonce: task.nonce,
+      decision:
+        kind === "acceptOnce"
+          ? { kind }
+          : { kind, reason: `Desktop reviewer selected ${kind}` },
+    });
+    if (!result?.success) {
+      throw new Error(result?.error || "HumanTask decision was rejected");
+    }
+    humanTasks.value = humanTasks.value.filter(
+      (candidate) =>
+        candidate.id !== task.id ||
+        (candidate.decisions?.length || 0) !== submittedDecisionCount,
+    );
+  } catch (error) {
+    humanTaskError.value = error?.message || String(error);
+  } finally {
+    settlingHumanTaskId.value = "";
+  }
+}
+
+onMounted(async () => {
+  const api = window.electronAPI?.codingAgent;
+  if (typeof api?.onAppServerHumanTask === "function") {
+    unsubscribeHumanTasks = api.onAppServerHumanTask(upsertHumanTask);
+  }
+  if (typeof api?.onAppServerHumanTaskSettled === "function") {
+    unsubscribeHumanTaskSettlements = api.onAppServerHumanTaskSettled(
+      (settlement) => {
+        humanTasks.value = humanTasks.value.filter(
+          (task) => task.id !== settlement?.humanTaskId,
+        );
+      },
+    );
+  }
+  if (typeof api?.appServerHumanTaskList === "function") {
+    try {
+      const result = await api.appServerHumanTaskList();
+      if (result?.success && Array.isArray(result.result)) {
+        result.result.forEach(upsertHumanTask);
+      }
+    } catch {
+      // A disabled pilot simply leaves the review panel hidden.
+    }
+  }
+});
+
+onBeforeUnmount(() => {
+  unsubscribeHumanTasks?.();
+  unsubscribeHumanTasks = null;
+  unsubscribeHumanTaskSettlements?.();
+  unsubscribeHumanTaskSettlements = null;
+});
 </script>
 
 <style scoped>
@@ -621,6 +810,111 @@ function selectBudgetNode(nodeId) {
 .debugger-header p {
   margin: 0;
   color: #667085;
+  font-size: 12px;
+}
+
+.human-task-review {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  background: #fffbeb;
+}
+
+.human-task-heading,
+.human-task-metadata,
+.human-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.human-task-heading {
+  justify-content: space-between;
+}
+
+.human-task-heading p {
+  margin: 2px 0 0;
+  color: #92400e;
+  font-size: 12px;
+}
+
+.human-task-heading > span,
+.human-task-metadata span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+}
+
+.human-task-card {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: white;
+}
+
+.human-task-card pre {
+  max-height: 180px;
+  margin: 10px 0;
+  padding: 9px;
+  overflow: auto;
+  border-radius: 6px;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.human-task-card dl {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 10px;
+  font-size: 11px;
+}
+
+.human-task-card dl > div {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+.human-task-card dt {
+  color: #6b7280;
+}
+
+.human-task-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.human-task-actions button {
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.human-task-actions button.secondary {
+  background: #475569;
+}
+
+.human-task-actions button.danger {
+  background: #b91c1c;
+}
+
+.human-task-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.human-task-error {
+  margin: 9px 0 0;
+  color: #b91c1c;
   font-size: 12px;
 }
 

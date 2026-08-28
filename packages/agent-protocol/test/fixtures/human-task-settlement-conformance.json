@@ -3,6 +3,7 @@
   "surfaces": [
     "graph",
     "desktop",
+    "desktop_app_server",
     "vscode",
     "jetbrains",
     "android",
@@ -375,19 +376,19 @@
     },
     {
       "name": "quorum-requires-all-accepted-decisions",
-      "surfaces": ["graph"],
+      "surfaces": ["graph", "desktop_app_server"],
       "quorum": 2,
       "separation_of_duties": true,
       "steps": [
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-2",
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         }
       ],
       "expected": {
@@ -396,6 +397,13 @@
           "task_status": "decided",
           "node_status": "pending",
           "run_status": "running",
+          "decision_count": 2,
+          "decision_kind": "acceptOnce"
+        },
+        "desktop_app_server": {
+          "task_status": "decided",
+          "node_status": "succeeded",
+          "run_status": "succeeded",
           "decision_count": 2,
           "decision_kind": "acceptOnce"
         }
@@ -403,29 +411,29 @@
     },
     {
       "name": "separation-of-duties-rejects-repeat-actor",
-      "surfaces": ["graph"],
+      "surfaces": ["graph", "desktop_app_server"],
       "quorum": 2,
       "separation_of_duties": true,
       "steps": [
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "rejected" }
+          "expect": { "graph": "rejected", "desktop_app_server": "rejected" }
         },
         {
           "action": "advance",
           "milliseconds": 20,
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-2",
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         }
       ],
       "expected": {
@@ -436,29 +444,43 @@
           "run_status": "running",
           "decision_count": 2,
           "decision_kind": "acceptOnce"
+        },
+        "desktop_app_server": {
+          "task_status": "decided",
+          "node_status": "succeeded",
+          "run_status": "succeeded",
+          "decision_count": 2,
+          "decision_kind": "acceptOnce"
         }
       }
     },
     {
       "name": "decline-short-circuits-quorum",
-      "surfaces": ["graph"],
+      "surfaces": ["graph", "desktop_app_server"],
       "quorum": 2,
       "separation_of_duties": true,
       "steps": [
         {
           "action": "decline",
           "actor_id": "reviewer-1",
-          "expect": { "graph": "settled" }
+          "expect": { "graph": "settled", "desktop_app_server": "settled" }
         },
         {
           "action": "approve",
           "actor_id": "reviewer-2",
-          "expect": { "graph": "rejected" }
+          "expect": { "graph": "rejected", "desktop_app_server": "rejected" }
         }
       ],
       "expected": {
         "winner": "decline",
         "graph": {
+          "task_status": "decided",
+          "node_status": "failed",
+          "run_status": "failed",
+          "decision_count": 1,
+          "decision_kind": "decline"
+        },
+        "desktop_app_server": {
           "task_status": "decided",
           "node_status": "failed",
           "run_status": "failed",

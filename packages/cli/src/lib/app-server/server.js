@@ -132,6 +132,7 @@ export class CcAppServer {
         now,
         createId,
         executeNode: (context) => this._executeGraphNode(context),
+        requestHumanTask: (context) => this._requestHumanTask(context),
         onEvent: (event) => {
           void this._notify("graph/event", event).catch(() => {});
         },
@@ -928,6 +929,44 @@ export class CcAppServer {
       );
     }
     return result;
+  }
+
+  async _requestHumanTask({ task }) {
+    const result = await this._requestClient("humanTask/decide", { task });
+    const response = requireObject(result, "humanTask decision");
+    const validation = validateApprovalDecision(response.decision);
+    const bindings = [
+      ["humanTaskId", task.id],
+      ["runId", task.runId],
+      ["revisionDigest", task.revisionDigest],
+      ["operationDigest", task.operationDigest],
+      ["nonce", task.nonce],
+    ];
+    if (
+      !validation.ok ||
+      typeof response.actorId !== "string" ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u.test(response.actorId) ||
+      Object.keys(response).some(
+        (field) =>
+          ![
+            "humanTaskId",
+            "runId",
+            "revisionDigest",
+            "operationDigest",
+            "nonce",
+            "actorId",
+            "decision",
+          ].includes(field),
+      ) ||
+      bindings.some(([field, expected]) => response[field] !== expected)
+    ) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.INVALID_PARAMS,
+        "client returned an invalid or stale HumanTask decision",
+        { errors: validation.errors },
+      );
+    }
+    return response;
   }
 
   async _completeTurn(turn, status, result) {
