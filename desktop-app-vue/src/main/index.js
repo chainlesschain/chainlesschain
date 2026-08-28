@@ -62,8 +62,15 @@ const {
 } = require("./bootstrap");
 const {
   SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_COLLAB_MANAGER_CLEANUP,
+  SOCIAL_ENTERPRISE_MANAGER_CLEANUP,
   SOCIAL_FOUNDATION_MANAGER_CLEANUP,
+  SOCIAL_REMOTE_MANAGER_CLEANUP,
+  SOCIAL_RUNTIME_MANAGER_CLEANUP,
 } = require("./bootstrap/social-startup-policy");
+const {
+  cleanupOwnedManagers,
+} = require("./bootstrap/social-manager-lifecycle");
 
 // 是否使用旧版单阶段启动（回退开关）
 const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
@@ -2962,79 +2969,16 @@ class ChainlessChainApp {
       }
       this.federatedManager = null;
     }
-    const socialRuntimeCleanup = [
-      ["gossipReceiver", "close"],
-      ["mtcAutoBridge", "close"],
-      ["channelEnvelopeDistribution", "close"],
-      ["autoArchiveScheduler", "stop"],
-      ["channelEventBatcher", "close"],
-      ["mtcFederationManager", "close"],
-    ];
-    for (const [managerName, closeMethod] of socialRuntimeCleanup) {
-      const manager = this[managerName];
-      if (!manager) {
-        continue;
-      }
-      try {
-        await manager[closeMethod]?.();
-        logger.info(`[Main] ${managerName} cleanup completed`);
-      } catch (error) {
-        logger.error(`[Main] ${managerName} cleanup error:`, error);
-      }
-      this[managerName] = null;
-    }
-    if (this.collabSync) {
-      try {
-        await this.collabSync.destroy?.();
-        logger.info("[Main] Social collaboration cleanup completed");
-      } catch (error) {
-        logger.error("[Main] Social collaboration cleanup error:", error);
-      }
-      this.collabSync = null;
-    }
-    if (this.collabAwareness) {
-      try {
-        await this.collabAwareness.destroy?.();
-        logger.info("[Main] Social awareness cleanup completed");
-      } catch (error) {
-        logger.error("[Main] Social awareness cleanup error:", error);
-      }
-      this.collabAwareness = null;
-    }
-    if (this.collabEngine) {
-      try {
-        await this.collabEngine.destroy?.();
-        logger.info("[Main] Social collaboration engine cleanup completed");
-      } catch (error) {
-        logger.error(
-          "[Main] Social collaboration engine cleanup error:",
-          error,
-        );
-      }
-      this.collabEngine = null;
-    }
-    if (this.gossipProtocol) {
-      try {
-        await this.gossipProtocol.destroy?.();
-        logger.info("[Main] Gossip protocol cleanup completed");
-      } catch (error) {
-        logger.error("[Main] Gossip protocol cleanup error:", error);
-      }
-      this.gossipProtocol = null;
-    }
-    for (const [managerName, closeMethod] of SOCIAL_BUSINESS_MANAGER_CLEANUP) {
-      const manager = this[managerName];
-      if (!manager) {
-        continue;
-      }
-      try {
-        await manager[closeMethod]?.();
-        logger.info(`[Main] ${managerName} cleanup completed`);
-      } catch (error) {
-        logger.error(`[Main] ${managerName} cleanup error:`, error);
-      }
-      this[managerName] = null;
-    }
+    await cleanupOwnedManagers(this, SOCIAL_RUNTIME_MANAGER_CLEANUP, {
+      logger,
+    });
+    await cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP, { logger });
+    await cleanupOwnedManagers(this, SOCIAL_ENTERPRISE_MANAGER_CLEANUP, {
+      logger,
+    });
+    await cleanupOwnedManagers(this, SOCIAL_BUSINESS_MANAGER_CLEANUP, {
+      logger,
+    });
     if (this.deepLinkHandler) {
       try {
         this.deepLinkHandler.destroy();
@@ -3075,35 +3019,14 @@ class ChainlessChainApp {
     }
 
     // 清理远程网关（包含浏览器扩展服务器）
-    if (this.remoteGateway) {
-      try {
-        await this.remoteGateway.stop();
-        this.remoteGateway = null;
-        logger.info("[Main] RemoteGateway cleanup completed");
-      } catch (error) {
-        logger.error("[Main] RemoteGateway cleanup error:", error);
-      }
-    }
+    await cleanupOwnedManagers(this, SOCIAL_REMOTE_MANAGER_CLEANUP, { logger });
 
     // MobileBridge/RemoteGateway and every active business manager have now
     // stopped accepting work. Release the shared transports last so their
     // close paths cannot race a torn-down P2P/DID foundation.
-    for (const [
-      managerName,
-      closeMethod,
-    ] of SOCIAL_FOUNDATION_MANAGER_CLEANUP) {
-      const manager = this[managerName];
-      if (!manager) {
-        continue;
-      }
-      try {
-        await manager[closeMethod]?.();
-        logger.info(`[Main] ${managerName} cleanup completed`);
-      } catch (error) {
-        logger.error(`[Main] ${managerName} cleanup error:`, error);
-      }
-      this[managerName] = null;
-    }
+    await cleanupOwnedManagers(this, SOCIAL_FOUNDATION_MANAGER_CLEANUP, {
+      logger,
+    });
 
     // 清理浏览器资源
     try {

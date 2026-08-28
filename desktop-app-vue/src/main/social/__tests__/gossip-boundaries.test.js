@@ -222,6 +222,19 @@ describe("gossip boundaries", () => {
     expect(mainSource).toContain(
       "this.gossipProtocol = instances.gossipProtocol",
     );
-    expect(mainSource).toContain("await this.gossipProtocol.destroy?.()");
+    expect(mainSource).toContain(
+      "cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP",
+    );
+    const policySource = readFileSync(
+      path.resolve(
+        testDirectory,
+        "..",
+        "..",
+        "bootstrap",
+        "social-startup-policy.js",
+      ),
+      "utf8",
+    );
+    expect(policySource).toContain('["gossipProtocol", "destroy"]');
   });
 });

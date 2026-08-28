@@ -126,6 +126,8 @@ class ConnectionPool extends EventEmitter {
     // 健康检查定时器
     this.healthCheckTimer = null;
     this.cleanupTimer = null;
+    this.healthCheckPromise = null;
+    this.cleanupPromise = null;
   }
 
   /**
@@ -214,6 +216,7 @@ class ConnectionPool extends EventEmitter {
         () => reject(new Error("连接超时")),
         this.connectionTimeout,
       );
+      timeoutId.unref?.();
     });
 
     try {
@@ -361,8 +364,17 @@ class ConnectionPool extends EventEmitter {
     }
 
     this.healthCheckTimer = setInterval(() => {
-      this.performHealthCheck();
+      if (!this.healthCheckPromise) {
+        this.healthCheckPromise = Promise.resolve(this.performHealthCheck())
+          .catch((error) =>
+            logger.warn("[ConnectionPool] health check failed:", error),
+          )
+          .finally(() => {
+            this.healthCheckPromise = null;
+          });
+      }
     }, this.healthCheckInterval);
+    this.healthCheckTimer.unref?.();
 
     logger.info("[ConnectionPool] 健康检查已启动");
   }
@@ -380,9 +392,20 @@ class ConnectionPool extends EventEmitter {
       // 如果空闲连接过多，清理一部分
       if (this.idleConnections.size > this.minConnections) {
         const toEvict = this.idleConnections.size - this.minConnections;
-        this.evictIdleConnections(toEvict);
+        if (!this.cleanupPromise) {
+          this.cleanupPromise = Promise.resolve(
+            this.evictIdleConnections(toEvict),
+          )
+            .catch((error) =>
+              logger.warn("[ConnectionPool] cleanup failed:", error),
+            )
+            .finally(() => {
+              this.cleanupPromise = null;
+            });
+        }
       }
     }, 60000);
+    this.cleanupTimer.unref?.();
 
     logger.info("[ConnectionPool] 清理任务已启动");
   }
@@ -466,6 +489,12 @@ class ConnectionPool extends EventEmitter {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
+
+    await Promise.allSettled(
+      [this.healthCheckPromise, this.cleanupPromise].filter(Boolean),
+    );
+    this.healthCheckPromise = null;
+    this.cleanupPromise = null;
 
     // 关闭所有连接
     await this.closeAll();

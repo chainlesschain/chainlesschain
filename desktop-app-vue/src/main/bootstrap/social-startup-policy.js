@@ -74,6 +74,24 @@ const SOCIAL_INITIALIZER_MODULES = Object.freeze([
   ...ACTIVE_SOCIAL_MODULES,
   ...DORMANT_SOCIAL_MODULES,
 ]);
+const SOCIAL_RUNTIME_MANAGER_CLEANUP = Object.freeze(
+  [
+    ["gossipReceiver", "close"],
+    ["mtcAutoBridge", "close"],
+    ["channelEnvelopeDistribution", "close"],
+    ["autoArchiveScheduler", "stop"],
+    ["channelEventBatcher", "close"],
+    ["mtcFederationManager", "close"],
+  ].map(Object.freeze),
+);
+const SOCIAL_COLLAB_MANAGER_CLEANUP = Object.freeze(
+  [
+    ["collabSync", "destroy"],
+    ["collabAwareness", "destroy"],
+    ["collabEngine", "destroy"],
+    ["gossipProtocol", "destroy"],
+  ].map(Object.freeze),
+);
 const SOCIAL_BUSINESS_MANAGER_CLEANUP = Object.freeze(
   [
     ["governanceEngine", "close"],
@@ -87,12 +105,61 @@ const SOCIAL_BUSINESS_MANAGER_CLEANUP = Object.freeze(
     ["contactManager", "close"],
   ].map(Object.freeze),
 );
-const SOCIAL_FOUNDATION_MANAGER_CLEANUP = Object.freeze(
+const SOCIAL_ENTERPRISE_MANAGER_CLEANUP = Object.freeze(
   [
-    ["p2pManager", "close"],
-    ["didManager", "close"],
+    ["collaborationManager", "stopServer"],
+    ["syncEngine", "close"],
+    ["organizationManager", "close"],
   ].map(Object.freeze),
 );
+const SOCIAL_FOUNDATION_MANAGER_CLEANUP = Object.freeze(
+  [
+    ["didManager", "close"],
+    ["p2pManager", "close"],
+  ].map(Object.freeze),
+);
+const SOCIAL_REMOTE_MANAGER_CLEANUP = Object.freeze(
+  [["remoteGateway", "stop"]].map(Object.freeze),
+);
+const SOCIAL_PASSIVE_MODULES = Object.freeze([
+  "crossFedTrust",
+  "governanceMultiSig",
+  "channelEnvelopeArchiver",
+  "archiveProviderFactory",
+]);
+const SOCIAL_ACTIVE_CLEANUP_GROUPS = Object.freeze({
+  runtime: SOCIAL_RUNTIME_MANAGER_CLEANUP,
+  collaboration: SOCIAL_COLLAB_MANAGER_CLEANUP,
+  enterprise: SOCIAL_ENTERPRISE_MANAGER_CLEANUP,
+  business: SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  remote: SOCIAL_REMOTE_MANAGER_CLEANUP,
+  foundation: SOCIAL_FOUNDATION_MANAGER_CLEANUP,
+});
+const SOCIAL_ACTIVE_LIFECYCLE_MODULES = Object.freeze([
+  ...Object.values(SOCIAL_ACTIVE_CLEANUP_GROUPS).flatMap((entries) =>
+    entries.map(([name]) => name),
+  ),
+  ...SOCIAL_PASSIVE_MODULES,
+]);
+
+function assertActiveSocialLifecycleInventory() {
+  const names = new Set(SOCIAL_ACTIVE_LIFECYCLE_MODULES);
+  if (names.size !== SOCIAL_ACTIVE_LIFECYCLE_MODULES.length) {
+    throw new Error(
+      "[SocialStartupPolicy] Duplicate active social lifecycle entry",
+    );
+  }
+  if (
+    names.size !== ACTIVE_SOCIAL_MODULES.length ||
+    ACTIVE_SOCIAL_MODULES.some((name) => !names.has(name))
+  ) {
+    throw new Error(
+      "[SocialStartupPolicy] Active social lifecycle inventory is incomplete",
+    );
+  }
+}
+
+assertActiveSocialLifecycleInventory();
 const ACTIVE_SOCIAL_MODULE_SET = new Set(ACTIVE_SOCIAL_MODULES);
 const DORMANT_SOCIAL_MODULE_SET = new Set(DORMANT_SOCIAL_MODULES);
 
@@ -123,9 +190,16 @@ function applySocialStartupPolicy(config) {
 module.exports = {
   ACTIVE_SOCIAL_MODULES,
   DORMANT_SOCIAL_MODULES,
+  SOCIAL_ACTIVE_CLEANUP_GROUPS,
+  SOCIAL_ACTIVE_LIFECYCLE_MODULES,
   SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_COLLAB_MANAGER_CLEANUP,
+  SOCIAL_ENTERPRISE_MANAGER_CLEANUP,
   SOCIAL_FOUNDATION_MANAGER_CLEANUP,
   SOCIAL_INITIALIZER_MODULES,
+  SOCIAL_PASSIVE_MODULES,
+  SOCIAL_REMOTE_MANAGER_CLEANUP,
+  SOCIAL_RUNTIME_MANAGER_CLEANUP,
   SOCIAL_STARTUP_PHASE_MODULES,
   applySocialStartupPolicy,
   getSocialStartupDisposition,

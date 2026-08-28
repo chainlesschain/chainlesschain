@@ -27,6 +27,7 @@
 
 const MIN_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const DEFAULT_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const { resolveMtcRuntimeLimits } = require("./mtc-runtime-boundaries.js");
 
 class AutoArchiveScheduler {
   /**
@@ -60,8 +61,11 @@ class AutoArchiveScheduler {
       setInterval: globalThis.setInterval.bind(globalThis),
       clearInterval: globalThis.clearInterval.bind(globalThis),
     };
+    this.limits = resolveMtcRuntimeLimits(deps.limits || {});
     this._timer = null;
     this._running = false;
+    this._runDrain = null;
+    this._resolveRunDrain = null;
   }
 
   /**
@@ -94,7 +98,7 @@ class AutoArchiveScheduler {
    * critical invariants (interval ≥ MIN, providerSpec required when
    * enabled). Returns the merged config or throws on invalid input.
    */
-  async setConfig(patch = {}) {
+  async setConfig(patch = {}, { restart = true } = {}) {
     const next = { ...this.getConfig(), ...patch };
     if (next.enabled) {
       if (!next.providerSpec || typeof next.providerSpec !== "object") {
@@ -112,6 +116,9 @@ class AutoArchiveScheduler {
     if (!Array.isArray(next.communityIds)) {
       throw new Error("auto-archive: communityIds must be array");
     }
+    if (next.communityIds.length > this.limits.maxCommunitiesPerSweep) {
+      throw new Error("auto-archive: communityIds limit exceeded");
+    }
     if (!this.appConfig.config.mtc) {
       this.appConfig.config.mtc = {};
     }
@@ -119,14 +126,16 @@ class AutoArchiveScheduler {
     if (typeof this.appConfig.saveAsync === "function") {
       await this.appConfig.saveAsync();
     }
-    // Restart loop to pick up new interval/spec.
-    if (this._timer) {
-      this.stop();
-      if (next.enabled) {
+    if (restart) {
+      // Restart loop to pick up new interval/spec.
+      if (this._timer) {
+        this.stop();
+        if (next.enabled) {
+          this.start();
+        }
+      } else if (next.enabled) {
         this.start();
       }
-    } else if (next.enabled) {
-      this.start();
     }
     return next;
   }
@@ -153,6 +162,7 @@ class AutoArchiveScheduler {
         this.logger.error("[AutoArchive] runOnce error:", err && err.message);
       });
     }, cfg.intervalMs);
+    this._timer?.unref?.();
   }
 
   stop() {
@@ -161,6 +171,7 @@ class AutoArchiveScheduler {
       this._timer = null;
       this.logger.info("[AutoArchive] stopped");
     }
+    return this._runDrain;
   }
 
   /**
@@ -170,14 +181,22 @@ class AutoArchiveScheduler {
   async _resolveTargetCommunities() {
     const cfg = this.getConfig();
     if (cfg.communityIds.length > 0) {
-      return cfg.communityIds;
+      return Array.from(new Set(cfg.communityIds)).slice(
+        0,
+        this.limits.maxCommunitiesPerSweep,
+      );
     }
     if (!this.communityManager) {
       return [];
     }
     try {
       const all = await this.communityManager.getCommunities({});
-      return Array.isArray(all) ? all.map((c) => c.id).filter(Boolean) : [];
+      return Array.isArray(all)
+        ? Array.from(new Set(all.map((c) => c.id).filter(Boolean))).slice(
+            0,
+            this.limits.maxCommunitiesPerSweep,
+          )
+        : [];
     } catch (err) {
       this.logger.warn(
         "[AutoArchive] communityManager.getCommunities failed:",
@@ -201,6 +220,9 @@ class AutoArchiveScheduler {
       return { skipped: true };
     }
     this._running = true;
+    this._runDrain = new Promise((resolve) => {
+      this._resolveRunDrain = resolve;
+    });
     const startedAt = Date.now();
     const cfg = this.getConfig();
     const summary = {
@@ -260,18 +282,24 @@ class AutoArchiveScheduler {
 
     // Persist run record into config — visible from Settings UI.
     try {
-      await this.setConfig({
-        lastRunAt: finishedAt,
-        lastRunStatus: status,
-        lastRunError: topError,
-        lastRunSummary: summary,
-      });
+      await this.setConfig(
+        {
+          lastRunAt: finishedAt,
+          lastRunStatus: status,
+          lastRunError: topError,
+          lastRunSummary: summary,
+        },
+        { restart: false },
+      );
     } catch (err) {
       this.logger.warn(
         "[AutoArchive] failed to persist run record:",
         err.message,
       );
     }
+    this._resolveRunDrain?.();
+    this._resolveRunDrain = null;
+    this._runDrain = null;
     return { status, error: topError, summary };
   }
 }

@@ -37,6 +37,22 @@ describe("OwnedSourceListeners", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it("owns browser-style EventTarget listeners", async () => {
+    const source = new EventTarget();
+    const handler = vi.fn();
+    const owner = new OwnedSourceListeners(source);
+
+    owner.listen("message", handler);
+    source.dispatchEvent(new Event("message"));
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    await owner.close();
+    source.dispatchEvent(new Event("message"));
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
   it("waits for already-admitted async delivery before closing", async () => {
     const source = new EventEmitter();
     let release;
@@ -65,6 +81,32 @@ describe("OwnedSourceListeners", () => {
 
     release();
     await expect(closing).resolves.toBe(true);
+  });
+
+  it("bounds concurrent source delivery", async () => {
+    const source = new EventEmitter();
+    const logger = { warn: vi.fn() };
+    let release;
+    const pending = new Promise((resolve) => {
+      release = resolve;
+    });
+    const handler = vi.fn(() => pending);
+    const owner = new OwnedSourceListeners(source, {
+      logger,
+      label: "bounded-owner",
+      maxInFlight: 1,
+    });
+    owner.listen("message", handler);
+
+    source.emit("message", 1);
+    source.emit("message", 2);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("in-flight limit 1 reached"),
+    );
+
+    release();
+    await owner.close();
   });
 
   it("bounds close when an admitted handler never settles", async () => {

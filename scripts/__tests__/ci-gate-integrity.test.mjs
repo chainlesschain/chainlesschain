@@ -567,11 +567,13 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   const socialStartupPolicyContracts = [
     "src/main/bootstrap/__tests__/social-startup-policy.test.js",
+    "src/main/bootstrap/__tests__/social-manager-lifecycle.test.js",
     "src/main/ipc/__tests__/phase-modules.test.js",
   ];
   const socialStartupPolicySources = [
     "desktop-app-vue/src/main/index.js",
     "desktop-app-vue/src/main/bootstrap/social-startup-policy.js",
+    "desktop-app-vue/src/main/bootstrap/social-manager-lifecycle.js",
     "desktop-app-vue/src/main/bootstrap/social-initializer.js",
     "desktop-app-vue/src/main/bootstrap/index.js",
     "desktop-app-vue/src/main/ipc/phases/phase-3-4-social.js",
@@ -592,6 +594,13 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     "src/main/social/__tests__/post-manager.test.js",
     "src/main/social/__tests__/community-manager.test.js",
     "src/main/social/__tests__/channel-manager.test.js",
+    "src/main/sync/__tests__/p2p-sync-engine-lifecycle.test.js",
+    "src/main/organization/__tests__/org-p2p-network-lifecycle.test.js",
+    "src/main/organization/__tests__/organization-manager-lifecycle.test.js",
+    "src/main/p2p/__tests__/p2p-stream-boundaries.test.js",
+    "src/main/p2p/__tests__/device-sync-boundaries.test.js",
+    "src/main/p2p/__tests__/p2p-manager-dispatch.test.js",
+    "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
   ];
   const socialSourceListenerSelection = selector.createSelection([
     "desktop-app-vue/src/main/social/owned-source-listeners.js",
@@ -601,6 +610,110 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
       socialSourceListenerSelection.selectedTests.includes(contract),
       `owned-source-listeners.js must select ${contract}`,
     );
+  }
+
+  const p2pFoundationBoundaryContracts = [
+    "src/main/p2p/__tests__/p2p-stream-boundaries.test.js",
+    "src/main/p2p/__tests__/device-sync-boundaries.test.js",
+    "src/main/p2p/__tests__/p2p-manager-dispatch.test.js",
+    "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+    "src/main/p2p/__tests__/connection-pool.test.js",
+    "tests/unit/p2p/connection-pool-reacquire-active.test.js",
+  ];
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/p2p/p2p-manager.js",
+    "desktop-app-vue/src/main/p2p/p2p-stream-boundaries.js",
+    "desktop-app-vue/src/main/p2p/device-sync-manager.js",
+    "desktop-app-vue/src/main/p2p/device-sync-boundaries.js",
+    "desktop-app-vue/src/main/p2p/connection-pool.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of p2pFoundationBoundaryContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const didFoundationLifecycleContracts = [
+    "tests/unit/did/did-manager.test.js",
+    "tests/unit/did/did-cache.test.js",
+    "tests/unit/did/did-updater.test.js",
+    "src/main/did/__tests__/did-manager-keystore.test.js",
+  ];
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/did/did-manager.js",
+    "desktop-app-vue/src/main/did/did-cache.js",
+    "desktop-app-vue/src/main/did/did-updater.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of didFoundationLifecycleContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const mtcRuntimeBoundaryContracts = [
+    "src/main/mtc/__tests__/mtc-runtime-boundaries.test.js",
+    "src/main/mtc/__tests__/channel-event-batch.test.js",
+    "src/main/mtc/__tests__/channel-envelope-distribution.test.js",
+    "src/main/mtc/__tests__/mtc-federation-manager.test.js",
+    "src/main/mtc/__tests__/auto-archive-scheduler.test.js",
+    "src/main/mtc/__tests__/mtc-federation-roundtrip.test.js",
+  ];
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/mtc/mtc-runtime-boundaries.js",
+    "desktop-app-vue/src/main/mtc/channel-event-batch.js",
+    "desktop-app-vue/src/main/mtc/channel-envelope-distribution.js",
+    "desktop-app-vue/src/main/mtc/mtc-federation-manager.js",
+    "desktop-app-vue/src/main/mtc/auto-archive-scheduler.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of mtcRuntimeBoundaryContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
+  const socialEnterpriseLifecycleContracts = [
+    "src/main/sync/__tests__/p2p-sync-engine-lifecycle.test.js",
+    "src/main/organization/__tests__/did-invitation-manager-lifecycle.test.js",
+    "src/main/organization/__tests__/org-p2p-network-lifecycle.test.js",
+    "src/main/organization/__tests__/organization-manager-lifecycle.test.js",
+    "src/main/collaboration/__tests__/collaboration-manager-lifecycle.test.js",
+  ];
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+    "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+    "desktop-app-vue/src/main/organization/did-invitation-manager.js",
+    "desktop-app-vue/src/main/organization/org-p2p-network.js",
+    "desktop-app-vue/src/main/organization/organization-manager.js",
+    "desktop-app-vue/src/main/collaboration/collaboration-manager.js",
+    "desktop-app-vue/src/main/collaboration/collaboration-server-lifecycle.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of socialEnterpriseLifecycleContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
   }
 
   const deepLinkLifecycleContract =
@@ -708,6 +821,23 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   assert.ok(ideCommand.args.includes("--pool=forks"));
   assert.ok(ideCommand.args.includes("--maxWorkers=2"));
   assert.ok(!ideCommand.args.includes("--pool=threads"));
+});
+
+test("selector maps P1-10 conformance inventory to its repository node gate", () => {
+  for (const source of [
+    "tests/fixtures/p1-10-conformance-matrix.json",
+    "scripts/p1-10-external-evidence-gate.mjs",
+    "scripts/__tests__/p1-10-conformance-matrix.test.mjs",
+  ]) {
+    const selection = selector.createSelection([source]);
+    assert.equal(selection.suite, "ci-gate-integrity");
+    assert.ok(
+      selection.selectedTests.includes(
+        "scripts/__tests__/p1-10-conformance-matrix.test.mjs",
+      ),
+      `${source} must select the P1-10 conformance matrix gate`,
+    );
+  }
 });
 
 test("selector maps exact Windows sandbox support paths to CLI contracts", () => {

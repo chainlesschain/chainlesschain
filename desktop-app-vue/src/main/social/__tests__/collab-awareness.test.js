@@ -291,7 +291,20 @@ describe("CollabAwareness", () => {
       expect(mainSource).toContain(
         "this.collabAwareness = instances.collabAwareness",
       );
-      expect(mainSource).toContain("await this.collabAwareness.destroy?.()");
+      expect(mainSource).toContain(
+        "cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP",
+      );
+      const policySource = readFileSync(
+        path.resolve(
+          testDirectory,
+          "..",
+          "..",
+          "bootstrap",
+          "social-startup-policy.js",
+        ),
+        "utf8",
+      );
+      expect(policySource).toContain('["collabAwareness", "destroy"]');
     });
   });
 });
