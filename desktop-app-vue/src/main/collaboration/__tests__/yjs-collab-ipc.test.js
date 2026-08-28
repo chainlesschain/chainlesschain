@@ -42,6 +42,7 @@ const config = {
   allWindows: [],
   docToReturn: null,
   yjsManagerActive: true,
+  awareness: { states: new Map(), meta: new Map() },
 };
 
 // ipcMain mock: captures channel→handler pairs for direct invocation in tests.
@@ -94,7 +95,10 @@ const mockGetYjsManager = () => {
   if (!config.yjsManagerActive) {
     return null;
   }
-  return { getDocument: () => config.docToReturn };
+  return {
+    getDocument: () => config.docToReturn,
+    getAwareness: () => config.awareness,
+  };
 };
 
 vi.mock("uuid", () => ({
@@ -134,6 +138,7 @@ beforeEach(() => {
   config.allWindows = [];
   config.docToReturn = null;
   config.yjsManagerActive = true;
+  config.awareness = { states: new Map(), meta: new Map() };
   lastApplyUpdateCall = null;
   encodeStateAsUpdateImpl = () => new Uint8Array([10, 20, 30]);
 });
@@ -231,6 +236,27 @@ describe("Yjs Collab IPC Handlers", () => {
       expect(result.data.documentId).toBe("MY-DOC-999");
     });
 
+    it("fails closed when the initial state exceeds the IPC byte limit", async () => {
+      const { registerRealtimeCollabIPC } =
+        await import("../realtime-collab-ipc.js");
+      config.docToReturn = {};
+      registerRealtimeCollabIPC(baseDb, {
+        ...mockDeps,
+        boundaries: { maxIpcUpdateBytes: 2 },
+      });
+
+      const result = await capturedHandlers["collab:yjs-connect"](
+        {},
+        { documentId: "bounded-doc" },
+      );
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
+      expect(result).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_UPDATE_TOO_LARGE",
+      });
+    });
+
     it("returns success:true when yjsCollabManager is null on the manager", async () => {
       config.yjsManagerActive = false;
       const result = await capturedHandlers["collab:yjs-connect"](
@@ -271,6 +297,34 @@ describe("Yjs Collab IPC Handlers", () => {
       );
       expect(result.success).toBe(false);
       expect(typeof result.error).toBe("string");
+    });
+
+    it("rejects invalid bytes and updates above the configured limit", async () => {
+      const invalid = await capturedHandlers["collab:yjs-update"](
+        {},
+        { documentId: "doc-invalid", update: [256] },
+      );
+      expect(invalid).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_UPDATE_INVALID",
+      });
+
+      const { registerRealtimeCollabIPC } =
+        await import("../realtime-collab-ipc.js");
+      registerRealtimeCollabIPC(baseDb, {
+        ...mockDeps,
+        boundaries: { maxIpcUpdateBytes: 2 },
+      });
+      const oversized = await capturedHandlers["collab:yjs-update"](
+        {},
+        { documentId: "doc-large", update: [1, 2, 3] },
+      );
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
+      expect(oversized).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_UPDATE_TOO_LARGE",
+      });
     });
 
     it("broadcasts the update to peer windows", async () => {
@@ -402,6 +456,72 @@ describe("Yjs Collab IPC Handlers", () => {
 
       registerRealtimeCollabIPC(baseDb, mockDeps);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("collab:yjs-awareness-update", () => {
+    it("stores bounded awareness and broadcasts only to peer windows", async () => {
+      const senderSend = vi.fn();
+      const peerSend = vi.fn();
+      config.allWindows = [
+        { webContents: { id: 5, send: senderSend } },
+        { webContents: { id: 6, send: peerSend } },
+      ];
+
+      const result = await capturedHandlers["collab:yjs-awareness-update"](
+        { sender: { id: 5 } },
+        {
+          documentId: "awareness-doc",
+          clientId: 42,
+          awarenessState: { cursor: { from: 1, to: 2 } },
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(config.awareness.states.get(42)).toEqual({
+        cursor: { from: 1, to: 2 },
+      });
+      expect(senderSend).not.toHaveBeenCalled();
+      expect(peerSend).toHaveBeenCalledWith(
+        "collab:yjs-awareness-update",
+        expect.objectContaining({ documentId: "awareness-doc" }),
+      );
+    });
+
+    it("rejects invalid client IDs and oversized awareness state", async () => {
+      const invalid = await capturedHandlers["collab:yjs-awareness-update"](
+        {},
+        {
+          documentId: "awareness-doc",
+          clientId: -1,
+          awarenessState: {},
+        },
+      );
+      expect(invalid).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_AWARENESS_INVALID",
+      });
+
+      const { registerRealtimeCollabIPC } =
+        await import("../realtime-collab-ipc.js");
+      registerRealtimeCollabIPC(baseDb, {
+        ...mockDeps,
+        boundaries: { maxAwarenessBytes: 8 },
+      });
+      const oversized = await capturedHandlers["collab:yjs-awareness-update"](
+        {},
+        {
+          documentId: "awareness-doc",
+          clientId: 1,
+          awarenessState: { value: "too large" },
+        },
+      );
+
+      registerRealtimeCollabIPC(baseDb, mockDeps);
+      expect(oversized).toMatchObject({
+        success: false,
+        code: "ERR_COLLAB_AWARENESS_TOO_LARGE",
+      });
     });
   });
 

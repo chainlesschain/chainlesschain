@@ -6,29 +6,29 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
 /**
  * 连接状态
  */
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
+export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
 /**
  * 锁类型
  */
-export type LockType = 'full' | 'section' | 'paragraph';
+export type LockType = "full" | "section" | "paragraph";
 
 /**
  * 冲突解决策略
  */
-export type ConflictResolution = 'mine' | 'theirs' | 'merge' | 'custom';
+export type ConflictResolution = "mine" | "theirs" | "merge" | "custom";
 
 /**
  * 导出格式
  */
-export type ExportFormat = 'markdown' | 'html' | 'docx' | 'pdf';
+export type ExportFormat = "markdown" | "html" | "docx" | "pdf";
 
 /**
  * 协作文档
@@ -175,7 +175,7 @@ export interface CollabLoadingState {
  * 同步更新数据
  */
 export interface SyncUpdate {
-  type: 'insert' | 'delete' | 'replace';
+  type: "insert" | "delete" | "replace";
   position?: number;
   content?: string;
   length?: number;
@@ -240,8 +240,8 @@ export interface CollabRoom {
 export interface RoomParticipant {
   did: string;
   name: string;
-  role: 'viewer' | 'editor' | 'admin';
-  status: 'online' | 'offline' | 'editing';
+  role: "viewer" | "editor" | "admin";
+  status: "online" | "offline" | "editing";
   joinedAt?: number;
 }
 
@@ -301,7 +301,7 @@ export interface CollabState {
 
 // ==================== Store ====================
 
-export const useCollabStore = defineStore('collab', {
+export const useCollabStore = defineStore("collab", {
   state: (): CollabState => ({
     // ==========================================
     // 文档管理
@@ -391,7 +391,7 @@ export const useCollabStore = defineStore('collab', {
     // 连接状态
     // ==========================================
 
-    connectionStatus: 'disconnected',
+    connectionStatus: "disconnected",
 
     // ==========================================
     // 错误状态
@@ -438,7 +438,7 @@ export const useCollabStore = defineStore('collab', {
      * 当前文档是否被锁定
      */
     isDocumentLocked(): boolean {
-      return this.locks.some((lock) => lock.lockType === 'full');
+      return this.locks.some((lock) => lock.lockType === "full");
     },
 
     /**
@@ -469,7 +469,7 @@ export const useCollabStore = defineStore('collab', {
      * 是否已连接
      */
     isConnected(): boolean {
-      return this.connectionStatus === 'connected';
+      return this.connectionStatus === "connected";
     },
 
     /**
@@ -498,21 +498,27 @@ export const useCollabStore = defineStore('collab', {
     async openDocument(
       knowledgeId: string,
       userDid: string,
-      userName: string
+      userName: string,
     ): Promise<CollabApiResult> {
       this.loading.document = true;
       this.error = null;
 
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:open-document', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:open-document", {
+          docId: knowledgeId,
           userDid,
           userName,
         });
 
-        if (result.success && result.document) {
-          this.currentDocument = result.document;
-          this.connectionStatus = 'connected';
+        if (result.success) {
+          this.currentDocument = result.document || {
+            id: knowledgeId,
+            title: "",
+            version: 0,
+          };
+          this.connectionStatus = "connected";
 
           // 添加到打开文档列表
           if (!this.openDocuments.find((d) => d.id === knowledgeId)) {
@@ -531,7 +537,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 打开文档失败:', error);
+        console.error("[CollabStore] 打开文档失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -542,16 +548,23 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 关闭协作文档
      */
-    async closeDocument(knowledgeId: string, userDid: string): Promise<CollabApiResult> {
+    async closeDocument(
+      knowledgeId: string,
+      userDid: string,
+    ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:close-document', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:close-document", {
+          docId: knowledgeId,
           userDid,
         });
 
         if (result.success) {
           // 从打开文档列表移除
-          this.openDocuments = this.openDocuments.filter((d) => d.id !== knowledgeId);
+          this.openDocuments = this.openDocuments.filter(
+            (d) => d.id !== knowledgeId,
+          );
 
           // 如果是当前文档，清空
           if (this.currentDocument?.id === knowledgeId) {
@@ -559,13 +572,13 @@ export const useCollabStore = defineStore('collab', {
             this.collaborators = [];
             this.locks = [];
             this.comments = [];
-            this.connectionStatus = 'disconnected';
+            this.connectionStatus = "disconnected";
           }
         }
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 关闭文档失败:', error);
+        console.error("[CollabStore] 关闭文档失败:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -581,16 +594,19 @@ export const useCollabStore = defineStore('collab', {
     async syncUpdate(
       knowledgeId: string,
       update: SyncUpdate,
-      userDid: string
+      userDid: string,
     ): Promise<CollabApiResult> {
       try {
-        return await (window as any).electronAPI.invoke('collab:sync-update', {
-          knowledgeId,
-          update,
-          userDid,
-        });
+        return await (window as any).electronAPI.collab.invoke(
+          "collab:sync-update",
+          {
+            docId: knowledgeId,
+            update,
+            userDid,
+          },
+        );
       } catch (error) {
-        console.error('[CollabStore] 同步更新失败:', error);
+        console.error("[CollabStore] 同步更新失败:", error);
         throw error;
       }
     },
@@ -601,16 +617,22 @@ export const useCollabStore = defineStore('collab', {
     async updateCursor(
       knowledgeId: string,
       userDid: string,
-      cursorData: CursorPosition
+      cursorData: CursorPosition,
     ): Promise<void> {
       try {
-        await (window as any).electronAPI.invoke('collab:update-cursor', {
-          knowledgeId,
-          userDid,
-          cursorData,
-        });
+        await (window as any).electronAPI.collab.invoke(
+          "collab:update-cursor",
+          {
+            docId: knowledgeId,
+            userDid,
+            userName:
+              this.collaborators.find((user) => user.did === userDid)?.name ||
+              userDid,
+            cursor: cursorData,
+          },
+        );
       } catch (error) {
-        console.error('[CollabStore] 更新光标失败:', error);
+        console.error("[CollabStore] 更新光标失败:", error);
       }
     },
 
@@ -639,7 +661,9 @@ export const useCollabStore = defineStore('collab', {
       this.loading.locks = true;
       try {
         // 获取文档的所有锁
-        const currentLocks = this.locks.filter((l) => l.knowledgeId === knowledgeId);
+        const currentLocks = this.locks.filter(
+          (l) => l.knowledgeId === knowledgeId,
+        );
         return { success: true, locks: currentLocks };
       } finally {
         this.loading.locks = false;
@@ -654,12 +678,17 @@ export const useCollabStore = defineStore('collab', {
       userDid: string,
       lockType: LockType,
       sectionStart?: number,
-      sectionEnd?: number
+      sectionEnd?: number,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:acquire-lock', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:acquire-lock", {
+          docId: knowledgeId,
           userDid,
+          userName:
+            this.collaborators.find((user) => user.did === userDid)?.name ||
+            userDid,
           lockType,
           sectionStart,
           sectionEnd,
@@ -672,7 +701,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 获取锁失败:', error);
+        console.error("[CollabStore] 获取锁失败:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -681,9 +710,14 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 释放锁
      */
-    async releaseLock(lockId: string, userDid: string): Promise<CollabApiResult> {
+    async releaseLock(
+      lockId: string,
+      userDid: string,
+    ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:release-lock', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:release-lock", {
           lockId,
           userDid,
         });
@@ -695,7 +729,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 释放锁失败:', error);
+        console.error("[CollabStore] 释放锁失败:", error);
         throw error;
       }
     },
@@ -709,11 +743,13 @@ export const useCollabStore = defineStore('collab', {
      */
     async requestConflictResolution(
       knowledgeId: string,
-      conflictData: Partial<Conflict>
+      conflictData: Partial<Conflict>,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:request-conflict-resolution', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:request-conflict-resolution", {
+          docId: knowledgeId,
           conflictData,
         });
 
@@ -723,7 +759,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 请求冲突解决失败:', error);
+        console.error("[CollabStore] 请求冲突解决失败:", error);
         throw error;
       }
     },
@@ -734,27 +770,37 @@ export const useCollabStore = defineStore('collab', {
     async resolveConflict(
       conflictId: string,
       resolution: ConflictResolution,
-      resolvedByDid: string
+      resolvedByDid: string,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:resolve-conflict', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:resolve-conflict", {
           conflictId,
           resolution,
-          resolvedByDid,
+          resolverDid: resolvedByDid,
         });
 
         if (result.success) {
           // 移动到历史
-          const conflict = this.pendingConflicts.find((c) => c.id === conflictId);
+          const conflict = this.pendingConflicts.find(
+            (c) => c.id === conflictId,
+          );
           if (conflict) {
-            this.conflictHistory.unshift({ ...conflict, resolution, resolvedAt: Date.now() });
-            this.pendingConflicts = this.pendingConflicts.filter((c) => c.id !== conflictId);
+            this.conflictHistory.unshift({
+              ...conflict,
+              resolution,
+              resolvedAt: Date.now(),
+            });
+            this.pendingConflicts = this.pendingConflicts.filter(
+              (c) => c.id !== conflictId,
+            );
           }
         }
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 解决冲突失败:', error);
+        console.error("[CollabStore] 解决冲突失败:", error);
         throw error;
       }
     },
@@ -769,18 +815,22 @@ export const useCollabStore = defineStore('collab', {
     async loadComments(knowledgeId: string): Promise<CollabApiResult> {
       this.loading.comments = true;
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-comments', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-comments", {
+          docId: knowledgeId,
         });
 
         if (result.success) {
           this.comments = result.comments || [];
-          this.unresolvedCommentCount = this.comments.filter((c) => !c.resolved).length;
+          this.unresolvedCommentCount = this.comments.filter(
+            (c) => !c.resolved,
+          ).length;
         }
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 加载评论失败:', error);
+        console.error("[CollabStore] 加载评论失败:", error);
         throw error;
       } finally {
         this.loading.comments = false;
@@ -790,11 +840,16 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 添加行内评论
      */
-    async addComment(knowledgeId: string, commentData: CommentData): Promise<CollabApiResult> {
+    async addComment(
+      knowledgeId: string,
+      commentData: CommentData,
+    ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:add-inline-comment', {
-          knowledgeId,
-          ...commentData,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:add-inline-comment", {
+          docId: knowledgeId,
+          comment: commentData,
         });
 
         if (result.success && result.comment) {
@@ -804,7 +859,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 添加评论失败:', error);
+        console.error("[CollabStore] 添加评论失败:", error);
         throw error;
       }
     },
@@ -812,11 +867,16 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 解决评论
      */
-    async resolveComment(commentId: string, resolvedByDid: string): Promise<CollabApiResult> {
+    async resolveComment(
+      commentId: string,
+      resolvedByDid: string,
+    ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:resolve-comment', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:resolve-comment", {
           commentId,
-          resolvedByDid,
+          resolverDid: resolvedByDid,
         });
 
         if (result.success) {
@@ -830,7 +890,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 解决评论失败:', error);
+        console.error("[CollabStore] 解决评论失败:", error);
         throw error;
       }
     },
@@ -844,13 +904,15 @@ export const useCollabStore = defineStore('collab', {
      */
     async loadVersionHistory(
       knowledgeId: string,
-      options: Record<string, any> = {}
+      options: Record<string, any> = {},
     ): Promise<CollabApiResult> {
       this.loading.history = true;
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-document-history', {
-          knowledgeId,
-          ...options,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-document-history", {
+          docId: knowledgeId,
+          options,
         });
 
         if (result.success) {
@@ -859,7 +921,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 加载版本历史失败:', error);
+        console.error("[CollabStore] 加载版本历史失败:", error);
         throw error;
       } finally {
         this.loading.history = false;
@@ -872,18 +934,20 @@ export const useCollabStore = defineStore('collab', {
     async restoreVersion(
       knowledgeId: string,
       versionId: string,
-      restoredByDid: string
+      restoredByDid: string,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:restore-version', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:restore-version", {
+          docId: knowledgeId,
           versionId,
-          restoredByDid,
+          userDid: restoredByDid,
         });
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 恢复版本失败:', error);
+        console.error("[CollabStore] 恢复版本失败:", error);
         throw error;
       }
     },
@@ -897,8 +961,10 @@ export const useCollabStore = defineStore('collab', {
      */
     async loadStats(knowledgeId: string): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-stats', {
-          knowledgeId,
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-stats", {
+          docId: knowledgeId,
         });
 
         if (result.success && result.stats) {
@@ -907,7 +973,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 获取统计失败:', error);
+        console.error("[CollabStore] 获取统计失败:", error);
         throw error;
       }
     },
@@ -921,15 +987,18 @@ export const useCollabStore = defineStore('collab', {
      */
     async exportWithComments(
       knowledgeId: string,
-      format: ExportFormat = 'markdown'
+      format: ExportFormat = "markdown",
     ): Promise<CollabApiResult> {
       try {
-        return await (window as any).electronAPI.invoke('collab:export-with-comments', {
-          knowledgeId,
-          format,
-        });
+        return await (window as any).electronAPI.collab.invoke(
+          "collab:export-with-comments",
+          {
+            docId: knowledgeId,
+            format,
+          },
+        );
       } catch (error) {
-        console.error('[CollabStore] 导出失败:', error);
+        console.error("[CollabStore] 导出失败:", error);
         throw error;
       }
     },
@@ -946,17 +1015,20 @@ export const useCollabStore = defineStore('collab', {
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI?.invoke('collab:yjs-connect', {
-          documentId,
-        });
+        const result = await (window as any).electronAPI?.collab.invoke(
+          "collab:yjs-connect",
+          {
+            documentId,
+          },
+        );
 
         if (result?.success) {
           this.yjsConnected = true;
         } else {
-          this.error = result?.error || 'Failed to connect Yjs';
+          this.error = result?.error || "Failed to connect Yjs";
         }
       } catch (e: any) {
-        console.error('[CollabStore] Yjs 连接失败:', e);
+        console.error("[CollabStore] Yjs 连接失败:", e);
         this.error = e.message;
       } finally {
         this.loading.document = false;
@@ -968,15 +1040,18 @@ export const useCollabStore = defineStore('collab', {
      */
     async disconnectYjs(documentId: string): Promise<void> {
       try {
-        await (window as any).electronAPI?.invoke('collab:yjs-disconnect', {
-          documentId,
-        });
+        await (window as any).electronAPI?.collab.invoke(
+          "collab:yjs-disconnect",
+          {
+            documentId,
+          },
+        );
 
         this.yjsConnected = false;
         this.yjsSynced = false;
         this.activeCollaborators = [];
       } catch (e: any) {
-        console.error('[CollabStore] Yjs 断开连接失败:', e);
+        console.error("[CollabStore] Yjs 断开连接失败:", e);
         this.error = e.message;
       }
     },
@@ -992,7 +1067,12 @@ export const useCollabStore = defineStore('collab', {
      * 更新活跃 CRDT 协作者列表
      */
     updateActiveCollaborators(
-      collaborators: Array<{ did: string; name: string; color: string; cursor?: any }>
+      collaborators: Array<{
+        did: string;
+        name: string;
+        color: string;
+        cursor?: any;
+      }>,
     ): void {
       this.activeCollaborators = collaborators;
     },
@@ -1006,10 +1086,15 @@ export const useCollabStore = defineStore('collab', {
      */
     async createRoom(
       documentId: string,
-      options: { maxParticipants?: number; permissions?: Record<string, any> } = {}
+      options: {
+        maxParticipants?: number;
+        permissions?: Record<string, any>;
+      } = {},
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:create-room', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:create-room", {
           documentId,
           ...options,
         });
@@ -1021,7 +1106,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 创建房间失败:', error);
+        console.error("[CollabStore] 创建房间失败:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -1030,9 +1115,14 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 加入协作房间
      */
-    async joinRoom(roomId: string, documentId: string): Promise<CollabApiResult> {
+    async joinRoom(
+      roomId: string,
+      documentId: string,
+    ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:join-room', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:join-room", {
           roomId,
           documentId,
         });
@@ -1043,7 +1133,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 加入房间失败:', error);
+        console.error("[CollabStore] 加入房间失败:", error);
         this.error = (error as Error).message;
         throw error;
       }
@@ -1054,7 +1144,9 @@ export const useCollabStore = defineStore('collab', {
      */
     async leaveRoom(roomId: string): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:leave-room', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:leave-room", {
           roomId,
         });
 
@@ -1067,7 +1159,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 离开房间失败:', error);
+        console.error("[CollabStore] 离开房间失败:", error);
         throw error;
       }
     },
@@ -1078,16 +1170,19 @@ export const useCollabStore = defineStore('collab', {
     async inviteUser(
       roomId: string,
       inviteeDid: string,
-      role: string = 'editor'
+      role: string = "editor",
     ): Promise<CollabApiResult> {
       try {
-        return await (window as any).electronAPI.invoke('collab:invite-user', {
-          roomId,
-          inviteeDid,
-          role,
-        });
+        return await (window as any).electronAPI.collab.invoke(
+          "collab:invite-user",
+          {
+            roomId,
+            inviteeDid,
+            role,
+          },
+        );
       } catch (error) {
-        console.error('[CollabStore] 邀请用户失败:', error);
+        console.error("[CollabStore] 邀请用户失败:", error);
         throw error;
       }
     },
@@ -1097,7 +1192,9 @@ export const useCollabStore = defineStore('collab', {
      */
     async loadActiveRooms(): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-active-rooms');
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-active-rooms");
 
         if (result.success) {
           this.activeRooms = (result.rooms || []) as CollabRoom[];
@@ -1105,7 +1202,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 获取活跃房间失败:', error);
+        console.error("[CollabStore] 获取活跃房间失败:", error);
         throw error;
       }
     },
@@ -1120,25 +1217,29 @@ export const useCollabStore = defineStore('collab', {
     async setParticipantRole(
       roomId: string,
       targetDid: string,
-      role: string
+      role: string,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:set-role', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:set-role", {
           roomId,
           targetDid,
           role,
         });
 
         if (result.success && this.currentRoom?.id === roomId) {
-          const participant = this.currentRoom.participants?.find((p) => p.did === targetDid);
+          const participant = this.currentRoom.participants?.find(
+            (p) => p.did === targetDid,
+          );
           if (participant) {
-            participant.role = role as 'viewer' | 'editor' | 'admin';
+            participant.role = role as "viewer" | "editor" | "admin";
           }
         }
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 设置角色失败:', error);
+        console.error("[CollabStore] 设置角色失败:", error);
         throw error;
       }
     },
@@ -1148,17 +1249,20 @@ export const useCollabStore = defineStore('collab', {
      */
     async loadParticipants(roomId: string): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-participants', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-participants", {
           roomId,
         });
 
         if (result.success && this.currentRoom?.id === roomId) {
-          this.currentRoom.participants = (result.participants || []) as RoomParticipant[];
+          this.currentRoom.participants = (result.participants ||
+            []) as RoomParticipant[];
         }
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 获取参与者失败:', error);
+        console.error("[CollabStore] 获取参与者失败:", error);
         throw error;
       }
     },
@@ -1173,10 +1277,12 @@ export const useCollabStore = defineStore('collab', {
     async createSnapshot(
       documentId: string,
       message: string,
-      authorDid: string
+      authorDid: string,
     ): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:create-snapshot', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:create-snapshot", {
           documentId,
           message,
           authorDid,
@@ -1188,7 +1294,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 创建快照失败:', error);
+        console.error("[CollabStore] 创建快照失败:", error);
         throw error;
       }
     },
@@ -1198,7 +1304,9 @@ export const useCollabStore = defineStore('collab', {
      */
     async loadSnapshots(documentId: string): Promise<CollabApiResult> {
       try {
-        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-snapshots', {
+        const result: CollabApiResult = await (
+          window as any
+        ).electronAPI.collab.invoke("collab:get-snapshots", {
           documentId,
         });
 
@@ -1208,7 +1316,7 @@ export const useCollabStore = defineStore('collab', {
 
         return result;
       } catch (error) {
-        console.error('[CollabStore] 获取快照失败:', error);
+        console.error("[CollabStore] 获取快照失败:", error);
         throw error;
       }
     },
@@ -1218,15 +1326,18 @@ export const useCollabStore = defineStore('collab', {
      */
     async restoreSnapshot(
       documentId: string,
-      snapshotId: string
+      snapshotId: string,
     ): Promise<CollabApiResult> {
       try {
-        return await (window as any).electronAPI.invoke('collab:restore-snapshot', {
-          documentId,
-          snapshotId,
-        });
+        return await (window as any).electronAPI.collab.invoke(
+          "collab:restore-snapshot",
+          {
+            documentId,
+            snapshotId,
+          },
+        );
       } catch (error) {
-        console.error('[CollabStore] 恢复快照失败:', error);
+        console.error("[CollabStore] 恢复快照失败:", error);
         throw error;
       }
     },

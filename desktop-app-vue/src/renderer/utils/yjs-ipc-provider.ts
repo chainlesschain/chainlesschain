@@ -106,10 +106,14 @@ export class YjsIPCProvider extends Observable<string> {
   private _updateHandler: (update: Uint8Array, origin: any) => void;
 
   /** Handler for remote updates received from main process */
-  private _remoteUpdateHandler: (event: any, data: YjsIPCUpdateData) => void;
+  private _remoteUpdateHandler: (data: YjsIPCUpdateData) => void;
 
   /** Handler for awareness updates received from main process */
-  private _awarenessHandler: (event: any, data: YjsIPCAwarenessData) => void;
+  private _awarenessHandler: (data: YjsIPCAwarenessData) => void;
+
+  /** Unsubscribe functions returned by the fixed preload capability. */
+  private _removeRemoteUpdateListener: (() => void) | null = null;
+  private _removeAwarenessListener: (() => void) | null = null;
 
   /** Flag indicating the provider is being destroyed */
   private _destroying: boolean = false;
@@ -146,19 +150,25 @@ export class YjsIPCProvider extends Observable<string> {
       // Serialize Uint8Array to a plain number array for IPC transport
       const serializedUpdate: number[] = Array.from(update);
 
-      const result = window.electronAPI?.invoke("collab:yjs-update", {
+      const result = window.electronAPI?.collab.invoke("collab:yjs-update", {
         documentId: this.documentId,
         update: serializedUpdate,
       });
       // invoke 在测试 mock / 未挂载时可能返回 undefined，用 Promise.resolve 包裹
-      Promise.resolve(result).catch((err: any) => {
-        console.error("[YjsIPC] Failed to send update:", err);
-      });
+      Promise.resolve(result)
+        .then((response: any) => {
+          if (response && response.success === false) {
+            throw new Error(response.error || "Yjs update rejected");
+          }
+        })
+        .catch((err: any) => {
+          console.error("[YjsIPC] Failed to send update:", err);
+        });
     };
 
     // ---- Remote update handler ----
     // Receives updates from the main process (originating from other peers)
-    this._remoteUpdateHandler = (_event: any, data: YjsIPCUpdateData) => {
+    this._remoteUpdateHandler = (data: YjsIPCUpdateData) => {
       if (this._destroying) return;
       if (data.documentId !== this.documentId) return;
 
@@ -172,7 +182,7 @@ export class YjsIPCProvider extends Observable<string> {
 
     // ---- Awareness update handler ----
     // Receives awareness state changes (cursor positions, user presence)
-    this._awarenessHandler = (_event: any, data: YjsIPCAwarenessData) => {
+    this._awarenessHandler = (data: YjsIPCAwarenessData) => {
       if (this._destroying) return;
       if (data.documentId !== this.documentId) return;
 
@@ -207,21 +217,28 @@ export class YjsIPCProvider extends Observable<string> {
     this.doc.on("update", this._updateHandler);
 
     // 2. Listen for remote updates from main process
-    window.electronAPI?.on?.(
-      "collab:yjs-remote-update",
+    const collabApi = window.electronAPI?.collab;
+    if (!collabApi) {
+      this.doc.off("update", this._updateHandler);
+      throw new Error("Collaboration preload capability is unavailable");
+    }
+    this._removeRemoteUpdateListener = collabApi.onRemoteUpdate(
       this._remoteUpdateHandler,
     );
-    window.electronAPI?.on?.(
-      "collab:yjs-awareness-update",
+    this._removeAwarenessListener = collabApi.onAwarenessUpdate(
       this._awarenessHandler,
     );
 
     // 3. Connect to main process document session
     try {
-      const result: YjsIPCConnectResult = await window.electronAPI?.invoke(
+      const result: YjsIPCConnectResult = await collabApi.invoke(
         "collab:yjs-connect",
         { documentId: this.documentId },
       );
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Yjs connection rejected");
+      }
 
       if (result?.success && result.data?.initialState) {
         // Apply initial state from main process
@@ -235,6 +252,11 @@ export class YjsIPCProvider extends Observable<string> {
       this.emit("status", [{ status: "connected" } as YjsIPCStatusEvent]);
     } catch (error) {
       console.error("[YjsIPC] Connect failed:", error);
+      this.doc.off("update", this._updateHandler);
+      this._removeRemoteUpdateListener?.();
+      this._removeRemoteUpdateListener = null;
+      this._removeAwarenessListener?.();
+      this._removeAwarenessListener = null;
       this.emit("status", [{ status: "disconnected" } as YjsIPCStatusEvent]);
 
       // Schedule auto-reconnect if enabled
@@ -268,18 +290,14 @@ export class YjsIPCProvider extends Observable<string> {
     this.doc.off("update", this._updateHandler);
 
     // Remove IPC listeners
-    window.electronAPI?.removeListener?.(
-      "collab:yjs-remote-update",
-      this._remoteUpdateHandler,
-    );
-    window.electronAPI?.removeListener?.(
-      "collab:yjs-awareness-update",
-      this._awarenessHandler,
-    );
+    this._removeRemoteUpdateListener?.();
+    this._removeRemoteUpdateListener = null;
+    this._removeAwarenessListener?.();
+    this._removeAwarenessListener = null;
 
     // Notify main process of disconnect
     try {
-      await window.electronAPI?.invoke("collab:yjs-disconnect", {
+      await window.electronAPI?.collab.invoke("collab:yjs-disconnect", {
         documentId: this.documentId,
       });
     } catch (_e) {
@@ -306,9 +324,10 @@ export class YjsIPCProvider extends Observable<string> {
 
     // Send to main process for broadcasting
     try {
-      await window.electronAPI?.invoke("collab:yjs-update", {
+      await window.electronAPI?.collab.invoke("collab:yjs-awareness-update", {
         documentId: this.documentId,
         awarenessState: state,
+        clientId: this.doc.clientID,
       });
     } catch (err) {
       console.error("[YjsIPC] Failed to update awareness state:", err);

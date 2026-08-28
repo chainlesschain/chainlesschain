@@ -43,6 +43,56 @@ function fixedSubscription(channel, handler) {
   return () => ipcRenderer.removeListener(channel, listener);
 }
 
+const COLLAB_INVOKE_CHANNELS = new Set([
+  "collab:open-document",
+  "collab:close-document",
+  "collab:sync-update",
+  "collab:update-cursor",
+  "collab:acquire-lock",
+  "collab:release-lock",
+  "collab:request-conflict-resolution",
+  "collab:resolve-conflict",
+  "collab:get-comments",
+  "collab:add-inline-comment",
+  "collab:resolve-comment",
+  "collab:get-document-history",
+  "collab:restore-version",
+  "collab:get-stats",
+  "collab:export-with-comments",
+  "collab:yjs-connect",
+  "collab:yjs-update",
+  "collab:yjs-awareness-update",
+  "collab:yjs-disconnect",
+  "collab:create-room",
+  "collab:join-room",
+  "collab:leave-room",
+  "collab:invite-user",
+  "collab:get-active-rooms",
+  "collab:set-role",
+  "collab:get-participants",
+  "collab:create-snapshot",
+  "collab:get-snapshots",
+  "collab:restore-snapshot",
+]);
+
+function invokeCollab(channel, params) {
+  if (!COLLAB_INVOKE_CHANNELS.has(channel)) {
+    const error = new Error(`Unsupported collaboration capability: ${channel}`);
+    error.code = "COLLAB_CAPABILITY_NOT_ALLOWED";
+    throw error;
+  }
+  return ipcRenderer.invoke(channel, params);
+}
+
+function subscribeCollab(channel, callback) {
+  if (typeof callback !== "function") {
+    throw new TypeError("Collaboration event callback must be a function");
+  }
+  const listener = (_event, data) => callback(data);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 /**
  * 清理对象中的 undefined 值
  * Electron IPC 不支持传递 undefined 值，需要转换为 null 或移除
@@ -146,6 +196,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ukey: {
     detect: () => ipcRenderer.invoke("ukey:detect"),
     verifyPIN: (pin) => ipcRenderer.invoke("ukey:verify-pin", pin),
+  },
+
+  // Fixed collaboration capability. Generic renderer IPC remains disabled.
+  collab: {
+    invoke: invokeCollab,
+    onRemoteUpdate: (callback) =>
+      subscribeCollab("collab:yjs-remote-update", callback),
+    onAwarenessUpdate: (callback) =>
+      subscribeCollab("collab:yjs-awareness-update", callback),
   },
 
   // 认证相关 - 密码登录

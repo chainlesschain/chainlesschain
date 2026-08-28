@@ -277,6 +277,47 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const collabContractTests = [
+    "src/main/collaboration/__tests__/collab-boundaries.test.js",
+    "src/main/collaboration/__tests__/yjs-collab-ipc.test.js",
+    "src/main/collaboration/__tests__/yjs-collab-loaddocument.test.js",
+    "src/main/collab/__tests__/collab.test.js",
+    "src/main/ipc/__tests__/phase-modules.test.js",
+    "src/main/ipc/__tests__/phase-34-collab-wiring.test.js",
+    "src/preload/__tests__/legacy-ipc-policy.test.js",
+    "src/renderer/stores/__tests__/collab.test.ts",
+    "src/renderer/utils/__tests__/yjs-ipc-provider.test.ts",
+  ];
+  const collabSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/collaboration/collab-boundaries.js",
+    "desktop-app-vue/src/main/collaboration/yjs-collab-manager.js",
+    "desktop-app-vue/src/main/collaboration/realtime-collab-ipc.js",
+    "desktop-app-vue/src/main/collab/collab-ipc.js",
+    "desktop-app-vue/src/main/ipc/phases/phase-33-40-collab-ops.js",
+    "desktop-app-vue/src/preload/index.js",
+    "desktop-app-vue/src/renderer/stores/collab.ts",
+    "desktop-app-vue/src/renderer/utils/yjs-ipc-provider.ts",
+    "desktop-app-vue/src/renderer/types/electron.d.ts",
+  ];
+  const collabSelection = selector.createSelection(collabSources);
+  assert.equal(collabSelection.mode, "targeted");
+  for (const relatedTest of collabContractTests) {
+    assert.ok(
+      collabSelection.selectedTests.includes(relatedTest),
+      `missing collaboration contract ${relatedTest}`,
+    );
+  }
+  for (const collabSource of collabSources) {
+    const sourceSelection = selector.createSelection([collabSource]);
+    for (const relatedTest of collabContractTests) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${collabSource} must select ${relatedTest}`,
+      );
+    }
+  }
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });

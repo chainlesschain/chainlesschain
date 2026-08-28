@@ -33,4 +33,28 @@ describe("legacy generic IPC policy", () => {
     expect(legacyGenericIpcEnabled(env)).toBe(true);
     expect(() => assertLegacyGenericIpcEnabled(env)).not.toThrow();
   });
+
+  it("exposes collaboration through a scoped allowlist, not generic renderer IPC", () => {
+    const preloadSource = readFileSync(
+      resolve(process.cwd(), "src/preload/index.js"),
+      "utf8",
+    );
+    const storeSource = readFileSync(
+      resolve(process.cwd(), "src/renderer/stores/collab.ts"),
+      "utf8",
+    );
+    const providerSource = readFileSync(
+      resolve(process.cwd(), "src/renderer/utils/yjs-ipc-provider.ts"),
+      "utf8",
+    );
+
+    expect(preloadSource).toContain("const COLLAB_INVOKE_CHANNELS = new Set([");
+    expect(preloadSource).toContain("collab: {\n    invoke: invokeCollab,");
+    expect(storeSource).toContain("electronAPI.collab.invoke");
+    expect(storeSource).not.toMatch(/electronAPI\??\.invoke/);
+    expect(providerSource).toContain("electronAPI?.collab.invoke");
+    expect(providerSource).not.toMatch(
+      /electronAPI\??\.(?:invoke|on|removeListener)/,
+    );
+  });
 });

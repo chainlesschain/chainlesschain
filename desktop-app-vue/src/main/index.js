@@ -109,6 +109,7 @@ class ChainlessChainApp {
     this.dbEncryptionIPC = null;
     this.initialSetupIPC = null;
     this.deepLinkHandler = null;
+    this.ipcModules = null;
     // Tray + minimize-to-tray state:
     //   trayManager  — EnhancedTrayManager instance (created in createWindow)
     //   isQuitting   — set true by `before-quit` so the window's close handler
@@ -1436,7 +1437,7 @@ class ChainlessChainApp {
 
   setupIPC() {
     try {
-      registerAllIPC({
+      this.ipcModules = registerAllIPC({
         app: this,
         database: this.database,
         mainWindow: this.mainWindow,
@@ -2929,6 +2930,17 @@ class ChainlessChainApp {
         logger.error("[Main] Coding Agent V3 cleanup error:", error);
       }
       this.codingAgentBootstrap = null;
+    }
+
+    if (this.ipcModules) {
+      try {
+        this.ipcModules.yjsCollabManager?.destroy?.();
+        this.ipcModules.realtimeCollabManager?.destroy?.();
+        logger.info("[Main] Realtime collaboration cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Realtime collaboration cleanup error:", error);
+      }
+      this.ipcModules = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).
