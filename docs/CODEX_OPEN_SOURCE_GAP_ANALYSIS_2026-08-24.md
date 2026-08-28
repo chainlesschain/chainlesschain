@@ -508,6 +508,19 @@ JSONL、SQLite 和远端同步可以是不同 adapter；任何客户端都不应
 
 ### 6.4 统一上下文压缩与记忆生命周期
 
+> **2026-08-28 实际完成情况：差距仍为 OPEN。** 文档交付已完成：独立设计源 [`108_Context_Memory_Kernel设计.md`](./design/modules/108_Context_Memory_Kernel设计.md) 和用户指南 [`context-memory.md`](../docs-site/docs/chainlesschain/context-memory.md) 已建立，双文档站导航、首页及现有 context/compact/memory 页面也已接入。架构设计已经冻结目标数据契约、压缩/记忆状态机、删除对账、跨端等价门和迁移阶段；这不等于共享 runtime 已实现。当前没有独立的 canonical Context/Memory Kernel 源码入口，也没有 CLI、Desktop、VS Code、JetBrains 任一入口完成 `shadow → canonical writer → legacy fenced` 全链路切换。
+
+| 交付层 | 当前状态 | 可验证证据 | 尚未完成 |
+| --- | --- | --- | --- |
+| 用户文档与信息架构 | **100%** | 用户总览、首页卡片、侧边栏及 `context-engineering` / `cc context` / `cc compact` / `cc memory` 双向入口；用户站 604 HTML 构建和线上 HTTP 200 | 后续随实现阶段更新能力状态 |
+| 架构设计 | **100%** | 模块 108 已定义 ContextItem、MemoryRecord、预算、压缩 CAS、记忆生命周期、删除 receipt、ports、迁移和发布门 | schema 尚未进入 canonical codegen/runtime 包 |
+| 现有能力基线 | **已存在但分散** | 下列 CLI/Desktop/session-core 实现与各自测试 | 不是单一 contract、单一 writer 或跨端等价证明 |
+| 共享纯 Kernel/runtime | **0% authoritative implementation** | 当前没有共享源码入口可作为 canonical mutation path | reducer、ports、事件 schema、adapter、机器可读 writer inventory |
+| 产品入口 cutover | **0/4** | 尚无入口完成 CLI/Desktop/VS Code/JetBrains 等价 fixture + canonical writer + legacy fenced | shadow、canary、恢复、回滚和旧 writer 退役 |
+| 全局删除/隐私闭环 | **0% unified** | 各存储只有局部删除或清理能力 | tombstone fencing、索引/缓存/同步副本 purge receipt 与对账 |
+
+因此，本节的正确口径是：**“设计与用户文档完成；统一实现和生产切换未完成”**。不得因为模块 108 和用户章节已发布，就把这个工程差距标为关闭；也不得因为统一 Kernel 尚未实现，就否认已有压缩、上下文工程和记忆组件的可用能力。
+
 当前至少存在：
 
 - CLI `PromptCompressor`：[`prompt-compressor.js`](../packages/cli/src/harness/prompt-compressor.js#L346)
@@ -516,7 +529,7 @@ JSONL、SQLite 和远端同步可以是不同 adapter；任何客户端都不应
 - Desktop `PromptCompressor`：[`prompt-compressor.js`](../desktop-app-vue/src/main/llm/prompt-compressor.js#L71)
 - 多套永久/层次/MemGPT/session-core memory。
 
-建议抽成共享 Context/Memory Kernel：
+模块 108 已把以下内容确定为共享 Context/Memory Kernel 的实施要求：
 
 - 预算按 system、skills、tools、history、working state 分区。
 - 保留计划、pending approval、tool call/result 配对、工作目录、worktree、预算和未完成任务。
@@ -524,6 +537,8 @@ JSONL、SQLite 和远端同步可以是不同 adapter；任何客户端都不应
 - compaction 本身写入 rollout，可重放、可评估、可回滚。
 - memory 统一 scope、provenance、confidence、retention、deletion 与 privacy。
 - 对同一 fixture，在 CLI/Desktop/IDE 上应得到等价的压缩状态和恢复结果。
+
+下一步不再是继续扩写概念文档，而是进入可验收实现：先生成 machine-readable writer inventory 和 canonical schema，再提取无 I/O reducer/ports，使用冻结 fixture 做无副作用 shadow；之后依次切换 CLI、Desktop、IDE/SDK，并以 legacy writer 为零作为关闭本差距的必要条件。详细阶段和 NO-GO 条件以模块 108 第 16、19 节为准。
 
 Codex 官方披露的实践表明，保留推理状态和改进 compaction 能显著提升长任务表现；这比单纯把历史截短更值得借鉴。参见 [Codex as a platform](https://learn.chatgpt.com/blog/codex-as-a-platform)。
 
