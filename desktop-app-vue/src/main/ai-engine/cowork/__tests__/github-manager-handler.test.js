@@ -8,7 +8,9 @@
  * All GitHub API calls are mocked via _deps.https
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+import { createEnvironmentContext } from "../skills/__tests__/helpers/bundled-skill-environment.js";
 
 vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -46,13 +48,17 @@ function createMockRequest(statusCode, responseData) {
 }
 
 describe("GitHubManager Handler", () => {
+  const context = createEnvironmentContext("github-manager", {
+    "github-token": "test-token-placeholder",
+  });
+  const missingContext = createEnvironmentContext("github-manager");
+
   beforeEach(() => {
-    process.env.GITHUB_TOKEN =
-      process.env.TEST_GITHUB_TOKEN || "test-token-placeholder";
+    handler._deps.https = null;
   });
 
   afterEach(() => {
-    delete process.env.GITHUB_TOKEN;
+    handler._deps.https = null;
   });
 
   describe("init", () => {
@@ -65,13 +71,12 @@ describe("GitHubManager Handler", () => {
 
   describe("no token", () => {
     it("should fail without GITHUB_TOKEN", async () => {
-      delete process.env.GITHUB_TOKEN;
       const result = await handler.execute(
         { input: "list-issues owner/repo" },
-        {},
+        missingContext,
       );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("GITHUB_TOKEN");
+      expect(result.error).toContain("trusted host SecretStore");
     });
   });
 
@@ -106,7 +111,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "list-issues owner/repo" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -117,7 +122,7 @@ describe("GitHubManager Handler", () => {
     it("should fail with invalid repo format", async () => {
       const result = await handler.execute(
         { input: "list-issues invalid" },
-        {},
+        context,
       );
       expect(result.success).toBe(false);
     });
@@ -138,7 +143,7 @@ describe("GitHubManager Handler", () => {
           input:
             "create-issue owner/repo title:'New Bug' body:'Description here'",
         },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -151,7 +156,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "create-issue owner/repo" },
-        {},
+        context,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Title required");
@@ -179,7 +184,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "get-issue owner/repo #5" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -217,7 +222,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "get-pr owner/repo #10" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -236,7 +241,7 @@ describe("GitHubManager Handler", () => {
         {
           input: "pr-review owner/repo #10 body:'Looks good' --review approve",
         },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -262,7 +267,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "search-code owner/repo fetchJSON" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -282,7 +287,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "list-branches owner/repo" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -312,7 +317,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "list-releases owner/repo" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -333,7 +338,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "create-release owner/repo tag:v2.0.0 title:'Release 2.0'" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -346,7 +351,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "create-release owner/repo" },
-        {},
+        context,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Tag required");
@@ -380,7 +385,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "compare owner/repo head:feature base:main" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -404,7 +409,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "list-labels owner/repo" },
-        {},
+        context,
       );
 
       expect(result.success).toBe(true);
@@ -420,7 +425,7 @@ describe("GitHubManager Handler", () => {
 
       const result = await handler.execute(
         { input: "unknown-action owner/repo" },
-        {},
+        context,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unknown action");
