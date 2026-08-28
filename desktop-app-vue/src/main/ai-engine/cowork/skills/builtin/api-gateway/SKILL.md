@@ -7,7 +7,7 @@ category: automation
 user-invocable: true
 tags: [api, gateway, http, rest, integration, automation, chain]
 capabilities: [api-calling, endpoint-registration, api-chaining, key-management]
-execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:logger, host:network, network:http, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:environment, host:logger, host:network, network:http, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [api-call, api-register, api-list, api-chain]

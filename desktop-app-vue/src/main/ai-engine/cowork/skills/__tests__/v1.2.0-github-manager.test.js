@@ -2,8 +2,9 @@
  * Unit tests for github-manager skill handler (v1.2.0)
  * Uses _deps injection for https mocking
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -30,33 +31,24 @@ function mockHttpsRequest(statusCode, body) {
 }
 
 describe("github-manager handler", () => {
-  const originalEnv = process.env.GITHUB_TOKEN;
+  const context = createEnvironmentContext("github-manager", {
+    "github-token": "test-token-placeholder",
+  });
+  const missingContext = createEnvironmentContext("github-manager");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GITHUB_TOKEN =
-      process.env.TEST_GITHUB_TOKEN || "test-token-placeholder";
-  });
-
-  afterEach(() => {
-    if (originalEnv) {
-      process.env.GITHUB_TOKEN = originalEnv;
-    } else {
-      delete process.env.GITHUB_TOKEN;
-    }
   });
 
   describe("execute() - no token", () => {
     it("should return error without token", async () => {
-      delete process.env.GITHUB_TOKEN;
-      delete process.env.GH_TOKEN;
       const result = await handler.execute(
         { input: "list-issues owner/repo" },
-        {},
-        {},
+        missingContext,
+        context,
       );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("GITHUB_TOKEN");
+      expect(result.error).toContain("SecretStore");
     });
   });
 
@@ -81,8 +73,8 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "list-issues owner/repo" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-issues");
@@ -95,8 +87,8 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "list-issues badrepo" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid repository format");
@@ -117,8 +109,8 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "create-issue owner/repo title:'New Bug' body:'Description'" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(true);
       expect(result.action).toBe("create-issue");
@@ -127,7 +119,7 @@ describe("github-manager handler", () => {
     it("should return error without title", async () => {
       const result = await handler.execute(
         { input: "create-issue owner/repo" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(false);
@@ -162,7 +154,7 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "repo-info owner/repo" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -194,7 +186,7 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "list-prs owner/repo" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -226,7 +218,7 @@ describe("github-manager handler", () => {
       }
       const result = await handler.execute(
         { input: "list-workflows owner/repo" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -239,7 +231,7 @@ describe("github-manager handler", () => {
     it("should return error for unknown action", async () => {
       const result = await handler.execute(
         { input: "foobar owner/repo" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(false);

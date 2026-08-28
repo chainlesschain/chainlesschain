@@ -2,7 +2,8 @@
  * Unit tests for obsidian skill handler (v1.2.0)
  * Uses _deps injection for fs/path mocking
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -11,12 +12,12 @@ vi.mock("../../../../utils/logger.js", () => ({
 const handler = require("../builtin/obsidian/handler.js");
 
 describe("obsidian handler", () => {
-  const originalVaultPath = process.env.OBSIDIAN_VAULT_PATH;
+  const context = createEnvironmentContext("obsidian", {
+    "vault-directory": "/mock/vault",
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.OBSIDIAN_VAULT_PATH = "/mock/vault";
-
     if (handler._deps) {
       handler._deps.fs = {
         existsSync: vi.fn((p) => {
@@ -76,23 +77,18 @@ describe("obsidian handler", () => {
     }
   });
 
-  afterEach(() => {
-    if (originalVaultPath) {
-      process.env.OBSIDIAN_VAULT_PATH = originalVaultPath;
-    } else {
-      delete process.env.OBSIDIAN_VAULT_PATH;
-    }
-  });
-
   describe("execute() - no vault", () => {
     it("should return error when vault not found", async () => {
-      delete process.env.OBSIDIAN_VAULT_PATH;
       if (handler._deps) {
         handler._deps.fs.existsSync = vi.fn().mockReturnValue(false);
       }
-      const result = await handler.execute({ input: "list-recent" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-recent" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("vault not found");
+      expect(result.error).toContain("vault directory");
     });
   });
 
@@ -100,8 +96,8 @@ describe("obsidian handler", () => {
     it("should create a note", async () => {
       const result = await handler.execute(
         { input: "create-note 'My New Note' --tags test,demo" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(true);
       expect(result.action).toBe("create-note");
@@ -114,7 +110,7 @@ describe("obsidian handler", () => {
       }
       const result = await handler.execute(
         { input: "create-note 'Existing Note'" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(false);
@@ -122,7 +118,11 @@ describe("obsidian handler", () => {
     });
 
     it("should return error without title", async () => {
-      const result = await handler.execute({ input: "create-note" }, {}, {});
+      const result = await handler.execute(
+        { input: "create-note" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
     });
   });
@@ -137,13 +137,17 @@ describe("obsidian handler", () => {
           .fn()
           .mockReturnValue({ mtime: new Date(), size: 100 });
       }
-      const result = await handler.execute({ input: "search test" }, {}, {});
+      const result = await handler.execute(
+        { input: "search test" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("search");
     });
 
     it("should return error for empty query", async () => {
-      const result = await handler.execute({ input: "search" }, {}, {});
+      const result = await handler.execute({ input: "search" }, context, {});
       expect(result.success).toBe(false);
     });
   });
@@ -157,7 +161,7 @@ describe("obsidian handler", () => {
             "---\ntags: [javascript, testing]\n---\n\n# Note\n\n#coding #javascript\n",
           );
       }
-      const result = await handler.execute({ input: "list-tags" }, {}, {});
+      const result = await handler.execute({ input: "list-tags" }, context, {});
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-tags");
       expect(result.result.tags.length).toBeGreaterThan(0);
@@ -168,7 +172,7 @@ describe("obsidian handler", () => {
     it("should list recent notes", async () => {
       const result = await handler.execute(
         { input: "list-recent --limit 5" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -179,7 +183,11 @@ describe("obsidian handler", () => {
 
   describe("execute() - link-notes", () => {
     it("should return error for missing source", async () => {
-      const result = await handler.execute({ input: "link-notes" }, {}, {});
+      const result = await handler.execute(
+        { input: "link-notes" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
     });
 
@@ -195,8 +203,8 @@ describe("obsidian handler", () => {
       }
       const result = await handler.execute(
         { input: "link-notes 'Source' 'Target'" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
@@ -207,7 +215,7 @@ describe("obsidian handler", () => {
     it("should return error for unknown action", async () => {
       const result = await handler.execute(
         { input: "delete-note test" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(false);

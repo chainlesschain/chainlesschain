@@ -10,6 +10,9 @@ const path = require("path");
 const os = require("os");
 const { spawnSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 function defaultManagedSkillsRoot() {
   let userDataPath = path.join(os.homedir(), ".chainlesschain");
@@ -80,6 +83,13 @@ module.exports = {
           return await handleOptimizeDescription(
             parsed.name,
             parsed.maxIterations,
+            {
+              ...requireBundledSkillEnvironmentBroker(
+                context,
+                "skill-creator",
+              ).snapshot(),
+              CHAINLESSCHAIN_QUIET: "1",
+            },
           );
         case "validate":
           return handleValidate(parsed.name);
@@ -162,7 +172,7 @@ function parseInput(input) {
  * Works when running inside `chainlesschain agent` or `chainlesschain skill run`.
  * Returns null on failure (non-CLI env, timeout, etc.).
  */
-function callLLM(prompt) {
+function callLLM(prompt, runtimeEnv) {
   try {
     const result = _deps.spawnSync(
       process.execPath,
@@ -171,7 +181,7 @@ function callLLM(prompt) {
         encoding: "utf-8",
         timeout: 60000,
         windowsHide: true,
-        env: { ...process.env, CHAINLESSCHAIN_QUIET: "1" },
+        env: runtimeEnv,
       },
     );
     if (result.error || result.status !== 0) {
@@ -189,7 +199,7 @@ function callLLM(prompt) {
  * Ask LLM to produce 20 eval queries for the skill.
  * Returns [{query, should_trigger}] or null on failure.
  */
-function generateEvalQueries(skillName, description) {
+function generateEvalQueries(skillName, description, runtimeEnv) {
   const prompt = `Generate exactly 20 realistic test queries to evaluate when to trigger a skill.
 
 Skill name: "${skillName}"
@@ -206,7 +216,7 @@ Rules:
 Format:
 [{"query":"...", "should_trigger":true}, ...]`;
 
-  const response = callLLM(prompt);
+  const response = callLLM(prompt, runtimeEnv);
   if (!response) {
     return null;
   }
@@ -233,7 +243,12 @@ Format:
  * Evaluate how well a description triggers (or doesn't) for each query.
  * Returns { score, correct, total, details }.
  */
-function evaluateDescriptionDetailed(skillName, description, queries) {
+function evaluateDescriptionDetailed(
+  skillName,
+  description,
+  queries,
+  runtimeEnv,
+) {
   const details = [];
   let correct = 0;
 
@@ -246,7 +261,7 @@ A user sends this request: "${q.query}"
 
 Would you invoke this skill to help? Answer with exactly YES or NO.`;
 
-    const response = callLLM(prompt);
+    const response = callLLM(prompt, runtimeEnv);
     const triggered = response ? /^\s*yes\b/i.test(response) : false;
     const isCorrect = triggered === q.should_trigger;
 
@@ -273,7 +288,12 @@ Would you invoke this skill to help? Answer with exactly YES or NO.`;
  * Ask LLM to rewrite the description to fix the given failures.
  * Returns the improved description string or null.
  */
-function improveDescription(skillName, currentDescription, failures) {
+function improveDescription(
+  skillName,
+  currentDescription,
+  failures,
+  runtimeEnv,
+) {
   const failureLines = failures
     .map((f) => {
       const expected = f.shouldTrigger
@@ -300,7 +320,7 @@ Guidelines:
 - Make it slightly "pushy" — prefer triggering over missing — but stay accurate
 - Return ONLY the new description text, no quotes, no explanation`;
 
-  const response = callLLM(prompt);
+  const response = callLLM(prompt, runtimeEnv);
   if (!response) {
     return null;
   }
@@ -311,7 +331,7 @@ Guidelines:
 
 // ─── Main Optimization Loop ───────────────────────────────────────────────────
 
-async function handleOptimizeDescription(name, maxIterations = 5) {
+async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
   if (!name) {
     return {
       success: false,
@@ -350,7 +370,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
   );
 
   // Step 1: Generate eval queries
-  const evalQueries = generateEvalQueries(name, originalDesc);
+  const evalQueries = generateEvalQueries(name, originalDesc, runtimeEnv);
   if (!evalQueries || evalQueries.length < 4) {
     return {
       success: false,
@@ -377,6 +397,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
     name,
     originalDesc,
     testSet,
+    runtimeEnv,
   );
   let bestDesc = originalDesc;
   let bestTestScore = baselineTestResult.score;
@@ -392,6 +413,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
       name,
       currentDesc,
       trainSet,
+      runtimeEnv,
     );
     const failures = trainResult.details.filter((d) => !d.correct);
 
@@ -401,6 +423,7 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
         name,
         currentDesc,
         testSet,
+        runtimeEnv,
       );
       iterations.push({
         iteration: i + 1,
@@ -417,13 +440,23 @@ async function handleOptimizeDescription(name, maxIterations = 5) {
       break;
     }
 
-    const improved = improveDescription(name, currentDesc, failures);
+    const improved = improveDescription(
+      name,
+      currentDesc,
+      failures,
+      runtimeEnv,
+    );
     if (!improved || improved === currentDesc) {
       logger.info("[SkillCreator] No improvement from LLM — stopping.");
       break;
     }
 
-    const testResult = evaluateDescriptionDetailed(name, improved, testSet);
+    const testResult = evaluateDescriptionDetailed(
+      name,
+      improved,
+      testSet,
+      runtimeEnv,
+    );
 
     iterations.push({
       iteration: i + 1,

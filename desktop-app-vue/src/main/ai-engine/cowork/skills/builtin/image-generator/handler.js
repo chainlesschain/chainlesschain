@@ -15,6 +15,9 @@ const {
 const {
   requireBundledSkillLocalServiceBroker,
 } = require("../../bundled-skill-local-service-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 // ── Size Presets ────────────────────────────────────────────────────
 
@@ -34,12 +37,11 @@ const PRESETS = {
 const AI_PROVIDERS = {
   "stable-diffusion": {
     name: "Stable Diffusion",
-    envKey: "SD_API_ENDPOINT",
-    defaultEndpoint: "http://localhost:7860",
+    authorityKey: "stable-diffusion-endpoint",
   },
   dalle: {
     name: "DALL-E",
-    envKey: "OPENAI_API_KEY",
+    authorityKey: "openai-api-key",
     endpoint: "https://api.openai.com/v1/images/generations",
   },
 };
@@ -85,24 +87,32 @@ function parseSize(sizeStr) {
   return null;
 }
 
-function getAvailableProviders() {
+function getAvailableProviders(context) {
+  const environment = requireBundledSkillEnvironmentBroker(
+    context,
+    "image-generator",
+  );
   const providers = [];
   for (const [key, config] of Object.entries(AI_PROVIDERS)) {
-    const envValue = process.env[config.envKey];
+    const configuredValue = environment.get(config.authorityKey);
     providers.push({
       id: key,
       name: config.name,
-      configured: !!envValue,
-      envKey: config.envKey,
-      endpoint: envValue || config.defaultEndpoint || config.endpoint,
+      configured: !!configuredValue,
+      authorityKey: config.authorityKey,
+      endpoint: config.endpoint || null,
     });
   }
   return providers;
 }
 
-function getDefaultProvider() {
+function getDefaultProvider(context) {
+  const environment = requireBundledSkillEnvironmentBroker(
+    context,
+    "image-generator",
+  );
   for (const [key, config] of Object.entries(AI_PROVIDERS)) {
-    if (process.env[config.envKey]) {
+    if (environment.has(config.authorityKey)) {
       return key;
     }
   }
@@ -260,13 +270,13 @@ async function handleGenerate(input, projectRoot, context) {
 
   const requestedProvider = providerMatch
     ? providerMatch[1].toLowerCase()
-    : getDefaultProvider();
+    : getDefaultProvider(context);
 
   if (!requestedProvider) {
-    const providers = getAvailableProviders();
+    const providers = getAvailableProviders(context);
     const configHints = providers
       .map(function (p) {
-        return "  - " + p.name + ": set " + p.envKey + " environment variable";
+        return "  - " + p.name + ": configure " + p.authorityKey;
       })
       .join("\n");
     return {
@@ -275,7 +285,7 @@ async function handleGenerate(input, projectRoot, context) {
       message:
         "No AI image provider configured.\n\nTo use image generation, configure one of:\n" +
         configHints +
-        "\n\nExample:\n  SD_API_ENDPOINT=http://localhost:7860\n  OPENAI_API_KEY=sk-...",
+        "\n\nProvider configuration must be approved by the trusted host.",
     };
   }
 
@@ -304,17 +314,18 @@ async function handleGenerate(input, projectRoot, context) {
     : path.join(projectRoot, "generated_" + safePromptName + ".png");
 
   const providerConfig = AI_PROVIDERS[requestedProvider];
-  const envValue = process.env[providerConfig.envKey];
+  const providerValue = requireBundledSkillEnvironmentBroker(
+    context,
+    "image-generator",
+  ).get(providerConfig.authorityKey);
 
-  if (!envValue) {
+  if (!providerValue) {
     return {
       success: false,
       error: providerConfig.name + " not configured",
       message:
         providerConfig.name +
-        " requires " +
-        providerConfig.envKey +
-        " to be set.\n\nSet it in your environment or .env file.",
+        " requires approved trusted-host provider configuration.",
     };
   }
 
@@ -322,7 +333,7 @@ async function handleGenerate(input, projectRoot, context) {
   if (requestedProvider === "stable-diffusion") {
     imageBuffer = await generateSD(prompt, size, context);
   } else if (requestedProvider === "dalle") {
-    imageBuffer = await generateDALLE(prompt, size, envValue, context);
+    imageBuffer = await generateDALLE(prompt, size, providerValue, context);
   }
 
   fs.writeFileSync(outputFile, imageBuffer);
@@ -481,13 +492,21 @@ function handlePresets() {
   };
 }
 
-function handleProviders() {
-  const providers = getAvailableProviders();
+function handleProviders(context) {
+  const providers = getAvailableProviders(context);
   const lines = providers
     .map(function (p) {
       const status = p.configured ? "configured" : "not configured";
       return (
-        "  " + p.name + " (" + p.id + "): " + status + " [" + p.envKey + "]"
+        "  " +
+        p.name +
+        " (" +
+        p.id +
+        "): " +
+        status +
+        " [" +
+        p.authorityKey +
+        "]"
       );
     })
     .join("\n");
@@ -500,7 +519,7 @@ function handleProviders() {
       "=".repeat(30) +
       "\n" +
       lines +
-      "\n\nConfigure via environment variables to enable generation.",
+      "\n\nConfigure through the trusted host to enable generation.",
   };
 }
 
@@ -550,7 +569,7 @@ module.exports = {
       }
 
       if (/--providers/i.test(input)) {
-        return handleProviders();
+        return handleProviders(context);
       }
 
       if (/--generate/i.test(input)) {

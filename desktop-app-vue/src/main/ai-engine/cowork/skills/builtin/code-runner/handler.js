@@ -11,6 +11,9 @@ const path = require("path");
 const os = require("os");
 const { pathToFileURL } = require("node:url");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 const PROCESS_BROKER_MODULE_REL =
   "../../../../../../../packages/cli/src/lib/process-execution-broker/index.js";
@@ -41,27 +44,6 @@ const CODE_RUNNER_SANDBOX_POLICY = Object.freeze({
   requiredBoundaries: Object.freeze(["filesystem", "network"]),
 });
 
-function minimalRuntimeEnv() {
-  const env = {};
-  for (const key of [
-    "PATH",
-    "Path",
-    "PATHEXT",
-    "SystemRoot",
-    "WINDIR",
-    "COMSPEC",
-    "HOME",
-    "USERPROFILE",
-    "TMP",
-    "TEMP",
-    "LANG",
-    "LC_ALL",
-  ]) {
-    if (process.env[key] != null) env[key] = process.env[key];
-  }
-  return env;
-}
-
 // ── Language configuration ───────────────────────────────────────
 
 const LANGUAGES = {
@@ -87,7 +69,7 @@ const MAX_OUTPUT_LENGTH = 5000;
 
 // ── Core execution ───────────────────────────────────────────────
 
-async function executeCode(command, args, timeout, cwd) {
+async function executeCode(command, args, timeout, cwd, runtimeEnv) {
   const broker = await _deps.loadProcessBroker();
   return new Promise((resolve, reject) => {
     const proc = broker.spawn(command, args, {
@@ -96,7 +78,7 @@ async function executeCode(command, args, timeout, cwd) {
       policy: "allow",
       cwd,
       timeout,
-      env: minimalRuntimeEnv(),
+      env: runtimeEnv,
       shell: false,
       sandboxPolicy: CODE_RUNNER_SANDBOX_POLICY,
       stdio: ["pipe", "pipe", "pipe"],
@@ -152,7 +134,7 @@ function detectLanguageFromExtension(filePath) {
 
 // ── Command availability check ───────────────────────────────────
 
-async function isCommandAvailable(command) {
+async function isCommandAvailable(command, runtimeEnv) {
   // Sanitize: only allow alphanumeric, dash, underscore, dot (prevent injection)
   if (!/^[\w.-]+$/.test(command)) {
     return false;
@@ -167,7 +149,7 @@ async function isCommandAvailable(command) {
       policy: "allow",
       encoding: "utf-8",
       timeout: 5000,
-      env: minimalRuntimeEnv(),
+      env: runtimeEnv,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return true;
@@ -290,7 +272,7 @@ function parseInput(input) {
 
 // ── Action handlers ──────────────────────────────────────────────
 
-async function handleRun(code, languageName, timeout, cwd) {
+async function handleRun(code, languageName, timeout, cwd, runtimeEnv) {
   const lang = resolveLanguage(languageName);
 
   if (!lang) {
@@ -302,7 +284,7 @@ async function handleRun(code, languageName, timeout, cwd) {
     };
   }
 
-  if (!(await isCommandAvailable(lang.command))) {
+  if (!(await isCommandAvailable(lang.command, runtimeEnv))) {
     return {
       success: false,
       error: "Runtime not found",
@@ -315,7 +297,13 @@ async function handleRun(code, languageName, timeout, cwd) {
 
   try {
     const startTime = Date.now();
-    const result = await executeCode(lang.command, [tempFile], timeout, cwd);
+    const result = await executeCode(
+      lang.command,
+      [tempFile],
+      timeout,
+      cwd,
+      runtimeEnv,
+    );
     const duration = Date.now() - startTime;
 
     const stdout = truncateOutput(result.stdout, MAX_OUTPUT_LENGTH);
@@ -353,7 +341,7 @@ async function handleRun(code, languageName, timeout, cwd) {
   }
 }
 
-async function handleFile(filePath, languageName, timeout, cwd) {
+async function handleFile(filePath, languageName, timeout, cwd, runtimeEnv) {
   // Resolve relative paths
   if (!path.isAbsolute(filePath)) {
     filePath = path.resolve(cwd, filePath);
@@ -396,7 +384,7 @@ async function handleFile(filePath, languageName, timeout, cwd) {
     };
   }
 
-  if (!(await isCommandAvailable(lang.command))) {
+  if (!(await isCommandAvailable(lang.command, runtimeEnv))) {
     return {
       success: false,
       error: "Runtime not found",
@@ -411,6 +399,7 @@ async function handleFile(filePath, languageName, timeout, cwd) {
       [filePath],
       timeout,
       path.dirname(filePath),
+      runtimeEnv,
     );
     const duration = Date.now() - startTime;
 
@@ -455,11 +444,11 @@ async function handleFile(filePath, languageName, timeout, cwd) {
   }
 }
 
-async function handleLanguages() {
+async function handleLanguages(runtimeEnv) {
   const results = [];
 
   for (const [name, config] of Object.entries(LANGUAGES)) {
-    const available = await isCommandAvailable(config.command);
+    const available = await isCommandAvailable(config.command, runtimeEnv);
     results.push({
       name,
       command: config.command,
@@ -541,6 +530,10 @@ module.exports = {
     const options = parseInput(input);
 
     try {
+      const runtimeEnv = requireBundledSkillEnvironmentBroker(
+        context,
+        "code-runner",
+      ).snapshot();
       switch (options.action) {
         case "run":
           if (!options.code) {
@@ -555,6 +548,7 @@ module.exports = {
             options.language || "javascript",
             options.timeout,
             projectRoot,
+            runtimeEnv,
           );
 
         case "file":
@@ -570,10 +564,11 @@ module.exports = {
             options.language,
             options.timeout,
             projectRoot,
+            runtimeEnv,
           );
 
         case "languages":
-          return await handleLanguages();
+          return await handleLanguages(runtimeEnv);
 
         default:
           return {

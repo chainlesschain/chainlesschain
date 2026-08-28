@@ -9,6 +9,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   createBundledSkillHttpsClient,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 const https = createBundledSkillHttpsClient("tavily-search");
 
 const TAVILY_BASE = "https://api.tavily.com";
@@ -370,10 +373,7 @@ module.exports = {
   _deps,
 
   async init(skill) {
-    const hasKey = !!process.env.TAVILY_API_KEY;
-    logger.info(
-      `[TavilySearch] Initialized (v2.0), API key ${hasKey ? "configured" : "NOT configured"}`,
-    );
+    logger.info("[TavilySearch] Initialized (v2.0)");
   },
 
   async execute(task, context = {}, skill) {
@@ -390,16 +390,18 @@ module.exports = {
       };
     }
 
-    const apiKey = process.env.TAVILY_API_KEY;
-    if (!apiKey) {
-      return {
-        success: false,
-        error:
-          "TAVILY_API_KEY not configured. Set it in environment variables.",
-      };
-    }
-
     try {
+      const apiKey = requireBundledSkillEnvironmentBroker(
+        context,
+        "tavily-search",
+      ).get("tavily-api-key");
+      if (!apiKey) {
+        return {
+          success: false,
+          error:
+            "Tavily credential is unavailable from the trusted host SecretStore.",
+        };
+      }
       switch (mode) {
         case "extract":
           return await handleExtract(apiKey, query, options);

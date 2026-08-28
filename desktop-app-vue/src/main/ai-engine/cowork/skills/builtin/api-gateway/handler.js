@@ -7,35 +7,62 @@ const path = require("path");
 const {
   requireBundledSkillRuntimeNetworkBroker,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 const _deps = { fs, path };
 
-const CONFIG_DIR = path.join(
-  process.env.APPDATA || process.env.HOME || ".",
-  ".chainlesschain",
-);
-const REGISTRY_FILE = path.join(CONFIG_DIR, "api-gateway-registry.json");
+const registryCache = new Map();
 
-let registry = {};
+function resolveRegistryLocation(context) {
+  const environment = requireBundledSkillEnvironmentBroker(
+    context,
+    "api-gateway",
+  );
+  const configDir = environment.get("config-directory");
+  if (!configDir) {
+    throw new Error(
+      "API Gateway config directory is unavailable from trusted host configuration",
+    );
+  }
+  return {
+    configDir,
+    registryFile: _deps.path.join(configDir, "api-gateway-registry.json"),
+  };
+}
 
-function loadRegistry() {
+function loadRegistry(location) {
+  let registry = {};
   try {
-    if (_deps.fs.existsSync(REGISTRY_FILE)) {
-      registry = JSON.parse(_deps.fs.readFileSync(REGISTRY_FILE, "utf-8"));
+    if (_deps.fs.existsSync(location.registryFile)) {
+      registry = JSON.parse(
+        _deps.fs.readFileSync(location.registryFile, "utf-8"),
+      );
     }
   } catch (_err) {
     logger.warn("[APIGateway] Could not load registry, starting fresh");
-    registry = {};
   }
+  registryCache.set(location.registryFile, registry);
+  return registry;
 }
 
-function saveRegistry() {
+function ensureRegistry(context) {
+  const location = resolveRegistryLocation(context);
+  const registry = registryCache.has(location.registryFile)
+    ? registryCache.get(location.registryFile)
+    : loadRegistry(location);
+  return { location, registry };
+}
+
+function saveRegistry(state) {
+  const { location, registry } = state;
   try {
-    if (!_deps.fs.existsSync(CONFIG_DIR)) {
-      _deps.fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    if (!_deps.fs.existsSync(location.configDir)) {
+      _deps.fs.mkdirSync(location.configDir, { recursive: true });
     }
     _deps.fs.writeFileSync(
-      REGISTRY_FILE,
+      location.registryFile,
       JSON.stringify(registry, null, 2),
       "utf-8",
     );
@@ -45,14 +72,13 @@ function saveRegistry() {
 }
 
 function _resetState() {
-  registry = {};
+  registryCache.clear();
 }
 
 module.exports = {
   _deps,
   _resetState,
   async init(skill) {
-    loadRegistry();
     logger.info("[APIGateway] Initialized");
   },
 
@@ -62,24 +88,30 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "call":
+        case "call": {
+          const { registry } = ensureRegistry(context);
           return await handleCall(
             parsed.method,
             parsed.url,
             parsed.options,
             context,
+            registry,
           );
+        }
         case "register":
           return handleRegister(
             parsed.name,
             parsed.method,
             parsed.url,
             parsed.options,
+            context,
           );
         case "list":
-          return handleList(parsed.options);
-        case "chain":
-          return await handleChain(parsed.chainSteps, context);
+          return handleList(parsed.options, context);
+        case "chain": {
+          const { registry } = ensureRegistry(context);
+          return await handleChain(parsed.chainSteps, context, registry);
+        }
         default:
           return {
             success: false,
@@ -170,7 +202,7 @@ function parseInput(input) {
   };
 }
 
-async function handleCall(method, url, options, context) {
+async function handleCall(method, url, options, context, registry) {
   if (!url) {
     return {
       success: false,
@@ -232,7 +264,7 @@ async function handleCall(method, url, options, context) {
   };
 }
 
-function handleRegister(name, method, url, options) {
+function handleRegister(name, method, url, options, context) {
   if (!name || name === "GET" || name === "POST") {
     return {
       success: false,
@@ -246,7 +278,8 @@ function handleRegister(name, method, url, options) {
     };
   }
 
-  loadRegistry();
+  const state = ensureRegistry(context);
+  const { registry } = state;
   registry[name] = {
     method: method || "GET",
     url,
@@ -254,7 +287,7 @@ function handleRegister(name, method, url, options) {
     description: options.description || "",
     registered: new Date().toISOString(),
   };
-  saveRegistry();
+  saveRegistry(state);
 
   return {
     success: true,
@@ -264,8 +297,8 @@ function handleRegister(name, method, url, options) {
   };
 }
 
-function handleList(options) {
-  loadRegistry();
+function handleList(options, context) {
+  const { registry } = ensureRegistry(context);
   let entries = Object.entries(registry).map(([name, config]) => ({
     name,
     method: config.method,
@@ -291,7 +324,7 @@ function handleList(options) {
   };
 }
 
-async function handleChain(chainSteps, context) {
+async function handleChain(chainSteps, context, registry) {
   if (!chainSteps.length) {
     return {
       success: false,
@@ -300,7 +333,6 @@ async function handleChain(chainSteps, context) {
     };
   }
 
-  loadRegistry();
   const results = [];
   let previousData = {};
 

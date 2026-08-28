@@ -2,8 +2,9 @@
  * Unit tests for google-workspace skill handler (v1.2.0)
  * Uses _deps injection for https mocking
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -30,39 +31,30 @@ function mockGoogleRequest(statusCode, body) {
 }
 
 describe("google-workspace handler", () => {
-  const savedEnv = {};
+  const apiKeyContext = createEnvironmentContext("google-workspace", {
+    "google-api-key": "test-api-key-123",
+  });
+  const oauthContext = createEnvironmentContext("google-workspace", {
+    "google-client-id": "id",
+    "google-client-secret": "secret",
+    "google-refresh-token": "refresh",
+    "google-access-token": "test-token",
+  });
+  const missingContext = createEnvironmentContext("google-workspace");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    savedEnv.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    savedEnv.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-    savedEnv.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    savedEnv.GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-    savedEnv.GOOGLE_ACCESS_TOKEN = process.env.GOOGLE_ACCESS_TOKEN;
-
-    process.env.GOOGLE_API_KEY = "test-api-key-123";
-    delete process.env.GOOGLE_CLIENT_ID;
-    delete process.env.GOOGLE_CLIENT_SECRET;
-    delete process.env.GOOGLE_REFRESH_TOKEN;
-    delete process.env.GOOGLE_ACCESS_TOKEN;
-  });
-
-  afterEach(() => {
-    for (const [key, val] of Object.entries(savedEnv)) {
-      if (val !== undefined) {
-        process.env[key] = val;
-      } else {
-        delete process.env[key];
-      }
-    }
   });
 
   describe("execute() - no credentials", () => {
     it("should return error without credentials", async () => {
-      delete process.env.GOOGLE_API_KEY;
-      const result = await handler.execute({ input: "calendar-list" }, {}, {});
+      const result = await handler.execute(
+        { input: "calendar-list" },
+        missingContext,
+        {},
+      );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("credentials not configured");
+      expect(result.error).toContain("SecretStore");
     });
   });
 
@@ -84,7 +76,11 @@ describe("google-workspace handler", () => {
           }),
         };
       }
-      const result = await handler.execute({ input: "calendar-list" }, {}, {});
+      const result = await handler.execute(
+        { input: "calendar-list" },
+        apiKeyContext,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("calendar-list");
       expect(result.results.length).toBeGreaterThan(0);
@@ -129,8 +125,8 @@ describe("google-workspace handler", () => {
       }
       const result = await handler.execute(
         { input: "gmail-search test query" },
-        {},
-        {},
+        apiKeyContext,
+        apiKeyContext,
       );
       expect(result.success).toBe(true);
       expect(result.action).toBe("gmail-search");
@@ -145,18 +141,13 @@ describe("google-workspace handler", () => {
       // API key mode cannot send email
       const result = await handler.execute(
         { input: "gmail-send to:test@test.com subject:Hello body:World" },
-        {},
+        apiKeyContext,
         {},
       );
       expect(result.success).toBe(false);
     });
 
     it("should return error without recipient", async () => {
-      process.env.GOOGLE_ACCESS_TOKEN = "test-token";
-      delete process.env.GOOGLE_API_KEY;
-      process.env.GOOGLE_CLIENT_ID = "id";
-      process.env.GOOGLE_CLIENT_SECRET = "secret";
-      process.env.GOOGLE_REFRESH_TOKEN = "refresh";
       if (handler._deps) {
         handler._deps.https = {
           request: mockGoogleRequest(200, { access_token: "tok" }),
@@ -164,7 +155,7 @@ describe("google-workspace handler", () => {
       }
       const result = await handler.execute(
         { input: "gmail-send subject:Hello" },
-        {},
+        oauthContext,
         {},
       );
       expect(result.success).toBe(false);
@@ -189,7 +180,11 @@ describe("google-workspace handler", () => {
           }),
         };
       }
-      const result = await handler.execute({ input: "drive-list" }, {}, {});
+      const result = await handler.execute(
+        { input: "drive-list" },
+        apiKeyContext,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("drive-list");
     });
@@ -200,8 +195,8 @@ describe("google-workspace handler", () => {
       // API key mode
       const result = await handler.execute(
         { input: "calendar-create 'Team Meeting' 2026-03-07T10:00" },
-        {},
-        {},
+        apiKeyContext,
+        apiKeyContext,
       );
       expect(result.success).toBe(false);
     });
@@ -211,7 +206,7 @@ describe("google-workspace handler", () => {
     it("should return error for unknown action", async () => {
       const result = await handler.execute(
         { input: "sheets-read data" },
-        {},
+        apiKeyContext,
         {},
       );
       expect(result.success).toBe(false);

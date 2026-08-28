@@ -7,12 +7,19 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createEnvironmentContext } from "../skills/__tests__/helpers/bundled-skill-environment.js";
 
 vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
 const handler = require("../skills/builtin/self-improving-agent/handler.js");
+const rawExecute = handler.execute.bind(handler);
+const environmentContext = createEnvironmentContext("self-improving-agent", {
+  "data-directory": "/mock/self-improving",
+});
+handler.execute = (task, context = {}, skill) =>
+  rawExecute(task, { ...environmentContext, ...context }, skill);
 
 describe("SelfImprovingAgent Handler", () => {
   beforeEach(() => {

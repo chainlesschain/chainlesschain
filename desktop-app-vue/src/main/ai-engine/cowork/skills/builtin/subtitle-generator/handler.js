@@ -7,6 +7,9 @@
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 // ── SRT/VTT Parsing ─────────────────────────────────
 
@@ -361,12 +364,15 @@ module.exports = {
         const targetFormat = formatMatch ? formatMatch[1] : "srt";
 
         // Check if transcription is available
-        const hasWhisper = !!process.env.OPENAI_API_KEY;
+        const hasWhisper = requireBundledSkillEnvironmentBroker(
+          context,
+          "subtitle-generator",
+        ).has("openai-api-key");
         if (!hasWhisper) {
           return {
             success: true,
             result: { file: path.basename(filePath), needsTranscription: true },
-            message: `## Subtitle Generation\n\n**File**: ${path.basename(filePath)}\n**Target format**: ${targetFormat.toUpperCase()}\n\n⚠️ Transcription provider not configured.\n\n### Setup\n1. Set \`OPENAI_API_KEY\` for Whisper API\n2. Or install local whisper\n\nOnce configured, re-run to generate subtitles automatically.`,
+            message: `## Subtitle Generation\n\n**File**: ${path.basename(filePath)}\n**Target format**: ${targetFormat.toUpperCase()}\n\n⚠️ Transcription provider not configured.\n\n### Setup\n1. Configure an OpenAI credential in the trusted host SecretStore\n2. Or install local whisper\n\nOnce configured, re-run to generate subtitles automatically.`,
           };
         }
 

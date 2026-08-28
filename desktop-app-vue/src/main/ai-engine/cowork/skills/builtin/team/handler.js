@@ -19,6 +19,9 @@ const {
 const {
   desktopGraphAuthorityMode,
 } = require("../../../../code-agent/desktop-runtime-authority.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 // All side-effect entry points go through `_deps` so tests can inject fakes.
 // `SubRuntimePoolCtor` defaults to the real pool; unit tests override it with
@@ -27,12 +30,15 @@ const _deps = {
   SessionStateManager,
   runHook,
   SubRuntimePoolCtor: SubRuntimePool,
-  graphAuthorityMode: ({ runKey, optIn = false } = {}) =>
-    desktopGraphAuthorityMode(process.env, {
-      entryId: "desktop-team",
-      runKey,
-      optIn,
-    }),
+  graphAuthorityMode: ({ runKey, optIn = false, context } = {}) =>
+    desktopGraphAuthorityMode(
+      requireBundledSkillEnvironmentBroker(context, "team").snapshot(),
+      {
+        entryId: "desktop-team",
+        runKey,
+        optIn,
+      },
+    ),
 };
 
 const VALID_ROLES = new Set([
@@ -419,6 +425,7 @@ module.exports = {
       graphAuthority?.authorityMode ||
       _deps.graphAuthorityMode({
         runKey: graphRunId,
+        context,
         optIn:
           task?.params?.graphCanaryOptIn === true ||
           task?.params?.graphCanaryOptIn === "true",

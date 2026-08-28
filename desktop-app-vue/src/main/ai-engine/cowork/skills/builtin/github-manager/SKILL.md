@@ -7,7 +7,7 @@ category: development
 user-invocable: true
 tags: [github, issues, pull-requests, repositories, workflows, ci-cd, git]
 capabilities: [issue-management, pr-management, repo-info, workflow-management]
-execution-capabilities: [data:result, data:task, environment:read, host:logger, host:network, network:http, runtime:time]
+execution-capabilities: [data:result, data:task, host:environment, host:logger, host:network, network:http, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [github-issues, github-prs, github-repo, github-workflows]

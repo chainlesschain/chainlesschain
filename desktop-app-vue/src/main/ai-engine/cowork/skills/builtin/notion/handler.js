@@ -5,6 +5,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   createBundledSkillHttpsClient,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 const https = createBundledSkillHttpsClient("notion");
 
 const _deps = { https };
@@ -22,16 +25,18 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    const apiKey = process.env.NOTION_API_KEY || context.notionApiKey || "";
-    if (!apiKey) {
-      return {
-        success: false,
-        error:
-          "NOTION_API_KEY environment variable is not set. Get your integration token at https://www.notion.so/my-integrations",
-      };
-    }
-
     try {
+      const apiKey = requireBundledSkillEnvironmentBroker(
+        context,
+        "notion",
+      ).get("notion-api-key");
+      if (!apiKey) {
+        return {
+          success: false,
+          error:
+            "Notion credential is unavailable from the trusted host SecretStore.",
+        };
+      }
       switch (parsed.action) {
         case "search":
           return await handleSearch(apiKey, parsed.query);

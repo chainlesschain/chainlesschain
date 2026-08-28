@@ -9,7 +9,6 @@ const {
   requireBundledSkillLocalServiceBroker,
 } = require("../../bundled-skill-local-service-broker.js");
 
-const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
 const HF_API = "https://huggingface.co/api";
 
 // Well-known free models catalog for search enrichment
@@ -199,7 +198,7 @@ async function handleListLocal(context) {
   } catch (err) {
     return {
       success: false,
-      error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}`,
+      error: `Cannot connect to Ollama through the approved local service. Is Ollama running? Error: ${err.message}`,
     };
   }
 
@@ -242,7 +241,7 @@ async function handlePull(modelName, context) {
   } catch (err) {
     return {
       success: false,
-      error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}`,
+      error: `Cannot connect to Ollama through the approved local service. Is Ollama running? Error: ${err.message}`,
     };
   }
 

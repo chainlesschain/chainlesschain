@@ -3,6 +3,7 @@
  * Uses https module for Tavily API - test without network
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -11,28 +12,24 @@ vi.mock("../../../../utils/logger.js", () => ({
 const handler = require("../builtin/tavily-search/handler.js");
 
 describe("tavily-search handler", () => {
-  const originalEnv = process.env.TAVILY_API_KEY;
+  const context = createEnvironmentContext("tavily-search", {
+    "tavily-api-key": "tvly-test-key-for-unit-tests",
+  });
+  const missingContext = createEnvironmentContext("tavily-search");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set a fake API key for testing
-    process.env.TAVILY_API_KEY = "tvly-test-key-for-unit-tests";
-  });
-
-  afterAll(() => {
-    if (originalEnv) {
-      process.env.TAVILY_API_KEY = originalEnv;
-    } else {
-      delete process.env.TAVILY_API_KEY;
-    }
+    handler._deps.fetchJSON = vi
+      .fn()
+      .mockRejectedValue(new Error("network disabled in unit tests"));
   });
 
   describe("execute() - search mode", () => {
     it("should attempt search (will fail without real API)", async () => {
       const result = await handler.execute(
         { input: "search What is quantum computing?" },
-        {},
-        {},
+        context,
+        context,
       );
       // Will fail without real API key/network, but should not throw
       expect(result).toBeDefined();
@@ -41,7 +38,7 @@ describe("tavily-search handler", () => {
     it("should default to search mode when no mode specified", async () => {
       const result = await handler.execute(
         { input: "What is the latest in AI?" },
-        {},
+        context,
         {},
       );
       expect(result).toBeDefined();
@@ -52,7 +49,7 @@ describe("tavily-search handler", () => {
     it("should attempt URL extraction (will fail without real API)", async () => {
       const result = await handler.execute(
         { input: "extract https://example.com" },
-        {},
+        context,
         {},
       );
       expect(result).toBeDefined();
@@ -71,10 +68,9 @@ describe("tavily-search handler", () => {
     });
 
     it("should report missing API key", async () => {
-      delete process.env.TAVILY_API_KEY;
       const result = await handler.execute(
         { input: "search test query" },
-        {},
+        missingContext,
         {},
       );
       // Should indicate API key is missing

@@ -9,6 +9,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 const { logger } = vi.hoisted(() => ({
   logger: {
@@ -66,36 +67,31 @@ function createTransport(body, statusCode = 200) {
 
 describe("specialized bundled Skill network paths", () => {
   let temporaryDirectory;
-  let originalOpenAiKey;
-  let originalSdEndpoint;
+  const audioEnvironment = createEnvironmentContext("audio-transcriber", {
+    "openai-api-key": "test-openai-secret",
+  });
+  const dalleEnvironment = createEnvironmentContext("image-generator", {
+    "openai-api-key": "test-openai-secret",
+  });
+  const stableDiffusionEnvironment = createEnvironmentContext(
+    "image-generator",
+    { "stable-diffusion-endpoint": "http://localhost:7860" },
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();
     temporaryDirectory = mkdtempSync(
       path.join(os.tmpdir(), "cc-specialized-network-"),
     );
-    originalOpenAiKey = process.env.OPENAI_API_KEY;
-    originalSdEndpoint = process.env.SD_API_ENDPOINT;
   });
 
   afterEach(() => {
-    if (originalOpenAiKey == null) {
-      delete process.env.OPENAI_API_KEY;
-    } else {
-      process.env.OPENAI_API_KEY = originalOpenAiKey;
-    }
-    if (originalSdEndpoint == null) {
-      delete process.env.SD_API_ENDPOINT;
-    } else {
-      process.env.SD_API_ENDPOINT = originalSdEndpoint;
-    }
     if (temporaryDirectory && existsSync(temporaryDirectory)) {
       rmSync(temporaryDirectory, { recursive: true, force: true });
     }
   });
 
   it("uploads Whisper multipart data through the fixed OpenAI broker", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-secret";
     const audioPath = path.join(temporaryDirectory, "sample.wav");
     writeFileSync(audioPath, Buffer.from("test-audio"));
     const { calls, transport: https } = createTransport({
@@ -112,7 +108,7 @@ describe("specialized bundled Skill network paths", () => {
 
     const result = await audioHandler.execute(
       { input: `--transcribe ${audioPath} --language en` },
-      { networkBroker, projectRoot: temporaryDirectory },
+      { ...audioEnvironment, networkBroker, projectRoot: temporaryDirectory },
       {},
     );
 
@@ -133,14 +129,17 @@ describe("specialized bundled Skill network paths", () => {
   });
 
   it("rejects a plain object pretending to be the Whisper broker", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-secret";
     const audioPath = path.join(temporaryDirectory, "sample.wav");
     writeFileSync(audioPath, Buffer.from("test-audio"));
     const request = vi.fn();
 
     const result = await audioHandler.execute(
       { input: `--transcribe ${audioPath}` },
-      { networkBroker: { request }, projectRoot: temporaryDirectory },
+      {
+        ...audioEnvironment,
+        networkBroker: { request },
+        projectRoot: temporaryDirectory,
+      },
       {},
     );
 
@@ -150,7 +149,6 @@ describe("specialized bundled Skill network paths", () => {
   });
 
   it("generates DALL-E output through the fixed OpenAI broker", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-secret";
     const outputPath = path.join(temporaryDirectory, "dalle.png");
     const { calls, transport: https } = createTransport({
       data: [{ b64_json: Buffer.from("dalle-image").toString("base64") }],
@@ -164,7 +162,7 @@ describe("specialized bundled Skill network paths", () => {
       {
         input: `--generate "sunset" --provider dalle --output ${outputPath}`,
       },
-      { networkBroker, projectRoot: temporaryDirectory },
+      { ...dalleEnvironment, networkBroker, projectRoot: temporaryDirectory },
       {},
     );
 
@@ -178,7 +176,6 @@ describe("specialized bundled Skill network paths", () => {
   });
 
   it("pins Stable Diffusion generation to the approved loopback service", async () => {
-    process.env.SD_API_ENDPOINT = "http://localhost:7860";
     const outputPath = path.join(temporaryDirectory, "sd.png");
     const { calls, transport: http } = createTransport({
       images: [Buffer.from("sd-image").toString("base64")],
@@ -197,7 +194,11 @@ describe("specialized bundled Skill network paths", () => {
       {
         input: `--generate "sunset" --provider stable-diffusion --output ${outputPath}`,
       },
-      { localServiceBroker, projectRoot: temporaryDirectory },
+      {
+        ...stableDiffusionEnvironment,
+        localServiceBroker,
+        projectRoot: temporaryDirectory,
+      },
       {},
     );
 

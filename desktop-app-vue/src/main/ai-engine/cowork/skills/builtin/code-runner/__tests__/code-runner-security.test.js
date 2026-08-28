@@ -3,10 +3,14 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createEnvironmentContext } from "../../../__tests__/helpers/bundled-skill-environment.js";
 
 const handler = require("../handler.js");
 const originalLoader = handler._deps.loadProcessBroker;
 const temporaryRoots = [];
+const environmentContext = createEnvironmentContext("code-runner", {
+  PATH: "test-runtime-path",
+});
 
 function childThatCompletes(stdout = "ok") {
   const child = new EventEmitter();
@@ -42,7 +46,7 @@ describe("Code Runner security boundary", () => {
     try {
       const result = await handler.execute(
         { input: '--run "console.log(1)" --lang javascript' },
-        { workspaceRoot: process.cwd() },
+        { ...environmentContext, workspaceRoot: process.cwd() },
       );
       expect(result.success).toBe(true);
       expect(broker.spawn).toHaveBeenCalledOnce();
@@ -82,7 +86,7 @@ describe("Code Runner security boundary", () => {
 
     const result = await handler.execute(
       { input: `--file ${outside} --lang javascript` },
-      { workspaceRoot: workspace },
+      { ...environmentContext, workspaceRoot: workspace },
     );
     expect(result).toMatchObject({
       success: false,

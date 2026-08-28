@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 // ─── Mock logger (必须在 require 之前) ────────────────────────────────────────
 vi.mock("../../../../utils/logger.js", () => ({
@@ -28,6 +29,12 @@ vi.mock("../../../../utils/logger.js", () => ({
 
 // ─── Load handler ─────────────────────────────────────────────────────────────
 const handler = require("../builtin/skill-creator/handler.js");
+const rawExecute = handler.execute.bind(handler);
+const environmentContext = createEnvironmentContext("skill-creator", {
+  PATH: "test-runtime-path",
+});
+handler.execute = (task, context = {}, skill) =>
+  rawExecute(task, { ...environmentContext, ...context }, skill);
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);

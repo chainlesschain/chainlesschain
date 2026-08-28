@@ -7,7 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [obsidian, notes, markdown, vault, knowledge, tags, links, zettelkasten]
 capabilities: [note-creation, content-search, tag-management, note-linking, recent-notes]
-execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:logger, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:environment, host:logger, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [obsidian-create, obsidian-search, obsidian-tags, obsidian-link, obsidian-recent]

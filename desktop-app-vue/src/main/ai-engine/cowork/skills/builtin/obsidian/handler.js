@@ -4,6 +4,9 @@
 const { logger } = require("../../../../../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 const _deps = { fs, path };
 
@@ -17,16 +20,15 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    const vaultPath = resolveVaultPath(context);
-    if (!vaultPath) {
-      return {
-        success: false,
-        error:
-          "Obsidian vault not found. Set OBSIDIAN_VAULT_PATH environment variable or ensure vault exists in a standard location.",
-      };
-    }
-
     try {
+      const vaultPath = resolveVaultPath(context);
+      if (!vaultPath) {
+        return {
+          success: false,
+          error:
+            "The approved Obsidian vault directory is unavailable or does not exist.",
+        };
+      }
       switch (parsed.action) {
         case "create-note":
           return handleCreateNote(vaultPath, parsed.title, parsed.options);
@@ -99,56 +101,11 @@ function parseInput(input) {
 }
 
 function resolveVaultPath(context) {
-  // 1. Explicit env var
-  const envPath = process.env.OBSIDIAN_VAULT_PATH || context.obsidianVaultPath;
-  if (envPath && _deps.fs.existsSync(envPath)) {
-    return envPath;
-  }
-
-  // 2. Common locations
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  const candidates = [
-    _deps.path.join(home, "Documents", "Obsidian"),
-    _deps.path.join(home, "Documents", "Obsidian Vault"),
-    _deps.path.join(home, "Obsidian"),
-    _deps.path.join(home, "obsidian-vault"),
-    _deps.path.join(home, "Notes"),
-    _deps.path.join(home, "Documents", "Notes"),
-  ];
-
-  // Check for .obsidian folder (confirms it's an Obsidian vault)
-  for (const candidate of candidates) {
-    if (_deps.fs.existsSync(candidate)) {
-      if (_deps.fs.existsSync(_deps.path.join(candidate, ".obsidian"))) {
-        return candidate;
-      }
-      // Check subdirectories for .obsidian
-      try {
-        const entries = _deps.fs.readdirSync(candidate, {
-          withFileTypes: true,
-        });
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const sub = _deps.path.join(candidate, entry.name);
-            if (_deps.fs.existsSync(_deps.path.join(sub, ".obsidian"))) {
-              return sub;
-            }
-          }
-        }
-      } catch {
-        /* skip */
-      }
-    }
-  }
-
-  // 3. Fall back to any directory with .md files in common locations
-  for (const candidate of candidates) {
-    if (_deps.fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
+  const vaultPath = requireBundledSkillEnvironmentBroker(
+    context,
+    "obsidian",
+  ).get("vault-directory");
+  return vaultPath && _deps.fs.existsSync(vaultPath) ? vaultPath : null;
 }
 
 function handleCreateNote(vaultPath, title, options) {

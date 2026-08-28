@@ -27,6 +27,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import path from "path";
 import fs from "fs";
+import { createEnvironmentContext } from "../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-environment.js";
 
 // Mock logger
 vi.mock("../../../src/main/utils/logger.js", () => ({
@@ -1713,7 +1714,10 @@ describe("Skill Handlers", () => {
     });
 
     it("should list providers", async () => {
-      const result = await handler.execute({ input: "--providers" }, {});
+      const result = await handler.execute(
+        { input: "--providers" },
+        createEnvironmentContext("audio-transcriber"),
+      );
       expect(result.success).toBe(true);
       expect(result.result.providers).toBeDefined();
     });
@@ -2053,7 +2057,15 @@ describe("Skill Handlers", () => {
     });
 
     it("should list supported languages", async () => {
-      const result = await handler.execute({ input: "--languages" }, {});
+      const result = await handler.execute(
+        { input: "--languages" },
+        createEnvironmentContext("code-runner", {
+          PATH: process.env.PATH || "",
+          Path: process.env.Path || "",
+          PATHEXT: process.env.PATHEXT || "",
+          SystemRoot: process.env.SystemRoot || "",
+        }),
+      );
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
     });

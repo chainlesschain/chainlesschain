@@ -7,7 +7,7 @@ category: system
 user-invocable: true
 tags: [ai, models, ollama, huggingface, llm, open-source, download, management]
 capabilities: [model-listing, model-pulling, model-search, model-info, model-removal]
-execution-capabilities: [data:result, data:task, environment:read, host:logger, host:network, network:http]
+execution-capabilities: [data:result, data:task, host:logger, host:network, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [model-list, model-pull, model-search, model-info, model-remove]

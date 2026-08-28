@@ -100,6 +100,7 @@ const GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS = [
 const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-environment-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-local-service-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-network-diagnostics-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-specialized-network.test.js",
@@ -124,11 +125,16 @@ const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-weather.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-youtube-summarizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-api-gateway.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-obsidian.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-self-improving-agent.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-summarizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-ultrathink.test.js",
+  "src/main/ai-engine/cowork/skills/builtin/code-runner/__tests__/code-runner-security.test.js",
+  "src/main/ai-engine/cowork/__tests__/self-improving-agent-handler.test.js",
+  "src/main/ai-engine/cowork/__tests__/workflow-skills.test.js",
   "tests/unit/ai-engine/skill-handlers.test.js",
   "tests/unit/ai-engine/color-picker-handler.test.js",
   "tests/unit/ai-engine/humanizer-handler.test.js",
@@ -209,6 +215,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/main/ai-engine/cowork/skills/bundled-skill-egress-broker.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/bundled-skill-environment-broker.js",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [

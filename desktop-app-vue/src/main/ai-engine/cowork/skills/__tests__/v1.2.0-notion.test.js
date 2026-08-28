@@ -2,8 +2,9 @@
  * Unit tests for notion skill handler (v1.2.0)
  * Uses _deps injection for https mocking
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -31,27 +32,24 @@ function mockNotionRequest(statusCode, body) {
 }
 
 describe("notion handler", () => {
-  const originalKey = process.env.NOTION_API_KEY;
+  const context = createEnvironmentContext("notion", {
+    "notion-api-key": "ntn_test_key_123",
+  });
+  const missingContext = createEnvironmentContext("notion");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NOTION_API_KEY = "ntn_test_key_123";
-  });
-
-  afterEach(() => {
-    if (originalKey) {
-      process.env.NOTION_API_KEY = originalKey;
-    } else {
-      delete process.env.NOTION_API_KEY;
-    }
   });
 
   describe("execute() - no API key", () => {
     it("should return error without API key", async () => {
-      delete process.env.NOTION_API_KEY;
-      const result = await handler.execute({ input: "search test" }, {}, {});
+      const result = await handler.execute(
+        { input: "search test" },
+        missingContext,
+        {},
+      );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("NOTION_API_KEY");
+      expect(result.error).toContain("SecretStore");
     });
   });
 
@@ -75,7 +73,7 @@ describe("notion handler", () => {
       }
       const result = await handler.execute(
         { input: "search test query" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -84,7 +82,7 @@ describe("notion handler", () => {
     });
 
     it("should return error for empty query", async () => {
-      const result = await handler.execute({ input: "search" }, {}, {});
+      const result = await handler.execute({ input: "search" }, context, {});
       expect(result.success).toBe(false);
     });
   });
@@ -124,7 +122,7 @@ describe("notion handler", () => {
       }
       const result = await handler.execute(
         { input: "create-page 'My New Page'" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -132,7 +130,11 @@ describe("notion handler", () => {
     });
 
     it("should return error without title", async () => {
-      const result = await handler.execute({ input: "create-page" }, {}, {});
+      const result = await handler.execute(
+        { input: "create-page" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
     });
   });
@@ -184,7 +186,7 @@ describe("notion handler", () => {
       }
       const result = await handler.execute(
         { input: "get-page page-1" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -193,7 +195,7 @@ describe("notion handler", () => {
     });
 
     it("should return error without page ID", async () => {
-      const result = await handler.execute({ input: "get-page" }, {}, {});
+      const result = await handler.execute({ input: "get-page" }, context, {});
       expect(result.success).toBe(false);
     });
   });
@@ -219,7 +221,7 @@ describe("notion handler", () => {
       }
       const result = await handler.execute(
         { input: "query-db db-id-123" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -228,7 +230,7 @@ describe("notion handler", () => {
     });
 
     it("should return error without database ID", async () => {
-      const result = await handler.execute({ input: "query-db" }, {}, {});
+      const result = await handler.execute({ input: "query-db" }, context, {});
       expect(result.success).toBe(false);
     });
   });
@@ -237,7 +239,7 @@ describe("notion handler", () => {
     it("should return error for unknown action", async () => {
       const result = await handler.execute(
         { input: "delete-page abc" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(false);

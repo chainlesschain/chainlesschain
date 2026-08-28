@@ -7,7 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [search, web, tavily, rag, realtime, extract, internet]
 capabilities: [web-search, content-extraction, url-fetch, realtime-search]
-execution-capabilities: [data:result, data:task, environment:read, host:logger, host:network, network:http]
+execution-capabilities: [data:result, data:task, host:environment, host:logger, host:network, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [tavily-search, tavily-extract, web-search, url-extract]

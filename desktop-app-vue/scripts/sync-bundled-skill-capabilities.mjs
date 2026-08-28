@@ -237,6 +237,9 @@ function classifyInternalModule(moduleName) {
   if (normalized.includes("bundled-skill-network-diagnostics-broker")) {
     return ["host:network", "network:socket", "process:execute"];
   }
+  if (normalized.includes("bundled-skill-environment-broker")) {
+    return ["host:environment"];
+  }
   if (normalized.includes("/browser/")) return ["host:browser"];
   if (normalized.includes("/code-agent/")) return ["host:code-agent"];
   if (normalized.includes("/crypto/")) return ["host:cryptography"];

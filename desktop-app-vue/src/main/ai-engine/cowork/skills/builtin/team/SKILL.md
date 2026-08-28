@@ -8,7 +8,7 @@ user-invocable: true
 tags: [workflow, parallel, team, cowork]
 capabilities: [task-splitting, parallel-coordination]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, environment:read, host:code-agent, host:logger, process:cwd, runtime:crypto]
+execution-capabilities: [data:result, data:task, host:code-agent, host:environment, host:logger, process:cwd, runtime:crypto]
 handler: ./handler.js
 ---
 

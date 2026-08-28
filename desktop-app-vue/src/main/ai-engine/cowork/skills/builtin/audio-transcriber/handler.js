@@ -11,6 +11,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   requireBundledSkillRuntimeNetworkBroker,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 // ── Audio Info ──────────────────────────────────────
 
@@ -76,10 +79,14 @@ function formatBytes(bytes) {
 
 // ── Provider Detection ──────────────────────────────
 
-function detectProviders() {
+function detectProviders(context) {
   const providers = [];
+  const environment = requireBundledSkillEnvironmentBroker(
+    context,
+    "audio-transcriber",
+  );
 
-  if (process.env.OPENAI_API_KEY) {
+  if (environment.has("openai-api-key")) {
     providers.push({
       name: "whisper-api",
       available: true,
@@ -89,7 +96,7 @@ function detectProviders() {
     providers.push({
       name: "whisper-api",
       available: false,
-      description: "Set OPENAI_API_KEY to enable",
+      description: "Configure an OpenAI key in the trusted host SecretStore",
     });
   }
 
@@ -159,10 +166,14 @@ function createWhisperMultipartBody(filePath, language) {
 }
 
 async function transcribeWithAPI(filePath, language, context) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = requireBundledSkillEnvironmentBroker(
+    context,
+    "audio-transcriber",
+  ).get("openai-api-key");
   if (!apiKey) {
     return {
-      error: "OPENAI_API_KEY not set. Configure it to use Whisper API.",
+      error:
+        "OpenAI credential is unavailable from the trusted host SecretStore.",
     };
   }
 
@@ -283,7 +294,7 @@ module.exports = {
 
     try {
       if (input.includes("--providers")) {
-        const providers = detectProviders();
+        const providers = detectProviders(context);
         return {
           success: true,
           result: { providers },
@@ -346,7 +357,7 @@ module.exports = {
       const language = langMatch ? langMatch[1] : null;
 
       // Try providers in order
-      const providers = detectProviders();
+      const providers = detectProviders(context);
       const available = providers.filter((p) => p.available);
 
       let result;
@@ -359,7 +370,7 @@ module.exports = {
         return {
           success: true,
           result: { info, providers },
-          message: `## Transcription Not Available\n\nNo transcription provider is configured.\n\n**Audio file**: ${path.basename(filePath)} (${info.durationFormatted || "unknown duration"})\n\n### Setup Options\n1. Set \`OPENAI_API_KEY\` environment variable for Whisper API\n2. Install whisper CLI locally\n\nThe audio file has been analyzed and is ready for transcription once a provider is configured.`,
+          message: `## Transcription Not Available\n\nNo transcription provider is configured.\n\n**Audio file**: ${path.basename(filePath)} (${info.durationFormatted || "unknown duration"})\n\n### Setup Options\n1. Configure an OpenAI credential in the trusted host SecretStore\n2. Install whisper CLI locally\n\nThe audio file has been analyzed and is ready for transcription once a provider is configured.`,
         };
       }
 

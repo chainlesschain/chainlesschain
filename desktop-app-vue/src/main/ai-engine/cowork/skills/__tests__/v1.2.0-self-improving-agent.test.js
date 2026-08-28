@@ -3,12 +3,19 @@
  * Uses _deps injection for fs/path mocking
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 const handler = require("../builtin/self-improving-agent/handler.js");
+const rawExecute = handler.execute.bind(handler);
+const environmentContext = createEnvironmentContext("self-improving-agent", {
+  "data-directory": "/mock/self-improving",
+});
+handler.execute = (task, context = {}, skill) =>
+  rawExecute(task, { ...environmentContext, ...context }, skill);
 
 describe("self-improving-agent handler", () => {
   let mockFs;

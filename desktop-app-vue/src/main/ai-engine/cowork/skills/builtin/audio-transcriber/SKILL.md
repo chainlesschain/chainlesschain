@@ -9,7 +9,7 @@ tags: [audio, speech, transcription, whisper, stt]
 capabilities: [speech-to-text, multi-language, format-output]
 supported-file-types: [mp3, wav, m4a, ogg, flac, webm]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, environment:read, filesystem:read, host:logger, host:media, host:network, network:http, process:cwd, process:execute, runtime:crypto]
+execution-capabilities: [data:result, data:task, filesystem:read, host:environment, host:logger, host:media, host:network, network:http, process:cwd, process:execute, runtime:crypto]
 handler: ./handler.js
 tools:
   - file_read

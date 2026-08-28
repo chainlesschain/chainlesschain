@@ -11,6 +11,9 @@
 const { logger } = require("../../../../../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 const _deps = { fs, path };
 
@@ -44,17 +47,28 @@ function _resetState() {
   };
 }
 
-function getDataDir() {
-  if (dataDir) {
-    return dataDir;
+function configureDataDir(context) {
+  const approvedDataDir = requireBundledSkillEnvironmentBroker(
+    context,
+    "self-improving-agent",
+  ).get("data-directory");
+  if (!approvedDataDir) {
+    throw new Error(
+      "Self-improving data directory is unavailable from trusted host configuration",
+    );
   }
-  const appData = process.env.APPDATA || process.env.HOME || "/tmp";
-  dataDir = _deps.path.join(appData, ".chainlesschain", "self-improving");
-  return dataDir;
+  if (dataDir !== approvedDataDir) {
+    dataDir = approvedDataDir;
+    historyPath = null;
+    learningsPath = null;
+  }
 }
 
 function ensureDataDir() {
-  const dir = getDataDir();
+  if (!dataDir) {
+    throw new Error("Self-improving data directory authority is required");
+  }
+  const dir = dataDir;
   if (!_deps.fs.existsSync(dir)) {
     _deps.fs.mkdirSync(dir, { recursive: true });
   }
@@ -994,14 +1008,7 @@ module.exports = {
   _resetState,
 
   async init(skill) {
-    loadHistory();
-    loadLearnings();
-    logger.info(
-      "[SelfImprove] Initialized (v2.0) with %d errors, %d instincts, %d skills",
-      history.errors.length,
-      learnings.instincts.length,
-      learnings.skills.length,
-    );
+    logger.info("[SelfImprove] Initialized (v2.0)");
   },
 
   async execute(task, context = {}, skill) {
@@ -1009,6 +1016,9 @@ module.exports = {
     const parsed = parseInput(input);
 
     try {
+      configureDataDir(context);
+      loadHistory();
+      loadLearnings();
       switch (parsed.action) {
         case "record-error":
           return handleRecordError(parsed.errorDesc, parsed.fix);

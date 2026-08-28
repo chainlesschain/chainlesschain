@@ -2,7 +2,7 @@
  * GitHub Manager Skill Handler (v2.0)
  *
  * Manages GitHub issues, pull requests, repositories, and workflows
- * via the GitHub REST API. Requires GITHUB_TOKEN in environment.
+ * via the GitHub REST API. Credentials are supplied by the trusted host.
  *
  * Enhanced: code search, releases, branches, PR review, issue/PR detail,
  * label management, branch comparison.
@@ -12,18 +12,16 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   createBundledSkillHttpsClient,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 const https = createBundledSkillHttpsClient("github-manager");
 
 const _deps = { https };
 
 const GITHUB_API = "api.github.com";
 
-function getToken() {
-  return process.env.GITHUB_TOKEN || process.env.GH_TOKEN || null;
-}
-
-function githubRequest(path, method = "GET", body = null) {
-  const token = getToken();
+function githubRequest(token, path, method = "GET", body = null) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: GITHUB_API,
@@ -153,7 +151,7 @@ async function handleListIssues(parsed) {
   }
 
   const { state, max } = parsed.params;
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/issues?state=${state}&per_page=${max}&sort=updated&direction=desc`,
   );
 
@@ -209,7 +207,7 @@ async function handleCreateIssue(parsed) {
     payload.labels = labels;
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/issues`,
     "POST",
     payload,
@@ -246,7 +244,7 @@ async function handleListPRs(parsed) {
   }
 
   const { state, max } = parsed.params;
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/pulls?state=${state}&per_page=${max}&sort=updated&direction=desc`,
   );
 
@@ -305,7 +303,7 @@ async function handleCreatePR(parsed) {
   }
 
   const payload = { title, body: body || "", head, base: base || "main" };
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/pulls`,
     "POST",
     payload,
@@ -343,7 +341,7 @@ async function handleRepoInfo(parsed) {
     };
   }
 
-  const res = await githubRequest(`/repos/${r.owner}/${r.repo}`);
+  const res = await parsed.githubRequest(`/repos/${r.owner}/${r.repo}`);
   if (res.status !== 200) {
     return {
       success: false,
@@ -391,7 +389,7 @@ async function handleListWorkflows(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/actions/runs?per_page=${parsed.params.max}`,
   );
   if (res.status !== 200) {
@@ -452,7 +450,7 @@ async function handleSearchCode(parsed) {
   }
 
   const searchQuery = r ? `${q}+repo:${r.owner}/${r.repo}` : q;
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/search/code?q=${encodeURIComponent(searchQuery)}&per_page=${parsed.params.max}`,
   );
 
@@ -497,7 +495,7 @@ async function handleGetIssue(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/issues/${parsed.number}`,
   );
   if (res.status !== 200) {
@@ -546,7 +544,7 @@ async function handleGetPR(parsed) {
     return { success: false, action: "get-pr", error: "PR number required." };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/pulls/${parsed.number}`,
   );
   if (res.status !== 200) {
@@ -610,7 +608,7 @@ async function handlePRReview(parsed) {
     event: parsed.params.reviewAction || "COMMENT",
   };
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/pulls/${parsed.number}/reviews`,
     "POST",
     payload,
@@ -642,7 +640,7 @@ async function handleListBranches(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/branches?per_page=${parsed.params.max}`,
   );
   if (res.status !== 200) {
@@ -678,7 +676,7 @@ async function handleListReleases(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/releases?per_page=${parsed.params.max}`,
   );
   if (res.status !== 200) {
@@ -738,7 +736,7 @@ async function handleCreateRelease(parsed) {
     draft: false,
     prerelease: false,
   };
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/releases`,
     "POST",
     payload,
@@ -784,7 +782,7 @@ async function handleCompareBranches(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/compare/${base || "main"}...${head}`,
   );
   if (res.status !== 200) {
@@ -829,7 +827,7 @@ async function handleListLabels(parsed) {
     };
   }
 
-  const res = await githubRequest(
+  const res = await parsed.githubRequest(
     `/repos/${r.owner}/${r.repo}/labels?per_page=100`,
   );
   if (res.status !== 200) {
@@ -867,16 +865,21 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    if (!getToken()) {
-      return {
-        success: false,
-        action: parsed.action,
-        error:
-          "GITHUB_TOKEN not configured. Set the GITHUB_TOKEN or GH_TOKEN environment variable.",
-      };
-    }
-
     try {
+      const token = requireBundledSkillEnvironmentBroker(
+        context,
+        "github-manager",
+      ).get("github-token");
+      if (!token) {
+        return {
+          success: false,
+          action: parsed.action,
+          error:
+            "GitHub credential is unavailable from the trusted host SecretStore.",
+        };
+      }
+      parsed.githubRequest = (path, method, body) =>
+        githubRequest(token, path, method, body);
       switch (parsed.action) {
         case "list-issues":
           return await handleListIssues(parsed);

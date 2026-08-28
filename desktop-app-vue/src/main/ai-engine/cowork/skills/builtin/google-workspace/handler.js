@@ -2,14 +2,16 @@
  * Google Workspace Skill Handler
  *
  * Integrates with Gmail, Google Calendar, and Google Drive via Google APIs.
- * Requires GOOGLE_API_KEY or OAuth credentials (GOOGLE_CLIENT_ID,
- * GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN) in environment.
+ * Credentials are supplied by the trusted host SecretStore.
  */
 
 const { logger } = require("../../../../../utils/logger.js");
 const {
   createBundledSkillHttpsClient,
 } = require("../../bundled-skill-egress-broker.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 const https = createBundledSkillHttpsClient("google-workspace");
 
 const _deps = { https };
@@ -18,12 +20,16 @@ const GMAIL_API = "gmail.googleapis.com";
 const CALENDAR_API = "www.googleapis.com";
 const DRIVE_API = "www.googleapis.com";
 
-function getCredentials() {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  const accessToken = process.env.GOOGLE_ACCESS_TOKEN || null;
+function getCredentials(context) {
+  const environment = requireBundledSkillEnvironmentBroker(
+    context,
+    "google-workspace",
+  );
+  const apiKey = environment.get("google-api-key");
+  const clientId = environment.get("google-client-id");
+  const clientSecret = environment.get("google-client-secret");
+  const refreshToken = environment.get("google-refresh-token");
+  const accessToken = environment.get("google-access-token");
 
   if (apiKey) {
     return { mode: "api-key", apiKey };
@@ -114,18 +120,17 @@ module.exports = {
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
-    const creds = getCredentials();
-
-    if (!creds) {
-      return {
-        success: false,
-        action: parsed.action,
-        error:
-          "Google credentials not configured. Set GOOGLE_API_KEY or GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REFRESH_TOKEN environment variables.",
-      };
-    }
 
     try {
+      const creds = getCredentials(context);
+      if (!creds) {
+        return {
+          success: false,
+          action: parsed.action,
+          error:
+            "Google credentials are unavailable from the trusted host SecretStore.",
+        };
+      }
       switch (parsed.action) {
         case "gmail-search":
           return await handleGmailSearch(parsed, creds);

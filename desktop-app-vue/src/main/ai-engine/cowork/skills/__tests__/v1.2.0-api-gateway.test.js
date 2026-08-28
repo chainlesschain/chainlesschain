@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -13,6 +14,9 @@ const handler = require("../builtin/api-gateway/handler.js");
 const {
   createBundledSkillRuntimeNetworkBroker,
 } = require("../bundled-skill-egress-broker.js");
+const environmentContext = createEnvironmentContext("api-gateway", {
+  "config-directory": "C:\\test\\api-gateway",
+});
 
 function createMockTransport(statusCode, body, headers = {}) {
   return {
@@ -44,6 +48,7 @@ function createNetworkContext(
   transport = createMockTransport(200, { message: "ok" }),
 ) {
   return {
+    ...environmentContext,
     networkBroker: createBundledSkillRuntimeNetworkBroker(
       {
         skillId: "api-gateway",
@@ -86,7 +91,11 @@ describe("api-gateway handler", () => {
     });
 
     it("should return error without URL", async () => {
-      const result = await handler.execute({ input: "call GET" }, {}, {});
+      const result = await handler.execute(
+        { input: "call GET" },
+        environmentContext,
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("URL");
     });
@@ -94,8 +103,8 @@ describe("api-gateway handler", () => {
     it("should return error for invalid URL", async () => {
       const result = await handler.execute(
         { input: "call GET not-a-url" },
-        {},
-        {},
+        environmentContext,
+        environmentContext,
       );
       expect(result.success).toBe(false);
     });
@@ -104,7 +113,7 @@ describe("api-gateway handler", () => {
       // Register first — parseInput maps: name=parts[1], url=parts[2]
       await handler.execute(
         { input: "register myapi https://api.example.com/data" },
-        {},
+        environmentContext,
         {},
       );
       const result = await handler.execute(
@@ -120,8 +129,8 @@ describe("api-gateway handler", () => {
       const request = vi.fn();
       const result = await handler.execute(
         { input: "call GET https://api.example.com/v1/status" },
-        { networkBroker: { request } },
-        {},
+        { ...environmentContext, networkBroker: { request } },
+        environmentContext,
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Trusted runtime network broker");
@@ -134,8 +143,8 @@ describe("api-gateway handler", () => {
       // parseInput: name=parts[1], method=parts[1].toUpperCase(), url=parts[2]
       const result = await handler.execute(
         { input: "register testapi https://api.example.com/test" },
-        {},
-        {},
+        environmentContext,
+        environmentContext,
       );
       expect(result.success).toBe(true);
       expect(result.action).toBe("register");
@@ -163,7 +172,11 @@ describe("api-gateway handler", () => {
 
   describe("execute() - list action", () => {
     it("should list registered APIs", async () => {
-      const result = await handler.execute({ input: "list" }, {}, {});
+      const result = await handler.execute(
+        { input: "list" },
+        environmentContext,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list");
       expect(result.result.apis).toBeDefined();
@@ -172,23 +185,64 @@ describe("api-gateway handler", () => {
     it("should list registered APIs after registration", async () => {
       await handler.execute(
         { input: "register api1 https://example.com/1" },
-        {},
-        {},
+        environmentContext,
+        environmentContext,
       );
       await handler.execute(
         { input: "register api2 https://example.com/2" },
-        {},
+        environmentContext,
         {},
       );
-      const result = await handler.execute({ input: "list" }, {}, {});
+      const result = await handler.execute(
+        { input: "list" },
+        environmentContext,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.result.total).toBe(2);
+    });
+
+    it("isolates registries by approved config directory", async () => {
+      const otherContext = createEnvironmentContext("api-gateway", {
+        "config-directory": "C:\\test\\other-api-gateway",
+      });
+      await handler.execute(
+        { input: "register primary https://example.com/primary" },
+        environmentContext,
+        {},
+      );
+      await handler.execute(
+        { input: "register secondary https://example.com/secondary" },
+        otherContext,
+        {},
+      );
+
+      const primary = await handler.execute(
+        { input: "list" },
+        environmentContext,
+        {},
+      );
+      const secondary = await handler.execute(
+        { input: "list" },
+        otherContext,
+        {},
+      );
+      expect(primary.result.apis.map((entry) => entry.name)).toEqual([
+        "primary",
+      ]);
+      expect(secondary.result.apis.map((entry) => entry.name)).toEqual([
+        "secondary",
+      ]);
     });
   });
 
   describe("execute() - chain action", () => {
     it("should return error without steps", async () => {
-      const result = await handler.execute({ input: "chain" }, {}, {});
+      const result = await handler.execute(
+        { input: "chain" },
+        environmentContext,
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("chain steps");
     });
@@ -196,7 +250,7 @@ describe("api-gateway handler", () => {
     it("should return error for unregistered step", async () => {
       const result = await handler.execute(
         { input: "chain unknown-api -> another-api" },
-        {},
+        environmentContext,
         {},
       );
       expect(result.success).toBe(false);

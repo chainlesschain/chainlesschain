@@ -8,6 +8,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   assertDesktopLegacyMutationAllowed,
 } = require("../../../../code-agent/desktop-runtime-authority.js");
+const {
+  requireBundledSkillEnvironmentBroker,
+} = require("../../bundled-skill-environment-broker.js");
 
 let workflowEngine = null;
 
@@ -50,20 +53,20 @@ module.exports = {
           return await handleStatus(name);
 
         case "pause":
-          return await handlePause(name);
+          return await handlePause(name, context);
 
         case "resume":
         case "continue":
-          return await handleResume(name);
+          return await handleResume(name, context);
 
         case "cancel":
         case "stop":
         case "abort":
-          return await handleCancel(name);
+          return await handleCancel(name, context);
 
         case "delete":
         case "remove":
-          return await handleDelete(name);
+          return await handleDelete(name, context);
 
         default:
           return {
@@ -107,7 +110,11 @@ function getEngine() {
 }
 
 async function handleCreate(name, definition, context) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleCreate");
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handleCreate",
+    graphEnvironment(context),
+    { runKey: `desktop-skill-workflow:${name || "missing"}` },
+  );
   if (!name) {
     return {
       success: false,
@@ -141,7 +148,7 @@ async function handleCreate(name, definition, context) {
 async function handleRun(nameOrId, context) {
   assertDesktopLegacyMutationAllowed(
     "WorkflowAutomation.handleRun",
-    process.env,
+    graphEnvironment(context),
     { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
   );
   if (!nameOrId) {
@@ -217,10 +224,10 @@ async function handleStatus(nameOrId) {
   return { success: false, error: "Status check not supported." };
 }
 
-async function handlePause(nameOrId) {
+async function handlePause(nameOrId, context) {
   assertDesktopLegacyMutationAllowed(
     "WorkflowAutomation.handlePause",
-    process.env,
+    graphEnvironment(context),
     { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
   );
   if (!nameOrId) {
@@ -244,10 +251,10 @@ async function handlePause(nameOrId) {
   return { success: false, error: "Workflow pause not supported." };
 }
 
-async function handleResume(nameOrId) {
+async function handleResume(nameOrId, context) {
   assertDesktopLegacyMutationAllowed(
     "WorkflowAutomation.handleResume",
-    process.env,
+    graphEnvironment(context),
     { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
   );
   if (!nameOrId) {
@@ -271,10 +278,10 @@ async function handleResume(nameOrId) {
   return { success: false, error: "Workflow resume not supported." };
 }
 
-async function handleCancel(nameOrId) {
+async function handleCancel(nameOrId, context) {
   assertDesktopLegacyMutationAllowed(
     "WorkflowAutomation.handleCancel",
-    process.env,
+    graphEnvironment(context),
     { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
   );
   if (!nameOrId) {
@@ -298,8 +305,12 @@ async function handleCancel(nameOrId) {
   return { success: false, error: "Workflow cancel not supported." };
 }
 
-async function handleDelete(nameOrId) {
-  assertDesktopLegacyMutationAllowed("WorkflowAutomation.handleDelete");
+async function handleDelete(nameOrId, context) {
+  assertDesktopLegacyMutationAllowed(
+    "WorkflowAutomation.handleDelete",
+    graphEnvironment(context),
+    { runKey: `desktop-skill-workflow:${nameOrId || "missing"}` },
+  );
   if (!nameOrId) {
     return { success: false, error: "No workflow name/id provided." };
   }
@@ -319,4 +330,11 @@ async function handleDelete(nameOrId) {
   }
 
   return { success: false, error: "Workflow deletion not supported." };
+}
+
+function graphEnvironment(context) {
+  return requireBundledSkillEnvironmentBroker(
+    context,
+    "workflow-automation",
+  ).snapshot();
 }
