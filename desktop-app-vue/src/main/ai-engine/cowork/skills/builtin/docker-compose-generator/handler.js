@@ -3,7 +3,10 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 
 const SERVICE_TEMPLATES = {
@@ -264,3 +267,8 @@ function toYAML(obj, indent = 0) {
   }
   return yaml;
 }
+
+module.exports = withBundledSkillFilesystem(
+  "docker-compose-generator",
+  module.exports,
+);

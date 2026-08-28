@@ -23,21 +23,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "api-design": Object.freeze([
-    "404247567a50643ea2201c0e8ba4aa5422b64c59de2c8a772a3c1eba1053d677",
+    "0d6341ca21a920b44e305d0822505f12bd3eaa7cacd25499c11ac23224912d06",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "api-docs-generator": Object.freeze([
-    "d84ff3c53bf90983c94da98334fef1a66464ae08bae0c1680b1d8125e20443f8",
+    "32af78c7a0b46cccbe2b3b2449d2625595c4682436d86896bef2230370a1625d",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -58,11 +60,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "api-tester": Object.freeze([
-    "8bed376d0d303814670fef370c1d07460e9404f1bcead9411a0061ce497bc901",
+    "d0c8a85d51d57b78a5eda85dda0073902b8d4e4d41d196a03162f539efbfc72a",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -82,12 +85,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "audio-transcriber": Object.freeze([
-    "6e526eeff29945e43a8bb0afc03e80e7901aad2b1f8308ebe2bb6b82b97b98d4",
+    "4ec0dbc31090b78c421f5d151aea632f8f5d90e9348f6e18c6ebb01366e6168e",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "host:network",
       "host:process",
@@ -98,11 +102,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "auto-context": Object.freeze([
-    "5440b4745ad8f093998b24bed2323a066eec3311265810b8aa451e7ba326aacc",
+    "7303265485ab9730ea32e2762937c5a83753f9e925fd4d62a179207414126462",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -132,11 +137,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:browser", "host:logger"]),
   ]),
   bugbot: Object.freeze([
-    "7537f41e4a941786a38f03fa8c942c95b88a20100967b69d4d4041f13dde77f4",
+    "8239a3febe46c14f28443e80e45358f56553c501f6a2d57526970ede42c32ff0",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -156,11 +162,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "chart-creator": Object.freeze([
-    "d77299eaa68e8ca96c737e30d69d28951d50fa752ade97b0248d3916d3b182cb",
+    "f5c59ed6e5f7de3d8dbf756f602ee99a73af7f28b6bb57b8b32f977c1801d1f9",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -180,11 +187,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "code-review": Object.freeze([
-    "c4db6bb1acb4670dd8d5d5f46650b2b912649a9da914a6e6d217fbb2cf3fa8aa",
+    "cbd58face614513a0918d9a87a2465451fc469e4d9c9f1d4bfcc0a31042622d3",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -208,21 +216,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "code-translator": Object.freeze([
-    "cf5808e33ac8f5a6894613ac3060835d80f118eb33b1a6e499e9adfc7c3544db",
+    "9bcd58082758c2556b20e81f9eadcd0c913441a61b039b1ffdf2bc20f083603e",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "codebase-qa": Object.freeze([
-    "331fda27caaab837aef3fc9b21848c94442dc0999b64b0401d9858cc5dac71bf",
+    "292d87363c2ef3c64ce35dcf7a80c0008c733c4e1f5b2784fce2549daf227946",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -261,11 +271,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "context-loader": Object.freeze([
-    "861655f8e90bfec376a8c8ec9f79b446cd1cc251f3480bdfe64ef141f6cbe1e0",
+    "af3ba0d27ed2eda476e44683209df3d7d78d069f789db1feb3e313b68114e03e",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -293,12 +304,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "crypto-toolkit": Object.freeze([
-    "8adea5d3b5dc64b7fab44a4bada6aef32609abff460740c422d6a205c6012249",
+    "e5b729340b0498b2c5dd388302cfa2e409091eb2f6dd263e934ce8554dbb0b4b",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:cryptography",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:crypto",
@@ -317,21 +329,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "cursor-rules-generator": Object.freeze([
-    "003932dfca3e32f60492c901a7a05bbb08fc1ebd0fe8fcbb496c7067ba8e10b9",
+    "064468c0ecabe47b7d7dd010f2e0df71fbd183e4826b1feed86c6183cb4a9979",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "data-analysis": Object.freeze([
-    "a1f5115bdd326f43aa3887773c9542be7a0b700b7d564b80ca71f3b2f496c5b2",
+    "63b3e0c978ec64a209641faa7970ce68bd982731f2a1bd27fc2dea3fd25ff275",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -359,22 +373,24 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "db-migration": Object.freeze([
-    "eca53f65ffd0670c08e2f6223adb0f034b9df117806ff129b12ce9598ce66229",
+    "22497d8bb6e433ff31485eef0881a2cbb0da540e1e2465f2c5e31a873e18976f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
     ]),
   ]),
   "dead-code-eliminator": Object.freeze([
-    "0ab16d5b4aa7b5989d19db8683b7917e268a4d8d1a5b3c60632ed56d9d8a8769",
+    "f977d04a03547e86787935ab53304e1115bb6f994fb954d846340c81ea392ff4",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -384,11 +400,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger", "host:skill"]),
   ]),
   "debugging-strategies": Object.freeze([
-    "43822b87d65d7ed8e045c64ade49b49ca0cebc055b41c9f2f5dcc4db7d7233e6",
+    "e2ce8e21460dbc7fe59d151fc55fa21cd54f1fc8e64a2adb78a586ae659b7284",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -416,11 +433,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "dependency-analyzer": Object.freeze([
-    "3fca81ffbfc1dffc37ff3bca113007d541da591c9b38e69219ab687136b2ee1b",
+    "6c71f752a64f2887c3f970d061c98a05aed614d2fd1cf7a737c702a132afd586",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -429,21 +447,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "devops-automation": Object.freeze([
-    "e12b7a077e5c9125a466989e437df4ee2605dfdee061cfcb9640ece8335d4d1a",
+    "623714ffbf7d2e440045dcec804556d9615c094df17dfc281b8abf9271a478a4",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "diff-previewer": Object.freeze([
-    "157c5786209168cf3a3ebd86761881822a15a81e89ac4db4a0ed12b98a7fac9f",
+    "902418a150c62396e878da731f81b4512f4e42a6d16426db4b0419b7af137a19",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -451,43 +471,47 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "doc-coauthoring": Object.freeze([
-    "1ef478dec6bbcae296f9f848e5c07a9c7985f4cd492a3e2594384578532e58d4",
+    "6781346e812bb1ea0c8e46bd5111ae25498816ead836f0361341ed64877d3cd6",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "doc-comparator": Object.freeze([
-    "2e752be5b0a60f951543e4d09abe4d1aa2634482c97e758b1945ffc90a781cb6",
+    "1c6d696e25841ddca38199353f89f873235e95246a90253bc0b1fd37122d30cb",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "doc-converter": Object.freeze([
-    "b2d4fb6693fac79d0417a204e1b3a3c31fe2371094a5f8d49b844740897417e2",
+    "15de748cbfee3b8cbfa1248621277e68eaf726b26545644b9edbab2026aa2f56",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "doc-generator": Object.freeze([
-    "c3dcef01f24ef39d2d0cc78c32183c6a1a05a1d8f3e9b3de3e535706999e79d7",
+    "eef82ac9d7f381cc77b4d458338ce74f15826e5d9566d06e1ca39591b0f325c3",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -495,21 +519,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "docker-compose-generator": Object.freeze([
-    "ef21a7ea368cecb33f73e1b635420cfb58a4efc37d08cb8c2b824377cdf5063d",
+    "838a87620625fa11e3d9edbde13208ffa8d3e039420ea71d8fe395a6772ef527",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "env-doctor": Object.freeze([
-    "a83ff117a99ea1d1ae4e364d4f979fd27fdd6b7706c01f4edab2bb5d8c40ae3c",
+    "fab60ae7f7eed806a56e8ea0070e048d39dbc6ee25f21b08213df9651d457f0d",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "network:socket",
@@ -531,32 +557,35 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "excel-analyzer": Object.freeze([
-    "1486907438d0baed5505e771580ab9e090f55f9c63b27b45cd9c825bd68dc9c1",
+    "f69749d214cec21fc118968de5517f33bc3340e52db2e2b6f91de1e5b29410fc",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "explain-code": Object.freeze([
-    "a30b0839be828545105d5150f3331fbf298a4cda4ab15b08f819b6fccb898414",
+    "52ba2b52ed842e1ade878543ecda3f248e07320bdba8713c40339e00d4f7add0",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "fault-localizer": Object.freeze([
-    "bf0f06b90ebcccd18171290c4005669a58d82e434e4a8e5534e9f2096b63161a",
+    "27a7bafeee1325f5693dfd2d8e79775cc8e2a1e128352ca8445201b492bb9e2f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -648,12 +677,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "google-workspace": Object.freeze([
-    "452669b343d7a7f68453d2c28eddd01a93611707abf81de5c5e6b32dd6238e8e",
+    "46715334400f17faa95fd0369b82485bb5b301e6da74abbf19304d92f758e02f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "host:network",
       "network:http",
@@ -679,21 +709,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task"]),
   ]),
   "i18n-manager": Object.freeze([
-    "7545618107179cfc92b695c412c2d38227b4d7d821bc4ac2c654062447d241e1",
+    "04e362c322f7cf2923156fe9f66b6a283b01fb1bd92782d0e41301c5357b5ad4",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "image-editor": Object.freeze([
-    "282b22f3efa1702cc595d92431e0c86db02373053183897e2f799d5f1c359341",
+    "06d3041e24bead206f87067bc926f436b687caf51142633f36f1da70a0ab6705",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:media",
       "process:cwd",
@@ -716,11 +748,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "impact-analyzer": Object.freeze([
-    "54a4811da9105ad914418e5f05c3d978ad97e0b563cb70b17b6db18cadb4172c",
+    "65a761195b29d7998c6078ae3fe3834de0a28f11d08b5055226896a25af62e4d",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -751,21 +784,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "knowledge-graph": Object.freeze([
-    "d85cc7cc9df9e89e470b2fca9eeaaf51e7fe0cd2c4b97a04b0da51ed2bb00826",
+    "46de97f5be057a28b0e0e3bc13cd9e8796929c51e66fec0fa6e1944b2bc5c95b",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "lint-and-fix": Object.freeze([
-    "219a9471a881092f9c81c70f5550ebbcb90b757b89f41fba74ec2cd8c87a2e68",
+    "d7aac6085d140b823e387314cda622314218ad6d3896d5e3c281a8d33daf298c",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -774,11 +809,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "log-analyzer": Object.freeze([
-    "d237bca2e2d06830586c9c89b551a549d6e166cd98475920daa390930afebc29",
+    "566ca63def8c1f97f98dc4c730bdbe0bbac37d914f0a9de09a0ac3928c776ccd",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -801,11 +837,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "media-metadata": Object.freeze([
-    "a70e9cf91832e9af6c2ef4b830de7ddb7f08b919732d377d18d243325d654497",
+    "5d51d11f09cd3184b7e7d2c65000f5c9f268f2ebe326c413dc547e77d6d3ac52",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:media",
       "host:process",
@@ -837,11 +874,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "mock-data-generator": Object.freeze([
-    "b6e37dd8724818dd50b351437f3441a3bbc19039b200e337c3af40064e4ab08d",
+    "b5a056149e9cd115b3f8fdf71c25bf49ae17bf141fafdb1f2df0a98421c0a3e1",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:crypto",
@@ -910,22 +948,24 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "ocr-scanner": Object.freeze([
-    "4ae83354323e462fea67035b086eab5b027d732824008086e767f54ce543f812",
+    "ac375bd7a4de46380c13ea12048b24b951a543d9903ebe2d290671650b3daa6a",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:media",
       "process:cwd",
     ]),
   ]),
   "onboard-project": Object.freeze([
-    "1ec748d565b7a5b940e2eca7b18a357db039df2de6f37fe37d90a41b16b2818a",
+    "cc4afd6deb0c3efab62d4c917454d798732a1b49489e55e0a9e78ce835974870",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -953,23 +993,25 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "pdf-toolkit": Object.freeze([
-    "83734667349df70c9047c8c9ecd894eae86cf5f70d7ba82fb6f3995c789e53fd",
+    "6dda6a9078ed9a1aa4fd339c0a16a00aca70a992ee6a3ad9bc2434dd933b99a0",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "host:media",
       "process:cwd",
     ]),
   ]),
   "pdh-im-collect": Object.freeze([
-    "f4ff27bef6aa19c8a987eb79b2e9ac5ebbf8ba2d690d19cebdd1a5aea823ce0b",
+    "40af24735223318aa3eac78eca0f90367a627303181fafe4478623df6eeb4abd",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -978,11 +1020,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "performance-optimizer": Object.freeze([
-    "b437557f5b004b3621bb37060cd4d060d127b63a1aa03e50d77484881cb548eb",
+    "3a2b14dd7758e368c6e113c3553516fa2391518ee089dff6a2e162fc121de33f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1018,12 +1061,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "pptx-creator": Object.freeze([
-    "142ceb61015c6c054a89b42809d31ca8348395a4cfe8f6576988a25b710f92a1",
+    "7b74ad0ab6b4a0ab893c1ba196351f84435a898271a7bc9e5a17b27e4a508f4e",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:document",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1055,15 +1099,16 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "project-scaffold": Object.freeze([
-    "aa34436c917ede642ec73e847f47b48132a9d2ec49cc74874ca3092056d65c3b",
+    "b748805301fa62ca28e87644cf6254342eda6f4f936a52ae91a92a9d1c5f94cc",
     Object.freeze(["data:result", "data:task", "host:logger", "process:cwd"]),
   ]),
   "prompt-enhancer": Object.freeze([
-    "68624cea719f93a2fda964cbb155362c58195d17d5b3198d8de4115e140cf5b8",
+    "46132dabbec50e42525daff2ba3dc0051f465e00a91c6fcfa122426e6a982554",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1093,31 +1138,34 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   refactor: Object.freeze([
-    "59bb357cae85477a5cce936dbd63a67908de1004dd4e079312160747cb535c08",
+    "089c144ec5cae7fc6d9505c99557d040a6ccce6deb4b56d094384990410b0850",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "regex-playground": Object.freeze([
-    "f56f7cd7e8447d24c2a28592ede7f0955ef7aaa59cafa1148ec84eb74bf8bc9e",
+    "628f6dd84c6d2efdcbcd1778481f890470646222553e52ec27506958e602a807",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "release-manager": Object.freeze([
-    "c2047fc4985791c49ce55410dfb3e667a303c81d4a663336acacdfb0edaf5827",
+    "1f3ea9523efe252a77dfb1ac8a4f45cc1830cc499905572d967444d454397aa7",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -1134,21 +1182,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "host:logger"]),
   ]),
   "repo-map": Object.freeze([
-    "2debe94e58d4c7e3232a05adb59c33af7b3f0bf48b69da605773a4a047aa9bce",
+    "5e5d62f00af10af8551bd8878e6ed3865beaed34ac1158b553743df0952c2953",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "research-agent": Object.freeze([
-    "724cd815629d36bcd3c32ef8b731a98126f21fbea6c081c1abd00d3e45fa9461",
+    "b45107e2373122d5088d4f56086828053b4b4826b8d906e48ea7c06443b967bf",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -1169,21 +1219,23 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "screenshot-to-code": Object.freeze([
-    "123e88b683e7c9af3b5ccff832358617e559aaba067ad3a57b37f87f88c64400",
+    "68d6f9f732ae688b177fc254e511817e6c915806ce045b3d82797e4afa3102f7",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
   ]),
   "security-audit": Object.freeze([
-    "da53916977f868d6bb5b46d545a971cbb0d4b5c06eb708093fc0ed3499498221",
+    "d059a49c57447db7dea58900b8787c58fbc187940ae5087be3bbc09e67a6dec0",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:crypto",
@@ -1241,13 +1293,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "stream-processor": Object.freeze([
-    "2eec8d9bd8876a7a82004481b5f3c90d7b213537c131da84e272272511d11fc0",
+    "2aaa3e5f87b4afc43e00a1619b2581a6adf02b2996cd68cb148c168b41b75fd8",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
-      "process:stdio",
     ]),
   ]),
   "subtitle-generator": Object.freeze([
@@ -1264,11 +1316,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   summarizer: Object.freeze([
-    "4ec073f26bdc3445db04acb712530f2f63dedf4f72bd7ea847cd0aaeef929239",
+    "b5b4ca28dbb3f6e5b8b73c8d100efa488a37e7f1efc7c27007df9a6c112ca2b6",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:network",
       "network:http",
@@ -1320,11 +1373,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "template-renderer": Object.freeze([
-    "4affde9032c70da0644efe70808a2d57c6a07fc51914643aee7d2a03da3033d7",
+    "4dac77bc343959f2e053f512db6eee7d5c2dec6eda040eca7e66e8dae72d85da",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
       "runtime:time",
@@ -1335,11 +1389,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task"]),
   ]),
   "test-and-fix": Object.freeze([
-    "f66a3c111722a39b4632566c5beba1c529efcbbf0b3fd49fdd9f252c302c5b30",
+    "e98a29d48d6754ce3006451168b5f41724bda17b8095db3b246b481ba191f92f",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -1348,11 +1403,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "test-generator": Object.freeze([
-    "130808045b3eb76e9ac7c4e7dca0ad8a6efff0e10282ea11f20a1548678b5ae0",
+    "fb49a446f96e48b1b5a94691eb6b2ca4e5ef6cbb7d5be08350a0cd67f6ab30d6",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "process:cwd",
     ]),
@@ -1366,11 +1422,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task", "runtime:crypto"]),
   ]),
   "tts-synthesizer": Object.freeze([
-    "0308c5b49d62d338c2b136c919b40e8d146fbfd12eb98c1fd9e5a48dbab7355b",
+    "382d230643f1e371fa05b29512a1b171ab712dd3da84d6a40f0454469759fdda",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:speech",
       "process:cwd",
@@ -1381,11 +1438,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     Object.freeze(["data:result", "data:task"]),
   ]),
   "verification-loop": Object.freeze([
-    "f50d9392575bfcfeb248079850819820434cc7aa36c01f5c273f89ae4c3dc8e4",
+    "32f742e30aa32c2fc870484a816f173a718e99add049abd2f97440416b6e83af",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "host:skill",
@@ -1396,12 +1454,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   verify: Object.freeze([
-    "b16d0083952b04c8d19cd2ea29e859f00e52d275cae21f773599d89bd51e1474",
+    "4f6699d20ca636120a5d0cf8f9d59a2c9ca818e8dfcb916d9fe678d9df7f28fd",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:code-agent",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -1410,11 +1469,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "video-toolkit": Object.freeze([
-    "b2f89a336056c8bc6eed5b5667938ac97668564438ef9ebe69b7aef9ce84f5aa",
+    "60be1bb519c0a1b3d3ece6dcf323cc9309473728051bbf6fe662298c89e2ab27",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",
@@ -1432,11 +1492,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "vulnerability-scanner": Object.freeze([
-    "4482c0dfb5705354a46d6b993dab26ebf28a5a6be98db7f4ae76f6bd645bc329",
+    "27e4bd6da0ceb773cca5ad0b0a692d70c5b3250fde3d50a081a6fabf65286595",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "process:cwd",

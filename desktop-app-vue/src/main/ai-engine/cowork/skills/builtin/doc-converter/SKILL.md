@@ -9,7 +9,7 @@ tags: [document, converter, docx, pdf, markdown, html]
 capabilities: [format-detection, document-conversion, batch-convert]
 supported-file-types: [docx, pdf, md, html, txt]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

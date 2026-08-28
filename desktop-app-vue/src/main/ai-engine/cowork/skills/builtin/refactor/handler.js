@@ -5,7 +5,10 @@
  * and measures function/class complexity. Read-write refactoring assistant.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -378,3 +381,5 @@ async function handleExtractDuplicates(targetDir) {
     message: report,
   };
 }
+
+module.exports = withBundledSkillFilesystem("refactor", module.exports);

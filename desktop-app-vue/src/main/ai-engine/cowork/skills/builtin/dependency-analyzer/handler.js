@@ -5,7 +5,10 @@
  * performs change impact analysis, and checks npm audit vulnerabilities.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 const {
@@ -520,3 +523,8 @@ async function handleLicenses(targetDir) {
     message: report,
   };
 }
+
+module.exports = withBundledSkillFilesystem(
+  "dependency-analyzer",
+  module.exports,
+);

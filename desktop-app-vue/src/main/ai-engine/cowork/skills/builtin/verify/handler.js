@@ -12,7 +12,10 @@
  */
 
 const path = require("path");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const { logger } = require("../../../../../utils/logger.js");
 const {
   parseShellFreeCommand,
@@ -26,7 +29,6 @@ const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 const _deps = {
   SessionStateManager,
   runHook,
-  fs,
 };
 
 const DEFAULT_TIMEOUT_MS = 180_000;
@@ -112,9 +114,9 @@ function collectTaskChecks(tasksPayload) {
 function defaultChecksForProject(projectRoot) {
   const checks = [];
   const pkgPath = path.join(projectRoot, "package.json");
-  if (_deps.fs.existsSync(pkgPath)) {
+  if (fs.existsSync(pkgPath)) {
     try {
-      const pkg = JSON.parse(_deps.fs.readFileSync(pkgPath, "utf-8"));
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
       const scripts = pkg.scripts || {};
       if (scripts.test) {
         checks.push({
@@ -128,15 +130,15 @@ function defaultChecksForProject(projectRoot) {
     }
   }
   if (checks.length === 0) {
-    if (_deps.fs.existsSync(path.join(projectRoot, "pom.xml"))) {
+    if (fs.existsSync(path.join(projectRoot, "pom.xml"))) {
       checks.push({
         id: "mvn-test",
         command: "mvn test -q",
         timeout: DEFAULT_TIMEOUT_MS,
       });
     } else if (
-      _deps.fs.existsSync(path.join(projectRoot, "pyproject.toml")) ||
-      _deps.fs.existsSync(path.join(projectRoot, "requirements.txt"))
+      fs.existsSync(path.join(projectRoot, "pyproject.toml")) ||
+      fs.existsSync(path.join(projectRoot, "requirements.txt"))
     ) {
       checks.push({
         id: "pytest",
@@ -421,3 +423,5 @@ module.exports.defaultChecksForProject = defaultChecksForProject;
 module.exports.runCheck = runCheck;
 module.exports.aggregateStatus = aggregateStatus;
 module.exports.summarizeOutput = summarizeOutput;
+
+module.exports = withBundledSkillFilesystem("verify", module.exports);

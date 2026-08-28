@@ -11,7 +11,7 @@ tools:
   - file_reader
   - file_writer
   - command_executor
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute, runtime:time]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, process:cwd, process:execute, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill to manage the release lifecycle. Calculate semantic version bumps

@@ -8,7 +8,10 @@
  * Inspired by the everything-claude-code verification loop pattern.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 const {
@@ -575,3 +578,8 @@ function generateVerdict(
     message: lines.join("\n"),
   };
 }
+
+module.exports = withBundledSkillFilesystem(
+  "verification-loop",
+  module.exports,
+);

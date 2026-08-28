@@ -12,31 +12,18 @@ const {
   requireBundledSkillFilesystemBroker,
   withBundledSkillFilesystem,
 } = require("../bundled-skill-filesystem-broker.js");
+const {
+  BUNDLED_SKILL_CAPABILITY_CATALOG,
+} = require("../bundled-skill-capability-catalog.js");
 
-const MIGRATED_WRITERS = Object.freeze([
-  "api-gateway",
-  "architect-mode",
-  "backup-manager",
-  "code-runner",
-  "csv-processor",
-  "data-exporter",
-  "env-file-manager",
-  "file-compressor",
-  "image-generator",
-  "json-yaml-toolkit",
-  "markdown-enhancer",
-  "memory-insights",
-  "obsidian",
-  "performance-profiler",
-  "planning-with-files",
-  "proactive-agent",
-  "rules-engine",
-  "self-improving-agent",
-  "skill-creator",
-  "snippet-library",
-  "subtitle-generator",
-  "word-generator",
-]);
+const MIGRATED_FILESYSTEM_HANDLERS = Object.freeze(
+  Object.values(BUNDLED_SKILL_CAPABILITY_CATALOG)
+    .filter(({ executionCapabilities }) =>
+      executionCapabilities.includes("host:filesystem"),
+    )
+    .map(({ skillId }) => skillId)
+    .sort(),
+);
 const roots = [];
 
 function temporaryRoot(label) {
@@ -290,8 +277,34 @@ describe("bundled Skill filesystem broker", () => {
     ).toBe(true);
   });
 
-  it("keeps every migrated writer free of native fs imports and wrapped", () => {
-    for (const skillId of MIGRATED_WRITERS) {
+  it("routes stream processing through a bounded whole-file read", async () => {
+    const root = temporaryRoot("cc-fs-stream");
+    nativeFs.writeFileSync(
+      path.join(root, "events.log"),
+      "[INFO] started\n[ERROR] failed\n",
+      "utf8",
+    );
+    const { broker, auditEvents } = createBroker("stream-processor", root, {
+      policy: { allowedOperations: ["existsSync", "readFileSync"] },
+    });
+    const handler = require("../builtin/stream-processor/handler.js");
+
+    const result = await handler.execute(
+      { input: "events.log" },
+      contextFor(broker),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ totalLines: 2, matchedLines: 2 });
+    expect(auditEvents.map(({ operation }) => operation)).toEqual([
+      "existsSync",
+      "readFileSync",
+    ]);
+  });
+
+  it("keeps every filesystem handler free of native fs imports and wrapped", () => {
+    expect(MIGRATED_FILESYSTEM_HANDLERS).toHaveLength(84);
+    for (const skillId of MIGRATED_FILESYSTEM_HANDLERS) {
       const source = nativeFs.readFileSync(
         path.join(__dirname, "..", "builtin", skillId, "handler.js"),
         "utf8",
@@ -304,6 +317,16 @@ describe("bundled Skill filesystem broker", () => {
           `withBundledSkillFilesystem\\(\\s*["']${skillId}["']\\s*,\\s*module\\.exports\\s*,?\\s*\\)`,
         ),
       );
+    }
+
+    const builtinDirectory = path.join(__dirname, "..", "builtin");
+    for (const entry of nativeFs.readdirSync(builtinDirectory, {
+      withFileTypes: true,
+    })) {
+      const handlerPath = path.join(builtinDirectory, entry.name, "handler.js");
+      if (!entry.isDirectory() || !nativeFs.existsSync(handlerPath)) continue;
+      const source = nativeFs.readFileSync(handlerPath, "utf8");
+      expect(source, entry.name).not.toMatch(/require\(["'](?:node:)?fs["']\)/);
     }
   });
 });

@@ -7,7 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [summarize, summary, url, text, youtube, pdf, key-points, extract]
 capabilities: [url-summarization, text-summarization, file-summarization, key-point-extraction]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:network, network:http]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:network, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [summarize-url, summarize-text, summarize-file]

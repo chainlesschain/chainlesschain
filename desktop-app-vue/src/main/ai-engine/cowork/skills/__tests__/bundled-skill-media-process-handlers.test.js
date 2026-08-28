@@ -3,12 +3,22 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 const require = createRequire(import.meta.url);
-const audioTranscriber = require("../builtin/audio-transcriber/handler.js");
-const mediaMetadata = require("../builtin/media-metadata/handler.js");
-const videoToolkit = require("../builtin/video-toolkit/handler.js");
+const audioTranscriber = withTestFilesystemHandler(
+  require("../builtin/audio-transcriber/handler.js"),
+  "audio-transcriber",
+);
+const mediaMetadata = withTestFilesystemHandler(
+  require("../builtin/media-metadata/handler.js"),
+  "media-metadata",
+);
+const videoToolkit = withTestFilesystemHandler(
+  require("../builtin/video-toolkit/handler.js"),
+  "video-toolkit",
+);
 
 const temporaryDirectories = [];
 

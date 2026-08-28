@@ -6,9 +6,11 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
-const readline = require("readline");
 
 // ============================================================
 // Mode detection
@@ -86,40 +88,39 @@ async function processFile(filePath, mode, filterPattern) {
     }
   }
 
-  return new Promise((resolve, reject) => {
-    const stream = fs.createReadStream(filePath, { encoding: "utf-8" });
-    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split(/\r\n|[\n\r]/);
+  if (lines.at(-1) === "") {
+    lines.pop();
+  }
 
-    let lineNum = 0;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const lineNum = index + 1;
+    stats.totalLines++;
 
-    rl.on("line", (line) => {
-      lineNum++;
-      stats.totalLines++;
+    // Apply filter
+    if (filterRe && !filterRe.test(line)) {
+      continue;
+    }
+    stats.matchedLines++;
 
-      // Apply filter
-      if (filterRe && !filterRe.test(line)) {
-        return;
-      }
-      stats.matchedLines++;
+    // Process by mode
+    if (mode === "csv") {
+      processCsvLine(line, lineNum, stats);
+    } else if (mode === "json") {
+      processJsonLine(line, stats);
+    } else {
+      processLogLine(line, stats);
+    }
 
-      // Process by mode
-      if (mode === "csv") {
-        processCsvLine(line, lineNum, stats);
-      } else if (mode === "json") {
-        processJsonLine(line, stats);
-      } else {
-        processLogLine(line, stats);
-      }
+    // Collect sample
+    if (stats.sampleLines.length < 5) {
+      stats.sampleLines.push(line.substring(0, 200));
+    }
+  }
 
-      // Collect sample
-      if (stats.sampleLines.length < 5) {
-        stats.sampleLines.push(line.substring(0, 200));
-      }
-    });
-
-    rl.on("close", () => resolve(stats));
-    rl.on("error", (err) => reject(err));
-  });
+  return stats;
 }
 
 function processLogLine(line, stats) {
@@ -310,3 +311,5 @@ module.exports = {
     return handler({ input, context });
   },
 };
+
+module.exports = withBundledSkillFilesystem("stream-processor", module.exports);

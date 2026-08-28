@@ -6,7 +6,10 @@
  * Modes: --render, --render-inline, --validate, --extract, --batch, --helpers
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const Handlebars = require("handlebars");
 const { logger } = require("../../../../../utils/logger.js");
@@ -469,3 +472,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "template-renderer",
+  module.exports,
+);

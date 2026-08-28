@@ -5,7 +5,10 @@
  * generates migration scripts, detects schema drift, and suggests index optimizations.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -438,3 +441,5 @@ function handleSeed(tableName) {
     message: `Seed Data for ${tableName}\n${"=".repeat(25)}\n\n\`\`\`sql\n${seedData}\`\`\`\n\nNote: Preview only. Customize column values before use.`,
   };
 }
+
+module.exports = withBundledSkillFilesystem("db-migration", module.exports);

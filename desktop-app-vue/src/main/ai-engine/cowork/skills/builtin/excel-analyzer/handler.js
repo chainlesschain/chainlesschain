@@ -5,11 +5,14 @@
  * Enhanced: pivot tables, chart data preparation, file comparison.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
-const _deps = { fs, path, logger };
+const _deps = { path, logger };
 
 // ── Helpers ─────────────────────────────────────────
 
@@ -551,3 +554,5 @@ module.exports = {
 
   _deps,
 };
+
+module.exports = withBundledSkillFilesystem("excel-analyzer", module.exports);

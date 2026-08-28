@@ -4,7 +4,10 @@
  * Creates PowerPoint presentations from outlines, Markdown, or templates.
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -324,3 +327,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("pptx-creator", module.exports);

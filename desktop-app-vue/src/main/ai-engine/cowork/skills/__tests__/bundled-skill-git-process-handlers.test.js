@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { afterAll, describe, expect, it } from "vitest";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 const require = createRequire(import.meta.url);
@@ -28,7 +29,10 @@ const CASES = [
 ];
 
 function loadHandler(skillId) {
-  return require(`../builtin/${skillId}/handler.js`);
+  return withTestFilesystemHandler(
+    require(`../builtin/${skillId}/handler.js`),
+    skillId,
+  );
 }
 
 const localContext = Object.freeze({

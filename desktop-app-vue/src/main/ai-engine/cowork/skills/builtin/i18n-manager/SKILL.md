@@ -11,7 +11,7 @@ tools:
   - file_reader
   - file_writer
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill to manage internationalization. For --extract mode, scan Vue/JS/TS files

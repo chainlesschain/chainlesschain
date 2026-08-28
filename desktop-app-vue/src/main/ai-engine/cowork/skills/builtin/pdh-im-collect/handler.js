@@ -9,7 +9,10 @@
  * Actions: readiness (default) | wechat | qq | verify | guide
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 const {
@@ -19,8 +22,6 @@ const {
 // Injectable deps so tests can stub the CLI probe without spawning real
 // `cc` subprocesses (vi.mock("child_process") does not work for inlined
 // CJS — see .claude/rules/testing.md). Production uses the real bindings.
-const _deps = { fs };
-
 const VAULT_HINT =
   "%APPDATA%\\chainlesschain-desktop-vue\\.chainlesschain\\hub\\vault.db";
 
@@ -51,7 +52,7 @@ function resolveCcCommand(projectRoot, processBroker) {
 
   for (const c of candidates) {
     try {
-      if (_deps.fs.existsSync(c)) {
+      if (fs.existsSync(c)) {
         return { file: "node", prefixArgs: [c], display: `node "${c}"` };
       }
     } catch {
@@ -363,7 +364,6 @@ module.exports = {
       };
     }
   },
-
-  // Exposed for unit tests (CJS _deps injection — see .claude/rules/testing.md)
-  _deps,
 };
+
+module.exports = withBundledSkillFilesystem("pdh-im-collect", module.exports);

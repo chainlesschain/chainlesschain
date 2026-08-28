@@ -10,7 +10,7 @@ capabilities: [import-graph, impact-analysis, circular-detection, vulnerability-
 tools:
   - file_reader
   - code_analyzer
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:process, process:cwd, process:execute, system:inspect]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, host:process, process:cwd, process:execute, system:inspect]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs to understand module dependencies, analyze the

@@ -20,7 +20,7 @@ tools:
   - file_editor
   - code_analyzer
 supported-file-types: [js, ts, py, java, kt, go, vue, jsx, tsx]
-execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user wants to refactor code - rename symbols across files,

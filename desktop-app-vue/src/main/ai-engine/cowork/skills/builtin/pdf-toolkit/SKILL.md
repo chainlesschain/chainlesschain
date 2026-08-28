@@ -9,7 +9,7 @@ tags: [pdf, document, ocr, merge, split, extract]
 capabilities: [pdf-extract, pdf-merge, pdf-split, pdf-ocr, pdf-info]
 supported-file-types: [pdf]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:logger, host:media, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:filesystem, host:logger, host:media, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

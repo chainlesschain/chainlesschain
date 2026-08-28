@@ -7,7 +7,10 @@
  * Modes: --analyze, --generate, --framework vue|react|html
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -320,3 +323,8 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem(
+  "screenshot-to-code",
+  module.exports,
+);

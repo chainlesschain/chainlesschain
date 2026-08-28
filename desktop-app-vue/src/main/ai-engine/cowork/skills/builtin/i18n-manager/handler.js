@@ -6,7 +6,10 @@
  * Modes: --extract, --check, --add-locale, --stats
  */
 
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
@@ -549,3 +552,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("i18n-manager", module.exports);

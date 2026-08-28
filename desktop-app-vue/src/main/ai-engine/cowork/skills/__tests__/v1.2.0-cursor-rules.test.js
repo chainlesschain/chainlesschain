@@ -11,7 +11,13 @@ vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/cursor-rules-generator/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("./helpers/bundled-skill-filesystem.js");
+const handler = withTestFilesystemHandler(
+  require("../builtin/cursor-rules-generator/handler.js"),
+  "cursor-rules-generator",
+);
 
 describe("cursor-rules-generator handler", () => {
   let tempDir;

@@ -27,7 +27,10 @@ vi.mock("child_process", () => ({
   }),
 }));
 
-const audioHandler = require("../builtin/audio-transcriber/handler.js");
+const audioHandler = withTestFilesystemHandler(
+  require("../builtin/audio-transcriber/handler.js"),
+  "audio-transcriber",
+);
 const imageHandler = withTestFilesystemHandler(
   require("../builtin/image-generator/handler.js"),
   "image-generator",

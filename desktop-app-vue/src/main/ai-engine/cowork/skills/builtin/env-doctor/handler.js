@@ -6,7 +6,10 @@
  */
 
 const net = require("net");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 const {
@@ -392,3 +395,5 @@ async function handlePreflight(context, workspacePath) {
         : `❌ Preflight issues:\n${critical.map((c) => `  - ${c}`).join("\n")}`,
   };
 }
+
+module.exports = withBundledSkillFilesystem("env-doctor", module.exports);

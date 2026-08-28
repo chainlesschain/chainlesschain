@@ -11,7 +11,13 @@ vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/doc-coauthoring/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("./helpers/bundled-skill-filesystem.js");
+const handler = withTestFilesystemHandler(
+  require("../builtin/doc-coauthoring/handler.js"),
+  "doc-coauthoring",
+);
 
 describe("doc-coauthoring handler", () => {
   let tempDir;

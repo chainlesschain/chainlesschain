@@ -3,7 +3,10 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 const path = require("path");
 
 module.exports = {
@@ -217,3 +220,8 @@ function extractEndpoints(content, file) {
 
   return endpoints;
 }
+
+module.exports = withBundledSkillFilesystem(
+  "api-docs-generator",
+  module.exports,
+);

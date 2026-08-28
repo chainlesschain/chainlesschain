@@ -9,7 +9,7 @@ tags: [document, compare, diff, changes]
 capabilities: [text-diff, structural-comparison, change-summary]
 supported-file-types: [txt, md, docx, pdf, html]
 os: [win32, darwin, linux]
-execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:logger, process:cwd]
+execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:filesystem, host:logger, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

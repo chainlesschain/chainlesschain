@@ -3,13 +3,29 @@
  * Tests pure text summarization and _deps for URL/file operations
  */
 import { EventEmitter } from "node:events";
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/summarizer/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("./helpers/bundled-skill-filesystem.js");
+const testFilesystem = {
+  existsSync: vi.fn(),
+  statSync: vi.fn(),
+  readFileSync: vi.fn(),
+};
+const handler = withTestFilesystemHandler(
+  require("../builtin/summarizer/handler.js"),
+  "summarizer",
+  {
+    allowedRoots: [path.parse(process.cwd()).root],
+    invoke: ({ operation, args }) => testFilesystem[operation](...args),
+  },
+);
 const {
   createBundledSkillRuntimeNetworkBroker,
 } = require("../bundled-skill-egress-broker.js");
@@ -53,11 +69,11 @@ describe("summarizer handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     if (handler._deps) {
-      handler._deps.fs = {
-        existsSync: vi.fn().mockReturnValue(false),
-        statSync: vi.fn().mockReturnValue({ size: 1000 }),
-        readFileSync: vi.fn().mockReturnValue("Test content for reading."),
-      };
+      testFilesystem.existsSync = vi.fn().mockReturnValue(false);
+      testFilesystem.statSync = vi.fn().mockReturnValue({ size: 1000 });
+      testFilesystem.readFileSync = vi
+        .fn()
+        .mockReturnValue("Test content for reading.");
       handler._deps.path = {
         resolve: vi.fn((p) => `/resolved/${p}`),
         extname: vi.fn((p) => {
@@ -128,9 +144,9 @@ describe("summarizer handler", () => {
   describe("execute() - summarize-file", () => {
     it("should summarize a file", async () => {
       if (handler._deps) {
-        handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
-        handler._deps.fs.statSync = vi.fn().mockReturnValue({ size: 500 });
-        handler._deps.fs.readFileSync = vi
+        testFilesystem.existsSync = vi.fn().mockReturnValue(true);
+        testFilesystem.statSync = vi.fn().mockReturnValue({ size: 500 });
+        testFilesystem.readFileSync = vi
           .fn()
           .mockReturnValue(
             "Technology continues to evolve rapidly in the modern era. Computers process information at incredible speeds. Software development practices have improved significantly. Testing ensures code quality and reliability. Documentation helps teams collaborate effectively.",
@@ -151,7 +167,7 @@ describe("summarizer handler", () => {
 
     it("should return error for missing file", async () => {
       if (handler._deps) {
-        handler._deps.fs.existsSync = vi.fn().mockReturnValue(false);
+        testFilesystem.existsSync = vi.fn().mockReturnValue(false);
         handler._deps.path.resolve = vi.fn((p) => p);
       }
       const result = await handler.execute(
@@ -165,8 +181,8 @@ describe("summarizer handler", () => {
 
     it("should reject files larger than 10MB", async () => {
       if (handler._deps) {
-        handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
-        handler._deps.fs.statSync = vi
+        testFilesystem.existsSync = vi.fn().mockReturnValue(true);
+        testFilesystem.statSync = vi
           .fn()
           .mockReturnValue({ size: 11 * 1024 * 1024 });
         handler._deps.path.resolve = vi.fn((p) => p);
@@ -182,9 +198,9 @@ describe("summarizer handler", () => {
 
     it("should strip HTML for .html files", async () => {
       if (handler._deps) {
-        handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
-        handler._deps.fs.statSync = vi.fn().mockReturnValue({ size: 200 });
-        handler._deps.fs.readFileSync = vi
+        testFilesystem.existsSync = vi.fn().mockReturnValue(true);
+        testFilesystem.statSync = vi.fn().mockReturnValue({ size: 200 });
+        testFilesystem.readFileSync = vi
           .fn()
           .mockReturnValue(
             "<html><body><p>This is a paragraph about technology and innovation in software development practices.</p><p>Another paragraph about testing and quality assurance methodologies.</p></body></html>",
