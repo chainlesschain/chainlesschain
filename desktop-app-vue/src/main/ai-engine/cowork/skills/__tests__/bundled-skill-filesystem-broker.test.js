@@ -2,7 +2,7 @@ import nativeFs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
 const {
@@ -16,9 +16,12 @@ const {
 const MIGRATED_WRITERS = Object.freeze([
   "api-gateway",
   "architect-mode",
+  "backup-manager",
+  "code-runner",
   "csv-processor",
   "data-exporter",
   "env-file-manager",
+  "file-compressor",
   "image-generator",
   "json-yaml-toolkit",
   "markdown-enhancer",
@@ -26,6 +29,7 @@ const MIGRATED_WRITERS = Object.freeze([
   "obsidian",
   "performance-profiler",
   "planning-with-files",
+  "proactive-agent",
   "rules-engine",
   "self-improving-agent",
   "skill-creator",
@@ -244,6 +248,46 @@ describe("bundled Skill filesystem broker", () => {
         handler.execute({}, contextFor(second)),
       ]),
     ).resolves.toEqual(["first", "second"]);
+  });
+
+  it("bounds watcher events and returns only a close capability", () => {
+    const root = temporaryRoot("cc-fs-watch");
+    let adapterListener;
+    const close = vi.fn();
+    const { broker, auditEvents } = createBroker("proactive-agent", root, {
+      policy: {
+        allowedOperations: ["watch"],
+        maxWatchEvents: 1,
+        maxWatcherLifetimeMs: 1_000,
+      },
+      dependencies: {
+        invoke: ({ operation, args }) => {
+          expect(operation).toBe("watch");
+          adapterListener = args[2];
+          return { close };
+        },
+      },
+    });
+    const events = [];
+    const handler = withBundledSkillFilesystem("proactive-agent", {
+      execute() {
+        return bundledSkillFs.watch(
+          ".",
+          { recursive: true },
+          (eventType, filename) => events.push({ eventType, filename }),
+        );
+      },
+    });
+
+    const watcher = handler.execute({}, contextFor(broker));
+    expect(Object.keys(watcher)).toEqual(["close"]);
+    adapterListener("change", "safe.txt");
+    adapterListener("rename", "over-limit.txt");
+    expect(events).toEqual([{ eventType: "change", filename: "safe.txt" }]);
+    expect(close).toHaveBeenCalledOnce();
+    expect(
+      auditEvents.some((event) => event.reason === "watch_event_limit_reached"),
+    ).toBe(true);
   });
 
   it("keeps every migrated writer free of native fs imports and wrapped", () => {

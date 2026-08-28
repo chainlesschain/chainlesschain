@@ -3,12 +3,16 @@
  * Timer + fs based - test list/stop/status actions, cleanup watchers
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/proactive-agent/handler.js");
+const handler = withTestFilesystemHandler(
+  require("../builtin/proactive-agent/handler.js"),
+  "proactive-agent",
+);
 
 describe("proactive-agent handler", () => {
   beforeEach(() => {

@@ -14,7 +14,7 @@ capabilities:
     threshold-alert,
     periodic-check,
   ]
-execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd, runtime:random, runtime:time, runtime:timers, system:inspect]
+execution-capabilities: [data:result, data:task, filesystem:read, host:filesystem, host:logger, process:cwd, runtime:random, runtime:time, runtime:timers, system:inspect]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

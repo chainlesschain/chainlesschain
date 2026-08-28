@@ -3,12 +3,21 @@
  *
  * Backup and restore application data (database, config, memory, skills)
  * with ZIP archives in .chainlesschain/backups/.
- * Uses archiver for ZIP creation and adm-zip for reading/extraction.
+ * Uses a bounded in-memory ZIP codec; all host I/O stays behind filesystem
+ * authority.
  */
 
-const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  extractArchiveTo,
+  inspectArchive,
+  writeArchiveFromFiles,
+} = require("../../bundled-skill-archive-codec.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
 // ── Constants ──────────────────────────────────────
 
@@ -149,7 +158,6 @@ function categorize(entryName) {
 // ── Create ─────────────────────────────────────────
 
 async function createBackup(flags, root) {
-  const archiver = require("archiver");
   const items = flags.items || VALID_ITEMS;
   const bad = items.filter((i) => !VALID_ITEMS.includes(i));
   if (bad.length) {
@@ -178,70 +186,52 @@ async function createBackup(flags, root) {
   }
 
   const outputPath = path.join(dir, fileName);
-  const ws = fs.createWriteStream(outputPath);
-  const archive = archiver("zip", { zlib: { level: 6 } });
-
-  return new Promise((resolve) => {
-    let fileCount = 0;
-    const included = [];
-
-    ws.on("close", () => {
-      const size = archive.pointer();
-      logger.info(`[backup-manager] Created: ${fileName} (${fmtBytes(size)})`);
-      resolve({
-        success: true,
-        result: {
-          file: fileName,
-          path: outputPath,
-          size,
-          items: included,
-          fileCount,
-        },
-        message: `## Backup Created\n\n- **File**: ${fileName}\n- **Size**: ${fmtBytes(size)}\n- **Items**: ${included.join(", ")}\n- **Files**: ${fileCount}`,
-      });
-    });
-
-    archive.on("error", (err) => {
-      resolve({
-        success: false,
-        error: err.message,
-        message: `Backup failed: ${err.message}`,
-      });
-    });
-    archive.pipe(ws);
-
-    for (const item of items) {
-      const itemPath = path.join(root, ITEM_PATHS[item]);
-      if (!fs.existsSync(itemPath)) {
-        continue;
-      }
-      if (fs.statSync(itemPath).isDirectory()) {
-        for (const f of filesRecursive(itemPath)) {
-          archive.file(f, { name: path.relative(root, f) });
-          fileCount++;
-        }
-      } else {
-        archive.file(itemPath, { name: path.relative(root, itemPath) });
-        fileCount++;
-      }
-      included.push(item);
+  const archiveFiles = [];
+  const included = [];
+  for (const item of items) {
+    const itemPath = path.join(root, ITEM_PATHS[item]);
+    if (!fs.existsSync(itemPath)) {
+      continue;
     }
-
-    if (!fileCount) {
-      archive.abort();
-      try {
-        fs.unlinkSync(outputPath);
-      } catch {
-        /* ignore */
+    if (fs.statSync(itemPath).isDirectory()) {
+      for (const filePath of filesRecursive(itemPath)) {
+        archiveFiles.push({
+          name: path.relative(root, filePath).replace(/\\/g, "/"),
+          path: filePath,
+        });
       }
-      return resolve({
-        success: false,
-        error: "No files",
-        message: "No files found for specified items.",
+    } else {
+      archiveFiles.push({
+        name: path.relative(root, itemPath).replace(/\\/g, "/"),
+        path: itemPath,
       });
     }
-    archive.finalize();
-  });
+    included.push(item);
+  }
+
+  if (!archiveFiles.length) {
+    return {
+      success: false,
+      error: "No files",
+      message: "No files found for specified items.",
+    };
+  }
+  const { archiveSize: size, fileCount } = writeArchiveFromFiles(
+    outputPath,
+    archiveFiles,
+  );
+  logger.info(`[backup-manager] Created: ${fileName} (${fmtBytes(size)})`);
+  return {
+    success: true,
+    result: {
+      file: fileName,
+      path: outputPath,
+      size,
+      items: included,
+      fileCount,
+    },
+    message: `## Backup Created\n\n- **File**: ${fileName}\n- **Size**: ${fmtBytes(size)}\n- **Items**: ${included.join(", ")}\n- **Files**: ${fileCount}`,
+  };
 }
 
 // ── List ───────────────────────────────────────────
@@ -302,9 +292,8 @@ function restoreBackup(file, root) {
     };
   }
 
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip(zipPath);
-  const entries = zip.getEntries().filter((e) => !e.isDirectory);
+  const extraction = extractArchiveTo(zipPath, root);
+  const entries = extraction.entries.filter((entry) => !entry.isDirectory);
   if (!entries.length) {
     return {
       success: false,
@@ -316,11 +305,9 @@ function restoreBackup(file, root) {
   const items = new Set();
   let totalSize = 0;
   for (const e of entries) {
-    items.add(categorize(e.entryName));
-    totalSize += e.header.size;
+    items.add(categorize(e.name));
+    totalSize += e.size;
   }
-
-  zip.extractAllTo(root, true);
   logger.info(
     `[backup-manager] Restored ${entries.length} files from ${path.basename(zipPath)}`,
   );
@@ -356,20 +343,19 @@ function backupInfo(file, root) {
     };
   }
 
-  const AdmZip = require("adm-zip");
-  const entries = new AdmZip(zipPath)
-    .getEntries()
-    .filter((e) => !e.isDirectory);
+  const entries = inspectArchive(zipPath).entries.filter(
+    (entry) => !entry.isDirectory,
+  );
   const st = fs.statSync(zipPath);
   const cats = {};
   let origSize = 0,
     compSize = 0;
 
   for (const e of entries) {
-    const cat = categorize(e.entryName);
-    (cats[cat] = cats[cat] || []).push(e.entryName);
-    origSize += e.header.size;
-    compSize += e.header.compressedSize;
+    const cat = categorize(e.name);
+    (cats[cat] = cats[cat] || []).push(e.name);
+    origSize += e.size;
+    compSize += e.compressedSize;
   }
 
   const ratio = origSize ? ((compSize / origSize) * 100).toFixed(1) : "0";
@@ -558,3 +544,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("backup-manager", module.exports);

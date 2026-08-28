@@ -2107,7 +2107,10 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/code-runner/handler.js");
+      handler = withTestFilesystemHandler(
+        require("../../../src/main/ai-engine/cowork/skills/builtin/code-runner/handler.js"),
+        "code-runner",
+      );
     });
 
     it("should export init and execute functions", () => {
@@ -2177,7 +2180,10 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/file-compressor/handler.js");
+      handler = withTestFilesystemHandler(
+        require("../../../src/main/ai-engine/cowork/skills/builtin/file-compressor/handler.js"),
+        "file-compressor",
+      );
     });
 
     it("should export init and execute functions", () => {
@@ -2561,7 +2567,10 @@ describe("Skill Handlers", () => {
     let handler;
 
     beforeEach(() => {
-      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/backup-manager/handler.js");
+      handler = withTestFilesystemHandler(
+        require("../../../src/main/ai-engine/cowork/skills/builtin/backup-manager/handler.js"),
+        "backup-manager",
+      );
     });
 
     it("should export init and execute functions", () => {

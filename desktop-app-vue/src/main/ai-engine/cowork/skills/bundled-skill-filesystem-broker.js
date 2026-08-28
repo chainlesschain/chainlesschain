@@ -23,20 +23,29 @@ const MAX_PATH_BYTES = 16 * 1024;
 const MAX_READ_BYTES = 16 * 1024 * 1024;
 const MAX_WRITE_BYTES = 16 * 1024 * 1024;
 const MAX_DIRECTORY_ENTRIES = 10_000;
+const MAX_ACTIVE_WATCHERS = 8;
+const MAX_WATCH_EVENTS = 10_000;
+const MAX_WATCHER_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 const SUPPORTED_OPERATIONS = new Set([
   "appendFileSync",
   "existsSync",
+  "mkdtempSync",
   "mkdirSync",
   "readFileSync",
   "readdirSync",
+  "realpathSync",
+  "rmdirSync",
   "statSync",
   "unlinkSync",
+  "watch",
   "writeFileSync",
 ]);
 const WRITE_OPERATIONS = new Set([
   "appendFileSync",
+  "mkdtempSync",
   "mkdirSync",
+  "rmdirSync",
   "unlinkSync",
   "writeFileSync",
 ]);
@@ -188,6 +197,24 @@ function normalizePolicy(options = {}) {
       MAX_DIRECTORY_ENTRIES,
       "CC_BUNDLED_SKILL_FILESYSTEM_DIRECTORY_LIMIT_INVALID",
     ),
+    maxActiveWatchers: normalizeLimit(
+      options.maxActiveWatchers,
+      MAX_ACTIVE_WATCHERS,
+      MAX_ACTIVE_WATCHERS,
+      "CC_BUNDLED_SKILL_FILESYSTEM_WATCHER_LIMIT_INVALID",
+    ),
+    maxWatchEvents: normalizeLimit(
+      options.maxWatchEvents,
+      MAX_WATCH_EVENTS,
+      MAX_WATCH_EVENTS,
+      "CC_BUNDLED_SKILL_FILESYSTEM_WATCH_EVENT_LIMIT_INVALID",
+    ),
+    maxWatcherLifetimeMs: normalizeLimit(
+      options.maxWatcherLifetimeMs,
+      MAX_WATCHER_LIFETIME_MS,
+      MAX_WATCHER_LIFETIME_MS,
+      "CC_BUNDLED_SKILL_FILESYSTEM_WATCH_LIFETIME_INVALID",
+    ),
   });
 }
 
@@ -201,6 +228,7 @@ function createBundledSkillFilesystemBroker(options, deps = {}) {
       "A trusted filesystem adapter is required",
     );
   }
+  let activeWatcherCount = 0;
 
   function audit(operation, canonicalPath, outcome, reason = null) {
     auditSink(
@@ -247,7 +275,7 @@ function createBundledSkillFilesystemBroker(options, deps = {}) {
       );
     }
     if (
-      operation === "unlinkSync" &&
+      (operation === "unlinkSync" || operation === "rmdirSync") &&
       policy.allowedRoots.some((root) => canonical === root)
     ) {
       audit(operation, canonical, "denied", "root_mutation_denied");
@@ -260,7 +288,12 @@ function createBundledSkillFilesystemBroker(options, deps = {}) {
   }
 
   function validateWriteData(operation, data) {
-    if (!WRITE_OPERATIONS.has(operation) || operation === "mkdirSync") {
+    if (
+      !WRITE_OPERATIONS.has(operation) ||
+      operation === "mkdirSync" ||
+      operation === "mkdtempSync" ||
+      operation === "rmdirSync"
+    ) {
       return;
     }
     if (operation === "unlinkSync") {
@@ -311,6 +344,137 @@ function createBundledSkillFilesystemBroker(options, deps = {}) {
         "Filesystem directory result exceeded the authority entry limit",
       );
     }
+    if (operation === "mkdtempSync" || operation === "realpathSync") {
+      if (typeof output !== "string") {
+        audit(operation, canonicalPath, "denied", "path_result_invalid");
+        throw filesystemError(
+          "CC_BUNDLED_SKILL_FILESYSTEM_PATH_RESULT_INVALID",
+          "Filesystem adapter returned an unsupported path result",
+        );
+      }
+      const canonicalOutput = canonicalExistingPath(output);
+      if (
+        !policy.allowedRoots.some((root) => isWithinRoot(canonicalOutput, root))
+      ) {
+        audit(operation, canonicalPath, "denied", "path_result_denied");
+        throw filesystemError(
+          "CC_BUNDLED_SKILL_FILESYSTEM_PATH_RESULT_DENIED",
+          "Filesystem adapter returned a path outside approved roots",
+        );
+      }
+    }
+  }
+
+  function invokeWatch(canonicalPath, args) {
+    if (args.length !== 3 || typeof args[2] !== "function") {
+      throw filesystemError(
+        "CC_BUNDLED_SKILL_FILESYSTEM_WATCH_ARGUMENTS_INVALID",
+        "Filesystem watch requires bounded options and a listener",
+      );
+    }
+    if (activeWatcherCount >= policy.maxActiveWatchers) {
+      audit("watch", canonicalPath, "denied", "watcher_limit_reached");
+      throw filesystemError(
+        "CC_BUNDLED_SKILL_FILESYSTEM_WATCHER_LIMIT_REACHED",
+        "Filesystem watcher limit reached",
+      );
+    }
+    const rawOptions = args[1];
+    if (
+      rawOptions !== undefined &&
+      (rawOptions === null ||
+        typeof rawOptions !== "object" ||
+        Array.isArray(rawOptions))
+    ) {
+      throw filesystemError(
+        "CC_BUNDLED_SKILL_FILESYSTEM_WATCH_ARGUMENTS_INVALID",
+        "Filesystem watch options are invalid",
+      );
+    }
+    const options = Object.freeze({
+      persistent: rawOptions?.persistent !== false,
+      recursive: rawOptions?.recursive === true,
+      encoding: "utf8",
+    });
+    const listener = args[2];
+    let watcher;
+    let eventCount = 0;
+    let closed = false;
+    let lifetimeTimer;
+
+    const close = (reason = "watcher_closed") => {
+      if (closed) return;
+      closed = true;
+      activeWatcherCount = Math.max(0, activeWatcherCount - 1);
+      if (lifetimeTimer) clearTimeout(lifetimeTimer);
+      try {
+        watcher?.close();
+      } finally {
+        audit("watch", canonicalPath, "allowed", reason);
+      }
+    };
+    const boundedListener = (eventType, rawFilename) => {
+      if (closed) return;
+      eventCount += 1;
+      if (eventCount > policy.maxWatchEvents) {
+        close("watch_event_limit_reached");
+        return;
+      }
+      if (eventType !== "change" && eventType !== "rename") {
+        audit("watch", canonicalPath, "denied", "watch_event_invalid");
+        return;
+      }
+      const filename =
+        rawFilename === null || rawFilename === undefined
+          ? null
+          : String(rawFilename);
+      if (
+        filename !== null &&
+        (filename.includes("\0") ||
+          Buffer.byteLength(filename, "utf8") > MAX_PATH_BYTES)
+      ) {
+        audit("watch", canonicalPath, "denied", "watch_filename_invalid");
+        return;
+      }
+      try {
+        listener(eventType, filename);
+      } catch {
+        audit("watch", canonicalPath, "failed", "watch_listener_failed");
+      }
+    };
+
+    activeWatcherCount += 1;
+    try {
+      watcher = invokeAdapter(
+        Object.freeze({
+          operation: "watch",
+          args: Object.freeze([canonicalPath, options, boundedListener]),
+        }),
+      );
+    } catch (error) {
+      closed = true;
+      activeWatcherCount = Math.max(0, activeWatcherCount - 1);
+      audit("watch", canonicalPath, "failed", "adapter_failed");
+      throw error;
+    }
+    if (!watcher || typeof watcher.close !== "function") {
+      watcher?.close?.();
+      closed = true;
+      activeWatcherCount = Math.max(0, activeWatcherCount - 1);
+      audit("watch", canonicalPath, "denied", "watcher_invalid");
+      throw filesystemError(
+        "CC_BUNDLED_SKILL_FILESYSTEM_WATCHER_INVALID",
+        "Filesystem adapter returned an invalid watcher",
+      );
+    }
+    if (closed) watcher.close();
+    lifetimeTimer = setTimeout(
+      () => close("watch_lifetime_expired"),
+      policy.maxWatcherLifetimeMs,
+    );
+    lifetimeTimer.unref?.();
+    audit("watch", canonicalPath, "allowed");
+    return Object.freeze({ close: () => close() });
   }
 
   function invoke(operation, args = []) {
@@ -327,6 +491,9 @@ function createBundledSkillFilesystemBroker(options, deps = {}) {
       );
     }
     const canonicalPath = resolveContainedPath(args[0], operation);
+    if (operation === "watch") {
+      return invokeWatch(canonicalPath, args);
+    }
     validateWriteData(operation, args[1]);
     let output;
     try {

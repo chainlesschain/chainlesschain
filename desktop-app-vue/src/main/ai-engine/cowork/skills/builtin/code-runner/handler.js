@@ -6,7 +6,6 @@
  * Supports Python, JavaScript (Node.js), and Bash.
  */
 
-const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { pathToFileURL } = require("node:url");
@@ -14,6 +13,10 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
 const PROCESS_BROKER_MODULE_REL =
   "../../../../../../../packages/cli/src/lib/process-execution-broker/index.js";
@@ -588,3 +591,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = withBundledSkillFilesystem("code-runner", module.exports);
