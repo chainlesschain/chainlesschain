@@ -208,9 +208,13 @@ describe("Skill Handlers", () => {
     });
 
     it("should handle non-existent directory gracefully", async () => {
+      const missingDirectory = path.join(
+        os.tmpdir(),
+        `repo-map-nonexistent-${process.pid}-${Date.now()}`,
+      );
       const result = await handler.execute(
-        { input: "/nonexistent/path" },
-        { workspacePath: "/nonexistent" },
+        { input: "" },
+        { workspacePath: missingDirectory },
       );
       expect(result.success).toBe(true);
       expect(result.result.fileCount).toBe(0);
