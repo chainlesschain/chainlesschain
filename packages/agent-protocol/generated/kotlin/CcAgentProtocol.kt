@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:70fac74c12ca615d20428218e77df613d54f0473e7398d5332ce95148628995f"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:d922eeb714a07dfd35eb2b5060ecea7c40b9fab04d2a5951630064499c70f414"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -43,7 +43,8 @@ enum class AgentStreamEventType(val wireValue: String) {
     TOKEN_USAGE("token_usage"),
     TOOL_RESULT("tool_result"),
     TOOL_USE("tool_use"),
-    USER("user");
+    USER("user"),
+    POLICY_DECISION("policy_decision");
 
     companion object {
         fun fromWireValue(value: String): AgentStreamEventType? =
@@ -532,6 +533,24 @@ data class AgentPlanUpdateStreamEvent(
     val risk: JSONValue? = null,
     val execution_lock: JSONValue? = null,
     val session_id: String? = null
+) : AgentStreamEventPayload
+
+data class AgentPolicyDecisionStreamEvent(
+    val type: AgentStreamEventType,
+    val schema_version: Long,
+    val decision_id: String,
+    val source: String,
+    val decision: String,
+    val session_id: String? = null,
+    val turn_id: String? = null,
+    val tool_use_id: String? = null,
+    val tool: String? = null,
+    val hook_event: String? = null,
+    val via: String? = null,
+    val rule: String? = null,
+    val reason: String? = null,
+    val chain: List<JSONValue>? = null,
+    val policy_digest: String
 ) : AgentStreamEventPayload
 
 data class AgentQuestionRequestStreamEvent(

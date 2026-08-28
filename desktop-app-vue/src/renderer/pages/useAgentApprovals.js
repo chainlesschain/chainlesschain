@@ -48,7 +48,32 @@ export function useAgentApprovals({
     return codingAgentStore.latestApprovalRequest?.payload || null;
   });
 
+  const currentToolApproval = computed(() => {
+    if (
+      !currentCodingAgentSessionId.value ||
+      codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value
+    ) {
+      return null;
+    }
+    return (
+      codingAgentStore.currentSession?.pendingApprovals?.find(
+        (approval) => approval.status === "pending",
+      ) || null
+    );
+  });
+
+  const currentApprovalGrants = computed(
+    () => codingAgentStore.currentSession?.approvalGrants || [],
+  );
+
+  const canReuseToolApproval = computed(
+    () => (currentToolApproval.value?.requestedPermissions || []).length > 0,
+  );
+
   const approvalPanelTitle = computed(() => {
+    if (currentToolApproval.value) {
+      return `Approve ${currentToolApproval.value.tool || "tool"}?`;
+    }
     if (currentApprovalRequest.value) {
       return "Plan approval required";
     }
@@ -57,16 +82,30 @@ export function useAgentApprovals({
       return "High-risk confirmation required";
     }
 
+    if (currentApprovalGrants.value.length > 0) {
+      return "Session approval grants";
+    }
+
     return "Approval required";
   });
 
   const approvalPanelSummary = computed(() => {
+    if (currentToolApproval.value) {
+      return (
+        currentToolApproval.value.question ||
+        `Review this exact ${currentToolApproval.value.risk || "controlled"} operation before it runs.`
+      );
+    }
     if (currentApprovalRequest.value) {
       return approvalRequestDescription.value;
     }
 
     if (needsHighRiskConfirmation.value) {
       return highRiskConfirmationDescription.value;
+    }
+
+    if (currentApprovalGrants.value.length > 0) {
+      return "Review or revoke exact permissions currently reusable in this session.";
     }
 
     return "";
@@ -115,9 +154,20 @@ export function useAgentApprovals({
 
   const showApprovalPanel = computed(() => {
     return Boolean(
-      currentApprovalRequest.value || needsHighRiskConfirmation.value,
+      currentToolApproval.value ||
+      currentApprovalRequest.value ||
+      needsHighRiskConfirmation.value ||
+      currentApprovalGrants.value.length > 0,
     );
   });
+
+  const approvalGrantItems = computed(() =>
+    currentApprovalGrants.value.map((grant) => ({
+      ...grant,
+      label: `${grant.permission?.capability || "permission"} · ${grant.lifetime}`,
+      scope: grant.permission?.scope || "",
+    })),
+  );
 
   const currentBlockedTool = computed(() => {
     if (!currentCodingAgentSessionId.value) {
@@ -405,8 +455,44 @@ export function useAgentApprovals({
     }
   };
 
+  const handleToolApproval = async (kind) => {
+    const approval = currentToolApproval.value;
+    if (!approval) {
+      return;
+    }
+    try {
+      isThinking.value = true;
+      await codingAgentStore.respondApproval({
+        approvalType: "tool",
+        requestId: approval.requestId,
+        decision: { kind },
+      });
+    } catch (error) {
+      antMessage.error("审批工具调用失败: " + error.message);
+    } finally {
+      isThinking.value = false;
+    }
+  };
+
+  const revokingGrantId = ref(null);
+  const handleRevokeApprovalGrant = async (grantId) => {
+    try {
+      revokingGrantId.value = grantId;
+      await codingAgentStore.revokeApprovalGrant(grantId);
+      antMessage.success("Session approval grant revoked.");
+    } catch (error) {
+      antMessage.error("撤销持久授权失败: " + error.message);
+    } finally {
+      revokingGrantId.value = null;
+    }
+  };
+
   return {
     currentApprovalRequest,
+    currentToolApproval,
+    currentApprovalGrants,
+    canReuseToolApproval,
+    approvalGrantItems,
     approvalPanelTitle,
     approvalPanelSummary,
     approvalPlanItems,
@@ -430,5 +516,8 @@ export function useAgentApprovals({
     handleRejectPlan,
     handleConfirmHighRisk,
     handleRejectHighRisk,
+    handleToolApproval,
+    revokingGrantId,
+    handleRevokeApprovalGrant,
   };
 }

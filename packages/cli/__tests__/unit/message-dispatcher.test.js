@@ -17,6 +17,8 @@ function createServerStub() {
     _handleSessionClose: vi.fn(),
     _handleSlashCommand: vi.fn(),
     _handleSessionAnswer: vi.fn(),
+    _handleApprovalGrantsList: vi.fn(),
+    _handleApprovalGrantRevoke: vi.fn(),
     _handlePermissionRulesGet: vi.fn(),
     _handlePermissionRulesSet: vi.fn(),
     _setSecretConfigValue: vi.fn(),
@@ -112,6 +114,37 @@ describe("ws message dispatcher", () => {
       "4",
       ws,
       message,
+    );
+  });
+
+  it("routes approval grant review and revocation messages", async () => {
+    const server = createServerStub();
+    const dispatcher = createWsMessageDispatcher(server);
+    const ws = {};
+    const list = {
+      id: "grants-list",
+      type: "approval-grants-list",
+      sessionId: "sess-1",
+    };
+    const revoke = {
+      id: "grant-revoke",
+      type: "approval-grant-revoke",
+      sessionId: "sess-1",
+      grantId: "grant-1",
+    };
+
+    await dispatcher.dispatch("client-1", ws, list);
+    await dispatcher.dispatch("client-1", ws, revoke);
+
+    expect(server._handleApprovalGrantsList).toHaveBeenCalledWith(
+      "grants-list",
+      ws,
+      list,
+    );
+    expect(server._handleApprovalGrantRevoke).toHaveBeenCalledWith(
+      "grant-revoke",
+      ws,
+      revoke,
     );
   });
 

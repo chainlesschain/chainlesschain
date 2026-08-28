@@ -616,6 +616,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:approve-plan", sessionId),
     respondApproval: (payload) =>
       ipcRenderer.invoke("coding-agent:respond-approval", payload),
+    listApprovalGrants: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:list-approval-grants", sessionId),
+    revokeApprovalGrant: (payload) =>
+      ipcRenderer.invoke("coding-agent:revoke-approval-grant", payload),
     confirmHighRiskExecution: (sessionId) =>
       ipcRenderer.invoke("coding-agent:confirm-high-risk-execution", sessionId),
     rejectPlan: (sessionId) =>

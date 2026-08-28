@@ -97,6 +97,9 @@ async function runHookEventProjection(includeHookEvents) {
       outputFormat: "stream-json",
       sessionId: "parent-session",
       includeHookEvents,
+      settingsHooks: {},
+      ephemeral: true,
+      hermeticExecution: true,
     },
     makeDeps(lines, agentLoop),
   );
@@ -134,10 +137,69 @@ async function runStreamHookEventProjection() {
       includeHookEvents: true,
       sessionId: "stream-parent",
       ephemeral: true,
+      settingsHooks: {},
+      hermeticExecution: true,
     },
     {
       ...makeDeps(lines, agentLoop),
       input: oneTurnInput(),
+    },
+  );
+  return { result, events: parseNdjson(lines) };
+}
+
+async function* toolPolicyInput(negotiateWithoutPolicyDecision = false) {
+  if (negotiateWithoutPolicyDecision) {
+    yield `${JSON.stringify({
+      type: "hello",
+      protocol_version: 1,
+      min_protocol_version: 1,
+      features: ["event_seq", "tool_use_id", "trace_id"],
+    })}\n`;
+  }
+  yield '{"text":"run the gated tool"}\n';
+}
+
+async function runStreamToolPolicyProjection(negotiateWithoutPolicyDecision) {
+  const lines = [];
+  const agentLoop = async function* () {
+    yield {
+      type: "tool-executing",
+      tool: "run_shell",
+      args: { command: "npm test" },
+      tool_use_id: "tool-policy-1",
+      turn_id: "turn-policy-1",
+    };
+    yield {
+      type: "tool-result",
+      tool: "run_shell",
+      result: { error: "denied" },
+      error: "denied",
+      tool_use_id: "tool-policy-1",
+      turn_id: "turn-policy-1",
+      permission_decision_id: "tool-policy-1:perm:managed",
+      permission_decision: {
+        id: "tool-policy-1:perm:managed",
+        tool: "run_shell",
+        decision: "deny",
+        via: "managed",
+      },
+    };
+    yield { type: "response-complete", content: "done" };
+    yield { type: "run-ended", reason: "complete" };
+  };
+  const result = await runAgentHeadlessStream(
+    {
+      expandFileRefs: false,
+      includeHookEvents: true,
+      sessionId: "stream-policy",
+      ephemeral: true,
+      settingsHooks: {},
+      hermeticExecution: true,
+    },
+    {
+      ...makeDeps(lines, agentLoop),
+      input: toolPolicyInput(negotiateWithoutPolicyDecision),
     },
   );
   return { result, events: parseNdjson(lines) };
@@ -219,6 +281,17 @@ describe("headless hook and subagent event projection", () => {
       requires_approval: false,
       hook_count: 1,
     });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "policy_decision",
+        schema_version: 1,
+        source: "hook",
+        decision: "allow",
+        hook_event: "PreToolUse",
+        session_id: "parent-session",
+        policy_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      }),
+    );
     expect(JSON.stringify(events)).not.toContain("top-secret");
     expect(JSON.stringify(events)).not.toContain("/private/workspace");
   });
@@ -233,6 +306,7 @@ describe("headless hook and subagent event projection", () => {
           "hook_started",
           "hook_progress",
           "hook_response",
+          "policy_decision",
           "subagent_started",
           "subagent_progress",
           "subagent_completed",
@@ -245,35 +319,86 @@ describe("headless hook and subagent event projection", () => {
     const { result, events } = await runStreamHookEventProjection();
 
     expect(result).toMatchObject({ exitCode: 0, turns: 1 });
-    expect(events).toContainEqual(expect.objectContaining({
-      type: "subagent_started",
-      schema_version: 1,
-      subagent_id: "stream-child",
-      parent_id: "stream-parent",
-      background: false,
-    }));
-    expect(events).toContainEqual(expect.objectContaining({
-      type: "subagent_completed",
-      schema_version: 1,
-      subagent_id: "stream-child",
-      parent_id: "stream-parent",
-      status: "completed",
-      background: false,
-      iteration_count: 1,
-    }));
-    expect(events).toContainEqual(expect.objectContaining({
-      type: "hook_response",
-      schema_version: 1,
-      hook_event: "PostToolUse",
-      session_id: "stream-parent",
-      tool_use_id: "tool-1",
-      decision: "continue",
-      blocked: false,
-      requires_approval: false,
-      hook_count: 1,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "subagent_started",
+        schema_version: 1,
+        subagent_id: "stream-child",
+        parent_id: "stream-parent",
+        background: false,
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "subagent_completed",
+        schema_version: 1,
+        subagent_id: "stream-child",
+        parent_id: "stream-parent",
+        status: "completed",
+        background: false,
+        iteration_count: 1,
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "hook_response",
+        schema_version: 1,
+        hook_event: "PostToolUse",
+        session_id: "stream-parent",
+        tool_use_id: "tool-1",
+        decision: "continue",
+        blocked: false,
+        requires_approval: false,
+        hook_count: 1,
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "policy_decision",
+        schema_version: 1,
+        source: "hook",
+        decision: "allow",
+        hook_event: "PostToolUse",
+        session_id: "stream-parent",
+        tool_use_id: "tool-1",
+        policy_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      }),
+    );
     expect(JSON.stringify(events)).not.toContain("/private/stream-workspace");
     expect(JSON.stringify(events)).not.toContain("top-secret");
+  });
+
+  it("emits the same policy event for a gated tool result", async () => {
+    const { result, events } = await runStreamToolPolicyProjection(false);
+
+    expect(result).toMatchObject({ exitCode: 0, turns: 1 });
+    const toolResultIndex = events.findIndex(
+      (event) => event.type === "tool_result",
+    );
+    const policyIndex = events.findIndex(
+      (event) => event.type === "policy_decision" && event.source === "tool",
+    );
+    expect(policyIndex).toBeGreaterThan(toolResultIndex);
+    expect(events[policyIndex]).toMatchObject({
+      schema_version: 1,
+      decision_id: "tool-policy-1:perm:managed",
+      source: "tool",
+      decision: "deny",
+      tool: "run_shell",
+      tool_use_id: "tool-policy-1",
+      policy_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
+  });
+
+  it("suppresses policy events when capability negotiation disables them", async () => {
+    const { events } = await runStreamToolPolicyProjection(true);
+
+    expect(events.some((event) => event.type === "policy_decision")).toBe(
+      false,
+    );
+    const result = events.find((event) => event.type === "tool_result");
+    expect(result).not.toHaveProperty("permission_decision");
+    expect(result).not.toHaveProperty("permission_decision_id");
   });
 });
 
@@ -313,7 +438,12 @@ describe("headless MCP config-error projection", () => {
   it("adds non-empty mcp_server_errors only to the stream-json init event", async () => {
     const lines = [];
     const result = await runAgentHeadless(
-      { prompt: "report setup", outputFormat: "stream-json", ephemeral: true },
+      {
+        prompt: "report setup",
+        outputFormat: "stream-json",
+        ephemeral: true,
+        settingsHooks: {},
+      },
       {
         ...makeDeps(lines, async function* () {
           yield { type: "response-complete", content: "done" };

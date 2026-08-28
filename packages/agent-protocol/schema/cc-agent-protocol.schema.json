@@ -16,7 +16,8 @@
       "graph_effect_receipts",
       "deterministic_trace",
       "agent_stream_events",
-      "agent_stream_payloads"
+      "agent_stream_payloads",
+      "unified_policy_decision"
     ]
   },
   "oneOf": [
@@ -980,7 +981,8 @@
         "token_usage",
         "tool_result",
         "tool_use",
-        "user"
+        "user",
+        "policy_decision"
       ]
     },
     "AgentStreamEventEnvelope": {
@@ -1204,6 +1206,42 @@
         "risk": { "$ref": "#/$defs/JsonValue" },
         "execution_lock": { "$ref": "#/$defs/JsonValue" },
         "session_id": { "type": "string", "maxLength": 160 }
+      }
+    },
+    "AgentPolicyDecisionStreamEvent": {
+      "type": "object",
+      "required": [
+        "type",
+        "schema_version",
+        "decision_id",
+        "source",
+        "decision",
+        "policy_digest"
+      ],
+      "properties": {
+        "type": { "const": "policy_decision" },
+        "schema_version": { "const": 1 },
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "source": { "enum": ["hook", "tool"] },
+        "decision": { "enum": ["allow", "ask", "deny"] },
+        "session_id": { "type": "string", "maxLength": 160 },
+        "turn_id": { "type": "string", "maxLength": 160 },
+        "tool_use_id": { "type": "string", "maxLength": 160 },
+        "tool": { "type": "string", "maxLength": 256 },
+        "hook_event": { "type": "string", "maxLength": 96 },
+        "via": { "type": "string", "maxLength": 120 },
+        "rule": { "type": "string", "maxLength": 256 },
+        "reason": { "type": "string", "maxLength": 512 },
+        "chain": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/JsonValue" }
+        },
+        "policy_digest": { "$ref": "#/$defs/Digest" }
       }
     },
     "AgentQuestionRequestStreamEvent": {
@@ -1528,7 +1566,8 @@
         { "$ref": "#/$defs/AgentTokenUsageStreamEvent" },
         { "$ref": "#/$defs/AgentToolResultStreamEvent" },
         { "$ref": "#/$defs/AgentToolUseStreamEvent" },
-        { "$ref": "#/$defs/AgentUserStreamEvent" }
+        { "$ref": "#/$defs/AgentUserStreamEvent" },
+        { "$ref": "#/$defs/AgentPolicyDecisionStreamEvent" }
       ]
     },
     "CanonicalAgentStreamEvent": {

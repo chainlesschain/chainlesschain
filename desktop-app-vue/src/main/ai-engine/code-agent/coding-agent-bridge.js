@@ -113,6 +113,8 @@ class CodingAgentBridge extends EventEmitter {
         env: {
           ...process.env,
           FORCE_COLOR: "0",
+          CC_WS_APPROVAL_GATE:
+            process.env.CC_WS_APPROVAL_GATE === "0" ? "0" : "1",
         },
         stdio: ["ignore", "pipe", "pipe"],
         origin: "desktop:coding-agent-server",
@@ -378,11 +380,21 @@ class CodingAgentBridge extends EventEmitter {
   }
 
   async setPermissionRule({ decision, rule, scope = "project" }) {
-    return this.request(
-      "permission-rules-set",
-      { decision, rule, scope },
-      ["permission-rule-updated"],
-    );
+    return this.request("permission-rules-set", { decision, rule, scope }, [
+      "permission-rule-updated",
+    ]);
+  }
+
+  async listApprovalGrants(sessionId) {
+    return this.request("approval-grants-list", { sessionId }, [
+      "command.response",
+    ]);
+  }
+
+  async revokeApprovalGrant(sessionId, grantId) {
+    return this.request("approval-grant-revoke", { sessionId, grantId }, [
+      "command.response",
+    ]);
   }
 
   async closeSession(sessionId) {

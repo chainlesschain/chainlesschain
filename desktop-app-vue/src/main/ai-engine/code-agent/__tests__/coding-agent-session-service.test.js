@@ -801,7 +801,7 @@ describe("CodingAgentSessionService", () => {
     });
   });
 
-  it("rejects invalid or unsupported persistent canonical decisions", async () => {
+  it("rejects invalid decisions and persistent grants without an exact tool request", async () => {
     await service.createSession();
 
     await expect(
@@ -816,7 +816,222 @@ describe("CodingAgentSessionService", () => {
         approvalType: "high-risk",
         decision: { kind: "acceptForSession" },
       }),
-    ).rejects.toThrow("do not support persistent permission grants");
+    ).rejects.toThrow("exact pending tool approval request");
+  });
+
+  it("binds Desktop tool grants to the trusted request permission and binding", async () => {
+    await service.createSession();
+    bridge.emit("message", {
+      type: "question",
+      sessionId: "session-1",
+      requestId: "approval-1",
+      binding: "ab_0123456789abcdef0123456789abcdef",
+      question: "Approve run_shell?",
+      approval: {
+        tool: "run_shell",
+        command: "npm test",
+        risk: "high",
+        requestedPermissions: [
+          {
+            capability: "tool:run_shell",
+            scope: '{"args":{"command":"npm test"},"cwd":"C:/repo"}',
+          },
+        ],
+      },
+    });
+
+    expect(
+      service.getSessionState("session-1").session?.pendingApprovals,
+    ).toMatchObject([
+      {
+        requestId: "approval-1",
+        tool: "run_shell",
+        status: "pending",
+      },
+    ]);
+
+    const result = await service.respondApproval("session-1", {
+      approvalType: "tool",
+      requestId: "approval-1",
+      decision: { kind: "acceptForSession" },
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      approvalType: "tool",
+      status: "granted",
+      decision: {
+        kind: "acceptForSession",
+        permissions: [
+          expect.objectContaining({ capability: "tool:run_shell" }),
+        ],
+      },
+    });
+    expect(bridge.sentMessages.at(-1)).toMatchObject({
+      type: "session-answer",
+      sessionId: "session-1",
+      requestId: "approval-1",
+      binding: "ab_0123456789abcdef0123456789abcdef",
+      answer: {
+        decision: {
+          kind: "acceptForSession",
+          permissions: [
+            expect.objectContaining({ capability: "tool:run_shell" }),
+          ],
+        },
+      },
+    });
+    expect(
+      service.getSessionState("session-1").session?.pendingApprovals,
+    ).toEqual([]);
+  });
+
+  it("rejects stale, cross-session and widened Desktop tool approvals", async () => {
+    await service.createSession();
+    bridge.emit("message", {
+      type: "question",
+      sessionId: "session-1",
+      requestId: "approval-bound",
+      binding: "ab_bound",
+      approval: {
+        tool: "run_shell",
+        requestedPermissions: [
+          { capability: "tool:run_shell", scope: "exact" },
+        ],
+      },
+    });
+
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "tool",
+        requestId: "approval-bound",
+        binding: "ab_tampered",
+        decision: { kind: "acceptOnce" },
+      }),
+    ).rejects.toThrow("binding does not match");
+
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "tool",
+        requestId: "approval-bound",
+        decision: {
+          kind: "acceptForSession",
+          permissions: [{ capability: "tool:run_shell", scope: "broader" }],
+        },
+      }),
+    ).rejects.toThrow("permissions exceed");
+
+    await service.respondApproval("session-1", {
+      approvalType: "tool",
+      requestId: "approval-bound",
+      decision: { kind: "decline" },
+    });
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "tool",
+        requestId: "approval-bound",
+        decision: { kind: "acceptOnce" },
+      }),
+    ).rejects.toThrow("no longer pending");
+  });
+
+  it("does not report approval success after interrupt wins settlement", async () => {
+    await service.createSession();
+    bridge.request = vi.fn().mockResolvedValue({
+      success: false,
+      settled: false,
+      reason: "not_pending",
+    });
+    bridge.emit("message", {
+      type: "question",
+      sessionId: "session-1",
+      requestId: "approval-race",
+      binding: "ab_race",
+      approval: {
+        tool: "run_shell",
+        requestedPermissions: [
+          { capability: "tool:run_shell", scope: "exact-race" },
+        ],
+      },
+    });
+
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "tool",
+        requestId: "approval-race",
+        decision: { kind: "acceptOnce" },
+      }),
+    ).rejects.toThrow("lost the settlement race");
+    expect(
+      service.getSessionState("session-1").session.pendingApprovals,
+    ).toHaveLength(1);
+
+    bridge.emit("message", {
+      type: CodingAgentEventType.SESSION_INTERRUPTED,
+      sessionId: "session-1",
+      requestId: "interrupt-winner",
+    });
+    expect(
+      service.getSessionState("session-1").session.pendingApprovals,
+    ).toEqual([]);
+  });
+
+  it("discards pre-restart approval cards and rejects their stale response", async () => {
+    await service.createSession();
+    bridge.emit("message", {
+      type: "question",
+      sessionId: "session-1",
+      requestId: "approval-before-restart",
+      binding: "ab_restart",
+      approval: {
+        tool: "run_shell",
+        requestedPermissions: [
+          { capability: "tool:run_shell", scope: "exact-restart" },
+        ],
+      },
+    });
+
+    await service.resumeSession("session-1");
+
+    expect(
+      service.getSessionState("session-1").session.pendingApprovals,
+    ).toEqual([]);
+    await expect(
+      service.respondApproval("session-1", {
+        approvalType: "tool",
+        requestId: "approval-before-restart",
+        decision: { kind: "acceptOnce" },
+      }),
+    ).rejects.toThrow("no longer pending");
+  });
+
+  it("projects canonical hook/tool policy decisions into one Desktop event", async () => {
+    await service.createSession();
+    bridge.emit("message", {
+      type: "policy_decision",
+      schema_version: 1,
+      decision_id: "policy-1",
+      source: "hook",
+      decision: "ask",
+      policy_digest:
+        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      session_id: "session-1",
+      sessionId: "session-1",
+    });
+
+    const policyEvent = service
+      .getSessionEvents("session-1")
+      .events.find(
+        (event) => event.type === CodingAgentEventType.POLICY_DECISION,
+      );
+    expect(policyEvent).toMatchObject({
+      type: CodingAgentEventType.POLICY_DECISION,
+      payload: {
+        source: "hook",
+        decision: "ask",
+        decision_id: "policy-1",
+      },
+    });
   });
 
   it("routes structured MCP elicitation answers back to the CLI bridge", async () => {

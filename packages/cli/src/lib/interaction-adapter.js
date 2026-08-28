@@ -205,6 +205,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         // null (the default for plain questions) → no binding check, unchanged.
         binding: options.binding || null,
         bindingType: options.bindingType || null,
+        requireBinding: options.requireBinding === true,
       });
 
       if (approvalRequest) {
@@ -253,6 +254,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         // Approval binding pass-through: a permission-gate producer supplies
         // it; plain questions never carry one (message stays byte-identical).
         ...(options.binding ? { binding: options.binding } : {}),
+        ...(options.requireBinding === true ? { requireBinding: true } : {}),
       },
     );
   }
@@ -288,6 +290,45 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // Normalize to boolean
     if (typeof answer === "boolean") return answer;
     return answer === "true" || answer === "yes" || answer === "y";
+  }
+
+  /**
+   * Structured approval variant used by Desktop/WebSocket hosts. Unlike the
+   * legacy boolean askConfirm path, this preserves the canonical decision
+   * lifetime and requires the trusted host to echo the exact request binding.
+   */
+  async askApproval(question, options = {}) {
+    const {
+      binding = null,
+      default: dflt = false,
+      approval = {},
+      ...extra
+    } = options || {};
+    const answer = await this._ask(
+      "confirm",
+      question,
+      { default: dflt, approval, ...extra },
+      binding ? { binding, requireBinding: true } : {},
+    );
+    const candidate =
+      answer?.decision && typeof answer.decision === "object"
+        ? answer.decision
+        : answer;
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      [
+        "acceptOnce",
+        "acceptForTurn",
+        "acceptForSession",
+        "decline",
+        "cancel",
+      ].includes(candidate.kind)
+    ) {
+      return candidate;
+    }
+    if (answer === true) return { kind: "acceptOnce" };
+    return { kind: "decline" };
   }
 
   /**
@@ -369,7 +410,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * Resolves the corresponding pending promise.
    */
   resolveAnswer(requestId, answer, binding = null) {
-    this._resolvePending(requestId, answer, "question", binding);
+    return this._resolvePending(requestId, answer, "question", binding);
   }
 
   /**
@@ -441,7 +482,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   }
 
   resolveHostTool(requestId, payload) {
-    this._resolvePending(requestId, payload, "host-tool");
+    return this._resolvePending(requestId, payload, "host-tool");
   }
 
   rejectAllPending(reason = createAbortError("Interaction interrupted")) {
@@ -549,7 +590,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   ) {
     const pending = this._pending.get(requestId);
     if (!pending) {
-      return;
+      return Object.freeze({ settled: false, reason: "not_pending" });
     }
     // Kind guard: a question-answer must not settle a host-tool request (or
     // vice versa). On a mismatch, IGNORE the message — leave the request pending
@@ -559,7 +600,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // value). Backward-compatible: callers passing no expectedKind, and
     // pre-kind pending entries, behave exactly as before.
     if (expectedKind && pending.kind && pending.kind !== expectedKind) {
-      return;
+      return Object.freeze({ settled: false, reason: "kind_mismatch" });
     }
 
     // Approval-binding guard (authority §"权限来源"): if this request was raised
@@ -572,17 +613,18 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       pending.bindingType === "interaction" &&
       !sameInteractionBinding(pending.binding, incomingBinding)
     ) {
-      return;
+      return Object.freeze({ settled: false, reason: "binding_mismatch" });
     }
 
     let effective = payload;
     if (
       pending.bindingType !== "interaction" &&
       pending.binding &&
-      incomingBinding &&
-      !verifyApprovalBinding(pending.binding, incomingBinding)
+      ((pending.requireBinding && !incomingBinding) ||
+        (incomingBinding &&
+          !verifyApprovalBinding(pending.binding, incomingBinding)))
     ) {
-      effective = false;
+      effective = pending.requireBinding ? { kind: "decline" } : false;
     }
 
     this._pending.delete(requestId);
@@ -594,13 +636,23 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         effective === true ||
         effective === "true" ||
         effective === "yes" ||
-        effective === "y";
+        effective === "y" ||
+        ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(
+          effective?.kind || effective?.decision?.kind,
+        );
       this._notifyPendingApproval("approval.settled", {
         requestId,
         reason: normalizedApproval ? "approved" : "denied",
       });
     }
     pending.resolve(effective);
+    return Object.freeze({
+      settled: true,
+      reason:
+        effective !== payload && pending.requireBinding
+          ? "binding_mismatch_denied"
+          : "resolved",
+    });
   }
 }
 

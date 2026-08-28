@@ -59,6 +59,24 @@
     }
   },
   {
+    "name": "unified hook policy decision payload",
+    "valid": true,
+    "value": {
+      "type": "policy_decision",
+      "schema_version": 1,
+      "decision_id": "policy:0123456789abcdef0123456789abcdef0123456789abcdef",
+      "source": "hook",
+      "decision": "ask",
+      "session_id": "session-1",
+      "turn_id": "turn-1",
+      "tool_use_id": "tool-use-1",
+      "tool": "run_shell",
+      "hook_event": "PreToolUse",
+      "via": "hook:PreToolUse",
+      "policy_digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  },
+  {
     "name": "rejected question response payload",
     "valid": true,
     "value": {
@@ -152,6 +170,17 @@
     "value": {
       "type": "hook_started",
       "hook_event": "PreToolUse"
+    }
+  },
+  {
+    "name": "policy decision requires a digest",
+    "valid": false,
+    "value": {
+      "type": "policy_decision",
+      "schema_version": 1,
+      "decision_id": "policy-1",
+      "source": "tool",
+      "decision": "deny"
     }
   },
   {

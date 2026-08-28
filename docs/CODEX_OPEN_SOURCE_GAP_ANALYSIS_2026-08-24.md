@@ -2053,6 +2053,15 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 - 新增媒体 handler 契约，覆盖真实 ffprobe JSON、ffmpeg argv、option injection、输出逃逸、缺失 branded authority 和禁止重新引入隐式媒体 spawn；公共 broker 契约覆盖全部最终批固定命令、精确 authority invocation、stdin/environment 上限、entrypoint pin、路径 containment 与审计脱敏。最终 selector 的 CI integrity 为 33/33、Desktop Vitest 为 51 files、1,014/1,014，合计 52 files、1,047/1,047 全部通过。
 - P1-11 仍保持“部分完成”：bundled process 特权面代码侧已关闭，剩余为 84 个 filesystem reader、22 个 filesystem writer 的路径/操作 authority，生产 SecretStore/配置/network/process authority 与真实 approval/declassification 接线，以及三平台签名 Desktop 验收；测试 adapter 不作为生产授权证据。
 
+### 12.50 P1-9 Desktop 可审阅 turn/session grant 与撤销链路（2026-08-28）
+
+本切片把 Desktop Coding Agent 从只能返回二元 `session-answer` 的审批 UI 升级为 exact、可复用且可撤销的授权链路；不触碰其他窗口负责的 P1-11 bundled Skill 文件：
+
+- WebSocket ApprovalGate 现在为每次请求派生精确的 `tool + args + cwd + policy` permission，并把 binding 与唯一 requested permission 送到 Desktop。turn grant 在每个用户 turn 开始前清空；session grant 只从已验证的 JSONL authority event 恢复并以 anchored authority append 持久化。恢复校验失败会丢弃全部 grant；持久化失败不会产生 phantom session grant，只把当前精确操作降级为一次性批准。
+- Desktop main process 保存 requestId、sessionId、binding 和 requested permissions 的可信副本。renderer 只能选择 `acceptOnce / acceptForTurn / acceptForSession / decline / cancel` 与 requestId，不能提供或扩大 permission；跨 session、陈旧、重复、binding 不匹配和 permission widening 均在 main/adapter 边界拒绝。Desktop 启动的内置 CLI 默认开启 WS ApprovalGate，仍保留显式 `CC_WS_APPROVAL_GATE=0` 的兼容关闭开关。
+- 新增固定 IPC/WS 路由用于列出和撤销 turn/session grant。session grant 撤销先构造候选 ledger，只有 authority event 持久化成功才替换活动 ledger；失败会回滚内存状态。AI Chat 审批卡展示 exact tool、command、risk、capability/scope，提供一次、当前 turn、当前 session、拒绝和取消按钮，并持续展示可复用 grant 及其撤销入口。
+- 本地聚焦回归覆盖 grant ledger、绑定强制、WS gate 持久化/恢复/撤销、路由、Desktop bridge/session/IPC/store 与真实 Vue 审批面板；相关 362 项通过，Desktop `vue-tsc --noEmit` 通过。该结果是仓库实现证据，不等于已发布或跨产品关闭；本切片当时留下的统一 hook/tool policy event 和 Desktop/WS race/restart 由 §12.52 继续收口，其他产品 UI 与跨产品矩阵仍属 P1-9 剩余范围。
+
 ### 12.51 P1-11 bundled Skill filesystem writer authority 全量收口（2026-08-28）
 
 本切片把审计初始识别的 22 个直接写盘/FD bundled Skill 从原生 `fs` 导入迁到统一的 branded filesystem broker，并关闭 archive、临时目录和 watcher 的隐式旁路：
@@ -2066,6 +2075,17 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 - 最终聚焦回归覆盖 broker containment/边界/品牌/并发隔离/watcher、archive round-trip 与 traversal、22 个历史目标 handler 静态边界、capability catalog、安全契约及真实 handler 行为，共 9 files、328/328 通过。最终变更选择器的 CI integrity 为 33/33、Desktop Vitest 为 53 files、1,026/1,026，合计 54 files、1,059/1,059 全部通过。
 
 P1-11 仍保持“部分完成”：bundled filesystem writer 特权面代码侧已关闭，但 63 个直接 reader、生产 filesystem authority/approval 接线及三平台签名 Desktop 验收尚未完成；测试 adapter 不作为生产授权证据。
+
+### 12.52 P1-9 统一策略事件与 Desktop/WS 审批结算 CAS（2026-08-28）
+
+本切片继续 §12.50，不触碰 P1-11 Skill authority：
+
+- canonical Agent stream 新增 `policy_decision@1`，把 Hook `hook_response` 与 tool `permission_decision` 投影为同一有界结构：`decision_id/source/decision/session_id/turn_id/tool_use_id/tool/hook_event/via/rule/reason/chain/policy_digest`。决定统一为 `allow / ask / deny`；字符串和 chain 有长度/条目上限，进入摘要与事件前先脱敏，缺失 ID 由稳定 SHA-256 派生。
+- headless 单轮和多轮 stream 只在显式 `includeHookEvents` 时发出该事件，并尊重现有 permission-decision capability gate；默认输出保持不变。WebSocket Agent 同时投影 Hook 与 tool admission，Desktop 再映射为统一 `policy.decision` envelope，tool result 不再丢失原 permission decision 字段。
+- `WebSocketInteractionAdapter` 的 answer/host-tool 结算返回显式 CAS 结果；未知、kind/binding 不匹配或已被 interrupt/cancel 清除的请求返回 `settled:false`。`session-answer` 只有真实调用 settlement authority 且赢得结算才回 success；Desktop 在丢失竞态时恢复待处理状态并拒绝伪造成功，session restart/resume 会清除旧审批卡，旧 response 不能落到新 session。
+- canonical schema、fixture 以及 TypeScript、Python、Kotlin、Swift 和 CLI 内嵌生成物已同步。协议 check 与 13/13 测试、Python 3.12 SDK 31/31、CLI 定向 168/168、Desktop session 49/49 通过；TS SDK `protocol:check` 和 build 通过，非 E2E 66 项通过。本机真实 CLI SDK E2E 未计为通过：子进程在本地慢启动后只产生 init/end、0 turns，仍需由精确提交 CI 矩阵复验，因而本节只声明仓库实现，不声明公开发布。
+
+P1-9 继续保持“部分完成”：还需 JetBrains/Android/iOS/Web 的可审阅持久 grant UI，跨产品 approval-vs-cancel、多人 quorum、职责分离、race/restart fixture，以及本轮 schema/SDK/CLI 的精确 SHA 三平台门禁、发布和 registry/provenance 回读。
 
 ## 13. 全量任务完成情况（截至 2026-08-28）
 

@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:70fac74c12ca615d20428218e77df613d54f0473e7398d5332ce95148628995f"
+public let ccAgentProtocolSchemaDigest = "sha256:d922eeb714a07dfd35eb2b5060ecea7c40b9fab04d2a5951630064499c70f414"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -73,6 +73,7 @@ public enum AgentStreamEventType: String, Codable, Sendable {
     case toolResult = "tool_result"
     case toolUse = "tool_use"
     case user = "user"
+    case policyDecision = "policy_decision"
 }
 
 public struct DataPolicy: Codable, Sendable {
@@ -1426,6 +1427,58 @@ public struct AgentPlanUpdateStreamEvent: Codable, Sendable {
     }
 }
 
+public struct AgentPolicyDecisionStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let schema_version: Int
+    public let decision_id: String
+    public let source: String
+    public let decision: String
+    public let session_id: String?
+    public let turn_id: String?
+    public let tool_use_id: String?
+    public let tool: String?
+    public let hook_event: String?
+    public let via: String?
+    public let rule: String?
+    public let reason: String?
+    public let chain: [JSONValue]?
+    public let policy_digest: String
+
+    public init(
+        type: AgentStreamEventType,
+        schema_version: Int,
+        decision_id: String,
+        source: String,
+        decision: String,
+        session_id: String? = nil,
+        turn_id: String? = nil,
+        tool_use_id: String? = nil,
+        tool: String? = nil,
+        hook_event: String? = nil,
+        via: String? = nil,
+        rule: String? = nil,
+        reason: String? = nil,
+        chain: [JSONValue]? = nil,
+        policy_digest: String
+    ) {
+        self.type = type
+        self.schema_version = schema_version
+        self.decision_id = decision_id
+        self.source = source
+        self.decision = decision
+        self.session_id = session_id
+        self.turn_id = turn_id
+        self.tool_use_id = tool_use_id
+        self.tool = tool
+        self.hook_event = hook_event
+        self.via = via
+        self.rule = rule
+        self.reason = reason
+        self.chain = chain
+        self.policy_digest = policy_digest
+    }
+}
+
 public struct AgentQuestionRequestStreamEvent: Codable, Sendable {
     public let type: AgentStreamEventType
     public let id: String
@@ -2074,6 +2127,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
     case toolResult(AgentToolResultStreamEvent)
     case toolUse(AgentToolUseStreamEvent)
     case user(AgentUserStreamEvent)
+    case policyDecision(AgentPolicyDecisionStreamEvent)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -2119,6 +2173,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .toolResult: self = .toolResult(try AgentToolResultStreamEvent(from: decoder))
         case .toolUse: self = .toolUse(try AgentToolUseStreamEvent(from: decoder))
         case .user: self = .user(try AgentUserStreamEvent(from: decoder))
+        case .policyDecision: self = .policyDecision(try AgentPolicyDecisionStreamEvent(from: decoder))
         }
     }
 
@@ -2161,6 +2216,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .toolResult(let event): try event.encode(to: encoder)
         case .toolUse(let event): try event.encode(to: encoder)
         case .user(let event): try event.encode(to: encoder)
+        case .policyDecision(let event): try event.encode(to: encoder)
         }
     }
 }

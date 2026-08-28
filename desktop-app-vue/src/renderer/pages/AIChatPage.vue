@@ -499,7 +499,13 @@
                 </p>
               </div>
               <div class="approval-panel-tags">
-                <a-tag v-if="currentApprovalRequest" color="blue"> Plan </a-tag>
+                <a-tag v-if="currentToolApproval" color="purple"> Tool </a-tag>
+                <a-tag
+                  v-if="currentApprovalRequest && !currentToolApproval"
+                  color="blue"
+                >
+                  Plan
+                </a-tag>
                 <a-tag
                   v-if="needsHighRiskConfirmation && !currentApprovalRequest"
                   color="orange"
@@ -512,7 +518,11 @@
               </div>
             </div>
             <div
-              v-if="approvalPlanItems.length > 0"
+              v-if="
+                currentApprovalRequest &&
+                !currentToolApproval &&
+                approvalPlanItems.length > 0
+              "
               class="approval-panel-section"
             >
               <div class="approval-panel-label">Planned steps</div>
@@ -538,9 +548,43 @@
               </ul>
             </div>
             <div
+              v-if="currentToolApproval"
+              class="approval-panel-section approval-panel-section-warning"
+            >
+              <div class="approval-panel-label">Exact operation</div>
+              <div class="approval-tool-row">
+                <span class="approval-tool-label">Tool</span>
+                <a-tag color="purple">
+                  {{ currentToolApproval.tool || "unknown" }}
+                </a-tag>
+              </div>
+              <div v-if="currentToolApproval.command" class="approval-tool-row">
+                <span class="approval-tool-label">Command</span>
+                <code class="approval-command">
+                  {{ currentToolApproval.command }}
+                </code>
+              </div>
+              <div class="approval-tool-row">
+                <span class="approval-tool-label">Risk</span>
+                <a-tag color="orange">
+                  {{ currentToolApproval.risk || "unknown" }}
+                </a-tag>
+              </div>
+              <div
+                v-for="permission in currentToolApproval.requestedPermissions"
+                :key="`${permission.capability}:${permission.scope}`"
+                class="approval-permission"
+              >
+                <strong>{{ permission.capability }}</strong>
+                <span>{{ permission.scope }}</span>
+              </div>
+            </div>
+            <div
               v-if="
-                approvalPolicyMediumTools.length > 0 ||
-                approvalPolicyHighTools.length > 0
+                currentApprovalRequest &&
+                !currentToolApproval &&
+                (approvalPolicyMediumTools.length > 0 ||
+                  approvalPolicyHighTools.length > 0)
               "
               class="approval-panel-section"
             >
@@ -577,7 +621,11 @@
               </div>
             </div>
             <div
-              v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+              v-if="
+                needsHighRiskConfirmation &&
+                !currentApprovalRequest &&
+                !currentToolApproval
+              "
               class="approval-panel-section approval-panel-section-warning"
             >
               <div class="approval-panel-label">High-risk confirmation</div>
@@ -585,23 +633,53 @@
                 {{ highRiskConfirmationDescription }}
               </p>
             </div>
+            <div
+              v-if="approvalGrantItems.length > 0"
+              class="approval-panel-section"
+            >
+              <div class="approval-panel-label">Reusable grants</div>
+              <div
+                v-for="grant in approvalGrantItems"
+                :key="grant.grantId"
+                class="approval-grant-row"
+              >
+                <div>
+                  <div class="approval-step-title">{{ grant.label }}</div>
+                  <div class="approval-step-description">
+                    {{ grant.scope }}
+                  </div>
+                </div>
+                <a-button
+                  size="small"
+                  danger
+                  :loading="revokingGrantId === grant.grantId"
+                  @click="handleRevokeApprovalGrant(grant.grantId)"
+                >
+                  Revoke
+                </a-button>
+              </div>
+            </div>
             <div class="approval-panel-actions">
               <a-button
-                v-if="currentApprovalRequest"
+                v-if="currentApprovalRequest && !currentToolApproval"
                 type="primary"
                 @click="handleApprovePlan"
               >
                 Approve Plan
               </a-button>
               <a-button
-                v-if="currentApprovalRequest"
+                v-if="currentApprovalRequest && !currentToolApproval"
                 danger
                 @click="handleRejectPlan"
               >
                 Reject Plan
               </a-button>
               <a-button
-                v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+                v-if="
+                  needsHighRiskConfirmation &&
+                  !currentApprovalRequest &&
+                  !currentToolApproval
+                "
                 type="primary"
                 danger
                 @click="handleConfirmHighRisk"
@@ -609,10 +687,46 @@
                 Confirm High-Risk Actions
               </a-button>
               <a-button
-                v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+                v-if="
+                  needsHighRiskConfirmation &&
+                  !currentApprovalRequest &&
+                  !currentToolApproval
+                "
                 @click="handleRejectHighRisk"
               >
                 Cancel High-Risk Actions
+              </a-button>
+              <a-button
+                v-if="currentToolApproval"
+                type="primary"
+                @click="handleToolApproval('acceptOnce')"
+              >
+                Approve Once
+              </a-button>
+              <a-button
+                v-if="currentToolApproval && canReuseToolApproval"
+                @click="handleToolApproval('acceptForTurn')"
+              >
+                Approve for Turn
+              </a-button>
+              <a-button
+                v-if="currentToolApproval && canReuseToolApproval"
+                @click="handleToolApproval('acceptForSession')"
+              >
+                Approve for Session
+              </a-button>
+              <a-button
+                v-if="currentToolApproval"
+                danger
+                @click="handleToolApproval('decline')"
+              >
+                Deny
+              </a-button>
+              <a-button
+                v-if="currentToolApproval"
+                @click="handleToolApproval('cancel')"
+              >
+                Cancel
               </a-button>
             </div>
           </div>
@@ -1292,6 +1406,9 @@ const currentCodingAgentSessionId = computed(() => {
 // FAMILY-... 审批面板逻辑抽到 useAgentApprovals composable (SFC 拆分,须在 event composable 前)
 const {
   currentApprovalRequest,
+  currentToolApproval,
+  canReuseToolApproval,
+  approvalGrantItems,
   approvalPanelTitle,
   approvalPanelSummary,
   approvalPlanItems,
@@ -1315,6 +1432,9 @@ const {
   handleRejectPlan,
   handleConfirmHighRisk,
   handleRejectHighRisk,
+  handleToolApproval,
+  revokingGrantId,
+  handleRevokeApprovalGrant,
 } = useAgentApprovals({
   codingAgentStore,
   sessionCoreStore,
@@ -2544,6 +2664,8 @@ defineExpose({
   handleRejectPlan,
   handleConfirmHighRisk,
   handleRejectHighRisk,
+  handleToolApproval,
+  handleRevokeApprovalGrant,
   handleRefreshHarnessPanel,
   handleSetHarnessTaskFilter,
   handleNextHarnessTaskPage,

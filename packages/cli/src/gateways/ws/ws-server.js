@@ -53,6 +53,8 @@ import {
   handleSessionClose,
   handleSessionInterrupt,
   handleSessionAnswer,
+  handleApprovalGrantsList,
+  handleApprovalGrantRevoke,
   handleHostToolResult,
   handleSubAgentList,
   handleSubAgentGet,
@@ -746,9 +748,8 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** Read the same static + scoped authority used by the Agent Core. */
   async _handlePermissionRulesGet(id, ws) {
     try {
-      const { loadPermissionAuthority } = await import(
-        "../../lib/permission-authority.js"
-      );
+      const { loadPermissionAuthority } =
+        await import("../../lib/permission-authority.js");
       const loaded = loadPermissionAuthority({ cwd: this.projectRoot });
       this._send(ws, {
         id,
@@ -1416,6 +1417,16 @@ export class ChainlessChainWSServer extends EventEmitter {
     return handleSessionAnswer(this, id, ws, message);
   }
 
+  /** @private */
+  _handleApprovalGrantsList(id, ws, message) {
+    return handleApprovalGrantsList(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleApprovalGrantRevoke(id, ws, message) {
+    return handleApprovalGrantRevoke(this, id, ws, message);
+  }
+
   _handleHostToolResult(id, ws, message) {
     return handleHostToolResult(this, id, ws, message);
   }
@@ -1498,9 +1509,8 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — ping/pong heartbeat to detect dead connections */
   async _ensureTaskManager() {
     if (this._taskManager) return this._taskManager;
-    const { BackgroundTaskManager } = await import(
-      "../../harness/background-task-manager.js"
-    );
+    const { BackgroundTaskManager } =
+      await import("../../harness/background-task-manager.js");
     this._taskManager = new BackgroundTaskManager({
       recoverOnStart: true,
       policyCwd: this.projectRoot,

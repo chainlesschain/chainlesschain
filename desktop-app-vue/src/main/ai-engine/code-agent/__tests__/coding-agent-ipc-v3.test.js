@@ -62,6 +62,16 @@ describe("registerCodingAgentIPCV3", () => {
         decision: { kind: "acceptOnce" },
         status: "granted",
       }),
+      listApprovalGrants: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        grants: [],
+      }),
+      revokeApprovalGrant: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        grants: [],
+      }),
       rejectPlan: vi
         .fn()
         .mockResolvedValue({ success: true, requestId: "plan-reject" }),
@@ -347,6 +357,28 @@ describe("registerCodingAgentIPCV3", () => {
       decision: { kind: "acceptOnce" },
       status: "granted",
     });
+  });
+
+  it("keeps approval grant review and revocation on fixed IPC channels", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    await ipcMainMock.handlers["coding-agent:list-approval-grants"](
+      {},
+      "session-1",
+    );
+    await ipcMainMock.handlers["coding-agent:revoke-approval-grant"](
+      {},
+      {
+        sessionId: "session-1",
+        grantId: "grant-1",
+      },
+    );
+
+    expect(service.listApprovalGrants).toHaveBeenCalledWith("session-1");
+    expect(service.revokeApprovalGrant).toHaveBeenCalledWith(
+      "session-1",
+      "grant-1",
+    );
   });
 
   it("delegates worktree diff requests to the service", async () => {

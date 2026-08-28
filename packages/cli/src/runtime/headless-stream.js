@@ -38,6 +38,10 @@ import {
   executeHooksV2Event,
   resolvePromptExpansion,
 } from "../lib/hooks-v2-producers.js";
+import {
+  projectHookPolicyDecision,
+  projectToolPolicyDecision,
+} from "../lib/policy-decision-event.js";
 import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { bootstrap } from "./bootstrap.js";
 import {
@@ -875,6 +879,7 @@ async function runTurn(
     persistUsageEvent,
     persistToolEvent,
     sessionBudget,
+    emitPolicyDecisionEvents = false,
     now = Date.now,
   },
 ) {
@@ -1067,6 +1072,18 @@ async function runTurn(
             ? { permission_decision: event.permission_decision }
             : {}),
         });
+        if (
+          (typeof emitPolicyDecisionEvents === "function"
+            ? emitPolicyDecisionEvents()
+            : emitPolicyDecisionEvents) === true
+        ) {
+          const policyEvent = projectToolPolicyDecision(event, {
+            sessionId: loopOptions.sessionId,
+            turnId: event.turn_id,
+            toolUseId: lastCall?.id,
+          });
+          if (policyEvent) emit(policyEvent);
+        }
         if (settledItem) {
           emit({ type: "plan_update", ...planSnapshot(pm) });
         }
@@ -1545,7 +1562,13 @@ async function runAgentHeadlessStreamInWorkspace(
   const emit = streamCoalescer.emit;
   const removeHookObserver =
     options.includeHookEvents === true
-      ? addHooksV2EventObserver(sessionId, (event) => emit(event))
+      ? addHooksV2EventObserver(sessionId, (event) => {
+          emit(event);
+          if (fieldGate.permission_decision !== false) {
+            const policyEvent = projectHookPolicyDecision(event);
+            if (policyEvent) emit(policyEvent);
+          }
+        })
       : null;
   streamCleanup.setOutputCleanup(() => streamCoalescer.flush?.());
 
@@ -4375,6 +4398,9 @@ async function runAgentHeadlessStreamInWorkspace(
           persistUsageEvent,
           persistToolEvent,
           sessionBudget: options.sessionBudget || null,
+          emitPolicyDecisionEvents: () =>
+            options.includeHookEvents === true &&
+            fieldGate.permission_decision !== false,
         },
       );
     } catch (err) {

@@ -41,6 +41,7 @@ import {
 } from "../../src/lib/hooks-v2-workspace-context.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import { _deps as sideEffectLedgerStoreDeps } from "../../src/lib/side-effect-ledger-store.js";
+import { executeHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
   path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
@@ -407,6 +408,65 @@ describe("WSAgentHandler", () => {
         ],
         ["run.settled", expect.objectContaining({ requestId: "req-state" })],
       ]);
+    });
+
+    it("projects Hook and tool admission through one policy event", async () => {
+      agentLoop.mockImplementation(async function* () {
+        await executeHooksV2Event("PreToolUse", {
+          session_id: session.id,
+          turn_id: "turn-1",
+          tool_use_id: "tool-use-1",
+          tool_name: "run_shell",
+        });
+        yield {
+          type: "tool-result",
+          tool: "run_shell",
+          tool_use_id: "tool-use-1",
+          turn_id: "turn-1",
+          error: "blocked",
+          result: { error: "blocked" },
+          permission_decision_id: "tool-use-1:perm:hook",
+          permission_decision: {
+            id: "tool-use-1:perm:hook",
+            tool: "run_shell",
+            decision: "deny",
+            via: "hook",
+          },
+        };
+      });
+
+      await handler.handleMessage("Run the gated command", "req-policy");
+
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "tool-result",
+        expect.objectContaining({
+          requestId: "req-policy",
+          permission_decision_id: "tool-use-1:perm:hook",
+          permission_decision: expect.objectContaining({ decision: "deny" }),
+        }),
+      );
+      const policyEvents = interaction.emit.mock.calls
+        .filter(([type]) => type === "policy-decision")
+        .map(([, payload]) => payload);
+      expect(policyEvents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            requestId: "req-policy",
+            source: "hook",
+            decision: "allow",
+            hook_event: "PreToolUse",
+          }),
+          expect.objectContaining({
+            requestId: "req-policy",
+            source: "tool",
+            decision: "deny",
+            decision_id: "tool-use-1:perm:hook",
+          }),
+        ]),
+      );
+      expect(policyEvents.every((event) => event.type === undefined)).toBe(
+        true,
+      );
     });
 
     it("passes host-managed tool policy into the agent loop", async () => {
