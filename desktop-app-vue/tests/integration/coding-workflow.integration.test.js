@@ -11,7 +11,16 @@
  * → ralph → team run, and that user hooks fire at every stage.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+  vi,
+} from "vitest";
 
 const fs = require("fs");
 const os = require("os");
@@ -49,7 +58,21 @@ class FakeIntegrationPool {
   }
   async shutdown() {}
 }
-teamHandler._deps.SubRuntimePoolCtor = FakeIntegrationPool;
+const originalPoolCtor = teamHandler._deps.SubRuntimePoolCtor;
+const originalGraphAuthorityMode = teamHandler._deps.graphAuthorityMode;
+
+beforeAll(() => {
+  teamHandler._deps.SubRuntimePoolCtor = FakeIntegrationPool;
+  // This fixture exercises the legacy in-process dispatch path. Production
+  // resolves authority through a reviewed environment broker, which this
+  // isolated integration harness intentionally does not construct.
+  teamHandler._deps.graphAuthorityMode = () => "legacy";
+});
+
+afterAll(() => {
+  teamHandler._deps.SubRuntimePoolCtor = originalPoolCtor;
+  teamHandler._deps.graphAuthorityMode = originalGraphAuthorityMode;
+});
 
 function makeTmpRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "cc-workflow-int-"));
