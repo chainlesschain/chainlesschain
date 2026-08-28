@@ -983,17 +983,11 @@ A multi-action skill template demonstrating create/list/complete/stats pattern.
   },
 
   "api-integration": {
-    description: "API caller with _deps pattern and env key authentication",
+    description: "API caller using isolated capability broker ports",
     handler: `/**
- * API Caller Skill Handler — API integration template with _deps
+ * API Caller Skill Handler — isolated capability broker template
  */
-const https = require("https");
-
-const _deps = { https };
-
 module.exports = {
-  _deps,
-
   async init() {},
 
   async execute(task, context = {}, skill) {
@@ -1002,9 +996,16 @@ module.exports = {
     const action = (parts[0] || "status").toLowerCase();
     const query = parts.slice(1).join(" ");
 
-    const apiKey = process.env.MY_API_KEY || context.apiKey;
+    const envResult = context.apiKey
+      ? { value: context.apiKey }
+      : await chainlesschain.capabilities.call(
+          "env:read",
+          "read",
+          { name: "MY_API_KEY" }
+        );
+    const apiKey = envResult && envResult.value;
     if (!apiKey) {
-      return { success: false, error: "MY_API_KEY environment variable not set." };
+      return { success: false, error: "MY_API_KEY is unavailable through the approved env port." };
     }
 
     try {
@@ -1019,32 +1020,31 @@ module.exports = {
   },
 };
 
-function apiRequest(hostname, path, apiKey) {
-  return new Promise((resolve, reject) => {
-    const req = _deps.https.request({ hostname, path, method: "GET",
-      headers: { Authorization: \`Bearer \${apiKey}\`, "User-Agent": "ChainlessChain/1.2.0" },
-    }, (res) => {
-      let data = "";
-      res.on("data", (c) => (data += c));
-      res.on("end", () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch (_e) { resolve({ status: res.statusCode, data: { raw: data } }); }
-      });
-    });
-    req.on("error", reject);
-    req.end();
-  });
+async function apiRequest(path, apiKey) {
+  return await chainlesschain.capabilities.call(
+    "network:https",
+    "request",
+    {
+      url: \`https://api.example.com\${path}\`,
+      method: "GET",
+      headers: {
+        Authorization: \`Bearer \${apiKey}\`,
+        "User-Agent": "ChainlessChain/1.2.0"
+      },
+      maxResponseBytes: 262144
+    }
+  );
 }
 
 async function handleStatus(apiKey) {
-  const res = await apiRequest("api.example.com", "/v1/status", apiKey);
-  return { success: res.status === 200, action: "status", result: res.data, message: \`API status: \${res.status}\` };
+  const res = await apiRequest("/v1/status", apiKey);
+  return { success: res.status === 200, action: "status", result: res.body, message: \`API status: \${res.status}\` };
 }
 
 async function handleSearch(apiKey, query) {
   if (!query) return { success: false, error: "Provide a search query." };
-  const res = await apiRequest("api.example.com", \`/v1/search?q=\${encodeURIComponent(query)}\`, apiKey);
-  return { success: res.status === 200, action: "search", result: res.data, message: \`Search returned status \${res.status}.\` };
+  const res = await apiRequest(\`/v1/search?q=\${encodeURIComponent(query)}\`, apiKey);
+  return { success: res.status === 200, action: "search", result: res.body, message: \`Search returned status \${res.status}.\` };
 }
 `,
     skillMd: `---
@@ -1059,7 +1059,8 @@ execution-capabilities: [data:task, data:result, env:read, network:https]
 handler: ./handler.js
 os: [win32, darwin, linux]
 instructions: |
-  Use this skill to query an external API. Requires MY_API_KEY env var.
+  Use this skill to query an external API. Requires an approved env:read port
+  for MY_API_KEY and an approved network:https request port.
 examples:
   - input: "status"
     action: status
@@ -1071,23 +1072,17 @@ license: MIT
 
 # API Caller
 
-Demonstrates the _deps injection pattern for testable API calls.
+Demonstrates default-deny env and HTTPS capability ports. The host owns secret
+lookup, DNS/redirect policy, timeouts, and response-size enforcement.
 `,
   },
 
   "file-processor": {
-    description: "Markdown file analyzer with fs _deps injection",
+    description: "Markdown file analyzer using a bounded filesystem port",
     handler: `/**
- * File Processor Skill Handler — File processing template with _deps
+ * File Processor Skill Handler — isolated filesystem capability template
  */
-const fs = require("fs");
-const path = require("path");
-
-const _deps = { fs, path };
-
 module.exports = {
-  _deps,
-
   async init() {},
 
   async execute(task, context = {}, skill) {
@@ -1097,19 +1092,25 @@ module.exports = {
     const filePath = parts.slice(1).join(" ");
 
     switch (action) {
-      case "analyze": return handleAnalyze(filePath);
-      case "stats": return handleStats(filePath);
+      case "analyze": return await handleAnalyze(filePath);
+      case "stats": return await handleStats(filePath);
       default: return { success: false, error: \`Unknown action: \${action}. Use: analyze, stats\` };
     }
   },
 };
 
-function handleAnalyze(filePath) {
-  if (!filePath) return { success: false, error: "Provide a file path." };
-  const resolved = _deps.path.resolve(filePath);
-  if (!_deps.fs.existsSync(resolved)) return { success: false, error: \`File not found: \${resolved}\` };
+async function readTextFile(filePath) {
+  return await chainlesschain.capabilities.call(
+    "filesystem:read",
+    "read-file",
+    { path: filePath, encoding: "utf8", maxBytes: 262144 }
+  );
+}
 
-  const content = _deps.fs.readFileSync(resolved, "utf-8");
+async function handleAnalyze(filePath) {
+  if (!filePath) return { success: false, error: "Provide a file path." };
+  const file = await readTextFile(filePath);
+  const content = file.content;
   const lines = content.split("\\n");
   const headings = lines.filter((l) => /^#{1,6}\\s/.test(l)).map((l) => l.replace(/^#+\\s*/, "").trim());
   const wordCount = content.split(/\\s+/).filter(Boolean).length;
@@ -1118,28 +1119,29 @@ function handleAnalyze(filePath) {
   return {
     success: true,
     action: "analyze",
-    result: { file: _deps.path.basename(resolved), lines: lines.length, words: wordCount, headings, linkCount: links.length },
-    message: \`Analyzed "\${_deps.path.basename(resolved)}": \${lines.length} lines, \${wordCount} words, \${headings.length} headings.\`,
+    result: { file: file.name, lines: lines.length, words: wordCount, headings, linkCount: links.length },
+    message: \`Analyzed "\${file.name}": \${lines.length} lines, \${wordCount} words, \${headings.length} headings.\`,
   };
 }
 
-function handleStats(dirPath) {
+async function handleStats(dirPath) {
   if (!dirPath) return { success: false, error: "Provide a directory path." };
-  const resolved = _deps.path.resolve(dirPath);
-  if (!_deps.fs.existsSync(resolved)) return { success: false, error: \`Directory not found: \${resolved}\` };
-
-  const entries = _deps.fs.readdirSync(resolved);
-  const mdFiles = entries.filter((e) => e.endsWith(".md"));
+  const listing = await chainlesschain.capabilities.call(
+    "filesystem:read",
+    "list-directory",
+    { path: dirPath, maxEntries: 64 }
+  );
+  const mdFiles = listing.entries.filter((entry) => entry.type === "file" && entry.name.endsWith(".md"));
   let totalWords = 0;
-  for (const f of mdFiles) {
-    const content = _deps.fs.readFileSync(_deps.path.join(resolved, f), "utf-8");
-    totalWords += content.split(/\\s+/).filter(Boolean).length;
+  for (const entry of mdFiles) {
+    const file = await readTextFile(entry.path);
+    totalWords += file.content.split(/\\s+/).filter(Boolean).length;
   }
 
   return {
     success: true,
     action: "stats",
-    result: { directory: resolved, totalFiles: entries.length, markdownFiles: mdFiles.length, totalWords },
+    result: { directory: listing.path, totalFiles: listing.entries.length, markdownFiles: mdFiles.length, totalWords },
     message: \`\${mdFiles.length} markdown file(s), \${totalWords} total words.\`,
   };
 }
@@ -1168,7 +1170,8 @@ license: MIT
 
 # File Processor
 
-Demonstrates the _deps injection pattern for testable file system operations.
+Demonstrates bounded filesystem capability calls. The host resolves paths,
+enforces the approved root, and caps files and directory entries.
 `,
   },
 

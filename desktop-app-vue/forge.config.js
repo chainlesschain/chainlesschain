@@ -106,6 +106,23 @@ const collectExtraResources = () => {
     );
   }
 
+  // Keep the trusted external Skill worker outside app.asar. electron-packager
+  // preserves the directory basename, yielding Resources/runtime/.
+  const skillRuntimeDir = path.join(
+    __dirname,
+    "src",
+    "main",
+    "ai-engine",
+    "cowork",
+    "skills",
+    "runtime",
+  );
+  if (fs.existsSync(skillRuntimeDir)) {
+    extraResources.push(skillRuntimeDir);
+  } else {
+    missingResources.push("src/main/ai-engine/cowork/skills/runtime");
+  }
+
   const projectServiceJar = resolveProjectServiceJar();
   if (projectServiceJar) {
     extraResources.push(projectServiceJar);

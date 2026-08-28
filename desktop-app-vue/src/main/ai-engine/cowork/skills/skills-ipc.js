@@ -15,6 +15,9 @@ const { SkillRegistry, getSkillRegistry } = require("./skill-registry");
 const { SkillLoader, LAYER_PRIORITY } = require("./skill-loader");
 const { SkillMdParser } = require("./skill-md-parser");
 const { SkillGating } = require("./skill-gating");
+const {
+  getDefaultExternalSkillExecutor,
+} = require("./external-skill-executor");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -37,7 +40,12 @@ function registerSkillsIPC(options = {}) {
     autoGating: true,
     strictGating: false,
     trustedSkillKeySha256,
-    externalHandlerExecutor,
+    externalHandlerExecutor:
+      typeof externalHandlerExecutor === "function"
+        ? externalHandlerExecutor
+        : externalHandlerExecutor === null
+          ? null
+          : getDefaultExternalSkillExecutor(),
   });
 
   // 绑定加载器到注册表

@@ -11,6 +11,11 @@ const { SkillMdParser } = require("./skill-md-parser");
 const { SkillLoader, LAYER_PRIORITY } = require("./skill-loader");
 const { SkillGating } = require("./skill-gating");
 const { MarkdownSkill } = require("./markdown-skill");
+const {
+  SkillCapabilityBroker,
+  createExternalSkillExecutor,
+  getDefaultExternalSkillExecutor,
+} = require("./external-skill-executor");
 const { registerSkillsIPC, unregisterSkillsIPC } = require("./skills-ipc");
 
 // v1.1.0: Pipeline, Metrics, Workflow
@@ -52,6 +57,9 @@ module.exports = {
   SkillGating,
   MarkdownSkill,
   LAYER_PRIORITY,
+  SkillCapabilityBroker,
+  createExternalSkillExecutor,
+  getDefaultExternalSkillExecutor,
 
   // IPC 处理器
   registerSkillsIPC,

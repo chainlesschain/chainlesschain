@@ -12,6 +12,9 @@ const { TeammateTool } = require("./teammate-tool");
 const { FileSandbox } = require("./file-sandbox");
 const { LongRunningTaskManager } = require("./long-running-task-manager");
 const { getSkillRegistry, SkillLoader, SkillGating } = require("./skills");
+const {
+  getDefaultExternalSkillExecutor,
+} = require("./skills/external-skill-executor");
 
 // 单例实例
 let teammateTool = null;
@@ -60,7 +63,14 @@ function initializeCoworkComponents(dependencies) {
   }
 
   if (!skillLoader) {
-    skillLoader = new SkillLoader();
+    skillLoader = new SkillLoader({
+      externalHandlerExecutor:
+        typeof dependencies.externalHandlerExecutor === "function"
+          ? dependencies.externalHandlerExecutor
+          : dependencies.externalHandlerExecutor === null
+            ? null
+            : getDefaultExternalSkillExecutor(),
+    });
     skillRegistry.setLoader(skillLoader);
     logger.info("[Cowork IPC] SkillLoader 已初始化");
 

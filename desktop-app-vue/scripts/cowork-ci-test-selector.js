@@ -98,6 +98,7 @@ const GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS = [
   "tests/unit/ai-engine/agents/agent-coordinator-select.test.js",
 ];
 const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
+  "src/main/ai-engine/cowork/skills/__tests__/external-skill-executor.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/markdown-skill.test.js",
@@ -132,6 +133,8 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
 ]);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
+  ["electron-builder.yml", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
+  ["forge.config.js", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
   [
     "src/main/index.js",
     [CONTENT_INTEGRATION_WIRING_TEST, ...COLLAB_RUNTIME_CONTRACT_TESTS],
@@ -170,11 +173,23 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
   [
+    "src/main/ai-engine/cowork/skills/external-skill-executor.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/runtime/external-skill-worker.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
     "src/main/ai-engine/cowork/skills/skill-md-parser.js",
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
   [
     "src/main/ai-engine/cowork/skills/skill-loader.js",
+    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/index.js",
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
   [

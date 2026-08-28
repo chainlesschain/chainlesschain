@@ -357,6 +357,23 @@ describe("handleGetTemplate()", () => {
     );
   });
 
+  it.each(["api-integration", "file-processor"])(
+    "uses isolated capability ports in the %s template",
+    async (templateName) => {
+      const r = await handler.execute(
+        { input: `get-template ${templateName}` },
+        {},
+        {},
+      );
+
+      expect(r.files["handler.js"]).toContain(
+        "chainlesschain.capabilities.call",
+      );
+      expect(r.files["handler.js"]).not.toContain("require(");
+      expect(r.files["handler.js"]).not.toContain("process.env");
+    },
+  );
+
   it("fails on unknown template name", async () => {
     const r = await handler.execute(
       { input: "get-template nonexistent" },

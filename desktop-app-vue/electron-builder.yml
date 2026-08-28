@@ -253,6 +253,12 @@ extraResources:
     to: packages/web-panel/dist
   - from: ../packages/web-panel/package.json
     to: packages/web-panel/package.json
+  # Trusted one-shot external Skill worker. It must remain outside app.asar so
+  # the brokered Node permission model can admit this exact physical file.
+  - from: src/main/ai-engine/cowork/skills/runtime
+    to: skill-runtime
+    filter:
+      - "**/*"
   # Bundled cowork skills — needed at install-relative path so the CLI's
   # `CLISkillLoader.getLayerPaths()` bundled candidate
   # (`__dirname/../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin`)
