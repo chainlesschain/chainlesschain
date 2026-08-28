@@ -17,6 +17,11 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  jsonBytesWithinLimit,
+  resolveMtcRuntimeLimits,
+  waitForTasksBounded,
+} = require("./mtc-runtime-boundaries.js");
 
 const TOPIC_PREFIX = "cc.community.";
 const TOPIC_SUFFIX = ".events";
@@ -42,8 +47,12 @@ class MtcFederationManager extends EventEmitter {
     this._transportFactory = opts.transportFactory || null;
     this._libp2pOpts = opts.libp2pOpts || {};
     this._transport = null;
+    this._limits = resolveMtcRuntimeLimits(opts.limits || {});
     this._unsubscribers = new Map(); // communityId → fn
     this._handlers = new Map(); // communityId → handler
+    this._handlerTasks = new Set();
+    this._initializePromise = null;
+    this._closePromise = null;
     this._initialized = false;
     this._closed = false;
   }
@@ -55,20 +64,38 @@ class MtcFederationManager extends EventEmitter {
     if (this._closed) {
       throw new Error("MtcFederationManager already closed");
     }
+    if (this._initializePromise) {
+      return this._initializePromise;
+    }
+    this._initializePromise = this._initialize();
     try {
+      return await this._initializePromise;
+    } finally {
+      this._initializePromise = null;
+    }
+  }
+
+  async _initialize() {
+    try {
+      let transport;
       if (this._transportFactory) {
-        this._transport = await this._transportFactory();
+        transport = await this._transportFactory();
       } else {
         // dynamic require to keep ESM/CJS interop simple — Libp2pTransport
         // module itself dynamic-imports its libp2p deps internally.
         const {
           Libp2pTransport,
         } = require("@chainlesschain/core-mtc/transports/libp2p");
-        this._transport = await Libp2pTransport.create({
+        transport = await Libp2pTransport.create({
           mode: "gossipsub",
           ...this._libp2pOpts,
         });
       }
+      if (this._closed) {
+        await transport?.close?.();
+        throw new Error("MtcFederationManager closed during initialization");
+      }
+      this._transport = transport;
       this._initialized = true;
       const id = this.peerIdString();
       const addrs = this.multiaddrs();
@@ -103,9 +130,23 @@ class MtcFederationManager extends EventEmitter {
       this._handlers.set(communityId, handler);
       return;
     }
+    if (this._unsubscribers.size >= this._limits.maxSubscriptions) {
+      throw new Error("MtcFederationManager subscription limit exceeded");
+    }
 
     const topic = topicForCommunity(communityId);
     const wrapped = (bytes) => {
+      if (this._closed) {
+        return;
+      }
+      if (
+        !bytes ||
+        !Number.isSafeInteger(bytes.byteLength) ||
+        bytes.byteLength > this._limits.maxPayloadBytes
+      ) {
+        logger.warn("[MtcFederationManager] oversized payload dropped");
+        return;
+      }
       let parsed;
       try {
         const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
@@ -119,12 +160,14 @@ class MtcFederationManager extends EventEmitter {
         );
         return;
       }
+      if (this._handlerTasks.size >= this._limits.maxInboundTasks) {
+        logger.warn("[MtcFederationManager] inbound handler capacity exceeded");
+        return;
+      }
+      const cur = this._handlers.get(communityId);
+      let result;
       try {
-        // dispatch to current handler (allow handler swap on re-subscribe)
-        const cur = this._handlers.get(communityId);
-        if (cur) {
-          cur(parsed);
-        }
+        result = cur ? cur(parsed) : undefined;
       } catch (err) {
         logger.warn(
           "[MtcFederationManager] handler threw on " +
@@ -132,7 +175,22 @@ class MtcFederationManager extends EventEmitter {
             ": " +
             err.message,
         );
+        return;
       }
+      if (!result || typeof result.then !== "function") {
+        return;
+      }
+      const task = Promise.resolve(result)
+        .catch((err) =>
+          logger.warn(
+            "[MtcFederationManager] handler threw on " +
+              topic +
+              ": " +
+              err.message,
+          ),
+        )
+        .finally(() => this._handlerTasks.delete(task));
+      this._handlerTasks.add(task);
     };
 
     const unsub = this._transport.subscribeRaw(topic, wrapped);
@@ -173,7 +231,11 @@ class MtcFederationManager extends EventEmitter {
       throw new TypeError("publishCommunityEvent: payload must be object");
     }
     const topic = topicForCommunity(communityId);
-    const json = JSON.stringify(payload);
+    const { json } = jsonBytesWithinLimit(
+      payload,
+      this._limits.maxPayloadBytes,
+      "MTC federation payload",
+    );
     const bytes = new TextEncoder().encode(json);
     return await this._transport.publishRaw(topic, bytes);
   }
@@ -215,9 +277,14 @@ class MtcFederationManager extends EventEmitter {
   }
 
   async close() {
-    if (this._closed) {
-      return;
+    if (this._closePromise) {
+      return this._closePromise;
     }
+    this._closePromise = this._close();
+    return this._closePromise;
+  }
+
+  async _close() {
     this._closed = true;
     for (const unsub of this._unsubscribers.values()) {
       try {
@@ -228,9 +295,19 @@ class MtcFederationManager extends EventEmitter {
     }
     this._unsubscribers.clear();
     this._handlers.clear();
+    await waitForTasksBounded(this._handlerTasks, this._limits.closeTimeoutMs);
+    this._handlerTasks.clear();
     if (this._transport) {
       try {
-        await this._transport.close();
+        let timer;
+        const timeout = new Promise((resolve) => {
+          timer = setTimeout(resolve, this._limits.closeTimeoutMs);
+          timer.unref?.();
+        });
+        await Promise.race([
+          Promise.resolve(this._transport.close()),
+          timeout,
+        ]).finally(() => clearTimeout(timer));
       } catch (err) {
         logger.warn(
           "[MtcFederationManager] transport close error (swallowed):",

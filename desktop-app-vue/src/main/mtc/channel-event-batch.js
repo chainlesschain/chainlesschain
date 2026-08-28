@@ -36,6 +36,7 @@ const crypto = require("crypto");
 const nacl = require("tweetnacl");
 const naclUtil = require("tweetnacl-util");
 const { logger } = require("../utils/logger.js");
+const { resolveMtcRuntimeLimits } = require("./mtc-runtime-boundaries.js");
 
 const SCHEMA_MANIFEST = "channel-batch-manifest/v1";
 
@@ -306,11 +307,19 @@ class ChannelEventBatcher {
     }
     this._rootDir = opts.rootDir;
     this._getCurrentIdentity = opts.getCurrentIdentity;
+    this._limits = resolveMtcRuntimeLimits(opts.limits || {});
     this._threshold = opts.threshold || DEFAULT_THRESHOLD;
+    if (this._threshold > this._limits.maxStagedEventsPerCommunity) {
+      throw new RangeError(
+        "ChannelEventBatcher threshold exceeds staged-event limit",
+      );
+    }
     this._intervalMs = opts.intervalMs || DEFAULT_INTERVAL_MS;
     this._autoTimer = !!opts.autoTimer;
     this._timer = null;
+    this._closingAllPromise = null;
     this._initialized = false;
+    this._closed = false;
     // B4-cross v1: callback fires on every successful closeBatch — used by
     // ChannelEnvelopeDistribution to publish the new landmark to the
     // federation gossipsub channel.
@@ -327,6 +336,14 @@ class ChannelEventBatcher {
     if (typeof handler !== "function") {
       throw new TypeError("onBatchClosed: handler must be function");
     }
+    if (this._closed) {
+      throw new Error("ChannelEventBatcher closed");
+    }
+    if (
+      this._onBatchClosedHandlers.length >= this._limits.maxBatchClosedHandlers
+    ) {
+      throw new Error("ChannelEventBatcher listener capacity exceeded");
+    }
     this._onBatchClosedHandlers.push(handler);
     return () => {
       const idx = this._onBatchClosedHandlers.indexOf(handler);
@@ -339,6 +356,9 @@ class ChannelEventBatcher {
   initialize() {
     if (this._initialized) {
       return;
+    }
+    if (this._closed) {
+      throw new Error("ChannelEventBatcher closed");
     }
     ensureDir(this._rootDir);
     if (this._autoTimer) {
@@ -362,11 +382,17 @@ class ChannelEventBatcher {
   }
 
   close() {
+    if (this._closed) {
+      return this._closingAllPromise;
+    }
+    this._closed = true;
     if (this._timer) {
       clearInterval(this._timer);
       this._timer = null;
     }
     this._initialized = false;
+    this._onBatchClosedHandlers.length = 0;
+    return this._closingAllPromise;
   }
 
   /**
@@ -380,6 +406,9 @@ class ChannelEventBatcher {
    * @returns {{queued: boolean, stagedCount: number, batchClosed?: object}}
    */
   enqueueEvent(communityId, signedMessage) {
+    if (this._closed) {
+      throw new Error("ChannelEventBatcher closed");
+    }
     if (!signedMessage || typeof signedMessage !== "object") {
       throw new TypeError("enqueueEvent: signedMessage required");
     }
@@ -407,11 +436,29 @@ class ChannelEventBatcher {
       // already staged — idempotent no-op
       return { queued: true, stagedCount: this.countStaged(communityId) };
     }
-    fs.writeFileSync(
-      stagedFile,
-      JSON.stringify(signedMessage, null, 2),
-      "utf-8",
-    );
+    const stagedCountBefore = this.countStaged(communityId);
+    if (stagedCountBefore >= this._limits.maxStagedEventsPerCommunity) {
+      throw new Error("ChannelEventBatcher staged-event backlog exceeded");
+    }
+    const serialized = JSON.stringify(signedMessage, null, 2);
+    const serializedBytes = Buffer.byteLength(serialized, "utf8");
+    if (serializedBytes > this._limits.maxStagedEventBytes) {
+      throw new RangeError("ChannelEventBatcher event exceeds byte limit");
+    }
+    const stagingDirectory = path.join(root, "staging");
+    let stagedBytes = 0;
+    for (const entry of fs
+      .readdirSync(stagingDirectory)
+      .slice(0, this._limits.maxStagedEventsPerCommunity)) {
+      stagedBytes += fs.statSync(path.join(stagingDirectory, entry)).size;
+      if (
+        stagedBytes + serializedBytes >
+        this._limits.maxStagedBytesPerCommunity
+      ) {
+        throw new Error("ChannelEventBatcher staged-byte backlog exceeded");
+      }
+    }
+    fs.writeFileSync(stagedFile, serialized, "utf-8");
     const stagedCount = this.countStaged(communityId);
     let batchClosed;
     if (stagedCount >= this._threshold) {
@@ -453,6 +500,17 @@ class ChannelEventBatcher {
           .filter((n) => n.endsWith(".json"))
           .map((n) => path.join(root, "staging", n))
       : [];
+
+    if (stagingFiles.length > this._limits.maxStagedEventsPerCommunity) {
+      throw new Error("ChannelEventBatcher staged-event backlog exceeded");
+    }
+    let stagedBytes = 0;
+    for (const file of stagingFiles) {
+      stagedBytes += fs.statSync(file).size;
+      if (stagedBytes > this._limits.maxStagedBytesPerCommunity) {
+        throw new Error("ChannelEventBatcher staged-byte backlog exceeded");
+      }
+    }
 
     if (stagingFiles.length === 0) {
       return { skipped: true, reason: "no staged events" };
@@ -634,22 +692,33 @@ class ChannelEventBatcher {
    * timer + at app shutdown to ensure no events linger in staging.
    */
   async closeAllPending() {
-    const results = [];
-    if (!fs.existsSync(this._rootDir)) {
-      return results;
+    if (this._closingAllPromise) {
+      return this._closingAllPromise;
     }
-    const communities = fs
-      .readdirSync(this._rootDir)
-      .filter((n) => fs.statSync(path.join(this._rootDir, n)).isDirectory());
-    for (const cid of communities) {
-      try {
-        const result = this.closeBatch(cid);
-        results.push({ communityId: cid, ...result });
-      } catch (err) {
-        results.push({ communityId: cid, error: err.message });
+    this._closingAllPromise = Promise.resolve().then(() => {
+      const results = [];
+      if (!fs.existsSync(this._rootDir)) {
+        return results;
       }
+      const communities = fs
+        .readdirSync(this._rootDir)
+        .slice(0, this._limits.maxCommunitiesPerSweep)
+        .filter((n) => fs.statSync(path.join(this._rootDir, n)).isDirectory());
+      for (const cid of communities) {
+        try {
+          const result = this.closeBatch(cid);
+          results.push({ communityId: cid, ...result });
+        } catch (err) {
+          results.push({ communityId: cid, error: err.message });
+        }
+      }
+      return results;
+    });
+    try {
+      return await this._closingAllPromise;
+    } finally {
+      this._closingAllPromise = null;
     }
-    return results;
   }
 
   /**

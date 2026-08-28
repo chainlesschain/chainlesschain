@@ -22,6 +22,15 @@ const { ConnectionPool } = require("./connection-pool");
 const { WebRTCQualityMonitor } = require("./webrtc-quality-monitor");
 const NSDService = require("./nsd-service");
 const SignalingServer = require("./signaling-server");
+const { OwnedSourceListeners } = require("../social/owned-source-listeners");
+const {
+  P2PProtocolRegistry,
+  assertBoundedPayload,
+  readBoundedStream,
+  resolveP2PStreamLimits,
+  runStreamOperationBounded,
+  waitForStreamDrainBounded,
+} = require("./p2p-stream-boundaries");
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -197,6 +206,7 @@ class P2PManager extends EventEmitter {
     super();
 
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.streamLimits = resolveP2PStreamLimits(config.streamLimits || {});
     this.node = null;
     this.peerId = null;
     this.peers = new Map(); // 连接的对等节点（保留用于兼容性）
@@ -227,6 +237,96 @@ class P2PManager extends EventEmitter {
     // Embedded signaling server for mobile bridge
     this.signalingServer = null;
     this.useEmbeddedSignaling = config.useEmbeddedSignaling !== false; // Default: enabled
+    this._protocolRegistry = null;
+    this._nodeListeners = null;
+    this._backgroundTasks = new Map();
+    this.closed = false;
+    this._closePromise = null;
+  }
+
+  _getProtocolRegistry() {
+    if (!this.node) {
+      throw new Error("P2P node is not initialized");
+    }
+    if (
+      !this._protocolRegistry ||
+      this._protocolRegistry.node !== this.node ||
+      this._protocolRegistry.closed
+    ) {
+      this._protocolRegistry = new P2PProtocolRegistry(
+        this.node,
+        this.streamLimits,
+      );
+    }
+    return this._protocolRegistry;
+  }
+
+  _registerProtocol(protocol, handler) {
+    return this._getProtocolRegistry().register(protocol, handler);
+  }
+
+  _readProtocolStream(stream) {
+    return readBoundedStream(stream, this.streamLimits);
+  }
+
+  async _writeProtocolPayload(stream, payload) {
+    assertBoundedPayload(payload, this.streamLimits);
+    if (typeof stream.write === "function") {
+      await runStreamOperationBounded(
+        stream,
+        () => stream.write(payload),
+        this.streamLimits.operationTimeoutMs,
+      );
+      return;
+    }
+    if (typeof stream.send !== "function") {
+      throw new TypeError("p2p stream does not expose write or send");
+    }
+    const accepted = await runStreamOperationBounded(
+      stream,
+      () => stream.send(payload),
+      this.streamLimits.operationTimeoutMs,
+    );
+    if (accepted === false) {
+      await waitForStreamDrainBounded(
+        stream,
+        this.streamLimits.operationTimeoutMs,
+      );
+    }
+  }
+
+  async _closeProtocolStream(stream) {
+    if (typeof stream.close === "function") {
+      await runStreamOperationBounded(
+        stream,
+        () => stream.close(),
+        this.streamLimits.operationTimeoutMs,
+      );
+    }
+  }
+
+  _runBackgroundTask(name, operation) {
+    if (this.closed) {
+      return Promise.resolve(false);
+    }
+    if (this._backgroundTasks.has(name)) {
+      return this._backgroundTasks.get(name);
+    }
+    const task = Promise.resolve()
+      .then(operation)
+      .catch((error) => {
+        if (!this.closed) {
+          logger.warn(`[P2PManager] ${name} background task failed:`, error);
+        }
+        return false;
+      })
+      .finally(() => {
+        if (this._backgroundTasks.get(name) === task) {
+          this._backgroundTasks.delete(name);
+        }
+      });
+    this._backgroundTasks.set(name, task);
+    return task;
   }
 
   /**
@@ -387,6 +487,9 @@ class P2PManager extends EventEmitter {
    * 初始化 P2P 节点
    */
   async initialize() {
+    if (this.closed) {
+      throw new Error("P2PManager is closed");
+    }
     logger.info("[P2PManager] 初始化 P2P 节点...");
 
     try {
@@ -490,16 +593,17 @@ class P2PManager extends EventEmitter {
             clearInterval(this._natDetectInterval);
           }
           this._natDetectInterval = setInterval(() => {
-            this.natDetector
-              .detectNATType(this.p2pConfig.stun.servers)
-              .then((info) => {
+            this._runBackgroundTask("nat-detection", async () => {
+              const info = await this.natDetector.detectNATType(
+                this.p2pConfig.stun.servers,
+              );
+              if (!this.closed) {
                 this.natInfo = info;
                 logger.info(`[P2P] NAT重新检测: ${this.natInfo.type}`);
-              })
-              .catch((err) => {
-                logger.warn("[P2P] NAT重新检测失败:", err.message);
-              });
+              }
+            });
           }, this.p2pConfig.nat.detectionInterval);
+          this._natDetectInterval.unref?.();
         } catch (error) {
           logger.warn("[P2P] NAT检测失败:", error.message);
         }
@@ -699,7 +803,9 @@ class P2PManager extends EventEmitter {
       }
 
       // 广播当前设备信息
-      this.broadcastDeviceInfo();
+      this._runBackgroundTask("device-broadcast", () =>
+        this.broadcastDeviceInfo(),
+      );
 
       // 启动嵌入式信令服务器（用于移动端 WebRTC 连接）
       if (this.useEmbeddedSignaling) {
@@ -821,51 +927,46 @@ class P2PManager extends EventEmitter {
    * 设置事件监听
    */
   setupEvents() {
-    // 对等节点连接
-    this.node.addEventListener("peer:connect", (evt) => {
-      const peerId = evt.detail.toString();
-      logger.info("[P2PManager] 对等节点已连接:", peerId);
-
-      this.peers.set(peerId, {
-        peerId,
-        connectedAt: Date.now(),
-      });
-
-      this.emit("peer:connected", { peerId });
+    if (this._nodeListeners) {
+      return;
+    }
+    this._nodeListeners = new OwnedSourceListeners(this.node, {
+      ownerName: "P2PManager.node",
+      logger,
+      closeTimeoutMs: this.streamLimits.closeTimeoutMs,
+      maxInFlight: this.streamLimits.maxInboundStreams,
     });
-
-    // 对等节点断开
-    this.node.addEventListener("peer:disconnect", (evt) => {
-      const peerId = evt.detail.toString();
-      logger.info("[P2PManager] 对等节点已断开:", peerId);
-
-      this.peers.delete(peerId);
-
-      this.emit("peer:disconnected", { peerId });
-    });
-
-    // 对等节点发现
-    this.node.addEventListener("peer:discovery", (evt) => {
-      const peer = evt.detail;
-      logger.info("[P2PManager] 发现对等节点:", peer.id.toString());
-
-      this.emit("peer:discovered", {
-        peerId: peer.id.toString(),
-        multiaddrs: peer.multiaddrs.map((ma) => ma.toString()),
-      });
-    });
-
-    // 自我地址更新
-    this.node.addEventListener("self:peer:update", () => {
-      const addresses = this.node.getMultiaddrs();
-      logger.info(
-        "[P2PManager] 节点地址已更新:",
-        addresses.map((a) => a.toString()),
-      );
-
-      this.emit("address:updated", {
-        addresses: addresses.map((a) => a.toString()),
-      });
+    this._nodeListeners.setup({
+      "peer:connect": (evt) => {
+        const peerId = evt.detail.toString();
+        logger.info("[P2PManager] 对等节点已连接:", peerId);
+        this.peers.set(peerId, { peerId, connectedAt: Date.now() });
+        this.emit("peer:connected", { peerId });
+      },
+      "peer:disconnect": (evt) => {
+        const peerId = evt.detail.toString();
+        logger.info("[P2PManager] 对等节点已断开:", peerId);
+        this.peers.delete(peerId);
+        this.emit("peer:disconnected", { peerId });
+      },
+      "peer:discovery": (evt) => {
+        const peer = evt.detail;
+        logger.info("[P2PManager] 发现对等节点:", peer.id.toString());
+        this.emit("peer:discovered", {
+          peerId: peer.id.toString(),
+          multiaddrs: peer.multiaddrs.map((ma) => ma.toString()),
+        });
+      },
+      "self:peer:update": () => {
+        const addresses = this.node.getMultiaddrs();
+        logger.info(
+          "[P2PManager] 节点地址已更新:",
+          addresses.map((address) => address.toString()),
+        );
+        this.emit("address:updated", {
+          addresses: addresses.map((address) => address.toString()),
+        });
+      },
     });
   }
 
@@ -941,8 +1042,9 @@ class P2PManager extends EventEmitter {
 
       await this.syncManager.initialize();
 
-      // 监听同步事件
-      this.syncManager.on("sync:message", async ({ deviceId, message }) => {
+      // One awaited delivery port prevents EventEmitter fan-out from turning a
+      // bounded offline queue into an unbounded set of concurrent sends.
+      this.syncManager.setDeliveryHandler(async ({ message }) => {
         // 尝试发送队列中的消息
         try {
           await this.sendEncryptedMessage(
@@ -975,16 +1077,11 @@ class P2PManager extends EventEmitter {
     }
 
     // 处理加密消息
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/encrypted-message/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const encryptedMessage = Buffer.concat(data);
+          const encryptedMessage = await this._readProtocolStream(stream);
           const senderId = connection.remotePeer.toString();
 
           logger.info("[P2PManager] 收到加密消息:", senderId);
@@ -1012,16 +1109,11 @@ class P2PManager extends EventEmitter {
     );
 
     // 处理预密钥交换请求
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/key-exchange/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const requestData = Buffer.concat(data);
+          const requestData = await this._readProtocolStream(stream);
           const requesterId = connection.remotePeer.toString();
 
           // 解析请求
@@ -1058,8 +1150,8 @@ class P2PManager extends EventEmitter {
           };
 
           const responseData = Buffer.from(JSON.stringify(response));
-          await stream.write(responseData);
-          await stream.close();
+          await this._writeProtocolPayload(stream, responseData);
+          await this._closeProtocolStream(stream);
 
           logger.info("[P2PManager] 已发送预密钥包，设备:", currentDeviceId);
         } catch (error) {
@@ -1081,16 +1173,11 @@ class P2PManager extends EventEmitter {
     }
 
     // 处理设备广播
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/device-broadcast/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const broadcastData = Buffer.concat(data);
+          const broadcastData = await this._readProtocolStream(stream);
           const broadcast = JSON.parse(broadcastData.toString());
           const peerId = connection.remotePeer.toString();
 
@@ -1100,8 +1187,11 @@ class P2PManager extends EventEmitter {
           await this.deviceManager.handleDeviceBroadcast(peerId, broadcast);
 
           // 发送确认响应
-          await stream.write(Buffer.from(JSON.stringify({ success: true })));
-          await stream.close();
+          await this._writeProtocolPayload(
+            stream,
+            Buffer.from(JSON.stringify({ success: true })),
+          );
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理设备广播失败:", error);
         }
@@ -1121,16 +1211,11 @@ class P2PManager extends EventEmitter {
     }
 
     // 处理同步请求
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/device-sync/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const requestData = Buffer.concat(data);
+          const requestData = await this._readProtocolStream(stream);
           const request = JSON.parse(requestData.toString());
           const peerId = connection.remotePeer.toString();
 
@@ -1182,8 +1267,11 @@ class P2PManager extends EventEmitter {
           }
 
           // 发送响应
-          await stream.write(Buffer.from(JSON.stringify(response)));
-          await stream.close();
+          await this._writeProtocolPayload(
+            stream,
+            Buffer.from(JSON.stringify(response)),
+          );
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理同步请求失败:", error);
         }
@@ -1210,32 +1298,33 @@ class P2PManager extends EventEmitter {
     logger.info("[P2PManager] 广播设备信息到所有连接的节点");
 
     // 向所有连接的节点广播设备信息
-    const connections = this.node.getConnections();
+    const connections = this.node
+      .getConnections()
+      .slice(0, this.streamLimits.maxBroadcastPeers);
 
-    for (const conn of connections) {
-      try {
-        const peerId = conn.remotePeer;
-        const stream = await this.node.dialProtocol(
-          peerId,
-          "/chainlesschain/device-broadcast/1.0.0",
-        );
+    await Promise.allSettled(
+      connections.map(async (conn) => {
+        try {
+          const peerId = conn.remotePeer;
+          const stream = await this.node.dialProtocol(
+            peerId,
+            "/chainlesschain/device-broadcast/1.0.0",
+          );
 
-        const broadcastData = Buffer.from(JSON.stringify(broadcast));
-        await stream.write(broadcastData);
+          const broadcastData = Buffer.from(JSON.stringify(broadcast));
+          await this._writeProtocolPayload(stream, broadcastData);
 
-        // 接收确认
-        const responseData = [];
-        for await (const chunk of stream.source) {
-          responseData.push(chunk.subarray());
+          // 接收确认
+          await this._readProtocolStream(stream);
+
+          await this._closeProtocolStream(stream);
+
+          logger.info("[P2PManager] 设备信息已广播到:", peerId.toString());
+        } catch (error) {
+          logger.error("[P2PManager] 广播设备信息失败:", error);
         }
-
-        await stream.close();
-
-        logger.info("[P2PManager] 设备信息已广播到:", peerId.toString());
-      } catch (error) {
-        logger.error("[P2PManager] 广播设备信息失败:", error);
-      }
-    }
+      }),
+    );
   }
 
   /**
@@ -1271,15 +1360,13 @@ class P2PManager extends EventEmitter {
           this.deviceManager?.getCurrentDevice()?.deviceId || "default-device",
         targetDeviceId: targetDeviceId,
       };
-      await stream.write(Buffer.from(JSON.stringify(request)));
+      await this._writeProtocolPayload(
+        stream,
+        Buffer.from(JSON.stringify(request)),
+      );
 
       // 接收预密钥包
-      const data = [];
-      for await (const chunk of stream.source) {
-        data.push(chunk.subarray());
-      }
-
-      const responseData = Buffer.concat(data);
+      const responseData = await this._readProtocolStream(stream);
       const response = JSON.parse(responseData.toString());
 
       // 提取预密钥包和设备ID
@@ -1460,11 +1547,17 @@ class P2PManager extends EventEmitter {
       logger.info("[P2PManager] DHT 查找提供者:", cid);
 
       const providers = [];
-      for await (const provider of this.dht.findProviders(cid)) {
+      for await (const provider of this.dht.findProviders(cid, {
+        timeout: this.streamLimits.operationTimeoutMs,
+        maxNumProviders: this.streamLimits.maxProviderResults,
+      })) {
         providers.push({
           id: provider.id.toString(),
           multiaddrs: provider.multiaddrs.map((ma) => ma.toString()),
         });
+        if (providers.length >= this.streamLimits.maxProviderResults) {
+          break;
+        }
       }
 
       logger.info("[P2PManager] 找到", providers.length, "个提供者");
@@ -1554,16 +1647,8 @@ class P2PManager extends EventEmitter {
       // 发送数据 — libp2p 3.x MessageStream API 是 send() 不是 write()
       // (旧代码 stream.write 是 wrong API name, 加上传入对象而非 bytes,
       // 实际从未在 wire 上跑通过, 全靠 catch 静默失败掩盖)
-      const accepted = stream.send(payload);
-      if (accepted === false) {
-        // 背压: 等 drain 事件再关流
-        await new Promise((resolve) => {
-          stream.addEventListener("drain", resolve, { once: true });
-        });
-      }
-      if (typeof stream.close === "function") {
-        await stream.close();
-      }
+      await this._writeProtocolPayload(stream, payload);
+      await this._closeProtocolStream(stream);
 
       logger.info("[P2PManager] 消息已发送到:", peerIdStr);
 
@@ -1651,8 +1736,8 @@ class P2PManager extends EventEmitter {
       };
 
       const encryptedData = Buffer.from(JSON.stringify(messagePayload));
-      await stream.write(encryptedData);
-      await stream.close();
+      await this._writeProtocolPayload(stream, encryptedData);
+      await this._closeProtocolStream(stream);
 
       logger.info("[P2PManager] 加密消息已发送");
 
@@ -1705,21 +1790,15 @@ class P2PManager extends EventEmitter {
    * @param {Function} handler - 处理函数
    */
   registerMessageHandler(handler) {
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/message/1.0.0",
       async (stream, connection) => {
         try {
-          const data = [];
-
           // libp2p 3.x MessageStream extends AsyncIterable directly
           // (旧代码 stream.source 是 0.x/1.x 的 it-pipe 语义, 在 3.x 下是
           // undefined, 配合上面的 stream.write 一起意味着 send 与 receive
           // 两条路径都从未真正跑通过)
-          for await (const chunk of stream) {
-            data.push(chunk.subarray ? chunk.subarray() : chunk);
-          }
-
-          const message = Buffer.concat(data);
+          const message = await this._readProtocolStream(stream);
           const fromPeerId =
             connection && connection.remotePeer
               ? connection.remotePeer.toString()
@@ -1822,16 +1901,11 @@ class P2PManager extends EventEmitter {
     }
 
     // 处理好友请求
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/friend-request/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const requestData = Buffer.concat(data);
+          const requestData = await this._readProtocolStream(stream);
           const request = JSON.parse(requestData.toString());
           const senderId = connection.remotePeer.toString();
 
@@ -1862,8 +1936,11 @@ class P2PManager extends EventEmitter {
           );
 
           // 发送确认响应
-          await stream.write(Buffer.from(JSON.stringify({ success: true })));
-          await stream.close();
+          await this._writeProtocolPayload(
+            stream,
+            Buffer.from(JSON.stringify({ success: true })),
+          );
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理好友请求失败:", error);
         }
@@ -1871,16 +1948,11 @@ class P2PManager extends EventEmitter {
     );
 
     // 处理好友请求接受通知
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/friend-request-accepted/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const responseData = Buffer.concat(data);
+          const responseData = await this._readProtocolStream(stream);
           const response = JSON.parse(responseData.toString());
           const friendDid = connection.remotePeer.toString();
 
@@ -1892,7 +1964,7 @@ class P2PManager extends EventEmitter {
             timestamp: response.timestamp,
           });
 
-          await stream.close();
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理好友请求接受通知失败:", error);
         }
@@ -1937,16 +2009,11 @@ class P2PManager extends EventEmitter {
     }
 
     // 处理动态同步
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/post-sync/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const postData = Buffer.concat(data);
+          const postData = await this._readProtocolStream(stream);
           const message = JSON.parse(postData.toString());
           const senderId = connection.remotePeer.toString();
 
@@ -1959,8 +2026,11 @@ class P2PManager extends EventEmitter {
           }
 
           // 发送确认响应
-          await stream.write(Buffer.from(JSON.stringify({ success: true })));
-          await stream.close();
+          await this._writeProtocolPayload(
+            stream,
+            Buffer.from(JSON.stringify({ success: true })),
+          );
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理动态同步失败:", error);
         }
@@ -1968,16 +2038,11 @@ class P2PManager extends EventEmitter {
     );
 
     // 处理点赞通知
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/post-like/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const likeData = Buffer.concat(data);
+          const likeData = await this._readProtocolStream(stream);
           const message = JSON.parse(likeData.toString());
           const senderId = connection.remotePeer.toString();
 
@@ -1993,7 +2058,7 @@ class P2PManager extends EventEmitter {
             });
           }
 
-          await stream.close();
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理点赞通知失败:", error);
         }
@@ -2001,16 +2066,11 @@ class P2PManager extends EventEmitter {
     );
 
     // 处理评论通知
-    this.node.handle(
+    this._registerProtocol(
       "/chainlesschain/post-comment/1.0.0",
       async ({ stream, connection }) => {
         try {
-          const data = [];
-          for await (const chunk of stream.source) {
-            data.push(chunk.subarray());
-          }
-
-          const commentData = Buffer.concat(data);
+          const commentData = await this._readProtocolStream(stream);
           const message = JSON.parse(commentData.toString());
           const senderId = connection.remotePeer.toString();
 
@@ -2021,7 +2081,7 @@ class P2PManager extends EventEmitter {
             this.emit("post-comment:received", { comment: message.comment });
           }
 
-          await stream.close();
+          await this._closeProtocolStream(stream);
         } catch (error) {
           logger.error("[P2PManager] 处理评论通知失败:", error);
         }
@@ -2037,6 +2097,15 @@ class P2PManager extends EventEmitter {
    * 关闭 P2P 节点
    */
   async close() {
+    if (this._closePromise) {
+      return this._closePromise;
+    }
+    this.closed = true;
+    this._closePromise = this._close();
+    return this._closePromise;
+  }
+
+  async _close() {
     logger.info("[P2PManager] 关闭 P2P 节点");
 
     // 停止 NAT 周期重检测定时器（否则节点关闭后仍发 STUN 查询并泄漏 this）
@@ -2045,10 +2114,15 @@ class P2PManager extends EventEmitter {
       this._natDetectInterval = null;
     }
 
-    // 停止嵌入式信令服务器
-    await this.stopSignalingServer();
+    const protocolRegistry = this._protocolRegistry;
+    const nodeListeners = this._nodeListeners;
+    this._protocolRegistry = null;
+    this._nodeListeners = null;
+    await Promise.allSettled([
+      protocolRegistry?.close(),
+      nodeListeners?.close(),
+    ]);
 
-    // 停止 NSD 服务
     this.stopNSDService();
 
     // 停止WebRTC质量监控器
@@ -2058,35 +2132,68 @@ class P2PManager extends EventEmitter {
       logger.info("[P2PManager] WebRTC质量监控器已停止");
     }
 
-    if (this.syncManager) {
-      await this.syncManager.close();
-      this.syncManager = null;
+    if (this.transportDiagnostics) {
+      this.transportDiagnostics.stopHealthMonitoring();
+      this.transportDiagnostics.clearHealthData?.();
+      this.transportDiagnostics = null;
     }
 
-    if (this.deviceManager) {
-      await this.deviceManager.close();
-      this.deviceManager = null;
+    const signalingServer = this.signalingServer;
+    const connectionPool = this.connectionPool;
+    const syncManager = this.syncManager;
+    const deviceManager = this.deviceManager;
+    const signalManager = this.signalManager;
+    const backgroundTasks = [...this._backgroundTasks.values()];
+    this.signalingServer = null;
+    this.connectionPool = null;
+    this.syncManager = null;
+    this.deviceManager = null;
+    this.signalManager = null;
+
+    try {
+      await runStreamOperationBounded(
+        null,
+        () =>
+          Promise.allSettled([
+            ...backgroundTasks,
+            signalingServer?.stop(),
+            connectionPool?.destroy(),
+            syncManager?.close(),
+            deviceManager?.close(),
+            signalManager?.close(),
+          ]),
+        this.streamLimits.closeTimeoutMs,
+      );
+    } catch (error) {
+      logger.warn("[P2PManager] dependent cleanup timed out:", error.message);
     }
 
-    if (this.signalManager) {
-      await this.signalManager.close();
-      this.signalManager = null;
-    }
-
-    if (this.node) {
-      await this.node.stop();
-      this.node = null;
+    const node = this.node;
+    this.node = null;
+    if (node) {
+      try {
+        await runStreamOperationBounded(
+          node,
+          () => node.stop(),
+          this.streamLimits.closeTimeoutMs,
+        );
+      } catch (error) {
+        logger.warn("[P2PManager] node stop timed out:", error.message);
+      }
     }
 
     this.initialized = false;
     this.peers.clear();
-
-    // 停止健康监控
-    if (this.transportDiagnostics) {
-      this.transportDiagnostics.stopHealthMonitoring();
-    }
+    this._backgroundTasks.clear();
+    this.dht = null;
+    this.natDetector = null;
+    this.friendManager = null;
+    this.postManager = null;
+    this.pendingPostProtocolRegistration = false;
+    this.postProtocolsRegistered = false;
 
     this.emit("closed");
+    this.removeAllListeners();
   }
 
   /**

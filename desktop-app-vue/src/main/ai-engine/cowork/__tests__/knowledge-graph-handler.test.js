@@ -7,17 +7,31 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+const nativeFs = require("node:fs");
+const nativePath = require("node:path");
+
 vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../skills/builtin/knowledge-graph/handler.js");
+const rawHandler = require("../skills/builtin/knowledge-graph/handler.js");
+const {
+  withTestFilesystemHandler,
+} = require("../skills/__tests__/helpers/bundled-skill-filesystem.js");
+
+let testFs = nativeFs;
+const handler = withTestFilesystemHandler(rawHandler, "knowledge-graph", {
+  allowedRoots: [nativePath.parse(process.cwd()).root],
+  invoke: ({ operation, args }) => testFs[operation](...args),
+});
 
 describe("KnowledgeGraph Handler", () => {
   beforeEach(() => {
     // Clear graph between tests
     handler._graph.entities.clear();
     handler._graph.relationships = [];
+    handler._deps.path = nativePath;
+    testFs = nativeFs;
   });
 
   describe("init", () => {
@@ -30,7 +44,7 @@ describe("KnowledgeGraph Handler", () => {
 
   describe("extract", () => {
     it("should extract entities from a file", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readFileSync: vi
           .fn()
@@ -55,7 +69,7 @@ describe("KnowledgeGraph Handler", () => {
     });
 
     it("should fail for non-existent file", async () => {
-      handler._deps.fs = { existsSync: vi.fn().mockReturnValue(false) };
+      testFs = { existsSync: vi.fn().mockReturnValue(false) };
       handler._deps.path = {
         isAbsolute: vi.fn().mockReturnValue(false),
         resolve: vi.fn((a, b) => "/project/" + b),
@@ -442,7 +456,7 @@ describe("KnowledgeGraph Handler", () => {
 
   describe("semantic relationships", () => {
     it("should extract is_a relationships", async () => {
-      handler._deps.fs = {
+      testFs = {
         existsSync: vi.fn().mockReturnValue(true),
         readFileSync: vi
           .fn()

@@ -1,4 +1,5 @@
 const DEFAULT_CLOSE_TIMEOUT_MS = 5000;
+const DEFAULT_MAX_IN_FLIGHT = 64;
 
 /**
  * Own listeners registered on a longer-lived EventEmitter-like source.
@@ -15,12 +16,22 @@ class OwnedSourceListeners {
       logger,
       label = "OwnedSourceListeners",
       closeTimeoutMs = DEFAULT_CLOSE_TIMEOUT_MS,
+      maxInFlight = DEFAULT_MAX_IN_FLIGHT,
     } = {},
   ) {
+    if (!Number.isSafeInteger(closeTimeoutMs) || closeTimeoutMs <= 0) {
+      throw new TypeError(
+        `[${label}] closeTimeoutMs must be a positive integer`,
+      );
+    }
+    if (!Number.isSafeInteger(maxInFlight) || maxInFlight <= 0) {
+      throw new TypeError(`[${label}] maxInFlight must be a positive integer`);
+    }
     this.source = source || null;
     this.logger = logger || null;
     this.label = label;
     this.closeTimeoutMs = closeTimeoutMs;
+    this.maxInFlight = maxInFlight;
     this.listeners = new Map();
     this.inFlight = new Set();
     this.closed = false;
@@ -34,11 +45,14 @@ class OwnedSourceListeners {
     if (!this.source) {
       return null;
     }
-    if (
-      typeof this.source.on !== "function" ||
-      (typeof this.source.off !== "function" &&
-        typeof this.source.removeListener !== "function")
-    ) {
+    const eventEmitterSource =
+      typeof this.source.on === "function" &&
+      (typeof this.source.off === "function" ||
+        typeof this.source.removeListener === "function");
+    const eventTargetSource =
+      typeof this.source.addEventListener === "function" &&
+      typeof this.source.removeEventListener === "function";
+    if (!eventEmitterSource && !eventTargetSource) {
       throw new Error(
         `[${this.label}] source must support detachable listeners`,
       );
@@ -49,6 +63,12 @@ class OwnedSourceListeners {
 
     const listener = (...args) => {
       if (this.closed) {
+        return;
+      }
+      if (this.inFlight.size >= this.maxInFlight) {
+        this.logger?.warn?.(
+          `[${this.label}] ${eventName} delivery dropped: in-flight limit ${this.maxInFlight} reached`,
+        );
         return;
       }
 
@@ -69,7 +89,11 @@ class OwnedSourceListeners {
         });
     };
 
-    this.source.on(eventName, listener);
+    if (eventEmitterSource) {
+      this.source.on(eventName, listener);
+    } else {
+      this.source.addEventListener(eventName, listener);
+    }
     this.listeners.set(eventName, listener);
     return listener;
   }
@@ -84,8 +108,10 @@ class OwnedSourceListeners {
       try {
         if (typeof this.source?.off === "function") {
           this.source.off(eventName, listener);
-        } else {
+        } else if (typeof this.source?.removeListener === "function") {
           this.source?.removeListener?.(eventName, listener);
+        } else {
+          this.source?.removeEventListener?.(eventName, listener);
         }
       } catch (error) {
         this.logger?.warn?.(
@@ -128,5 +154,6 @@ class OwnedSourceListeners {
 
 module.exports = {
   DEFAULT_CLOSE_TIMEOUT_MS,
+  DEFAULT_MAX_IN_FLIGHT,
   OwnedSourceListeners,
 };

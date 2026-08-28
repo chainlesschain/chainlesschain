@@ -16,6 +16,7 @@ function safeParse(raw, fallback) {
 const crypto = require("crypto");
 const { OrgP2PNetwork, MessageType } = require("./org-p2p-network");
 const { DIDInvitationManager } = require("./did-invitation-manager");
+const { OwnedSourceListeners } = require("../social/owned-source-listeners.js");
 const _mixin_members = require("./organization-manager-members");
 const _mixin_invitations = require("./organization-manager-invitations");
 const _mixin_roles = require("./organization-manager-roles");
@@ -35,6 +36,7 @@ class OrganizationManager {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.currentOrgId = null;
+    this.closePromise = null;
 
     // 初始化DID邀请管理器
     this.didInvitationManager = null;
@@ -52,7 +54,16 @@ class OrganizationManager {
     this.orgP2PNetwork = null;
     if (p2pManager && didManager) {
       this.orgP2PNetwork = new OrgP2PNetwork(p2pManager, didManager, db);
+      this.orgP2PListeners = new OwnedSourceListeners(this.orgP2PNetwork, {
+        logger,
+        label: "OrganizationManager",
+      });
       this.setupP2PEventListeners();
+    } else {
+      this.orgP2PListeners = new OwnedSourceListeners(null, {
+        logger,
+        label: "OrganizationManager",
+      });
     }
   }
 
@@ -65,7 +76,7 @@ class OrganizationManager {
     }
 
     // 成员上线
-    this.orgP2PNetwork.on(
+    this.orgP2PListeners.listen(
       "member:online",
       ({ orgId, memberDID, displayName }) => {
         logger.info(
@@ -76,12 +87,12 @@ class OrganizationManager {
     );
 
     // 成员下线
-    this.orgP2PNetwork.on("member:offline", ({ orgId, memberDID }) => {
+    this.orgP2PListeners.listen("member:offline", ({ orgId, memberDID }) => {
       logger.info(`[OrganizationManager] 成员下线: ${memberDID}`);
     });
 
     // 成员发现
-    this.orgP2PNetwork.on(
+    this.orgP2PListeners.listen(
       "member:discovered",
       ({ orgId, memberDID, displayName }) => {
         logger.info(
@@ -91,13 +102,16 @@ class OrganizationManager {
     );
 
     // 知识库事件
-    this.orgP2PNetwork.on("knowledge:event", async ({ orgId, type, data }) => {
-      logger.info(`[OrganizationManager] 知识库事件: ${type}`);
-      await this.handleKnowledgeEvent(orgId, type, data);
-    });
+    this.orgP2PListeners.listen(
+      "knowledge:event",
+      async ({ orgId, type, data }) => {
+        logger.info(`[OrganizationManager] 知识库事件: ${type}`);
+        await this.handleKnowledgeEvent(orgId, type, data);
+      },
+    );
 
     // 广播消息
-    this.orgP2PNetwork.on(
+    this.orgP2PListeners.listen(
       "broadcast:received",
       ({ orgId, type, content, senderDID }) => {
         logger.info(
@@ -904,6 +918,22 @@ class OrganizationManager {
    * @param {number} since - 时间戳，获取此时间之后的数据
    * @returns {Promise<Object>} 知识库数据
    */
+  async close() {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+
+    this.closePromise = (async () => {
+      await Promise.all([
+        this.didInvitationManager?.close?.(),
+        this.orgP2PListeners.close(),
+      ]);
+      await this.orgP2PNetwork?.cleanup?.();
+      this.orgP2PNetwork?.removeAllListeners?.();
+      this.currentOrgId = null;
+    })();
+    return this.closePromise;
+  }
 }
 
 // Attach per-domain method groups onto the prototype (mixin split of a 2800-line

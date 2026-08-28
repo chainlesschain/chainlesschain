@@ -33,6 +33,9 @@ const complete = require("../skills/builtin/complete/handler.js");
 const {
   createBundledSkillProcessBroker,
 } = require("../skills/bundled-skill-process-broker.js");
+const {
+  createTestFilesystemContext,
+} = require("../skills/__tests__/helpers/bundled-skill-filesystem.js");
 
 const rawVerifyExecute = verify.execute.bind(verify);
 const VERIFY_TEST_COMMANDS = [
@@ -51,6 +54,10 @@ const VERIFY_TEST_COMMANDS = [
 });
 let verifyProcessAdapter = () => "";
 verify.execute = (task, context = {}) => {
+  const filesystemContext = createTestFilesystemContext("verify", {
+    allowedRoots: [context.projectRoot],
+    cwd: context.projectRoot,
+  });
   const processBroker = createBundledSkillProcessBroker(
     {
       skillId: "verify",
@@ -60,7 +67,11 @@ verify.execute = (task, context = {}) => {
     },
     { executeFileSync: verifyProcessAdapter, auditSink: () => {} },
   );
-  return rawVerifyExecute(task, { ...context, processBroker });
+  return rawVerifyExecute(task, {
+    ...context,
+    ...filesystemContext,
+    processBroker,
+  });
 };
 
 function makeTmpRoot() {

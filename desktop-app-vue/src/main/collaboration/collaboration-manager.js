@@ -9,18 +9,29 @@ const ShareDB = require("sharedb");
 const WebSocket = require("ws");
 const WebSocketJSONStream = require("@teamwork/websocket-json-stream");
 const { EventEmitter } = require("events");
+const {
+  assertCollaborationDocumentId,
+  closeCollaborationServer,
+  resolveCollaborationServerLimits,
+  websocketDataBytes,
+} = require("./collaboration-server-lifecycle.js");
 
 class CollaborationManager extends EventEmitter {
-  constructor(organizationManager = null) {
+  constructor(organizationManager = null, options = {}) {
     super();
     this.sharedb = null;
     this.wss = null;
     this.connections = new Map();
     this.documents = new Map();
+    this.documentListeners = new Map();
+    this.documentLoads = new Map();
+    this.documentGeneration = 0;
     this.port = 8080;
     this.initialized = false;
     this.database = null;
     this.organizationManager = organizationManager; // 组织管理器引用
+    this.stopServerPromise = null;
+    this.limits = resolveCollaborationServerLimits(options.limits || {});
   }
 
   /**
@@ -34,6 +45,9 @@ class CollaborationManager extends EventEmitter {
     try {
       const { port = 8080 } = options;
       this.port = port;
+      if (options.limits !== undefined) {
+        this.limits = resolveCollaborationServerLimits(options.limits);
+      }
 
       // 初始化ShareDB
       this.sharedb = new ShareDB();
@@ -92,15 +106,25 @@ class CollaborationManager extends EventEmitter {
    * 启动WebSocket服务器
    */
   async startServer() {
+    if (this.stopServerPromise) {
+      await this.stopServerPromise;
+    }
     if (this.wss) {
       logger.warn("[CollaborationManager] 服务器已在运行");
       return;
     }
 
     try {
-      this.wss = new WebSocket.Server({ port: this.port });
+      this.wss = new WebSocket.Server({
+        port: this.port,
+        maxPayload: this.limits.maxMessageBytes,
+      });
 
       this.wss.on("connection", (ws, req) => {
+        if (this.connections.size >= this.limits.maxConnections) {
+          ws.close(1013, "collaboration server overloaded");
+          return;
+        }
         const connectionId = this.generateConnectionId();
         logger.info(`[CollaborationManager] 新连接: ${connectionId}`);
 
@@ -115,16 +139,14 @@ class CollaborationManager extends EventEmitter {
           userId: null,
           documentId: null,
           connectedAt: Date.now(),
+          pendingMessages: 0,
+          pendingBytes: 0,
+          messageChain: Promise.resolve(),
         });
 
         // 处理消息
-        ws.on("message", async (data) => {
-          try {
-            const message = JSON.parse(data);
-            await this.handleMessage(connectionId, message);
-          } catch (error) {
-            logger.error("[CollaborationManager] 处理消息失败:", error);
-          }
+        ws.on("message", (data) => {
+          this._enqueueConnectionMessage(connectionId, data);
         });
 
         // 处理断开连接
@@ -155,35 +177,127 @@ class CollaborationManager extends EventEmitter {
   /**
    * 停止WebSocket服务器
    */
-  async stopServer() {
+  async stopServer({ closeTimeoutMs = 5000 } = {}) {
+    if (this.stopServerPromise) {
+      return this.stopServerPromise;
+    }
     if (!this.wss) {
+      this.connections.clear();
+      this._closeAllDocuments();
+      return { success: true, timedOut: false };
+    }
+
+    const server = this.wss;
+    this.wss = null;
+    this.stopServerPromise = (async () => {
+      const { timedOut } = await closeCollaborationServer({
+        server,
+        connections: this.connections,
+        logger,
+        closeTimeoutMs,
+      });
+
+      this.connections.clear();
+      this._closeAllDocuments();
+      this.emit("server:stopped");
+      return { success: true, timedOut };
+    })().finally(() => {
+      this.stopServerPromise = null;
+    });
+    return this.stopServerPromise;
+  }
+
+  _enqueueConnectionMessage(connectionId, data) {
+    const conn = this.connections.get(connectionId);
+    if (!conn) {
+      return false;
+    }
+    const byteLength = websocketDataBytes(data);
+    if (
+      byteLength > this.limits.maxMessageBytes ||
+      conn.pendingMessages >= this.limits.maxPendingMessagesPerConnection ||
+      conn.pendingBytes + byteLength > this.limits.maxPendingBytesPerConnection
+    ) {
+      conn.ws.close(1013, "collaboration message backlog exceeded");
+      return false;
+    }
+
+    conn.pendingMessages += 1;
+    conn.pendingBytes += byteLength;
+    conn.messageChain = conn.messageChain
+      .then(async () => {
+        const serialized =
+          typeof data === "string"
+            ? data
+            : Array.isArray(data)
+              ? Buffer.concat(
+                  data.map((chunk) => Buffer.from(chunk)),
+                  byteLength,
+                ).toString("utf8")
+              : Buffer.from(data).toString("utf8");
+        const message = JSON.parse(serialized);
+        await this.handleMessage(connectionId, message);
+      })
+      .catch((error) => {
+        logger.error("[CollaborationManager] 处理消息失败:", error);
+      })
+      .finally(() => {
+        conn.pendingMessages = Math.max(0, conn.pendingMessages - 1);
+        conn.pendingBytes = Math.max(0, conn.pendingBytes - byteLength);
+      });
+    return true;
+  }
+
+  _sendConnection(conn, message) {
+    if (!conn?.ws) {
+      return false;
+    }
+    const payload = JSON.stringify(message);
+    const byteLength = Buffer.byteLength(payload, "utf8");
+    if (
+      byteLength > this.limits.maxMessageBytes ||
+      (conn.ws.bufferedAmount || 0) + byteLength >
+        this.limits.maxBufferedOutputBytes
+    ) {
+      conn.ws.close(1013, "collaboration output backlog exceeded");
+      return false;
+    }
+    conn.ws.send(payload);
+    return true;
+  }
+
+  _closeAllDocuments() {
+    this.documentGeneration += 1;
+    this.documentLoads.clear();
+    for (const documentId of [...this.documentListeners.keys()]) {
+      this._detachDocumentListeners(documentId);
+    }
+    for (const doc of this.documents.values()) {
+      try {
+        doc.unsubscribe?.();
+      } catch (error) {
+        logger.warn(
+          "[CollaborationManager] document unsubscribe failed:",
+          error?.message || error,
+        );
+      }
+    }
+    this.documents.clear();
+  }
+
+  _detachDocumentListeners(documentId) {
+    const subscriptions = this.documentListeners.get(documentId);
+    if (!subscriptions) {
       return;
     }
-
-    try {
-      // 关闭所有连接
-      this.connections.forEach((conn) => {
-        conn.ws.close();
-      });
-
-      // 关闭服务器
-      await new Promise((resolve) => {
-        this.wss.close(() => {
-          logger.info("[CollaborationManager] 服务器已停止");
-          resolve();
-        });
-      });
-
-      this.wss = null;
-      this.connections.clear();
-
-      this.emit("server:stopped");
-
-      return { success: true };
-    } catch (error) {
-      logger.error("[CollaborationManager] 停止服务器失败:", error);
-      throw error;
+    for (const { doc, listener } of subscriptions) {
+      if (typeof doc.off === "function") {
+        doc.off("op", listener);
+      } else {
+        doc.removeListener?.("op", listener);
+      }
     }
+    this.documentListeners.delete(documentId);
   }
 
   /**
@@ -226,6 +340,7 @@ class CollaborationManager extends EventEmitter {
     const { userId, userName, documentId, orgId, knowledgeId } = payload;
 
     try {
+      assertCollaborationDocumentId(documentId, this.limits);
       // 企业版: 检查组织权限
       if (orgId && this.organizationManager) {
         const hasPermission = await this.checkDocumentPermission(
@@ -239,16 +354,14 @@ class CollaborationManager extends EventEmitter {
           // 权限不足,拒绝加入
           const conn = this.connections.get(connectionId);
           if (conn && conn.ws) {
-            conn.ws.send(
-              JSON.stringify({
-                type: "error",
-                payload: {
-                  code: "PERMISSION_DENIED",
-                  message: "您没有权限编辑此文档",
-                  documentId: documentId,
-                },
-              }),
-            );
+            this._sendConnection(conn, {
+              type: "error",
+              payload: {
+                code: "PERMISSION_DENIED",
+                message: "您没有权限编辑此文档",
+                documentId: documentId,
+              },
+            });
           }
           logger.warn(
             "[CollaborationManager] 用户权限不足:",
@@ -303,15 +416,13 @@ class CollaborationManager extends EventEmitter {
 
       // 发送加入成功消息 (包含在线用户列表)
       if (conn && conn.ws) {
-        conn.ws.send(
-          JSON.stringify({
-            type: "join:success",
-            payload: {
-              sessionId: sessionId,
-              onlineUsers: onlineUsers,
-            },
-          }),
-        );
+        this._sendConnection(conn, {
+          type: "join:success",
+          payload: {
+            sessionId: sessionId,
+            onlineUsers: onlineUsers,
+          },
+        });
       }
     } catch (error) {
       logger.error("[CollaborationManager] 处理加入失败:", error);
@@ -319,16 +430,14 @@ class CollaborationManager extends EventEmitter {
       // 发送错误消息
       const conn = this.connections.get(connectionId);
       if (conn && conn.ws) {
-        conn.ws.send(
-          JSON.stringify({
-            type: "error",
-            payload: {
-              code: "JOIN_FAILED",
-              message: error.message,
-              documentId: documentId,
-            },
-          }),
-        );
+        this._sendConnection(conn, {
+          type: "error",
+          payload: {
+            code: "JOIN_FAILED",
+            message: error.message,
+            documentId: documentId,
+          },
+        });
       }
     }
   }
@@ -468,9 +577,13 @@ class CollaborationManager extends EventEmitter {
       try {
         doc.unsubscribe();
       } catch (e) {
-        logger.warn("[CollaborationManager] 取消文档订阅失败:", e?.message || e);
+        logger.warn(
+          "[CollaborationManager] 取消文档订阅失败:",
+          e?.message || e,
+        );
       }
     }
+    this._detachDocumentListeners(documentId);
     this.documents.delete(documentId);
   }
 
@@ -478,6 +591,43 @@ class CollaborationManager extends EventEmitter {
    * 加入文档协作
    */
   async joinDocument(userId, userName, documentId) {
+    assertCollaborationDocumentId(documentId, this.limits);
+    const existing = this.documents.get(documentId);
+    if (existing) {
+      return {
+        success: true,
+        documentId,
+        version: existing.version,
+        content: existing.data,
+      };
+    }
+    if (this.documentLoads.has(documentId)) {
+      return this.documentLoads.get(documentId);
+    }
+    if (
+      this.documents.size + this.documentLoads.size >=
+      this.limits.maxDocuments
+    ) {
+      const error = new Error("collaboration document capacity reached");
+      error.code = "COLLABORATION_DOCUMENT_CAPACITY";
+      throw error;
+    }
+    const generation = this.documentGeneration;
+    const task = this._joinDocument(
+      userId,
+      userName,
+      documentId,
+      generation,
+    ).finally(() => {
+      if (this.documentLoads.get(documentId) === task) {
+        this.documentLoads.delete(documentId);
+      }
+    });
+    this.documentLoads.set(documentId, task);
+    return task;
+  }
+
+  async _joinDocument(userId, userName, documentId, generation) {
     try {
       const connection = this.sharedb.connection;
       const doc = connection.get("documents", documentId);
@@ -507,6 +657,12 @@ class CollaborationManager extends EventEmitter {
       doc.subscribe();
 
       // 保存文档引用
+      if (generation !== this.documentGeneration) {
+        doc.unsubscribe?.();
+        throw new Error(
+          "collaboration document load crossed a lifecycle fence",
+        );
+      }
       this.documents.set(documentId, doc);
 
       return {
@@ -526,6 +682,14 @@ class CollaborationManager extends EventEmitter {
    */
   async submitOperation(documentId, userId, operation) {
     try {
+      assertCollaborationDocumentId(documentId, this.limits);
+      const serializedOperation = JSON.stringify(operation);
+      if (
+        Buffer.byteLength(serializedOperation, "utf8") >
+        this.limits.maxMessageBytes
+      ) {
+        throw new Error("collaboration operation exceeds byte limit");
+      }
       const doc = this.documents.get(documentId);
       if (!doc) {
         throw new Error(`文档不存在: ${documentId}`);
@@ -555,7 +719,7 @@ class CollaborationManager extends EventEmitter {
           opId,
           documentId,
           userId,
-          JSON.stringify(operation),
+          serializedOperation,
           doc.version,
           Date.now(),
         );
@@ -574,18 +738,46 @@ class CollaborationManager extends EventEmitter {
    * 监听文档变更
    */
   onDocumentChange(documentId, callback) {
+    assertCollaborationDocumentId(documentId, this.limits);
+    if (typeof callback !== "function") {
+      throw new TypeError("document change callback must be a function");
+    }
     const doc = this.documents.get(documentId);
     if (!doc) {
       logger.warn(`[CollaborationManager] 文档不存在: ${documentId}`);
       return;
     }
 
-    doc.on("op", (op, source) => {
+    let subscriptions = this.documentListeners.get(documentId);
+    if (!subscriptions) {
+      subscriptions = new Set();
+      this.documentListeners.set(documentId, subscriptions);
+    }
+    if (subscriptions.size >= this.limits.maxDocumentListeners) {
+      throw new Error("collaboration document listener capacity reached");
+    }
+    const listener = (op, source) => {
       if (!source) {
         // 来自其他客户端的操作
         callback(op);
       }
-    });
+    };
+    const registration = { doc, listener };
+    subscriptions.add(registration);
+    doc.on("op", listener);
+    return () => {
+      if (!subscriptions.delete(registration)) {
+        return;
+      }
+      if (typeof doc.off === "function") {
+        doc.off("op", listener);
+      } else {
+        doc.removeListener?.("op", listener);
+      }
+      if (subscriptions.size === 0) {
+        this.documentListeners.delete(documentId);
+      }
+    };
   }
 
   /**
@@ -595,7 +787,7 @@ class CollaborationManager extends EventEmitter {
     this.connections.forEach((conn) => {
       if (conn.documentId === documentId && conn.userId !== excludeUserId) {
         try {
-          conn.ws.send(JSON.stringify(message));
+          this._sendConnection(conn, message);
         } catch (error) {
           logger.error("[CollaborationManager] 广播消息失败:", error);
         }
@@ -626,6 +818,10 @@ class CollaborationManager extends EventEmitter {
    * 获取文档操作历史
    */
   getOperationHistory(documentId, limit = 100) {
+    assertCollaborationDocumentId(documentId, this.limits);
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+      throw new TypeError("history limit must be a positive safe integer");
+    }
     return this.database
       .prepare(
         `
@@ -635,13 +831,17 @@ class CollaborationManager extends EventEmitter {
       LIMIT ?
     `,
       )
-      .all(documentId, limit);
+      .all(documentId, Math.min(limit, this.limits.maxQueryLimit));
   }
 
   /**
    * 获取会话历史
    */
   getSessionHistory(documentId, limit = 50) {
+    assertCollaborationDocumentId(documentId, this.limits);
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+      throw new TypeError("history limit must be a positive safe integer");
+    }
     return this.database
       .prepare(
         `
@@ -651,7 +851,7 @@ class CollaborationManager extends EventEmitter {
       LIMIT ?
     `,
       )
-      .all(documentId, limit);
+      .all(documentId, Math.min(limit, this.limits.maxQueryLimit));
   }
 
   /**

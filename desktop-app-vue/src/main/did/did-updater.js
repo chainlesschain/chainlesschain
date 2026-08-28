@@ -22,6 +22,7 @@ const DEFAULT_CONFIG = {
   republishInterval: 24 * 60 * 60 * 1000, // 重新发布间隔 (24小时)
   enableVersioning: true, // 启用版本管理
   maxVersionHistory: 10, // 最大版本历史数量
+  maxManagedDids: 256,
 };
 
 /**
@@ -34,12 +35,23 @@ class DIDUpdater extends EventEmitter {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.config = { ...DEFAULT_CONFIG, ...config };
+    if (
+      !Number.isSafeInteger(this.config.maxManagedDids) ||
+      this.config.maxManagedDids <= 0 ||
+      this.config.maxManagedDids > 4_096
+    ) {
+      throw new RangeError(
+        "DIDUpdater maxManagedDids must be between 1 and 4096",
+      );
+    }
 
     // 更新定时器
     this.updateTimers = new Map();
 
     // 重新发布定时器
     this.republishTimers = new Map();
+    this.updateTasks = new Map();
+    this.republishTasks = new Map();
 
     logger.info("[DIDUpdater] DID自动更新器已创建");
   }
@@ -105,15 +117,19 @@ class DIDUpdater extends EventEmitter {
       logger.info(`[DIDUpdater] DID ${did} 已启动自动更新`);
       return;
     }
+    if (this.updateTimers.size >= this.config.maxManagedDids) {
+      throw new Error("DIDUpdater auto-update capacity exceeded");
+    }
 
-    const timer = setInterval(async () => {
-      try {
-        await this.checkAndUpdate(did);
-      } catch (error) {
+    const timer = setInterval(() => {
+      this._runOwnedTask(this.updateTasks, did, () =>
+        this.checkAndUpdate(did),
+      ).catch((error) => {
         logger.error(`[DIDUpdater] DID ${did} 自动更新失败:`, error);
         this.emit("update-error", { did, error });
-      }
+      });
     }, this.config.updateInterval);
+    timer.unref?.();
 
     this.updateTimers.set(did, timer);
 
@@ -149,15 +165,19 @@ class DIDUpdater extends EventEmitter {
       logger.info(`[DIDUpdater] DID ${did} 已启动自动重新发布`);
       return;
     }
+    if (this.republishTimers.size >= this.config.maxManagedDids) {
+      throw new Error("DIDUpdater auto-republish capacity exceeded");
+    }
 
-    const timer = setInterval(async () => {
-      try {
-        await this.republish(did);
-      } catch (error) {
+    const timer = setInterval(() => {
+      this._runOwnedTask(this.republishTasks, did, () =>
+        this.republish(did),
+      ).catch((error) => {
         logger.error(`[DIDUpdater] DID ${did} 自动重新发布失败:`, error);
         this.emit("republish-error", { did, error });
-      }
+      });
     }, this.config.republishInterval);
+    timer.unref?.();
 
     this.republishTimers.set(did, timer);
 
@@ -540,10 +560,39 @@ class DIDUpdater extends EventEmitter {
       this.stopAutoRepublish(did);
     }
 
+    const tasks = [
+      ...this.updateTasks.values(),
+      ...this.republishTasks.values(),
+    ];
+    if (tasks.length > 0) {
+      let timer;
+      await Promise.race([
+        Promise.allSettled(tasks),
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, 5_000);
+          timer.unref?.();
+        }),
+      ]);
+      clearTimeout(timer);
+    }
+    this.updateTasks.clear();
+    this.republishTasks.clear();
+
     // 移除所有监听器
     this.removeAllListeners();
 
     logger.info("[DIDUpdater] DID自动更新器已销毁");
+  }
+
+  _runOwnedTask(tasks, did, factory) {
+    if (tasks.has(did)) {
+      return tasks.get(did);
+    }
+    const task = Promise.resolve()
+      .then(factory)
+      .finally(() => tasks.delete(did));
+    tasks.set(did, task);
+    return task;
   }
 }
 

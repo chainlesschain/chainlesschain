@@ -46,6 +46,7 @@ class DIDCache extends EventEmitter {
 
     // 清理定时器
     this.cleanupTimer = null;
+    this.cleanupPromise = null;
 
     logger.info("[DIDCache] DID缓存管理器已创建");
   }
@@ -368,8 +369,13 @@ class DIDCache extends EventEmitter {
     }
 
     this.cleanupTimer = setInterval(() => {
-      this.cleanup();
+      if (!this.cleanupPromise) {
+        this.cleanupPromise = Promise.resolve(this.cleanup()).finally(() => {
+          this.cleanupPromise = null;
+        });
+      }
     }, this.config.cleanupInterval);
+    this.cleanupTimer.unref?.();
 
     logger.info("[DIDCache] 定期清理已启动");
   }
@@ -481,6 +487,19 @@ class DIDCache extends EventEmitter {
 
     // 停止清理定时器
     this.stopCleanup();
+
+    if (this.cleanupPromise) {
+      let timer;
+      await Promise.race([
+        this.cleanupPromise,
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, 5_000);
+          timer.unref?.();
+        }),
+      ]);
+      clearTimeout(timer);
+      this.cleanupPromise = null;
+    }
 
     // 清空内存缓存
     this.cache.clear();

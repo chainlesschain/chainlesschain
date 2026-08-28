@@ -9,6 +9,12 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const fs = require("fs");
 const path = require("path");
+const {
+  assertDeviceId,
+  cloneBoundedMessage,
+  readBoundedJsonFile,
+  resolveDeviceSyncLimits,
+} = require("./device-sync-boundaries");
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)
@@ -43,11 +49,21 @@ class DeviceSyncManager extends EventEmitter {
   constructor(config = {}) {
     super();
 
+    const requestedLimits = { ...(config.limits || {}) };
+    if (config.maxQueueSize !== undefined) {
+      requestedLimits.maxQueueSize = config.maxQueueSize;
+    }
+    this.limits = resolveDeviceSyncLimits(requestedLimits);
+    this.statusLimits = Object.freeze({
+      ...this.limits,
+      maxMessageBytes: this.limits.maxStatusBytes,
+    });
+
     this.config = {
       dataPath: config.dataPath || null,
       userId: config.userId || null,
       deviceId: config.deviceId || null,
-      maxQueueSize: config.maxQueueSize || 1000, // 最大队列大小
+      maxQueueSize: this.limits.maxQueueSize, // 最大队列大小
       syncInterval: config.syncInterval || 30000, // 同步间隔 (30秒)
       messageRetention: config.messageRetention || 7, // 消息保留天数
       ...config,
@@ -57,13 +73,106 @@ class DeviceSyncManager extends EventEmitter {
     this.messageStatus = new Map(); // Map<messageId, Status>
     this.deviceStatus = new Map(); // Map<deviceId, DeviceStatus>
     this.syncTimers = new Map(); // Map<deviceId, Timer>
+    this.syncTasks = new Map();
+    this.queueBytesByDevice = new Map();
+    this.totalQueueBytes = 0;
+    this.totalQueueMessages = 0;
+    this.deliveryHandler = null;
+    this.cleanupPromise = null;
+    this.closed = false;
+    this.closePromise = null;
     this.initialized = false;
+  }
+
+  _clearQueueState() {
+    this.messageQueue.clear();
+    this.queueBytesByDevice.clear();
+    this.totalQueueBytes = 0;
+    this.totalQueueMessages = 0;
+  }
+
+  _rebuildQueueAccounting() {
+    this.queueBytesByDevice.clear();
+    this.totalQueueBytes = 0;
+    this.totalQueueMessages = 0;
+    for (const [deviceId, queue] of this.messageQueue) {
+      let queueBytes = 0;
+      for (const message of queue) {
+        queueBytes += cloneBoundedMessage(message, this.limits).byteLength;
+      }
+      this.queueBytesByDevice.set(deviceId, queueBytes);
+      this.totalQueueBytes += queueBytes;
+      this.totalQueueMessages += queue.length;
+    }
+  }
+
+  _removeQueuedMessage(deviceId, queue, index) {
+    const [removed] = queue.splice(index, 1);
+    if (!removed) {
+      return null;
+    }
+    const { byteLength } = cloneBoundedMessage(removed, this.limits);
+    const remainingBytes = Math.max(
+      0,
+      (this.queueBytesByDevice.get(deviceId) || 0) - byteLength,
+    );
+    this.totalQueueBytes = Math.max(0, this.totalQueueBytes - byteLength);
+    this.totalQueueMessages = Math.max(0, this.totalQueueMessages - 1);
+    if (queue.length === 0) {
+      this.messageQueue.delete(deviceId);
+      this.queueBytesByDevice.delete(deviceId);
+    } else {
+      this.queueBytesByDevice.set(deviceId, remainingBytes);
+    }
+    return removed;
+  }
+
+  _admitLoadedMessage(deviceId, message) {
+    assertDeviceId(deviceId, this.limits);
+    const { value, byteLength } = cloneBoundedMessage(message, this.limits);
+    let queue = this.messageQueue.get(deviceId);
+    if (!queue) {
+      if (this.messageQueue.size >= this.limits.maxDevices) {
+        return false;
+      }
+      queue = [];
+    }
+    const queueBytes = this.queueBytesByDevice.get(deviceId) || 0;
+    if (
+      queue.length >= this.limits.maxQueueSize ||
+      queueBytes + byteLength > this.limits.maxQueueBytes ||
+      this.totalQueueMessages >= this.limits.maxTotalMessages ||
+      this.totalQueueBytes + byteLength > this.limits.maxTotalQueueBytes
+    ) {
+      return false;
+    }
+    if (!this.messageQueue.has(deviceId)) {
+      this.messageQueue.set(deviceId, queue);
+    }
+    queue.push(value);
+    this.queueBytesByDevice.set(deviceId, queueBytes + byteLength);
+    this.totalQueueMessages += 1;
+    this.totalQueueBytes += byteLength;
+    return true;
+  }
+
+  setDeliveryHandler(handler) {
+    if (handler !== null && typeof handler !== "function") {
+      throw new TypeError("delivery handler must be a function or null");
+    }
+    if (this.closed && handler) {
+      throw new Error("DeviceSyncManager is closed");
+    }
+    this.deliveryHandler = handler;
   }
 
   /**
    * 初始化同步管理器
    */
   async initialize() {
+    if (this.closed) {
+      throw new Error("DeviceSyncManager is closed");
+    }
     logger.info("[DeviceSyncManager] 初始化设备同步管理器...");
 
     try {
@@ -99,12 +208,27 @@ class DeviceSyncManager extends EventEmitter {
 
     // M2: 异步读取，避免启动期阻塞事件循环
     try {
-      const content = await _deps.fsp.readFile(queuePath, "utf8");
-      const queueData = JSON.parse(content);
+      const queueData = await readBoundedJsonFile(
+        _deps.fsp,
+        queuePath,
+        this.limits,
+      );
+      if (
+        !queueData ||
+        typeof queueData !== "object" ||
+        Array.isArray(queueData)
+      ) {
+        throw new TypeError("persisted message queue must be an object");
+      }
 
-      // 转换为 Map
+      this._clearQueueState();
       for (const [deviceId, messages] of Object.entries(queueData)) {
-        this.messageQueue.set(deviceId, messages);
+        if (!Array.isArray(messages)) {
+          continue;
+        }
+        for (const message of messages.slice(-this.limits.maxQueueSize)) {
+          this._admitLoadedMessage(deviceId, message);
+        }
       }
 
       logger.info(
@@ -113,6 +237,7 @@ class DeviceSyncManager extends EventEmitter {
         "个设备",
       );
     } catch (error) {
+      this._clearQueueState();
       if (error.code !== "ENOENT") {
         logger.warn("[DeviceSyncManager] 加载消息队列失败:", error.message);
       }
@@ -138,7 +263,13 @@ class DeviceSyncManager extends EventEmitter {
         queueData[deviceId] = messages;
       }
 
-      await _deps.fsp.writeFile(queuePath, JSON.stringify(queueData, null, 2));
+      const serialized = JSON.stringify(queueData, null, 2);
+      if (
+        Buffer.byteLength(serialized, "utf8") > this.limits.maxPersistedBytes
+      ) {
+        throw new Error("persisted message queue exceeds byte limit");
+      }
+      await _deps.fsp.writeFile(queuePath, serialized);
     } catch (error) {
       logger.warn("[DeviceSyncManager] 保存消息队列失败:", error.message);
     }
@@ -157,12 +288,27 @@ class DeviceSyncManager extends EventEmitter {
 
     // M2: 异步读取，避免启动期阻塞事件循环
     try {
-      const content = await _deps.fsp.readFile(statusPath, "utf8");
-      const statusData = JSON.parse(content);
+      const statusData = await readBoundedJsonFile(
+        _deps.fsp,
+        statusPath,
+        this.limits,
+      );
+      if (
+        !statusData ||
+        typeof statusData !== "object" ||
+        Array.isArray(statusData)
+      ) {
+        throw new TypeError("persisted message status must be an object");
+      }
 
-      // 转换为 Map
-      for (const [messageId, status] of Object.entries(statusData)) {
-        this.messageStatus.set(messageId, status);
+      this.messageStatus.clear();
+      const entries = Object.entries(statusData).slice(
+        -this.limits.maxStatusEntries,
+      );
+      for (const [messageId, status] of entries) {
+        assertDeviceId(messageId, this.limits);
+        const { value } = cloneBoundedMessage(status, this.statusLimits);
+        this.messageStatus.set(messageId, value);
       }
 
       logger.info(
@@ -171,6 +317,7 @@ class DeviceSyncManager extends EventEmitter {
         "条消息",
       );
     } catch (error) {
+      this.messageStatus.clear();
       if (error.code !== "ENOENT") {
         logger.warn("[DeviceSyncManager] 加载消息状态失败:", error.message);
       }
@@ -196,10 +343,13 @@ class DeviceSyncManager extends EventEmitter {
         statusData[messageId] = status;
       }
 
-      await _deps.fsp.writeFile(
-        statusPath,
-        JSON.stringify(statusData, null, 2),
-      );
+      const serialized = JSON.stringify(statusData, null, 2);
+      if (
+        Buffer.byteLength(serialized, "utf8") > this.limits.maxPersistedBytes
+      ) {
+        throw new Error("persisted message status exceeds byte limit");
+      }
+      await _deps.fsp.writeFile(statusPath, serialized);
     } catch (error) {
       logger.warn("[DeviceSyncManager] 保存消息状态失败:", error.message);
     }
@@ -212,10 +362,16 @@ class DeviceSyncManager extends EventEmitter {
    */
   async queueMessage(targetDeviceId, message) {
     try {
+      if (this.closed) {
+        throw new Error("DeviceSyncManager is closed");
+      }
+      assertDeviceId(targetDeviceId, this.limits);
       // 生成消息ID
       const messageId = message.id || this.generateMessageId();
+      assertDeviceId(messageId, this.limits);
 
       const queueMessage = {
+        ...message,
         id: messageId,
         targetDeviceId,
         targetPeerId: message.targetPeerId,
@@ -224,32 +380,79 @@ class DeviceSyncManager extends EventEmitter {
         timestamp: Date.now(),
         attempts: 0,
         status: MessageStatus.PENDING,
-        ...message,
       };
+      const admitted = cloneBoundedMessage(queueMessage, this.limits);
 
-      // 获取或创建设备队列
-      let deviceQueue = this.messageQueue.get(targetDeviceId);
-      if (!deviceQueue) {
-        deviceQueue = [];
-        this.messageQueue.set(targetDeviceId, deviceQueue);
+      let deviceQueue = this.messageQueue.get(targetDeviceId) || [];
+      if (
+        !this.messageQueue.has(targetDeviceId) &&
+        this.messageQueue.size >= this.limits.maxDevices
+      ) {
+        const error = new Error("device sync device capacity reached");
+        error.code = "DEVICE_SYNC_DEVICE_CAPACITY";
+        throw error;
       }
 
-      // 检查队列大小
-      if (deviceQueue.length >= this.config.maxQueueSize) {
-        logger.warn("[DeviceSyncManager] 设备队列已满:", targetDeviceId);
-        // 移除最旧的消息，并清理其状态条目。否则被驱逐消息的 PENDING 状态会永久
-        // 残留在 messageStatus（并随 saveMessageStatus 持久化到磁盘），每次溢出
-        // 驱逐泄漏一条、无界增长。
-        const dropped = deviceQueue.shift();
-        if (dropped && dropped.id) {
+      const existingBytes = this.queueBytesByDevice.get(targetDeviceId) || 0;
+      let dropCount = 0;
+      let droppedBytes = 0;
+      while (
+        deviceQueue.length - dropCount >= this.limits.maxQueueSize ||
+        existingBytes - droppedBytes + admitted.byteLength >
+          this.limits.maxQueueBytes
+      ) {
+        const candidate = deviceQueue[dropCount];
+        if (!candidate) {
+          break;
+        }
+        droppedBytes += cloneBoundedMessage(candidate, this.limits).byteLength;
+        dropCount += 1;
+      }
+      if (
+        this.totalQueueMessages - dropCount + 1 >
+          this.limits.maxTotalMessages ||
+        this.totalQueueBytes - droppedBytes + admitted.byteLength >
+          this.limits.maxTotalQueueBytes
+      ) {
+        const error = new Error("device sync total queue capacity reached");
+        error.code = "DEVICE_SYNC_QUEUE_CAPACITY";
+        throw error;
+      }
+
+      if (!this.messageQueue.has(targetDeviceId)) {
+        this.messageQueue.set(targetDeviceId, deviceQueue);
+      }
+      for (let index = 0; index < dropCount; index += 1) {
+        const dropped = this._removeQueuedMessage(
+          targetDeviceId,
+          deviceQueue,
+          0,
+        );
+        if (dropped?.id) {
           this.messageStatus.delete(dropped.id);
         }
       }
+      if (!this.messageQueue.has(targetDeviceId)) {
+        this.messageQueue.set(targetDeviceId, deviceQueue);
+      }
 
       // 加入队列
-      deviceQueue.push(queueMessage);
+      deviceQueue.push(admitted.value);
+      this.queueBytesByDevice.set(
+        targetDeviceId,
+        (this.queueBytesByDevice.get(targetDeviceId) || 0) +
+          admitted.byteLength,
+      );
+      this.totalQueueMessages += 1;
+      this.totalQueueBytes += admitted.byteLength;
 
       // 更新消息状态
+      if (
+        !this.messageStatus.has(messageId) &&
+        this.messageStatus.size >= this.limits.maxStatusEntries
+      ) {
+        this.messageStatus.delete(this.messageStatus.keys().next().value);
+      }
       this.messageStatus.set(messageId, {
         status: MessageStatus.PENDING,
         timestamp: Date.now(),
@@ -269,7 +472,7 @@ class DeviceSyncManager extends EventEmitter {
       this.emit("message:queued", {
         messageId,
         targetDeviceId,
-        message: queueMessage,
+        message: cloneBoundedMessage(admitted.value, this.limits).value,
       });
 
       return messageId;
@@ -284,7 +487,25 @@ class DeviceSyncManager extends EventEmitter {
    * @param {string} deviceId - 设备ID
    */
   getDeviceQueue(deviceId) {
-    return this.messageQueue.get(deviceId) || [];
+    return (this.messageQueue.get(deviceId) || []).map(
+      (message) => cloneBoundedMessage(message, this.limits).value,
+    );
+  }
+
+  _updateMessageStatus(messageId, patch) {
+    if (this.closed) {
+      return null;
+    }
+    const current = this.messageStatus.get(messageId);
+    if (!current) {
+      return null;
+    }
+    const { value } = cloneBoundedMessage(
+      { ...current, ...patch },
+      this.statusLimits,
+    );
+    this.messageStatus.set(messageId, value);
+    return value;
   }
 
   /**
@@ -293,11 +514,11 @@ class DeviceSyncManager extends EventEmitter {
    */
   async markMessageSent(messageId) {
     try {
-      const status = this.messageStatus.get(messageId);
+      const status = this._updateMessageStatus(messageId, {
+        status: MessageStatus.SENT,
+        sentAt: Date.now(),
+      });
       if (status) {
-        status.status = MessageStatus.SENT;
-        status.sentAt = Date.now();
-        this.messageStatus.set(messageId, status);
         await this.saveMessageStatus();
 
         this.emit("message:sent", { messageId, status });
@@ -313,11 +534,11 @@ class DeviceSyncManager extends EventEmitter {
    */
   async markMessageDelivered(messageId) {
     try {
-      const status = this.messageStatus.get(messageId);
+      const status = this._updateMessageStatus(messageId, {
+        status: MessageStatus.DELIVERED,
+        deliveredAt: Date.now(),
+      });
       if (status) {
-        status.status = MessageStatus.DELIVERED;
-        status.deliveredAt = Date.now();
-        this.messageStatus.set(messageId, status);
         await this.saveMessageStatus();
 
         this.emit("message:delivered", { messageId, status });
@@ -333,11 +554,11 @@ class DeviceSyncManager extends EventEmitter {
    */
   async markMessageRead(messageId) {
     try {
-      const status = this.messageStatus.get(messageId);
+      const status = this._updateMessageStatus(messageId, {
+        status: MessageStatus.READ,
+        readAt: Date.now(),
+      });
       if (status) {
-        status.status = MessageStatus.READ;
-        status.readAt = Date.now();
-        this.messageStatus.set(messageId, status);
         await this.saveMessageStatus();
 
         this.emit("message:read", { messageId, status });
@@ -354,12 +575,12 @@ class DeviceSyncManager extends EventEmitter {
    */
   async markMessageFailed(messageId, error) {
     try {
-      const status = this.messageStatus.get(messageId);
+      const status = this._updateMessageStatus(messageId, {
+        status: MessageStatus.FAILED,
+        error: String(error),
+        failedAt: Date.now(),
+      });
       if (status) {
-        status.status = MessageStatus.FAILED;
-        status.error = error;
-        status.failedAt = Date.now();
-        this.messageStatus.set(messageId, status);
         await this.saveMessageStatus();
 
         this.emit("message:failed", { messageId, status, error });
@@ -375,17 +596,18 @@ class DeviceSyncManager extends EventEmitter {
    */
   async removeMessage(messageId) {
     try {
+      if (this.closed) {
+        return;
+      }
       // 从队列中移除
       for (const [deviceId, queue] of this.messageQueue.entries()) {
         const index = queue.findIndex((msg) => msg.id === messageId);
         if (index >= 0) {
-          queue.splice(index, 1);
-          if (queue.length === 0) {
-            this.messageQueue.delete(deviceId);
-          }
+          this._removeQueuedMessage(deviceId, queue, index);
           break;
         }
       }
+      this._rebuildQueueAccounting();
 
       await this.saveMessageQueue();
 
@@ -403,8 +625,24 @@ class DeviceSyncManager extends EventEmitter {
    * @param {Object} status - 设备状态
    */
   updateDeviceStatus(deviceId, status) {
+    if (this.closed) {
+      throw new Error("DeviceSyncManager is closed");
+    }
+    assertDeviceId(deviceId, this.limits);
+    if (
+      !this.deviceStatus.has(deviceId) &&
+      this.deviceStatus.size >= this.limits.maxDevices
+    ) {
+      const error = new Error("device status capacity reached");
+      error.code = "DEVICE_SYNC_DEVICE_CAPACITY";
+      throw error;
+    }
+    const { value: boundedStatus } = cloneBoundedMessage(
+      status,
+      this.statusLimits,
+    );
     this.deviceStatus.set(deviceId, {
-      ...status,
+      ...boundedStatus,
       lastUpdate: Date.now(),
     });
 
@@ -416,7 +654,10 @@ class DeviceSyncManager extends EventEmitter {
    * @param {string} deviceId - 设备ID
    */
   getDeviceStatus(deviceId) {
-    return this.deviceStatus.get(deviceId);
+    const status = this.deviceStatus.get(deviceId);
+    return status
+      ? cloneBoundedMessage(status, this.statusLimits).value
+      : undefined;
   }
 
   /**
@@ -424,6 +665,18 @@ class DeviceSyncManager extends EventEmitter {
    * @param {string} deviceId - 设备ID
    */
   startDeviceSync(deviceId) {
+    if (this.closed) {
+      throw new Error("DeviceSyncManager is closed");
+    }
+    assertDeviceId(deviceId, this.limits);
+    if (
+      !this.syncTimers.has(deviceId) &&
+      this.syncTimers.size >= this.limits.maxDevices
+    ) {
+      const error = new Error("device sync timer capacity reached");
+      error.code = "DEVICE_SYNC_DEVICE_CAPACITY";
+      throw error;
+    }
     // 如果已有定时器，先清除
     if (this.syncTimers.has(deviceId)) {
       clearInterval(this.syncTimers.get(deviceId));
@@ -433,6 +686,7 @@ class DeviceSyncManager extends EventEmitter {
     const timer = setInterval(() => {
       this.syncDevice(deviceId);
     }, this.config.syncInterval);
+    timer.unref?.();
 
     this.syncTimers.set(deviceId, timer);
 
@@ -459,6 +713,22 @@ class DeviceSyncManager extends EventEmitter {
    * @param {string} deviceId - 设备ID
    */
   async syncDevice(deviceId) {
+    if (this.closed) {
+      return;
+    }
+    if (this.syncTasks.has(deviceId)) {
+      return this.syncTasks.get(deviceId);
+    }
+    const task = this._syncDevice(deviceId).finally(() => {
+      if (this.syncTasks.get(deviceId) === task) {
+        this.syncTasks.delete(deviceId);
+      }
+    });
+    this.syncTasks.set(deviceId, task);
+    return task;
+  }
+
+  async _syncDevice(deviceId) {
     try {
       const queue = this.getDeviceQueue(deviceId);
       if (queue.length === 0) {
@@ -475,8 +745,15 @@ class DeviceSyncManager extends EventEmitter {
       this.emit("sync:started", { deviceId, queueSize: queue.length });
 
       // 触发同步事件，由 P2P 管理器处理实际的消息发送
-      for (const message of queue) {
-        this.emit("sync:message", { deviceId, message });
+      for (const message of [...queue]) {
+        if (this.closed) {
+          break;
+        }
+        if (this.deliveryHandler) {
+          await this.deliveryHandler({ deviceId, message });
+        } else {
+          this.emit("sync:message", { deviceId, message });
+        }
       }
     } catch (error) {
       logger.error("[DeviceSyncManager] 同步设备失败:", error);
@@ -488,6 +765,9 @@ class DeviceSyncManager extends EventEmitter {
    * 启动定期清理
    */
   startCleanupTimer() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
     // 每小时清理一次
     this.cleanupTimer = setInterval(
       () => {
@@ -495,12 +775,29 @@ class DeviceSyncManager extends EventEmitter {
       },
       60 * 60 * 1000,
     );
+    this.cleanupTimer.unref?.();
   }
 
   /**
    * 清理过期消息
    */
   async cleanup() {
+    if (this.closed) {
+      return;
+    }
+    if (this.cleanupPromise) {
+      return this.cleanupPromise;
+    }
+    const task = this._cleanup().finally(() => {
+      if (this.cleanupPromise === task) {
+        this.cleanupPromise = null;
+      }
+    });
+    this.cleanupPromise = task;
+    return task;
+  }
+
+  async _cleanup() {
     try {
       logger.info("[DeviceSyncManager] 开始清理过期消息...");
 
@@ -523,6 +820,7 @@ class DeviceSyncManager extends EventEmitter {
           this.messageQueue.set(deviceId, filteredQueue);
         }
       }
+      this._rebuildQueueAccounting();
 
       // 清理消息状态
       for (const [messageId, status] of this.messageStatus.entries()) {
@@ -566,6 +864,7 @@ class DeviceSyncManager extends EventEmitter {
 
     return {
       totalMessages,
+      totalQueueBytes: this.totalQueueBytes,
       deviceCount: this.messageQueue.size,
       deviceQueues,
       statusCount: this.messageStatus.size,
@@ -577,6 +876,16 @@ class DeviceSyncManager extends EventEmitter {
    * 关闭同步管理器
    */
   async close() {
+    if (this.closePromise) {
+      return this.closePromise;
+    }
+    this.closed = true;
+    this.deliveryHandler = null;
+    this.closePromise = this._close();
+    return this.closePromise;
+  }
+
+  async _close() {
     logger.info("[DeviceSyncManager] 关闭设备同步管理器");
 
     // 停止所有同步定时器
@@ -591,12 +900,34 @@ class DeviceSyncManager extends EventEmitter {
       this.cleanupTimer = null;
     }
 
+    const pendingTasks = [
+      ...this.syncTasks.values(),
+      this.cleanupPromise,
+    ].filter(Boolean);
+    if (pendingTasks.length > 0) {
+      let timeoutHandle;
+      await Promise.race([
+        Promise.allSettled(pendingTasks),
+        new Promise((resolve) => {
+          timeoutHandle = setTimeout(resolve, this.limits.closeTimeoutMs);
+          timeoutHandle.unref?.();
+        }),
+      ]);
+      clearTimeout(timeoutHandle);
+    }
+
     // 保存数据
     await this.saveMessageQueue();
     await this.saveMessageStatus();
 
     this.initialized = false;
     this.emit("closed");
+    this.syncTasks.clear();
+    this.cleanupPromise = null;
+    this._clearQueueState();
+    this.messageStatus.clear();
+    this.deviceStatus.clear();
+    this.removeAllListeners();
   }
 }
 

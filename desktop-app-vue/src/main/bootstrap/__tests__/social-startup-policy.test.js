@@ -19,9 +19,15 @@ const { registerSocialInitializers } = require("../social-initializer");
 const {
   ACTIVE_SOCIAL_MODULES,
   DORMANT_SOCIAL_MODULES,
+  SOCIAL_ACTIVE_LIFECYCLE_MODULES,
   SOCIAL_BUSINESS_MANAGER_CLEANUP,
+  SOCIAL_COLLAB_MANAGER_CLEANUP,
+  SOCIAL_ENTERPRISE_MANAGER_CLEANUP,
   SOCIAL_FOUNDATION_MANAGER_CLEANUP,
   SOCIAL_INITIALIZER_MODULES,
+  SOCIAL_PASSIVE_MODULES,
+  SOCIAL_REMOTE_MANAGER_CLEANUP,
+  SOCIAL_RUNTIME_MANAGER_CLEANUP,
   SOCIAL_STARTUP_PHASE_MODULES,
   applySocialStartupPolicy,
 } = require("../social-startup-policy");
@@ -133,19 +139,62 @@ describe("social startup policy", () => {
     for (const name of ["mtcAutoBridge", "gossipReceiver"]) {
       expect(mainSource).toContain(`this.${name} = instances.${name}`);
     }
-    for (const [name, method] of [
+    expect(SOCIAL_RUNTIME_MANAGER_CLEANUP).toEqual([
       ["gossipReceiver", "close"],
       ["mtcAutoBridge", "close"],
       ["channelEnvelopeDistribution", "close"],
       ["autoArchiveScheduler", "stop"],
       ["channelEventBatcher", "close"],
       ["mtcFederationManager", "close"],
+    ]);
+    expect(mainSource).toContain(
+      "cleanupOwnedManagers(this, SOCIAL_RUNTIME_MANAGER_CLEANUP",
+    );
+  });
+
+  it("classifies every active manager as bounded cleanup or passive", () => {
+    expect(SOCIAL_ACTIVE_LIFECYCLE_MODULES).toHaveLength(
+      ACTIVE_SOCIAL_MODULES.length,
+    );
+    expect(new Set(SOCIAL_ACTIVE_LIFECYCLE_MODULES)).toEqual(
+      new Set(ACTIVE_SOCIAL_MODULES),
+    );
+    expect(SOCIAL_PASSIVE_MODULES).toEqual([
+      "crossFedTrust",
+      "governanceMultiSig",
+      "channelEnvelopeArchiver",
+      "archiveProviderFactory",
+    ]);
+
+    const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+    for (const fileName of [
+      "cross-fed-trust.js",
+      "governance-multisig.js",
+      "channel-envelope-archiver.js",
+      "archive-provider-factory.js",
     ]) {
-      expect(mainSource).toContain(`["${name}", "${method}"]`);
+      const source = readFileSync(
+        path.resolve(testDirectory, "..", "..", "mtc", fileName),
+        "utf8",
+      );
+      expect(source, fileName).not.toMatch(
+        /setInterval\(|setTimeout\(|\.on\(|addEventListener\(|\.handle\(/,
+      );
     }
   });
 
-  it("closes active business managers and shared foundations in dependency order", () => {
+  it("closes all active resource owners in dependency order", () => {
+    expect(SOCIAL_COLLAB_MANAGER_CLEANUP).toEqual([
+      ["collabSync", "destroy"],
+      ["collabAwareness", "destroy"],
+      ["collabEngine", "destroy"],
+      ["gossipProtocol", "destroy"],
+    ]);
+    expect(SOCIAL_ENTERPRISE_MANAGER_CLEANUP).toEqual([
+      ["collaborationManager", "stopServer"],
+      ["syncEngine", "close"],
+      ["organizationManager", "close"],
+    ]);
     expect(SOCIAL_BUSINESS_MANAGER_CLEANUP).toEqual([
       ["governanceEngine", "close"],
       ["contentModerator", "close"],
@@ -158,11 +207,16 @@ describe("social startup policy", () => {
       ["contactManager", "close"],
     ]);
     expect(SOCIAL_FOUNDATION_MANAGER_CLEANUP).toEqual([
-      ["p2pManager", "close"],
       ["didManager", "close"],
+      ["p2pManager", "close"],
     ]);
+    expect(SOCIAL_REMOTE_MANAGER_CLEANUP).toEqual([["remoteGateway", "stop"]]);
     for (const [name] of [
+      ...SOCIAL_RUNTIME_MANAGER_CLEANUP,
+      ...SOCIAL_COLLAB_MANAGER_CLEANUP,
+      ...SOCIAL_ENTERPRISE_MANAGER_CLEANUP,
       ...SOCIAL_BUSINESS_MANAGER_CLEANUP,
+      ...SOCIAL_REMOTE_MANAGER_CLEANUP,
       ...SOCIAL_FOUNDATION_MANAGER_CLEANUP,
     ]) {
       expect(ACTIVE_SOCIAL_MODULES).toContain(name);
@@ -173,16 +227,30 @@ describe("social startup policy", () => {
       path.resolve(testDirectory, "..", "..", "index.js"),
       "utf8",
     );
+    const runtimeCleanup = mainSource.indexOf(
+      "cleanupOwnedManagers(this, SOCIAL_RUNTIME_MANAGER_CLEANUP",
+    );
+    const collaborationCleanup = mainSource.indexOf(
+      "cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP",
+    );
+    const enterpriseCleanup = mainSource.indexOf(
+      "cleanupOwnedManagers(this, SOCIAL_ENTERPRISE_MANAGER_CLEANUP",
+    );
     const businessCleanup = mainSource.indexOf(
-      "of SOCIAL_BUSINESS_MANAGER_CLEANUP",
+      "cleanupOwnedManagers(this, SOCIAL_BUSINESS_MANAGER_CLEANUP",
     );
     const mobileCleanup = mainSource.indexOf("if (this.mobileBridge)");
-    const remoteCleanup = mainSource.indexOf("if (this.remoteGateway)");
+    const remoteCleanup = mainSource.indexOf(
+      "cleanupOwnedManagers(this, SOCIAL_REMOTE_MANAGER_CLEANUP",
+    );
     const foundationCleanup = mainSource.indexOf(
-      "of SOCIAL_FOUNDATION_MANAGER_CLEANUP",
+      "cleanupOwnedManagers(this, SOCIAL_FOUNDATION_MANAGER_CLEANUP",
     );
 
-    expect(businessCleanup).toBeGreaterThan(-1);
+    expect(runtimeCleanup).toBeGreaterThan(-1);
+    expect(collaborationCleanup).toBeGreaterThan(runtimeCleanup);
+    expect(enterpriseCleanup).toBeGreaterThan(collaborationCleanup);
+    expect(businessCleanup).toBeGreaterThan(enterpriseCleanup);
     expect(mobileCleanup).toBeGreaterThan(businessCleanup);
     expect(remoteCleanup).toBeGreaterThan(mobileCleanup);
     expect(foundationCleanup).toBeGreaterThan(remoteCleanup);

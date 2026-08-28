@@ -11,6 +11,10 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  DEFAULT_CLOSE_TIMEOUT_MS,
+  OwnedSourceListeners,
+} = require("../social/owned-source-listeners.js");
 
 /**
  * 消息类型枚举
@@ -62,6 +66,9 @@ class OrgP2PNetwork extends EventEmitter {
 
     // 发现定时器
     this.discoveryIntervals = new Map();
+    this.periodicTasks = new Map();
+    this.closed = false;
+    this.cleanupPromise = null;
 
     // 配置
     this.config = {
@@ -70,6 +77,7 @@ class OrgP2PNetwork extends EventEmitter {
       memberTimeout: 90000, // 成员超时 90秒
       maxRetries: 3, // 最大重试次数
       broadcastTimeout: 5000, // 广播超时 5秒
+      closeTimeoutMs: DEFAULT_CLOSE_TIMEOUT_MS,
     };
   }
 
@@ -79,6 +87,9 @@ class OrgP2PNetwork extends EventEmitter {
    * @returns {Promise<void>}
    */
   async initialize(orgId) {
+    if (this.closed) {
+      throw new Error("[OrgP2PNetwork] 网络管理器已关闭");
+    }
     logger.info(`[OrgP2PNetwork] 初始化组织网络: ${orgId}`);
 
     try {
@@ -104,6 +115,7 @@ class OrgP2PNetwork extends EventEmitter {
 
       this.emit("network:initialized", { orgId, topic });
     } catch (error) {
+      await this.unsubscribeTopic(orgId, { broadcastOffline: false });
       logger.error(`[OrgP2PNetwork] 初始化失败:`, error);
       throw error;
     }
@@ -116,8 +128,18 @@ class OrgP2PNetwork extends EventEmitter {
    * @returns {Promise<void>}
    */
   async subscribeTopic(orgId, topic) {
+    if (this.closed) {
+      throw new Error("[OrgP2PNetwork] 网络管理器已关闭");
+    }
     if (!this.p2pManager || !this.p2pManager.node) {
       throw new Error("P2P Manager未初始化");
+    }
+    const existing = this.orgSubscriptions.get(orgId);
+    if (existing) {
+      if (existing.topic === topic) {
+        return;
+      }
+      throw new Error(`组织${orgId}已订阅其他Topic`);
     }
 
     try {
@@ -138,20 +160,31 @@ class OrgP2PNetwork extends EventEmitter {
       // 订阅Topic
       await pubsub.subscribe(topic);
 
-      // 注册Topic消息处理器
-      pubsub.addEventListener("message", (evt) => {
-        if (evt.detail.topic === topic) {
-          this.handleTopicMessage(orgId, evt.detail);
-        }
-      });
-
       // 保存订阅信息
-      this.orgSubscriptions.set(orgId, {
+      const listenerOwner = new OwnedSourceListeners(pubsub, {
+        logger,
+        label: `OrgP2PNetwork:${orgId}`,
+      });
+      const subscription = {
         topic,
         members: new Set(),
         lastActivity: Date.now(),
         mode: "pubsub",
-      });
+        listenerOwner,
+      };
+      this.orgSubscriptions.set(orgId, subscription);
+
+      try {
+        listenerOwner.listen("message", async (evt) => {
+          if (evt.detail.topic === topic) {
+            await this.handleTopicMessage(orgId, evt.detail);
+          }
+        });
+      } catch (error) {
+        this.orgSubscriptions.delete(orgId);
+        await pubsub.unsubscribe(topic).catch(() => {});
+        throw error;
+      }
 
       logger.info(`[OrgP2PNetwork] ✓ 已订阅Topic: ${topic}`);
     } catch (error) {
@@ -163,38 +196,73 @@ class OrgP2PNetwork extends EventEmitter {
   /**
    * 取消订阅组织Topic
    * @param {string} orgId - 组织ID
+   * @param {Object} [options]
+   * @param {boolean} [options.broadcastOffline=true]
    * @returns {Promise<void>}
    */
-  async unsubscribeTopic(orgId) {
+  async unsubscribeTopic(orgId, { broadcastOffline = true } = {}) {
     const subscription = this.orgSubscriptions.get(orgId);
     if (!subscription) {
       return;
     }
 
-    try {
-      // 停止心跳和发现
-      this.stopHeartbeat(orgId);
-      this.stopDiscovery(orgId);
+    // Fence local producers and inbound delivery before releasing the topic.
+    this.stopHeartbeat(orgId);
+    this.stopDiscovery(orgId);
+    await subscription.listenerOwner?.close?.();
 
-      // 广播下线消息
-      await this.broadcastMemberOffline(orgId);
+    if (broadcastOffline) {
+      try {
+        await this.broadcastMemberOffline(orgId);
+      } catch (error) {
+        logger.warn(
+          `[OrgP2PNetwork] 广播下线失败 (${orgId}):`,
+          error?.message || error,
+        );
+      }
+    }
 
-      // 取消订阅
-      if (subscription.mode === "pubsub") {
-        const pubsub = this.p2pManager.node.services?.pubsub;
-        if (pubsub) {
+    if (subscription.mode === "pubsub") {
+      const pubsub = this.p2pManager.node.services?.pubsub;
+      if (pubsub) {
+        try {
           await pubsub.unsubscribe(subscription.topic);
+        } catch (error) {
+          logger.warn(
+            `[OrgP2PNetwork] 取消Topic订阅失败 (${orgId}):`,
+            error?.message || error,
+          );
         }
       }
-
-      // 清理数据
-      this.orgSubscriptions.delete(orgId);
-      this.onlineMembers.delete(orgId);
-
-      logger.info(`[OrgP2PNetwork] ✓ 已取消订阅: ${orgId}`);
-    } catch (error) {
-      logger.error(`[OrgP2PNetwork] 取消订阅失败:`, error);
     }
+
+    this.orgSubscriptions.delete(orgId);
+    this.onlineMembers.delete(orgId);
+    logger.info(`[OrgP2PNetwork] ✓ 已取消订阅: ${orgId}`);
+  }
+
+  _runPeriodicTask(name, operation) {
+    if (this.closed) {
+      return Promise.resolve(false);
+    }
+    const existing = this.periodicTasks.get(name);
+    if (existing) {
+      return existing;
+    }
+
+    const task = Promise.resolve()
+      .then(operation)
+      .catch((error) => {
+        logger.error(`[OrgP2PNetwork] ${name} 任务失败:`, error);
+        return false;
+      })
+      .finally(() => {
+        if (this.periodicTasks.get(name) === task) {
+          this.periodicTasks.delete(name);
+        }
+      });
+    this.periodicTasks.set(name, task);
+    return task;
   }
 
   /**
@@ -367,13 +435,12 @@ class OrgP2PNetwork extends EventEmitter {
     this.stopHeartbeat(orgId);
 
     // 创建新的定时器
-    const interval = setInterval(async () => {
-      try {
-        await this.sendHeartbeat(orgId);
-      } catch (error) {
-        logger.error(`[OrgP2PNetwork] 发送心跳失败:`, error);
-      }
+    const interval = setInterval(() => {
+      void this._runPeriodicTask(`heartbeat:${orgId}`, () =>
+        this.sendHeartbeat(orgId),
+      );
     }, this.config.heartbeatInterval);
+    interval.unref?.();
 
     this.heartbeatIntervals.set(orgId, interval);
     logger.info(`[OrgP2PNetwork] ✓ 心跳已启动: ${orgId}`);
@@ -419,18 +486,17 @@ class OrgP2PNetwork extends EventEmitter {
     this.stopDiscovery(orgId);
 
     // 立即执行一次发现
-    this.requestDiscovery(orgId).catch((error) => {
-      logger.error(`[OrgP2PNetwork] 初始发现失败:`, error);
-    });
+    void this._runPeriodicTask(`discovery:${orgId}`, () =>
+      this.requestDiscovery(orgId),
+    );
 
     // 创建定时器
-    const interval = setInterval(async () => {
-      try {
-        await this.requestDiscovery(orgId);
-      } catch (error) {
-        logger.error(`[OrgP2PNetwork] 成员发现失败:`, error);
-      }
+    const interval = setInterval(() => {
+      void this._runPeriodicTask(`discovery:${orgId}`, () =>
+        this.requestDiscovery(orgId),
+      );
     }, this.config.discoveryInterval);
+    interval.unref?.();
 
     this.discoveryIntervals.set(orgId, interval);
     logger.info(`[OrgP2PNetwork] ✓ 成员发现已启动: ${orgId}`);
@@ -735,21 +801,58 @@ class OrgP2PNetwork extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info("[OrgP2PNetwork] 清理资源...");
-
-    // 取消所有订阅
-    const orgIds = Array.from(this.orgSubscriptions.keys());
-    for (const orgId of orgIds) {
-      await this.unsubscribeTopic(orgId);
+    if (this.cleanupPromise) {
+      return this.cleanupPromise;
     }
 
-    // 清理所有数据
-    this.orgSubscriptions.clear();
-    this.onlineMembers.clear();
-    this.heartbeatIntervals.clear();
-    this.discoveryIntervals.clear();
+    this.closed = true;
+    this.cleanupPromise = (async () => {
+      logger.info("[OrgP2PNetwork] 清理资源...");
 
-    logger.info("[OrgP2PNetwork] ✓ 资源清理完成");
+      const orgIds = Array.from(this.orgSubscriptions.keys());
+      for (const orgId of orgIds) {
+        await this.unsubscribeTopic(orgId, { broadcastOffline: false });
+      }
+
+      const pending = [...this.periodicTasks.values()];
+      if (pending.length > 0) {
+        let timeoutHandle;
+        const drained = await Promise.race([
+          Promise.allSettled(pending).then(() => true),
+          new Promise((resolve) => {
+            timeoutHandle = setTimeout(
+              () => resolve(false),
+              this.config.closeTimeoutMs,
+            );
+            timeoutHandle.unref?.();
+          }),
+        ]);
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (!drained) {
+          logger.warn(
+            `[OrgP2PNetwork] cleanup timed out with ${pending.length} periodic task(s) still in flight`,
+          );
+        }
+      }
+
+      for (const interval of this.heartbeatIntervals.values()) {
+        clearInterval(interval);
+      }
+      for (const interval of this.discoveryIntervals.values()) {
+        clearInterval(interval);
+      }
+      this.orgSubscriptions.clear();
+      this.onlineMembers.clear();
+      this.heartbeatIntervals.clear();
+      this.discoveryIntervals.clear();
+      this.periodicTasks.clear();
+      this.removeAllListeners();
+
+      logger.info("[OrgP2PNetwork] ✓ 资源清理完成");
+    })();
+    return this.cleanupPromise;
   }
 }
 

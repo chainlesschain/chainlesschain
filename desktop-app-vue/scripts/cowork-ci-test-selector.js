@@ -21,6 +21,8 @@ const CRITICAL_TESTS = [
   "tests/unit/did/did-manager.test.js",
 ];
 const CI_GATE_INTEGRITY_TEST = "scripts/__tests__/ci-gate-integrity.test.mjs";
+const P1_10_CONFORMANCE_MATRIX_TEST =
+  "scripts/__tests__/p1-10-conformance-matrix.test.mjs";
 const OPEN_SOURCE_GAP_AUDIT =
   "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
 const CI_GATE_INTEGRITY_TRIGGERS = new Set([
@@ -34,6 +36,18 @@ const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
   "__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
 ];
 const CLI_CONTRACT_TEST_MAPPINGS = new Map([
+  [
+    "packages/cli/__tests__/integration/skill-creator-handler.test.js",
+    ["__tests__/integration/skill-creator-handler.test.js"],
+  ],
+  [
+    "packages/cli/__tests__/unit/vscode-ext-chat-approval-dot.test.js",
+    ["__tests__/unit/vscode-ext-chat-approval-dot.test.js"],
+  ],
+  [
+    "packages/cli/src/data/changelog.json",
+    ["__tests__/unit/changelog-artifact-parity.test.js"],
+  ],
   [
     "packages/cli/src/lib/graph-kernel/compiler.js",
     ["__tests__/unit/graph-kernel-compiler.test.js"],
@@ -202,6 +216,28 @@ const SOCIAL_COLLAB_CONTRACT_TESTS = [
   "src/main/social/__tests__/collab-awareness.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
+const P2P_FOUNDATION_BOUNDARY_TESTS = [
+  "src/main/p2p/__tests__/p2p-stream-boundaries.test.js",
+  "src/main/p2p/__tests__/device-sync-boundaries.test.js",
+  "src/main/p2p/__tests__/p2p-manager-dispatch.test.js",
+  "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+  "src/main/p2p/__tests__/connection-pool.test.js",
+  "tests/unit/p2p/connection-pool-reacquire-active.test.js",
+];
+const DID_FOUNDATION_LIFECYCLE_TESTS = [
+  "tests/unit/did/did-manager.test.js",
+  "tests/unit/did/did-cache.test.js",
+  "tests/unit/did/did-updater.test.js",
+  "src/main/did/__tests__/did-manager-keystore.test.js",
+];
+const MTC_RUNTIME_BOUNDARY_TESTS = [
+  "src/main/mtc/__tests__/mtc-runtime-boundaries.test.js",
+  "src/main/mtc/__tests__/channel-event-batch.test.js",
+  "src/main/mtc/__tests__/channel-envelope-distribution.test.js",
+  "src/main/mtc/__tests__/mtc-federation-manager.test.js",
+  "src/main/mtc/__tests__/auto-archive-scheduler.test.js",
+  "src/main/mtc/__tests__/mtc-federation-roundtrip.test.js",
+];
 const GOSSIP_CONTRACT_TESTS = [
   "src/main/social/__tests__/gossip-boundaries.test.js",
   "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
@@ -213,6 +249,7 @@ const MESH_SOCIAL_CONTRACT_TESTS = [
 ];
 const SOCIAL_STARTUP_POLICY_TESTS = [
   "src/main/bootstrap/__tests__/social-startup-policy.test.js",
+  "src/main/bootstrap/__tests__/social-manager-lifecycle.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
 const SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS = [
@@ -221,6 +258,16 @@ const SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS = [
   "src/main/social/__tests__/post-manager.test.js",
   "src/main/social/__tests__/community-manager.test.js",
   "src/main/social/__tests__/channel-manager.test.js",
+  "src/main/sync/__tests__/p2p-sync-engine-lifecycle.test.js",
+  "src/main/organization/__tests__/org-p2p-network-lifecycle.test.js",
+  "src/main/organization/__tests__/organization-manager-lifecycle.test.js",
+];
+const SOCIAL_ENTERPRISE_LIFECYCLE_TESTS = [
+  "src/main/sync/__tests__/p2p-sync-engine-lifecycle.test.js",
+  "src/main/organization/__tests__/did-invitation-manager-lifecycle.test.js",
+  "src/main/organization/__tests__/org-p2p-network-lifecycle.test.js",
+  "src/main/organization/__tests__/organization-manager-lifecycle.test.js",
+  "src/main/collaboration/__tests__/collaboration-manager-lifecycle.test.js",
 ];
 const DEEP_LINK_LIFECYCLE_TESTS = [
   "src/main/system/__tests__/deep-link-handler-lifecycle.test.js",
@@ -243,6 +290,13 @@ const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     ["tests/unit/components/graphDebugHistoryCrossProduct.test.js"],
   ],
 ]);
+const REPO_NODE_CONTRACT_TEST_MAPPINGS = new Map(
+  [
+    "tests/fixtures/p1-10-conformance-matrix.json",
+    "scripts/p1-10-external-evidence-gate.mjs",
+    P1_10_CONFORMANCE_MATRIX_TEST,
+  ].map((source) => [source, [P1_10_CONFORMANCE_MATRIX_TEST]]),
+);
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["electron-builder.yml", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
   ["forge.config.js", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],
@@ -268,8 +322,12 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
       ...COLLAB_RUNTIME_CONTRACT_TESTS,
       ...FEDERATED_TRANSPORT_CONTRACT_TESTS,
       ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...P2P_FOUNDATION_BOUNDARY_TESTS,
+      ...DID_FOUNDATION_LIFECYCLE_TESTS,
+      ...MTC_RUNTIME_BOUNDARY_TESTS,
       ...GOSSIP_CONTRACT_TESTS,
       ...SOCIAL_STARTUP_POLICY_TESTS,
+      ...SOCIAL_ENTERPRISE_LIFECYCLE_TESTS,
       ...DEEP_LINK_LIFECYCLE_TESTS,
       ...SOCIAL_WIRING_LIFECYCLE_TESTS,
     ],
@@ -505,16 +563,53 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     sourcePath,
     [
       ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...P2P_FOUNDATION_BOUNDARY_TESTS,
+      ...DID_FOUNDATION_LIFECYCLE_TESTS,
+      ...MTC_RUNTIME_BOUNDARY_TESTS,
       ...GOSSIP_CONTRACT_TESTS,
       ...MESH_SOCIAL_CONTRACT_TESTS,
       ...SOCIAL_STARTUP_POLICY_TESTS,
+      ...SOCIAL_ENTERPRISE_LIFECYCLE_TESTS,
       ...SOCIAL_WIRING_LIFECYCLE_TESTS,
     ],
   ]),
-  ["src/main/bootstrap/social-startup-policy.js", SOCIAL_STARTUP_POLICY_TESTS],
+  ...[
+    "src/main/bootstrap/social-startup-policy.js",
+    "src/main/bootstrap/social-manager-lifecycle.js",
+  ].map((sourcePath) => [sourcePath, SOCIAL_STARTUP_POLICY_TESTS]),
+  ...[
+    "src/main/sync/p2p-sync-engine.js",
+    "src/main/organization/did-invitation-manager.js",
+    "src/main/organization/org-p2p-network.js",
+    "src/main/organization/organization-manager.js",
+    "src/main/collaboration/collaboration-manager.js",
+    "src/main/collaboration/collaboration-server-lifecycle.js",
+  ].map((sourcePath) => [sourcePath, SOCIAL_ENTERPRISE_LIFECYCLE_TESTS]),
+  ...[
+    "src/main/p2p/p2p-manager.js",
+    "src/main/p2p/p2p-stream-boundaries.js",
+    "src/main/p2p/device-sync-manager.js",
+    "src/main/p2p/device-sync-boundaries.js",
+  ].map((sourcePath) => [sourcePath, P2P_FOUNDATION_BOUNDARY_TESTS]),
+  ["src/main/p2p/connection-pool.js", P2P_FOUNDATION_BOUNDARY_TESTS],
+  ...[
+    "src/main/did/did-manager.js",
+    "src/main/did/did-cache.js",
+    "src/main/did/did-updater.js",
+  ].map((sourcePath) => [sourcePath, DID_FOUNDATION_LIFECYCLE_TESTS]),
+  ...[
+    "src/main/mtc/mtc-runtime-boundaries.js",
+    "src/main/mtc/channel-event-batch.js",
+    "src/main/mtc/channel-envelope-distribution.js",
+    "src/main/mtc/mtc-federation-manager.js",
+    "src/main/mtc/auto-archive-scheduler.js",
+  ].map((sourcePath) => [sourcePath, MTC_RUNTIME_BOUNDARY_TESTS]),
   [
     "src/main/social/owned-source-listeners.js",
-    SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS,
+    [
+      ...SOCIAL_SOURCE_LISTENER_CONTRACT_TESTS,
+      ...P2P_FOUNDATION_BOUNDARY_TESTS,
+    ],
   ],
   ["src/main/system/deep-link-handler.js", DEEP_LINK_LIFECYCLE_TESTS],
   ...[
@@ -817,6 +912,33 @@ function createSelection(
         file: normalized,
         suite: "ci-gate-integrity",
         tests: [CI_GATE_INTEGRITY_TEST],
+      });
+      continue;
+    }
+
+    const repoNodeTests = REPO_NODE_CONTRACT_TEST_MAPPINGS.get(normalized);
+    if (repoNodeTests) {
+      const missingTests = repoNodeTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(repoRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "ci-gate-integrity",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      for (const testFile of repoNodeTests) {
+        selectedIntegrityTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "ci-gate-integrity",
+        tests: [...repoNodeTests],
       });
       continue;
     }

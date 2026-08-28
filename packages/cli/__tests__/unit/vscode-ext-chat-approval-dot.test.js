@@ -27,6 +27,7 @@ describe("ConversationManager — approval flags", () => {
     expect(cm.get(b.id).pendingApproval).toEqual({
       kind: "approval",
       id: "x1",
+      settlementStatus: "pending",
     });
     expect(cm.clearApproval(b.id)?.id).toBe(b.id);
     expect(cm.get(b.id).needsApproval).toBe(false);
@@ -44,7 +45,7 @@ describe("ConversationManager — approval flags", () => {
     cm.markNeedsApproval(b.id);
 
     expect(cm.pendingInteractions(b.id)).toEqual([
-      { kind: "approval", id: "a1" },
+      { kind: "approval", id: "a1", settlementStatus: "pending" },
       { kind: "question", id: "q1" },
     ]);
     cm.clearApproval(b.id, "a1");
@@ -65,7 +66,11 @@ describe("ConversationManager — approval flags", () => {
     cm.setPendingApproval(b.id, { kind: "approval", id: "x" });
     cm.switchTo(b.id);
     expect(cm.get(b.id).needsApproval).toBe(false);
-    expect(cm.get(b.id).pendingApproval).toEqual({ kind: "approval", id: "x" });
+    expect(cm.get(b.id).pendingApproval).toEqual({
+      kind: "approval",
+      id: "x",
+      settlementStatus: "pending",
+    });
   });
 });
 
