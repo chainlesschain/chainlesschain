@@ -62,6 +62,7 @@ on:
       - "packages/cli/scripts/verify-mcp-lifecycle-increments.mjs"
       - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-message-fabric.mjs"
+      - "packages/cli/scripts/session-message-reliability-soak.mjs"
       - "packages/cli/scripts/verify-session-runtime-retention.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
@@ -81,9 +82,11 @@ on:
       - "packages/cli/__tests__/unit/scheduler-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/session-message-fabric.test.js"
       - "packages/cli/__tests__/unit/session-message-fabric-evidence.test.js"
+      - "packages/cli/__tests__/unit/session-message-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/team-session-message-adapter.test.js"
       - "packages/cli/__tests__/unit/team-command-io.test.js"
       - "packages/cli/__tests__/fixtures/team-session-message-process.mjs"
+      - "packages/cli/__tests__/fixtures/team-handoff-process-recovery.mjs"
       - "packages/cli/__tests__/unit/session-runtime-retention.test.js"
       - "packages/cli/__tests__/unit/background-session-transport.test.js"
       - "packages/cli/__tests__/unit/background-session-command.test.js"
@@ -116,6 +119,12 @@ on:
     - cron: "17 2 * * 3"
   workflow_dispatch:
     inputs:
+      component:
+        description: "Reliability component to run"
+        required: true
+        default: "all"
+        type: choice
+        options: ["all", "session-message"]
       commit_sha:
         description: "Exact full commit SHA to test (blank uses selected ref)"
         required: false
@@ -136,6 +145,7 @@ concurrency:
 
 jobs:
   reliability:
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all'
     name: "disk/pipe/TTY/SSH/MCP/resource soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
@@ -250,15 +260,20 @@ jobs:
           retention-days: 30
 
   session-message-fabric:
-    name: "cross-session 32-process durability (${{ matrix.os }})"
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'session-message'
+    name: "cross-session durability and temporal recovery (${{ matrix.os }})"
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 300
     env:
       CC_SESSION_MESSAGE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SESSION_MESSAGE_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_SESSION_MESSAGE_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '2' || inputs.duration_seconds || '1800' }}
+      CC_SESSION_MESSAGE_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SESSION_MESSAGE_SOAK_WORKFLOW_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout exact cross-session message commit
         uses: actions/checkout@v5
@@ -294,18 +309,25 @@ jobs:
           --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
           --output "${RUNNER_TEMP}/session-message-fabric-${RUNNER_OS}.json"
 
+      - name: Run time-based offline, poison, reorder, and custody recovery soak
+        env:
+          CC_SESSION_MESSAGE_SOAK_OUTPUT: ${{ runner.temp }}/session-message-reliability-${{ runner.os }}.json
+        run: npm run test:cli-session-message-reliability-soak
+
       - name: Upload exact-SHA cross-session message evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: session-message-fabric-${{ matrix.os }}-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
+          path: |
+            ${{ runner.temp }}/session-message-fabric-${{ runner.os }}.json
+            ${{ runner.temp }}/session-message-reliability-${{ runner.os }}.json
           if-no-files-found: error
           retention-days: 30
 
   session-message-fabric-aggregate:
     name: Cross-session message fabric aggregate
-    if: always()
+    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'session-message')
     needs: session-message-fabric
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -347,15 +369,27 @@ jobs:
           --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
           --output "${RUNNER_TEMP}/xsession-audit-aggregate.json"
 
+      - name: Verify temporal offline, poison, reorder, and custody evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/session-message-reliability-soak.mjs
+          --verify-evidence-dir "${RUNNER_TEMP}/session-message-fabric-evidence"
+          --release-commit "${CC_SESSION_MESSAGE_EXPECTED_SHA}"
+          ${{ github.event_name == 'pull_request' && '--allow-smoke' || '' }}
+          --output "${RUNNER_TEMP}/session-message-reliability-aggregate.json"
+
       - name: Upload immutable cross-session aggregate
         uses: actions/upload-artifact@v6
         with:
           name: xsession-audit-aggregate-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/xsession-audit-aggregate.json
+          path: |
+            ${{ runner.temp }}/xsession-audit-aggregate.json
+            ${{ runner.temp }}/session-message-reliability-aggregate.json
           if-no-files-found: error
           retention-days: 30
 
   scheduler-reliability-soak:
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all'
     name: "scheduler persistence/restart/lease/retry/dedup soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
@@ -399,7 +433,7 @@ jobs:
 
   scheduler-reliability-soak-aggregate:
     name: Scheduler reliability soak aggregate
-    if: always()
+    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
     needs: scheduler-reliability-soak
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -449,6 +483,7 @@ jobs:
           retention-days: 90
 
   mcp-security-soak:
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all'
     name: "malicious MCP host/race soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
@@ -525,7 +560,7 @@ jobs:
 
   mcp-security-soak-aggregate:
     name: Malicious MCP security soak aggregate
-    if: always()
+    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
     needs: mcp-security-soak
     runs-on: ubuntu-latest
     timeout-minutes: 15
