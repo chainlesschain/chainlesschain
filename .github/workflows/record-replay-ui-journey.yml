@@ -3,7 +3,7 @@ name: Record Replay UI Journey
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "feature/**"]
     paths:
       - "packages/cli/src/lib/record-replay/**"
       - "packages/cli/scripts/record-replay-ui-journey.mjs"
