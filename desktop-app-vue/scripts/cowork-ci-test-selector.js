@@ -33,7 +33,11 @@ const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
   "__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
   "__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
 ];
-const CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS = new Map([
+const CLI_CONTRACT_TEST_MAPPINGS = new Map([
+  [
+    "packages/cli/src/lib/graph-kernel/compiler.js",
+    ["__tests__/unit/graph-kernel-compiler.test.js"],
+  ],
   [
     "packages/cli/__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
     [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[0]],
@@ -421,8 +425,7 @@ function createSelection(
       continue;
     }
 
-    const cliContractTests =
-      CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS.get(normalized);
+    const cliContractTests = CLI_CONTRACT_TEST_MAPPINGS.get(normalized);
     if (cliContractTests) {
       const missingTests = cliContractTests.filter(
         (testFile) =>

@@ -411,6 +411,23 @@ test("selector maps exact Windows sandbox support paths to CLI contracts", () =>
   assert.ok(!command.args.includes("--pool=threads"));
 });
 
+test("selector maps graph compiler changes to the CLI compiler contract", () => {
+  const compilerPath = "packages/cli/src/lib/graph-kernel/compiler.js";
+  const compilerTest = "__tests__/unit/graph-kernel-compiler.test.js";
+  const selection = selector.createSelection([compilerPath]);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, [compilerTest]);
+  assert.deepEqual(selection.mappings, [
+    {
+      file: compilerPath,
+      suite: "cli-unit",
+      tests: [compilerTest],
+    },
+  ]);
+});
+
 test("selector changes run integrity and CLI contracts without desktop fallback", () => {
   const selection = selector.createSelection([
     ...cliWindowsSandboxContractChanges,
