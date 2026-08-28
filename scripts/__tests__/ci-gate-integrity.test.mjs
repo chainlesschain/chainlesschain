@@ -599,6 +599,24 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     );
   }
 
+  const socialWiringLifecycleContracts = [
+    "src/main/bootstrap/__tests__/mtc-auto-bridge.integration.test.js",
+    "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
+  ];
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of socialWiringLifecycleContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",

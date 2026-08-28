@@ -14,7 +14,7 @@
  * (No real libp2p — the wire path is covered by p2p-gossip-roundtrip.test.js.)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EventEmitter from "events";
 
 vi.mock("../../../utils/logger.js", () => ({
@@ -33,6 +33,7 @@ vi.mock("uuid", () => ({
 
 const { ChannelManager } = require("../channel-manager.js");
 const { GossipProtocol } = require("../gossip-protocol.js");
+const { wireGossipReceiver } = require("../../bootstrap/social-initializer.js");
 
 // Tracks every channel_messages INSERT so the test can assert on it
 function createTrackingDatabase() {
@@ -109,31 +110,12 @@ function createMockP2PManager() {
   return ee;
 }
 
-// Mirror of social-initializer.js gossipReceiver — kept inline so the test
-// pins the contract that init code must satisfy. If social-initializer's
-// wiring drifts (e.g., dispatch on wrong field name), this test won't catch
-// it — that's a known gap, but the fields are tiny and grep-able.
-function wireGossipReceiver(gossipProtocol, channelManager) {
-  gossipProtocol.on("message:received", async (data) => {
-    const payload = data && data.payload;
-    if (!payload || payload.type !== "channel_message") {
-      return;
-    }
-    if (!payload.channelId || !payload.message) {
-      return;
-    }
-    await channelManager.handleMessageReceived(
-      payload.channelId,
-      payload.message,
-    );
-  });
-}
-
 describe("Gossip → ChannelManager receiver wiring (integration)", () => {
   let database;
   let channelManager;
   let p2pManager;
   let gossipProtocol;
+  let gossipReceiver;
   const COMMUNITY_ID = "comm-recv-1";
   const CHANNEL_ID = "chan-recv-1";
 
@@ -152,7 +134,91 @@ describe("Gossip → ChannelManager receiver wiring (integration)", () => {
     await gossipProtocol.initialize();
     gossipProtocol.subscribe(COMMUNITY_ID);
 
-    wireGossipReceiver(gossipProtocol, channelManager);
+    gossipReceiver = wireGossipReceiver(gossipProtocol, channelManager);
+  });
+
+  afterEach(async () => {
+    await gossipReceiver?.close();
+    await gossipProtocol?.destroy();
+    await channelManager?.close();
+  });
+
+  it("rejects an invalid close timeout before wiring a listener", async () => {
+    await gossipReceiver.close();
+    expect(() =>
+      wireGossipReceiver(gossipProtocol, channelManager, {
+        closeTimeoutMs: 0,
+      }),
+    ).toThrow(/positive safe integer/);
+    expect(gossipProtocol.listenerCount("message:received")).toBe(0);
+  });
+
+  it("removes the owned receiver listener during idempotent close", async () => {
+    expect(gossipProtocol.listenerCount("message:received")).toBe(1);
+    await gossipReceiver.close();
+    await gossipReceiver.close();
+
+    expect(gossipProtocol.listenerCount("message:received")).toBe(0);
+    gossipProtocol.emit("message:received", {
+      payload: {
+        type: "channel_message",
+        channelId: CHANNEL_ID,
+        message: { id: "after-close", content: "ignored" },
+      },
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(database.db._channelMessages.size).toBe(0);
+  });
+
+  it("waits for an in-flight channel delivery before close resolves", async () => {
+    let releaseDelivery;
+    const deliveryGate = new Promise((resolve) => {
+      releaseDelivery = resolve;
+    });
+    vi.spyOn(channelManager, "handleMessageReceived").mockReturnValue(
+      deliveryGate,
+    );
+    gossipProtocol.emit("message:received", {
+      payload: {
+        type: "channel_message",
+        channelId: CHANNEL_ID,
+        message: { id: "in-flight", content: "pending" },
+      },
+    });
+
+    let closeSettled = false;
+    const closing = gossipReceiver.close().then(() => {
+      closeSettled = true;
+    });
+    await Promise.resolve();
+    expect(closeSettled).toBe(false);
+
+    releaseDelivery();
+    await closing;
+    expect(closeSettled).toBe(true);
+  });
+
+  it("bounds close when an in-flight channel delivery never settles", async () => {
+    vi.useFakeTimers();
+    await gossipReceiver.close();
+    gossipReceiver = wireGossipReceiver(gossipProtocol, channelManager, {
+      closeTimeoutMs: 10,
+    });
+    vi.spyOn(channelManager, "handleMessageReceived").mockReturnValue(
+      new Promise(() => {}),
+    );
+    gossipProtocol.emit("message:received", {
+      payload: {
+        type: "channel_message",
+        channelId: CHANNEL_ID,
+        message: { id: "stuck", content: "pending" },
+      },
+    });
+
+    const closing = gossipReceiver.close();
+    await vi.advanceTimersByTimeAsync(10);
+    await expect(closing).resolves.toBeUndefined();
+    vi.useRealTimers();
   });
 
   it("inserts incoming channel_message into channel_messages on first delivery", async () => {

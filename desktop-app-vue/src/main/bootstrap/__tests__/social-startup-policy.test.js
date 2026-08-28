@@ -120,4 +120,26 @@ describe("social startup policy", () => {
       expect(mainSource, name).not.toContain(`${name}: this.${name}`);
     }
   });
+
+  it("makes main own and close active wiring handles in dependency order", () => {
+    const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+    const mainSource = readFileSync(
+      path.resolve(testDirectory, "..", "..", "index.js"),
+      "utf8",
+    );
+
+    for (const name of ["mtcAutoBridge", "gossipReceiver"]) {
+      expect(mainSource).toContain(`this.${name} = instances.${name}`);
+    }
+    for (const [name, method] of [
+      ["gossipReceiver", "close"],
+      ["mtcAutoBridge", "close"],
+      ["channelEnvelopeDistribution", "close"],
+      ["autoArchiveScheduler", "stop"],
+      ["channelEventBatcher", "close"],
+      ["mtcFederationManager", "close"],
+    ]) {
+      expect(mainSource).toContain(`["${name}", "${method}"]`);
+    }
+  });
 });

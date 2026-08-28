@@ -67,7 +67,30 @@ describe("wireMtcAutoBridge", () => {
 
     it("returns {wired:true} on happy path", () => {
       const result = wireMtcAutoBridge(p2p, mtcFed);
-      expect(result).toEqual({ wired: true });
+      expect(result).toEqual({
+        wired: true,
+        close: expect.any(Function),
+      });
+    });
+
+    it("removes both listeners during idempotent close", async () => {
+      const result = wireMtcAutoBridge(p2p, mtcFed);
+
+      expect(p2p.listenerCount("peer:connected")).toBe(1);
+      expect(p2p.listenerCount("mtc:peer-advertise")).toBe(1);
+      result.close();
+      result.close();
+
+      expect(p2p.listenerCount("peer:connected")).toBe(0);
+      expect(p2p.listenerCount("mtc:peer-advertise")).toBe(0);
+      p2p.emit("peer:connected", { peerId: "after-close" });
+      p2p.emit("mtc:peer-advertise", {
+        peerId: "after-close",
+        multiaddrs: ["/ip4/127.0.0.1/tcp/9100/p2p/after-close"],
+      });
+      await sleep(0);
+      expect(p2p.sendMessage).not.toHaveBeenCalled();
+      expect(mtcFed.connectPeer).not.toHaveBeenCalled();
     });
   });
 

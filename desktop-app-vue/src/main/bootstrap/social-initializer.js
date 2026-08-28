@@ -1042,34 +1042,7 @@ function registerSocialInitializers(initializerFactory) {
     async init(context) {
       try {
         const { gossipProtocol, channelManager } = context;
-        if (!gossipProtocol || !channelManager) {
-          logger.warn("[Social] gossipReceiver 跳过: 缺少依赖");
-          return null;
-        }
-
-        gossipProtocol.on("message:received", async (data) => {
-          try {
-            const payload = data && data.payload;
-            if (!payload || payload.type !== "channel_message") {
-              return;
-            }
-            if (!payload.channelId || !payload.message) {
-              return;
-            }
-            await channelManager.handleMessageReceived(
-              payload.channelId,
-              payload.message,
-            );
-          } catch (err) {
-            logger.warn(
-              "[Social] gossip → channelManager 派发失败:",
-              err.message,
-            );
-          }
-        });
-
-        logger.info("[Social] ✓ gossipReceiver wired");
-        return { wired: true };
+        return wireGossipReceiver(gossipProtocol, channelManager);
       } catch (error) {
         logger.error(
           "[Social] gossipReceiver initialization failed:",
@@ -1597,7 +1570,7 @@ async function setupP2PPostInit(
  *
  * @param {EventEmitter} p2pManager
  * @param {MtcFederationManager} mtcFederationManager
- * @returns {{ wired: true } | null}
+ * @returns {{ wired: true, close: Function } | null}
  */
 function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
   if (!p2pManager || !mtcFederationManager) {
@@ -1607,8 +1580,13 @@ function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
     return null;
   }
 
+  let closed = false;
+
   // 出站: 新 peer 连上 → 把自己的 MTC 名片送过去
-  p2pManager.on("peer:connected", ({ peerId }) => {
+  const peerConnectedListener = ({ peerId }) => {
+    if (closed) {
+      return;
+    }
     try {
       if (
         !mtcFederationManager.isInitialized ||
@@ -1639,10 +1617,13 @@ function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
     } catch (err) {
       logger.warn("[Social] mtc:advertise outbound failed:", err.message);
     }
-  });
+  };
 
   // 入站: 收到对端 MTC 名片 → 主动 dial 把 gossipsub mesh 连起来
-  p2pManager.on("mtc:peer-advertise", ({ peerId, multiaddrs }) => {
+  const peerAdvertiseListener = ({ peerId, multiaddrs }) => {
+    if (closed) {
+      return;
+    }
     if (
       !mtcFederationManager.isInitialized ||
       !mtcFederationManager.isInitialized()
@@ -1656,8 +1637,14 @@ function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
     // 顺序尝试到首个成功; 失败的 swallow (NAT, IPv6 不可达, dup connect 等).
     (async () => {
       for (const maddr of multiaddrs) {
+        if (closed) {
+          return;
+        }
         try {
           await mtcFederationManager.connectPeer(maddr);
+          if (closed) {
+            return;
+          }
           logger.info(
             "[Social] mtcAutoBridge: dialed MTC peer " + peerId + " @ " + maddr,
           );
@@ -1673,14 +1660,98 @@ function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
           peerId,
       );
     })();
-  });
+  };
 
+  p2pManager.on("peer:connected", peerConnectedListener);
+  p2pManager.on("mtc:peer-advertise", peerAdvertiseListener);
   logger.info("[Social] ✓ mtcAutoBridge wired");
-  return { wired: true };
+  return {
+    wired: true,
+    close() {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      p2pManager.removeListener("peer:connected", peerConnectedListener);
+      p2pManager.removeListener("mtc:peer-advertise", peerAdvertiseListener);
+    },
+  };
+}
+
+function wireGossipReceiver(gossipProtocol, channelManager, options = {}) {
+  if (!gossipProtocol || !channelManager) {
+    logger.warn("[Social] gossipReceiver 跳过: 缺少依赖");
+    return null;
+  }
+
+  const closeTimeoutMs = options.closeTimeoutMs ?? 5_000;
+  if (!Number.isSafeInteger(closeTimeoutMs) || closeTimeoutMs <= 0) {
+    throw new TypeError(
+      "[Social] gossipReceiver closeTimeoutMs must be a positive safe integer",
+    );
+  }
+  let closed = false;
+  const inFlight = new Set();
+  const messageListener = (data) => {
+    const task = (async () => {
+      if (closed) {
+        return;
+      }
+      try {
+        const payload = data && data.payload;
+        if (!payload || payload.type !== "channel_message") {
+          return;
+        }
+        if (!payload.channelId || !payload.message) {
+          return;
+        }
+        await channelManager.handleMessageReceived(
+          payload.channelId,
+          payload.message,
+        );
+      } catch (err) {
+        logger.warn("[Social] gossip → channelManager 派发失败:", err.message);
+      }
+    })();
+    inFlight.add(task);
+    task.finally(() => inFlight.delete(task));
+    return task;
+  };
+
+  gossipProtocol.on("message:received", messageListener);
+  logger.info("[Social] ✓ gossipReceiver wired");
+  return {
+    wired: true,
+    async close() {
+      if (!closed) {
+        closed = true;
+        gossipProtocol.removeListener("message:received", messageListener);
+      }
+      const pending = [...inFlight];
+      if (pending.length === 0) {
+        return;
+      }
+      let timeout;
+      await Promise.race([
+        Promise.allSettled(pending),
+        new Promise((resolve) => {
+          timeout = setTimeout(() => {
+            logger.warn(
+              `[Social] gossipReceiver close timed out with ${inFlight.size} delivery task(s) still in flight`,
+            );
+            resolve();
+          }, closeTimeoutMs);
+          timeout.unref?.();
+        }),
+      ]);
+      clearTimeout(timeout);
+    },
+  };
 }
 
 module.exports = {
   registerSocialInitializers,
   setupP2PPostInit,
+  wireGossipReceiver,
   wireMtcAutoBridge,
 };

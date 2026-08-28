@@ -569,6 +569,8 @@ class ChainlessChainApp {
     this.autoArchiveScheduler = instances.autoArchiveScheduler;
     this.governanceMultiSig = instances.governanceMultiSig;
     this.crossFedTrust = instances.crossFedTrust;
+    this.mtcAutoBridge = instances.mtcAutoBridge;
+    this.gossipReceiver = instances.gossipReceiver;
 
     // AI 引擎
     this.webEngine = instances.webEngine;
@@ -2955,6 +2957,27 @@ class ChainlessChainApp {
         logger.error("[Main] Federated learning cleanup error:", error);
       }
       this.federatedManager = null;
+    }
+    const socialRuntimeCleanup = [
+      ["gossipReceiver", "close"],
+      ["mtcAutoBridge", "close"],
+      ["channelEnvelopeDistribution", "close"],
+      ["autoArchiveScheduler", "stop"],
+      ["channelEventBatcher", "close"],
+      ["mtcFederationManager", "close"],
+    ];
+    for (const [managerName, closeMethod] of socialRuntimeCleanup) {
+      const manager = this[managerName];
+      if (!manager) {
+        continue;
+      }
+      try {
+        await manager[closeMethod]?.();
+        logger.info(`[Main] ${managerName} cleanup completed`);
+      } catch (error) {
+        logger.error(`[Main] ${managerName} cleanup error:`, error);
+      }
+      this[managerName] = null;
     }
     if (this.collabSync) {
       try {
