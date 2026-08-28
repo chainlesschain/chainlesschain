@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createFakeCliEnvironment,
+  isRobotStartupFailure,
   parseArgs,
   prependPath,
   readPluginVersion,
@@ -79,6 +80,19 @@ describe("JetBrains real-host journey driver", () => {
       "utf8",
     );
     expect(() => readPluginVersion(pluginXml)).toThrow(/exactly one/);
+  });
+
+  it("retries only the recognized Remote Robot startup timeout", () => {
+    const startupTimeout = new Error("ui-smoke-initial failed with exit 1");
+    startupTimeout.processOutput =
+      "robot server at http://127.0.0.1:8082 did not come up within 180s";
+    expect(isRobotStartupFailure(startupTimeout)).toBe(true);
+
+    const assertionFailure = new Error("ui-smoke-initial failed with exit 1");
+    assertionFailure.processOutput =
+      "expected the ChainlessChain tool window to be visible";
+    expect(isRobotStartupFailure(assertionFailure)).toBe(false);
+    expect(isRobotStartupFailure(null)).toBe(false);
   });
 
   it("requires 100 measured needs_input samples and gates nearest-rank P95", () => {
