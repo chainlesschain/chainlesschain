@@ -7,15 +7,24 @@ category: development
 user-invocable: true
 tags: [github, issues, pull-requests, repositories, workflows, ci-cd, git]
 capabilities: [issue-management, pr-management, repo-info, workflow-management]
-execution-capabilities: [data:result, data:task, host:environment, host:logger, host:network, network:http, runtime:time]
+execution-capabilities:
+  [
+    data:result,
+    data:task,
+    host:environment,
+    host:logger,
+    host:network,
+    network:http,
+    runtime:time,
+  ]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [github-issues, github-prs, github-repo, github-workflows]
 instructions: |
   Use this skill when the user wants to interact with GitHub repositories.
   Supports listing and creating issues, listing and creating pull requests,
-  viewing repository info, and listing workflow runs. Requires GITHUB_TOKEN
-  environment variable for authentication.
+  viewing repository info, and listing workflow runs. Authentication uses the
+  GitHub token configured in ChainlessChain Git settings.
 examples:
   - input: "list-issues owner/repo --state open"
     action: list-issues
@@ -62,22 +71,19 @@ Manage GitHub issues, pull requests, repositories, and workflows.
 
 ## Actions
 
-| Action | Description |
-| --- | --- |
-| `list-issues` | List repository issues with optional state filter |
-| `create-issue` | Create a new issue with title, body, and labels |
-| `list-prs` | List pull requests with optional state filter |
-| `create-pr` | Create a new pull request |
-| `repo-info` | Get repository metadata and statistics |
-| `list-workflows` | List recent GitHub Actions workflow runs |
+| Action           | Description                                       |
+| ---------------- | ------------------------------------------------- |
+| `list-issues`    | List repository issues with optional state filter |
+| `create-issue`   | Create a new issue with title, body, and labels   |
+| `list-prs`       | List pull requests with optional state filter     |
+| `create-pr`      | Create a new pull request                         |
+| `repo-info`      | Get repository metadata and statistics            |
+| `list-workflows` | List recent GitHub Actions workflow runs          |
 
 ## Setup
 
-Set the `GITHUB_TOKEN` environment variable:
-
-```bash
-export GITHUB_TOKEN=ghp_your-personal-access-token
-```
+Configure a GitHub token in ChainlessChain Git settings. The token is stored in
+the encrypted Git credential store; this Skill does not read `process.env`.
 
 ## Examples
 

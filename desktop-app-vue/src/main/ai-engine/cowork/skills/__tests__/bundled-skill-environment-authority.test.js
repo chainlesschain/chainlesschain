@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const require = createRequire(import.meta.url);
 const {
   createBundledSkillEnvironmentAuthorityFactory,
+  createDefaultSecretResolver,
 } = require("../bundled-skill-environment-authority.js");
 const { SkillRegistry } = require("../skill-registry.js");
 
@@ -42,6 +43,26 @@ afterEach(() => {
 });
 
 describe("production bundled Skill environment authority", () => {
+  it("resolves configured LLM and encrypted Git credentials without env fallback", () => {
+    const resolver = createDefaultSecretResolver({
+      getLLMConfig: () => ({
+        get: (key, fallback) =>
+          ({
+            "openai.apiKey": "openai-secret",
+            "google.apiKey": "google-secret",
+          })[key] || fallback,
+      }),
+      getGitConfig: () => ({
+        getAuth: () => ({ token: "github-secret" }),
+      }),
+    });
+
+    expect(resolver({ key: "openai-api-key" })).toBe("openai-secret");
+    expect(resolver({ key: "google-api-key" })).toBe("google-secret");
+    expect(resolver({ key: "github-token" })).toBe("github-secret");
+    expect(resolver({ key: "tavily-api-key" })).toBeNull();
+  });
+
   it("requires a centralized host policy decision", async () => {
     const workspace = temporaryRoot("cc-environment-workspace");
     const factory = createBundledSkillEnvironmentAuthorityFactory({

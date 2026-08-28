@@ -66,12 +66,32 @@ function canonicalWorkspace(workspacePath) {
   return workspaceRoot;
 }
 
-function defaultSecretResolver({ key }) {
-  if (key !== "openai-api-key") {
+function createDefaultSecretResolver(options = {}) {
+  const llmConfigResolver =
+    options.getLLMConfig ||
+    (() => {
+      const { getLLMConfig } = require("../../../llm/llm-config");
+      return getLLMConfig();
+    });
+  const gitConfigResolver =
+    options.getGitConfig ||
+    (() => {
+      const { getGitConfig } = require("../../../git/git-config");
+      return getGitConfig();
+    });
+
+  return function resolveDefaultSecret({ key }) {
+    if (key === "openai-api-key") {
+      return llmConfigResolver().get("openai.apiKey", null) || null;
+    }
+    if (key === "google-api-key") {
+      return llmConfigResolver().get("google.apiKey", null) || null;
+    }
+    if (key === "github-token") {
+      return gitConfigResolver().getAuth()?.token || null;
+    }
     return null;
-  }
-  const { getLLMConfig } = require("../../../llm/llm-config");
-  return getLLMConfig().get("openai.apiKey", null) || null;
+  };
 }
 
 function createBundledSkillEnvironmentAuthorityFactory(options = {}) {
@@ -79,7 +99,8 @@ function createBundledSkillEnvironmentAuthorityFactory(options = {}) {
     typeof options.getWorkspacePath === "function"
       ? options.getWorkspacePath
       : () => options.workspacePath;
-  const secretResolver = options.secretResolver || defaultSecretResolver;
+  const secretResolver =
+    options.secretResolver || createDefaultSecretResolver(options);
   const configResolver = options.configResolver || (() => null);
   const pathResolver = options.pathResolver || (() => null);
   const runtimeEnvironment = options.runtimeEnvironment || process.env;
@@ -162,4 +183,7 @@ function createBundledSkillEnvironmentAuthorityFactory(options = {}) {
   };
 }
 
-module.exports = { createBundledSkillEnvironmentAuthorityFactory };
+module.exports = {
+  createBundledSkillEnvironmentAuthorityFactory,
+  createDefaultSecretResolver,
+};
