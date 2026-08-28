@@ -1627,6 +1627,26 @@
         }
       }
     },
+    "HumanTaskDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "decision",
+        "decidedAt"
+      ],
+      "properties": {
+        "actorId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "decision": {
+          "$ref": "#/$defs/ApprovalDecision"
+        },
+        "decidedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      }
+    },
     "HumanTask": {
       "type": "object",
       "additionalProperties": false,
@@ -1660,6 +1680,12 @@
         "operationDigest": {
           "$ref": "#/$defs/Digest"
         },
+        "operation": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/Digest"
+        },
         "status": {
           "enum": [
             "open",
@@ -1668,6 +1694,21 @@
             "cancelled",
             "expired"
           ]
+        },
+        "quorum": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "separationOfDuties": {
+          "type": "boolean"
+        },
+        "decisions": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/HumanTaskDecision"
+          }
         },
         "claimActorId": {
           "anyOf": [
@@ -1689,11 +1730,31 @@
             }
           ]
         },
+        "claimExpiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "nonce": {
           "$ref": "#/$defs/Identifier"
         },
         "expiresAt": {
           "$ref": "#/$defs/Timestamp"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
         },
         "decision": {
           "anyOf": [

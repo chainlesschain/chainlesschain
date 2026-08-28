@@ -475,6 +475,19 @@ function attemptProjection(attempt) {
   return Object.freeze(clone(attempt));
 }
 
+function humanTaskProjection(task) {
+  const projected = clone(task);
+  if (
+    projected.claimExpiresAt == null &&
+    Number.isFinite(projected.claimExpiresAtMs)
+  ) {
+    projected.claimExpiresAt = nowIso(() => projected.claimExpiresAtMs);
+  }
+  delete projected.claimExpiresAtMs;
+  delete projected.expiresAtMs;
+  return Object.freeze(projected);
+}
+
 function runProjection(run) {
   return Object.freeze({
     id: run.id,
@@ -963,6 +976,7 @@ function sweepExpirations(run, now) {
       task.status = "open";
       task.claimActorId = null;
       task.claimLeaseId = null;
+      task.claimExpiresAt = null;
       task.claimExpiresAtMs = null;
       task.updatedAt = nowIso(() => now);
       changed = true;
@@ -1579,6 +1593,19 @@ export class GraphKernel {
             left.id.localeCompare(right.id),
         )
         .map((effect) => Object.freeze(clone(effect))),
+    );
+  }
+
+  humanTasks(runId) {
+    const run = this._run(runId);
+    return Object.freeze(
+      [...run.humanTasks.values()]
+        .sort(
+          (left, right) =>
+            left.createdAt.localeCompare(right.createdAt) ||
+            left.id.localeCompare(right.id),
+        )
+        .map(humanTaskProjection),
     );
   }
 
@@ -4146,11 +4173,12 @@ export class GraphKernel {
           authorityDigest: run.authorityDigest,
           status: "open",
           nonce: safeIdentifier(nonce, "nonce"),
-          quorum: Math.max(1, Number(quorum) || 1),
+          quorum: Math.min(64, Math.max(1, Math.trunc(Number(quorum)) || 1)),
           separationOfDuties: separationOfDuties === true,
           decisions: [],
           claimActorId: null,
           claimLeaseId: null,
+          claimExpiresAt: null,
           claimExpiresAtMs: null,
           createdAt: nowIso(() => now),
           updatedAt: nowIso(() => now),
@@ -4160,7 +4188,7 @@ export class GraphKernel {
         };
         run.humanTasks.set(id, task);
         run.status = "waiting_human";
-        return Object.freeze(clone(task));
+        return humanTaskProjection(task);
       },
       { idempotencyKey: `human-task:${id}` },
     );
@@ -4206,8 +4234,9 @@ export class GraphKernel {
         task.claimActorId = actor;
         task.claimLeaseId = safeIdentifier(claimLeaseId, "claimLeaseId");
         task.claimExpiresAtMs = now + finitePositive(ttlMs, 300_000);
+        task.claimExpiresAt = nowIso(() => task.claimExpiresAtMs);
         task.updatedAt = nowIso(() => now);
-        return Object.freeze(clone(task));
+        return humanTaskProjection(task);
       },
     );
   }
@@ -4312,11 +4341,12 @@ export class GraphKernel {
           task.status = "open";
           task.claimActorId = null;
           task.claimLeaseId = null;
+          task.claimExpiresAt = null;
           task.claimExpiresAtMs = null;
         }
         task.updatedAt = nowIso(() => now);
         run.status = classifyQuiescence(run, now);
-        return Object.freeze(clone(task));
+        return humanTaskProjection(task);
       },
     );
   }
@@ -4336,14 +4366,25 @@ export class GraphKernel {
             "human task is already terminal",
           );
         }
+        const now = this.now();
         task.status = "cancelled";
         task.reason = String(reason).slice(0, 1024);
-        task.updatedAt = nowIso(this.now);
+        task.updatedAt = nowIso(() => now);
+        const attempt = run.attempts.get(task.attemptId);
+        if (attempt && attempt.status === "waiting_human") {
+          attempt.status = "cancelled";
+          attempt.participationStatus = "human_cancelled";
+          attempt.updatedAt = nowIso(() => now);
+        }
         const state = run.nodeStates.get(task.nodeId);
         state.status = "cancelled";
         state.blockedRoot = task.id;
-        state.updatedAt = nowIso(this.now);
-        return Object.freeze(clone(task));
+        state.updatedAt = nowIso(() => now);
+        run.status = classifyQuiescence(run, now);
+        if (TERMINAL_RUN.has(run.status)) {
+          run.completedAt = nowIso(() => now);
+        }
+        return humanTaskProjection(task);
       },
     );
   }

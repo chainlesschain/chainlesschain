@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:d922eeb714a07dfd35eb2b5060ecea7c40b9fab04d2a5951630064499c70f414"
+public let ccAgentProtocolSchemaDigest = "sha256:8034b1d0903660879df7ae8f1e5a856e753dfee5cf5e054069bff578731afc3b"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -913,6 +913,22 @@ public struct Handoff: Codable, Sendable {
     }
 }
 
+public struct HumanTaskDecision: Codable, Sendable {
+    public let actorId: String
+    public let decision: JSONValue
+    public let decidedAt: String
+
+    public init(
+        actorId: String,
+        decision: JSONValue,
+        decidedAt: String
+    ) {
+        self.actorId = actorId
+        self.decision = decision
+        self.decidedAt = decidedAt
+    }
+}
+
 public struct HumanTask: Codable, Sendable {
     public let id: String
     public let runId: String
@@ -920,11 +936,20 @@ public struct HumanTask: Codable, Sendable {
     public let nodeId: String
     public let attemptId: String
     public let operationDigest: String
+    public let operation: JSONValue?
+    public let authorityDigest: String?
     public let status: String
+    public let quorum: Int?
+    public let separationOfDuties: Bool?
+    public let decisions: [HumanTaskDecision]?
     public let claimActorId: JSONValue?
     public let claimLeaseId: JSONValue?
+    public let claimExpiresAt: JSONValue?
     public let nonce: String
     public let expiresAt: String
+    public let createdAt: String?
+    public let updatedAt: String?
+    public let reason: String?
     public let decision: JSONValue?
 
     public init(
@@ -934,11 +959,20 @@ public struct HumanTask: Codable, Sendable {
         nodeId: String,
         attemptId: String,
         operationDigest: String,
+        operation: JSONValue? = nil,
+        authorityDigest: String? = nil,
         status: String,
+        quorum: Int? = nil,
+        separationOfDuties: Bool? = nil,
+        decisions: [HumanTaskDecision]? = nil,
         claimActorId: JSONValue? = nil,
         claimLeaseId: JSONValue? = nil,
+        claimExpiresAt: JSONValue? = nil,
         nonce: String,
         expiresAt: String,
+        createdAt: String? = nil,
+        updatedAt: String? = nil,
+        reason: String? = nil,
         decision: JSONValue? = nil
     ) {
         self.id = id
@@ -947,11 +981,20 @@ public struct HumanTask: Codable, Sendable {
         self.nodeId = nodeId
         self.attemptId = attemptId
         self.operationDigest = operationDigest
+        self.operation = operation
+        self.authorityDigest = authorityDigest
         self.status = status
+        self.quorum = quorum
+        self.separationOfDuties = separationOfDuties
+        self.decisions = decisions
         self.claimActorId = claimActorId
         self.claimLeaseId = claimLeaseId
+        self.claimExpiresAt = claimExpiresAt
         self.nonce = nonce
         self.expiresAt = expiresAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.reason = reason
         self.decision = decision
     }
 }

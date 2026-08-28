@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:d922eeb714a07dfd35eb2b5060ecea7c40b9fab04d2a5951630064499c70f414"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:8034b1d0903660879df7ae8f1e5a856e753dfee5cf5e054069bff578731afc3b"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -351,6 +351,12 @@ data class Handoff(
     val expiresAt: String
 )
 
+data class HumanTaskDecision(
+    val actorId: String,
+    val decision: JSONValue,
+    val decidedAt: String
+)
+
 data class HumanTask(
     val id: String,
     val runId: String,
@@ -358,11 +364,20 @@ data class HumanTask(
     val nodeId: String,
     val attemptId: String,
     val operationDigest: String,
+    val operation: JSONValue? = null,
+    val authorityDigest: String? = null,
     val status: String,
+    val quorum: Long? = null,
+    val separationOfDuties: Boolean? = null,
+    val decisions: List<HumanTaskDecision>? = null,
     val claimActorId: JSONValue? = null,
     val claimLeaseId: JSONValue? = null,
+    val claimExpiresAt: JSONValue? = null,
     val nonce: String,
     val expiresAt: String,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val reason: String? = null,
     val decision: JSONValue? = null
 )
 

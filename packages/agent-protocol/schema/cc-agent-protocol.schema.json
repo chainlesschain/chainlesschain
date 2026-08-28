@@ -861,6 +861,16 @@
         "expiresAt": { "$ref": "#/$defs/Timestamp" }
       }
     },
+    "HumanTaskDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actorId", "decision", "decidedAt"],
+      "properties": {
+        "actorId": { "$ref": "#/$defs/Identifier" },
+        "decision": { "$ref": "#/$defs/ApprovalDecision" },
+        "decidedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
     "HumanTask": {
       "type": "object",
       "additionalProperties": false,
@@ -882,8 +892,17 @@
         "nodeId": { "$ref": "#/$defs/Identifier" },
         "attemptId": { "$ref": "#/$defs/Identifier" },
         "operationDigest": { "$ref": "#/$defs/Digest" },
+        "operation": { "$ref": "#/$defs/JsonValue" },
+        "authorityDigest": { "$ref": "#/$defs/Digest" },
         "status": {
           "enum": ["open", "claimed", "decided", "cancelled", "expired"]
+        },
+        "quorum": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "separationOfDuties": { "type": "boolean" },
+        "decisions": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/HumanTaskDecision" }
         },
         "claimActorId": {
           "anyOf": [{ "$ref": "#/$defs/Identifier" }, { "type": "null" }]
@@ -891,8 +910,14 @@
         "claimLeaseId": {
           "anyOf": [{ "$ref": "#/$defs/Identifier" }, { "type": "null" }]
         },
+        "claimExpiresAt": {
+          "anyOf": [{ "$ref": "#/$defs/Timestamp" }, { "type": "null" }]
+        },
         "nonce": { "$ref": "#/$defs/Identifier" },
         "expiresAt": { "$ref": "#/$defs/Timestamp" },
+        "createdAt": { "$ref": "#/$defs/Timestamp" },
+        "updatedAt": { "$ref": "#/$defs/Timestamp" },
+        "reason": { "type": "string", "maxLength": 1024 },
         "decision": {
           "anyOf": [{ "$ref": "#/$defs/ApprovalDecision" }, { "type": "null" }]
         }

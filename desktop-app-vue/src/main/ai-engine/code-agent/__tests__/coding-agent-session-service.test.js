@@ -1005,6 +1005,118 @@ describe("CodingAgentSessionService", () => {
     ).rejects.toThrow("no longer pending");
   });
 
+  it("settles Desktop approvals against the shared HumanTask conformance fixture", async () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../../packages/agent-protocol/test/fixtures/human-task-settlement-conformance.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    for (const scenario of fixture.scenarios.filter(({ surfaces }) =>
+      surfaces.includes("desktop"),
+    )) {
+      const scenarioBridge = new MockBridge();
+      scenarioBridge.request = vi.fn().mockResolvedValue({
+        success: true,
+        settled: true,
+      });
+      const scenarioWindow = {
+        webContents: { send: vi.fn() },
+        isDestroyed: vi.fn(() => false),
+      };
+      const scenarioService = new CodingAgentSessionService({
+        bridge: scenarioBridge,
+        mainWindow: scenarioWindow,
+        repoRoot: "C:\\code\\chainlesschain",
+        projectRoot: "C:\\code\\chainlesschain",
+      });
+      const requestId = `approval-${scenario.name}`;
+      const binding = `ab_${scenario.name}`;
+      let rejectedResponses = 0;
+
+      await scenarioService.createSession();
+      scenarioBridge.emit("message", {
+        type: "question",
+        sessionId: "session-1",
+        requestId,
+        binding,
+        approval: {
+          tool: "run_shell",
+          requestedPermissions: [
+            {
+              capability: "tool:run_shell",
+              scope: `exact:${scenario.name}`,
+            },
+          ],
+        },
+      });
+
+      for (const step of scenario.steps) {
+        if (step.action === "cancel") {
+          await scenarioService.interruptSession("session-1");
+          expect(step.expect.desktop, scenario.name).toBe("settled");
+          continue;
+        }
+        if (step.action === "restart") {
+          await scenarioService.resumeSession("session-1");
+          expect(step.expect.desktop, scenario.name).toBe("settled");
+          continue;
+        }
+        if (step.action !== "approve" && step.action !== "decline") {
+          throw new Error(
+            `Unsupported Desktop fixture action ${step.action} in ${scenario.name}`,
+          );
+        }
+
+        const response = scenarioService.respondApproval("session-1", {
+          approvalType: "tool",
+          requestId,
+          binding,
+          decision:
+            step.action === "approve"
+              ? { kind: "acceptOnce" }
+              : { kind: "decline", reason: "fixture-declined" },
+        });
+        if (step.expect.desktop === "settled") {
+          await expect(response, scenario.name).resolves.toMatchObject({
+            success: true,
+            requestId,
+          });
+        } else {
+          await expect(response, scenario.name).rejects.toThrow(
+            "no longer pending",
+          );
+          rejectedResponses += 1;
+        }
+      }
+
+      const state = scenarioService.getSessionState("session-1");
+      const events = scenarioService.getSessionEvents("session-1").events;
+      expect(state.session.pendingApprovals, scenario.name).toHaveLength(
+        scenario.expected.desktop.pending_approvals,
+      );
+      expect(
+        events.filter(
+          ({ type }) => type === CodingAgentEventType.APPROVAL_GRANTED,
+        ),
+        scenario.name,
+      ).toHaveLength(scenario.expected.desktop.granted_events);
+      expect(
+        events.filter(
+          ({ type }) => type === CodingAgentEventType.SESSION_INTERRUPTED,
+        ),
+        scenario.name,
+      ).toHaveLength(scenario.expected.desktop.interrupted_events);
+      expect(rejectedResponses, scenario.name).toBe(
+        scenario.expected.desktop.rejected_responses,
+      );
+    }
+  });
+
   it("projects canonical hook/tool policy decisions into one Desktop event", async () => {
     await service.createSession();
     bridge.emit("message", {

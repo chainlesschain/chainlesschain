@@ -2085,7 +2085,18 @@ P1-11 仍保持“部分完成”：bundled filesystem writer 特权面代码侧
 - `WebSocketInteractionAdapter` 的 answer/host-tool 结算返回显式 CAS 结果；未知、kind/binding 不匹配或已被 interrupt/cancel 清除的请求返回 `settled:false`。`session-answer` 只有真实调用 settlement authority 且赢得结算才回 success；Desktop 在丢失竞态时恢复待处理状态并拒绝伪造成功，session restart/resume 会清除旧审批卡，旧 response 不能落到新 session。
 - canonical schema、fixture 以及 TypeScript、Python、Kotlin、Swift 和 CLI 内嵌生成物已同步。协议 check 与 13/13 测试、Python 3.12 SDK 31/31、CLI 定向 168/168、Desktop session 49/49 通过；TS SDK `protocol:check` 和 build 通过，非 E2E 66 项通过。本机真实 CLI SDK E2E 未计为通过：子进程在本地慢启动后只产生 init/end、0 turns，仍需由精确提交 CI 矩阵复验，因而本节只声明仓库实现，不声明公开发布。
 
-P1-9 继续保持“部分完成”：还需 JetBrains/Android/iOS/Web 的可审阅持久 grant UI，跨产品 approval-vs-cancel、多人 quorum、职责分离、race/restart fixture，以及本轮 schema/SDK/CLI 的精确 SHA 三平台门禁、发布和 registry/provenance 回读。
+P1-9 继续保持“部分完成”：§12.52 当时留下的共享 approval-vs-cancel/quorum/职责分离/race/restart fixture 已由 §12.53 关闭首批 Graph/Desktop 消费；还需 JetBrains/Android/iOS/Web 的可审阅持久 grant UI、更多产品消费与多人审批产品面，以及本轮 schema/SDK/CLI 的精确 SHA 三平台门禁、发布和 registry/provenance 回读。
+
+### 12.53 P1-9 共享 HumanTask 结算 fixture 与 canonical runtime 投影（2026-08-28）
+
+本切片继续 §12.52，仍不触碰其他窗口负责的 P1-11 Skill authority：
+
+- 新增产品无关的 `human-task-settlement-conformance.json`，用有界 action/expectation 表达 7 个确定性场景：decision 赢后重复响应、cancel 赢后迟到决定、未决任务 crash/restart 恢复、已决任务跨重启保持、多人 quorum、职责分离拒绝重复 actor，以及 decline 提前终止 quorum。fixture 本身由协议包完整性测试约束，避免产品测试各自复制并逐渐漂移。
+- CLI Graph Kernel 直接执行全部 7 个场景。新增 canonical `humanTasks(runId)` 只读投影并移除内部毫秒字段；公开 HumanTask 能通过同一协议 validator。取消 HumanTask 现在原子推进 waiting attempt、node 与 run terminal，不再留下“任务已取消但 run 仍 waiting_human”的矛盾状态；quorum 上限与 schema 同为 64，claim expiry 同时提供 canonical timestamp。
+- Desktop Coding Agent 直接读取同一 fixture 并执行其支持的 4 个单审批场景，走真实 `session-answer` settlement CAS，而不是测试内伪造状态。重复响应、interrupt 后迟到响应、resume 后旧 transport card，以及已决定后重启再响应均只有一个结果；Graph 的 durable task 可在恢复后继续决定，而 Desktop 的易失 UI card 明确失效，二者语义差异由 fixture 分 surface 声明。
+- canonical HumanTask schema 以 additive 字段补齐 operation/authority digest、quorum、separation-of-duties、decision ledger、claim expiry、时间戳和 reason；TypeScript、Python、Kotlin、Swift、CLI 内嵌 schema 及 Desktop/VS Code vendored Agent SDK 已统一重新生成。协议 14/14、CLI HumanTask/Graph Kernel 24/24、Desktop session 50/50、TS SDK 非真实 CLI E2E 66/66 与 Python 3.12 SDK 31/31 通过；TS SDK build、protocol codegen check 与两份 vendored SDK freshness check 通过。
+
+P1-9 继续保持“部分完成”：本节关闭了共享语料、Graph 全场景和 Desktop 单审批竞态/重启消费，但 JetBrains/Android/iOS/Web 尚未消费该 fixture，Desktop/其他客户端也没有多人 quorum/职责分离产品面；本轮协议/SDK/CLI 变更仍需精确 SHA 的三平台权威门禁、版本发布及 registry/provenance 回读。
 
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
