@@ -119,6 +119,11 @@ const SOCIAL_COLLAB_CONTRACT_TESTS = [
   "src/main/social/__tests__/collab-awareness.test.js",
   "src/main/ipc/__tests__/phase-modules.test.js",
 ];
+const GOSSIP_CONTRACT_TESTS = [
+  "src/main/social/__tests__/gossip-boundaries.test.js",
+  "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
+  "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+];
 const DESKTOP_PACKAGED_GRAPH_FIXTURE_TEST =
   "src/main/ai-engine/code-agent/__tests__/desktop-packaged-graph-fixture.test.js";
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
@@ -152,6 +157,7 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
       ...COLLAB_RUNTIME_CONTRACT_TESTS,
       ...FEDERATED_TRANSPORT_CONTRACT_TESTS,
       ...SOCIAL_COLLAB_CONTRACT_TESTS,
+      ...GOSSIP_CONTRACT_TESTS,
     ],
   ],
   [
@@ -208,10 +214,19 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     "src/main/social/social-collab-transport.js",
     "src/main/social/collab-sync.js",
     "src/main/social/collab-social-ipc.js",
-    "src/main/bootstrap/social-initializer.js",
-    "src/main/bootstrap/index.js",
     "src/main/ipc/phases/phase-3-4-social.js",
   ].map((sourcePath) => [sourcePath, SOCIAL_COLLAB_CONTRACT_TESTS]),
+  ...[
+    "src/main/bootstrap/social-initializer.js",
+    "src/main/bootstrap/index.js",
+  ].map((sourcePath) => [
+    sourcePath,
+    [...SOCIAL_COLLAB_CONTRACT_TESTS, ...GOSSIP_CONTRACT_TESTS],
+  ]),
+  ...[
+    "src/main/social/gossip-boundaries.js",
+    "src/main/social/gossip-protocol.js",
+  ].map((sourcePath) => [sourcePath, GOSSIP_CONTRACT_TESTS]),
   ["src/main/collab/collab-ipc.js", COLLAB_RUNTIME_CONTRACT_TESTS],
   [
     "src/main/ipc/phases/phase-33-40-collab-ops.js",

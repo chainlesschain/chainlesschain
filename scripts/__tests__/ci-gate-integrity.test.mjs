@@ -364,6 +364,28 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const gossipContracts = [
+    "src/main/social/__tests__/gossip-boundaries.test.js",
+    "src/main/social/__tests__/gossip-channel-receiver.integration.test.js",
+    "src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js",
+  ];
+  const gossipSources = [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/social/gossip-boundaries.js",
+    "desktop-app-vue/src/main/social/gossip-protocol.js",
+    "desktop-app-vue/src/main/bootstrap/social-initializer.js",
+    "desktop-app-vue/src/main/bootstrap/index.js",
+  ];
+  for (const source of gossipSources) {
+    const sourceSelection = selector.createSelection([source]);
+    for (const contract of gossipContracts) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(contract),
+        `${source} must select ${contract}`,
+      );
+    }
+  }
+
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",
