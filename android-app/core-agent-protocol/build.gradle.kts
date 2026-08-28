@@ -15,6 +15,9 @@ android {
     sourceSets.getByName("main").java.srcDir(
         "../../packages/agent-protocol/generated/kotlin",
     )
+    sourceSets.getByName("test").resources.srcDir(
+        "../../packages/agent-protocol/test/fixtures",
+    )
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

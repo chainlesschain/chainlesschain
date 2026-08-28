@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.agentprotocol
 
 import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.PermissionGrant
 import com.chainlesschain.agent.protocol.generated.parseApprovalDecision
 import com.chainlesschain.agent.protocol.generated.toWireValue
 import kotlinx.serialization.Serializable
@@ -55,9 +56,10 @@ data class ApprovalDecisionEnvelope(
             decision: ApprovalDecision,
             decidedAtMs: Long,
             biometricToken: String? = null,
+            reviewedPermissions: List<PermissionGrant>? = null,
         ): ApprovalDecisionEnvelope {
             require(requestId.isNotBlank()) { "requestId must not be blank" }
-            requireBinaryDecision(decision)
+            requireReviewedDecision(decision, reviewedPermissions)
             return ApprovalDecisionEnvelope(
                 requestId = requestId,
                 decision = decision.toWireValue().toJsonElement() as JsonObject,
@@ -75,11 +77,46 @@ data class ApprovalDecisionEnvelope(
                 "Android binary approval UI cannot issue ${decision::class.simpleName}"
             }
         }
+
+        private fun requireReviewedDecision(
+            decision: ApprovalDecision,
+            reviewedPermissions: List<PermissionGrant>?,
+        ) {
+            when (decision) {
+                ApprovalDecision.AcceptOnce, is ApprovalDecision.Decline -> Unit
+                is ApprovalDecision.AcceptForTurn -> requireReviewedPermissions(
+                    decision.permissions,
+                    reviewedPermissions,
+                )
+                is ApprovalDecision.AcceptForSession -> requireReviewedPermissions(
+                    decision.permissions,
+                    reviewedPermissions,
+                )
+                is ApprovalDecision.Cancel -> throw IllegalArgumentException(
+                    "Android approval response cannot issue Cancel",
+                )
+            }
+        }
+
+        private fun requireReviewedPermissions(
+            decisionPermissions: List<PermissionGrant>?,
+            reviewedPermissions: List<PermissionGrant>?,
+        ) {
+            require(!decisionPermissions.isNullOrEmpty()) {
+                "Persistent approval requires explicit permissions"
+            }
+            require(decisionPermissions == reviewedPermissions) {
+                "Persistent approval must exactly echo reviewed permissions"
+            }
+        }
     }
 }
 
 fun ApprovalDecision.toLegacyApproved(): Boolean = when (this) {
-    ApprovalDecision.AcceptOnce -> true
+    ApprovalDecision.AcceptOnce,
+    is ApprovalDecision.AcceptForTurn,
+    is ApprovalDecision.AcceptForSession,
+    -> true
     is ApprovalDecision.Decline -> false
     else -> throw IllegalArgumentException(
         "ApprovalDecision cannot be represented by the N-1 approved projection",

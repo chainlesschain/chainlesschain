@@ -79,6 +79,13 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // the stored value; UI input can never replace the authority tuple.
   const pendingQuestions = ref([]);
 
+  // Process-local transport-card CAS. The host/CLI remains the durable
+  // HumanTask authority; this state only prevents duplicate/conflicting sends
+  // while a response or interrupt is in flight.
+  const approvalSettlements = new Map();
+  const resolvedApprovalIds = new Set();
+  const resolvedApprovalOrder = [];
+
   // Non-reactive connection internals (persist for the singleton store).
   let socket = null;
   let crypto = null;
@@ -130,12 +137,19 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       event?.payload && typeof event.payload === "object"
         ? event.payload
         : event;
-    if (event?.type === "permission.request") {
-      const requestId = event.requestId || event.approvalId || null;
+    if (
+      ["permission.request", "approval.requested", "approval_request"].includes(
+        event?.type,
+      )
+    ) {
+      const requestId = approvalRequestId(event);
       if (
         requestId &&
+        !approvalSettlements.has(requestId) &&
+        !resolvedApprovalIds.has(requestId) &&
         !pendingApprovals.value.some((card) => card.requestId === requestId)
       ) {
+        approvalSettlements.set(requestId, "pending");
         pendingApprovals.value = [
           ...pendingApprovals.value,
           {
@@ -147,12 +161,23 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
             fingerprint: event.fingerprint || null,
             binding: event.binding || null,
             revision: event.revision ?? null,
+            requestedPermissions: normalizeRequestedPermissions(event),
           },
         ];
       }
-    } else if (event?.type === "permission.resolved") {
-      const requestId = event.requestId || event.approvalId || null;
-      if (requestId) clearApprovalCard(requestId);
+    } else if (
+      [
+        "permission.resolved",
+        "approval.resolved",
+        "approval_resolved",
+      ].includes(event?.type)
+    ) {
+      const requestId = approvalRequestId(event);
+      if (requestId) {
+        approvalSettlements.delete(requestId);
+        rememberResolvedApproval(requestId);
+        clearApprovalCard(requestId);
+      }
     } else if (
       ["question_request", "question.requested", "question"].includes(
         event?.type,
@@ -200,6 +225,57 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     );
   }
 
+  function approvalRequestId(event) {
+    return event?.requestId || event?.approvalId || event?.id || null;
+  }
+
+  function normalizeRequestedPermissions(event) {
+    const raw = event?.requested_permissions ?? event?.requestedPermissions;
+    if (!Array.isArray(raw) || raw.length === 0 || raw.length > 64) return null;
+    const grants = [];
+    for (const entry of raw) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry))
+        return null;
+      const capability = entry.capability;
+      const scope = entry.scope;
+      const expiresAt = entry.expiresAt ?? entry.expires_at ?? null;
+      if (
+        typeof capability !== "string" ||
+        capability.length < 1 ||
+        capability.length > 128 ||
+        typeof scope !== "string" ||
+        scope.length < 1 ||
+        scope.length > 1024 ||
+        (expiresAt !== null && typeof expiresAt !== "string")
+      ) {
+        return null;
+      }
+      grants.push({
+        capability,
+        scope,
+        ...(expiresAt === null ? {} : { expiresAt }),
+      });
+    }
+    return grants;
+  }
+
+  function rememberResolvedApproval(requestId) {
+    if (!resolvedApprovalIds.has(requestId)) {
+      resolvedApprovalIds.add(requestId);
+      resolvedApprovalOrder.push(requestId);
+    }
+    while (resolvedApprovalOrder.length > 1024) {
+      resolvedApprovalIds.delete(resolvedApprovalOrder.shift());
+    }
+  }
+
+  function resetApprovalSettlements() {
+    approvalSettlements.clear();
+    resolvedApprovalIds.clear();
+    resolvedApprovalOrder.splice(0);
+    pendingApprovals.value = [];
+  }
+
   function clearQuestionCard(requestId) {
     pendingQuestions.value = pendingQuestions.value.filter(
       (card) => card.requestId !== requestId,
@@ -215,9 +291,15 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     // Don't resurrect a request another device/terminal resolved while our
     // send was failing — its permission.resolved is already in the log.
     const resolvedMeanwhile = events.value.some(
-      (e) => e.type === "permission.resolved" && e.requestId === card.requestId,
+      (e) =>
+        [
+          "permission.resolved",
+          "approval.resolved",
+          "approval_resolved",
+        ].includes(e.type) && approvalRequestId(e) === card.requestId,
     );
-    if (resolvedMeanwhile) return;
+    if (resolvedMeanwhile || resolvedApprovalIds.has(card.requestId)) return;
+    approvalSettlements.set(card.requestId, "pending");
     if (!pendingApprovals.value.some((c) => c.requestId === card.requestId)) {
       pendingApprovals.value = [...pendingApprovals.value, card];
     }
@@ -790,7 +872,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     try {
       error.value = "";
       events.value = [];
-      pendingApprovals.value = [];
+      resetApprovalSettlements();
       closedExplicitly = false;
       controlSeq = 0;
       if (isDirectPairingUri(uri)) {
@@ -835,24 +917,29 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     }
   }
 
-  function approve(requestId, approved) {
-    if (!requestId) return;
+  function approve(requestId, choice) {
+    if (!requestId) return false;
     const card =
       pendingApprovals.value.find((c) => c.requestId === requestId) || null;
+    if (!card || approvalSettlements.get(requestId) !== "pending") return false;
+    const decision = buildApprovalDecision(card, choice);
+    if (!decision) {
+      error.value =
+        "This approval does not contain a reviewable persistent grant";
+      return false;
+    }
+    const approved = decision.kind.startsWith("accept");
+    approvalSettlements.set(requestId, "responding");
     // Optimistic card clear (snappy UI + no double-answer while in flight) —
     // permission.resolved will confirm (idempotent). If the send fails or we
     // were never connected, the card is RESTORED so the answer can be retried
     // (the host gate stays pending until its own timeout).
     clearApprovalCard(requestId);
-    // This UI is deliberately binary: approval grants this exact call once;
-    // denial declines it. Keep the old boolean fields as an N-1 projection so
-    // upgraded panels can still control an older host.
-    const decision = approved ? { kind: "acceptOnce" } : { kind: "decline" };
     if (transport.value === "direct") {
       if (!directSocket) {
         error.value = "Remote Session is not connected";
         restoreApprovalCard(card);
-        return;
+        return false;
       }
       sendDirectControl({
         type: "approval.resolve",
@@ -867,7 +954,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
         // sendDirectControl resolves null on failure (error.value already set).
         if (result === null) restoreApprovalCard(card);
       });
-      return;
+      return true;
     }
     if (
       !sendControl({
@@ -882,7 +969,29 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     ) {
       error.value = "Remote Session is not connected";
       restoreApprovalCard(card);
+      return false;
     }
+    return true;
+  }
+
+  function buildApprovalDecision(card, choice) {
+    if (choice === true || choice === "once" || choice === "acceptOnce") {
+      return { kind: "acceptOnce" };
+    }
+    if (choice === false || choice === "decline") {
+      return { kind: "decline" };
+    }
+    if (choice === "turn" || choice === "acceptForTurn") {
+      return card.requestedPermissions?.length
+        ? { kind: "acceptForTurn", permissions: card.requestedPermissions }
+        : null;
+    }
+    if (choice === "session" || choice === "acceptForSession") {
+      return card.requestedPermissions?.length
+        ? { kind: "acceptForSession", permissions: card.requestedPermissions }
+        : null;
+    }
+    return null;
   }
 
   function answerQuestion(requestId, answer) {
@@ -921,11 +1030,34 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   }
 
   function interrupt() {
-    if (transport.value === "direct") {
-      if (directSocket) sendDirectControl({ type: "interrupt" });
-      return;
+    const reserved = pendingApprovals.value.filter(
+      (card) => approvalSettlements.get(card.requestId) === "pending",
+    );
+    for (const card of reserved) {
+      approvalSettlements.set(card.requestId, "interrupting");
+      clearApprovalCard(card.requestId);
     }
-    sendControl({ type: "interrupt" });
+    const complete = (accepted) => {
+      for (const card of reserved) {
+        if (approvalSettlements.get(card.requestId) !== "interrupting")
+          continue;
+        if (accepted) {
+          approvalSettlements.delete(card.requestId);
+          rememberResolvedApproval(card.requestId);
+        } else {
+          restoreApprovalCard(card);
+        }
+      }
+      return accepted;
+    };
+    if (transport.value === "direct") {
+      if (!directSocket) return complete(false);
+      sendDirectControl({ type: "interrupt" }).then((result) =>
+        complete(result !== null),
+      );
+      return true;
+    }
+    return complete(sendControl({ type: "interrupt" }));
   }
 
   // Update the Web Push subscription after pairing (e.g. the browser re-subscribed
@@ -968,6 +1100,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     directCredential = null;
     directPrincipalId = null;
     failDirectPending("disconnected");
+    resetApprovalSettlements();
     if (status.value !== "revoked") status.value = "disconnected";
   }
 

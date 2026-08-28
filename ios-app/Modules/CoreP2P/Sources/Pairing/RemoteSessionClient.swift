@@ -3,6 +3,7 @@ import CcAgentProtocol
 
 /// Canonical schema-generated decision used by the Remote Session wire API.
 public typealias RemoteApprovalDecision = CcAgentProtocol.ApprovalDecision
+public typealias RemoteApprovalPermissionGrant = CcAgentProtocol.PermissionGrant
 
 /// iOS port of the Android `RemoteSessionClient` — WebSocket relay connection +
 /// E2EE pairing handshake. This is the protocol-driven core (transport injected),
@@ -126,6 +127,7 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     private var closedExplicitly = false
     private var reconnectAttempt = 0
     private var reconnectGeneration = 0
+    private let approvalSettlements = RemoteApprovalSettlementRegistry()
 
     // Optional vendor-push credentials — ride in the encrypted pair.join so the
     // host can wake this device while backgrounded (sourced by the app layer via
@@ -135,6 +137,10 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
 
     public var currentPairing: RemoteSessionPairing? { pairing }
     public var localPeerId: String? { peerId }
+    public var pendingApprovalCount: Int { approvalSettlements.count }
+    public func isApprovalPending(_ requestId: String) -> Bool {
+        approvalSettlements.status(of: requestId) == .pending
+    }
 
     public init(
         webSocketFactory: @escaping RemoteSessionWebSocketFactory,
@@ -199,6 +205,7 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
         reconnectGeneration += 1
         socket?.close(code: 1000, reason: "iOS Remote Session closed")
         socket = nil
+        approvalSettlements.invalidateAll()
         status = .disconnected
     }
 
@@ -255,9 +262,15 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
         decision: RemoteApprovalDecision,
         fingerprint: String? = nil,
         binding: String? = nil,
-        revision: Any? = nil
+        revision: Any? = nil,
+        reviewedPermissions: [RemoteApprovalPermissionGrant]? = nil
     ) -> Bool {
-        guard let (wireDecision, approved) = encodeRemoteApprovalDecision(decision) else {
+        guard approvalSettlements.beginDecision(requestId) else { return false }
+        guard let (wireDecision, approved) = encodeRemoteApprovalDecision(
+            decision,
+            reviewedPermissions: reviewedPermissions
+        ) else {
+            approvalSettlements.complete(requestId, reservation: .responding, accepted: false)
             return false
         }
         let hasDurableTuple = fingerprint != nil || binding != nil || revision != nil
@@ -265,8 +278,11 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             guard let fingerprint, !fingerprint.isEmpty,
                   let binding, !binding.isEmpty,
                   let revision = normalizedApprovalRevision(revision)
-            else { return false }
-            return sendControl([
+            else {
+                approvalSettlements.complete(requestId, reservation: .responding, accepted: false)
+                return false
+            }
+            let sent = sendControl([
                 "type": "approval.resolve",
                 "requestId": requestId,
                 "decision": wireDecision,
@@ -275,13 +291,17 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
                 "binding": binding,
                 "revision": revision,
             ])
+            approvalSettlements.complete(requestId, reservation: .responding, accepted: sent)
+            return sent
         }
-        return sendControl([
+        let sent = sendControl([
             "type": "approval.resolve",
             "requestId": requestId,
             "decision": wireDecision,
             "approved": approved,
         ])
+        approvalSettlements.complete(requestId, reservation: .responding, accepted: sent)
+        return sent
     }
 
     /// N-1 source compatibility. New callers must construct the generated
@@ -306,7 +326,12 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
 
     @discardableResult
     public func interrupt() -> Bool {
-        sendControl(["type": "interrupt"])
+        let reserved = approvalSettlements.beginInterrupt()
+        let sent = sendControl(["type": "interrupt"])
+        for requestId in reserved {
+            approvalSettlements.complete(requestId, reservation: .interrupting, accepted: sent)
+        }
+        return sent
     }
 
     @discardableResult
@@ -367,7 +392,8 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     }
 
     private func encodeRemoteApprovalDecision(
-        _ decision: RemoteApprovalDecision
+        _ decision: RemoteApprovalDecision,
+        reviewedPermissions: [RemoteApprovalPermissionGrant]?
     ) -> ([String: Any], Bool)? {
         let approved: Bool
         switch decision {
@@ -375,9 +401,14 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             approved = true
         case .decline, .cancel:
             approved = false
-        case .acceptForTurn, .acceptForSession:
-            // The current binary UI cannot review scoped persistent grants.
-            return nil
+        case .acceptForTurn(let permissions), .acceptForSession(let permissions):
+            guard let permissions, !permissions.isEmpty,
+                  let reviewedPermissions,
+                  let decisionData = canonicalPermissionData(permissions),
+                  let reviewedData = canonicalPermissionData(reviewedPermissions),
+                  decisionData == reviewedData
+            else { return nil }
+            approved = true
         }
 
         guard let data = try? JSONEncoder().encode(decision),
@@ -385,6 +416,15 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
               let object = value as? [String: Any]
         else { return nil }
         return (object, approved)
+    }
+
+    private func canonicalPermissionData(
+        _ permissions: [RemoteApprovalPermissionGrant]
+    ) -> Data? {
+        guard let encoded = try? JSONEncoder().encode(permissions),
+              let value = try? JSONSerialization.jsonObject(with: encoded)
+        else { return nil }
+        return try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
     }
 
     // MARK: Inbound
@@ -438,8 +478,10 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
                 reconnectGeneration += 1
                 socket?.close(code: 1000, reason: "Revoked by host")
                 socket = nil
+                approvalSettlements.invalidateAll()
                 status = .revoked
             default:
+                if let event { updateApprovalSettlement(event) }
                 onEvent?(RemoteSessionEvent(type: type, json: json))
             }
         } catch {
@@ -447,6 +489,22 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             let message = (error as? RemoteSessionCryptoError).map { "\($0)" }
                 ?? "Remote Session protocol error"
             onError?(message)
+        }
+    }
+
+    private func updateApprovalSettlement(_ event: [String: Any]) {
+        let requestId = (event["requestId"] as? String)
+            ?? (event["approvalId"] as? String)
+            ?? (event["id"] as? String)
+            ?? ""
+        guard !requestId.isEmpty else { return }
+        switch event["type"] as? String {
+        case "permission.request", "approval.requested", "approval_request":
+            approvalSettlements.open(requestId)
+        case "permission.resolved", "approval.resolved", "approval_resolved":
+            approvalSettlements.resolve(requestId)
+        default:
+            break
         }
     }
 

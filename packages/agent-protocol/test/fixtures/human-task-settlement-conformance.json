@@ -1,11 +1,27 @@
 {
   "schema_version": 1,
-  "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+  "surfaces": [
+    "graph",
+    "desktop",
+    "vscode",
+    "jetbrains",
+    "android",
+    "ios",
+    "web"
+  ],
   "actions": ["approve", "decline", "cancel", "restart", "advance"],
   "scenarios": [
     {
       "name": "decision-wins-duplicate-response",
-      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "surfaces": [
+        "graph",
+        "desktop",
+        "vscode",
+        "jetbrains",
+        "android",
+        "ios",
+        "web"
+      ],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -16,7 +32,10 @@
             "graph": "settled",
             "desktop": "settled",
             "vscode": "settled",
-            "jetbrains": "settled"
+            "jetbrains": "settled",
+            "android": "settled",
+            "ios": "settled",
+            "web": "settled"
           }
         },
         {
@@ -26,7 +45,10 @@
             "graph": "rejected",
             "desktop": "rejected",
             "vscode": "rejected",
-            "jetbrains": "rejected"
+            "jetbrains": "rejected",
+            "android": "rejected",
+            "ios": "rejected",
+            "web": "rejected"
           }
         }
       ],
@@ -56,12 +78,38 @@
           "sent_decisions": 1,
           "interrupts": 0,
           "rejected_responses": 1
+        },
+        "android": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "ios": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "web": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "cancel-wins-late-decision",
-      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "surfaces": [
+        "graph",
+        "desktop",
+        "vscode",
+        "jetbrains",
+        "android",
+        "ios",
+        "web"
+      ],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -71,7 +119,10 @@
             "graph": "settled",
             "desktop": "settled",
             "vscode": "settled",
-            "jetbrains": "settled"
+            "jetbrains": "settled",
+            "android": "settled",
+            "ios": "settled",
+            "web": "settled"
           }
         },
         {
@@ -81,7 +132,10 @@
             "graph": "rejected",
             "desktop": "rejected",
             "vscode": "rejected",
-            "jetbrains": "rejected"
+            "jetbrains": "rejected",
+            "android": "rejected",
+            "ios": "rejected",
+            "web": "rejected"
           }
         }
       ],
@@ -111,12 +165,38 @@
           "sent_decisions": 0,
           "interrupts": 1,
           "rejected_responses": 1
+        },
+        "android": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
+        },
+        "ios": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
+        },
+        "web": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 1,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "restart-recovers-durable-task-but-invalidates-transport-card",
-      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "surfaces": [
+        "graph",
+        "desktop",
+        "vscode",
+        "jetbrains",
+        "android",
+        "ios",
+        "web"
+      ],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -126,7 +206,10 @@
             "graph": "settled",
             "desktop": "settled",
             "vscode": "settled",
-            "jetbrains": "settled"
+            "jetbrains": "settled",
+            "android": "settled",
+            "ios": "settled",
+            "web": "settled"
           }
         },
         {
@@ -136,7 +219,10 @@
             "graph": "settled",
             "desktop": "rejected",
             "vscode": "rejected",
-            "jetbrains": "rejected"
+            "jetbrains": "rejected",
+            "android": "rejected",
+            "ios": "rejected",
+            "web": "rejected"
           }
         }
       ],
@@ -166,12 +252,38 @@
           "sent_decisions": 0,
           "interrupts": 0,
           "rejected_responses": 1
+        },
+        "android": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "ios": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "web": {
+          "pending_approvals": 0,
+          "sent_decisions": 0,
+          "interrupts": 0,
+          "rejected_responses": 1
         }
       }
     },
     {
       "name": "decision-persists-across-restart",
-      "surfaces": ["graph", "desktop", "vscode", "jetbrains"],
+      "surfaces": [
+        "graph",
+        "desktop",
+        "vscode",
+        "jetbrains",
+        "android",
+        "ios",
+        "web"
+      ],
       "quorum": 1,
       "separation_of_duties": false,
       "steps": [
@@ -182,7 +294,10 @@
             "graph": "settled",
             "desktop": "settled",
             "vscode": "settled",
-            "jetbrains": "settled"
+            "jetbrains": "settled",
+            "android": "settled",
+            "ios": "settled",
+            "web": "settled"
           }
         },
         {
@@ -191,7 +306,10 @@
             "graph": "settled",
             "desktop": "settled",
             "vscode": "settled",
-            "jetbrains": "settled"
+            "jetbrains": "settled",
+            "android": "settled",
+            "ios": "settled",
+            "web": "settled"
           }
         },
         {
@@ -201,7 +319,10 @@
             "graph": "rejected",
             "desktop": "rejected",
             "vscode": "rejected",
-            "jetbrains": "rejected"
+            "jetbrains": "rejected",
+            "android": "rejected",
+            "ios": "rejected",
+            "web": "rejected"
           }
         }
       ],
@@ -227,6 +348,24 @@
           "rejected_responses": 1
         },
         "jetbrains": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "android": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "ios": {
+          "pending_approvals": 0,
+          "sent_decisions": 1,
+          "interrupts": 0,
+          "rejected_responses": 1
+        },
+        "web": {
           "pending_approvals": 0,
           "sent_decisions": 1,
           "interrupts": 0,

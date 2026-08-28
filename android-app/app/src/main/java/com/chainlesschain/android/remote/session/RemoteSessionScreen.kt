@@ -100,13 +100,25 @@ fun RemoteSessionScreen(
                         Column(Modifier.padding(12.dp)) {
                             Text(event.optString("type", "event"))
                             Text(event.optString("content", event.optJSONObject("payload")?.optString("content") ?: ""))
-                            if (
-                                event.optString("type") == "permission.request" ||
-                                event.optString("type").contains("approval")
-                            ) {
+                            if (viewModel.isApprovalPending(event)) {
+                                val reviewedPermissions = reviewedApprovalPermissions(event)
+                                reviewedPermissions?.forEach { grant ->
+                                    Text("${grant.capability} — ${grant.scope}")
+                                    (grant.expiresAt as? String)?.let { Text("Expires: $it") }
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = { viewModel.approve(event, true) }) { Text("Approve") }
+                                    Button(onClick = { viewModel.approve(event, true) }) { Text("Allow once") }
                                     OutlinedButton(onClick = { viewModel.approve(event, false) }) { Text("Reject") }
+                                }
+                                if (reviewedPermissions != null) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedButton(onClick = { viewModel.approveForTurn(event) }) {
+                                            Text("Allow for turn")
+                                        }
+                                        OutlinedButton(onClick = { viewModel.approveForSession(event) }) {
+                                            Text("Allow for session")
+                                        }
+                                    }
                                 }
                             }
                         }
