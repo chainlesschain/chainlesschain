@@ -2155,6 +2155,17 @@ P1-9 继续保持“部分完成”：共享语料现由 Graph、Desktop、VS Co
 
 P1-11 继续保持“部分完成”，但仓库内已无已知 bundled Skill capability、filesystem/environment/process/network authority、审批/去分类接线或产品凭据入口缺口。唯一剩余关闭条件是：对同一精确提交在 Linux、Windows、macOS 生成受信签名安装包，完成真实安装、启动与对应 Skill 旅程，并保留可核验的权威矩阵；本地单测、未签名包或不同 SHA 的分散结果都不能替代该验收。
 
+### 12.59 P1-11 签名 Desktop Skill 权威矩阵聚合门（2026-08-28）
+
+`cbf2a5c84b` 把 §12.58 剩余外部验收的证据口径固化为默认拒绝的仓库 gate，但不把 gate 本身冒充已完成的平台验收：
+
+- `verify-signed-desktop-skill-matrix.mjs` 只接受 Linux、macOS、Windows 各一份、同一完整 40 位提交 SHA 的 bounded JSON 证据。每份记录必须绑定非空安装包字节数与 SHA-256、受信平台签名策略（Linux keyless Sigstore transparency log、Windows Authenticode signer + timestamp、macOS Developer ID + notarization assessment）、fresh install receipt、`isPackaged + ASAR` 启动 receipt 及内容摘要；缺平台、重复平台、混 SHA、摘要篡改、符号链接或多余 JSON 均拒绝。
+- Skill 旅程固定覆盖 `github-manager`、`google-workspace`、`notion`、`tavily-search`、`obsidian`、`code-runner`、`network-diagnostics`，分别要求 execution approval、policy authorization、terminal receipt 与 environment/filesystem/process/network 对应 authority evidence，不能用一个宽泛“Skill tests passed”布尔值替代。
+- 可复用 `Desktop Signed Skill Qualification` workflow 同时提供 PR/push contract self-test 和正式 aggregate job。正式 job 会核对 producer Actions run 的 exact head SHA 与受保护 workflow path、按 exact SHA 下载三平台 artifact、重新执行聚合器，并用 GitHub OIDC provenance attestation 绑定 aggregate matrix；任意 source run、任意 workflow ref 或 `continue-on-error` 均不被接受。
+- 7/7 正负向测试、严格 ESLint、Prettier、Node syntax、actionlint 与 `git diff --check` 全部通过。当前仓库没有 Desktop Windows/macOS 签名与 notarization secrets，也尚未有受保护的 `desktop-signed-skill-platform.yml` producer 产生上述平台记录，因此手动或复用 aggregate 会因缺少可信证据而失败；这正是预期的 fail-closed 状态。
+
+P1-11 仍为“部分完成”。仓库侧下一步只剩在受保护 producer 中接入真实签名安装包、fresh install/packaged launch/七项 Skill journey 的平台命令并上传记录；最终仍必须在 GitHub secrets 配置证书/公证凭据后，对同一精确 SHA 跑出三平台成功矩阵。未配置 secret、未签名 release artifact、只通过 contract self-test 或伪造 JSON 都不改变任务状态。
+
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：12 项已完成、14 项部分完成、0 项待完成。
