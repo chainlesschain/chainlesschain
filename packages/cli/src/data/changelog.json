@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.7",
+      "cliVersions": ["0.166.6", "0.166.7"],
+      "date": "2026-08-28",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.7: authoritative Graph Kernel cutover",
+          "body": "> `chainlesschain` **0.166.6 -> 0.166.7** (release candidate,\n> 2026-08-28).\n\n- **Canonical execution authority**: CLI graph, Team, distributed-team,\n  Cowork, Scheduler, and App Server entry points now resolve through the\n  Graph Kernel cutover ledger instead of silently retaining parallel mutation\n  paths.\n- **Durable fencing and recovery**: graph writers, leases, receipts, takeover,\n  migration, and crash/resume flows are bound to persisted authority and\n  checked-out source evidence so stale owners cannot resume mutations.\n- **Legacy containment**: retired runtimes retain explicitly read-only history\n  access while unclassified or mutating legacy routes fail closed and report\n  their canonical replacement targets.\n- **Release validation**: publication requires this exact candidate to pass\n  Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox`, the Graph real-journey\n  matrix, immutable package checks, and public-registry provenance readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.6",
       "cliVersions": ["0.166.5", "0.166.6"],
       "date": "2026-08-27",

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.7: authoritative Graph Kernel cutover
+
+> `chainlesschain` **0.166.6 -> 0.166.7** (release candidate,
+> 2026-08-28).
+
+- **Canonical execution authority**: CLI graph, Team, distributed-team,
+  Cowork, Scheduler, and App Server entry points now resolve through the
+  Graph Kernel cutover ledger instead of silently retaining parallel mutation
+  paths.
+- **Durable fencing and recovery**: graph writers, leases, receipts, takeover,
+  migration, and crash/resume flows are bound to persisted authority and
+  checked-out source evidence so stale owners cannot resume mutations.
+- **Legacy containment**: retired runtimes retain explicitly read-only history
+  access while unclassified or mutating legacy routes fail closed and report
+  their canonical replacement targets.
+- **Release validation**: publication requires this exact candidate to pass
+  Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox`, the Graph real-journey
+  matrix, immutable package checks, and public-registry provenance readback.
+
 ### Fixed - cc CLI 0.166.6: bounded Agent IPC transport
 
 > `chainlesschain` **0.166.5 -> 0.166.6** (release candidate,
