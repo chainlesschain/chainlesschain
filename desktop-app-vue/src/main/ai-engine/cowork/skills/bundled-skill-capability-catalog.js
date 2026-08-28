@@ -198,7 +198,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "code-runner": Object.freeze([
-    "630577ef56feeb0ff49dd6c0557f7a324e70c9a011ed836a1ea477590df9f16c",
+    "9c8bae7740da697db3cc5d61ea223147a9b5f51ad05ffc5c5fdd01488c1a36bd",
     Object.freeze([
       "data:result",
       "data:task",
@@ -1576,18 +1576,428 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
   ]),
 });
 
+const BUNDLED_SKILL_FILESYSTEM_ROWS = Object.freeze({
+  "api-design": Object.freeze([
+    Object.freeze(["readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "api-docs-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "api-gateway": Object.freeze([
+    Object.freeze(["existsSync", "mkdirSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "api-tester": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "architect-mode": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "readdirSync",
+      "statSync",
+      "unlinkSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "audio-transcriber": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "auto-context": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "backup-manager": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readdirSync",
+      "statSync",
+      "unlinkSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  bugbot: Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "chart-creator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "code-review": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "code-runner": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdtempSync",
+      "realpathSync",
+      "rmdirSync",
+      "unlinkSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace", "skill-temporary"]),
+  ]),
+  "code-translator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "codebase-qa": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "context-loader": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "crypto-toolkit": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "csv-processor": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "cursor-rules-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "data-analysis": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "data-exporter": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "readdirSync",
+      "statSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "db-migration": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "dead-code-eliminator": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "debugging-strategies": Object.freeze([
+    Object.freeze(["readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "dependency-analyzer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "devops-automation": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "diff-previewer": Object.freeze([
+    Object.freeze(["existsSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "doc-coauthoring": Object.freeze([
+    Object.freeze(["readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "doc-comparator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "doc-converter": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "doc-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "docker-compose-generator": Object.freeze([
+    Object.freeze(["existsSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "env-doctor": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "env-file-manager": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "excel-analyzer": Object.freeze([
+    Object.freeze(["existsSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "explain-code": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "fault-localizer": Object.freeze([
+    Object.freeze(["readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "file-compressor": Object.freeze([
+    Object.freeze(["existsSync", "mkdirSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "google-workspace": Object.freeze([
+    Object.freeze(["existsSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "i18n-manager": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "image-editor": Object.freeze([
+    Object.freeze(["existsSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "image-generator": Object.freeze([
+    Object.freeze(["existsSync", "statSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "impact-analyzer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "json-yaml-toolkit": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "knowledge-graph": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "lint-and-fix": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "log-analyzer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "markdown-enhancer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "media-metadata": Object.freeze([
+    Object.freeze(["existsSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "memory-insights": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "readdirSync",
+      "statSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "mock-data-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  obsidian: Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "readdirSync",
+      "statSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "ocr-scanner": Object.freeze([
+    Object.freeze(["existsSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "onboard-project": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "pdf-toolkit": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "pdh-im-collect": Object.freeze([
+    Object.freeze(["existsSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "performance-optimizer": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "performance-profiler": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "planning-with-files": Object.freeze([
+    Object.freeze([
+      "appendFileSync",
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "pptx-creator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "proactive-agent": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "readFileSync",
+      "readdirSync",
+      "statSync",
+      "watch",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "prompt-enhancer": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  refactor: Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "regex-playground": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "release-manager": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "repo-map": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "research-agent": Object.freeze([
+    Object.freeze(["readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "rules-engine": Object.freeze([
+    Object.freeze([
+      "existsSync",
+      "mkdirSync",
+      "readFileSync",
+      "readdirSync",
+      "writeFileSync",
+    ]),
+    Object.freeze(["workspace"]),
+  ]),
+  "screenshot-to-code": Object.freeze([
+    Object.freeze(["existsSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "security-audit": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "self-improving-agent": Object.freeze([
+    Object.freeze(["existsSync", "mkdirSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "skill-creator": Object.freeze([
+    Object.freeze(["existsSync", "mkdirSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "snippet-library": Object.freeze([
+    Object.freeze(["existsSync", "mkdirSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "stream-processor": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "subtitle-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  summarizer: Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "template-renderer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "test-and-fix": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "test-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "tts-synthesizer": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "verification-loop": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  verify: Object.freeze([
+    Object.freeze(["existsSync", "readFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "video-toolkit": Object.freeze([
+    Object.freeze(["existsSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "vulnerability-scanner": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "readdirSync", "statSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+  "word-generator": Object.freeze([
+    Object.freeze(["existsSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["workspace"]),
+  ]),
+});
+
+const EMPTY_FILESYSTEM_POLICY = Object.freeze([
+  Object.freeze([]),
+  Object.freeze([]),
+]);
+
 const BUNDLED_SKILL_CAPABILITY_CATALOG = Object.freeze(
   Object.fromEntries(
     Object.entries(BUNDLED_SKILL_CAPABILITY_ROWS).map(
-      ([skillId, [sourceSha256, executionCapabilities]]) => [
-        skillId,
-        Object.freeze({
+      ([skillId, [sourceSha256, executionCapabilities]]) => {
+        const [filesystemOperations, filesystemRoots] =
+          BUNDLED_SKILL_FILESYSTEM_ROWS[skillId] || EMPTY_FILESYSTEM_POLICY;
+        return [
           skillId,
-          handlerRelativePath: "handler.js",
-          sourceSha256,
-          executionCapabilities,
-        }),
-      ],
+          Object.freeze({
+            skillId,
+            handlerRelativePath: "handler.js",
+            sourceSha256,
+            executionCapabilities,
+            filesystemOperations,
+            filesystemRoots,
+          }),
+        ];
+      },
     ),
   ),
 );

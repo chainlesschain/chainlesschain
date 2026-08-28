@@ -163,8 +163,8 @@ async function isCommandAvailable(command, runtimeEnv) {
 
 // ── Temp file management ─────────────────────────────────────────
 
-function createTempFile(code, extension) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-code-runner-"));
+function createTempFile(code, extension, temporaryRoot = os.tmpdir()) {
+  const tempDir = fs.mkdtempSync(path.join(temporaryRoot, "cc-code-runner-"));
   const filePath = path.join(tempDir, `snippet${extension}`);
   fs.writeFileSync(filePath, code, { encoding: "utf-8", mode: 0o600 });
   return filePath;
@@ -275,7 +275,14 @@ function parseInput(input) {
 
 // ── Action handlers ──────────────────────────────────────────────
 
-async function handleRun(code, languageName, timeout, cwd, runtimeEnv) {
+async function handleRun(
+  code,
+  languageName,
+  timeout,
+  cwd,
+  runtimeEnv,
+  temporaryRoot,
+) {
   const lang = resolveLanguage(languageName);
 
   if (!lang) {
@@ -296,7 +303,7 @@ async function handleRun(code, languageName, timeout, cwd, runtimeEnv) {
   }
 
   const extension = lang.extensions[0];
-  const tempFile = createTempFile(code, extension);
+  const tempFile = createTempFile(code, extension, temporaryRoot);
 
   try {
     const startTime = Date.now();
@@ -552,6 +559,7 @@ module.exports = {
             options.timeout,
             projectRoot,
             runtimeEnv,
+            context?.host?.filesystemTempRoot,
           );
 
         case "file":

@@ -146,6 +146,11 @@ const REVIEWED_SKILL_CAPABILITY_ADDITIONS = new Map([
   // AST cannot recover the literal target even though the handler calls spawn.
   ["code-runner", ["process:execute"]],
 ]);
+const REVIEWED_SKILL_FILESYSTEM_ROOTS = new Map([
+  // Code snippets are materialized below a host-owned, Skill-specific temp
+  // directory before the process broker executes them.
+  ["code-runner", ["workspace", "skill-temporary"]],
+]);
 
 function sha256(bytes) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
@@ -362,7 +367,7 @@ function auditFsMethod(method, capabilities, diagnostics) {
     diagnostics.push(`unknown fs operation ${JSON.stringify(method)}`);
 }
 
-export function inferCapabilities(source, skillId) {
+export function inferCapabilities(source, skillId, auditDetails = null) {
   const diagnostics = [];
   const capabilities = new Set(BASE_CAPABILITIES);
   let ast;
@@ -442,6 +447,9 @@ export function inferCapabilities(source, skillId) {
   if (importsFs && auditedFsCalls.size === 0) {
     diagnostics.push("fs is imported but no auditable fs operation was found");
   }
+  if (auditDetails && typeof auditDetails === "object") {
+    auditDetails.filesystemOperations = [...auditedFsCalls].sort();
+  }
 
   walk(ast, (node) => {
     if (node.type === "MemberExpression") {
@@ -520,12 +528,24 @@ function discoverEntries() {
     }
     const sourceBytes = fs.readFileSync(handlerPath);
     const source = sourceBytes.toString("utf8");
+    const auditDetails = {};
+    const executionCapabilities = inferCapabilities(
+      source,
+      skillId,
+      auditDetails,
+    );
+    const filesystemOperations = auditDetails.filesystemOperations || [];
     entries.push({
       skillId,
       handlerPath,
       manifestPath,
       sourceSha256: sha256(sourceBytes),
-      executionCapabilities: inferCapabilities(source, skillId),
+      executionCapabilities,
+      filesystemOperations,
+      filesystemRoots:
+        filesystemOperations.length > 0
+          ? REVIEWED_SKILL_FILESYSTEM_ROOTS.get(skillId) || ["workspace"]
+          : [],
     });
   }
   return entries;
@@ -567,6 +587,28 @@ ${capabilities}
   ]),`;
     })
     .join("\n");
+  const filesystemRows = entries
+    .filter((entry) => entry.filesystemOperations.length > 0)
+    .map((entry) => {
+      const property = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(entry.skillId)
+        ? entry.skillId
+        : JSON.stringify(entry.skillId);
+      const operations = entry.filesystemOperations
+        .map((operation) => `      ${JSON.stringify(operation)},`)
+        .join("\n");
+      const roots = entry.filesystemRoots
+        .map((root) => `      ${JSON.stringify(root)},`)
+        .join("\n");
+      return `  ${property}: Object.freeze([
+    Object.freeze([
+${operations}
+    ]),
+    Object.freeze([
+${roots}
+    ]),
+  ]),`;
+    })
+    .join("\n");
   const rawCatalog = `/**
  * Reviewed execution identities for all bundled executable Skills.
  *
@@ -579,18 +621,33 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
 ${rows}
 });
 
+const BUNDLED_SKILL_FILESYSTEM_ROWS = Object.freeze({
+${filesystemRows}
+});
+
+const EMPTY_FILESYSTEM_POLICY = Object.freeze([
+  Object.freeze([]),
+  Object.freeze([]),
+]);
+
 const BUNDLED_SKILL_CAPABILITY_CATALOG = Object.freeze(
   Object.fromEntries(
     Object.entries(BUNDLED_SKILL_CAPABILITY_ROWS).map(
-      ([skillId, [sourceSha256, executionCapabilities]]) => [
-        skillId,
-        Object.freeze({
+      ([skillId, [sourceSha256, executionCapabilities]]) => {
+        const [filesystemOperations, filesystemRoots] =
+          BUNDLED_SKILL_FILESYSTEM_ROWS[skillId] || EMPTY_FILESYSTEM_POLICY;
+        return [
           skillId,
-          handlerRelativePath: "handler.js",
-          sourceSha256,
-          executionCapabilities,
-        }),
-      ],
+          Object.freeze({
+            skillId,
+            handlerRelativePath: "handler.js",
+            sourceSha256,
+            executionCapabilities,
+            filesystemOperations,
+            filesystemRoots,
+          }),
+        ];
+      },
     ),
   ),
 );

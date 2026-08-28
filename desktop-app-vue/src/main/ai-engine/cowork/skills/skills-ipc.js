@@ -11,13 +11,14 @@ const { ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 const { logger } = require("../../../utils/logger");
-const { SkillRegistry, getSkillRegistry } = require("./skill-registry");
-const { SkillLoader, LAYER_PRIORITY } = require("./skill-loader");
-const { SkillMdParser } = require("./skill-md-parser");
-const { SkillGating } = require("./skill-gating");
+const { getSkillRegistry } = require("./skill-registry");
+const { SkillLoader } = require("./skill-loader");
 const {
   getDefaultExternalSkillExecutor,
 } = require("./external-skill-executor");
+const {
+  createBundledSkillFilesystemAuthorityFactory,
+} = require("./bundled-skill-filesystem-authority");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -50,6 +51,32 @@ function registerSkillsIPC(options = {}) {
 
   // 绑定加载器到注册表
   registry.setLoader(loader);
+  registry.setExecutionAuthorizer(
+    hookSystem
+      ? async ({ skillId, task }) => {
+          const preResult = await hookSystem.trigger("PreToolUse", {
+            toolName: `skill:${skillId}`,
+            params: task,
+          });
+          const failedHook = preResult.hookResults?.find(
+            (result) => result.result === "error",
+          );
+          return preResult.prevented || failedHook
+            ? {
+                approved: false,
+                reason:
+                  preResult.preventReason ||
+                  `Skill approval hook failed: ${failedHook?.hookName || "unknown"}`,
+              }
+            : { approved: true };
+        }
+      : null,
+  );
+  registry.setBundledSkillFilesystemAuthorityFactory(
+    createBundledSkillFilesystemAuthorityFactory({
+      getWorkspacePath: () => loader.options.workspacePath,
+    }),
+  );
 
   // Hooks 集成
   let skillHookId = null;
@@ -121,7 +148,34 @@ function registerSkillsIPC(options = {}) {
    */
   ipcMain.handle("skills:set-workspace", async (event, newPath) => {
     try {
-      loader.setWorkspacePath(newPath);
+      if (typeof newPath !== "string" || !newPath.trim()) {
+        throw new Error("A workspace directory is required");
+      }
+      if (hookSystem) {
+        const preResult = await hookSystem.trigger("PreToolUse", {
+          toolName: "skill:workspace-authority",
+          params: { workspacePath: newPath },
+        });
+        const failedHook = preResult.hookResults?.find(
+          (result) => result.result === "error",
+        );
+        if (preResult.prevented || failedHook) {
+          return {
+            success: false,
+            error: `Workspace authority prevented: ${
+              preResult.preventReason ||
+              `approval hook failed: ${failedHook?.hookName || "unknown"}`
+            }`,
+            prevented: true,
+          };
+        }
+      }
+      const canonicalPath = await fs.realpath(path.resolve(newPath));
+      const stats = await fs.stat(canonicalPath);
+      if (!stats.isDirectory()) {
+        throw new Error("Workspace path must be a directory");
+      }
+      loader.setWorkspacePath(canonicalPath);
       return { success: true };
     } catch (error) {
       logger.error("[SkillsIPC] Set workspace error:", error);
@@ -267,22 +321,6 @@ function registerSkillsIPC(options = {}) {
     "skills:execute",
     async (event, skillId, task, context = {}) => {
       try {
-        // 触发 Hooks
-        if (hookSystem) {
-          const preResult = await hookSystem.trigger("PreToolUse", {
-            toolName: `skill:${skillId}`,
-            params: task,
-          });
-
-          if (preResult.prevented) {
-            return {
-              success: false,
-              error: `Skill execution prevented: ${preResult.preventReason}`,
-              prevented: true,
-            };
-          }
-        }
-
         const startTime = Date.now();
         const result = await registry.executeSkill(skillId, task, context);
         const executionTime = Date.now() - startTime;
@@ -315,6 +353,7 @@ function registerSkillsIPC(options = {}) {
         return {
           success: false,
           error: error.message,
+          ...(error.prevented === true ? { prevented: true } : {}),
         };
       }
     },
@@ -697,6 +736,10 @@ function unregisterSkillsIPC() {
   channels.forEach((channel) => {
     ipcMain.removeHandler(channel);
   });
+
+  const registry = getSkillRegistry();
+  registry.setExecutionAuthorizer(null);
+  registry.setBundledSkillFilesystemAuthorityFactory(null);
 
   logger.info("[SkillsIPC] Unregistered all IPC handlers");
 }
