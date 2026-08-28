@@ -323,6 +323,10 @@ async function assemblePackage(root) {
   fs.cpSync(layout.source, packageDirectory, {
     recursive: true,
     dereference: process.platform !== "darwin",
+    // Electron.app frameworks use relative Current/Resources symlinks.
+    // cpSync otherwise resolves those links back into node_modules, leaving
+    // unsealed files at the framework root that macOS refuses to sign.
+    verbatimSymlinks: process.platform === "darwin",
     force: true,
   });
   fs.mkdirSync(layout.resources, { recursive: true });
@@ -348,6 +352,22 @@ async function assemblePackage(root) {
     if (signed.status !== 0) {
       throw new Error(
         `ad-hoc signing packaged Electron failed: ${signed.stderr}`,
+      );
+    }
+    const verified = spawnSync(
+      "codesign",
+      [
+        "--verify",
+        "--deep",
+        "--strict",
+        "--verbose=2",
+        path.join(packageDirectory, "Electron.app"),
+      ],
+      { encoding: "utf8" },
+    );
+    if (verified.status !== 0) {
+      throw new Error(
+        `verifying packaged Electron signature failed: ${verified.stderr}`,
       );
     }
   }
