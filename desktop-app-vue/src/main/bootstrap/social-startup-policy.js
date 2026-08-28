@@ -39,7 +39,6 @@ const SOCIAL_STARTUP_PHASE_MODULES = Object.freeze({
     "syncEngine",
     "vcManager",
     "vcTemplateManager",
-    "deepLinkHandler",
   ]),
   9: Object.freeze(["remoteGateway"]),
 });

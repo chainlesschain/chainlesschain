@@ -586,6 +586,19 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  const deepLinkLifecycleContract =
+    "src/main/system/__tests__/deep-link-handler-lifecycle.test.js";
+  for (const source of [
+    "desktop-app-vue/src/main/index.js",
+    "desktop-app-vue/src/main/system/deep-link-handler.js",
+  ]) {
+    const sourceSelection = selector.createSelection([source]);
+    assert.ok(
+      sourceSelection.selectedTests.includes(deepLinkLifecycleContract),
+      `${source} must select ${deepLinkLifecycleContract}`,
+    );
+  }
+
   const graphFixtureMappings = new Map([
     [
       "desktop-app-vue/src/main/ai-engine/code-agent/__tests__/fixtures/desktop-graph-kill-writer.cjs",

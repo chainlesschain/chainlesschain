@@ -250,23 +250,6 @@ function registerSocialInitializers(initializerFactory) {
   });
 
   // ========================================
-  // 深链接处理器（企业版 DID 邀请链接）
-  // ========================================
-  factory.register({
-    name: "deepLinkHandler",
-    dependsOn: ["organizationManager"],
-    async init(context) {
-      const DeepLinkHandler = require("../system/deep-link-handler");
-      const deepLinkHandler = new DeepLinkHandler(
-        context.mainWindow,
-        context.organizationManager,
-      );
-      deepLinkHandler.register(app);
-      return deepLinkHandler;
-    },
-  });
-
-  // ========================================
   // v0.39.0 — 通话管理器（语音/视频通话）
   // ========================================
   factory.register({

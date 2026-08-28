@@ -16,13 +16,54 @@ class DeepLinkHandler {
     this.mainWindow = mainWindow;
     this.organizationManager = organizationManager;
     this.pendingInvitation = null;
+    this.app = null;
+    this.startupTimer = null;
+    this._openUrlListener = (event, url) => {
+      event.preventDefault();
+      this.handleDeepLink(url);
+    };
+    this._secondInstanceListener = (_event, commandLine) => {
+      const url = commandLine.find((arg) =>
+        arg.startsWith("chainlesschain://"),
+      );
+      if (url) {
+        this.handleDeepLink(url);
+      }
+
+      if (this.mainWindow) {
+        if (this.mainWindow.isMinimized()) {
+          this.mainWindow.restore();
+        }
+        this.mainWindow.focus();
+      }
+    };
   }
 
   /**
    * 注册协议处理器
    * @param {Electron.App} app - Electron app实例
    */
+  _unregisterAppListeners() {
+    if (!this.app) {
+      return;
+    }
+    this.app.removeListener("open-url", this._openUrlListener);
+    this.app.removeListener("second-instance", this._secondInstanceListener);
+    this.app = null;
+  }
+
   register(app) {
+    if (!app || typeof app.on !== "function") {
+      throw new TypeError("[DeepLinkHandler] Electron app is required");
+    }
+    if (this.app === app) {
+      return false;
+    }
+    if (this.app) {
+      this._unregisterAppListeners();
+    }
+    this.app = app;
+
     // 设置为默认协议客户端
     if (process.defaultApp) {
       if (process.argv.length >= 2) {
@@ -35,31 +76,13 @@ class DeepLinkHandler {
     }
 
     // macOS: 处理 open-url 事件
-    app.on("open-url", (event, url) => {
-      event.preventDefault();
-      this.handleDeepLink(url);
-    });
+    app.on("open-url", this._openUrlListener);
 
     // Windows/Linux: 处理 second-instance 事件
-    app.on("second-instance", (event, commandLine) => {
-      // 在命令行参数中查找协议URL
-      const url = commandLine.find((arg) =>
-        arg.startsWith("chainlesschain://"),
-      );
-      if (url) {
-        this.handleDeepLink(url);
-      }
-
-      // 聚焦主窗口
-      if (this.mainWindow) {
-        if (this.mainWindow.isMinimized()) {
-          this.mainWindow.restore();
-        }
-        this.mainWindow.focus();
-      }
-    });
+    app.on("second-instance", this._secondInstanceListener);
 
     logger.info("[DeepLinkHandler] ✓ 协议处理器已注册");
+    return true;
   }
 
   /**
@@ -296,11 +319,27 @@ class DeepLinkHandler {
     // 在命令行参数中查找协议URL
     const url = argv.find((arg) => arg.startsWith("chainlesschain://"));
     if (url) {
+      if (this.startupTimer) {
+        clearTimeout(this.startupTimer);
+      }
       // 延迟处理，等待应用完全启动
-      setTimeout(() => {
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = null;
         this.handleDeepLink(url);
       }, 1000);
+      this.startupTimer.unref?.();
     }
+  }
+
+  destroy() {
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer);
+      this.startupTimer = null;
+    }
+    this._unregisterAppListeners();
+    this.pendingInvitation = null;
+    this.mainWindow = null;
+    this.organizationManager = null;
   }
 }
 

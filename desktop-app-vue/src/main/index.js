@@ -1411,6 +1411,7 @@ class ChainlessChainApp {
     }
 
     // 初始化深链接
+    this.deepLinkHandler?.destroy();
     this.deepLinkHandler = new DeepLinkHandler(
       this.mainWindow,
       this.organizationManager,
@@ -2993,6 +2994,15 @@ class ChainlessChainApp {
         logger.error("[Main] Gossip protocol cleanup error:", error);
       }
       this.gossipProtocol = null;
+    }
+    if (this.deepLinkHandler) {
+      try {
+        this.deepLinkHandler.destroy();
+        logger.info("[Main] Deep link handler cleanup completed");
+      } catch (error) {
+        logger.error("[Main] Deep link handler cleanup error:", error);
+      }
+      this.deepLinkHandler = null;
     }
     // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
     // the desktop is running. Safe if file already gone (crashed shutdown).
