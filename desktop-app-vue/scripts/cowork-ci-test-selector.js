@@ -99,6 +99,7 @@ const GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS = [
 ];
 const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
   "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/external-skill-executor.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
@@ -111,6 +112,13 @@ const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
 ];
 const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
   ...SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-github-manager.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-google-workspace.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-news-monitor.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-notion.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-tavily-search.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-weather.test.js",
+  "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-youtube-summarizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",
@@ -191,6 +199,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "src/main/ai-engine/cowork/skills/bundled-skill-egress-broker.js",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [

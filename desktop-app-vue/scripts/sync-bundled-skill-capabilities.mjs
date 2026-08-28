@@ -228,6 +228,9 @@ function addCapabilities(target, values) {
 function classifyInternalModule(moduleName) {
   const normalized = moduleName.replace(/\\/g, "/");
   if (normalized.includes("/utils/logger")) return ["host:logger"];
+  if (normalized.includes("bundled-skill-egress-broker")) {
+    return ["host:network", "network:http"];
+  }
   if (normalized.includes("/browser/")) return ["host:browser"];
   if (normalized.includes("/code-agent/")) return ["host:code-agent"];
   if (normalized.includes("/crypto/")) return ["host:cryptography"];

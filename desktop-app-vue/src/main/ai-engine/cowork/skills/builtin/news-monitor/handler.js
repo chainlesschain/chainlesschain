@@ -3,7 +3,10 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
-const https = require("https");
+const {
+  createBundledSkillHttpsClient,
+} = require("../../bundled-skill-egress-broker.js");
+const https = createBundledSkillHttpsClient("news-monitor");
 
 const BUILTIN_SOURCES = {
   hackernews: {

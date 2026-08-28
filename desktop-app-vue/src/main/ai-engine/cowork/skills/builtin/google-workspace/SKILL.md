@@ -7,7 +7,7 @@ category: productivity
 user-invocable: true
 tags: [google, gmail, calendar, drive, workspace, email, productivity]
 capabilities: [gmail-search, gmail-send, calendar-management, drive-operations]
-execution-capabilities: [data:result, data:task, environment:read, filesystem:read, host:logger, network:http, runtime:time]
+execution-capabilities: [data:result, data:task, environment:read, filesystem:read, host:logger, host:network, network:http, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [gmail-search, gmail-send, calendar-list, calendar-create, drive-list, drive-upload]

@@ -304,6 +304,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   const skillSupplyChainTests = [
     "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
+    "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/markdown-skill.test.js",
@@ -316,6 +317,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   for (const skillSupplyChainSource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-execution-security.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-egress-broker.js",
     "desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js",
@@ -337,6 +339,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   for (const bundledSkillCapabilitySource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-egress-broker.js",
     "desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/api-gateway/SKILL.md",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/api-gateway/handler.js",
@@ -359,6 +362,14 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     for (const relatedTest of [
       "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-egress-broker.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-github-manager.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-google-workspace.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-news-monitor.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-notion.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-tavily-search.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-weather.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-youtube-summarizer.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",

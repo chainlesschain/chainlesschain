@@ -7,7 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [news, monitoring, rss, intelligence, trends, digest, competitive-analysis]
 capabilities: [rss-parsing, keyword-tracking, trend-detection, digest-generation, source-management]
-execution-capabilities: [data:result, data:task, host:logger, network:http, runtime:time]
+execution-capabilities: [data:result, data:task, host:logger, host:network, network:http, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [news-watch, news-digest, news-sources, news-trends]

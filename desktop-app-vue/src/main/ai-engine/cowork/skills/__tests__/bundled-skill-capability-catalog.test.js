@@ -24,6 +24,20 @@ describe("bundled Skill capability catalog", () => {
     expect(result.stdout).toContain("filesystem:read=");
     expect(result.stdout).toContain("process:execute=");
     expect(result.stdout).toContain("network:http=");
+    expect(result.stdout).toContain("host:network=7");
+  });
+
+  it("keeps brokered HTTPS as an explicit network capability", async () => {
+    const { inferCapabilities } = await import(
+      pathToFileURL(AUDIT_SCRIPT).href
+    );
+
+    expect(
+      inferCapabilities(
+        'require("../../bundled-skill-egress-broker.js");',
+        "brokered-network-fixture",
+      ),
+    ).toEqual(["data:result", "data:task", "host:network", "network:http"]);
   });
 
   it("fails closed for unknown modules and fs operations", async () => {

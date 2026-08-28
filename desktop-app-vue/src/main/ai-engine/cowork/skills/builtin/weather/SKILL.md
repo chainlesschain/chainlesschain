@@ -7,7 +7,7 @@ category: productivity
 user-invocable: true
 tags: [weather, forecast, temperature, climate, wttr, conditions]
 capabilities: [current-weather, weather-forecast, location-lookup]
-execution-capabilities: [data:result, data:task, host:logger, network:http]
+execution-capabilities: [data:result, data:task, host:logger, host:network, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [weather-current, weather-forecast]

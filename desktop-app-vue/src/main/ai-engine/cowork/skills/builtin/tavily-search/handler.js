@@ -6,6 +6,10 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  createBundledSkillHttpsClient,
+} = require("../../bundled-skill-egress-broker.js");
+const https = createBundledSkillHttpsClient("tavily-search");
 
 const TAVILY_BASE = "https://api.tavily.com";
 const TAVILY_SEARCH_URL = `${TAVILY_BASE}/search`;
@@ -19,7 +23,6 @@ const _deps = { fetchJSON: null, logger };
 
 function defaultFetchJSON(url, body) {
   return new Promise((resolve, reject) => {
-    const https = require("https");
     const urlObj = new URL(url);
 
     const req = https.request(

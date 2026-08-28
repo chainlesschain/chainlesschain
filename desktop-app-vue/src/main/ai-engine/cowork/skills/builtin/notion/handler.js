@@ -2,7 +2,10 @@
  * Notion Integration Skill Handler
  */
 const { logger } = require("../../../../../utils/logger.js");
-const https = require("https");
+const {
+  createBundledSkillHttpsClient,
+} = require("../../bundled-skill-egress-broker.js");
+const https = createBundledSkillHttpsClient("notion");
 
 const _deps = { https };
 

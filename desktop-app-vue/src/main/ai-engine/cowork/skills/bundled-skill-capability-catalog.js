@@ -609,24 +609,26 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "github-manager": Object.freeze([
-    "f6359d15a312eec2ee7e2dc5f0289b7385aef7ec183f93f5cfe3734d5444ee9a",
+    "f86b98b5aedfa3e6613d40fe7036c61cb9ecad25bdd4d0d048cb8bbbaf540360",
     Object.freeze([
       "data:result",
       "data:task",
       "environment:read",
       "host:logger",
+      "host:network",
       "network:http",
       "runtime:time",
     ]),
   ]),
   "google-workspace": Object.freeze([
-    "ae43eb9d660dfe973bc4b8fff9280f9fdb15fac75f5210430cdb7f1c7a56d88b",
+    "1b30a28f426aba12559b024158d3480db0a247d8c35096c82deb21ffcf69e86e",
     Object.freeze([
       "data:result",
       "data:task",
       "environment:read",
       "filesystem:read",
       "host:logger",
+      "host:network",
       "network:http",
       "runtime:time",
     ]),
@@ -830,22 +832,24 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "news-monitor": Object.freeze([
-    "d6540acff89e96f3e5072d2b1ca4142210734505c6cbe801135c8899f63df77d",
+    "dd32c88a47f08e80c24617f232c027ba4463ef6d981e0e78839b6893a5631201",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:network",
       "network:http",
       "runtime:time",
     ]),
   ]),
   notion: Object.freeze([
-    "3f3ad8e19de4bff360f99f26d9a8a11abd23dc8cb95425a10b05c7cba349ae39",
+    "fc79589494bd8bd2789d4189ee4c8d3f1fe317301749cf05a410e2d9bc554080",
     Object.freeze([
       "data:result",
       "data:task",
       "environment:read",
       "host:logger",
+      "host:network",
       "network:http",
     ]),
   ]),
@@ -1232,12 +1236,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "tavily-search": Object.freeze([
-    "d45966b89de8ca5931dc607916a85312bba7b57f949967deb3fe6c116b655084",
+    "0da9062adb84724bd324d5da612d2cc252fc5f79b6ab02f6c1a664dbaa86d3f7",
     Object.freeze([
       "data:result",
       "data:task",
       "environment:read",
       "host:logger",
+      "host:network",
       "network:http",
     ]),
   ]),
@@ -1373,8 +1378,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   weather: Object.freeze([
-    "1822c79fa0082c43f81ee26090877824d3795c1f356c630095f4b77c9626db02",
-    Object.freeze(["data:result", "data:task", "host:logger", "network:http"]),
+    "d1d52edf82bbc3a6e29bdb8d5372b20d07b1f53f5c0ceacdfaff13fa8b847a76",
+    Object.freeze([
+      "data:result",
+      "data:task",
+      "host:logger",
+      "host:network",
+      "network:http",
+    ]),
   ]),
   "web-scraping": Object.freeze([
     "8038ba493b50ea70646f2b45394d54727f5405cd474f732f3b2d237fc34db6b6",
@@ -1414,8 +1425,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "youtube-summarizer": Object.freeze([
-    "b5ea9809b6136c55de778b59e63f3a2d775a4ae507a2ceff47c29fe797e27b1c",
-    Object.freeze(["data:result", "data:task", "host:logger", "network:http"]),
+    "30679ea75f453953f0e7bc2265184688614214191accdbd46a073506ad056e9c",
+    Object.freeze([
+      "data:result",
+      "data:task",
+      "host:logger",
+      "host:network",
+      "network:http",
+    ]),
   ]),
   "zkp-toolkit": Object.freeze([
     "66cc6c06079a63152d944d8d4a971cc8a4cdd0676eada2f5e4c8a737808e2897",
