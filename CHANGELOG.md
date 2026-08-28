@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.9: governed real-UI Record & Replay
+
+> `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,
+> 2026-08-29). Agent Protocol and Agent SDK candidate versions remain
+> `0.1.6` and `0.2.5`.
+
+- **Real UI driver**: reviewed Record & Replay drafts can execute the bounded
+  `observe/click/type/select/assert` vocabulary in an ephemeral Playwright
+  Chromium context instead of relying on a fake executor.
+- **Fail-closed isolation**: the driver denies filesystem, HTTP(S), and
+  WebSocket requests, requires exact reviewed capabilities and selectors, and
+  rejects ambiguous targets, environment drift, network attempts, or missing
+  terminal evidence.
+- **Content-free receipts**: selectors, typed values, page text, URLs, and
+  screenshots never enter reports; only domain-separated state, page,
+  screenshot, target, and receipt digests plus bounded structural metadata are
+  retained.
+- **Cross-platform authority**: a dedicated exact-SHA GitHub Actions matrix
+  runs the positive journey and an active network-escape probe in real Chromium
+  on Linux, Windows, and macOS, then refuses partial evidence in its aggregate.
+
 ### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
 
 > `chainlesschain` **0.166.7 -> 0.166.8**,
