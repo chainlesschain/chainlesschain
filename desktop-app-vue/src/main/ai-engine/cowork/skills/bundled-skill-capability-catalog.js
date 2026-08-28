@@ -262,11 +262,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "create-pr": Object.freeze([
-    "23e6801843e6cf194466063419267e9fe2a086cf96c2bb039c7445254602a353",
+    "3751e631ff7b335227fa423ce1ca14b0dd87f0f1ac1feda3660ba1e58fb87827",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -602,11 +603,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "git-worktree-manager": Object.freeze([
-    "da70fb012d76b4ec0cb6c54c57b21ea61f1019e2b231c889b00e061555d17486",
+    "1ad870cc60c41f6779b025e81ef826e7e71cd4d0a216d280d08e305b845b14ed",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),
@@ -713,11 +715,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "k8s-deployer": Object.freeze([
-    "97e93fa1e16afe76ca771aad4a3ddd7856fc900d0f80dad1218215e4e9e09850",
+    "ed90c613a848c3586f1c566d88ed1a86d9246c8a676011dde2f1b7ba1d70f3c8",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
+      "process:cwd",
       "process:execute",
     ]),
   ]),
@@ -930,12 +934,13 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "pdh-im-collect": Object.freeze([
-    "df4e036bef19cddc329ec097b4aabaae352330365c6845e0e8dcbb7aae432bea",
+    "f4ff27bef6aa19c8a987eb79b2e9ac5ebbf8ba2d690d19cebdd1a5aea823ce0b",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
       "process:module-path",
@@ -990,11 +995,12 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "pr-reviewer": Object.freeze([
-    "760f150df0b0b133f48381b4a85c254f953ee4c67a37fe688e772270a9dc9eeb",
+    "5fc0004e07c2c80d15c7be48d068a5092205c99c14dba54aef061eaa58cebaa6",
     Object.freeze([
       "data:result",
       "data:task",
       "host:logger",
+      "host:process",
       "process:cwd",
       "process:execute",
     ]),

@@ -9,6 +9,7 @@
  * see .claude/rules/testing.md), so no real subprocess is spawned.
  */
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 vi.mock("../../../../utils/logger.js", () => {
   const fake = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
@@ -17,29 +18,31 @@ vi.mock("../../../../utils/logger.js", () => {
 
 const handler = require("../builtin/pdh-im-collect/handler.js");
 
-const origExecSync = handler._deps.execSync;
 const origFs = handler._deps.fs;
+let context;
 
 // cc CLI absent: `cc --version` throws and no workspace CLI on disk →
 // resolveCcPrefix() returns null and the skill degrades to guidance-only.
 function ccAbsent() {
-  handler._deps.execSync = vi.fn(() => {
+  handler._deps.fs = { existsSync: vi.fn(() => false) };
+  context = createTestProcessContext("pdh-im-collect", () => {
     throw new Error("command not found: cc");
   });
-  handler._deps.fs = { existsSync: vi.fn(() => false) };
 }
 
 // cc CLI present: `cc --version` succeeds; every other invocation is routed
 // to `responder(cmd)`, which returns the fake stdout (or throws to simulate
 // a failing command).
 function ccPresent(responder) {
-  handler._deps.execSync = vi.fn((cmd) => {
+  const executeFileSync = vi.fn((request) => {
+    const cmd = [request.file, ...request.args].join(" ");
     if (cmd === "cc --version") {
       return "chainlesschain 0.1.0\n";
     }
     return responder(cmd);
   });
   handler._deps.fs = { existsSync: vi.fn(() => false) };
+  context = createTestProcessContext("pdh-im-collect", executeFileSync);
 }
 
 beforeEach(() => {
@@ -47,7 +50,6 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  handler._deps.execSync = origExecSync;
   handler._deps.fs = origFs;
 });
 
@@ -63,7 +65,10 @@ describe("pdh-im-collect handler", () => {
   describe("readiness (default action)", () => {
     it("degrades to guidance when cc CLI is unavailable", async () => {
       ccAbsent();
-      const res = await handler.execute({ params: { input: "readiness" } }, {});
+      const res = await handler.execute(
+        { params: { input: "readiness" } },
+        context,
+      );
       expect(res.success).toBe(true);
       expect(res.result.action).toBe("readiness");
       expect(res.result.ok).toBe(false);
@@ -75,7 +80,7 @@ describe("pdh-im-collect handler", () => {
 
     it("defaults to readiness when no action token is given", async () => {
       ccAbsent();
-      const res = await handler.execute({ params: { input: "" } }, {});
+      const res = await handler.execute({ params: { input: "" } }, context);
       expect(res.success).toBe(true);
       expect(res.result.action).toBe("readiness");
     });
@@ -88,7 +93,10 @@ describe("pdh-im-collect handler", () => {
           { id: "qq-pc", status: "DB_FOUND_NEEDS_KEY" },
         ]);
       });
-      const res = await handler.execute({ params: { input: "readiness" } }, {});
+      const res = await handler.execute(
+        { params: { input: "readiness" } },
+        context,
+      );
       expect(res.success).toBe(true);
       expect(res.result.ok).toBe(true);
       expect(res.result.wechat.status).toBe("ready");
@@ -104,7 +112,10 @@ describe("pdh-im-collect handler", () => {
           "qq-pc": { status: "ready" },
         }),
       );
-      const res = await handler.execute({ params: { input: "status" } }, {});
+      const res = await handler.execute(
+        { params: { input: "status" } },
+        context,
+      );
       expect(res.result.ok).toBe(true);
       expect(res.result.wechat.status).toBe("APP_NOT_INSTALLED");
       expect(res.result.qq.status).toBe("ready");
@@ -114,7 +125,10 @@ describe("pdh-im-collect handler", () => {
       ccPresent(
         () => 'chcp 65001\n[{"id":"wechat-pc","status":"ready"}]\nDone.\n',
       );
-      const res = await handler.execute({ params: { input: "readiness" } }, {});
+      const res = await handler.execute(
+        { params: { input: "readiness" } },
+        context,
+      );
       expect(res.result.ok).toBe(true);
       expect(res.result.wechat.status).toBe("ready");
     });
@@ -124,7 +138,10 @@ describe("pdh-im-collect handler", () => {
     it("returns guidance only (no ingestion) without --run", async () => {
       const responder = vi.fn(() => "");
       ccPresent(responder);
-      const res = await handler.execute({ params: { input: "wechat" } }, {});
+      const res = await handler.execute(
+        { params: { input: "wechat" } },
+        context,
+      );
       expect(res.success).toBe(true);
       expect(res.result.command).toBe("cc hub sync-adapter wechat-pc");
       expect(res.message).toContain("cc hub sync-adapter wechat-pc");
@@ -141,7 +158,7 @@ describe("pdh-im-collect handler", () => {
       });
       const res = await handler.execute(
         { params: { input: "wechat --run" } },
-        {},
+        context,
       );
       expect(res.success).toBe(true);
       expect(res.result.ran).toContain("sync-adapter wechat-pc");
@@ -152,7 +169,7 @@ describe("pdh-im-collect handler", () => {
       ccAbsent();
       const res = await handler.execute(
         { params: { input: "wechat --run" } },
-        {},
+        context,
       );
       expect(res.success).toBe(false);
       expect(res.error).toBe("cc CLI not found");
@@ -163,14 +180,17 @@ describe("pdh-im-collect handler", () => {
   describe("qq action", () => {
     it("returns key-extraction guidance without --run", async () => {
       ccAbsent();
-      const res = await handler.execute({ params: { input: "qq" } }, {});
+      const res = await handler.execute({ params: { input: "qq" } }, context);
       expect(res.success).toBe(true);
       expect(res.message).toContain("qq-win-db-key");
     });
 
     it("rejects --run without a passphrase", async () => {
       ccPresent(() => "");
-      const res = await handler.execute({ params: { input: "qq --run" } }, {});
+      const res = await handler.execute(
+        { params: { input: "qq --run" } },
+        context,
+      );
       expect(res.success).toBe(false);
       expect(res.error).toBe("missing passphrase");
     });
@@ -183,7 +203,7 @@ describe("pdh-im-collect handler", () => {
       });
       const res = await handler.execute(
         { params: { input: `qq --run --passphrase "${KEY}"` } },
-        {},
+        context,
       );
       expect(res.success).toBe(true);
       // the passphrase must not leak into the structured result or message
@@ -196,7 +216,7 @@ describe("pdh-im-collect handler", () => {
       ccAbsent();
       const res = await handler.execute(
         { params: { input: 'qq --run --passphrase "abc123"' } },
-        {},
+        context,
       );
       expect(res.success).toBe(false);
       expect(res.error).toBe("cc CLI not found");
@@ -209,7 +229,10 @@ describe("pdh-im-collect handler", () => {
         expect(cmd).toContain("hub stats");
         return "entities: 1234\nevents: 5678\n";
       });
-      const res = await handler.execute({ params: { input: "verify" } }, {});
+      const res = await handler.execute(
+        { params: { input: "verify" } },
+        context,
+      );
       expect(res.success).toBe(true);
       expect(res.result.action).toBe("verify");
       expect(res.message).toContain("entities: 1234");
@@ -217,7 +240,10 @@ describe("pdh-im-collect handler", () => {
 
     it("fails clearly when cc is unavailable", async () => {
       ccAbsent();
-      const res = await handler.execute({ params: { input: "verify" } }, {});
+      const res = await handler.execute(
+        { params: { input: "verify" } },
+        context,
+      );
       expect(res.success).toBe(false);
       expect(res.error).toBe("cc CLI not found");
     });
@@ -226,13 +252,13 @@ describe("pdh-im-collect handler", () => {
   describe("input shapes & routing", () => {
     it("accepts task.input (not just task.params.input)", async () => {
       ccAbsent();
-      const res = await handler.execute({ input: "wechat" }, {});
+      const res = await handler.execute({ input: "wechat" }, context);
       expect(res.result.action).toBe("wechat");
     });
 
     it("accepts task.action", async () => {
       ccAbsent();
-      const res = await handler.execute({ action: "qq" }, {});
+      const res = await handler.execute({ action: "qq" }, context);
       expect(res.message).toContain("qq-win-db-key");
     });
 
@@ -240,7 +266,7 @@ describe("pdh-im-collect handler", () => {
       ccAbsent();
       const res = await handler.execute(
         { params: { input: "frobnicate" } },
-        {},
+        context,
       );
       expect(res.success).toBe(true);
       expect(res.result.action).toBe("help");
@@ -258,7 +284,7 @@ describe("pdh-im-collect handler", () => {
       });
       const res = await handler.execute(
         { params: { input: "wechat --run" } },
-        {},
+        context,
       );
       expect(res.success).toBe(false);
       expect(res.message).toContain("PDH 采集执行失败");

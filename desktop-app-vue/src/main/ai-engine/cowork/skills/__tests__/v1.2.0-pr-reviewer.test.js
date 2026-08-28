@@ -1,8 +1,9 @@
 /**
  * Unit tests for pr-reviewer skill handler (v1.2.0)
- * Uses child_process.execSync via _deps injection
+ * Uses a branded process authority backed by a fake host adapter.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -12,11 +13,15 @@ const handler = require("../builtin/pr-reviewer/handler.js");
 
 describe("pr-reviewer handler", () => {
   let mockExecSync;
+  let context;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockExecSync = vi.fn();
-    handler._deps.execSync = mockExecSync;
+    context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("pr-reviewer", mockExecSync),
+    };
   });
 
   describe("execute() - review action", () => {
@@ -33,7 +38,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           "diff --git a/src/auth.js b/src/auth.js\n+const token = getToken();",
         );
-      const result = await handler.execute({ input: "review 42" }, {}, {});
+      const result = await handler.execute({ input: "review 42" }, context, {});
       expect(result.success).toBe(true);
       expect(result.action).toBe("review");
       expect(result.prNumber).toBe("42");
@@ -45,7 +50,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           'diff --git a/src/config.js b/src/config.js\n@@ -1,1 +1,2 @@\n+const API_KEY = "sk-abc123secret"',
         );
-      const result = await handler.execute({ input: "review 1" }, {}, {});
+      const result = await handler.execute({ input: "review 1" }, context, {});
       expect(result.success).toBe(true);
       expect(result.analysis.findings.length).toBeGreaterThan(0);
       expect(result.analysis.findings[0].type).toBe("security");
@@ -57,7 +62,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           "diff --git a/src/util.js b/src/util.js\n@@ -1,1 +1,2 @@\n+const result = eval(userInput);",
         );
-      const result = await handler.execute({ input: "review 2" }, {}, {});
+      const result = await handler.execute({ input: "review 2" }, context, {});
       expect(
         result.analysis.findings.some((f) => f.message.includes("eval()")),
       ).toBe(true);
@@ -69,7 +74,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           'diff --git a/src/service.js b/src/service.js\n@@ -1,1 +1,2 @@\n+console.log("debug data");',
         );
-      const result = await handler.execute({ input: "review 3" }, {}, {});
+      const result = await handler.execute({ input: "review 3" }, context, {});
       expect(result.analysis.findings.some((f) => f.type === "style")).toBe(
         true,
       );
@@ -81,7 +86,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           'diff --git a/src/test/helper.test.js b/src/test/helper.test.js\n@@ -1,1 +1,2 @@\n+console.log("test output");',
         );
-      const result = await handler.execute({ input: "review 4" }, {}, {});
+      const result = await handler.execute({ input: "review 4" }, context, {});
       const styleFindings = result.analysis.findings.filter(
         (f) => f.type === "style",
       );
@@ -94,7 +99,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           "diff --git a/src/app.js b/src/app.js\n@@ -1,1 +1,2 @@\n+// TODO: refactor this later",
         );
-      const result = await handler.execute({ input: "review 5" }, {}, {});
+      const result = await handler.execute({ input: "review 5" }, context, {});
       expect(result.analysis.findings.some((f) => f.type === "todo")).toBe(
         true,
       );
@@ -106,7 +111,7 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           "diff --git a/f.js b/f.js\n@@ -1,3 +1,3 @@\n+added line\n-removed line\n+another added",
         );
-      const result = await handler.execute({ input: "review 6" }, {}, {});
+      const result = await handler.execute({ input: "review 6" }, context, {});
       expect(result.analysis.additions).toBe(2);
       expect(result.analysis.deletions).toBe(1);
     });
@@ -122,7 +127,11 @@ describe("pr-reviewer handler", () => {
         .mockReturnValueOnce(
           "2 files changed, 10 insertions(+), 3 deletions(-)",
         );
-      const result = await handler.execute({ input: "summary main" }, {}, {});
+      const result = await handler.execute(
+        { input: "summary main" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("summary");
       expect(result.commitCount).toBe(2);
@@ -134,7 +143,7 @@ describe("pr-reviewer handler", () => {
       mockExecSync.mockReturnValue(
         "diff --git a/src/index.js b/src/index.js\n@@ -1,1 +1,2 @@\n+new code here",
       );
-      const result = await handler.execute({ input: "diff main" }, {}, {});
+      const result = await handler.execute({ input: "diff main" }, context, {});
       expect(result.success).toBe(true);
       expect(result.action).toBe("diff-review");
     });
@@ -143,7 +152,7 @@ describe("pr-reviewer handler", () => {
   describe("execute() - error handling", () => {
     it("should default to diff action on empty input", async () => {
       mockExecSync.mockReturnValue("");
-      const result = await handler.execute({ input: "" }, {}, {});
+      const result = await handler.execute({ input: "" }, context, {});
       // Empty string parses to default action which is "diff" based on parseInput
       expect(result).toBeDefined();
     });
@@ -152,7 +161,7 @@ describe("pr-reviewer handler", () => {
       mockExecSync.mockImplementation(() => {
         throw new Error("command not found");
       });
-      const result = await handler.execute({ input: "review 99" }, {}, {});
+      const result = await handler.execute({ input: "review 99" }, context, {});
       // Should still return a result (exec catches errors and returns message)
       expect(result).toBeDefined();
     });

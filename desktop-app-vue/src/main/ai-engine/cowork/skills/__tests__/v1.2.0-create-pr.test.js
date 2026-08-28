@@ -4,6 +4,7 @@
  * Note: git commands may not return data in test environment
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -12,8 +13,17 @@ vi.mock("../../../../utils/logger.js", () => ({
 const handler = require("../builtin/create-pr/handler.js");
 
 describe("create-pr handler", () => {
+  let context;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext(
+        "create-pr",
+        vi.fn(() => ""),
+      ),
+    };
   });
 
   describe("init()", () => {
@@ -26,8 +36,8 @@ describe("create-pr handler", () => {
     it("should generate PR content from branch name", async () => {
       const result = await handler.execute(
         { input: "create feature/user-auth" },
-        {},
-        {},
+        context,
+        context,
       );
       expect(result.success).toBe(true);
       expect(result.output).toContain("Pull Request");
@@ -39,7 +49,7 @@ describe("create-pr handler", () => {
     it("should default to create mode on empty mode", async () => {
       const result = await handler.execute(
         { input: "feature/add-caching" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -49,7 +59,7 @@ describe("create-pr handler", () => {
     it("should generate title from branch name", async () => {
       const result = await handler.execute(
         { input: "create feature/add-dark-mode" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -57,7 +67,7 @@ describe("create-pr handler", () => {
     });
 
     it("should work with no description (auto-detect)", async () => {
-      const result = await handler.execute({ input: "create" }, {}, {});
+      const result = await handler.execute({ input: "create" }, context, {});
       expect(result.success).toBe(true);
       expect(result.result.method).toBe("create");
     });
@@ -65,7 +75,7 @@ describe("create-pr handler", () => {
     it("should work from params.input", async () => {
       const result = await handler.execute(
         { params: { input: "create fix/login-bug" } },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -77,7 +87,7 @@ describe("create-pr handler", () => {
     it("should generate draft PR", async () => {
       const result = await handler.execute(
         { input: "draft Add caching to API endpoints" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -88,7 +98,7 @@ describe("create-pr handler", () => {
     });
 
     it("should fail draft with no description", async () => {
-      const result = await handler.execute({ input: "draft" }, {}, {});
+      const result = await handler.execute({ input: "draft" }, context, {});
       expect(result.success).toBe(false);
       expect(result.error).toContain("No description");
     });
@@ -96,7 +106,7 @@ describe("create-pr handler", () => {
 
   describe("execute() - template mode", () => {
     it("should generate PR template", async () => {
-      const result = await handler.execute({ input: "template" }, {}, {});
+      const result = await handler.execute({ input: "template" }, context, {});
       expect(result.success).toBe(true);
       expect(result.output).toContain("PR Template");
       expect(result.output).toContain("Summary");
@@ -107,14 +117,14 @@ describe("create-pr handler", () => {
     });
 
     it("should work without any extra args", async () => {
-      const result = await handler.execute({ input: "template" }, {}, {});
+      const result = await handler.execute({ input: "template" }, context, {});
       expect(result.success).toBe(true);
     });
   });
 
   describe("execute() - changelog mode", () => {
     it("should generate changelog", async () => {
-      const result = await handler.execute({ input: "changelog" }, {}, {});
+      const result = await handler.execute({ input: "changelog" }, context, {});
       expect(result.success).toBe(true);
       expect(result.output).toContain("Changelog");
       expect(result.result.method).toBe("changelog");
@@ -123,7 +133,7 @@ describe("create-pr handler", () => {
     it("should accept version range", async () => {
       const result = await handler.execute(
         { input: "changelog v1.0.0..v1.1.0" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -133,14 +143,14 @@ describe("create-pr handler", () => {
 
   describe("execute() - error handling", () => {
     it("should handle empty input gracefully (defaults to create)", async () => {
-      const result = await handler.execute({ input: "" }, {}, {});
+      const result = await handler.execute({ input: "" }, context, {});
       // create mode works with no description (auto-detect)
       expect(result.success).toBe(true);
       expect(result.result.method).toBe("create");
     });
 
     it("should include message on success", async () => {
-      const result = await handler.execute({ input: "template" }, {}, {});
+      const result = await handler.execute({ input: "template" }, context, {});
       expect(result.success).toBe(true);
       expect(result.message).toContain("template");
     });

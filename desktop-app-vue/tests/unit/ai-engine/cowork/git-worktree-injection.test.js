@@ -5,6 +5,7 @@
  * handlers must NOT exec on unsafe input.
  */
 import { describe, it, expect, vi } from "vitest";
+import { createTestProcessContext } from "../../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
 
 const handler = require("../../../../src/main/ai-engine/cowork/skills/builtin/git-worktree-manager/handler.js");
 
@@ -27,16 +28,17 @@ describe("git-worktree-manager injection guards", () => {
 
   it("does NOT execute on unsafe branch/target", async () => {
     const spy = vi.fn(() => "");
-    const orig = handler._deps.execSync;
-    handler._deps.execSync = spy;
-    try {
-      const create = await handler.execute({ input: "create main;rm" });
-      expect(create.success).toBe(false);
-      const remove = await handler.execute({ input: "remove /tmp/x;rm" });
-      expect(remove.success).toBe(false);
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      handler._deps.execSync = orig;
-    }
+    const context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("git-worktree-manager", spy),
+    };
+    const create = await handler.execute({ input: "create main;rm" }, context);
+    expect(create.success).toBe(false);
+    const remove = await handler.execute(
+      { input: "remove /tmp/x;rm" },
+      context,
+    );
+    expect(remove.success).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 });

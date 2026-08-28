@@ -2,16 +2,13 @@
  * Git Worktree Manager Skill Handler
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { logger } = require("../../../../../utils/logger.js");
-const { execSync } = require("child_process");
 const path = require("path");
-/* eslint-enable @typescript-eslint/no-require-imports */
-
-const _deps = { execSync };
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 module.exports = {
-  _deps,
   isSafeRef, // exported for tests
   isSafePath, // exported for tests
   async init(_skill) {
@@ -25,17 +22,21 @@ module.exports = {
     logger.info(`[GitWorktree] Action: ${parsed.action}`);
 
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "git-worktree-manager",
+      );
       switch (parsed.action) {
         case "create":
-          return handleCreate(parsed, context);
+          return handleCreate(parsed, context, processBroker);
         case "list":
-          return handleList(context);
+          return handleList(context, processBroker);
         case "remove":
-          return handleRemove(parsed.target, context);
+          return handleRemove(parsed.target, context, processBroker);
         case "status":
-          return handleStatus(context);
+          return handleStatus(context, processBroker);
         case "prune":
-          return handlePrune(context);
+          return handlePrune(context, processBroker);
         default:
           return { success: false, error: `Unknown action: ${parsed.action}` };
       }
@@ -80,17 +81,17 @@ function isSafePath(value) {
   );
 }
 
-function git(cmd, cwd) {
-  return _deps
-    .execSync(`git ${cmd}`, {
+function git(args, cwd, processBroker) {
+  return processBroker
+    .execFileSync("git", args, {
       cwd: cwd || process.cwd(),
-      encoding: "utf8",
       timeout: 30000,
     })
+    .toString("utf8")
     .trim();
 }
 
-function handleCreate(parsed, context) {
+function handleCreate(parsed, context, processBroker) {
   const branch = parsed.target;
   if (!branch) {
     return { success: false, error: "No branch name provided." };
@@ -109,13 +110,13 @@ function handleCreate(parsed, context) {
 
   // Check if branch exists
   try {
-    git(`rev-parse --verify ${branch}`, cwd);
+    git(["rev-parse", "--verify", branch], cwd, processBroker);
   } catch {
     // Branch doesn't exist, create it
-    git(`branch ${branch}`, cwd);
+    git(["branch", branch], cwd, processBroker);
   }
 
-  git(`worktree add "${worktreePath}" ${branch}`, cwd);
+  git(["worktree", "add", worktreePath, branch], cwd, processBroker);
 
   return {
     success: true,
@@ -126,9 +127,9 @@ function handleCreate(parsed, context) {
   };
 }
 
-function handleList(context) {
+function handleList(context, processBroker) {
   const cwd = context.cwd || process.cwd();
-  const output = git("worktree list --porcelain", cwd);
+  const output = git(["worktree", "list", "--porcelain"], cwd, processBroker);
   const worktrees = [];
   let current = {};
 
@@ -160,7 +161,7 @@ function handleList(context) {
   };
 }
 
-function handleRemove(target, context) {
+function handleRemove(target, context, processBroker) {
   if (!target) {
     return { success: false, error: "No worktree path provided." };
   }
@@ -168,7 +169,7 @@ function handleRemove(target, context) {
     return { success: false, error: `Invalid worktree path: ${target}` };
   }
   const cwd = context.cwd || process.cwd();
-  git(`worktree remove "${target}"`, cwd);
+  git(["worktree", "remove", target], cwd, processBroker);
   return {
     success: true,
     action: "remove",
@@ -177,11 +178,11 @@ function handleRemove(target, context) {
   };
 }
 
-function handleStatus(context) {
-  const list = handleList(context);
+function handleStatus(context, processBroker) {
+  const list = handleList(context, processBroker);
   const statuses = (list.worktrees || []).map((wt) => {
     try {
-      const status = git("status --short", wt.path);
+      const status = git(["status", "--short"], wt.path, processBroker);
       return {
         ...wt,
         changes: status ? status.split("\n").length : 0,
@@ -194,9 +195,9 @@ function handleStatus(context) {
   return { success: true, action: "status", worktrees: statuses };
 }
 
-function handlePrune(context) {
+function handlePrune(context, processBroker) {
   const cwd = context.cwd || process.cwd();
-  const output = git("worktree prune -v", cwd);
+  const output = git(["worktree", "prune", "-v"], cwd, processBroker);
   return {
     success: true,
     action: "prune",

@@ -1,8 +1,9 @@
 /**
  * Unit tests for k8s-deployer skill handler (v1.2.0)
- * Uses child_process.execSync via _deps injection
+ * Uses a branded process authority backed by a fake host adapter.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -12,11 +13,15 @@ const handler = require("../builtin/k8s-deployer/handler.js");
 
 describe("k8s-deployer handler", () => {
   let mockExecSync;
+  let context;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockExecSync = vi.fn();
-    handler._deps.execSync = mockExecSync;
+    context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("k8s-deployer", mockExecSync),
+    };
   });
 
   describe("execute() - manifest action", () => {
@@ -152,7 +157,11 @@ describe("k8s-deployer handler", () => {
       mockExecSync.mockReturnValue(
         "NAME   READY   STATUS   RESTARTS   AGE\nmy-app   1/1   Running   0   10m",
       );
-      const result = await handler.execute({ input: "status my-app" }, {}, {});
+      const result = await handler.execute(
+        { input: "status my-app" },
+        context,
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("status");
     });
@@ -161,7 +170,11 @@ describe("k8s-deployer handler", () => {
       mockExecSync.mockImplementation(() => {
         throw new Error("command not found: kubectl");
       });
-      const result = await handler.execute({ input: "status my-app" }, {}, {});
+      const result = await handler.execute(
+        { input: "status my-app" },
+        context,
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("kubectl");
     });
@@ -172,7 +185,7 @@ describe("k8s-deployer handler", () => {
       mockExecSync.mockReturnValue("deployment.apps/my-app restarted");
       const result = await handler.execute(
         { input: "rollout restart my-app" },
-        {},
+        context,
         {},
       );
       expect(result.success).toBe(true);
@@ -182,7 +195,7 @@ describe("k8s-deployer handler", () => {
     it("should fail without target deployment", async () => {
       const result = await handler.execute(
         { input: "rollout restart" },
-        {},
+        context,
         {},
       );
       // rollout needs a target

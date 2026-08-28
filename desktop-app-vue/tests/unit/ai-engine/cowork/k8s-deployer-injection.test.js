@@ -5,6 +5,7 @@
  * metacharacters, and the handlers must NOT exec when the name is unsafe.
  */
 import { describe, it, expect, vi } from "vitest";
+import { createTestProcessContext } from "../../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
 
 const handler = require("../../../../src/main/ai-engine/cowork/skills/builtin/k8s-deployer/handler.js");
 
@@ -27,29 +28,28 @@ describe("k8s-deployer isSafeK8sName (command injection guard)", () => {
 
   it("does NOT execute when the target is unsafe", async () => {
     const spy = vi.fn(() => "");
-    const orig = handler._deps.execSync;
-    handler._deps.execSync = spy;
-    try {
-      const status = await handler.execute({ input: "status x;rm" });
-      expect(status.success).toBe(false);
-      const rollout = await handler.execute({ input: "rollout restart x;rm" });
-      expect(rollout.success).toBe(false);
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      handler._deps.execSync = orig;
-    }
+    const context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("k8s-deployer", spy),
+    };
+    const status = await handler.execute({ input: "status x;rm" }, context);
+    expect(status.success).toBe(false);
+    const rollout = await handler.execute(
+      { input: "rollout restart x;rm" },
+      context,
+    );
+    expect(rollout.success).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it("does execute for a safe target", async () => {
     const spy = vi.fn(() => "deployment ok");
-    const orig = handler._deps.execSync;
-    handler._deps.execSync = spy;
-    try {
-      const res = await handler.execute({ input: "status my-app" });
-      expect(res.success).toBe(true);
-      expect(spy).toHaveBeenCalled();
-    } finally {
-      handler._deps.execSync = orig;
-    }
+    const context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("k8s-deployer", spy),
+    };
+    const res = await handler.execute({ input: "status my-app" }, context);
+    expect(res.success).toBe(true);
+    expect(spy).toHaveBeenCalled();
   });
 });

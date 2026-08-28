@@ -2,12 +2,10 @@
  * Kubernetes Deployer Skill Handler
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { logger } = require("../../../../../utils/logger.js");
-const { execSync } = require("child_process");
-/* eslint-enable @typescript-eslint/no-require-imports */
-
-const _deps = { execSync };
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // target (a k8s deployment/app name from the skill input) is interpolated into
 // execSync (a shell) — `kubectl get deployment ${target}`, `kubectl rollout
@@ -25,12 +23,11 @@ function isSafeK8sName(value) {
 
 module.exports = {
   isSafeK8sName, // exported for tests
-  _deps,
   async init(_skill) {
     logger.info("[K8sDeployer] Initialized");
   },
 
-  async execute(task, _context = {}, _skill) {
+  async execute(task, context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
@@ -41,9 +38,18 @@ module.exports = {
         case "helm":
           return handleHelm(parsed.name);
         case "status":
-          return handleStatus(parsed.target);
+          return handleStatus(
+            parsed.target,
+            context,
+            requireBundledSkillProcessBroker(context, "k8s-deployer"),
+          );
         case "rollout":
-          return handleRollout(parsed.subAction, parsed.target);
+          return handleRollout(
+            parsed.subAction,
+            parsed.target,
+            context,
+            requireBundledSkillProcessBroker(context, "k8s-deployer"),
+          );
         case "security":
           return handleSecurity(parsed.target);
         default:
@@ -242,37 +248,46 @@ autoscaling:
   };
 }
 
-function handleStatus(target) {
+function handleStatus(target, context, processBroker) {
   if (target && !isSafeK8sName(target)) {
     return { success: false, error: `Invalid target name: ${target}` };
   }
   const results = {};
+  const cwd = context.cwd || context.workspaceRoot || process.cwd();
   try {
     if (target) {
-      results.deployment = _deps
-        .execSync(`kubectl get deployment ${target} -o wide 2>&1`, {
-          encoding: "utf8",
+      results.deployment = processBroker
+        .execFileSync("kubectl", ["get", "deployment", target, "-o", "wide"], {
+          cwd,
           timeout: 10000,
         })
+        .toString("utf8")
         .trim();
-      results.pods = _deps
-        .execSync(`kubectl get pods -l app=${target} -o wide 2>&1`, {
-          encoding: "utf8",
-          timeout: 10000,
-        })
+      results.pods = processBroker
+        .execFileSync(
+          "kubectl",
+          ["get", "pods", "-l", `app=${target}`, "-o", "wide"],
+          {
+            cwd,
+            timeout: 10000,
+          },
+        )
+        .toString("utf8")
         .trim();
     } else {
-      results.deployments = _deps
-        .execSync("kubectl get deployments -o wide 2>&1", {
-          encoding: "utf8",
+      results.deployments = processBroker
+        .execFileSync("kubectl", ["get", "deployments", "-o", "wide"], {
+          cwd,
           timeout: 10000,
         })
+        .toString("utf8")
         .trim();
-      results.pods = _deps
-        .execSync("kubectl get pods -o wide 2>&1", {
-          encoding: "utf8",
+      results.pods = processBroker
+        .execFileSync("kubectl", ["get", "pods", "-o", "wide"], {
+          cwd,
           timeout: 10000,
         })
+        .toString("utf8")
         .trim();
     }
     return {
@@ -290,7 +305,7 @@ function handleStatus(target) {
   }
 }
 
-function handleRollout(subAction, target) {
+function handleRollout(subAction, target, context, processBroker) {
   if (!target) {
     return { success: false, error: "Specify a deployment name." };
   }
@@ -298,18 +313,24 @@ function handleRollout(subAction, target) {
     return { success: false, error: `Invalid deployment name: ${target}` };
   }
 
-  const commands = {
-    restart: `kubectl rollout restart deployment/${target}`,
-    undo: `kubectl rollout undo deployment/${target}`,
-    status: `kubectl rollout status deployment/${target}`,
-    history: `kubectl rollout history deployment/${target}`,
+  const operations = {
+    restart: "restart",
+    undo: "undo",
+    status: "status",
+    history: "history",
   };
 
-  const cmd = commands[subAction] || commands.status;
+  const operation = operations[subAction] || operations.status;
+  const args = ["rollout", operation, `deployment/${target}`];
+  const cmd = `kubectl ${args.join(" ")}`;
 
   try {
-    const output = _deps
-      .execSync(`${cmd} 2>&1`, { encoding: "utf8", timeout: 30000 })
+    const output = processBroker
+      .execFileSync("kubectl", args, {
+        cwd: context.cwd || context.workspaceRoot || process.cwd(),
+        timeout: 30000,
+      })
+      .toString("utf8")
       .trim();
     return {
       success: true,

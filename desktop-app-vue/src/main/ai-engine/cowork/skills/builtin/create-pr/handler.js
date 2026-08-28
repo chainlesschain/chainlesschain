@@ -5,10 +5,10 @@
  * template, changelog.
  */
 
-const { execSync } = require("child_process");
 const { logger } = require("../../../../../utils/logger.js");
-
-const _deps = { execSync };
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // generateChangelog interpolates a caller-supplied range (description, e.g.
 // "v1.1.0..v1.2.0") into `git log --oneline ${description}` which runs through a
@@ -62,29 +62,32 @@ function parseInput(raw) {
   return { mode: MODES.create, description: input };
 }
 
-function runGit(cmd, cwd) {
+function runGit(args, cwd, processBroker) {
   try {
-    return _deps
-      .execSync(`git ${cmd}`, {
+    return processBroker
+      .execFileSync("git", args, {
         cwd,
-        encoding: "utf-8",
         timeout: 10000,
       })
+      .toString("utf8")
       .trim();
   } catch {
     return "";
   }
 }
 
-function getGitInfo(cwd) {
-  const branch = runGit("rev-parse --abbrev-ref HEAD", cwd);
-  const diffStat = runGit(
-    "diff --stat HEAD~1 2>/dev/null || diff --stat --cached",
+function getGitInfo(cwd, processBroker) {
+  const branch = runGit(
+    ["rev-parse", "--abbrev-ref", "HEAD"],
     cwd,
+    processBroker,
   );
-  const log = runGit("log --oneline -10", cwd);
-  const status = runGit("status --short", cwd);
-  const diffCached = runGit("diff --cached --stat", cwd);
+  const diffStat =
+    runGit(["diff", "--stat", "HEAD~1"], cwd, processBroker) ||
+    runGit(["diff", "--stat", "--cached"], cwd, processBroker);
+  const log = runGit(["log", "--oneline", "-10"], cwd, processBroker);
+  const status = runGit(["status", "--short"], cwd, processBroker);
+  const diffCached = runGit(["diff", "--cached", "--stat"], cwd, processBroker);
 
   return { branch, diffStat, log, status, diffCached };
 }
@@ -114,9 +117,9 @@ function classifyCommit(message) {
   return { type: "other", category: "Other Changes", description: message };
 }
 
-function generateCreate(description, context) {
+function generateCreate(description, context, processBroker) {
   const cwd = context?.projectRoot || context?.workspaceRoot || process.cwd();
-  const git = getGitInfo(cwd);
+  const git = getGitInfo(cwd, processBroker);
   const branch = description || git.branch || "feature/unknown";
 
   const commits = parseCommits(git.log);
@@ -189,9 +192,9 @@ function generateCreate(description, context) {
   };
 }
 
-function generateDraft(description, context) {
+function generateDraft(description, context, processBroker) {
   const cwd = context?.projectRoot || context?.workspaceRoot || process.cwd();
-  const git = getGitInfo(cwd);
+  const git = getGitInfo(cwd, processBroker);
 
   const lines = [
     `# Draft PR: ${description || "Work in Progress"}`,
@@ -276,16 +279,16 @@ function generateTemplate() {
   };
 }
 
-function generateChangelog(description, context) {
+function generateChangelog(description, context, processBroker) {
   const cwd = context?.projectRoot || context?.workspaceRoot || process.cwd();
 
   // Parse range like "v1.1.0..v1.2.0"
-  let logCmd = "log --oneline -20";
+  let logArgs = ["log", "--oneline", "-20"];
   if (description && description.includes("..") && isSafeRef(description)) {
-    logCmd = `log --oneline ${description}`;
+    logArgs = ["log", "--oneline", description];
   }
 
-  const log = runGit(logCmd, cwd);
+  const log = runGit(logArgs, cwd, processBroker);
   const commits = parseCommits(log);
   const classified = commits.map((c) => ({
     ...c,
@@ -324,7 +327,6 @@ function generateChangelog(description, context) {
 // ── Handler ──────────────────────────────────────────────────────
 
 module.exports = {
-  _deps,
   isSafeRef, // exported for tests
   async init(skill) {
     logger.info(
@@ -337,6 +339,10 @@ module.exports = {
     const { mode, description } = parseInput(raw);
 
     try {
+      const processBroker =
+        mode === MODES.template
+          ? null
+          : requireBundledSkillProcessBroker(context, "create-pr");
       let result;
       switch (mode) {
         case MODES.draft:
@@ -347,16 +353,16 @@ module.exports = {
               error: "No description provided",
             };
           }
-          result = generateDraft(description, context);
+          result = generateDraft(description, context, processBroker);
           break;
         case MODES.template:
           result = generateTemplate();
           break;
         case MODES.changelog:
-          result = generateChangelog(description, context);
+          result = generateChangelog(description, context, processBroker);
           break;
         default:
-          result = generateCreate(description, context);
+          result = generateCreate(description, context, processBroker);
           break;
       }
 

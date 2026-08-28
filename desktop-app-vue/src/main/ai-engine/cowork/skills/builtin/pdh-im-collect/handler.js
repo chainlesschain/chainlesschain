@@ -9,15 +9,17 @@
  * Actions: readiness (default) | wechat | qq | verify | guide
  */
 
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 // Injectable deps so tests can stub the CLI probe without spawning real
 // `cc` subprocesses (vi.mock("child_process") does not work for inlined
 // CJS — see .claude/rules/testing.md). Production uses the real bindings.
-const _deps = { execSync, fs };
+const _deps = { fs };
 
 const VAULT_HINT =
   "%APPDATA%\\chainlesschain-desktop-vue\\.chainlesschain\\hub\\vault.db";
@@ -26,10 +28,13 @@ const VAULT_HINT =
 // Prefer a global `cc`; fall back to the workspace CLI entry. Returns a
 // command prefix string ready to append hub args to, or null if neither
 // is available (skill then degrades to guidance-only).
-function resolveCcPrefix(projectRoot) {
+function resolveCcCommand(projectRoot, processBroker) {
   try {
-    _deps.execSync("cc --version", { stdio: "pipe", timeout: 8000 });
-    return "cc";
+    processBroker.execFileSync("cc", ["--version"], {
+      cwd: projectRoot,
+      timeout: 8000,
+    });
+    return { file: "cc", prefixArgs: [], display: "cc" };
   } catch {
     /* not on PATH — try the workspace CLI */
   }
@@ -47,7 +52,7 @@ function resolveCcPrefix(projectRoot) {
   for (const c of candidates) {
     try {
       if (_deps.fs.existsSync(c)) {
-        return `node "${c}"`;
+        return { file: "node", prefixArgs: [c], display: `node "${c}"` };
       }
     } catch {
       /* ignore */
@@ -56,14 +61,16 @@ function resolveCcPrefix(projectRoot) {
   return null;
 }
 
-function runCc(ccPrefix, args, { timeout = 120000 } = {}) {
-  const cmd = `${ccPrefix} ${args}`;
-  const stdout = _deps.execSync(cmd, {
-    encoding: "utf-8",
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout,
-    maxBuffer: 32 * 1024 * 1024,
-  });
+function runCc(ccCommand, args, processBroker, cwd, { timeout = 120000 } = {}) {
+  const cmd = `${ccCommand.display} ${args
+    .map((arg, index) => (args[index - 1] === "--passphrase" ? "***" : arg))
+    .join(" ")}`;
+  const stdout = processBroker
+    .execFileSync(ccCommand.file, [...ccCommand.prefixArgs, ...args], {
+      cwd,
+      timeout,
+    })
+    .toString("utf8");
   return { cmd, stdout };
 }
 
@@ -114,14 +121,18 @@ function statusOf(report) {
   return report.status || report.state || report.readiness || "UNKNOWN";
 }
 
-function probeReadiness(ccPrefix) {
-  if (!ccPrefix) {
+function probeReadiness(ccCommand, processBroker, cwd) {
+  if (!ccCommand) {
     return { ok: false, reason: "cc CLI not found" };
   }
   try {
-    const { stdout } = runCc(ccPrefix, "hub readiness --json", {
-      timeout: 60000,
-    });
+    const { stdout } = runCc(
+      ccCommand,
+      ["hub", "readiness", "--json"],
+      processBroker,
+      cwd,
+      { timeout: 60000 },
+    );
     let parsed = null;
     try {
       parsed = JSON.parse(stdout);
@@ -198,12 +209,15 @@ module.exports = {
       ? passMatch[1].replace(/^['"]|['"]$/g, "")
       : null;
 
-    const ccPrefix = resolveCcPrefix(projectRoot);
-
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "pdh-im-collect",
+      );
+      const ccCommand = resolveCcCommand(projectRoot, processBroker);
       // ── readiness (default) ──────────────────────────────────────
       if (action === "readiness" || action === "status" || action === "guide") {
-        const r = probeReadiness(ccPrefix);
+        const r = probeReadiness(ccCommand, processBroker, projectRoot);
         const lines = ["## PDH 微信/QQ 采集 — 就绪状态"];
         if (r.ok) {
           lines.push(
@@ -237,7 +251,7 @@ module.exports = {
       // ── wechat ───────────────────────────────────────────────────
       if (action === "wechat" || action === "weixin" || action === "微信") {
         if (doRun) {
-          if (!ccPrefix) {
+          if (!ccCommand) {
             return {
               success: false,
               error: "cc CLI not found",
@@ -246,8 +260,10 @@ module.exports = {
             };
           }
           const { cmd, stdout } = runCc(
-            ccPrefix,
-            "hub sync-adapter wechat-pc",
+            ccCommand,
+            ["hub", "sync-adapter", "wechat-pc"],
+            processBroker,
+            projectRoot,
             { timeout: 600000 },
           );
           return {
@@ -277,7 +293,7 @@ module.exports = {
                 'QQ 采集需要 16 位密钥：先用 qq-win-db-key 取密钥，再重试并带上 `--run --passphrase "<密钥>"`。',
             };
           }
-          if (!ccPrefix) {
+          if (!ccCommand) {
             return {
               success: false,
               error: "cc CLI not found",
@@ -285,8 +301,10 @@ module.exports = {
             };
           }
           const { stdout } = runCc(
-            ccPrefix,
-            `hub sync-adapter qq-pc --passphrase "${passphrase}"`,
+            ccCommand,
+            ["hub", "sync-adapter", "qq-pc", "--passphrase", passphrase],
+            processBroker,
+            projectRoot,
             { timeout: 600000 },
           );
           return {
@@ -309,16 +327,20 @@ module.exports = {
 
       // ── verify ───────────────────────────────────────────────────
       if (action === "verify" || action === "stats") {
-        if (!ccPrefix) {
+        if (!ccCommand) {
           return {
             success: false,
             error: "cc CLI not found",
             message: "找不到 cc CLI，请手动运行：`cc hub stats`。",
           };
         }
-        const { cmd, stdout } = runCc(ccPrefix, "hub stats", {
-          timeout: 60000,
-        });
+        const { cmd, stdout } = runCc(
+          ccCommand,
+          ["hub", "stats"],
+          processBroker,
+          projectRoot,
+          { timeout: 60000 },
+        );
         return {
           success: true,
           result: { action: "verify", ran: cmd, output: stdout },

@@ -7,7 +7,7 @@ category: development
 user-invocable: true
 tags: [pr, review, github, diff, code-review, summary, pull-request]
 capabilities: [diff-analysis, bug-detection, security-scan, pr-summary, auto-comment]
-execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute]
+execution-capabilities: [data:result, data:task, host:logger, host:process, process:cwd, process:execute]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [pr-review, pr-summary, pr-comment]

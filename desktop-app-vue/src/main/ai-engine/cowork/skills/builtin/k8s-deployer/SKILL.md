@@ -7,7 +7,7 @@ category: development
 user-invocable: true
 tags: [kubernetes, k8s, deployment, helm, container, devops, cloud-native]
 capabilities: [manifest-generation, helm-chart, rollout-management, security-scan, status-check]
-execution-capabilities: [data:result, data:task, host:logger, process:execute]
+execution-capabilities: [data:result, data:task, host:logger, host:process, process:cwd, process:execute]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [k8s-deploy, k8s-manifest, k8s-status, k8s-helm]

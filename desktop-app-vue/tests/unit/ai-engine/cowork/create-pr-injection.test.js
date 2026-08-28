@@ -5,6 +5,7 @@
  * the safe default command.
  */
 import { describe, it, expect, vi } from "vitest";
+import { createTestProcessContext } from "../../../../src/main/ai-engine/cowork/skills/__tests__/helpers/bundled-skill-process.js";
 
 const handler = require("../../../../src/main/ai-engine/cowork/skills/builtin/create-pr/handler.js");
 
@@ -16,23 +17,20 @@ describe("create-pr changelog injection guard", () => {
     expect(handler.isSafeRef("$(id)")).toBe(false);
   });
 
-  it("never passes a malicious range to execSync (falls back to safe default)", async () => {
+  it("never passes a malicious range to the process authority", async () => {
     const spy = vi.fn(() => "");
-    const orig = handler._deps.execSync;
-    handler._deps.execSync = spy;
-    try {
-      const res = await handler.execute(
-        { input: "changelog v1..v2;rm -rf ~" },
-        { cwd: "." },
-      );
-      expect(res.success).toBe(true);
-      // the malicious range must never appear in any executed command
-      for (const call of spy.mock.calls) {
-        expect(String(call[0])).not.toContain(";rm");
-        expect(String(call[0])).not.toContain("v1..v2;");
-      }
-    } finally {
-      handler._deps.execSync = orig;
+    const context = {
+      cwd: process.cwd(),
+      ...createTestProcessContext("create-pr", spy),
+    };
+    const res = await handler.execute(
+      { input: "changelog v1..v2;rm -rf ~" },
+      context,
+    );
+    expect(res.success).toBe(true);
+    for (const [request] of spy.mock.calls) {
+      expect(request.args.join(" ")).not.toContain(";rm");
+      expect(request.args.join(" ")).not.toContain("v1..v2;");
     }
   });
 });

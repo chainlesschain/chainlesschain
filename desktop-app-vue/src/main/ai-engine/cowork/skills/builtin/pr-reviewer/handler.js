@@ -2,15 +2,12 @@
  * PR Reviewer Skill Handler
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { logger } = require("../../../../../utils/logger.js");
-const { execSync } = require("child_process");
-/* eslint-enable @typescript-eslint/no-require-imports */
-
-const _deps = { execSync };
+const {
+  requireBundledSkillProcessBroker,
+} = require("../../bundled-skill-process-broker.js");
 
 module.exports = {
-  _deps,
   isSafeRef, // exported for tests
   async init(_skill) {
     logger.info("[PRReviewer] Initialized");
@@ -23,13 +20,17 @@ module.exports = {
     logger.info(`[PRReviewer] Action: ${parsed.action}`);
 
     try {
+      const processBroker = requireBundledSkillProcessBroker(
+        context,
+        "pr-reviewer",
+      );
       switch (parsed.action) {
         case "review":
-          return handleReview(parsed.target, context);
+          return handleReview(parsed.target, context, processBroker);
         case "summary":
-          return handleSummary(parsed.target, context);
+          return handleSummary(parsed.target, context, processBroker);
         case "diff":
-          return handleDiffReview(parsed.target, context);
+          return handleDiffReview(parsed.target, context, processBroker);
         default:
           return { success: false, error: `Unknown action: ${parsed.action}` };
       }
@@ -63,21 +64,21 @@ function isSafeRef(value) {
   );
 }
 
-function exec(cmd, cwd) {
+function exec(file, args, cwd, processBroker) {
   try {
-    return _deps
-      .execSync(cmd, {
+    return processBroker
+      .execFileSync(file, args, {
         cwd: cwd || process.cwd(),
-        encoding: "utf8",
         timeout: 30000,
       })
+      .toString("utf8")
       .trim();
   } catch (e) {
-    return e.stdout || e.message;
+    return e.stdout?.toString?.("utf8") || e.message;
   }
 }
 
-function handleReview(prNumber, context) {
+function handleReview(prNumber, context, processBroker) {
   if (!isSafeRef(prNumber)) {
     return { success: false, error: `Invalid PR reference: ${prNumber}` };
   }
@@ -86,10 +87,18 @@ function handleReview(prNumber, context) {
 
   try {
     prInfo = exec(
-      `gh pr view ${prNumber} --json title,body,additions,deletions,files,author`,
+      "gh",
+      [
+        "pr",
+        "view",
+        prNumber,
+        "--json",
+        "title,body,additions,deletions,files,author",
+      ],
       cwd,
+      processBroker,
     );
-    diff = exec(`gh pr diff ${prNumber}`, cwd);
+    diff = exec("gh", ["pr", "diff", prNumber], cwd, processBroker);
   } catch (e) {
     return {
       success: false,
@@ -109,16 +118,31 @@ function handleReview(prNumber, context) {
   };
 }
 
-function handleSummary(branch, context) {
+function handleSummary(branch, context, processBroker) {
   const cwd = context.cwd || process.cwd();
   const base = branch || "main";
   if (!isSafeRef(base)) {
     return { success: false, error: `Invalid base ref: ${base}` };
   }
 
-  const log = exec(`git log ${base}..HEAD --oneline`, cwd);
-  const stat = exec(`git diff ${base}...HEAD --stat`, cwd);
-  const diffSummary = exec(`git diff ${base}...HEAD --shortstat`, cwd);
+  const log = exec(
+    "git",
+    ["log", `${base}..HEAD`, "--oneline"],
+    cwd,
+    processBroker,
+  );
+  const stat = exec(
+    "git",
+    ["diff", `${base}...HEAD`, "--stat"],
+    cwd,
+    processBroker,
+  );
+  const diffSummary = exec(
+    "git",
+    ["diff", `${base}...HEAD`, "--shortstat"],
+    cwd,
+    processBroker,
+  );
 
   const commits = log ? log.split("\n").filter(Boolean) : [];
 
@@ -137,14 +161,14 @@ function handleSummary(branch, context) {
   };
 }
 
-function handleDiffReview(baseBranch, context) {
+function handleDiffReview(baseBranch, context, processBroker) {
   const cwd = context.cwd || process.cwd();
   const base = baseBranch || "main";
   if (!isSafeRef(base)) {
     return { success: false, error: `Invalid base ref: ${base}` };
   }
 
-  const diff = exec(`git diff ${base}...HEAD`, cwd);
+  const diff = exec("git", ["diff", `${base}...HEAD`], cwd, processBroker);
   const analysis = analyzeDiff(diff);
 
   return {
