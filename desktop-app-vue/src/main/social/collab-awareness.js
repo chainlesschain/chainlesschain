@@ -11,6 +11,12 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  SocialCollabBoundaryError,
+  createSocialCollabBoundaries,
+  assertSocialDocumentId,
+  assertSocialPeerId,
+} = require("./social-collab-boundaries");
 
 /**
  * Default cursor colors for collaborators
@@ -45,8 +51,11 @@ const PRESENCE_TIMEOUT = 60000; // 1 minute
 const CLEANUP_INTERVAL = 30000; // 30 seconds
 
 class CollabAwareness extends EventEmitter {
-  constructor() {
+  constructor(_p2pManager = null, options = {}) {
     super();
+    this.boundaries = createSocialCollabBoundaries(options.boundaries || {});
+    this._now =
+      typeof options.now === "function" ? options.now : () => Date.now();
 
     /**
      * Cursor positions by document
@@ -80,18 +89,29 @@ class CollabAwareness extends EventEmitter {
     this.cleanupTimer = null;
 
     this.initialized = false;
+    this._destroyed = false;
   }
 
   /**
    * Initialize the awareness module
    */
   async initialize() {
+    if (this._destroyed) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_DESTROYED",
+        "Social collaboration awareness has been destroyed",
+      );
+    }
+    if (this.initialized) {
+      return;
+    }
     logger.info("[CollabAwareness] Initializing...");
 
     // Start periodic cleanup of stale cursors
     this.cleanupTimer = setInterval(() => {
       this._cleanupStaleCursors();
     }, CLEANUP_INTERVAL);
+    this.cleanupTimer.unref?.();
 
     this.initialized = true;
     logger.info("[CollabAwareness] Initialized successfully");
@@ -111,52 +131,43 @@ class CollabAwareness extends EventEmitter {
    */
   setLocalCursor(docId, position, selection = null) {
     try {
+      this._assertUsable();
       if (!docId || !position) {
         throw new Error("Document ID and position are required");
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
       const localProfile = this._getLocalProfile();
       if (!localProfile) {
         throw new Error("Local user profile not set");
       }
 
-      // Initialize document cursor map if needed
-      if (!this.cursors.has(docId)) {
-        this.cursors.set(docId, new Map());
-      }
-
-      const docCursors = this.cursors.get(docId);
+      const normalizedPosition = this._normalizePosition(position);
+      const normalizedSelection = this._normalizeSelection(selection);
+      this._assertCursorCapacity(normalizedDocId, localProfile.did);
+      const docCursors = this._ensureDocumentCursors(normalizedDocId);
 
       const cursorState = {
         did: localProfile.did,
         name: localProfile.name,
         color: localProfile.color,
-        position: {
-          line: position.line || 0,
-          column: position.column || 0,
-          offset: position.offset || 0,
-        },
-        selection: selection
-          ? {
-              start: {
-                line: selection.start?.line || 0,
-                column: selection.start?.column || 0,
-                offset: selection.start?.offset || 0,
-              },
-              end: {
-                line: selection.end?.line || 0,
-                column: selection.end?.column || 0,
-                offset: selection.end?.offset || 0,
-              },
-            }
-          : null,
-        lastActivity: Date.now(),
+        position: normalizedPosition,
+        selection: normalizedSelection,
+        lastActivity: this._now(),
         isLocal: true,
       };
 
-      docCursors.set(localProfile.did, cursorState);
+      this._retainCursor(
+        normalizedDocId,
+        docCursors,
+        localProfile.did,
+        cursorState,
+      );
 
-      this.emit("cursor:updated", { docId, cursor: cursorState });
+      this.emit("cursor:updated", {
+        docId: normalizedDocId,
+        cursor: cursorState,
+      });
 
       return { success: true, cursor: cursorState };
     } catch (error) {
@@ -172,38 +183,59 @@ class CollabAwareness extends EventEmitter {
    */
   updateRemoteCursor(docId, cursorData) {
     try {
+      this._assertUsable();
       if (!docId || !cursorData || !cursorData.did) {
         return;
       }
-
-      if (!this.cursors.has(docId)) {
-        this.cursors.set(docId, new Map());
-      }
-
-      const docCursors = this.cursors.get(docId);
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const normalizedDid = assertSocialPeerId(cursorData.did, this.boundaries);
+      const normalizedName = this._normalizeName(
+        cursorData.name,
+        normalizedDid,
+        this.userProfiles.get(normalizedDid)?.name,
+      );
+      const normalizedPosition = this._normalizePosition(cursorData.position);
+      const normalizedSelection = this._normalizeSelection(
+        cursorData.selection,
+      );
+      this._assertCursorCapacity(normalizedDocId, normalizedDid);
 
       // Ensure the user has a profile/color
-      const profile = this._ensureProfile(cursorData.did, cursorData.name);
+      const profile = this._ensureProfile(normalizedDid, normalizedName);
+      const docCursors = this._ensureDocumentCursors(normalizedDocId);
 
       const cursorState = {
-        did: cursorData.did,
-        name: cursorData.name || profile.name,
+        did: normalizedDid,
+        name: normalizedName,
         color: profile.color,
-        position: cursorData.position || { line: 0, column: 0, offset: 0 },
-        selection: cursorData.selection || null,
-        lastActivity: Date.now(),
+        position: normalizedPosition,
+        selection: normalizedSelection,
+        lastActivity: this._now(),
         isLocal: false,
       };
 
-      const isNewUser = !docCursors.has(cursorData.did);
-      docCursors.set(cursorData.did, cursorState);
+      const isNewUser = !docCursors.has(normalizedDid);
+      this._retainCursor(
+        normalizedDocId,
+        docCursors,
+        normalizedDid,
+        cursorState,
+      );
 
       if (isNewUser) {
-        this.emit("user:joined", { docId, user: cursorState });
-        logger.info(`[CollabAwareness] User ${cursorData.did} joined doc ${docId}`);
+        this.emit("user:joined", {
+          docId: normalizedDocId,
+          user: cursorState,
+        });
+        logger.info(
+          `[CollabAwareness] User ${normalizedDid} joined doc ${normalizedDocId}`,
+        );
       }
 
-      this.emit("cursor:updated", { docId, cursor: cursorState });
+      this.emit("cursor:updated", {
+        docId: normalizedDocId,
+        cursor: cursorState,
+      });
     } catch (error) {
       logger.error("[CollabAwareness] Error updating remote cursor:", error);
     }
@@ -216,11 +248,13 @@ class CollabAwareness extends EventEmitter {
    */
   broadcastAwareness(docId) {
     try {
+      this._assertUsable();
       if (!docId) {
         throw new Error("Document ID is required");
       }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
 
-      const docCursors = this.cursors.get(docId);
+      const docCursors = this.cursors.get(normalizedDocId);
       if (!docCursors) {
         return { success: true, cursors: [] };
       }
@@ -237,13 +271,13 @@ class CollabAwareness extends EventEmitter {
 
       // Return the local cursor data for broadcasting to peers
       const broadcastData = {
-        docId,
+        docId: normalizedDocId,
         did: localProfile.did,
         name: localProfile.name,
         color: localProfile.color,
         position: localCursor.position,
         selection: localCursor.selection,
-        timestamp: Date.now(),
+        timestamp: this._now(),
       };
 
       return { success: true, data: broadcastData };
@@ -264,14 +298,15 @@ class CollabAwareness extends EventEmitter {
         return [];
       }
 
-      const docCursors = this.cursors.get(docId);
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const docCursors = this.cursors.get(normalizedDocId);
       if (!docCursors) {
         return [];
       }
 
       const localProfile = this._getLocalProfile();
       const localDid = localProfile?.did;
-      const now = Date.now();
+      const now = this._now();
       const result = [];
 
       for (const [did, cursor] of docCursors) {
@@ -312,12 +347,13 @@ class CollabAwareness extends EventEmitter {
         return [];
       }
 
-      const docCursors = this.cursors.get(docId);
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const docCursors = this.cursors.get(normalizedDocId);
       if (!docCursors) {
         return [];
       }
 
-      const now = Date.now();
+      const now = this._now();
       const result = [];
 
       for (const [, cursor] of docCursors) {
@@ -353,16 +389,27 @@ class CollabAwareness extends EventEmitter {
     if (!did) {
       return;
     }
-
-    const assignedColor = color || this._assignColor(did);
-
-    this.userProfiles.set(did, {
-      did,
-      name: name || did.substring(0, 12) + "...",
+    this._assertUsable();
+    const normalizedDid = assertSocialPeerId(did, this.boundaries);
+    const existing = this.userProfiles.get(normalizedDid);
+    this._assertProfileCapacity(normalizedDid);
+    const assignedColor = this._normalizeColor(
+      color ?? existing?.color,
+      normalizedDid,
+    );
+    const profile = {
+      did: normalizedDid,
+      name: this._normalizeName(name, normalizedDid, existing?.name),
       color: assignedColor,
-    });
+      lastActivity: this._now(),
+      ...(existing?.isLocal ? { isLocal: true } : {}),
+    };
+    this.userProfiles.set(normalizedDid, profile);
 
-    logger.info(`[CollabAwareness] User profile set for ${did}: ${name} (${assignedColor})`);
+    logger.info(
+      `[CollabAwareness] User profile set for ${normalizedDid}: ${profile.name} (${assignedColor})`,
+    );
+    return profile;
   }
 
   /**
@@ -371,17 +418,26 @@ class CollabAwareness extends EventEmitter {
    * @param {string} did - User DID
    */
   removeUser(docId, did) {
-    const docCursors = this.cursors.get(docId);
-    if (docCursors && docCursors.has(did)) {
-      const cursor = docCursors.get(did);
-      docCursors.delete(did);
+    try {
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const normalizedDid = assertSocialPeerId(did, this.boundaries);
+      const docCursors = this.cursors.get(normalizedDocId);
+      if (!docCursors || !docCursors.has(normalizedDid)) {
+        return;
+      }
+      const cursor = docCursors.get(normalizedDid);
+      docCursors.delete(normalizedDid);
 
-      this.emit("user:left", { docId, user: cursor });
-      logger.info(`[CollabAwareness] User ${did} left doc ${docId}`);
+      this.emit("user:left", { docId: normalizedDocId, user: cursor });
+      logger.info(
+        `[CollabAwareness] User ${normalizedDid} left doc ${normalizedDocId}`,
+      );
 
       if (docCursors.size === 0) {
-        this.cursors.delete(docId);
+        this.cursors.delete(normalizedDocId);
       }
+    } catch (error) {
+      logger.error("[CollabAwareness] Error removing user:", error);
     }
   }
 
@@ -390,12 +446,18 @@ class CollabAwareness extends EventEmitter {
    * @param {string} docId - Document ID
    */
   clearDocument(docId) {
-    if (this.cursors.has(docId)) {
-      const docCursors = this.cursors.get(docId);
-      for (const [did, cursor] of docCursors) {
-        this.emit("user:left", { docId, user: cursor });
+    try {
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      if (!this.cursors.has(normalizedDocId)) {
+        return;
       }
-      this.cursors.delete(docId);
+      const docCursors = this.cursors.get(normalizedDocId);
+      for (const [, cursor] of docCursors) {
+        this.emit("user:left", { docId: normalizedDocId, user: cursor });
+      }
+      this.cursors.delete(normalizedDocId);
+    } catch (error) {
+      logger.error("[CollabAwareness] Error clearing document:", error);
     }
   }
 
@@ -405,19 +467,28 @@ class CollabAwareness extends EventEmitter {
    * @returns {number} Active user count
    */
   getActiveUserCount(docId) {
-    const docCursors = this.cursors.get(docId);
-    if (!docCursors) {
+    try {
+      if (!docId) {
+        return 0;
+      }
+      const normalizedDocId = assertSocialDocumentId(docId, this.boundaries);
+      const docCursors = this.cursors.get(normalizedDocId);
+      if (!docCursors) {
+        return 0;
+      }
+
+      const now = this._now();
+      let count = 0;
+      for (const [, cursor] of docCursors) {
+        if (now - cursor.lastActivity <= PRESENCE_TIMEOUT) {
+          count++;
+        }
+      }
+      return count;
+    } catch (error) {
+      logger.error("[CollabAwareness] Error counting active users:", error);
       return 0;
     }
-
-    const now = Date.now();
-    let count = 0;
-    for (const [, cursor] of docCursors) {
-      if (now - cursor.lastActivity <= PRESENCE_TIMEOUT) {
-        count++;
-      }
-    }
-    return count;
   }
 
   // ========================================
@@ -429,7 +500,7 @@ class CollabAwareness extends EventEmitter {
    */
   _getLocalProfile() {
     // Find the profile marked as local, or the first one with "local" flag
-    for (const [did, profile] of this.userProfiles) {
+    for (const [, profile] of this.userProfiles) {
       if (profile.isLocal) {
         return profile;
       }
@@ -451,13 +522,23 @@ class CollabAwareness extends EventEmitter {
    * @param {string} [color] - Optional color
    */
   setLocalProfile(did, name, color = null) {
-    const assignedColor = color || this._assignColor(did);
-    this.userProfiles.set(did, {
-      did,
-      name: name || did.substring(0, 12) + "...",
+    this._assertUsable();
+    const normalizedDid = assertSocialPeerId(did, this.boundaries);
+    const existing = this.userProfiles.get(normalizedDid);
+    this._assertProfileCapacity(normalizedDid);
+    const assignedColor = this._normalizeColor(
+      color ?? existing?.color,
+      normalizedDid,
+    );
+    const profile = {
+      did: normalizedDid,
+      name: this._normalizeName(name, normalizedDid, existing?.name),
       color: assignedColor,
       isLocal: true,
-    });
+      lastActivity: this._now(),
+    };
+    this.userProfiles.set(normalizedDid, profile);
+    return profile;
   }
 
   /**
@@ -466,8 +547,147 @@ class CollabAwareness extends EventEmitter {
   _ensureProfile(did, name) {
     if (!this.userProfiles.has(did)) {
       this.setUserProfile(did, name);
+    } else {
+      const profile = this.userProfiles.get(did);
+      profile.lastActivity = this._now();
     }
     return this.userProfiles.get(did);
+  }
+
+  _assertUsable() {
+    if (this._destroyed) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_DESTROYED",
+        "Social collaboration awareness has been destroyed",
+      );
+    }
+  }
+
+  _assertProfileCapacity(did) {
+    if (
+      !this.userProfiles.has(did) &&
+      this.userProfiles.size >= this.boundaries.maxProfiles
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PROFILE_CAPACITY",
+        `Social collaboration profile capacity ${this.boundaries.maxProfiles} reached`,
+      );
+    }
+  }
+
+  _assertCursorCapacity(docId, did) {
+    const docCursors = this.cursors.get(docId);
+    if (!docCursors) {
+      if (this.cursors.size >= this.boundaries.maxActiveDocuments) {
+        throw new SocialCollabBoundaryError(
+          "ERR_SOCIAL_COLLAB_DOCUMENT_CAPACITY",
+          `Social collaboration document capacity ${this.boundaries.maxActiveDocuments} reached`,
+        );
+      }
+      return;
+    }
+    if (
+      !docCursors.has(did) &&
+      docCursors.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PEER_CAPACITY",
+        `Social collaboration peer capacity ${this.boundaries.maxPeersPerDocument} reached for ${docId}`,
+      );
+    }
+  }
+
+  _ensureDocumentCursors(docId) {
+    if (!this.cursors.has(docId)) {
+      this.cursors.set(docId, new Map());
+    }
+    return this.cursors.get(docId);
+  }
+
+  _retainCursor(docId, docCursors, did, cursorState) {
+    if (
+      !docCursors.has(did) &&
+      docCursors.size >= this.boundaries.maxPeersPerDocument
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PEER_CAPACITY",
+        `Social collaboration peer capacity ${this.boundaries.maxPeersPerDocument} reached for ${docId}`,
+      );
+    }
+    docCursors.set(did, cursorState);
+  }
+
+  _normalizePosition(position = {}) {
+    if (
+      position === null ||
+      typeof position !== "object" ||
+      Array.isArray(position)
+    ) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_CURSOR_INVALID",
+        "Cursor position must be an object",
+      );
+    }
+    const normalized = {};
+    for (const key of ["line", "column", "offset"]) {
+      const value = position[key] ?? 0;
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new SocialCollabBoundaryError(
+          "ERR_SOCIAL_COLLAB_CURSOR_INVALID",
+          `Cursor ${key} must be a non-negative safe integer`,
+        );
+      }
+      normalized[key] = value;
+    }
+    return normalized;
+  }
+
+  _normalizeSelection(selection) {
+    if (selection === undefined || selection === null) {
+      return null;
+    }
+    if (typeof selection !== "object" || Array.isArray(selection)) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_CURSOR_INVALID",
+        "Cursor selection must be an object",
+      );
+    }
+    return {
+      start: this._normalizePosition(selection.start),
+      end: this._normalizePosition(selection.end),
+    };
+  }
+
+  _normalizeName(name, did, fallbackName) {
+    const normalized =
+      name === undefined || name === null || name === ""
+        ? fallbackName || `${did.substring(0, 12)}...`
+        : name;
+    if (typeof normalized !== "string") {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PROFILE_INVALID",
+        "Display name must be a string",
+      );
+    }
+    const byteLength = Buffer.byteLength(normalized, "utf8");
+    if (byteLength > this.boundaries.maxDisplayNameBytes) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PROFILE_INVALID",
+        `Display name exceeds ${this.boundaries.maxDisplayNameBytes} bytes`,
+      );
+    }
+    return normalized;
+  }
+
+  _normalizeColor(color, did) {
+    const normalized = color || this._assignColor(did);
+    if (typeof normalized !== "string" || !/^#[0-9a-f]{6}$/i.test(normalized)) {
+      throw new SocialCollabBoundaryError(
+        "ERR_SOCIAL_COLLAB_PROFILE_INVALID",
+        "Cursor color must be a six-digit hexadecimal color",
+      );
+    }
+    return normalized;
   }
 
   /**
@@ -491,14 +711,16 @@ class CollabAwareness extends EventEmitter {
    * Clean up stale cursors that have timed out
    */
   _cleanupStaleCursors() {
-    const now = Date.now();
+    const now = this._now();
 
     for (const [docId, docCursors] of this.cursors) {
       for (const [did, cursor] of docCursors) {
         if (now - cursor.lastActivity > PRESENCE_TIMEOUT && !cursor.isLocal) {
           docCursors.delete(did);
           this.emit("user:left", { docId, user: cursor });
-          logger.info(`[CollabAwareness] Stale cursor removed for ${did} in doc ${docId}`);
+          logger.info(
+            `[CollabAwareness] Stale cursor removed for ${did} in doc ${docId}`,
+          );
         }
       }
 
@@ -506,12 +728,35 @@ class CollabAwareness extends EventEmitter {
         this.cursors.delete(docId);
       }
     }
+
+    for (const [did, profile] of this.userProfiles) {
+      if (
+        !profile.isLocal &&
+        now - profile.lastActivity > PRESENCE_TIMEOUT &&
+        !this._profileIsReferenced(did)
+      ) {
+        this.userProfiles.delete(did);
+      }
+    }
+  }
+
+  _profileIsReferenced(did) {
+    for (const docCursors of this.cursors.values()) {
+      if (docCursors.has(did)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
    * Clean up resources
    */
   async destroy() {
+    if (this._destroyed) {
+      return;
+    }
+    this._destroyed = true;
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;

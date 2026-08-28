@@ -21,6 +21,11 @@ const DEFAULT_SOCIAL_COLLAB_BOUNDARIES = Object.freeze({
   maxConcurrentOutbound: 16,
   maxActiveDocuments: 128,
   maxPeersPerDocument: 128,
+  maxProfiles: 1024,
+  maxDisplayNameBytes: 256,
+  maxDocumentTitleBytes: 1024,
+  maxQueryItems: 200,
+  maxQueryOffset: 1_000_000,
   maxDocumentIdBytes: 1024,
   maxPeerIdBytes: 1024,
 });
@@ -34,6 +39,11 @@ const HARD_SOCIAL_COLLAB_BOUNDARIES = Object.freeze({
   maxConcurrentOutbound: 256,
   maxActiveDocuments: 4096,
   maxPeersPerDocument: 4096,
+  maxProfiles: 8192,
+  maxDisplayNameBytes: 4096,
+  maxDocumentTitleBytes: 16 * 1024,
+  maxQueryItems: 5000,
+  maxQueryOffset: 100_000_000,
   maxDocumentIdBytes: 16 * 1024,
   maxPeerIdBytes: 16 * 1024,
 });
