@@ -2,7 +2,6 @@
  * API Gateway Skill Handler
  */
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
 const path = require("path");
 const {
   requireBundledSkillRuntimeNetworkBroker,
@@ -10,8 +9,12 @@ const {
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 const registryCache = new Map();
 
@@ -35,10 +38,8 @@ function resolveRegistryLocation(context) {
 function loadRegistry(location) {
   let registry = {};
   try {
-    if (_deps.fs.existsSync(location.registryFile)) {
-      registry = JSON.parse(
-        _deps.fs.readFileSync(location.registryFile, "utf-8"),
-      );
+    if (fs.existsSync(location.registryFile)) {
+      registry = JSON.parse(fs.readFileSync(location.registryFile, "utf-8"));
     }
   } catch (_err) {
     logger.warn("[APIGateway] Could not load registry, starting fresh");
@@ -58,10 +59,10 @@ function ensureRegistry(context) {
 function saveRegistry(state) {
   const { location, registry } = state;
   try {
-    if (!_deps.fs.existsSync(location.configDir)) {
-      _deps.fs.mkdirSync(location.configDir, { recursive: true });
+    if (!fs.existsSync(location.configDir)) {
+      fs.mkdirSync(location.configDir, { recursive: true });
     }
-    _deps.fs.writeFileSync(
+    fs.writeFileSync(
       location.registryFile,
       JSON.stringify(registry, null, 2),
       "utf-8",
@@ -419,3 +420,5 @@ async function makeRequest(method, url, headers = {}, body = null, context) {
     body: response.body,
   };
 }
+
+module.exports = withBundledSkillFilesystem("api-gateway", module.exports);

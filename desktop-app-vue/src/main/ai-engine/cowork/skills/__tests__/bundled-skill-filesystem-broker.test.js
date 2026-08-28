@@ -14,6 +14,7 @@ const {
 } = require("../bundled-skill-filesystem-broker.js");
 
 const MIGRATED_WRITERS = Object.freeze([
+  "api-gateway",
   "architect-mode",
   "csv-processor",
   "data-exporter",
@@ -22,9 +23,12 @@ const MIGRATED_WRITERS = Object.freeze([
   "json-yaml-toolkit",
   "markdown-enhancer",
   "memory-insights",
+  "obsidian",
   "performance-profiler",
   "planning-with-files",
   "rules-engine",
+  "self-improving-agent",
+  "skill-creator",
   "snippet-library",
   "subtitle-generator",
   "word-generator",
@@ -249,6 +253,7 @@ describe("bundled Skill filesystem broker", () => {
         "utf8",
       );
       expect(source).not.toMatch(/require\(["'](?:node:)?fs["']\)/);
+      expect(source).not.toContain("_deps.fs");
       expect(source).toContain("bundled-skill-filesystem-broker.js");
       expect(source).toMatch(
         new RegExp(

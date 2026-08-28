@@ -7,7 +7,7 @@ category: system
 user-invocable: true
 tags: [skill, creator, scaffold, meta, generator, template, test, improve, optimize, eval]
 capabilities: [skill-scaffolding, handler-generation, skill-testing, description-optimization, description-optimization-loop, template-management]
-execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:electron, host:environment, host:logger, host:process, host:skill-registry, process:cwd, process:execute, runtime:random, runtime:time, system:inspect]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:electron, host:environment, host:filesystem, host:logger, host:process, host:skill-registry, process:cwd, process:execute, runtime:random, runtime:time, system:inspect]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [skill-scaffold, skill-test, skill-optimize, skill-validate]

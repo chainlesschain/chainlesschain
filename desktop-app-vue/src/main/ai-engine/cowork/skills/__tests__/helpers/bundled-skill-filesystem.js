@@ -26,7 +26,9 @@ function createTestFilesystemContext(skillId, options = {}) {
         : {}),
     },
     {
-      invoke: ({ operation, args }) => nativeFs[operation](...args),
+      invoke:
+        options.invoke ||
+        (({ operation, args }) => nativeFs[operation](...args)),
       auditSink: options.auditSink || (() => {}),
     },
   );

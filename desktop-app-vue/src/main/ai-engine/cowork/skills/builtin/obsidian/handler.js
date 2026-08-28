@@ -2,13 +2,16 @@
  * Obsidian Vault Manager Skill Handler
  */
 const { logger } = require("../../../../../utils/logger.js");
-const fs = require("fs");
 const path = require("path");
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+const {
+  bundledSkillFs: fs,
+  withBundledSkillFilesystem,
+} = require("../../bundled-skill-filesystem-broker.js");
 
-const _deps = { fs, path };
+const _deps = { path };
 
 module.exports = {
   _deps,
@@ -105,7 +108,7 @@ function resolveVaultPath(context) {
     context,
     "obsidian",
   ).get("vault-directory");
-  return vaultPath && _deps.fs.existsSync(vaultPath) ? vaultPath : null;
+  return vaultPath && fs.existsSync(vaultPath) ? vaultPath : null;
 }
 
 function handleCreateNote(vaultPath, title, options) {
@@ -116,14 +119,14 @@ function handleCreateNote(vaultPath, title, options) {
   const folder = options.folder
     ? _deps.path.join(vaultPath, options.folder)
     : vaultPath;
-  if (!_deps.fs.existsSync(folder)) {
-    _deps.fs.mkdirSync(folder, { recursive: true });
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
   }
 
   const filename = sanitizeFilename(title) + ".md";
   const filePath = _deps.path.join(folder, filename);
 
-  if (_deps.fs.existsSync(filePath)) {
+  if (fs.existsSync(filePath)) {
     return {
       success: false,
       error: `Note "${title}" already exists at ${filePath}`,
@@ -148,7 +151,7 @@ function handleCreateNote(vaultPath, title, options) {
   }
 
   try {
-    _deps.fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
+    fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
   } catch (err) {
     return { success: false, error: `Failed to write note: ${err.message}` };
   }
@@ -191,7 +194,7 @@ function handleSearch(vaultPath, query, options) {
     let matchLine = null;
     let lineNumber = 0;
     try {
-      const content = _deps.fs.readFileSync(filePath, "utf-8");
+      const content = fs.readFileSync(filePath, "utf-8");
       const lines = content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].toLowerCase().includes(lowerQuery)) {
@@ -206,7 +209,7 @@ function handleSearch(vaultPath, query, options) {
     }
 
     if (titleMatch || contentMatch) {
-      const stat = _deps.fs.statSync(filePath);
+      const stat = fs.statSync(filePath);
       results.push({
         title: basename,
         path: relativePath,
@@ -244,7 +247,7 @@ function handleListTags(vaultPath, options) {
 
   walkMarkdownFiles(vaultPath, (filePath) => {
     try {
-      const content = _deps.fs.readFileSync(filePath, "utf-8");
+      const content = fs.readFileSync(filePath, "utf-8");
 
       // YAML frontmatter tags
       const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -317,7 +320,7 @@ function handleLinkNotes(vaultPath, sourceTitle, targetTitle) {
     };
   }
 
-  const content = _deps.fs.readFileSync(sourceFile, "utf-8");
+  const content = fs.readFileSync(sourceFile, "utf-8");
   const wikiLink = `[[${_deps.path.basename(targetFile, ".md")}]]`;
 
   // Check if link already exists
@@ -335,7 +338,7 @@ function handleLinkNotes(vaultPath, sourceTitle, targetTitle) {
   const updatedContent =
     content + separator + `\n## Related\n\n- ${wikiLink}\n`;
   try {
-    _deps.fs.writeFileSync(sourceFile, updatedContent, "utf-8");
+    fs.writeFileSync(sourceFile, updatedContent, "utf-8");
   } catch (err) {
     return { success: false, error: `Failed to update note: ${err.message}` };
   }
@@ -360,7 +363,7 @@ function handleListRecent(vaultPath, options) {
 
   walkMarkdownFiles(vaultPath, (filePath) => {
     try {
-      const stat = _deps.fs.statSync(filePath);
+      const stat = fs.statSync(filePath);
       files.push({
         title: _deps.path.basename(filePath, ".md"),
         path: _deps.path.relative(vaultPath, filePath),
@@ -389,7 +392,7 @@ function walkMarkdownFiles(dir, callback, depth = 0) {
     return;
   } // Prevent infinite recursion
   try {
-    const entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith(".")) {
         continue;
@@ -432,3 +435,5 @@ function sanitizeFilename(name) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+module.exports = withBundledSkillFilesystem("obsidian", module.exports);

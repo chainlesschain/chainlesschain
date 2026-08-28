@@ -43,13 +43,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "api-gateway": Object.freeze([
-    "4b0c88a5ce2cb6b26b703075af97f769e69669d0d812fbc5e1736802b3340f61",
+    "506d33b75ad022f23c6010c8a6a438e3e1698505d623f94722dc7b536056ee2b",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "host:network",
       "network:http",
@@ -893,13 +894,14 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   obsidian: Object.freeze([
-    "61d6ac021eed1504da59db7d1c6368f565c54c697e84354727b2bf97afc6ed11",
+    "925b8075e34052ec7c459303858d57dafa9777b2797d2914036f549c9b2c7e9e",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "runtime:time",
     ]),
@@ -1185,20 +1187,21 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "self-improving-agent": Object.freeze([
-    "9cd9e8ddf834a69f05cfdc968b68520d8e217c000a4995b9adc2b6093c986902",
+    "6377dea104f3dcafeec9dce7f776219174e3eb90d5403e58d867a951826495f1",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
       "filesystem:write",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "runtime:random",
       "runtime:time",
     ]),
   ]),
   "skill-creator": Object.freeze([
-    "c199d875aa414d178e2dc9cda5625c9acab6cdaaf9a1af650609f191dad28c38",
+    "6b922327c9673bd841726d7ba6abcaa574094b958b4d339137ce15194b35e414",
     Object.freeze([
       "data:result",
       "data:task",
@@ -1206,6 +1209,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
       "filesystem:write",
       "host:electron",
       "host:environment",
+      "host:filesystem",
       "host:logger",
       "host:process",
       "host:skill-registry",

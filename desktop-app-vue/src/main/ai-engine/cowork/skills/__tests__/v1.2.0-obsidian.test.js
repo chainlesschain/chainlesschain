@@ -3,13 +3,24 @@
  * Uses _deps injection for fs/path mocking
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import path from "node:path";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 
 vi.mock("../../../../utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const handler = require("../builtin/obsidian/handler.js");
+const filesystemRoot = path.parse(process.cwd()).root;
+const baseHandler = require("../builtin/obsidian/handler.js");
+const handler = withTestFilesystemHandler(baseHandler, "obsidian", {
+  allowedRoots: [filesystemRoot],
+  cwd: filesystemRoot,
+  invoke: ({ operation, args }) => {
+    const portablePath = args[0].replace(/\\/g, "/").replace(/^[A-Za-z]:/, "");
+    return handler._deps.fs[operation](portablePath, ...args.slice(1));
+  },
+});
 
 describe("obsidian handler", () => {
   const context = createEnvironmentContext("obsidian", {

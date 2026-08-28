@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { createEnvironmentContext } from "./helpers/bundled-skill-environment.js";
+import { withTestFilesystemHandler } from "./helpers/bundled-skill-filesystem.js";
 import { createTestProcessContext } from "./helpers/bundled-skill-process.js";
 
 // ─── Mock logger (必须在 require 之前) ────────────────────────────────────────
@@ -29,7 +30,12 @@ vi.mock("../../../../utils/logger.js", () => ({
 }));
 
 // ─── Load handler ─────────────────────────────────────────────────────────────
-const handler = require("../builtin/skill-creator/handler.js");
+const baseHandler = require("../builtin/skill-creator/handler.js");
+const handler = withTestFilesystemHandler(baseHandler, "skill-creator", {
+  allowedRoots: [process.cwd()],
+  cwd: process.cwd(),
+  invoke: ({ operation, args }) => handler._deps.fs[operation](...args),
+});
 const rawExecute = handler.execute.bind(handler);
 const environmentContext = createEnvironmentContext("skill-creator", {
   PATH: "test-runtime-path",
@@ -190,9 +196,9 @@ afterEach(() => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("_deps structure", () => {
-  it("exports filesystem dependencies without a native process adapter", () => {
+  it("does not export native filesystem or process adapters", () => {
     expect(typeof handler._deps).toBe("object");
-    expect(typeof handler._deps.fs).toBe("object");
+    expect(handler._deps.fs).toBeUndefined();
     expect(typeof handler._deps.path).toBe("object");
     expect(handler._deps.spawnSync).toBeUndefined();
     expect(typeof handler._deps.getManagedSkillsRoot).toBe("function");
@@ -621,6 +627,7 @@ describe("handleValidate()", () => {
 
   it("passes for a complete valid skill (uses real builtin ultrathink)", async () => {
     // Use real fs + real builtin skill — validate does require() which needs real files
+    handler._deps.fs = require("node:fs");
     const r = await handler.execute({ input: "validate ultrathink" }, {}, {});
     expect(r.success).toBe(true);
     expect(r.valid).toBe(true);
