@@ -2053,6 +2053,20 @@ GitHub Actions 恢复后，以最终候选提交 `2f5b0f263a142fd31daca1396456a8
 - 新增媒体 handler 契约，覆盖真实 ffprobe JSON、ffmpeg argv、option injection、输出逃逸、缺失 branded authority 和禁止重新引入隐式媒体 spawn；公共 broker 契约覆盖全部最终批固定命令、精确 authority invocation、stdin/environment 上限、entrypoint pin、路径 containment 与审计脱敏。最终 selector 的 CI integrity 为 33/33、Desktop Vitest 为 51 files、1,014/1,014，合计 52 files、1,047/1,047 全部通过。
 - P1-11 仍保持“部分完成”：bundled process 特权面代码侧已关闭，剩余为 84 个 filesystem reader、22 个 filesystem writer 的路径/操作 authority，生产 SecretStore/配置/network/process authority 与真实 approval/declassification 接线，以及三平台签名 Desktop 验收；测试 adapter 不作为生产授权证据。
 
+### 12.51 P1-11 bundled Skill filesystem writer authority 全量收口（2026-08-28）
+
+本切片把审计初始识别的 22 个直接写盘/FD bundled Skill 从原生 `fs` 导入迁到统一的 branded filesystem broker，并关闭 archive、临时目录和 watcher 的隐式旁路：
+
+- handler 只持有 `AsyncLocalStorage` 绑定的兼容代理，不存在原生 `fs` 回退；每次执行必须提供与 Skill ID 精确匹配且由宿主创建的 branded authority，伪造对象、跨 Skill authority、缺失上下文和异步 adapter 结果均默认拒绝。
+- authority 固定允许的根目录、cwd 和精确操作集合。既有路径先取 `realpath`，不存在的目标从最近既有祖先开始规范化，因此词法 `..`、既有符号链接以及“符号链接下尚不存在目标”的读写逃逸都会在调用 adapter 前拒绝；删除已授权根目录也被禁止。
+- 单次路径最长 16 KiB，读写分别最多 16 MiB，目录枚举最多 10,000 项；审计只记录 Skill、authority、操作、结果和规范路径的 SHA-256，不记录原始路径或文件内容。`code-runner` 的临时目录创建、canonical path 返回和清理也受同一根目录/操作约束。
+- `backup-manager` 与 `file-compressor` 不再把路径交给 `archiver`/`adm-zip`：broker 读取输入后只让 ZIP codec 处理有界内存 Buffer，输出再由 broker 写入。codec 最多接受 10,000 个条目和 16 MiB 输入/输出/展开数据，先拒绝绝对路径、`..`、符号链接、非法大小和 zip-slip，再写入目标。
+- `proactive-agent` 不再暴露原始 FD；增量读取改为受 16 MiB 上限的 broker read。watch authority 最多同时 8 个 watcher、每个 10,000 个事件、最长 24 小时，回传对象只有 `close()`，事件类型和文件名也经过边界检查。`api-gateway`、`obsidian`、`self-improving-agent`、`skill-creator` 的生产 `_deps.fs` 注入旁路已删除，测试 mock 只能作为 branded test authority 的 adapter。
+- capability AST 审计同时识别 filesystem proxy 与 bounded archive codec，145/145 清单和 handler 摘要一致；`host:filesystem=22`，直接原生 `fs` handler 从 85 降到 63，当前 21 个 `filesystem:write` Skill 的原生 `fs` 导入归零。`filesystem:read=84` 保持真实行为总数；`filesystem:write` 从 22 降到 21，是因为 `proactive-agent` 删除了同时被保守计为读写的 `openSync`，现在只执行有界读取。
+- 最终聚焦回归覆盖 broker containment/边界/品牌/并发隔离/watcher、archive round-trip 与 traversal、22 个历史目标 handler 静态边界、capability catalog、安全契约及真实 handler 行为，共 9 files、328/328 通过。最终变更选择器的 CI integrity 为 33/33、Desktop Vitest 为 53 files、1,026/1,026，合计 54 files、1,059/1,059 全部通过。
+
+P1-11 仍保持“部分完成”：bundled filesystem writer 特权面代码侧已关闭，但 63 个直接 reader、生产 filesystem authority/approval 接线及三平台签名 Desktop 验收尚未完成；测试 adapter 不作为生产授权证据。
+
 ## 13. 全量任务完成情况（截至 2026-08-28）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：12 项已完成、14 项部分完成、0 项待完成。
