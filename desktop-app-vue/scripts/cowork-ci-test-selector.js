@@ -77,6 +77,13 @@ const IPFS_TRANSPORT_CONTRACT_TESTS = [
   "src/main/ipfs/__tests__/ipfs-manager.test.js",
   "src/main/ipfs/__tests__/ipfs-ipc.test.js",
 ];
+const GRAPH_DEBUGGER_CONTRACT_TESTS = [
+  "tests/unit/components/graphRunDebuggerUtils.test.js",
+  "tests/unit/components/GraphRunDebugger.smoke.test.js",
+  "tests/unit/components/GraphRunDebugger.wiring.test.js",
+  "tests/unit/pages/useAiChatHarnessGraph.test.js",
+  "tests/unit/pages/AIChatPage.test.js",
+];
 const REPO_SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["signaling-server/index.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
   ["signaling-server/boundaries.js", [STANDALONE_SIGNALING_BOUNDS_TEST]],
@@ -92,6 +99,18 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["src/main/ipfs/ipfs-content-runtime.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   ["src/main/ipfs/ipfs-manager.js", IPFS_TRANSPORT_CONTRACT_TESTS],
   ["src/main/ipfs/ipfs-ipc.js", IPFS_TRANSPORT_CONTRACT_TESTS],
+  [
+    "src/renderer/components/graph/graphRunDebuggerUtils.js",
+    GRAPH_DEBUGGER_CONTRACT_TESTS,
+  ],
+  [
+    "src/renderer/components/graph/GraphRunDebugger.vue",
+    GRAPH_DEBUGGER_CONTRACT_TESTS,
+  ],
+  ["src/renderer/pages/useAiChatHarness.js", GRAPH_DEBUGGER_CONTRACT_TESTS],
+  ["src/renderer/pages/AIChatPage.vue", GRAPH_DEBUGGER_CONTRACT_TESTS],
+  ["src/renderer/pages/WorkflowMonitorPage.vue", GRAPH_DEBUGGER_CONTRACT_TESTS],
+  ["src/renderer/shell/AgentDashboardPanel.vue", GRAPH_DEBUGGER_CONTRACT_TESTS],
   [
     "src/main/ipc/phases/phase-21-30-enterprise.js",
     [IPFS_PRODUCTION_WIRING_TEST],

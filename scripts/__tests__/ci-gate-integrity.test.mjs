@@ -254,6 +254,29 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     }
   }
 
+  for (const graphDebuggerSource of [
+    "desktop-app-vue/src/renderer/components/graph/graphRunDebuggerUtils.js",
+    "desktop-app-vue/src/renderer/components/graph/GraphRunDebugger.vue",
+    "desktop-app-vue/src/renderer/pages/useAiChatHarness.js",
+    "desktop-app-vue/src/renderer/pages/AIChatPage.vue",
+    "desktop-app-vue/src/renderer/pages/WorkflowMonitorPage.vue",
+    "desktop-app-vue/src/renderer/shell/AgentDashboardPanel.vue",
+  ]) {
+    const sourceSelection = selector.createSelection([graphDebuggerSource]);
+    for (const relatedTest of [
+      "tests/unit/components/graphRunDebuggerUtils.test.js",
+      "tests/unit/components/GraphRunDebugger.smoke.test.js",
+      "tests/unit/components/GraphRunDebugger.wiring.test.js",
+      "tests/unit/pages/useAiChatHarnessGraph.test.js",
+      "tests/unit/pages/AIChatPage.test.js",
+    ]) {
+      assert.ok(
+        sourceSelection.selectedTests.includes(relatedTest),
+        `${graphDebuggerSource} must select ${relatedTest}`,
+      );
+    }
+  }
+
   const command = selector.commandForSelection(selection, {
     vitestEntrypoint: "C:/safe/vitest.mjs",
   });

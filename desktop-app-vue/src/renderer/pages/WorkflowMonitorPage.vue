@@ -123,6 +123,11 @@
         @error="handleWorkflowError"
       />
 
+      <GraphRunDebugger
+        v-if="selectedWorkflowGraph"
+        :graph="selectedWorkflowGraph"
+      />
+
       <!-- 完成摘要 -->
       <WorkflowSummary
         v-if="showSummary"
@@ -171,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { h } from "vue";
@@ -188,6 +193,7 @@ import {
 } from "@ant-design/icons-vue";
 import { WorkflowProgress, WorkflowSummary } from "@/components/workflow";
 import CanonicalWorkflowPanel from "@/components/workflow/CanonicalWorkflowPanel.vue";
+import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
 
 const router = useRouter();
 
@@ -207,6 +213,12 @@ const completedStages = ref([]);
 const completedGates = ref({});
 const workflowProgressRef = ref(null);
 let disposeProgress = null;
+const selectedWorkflowGraph = computed(
+  () =>
+    workflows.value.find(
+      (workflow) => workflow.workflowId === selectedWorkflowId.value,
+    )?.graphAuthority || null,
+);
 
 // 方法
 const goBack = () => {

@@ -226,8 +226,17 @@ export function useAiChatHarness({
   const refreshCodingAgentHarnessPanel = async (options = {}) => {
     const { silent = false } = options;
     try {
-      await codingAgentStore.refreshHarnessStatus();
-      await codingAgentStore.loadBackgroundTasks();
+      const sessionId = currentCodingAgentSessionId.value;
+      await Promise.all([
+        codingAgentStore.refreshHarnessStatus(),
+        codingAgentStore.loadBackgroundTasks(),
+        sessionId
+          ? codingAgentStore.fetchTaskGraph(sessionId)
+          : Promise.resolve(null),
+        sessionId
+          ? codingAgentStore.fetchSessionEvents(sessionId)
+          : Promise.resolve(),
+      ]);
       if (!silent) {
         antMessage.success("Coding-agent harness refreshed.");
       }

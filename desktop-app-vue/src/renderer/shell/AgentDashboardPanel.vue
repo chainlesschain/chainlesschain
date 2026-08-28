@@ -222,11 +222,25 @@
             <template v-if="column.key === 'started_at'">
               {{ formatTime(record.started_at) }}
             </template>
+            <template v-if="column.key === 'graph_debug'">
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!record.graphAuthority"
+                @click="handleDebugGraph(record as AgentTaskHistory)"
+              >
+                调试 Graph
+              </a-button>
+            </template>
           </template>
           <template #emptyText>
             <a-empty description="暂无任务历史记录" />
           </template>
         </a-table>
+        <GraphRunDebugger
+          v-if="selectedGraphTask?.graphAuthority"
+          :graph="selectedGraphTask.graphAuthority"
+        />
       </a-tab-pane>
 
       <a-tab-pane key="performance" tab="性能分析">
@@ -343,11 +357,13 @@ import {
 } from "@ant-design/icons-vue";
 import { useAgentsStore } from "../stores/agents";
 import type {
+  AgentTaskHistory,
   AgentTemplate,
   AgentInstance,
   OrchestrationPlan,
 } from "../stores/agents";
 import { createLogger } from "@/utils/logger";
+import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
 
 const props = defineProps<{ open: boolean; prefillText?: string }>();
 defineEmits<{ (e: "update:open", value: boolean): void }>();
@@ -360,6 +376,7 @@ const orchestrateModalVisible = ref(false);
 const orchestrating = ref(false);
 const orchestrationResult = ref<OrchestrationPlan | null>(null);
 const orchestrateForm = ref({ taskDescription: "" });
+const selectedGraphTask = ref<AgentTaskHistory | null>(null);
 
 const instanceColumns: TableColumnType[] = [
   { title: "ID", dataIndex: "id", key: "id", width: 120, ellipsis: true },
@@ -397,6 +414,7 @@ const historyColumns: TableColumnType[] = [
   { title: "耗时", key: "duration", width: 90 },
   { title: "Tokens", dataIndex: "tokens_used", key: "tokens_used", width: 90 },
   { title: "开始时间", dataIndex: "started_at", key: "started_at", width: 160 },
+  { title: "Graph", key: "graph_debug", width: 100 },
 ];
 
 const performanceColumns: TableColumnType[] = [
@@ -437,7 +455,17 @@ async function loadInitialData() {
 
 async function handleRefresh() {
   await loadInitialData();
+  if (selectedGraphTask.value) {
+    selectedGraphTask.value =
+      store.taskHistory.find(
+        (task) => task.id === selectedGraphTask.value?.id,
+      ) || null;
+  }
   message.success("刷新成功");
+}
+
+function handleDebugGraph(task: AgentTaskHistory) {
+  selectedGraphTask.value = task;
 }
 
 function showOrchestrateModal() {

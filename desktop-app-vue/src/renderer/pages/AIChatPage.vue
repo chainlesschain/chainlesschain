@@ -482,6 +482,11 @@
               :description="selectedHarnessTaskAlert"
             />
           </div>
+          <GraphRunDebugger
+            v-if="codingAgentStore.currentSessionTaskGraph"
+            :graph="codingAgentStore.currentSessionTaskGraph"
+            :events="codingAgentStore.sessionEvents"
+          />
           <div v-if="showApprovalPanel" class="coding-agent-approval-panel">
             <div class="approval-panel-header">
               <div>
@@ -1202,6 +1207,7 @@ import StepDisplay from "@/components/projects/StepDisplay.vue";
 import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import RemoteSessionPanel from "@/components/chat/RemoteSessionPanel.vue";
 import ArtifactWorkbenchDrawer from "@/components/chat/ArtifactWorkbenchDrawer.vue";
+import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
 import CodingAgentElicitationPanel from "@/components/CodingAgentElicitationPanel.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
 import { useSessionCoreStore } from "@/stores/sessionCore";
@@ -1719,6 +1725,7 @@ const handleConversationClick = async (conversation) => {
   if (sessionId) {
     try {
       await codingAgentStore.resumeSession(sessionId);
+      await refreshCodingAgentHarnessPanel({ silent: true });
     } catch (error) {
       agentLogger.warn("resume coding agent session failed:", error);
     }
