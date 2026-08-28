@@ -166,6 +166,14 @@ jobs:
         with:
           ref: ${{ env.JOURNEY_SHA }}
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
       - uses: actions/download-artifact@v7
         with:
           pattern: graph-agent-real-journey-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
