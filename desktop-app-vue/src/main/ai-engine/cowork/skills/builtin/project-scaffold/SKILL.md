@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
+execution-capabilities: [data:result, data:task, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user wants to create new modules, Vue pages, skills, or IPC

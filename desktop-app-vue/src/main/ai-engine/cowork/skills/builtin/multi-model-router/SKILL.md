@@ -9,6 +9,7 @@ tags: [model, routing, cost, optimization, multi-model]
 capabilities: [complexity-scoring, model-selection, cost-estimation]
 tools: []
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 instructions: |
   Use this skill to intelligently route tasks to the most appropriate AI model.

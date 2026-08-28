@@ -7,6 +7,7 @@ category: system
 user-invocable: true
 tags: [skills, discovery, recommendation, search, registry, help]
 capabilities: [skill-search, skill-recommendation, category-browse, skill-info]
+execution-capabilities: [data:result, data:task, host:logger, host:skill-registry, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [skill-search, skill-recommend, skill-info, skill-categories]

@@ -32,6 +32,7 @@ examples:
     output: "Context budget set to 8000 tokens. Will prioritize highest-relevance files."
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

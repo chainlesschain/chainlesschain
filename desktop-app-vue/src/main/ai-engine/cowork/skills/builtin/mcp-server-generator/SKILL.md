@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 dependencies:
   - mcp-sdk

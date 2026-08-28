@@ -9,6 +9,7 @@ tags: [subtitle, srt, vtt, caption, media]
 capabilities: [subtitle-generation, format-conversion, timing-adjustment]
 supported-file-types: [mp4, mp3, wav, srt, vtt]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:logger, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

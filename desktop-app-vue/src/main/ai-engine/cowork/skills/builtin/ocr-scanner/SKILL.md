@@ -27,6 +27,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:media, process:cwd]
 handler: ./handler.js
 supported-file-types: [.jpg, .jpeg, .png, .bmp, .tiff, .gif]
 ---

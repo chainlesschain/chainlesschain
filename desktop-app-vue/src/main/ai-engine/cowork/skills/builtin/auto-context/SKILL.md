@@ -11,6 +11,7 @@ tools:
   - file_reader
   - code_analyzer
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 instructions: |
   Use this skill when the AI needs to automatically detect which files and functions are

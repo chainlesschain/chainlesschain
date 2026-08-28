@@ -12,6 +12,7 @@ tools:
   - code_analyzer
   - secret_scanner
   - file_reader
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, runtime:crypto]
 handler: ./handler.js
 instructions: |
   Use this skill when the user asks for security review, vulnerability scanning,

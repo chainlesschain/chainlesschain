@@ -9,6 +9,7 @@ tags: [orchestrator, decompose, planning, workflow, multi-task, routing]
 capabilities:
   [task-decomposition, skill-routing, dependency-management, result-aggregation]
 tools: [file_reader, code_analyzer, project_navigator]
+execution-capabilities: [data:result, data:task, host:logger, runtime:random, runtime:time]
 handler: ./handler.js
 instructions: |
   Use when a user request is complex and involves multiple steps or skills.

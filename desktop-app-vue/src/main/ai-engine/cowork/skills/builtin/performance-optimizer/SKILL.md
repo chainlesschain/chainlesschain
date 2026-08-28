@@ -32,6 +32,7 @@ examples:
     output: "Before/after benchmark comparison with estimated performance gains"
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

@@ -7,6 +7,7 @@ category: productivity
 user-invocable: true
 tags: [notion, productivity, wiki, database, pages, blocks, workspace]
 capabilities: [page-creation, database-query, content-search, block-management, page-updates]
+execution-capabilities: [data:result, data:task, environment:read, host:logger, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [notion-search, notion-create, notion-query, notion-update]

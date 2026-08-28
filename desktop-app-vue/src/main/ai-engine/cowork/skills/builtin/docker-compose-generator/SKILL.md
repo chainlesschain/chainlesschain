@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [docker, compose, container, devops, environment, microservices]
 capabilities: [compose-generation, service-detection, network-config, volume-management]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [docker-generate, docker-validate, docker-template]

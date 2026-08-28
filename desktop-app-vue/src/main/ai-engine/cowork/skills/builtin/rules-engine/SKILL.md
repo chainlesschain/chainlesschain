@@ -10,6 +10,7 @@ capabilities: [rule-loading, glob-matching, rule-validation, team-sharing]
 tools:
   - file_reader
   - file_writer
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs to manage coding rules, project conventions,

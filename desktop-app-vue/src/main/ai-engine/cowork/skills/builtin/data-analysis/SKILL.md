@@ -26,6 +26,7 @@ examples:
     output: "Grouped statistics by category with comparison charts"
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

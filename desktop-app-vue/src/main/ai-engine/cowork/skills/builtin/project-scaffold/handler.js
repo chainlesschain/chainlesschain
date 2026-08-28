@@ -5,8 +5,6 @@
  * following established project conventions.
  */
 
-const fs = require("fs");
-const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
 module.exports = {

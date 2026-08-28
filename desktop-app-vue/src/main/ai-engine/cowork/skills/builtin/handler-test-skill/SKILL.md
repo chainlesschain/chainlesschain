@@ -8,6 +8,7 @@ experimental: true
 user-invocable: false
 tags: [handler, test, skill]
 capabilities: [handler-test-skill-action]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [handler-test-skill-tool]

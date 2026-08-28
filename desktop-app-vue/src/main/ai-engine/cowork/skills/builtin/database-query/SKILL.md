@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [sql, database, query, optimization, migration, schema, postgresql, mysql, sqlite]
 capabilities: [sql-generation, query-optimization, schema-introspection, migration-generation, explain-plan]
+execution-capabilities: [data:result, data:task, host:database, host:logger, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [db-query, db-schema, db-optimize, db-migrate]

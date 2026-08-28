@@ -8,6 +8,7 @@ user-invocable: true
 tags: [workflow, clarify, intent, planning]
 capabilities: [requirement-elicitation, scope-definition]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:code-agent, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 ---
 

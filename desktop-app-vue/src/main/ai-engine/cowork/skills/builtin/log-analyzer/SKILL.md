@@ -28,6 +28,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 supported-file-types: [.log, .txt, .json]
 ---

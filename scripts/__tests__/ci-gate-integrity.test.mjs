@@ -303,6 +303,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   }
 
   const skillSupplyChainTests = [
+    "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
     "src/main/ai-engine/cowork/skills/__tests__/markdown-skill.test.js",
@@ -315,6 +316,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   for (const skillSupplyChainSource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-execution-security.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/markdown-skill.js",
@@ -335,6 +337,9 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
 
   for (const bundledSkillCapabilitySource of [
     "desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    "desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/api-gateway/SKILL.md",
+    "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/api-gateway/handler.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/brainstorming/SKILL.md",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/brainstorming/handler.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/color-picker/SKILL.md",
@@ -353,6 +358,7 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     ]);
     for (const relatedTest of [
       "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
+      "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-brainstorming.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-humanizer.test.js",
       "src/main/ai-engine/cowork/skills/__tests__/v1.2.0-terraform-iac.test.js",

@@ -10,6 +10,7 @@ capabilities: [schema-parsing, data-generation, type-inference]
 tools:
   - file_reader
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, runtime:crypto, runtime:random, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill to generate realistic mock/test data from type definitions or schemas.

@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [api, documentation, openapi, swagger, rest, endpoint, reference]
 capabilities: [openapi-generation, endpoint-extraction, example-generation, markdown-docs]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [api-docs-scan, api-docs-generate, api-docs-validate]

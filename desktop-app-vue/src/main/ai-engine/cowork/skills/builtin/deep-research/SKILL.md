@@ -7,6 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [research, deep, autonomous, analysis, report, credibility, synthesis, investigation]
 capabilities: [multi-phase-research, source-validation, credibility-scoring, cross-reference, synthesis-report]
+execution-capabilities: [data:result, data:task, host:logger, runtime:random, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [deep-research-start, deep-research-status, deep-research-report]

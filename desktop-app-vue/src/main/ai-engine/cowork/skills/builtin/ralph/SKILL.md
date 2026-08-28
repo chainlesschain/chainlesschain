@@ -8,6 +8,7 @@ user-invocable: true
 tags: [workflow, execute, completion-loop]
 capabilities: [execution, verification, iteration]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:code-agent, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

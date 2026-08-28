@@ -15,6 +15,7 @@ capabilities:
     e2e-scenarios,
     accessibility-check,
   ]
+execution-capabilities: [data:result, data:task, host:browser, host:logger, runtime:timers]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

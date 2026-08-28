@@ -7,6 +7,7 @@ category: system
 user-invocable: true
 tags: [self-improving, learning, error-tracking, corrections, patterns, meta-learning]
 capabilities: [error-recording, pattern-analysis, improvement-suggestions, history-tracking]
+execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:logger, runtime:random, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [self-improve, record-error, analyze-patterns, suggest-improvements]

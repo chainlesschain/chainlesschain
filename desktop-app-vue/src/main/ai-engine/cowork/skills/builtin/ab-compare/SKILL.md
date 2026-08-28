@@ -23,6 +23,7 @@ examples:
     output: "4 variants compared. Winner: performant-agent (score: 82/100)"
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, host:logger, host:skill]
 handler: ./handler.js
 ---
 

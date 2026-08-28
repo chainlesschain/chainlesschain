@@ -34,6 +34,7 @@ examples:
     output: "Found 12 tests related to session-manager. Ran them: 10 passed, 2 failed. Fixed 2 issues."
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 ---
 

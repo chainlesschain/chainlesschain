@@ -174,23 +174,12 @@ function inspectBundledCapabilityAudit({
 }) {
   const catalogEntry =
     BUNDLED_SKILL_CAPABILITY_CATALOG[bundledRelativePath] || null;
-  const rawCapabilities = definition.executionCapabilities;
-  const hasCapabilityDeclaration = Array.isArray(rawCapabilities)
-    ? rawCapabilities.length > 0
-    : rawCapabilities != null;
 
   if (!catalogEntry) {
-    if (hasCapabilityDeclaration) {
-      return Object.freeze({
-        migrated: false,
-        valid: false,
-        reason: `bundled Skill path "${bundledRelativePath}" declares execution capabilities without a reviewed catalog entry`,
-      });
-    }
     return Object.freeze({
       migrated: false,
-      valid: true,
-      reason: null,
+      valid: false,
+      reason: `bundled Skill path "${bundledRelativePath}" has no reviewed capability catalog entry`,
     });
   }
 
@@ -561,8 +550,7 @@ function inspectSkillExecution(definition, options = {}) {
       packageOwned || (lock.signed && lock.trusted && capabilityResult.valid),
     packageOwned,
     bundledCapabilityMigrated: bundledCapabilityAudit?.migrated === true,
-    bundledCapabilityAuditDigest:
-      bundledCapabilityAudit?.sourceSha256 || null,
+    bundledCapabilityAuditDigest: bundledCapabilityAudit?.sourceSha256 || null,
     skillRootRealPath: preflight.skillRealPath,
     handlerRealPath: handler.handlerRealPath,
     handlerRelativePath: handler.relativePath,

@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [cursor, ide, rules, configuration, conventions, codestyle, assistant-config]
 capabilities: [rules-generation, project-analysis, convention-detection, config-export]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [rules-generate, rules-detect, rules-export]

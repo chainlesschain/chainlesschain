@@ -11,6 +11,7 @@ tools:
   - file_reader
   - code_analyzer
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user asks questions about the codebase. For --ask mode, scan

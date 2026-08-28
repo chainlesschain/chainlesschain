@@ -8,6 +8,7 @@ user-invocable: true
 tags: [desktop, screenshot, mouse, keyboard, computer-use, screen, vision]
 capabilities:
   [desktop-control, screenshot, mouse-keyboard, vision-ai, coordinate-click]
+execution-capabilities: [data:result, data:task, host:browser, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

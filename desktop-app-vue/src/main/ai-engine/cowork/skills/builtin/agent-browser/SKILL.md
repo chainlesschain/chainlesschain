@@ -16,6 +16,7 @@ capabilities:
     screenshot-capture,
     state-persistence,
   ]
+execution-capabilities: [data:result, data:task, host:browser, host:logger, runtime:time, runtime:timers]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

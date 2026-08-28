@@ -98,6 +98,7 @@ const GRAPH_DEBUGGER_MAIN_CONTRACT_TESTS = [
   "tests/unit/ai-engine/agents/agent-coordinator-select.test.js",
 ];
 const SKILL_SUPPLY_CHAIN_CONTRACT_TESTS = [
+  "src/main/ai-engine/cowork/skills/__tests__/bundled-skill-capability-catalog.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/external-skill-executor.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-execution-security.test.js",
   "src/main/ai-engine/cowork/skills/__tests__/skill-md-parser.test.js",
@@ -117,6 +118,12 @@ const BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS = [
   "tests/unit/ai-engine/skill-handlers.test.js",
   "tests/unit/ai-engine/color-picker-handler.test.js",
   "tests/unit/ai-engine/humanizer-handler.test.js",
+];
+const SOURCE_PREFIX_CONTRACT_TEST_MAPPINGS = [
+  [
+    "src/main/ai-engine/cowork/skills/builtin/",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
 ];
 
 const COLLAB_RUNTIME_CONTRACT_TESTS = [
@@ -184,6 +191,10 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ],
   [
     "src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js",
+    BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
+  ],
+  [
+    "scripts/sync-bundled-skill-capabilities.mjs",
     BUNDLED_SKILL_CAPABILITY_CONTRACT_TESTS,
   ],
   [
@@ -682,7 +693,11 @@ function createSelection(
       continue;
     }
 
-    const contractTests = SOURCE_CONTRACT_TEST_MAPPINGS.get(relativeFile);
+    const contractTests =
+      SOURCE_CONTRACT_TEST_MAPPINGS.get(relativeFile) ||
+      SOURCE_PREFIX_CONTRACT_TEST_MAPPINGS.find(([prefix]) =>
+        relativeFile.startsWith(prefix),
+      )?.[1];
     if (contractTests) {
       const missingTests = contractTests.filter(
         (testFile) =>

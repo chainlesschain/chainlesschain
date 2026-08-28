@@ -13,6 +13,7 @@ tools:
 requires:
   bins: []
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user provides a UI screenshot, mockup, or design image and

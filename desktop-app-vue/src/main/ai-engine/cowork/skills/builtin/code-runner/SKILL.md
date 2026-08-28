@@ -30,6 +30,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:logger, host:module-load, process:cwd, process:execute, process:module-path, runtime:time, system:inspect]
 handler: ./handler.js
 supported-file-types: [.py, .js, .sh, .bash]
 ---

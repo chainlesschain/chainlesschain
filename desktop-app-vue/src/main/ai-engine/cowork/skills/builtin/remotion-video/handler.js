@@ -6,7 +6,6 @@
 
 const { logger } = require("../../../../../utils/logger.js");
 const path = require("path");
-const fs = require("fs");
 
 module.exports = {
   async init(skill) {

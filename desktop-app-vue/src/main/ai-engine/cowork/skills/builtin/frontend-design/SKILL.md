@@ -15,6 +15,7 @@ capabilities:
     theme-design,
   ]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 ---
 

@@ -17,6 +17,7 @@ capabilities:
 tools:
   - file_reader
   - code_analyzer
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs to understand module dependencies, analyze the

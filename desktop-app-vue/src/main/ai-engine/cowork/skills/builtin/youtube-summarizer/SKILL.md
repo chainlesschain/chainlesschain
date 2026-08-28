@@ -7,6 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [youtube, video, summary, transcript, learning, notes]
 capabilities: [transcript-extraction, summary-generation, timestamp-mapping, topic-segmentation]
+execution-capabilities: [data:result, data:task, host:logger, network:http]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [yt-summarize, yt-transcript, yt-chapters]

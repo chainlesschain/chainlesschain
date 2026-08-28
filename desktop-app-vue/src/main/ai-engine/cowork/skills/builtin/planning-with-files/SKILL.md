@@ -14,6 +14,7 @@ capabilities:
     session-recovery,
     context-persistence,
   ]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [plan-create, plan-update, plan-status, plan-findings, plan-progress]

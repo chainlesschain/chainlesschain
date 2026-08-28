@@ -72,6 +72,7 @@ homepage: https://github.com/nicekid1/ChainlessChain
 repository: https://github.com/nicekid1/ChainlessChain
 dependencies: []
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd, runtime:time]
 handler: ./handler.js
 ---
 

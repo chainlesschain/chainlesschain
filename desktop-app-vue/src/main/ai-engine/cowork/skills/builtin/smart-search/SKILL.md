@@ -8,6 +8,7 @@ user-invocable: true
 tags: [search, rag, semantic, knowledge, hybrid, vector, bm25]
 capabilities:
   [semantic-search, keyword-search, hybrid-search, similarity-search]
+execution-capabilities: [data:result, data:task, host:logger, host:rag]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [hybrid-search, vector-search, bm25-search, find-similar]

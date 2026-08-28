@@ -45,6 +45,7 @@ examples:
     output: "Refactor workflow: architect → coder → reviewer → verification. SHIP"
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, host:logger, host:skill, process:cwd, runtime:random, runtime:time]
 handler: ./handler.js
 ---
 

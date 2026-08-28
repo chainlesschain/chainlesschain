@@ -7,6 +7,7 @@ category: development
 user-invocable: true
 tags: [git, worktree, branch, isolation, parallel, development]
 capabilities: [worktree-create, worktree-list, worktree-remove, branch-isolation]
+execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [worktree-create, worktree-list, worktree-remove, worktree-status]

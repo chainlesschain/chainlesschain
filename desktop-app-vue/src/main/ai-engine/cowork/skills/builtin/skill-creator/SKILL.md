@@ -27,6 +27,7 @@ capabilities:
     description-optimization-loop,
     template-management,
   ]
+execution-capabilities: [data:result, data:task, environment:read, filesystem:read, filesystem:write, host:electron, host:logger, host:skill-registry, process:execute, runtime:random, runtime:time, system:inspect]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [skill-scaffold, skill-test, skill-optimize, skill-validate]

@@ -8,6 +8,7 @@ user-invocable: true
 tags: [workflow, plan, architecture, tradeoffs]
 capabilities: [planning, tradeoff-analysis]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:code-agent, host:logger, process:cwd]
 handler: ./handler.js
 ---
 

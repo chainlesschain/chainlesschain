@@ -8,6 +8,7 @@ user-invocable: true
 tags: [workflow, verify, gate, fix-loop]
 capabilities: [verification, gate-enforcement, fix-loop-routing]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:code-agent, host:logger, process:cwd, process:execute, runtime:time]
 handler: ./handler.js
 ---
 

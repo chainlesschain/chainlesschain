@@ -38,6 +38,7 @@ examples:
     output: "2 reviewers analyzed sso-manager.js: NEEDS_WORK (2 critical, 5 warnings)"
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, host:logger, host:skill]
 handler: ./handler.js
 ---
 

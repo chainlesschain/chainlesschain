@@ -8,6 +8,7 @@ experimental: true
 user-invocable: false
 tags: [my, custom, skill]
 capabilities: [my-custom-skill-action]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [my-custom-skill-tool]

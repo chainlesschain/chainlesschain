@@ -30,6 +30,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd]
 handler: ./handler.js
 supported-file-types:
   [.env, .env.local, .env.development, .env.production, .env.example]

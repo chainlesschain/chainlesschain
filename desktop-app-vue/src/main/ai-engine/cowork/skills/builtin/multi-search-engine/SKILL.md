@@ -10,6 +10,7 @@ capabilities: [web_search, multi_engine, search_aggregation, privacy_search]
 tools:
   - web_search
   - web_fetch
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 instructions: |
   Use this skill to search across multiple search engines simultaneously.

@@ -7,6 +7,7 @@ category: data
 user-invocable: true
 tags: [scraping, data, extraction, web, table, crawl]
 capabilities: [data-extraction, table-scraping, content-parsing, batch-scraping]
+execution-capabilities: [data:result, data:task, host:browser, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [scrape-page, extract-tables, extract-links, extract-text, batch-scrape]

@@ -8,6 +8,7 @@ user-invocable: true
 tags: [pr, pull-request, git, changelog, development]
 capabilities: [pr-creation, draft-pr, template-generation, changelog-generation]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 ---
 

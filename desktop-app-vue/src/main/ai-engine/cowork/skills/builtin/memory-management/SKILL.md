@@ -7,6 +7,7 @@ category: knowledge
 user-invocable: true
 tags: [memory, knowledge, notes, search, daily-notes, recall]
 capabilities: [memory-write, memory-search, daily-notes, knowledge-extraction]
+execution-capabilities: [data:result, data:task, host:logger, host:memory, runtime:time]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

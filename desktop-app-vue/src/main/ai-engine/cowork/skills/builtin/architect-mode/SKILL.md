@@ -13,6 +13,7 @@ tools:
   - file_writer
   - code_analyzer
   - project_navigator
+execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:logger, process:cwd, runtime:crypto, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill when the user needs to make complex, multi-file changes. First phase: analyze

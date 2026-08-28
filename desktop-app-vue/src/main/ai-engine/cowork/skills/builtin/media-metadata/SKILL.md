@@ -10,6 +10,7 @@ capabilities: [image-metadata, audio-metadata, video-metadata, batch-extract]
 supported-file-types:
   [jpg, jpeg, png, gif, webp, mp3, wav, flac, mp4, avi, mkv, mov]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:media, process:cwd, process:execute]
 handler: ./handler.js
 tools:
   - file_read

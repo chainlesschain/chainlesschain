@@ -15,6 +15,7 @@ capabilities:
     text-animation,
     caption-generation,
   ]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [remotion-create, remotion-preview, remotion-render, remotion-template]

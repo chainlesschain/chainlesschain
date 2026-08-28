@@ -9,6 +9,7 @@ tags: [tts, speech, voice, audio, synthesis]
 capabilities: [text-to-speech, multi-voice, multi-engine, file-reading]
 supported-file-types: [txt, md]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:speech, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

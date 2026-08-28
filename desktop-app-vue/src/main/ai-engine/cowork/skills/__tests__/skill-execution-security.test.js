@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { MarkdownSkill } from "../markdown-skill.js";
 import { SkillMdParser } from "../skill-md-parser.js";
+import { BUNDLED_SKILL_CAPABILITY_CATALOG } from "../bundled-skill-capability-catalog.js";
 import {
   LOCK_FILENAME,
   buildSkillSignatureLock,
@@ -332,6 +333,26 @@ describe("skill execution supply-chain boundary", () => {
     },
   );
 
+  it("accepts all 145 shipped bundled capability identities", async () => {
+    const parser = new SkillMdParser({ strictValidation: false });
+    const skillIds = Object.keys(BUNDLED_SKILL_CAPABILITY_CATALOG).sort();
+    expect(skillIds).toHaveLength(145);
+
+    for (const skillId of skillIds) {
+      const sourcePath = path.join(BUILTIN_SKILL_ROOT, skillId, "SKILL.md");
+      const definition = await parser.parseFile(sourcePath);
+      definition.source = "bundled";
+      const inspection = inspectSkillExecution(definition, {
+        allowedRoot: BUILTIN_SKILL_ROOT,
+        trustedBundledRoot: BUILTIN_SKILL_ROOT,
+      });
+
+      expect(inspection.packageOwned, skillId).toBe(true);
+      expect(inspection.bundledCapabilityMigrated, skillId).toBe(true);
+      expect(inspection.capabilityManifestValid, skillId).toBe(true);
+    }
+  });
+
   it.each(PURE_DATA_BUNDLED_SKILLS)(
     "keeps the %s data-only handler free of privileged runtime APIs",
     (skillId) => {
@@ -396,8 +417,13 @@ describe("skill execution supply-chain boundary", () => {
     );
   });
 
-  it("rejects an execution capability declaration without a bundled audit entry", () => {
-    const fixture = writeSkill(tempDir, { source: "bundled" });
+  it("rejects a bundled handler without a capability audit entry", () => {
+    const fixture = writeSkill(tempDir, {
+      name: "unreviewed-skill",
+      dirName: "unreviewed-skill",
+      source: "bundled",
+      executionCapabilities: [],
+    });
 
     expect(() =>
       inspectSkillExecution(fixture.definition, {
@@ -411,10 +437,17 @@ describe("skill execution supply-chain boundary", () => {
     );
   });
 
-  it("permits package-owned bundled handlers but detects post-discovery drift", async () => {
+  it("permits audited package-owned handlers but rejects post-discovery audit drift", async () => {
+    const auditedHandler = fs.readFileSync(
+      path.join(BUILTIN_SKILL_ROOT, "text-transformer", "handler.js"),
+      "utf8",
+    );
     const fixture = writeSkill(tempDir, {
+      name: "text-transformer",
+      dirName: "text-transformer",
       source: "bundled",
-      executionCapabilities: [],
+      executionCapabilities: ["data:result", "data:task", "runtime:crypto"],
+      handler: auditedHandler,
     });
     const policy = {
       allowedRoot: tempDir,
@@ -428,30 +461,21 @@ describe("skill execution supply-chain boundary", () => {
     );
     const skill = new MarkdownSkill(fixture.definition);
 
-    await expect(skill.execute({ value: 7 })).resolves.toMatchObject({
+    await expect(
+      skill.execute({ input: '--upper "audited"' }),
+    ).resolves.toMatchObject({
       success: true,
-      value: 7,
     });
 
-    const driftFixture = writeSkill(tempDir, {
-      name: "drift-skill",
-      dirName: "drift-skill",
-      source: "bundled",
-      executionCapabilities: [],
-    });
-    driftFixture.definition._skillSecurityPolicy = policy;
-    driftFixture.definition._executionSecurity = inspectSkillExecution(
-      driftFixture.definition,
-      policy,
-    );
     fs.appendFileSync(
-      path.join(driftFixture.skillDir, "handler.js"),
+      path.join(fixture.skillDir, "handler.js"),
       "// changed after discovery\n",
     );
-    const driftSkill = new MarkdownSkill(driftFixture.definition);
 
-    await expect(driftSkill.execute({})).rejects.toMatchObject({
-      code: "CC_SKILL_DIGEST_DRIFT",
+    await expect(
+      skill.execute({ input: '--lower "DRIFT"' }),
+    ).rejects.toMatchObject({
+      code: "CC_BUNDLED_SKILL_CAPABILITY_AUDIT_FAILED",
     });
   });
 });

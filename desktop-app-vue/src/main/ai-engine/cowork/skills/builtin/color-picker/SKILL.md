@@ -17,7 +17,6 @@ capabilities:
     color_random,
     color_named,
   ]
-execution-capabilities: [data:result, data:task, runtime:random]
 tools:
   - color_convert
   - color_palette
@@ -45,6 +44,7 @@ examples:
 dependencies: []
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, runtime:random]
 handler: ./handler.js
 ---
 

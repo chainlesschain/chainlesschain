@@ -10,6 +10,7 @@ capabilities: [git-analysis, message-generation]
 requires:
   bins: [git]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute]
 handler: ./handler.js
 ---
 

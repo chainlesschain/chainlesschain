@@ -7,6 +7,7 @@ category: automation
 user-invocable: true
 tags: [browser, automation, web, form, screenshot, scraping]
 capabilities: [browser-control, form-fill, data-extraction, screenshot]
+execution-capabilities: [data:result, data:task, host:browser, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

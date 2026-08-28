@@ -14,6 +14,7 @@ capabilities:
     recurring-task,
     job-management,
   ]
+execution-capabilities: [data:result, data:task, host:logger, runtime:random, runtime:time, runtime:timers]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [cron-add, cron-list, cron-remove, cron-status, cron-pause, cron-resume]

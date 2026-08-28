@@ -47,6 +47,7 @@ examples:
     output: "Vault entity/event counts via `cc hub stats` after a sync"
 os: [win32]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:cwd, process:execute, process:module-path]
 handler: ./handler.js
 ---
 

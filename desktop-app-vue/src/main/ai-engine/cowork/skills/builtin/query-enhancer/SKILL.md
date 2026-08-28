@@ -20,6 +20,7 @@ tools:
   - query_expander
   - query_analyzer
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger, process:cwd]
 handler: ./handler.js
 instructions: |
   Use this skill when the user wants to optimize search queries for RAG retrieval.

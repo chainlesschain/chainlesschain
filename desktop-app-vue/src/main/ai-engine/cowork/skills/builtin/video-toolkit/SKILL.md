@@ -9,6 +9,7 @@ tags: [video, ffmpeg, compress, convert, thumbnail]
 capabilities: [video-info, thumbnail, audio-extract, compress, clip, convert]
 supported-file-types: [mp4, avi, mkv, mov, webm, wmv, flv]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:media, process:cwd, process:execute]
 handler: ./handler.js
 tools:
   - file_read

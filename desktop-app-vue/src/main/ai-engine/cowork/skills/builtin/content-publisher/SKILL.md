@@ -15,6 +15,7 @@ capabilities:
     social-post,
     comic-generation,
   ]
+execution-capabilities: [data:result, data:task, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

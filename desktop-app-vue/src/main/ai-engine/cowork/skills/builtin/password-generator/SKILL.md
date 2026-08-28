@@ -19,6 +19,7 @@ capabilities:
 tools:
   - crypto_random
   - password_analyzer
+execution-capabilities: [data:result, data:task, host:logger, process:cwd, runtime:crypto]
 handler: ./handler.js
 instructions: |
   Use this skill when the user asks to generate passwords, passphrases, PINs,

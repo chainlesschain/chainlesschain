@@ -46,6 +46,7 @@ examples:
 model-hints: sonnet
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, host:skill, process:cwd, process:execute, runtime:time]
 handler: ./handler.js
 ---
 

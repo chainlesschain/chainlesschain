@@ -7,6 +7,7 @@ category: remote
 user-invocable: true
 tags: [remote, device, p2p, android, desktop, control]
 capabilities: [remote-command, file-transfer, device-management, clipboard-sync]
+execution-capabilities: [data:result, data:task, host:logger, host:p2p]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

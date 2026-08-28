@@ -8,6 +8,7 @@ user-invocable: true
 tags: [workflow, automation, multi-step, pipeline, batch, condition, loop]
 capabilities:
   [workflow-creation, workflow-execution, conditional-logic, parallel-execution]
+execution-capabilities: [data:result, data:task, environment:read, host:browser, host:code-agent, host:logger]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools:

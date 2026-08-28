@@ -9,6 +9,7 @@ tags: [powerpoint, pptx, presentation, slides]
 capabilities: [slide-creation, theme-support, markdown-to-pptx]
 supported-file-types: [pptx, md, txt]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, filesystem:read, host:document, host:logger, process:cwd]
 handler: ./handler.js
 tools:
   - file_read

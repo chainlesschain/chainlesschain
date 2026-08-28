@@ -26,6 +26,7 @@ examples:
     output: "Auto-fix: Starting Redis container... Starting Ollama service... All services running."
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, network:socket, process:cwd, process:execute]
 handler: ./handler.js
 ---
 

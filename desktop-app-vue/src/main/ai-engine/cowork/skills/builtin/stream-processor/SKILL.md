@@ -24,6 +24,7 @@ examples:
     output: "Processed 200 JSON lines. Field 'status' distribution: ..."
 os: [win32, darwin, linux]
 author: ChainlessChain
+execution-capabilities: [data:result, data:task, filesystem:read, host:logger, process:stdio]
 handler: ./handler.js
 ---
 

@@ -12,6 +12,7 @@ tools:
 requires:
   bins: [git]
 os: [win32, darwin, linux]
+execution-capabilities: [data:result, data:task, host:logger, process:cwd, process:execute, runtime:time]
 handler: ./handler.js
 instructions: |
   Use this skill to generate changelogs from git commit history. For --generate mode,
