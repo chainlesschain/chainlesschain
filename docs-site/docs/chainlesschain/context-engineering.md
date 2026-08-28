@@ -2,6 +2,8 @@
 
 > **版本: v0.27.0+ | 基于 Manus AI 最佳实践 | KV-Cache 优化**
 
+> 本页描述当前 Desktop `ContextEngineering` 实现。统一架构已经在[上下文与记忆用户指南](./context-memory.md)和[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel)中完成设计；CLI、Desktop、IDE 尚未完成 authoritative cutover。
+
 ## 概述
 
 Context Engineering 模块负责为 LLM 构建 KV-Cache 友好的上下文，通过稳定前缀、只追加模式和显式缓存断点最大化缓存命中率。支持 6 维上下文自动注入（Instinct/Memory/BM25/Task 等）、可恢复压缩和任务目标重述，有效降低推理延迟与 Token 开销。
@@ -704,6 +706,8 @@ chainlesschain context recall --session-id <id> --depth full
 
 ## 相关文档
 
+- [上下文与记忆](./context-memory.md) - 当前能力、用户操作与统一状态说明
+- [Context/Memory Kernel 设计](/design/modules/108-context-memory-kernel) - 模块 108 架构与迁移门
 - [SessionManager 会话管理](/chainlesschain/session-manager) - 智能会话上下文管理
 - [Hooks 系统](/chainlesschain/hooks) - 事件钩子与中间件
 - [Cowork 多智能体](/chainlesschain/cowork) - 多 Agent 协作框架

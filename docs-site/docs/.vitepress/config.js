@@ -189,7 +189,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-agent-kernel",
             },
             {
-              text: "上下文与记忆 ⭐NEW",
+              text: "上下文与记忆（模块 108）⭐NEW",
               link: "/chainlesschain/context-memory",
             },
             {

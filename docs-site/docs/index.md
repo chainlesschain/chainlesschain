@@ -28,6 +28,10 @@ features:
     title: 单一协议 Schema 与多语言生成
     details: Agent Protocol v1 以版本化 JSON Schema 统一 TS、Python、Kotlin、Swift 类型、validator、兼容基线与发布门禁。
     link: /chainlesschain/agent-protocol
+  - icon: 🧠
+    title: 上下文与记忆（模块 108）
+    details: Context/Memory Kernel 架构设计已完成；用户指南区分当前可用的上下文、压缩和记忆能力，以及尚未完成的跨端 authoritative cutover。
+    link: /chainlesschain/context-memory
   - icon: 🤝
     title: GraphRun 观测与评估
     details: cc team graph 提供耐久事件投影、时间旅行、阻塞根因、diff 与可用于 CI 的 eval 阈值门；默认不展开敏感正文。
@@ -48,6 +52,8 @@ features:
 ---
 
 > **2026-08-27 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 均为 `0.166.6`，TypeScript/Python Agent SDK 为 `0.2.4`，Agent Protocol 公开版为 `0.1.5`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-6` 的 exact SHA [`f2a249bf3d`](https://github.com/chainlesschain/chainlesschain/commit/f2a249bf3daf77af32ab84cfe5d567485f08b3e7) 已通过三平台 CLI CI、Strict Sandbox、制品/provenance 与独立公网回读。Open VSX `0.37.71` 与 JetBrains `0.4.100` 已公开，IDE Bridge 下载量突破 **3 万**；JetBrains `0.4.102` 已通过六宿主发布门并上传待审。`c64c4bcac6` 增加 Desktop Cowork AgentPool 默认 128 的有界等待队列，当前主线 `a8484915fa` 再将其纳入 Vitest 单元门，均属于发布后源码维护。详细入口：[Agent Protocol](/chainlesschain/agent-protocol)、[Agent SDK](/chainlesschain/agent-sdk)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[Agent Team](/chainlesschain/cli-team)、[Cowork](/chainlesschain/cowork)与[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)。
+
+> **2026-08-28 文档更新**：[上下文与记忆](/chainlesschain/context-memory) 用户指南与[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 设计文档已建立双向入口。模块 108 的架构设计已经完成；CLI、Desktop、IDE 的单一 writer 和 authoritative cutover 仍按设计阶段迁移，不能表述为已上线统一内核。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

@@ -2,6 +2,8 @@
 
 > `memory` 当前同时包含两套能力：传统数据库记忆/每日笔记，以及 Managed Agents 对标阶段新增的 scoped memory。
 
+> 两套记忆与会话上下文、压缩之间的关系，以及模块 108 已完成设计但尚未完成跨端切换的边界，见[上下文与记忆](./context-memory.md)。
+
 ## 核心特性
 
 - 🧠 **双轨记忆系统** — 传统数据库记忆（长期笔记）与 scoped memory（Agent 运行时）并行运作
@@ -360,6 +362,8 @@ chainlesschain memory recall "prod" --tags danger --limit 5 --json
 
 ## 相关文档
 
+- [上下文与记忆](./context-memory) - 统一用户入口与模块 108 状态
+- [Context/Memory Kernel 设计](../design/modules/108-context-memory-kernel) - 架构、状态机与迁移门
 - [会话管理](./cli-session)
 - [配置管理](./cli-config)
 - [Managed Agents 对标](./managed-agents-parity)

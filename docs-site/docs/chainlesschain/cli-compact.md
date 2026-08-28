@@ -4,6 +4,8 @@
 >
 > `cc compact` 对**已存储会话的历史**做离线压缩，并把压缩结果作为 `compact` 检查点事件持久化到会话 JSONL 文件，使后续 `cc agent --resume <id>` 自动从精简后的历史继续。它与交互式 agent REPL 的 `/compact`（只作用于内存中的当前对话）互补，也与 `cc checkpoint`（文件状态快照）、`cc workflow checkpoint`（执行状态）完全不同。
 
+> 本页描述当前 CLI 压缩行为。压缩与记忆的统一用户模型及模块 108 迁移状态见[上下文与记忆](./context-memory.md)。
+
 ## 概述
 
 长会话的历史会不断膨胀，最终撑爆模型上下文窗口。`cc compact` 用现有的 **PromptCompressor** 引擎（snip + dedup + collapse + truncate 多策略管线）对一个已存储会话的消息做压缩：
@@ -169,6 +171,7 @@ cc compact <id> --json | jq .stats.saved
 
 ## 相关文档
 
+- [上下文与记忆](./context-memory.md) - 统一用户入口与模块 108 状态
 - [CLI Agent 智能代理](./cli-agent.md)
 - [会话管理（cc session）](./cli-session.md)
 - [检查点 / 回滚（cc checkpoint）](./checkpoint.md)
