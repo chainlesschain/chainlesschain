@@ -8,6 +8,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { BUILTIN_TASKS } from "../src/lib/eval/tasks.js";
+import { redactSecrets } from "../src/lib/secret-scan.js";
 
 export const PLATFORM_SCHEMA =
   "chainlesschain.graph-collaboration-quality-eval/v1";
@@ -630,7 +631,7 @@ export function candidateFailureDetails(result) {
     .slice(-FORMAL_PROFILE.taskIds.length)
     .map((event) => ({
       key: String(event.key || "").slice(0, 256),
-      error: String(event.error || "").slice(0, 1000),
+      error: redactSecrets(String(event.error || "")).slice(0, 1000),
       retry: event.retry === true,
     }));
   const summary = [...events]
@@ -647,7 +648,7 @@ export function candidateFailureDetails(result) {
           executions: Number(summary.executions || 0),
         }
       : null,
-    stderr: String(result?.stderr || "").slice(-1500),
+    stderr: redactSecrets(String(result?.stderr || "")).slice(-1500),
   };
 }
 

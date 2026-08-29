@@ -140,7 +140,7 @@ describe("graph collaboration quality evidence", () => {
         status: 1,
         signal: null,
         stdout:
-          `${JSON.stringify({ type: "task:failed", key: "add-function", error: "provider overloaded", retry: false })}\n` +
+          `${JSON.stringify({ type: "task:failed", key: "add-function", error: "provider overloaded: sk-abcd1234efgh5678ijkl", retry: false })}\n` +
           `${JSON.stringify({ summary: { success: false, done: true, executions: 1 } })}\n`,
         stderr: "team failed",
       }),
@@ -150,7 +150,7 @@ describe("graph collaboration quality evidence", () => {
       failures: [
         {
           key: "add-function",
-          error: "provider overloaded",
+          error: "provider overloaded: [REDACTED]",
           retry: false,
         },
       ],
