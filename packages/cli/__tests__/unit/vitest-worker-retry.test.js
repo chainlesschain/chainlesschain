@@ -308,9 +308,13 @@ describe("Vitest worker infrastructure retry", () => {
       ),
     );
     expect(step).toContain(
-      "node scripts/run-vitest-with-worker-retry.mjs -- run --reporter=json",
+      "node scripts/run-vitest-with-worker-retry.mjs -- run",
     );
-    expect(step).toContain("--outputFile=strict-sandbox-contract-result.json");
+    expect(step).toContain("--reporter=default --reporter=json");
+    expect(step).toContain(
+      "--outputFile.json=strict-sandbox-contract-result.json",
+    );
+    expect(step).toContain("--silent=passed-only");
     expect(step).not.toContain("continue-on-error");
   });
 
