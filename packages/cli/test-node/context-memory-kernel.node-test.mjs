@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   ContextMemoryKernel,
+  parseContextMemoryConformanceFixture,
   planContext,
 } from "@chainlesschain/context-memory-kernel";
 import {
@@ -59,29 +60,27 @@ const AT = "2026-08-29T00:00:00.000Z";
 const CLOCK = () => Date.parse(AT);
 
 function crossSurfaceProjectionFixture() {
-  return readFileSync(
-    new URL(
-      "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
-      import.meta.url,
+  const fixture = parseContextMemoryConformanceFixture(
+    readFileSync(
+      new URL(
+        "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+        import.meta.url,
+      ),
+      "utf8",
     ),
-    "utf8",
-  )
-    .trim()
-    .split(/\r?\n/u)
-    .slice(1)
-    .map((line) => {
-      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
-        line.split("\t");
-      return {
-        method,
-        type,
-        memoryId: memoryId === "-" ? "" : memoryId,
-        memoryRevision: memoryRevision !== "-" ? Number(memoryRevision) : null,
-        recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
-        expectedMemoryCount:
-          expectedMemoryCount !== "-" ? Number(expectedMemoryCount) : null,
-      };
-    });
+  );
+  return fixture.events.map((row) => ({
+    method: row.method,
+    type: row.type,
+    memoryId: row.memory_id === "-" ? "" : row.memory_id,
+    memoryRevision:
+      row.memory_revision !== "-" ? Number(row.memory_revision) : null,
+    recordMemoryId: row.record_memory_id === "-" ? "" : row.record_memory_id,
+    expectedMemoryCount:
+      row.expected_memory_count !== "-"
+        ? Number(row.expected_memory_count)
+        : null,
+  }));
 }
 
 async function firstJsonLine(stream, timeoutMs = 15_000) {
