@@ -27,6 +27,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 
@@ -2698,7 +2699,7 @@ final class ConversationView {
                 Document doc = planReviewDocument();
                 if (doc != null) {
                     return ApplicationManager.getApplication()
-                            .runReadAction(doc::getText);
+                            .runReadAction((Computable<String>) doc::getText);
                 }
             }
             if (planReviewFile != null && planReviewFile.isFile()) {
@@ -2718,7 +2719,8 @@ final class ConversationView {
         VirtualFile file = planReviewVirtualFile;
         if (file == null) return null;
         return ApplicationManager.getApplication().runReadAction(
-                () -> FileDocumentManager.getInstance().getDocument(file));
+                (Computable<Document>) () ->
+                        FileDocumentManager.getInstance().getDocument(file));
     }
 
     private Object readPersistedPlanReviewStates() {
