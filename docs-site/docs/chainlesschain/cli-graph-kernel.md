@@ -32,24 +32,24 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 必须按以下边界理解输出：
 
-| 平面 | 回答的问题 | 不能据此推断 |
-| --- | --- | --- |
-| Trigger / Occurrence | 哪个 cron、事件、resume 或 timer 被接纳？ | occurrence 成功就是 GraphRun 成功 |
-| GraphRun envelope | 这是哪个 revision、权限和预算下的运行？ | envelope 是包办调度的“万能图” |
-| Task Graph / runtime | 哪些任务 ready、blocked、running 或 terminal？ | Agent 父子关系自动生成任务依赖 |
-| Agent Tree | 谁在执行、等待、发消息或交接？ | spawn child 自动修改 Task DAG |
-| Artifact / Trace 投影 | 已发生什么，证据和因果在哪里？ | 投影可以结算任务或触发副作用 |
+| 平面                  | 回答的问题                                     | 不能据此推断                      |
+| --------------------- | ---------------------------------------------- | --------------------------------- |
+| Trigger / Occurrence  | 哪个 cron、事件、resume 或 timer 被接纳？      | occurrence 成功就是 GraphRun 成功 |
+| GraphRun envelope     | 这是哪个 revision、权限和预算下的运行？        | envelope 是包办调度的“万能图”     |
+| Task Graph / runtime  | 哪些任务 ready、blocked、running 或 terminal？ | Agent 父子关系自动生成任务依赖    |
+| Agent Tree            | 谁在执行、等待、发消息或交接？                 | spawn child 自动修改 Task DAG     |
+| Artifact / Trace 投影 | 已发生什么，证据和因果在哪里？                 | 投影可以结算任务或触发副作用      |
 
 ### 当前可用性
 
-| 能力 | `0.166.7` 用户口径 | 使用边界 |
-| --- | --- | --- |
-| Team DAG 计划与执行 | 已公开：`cc team plan/run/queue` | 受支持 CLI 入口已 canonical cutover；Desktop/Browser/IDE 等其他产品面仍按各自迁移证据判断 |
-| GraphDefinition v1 compiler/runtime | 源码核心已发布 | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成 |
-| GraphRun 观测 | 已公开：`cc team graph inspect/diff/eval` | 只读；必须已有 GraphRun event store 与真实 run ID |
-| Scheduler occurrence 映射 | 内核具备幂等映射与恢复契约 | occurrence 与 GraphRun 是两个状态机 |
-| Desktop/Cowork/Browser 接入 | CLI entry cutover gate 已发布；Desktop Graph 调试器已有源码实现 | 非 CLI 产品面仍按各自 cutover 与发布身份判断，调试器只读投影不授予写权限 |
-| 动态扩图、Loop/Subgraph、Handoff、HumanTask | 内核契约与聚焦测试已有 | 生产可用性仍取决于具体 adapter、真实 provider journey 和发布门 |
+| 能力                                        | `0.166.7` 用户口径                                              | 使用边界                                                                                  |
+| ------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Team DAG 计划与执行                         | 已公开：`cc team plan/run/queue`                                | 受支持 CLI 入口已 canonical cutover；Desktop/Browser/IDE 等其他产品面仍按各自迁移证据判断 |
+| GraphDefinition v1 compiler/runtime         | 源码核心已发布                                                  | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成                        |
+| GraphRun 观测                               | 已公开：`cc team graph inspect/diff/eval`                       | 只读；必须已有 GraphRun event store 与真实 run ID                                         |
+| Scheduler occurrence 映射                   | 内核具备幂等映射与恢复契约                                      | occurrence 与 GraphRun 是两个状态机                                                       |
+| Desktop/Cowork/Browser 接入                 | CLI entry cutover gate 已发布；Desktop Graph 调试器已有源码实现 | 非 CLI 产品面仍按各自 cutover 与发布身份判断，调试器只读投影不授予写权限                  |
+| 动态扩图、Loop/Subgraph、Handoff、HumanTask | 内核契约与聚焦测试已有                                          | 生产可用性仍取决于具体 adapter、真实 provider journey 和发布门                            |
 
 ## 使用示例
 
@@ -137,12 +137,12 @@ cc team graph eval <run-id> \
 
 不能用“当前没有 ready task”或 occurrence `succeeded` 作为成功条件：
 
-| 状态类别 | 典型状态 | 操作建议 |
-| --- | --- | --- |
-| 活动 | `running` | 查看 ready node、active Attempt、producer lease 与预算 |
-| 等待 | `waiting_input`、`waiting_external`、`waiting_human` | 完成对应输入、外部事件或 HumanTask；不要伪写成功 |
-| 待对账 | `reconciliation_required` | 核对 Effect receipt、operation digest 与外部系统证据，不盲目重跑 |
-| 终态 | `succeeded`、`failed`、`partial`、`cancelled`、`blocked`、`deadlocked`、`budget_exhausted` | 检查 terminal event digest 和不可变输出证据 |
+| 状态类别 | 典型状态                                                                                   | 操作建议                                                         |
+| -------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| 活动     | `running`                                                                                  | 查看 ready node、active Attempt、producer lease 与预算           |
+| 等待     | `waiting_input`、`waiting_external`、`waiting_human`                                       | 完成对应输入、外部事件或 HumanTask；不要伪写成功                 |
+| 待对账   | `reconciliation_required`                                                                  | 核对 Effect receipt、operation digest 与外部系统证据，不盲目重跑 |
+| 终态     | `succeeded`、`failed`、`partial`、`cancelled`、`blocked`、`deadlocked`、`budget_exhausted` | 检查 terminal event digest 和不可变输出证据                      |
 
 GraphRun 只有在图已 `SEALED`、producer lease 已结束、Attempt/Effect/Handoff/HumanTask 均已结算，并满足确定性 terminal predicate 时才能结束。
 
@@ -150,28 +150,28 @@ GraphRun 只有在图已 `SEALED`、producer lease 已结束、Attempt/Effect/Ha
 
 ### Team 执行入口
 
-| 参数 | 作用 |
-| --- | --- |
-| `--tasks <file>` | Team 任务 DAG；不是完整 GraphDefinition v1 文件 |
-| `--teammates <n>` | 并发 teammate 数；真实共享目录执行大于 1 时必须使用 worktree |
-| `--exec` / `--agent` | 分别运行 shell 或 headless Agent；二者互斥 |
-| `--worktree` | 每任务 Git worktree 隔离，也是显式真实执行模式 |
-| `--managed-checkpoint` | 通过 Process Broker 保存受控文件写入检查点 |
-| `--state <file>` / `--resume` | Team adapter 的可信恢复状态与恢复开关 |
-| `--max-tasks/tokens/usd/wall` | 整个 Team run 的预算 ceiling |
-| `--agent-max-*` | 每个 Agent task 的预算；只能收紧父级约束 |
+| 参数                          | 作用                                                         |
+| ----------------------------- | ------------------------------------------------------------ |
+| `--tasks <file>`              | Team 任务 DAG；不是完整 GraphDefinition v1 文件              |
+| `--teammates <n>`             | 并发 teammate 数；真实共享目录执行大于 1 时必须使用 worktree |
+| `--exec` / `--agent`          | 分别运行 shell 或 headless Agent；二者互斥                   |
+| `--worktree`                  | 每任务 Git worktree 隔离，也是显式真实执行模式               |
+| `--managed-checkpoint`        | 通过 Process Broker 保存受控文件写入检查点                   |
+| `--state <file>` / `--resume` | Team adapter 的可信恢复状态与恢复开关                        |
+| `--max-tasks/tokens/usd/wall` | 整个 Team run 的预算 ceiling                                 |
+| `--agent-max-*`               | 每个 Agent task 的预算；只能收紧父级约束                     |
 
 ### GraphRun 观测入口
 
-| 参数 | 作用 |
-| --- | --- |
-| `inspect <runId>` | 生成当前 GraphRun 投影 |
-| `--at-seq <n>` | 只重放到指定耐久事件序号 |
-| `--blocked-root <nodeId>` | 定位节点的确定性阻塞根因 |
-| `--include-content` | 显式输出 Message/HumanTask 正文；默认关闭 |
-| `diff --from-seq --to-seq` | 比较同一 GraphRun 两个事件边界 |
-| `eval --thresholds <json>` | 生成指标并应用 min/max 质量门 |
-| `--state-dir <path>` | Graph event store 目录；不是 Team `--state` 文件 |
+| 参数                       | 作用                                             |
+| -------------------------- | ------------------------------------------------ |
+| `inspect <runId>`          | 生成当前 GraphRun 投影                           |
+| `--at-seq <n>`             | 只重放到指定耐久事件序号                         |
+| `--blocked-root <nodeId>`  | 定位节点的确定性阻塞根因                         |
+| `--include-content`        | 显式输出 Message/HumanTask 正文；默认关闭        |
+| `diff --from-seq --to-seq` | 比较同一 GraphRun 两个事件边界                   |
+| `eval --thresholds <json>` | 生成指标并应用 min/max 质量门                    |
+| `--state-dir <path>`       | Graph event store 目录；不是 Team `--state` 文件 |
 
 默认 GraphRun 事件目录是 `<CHAINLESSCHAIN_HOME>/app-server/graph-runs`。生产环境应显式管理目录权限、备份、保留期和敏感数据清理策略。
 
@@ -179,16 +179,16 @@ GraphRun 只有在图已 `SEALED`、producer lease 已结束、Attempt/Effect/Ha
 
 Graph Kernel 不承诺脱离任务、provider、OS 与 adapter 的统一延迟数字。公开观测面提供以下可建立基线的指标：
 
-| 指标 | 含义 |
-| --- | --- |
-| `totalWorkMs` | 全部 accepted Attempt 的累计工作时间 |
-| `criticalPathMs` | 关键路径工作时间 |
-| `criticalPathUtilization` | 关键路径与总工作的比率 |
-| `duplicateWorkRatio` | retry/speculation 造成的重复 Attempt 比率 |
-| `messageVisibilityRate` | 已形成接收方可见证据的 Message 比率 |
-| `handoffCompletionRate` / `custodyCommitRate` | 交接结算与 custody commit 质量 |
-| `deadlocked` | 是否形成确定性 wait-for cycle |
-| `reconciliationRequired` | 是否存在未知 Effect 或未决外部结果 |
+| 指标                                          | 含义                                      |
+| --------------------------------------------- | ----------------------------------------- |
+| `totalWorkMs`                                 | 全部 accepted Attempt 的累计工作时间      |
+| `criticalPathMs`                              | 关键路径工作时间                          |
+| `criticalPathUtilization`                     | 关键路径与总工作的比率                    |
+| `duplicateWorkRatio`                          | retry/speculation 造成的重复 Attempt 比率 |
+| `messageVisibilityRate`                       | 已形成接收方可见证据的 Message 比率       |
+| `handoffCompletionRate` / `custodyCommitRate` | 交接结算与 custody commit 质量            |
+| `deadlocked`                                  | 是否形成确定性 wait-for cycle             |
+| `reconciliationRequired`                      | 是否存在未知 Effect 或未决外部结果        |
 
 CI 应同时保存 exact commit、revision/projection digest、event 数量、rollout 字节、wall time、RSS、provider/model、OS 与 sandbox 信息。不要把单机短测写成跨平台 SLO。
 
@@ -204,6 +204,32 @@ Graph Kernel 聚焦测试覆盖以下契约：
 - adapters：唯一 authoritative writer、shadow compare、cutover 与 rollback gate。
 
 测试说明内核契约受到保护，不代表 Team/Cowork/Scheduler/Desktop/Browser 已全部完成 authoritative 切换。正式发布仍以 exact SHA 的 Linux、Windows、macOS `CLI CI` 与 `CLI Strict Sandbox` 全矩阵为准。
+
+## 生产切换完成门
+
+P1-12 的生产完成结论不能由单个 entry 的 ledger 状态或一份手写摘要给出。受保护部署必须先生成完整的 `chainlesschain.graph-production-cutover-evidence/v1`，再运行：
+
+```bash
+npm --prefix packages/cli run graph:production-evidence -- \
+  --evidence /trusted/graph-production-cutover-evidence.json \
+  --expected-commit <full-commit-sha> \
+  --expected-repository chainlesschain/chainlesschain \
+  --expected-environment graph-kernel-production \
+  --expected-run-id <github-actions-run-id> \
+  --output /trusted/graph-production-cutover-receipt.json
+```
+
+聚合门会失败闭合地要求：
+
+- 20 个 durable entry 全部按顺序完成 shadow、internal canary、opt-in canary、canonical default 与 legacy read-only；
+- 每个 entry 的 definition/revision、终态根因、Task/Attempt、assignment、Message/Handoff、Effect/Receipt、Artifact、预算与 workspace/test receipt 九类 projection 全等价；
+- Linux、Windows、macOS 同一精确 SHA 的 canary 产品旅程全部通过；
+- `shadow → legacy`、`canary → shadow`、`canonical → canary` 三个回滚边界均证明 RPO=0、无重复 Effect，并保留既有 canonical run authority；
+- 13 个 retire entry 的 replacement、360 个旧 mutation、32 个历史只读入口与逐 writer 观察完整；7 个 migrate entry 的旧 writer/mutation 同样有正样本且零成功；
+- Browser 的 3 个 non-durable entry 继续默认关闭，且没有 durable authority 或 direct-engine 调用；
+- evidence 绑定受保护 producer 的 repository、environment、run ID、OIDC attestation 与精确提交。
+
+`.github/workflows/graph-kernel-production-cutover.yml` 只消费并验证受信生产 artifact，不生成或伪造流量。缺少 staged rollout、观察窗口或 attestation 时不会产生通过 receipt。
 
 ## 安全考虑
 
@@ -244,17 +270,19 @@ Graph Kernel 聚焦测试覆盖以下契约：
 
 ## 关键文件
 
-| 文件 | 作用 |
-| --- | --- |
-| `packages/cli/src/lib/graph-kernel/compiler.js` | GraphDefinition v1、upcast、静态验证与 revision digest |
-| `packages/cli/src/lib/graph-kernel/runtime.js` | GraphRun、Attempt、Effect、Message、Handoff、HumanTask 与恢复 |
-| `packages/cli/src/lib/graph-kernel/event-store.js` | append-only Graph event store |
-| `packages/cli/src/lib/graph-kernel/trace-reducer.js` | 当前/历史投影、blocked root 与 diff |
-| `packages/cli/src/lib/graph-kernel/eval.js` | 指标、threshold gate 与多 seed suite |
-| `packages/cli/src/lib/graph-kernel/trigger-adapter.js` | occurrence 到 GraphRun 的幂等 dispatch journal |
-| `packages/cli/src/lib/graph-kernel/adapters.js` | adapter claims、shadow compare 与 cutover gate |
-| `packages/cli/src/commands/graph.js` | `cc team graph` 只读命令 |
-| `packages/cli/src/commands/team.js` | 当前公开 Team DAG 与迁移 adapter 入口 |
+| 文件                                                               | 作用                                                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `packages/cli/src/lib/graph-kernel/compiler.js`                    | GraphDefinition v1、upcast、静态验证与 revision digest        |
+| `packages/cli/src/lib/graph-kernel/runtime.js`                     | GraphRun、Attempt、Effect、Message、Handoff、HumanTask 与恢复 |
+| `packages/cli/src/lib/graph-kernel/event-store.js`                 | append-only Graph event store                                 |
+| `packages/cli/src/lib/graph-kernel/trace-reducer.js`               | 当前/历史投影、blocked root 与 diff                           |
+| `packages/cli/src/lib/graph-kernel/eval.js`                        | 指标、threshold gate 与多 seed suite                          |
+| `packages/cli/src/lib/graph-kernel/trigger-adapter.js`             | occurrence 到 GraphRun 的幂等 dispatch journal                |
+| `packages/cli/src/lib/graph-kernel/adapters.js`                    | adapter claims、shadow compare 与 cutover gate                |
+| `packages/cli/src/lib/graph-kernel/production-cutover-evidence.js` | 五 surface/23 entry 生产切换聚合门                            |
+| `packages/cli/scripts/graph-production-cutover-evidence.mjs`       | 校验受保护 evidence 并生成完成 receipt                        |
+| `packages/cli/src/commands/graph.js`                               | `cc team graph` 只读命令                                      |
+| `packages/cli/src/commands/team.js`                                | 当前公开 Team DAG 与迁移 adapter 入口                         |
 
 ## 相关文档
 
