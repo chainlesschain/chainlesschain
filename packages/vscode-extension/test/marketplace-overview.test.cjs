@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 function overview({
-  extensionVersion = "0.37.74",
+  extensionVersion = "0.37.75",
   cliVersion = "0.166.10",
 } = {}) {
   const vsixUrl =
@@ -38,7 +38,7 @@ function manifests({ recommended = "0.166.10", source = "0.166.12" } = {}) {
   return {
     extensionManifest: {
       name: "chainlesschain-ide",
-      version: "0.37.74",
+      version: "0.37.75",
       description: "Canonical extension description.",
       chainlesschain: { recommendedCliVersion: recommended },
     },

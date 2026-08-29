@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 2026-08-30). The immutable `0.166.11` candidate was withheld after its npm
 > workflow could not bootstrap the new scoped runtime dependency; its tag is
 > not reused. Coordinated candidates are Context/Memory Kernel `0.1.0`,
-> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.6`,
-> Python Agent SDK `0.2.7`, VS Code `0.37.74`, and JetBrains `0.4.105`.
+> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.7`,
+> Python Agent SDK `0.2.7`, VS Code `0.37.75`, and JetBrains `0.4.105`.
 
 - **Canonical context planning**: ship deterministic budget allocation,
   compaction, memory reducers, inventory validation, and cross-surface
