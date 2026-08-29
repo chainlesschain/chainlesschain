@@ -1,6 +1,7 @@
 import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
 import { DurableJsonMemoryPort } from "./durable-memory-port.js";
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
+import { CliLegacyMemoryPrivacyPurgePort } from "./privacy-purge-port.js";
 import {
   createCliAuthority,
   resolveCliContextMemoryCutover,
@@ -30,6 +31,14 @@ export function createCliContextMemoryRuntime(options = {}) {
           allowedSinks: options.allowedSinks || ["*"],
         })
       : null);
+  const purgePorts = options.purgePorts || [
+    new CliLegacyMemoryPrivacyPurgePort({
+      ...(options.legacyMemoryStorePath
+        ? { memoryStorePath: options.legacyMemoryStorePath }
+        : {}),
+      ...(options.legacyDb ? { legacyDb: options.legacyDb } : {}),
+    }),
+  ];
   const kernel = new ContextMemoryKernel({
     sessionPort,
     memoryPort,
@@ -39,7 +48,7 @@ export function createCliContextMemoryRuntime(options = {}) {
     mode: decision.canonical ? "canonical" : "shadow",
     clock: options.clock || Date.now,
     ...(options.randomUUID ? { randomUUID: options.randomUUID } : {}),
-    purgePorts: options.purgePorts || [],
+    purgePorts,
   });
   return Object.freeze({
     decision,

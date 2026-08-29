@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { fileURLToPath } from "node:url";
 import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -13,6 +17,12 @@ import {
   planContext,
 } from "@chainlesschain/context-memory-kernel";
 import {
+  contextPlanCreatedNotification,
+  memoryDeletionNotification,
+  memoryMutationNotification,
+  memoryRecalledNotification,
+} from "../src/lib/app-server/context-memory-notifications.js";
+import {
   assertLegacyMutationAllowed,
   resolveCliContextMemoryCutover,
 } from "../src/lib/context-memory-kernel/authority.js";
@@ -20,6 +30,7 @@ import { DurableJsonMemoryPort } from "../src/lib/context-memory-kernel/durable-
 import { CliCanonicalMemoryService } from "../src/lib/context-memory-kernel/memory-service.js";
 import { createCliContextMemoryRuntime } from "../src/lib/context-memory-kernel/runtime.js";
 import { JsonlSessionContextPort } from "../src/lib/context-memory-kernel/jsonl-session-context-port.js";
+import { CliLegacyMemoryPrivacyPurgePort } from "../src/lib/context-memory-kernel/privacy-purge-port.js";
 import { compactLiveMessagesCanonical } from "../src/lib/context-memory-kernel/live-compaction.js";
 import { prepareCanonicalProviderContext } from "../src/lib/context-memory-kernel/provider-context.js";
 import { addMemory as addLegacyMemory } from "../src/lib/memory-manager.js";
@@ -45,6 +56,81 @@ import {
 
 const AT = "2026-08-29T00:00:00.000Z";
 const CLOCK = () => Date.parse(AT);
+
+function crossSurfaceProjectionFixture() {
+  return readFileSync(
+    new URL(
+      "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+      import.meta.url,
+    ),
+    "utf8",
+  )
+    .trim()
+    .split(/\r?\n/u)
+    .slice(1)
+    .map((line) => {
+      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
+        line.split("\t");
+      return {
+        method,
+        type,
+        memoryId,
+        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
+        recordMemoryId,
+        expectedMemoryCount: expectedMemoryCount ? Number(expectedMemoryCount) : null,
+      };
+    });
+}
+
+async function firstJsonLine(stream, timeoutMs = 15_000) {
+  let buffer = "";
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("timed out waiting for crash child marker")),
+      timeoutMs,
+    );
+    const onData = (chunk) => {
+      buffer += chunk.toString("utf8");
+      const newline = buffer.indexOf("\n");
+      if (newline < 0) return;
+      clearTimeout(timer);
+      stream.off("data", onData);
+      try {
+        resolve(JSON.parse(buffer.slice(0, newline)));
+      } catch (error) {
+        reject(error);
+      }
+    };
+    stream.on("data", onData);
+  });
+}
+
+function createLegacyMemoryDb(entries = []) {
+  const rows = new Map(entries.map((entry) => [entry.id, { ...entry }]));
+  return {
+    rows,
+    prepare(sql) {
+      if (/sqlite_master/u.test(sql)) {
+        return { get: () => ({ name: "memory_entries" }) };
+      }
+      if (/^DELETE FROM memory_entries WHERE id = \?/u.test(sql)) {
+        return {
+          run: (id) => {
+            const changes = rows.delete(id) ? 1 : 0;
+            return { changes };
+          },
+        };
+      }
+      if (/^SELECT id FROM memory_entries WHERE id = \?/u.test(sql)) {
+        return { get: (id) => rows.get(id) || undefined };
+      }
+      throw new Error(`unexpected legacy DB statement: ${sql}`);
+    },
+    transaction(operation) {
+      return operation;
+    },
+  };
+}
 
 test("CLI message projection preserves durable provenance and atomic tool bundles", () => {
   const durableSystem = markDurableSystemMessage(
@@ -367,10 +453,99 @@ test("canonical CLI memory migrates legacy rows once and becomes the only writer
     assert.equal(listed[0].source, "cli-sqlite-memory");
     const recalled = await service.search("deterministic planning");
     assert.equal(recalled.entries.length, 1);
+    const legacyDb = createLegacyMemoryDb(legacy);
     const deletion = await service.delete(listed[0].id);
-    assert.equal(deletion.status, "purged");
+    assert.equal(deletion.status, "partial");
+    const tombstone = await runtime.memoryPort.read(listed[0].id);
+    assert.deepEqual(
+      {
+        state: tombstone.state,
+        content: tombstone.content,
+        category: tombstone.category,
+        tags: tombstone.tags,
+        source: tombstone.provenance.source,
+      },
+      {
+        state: "deleted",
+        content: "",
+        category: "deleted",
+        tags: [],
+        source: "memory-tombstone",
+      },
+    );
+    const restarted = new CliCanonicalMemoryService({
+      env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+      memoryFilePath: filePath,
+      legacyDb,
+      clock: CLOCK,
+    });
+    const reconciled = await restarted.reconcile(deletion.requestId);
+    assert.equal(reconciled.status, "purged");
+    assert.equal(legacyDb.rows.has("legacy-row-1"), false);
+    const sealed = await restarted.runtime.memoryPort.getReconciliation(
+      deletion.requestId,
+    );
+    assert.equal("evidenceRefs" in sealed, false);
+    assert.equal("contentRef" in sealed, false);
     assert.equal((await service.list()).length, 0);
   } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("tombstone survives a killed process and restart reconciliation purges legacy SQLite", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-crash-"));
+  const filePath = join(directory, "kernel-v1.json");
+  const childPath = fileURLToPath(
+    new URL("./fixtures/context-memory-crash-child.mjs", import.meta.url),
+  );
+  const legacy = {
+    id: "legacy-crash-row-1",
+    content: "Delete this value across a process crash",
+    category: "privacy",
+    importance: 5,
+    source: "user",
+    created_at: AT,
+    updated_at: AT,
+  };
+  let child;
+  try {
+    child = spawn(process.execPath, [childPath, filePath], {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    const exited = once(child, "exit");
+    const marker = await firstJsonLine(child.stdout);
+    assert.equal(marker.ready, true);
+    const durableBeforeKill = new DurableJsonMemoryPort({ filePath });
+    assert.equal((await durableBeforeKill.read(marker.memoryId)).state, "deleted");
+
+    assert.equal(child.kill(), true);
+    await exited;
+    child = null;
+
+    const legacyDb = createLegacyMemoryDb([legacy]);
+    const restarted = new CliCanonicalMemoryService({
+      env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+      memoryFilePath: filePath,
+      legacyDb,
+      clock: CLOCK,
+    });
+    const receipt = await restarted.reconcile(marker.operationId);
+    assert.equal(receipt.status, "purged");
+    assert.equal(legacyDb.rows.has(legacy.id), false);
+    assert.equal((await restarted.list()).length, 0);
+    const sealed = await restarted.runtime.memoryPort.getReconciliation(
+      marker.operationId,
+    );
+    assert.equal("evidenceRefs" in sealed, false);
+    assert.equal("contentRef" in sealed, false);
+  } finally {
+    if (child && child.exitCode === null) {
+      child.kill();
+      await once(child, "exit");
+    }
     rmSync(directory, { recursive: true, force: true });
   }
 });
@@ -378,13 +553,8 @@ test("canonical CLI memory migrates legacy rows once and becomes the only writer
 test("canonical scoped memory migrates session-core rows and preserves scope fences", async () => {
   const directory = mkdtempSync(join(tmpdir(), "cc-context-scoped-memory-"));
   const filePath = join(directory, "kernel-v1.json");
+  const legacyMemoryStorePath = join(directory, "memory-store.json");
   try {
-    const runtime = createCliContextMemoryRuntime({
-      env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
-      memoryFilePath: filePath,
-      clock: CLOCK,
-    });
-    const service = new CliCanonicalMemoryService({ runtime, clock: CLOCK });
     const legacy = [
       {
         id: "session-core-1",
@@ -397,6 +567,30 @@ test("canonical scoped memory migrates session-core rows and preserves scope fen
         createdAt: Date.parse(AT),
       },
     ];
+    writeFileSync(
+      legacyMemoryStorePath,
+      JSON.stringify({
+        memories: [
+          legacy[0],
+          {
+            id: "unrelated-memory",
+            scope: "agent",
+            scopeId: "agent-2",
+            category: "fact",
+            content: "must remain",
+          },
+        ],
+        futureField: { preserved: true },
+      }),
+      "utf8",
+    );
+    const runtime = createCliContextMemoryRuntime({
+      env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+      memoryFilePath: filePath,
+      legacyMemoryStorePath,
+      clock: CLOCK,
+    });
+    const service = new CliCanonicalMemoryService({ runtime, clock: CLOCK });
     assert.equal((await service.migrateLegacyScopedEntries(legacy)).migrated, 1);
     assert.equal((await service.migrateLegacyScopedEntries(legacy)).existing, 1);
     await service.addScoped("Session-only checkpoint", {
@@ -453,10 +647,79 @@ test("canonical scoped memory migrates session-core rows and preserves scope fen
       scopeId: "agent-2",
     });
     assert.equal(otherAgent.results.length, 0);
+    const deleted = await service.delete(agent.results[0].id);
+    assert.equal(deleted.status, "purged");
+    assert.equal(
+      JSON.stringify(deleted).includes("Agent one owns the recovery check"),
+      false,
+    );
+    const legacyAfterPurge = JSON.parse(
+      readFileSync(legacyMemoryStorePath, "utf8"),
+    );
+    assert.deepEqual(
+      legacyAfterPurge.memories.map((entry) => entry.id),
+      ["unrelated-memory"],
+    );
+    assert.deepEqual(legacyAfterPurge.futureField, { preserved: true });
     assert.throws(
       () => service.validateLegacyScopedProposal("invalid", { scope: "agent" }),
       /scopeId is required/u,
     );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("legacy privacy purge fails closed for corrupt, oversized, and symlink projections", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-context-privacy-purge-"));
+  const projectionPath = join(directory, "memory-store.json");
+  const request = {
+    memoryId: "memory-privacy-1",
+    fence: "fence-privacy-1",
+    evidenceRefs: [
+      { store: "cli-session-core-memory-store", id: "legacy-private-1" },
+    ],
+  };
+  try {
+    writeFileSync(projectionPath, "{broken", "utf8");
+    await assert.rejects(
+      () =>
+        new CliLegacyMemoryPrivacyPurgePort({
+          memoryStorePath: projectionPath,
+        }).purge(request),
+      { code: "LEGACY_MEMORY_PROJECTION_CORRUPT" },
+    );
+
+    writeFileSync(
+      projectionPath,
+      JSON.stringify({ memories: [], padding: "x".repeat(128) }),
+      "utf8",
+    );
+    await assert.rejects(
+      () =>
+        new CliLegacyMemoryPrivacyPurgePort({
+          memoryStorePath: projectionPath,
+          maxFileBytes: 32,
+        }).purge(request),
+      { code: "LEGACY_MEMORY_PROJECTION_TOO_LARGE" },
+    );
+
+    rmSync(projectionPath, { force: true });
+    const targetPath = join(directory, "target-memory-store.json");
+    writeFileSync(targetPath, JSON.stringify({ memories: [] }), "utf8");
+    try {
+      symlinkSync(targetPath, projectionPath, "file");
+      await assert.rejects(
+        () =>
+          new CliLegacyMemoryPrivacyPurgePort({
+            memoryStorePath: projectionPath,
+          }).purge(request),
+        { code: "LEGACY_MEMORY_PROJECTION_UNSAFE" },
+      );
+    } catch (error) {
+      if (!["EPERM", "EACCES", "ENOTSUP"].includes(error?.code)) throw error;
+      t.diagnostic(`symlink assertion unavailable on this host: ${error.code}`);
+    }
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -648,4 +911,33 @@ test("JSONL SessionContextPort commits one canonical compact event with restart 
     }
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("CLI App Server mapping emits the shared canonical projection fixture", () => {
+  const fixture = crossSurfaceProjectionFixture();
+  const rows = fixture.filter((row) => row.method !== "expected");
+  const recordDigest = `sha256:${"a".repeat(64)}`;
+  const notifications = [
+    contextPlanCreatedNotification({ memoryRevision: rows[0].memoryRevision }),
+    memoryMutationNotification({
+      event: { type: rows[1].type },
+      record: {
+        memoryId: rows[1].recordMemoryId,
+        revision: 1,
+        digest: recordDigest,
+      },
+    }),
+    memoryRecalledNotification({ memoryRevision: rows[2].memoryRevision }),
+    memoryDeletionNotification({
+      status: "purged",
+      requestId: "delete-fixture-1",
+      memoryId: rows[3].memoryId,
+      revision: 2,
+      recordDigest,
+    }),
+  ];
+  assert.deepEqual(
+    notifications.map(({ method, params }) => ({ method, type: params.type })),
+    rows.map(({ method, type }) => ({ method, type })),
+  );
 });

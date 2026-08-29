@@ -120,6 +120,7 @@
         "packages/cli/src/lib/context-memory-kernel/memory-service.js",
         "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
         "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js",
         "packages/cli/src/lib/context-memory-kernel/runtime.js",
         "packages/cli/src/lib/model-context-window.js",
         "packages/cli/src/repl/agent-repl.js",

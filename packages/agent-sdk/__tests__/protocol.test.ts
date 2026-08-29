@@ -14,13 +14,61 @@ import {
   type AgentStreamEvent,
 } from "../src/protocol.js";
 import {
+  CC_AGENT_STREAM_EVENT_TYPES,
   isApprovalDecision,
   validateAgentStreamEvent,
   validateApprovalDecision,
   validateCanonicalAgentStreamEvent,
 } from "../src/generated/app-protocol.js";
 
+function readContextMemoryProjectionFixture(): Array<{
+  method: string;
+  type: string;
+  memoryId: string;
+  memoryRevision: number | null;
+  recordMemoryId: string;
+  expectedMemoryCount: number | null;
+}> {
+  return readFileSync(
+    new URL(
+      "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+      import.meta.url,
+    ),
+    "utf8",
+  )
+    .trim()
+    .split(/\r?\n/u)
+    .slice(1)
+    .map((line) => {
+      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
+        line.split("\t");
+      return {
+        method,
+        type,
+        memoryId,
+        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
+        recordMemoryId,
+        expectedMemoryCount: expectedMemoryCount ? Number(expectedMemoryCount) : null,
+      };
+    });
+}
+
 describe("protocol type guards", () => {
+  it("consumes the canonical Context/Memory cross-surface fixture", () => {
+    const rows = readContextMemoryProjectionFixture();
+    const memories = new Set<string>();
+    let memoryRevision = 0;
+    for (const row of rows.filter((entry) => entry.method !== "expected")) {
+      expect(CC_AGENT_STREAM_EVENT_TYPES, row.type).toContain(row.type);
+      if (row.memoryRevision != null) memoryRevision = row.memoryRevision;
+      if (row.recordMemoryId) memories.add(row.recordMemoryId);
+      if (row.type === "memory.purged") memories.delete(row.memoryId);
+    }
+    const expected = rows.find((row) => row.method === "expected");
+    expect(memoryRevision).toBe(expected?.memoryRevision);
+    expect(memories.size).toBe(expected?.expectedMemoryCount);
+  });
+
   it("validates canonical structured approval decisions from the generated schema", () => {
     expect(isApprovalDecision({ kind: "acceptOnce" })).toBe(true);
     expect(

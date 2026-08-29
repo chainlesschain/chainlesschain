@@ -72,7 +72,8 @@ export function openMemoryEditor(editor, filePath, deps = _deps) {
 async function resolveCanonicalMemory(ctx) {
   const { createCliCanonicalMemoryService } =
     await import("../lib/context-memory-kernel/index.js");
-  const service = createCliCanonicalMemoryService();
+  const legacyDb = ctx?.db?.getDatabase?.() || null;
+  const service = createCliCanonicalMemoryService({ legacyDb });
   if (service.decision.canonical && ctx?.db) {
     await service.migrateLegacyEntries(exportMemory(ctx.db.getDatabase()));
   }
@@ -416,10 +417,44 @@ export function registerMemoryCommand(program) {
               ? `Memory entry deleted (${deletion.digest})`
               : "Memory entry deleted",
           );
+        } else if (deletion) {
+          logger.warn(
+            `Memory deletion is ${deletion.status}; reconcile request ${deletion.requestId} before treating it as globally purged`,
+          );
+          process.exitCode = 2;
         } else {
           logger.error(`Memory entry not found: ${id}`);
         }
 
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  memory
+    .command("reconcile")
+    .description("Resume a pending canonical memory deletion")
+    .argument("<operation-id>", "Deletion request ID")
+    .option("--json", "Output the reconciliation receipt as JSON")
+    .action(async (operationId, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const service = await resolveCanonicalMemory(ctx);
+        if (!service.decision.canonical) {
+          throw new Error("memory reconcile requires canonical Context/Memory");
+        }
+        const result = await service.reconcile(operationId);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else if (result.status === "purged") {
+          logger.success(`Memory deletion reconciled: ${result.digest}`);
+        } else {
+          logger.warn(
+            `Memory deletion remains ${result.status}: ${result.reason || operationId}`,
+          );
+          process.exitCode = 2;
+        }
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

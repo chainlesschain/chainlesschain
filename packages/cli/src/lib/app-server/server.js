@@ -6,6 +6,12 @@ import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import {
+  contextPlanCreatedNotification,
+  memoryDeletionNotification,
+  memoryMutationNotification,
+  memoryRecalledNotification,
+} from "./context-memory-notifications.js";
+import {
   APP_SERVER_MIN_PROTOCOL_VERSION,
   APP_SERVER_PROTOCOL_VERSION,
   APP_SERVER_SCHEMA,
@@ -20,14 +26,6 @@ import {
 } from "./protocol.js";
 
 const TERMINAL_TURN_STATUSES = new Set(["completed", "failed", "interrupted"]);
-const PROTOCOL_MEMORY_MUTATION_EVENTS = new Set([
-  "memory.candidate.created",
-  "memory.activated",
-  "memory.reinforced",
-  "memory.superseded",
-  "memory.expired",
-]);
-
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
@@ -409,10 +407,8 @@ export class CcAppServer {
     });
     try {
       const plan = await runtime.kernel.planContext(params);
-      await this._notify("context/event", {
-        type: "context.plan.created",
-        plan,
-      });
+      const notification = contextPlanCreatedNotification(plan);
+      await this._notify(notification.method, notification.params);
       return plan;
     } catch (error) {
       await this._notify("context/event", {
@@ -467,10 +463,8 @@ export class CcAppServer {
       scopeKey: "app-server:memory",
     });
     const result = await runtime.kernel.recallMemory(params);
-    await this._notify("memory/event", {
-      type: "memory.recalled",
-      result,
-    });
+    const notification = memoryRecalledNotification(result);
+    await this._notify(notification.method, notification.params);
     return result;
   }
 
@@ -491,29 +485,17 @@ export class CcAppServer {
   }
 
   async _notifyMemoryMutation(mutation) {
-    if (!PROTOCOL_MEMORY_MUTATION_EVENTS.has(mutation?.event?.type)) return;
-    await this._notify("memory/event", {
-      type: mutation.event.type,
-      memory_id: mutation.record.memoryId,
-      revision: mutation.record.revision,
-      record_digest: mutation.record.digest,
-      record: mutation.record,
-    });
+    const notification = memoryMutationNotification(mutation);
+    if (!notification) return;
+    await this._notify(notification.method, notification.params);
   }
 
   async _memoryDelete(rawParams) {
     const params = requireObject(rawParams);
     const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
     const receipt = await runtime.kernel.deleteMemory(params);
-    await this._notify("memory/event", {
-      type: receipt.status === "purged" ? "memory.purged" : "memory.deleted",
-      operation_id: receipt.requestId,
-      request_id: receipt.requestId,
-      memory_id: receipt.memoryId,
-      revision: receipt.revision,
-      record_digest: receipt.recordDigest,
-      ...(receipt.status === "purged" ? { receipt } : {}),
-    });
+    const notification = memoryDeletionNotification(receipt);
+    await this._notify(notification.method, notification.params);
     return receipt;
   }
 
@@ -522,17 +504,8 @@ export class CcAppServer {
     const operationId = requiredString(params.operationId, "operationId");
     const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
     const result = await runtime.kernel.reconcile(operationId);
-    if (result?.memoryId && result?.recordDigest && result?.revision) {
-      await this._notify("memory/event", {
-        type: result.status === "purged" ? "memory.purged" : "memory.deleted",
-        operation_id: operationId,
-        request_id: result.requestId || operationId,
-        memory_id: result.memoryId,
-        revision: result.revision,
-        record_digest: result.recordDigest,
-        ...(result.status === "purged" ? { receipt: result } : {}),
-      });
-    }
+    const notification = memoryDeletionNotification(result, operationId);
+    if (notification) await this._notify(notification.method, notification.params);
     return result;
   }
 

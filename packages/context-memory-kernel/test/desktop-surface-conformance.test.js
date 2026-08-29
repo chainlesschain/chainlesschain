@@ -1,5 +1,7 @@
 const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
@@ -13,6 +15,9 @@ const {
   applyDesktopContextMemoryProductionDefault,
   assertDesktopLegacyMutationAllowed,
 } = require("../../../desktop-app-vue/src/main/context-memory/authority.js");
+const {
+  IdeAppServerPilot,
+} = require("../../vscode-extension/src/app-server-pilot.js");
 
 const FIXED_METHODS = Object.freeze([
   "contextPlan",
@@ -38,6 +43,59 @@ class FakePilotClient extends EventEmitter {
   }
 
   async close() {}
+}
+
+function crossSurfaceFixture() {
+  const rows = readFileSync(
+    path.resolve(
+      __dirname,
+      "..",
+      "fixtures",
+      "cross-surface-projection-v1.tsv",
+    ),
+    "utf8",
+  )
+    .trim()
+    .split(/\r?\n/u)
+    .slice(1)
+    .map((line) => {
+      const [
+        method,
+        type,
+        memoryId,
+        memoryRevision,
+        recordMemoryId,
+        expectedMemoryCount,
+      ] = line.split("\t");
+      return {
+        method,
+        type,
+        memoryId,
+        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
+        recordMemoryId,
+        expectedMemoryCount: expectedMemoryCount
+          ? Number(expectedMemoryCount)
+          : null,
+      };
+    });
+  const expected = rows.find((row) => row.method === "expected");
+  const notifications = rows
+    .filter((row) => row.method !== "expected")
+    .map((row) => {
+      const params = { type: row.type };
+      if (row.memoryId) params.memory_id = row.memoryId;
+      if (row.recordMemoryId) {
+        params.record = { memoryId: row.recordMemoryId };
+      }
+      if (row.type === "context.plan.created") {
+        params.plan = { memoryRevision: row.memoryRevision };
+      }
+      if (row.type === "memory.recalled") {
+        params.result = { memoryRevision: row.memoryRevision };
+      }
+      return { method: row.method, params };
+    });
+  return { notifications, expected };
 }
 
 test("Desktop exposes only fixed Context/Memory capabilities and bounded projection", async () => {
@@ -145,5 +203,24 @@ test("Desktop legacy writers fail closed after canonical cutover", () => {
     (error) =>
       error.code === "CONTEXT_MEMORY_LEGACY_WRITER_FENCED" &&
       error.replacement === "coding-agent:app-server-memory-propose",
+  );
+});
+
+test("Desktop and VS Code consume the same canonical projection fixture", () => {
+  const client = new FakePilotClient();
+  const desktop = new DesktopAppServerPilot({ client });
+  const vscode = new IdeAppServerPilot({ client });
+  const { notifications, expected } = crossSurfaceFixture();
+  for (const notification of notifications) {
+    client.emit("notification", notification);
+  }
+  assert.deepEqual(desktop.status.contextMemory, vscode.status.contextMemory);
+  assert.equal(
+    desktop.status.contextMemory.memoryRevision,
+    expected.memoryRevision,
+  );
+  assert.equal(
+    desktop.status.contextMemory.memories.length,
+    expected.expectedMemoryCount,
   );
 });

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import unittest
 from pathlib import Path
@@ -60,9 +61,39 @@ CAUSAL_AGENT_STREAM_FIXTURE = (
     / "protocol"
     / "causal-conformance.json"
 )
+CONTEXT_MEMORY_PROJECTION_FIXTURE = (
+    PACKAGE_ROOT.parent
+    / "context-memory-kernel"
+    / "fixtures"
+    / "cross-surface-projection-v1.tsv"
+)
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_shared_context_memory_projection_fixture(self) -> None:
+        with CONTEXT_MEMORY_PROJECTION_FIXTURE.open(
+            encoding="utf-8", newline=""
+        ) as fixture_file:
+            rows = list(csv.DictReader(fixture_file, delimiter="\t"))
+
+        memories: set[str] = set()
+        memory_revision = 0
+        for row in rows:
+            if row["method"] == "expected":
+                continue
+            self.assertIn(row["method"], ("context/event", "memory/event"))
+            self.assertIn(row["type"], CC_AGENT_STREAM_EVENT_TYPES)
+            if row["memory_revision"]:
+                memory_revision = int(row["memory_revision"])
+            if row["record_memory_id"]:
+                memories.add(row["record_memory_id"])
+            if row["type"] == "memory.purged":
+                memories.discard(row["memory_id"])
+
+        expected = next(row for row in rows if row["method"] == "expected")
+        self.assertEqual(memory_revision, int(expected["memory_revision"]))
+        self.assertEqual(len(memories), int(expected["expected_memory_count"]))
+
     def test_generated_structured_approval_validator(self) -> None:
         self.assertEqual(validate_approval_decision({"kind": "acceptOnce"}), (True, ()))
         self.assertTrue(

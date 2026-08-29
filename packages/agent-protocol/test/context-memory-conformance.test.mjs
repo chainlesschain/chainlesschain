@@ -24,6 +24,31 @@ import {
 
 const AT = "2026-08-29T00:00:00.000Z";
 
+function crossSurfaceProjectionFixture() {
+  return readFileSync(
+    new URL(
+      "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+      import.meta.url,
+    ),
+    "utf8",
+  )
+    .trim()
+    .split(/\r?\n/u)
+    .slice(1)
+    .map((line) => {
+      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
+        line.split("\t");
+      return {
+        method,
+        type,
+        memoryId,
+        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
+        recordMemoryId,
+        expectedMemoryCount: expectedMemoryCount ? Number(expectedMemoryCount) : null,
+      };
+    });
+}
+
 function item() {
   return normalizeContextItem({
     schemaVersion: 1,
@@ -144,5 +169,17 @@ test("generated public validators accept canonical Kernel values", () => {
 test("Agent stream inventory includes every canonical Context/Memory lifecycle event", () => {
   for (const type of contextMemoryLifecycleEvents) {
     assert.ok(CC_AGENT_STREAM_EVENT_TYPES.includes(type), type);
+  }
+});
+
+test("shared cross-surface projection fixture only uses canonical protocol events", () => {
+  const rows = crossSurfaceProjectionFixture();
+  const expected = rows.find((row) => row.method === "expected");
+  assert.ok(expected);
+  assert.equal(expected.memoryRevision, 5);
+  assert.equal(expected.expectedMemoryCount, 0);
+  for (const row of rows.filter((entry) => entry.method !== "expected")) {
+    assert.ok(["context/event", "memory/event"].includes(row.method), row.method);
+    assert.ok(CC_AGENT_STREAM_EVENT_TYPES.includes(row.type), row.type);
   }
 });

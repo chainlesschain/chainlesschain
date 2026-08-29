@@ -185,9 +185,32 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
   if (type === "supersede") identifier(command.successorMemoryId, "successorMemoryId");
   if (type === "delete") {
     next.deletionFence = identifier(command.deletionFence, "deletionFence");
+    // Retain only the minimum anti-resurrection tombstone. Source identifiers
+    // needed to purge legacy projections live in the bounded reconciliation
+    // operation until every target acknowledges deletion; they do not remain
+    // in the authoritative record after the body has been erased.
+    next.category = "deleted";
     next.content = "";
     delete next.summary;
     delete next.contentRef;
+    next.provenance = {
+      source: "memory-tombstone",
+      observedAt: at,
+    };
+    next.evidenceRefs = [
+      {
+        store: "memory-tombstone",
+        id: current.memoryId,
+        digest: current.digest,
+      },
+    ];
+    next.confidence = 0;
+    next.importance = 0;
+    next.tags = [];
+    next.allowedSinks = ["kernel.tombstone"];
+    next.accessCount = 0;
+    delete next.lastAccessedAt;
+    delete next.supersedes;
   }
   if (type === "purge") {
     if (identifier(command.deletionFence, "deletionFence") !== current.deletionFence) {

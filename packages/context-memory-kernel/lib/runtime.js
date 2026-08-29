@@ -217,21 +217,50 @@ class ContextMemoryKernel {
       }
       targets.push({
         store: port.name || `projection-${index}`,
-        run: () => port.purge({ memoryId: operation.memoryId, fence: operation.fence }),
+        run: () =>
+          port.purge({
+            memoryId: operation.memoryId,
+            fence: operation.fence,
+            subject: operation.subject,
+            selector: operation.selector,
+            scope: operation.scope,
+            ...(operation.scopeId ? { scopeId: operation.scopeId } : {}),
+            evidenceRefs: cloneCanonical(operation.evidenceRefs || []),
+          }),
       });
     }
     const settled = await Promise.allSettled(targets.map((target) => target.run()));
-    return settled.map((result, index) =>
-      result.status === "fulfilled"
-        ? { store: targets[index].store, status: "purged", receipt: cloneCanonical(result.value) }
-        : {
-            store: targets[index].store,
-            status: "pending",
-            error: {
-              code: String(result.reason?.code || "purge_failed").slice(0, 128),
-            },
-          },
-    );
+    return settled.map((result, index) => {
+      if (result.status === "fulfilled" && result.value?.status === "purged") {
+        return {
+          store: targets[index].store,
+          status: "purged",
+          receipt: cloneCanonical(result.value),
+        };
+      }
+      return {
+        store: targets[index].store,
+        status: "pending",
+        error: {
+          code: String(
+            result.status === "rejected"
+              ? result.reason?.code || "purge_failed"
+              : result.value?.code || "purge_receipt_invalid",
+          ).slice(0, 128),
+        },
+      };
+    });
+  }
+
+  _sealDeletionOperation(operation, receipt) {
+    const sealed = {
+      ...operation,
+      state: "purged",
+      receipt,
+    };
+    delete sealed.contentRef;
+    delete sealed.evidenceRefs;
+    return sealed;
   }
 
   _deletionReceipt(operation, status, record, stores) {
@@ -338,6 +367,7 @@ class ContextMemoryKernel {
       expectedRevision,
       ...(request.reason ? { reason: request.reason } : {}),
       contentRef: current.contentRef || null,
+      evidenceRefs: cloneCanonical(current.evidenceRefs),
       state: "prepared",
       stores: [],
       startedAt: nowIso(this.clock),
@@ -407,9 +437,7 @@ class ContextMemoryKernel {
       );
     }
     const receipt = this._deletionReceipt(operation, "purged", purged.record, stores);
-    operation.state = "purged";
-    operation.receipt = receipt;
-    await this._putReconciliation(operation);
+    await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
     return receipt;
   }
 
@@ -430,9 +458,7 @@ class ContextMemoryKernel {
     }
     if (current.state === "purged") {
       const receipt = this._deletionReceipt(operation, "purged", current, operation.stores || []);
-      operation.state = "purged";
-      operation.receipt = receipt;
-      await this._putReconciliation(operation);
+      await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
       return receipt;
     }
     if (current.state !== "deleted" && current.revision === operation.expectedRevision) {
@@ -502,9 +528,7 @@ class ContextMemoryKernel {
       return this._deletionReceipt(operation, "reconciliation_required", current, stores);
     }
     const receipt = this._deletionReceipt(operation, "purged", purged.record, stores);
-    operation.state = "purged";
-    operation.receipt = receipt;
-    await this._putReconciliation(operation);
+    await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
     return receipt;
   }
 

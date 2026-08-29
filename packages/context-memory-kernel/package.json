@@ -19,6 +19,7 @@
     "lib",
     "schema",
     "inventory",
+    "fixtures",
     "index.mjs",
     "index.d.ts",
     "README.md",

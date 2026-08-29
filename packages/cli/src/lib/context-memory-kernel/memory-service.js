@@ -500,6 +500,10 @@ export class CliCanonicalMemoryService {
     });
   }
 
+  async reconcile(operationId) {
+    return this.runtime.kernel.reconcile(operationId);
+  }
+
   async export() {
     return this.runtime.memoryPort.listRecords({ includeTombstones: true });
   }

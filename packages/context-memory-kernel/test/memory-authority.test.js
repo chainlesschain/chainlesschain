@@ -51,8 +51,62 @@ test("memory proposal, recall, tombstone, purge, and idempotent receipt use revi
   assert.equal(deleted.status, "purged");
   assert.equal(deleted.recordState, "purged");
   assert.equal(deleted.stores[0].status, "purged");
+  const tombstone = await memory.read("memory-1");
+  assert.deepEqual(
+    {
+      content: tombstone.content,
+      category: tombstone.category,
+      tags: tombstone.tags,
+      provenance: tombstone.provenance,
+      allowedSinks: tombstone.allowedSinks,
+    },
+    {
+      content: "",
+      category: "deleted",
+      tags: [],
+      provenance: {
+        source: "memory-tombstone",
+        observedAt: AT,
+      },
+      allowedSinks: ["kernel.tombstone"],
+    },
+  );
+  const sealed = await memory.getReconciliation("delete-1");
+  assert.equal("evidenceRefs" in sealed, false);
+  assert.equal("contentRef" in sealed, false);
   assert.deepEqual(await kernel.deleteMemory(deletionRequest()), deleted);
   assert.deepEqual(await kernel.reconcile("delete-1"), deleted);
+});
+
+test("purge targets receive bounded source bindings and must return explicit receipts", async () => {
+  const memory = new InMemoryMemoryPort();
+  const requests = [];
+  let validReceipt = false;
+  const projection = {
+    name: "privacy-projection",
+    async purge(request) {
+      requests.push(request);
+      return validReceipt
+        ? { store: this.name, status: "purged", fence: request.fence }
+        : { store: this.name, status: "unknown" };
+    },
+  };
+  const kernel = new ContextMemoryKernel({
+    memoryPort: memory,
+    purgePorts: [projection],
+    clock: CLOCK,
+  });
+  await kernel.proposeMemory(proposal());
+  const partial = await kernel.deleteMemory(deletionRequest());
+  assert.equal(partial.status, "partial");
+  assert.deepEqual(requests[0].evidenceRefs, [
+    { store: "fixture", id: "request-1" },
+  ]);
+  assert.equal(requests[0].subject, "user-1");
+  assert.equal(requests[0].scopeId, "user-1");
+  validReceipt = true;
+  const purged = await kernel.reconcile("delete-1");
+  assert.equal(purged.status, "purged");
 });
 
 test("wildcard recall lists active records without weakening scope admission", async () => {
