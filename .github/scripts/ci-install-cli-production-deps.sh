@@ -8,6 +8,7 @@ repo_root="${GITHUB_WORKSPACE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pw
 cli_dir="$repo_root/packages/cli"
 retry_script="$repo_root/.github/scripts/ci-npm-retry.sh"
 workspace_packages=(
+  "$repo_root/packages/context-memory-kernel"
   "$repo_root/packages/core-config"
   "$repo_root/packages/core-db"
   "$repo_root/packages/core-env"

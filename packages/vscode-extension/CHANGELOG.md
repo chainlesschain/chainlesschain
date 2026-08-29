@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.74] - Canonical Context/Memory projection (2026-08-30)
+
+- Project the CLI-owned Context/Memory stage and bounded context-plan changes
+  into chat without granting the Webview independent memory-write authority.
+- Consume the generated Agent SDK `0.2.6` Context/Memory and App Server pilot
+  contracts, rejecting stale or malformed authority projections.
+- Pair the candidate with CLI `0.166.11` and require the complete exact-SHA
+  Linux, Windows, macOS, Remote-SSH, browser, and ARM64 gates before Open VSX
+  publication.
+
 ## [0.37.73] - Durable Graph review and settlement (2026-08-29)
 
 - Project bounded CLI-owned Graph history, revision diff, and time-travel

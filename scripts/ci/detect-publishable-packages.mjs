@@ -31,8 +31,13 @@ const ORDER_FILE = join(REPO_ROOT, ".publish-order.txt");
 const PROTECTED_PACKAGE_NAMES = new Set([
   "chainlesschain",
   "@chainlesschain/agent-sdk",
+  "@chainlesschain/context-memory-kernel",
 ]);
-const PROTECTED_PACKAGE_DIRS = new Set(["cli", "agent-sdk"]);
+const PROTECTED_PACKAGE_DIRS = new Set([
+  "cli",
+  "agent-sdk",
+  "context-memory-kernel",
+]);
 
 // ── helpers ──────────────────────────────────────────────────
 const log = (m) => console.log(`[detect] ${m}`);
@@ -168,7 +173,7 @@ if (inputVersion) {
   const protectedPackage = publicPackages.find((p) => p.name === name);
   if (protectedPackage && isProtectedPackage(protectedPackage)) {
     err(
-      `Package "${name}" is protected and must use the dedicated exact-SHA CLI/Agent SDK release workflow.`,
+      `Package "${name}" is protected and must use the dedicated exact-SHA CLI/Agent SDK/Context Memory release workflow.`,
     );
   }
   const pkg = pub.find((p) => p.name === name);

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.11: canonical Context/Memory Kernel
+
+> `chainlesschain` **0.166.10 -> 0.166.11** (release candidate,
+> 2026-08-30). Coordinated candidates are Context/Memory Kernel `0.1.0`,
+> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.6`,
+> Python Agent SDK `0.2.7`, VS Code `0.37.74`, and JetBrains `0.4.105`.
+
+- **Canonical context planning**: ship deterministic budget allocation,
+  compaction, memory reducers, inventory validation, and cross-surface
+  conformance through `@chainlesschain/context-memory-kernel`.
+- **Durable memory cutover**: route CLI context, compaction, hierarchical
+  memory, App Server, WebSocket, REPL, and session flows through fail-closed
+  authority stages with crash-safe persistence and privacy purge receipts;
+  Session Core `0.3.7` exposes the write guard used to fence legacy writers.
+- **Protocol and SDK projections**: add bounded Context/Memory messages and App
+  Server pilot clients to the generated Agent Protocol, TypeScript SDK, Python
+  SDK, VS Code extension, and JetBrains plugin without granting IDE surfaces
+  independent write authority.
+- **Release integrity**: publish the new fixed CLI runtime dependency before
+  the immutable CLI tarball, then verify its registry bytes and npm provenance
+  against the exact release tag and commit.
+
 ### Added - cc CLI 0.166.10: governed Graph Kernel production cutover evidence
 
 > `chainlesschain` **0.166.9 -> 0.166.10** (release candidate,

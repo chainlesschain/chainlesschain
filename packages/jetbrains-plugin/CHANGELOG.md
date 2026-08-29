@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.105] - Canonical Context/Memory projection (2026-08-30)
+
+- Project CLI-issued Context/Memory authority and canonical memory records in
+  the native conversation surface without creating an IDE-owned writer.
+- Validate the shared cross-surface Context/Memory fixture and keep stage,
+  record, deletion, and projection inputs fail closed.
+- Pair the candidate with CLI `0.166.11` and require the complete exact-SHA
+  six-host JetBrains, shared IDE, browser, and ARM64 matrices before upload.
+
 ## [0.4.104] - Revision-bound approval settlement (2026-08-29)
 
 - Bind native approval grants and decisions to the CLI-issued operation,

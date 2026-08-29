@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Specific workspace package, e.g. "@chainlesschain/core-db@0.1.4". The chainlesschain CLI and Agent SDK are released only by npm-publish.yml.'
+        description: 'Specific workspace package, e.g. "@chainlesschain/core-db@0.1.4". The CLI, Agent SDK, and Context Memory Kernel are released only by npm-publish.yml.'
         required: false
         type: string
       dry-run:
@@ -100,13 +100,15 @@ jobs:
             PKG_VER=$(node -p "require('./packages/$pkg_dir/package.json').version")
             echo "  → $PKG_NAME@$PKG_VER"
 
-            # The CLI and Agent SDK share a separate exact-SHA, three-platform
-            # release workflow and npm Trusted Publisher identity. Keep this
-            # second check in the publish loop so a detector regression cannot
-            # bypass that authority or select an untrusted workflow identity.
+            # The CLI, Agent SDK, and its Context Memory Kernel dependency share
+            # a separate exact-SHA, three-platform release workflow and npm
+            # Trusted Publisher identity. Keep this second check in the publish
+            # loop so a detector regression cannot bypass that authority or
+            # select an untrusted workflow identity.
             if [ "$pkg_dir" = "cli" ] || [ "$PKG_NAME" = "chainlesschain" ] || \
-               [ "$pkg_dir" = "agent-sdk" ] || [ "$PKG_NAME" = "@chainlesschain/agent-sdk" ]; then
-              echo "  ✗ Refusing protected CLI/Agent SDK package; use npm-publish.yml" >&2
+               [ "$pkg_dir" = "agent-sdk" ] || [ "$PKG_NAME" = "@chainlesschain/agent-sdk" ] || \
+               [ "$pkg_dir" = "context-memory-kernel" ] || [ "$PKG_NAME" = "@chainlesschain/context-memory-kernel" ]; then
+              echo "  ✗ Refusing protected CLI/Agent SDK/Context Memory package; use npm-publish.yml" >&2
               exit 1
             fi
 

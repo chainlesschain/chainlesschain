@@ -38,5 +38,24 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/context-memory-kernel"
+  },
+  "homepage": "https://github.com/chainlesschain/chainlesschain/tree/main/packages/context-memory-kernel",
+  "bugs": {
+    "url": "https://github.com/chainlesschain/chainlesschain/issues"
+  },
+  "keywords": [
+    "chainlesschain",
+    "context",
+    "memory",
+    "kernel",
+    "agent"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

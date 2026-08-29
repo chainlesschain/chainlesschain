@@ -221,7 +221,7 @@ test("package metadata exposes only supported public entry points", () => {
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
   assert.equal(manifest.name, "@chainlesschain/agent-protocol");
-  assert.equal(manifest.version, "0.1.6");
+  assert.equal(manifest.version, "0.1.7");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.license, "MIT");
   assert.equal(manifest.publishConfig.access, "public");

@@ -61,6 +61,12 @@ jobs:
           npm run build
           npx vitest run
 
+      - name: Run Context Memory Kernel tests
+        working-directory: packages/context-memory-kernel
+        run: |
+          npm test
+          npm run check:inventory
+
       - name: Run Personal Data Hub tests
         working-directory: packages/personal-data-hub
         run: npm test
@@ -435,6 +441,86 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # The CLI imports this package at runtime and pins its exact version.
+      # Publish and read it back before the immutable CLI tarball so a fresh
+      # public install can resolve every production dependency from npm.
+      - name: "Publish @chainlesschain/context-memory-kernel"
+        id: context-memory-kernel-publish
+        working-directory: packages/context-memory-kernel
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "target: @chainlesschain/context-memory-kernel@$PKG_VER"
+          if npm view "@chainlesschain/context-memory-kernel@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify published Context Memory Kernel registry bytes and npm provenance
+        if: steps.context-memory-kernel-publish.outputs.published == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="@chainlesschain/context-memory-kernel"
+          PACKAGE_VERSION=$(node -p "require('./packages/context-memory-kernel/package.json').version")
+          CLI_VERSION="${{ steps.version.outputs.VERSION }}"
+          EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          READBACK_ROOT=$(mktemp -d)
+          trap 'rm -rf "$READBACK_ROOT"' EXIT
+
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \
+              >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then
+              REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-context-memory-kernel-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+              cat "$READBACK_ROOT/npm-pack.err" >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
+          PACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+
+          AUDIT_ROOT="$READBACK_ROOT/audit"
+          mkdir -p "$AUDIT_ROOT"
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"
+          )
+          VERIFIED=false
+          for ATTEMPT in {1..30}; do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/context-memory-kernel-npm-provenance.json \
+              node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+              VERIFIED=true
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
+
       # Agent SDK — workspace member whose prepublishOnly runs the TypeScript
       # dual build. Its build resolves a local or workspace-hoisted compiler.
       # No consumer pins it yet (VS Code vendors the build; web-panel aliases
@@ -634,6 +720,7 @@ jobs:
             release-artifacts/chainlesschain-release.json
             release-artifacts/chainlesschain-npm-provenance.json
             release-artifacts/agent-sdk-npm-provenance.json
+            release-artifacts/context-memory-kernel-npm-provenance.json
           if-no-files-found: error
           retention-days: 90
 
@@ -649,6 +736,7 @@ jobs:
           V_DB=$(node -p "require('./packages/core-db/package.json').version")
           V_INF=$(node -p "require('./packages/core-infra/package.json').version")
           V_SC=$(node -p "require('./packages/session-core/package.json').version")
+          V_CONTEXT=$(node -p "require('./packages/context-memory-kernel/package.json').version")
           V_AGENT=$(node -p "require('./packages/agent-sdk/package.json').version")
           V_PDH=$(node -p "require('./packages/personal-data-hub/package.json').version")
           {
@@ -669,6 +757,7 @@ jobs:
             echo "| @chainlesschain/core-db | $V_DB |"
             echo "| @chainlesschain/core-infra | $V_INF |"
             echo "| @chainlesschain/session-core | $V_SC |"
+            echo "| @chainlesschain/context-memory-kernel | $V_CONTEXT |"
             echo "| @chainlesschain/agent-sdk | $V_AGENT |"
             echo "| @chainlesschain/personal-data-hub | $V_PDH |"
             echo "| chainlesschain | $VERSION |"
@@ -699,6 +788,7 @@ jobs:
             "@chainlesschain/core-multisig"
             "@chainlesschain/core-settlement"
             "@chainlesschain/session-core"
+            "@chainlesschain/context-memory-kernel"
             "@chainlesschain/agent-sdk"
             "@chainlesschain/personal-data-hub"
             "chainlesschain"
