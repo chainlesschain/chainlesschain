@@ -560,7 +560,7 @@ reconcile(operationId): Promise<ReconciliationReport>
 - `.github/workflows/context-memory-release-evidence.yml`：读取四个成功 workflow run，拒绝不同 SHA/错误 workflow/失败 run，组装并签注 26 槽 evidence manifest；
 - `.github/workflows/context-memory-production-close.yml`：验签 manifest，运行 `validate-release-evidence.mjs`，拒绝缺平台、缺检查、重复检查和混合 SHA，再签注最终关闭 receipt。
 
-截至 2026-08-30，本地 Windows Kernel 45/45、Desktop 56/56、Agent Protocol 19/19、VS Code 4/4、TypeScript SDK 11/11 已通过；quick writer/benchmark/soak receipt 和完整 release benchmark 也已通过。Python 本机只有 3.8、JetBrains 本机缺 JDK 21，未把加载前工具链失败写成产品通过或失败；上述最终候选的外部 GitHub Actions 证据尚未产生，因此本节不把生产发布状态提前写成完成。
+截至 2026-08-30，本地 Windows Kernel 45/45、CLI 16/16、Desktop 56/56、Desktop/VS Code shared surface 8/8、Agent Protocol 19/19、TypeScript SDK 69/69、Python 3.12 SDK 34/34 已通过，TypeScript SDK build 与 JDK 21 JetBrains `ContextMemoryProjectionTest` 也已成功；exact-SHA writer/quick soak receipt 和完整 release benchmark 均通过。上述最终候选的外部 GitHub Actions 证据尚未产生，因此本节不把生产发布状态提前写成完成。
 
 ## 20. 关键文件
 
