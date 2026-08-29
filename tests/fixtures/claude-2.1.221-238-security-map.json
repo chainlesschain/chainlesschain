@@ -88,7 +88,7 @@
       "testId": "a settings deny blocks with [Permission] and the hook never runs",
       "producer": {
         "path": "packages/cli/__tests__/unit/agent-core-hooks.test.js",
-        "sha256": "sha256:89252206f239d56d4076ca157721038106a136e29699c72441ace6e3bdcda82d"
+        "sha256": "sha256:2c0f5a09fce94486115b84ce09e0ea527334a3f20895113ea656511c50e97998"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
