@@ -101,7 +101,8 @@ function buildSemanticQuery(options, recorded, sessionId, operationId, ledger) {
         sessionId,
         provider,
         model,
-        source: `semantic-compaction:${operationId}`,
+        source: "semantic-compaction",
+        operationId,
         persist: async (type, data) => {
           const appended = appendEventIfHead(
             sessionId,
@@ -159,7 +160,10 @@ function kernelBudget(options, recorded, compressor) {
   const maximumInput = Math.max(1, modelWindowTokens - reservedOutputTokens);
   const targetInput = Math.max(
     1,
-    Math.min(maximumInput, Math.trunc(Number(compressor.maxTokens)) || maximumInput),
+    Math.min(
+      maximumInput,
+      Math.trunc(Number(compressor.maxTokens)) || maximumInput,
+    ),
   );
   const safetyMarginTokens = Math.max(
     0,
@@ -274,7 +278,8 @@ function compactionRequest({
   memoryRevision,
   summarizer,
 }) {
-  const provider = options.provider || source.recorded.provider || "provider.local";
+  const provider =
+    options.provider || source.recorded.provider || "provider.local";
   const model = options.model || source.recorded.model || "default";
   return {
     operationId,
@@ -485,7 +490,12 @@ export function registerCompactCommand(program) {
             if (options.json) {
               console.log(
                 JSON.stringify(
-                  { sessionId, operationId, cutover: runtime.decision, receipt },
+                  {
+                    sessionId,
+                    operationId,
+                    cutover: runtime.decision,
+                    receipt,
+                  },
                   null,
                   2,
                 ),
@@ -539,7 +549,9 @@ export function registerCompactCommand(program) {
                 ` (saved ${stats.saved}, canonical kernel)`,
             ),
           );
-          logger.log(chalk.gray(`  resume with: cc agent --resume ${sessionId}`));
+          logger.log(
+            chalk.gray(`  resume with: cc agent --resume ${sessionId}`),
+          );
           return;
         }
 

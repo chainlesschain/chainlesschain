@@ -109,6 +109,34 @@ describe("runtime usage ledger projection", () => {
     });
   });
 
+  it("preserves a bounded compaction operation identity", () => {
+    expect(
+      projectRuntimeUsageBoundary(
+        {
+          callId: "compact-call-1",
+          provider: "openai",
+          model: "gpt-4o",
+          source: "semantic-compaction",
+          operationId: "compact-operation-1",
+        },
+        "started",
+      ),
+    ).toMatchObject({
+      source: "semantic-compaction",
+      operationId: "compact-operation-1",
+    });
+    expect(() =>
+      projectRuntimeUsageBoundary(
+        {
+          callId: "compact-call-2",
+          source: "semantic-compaction",
+          operationId: "x".repeat(161),
+        },
+        "started",
+      ),
+    ).toThrow(/bounded operation id/);
+  });
+
   it("generates unique bounded fallback tool ids and marks persistence errors", () => {
     const first = runtimeToolCallId();
     const second = runtimeToolCallId();

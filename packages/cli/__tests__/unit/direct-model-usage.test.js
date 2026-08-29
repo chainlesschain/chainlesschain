@@ -123,6 +123,29 @@ describe("direct model usage ledger", () => {
     expect(JSON.stringify(records)).not.toContain("private response");
   });
 
+  it("binds semantic compaction usage to one operation without widening source", async () => {
+    const records = [];
+
+    await runMeteredDirectModelCall({
+      ...BASE,
+      source: "semantic-compaction",
+      operationId: "compact-operation-1",
+      persist: (type, event) => records.push({ type, event }),
+      call: async () => ({ usage: { input_tokens: 2, output_tokens: 1 } }),
+    });
+
+    expect(records.map(({ event }) => event)).toEqual([
+      expect.objectContaining({
+        source: "semantic-compaction",
+        operationId: "compact-operation-1",
+      }),
+      expect.objectContaining({
+        source: "semantic-compaction",
+        operationId: "compact-operation-1",
+      }),
+    ]);
+  });
+
   it("settles provider failures as unknown before rethrowing the original error", async () => {
     const records = [];
     const providerError = new Error("private provider error");

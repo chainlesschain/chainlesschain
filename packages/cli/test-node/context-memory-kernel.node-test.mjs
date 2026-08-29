@@ -50,6 +50,7 @@ import {
 import {
   appendAssistantMessage,
   appendCompactEventIfMessagesMatch,
+  appendEvent,
   appendUserMessage,
   readVerifiedEvents,
   readVerifiedMessages,
@@ -144,8 +145,16 @@ test("CLI message projection preserves durable provenance and atomic tool bundle
       role: "assistant",
       content: "",
       tool_calls: [
-        { id: "call-a", type: "function", function: { name: "read", arguments: "{}" } },
-        { id: "call-b", type: "function", function: { name: "list", arguments: "{}" } },
+        {
+          id: "call-a",
+          type: "function",
+          function: { name: "read", arguments: "{}" },
+        },
+        {
+          id: "call-b",
+          type: "function",
+          function: { name: "list", arguments: "{}" },
+        },
       ],
     },
     { role: "tool", tool_call_id: "call-a", content: "a" },
@@ -227,7 +236,10 @@ test("durable CLI memory survives restart, deletion, and idempotent reconciliati
       clock: CLOCK,
       randomUUID: () => "delete-id",
     });
-    assert.equal((await restartedPort.read("memory-1")).digest, proposed.record.digest);
+    assert.equal(
+      (await restartedPort.read("memory-1")).digest,
+      proposed.record.digest,
+    );
     const deleted = await restartedKernel.deleteMemory({
       requestId: "delete-request-1",
       subject: "local-user",
@@ -245,7 +257,10 @@ test("durable CLI memory survives restart, deletion, and idempotent reconciliati
       memoryPort: new DurableJsonMemoryPort({ filePath }),
       clock: CLOCK,
     });
-    assert.deepEqual(await secondRestart.reconcile("delete-request-1"), deleted);
+    assert.deepEqual(
+      await secondRestart.reconcile("delete-request-1"),
+      deleted,
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -285,7 +300,10 @@ test("durable CLI memory rejects digest tampering", async () => {
 });
 
 test("CLI cutover decisions keep shadow write-free and fence legacy after cutover", () => {
-  const shadow = resolveCliContextMemoryCutover({ env: {}, scopeKey: "cli:test" });
+  const shadow = resolveCliContextMemoryCutover({
+    env: {},
+    scopeKey: "cli:test",
+  });
   assert.deepEqual(
     { stage: shadow.stage, canonical: shadow.canonical, shadow: shadow.shadow },
     { stage: "shadow", canonical: false, shadow: true },
@@ -342,7 +360,10 @@ test("shadow Kernel produces the canonical plan but cannot create authority stat
       memoryRevision: 0,
       now: AT,
     };
-    assert.deepEqual(await runtime.kernel.planContext(request), planContext(request));
+    assert.deepEqual(
+      await runtime.kernel.planContext(request),
+      planContext(request),
+    );
     await assert.rejects(
       () => runtime.kernel.proposeMemory({ content: "must not write" }),
       { code: "legacy_writer_fenced" },
@@ -365,8 +386,7 @@ test("canonical production fences direct legacy CLI memory APIs", () => {
       { code: "legacy_writer_fenced" },
     );
     assert.throws(
-      () =>
-        new CLIPermanentMemory({ memoryDir: "unused" }).initialize(),
+      () => new CLIPermanentMemory({ memoryDir: "unused" }).initialize(),
       { code: "legacy_writer_fenced" },
     );
   } finally {
@@ -441,7 +461,10 @@ test("every canonical provider request binds recalled memory to a ContextPlan", 
       contextMemoryModelWindowTokens: 8192,
       maxOutputTokens: 512,
     });
-    assert.equal(afterDelete.plan.memoryRevision > prepared.plan.memoryRevision, true);
+    assert.equal(
+      afterDelete.plan.memoryRevision > prepared.plan.memoryRevision,
+      true,
+    );
     assert.equal(
       afterDelete.messages.some((message) =>
         String(message.content).includes("memory_id="),
@@ -586,7 +609,10 @@ test("tombstone survives a killed process and restart reconciliation purges lega
     const marker = await firstJsonLine(child.stdout);
     assert.equal(marker.ready, true);
     const durableBeforeKill = new DurableJsonMemoryPort({ filePath });
-    assert.equal((await durableBeforeKill.read(marker.memoryId)).state, "deleted");
+    assert.equal(
+      (await durableBeforeKill.read(marker.memoryId)).state,
+      "deleted",
+    );
 
     assert.equal(child.kill(), true);
     await exited;
@@ -658,8 +684,14 @@ test("canonical scoped memory migrates session-core rows and preserves scope fen
       clock: CLOCK,
     });
     const service = new CliCanonicalMemoryService({ runtime, clock: CLOCK });
-    assert.equal((await service.migrateLegacyScopedEntries(legacy)).migrated, 1);
-    assert.equal((await service.migrateLegacyScopedEntries(legacy)).existing, 1);
+    assert.equal(
+      (await service.migrateLegacyScopedEntries(legacy)).migrated,
+      1,
+    );
+    assert.equal(
+      (await service.migrateLegacyScopedEntries(legacy)).existing,
+      1,
+    );
     await service.addScoped("Session-only checkpoint", {
       scope: "session",
       scopeId: "session-1",
@@ -861,8 +893,9 @@ test("canonical live callback receipts bind the verified physical JSONL heads", 
     appendAssistantMessage(sessionId, `old answer ${"y".repeat(900)}`);
     appendUserMessage(sessionId, "preserve this pending request");
     const messages = readVerifiedMessages(sessionId);
-    const initialHead = (await new JsonlSessionContextPort({ sessionId })
-      .readSnapshot(sessionId)).head;
+    const initialHead = (
+      await new JsonlSessionContextPort({ sessionId }).readSnapshot(sessionId)
+    ).head;
     const result = await compactLiveMessagesCanonical(messages, {
       compressor: {
         maxTokens: 256,
@@ -947,7 +980,10 @@ test("JSONL SessionContextPort commits one canonical compact event with restart 
     const events = readVerifiedEvents(sessionId);
     const compactEvents = events.filter((event) => event.type === "compact");
     assert.equal(compactEvents.length, 1);
-    assert.equal(compactEvents[0].data.canonical.contextPlanDigest.startsWith("sha256:"), true);
+    assert.equal(
+      compactEvents[0].data.canonical.contextPlanDigest.startsWith("sha256:"),
+      true,
+    );
     assert.equal(compactEvents[0].data.canonical.memoryRevision, 7);
     assert.deepEqual(
       readVerifiedMessages(sessionId),
@@ -960,13 +996,54 @@ test("JSONL SessionContextPort commits one canonical compact event with restart 
     });
     assert.deepEqual(await restarted.compactContext(request), first);
     assert.equal(
-      readVerifiedEvents(sessionId).filter((event) => event.type === "compact").length,
+      readVerifiedEvents(sessionId).filter((event) => event.type === "compact")
+        .length,
       1,
     );
     assert.equal(
       (await new JsonlSessionContextPort({ sessionId }).readSnapshot(sessionId))
         .memoryRevision,
       7,
+    );
+  } finally {
+    if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+    else process.env.CHAINLESSCHAIN_HOME = previousHome;
+    if (previousAnchor === undefined) {
+      delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    } else {
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = previousAnchor;
+    }
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("JSONL SessionContextPort reconciles a semantic compaction crash by operation id", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-context-jsonl-reconcile-"));
+  const previousHome = process.env.CHAINLESSCHAIN_HOME;
+  const previousAnchor = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(directory, "home");
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = join(directory, "security");
+  try {
+    const sessionId = "canonical-session-reconcile-1";
+    const operationId = "compact-jsonl-reconcile-1";
+    startSession(sessionId, { provider: "ollama", model: "qwen2.5:7b" });
+    appendUserMessage(sessionId, "recover the interrupted compaction");
+    appendEvent(sessionId, "model_usage_started", {
+      callId: "direct-compact-reconcile-1",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      source: "semantic-compaction",
+      operationId,
+    });
+
+    const receipt = await new JsonlSessionContextPort({
+      sessionId,
+    }).readCompactionOperation(operationId);
+    assert.equal(receipt.status, "reconciliation_required");
+    assert.equal(receipt.operationId, operationId);
+    assert.equal(
+      receipt.lifecycle[0].details.code,
+      "semantic_usage_without_compaction_commit",
     );
   } finally {
     if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;

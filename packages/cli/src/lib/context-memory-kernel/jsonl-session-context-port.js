@@ -112,7 +112,8 @@ export class JsonlSessionContextPort {
             receipt = cloneCanonical(event.data.receipt);
           } else if (
             event?.type === "model_usage_started" &&
-            event?.data?.source === `semantic-compaction:${operationId}`
+            event?.data?.source === "semantic-compaction" &&
+            event?.data?.operationId === operationId
           ) {
             semanticUsageStart = event;
           }
@@ -152,11 +153,18 @@ export class JsonlSessionContextPort {
 
   registerOwnedHeadAdvance({ operationId, fromHead, toHead }) {
     if (!operationId || !fromHead || !toHead) {
-      throw new TypeError("owned head advancement requires operation and heads");
+      throw new TypeError(
+        "owned head advancement requires operation and heads",
+      );
     }
     const existing = this.ownedHeadAdvances.get(operationId);
-    if (existing && (existing.fromHead !== fromHead || existing.toHead !== toHead)) {
-      throw new Error("semantic compaction head advancement changed unexpectedly");
+    if (
+      existing &&
+      (existing.fromHead !== fromHead || existing.toHead !== toHead)
+    ) {
+      throw new Error(
+        "semantic compaction head advancement changed unexpectedly",
+      );
     }
     this.ownedHeadAdvances.set(operationId, { fromHead, toHead });
   }
@@ -165,7 +173,9 @@ export class JsonlSessionContextPort {
     const advancement = this.ownedHeadAdvances.get(operationId);
     if (!advancement) return expectedHead;
     if (advancement.fromHead !== expectedHead) {
-      throw new Error("semantic compaction head advancement does not match input head");
+      throw new Error(
+        "semantic compaction head advancement does not match input head",
+      );
     }
     return advancement.toHead;
   }

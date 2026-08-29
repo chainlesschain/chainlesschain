@@ -532,6 +532,11 @@ function modelUsageBoundaryIdentity(data, field) {
     ),
     model: boundedLabel(data.model, `${field} model`, MAX_MODEL_LENGTH),
     source: normalizedUsageSource(data.source, `${field} source`),
+    operationId: boundedLabel(
+      data.operationId,
+      `${field} operationId`,
+      MAX_ID_LENGTH,
+    ),
   };
 }
 
@@ -539,7 +544,8 @@ function sameModelUsageIdentity(left, right) {
   return (
     left.provider === right.provider &&
     left.model === right.model &&
-    left.source === right.source
+    left.source === right.source &&
+    left.operationId === right.operationId
   );
 }
 
@@ -641,6 +647,11 @@ function strictUsage(event) {
   }
   return {
     callId,
+    operationId: boundedLabel(
+      data.operationId,
+      "session usage operationId",
+      MAX_ID_LENGTH,
+    ),
     provider: usageIdentity(
       data,
       raw,
@@ -1047,6 +1058,7 @@ export function createVerifiedSessionObservabilityProjection(
             provider: usage.provider,
             model: usage.model,
             source: usage.source,
+            operationId: usage.operationId,
           };
           if (previous && !sameModelUsageIdentity(previous, identity)) {
             throw new Error(

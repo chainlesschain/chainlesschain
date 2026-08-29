@@ -1,5 +1,6 @@
 const MAX_LABEL_LENGTH = 160;
 const MAX_CALL_ID_LENGTH = 128;
+const MAX_OPERATION_ID_LENGTH = 160;
 const MAX_ATTRIBUTION_ID_LENGTH = 256;
 let fallbackToolSequence = 0;
 const USAGE_FIELDS = Object.freeze([
@@ -65,6 +66,21 @@ function callId(value, { required = false } = {}) {
   return value.trim();
 }
 
+function operationId(value) {
+  if (value === undefined) return null;
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    value.length > MAX_OPERATION_ID_LENGTH ||
+    /\p{Cc}/u.test(value)
+  ) {
+    throw new TypeError(
+      "runtime usage boundary requires a bounded operation id",
+    );
+  }
+  return value.trim();
+}
+
 function projectAttribution(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const projected = {};
@@ -120,12 +136,14 @@ export function projectRuntimeTokenUsage(event = {}) {
     }
   }
   const projectedCallId = callId(event.callId);
+  const projectedOperationId = operationId(event.operationId);
   const attribution = projectAttribution(event.attribution);
   return {
     provider: cleanLabel(event.provider),
     model: cleanLabel(event.model),
     usage,
     ...(projectedCallId ? { callId: projectedCallId } : {}),
+    ...(projectedOperationId ? { operationId: projectedOperationId } : {}),
     ...(event.source ? { source: source(event.source) } : {}),
     ...(attribution ? { attribution } : {}),
   };
@@ -138,11 +156,13 @@ export function projectRuntimeUsageBoundary(event = {}, outcome) {
       "runtime usage boundary outcome must be started or unknown",
     );
   }
+  const projectedOperationId = operationId(event.operationId);
   const projected = {
     callId: callId(event.callId, { required: true }),
     provider: cleanLabel(event.provider),
     model: cleanLabel(event.model),
     source: source(event.source),
+    ...(projectedOperationId ? { operationId: projectedOperationId } : {}),
   };
   const attribution = projectAttribution(event.attribution);
   if (attribution) projected.attribution = attribution;

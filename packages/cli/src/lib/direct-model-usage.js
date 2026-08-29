@@ -36,9 +36,16 @@ async function persistUsageEvent(persist, type, event) {
   }
 }
 
-function unknownUsageEvent({ callId, provider, model, source, code }) {
+function unknownUsageEvent({
+  callId,
+  provider,
+  model,
+  source,
+  operationId,
+  code,
+}) {
   return projectRuntimeUsageBoundary(
-    { callId, provider, model, source, code },
+    { callId, provider, model, source, operationId, code },
     "unknown",
   );
 }
@@ -54,6 +61,7 @@ export async function runMeteredDirectModelCall({
   provider,
   model,
   source = "model",
+  operationId = undefined,
   sessionBudget = null,
   call,
 }) {
@@ -77,11 +85,14 @@ export async function runMeteredDirectModelCall({
   await persistUsageEvent(
     persist,
     runtimeUsageEventType("started"),
-    projectRuntimeUsageBoundary({ callId, provider, model, source }, "started"),
+    projectRuntimeUsageBoundary(
+      { callId, provider, model, source, operationId },
+      "started",
+    ),
   );
   beginSessionBudgetUsage(
     sessionBudget,
-    { callId, provider, model, source },
+    { callId, provider, model, source, operationId },
     `direct model call ${source}`,
   );
   let result;
@@ -93,13 +104,10 @@ export async function runMeteredDirectModelCall({
       provider,
       model,
       source,
+      operationId,
       code: "provider_call_failed",
     });
-    await persistUsageEvent(
-      persist,
-      runtimeUsageEventType("unknown"),
-      unknown,
-    );
+    await persistUsageEvent(persist, runtimeUsageEventType("unknown"), unknown);
     markSessionBudgetUsageUnknown(sessionBudget, unknown);
     throw error;
   }
@@ -111,6 +119,7 @@ export async function runMeteredDirectModelCall({
         provider,
         model,
         source,
+        operationId,
         usage: result.usage,
       });
     } catch {
@@ -119,6 +128,7 @@ export async function runMeteredDirectModelCall({
         provider,
         model,
         source,
+        operationId,
         code: "provider_usage_missing",
       });
       await persistUsageEvent(
@@ -127,10 +137,7 @@ export async function runMeteredDirectModelCall({
         unknown,
       );
       if (markSessionBudgetUsageUnknown(sessionBudget, unknown)) {
-        rejectSessionBudgetUsageUnknown(
-          unknown,
-          `direct model call ${source}`,
-        );
+        rejectSessionBudgetUsageUnknown(unknown, `direct model call ${source}`);
       }
       return result;
     }
@@ -146,13 +153,10 @@ export async function runMeteredDirectModelCall({
       provider,
       model,
       source,
+      operationId,
       code: "provider_usage_missing",
     });
-    await persistUsageEvent(
-      persist,
-      runtimeUsageEventType("unknown"),
-      unknown,
-    );
+    await persistUsageEvent(persist, runtimeUsageEventType("unknown"), unknown);
     if (markSessionBudgetUsageUnknown(sessionBudget, unknown)) {
       rejectSessionBudgetUsageUnknown(unknown, `direct model call ${source}`);
     }
