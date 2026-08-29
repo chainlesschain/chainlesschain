@@ -445,6 +445,58 @@ describe(
       ]);
     });
 
+    it("preserves a terminal task failure during canonical Graph reconciliation", () => {
+      const command = `${JSON.stringify(process.execPath)} -e "process.exit(17)"`;
+      const graph = writeGraph("canonical-failure.json", [
+        { key: "failing-task", title: "failing task", command },
+      ]);
+      const state = path.join(configDir, "canonical-failure-state.json");
+      let failure = null;
+      try {
+        execFileSync(
+          process.execPath,
+          [
+            BIN,
+            "team",
+            "run",
+            "--tasks",
+            graph,
+            "--exec",
+            "--teammates",
+            "1",
+            "--state",
+            state,
+            "--json",
+          ],
+          {
+            encoding: "utf8",
+            timeout: 60_000,
+            cwd: dir,
+            stdio: ["ignore", "pipe", "pipe"],
+            env: {
+              ...process.env,
+              CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
+              CHAINLESSCHAIN_HOME: configDir,
+              CC_COLLABORATION_RUNS_DIR: path.join(
+                dir,
+                "canonical-failure-collaboration-runs",
+              ),
+            },
+          },
+        );
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeTruthy();
+      const output = `${failure.stdout || ""}${failure.stderr || ""}`;
+      expect(output).toContain('"type":"task:failed"');
+      expect(output).toMatch(/command exited 17/u);
+      expect(output).not.toMatch(
+        /Failed to reconcile team governance|already failed/u,
+      );
+    });
+
     it("fails closed when --resume has no state file", () => {
       const graph = writeGraph("resume-missing.json", [
         { key: "a", title: "a" },

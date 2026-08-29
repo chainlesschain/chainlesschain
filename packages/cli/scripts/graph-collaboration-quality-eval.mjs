@@ -623,6 +623,50 @@ function jsonLines(value) {
     .filter(Boolean);
 }
 
+export function candidateFailureDetails(result) {
+  const events = jsonLines(result?.stdout);
+  const failures = events
+    .filter((event) => event?.type === "task:failed")
+    .slice(-FORMAL_PROFILE.taskIds.length)
+    .map((event) => ({
+      key: String(event.key || "").slice(0, 256),
+      error: String(event.error || "").slice(0, 1000),
+      retry: event.retry === true,
+    }));
+  const summary = [...events]
+    .reverse()
+    .find((event) => event?.summary)?.summary;
+  return {
+    status: Number.isInteger(result?.status) ? result.status : null,
+    signal: result?.signal || null,
+    failures,
+    summary: summary
+      ? {
+          success: summary.success === true,
+          done: summary.done === true,
+          executions: Number(summary.executions || 0),
+        }
+      : null,
+    stderr: String(result?.stderr || "").slice(-1500),
+  };
+}
+
+export function buildCandidateTasks(tasks, seed) {
+  return tasks.map((task) => ({
+    key: task.id,
+    title: task.description,
+    dependsOn: [],
+    scopePaths: [`cases/${task.id}`],
+    // These benchmark tasks have no external effects and run inside isolated,
+    // managed-checkpoint worktrees. Retrying a failed agent process is safe;
+    // incorrect code still exits normally and is measured by the scorer.
+    retrySafe: true,
+    prompt:
+      `Work only in cases/${task.id}. ${task.prompt}\n\n` +
+      `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}.`,
+  }));
+}
+
 function usageFromEvents(events) {
   const terminal = [...events]
     .reverse()
@@ -816,16 +860,7 @@ async function runCandidate({ tasks, seed, provider, model }) {
     tasksFile,
     `${JSON.stringify(
       {
-        tasks: tasks.map((task) => ({
-          key: task.id,
-          title: task.description,
-          dependsOn: [],
-          scopePaths: [`cases/${task.id}`],
-          retrySafe: false,
-          prompt:
-            `Work only in cases/${task.id}. ${task.prompt}\n\n` +
-            `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}.`,
-        })),
+        tasks: buildCandidateTasks(tasks, seed),
       },
       null,
       2,
@@ -875,7 +910,7 @@ async function runCandidate({ tasks, seed, provider, model }) {
     );
     if (result.status !== 0) {
       throw new Error(
-        `Graph candidate failed: ${String(result.stderr).slice(-1500)}`,
+        `Graph candidate failed: ${JSON.stringify(candidateFailureDetails(result))}`,
       );
     }
     const output = jsonLines(result.stdout);

@@ -3283,6 +3283,13 @@ export function registerTeamCommand(program, { logger } = {}) {
             tasksByGovernanceKey.get(governanceKey)?.push(task);
           }
           for (const [key, tasks] of tasksByGovernanceKey) {
+            // A unit settled by afterTask is immutable. Graph cancellation can
+            // subsequently project the registry task as cancelled; do not mask
+            // the original terminal outcome with a forbidden second settlement.
+            const currentStatus = collaborationUnits.get(key)?.status;
+            if (["completed", "failed", "cancelled"].includes(currentStatus)) {
+              continue;
+            }
             const states = tasks.map((task) =>
               String(task.status || "").toLowerCase(),
             );
@@ -3295,7 +3302,6 @@ export function registerTeamCommand(program, { logger } = {}) {
                     )
                   ? "cancelled"
                   : "failed";
-            if (collaborationUnits.get(key)?.status === status) continue;
             settleGovernance(key, status, {
               endedAt: Date.now(),
             });
