@@ -1,0 +1,88 @@
+name: Context Memory Production Close
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact release candidate commit; must equal the workflow event SHA
+        required: true
+        type: string
+      evidence_run_id:
+        description: Context Memory Release Evidence run ID
+        required: true
+        type: string
+      evidence_artifact:
+        description: Attested evidence artifact name
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+jobs:
+  production-close:
+    name: Verify Context/Memory production close
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: context-memory-production-close
+    steps:
+      - name: Refuse detached, abbreviated, or malformed inputs
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.commit_sha }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+        run: |
+          [[ "${CANDIDATE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          test "${CANDIDATE_SHA}" = "${GITHUB_SHA}"
+          [[ "${EVIDENCE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.evidence_artifact }}
+          path: ${{ runner.temp }}/context-memory-release-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.evidence_run_id }}
+
+      - name: Select exactly one evidence manifest
+        id: evidence
+        shell: bash
+        run: |
+          mapfile -t files < <(find "${RUNNER_TEMP}/context-memory-release-evidence" -type f -name '*.json' -print)
+          test "${#files[@]}" -eq 1
+          echo "path=${files[0]}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify evidence provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh attestation verify "${{ steps.evidence.outputs.path }}" --repo "${{ github.repository }}"
+
+      - name: Reject missing checks and mixed candidate identities
+        run: >-
+          node packages/context-memory-kernel/scripts/validate-release-evidence.mjs
+          --evidence "${{ steps.evidence.outputs.path }}"
+          --expected-commit "${{ inputs.commit_sha }}"
+          --expected-repository "${{ github.repository }}"
+          --output "${{ runner.temp }}/context-memory-production-close-receipt.json"
+
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ runner.temp }}/context-memory-production-close-receipt.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: context-memory-production-close-${{ inputs.commit_sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/context-memory-production-close-receipt.json
+          if-no-files-found: error
+          retention-days: 365

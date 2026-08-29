@@ -1,6 +1,6 @@
 method	type	memory_id	memory_revision	record_memory_id	expected_memory_count
-context/event	context.plan.created		4		
-memory/event	memory.activated	memory-1		memory-1	
-memory/event	memory.recalled		5		
-memory/event	memory.purged	memory-1			
-expected	projection		5		0
+context/event	context.plan.created	-	4	-	-
+memory/event	memory.activated	memory-1	-	memory-1	-
+memory/event	memory.recalled	-	5	-	-
+memory/event	memory.purged	memory-1	-	-	-
+expected	projection	-	5	-	0

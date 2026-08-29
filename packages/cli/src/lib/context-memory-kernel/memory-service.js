@@ -221,6 +221,90 @@ export class CliCanonicalMemoryService {
     );
   }
 
+  async dryRunLegacyMigration({ entries = [], scopedEntries = [] } = {}) {
+    const before = await this.runtime.memoryPort.getRevision();
+    const now = new Date(Number(this.now())).toISOString();
+    const sources = [
+      ...(Array.isArray(entries) ? entries : []).map((entry) => ({
+        kind: "cli-sqlite-memory",
+        sourceId: safeIdentifier(entry?.id, "unknown"),
+        proposal: () => legacyProposal(entry, now),
+      })),
+      ...(Array.isArray(scopedEntries) ? scopedEntries : []).map((entry) => ({
+        kind: "cli-session-core-memory",
+        sourceId: safeIdentifier(entry?.id, "unknown"),
+        proposal: () => legacyScopedProposal(entry, now),
+      })),
+    ];
+    const report = {
+      schema: "chainlesschain.cli-context-memory-migration-dry-run/v1",
+      schemaVersion: 1,
+      status: "ready",
+      scanned: sources.length,
+      wouldMigrate: 0,
+      existing: 0,
+      conflicts: 0,
+      invalid: 0,
+      findings: [],
+      authorityRevisionBefore: before,
+      authorityRevisionAfter: before,
+    };
+    const bindings = [];
+    for (const source of sources) {
+      try {
+        const proposal = source.proposal();
+        const candidate = createMemoryCandidate(proposal, { clock: this.now });
+        const existing = await this.runtime.memoryPort.read(candidate.memoryId);
+        const disposition = !existing
+          ? "would_migrate"
+          : existing.digest === candidate.digest
+            ? "existing"
+            : "conflict";
+        if (disposition === "would_migrate") report.wouldMigrate += 1;
+        else if (disposition === "existing") report.existing += 1;
+        else report.conflicts += 1;
+        report.findings.push({
+          kind: source.kind,
+          sourceId: source.sourceId,
+          memoryId: candidate.memoryId,
+          disposition,
+          recordDigest: candidate.digest,
+        });
+        bindings.push({
+          kind: source.kind,
+          sourceId: source.sourceId,
+          memoryId: candidate.memoryId,
+          recordDigest: candidate.digest,
+        });
+      } catch (error) {
+        report.invalid += 1;
+        report.findings.push({
+          kind: source.kind,
+          sourceId: source.sourceId,
+          disposition: "invalid",
+          code: error?.code || "invalid_argument",
+        });
+      }
+    }
+    const after = await this.runtime.memoryPort.getRevision();
+    report.authorityRevisionAfter = after;
+    if (after !== before) {
+      const error = new Error("migration dry-run mutated canonical authority");
+      error.code = "CONTEXT_MEMORY_MIGRATION_DRY_RUN_MUTATED";
+      throw error;
+    }
+    if (report.conflicts > 0 || report.invalid > 0) report.status = "blocked";
+    report.inputDigest = canonicalDigest(
+      bindings,
+      "chainlesschain.cli-context-memory-migration-input/v1",
+    );
+    report.digest = canonicalDigest(
+      report,
+      "chainlesschain.cli-context-memory-migration-dry-run/v1",
+    );
+    return report;
+  }
+
   async migrateLegacyEntries(entries) {
     if (!this.decision.canonical) {
       return { migrated: 0, existing: 0, failed: 0, failures: [] };

@@ -41,10 +41,11 @@ function crossSurfaceProjectionFixture() {
       return {
         method,
         type,
-        memoryId,
-        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
-        recordMemoryId,
-        expectedMemoryCount: expectedMemoryCount ? Number(expectedMemoryCount) : null,
+        memoryId: memoryId === "-" ? "" : memoryId,
+        memoryRevision: memoryRevision !== "-" ? Number(memoryRevision) : null,
+        recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
+        expectedMemoryCount:
+          expectedMemoryCount !== "-" ? Number(expectedMemoryCount) : null,
       };
     });
 }

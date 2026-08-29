@@ -8,6 +8,9 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/src/**"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - ".github/workflows/context-memory-*.yml"
       - "packages/cli/__tests__/**"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"
@@ -191,6 +194,9 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/**"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - ".github/workflows/context-memory-*.yml"
       - "packages/cli/__tests__/**"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"

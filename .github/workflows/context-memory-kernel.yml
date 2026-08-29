@@ -1,0 +1,125 @@
+name: Context Memory Kernel CI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/context-memory-*.yml"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - "packages/agent-sdk/**"
+      - "packages/agent-sdk-python/**"
+      - "packages/session-core/lib/**"
+      - "packages/cli/src/**"
+      - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
+      - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
+      - "desktop-app-vue/src/main/**"
+      - "packages/vscode-extension/src/**"
+      - "packages/vscode-extension/test/app-server-pilot.test.cjs"
+      - "packages/vscode-extension/test/context-memory-authority.test.cjs"
+      - "packages/jetbrains-plugin/src/main/**"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextMemoryProjectionTest.java"
+  pull_request:
+    paths:
+      - ".github/workflows/context-memory-*.yml"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - "packages/agent-sdk/**"
+      - "packages/agent-sdk-python/**"
+      - "packages/session-core/lib/**"
+      - "packages/cli/src/**"
+      - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
+      - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
+      - "desktop-app-vue/src/main/**"
+      - "packages/vscode-extension/src/**"
+      - "packages/vscode-extension/test/app-server-pilot.test.cjs"
+      - "packages/vscode-extension/test/context-memory-authority.test.cjs"
+      - "packages/jetbrains-plugin/src/main/**"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextMemoryProjectionTest.java"
+
+permissions:
+  contents: read
+
+jobs:
+  context-memory:
+    name: Context/Memory (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify canonical Kernel, inventory, privacy, and release evidence
+        run: npm --prefix packages/context-memory-kernel test
+
+      - name: Verify CLI migration, shadow, provider, purge, and crash recovery
+        run: npm --prefix packages/cli run test:context-memory-kernel
+
+      - name: Verify Agent Protocol schema and generated bindings
+        run: npm --prefix packages/agent-protocol run check
+
+      - name: Verify Agent Protocol conformance
+        run: npm --prefix packages/agent-protocol test
+
+      - name: Verify Desktop and VS Code shared projection
+        run: node --test packages/context-memory-kernel/test/desktop-surface-conformance.test.js packages/vscode-extension/test/app-server-pilot.test.cjs packages/vscode-extension/test/context-memory-authority.test.cjs
+
+      - name: Verify TypeScript SDK
+        run: npm --prefix packages/agent-sdk test
+
+      - name: Build TypeScript SDK
+        run: npm --prefix packages/agent-sdk run build
+
+      - name: Verify Python SDK
+        working-directory: packages/agent-sdk-python
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests
+
+      - name: Verify JetBrains canonical projection (Windows)
+        if: runner.os == 'Windows'
+        working-directory: packages/jetbrains-plugin
+        run: .\gradlew.bat test --tests com.chainlesschain.ide.ContextMemoryProjectionTest --no-daemon
+
+      - name: Verify JetBrains canonical projection (Unix)
+        if: runner.os != 'Windows'
+        working-directory: packages/jetbrains-plugin
+        run: ./gradlew test --tests com.chainlesschain.ide.ContextMemoryProjectionTest --no-daemon
+
+      - name: Run bounded quick soak
+        run: node packages/context-memory-kernel/scripts/context-memory-soak.mjs --profile quick --candidate-sha "${{ github.sha }}" --output "${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: context-memory-${{ matrix.platform }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json
+            packages/jetbrains-plugin/build/test-results/test/
+          if-no-files-found: error
+          retention-days: 30

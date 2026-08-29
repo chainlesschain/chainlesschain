@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -74,10 +75,11 @@ function crossSurfaceProjectionFixture() {
       return {
         method,
         type,
-        memoryId,
-        memoryRevision: memoryRevision ? Number(memoryRevision) : null,
-        recordMemoryId,
-        expectedMemoryCount: expectedMemoryCount ? Number(expectedMemoryCount) : null,
+        memoryId: memoryId === "-" ? "" : memoryId,
+        memoryRevision: memoryRevision !== "-" ? Number(memoryRevision) : null,
+        recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
+        expectedMemoryCount:
+          expectedMemoryCount !== "-" ? Number(expectedMemoryCount) : null,
       };
     });
 }
@@ -315,6 +317,43 @@ test("CLI cutover decisions keep shadow write-free and fence legacy after cutove
   });
 });
 
+test("shadow Kernel produces the canonical plan but cannot create authority state", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-context-shadow-"));
+  const filePath = join(directory, "shadow-memory.json");
+  try {
+    const runtime = createCliContextMemoryRuntime({
+      env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "shadow" },
+      memoryFilePath: filePath,
+      clock: CLOCK,
+    });
+    const request = {
+      modelWindowTokens: 1_000,
+      reservedOutputTokens: 100,
+      safetyMarginTokens: 50,
+      recoveryReserveTokens: 50,
+      items: messagesToContextItems(
+        [{ role: "user", content: "compare shadow planning" }],
+        { sessionId: "shadow-session", allowedSinks: ["provider.local"] },
+      ),
+      sink: "provider.local",
+      scopeAdmissions: [{ scope: "session", scopeId: "shadow-session" }],
+      policyVersion: "policy-1",
+      modelProfile: "model-1",
+      sessionHead: "head:shadow",
+      memoryRevision: 0,
+      now: AT,
+    };
+    assert.deepEqual(await runtime.kernel.planContext(request), planContext(request));
+    await assert.rejects(
+      () => runtime.kernel.proposeMemory({ content: "must not write" }),
+      { code: "legacy_writer_fenced" },
+    );
+    assert.equal(existsSync(filePath), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("canonical production fences direct legacy CLI memory APIs", () => {
   const previous = process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
   process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "canonical_default";
@@ -436,6 +475,26 @@ test("canonical CLI memory migrates legacy rows once and becomes the only writer
         updated_at: AT,
       },
     ];
+    const dryRun = await service.dryRunLegacyMigration({ entries: legacy });
+    assert.deepEqual(
+      {
+        status: dryRun.status,
+        scanned: dryRun.scanned,
+        wouldMigrate: dryRun.wouldMigrate,
+        existing: dryRun.existing,
+        before: dryRun.authorityRevisionBefore,
+        after: dryRun.authorityRevisionAfter,
+      },
+      {
+        status: "ready",
+        scanned: 1,
+        wouldMigrate: 1,
+        existing: 0,
+        before: 0,
+        after: 0,
+      },
+    );
+    assert.equal(JSON.stringify(dryRun).includes(legacy[0].content), false);
     assert.deepEqual(await service.migrateLegacyEntries(legacy), {
       migrated: 1,
       existing: 0,
@@ -448,6 +507,15 @@ test("canonical CLI memory migrates legacy rows once and becomes the only writer
       failed: 0,
       failures: [],
     });
+    const convergedDryRun = await service.dryRunLegacyMigration({
+      entries: legacy,
+    });
+    assert.equal(convergedDryRun.wouldMigrate, 0);
+    assert.equal(convergedDryRun.existing, 1);
+    assert.equal(
+      convergedDryRun.authorityRevisionAfter,
+      convergedDryRun.authorityRevisionBefore,
+    );
     const listed = await service.list();
     assert.equal(listed.length, 1);
     assert.equal(listed[0].source, "cli-sqlite-memory");

@@ -83,9 +83,9 @@ class ProtocolTests(unittest.TestCase):
                 continue
             self.assertIn(row["method"], ("context/event", "memory/event"))
             self.assertIn(row["type"], CC_AGENT_STREAM_EVENT_TYPES)
-            if row["memory_revision"]:
+            if row["memory_revision"] != "-":
                 memory_revision = int(row["memory_revision"])
-            if row["record_memory_id"]:
+            if row["record_memory_id"] != "-":
                 memories.add(row["record_memory_id"])
             if row["type"] == "memory.purged":
                 memories.discard(row["memory_id"])

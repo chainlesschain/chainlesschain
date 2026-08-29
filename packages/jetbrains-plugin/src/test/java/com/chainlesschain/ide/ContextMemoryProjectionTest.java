@@ -69,13 +69,13 @@ class ContextMemoryProjectionTest {
             }
             Map<String, Object> event = new LinkedHashMap<String, Object>();
             event.put("type", type);
-            if (!fields[2].isEmpty()) event.put("memory_id", fields[2]);
-            if (!fields[4].isEmpty()) {
+            if (!"-".equals(fields[2])) event.put("memory_id", fields[2]);
+            if (!"-".equals(fields[4])) {
                 Map<String, Object> record = new LinkedHashMap<String, Object>();
                 record.put("memoryId", fields[4]);
                 event.put("record", record);
             }
-            if (!fields[3].isEmpty()) {
+            if (!"-".equals(fields[3])) {
                 Map<String, Object> revisionValue = new LinkedHashMap<String, Object>();
                 revisionValue.put("memoryRevision", Long.valueOf(fields[3]));
                 event.put("context.plan.created".equals(type) ? "plan" : "result",
