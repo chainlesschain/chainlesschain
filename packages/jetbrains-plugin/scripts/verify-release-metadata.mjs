@@ -17,14 +17,47 @@ function capturedVersions(value, pattern) {
   return [...new Set([...value.matchAll(pattern)].map((match) => match[1]))];
 }
 
+function compareVersions(left, right) {
+  const leftParts = left.split(".").map(Number);
+  const rightParts = right.split(".").map(Number);
+
+  for (let index = 0; index < 3; index += 1) {
+    if (leftParts[index] !== rightParts[index]) {
+      return leftParts[index] - rightParts[index];
+    }
+  }
+  return 0;
+}
+
 export function verifyReleaseMetadata({
   gradle,
+  gradleProperties,
   pluginXml,
   changelog,
   readme,
   cliManifest,
 }) {
   assert.equal(cliManifest.name, "chainlesschain");
+  const sourceCliVersion = cliManifest.version;
+  const recommendedCliVersion = oneMatch(
+    gradleProperties,
+    /^chainlesschainRecommendedCliVersion\s*=\s*(\S+)\s*$/gmu,
+    "recommended CLI version",
+  );
+  assert.match(
+    sourceCliVersion,
+    /^0\.\d+\.\d+$/u,
+    "CLI source manifest must declare a stable semantic version",
+  );
+  assert.match(
+    recommendedCliVersion,
+    /^0\.\d+\.\d+$/u,
+    "recommended CLI version must be stable semantic version",
+  );
+  assert.ok(
+    compareVersions(recommendedCliVersion, sourceCliVersion) <= 0,
+    "Recommended public CLI cannot be newer than the checked-out CLI source",
+  );
   const pluginVersion = oneMatch(
     gradle,
     /^version\s*=\s*"([^"]+)"\s*$/gmu,
@@ -56,11 +89,13 @@ export function verifyReleaseMetadata({
   );
   const section = compatibility[1];
   assert.ok(
-    section.includes(`Plugin **${pluginVersion}** is the current release`),
-    "README must identify the current plugin release",
+    section.includes(
+      `Plugin **${pluginVersion}** is the current release candidate`,
+    ),
+    "README must identify the current plugin release candidate",
   );
   assert.ok(
-    section.includes(`chainlesschain@${cliManifest.version}`),
+    section.includes(`chainlesschain@${recommendedCliVersion}`),
     "README must identify the recommended CLI release",
   );
   assert.deepEqual(
@@ -70,16 +105,20 @@ export function verifyReleaseMetadata({
   );
   assert.deepEqual(
     capturedVersions(section, /chainlesschain@(0\.\d+\.\d+)/gu),
-    [cliManifest.version],
+    [recommendedCliVersion],
     "README contains a stale recommended CLI version",
   );
 
-  return { pluginVersion, cliVersion: cliManifest.version };
+  return { pluginVersion, cliVersion: recommendedCliVersion, sourceCliVersion };
 }
 
 function main() {
   const result = verifyReleaseMetadata({
     gradle: readFileSync(join(PLUGIN_ROOT, "build.gradle.kts"), "utf8"),
+    gradleProperties: readFileSync(
+      join(PLUGIN_ROOT, "gradle.properties"),
+      "utf8",
+    ),
     pluginXml: readFileSync(
       join(PLUGIN_ROOT, "src", "main", "resources", "META-INF", "plugin.xml"),
       "utf8",

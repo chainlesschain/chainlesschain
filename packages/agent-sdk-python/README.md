@@ -20,7 +20,7 @@ Install the SDK and a compatible `cc` CLI:
 
 ```bash
 python -m pip install "chainlesschain-agent-sdk==0.2.5"
-npm install --global "chainlesschain@0.166.8"
+npm install --global "chainlesschain@0.166.7"
 ```
 
 The Python distribution has no runtime dependencies. The CLI is installed
