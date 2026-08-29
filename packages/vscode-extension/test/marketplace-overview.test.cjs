@@ -3,7 +3,7 @@ const test = require("node:test");
 
 function overview({
   extensionVersion = "0.37.73",
-  cliVersion = "0.166.8",
+  cliVersion = "0.166.9",
 } = {}) {
   const vsixUrl =
     `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${extensionVersion}` +
@@ -34,7 +34,7 @@ async function verifier() {
   return import("../scripts/verify-marketplace-overview.mjs");
 }
 
-function manifests({ recommended = "0.166.8", source = "0.166.9" } = {}) {
+function manifests({ recommended = "0.166.9", source = "0.166.9" } = {}) {
   return {
     extensionManifest: {
       name: "chainlesschain-ide",
@@ -46,14 +46,14 @@ function manifests({ recommended = "0.166.8", source = "0.166.9" } = {}) {
   };
 }
 
-test("keeps the public recommendation independent from a newer source candidate", async () => {
+test("keeps the public recommendation aligned with the release candidate", async () => {
   const { verifyMarketplaceOverview } = await verifier();
   const result = verifyMarketplaceOverview({
     ...manifests(),
     readme: overview(),
   });
 
-  assert.equal(result.cliVersion, "0.166.8");
+  assert.equal(result.cliVersion, "0.166.9");
   assert.equal(result.sourceCliVersion, "0.166.9");
 });
 
