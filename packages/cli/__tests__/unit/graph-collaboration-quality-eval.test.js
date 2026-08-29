@@ -6,6 +6,8 @@ import {
   FORMAL_PROFILE,
   FROZEN_THRESHOLDS,
   PLATFORM_SCHEMA,
+  buildCandidateTasks,
+  candidateFailureDetails,
   enforceQualityThresholds,
   qualityEvidenceDigest,
   sealPlatformRecord,
@@ -113,6 +115,50 @@ function platform(platform, index = 0, overrides = {}) {
 }
 
 describe("graph collaboration quality evidence", () => {
+  it("keeps isolated candidate tasks retry-safe and reports their root failures", () => {
+    expect(
+      buildCandidateTasks(
+        [
+          {
+            id: "add-function",
+            description: "Add a function",
+            prompt: "Implement it.",
+          },
+        ],
+        101,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        key: "add-function",
+        retrySafe: true,
+        scopePaths: ["cases/add-function"],
+      }),
+    ]);
+
+    expect(
+      candidateFailureDetails({
+        status: 1,
+        signal: null,
+        stdout:
+          `${JSON.stringify({ type: "task:failed", key: "add-function", error: "provider overloaded: sk-abcd1234efgh5678ijkl", retry: false })}\n` +
+          `${JSON.stringify({ summary: { success: false, done: true, executions: 1 } })}\n`,
+        stderr: "team failed",
+      }),
+    ).toEqual({
+      status: 1,
+      signal: null,
+      failures: [
+        {
+          key: "add-function",
+          error: "provider overloaded: [REDACTED]",
+          retry: false,
+        },
+      ],
+      summary: { success: false, done: true, executions: 1 },
+      stderr: "team failed",
+    });
+  });
+
   it("recomputes a passing formal platform report", () => {
     const record = platform("linux");
     expect(
