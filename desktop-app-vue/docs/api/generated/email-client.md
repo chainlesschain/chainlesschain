@@ -186,10 +186,10 @@ normalizeEmail(parsed, seqno)
 
 ---
 
-## parseMailboxes(boxes, prefix = "")
+## parseMailboxes(boxes, prefix = "", state =
 
 ```javascript
-parseMailboxes(boxes, prefix = "")
+parseMailboxes(boxes, prefix = "", state =
 ```
 
 * 解析邮箱列表

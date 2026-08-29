@@ -654,10 +654,10 @@ async deleteOrganization(orgId, userDID)
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取组织所有角色
@@ -666,10 +666,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取单个角色
@@ -678,10 +678,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 创建自定义角色
@@ -695,10 +695,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 更新角色（仅能更新自定义角色）
@@ -712,10 +712,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 删除自定义角色
@@ -725,10 +725,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取所有可用权限列表
@@ -736,10 +736,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取组织在线成员列表
@@ -748,10 +748,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取组织在线成员数量
@@ -760,10 +760,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 检查成员是否在线
@@ -773,10 +773,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 检查用户是否是组织成员
@@ -786,10 +786,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 广播消息到组织
@@ -799,10 +799,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取组织P2P网络统计信息
@@ -811,10 +811,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 断开组织P2P网络连接
@@ -823,10 +823,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 处理知识库事件
@@ -837,10 +837,10 @@ Object.assign(
 
 ---
 
-## Object.assign(
+## async close()
 
 ```javascript
-Object.assign(
+async close()
 ```
 
 * 获取组织知识库数据用于同步

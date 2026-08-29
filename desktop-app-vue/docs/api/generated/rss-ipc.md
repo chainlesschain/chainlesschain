@@ -177,10 +177,10 @@ async addCategory(name, options =
 
 ---
 
-## async getCategories()
+## async getCategories(options =
 
 ```javascript
-async getCategories()
+async getCategories(options =
 ```
 
 * 获取分类列表

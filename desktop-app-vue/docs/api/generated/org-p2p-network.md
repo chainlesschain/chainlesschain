@@ -66,14 +66,16 @@ async subscribeTopic(orgId, topic)
 
 ---
 
-## async unsubscribeTopic(orgId)
+## async unsubscribeTopic(orgId,
 
 ```javascript
-async unsubscribeTopic(orgId)
+async unsubscribeTopic(orgId,
 ```
 
 * 取消订阅组织Topic
    * @param {string} orgId - 组织ID
+   * @param {Object} [options]
+   * @param {boolean} [options.broadcastOffline=true]
    * @returns {Promise<void>}
 
 ---

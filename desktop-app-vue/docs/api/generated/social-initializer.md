@@ -17,10 +17,10 @@ const path = require("path");
 
 ---
 
-## function registerSocialInitializers(factory)
+## function registerSocialInitializers(initializerFactory)
 
 ```javascript
-function registerSocialInitializers(factory)
+function registerSocialInitializers(initializerFactory)
 ```
 
 * 注册社交模块初始化器
@@ -64,7 +64,7 @@ function wireMtcAutoBridge(p2pManager, mtcFederationManager)
  *
  * @param {EventEmitter} p2pManager
  * @param {MtcFederationManager} mtcFederationManager
- * @returns {{ wired: true } | null}
+ * @returns {{ wired: true, close: Function } | null}
 
 ---
 

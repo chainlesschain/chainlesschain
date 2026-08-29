@@ -93,10 +93,10 @@ async execute(input, context =
 
 ---
 
-## pause()
+## async _executeCanonicalGraph(input, context =
 
 ```javascript
-pause()
+async _executeCanonicalGraph(input, context =
 ```
 
 * 暂停工作流
@@ -115,10 +115,10 @@ resume()
 
 ---
 
-## cancel(reason = "用户取消")
+## async cancel(reason = "用户取消")
 
 ```javascript
-cancel(reason = "用户取消")
+async cancel(reason = "用户取消")
 ```
 
 * 取消工作流
@@ -127,10 +127,10 @@ cancel(reason = "用户取消")
 
 ---
 
-## async retry()
+## async reconcile(reconciliation)
 
 ```javascript
-async retry()
+async reconcile(reconciliation)
 ```
 
 * 重试失败的工作流
@@ -330,10 +330,10 @@ getAllWorkflows()
 
 ---
 
-## deleteWorkflow(workflowId)
+## async deleteWorkflow(workflowId)
 
 ```javascript
-deleteWorkflow(workflowId)
+async deleteWorkflow(workflowId)
 ```
 
 * 删除工作流

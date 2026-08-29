@@ -1,6 +1,6 @@
 # network-interceptor
 
-**Source**: `src/main/api/network-interceptor.js`
+**Source**: `src/main/browser/actions/network-interceptor.js`
 
 ---
 
@@ -10,68 +10,60 @@
 const
 ```
 
-* 网络请求拦截器
- * 拦截和管理应用的网络请求
+* NetworkInterceptor - 网络请求拦截和控制
+ *
+ * 支持：
+ * - 请求拦截和修改
+ * - 响应模拟
+ * - 网络条件模拟（3G/4G/5G）
+ * - 请求监听和日志
+ * - WebSocket 拦截
+ *
+ * @module browser/actions/network-interceptor
+ * @author ChainlessChain Team
+ * @since v0.33.0
 
 ---
 
-## init()
+## const NetworkCondition =
 
 ```javascript
-init()
+const NetworkCondition =
 ```
 
-* 初始化拦截器
+* 网络条件预设
 
 ---
 
-## handleBeforeRequest(details, callback)
+## const InterceptType =
 
 ```javascript
-handleBeforeRequest(details, callback)
+const InterceptType =
 ```
 
-* 处理请求前
+* 请求拦截类型
 
 ---
 
-## handleHeadersReceived(details, callback)
+## _getPage(targetId)
 
 ```javascript
-handleHeadersReceived(details, callback)
+_getPage(targetId)
 ```
 
-* 处理响应头
+* 获取页面对象
+   * @private
 
 ---
 
-## handleCompleted(details)
+## _generateRuleId()
 
 ```javascript
-handleCompleted(details)
+_generateRuleId()
 ```
 
-* 处理请求完成
-
----
-
-## handleError(details)
-
-```javascript
-handleError(details)
-```
-
-* 处理请求错误
-
----
-
-## matchRule(rule, details)
-
-```javascript
-matchRule(rule, details)
-```
-
-* 匹配规则
+* 生成规则 ID
+   * @private
 
 ---
 
@@ -82,6 +74,13 @@ addRule(rule)
 ```
 
 * 添加拦截规则
+   * @param {Object} rule - 拦截规则
+   * @param {string|RegExp} rule.urlPattern - URL 匹配模式
+   * @param {string} rule.method - HTTP 方法（可选）
+   * @param {string} rule.type - 拦截类型
+   * @param {Object} rule.response - 模拟响应（type=fulfill/mock 时）
+   * @param {Function} rule.handler - 自定义处理函数
+   * @returns {string} 规则 ID
 
 ---
 
@@ -91,7 +90,9 @@ addRule(rule)
 removeRule(ruleId)
 ```
 
-* 移除拦截规则
+* 删除拦截规则
+   * @param {string} ruleId - 规则 ID
+   * @returns {boolean}
 
 ---
 
@@ -101,37 +102,42 @@ removeRule(ruleId)
 clearRules()
 ```
 
-* 清空所有规则
+* 清除所有规则
 
 ---
 
-## getRules()
+## async enableInterception(targetId)
 
 ```javascript
-getRules()
+async enableInterception(targetId)
 ```
 
-* 获取所有规则
+* 在页面上启用拦截
+   * @param {string} targetId - 标签页 ID
+   * @returns {Promise<void>}
 
 ---
 
-## logRequest(request)
+## async disableInterception(targetId)
 
 ```javascript
-logRequest(request)
+async disableInterception(targetId)
 ```
 
-* 记录请求
+* 禁用页面拦截
+   * @param {string} targetId - 标签页 ID
+   * @returns {Promise<void>}
 
 ---
 
-## updateRequestLog(id, updates)
+## _addToLog(entry)
 
 ```javascript
-updateRequestLog(id, updates)
+_addToLog(entry)
 ```
 
-* 更新请求日志
+* 添加请求到日志
+   * @private
 
 ---
 
@@ -142,56 +148,122 @@ getRequestLog(filter =
 ```
 
 * 获取请求日志
+   * @param {Object} filter - 过滤选项
+   * @returns {Array}
 
 ---
 
-## clearRequestLog()
+## clearRequestLog(targetId = null)
 
 ```javascript
-clearRequestLog()
+clearRequestLog(targetId = null)
 ```
 
-* 清空请求日志
+* 清除请求日志
+   * @param {string} targetId - 标签页 ID（可选）
 
 ---
 
-## getStatistics()
+## async setNetworkCondition(targetId, condition)
 
 ```javascript
-getStatistics()
+async setNetworkCondition(targetId, condition)
 ```
 
-* 获取统计信息
+* 设置网络条件
+   * @param {string} targetId - 标签页 ID
+   * @param {Object|string} condition - 网络条件或预设名称
+   * @returns {Promise<void>}
 
 ---
 
-## setCache(enabled)
+## async resetNetworkCondition(targetId)
 
 ```javascript
-setCache(enabled)
+async resetNetworkCondition(targetId)
 ```
 
-* 设置缓存
+* 重置网络条件
+   * @param {string} targetId - 标签页 ID
+   * @returns {Promise<void>}
 
 ---
 
-## async clearCache()
+## blockResourceTypes(targetId, resourceTypes)
 
 ```javascript
-async clearCache()
+blockResourceTypes(targetId, resourceTypes)
 ```
 
-* 清除缓存
+* 阻止特定资源类型
+   * @param {string} targetId - 标签页 ID
+   * @param {Array<string>} resourceTypes - 资源类型列表
+   * @returns {string} 规则 ID
 
 ---
 
-## setUserAgent(userAgent)
+## mockAPI(urlPattern, response)
 
 ```javascript
-setUserAgent(userAgent)
+mockAPI(urlPattern, response)
 ```
 
-* 设置用户代理
+* 模拟 API 响应
+   * @param {string} urlPattern - URL 模式
+   * @param {Object} response - 响应配置
+   * @returns {string} 规则 ID
+
+---
+
+## async waitForRequest(targetId, urlPattern, options =
+
+```javascript
+async waitForRequest(targetId, urlPattern, options =
+```
+
+* 等待特定请求
+   * @param {string} targetId - 标签页 ID
+   * @param {string|RegExp} urlPattern - URL 模式
+   * @param {Object} options - 等待选项
+   * @returns {Promise<Object>}
+
+---
+
+## async waitForResponse(targetId, urlPattern, options =
+
+```javascript
+async waitForResponse(targetId, urlPattern, options =
+```
+
+* 等待特定响应
+   * @param {string} targetId - 标签页 ID
+   * @param {string|RegExp} urlPattern - URL 模式
+   * @param {Object} options - 等待选项
+   * @returns {Promise<Object>}
+
+---
+
+## getStatus()
+
+```javascript
+getStatus()
+```
+
+* 获取当前拦截状态
+   * @returns {Object}
+
+---
+
+## async execute(targetId, options =
+
+```javascript
+async execute(targetId, options =
+```
+
+* 统一执行入口
+   * @param {string} targetId - 标签页 ID
+   * @param {Object} options - 操作选项
+   * @returns {Promise<Object>}
 
 ---
 

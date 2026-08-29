@@ -196,6 +196,29 @@ async autoExecute(task, context =
 
 ---
 
+## setExecutionAuthorizer(authorizer)
+
+```javascript
+setExecutionAuthorizer(authorizer)
+```
+
+* Configure the trusted host policy decision used by every registry entry.
+   * @param {Function|null} authorizer
+
+---
+
+## setBundledSkillFilesystemAuthorityFactory(factory)
+
+```javascript
+setBundledSkillFilesystemAuthorityFactory(factory)
+```
+
+* Configure production filesystem authority creation for reviewed bundled
+   * Skills. Renderer-provided host ports are always replaced by this factory.
+   * @param {Function|null} factory
+
+---
+
 ## autoLoadBuiltinSkills()
 
 ```javascript

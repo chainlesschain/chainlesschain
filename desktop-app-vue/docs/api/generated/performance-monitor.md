@@ -4,10 +4,10 @@
 
 ---
 
-## function safeParse(raw, fallback)
+## function safeParse(raw, fallback, maxBytes = Infinity)
 
 ```javascript
-function safeParse(raw, fallback)
+function safeParse(raw, fallback, maxBytes = Infinity)
 ```
 
 Tolerant JSON column parse — a corrupt row must not abort a list-load loop.

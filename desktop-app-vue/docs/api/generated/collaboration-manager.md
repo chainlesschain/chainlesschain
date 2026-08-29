@@ -46,10 +46,10 @@ async startServer()
 
 ---
 
-## async stopServer()
+## async stopServer(
 
 ```javascript
-async stopServer()
+async stopServer(
 ```
 
 * 停止WebSocket服务器
