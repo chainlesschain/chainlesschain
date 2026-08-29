@@ -216,6 +216,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Verify Remote Robot startup retry contract
+        run: node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
       - name: Assert exact clean ARM64 host
         run: >-
           node scripts/verify-ide-arm64-evidence.mjs --assert-host

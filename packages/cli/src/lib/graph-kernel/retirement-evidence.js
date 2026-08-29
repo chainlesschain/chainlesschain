@@ -120,6 +120,10 @@ function sameMembers(actual, expected) {
   );
 }
 
+function compareCanonicalText(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -289,7 +293,7 @@ function normalizeMutationProbes(value, contract) {
     };
   });
   normalized.sort((left, right) =>
-    left.mutationFunction.localeCompare(right.mutationFunction),
+    compareCanonicalText(left.mutationFunction, right.mutationFunction),
   );
   const actual = normalized.map((entry) => entry.mutationFunction);
   if (
@@ -347,7 +351,8 @@ function normalizeReplacementJourneys(value, contract, platforms, commitSha) {
     };
   });
   normalized.sort((left, right) =>
-    `${left.replacementEntryId}:${left.platform}`.localeCompare(
+    compareCanonicalText(
+      `${left.replacementEntryId}:${left.platform}`,
       `${right.replacementEntryId}:${right.platform}`,
     ),
   );
@@ -408,7 +413,10 @@ function normalizeHistoricalReadProbes(value, contract) {
     };
   });
   normalized.sort((left, right) =>
-    left.historicalReadFunction.localeCompare(right.historicalReadFunction),
+    compareCanonicalText(
+      left.historicalReadFunction,
+      right.historicalReadFunction,
+    ),
   );
   const actual = normalized.map((entry) => entry.historicalReadFunction);
   if (
@@ -524,7 +532,7 @@ export function normalizeGraphLegacyWriterObservation(
       }))
     : [];
   writerObservations.sort((left, right) =>
-    left.writerFile.localeCompare(right.writerFile),
+    compareCanonicalText(left.writerFile, right.writerFile),
   );
   const actualWriterFiles = writerObservations.map((entry) => entry.writerFile);
   if (
