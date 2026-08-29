@@ -22,6 +22,13 @@ const APP_SERVER_PILOT_IPC_CHANNELS = [
   "coding-agent:app-server-turn-interrupt",
   "coding-agent:app-server-human-task-list",
   "coding-agent:app-server-human-task-decide",
+  "coding-agent:app-server-context-plan",
+  "coding-agent:app-server-context-compact",
+  "coding-agent:app-server-memory-recall",
+  "coding-agent:app-server-memory-propose",
+  "coding-agent:app-server-memory-decide",
+  "coding-agent:app-server-memory-delete",
+  "coding-agent:app-server-memory-reconcile",
 ];
 
 const CODING_AGENT_IPC_CHANNELS = [
@@ -177,6 +184,13 @@ function registerCodingAgentIPCV3(options = {}) {
     ["coding-agent:app-server-thread-archive", "threadArchive"],
     ["coding-agent:app-server-turn-start", "turnStart"],
     ["coding-agent:app-server-turn-interrupt", "turnInterrupt"],
+    ["coding-agent:app-server-context-plan", "contextPlan"],
+    ["coding-agent:app-server-context-compact", "contextCompact"],
+    ["coding-agent:app-server-memory-recall", "memoryRecall"],
+    ["coding-agent:app-server-memory-propose", "memoryPropose"],
+    ["coding-agent:app-server-memory-decide", "memoryDecide"],
+    ["coding-agent:app-server-memory-delete", "memoryDelete"],
+    ["coding-agent:app-server-memory-reconcile", "memoryReconcile"],
   ]) {
     ipc.handle(channel, (_event, payload = {}) => runPilot(operation, payload));
   }

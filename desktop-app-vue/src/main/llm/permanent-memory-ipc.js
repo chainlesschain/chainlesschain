@@ -10,15 +10,31 @@
 
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
+const {
+  legacyWriterFencedResult,
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
+const {
+  DesktopCanonicalMemoryAdapter,
+} = require("../context-memory/permanent-memory-adapter.js");
 
 /**
  * 注册 PermanentMemory IPC 通道
  * @param {PermanentMemoryManager} permanentMemory - PermanentMemoryManager 实例
  */
-function registerPermanentMemoryIPC(permanentMemory) {
+function registerPermanentMemoryIPC(permanentMemory, options = {}) {
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:permanent-memory-ipc",
+  });
+  const canonicalMemory =
+    options.canonicalMemory ||
+    new DesktopCanonicalMemoryAdapter({
+      getPilot: options.getCanonicalPilot || (() => null),
+    });
   if (!permanentMemory) {
-    logger.error("[PermanentMemoryIPC] permanentMemory 实例未提供");
-    return;
+    logger.warn(
+      "[PermanentMemoryIPC] canonical routes remain available without the legacy manager",
+    );
   }
 
   logger.info("[PermanentMemoryIPC] 注册 IPC 通道");
@@ -35,6 +51,17 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:write-daily-note",
     async (event, { content, append = true }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) {
+          const result = await canonicalMemory.writeDailyNote(content, {
+            append,
+          });
+          return {
+            success: true,
+            canonical: true,
+            filePath: `canonical://${result.record.memoryId}`,
+            result,
+          };
+        }
         const filePath = await permanentMemory.writeDailyNote(content, {
           append,
         });
@@ -52,6 +79,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:read-daily-note", async (event, { date }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const content = await canonicalMemory.readDailyNote(date);
+        return { success: true, canonical: true, content };
+      }
       const content = await permanentMemory.readDailyNote(date);
       return { success: true, content };
     } catch (error) {
@@ -68,6 +99,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:get-recent-daily-notes",
     async (event, { limit = 7 }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) {
+          const notes = await canonicalMemory.getRecentDailyNotes(limit);
+          return { success: true, canonical: true, notes };
+        }
         const notes = await permanentMemory.getRecentDailyNotes(limit);
         return { success: true, notes };
       } catch (error) {
@@ -87,6 +122,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:read-memory", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const content = await canonicalMemory.readMemory();
+        return { success: true, canonical: true, content };
+      }
       const content = await permanentMemory.readMemory();
       return { success: true, content };
     } catch (error) {
@@ -103,6 +142,12 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:append-to-memory",
     async (event, { content, section }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) {
+          const result = await canonicalMemory.appendToMemory(content, {
+            section,
+          });
+          return { success: true, canonical: true, result };
+        }
         await permanentMemory.appendToMemory(content, { section });
         return { success: true };
       } catch (error) {
@@ -118,6 +163,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:update-memory", async (event, { content }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const result = await canonicalMemory.updateMemory(content);
+        return { success: true, canonical: true, result };
+      }
       await permanentMemory.updateMemory(content);
       return { success: true };
     } catch (error) {
@@ -136,6 +185,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:get-stats", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const stats = await canonicalMemory.getStats();
+        return { success: true, canonical: true, stats };
+      }
       const stats = await permanentMemory.getStats();
       return { success: true, stats };
     } catch (error) {
@@ -154,6 +207,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:search", async (event, { query, options = {} }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const results = await canonicalMemory.search(query, options);
+        return { success: true, canonical: true, results };
+      }
       const results = await permanentMemory.searchMemory(query, options);
       return { success: true, results };
     } catch (error) {
@@ -172,6 +229,13 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:get-today-date", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return {
+          success: true,
+          canonical: true,
+          date: canonicalMemory.getTodayDate(),
+        };
+      }
       const today = permanentMemory.getTodayDate();
       return { success: true, date: today };
     } catch (error) {
@@ -190,6 +254,19 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:get-index-stats", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const stats = await canonicalMemory.getStats();
+        return {
+          success: true,
+          canonical: true,
+          stats: {
+            embeddingCache: null,
+            fileWatcher: null,
+            indexedFiles: stats.canonicalRecordsCount,
+            authority: stats.authority,
+          },
+        };
+      }
       const stats = permanentMemory.getIndexStats();
       return { success: true, stats };
     } catch (error) {
@@ -204,6 +281,18 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:rebuild-index", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const stats = await canonicalMemory.getStats();
+        return {
+          success: true,
+          canonical: true,
+          result: {
+            rebuilt: false,
+            reason: "canonical authority owns its projection",
+            records: stats.canonicalRecordsCount,
+          },
+        };
+      }
       const result = await permanentMemory.rebuildIndex();
       return { success: true, result };
     } catch (error) {
@@ -218,6 +307,14 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:start-file-watcher", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return {
+          success: true,
+          canonical: true,
+          started: false,
+          reason: "legacy file watcher is retired",
+        };
+      }
       await permanentMemory.startFileWatcher();
       return { success: true };
     } catch (error) {
@@ -232,6 +329,14 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:stop-file-watcher", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return {
+          success: true,
+          canonical: true,
+          stopped: false,
+          reason: "legacy file watcher is retired",
+        };
+      }
       await permanentMemory.stopFileWatcher();
       return { success: true };
     } catch (error) {
@@ -246,6 +351,13 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:get-embedding-cache-stats", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return {
+          success: true,
+          canonical: true,
+          stats: { size: 0, authority: "context_memory_kernel" },
+        };
+      }
       if (!permanentMemory.embeddingCache) {
         return { success: false, error: "Embedding 缓存未启用" };
       }
@@ -263,6 +375,9 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:clear-embedding-cache", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return { success: true, canonical: true, deleted: 0 };
+      }
       if (!permanentMemory.embeddingCache) {
         return { success: false, error: "Embedding 缓存未启用" };
       }
@@ -286,6 +401,13 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:save-to-memory",
     async (event, { content, type = "conversation", section = null }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) {
+          const result = await canonicalMemory.saveToMemory(content, {
+            type,
+            section,
+          });
+          return { success: true, canonical: true, result };
+        }
         const result = await permanentMemory.saveToMemory(content, {
           type,
           section,
@@ -306,6 +428,13 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:extract-from-conversation",
     async (event, { messages, conversationTitle = "" }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) {
+          const result = await canonicalMemory.saveConversation(
+            messages,
+            conversationTitle,
+          );
+          return { success: true, canonical: true, result };
+        }
         const result = await permanentMemory.extractFromConversation(
           messages,
           conversationTitle,
@@ -324,6 +453,17 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:extract-from-session", async (event, { sessionId }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return {
+          success: false,
+          canonical: true,
+          code: "CANONICAL_SESSION_TRANSCRIPT_REQUIRED",
+          error:
+            "Session extraction requires an explicit transcript; use memory/propose",
+          sessionId,
+          replacement: "coding-agent:app-server-memory-propose",
+        };
+      }
       if (typeof permanentMemory.extractFromSession === "function") {
         const result = await permanentMemory.extractFromSession(sessionId);
         return { success: true, result };
@@ -346,6 +486,10 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:get-memory-sections", async (event) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        const sections = await canonicalMemory.getMemorySections();
+        return { success: true, canonical: true, sections };
+      }
       const sections = await permanentMemory.getMemorySections();
       return { success: true, sections };
     } catch (error) {
@@ -364,6 +508,9 @@ function registerPermanentMemoryIPC(permanentMemory) {
  * @param {Object} semanticChunker - SemanticChunker 实例
  */
 function registerAdvancedMemoryIPC(advancedSearch, memoryAnalytics, semanticChunker) {
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:advanced-memory-ipc",
+  });
   logger.info("[PermanentMemoryIPC] 注册高级搜索和分析 IPC 通道");
 
   // ============================================
@@ -472,6 +619,12 @@ function registerAdvancedMemoryIPC(advancedSearch, memoryAnalytics, semanticChun
       "memory:set-importance",
       async (event, { memoryId, importance }) => {
         try {
+          if (!contextMemoryCutover.legacyWritable) {
+            return legacyWriterFencedResult(
+              contextMemoryCutover,
+              "coding-agent:app-server-memory-decide",
+            );
+          }
           const result = await advancedSearch.setImportance(memoryId, importance);
           return { success: result };
         } catch (error) {

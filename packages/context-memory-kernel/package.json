@@ -1,0 +1,42 @@
+{
+  "name": "@chainlesschain/context-memory-kernel",
+  "version": "0.1.0",
+  "description": "Canonical Context/Memory Kernel contracts, reducers, and host ports",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "module": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "require": "./lib/index.js"
+    },
+    "./schema": "./schema/context-memory-kernel.schema.json",
+    "./inventory": "./inventory/writers.v1.json"
+  },
+  "files": [
+    "lib",
+    "schema",
+    "inventory",
+    "fixtures",
+    "release",
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check:inventory": "node scripts/validate-inventory.mjs",
+    "check:writers": "node scripts/context-memory-writer-probe.mjs",
+    "benchmark:quick": "node scripts/context-memory-benchmark.mjs --profile quick",
+    "benchmark:release": "node scripts/context-memory-benchmark.mjs --profile release",
+    "test:soak:quick": "node scripts/context-memory-soak.mjs --profile quick",
+    "test:soak:release": "node scripts/context-memory-soak.mjs --profile release"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MIT"
+}

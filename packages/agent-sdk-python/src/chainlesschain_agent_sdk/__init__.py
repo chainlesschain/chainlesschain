@@ -59,6 +59,10 @@ from .generated_app_protocol import (
     validate_approval_decision,
     validate_agent_stream_event,
     validate_canonical_agent_stream_event,
+    validate_context_item,
+    validate_context_plan,
+    validate_memory_deletion_receipt,
+    validate_memory_record,
     validate_protocol_definition,
     validate_protocol_message,
 )
@@ -72,6 +76,13 @@ from .session import (
     SessionNotRunningError,
     build_agent_args,
     build_spawn_command,
+)
+from .app_server import (
+    AppServerClient,
+    AppServerClientOptions,
+    AppServerPilotClient,
+    AppServerPilotStatus,
+    AppServerRpcError,
 )
 
 __all__ = [
@@ -87,6 +98,11 @@ __all__ = [
     "AgentSession",
     "AgentSessionError",
     "AgentSessionOptions",
+    "AppServerClient",
+    "AppServerClientOptions",
+    "AppServerPilotClient",
+    "AppServerPilotStatus",
+    "AppServerRpcError",
     "AgentStreamEvent",
     "AgentStreamEventPayload",
     "ApprovalRequestEvent",
@@ -144,6 +160,10 @@ __all__ = [
     "validate_approval_decision",
     "validate_agent_stream_event",
     "validate_canonical_agent_stream_event",
+    "validate_context_item",
+    "validate_context_plan",
+    "validate_memory_deletion_receipt",
+    "validate_memory_record",
 ]
 
 __version__ = "0.2.6"

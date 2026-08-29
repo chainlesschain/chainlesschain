@@ -51,6 +51,215 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
+  it("dispatches all fixed Context/Memory methods and emits lifecycle notifications", async () => {
+    const messages = [];
+    const sha = `sha256:${"a".repeat(64)}`;
+    const record = {
+      schemaVersion: 1,
+      memoryId: "memory-1",
+      scope: "user",
+      scopeId: "local-user",
+      category: "fact",
+      content: "canonical memory",
+      provenance: { source: "test", observedAt: "2026-08-29T00:00:00.000Z" },
+      evidenceRefs: [{ store: "test", id: "evidence-1" }],
+      confidence: 0.8,
+      importance: 0.7,
+      tags: [],
+      sensitivity: "personal",
+      allowedSinks: ["*"],
+      state: "active",
+      retentionPolicy: { mode: "durable" },
+      createdAt: "2026-08-29T00:00:00.000Z",
+      updatedAt: "2026-08-29T00:00:00.000Z",
+      accessCount: 0,
+      revision: 1,
+      digest: sha,
+    };
+    const plan = {
+      schema: "chainlesschain.context-plan/v1",
+      schemaVersion: 1,
+      digest: sha,
+      selected: [],
+      selectedItemIds: [],
+      dropped: [],
+      inputBudget: 896,
+      selectedTokens: 0,
+    };
+    const compactReceipt = {
+      schema: "chainlesschain.context-compaction/v1",
+      schemaVersion: 1,
+      operationId: "compact-1",
+      sessionId: "session-1",
+      status: "committed",
+      contextPlanDigest: sha,
+      memoryRevision: 1,
+      digest: sha,
+    };
+    const mutation = {
+      record,
+      event: { type: "memory.activated" },
+      receipt: { digest: sha },
+    };
+    const deletion = {
+      schema: "chainlesschain.memory-deletion-receipt/v1",
+      schemaVersion: 1,
+      requestId: "delete-1",
+      subject: "local-user",
+      selector: "memory:memory-1",
+      scope: "user",
+      scopeId: "local-user",
+      memoryId: "memory-1",
+      fence: "fence-1",
+      authority: "test",
+      status: "purged",
+      revision: 3,
+      recordState: "purged",
+      recordDigest: sha,
+      stores: [],
+      startedAt: "2026-08-29T00:00:00.000Z",
+      completedAt: "2026-08-29T00:00:01.000Z",
+      digest: sha,
+    };
+    const recall = {
+      query: "canonical",
+      sink: "test",
+      tokenBudget: 100,
+      usedTokens: 0,
+      totalCandidates: 0,
+      results: [],
+      digest: sha,
+      memoryRevision: 1,
+    };
+    const contextKernel = {
+      planContext: vi.fn(async () => plan),
+      compactContext: vi.fn(async () => compactReceipt),
+      recallMemory: vi.fn(async () => recall),
+      proposeMemory: vi.fn(async () => mutation),
+      decideMemory: vi.fn(async () => mutation),
+      deleteMemory: vi.fn(async () => deletion),
+      reconcile: vi.fn(async () => deletion),
+    };
+    const server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel: { close: vi.fn() },
+      send: async (message) => messages.push(message),
+      contextMemoryRuntimeFactory: () => ({ kernel: contextKernel }),
+    });
+    await server.receive(initialize());
+    const item = {
+      schemaVersion: 1,
+      itemId: "item-1",
+      kind: "message",
+      scope: "session",
+      scopeId: "session-1",
+      sourceRef: { store: "test", id: "source-1" },
+      provenance: { source: "test", observedAt: "2026-08-29T00:00:00.000Z" },
+      trust: "user",
+      sensitivity: "personal",
+      allowedSinks: ["test"],
+      tokenEstimate: 1,
+      priority: 1,
+      pinned: false,
+      createdAt: "2026-08-29T00:00:00.000Z",
+      digest: sha,
+      content: "hello",
+    };
+    const planRequest = {
+      modelWindowTokens: 1024,
+      reservedOutputTokens: 128,
+      items: [item],
+      sink: "test",
+      scopeAdmissions: [{ scope: "session", scopeId: "session-1" }],
+      policyVersion: "policy-1",
+      modelProfile: "model-1",
+      sessionHead: "head-1",
+      memoryRevision: 1,
+    };
+    const proposal = {
+      scope: "user",
+      scopeId: "local-user",
+      category: "fact",
+      content: "canonical memory",
+      provenance: { source: "test", observedAt: "2026-08-29T00:00:00.000Z" },
+      evidenceRefs: [{ store: "test", id: "evidence-1" }],
+      confidence: 0.8,
+      importance: 0.7,
+      sensitivity: "personal",
+      allowedSinks: ["*"],
+      retentionPolicy: { mode: "durable" },
+      activate: true,
+    };
+    const requests = [
+      request(10, "context/plan", planRequest),
+      request(11, "context/compact", {
+        operationId: "compact-1",
+        sessionId: "session-1",
+        modelWindowTokens: 1024,
+        reservedOutputTokens: 128,
+        sink: "test",
+        scopeAdmissions: [{ scope: "session", scopeId: "session-1" }],
+        policyVersion: "policy-1",
+        modelProfile: "model-1",
+      }),
+      request(12, "memory/recall", {
+        query: "canonical",
+        sink: "test",
+        scopeAdmissions: [{ scope: "user", scopeId: "local-user" }],
+      }),
+      request(13, "memory/propose", proposal),
+      request(14, "memory/decide", {
+        memoryId: "memory-1",
+        type: "reinforce",
+        expectedRevision: 1,
+      }),
+      request(15, "memory/delete", {
+        requestId: "delete-1",
+        subject: "local-user",
+        scope: "user",
+        scopeId: "local-user",
+        selector: "memory:memory-1",
+        memoryId: "memory-1",
+        expectedRevision: 2,
+        fence: "fence-1",
+        authority: "test",
+      }),
+      request(16, "memory/reconcile", { operationId: "delete-1" }),
+    ];
+    for (const rpc of requests) {
+      const response = await server.receive(rpc);
+      expect(response.error).toBeUndefined();
+    }
+    expect(contextKernel.planContext).toHaveBeenCalledOnce();
+    expect(contextKernel.compactContext).toHaveBeenCalledOnce();
+    expect(contextKernel.recallMemory).toHaveBeenCalledOnce();
+    expect(contextKernel.proposeMemory).toHaveBeenCalledOnce();
+    expect(contextKernel.decideMemory).toHaveBeenCalledOnce();
+    expect(contextKernel.deleteMemory).toHaveBeenCalledOnce();
+    expect(contextKernel.reconcile).toHaveBeenCalledOnce();
+    expect(
+      messages
+        .filter((message) => message.method === "context/event")
+        .map((message) => message.params.type),
+    ).toEqual([
+      "context.plan.created",
+      "context.compaction.started",
+      "context.compaction.committed",
+    ]);
+    expect(
+      messages
+        .filter((message) => message.method === "memory/event")
+        .map((message) => message.params.type),
+    ).toEqual([
+      "memory.recalled",
+      "memory.activated",
+      "memory.activated",
+      "memory.purged",
+      "memory.purged",
+    ]);
+    await server.close();
+  });
+
   it("exposes fixed canonical Graph compile/run/status/history capabilities", async () => {
     const messages = [];
     const kernel = {

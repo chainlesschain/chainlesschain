@@ -51,7 +51,10 @@ import {
 } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
-import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
+import {
+  estimateMessagesTokens,
+  sanitizeToolPairs,
+} from "../harness/prompt-compressor.js";
 import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
 import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
@@ -3706,13 +3709,7 @@ async function runAgentHeadlessStreamInWorkspace(
       const compactionCallId = `compact-${++slashRequestSeq}`;
       let compactionProviderStarted = false;
       try {
-        ({
-          messages: compacted,
-          stats,
-          degradedEvent,
-          usageEvent,
-          usageUnknownEvent,
-        } = await compactConversationWithProvider(messages, {
+        const providerCompactionOptions = {
           provider,
           model,
           baseUrl,
@@ -3746,7 +3743,84 @@ async function runAgentHeadlessStreamInWorkspace(
             compactionProviderStarted = true;
             return compactionCallId;
           },
-        }));
+        };
+        const { resolveCliContextMemoryCutover } =
+          await import("../lib/context-memory-kernel/authority.js");
+        const cutover = resolveCliContextMemoryCutover({
+          env: options.contextMemoryEnv || process.env,
+          scopeKey: `cli:session:${sessionId}`,
+        });
+        if (cutover.canonical) {
+          const { compactLiveMessagesCanonical } =
+            await import("../lib/context-memory-kernel/live-compaction.js");
+          let compatibilityResult = null;
+          const canonical = await compactLiveMessagesCanonical(messages, {
+            compressor: {
+              maxTokens: Math.max(
+                256,
+                Math.floor(estimateMessagesTokens(messages) * 0.6),
+              ),
+              compress: async (dropped) => {
+                compatibilityResult = await compactConversationWithProvider(
+                  dropped,
+                  providerCompactionOptions,
+                );
+                return compatibilityResult;
+              },
+            },
+            sessionId,
+            operationId: `manual-${randomUUID()}`,
+            provider,
+            model,
+            env: options.contextMemoryEnv || process.env,
+            persist,
+            trigger: "manual",
+            ...(persist
+              ? {
+                  commit: (canonicalStats, output, settlement = {}) => {
+                    sessionHostLease?.assert?.();
+                    return requireSynchronousRecoveryResult(
+                      store.appendCompactEventIfMessagesMatch(
+                        sessionId,
+                        {
+                          ...canonicalStats,
+                          trigger: "manual",
+                          messages: projectCanonicalResumeMessages(output, {
+                            strict: true,
+                          }),
+                        },
+                        settlement.expectedMessages,
+                      ),
+                      "appendCompactEventIfMessagesMatch",
+                    );
+                  },
+                }
+              : {}),
+          });
+          compacted = canonical.messages;
+          stats = canonical.stats;
+          degradedEvent = compatibilityResult?.degradedEvent || null;
+          usageEvent = compatibilityResult?.usageEvent || null;
+          usageUnknownEvent = compatibilityResult?.usageUnknownEvent || null;
+          if (canonical.receipt.status === "stale") {
+            const error = new Error(
+              "session messages changed during canonical compaction",
+            );
+            error.code = "SESSION_REVISION_STALE";
+            throw error;
+          }
+        } else {
+          ({
+            messages: compacted,
+            stats,
+            degradedEvent,
+            usageEvent,
+            usageUnknownEvent,
+          } = await compactConversationWithProvider(
+            messages,
+            providerCompactionOptions,
+          ));
+        }
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
@@ -3840,7 +3914,11 @@ async function runAgentHeadlessStreamInWorkspace(
       const shouldPersistCompact = stats?.strategy !== "none";
       let settlementError = null;
       let persistenceFailure = null;
-      if (persist && shouldPersistCompact) {
+      if (
+        persist &&
+        shouldPersistCompact &&
+        stats?.canonicalAlreadySettled !== true
+      ) {
         try {
           sessionHostLease?.assert?.();
           requireSynchronousRecoveryResult(

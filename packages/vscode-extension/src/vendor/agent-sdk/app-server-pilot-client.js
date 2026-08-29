@@ -116,6 +116,27 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     graphReconcile(params) {
         return this.call("graph/reconcile", params);
     }
+    contextPlan(params) {
+        return this.call("context/plan", params);
+    }
+    contextCompact(params) {
+        return this.call("context/compact", params);
+    }
+    memoryRecall(params) {
+        return this.call("memory/recall", params);
+    }
+    memoryPropose(params) {
+        return this.call("memory/propose", params);
+    }
+    memoryDecide(params) {
+        return this.call("memory/decide", params);
+    }
+    memoryDelete(params) {
+        return this.call("memory/delete", params);
+    }
+    memoryReconcile(params) {
+        return this.call("memory/reconcile", params);
+    }
     async call(method, params) {
         await this.start();
         return this.transport.request(method, params);

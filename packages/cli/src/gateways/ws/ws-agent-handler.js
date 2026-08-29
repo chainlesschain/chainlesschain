@@ -42,6 +42,12 @@ import { createWsApprovalGate } from "./ws-approval-gate.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtime.js";
 import { compactConversationWithProvider } from "../../harness/provider-backed-compaction.js";
+import {
+  estimateMessagesTokens,
+  PromptCompressor,
+} from "../../harness/prompt-compressor.js";
+import { resolveCliContextMemoryCutover } from "../../lib/context-memory-kernel/authority.js";
+import { compactLiveMessagesCanonical } from "../../lib/context-memory-kernel/live-compaction.js";
 import { projectCanonicalResumeMessages } from "../../lib/session-message-provenance.js";
 import { feature } from "../../lib/feature-flags.js";
 import { classifyStreamRetryReason } from "../../lib/stream-retry.js";
@@ -586,6 +592,124 @@ export class WSAgentHandler {
     return block;
   }
 
+  _contextMemoryCutover() {
+    return resolveCliContextMemoryCutover({
+      env: this.session.contextMemoryEnv || process.env,
+      scopeKey: `cli:session:${this.session.id}`,
+    });
+  }
+
+  async _compactContextMemory(messages, providerOptions, trigger) {
+    const cutover = this._contextMemoryCutover();
+    if (!cutover.canonical) {
+      return compactConversationWithProvider(messages, providerOptions);
+    }
+    const probe = new PromptCompressor({
+      model: providerOptions.model,
+      provider: providerOptions.provider,
+      ...(providerOptions.maxMessages
+        ? { maxMessages: providerOptions.maxMessages }
+        : {}),
+      ...(providerOptions.maxTokens
+        ? { maxTokens: providerOptions.maxTokens }
+        : {}),
+    });
+    if (
+      providerOptions.onlyIfNeeded === true &&
+      !probe.shouldAutoCompact(messages)
+    ) {
+      const tokens = estimateMessagesTokens(messages);
+      return {
+        messages: [...messages],
+        stats: {
+          strategy: "none",
+          originalMessages: messages.length,
+          compressedMessages: messages.length,
+          originalTokens: tokens,
+          compressedTokens: tokens,
+          saved: 0,
+        },
+        degradedEvent: null,
+        usageEvent: null,
+        usageUnknownEvent: null,
+      };
+    }
+
+    let compatibilityResult = null;
+    const canonical = await compactLiveMessagesCanonical(messages, {
+      compressor: {
+        maxTokens: probe.maxTokens,
+        compress: async (dropped) => {
+          compatibilityResult = await compactConversationWithProvider(
+            dropped,
+            providerOptions,
+          );
+          await providerOptions.onContextMemorySummarySettled?.(
+            compatibilityResult,
+          );
+          return compatibilityResult;
+        },
+      },
+      sessionId: this.session.id,
+      operationId: `${trigger}-${randomUUID()}`,
+      provider: this.session.provider,
+      model: this.session.model,
+      env: this.session.contextMemoryEnv || process.env,
+      persist: this.session.canonicalJsonlSession === true,
+      trigger,
+      ...(this.session.canonicalJsonlSession === true
+        ? {
+            commit: (stats, output, settlement) => {
+              this._sessionHostLease?.assert?.();
+              const result =
+                this._canonicalSessionStore.appendCompactEventIfMessagesMatch(
+                  this.session.id,
+                  {
+                    ...stats,
+                    trigger,
+                    messages: projectCanonicalResumeMessages(output, {
+                      strict: true,
+                    }),
+                  },
+                  settlement.expectedMessages,
+                );
+              if (result && typeof result.then === "function") {
+                void Promise.resolve(result).catch(() => {});
+                const error = new TypeError(
+                  "Canonical compact settlement must be synchronous",
+                );
+                error.code = "CC_COMPACTION_SETTLEMENT_ASYNC";
+                throw error;
+              }
+              return result;
+            },
+          }
+        : {}),
+    });
+    if (canonical.receipt.status === "stale") {
+      const error = new Error(
+        "session messages changed during canonical compaction",
+      );
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    }
+    if (
+      canonical.receipt.status === "reconciliation_required" &&
+      !compatibilityResult?.usageUnknownEvent
+    ) {
+      const error = new Error("canonical compaction requires reconciliation");
+      error.code = "CC_COMPACTION_RECONCILIATION_REQUIRED";
+      throw error;
+    }
+    return {
+      messages: canonical.messages,
+      stats: canonical.stats,
+      degradedEvent: compatibilityResult?.degradedEvent || null,
+      usageEvent: compatibilityResult?.usageEvent || null,
+      usageUnknownEvent: compatibilityResult?.usageUnknownEvent || null,
+    };
+  }
+
   _canonicalTurnFromAuthority(state, requestId, userMessage, inputDigest) {
     const status = state?.status || (state?.turn ? "completed" : "none");
     this._applyCanonicalMessages(state?.messages || []);
@@ -630,7 +754,8 @@ export class WSAgentHandler {
     const { session } = this;
     if (
       session.autoCompact === false ||
-      !feature("PROMPT_COMPRESSOR") ||
+      (!feature("PROMPT_COMPRESSOR") &&
+        !this._contextMemoryCutover().canonical) ||
       this._compactionSettlementBlock?.commitState === "provider-usage-unknown"
     ) {
       return true;
@@ -647,7 +772,7 @@ export class WSAgentHandler {
     let result;
     try {
       this._sessionHostLease?.assert?.();
-      result = await compactConversationWithProvider(session.messages, {
+      result = await this._compactContextMemory(session.messages, {
         provider: session.provider,
         model: session.model,
         baseUrl: session.baseUrl,
@@ -675,8 +800,17 @@ export class WSAgentHandler {
         maxTokens: session.compactionMaxTokens,
         maxOutputTokens: session.compactionMaxOutputTokens,
         summaryInputMaxChars: session.compactionInputMaxChars,
-      });
-      if (compactionUsageCall) {
+        onContextMemorySummarySettled: (summaryResult) => {
+          if (compactionUsageCall && !compactionUsageSettled) {
+            this._settleCanonicalCompactionUsage(
+              compactionUsageCall,
+              summaryResult,
+            );
+            compactionUsageSettled = true;
+          }
+        },
+      }, "auto");
+      if (compactionUsageCall && !compactionUsageSettled) {
         this._settleCanonicalCompactionUsage(compactionUsageCall, result);
         compactionUsageSettled = true;
       }
@@ -747,7 +881,11 @@ export class WSAgentHandler {
       );
     const shouldSettle = stats?.strategy !== "none" && stats?.saved > 0;
     let settlementError = null;
-    if (!messagesChanged && shouldSettle) {
+    if (
+      !messagesChanged &&
+      shouldSettle &&
+      stats?.canonicalAlreadySettled !== true
+    ) {
       try {
         const settlement =
           this._canonicalSessionStore.appendCompactEventIfMessagesMatch(
@@ -1977,7 +2115,7 @@ export class WSAgentHandler {
         try {
           this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
-          result = await compactConversationWithProvider(session.messages, {
+          result = await this._compactContextMemory(session.messages, {
             provider: session.provider,
             model: session.model,
             baseUrl: session.baseUrl,
@@ -2002,8 +2140,17 @@ export class WSAgentHandler {
               : {}),
             maxOutputTokens: session.compactionMaxOutputTokens,
             summaryInputMaxChars: session.compactionInputMaxChars,
-          });
-          if (compactionUsageCall) {
+            onContextMemorySummarySettled: (summaryResult) => {
+              if (compactionUsageCall && !compactionUsageSettled) {
+                this._settleCanonicalCompactionUsage(
+                  compactionUsageCall,
+                  summaryResult,
+                );
+                compactionUsageSettled = true;
+              }
+            },
+          }, "manual");
+          if (compactionUsageCall && !compactionUsageSettled) {
             this._settleCanonicalCompactionUsage(compactionUsageCall, result);
             compactionUsageSettled = true;
           }
@@ -2068,7 +2215,8 @@ export class WSAgentHandler {
           if (
             !commandError &&
             !messagesChanged &&
-            session.canonicalJsonlSession === true
+            session.canonicalJsonlSession === true &&
+            stats?.canonicalAlreadySettled !== true
           ) {
             if (stats?.strategy !== "none") {
               try {

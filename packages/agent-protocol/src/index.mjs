@@ -56,6 +56,22 @@ export function validateCanonicalAgentStreamEvent(value) {
   return validateProtocolDefinition("CanonicalAgentStreamEvent", value);
 }
 
+export function validateContextItem(value) {
+  return validateProtocolDefinition("ContextItem", value);
+}
+
+export function validateMemoryRecord(value) {
+  return validateProtocolDefinition("MemoryRecord", value);
+}
+
+export function validateContextPlan(value) {
+  return validateProtocolDefinition("ContextPlan", value);
+}
+
+export function validateMemoryDeletionReceipt(value) {
+  return validateProtocolDefinition("MemoryDeletionReceipt", value);
+}
+
 export function assertProtocolMessage(value) {
   const result = validateProtocolMessage(value);
   if (!result.ok) {

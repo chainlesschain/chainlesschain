@@ -481,6 +481,24 @@ export interface CodingAgentArtifactWorkbench {
 }
 
 export interface CodingAgentAPI {
+  getAppServerPilotStatus(): Promise<any>;
+  startAppServerPilot(): Promise<any>;
+  closeAppServerPilot(): Promise<any>;
+  appServerThreadStart(payload?: Record<string, unknown>): Promise<any>;
+  appServerThreadResume(payload: Record<string, unknown>): Promise<any>;
+  appServerThreadFork(payload: Record<string, unknown>): Promise<any>;
+  appServerThreadRead(payload: Record<string, unknown>): Promise<any>;
+  appServerThreadList(payload?: Record<string, unknown>): Promise<any>;
+  appServerThreadArchive(payload: Record<string, unknown>): Promise<any>;
+  appServerTurnStart(payload: Record<string, unknown>): Promise<any>;
+  appServerTurnInterrupt(payload: Record<string, unknown>): Promise<any>;
+  appServerContextPlan(payload: Record<string, unknown>): Promise<any>;
+  appServerContextCompact(payload: Record<string, unknown>): Promise<any>;
+  appServerMemoryRecall(payload: Record<string, unknown>): Promise<any>;
+  appServerMemoryPropose(payload: Record<string, unknown>): Promise<any>;
+  appServerMemoryDecide(payload: Record<string, unknown>): Promise<any>;
+  appServerMemoryDelete(payload: Record<string, unknown>): Promise<any>;
+  appServerMemoryReconcile(payload: Record<string, unknown>): Promise<any>;
   appServerHumanTaskList(): Promise<{
     success: boolean;
     result?: Array<Record<string, unknown>>;

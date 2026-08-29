@@ -8,6 +8,9 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/**"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - ".github/workflows/context-memory-*.yml"
       - "packages/agent-sdk/__fixtures__/protocol/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"
@@ -35,6 +38,9 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "packages/context-memory-kernel/**"
+      - "packages/agent-protocol/**"
+      - ".github/workflows/context-memory-*.yml"
       - "packages/agent-sdk/__fixtures__/protocol/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"

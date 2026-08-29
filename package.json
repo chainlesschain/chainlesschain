@@ -22,6 +22,7 @@
     "packages/core-multisig",
     "packages/core-settlement",
     "packages/session-core",
+    "packages/context-memory-kernel",
     "packages/agent-protocol",
     "packages/agent-sdk",
     "packages/cli",

@@ -19,6 +19,10 @@ import {
   compareProtocolSchemas,
   validateAgentStreamEvent,
   validateCanonicalAgentStreamEvent,
+  validateContextItem,
+  validateContextPlan,
+  validateMemoryDeletionReceipt,
+  validateMemoryRecord,
   validateApprovalDecision,
   validateProtocolDefinition,
   validateProtocolMessage,
@@ -37,6 +41,10 @@ test("public root export matches the canonical schema", () => {
   assert.equal(typeof validateProtocolMessage, "function");
   assert.equal(typeof validateProtocolDefinition, "function");
   assert.equal(typeof validateAgentStreamEvent, "function");
+  assert.equal(typeof validateContextItem, "function");
+  assert.equal(typeof validateContextPlan, "function");
+  assert.equal(typeof validateMemoryDeletionReceipt, "function");
+  assert.equal(typeof validateMemoryRecord, "function");
   assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("agent_stream_events"));
   assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("agent_stream_payloads"));
   assert.deepEqual(

@@ -23,6 +23,7 @@
   "scripts": {
     "generate": "node scripts/generate.mjs",
     "check": "node scripts/generate.mjs --check",
+    "context-memory:sync": "node scripts/context-memory-schema.mjs",
     "baseline:freeze": "node scripts/generate.mjs --freeze-baseline",
     "test": "node --test test/*.test.mjs",
     "prepublishOnly": "npm run check && npm test"

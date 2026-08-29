@@ -1,6 +1,6 @@
 # 长任务调度 — Monitor / Cron / Push（`cc agenda`）
 
-> **适用版本：CLI 0.166.6（生产推荐与 npm latest 一致）· 更新：2026-08-27 | wakeup/cron/monitor 均接入统一 Scheduler Kernel | IANA 时区 + missed-run collapse + standalone daemon | 多渠道推送**
+> **适用版本：CLI 0.166.9（生产推荐与 npm latest 一致）· 更新：2026-08-29 | wakeup/cron/monitor 均接入统一 Scheduler Kernel | IANA 时区 + missed-run collapse + standalone daemon | 多渠道推送**
 >
 > 一次性的 Agent turn 无法给自己续命定时器。`cc agenda` 补齐了这个缺口：Agent 用 `schedule` 工具把「过一会儿/按 cron/满足条件时」的意图**持久化**下来，`cc agenda run`（由 `cc loop` 或系统 cron 常驻触发）在到点时真正执行——重新拉起 `cc agent`、或跑监控命令并在命中停止条件时经 `notify` 推送通知。
 
@@ -94,10 +94,10 @@ cc agenda run --json          # 机器可读结果
 cc agenda run --watch 30      # 前台常驻，每 30 秒检查一次
 ```
 
-| 旗标        | 说明                             | 默认 |
-| ----------- | -------------------------------- | ---- |
-| `--dry-run` | 只列出到期项，不执行副作用       | 关   |
-| `--json`    | 机器可读输出                     | 关   |
+| 旗标        | 说明                       | 默认 |
+| ----------- | -------------------------- | ---- |
+| `--dry-run` | 只列出到期项，不执行副作用 | 关   |
+| `--json`    | 机器可读输出               | 关   |
 
 > 任何一个到期单元执行失败 → 进程退出码为 1（可作 CI/守护脚本的健康信号）。
 
@@ -132,43 +132,43 @@ cc agenda run --watch 30
 
 ### `schedule` — 一工具五动作
 
-| action    | 参数                                                     | 效果                                                     |
-| --------- | -------------------------------------------------------- | -------------------------------------------------------- |
-| `wakeup`  | `prompt`, `delay`（秒/时长）                             | 延迟后跑一次 `cc agent -p <prompt>`                      |
-| `cron`    | `prompt`, `cron`（5 字段表达式）                         | 按 cron 周期跑 prompt                                    |
-| `monitor` | `command`, `interval`, `stop_when`（正则）, `max_checks` | 周期跑命令，输出命中正则则 `notify` 并停                |
-| `list`    | —                                                        | 列出已排期条目                                          |
-| `cancel`  | `id`                                                     | 取消一个条目                                            |
+| action    | 参数                                                     | 效果                                     |
+| --------- | -------------------------------------------------------- | ---------------------------------------- |
+| `wakeup`  | `prompt`, `delay`（秒/时长）                             | 延迟后跑一次 `cc agent -p <prompt>`      |
+| `cron`    | `prompt`, `cron`（5 字段表达式）                         | 按 cron 周期跑 prompt                    |
+| `monitor` | `command`, `interval`, `stop_when`（正则）, `max_checks` | 周期跑命令，输出命中正则则 `notify` 并停 |
+| `list`    | —                                                        | 列出已排期条目                           |
+| `cancel`  | `id`                                                     | 取消一个条目                             |
 
 ### `notify` — 多渠道推送
 
-| 参数      | 说明                                                        |
-| --------- | ----------------------------------------------------------- |
-| `message` | 通知正文                                                    |
-| `level`   | `start` / `success` / `failure`（映射 NotificationManager 的对应通道语义）|
-| 返回      | `{ delivered, failed, channels }`；无渠道配置时返回 no-op note |
+| 参数      | 说明                                                                       |
+| --------- | -------------------------------------------------------------------------- |
+| `message` | 通知正文                                                                   |
+| `level`   | `start` / `success` / `failure`（映射 NotificationManager 的对应通道语义） |
+| 返回      | `{ delivered, failed, channels }`；无渠道配置时返回 no-op note             |
 
 **策略**：两个工具均为 riskLevel **LOW**、`planModeBehavior: blocked`（有外部/未来副作用，不进 plan mode 预演）、非 read-only。`notify` 面向用户自己的通知渠道，走 auto 流。
 
 ## 配置参考
 
-| 项           | 机制                                                | 默认        | 备注                                      |
-| ------------ | --------------------------------------------------- | ----------- | ----------------------------------------- |
-| 调度存储     | `~/.chainlesschain/agent-schedule/<kind>.jsonl`     | —           | `0600`，三类各一 JSONL，逐行容错          |
-| 通知渠道     | `NotificationManager.fromEnv`（环境变量配置）       | 无（no-op） | Telegram / WeCom / DingTalk / Feishu      |
-| cron 语法    | 标准 5 字段 `分 时 日 月 周`                         | —           | 支持 `*` `,` `-` `/`                      |
-| 常驻触发     | `cc daemon scheduler run --domains agenda` / `cc agenda run --watch <seconds>` / 系统 timer | 无（手动） | daemon 仍需用户或服务管理器显式启动 |
-| cron 时区    | `schedule(..., timezone="Asia/Shanghai")`                 | 宿主本地时区 | 使用 IANA 名称；保存时规范化并校验              |
+| 项        | 机制                                                                                        | 默认         | 备注                                 |
+| --------- | ------------------------------------------------------------------------------------------- | ------------ | ------------------------------------ |
+| 调度存储  | `~/.chainlesschain/agent-schedule/<kind>.jsonl`                                             | —            | `0600`，三类各一 JSONL，逐行容错     |
+| 通知渠道  | `NotificationManager.fromEnv`（环境变量配置）                                               | 无（no-op）  | Telegram / WeCom / DingTalk / Feishu |
+| cron 语法 | 标准 5 字段 `分 时 日 月 周`                                                                | —            | 支持 `*` `,` `-` `/`                 |
+| 常驻触发  | `cc daemon scheduler run --domains agenda` / `cc agenda run --watch <seconds>` / 系统 timer | 无（手动）   | daemon 仍需用户或服务管理器显式启动  |
+| cron 时区 | `schedule(..., timezone="Asia/Shanghai")`                                                   | 宿主本地时区 | 使用 IANA 名称；保存时规范化并校验   |
 
 ## 性能指标
 
-| 维度       | 特性                                                        |
-| ---------- | ----------------------------------------------------------- |
-| 触发开销   | `cc agenda run` 单次扫描三个 JSONL，O(条目数)              |
-| 容错       | 单行损坏跳过，不影响其余条目（逐行解析）                    |
-| cron 求值  | 纯逻辑 `nextCronTime`，注入时钟 → 确定性可测               |
-| monitor 界 | 命中 `stop_when` 即停，否则至多 `max_checks` 次检查后停    |
-| 副作用隔离 | spawn/命令/通知全部 deps 可注入，`--dry-run` 零副作用      |
+| 维度       | 特性                                                    |
+| ---------- | ------------------------------------------------------- |
+| 触发开销   | `cc agenda run` 单次扫描三个 JSONL，O(条目数)           |
+| 容错       | 单行损坏跳过，不影响其余条目（逐行解析）                |
+| cron 求值  | 纯逻辑 `nextCronTime`，注入时钟 → 确定性可测            |
+| monitor 界 | 命中 `stop_when` 即停，否则至多 `max_checks` 次检查后停 |
+| 副作用隔离 | spawn/命令/通知全部 deps 可注入，`--dry-run` 零副作用   |
 
 > 真机 smoke：`cc agenda list` / `cc agenda run` / `cc agenda --help` 全通。
 
@@ -176,12 +176,12 @@ cc agenda run --watch 30
 
 共 **29 测试**，全绿。
 
-| 测试文件                             | 数量 | 覆盖                                                                            |
-| ------------------------------------ | ---- | ------------------------------------------------------------------------------- |
+| 测试文件                             | 数量 | 覆盖                                                                                                           |
+| ------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------- |
 | `agent-schedule-store.test.js`       | 12   | cron 解析 / `nextCronTime` / wakeup due / cron 推进 / monitor 命中+maxChecks / 坏正则 / 坏行容错 / list+cancel |
-| `agent-notify.test.js`               | 5    | 多渠道 fan-out / level 映射 / 无渠道 no-op / delivered+failed 汇总              |
-| `agenda-command.test.js`             | 8    | list/run/cancel / dry-run / json / 到期触发 spawn / monitor notify / 失败退出码 |
-| `agent-core-schedule-notify.test.js` | 4    | `schedule`/`notify` 工具 dispatch（executeToolInner）+ 参数格式化               |
+| `agent-notify.test.js`               | 5    | 多渠道 fan-out / level 映射 / 无渠道 no-op / delivered+failed 汇总                                             |
+| `agenda-command.test.js`             | 8    | list/run/cancel / dry-run / json / 到期触发 spawn / monitor notify / 失败退出码                                |
+| `agent-core-schedule-notify.test.js` | 4    | `schedule`/`notify` 工具 dispatch（executeToolInner）+ 参数格式化                                              |
 
 ## 安全考虑
 
@@ -193,30 +193,30 @@ cc agenda run --watch 30
 
 ## 故障排除
 
-| 现象                          | 原因                             | 处理                                                       |
-| ----------------------------- | -------------------------------- | ---------------------------------------------------------- |
-| 排期了但从不触发              | 没有常驻触发器调用 `cc agenda run` | 起 `cc loop --every 1m -- cc agenda run` 或系统 cron       |
-| daemon 启动后立即拒绝执行     | scheduler capability/budget policy 缺失、过期或耗尽 | 用 `cc daemon scheduler policy get` 检查，再以 exact revision CAS 更新 |
-| `notify` 返回 no-op           | 未配置任何通知渠道               | 按 [`cc notification`](./cli-notification.md) 配置渠道环境变量 |
-| cron 从不匹配                 | cron 表达式写错                  | 用标准 5 字段 `分 时 日 月 周`；`cc agenda list` 看解析结果 |
-| monitor 一直不停              | `stop_when` 正则从不命中         | 检查正则；到 `max_checks` 会自动停                         |
-| `cc agenda run` 退出码 1      | 某个到期单元执行失败             | 看输出定位失败单元；`--dry-run` 先预演                     |
-| 调度列表少了一条              | JSONL 某行损坏被跳过             | 检查 `~/.chainlesschain/agent-schedule/<kind>.jsonl` 该行 |
+| 现象                      | 原因                                                | 处理                                                                   |
+| ------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
+| 排期了但从不触发          | 没有常驻触发器调用 `cc agenda run`                  | 起 `cc loop --every 1m -- cc agenda run` 或系统 cron                   |
+| daemon 启动后立即拒绝执行 | scheduler capability/budget policy 缺失、过期或耗尽 | 用 `cc daemon scheduler policy get` 检查，再以 exact revision CAS 更新 |
+| `notify` 返回 no-op       | 未配置任何通知渠道                                  | 按 [`cc notification`](./cli-notification.md) 配置渠道环境变量         |
+| cron 从不匹配             | cron 表达式写错                                     | 用标准 5 字段 `分 时 日 月 周`；`cc agenda list` 看解析结果            |
+| monitor 一直不停          | `stop_when` 正则从不命中                            | 检查正则；到 `max_checks` 会自动停                                     |
+| `cc agenda run` 退出码 1  | 某个到期单元执行失败                                | 看输出定位失败单元；`--dry-run` 先预演                                 |
+| 调度列表少了一条          | JSONL 某行损坏被跳过                                | 检查 `~/.chainlesschain/agent-schedule/<kind>.jsonl` 该行              |
 
 ## 关键文件
 
-| 文件                                                       | 职责                                                          |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| `packages/cli/src/commands/agenda.js`                      | `cc agenda list/run/cancel`——到期触发 spawn/monitor/notify    |
-| `packages/cli/src/lib/agent-schedule-store.js`             | `AgentScheduleStore` + `parseCron` + `nextCronTime` + JSONL 持久化 |
-| `packages/cli/src/lib/scheduler-kernel/agenda-adapter.js`   | wakeup/cron snapshot、occurrence、双 driver fencing 与恢复策略     |
-| `packages/cli/src/lib/scheduler-kernel/runtime.js`          | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement  |
-| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional budget reservation       |
-| `packages/cli/src/commands/scheduler-daemon.js`             | `cc daemon scheduler run/policy` 常驻服务与治理控制面               |
-| `packages/cli/src/lib/agent-notify.js`                     | `sendAgentNotification`——包 `NotificationManager.fromEnv`     |
-| `packages/cli/src/runtime/coding-agent-contract-shared.cjs` | `notify` / `schedule` 工具契约                                |
-| `packages/cli/src/runtime/coding-agent-policy.cjs`         | `notify` / `schedule` 策略元数据（LOW / blocked / 非只读）    |
-| `packages/cli/src/runtime/agent-core.js`                   | `executeToolInner` 中 `notify` / `schedule` 的 dispatch       |
+| 文件                                                          | 职责                                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `packages/cli/src/commands/agenda.js`                         | `cc agenda list/run/cancel`——到期触发 spawn/monitor/notify         |
+| `packages/cli/src/lib/agent-schedule-store.js`                | `AgentScheduleStore` + `parseCron` + `nextCronTime` + JSONL 持久化 |
+| `packages/cli/src/lib/scheduler-kernel/agenda-adapter.js`     | wakeup/cron snapshot、occurrence、双 driver fencing 与恢复策略     |
+| `packages/cli/src/lib/scheduler-kernel/runtime.js`            | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement  |
+| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional budget reservation        |
+| `packages/cli/src/commands/scheduler-daemon.js`               | `cc daemon scheduler run/policy` 常驻服务与治理控制面              |
+| `packages/cli/src/lib/agent-notify.js`                        | `sendAgentNotification`——包 `NotificationManager.fromEnv`          |
+| `packages/cli/src/runtime/coding-agent-contract-shared.cjs`   | `notify` / `schedule` 工具契约                                     |
+| `packages/cli/src/runtime/coding-agent-policy.cjs`            | `notify` / `schedule` 策略元数据（LOW / blocked / 非只读）         |
+| `packages/cli/src/runtime/agent-core.js`                      | `executeToolInner` 中 `notify` / `schedule` 的 dispatch            |
 
 ## 使用示例
 

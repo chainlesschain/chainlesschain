@@ -22,7 +22,7 @@ import chalk from "chalk";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
@@ -1861,7 +1861,28 @@ export function settleReplCompactionCandidate({
     return { applied: false, error };
   }
 
-  if (useJsonl && sessionId && stats?.strategy !== "none") {
+  if (
+    stats?.canonicalReceipt &&
+    !["committed", "degraded"].includes(stats.canonicalReceipt.status)
+  ) {
+    const error = new Error(
+      stats.canonicalReceipt.status === "stale"
+        ? "REPL session changed during canonical compaction"
+        : "canonical compaction requires reconciliation",
+    );
+    error.code =
+      stats.canonicalReceipt.status === "stale"
+        ? "SESSION_REVISION_STALE"
+        : "CC_COMPACTION_RECONCILIATION_REQUIRED";
+    return { applied: false, error };
+  }
+
+  if (
+    useJsonl &&
+    sessionId &&
+    stats?.strategy !== "none" &&
+    stats?.canonicalAlreadySettled !== true
+  ) {
     try {
       persistence.persist(sessionId, {
         ...stats,
@@ -3332,8 +3353,16 @@ async function startAgentReplInWorkspaceOwned(
     // Continue without DB — static prompt fallback
   }
 
-  // Initialize prompt compressor (adaptive to model's context window)
-  if (feature("PROMPT_COMPRESSOR")) {
+  // Initialize prompt compressor (adaptive to model's context window). A
+  // canonical cutover cannot disable the Kernel writer by toggling the legacy
+  // compressor feature flag; the compressor remains only its summarizer.
+  const { resolveCliContextMemoryCutover } =
+    await import("../lib/context-memory-kernel/authority.js");
+  const contextMemoryCutover = resolveCliContextMemoryCutover({
+    env: options.contextMemoryEnv || process.env,
+    scopeKey: sessionId ? `cli:session:${sessionId}` : "cli:repl",
+  });
+  if (feature("PROMPT_COMPRESSOR") || contextMemoryCutover.canonical) {
     _compressor = new PromptCompressor({
       model,
       provider,
@@ -3358,6 +3387,7 @@ async function startAgentReplInWorkspaceOwned(
               extraToolDefinitions: [],
               hostManagedToolPolicy: null,
               contextEngine: null,
+              contextMemorySkipPlanning: true,
               maxOutputTokens: 2048,
             }),
         });
@@ -3371,6 +3401,40 @@ async function startAgentReplInWorkspaceOwned(
         };
       },
     });
+    if (contextMemoryCutover.canonical) {
+      const compatibilitySummarizer = _compressor;
+      const { compactLiveMessagesCanonical } =
+        await import("../lib/context-memory-kernel/live-compaction.js");
+      _compressor = {
+        canonicalKernel: true,
+        maxTokens: compatibilitySummarizer.maxTokens,
+        shouldAutoCompact: (currentMessages) =>
+          compatibilitySummarizer.shouldAutoCompact(currentMessages),
+        compress: (currentMessages, compressOptions = {}) =>
+          compactLiveMessagesCanonical(currentMessages, {
+            compressor: compatibilitySummarizer,
+            compressOptions,
+            sessionId: sessionId || undefined,
+            operationId: `repl-${randomUUID()}`,
+            provider,
+            model,
+            env: options.contextMemoryEnv || process.env,
+            persist: useJsonl && Boolean(sessionId),
+            trigger: "repl",
+            ...(useJsonl && sessionId
+              ? {
+                  commit: (canonicalStats, output) => {
+                    _sessionHostLeaseScope?.lease?.assert?.();
+                    return _replCompactPersistence.persist(sessionId, {
+                      ...canonicalStats,
+                      messages: output,
+                    });
+                  },
+                }
+              : {}),
+          }),
+      };
+    }
   }
   const _autoPinOpt = resolveAutoPinOption({ config: _autoPinCfgValue });
   // Compaction options shared by /compact + auto-compact. Adds the
@@ -3390,7 +3454,7 @@ async function startAgentReplInWorkspaceOwned(
       db,
       process.cwd(),
     );
-    if (permanentMemoryStorage) {
+    if (permanentMemoryStorage && !contextMemoryCutover.canonical) {
       permanentMemory = new CLIPermanentMemory(permanentMemoryStorage);
       permanentMemory.initialize();
     }
@@ -4216,19 +4280,63 @@ async function startAgentReplInWorkspaceOwned(
     try {
       const { loadBundle } =
         await import("@chainlesschain/session-core/agent-bundle-loader");
-      const { resolveBundle } =
+      const { parseUserMdSeed, resolveBundle } =
         await import("@chainlesschain/session-core/agent-bundle-resolver");
-      const { getMemoryStore } =
-        await import("../lib/session-core-singletons.js");
       const bundle = loadBundle(options.bundlePath);
-
-      const memoryStore = getMemoryStore();
-      _bundleResolved = resolveBundle(bundle, {
-        memoryStore,
-        seedOptions: {
-          userId: options.agentId || null,
-        },
-      });
+      if (contextMemoryCutover.canonical) {
+        _bundleResolved = resolveBundle(bundle);
+        const { createCliCanonicalMemoryService } =
+          await import("../lib/context-memory-kernel/memory-service.js");
+        const memoryService = createCliCanonicalMemoryService({
+          env: options.contextMemoryEnv || process.env,
+        });
+        const bundleId = String(bundle.manifest?.id || "unknown");
+        const userId = options.agentId || "local-user";
+        const entries = parseUserMdSeed(bundle.userMd);
+        let seeded = 0;
+        let skipped = 0;
+        for (const [index, entry] of entries.entries()) {
+          const seedDigest = createHash("sha256")
+            .update(
+              JSON.stringify([
+                "chainlesschain.agent-bundle-user-seed/v1",
+                bundleId,
+                index,
+                entry.category,
+                entry.content,
+              ]),
+            )
+            .digest("hex");
+          const ensured = await memoryService.ensureScoped(entry.content, {
+            memoryId: `bundle-${seedDigest.slice(0, 32)}`,
+            scope: "user",
+            scopeId: userId,
+            category: entry.category,
+            source: "agent-bundle",
+            actor: `bundle:${bundleId}`,
+            evidenceStore: "agent-bundle",
+            evidenceId: `${bundleId}-${index}`,
+            tags: [
+              "bundle-seed",
+              `bundle:${bundleId}`,
+              "user-seed",
+              entry.category,
+            ],
+          });
+          if (ensured.created) seeded += 1;
+          else skipped += 1;
+        }
+        _bundleResolved.seedResult = { seeded, skipped };
+      } else {
+        const { getMemoryStore } =
+          await import("../lib/session-core-singletons.js");
+        _bundleResolved = resolveBundle(bundle, {
+          memoryStore: getMemoryStore(),
+          seedOptions: {
+            userId: options.agentId || null,
+          },
+        });
+      }
 
       if (_bundleResolved.systemPrompt) {
         messages.push({
@@ -7251,6 +7359,13 @@ async function startAgentReplInWorkspaceOwned(
     // recent messages + the conversation flow). Safe (never orphans a tool
     // pair); cheaper + less lossy than a full /compact.
     if (trimmed === "/microcompact") {
+      if (contextMemoryCutover.canonical) {
+        logger.warn(
+          "/microcompact is read-only after Context/Memory cutover; use /compact for canonical CAS/receipt semantics.",
+        );
+        prompt();
+        return;
+      }
       const { microCompact } = await import("../lib/micro-compact.js");
       const { messages: mc, stats } = microCompact(messages);
       if (stats.trimmed > 0) {
@@ -9726,7 +9841,7 @@ async function startAgentReplInWorkspaceOwned(
       _turnBindingProducer?.persistIfDirty();
       // Auto-compact when context grows too large
       if (
-        feature("PROMPT_COMPRESSOR") &&
+        (feature("PROMPT_COMPRESSOR") || contextMemoryCutover.canonical) &&
         _compressor &&
         !_compactionUsageBlock &&
         !_runtimeLedgerTerminalLatch.isTripped() &&
@@ -9802,7 +9917,7 @@ async function startAgentReplInWorkspaceOwned(
       }
 
       // Store as episodic memory
-      if (db) {
+      if (db && !contextMemoryCutover.canonical) {
         try {
           storeMemory(db, promptText, { importance: 0.3, type: "episodic" });
         } catch (_e) {
@@ -9981,11 +10096,15 @@ async function startAgentReplInWorkspaceOwned(
       try {
         if (useJsonl) {
           _persistReplContextSources();
-          // JSONL: write final compact snapshot for fast rebuild
-          _replCompactPersistence.persist(sessionId, {
-            strategy: "session-end",
-            messages,
-          });
+          // The legacy session-end checkpoint reused the compact event as a
+          // second writer. Canonical sessions already persist every message;
+          // only Kernel-authorized compaction may replace the physical head.
+          if (!contextMemoryCutover.canonical) {
+            _replCompactPersistence.persist(sessionId, {
+              strategy: "session-end",
+              messages,
+            });
+          }
         } else if (db) {
           saveMessages(db, sessionId, messages);
         }
@@ -9994,7 +10113,11 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
     // Auto-summarize session into permanent memory
-    if (permanentMemory && messages.length > 4) {
+    if (
+      !contextMemoryCutover.canonical &&
+      permanentMemory &&
+      messages.length > 4
+    ) {
       try {
         permanentMemory.autoSummarize(messages);
       } catch (_e) {
@@ -10002,7 +10125,7 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
     // Consolidate memory
-    if (db) {
+    if (db && !contextMemoryCutover.canonical) {
       try {
         consolidateMemory(db);
       } catch (_e) {

@@ -4,6 +4,13 @@ import { CliAgentKernelAdapter } from "./cli-agent-kernel-adapter.js";
 import { JsonlRolloutStore } from "./rollout-store.js";
 import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
+import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
+import {
+  contextPlanCreatedNotification,
+  memoryDeletionNotification,
+  memoryMutationNotification,
+  memoryRecalledNotification,
+} from "./context-memory-notifications.js";
 import {
   APP_SERVER_MIN_PROTOCOL_VERSION,
   APP_SERVER_PROTOCOL_VERSION,
@@ -19,7 +26,6 @@ import {
 } from "./protocol.js";
 
 const TERMINAL_TURN_STATUSES = new Set(["completed", "failed", "interrupted"]);
-
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
@@ -96,6 +102,27 @@ function publicError(error) {
   ) {
     return new JsonRpcError(JSON_RPC_ERROR.CONFLICT, error.message);
   }
+  if (error?.code === "invalid_argument") {
+    return new JsonRpcError(
+      JSON_RPC_ERROR.INVALID_PARAMS,
+      error.message,
+      error.details || null,
+    );
+  }
+  if (
+    [
+      "revision_conflict",
+      "legacy_writer_fenced",
+      "scope_denied",
+      "replica_tombstone_fenced",
+    ].includes(error?.code)
+  ) {
+    return new JsonRpcError(
+      JSON_RPC_ERROR.CONFLICT,
+      error.message,
+      error.details || null,
+    );
+  }
   return error;
 }
 
@@ -113,6 +140,7 @@ export class CcAppServer {
     interruptSettlementMs = 30_000,
     transport = "stdio",
     graphRuntime = null,
+    contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
     if (typeof send !== "function") {
       throw new TypeError("CcAppServer requires a send(message) function");
@@ -125,6 +153,10 @@ export class CcAppServer {
     this.requestTimeoutMs = requestTimeoutMs;
     this.interruptSettlementMs = interruptSettlementMs;
     this.transport = transport === "websocket" ? "websocket" : "stdio";
+    if (typeof contextMemoryRuntimeFactory !== "function") {
+      throw new TypeError("contextMemoryRuntimeFactory must be a function");
+    }
+    this.contextMemoryRuntimeFactory = contextMemoryRuntimeFactory;
     this.graphRuntime =
       graphRuntime ||
       new AppServerGraphRuntime({
@@ -299,6 +331,13 @@ export class CcAppServer {
       "graph/history": () => this._graphHistory(message.params),
       "graph/cancel": () => this._graphCancel(message.params),
       "graph/reconcile": () => this._graphReconcile(message.params),
+      "context/plan": () => this._contextPlan(message.params),
+      "context/compact": () => this._contextCompact(message.params),
+      "memory/recall": () => this._memoryRecall(message.params),
+      "memory/propose": () => this._memoryPropose(message.params),
+      "memory/decide": () => this._memoryDecide(message.params),
+      "memory/delete": () => this._memoryDelete(message.params),
+      "memory/reconcile": () => this._memoryReconcile(message.params),
     };
     const handler = handlers[method];
     if (!handler) {
@@ -351,6 +390,123 @@ export class CcAppServer {
         version: APP_SERVER_PROTOCOL_VERSION,
       },
     });
+  }
+
+  _contextMemoryRuntime(options = {}) {
+    const runtime = this.contextMemoryRuntimeFactory(options);
+    if (!runtime?.kernel) {
+      throw new Error("Context/Memory runtime factory returned no kernel");
+    }
+    return runtime;
+  }
+
+  async _contextPlan(rawParams) {
+    const params = requireObject(rawParams);
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: `app-server:context:${params.sessionHead || "plan"}`,
+    });
+    try {
+      const plan = await runtime.kernel.planContext(params);
+      const notification = contextPlanCreatedNotification(plan);
+      await this._notify(notification.method, notification.params);
+      return plan;
+    } catch (error) {
+      await this._notify("context/event", {
+        type: "context.plan.rejected",
+        reason_code: safeId(error?.code, "context_plan_failed"),
+      });
+      throw error;
+    }
+  }
+
+  async _contextCompact(rawParams) {
+    const params = requireObject(rawParams);
+    const sessionId = requiredString(params.sessionId, "sessionId");
+    const operationId = requiredString(params.operationId, "operationId");
+    const runtime = this._contextMemoryRuntime({ sessionId });
+    await this._notify("context/event", {
+      type: "context.compaction.started",
+      operation_id: operationId,
+      session_id: sessionId,
+    });
+    try {
+      const receipt = await runtime.kernel.compactContext(params);
+      const type =
+        receipt.status === "reconciliation_required"
+          ? "context.compaction.reconciliation_required"
+          : ["committed", "degraded"].includes(receipt.status)
+            ? "context.compaction.committed"
+            : "context.compaction.aborted";
+      await this._notify("context/event", {
+        type,
+        operation_id: operationId,
+        session_id: sessionId,
+        ...(type === "context.compaction.aborted"
+          ? { reason_code: safeId(receipt.status, "compaction_aborted") }
+          : { receipt }),
+      });
+      return receipt;
+    } catch (error) {
+      await this._notify("context/event", {
+        type: "context.compaction.aborted",
+        operation_id: operationId,
+        session_id: sessionId,
+        reason_code: safeId(error?.code, "compaction_failed"),
+      });
+      throw error;
+    }
+  }
+
+  async _memoryRecall(rawParams) {
+    const params = requireObject(rawParams);
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: "app-server:memory",
+    });
+    const result = await runtime.kernel.recallMemory(params);
+    const notification = memoryRecalledNotification(result);
+    await this._notify(notification.method, notification.params);
+    return result;
+  }
+
+  async _memoryPropose(rawParams) {
+    const params = requireObject(rawParams);
+    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const mutation = await runtime.kernel.proposeMemory(params);
+    await this._notifyMemoryMutation(mutation);
+    return mutation;
+  }
+
+  async _memoryDecide(rawParams) {
+    const params = requireObject(rawParams);
+    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const mutation = await runtime.kernel.decideMemory(params);
+    await this._notifyMemoryMutation(mutation);
+    return mutation;
+  }
+
+  async _notifyMemoryMutation(mutation) {
+    const notification = memoryMutationNotification(mutation);
+    if (!notification) return;
+    await this._notify(notification.method, notification.params);
+  }
+
+  async _memoryDelete(rawParams) {
+    const params = requireObject(rawParams);
+    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const receipt = await runtime.kernel.deleteMemory(params);
+    const notification = memoryDeletionNotification(receipt);
+    await this._notify(notification.method, notification.params);
+    return receipt;
+  }
+
+  async _memoryReconcile(rawParams) {
+    const params = requireObject(rawParams);
+    const operationId = requiredString(params.operationId, "operationId");
+    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const result = await runtime.kernel.reconcile(operationId);
+    const notification = memoryDeletionNotification(result, operationId);
+    if (notification) await this._notify(notification.method, notification.params);
+    return result;
   }
 
   _graphCompile(rawParams) {

@@ -41,6 +41,9 @@ const {
   promptForWindowReloadAfterExtensionUpgrade,
 } = require("./webview-upgrade-reload");
 const { CONTEXT_CENTER_STATE_KEY } = require("./context-center");
+const {
+  configuredVscodeContextMemoryAuthority,
+} = require("./context-memory-authority.js");
 
 let _server = null;
 let _port = null;
@@ -85,7 +88,8 @@ function appServerPilotEnabled() {
   return (
     vscode.workspace
       .getConfiguration("chainlesschain.appServer.pilot")
-      .get("enabled", false) === true
+      .get("enabled", false) === true ||
+    configuredVscodeContextMemoryAuthority(vscode).canonical
   );
 }
 
@@ -105,10 +109,13 @@ async function ensureAppServerPilot() {
   if (!_appServerPilot) {
     const { IdeAppServerPilot } = require("./app-server-pilot.js");
     const { getResolvedCli } = require("./cli-binary.js");
+    const contextMemoryAuthority =
+      configuredVscodeContextMemoryAuthority(vscode);
     _appServerPilot = new IdeAppServerPilot({
       getCliPath: getResolvedCli,
       getCwd: workspaceCwd,
       clientVersion: require("../package.json").version,
+      env: contextMemoryAuthority.cliEnvironment,
     });
     _appServerPilot.on("stderr", (message) =>
       log(`App Server emitted stderr (${String(message).length} chars)`),
@@ -315,6 +322,10 @@ async function startBridge(context) {
     const env = context.environmentVariableCollection;
     env.replace("CHAINLESSCHAIN_IDE_PORT", String(_port));
     env.replace("CHAINLESSCHAIN_IDE_TOKEN", token);
+    env.replace(
+      "CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE",
+      configuredVscodeContextMemoryAuthority(vscode).stage,
+    );
   } catch (e) {
     log("env injection failed: " + e.message);
   }

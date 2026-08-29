@@ -18,6 +18,18 @@ function fail(code, message) {
   return { ok: false, error: { code, message } };
 }
 
+async function canonicalMemoryService(scopeKey) {
+  const { resolveCliContextMemoryCutover } = await import(
+    "../../lib/context-memory-kernel/authority.js"
+  );
+  const decision = resolveCliContextMemoryCutover({ scopeKey });
+  if (!decision.canonical) return null;
+  const { createCliCanonicalMemoryService } = await import(
+    "../../lib/context-memory-kernel/memory-service.js"
+  );
+  return createCliCanonicalMemoryService();
+}
+
 async function loadSingletons() {
   return import("../../lib/session-core-singletons.js");
 }
@@ -146,6 +158,24 @@ async function sessionsPolicySet(message) {
 
 async function memoryStore(message) {
   if (!message.content) return fail("BAD_REQUEST", "content required");
+  const canonical = await canonicalMemoryService("cli:ws:memory.store");
+  if (canonical) {
+    try {
+      const scope = message.scope || "global";
+      const entry = await canonical.addScoped(message.content, {
+        scope,
+        scopeId: scope === "global" ? null : message.scopeId || message.agentId,
+        category: message.category,
+        tags: message.tags || [],
+        source: "cli-ws-session-core",
+        evidenceStore: "cli-ws-session-core",
+        evidenceId: String(message.id || `memory-store-${Date.now()}`),
+      });
+      return ok({ entry });
+    } catch (error) {
+      return fail(error.code || "MEMORY_STORE_FAILED", error.message);
+    }
+  }
   const { getMemoryStore } = await loadSingletons();
   const store = getMemoryStore();
   const entry = store.add({
@@ -162,6 +192,26 @@ async function memoryStore(message) {
 }
 
 async function memoryRecall(message) {
+  const canonical = await canonicalMemoryService("cli:ws:memory.recall");
+  if (canonical) {
+    try {
+      const scope = message.scope || "global";
+      const result = await canonical.recallScoped(message.query || "*", {
+        scope,
+        scopeId: scope === "global" ? null : message.scopeId || message.agentId,
+        tags: message.tags,
+        category: message.category,
+        limit: message.limit,
+        sink: "cli.ws",
+      });
+      return ok({
+        results: result.results,
+        memoryRevision: result.memoryRevision,
+      });
+    } catch (error) {
+      return fail(error.code || "MEMORY_RECALL_FAILED", error.message);
+    }
+  }
   const { getMemoryStore } = await loadSingletons();
   const store = getMemoryStore();
   const results = store.recall({
@@ -178,6 +228,17 @@ async function memoryRecall(message) {
 
 async function memoryDelete(message) {
   if (!message.id) return fail("BAD_REQUEST", "id required");
+  const canonical = await canonicalMemoryService("cli:ws:memory.delete");
+  if (canonical) {
+    try {
+      const receipt = await canonical.delete(message.id);
+      return receipt
+        ? ok({ id: message.id, deleted: true, receipt })
+        : fail("NOT_FOUND", `Memory ${message.id} not found`);
+    } catch (error) {
+      return fail(error.code || "MEMORY_DELETE_FAILED", error.message);
+    }
+  }
   const { getMemoryStore } = await loadSingletons();
   const store = getMemoryStore();
   const entry = store.get(message.id);

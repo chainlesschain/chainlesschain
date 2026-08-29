@@ -39,6 +39,13 @@ class FakePilotClient extends EventEmitter {
       "graphHistory",
       "graphCancel",
       "graphReconcile",
+      "contextPlan",
+      "contextCompact",
+      "memoryRecall",
+      "memoryPropose",
+      "memoryDecide",
+      "memoryDelete",
+      "memoryReconcile",
     ]) {
       this[method] = vi.fn(async (params) => ({ method, params }));
     }
@@ -334,6 +341,18 @@ describe("DesktopAppServerPilot", () => {
       method: "graphHistory",
       params: { runId: "graph-1", snapshotLimit: 20 },
     });
+    await expect(
+      pilot.contextPlan({ sessionId: "session-1", items: [] }),
+    ).resolves.toEqual({
+      method: "contextPlan",
+      params: { sessionId: "session-1", items: [] },
+    });
+    await expect(
+      pilot.memoryRecall({ query: "release", scopes: ["project"] }),
+    ).resolves.toEqual({
+      method: "memoryRecall",
+      params: { query: "release", scopes: ["project"] },
+    });
 
     expect(
       FakePilotClient.options.spawn("node", ["cli.js"], {
@@ -375,5 +394,41 @@ describe("DesktopAppServerPilot", () => {
     expect(() =>
       pilot.client.emit("error", new Error("broken pipe")),
     ).not.toThrow();
+  });
+
+  it("projects canonical Context/Memory events without becoming a writer", () => {
+    const pilot = new DesktopAppServerPilot({ ClientClass: FakePilotClient });
+    const plan = { planId: "plan-1", memoryRevision: 7 };
+    const receipt = { operationId: "compact-1", memoryRevision: 8 };
+    const record = { memoryId: "memory-1", content: "bounded" };
+    pilot.client.emit("notification", {
+      method: "context/event",
+      params: { type: "context.plan.created", plan },
+    });
+    pilot.client.emit("notification", {
+      method: "context/event",
+      params: { type: "context.compaction.committed", receipt },
+    });
+    pilot.client.emit("notification", {
+      method: "memory/event",
+      params: {
+        type: "memory.activated",
+        memory_id: record.memoryId,
+        record,
+      },
+    });
+
+    expect(pilot.status.contextMemory).toMatchObject({
+      lastPlan: plan,
+      lastCompactionReceipt: receipt,
+      memoryRevision: 8,
+      memories: [record],
+    });
+    pilot.client.emit("notification", {
+      method: "memory/event",
+      params: { type: "memory.purged", memory_id: record.memoryId },
+    });
+    expect(pilot.status.contextMemory.memories).toEqual([]);
+    expect("request" in pilot).toBe(false);
   });
 });

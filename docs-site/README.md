@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-28）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.7@19834a1845`；其三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读均已闭环。Agent SDK 为 `0.2.4`，Agent Protocol 为 `0.1.5`，PDH 为 `0.4.59`；Open VSX 为 `0.37.72`，JetBrains Marketplace 为 `0.4.103`。发布后的 Desktop 源码 `2286267dea` 增加 Graph 调试器与签名/隔离 Skill 网络、shell 进程、环境能力 Broker，远端主线 `5edef7544b` 增加有界协作、联邦、gossip 与 mesh 留存状态生命周期；二者均不冒充 `0.166.7` 制品。
+> 当前文档快照（2026-08-29）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.9@222396f6a8`；其三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读均已闭环。TypeScript Agent SDK 为 `0.2.5`、Python Agent SDK 为 `0.2.6`、Agent Protocol 为 `0.1.6`、PDH 为 `0.4.59`；Open VSX 为 `0.37.73`，JetBrains Marketplace 为 `0.4.103`（源码/标签 `0.4.104`）。本版公开耐久 Graph review/recovery、真实 UI replay 与 exact-version Codex compatibility；Desktop 签名 Skill 资格证据不冒充 npm 包字节或公共 native 分发。
 
 ## 📚 文档内容
 

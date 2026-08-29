@@ -27,10 +27,20 @@ import {
   readVerifiedProjection,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
-import { PromptCompressor } from "../harness/prompt-compressor.js";
+import {
+  estimateMessagesTokens,
+  getContextWindow,
+  PromptCompressor,
+} from "../harness/prompt-compressor.js";
 import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
 import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
 import { chatWithTools } from "../runtime/agent-core.js";
+import { canonicalDigest } from "@chainlesschain/context-memory-kernel";
+import {
+  contextItemsToMessages,
+  createCliContextMemoryRuntime,
+  createSummaryContextItem,
+} from "../lib/context-memory-kernel/index.js";
 
 /** Build a compressor sized to the session (or explicit overrides). */
 function buildCompressor(options, recorded, llmQuery) {
@@ -75,7 +85,7 @@ function attachMeteringMetadata(value, { callId, settled }) {
   }
 }
 
-function buildSemanticQuery(options, recorded, sessionId, ledger) {
+function buildSemanticQuery(options, recorded, sessionId, operationId, ledger) {
   const provider = options.provider || recorded.provider || undefined;
   const model = options.model || recorded.model || undefined;
   // A preview must be both write-free and spend-free. It uses the same
@@ -91,7 +101,7 @@ function buildSemanticQuery(options, recorded, sessionId, ledger) {
         sessionId,
         provider,
         model,
-        source: "semantic-compaction",
+        source: `semantic-compaction:${operationId}`,
         persist: async (type, data) => {
           const appended = appendEventIfHead(
             sessionId,
@@ -135,6 +145,197 @@ function buildSemanticQuery(options, recorded, sessionId, ledger) {
       });
       throw error;
     }
+  };
+}
+
+function kernelBudget(options, recorded, compressor) {
+  const model = options.model || recorded.model || undefined;
+  const provider = options.provider || recorded.provider || undefined;
+  const modelWindowTokens = getContextWindow(model, provider);
+  const reservedOutputTokens = Math.max(
+    1,
+    Math.min(2048, Math.floor(modelWindowTokens / 10)),
+  );
+  const maximumInput = Math.max(1, modelWindowTokens - reservedOutputTokens);
+  const targetInput = Math.max(
+    1,
+    Math.min(maximumInput, Math.trunc(Number(compressor.maxTokens)) || maximumInput),
+  );
+  const safetyMarginTokens = Math.max(
+    0,
+    modelWindowTokens - reservedOutputTokens - targetInput,
+  );
+  const recoveryReserveTokens =
+    targetInput <= 1
+      ? 0
+      : Math.min(256, Math.max(1, Math.floor(targetInput * 0.05)));
+  return {
+    modelWindowTokens,
+    reservedOutputTokens,
+    safetyMarginTokens,
+    recoveryReserveTokens,
+  };
+}
+
+function buildKernelSummarizer({
+  llmQuery,
+  provider,
+  model,
+  compressor,
+  ledger,
+  sessionPort,
+}) {
+  if (typeof llmQuery !== "function") return undefined;
+  return async (droppedItems, context) => {
+    if (ledger.headHash !== context.inputHead) {
+      const error = new Error("session changed before semantic compaction");
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    }
+    const droppedMessages = contextItemsToMessages(droppedItems);
+    if (droppedMessages.length < 3) {
+      return { items: [], usageReceipt: { outcome: "not_metered" } };
+    }
+    const summaryCompressor = new PromptCompressor({
+      maxMessages: 4,
+      maxTokens: Math.max(256, Math.floor(compressor.maxTokens / 4)),
+      llmQuery,
+    });
+    let compacted;
+    try {
+      compacted = await compactConversationWithProvider(droppedMessages, {
+        compressor: summaryCompressor,
+        provider,
+        model,
+      });
+    } finally {
+      if (ledger.headHash !== context.inputHead) {
+        sessionPort.registerOwnedHeadAdvance({
+          operationId: context.operationId,
+          fromHead: context.inputHead,
+          toHead: ledger.headHash,
+        });
+      }
+    }
+    const { messages, stats } = compacted;
+    if (stats.summaryUsageUnknown === true) {
+      const error = new Error(
+        stats.summaryUsageUnknownReason || "provider usage outcome is unknown",
+      );
+      error.code = "reconciliation_required";
+      error.outcomeUnknown = true;
+      throw error;
+    }
+    const providerWasCalled = Boolean(stats.summaryCallId);
+    if (providerWasCalled && stats.summaryUsageLedgerSettled !== true) {
+      const error = new Error("semantic compaction usage ledger is unsettled");
+      error.code = "provider_usage_unsettled";
+      error.outcomeUnknown = true;
+      throw error;
+    }
+    const reduced =
+      Number(stats.saved || 0) > 0 || messages.length < droppedMessages.length;
+    const item = reduced
+      ? createSummaryContextItem({
+          messages,
+          parents: droppedItems,
+          operationId: context.operationId,
+          now: new Date().toISOString(),
+        })
+      : null;
+    const usageReceipt = providerWasCalled
+      ? {
+          outcome: "settled",
+          callId: stats.summaryCallId,
+          ...(stats.summaryProvider || provider
+            ? { provider: stats.summaryProvider || provider }
+            : {}),
+          ...(stats.summaryModel || model
+            ? { model: stats.summaryModel || model }
+            : {}),
+          inputTokens: stats.summaryUsage?.inputTokens || 0,
+          outputTokens: stats.summaryUsage?.outputTokens || 0,
+          ledgerDigest: canonicalDigest(
+            { callId: stats.summaryCallId, headHash: ledger.headHash },
+            "chainlesschain.cli-compaction-usage/v1",
+          ),
+        }
+      : { outcome: "not_metered" };
+    return { items: item ? [item] : [], usageReceipt };
+  };
+}
+
+function compactionRequest({
+  sessionId,
+  operationId,
+  options,
+  source,
+  compressor,
+  memoryRevision,
+  summarizer,
+}) {
+  const provider = options.provider || source.recorded.provider || "provider.local";
+  const model = options.model || source.recorded.model || "default";
+  return {
+    operationId,
+    sessionId,
+    ...kernelBudget(options, source.recorded, compressor),
+    sink: provider,
+    scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
+    policyVersion: "cli-context-policy-v1",
+    modelProfile: model,
+    memoryRevision,
+    allowFallback: false,
+    ...(summarizer ? { summarizer } : {}),
+    metadata: {
+      inputMessageCount: source.messages.length,
+      originalTokens: estimateMessagesTokens(source.messages),
+      provider,
+      model,
+    },
+  };
+}
+
+async function dryRunKernelPlan(runtime, request) {
+  const snapshot = await runtime.sessionPort.readSnapshot(request.sessionId);
+  const plan = await runtime.kernel.planContext({
+    modelWindowTokens: request.modelWindowTokens,
+    reservedOutputTokens: request.reservedOutputTokens,
+    safetyMarginTokens: request.safetyMarginTokens,
+    recoveryReserveTokens: request.recoveryReserveTokens,
+    items: snapshot.items,
+    sink: request.sink,
+    scopeAdmissions: request.scopeAdmissions,
+    ...(request.partitionCeilings
+      ? { partitionCeilings: request.partitionCeilings }
+      : {}),
+    ...(request.partitionMinimums
+      ? { partitionMinimums: request.partitionMinimums }
+      : {}),
+    policyVersion: request.policyVersion,
+    modelProfile: request.modelProfile,
+    sessionHead: snapshot.head,
+    memoryRevision: request.memoryRevision ?? snapshot.memoryRevision,
+    ...(request.now ? { now: request.now } : {}),
+  });
+  return {
+    plan,
+    messages: contextItemsToMessages(plan.selected),
+    stats: {
+      strategy: "canonical-deterministic-selection",
+      originalMessages: snapshot.items.length,
+      compressedMessages: plan.selected.length,
+      originalTokens: snapshot.items.reduce(
+        (total, item) => total + item.tokenEstimate,
+        0,
+      ),
+      compressedTokens: plan.selectedTokens,
+      saved:
+        snapshot.items.reduce((total, item) => total + item.tokenEstimate, 0) -
+        plan.selectedTokens,
+      dropped: plan.dropped,
+      digest: plan.digest,
+    },
   };
 }
 
@@ -192,6 +393,10 @@ export function registerCompactCommand(program) {
       "Disable provider summarization and stay deterministic",
     )
     .option("--base-url <url>", "Provider base URL for semantic compaction")
+    .option(
+      "--operation-id <id>",
+      "Stable idempotency key (default: derived from session head)",
+    )
     .option("--json", "Output as JSON")
     .action(async (sessionId, options) => {
       try {
@@ -204,6 +409,10 @@ export function registerCompactCommand(program) {
 
         const source = readCompactSource(sessionId);
         const messages = source.messages;
+        const operationId =
+          options.operationId ||
+          `compact-${sessionId}-${String(source.headHash).slice(-24)}`;
+        const runtime = createCliContextMemoryRuntime({ sessionId });
         const ledger = {
           headHash: source.headHash,
           callId: null,
@@ -214,9 +423,126 @@ export function registerCompactCommand(program) {
           options,
           source.recorded,
           sessionId,
+          operationId,
           ledger,
         );
         const compressor = buildCompressor(options, source.recorded, llmQuery);
+        const memoryRevision =
+          runtime.decision.canonical && !options.dryRun
+            ? await runtime.memoryPort.getRevision()
+            : 0;
+        const summarizer = buildKernelSummarizer({
+          llmQuery,
+          provider: options.provider || source.recorded.provider || undefined,
+          model: options.model || source.recorded.model || undefined,
+          compressor,
+          ledger,
+          sessionPort: runtime.sessionPort,
+        });
+        const request = compactionRequest({
+          sessionId,
+          operationId,
+          options,
+          source,
+          compressor,
+          memoryRevision,
+          summarizer,
+        });
+        const canonicalPreview = await dryRunKernelPlan(runtime, request);
+
+        if (runtime.decision.canonical) {
+          const reduced = canonicalPreview.plan.dropped.length > 0;
+          if (!reduced || options.dryRun) {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  {
+                    sessionId,
+                    operationId,
+                    compacted: false,
+                    dryRun: Boolean(options.dryRun),
+                    cutover: runtime.decision,
+                    stats: canonicalPreview.stats,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              return;
+            }
+            logger.log(
+              chalk.gray(
+                reduced
+                  ? `Would compact ${canonicalPreview.plan.dropped.length} canonical item(s).`
+                  : `Nothing to compact - ${messages.length} message(s) are within the canonical budget.`,
+              ),
+            );
+            return;
+          }
+
+          const receipt = await runtime.kernel.compactContext(request);
+          if (["stale", "reconciliation_required"].includes(receipt.status)) {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  { sessionId, operationId, cutover: runtime.decision, receipt },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(
+                chalk.yellow(
+                  `Compaction requires ${receipt.status === "stale" ? "a retry" : "reconciliation"}: ${operationId}`,
+                ),
+              );
+            }
+            process.exitCode = receipt.status === "stale" ? 1 : 2;
+            return;
+          }
+          const committed = await runtime.sessionPort.readSnapshot(sessionId);
+          const compressedTokens = committed.items.reduce(
+            (total, item) => total + item.tokenEstimate,
+            0,
+          );
+          const stats = {
+            strategy: "canonical-context-memory-kernel",
+            originalMessages: messages.length,
+            compressedMessages: committed.items.length,
+            originalTokens: canonicalPreview.stats.originalTokens,
+            compressedTokens,
+            saved: canonicalPreview.stats.originalTokens - compressedTokens,
+            dropped: canonicalPreview.plan.dropped,
+          };
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  sessionId,
+                  operationId,
+                  compacted: true,
+                  cutover: runtime.decision,
+                  stats,
+                  receipt,
+                },
+                null,
+                2,
+              ),
+            );
+            return;
+          }
+          logger.log(chalk.green(`Compacted ${sessionId}`));
+          logger.log(
+            chalk.gray(
+              `  ${stats.originalMessages} -> ${stats.compressedMessages} messages` +
+                `, ${stats.originalTokens} -> ${stats.compressedTokens} tokens` +
+                ` (saved ${stats.saved}, canonical kernel)`,
+            ),
+          );
+          logger.log(chalk.gray(`  resume with: cc agent --resume ${sessionId}`));
+          return;
+        }
+
         // llmQuery already persisted a complete call ledger. The provider
         // helper only carries its metadata through stats; its projected usage
         // event is intentionally not appended a second time here.
@@ -260,7 +586,15 @@ export function registerCompactCommand(program) {
         if (options.json) {
           console.log(
             JSON.stringify(
-              { sessionId, dryRun: !!options.dryRun, stats },
+              {
+                sessionId,
+                dryRun: !!options.dryRun,
+                cutover: runtime.decision,
+                stats,
+                ...(runtime.decision.shadow
+                  ? { canonicalShadow: canonicalPreview.stats }
+                  : {}),
+              },
               null,
               2,
             ),

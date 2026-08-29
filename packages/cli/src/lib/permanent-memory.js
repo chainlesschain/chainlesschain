@@ -9,6 +9,18 @@
 import fs from "fs";
 import path from "path";
 import { BM25Search } from "./bm25-search.js";
+import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "./context-memory-kernel/authority.js";
+
+function assertLegacyPermanentMemoryMutationAllowed(operation) {
+  assertLegacyMutationAllowed(
+    resolveCliContextMemoryCutover({
+      scopeKey: `cli:legacy-permanent-memory:${operation}`,
+    }),
+  );
+}
 
 // Exported for test injection
 export const _deps = {
@@ -66,6 +78,7 @@ export class CLIPermanentMemory {
    */
   initialize() {
     if (this._initialized) return;
+    assertLegacyPermanentMemoryMutationAllowed("initialize");
     this._initialized = true;
 
     // Ensure directories
@@ -120,6 +133,7 @@ export class CLIPermanentMemory {
    */
   appendDailyNote(content) {
     if (!this.memoryDir || !content) return null;
+    assertLegacyPermanentMemoryMutationAllowed("append-daily-note");
 
     try {
       const today = new Date().toISOString().slice(0, 10);
@@ -154,6 +168,7 @@ export class CLIPermanentMemory {
    */
   updateMemoryFile(section, content) {
     if (!this.memoryDir) return null;
+    assertLegacyPermanentMemoryMutationAllowed("update-memory-file");
 
     try {
       const filePath = _deps.path.join(this.memoryDir, "MEMORY.md");
@@ -228,6 +243,7 @@ export class CLIPermanentMemory {
    */
   autoSummarize(sessionMessages) {
     if (!sessionMessages || sessionMessages.length < 4) return [];
+    assertLegacyPermanentMemoryMutationAllowed("auto-summarize");
 
     const facts = [];
 
@@ -281,6 +297,7 @@ export class CLIPermanentMemory {
    */
   _storeEntry(content, source = "auto", importance = 0.5) {
     if (!this.db) return null;
+    assertLegacyPermanentMemoryMutationAllowed("store-entry");
     try {
       const id = `pm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       this.db

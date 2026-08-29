@@ -43,6 +43,9 @@ const {
   loadBundle,
   resolveBundle,
 } = require("@chainlesschain/session-core");
+const {
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
 
 function buildTraceStoreFromEvents(sessionId, events) {
   const trace = new TraceStore();
@@ -128,6 +131,15 @@ function registerSessionCoreIpc(ipcMain) {
   if (!ipcMain || typeof ipcMain.handle !== "function") {
     throw new Error("registerSessionCoreIpc: ipcMain.handle required");
   }
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:session-core-ipc",
+  });
+  const legacyMemoryFenced = () => ({
+    ok: false,
+    code: "CONTEXT_MEMORY_LEGACY_WRITER_FENCED",
+    error: `Legacy Desktop Context/Memory writer is fenced at ${contextMemoryCutover.stage}`,
+    replacement: "coding-agent:app-server-memory-propose",
+  });
 
   // ── session:policy ─────────────────────────────────────────────────
   ipcMain.handle("session-core:policy:get", async (_e, sessionId) => {
@@ -310,7 +322,9 @@ function registerSessionCoreIpc(ipcMain) {
       const handle = mgr.get(sessionId);
       let consolidation = null;
       if (opts && opts.consolidate && Array.isArray(opts.events) && handle) {
-        try {
+        if (!contextMemoryCutover.legacyWritable) {
+          consolidation = legacyMemoryFenced();
+        } else try {
           const store = getMemoryStore();
           const trace = buildTraceStoreFromEvents(sessionId, opts.events);
           const consolidator = new MemoryConsolidator({
@@ -338,6 +352,7 @@ function registerSessionCoreIpc(ipcMain) {
     if (!entry || typeof entry !== "object") {
       return err("entry required");
     }
+    if (!contextMemoryCutover.legacyWritable) return legacyMemoryFenced();
     try {
       const store = getMemoryStore();
       return ok(store.add(entry));
@@ -359,6 +374,12 @@ function registerSessionCoreIpc(ipcMain) {
     if (!id) {
       return err("id required");
     }
+    if (!contextMemoryCutover.legacyWritable) {
+      return {
+        ...legacyMemoryFenced(),
+        replacement: "coding-agent:app-server-memory-delete",
+      };
+    }
     try {
       const store = getMemoryStore();
       return ok({ deleted: store.remove(id) });
@@ -378,6 +399,7 @@ function registerSessionCoreIpc(ipcMain) {
     if (!Array.isArray(events)) {
       return err("events array required");
     }
+    if (!contextMemoryCutover.legacyWritable) return legacyMemoryFenced();
     try {
       const store = getMemoryStore();
       const trace = buildTraceStoreFromEvents(sessionId, events);
