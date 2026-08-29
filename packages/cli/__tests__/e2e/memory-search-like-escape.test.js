@@ -14,7 +14,7 @@ import { CLI_BIN, testHome } from "./_helpers/cli-e2e.js";
  * `id LIKE ? ESCAPE '\'` via likePrefix — this search path was the outlier.
  * Fix routes the query through escapeLike() + `ESCAPE '\'`.
  */
-describe("E2E: memory search escapes LIKE wildcards", () => {
+describe("E2E: legacy memory search escapes LIKE wildcards", () => {
   const t = testHome("memory-search-like");
   afterAll(() => t.cleanup());
 
@@ -22,7 +22,11 @@ describe("E2E: memory search escapes LIKE wildcards", () => {
     spawnSync(process.execPath, [CLI_BIN, ...args], {
       encoding: "utf-8",
       timeout: 30000,
-      env: { ...t.env(), NODE_NO_WARNINGS: "1" },
+      env: {
+        ...t.env(),
+        CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "shadow",
+        NODE_NO_WARNINGS: "1",
+      },
     });
 
   const mustRun = (args) => {

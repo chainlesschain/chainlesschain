@@ -78,12 +78,19 @@ describe("Managed Agents parity E2E commands", () => {
     expect(parsed.length).toBeGreaterThan(0);
     expect(parsed[0].content).toContain("TypeScript");
 
-    const memoryFile = path.join(
+    const canonicalMemoryFile = path.join(
+      tempHome,
+      ".chainlesschain",
+      "context-memory",
+      "kernel-v1.json",
+    );
+    const legacyMemoryFile = path.join(
       tempHome,
       ".chainlesschain",
       "memory-store.json",
     );
-    expect(fs.existsSync(memoryFile)).toBe(true);
+    expect(fs.existsSync(canonicalMemoryFile)).toBe(true);
+    expect(fs.existsSync(legacyMemoryFile)).toBe(false);
   });
 
   it("session policy set command succeeds and prints the selected policy", () => {
