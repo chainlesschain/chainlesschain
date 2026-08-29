@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removal readiness**: every compatibility job proves that production CLI
   source has no dependency on the optional adapter and that the stable Codex
   JSONL fallback still executes and projects terminal output independently.
+- **Windows strict-sandbox cleanup**: target-identity cleanup remains bound to
+  the stable file object while tolerating size and timestamp metadata settling
+  after the native helper closes its writer; same-path replacement is still
+  rejected.
+- **JetBrains real-host gate**: plan-review document access now runs inside
+  explicit IntelliJ read/write actions, and the UI journey targets the current
+  one-time permission label on every supported host/version pair.
 
 ### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
 

@@ -106,7 +106,7 @@ final class IdeUiSmokeTest {
 
             send(input, send, "journey:permission");
             ComponentFixture toolApprove = robot.find(ComponentFixture.class,
-                    Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
+                    Locators.byXpath("//div[@text='Approve Once']"), FIND_BUDGET);
             clickButton(toolApprove);
             waitForTranscript(transcript, "fixture permission approved #4", FIND_BUDGET);
 

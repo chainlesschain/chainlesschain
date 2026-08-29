@@ -10513,6 +10513,59 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.fsRuntime.unlinkSync).toHaveBeenCalledWith(assemblyPath);
   });
 
+  it("cleans a detached target identity after same-file metadata settles", () => {
+    const readFileSync = vi.fn(() =>
+      JSON.stringify({ targetPid: 5103, helperPid: 4102 }),
+    );
+    const harness = createWindowsAdapterHarness({ readFileSync });
+    const plan = applyWindowsSandbox(
+      process.execPath,
+      ["worker.js"],
+      { detached: true, stdio: "ignore" },
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "param()",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x15),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+    const payload = decodeWindowsLaunchSpec(harness, plan);
+    const lstat = harness.fsRuntime.lstatSync.getMockImplementation();
+    let identityStats = 0;
+    harness.fsRuntime.lstatSync.mockImplementation((value, options) => {
+      const stat = lstat(value, options);
+      if (String(value).toLowerCase() === payload.identityPath.toLowerCase()) {
+        identityStats += 1;
+        if (identityStats >= 3) {
+          return {
+            ...stat,
+            size: stat.size + 1n,
+            ctimeNs: stat.ctimeNs + 1n,
+            mtimeNs: stat.mtimeNs + 1n,
+          };
+        }
+      }
+      return stat;
+    });
+
+    const child = createChild(4102);
+    expect(plan.postSpawnWindows(child)).toEqual({
+      targetPid: 5103,
+      wrapperPid: 4102,
+    });
+    expect(identityStats).toBe(3);
+    expect(harness.fsRuntime.unlinkSync).toHaveBeenCalledWith(
+      payload.identityPath,
+    );
+
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
   it("reports Linux unavailable when the wrapper is missing", () => {
     const plan = applySandbox("node", [], {}, "default", {
       platform: "linux",

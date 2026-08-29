@@ -7,7 +7,9 @@
   state.
 - Enforce a durable single-winner settlement registry so duplicate, stale,
   canceled, or conflicting responses fail closed across view reloads.
-- Pair the candidate with CLI `0.166.8` and require the complete exact-SHA
+- Wrap plan-review document lookup and reads in explicit IntelliJ read actions
+  and keep the real-host permission journey aligned with `Approve Once`.
+- Pair the candidate with CLI `0.166.9` and require the complete exact-SHA
   six-host JetBrains and shared IDE journey matrices before publication.
 
 ## [0.4.103] - CLI 0.166.7 Graph Kernel compatibility (2026-08-28)

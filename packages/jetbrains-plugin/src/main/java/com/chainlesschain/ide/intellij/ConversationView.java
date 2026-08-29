@@ -2657,7 +2657,7 @@ final class ConversationView {
                 return;
             }
             if (!generated.equals(planReviewLastText)) {
-                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
+                Document doc = planReviewDocument();
                 if (doc != null) {
                     ApplicationManager.getApplication().runWriteAction(() -> doc.setText(generated));
                 } else if (planReviewFile != null) {
@@ -2675,11 +2675,11 @@ final class ConversationView {
     private void replacePlanReviewText(String text) {
         try {
             if (planReviewVirtualFile != null) {
-                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
+                Document doc = planReviewDocument();
                 if (doc != null) {
-                    if (!doc.getText().equals(text)) {
-                        ApplicationManager.getApplication().runWriteAction(() -> doc.setText(text));
-                    }
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        if (!doc.getText().equals(text)) doc.setText(text);
+                    });
                     return;
                 }
             }
@@ -2695,8 +2695,11 @@ final class ConversationView {
     private String readPlanReviewText() {
         try {
             if (planReviewVirtualFile != null) {
-                Document doc = FileDocumentManager.getInstance().getDocument(planReviewVirtualFile);
-                if (doc != null) return doc.getText();
+                Document doc = planReviewDocument();
+                if (doc != null) {
+                    return ApplicationManager.getApplication()
+                            .runReadAction(doc::getText);
+                }
             }
             if (planReviewFile != null && planReviewFile.isFile()) {
                 return new String(Files.readAllBytes(planReviewFile.toPath()), StandardCharsets.UTF_8);
@@ -2709,6 +2712,13 @@ final class ConversationView {
                 conv.title,
                 conv.sessionId,
                 Instant.now());
+    }
+
+    private Document planReviewDocument() {
+        VirtualFile file = planReviewVirtualFile;
+        if (file == null) return null;
+        return ApplicationManager.getApplication().runReadAction(
+                () -> FileDocumentManager.getInstance().getDocument(file));
     }
 
     private Object readPersistedPlanReviewStates() {

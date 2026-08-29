@@ -20,7 +20,7 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-CLI `0.166.8` routes Graph, Team, distributed-team, Cowork, Scheduler, and App
+CLI `0.166.9` routes Graph, Team, distributed-team, Cowork, Scheduler, and App
 Server entry points through persisted Graph Kernel cutover authority. It fences
 stale writers and takeover/recovery receipts, preserves explicitly read-only
 legacy history, and fails closed on retired mutation paths. It also carries
@@ -29,7 +29,7 @@ outbound requests, JSONL frames, stderr diagnostics, and stdin backpressure.
 Structured overload responses include retry hints, and all initialization,
 heartbeat, disconnect, and late-response paths have finite cleanup fences.
 
-The recommended public CLI `chainlesschain@0.166.8` contains the governed
+The recommended public CLI `chainlesschain@0.166.9` contains the governed
 Automation/Routine commands, the released Automation Center v3 projection,
 scoped permission and side-effect authority, and shared permission/budget
 enforcement. Version `0.4.104` accepts only the exact v2/schemaVersion 2 or
@@ -45,22 +45,22 @@ Version `0.4.104` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Paired CLI `0.166.8` provides the governed
+history-rewriting rollback commands. Paired CLI `0.166.9` provides the governed
 `team merge-review` command and exact evidence contract.
 
-The paired CLI `0.166.8` contains the audited Artifact access, managed-copy
+The paired CLI `0.166.9` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
 `0.4.104`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
-CLI `0.166.8` supersedes `0.165.9`, whose normal Windows startup could
+CLI `0.166.9` supersedes `0.165.9`, whose normal Windows startup could
 incorrectly require an available Docker sandbox. The fixed release restores
 Docker-optional normal startup while preserving fail-closed behavior for
 explicit sandbox and managed-policy requests. It also pairs the CLI with
 `@chainlesschain/session-core@0.3.6`, including the published
 `./runtime-claims` entry point.
 
-CLI `0.166.8` also adds lease-bound real-time teammate send/receive/ack and
+CLI `0.166.9` also adds lease-bound real-time teammate send/receive/ack and
 follow-up tools with durable, retry-safe TeamMailbox v3 receipts. The native
 Team Monitor reports only bounded delivery health (retained, pending,
 processed, dead-letter, follow-up, recipient, byte, and pressure metadata);
