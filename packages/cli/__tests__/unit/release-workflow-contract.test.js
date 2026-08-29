@@ -251,12 +251,15 @@ describe("CLI release workflow contracts", () => {
     expect(generic).toContain('[ "$PKG_NAME" = "chainlesschain" ]');
     expect(generic).toContain('[ "$pkg_dir" = "agent-sdk" ]');
     expect(generic).toContain('[ "$PKG_NAME" = "@chainlesschain/agent-sdk" ]');
-    expect(detector).toContain('"@chainlesschain/agent-sdk",');
-    expect(detector).toContain(
-      'const PROTECTED_PACKAGE_DIRS = new Set(["cli", "agent-sdk"]);',
+    expect(generic).toContain('[ "$pkg_dir" = "context-memory-kernel" ]');
+    expect(generic).toContain(
+      '[ "$PKG_NAME" = "@chainlesschain/context-memory-kernel" ]',
     );
+    expect(detector).toContain('"@chainlesschain/agent-sdk",');
+    expect(detector).toContain('"@chainlesschain/context-memory-kernel",');
+    expect(detector).toContain('"context-memory-kernel",');
     expect(detector).toContain(
-      "must use the dedicated exact-SHA CLI/Agent SDK release workflow",
+      "must use the dedicated exact-SHA CLI/Agent SDK/Context Memory release workflow",
     );
   });
 
@@ -337,7 +340,7 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
-  it("excludes the CLI and Agent SDK from generic publishing", () => {
+  it("excludes the CLI, Agent SDK, and Context Memory Kernel from generic publishing", () => {
     const tempRoot = fs.realpathSync.native(
       fs.mkdtempSync(path.join(os.tmpdir(), "cc-generic-publish-")),
     );
@@ -346,10 +349,16 @@ describe("CLI release workflow contracts", () => {
       const scriptDir = path.join(tempRoot, "scripts", "ci");
       const cliDir = path.join(tempRoot, "packages", "cli");
       const agentSdkDir = path.join(tempRoot, "packages", "agent-sdk");
+      const contextMemoryDir = path.join(
+        tempRoot,
+        "packages",
+        "context-memory-kernel",
+      );
       const coreDir = path.join(tempRoot, "packages", "core-env");
       fs.mkdirSync(scriptDir, { recursive: true });
       fs.mkdirSync(cliDir, { recursive: true });
       fs.mkdirSync(agentSdkDir, { recursive: true });
+      fs.mkdirSync(contextMemoryDir, { recursive: true });
       fs.mkdirSync(coreDir, { recursive: true });
       fs.copyFileSync(
         path.join(
@@ -368,6 +377,13 @@ describe("CLI release workflow contracts", () => {
         path.join(agentSdkDir, "package.json"),
         JSON.stringify({
           name: "@chainlesschain/agent-sdk",
+          version: "9.9.9",
+        }),
+      );
+      fs.writeFileSync(
+        path.join(contextMemoryDir, "package.json"),
+        JSON.stringify({
+          name: "@chainlesschain/context-memory-kernel",
           version: "9.9.9",
         }),
       );
@@ -392,10 +408,14 @@ describe("CLI release workflow contracts", () => {
       ).toBe("core-env\n");
       expect(tagRun.stdout).not.toContain("chainlesschain@9.9.9");
       expect(tagRun.stdout).not.toContain("@chainlesschain/agent-sdk@9.9.9");
+      expect(tagRun.stdout).not.toContain(
+        "@chainlesschain/context-memory-kernel@9.9.9",
+      );
 
       for (const [index, requested] of [
         "chainlesschain@9.9.9",
         "@chainlesschain/agent-sdk@9.9.9",
+        "@chainlesschain/context-memory-kernel@9.9.9",
       ].entries()) {
         const explicitRun = spawnSync(process.execPath, [script], {
           cwd: tempRoot,
@@ -409,7 +429,7 @@ describe("CLI release workflow contracts", () => {
         });
         expect(explicitRun.status, requested).toBe(1);
         expect(explicitRun.stderr, requested).toContain(
-          "must use the dedicated exact-SHA CLI/Agent SDK release workflow",
+          "must use the dedicated exact-SHA CLI/Agent SDK/Context Memory release workflow",
         );
       }
     } finally {
