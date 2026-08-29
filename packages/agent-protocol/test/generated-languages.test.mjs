@@ -48,6 +48,8 @@ test("generated clients preserve protocol field names across language keywords",
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
   assert.match(swift, /public let trustedSystem: Int\?/u);
   assert.match(swift, /case trustedSystem = "trusted-system"/u);
+  assert.match(swift, /case `public` = "public"/u);
+  assert.match(swift, /case `internal` = "internal"/u);
   assert.match(swift, /public enum ApprovalDecision: Codable, Sendable/u);
   assert.match(
     swift,

@@ -108,8 +108,8 @@ public enum ContextMemoryTrust: String, Codable, Sendable {
 }
 
 public enum ContextMemorySensitivity: String, Codable, Sendable {
-    case public = "public"
-    case internal = "internal"
+    case `public` = "public"
+    case `internal` = "internal"
     case personal = "personal"
     case secret = "secret"
     case restricted = "restricted"

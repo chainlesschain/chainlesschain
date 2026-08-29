@@ -532,14 +532,19 @@ function enumCaseName(value, language) {
   const words = String(value)
     .split(/[^A-Za-z0-9]+/u)
     .filter(Boolean);
-  if (language === "kotlin") return words.join("_").toUpperCase();
-  return words
-    .map((word, index) =>
-      index === 0
-        ? word.toLowerCase()
-        : `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`,
-    )
-    .join("");
+  if (language === "kotlin") {
+    const identifier = words.join("_").toUpperCase() || "_";
+    return /^[A-Za-z_]/u.test(identifier) ? identifier : `_${identifier}`;
+  }
+  const identifier =
+    words
+      .map((word, index) =>
+        index === 0
+          ? word.toLowerCase()
+          : `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`,
+      )
+      .join("") || "_";
+  return modelFieldName(identifier, "swift");
 }
 
 function stringEnumDefinitions() {
