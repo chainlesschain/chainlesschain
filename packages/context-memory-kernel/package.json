@@ -1,0 +1,35 @@
+{
+  "name": "@chainlesschain/context-memory-kernel",
+  "version": "0.1.0",
+  "description": "Canonical Context/Memory Kernel contracts, reducers, and host ports",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "module": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "require": "./lib/index.js"
+    },
+    "./schema": "./schema/context-memory-kernel.schema.json",
+    "./inventory": "./inventory/writers.v1.json"
+  },
+  "files": [
+    "lib",
+    "schema",
+    "inventory",
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check:inventory": "node scripts/validate-inventory.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MIT"
+}

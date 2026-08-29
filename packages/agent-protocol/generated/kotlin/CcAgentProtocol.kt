@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:8034b1d0903660879df7ae8f1e5a856e753dfee5cf5e054069bff578731afc3b"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:942ebae3e18f20d7307d04c32108ea4b1989351dbae1e1340e7c0b1fe0dc5063"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -44,10 +44,64 @@ enum class AgentStreamEventType(val wireValue: String) {
     TOOL_RESULT("tool_result"),
     TOOL_USE("tool_use"),
     USER("user"),
-    POLICY_DECISION("policy_decision");
+    POLICY_DECISION("policy_decision"),
+    CONTEXT_PLAN_CREATED("context.plan.created"),
+    CONTEXT_PLAN_REJECTED("context.plan.rejected"),
+    CONTEXT_COMPACTION_STARTED("context.compaction.started"),
+    CONTEXT_COMPACTION_COMMITTED("context.compaction.committed"),
+    CONTEXT_COMPACTION_ABORTED("context.compaction.aborted"),
+    CONTEXT_COMPACTION_RECONCILIATION_REQUIRED("context.compaction.reconciliation_required"),
+    MEMORY_CANDIDATE_CREATED("memory.candidate.created"),
+    MEMORY_ACTIVATED("memory.activated"),
+    MEMORY_REINFORCED("memory.reinforced"),
+    MEMORY_SUPERSEDED("memory.superseded"),
+    MEMORY_EXPIRED("memory.expired"),
+    MEMORY_DELETED("memory.deleted"),
+    MEMORY_PURGED("memory.purged"),
+    MEMORY_RECALLED("memory.recalled");
 
     companion object {
         fun fromWireValue(value: String): AgentStreamEventType? =
+            entries.firstOrNull { it.wireValue == value }
+    }
+}
+
+enum class ContextMemoryScope(val wireValue: String) {
+    TURN("turn"),
+    SESSION("session"),
+    AGENT("agent"),
+    PROJECT("project"),
+    USER("user"),
+    GLOBAL("global");
+
+    companion object {
+        fun fromWireValue(value: String): ContextMemoryScope? =
+            entries.firstOrNull { it.wireValue == value }
+    }
+}
+
+enum class ContextMemoryTrust(val wireValue: String) {
+    HOST("host"),
+    VERIFIED("verified"),
+    USER("user"),
+    EXTERNAL("external"),
+    UNTRUSTED("untrusted");
+
+    companion object {
+        fun fromWireValue(value: String): ContextMemoryTrust? =
+            entries.firstOrNull { it.wireValue == value }
+    }
+}
+
+enum class ContextMemorySensitivity(val wireValue: String) {
+    PUBLIC("public"),
+    INTERNAL("internal"),
+    PERSONAL("personal"),
+    SECRET("secret"),
+    RESTRICTED("restricted");
+
+    companion object {
+        fun fromWireValue(value: String): ContextMemorySensitivity? =
             entries.firstOrNull { it.wireValue == value }
     }
 }
@@ -787,6 +841,460 @@ data class ServerNotification(
     val method: String,
     val params: JSONValue
 )
+
+data class ContextMemorySourceRef(
+    val store: String,
+    val id: String,
+    val revision: Long? = null,
+    val eventSequence: Long? = null,
+    val digest: String? = null,
+    val uri: String? = null
+)
+
+data class ContextMemoryProvenance(
+    val source: String,
+    val actor: String? = null,
+    val observedAt: String,
+    val parentDigests: List<String>? = null,
+    val degraded: Boolean? = null
+)
+
+data class ContextMemoryContentRef(
+    val store: String,
+    val objectId: String,
+    val digest: String,
+    val byteLength: Long,
+    val mimeType: String? = null,
+    val summary: String,
+    val recoverable: Boolean,
+    val accessPolicy: String? = null
+)
+
+data class ContextMemoryBinding(
+    val taskState: String? = null,
+    val toolCallId: String? = null,
+    val toolRole: String? = null,
+    val toolOutcome: String? = null,
+    val approvalId: String? = null,
+    val questionId: String? = null,
+    val humanTaskId: String? = null,
+    val requiredForRecovery: Boolean? = null,
+    val cwdIdentity: String? = null,
+    val worktreeIdentity: String? = null,
+    val permissionCeilingDigest: String? = null,
+    val budgetRevision: Long? = null
+)
+
+data class ContextItem(
+    val schemaVersion: Long,
+    val itemId: String,
+    val kind: String,
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null,
+    val sourceRef: ContextMemorySourceRef,
+    val provenance: ContextMemoryProvenance,
+    val trust: ContextMemoryTrust,
+    val sensitivity: ContextMemorySensitivity,
+    val allowedSinks: List<String>,
+    val tokenEstimate: Long,
+    val priority: Long,
+    val pinned: Boolean,
+    val createdAt: String,
+    val expiresAt: String? = null,
+    val digest: String,
+    val content: String? = null,
+    val contentRef: ContextMemoryContentRef? = null,
+    val binding: ContextMemoryBinding? = null
+)
+
+data class ContextMemoryRetentionPolicy(
+    val mode: String,
+    val expiresAt: String? = null,
+    val maxAgeDays: Long? = null,
+    val legalHoldId: String? = null
+)
+
+data class MemoryRecord(
+    val schemaVersion: Long,
+    val memoryId: String,
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null,
+    val category: String,
+    val content: String,
+    val contentRef: ContextMemoryContentRef? = null,
+    val summary: String? = null,
+    val provenance: ContextMemoryProvenance,
+    val evidenceRefs: List<ContextMemorySourceRef>,
+    val confidence: Double,
+    val importance: Double,
+    val tags: List<String>,
+    val sensitivity: ContextMemorySensitivity,
+    val allowedSinks: List<String>,
+    val state: String,
+    val retentionPolicy: ContextMemoryRetentionPolicy,
+    val createdAt: String,
+    val updatedAt: String,
+    val lastAccessedAt: String? = null,
+    val accessCount: Long,
+    val supersedes: List<String>? = null,
+    val revision: Long,
+    val digest: String,
+    val deletionFence: String? = null
+)
+
+data class ContextScopeAdmission(
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null
+)
+
+data class ContextPlanRequest(
+    val modelWindowTokens: Long,
+    val reservedOutputTokens: Long,
+    val safetyMarginTokens: Long? = null,
+    val recoveryReserveTokens: Long? = null,
+    val items: List<ContextItem>,
+    val sink: String,
+    val scopeAdmissions: List<ContextScopeAdmission>,
+    val partitionCeilings: ContextPartitionMap? = null,
+    val partitionMinimums: ContextPartitionMap? = null,
+    val policyVersion: String,
+    val modelProfile: String,
+    val sessionHead: String,
+    val memoryRevision: Long,
+    val now: String? = null
+)
+
+data class ContextPartitionMap(
+    val trusted-system: Long? = null,
+    val working-state: Long? = null,
+    val tools-and-skills: Long? = null,
+    val conversation: Long? = null,
+    val tool-evidence: Long? = null,
+    val memory-and-rules: Long? = null
+)
+
+data class ContextPlan(
+    val schema: String,
+    val schemaVersion: Long,
+    val sessionHead: String,
+    val memoryRevision: Long,
+    val policyVersion: String,
+    val modelProfile: String,
+    val sink: String,
+    val inputBudget: Long,
+    val selectableBudget: Long,
+    val selectedTokens: Long,
+    val partitions: JSONValue,
+    val minimumShortfalls: JSONValue? = null,
+    val selected: List<ContextItem>,
+    val selectedItemIds: List<String>,
+    val dropped: List<JSONValue>,
+    val createdAt: String,
+    val digest: String
+)
+
+data class ContextCompactRequest(
+    val operationId: String,
+    val sessionId: String,
+    val modelWindowTokens: Long,
+    val reservedOutputTokens: Long,
+    val safetyMarginTokens: Long? = null,
+    val recoveryReserveTokens: Long? = null,
+    val sink: String,
+    val scopeAdmissions: List<ContextScopeAdmission>,
+    val partitionCeilings: ContextPartitionMap? = null,
+    val partitionMinimums: ContextPartitionMap? = null,
+    val policyVersion: String,
+    val modelProfile: String,
+    val memoryRevision: Long? = null,
+    val allowFallback: Boolean? = null,
+    val now: String? = null,
+    val metadata: JSONValue? = null
+)
+
+data class ContextCompactionReceipt(
+    val schema: String,
+    val schemaVersion: Long,
+    val operationId: String,
+    val sessionId: String,
+    val status: String,
+    val inputHead: String? = null,
+    val newHead: String? = null,
+    val currentHead: String? = null,
+    val inputDigest: String? = null,
+    val outputDigest: String? = null,
+    val eventDigest: String? = null,
+    val contextPlanDigest: String? = null,
+    val memoryRevision: Long? = null,
+    val selectedItemIds: List<String>? = null,
+    val lifecycle: List<JSONValue>? = null,
+    val digest: String
+)
+
+data class MemoryRecallRequest(
+    val query: String,
+    val sink: String,
+    val scopeAdmissions: List<ContextScopeAdmission>,
+    val limit: Long? = null,
+    val tokenBudget: Long? = null,
+    val now: String? = null
+)
+
+data class MemoryRecallResult(
+    val query: String,
+    val sink: String,
+    val tokenBudget: Long,
+    val usedTokens: Long,
+    val totalCandidates: Long,
+    val results: List<JSONValue>,
+    val digest: String,
+    val memoryRevision: Long
+)
+
+data class MemoryProposalRequest(
+    val memoryId: String? = null,
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null,
+    val category: String,
+    val content: String,
+    val contentRef: ContextMemoryContentRef? = null,
+    val summary: String? = null,
+    val provenance: ContextMemoryProvenance,
+    val evidenceRefs: List<ContextMemorySourceRef>,
+    val confidence: Double,
+    val importance: Double,
+    val tags: List<String>? = null,
+    val sensitivity: ContextMemorySensitivity,
+    val allowedSinks: List<String>,
+    val retentionPolicy: ContextMemoryRetentionPolicy,
+    val activate: Boolean? = null,
+    val createdAt: String? = null,
+    val supersedes: List<String>? = null
+)
+
+data class MemoryDecisionRequest(
+    val memoryId: String,
+    val type: String,
+    val expectedRevision: Long,
+    val confidenceDelta: Double? = null,
+    val importance: Double? = null,
+    val evidenceRefs: List<ContextMemorySourceRef>? = null,
+    val tags: List<String>? = null,
+    val summary: String? = null,
+    val successorMemoryId: String? = null,
+    val reason: String? = null,
+    val authority: String? = null,
+    val at: String? = null
+)
+
+data class MemoryDeletionRequest(
+    val requestId: String,
+    val subject: String,
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null,
+    val selector: String,
+    val memoryId: String,
+    val expectedRevision: Long,
+    val fence: String,
+    val authority: String,
+    val reason: String? = null
+)
+
+data class MemoryReconcileRequest(
+    val operationId: String
+)
+
+data class MemoryMutationReceipt(
+    val record: MemoryRecord,
+    val event: JSONValue,
+    val receipt: JSONValue
+)
+
+data class MemoryDeletionReceipt(
+    val schema: String,
+    val schemaVersion: Long,
+    val requestId: String,
+    val subject: String,
+    val selector: String,
+    val scope: ContextMemoryScope,
+    val scopeId: String? = null,
+    val memoryId: String,
+    val fence: String,
+    val authority: String,
+    val status: String,
+    val revision: Long,
+    val recordState: String,
+    val recordDigest: String,
+    val stores: List<JSONValue>,
+    val startedAt: String,
+    val completedAt: String,
+    val digest: String
+)
+
+data class AgentContextPlanCreatedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String? = null,
+    val plan: ContextPlan
+) : AgentStreamEventPayload
+
+data class AgentContextPlanRejectedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String
+) : AgentStreamEventPayload
+
+data class AgentContextCompactionStartedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String? = null
+) : AgentStreamEventPayload
+
+data class AgentContextCompactionCommittedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String? = null,
+    val receipt: ContextCompactionReceipt
+) : AgentStreamEventPayload
+
+data class AgentContextCompactionAbortedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String
+) : AgentStreamEventPayload
+
+data class AgentContextCompactionReconciliationRequiredStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String? = null,
+    val receipt: ContextCompactionReceipt
+) : AgentStreamEventPayload
+
+data class AgentMemoryCandidateCreatedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryActivatedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryReinforcedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemorySupersededStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryExpiredStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryDeletedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val record: MemoryRecord? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryPurgedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val reason_code: String? = null,
+    val receipt: MemoryDeletionReceipt? = null
+) : AgentStreamEventPayload
+
+data class AgentMemoryRecalledStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String? = null,
+    val revision: Long? = null,
+    val record_digest: String? = null,
+    val reason_code: String? = null,
+    val result: MemoryRecallResult
+) : AgentStreamEventPayload
 
 sealed interface ApprovalDecision {
     data object AcceptOnce : ApprovalDecision

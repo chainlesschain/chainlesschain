@@ -16,6 +16,10 @@
 const { logger } = require('../utils/logger.js');
 const defaultIpcGuard = require('../ipc/ipc-guard');
 const { PromptCompressor, estimateTokens } = require('./prompt-compressor');
+const {
+  legacyWriterFencedResult,
+  resolveDesktopContextMemoryCutover,
+} = require('../context-memory/authority.js');
 
 // 模块级别的实例
 let compressorInstance = null;
@@ -114,6 +118,9 @@ function registerPromptCompressorIPC({
   compressor: injectedCompressor,
 } = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: 'desktop:prompt-compressor-ipc',
+  });
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('prompt-compressor-ipc')) {
@@ -169,6 +176,12 @@ function registerPromptCompressorIPC({
    */
   ipcMain.handle('compressor:set-config', async (_event, config) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return legacyWriterFencedResult(
+          contextMemoryCutover,
+          'coding-agent:app-server-context-plan',
+        );
+      }
       if (!config || typeof config !== 'object') {
         throw new Error('Invalid config: must be an object');
       }
@@ -199,6 +212,12 @@ function registerPromptCompressorIPC({
    */
   ipcMain.handle('compressor:reset-config', async () => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return legacyWriterFencedResult(
+          contextMemoryCutover,
+          'coding-agent:app-server-context-plan',
+        );
+      }
       compressor.updateConfig({
         enableDeduplication: true,
         enableSummarization: false,
@@ -240,6 +259,12 @@ function registerPromptCompressorIPC({
    */
   ipcMain.handle('compressor:compress', async (_event, options = {}) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) {
+        return legacyWriterFencedResult(
+          contextMemoryCutover,
+          'coding-agent:app-server-context-compact',
+        );
+      }
       const { messages, preserveSystemMessage, preserveLastUserMessage } = options;
 
       if (!Array.isArray(messages)) {

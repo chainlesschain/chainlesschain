@@ -4,17 +4,19 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertProtocolCompatible } from "../src/compatibility.mjs";
+import { synchronizeContextMemoryProtocolSchema } from "./context-memory-schema.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "..", "..");
 const schemaPath = resolve(root, "schema", "cc-agent-protocol.schema.json");
 const baselinePath = resolve(root, "schema", "baselines", "v1.json");
+const checkOnly = process.argv.includes("--check");
+const freezeBaseline = process.argv.includes("--freeze-baseline");
+synchronizeContextMemoryProtocolSchema({ checkOnly });
 const schemaText = readFileSync(schemaPath, "utf8");
 const schema = JSON.parse(schemaText);
 const digest = `sha256:${createHash("sha256").update(schemaText).digest("hex")}`;
 const protocol = schema["x-cc-protocol"];
-const checkOnly = process.argv.includes("--check");
-const freezeBaseline = process.argv.includes("--freeze-baseline");
 
 if (freezeBaseline) {
   mkdirSync(dirname(baselinePath), { recursive: true });
@@ -206,6 +208,32 @@ export function isCanonicalAgentStreamEvent(value: unknown): value is CanonicalA
 export function assertCanonicalAgentStreamEvent(value: unknown): asserts value is CanonicalAgentStreamEvent {
   const result = validateCanonicalAgentStreamEvent(value);
   if (!result.ok) throw new TypeError(\`Invalid canonical AgentStreamEvent: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
+export function validateContextItem(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("ContextItem", value);
+}
+
+export function validateMemoryRecord(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("MemoryRecord", value);
+}
+
+export function validateContextPlan(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("ContextPlan", value);
+}
+
+export function validateMemoryDeletionReceipt(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("MemoryDeletionReceipt", value);
+}
+
+export function assertContextItem(value: unknown): asserts value is ContextItem {
+  const result = validateContextItem(value);
+  if (!result.ok) throw new TypeError(\`Invalid ContextItem: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
+export function assertMemoryRecord(value: unknown): asserts value is MemoryRecord {
+  const result = validateMemoryRecord(value);
+  if (!result.ok) throw new TypeError(\`Invalid MemoryRecord: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
 }
 
 export function assertProtocolMessage(value: unknown): asserts value is ClientRequest | ClientResponse | ServerRequest | ServerNotification {
@@ -420,6 +448,18 @@ def validate_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
 
 def validate_canonical_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
     return validate_protocol_definition("CanonicalAgentStreamEvent", value)
+
+def validate_context_item(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("ContextItem", value)
+
+def validate_memory_record(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("MemoryRecord", value)
+
+def validate_context_plan(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("ContextPlan", value)
+
+def validate_memory_deletion_receipt(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("MemoryDeletionReceipt", value)
 
 ${aliases}
 

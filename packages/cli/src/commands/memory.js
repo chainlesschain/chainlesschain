@@ -69,6 +69,30 @@ export function openMemoryEditor(editor, filePath, deps = _deps) {
   });
 }
 
+async function resolveCanonicalMemory(ctx) {
+  const { createCliCanonicalMemoryService } =
+    await import("../lib/context-memory-kernel/index.js");
+  const service = createCliCanonicalMemoryService();
+  if (service.decision.canonical && ctx?.db) {
+    await service.migrateLegacyEntries(exportMemory(ctx.db.getDatabase()));
+  }
+  return service;
+}
+
+async function resolveScopedMemory() {
+  const [{ createCliCanonicalMemoryService }, { getMemoryStore }] =
+    await Promise.all([
+      import("../lib/context-memory-kernel/index.js"),
+      import("../lib/session-core-singletons.js"),
+    ]);
+  const service = createCliCanonicalMemoryService();
+  const legacyStore = getMemoryStore();
+  if (service.decision.canonical) {
+    await service.migrateLegacyScopedEntries(legacyStore.list());
+  }
+  return { service, legacyStore };
+}
+
 export function registerMemoryCommand(program) {
   const memory = program
     .command("memory")
@@ -145,15 +169,20 @@ export function registerMemoryCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const db = ctx.db.getDatabase();
-        const entries = listMemory(db, {
-          limit: Math.max(1, parseInt(options.limit) || 20),
-          category: options.category,
-        });
+        const entries = service.decision.canonical
+          ? await service.list({
+              limit: Math.max(1, parseInt(options.limit) || 20),
+              category: options.category,
+            })
+          : listMemory(ctx.db.getDatabase(), {
+              limit: Math.max(1, parseInt(options.limit) || 20),
+              category: options.category,
+            });
 
         if (options.json) {
           console.log(JSON.stringify(entries, null, 2));
@@ -193,11 +222,14 @@ export function registerMemoryCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const entries = exportMemory(ctx.db.getDatabase());
+        const entries = service.decision.canonical
+          ? await service.export()
+          : exportMemory(ctx.db.getDatabase());
         if (options.output) {
           const fs = await import("fs");
           fs.writeFileSync(options.output, JSON.stringify(entries), "utf-8");
@@ -240,11 +272,14 @@ export function registerMemoryCommand(program) {
           throw new Error("import: expected a JSON array of memory entries");
         }
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const result = importMemory(ctx.db.getDatabase(), entries);
+        const result = service.decision.canonical
+          ? await service.import(entries)
+          : importMemory(ctx.db.getDatabase(), entries);
         if (options.json) {
           console.log(JSON.stringify(result));
         } else {
@@ -269,18 +304,27 @@ export function registerMemoryCommand(program) {
     .action(async (text, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const db = ctx.db.getDatabase();
-        const entry = addMemory(db, text, {
+        const normalizedOptions = {
           category: options.category,
           importance: Math.max(
             1,
             Math.min(5, parseInt(options.importance) || 3),
           ),
-        });
+        };
+        let entry;
+        if (service.decision.canonical) {
+          entry = await service.add(text, normalizedOptions);
+        } else {
+          if (service.decision.shadow) {
+            service.validateLegacyProposal(text, normalizedOptions);
+          }
+          entry = addMemory(ctx.db.getDatabase(), text, normalizedOptions);
+        }
 
         if (options.json) {
           console.log(JSON.stringify(entry, null, 2));
@@ -307,14 +351,18 @@ export function registerMemoryCommand(program) {
     .action(async (query, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const db = ctx.db.getDatabase();
-        const results = searchMemory(db, query, {
-          limit: Math.max(1, parseInt(options.limit) || 20),
-        });
+        const limit = Math.max(1, parseInt(options.limit) || 20);
+        const recalled = service.decision.canonical
+          ? await service.search(query, { limit })
+          : null;
+        const results = service.decision.canonical
+          ? recalled.entries
+          : searchMemory(ctx.db.getDatabase(), query, { limit });
 
         if (options.json) {
           console.log(JSON.stringify(results, null, 2));
@@ -351,14 +399,23 @@ export function registerMemoryCommand(program) {
     .action(async (id) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
+        const service = await resolveCanonicalMemory(ctx);
+        if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
         }
-        const db = ctx.db.getDatabase();
-        const ok = deleteMemory(db, id);
+        const deletion = service.decision.canonical
+          ? await service.delete(id)
+          : null;
+        const ok = service.decision.canonical
+          ? deletion?.status === "purged"
+          : deleteMemory(ctx.db.getDatabase(), id);
         if (ok) {
-          logger.success("Memory entry deleted");
+          logger.success(
+            service.decision.canonical
+              ? `Memory entry deleted (${deletion.digest})`
+              : "Memory entry deleted",
+          );
         } else {
           logger.error(`Memory entry not found: ${id}`);
         }
@@ -443,23 +500,23 @@ export function registerMemoryCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (query, options) => {
       try {
-        const { getMemoryStore } =
-          await import("../lib/session-core-singletons.js");
-        const store = getMemoryStore();
+        const { service, legacyStore } = await resolveScopedMemory();
         const tags = options.tags
           ? options.tags
               .split(",")
               .map((t) => t.trim())
               .filter(Boolean)
           : null;
-        const results = store.recall({
-          query: query || "",
+        const recallOptions = {
           scope: options.scope,
           scopeId: options.scopeId,
           category: options.category,
           tags,
           limit: Math.max(1, parseInt(options.limit) || 10),
-        });
+        };
+        const results = service.decision.canonical
+          ? (await service.recallScoped(query || "", recallOptions)).results
+          : legacyStore.recall({ query: query || "", ...recallOptions });
 
         if (options.json) {
           console.log(JSON.stringify(results, null, 2));
@@ -494,22 +551,28 @@ export function registerMemoryCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (content, options) => {
       try {
-        const { getMemoryStore } =
-          await import("../lib/session-core-singletons.js");
-        const store = getMemoryStore();
+        const { service, legacyStore } = await resolveScopedMemory();
         const tags = options.tags
           ? options.tags
               .split(",")
               .map((t) => t.trim())
               .filter(Boolean)
           : [];
-        const m = store.add({
+        const proposal = {
           scope: options.scope,
           scopeId: options.scopeId || null,
           category: options.category,
-          content,
           tags,
-        });
+        };
+        let m;
+        if (service.decision.canonical) {
+          m = await service.addScoped(content, proposal);
+        } else {
+          if (service.decision.shadow) {
+            service.validateLegacyScopedProposal(content, proposal);
+          }
+          m = legacyStore.add({ content, ...proposal });
+        }
         if (options.json) console.log(JSON.stringify(m, null, 2));
         else
           logger.success(
@@ -576,11 +639,58 @@ export function registerMemoryCommand(program) {
           return;
         }
 
-        const result = await consolidateJsonlSession(options.session, {
-          scope: options.scope,
-          scopeId: options.scopeId || null,
-          agentId: options.agentId || null,
-        });
+        const { service } = await resolveScopedMemory();
+        let result;
+        if (service.decision.canonical) {
+          const { readEvents } =
+            await import("../harness/jsonl-session-store.js");
+          const { defaultMemoryExtractor } =
+            await import("@chainlesschain/session-core");
+          const events = readEvents(options.session);
+          const trace = buildTraceStoreFromJsonl(options.session, events);
+          const traceEvents = trace.query(options.session, {
+            limit: Number.MAX_SAFE_INTEGER,
+          });
+          const facts = defaultMemoryExtractor(traceEvents);
+          const scope = options.scope || "agent";
+          const scopeId =
+            scope === "global"
+              ? null
+              : options.scopeId ||
+                (scope === "session"
+                  ? options.session
+                  : options.agentId || options.session);
+          const written = [];
+          for (const [index, fact] of facts.entries()) {
+            written.push(
+              await service.addScoped(String(fact.content || ""), {
+                scope,
+                scopeId,
+                category: fact.category || "general",
+                tags: fact.tags || [],
+                score: fact.score,
+                source: "cli-session-consolidator",
+                evidenceStore: "cli-jsonl-session",
+                evidenceId: `${options.session}-${index}`,
+              }),
+            );
+          }
+          result = {
+            sessionId: options.session,
+            scope,
+            scopeId,
+            eventCount: traceEvents.length,
+            factCount: facts.length,
+            writtenCount: written.length,
+            written,
+          };
+        } else {
+          result = await consolidateJsonlSession(options.session, {
+            scope: options.scope,
+            scopeId: options.scopeId || null,
+            agentId: options.agentId || null,
+          });
+        }
         await new Promise((r) => setImmediate(r)); // let adapter flush
 
         if (options.json) {

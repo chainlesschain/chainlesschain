@@ -12775,9 +12775,19 @@ async function _getAutoCompactor(options) {
     return _instrumentAutoCompactorUsage(options._autoCompactor, options);
   }
   let compressor = null;
+  let canonicalRequired = false;
   try {
     const { feature } = await import("../lib/feature-flags.js");
-    if (feature("PROMPT_COMPRESSOR")) {
+    const { resolveCliContextMemoryCutover } =
+      await import("../lib/context-memory-kernel/authority.js");
+    const cutover = resolveCliContextMemoryCutover({
+      env: options.contextMemoryEnv || process.env,
+      scopeKey: options.sessionId
+        ? `cli:session:${options.sessionId}`
+        : "cli:live-session",
+    });
+    canonicalRequired = cutover.canonical;
+    if (feature("PROMPT_COMPRESSOR") || cutover.canonical) {
       const { PromptCompressor } =
         await import("../harness/prompt-compressor.js");
       const llmQuery =
@@ -12824,8 +12834,35 @@ async function _getAutoCompactor(options) {
         summaryInputMaxChars: options.compactionInputMaxChars,
       });
       compressor = _instrumentAutoCompactorUsage(compressor, options);
+      if (cutover.canonical) {
+        const compatibilitySummarizer = compressor;
+        const { compactLiveMessagesCanonical } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
+        compressor = {
+          canonicalKernel: true,
+          shouldAutoCompact: (messages) =>
+            compatibilitySummarizer.shouldAutoCompact(messages),
+          compress: async (messages, compressOptions = {}) => {
+            return compactLiveMessagesCanonical(messages, {
+              compressor: compatibilitySummarizer,
+              compressOptions,
+              sessionId: options.sessionId,
+              operationId: `auto-${randomUUID()}`,
+              provider: options.provider,
+              model: options.model,
+              env: options.contextMemoryEnv || process.env,
+              persist: options.persistCompaction !== false,
+              trigger: "auto",
+              ...(typeof options.onCompaction === "function"
+                ? { commit: options.onCompaction }
+                : {}),
+            });
+          },
+        };
+      }
     }
-  } catch {
+  } catch (error) {
+    if (canonicalRequired) throw error;
     compressor = null;
   }
   try {
@@ -12906,7 +12943,9 @@ async function _settleAutomaticCompaction({
   }
 
   let settlement = null;
-  if (typeof options.onCompaction === "function") {
+  if (stats?.canonicalAlreadySettled === true) {
+    settlement = stats.canonicalReceipt || null;
+  } else if (typeof options.onCompaction === "function") {
     if (options.onCompaction.constructor?.name === "AsyncFunction") {
       throw _compactionSettlementError(
         "CC_COMPACTION_SETTLEMENT_ASYNC",
@@ -13597,7 +13636,10 @@ export async function* agentLoop(messages, options) {
           // the full compaction below is skipped this round — so heavy-tool
           // conversations rarely hit a full summarize. Opt out:
           // autoMicroCompact: false.
-          if (options.autoMicroCompact !== false) {
+          if (
+            options.autoMicroCompact !== false &&
+            compactor.canonicalKernel !== true
+          ) {
             try {
               const { microCompact } = await import("../lib/micro-compact.js");
               const mc = microCompact(messages);
@@ -13670,6 +13712,33 @@ export async function* agentLoop(messages, options) {
                 preserveToolPairs: true,
                 ...pinOpts,
               });
+          if (
+            stats?.canonicalReceipt &&
+            !["committed", "degraded"].includes(
+              stats.canonicalReceipt.status,
+            )
+          ) {
+            automaticCompactionSettlementBlocked = true;
+            yield {
+              type: "compaction-degraded",
+              runId,
+              reason:
+                stats.canonicalReceipt.status === "stale"
+                  ? "session_messages_changed_during_compaction"
+                  : "canonical_compaction_reconciliation_required",
+              summaryMode: "none",
+              code:
+                stats.canonicalReceipt.status === "stale"
+                  ? "SESSION_REVISION_STALE"
+                  : "CC_COMPACTION_RECONCILIATION_REQUIRED",
+              receipt: stats.canonicalReceipt,
+            };
+            await _awaitBackgroundUsageSettlement(
+              backgroundSubAgents,
+              backgroundUsageFailureState,
+            );
+            return;
+          }
           const observerFailure = compactionUsageState.calls.find(
             (call) => call.observerFailed,
           );

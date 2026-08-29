@@ -14,6 +14,9 @@
 
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../context-memory/authority.js");
 
 /**
  * 计算文本的 MD5 哈希
@@ -107,6 +110,10 @@ class PromptCompressor {
    * @returns {Promise<Object>} 压缩结果 {messages, originalTokens, compressedTokens, compressionRatio, strategy}
    */
   async compress(messages, options = {}) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:prompt-compressor",
+      replacement: "coding-agent:app-server-context-compact",
+    });
     const startTime = Date.now();
 
     if (!Array.isArray(messages) || messages.length === 0) {

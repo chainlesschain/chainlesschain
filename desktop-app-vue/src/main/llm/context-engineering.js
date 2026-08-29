@@ -13,6 +13,9 @@
  */
 
 import crypto from "crypto";
+import contextMemoryAuthority from "../context-memory/authority.js";
+
+const { assertDesktopLegacyMutationAllowed } = contextMemoryAuthority;
 
 function getToolSchema(tool) {
   return (
@@ -281,6 +284,10 @@ class ContextEngineering {
    * @returns {Object} 优化后的消息数组和元数据
    */
   buildOptimizedPrompt(options) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:context-engineering",
+      replacement: "coding-agent:app-server-context-plan",
+    });
     const {
       systemPrompt,
       messages = [],
@@ -1026,6 +1033,10 @@ class RecoverableCompressor {
    * @returns {Object} 压缩后的引用
    */
   compress(content, type = "default") {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:recoverable-compressor",
+      replacement: "coding-agent:app-server-context-compact",
+    });
     if (!content) {
       return content;
     }

@@ -98,4 +98,30 @@ describe("Coding Agent V3 production bootstrap", () => {
     await controller.dispose();
     expect(pilot.close).toHaveBeenCalledOnce();
   });
+
+  it("maps the Desktop Context/Memory stage into the canonical CLI child", () => {
+    const service = {
+      ...createService(),
+      repoRoot: "C:/repo",
+      bridge: { cliEntry: "C:/repo/packages/cli/bin/chainlesschain.js" },
+    };
+    const PilotClass = vi.fn(function AppServerPilotMock() {
+      return { close: vi.fn().mockResolvedValue(undefined) };
+    });
+    const controller = createCodingAgentBootstrap({
+      service,
+      registerIPC: vi.fn(() => vi.fn()),
+      contextMemoryStage: "canonical_default",
+      PilotClass,
+    });
+
+    expect(controller.appServerPilot).toBeTruthy();
+    expect(PilotClass).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env: {
+          CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+        },
+      }),
+    );
+  });
 });

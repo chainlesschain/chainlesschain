@@ -16,6 +16,13 @@ class IdeAppServerPilot extends EventEmitter {
     this.client = options.client || null;
     this.lastThreadId = null;
     this.lastTurnId = null;
+    this.contextMemoryProjection = {
+      lastPlan: null,
+      lastCompactionReceipt: null,
+      lastRecall: null,
+      memoryRevision: 0,
+      memories: new Map(),
+    };
     this.on("error", () => {});
     if (this.client) this._attach(this.client);
   }
@@ -26,6 +33,14 @@ class IdeAppServerPilot extends EventEmitter {
       surface: "vscode",
       lastThreadId: this.lastThreadId,
       lastTurnId: this.lastTurnId,
+      contextMemory: {
+        lastPlan: this.contextMemoryProjection.lastPlan,
+        lastCompactionReceipt:
+          this.contextMemoryProjection.lastCompactionReceipt,
+        lastRecall: this.contextMemoryProjection.lastRecall,
+        memoryRevision: this.contextMemoryProjection.memoryRevision,
+        memories: [...this.contextMemoryProjection.memories.values()],
+      },
       ...(this.client?.status || {
         running: false,
         initialized: false,
@@ -63,7 +78,57 @@ class IdeAppServerPilot extends EventEmitter {
       "exit",
       "error",
     ]) {
-      client.on(eventName, (payload) => this.emit(eventName, payload));
+      client.on(eventName, (payload) => {
+        if (eventName === "notification") this._projectNotification(payload);
+        this.emit(eventName, payload);
+      });
+    }
+  }
+
+  _projectNotification(notification) {
+    const method = notification?.method;
+    const value = notification?.params;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    if (method === "context/event") {
+      if (value.type === "context.plan.created" && value.plan) {
+        this.contextMemoryProjection.lastPlan = value.plan;
+        if (Number.isSafeInteger(value.plan.memoryRevision)) {
+          this.contextMemoryProjection.memoryRevision =
+            value.plan.memoryRevision;
+        }
+      } else if (
+        [
+          "context.compaction.committed",
+          "context.compaction.reconciliation_required",
+        ].includes(value.type) &&
+        value.receipt
+      ) {
+        this.contextMemoryProjection.lastCompactionReceipt = value.receipt;
+        if (Number.isSafeInteger(value.receipt.memoryRevision)) {
+          this.contextMemoryProjection.memoryRevision =
+            value.receipt.memoryRevision;
+        }
+      }
+      return;
+    }
+    if (method !== "memory/event") return;
+    if (value.type === "memory.recalled" && value.result) {
+      this.contextMemoryProjection.lastRecall = value.result;
+      if (Number.isSafeInteger(value.result.memoryRevision)) {
+        this.contextMemoryProjection.memoryRevision =
+          value.result.memoryRevision;
+      }
+      return;
+    }
+    if (value.memory_id && value.record) {
+      this.contextMemoryProjection.memories.set(value.memory_id, value.record);
+      while (this.contextMemoryProjection.memories.size > 256) {
+        this.contextMemoryProjection.memories.delete(
+          this.contextMemoryProjection.memories.keys().next().value,
+        );
+      }
+    } else if (value.type === "memory.purged" && value.memory_id) {
+      this.contextMemoryProjection.memories.delete(value.memory_id);
     }
   }
 
@@ -114,6 +179,34 @@ class IdeAppServerPilot extends EventEmitter {
 
   turnInterrupt(params) {
     return this._getClient().turnInterrupt(params);
+  }
+
+  contextPlan(params) {
+    return this._getClient().contextPlan(params);
+  }
+
+  contextCompact(params) {
+    return this._getClient().contextCompact(params);
+  }
+
+  memoryRecall(params) {
+    return this._getClient().memoryRecall(params);
+  }
+
+  memoryPropose(params) {
+    return this._getClient().memoryPropose(params);
+  }
+
+  memoryDecide(params) {
+    return this._getClient().memoryDecide(params);
+  }
+
+  memoryDelete(params) {
+    return this._getClient().memoryDelete(params);
+  }
+
+  memoryReconcile(params) {
+    return this._getClient().memoryReconcile(params);
   }
 }
 

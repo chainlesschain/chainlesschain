@@ -13,6 +13,24 @@
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
 const SqlSecurity = require("../database/sql-security.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
+
+function assertLegacyMemoryHierarchyWriter(replacement) {
+  assertDesktopLegacyMutationAllowed({
+    scopeKey: "desktop:memory-hierarchy",
+    replacement:
+      replacement || "coding-agent:app-server-memory-propose",
+  });
+}
+
+function legacyMemoryHierarchyWritable() {
+  return resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:memory-hierarchy",
+  }).legacyWritable;
+}
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -67,6 +85,7 @@ class WorkingMemory {
    * @returns {boolean} Whether addition was successful
    */
   add(memory) {
+    assertLegacyMemoryHierarchyWriter();
     const tokenCount = this._estimateTokens(memory.content);
 
     // Check if we have room
@@ -89,6 +108,7 @@ class WorkingMemory {
    * @returns {Object|null} Removed memory
    */
   evictOldest() {
+    assertLegacyMemoryHierarchyWriter();
     if (this.memories.length === 0) {
       return null;
     }
@@ -144,6 +164,7 @@ class WorkingMemory {
    * Clear working memory
    */
   clear() {
+    assertLegacyMemoryHierarchyWriter();
     this.memories = [];
     this.currentTokens = 0;
   }
@@ -153,6 +174,9 @@ class WorkingMemory {
    * @param {string} message - System message
    */
   setSystemMessage(message) {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-context-plan",
+    );
     this.systemMessage = message;
   }
 
@@ -161,6 +185,7 @@ class WorkingMemory {
    * @param {string} persona - User persona description
    */
   setUserPersona(persona) {
+    assertLegacyMemoryHierarchyWriter();
     this.userPersona = persona;
   }
 
@@ -205,6 +230,7 @@ class RecallMemory {
    * @param {Object} memory - Memory object
    */
   store(id, memory) {
+    assertLegacyMemoryHierarchyWriter();
     this.memories.set(id, {
       ...memory,
       storedAt: Date.now(),
@@ -225,7 +251,7 @@ class RecallMemory {
    */
   get(id) {
     const memory = this.memories.get(id);
-    if (memory) {
+    if (memory && legacyMemoryHierarchyWritable()) {
       this.accessCounts.set(id, (this.accessCounts.get(id) || 0) + 1);
       this.lastAccessed.set(id, Date.now());
     }
@@ -297,6 +323,9 @@ class RecallMemory {
    * @returns {boolean} Whether removal was successful
    */
   remove(id) {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-memory-delete",
+    );
     this.accessCounts.delete(id);
     this.lastAccessed.delete(id);
     return this.memories.delete(id);
@@ -306,6 +335,9 @@ class RecallMemory {
    * Clear all memories
    */
   clear() {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-memory-delete",
+    );
     this.memories.clear();
     this.accessCounts.clear();
     this.lastAccessed.clear();
@@ -377,6 +409,7 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<string>} Memory ID
    */
   async store(memory) {
+    assertLegacyMemoryHierarchyWriter();
     if (!this.db) {
       throw new Error("Database not initialized");
     }
@@ -459,7 +492,7 @@ class ArchivalMemory extends EventEmitter {
 
       if (row) {
         // Update access stats
-        await this.db.run(
+        if (legacyMemoryHierarchyWritable()) await this.db.run(
           `
           UPDATE ${this.tableName}
           SET accessed_at = ?, access_count = access_count + 1
@@ -611,6 +644,9 @@ class ArchivalMemory extends EventEmitter {
    * @param {number} importance - New importance
    */
   async updateImportance(id, importance) {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-memory-decide",
+    );
     if (!this.db) {
       return;
     }
@@ -635,6 +671,9 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<boolean>} Success
    */
   async delete(id) {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-memory-delete",
+    );
     if (!this.db) {
       return false;
     }
@@ -778,6 +817,7 @@ class MemoryHierarchy extends EventEmitter {
    * @returns {Promise<string|boolean>} Result
    */
   async addMemory(memory, layer = "recall") {
+    assertLegacyMemoryHierarchyWriter();
     switch (layer) {
       case "working":
         return this.working.add(memory);
@@ -802,6 +842,7 @@ class MemoryHierarchy extends EventEmitter {
    * @returns {boolean} Success
    */
   promoteToWorking(id) {
+    assertLegacyMemoryHierarchyWriter();
     const memory = this.recall.get(id);
     if (!memory) {
       return false;
@@ -825,6 +866,7 @@ class MemoryHierarchy extends EventEmitter {
    * @returns {Promise<string|null>} Archived memory ID
    */
   async archiveFromRecall(id) {
+    assertLegacyMemoryHierarchyWriter();
     const memory = this.recall.get(id);
     if (!memory) {
       return null;
@@ -865,6 +907,7 @@ class MemoryHierarchy extends EventEmitter {
    * Auto-manage memory - evict from recall to archival when threshold reached
    */
   async autoManage() {
+    assertLegacyMemoryHierarchyWriter();
     const recallStats = this.recall.getStats();
 
     if (recallStats.size >= this.config.autoArchiveThreshold) {
@@ -897,6 +940,9 @@ class MemoryHierarchy extends EventEmitter {
    * @param {Array} layers - Layers to clear (default: all)
    */
   async clear(layers = ["working", "recall"]) {
+    assertLegacyMemoryHierarchyWriter(
+      "coding-agent:app-server-memory-delete",
+    );
     if (layers.includes("working")) {
       this.working.clear();
     }

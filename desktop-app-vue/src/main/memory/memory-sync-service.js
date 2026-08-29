@@ -19,6 +19,17 @@ const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
+const {
+  assertDesktopLegacyMutationAllowed,
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
+
+function assertLegacyMemorySyncWriter() {
+  assertDesktopLegacyMutationAllowed({
+    scopeKey: "desktop:memory-sync-service",
+    replacement: "coding-agent:app-server-memory-reconcile",
+  });
+}
 
 /**
  * MemorySyncService 类
@@ -82,6 +93,15 @@ class MemorySyncService extends EventEmitter {
    */
   async initialize() {
     try {
+      const cutover = resolveDesktopContextMemoryCutover({
+        scopeKey: "desktop:memory-sync-service",
+      });
+      if (!cutover.legacyWritable) {
+        logger.info(
+          `[MemorySyncService] Legacy sync disabled at ${cutover.stage}`,
+        );
+        return { success: true, readOnly: true, stage: cutover.stage };
+      }
       logger.info("[MemorySyncService] Starting initialization sync...");
 
       // 确保所有目录存在
@@ -143,6 +163,7 @@ class MemorySyncService extends EventEmitter {
    * @returns {Promise<Object>} 同步结果
    */
   async syncAll() {
+    assertLegacyMemorySyncWriter();
     if (this._isSyncing) {
       logger.info("[MemorySyncService] Sync already in progress, skipping...");
       return { success: false, reason: "already_syncing" };
@@ -502,6 +523,7 @@ class MemorySyncService extends EventEmitter {
    * 启动定期同步
    */
   startPeriodicSync() {
+    assertLegacyMemorySyncWriter();
     if (this._syncTimer) {
       return;
     }
@@ -537,6 +559,7 @@ class MemorySyncService extends EventEmitter {
    * @returns {Promise<Object>} 同步结果
    */
   async syncCategory(category) {
+    assertLegacyMemorySyncWriter();
     switch (category) {
       case "preferences":
         return this.syncPreferences();

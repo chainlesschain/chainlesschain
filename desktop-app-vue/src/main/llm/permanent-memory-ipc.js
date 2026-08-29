@@ -10,12 +10,21 @@
 
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
+const {
+  legacyWriterFencedResult,
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
 
 /**
  * 注册 PermanentMemory IPC 通道
  * @param {PermanentMemoryManager} permanentMemory - PermanentMemoryManager 实例
  */
 function registerPermanentMemoryIPC(permanentMemory) {
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:permanent-memory-ipc",
+  });
+  const fenced = (replacement = "coding-agent:app-server-memory-propose") =>
+    legacyWriterFencedResult(contextMemoryCutover, replacement);
   if (!permanentMemory) {
     logger.error("[PermanentMemoryIPC] permanentMemory 实例未提供");
     return;
@@ -35,6 +44,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:write-daily-note",
     async (event, { content, append = true }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) return fenced();
         const filePath = await permanentMemory.writeDailyNote(content, {
           append,
         });
@@ -103,6 +113,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:append-to-memory",
     async (event, { content, section }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) return fenced();
         await permanentMemory.appendToMemory(content, { section });
         return { success: true };
       } catch (error) {
@@ -118,6 +129,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:update-memory", async (event, { content }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) return fenced();
       await permanentMemory.updateMemory(content);
       return { success: true };
     } catch (error) {
@@ -286,6 +298,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:save-to-memory",
     async (event, { content, type = "conversation", section = null }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) return fenced();
         const result = await permanentMemory.saveToMemory(content, {
           type,
           section,
@@ -306,6 +319,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
     "memory:extract-from-conversation",
     async (event, { messages, conversationTitle = "" }) => {
       try {
+        if (!contextMemoryCutover.legacyWritable) return fenced();
         const result = await permanentMemory.extractFromConversation(
           messages,
           conversationTitle,
@@ -324,6 +338,7 @@ function registerPermanentMemoryIPC(permanentMemory) {
    */
   ipcMain.handle("memory:extract-from-session", async (event, { sessionId }) => {
     try {
+      if (!contextMemoryCutover.legacyWritable) return fenced();
       if (typeof permanentMemory.extractFromSession === "function") {
         const result = await permanentMemory.extractFromSession(sessionId);
         return { success: true, result };
@@ -364,6 +379,9 @@ function registerPermanentMemoryIPC(permanentMemory) {
  * @param {Object} semanticChunker - SemanticChunker 实例
  */
 function registerAdvancedMemoryIPC(advancedSearch, memoryAnalytics, semanticChunker) {
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    scopeKey: "desktop:advanced-memory-ipc",
+  });
   logger.info("[PermanentMemoryIPC] 注册高级搜索和分析 IPC 通道");
 
   // ============================================
@@ -472,6 +490,12 @@ function registerAdvancedMemoryIPC(advancedSearch, memoryAnalytics, semanticChun
       "memory:set-importance",
       async (event, { memoryId, importance }) => {
         try {
+          if (!contextMemoryCutover.legacyWritable) {
+            return legacyWriterFencedResult(
+              contextMemoryCutover,
+              "coding-agent:app-server-memory-decide",
+            );
+          }
           const result = await advancedSearch.setImportance(memoryId, importance);
           return { success: result };
         } catch (error) {

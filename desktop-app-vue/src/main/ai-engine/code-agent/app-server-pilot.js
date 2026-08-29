@@ -7,6 +7,7 @@ const { resolveActorDid } = require("../../permission/current-user-context.js");
 
 const MAX_PARAMS_BYTES = 256 * 1024;
 const MAX_PENDING_HUMAN_TASKS = 128;
+const MAX_PROJECTED_MEMORIES = 256;
 
 function normalizeParams(value) {
   const params = value == null ? {} : value;
@@ -50,6 +51,13 @@ class DesktopAppServerPilot extends EventEmitter {
       Number(options.requestTimeoutMs) || 120_000,
     );
     this.pendingHumanTasks = new Map();
+    this.contextMemoryProjection = {
+      lastPlan: null,
+      lastCompactionReceipt: null,
+      lastRecall: null,
+      memoryRevision: 0,
+      memories: new Map(),
+    };
     this.resolveActorDid = options.resolveActorDid || resolveActorDid;
     this.humanTaskTimeoutMs = Math.max(
       1,
@@ -68,6 +76,7 @@ class DesktopAppServerPilot extends EventEmitter {
         serverQueueCap: options.serverQueueCap ?? 256,
         maxPendingRequests: options.maxPendingRequests ?? 128,
         requestTimeoutMs,
+        env: options.env,
         clientName: "chainlesschain-desktop-app-server-pilot",
         clientVersion: options.clientVersion || "1",
         onServerRequest: (request) => this._handleServerRequest(request),
@@ -92,7 +101,12 @@ class DesktopAppServerPilot extends EventEmitter {
       "exit",
       "error",
     ]) {
-      this.client.on(eventName, (payload) => this.emit(eventName, payload));
+      this.client.on(eventName, (payload) => {
+        if (eventName === "notification") {
+          this._projectNotification(payload);
+        }
+        this.emit(eventName, payload);
+      });
     }
   }
 
@@ -100,6 +114,14 @@ class DesktopAppServerPilot extends EventEmitter {
     return {
       enabled: true,
       surface: "desktop",
+      contextMemory: {
+        lastPlan: this.contextMemoryProjection.lastPlan,
+        lastCompactionReceipt:
+          this.contextMemoryProjection.lastCompactionReceipt,
+        lastRecall: this.contextMemoryProjection.lastRecall,
+        memoryRevision: this.contextMemoryProjection.memoryRevision,
+        memories: [...this.contextMemoryProjection.memories.values()],
+      },
       ...this.client.status,
     };
   }
@@ -240,6 +262,57 @@ class DesktopAppServerPilot extends EventEmitter {
     );
   }
 
+  _projectNotification(notification) {
+    const method = notification?.method;
+    const value = notification?.params;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    if (method === "context/event") {
+      if (value.type === "context.plan.created" && value.plan) {
+        this.contextMemoryProjection.lastPlan = value.plan;
+        if (Number.isSafeInteger(value.plan.memoryRevision)) {
+          this.contextMemoryProjection.memoryRevision =
+            value.plan.memoryRevision;
+        }
+      } else if (
+        [
+          "context.compaction.committed",
+          "context.compaction.reconciliation_required",
+        ].includes(value.type) &&
+        value.receipt
+      ) {
+        this.contextMemoryProjection.lastCompactionReceipt = value.receipt;
+        if (Number.isSafeInteger(value.receipt.memoryRevision)) {
+          this.contextMemoryProjection.memoryRevision =
+            value.receipt.memoryRevision;
+        }
+      }
+      return;
+    }
+    if (method !== "memory/event") return;
+    if (value.type === "memory.recalled" && value.result) {
+      this.contextMemoryProjection.lastRecall = value.result;
+      if (Number.isSafeInteger(value.result.memoryRevision)) {
+        this.contextMemoryProjection.memoryRevision =
+          value.result.memoryRevision;
+      }
+      return;
+    }
+    if (value.type === "memory.purged" && value.memory_id) {
+      this.contextMemoryProjection.memories.delete(value.memory_id);
+      return;
+    }
+    if (value.memory_id && value.record) {
+      this.contextMemoryProjection.memories.set(value.memory_id, value.record);
+      while (
+        this.contextMemoryProjection.memories.size > MAX_PROJECTED_MEMORIES
+      ) {
+        this.contextMemoryProjection.memories.delete(
+          this.contextMemoryProjection.memories.keys().next().value,
+        );
+      }
+    }
+  }
+
   threadStart(params = {}) {
     return this.client.threadStart(normalizeParams(params));
   }
@@ -295,10 +368,39 @@ class DesktopAppServerPilot extends EventEmitter {
   graphReconcile(params) {
     return this.client.graphReconcile(normalizeParams(params));
   }
+
+  contextPlan(params) {
+    return this.client.contextPlan(normalizeParams(params));
+  }
+
+  contextCompact(params) {
+    return this.client.contextCompact(normalizeParams(params));
+  }
+
+  memoryRecall(params) {
+    return this.client.memoryRecall(normalizeParams(params));
+  }
+
+  memoryPropose(params) {
+    return this.client.memoryPropose(normalizeParams(params));
+  }
+
+  memoryDecide(params) {
+    return this.client.memoryDecide(normalizeParams(params));
+  }
+
+  memoryDelete(params) {
+    return this.client.memoryDelete(normalizeParams(params));
+  }
+
+  memoryReconcile(params) {
+    return this.client.memoryReconcile(normalizeParams(params));
+  }
 }
 
 module.exports = {
   DesktopAppServerPilot,
+  MAX_PROJECTED_MEMORIES,
   MAX_PENDING_HUMAN_TASKS,
   MAX_PARAMS_BYTES,
   normalizeParams,

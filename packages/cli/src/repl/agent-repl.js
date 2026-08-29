@@ -1861,7 +1861,28 @@ export function settleReplCompactionCandidate({
     return { applied: false, error };
   }
 
-  if (useJsonl && sessionId && stats?.strategy !== "none") {
+  if (
+    stats?.canonicalReceipt &&
+    !["committed", "degraded"].includes(stats.canonicalReceipt.status)
+  ) {
+    const error = new Error(
+      stats.canonicalReceipt.status === "stale"
+        ? "REPL session changed during canonical compaction"
+        : "canonical compaction requires reconciliation",
+    );
+    error.code =
+      stats.canonicalReceipt.status === "stale"
+        ? "SESSION_REVISION_STALE"
+        : "CC_COMPACTION_RECONCILIATION_REQUIRED";
+    return { applied: false, error };
+  }
+
+  if (
+    useJsonl &&
+    sessionId &&
+    stats?.strategy !== "none" &&
+    stats?.canonicalAlreadySettled !== true
+  ) {
     try {
       persistence.persist(sessionId, {
         ...stats,
@@ -3332,8 +3353,16 @@ async function startAgentReplInWorkspaceOwned(
     // Continue without DB — static prompt fallback
   }
 
-  // Initialize prompt compressor (adaptive to model's context window)
-  if (feature("PROMPT_COMPRESSOR")) {
+  // Initialize prompt compressor (adaptive to model's context window). A
+  // canonical cutover cannot disable the Kernel writer by toggling the legacy
+  // compressor feature flag; the compressor remains only its summarizer.
+  const { resolveCliContextMemoryCutover } =
+    await import("../lib/context-memory-kernel/authority.js");
+  const contextMemoryCutover = resolveCliContextMemoryCutover({
+    env: options.contextMemoryEnv || process.env,
+    scopeKey: sessionId ? `cli:session:${sessionId}` : "cli:repl",
+  });
+  if (feature("PROMPT_COMPRESSOR") || contextMemoryCutover.canonical) {
     _compressor = new PromptCompressor({
       model,
       provider,
@@ -3371,6 +3400,40 @@ async function startAgentReplInWorkspaceOwned(
         };
       },
     });
+    if (contextMemoryCutover.canonical) {
+      const compatibilitySummarizer = _compressor;
+      const { compactLiveMessagesCanonical } =
+        await import("../lib/context-memory-kernel/live-compaction.js");
+      _compressor = {
+        canonicalKernel: true,
+        maxTokens: compatibilitySummarizer.maxTokens,
+        shouldAutoCompact: (currentMessages) =>
+          compatibilitySummarizer.shouldAutoCompact(currentMessages),
+        compress: (currentMessages, compressOptions = {}) =>
+          compactLiveMessagesCanonical(currentMessages, {
+            compressor: compatibilitySummarizer,
+            compressOptions,
+            sessionId: sessionId || undefined,
+            operationId: `repl-${randomUUID()}`,
+            provider,
+            model,
+            env: options.contextMemoryEnv || process.env,
+            persist: useJsonl && Boolean(sessionId),
+            trigger: "repl",
+            ...(useJsonl && sessionId
+              ? {
+                  commit: (canonicalStats, output) => {
+                    _sessionHostLeaseScope?.lease?.assert?.();
+                    return _replCompactPersistence.persist(sessionId, {
+                      ...canonicalStats,
+                      messages: output,
+                    });
+                  },
+                }
+              : {}),
+          }),
+      };
+    }
   }
   const _autoPinOpt = resolveAutoPinOption({ config: _autoPinCfgValue });
   // Compaction options shared by /compact + auto-compact. Adds the
@@ -7251,6 +7314,13 @@ async function startAgentReplInWorkspaceOwned(
     // recent messages + the conversation flow). Safe (never orphans a tool
     // pair); cheaper + less lossy than a full /compact.
     if (trimmed === "/microcompact") {
+      if (contextMemoryCutover.canonical) {
+        logger.warn(
+          "/microcompact is read-only after Context/Memory cutover; use /compact for canonical CAS/receipt semantics.",
+        );
+        prompt();
+        return;
+      }
       const { microCompact } = await import("../lib/micro-compact.js");
       const { messages: mc, stats } = microCompact(messages);
       if (stats.trimmed > 0) {
@@ -9726,7 +9796,7 @@ async function startAgentReplInWorkspaceOwned(
       _turnBindingProducer?.persistIfDirty();
       // Auto-compact when context grows too large
       if (
-        feature("PROMPT_COMPRESSOR") &&
+        (feature("PROMPT_COMPRESSOR") || contextMemoryCutover.canonical) &&
         _compressor &&
         !_compactionUsageBlock &&
         !_runtimeLedgerTerminalLatch.isTripped() &&

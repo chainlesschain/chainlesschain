@@ -5,6 +5,16 @@
  */
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../../context-memory/authority.js");
+
+function assertLegacyHierarchicalMemoryWriter() {
+  assertDesktopLegacyMutationAllowed({
+    scopeKey: "desktop:hierarchical-memory",
+    replacement: "coding-agent:app-server-memory-propose",
+  });
+}
 
 /**
  * Parse a stored JSON column defensively. One corrupt/truncated row must not
@@ -154,6 +164,7 @@ class HierarchicalMemory extends EventEmitter {
 
   // Store memory at appropriate layer
   store(content, options = {}) {
+    assertLegacyHierarchicalMemoryWriter();
     const id =
       options.id ||
       `mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -305,6 +316,7 @@ class HierarchicalMemory extends EventEmitter {
 
   // Memory consolidation (simulates sleep-based memory integration)
   consolidate() {
+    assertLegacyHierarchicalMemoryWriter();
     let promoted = 0;
     let forgotten = 0;
     const now = Date.now();
@@ -355,6 +367,7 @@ class HierarchicalMemory extends EventEmitter {
 
   // Cross-agent memory sharing
   shareMemory(memoryId, targetAgentId, privacyLevel = "filtered") {
+    assertLegacyHierarchicalMemoryWriter();
     const memory = this._longTerm.get(memoryId) || this._core.get(memoryId);
     if (!memory) {
       return null;
@@ -399,6 +412,7 @@ class HierarchicalMemory extends EventEmitter {
   }
 
   prune(options = {}) {
+    assertLegacyHierarchicalMemoryWriter();
     const maxAge = options.maxAge || 168; // 7 days in hours
     const now = Date.now();
     let pruned = 0;

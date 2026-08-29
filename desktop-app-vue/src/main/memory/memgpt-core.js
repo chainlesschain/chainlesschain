@@ -19,6 +19,17 @@ const {
   MemoryImportance,
 } = require("./memory-hierarchy.js");
 const { MemorySearchEngine, SearchMode } = require("./memory-search.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../context-memory/authority.js");
+
+function assertLegacyMemGptWriter(replacement) {
+  assertDesktopLegacyMutationAllowed({
+    scopeKey: "desktop:memgpt-core",
+    replacement:
+      replacement || "coding-agent:app-server-memory-propose",
+  });
+}
 
 /**
  * MemGPT Memory Tools - Functions exposed to LLM
@@ -318,6 +329,7 @@ class MemGPTCore extends EventEmitter {
    * @param {Object} message - User or assistant message
    */
   async processMessage(message) {
+    assertLegacyMemGptWriter();
     const { role, content } = message;
 
     // Add to conversation buffer
@@ -403,6 +415,7 @@ class MemGPTCore extends EventEmitter {
    * @param {number} importance - Importance score
    */
   async learnUserFact(fact, importance = MemoryImportance.HIGH) {
+    assertLegacyMemGptWriter();
     // Add to core memory (human section)
     if (!this.coreMemory.human.includes(fact)) {
       this.coreMemory.human += `\n- ${fact}`;
@@ -443,6 +456,9 @@ class MemGPTCore extends EventEmitter {
    * Clear session memory (keep archival)
    */
   clearSession() {
+    assertLegacyMemGptWriter(
+      "coding-agent:app-server-memory-delete",
+    );
     this.memoryHierarchy.clear(["working", "recall"]);
     this.conversationBuffer = [];
     logger.info("[MemGPTCore] Session memory cleared");
@@ -452,7 +468,12 @@ class MemGPTCore extends EventEmitter {
    * Cleanup resources
    */
   cleanup() {
-    this.clearSession();
+    this.memoryHierarchy.working.memories = [];
+    this.memoryHierarchy.working.currentTokens = 0;
+    this.memoryHierarchy.recall.memories.clear();
+    this.memoryHierarchy.recall.accessCounts.clear();
+    this.memoryHierarchy.recall.lastAccessed.clear();
+    this.conversationBuffer = [];
     this.searchEngine.clearCache();
     this.initialized = false;
   }
@@ -544,6 +565,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _saveCoreMemory() {
+    assertLegacyMemGptWriter();
     if (!this.db) {
       return;
     }
@@ -571,6 +593,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _coreMemoryAppend(params) {
+    assertLegacyMemGptWriter();
     const { section, content } = params;
 
     if (!["persona", "human"].includes(section)) {
@@ -594,6 +617,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _coreMemoryReplace(params) {
+    assertLegacyMemGptWriter();
     const { section, old_content, new_content } = params;
 
     if (!["persona", "human"].includes(section)) {
@@ -647,6 +671,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _archivalMemoryInsert(params) {
+    assertLegacyMemGptWriter();
     const { content, importance = 0.5, type = "fact" } = params;
 
     this.stats.archivalInserts++;
@@ -740,6 +765,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _summarizeWorkingMemory() {
+    assertLegacyMemGptWriter();
     if (!this.llmManager) {
       logger.warn("[MemGPTCore] No LLM manager for summarization");
       return;
