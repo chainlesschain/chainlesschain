@@ -11,6 +11,10 @@ import { join } from "node:path";
 import { promises as fsp, existsSync, mkdirSync } from "node:fs";
 import { getHomeDir } from "./paths.js";
 import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "./context-memory-kernel/authority.js";
+import {
   ensureTrustedSessionLifecycleScope,
   resolveTrustedSessionLifecycleScope,
 } from "./session-lifecycle-scope.js";
@@ -50,7 +54,15 @@ export function getApprovalPoliciesPath() {
 export function getMemoryStore() {
   if (_memoryStore) return _memoryStore;
   const adapter = createMemoryFileAdapter(getMemoryStorePath());
-  _memoryStore = new MemoryStore({ adapter });
+  _memoryStore = new MemoryStore({
+    adapter,
+    writeGuard: () =>
+      assertLegacyMutationAllowed(
+        resolveCliContextMemoryCutover({
+          scopeKey: "cli:legacy-session-core-memory",
+        }),
+      ),
+  });
   hydrateMemoryStore(_memoryStore, adapter);
   return _memoryStore;
 }

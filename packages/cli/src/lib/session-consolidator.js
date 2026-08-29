@@ -20,6 +20,8 @@ import {
 } from "@chainlesschain/session-core";
 import { readEvents, sessionExists } from "../harness/jsonl-session-store.js";
 import { getMemoryStore } from "./session-core-singletons.js";
+import { createCliCanonicalMemoryService } from "./context-memory-kernel/memory-service.js";
+import { resolveCliContextMemoryCutover } from "./context-memory-kernel/authority.js";
 
 /**
  * Build an in-memory TraceStore populated with events from a JSONL session.
@@ -108,6 +110,63 @@ export async function consolidateJsonlSession(sessionId, options = {}) {
   }
 
   const trace = buildTraceStoreFromJsonl(sessionId, options.events);
+  const decision = resolveCliContextMemoryCutover({
+    env: options.env,
+    scopeKey: `cli:session-consolidator:${sessionId}`,
+  });
+  if (decision.canonical) {
+    const traceEvents = trace.query(sessionId, {
+      limit: Number.MAX_SAFE_INTEGER,
+    });
+    const { defaultMemoryExtractor } = await import(
+      "@chainlesschain/session-core"
+    );
+    const facts = defaultMemoryExtractor(traceEvents);
+    const scope = options.scope || "agent";
+    const scopeId =
+      scope === "global"
+        ? null
+        : options.scopeId ||
+          (scope === "session" ? sessionId : options.agentId || sessionId);
+    if (options.dryRun) {
+      return {
+        sessionId,
+        scope,
+        scopeId,
+        eventCount: traceEvents.length,
+        factCount: facts.length,
+        writtenCount: 0,
+        written: [],
+        facts,
+        dryRun: true,
+      };
+    }
+    const service = createCliCanonicalMemoryService({ env: options.env });
+    const written = [];
+    for (const [index, fact] of facts.entries()) {
+      written.push(
+        await service.addScoped(String(fact.content || ""), {
+          scope,
+          scopeId,
+          category: fact.category || "general",
+          tags: fact.tags || [],
+          score: fact.score,
+          source: "cli-session-consolidator",
+          evidenceStore: "cli-jsonl-session",
+          evidenceId: `${sessionId}-${index}`,
+        }),
+      );
+    }
+    return {
+      sessionId,
+      scope,
+      scopeId,
+      eventCount: traceEvents.length,
+      factCount: facts.length,
+      writtenCount: written.length,
+      written,
+    };
+  }
   const memoryStore = options.memoryStore || getMemoryStore();
   const consolidator = new MemoryConsolidator({
     memoryStore,

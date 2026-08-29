@@ -10650,14 +10650,40 @@ export async function chatWithTools(rawMessages, options) {
     options.providerRequestId,
   );
 
-  const tools = getEffectiveToolDefinitions(options);
+  let tools = getEffectiveToolDefinitions(options);
+  if (Array.isArray(options.contextMemorySelectedToolNames)) {
+    const selected = new Set(options.contextMemorySelectedToolNames);
+    tools = tools.filter((tool) => selected.has(tool?.function?.name));
+  }
 
-  const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
-  const messages = ce
-    ? ce.buildOptimizedMessages(rawMessages, {
+  let providerMessages = rawMessages;
+  let canonicalPlan = null;
+  if (
+    options.contextMemoryPreplanned !== true &&
+    options.contextMemorySkipPlanning !== true
+  ) {
+    const { prepareCanonicalProviderContext } = await import(
+      "../lib/context-memory-kernel/provider-context.js"
+    );
+    const prepared = await prepareCanonicalProviderContext(rawMessages, {
+      ...options,
+      contextMemoryToolDefinitions: tools,
+    });
+    providerMessages = prepared.messages;
+    canonicalPlan = prepared.plan;
+    if (canonicalPlan) {
+      const selected = new Set(prepared.selectedToolNames);
+      tools = tools.filter((tool) => selected.has(tool?.function?.name));
+    }
+  }
+  const lastUserMsg = [...providerMessages]
+    .reverse()
+    .find((m) => m.role === "user");
+  const messages = ce && !canonicalPlan
+    ? ce.buildOptimizedMessages(providerMessages, {
         userQuery: lastUserMsg?.content,
       })
-    : rawMessages;
+    : providerMessages;
 
   throwIfAborted(signal);
 
@@ -12808,6 +12834,7 @@ async function _getAutoCompactor(options) {
                   {
                     ...options,
                     contextEngine: null,
+                    contextMemorySkipPlanning: true,
                     enabledToolNames: [],
                     extraToolDefinitions: [],
                     hostManagedToolPolicy: null,
@@ -14051,6 +14078,7 @@ export async function* agentLoop(messages, options) {
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
     let callMessages = messages;
+    const contextMemoryTrustedSystemIndexes = [];
     if (!hermeticExecution && typeof options.prepareCall === "function") {
       try {
         const hook = await options.prepareCall({
@@ -14067,6 +14095,7 @@ export async function* agentLoop(messages, options) {
             ...messages,
             { role: "system", content: hook.systemSuffix },
           ];
+          contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
         }
       } catch (_e) {
         // prepareCall failures are non-critical — proceed with original messages
@@ -14079,6 +14108,30 @@ export async function* agentLoop(messages, options) {
     // model request within that turn. Normalized through buildTelemetryAttributes
     // so they get the same charset-sanitized + cardinality-bounded treatment as
     // the run-level ids (turn.id correlates with the agent.iteration counter).
+    let canonicalProviderContext = null;
+    if (options.contextMemorySkipPlanning !== true) {
+      const { prepareCanonicalProviderContext } = await import(
+        "../lib/context-memory-kernel/provider-context.js"
+      );
+      canonicalProviderContext = await prepareCanonicalProviderContext(
+        callMessages,
+        {
+          ...options,
+          contextMemoryToolDefinitions:
+            getEffectiveToolDefinitions(effectiveToolOptions),
+          contextMemoryTrustedSystemIndexes,
+        },
+      );
+      if (canonicalProviderContext.plan) {
+        callMessages = canonicalProviderContext.messages;
+        yield {
+          type: "context.plan.created",
+          plan: canonicalProviderContext.plan,
+          recallDigest: canonicalProviderContext.recall?.digest || null,
+        };
+      }
+    }
+
     const modelIdAttrs = recorder
       ? buildTelemetryAttributes({
           turnId: `${runId}:t${budget.consumed}`,
@@ -14093,9 +14146,18 @@ export async function* agentLoop(messages, options) {
       "model",
       budget.consumed,
     );
-    const providerCallOptions = providerRequestId
-      ? { ...effectiveToolOptions, providerRequestId }
+    const plannedProviderOptions = canonicalProviderContext?.plan
+      ? {
+          ...effectiveToolOptions,
+          contextEngine: null,
+          contextMemoryPreplanned: true,
+          contextMemorySelectedToolNames:
+            canonicalProviderContext.selectedToolNames,
+        }
       : effectiveToolOptions;
+    const providerCallOptions = providerRequestId
+      ? { ...plannedProviderOptions, providerRequestId }
+      : plannedProviderOptions;
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),

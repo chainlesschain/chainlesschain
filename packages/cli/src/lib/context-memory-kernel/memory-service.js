@@ -348,19 +348,25 @@ export class CliCanonicalMemoryService {
   }
 
   _scopedProposal(content, options = {}) {
-    const now = new Date(Number(this.now())).toISOString();
+    const now = validTimestamp(
+      options.createdAt || options.observedAt,
+      new Date(Number(this.now())).toISOString(),
+    );
     const scope = normalizedScope(options.scope, options.scopeId);
     const evidenceId = `scoped-${canonicalDigest(
       { content, scope, category: options.category || "general", now },
       "chainlesschain.cli-scoped-memory-add/v1",
     ).slice(7, 39)}`;
     return {
+      ...(options.memoryId
+        ? { memoryId: safeIdentifier(options.memoryId, "") }
+        : {}),
       ...scope,
       category: safeIdentifier(options.category, "general"),
       content,
       provenance: {
         source: safeIdentifier(options.source, "cli-scoped-memory"),
-        actor: "local-user",
+        actor: safeIdentifier(options.actor, "local-user"),
         observedAt: now,
       },
       evidenceRefs: [
@@ -385,6 +391,47 @@ export class CliCanonicalMemoryService {
       this._scopedProposal(content, options),
     );
     return { ...publicScopedEntry(mutation.record), receipt: mutation.receipt };
+  }
+
+  async ensureScoped(content, options = {}) {
+    if (!options.memoryId) {
+      throw new TypeError("memoryId is required for an idempotent scoped seed");
+    }
+    const proposal = this._scopedProposal(content, options);
+    const verifyExisting = (existing) => {
+      const fields = ["memoryId", "scope", "scopeId", "category", "content"];
+      const mismatch = fields.find(
+        (field) => (existing?.[field] ?? null) !== (proposal[field] ?? null),
+      );
+      if (mismatch) {
+        const error = new Error(
+          `canonical seed ${proposal.memoryId} conflicts on ${mismatch}`,
+        );
+        error.code = "CONTEXT_MEMORY_SEED_CONFLICT";
+        throw error;
+      }
+      return {
+        ...publicScopedEntry(existing),
+        created: false,
+      };
+    };
+
+    const existing = await this.runtime.memoryPort.read(proposal.memoryId);
+    if (existing) return verifyExisting(existing);
+
+    try {
+      const mutation = await this.runtime.kernel.proposeMemory(proposal);
+      return {
+        ...publicScopedEntry(mutation.record),
+        receipt: mutation.receipt,
+        created: true,
+      };
+    } catch (error) {
+      if (error?.code !== "revision_conflict") throw error;
+      const raced = await this.runtime.memoryPort.read(proposal.memoryId);
+      if (!raced) throw error;
+      return verifyExisting(raced);
+    }
   }
 
   async recallScoped(query, options = {}) {

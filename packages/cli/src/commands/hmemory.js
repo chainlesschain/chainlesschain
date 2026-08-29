@@ -9,6 +9,10 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "../lib/context-memory-kernel/authority.js";
+import {
   storeMemory,
   recallMemory,
   consolidateMemory,
@@ -40,6 +44,23 @@ export function registerHmemoryCommand(program) {
   const hmemory = program
     .command("hmemory")
     .description("Hierarchical Memory 2.0 — four-layer memory system");
+
+  // This namespace is the pre-Kernel store. Even recall mutates access counts
+  // and forgetting state, so the entire surface is fenced once canonical owns
+  // the scope. Historical data remains available through the canonical
+  // one-time importer and `cc memory recall`.
+  hmemory.hook("preAction", (_thisCommand, actionCommand) => {
+    const decision = resolveCliContextMemoryCutover({
+      scopeKey: `cli:hmemory:${actionCommand.name()}`,
+    });
+    try {
+      assertLegacyMutationAllowed(decision);
+    } catch (error) {
+      error.message += "; use `cc memory store|recall|consolidate`";
+      error.replacement = "cc memory";
+      throw error;
+    }
+  });
 
   // hmemory store <content>
   hmemory

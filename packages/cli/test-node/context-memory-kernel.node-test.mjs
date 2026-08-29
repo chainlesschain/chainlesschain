@@ -21,6 +21,10 @@ import { CliCanonicalMemoryService } from "../src/lib/context-memory-kernel/memo
 import { createCliContextMemoryRuntime } from "../src/lib/context-memory-kernel/runtime.js";
 import { JsonlSessionContextPort } from "../src/lib/context-memory-kernel/jsonl-session-context-port.js";
 import { compactLiveMessagesCanonical } from "../src/lib/context-memory-kernel/live-compaction.js";
+import { prepareCanonicalProviderContext } from "../src/lib/context-memory-kernel/provider-context.js";
+import { addMemory as addLegacyMemory } from "../src/lib/memory-manager.js";
+import { storeMemory as storeLegacyHierarchicalMemory } from "../src/lib/hierarchical-memory.js";
+import { CLIPermanentMemory } from "../src/lib/permanent-memory.js";
 import {
   contextItemsToMessages,
   messagesToContextItems,
@@ -215,6 +219,114 @@ test("CLI cutover decisions keep shadow write-free and fence legacy after cutove
   assert.throws(() => assertLegacyMutationAllowed(readOnly), {
     code: "legacy_writer_fenced",
   });
+  const canonicalDefault = resolveCliContextMemoryCutover({
+    env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+    scopeKey: "cli:test",
+  });
+  assert.equal(canonicalDefault.legacyWritable, false);
+  assert.throws(() => assertLegacyMutationAllowed(canonicalDefault), {
+    code: "legacy_writer_fenced",
+  });
+});
+
+test("canonical production fences direct legacy CLI memory APIs", () => {
+  const previous = process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
+  process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "canonical_default";
+  try {
+    assert.throws(() => addLegacyMemory(null, "legacy write"), {
+      code: "legacy_writer_fenced",
+    });
+    assert.throws(
+      () => storeLegacyHierarchicalMemory(null, "legacy hierarchical write"),
+      { code: "legacy_writer_fenced" },
+    );
+    assert.throws(
+      () =>
+        new CLIPermanentMemory({ memoryDir: "unused" }).initialize(),
+      { code: "legacy_writer_fenced" },
+    );
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
+    } else {
+      process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = previous;
+    }
+  }
+});
+
+test("every canonical provider request binds recalled memory to a ContextPlan", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-provider-context-"));
+  const memoryFilePath = join(directory, "kernel-v1.json");
+  const env = { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" };
+  try {
+    const service = new CliCanonicalMemoryService({
+      env,
+      memoryFilePath,
+      clock: CLOCK,
+    });
+    const memory = await service.add("The recovery color is cobalt blue", {
+      category: "preference",
+      importance: 1,
+    });
+    const input = [
+      { role: "system", content: "Follow the host safety policy." },
+      { role: "user", content: "What is the recovery color?" },
+    ];
+    const prepared = await prepareCanonicalProviderContext(input, {
+      contextMemoryEnv: env,
+      contextMemoryFilePath: memoryFilePath,
+      sessionId: "provider-session-1",
+      provider: "local",
+      model: "test-model",
+      contextMemoryModelWindowTokens: 8192,
+      maxOutputTokens: 512,
+      contextMemoryToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "read_file",
+            description: "Read one file",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+    });
+    assert.equal(prepared.plan.memoryRevision, 1);
+    assert.equal(prepared.plan.sessionHead.startsWith("sha256:"), true);
+    assert.equal(prepared.messages[0].role, "system");
+    assert.equal(prepared.messages.at(-1).role, "user");
+    assert.deepEqual(prepared.selectedToolNames, ["read_file"]);
+    assert.equal(
+      prepared.plan.selected.some((item) => item.kind === "tool-schema"),
+      true,
+    );
+    assert.equal(
+      prepared.messages.some((message) =>
+        String(message.content).includes("memory_id="),
+      ),
+      true,
+    );
+
+    await service.delete(memory.id);
+    const afterDelete = await prepareCanonicalProviderContext(input, {
+      contextMemoryEnv: env,
+      contextMemoryFilePath: memoryFilePath,
+      sessionId: "provider-session-1",
+      provider: "local",
+      model: "test-model",
+      contextMemoryModelWindowTokens: 8192,
+      maxOutputTokens: 512,
+    });
+    assert.equal(afterDelete.plan.memoryRevision > prepared.plan.memoryRevision, true);
+    assert.equal(
+      afterDelete.messages.some((message) =>
+        String(message.content).includes("memory_id="),
+      ),
+      false,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("canonical CLI memory migrates legacy rows once and becomes the only writer", async () => {
@@ -293,6 +405,42 @@ test("canonical scoped memory migrates session-core rows and preserves scope fen
       category: "checkpoint",
       tags: ["recovery"],
     });
+    const seeded = await service.ensureScoped("Bundle user preference", {
+      memoryId: "bundle-seed-1",
+      scope: "user",
+      scopeId: "bundle-user",
+      category: "preference",
+      source: "agent-bundle",
+      evidenceStore: "agent-bundle",
+      evidenceId: "bundle-1-0",
+      tags: ["bundle-seed", "bundle:bundle-1"],
+    });
+    assert.equal(seeded.created, true);
+    assert.equal(
+      (
+        await service.ensureScoped("Bundle user preference", {
+          memoryId: "bundle-seed-1",
+          scope: "user",
+          scopeId: "bundle-user",
+          category: "preference",
+          source: "agent-bundle",
+          evidenceStore: "agent-bundle",
+          evidenceId: "bundle-1-0",
+          tags: ["bundle-seed", "bundle:bundle-1"],
+        })
+      ).created,
+      false,
+    );
+    await assert.rejects(
+      () =>
+        service.ensureScoped("Conflicting preference", {
+          memoryId: "bundle-seed-1",
+          scope: "user",
+          scopeId: "bundle-user",
+          category: "preference",
+        }),
+      { code: "CONTEXT_MEMORY_SEED_CONFLICT" },
+    );
     const agent = await service.recallScoped("*", {
       scope: "agent",
       scopeId: "agent-1",

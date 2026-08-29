@@ -79,6 +79,7 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
     ClientClass: FakeClient,
     getCliPath: () => "C:/bin/cc.cmd",
     getCwd: () => "C:/workspace",
+    env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
   });
 
   assert.equal(pilot.status.running, false);
@@ -86,6 +87,9 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
   assert.equal(FakeClient.options.cliPath, "C:/bin/cc.cmd");
   assert.equal(FakeClient.options.cwd, "C:/workspace");
   assert.equal(FakeClient.options.maxPendingRequests, 128);
+  assert.deepEqual(FakeClient.options.env, {
+    CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+  });
   assert.equal("request" in pilot, false);
 
   assert.deepEqual(await pilot.threadStart({ title: "Pilot" }), {

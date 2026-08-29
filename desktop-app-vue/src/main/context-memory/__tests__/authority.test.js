@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 const {
+  applyDesktopContextMemoryProductionDefault,
   assertDesktopLegacyMutationAllowed,
   resolveDesktopContextMemoryCutover,
 } = require("../authority.js");
@@ -20,6 +21,16 @@ afterEach(() => {
 });
 
 describe("Desktop Context/Memory authority", () => {
+  it("makes the packaged Desktop process canonical by default", () => {
+    const env = {};
+    expect(applyDesktopContextMemoryProductionDefault(env)).toMatchObject({
+      stage: "canonical_default",
+      canonical: true,
+      legacyWritable: false,
+    });
+    expect(env[STAGE_ENV]).toBe("canonical_default");
+  });
+
   it("keeps shadow legacy-compatible and makes canonical stages single-writer", () => {
     expect(
       resolveDesktopContextMemoryCutover({

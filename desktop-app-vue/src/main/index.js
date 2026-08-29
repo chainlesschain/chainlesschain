@@ -28,6 +28,11 @@ try {
   // dotenv is optional in production builds
 }
 
+// The packaged Desktop main process is canonical by default. Library/unit-test
+// imports remain explicitly stageable; this production boundary sets the
+// process-wide fence before any legacy Context/Memory module is required.
+require("./context-memory/authority.js").applyDesktopContextMemoryProductionDefault();
+
 console.log("[DEBUG] Starting Electron main process...");
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
 // Route Desktop main-process child_process APIs through one provenance/audit

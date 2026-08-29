@@ -10,6 +10,7 @@ const {
   registerCodingAgentIPCV3,
 } = require("../../../desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-ipc-v3.js");
 const {
+  applyDesktopContextMemoryProductionDefault,
   assertDesktopLegacyMutationAllowed,
 } = require("../../../desktop-app-vue/src/main/context-memory/authority.js");
 
@@ -123,6 +124,15 @@ test("Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
 });
 
 test("Desktop legacy writers fail closed after canonical cutover", () => {
+  const productionEnv = {};
+  assert.equal(
+    applyDesktopContextMemoryProductionDefault(productionEnv).canonical,
+    true,
+  );
+  assert.equal(
+    productionEnv.CHAINLESSCHAIN_CONTEXT_MEMORY_DESKTOP_STAGE,
+    "canonical_default",
+  );
   assert.throws(
     () =>
       assertDesktopLegacyMutationAllowed({

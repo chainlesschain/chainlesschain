@@ -439,6 +439,7 @@ export function registerMemoryCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const memoryDir = getMemoryDir(ctx.env.dataDir);
+        const service = await resolveCanonicalMemory(ctx);
 
         if (options.list) {
           const notes = listDailyNotes(memoryDir);
@@ -459,8 +460,21 @@ export function registerMemoryCommand(program) {
         }
 
         if (options.append) {
-          const result = appendDailyNote(memoryDir, options.append);
-          logger.success(`Added to daily note: ${chalk.cyan(result.date)}`);
+          const today = new Date().toISOString().slice(0, 10);
+          if (service.decision.canonical) {
+            await service.addScoped(options.append, {
+              scope: "user",
+              scopeId: "local-user",
+              category: "daily-note",
+              tags: ["daily-note", `date:${today}`],
+              source: "cli-memory-daily",
+              evidenceStore: "cli-command",
+              evidenceId: `daily-${today}`,
+            });
+          } else {
+            appendDailyNote(memoryDir, options.append);
+          }
+          logger.success(`Added to daily note: ${chalk.cyan(today)}`);
           await shutdown();
           return;
         }
@@ -723,8 +737,16 @@ export function registerMemoryCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const memoryDir = getMemoryDir(ctx.env.dataDir);
         const content = getMemoryFile(memoryDir);
+        const service = await resolveCanonicalMemory(ctx);
 
         if (options.edit) {
+          if (service.decision.canonical) {
+            const error = new Error(
+              "MEMORY.md is a read-only legacy projection after canonical cutover; use 'cc memory add' instead",
+            );
+            error.code = "legacy_writer_fenced";
+            throw error;
+          }
           const editor =
             process.env.EDITOR ||
             process.env.VISUAL ||

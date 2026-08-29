@@ -12,6 +12,14 @@ const CONTEXT_MEMORY_STAGES = Object.freeze([
   "legacy_read_only",
   "retired",
 ]);
+const DESKTOP_PRODUCTION_DEFAULT_STAGE = "canonical_default";
+
+function applyDesktopContextMemoryProductionDefault(env = process.env) {
+  if (!env[DESKTOP_STAGE_ENV]) {
+    env[DESKTOP_STAGE_ENV] = DESKTOP_PRODUCTION_DEFAULT_STAGE;
+  }
+  return resolveDesktopContextMemoryCutover({ env });
+}
 
 function cohortBucket(scopeKey) {
   return (
@@ -90,6 +98,8 @@ module.exports = {
   DESKTOP_CANARY_PERCENT_ENV,
   DESKTOP_OPT_IN_ENV,
   DESKTOP_STAGE_ENV,
+  DESKTOP_PRODUCTION_DEFAULT_STAGE,
+  applyDesktopContextMemoryProductionDefault,
   assertDesktopLegacyMutationAllowed,
   legacyWriterFencedResult,
   resolveDesktopContextMemoryCutover,

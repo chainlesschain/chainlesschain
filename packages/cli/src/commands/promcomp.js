@@ -31,11 +31,28 @@ import {
   autoFailStuckPcompRunsV2,
   getPromptCompressorGovStatsV2,
 } from "../lib/prompt-compressor.js";
+import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "../lib/context-memory-kernel/authority.js";
 
 export function registerPromcompCommand(program) {
   const pc = program
     .command("promcomp")
     .description("Prompt Compressor V2 governance (in-memory, CLI v0.143.0)");
+
+  pc.hook("preAction", (_thisCommand, actionCommand) => {
+    const decision = resolveCliContextMemoryCutover({
+      scopeKey: `cli:promcomp:${actionCommand.name()}`,
+    });
+    try {
+      assertLegacyMutationAllowed(decision);
+    } catch (error) {
+      error.message += "; use `cc context` or `cc compact`";
+      error.replacement = "cc compact";
+      throw error;
+    }
+  });
 
   pc.command("enums-v2")
     .description("Show V2 enums")

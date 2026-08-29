@@ -27,6 +27,9 @@ const {
   createApprovalGateFileAdapter,
   hydrateMemoryStore,
 } = require("@chainlesschain/session-core");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../context-memory/authority");
 
 const _deps = {
   // Injected lazily so tests can override without pulling in electron.
@@ -65,7 +68,14 @@ function getMemoryStore() {
     return _memoryStore;
   }
   const adapter = createMemoryFileAdapter(getMemoryStorePath());
-  _memoryStore = new MemoryStore({ adapter });
+  _memoryStore = new MemoryStore({
+    adapter,
+    writeGuard: (operation) =>
+      assertDesktopLegacyMutationAllowed({
+        scopeKey: `desktop:legacy-session-core-memory:${operation}`,
+        replacement: "memory/propose|memory/delete",
+      }),
+  });
   hydrateMemoryStore(_memoryStore, adapter);
   return _memoryStore;
 }

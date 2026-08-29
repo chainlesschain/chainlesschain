@@ -1727,6 +1727,10 @@ final class ConversationView {
         // EVERY turn. Env var, not a CLI flag, so an older `cc` degrades to full
         // memory instead of erroring on an unknown flag. Needs cc >= 0.162.165 to
         // actually shed. Terminal `cc` is untouched (scoped to this child).
+        // JetBrains is a projection-only host. Every child maps the validated
+        // IDE rollout stage to the canonical CLI authority.
+        o.extraEnv.putAll(com.chainlesschain.ide.ContextMemoryAuthority.cliEnvironment(
+                System.getenv()));
         String leanEnv = com.chainlesschain.ide.ProjectMemory.leanContextEnvValue(
                 CcSettings.getInstance().isLeanContextEnabled());
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);

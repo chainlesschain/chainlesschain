@@ -22,7 +22,7 @@ import chalk from "chalk";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
@@ -3387,6 +3387,7 @@ async function startAgentReplInWorkspaceOwned(
               extraToolDefinitions: [],
               hostManagedToolPolicy: null,
               contextEngine: null,
+              contextMemorySkipPlanning: true,
               maxOutputTokens: 2048,
             }),
         });
@@ -3453,7 +3454,7 @@ async function startAgentReplInWorkspaceOwned(
       db,
       process.cwd(),
     );
-    if (permanentMemoryStorage) {
+    if (permanentMemoryStorage && !contextMemoryCutover.canonical) {
       permanentMemory = new CLIPermanentMemory(permanentMemoryStorage);
       permanentMemory.initialize();
     }
@@ -4279,19 +4280,63 @@ async function startAgentReplInWorkspaceOwned(
     try {
       const { loadBundle } =
         await import("@chainlesschain/session-core/agent-bundle-loader");
-      const { resolveBundle } =
+      const { parseUserMdSeed, resolveBundle } =
         await import("@chainlesschain/session-core/agent-bundle-resolver");
-      const { getMemoryStore } =
-        await import("../lib/session-core-singletons.js");
       const bundle = loadBundle(options.bundlePath);
-
-      const memoryStore = getMemoryStore();
-      _bundleResolved = resolveBundle(bundle, {
-        memoryStore,
-        seedOptions: {
-          userId: options.agentId || null,
-        },
-      });
+      if (contextMemoryCutover.canonical) {
+        _bundleResolved = resolveBundle(bundle);
+        const { createCliCanonicalMemoryService } =
+          await import("../lib/context-memory-kernel/memory-service.js");
+        const memoryService = createCliCanonicalMemoryService({
+          env: options.contextMemoryEnv || process.env,
+        });
+        const bundleId = String(bundle.manifest?.id || "unknown");
+        const userId = options.agentId || "local-user";
+        const entries = parseUserMdSeed(bundle.userMd);
+        let seeded = 0;
+        let skipped = 0;
+        for (const [index, entry] of entries.entries()) {
+          const seedDigest = createHash("sha256")
+            .update(
+              JSON.stringify([
+                "chainlesschain.agent-bundle-user-seed/v1",
+                bundleId,
+                index,
+                entry.category,
+                entry.content,
+              ]),
+            )
+            .digest("hex");
+          const ensured = await memoryService.ensureScoped(entry.content, {
+            memoryId: `bundle-${seedDigest.slice(0, 32)}`,
+            scope: "user",
+            scopeId: userId,
+            category: entry.category,
+            source: "agent-bundle",
+            actor: `bundle:${bundleId}`,
+            evidenceStore: "agent-bundle",
+            evidenceId: `${bundleId}-${index}`,
+            tags: [
+              "bundle-seed",
+              `bundle:${bundleId}`,
+              "user-seed",
+              entry.category,
+            ],
+          });
+          if (ensured.created) seeded += 1;
+          else skipped += 1;
+        }
+        _bundleResolved.seedResult = { seeded, skipped };
+      } else {
+        const { getMemoryStore } =
+          await import("../lib/session-core-singletons.js");
+        _bundleResolved = resolveBundle(bundle, {
+          memoryStore: getMemoryStore(),
+          seedOptions: {
+            userId: options.agentId || null,
+          },
+        });
+      }
 
       if (_bundleResolved.systemPrompt) {
         messages.push({
@@ -9872,7 +9917,7 @@ async function startAgentReplInWorkspaceOwned(
       }
 
       // Store as episodic memory
-      if (db) {
+      if (db && !contextMemoryCutover.canonical) {
         try {
           storeMemory(db, promptText, { importance: 0.3, type: "episodic" });
         } catch (_e) {
@@ -10051,11 +10096,15 @@ async function startAgentReplInWorkspaceOwned(
       try {
         if (useJsonl) {
           _persistReplContextSources();
-          // JSONL: write final compact snapshot for fast rebuild
-          _replCompactPersistence.persist(sessionId, {
-            strategy: "session-end",
-            messages,
-          });
+          // The legacy session-end checkpoint reused the compact event as a
+          // second writer. Canonical sessions already persist every message;
+          // only Kernel-authorized compaction may replace the physical head.
+          if (!contextMemoryCutover.canonical) {
+            _replCompactPersistence.persist(sessionId, {
+              strategy: "session-end",
+              messages,
+            });
+          }
         } else if (db) {
           saveMessages(db, sessionId, messages);
         }
@@ -10064,7 +10113,11 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
     // Auto-summarize session into permanent memory
-    if (permanentMemory && messages.length > 4) {
+    if (
+      !contextMemoryCutover.canonical &&
+      permanentMemory &&
+      messages.length > 4
+    ) {
       try {
         permanentMemory.autoSummarize(messages);
       } catch (_e) {
@@ -10072,7 +10125,7 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
     // Consolidate memory
-    if (db) {
+    if (db && !contextMemoryCutover.canonical) {
       try {
         consolidateMemory(db);
       } catch (_e) {

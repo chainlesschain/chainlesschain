@@ -20,6 +20,39 @@ test("machine-readable inventory covers every product surface and discovered wri
   assert.deepEqual(discoverUnclassifiedContextMemoryWriters(inventory), []);
 });
 
+test("production inventory has one canonical writer and no writable legacy cohort", () => {
+  const inventory = loadContextMemoryWriterInventory();
+  const canonical = inventory.entries.filter(
+    (entry) => entry.role === "canonical_runtime",
+  );
+  assert.equal(canonical.length, 1);
+  assert.equal(canonical[0].currentStage, "canonical_default");
+
+  const writableLegacyStages = new Set([
+    "inventory",
+    "shadow",
+    "internal_canary",
+    "opt_in_canary",
+    "canonical_default",
+  ]);
+  assert.deepEqual(
+    inventory.entries
+      .filter(
+        (entry) =>
+          entry.role === "legacy_writer" &&
+          writableLegacyStages.has(entry.currentStage),
+      )
+      .map((entry) => entry.id),
+    [],
+  );
+  assert.equal(
+    inventory.entries
+      .filter((entry) => entry.role === "projection_consumer")
+      .every((entry) => entry.currentStage === "canonical_default"),
+    true,
+  );
+});
+
 test("inventory gate fails for an unclassified candidate and duplicate authority", () => {
   const inventory = JSON.parse(JSON.stringify(loadContextMemoryWriterInventory()));
   inventory.entries[0].role = "legacy_writer";

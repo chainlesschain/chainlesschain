@@ -67,12 +67,20 @@ class MemoryStore extends EventEmitter {
     adapter = null,
     scorer = defaultScorer,
     now = Date.now,
+    writeGuard = null,
   } = {}) {
     super();
     this._memories = new Map(); // id → memory
     this._adapter = adapter; // { save, load, remove } — optional
     this._scorer = scorer;
     this._now = now;
+    this._writeGuard = writeGuard;
+  }
+
+  _assertWritable(operation) {
+    if (typeof this._writeGuard === "function") {
+      this._writeGuard(operation);
+    }
   }
 
   /**
@@ -87,6 +95,7 @@ class MemoryStore extends EventEmitter {
     score = 0,
     metadata = {},
   }) {
+    this._assertWritable("add");
     validateScope(scope);
     if (scope !== SCOPE.GLOBAL && !scopeId) {
       throw new Error(`MemoryStore.add: scopeId required for scope=${scope}`);
@@ -177,6 +186,7 @@ class MemoryStore extends EventEmitter {
    * 更新 memory(content/tags/score/metadata)
    */
   update(id, patch = {}) {
+    this._assertWritable("update");
     const m = this._memories.get(id);
     if (!m) return null;
     // Mirror add()'s invariant: content stays a non-empty string. Without this
@@ -203,6 +213,7 @@ class MemoryStore extends EventEmitter {
   }
 
   remove(id) {
+    this._assertWritable("remove");
     const m = this._memories.get(id);
     if (!m) return false;
     this._memories.delete(id);
@@ -219,6 +230,7 @@ class MemoryStore extends EventEmitter {
    * 删除一个 scope 下所有 memory(如 session 关闭时清理 session-scope 内存)
    */
   clearScope(scope, scopeId) {
+    this._assertWritable("clearScope");
     validateScope(scope);
     const removed = [];
     for (const [id, m] of this._memories) {
@@ -254,6 +266,7 @@ class MemoryStore extends EventEmitter {
   }
 
   clear() {
+    this._assertWritable("clear");
     this._memories.clear();
   }
 

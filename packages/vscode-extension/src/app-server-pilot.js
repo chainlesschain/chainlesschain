@@ -58,6 +58,7 @@ class IdeAppServerPilot extends EventEmitter {
     this.client = new this.ClientClass({
       cliPath,
       cwd,
+      env: this.options.env,
       stateDirectory: this.options.stateDirectory,
       serverQueueCap: this.options.serverQueueCap ?? 256,
       maxPendingRequests: this.options.maxPendingRequests ?? 128,

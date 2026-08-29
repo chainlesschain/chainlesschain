@@ -49,7 +49,10 @@ export function resolveCliContextMemoryCutover({
     mode: canonical ? "canonical" : "legacy",
     canonical,
     shadow: stage === "shadow",
-    legacyWritable: !["legacy_read_only", "retired"].includes(stage),
+    // A selected canonical cohort must never run a second legacy writer. This
+    // also covers canonical_default; legacy_read_only/retired only tighten the
+    // corresponding read capability.
+    legacyWritable: !canonical,
     legacyReadable: stage !== "retired",
     reason,
     cohortBucket: cohortBucket(scopeKey),
