@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { readFileSync } from "fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRolloutStore } from "../../../../../../packages/cli/src/lib/app-server/rollout-store.js";
 import { AppServerGraphRuntime } from "../../../../../../packages/cli/src/lib/app-server/graph-runtime.js";
@@ -58,9 +59,9 @@ describe("DesktopAppServerPilot", () => {
   it("consumes the shared quorum and separation-of-duties product scenarios", async () => {
     const fixture = JSON.parse(
       readFileSync(
-        new URL(
+        path.resolve(
+          __dirname,
           "../../../../../../packages/agent-protocol/test/fixtures/human-task-settlement-conformance.json",
-          import.meta.url,
         ),
         "utf8",
       ),
