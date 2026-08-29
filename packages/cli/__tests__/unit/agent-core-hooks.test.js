@@ -75,6 +75,22 @@ describe("PreToolUse block", () => {
     );
     expect(res.error).toBeUndefined();
   });
+
+  it("keeps a failed legacy database Hook source observe-only", async () => {
+    const hookDb = {
+      prepare() {
+        throw new Error("no such table: hooks");
+      },
+    };
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, hookDb },
+    );
+
+    expect(res.error).toBeUndefined();
+    expect(res.content).toBe("hello");
+  });
 });
 
 describe("PreToolUse ask → confirmer", () => {

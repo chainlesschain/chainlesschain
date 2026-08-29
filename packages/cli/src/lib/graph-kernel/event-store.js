@@ -1,8 +1,6 @@
 import path from "node:path";
-import {
-  JsonlRolloutStore,
-  defaultRolloutStoreDirectory,
-} from "../app-server/rollout-store.js";
+import { defaultRolloutStoreDirectory } from "../app-server/rollout-store.js";
+import { createRolloutStore } from "../app-server/rollout-store-factory.js";
 
 export const GRAPH_EVENT_SCHEMA = "chainlesschain.graph-event/v1";
 
@@ -16,7 +14,7 @@ function clone(value) {
 
 export class GraphEventStore {
   constructor({
-    rolloutStore = new JsonlRolloutStore({
+    rolloutStore = createRolloutStore({
       directory: defaultGraphEventStoreDirectory(),
     }),
   } = {}) {

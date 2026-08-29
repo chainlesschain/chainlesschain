@@ -108,6 +108,33 @@ describe("AppServerClient", () => {
     );
   });
 
+  it("selects the physical rollout adapter without changing the RPC client", async () => {
+    const value = createClient({
+      storageBackend: "sqlite",
+      statePath: "C:/state/app-server.sqlite",
+    });
+    await initialize(value);
+    expect(value.spawn.mock.calls[0]?.[1]).toEqual(
+      expect.arrayContaining([
+        "--app-server-store",
+        "sqlite",
+        "--app-server-state-path",
+        "C:/state/app-server.sqlite",
+      ]),
+    );
+  });
+
+  it("rejects ambiguous rollout locations before spawning", async () => {
+    const value = createClient({
+      stateDirectory: "C:/state",
+      statePath: "C:/state/app-server.sqlite",
+    });
+    await expect(value.client.start()).rejects.toThrow(
+      "stateDirectory and statePath are mutually exclusive",
+    );
+    expect(value.spawn).not.toHaveBeenCalled();
+  });
+
   it("fails closed for server approval requests without a handler", async () => {
     const value = createClient();
     await initialize(value);

@@ -1572,6 +1572,39 @@ The canonical Thread/Turn/Item JSON-RPC server uses stdio by default:
 chainlesschain serve --app-server
 ```
 
+The logical RolloutStore contract is independent of its physical adapter.
+JSONL remains the default; SQLite can be selected without changing the App
+Server protocol:
+
+```bash
+# Hash-chained JSONL directory
+chainlesschain serve --app-server \
+  --app-server-store jsonl --app-server-state-path /var/lib/cc/rollouts
+
+# SQLite database file
+chainlesschain serve --app-server \
+  --app-server-store sqlite --app-server-state-path /var/lib/cc/rollouts.sqlite
+
+# Equivalent environment configuration for hosts
+CHAINLESSCHAIN_ROLLOUT_STORE=sqlite \
+CHAINLESSCHAIN_ROLLOUT_STORE_PATH=/var/lib/cc/rollouts.sqlite \
+chainlesschain serve --app-server
+```
+
+Use the restartable migration command before changing an existing deployment.
+It performs a dry run unless `--apply` is explicit, preserves canonical event
+hashes, resumes from a matching target prefix, and refuses divergent targets:
+
+```bash
+chainlesschain serve migrate-rollouts \
+  --from jsonl --from-path /var/lib/cc/rollouts \
+  --to sqlite --to-path /var/lib/cc/rollouts.sqlite
+
+chainlesschain serve migrate-rollouts \
+  --from jsonl --from-path /var/lib/cc/rollouts \
+  --to sqlite --to-path /var/lib/cc/rollouts.sqlite --apply
+```
+
 An experimental WebSocket transport is available at `/app-server`. It always
 requires a token of at least 32 UTF-8 bytes; use
 `CHAINLESSCHAIN_APP_SERVER_TOKEN` to keep the token out of the process list.

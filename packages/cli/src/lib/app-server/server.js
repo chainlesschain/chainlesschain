@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { BoundedAsyncQueue, QueueOverloadedError } from "./bounded-queue.js";
 import { CliAgentKernelAdapter } from "./cli-agent-kernel-adapter.js";
-import { JsonlRolloutStore } from "./rollout-store.js";
+import { assertRolloutStore } from "./rollout-store.js";
+import {
+  closeRolloutStore,
+  createRolloutStore,
+} from "./rollout-store-factory.js";
 import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
@@ -129,7 +133,7 @@ function publicError(error) {
 export class CcAppServer {
   constructor({
     send,
-    store = new JsonlRolloutStore(),
+    store = null,
     kernel = new CliAgentKernelAdapter(),
     now = Date.now,
     createId = randomUUID,
@@ -145,8 +149,12 @@ export class CcAppServer {
     if (typeof send !== "function") {
       throw new TypeError("CcAppServer requires a send(message) function");
     }
+    const resolvedStore = assertRolloutStore(store || createRolloutStore(), {
+      requireList: true,
+    });
     this.send = send;
-    this.store = store;
+    this.store = resolvedStore;
+    this._ownsStore = store == null;
     this.kernel = kernel;
     this.now = now;
     this.createId = createId;
@@ -160,7 +168,7 @@ export class CcAppServer {
     this.graphRuntime =
       graphRuntime ||
       new AppServerGraphRuntime({
-        rolloutStore: store,
+        rolloutStore: resolvedStore,
         now,
         createId,
         executeNode: (context) => this._executeGraphNode(context),
@@ -470,7 +478,9 @@ export class CcAppServer {
 
   async _memoryPropose(rawParams) {
     const params = requireObject(rawParams);
-    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: "app-server:memory",
+    });
     const mutation = await runtime.kernel.proposeMemory(params);
     await this._notifyMemoryMutation(mutation);
     return mutation;
@@ -478,7 +488,9 @@ export class CcAppServer {
 
   async _memoryDecide(rawParams) {
     const params = requireObject(rawParams);
-    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: "app-server:memory",
+    });
     const mutation = await runtime.kernel.decideMemory(params);
     await this._notifyMemoryMutation(mutation);
     return mutation;
@@ -492,7 +504,9 @@ export class CcAppServer {
 
   async _memoryDelete(rawParams) {
     const params = requireObject(rawParams);
-    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: "app-server:memory",
+    });
     const receipt = await runtime.kernel.deleteMemory(params);
     const notification = memoryDeletionNotification(receipt);
     await this._notify(notification.method, notification.params);
@@ -502,10 +516,13 @@ export class CcAppServer {
   async _memoryReconcile(rawParams) {
     const params = requireObject(rawParams);
     const operationId = requiredString(params.operationId, "operationId");
-    const runtime = this._contextMemoryRuntime({ scopeKey: "app-server:memory" });
+    const runtime = this._contextMemoryRuntime({
+      scopeKey: "app-server:memory",
+    });
     const result = await runtime.kernel.reconcile(operationId);
     const notification = memoryDeletionNotification(result, operationId);
-    if (notification) await this._notify(notification.method, notification.params);
+    if (notification)
+      await this._notify(notification.method, notification.params);
     return result;
   }
 
@@ -1271,7 +1288,11 @@ export class CcAppServer {
       );
     }
     this.pendingClientRequests.clear();
-    await this.kernel.close?.();
-    await Promise.all(this.workers);
+    try {
+      await this.kernel.close?.();
+      await Promise.all(this.workers);
+    } finally {
+      if (this._ownsStore) closeRolloutStore(this.store);
+    }
   }
 }

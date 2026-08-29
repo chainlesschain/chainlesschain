@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-  defaultRolloutStoreDirectory,
-  JsonlRolloutStore,
-} from "../lib/app-server/rollout-store.js";
+import { defaultRolloutStoreDirectory } from "../lib/app-server/rollout-store.js";
+import { createRolloutStore } from "../lib/app-server/rollout-store-factory.js";
 import { GraphCutoverAuthorityResolver } from "../lib/graph-kernel/cutover-authority-resolver.js";
 import { GraphCutoverLedger } from "../lib/graph-kernel/cutover-ledger.js";
 import {
@@ -22,16 +20,18 @@ import {
   evaluateGraphProjection,
 } from "../lib/graph-kernel/eval.js";
 
-function graphEventStore(directory) {
+function graphEventStore(directory, backend) {
   return new GraphEventStore({
-    rolloutStore: new JsonlRolloutStore({
+    rolloutStore: createRolloutStore({
+      backend,
       directory: path.resolve(directory || defaultGraphEventStoreDirectory()),
     }),
   });
 }
 
-function cutoverStore(directory) {
-  return new JsonlRolloutStore({
+function cutoverStore(directory, backend) {
+  return createRolloutStore({
+    backend,
     directory: path.resolve(directory || defaultRolloutStoreDirectory()),
   });
 }
@@ -99,11 +99,14 @@ export function registerGraphCommand(program) {
       "Project a durable GraphRun into Agent/Task/Artifact/Trace views",
     )
     .option("--state-dir <path>", "Graph rollout directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option("--at-seq <n>", "Time-travel through a durable event sequence")
     .option("--blocked-root <nodeId>", "Locate a deterministic blocked root")
     .option("--include-content", "Include message and HumanTask content")
     .action((runId, options) => {
-      const events = graphEventStore(options.stateDir).read(runId);
+      const events = graphEventStore(options.stateDir, options.store).read(
+        runId,
+      );
       const projection = options.atSeq
         ? timeTravelGraphTrace(events, Number(options.atSeq), {
             includeContent: options.includeContent === true,
@@ -127,8 +130,11 @@ export function registerGraphCommand(program) {
     .requiredOption("--from-seq <n>", "First durable event sequence")
     .requiredOption("--to-seq <n>", "Second durable event sequence")
     .option("--state-dir <path>", "Graph rollout directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .action((runId, options) => {
-      const events = graphEventStore(options.stateDir).read(runId);
+      const events = graphEventStore(options.stateDir, options.store).read(
+        runId,
+      );
       print(
         diffGraphTrace(
           timeTravelGraphTrace(events, Number(options.fromSeq)),
@@ -143,13 +149,14 @@ export function registerGraphCommand(program) {
       "Evaluate a durable GraphRun and optionally enforce thresholds",
     )
     .option("--state-dir <path>", "Graph rollout directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option(
       "--thresholds <json>",
       'Metric threshold object, e.g. \'{"deadlocked":{"max":0}}\'',
     )
     .action((runId, options) => {
       const projection = reduceGraphTrace(
-        graphEventStore(options.stateDir).read(runId),
+        graphEventStore(options.stateDir, options.store).read(runId),
       );
       const report = evaluateGraphProjection(projection);
       const gate = options.thresholds
@@ -167,6 +174,7 @@ export function registerGraphCommand(program) {
     .command("init")
     .description("Bind declared runtime entries to the durable cutover ledger")
     .option("--state-dir <path>", "Cutover ledger directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option("--surface <name>", "Initialize one origin surface")
     .option("--entry <id>", "Initialize one entry id")
     .option(
@@ -176,7 +184,7 @@ export function registerGraphCommand(program) {
     .action((options) => {
       const manifest = loadGraphRuntimeSurfaceManifest();
       const ledger = new GraphCutoverLedger({
-        store: cutoverStore(options.stateDir),
+        store: cutoverStore(options.stateDir, options.store),
       });
       const selected = selectedCutoverEntries(manifest, options).filter(
         ({ surface }) =>
@@ -205,12 +213,13 @@ export function registerGraphCommand(program) {
     .command("status")
     .description("List manifest bindings and durable cutover stages")
     .option("--state-dir <path>", "Cutover ledger directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option("--surface <name>", "Inspect one origin surface")
     .option("--entry <id>", "Inspect one entry id")
     .action((options) => {
       const manifest = loadGraphRuntimeSurfaceManifest();
       const ledger = new GraphCutoverLedger({
-        store: cutoverStore(options.stateDir),
+        store: cutoverStore(options.stateDir, options.store),
       });
       const entries = selectedCutoverEntries(manifest, options).map(
         ({ surface, entry }) => {
@@ -251,6 +260,7 @@ export function registerGraphCommand(program) {
     .command("authority <surface> <entryId>")
     .description("Resolve one new run through the durable entry ledger")
     .option("--state-dir <path>", "Cutover ledger directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option("--run-key <key>", "Stable logical run identity")
     .option("--opt-in", "Explicitly enroll an opt-in-only canary run")
     .option("--fallback <mode>", "Pre-ledger feature-flag fallback")
@@ -259,7 +269,7 @@ export function registerGraphCommand(program) {
       const resolver = cutoverResolver({
         manifest,
         ledger: new GraphCutoverLedger({
-          store: cutoverStore(options.stateDir),
+          store: cutoverStore(options.stateDir, options.store),
         }),
         surface,
         entryId,
@@ -278,11 +288,12 @@ export function registerGraphCommand(program) {
     .description("Advance or roll back one entry using durable JSON evidence")
     .requiredOption("--evidence <path>", "Evidence JSON file")
     .option("--state-dir <path>", "Cutover ledger directory")
+    .option("--store <backend>", "Physical rollout adapter: jsonl or sqlite")
     .option("--expected-head <digest>", "Expected ledger event head CAS")
     .action((surface, entryId, stage, options) => {
       const manifest = loadGraphRuntimeSurfaceManifest();
       const ledger = new GraphCutoverLedger({
-        store: cutoverStore(options.stateDir),
+        store: cutoverStore(options.stateDir, options.store),
       });
       const resolver = cutoverResolver({
         manifest,

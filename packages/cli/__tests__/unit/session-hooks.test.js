@@ -2,7 +2,7 @@
  * Unit tests for session-hooks.js — the "三件套" session-level hook
  * firing helper used by agent-repl.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   fireSessionHook,

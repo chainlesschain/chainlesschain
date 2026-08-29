@@ -8,6 +8,17 @@ export const ROLLOUT_EVENT_SCHEMA = "chainlesschain.rollout-event/v1";
 export const ROLLOUT_STORE_SCHEMA = "chainlesschain.rollout-store/v1";
 export const ROLLOUT_STORE_VERSION = 1;
 export const ROLLOUT_STORE_MIN_VERSION = 1;
+export const ROLLOUT_STORE_METHODS = Object.freeze([
+  "start",
+  "append",
+  "read",
+  "resume",
+  "fork",
+  "checkpoint",
+  "compact",
+  "archive",
+  "migrate",
+]);
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const IDEMPOTENCY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
@@ -18,6 +29,32 @@ function storeError(code, message, details = {}) {
   error.code = code;
   Object.assign(error, details);
   return error;
+}
+
+export function assertRolloutStore(store, { requireList = false } = {}) {
+  if (!store || typeof store !== "object") {
+    throw storeError(
+      "CC_ROLLOUT_ADAPTER_INVALID",
+      "rollout store adapter must be an object",
+    );
+  }
+  // `list` is a host discovery extension used by Thread/list and whole-store
+  // migration; the lifecycle contract itself intentionally remains the nine
+  // methods above so a remote adapter can migrate explicit thread ids.
+  const required = requireList
+    ? [...ROLLOUT_STORE_METHODS, "list"]
+    : ROLLOUT_STORE_METHODS;
+  const missing = required.filter(
+    (method) => typeof store[method] !== "function",
+  );
+  if (missing.length > 0) {
+    throw storeError(
+      "CC_ROLLOUT_ADAPTER_INVALID",
+      `rollout store adapter is missing: ${missing.join(", ")}`,
+      { missing },
+    );
+  }
+  return store;
 }
 
 function identifier(value, label = "identifier") {
@@ -86,6 +123,21 @@ function clone(value) {
 
 function timestamp(now) {
   return new Date(now()).toISOString();
+}
+
+function boundedLimit(value, fallback) {
+  return Math.max(1, Math.min(100_000, Number(value) || fallback));
+}
+
+function startPayload({ title = null, parentThreadId = null, metadata = {} }) {
+  return {
+    title: title == null ? null : String(title).slice(0, 512),
+    parentThreadId:
+      parentThreadId == null
+        ? null
+        : identifier(parentThreadId, "parentThreadId"),
+    metadata: stableValue(metadata || {}),
+  };
 }
 
 function buildRecord(input, previous, now) {
@@ -210,6 +262,194 @@ function projectThread(records) {
   });
 }
 
+function recordInput(record) {
+  return {
+    threadId: record.thread_id,
+    turnId: record.turn_id,
+    itemId: record.item_id,
+    eventType: record.event_type,
+    toolUseId: record.tool_use_id,
+    approvalId: record.approval_id,
+    traceId: record.trace_id,
+    parentId: record.parent_id,
+    idempotencyKey: record.idempotency_key,
+    timestamp: record.timestamp,
+    payload: clone(record.payload),
+  };
+}
+
+function sameRecord(left, right) {
+  return Boolean(left && right && left.hash === right.hash);
+}
+
+function sameLocalAdapter(sourceStore, targetStore) {
+  if (
+    !["jsonl", "sqlite"].includes(sourceStore?.backend) ||
+    sourceStore.backend !== targetStore?.backend ||
+    !sourceStore.location ||
+    !targetStore.location
+  ) {
+    return false;
+  }
+  const sourceLocation = path.resolve(sourceStore.location);
+  const targetLocation = path.resolve(targetStore.location);
+  return process.platform === "win32"
+    ? sourceLocation.toLowerCase() === targetLocation.toLowerCase()
+    : sourceLocation === targetLocation;
+}
+
+function readAllRecords(store, threadId) {
+  const records = [];
+  let afterSeq = 0;
+  for (;;) {
+    const batch = store.read(threadId, { afterSeq, limit: 100_000 });
+    if (batch.length === 0) break;
+    records.push(...batch);
+    const nextSeq = Number(batch.at(-1)?.event_seq);
+    if (!Number.isInteger(nextSeq) || nextSeq <= afterSeq) {
+      throw storeError(
+        "CC_ROLLOUT_CORRUPT",
+        `rollout adapter did not advance while reading ${threadId}`,
+        { threadId, afterSeq },
+      );
+    }
+    afterSeq = nextSeq;
+    if (batch.length < 100_000) break;
+  }
+  return verifyRecords(records, threadId);
+}
+
+/**
+ * Copy canonical records between physical adapters without changing their
+ * event sequence or hash chain. Existing matching prefixes make the operation
+ * restartable after a crash; any divergent target fails closed.
+ */
+export function migrateRolloutStore({
+  sourceStore,
+  targetStore,
+  threadIds = null,
+  dryRun = true,
+} = {}) {
+  assertRolloutStore(sourceStore, { requireList: threadIds == null });
+  assertRolloutStore(targetStore);
+  if (
+    sourceStore === targetStore ||
+    sameLocalAdapter(sourceStore, targetStore)
+  ) {
+    throw storeError(
+      "CC_ROLLOUT_MIGRATION_INVALID",
+      "source and target rollout stores must be different physical stores",
+    );
+  }
+
+  const ids = Array.isArray(threadIds)
+    ? [...new Set(threadIds.map((value) => identifier(value, "threadId")))]
+    : sourceStore
+        .list({ includeArchived: true, limit: 100_000 })
+        .map((thread) => identifier(thread.id, "threadId"));
+  let events = 0;
+  let copiedEvents = 0;
+  let alreadyPresent = 0;
+
+  for (const threadId of ids) {
+    const sourceRecords = readAllRecords(sourceStore, threadId);
+    if (sourceRecords.length === 0) continue;
+    events += sourceRecords.length;
+
+    let targetRecords = [];
+    try {
+      targetRecords = readAllRecords(targetStore, threadId);
+    } catch (error) {
+      if (
+        error?.code !== "CC_ROLLOUT_THREAD_NOT_FOUND" &&
+        !/thread does not exist/u.test(String(error?.message || ""))
+      ) {
+        throw error;
+      }
+    }
+    if (targetRecords.length > sourceRecords.length) {
+      throw storeError(
+        "CC_ROLLOUT_MIGRATION_CONFLICT",
+        `target rollout is ahead of source: ${threadId}`,
+        { threadId },
+      );
+    }
+    for (let index = 0; index < targetRecords.length; index += 1) {
+      if (!sameRecord(targetRecords[index], sourceRecords[index])) {
+        throw storeError(
+          "CC_ROLLOUT_MIGRATION_CONFLICT",
+          `target rollout diverged from source: ${threadId}`,
+          { threadId, eventSeq: index + 1 },
+        );
+      }
+    }
+    alreadyPresent += targetRecords.length;
+    if (dryRun !== false) {
+      copiedEvents += sourceRecords.length - targetRecords.length;
+      continue;
+    }
+
+    let offset = targetRecords.length;
+    if (offset === 0) {
+      const first = sourceRecords[0];
+      if (first.event_type !== "thread.started") {
+        throw storeError(
+          "CC_ROLLOUT_CORRUPT",
+          `rollout does not begin with thread.started: ${threadId}`,
+          { threadId },
+        );
+      }
+      targetStore.start({
+        threadId,
+        title: first.payload?.title ?? null,
+        parentThreadId: first.payload?.parentThreadId ?? null,
+        metadata: clone(first.payload?.metadata || {}),
+        timestamp: first.timestamp,
+      });
+      const copied = targetStore.read(threadId, { limit: 1 })[0];
+      if (!sameRecord(copied, first)) {
+        throw storeError(
+          "CC_ROLLOUT_MIGRATION_CONFLICT",
+          `target adapter changed the canonical start record: ${threadId}`,
+          { threadId, eventSeq: 1 },
+        );
+      }
+      copiedEvents += 1;
+      offset = 1;
+    }
+
+    for (let index = offset; index < sourceRecords.length; index += 1) {
+      const previous = sourceRecords[index - 1];
+      const expected = sourceRecords[index];
+      const copied = targetStore.append({
+        ...recordInput(expected),
+        expectedRevision: previous.event_seq,
+        expectedHeadHash: previous.hash,
+      });
+      if (!sameRecord(copied, expected)) {
+        throw storeError(
+          "CC_ROLLOUT_MIGRATION_CONFLICT",
+          `target adapter changed a canonical event: ${threadId}`,
+          { threadId, eventSeq: expected.event_seq },
+        );
+      }
+      copiedEvents += 1;
+    }
+  }
+
+  return Object.freeze({
+    schema: ROLLOUT_STORE_SCHEMA,
+    fromVersion: ROLLOUT_STORE_VERSION,
+    toVersion: ROLLOUT_STORE_VERSION,
+    dryRun: dryRun !== false,
+    threads: ids.length,
+    events,
+    copiedEvents,
+    alreadyPresent,
+    backupRequired: false,
+  });
+}
+
 export function defaultRolloutStoreDirectory() {
   return path.join(getHomeDir(), "app-server", "rollouts");
 }
@@ -274,6 +514,7 @@ export class JsonlRolloutStore {
     title = null,
     parentThreadId = null,
     metadata = {},
+    timestamp: startedAt = null,
   } = {}) {
     const safeThreadId = identifier(threadId, "threadId");
     this._ensureDirectory();
@@ -288,14 +529,8 @@ export class JsonlRolloutStore {
             threadId: safeThreadId,
             eventType: "thread.started",
             idempotencyKey: `thread:${safeThreadId}`,
-            payload: {
-              title: title == null ? null : String(title).slice(0, 512),
-              parentThreadId:
-                parentThreadId == null
-                  ? null
-                  : identifier(parentThreadId, "parentThreadId"),
-              metadata: stableValue(metadata),
-            },
+            timestamp: startedAt || undefined,
+            payload: startPayload({ title, parentThreadId, metadata }),
           },
           null,
           this.now,
@@ -349,7 +584,7 @@ export class JsonlRolloutStore {
   }
 
   read(threadId, { afterSeq = 0, limit = 10_000 } = {}) {
-    const safeLimit = Math.max(1, Math.min(100_000, Number(limit) || 10_000));
+    const safeLimit = boundedLimit(limit, 10_000);
     return clone(
       this._readUnsafe(threadId)
         .filter((record) => record.event_seq > Number(afterSeq || 0))
@@ -387,7 +622,7 @@ export class JsonlRolloutStore {
     }
     return output
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, Math.max(1, Math.min(10_000, Number(limit) || 100)));
+      .slice(0, boundedLimit(limit, 100));
   }
 
   forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
@@ -410,6 +645,10 @@ export class JsonlRolloutStore {
       },
     });
     return this.resume(target.id);
+  }
+
+  fork(sourceThreadId, options = {}) {
+    return this.forkThread(sourceThreadId, options);
   }
 
   checkpoint(threadId, payload = {}) {
@@ -450,14 +689,27 @@ export class JsonlRolloutStore {
   }
 
   migrate({
-    fromVersion,
+    fromVersion = ROLLOUT_STORE_VERSION,
     toVersion = ROLLOUT_STORE_VERSION,
     dryRun = true,
+    targetStore = null,
+    threadIds = null,
   } = {}) {
+    if (targetStore) {
+      return migrateRolloutStore({
+        sourceStore: this,
+        targetStore,
+        threadIds,
+        dryRun,
+      });
+    }
+    const normalizedFromVersion = Number(fromVersion);
+    const normalizedToVersion = Number(toVersion);
     if (
-      Number(fromVersion) < ROLLOUT_STORE_MIN_VERSION ||
-      Number(fromVersion) > ROLLOUT_STORE_VERSION ||
-      Number(toVersion) !== ROLLOUT_STORE_VERSION
+      !Number.isInteger(normalizedFromVersion) ||
+      normalizedFromVersion < ROLLOUT_STORE_MIN_VERSION ||
+      normalizedFromVersion > ROLLOUT_STORE_VERSION ||
+      normalizedToVersion !== ROLLOUT_STORE_VERSION
     ) {
       throw storeError(
         "CC_ROLLOUT_MIGRATION_UNSUPPORTED",
@@ -466,8 +718,8 @@ export class JsonlRolloutStore {
     }
     return Object.freeze({
       schema: ROLLOUT_STORE_SCHEMA,
-      fromVersion: Number(fromVersion),
-      toVersion: Number(toVersion),
+      fromVersion: normalizedFromVersion,
+      toVersion: normalizedToVersion,
       dryRun: dryRun !== false,
       changes: 0,
       backupRequired: false,
@@ -486,6 +738,7 @@ export class MemoryRolloutStore {
     title = null,
     parentThreadId = null,
     metadata = {},
+    timestamp: startedAt = null,
   } = {}) {
     const safeThreadId = identifier(threadId, "threadId");
     if (this.records.has(safeThreadId)) return this.resume(safeThreadId);
@@ -494,7 +747,8 @@ export class MemoryRolloutStore {
         threadId: safeThreadId,
         eventType: "thread.started",
         idempotencyKey: `thread:${safeThreadId}`,
-        payload: { title, parentThreadId, metadata },
+        timestamp: startedAt || undefined,
+        payload: startPayload({ title, parentThreadId, metadata }),
       },
       null,
       this.now,
@@ -546,7 +800,7 @@ export class MemoryRolloutStore {
     return clone(
       records
         .filter((record) => record.event_seq > Number(afterSeq || 0))
-        .slice(0, limit),
+        .slice(0, boundedLimit(limit, 10_000)),
     );
   }
 
@@ -559,7 +813,7 @@ export class MemoryRolloutStore {
       .map((threadId) => this.resume(threadId))
       .filter((thread) => includeArchived || thread.status !== "archived")
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, limit);
+      .slice(0, boundedLimit(limit, 100));
   }
 
   forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
@@ -583,6 +837,10 @@ export class MemoryRolloutStore {
     return this.resume(target.id);
   }
 
+  fork(sourceThreadId, options = {}) {
+    return this.forkThread(sourceThreadId, options);
+  }
+
   checkpoint(threadId, payload = {}) {
     return this.append({
       threadId,
@@ -593,13 +851,19 @@ export class MemoryRolloutStore {
   }
 
   compact(threadId, options = {}) {
+    if (typeof options.summary !== "string" || !options.summary.trim()) {
+      throw storeError(
+        "CC_ROLLOUT_INVALID_ARGUMENT",
+        "compaction summary is required",
+      );
+    }
     return this.append({
       threadId,
       eventType: "rollout.compacted",
       idempotencyKey: options.idempotencyKey || null,
       payload: {
-        summary: String(options.summary || ""),
-        retainedState: options.retainedState || {},
+        summary: options.summary,
+        retainedState: options.retainedState ?? {},
       },
     });
   }
@@ -615,10 +879,31 @@ export class MemoryRolloutStore {
   }
 
   migrate(options = {}) {
+    if (options.targetStore) {
+      return migrateRolloutStore({
+        sourceStore: this,
+        targetStore: options.targetStore,
+        threadIds: options.threadIds || null,
+        dryRun: options.dryRun,
+      });
+    }
+    const fromVersion = Number(options.fromVersion ?? ROLLOUT_STORE_VERSION);
+    const toVersion = Number(options.toVersion ?? ROLLOUT_STORE_VERSION);
+    if (
+      !Number.isInteger(fromVersion) ||
+      fromVersion < ROLLOUT_STORE_MIN_VERSION ||
+      fromVersion > ROLLOUT_STORE_VERSION ||
+      toVersion !== ROLLOUT_STORE_VERSION
+    ) {
+      throw storeError(
+        "CC_ROLLOUT_MIGRATION_UNSUPPORTED",
+        `rollout migration ${fromVersion} -> ${toVersion} is unsupported`,
+      );
+    }
     return Object.freeze({
       schema: ROLLOUT_STORE_SCHEMA,
-      fromVersion: Number(options.fromVersion || 1),
-      toVersion: Number(options.toVersion || 1),
+      fromVersion,
+      toVersion,
       dryRun: options.dryRun !== false,
       changes: 0,
       backupRequired: false,
@@ -627,9 +912,11 @@ export class MemoryRolloutStore {
 }
 
 export const _rolloutStoreInternals = Object.freeze({
+  assertExpectedHead,
   buildRecord,
   canonicalJson,
   digest,
   projectThread,
+  startPayload,
   verifyRecords,
 });

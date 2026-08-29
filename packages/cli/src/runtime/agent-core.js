@@ -24,7 +24,6 @@ import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
-import sharedHookRunner from "../lib/hook-runner.js";
 import sharedHookEvents from "../lib/settings-hook-events.js";
 import { mergeProviderOptions } from "../lib/provider-options.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
@@ -48,7 +47,6 @@ import {
   debitSkillPromptBudget,
   resolveSkillLimits,
 } from "../lib/skill-budget.js";
-import { executeHooks, HookEvents } from "../lib/hook-manager.js";
 import { detectPython } from "../lib/cli-anything-bridge.js";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { SubAgentContext } from "../lib/sub-agent-context.js";
@@ -179,14 +177,8 @@ const { isDangerousGitCommand, isReadOnlyGitCommand, normalizeGitCommand } =
   sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
-const { collectHooks, umbrellaFor } = sharedSettingsHooks;
-const { runHooks: runCommandHooks } = sharedHookRunner;
-const {
-  runObserveHooks,
-  aggregateContext,
-  partitionAsyncHooks,
-  withDeliveryId,
-} = sharedHookEvents;
+const { umbrellaFor } = sharedSettingsHooks;
+const { runObserveHooks, aggregateContext } = sharedHookEvents;
 
 const searchProcessRunner = broker.execSync.bind(broker);
 const runCodeProcessRunner = broker.execFileSync.bind(broker);
@@ -765,156 +757,6 @@ function _resolveShellTimeout(raw) {
 }
 
 /**
- * Run settings.json `PreToolUse` hooks (decision-capable). DB hooks are handled
- * separately + stay observe-only. A `block` decision stops the tool; an `ask`
- * routes to the confirmer (headless without one falls closed). spawnSync is
- * synchronous but each hook is timeout-capped.
- * @returns {Promise<{blocked:boolean, reason?:string, hook?:string}>}
- */
-async function runSettingsPreToolUseHooks(name, args, context, cwd) {
-  const matched = collectHooks(context.settingsHooks, "PreToolUse", name);
-  if (!matched || matched.length === 0) return { blocked: false };
-  // Unified-bus envelope (P2): stamps event_id + threads trace_id (this run) /
-  // parent_id (spawning run) from the loop context. Additive fields — a hook
-  // that ignores them is unaffected; absent context omits them entirely.
-  const payload = withDeliveryId(
-    "PreToolUse",
-    {
-      hook_event_name: "PreToolUse",
-      tool_name: umbrellaFor(name),
-      raw_tool_name: name,
-      tool_input: args,
-      cwd,
-      session_id: context.sessionId || null,
-    },
-    {
-      sessionId: context.sessionId || null,
-      traceId: context.hookTraceId || null,
-      parentId: context.hookParentId || null,
-    },
-  );
-  // Run every matching authority-bearing hook in configured order, then merge
-  // the outcomes with block > ask > allow > continue. Sequential execution
-  // preserves the documented hook side-effect order while preventing an early
-  // ask/allow from masking a later block. Environment variables cannot weaken
-  // this permission boundary.
-  const outcome = runCommandHooks(matched, payload, {
-    cwd,
-    event: "PreToolUse",
-    mergeStrict: true,
-    failClosed: true,
-    broker,
-  });
-  if (outcome.decision === "block") {
-    return { blocked: true, reason: outcome.reason, hook: outcome.hook };
-  }
-  if (outcome.decision === "ask") {
-    // File edits in an interactive session with an IDE bridge: route the ask
-    // through the editor's openDiff review (same machinery as settings ask —
-    // accepted means the IDE wrote the file, so the caller must skip
-    // execution; see tryIdeDiffApprovalForEdit).
-    const ide = await tryIdeDiffApprovalForEdit(name, args, context, cwd, {
-      rule: `hook:${outcome.hook}`,
-      source: "PreToolUse hook",
-    });
-    if (ide?.outcome === "accepted") {
-      return { blocked: false, ideApplied: ide.result };
-    }
-    // Both rejected and changes-requested mean "not applied + feed the
-    // verdict's message back" — same control flow, different message body.
-    if (ide?.outcome === "rejected" || ide?.outcome === "changes-requested") {
-      return {
-        blocked: true,
-        reason: ide.result.error,
-        hook: outcome.hook,
-        ideResult: ide.result,
-      };
-    }
-    const ok = await requestInteractivePermission(name, args, context, cwd, {
-      tool: name,
-      args,
-      rule: `hook:${outcome.hook}`,
-      reason: outcome.reason || "a PreToolUse hook requests confirmation",
-    });
-    return ok
-      ? { blocked: false }
-      : {
-          blocked: true,
-          reason: outcome.reason || "PreToolUse hook ask denied",
-          hook: outcome.hook,
-        };
-  }
-  return { blocked: false };
-}
-
-/**
- * Run settings.json `PermissionRequest` hooks (Claude-Code parity). Fires at the
- * exact moment a tool call would prompt the user for approval — BEFORE the
- * prompt — so a policy hook can auto-approve (`allow`/`approve`), auto-reject
- * (`deny`/`block`), or defer (`ask` / no decision) to the normal prompt.
- * Returns `{ decision: "allow" | "deny" | null }`. No matching hook (or no
- * `settingsHooks`) → `{ decision: null }` and the caller prompts exactly as
- * before (default behaviour is byte-for-byte unchanged).
- * @returns {{decision:("allow"|"deny"|null), reason?:string, hook?:string}}
- */
-function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
-  // Command hooks are arbitrary processes. Until a host-enforced read-only
-  // hook sandbox exists, no command hook may execute inside the planning-only
-  // capability fence (even when the underlying tool is read-only).
-  if (context.planReadOnlyFenceActive === true) return { decision: null };
-  const matched = collectHooks(
-    context.settingsHooks,
-    "PermissionRequest",
-    name,
-  );
-  if (!matched || matched.length === 0) return { decision: null };
-  const payload = withDeliveryId(
-    "PermissionRequest",
-    {
-      hook_event_name: "PermissionRequest",
-      tool_name: umbrellaFor(name),
-      raw_tool_name: name,
-      tool_input: args,
-      permission_reason: reason || null,
-      cwd,
-      session_id: context.sessionId || null,
-    },
-    {
-      sessionId: context.sessionId || null,
-      traceId: context.hookTraceId || null,
-      parentId: context.hookParentId || null,
-    },
-  );
-  const outcome = runCommandHooks(matched, payload, {
-    cwd,
-    event: "PermissionRequest",
-    mergeStrict: true,
-    failClosed: true,
-    broker,
-  });
-  // Precedence: deny > ask > allow > defer. The runner normalizes deny/block →
-  // "block" and short-circuits block/ask, but it COLLAPSES an "allow" into the
-  // aggregate "continue" (it only short-circuits block/ask) — so an explicit
-  // auto-approve must be recovered from the per-hook `results`. A deny or ask
-  // by any hook still wins over an allow (safety: never let an allow override a
-  // gate that another hook wanted to block or prompt for).
-  if (outcome.decision === "block") {
-    return { decision: "deny", reason: outcome.reason, hook: outcome.hook };
-  }
-  if (outcome.decision === "ask") {
-    return { decision: null }; // a hook asked → defer to the confirmer
-  }
-  const allowHook =
-    outcome.decision === "allow"
-      ? { command: outcome.hook }
-      : (outcome.results || []).find((r) => r && r.decision === "allow");
-  if (allowHook) {
-    return { decision: "allow", hook: allowHook.command || null };
-  }
-  return { decision: null }; // no actionable decision → defer to the confirmer
-}
-
-/**
  * Resolve an interactive permission gate. Gives `PermissionRequest` hooks first
  * say (auto-allow → true without prompting, auto-deny → false without
  * prompting), then falls back to the injected confirmer with the identical
@@ -954,14 +796,21 @@ async function requestInteractivePermission(
       turn_id: context.turnId || null,
       tool_use_id: context.toolCallId || null,
       tool_name: name,
+      raw_tool_name: name,
+      tool_input: args,
       input_keys:
         args && typeof args === "object" ? Object.keys(args).sort() : [],
       reason: confirmArgs?.reason || null,
       cwd,
-      trace_id: context.hookTraceId || null,
-      parent_id: context.hookParentId || null,
+      ...(context.hookTraceId ? { trace_id: context.hookTraceId } : {}),
+      ...(context.hookParentId ? { parent_id: context.hookParentId } : {}),
     },
-    { failClosed: true },
+    {
+      failClosed: true,
+      settingsHooks: context.settingsHooks,
+      matchTarget: name,
+      cwd,
+    },
   );
   if (hooksV2.decision === "allow") return true;
   if (hooksV2.blocked || hooksV2.decision === "block") {
@@ -972,25 +821,6 @@ async function requestInteractivePermission(
       tool_use_id: context.toolCallId || null,
       tool_name: name,
       source: "hooks-v2",
-    });
-    return false;
-  }
-  const verdict = runSettingsPermissionRequestHooks(
-    name,
-    args,
-    context,
-    cwd,
-    confirmArgs?.reason,
-  );
-  if (verdict.decision === "allow") return true;
-  if (verdict.decision === "deny") {
-    emitHooksV2Event("PermissionDenied", {
-      schema_version: 1,
-      session_id: context.sessionId || null,
-      turn_id: context.turnId || null,
-      tool_use_id: context.toolCallId || null,
-      tool_name: name,
-      source: "settings-hook",
     });
     return false;
   }
@@ -2852,6 +2682,8 @@ export async function executeTool(name, args, context = {}) {
         turn_id: context.turnId || null,
         tool_use_id: context.toolCallId || null,
         tool_name: name,
+        raw_tool_name: name,
+        tool_input: args,
         hook_event_name: event,
         hook_source: source,
         incident_code: incident.code,
@@ -3553,6 +3385,7 @@ export async function executeTool(name, args, context = {}) {
       "PreToolUse",
       {
         schema_version: 1,
+        event_id: `evt_${randomUUID().replaceAll("-", "").slice(0, 16)}`,
         session_id: context.sessionId || null,
         turn_id: context.turnId || null,
         tool_use_id: context.toolCallId || null,
@@ -3560,28 +3393,69 @@ export async function executeTool(name, args, context = {}) {
         input_keys:
           args && typeof args === "object" ? Object.keys(args).sort() : [],
         cwd,
-        trace_id: context.hookTraceId || null,
-        parent_id: context.hookParentId || null,
+        ...(context.hookTraceId ? { trace_id: context.hookTraceId } : {}),
+        ...(context.hookParentId ? { parent_id: context.hookParentId } : {}),
       },
-      { failClosed: true },
+      {
+        failClosed: true,
+        settingsHooks: context.settingsHooks,
+        hookDb,
+        matchTarget: name,
+        cwd,
+      },
     );
     if (hooksV2Pre.blocked || hooksV2Pre.decision === "block") {
+      const blockingHook = hooksV2Pre.results?.find(
+        (entry) => entry.decision === "block",
+      );
+      const blockingReason =
+        blockingHook?.result?.reason ||
+        hooksV2Pre.blockingResult?.reason ||
+        blockingHook?.error ||
+        null;
       return {
-        error: `[Hook v2] PreToolUse blocked "${name}".`,
-        policy: { decision: "block", via: "hooks-v2" },
+        error: `[Hook] PreToolUse blocked "${name}"${blockingReason ? `: ${blockingReason}` : ""}`,
+        policy: {
+          decision: "block",
+          via: "hook",
+          hook: blockingHook?.hookId || null,
+          code:
+            hooksV2Pre.errorCode ||
+            hooksV2Pre.auditError ||
+            hooksV2Pre.blockingResult?.code ||
+            null,
+        },
       };
     }
     if (hooksV2Pre.requiresApproval || hooksV2Pre.decision === "ask") {
-      const confirm = context.permissionConfirm || context.shellConfirm || null;
-      const approved =
-        typeof confirm === "function"
-          ? await confirm({
-              tool: name,
-              args,
-              reason: "Hooks v2 PreToolUse requested confirmation",
-              source: "hooks-v2",
-            })
-          : false;
+      const askingHook = hooksV2Pre.results?.find(
+        (entry) => entry.decision === "ask",
+      );
+      const reason =
+        askingHook?.result?.reason ||
+        hooksV2Pre.blockingResult?.reason ||
+        "A PreToolUse Hook requests confirmation";
+      const ide = await tryIdeDiffApprovalForEdit(name, args, context, cwd, {
+        rule: `hook:${askingHook?.hookId || "canonical"}`,
+        source: "PreToolUse Hook",
+      });
+      if (ide?.outcome === "accepted") return ide.result;
+      if (ide?.outcome === "rejected" || ide?.outcome === "changes-requested") {
+        return ide.result;
+      }
+      const approved = await requestInteractivePermission(
+        name,
+        args,
+        context,
+        cwd,
+        {
+          tool: name,
+          args,
+          rule: `hook:${askingHook?.hookId || "canonical"}`,
+          reason,
+          source: "hooks-v2",
+        },
+      );
       if (!approved) {
         emitHooksV2Event("PermissionDenied", {
           schema_version: 1,
@@ -3592,35 +3466,8 @@ export async function executeTool(name, args, context = {}) {
           source: "hooks-v2",
         });
         return {
-          error: `[Hook v2] PreToolUse confirmation denied for "${name}".`,
-          policy: { decision: "deny", via: "hooks-v2" },
-        };
-      }
-    }
-    if (hookDb) {
-      try {
-        await executeHooks(hookDb, HookEvents.PreToolUse, {
-          tool: name,
-          args,
-          timestamp: new Date().toISOString(),
-          descriptor: runtimeDescriptor,
-          context: toolContext,
-        });
-      } catch (error) {
-        recordObserveHookIncident("PreToolUse", "database", error);
-      }
-    }
-    if (context.settingsHooks) {
-      const pre = await runSettingsPreToolUseHooks(name, args, context, cwd);
-      // A hook `ask` resolved by the IDE diff review: accepted → the IDE
-      // already wrote the file, return the synthetic result and skip the tool;
-      // rejected → the ide-diff deny shape (via:"ide-diff", not via:"hook").
-      if (pre.ideApplied) return pre.ideApplied;
-      if (pre.blocked) {
-        if (pre.ideResult) return pre.ideResult;
-        return {
-          error: `[Hook] PreToolUse blocked "${name}"${pre.reason ? ": " + pre.reason : ""}`,
-          policy: { decision: "block", via: "hook", hook: pre.hook || null },
+          error: `[Hook] PreToolUse blocked "${name}": confirmation denied`,
+          policy: { decision: "deny", via: "hook" },
         };
       }
     }
@@ -3741,19 +3588,26 @@ export async function executeTool(name, args, context = {}) {
         context.browserReplayAllowCredentials === true,
     });
   } catch (err) {
-    if (
-      hookDb &&
-      !planReadOnlyFenceActive &&
-      context.hermeticExecution !== true
-    ) {
+    if (!planReadOnlyFenceActive && context.hermeticExecution !== true) {
       try {
-        await executeHooks(hookDb, HookEvents.ToolError, {
-          tool: name,
-          args,
-          error: err.message,
-        });
+        await executeHooksV2Event(
+          "ToolError",
+          {
+            tool: name,
+            tool_name: name,
+            tool_input: args,
+            error: err.message,
+            cwd,
+          },
+          {
+            hookDb,
+            settingsHooks: context.settingsHooks,
+            matchTarget: name,
+            cwd,
+          },
+        );
       } catch (error) {
-        recordObserveHookIncident("ToolError", "database", error);
+        recordObserveHookIncident("ToolError", "canonical", error);
       }
     }
     throw err;
@@ -3777,96 +3631,76 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
-  // PostToolUse hook
-  if (
-    hookDb &&
-    !planReadOnlyFenceActive &&
-    context.hermeticExecution !== true
-  ) {
-    try {
-      await executeHooks(hookDb, HookEvents.PostToolUse, {
-        tool: name,
-        args,
-        result:
-          typeof toolResult === "object"
-            ? JSON.stringify(toolResult).substring(0, 500)
-            : String(toolResult).substring(0, 500),
-        descriptor: runtimeDescriptor,
-        context: toolContext,
-      });
-    } catch (error) {
-      recordObserveHookIncident("PostToolUse", "database", error);
-    }
-  }
-  // settings.json PostToolUse hooks: can't un-run the tool, but a `block`
-  // reason is attached as `hookFeedback` to be surfaced back to the model.
+  // Canonical PostToolUse dispatch. SQLite and settings definitions are input
+  // adapters; Hooks v2 is the only scheduler/decision/audit runtime.
   if (
     !planReadOnlyFenceActive &&
     context.hermeticExecution !== true &&
-    context.settingsHooks &&
     toolResult &&
     typeof toolResult === "object"
   ) {
     try {
-      const matched = collectHooks(context.settingsHooks, "PostToolUse", name);
-      if (matched && matched.length > 0) {
-        // `async:true` PostToolUse hooks must NOT block the tool loop — split
-        // them off the synchronous decision path. Without this an async hook
-        // ran synchronously here, defeating fire-and-forget (a background lint /
-        // test after each edit would stall the turn).
-        const { sync, async: asyncHooks } = partitionAsyncHooks(matched);
-        const payload = withDeliveryId(
-          "PostToolUse",
-          {
-            hook_event_name: "PostToolUse",
-            tool_name: umbrellaFor(name),
-            raw_tool_name: name,
-            tool_input: args,
-            tool_response:
-              typeof toolResult === "object"
-                ? JSON.stringify(toolResult).substring(0, 2000)
-                : String(toolResult).substring(0, 2000),
-            cwd,
-            session_id: context.sessionId || null,
-          },
-          {
-            sessionId: context.sessionId || null,
-            traceId: context.hookTraceId || null,
-            parentId: context.hookParentId || null,
-          },
-        );
-        if (sync.length > 0) {
-          const outcome = runCommandHooks(sync, payload, {
-            cwd,
-            event: "PostToolUse",
-            broker,
-          });
-          for (const hookResult of outcome.results || []) {
-            if (
-              hookResult?.nonBlockingError === true ||
-              hookResult?.breakerOpen === true ||
-              hookResult?.malformedDecision === true ||
-              hookResult?.unsupportedDecision === true
-            ) {
-              recordObserveHookIncident(
-                "PostToolUse",
-                "settings-command",
-                hookResult.reason || hookResult.error || "hook command failed",
-              );
-            }
-          }
-          if (outcome.decision === "block" && outcome.reason) {
-            toolResult.hookFeedback = outcome.reason;
-          }
-        }
-        // Fire-and-forget the async hooks onto the REPL-owned supervisor when
-        // one is wired; results/rewakes drain into the next turn's context.
-        if (asyncHooks.length > 0 && context.hookSupervisor) {
-          context.hookSupervisor.dispatch(asyncHooks, payload, { cwd, broker });
+      const outcome = await executeHooksV2Event(
+        "PostToolUse",
+        {
+          schema_version: 1,
+          event_id: `evt_${randomUUID().replaceAll("-", "").slice(0, 16)}`,
+          hook_event_name: "PostToolUse",
+          tool_name: umbrellaFor(name),
+          raw_tool_name: name,
+          tool_input: args,
+          tool_response: JSON.stringify(toolResult).substring(0, 2000),
+          cwd,
+          session_id: context.sessionId || null,
+          ...(context.hookTraceId ? { trace_id: context.hookTraceId } : {}),
+          ...(context.hookParentId ? { parent_id: context.hookParentId } : {}),
+        },
+        {
+          settingsHooks: context.settingsHooks,
+          hookDb,
+          matchTarget: name,
+          cwd,
+          asyncDispatcher:
+            context.hookSupervisor &&
+            typeof context.hookSupervisor.dispatch === "function"
+              ? (hook, payload) =>
+                  context.hookSupervisor.dispatch(
+                    [hook.legacyHook || hook],
+                    payload,
+                    { cwd, broker },
+                  )
+              : null,
+        },
+      );
+      for (const hookResult of outcome.results || []) {
+        if (
+          hookResult?.status === "error" &&
+          String(hookResult.hookId || "").startsWith("settings:")
+        ) {
+          recordObserveHookIncident(
+            "PostToolUse",
+            "settings-command",
+            hookResult.error || "hook command failed",
+          );
         }
       }
+      const feedback = outcome.results?.find(
+        (entry) =>
+          entry.status === "success" &&
+          entry.result &&
+          ["block", "deny"].includes(
+            String(
+              entry.result.decision ||
+                entry.result.permissionDecision ||
+                entry.result.hookSpecificOutput?.permissionDecision ||
+                "",
+            ).toLowerCase(),
+          ),
+      );
+      const reason = feedback?.result?.reason;
+      if (reason) toolResult.hookFeedback = reason;
     } catch (error) {
-      recordObserveHookIncident("PostToolUse", "settings-command", error);
+      recordObserveHookIncident("PostToolUse", "canonical", error);
     }
   }
 
@@ -3885,7 +3719,7 @@ export async function executeTool(name, args, context = {}) {
     !(toolResult.background === true && toolResult.status === "running")
   ) {
     try {
-      const outcome = runObserveHooks(
+      const outcome = await runObserveHooks(
         context.settingsHooks,
         "SubagentStop",
         {
@@ -9885,7 +9719,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   // returns). Best-effort — a hook error never blocks the spawn.
   if (ctx.settingsHooks) {
     try {
-      const startOutcome = runObserveHooks(
+      const startOutcome = await runObserveHooks(
         ctx.settingsHooks,
         "SubagentStart",
         {
@@ -10662,9 +10496,8 @@ export async function chatWithTools(rawMessages, options) {
     options.contextMemoryPreplanned !== true &&
     options.contextMemorySkipPlanning !== true
   ) {
-    const { prepareCanonicalProviderContext } = await import(
-      "../lib/context-memory-kernel/provider-context.js"
-    );
+    const { prepareCanonicalProviderContext } =
+      await import("../lib/context-memory-kernel/provider-context.js");
     const prepared = await prepareCanonicalProviderContext(rawMessages, {
       ...options,
       contextMemoryToolDefinitions: tools,
@@ -10679,11 +10512,12 @@ export async function chatWithTools(rawMessages, options) {
   const lastUserMsg = [...providerMessages]
     .reverse()
     .find((m) => m.role === "user");
-  const messages = ce && !canonicalPlan
-    ? ce.buildOptimizedMessages(providerMessages, {
-        userQuery: lastUserMsg?.content,
-      })
-    : providerMessages;
+  const messages =
+    ce && !canonicalPlan
+      ? ce.buildOptimizedMessages(providerMessages, {
+          userQuery: lastUserMsg?.content,
+        })
+      : providerMessages;
 
   throwIfAborted(signal);
 
@@ -13692,7 +13526,7 @@ export async function* agentLoop(messages, options) {
           let preCompactReason = null;
           if (!hermeticExecution && needFull && options.settingsHooks) {
             try {
-              const pc = runObserveHooks(
+              const pc = await runObserveHooks(
                 options.settingsHooks,
                 "PreCompact",
                 {
@@ -13741,9 +13575,7 @@ export async function* agentLoop(messages, options) {
               });
           if (
             stats?.canonicalReceipt &&
-            !["committed", "degraded"].includes(
-              stats.canonicalReceipt.status,
-            )
+            !["committed", "degraded"].includes(stats.canonicalReceipt.status)
           ) {
             automaticCompactionSettlementBlocked = true;
             yield {
@@ -14033,7 +13865,7 @@ export async function* agentLoop(messages, options) {
         // spawn-time handle skips it); a block reason rides along as feedback.
         if (!hermeticExecution && options.settingsHooks) {
           try {
-            const outcome = runObserveHooks(
+            const outcome = await runObserveHooks(
               options.settingsHooks,
               "SubagentStop",
               {
@@ -14110,9 +13942,8 @@ export async function* agentLoop(messages, options) {
     // the run-level ids (turn.id correlates with the agent.iteration counter).
     let canonicalProviderContext = null;
     if (options.contextMemorySkipPlanning !== true) {
-      const { prepareCanonicalProviderContext } = await import(
-        "../lib/context-memory-kernel/provider-context.js"
-      );
+      const { prepareCanonicalProviderContext } =
+        await import("../lib/context-memory-kernel/provider-context.js");
       canonicalProviderContext = await prepareCanonicalProviderContext(
         callMessages,
         {
@@ -14406,7 +14237,7 @@ export async function* agentLoop(messages, options) {
       if (!hermeticExecution && options.settingsHooks) {
         let stopOutcome = null;
         try {
-          stopOutcome = runObserveHooks(
+          stopOutcome = await runObserveHooks(
             options.settingsHooks,
             "Stop",
             {

@@ -29,64 +29,76 @@ const ss = (command, matcher = null) => ({
 const CWD = process.cwd();
 
 describe("runUserPromptSubmitHooks", () => {
-  it("returns not-blocked with no hooks", () => {
-    expect(runUserPromptSubmitHooks(null, { prompt: "hi" })).toEqual({
+  it("returns not-blocked with no hooks", async () => {
+    expect(await runUserPromptSubmitHooks(null, { prompt: "hi" })).toEqual({
       blocked: false,
       additionalContext: null,
     });
   });
 
-  it("exit 2 blocks the turn", () => {
-    const r = runUserPromptSubmitHooks(ups('node -e "process.exit(2)"'), {
+  it("exit 2 blocks the turn", async () => {
+    const r = await runUserPromptSubmitHooks(ups('node -e "process.exit(2)"'), {
       prompt: "rm secrets",
       cwd: CWD,
     });
     expect(r.blocked).toBe(true);
   });
 
-  it("{decision:block} blocks with reason", () => {
+  it("{decision:block} blocks with reason", async () => {
     const cmd =
       "node -e \"console.log(JSON.stringify({decision:'block',reason:'no secrets'}))\"";
-    const r = runUserPromptSubmitHooks(ups(cmd), { prompt: "x", cwd: CWD });
+    const r = await runUserPromptSubmitHooks(ups(cmd), {
+      prompt: "x",
+      cwd: CWD,
+    });
     expect(r).toMatchObject({ blocked: true, reason: "no secrets" });
   });
 
-  it("plain stdout becomes additionalContext", () => {
+  it("plain stdout becomes additionalContext", async () => {
     const cmd = "node -e \"console.log('branch is main, be careful')\"";
-    const r = runUserPromptSubmitHooks(ups(cmd), { prompt: "x", cwd: CWD });
+    const r = await runUserPromptSubmitHooks(ups(cmd), {
+      prompt: "x",
+      cwd: CWD,
+    });
     expect(r.blocked).toBe(false);
     expect(r.additionalContext).toBe("branch is main, be careful");
   });
 
-  it("JSON additionalContext is honored", () => {
+  it("JSON additionalContext is honored", async () => {
     const cmd =
       "node -e \"console.log(JSON.stringify({additionalContext:'ctx-here'}))\"";
-    const r = runUserPromptSubmitHooks(ups(cmd), { prompt: "x", cwd: CWD });
+    const r = await runUserPromptSubmitHooks(ups(cmd), {
+      prompt: "x",
+      cwd: CWD,
+    });
     expect(r.additionalContext).toBe("ctx-here");
   });
 
-  it("passes the prompt to the hook via stdin payload", () => {
+  it("passes the prompt to the hook via stdin payload", async () => {
     // hook echoes a marker only when stdin contains the prompt text
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);if(j.prompt==='hello')console.log('saw:'+j.prompt)})\"";
-    const r = runUserPromptSubmitHooks(ups(cmd), { prompt: "hello", cwd: CWD });
+    const r = await runUserPromptSubmitHooks(ups(cmd), {
+      prompt: "hello",
+      cwd: CWD,
+    });
     expect(r.additionalContext).toBe("saw:hello");
   });
 });
 
 describe("runSessionStartHooks", () => {
-  it("injects context; matcher matches the source", () => {
+  it("injects context; matcher matches the source", async () => {
     const cmd = "node -e \"console.log('session ctx')\"";
-    const r = runSessionStartHooks(ss(cmd, "startup"), {
+    const r = await runSessionStartHooks(ss(cmd, "startup"), {
       source: "startup",
       cwd: CWD,
     });
     expect(r.additionalContext).toBe("session ctx");
   });
 
-  it("source mismatch → no hooks fire", () => {
+  it("source mismatch → no hooks fire", async () => {
     const cmd = "node -e \"console.log('x')\"";
-    const r = runSessionStartHooks(ss(cmd, "resume"), {
+    const r = await runSessionStartHooks(ss(cmd, "resume"), {
       source: "startup",
       cwd: CWD,
     });
@@ -99,22 +111,25 @@ describe("runCwdChangedHooks", () => {
     CwdChanged: [{ matcher, hooks: [{ type: "command", command }] }],
   });
 
-  it("returns null context with no settings / no hooks", () => {
-    expect(runCwdChangedHooks(null, { newCwd: CWD })).toEqual({
+  it("returns null context with no settings / no hooks", async () => {
+    expect(await runCwdChangedHooks(null, { newCwd: CWD })).toEqual({
       additionalContext: null,
     });
     expect(
-      runCwdChangedHooks(cc('node -e ""', "nomatch"), { newCwd: CWD }),
+      await runCwdChangedHooks(cc('node -e ""', "nomatch"), { newCwd: CWD }),
     ).toEqual({ additionalContext: null }); // matcher mismatch → no fire
   });
 
-  it("fires the hook and injects its emitted context", () => {
+  it("fires the hook and injects its emitted context", async () => {
     const cmd = "node -e \"console.log('entered new dir')\"";
-    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/a", newCwd: CWD });
+    const r = await runCwdChangedHooks(cc(cmd), {
+      oldCwd: "/a",
+      newCwd: CWD,
+    });
     expect(r.additionalContext).toBe("entered new dir");
   });
 
-  it("threads old_cwd + cwd into the hook stdin payload", () => {
+  it("threads old_cwd + cwd into the hook stdin payload", async () => {
     // The hook reads its stdin JSON and echoes the fields back, proving the
     // producer built the CwdChanged payload correctly. newCwd doubles as the
     // hook child's spawn cwd, so it must be a REAL directory: a fabricated
@@ -123,7 +138,10 @@ describe("runCwdChangedHooks", () => {
     // oldCwd is payload-only — a fake path there is fine.
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.old_cwd+'|'+j.cwd+'|'+j.hook_event_name)})\"";
-    const r = runCwdChangedHooks(cc(cmd), { oldCwd: "/old", newCwd: CWD });
+    const r = await runCwdChangedHooks(cc(cmd), {
+      oldCwd: "/old",
+      newCwd: CWD,
+    });
     expect(r.additionalContext).toBe(`/old|${CWD}|CwdChanged`);
   });
 });
@@ -133,22 +151,24 @@ describe("runWorktreeCreateHooks", () => {
     WorktreeCreate: [{ matcher, hooks: [{ type: "command", command }] }],
   });
 
-  it("returns null context with no settings / no hooks", () => {
-    expect(runWorktreeCreateHooks(null, { branch: "cc-agent-x" })).toEqual({
+  it("returns null context with no settings / no hooks", async () => {
+    expect(
+      await runWorktreeCreateHooks(null, { branch: "cc-agent-x" }),
+    ).toEqual({
       additionalContext: null,
     });
     // matcher scoped to a different branch → no fire
     expect(
-      runWorktreeCreateHooks(wc('node -e ""', "other"), {
+      await runWorktreeCreateHooks(wc('node -e ""', "other"), {
         branch: "cc-agent-x",
         cwd: CWD,
       }),
     ).toEqual({ additionalContext: null });
   });
 
-  it("fires and injects context; branch matches the matcher target", () => {
+  it("fires and injects context; branch matches the matcher target", async () => {
     const cmd = "node -e \"console.log('worktree ready')\"";
-    const r = runWorktreeCreateHooks(wc(cmd, "/^cc-agent-/"), {
+    const r = await runWorktreeCreateHooks(wc(cmd, "/^cc-agent-/"), {
       worktreePath: CWD,
       branch: "cc-agent-42",
       baseSha: "deadbeef",
@@ -157,10 +177,10 @@ describe("runWorktreeCreateHooks", () => {
     expect(r.additionalContext).toBe("worktree ready");
   });
 
-  it("threads worktree_path + branch + base_sha into the hook stdin payload", () => {
+  it("threads worktree_path + branch + base_sha into the hook stdin payload", async () => {
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.hook_event_name+'|'+j.branch+'|'+j.base_sha+'|'+j.worktree_path)})\"";
-    const r = runWorktreeCreateHooks(wc(cmd), {
+    const r = await runWorktreeCreateHooks(wc(cmd), {
       worktreePath: "/wt/p",
       branch: "cc-agent-9",
       baseSha: "abc123",
@@ -175,16 +195,18 @@ describe("runWorktreeRemoveHooks", () => {
     WorktreeRemove: [{ matcher, hooks: [{ type: "command", command }] }],
   });
 
-  it("returns null context with no settings / no hooks", () => {
-    expect(runWorktreeRemoveHooks(null, { branch: "cc-agent-x" })).toEqual({
+  it("returns null context with no settings / no hooks", async () => {
+    expect(
+      await runWorktreeRemoveHooks(null, { branch: "cc-agent-x" }),
+    ).toEqual({
       additionalContext: null,
     });
   });
 
-  it("threads removed + reason + branch into the hook stdin payload", () => {
+  it("threads removed + reason + branch into the hook stdin payload", async () => {
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(j.hook_event_name+'|'+j.removed+'|'+j.reason+'|'+j.branch)})\"";
-    const r = runWorktreeRemoveHooks(wr(cmd), {
+    const r = await runWorktreeRemoveHooks(wr(cmd), {
       worktreePath: "/wt/p",
       branch: "cc-agent-9",
       removed: true,
@@ -196,10 +218,10 @@ describe("runWorktreeRemoveHooks", () => {
     );
   });
 
-  it("reports removed:false for a kept worktree", () => {
+  it("reports removed:false for a kept worktree", async () => {
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log(String(j.removed))})\"";
-    const r = runWorktreeRemoveHooks(wr(cmd), {
+    const r = await runWorktreeRemoveHooks(wr(cmd), {
       branch: "cc-agent-9",
       removed: false,
       reason: "uncommitted changes",
@@ -214,25 +236,25 @@ describe("runInstructionsLoadedHooks", () => {
     InstructionsLoaded: [{ matcher, hooks: [{ type: "command", command }] }],
   });
 
-  it("returns null context with no settings / no hooks", () => {
-    expect(runInstructionsLoadedHooks(null, { files: [] })).toEqual({
+  it("returns null context with no settings / no hooks", async () => {
+    expect(await runInstructionsLoadedHooks(null, { files: [] })).toEqual({
       additionalContext: null,
     });
   });
 
-  it("fires and injects context", () => {
+  it("fires and injects context", async () => {
     const cmd = "node -e \"console.log('instructions audited')\"";
-    const r = runInstructionsLoadedHooks(il(cmd), {
+    const r = await runInstructionsLoadedHooks(il(cmd), {
       files: [{ path: "/repo/CLAUDE.md", scope: "project" }],
       cwd: CWD,
     });
     expect(r.additionalContext).toBe("instructions audited");
   });
 
-  it("threads the trimmed file set (path/scope/truncated) + count, never content", () => {
+  it("threads the trimmed file set (path/scope/truncated) + count, never content", async () => {
     const cmd =
       "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);const f=j.files[0];console.log(j.hook_event_name+'|'+j.count+'|'+f.path+'|'+f.scope+'|'+f.truncated+'|'+('content'in f))})\"";
-    const r = runInstructionsLoadedHooks(il(cmd), {
+    const r = await runInstructionsLoadedHooks(il(cmd), {
       // `content` on the input entry must be DROPPED from the payload.
       files: [
         {
@@ -256,8 +278,8 @@ describe("runObserveHooks (Stop / SessionEnd / PreCompact)", () => {
     [event]: [{ matcher: null, hooks: [{ type: "command", command }] }],
   });
 
-  it("runs the event's hooks and returns continue when they exit 0", () => {
-    const r = runObserveHooks(
+  it("runs the event's hooks and returns continue when they exit 0", async () => {
+    const r = await runObserveHooks(
       obs("Stop", 'node -e ""'),
       "Stop",
       {},
@@ -267,18 +289,26 @@ describe("runObserveHooks (Stop / SessionEnd / PreCompact)", () => {
     expect(r.results).toHaveLength(1);
   });
 
-  it("surfaces a block reason (observe — caller decides) ", () => {
+  it("surfaces a block reason (observe — caller decides) ", async () => {
     const cmd =
       "node -e \"console.log(JSON.stringify({decision:'block',reason:'stay'}))\"";
-    const r = runObserveHooks(obs("Stop", cmd), "Stop", {}, { cwd: CWD });
+    const r = await runObserveHooks(obs("Stop", cmd), "Stop", {}, { cwd: CWD });
     expect(r).toMatchObject({ decision: "block", reason: "stay" });
   });
 
-  it("returns continue with no hooks / no settings", () => {
-    expect(runObserveHooks(null, "Stop", {}, {}).decision).toBe("continue");
+  it("returns continue with no hooks / no settings", async () => {
+    expect((await runObserveHooks(null, "Stop", {}, {})).decision).toBe(
+      "continue",
+    );
     expect(
-      runObserveHooks(obs("PreCompact", 'node -e ""'), "SessionEnd", {}, {})
-        .decision,
+      (
+        await runObserveHooks(
+          obs("PreCompact", 'node -e ""'),
+          "SessionEnd",
+          {},
+          {},
+        )
+      ).decision,
     ).toBe("continue"); // event mismatch → no hooks
   });
 });
@@ -300,8 +330,8 @@ describe("unified-bus delivery id (P2)", () => {
   const echoId =
     "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let j={};try{j=JSON.parse(d)}catch(e){};const ok=j.event_id&&j.event_id.indexOf('evt_')===0;process.stdout.write(JSON.stringify({additionalContext:ok?'HAS_ID':'NO_ID'}))})\"";
 
-  it("stamps event_id onto the UserPromptSubmit hook payload", () => {
-    const r = runUserPromptSubmitHooks(ups(echoId), {
+  it("stamps event_id onto the UserPromptSubmit hook payload", async () => {
+    const r = await runUserPromptSubmitHooks(ups(echoId), {
       prompt: "hi",
       cwd: CWD,
       sessionId: "s1",
@@ -309,8 +339,11 @@ describe("unified-bus delivery id (P2)", () => {
     expect(r.additionalContext).toBe("HAS_ID");
   });
 
-  it("stamps event_id onto the SessionStart hook payload", () => {
-    const r = runSessionStartHooks(ss(echoId), { source: "startup", cwd: CWD });
+  it("stamps event_id onto the SessionStart hook payload", async () => {
+    const r = await runSessionStartHooks(ss(echoId), {
+      source: "startup",
+      cwd: CWD,
+    });
     expect(r.additionalContext).toBe("HAS_ID");
   });
 
@@ -322,8 +355,8 @@ describe("unified-bus delivery id (P2)", () => {
     Stop: [{ matcher: null, hooks: [{ type: "command", command }] }],
   });
 
-  it("threads trace_id + parent_id into the delivered payload when provided", () => {
-    const outcome = runObserveHooks(
+  it("threads trace_id + parent_id into the delivered payload when provided", async () => {
+    const outcome = await runObserveHooks(
       obs(echoTrace),
       "Stop",
       { session_id: "s1" },
@@ -332,8 +365,8 @@ describe("unified-bus delivery id (P2)", () => {
     expect(aggregateContext(outcome.results)).toBe("run-123|run-parent-9|has");
   });
 
-  it("omits trace_id/parent_id entirely when the caller does not thread them", () => {
-    const outcome = runObserveHooks(
+  it("omits trace_id/parent_id entirely when the caller does not thread them", async () => {
+    const outcome = await runObserveHooks(
       obs(echoTrace),
       "Stop",
       { session_id: "s1" },

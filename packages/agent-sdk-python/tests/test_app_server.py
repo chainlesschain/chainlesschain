@@ -36,6 +36,33 @@ class FakeTransport:
 
 
 class AppServerPilotClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_physical_rollout_selection_only_changes_server_argv(self) -> None:
+        client = AppServerClient(
+            AppServerClientOptions(
+                storage_backend="sqlite",
+                state_path="C:/state/rollouts.sqlite",
+                server_queue_cap=64,
+            )
+        )
+        self.assertEqual(
+            client._server_args(),
+            [
+                "serve",
+                "--app-server",
+                "--app-server-store",
+                "sqlite",
+                "--app-server-state-path",
+                "C:/state/rollouts.sqlite",
+                "--app-server-queue-cap",
+                "64",
+            ],
+        )
+        with self.assertRaisesRegex(ValueError, "mutually exclusive"):
+            AppServerClientOptions(
+                state_directory="C:/state",
+                state_path="C:/state/rollouts.sqlite",
+            )
+
     async def test_fixed_context_memory_capabilities_initialize_once(self) -> None:
         transport = FakeTransport()
         pilot = AppServerPilotClient(transport=transport)

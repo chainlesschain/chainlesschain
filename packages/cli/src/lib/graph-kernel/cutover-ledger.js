@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { JsonlRolloutStore } from "../app-server/rollout-store.js";
+import { createRolloutStore } from "../app-server/rollout-store-factory.js";
 import { assertGraphCutoverTransition } from "./authority.js";
 import { graphDigest } from "./compiler.js";
 import {
@@ -478,7 +478,7 @@ function projection(state, events) {
 }
 
 export class GraphCutoverLedger {
-  constructor({ store = new JsonlRolloutStore(), now = Date.now } = {}) {
+  constructor({ store = createRolloutStore(), now = Date.now } = {}) {
     this.store = store;
     this.now = now;
   }

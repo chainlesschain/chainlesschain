@@ -6,19 +6,14 @@
 import crypto from "crypto";
 import broker from "./process-execution-broker/index.js";
 import hookEnvironment from "./hook-environment.cjs";
+import { HOOK_EVENT_TYPES, HOOK_PRIORITY } from "./hook-runtime-contract.js";
 
 const { buildManagedHookEnvironment } = hookEnvironment;
 
 /**
  * Hook priority levels — lower values run first.
  */
-export const HookPriority = {
-  SYSTEM: 0,
-  HIGH: 100,
-  NORMAL: 500,
-  LOW: 900,
-  MONITOR: 1000,
-};
+export const HookPriority = HOOK_PRIORITY;
 
 /**
  * Hook execution types.
@@ -33,47 +28,7 @@ export const HookType = {
 /**
  * All supported hook event names.
  */
-export const HookEvents = {
-  Setup: "Setup",
-  PreIPCCall: "PreIPCCall",
-  PostIPCCall: "PostIPCCall",
-  IPCError: "IPCError",
-  PreToolUse: "PreToolUse",
-  PostToolUse: "PostToolUse",
-  ToolError: "ToolError",
-  SessionStart: "SessionStart",
-  SessionEnd: "SessionEnd",
-  PreCompact: "PreCompact",
-  PostCompact: "PostCompact",
-  Notification: "Notification",
-  UserPromptSubmit: "UserPromptSubmit",
-  AssistantResponse: "AssistantResponse",
-  AgentStart: "AgentStart",
-  AgentStop: "AgentStop",
-  TaskAssigned: "TaskAssigned",
-  TaskCompleted: "TaskCompleted",
-  PreFileAccess: "PreFileAccess",
-  PostFileAccess: "PostFileAccess",
-  FileModified: "FileModified",
-  MemorySave: "MemorySave",
-  MemoryLoad: "MemoryLoad",
-  AuditLog: "AuditLog",
-  ComplianceCheck: "ComplianceCheck",
-  DataSubjectRequest: "DataSubjectRequest",
-  PreGitCommit: "PreGitCommit",
-  PostGitCommit: "PostGitCommit",
-  PreGitPush: "PreGitPush",
-  CIFailure: "CIFailure",
-  IterationWarning: "IterationWarning",
-  IterationBudgetExhausted: "IterationBudgetExhausted",
-  /**
-   * Stop: Fired at the END of every agent turn/loop iteration, BEFORE waiting
-   * for the next user input. Aligns with Claude Code hook spec.
-   * Fires regardless of outcome (success, error, max-iterations, stop).
-   * Does NOT fire on final process exit (use SessionEnd/Shutdown for that).
-   */
-  Stop: "Stop",
-};
+export const HookEvents = HOOK_EVENT_TYPES;
 
 /**
  * Ensure hooks table exists in the database.
@@ -290,8 +245,7 @@ export async function executeHook(hook, context = {}) {
       }
       const env = buildManagedHookEnvironment({
         managedAllowlist: hook.managedEnvironmentAllowlist,
-        requestedAllowlist:
-          hook.environmentAllowlist || hook.envAllowlist,
+        requestedAllowlist: hook.environmentAllowlist || hook.envAllowlist,
         values: {
           HOOK_EVENT: hook.event,
           HOOK_CONTEXT: JSON.stringify(context),
@@ -364,39 +318,27 @@ export async function executeHook(hook, context = {}) {
  * Returns array of { hookId, hookName, success, result, error, executionTime }.
  */
 export async function executeHooks(db, eventName, context = {}) {
-  const hooks = listHooks(db, { event: eventName, enabledOnly: true });
-  const results = [];
-
-  for (const hook of hooks) {
-    // Check matcher against context
-    if (hook.matcher) {
-      const matchFn = compileMatcher(hook.matcher);
-      const target =
-        context.target ||
-        context.channel ||
-        context.tool ||
-        context.file ||
-        eventName;
-      if (!matchFn(target)) {
-        continue;
-      }
-    }
-
-    const outcome = await executeHook(hook, context);
-    results.push({
-      hookId: hook.id,
-      hookName: hook.name,
-      ...outcome,
-    });
-
-    // Update stats
-    updateHookStats(db, hook.id, {
-      executionTime: outcome.executionTime,
-      success: outcome.success,
-    });
-  }
-
-  return results;
+  // Compatibility API: SQLite rows are definitions only. All scheduling,
+  // timeout, trust, decision and audit semantics belong to Hooks v2.
+  const { executeHooksV2Event } = await import("./hooks-v2-producers.js");
+  const outcome = await executeHooksV2Event(eventName, context, {
+    hookDb: db,
+    matchTarget:
+      context.target ||
+      context.channel ||
+      context.tool_name ||
+      context.tool ||
+      context.file ||
+      eventName,
+  });
+  return (outcome.results || []).map((record) => ({
+    hookId: record.sourceHookId || record.hookId,
+    hookName: record.hookName || record.hookId,
+    success: record.status === "success",
+    result: record.result?.raw ?? record.result ?? null,
+    error: record.error || null,
+    executionTime: record.durationMs || 0,
+  }));
 }
 
 /**

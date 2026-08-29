@@ -13,7 +13,7 @@ import path from "node:path";
 import os from "node:os";
 import { registerHookCommand } from "../../src/commands/hook.js";
 
-let tmp, cwdSpy, logSpy;
+let tmp, cwdSpy, logSpy, priorTrustStore;
 
 function makeProgram() {
   const program = new Command();
@@ -31,15 +31,16 @@ async function run(...argv) {
 function writeHooks(block) {
   const dir = path.join(tmp, ".claude");
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "settings.json"),
-    JSON.stringify({ hooks: block }),
-    "utf-8",
-  );
+  const file = path.join(dir, "settings.json");
+  fs.writeFileSync(file, JSON.stringify({ hooks: block }), "utf-8");
+  return file;
 }
 
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-hooktest-"));
+  fs.mkdirSync(path.join(tmp, ".git"));
+  priorTrustStore = process.env.CC_WORKSPACE_TRUST_STORE;
+  process.env.CC_WORKSPACE_TRUST_STORE = path.join(tmp, "hook-trust.json");
   cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tmp);
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -48,6 +49,8 @@ beforeEach(() => {
 afterEach(() => {
   cwdSpy.mockRestore();
   vi.restoreAllMocks();
+  if (priorTrustStore == null) delete process.env.CC_WORKSPACE_TRUST_STORE;
+  else process.env.CC_WORKSPACE_TRUST_STORE = priorTrustStore;
   try {
     fs.rmSync(tmp, { recursive: true, force: true });
   } catch {
@@ -58,9 +61,17 @@ afterEach(() => {
 describe("cc hook test — match (dry-run)", () => {
   it("lists hooks that would fire for an event+tool (--json)", async () => {
     writeHooks({
-      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "guard.sh" }] }],
+      PreToolUse: [
+        { matcher: "Bash", hooks: [{ type: "command", command: "guard.sh" }] },
+      ],
     });
-    const out = await run("test", "PreToolUse", "run_shell", "git push", "--json");
+    const out = await run(
+      "test",
+      "PreToolUse",
+      "run_shell",
+      "git push",
+      "--json",
+    );
     const parsed = JSON.parse(out);
     expect(parsed.matched.map((m) => m.command)).toEqual(["guard.sh"]);
     expect(parsed.payload.tool_input.command).toBe("git push");
@@ -68,7 +79,9 @@ describe("cc hook test — match (dry-run)", () => {
 
   it("reports no match when the matcher misses", async () => {
     writeHooks({
-      PreToolUse: [{ matcher: "Edit", hooks: [{ type: "command", command: "x.sh" }] }],
+      PreToolUse: [
+        { matcher: "Edit", hooks: [{ type: "command", command: "x.sh" }] },
+      ],
     });
     const out = await run("test", "PreToolUse", "run_shell", "ls", "--json");
     expect(JSON.parse(out).matched).toEqual([]);
@@ -77,7 +90,7 @@ describe("cc hook test — match (dry-run)", () => {
 
 describe("cc hook test --run (execute)", () => {
   it("executes a matched hook and reports block on exit 2", async () => {
-    writeHooks({
+    const settingsFile = writeHooks({
       PreToolUse: [
         {
           matcher: "*",
@@ -85,17 +98,71 @@ describe("cc hook test --run (execute)", () => {
         },
       ],
     });
-    const out = await run("test", "PreToolUse", "run_shell", "rm -rf x", "--run", "--json");
+    await run("trust", settingsFile, "--json");
+    const out = await run(
+      "test",
+      "PreToolUse",
+      "run_shell",
+      "rm -rf x",
+      "--run",
+      "--json",
+    );
     expect(JSON.parse(out).decision).toBe("block");
   });
 
   it("reports continue when the hook exits 0", async () => {
-    writeHooks({
+    const settingsFile = writeHooks({
       PreToolUse: [
         { matcher: "*", hooks: [{ type: "command", command: 'node -e ""' }] },
       ],
     });
-    const out = await run("test", "PreToolUse", "run_shell", "ls", "--run", "--json");
+    await run("trust", settingsFile, "--json");
+    const out = await run(
+      "test",
+      "PreToolUse",
+      "run_shell",
+      "ls",
+      "--run",
+      "--json",
+    );
     expect(JSON.parse(out).decision).toBe("continue");
+  });
+
+  it("blocks changed project Hook content until it is reapproved", async () => {
+    const settingsFile = writeHooks({
+      PreToolUse: [
+        { matcher: "*", hooks: [{ type: "command", command: 'node -e ""' }] },
+      ],
+    });
+    await run("trust", settingsFile, "--json");
+
+    writeHooks({
+      PreToolUse: [
+        {
+          matcher: "*",
+          hooks: [{ type: "command", command: 'node -e "void 0"' }],
+        },
+      ],
+    });
+    const blocked = await run(
+      "test",
+      "PreToolUse",
+      "run_shell",
+      "ls",
+      "--run",
+      "--json",
+    );
+    expect(JSON.parse(blocked).decision).toBe("block");
+
+    await run("trust", settingsFile, "--json");
+    const approved = await run(
+      "test",
+      "PreToolUse",
+      "run_shell",
+      "ls",
+      "--run",
+      "--json",
+    );
+    expect(JSON.parse(approved).decision).toBe("continue");
   });
 });

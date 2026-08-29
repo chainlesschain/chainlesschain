@@ -1530,10 +1530,14 @@ export class PlanModeManager extends EventEmitter {
    */
   _fireHook(eventName, context) {
     if (!this._hookDb) return;
-    // Dynamic import to avoid circular deps
-    import("./hook-manager.js")
-      .then(({ executeHooks }) => {
-        executeHooks(this._hookDb, eventName, context).catch(() => {});
+    // Dynamic import avoids a constructor-time dependency while keeping the
+    // legacy SQLite registry behind the canonical Hooks v2 adapter.
+    import("./hooks-v2-producers.js")
+      .then(({ executeHooksV2Event }) => {
+        executeHooksV2Event(eventName, context, {
+          hookDb: this._hookDb,
+          matchTarget: context?.target || eventName,
+        }).catch(() => {});
       })
       .catch(() => {});
   }

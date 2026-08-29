@@ -161,8 +161,8 @@ describe("settings-hook-events recording wire (opt-in)", () => {
   const defaultLog = () =>
     path.join(tmp, ".chainlesschain", "hook-events.jsonl");
 
-  it("does NOT record when disabled", () => {
-    settingsHookEvents.runObserveHooks(
+  it("does NOT record when disabled", async () => {
+    await settingsHookEvents.runObserveHooks(
       { Stop: [{ matcher: "*", hooks: [{ command: "node -e \"''\"" }] }] },
       "Stop",
       {},
@@ -171,9 +171,9 @@ describe("settings-hook-events recording wire (opt-in)", () => {
     expect(fs.existsSync(defaultLog())).toBe(false);
   });
 
-  it("records the delivered envelope when CC_HOOK_EVENT_LOG is on", () => {
+  it("records the delivered envelope when CC_HOOK_EVENT_LOG is on", async () => {
     process.env.CC_HOOK_EVENT_LOG = "1";
-    settingsHookEvents.runObserveHooks(
+    await settingsHookEvents.runObserveHooks(
       { Stop: [{ matcher: "*", hooks: [{ command: "node -e \"''\"" }] }] },
       "Stop",
       {},

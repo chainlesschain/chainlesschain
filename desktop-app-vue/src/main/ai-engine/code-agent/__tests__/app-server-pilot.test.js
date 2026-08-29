@@ -63,6 +63,18 @@ async function waitFor(predicate, timeoutMs = 1_000) {
 }
 
 describe("DesktopAppServerPilot", () => {
+  it("forwards physical rollout selection to the shared SDK client", () => {
+    new DesktopAppServerPilot({
+      ClientClass: FakePilotClient,
+      storageBackend: "sqlite",
+      statePath: "C:/state/rollouts.sqlite",
+    });
+    expect(FakePilotClient.options).toMatchObject({
+      storageBackend: "sqlite",
+      statePath: "C:/state/rollouts.sqlite",
+    });
+  });
+
   it("consumes the shared quorum and separation-of-duties product scenarios", async () => {
     const fixture = JSON.parse(
       readFileSync(

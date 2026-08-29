@@ -79,6 +79,8 @@ describe("Coding Agent V3 production bootstrap", () => {
       service,
       registerIPC,
       appServerPilotEnabled: true,
+      appServerStorageBackend: "sqlite",
+      appServerStatePath: "C:/state/rollouts.sqlite",
       PilotClass,
     });
 
@@ -87,6 +89,8 @@ describe("Coding Agent V3 production bootstrap", () => {
       expect.objectContaining({
         cliPath: "C:/repo/packages/cli/bin/chainlesschain.js",
         cwd: "C:/repo",
+        storageBackend: "sqlite",
+        statePath: "C:/state/rollouts.sqlite",
       }),
     );
     expect(registerIPC).toHaveBeenCalledWith({

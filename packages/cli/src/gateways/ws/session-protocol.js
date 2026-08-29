@@ -30,6 +30,7 @@ import {
   sessionBudgetAdmissionError,
 } from "../../lib/session-budget-production-root.js";
 import { mergePricing } from "../../lib/llm-pricing.js";
+import { ensureCanonicalSessionTranscript } from "../../lib/session-transcript-migration.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -752,7 +753,11 @@ export async function handleSessionCreate(server, id, ws, message) {
     createdSessionId = sessionId;
 
     const session = server.sessionManager.getSession(sessionId);
-    if (sessionBudgetRoot.enabled) {
+    if (
+      (sessionType || "agent") === "agent" &&
+      (sessionBudgetRoot.enabled ||
+        typeof server.sessionManager.markCanonicalSession === "function")
+    ) {
       bootstrapLease = wsBudgetDependency(
         server,
         "acquireSessionHostLease",
@@ -768,23 +773,32 @@ export async function handleSessionCreate(server, id, ws, message) {
           title: `WS agent ${new Date().toISOString().slice(0, 10)}`,
           provider: session.provider,
           model: session.model || "",
-          sessionBudgetRoot,
+          ...(sessionBudgetRoot.enabled ? { sessionBudgetRoot } : {}),
         });
         canonicalSessionCreated = true;
       } catch (cause) {
         const error = new Error(
-          "Budgeted WebSocket JSONL session could not be durably created",
+          "WebSocket canonical session could not be durably created",
           { cause },
         );
-        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        error.code = sessionBudgetRoot.enabled
+          ? "CC_SESSION_BUDGET_SESSION_START_FAILED"
+          : "CC_WS_CANONICAL_SESSION_START_FAILED";
         throw error;
       }
       if (startedSessionId !== sessionId) {
         const error = new Error(
-          "Budgeted WebSocket JSONL session returned a different session id",
+          "WebSocket canonical session returned a different session id",
         );
-        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        error.code = sessionBudgetRoot.enabled
+          ? "CC_SESSION_BUDGET_SESSION_START_FAILED"
+          : "CC_WS_CANONICAL_SESSION_START_FAILED";
         throw error;
+      }
+      if (typeof server.sessionManager.markCanonicalSession === "function") {
+        server.sessionManager.markCanonicalSession(sessionId);
+      } else {
+        session.canonicalJsonlSession = true;
       }
       const canonicalStart = wsBudgetDependency(
         server,
@@ -793,17 +807,20 @@ export async function handleSessionCreate(server, id, ws, message) {
       )(sessionId);
       if (!canonicalStart?.snapshot?.verified) {
         const error = new Error(
-          "Budgeted WebSocket JSONL session could not be verified",
+          "WebSocket canonical session could not be verified",
         );
-        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        error.code = sessionBudgetRoot.enabled
+          ? "CC_SESSION_BUDGET_SESSION_START_FAILED"
+          : "CC_WS_CANONICAL_SESSION_START_FAILED";
         throw error;
       }
       if (
-        !canonicalStart.sessionBudgetRoot ||
-        !sameSessionBudgetConfig(
-          canonicalStart.sessionBudgetRoot,
-          sessionBudgetRoot,
-        )
+        sessionBudgetRoot.enabled &&
+        (!canonicalStart.sessionBudgetRoot ||
+          !sameSessionBudgetConfig(
+            canonicalStart.sessionBudgetRoot,
+            sessionBudgetRoot,
+          ))
       ) {
         const error = new Error(
           "Budgeted WebSocket JSONL declaration does not match the requested root",
@@ -945,11 +962,17 @@ export async function handleSessionResume(server, id, ws, message) {
   }
 
   const { sessionId } = message;
-  const canonicalResume = wsBudgetDependency(
-    server,
-    "readSessionHostResumeState",
-    readSessionHostResumeState,
-  )(sessionId);
+  const canonicalStoreEnabled =
+    typeof server.sessionManager.markCanonicalSession === "function" ||
+    typeof server._sessionBudgetDependencies?.readSessionHostResumeState ===
+      "function";
+  let canonicalResume = canonicalStoreEnabled
+    ? wsBudgetDependency(
+        server,
+        "readSessionHostResumeState",
+        readSessionHostResumeState,
+      )(sessionId)
+    : null;
   if (canonicalResume && !canonicalResume.snapshot.verified) {
     server._send(
       ws,
@@ -963,7 +986,20 @@ export async function handleSessionResume(server, id, ws, message) {
     );
     return;
   }
-  const session = server.sessionManager.resumeSession(sessionId);
+  let session = server.sessionManager.resumeSession(sessionId);
+  if (
+    !session &&
+    canonicalResume?.snapshot?.verified === true &&
+    typeof server.sessionManager.resumeCanonicalSession === "function"
+  ) {
+    try {
+      session = server.sessionManager.resumeCanonicalSession(sessionId, {
+        type: "agent",
+      });
+    } catch {
+      session = null;
+    }
+  }
 
   if (!session) {
     server._send(
@@ -976,6 +1012,77 @@ export async function handleSessionResume(server, id, ws, message) {
       ),
     );
     return;
+  }
+
+  if (
+    canonicalResume?.snapshot?.verified === true &&
+    session.canonicalJsonlSession !== true &&
+    typeof server.sessionManager.markCanonicalSession === "function"
+  ) {
+    try {
+      server.sessionManager.markCanonicalSession(session.id);
+      canonicalResume = wsBudgetDependency(
+        server,
+        "readSessionHostResumeState",
+        readSessionHostResumeState,
+      )(session.id);
+    } catch (error) {
+      server._send(
+        ws,
+        envelopeError(
+          id,
+          error?.code || "CC_WS_CANONICAL_SESSION_BIND_FAILED",
+          error?.message || "WebSocket canonical session binding failed",
+          sessionId,
+        ),
+      );
+      return;
+    }
+  }
+
+  if (
+    !canonicalResume &&
+    session.type === "agent" &&
+    typeof server.sessionManager.markCanonicalSession === "function"
+  ) {
+    try {
+      ensureCanonicalSessionTranscript({
+        sessionId: session.id,
+        title: `WS agent ${new Date().toISOString().slice(0, 10)}`,
+        provider: session.provider,
+        model: session.model || "",
+        messages: session.messages,
+        source: "sqlite:llm_sessions",
+        stripLeadingSystem: true,
+      });
+      if (typeof server.sessionManager.markCanonicalSession === "function") {
+        server.sessionManager.markCanonicalSession(session.id);
+      } else {
+        session.canonicalJsonlSession = true;
+      }
+      canonicalResume = wsBudgetDependency(
+        server,
+        "readSessionHostResumeState",
+        readSessionHostResumeState,
+      )(session.id);
+      if (!canonicalResume?.snapshot?.verified) {
+        throw Object.assign(
+          new Error("Migrated WebSocket session could not be verified"),
+          { code: "CC_WS_CANONICAL_SESSION_MIGRATION_FAILED" },
+        );
+      }
+    } catch (error) {
+      server._send(
+        ws,
+        envelopeError(
+          id,
+          error?.code || "CC_WS_CANONICAL_SESSION_MIGRATION_FAILED",
+          error?.message || "WebSocket session migration failed",
+          sessionId,
+        ),
+      );
+      return;
+    }
   }
 
   let sessionBudgetRoot;

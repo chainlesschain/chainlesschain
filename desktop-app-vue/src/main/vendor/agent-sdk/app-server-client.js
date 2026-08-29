@@ -48,8 +48,17 @@ class AppServerClient extends node_events_1.EventEmitter {
         if (this.child)
             throw new Error("AppServerClient already started");
         const args = ["serve", "--app-server"];
+        if (this.options.stateDirectory && this.options.statePath) {
+            throw new Error("stateDirectory and statePath are mutually exclusive");
+        }
+        if (this.options.storageBackend) {
+            args.push("--app-server-store", this.options.storageBackend);
+        }
         if (this.options.stateDirectory) {
             args.push("--app-server-state-dir", this.options.stateDirectory);
+        }
+        if (this.options.statePath) {
+            args.push("--app-server-state-path", this.options.statePath);
         }
         if (this.options.serverQueueCap != null) {
             args.push("--app-server-queue-cap", String(this.options.serverQueueCap));

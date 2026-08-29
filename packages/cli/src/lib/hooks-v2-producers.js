@@ -1,6 +1,7 @@
 /**
- * Best-effort bridge from real runtime producers to Hooks v2.
- * Hook failures never change the surrounding agent or interaction result.
+ * Canonical bridge from real runtime producers to Hooks v2. Decision-capable
+ * callers await and enforce the result; observation-only callers may emit in
+ * the background.
  *
  * A headless host may subscribe to a particular session to project a small,
  * machine-readable lifecycle stream.  The projection deliberately excludes
@@ -8,6 +9,11 @@
  * credentials, paths, and user content.  The observer is diagnostic only and
  * is never allowed to affect a hook decision.
  */
+import { collectCanonicalAdapterHooks } from "./hook-runtime-adapters.js";
+import path from "node:path";
+import { DECISION_EVENTS } from "./hook-runtime-contract.js";
+import { runWithHostHooksV2Workspace } from "./hooks-v2-workspace-context.js";
+
 const sessionObservers = new Map();
 
 function safeId(value, max = 160) {
@@ -100,13 +106,46 @@ async function dispatchHooksV2Event(eventName, context, options) {
         results: [],
       };
     }
-    return await runtime.executeHooks(eventName, context, options);
+    const adapterHooks = collectCanonicalAdapterHooks(eventName, context, {
+      settingsHooks: options.settingsHooks,
+      hookDb: options.hookDb,
+      matchTarget:
+        options.matchTarget || context.tool_name || context.tool || "",
+      cwd: options.cwd || context.cwd || process.cwd(),
+    });
+    const runtimeOptions = {
+      ...options,
+      additionalHooks: [
+        ...(Array.isArray(options.additionalHooks)
+          ? options.additionalHooks
+          : []),
+        ...adapterHooks,
+      ],
+      auditRequired:
+        options.auditRequired == null
+          ? process.env.NODE_ENV !== "test"
+          : options.auditRequired,
+    };
+    delete runtimeOptions.settingsHooks;
+    delete runtimeOptions.hookDb;
+    delete runtimeOptions.matchTarget;
+    delete runtimeOptions.cwd;
+    const workspaceRoot = path.resolve(
+      options.workspaceRoot || options.cwd || process.cwd(),
+    );
+    delete runtimeOptions.workspaceRoot;
+    return await runWithHostHooksV2Workspace(workspaceRoot, () =>
+      runtime.executeHooks(eventName, context, runtimeOptions),
+    );
   } catch (error) {
+    const failClosed =
+      options.failClosed === true || DECISION_EVENTS.has(eventName);
     return {
-      success: options.failClosed !== true,
-      blocked: options.failClosed === true,
-      decision: options.failClosed === true ? "block" : "continue",
+      success: !failClosed,
+      blocked: failClosed,
+      decision: failClosed ? "block" : "continue",
       error: error?.message || String(error),
+      errorCode: error?.code || null,
       results: [],
     };
   }

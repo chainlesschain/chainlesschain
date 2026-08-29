@@ -1,11 +1,11 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { JsonlRolloutStore } from "../app-server/rollout-store.js";
+import { createRolloutStore } from "../app-server/rollout-store-factory.js";
 
 export const TEAM_DISTRIBUTED_GRAPH_BRIDGE_SCHEMA =
   "chainlesschain.team-distributed-graph-bridge/v1";
 
-// Keep every derived thread/idempotency key inside JsonlRolloutStore's own
+// Keep every derived thread/idempotency key inside the RolloutStore contract's
 // bounds after this adapter adds its domain prefix.
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 const REQUEST_TYPES = new Set(["dispatch", "settle", "cancel"]);
@@ -74,7 +74,7 @@ export class TeamDistributedGraphBridge {
     this.runId = identifier(runId, "runId");
     this.threadId = identifier(`team-graph-bridge:${this.queueId}`, "threadId");
     this.store =
-      store || new JsonlRolloutStore({ directory: this.directory, now });
+      store || createRolloutStore({ directory: this.directory, now });
     const thread = this.store.start({
       threadId: this.threadId,
       title: `Distributed Team Graph bridge ${this.queueId}`,

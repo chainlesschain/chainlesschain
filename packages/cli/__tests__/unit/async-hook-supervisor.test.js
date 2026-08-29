@@ -14,7 +14,7 @@ import {
   dispatchAsyncHooks,
   runUserPromptSubmitHooks,
   runObserveHooks,
-} from "../../src/lib/settings-hook-events.cjs";
+} from "../../src/lib/settings-hook-events.js";
 import { collectHooks } from "../../src/lib/settings-hooks.cjs";
 
 /**
@@ -610,7 +610,7 @@ describe("partitionAsyncHooks", () => {
   });
 });
 
-describe("dispatchAsyncHooks", () => {
+describe("dispatchAsyncHooks compatibility boundary", () => {
   const block = {
     UserPromptSubmit: [
       {
@@ -623,7 +623,7 @@ describe("dispatchAsyncHooks", () => {
     ],
   };
 
-  it("dispatches only the async hooks onto the supervisor", () => {
+  it("never dispatches a second time outside the canonical runtime", () => {
     const dispatched = [];
     const fakeSup = {
       dispatch: (hooks) => {
@@ -637,8 +637,8 @@ describe("dispatchAsyncHooks", () => {
       { prompt: "hi" },
       { cwd: "/x", supervisor: fakeSup },
     );
-    expect(dispatched).toEqual(["bg-check"]); // sync-guard NOT dispatched here
-    expect(disp).toHaveLength(1);
+    expect(dispatched).toEqual([]);
+    expect(disp).toEqual([]);
   });
 
   it("is a no-op without a supervisor or without async hooks", () => {
@@ -655,7 +655,7 @@ describe("dispatchAsyncHooks", () => {
   });
 });
 
-describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", () => {
+describe("runUserPromptSubmitHooks keeps async decisions observe-only", () => {
   // An async hook that would exit 2 (block) must NOT gate the turn — a
   // fire-and-forget hook can't decide a turn it no longer blocks. We prove the
   // exclusion two ways that don't depend on cross-module spawnSync identity
@@ -663,7 +663,7 @@ describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", 
   //   (1) an async-ONLY UserPromptSubmit set produces no blocking run at all;
   //   (2) the partition runUserPromptSubmitHooks feeds to the sync runner keeps
   //       only the sync hooks (block-guard), never the async one.
-  it("returns a no-op result for an async-only UserPromptSubmit set", () => {
+  it("returns a non-blocking result for an async-only UserPromptSubmit set", async () => {
     const asyncOnly = {
       UserPromptSubmit: [
         {
@@ -672,8 +672,8 @@ describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", 
         },
       ],
     };
-    const res = runUserPromptSubmitHooks(asyncOnly, { prompt: "hi" });
-    // No sync hooks → nothing can block, nothing to inject.
+    const res = await runUserPromptSubmitHooks(asyncOnly, { prompt: "hi" });
+    // The canonical runtime queues it exactly once; it cannot gate this event.
     expect(res).toEqual({ blocked: false, additionalContext: null });
   });
 
@@ -698,8 +698,8 @@ describe("runUserPromptSubmitHooks excludes async hooks from the blocking run", 
   });
 });
 
-describe("runObserveHooks excludes async hooks from the sync run", () => {
-  it("returns no results for an async-only Stop set (they fire-and-forget instead)", () => {
+describe("runObserveHooks schedules async Hooks canonically", () => {
+  it("returns one observe-only queued record for an async-only Stop set", async () => {
     const asyncOnlyStop = {
       Stop: [
         {
@@ -708,10 +708,22 @@ describe("runObserveHooks excludes async hooks from the sync run", () => {
         },
       ],
     };
-    const outcome = runObserveHooks(asyncOnlyStop, "Stop", {}, { cwd: "/x" });
-    // No sync Stop hooks → nothing ran synchronously (the async one is dispatched
-    // separately by dispatchAsyncHooks; running it here too would double-execute).
-    expect(outcome).toEqual({ decision: "continue", results: [] });
+    const outcome = await runObserveHooks(
+      asyncOnlyStop,
+      "Stop",
+      {},
+      {
+        cwd: process.cwd(),
+      },
+    );
+    expect(outcome.decision).toBe("continue");
+    expect(outcome.results).toEqual([
+      expect.objectContaining({
+        status: "queued",
+        decision: "continue",
+        deferred: true,
+      }),
+    ]);
   });
 });
 

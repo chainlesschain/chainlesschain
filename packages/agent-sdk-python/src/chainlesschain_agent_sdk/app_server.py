@@ -7,7 +7,19 @@ import inspect
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Protocol, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Literal,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from .generated_app_protocol import (
     CC_AGENT_PROTOCOL_FEATURES,
@@ -52,7 +64,9 @@ class AppServerClientOptions:
     client_name: str = "chainlesschain-agent-sdk-python"
     client_version: str = "1"
     features: Optional[Tuple[str, ...]] = None
+    storage_backend: Optional[Literal["jsonl", "sqlite"]] = None
     state_directory: Optional[str] = None
+    state_path: Optional[str] = None
     server_queue_cap: Optional[int] = None
     max_pending_requests: int = 256
     max_line_length: int = 8 * 1024 * 1024
@@ -61,6 +75,10 @@ class AppServerClientOptions:
     def __post_init__(self) -> None:
         if not self.cli_path:
             raise ValueError("cli_path must not be empty")
+        if self.storage_backend not in (None, "jsonl", "sqlite"):
+            raise ValueError("storage_backend must be 'jsonl' or 'sqlite'")
+        if self.state_directory and self.state_path:
+            raise ValueError("state_directory and state_path are mutually exclusive")
         if self.max_pending_requests < 1:
             raise ValueError("max_pending_requests must be positive")
         if self.max_line_length < 1024:
@@ -119,11 +137,7 @@ class AppServerClient:
     async def start(self) -> Any:
         if self._process is not None:
             raise RuntimeError("AppServerClient already started")
-        args = ["serve", "--app-server"]
-        if self.options.state_directory:
-            args.extend(("--app-server-state-dir", self.options.state_directory))
-        if self.options.server_queue_cap is not None:
-            args.extend(("--app-server-queue-cap", str(self.options.server_queue_cap)))
+        args = self._server_args()
         command, full_args = build_spawn_command(self.options.cli_path, args)
         environment = dict(os.environ)
         for key, value in (self.options.env or {}).items():
@@ -154,6 +168,18 @@ class AppServerClient:
                 "features": list(self.options.features or tuple(CC_AGENT_PROTOCOL_FEATURES)),
             },
         )
+
+    def _server_args(self) -> list[str]:
+        args = ["serve", "--app-server"]
+        if self.options.storage_backend:
+            args.extend(("--app-server-store", self.options.storage_backend))
+        if self.options.state_directory:
+            args.extend(("--app-server-state-dir", self.options.state_directory))
+        if self.options.state_path:
+            args.extend(("--app-server-state-path", self.options.state_path))
+        if self.options.server_queue_cap is not None:
+            args.extend(("--app-server-queue-cap", str(self.options.server_queue_cap)))
+        return args
 
     async def request(self, method: str, params: JsonMapping) -> Any:
         process = self._process

@@ -8,7 +8,7 @@ import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import path from "node:path";
 
 export function registerServeCommand(program) {
-  program
+  const serve = program
     .command("serve")
     .description("Start WebSocket server for remote CLI access")
     .option(
@@ -21,7 +21,15 @@ export function registerServeCommand(program) {
     )
     .option(
       "--app-server-state-dir <path>",
-      "Owner-controlled rollout directory for --app-server",
+      "Owner-controlled rollout directory (JSONL directory or SQLite parent)",
+    )
+    .option(
+      "--app-server-state-path <path>",
+      "Exact JSONL directory or SQLite database path for --app-server",
+    )
+    .option(
+      "--app-server-store <backend>",
+      "Physical rollout adapter: jsonl or sqlite (default: jsonl)",
     )
     .option(
       "--app-server-queue-cap <n>",
@@ -74,20 +82,32 @@ export function registerServeCommand(program) {
         if (opts.appServerWebsocket && !opts.appServer) {
           throw new Error("--app-server-websocket requires --app-server");
         }
+        if (opts.appServerStateDir && opts.appServerStatePath) {
+          throw new Error(
+            "--app-server-state-dir and --app-server-state-path are mutually exclusive",
+          );
+        }
         if (opts.appServer) {
           const [
             { runStdioAppServer },
-            { JsonlRolloutStore },
+            { closeRolloutStore, createRolloutStore },
             { CliAgentKernelAdapter },
           ] = await Promise.all([
             import("../lib/app-server/stdio-transport.js"),
-            import("../lib/app-server/rollout-store.js"),
+            import("../lib/app-server/rollout-store-factory.js"),
             import("../lib/app-server/cli-agent-kernel-adapter.js"),
           ]);
           const stateDirectory = opts.appServerStateDir
             ? path.resolve(opts.appServerStateDir)
             : undefined;
-          const store = new JsonlRolloutStore({ directory: stateDirectory });
+          const statePath = opts.appServerStatePath
+            ? path.resolve(opts.appServerStatePath)
+            : undefined;
+          const store = createRolloutStore({
+            backend: opts.appServerStore,
+            directory: stateDirectory,
+            location: statePath,
+          });
           const cwd = opts.project ? path.resolve(opts.project) : process.cwd();
           const maxQueuedRequests = Math.max(
             1,
@@ -127,14 +147,19 @@ export function registerServeCommand(program) {
               process.off("SIGTERM", shutdown);
               host.off("error", fail);
               await host.close();
+              closeRolloutStore(store);
             }
             return;
           }
-          await runStdioAppServer({
-            store,
-            kernel: new CliAgentKernelAdapter({ cwd }),
-            maxQueuedRequests,
-          });
+          try {
+            await runStdioAppServer({
+              store,
+              kernel: new CliAgentKernelAdapter({ cwd }),
+              maxQueuedRequests,
+            });
+          } finally {
+            closeRolloutStore(store);
+          }
           return;
         }
         const runtime = createAgentRuntimeFactory().createServerRuntime({
@@ -154,6 +179,65 @@ export function registerServeCommand(program) {
       } catch (err) {
         logger.error(`Failed to start server: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  serve
+    .command("migrate-rollouts")
+    .description(
+      "Verify or copy canonical rollouts between physical storage adapters",
+    )
+    .requiredOption("--from <backend>", "Source adapter: jsonl or sqlite")
+    .requiredOption(
+      "--from-path <path>",
+      "Source JSONL directory or SQLite database file",
+    )
+    .requiredOption("--to <backend>", "Target adapter: jsonl or sqlite")
+    .requiredOption(
+      "--to-path <path>",
+      "Target JSONL directory or SQLite database file",
+    )
+    .option(
+      "--thread <id...>",
+      "Migrate only the named thread ids (otherwise enumerate the source)",
+    )
+    .option(
+      "--apply",
+      "Copy verified records; without this flag the command is a dry run",
+    )
+    .action(async (opts) => {
+      const { closeRolloutStore, createRolloutStore } =
+        await import("../lib/app-server/rollout-store-factory.js");
+      let source;
+      let target;
+      try {
+        source = createRolloutStore({
+          backend: opts.from,
+          location: path.resolve(opts.fromPath),
+        });
+        target = createRolloutStore({
+          backend: opts.to,
+          location: path.resolve(opts.toPath),
+        });
+        const result = source.migrate({
+          targetStore: target,
+          threadIds: opts.thread || null,
+          dryRun: opts.apply !== true,
+        });
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              ...result,
+              source: { backend: source.backend, location: source.location },
+              target: { backend: target.backend, location: target.location },
+            },
+            null,
+            2,
+          )}\n`,
+        );
+      } finally {
+        closeRolloutStore(target);
+        closeRolloutStore(source);
       }
     });
 }

@@ -73,6 +73,19 @@ const { thread } = await pilot.threadStart({ title: "IDE pilot" });
 await pilot.turnStart({ threadId: thread.id, input: "Run the focused tests" });
 ```
 
+Hosts may select the physical rollout adapter without changing pilot calls:
+
+```ts
+const pilot = new AppServerPilotClient({
+  cliPath: "cc",
+  storageBackend: "sqlite",
+  statePath: "/var/lib/cc/rollouts.sqlite",
+});
+```
+
+`stateDirectory` and `statePath` are mutually exclusive. JSONL remains the
+default; both adapters expose the same logical resume and migration contract.
+
 The pilot surface contains only the generated `thread/*` and `turn/*`
 capabilities, lazily negotiates the protocol, bounds pending requests, and
 declines server approval requests unless the host supplies a reviewed handler.

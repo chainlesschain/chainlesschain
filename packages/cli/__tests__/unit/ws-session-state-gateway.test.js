@@ -64,6 +64,25 @@ import {
   serializeWsSessionState,
 } from "../../src/gateways/ws/ws-session-state.js";
 
+function memoryCanonicalStore() {
+  const events = new Map();
+  return {
+    events,
+    appendEvent: vi.fn((sessionId, type, data) => {
+      const rows = events.get(sessionId) || [];
+      const event = { type, data };
+      rows.push(event);
+      events.set(sessionId, rows);
+      return event;
+    }),
+    findLatestEvent: vi.fn((sessionId, type) =>
+      (events.get(sessionId) || [])
+        .filter((event) => event.type === type)
+        .at(-1),
+    ),
+  };
+}
+
 describe("WSSessionManager recovery state integration", () => {
   const db = {};
 
@@ -213,5 +232,128 @@ describe("WSSessionManager recovery state integration", () => {
     expect(manager.getSessionStateSnapshot("legacy-1").planSnapshot).toEqual(
       legacyPlan,
     );
+  });
+
+  it("uses the canonical rollout state ahead of a stale DB metadata projection", () => {
+    const canonicalSessionStore = memoryCanonicalStore();
+    const writer = new WSSessionManager({
+      db,
+      defaultProjectRoot: process.cwd(),
+      canonicalSessionStore,
+    });
+    const { sessionId } = writer.createSession({ sessionId: "canonical-1" });
+    writer.markCanonicalSession(sessionId);
+    writer.recordSessionStateEvent(sessionId, "run.started", {
+      requestId: "turn-canonical",
+    });
+
+    dbGetSession.mockReturnValue({
+      id: sessionId,
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      messages: [{ role: "system", content: "system" }],
+      metadata: {
+        sessionType: "agent",
+        projectRoot: process.cwd(),
+        baseProjectRoot: process.cwd(),
+        canonicalJsonlSession: true,
+        sessionState: serializeWsSessionState(createWsSessionState()),
+      },
+      created_at: "2026-08-01T00:00:00.000Z",
+    });
+    const reader = new WSSessionManager({
+      db,
+      defaultProjectRoot: process.cwd(),
+      canonicalSessionStore,
+    });
+    const resumed = reader.resumeSession(sessionId);
+
+    expect(reader.getSessionStateSnapshot(resumed.id).run).toMatchObject({
+      status: "interrupted",
+      requestId: "turn-canonical",
+      reason: "process_restart",
+    });
+    expect(canonicalSessionStore.appendEvent).toHaveBeenLastCalledWith(
+      sessionId,
+      "ws_session_state",
+      expect.objectContaining({
+        journal: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ type: "run.interrupted" }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("rehydrates canonical-only WS state without replacing it with an empty projection", () => {
+    const canonicalSessionStore = memoryCanonicalStore();
+    const writer = new WSSessionManager({
+      db,
+      defaultProjectRoot: process.cwd(),
+      canonicalSessionStore,
+    });
+    const { sessionId } = writer.createSession({
+      sessionId: "canonical-only-1",
+    });
+    writer.markCanonicalSession(sessionId);
+    writer.recordSessionStateEvent(sessionId, "run.started", {
+      requestId: "turn-canonical-only",
+    });
+
+    const reader = new WSSessionManager({
+      db: null,
+      defaultProjectRoot: process.cwd(),
+      canonicalSessionStore,
+    });
+    const resumed = reader.resumeCanonicalSession(sessionId);
+
+    expect(resumed.canonicalJsonlSession).toBe(true);
+    expect(reader.getSessionStateSnapshot(sessionId).run).toMatchObject({
+      status: "interrupted",
+      requestId: "turn-canonical-only",
+      reason: "process_restart",
+    });
+    expect(canonicalSessionStore.appendEvent).toHaveBeenLastCalledWith(
+      sessionId,
+      "ws_session_state",
+      expect.objectContaining({
+        journal: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ type: "run.interrupted" }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("fails closed instead of replacing a corrupt canonical WS journal", () => {
+    const canonicalSessionStore = memoryCanonicalStore();
+    canonicalSessionStore.events.set("canonical-corrupt", [
+      {
+        type: "ws_session_state",
+        data: {
+          schema: "chainlesschain.ws-session-rollout/v1",
+          journal: {
+            schema: "wrong",
+            version: 1,
+            snapshot: {},
+            events: [],
+          },
+        },
+      },
+    ]);
+    const reader = new WSSessionManager({
+      db: null,
+      defaultProjectRoot: process.cwd(),
+      canonicalSessionStore,
+    });
+
+    expect(() =>
+      reader.resumeCanonicalSession("canonical-corrupt"),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_WS_CANONICAL_STATE_CORRUPT" }),
+    );
+    expect(canonicalSessionStore.appendEvent).not.toHaveBeenCalled();
   });
 });

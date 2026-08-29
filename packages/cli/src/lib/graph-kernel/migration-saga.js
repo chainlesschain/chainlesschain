@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { JsonlRolloutStore } from "../app-server/rollout-store.js";
+import { createRolloutStore } from "../app-server/rollout-store-factory.js";
 import { createGraphAuthorityBinding } from "./authority.js";
 
 export const GRAPH_MIGRATION_SCHEMA =
@@ -84,7 +84,7 @@ function stateFromEvents(events, migrationId) {
  * this API intentionally has no "fall back to legacy" operation.
  */
 export class GraphAuthorityMigrationSaga {
-  constructor({ store = new JsonlRolloutStore(), now = Date.now } = {}) {
+  constructor({ store = createRolloutStore(), now = Date.now } = {}) {
     this.store = store;
     this.now = now;
   }

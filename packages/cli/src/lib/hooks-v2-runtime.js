@@ -37,9 +37,20 @@ import {
   resolveRegisteredHostHooksV2Workspace,
   runWithHostHooksV2Workspace,
 } from "./hooks-v2-workspace-context.js";
+import canonicalHookContract from "./hook-runtime-contract.js";
+import { assessHookTrust, computeHookDefinitionDigest } from "./hook-trust.js";
+import { getDefaultHookAuditStore } from "./hook-audit-store.js";
 
 const { globToRegExp } = permissionRules;
 const { buildManagedHookEnvironment } = hookEnvironment;
+const {
+  HOOK_EXECUTION_MODE,
+  HOOK_PRIORITY,
+  normalizeHookExecutionMode,
+  normalizeHookPriority,
+  normalizeHookTimeoutMs,
+  validateHookEvent,
+} = canonicalHookContract;
 const {
   buildExplicitHookShellInvocation,
   issueTrustedHookSandboxContract,
@@ -49,57 +60,9 @@ const {
   sandboxBoundaryError,
 } = hookShellCommand;
 
-const VALID_HOOK_EVENTS = new Set([
-  "Setup",
-  // Session
-  "PreToolUse",
-  "PostToolUse",
-  "Notification",
-  "Stop",
-  "SubagentStart",
-  "SubagentStop",
-  "SessionResume",
-  "SessionPause",
-  "PostCompact",
-  "StopFailure",
-  // Auth
-  "PreCommit",
-  "PostCommit",
-  // Skill
-  "UserPromptSubmit",
-  "UserPromptExpansion",
-  "SessionStart",
-  "SessionEnd",
-  // Model
-  "PreCompact",
-  "ModelSelection",
-  // Config
-  "ConfigChange",
-  "PermissionAllow",
-  "PermissionDeny",
-  "PermissionRequest",
-  "PermissionDenied",
-  // Timeline
-  "TimelineEntry",
-  // MCP
-  "McpRequest",
-  "McpResponse",
-  "MCPElicitation",
-  "Elicitation",
-  "ElicitationResult",
-  // Task / workspace lifecycle
-  "TaskCreated",
-  "TaskCompleted",
-  "InstructionsLoaded",
-  "CwdChanged",
-  "WorktreeCreate",
-  "WorktreeRemove",
-  "TeammateIdle",
-  // Tool aggregate / failure / filesystem lifecycle
-  "PostToolUseFailure",
-  "PostToolBatch",
-  "FileChanged",
-]);
+const VALID_HOOK_EVENTS = new Set(
+  Object.values(canonicalHookContract.HOOK_EVENT_TYPES),
+);
 
 const VALID_EXECUTOR_TYPES = new Set([
   "command",
@@ -112,49 +75,9 @@ const VALID_EXECUTOR_TYPES = new Set([
   "js",
 ]);
 
-export const HOOK_EVENT_SCHEMA_VERSION = 1;
-const DECISION_EVENTS = new Set([
-  "Setup",
-  "PreToolUse",
-  "UserPromptSubmit",
-  "UserPromptExpansion",
-  "PermissionRequest",
-  "ModelSelection",
-  "PreCompact",
-]);
-const CONTEXT_EVENTS = new Set([
-  "Setup",
-  "UserPromptSubmit",
-  "UserPromptExpansion",
-  "SessionStart",
-  "PostCompact",
-]);
-const DEFAULT_ALLOWED_EXECUTORS = Object.freeze([
-  "command",
-  "http",
-  "mcp_tool",
-  "prompt",
-  "agent",
-  "js",
-]);
-
-export const HOOK_EVENT_CONTRACTS = Object.freeze(
-  Object.fromEntries(
-    [...VALID_HOOK_EVENTS].map((event) => [
-      event,
-      Object.freeze({
-        schemaVersion: HOOK_EVENT_SCHEMA_VERSION,
-        event,
-        allowedExecutors: DEFAULT_ALLOWED_EXECUTORS,
-        decisionCapable: DECISION_EVENTS.has(event),
-        contextCapable: CONTEXT_EVENTS.has(event),
-        blockingSemantics: DECISION_EVENTS.has(event)
-          ? "strictest:block>ask>allow>continue"
-          : "observe-only",
-      }),
-    ]),
-  ),
-);
+export const HOOK_EVENT_SCHEMA_VERSION =
+  canonicalHookContract.HOOK_EVENT_SCHEMA_VERSION;
+export const HOOK_EVENT_CONTRACTS = canonicalHookContract.HOOK_EVENT_CONTRACTS;
 
 const DECISION_RANK = Object.freeze({
   continue: 0,
@@ -165,7 +88,56 @@ const DECISION_RANK = Object.freeze({
 
 function normalizeDecision(value) {
   const decision = String(value || "continue").toLowerCase();
+  if (["deny", "denied", "reject", "rejected"].includes(decision)) {
+    return "block";
+  }
+  if (["approve", "approved", "accept"].includes(decision)) return "allow";
+  if (["prompt", "confirm"].includes(decision)) return "ask";
   return Object.hasOwn(DECISION_RANK, decision) ? decision : "continue";
+}
+
+function decisionFromHookResult(result) {
+  return normalizeDecision(
+    result?.decision ||
+      result?.permissionDecision ||
+      result?.hookSpecificOutput?.permissionDecision ||
+      result?.hookSpecificOutput?.decision,
+  );
+}
+
+function normalizeHookDefinition(def, authority = null) {
+  if (!def || typeof def !== "object") {
+    throw new TypeError("Hook definition must be an object");
+  }
+  if (!VALID_HOOK_EVENTS.has(def.event)) {
+    throw new Error(`Invalid event: ${def.event}`);
+  }
+  if (!VALID_EXECUTOR_TYPES.has(def.type)) {
+    throw new Error(`Invalid executor type: ${def.type}`);
+  }
+  const contract = HOOK_EVENT_CONTRACTS[def.event];
+  if (!contract.allowedExecutors.includes(def.type)) {
+    throw new Error(
+      `Executor ${def.type} is not allowed for event ${def.event}`,
+    );
+  }
+  const normalized = {
+    blocking: false,
+    ...def,
+    id: def.id || crypto.randomUUID(),
+    priority: normalizeHookPriority(def.priority, HOOK_PRIORITY.NORMAL),
+    timeoutMs: normalizeHookTimeoutMs(def.timeoutMs),
+    executionMode: normalizeHookExecutionMode(def.executionMode ?? def.async),
+    authority: def.authority ||
+      authority || {
+        kind: "programmatic",
+        scope: "explicit",
+        requiresConsent: false,
+      },
+  };
+  normalized.definitionDigest =
+    def.definitionDigest || computeHookDefinitionDigest(normalized);
+  return normalized;
 }
 
 function strictestDecision(results) {
@@ -318,7 +290,11 @@ export function assertManagedHookPolicy(
   }
 
   if (hook.type === "command") {
-    if (hook.shell === true && policy.allowShell !== true) {
+    if (
+      hook.shell === true &&
+      policy.allowShell !== true &&
+      hook.legacyAdapter !== true
+    ) {
       throw managedPolicyError(
         "Shell-mode command hooks are disabled by managed policy",
       );
@@ -428,10 +404,7 @@ function hookBudget(hook) {
       32768,
       Math.max(1, Number(hook.maxTokens || hook.tokenBudget) || 4096),
     ),
-    timeoutMs: Math.min(
-      10 * 60 * 1000,
-      Math.max(1, Number(hook.timeoutMs) || 30000),
-    ),
+    timeoutMs: normalizeHookTimeoutMs(hook.timeoutMs),
   });
 }
 
@@ -474,6 +447,12 @@ class HooksV2Runtime extends EventEmitter {
     this.workspaceRoot =
       this.workspaceBinding?.workspaceRoot || configuredWorkspaceRoot;
     this.durableStore = options.durableStore || null;
+    const productionAuditRequired = process.env.NODE_ENV !== "test";
+    this.auditStore =
+      options.auditStore ||
+      (productionAuditRequired ? getDefaultHookAuditStore() : null);
+    this.requireAudit =
+      productionAuditRequired || options.requireAudit === true;
     this.durableOwner =
       options.durableOwner ||
       `hooks-inline:${process.pid}:${crypto.randomUUID()}`;
@@ -503,6 +482,24 @@ class HooksV2Runtime extends EventEmitter {
     this.hooks = new Map(); // eventName -> HookDefinition[]
     this.executionLog = [];
     this._loaded = false;
+  }
+
+  _appendAudit(record, { required = this.requireAudit } = {}) {
+    if (!this.auditStore) {
+      if (required) {
+        const error = new Error("Canonical Hook audit store is unavailable");
+        error.code = "CC_HOOK_AUDIT_UNAVAILABLE";
+        throw error;
+      }
+      return null;
+    }
+    try {
+      return this.auditStore.append(record);
+    } catch (error) {
+      this.emit("audit:error", error);
+      if (required) throw error;
+      return null;
+    }
   }
 
   setDurableStore(store) {
@@ -537,6 +534,11 @@ class HooksV2Runtime extends EventEmitter {
       const content = await fs.readFile(hooksPath, "utf8");
       const config = JSON.parse(content);
       this.hooks.clear();
+      const sourceFile = path.resolve(hooksPath);
+      const sourceDigest = crypto
+        .createHash("sha256")
+        .update(content, "utf8")
+        .digest("hex");
 
       const hookDefs = Array.isArray(config) ? config : config.hooks || [];
       for (const def of hookDefs) {
@@ -552,9 +554,18 @@ class HooksV2Runtime extends EventEmitter {
           );
           continue;
         }
-        const id = def.id || crypto.randomUUID();
+        const normalized = normalizeHookDefinition(
+          { ...def, id: def.id || crypto.randomUUID() },
+          {
+            kind: "config",
+            scope: "project",
+            sourceFile,
+            digest: sourceDigest,
+            requiresConsent: true,
+          },
+        );
         if (!this.hooks.has(def.event)) this.hooks.set(def.event, []);
-        this.hooks.get(def.event).push({ id, ...def });
+        this.hooks.get(def.event).push(normalized);
       }
       this._loaded = true;
       this.emit("loaded", {
@@ -572,25 +583,15 @@ class HooksV2Runtime extends EventEmitter {
    * Register a hook programmatically
    */
   registerHook(def) {
-    if (!VALID_HOOK_EVENTS.has(def.event))
-      throw new Error(`Invalid event: ${def.event}`);
-    if (!VALID_EXECUTOR_TYPES.has(def.type))
-      throw new Error(`Invalid executor type: ${def.type}`);
-    const contract = HOOK_EVENT_CONTRACTS[def.event];
-    if (!contract.allowedExecutors.includes(def.type)) {
-      throw new Error(
-        `Executor ${def.type} is not allowed for event ${def.event}`,
-      );
-    }
-    const id = def.id || crypto.randomUUID();
-    const full = { id, blocking: false, timeoutMs: 30000, ...def };
+    const full = normalizeHookDefinition(def);
+    const id = full.id;
     if (!this.hooks.has(def.event)) this.hooks.set(def.event, []);
     this.hooks.get(def.event).push(full);
     return id;
   }
 
   unregisterHook(id) {
-    for (const [event, hooks] of this.hooks.entries()) {
+    for (const hooks of this.hooks.values()) {
       const idx = hooks.findIndex((h) => h.id === id);
       if (idx >= 0) {
         hooks.splice(idx, 1);
@@ -607,11 +608,26 @@ class HooksV2Runtime extends EventEmitter {
    * @returns {Promise<{results: Array, blocked: boolean, blockingResult?: any}>}
    */
   async emitEvent(eventName, context = {}, options = {}) {
-    if (!VALID_HOOK_EVENTS.has(eventName)) {
-      throw new Error(`Invalid hook event: ${eventName}`);
-    }
-
-    const hooks = (this.hooks.get(eventName) || []).filter(
+    const contract = validateHookEvent(eventName, context);
+    const eventId = context.event_id || context.eventId || crypto.randomUUID();
+    const auditRequired = options.auditRequired === true || this.requireAudit;
+    this._appendAudit(
+      {
+        phase: "dispatch",
+        event: eventName,
+        eventId,
+        status: "accepted",
+        decision: "continue",
+      },
+      { required: auditRequired && contract.decisionCapable },
+    );
+    const suppliedHooks = Array.isArray(options.additionalHooks)
+      ? options.additionalHooks.map((hook) => normalizeHookDefinition(hook))
+      : [];
+    const hooks = [
+      ...(this.hooks.get(eventName) || []),
+      ...suppliedHooks,
+    ].filter(
       (hook) =>
         eventName !== "FileChanged" || fileChangedHookMatches(hook, context),
     );
@@ -640,7 +656,7 @@ class HooksV2Runtime extends EventEmitter {
               context,
             },
             {
-              id: context.event_id || context.eventId || null,
+              id: eventId,
               metadata: {
                 hooksV2WorkspaceBindingId:
                   durableWorkspaceBinding?.bindingId || null,
@@ -676,82 +692,220 @@ class HooksV2Runtime extends EventEmitter {
       seen.add(hook.id);
       uniqueHooks.push(hook);
     }
-    const runOne = async (hook) => {
+    uniqueHooks.sort(
+      (left, right) =>
+        normalizeHookPriority(left.priority) -
+          normalizeHookPriority(right.priority) ||
+        String(left.id).localeCompare(String(right.id)),
+    );
+    const runOne = async (
+      hook,
+      { forceObserveOnly = false, dispatcher = null } = {},
+    ) => {
       const execId = crypto.randomUUID();
       const start = Date.now();
+      const authorityRoot =
+        this.workspaceRoot || currentHostHooksV2WorkspaceRoot();
+      const trust = assessHookTrust(hook, { workspaceRoot: authorityRoot });
       const record = {
         execId,
         hookId: hook.id,
+        sourceHookId: hook.databaseHookId || hook.id,
+        hookName: hook.databaseHookName || hook.description || hook.id,
         event: eventName,
         type: hook.type,
+        priority: normalizeHookPriority(hook.priority),
+        executionMode: normalizeHookExecutionMode(hook.executionMode),
+        definitionDigest: hook.definitionDigest,
+        trustStatus: trust.status,
         startedAt: new Date(),
       };
 
       try {
+        this._appendAudit(
+          {
+            phase: "hook-start",
+            event: eventName,
+            eventId,
+            executionId: execId,
+            hookId: hook.id,
+            hookDigest: hook.definitionDigest,
+            sourceKind: trust.authority.kind,
+            sourceDigest: trust.authority.sourceDigest,
+            trustStatus: trust.status,
+            priority: record.priority,
+            executionMode: record.executionMode,
+            status: trust.trusted ? "running" : "untrusted",
+            decision: "continue",
+          },
+          { required: auditRequired && contract.decisionCapable },
+        );
+        if (!trust.trusted) {
+          const error = new Error(
+            `Hook source requires explicit approval or reapproval: ${trust.status}`,
+          );
+          error.code = "CC_HOOK_REAPPROVAL_REQUIRED";
+          throw error;
+        }
         assertManagedHookPolicy(
           hook,
           context,
           this.managedPolicy,
           this.configDir,
-          this.workspaceRoot || currentHostHooksV2WorkspaceRoot(),
+          authorityRoot,
         );
         let result;
-        switch (hook.type) {
-          case "command":
-            result = await this._execCommand(hook, context);
-            break;
-          case "http":
-            result = await this._execHttp(hook, context);
-            break;
-          case "mcp_tool":
-            result = await this._execMcpTool(hook, context);
-            break;
-          case "prompt":
-            result = await this._execPrompt(hook, context);
-            break;
-          case "agent":
-            result = await this._execAgent(hook, context);
-            break;
-          case "js":
-            result = await this._execJs(hook, context);
-            break;
+        if (typeof dispatcher === "function") {
+          result = await dispatcher(hook, context);
+        } else {
+          switch (hook.type) {
+            case "command":
+              result = await this._execCommand(hook, context);
+              break;
+            case "http":
+              result = await this._execHttp(hook, context);
+              break;
+            case "mcp_tool":
+              result = await this._execMcpTool(hook, context);
+              break;
+            case "prompt":
+              result = await this._execPrompt(hook, context);
+              break;
+            case "agent":
+              result = await this._execAgent(hook, context);
+              break;
+            case "js":
+              result = await this._execJs(hook, context);
+              break;
+          }
         }
 
         record.durationMs = Date.now() - start;
         record.status = "success";
         record.result = result;
-        record.decision = normalizeDecision(result?.decision);
+        record.decision =
+          forceObserveOnly || hook.observeOnly === true
+            ? "continue"
+            : decisionFromHookResult(result);
 
         this.emit("hook:success", record);
       } catch (err) {
         record.durationMs = Date.now() - start;
         record.status = "error";
         record.error = err.message;
+        record.errorCode = err.code || null;
         record.decision =
-          HOOK_EVENT_CONTRACTS[eventName].decisionCapable &&
+          contract.decisionCapable &&
+          !forceObserveOnly &&
+          hook.observeOnly !== true &&
           hook.failureMode !== "ignore"
             ? "block"
             : "continue";
         this.emit("hook:error", record);
       }
 
+      try {
+        this._appendAudit(
+          {
+            phase: "hook-result",
+            event: eventName,
+            eventId,
+            executionId: execId,
+            hookId: hook.id,
+            hookDigest: hook.definitionDigest,
+            sourceKind: trust.authority.kind,
+            sourceDigest: trust.authority.sourceDigest,
+            trustStatus: trust.status,
+            priority: record.priority,
+            executionMode: record.executionMode,
+            status: record.status,
+            decision: record.decision,
+            durationMs: record.durationMs,
+            errorCode: record.errorCode,
+          },
+          { required: auditRequired && contract.decisionCapable },
+        );
+      } catch (error) {
+        record.status = "error";
+        record.error = error.message;
+        record.errorCode = error.code || "CC_HOOK_AUDIT_UNAVAILABLE";
+        if (contract.decisionCapable && !forceObserveOnly) {
+          record.decision = "block";
+        }
+      }
       this.executionLog.push(record);
+      if (typeof hook.recordResult === "function") {
+        try {
+          hook.recordResult(record);
+        } catch (error) {
+          record.statsError = error?.message || String(error);
+        }
+      }
       return record;
     };
-    const results =
-      options.parallel === false
-        ? []
-        : await Promise.all(uniqueHooks.map(runOne));
+    const blockingHooks = uniqueHooks.filter(
+      (hook) =>
+        normalizeHookExecutionMode(hook.executionMode) !==
+        HOOK_EXECUTION_MODE.ASYNC,
+    );
+    const asyncHooks = uniqueHooks.filter(
+      (hook) =>
+        normalizeHookExecutionMode(hook.executionMode) ===
+        HOOK_EXECUTION_MODE.ASYNC,
+    );
+    const results = [];
     if (options.parallel === false) {
-      for (const hook of uniqueHooks) results.push(await runOne(hook));
+      for (const hook of blockingHooks) results.push(await runOne(hook));
+    } else {
+      for (let index = 0; index < blockingHooks.length;) {
+        const priority = normalizeHookPriority(blockingHooks[index].priority);
+        const group = [];
+        while (
+          index < blockingHooks.length &&
+          normalizeHookPriority(blockingHooks[index].priority) === priority
+        ) {
+          group.push(blockingHooks[index]);
+          index += 1;
+        }
+        results.push(...(await Promise.all(group.map((hook) => runOne(hook)))));
+      }
     }
-    const contract = HOOK_EVENT_CONTRACTS[eventName];
+    for (const hook of asyncHooks) {
+      const queued = {
+        execId: crypto.randomUUID(),
+        hookId: hook.id,
+        sourceHookId: hook.databaseHookId || hook.id,
+        hookName: hook.databaseHookName || hook.description || hook.id,
+        event: eventName,
+        type: hook.type,
+        priority: normalizeHookPriority(hook.priority),
+        executionMode: HOOK_EXECUTION_MODE.ASYNC,
+        status: "queued",
+        decision: "continue",
+        deferred: true,
+      };
+      results.push(queued);
+      void runOne(hook, {
+        forceObserveOnly: true,
+        dispatcher:
+          typeof options.asyncDispatcher === "function"
+            ? options.asyncDispatcher
+            : null,
+      }).then((record) => {
+        this.emit("hook:async-settled", record);
+      });
+    }
     const decision = contract.decisionCapable
       ? strictestDecision(results)
       : "continue";
     const blocking = results.filter((record) => record.decision === "block");
     const blocked = decision === "block";
-    const blockingResult = blocking[0]?.result || null;
+    const blockingResult = blocking[0]
+      ? blocking[0].result || {
+          reason: blocking[0].error || null,
+          code: blocking[0].errorCode || null,
+        }
+      : null;
     const outcome = {
       success: !blocked && results.every((record) => record.status !== "error"),
       results,
@@ -761,6 +915,26 @@ class HooksV2Runtime extends EventEmitter {
       blockingResult,
       schemaVersion: HOOK_EVENT_SCHEMA_VERSION,
     };
+    try {
+      this._appendAudit(
+        {
+          phase: "outcome",
+          event: eventName,
+          eventId,
+          status: outcome.success ? "success" : "error",
+          decision,
+        },
+        { required: auditRequired && contract.decisionCapable },
+      );
+    } catch (error) {
+      outcome.success = false;
+      outcome.blocked = contract.decisionCapable;
+      outcome.decision = contract.decisionCapable ? "block" : "continue";
+      outcome.auditError = error.code || "CC_HOOK_AUDIT_UNAVAILABLE";
+      outcome.blockingResult = contract.decisionCapable
+        ? { reason: error.message, code: outcome.auditError }
+        : outcome.blockingResult;
+    }
     if (durableRecord) {
       const settled = this.durableStore.acknowledgeInbox(
         durableRecord.id,
@@ -860,38 +1034,92 @@ class HooksV2Runtime extends EventEmitter {
         "trusted Linux Hooks v2 sandbox contract could not be issued",
       );
     }
-    const child = await this.executionBroker.spawn(
-      invocation.file,
-      invocation.argv,
-      {
-        ...commandOptions,
-        ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
-      },
-    );
-    const payload = JSON.stringify({
-      schema_version: HOOK_EVENT_SCHEMA_VERSION,
-      hook_event_name: hook.event,
-      context,
-    });
-    child.stdin?.end(payload);
-    return new Promise((resolve, reject) => {
-      let stdout = "",
-        stderr = "";
-      child.stdout?.on("data", (d) => (stdout += d));
-      child.stderr?.on("data", (d) => (stderr += d));
-      child.on("error", reject);
-      child.on("exit", (code) => {
-        if (code === 0) {
-          let parsed = {};
-          try {
-            parsed = JSON.parse(stdout);
-          } catch {
-            parsed = { raw: stdout };
+    const payload = JSON.stringify(
+      hook.legacyPayload === true
+        ? {
+            ...context,
+            schema_version: HOOK_EVENT_SCHEMA_VERSION,
+            hook_event_name: hook.event,
           }
-          resolve({ ...parsed, exitCode: code, stderr });
-        } else {
-          reject(new Error(`Hook command failed with exit ${code}: ${stderr}`));
-        }
+        : {
+            schema_version: HOOK_EVENT_SCHEMA_VERSION,
+            hook_event_name: hook.event,
+            context,
+          },
+    );
+    return executeWithHookTimeout("command", budget, async (signal) => {
+      const child = await this.executionBroker.spawn(
+        invocation.file,
+        invocation.argv,
+        {
+          ...commandOptions,
+          ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+        },
+      );
+      child.stdin?.end(payload);
+      return new Promise((resolve, reject) => {
+        let stdout = "";
+        let stderr = "";
+        let settled = false;
+        const appendBounded = (current, chunk) =>
+          `${current}${String(chunk)}`.slice(-(1024 * 1024));
+        const settle = (callback, value) => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener("abort", onAbort);
+          callback(value);
+        };
+        const onAbort = () => {
+          try {
+            child.kill?.();
+          } catch {
+            // The timeout decision is already fail-closed.
+          }
+          const error = new Error(
+            `command hook exceeded its ${budget.timeoutMs}ms budget`,
+          );
+          error.code = "CC_HOOK_BUDGET_EXCEEDED";
+          settle(reject, error);
+        };
+        child.stdout?.on(
+          "data",
+          (chunk) => (stdout = appendBounded(stdout, chunk)),
+        );
+        child.stderr?.on(
+          "data",
+          (chunk) => (stderr = appendBounded(stderr, chunk)),
+        );
+        child.on("error", (error) => settle(reject, error));
+        child.on("exit", (code) => {
+          if (code === 0 || code === 2) {
+            let parsed = {};
+            try {
+              parsed = JSON.parse(stdout);
+              if (
+                !parsed ||
+                typeof parsed !== "object" ||
+                Array.isArray(parsed)
+              ) {
+                parsed = { raw: stdout };
+              }
+            } catch {
+              parsed = { raw: stdout };
+            }
+            if (code === 2 && decisionFromHookResult(parsed) === "continue") {
+              parsed.decision = "block";
+              parsed.reason =
+                parsed.reason || stderr || stdout || "Hook blocked";
+            }
+            settle(resolve, { ...parsed, exitCode: code, stderr });
+          } else {
+            settle(
+              reject,
+              new Error(`Hook command failed with exit ${code}: ${stderr}`),
+            );
+          }
+        });
+        if (signal.aborted) onAbort();
+        else signal.addEventListener("abort", onAbort, { once: true });
       });
     });
   }
@@ -1037,7 +1265,12 @@ class HooksV2Runtime extends EventEmitter {
   }
 
   async _execJs(hook, context) {
-    if (typeof hook.handler === "function") return hook.handler(context);
+    if (typeof hook.handler === "function") {
+      const budget = hookBudget(hook);
+      return executeWithHookTimeout("js", budget, (signal) =>
+        hook.handler(context, { signal, budget }),
+      );
+    }
     throw new Error(
       "Config-loaded JavaScript is disabled; register a trusted function handler",
     );
@@ -1068,12 +1301,15 @@ const defaultEventRuntimeHost =
   process.env.CC_EVENT_RUNTIME_DURABLE === "1"
     ? getDefaultEventRuntimeHost()
     : null;
+const requireCanonicalAudit = process.env.NODE_ENV !== "test";
 const hooksRuntime = new HooksV2Runtime(undefined, {
   durableStore:
     defaultEventRuntimeHost?.store ||
     (process.env.CC_EVENT_RUNTIME_DURABLE === "1"
       ? new EventRuntimeStore()
       : null),
+  auditStore: requireCanonicalAudit ? getDefaultHookAuditStore() : null,
+  requireAudit: requireCanonicalAudit,
 });
 broker._setHooksEventSink(hooksRuntime);
 

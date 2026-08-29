@@ -1552,7 +1552,10 @@ async function runAgentHeadlessStreamInWorkspace(
     seq: true,
     trace_id: true,
     tool_use_id: true,
-    permission_decision: true,
+    // Hook lifecycle events can occur before the optional first-line hello.
+    // Buffer their additive policy projection until negotiation either accepts
+    // or disables this feature.
+    permission_decision: null,
   };
   const streamCoalescer =
     deps.streamCoalescer ||
@@ -1563,13 +1566,24 @@ async function runAgentHeadlessStreamInWorkspace(
       fieldGate,
     });
   const emit = streamCoalescer.emit;
+  const pendingHookPolicyEvents = [];
+  const settlePermissionDecisionGate = (enabled) => {
+    fieldGate.permission_decision = enabled === true;
+    if (fieldGate.permission_decision) {
+      for (const event of pendingHookPolicyEvents.splice(0)) emit(event);
+    } else {
+      pendingHookPolicyEvents.length = 0;
+    }
+  };
   const removeHookObserver =
     options.includeHookEvents === true
       ? addHooksV2EventObserver(sessionId, (event) => {
           emit(event);
-          if (fieldGate.permission_decision !== false) {
-            const policyEvent = projectHookPolicyDecision(event);
-            if (policyEvent) emit(policyEvent);
+          const policyEvent = projectHookPolicyDecision(event);
+          if (!policyEvent) return;
+          if (fieldGate.permission_decision === true) emit(policyEvent);
+          else if (fieldGate.permission_decision == null) {
+            pendingHookPolicyEvents.push(policyEvent);
           }
         })
       : null;
@@ -1795,8 +1809,8 @@ async function runAgentHeadlessStreamInWorkspace(
         effectiveHooks._authorityErrors.length > 0
           ? effectiveHooks
           : null;
-      // First-run trust notice for an untrusted/cloned repo's shell-running
-      // hooks (Claude-Code 2.1.195 parity). stderr keeps the NDJSON stdout clean.
+      // Explain the explicit content-bound trust gate. stderr keeps NDJSON
+      // stdout clean; the notice itself never grants Hook authority.
       try {
         const notice = projectHookTrustNotice({
           cwd,
@@ -1804,7 +1818,7 @@ async function runAgentHeadlessStreamInWorkspace(
         });
         if (notice) writeErr(notice + "\n");
       } catch {
-        /* trust notice is best-effort */
+        /* notice output is best-effort; the runtime gate is fail-closed */
       }
     } catch (error) {
       settingsHooks = {};
@@ -1850,7 +1864,7 @@ async function runAgentHeadlessStreamInWorkspace(
     const runObserveHooks =
       deps.runObserveHooks ||
       (await import("../lib/settings-hook-events.js")).runObserveHooks;
-    runObserveHooks(
+    await runObserveHooks(
       settingsHooks,
       "SessionEnd",
       { reason, cwd, session_id: sessionId },
@@ -2565,11 +2579,13 @@ async function runAgentHeadlessStreamInWorkspace(
     try {
       const { runInstructionsLoadedHooks } =
         await import("../lib/settings-hook-events.js");
-      const ctx = runInstructionsLoadedHooks(settingsHooks, {
-        files: _loadedInstructions.files,
-        cwd,
-        sessionId,
-      }).additionalContext;
+      const ctx = (
+        await runInstructionsLoadedHooks(settingsHooks, {
+          files: _loadedInstructions.files,
+          cwd,
+          sessionId,
+        })
+      ).additionalContext;
       if (ctx) messages.push({ role: "system", content: ctx });
     } catch (_err) {
       // best-effort
@@ -2606,11 +2622,13 @@ async function runAgentHeadlessStreamInWorkspace(
     try {
       const { runSessionStartHooks } =
         await import("../lib/settings-hook-events.js");
-      const ctx = runSessionStartHooks(settingsHooks, {
-        source: "startup",
-        cwd,
-        sessionId,
-      }).additionalContext;
+      const ctx = (
+        await runSessionStartHooks(settingsHooks, {
+          source: "startup",
+          cwd,
+          sessionId,
+        })
+      ).additionalContext;
       if (ctx) messages.push({ role: "system", content: ctx });
     } catch (_err) {
       // best-effort
@@ -3456,6 +3474,7 @@ async function runAgentHeadlessStreamInWorkspace(
             parsed.hello,
           );
           applyNegotiationToGate(negotiated, fieldGate);
+          settlePermissionDecisionGate(fieldGate.permission_decision !== false);
           emit({
             type: "system",
             subtype: "negotiated",
@@ -3468,6 +3487,9 @@ async function runAgentHeadlessStreamInWorkspace(
             reason: negotiated.reason,
           });
           continue;
+        }
+        if (fieldGate.permission_decision == null) {
+          settlePermissionDecisionGate(true);
         }
         if (parsed.interrupt) {
           currentAbort?.abort();
@@ -4296,7 +4318,7 @@ async function runAgentHeadlessStreamInWorkspace(
       try {
         const { runUserPromptSubmitHooks } =
           await import("../lib/settings-hook-events.js");
-        const ups = runUserPromptSubmitHooks(settingsHooks, {
+        const ups = await runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,
           sessionId,

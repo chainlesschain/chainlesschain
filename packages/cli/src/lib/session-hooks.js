@@ -9,7 +9,34 @@
  * - Notification
  */
 
-import { HookEvents, executeHooks } from "./hook-manager.js";
+import { HookEvents } from "./hook-manager.js";
+import { executeHooksV2Event } from "./hooks-v2-producers.js";
+
+async function executeCanonicalDatabaseHooks(db, event, context) {
+  const outcome = await executeHooksV2Event(event, context, { hookDb: db });
+  return (outcome.results || [])
+    .filter(
+      (entry) =>
+        !String(entry?.hookId || "").startsWith(
+          "database:adapter-read-failure:",
+        ),
+    )
+    .map((entry) => ({
+      hookId: entry.hookId,
+      hookName: entry.hookName || entry.hookId,
+      success: entry.status === "success",
+      result: entry.result,
+      stdout:
+        typeof entry.result === "string"
+          ? entry.result
+          : entry.result?.raw ||
+            (entry.result && typeof entry.result === "object"
+              ? JSON.stringify(entry.result)
+              : null),
+      error: entry.error || null,
+      executionTime: entry.durationMs || 0,
+    }));
+}
 
 // 会话钩子白名单
 export const SESSION_HOOK_EVENTS = Object.freeze([
@@ -22,7 +49,7 @@ export const SESSION_HOOK_EVENTS = Object.freeze([
 
 // 依赖注入点（用于测试）
 export const _deps = {
-  executeHooks,
+  executeHooks: executeCanonicalDatabaseHooks,
   logFailure: (_db, event, error) => {
     console.error(`[session-hooks] Failed to fire ${event}:`, error);
   },

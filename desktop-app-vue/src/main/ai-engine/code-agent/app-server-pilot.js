@@ -72,7 +72,9 @@ class DesktopAppServerPilot extends EventEmitter {
       new ClientClass({
         cliPath: options.cliPath,
         cwd: options.cwd,
+        storageBackend: options.storageBackend,
         stateDirectory: options.stateDirectory,
+        statePath: options.statePath,
         serverQueueCap: options.serverQueueCap ?? 256,
         maxPendingRequests: options.maxPendingRequests ?? 128,
         requestTimeoutMs,

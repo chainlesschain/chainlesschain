@@ -901,8 +901,8 @@ async function runAgentHeadlessInWorkspace(
         effectiveHooks._authorityErrors.length > 0
           ? effectiveHooks
           : null;
-      // First-run trust notice for an untrusted/cloned repo's shell-running
-      // hooks (Claude-Code 2.1.195 parity). Best-effort, stderr-only.
+      // Explain the explicit content-bound trust gate. Displaying this notice
+      // never authorizes execution.
       try {
         const notice = projectHookTrustNotice({
           cwd,
@@ -910,7 +910,7 @@ async function runAgentHeadlessInWorkspace(
         });
         if (notice) writeErr(notice + "\n");
       } catch {
-        /* trust notice is best-effort */
+        /* notice output is best-effort; the runtime gate is fail-closed */
       }
     } catch (error) {
       settingsHooks = {};
@@ -1708,7 +1708,7 @@ async function runAgentHeadlessInWorkspace(
     try {
       const { runUserPromptSubmitHooks } =
         await import("../lib/settings-hook-events.js");
-      const ups = runUserPromptSubmitHooks(settingsHooks, {
+      const ups = await runUserPromptSubmitHooks(settingsHooks, {
         prompt: userContent,
         cwd,
         sessionId,
@@ -1739,11 +1739,13 @@ async function runAgentHeadlessInWorkspace(
     try {
       const { runInstructionsLoadedHooks } =
         await import("../lib/settings-hook-events.js");
-      instructionsLoadedContext = runInstructionsLoadedHooks(settingsHooks, {
-        files: _loadedInstructions.files,
-        cwd,
-        sessionId,
-      }).additionalContext;
+      instructionsLoadedContext = (
+        await runInstructionsLoadedHooks(settingsHooks, {
+          files: _loadedInstructions.files,
+          cwd,
+          sessionId,
+        })
+      ).additionalContext;
     } catch (_err) {
       instructionsLoadedContext = null;
     }
@@ -1755,11 +1757,13 @@ async function runAgentHeadlessInWorkspace(
     try {
       const { runSessionStartHooks } =
         await import("../lib/settings-hook-events.js");
-      sessionStartContext = runSessionStartHooks(settingsHooks, {
-        source: resumeId ? "resume" : "startup",
-        cwd,
-        sessionId,
-      }).additionalContext;
+      sessionStartContext = (
+        await runSessionStartHooks(settingsHooks, {
+          source: resumeId ? "resume" : "startup",
+          cwd,
+          sessionId,
+        })
+      ).additionalContext;
     } catch (_err) {
       sessionStartContext = null;
     }
@@ -1774,7 +1778,7 @@ async function runAgentHeadlessInWorkspace(
     try {
       const { runObserveHooks } =
         await import("../lib/settings-hook-events.js");
-      runObserveHooks(
+      await runObserveHooks(
         settingsHooks,
         "SessionResume",
         {
@@ -3620,14 +3624,15 @@ async function runAgentHeadlessInWorkspace(
             cwd,
             session_id: sessionId,
           };
-          const stopOutcome = runObserveHooks(
+          const stopOutcome = await runObserveHooks(
             settingsHooks,
             "Stop",
             stopPayload,
-            { cwd },
+            { cwd, supervisor: _hookSupervisor },
           );
           const stopFailures = (stopOutcome?.results || []).filter(
             (result) =>
+              result?.status === "error" ||
               result?.nonBlockingError === true ||
               result?.malformedDecision === true ||
               result?.breakerOpen === true,
@@ -3694,7 +3699,7 @@ async function runAgentHeadlessInWorkspace(
           // Always reap the supervisor (kills any straggler child + detaches the
           // exit reaper), whether the async Stop was handled here or in re-drive.
           if (_hookSupervisor) _hookSupervisor.stopAll();
-          runObserveHooks(
+          await runObserveHooks(
             settingsHooks,
             "SessionEnd",
             {

@@ -1,8 +1,6 @@
 import path from "node:path";
-import {
-  defaultRolloutStoreDirectory,
-  JsonlRolloutStore,
-} from "../app-server/rollout-store.js";
+import { defaultRolloutStoreDirectory } from "../app-server/rollout-store.js";
+import { createRolloutStore } from "../app-server/rollout-store-factory.js";
 import { GraphCutoverLedger } from "./cutover-ledger.js";
 import {
   graphRuntimeEntryManifestDigest,
@@ -230,7 +228,8 @@ export function createRuntimeGraphCutoverAuthorityResolver({
   const resolvedLedger =
     ledger ||
     new GraphCutoverLedger({
-      store: new JsonlRolloutStore({
+      store: createRolloutStore({
+        backend: env.CHAINLESSCHAIN_ROLLOUT_STORE,
         directory: path.resolve(
           stateDirectory ||
             env.CHAINLESSCHAIN_GRAPH_CUTOVER_STATE_DIR ||

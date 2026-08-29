@@ -62,7 +62,48 @@ import {
   hydrateWsSessionState,
   recoverWsSessionState,
   serializeWsSessionState,
+  WS_SESSION_STATE_SCHEMA,
+  WS_SESSION_STATE_VERSION,
 } from "./ws-session-state.js";
+import {
+  appendEvent as appendCanonicalSessionEvent,
+  findLatestEvent as findLatestCanonicalSessionEvent,
+} from "../../harness/jsonl-session-store.js";
+
+export const WS_SESSION_ROLLOUT_EVENT = "ws_session_state";
+const WS_SESSION_ROLLOUT_SCHEMA = "chainlesschain.ws-session-rollout/v1";
+
+function canonicalWsStateError(code, message) {
+  const error = new Error(message);
+  error.name = "CanonicalWsSessionStateError";
+  error.code = code;
+  return error;
+}
+
+function hydrateCanonicalWsSessionState(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.schema !== WS_SESSION_STATE_SCHEMA ||
+    value.version !== WS_SESSION_STATE_VERSION ||
+    !value.snapshot ||
+    typeof value.snapshot !== "object" ||
+    !Array.isArray(value.events)
+  ) {
+    throw canonicalWsStateError(
+      "CC_WS_CANONICAL_STATE_CORRUPT",
+      "canonical WebSocket session state has an invalid envelope",
+    );
+  }
+  const journal = hydrateWsSessionState(value);
+  if (journal.events.length !== value.events.length) {
+    throw canonicalWsStateError(
+      "CC_WS_CANONICAL_STATE_CORRUPT",
+      "canonical WebSocket session state contains a revision gap",
+    );
+  }
+  return journal;
+}
 
 function normalizeHostWorkspaceRoot(workspaceRoot) {
   if (
@@ -182,6 +223,11 @@ export class WSSessionManager {
     );
     this.defaultSystemPromptExtension =
       options.defaultSystemPromptExtension || null;
+    this.canonicalSessionStore = {
+      appendEvent: appendCanonicalSessionEvent,
+      findLatestEvent: findLatestCanonicalSessionEvent,
+      ...(options.canonicalSessionStore || {}),
+    };
 
     /** @type {Map<string, Session>} */
     this.sessions = new Map();
@@ -411,7 +457,12 @@ export class WSSessionManager {
         `max_sessions_exceeded: ${this.maxSessions} concurrent sessions reached — close some before creating more`,
       );
     }
-    const sessionId = this._generateId();
+    const sessionId = options.sessionId || this._generateId();
+    if (this.sessions.has(sessionId)) {
+      const error = new Error(`session already exists: ${sessionId}`);
+      error.code = "CC_WS_SESSION_EXISTS";
+      throw error;
+    }
     const contextMemoryCutover = resolveCliContextMemoryCutover({
       scopeKey: `cli:ws-session:${sessionId}`,
     });
@@ -693,17 +744,23 @@ export class WSSessionManager {
         metadata,
       );
       const planManager = this._hydratePlanManager(metadata.planSnapshot);
-      const sessionStateJournal = hydrateWsSessionState(
-        metadata.sessionState,
-        Object.prototype.hasOwnProperty.call(metadata, "planSnapshot")
-          ? {
-              // Legacy/current metadata migration is pass-through only.
-              // PlanModeManager remains the sole owner of Plan hydration and
-              // persistence.
-              planSnapshot: metadata.planSnapshot,
-            }
-          : {},
-      );
+      const canonicalSessionState =
+        metadata.canonicalJsonlSession === true
+          ? this._readCanonicalSessionState(dbSession.id, { required: true })
+          : null;
+      const sessionStateJournal = canonicalSessionState
+        ? hydrateCanonicalWsSessionState(canonicalSessionState)
+        : hydrateWsSessionState(
+            metadata.sessionState,
+            Object.prototype.hasOwnProperty.call(metadata, "planSnapshot")
+              ? {
+                  // Legacy/current metadata migration is pass-through only.
+                  // PlanModeManager remains the sole owner of Plan hydration and
+                  // persistence.
+                  planSnapshot: metadata.planSnapshot,
+                }
+              : {},
+          );
       const stateRecovery = recoverWsSessionState(sessionStateJournal, {
         reason: "process_restart",
       });
@@ -767,6 +824,9 @@ export class WSSessionManager {
         patchHistory: this._boundPatchHistory(metadata.patchHistory),
         taskGraph: this._hydrateTaskGraph(metadata.taskGraph),
         interaction: null,
+        canonicalJsonlSession:
+          canonicalSessionState != null ||
+          metadata.canonicalJsonlSession === true,
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
       };
@@ -790,12 +850,54 @@ export class WSSessionManager {
       this._bindPlanManagerPersistence(session);
       this.sessions.set(session.id, session);
       if (stateRecovery.changed) {
+        this._persistCanonicalSessionState(session, sessionStateJournal);
         this._persistSessionState(session.id);
       }
       return session;
     } catch (_err) {
       return null;
     }
+  }
+
+  /** Build the local compatibility projection for a verified canonical-only session. */
+  resumeCanonicalSession(sessionId, options = {}) {
+    if (this.sessions.has(sessionId)) return this.resumeSession(sessionId);
+    // Read and validate any canonical WS journal before creating a DB/cache
+    // projection. An invalid journal must never be replaced by empty state.
+    const canonicalSessionState = this._readCanonicalSessionState(sessionId);
+    const canonicalJournal = canonicalSessionState
+      ? hydrateCanonicalWsSessionState(canonicalSessionState)
+      : null;
+    const stateRecovery = canonicalJournal
+      ? recoverWsSessionState(canonicalJournal, {
+          reason: "process_restart",
+        })
+      : { changed: false };
+    const created = this.createSession({
+      sessionId,
+      type: options.type || "agent",
+      provider: options.provider,
+      model: options.model,
+      baseUrl: options.baseUrl,
+      projectRoot: options.projectRoot,
+      requireDurable: false,
+    });
+    const session = this.sessions.get(created.sessionId) || null;
+    if (session && canonicalJournal) {
+      try {
+        session.canonicalJsonlSession = true;
+        this._bindSessionStateJournal(session, canonicalJournal);
+        if (stateRecovery.changed) {
+          this._persistCanonicalSessionState(session, canonicalJournal);
+        }
+        this._persistSessionState(session.id);
+      } catch (error) {
+        this.sessions.delete(session.id);
+        this._discardSessionResources(session);
+        throw error;
+      }
+    }
+    return session;
   }
 
   /**
@@ -1652,6 +1754,7 @@ export class WSSessionManager {
       baseUrl: session.baseUrl || null,
       hostManagedToolPolicy: session.hostManagedToolPolicy || null,
       sessionBudgetRoot: session.sessionBudgetRoot || null,
+      canonicalJsonlSession: session.canonicalJsonlSession === true,
       enabledToolNames: session.enabledToolNames || [],
       canonicalHostSystemPrefix: Array.isArray(
         session._canonicalHostSystemPrefix,
@@ -1700,12 +1803,72 @@ export class WSSessionManager {
     return session._sessionStateJournal;
   }
 
+  _readCanonicalSessionState(sessionId, { required = false } = {}) {
+    const event = this.canonicalSessionStore.findLatestEvent(
+      sessionId,
+      WS_SESSION_ROLLOUT_EVENT,
+    );
+    if (!event) {
+      if (required) {
+        throw canonicalWsStateError(
+          "CC_WS_CANONICAL_STATE_MISSING",
+          `canonical WebSocket session state is missing: ${sessionId}`,
+        );
+      }
+      return null;
+    }
+    if (event.data?.schema !== WS_SESSION_ROLLOUT_SCHEMA) {
+      throw canonicalWsStateError(
+        "CC_WS_CANONICAL_STATE_CORRUPT",
+        `canonical WebSocket session state has an invalid schema: ${sessionId}`,
+      );
+    }
+    return event.data.journal;
+  }
+
+  _persistCanonicalSessionState(session, journal) {
+    if (session?.canonicalJsonlSession !== true) return null;
+    return this.canonicalSessionStore.appendEvent(
+      session.id,
+      WS_SESSION_ROLLOUT_EVENT,
+      {
+        schema: WS_SESSION_ROLLOUT_SCHEMA,
+        journal: serializeWsSessionState(journal),
+      },
+    );
+  }
+
+  markCanonicalSession(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+    const previous = session.canonicalJsonlSession === true;
+    session.canonicalJsonlSession = true;
+    try {
+      this._persistCanonicalSessionState(
+        session,
+        this._ensureSessionStateJournal(session),
+      );
+      this._persistSessionState(sessionId);
+      return session;
+    } catch (error) {
+      session.canonicalJsonlSession = previous;
+      throw error;
+    }
+  }
+
   /** Record a recovery event and atomically persist it with session messages. */
   recordSessionStateEvent(sessionId, type, payload = {}) {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
     const journal = this._ensureSessionStateJournal(session);
+    const before = serializeWsSessionState(journal);
     appendWsSessionStateEvent(journal, type, payload);
+    try {
+      this._persistCanonicalSessionState(session, journal);
+    } catch (error) {
+      this._bindSessionStateJournal(session, hydrateWsSessionState(before));
+      throw error;
+    }
     this._persistSessionState(sessionId);
     return getWsSessionStateSnapshot(journal);
   }

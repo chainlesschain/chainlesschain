@@ -66,7 +66,9 @@ function createCodingAgentBootstrap(options = {}) {
       ? new PilotClass({
           cliPath: options.appServerCliPath || service.bridge?.cliEntry,
           cwd: service.repoRoot,
+          storageBackend: options.appServerStorageBackend,
           stateDirectory: options.appServerStateDirectory,
+          statePath: options.appServerStatePath,
           serverQueueCap: options.appServerQueueCap,
           maxPendingRequests: options.appServerMaxPendingRequests,
           requestTimeoutMs: options.appServerRequestTimeoutMs,

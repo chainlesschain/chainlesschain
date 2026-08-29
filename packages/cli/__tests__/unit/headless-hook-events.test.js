@@ -393,9 +393,10 @@ describe("headless hook and subagent event projection", () => {
   it("suppresses policy events when capability negotiation disables them", async () => {
     const { events } = await runStreamToolPolicyProjection(true);
 
-    expect(events.some((event) => event.type === "policy_decision")).toBe(
-      false,
-    );
+    expect(
+      events.some((event) => event.type === "policy_decision"),
+      JSON.stringify(events),
+    ).toBe(false);
     const result = events.find((event) => event.type === "tool_result");
     expect(result).not.toHaveProperty("permission_decision");
     expect(result).not.toHaveProperty("permission_decision_id");

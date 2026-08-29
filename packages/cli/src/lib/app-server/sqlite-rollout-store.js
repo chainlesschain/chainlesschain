@@ -6,17 +6,32 @@ import { createRequire } from "node:module";
 import {
   ROLLOUT_STORE_SCHEMA,
   ROLLOUT_STORE_VERSION,
+  migrateRolloutStore,
   _rolloutStoreInternals,
 } from "./rollout-store.js";
 
-const { buildRecord, canonicalJson, projectThread, verifyRecords } =
-  _rolloutStoreInternals;
+const {
+  assertExpectedHead,
+  buildRecord,
+  canonicalJson,
+  projectThread,
+  startPayload,
+  verifyRecords,
+} = _rolloutStoreInternals;
 
 let DatabaseSync = null;
-try {
-  ({ DatabaseSync } = createRequire(import.meta.url)("node:sqlite"));
-} catch {
-  // node:sqlite is optional on the minimum supported Node 22.12 runtime.
+let sqliteProbed = false;
+
+function loadDatabaseSync() {
+  if (!sqliteProbed) {
+    sqliteProbed = true;
+    try {
+      ({ DatabaseSync } = createRequire(import.meta.url)("node:sqlite"));
+    } catch {
+      // node:sqlite is optional on the minimum supported Node 22.12 runtime.
+    }
+  }
+  return DatabaseSync;
 }
 
 function sqliteError(code, message, cause = null) {
@@ -40,7 +55,7 @@ function recordThreadId(input) {
 }
 
 export function sqliteRolloutStoreAvailable() {
-  return typeof DatabaseSync === "function";
+  return typeof loadDatabaseSync() === "function";
 }
 
 export class SqliteRolloutStore {
@@ -50,13 +65,14 @@ export class SqliteRolloutStore {
     if (this.filename !== ":memory:") {
       fs.mkdirSync(path.dirname(this.filename), { recursive: true });
     }
-    if (!database && !sqliteRolloutStoreAvailable()) {
+    const SqliteDatabase = database ? null : loadDatabaseSync();
+    if (!database && typeof SqliteDatabase !== "function") {
       throw sqliteError(
         "CC_ROLLOUT_SQLITE_UNAVAILABLE",
         "SQLite rollout storage requires a Node runtime with node:sqlite",
       );
     }
-    this.db = database || new DatabaseSync(this.filename);
+    this.db = database || new SqliteDatabase(this.filename);
     this.db.exec("PRAGMA journal_mode = WAL");
     this.db.exec("PRAGMA synchronous = FULL");
     this.db.exec("PRAGMA foreign_keys = ON");
@@ -148,6 +164,7 @@ export class SqliteRolloutStore {
     title = null,
     parentThreadId = null,
     metadata = {},
+    timestamp: startedAt = null,
   } = {}) {
     const id = recordThreadId(threadId);
     return this._transaction(() => {
@@ -158,7 +175,8 @@ export class SqliteRolloutStore {
           threadId: id,
           eventType: "thread.started",
           idempotencyKey: `thread:${id}`,
-          payload: { title, parentThreadId, metadata },
+          timestamp: startedAt || undefined,
+          payload: startPayload({ title, parentThreadId, metadata }),
         },
         null,
         this.now,
@@ -199,6 +217,7 @@ export class SqliteRolloutStore {
         }
         return clone(duplicate);
       }
+      assertExpectedHead(input, records);
       const record = buildRecord(input, records.at(-1), this.now);
       this.db
         .prepare(
@@ -237,7 +256,7 @@ export class SqliteRolloutStore {
       .map((threadId) => this.resume(threadId))
       .filter((thread) => includeArchived || thread.status !== "archived")
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, Math.max(1, Number(limit) || 100));
+      .slice(0, Math.max(1, Math.min(100_000, Number(limit) || 100)));
   }
 
   forkThread(sourceThreadId, { threadId = randomUUID(), title = null } = {}) {
@@ -261,6 +280,10 @@ export class SqliteRolloutStore {
     return this.resume(target.id);
   }
 
+  fork(sourceThreadId, options = {}) {
+    return this.forkThread(sourceThreadId, options);
+  }
+
   checkpoint(threadId, payload = {}) {
     return this.append({
       threadId,
@@ -271,13 +294,19 @@ export class SqliteRolloutStore {
   }
 
   compact(threadId, options = {}) {
+    if (typeof options.summary !== "string" || !options.summary.trim()) {
+      throw sqliteError(
+        "CC_ROLLOUT_INVALID_ARGUMENT",
+        "compaction summary is required",
+      );
+    }
     return this.append({
       threadId,
       eventType: "rollout.compacted",
       idempotencyKey: options.idempotencyKey || null,
       payload: {
-        summary: String(options.summary || ""),
-        retainedState: options.retainedState || {},
+        summary: options.summary,
+        retainedState: options.retainedState ?? {},
       },
     });
   }
@@ -292,11 +321,25 @@ export class SqliteRolloutStore {
     return this.resume(threadId);
   }
 
-  migrate({ fromVersion = 1, toVersion = 1, dryRun = true } = {}) {
+  migrate({
+    fromVersion = 1,
+    toVersion = 1,
+    dryRun = true,
+    targetStore = null,
+    threadIds = null,
+  } = {}) {
+    if (targetStore) {
+      return migrateRolloutStore({
+        sourceStore: this,
+        targetStore,
+        threadIds,
+        dryRun,
+      });
+    }
     if (Number(fromVersion) !== 1 || Number(toVersion) !== 1) {
       throw sqliteError(
-        "CC_ROLLOUT_VERSION_UNSUPPORTED",
-        "SQLite rollout adapter currently supports schema v1 only",
+        "CC_ROLLOUT_MIGRATION_UNSUPPORTED",
+        `rollout migration ${fromVersion} -> ${toVersion} is unsupported`,
       );
     }
     return Object.freeze({

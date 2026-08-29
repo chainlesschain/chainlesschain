@@ -30,30 +30,12 @@ const fsDefault = require("node:fs");
 const crypto = require("node:crypto");
 const { SUGGEST_UMBRELLA } = require("./permission-rules.cjs");
 const { projectRootBase } = require("./project-root.cjs");
+const { HOOK_EVENT_TYPES } = require("./hook-runtime-contract.cjs");
 
 const _deps = { fs: fsDefault, homedir: () => os.homedir() };
 
 /** Events this loader understands (PreToolUse/PostToolUse are wired first). */
-const HOOK_EVENTS = Object.freeze([
-  "PreToolUse",
-  "PostToolUse",
-  "UserPromptSubmit",
-  "Stop",
-  "SubagentStart",
-  "SubagentStop",
-  "SessionStart",
-  "SessionResume",
-  "SessionPause",
-  "SessionEnd",
-  "ConfigChange",
-  "PreCompact",
-  "Notification",
-  "PermissionRequest",
-  "CwdChanged",
-  "WorktreeCreate",
-  "WorktreeRemove",
-  "InstructionsLoaded",
-]);
+const HOOK_EVENTS = Object.freeze(Object.values(HOOK_EVENT_TYPES));
 
 /**
  * Same hierarchy as settings-loader (user < project-root < cwd < --settings).
@@ -138,7 +120,7 @@ function managedSettingsFile(env = process.env) {
 
 function attachAuthoritySource(target, source) {
   if (!source) return target;
-  const authoritySource = Object.freeze({
+  const authoritySource = {
     kind:
       source.kind === "managed"
         ? "managed"
@@ -150,7 +132,22 @@ function attachAuthoritySource(target, source) {
         ? path.resolve(source.sourceFile)
         : null,
     digest: String(source.digest || ""),
+  };
+  Object.defineProperty(authoritySource, "scope", {
+    value: ["managed", "user", "project", "explicit", "plugin"].includes(
+      source.scope,
+    )
+      ? source.scope
+      : source.kind === "managed"
+        ? "managed"
+        : source.kind === "plugin"
+          ? "plugin"
+          : "project",
+    enumerable: false,
+    writable: false,
+    configurable: false,
   });
+  Object.freeze(authoritySource);
   Object.defineProperty(target, "authoritySource", {
     value: authoritySource,
     enumerable: true,
@@ -166,6 +163,7 @@ function appendHookBlock(merged, data, authoritySource) {
   if (!block) return false;
   let contributed = false;
   for (const [event, groups] of Object.entries(block)) {
+    if (!HOOK_EVENTS.includes(event)) continue;
     if (!Array.isArray(groups)) continue;
     for (const g of groups) {
       if (!g || typeof g !== "object" || !Array.isArray(g.hooks)) continue;
@@ -195,6 +193,14 @@ function loadHooks({
   const files = [];
   const authorityErrors = [];
   const managedFile = managedSettingsFile(env);
+  const userSettingsFile = path.resolve(
+    _deps.homedir(),
+    ".claude",
+    "settings.json",
+  );
+  const explicitSettingsFile = settingsFile
+    ? path.resolve(cwd, settingsFile)
+    : null;
   let managed = null;
   let managedRecord = null;
   if (_deps.fs.existsSync(managedFile)) {
@@ -237,6 +243,13 @@ function loadHooks({
           kind: "settings",
           sourceFile: record.sourceFile,
           digest: record.digest,
+          scope:
+            path.resolve(record.sourceFile) === userSettingsFile
+              ? "user"
+              : explicitSettingsFile &&
+                  path.resolve(record.sourceFile) === explicitSettingsFile
+                ? "explicit"
+                : "project",
         })
       : false;
     if (contributed) files.push(file);
@@ -247,6 +260,7 @@ function loadHooks({
       kind: "managed",
       sourceFile: managedRecord.sourceFile,
       digest: managedRecord.digest,
+      scope: "managed",
     })
   ) {
     files.push(managedFile);
@@ -364,6 +378,7 @@ function collectHooks(hooksBlock, event, toolName) {
         const collected = {
           command: h.command,
           timeout: h.timeout,
+          priority: h.priority,
           event,
           async: h.async === true,
           asyncRewake: h.asyncRewake === true,
@@ -418,47 +433,10 @@ function extractCommandHooks(data) {
   return out;
 }
 
-/** `~/.chainlesschain/hook-trust.json` — remembered first-run acknowledgments. */
-function hookTrustStorePath() {
-  return path.join(_deps.homedir(), ".chainlesschain", "hook-trust.json");
-}
-
-function readHookTrustStore() {
-  try {
-    const f = hookTrustStorePath();
-    if (!_deps.fs.existsSync(f)) return {};
-    const parsed = JSON.parse(_deps.fs.readFileSync(f, "utf-8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {}; // unreadable store → treat as nothing acknowledged
-  }
-}
-
-function writeHookTrustStore(store) {
-  try {
-    const f = hookTrustStorePath();
-    _deps.fs.mkdirSync(path.dirname(f), { recursive: true });
-    _deps.fs.writeFileSync(f, JSON.stringify(store, null, 2), "utf-8");
-    return true;
-  } catch {
-    return false; // best-effort — a failed write just re-shows the notice
-  }
-}
-
 /**
- * First-run trust notice for project-sourced settings.json hooks (which run
- * shell). The user's own `~/.claude/settings.json` and an explicit `--settings`
- * file are trusted; only the project's `.claude/settings{,.local}.json` (project
- * root + cwd) carry the cloned-repo auto-execution risk that Claude-Code 2.1.195
- * gated ("untrusted project config must require explicit consent").
- *
- * Returns a one-line notice (and records an acknowledgment hash) the FIRST time
- * a project's shell-running hooks are seen — and again only if those hooks
- * change. Returns null when there are no project hooks, the hooks are unchanged
- * since last acknowledged, or the notice is disabled (`CC_HOOK_TRUST_NOTICE=0`,
- * or hooks themselves are off via `CC_SETTINGS_HOOKS=0`). Best-effort: a failed
- * store write still returns the notice (shown again next run) rather than
- * throwing — it must never abort agent startup.
+ * Explain the canonical project-Hook trust gate without granting trust.
+ * Execution is authorized only by the shared, content-addressed workspace
+ * trust ledger (`cc hook trust`); displaying this notice is never consent.
  *
  * @returns {string|null}
  */
@@ -498,31 +476,12 @@ function projectHookTrustNotice({ cwd = process.cwd(), settingsFile } = {}) {
   }
   if (entries.length === 0) return null;
 
-  const fingerprint = entries
-    .map((e) => `${e.event} ${e.matcher ?? ""} ${e.command}`)
-    .sort();
-  const hash = crypto
-    .createHash("sha256")
-    .update(JSON.stringify(fingerprint))
-    .digest("hex");
-  const key = projectRootBase(cwd, { fs: _deps.fs, path }) || cwd;
-
-  const store = readHookTrustStore();
-  if (store[key] && store[key].hash === hash) return null; // already acknowledged
-  store[key] = {
-    hash,
-    files: contributing,
-    count: entries.length,
-    at: new Date().toISOString(),
-  };
-  writeHookTrustStore(store); // best-effort acknowledgment
-
   const fileList = contributing.map((f) => `    ${f}`).join("\n");
   return (
     `⚠ This project's .claude/settings.json defines ${entries.length} ` +
-    `shell-running hook(s) that auto-run on agent activity:\n${fileList}\n` +
-    `  Review them before trusting this repo. Shown once per change; ` +
-    `disable all hooks with CC_SETTINGS_HOOKS=0.`
+    `shell-running hook(s), currently blocked until explicitly trusted:\n${fileList}\n` +
+    `  Review them, then run cc hook trust. Any content change requires ` +
+    `reapproval; disable all hooks with CC_SETTINGS_HOOKS=0.`
   );
 }
 

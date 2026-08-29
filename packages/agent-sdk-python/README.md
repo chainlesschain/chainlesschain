@@ -87,6 +87,25 @@ sessions are not persisted by CLI design; use `session_id` when creating a
 session that must be resumable. `resume` takes precedence over `session_id`,
 matching the TypeScript SDK.
 
+## App Server physical storage
+
+The bounded App Server client can select JSONL or SQLite without changing its
+fixed RPC capabilities:
+
+```python
+from chainlesschain_agent_sdk import AppServerClientOptions, AppServerPilotClient
+
+pilot = AppServerPilotClient(
+    AppServerClientOptions(
+        storage_backend="sqlite",
+        state_path="/var/lib/cc/rollouts.sqlite",
+    )
+)
+```
+
+`state_directory` and `state_path` are mutually exclusive. JSONL remains the
+default, and the storage choice does not alter Thread/Turn/Item messages.
+
 ## Event and callback guarantees
 
 - The generated `AgentStreamEventPayload` is the authoritative closed wire

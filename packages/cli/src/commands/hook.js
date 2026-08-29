@@ -4,16 +4,17 @@
  */
 
 import chalk from "chalk";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   HookPriority,
-  HookType,
   HookEvents,
   registerHook,
   unregisterHook,
   listHooks,
-  executeHooks,
   getHookStats,
 } from "../lib/hook-manager.js";
 import {
@@ -22,6 +23,53 @@ import {
   fireUserPromptSubmit,
   fireAssistantResponse,
 } from "../lib/session-hooks.js";
+import {
+  approveHookAuthority,
+  assessHookTrust,
+  revokeHookAuthority,
+} from "../lib/hook-trust.js";
+import { getDefaultHookAuditStore } from "../lib/hook-audit-store.js";
+import { executeHooksV2Event } from "../lib/hooks-v2-producers.js";
+
+function hookSourceAuthority(sourceFile, digest) {
+  return Object.freeze({
+    kind: "settings",
+    scope: "project",
+    sourceFile: path.resolve(sourceFile),
+    subject: path.resolve(sourceFile),
+    digest,
+    requiresConsent: true,
+  });
+}
+
+function settingsSourceAuthorities(settingsHooks) {
+  const authorities = new Map();
+  for (const groups of Object.values(settingsHooks || {})) {
+    if (!Array.isArray(groups)) continue;
+    for (const group of groups) {
+      for (const hook of Array.isArray(group?.hooks) ? group.hooks : []) {
+        const source = hook?.authoritySource;
+        if (!source?.sourceFile || source.scope !== "project") continue;
+        authorities.set(
+          path.resolve(source.sourceFile),
+          hookSourceAuthority(source.sourceFile, source.digest),
+        );
+      }
+    }
+  }
+  return [...authorities.values()];
+}
+
+function authorityForFile(file) {
+  const sourceFile = path.resolve(file);
+  const content = fs.readFileSync(sourceFile, "utf8");
+  const digest = crypto
+    .createHash("sha256")
+    .update(content, "utf8")
+    .digest("hex");
+  JSON.parse(content);
+  return hookSourceAuthority(sourceFile, digest);
+}
 
 export function registerHookCommand(program) {
   const hook = program.command("hook").description("Lifecycle hook management");
@@ -124,6 +172,162 @@ export function registerHookCommand(program) {
       }
     });
 
+  // Project Hook trust is content-addressed. Any settings-file change turns a
+  // previous allow into `changed`, so the runtime fails closed until this
+  // command records a fresh explicit consent for the new digest.
+  hook
+    .command("trust [file]")
+    .description(
+      "Explicitly trust project Hook definitions; changed content requires reapproval",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (file, options) => {
+      try {
+        let authorities;
+        if (file) {
+          authorities = [authorityForFile(file)];
+        } else {
+          const { loadHooks } = await import("../lib/settings-hooks.cjs");
+          const { hooks } = loadHooks({ cwd: process.cwd() });
+          authorities = settingsSourceAuthorities(hooks);
+        }
+        if (authorities.length === 0) {
+          const result = { approved: [], message: "No project Hook sources" };
+          if (options.json) console.log(JSON.stringify(result, null, 2));
+          else logger.info(result.message);
+          return;
+        }
+        const approved = authorities.map((authority) => ({
+          sourceFile: authority.sourceFile,
+          digest: authority.digest,
+          result: approveHookAuthority(authority, {
+            workspaceRoot: process.cwd(),
+          }),
+        }));
+        if (options.json) console.log(JSON.stringify({ approved }, null, 2));
+        else {
+          for (const entry of approved) {
+            logger.success(
+              `Trusted Hooks from ${entry.sourceFile} (${entry.digest.slice(0, 12)})`,
+            );
+          }
+        }
+      } catch (error) {
+        logger.error(`Hook trust failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  hook
+    .command("trust-status [file]")
+    .description("Show content-bound project Hook trust status")
+    .option("--json", "Output as JSON")
+    .action(async (file, options) => {
+      try {
+        let authorities;
+        if (file) {
+          authorities = [authorityForFile(file)];
+        } else {
+          const { loadHooks } = await import("../lib/settings-hooks.cjs");
+          const { hooks } = loadHooks({ cwd: process.cwd() });
+          authorities = settingsSourceAuthorities(hooks);
+        }
+        const statuses = authorities.map((authority) => ({
+          sourceFile: authority.sourceFile,
+          digest: authority.digest,
+          trust: assessHookTrust(
+            {
+              id: `status:${authority.sourceFile}`,
+              event: "Setup",
+              type: "command",
+              authority,
+            },
+            { workspaceRoot: process.cwd() },
+          ),
+        }));
+        if (options.json) console.log(JSON.stringify({ statuses }, null, 2));
+        else if (statuses.length === 0) logger.info("No project Hook sources");
+        else {
+          for (const entry of statuses) {
+            const color = entry.trust.trusted ? chalk.green : chalk.yellow;
+            logger.log(
+              `${color(entry.trust.status)}  ${entry.sourceFile}  ${entry.digest.slice(0, 12)}`,
+            );
+          }
+        }
+      } catch (error) {
+        logger.error(`Hook trust status failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  hook
+    .command("untrust [file]")
+    .description("Revoke project Hook trust")
+    .option("--json", "Output as JSON")
+    .action(async (file, options) => {
+      try {
+        let authorities;
+        if (file) {
+          authorities = [authorityForFile(file)];
+        } else {
+          const { loadHooks } = await import("../lib/settings-hooks.cjs");
+          const { hooks } = loadHooks({ cwd: process.cwd() });
+          authorities = settingsSourceAuthorities(hooks);
+        }
+        const revoked = authorities.map((authority) => ({
+          sourceFile: authority.sourceFile,
+          revoked: revokeHookAuthority(authority, {
+            workspaceRoot: process.cwd(),
+          }),
+        }));
+        if (options.json) console.log(JSON.stringify({ revoked }, null, 2));
+        else {
+          for (const entry of revoked) {
+            logger.log(
+              `${entry.revoked ? "revoked" : "not trusted"}  ${entry.sourceFile}`,
+            );
+          }
+        }
+      } catch (error) {
+        logger.error(`Hook untrust failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  hook
+    .command("audit")
+    .description("List or verify the canonical tamper-evident Hook audit")
+    .option("--limit <n>", "Maximum records to list", "50")
+    .option("--verify", "Verify the audit hash chain")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      try {
+        const store = getDefaultHookAuditStore();
+        const result = options.verify
+          ? store.verify()
+          : { records: store.list({ limit: Number(options.limit) || 50 }) };
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else if (options.verify) {
+          if (result.ok)
+            logger.success(`Hook audit verified (${result.length})`);
+          else {
+            logger.error(`Hook audit chain is broken at ${result.brokenAt}`);
+            process.exitCode = 1;
+          }
+        } else {
+          for (const entry of result.records) {
+            logger.log(
+              `${entry.record.timestamp} ${entry.record.event} ${entry.record.phase} ${entry.record.status}`,
+            );
+          }
+        }
+      } catch (error) {
+        logger.error(`Hook audit failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   // hook test — dry-run .claude/settings.json hooks for an event + tool
   hook
     .command("test <event> <tool> [args...]")
@@ -173,25 +377,42 @@ export function registerHookCommand(program) {
           return;
         }
 
-        const { runHooks } = await import("../lib/hook-runner.js");
-        const outcome = runHooks(matched, payload, {
+        const outcome = await executeHooksV2Event(event, payload, {
+          settingsHooks: hooks,
+          matchTarget: tool,
           cwd: process.cwd(),
-          event,
+          failClosed: true,
         });
+        const compatibilityOutcome = {
+          decision: outcome.decision,
+          reason: outcome.blockingResult?.reason || null,
+          hook:
+            outcome.results?.find(
+              (entry) => entry.decision === outcome.decision,
+            )?.hookId || null,
+          results: (outcome.results || []).map((entry) => ({
+            command: entry.hookId,
+            decision: entry.decision,
+            exitCode: entry.result?.exitCode,
+            status: entry.status,
+          })),
+        };
         if (options.json) {
-          console.log(JSON.stringify(outcome, null, 2));
+          console.log(JSON.stringify(compatibilityOutcome, null, 2));
           return;
         }
         const color =
-          outcome.decision === "block"
+          compatibilityOutcome.decision === "block"
             ? chalk.red
-            : outcome.decision === "ask"
+            : compatibilityOutcome.decision === "ask"
               ? chalk.yellow
               : chalk.green;
-        logger.log(`decision: ${color.bold(outcome.decision)}`);
-        if (outcome.reason) logger.log(`reason:   ${outcome.reason}`);
-        if (outcome.hook) logger.log(`from:     ${chalk.gray(outcome.hook)}`);
-        for (const r of outcome.results) {
+        logger.log(`decision: ${color.bold(compatibilityOutcome.decision)}`);
+        if (compatibilityOutcome.reason)
+          logger.log(`reason:   ${compatibilityOutcome.reason}`);
+        if (compatibilityOutcome.hook)
+          logger.log(`from:     ${chalk.gray(compatibilityOutcome.hook)}`);
+        for (const r of compatibilityOutcome.results) {
           logger.log(
             `  ${chalk.gray(r.command)} → ${r.decision}` +
               (r.exitCode != null ? ` (exit ${r.exitCode})` : ""),
@@ -281,19 +502,17 @@ export function registerHookCommand(program) {
           return;
         }
         // observe-only + --run: re-collect and execute the matching hooks.
-        const { loadHooks, collectHooks } =
-          await import("../lib/settings-hooks.cjs");
-        const { runHooks } = await import("../lib/hook-runner.js");
+        const { loadHooks } = await import("../lib/settings-hooks.cjs");
         const { hooks } = loadHooks({ cwd: process.cwd() });
-        const matched = collectHooks(
-          hooks,
+        const outcome = await executeHooksV2Event(
           plan.event_type,
-          plan.payload.tool_name || "",
+          plan.payload,
+          {
+            settingsHooks: hooks,
+            matchTarget: plan.payload.tool_name || "",
+            cwd: process.cwd(),
+          },
         );
-        const outcome = runHooks(matched, plan.payload, {
-          cwd: process.cwd(),
-          event: plan.event_type,
-        });
         if (options.json) {
           console.log(
             JSON.stringify({ ...plan, executed: true, outcome }, null, 2),
@@ -301,13 +520,15 @@ export function registerHookCommand(program) {
         } else {
           logger.log(
             chalk.bold(
-              `replayed ${plan.event_type} [${plan.event_id}] → ${outcome.results.length} hook(s)`,
+              `replayed ${plan.event_type} [${plan.event_id}] → ${outcome.results.length} Hook(s)`,
             ),
           );
           for (const r of outcome.results) {
             logger.log(
-              `  ${chalk.gray(r.command)} → ${r.decision}` +
-                (r.exitCode != null ? ` (exit ${r.exitCode})` : ""),
+              `  ${chalk.gray(r.hookId)} → ${r.decision}` +
+                (r.result?.exitCode != null
+                  ? ` (exit ${r.result.exitCode})`
+                  : ""),
             );
           }
         }
@@ -477,14 +698,21 @@ export function registerHookCommand(program) {
         }
 
         logger.info(`Triggering hooks for event: ${event}`);
-        const results = await executeHooks(db, event, context);
+        const outcome = await executeHooksV2Event(event, context, {
+          hookDb: db,
+          matchTarget:
+            context.target || context.tool || context.channel || event,
+          cwd: process.cwd(),
+        });
+        const results = outcome.results || [];
 
         if (results.length === 0) {
           logger.info("No hooks matched this event");
         } else {
           for (const r of results) {
-            const icon = r.success ? chalk.green("OK") : chalk.red("FAIL");
-            logger.log(`  [${icon}] ${r.hookName} (${r.executionTime}ms)`);
+            const icon =
+              r.status === "success" ? chalk.green("OK") : chalk.red("FAIL");
+            logger.log(`  [${icon}] ${r.hookId} (${r.durationMs || 0}ms)`);
             if (r.error) logger.log(`    ${chalk.red(r.error)}`);
             if (r.result) logger.log(`    ${chalk.gray(r.result)}`);
           }

@@ -488,7 +488,10 @@ describe("plugin hooks fire through the settings-hook lifecycle", () => {
       const merged = mergePluginHooks(null, { cwd, scopes: ["local"] });
       const { runSessionStartHooks } =
         await import("../../src/lib/settings-hook-events.js");
-      const res = runSessionStartHooks(merged, { source: "startup", cwd });
+      const res = await runSessionStartHooks(merged, {
+        source: "startup",
+        cwd,
+      });
       expect(res.additionalContext || "", JSON.stringify(res)).toContain(
         "PLUGIN_HOOK_OK",
       );

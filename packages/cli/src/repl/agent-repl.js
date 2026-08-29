@@ -513,7 +513,7 @@ async function _fireNotification(message, type = "info", session = null) {
     try {
       const { runObserveHooks } =
         await import("../lib/settings-hook-events.js");
-      runObserveHooks(
+      await runObserveHooks(
         _settingsHooks,
         "Notification",
         {
@@ -3759,13 +3759,13 @@ async function startAgentReplInWorkspaceOwned(
       effectiveHooks._authorityErrors.length > 0
         ? effectiveHooks
         : null;
-    // First-run trust notice for an untrusted/cloned repo's shell-running
-    // hooks (Claude-Code 2.1.195 parity). Best-effort, stderr-only.
+    // Explain the explicit content-bound trust gate. Displaying the notice
+    // never authorizes project Hooks; only `cc hook trust` does.
     try {
       const notice = projectHookTrustNotice({ cwd: process.cwd() });
       if (notice) process.stderr.write(notice + "\n");
     } catch {
-      /* trust notice is best-effort */
+      /* notice output is best-effort; the runtime gate is fail-closed */
     }
   } catch (_err) {
     _settingsHooks = {};
@@ -4201,11 +4201,13 @@ async function startAgentReplInWorkspaceOwned(
     try {
       const { runInstructionsLoadedHooks } =
         await import("../lib/settings-hook-events.js");
-      const ctx = runInstructionsLoadedHooks(_settingsHooks, {
-        files: _loadedReplInstructions.files,
-        cwd: process.cwd(),
-        sessionId,
-      }).additionalContext;
+      const ctx = (
+        await runInstructionsLoadedHooks(_settingsHooks, {
+          files: _loadedReplInstructions.files,
+          cwd: process.cwd(),
+          sessionId,
+        })
+      ).additionalContext;
       if (ctx) messages.push({ role: "system", content: ctx });
     } catch (_err) {
       // best-effort
@@ -4217,10 +4219,12 @@ async function startAgentReplInWorkspaceOwned(
     try {
       const { runSessionStartHooks } =
         await import("../lib/settings-hook-events.js");
-      const ctx = runSessionStartHooks(_settingsHooks, {
-        source: "startup",
-        cwd: process.cwd(),
-      }).additionalContext;
+      const ctx = (
+        await runSessionStartHooks(_settingsHooks, {
+          source: "startup",
+          cwd: process.cwd(),
+        })
+      ).additionalContext;
       if (ctx) messages.push({ role: "system", content: ctx });
     } catch (_err) {
       // best-effort
@@ -4733,7 +4737,7 @@ async function startAgentReplInWorkspaceOwned(
       try {
         const { runObserveHooks } =
           await import("../lib/settings-hook-events.js");
-        runObserveHooks(
+        await runObserveHooks(
           _settingsHooks,
           "SessionResume",
           {
@@ -6805,7 +6809,7 @@ async function startAgentReplInWorkspaceOwned(
               const { runCwdChangedHooks, dispatchAsyncHooks } =
                 await import("../lib/settings-hook-events.js");
               const payload = { oldCwd, newCwd, sessionId };
-              runCwdChangedHooks(_settingsHooks, payload);
+              await runCwdChangedHooks(_settingsHooks, payload);
               if (!_asyncHookSupervisor) {
                 const { AsyncHookSupervisor } =
                   await import("../lib/async-hook-supervisor.js");
@@ -7663,7 +7667,9 @@ async function startAgentReplInWorkspaceOwned(
               session_id: sessionId || null,
               source: "reload-plugins",
             };
-            runObserveHooks(_settingsHooks, "ConfigChange", payload, { cwd });
+            await runObserveHooks(_settingsHooks, "ConfigChange", payload, {
+              cwd,
+            });
             if (!_asyncHookSupervisor) {
               const { AsyncHookSupervisor } =
                 await import("../lib/async-hook-supervisor.js");
@@ -9079,7 +9085,7 @@ async function startAgentReplInWorkspaceOwned(
       try {
         const { runUserPromptSubmitHooks } =
           await import("../lib/settings-hook-events.js");
-        const ups = runUserPromptSubmitHooks(_settingsHooks, {
+        const ups = await runUserPromptSubmitHooks(_settingsHooks, {
           prompt: userContent,
           cwd: process.cwd(),
           sessionId,
@@ -9934,7 +9940,7 @@ async function startAgentReplInWorkspaceOwned(
         try {
           const { runObserveHooks, dispatchAsyncHooks } =
             await import("../lib/settings-hook-events.js");
-          runObserveHooks(
+          await runObserveHooks(
             _settingsHooks,
             "Stop",
             { session_id: sessionId || null },
@@ -10081,7 +10087,7 @@ async function startAgentReplInWorkspaceOwned(
       try {
         const { runObserveHooks } =
           await import("../lib/settings-hook-events.js");
-        runObserveHooks(
+        await runObserveHooks(
           _settingsHooks,
           "SessionEnd",
           { reason: "exit", cwd: process.cwd(), session_id: sessionId },

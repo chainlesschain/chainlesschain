@@ -863,7 +863,7 @@ export function registerAgentCommand(program) {
               loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
             const { runWorktreeCreateHooks, dispatchAsyncHooks } =
               await import("../lib/settings-hook-events.js");
-            runWorktreeCreateHooks(_worktreeSettingsHooks, {
+            await runWorktreeCreateHooks(_worktreeSettingsHooks, {
               worktreePath: _worktree.path,
               branch: _worktree.branch,
               baseSha: _worktree.baseSha,
@@ -924,7 +924,7 @@ export function registerAgentCommand(program) {
             try {
               const { runWorktreeRemoveHooks, dispatchAsyncHooks } =
                 await import("../lib/settings-hook-events.js");
-              runWorktreeRemoveHooks(_worktreeSettingsHooks, {
+              await runWorktreeRemoveHooks(_worktreeSettingsHooks, {
                 worktreePath: _worktree.path,
                 branch: _worktree.branch,
                 removed: fin.removed === true,
@@ -971,9 +971,12 @@ export function registerAgentCommand(program) {
       if (typeof options.resume === "string" && !options.session) {
         options.session = options.resume;
       }
+      let sessionBootstrapContext = null;
       if ((options.continue || options.resume === true) && !options.session) {
         const { bootstrap } = await import("../runtime/bootstrap.js");
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        sessionBootstrapContext = await bootstrap({
+          verbose: program.opts().verbose,
+        });
         // Headless intent also means "no interactive picker is possible": -p,
         // a positional task, an explicit --output-format, or a non-TTY stdin.
         const headlessIntent =
@@ -982,16 +985,18 @@ export function registerAgentCommand(program) {
           options.outputFormat !== "text" ||
           !process.stdin.isTTY;
         if (headlessIntent) {
-          // Headless replays the JSONL store only, so resolve "most recent"
-          // from there 鈥?a DB-only id would resume into an empty transcript.
-          const { getLastSessionId } =
-            await import("../harness/jsonl-session-store.js");
-          options.session = getLastSessionId();
+          const { getLastLogicalSessionId } =
+            await import("../lib/session-transcript-migration.js");
+          const database =
+            sessionBootstrapContext.db?.getDatabase?.() ||
+            sessionBootstrapContext.db?.getDb?.() ||
+            null;
+          options.session = getLastLogicalSessionId(database);
         } else {
           // Interactive: picker across both stores (agent REPL rebuilds either).
           const { pickRecentSession } =
             await import("../lib/session-picker.js");
-          const picked = await pickRecentSession(ctx, {
+          const picked = await pickRecentSession(sessionBootstrapContext, {
             message: "Resume which agent session?",
           });
           options.session = picked.id;
@@ -1002,6 +1007,34 @@ export function registerAgentCommand(program) {
           );
           await _finishWorktree();
           process.exit(1);
+        }
+      }
+
+      // A legacy SQLite-only session is imported once into the verified
+      // canonical transcript before fork or replay. This keeps DB as a valid
+      // physical source without allowing headless clients to resume an empty
+      // conversation merely because their reader is JSONL-backed.
+      const resumeRequested = Boolean(options.session);
+      if (resumeRequested && options.session) {
+        const { sessionHasPersistedEvidence } =
+          await import("../harness/jsonl-session-store.js");
+        if (!sessionHasPersistedEvidence(options.session)) {
+          const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
+            await Promise.all([
+              import("../runtime/bootstrap.js"),
+              import("../lib/session-transcript-migration.js"),
+            ]);
+          const context =
+            sessionBootstrapContext ||
+            (await bootstrap({ verbose: program.opts().verbose }));
+          sessionBootstrapContext = context;
+          const database =
+            context.db?.getDatabase?.() || context.db?.getDb?.() || null;
+          const migrated = ensureCanonicalSessionFromDatabase(
+            database,
+            options.session,
+          );
+          if (migrated?.sessionId) options.session = migrated.sessionId;
         }
       }
 
@@ -1025,8 +1058,8 @@ export function registerAgentCommand(program) {
         );
         if (fork.missing) {
           process.stderr.write(
-            `--fork-session: no headless transcript for "${options.session}" 鈥?` +
-              "nothing to fork; continuing on it.\n",
+            `--fork-session: no persisted transcript for "${options.session}"; ` +
+              "nothing to fork, continuing on it.\n",
           );
         } else if (fork.forkedFrom) {
           process.stderr.write(
@@ -1593,18 +1626,16 @@ export function registerAgentCommand(program) {
           }
           return;
         }
-        // Resume requested onto a session with no headless (JSONL) transcript?
-        // Warn instead of silently starting empty 鈥?headless resume rebuilds
-        // from the JSONL store only (DB-only sessions are not replayable here).
-        const resumeRequested =
-          Boolean(options.continue) || options.resume !== undefined;
+        // If neither the canonical transcript nor a legacy physical adapter
+        // contained the requested logical session, warn instead of silently
+        // presenting a fresh conversation as a successful resume.
         if (resumeRequested && options.session) {
           const { sessionHasPersistedEvidence } =
             await import("../harness/jsonl-session-store.js");
           if (!sessionHasPersistedEvidence(options.session)) {
             process.stderr.write(
-              `Note: no headless transcript for session "${options.session}" 鈥?` +
-                "starting fresh (headless resume reads JSONL sessions only).\n",
+              `Note: no persisted transcript for session "${options.session}"; ` +
+                "starting fresh because no readable physical adapter contains it.\n",
             );
           }
         }

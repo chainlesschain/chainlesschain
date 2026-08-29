@@ -245,7 +245,25 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     const r2 = await secondResult;
     expect(approvals).toContain("write_file");
     expect(r2.is_error).toBe(false);
-    expect(existsSync(targetFile)).toBe(true);
+    expect(
+      existsSync(targetFile),
+      JSON.stringify(
+        {
+          result: r2,
+          approvals,
+          policyEvents: observedEvents.filter((event) => {
+            const type = String((event as { type?: unknown })?.type || "");
+            return type.startsWith("hook_") || type === "tool_result";
+          }),
+          eventTypes: observedEvents.map(
+            (event) => (event as { type?: unknown })?.type || null,
+          ),
+          stderr: stderrLines,
+        },
+        null,
+        2,
+      ),
+    ).toBe(true);
 
     first.end();
     await new Promise<void>((resolve) => {
