@@ -65,11 +65,21 @@ export const PRICE_TABLE = Object.freeze({
     { match: "o1", in: 15, out: 60 },
   ],
   deepseek: [
+    // DeepSeek V4 launch-list rates for the versioned 2026-04 model ids.
+    // Keep these ahead of the legacy aliases so formal budget gates never
+    // treat the current V4 models as unpriced remote usage.
+    { match: "deepseek-v4-pro", in: 0.435, out: 0.87 },
+    { match: "deepseek-v4-flash", in: 0.14, out: 0.28 },
     { match: "reasoner", in: 0.55, out: 2.19 },
     { match: "chat", in: 0.27, out: 1.1 },
   ],
   // Volcengine Doubao — rough USD conversion of public RMB list pricing.
   volcengine: [
+    // Third-party DeepSeek V4 ids exposed by Ark use the same token-accounting
+    // shape. Pricing them explicitly is required by USD-capped Agent/Team runs;
+    // falling through to the Doubao patterns would fail closed as unpriced.
+    { match: "deepseek-v4-pro", in: 0.435, out: 0.87 },
+    { match: "deepseek-v4-flash", in: 0.14, out: 0.28 },
     // Doubao Seed 2.0 family (2026, e.g. doubao-seed-2-0-lite-260215) is
     // natively multimodal. Rates ≈ official CNY ÷ ~7.2 (lite ≤32k is 0.6/3.6
     // CNY → $0.08/$0.50); the generic "seed" rate below underprices 2.0 output.

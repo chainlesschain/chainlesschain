@@ -107,6 +107,26 @@ describe("llm-pricing — lookupRate", () => {
     ).toBe("seed-1-6");
   });
 
+  it("prices the DeepSeek V4 models used by protected quality evals", () => {
+    expect(
+      lookupRate("volcengine", "deepseek-v4-flash-260425"),
+    ).toMatchObject({
+      pattern: "deepseek-v4-flash",
+      in: 0.14,
+      out: 0.28,
+    });
+    expect(lookupRate("volcengine", "deepseek-v4-pro-260425")).toMatchObject({
+      pattern: "deepseek-v4-pro",
+      in: 0.435,
+      out: 0.87,
+    });
+    expect(lookupRate("deepseek", "deepseek-v4-flash")).toMatchObject({
+      pattern: "deepseek-v4-flash",
+      in: 0.14,
+      out: 0.28,
+    });
+  });
+
   it("returns null for an unknown provider or model", () => {
     expect(lookupRate("mystery", "x")).toBeNull();
     expect(lookupRate("openai", "totally-unknown")).toBeNull();
