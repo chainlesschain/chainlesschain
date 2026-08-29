@@ -37,7 +37,14 @@
         {
           "host": "real-multi-host",
           "status": "external-required",
-          "evidenceScenario": "real-multi-host-causal-agent-stream"
+          "evidenceScenario": "real-multi-host-causal-agent-stream",
+          "requiredPlatforms": ["linux", "windows", "macos"],
+          "minimumDurationMs": 60000,
+          "minimumDistinctHosts": 2,
+          "requiredMetrics": {
+            "positive": ["messagesSent", "messagesReceived"],
+            "zero": ["causalOrderViolations", "lostMessages"]
+          }
         }
       ]
     },
@@ -65,6 +72,18 @@
           "host": "migration-saga",
           "status": "repo-local",
           "consumerTest": "packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js"
+        },
+        {
+          "host": "cross-version-runtime",
+          "status": "external-required",
+          "evidenceScenario": "cross-version-graph-definition-migration",
+          "requiredPlatforms": ["linux", "windows", "macos"],
+          "minimumDurationMs": 1000,
+          "minimumDistinctHosts": 1,
+          "requiredMetrics": {
+            "positive": ["migrationCases", "rollbackCases"],
+            "zero": ["digestMismatches", "rollbackFailures"]
+          }
         }
       ]
     },
@@ -83,7 +102,14 @@
         {
           "host": "packaged-electron",
           "status": "external-required",
-          "evidenceScenario": "packaged-electron-collaboration-crash-recovery"
+          "evidenceScenario": "packaged-electron-collaboration-crash-recovery",
+          "requiredPlatforms": ["linux", "windows", "macos"],
+          "minimumDurationMs": 1000,
+          "minimumDistinctHosts": 1,
+          "requiredMetrics": {
+            "positive": ["crashCount", "recoveredUpdates"],
+            "zero": ["lostCommittedUpdates", "duplicateRecoveredUpdates"]
+          }
         }
       ]
     },
@@ -100,7 +126,14 @@
         {
           "host": "two-physical-hosts",
           "status": "external-required",
-          "evidenceScenario": "two-physical-host-mtc-roundtrip"
+          "evidenceScenario": "two-physical-host-mtc-roundtrip",
+          "requiredPlatforms": ["linux", "windows", "macos"],
+          "minimumDurationMs": 60000,
+          "minimumDistinctHosts": 2,
+          "requiredMetrics": {
+            "positive": ["messagesSent", "messagesDelivered"],
+            "zero": ["duplicateEffects", "lostMessages"]
+          }
         }
       ]
     },
@@ -112,7 +145,19 @@
         {
           "host": "long-running-desktop",
           "status": "external-required",
-          "evidenceScenario": "long-running-desktop-soak"
+          "evidenceScenario": "long-running-desktop-soak",
+          "requiredPlatforms": ["linux", "windows", "macos"],
+          "minimumDurationMs": 1800000,
+          "minimumDistinctHosts": 1,
+          "requiredMetrics": {
+            "positive": ["samples", "completedOperations"],
+            "zero": [
+              "backlogLimitViolations",
+              "leakedListeners",
+              "leakedTimers",
+              "unsettledTasks"
+            ]
+          }
         }
       ]
     }

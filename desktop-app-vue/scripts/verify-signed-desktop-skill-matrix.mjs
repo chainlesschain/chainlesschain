@@ -69,6 +69,31 @@ export function receiptDigest(value) {
     .digest("hex")}`;
 }
 
+export function qualificationChallengeDigest({
+  repository,
+  runId,
+  runAttempt,
+  commitSha,
+}) {
+  assertion(nonEmptyString(repository), "challenge repository is missing");
+  assertion(
+    Number.isSafeInteger(runId) && runId > 0,
+    "challenge run ID is invalid",
+  );
+  assertion(
+    Number.isSafeInteger(runAttempt) && runAttempt > 0,
+    "challenge run attempt is invalid",
+  );
+  assertion(
+    COMMIT_SHA.test(commitSha || ""),
+    "challenge commit SHA is invalid",
+  );
+  return `sha256:${crypto
+    .createHash("sha256")
+    .update(`${repository}\0${runId}\0${runAttempt}\0${commitSha}`, "utf8")
+    .digest("hex")}`;
+}
+
 function assertion(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -186,7 +211,13 @@ function validateSkillJourneys(record) {
 
 export function validatePlatformEvidence(
   record,
-  { expectedCommitSha, repository, workflowRef } = {},
+  {
+    expectedCommitSha,
+    repository,
+    workflowRef,
+    expectedRunId,
+    expectedRunAttempt,
+  } = {},
 ) {
   assertion(
     record?.schema === PLATFORM_EVIDENCE_SCHEMA,
@@ -215,19 +246,43 @@ export function validatePlatformEvidence(
     `${record.platform}: qualification challenge is missing`,
   );
   assertion(
-    record.provenance?.headSha === record.commitSha &&
+    nonEmptyString(record.provenance?.repository) &&
+      nonEmptyString(record.provenance?.workflowRef) &&
+      record.provenance?.headSha === record.commitSha &&
       Number.isSafeInteger(record.provenance?.runId) &&
       record.provenance.runId > 0 &&
       Number.isSafeInteger(record.provenance?.runAttempt) &&
       record.provenance.runAttempt > 0,
     `${record.platform}: trusted workflow provenance is incomplete`,
   );
+  if (expectedRunId !== undefined) {
+    assertion(
+      record.provenance.runId === Number(expectedRunId),
+      `${record.platform}: producer run ID mismatch`,
+    );
+  }
+  if (expectedRunAttempt !== undefined) {
+    assertion(
+      record.provenance.runAttempt === Number(expectedRunAttempt),
+      `${record.platform}: producer run attempt mismatch`,
+    );
+  }
   if (repository) {
     assertion(
       record.provenance.repository === repository,
       `${record.platform}: repository provenance mismatch`,
     );
   }
+  assertion(
+    record.challengeDigest ===
+      qualificationChallengeDigest({
+        repository: record.provenance.repository,
+        runId: record.provenance.runId,
+        runAttempt: record.provenance.runAttempt,
+        commitSha: record.commitSha,
+      }),
+    `${record.platform}: qualification challenge does not bind producer identity`,
+  );
   if (workflowRef) {
     assertion(
       record.provenance.workflowRef === workflowRef,
@@ -320,6 +375,14 @@ export function validateEvidenceMatrix(records, options = {}) {
   const commitShas = new Set(records.map((record) => record.commitSha));
   assertion(commitShas.size === 1, "Desktop evidence matrix mixes commit SHAs");
   assertion(
+    new Set(records.map((record) => record.provenance.runId)).size === 1,
+    "Desktop evidence matrix mixes producer run IDs",
+  );
+  assertion(
+    new Set(records.map((record) => record.provenance.runAttempt)).size === 1,
+    "Desktop evidence matrix mixes producer run attempts",
+  );
+  assertion(
     new Set(records.map((record) => record.challengeDigest)).size === 1,
     "Desktop evidence matrix mixes qualification challenges",
   );
@@ -399,6 +462,8 @@ async function main() {
   const expectedCommitSha = argument("--expected-sha");
   const repository = argument("--repository");
   const workflowRef = argument("--workflow-ref");
+  const expectedRunId = Number(argument("--run-id"));
+  const expectedRunAttempt = Number(argument("--run-attempt"));
   const output = argument("--output");
   assertion(evidenceRoot, "--verify-evidence-dir is required");
   assertion(
@@ -407,11 +472,21 @@ async function main() {
   );
   assertion(nonEmptyString(repository), "--repository is required");
   assertion(nonEmptyString(workflowRef), "--workflow-ref is required");
+  assertion(
+    Number.isSafeInteger(expectedRunId) && expectedRunId > 0,
+    "--run-id must be a positive integer",
+  );
+  assertion(
+    Number.isSafeInteger(expectedRunAttempt) && expectedRunAttempt > 0,
+    "--run-attempt must be a positive integer",
+  );
   assertion(output, "--output is required");
   const matrix = verifyEvidenceDirectory(evidenceRoot, {
     expectedCommitSha,
     repository,
     workflowRef,
+    expectedRunId,
+    expectedRunAttempt,
   });
   const target = path.resolve(output);
   fs.mkdirSync(path.dirname(target), { recursive: true });

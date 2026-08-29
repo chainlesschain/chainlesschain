@@ -94,6 +94,8 @@ export function createPlatformEvidence(options) {
     expectedCommitSha: options.commitSha,
     repository: options.repository,
     workflowRef: options.workflowRef,
+    expectedRunId: options.runId,
+    expectedRunAttempt: options.runAttempt,
   });
   return Object.freeze(record);
 }

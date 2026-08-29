@@ -1,0 +1,168 @@
+name: P1-10 External Evidence Close
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected main commit; must equal the workflow event SHA
+        required: true
+        type: string
+      producer_run_id:
+        description: Trusted external producer run containing the attested evidence
+        required: true
+        type: string
+      producer_run_attempt:
+        description: Exact producer run attempt
+        required: true
+        default: "1"
+        type: string
+      producer_workflow:
+        description: Reviewed repository workflow path that signed the evidence
+        required: true
+        type: string
+      evidence_artifact:
+        description: Exact artifact name containing one evidence JSON file
+        required: true
+        default: p1-10-external-evidence
+        type: string
+      challenge:
+        description: Unpredictable challenge bound by the producer evidence
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: p1-10-external-close-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify physical-host and long-soak evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: p1-10-external-conformance-close
+    env:
+      EVIDENCE_SHA: ${{ inputs.commit_sha }}
+      PRODUCER_RUN_ID: ${{ inputs.producer_run_id }}
+      PRODUCER_RUN_ATTEMPT: ${{ inputs.producer_run_attempt }}
+      PRODUCER_WORKFLOW: ${{ inputs.producer_workflow }}
+      PRODUCER_ENVIRONMENT: p1-10-external-conformance
+      EVIDENCE_CHALLENGE: ${{ inputs.challenge }}
+    steps:
+      - name: Refuse detached, replayable, or malformed close requests
+        shell: bash
+        run: |
+          if [[ ! "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]] || [[ "${EVIDENCE_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::commit_sha must be the workflow event's exact 40-character SHA"
+            exit 1
+          fi
+          if [[ ! "${PRODUCER_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || [[ ! "${PRODUCER_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::producer run id and attempt must be positive integers"
+            exit 1
+          fi
+          if [[ ! "${PRODUCER_WORKFLOW}" =~ ^\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$ ]]; then
+            echo "::error::producer_workflow must be a repository workflow path"
+            exit 1
+          fi
+          if [[ "${PRODUCER_WORKFLOW}" == ".github/workflows/p1-10-external-evidence-close.yml" ]]; then
+            echo "::error::the close consumer cannot attest itself as the producer"
+            exit 1
+          fi
+          if [[ ! "${EVIDENCE_CHALLENGE}" =~ ^[A-Za-z0-9_-]{32,128}$ ]]; then
+            echo "::error::challenge must be an unpredictable 32-128 character token"
+            exit 1
+          fi
+
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EVIDENCE_SHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Verify exact checkout and producer run identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${EVIDENCE_SHA}"
+          run_identity="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}" \
+            --jq '[.head_sha, (.run_attempt|tostring), .path, .conclusion, .event, .head_repository.full_name] | @tsv')"
+          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository <<< "${run_identity}"
+          if [[ "${run_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${run_attempt}" != "${PRODUCER_RUN_ATTEMPT}" ]] || \
+             [[ "${run_path}" != "${PRODUCER_WORKFLOW}" ]] || \
+             [[ "${run_conclusion}" != "success" ]] || \
+             [[ "${run_event}" != "workflow_dispatch" ]] || \
+             [[ "${run_repository}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "::error::producer run is not the reviewed successful exact-SHA workflow dispatch"
+            exit 1
+          fi
+
+      - name: Download exact producer evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.evidence_artifact }}
+          path: ${{ runner.temp }}/p1-10-external-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.producer_run_id }}
+
+      - name: Select exactly one evidence document
+        id: evidence
+        shell: bash
+        run: |
+          mapfile -t files < <(find "${RUNNER_TEMP}/p1-10-external-evidence" -type f -name '*.json' -print)
+          if [[ "${#files[@]}" -ne 1 ]]; then
+            echo "::error::expected exactly one P1-10 evidence JSON file; found ${#files[@]}"
+            exit 1
+          fi
+          echo "path=${files[0]}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify producer OIDC attestation and source identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
+        shell: bash
+        run: >-
+          gh attestation verify "${EVIDENCE_PATH}"
+          --repo "${GITHUB_REPOSITORY}"
+          --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${PRODUCER_WORKFLOW}"
+          --source-digest "${EVIDENCE_SHA}"
+
+      - name: Require the complete P1-10 external evidence contract
+        env:
+          EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
+        shell: bash
+        run: >-
+          node scripts/p1-10-external-evidence-gate.mjs
+          --evidence "${EVIDENCE_PATH}"
+          --expected-commit "${EVIDENCE_SHA}"
+          --expected-repository "${GITHUB_REPOSITORY}"
+          --expected-workflow "${PRODUCER_WORKFLOW}"
+          --expected-run-id "${PRODUCER_RUN_ID}"
+          --expected-run-attempt "${PRODUCER_RUN_ATTEMPT}"
+          --expected-environment "${PRODUCER_ENVIRONMENT}"
+          --expected-challenge "${EVIDENCE_CHALLENGE}"
+          --output "${RUNNER_TEMP}/p1-10-external-evidence-receipt.json"
+
+      - name: Attest exact close receipt
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/p1-10-external-evidence-receipt.json
+
+      - name: Upload immutable close receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: p1-10-external-evidence-receipt-${{ env.EVIDENCE_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p1-10-external-evidence-receipt.json
+          if-no-files-found: error
+          retention-days: 365

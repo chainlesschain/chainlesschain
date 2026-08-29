@@ -9,11 +9,21 @@ import { createPlatformEvidence } from "../create-signed-desktop-skill-evidence.
 import { createInstallReceipt } from "../record-signed-desktop-install.mjs";
 import { createSignatureEvidence } from "../record-signed-desktop-signature.mjs";
 import { createJourneyReceipt } from "../signed-desktop-skill-journey.mjs";
-import { receiptDigest } from "../verify-signed-desktop-skill-matrix.mjs";
+import {
+  qualificationChallengeDigest,
+  receiptDigest,
+} from "../verify-signed-desktop-skill-matrix.mjs";
 
 const COMMIT = "a".repeat(40);
-const CHALLENGE = `sha256:${"b".repeat(64)}`;
 const REPOSITORY = "chainlesschain/chainlesschain";
+const RUN_ID = 123;
+const RUN_ATTEMPT = 1;
+const CHALLENGE = qualificationChallengeDigest({
+  repository: REPOSITORY,
+  runId: RUN_ID,
+  runAttempt: RUN_ATTEMPT,
+  commitSha: COMMIT,
+});
 const WORKFLOW_REF =
   "chainlesschain/chainlesschain/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main";
 const require = createRequire(import.meta.url);
@@ -102,8 +112,8 @@ test("composes exact-artifact platform evidence from bound receipts", () => {
       journeys: value.journeys,
       repository: REPOSITORY,
       workflowRef: WORKFLOW_REF,
-      runId: 123,
-      runAttempt: 1,
+      runId: RUN_ID,
+      runAttempt: RUN_ATTEMPT,
     });
     assert.equal(record.status, "passed");
     assert.equal(record.skillJourneys.length, 7);
@@ -132,8 +142,8 @@ test("rejects a signature copied from another installer", () => {
           journeys: value.journeys,
           repository: REPOSITORY,
           workflowRef: WORKFLOW_REF,
-          runId: 123,
-          runAttempt: 1,
+          runId: RUN_ID,
+          runAttempt: RUN_ATTEMPT,
         }),
       /signature is bound to a different installer/u,
     );

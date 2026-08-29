@@ -1,6 +1,19 @@
 name: Graph Kernel Production Cutover
 
 on:
+  push:
+    branches: [main, "feature/**", "codex/**"]
+    paths:
+      - "packages/cli/src/lib/graph-kernel/production-cutover-evidence.js"
+      - "packages/cli/scripts/graph-production-cutover-evidence.mjs"
+      - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
+      - ".github/workflows/graph-kernel-production-cutover.yml"
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/graph-kernel/production-cutover-evidence.js"
+      - "packages/cli/scripts/graph-production-cutover-evidence.mjs"
+      - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
+      - ".github/workflows/graph-kernel-production-cutover.yml"
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -11,6 +24,15 @@ on:
         description: Trusted production rollout run that produced the evidence artifact
         required: true
         type: string
+      evidence_run_attempt:
+        description: Exact attempt of the trusted production rollout run
+        required: true
+        default: "1"
+        type: string
+      evidence_workflow:
+        description: Reviewed producer workflow path under .github/workflows
+        required: true
+        type: string
       evidence_artifact:
         description: Name of the attested complete rollout evidence artifact
         required: true
@@ -18,24 +40,61 @@ on:
         type: string
 
 permissions:
-  actions: read
-  attestations: write
   contents: read
-  id-token: write
 
 concurrency:
-  group: graph-kernel-production-cutover-${{ inputs.commit_sha }}
+  group: graph-kernel-production-cutover-${{ inputs.commit_sha || github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
+  contract:
+    name: Fail-closed production evidence contract
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+
+      - name: Run production evidence and workflow tamper contracts
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js
+
   production-close:
     name: Verify five-surface production close
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: graph-kernel-production-close
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
     env:
       CUTOVER_SHA: ${{ inputs.commit_sha }}
       EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+      EVIDENCE_RUN_ATTEMPT: ${{ inputs.evidence_run_attempt }}
+      EVIDENCE_WORKFLOW: ${{ inputs.evidence_workflow }}
     steps:
       - name: Refuse a detached or mixed-SHA close
         shell: bash
@@ -52,12 +111,25 @@ jobs:
             echo "::error::evidence_run_id must be a positive GitHub Actions run id"
             exit 1
           fi
+          if [[ ! "${EVIDENCE_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::evidence_run_attempt must be a positive integer"
+            exit 1
+          fi
+          if [[ ! "${EVIDENCE_WORKFLOW}" =~ ^\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$ ]]; then
+            echo "::error::evidence_workflow must be a workflow path under .github/workflows"
+            exit 1
+          fi
+          if [[ "${EVIDENCE_WORKFLOW}" == ".github/workflows/graph-kernel-production-cutover.yml" ]]; then
+            echo "::error::The close workflow cannot attest its own producer evidence"
+            exit 1
+          fi
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.CUTOVER_SHA }}
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22.12.0
           cache: npm
@@ -69,8 +141,37 @@ jobs:
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${CUTOVER_SHA}"
 
+      - name: Verify exact producer run identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          run_identity="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${EVIDENCE_RUN_ID}" \
+            --jq '[.head_sha, (.run_attempt | tostring), .path, .conclusion, .event, .head_repository.full_name] | @tsv')"
+          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository <<< "${run_identity}"
+          if [[ "${run_sha}" != "${CUTOVER_SHA}" ]]; then
+            echo "::error::Producer run head SHA does not match commit_sha"
+            exit 1
+          fi
+          if [[ "${run_attempt}" != "${EVIDENCE_RUN_ATTEMPT}" ]]; then
+            echo "::error::Producer run attempt does not match evidence_run_attempt"
+            exit 1
+          fi
+          if [[ "${run_path}" != "${EVIDENCE_WORKFLOW}" ]]; then
+            echo "::error::Producer run workflow path does not match evidence_workflow"
+            exit 1
+          fi
+          if [[ "${run_conclusion}" != "success" || "${run_event}" != "workflow_dispatch" ]]; then
+            echo "::error::Producer must be a successful workflow_dispatch run"
+            exit 1
+          fi
+          if [[ "${run_repository}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "::error::Producer run repository does not match the close repository"
+            exit 1
+          fi
+
       - name: Download the protected production evidence
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.evidence_artifact }}
           path: ${{ runner.temp }}/graph-production-evidence
@@ -94,7 +195,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
         shell: bash
-        run: gh attestation verify "${EVIDENCE_PATH}" --repo "${GITHUB_REPOSITORY}"
+        run: >-
+          gh attestation verify "${EVIDENCE_PATH}"
+          --repo "${GITHUB_REPOSITORY}"
+          --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${EVIDENCE_WORKFLOW}"
+          --source-digest "${CUTOVER_SHA}"
 
       - name: Require the complete P1-12 evidence contract
         env:
@@ -107,14 +212,15 @@ jobs:
           --expected-repository "${GITHUB_REPOSITORY}"
           --expected-environment graph-kernel-production
           --expected-run-id "${EVIDENCE_RUN_ID}"
+          --expected-run-attempt "${EVIDENCE_RUN_ATTEMPT}"
           --output "${RUNNER_TEMP}/graph-production-cutover-receipt.json"
 
       - name: Attest the production-close receipt
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: ${{ runner.temp }}/graph-production-cutover-receipt.json
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: graph-production-cutover-receipt-${{ env.CUTOVER_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-production-cutover-receipt.json

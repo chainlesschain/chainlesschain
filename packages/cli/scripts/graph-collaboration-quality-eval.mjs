@@ -49,6 +49,7 @@ const CLI_BIN = path.join(CLI_ROOT, "bin", "chainlesschain.js");
 const EXACT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
+const CANDIDATE_AGENT_LIMIT = 4;
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -250,7 +251,9 @@ function validateRoundMode(mode, label, { graph = false } = {}) {
     throw new Error(`${label} unrelated-change rate does not recompute`);
   }
   finiteNumber(mode.tokens, `${label}.tokens`, { min: 1 });
-  finiteNumber(mode.costUsd, `${label}.costUsd`, { min: 0 });
+  finiteNumber(mode.costUsd, `${label}.costUsd`, {
+    min: Number.MIN_VALUE,
+  });
   finiteNumber(mode.durationMs, `${label}.durationMs`, { min: 1 });
   if (graph) {
     if (
@@ -375,6 +378,44 @@ export function validatePlatformRecord(record, expected = {}) {
       "platform quality metrics do not recompute from its rounds",
     );
   }
+  const budgetCeilingUsd = finiteNumber(
+    record.budget?.ceilingUsd,
+    "budget.ceilingUsd",
+    { min: Number.MIN_VALUE },
+  );
+  const perInvocationCeilingUsd = finiteNumber(
+    record.budget?.perInvocationCeilingUsd,
+    "budget.perInvocationCeilingUsd",
+    { min: Number.MIN_VALUE },
+  );
+  const plannedMaxRounds = finiteNumber(
+    record.budget?.plannedMaxRounds,
+    "budget.plannedMaxRounds",
+    { min: FORMAL_PROFILE.minimumRounds },
+  );
+  const observedCostUsd = metrics.controlCostUsd + metrics.candidateCostUsd;
+  if (
+    !Number.isInteger(plannedMaxRounds) ||
+    plannedMaxRounds < record.rounds.length ||
+    plannedMaxRounds > 100 ||
+    Number(record.budget?.controlInvocationsPerRound) !==
+      FORMAL_PROFILE.taskIds.length ||
+    Number(record.budget?.candidateAgentLimit) !== CANDIDATE_AGENT_LIMIT ||
+    Math.abs(Number(record.budget?.observedCostUsd) - observedCostUsd) > 1e-9 ||
+    observedCostUsd > budgetCeilingUsd + 1e-9 ||
+    perInvocationCeilingUsd *
+      plannedMaxRounds *
+      (FORMAL_PROFILE.taskIds.length + CANDIDATE_AGENT_LIMIT) >
+      budgetCeilingUsd + 1e-9
+  ) {
+    throw new Error("platform quality budget evidence does not recompute");
+  }
+  if (
+    expected.maxTotalCostUsd !== undefined &&
+    budgetCeilingUsd !== Number(expected.maxTotalCostUsd)
+  ) {
+    throw new Error("platform quality budget differs from the protected limit");
+  }
   const gate = enforceQualityThresholds(metrics);
   if (!gate.passed || !sameJson(gate, record.gate)) {
     throw new Error("platform quality threshold gate did not pass");
@@ -421,7 +462,8 @@ export function verifyQualityMatrix(records, expected = {}) {
     new Set(validated.map((record) => record.commitSha)).size !== 1 ||
     new Set(validated.map((record) => record.challenge)).size !== 1 ||
     new Set(validated.map((record) => record.provider)).size !== 1 ||
-    new Set(validated.map((record) => record.model)).size !== 1
+    new Set(validated.map((record) => record.model)).size !== 1 ||
+    new Set(validated.map((record) => record.budget.ceilingUsd)).size !== 1
   ) {
     throw new Error(
       "quality matrix mixes commit, run, provider, or model identity",
@@ -440,6 +482,12 @@ export function verifyQualityMatrix(records, expected = {}) {
     model: validated[0].model,
     profile: FORMAL_PROFILE,
     thresholds: FROZEN_THRESHOLDS,
+    budget: {
+      perPlatformCeilingUsd: validated[0].budget.ceilingUsd,
+      aggregateCeilingUsd:
+        validated[0].budget.ceilingUsd * REQUIRED_PLATFORMS.length,
+      observedCostUsd: metrics.controlCostUsd + metrics.candidateCostUsd,
+    },
     platforms,
     platformEvidenceDigests: validated
       .map((record) => record.evidenceDigest)
@@ -459,6 +507,7 @@ function parseArguments(argv) {
     commitSha: "",
     durationSeconds: FORMAL_PROFILE.minimumDurationSeconds,
     maxRounds: 12,
+    maxTotalCostUsd: Number.NaN,
     minRounds: FORMAL_PROFILE.minimumRounds,
     model: "",
     output: "",
@@ -474,6 +523,8 @@ function parseArguments(argv) {
     else if (key === "--duration-seconds")
       result.durationSeconds = Number(value);
     else if (key === "--max-rounds") result.maxRounds = Number(value);
+    else if (key === "--max-total-cost-usd")
+      result.maxTotalCostUsd = Number(value);
     else if (key === "--min-rounds") result.minRounds = Number(value);
     else if (key === "--model") result.model = value;
     else if (key === "--output") result.output = value;
@@ -487,6 +538,15 @@ function parseArguments(argv) {
   if (!result.challenge || result.challenge.length > 512) {
     throw new TypeError(
       "--challenge is required and must be <= 512 characters",
+    );
+  }
+  if (
+    !Number.isFinite(result.maxTotalCostUsd) ||
+    result.maxTotalCostUsd <= 0 ||
+    result.maxTotalCostUsd > 10_000
+  ) {
+    throw new TypeError(
+      "--max-total-cost-usd is required and must be greater than 0 and at most 10000",
     );
   }
   if (!result.verifyDirectory) {
@@ -777,7 +837,13 @@ async function scoreBenchmark(root, baseline, tasks, includeCommitted) {
   };
 }
 
-async function runControl({ tasks, seed, provider, model }) {
+async function runControl({
+  tasks,
+  seed,
+  provider,
+  model,
+  perInvocationCeilingUsd,
+}) {
   const benchmark = await prepareBenchmark("cc-quality-control-", tasks);
   const started = Date.now();
   let tokens = 0;
@@ -803,7 +869,7 @@ async function runControl({ tasks, seed, provider, model }) {
           "--max-turns",
           "12",
           "--max-budget-usd",
-          "5",
+          String(perInvocationCeilingUsd),
           "--ephemeral",
         ],
         {
@@ -841,6 +907,8 @@ async function runControl({ tasks, seed, provider, model }) {
     );
     if (!(tokens > 0))
       throw new Error("single-agent control lacks token usage");
+    if (!(costUsd > 0))
+      throw new Error("single-agent control lacks cost evidence");
     return {
       ...score,
       tokens,
@@ -852,7 +920,13 @@ async function runControl({ tasks, seed, provider, model }) {
   }
 }
 
-async function runCandidate({ tasks, seed, provider, model }) {
+async function runCandidate({
+  tasks,
+  seed,
+  provider,
+  model,
+  perInvocationCeilingUsd,
+}) {
   const benchmark = await prepareBenchmark("cc-quality-candidate-", tasks);
   const support = fs.mkdtempSync(path.join(os.tmpdir(), "cc-quality-state-"));
   const tasksFile = path.join(support, "tasks.json");
@@ -890,13 +964,13 @@ async function runCandidate({ tasks, seed, provider, model }) {
         "--agent-max-turns",
         "12",
         "--agent-max-budget-usd",
-        "5",
+        String(perInvocationCeilingUsd),
         "--agent-max-wall",
         "900",
         "--max-tasks",
         String(tasks.length),
         "--max-usd",
-        String(tasks.length * 5),
+        String(perInvocationCeilingUsd * CANDIDATE_AGENT_LIMIT),
         "--max-wall",
         "1800",
         "--state",
@@ -936,10 +1010,12 @@ async function runCandidate({ tasks, seed, provider, model }) {
     );
     const tokens = Number(summary.budget?.tokens || 0);
     if (!(tokens > 0)) throw new Error("Graph candidate lacks token usage");
+    const costUsd = Number(summary.budget?.spentUsd || 0);
+    if (!(costUsd > 0)) throw new Error("Graph candidate lacks cost evidence");
     return {
       ...score,
       tokens,
-      costUsd: Number(summary.budget?.spentUsd || 0),
+      costUsd,
       durationMs: Date.now() - started,
       graphRunId: state.graphProjection.runId,
       graphProjectionDigest: state.graphProjection.projectionDigest,
@@ -968,6 +1044,10 @@ async function runPlatformEvaluation(options) {
   const startedAt = new Date(started).toISOString();
   const rounds = [];
   const seeds = [101, 202, 303];
+  const perInvocationCeilingUsd =
+    options.maxTotalCostUsd /
+    (options.maxRounds *
+      (FORMAL_PROFILE.taskIds.length + CANDIDATE_AGENT_LIMIT));
   while (
     rounds.length < options.minRounds ||
     (Date.now() - started) / 1000 < options.durationSeconds
@@ -976,14 +1056,31 @@ async function runPlatformEvaluation(options) {
       throw new Error("formal duration was not reached before --max-rounds");
     }
     const seed = seeds[rounds.length % seeds.length] + rounds.length * 1000;
-    const control = await runControl({ ...options, tasks, seed });
-    const candidate = await runCandidate({ ...options, tasks, seed });
+    const control = await runControl({
+      ...options,
+      tasks,
+      seed,
+      perInvocationCeilingUsd,
+    });
+    const candidate = await runCandidate({
+      ...options,
+      tasks,
+      seed,
+      perInvocationCeilingUsd,
+    });
     rounds.push({
       seed,
       control,
       candidate,
       behaviorEquivalent: behaviorEquivalent(control, candidate),
     });
+    const observedCostUsd = rounds.reduce(
+      (total, round) => total + round.control.costUsd + round.candidate.costUsd,
+      0,
+    );
+    if (observedCostUsd > options.maxTotalCostUsd + 1e-9) {
+      throw new Error("real-model quality eval exceeded its total cost budget");
+    }
   }
   const completed = Date.now();
   const metrics = summarizeQualityRounds(rounds);
@@ -1009,6 +1106,14 @@ async function runPlatformEvaluation(options) {
     model: options.model,
     profile: FORMAL_PROFILE,
     thresholds: FROZEN_THRESHOLDS,
+    budget: {
+      ceilingUsd: options.maxTotalCostUsd,
+      perInvocationCeilingUsd,
+      plannedMaxRounds: options.maxRounds,
+      controlInvocationsPerRound: FORMAL_PROFILE.taskIds.length,
+      candidateAgentLimit: CANDIDATE_AGENT_LIMIT,
+      observedCostUsd: metrics.controlCostUsd + metrics.candidateCostUsd,
+    },
     startedAt,
     completedAt: new Date(completed).toISOString(),
     durationSeconds: (completed - started) / 1000,
@@ -1027,6 +1132,7 @@ async function main() {
     result = verifyQualityMatrix(records, {
       commitSha: options.commitSha,
       challenge: options.challenge,
+      maxTotalCostUsd: options.maxTotalCostUsd,
     });
   } else {
     result = await runPlatformEvaluation(options);

@@ -1,0 +1,69 @@
+name: P1-10 External Evidence Contract
+
+on:
+  push:
+    branches: [main, "feature/**", "codex/**"]
+    paths:
+      - "scripts/p1-10-external-evidence-gate.mjs"
+      - "scripts/__tests__/p1-10-conformance-matrix.test.mjs"
+      - "tests/fixtures/p1-10-conformance-matrix.json"
+      - ".github/workflows/p1-10-external-evidence-contract.yml"
+      - ".github/workflows/p1-10-external-evidence-close.yml"
+  pull_request:
+    paths:
+      - "scripts/p1-10-external-evidence-gate.mjs"
+      - "scripts/__tests__/p1-10-conformance-matrix.test.mjs"
+      - "tests/fixtures/p1-10-conformance-matrix.json"
+      - ".github/workflows/p1-10-external-evidence-contract.yml"
+      - ".github/workflows/p1-10-external-evidence-close.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Fail-closed evidence contract (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+          - runner: windows-latest
+            platform: windows
+          - runner: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Verify exact checkout
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+
+      - name: Run P1-10 matrix and tamper contracts
+        run: node --test scripts/__tests__/p1-10-conformance-matrix.test.mjs
+
+      - name: Verify CLI refuses evidence without protected expectations
+        shell: bash
+        run: |
+          if node scripts/p1-10-external-evidence-gate.mjs \
+            --evidence tests/fixtures/p1-10-conformance-matrix.json; then
+            echo "::error::P1-10 gate accepted unbound evidence"
+            exit 1
+          fi

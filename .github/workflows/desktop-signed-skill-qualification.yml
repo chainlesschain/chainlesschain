@@ -46,6 +46,11 @@ on:
         required: false
         type: string
         default: ""
+      evidence_run_attempt:
+        description: Producer run attempt; empty uses the current caller attempt
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -60,6 +65,11 @@ on:
         description: Completed Desktop platform producer run ID
         required: true
         type: string
+      evidence_run_attempt:
+        description: Exact attempt of the completed Desktop platform producer run
+        required: true
+        default: "1"
+        type: string
 
 permissions:
   contents: read
@@ -70,7 +80,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.12.0
+
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Run verifier self-tests
         run: |
@@ -95,10 +118,14 @@ jobs:
           EXPECTED_REPOSITORY: ${{ github.repository }}
           EXPECTED_WORKFLOW_REF: ${{ inputs.platform_workflow_ref }}
           EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+          EVIDENCE_RUN_ATTEMPT: ${{ inputs.evidence_run_attempt }}
           CURRENT_RUN_ID: ${{ github.run_id }}
+          CURRENT_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          set -euo pipefail
           [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "${EVIDENCE_RUN_ID:-$CURRENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${EVIDENCE_RUN_ATTEMPT:-$CURRENT_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
           case "$EXPECTED_WORKFLOW_REF" in
             "$EXPECTED_REPOSITORY/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main"|\
             "$EXPECTED_REPOSITORY/.github/workflows/desktop-signed-skill-platform.yml@refs/tags/v"*) ;;
@@ -106,51 +133,88 @@ jobs:
           esac
 
       - name: Checkout exact candidate
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Verify producer run identity
         env:
           EXPECTED_SHA: ${{ inputs.commit_sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_RUN_ID: ${{ inputs.evidence_run_id || github.run_id }}
+          SOURCE_RUN_ATTEMPT: ${{ inputs.evidence_run_attempt || github.run_attempt }}
         run: |
+          set -euo pipefail
           run_json=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")
           source_sha=$(jq -r '.head_sha' <<<"$run_json")
+          source_attempt=$(jq -r '.run_attempt' <<<"$run_json")
           source_path=$(jq -r '.path' <<<"$run_json")
           source_status=$(jq -r '.status' <<<"$run_json")
           source_conclusion=$(jq -r '.conclusion // ""' <<<"$run_json")
+          source_event=$(jq -r '.event' <<<"$run_json")
+          source_repository=$(jq -r '.head_repository.full_name' <<<"$run_json")
           test "$source_sha" = "$EXPECTED_SHA"
+          test "$source_attempt" = "$SOURCE_RUN_ATTEMPT"
           test "$source_path" = ".github/workflows/desktop-signed-skill-platform.yml"
+          test "$source_event" = "workflow_dispatch"
+          test "$source_repository" = "$GITHUB_REPOSITORY"
           if [ "$SOURCE_RUN_ID" != "$GITHUB_RUN_ID" ]; then
             test "$source_status" = "completed"
             test "$source_conclusion" = "success"
           fi
 
       - name: Download same-run signed Desktop evidence
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: desktop-signed-skill-evidence-*-${{ inputs.commit_sha }}
           path: signed-desktop-evidence
           run-id: ${{ inputs.evidence_run_id || github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify each platform evidence attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t evidence_files < <(find signed-desktop-evidence -type f -name '*.json' -print | sort)
+          test "${#evidence_files[@]}" -eq 3
+          signer="${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/.github/workflows/desktop-signed-skill-platform.yml"
+          for evidence_file in "${evidence_files[@]}"; do
+            gh attestation verify "$evidence_file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$signer" \
+              --source-digest "$EXPECTED_SHA" \
+              --deny-self-hosted-runners
+          done
+
       - name: Aggregate exact-SHA qualification evidence
         env:
           EXPECTED_SHA: ${{ inputs.commit_sha }}
           EXPECTED_REPOSITORY: ${{ github.repository }}
           EXPECTED_WORKFLOW_REF: ${{ inputs.platform_workflow_ref }}
+          SOURCE_RUN_ID: ${{ inputs.evidence_run_id || github.run_id }}
+          SOURCE_RUN_ATTEMPT: ${{ inputs.evidence_run_attempt || github.run_attempt }}
         run: |
+          set -euo pipefail
           node desktop-app-vue/scripts/verify-signed-desktop-skill-matrix.mjs \
             --verify-evidence-dir signed-desktop-evidence \
             --expected-sha "$EXPECTED_SHA" \
             --repository "$EXPECTED_REPOSITORY" \
             --workflow-ref "$EXPECTED_WORKFLOW_REF" \
+            --run-id "$SOURCE_RUN_ID" \
+            --run-attempt "$SOURCE_RUN_ATTEMPT" \
             --output signed-desktop-matrix.json
 
       - name: Upload aggregate matrix
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: desktop-signed-skill-matrix-${{ inputs.commit_sha }}-${{ github.run_attempt }}
           path: signed-desktop-matrix.json
@@ -158,6 +222,6 @@ jobs:
           retention-days: 30
 
       - name: Attest aggregate matrix to this workflow identity
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: signed-desktop-matrix.json

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   PLATFORM_EVIDENCE_SCHEMA,
   evidenceDigest,
+  qualificationChallengeDigest,
   receiptDigest,
   validateEvidenceMatrix,
   verifyEvidenceDirectory,
@@ -14,8 +15,15 @@ import {
 
 const COMMIT_SHA = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
-const CHALLENGE = `sha256:${"e".repeat(64)}`;
 const REPOSITORY = "chainlesschain/chainlesschain";
+const RUN_ID = 1234;
+const RUN_ATTEMPT = 1;
+const CHALLENGE = qualificationChallengeDigest({
+  repository: REPOSITORY,
+  runId: RUN_ID,
+  runAttempt: RUN_ATTEMPT,
+  commitSha: COMMIT_SHA,
+});
 const WORKFLOW_REF =
   "chainlesschain/chainlesschain/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main";
 const SKILLS = {
@@ -130,8 +138,8 @@ function record(platform, overrides = {}) {
       repository: REPOSITORY,
       workflowRef: WORKFLOW_REF,
       headSha: COMMIT_SHA,
-      runId: 1234,
-      runAttempt: 1,
+      runId: RUN_ID,
+      runAttempt: RUN_ATTEMPT,
     },
     ...overrides,
   };
@@ -143,6 +151,8 @@ const options = {
   expectedCommitSha: COMMIT_SHA,
   repository: REPOSITORY,
   workflowRef: WORKFLOW_REF,
+  expectedRunId: RUN_ID,
+  expectedRunAttempt: RUN_ATTEMPT,
 };
 
 test("accepts an exact-SHA trusted three-platform matrix", () => {
@@ -167,12 +177,19 @@ test("rejects missing platforms and mixed commits", () => {
   const windows = record("windows");
   windows.commitSha = "d".repeat(40);
   windows.provenance.headSha = windows.commitSha;
+  windows.challengeDigest = qualificationChallengeDigest({
+    repository: REPOSITORY,
+    runId: RUN_ID,
+    runAttempt: RUN_ATTEMPT,
+    commitSha: windows.commitSha,
+  });
   for (const receipt of [
     windows.install,
     windows.launch,
     ...windows.skillJourneys,
   ]) {
     receipt.commitSha = windows.commitSha;
+    receipt.challengeDigest = windows.challengeDigest;
     receipt.receiptDigest = receiptDigest(receipt);
   }
   windows.evidenceDigest = evidenceDigest(windows);
@@ -198,6 +215,50 @@ test("rejects replayed launch and journey receipts", () => {
         options,
       ),
     /launch binding mismatch/u,
+  );
+});
+
+test("rejects mixed producer runs and a replayed producer challenge", () => {
+  const macos = record("macos", {
+    provenance: {
+      ...record("macos").provenance,
+      runAttempt: 2,
+    },
+  });
+  macos.challengeDigest = qualificationChallengeDigest({
+    repository: REPOSITORY,
+    runId: RUN_ID,
+    runAttempt: 2,
+    commitSha: COMMIT_SHA,
+  });
+  for (const receipt of [macos.install, macos.launch, ...macos.skillJourneys]) {
+    receipt.challengeDigest = macos.challengeDigest;
+    receipt.receiptDigest = receiptDigest(receipt);
+  }
+  macos.evidenceDigest = evidenceDigest(macos);
+  assert.throws(
+    () =>
+      validateEvidenceMatrix([record("linux"), macos, record("windows")], {
+        ...options,
+        expectedRunAttempt: undefined,
+      }),
+    /mixes producer run attempts/u,
+  );
+
+  const linux = record("linux");
+  linux.challengeDigest = `sha256:${"e".repeat(64)}`;
+  for (const receipt of [linux.install, linux.launch, ...linux.skillJourneys]) {
+    receipt.challengeDigest = linux.challengeDigest;
+    receipt.receiptDigest = receiptDigest(receipt);
+  }
+  linux.evidenceDigest = evidenceDigest(linux);
+  assert.throws(
+    () =>
+      validateEvidenceMatrix(
+        [linux, record("macos"), record("windows")],
+        options,
+      ),
+    /challenge does not bind producer identity/u,
   );
 });
 
@@ -278,8 +339,22 @@ test("qualification workflow keeps producer identity and aggregate attestation f
     workflow,
     /test "\$source_path" = "\.github\/workflows\/desktop-signed-skill-platform\.yml"/u,
   );
-  assert.match(workflow, /actions\/download-artifact@v7/u);
-  assert.match(workflow, /actions\/attest-build-provenance@v3/u);
+  assert.match(workflow, /test "\$source_attempt" = "\$SOURCE_RUN_ATTEMPT"/u);
+  assert.match(workflow, /test "\$source_event" = "workflow_dispatch"/u);
+  assert.match(workflow, /test "\$source_repository" = "\$GITHUB_REPOSITORY"/u);
+  assert.match(workflow, /gh attestation verify/u);
+  assert.match(workflow, /--signer-workflow/u);
+  assert.match(workflow, /--source-digest/u);
+  assert.match(workflow, /--run-id "\$SOURCE_RUN_ID"/u);
+  assert.match(workflow, /--run-attempt "\$SOURCE_RUN_ATTEMPT"/u);
+  assert.match(
+    workflow,
+    /actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c/u,
+  );
+  assert.match(
+    workflow,
+    /actions\/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a/u,
+  );
   assert.match(
     workflow,
     /desktop-signed-skill-evidence-\*-\$\{\{ inputs\.commit_sha \}\}/u,
@@ -302,11 +377,19 @@ test("qualification workflow keeps producer identity and aggregate attestation f
   assert.match(producer, /xcrun stapler validate/u);
   assert.match(producer, /--fresh-install/u);
   assert.match(producer, /signed-desktop-skill-journey\.mjs/u);
+  assert.match(producer, /Attest exact platform evidence/u);
   assert.match(producer, /Attest exact signed installer bytes/u);
-  assert.match(producer, /actions\/attest-build-provenance@v3/u);
+  assert.match(
+    producer,
+    /actions\/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a/u,
+  );
   assert.match(
     producer,
     /uses: \.\/\.github\/workflows\/desktop-signed-skill-qualification\.yml/u,
+  );
+  assert.doesNotMatch(
+    `${workflow}\n${producer}`,
+    /actions\/(?:checkout|setup-node|download-artifact|upload-artifact|attest-build-provenance)@v\d/u,
   );
   assert.doesNotMatch(producer, /continue-on-error:\s*true/u);
 });

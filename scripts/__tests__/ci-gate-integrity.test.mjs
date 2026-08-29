@@ -828,6 +828,8 @@ test("selector maps P1-10 conformance inventory to its repository node gate", ()
     "tests/fixtures/p1-10-conformance-matrix.json",
     "scripts/p1-10-external-evidence-gate.mjs",
     "scripts/__tests__/p1-10-conformance-matrix.test.mjs",
+    ".github/workflows/p1-10-external-evidence-contract.yml",
+    ".github/workflows/p1-10-external-evidence-close.yml",
   ]) {
     const selection = selector.createSelection([source]);
     assert.equal(selection.suite, "ci-gate-integrity");

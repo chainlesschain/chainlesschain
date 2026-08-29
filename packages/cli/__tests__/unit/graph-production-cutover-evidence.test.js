@@ -308,6 +308,8 @@ describe("Graph production cutover evidence", () => {
     const normalized = normalizeGraphProductionCutoverEvidence(evidence, {
       manifest,
       expectedCommitSha: COMMIT,
+      expectedWorkflowRunId: 1234,
+      expectedWorkflowRunAttempt: 1,
     });
     expect(normalized.entries).toHaveLength(20);
     expect(normalized.disabledEntries).toHaveLength(3);
@@ -398,9 +400,24 @@ describe("Graph production cutover evidence", () => {
         code: "CC_GRAPH_PRODUCTION_PROVENANCE_MISMATCH",
       }),
     );
+
+    expect(() =>
+      normalizeGraphProductionCutoverEvidence(evidence, {
+        manifest,
+        expectedCommitSha: COMMIT,
+        expectedRepository: "chainlesschain/chainlesschain",
+        expectedEnvironment: "graph-kernel-production",
+        expectedWorkflowRunId: 1234,
+        expectedWorkflowRunAttempt: 2,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_PRODUCTION_PROVENANCE_MISMATCH",
+      }),
+    );
   });
 
-  it("keeps the production close behind exact-SHA, environment, and attestation gates", () => {
+  it("keeps the production close behind exact producer and attestation gates", () => {
     const workflow = fs.readFileSync(
       fileURLToPath(
         new URL(
@@ -412,12 +429,26 @@ describe("Graph production cutover evidence", () => {
     );
     expect(workflow).toContain("environment: graph-kernel-production-close");
     expect(workflow).toContain('"${CUTOVER_SHA}" != "${GITHUB_SHA}"');
+    expect(workflow).toContain("evidence_run_attempt:");
+    expect(workflow).toContain("evidence_workflow:");
+    expect(workflow).toContain("actions/runs/${EVIDENCE_RUN_ID}");
+    expect(workflow).toContain(".run_attempt | tostring");
+    expect(workflow).toContain('"${run_path}" != "${EVIDENCE_WORKFLOW}"');
+    expect(workflow).toContain('"${run_conclusion}" != "success"');
+    expect(workflow).toContain('"${run_event}" != "workflow_dispatch"');
+    expect(workflow).toContain('"${run_repository}" != "${GITHUB_REPOSITORY}"');
     expect(workflow).toContain("run-id: ${{ inputs.evidence_run_id }}");
     expect(workflow).toContain("gh attestation verify");
+    expect(workflow).toContain("--signer-workflow");
+    expect(workflow).toContain("--source-digest");
     expect(workflow).toContain(
       "--expected-environment graph-kernel-production",
     );
     expect(workflow).toContain("--expected-run-id");
-    expect(workflow).toContain("actions/attest-build-provenance@v3");
+    expect(workflow).toContain("--expected-run-attempt");
+    expect(workflow).toContain(
+      "actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
+    );
+    expect(workflow).not.toContain("continue-on-error");
   });
 });

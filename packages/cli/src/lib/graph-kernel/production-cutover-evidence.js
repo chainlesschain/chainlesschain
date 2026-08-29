@@ -797,6 +797,7 @@ export function normalizeGraphProductionCutoverEvidence(
     expectedRepository = undefined,
     expectedEnvironment = undefined,
     expectedWorkflowRunId = undefined,
+    expectedWorkflowRunAttempt = undefined,
   } = {},
 ) {
   if (input?.schema !== GRAPH_PRODUCTION_CUTOVER_EVIDENCE_SCHEMA) {
@@ -832,7 +833,9 @@ export function normalizeGraphProductionCutoverEvidence(
     (expectedRepository && provenance.repository !== expectedRepository) ||
     (expectedEnvironment && provenance.environment !== expectedEnvironment) ||
     (expectedWorkflowRunId !== undefined &&
-      provenance.workflowRunId !== Number(expectedWorkflowRunId))
+      provenance.workflowRunId !== Number(expectedWorkflowRunId)) ||
+    (expectedWorkflowRunAttempt !== undefined &&
+      provenance.workflowRunAttempt !== Number(expectedWorkflowRunAttempt))
   ) {
     throw evidenceError(
       "CC_GRAPH_PRODUCTION_PROVENANCE_MISMATCH",
@@ -844,6 +847,10 @@ export function normalizeGraphProductionCutoverEvidence(
           expectedWorkflowRunId === undefined
             ? undefined
             : Number(expectedWorkflowRunId),
+        expectedWorkflowRunAttempt:
+          expectedWorkflowRunAttempt === undefined
+            ? undefined
+            : Number(expectedWorkflowRunAttempt),
         actual: provenance,
       },
     );

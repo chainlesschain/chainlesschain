@@ -295,6 +295,8 @@ const REPO_NODE_CONTRACT_TEST_MAPPINGS = new Map(
     "tests/fixtures/p1-10-conformance-matrix.json",
     "scripts/p1-10-external-evidence-gate.mjs",
     P1_10_CONFORMANCE_MATRIX_TEST,
+    ".github/workflows/p1-10-external-evidence-contract.yml",
+    ".github/workflows/p1-10-external-evidence-close.yml",
   ].map((source) => [source, [P1_10_CONFORMANCE_MATRIX_TEST]]),
 );
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([

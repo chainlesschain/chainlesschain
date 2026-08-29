@@ -18,6 +18,11 @@ import {
 
 const COMMIT = "a".repeat(40);
 const CHALLENGE = "run-42:1:" + COMMIT;
+const MAX_TOTAL_COST_USD = 100;
+const PLANNED_MAX_ROUNDS = 12;
+const PER_INVOCATION_CEILING_USD =
+  MAX_TOTAL_COST_USD /
+  (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
 
 function round(seed, overrides = {}) {
   const results = (passed, digit) =>
@@ -104,6 +109,14 @@ function platform(platform, index = 0, overrides = {}) {
     model: "gpt-5-mini",
     profile: FORMAL_PROFILE,
     thresholds: FROZEN_THRESHOLDS,
+    budget: {
+      ceilingUsd: MAX_TOTAL_COST_USD,
+      perInvocationCeilingUsd: PER_INVOCATION_CEILING_USD,
+      plannedMaxRounds: PLANNED_MAX_ROUNDS,
+      controlInvocationsPerRound: FORMAL_PROFILE.taskIds.length,
+      candidateAgentLimit: 4,
+      observedCostUsd: metrics.controlCostUsd + metrics.candidateCostUsd,
+    },
     startedAt: "2026-08-29T00:00:00.000Z",
     completedAt: "2026-08-29T00:30:00.000Z",
     durationSeconds: 1800,
@@ -165,6 +178,7 @@ describe("graph collaboration quality evidence", () => {
       validatePlatformRecord(record, {
         commitSha: COMMIT,
         challenge: CHALLENGE,
+        maxTotalCostUsd: MAX_TOTAL_COST_USD,
       }),
     ).toBe(record);
     const { evidenceDigest, ...body } = record;
@@ -200,6 +214,37 @@ describe("graph collaboration quality evidence", () => {
     expect(() => validatePlatformRecord(forged)).toThrow(/threshold/u);
   });
 
+  it("rejects missing cost evidence and a forged total budget", () => {
+    const missingCostRounds = [round(101), round(202), round(303)];
+    missingCostRounds[0].control.costUsd = 0;
+    const missingCostMetrics = summarizeQualityRounds(missingCostRounds);
+    const missingCost = platform("linux", 0, {
+      rounds: missingCostRounds,
+      record: {
+        metrics: missingCostMetrics,
+        gate: enforceQualityThresholds(missingCostMetrics),
+        budget: {
+          ceilingUsd: MAX_TOTAL_COST_USD,
+          perInvocationCeilingUsd: PER_INVOCATION_CEILING_USD,
+          plannedMaxRounds: PLANNED_MAX_ROUNDS,
+          controlInvocationsPerRound: FORMAL_PROFILE.taskIds.length,
+          candidateAgentLimit: 4,
+          observedCostUsd:
+            missingCostMetrics.controlCostUsd +
+            missingCostMetrics.candidateCostUsd,
+        },
+      },
+    });
+    expect(() => validatePlatformRecord(missingCost)).toThrow(/costUsd/u);
+
+    const record = structuredClone(platform("linux"));
+    delete record.evidenceDigest;
+    record.budget.ceilingUsd = 1;
+    expect(() => validatePlatformRecord(sealPlatformRecord(record))).toThrow(
+      /budget/u,
+    );
+  });
+
   it("rejects self-reported task totals that do not match task evidence", () => {
     const record = platform("linux");
     const body = structuredClone(record);
@@ -215,7 +260,11 @@ describe("graph collaboration quality evidence", () => {
   it("accepts exactly one same-run record from each operating system", () => {
     const matrix = verifyQualityMatrix(
       [platform("linux"), platform("macos"), platform("windows")],
-      { commitSha: COMMIT, challenge: CHALLENGE },
+      {
+        commitSha: COMMIT,
+        challenge: CHALLENGE,
+        maxTotalCostUsd: MAX_TOTAL_COST_USD,
+      },
     );
     expect(matrix).toMatchObject({
       status: "passed",
@@ -262,7 +311,11 @@ describe("graph collaboration quality evidence", () => {
     expect(workflow).toContain("CC_LLM_API_KEY");
     expect(workflow).toContain("vars.CC_LLM_PROVIDER");
     expect(workflow).toContain("vars.CC_LLM_MODEL");
-    expect(workflow).toContain("actions/attest-build-provenance@v3");
+    expect(workflow).toContain("vars.CC_P2_3_MAX_TOTAL_COST_USD");
+    expect(workflow).toContain("--max-total-cost-usd");
+    expect(workflow).toContain(
+      "actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
+    );
     expect(workflow).not.toContain("continue-on-error");
   });
 });

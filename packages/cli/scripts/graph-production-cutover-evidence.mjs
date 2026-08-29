@@ -16,6 +16,7 @@ function usage() {
     "    --evidence <production-evidence.json> \\",
     "    --expected-commit <sha> [--expected-repository <owner/repo>] \\",
     "    [--expected-environment <name>] [--expected-run-id <id>] \\",
+    "    [--expected-run-attempt <number>] \\",
     "    [--manifest <path>] [--output <path>]",
     "",
     "The command only verifies a complete, externally produced rollout bundle.",
@@ -39,6 +40,7 @@ function parseArguments(argv) {
         "--expected-repository",
         "--expected-environment",
         "--expected-run-id",
+        "--expected-run-attempt",
         "--manifest",
         "--output",
       ].includes(argument)
@@ -101,6 +103,7 @@ function main() {
     expectedRepository: options.expectedRepository,
     expectedEnvironment: options.expectedEnvironment,
     expectedWorkflowRunId: options.expectedRunId,
+    expectedWorkflowRunAttempt: options.expectedRunAttempt,
   });
   writeJson(
     createGraphProductionCutoverReceipt(evidence, {
@@ -109,6 +112,7 @@ function main() {
       expectedRepository: options.expectedRepository,
       expectedEnvironment: options.expectedEnvironment,
       expectedWorkflowRunId: options.expectedRunId,
+      expectedWorkflowRunAttempt: options.expectedRunAttempt,
     }),
     options.output,
   );

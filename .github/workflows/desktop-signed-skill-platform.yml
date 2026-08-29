@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   contract:
@@ -31,9 +30,15 @@ jobs:
             *) echo "Desktop signed qualification runs only from protected main or v* tags" >&2; exit 1 ;;
           esac
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Run evidence contract tests
         run: |
@@ -76,11 +81,12 @@ jobs:
       CC_SKILL_NOTION_API_KEY: ${{ secrets.DESKTOP_SKILL_NOTION_API_KEY }}
       CC_SKILL_TAVILY_API_KEY: ${{ secrets.DESKTOP_SKILL_TAVILY_API_KEY }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
 
@@ -121,6 +127,10 @@ jobs:
         uses: ./.github/actions/setup-node-deps
         with:
           install-command: npm ci
+
+      - name: Verify exact platform checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Install standalone Desktop dependencies
         working-directory: desktop-app-vue
@@ -400,8 +410,13 @@ jobs:
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --output "$RUNNER_TEMP/${{ matrix.platform }}.json"
 
+      - name: Attest exact platform evidence
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/${{ matrix.platform }}.json
+
       - name: Upload exact-SHA platform evidence
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: desktop-signed-skill-evidence-${{ matrix.platform }}-${{ github.run_attempt }}-${{ inputs.commit_sha }}
           path: ${{ runner.temp }}/${{ matrix.platform }}.json
@@ -415,12 +430,12 @@ jobs:
           node -e "const f=require('node:fs'),p=require('node:path');const d=p.join(process.env.RUNNER_TEMP,'signed-installer');f.mkdirSync(d,{recursive:true});const t=p.join(d,p.basename(process.env.CC_INSTALLER_PATH));f.copyFileSync(process.env.CC_INSTALLER_PATH,t);f.appendFileSync(process.env.GITHUB_OUTPUT,'path='+t+'\n');"
 
       - name: Attest exact signed installer bytes
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: ${{ steps.installer.outputs.path }}
 
       - name: Retain exact signed installer bytes
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: desktop-signed-installer-${{ matrix.platform }}-${{ github.run_attempt }}-${{ inputs.commit_sha }}
           path: ${{ steps.installer.outputs.path }}
@@ -440,3 +455,5 @@ jobs:
     with:
       commit_sha: ${{ inputs.commit_sha }}
       platform_workflow_ref: ${{ github.workflow_ref }}
+      evidence_run_id: ${{ github.run_id }}
+      evidence_run_attempt: ${{ github.run_attempt }}
