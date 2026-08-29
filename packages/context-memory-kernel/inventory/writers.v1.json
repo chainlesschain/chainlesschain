@@ -180,6 +180,7 @@
         "desktop-app-vue/src/main/bootstrap/index.js",
         "desktop-app-vue/src/main/conversation/conversation-ipc.js",
         "desktop-app-vue/src/main/context-memory/authority.js",
+        "desktop-app-vue/src/main/context-memory/permanent-memory-adapter.js",
         "desktop-app-vue/src/main/git/conflict-resolution/conflict-resolver.js",
         "desktop-app-vue/src/main/index.js",
         "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
@@ -214,6 +215,7 @@
       ],
       "mutationFunctions": [
         "PromptCompressor.compress",
+        "DesktopCanonicalMemoryAdapter._propose",
         "PermanentMemoryManager.addMemory",
         "HierarchicalMemory.addMemory",
         "MemGPTCore.addMemory",

@@ -93,44 +93,16 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
   // PermanentMemory 永久记忆管理 (Clawdbot 风格, 7 handlers)
   safeRegister("PermanentMemory IPC", {
     register: () => {
-      if (permanentMemoryManager) {
-        const {
-          registerPermanentMemoryIPC,
-        } = require("../../llm/permanent-memory-ipc");
-        registerPermanentMemoryIPC(permanentMemoryManager);
-      } else {
-        const { ipcMain } = require("electron");
-        const fallbackChannels = [
-          "memory:write-daily-note",
-          "memory:read-daily-note",
-          "memory:get-recent-daily-notes",
-          "memory:read-memory",
-          "memory:append-to-memory",
-          "memory:update-memory",
-          "memory:get-stats",
-          "memory:search",
-          "memory:get-today-date",
-          "memory:get-index-stats",
-          "memory:rebuild-index",
-          "memory:start-file-watcher",
-          "memory:stop-file-watcher",
-          "memory:get-embedding-cache-stats",
-          "memory:clear-embedding-cache",
-          "memory:save-to-memory",
-          "memory:extract-from-conversation",
-          "memory:extract-from-session",
-          "memory:get-memory-sections",
-        ];
-        for (const channel of fallbackChannels) {
-          ipcMain.removeHandler(channel);
-          ipcMain.handle(channel, async () => ({
-            success: false,
-            error: "PermanentMemoryManager is not initialized",
-            code: "PERMANENT_MEMORY_UNAVAILABLE",
-          }));
-        }
+      const {
+        registerPermanentMemoryIPC,
+      } = require("../../llm/permanent-memory-ipc");
+      registerPermanentMemoryIPC(permanentMemoryManager, {
+        getCanonicalPilot: () =>
+          app?.codingAgentBootstrap?.appServerPilot || null,
+      });
+      if (!permanentMemoryManager) {
         logger.warn(
-          "[IPC Registry] ⚠️ PermanentMemoryManager unavailable (fallback handlers registered)",
+          "[IPC Registry] Legacy PermanentMemoryManager unavailable; canonical handlers registered",
         );
       }
     },

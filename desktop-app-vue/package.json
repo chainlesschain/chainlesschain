@@ -64,6 +64,7 @@
     "test:skills": "vitest run src/main/ai-engine/cowork/skills/__tests__",
     "test:skills:integration": "node scripts/test-markdown-skills.js",
     "test:context": "node scripts/test-context-engineering.js",
+    "test:context-memory": "vitest run --config vitest.context-memory.config.mjs",
     "test:compressor": "node scripts/test-prompt-compressor.js",
     "test:cache": "node scripts/test-response-cache.js",
     "test:tracker": "node scripts/test-token-tracker.js",
