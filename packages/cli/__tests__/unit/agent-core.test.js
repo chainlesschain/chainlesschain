@@ -20,7 +20,7 @@ import {
   SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } from "../../src/lib/session-message-provenance.js";
 
-// Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
+// Mock plan-mode, skill-loader, Hooks v2, and project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
     isActive: () => false,
@@ -77,13 +77,15 @@ vi.mock("../../src/lib/project-detector.js", () => ({
   isInsideProject: vi.fn(() => _mockProjectRoot !== null),
 }));
 
-vi.mock("../../src/lib/hook-manager.js", () => ({
-  executeHooks: vi.fn().mockResolvedValue(undefined),
-  HookEvents: {
-    PreToolUse: "PreToolUse",
-    PostToolUse: "PostToolUse",
-    ToolError: "ToolError",
-  },
+vi.mock("../../src/lib/hooks-v2-producers.js", () => ({
+  executeHooksV2Event: vi.fn().mockResolvedValue({
+    success: true,
+    blocked: false,
+    decision: "continue",
+    requiresApproval: false,
+    results: [],
+  }),
+  emitHooksV2Event: vi.fn(),
 }));
 
 const {
@@ -105,7 +107,8 @@ const {
 } = await import("../../src/lib/agent-core.js");
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
-const { executeHooks } = await import("../../src/lib/hook-manager.js");
+const { executeHooksV2Event } =
+  await import("../../src/lib/hooks-v2-producers.js");
 
 describe("AGENT_TOOLS", () => {
   it("has 28 tool definitions", () => {
@@ -2170,15 +2173,29 @@ describe("agentLoop", () => {
       const bothEntered = new Promise((resolve) => {
         markBothEntered = resolve;
       });
-      executeHooks.mockImplementation(async (_db, event, payload) => {
-        if (event !== "PreToolUse") return undefined;
+      executeHooksV2Event.mockImplementation(async (event, payload) => {
+        if (event !== "PreToolUse") {
+          return {
+            success: true,
+            blocked: false,
+            decision: "continue",
+            requiresApproval: false,
+            results: [],
+          };
+        }
         executionEntries.push({
-          tool: payload.tool,
+          tool: payload.tool_name,
           starts: [...consumedStarts],
         });
         if (executionEntries.length === 2) markBothEntered();
         await executionGate;
-        return undefined;
+        return {
+          success: true,
+          blocked: false,
+          decision: "continue",
+          requiresApproval: false,
+          results: [],
+        };
       });
 
       try {
@@ -2233,7 +2250,13 @@ describe("agentLoop", () => {
         ).toEqual(["g-a", "g-b"]);
       } finally {
         releaseExecutions?.();
-        executeHooks.mockResolvedValue(undefined);
+        executeHooksV2Event.mockResolvedValue({
+          success: true,
+          blocked: false,
+          decision: "continue",
+          requiresApproval: false,
+          results: [],
+        });
       }
     });
 

@@ -2580,6 +2580,25 @@ export async function executeTool(name, args, context = {}) {
     typeof context.externalToolExecutors === "object"
       ? context.externalToolExecutors[name] || null
       : null;
+  // Bind MCP arguments to one strict immutable JSON snapshot before any
+  // asynchronous permission or Hook boundary. This prevents accessors,
+  // functions, or later caller mutation from changing the request that was
+  // approved, recorded in the ledger, and sent over the wire.
+  if (localToolExecutor?.kind === "mcp") {
+    try {
+      args = snapshotMcpJsonRpcInput(args || {});
+    } catch (error) {
+      return {
+        error:
+          "MCP tool blocked because its input is not strict immutable JSON data",
+        policy: {
+          decision: "blocked",
+          via: "mcp-wire-input",
+          code: safeMcpErrorCode(error, "CC_MCP_WIRE_INPUT_INVALID"),
+        },
+      };
+    }
+  }
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
   let admittedToolAdmissionDigest = null;
@@ -8192,20 +8211,9 @@ async function executeToolInner(
           return attachDescriptor(deferredGate);
         }
 
-        let mcpWireInput;
-        try {
-          mcpWireInput = snapshotMcpJsonRpcInput(args || {});
-        } catch (error) {
-          return attachDescriptor({
-            error:
-              "MCP tool blocked because its input is not strict immutable JSON data",
-            policy: {
-              decision: "blocked",
-              via: "mcp-wire-input",
-              code: safeMcpErrorCode(error, "CC_MCP_WIRE_INPUT_INVALID"),
-            },
-          });
-        }
+        // executeTool admitted this immutable snapshot before permission and
+        // Hook processing; reuse the exact object for ledger and transport.
+        const mcpWireInput = args;
 
         if (
           mcpDispatchAdmission !== null &&
