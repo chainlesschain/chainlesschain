@@ -193,13 +193,15 @@ describe("social collaboration engine boundaries", () => {
     expect(engine.openDocuments.size).toBe(0);
   });
 
-  it("keeps application shutdown wired to the production instance", () => {
+  it("keeps application shutdown wired through the bounded lifecycle policy", () => {
     const testDirectory = path.dirname(fileURLToPath(import.meta.url));
     const mainSource = readFileSync(
       path.resolve(testDirectory, "..", "..", "index.js"),
       "utf8",
     );
     expect(mainSource).toContain("this.collabEngine = instances.collabEngine");
-    expect(mainSource).toContain("await this.collabEngine.destroy?.()");
+    expect(mainSource).toContain(
+      "cleanupOwnedManagers(this, SOCIAL_COLLAB_MANAGER_CLEANUP",
+    );
   });
 });
