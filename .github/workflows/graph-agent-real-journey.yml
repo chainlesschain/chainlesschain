@@ -63,6 +63,8 @@ jobs:
           npx vitest run
           --testTimeout 60000
           packages/cli/__tests__/unit/app-server-graph-runtime.test.js
+          packages/cli/__tests__/unit/app-server.test.js
+          packages/cli/__tests__/unit/human-task-settlement-conformance.test.js
           packages/cli/__tests__/unit/graph-kernel-authority.test.js
           packages/cli/__tests__/unit/graph-kernel-compiler.test.js
           packages/cli/__tests__/unit/graph-kernel-cutover-authority-resolver.test.js
@@ -71,6 +73,7 @@ jobs:
           packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
           packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js
           packages/cli/__tests__/unit/graph-store-cutover-evidence.test.js
           packages/cli/__tests__/unit/runtime-entry-cutover-wiring.test.js
           packages/cli/__tests__/unit/cowork-graph-authority-adapter.test.js
@@ -83,6 +86,15 @@ jobs:
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-runtime-authority.test.js
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-execution-adapter.test.js
           desktop-app-vue/src/main/ai-engine/code-agent/__tests__/desktop-graph-ipc-journey.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js
+          desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js
+
+      - name: Verify the shared HumanTask settlement fixture
+        run: node --test packages/agent-protocol/test/human-task-conformance.test.mjs
+
+      - name: Exercise the Desktop quorum approval product surface
+        working-directory: desktop-app-vue
+        run: npx vitest run src/renderer/components/graph/__tests__/GraphRunDebugger.test.ts
 
       - name: Re-run Desktop kill and reopen through the Electron runtime
         shell: bash
@@ -118,6 +130,14 @@ jobs:
             --expected-commit "${JOURNEY_SHA}" \
             --output "${RUNNER_TEMP}/graph-store-coverage-${{ matrix.platform }}.json"
 
+      - name: Run formal dependency, scope, and aging fairness soak
+        env:
+          CC_TEAM_FAIRNESS_MODE: formal
+          CC_TEAM_FAIRNESS_EXPECTED_SHA: ${{ env.JOURNEY_SHA }}
+          CC_TEAM_FAIRNESS_WORKFLOW_SHA: ${{ env.JOURNEY_SHA }}
+          CC_TEAM_FAIRNESS_OUTPUT: ${{ runner.temp }}/team-fairness-${{ matrix.platform }}.json
+        run: npm run test:cli-team-fairness-soak
+
       - name: Run real-provider cc exec journey
         shell: bash
         env:
@@ -134,6 +154,14 @@ jobs:
         with:
           name: graph-agent-real-journey-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-agent-journey-${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: team-fairness-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/team-fairness-${{ matrix.platform }}.json
           if-no-files-found: error
           retention-days: 90
 
@@ -186,6 +214,12 @@ jobs:
           path: ${{ runner.temp }}/graph-store-evidence
           merge-multiple: true
 
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: team-fairness-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/team-fairness-evidence
+          merge-multiple: true
+
       - name: Verify exact SHA and all platform evidence
         run: >-
           node packages/cli/scripts/graph-agent-real-journey.mjs
@@ -201,6 +235,14 @@ jobs:
           --require-complete
           --output "${RUNNER_TEMP}/graph-store-cutover-matrix.json"
 
+      - name: Require 3x queue-wait SLO fairness on the exact platform matrix
+        run: >-
+          node packages/cli/scripts/team-fairness-soak.mjs
+          --verify-evidence-dir "${RUNNER_TEMP}/team-fairness-evidence"
+          --release-commit "${JOURNEY_SHA}"
+          --mode formal
+          --output "${RUNNER_TEMP}/team-fairness-matrix.json"
+
       - uses: actions/upload-artifact@v6
         with:
           name: graph-agent-real-journey-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
@@ -212,5 +254,12 @@ jobs:
         with:
           name: graph-store-cutover-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/graph-store-cutover-matrix.json
+          if-no-files-found: error
+          retention-days: 180
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: team-fairness-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/team-fairness-matrix.json
           if-no-files-found: error
           retention-days: 180

@@ -28,6 +28,8 @@ import { createHash, randomUUID } from "node:crypto";
 
 export const DEFAULT_LEASE_TTL_MS = 60000;
 export const DEFAULT_MAX_ATTEMPTS = 3;
+export const DEFAULT_QUEUE_WAIT_SLO_MS = 10_000;
+export const DEFAULT_AGING_WINDOW_MS = 2_500;
 export const ADJUDICATION_DECISIONS = Object.freeze({
   RETRY: "retry",
   ACCEPT: "accept",
@@ -154,11 +156,21 @@ export class TaskLeaseRegistry {
     now = () => Date.now(),
     defaultTtlMs = DEFAULT_LEASE_TTL_MS,
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    queueWaitSloMs = DEFAULT_QUEUE_WAIT_SLO_MS,
+    agingWindowMs = DEFAULT_AGING_WINDOW_MS,
     leaseEpoch = randomUUID(),
   } = {}) {
     this._now = typeof now === "function" ? now : () => now;
     this.defaultTtlMs = defaultTtlMs > 0 ? defaultTtlMs : DEFAULT_LEASE_TTL_MS;
     this.maxAttempts = maxAttempts > 0 ? maxAttempts : DEFAULT_MAX_ATTEMPTS;
+    this.queueWaitSloMs =
+      Number.isFinite(queueWaitSloMs) && queueWaitSloMs > 0
+        ? Math.floor(queueWaitSloMs)
+        : DEFAULT_QUEUE_WAIT_SLO_MS;
+    this.agingWindowMs =
+      Number.isFinite(agingWindowMs) && agingWindowMs > 0
+        ? Math.floor(agingWindowMs)
+        : DEFAULT_AGING_WINDOW_MS;
     this._leaseEpoch = String(leaseEpoch || randomUUID());
     this._leaseSequence = 0;
     this._tasks = new SharedTaskList({ groupId, now: this._now });
@@ -175,6 +187,11 @@ export class TaskLeaseRegistry {
       ["low", new Set()],
     ]);
     this._leasedKeys = new Set();
+    this._priorityInheritanceCache = null;
+    // The ready timestamp is part of the durable scheduler contract. Restarts
+    // must not reset a task's queue-wait clock and thereby reintroduce
+    // starvation under a sustained high-priority stream.
+    this._readySinceByKey = new Map();
   }
 
   /**
@@ -300,6 +317,7 @@ export class TaskLeaseRegistry {
       }
       dependents.add(key);
     }
+    this._priorityInheritanceCache = null;
     this._enqueueIfReady(key);
     return { ok: true, key, id: created.id };
   }
@@ -326,6 +344,8 @@ export class TaskLeaseRegistry {
       lease: lease ? { ...lease } : null,
       assignee: t.assignee,
       createdBy: t.createdBy ?? null,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
       rev: t.rev,
       // Full metadata is exposed so executors can read user payload
       // (e.g. a task's shell `command` or agent `prompt`) — it carries the
@@ -403,12 +423,75 @@ export class TaskLeaseRegistry {
     this._requeueExpiredLeases(now);
     const excluded =
       excludeKeys instanceof Set ? excludeKeys : new Set(excludeKeys || []);
+    let selected = null;
     for (const priority of ["high", "normal", "low"]) {
       for (const key of this._readyByPriority.get(priority)) {
-        if (!excluded.has(key)) return key;
+        if (excluded.has(key)) continue;
+        const scheduling = this.schedulingPriority(key, { now });
+        const bothUrgent =
+          scheduling.sloUrgent && selected?.scheduling?.sloUrgent;
+        if (
+          !selected ||
+          (bothUrgent &&
+            scheduling.queueWaitMs > selected.scheduling.queueWaitMs) ||
+          (!bothUrgent &&
+            (scheduling.total > selected.scheduling.total ||
+              (scheduling.total === selected.scheduling.total &&
+                scheduling.queueWaitMs > selected.scheduling.queueWaitMs)))
+        ) {
+          selected = { key, scheduling };
+        }
+        // FIFO inside one priority class is sufficient: later members cannot
+        // have waited longer than the first non-excluded member.
+        break;
       }
     }
-    return null;
+    return selected?.key || null;
+  }
+
+  /**
+   * Explain the effective scheduling priority for one task.
+   *
+   * A blocked high-priority descendant donates its priority transitively to
+   * the dependency that can unblock it. Ready tasks also age, and once they
+   * consume 75% of the declared queue-wait SLO they enter an urgent band that
+   * outranks newly arriving work. This makes the SLO enforceable rather than
+   * leaving aging as telemetry-only decoration.
+   */
+  schedulingPriority(key, { now = this._now() } = {}) {
+    const task = this.getTask(key);
+    if (!task) return null;
+    const base = this._priorityScore(task.priority);
+    const readySince = this._readySinceByKey.get(key);
+    const queueWaitMs = Math.max(
+      0,
+      Number(now) -
+        Number(
+          readySince ??
+            task.createdAt ??
+            (Number.isFinite(now) ? Number(now) : 0),
+        ),
+    );
+    const inheritance = this._priorityInheritanceFor(key);
+    const donatedBase = Math.max(base, inheritance.donatedBase);
+    const criticalPathBoost = inheritance.criticalPathBoost;
+    const aging = Math.min(1000, Math.floor(queueWaitMs / this.agingWindowMs));
+    const sloUrgent = queueWaitMs >= Math.floor(this.queueWaitSloMs * 0.75);
+    const sloBoost = sloUrgent ? 10_000 : 0;
+    return Object.freeze({
+      base,
+      donation: Math.max(0, donatedBase - base),
+      aging,
+      criticalPathBoost,
+      sloBoost,
+      sloUrgent,
+      total: donatedBase + aging + Math.min(1000, criticalPathBoost) + sloBoost,
+      queueWaitMs,
+      queueWaitSloMs: this.queueWaitSloMs,
+      readySince: Number(readySince ?? task.createdAt ?? now),
+      queueWaitDeadlineAt:
+        Number(readySince ?? task.createdAt ?? now) + this.queueWaitSloMs,
+    });
   }
 
   /**
@@ -1871,6 +1954,9 @@ export class TaskLeaseRegistry {
       registry: {
         defaultTtlMs: this.defaultTtlMs,
         maxAttempts: this.maxAttempts,
+        queueWaitSloMs: this.queueWaitSloMs,
+        agingWindowMs: this.agingWindowMs,
+        readySinceByKey: Array.from(this._readySinceByKey.entries()),
         byKey: Array.from(this._byKey.entries()),
       },
       tasks: this._tasks.snapshot(),
@@ -1882,9 +1968,12 @@ export class TaskLeaseRegistry {
       now,
       defaultTtlMs: snapshot?.registry?.defaultTtlMs,
       maxAttempts: snapshot?.registry?.maxAttempts,
+      queueWaitSloMs: snapshot?.registry?.queueWaitSloMs,
+      agingWindowMs: snapshot?.registry?.agingWindowMs,
     });
     reg._tasks = SharedTaskList.restore(snapshot.tasks, { now: reg._now });
     reg._byKey = new Map(snapshot?.registry?.byKey || []);
+    reg._readySinceByKey = new Map(snapshot?.registry?.readySinceByKey || []);
     reg._rebuildIndexes();
     return reg;
   }
@@ -1899,6 +1988,7 @@ export class TaskLeaseRegistry {
         patch,
         actor: patch.assignee,
       });
+      if (patch.status !== undefined) this._priorityInheritanceCache = null;
       return true;
     } catch {
       // ConcurrencyError (rev changed under us) — caller re-reads and retries.
@@ -1970,8 +2060,72 @@ export class TaskLeaseRegistry {
         : "normal";
   }
 
-  _removeReady(key) {
+  _priorityScore(priority) {
+    return priority === "high" ? 2 : priority === "low" ? 0 : 1;
+  }
+
+  _priorityInheritanceFor(key) {
+    if (!this._priorityInheritanceCache) {
+      const keys = [...this._byKey.keys()];
+      const indegree = new Map(
+        keys.map((candidate) => [
+          candidate,
+          (this._depsByKey.get(candidate) || []).filter((dependency) =>
+            this._byKey.has(dependency),
+          ).length,
+        ]),
+      );
+      const ready = keys.filter((candidate) => indegree.get(candidate) === 0);
+      const order = [];
+      for (let index = 0; index < ready.length; index += 1) {
+        const candidate = ready[index];
+        order.push(candidate);
+        for (const dependent of this._dependentsByKey.get(candidate) || []) {
+          if (!indegree.has(dependent)) continue;
+          indegree.set(dependent, indegree.get(dependent) - 1);
+          if (indegree.get(dependent) === 0) ready.push(dependent);
+        }
+      }
+      const inherited = new Map();
+      for (const candidate of order.reverse()) {
+        const task = this.getTask(candidate);
+        let donatedBase = this._priorityScore(task?.priority);
+        let criticalPathBoost = 0;
+        for (const dependent of this._dependentsByKey.get(candidate) || []) {
+          const dependentTask = this.getTask(dependent);
+          if (
+            !dependentTask ||
+            [TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(
+              dependentTask.status,
+            )
+          ) {
+            continue;
+          }
+          const child = inherited.get(dependent) || {
+            donatedBase: this._priorityScore(dependentTask.priority),
+            criticalPathBoost: 0,
+          };
+          donatedBase = Math.max(donatedBase, child.donatedBase);
+          criticalPathBoost = Math.max(
+            criticalPathBoost,
+            child.criticalPathBoost + 1,
+          );
+        }
+        inherited.set(candidate, { donatedBase, criticalPathBoost });
+      }
+      this._priorityInheritanceCache = inherited;
+    }
+    return (
+      this._priorityInheritanceCache.get(key) || {
+        donatedBase: this._priorityScore(this.getTask(key)?.priority),
+        criticalPathBoost: 0,
+      }
+    );
+  }
+
+  _removeReady(key, { clearWait = true } = {}) {
     for (const queue of this._readyByPriority.values()) queue.delete(key);
+    if (clearWait) this._readySinceByKey.delete(key);
   }
 
   _dependenciesCompleted(key) {
@@ -2012,6 +2166,9 @@ export class TaskLeaseRegistry {
       return false;
     }
     this._leasedKeys.delete(key);
+    if (!this._readySinceByKey.has(key)) {
+      this._readySinceByKey.set(key, Number(now));
+    }
     this._readyByPriority.get(this._priorityFor(task)).add(key);
     return true;
   }
@@ -2027,6 +2184,7 @@ export class TaskLeaseRegistry {
   }
 
   _rebuildIndexes() {
+    const restoredReadySince = new Map(this._readySinceByKey || []);
     this._depsByKey = new Map();
     this._dependentsByKey = new Map();
     this._readyByPriority = new Map([
@@ -2035,6 +2193,8 @@ export class TaskLeaseRegistry {
       ["low", new Set()],
     ]);
     this._leasedKeys = new Set();
+    this._readySinceByKey = restoredReadySince;
+    this._priorityInheritanceCache = null;
     for (const task of this._tasks.list()) {
       const key = task.metadata?.key;
       const dependencies = task.metadata?.dependsOn || [];
@@ -2053,5 +2213,14 @@ export class TaskLeaseRegistry {
     }
     const now = this._now();
     for (const key of this._byKey.keys()) this._enqueueIfReady(key, now);
+    for (const priority of ["high", "normal", "low"]) {
+      const ordered = [...this._readyByPriority.get(priority)].sort(
+        (left, right) =>
+          (this._readySinceByKey.get(left) || 0) -
+            (this._readySinceByKey.get(right) || 0) ||
+          left.localeCompare(right),
+      );
+      this._readyByPriority.set(priority, new Set(ordered));
+    }
   }
 }

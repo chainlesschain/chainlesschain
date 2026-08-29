@@ -55,6 +55,68 @@ async function within(promise, ms = 1000) {
 }
 
 describe("TeamRunner scope ownership", () => {
+  it("donates a scope waiter's priority to the active holder", async () => {
+    const registry = freshRegistry();
+    for (const key of ["holder", "high-waiter"]) {
+      expect(
+        registry.addTask({
+          key,
+          title: key,
+          priority: "high",
+          metadata: {
+            scopePaths: key === "holder" ? ["src"] : ["src/agent/worker.js"],
+          },
+        }),
+      ).toMatchObject({ ok: true, key });
+    }
+    const scopeLock = new TeamScopeLock();
+    const holderStarted = deferred();
+    const donationObserved = deferred();
+    const releaseHolder = deferred();
+    let holderPriorityContext = null;
+
+    const runner = new TeamRunner(registry, {
+      teammates: 2,
+      scopeLock,
+      onEvent: (event) => {
+        if (event.type === "task:priority-donated") {
+          donationObserved.resolve(event);
+        }
+      },
+      runTask: async ({ key, priorityContext }) => {
+        if (key === "holder") {
+          holderStarted.resolve();
+          await releaseHolder.promise;
+          holderPriorityContext = priorityContext();
+        }
+        return key;
+      },
+    });
+
+    const runPromise = runner.run();
+    await within(holderStarted.promise);
+    const donation = await within(donationObserved.promise);
+    releaseHolder.resolve();
+    const summary = await within(runPromise);
+
+    expect(donation).toMatchObject({
+      type: "task:priority-donated",
+      holderKey: "holder",
+      waiterKey: "high-waiter",
+      waiterPriority: { base: 2 },
+    });
+    expect(holderPriorityContext).toMatchObject({
+      scopeDonations: [
+        {
+          holderKey: "holder",
+          waiterKey: "high-waiter",
+          waiterPriority: { base: 2 },
+        },
+      ],
+    });
+    expect(summary.done).toBe(true);
+  });
+
   it("does not execute overlapping directory scopes concurrently", async () => {
     const registry = freshRegistry();
     addScopedTask(registry, "parent", ["src/agent"]);

@@ -46,6 +46,16 @@ final class RemoteSessionClientTests: XCTestCase {
             }
             return nil
         }
+
+        func payloads(ofType payloadType: String) -> [[String: Any]] {
+            sent.compactMap { message in
+                guard message["type"] as? String == "message",
+                      let payload = message["payload"] as? [String: Any],
+                      payload["type"] as? String == payloadType
+                else { return nil }
+                return payload
+            }
+        }
     }
 
     // MARK: Fixtures
@@ -215,11 +225,21 @@ final class RemoteSessionClientTests: XCTestCase {
         _ = try decryptPairJoin(socket, host: host)
         try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
 
+        try deliverEncrypted(
+            ["type": "permission.request", "requestId": "partial"],
+            from: host,
+            to: socket
+        )
         XCTAssertFalse(client.resolveApproval(
             requestId: "partial",
             decision: .acceptOnce,
             fingerprint: "sha256:partial"
         ))
+        try deliverEncrypted(
+            ["type": "permission.request", "requestId": "approval-1"],
+            from: host,
+            to: socket
+        )
         XCTAssertTrue(client.resolveApproval(
             requestId: "approval-1",
             decision: .acceptOnce,
@@ -252,10 +272,20 @@ final class RemoteSessionClientTests: XCTestCase {
         _ = try decryptPairJoin(socket, host: host)
         try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
 
+        try deliverEncrypted(
+            ["type": "permission.request", "requestId": "grant"],
+            from: host,
+            to: socket
+        )
         XCTAssertFalse(client.resolveApproval(
             requestId: "grant",
             decision: .acceptForSession(permissions: nil)
         ))
+        try deliverEncrypted(
+            ["type": "permission.request", "requestId": "decline"],
+            from: host,
+            to: socket
+        )
         XCTAssertTrue(client.resolveApproval(
             requestId: "decline",
             decision: .decline(reason: "user denied")
@@ -273,6 +303,161 @@ final class RemoteSessionClientTests: XCTestCase {
         XCTAssertEqual(decision["kind"] as? String, "decline")
         XCTAssertEqual(decision["reason"] as? String, "user denied")
         XCTAssertEqual(event["approved"] as? Bool, false)
+    }
+
+    func testResolveApprovalEchoesExactlyReviewedPersistentGrant() throws {
+        let (client, socket, host) = makeHarness()
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        socket.listener?.webSocketDidOpen(socket)
+        socket.listener?.webSocket(socket, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(socket, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
+        try deliverEncrypted(
+            ["type": "permission.request", "requestId": "reviewed-session"],
+            from: host,
+            to: socket
+        )
+        let permissions = [
+            RemoteApprovalPermissionGrant(
+                capability: "filesystem:write",
+                scope: "workspace:/reviewed/path",
+                expiresAt: .string("2026-08-30T00:00:00.000Z")
+            ),
+        ]
+
+        XCTAssertTrue(client.resolveApproval(
+            requestId: "reviewed-session",
+            decision: .acceptForSession(permissions: permissions),
+            reviewedPermissions: permissions
+        ))
+        let control = try XCTUnwrap(socket.payload(ofType: "remote-session.encrypted"))
+        let envelope = try RemoteEncryptedEnvelope.fromJSONObject(
+            try XCTUnwrap(control["envelope"] as? [String: Any])
+        )
+        let event = try XCTUnwrap(
+            (try JSONSerialization.jsonObject(with: try host.decrypt(envelope))) as? [String: Any]
+        )
+        let decision = try XCTUnwrap(event["decision"] as? [String: Any])
+        let grants = try XCTUnwrap(decision["permissions"] as? [[String: Any]])
+        XCTAssertEqual(decision["kind"] as? String, "acceptForSession")
+        XCTAssertEqual(grants.first?["scope"] as? String, "workspace:/reviewed/path")
+        XCTAssertEqual(event["approved"] as? Bool, true)
+    }
+
+    func testApprovalCardHasOneResponseWinnerAndCanonicalResolutionRemovesIt() throws {
+        let (client, socket, host) = makeHarness()
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        socket.listener?.webSocketDidOpen(socket)
+        socket.listener?.webSocket(socket, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(socket, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
+        try deliverEncrypted(
+            ["type": "approval_request", "id": "approval-race"],
+            from: host,
+            to: socket
+        )
+        XCTAssertEqual(client.pendingApprovalCount, 1)
+        let before = socket.payloads(ofType: "remote-session.encrypted").count
+
+        XCTAssertTrue(client.resolveApproval(requestId: "approval-race", decision: .acceptOnce))
+        XCTAssertFalse(client.resolveApproval(
+            requestId: "approval-race",
+            decision: .decline(reason: "late")
+        ))
+        XCTAssertEqual(
+            socket.payloads(ofType: "remote-session.encrypted").count - before,
+            1
+        )
+        XCTAssertEqual(client.pendingApprovalCount, 1)
+
+        try deliverEncrypted(
+            [
+                "type": "approval_resolved",
+                "id": "approval-race",
+                "approved": true,
+                "via": "mobile",
+            ],
+            from: host,
+            to: socket
+        )
+        XCTAssertEqual(client.pendingApprovalCount, 0)
+        XCTAssertFalse(client.resolveApproval(
+            requestId: "approval-race",
+            decision: .decline(reason: "stale")
+        ))
+    }
+
+    func testSharedHumanTaskSettlementFixtureForIOS() throws {
+        let fixtureURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("packages/agent-protocol/test/fixtures")
+            .appendingPathComponent("human-task-settlement-conformance.json")
+        let fixture = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: fixtureURL)) as? [String: Any]
+        )
+        let scenarios = try XCTUnwrap(fixture["scenarios"] as? [[String: Any]])
+        var replayed = 0
+
+        for scenario in scenarios {
+            let surfaces = try XCTUnwrap(scenario["surfaces"] as? [String])
+            guard surfaces.contains("ios") else { continue }
+            replayed += 1
+            let name = try XCTUnwrap(scenario["name"] as? String)
+            let requestId = "approval-\(name)"
+            let registry = RemoteApprovalSettlementRegistry()
+            XCTAssertTrue(registry.open(requestId), name)
+            var sentDecisions = 0
+            var interrupts = 0
+            var rejectedResponses = 0
+            var unresolvedDecision = false
+
+            for step in try XCTUnwrap(scenario["steps"] as? [[String: Any]]) {
+                let action = try XCTUnwrap(step["action"] as? String)
+                let expect = try XCTUnwrap(step["expect"] as? [String: String])
+                let expected = try XCTUnwrap(expect["ios"])
+                switch action {
+                case "restart":
+                    if unresolvedDecision { registry.resolve(requestId) }
+                    unresolvedDecision = false
+                    registry.invalidateAll()
+                    XCTAssertEqual(expected, "settled", name)
+                case "cancel":
+                    let reserved = registry.beginInterrupt()
+                    interrupts += 1
+                    for id in reserved {
+                        XCTAssertTrue(registry.complete(id, reservation: .interrupting, accepted: true), name)
+                    }
+                    XCTAssertEqual(expected, "settled", name)
+                case "approve", "decline":
+                    let accepted = registry.beginDecision(requestId)
+                    if accepted {
+                        XCTAssertTrue(
+                            registry.complete(requestId, reservation: .responding, accepted: true),
+                            name
+                        )
+                        sentDecisions += 1
+                        unresolvedDecision = true
+                    } else {
+                        rejectedResponses += 1
+                    }
+                    XCTAssertEqual(accepted, expected == "settled", name)
+                default:
+                    XCTFail("unsupported iOS action \(action)")
+                }
+            }
+            if unresolvedDecision { registry.resolve(requestId) }
+            let expected = try XCTUnwrap(
+                (scenario["expected"] as? [String: Any])?["ios"] as? [String: Any]
+            )
+            XCTAssertEqual(registry.count, expected["pending_approvals"] as? Int, name)
+            XCTAssertEqual(sentDecisions, expected["sent_decisions"] as? Int, name)
+            XCTAssertEqual(interrupts, expected["interrupts"] as? Int, name)
+            XCTAssertEqual(rejectedResponses, expected["rejected_responses"] as? Int, name)
+        }
+        XCTAssertEqual(replayed, 4)
     }
 
     // MARK: Inbound events

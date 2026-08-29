@@ -4,13 +4,33 @@ on:
   push:
     paths:
       - ".github/workflows/desktop-signed-skill-qualification.yml"
+      - ".github/workflows/desktop-signed-skill-platform.yml"
+      - "desktop-app-vue/electron-builder.yml"
+      - "desktop-app-vue/build/entitlements.mac*.plist"
+      - "desktop-app-vue/scripts/create-signed-desktop-skill-evidence.mjs"
+      - "desktop-app-vue/scripts/record-signed-desktop-install.mjs"
+      - "desktop-app-vue/scripts/record-signed-desktop-signature.mjs"
+      - "desktop-app-vue/scripts/signed-desktop-skill-journey.mjs"
       - "desktop-app-vue/scripts/verify-signed-desktop-skill-matrix.mjs"
+      - "desktop-app-vue/src/main/signed-desktop-launch-probe.js"
+      - "desktop-app-vue/src/main/__tests__/signed-desktop-launch-probe.test.js"
       - "desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs"
   pull_request:
     paths:
       - ".github/workflows/desktop-signed-skill-qualification.yml"
+      - ".github/workflows/desktop-signed-skill-platform.yml"
+      - "desktop-app-vue/electron-builder.yml"
+      - "desktop-app-vue/build/entitlements.mac*.plist"
+      - "desktop-app-vue/scripts/create-signed-desktop-skill-evidence.mjs"
+      - "desktop-app-vue/scripts/record-signed-desktop-install.mjs"
+      - "desktop-app-vue/scripts/record-signed-desktop-signature.mjs"
+      - "desktop-app-vue/scripts/signed-desktop-skill-journey.mjs"
       - "desktop-app-vue/scripts/verify-signed-desktop-skill-matrix.mjs"
+      - "desktop-app-vue/src/main/signed-desktop-launch-probe.js"
+      - "desktop-app-vue/src/main/__tests__/signed-desktop-launch-probe.test.js"
       - "desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs"
   workflow_call:
     inputs:
       commit_sha:
@@ -53,7 +73,10 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Run verifier self-tests
-        run: node --test desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs
+        run: |
+          node --test \
+            desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs \
+            desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs
 
   aggregate:
     name: Require trusted Linux, macOS, and Windows evidence

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 // 检查是否为生产环境
 const isProduction = process.env.NODE_ENV === "production";
@@ -10,7 +11,7 @@ if (isProduction) {
   try {
     const { minify } = require("terser");
     minifyCode = minify;
-  } catch (error) {
+  } catch {
     console.warn(
       "⚠ Terser not found. Install with: npm install --save-dev terser",
     );
@@ -116,9 +117,21 @@ async function build() {
   const desktopPkgPath = path.join(__dirname, "../package.json");
   const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf-8"));
   const desktopPkg = JSON.parse(fs.readFileSync(desktopPkgPath, "utf-8"));
+  const commitCandidate =
+    process.env.CC_BUILD_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: path.join(__dirname, "../.."),
+      encoding: "utf8",
+    }).stdout?.trim() ||
+    "";
+  if (!/^[a-f0-9]{40}$/.test(commitCandidate)) {
+    throw new Error("Unable to bind Desktop build to an exact commit SHA");
+  }
   const buildInfo = {
     productVersion: rootPkg.productVersion || "",
     appVersion: desktopPkg.version || "",
+    commitSha: commitCandidate,
     buildTime: new Date().toISOString(),
   };
   fs.writeFileSync(

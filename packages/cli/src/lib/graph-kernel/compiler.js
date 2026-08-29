@@ -7,6 +7,8 @@ export const GRAPH_DEFINITION_MIN_VERSION = Math.max(
   0,
   GRAPH_DEFINITION_VERSION - 1,
 );
+export const GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA =
+  "chainlesschain.graph-definition-migration/v1";
 export const GRAPH_COMPILE_ERROR = "CC_GRAPH_COMPILE_FAILED";
 
 const compiledGraphs = new WeakSet();
@@ -1285,6 +1287,22 @@ export function compileGraphDefinition(input, options = {}) {
     definition,
     `cc.graph.definition/${definition.schemaVersion}`,
   );
+  const migrationBackup =
+    migrated.migratedFrom == null ? null : deepFreeze(stableValue(input));
+  const definitionMigration =
+    migrationBackup == null
+      ? null
+      : deepFreeze({
+          schema: GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA,
+          fromVersion: migrated.migratedFrom,
+          toVersion: definition.schemaVersion,
+          revisionDigest,
+          backupDefinition: migrationBackup,
+          rollbackDigest: graphDigest(
+            migrationBackup,
+            `cc.graph.definition-backup/${migrated.migratedFrom}`,
+          ),
+        });
   const compiled = {
     schema: "chainlesschain.compiled-graph/v1",
     schemaVersion: definition.schemaVersion,
@@ -1293,6 +1311,7 @@ export function compileGraphDefinition(input, options = {}) {
     revision: definition.revision,
     revisionDigest,
     migratedFrom: migrated.migratedFrom,
+    definitionMigration,
     nodes: deepFreeze(
       Object.fromEntries([...nodes].map(([id, value]) => [id, value])),
     ),
@@ -1369,25 +1388,59 @@ export function assertCompiledGraph(value) {
 }
 
 export function migrateGraphDefinition(input, options = {}) {
-  const { definition, migratedFrom } = migrateDefinition(input, options);
-  const compiled = compileGraphDefinition(definition, options);
-  const backupDefinition =
-    migratedFrom == null ? null : deepFreeze(stableValue(input));
+  const compiled = compileGraphDefinition(input, options);
+  const migration = compiled.definitionMigration;
   return Object.freeze({
     dryRun: options.dryRun !== false,
-    fromVersion: migratedFrom ?? definition.schemaVersion,
+    fromVersion: migration?.fromVersion ?? compiled.schemaVersion,
     toVersion: compiled.schemaVersion,
     definition: compiled.definition,
     revisionDigest: compiled.revisionDigest,
-    backupRequired: migratedFrom != null,
+    backupRequired: migration != null,
+    backupDefinition: migration?.backupDefinition || null,
+    rollbackDigest: migration?.rollbackDigest || null,
+  });
+}
+
+export function validateGraphDefinitionMigrationEvidence(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    const error = new TypeError(
+      "graph definition migration evidence is required",
+    );
+    error.code = "CC_GRAPH_MIGRATION_EVIDENCE_INVALID";
+    throw error;
+  }
+  if (
+    value.schema !== GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA ||
+    Number(value.fromVersion) !== GRAPH_DEFINITION_VERSION - 1 ||
+    Number(value.toVersion) !== GRAPH_DEFINITION_VERSION ||
+    !/^sha256:[a-f0-9]{64}$/u.test(String(value.revisionDigest || ""))
+  ) {
+    const error = new TypeError(
+      "graph definition migration evidence has an invalid schema or version",
+    );
+    error.code = "CC_GRAPH_MIGRATION_EVIDENCE_INVALID";
+    throw error;
+  }
+  const backupDefinition = restoreGraphDefinitionBackup(
+    value.backupDefinition,
+    value.rollbackDigest,
+  );
+  const replay = compileGraphDefinition(backupDefinition);
+  if (replay.revisionDigest !== value.revisionDigest) {
+    const error = new TypeError(
+      "graph definition migration replay does not match its canonical revision",
+    );
+    error.code = "CC_GRAPH_MIGRATION_REPLAY_MISMATCH";
+    throw error;
+  }
+  return deepFreeze({
+    schema: GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA,
+    fromVersion: GRAPH_DEFINITION_VERSION - 1,
+    toVersion: GRAPH_DEFINITION_VERSION,
+    revisionDigest: value.revisionDigest,
     backupDefinition,
-    rollbackDigest:
-      backupDefinition == null
-        ? null
-        : graphDigest(
-            backupDefinition,
-            `cc.graph.definition-backup/${migratedFrom}`,
-          ),
+    rollbackDigest: value.rollbackDigest,
   });
 }
 

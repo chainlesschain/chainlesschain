@@ -1,0 +1,130 @@
+name: Record Replay UI Journey
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "packages/cli/src/lib/record-replay/**"
+      - "packages/cli/scripts/record-replay-ui-journey.mjs"
+      - "packages/cli/__tests__/unit/record-replay-*.test.js"
+      - ".github/workflows/record-replay-ui-journey.yml"
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/record-replay/**"
+      - "packages/cli/scripts/record-replay-ui-journey.mjs"
+      - "packages/cli/__tests__/unit/record-replay-*.test.js"
+      - ".github/workflows/record-replay-ui-journey.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  JOURNEY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  replay:
+    name: Real Chromium replay (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+            install_args: --with-deps chromium
+          - runner: windows-latest
+            platform: windows
+            install_args: chromium
+          - runner: macos-latest
+            platform: macos
+            install_args: chromium
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.JOURNEY_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${JOURNEY_SHA}"
+
+      - name: Install exact Playwright Chromium
+        shell: bash
+        run: npx playwright install ${{ matrix.install_args }}
+
+      - name: Run unit contracts
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/record-replay-skill.test.js
+          packages/cli/__tests__/unit/record-replay-playwright-driver.test.js
+
+      - name: Replay reviewed Skill through real Chromium
+        shell: bash
+        run: >-
+          node packages/cli/scripts/record-replay-ui-journey.mjs
+          --commit-sha "${JOURNEY_SHA}"
+          --platform "${{ matrix.platform }}"
+          --output "${RUNNER_TEMP}/record-replay-ui-${{ matrix.platform }}.json"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: record-replay-ui-${{ matrix.platform }}-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/record-replay-ui-${{ matrix.platform }}.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  aggregate:
+    name: Exact-SHA three-platform replay gate
+    if: always()
+    needs: replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Refuse a partial or failed platform matrix
+        if: needs.replay.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Recorded UI replay matrix is incomplete"
+          exit 1
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.JOURNEY_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: record-replay-ui-*-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/record-replay-ui-evidence
+          merge-multiple: true
+
+      - name: Verify exact SHA and all platform reports
+        run: >-
+          node packages/cli/scripts/record-replay-ui-journey.mjs
+          --commit-sha "${JOURNEY_SHA}"
+          --verify-dir "${RUNNER_TEMP}/record-replay-ui-evidence"
+          --output "${RUNNER_TEMP}/record-replay-ui-matrix.json"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: record-replay-ui-matrix-${{ env.JOURNEY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/record-replay-ui-matrix.json
+          if-no-files-found: error
+          retention-days: 180

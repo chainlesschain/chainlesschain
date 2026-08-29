@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { JsonlRolloutStore } from "../app-server/rollout-store.js";
 import { assertGraphCutoverTransition } from "./authority.js";
 import { graphDigest } from "./compiler.js";
+import {
+  normalizeGraphLegacyWriterObservation,
+  normalizeGraphRetirementContract,
+  normalizeGraphRetirementEvidence,
+} from "./retirement-evidence.js";
 import { graphStoreEvidenceDigest } from "./store-cutover-evidence.js";
 
 export const GRAPH_CUTOVER_LEDGER_SCHEMA =
@@ -329,17 +334,16 @@ function forwardEvidence(from, to, input, state) {
     if (state.cutoverStrategy === "retire") {
       return {
         ...canonicalEvidence,
-        retirementProbeDigest: digest(
-          input.retirementProbeDigest,
-          "retirementProbeDigest",
-        ),
-        activeLegacyRunCount: zero(
-          input.activeLegacyRunCount,
-          "activeLegacyRunCount",
-        ),
-        legacyMutationSuccessCount: zero(
-          input.legacyMutationSuccessCount,
-          "legacyMutationSuccessCount",
+        retirementEvidence: normalizeGraphRetirementEvidence(
+          input.retirementEvidence,
+          {
+            surface: state.surface,
+            entryId: state.entryId,
+            manifestDigest: state.manifestDigest,
+            commitSha: platforms[0].commitSha,
+            contract: state.retirementContract,
+            requiredPlatforms: GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+          },
         ),
       };
     }
@@ -357,6 +361,21 @@ function forwardEvidence(from, to, input, state) {
     };
   }
   if (from === "canonical" && to === "legacy_read_only") {
+    if (state.cutoverStrategy === "retire") {
+      return {
+        legacyWriterObservation: normalizeGraphLegacyWriterObservation(
+          input.legacyWriterObservation,
+          {
+            surface: state.surface,
+            entryId: state.entryId,
+            manifestDigest: state.manifestDigest,
+            commitSha: state.canonicalCommitSha,
+            contract: state.retirementContract,
+            notBefore: state.updatedAt,
+          },
+        ),
+      };
+    }
     return {
       writerInventoryDigest: digest(
         input.writerInventoryDigest,
@@ -477,6 +496,7 @@ export class GraphCutoverLedger {
     manifestDigest,
     stores,
     cutoverStrategy: strategyInput = "migrate",
+    retirementContract = undefined,
   }) {
     const safeSurface = identifier(surface, "surface");
     const safeEntryId = identifier(entryId, "entryId");
@@ -485,6 +505,10 @@ export class GraphCutoverLedger {
     const safeStores = storeInventory(stores, {
       allowEmpty: safeCutoverStrategy !== "migrate",
     });
+    const safeRetirementContract =
+      safeCutoverStrategy === "retire"
+        ? normalizeGraphRetirementContract(retirementContract)
+        : null;
     const threadId = this._thread(safeSurface, safeEntryId);
     this.store.start({
       threadId,
@@ -516,6 +540,19 @@ export class GraphCutoverLedger {
           "cutover entry is already bound to a different strategy",
         );
       }
+      const existingRetirementContract =
+        safeCutoverStrategy === "retire"
+          ? normalizeGraphRetirementContract(existing.retirementContract)
+          : null;
+      if (
+        JSON.stringify(existingRetirementContract) !==
+        JSON.stringify(safeRetirementContract)
+      ) {
+        throw cutoverError(
+          "CC_GRAPH_CUTOVER_RETIREMENT_CONTRACT_CONFLICT",
+          "cutover entry is already bound to a different retirement contract",
+        );
+      }
       return projection(existing, events);
     }
     const timestamp = new Date(this.now()).toISOString();
@@ -525,6 +562,7 @@ export class GraphCutoverLedger {
       entryId: safeEntryId,
       manifestDigest: safeManifestDigest,
       cutoverStrategy: safeCutoverStrategy,
+      retirementContract: safeRetirementContract,
       stores: safeStores,
       stage: "legacy",
       canaryPercent: 0,
@@ -596,6 +634,10 @@ export class GraphCutoverLedger {
             ? 100
             : 0,
       optInOnly: to === "canary" ? normalized.optInOnly === true : false,
+      canonicalCommitSha:
+        to === "canonical"
+          ? normalized.platformEvidence[0].commitSha
+          : current.canonicalCommitSha || null,
       transitionCount: current.transitionCount + 1,
       rollbackCount: current.rollbackCount + (rollback ? 1 : 0),
       lastEvidenceDigest: graphDigest(

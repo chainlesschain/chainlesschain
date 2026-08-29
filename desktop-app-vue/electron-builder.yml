@@ -125,9 +125,11 @@ mac:
         - arm64
   icon: icon.icns
   category: public.app-category.productivity
-  # hardenedRuntime + entitlements only matter when signing/notarizing,
-  # which CI does not do (CSC_IDENTITY_AUTO_DISCOVERY=false). Add back
-  # alongside the Apple ID secrets when signing lands.
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  # Signing remains optional for local/release builds. The protected
+  # qualification producer requires Developer ID signing and notarization.
   gatekeeperAssess: false
 
 # DMG 配置
@@ -178,11 +180,10 @@ publish:
     private: false
     releaseType: release
 
-# macOS notarization hook — disabled until scripts/notarize.js exists.
-# afterSign is loaded for all platforms (not just mac), so a missing file
-# crashes Linux/Windows builds too. Re-enable after adding the file +
-# wiring APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID secrets.
-# afterSign: scripts/notarize.js
+# macOS notarization hook for the protected signed qualification producer.
+# The hook is a no-op outside macOS and unless the protected producer sets
+# CC_REQUIRE_DESKTOP_NOTARIZATION=1. In that mode missing credentials fail.
+afterSign: scripts/notarize.js
 
 # afterPack: promote nested call-bind-apply-helpers to top-level after the
 # walker has finished its damage. v5.0.3.4-13 saga: electron-builder's
@@ -195,7 +196,7 @@ publish:
 afterPack: scripts/electron-after-pack.js
 
 # 压缩配置
-compression: normal  # 或 maximum（但会更慢）
+compression: normal # 或 maximum（但会更慢）
 
 # 额外资源
 # Only ship resources that actually exist in the repo. The legacy entries

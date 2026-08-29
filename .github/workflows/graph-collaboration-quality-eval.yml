@@ -1,0 +1,198 @@
+name: Graph Collaboration Quality Eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected main/tag commit to evaluate
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/graph-collaboration-quality-eval.yml"
+      - "packages/cli/scripts/graph-collaboration-quality-eval.mjs"
+      - "packages/cli/__tests__/unit/graph-collaboration-quality-eval.test.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: false
+
+env:
+  QUALITY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  contracts:
+    name: Quality producer contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.QUALITY_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${QUALITY_SHA}"
+
+      - name: Run producer and aggregate contracts
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/graph-collaboration-quality-eval.test.js
+
+  protected-request:
+    name: Validate protected real-model request
+    if: github.event_name == 'workflow_dispatch'
+    needs: contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require exact protected workflow identity
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$EXPECTED_SHA" = "$SOURCE_SHA"
+          case "$SOURCE_REF" in
+            refs/heads/main|refs/tags/v*) ;;
+            *) echo "Formal quality eval runs only from protected main or v* tags" >&2; exit 1 ;;
+          esac
+
+  real-model-eval:
+    name: Real control/candidate soak (${{ matrix.platform }})
+    if: github.event_name == 'workflow_dispatch'
+    needs: protected-request
+    permissions:
+      contents: read
+    environment: graph-collaboration-quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+          - platform: windows
+            runner: windows-latest
+          - platform: macos
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    env:
+      CC_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+      QUALITY_CHALLENGE: ${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+      QUALITY_MODEL: ${{ vars.CC_P2_3_MODEL || vars.CC_LLM_MODEL || 'gpt-5-mini' }}
+      QUALITY_PROVIDER: ${{ vars.CC_P2_3_PROVIDER || vars.CC_LLM_PROVIDER || 'openai' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify source and protected model credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${QUALITY_SHA}"
+          test -n "${CC_API_KEY:-}" || { echo "CC_LLM_API_KEY is not configured" >&2; exit 1; }
+          test -n "$QUALITY_PROVIDER"
+          test -n "$QUALITY_MODEL"
+
+      - name: Run formal single-Agent versus Graph candidate evaluation
+        shell: bash
+        run: >-
+          node packages/cli/scripts/graph-collaboration-quality-eval.mjs
+          --commit-sha "${QUALITY_SHA}"
+          --challenge "${QUALITY_CHALLENGE}"
+          --platform "${{ matrix.platform }}"
+          --provider "${QUALITY_PROVIDER}"
+          --model "${QUALITY_MODEL}"
+          --duration-seconds 1800
+          --min-rounds 3
+          --max-rounds 12
+          --output "${RUNNER_TEMP}/graph-quality-${{ matrix.platform }}.json"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: graph-quality-${{ matrix.platform }}-${{ env.QUALITY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-quality-${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    name: Exact-SHA real-model quality gate
+    if: always() && github.event_name == 'workflow_dispatch'
+    needs:
+      - protected-request
+      - real-model-eval
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    environment: graph-collaboration-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      QUALITY_CHALLENGE: ${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+    steps:
+      - name: Refuse a partial or failed platform matrix
+        if: needs.protected-request.result != 'success' || needs.real-model-eval.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Real-model collaboration quality matrix is incomplete"
+          exit 1
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: graph-quality-*-${{ env.QUALITY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-quality-evidence
+          merge-multiple: true
+
+      - name: Recompute and enforce the complete matrix
+        run: >-
+          node packages/cli/scripts/graph-collaboration-quality-eval.mjs
+          --commit-sha "${QUALITY_SHA}"
+          --challenge "${QUALITY_CHALLENGE}"
+          --verify-dir "${RUNNER_TEMP}/graph-quality-evidence"
+          --output "${RUNNER_TEMP}/graph-collaboration-quality-matrix.json"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: graph-collaboration-quality-matrix-${{ env.QUALITY_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-collaboration-quality-matrix.json
+          if-no-files-found: error
+          retention-days: 180
+
+      - name: Attest the exact aggregate report
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ runner.temp }}/graph-collaboration-quality-matrix.json

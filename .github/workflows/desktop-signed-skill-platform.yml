@@ -1,0 +1,442 @@
+name: Desktop Signed Skill Platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected main/tag commit to qualify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  contract:
+    name: Validate protected producer request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exact protected workflow identity
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$EXPECTED_SHA" = "$SOURCE_SHA"
+          case "$SOURCE_REF" in
+            refs/heads/main|refs/tags/v*) ;;
+            *) echo "Desktop signed qualification runs only from protected main or v* tags" >&2; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - name: Run evidence contract tests
+        run: |
+          node --test \
+            desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs \
+            desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs
+
+  platform:
+    name: Signed install and Skill journey (${{ matrix.platform }})
+    needs: contract
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    environment: desktop-signed-qualification
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+            arch: x64
+          - platform: macos
+            runner: macos-latest
+            arch: arm64
+          - platform: windows
+            runner: windows-latest
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    env:
+      CC_BUILD_COMMIT_SHA: ${{ inputs.commit_sha }}
+      CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+      SKIP_BACKEND_CHECK: "true"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      CC_SKILL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CC_SKILL_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_ID }}
+      CC_SKILL_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_SECRET }}
+      CC_SKILL_GOOGLE_REFRESH_TOKEN: ${{ secrets.DESKTOP_SKILL_GOOGLE_REFRESH_TOKEN }}
+      CC_SKILL_NOTION_API_KEY: ${{ secrets.DESKTOP_SKILL_NOTION_API_KEY }}
+      CC_SKILL_TAVILY_API_KEY: ${{ secrets.DESKTOP_SKILL_TAVILY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Require signing, notarization, and live Skill credentials
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          WINDOWS_CSC_LINK: ${{ secrets.DESKTOP_WINDOWS_CSC_LINK }}
+          WINDOWS_CSC_PASSWORD: ${{ secrets.DESKTOP_WINDOWS_CSC_KEY_PASSWORD }}
+          MAC_CSC_LINK: ${{ secrets.DESKTOP_MAC_CSC_LINK }}
+          MAC_CSC_PASSWORD: ${{ secrets.DESKTOP_MAC_CSC_KEY_PASSWORD }}
+          MAC_APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
+          MAC_APP_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
+          MAC_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in \
+            CC_SKILL_GITHUB_TOKEN \
+            CC_SKILL_GOOGLE_CLIENT_ID \
+            CC_SKILL_GOOGLE_CLIENT_SECRET \
+            CC_SKILL_GOOGLE_REFRESH_TOKEN \
+            CC_SKILL_NOTION_API_KEY \
+            CC_SKILL_TAVILY_API_KEY; do
+            test -n "${!name:-}" || { echo "$name is not configured" >&2; exit 1; }
+          done
+          if [ "$PLATFORM" = windows ]; then
+            test -n "$WINDOWS_CSC_LINK"
+            test -n "$WINDOWS_CSC_PASSWORD"
+          elif [ "$PLATFORM" = macos ]; then
+            test -n "$MAC_CSC_LINK"
+            test -n "$MAC_CSC_PASSWORD"
+            test -n "$MAC_APPLE_ID"
+            test -n "$MAC_APP_PASSWORD"
+            [[ "$MAC_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
+          fi
+
+      - name: Install repository dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+
+      - name: Install standalone Desktop dependencies
+        working-directory: desktop-app-vue
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci --workspaces=false
+
+      - name: Install packaged CLI production dependencies
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
+
+      - name: Build packaged Web Panel
+        working-directory: packages/web-panel
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm install --legacy-peer-deps
+          npm run build
+
+      - name: Build Desktop at the exact candidate SHA
+        working-directory: desktop-app-vue
+        run: npm run build
+
+      - name: Merge hoisted modules into Desktop tree (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f node_modules/chainlesschain-desktop-vue node_modules/chainlesschain
+          mkdir -p desktop-app-vue/node_modules
+          rm -rf desktop-app-vue/node_modules/@chainlesschain
+          rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          rm -f desktop-app-vue/node_modules/chainlesschain
+          if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
+            for link in desktop-app-vue/node_modules/@chainlesschain/*; do
+              if [ -L "$link" ]; then
+                name=$(basename "$link")
+                target="$GITHUB_WORKSPACE/packages/$name"
+                if [ -d "$target" ]; then
+                  rm "$link"
+                  ln -s "$target" "$link"
+                fi
+              fi
+            done
+          fi
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
+
+      - name: Merge hoisted modules into Desktop tree (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          if exist "node_modules\chainlesschain-desktop-vue" rmdir "node_modules\chainlesschain-desktop-vue"
+          if exist "node_modules\chainlesschain" rmdir "node_modules\chainlesschain"
+          robocopy node_modules desktop-app-vue\node_modules /E /XC /XN /XO /NFL /NDL /NJH /NJS /NP
+          if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+          if exist "desktop-app-vue\node_modules\chainlesschain" rmdir "desktop-app-vue\node_modules\chainlesschain"
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
+          exit /b 0
+
+      - name: Package keyless Linux installer
+        if: matrix.platform == 'linux'
+        working-directory: desktop-app-vue
+        run: npx electron-builder --linux deb --x64 --config electron-builder.yml --publish never
+
+      - name: Package Authenticode Windows installer
+        if: matrix.platform == 'windows'
+        working-directory: desktop-app-vue
+        env:
+          CSC_LINK: ${{ secrets.DESKTOP_WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_WINDOWS_CSC_KEY_PASSWORD }}
+        run: node scripts/build-win-with-deref.js --win nsis --x64 --config electron-builder.yml --publish never
+
+      - name: Package Developer ID and notarized macOS installer
+        if: matrix.platform == 'macos'
+        working-directory: desktop-app-vue
+        env:
+          CSC_LINK: ${{ secrets.DESKTOP_MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+          CC_REQUIRE_DESKTOP_NOTARIZATION: "1"
+        run: npx electron-builder --mac dmg --arm64 --config electron-builder.yml --publish never
+
+      - name: Install cosign
+        if: matrix.platform == 'linux'
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Sign and verify Linux installer with GitHub OIDC
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact=$(find desktop-app-vue/out/build -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -n "$artifact"
+          bundle="$RUNNER_TEMP/desktop-linux.sigstore.json"
+          identity="https://github.com/${GITHUB_WORKFLOW_REF}"
+          cosign sign-blob --yes --bundle "$bundle" "$artifact"
+          cosign verify-blob \
+            --bundle "$bundle" \
+            --certificate-identity "$identity" \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            --certificate-github-workflow-repository "$GITHUB_REPOSITORY" \
+            --certificate-github-workflow-ref "$GITHUB_REF" \
+            --certificate-github-workflow-sha "$GITHUB_SHA" \
+            --certificate-github-workflow-trigger workflow_dispatch \
+            "$artifact" >/dev/null
+          node desktop-app-vue/scripts/record-signed-desktop-signature.mjs \
+            --platform linux --artifact "$artifact" \
+            --transparency-log-verified \
+            --certificate-identity "$GITHUB_WORKFLOW_REF" \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            --output "$RUNNER_TEMP/signature.json"
+          echo "CC_INSTALLER_PATH=$artifact" >> "$GITHUB_ENV"
+
+      - name: Verify Windows Authenticode signer and timestamp
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $artifact = Get-ChildItem desktop-app-vue/out/build -Filter '*Setup*.exe' -File | Select-Object -First 1
+          if (-not $artifact) { throw 'NSIS installer was not produced' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $artifact.FullName
+          if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate -or -not $signature.TimeStamperCertificate) {
+            throw "Authenticode verification failed: $($signature.StatusMessage)"
+          }
+          node desktop-app-vue/scripts/record-signed-desktop-signature.mjs `
+            --platform windows --artifact ($artifact.FullName) --timestamped `
+            --certificate-sha256 ($signature.SignerCertificate.GetCertHashString('SHA256').ToLowerInvariant()) `
+            --subject ($signature.SignerCertificate.Subject) `
+            --timestamp-subject ($signature.TimeStamperCertificate.Subject) `
+            --output "$env:RUNNER_TEMP\signature.json"
+          "CC_INSTALLER_PATH=$($artifact.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Verify macOS code signature, notarization, and stapling
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact=$(find desktop-app-vue/out/build -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -n "$artifact"
+          mount="$RUNNER_TEMP/desktop-dmg"
+          mkdir -p "$mount"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$artifact"
+          app=$(find "$mount" -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -n "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+          xcrun stapler validate "$app"
+          details=$(codesign -dvvv "$app" 2>&1)
+          team=$(printf '%s\n' "$details" | sed -n 's/^TeamIdentifier=//p' | head -1)
+          authority=$(printf '%s\n' "$details" | sed -n 's/^Authority=//p' | head -1)
+          requirement=$(codesign -d -r- "$app" 2>&1 | sed -n 's/^designated => //p')
+          node desktop-app-vue/scripts/record-signed-desktop-signature.mjs \
+            --platform macos --artifact "$artifact" --notarization-assessed \
+            --team-identifier "$team" --authority "$authority" \
+            --designated-requirement "$requirement" \
+            --output "$RUNNER_TEMP/signature.json"
+          hdiutil detach "$mount"
+          echo "CC_INSTALLER_PATH=$artifact" >> "$GITHUB_ENV"
+
+      - name: Derive same-run qualification challenge
+        shell: bash
+        run: |
+          challenge=$(node -e "const c=require('node:crypto');process.stdout.write('sha256:'+c.createHash('sha256').update(process.env.GITHUB_REPOSITORY+'\\0'+process.env.GITHUB_RUN_ID+'\\0'+process.env.GITHUB_RUN_ATTEMPT+'\\0'+process.env.GITHUB_SHA).digest('hex'))")
+          echo "CC_QUALIFICATION_CHALLENGE=$challenge" >> "$GITHUB_ENV"
+          digest=$(node -e "const c=require('node:crypto'),f=require('node:fs');process.stdout.write('sha256:'+c.createHash('sha256').update(f.readFileSync(process.env.CC_INSTALLER_PATH)).digest('hex'))")
+          echo "CC_ARTIFACT_SHA256=$digest" >> "$GITHUB_ENV"
+
+      - name: Fresh-install Linux package
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=$(dpkg-deb -f "$CC_INSTALLER_PATH" Package)
+          if dpkg-query -W "$package" >/dev/null 2>&1; then sudo dpkg --purge "$package"; fi
+          sudo dpkg --install "$CC_INSTALLER_PATH" || { sudo apt-get update; sudo apt-get install -f -y; }
+          app_asar=$(dpkg -L "$package" | grep '/resources/app.asar$' | head -1)
+          test -f "$app_asar"
+          executable=$(find "$(dirname "$(dirname "$app_asar")")" -maxdepth 1 -type f -perm -111 ! -name 'chrome-sandbox' -print -quit)
+          test -x "$executable"
+          node desktop-app-vue/scripts/record-signed-desktop-install.mjs \
+            --platform linux --expected-sha "$GITHUB_SHA" \
+            --challenge "$CC_QUALIFICATION_CHALLENGE" \
+            --artifact "$CC_INSTALLER_PATH" --executable "$executable" \
+            --installation-method 'dpkg --install' --exit-code 0 --fresh-install \
+            --output "$RUNNER_TEMP/install.json"
+          echo "CC_INSTALLED_EXECUTABLE=$executable" >> "$GITHUB_ENV"
+          echo "CC_INSTALLED_APP_ASAR=$app_asar" >> "$GITHUB_ENV"
+
+      - name: Fresh-install Windows package
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $installRoot = Join-Path $env:RUNNER_TEMP 'ChainlessChain-qualified'
+          if (Test-Path -LiteralPath $installRoot) { throw 'fresh install target already exists' }
+          $process = Start-Process -FilePath $env:CC_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "installer exited $($process.ExitCode)" }
+          $asar = Get-ChildItem $installRoot -Filter app.asar -File -Recurse | Where-Object FullName -Match '[\\/]resources[\\/]app\.asar$' | Select-Object -First 1
+          if (-not $asar) { throw 'installed app.asar not found' }
+          $executable = Get-ChildItem (Split-Path (Split-Path $asar.FullName)) -Filter '*.exe' -File | Where-Object Name -NotMatch '^(chrome-sandbox|Uninstall)' | Select-Object -First 1
+          if (-not $executable) { throw 'installed Desktop executable not found' }
+          node desktop-app-vue/scripts/record-signed-desktop-install.mjs `
+            --platform windows --expected-sha $env:GITHUB_SHA `
+            --challenge $env:CC_QUALIFICATION_CHALLENGE `
+            --artifact $env:CC_INSTALLER_PATH --executable ($executable.FullName) `
+            --installation-method 'NSIS silent fresh target' --exit-code 0 --fresh-install `
+            --output "$env:RUNNER_TEMP\install.json"
+          "CC_INSTALLED_EXECUTABLE=$($executable.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CC_INSTALLED_APP_ASAR=$($asar.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Fresh-install macOS package
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mount="$RUNNER_TEMP/desktop-install-dmg"
+          install_root="$RUNNER_TEMP/Applications"
+          test ! -e "$install_root/ChainlessChain.app"
+          mkdir -p "$mount" "$install_root"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$CC_INSTALLER_PATH"
+          source_app=$(find "$mount" -maxdepth 1 -type d -name '*.app' -print -quit)
+          ditto "$source_app" "$install_root/ChainlessChain.app"
+          hdiutil detach "$mount"
+          executable="$install_root/ChainlessChain.app/Contents/MacOS/ChainlessChain"
+          app_asar="$install_root/ChainlessChain.app/Contents/Resources/app.asar"
+          test -x "$executable" -a -f "$app_asar"
+          codesign --verify --deep --strict --verbose=2 "$install_root/ChainlessChain.app"
+          spctl --assess --type execute --verbose=4 "$install_root/ChainlessChain.app"
+          node desktop-app-vue/scripts/record-signed-desktop-install.mjs \
+            --platform macos --expected-sha "$GITHUB_SHA" \
+            --challenge "$CC_QUALIFICATION_CHALLENGE" \
+            --artifact "$CC_INSTALLER_PATH" --executable "$executable" \
+            --installation-method 'read-only DMG ditto fresh target' --exit-code 0 --fresh-install \
+            --output "$RUNNER_TEMP/install.json"
+          echo "CC_INSTALLED_EXECUTABLE=$executable" >> "$GITHUB_ENV"
+          echo "CC_INSTALLED_APP_ASAR=$app_asar" >> "$GITHUB_ENV"
+
+      - name: Launch installed packaged Desktop and capture ASAR receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            --cc-signed-skill-launch-output "$RUNNER_TEMP/launch.json"
+            --cc-signed-skill-launch-commit "$GITHUB_SHA"
+            --cc-signed-skill-artifact-sha256 "$CC_ARTIFACT_SHA256"
+            --cc-signed-skill-launch-challenge "$CC_QUALIFICATION_CHALLENGE"
+          )
+          if [ "$RUNNER_OS" = Linux ]; then
+            timeout 120s xvfb-run -a "$CC_INSTALLED_EXECUTABLE" --no-sandbox "${args[@]}"
+          else
+            "$CC_INSTALLED_EXECUTABLE" "${args[@]}"
+          fi
+          test -s "$RUNNER_TEMP/launch.json"
+
+      - name: Run seven live bundled Skill journeys from installed ASAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          workspace="$RUNNER_TEMP/signed-skill-workspace"
+          mkdir -p "$workspace"
+          ELECTRON_RUN_AS_NODE=1 "$CC_INSTALLED_EXECUTABLE" \
+            desktop-app-vue/scripts/signed-desktop-skill-journey.mjs \
+            --app-asar "$CC_INSTALLED_APP_ASAR" --workspace "$workspace" \
+            --platform '${{ matrix.platform }}' --expected-sha "$GITHUB_SHA" \
+            --artifact-sha256 "$CC_ARTIFACT_SHA256" \
+            --challenge "$CC_QUALIFICATION_CHALLENGE" \
+            --output "$RUNNER_TEMP/journeys.json"
+
+      - name: Compose and verify platform evidence
+        shell: bash
+        run: |
+          node desktop-app-vue/scripts/create-signed-desktop-skill-evidence.mjs \
+            --platform '${{ matrix.platform }}' --arch '${{ matrix.arch }}' \
+            --expected-sha "$GITHUB_SHA" --challenge "$CC_QUALIFICATION_CHALLENGE" \
+            --artifact "$CC_INSTALLER_PATH" --signature "$RUNNER_TEMP/signature.json" \
+            --install "$RUNNER_TEMP/install.json" --launch "$RUNNER_TEMP/launch.json" \
+            --journeys "$RUNNER_TEMP/journeys.json" \
+            --repository "$GITHUB_REPOSITORY" --workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output "$RUNNER_TEMP/${{ matrix.platform }}.json"
+
+      - name: Upload exact-SHA platform evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: desktop-signed-skill-evidence-${{ matrix.platform }}-${{ github.run_attempt }}-${{ inputs.commit_sha }}
+          path: ${{ runner.temp }}/${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Stage immutable signed installer
+        id: installer
+        shell: bash
+        run: |
+          node -e "const f=require('node:fs'),p=require('node:path');const d=p.join(process.env.RUNNER_TEMP,'signed-installer');f.mkdirSync(d,{recursive:true});const t=p.join(d,p.basename(process.env.CC_INSTALLER_PATH));f.copyFileSync(process.env.CC_INSTALLER_PATH,t);f.appendFileSync(process.env.GITHUB_OUTPUT,'path='+t+'\n');"
+
+      - name: Attest exact signed installer bytes
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ steps.installer.outputs.path }}
+
+      - name: Retain exact signed installer bytes
+        uses: actions/upload-artifact@v6
+        with:
+          name: desktop-signed-installer-${{ matrix.platform }}-${{ github.run_attempt }}-${{ inputs.commit_sha }}
+          path: ${{ steps.installer.outputs.path }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  qualification:
+    name: Aggregate authoritative three-platform matrix
+    needs: platform
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/desktop-signed-skill-qualification.yml
+    with:
+      commit_sha: ${{ inputs.commit_sha }}
+      platform_workflow_ref: ${{ github.workflow_ref }}

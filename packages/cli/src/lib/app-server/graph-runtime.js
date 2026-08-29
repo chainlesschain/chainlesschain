@@ -139,6 +139,7 @@ export class AppServerGraphRuntime {
       ? new GraphEventStore({ rolloutStore })
       : new GraphEventStore(),
     executeNode,
+    requestHumanTask = null,
     now = Date.now,
     createId = randomUUID,
     onEvent = null,
@@ -150,6 +151,8 @@ export class AppServerGraphRuntime {
     this.eventStore = eventStore;
     this.rolloutStore = eventStore.rolloutStore;
     this.executeNode = executeNode;
+    this.requestHumanTask =
+      typeof requestHumanTask === "function" ? requestHumanTask : null;
     this.now = now;
     this.createId = createId;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
@@ -215,6 +218,9 @@ export class AppServerGraphRuntime {
       persistence: "durable",
       isolated: true,
       terminalEvidence: true,
+      durableHumanTasks: true,
+      humanTaskQuorum: true,
+      humanTaskSeparationOfDuties: true,
       authorityModes: Object.freeze(["shadow", "canonical"]),
       featureGated: true,
     });
@@ -260,7 +266,8 @@ export class AppServerGraphRuntime {
     const compiled = compileGraphDefinition(definition);
     const id = String(runId);
     const request = {
-      definition: compiled.definition,
+      definition:
+        compiled.definitionMigration?.backupDefinition || compiled.definition,
       inputs: { ...inputs },
       originSurface,
       agentCapacity: Math.max(1, Number(agentCapacity) || 1),
@@ -377,16 +384,179 @@ export class AppServerGraphRuntime {
         this._emit(runId, "graph/run-settled", { projection: status });
         return status;
       }
+      const pendingHumanTask = kernel
+        .humanTasks(runId)
+        .find((task) => ["open", "claimed"].includes(task.status));
+      if (pendingHumanTask) {
+        if (!this.requestHumanTask) return status;
+        await this._requestHumanTaskDecision(entry, pendingHumanTask);
+        continue;
+      }
       const next = kernel
         .readyNodes(runId)
         .find((candidate) => candidate.dispatch !== "subgraph");
       if (!next) return status;
-      await this._executeAttempt(entry, next.nodeId);
+      if (entry.compiled.nodes[next.nodeId]?.kind === "human") {
+        await this._executeHumanTask(entry, next.nodeId);
+      } else {
+        await this._executeAttempt(entry, next.nodeId);
+      }
     }
     throw runtimeError(
       "CC_GRAPH_DRIVE_LIMIT",
       "Graph executor exceeded its bounded scheduling step limit",
     );
+  }
+
+  async _executeHumanTask(entry, nodeId) {
+    const { kernel } = entry;
+    const runId = entry.runId;
+    const node = entry.compiled.nodes[nodeId];
+    if (node.effectClass !== "none") {
+      throw runtimeError(
+        "CC_GRAPH_HUMAN_TASK_EFFECT_UNSUPPORTED",
+        "HumanTask nodes must use effectClass=none; approved effects belong to a dependent task node",
+      );
+    }
+    const attempt = kernel.assignNode(runId, nodeId, "app-server-agent", {
+      ttlMs: this.writerLeaseTtlMs,
+      leaseId: `app-server-human-attempt:${this.createId()}`,
+      grant: { executor: "durable_human_task", originSurface: "desktop" },
+    });
+    const quorum =
+      node.join === "quorum" ? Math.max(1, Number(node.quorum) || 1) : 1;
+    const task = kernel.createHumanTask(runId, {
+      humanTaskId: `app-server-human-task:${this.createId()}`,
+      attemptId: attempt.id,
+      leaseId: attempt.leaseId,
+      fence: attempt.fence,
+      operation: nodeInput(entry.inputs, nodeId),
+      nonce: `app-server-human-nonce:${this.createId()}`,
+      ttlMs: this.writerLeaseTtlMs,
+      quorum,
+      // Product quorum is intentionally fail-closed: one identity can never
+      // contribute more than one vote to a multi-review HumanTask.
+      separationOfDuties: quorum > 1,
+    });
+    this._emit(runId, "graph/human-task-requested", {
+      nodeId,
+      humanTaskId: task.id,
+      quorum: task.quorum,
+      separationOfDuties: task.separationOfDuties,
+    });
+    if (!this.requestHumanTask) {
+      return kernel.getRun(runId);
+    }
+    return this._requestHumanTaskDecision(entry, task);
+  }
+
+  async _requestHumanTaskDecision(entry, task) {
+    const { kernel, runId } = entry;
+    const response = await this.requestHumanTask({ task });
+    if (!response || typeof response !== "object" || Array.isArray(response)) {
+      throw runtimeError(
+        "CC_GRAPH_HUMAN_DECISION_INVALID",
+        "HumanTask client returned no structured decision",
+      );
+    }
+    for (const [field, expected] of [
+      ["humanTaskId", task.id],
+      ["runId", runId],
+      ["revisionDigest", task.revisionDigest],
+      ["operationDigest", task.operationDigest],
+      ["nonce", task.nonce],
+    ]) {
+      if (response[field] !== expected) {
+        throw runtimeError(
+          "CC_GRAPH_HUMAN_TASK_BINDING_MISMATCH",
+          `HumanTask client response does not match ${field}`,
+        );
+      }
+    }
+    const actorId = String(response.actorId || "").trim();
+    if (!actorId) {
+      throw runtimeError(
+        "CC_GRAPH_HUMAN_DECISION_INVALID",
+        "HumanTask client response requires an authenticated actorId",
+      );
+    }
+    if (
+      task.separationOfDuties === true &&
+      task.decisions.some((entry) => entry.actorId === actorId)
+    ) {
+      throw runtimeError(
+        "CC_GRAPH_HUMAN_SEPARATION_OF_DUTIES",
+        "HumanTask requires a different authenticated actor",
+      );
+    }
+    const claim = kernel.claimHumanTask(runId, task.id, actorId, {
+      claimLeaseId: `app-server-human-claim:${this.createId()}`,
+      ttlMs: Math.min(this.writerLeaseTtlMs, 5 * 60 * 1000),
+    });
+    const decided = kernel.decideHumanTask(runId, task.id, {
+      actorId,
+      claimLeaseId: claim.claimLeaseId,
+      revisionDigest: response.revisionDigest,
+      operationDigest: response.operationDigest,
+      nonce: response.nonce,
+      decision: response.decision,
+    });
+    this._emit(runId, "graph/human-task-decided", {
+      nodeId: decided.nodeId,
+      humanTaskId: decided.id,
+      actorId,
+      status: decided.status,
+      acceptedDecisions: decided.decisions.filter((entry) =>
+        ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(
+          entry.decision.kind,
+        ),
+      ).length,
+      quorum: decided.quorum,
+    });
+    if (
+      decided.status !== "decided" ||
+      ["decline", "cancel"].includes(decided.decision?.kind)
+    ) {
+      return kernel.getRun(runId);
+    }
+    const settlement = kernel.assignNode(
+      runId,
+      decided.nodeId,
+      "app-server-agent",
+      {
+        ttlMs: this.writerLeaseTtlMs,
+        leaseId: `app-server-human-settlement:${this.createId()}`,
+        grant: {
+          executor: "durable_human_task_decision",
+          humanTaskId: decided.id,
+        },
+      },
+    );
+    const settled = kernel.settleAttempt(runId, {
+      attemptId: settlement.id,
+      leaseId: settlement.leaseId,
+      fence: settlement.fence,
+      outcome: "succeeded",
+      evidence: {
+        outputDigest: graphDigest(
+          {
+            humanTaskId: decided.id,
+            revisionDigest: decided.revisionDigest,
+            operationDigest: decided.operationDigest,
+            decisions: decided.decisions,
+          },
+          "cc.app-server.human-task-settlement/v1",
+        ),
+      },
+      usage: { turns: 0, tokens: 0, costUsd: 0, wallMs: 0 },
+    });
+    this._emit(runId, "graph/node-settled", {
+      nodeId: decided.nodeId,
+      attemptId: settlement.id,
+      outcome: "succeeded",
+      humanTaskId: decided.id,
+    });
+    return settled;
   }
 
   async _executeAttempt(entry, nodeId) {
@@ -503,6 +673,12 @@ export class AppServerGraphRuntime {
     const id = String(runId);
     const entry = this.runs.get(id) || this._recover(id);
     return entry.kernel.getRun(id);
+  }
+
+  humanTasks(runId) {
+    const id = String(runId);
+    const entry = this.runs.get(id) || this._recover(id);
+    return entry.kernel.humanTasks(id);
   }
 
   history(

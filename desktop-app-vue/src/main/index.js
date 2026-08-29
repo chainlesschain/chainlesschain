@@ -89,6 +89,9 @@ const { registerAllIPC } = require("./ipc/ipc-registry");
 // 必要的直接导入（窗口创建前需要）
 const { getAppConfig } = require("./config/database-config");
 const SplashWindow = require("./splash/splash-window");
+const {
+  maybeRunSignedDesktopLaunchProbe,
+} = require("./signed-desktop-launch-probe");
 const MenuManager = require("./system/menu-manager");
 const DatabaseEncryptionIPC = require("./database/database-encryption-ipc");
 const InitialSetupIPC = require("./config/initial-setup-ipc");
@@ -262,6 +265,16 @@ class ChainlessChainApp {
 
   async onReady() {
     logger.info("ChainlessChain Vue 启动中..(优化版");
+
+    try {
+      if (await maybeRunSignedDesktopLaunchProbe({ app })) {
+        return;
+      }
+    } catch (error) {
+      logger.error("Signed Desktop launch probe failed closed:", error);
+      app.exit(1);
+      return;
+    }
 
     // 创建启动画面
     // Show splash in BOTH desktop-renderer AND webshell modes — packaged

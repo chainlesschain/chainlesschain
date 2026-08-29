@@ -1,7 +1,9 @@
 package com.chainlesschain.android.remote.session
 
 import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.PermissionGrant
 import com.chainlesschain.android.core.agentprotocol.ApprovalDecisionEnvelope
+import com.chainlesschain.android.core.agentprotocol.ApprovalSettlementRegistry
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -110,6 +112,11 @@ class RemoteSessionClient(
     // is at-least-once — it stores and REDELIVERS offline-messages — so
     // without the id a redelivered prompt would run a second agent turn.
     private val controlSeq = java.util.concurrent.atomic.AtomicLong(0)
+    private val approvalSettlements = ApprovalSettlementRegistry()
+    val pendingApprovalCount: Int get() = approvalSettlements.size()
+
+    fun isApprovalPending(requestId: String): Boolean =
+        approvalSettlements.status(requestId) == ApprovalSettlementRegistry.Status.PENDING
 
     // Reconnect state. The pairing token is single-use, so a reconnect within
     // the same process lifetime re-registers with the relay and resumes on the
@@ -164,34 +171,43 @@ class RemoteSessionClient(
         fingerprint: String? = null,
         binding: String? = null,
         revision: Any? = null,
+        reviewedPermissions: List<PermissionGrant>? = null,
     ): Boolean {
-        val hasDurableTuple = fingerprint != null || binding != null || revision != null
-        if (hasDurableTuple && (
-                fingerprint.isNullOrBlank() ||
-                    binding.isNullOrBlank() ||
-                    !isPositiveRevision(revision)
-                )
-        ) {
-            return false
-        }
-        val envelope = runCatching {
-            ApprovalDecisionEnvelope.fromDecision(
+        if (!approvalSettlements.beginDecision(requestId)) return false
+        val sent = runCatching {
+            val hasDurableTuple = fingerprint != null || binding != null || revision != null
+            if (hasDurableTuple && (
+                    fingerprint.isNullOrBlank() ||
+                        binding.isNullOrBlank() ||
+                        !isPositiveRevision(revision)
+                    )
+            ) {
+                return@runCatching false
+            }
+            val envelope = ApprovalDecisionEnvelope.fromDecision(
                 requestId = requestId,
                 decision = decision,
                 decidedAtMs = System.currentTimeMillis(),
+                reviewedPermissions = reviewedPermissions,
             )
-        }.getOrElse { return false }
-        val event = JSONObject()
-            .put("type", "approval.resolve")
-            .put("requestId", requestId)
-            .put("decision", JSONObject(requireNotNull(envelope.decision).toString()))
-            .put("approved", envelope.approved)
-        if (hasDurableTuple) {
-            event.put("fingerprint", fingerprint)
-            event.put("binding", binding)
-            event.put("revision", revision)
-        }
-        return sendControl(event)
+            val event = JSONObject()
+                .put("type", "approval.resolve")
+                .put("requestId", requestId)
+                .put("decision", JSONObject(requireNotNull(envelope.decision).toString()))
+                .put("approved", envelope.approved)
+            if (hasDurableTuple) {
+                event.put("fingerprint", fingerprint)
+                event.put("binding", binding)
+                event.put("revision", revision)
+            }
+            sendControl(event)
+        }.getOrDefault(false)
+        approvalSettlements.complete(
+            requestId,
+            ApprovalSettlementRegistry.Status.RESPONDING,
+            sent,
+        )
+        return sent
     }
 
     /** N-1 source compatibility; new callers should use the canonical overload. */
@@ -210,7 +226,18 @@ class RemoteSessionClient(
         revision = revision,
     )
 
-    fun interrupt() = sendControl(JSONObject().put("type", "interrupt"))
+    fun interrupt(): Boolean {
+        val reserved = approvalSettlements.beginInterrupt()
+        val sent = sendControl(JSONObject().put("type", "interrupt"))
+        reserved.forEach {
+            approvalSettlements.complete(
+                it,
+                ApprovalSettlementRegistry.Status.INTERRUPTING,
+                sent,
+            )
+        }
+        return sent
+    }
 
     @Synchronized
     fun disconnect() {
@@ -220,6 +247,7 @@ class RemoteSessionClient(
         cancelPairAck()
         socket?.close(1000, "Android Remote Session closed")
         socket = null
+        approvalSettlements.invalidateAll()
         _status.value = RemoteSessionStatus.DISCONNECTED
     }
 
@@ -360,9 +388,13 @@ class RemoteSessionClient(
                             cancelPairAck()
                             socket?.close(1000, "Revoked by host")
                             socket = null
+                            approvalSettlements.invalidateAll()
                             _status.value = RemoteSessionStatus.REVOKED
                         }
-                        else -> _events.tryEmit(event)
+                        else -> {
+                            updateApprovalSettlement(event)
+                            _events.tryEmit(event)
+                        }
                     }
                 }
                 else -> Unit
@@ -370,6 +402,20 @@ class RemoteSessionClient(
         }.onFailure {
             _status.value = RemoteSessionStatus.ERROR
             _errors.tryEmit(it.message ?: "Remote Session protocol error")
+        }
+    }
+
+    private fun updateApprovalSettlement(event: JSONObject) {
+        val requestId = event.optString(
+            "requestId",
+            event.optString("approvalId", event.optString("id")),
+        )
+        if (requestId.isBlank()) return
+        when (event.optString("type")) {
+            "permission.request", "approval.requested", "approval_request" ->
+                approvalSettlements.open(requestId)
+            "permission.resolved", "approval.resolved", "approval_resolved" ->
+                approvalSettlements.resolve(requestId)
         }
     }
 

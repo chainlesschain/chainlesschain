@@ -39,6 +39,54 @@ function definition(effectClass = "workspace_write") {
   };
 }
 
+function legacyDefinition() {
+  return {
+    schemaVersion: 0,
+    id: "app-server-legacy-graph",
+    revision: 1,
+    nodes: [{ id: "implement", dependsOn: [] }],
+    edges: [],
+    metadata: { source: "n-minus-one-production-request" },
+  };
+}
+
+function humanDefinition({ quorum = 2 } = {}) {
+  return {
+    schemaVersion: 1,
+    id: "app-server-human-graph",
+    revision: 1,
+    nodes: [
+      {
+        id: "review",
+        kind: "human",
+        dependsOn: [],
+        inputs: [],
+        outputs: [],
+        effectClass: "none",
+        join: quorum > 1 ? "quorum" : "all",
+        ...(quorum > 1 ? { quorum } : {}),
+      },
+    ],
+    edges: [],
+    loops: [],
+    subgraphCalls: [],
+    budget: { turns: 2 },
+    allowedCapabilities: [],
+  };
+}
+
+function humanDecision(task, actorId, decision = { kind: "acceptOnce" }) {
+  return {
+    humanTaskId: task.id,
+    runId: task.runId,
+    revisionDigest: task.revisionDigest,
+    operationDigest: task.operationDigest,
+    nonce: task.nonce,
+    actorId,
+    decision,
+  };
+}
+
 class CrashAfterGraphAppendStore extends GraphEventStore {
   arm(type) {
     this.crashType = type;
@@ -55,6 +103,140 @@ class CrashAfterGraphAppendStore extends GraphEventStore {
 }
 
 describe("App Server canonical Graph runtime", () => {
+  it("drives a quorum HumanTask through distinct authenticated actors", async () => {
+    const actors = ["did:chainless:reviewer-1", "did:chainless:reviewer-2"];
+    let executorCalls = 0;
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      executeNode: async () => {
+        executorCalls += 1;
+        throw new Error("human nodes must not enter the Agent executor");
+      },
+      requestHumanTask: async ({ task }) => humanDecision(task, actors.shift()),
+    });
+
+    const projection = await runtime.run({
+      definition: humanDefinition(),
+      runId: "desktop-human-quorum",
+      inputs: { review: { prompt: "Approve the exact release candidate" } },
+      waitForCompletion: true,
+    });
+
+    expect(executorCalls).toBe(0);
+    expect(projection.status).toBe("succeeded");
+    expect(projection.attempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: "review",
+          status: "expired",
+          participationStatus: "human_decided",
+        }),
+        expect.objectContaining({
+          nodeId: "review",
+          status: "accepted",
+          terminalEvidence: { outputDigest: expect.stringMatching(/^sha256:/) },
+        }),
+      ]),
+    );
+    expect(runtime.humanTasks("desktop-human-quorum")).toMatchObject([
+      {
+        status: "decided",
+        quorum: 2,
+        separationOfDuties: true,
+        decisions: [
+          { actorId: "did:chainless:reviewer-1" },
+          { actorId: "did:chainless:reviewer-2" },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps a stale HumanTask durable and resumes it with a new actor", async () => {
+    const rolloutStore = new MemoryRolloutStore();
+    let currentTime = 1_700_000_000_000;
+    const now = () => currentTime;
+    const first = new AppServerGraphRuntime({
+      rolloutStore,
+      now,
+      executeNode: async () => ({ status: "failed" }),
+      requestHumanTask: async ({ task }) =>
+        humanDecision(task, "did:chainless:reviewer-1"),
+    });
+    await expect(
+      first.run({
+        definition: humanDefinition(),
+        runId: "desktop-human-resume",
+        inputs: { review: "Approve after restart" },
+        waitForCompletion: true,
+      }),
+    ).rejects.toMatchObject({ code: "CC_GRAPH_HUMAN_SEPARATION_OF_DUTIES" });
+    expect(first.humanTasks("desktop-human-resume")).toMatchObject([
+      {
+        status: "open",
+        decisions: [{ actorId: "did:chainless:reviewer-1" }],
+      },
+    ]);
+    expect(first.status("desktop-human-resume").status).toBe("waiting_human");
+    const recovered = new AppServerGraphRuntime({
+      rolloutStore,
+      now,
+      executeNode: async () => ({ status: "failed" }),
+      requestHumanTask: async ({ task }) =>
+        humanDecision(task, "did:chainless:reviewer-2"),
+    });
+    const projection = await recovered.resume("desktop-human-resume", {
+      waitForCompletion: true,
+    });
+    expect(projection.status).toBe("succeeded");
+    expect(
+      recovered.humanTasks("desktop-human-resume")[0].decisions,
+    ).toHaveLength(2);
+  });
+
+  it("rejects a stale client binding without claiming the HumanTask", async () => {
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      executeNode: async () => ({ status: "failed" }),
+      requestHumanTask: async ({ task }) => ({
+        ...humanDecision(task, "did:chainless:reviewer-1"),
+        operationDigest: OUTPUT,
+      }),
+    });
+    await expect(
+      runtime.run({
+        definition: humanDefinition({ quorum: 1 }),
+        runId: "desktop-human-stale-binding",
+        inputs: { review: "Do not approve a changed operation" },
+        waitForCompletion: true,
+      }),
+    ).rejects.toMatchObject({ code: "CC_GRAPH_HUMAN_TASK_BINDING_MISMATCH" });
+    expect(runtime.status("desktop-human-stale-binding").status).toBe(
+      "waiting_human",
+    );
+    expect(runtime.humanTasks("desktop-human-stale-binding")).toMatchObject([
+      { status: "open", decisions: [] },
+    ]);
+  });
+
+  it("fails closed in waiting_human when no product handler is configured", async () => {
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      executeNode: async () => {
+        throw new Error("human nodes must not enter the Agent executor");
+      },
+    });
+    const projection = await runtime.run({
+      definition: humanDefinition({ quorum: 1 }),
+      runId: "desktop-human-no-handler",
+      inputs: { review: "Wait for an authenticated reviewer" },
+      waitForCompletion: true,
+    });
+    expect(projection.status).toBe("waiting_human");
+    expect(runtime.humanTasks(projection.id)).toMatchObject([
+      { status: "open", decisions: [] },
+    ]);
+  });
+
   it("returns bounded metadata-only durable history and validates ranges", async () => {
     const runtime = new AppServerGraphRuntime({
       rolloutStore: new MemoryRolloutStore(),
@@ -265,6 +447,66 @@ describe("App Server canonical Graph runtime", () => {
       status: "succeeded",
       authorityGeneration: 2,
       authoritySource: "graph_kernel",
+    });
+  });
+
+  it("persists and revalidates an N-1 definition backup across App Server recovery", async () => {
+    const rolloutStore = new MemoryRolloutStore();
+    const first = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async () => {
+        throw new Error("the pre-crash runtime must not execute");
+      },
+    });
+    const started = first.start({
+      definition: legacyDefinition(),
+      runId: "desktop-definition-migration",
+      inputs: { implement: "resume the migrated definition" },
+    });
+    expect(started.definitionMigration).toMatchObject({
+      schema: "chainlesschain.graph-definition-migration/v1",
+      fromVersion: 0,
+      toVersion: 1,
+      revisionDigest: started.revisionDigest,
+      backupAvailable: true,
+    });
+    expect(
+      first._readRequest("desktop-definition-migration").definition,
+    ).toEqual(legacyDefinition());
+    const durableSnapshot = first.eventStore
+      .read("desktop-definition-migration")
+      .at(-1).payload.state;
+    expect(durableSnapshot.definition.schemaVersion).toBe(1);
+    expect(durableSnapshot.definitionMigration).toMatchObject({
+      backupDefinition: legacyDefinition(),
+      revisionDigest: started.revisionDigest,
+    });
+
+    const prompts = [];
+    const recovered = new AppServerGraphRuntime({
+      rolloutStore,
+      executeNode: async ({ input }) => {
+        prompts.push(input.prompt);
+        return {
+          status: "succeeded",
+          terminalEvidence: { outputDigest: OUTPUT },
+        };
+      },
+    });
+    const completed = await recovered.resume("desktop-definition-migration", {
+      waitForCompletion: true,
+    });
+    expect(prompts).toEqual(["resume the migrated definition"]);
+    expect(completed).toMatchObject({
+      status: "succeeded",
+      authorityGeneration: 2,
+      definitionMigration: {
+        fromVersion: 0,
+        toVersion: 1,
+        revisionDigest: started.revisionDigest,
+        rollbackDigest: started.definitionMigration.rollbackDigest,
+        backupAvailable: true,
+      },
     });
   });
 

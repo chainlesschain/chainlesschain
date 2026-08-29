@@ -173,20 +173,49 @@
                   item.detail
                 }}</code>
                 <span v-else class="page-sub">（无详情）</span>
+                <div
+                  v-if="item.requestedPermissions?.length"
+                  style="margin-top: 8px"
+                  data-testid="approval-grants"
+                >
+                  <div class="page-sub">Review requested grants:</div>
+                  <code
+                    v-for="grant in item.requestedPermissions"
+                    :key="`${grant.capability}:${grant.scope}`"
+                    style="display: block; word-break: break-all"
+                  >
+                    {{ grant.capability }} — {{ grant.scope }}
+                    <span v-if="grant.expiresAt">
+                      (until {{ grant.expiresAt }})</span
+                    >
+                  </code>
+                </div>
               </template>
             </a-list-item-meta>
             <template #actions>
               <a-button
                 type="primary"
                 size="small"
-                @click="respondPermission(item, true)"
-                >批准</a-button
+                @click="respondPermission(item, 'once')"
+                >Allow once</a-button
+              >
+              <a-button
+                v-if="item.requestedPermissions?.length"
+                size="small"
+                @click="respondPermission(item, 'turn')"
+                >Allow for turn</a-button
+              >
+              <a-button
+                v-if="item.requestedPermissions?.length"
+                size="small"
+                @click="respondPermission(item, 'session')"
+                >Allow for session</a-button
               >
               <a-button
                 size="small"
                 danger
-                @click="respondPermission(item, false)"
-                >拒绝</a-button
+                @click="respondPermission(item, 'decline')"
+                >Decline</a-button
               >
             </template>
           </a-list-item>
@@ -209,7 +238,7 @@
                 }}</a-tag>
               </template>
             </a-list-item-meta>
-            <template v-if="isApproval(item)" #actions>
+            <template v-if="isPendingApproval(item)" #actions>
               <a-button type="link" size="small" @click="respond(item, true)"
                 >批准</a-button
               >
@@ -285,12 +314,24 @@ function isApproval(item) {
   return String(item?.type || "").includes("approval");
 }
 
+function isPendingApproval(item) {
+  const type = String(item?.type || "");
+  const requestId = requestIdOf(item);
+  return (
+    ["permission.request", "approval.requested", "approval_request"].includes(
+      type,
+    ) &&
+    requestId !== "" &&
+    pendingApprovals.value.some((card) => card.requestId === requestId)
+  );
+}
+
 function eventBody(item) {
   return item?.content || item?.payload?.content || item?.message || "";
 }
 
 function requestIdOf(item) {
-  return item?.requestId || item?.approvalId || "";
+  return item?.requestId || item?.approvalId || item?.id || "";
 }
 
 function connect() {
@@ -315,8 +356,8 @@ function respond(item, approved) {
   store.approve(requestIdOf(item), approved);
 }
 
-function respondPermission(card, approved) {
-  store.approve(card.requestId, approved);
+function respondPermission(card, choice) {
+  store.approve(card.requestId, choice);
 }
 
 function optionLabel(option) {

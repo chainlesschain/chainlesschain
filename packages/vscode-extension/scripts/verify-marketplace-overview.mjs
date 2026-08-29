@@ -15,6 +15,18 @@ function capturedVersions(value, pattern) {
   return [...new Set([...value.matchAll(pattern)].map((match) => match[1]))];
 }
 
+function compareVersions(left, right) {
+  const leftParts = left.split(".").map(Number);
+  const rightParts = right.split(".").map(Number);
+
+  for (let index = 0; index < 3; index += 1) {
+    if (leftParts[index] !== rightParts[index]) {
+      return leftParts[index] - rightParts[index];
+    }
+  }
+  return 0;
+}
+
 export function verifyMarketplaceOverview({
   extensionManifest,
   cliManifest,
@@ -45,7 +57,22 @@ export function verifyMarketplaceOverview({
   );
   const releaseSection = releaseMatch[1];
   const extensionVersion = extensionManifest.version;
-  const cliVersion = cliManifest.version;
+  const sourceCliVersion = cliManifest.version;
+  const cliVersion = extensionManifest.chainlesschain?.recommendedCliVersion;
+  assert.match(
+    cliVersion ?? "",
+    /^0\.\d+\.\d+$/u,
+    "Extension manifest must declare chainlesschain.recommendedCliVersion",
+  );
+  assert.match(
+    sourceCliVersion,
+    /^0\.\d+\.\d+$/u,
+    "CLI source manifest must declare a stable semantic version",
+  );
+  assert.ok(
+    compareVersions(cliVersion, sourceCliVersion) <= 0,
+    "Recommended public CLI cannot be newer than the checked-out CLI source",
+  );
   const vsixUrl =
     `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${extensionVersion}` +
     `/file/chainlesschain.chainlesschain-ide-${extensionVersion}.vsix`;
@@ -92,7 +119,7 @@ export function verifyMarketplaceOverview({
     "Current release narrative must describe the recommended CLI",
   );
 
-  return { extensionVersion, cliVersion, vsixUrl };
+  return { extensionVersion, cliVersion, sourceCliVersion, vsixUrl };
 }
 
 function main() {

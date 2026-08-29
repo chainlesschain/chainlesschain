@@ -5,6 +5,7 @@ import {
   RemoteSessionCryptoContext,
   createRemotePairingUri,
 } from "../../../cli/src/harness/remote-session-crypto.js";
+import humanTaskSettlementFixture from "../../../agent-protocol/test/fixtures/human-task-settlement-conformance.json";
 
 const SESSION_ID = "session-store";
 const TOKEN = "store-token";
@@ -150,6 +151,7 @@ describe("remoteSession store", () => {
       content: "continue",
     });
 
+    active.pushEvent({ type: "permission.request", requestId: "req-1" });
     store.approve("req-1", true);
     expect(active.controls.at(-1)).toMatchObject({
       type: "approval.resolve",
@@ -229,6 +231,7 @@ describe("remoteSession store", () => {
     const active = connectAndOpen(store);
 
     store.sendPrompt("one");
+    active.pushEvent({ type: "permission.request", requestId: "req-9" });
     store.approve("req-9", false);
     store.interrupt();
     const [a, b, c] = active.controls.slice(-3);
@@ -440,5 +443,94 @@ describe("remoteSession store", () => {
       approved: true,
     });
     expect(store.pendingApprovals).toHaveLength(0);
+  });
+
+  it("reviews and echoes only host-requested turn/session grants", () => {
+    const store = useRemoteSessionStore();
+    const active = connectAndOpen(store);
+    const permissions = [
+      {
+        capability: "filesystem:write",
+        scope: "workspace:/reviewed/path",
+        expiresAt: "2026-08-30T00:00:00.000Z",
+      },
+    ];
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "grant-session",
+      requested_permissions: permissions,
+    });
+
+    expect(store.pendingApprovals[0].requestedPermissions).toEqual(permissions);
+    expect(store.approve("grant-session", "session")).toBe(true);
+    expect(active.controls.at(-1)).toMatchObject({
+      type: "approval.resolve",
+      requestId: "grant-session",
+      decision: { kind: "acceptForSession", permissions },
+      approved: true,
+    });
+
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "grant-invalid",
+      requested_permissions: [{ capability: "", scope: "workspace" }],
+    });
+    expect(store.approve("grant-invalid", "turn")).toBe(false);
+    expect(active.controls).toHaveLength(1);
+  });
+
+  it("settles Web cards against the shared HumanTask conformance fixture", () => {
+    let replayed = 0;
+    for (const scenario of humanTaskSettlementFixture.scenarios) {
+      if (!scenario.surfaces.includes("web")) continue;
+      replayed += 1;
+      setActivePinia(createPinia());
+      FakeRelay.instances = [];
+      FakeRelay.mobilePeerId = null;
+      FakeRelay.host = new RemoteSessionCryptoContext({
+        sessionId: SESSION_ID,
+        localPeerId: "host",
+      });
+      const store = useRemoteSessionStore();
+      const active = connectAndOpen(store);
+      const requestId = `approval-${scenario.name}`;
+      active.pushEvent({ type: "permission.request", requestId });
+      let rejectedResponses = 0;
+
+      for (const step of scenario.steps) {
+        let settled;
+        if (step.action === "approve" || step.action === "decline") {
+          settled = store.approve(requestId, step.action === "approve");
+          if (!settled) rejectedResponses += 1;
+        } else if (step.action === "cancel") {
+          settled = store.interrupt();
+        } else if (step.action === "restart") {
+          store.disconnect();
+          settled = true;
+        } else {
+          throw new Error(`unsupported Web action ${step.action}`);
+        }
+        expect(Boolean(settled), `${scenario.name}:${step.action}`).toBe(
+          step.expect.web === "settled",
+        );
+      }
+
+      const expected = scenario.expected.web;
+      expect(store.pendingApprovals, scenario.name).toHaveLength(
+        expected.pending_approvals,
+      );
+      expect(
+        active.controls.filter((event) => event.type === "approval.resolve"),
+        scenario.name,
+      ).toHaveLength(expected.sent_decisions);
+      expect(
+        active.controls.filter((event) => event.type === "interrupt"),
+        scenario.name,
+      ).toHaveLength(expected.interrupts);
+      expect(rejectedResponses, scenario.name).toBe(
+        expected.rejected_responses,
+      );
+    }
+    expect(replayed).toBe(4);
   });
 });

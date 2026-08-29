@@ -4,6 +4,7 @@ import {
   compileGraphDefinition,
   executionAttemptId,
   graphDigest,
+  validateGraphDefinitionMigrationEvidence,
   writeScopesOverlap,
 } from "./compiler.js";
 import { GraphEventStore } from "./event-store.js";
@@ -356,6 +357,7 @@ function stateSnapshot(run) {
     version: 1,
     id: run.id,
     definition: run.compiled.definition,
+    definitionMigration: clone(run.definitionMigration),
     subgraphDefinitions: run.compiled.subgraphDefinitions,
     phase: run.phase,
     status: run.status,
@@ -404,6 +406,11 @@ function restoreState(run, snapshot, compiled = null) {
       subgraphs: persistedSubgraphRegistry(snapshot.subgraphDefinitions),
       allowUnresolvedSubgraphs: snapshot.subgraphDefinitions == null,
     });
+  run.definitionMigration = snapshot.definitionMigration
+    ? clone(
+        validateGraphDefinitionMigrationEvidence(snapshot.definitionMigration),
+      )
+    : clone(run.compiled.definitionMigration || null);
   run.phase = snapshot.phase;
   run.status = snapshot.status;
   run.graphRevision = snapshot.graphRevision;
@@ -494,6 +501,16 @@ function runProjection(run) {
     definitionId: run.compiled.definitionId,
     revision: run.compiled.revision,
     revisionDigest: run.revisionDigest,
+    definitionMigration: run.definitionMigration
+      ? Object.freeze({
+          schema: run.definitionMigration.schema,
+          fromVersion: run.definitionMigration.fromVersion,
+          toVersion: run.definitionMigration.toVersion,
+          revisionDigest: run.definitionMigration.revisionDigest,
+          rollbackDigest: run.definitionMigration.rollbackDigest,
+          backupAvailable: true,
+        })
+      : null,
     occurrenceRef: clone(run.occurrenceRef),
     phase: run.phase,
     status: run.status,
@@ -604,6 +621,7 @@ function buildRun(compiled, options, now, writerIdentity, writerLeaseTtlMs) {
   const run = {
     id,
     compiled,
+    definitionMigration: clone(compiled.definitionMigration || null),
     phase: "open",
     status: "running",
     graphRevision: compiled.revision,
@@ -1185,6 +1203,13 @@ function classifyQuiescence(run, now) {
     return "running";
   }
   if (
+    [...run.humanTasks.values()].some((task) =>
+      ["open", "claimed"].includes(task.status),
+    )
+  ) {
+    return "waiting_human";
+  }
+  if (
     [...run.attempts.values()].some((attempt) =>
       ACTIVE_ATTEMPT.has(attempt.status),
     )
@@ -1204,13 +1229,6 @@ function classifyQuiescence(run, now) {
     )
   ) {
     return "reconciliation_required";
-  }
-  if (
-    [...run.humanTasks.values()].some((task) =>
-      ["open", "claimed"].includes(task.status),
-    )
-  ) {
-    return "waiting_human";
   }
   if (
     [...run.messages.values()].some((message) =>
@@ -4346,6 +4364,9 @@ export class GraphKernel {
         }
         task.updatedAt = nowIso(() => now);
         run.status = classifyQuiescence(run, now);
+        if (TERMINAL_RUN.has(run.status)) {
+          run.completedAt = nowIso(() => now);
+        }
         return humanTaskProjection(task);
       },
     );

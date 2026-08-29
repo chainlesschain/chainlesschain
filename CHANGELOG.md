@@ -7,6 +7,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.10: governed Graph Kernel production cutover evidence
+
+> `chainlesschain` **0.166.9 -> 0.166.10** (release candidate,
+> 2026-08-29).
+
+- **Production evidence aggregate**: `graph:production-evidence` verifies the
+  complete staged Graph Kernel cutover evidence set against the exact protected
+  source commit, producer run, inventory, rollout ledger, and qualification
+  artifacts before it can emit a passing receipt.
+- **Fail-closed coverage**: the verifier requires all 20 durable entries, nine
+  projection classes, three rollback modes, every retired writer and mutation,
+  and all three explicitly disabled Browser/Remote entries; missing, duplicate,
+  stale, cross-run, or digest-mismatched evidence is rejected.
+- **Protected consumption**: the production cutover workflow is bound to
+  reviewed GitHub Environments, downloads artifacts from the selected protected
+  producer run, and publishes a content-free receipt only after recomputing the
+  complete aggregate locally.
+- **Honest rollout boundary**: this release ships the verifier and protected
+  consumer, but does not claim that a production rollout occurred; P1-12 closes
+  only after the real environment supplies a valid staged-rollout artifact for
+  the same exact SHA.
+
+### Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates
+
+> `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,
+> 2026-08-29). Agent Protocol and TypeScript Agent SDK candidate versions
+> remain `0.1.6` and `0.2.5`; Python Agent SDK moves to `0.2.6` after the
+> immutable `0.2.5` candidate was withheld from PyPI because its release
+> metadata named an unpublished CLI.
+
+- **Real UI driver**: reviewed Record & Replay drafts can execute the bounded
+  `observe/click/type/select/assert` vocabulary in an ephemeral Playwright
+  Chromium context instead of relying on a fake executor.
+- **Fail-closed isolation**: the driver denies filesystem, HTTP(S), and
+  WebSocket requests, requires exact reviewed capabilities and selectors, and
+  rejects ambiguous targets, environment drift, network attempts, or missing
+  terminal evidence.
+- **Content-free receipts**: selectors, typed values, page text, URLs, and
+  screenshots never enter reports; only domain-separated state, page,
+  screenshot, target, and receipt digests plus bounded structural metadata are
+  retained.
+- **Cross-platform authority**: a dedicated exact-SHA GitHub Actions matrix
+  runs the positive journey and an active network-escape probe in real Chromium
+  on Linux, Windows, and macOS, then refuses partial evidence in its aggregate.
+- **Exact Codex admission**: the optional experimental App Server adapter now
+  admits only explicitly listed upstream patch versions; prereleases and
+  unverified future patches fail closed to the stable `codex exec --json`
+  fallback before turn admission.
+- **Version-bound App Server evidence**: a second exact-SHA Actions matrix
+  generates each upstream version's own schema and exercises the documented
+  `initialize -> initialized -> thread/list` stdio lifecycle on Linux,
+  Windows, and macOS without making a model request.
+- **Removal readiness**: every compatibility job proves that production CLI
+  source has no dependency on the optional adapter and that the stable Codex
+  JSONL fallback still executes and projects terminal output independently.
+- **Windows strict-sandbox cleanup**: target-identity cleanup remains bound to
+  the stable file object while tolerating size and timestamp metadata settling
+  after the native helper closes its writer; same-path replacement is still
+  rejected.
+- **JetBrains real-host gate**: plan-review document access now runs inside
+  explicit IntelliJ read/write actions, and the UI journey targets the current
+  one-time permission label on every supported host/version pair.
+- **Python release metadata**: the `0.2.6` patch keeps the `0.2.5` runtime API
+  and generated protocol bindings while pointing install guidance at the latest
+  CLI that is actually available from the public npm registry.
+
+### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
+
+> `chainlesschain` **0.166.7 -> 0.166.8**,
+> `@chainlesschain/agent-protocol` **0.1.5 -> 0.1.6**,
+> `@chainlesschain/agent-sdk` **0.2.4 -> 0.2.5**, and
+> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (release candidate,
+> 2026-08-29).
+> VS Code **0.37.72 -> 0.37.73** and JetBrains
+> **0.4.103 -> 0.4.104** carry the paired governed review surfaces.
+
+- **Durable Graph history**: fixed App Server/SDK clients expose bounded,
+  metadata-only event and snapshot history for blocked-root, revision-diff,
+  and time-travel debugging across CLI, Desktop, and VS Code.
+- **Recoverable HumanTask quorum**: Graph human nodes persist exact
+  revision/attempt/operation bindings, release Agent capacity while waiting,
+  and enforce single-winner cancel/decision CAS, quorum, and separation of
+  duties through the Desktop product surface.
+- **IDE review parity**: VS Code adds bounded Graph history/diff projection;
+  both IDEs enforce revision-bound approval grants and single-winner
+  settlement without accepting UI-derived authority.
+- **Migration and retirement evidence**: N-1 definition backups, rollback
+  digests, replay validation, replacement reachability, historical reads, and
+  zero-success legacy-writer observations are bound to durable exact-SHA
+  evidence rather than prose-only rollout claims.
+- **Reliability gates**: temporal message custody, dependency/scope fairness,
+  cross-process DAG recovery, effect idempotency, and worktree cleanup have
+  explicit bounded artifacts and fail-closed aggregate checks.
+- **Release validation**: publication requires this exact candidate to pass
+  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and
+  `CLI Strict Sandbox`, the Graph real-journey matrix, immutable package
+  checks, and public-registry provenance readback.
+
 ### Added - Desktop Graph Run Debugger and governed Cowork Skill execution
 
 > Desktop source updates recorded from `3e4d70eb52` through `2286267dea`

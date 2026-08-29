@@ -1,0 +1,152 @@
+name: CLI Team Fairness Soak
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-team-fairness-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/session-core/**"
+      - "packages/cli/src/lib/agent-team/task-lease.js"
+      - "packages/cli/src/lib/agent-team/team-runner.js"
+      - "packages/cli/src/lib/agent-team/team-scope-lock.js"
+      - "packages/cli/scripts/team-fairness-soak.mjs"
+      - "packages/cli/__tests__/unit/task-lease-registry.test.js"
+      - "packages/cli/__tests__/unit/team-runner-scope.test.js"
+      - "packages/cli/__tests__/unit/team-fairness-soak.test.js"
+      - "packages/cli/__tests__/unit/team-fairness-soak-workflow.test.js"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to soak"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  fairness-soak:
+    name: "dependency/scope/aging fairness (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      CC_TEAM_FAIRNESS_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_TEAM_FAIRNESS_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+      CC_TEAM_FAIRNESS_WORKFLOW_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+    steps:
+      - name: Require a lowercase exact fairness commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CC_TEAM_FAIRNESS_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          test "${CC_TEAM_FAIRNESS_WORKFLOW_SHA}" = "${CC_TEAM_FAIRNESS_EXPECTED_SHA}"
+
+      - name: Checkout exact fairness commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_TEAM_FAIRNESS_EXPECTED_SHA }}
+
+      - name: Bind checkout to exact fairness commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${CC_TEAM_FAIRNESS_EXPECTED_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run sustained high-priority and scope-conflict fairness soak
+        env:
+          CC_TEAM_FAIRNESS_OUTPUT: ${{ runner.temp }}/team-fairness-${{ runner.os }}.json
+        run: npm run test:cli-team-fairness-soak
+
+      - name: Upload exact-SHA fairness evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-team-fairness-${{ runner.os }}-${{ env.CC_TEAM_FAIRNESS_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/team-fairness-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  fairness-soak-aggregate:
+    name: Team fairness soak aggregate
+    if: always()
+    needs: fairness-soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CC_TEAM_FAIRNESS_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_TEAM_FAIRNESS_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+      CC_TEAM_FAIRNESS_WORKFLOW_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+    steps:
+      - name: Refuse an incomplete fairness platform matrix
+        if: needs.fairness-soak.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one Team fairness host failed or did not finish"
+          exit 1
+
+      - name: Checkout exact fairness commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_TEAM_FAIRNESS_EXPECTED_SHA }}
+
+      - name: Bind aggregate checkout to exact fairness commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CC_TEAM_FAIRNESS_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${CC_TEAM_FAIRNESS_EXPECTED_SHA}"
+          test "${CC_TEAM_FAIRNESS_WORKFLOW_SHA}" = "${CC_TEAM_FAIRNESS_EXPECTED_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Download complete three-platform fairness evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-team-fairness-*-${{ env.CC_TEAM_FAIRNESS_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-team-fairness-evidence
+          merge-multiple: true
+
+      - name: Verify exact SHA, 3x SLO duration, workload, and fairness invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/team-fairness-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/cli-team-fairness-evidence" \
+            --release-commit "${CC_TEAM_FAIRNESS_EXPECTED_SHA}" \
+            --mode "${CC_TEAM_FAIRNESS_MODE}" \
+            --output "${RUNNER_TEMP}/cli-team-fairness-aggregate.json"
+
+      - name: Upload immutable fairness aggregate
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-team-fairness-aggregate-${{ env.CC_TEAM_FAIRNESS_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-team-fairness-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.166.7",
+  "version": "0.166.10",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -18,8 +18,11 @@
     "test:all": "vitest run && vitest run --config vitest.e2e.config.js __tests__/e2e/",
     "test:watch": "vitest watch",
     "test:scheduler-reliability-soak": "node scripts/scheduler-reliability-soak.mjs",
+    "test:session-message-reliability-soak": "node scripts/session-message-reliability-soak.mjs",
+    "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",
     "graph:store-evidence": "node scripts/graph-store-cutover-evidence.mjs",
+    "graph:production-evidence": "node scripts/graph-production-cutover-evidence.mjs",
     "test:graph-cli-store-cutover": "node scripts/graph-cli-store-cutover-journey.mjs",
     "lint": "eslint src/ bin/ --ext .js",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
