@@ -240,8 +240,11 @@ async function runGradle(args, logRoot, label) {
 }
 
 export function isRobotStartupFailure(error) {
-  return /robot server at http:\/\/(?:127\.0\.0\.1|localhost):\d+ did not come up within \d+s/u.test(
-    String(error?.processOutput || ""),
+  const details = [error?.message, error?.processOutput]
+    .filter(Boolean)
+    .join("\n");
+  return /(?:robot server at http:\/\/(?:127\.0\.0\.1|localhost):\d+ did not come up within \d+s|Remote Robot did not become ready within \d+ms|sandbox IDE exited before Remote Robot became ready)/iu.test(
+    details,
   );
 }
 

@@ -46,6 +46,7 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
   let db;
   let didManager;
   let orgP2PNetwork;
+  let orgManager;
   let yjsCollabManager;
   let syncManager;
   let testDbPath;
@@ -140,7 +141,6 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
 
     // 模拟 YjsCollabManager
     yjsCollabManager = {
-      applyUpdate: vi.fn(),
       getDocument: vi.fn((docId) => ({
         on: vi.fn(),
         off: vi.fn(),
@@ -163,16 +163,20 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
       sendMessage: vi.fn(async () => true),
       node: {
         handle: vi.fn(async () => {}),
+        unhandle: vi.fn(async () => {}),
         services: {
           pubsub: {
             publish: vi.fn(async () => {}),
             subscribe: vi.fn(async () => {}),
+            unsubscribe: vi.fn(async () => {}),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
           },
         },
       },
     };
 
-    const orgManager = new OrganizationManager(db, didManager, p2pManager);
+    orgManager = new OrganizationManager(db, didManager, p2pManager);
     testOrg = await orgManager.createOrganization({
       name: "Test Org for Knowledge Sync",
       type: "startup",
@@ -203,11 +207,12 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // 清理
     if (syncManager) {
       syncManager.destroy();
     }
+    await orgManager?.close?.();
     // Close the real DB connection so the native handle doesn't leak per test.
     try {
       db?.close();

@@ -1,0 +1,222 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import {
+  FORMAL_PROFILE,
+  FROZEN_THRESHOLDS,
+  PLATFORM_SCHEMA,
+  enforceQualityThresholds,
+  qualityEvidenceDigest,
+  sealPlatformRecord,
+  summarizeQualityRounds,
+  validatePlatformRecord,
+  verifyQualityMatrix,
+} from "../../scripts/graph-collaboration-quality-eval.mjs";
+
+const COMMIT = "a".repeat(40);
+const CHALLENGE = "run-42:1:" + COMMIT;
+
+function round(seed, overrides = {}) {
+  const results = (passed, digit) =>
+    FORMAL_PROFILE.taskIds.map((id, index) => ({
+      id,
+      pass: index < passed,
+      detail: "fixture",
+      outcomeDigest: `sha256:${digit.repeat(64)}`,
+    }));
+  const controlPassed =
+    overrides.control?.passed ?? FORMAL_PROFILE.taskIds.length;
+  const candidatePassed =
+    overrides.candidate?.passed ?? FORMAL_PROFILE.taskIds.length;
+  const controlResults =
+    overrides.control?.results || results(controlPassed, "1");
+  const candidateResults =
+    overrides.candidate?.results || results(candidatePassed, "2");
+  const control = {
+    total: FORMAL_PROFILE.taskIds.length,
+    passed: controlPassed,
+    tokens: 1000,
+    costUsd: 0.1,
+    durationMs: 1000,
+    unrelatedChangeRate: 0,
+    unrelatedChanges: [],
+    results: controlResults,
+    outcomeDigest: qualityEvidenceDigest(
+      controlResults.map(({ id, pass, outcomeDigest }) => ({
+        id,
+        pass,
+        outcomeDigest,
+      })),
+    ),
+    ...overrides.control,
+  };
+  const candidate = {
+    total: FORMAL_PROFILE.taskIds.length,
+    passed: candidatePassed,
+    tokens: 1200,
+    costUsd: 0.12,
+    durationMs: 900,
+    unrelatedChangeRate: 0,
+    unrelatedChanges: [],
+    results: candidateResults,
+    outcomeDigest: qualityEvidenceDigest(
+      candidateResults.map(({ id, pass, outcomeDigest }) => ({
+        id,
+        pass,
+        outcomeDigest,
+      })),
+    ),
+    graphRunId: `graph:${seed}`,
+    graphProjectionDigest: `sha256:${"3".repeat(64)}`,
+    graphMetrics: {
+      deadlocked: 0,
+      reconciliationRequired: 0,
+      messageVisibilityRate: 1,
+      handoffCompletionRate: 1,
+    },
+    ...overrides.candidate,
+  };
+  return {
+    seed,
+    behaviorEquivalent: overrides.behaviorEquivalent ?? 1,
+    control,
+    candidate,
+  };
+}
+
+function platform(platform, index = 0, overrides = {}) {
+  const rounds = overrides.rounds || [round(101), round(202), round(303)];
+  const metrics = summarizeQualityRounds(rounds);
+  const gate = enforceQualityThresholds(metrics);
+  return sealPlatformRecord({
+    schema: PLATFORM_SCHEMA,
+    status: "passed",
+    commitSha: COMMIT,
+    challenge: CHALLENGE,
+    executionId: `run:${platform}:${index}`,
+    platform,
+    architecture: "x64",
+    node: "v22.12.0",
+    provider: "openai",
+    model: "gpt-5-mini",
+    profile: FORMAL_PROFILE,
+    thresholds: FROZEN_THRESHOLDS,
+    startedAt: "2026-08-29T00:00:00.000Z",
+    completedAt: "2026-08-29T00:30:00.000Z",
+    durationSeconds: 1800,
+    rounds,
+    metrics,
+    gate,
+    ...overrides.record,
+  });
+}
+
+describe("graph collaboration quality evidence", () => {
+  it("recomputes a passing formal platform report", () => {
+    const record = platform("linux");
+    expect(
+      validatePlatformRecord(record, {
+        commitSha: COMMIT,
+        challenge: CHALLENGE,
+      }),
+    ).toBe(record);
+    const { evidenceDigest, ...body } = record;
+    expect(evidenceDigest).toBe(qualityEvidenceDigest(body));
+  });
+
+  it("rejects a forged platform report", () => {
+    const record = platform("linux");
+    expect(() =>
+      validatePlatformRecord(
+        { ...record, durationSeconds: 9999 },
+        { commitSha: COMMIT },
+      ),
+    ).toThrow(/digest/u);
+  });
+
+  it("rejects a threshold regression even when the report claims passed", () => {
+    const rounds = [1, 2, 3].map((seed) =>
+      round(seed, {
+        candidate: { passed: 3 },
+        behaviorEquivalent: 0,
+      }),
+    );
+    const metrics = summarizeQualityRounds(rounds);
+    expect(enforceQualityThresholds(metrics)).toMatchObject({ passed: false });
+    const forged = platform("linux", 0, {
+      rounds,
+      record: {
+        metrics,
+        gate: { passed: true, failures: [] },
+      },
+    });
+    expect(() => validatePlatformRecord(forged)).toThrow(/threshold/u);
+  });
+
+  it("rejects self-reported task totals that do not match task evidence", () => {
+    const record = platform("linux");
+    const body = structuredClone(record);
+    delete body.evidenceDigest;
+    body.rounds[0].candidate.passed = FORMAL_PROFILE.taskIds.length - 1;
+    body.metrics = summarizeQualityRounds(body.rounds);
+    body.gate = enforceQualityThresholds(body.metrics);
+    expect(() => validatePlatformRecord(sealPlatformRecord(body))).toThrow(
+      /pass totals/u,
+    );
+  });
+
+  it("accepts exactly one same-run record from each operating system", () => {
+    const matrix = verifyQualityMatrix(
+      [platform("linux"), platform("macos"), platform("windows")],
+      { commitSha: COMMIT, challenge: CHALLENGE },
+    );
+    expect(matrix).toMatchObject({
+      status: "passed",
+      commitSha: COMMIT,
+      platforms: ["linux", "macos", "windows"],
+      gate: { passed: true },
+    });
+    expect(matrix.aggregateDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
+  it("rejects mixed runs and replayed platform executions", () => {
+    const linux = platform("linux");
+    const macos = platform("macos");
+    const windows = platform("windows");
+    const mixedBody = {
+      ...windows,
+      challenge: "another-run",
+    };
+    delete mixedBody.evidenceDigest;
+    expect(() =>
+      verifyQualityMatrix([linux, macos, sealPlatformRecord(mixedBody)]),
+    ).toThrow(/mixes|challenge/u);
+
+    const replayBody = { ...windows, executionId: linux.executionId };
+    delete replayBody.evidenceDigest;
+    expect(() =>
+      verifyQualityMatrix([linux, macos, sealPlatformRecord(replayBody)]),
+    ).toThrow(/distinct/u);
+  });
+
+  it("keeps the workflow protected, exact-SHA, long-running, and attested", () => {
+    const root = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../../..",
+    );
+    const workflow = fs.readFileSync(
+      path.join(root, ".github/workflows/graph-collaboration-quality-eval.yml"),
+      "utf8",
+    );
+    expect(workflow).toContain("environment: graph-collaboration-quality");
+    expect(workflow).toContain('test "$EXPECTED_SHA" = "$SOURCE_SHA"');
+    expect(workflow).toContain("--duration-seconds 1800");
+    expect(workflow).toContain("--min-rounds 3");
+    expect(workflow).toContain("CC_LLM_API_KEY");
+    expect(workflow).toContain("vars.CC_LLM_PROVIDER");
+    expect(workflow).toContain("vars.CC_LLM_MODEL");
+    expect(workflow).toContain("actions/attest-build-provenance@v3");
+    expect(workflow).not.toContain("continue-on-error");
+  });
+});

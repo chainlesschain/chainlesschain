@@ -62,10 +62,14 @@ describe("OrganizationManager Unit Tests", () => {
       sendMessage: vi.fn(async () => true),
       node: {
         handle: vi.fn(async () => {}),
+        unhandle: vi.fn(async () => {}),
         services: {
           pubsub: {
             publish: vi.fn(async () => {}),
             subscribe: vi.fn(async () => {}),
+            unsubscribe: vi.fn(async () => {}),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
           },
         },
       },
@@ -75,7 +79,8 @@ describe("OrganizationManager Unit Tests", () => {
     orgManager = new OrganizationManager(db, didManager, p2pManager);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await orgManager?.close?.();
     // Close the real DB connection so the native handle doesn't leak per test.
     try {
       db?.close();

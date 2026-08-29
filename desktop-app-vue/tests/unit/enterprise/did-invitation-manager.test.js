@@ -101,6 +101,9 @@ describe("DIDInvitationManager Unit Tests", () => {
           p2pManager._handlers = p2pManager._handlers || {};
           p2pManager._handlers[protocol] = handler;
         }),
+        unhandle: vi.fn(async (protocol) => {
+          delete p2pManager._handlers?.[protocol];
+        }),
       },
     };
 
@@ -116,7 +119,9 @@ describe("DIDInvitationManager Unit Tests", () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await invitationManager?.close?.();
+    await orgManager?.close?.();
     // Close the real better-sqlite3 connection before unlinking. Each test opens
     // a DatabaseManager in beforeEach; without this the native handle leaks every
     // test (40+ open connections) → worker memory/handle exhaustion → "Worker
@@ -791,6 +796,7 @@ describe("DIDInvitationManager Unit Tests", () => {
         }),
         node: {
           handle: vi.fn(),
+          unhandle: vi.fn(),
         },
       };
 
@@ -813,6 +819,7 @@ describe("DIDInvitationManager Unit Tests", () => {
 
       // 验证P2P发送被尝试
       expect(failingP2PManager.sendEncryptedMessage).toHaveBeenCalled();
+      await failingInvitationManager.close();
     });
   });
 
@@ -1003,6 +1010,7 @@ describe("DIDInvitationManager Unit Tests", () => {
         }),
         node: {
           handle: vi.fn(),
+          unhandle: vi.fn(),
         },
       };
 
@@ -1021,6 +1029,7 @@ describe("DIDInvitationManager Unit Tests", () => {
       });
 
       expect(invitation).toBeDefined();
+      await failingInvitationManager.close();
     });
 
     it("should handle invalid invitation data", async () => {
