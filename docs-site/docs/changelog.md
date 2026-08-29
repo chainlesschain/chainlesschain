@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+#### Added — Agent Platform CLI 0.166.9、SDK/Protocol 与 IDE 协调发布
+
+> `chainlesschain@0.166.9` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-9` 精确指向 [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796205)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869268)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869286)、[Record Replay](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796228)、[Codex compatibility](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796157)与[Desktop signed Skill qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869336)均成功。
+
+- **Graph 与协作**：完整承接未单独发布的 `0.166.8` 源码候选，包括 durable history、definition migration/retirement evidence、可恢复 quorum HumanTask、Team fairness、temporal message reliability 与跨端审批 single-winner CAS。
+- **真实 UI replay**：Playwright 旅程只允许审阅后的 observe/click/type/select/assert 词汇；filesystem、HTTP(S) 与 WebSocket escape probe 在 Linux/Windows/macOS 均失败闭合，receipt 不保存用户内容。
+- **Codex compatibility**：可选 App Server adapter 使用 exact-version allow-list；未知或预发布版本在 turn admission 前回退稳定的 `codex exec --json`，不在半轮执行后切换协议。
+- **公共包**：TypeScript Agent SDK `0.2.5`、Python Agent SDK `0.2.6` 与 Agent Protocol `0.1.6` 已公开；Python `0.2.5` 未发布。
+- **IDE**：Open VSX `0.37.73` 已公开并突破 3.2 万下载；JetBrains Marketplace 当前仍为 `0.4.103`，源码/tag `0.4.104` 等待公网回读。
+- **发布边界**：签名 Desktop Skill qualification 证明 exact-SHA 候选包的安装、签名、启动与真实 Skill journey，不等同于公共 native 分发；更晚远端主线 `5ae6fe2451` 不继承 `0.166.9` 发布身份。
+
 #### Added — CLI 0.166.7 Graph 权威入口与 Desktop Graph / Skill 安全源码增量
 
 > `chainlesschain@0.166.7` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-7` 精确指向 [`19834a1845`](https://github.com/chainlesschain/chainlesschain/commit/19834a18457c1b763b5a7a2cfada713340e7c273)；同一发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181913)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181656)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33154181649)均成功。Open VSX `0.37.72` 与 JetBrains `0.4.103` 也已公开。

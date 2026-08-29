@@ -11,6 +11,7 @@ const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
+const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 
 // Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
 // the same parser that powers `cc changelog` — no committed snapshot to go
@@ -463,7 +464,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest is <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>. Exact release commit <code class="font-mono">{CLI_RELEASE_COMMIT}</code> completes the Graph authoritative-entry cutover while retaining the 37 canonical Agent stream events, cross-language envelope validators, custody, SessionMessageFabric, and structured approvals. Post-release remote mainline <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> and Desktop source <code class="font-mono">{DESKTOP_SOURCE_COMMIT}</code> carry collaboration-lifecycle and Skill-broker hardening without changing npm release identity. The TypeScript and Python Agent SDKs are {AGENT_SDK_VERSION}.
+          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest is <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>. Exact release commit <code class="font-mono">{CLI_RELEASE_COMMIT}</code> carries Graph authoritative cutover, durable history/retirement, quorum HumanTask, Team fairness, temporal messaging, and single-winner approval CAS, with dedicated real UI replay, Codex compatibility, and signed Desktop Skill qualification gates. Later remote mainline <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> does not inherit release identity; qualification is not public native distribution. The TypeScript Agent SDK is {AGENT_SDK_VERSION}; Python is {PYTHON_AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -653,7 +654,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, real-Team-child messaging, and Agent SDK {AGENT_SDK_VERSION}. Exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry/provenance readback; the preceding `0.166.5` 1,800-second App Server overload/RSS soak and npm/PyPI SDK install readback remain the corresponding focused evidence.
         </p>
         <p class="mt-4 text-lg text-muted">
-          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. Later source {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} and Desktop {DESKTOP_SOURCE_COMMIT} do not automatically receive new CLI release authorization.
+          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. Desktop qualification at the same exact SHA {DESKTOP_SOURCE_COMMIT} proves candidate eligibility only; later source {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} does not automatically receive new CLI release authorization.
         </p>
       </div>
     </div>

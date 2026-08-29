@@ -1,6 +1,6 @@
 # Desktop Graph 调试与 Skill 安全执行
 
-> 适用范围：2026-08-28 Desktop 源码快照。公开 CLI 的生产推荐版仍按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.7`。
+> 适用范围：2026-08-29 Desktop 源码与 exact-SHA qualification 快照。公开 CLI 的生产推荐版仍按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.9`，精确发布 SHA 为 `222396f6a8`。
 
 本页介绍两项最新 Desktop 能力：Graph Run Debugger，以及 Cowork Skill 的签名、隔离和能力代理。两者都会自动工作，普通用户不需要手工配置安全 Broker。
 
@@ -64,6 +64,8 @@ Debugger 不持有 writer authority；外部 Worker 也不持有 Electron、数�
 
 当前源码测试覆盖 Graph reducer/Debugger 视图与多入口集成，以及外部 Skill 缺签名、未知 key、摘要漂移、超时、中止、超限 frame 和强制隔离不可用等失败路径。内置 Skill 门禁还会重新生成能力目录，并检查固定/动态网络、本地服务、诊断、进程与环境 Broker 的目标、SSRF、秘密泄漏和资源上限。
 
+同一 exact SHA 的 signed Desktop Skill qualification 还会绑定候选安装包、安装记录、签名记录与启动探针：macOS 使用明确的 app/inherit entitlements 和 after-sign notarization 钩子，打包后真实 Skill journey 复验能力目录、Broker、一次性 Worker 与宿主边界。该门已成功，但只代表 CI 资格证据；公共下载渠道的 fresh install、upgrade、rollback、notarization/updater 回读仍是独立发行条件。
+
 ## 安全考虑
 
 Desktop Skills 分成三类：
@@ -107,6 +109,11 @@ Broker 会拒绝通配符域名、IP 字面量、私网/loopback/link-local/mult
 - `desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-capability-catalog.js`
 - `desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-environment-broker.js`
 - `desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-process-broker.js`
+- `desktop-app-vue/scripts/create-signed-desktop-skill-evidence.mjs`
+- `desktop-app-vue/scripts/record-signed-desktop-install.mjs`
+- `desktop-app-vue/scripts/record-signed-desktop-signature.mjs`
+- `desktop-app-vue/scripts/signed-desktop-skill-journey.mjs`
+- `desktop-app-vue/src/main/signed-desktop-launch-probe.js`
 
 ## 使用示例
 
@@ -118,7 +125,7 @@ Broker 会拒绝通配符域名、IP 字面量、私网/loopback/link-local/mult
 
 ## 相关文档
 
-公开 CLI `0.166.7@19834a1845` 完成的是 Graph Kernel authoritative entry cutover、耐久 fencing/recovery 和 legacy mutation fail-closed。Desktop Graph 调试器与 Skill 隔离/Broker 是随后记录在 Desktop 源码线的产品能力，不能据此推断 npm 包含这些 Electron 组件。
+公开 CLI `0.166.9@222396f6a8` 承接 Graph Kernel authoritative entry cutover、耐久 history/retirement、quorum HumanTask、审批 CAS、真实 UI replay 与 Codex compatibility。Desktop Graph 调试器、Skill 隔离/Broker 和签名 qualification 仍按 Desktop 制品边界说明，不能据此推断 npm 包含这些 Electron 组件，也不能把资格门扩写为公共 native 发行已经完成。
 
 相关文档：
 

@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.7 推荐 / npm latest · Agent SDK 0.2.4 · Open VSX 0.37.72 · JetBrains 0.4.103｜Graph authoritative cutover · Desktop Skill brokers";
+        "v5.0.3.135 · CLI 0.166.9 推荐 / npm latest · Agent SDK TS 0.2.5 / Python 0.2.6 · Open VSX 0.37.73 · JetBrains 公开 0.4.103｜UI replay · Graph history · signed Skill qualification";
     }
   },
 
@@ -177,9 +177,13 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.7（推荐）",
+          text: "🧩 Agent Platform 0.166.9（推荐）",
           collapsed: false,
           items: [
+            {
+              text: "0.166.9 发布、升级与证据边界 ⭐NEW",
+              link: "/chainlesschain/agent-platform-release",
+            },
             {
               text: "CC App Server 使用指南 ⭐NEW",
               link: "/chainlesschain/cli-app-server",
@@ -258,7 +262,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (推荐 0.166.5 / npm 0.166.6) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (推荐 / npm 0.166.9) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1818,7 +1822,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.4) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.9) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {
@@ -1952,6 +1956,10 @@ export default defineConfig({
             {
               text: "109 Desktop Cowork Skill 执行安全 ⭐NEW",
               link: "/design/modules/109_Desktop_Cowork_Skill_Execution_Security",
+            },
+            {
+              text: "110 Agent Platform 发布与证据边界 ⭐NEW",
+              link: "/design/modules/110-agent-platform-release-boundaries",
             },
             {
               text: "60b CLI指令技能包 ⭐",

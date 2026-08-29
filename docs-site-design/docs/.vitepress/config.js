@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI / npm latest 0.166.7 · Agent SDK 0.2.4 · Open VSX 0.37.72 · JetBrains 0.4.103｜Graph Authority · Desktop Skill Security";
+        "v5.0.3.135 · CLI / npm latest 0.166.9 · Agent SDK TS 0.2.5 / Python 0.2.6 · Open VSX 0.37.73 · JetBrains 公开 0.4.103｜UI Replay · Graph History · Skill Qualification";
     }
   },
 
@@ -153,6 +153,10 @@ export default defineConfig({
           {
             text: "Desktop Cowork Skill 执行安全 (109) ⭐NEW",
             link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
+          },
+          {
+            text: "Agent Platform 发布与证据边界 (110) ⭐NEW",
+            link: "/modules/110-agent-platform-release-boundaries",
           },
         ],
       },
@@ -898,7 +902,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.4) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.9) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {
@@ -1032,6 +1036,10 @@ export default defineConfig({
             {
               text: "109 Desktop Cowork Skill 执行安全 ⭐NEW",
               link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
+            },
+            {
+              text: "110 Agent Platform 发布与证据边界 ⭐NEW",
+              link: "/modules/110-agent-platform-release-boundaries",
             },
           ],
         },

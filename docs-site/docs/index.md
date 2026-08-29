@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.7 | Agent SDK 0.2.4 | IDE Bridge 3.1 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.9 | Agent SDK TS 0.2.5 / Python 0.2.6 | IDE Bridge 3.2 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.7
-    details: CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server 统一进入 Graph Kernel cutover ledger；恢复、接管与 legacy mutation 均由耐久 authority 约束。
-    link: /chainlesschain/cli-team
+    title: Agent Platform 0.166.9
+    details: 公开耐久 Graph 历史与退役证据、HumanTask quorum、Team 公平性、真实 UI replay、exact-version Codex compatibility 与多端审批 single-winner CAS。
+    link: /chainlesschain/agent-platform-release
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
     details: Agent Protocol v1 以版本化 JSON Schema 统一 TS、Python、Kotlin、Swift 类型、validator、兼容基线与发布门禁。
@@ -41,8 +41,8 @@ features:
     details: 外部 Handler 必须经 Ed25519、摘要重读和一次性隔离 Worker；内置 Handler 绑定生成能力目录，网络/模型/诊断经有界宿主 Broker。
     link: /chainlesschain/desktop-graph-skill-security
   - icon: 🧑‍💻
-    title: IDE Bridge 突破 3.1 万下载
-    details: Open VSX 0.37.72 与 JetBrains 0.4.103 已公开回读，并重新认证 CLI 0.166.7 的 Graph authority、fenced recovery 与 legacy containment。
+    title: IDE Bridge 突破 3.2 万下载
+    details: Open VSX 0.37.73 已公开；JetBrains Marketplace 为 0.4.103，源码/标签 0.4.104 等待市场回读。双端继续保持 CLI-authoritative 投影与 single-winner settlement。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -52,10 +52,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.7、VS Code 0.37.72 与 JetBrains 0.4.103 绑定 exact SHA 19834a1845；三平台门禁、不可变制品、provenance 与公网回读均已闭环。
+    details: CLI 0.166.9 与 VS Code 0.37.73 绑定 exact SHA 222396f6a8；三平台 CLI、Strict Sandbox、npm、UI replay、Codex compatibility 与 Desktop 签名 Skill 资格门均已完成。
 ---
 
-> **2026-08-28 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 均为 `0.166.7`，TypeScript/Python Agent SDK 为 `0.2.4`，Agent Protocol 为 `0.1.5`，PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-7` 的 exact SHA [`19834a1845`](https://github.com/chainlesschain/chainlesschain/commit/19834a18457c1b763b5a7a2cfada713340e7c273) 已通过三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读。Open VSX `0.37.72` 与 JetBrains `0.4.103` 已公开，IDE Bridge 下载量突破 **3.1 万**。发布后的 Desktop 源码 `2286267dea` 增加 Graph 调试与 Skill 网络、shell 进程、环境能力 Broker，远端主线 `5edef7544b` 增加协作、联邦、gossip 与 mesh 留存状态生命周期边界；二者均不冒充 `0.166.7` 制品。详细入口：[GraphRun 观测](/chainlesschain/cli-team-graph)、[Desktop Graph 与 Skill 安全](/chainlesschain/desktop-graph-skill-security)、[实时协作](/chainlesschain/realtime-collab)、[IDE 插件](/chainlesschain/ide-plugin)与[CLI Runtime](/chainlesschain/cli-runtime-current)。
+> **2026-08-29 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 均为 `0.166.9`，TypeScript Agent SDK 为 `0.2.5`、Python Agent SDK 为 `0.2.6`、Agent Protocol 为 `0.1.6`、PDH 为 `0.4.59`。不可变 tag `v-npm-0-166-9` 的 exact SHA [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003) 已通过三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读；真实 UI replay、Codex compatibility 与签名 Desktop Skill qualification 专项门也成功。Open VSX `0.37.73` 已公开并突破 **3.2 万**下载；JetBrains Marketplace 当前为 `0.4.103`，源码/标签 `0.4.104` 等待公网回读。详细入口：[0.166.9 发布指南](/chainlesschain/agent-platform-release)、[GraphRun 观测](/chainlesschain/cli-team-graph)、[Desktop Graph 与 Skill 安全](/chainlesschain/desktop-graph-skill-security)、[IDE 插件](/chainlesschain/ide-plugin)与[CLI Runtime](/chainlesschain/cli-runtime-current)。
 
 > **2026-08-28 文档更新**：[上下文与记忆](/chainlesschain/context-memory) 用户指南与[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 设计文档已建立双向入口。模块 108 的架构设计已经完成；CLI、Desktop、IDE 的单一 writer 和 authoritative cutover 仍按设计阶段迁移，不能表述为已上线统一内核。
 

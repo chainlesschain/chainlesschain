@@ -1,6 +1,6 @@
 # 命名定时/触发任务 — Cron / Once / Webhook / GitHub（`cc routine`）
 
-> **适用版本：CLI 0.166.6（生产推荐与 npm latest 一致）· 更新：2026-08-27 | cron / once / manual / GitHub 均接入统一 Scheduler Kernel | Automation Center + revision CAS | 四种触发 + 运行历史 + 成本汇总**
+> **适用版本：CLI 0.166.9（生产推荐与 npm latest 一致）· 更新：2026-08-29 | cron / once / manual / GitHub 均接入统一 Scheduler Kernel | Automation Center + revision CAS | 四种触发 + 运行历史 + 成本汇总**
 >
 > `cc routine` 是 `cc agenda` 之上的**持久化命名层**：给一个反复要跑的 Agent 任务起个名字、绑一种触发方式、随时启用/停用，并保留一份**只增不改的运行历史**（含每次的输出、token 用量与成本）。
 
@@ -150,7 +150,7 @@ cc routine logs run-abc123      # 某次运行的完整 Agent 输出
 | 项           | 机制                                                  | 默认       | 备注                                          |
 | ------------ | ----------------------------------------------------- | ---------- | --------------------------------------------- |
 | Routine 存储 | `~/.chainlesschain/routines/`（`0700`）               | —          | `routines.json` + `runs.jsonl` + `logs/*.log` |
-| 调度状态     | `~/.chainlesschain/scheduler/kernel-v1.sqlite`         | —          | job / occurrence / claim / history            |
+| 调度状态     | `~/.chainlesschain/scheduler/kernel-v1.sqlite`        | —          | job / occurrence / claim / history            |
 | 环境变量     | **无**（不读任何 `CC_*` / `process.env`）             | —          | 存储路径从 `os.homedir()` 硬派生              |
 | cron 语法    | 标准 5 字段 `分 时 日 月 周`                          | —          | 与 `cc agenda` 共享解析引擎                   |
 | github 触发  | 依赖已认证的 `gh` CLI（`gh api repos/<repo>/events`） | —          | `gh` 出错则解析为空（不触发）                 |
@@ -170,10 +170,10 @@ cc routine logs run-abc123      # 某次运行的完整 Agent 输出
 
 ## 测试覆盖
 
-| 测试文件                               | 覆盖                                                                                                                                                                                                                                                                             |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `__tests__/unit/routine-store.test.js` | 定义 CRUD（create/list/按 id 前缀或 name 查/enable/disable/remove）· 触发合法性（种类/cron/once/github repo）· `due()` 到期判定 · `fireRoutine` 记账（start/end、日志落盘、once 自停用、崩溃 runner→failed、`summarize()` 聚合、坏行容错）· `pollGithubRoutine` 高水位与事件过滤 |
-| `__tests__/unit/scheduler-kernel-routine-adapter.test.js` | scheduled/manual channel、snapshot/CAS、logical occurrence 去重、双 driver fencing、lease/heartbeat、terminal evidence 恢复与 start-only fail-close |
+| 测试文件                                                  | 覆盖                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__tests__/unit/routine-store.test.js`                    | 定义 CRUD（create/list/按 id 前缀或 name 查/enable/disable/remove）· 触发合法性（种类/cron/once/github repo）· `due()` 到期判定 · `fireRoutine` 记账（start/end、日志落盘、once 自停用、崩溃 runner→failed、`summarize()` 聚合、坏行容错）· `pollGithubRoutine` 高水位与事件过滤 |
+| `__tests__/unit/scheduler-kernel-routine-adapter.test.js` | scheduled/manual channel、snapshot/CAS、logical occurrence 去重、双 driver fencing、lease/heartbeat、terminal evidence 恢复与 start-only fail-close                                                                                                                              |
 
 > 覆盖集中在 store/lib 层（`RoutineStore`），命令层为薄封装。
 
@@ -201,16 +201,16 @@ cc routine logs run-abc123      # 某次运行的完整 Agent 输出
 
 ## 关键文件
 
-| 文件                                           | 职责                                                                                                                         |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `packages/cli/src/commands/routine.js`         | `cc routine create/list/enable/disable/remove/trigger/run/runs/logs`；`defaultRunAgent`（spawn `cc agent`）；github 事件拉取 |
-| `packages/cli/src/lib/routine-store.js`        | `RoutineStore` 类：定义 CRUD、`due()`、`executeRoutine()`、`pollGithubRoutine`、运行历史与汇总                                |
-| `packages/cli/src/lib/agent-schedule-store.js` | 共享的 `parseCron` / `nextCronTime` cron 引擎                                                                                |
-| `packages/cli/src/lib/scheduler-kernel/routine-adapter.js` | Routine snapshot/job/occurrence bridge 与恢复策略                                                             |
-| `packages/cli/src/lib/scheduler-kernel/runtime.js` | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement                                                        |
-| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional run/unit budget                                              |
-| `packages/cli/src/lib/automation-center-routines.js` | Routine projection、CAS create/edit 与 revision-gated action                                                       |
-| `packages/cli/src/commands/agenda.js`          | 姊妹驱动（临时调度层）                                                                                                       |
+| 文件                                                          | 职责                                                                                                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/src/commands/routine.js`                        | `cc routine create/list/enable/disable/remove/trigger/run/runs/logs`；`defaultRunAgent`（spawn `cc agent`）；github 事件拉取 |
+| `packages/cli/src/lib/routine-store.js`                       | `RoutineStore` 类：定义 CRUD、`due()`、`executeRoutine()`、`pollGithubRoutine`、运行历史与汇总                               |
+| `packages/cli/src/lib/agent-schedule-store.js`                | 共享的 `parseCron` / `nextCronTime` cron 引擎                                                                                |
+| `packages/cli/src/lib/scheduler-kernel/routine-adapter.js`    | Routine snapshot/job/occurrence bridge 与恢复策略                                                                            |
+| `packages/cli/src/lib/scheduler-kernel/runtime.js`            | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement                                                            |
+| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional run/unit budget                                                                     |
+| `packages/cli/src/lib/automation-center-routines.js`          | Routine projection、CAS create/edit 与 revision-gated action                                                                 |
+| `packages/cli/src/commands/agenda.js`                         | 姊妹驱动（临时调度层）                                                                                                       |
 
 ## 使用示例
 
