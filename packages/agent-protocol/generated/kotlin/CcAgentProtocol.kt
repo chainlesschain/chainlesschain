@@ -965,12 +965,12 @@ data class ContextPlanRequest(
 )
 
 data class ContextPartitionMap(
-    val trusted-system: Long? = null,
-    val working-state: Long? = null,
-    val tools-and-skills: Long? = null,
+    val `trusted-system`: Long? = null,
+    val `working-state`: Long? = null,
+    val `tools-and-skills`: Long? = null,
     val conversation: Long? = null,
-    val tool-evidence: Long? = null,
-    val memory-and-rules: Long? = null
+    val `tool-evidence`: Long? = null,
+    val `memory-and-rules`: Long? = null
 )
 
 data class ContextPlan(

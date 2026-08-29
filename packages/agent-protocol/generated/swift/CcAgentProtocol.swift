@@ -2520,27 +2520,36 @@ public struct ContextPlanRequest: Codable, Sendable {
 }
 
 public struct ContextPartitionMap: Codable, Sendable {
-    public let trusted-system: Int?
-    public let working-state: Int?
-    public let tools-and-skills: Int?
+    public let trustedSystem: Int?
+    public let workingState: Int?
+    public let toolsAndSkills: Int?
     public let conversation: Int?
-    public let tool-evidence: Int?
-    public let memory-and-rules: Int?
+    public let toolEvidence: Int?
+    public let memoryAndRules: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case trustedSystem = "trusted-system"
+        case workingState = "working-state"
+        case toolsAndSkills = "tools-and-skills"
+        case conversation
+        case toolEvidence = "tool-evidence"
+        case memoryAndRules = "memory-and-rules"
+    }
 
     public init(
-        trusted-system: Int? = nil,
-        working-state: Int? = nil,
-        tools-and-skills: Int? = nil,
+        trustedSystem: Int? = nil,
+        workingState: Int? = nil,
+        toolsAndSkills: Int? = nil,
         conversation: Int? = nil,
-        tool-evidence: Int? = nil,
-        memory-and-rules: Int? = nil
+        toolEvidence: Int? = nil,
+        memoryAndRules: Int? = nil
     ) {
-        self.trusted-system = trusted-system
-        self.working-state = working-state
-        self.tools-and-skills = tools-and-skills
+        self.trustedSystem = trustedSystem
+        self.workingState = workingState
+        self.toolsAndSkills = toolsAndSkills
         self.conversation = conversation
-        self.tool-evidence = tool-evidence
-        self.memory-and-rules = memory-and-rules
+        self.toolEvidence = toolEvidence
+        self.memoryAndRules = memoryAndRules
     }
 }
 

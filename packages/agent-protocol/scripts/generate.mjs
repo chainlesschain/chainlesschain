@@ -674,7 +674,26 @@ const swiftKeywords = new Set([
 
 function modelFieldName(field, language) {
   const keywords = language === "swift" ? swiftKeywords : kotlinKeywords;
-  return keywords.has(field) ? `\`${field}\`` : field;
+  if (language === "kotlin") {
+    return keywords.has(field) || !/^[A-Za-z_][A-Za-z0-9_]*$/u.test(field)
+      ? `\`${field}\``
+      : field;
+  }
+  const identifier = /^[A-Za-z_][A-Za-z0-9_]*$/u.test(field)
+    ? field
+    : field
+        .split(/[^A-Za-z0-9]+/u)
+        .filter(Boolean)
+        .map((part, index) =>
+          index === 0 ? part : `${part[0].toUpperCase()}${part.slice(1)}`,
+        )
+        .join("");
+  const safeIdentifier = /^[A-Za-z_]/u.test(identifier)
+    ? identifier
+    : `_${identifier}`;
+  return keywords.has(safeIdentifier)
+    ? `\`${safeIdentifier}\``
+    : safeIdentifier;
 }
 
 function approvalDecisionVariants() {
@@ -1189,8 +1208,23 @@ function renderSwift() {
         ({ field }) =>
           `        self.${modelFieldName(field, "swift")} = ${modelFieldName(field, "swift")}`,
       );
+      const renamedFields = fields.filter(
+        ({ field }) =>
+          modelFieldName(field, "swift").replaceAll("`", "") !== field,
+      );
+      const codingKeys =
+        renamedFields.length === 0
+          ? ""
+          : `\n\n    private enum CodingKeys: String, CodingKey {\n${fields
+              .map(({ field }) => {
+                const identifier = modelFieldName(field, "swift");
+                return identifier.replaceAll("`", "") === field
+                  ? `        case ${identifier}`
+                  : `        case ${identifier} = ${JSON.stringify(field)}`;
+              })
+              .join("\n")}\n    }`;
       return `public struct ${name}: Codable, Sendable {
-${declarations.join("\n")}
+${declarations.join("\n")}${codingKeys}
 
     public init(
 ${parameters.join(",\n")}

@@ -23,6 +23,7 @@ test("generated clients preserve protocol field names across language keywords",
   assert.match(python, /AgentStreamEventType: TypeAlias = Literal\[/u);
   assert.match(python, /class AgentStreamEventEnvelope\(/u);
   assert.match(kotlin, /val `when`: String/u);
+  assert.match(kotlin, /val `trusted-system`: Long\?/u);
   assert.match(kotlin, /sealed interface ApprovalDecision/u);
   assert.match(
     kotlin,
@@ -45,6 +46,8 @@ test("generated clients preserve protocol field names across language keywords",
     /data class AgentToolUseStreamEvent\([\s\S]*: AgentStreamEventPayload/u,
   );
   assert.match(swift, /public indirect enum JSONValue: Codable, Sendable/u);
+  assert.match(swift, /public let trustedSystem: Int\?/u);
+  assert.match(swift, /case trustedSystem = "trusted-system"/u);
   assert.match(swift, /public enum ApprovalDecision: Codable, Sendable/u);
   assert.match(
     swift,
@@ -62,7 +65,10 @@ test("generated clients preserve protocol field names across language keywords",
   );
   assert.match(swift, /public let type: AgentStreamEventType/u);
   assert.match(typescript, /export type AgentStreamEventPayload =/u);
-  assert.match(typescript, /export function validateCanonicalAgentStreamEvent/u);
+  assert.match(
+    typescript,
+    /export function validateCanonicalAgentStreamEvent/u,
+  );
   assert.match(
     swift,
     /public enum AgentStreamEventPayload: Codable, Sendable/u,
