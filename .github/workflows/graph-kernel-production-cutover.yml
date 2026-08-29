@@ -1,0 +1,122 @@
+name: Graph Kernel Production Cutover
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact production commit; must equal the workflow event SHA
+        required: true
+        type: string
+      evidence_run_id:
+        description: Trusted production rollout run that produced the evidence artifact
+        required: true
+        type: string
+      evidence_artifact:
+        description: Name of the attested complete rollout evidence artifact
+        required: true
+        default: graph-production-cutover-evidence
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: graph-kernel-production-cutover-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  production-close:
+    name: Verify five-surface production close
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: graph-kernel-production-close
+    env:
+      CUTOVER_SHA: ${{ inputs.commit_sha }}
+      EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+    steps:
+      - name: Refuse a detached or mixed-SHA close
+        shell: bash
+        run: |
+          if [[ ! "${CUTOVER_SHA}" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "::error::commit_sha must be a full 40-character commit SHA"
+            exit 1
+          fi
+          if [[ "${CUTOVER_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::Production close may only verify the workflow event commit"
+            exit 1
+          fi
+          if [[ ! "${EVIDENCE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::evidence_run_id must be a positive GitHub Actions run id"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CUTOVER_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact checked-out SHA
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${CUTOVER_SHA}"
+
+      - name: Download the protected production evidence
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.evidence_artifact }}
+          path: ${{ runner.temp }}/graph-production-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.evidence_run_id }}
+
+      - name: Select exactly one evidence bundle
+        id: evidence
+        shell: bash
+        run: |
+          mapfile -t files < <(find "${RUNNER_TEMP}/graph-production-evidence" -type f -name '*.json' -print)
+          if [[ "${#files[@]}" -ne 1 ]]; then
+            echo "::error::Expected exactly one production evidence JSON file; found ${#files[@]}"
+            exit 1
+          fi
+          echo "path=${files[0]}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify producer OIDC attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
+        shell: bash
+        run: gh attestation verify "${EVIDENCE_PATH}" --repo "${GITHUB_REPOSITORY}"
+
+      - name: Require the complete P1-12 evidence contract
+        env:
+          EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
+        shell: bash
+        run: >-
+          node packages/cli/scripts/graph-production-cutover-evidence.mjs
+          --evidence "${EVIDENCE_PATH}"
+          --expected-commit "${CUTOVER_SHA}"
+          --expected-repository "${GITHUB_REPOSITORY}"
+          --expected-environment graph-kernel-production
+          --expected-run-id "${EVIDENCE_RUN_ID}"
+          --output "${RUNNER_TEMP}/graph-production-cutover-receipt.json"
+
+      - name: Attest the production-close receipt
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ runner.temp }}/graph-production-cutover-receipt.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: graph-production-cutover-receipt-${{ env.CUTOVER_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-production-cutover-receipt.json
+          if-no-files-found: error
+          retention-days: 365

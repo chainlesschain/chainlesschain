@@ -9,3 +9,5 @@ export * from "./adapters.js";
 export * from "./authority.js";
 export * from "./runtime-surface-manifest.js";
 export * from "./migration-saga.js";
+export * from "./production-cutover-evidence.js";
+export * from "./retirement-evidence.js";

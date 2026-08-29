@@ -73,6 +73,7 @@ jobs:
           packages/cli/__tests__/unit/graph-kernel-fault-injection.test.js
           packages/cli/__tests__/unit/graph-kernel-migration-saga.test.js
           packages/cli/__tests__/unit/graph-kernel-observability.test.js
+          packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js
           packages/cli/__tests__/unit/graph-store-cutover-evidence.test.js
           packages/cli/__tests__/unit/runtime-entry-cutover-wiring.test.js
           packages/cli/__tests__/unit/cowork-graph-authority-adapter.test.js

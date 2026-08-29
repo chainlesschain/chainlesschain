@@ -22,6 +22,7 @@
     "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",
     "graph:store-evidence": "node scripts/graph-store-cutover-evidence.mjs",
+    "graph:production-evidence": "node scripts/graph-production-cutover-evidence.mjs",
     "test:graph-cli-store-cutover": "node scripts/graph-cli-store-cutover-journey.mjs",
     "lint": "eslint src/ bin/ --ext .js",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
