@@ -557,6 +557,19 @@
           "default": false,
           "description": "%config.appServer.pilot.enabled.description%"
         },
+        "chainlesschain.contextMemory.stage": {
+          "type": "string",
+          "enum": [
+            "shadow",
+            "internal_canary",
+            "opt_in_canary",
+            "canonical_default",
+            "legacy_read_only",
+            "retired"
+          ],
+          "default": "canonical_default",
+          "description": "%config.contextMemory.stage.description%"
+        },
         "chainlesschain.cli.path": {
           "type": "string",
           "default": "cc",

@@ -96,6 +96,35 @@ describe("MemoryStore.add", () => {
   });
 });
 
+describe("MemoryStore write authority", () => {
+  it("fails closed before every legacy mutation when a guard rejects", () => {
+    const error = Object.assign(new Error("legacy writer fenced"), {
+      code: "legacy_writer_fenced",
+    });
+    const writeGuard = vi.fn(() => {
+      throw error;
+    });
+    const store = new MemoryStore({ writeGuard });
+
+    for (const mutate of [
+      () => store.add({ scope: SCOPE.GLOBAL, content: "x" }),
+      () => store.update("missing", { content: "x" }),
+      () => store.remove("missing"),
+      () => store.clearScope(SCOPE.GLOBAL),
+      () => store.clear(),
+    ]) {
+      expect(mutate).toThrow(error);
+    }
+    expect(writeGuard.mock.calls.map(([operation]) => operation)).toEqual([
+      "add",
+      "update",
+      "remove",
+      "clearScope",
+      "clear",
+    ]);
+  });
+});
+
 describe("MemoryStore.get", () => {
   it("returns memory clone with accessedAt updated", () => {
     let t = 1000;

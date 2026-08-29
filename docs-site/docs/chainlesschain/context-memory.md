@@ -1,6 +1,6 @@
 # 上下文与记忆
 
-> 适用对象：CLI、Desktop 和 IDE 用户｜状态：模块 108 架构设计已完成；统一 Context/Memory Kernel 的实现迁移与 authoritative cutover 尚未完成
+> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 仓库实现与默认 authority 切换已完成；正式生产关闭等待 exact-SHA 三平台发布证据
 
 ## 概述
 
@@ -12,7 +12,7 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 | 压缩 | 在上下文窗口接近上限时，把较旧历史转换为更小的可继续状态 | 发生在会话内部 |
 | 记忆 | 从会话之外再次取回的持久信息，例如用户偏好、项目约定或长期笔记 | 跨轮次或跨会话 |
 
-当前版本已经提供上下文用量查看、会话压缩、项目记忆、用户画像、持久记忆和作用域记忆等能力，但它们仍由多套实现分别管理。[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 已完成统一架构设计，冻结了目标数据契约、压缩状态机、记忆生命周期、删除对账与跨端切换路径。本文只把已经可用的行为写成正式能力；尚未完成 authoritative cutover 的目标行为会明确标为“统一后”。
+当前源码已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。正式发布状态仍以最终候选的 Linux/Windows/macOS Actions 与 30 分钟 soak receipt 为准。
 
 ## 核心特性
 
@@ -22,17 +22,18 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 - **多种持久信息来源**：项目说明文件、`USER.md`、`MEMORY.md`、每日笔记和 scoped memory 分别服务于不同场景。
 - **作用域隔离**：当前 scoped memory 支持 `session`、`agent`、`global`，避免所有 Agent 无差别共享同一批记忆。
 - **本地优先管理**：主要会话与记忆数据保存在本机 ChainlessChain 目录；具体位置和安全边界取决于所用能力。
-- **已完成的统一设计**：模块 108 已定义来源、可信度、敏感级别、保留、过期、替代和删除语义；产品入口仍在迁移。
+- **统一生命周期**：来源、可信度、敏感级别、保留、过期、替代、tombstone、物理清除和重启对账使用同一契约。
+- **跨端只读投影**：VS Code 与 JetBrains 只消费 App Server canonical lifecycle，不直接写记忆存储。
 
 ## 系统架构
 
-当前用户可见的信息流如下：
+当前 canonical 信息流如下：
 
 ```text
 项目规则 / USER.md / 长期记忆 / scoped memory / 会话历史 / 工具结果
                               │
                               ▼
-                    各入口的上下文构建器
+                    Context/Memory Kernel
                               │
                     token 预算与压缩判断
                               │
@@ -46,9 +47,7 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
           会话压缩检查点              可选的记忆写入/巩固
 ```
 
-当前 CLI、Desktop 和部分运行时的构建、压缩与记忆存储还没有统一的权威实现。因此，相同会话从不同入口进入时，不应默认认为压缩结果、自动召回和删除范围完全等价。
-
-统一后，Context/Memory Kernel 将位于 Agent Kernel 与各类存储之间：Agent Kernel 负责模型和工具循环，Context/Memory Kernel 负责“选什么、压什么、记什么、何时遗忘”，会话存储和记忆存储分别保留权威数据。
+Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel 负责模型和工具循环，Context/Memory Kernel 负责“选什么、压什么、记什么、何时遗忘”，会话存储和记忆存储分别保留权威数据。宿主仍可提供更严格的预算和隐私 policy，但不能扩大 scope、trust 或 allowed sinks。
 
 ## 信息类型与生命周期
 
@@ -66,15 +65,15 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 
 ### 用户画像
 
-`~/.chainlesschain/USER.md` 保存用户明确维护的偏好画像，并可通过 Agent REPL 的 `/profile` 查看、修改或清空。它会进入支持该能力的 CLI 上下文，但不代表所有 Desktop/IDE 入口都已经共享同一注入路径。
+`~/.chainlesschain/USER.md` 作为兼容输入幂等导入 canonical user-scope 记录。Agent REPL 的 `/profile` 仍提供用户操作入口；实际 provider 上下文由 ContextPlan 选择，IDE 通过 canonical projection 展示状态。
 
 ### 持久记忆
 
-传统持久记忆包括数据库条目、每日笔记和 `MEMORY.md`；scoped memory 则保存在独立的 `memory-store.json` 中。两套数据当前互不等价，`memory search` 和 `memory recall` 也查询不同存储。
+`cc memory show|add|search|delete|store|recall` 使用 canonical durable store。旧数据库和 `memory-store.json` 只作为受审计 importer/read-only projection；删除时按 evidence reference 物理清除旧副本，失败返回 partial，并可使用 `cc memory reconcile <operation-id>` 在重启后继续。
 
-### 统一后的目标生命周期
+### 统一记忆生命周期
 
-统一 Kernel 将把记忆明确区分为候选、有效、被强化、被替代、归档、过期、删除和物理清除，并记录来源证据。该生命周期目前不是所有记忆后端都已实现的承诺。
+统一 Kernel 把记忆明确区分为候选、有效、被强化、被替代、归档、过期、删除和物理清除，并记录来源证据。删除先持久化不含正文的最小 tombstone，再清除 first-party projection；只有所有 purge receipt 成功后才返回 `purged`。
 
 ## 配置参考
 
@@ -86,8 +85,10 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 | 预览压缩 | `cc compact <session-id> --dry-run` | 离线计算，不写入会话 |
 | 持久化压缩 | `cc compact <session-id>` | 追加 `compact` 事件，恢复时生效 |
 | 查看项目记忆来源 | `cc memory files [--json]` | 列出实际加载文件、作用域、字节数和警告 |
-| 管理传统记忆 | `cc memory show|add|search|delete` | 操作传统数据库记忆 |
-| 管理长期文件 | `cc memory daily` / `cc memory file` | 操作每日笔记和 `MEMORY.md` |
+| 管理 canonical 记忆 | `cc memory show|add|search|delete` | 操作 canonical durable memory；旧数据库只导入/清除 |
+| 管理作用域记忆 | `cc memory store|recall`，删除使用 `cc memory delete` | 使用 session/agent/project/user/global scope fence |
+| 恢复部分删除 | `cc memory reconcile <operation-id>` | 重试物理清除并返回可审计 receipt |
+| 查看兼容长期文件 | `cc memory daily` / `cc memory file` | daily append 进入 canonical；`MEMORY.md` 保持只读兼容来源 |
 | 写入作用域记忆 | `cc memory store` | 写入 session-core `MemoryStore` |
 | 召回作用域记忆 | `cc memory recall` | 查询独立的 `memory-store.json` |
 | 管理用户画像 | `/profile show|set|clear|path` | 在交互式 Agent 中管理 `USER.md` |

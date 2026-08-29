@@ -1,6 +1,6 @@
 # Cowork 多智能体协作系统
 
-> **适用版本：CLI 0.166.6（npm latest、生产推荐一致）| `c64c4bcac6` 已将 Desktop AgentPool 等待队列有界化，当前源码 `a8484915fa` 已把该行为纳入 Vitest 单元门 | Cowork Cron 已接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
+> **适用版本：CLI 0.166.9（npm latest、生产推荐一致，精确 SHA `222396f6a8`）| durable Graph history/retirement、quorum HumanTask、Team fairness 与审批 single-winner CAS 已公开 | Cowork Cron 接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
 >
 > 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 
@@ -1359,18 +1359,18 @@ CLI 主配置默认位于 `~/.chainlesschain/config.json`；如果设置 `CHAINL
 
 `debate`、`compare` 和 `analyze` 支持命令级 `--provider` / `--model` 覆盖。工作流和定时任务由任务执行器读取生效的全局配置。
 
-| 参数                               | 默认值                                 | 作用范围                                  |
-| ---------------------------------- | -------------------------------------- | ----------------------------------------- |
-| `debate --perspectives`            | `performance,security,maintainability` | 评审视角，可选 correctness/architecture   |
-| `compare --variants`               | `3`                                    | 方案数量，最多使用 4 个内置 profile       |
-| `compare --criteria`               | `quality,performance,readability`      | 方案评分维度                              |
-| `analyze --type`                   | `style`                                | `style`、`knowledge-graph` 或 `decisions` |
-| `workflow run --max-parallel`      | `4`                                    | 每批最多并行步骤数                        |
-| `workflow run --pipeline`          | 关闭                                   | 依赖满足后立即启动步骤，不等待整批完成    |
-| `workflow run --continue-on-error` | 关闭                                   | 步骤失败后继续执行可运行步骤              |
+| 参数                               | 默认值                                 | 作用范围                                   |
+| ---------------------------------- | -------------------------------------- | ------------------------------------------ |
+| `debate --perspectives`            | `performance,security,maintainability` | 评审视角，可选 correctness/architecture    |
+| `compare --variants`               | `3`                                    | 方案数量，最多使用 4 个内置 profile        |
+| `compare --criteria`               | `quality,performance,readability`      | 方案评分维度                               |
+| `analyze --type`                   | `style`                                | `style`、`knowledge-graph` 或 `decisions`  |
+| `workflow run --max-parallel`      | `4`                                    | 每批最多并行步骤数                         |
+| `workflow run --pipeline`          | 关闭                                   | 依赖满足后立即启动步骤，不等待整批完成     |
+| `workflow run --continue-on-error` | 关闭                                   | 步骤失败后继续执行可运行步骤               |
 | `cron run --interval`              | 5 字段 `60000` ms；6 字段 `1000` ms    | 显式传值优先；六字段 cron 自动使用秒级轮询 |
-| `observe report --days`            | `7`                                    | 聚合窗口天数                              |
-| `observe serve --host/--port`      | `127.0.0.1:18820`                      | 只读观察面板监听地址                      |
+| `observe report --days`            | `7`                                    | 聚合窗口天数                               |
+| `observe serve --host/--port`      | `127.0.0.1:18820`                      | 只读观察面板监听地址                       |
 
 所有相对路径都以运行命令时的当前工作目录为基准。建议在项目根目录运行 Cowork，以便状态集中写入同一个 `.chainlesschain/cowork/`。
 
@@ -1700,23 +1700,23 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 
 ### 当前 CLI 与 Web 入口
 
-| 文件                                                  | 职责                                          |
-| ----------------------------------------------------- | --------------------------------------------- |
-| `packages/cli/src/commands/cowork.js`                 | CLI 子命令、参数、按需模块加载与输出          |
-| `packages/cli/src/lib/cowork/`                        | debate、compare、代码知识图谱、决策和风格分析 |
-| `packages/cli/src/lib/cowork-task-templates.js`       | 内置/用户任务模板注册表                       |
-| `packages/cli/src/lib/cowork-task-runner.js`          | SubAgent 任务执行、MCP 挂载与历史收口         |
-| `packages/cli/src/lib/cowork-workflow.js`             | DAG 校验、持久化、批次/流水线执行             |
-| `packages/cli/src/lib/cowork-cron.js`                 | 5/6 字段 cron、兼容 JSONL 定义/执行证据与旧 driver fence |
+| 文件                                                           | 职责                                                              |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/cli/src/commands/cowork.js`                          | CLI 子命令、参数、按需模块加载与输出                              |
+| `packages/cli/src/lib/cowork/`                                 | debate、compare、代码知识图谱、决策和风格分析                     |
+| `packages/cli/src/lib/cowork-task-templates.js`                | 内置/用户任务模板注册表                                           |
+| `packages/cli/src/lib/cowork-task-runner.js`                   | SubAgent 任务执行、MCP 挂载与历史收口                             |
+| `packages/cli/src/lib/cowork-workflow.js`                      | DAG 校验、持久化、批次/流水线执行                                 |
+| `packages/cli/src/lib/cowork-cron.js`                          | 5/6 字段 cron、兼容 JSONL 定义/执行证据与旧 driver fence          |
 | `packages/cli/src/lib/scheduler-kernel/cowork-cron-adapter.js` | definition snapshot、workspace claim、恢复与 outcome-unknown 策略 |
-| `packages/cli/src/lib/cowork-template-marketplace.js` | 用户模板存储与安全路径校验                    |
-| `packages/cli/src/lib/cowork-evomap-adapter.js`       | EvoMap 搜索、安装、发布与签名策略             |
-| `packages/cli/src/lib/cowork-share.js`                | 模板/结果包导出、校验、签名和导入             |
-| `packages/cli/src/lib/cowork-learning.js`             | 历史统计、推荐、失败归因与补丁建议            |
-| `packages/cli/src/lib/cowork-observe.js`              | 任务、工作流和调度历史聚合                    |
-| `packages/web-panel/src/views/Cowork.vue`             | Web Cowork 日常任务页面                       |
-| `packages/web-panel/src/stores/cowork.js`             | Web Cowork Pinia 状态                         |
-| `scripts/cowork-doc-generator.js`                     | Cowork 文档生成辅助脚本                       |
+| `packages/cli/src/lib/cowork-template-marketplace.js`          | 用户模板存储与安全路径校验                                        |
+| `packages/cli/src/lib/cowork-evomap-adapter.js`                | EvoMap 搜索、安装、发布与签名策略                                 |
+| `packages/cli/src/lib/cowork-share.js`                         | 模板/结果包导出、校验、签名和导入                                 |
+| `packages/cli/src/lib/cowork-learning.js`                      | 历史统计、推荐、失败归因与补丁建议                                |
+| `packages/cli/src/lib/cowork-observe.js`                       | 任务、工作流和调度历史聚合                                        |
+| `packages/web-panel/src/views/Cowork.vue`                      | Web Cowork 日常任务页面                                           |
+| `packages/web-panel/src/stores/cowork.js`                      | Web Cowork Pinia 状态                                             |
+| `scripts/cowork-doc-generator.js`                              | Cowork 文档生成辅助脚本                                           |
 
 专项测试位于 `packages/cli/__tests__/{unit,integration,e2e}/`，Web 工作流 Store 测试位于 `packages/web-panel/__tests__/unit/workflow-store.test.js`。
 

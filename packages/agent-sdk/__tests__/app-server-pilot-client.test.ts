@@ -43,12 +43,19 @@ describe("AppServerPilotClient", () => {
       method: "graph/history",
       params: { runId: "graph-1", snapshotLimit: 20 },
     });
+    await expect(
+      pilot.memoryReconcile({ operationId: "deletion-1" }),
+    ).resolves.toEqual({
+      method: "memory/reconcile",
+      params: { operationId: "deletion-1" },
+    });
 
     expect(transport.start).toHaveBeenCalledTimes(1);
     expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
       "thread/list",
       "turn/start",
       "graph/history",
+      "memory/reconcile",
     ]);
     expect("request" in pilot).toBe(false);
     expect(pilot.status).toMatchObject({
@@ -57,6 +64,31 @@ describe("AppServerPilotClient", () => {
       pendingRequestCount: 0,
       capabilities: { protocolVersion: 1 },
     });
+  });
+
+  it("exposes fixed Context/Memory capabilities without a generic request escape hatch", async () => {
+    const transport = new FakeTransport();
+    const pilot = new AppServerPilotClient({ transport });
+    const calls = [
+      pilot.contextPlan({} as never),
+      pilot.contextCompact({} as never),
+      pilot.memoryRecall({} as never),
+      pilot.memoryPropose({} as never),
+      pilot.memoryDecide({} as never),
+      pilot.memoryDelete({} as never),
+      pilot.memoryReconcile({ operationId: "operation-1" }),
+    ];
+    await Promise.all(calls);
+    expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
+      "context/plan",
+      "context/compact",
+      "memory/recall",
+      "memory/propose",
+      "memory/decide",
+      "memory/delete",
+      "memory/reconcile",
+    ]);
+    expect("request" in pilot).toBe(false);
   });
 
   it("forwards canonical notifications and contains unhandled transport errors", () => {

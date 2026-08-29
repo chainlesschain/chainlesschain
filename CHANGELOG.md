@@ -31,11 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates
 
-> `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,
-> 2026-08-29). Agent Protocol and TypeScript Agent SDK candidate versions
-> remain `0.1.6` and `0.2.5`; Python Agent SDK moves to `0.2.6` after the
-> immutable `0.2.5` candidate was withheld from PyPI because its release
-> metadata named an unpublished CLI.
+> `chainlesschain` **0.166.8 -> 0.166.9**, published 2026-08-29 from exact
+> commit `222396f6a8429d4b862292a2572067a5cacb1003`. Agent Protocol `0.1.6`,
+> TypeScript Agent SDK `0.2.5`, and Python Agent SDK `0.2.6` are public. The
+> immutable Python `0.2.5` candidate was withheld from PyPI because its
+> release metadata named a CLI that was not yet public.
 
 - **Real UI driver**: reviewed Record & Replay drafts can execute the bounded
   `observe/click/type/select/assert` vocabulary in an ephemeral Playwright
@@ -72,14 +72,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python release metadata**: the `0.2.6` patch keeps the `0.2.5` runtime API
   and generated protocol bindings while pointing install guidance at the latest
   CLI that is actually available from the public npm registry.
+- **Release validation**: immutable tag `v-npm-0-166-9` resolves to the exact
+  commit above. Its Linux/Windows/macOS CLI CI and Strict Sandbox matrices,
+  npm Trusted Publishing/provenance/readback, Record & Replay real-browser
+  matrix, Codex App Server compatibility matrix, Desktop signed-Skill
+  qualification, and IDE release gate completed successfully. Open VSX
+  `0.37.73` is public; JetBrains source/tag `0.4.104` remains distinct from the
+  Marketplace-public `0.4.103` artifact.
 
 ### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
 
-> `chainlesschain` **0.166.7 -> 0.166.8**,
+> `chainlesschain` **0.166.7 -> 0.166.8** (source candidate fully carried into
+> public `0.166.9`; it was not published as a separate npm version),
 > `@chainlesschain/agent-protocol` **0.1.5 -> 0.1.6**,
 > `@chainlesschain/agent-sdk` **0.2.4 -> 0.2.5**, and
-> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (release candidate,
-> 2026-08-29).
+> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (withheld Python candidate,
+> superseded by public `0.2.6`, 2026-08-29).
 > VS Code **0.37.72 -> 0.37.73** and JetBrains
 > **0.4.103 -> 0.4.104** carry the paired governed review surfaces.
 

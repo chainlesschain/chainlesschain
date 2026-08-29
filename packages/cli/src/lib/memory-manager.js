@@ -8,6 +8,18 @@
 import fs from "fs";
 import path from "path";
 import { likePrefix, escapeLike } from "./sql-like.js";
+import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "./context-memory-kernel/authority.js";
+
+function assertLegacyMemoryManagerMutationAllowed(operation) {
+  assertLegacyMutationAllowed(
+    resolveCliContextMemoryCutover({
+      scopeKey: `cli:legacy-memory-manager:${operation}`,
+    }),
+  );
+}
 
 /**
  * Atomically write a UTF-8 file: a crash mid-write must not truncate MEMORY.md
@@ -57,6 +69,15 @@ function ensureMemoryTable(db) {
   `);
 }
 
+function memoryTableExists(db) {
+  const row = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_entries'",
+    )
+    .get();
+  return Boolean(row);
+}
+
 /**
  * Get the memory directory path
  */
@@ -68,6 +89,7 @@ export function getMemoryDir(dataDir) {
  * Add an entry to memory (stored in DB)
  */
 export function addMemory(db, content, options = {}) {
+  assertLegacyMemoryManagerMutationAllowed("add");
   ensureMemoryTable(db);
 
   if (!content || !content.trim()) {
@@ -142,7 +164,9 @@ export function listMemory(db, options = {}) {
  * ordered deterministically so the same DB exports identically.
  */
 export function exportMemory(db) {
-  ensureMemoryTable(db);
+  // Canonical cutover calls this as a one-time read-only importer. Do not
+  // create a legacy table merely because no legacy data exists.
+  if (!memoryTableExists(db)) return [];
   return db
     .prepare(
       `SELECT id, content, category, importance, source, created_at, updated_at
@@ -162,6 +186,7 @@ function _nowSqlite() {
  * updated_at. Never aborts mid-batch; returns {ok, imported, failed, errors}.
  */
 export function importMemory(db, entries) {
+  assertLegacyMemoryManagerMutationAllowed("import");
   ensureMemoryTable(db);
   if (!Array.isArray(entries)) {
     throw new Error("importMemory: entries must be a JSON array");
@@ -208,6 +233,7 @@ export function importMemory(db, entries) {
  * Delete a memory entry
  */
 export function deleteMemory(db, id) {
+  assertLegacyMemoryManagerMutationAllowed("delete");
   ensureMemoryTable(db);
 
   // Try exact match first, then prefix match
@@ -228,6 +254,7 @@ export function deleteMemory(db, id) {
  * Append to today's daily note
  */
 export function appendDailyNote(memoryDir, content) {
+  assertLegacyMemoryManagerMutationAllowed("append-daily-note");
   ensureMemoryDirs(memoryDir);
 
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -260,8 +287,6 @@ export function getDailyNote(memoryDir, date) {
  * List available daily notes
  */
 export function listDailyNotes(memoryDir, options = {}) {
-  ensureMemoryDirs(memoryDir);
-
   const dailyDir = path.join(memoryDir, "daily");
   const limit = Math.max(1, parseInt(options.limit) || 30);
 
@@ -291,13 +316,13 @@ export function listDailyNotes(memoryDir, options = {}) {
  * Read or update the MEMORY.md file (long-term knowledge)
  */
 export function getMemoryFile(memoryDir) {
-  ensureMemoryDirs(memoryDir);
   const filePath = path.join(memoryDir, "MEMORY.md");
   if (!fs.existsSync(filePath)) return "";
   return fs.readFileSync(filePath, "utf8");
 }
 
 export function updateMemoryFile(memoryDir, content) {
+  assertLegacyMemoryManagerMutationAllowed("update-memory-file");
   ensureMemoryDirs(memoryDir);
   const filePath = path.join(memoryDir, "MEMORY.md");
   atomicWriteFileSync(filePath, content);

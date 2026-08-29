@@ -1,8 +1,8 @@
 # Agent Protocol：单一 Schema 与多语言生成绑定
 
-> **更新：2026-08-27｜公开基线：`@chainlesschain/agent-protocol@0.1.5`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
+> **更新：2026-08-29｜公开基线：`@chainlesschain/agent-protocol@0.1.6`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
 >
-> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.5` 已公开 37 类 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator 与跨端 causal fixture；公开状态以 npm、不可变标签、CI 和安装回读为准。
+> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.6` 已公开 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator，以及 Graph history/retirement、可恢复 HumanTask 与 single-winner approval 所需的跨端契约；公开状态以 npm、不可变标签、CI 和安装回读为准。
 
 ## 概述
 
@@ -10,11 +10,11 @@
 
 它与 Agent SDK 的职责不同：
 
-| 组件 | 负责内容 | 不负责内容 |
-| --- | --- | --- |
-| Agent Protocol | Schema、wire 类型、validator、兼容性基线、多语言生成结果 | 启动 CLI、管理子进程、实现传输重试 |
-| TypeScript/Python Agent SDK | `AgentSession`、`AppServerClient`、NDJSON/stdio 传输和宿主 API | 单独定义另一套协议语义 |
-| CLI / App Server | 执行状态机、权限、工具、Graph authority | 允许客户端绕过 Schema 扩权 |
+| 组件                        | 负责内容                                                       | 不负责内容                         |
+| --------------------------- | -------------------------------------------------------------- | ---------------------------------- |
+| Agent Protocol              | Schema、wire 类型、validator、兼容性基线、多语言生成结果       | 启动 CLI、管理子进程、实现传输重试 |
+| TypeScript/Python Agent SDK | `AgentSession`、`AppServerClient`、NDJSON/stdio 传输和宿主 API | 单独定义另一套协议语义             |
+| CLI / App Server            | 执行状态机、权限、工具、Graph authority                        | 允许客户端绕过 Schema 扩权         |
 
 当前 canonical Schema 已覆盖 App Server 的 Client/Server request/response/notification、Thread/Turn/Item、结构化审批、工具与 Graph 核心类型，并冻结 37 个现有 Agent stdout event discriminator 及其 payload。TypeScript/Python SDK、CLI、Desktop、VS Code、JetBrains、Android 与 iOS 的主要生产消费已纳入同源生成或 causal conformance；低流量 legacy/custom 展示 adapter 仍可能保留兼容投影，因此“单一 Schema”不表示所有历史 UI 类型已经清零。
 
@@ -62,24 +62,24 @@ packages/agent-protocol/schema/cc-agent-protocol.schema.json
 ### 安装公开稳定版
 
 ```bash
-npm install @chainlesschain/agent-protocol@0.1.5
+npm install @chainlesschain/agent-protocol@0.1.6
 ```
 
 需要传输客户端时，安装对应 SDK：
 
 ```bash
-npm install @chainlesschain/agent-sdk@0.2.4
-pip install chainlesschain-agent-sdk==0.2.4
+npm install @chainlesschain/agent-sdk@0.2.5
+pip install chainlesschain-agent-sdk==0.2.6
 ```
 
 ### 版本与身份字段
 
-| 字段 | 含义 | 使用方式 |
-| --- | --- | --- |
-| `CC_AGENT_PROTOCOL_VERSION` | wire protocol 主版本 | 能力协商和兼容判断 |
-| `CC_AGENT_PROTOCOL_MIN_VERSION` | 当前实现接受的最低 wire 版本 | 拒绝无法安全解释的对端 |
+| 字段                              | 含义                             | 使用方式                             |
+| --------------------------------- | -------------------------------- | ------------------------------------ |
+| `CC_AGENT_PROTOCOL_VERSION`       | wire protocol 主版本             | 能力协商和兼容判断                   |
+| `CC_AGENT_PROTOCOL_MIN_VERSION`   | 当前实现接受的最低 wire 版本     | 拒绝无法安全解释的对端               |
 | `CC_AGENT_PROTOCOL_SCHEMA_DIGEST` | canonical Schema 的 SHA-256 摘要 | 诊断生成物/运行时是否来自同一 Schema |
-| npm package version | 协议包的发布版本 | 依赖锁定、供应链追踪和升级 |
+| npm package version               | 协议包的发布版本                 | 依赖锁定、供应链追踪和升级           |
 
 package version 与 wire version 不是同一概念：`0.1.x` 包可以继续承载 wire v1 的兼容增量；只有破坏 wire v1 语义的修改才需要新的协议主版本和独立迁移方案。
 
@@ -149,13 +149,13 @@ assertProtocolCompatible(previousSchema, CC_AGENT_PROTOCOL_SCHEMA);
 
 ## 性能指标
 
-| 指标 | 当前约束或目标 |
-| --- | --- |
-| 协议包运行时依赖 | 0 个第三方运行时依赖 |
-| 代码生成 | 相同 Schema 和生成器输入必须字节确定；`check` 不允许漂移 |
-| Schema 校验 | 同步、无网络、无文件写入；具体延迟由消息大小和宿主硬件决定 |
-| 生成物体积 | 随 `$defs` 和目标语言线性增长；发布前由 `npm pack --dry-run` 检查包内容 |
-| 兼容检查 | 对冻结 v1 baseline 执行；任何已识别 breaking change 立即失败 |
+| 指标             | 当前约束或目标                                                          |
+| ---------------- | ----------------------------------------------------------------------- |
+| 协议包运行时依赖 | 0 个第三方运行时依赖                                                    |
+| 代码生成         | 相同 Schema 和生成器输入必须字节确定；`check` 不允许漂移                |
+| Schema 校验      | 同步、无网络、无文件写入；具体延迟由消息大小和宿主硬件决定              |
+| 生成物体积       | 随 `$defs` 和目标语言线性增长；发布前由 `npm pack --dry-run` 检查包内容 |
+| 兼容检查         | 对冻结 v1 baseline 执行；任何已识别 breaking change 立即失败            |
 
 项目没有为所有设备公布统一的 validator 延迟 SLA。移动端或高吞吐宿主应使用自己的真实消息分布建立基准，不应把开发机微基准写成跨平台保证。
 
@@ -184,30 +184,30 @@ Agent Protocol CI 在 Ubuntu、Windows 和 macOS 上执行：
 
 ## 故障排查
 
-| 现象 | 常见原因 | 处理方式 |
-| --- | --- | --- |
-| `Generated protocol artifact is stale` | 修改了 Schema 或生成器但未重建 | 运行 `npm run generate --workspace=packages/agent-protocol`，检查全部生成文件 |
-| `CC_PROTOCOL_BREAKING_CHANGE` | 删除字段、收紧约束、增加必填字段或改变枚举语义 | 撤销破坏性修改，或启动新 wire version 的设计与迁移评审 |
-| 本地类型存在、运行时校验失败 | SDK 生成物、协议包或 CLI 内嵌 Schema 不同源 | 比较 package version 和 `CC_AGENT_PROTOCOL_SCHEMA_DIGEST`，重新锁定依赖 |
-| Kotlin/Swift 字段名异常 | 语言关键字或 wire name 投影错误 | 不手改生成物；修改生成器并增加跨语言测试 |
-| 新 CLI 事件让旧宿主中断 | 宿主没有保留未知事件或新增字段 | 保留 raw payload 并采用 capability negotiation；不能把未知事件当成功 |
-| npm 显示版本低于仓库清单 | 源码候选尚未正式发布 | 以不可变 tag、CI、registry readback 为准，不从 `main` 推断公开版本 |
+| 现象                                   | 常见原因                                       | 处理方式                                                                      |
+| -------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Generated protocol artifact is stale` | 修改了 Schema 或生成器但未重建                 | 运行 `npm run generate --workspace=packages/agent-protocol`，检查全部生成文件 |
+| `CC_PROTOCOL_BREAKING_CHANGE`          | 删除字段、收紧约束、增加必填字段或改变枚举语义 | 撤销破坏性修改，或启动新 wire version 的设计与迁移评审                        |
+| 本地类型存在、运行时校验失败           | SDK 生成物、协议包或 CLI 内嵌 Schema 不同源    | 比较 package version 和 `CC_AGENT_PROTOCOL_SCHEMA_DIGEST`，重新锁定依赖       |
+| Kotlin/Swift 字段名异常                | 语言关键字或 wire name 投影错误                | 不手改生成物；修改生成器并增加跨语言测试                                      |
+| 新 CLI 事件让旧宿主中断                | 宿主没有保留未知事件或新增字段                 | 保留 raw payload 并采用 capability negotiation；不能把未知事件当成功          |
+| npm 显示版本低于仓库清单               | 源码候选尚未正式发布                           | 以不可变 tag、CI、registry readback 为准，不从 `main` 推断公开版本            |
 
 ## 关键文件
 
-| 文件 | 作用 |
-| --- | --- |
-| `packages/agent-protocol/schema/cc-agent-protocol.schema.json` | canonical JSON Schema |
-| `packages/agent-protocol/schema/baselines/v1.json` | wire v1 兼容基线 |
-| `packages/agent-protocol/scripts/generate.mjs` | 多语言确定性生成器 |
-| `packages/agent-protocol/src/validation.mjs` | Schema 驱动的运行时校验 |
-| `packages/agent-protocol/src/compatibility.mjs` | additive/breaking change 分类 |
-| `packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt` | Kotlin 生成绑定 |
-| `packages/agent-protocol/generated/swift/CcAgentProtocol.swift` | Swift 生成绑定 |
-| `packages/agent-sdk/src/generated/app-protocol.ts` | TypeScript 生成绑定与 validator |
-| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py` | Python 生成绑定与 validator |
-| `packages/cli/src/generated/cc-agent-protocol.schema.json` | CLI 内嵌 Schema 镜像 |
-| `.github/workflows/agent-protocol-ci.yml` | 三平台协议门禁 |
+| 文件                                                                               | 作用                            |
+| ---------------------------------------------------------------------------------- | ------------------------------- |
+| `packages/agent-protocol/schema/cc-agent-protocol.schema.json`                     | canonical JSON Schema           |
+| `packages/agent-protocol/schema/baselines/v1.json`                                 | wire v1 兼容基线                |
+| `packages/agent-protocol/scripts/generate.mjs`                                     | 多语言确定性生成器              |
+| `packages/agent-protocol/src/validation.mjs`                                       | Schema 驱动的运行时校验         |
+| `packages/agent-protocol/src/compatibility.mjs`                                    | additive/breaking change 分类   |
+| `packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt`                      | Kotlin 生成绑定                 |
+| `packages/agent-protocol/generated/swift/CcAgentProtocol.swift`                    | Swift 生成绑定                  |
+| `packages/agent-sdk/src/generated/app-protocol.ts`                                 | TypeScript 生成绑定与 validator |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/generated_app_protocol.py` | Python 生成绑定与 validator     |
+| `packages/cli/src/generated/cc-agent-protocol.schema.json`                         | CLI 内嵌 Schema 镜像            |
+| `.github/workflows/agent-protocol-ci.yml`                                          | 三平台协议门禁                  |
 
 ## 相关文档
 

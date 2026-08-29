@@ -22,6 +22,9 @@ const { EventEmitter } = require("events");
 const { HybridSearchEngine } = require("../rag/hybrid-search-engine");
 const { MemoryFileWatcher } = require("./memory-file-watcher");
 const { EmbeddingCache } = require("../rag/embedding-cache");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../context-memory/authority.js");
 
 /**
  * PermanentMemoryManager 类
@@ -263,6 +266,10 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {Promise<string>} Daily Note 文件路径
    */
   async writeDailyNote(content, options = {}) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:permanent-memory",
+      replacement: "coding-agent:app-server-memory-propose",
+    });
     if (!this.enableDailyNotes) {
       throw new Error("[PermanentMemoryManager] Daily Notes 功能未启用");
     }
@@ -354,6 +361,10 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {Promise<void>}
    */
   async appendToMemory(content, options = {}) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:permanent-memory",
+      replacement: "coding-agent:app-server-memory-propose",
+    });
     if (!this.enableLongTermMemory) {
       throw new Error("[PermanentMemoryManager] 长期记忆功能未启用");
     }
@@ -420,6 +431,10 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {Promise<void>}
    */
   async updateMemory(content) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:permanent-memory",
+      replacement: "coding-agent:app-server-memory-propose",
+    });
     if (!this.enableLongTermMemory) {
       throw new Error("[PermanentMemoryManager] 长期记忆功能未启用");
     }
@@ -1215,6 +1230,10 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {Promise<Object>} 保存结果
    */
   async saveToMemory(content, options = {}) {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:permanent-memory",
+      replacement: "coding-agent:app-server-memory-propose",
+    });
     const type = options.type || "conversation";
     const timestamp = new Date().toISOString().split("T")[0];
 
@@ -1276,6 +1295,10 @@ ${content}
    * @returns {Promise<Object>} 提取结果
    */
   async extractFromConversation(messages, conversationTitle = "") {
+    assertDesktopLegacyMutationAllowed({
+      scopeKey: "desktop:permanent-memory",
+      replacement: "coding-agent:app-server-memory-propose",
+    });
     if (!messages || messages.length === 0) {
       throw new Error("[PermanentMemoryManager] 消息列表为空");
     }

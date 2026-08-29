@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:8034b1d0903660879df7ae8f1e5a856e753dfee5cf5e054069bff578731afc3b"
+public let ccAgentProtocolSchemaDigest = "sha256:942ebae3e18f20d7307d04c32108ea4b1989351dbae1e1340e7c0b1fe0dc5063"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -74,6 +74,45 @@ public enum AgentStreamEventType: String, Codable, Sendable {
     case toolUse = "tool_use"
     case user = "user"
     case policyDecision = "policy_decision"
+    case contextPlanCreated = "context.plan.created"
+    case contextPlanRejected = "context.plan.rejected"
+    case contextCompactionStarted = "context.compaction.started"
+    case contextCompactionCommitted = "context.compaction.committed"
+    case contextCompactionAborted = "context.compaction.aborted"
+    case contextCompactionReconciliationRequired = "context.compaction.reconciliation_required"
+    case memoryCandidateCreated = "memory.candidate.created"
+    case memoryActivated = "memory.activated"
+    case memoryReinforced = "memory.reinforced"
+    case memorySuperseded = "memory.superseded"
+    case memoryExpired = "memory.expired"
+    case memoryDeleted = "memory.deleted"
+    case memoryPurged = "memory.purged"
+    case memoryRecalled = "memory.recalled"
+}
+
+public enum ContextMemoryScope: String, Codable, Sendable {
+    case turn = "turn"
+    case session = "session"
+    case agent = "agent"
+    case project = "project"
+    case user = "user"
+    case global = "global"
+}
+
+public enum ContextMemoryTrust: String, Codable, Sendable {
+    case host = "host"
+    case verified = "verified"
+    case user = "user"
+    case external = "external"
+    case untrusted = "untrusted"
+}
+
+public enum ContextMemorySensitivity: String, Codable, Sendable {
+    case public = "public"
+    case internal = "internal"
+    case personal = "personal"
+    case secret = "secret"
+    case restricted = "restricted"
 }
 
 public struct DataPolicy: Codable, Sendable {
@@ -2132,6 +2171,1307 @@ public struct ServerNotification: Codable, Sendable {
     }
 }
 
+public struct ContextMemorySourceRef: Codable, Sendable {
+    public let store: String
+    public let id: String
+    public let revision: Int?
+    public let eventSequence: Int?
+    public let digest: String?
+    public let uri: String?
+
+    public init(
+        store: String,
+        id: String,
+        revision: Int? = nil,
+        eventSequence: Int? = nil,
+        digest: String? = nil,
+        uri: String? = nil
+    ) {
+        self.store = store
+        self.id = id
+        self.revision = revision
+        self.eventSequence = eventSequence
+        self.digest = digest
+        self.uri = uri
+    }
+}
+
+public struct ContextMemoryProvenance: Codable, Sendable {
+    public let source: String
+    public let actor: String?
+    public let observedAt: String
+    public let parentDigests: [String]?
+    public let degraded: Bool?
+
+    public init(
+        source: String,
+        actor: String? = nil,
+        observedAt: String,
+        parentDigests: [String]? = nil,
+        degraded: Bool? = nil
+    ) {
+        self.source = source
+        self.actor = actor
+        self.observedAt = observedAt
+        self.parentDigests = parentDigests
+        self.degraded = degraded
+    }
+}
+
+public struct ContextMemoryContentRef: Codable, Sendable {
+    public let store: String
+    public let objectId: String
+    public let digest: String
+    public let byteLength: Int
+    public let mimeType: String?
+    public let summary: String
+    public let recoverable: Bool
+    public let accessPolicy: String?
+
+    public init(
+        store: String,
+        objectId: String,
+        digest: String,
+        byteLength: Int,
+        mimeType: String? = nil,
+        summary: String,
+        recoverable: Bool,
+        accessPolicy: String? = nil
+    ) {
+        self.store = store
+        self.objectId = objectId
+        self.digest = digest
+        self.byteLength = byteLength
+        self.mimeType = mimeType
+        self.summary = summary
+        self.recoverable = recoverable
+        self.accessPolicy = accessPolicy
+    }
+}
+
+public struct ContextMemoryBinding: Codable, Sendable {
+    public let taskState: String?
+    public let toolCallId: String?
+    public let toolRole: String?
+    public let toolOutcome: String?
+    public let approvalId: String?
+    public let questionId: String?
+    public let humanTaskId: String?
+    public let requiredForRecovery: Bool?
+    public let cwdIdentity: String?
+    public let worktreeIdentity: String?
+    public let permissionCeilingDigest: String?
+    public let budgetRevision: Int?
+
+    public init(
+        taskState: String? = nil,
+        toolCallId: String? = nil,
+        toolRole: String? = nil,
+        toolOutcome: String? = nil,
+        approvalId: String? = nil,
+        questionId: String? = nil,
+        humanTaskId: String? = nil,
+        requiredForRecovery: Bool? = nil,
+        cwdIdentity: String? = nil,
+        worktreeIdentity: String? = nil,
+        permissionCeilingDigest: String? = nil,
+        budgetRevision: Int? = nil
+    ) {
+        self.taskState = taskState
+        self.toolCallId = toolCallId
+        self.toolRole = toolRole
+        self.toolOutcome = toolOutcome
+        self.approvalId = approvalId
+        self.questionId = questionId
+        self.humanTaskId = humanTaskId
+        self.requiredForRecovery = requiredForRecovery
+        self.cwdIdentity = cwdIdentity
+        self.worktreeIdentity = worktreeIdentity
+        self.permissionCeilingDigest = permissionCeilingDigest
+        self.budgetRevision = budgetRevision
+    }
+}
+
+public struct ContextItem: Codable, Sendable {
+    public let schemaVersion: Int
+    public let itemId: String
+    public let kind: String
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+    public let sourceRef: ContextMemorySourceRef
+    public let provenance: ContextMemoryProvenance
+    public let trust: ContextMemoryTrust
+    public let sensitivity: ContextMemorySensitivity
+    public let allowedSinks: [String]
+    public let tokenEstimate: Int
+    public let priority: Int
+    public let pinned: Bool
+    public let createdAt: String
+    public let expiresAt: String?
+    public let digest: String
+    public let content: String?
+    public let contentRef: ContextMemoryContentRef?
+    public let binding: ContextMemoryBinding?
+
+    public init(
+        schemaVersion: Int,
+        itemId: String,
+        kind: String,
+        scope: ContextMemoryScope,
+        scopeId: String? = nil,
+        sourceRef: ContextMemorySourceRef,
+        provenance: ContextMemoryProvenance,
+        trust: ContextMemoryTrust,
+        sensitivity: ContextMemorySensitivity,
+        allowedSinks: [String],
+        tokenEstimate: Int,
+        priority: Int,
+        pinned: Bool,
+        createdAt: String,
+        expiresAt: String? = nil,
+        digest: String,
+        content: String? = nil,
+        contentRef: ContextMemoryContentRef? = nil,
+        binding: ContextMemoryBinding? = nil
+    ) {
+        self.schemaVersion = schemaVersion
+        self.itemId = itemId
+        self.kind = kind
+        self.scope = scope
+        self.scopeId = scopeId
+        self.sourceRef = sourceRef
+        self.provenance = provenance
+        self.trust = trust
+        self.sensitivity = sensitivity
+        self.allowedSinks = allowedSinks
+        self.tokenEstimate = tokenEstimate
+        self.priority = priority
+        self.pinned = pinned
+        self.createdAt = createdAt
+        self.expiresAt = expiresAt
+        self.digest = digest
+        self.content = content
+        self.contentRef = contentRef
+        self.binding = binding
+    }
+}
+
+public struct ContextMemoryRetentionPolicy: Codable, Sendable {
+    public let mode: String
+    public let expiresAt: String?
+    public let maxAgeDays: Int?
+    public let legalHoldId: String?
+
+    public init(
+        mode: String,
+        expiresAt: String? = nil,
+        maxAgeDays: Int? = nil,
+        legalHoldId: String? = nil
+    ) {
+        self.mode = mode
+        self.expiresAt = expiresAt
+        self.maxAgeDays = maxAgeDays
+        self.legalHoldId = legalHoldId
+    }
+}
+
+public struct MemoryRecord: Codable, Sendable {
+    public let schemaVersion: Int
+    public let memoryId: String
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+    public let category: String
+    public let content: String
+    public let contentRef: ContextMemoryContentRef?
+    public let summary: String?
+    public let provenance: ContextMemoryProvenance
+    public let evidenceRefs: [ContextMemorySourceRef]
+    public let confidence: Double
+    public let importance: Double
+    public let tags: [String]
+    public let sensitivity: ContextMemorySensitivity
+    public let allowedSinks: [String]
+    public let state: String
+    public let retentionPolicy: ContextMemoryRetentionPolicy
+    public let createdAt: String
+    public let updatedAt: String
+    public let lastAccessedAt: String?
+    public let accessCount: Int
+    public let supersedes: [String]?
+    public let revision: Int
+    public let digest: String
+    public let deletionFence: String?
+
+    public init(
+        schemaVersion: Int,
+        memoryId: String,
+        scope: ContextMemoryScope,
+        scopeId: String? = nil,
+        category: String,
+        content: String,
+        contentRef: ContextMemoryContentRef? = nil,
+        summary: String? = nil,
+        provenance: ContextMemoryProvenance,
+        evidenceRefs: [ContextMemorySourceRef],
+        confidence: Double,
+        importance: Double,
+        tags: [String],
+        sensitivity: ContextMemorySensitivity,
+        allowedSinks: [String],
+        state: String,
+        retentionPolicy: ContextMemoryRetentionPolicy,
+        createdAt: String,
+        updatedAt: String,
+        lastAccessedAt: String? = nil,
+        accessCount: Int,
+        supersedes: [String]? = nil,
+        revision: Int,
+        digest: String,
+        deletionFence: String? = nil
+    ) {
+        self.schemaVersion = schemaVersion
+        self.memoryId = memoryId
+        self.scope = scope
+        self.scopeId = scopeId
+        self.category = category
+        self.content = content
+        self.contentRef = contentRef
+        self.summary = summary
+        self.provenance = provenance
+        self.evidenceRefs = evidenceRefs
+        self.confidence = confidence
+        self.importance = importance
+        self.tags = tags
+        self.sensitivity = sensitivity
+        self.allowedSinks = allowedSinks
+        self.state = state
+        self.retentionPolicy = retentionPolicy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastAccessedAt = lastAccessedAt
+        self.accessCount = accessCount
+        self.supersedes = supersedes
+        self.revision = revision
+        self.digest = digest
+        self.deletionFence = deletionFence
+    }
+}
+
+public struct ContextScopeAdmission: Codable, Sendable {
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+
+    public init(
+        scope: ContextMemoryScope,
+        scopeId: String? = nil
+    ) {
+        self.scope = scope
+        self.scopeId = scopeId
+    }
+}
+
+public struct ContextPlanRequest: Codable, Sendable {
+    public let modelWindowTokens: Int
+    public let reservedOutputTokens: Int
+    public let safetyMarginTokens: Int?
+    public let recoveryReserveTokens: Int?
+    public let items: [ContextItem]
+    public let sink: String
+    public let scopeAdmissions: [ContextScopeAdmission]
+    public let partitionCeilings: ContextPartitionMap?
+    public let partitionMinimums: ContextPartitionMap?
+    public let policyVersion: String
+    public let modelProfile: String
+    public let sessionHead: String
+    public let memoryRevision: Int
+    public let now: String?
+
+    public init(
+        modelWindowTokens: Int,
+        reservedOutputTokens: Int,
+        safetyMarginTokens: Int? = nil,
+        recoveryReserveTokens: Int? = nil,
+        items: [ContextItem],
+        sink: String,
+        scopeAdmissions: [ContextScopeAdmission],
+        partitionCeilings: ContextPartitionMap? = nil,
+        partitionMinimums: ContextPartitionMap? = nil,
+        policyVersion: String,
+        modelProfile: String,
+        sessionHead: String,
+        memoryRevision: Int,
+        now: String? = nil
+    ) {
+        self.modelWindowTokens = modelWindowTokens
+        self.reservedOutputTokens = reservedOutputTokens
+        self.safetyMarginTokens = safetyMarginTokens
+        self.recoveryReserveTokens = recoveryReserveTokens
+        self.items = items
+        self.sink = sink
+        self.scopeAdmissions = scopeAdmissions
+        self.partitionCeilings = partitionCeilings
+        self.partitionMinimums = partitionMinimums
+        self.policyVersion = policyVersion
+        self.modelProfile = modelProfile
+        self.sessionHead = sessionHead
+        self.memoryRevision = memoryRevision
+        self.now = now
+    }
+}
+
+public struct ContextPartitionMap: Codable, Sendable {
+    public let trustedSystem: Int?
+    public let workingState: Int?
+    public let toolsAndSkills: Int?
+    public let conversation: Int?
+    public let toolEvidence: Int?
+    public let memoryAndRules: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case trustedSystem = "trusted-system"
+        case workingState = "working-state"
+        case toolsAndSkills = "tools-and-skills"
+        case conversation
+        case toolEvidence = "tool-evidence"
+        case memoryAndRules = "memory-and-rules"
+    }
+
+    public init(
+        trustedSystem: Int? = nil,
+        workingState: Int? = nil,
+        toolsAndSkills: Int? = nil,
+        conversation: Int? = nil,
+        toolEvidence: Int? = nil,
+        memoryAndRules: Int? = nil
+    ) {
+        self.trustedSystem = trustedSystem
+        self.workingState = workingState
+        self.toolsAndSkills = toolsAndSkills
+        self.conversation = conversation
+        self.toolEvidence = toolEvidence
+        self.memoryAndRules = memoryAndRules
+    }
+}
+
+public struct ContextPlan: Codable, Sendable {
+    public let schema: String
+    public let schemaVersion: Int
+    public let sessionHead: String
+    public let memoryRevision: Int
+    public let policyVersion: String
+    public let modelProfile: String
+    public let sink: String
+    public let inputBudget: Int
+    public let selectableBudget: Int
+    public let selectedTokens: Int
+    public let partitions: JSONValue
+    public let minimumShortfalls: JSONValue?
+    public let selected: [ContextItem]
+    public let selectedItemIds: [String]
+    public let dropped: [JSONValue]
+    public let createdAt: String
+    public let digest: String
+
+    public init(
+        schema: String,
+        schemaVersion: Int,
+        sessionHead: String,
+        memoryRevision: Int,
+        policyVersion: String,
+        modelProfile: String,
+        sink: String,
+        inputBudget: Int,
+        selectableBudget: Int,
+        selectedTokens: Int,
+        partitions: JSONValue,
+        minimumShortfalls: JSONValue? = nil,
+        selected: [ContextItem],
+        selectedItemIds: [String],
+        dropped: [JSONValue],
+        createdAt: String,
+        digest: String
+    ) {
+        self.schema = schema
+        self.schemaVersion = schemaVersion
+        self.sessionHead = sessionHead
+        self.memoryRevision = memoryRevision
+        self.policyVersion = policyVersion
+        self.modelProfile = modelProfile
+        self.sink = sink
+        self.inputBudget = inputBudget
+        self.selectableBudget = selectableBudget
+        self.selectedTokens = selectedTokens
+        self.partitions = partitions
+        self.minimumShortfalls = minimumShortfalls
+        self.selected = selected
+        self.selectedItemIds = selectedItemIds
+        self.dropped = dropped
+        self.createdAt = createdAt
+        self.digest = digest
+    }
+}
+
+public struct ContextCompactRequest: Codable, Sendable {
+    public let operationId: String
+    public let sessionId: String
+    public let modelWindowTokens: Int
+    public let reservedOutputTokens: Int
+    public let safetyMarginTokens: Int?
+    public let recoveryReserveTokens: Int?
+    public let sink: String
+    public let scopeAdmissions: [ContextScopeAdmission]
+    public let partitionCeilings: ContextPartitionMap?
+    public let partitionMinimums: ContextPartitionMap?
+    public let policyVersion: String
+    public let modelProfile: String
+    public let memoryRevision: Int?
+    public let allowFallback: Bool?
+    public let now: String?
+    public let metadata: JSONValue?
+
+    public init(
+        operationId: String,
+        sessionId: String,
+        modelWindowTokens: Int,
+        reservedOutputTokens: Int,
+        safetyMarginTokens: Int? = nil,
+        recoveryReserveTokens: Int? = nil,
+        sink: String,
+        scopeAdmissions: [ContextScopeAdmission],
+        partitionCeilings: ContextPartitionMap? = nil,
+        partitionMinimums: ContextPartitionMap? = nil,
+        policyVersion: String,
+        modelProfile: String,
+        memoryRevision: Int? = nil,
+        allowFallback: Bool? = nil,
+        now: String? = nil,
+        metadata: JSONValue? = nil
+    ) {
+        self.operationId = operationId
+        self.sessionId = sessionId
+        self.modelWindowTokens = modelWindowTokens
+        self.reservedOutputTokens = reservedOutputTokens
+        self.safetyMarginTokens = safetyMarginTokens
+        self.recoveryReserveTokens = recoveryReserveTokens
+        self.sink = sink
+        self.scopeAdmissions = scopeAdmissions
+        self.partitionCeilings = partitionCeilings
+        self.partitionMinimums = partitionMinimums
+        self.policyVersion = policyVersion
+        self.modelProfile = modelProfile
+        self.memoryRevision = memoryRevision
+        self.allowFallback = allowFallback
+        self.now = now
+        self.metadata = metadata
+    }
+}
+
+public struct ContextCompactionReceipt: Codable, Sendable {
+    public let schema: String
+    public let schemaVersion: Int
+    public let operationId: String
+    public let sessionId: String
+    public let status: String
+    public let inputHead: String?
+    public let newHead: String?
+    public let currentHead: String?
+    public let inputDigest: String?
+    public let outputDigest: String?
+    public let eventDigest: String?
+    public let contextPlanDigest: String?
+    public let memoryRevision: Int?
+    public let selectedItemIds: [String]?
+    public let lifecycle: [JSONValue]?
+    public let digest: String
+
+    public init(
+        schema: String,
+        schemaVersion: Int,
+        operationId: String,
+        sessionId: String,
+        status: String,
+        inputHead: String? = nil,
+        newHead: String? = nil,
+        currentHead: String? = nil,
+        inputDigest: String? = nil,
+        outputDigest: String? = nil,
+        eventDigest: String? = nil,
+        contextPlanDigest: String? = nil,
+        memoryRevision: Int? = nil,
+        selectedItemIds: [String]? = nil,
+        lifecycle: [JSONValue]? = nil,
+        digest: String
+    ) {
+        self.schema = schema
+        self.schemaVersion = schemaVersion
+        self.operationId = operationId
+        self.sessionId = sessionId
+        self.status = status
+        self.inputHead = inputHead
+        self.newHead = newHead
+        self.currentHead = currentHead
+        self.inputDigest = inputDigest
+        self.outputDigest = outputDigest
+        self.eventDigest = eventDigest
+        self.contextPlanDigest = contextPlanDigest
+        self.memoryRevision = memoryRevision
+        self.selectedItemIds = selectedItemIds
+        self.lifecycle = lifecycle
+        self.digest = digest
+    }
+}
+
+public struct MemoryRecallRequest: Codable, Sendable {
+    public let query: String
+    public let sink: String
+    public let scopeAdmissions: [ContextScopeAdmission]
+    public let limit: Int?
+    public let tokenBudget: Int?
+    public let now: String?
+
+    public init(
+        query: String,
+        sink: String,
+        scopeAdmissions: [ContextScopeAdmission],
+        limit: Int? = nil,
+        tokenBudget: Int? = nil,
+        now: String? = nil
+    ) {
+        self.query = query
+        self.sink = sink
+        self.scopeAdmissions = scopeAdmissions
+        self.limit = limit
+        self.tokenBudget = tokenBudget
+        self.now = now
+    }
+}
+
+public struct MemoryRecallResult: Codable, Sendable {
+    public let query: String
+    public let sink: String
+    public let tokenBudget: Int
+    public let usedTokens: Int
+    public let totalCandidates: Int
+    public let results: [JSONValue]
+    public let digest: String
+    public let memoryRevision: Int
+
+    public init(
+        query: String,
+        sink: String,
+        tokenBudget: Int,
+        usedTokens: Int,
+        totalCandidates: Int,
+        results: [JSONValue],
+        digest: String,
+        memoryRevision: Int
+    ) {
+        self.query = query
+        self.sink = sink
+        self.tokenBudget = tokenBudget
+        self.usedTokens = usedTokens
+        self.totalCandidates = totalCandidates
+        self.results = results
+        self.digest = digest
+        self.memoryRevision = memoryRevision
+    }
+}
+
+public struct MemoryProposalRequest: Codable, Sendable {
+    public let memoryId: String?
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+    public let category: String
+    public let content: String
+    public let contentRef: ContextMemoryContentRef?
+    public let summary: String?
+    public let provenance: ContextMemoryProvenance
+    public let evidenceRefs: [ContextMemorySourceRef]
+    public let confidence: Double
+    public let importance: Double
+    public let tags: [String]?
+    public let sensitivity: ContextMemorySensitivity
+    public let allowedSinks: [String]
+    public let retentionPolicy: ContextMemoryRetentionPolicy
+    public let activate: Bool?
+    public let createdAt: String?
+    public let supersedes: [String]?
+
+    public init(
+        memoryId: String? = nil,
+        scope: ContextMemoryScope,
+        scopeId: String? = nil,
+        category: String,
+        content: String,
+        contentRef: ContextMemoryContentRef? = nil,
+        summary: String? = nil,
+        provenance: ContextMemoryProvenance,
+        evidenceRefs: [ContextMemorySourceRef],
+        confidence: Double,
+        importance: Double,
+        tags: [String]? = nil,
+        sensitivity: ContextMemorySensitivity,
+        allowedSinks: [String],
+        retentionPolicy: ContextMemoryRetentionPolicy,
+        activate: Bool? = nil,
+        createdAt: String? = nil,
+        supersedes: [String]? = nil
+    ) {
+        self.memoryId = memoryId
+        self.scope = scope
+        self.scopeId = scopeId
+        self.category = category
+        self.content = content
+        self.contentRef = contentRef
+        self.summary = summary
+        self.provenance = provenance
+        self.evidenceRefs = evidenceRefs
+        self.confidence = confidence
+        self.importance = importance
+        self.tags = tags
+        self.sensitivity = sensitivity
+        self.allowedSinks = allowedSinks
+        self.retentionPolicy = retentionPolicy
+        self.activate = activate
+        self.createdAt = createdAt
+        self.supersedes = supersedes
+    }
+}
+
+public struct MemoryDecisionRequest: Codable, Sendable {
+    public let memoryId: String
+    public let type: String
+    public let expectedRevision: Int
+    public let confidenceDelta: Double?
+    public let importance: Double?
+    public let evidenceRefs: [ContextMemorySourceRef]?
+    public let tags: [String]?
+    public let summary: String?
+    public let successorMemoryId: String?
+    public let reason: String?
+    public let authority: String?
+    public let at: String?
+
+    public init(
+        memoryId: String,
+        type: String,
+        expectedRevision: Int,
+        confidenceDelta: Double? = nil,
+        importance: Double? = nil,
+        evidenceRefs: [ContextMemorySourceRef]? = nil,
+        tags: [String]? = nil,
+        summary: String? = nil,
+        successorMemoryId: String? = nil,
+        reason: String? = nil,
+        authority: String? = nil,
+        at: String? = nil
+    ) {
+        self.memoryId = memoryId
+        self.type = type
+        self.expectedRevision = expectedRevision
+        self.confidenceDelta = confidenceDelta
+        self.importance = importance
+        self.evidenceRefs = evidenceRefs
+        self.tags = tags
+        self.summary = summary
+        self.successorMemoryId = successorMemoryId
+        self.reason = reason
+        self.authority = authority
+        self.at = at
+    }
+}
+
+public struct MemoryDeletionRequest: Codable, Sendable {
+    public let requestId: String
+    public let subject: String
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+    public let selector: String
+    public let memoryId: String
+    public let expectedRevision: Int
+    public let fence: String
+    public let authority: String
+    public let reason: String?
+
+    public init(
+        requestId: String,
+        subject: String,
+        scope: ContextMemoryScope,
+        scopeId: String? = nil,
+        selector: String,
+        memoryId: String,
+        expectedRevision: Int,
+        fence: String,
+        authority: String,
+        reason: String? = nil
+    ) {
+        self.requestId = requestId
+        self.subject = subject
+        self.scope = scope
+        self.scopeId = scopeId
+        self.selector = selector
+        self.memoryId = memoryId
+        self.expectedRevision = expectedRevision
+        self.fence = fence
+        self.authority = authority
+        self.reason = reason
+    }
+}
+
+public struct MemoryReconcileRequest: Codable, Sendable {
+    public let operationId: String
+
+    public init(
+        operationId: String
+    ) {
+        self.operationId = operationId
+    }
+}
+
+public struct MemoryMutationReceipt: Codable, Sendable {
+    public let record: MemoryRecord
+    public let event: JSONValue
+    public let receipt: JSONValue
+
+    public init(
+        record: MemoryRecord,
+        event: JSONValue,
+        receipt: JSONValue
+    ) {
+        self.record = record
+        self.event = event
+        self.receipt = receipt
+    }
+}
+
+public struct MemoryDeletionReceipt: Codable, Sendable {
+    public let schema: String
+    public let schemaVersion: Int
+    public let requestId: String
+    public let subject: String
+    public let selector: String
+    public let scope: ContextMemoryScope
+    public let scopeId: String?
+    public let memoryId: String
+    public let fence: String
+    public let authority: String
+    public let status: String
+    public let revision: Int
+    public let recordState: String
+    public let recordDigest: String
+    public let stores: [JSONValue]
+    public let startedAt: String
+    public let completedAt: String
+    public let digest: String
+
+    public init(
+        schema: String,
+        schemaVersion: Int,
+        requestId: String,
+        subject: String,
+        selector: String,
+        scope: ContextMemoryScope,
+        scopeId: String? = nil,
+        memoryId: String,
+        fence: String,
+        authority: String,
+        status: String,
+        revision: Int,
+        recordState: String,
+        recordDigest: String,
+        stores: [JSONValue],
+        startedAt: String,
+        completedAt: String,
+        digest: String
+    ) {
+        self.schema = schema
+        self.schemaVersion = schemaVersion
+        self.requestId = requestId
+        self.subject = subject
+        self.selector = selector
+        self.scope = scope
+        self.scopeId = scopeId
+        self.memoryId = memoryId
+        self.fence = fence
+        self.authority = authority
+        self.status = status
+        self.revision = revision
+        self.recordState = recordState
+        self.recordDigest = recordDigest
+        self.stores = stores
+        self.startedAt = startedAt
+        self.completedAt = completedAt
+        self.digest = digest
+    }
+}
+
+public struct AgentContextPlanCreatedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String?
+    public let plan: ContextPlan
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String? = nil,
+        plan: ContextPlan
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.plan = plan
+    }
+}
+
+public struct AgentContextPlanRejectedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+    }
+}
+
+public struct AgentContextCompactionStartedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+    }
+}
+
+public struct AgentContextCompactionCommittedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String?
+    public let receipt: ContextCompactionReceipt
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String? = nil,
+        receipt: ContextCompactionReceipt
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.receipt = receipt
+    }
+}
+
+public struct AgentContextCompactionAbortedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+    }
+}
+
+public struct AgentContextCompactionReconciliationRequiredStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String?
+    public let receipt: ContextCompactionReceipt
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String? = nil,
+        receipt: ContextCompactionReceipt
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.receipt = receipt
+    }
+}
+
+public struct AgentMemoryCandidateCreatedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemoryActivatedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemoryReinforcedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemorySupersededStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemoryExpiredStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemoryDeletedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let record: MemoryRecord?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        record: MemoryRecord? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.record = record
+    }
+}
+
+public struct AgentMemoryPurgedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let reason_code: String?
+    public let receipt: MemoryDeletionReceipt?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        reason_code: String? = nil,
+        receipt: MemoryDeletionReceipt? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.receipt = receipt
+    }
+}
+
+public struct AgentMemoryRecalledStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String?
+    public let revision: Int?
+    public let record_digest: String?
+    public let reason_code: String?
+    public let result: MemoryRecallResult
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String? = nil,
+        revision: Int? = nil,
+        record_digest: String? = nil,
+        reason_code: String? = nil,
+        result: MemoryRecallResult
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.reason_code = reason_code
+        self.result = result
+    }
+}
+
 public enum AgentStreamEventPayload: Codable, Sendable {
     case approvalRequest(AgentApprovalRequestStreamEvent)
     case approvalResolved(AgentApprovalResolvedStreamEvent)
@@ -2171,6 +3511,20 @@ public enum AgentStreamEventPayload: Codable, Sendable {
     case toolUse(AgentToolUseStreamEvent)
     case user(AgentUserStreamEvent)
     case policyDecision(AgentPolicyDecisionStreamEvent)
+    case contextPlanCreated(AgentContextPlanCreatedStreamEvent)
+    case contextPlanRejected(AgentContextPlanRejectedStreamEvent)
+    case contextCompactionStarted(AgentContextCompactionStartedStreamEvent)
+    case contextCompactionCommitted(AgentContextCompactionCommittedStreamEvent)
+    case contextCompactionAborted(AgentContextCompactionAbortedStreamEvent)
+    case contextCompactionReconciliationRequired(AgentContextCompactionReconciliationRequiredStreamEvent)
+    case memoryCandidateCreated(AgentMemoryCandidateCreatedStreamEvent)
+    case memoryActivated(AgentMemoryActivatedStreamEvent)
+    case memoryReinforced(AgentMemoryReinforcedStreamEvent)
+    case memorySuperseded(AgentMemorySupersededStreamEvent)
+    case memoryExpired(AgentMemoryExpiredStreamEvent)
+    case memoryDeleted(AgentMemoryDeletedStreamEvent)
+    case memoryPurged(AgentMemoryPurgedStreamEvent)
+    case memoryRecalled(AgentMemoryRecalledStreamEvent)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -2217,6 +3571,20 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .toolUse: self = .toolUse(try AgentToolUseStreamEvent(from: decoder))
         case .user: self = .user(try AgentUserStreamEvent(from: decoder))
         case .policyDecision: self = .policyDecision(try AgentPolicyDecisionStreamEvent(from: decoder))
+        case .contextPlanCreated: self = .contextPlanCreated(try AgentContextPlanCreatedStreamEvent(from: decoder))
+        case .contextPlanRejected: self = .contextPlanRejected(try AgentContextPlanRejectedStreamEvent(from: decoder))
+        case .contextCompactionStarted: self = .contextCompactionStarted(try AgentContextCompactionStartedStreamEvent(from: decoder))
+        case .contextCompactionCommitted: self = .contextCompactionCommitted(try AgentContextCompactionCommittedStreamEvent(from: decoder))
+        case .contextCompactionAborted: self = .contextCompactionAborted(try AgentContextCompactionAbortedStreamEvent(from: decoder))
+        case .contextCompactionReconciliationRequired: self = .contextCompactionReconciliationRequired(try AgentContextCompactionReconciliationRequiredStreamEvent(from: decoder))
+        case .memoryCandidateCreated: self = .memoryCandidateCreated(try AgentMemoryCandidateCreatedStreamEvent(from: decoder))
+        case .memoryActivated: self = .memoryActivated(try AgentMemoryActivatedStreamEvent(from: decoder))
+        case .memoryReinforced: self = .memoryReinforced(try AgentMemoryReinforcedStreamEvent(from: decoder))
+        case .memorySuperseded: self = .memorySuperseded(try AgentMemorySupersededStreamEvent(from: decoder))
+        case .memoryExpired: self = .memoryExpired(try AgentMemoryExpiredStreamEvent(from: decoder))
+        case .memoryDeleted: self = .memoryDeleted(try AgentMemoryDeletedStreamEvent(from: decoder))
+        case .memoryPurged: self = .memoryPurged(try AgentMemoryPurgedStreamEvent(from: decoder))
+        case .memoryRecalled: self = .memoryRecalled(try AgentMemoryRecalledStreamEvent(from: decoder))
         }
     }
 
@@ -2260,6 +3628,20 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .toolUse(let event): try event.encode(to: encoder)
         case .user(let event): try event.encode(to: encoder)
         case .policyDecision(let event): try event.encode(to: encoder)
+        case .contextPlanCreated(let event): try event.encode(to: encoder)
+        case .contextPlanRejected(let event): try event.encode(to: encoder)
+        case .contextCompactionStarted(let event): try event.encode(to: encoder)
+        case .contextCompactionCommitted(let event): try event.encode(to: encoder)
+        case .contextCompactionAborted(let event): try event.encode(to: encoder)
+        case .contextCompactionReconciliationRequired(let event): try event.encode(to: encoder)
+        case .memoryCandidateCreated(let event): try event.encode(to: encoder)
+        case .memoryActivated(let event): try event.encode(to: encoder)
+        case .memoryReinforced(let event): try event.encode(to: encoder)
+        case .memorySuperseded(let event): try event.encode(to: encoder)
+        case .memoryExpired(let event): try event.encode(to: encoder)
+        case .memoryDeleted(let event): try event.encode(to: encoder)
+        case .memoryPurged(let event): try event.encode(to: encoder)
+        case .memoryRecalled(let event): try event.encode(to: encoder)
         }
     }
 }

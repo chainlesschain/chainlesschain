@@ -1,0 +1,59 @@
+name: Context Memory Long Soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact release candidate commit; must equal the workflow event SHA
+        required: true
+        type: string
+
+permissions:
+  attestations: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: context-memory-long-soak-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  long-soak:
+    name: 30-minute canonical Context/Memory soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Refuse detached or abbreviated candidates
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.commit_sha }}
+        run: |
+          [[ "${CANDIDATE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          test "${CANDIDATE_SHA}" = "${GITHUB_SHA}"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+
+      - name: Run release soak
+        shell: bash
+        run: >-
+          node packages/context-memory-kernel/scripts/context-memory-soak.mjs
+          --profile release
+          --candidate-sha "${{ inputs.commit_sha }}"
+          --output "${RUNNER_TEMP}/context-memory-long-soak.json"
+
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ runner.temp }}/context-memory-long-soak.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: context-memory-long-soak-${{ inputs.commit_sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/context-memory-long-soak.json
+          if-no-files-found: error
+          retention-days: 365

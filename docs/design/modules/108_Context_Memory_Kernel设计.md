@@ -1,6 +1,6 @@
 # 108 Context/Memory Kernel 设计
 
-> 状态：提案，尚未完成 authoritative cutover｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-08-28
+> 状态：仓库实现与默认切换完成；正式生产关闭等待 exact-SHA 三平台矩阵和 30 分钟 soak｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-08-30
 
 ## 1. 定位
 
@@ -15,9 +15,9 @@ Context/Memory Kernel 是 ChainlessChain Agent Platform 的逻辑基础模块，
 
 “Kernel”表示单一契约、状态机和一致性门，不要求所有代码运行在同一进程或立即合并成一个文件。
 
-## 2. 当前状态与问题
+## 2. 基线问题与当前状态
 
-当前至少存在以下独立实现：
+迁移前至少存在以下独立实现：
 
 | 能力 | 当前实现 | 主要边界 |
 | --- | --- | --- |
@@ -30,7 +30,16 @@ Context/Memory Kernel 是 ChainlessChain Agent Platform 的逻辑基础模块，
 | 会话记忆巩固 | `packages/session-core/lib/memory-consolidator.js` | 规则或 LLM 提炼，主路径接入未统一 |
 | 永久/层次化记忆 | CLI 与 Desktop 多套模块 | schema、检索和清理语义不同 |
 
-因此，同一任务在 CLI、Desktop 或 IDE 上可能出现不同的预算划分、压缩摘要、自动召回和删除范围。局部功能存在不等于已经有单一 writer、单一生命周期或跨端等价恢复。
+这些历史实现解释了迁移起点；它们不再代表 2026-08-30 的 writer authority。当前仓库状态如下：
+
+- `packages/context-memory-kernel` 是 schema v1、纯 reducer/planner、authority registry、ports、删除对账和 writer inventory 的唯一 canonical 包。
+- CLI 每次付费 provider 调用前生成 `ContextPlan`，召回记忆以 data-only assistant message 注入；JSONL compaction 与 canonical memory 使用 CAS/receipt，旧 SQLite/session-core/永久/层次 writer 在 `canonical_default` 下失败关闭。
+- Desktop main process 默认 `canonical_default`，旧 memory/context mutation 入口失败关闭；VS Code 与 JetBrains 是 App Server canonical lifecycle 的有界只读 projection。
+- Agent Protocol、App Server、TypeScript/Python SDK 与两个 IDE 绑定同一 schema 和 `cross-surface-projection-v1.tsv` fixture；fixture 固定 14 个恢复/作用域/provider/删除场景和 7 个消费 surface，不提供 generic memory RPC 逃逸口。
+- 删除先提交最小 tombstone，再物理清除已注册 ContentPort、索引/缓存/副本和已迁移的旧 SQLite/session-core projection；部分失败持久化 reconciliation，重启后可继续，完成后封存来源引用。离线副本受 fence 阻止回灌。外部备份及未接入 Kernel 的历史离线文件不在在线 purge receipt 内，继续受部署保留政策约束。
+- `writers.v1.json` 的生产状态只有一个 `canonical_runtime`，所有 legacy writer 均为 `legacy_read_only`，静态发现门不允许未分类 writer；`context-memory-writer-probe.mjs` 在运行期验证 CLI/Desktop 旧 mutation fail closed 和 IDE projection-only 边界。
+
+仓库内 canonical authority、已登记迁移、恢复、在线隐私对账、容量门和 quick soak 已完成。生产关闭仍是独立状态：只有最终候选提交的 Linux/Windows/macOS `CLI CI`、`CLI Strict Sandbox`、`Context Memory Kernel CI` 与 Linux 30 分钟 `Context Memory Long Soak` 全绿，经 attested evidence/production-close 工作流验签后，才能写成“正式生产关闭”。
 
 ## 3. 设计目标与非目标
 
@@ -483,6 +492,8 @@ reconcile(operationId): Promise<ReconciliationReport>
 - 所有旧 mutation API fail closed，只保留有期限的 importer/read-only projection。
 - 静态调用图、运行期写探针和三平台测试证明 legacy writer 为零后再删除代码。
 
+仓库门由 `writers.v1.json`、`context-memory-writer-probe.mjs` 和三平台 `Context Memory Kernel CI` 共同实现：静态清单/调用关系出现未知 writer、canonical runtime 数量不为 1、任一实际旧写入口没有返回 fence，或 IDE 变成本地 writer 时均失败关闭。代码物理删除仍需保留期结束后的独立变更，不与 authority 切换混为一谈。
+
 任何阶段出现双 writer、scope 扩大、删除回灌、工具结果错配、pending state 丢失或 shadow 双重副作用，均为 NO-GO。
 
 ## 17. 失败语义
@@ -511,6 +522,10 @@ reconcile(operationId): Promise<ReconciliationReport>
 
 所有队列和单项正文必须有配置上限；超过上限先 admission，再启动 provider、embedding、blob 或同步副作用。性能优化不能跳过 provenance、scope 或 digest 校验。
 
+当前机器门由 `packages/context-memory-kernel/scripts/context-memory-benchmark.mjs` 生成 `chainlesschain.context-memory-capacity-benchmark/v1` receipt。`quick` profile 用于 Windows/macOS 和日常回归；Linux exact-SHA 矩阵运行 `release` profile，完整覆盖上述 1k/10k、100/1k、1/10/100 MiB、1k/10k/100k、CAS 重算和 1/100/10k 删除规格。大工具正文先进入 `ContentPort`，压缩只处理带 digest/byteLength 的 `ContentRef`。
+
+2026-08-30 的本地 Windows release 诊断运行约 29.6 秒：10k plan P50/P95 为约 535/672 ms，100k lexical/vector recall 为约 5.90 s/44.5 ms，10k 条记录跨 authority/index/cache/replica 收敛约 8.04 s，峰值 RSS 约 447 MiB。数值只描述该环境，不是跨机器统一 SLO；正式证据以候选 SHA 的 receipt 为准。
+
 ## 19. 测试与发布门
 
 ### 19.1 单元与性质测试
@@ -532,9 +547,20 @@ reconcile(operationId): Promise<ReconciliationReport>
 - provider-backed 正常、失败、usage unknown 和取消；
 - crash/restart、CAS race、索引重建、离线副本回灌和部分删除。
 
+`cross-surface-projection-v1.tsv` 同时包含 4 条 lifecycle projection event、最终投影和 14 个可执行场景。canonical parser 对列集合、JSON 大小、场景 ID 和 7 surface 集合做 fail-closed 校验；Kernel 执行全部场景，各语言/宿主消费者只回放 event 行并独立验证相同场景清单，避免把 fixture 元数据误当 wire event。
+
 ### 19.3 发布门
 
 本地测试只作补充。正式切换要求精确 release commit 的 Linux、Windows、macOS CLI CI 与 Strict Sandbox，以及 Desktop/IDE 对应矩阵全部通过；schema/codegen、migration dry-run、shadow divergence、恢复、隐私删除和长期 soak 必须绑定同一候选身份。
+
+当前机器门实现：
+
+- `.github/workflows/context-memory-kernel.yml`：三平台 Kernel、CLI、Desktop、VS Code、JetBrains、协议和 SDK 矩阵，运行实际 writer probe 与四宿主 quick multi-compaction soak；Linux 生成完整容量 receipt，Windows/macOS 生成 bounded quick capacity receipt；
+- `.github/workflows/context-memory-long-soak.yml`：只接受完整且等于事件提交的 SHA，运行至少 30 分钟的 release soak 并签注 receipt；
+- `.github/workflows/context-memory-release-evidence.yml`：读取四个成功 workflow run，拒绝不同 SHA/错误 workflow/失败 run，组装并签注 26 槽 evidence manifest；
+- `.github/workflows/context-memory-production-close.yml`：验签 manifest，运行 `validate-release-evidence.mjs`，拒绝缺平台、缺检查、重复检查和混合 SHA，再签注最终关闭 receipt。
+
+截至 2026-08-30，本地 Windows Kernel 45/45、CLI 16/16、Desktop 56/56、Desktop/VS Code shared surface 8/8、Agent Protocol 19/19、TypeScript SDK 69/69、Python 3.12 SDK 34/34 已通过，TypeScript SDK build 与 JDK 21 JetBrains `ContextMemoryProjectionTest` 也已成功；exact-SHA writer/quick soak receipt 和完整 release benchmark 均通过。上述最终候选的外部 GitHub Actions 证据尚未产生，因此本节不把生产发布状态提前写成完成。
 
 ## 20. 关键文件
 
@@ -544,12 +570,21 @@ reconcile(operationId): Promise<ReconciliationReport>
 | `packages/cli/src/harness/provider-backed-compaction.js` | provider-backed 语义压缩 |
 | `packages/cli/src/harness/jsonl-session-store.js` | JSONL 会话与 compact event |
 | `packages/cli/src/lib/cli-context-engineering.js` | CLI 上下文注入/压缩摘要 |
+| `packages/context-memory-kernel/schema/context-memory-kernel.schema.json` | canonical schema v1 |
+| `packages/context-memory-kernel/lib/runtime.js` | 唯一 Context/Memory mutation runtime |
+| `packages/context-memory-kernel/inventory/writers.v1.json` | 全产品 writer/cutover 状态清单 |
+| `packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv` | 7 surface、14 场景 conformance fixture |
+| `packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs` | 静态 writer graph 与运行期 fail-closed receipt |
+| `packages/context-memory-kernel/scripts/context-memory-benchmark.mjs` | §18 quick/release 容量矩阵 receipt |
+| `packages/context-memory-kernel/scripts/context-memory-soak.mjs` | CLI/Desktop/VS Code/JetBrains 多轮压缩与重启 soak |
+| `packages/cli/src/lib/context-memory-kernel/` | CLI durable/session/provider/privacy adapters |
+| `packages/cli/src/lib/app-server/context-memory-notifications.js` | 固定 lifecycle notification 映射 |
 | `packages/session-core/lib/memory-store.js` | scoped MemoryStore |
 | `packages/session-core/lib/memory-consolidator.js` | 会话记忆巩固 |
 | `desktop-app-vue/src/main/llm/context-engineering.js` | Desktop 上下文构建 |
 | `desktop-app-vue/src/main/llm/prompt-compressor.js` | Desktop PromptCompressor |
 
-共享 Kernel 的最终包路径应在 Phase 0 inventory 和依赖图确认后确定，本文不预先制造一个尚不存在的源码入口。
+共享 Kernel 的最终包路径已经冻结为 `packages/context-memory-kernel`；上层只能通过公开 API、固定 App Server 方法或只读 projection 接入。
 
 ## 21. 已决策项与开放问题
 
@@ -560,17 +595,16 @@ reconcile(operationId): Promise<ReconciliationReport>
 - 自动巩固先生成 candidate，不能默认提升到 global。
 - 搜索索引和 embedding 是可重建 projection。
 - 所有跨端实现最终只保留一个 authoritative mutation path。
+- schema v1 中 `project` 是仓库/工作区共享 scope，入口不能另造第二个 workspace identity。
+- 自动提炼默认只生成 candidate；显式用户命令和可审计 importer 才能按策略激活。
+- Context/Memory lifecycle 作为 Agent Protocol v1 additive 能力发布。
 
 ### 开放问题
 
-- project 与 workspace scope 是否需要两个独立 identity；
-- user/global scope 在单用户本地模式和企业多租户模式下的精确定义；
-- 哪些自动候选允许无交互激活，以及默认 retention；
-- Desktop 历史永久/层次化记忆如何映射而不丢 provenance；
 - 物理 purge 的法务保留例外、备份窗口和跨设备完成 SLO；
-- Context/Memory 事件进入 Agent Protocol v1 的 additive 版本边界。
+- 企业多租户部署中 user/global identity 与法务保留 policy 的外部 authority 接口。
 
-开放问题在 schema v1 冻结前必须形成 ADR；入口不得各自选择不同答案。
+这些剩余项是部署 policy/外部存储适配问题，不能改变已冻结的 schema、扩大 scope，或让备份/离线副本绕过 tombstone fence；新增 policy 需要 ADR 和 schema 的兼容性审查。
 
 ## 22. 相关文档
 

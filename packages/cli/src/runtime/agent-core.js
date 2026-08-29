@@ -10650,14 +10650,40 @@ export async function chatWithTools(rawMessages, options) {
     options.providerRequestId,
   );
 
-  const tools = getEffectiveToolDefinitions(options);
+  let tools = getEffectiveToolDefinitions(options);
+  if (Array.isArray(options.contextMemorySelectedToolNames)) {
+    const selected = new Set(options.contextMemorySelectedToolNames);
+    tools = tools.filter((tool) => selected.has(tool?.function?.name));
+  }
 
-  const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
-  const messages = ce
-    ? ce.buildOptimizedMessages(rawMessages, {
+  let providerMessages = rawMessages;
+  let canonicalPlan = null;
+  if (
+    options.contextMemoryPreplanned !== true &&
+    options.contextMemorySkipPlanning !== true
+  ) {
+    const { prepareCanonicalProviderContext } = await import(
+      "../lib/context-memory-kernel/provider-context.js"
+    );
+    const prepared = await prepareCanonicalProviderContext(rawMessages, {
+      ...options,
+      contextMemoryToolDefinitions: tools,
+    });
+    providerMessages = prepared.messages;
+    canonicalPlan = prepared.plan;
+    if (canonicalPlan) {
+      const selected = new Set(prepared.selectedToolNames);
+      tools = tools.filter((tool) => selected.has(tool?.function?.name));
+    }
+  }
+  const lastUserMsg = [...providerMessages]
+    .reverse()
+    .find((m) => m.role === "user");
+  const messages = ce && !canonicalPlan
+    ? ce.buildOptimizedMessages(providerMessages, {
         userQuery: lastUserMsg?.content,
       })
-    : rawMessages;
+    : providerMessages;
 
   throwIfAborted(signal);
 
@@ -12775,9 +12801,19 @@ async function _getAutoCompactor(options) {
     return _instrumentAutoCompactorUsage(options._autoCompactor, options);
   }
   let compressor = null;
+  let canonicalRequired = false;
   try {
     const { feature } = await import("../lib/feature-flags.js");
-    if (feature("PROMPT_COMPRESSOR")) {
+    const { resolveCliContextMemoryCutover } =
+      await import("../lib/context-memory-kernel/authority.js");
+    const cutover = resolveCliContextMemoryCutover({
+      env: options.contextMemoryEnv || process.env,
+      scopeKey: options.sessionId
+        ? `cli:session:${options.sessionId}`
+        : "cli:live-session",
+    });
+    canonicalRequired = cutover.canonical;
+    if (feature("PROMPT_COMPRESSOR") || cutover.canonical) {
       const { PromptCompressor } =
         await import("../harness/prompt-compressor.js");
       const llmQuery =
@@ -12798,6 +12834,7 @@ async function _getAutoCompactor(options) {
                   {
                     ...options,
                     contextEngine: null,
+                    contextMemorySkipPlanning: true,
                     enabledToolNames: [],
                     extraToolDefinitions: [],
                     hostManagedToolPolicy: null,
@@ -12824,8 +12861,35 @@ async function _getAutoCompactor(options) {
         summaryInputMaxChars: options.compactionInputMaxChars,
       });
       compressor = _instrumentAutoCompactorUsage(compressor, options);
+      if (cutover.canonical) {
+        const compatibilitySummarizer = compressor;
+        const { compactLiveMessagesCanonical } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
+        compressor = {
+          canonicalKernel: true,
+          shouldAutoCompact: (messages) =>
+            compatibilitySummarizer.shouldAutoCompact(messages),
+          compress: async (messages, compressOptions = {}) => {
+            return compactLiveMessagesCanonical(messages, {
+              compressor: compatibilitySummarizer,
+              compressOptions,
+              sessionId: options.sessionId,
+              operationId: `auto-${randomUUID()}`,
+              provider: options.provider,
+              model: options.model,
+              env: options.contextMemoryEnv || process.env,
+              persist: options.persistCompaction !== false,
+              trigger: "auto",
+              ...(typeof options.onCompaction === "function"
+                ? { commit: options.onCompaction }
+                : {}),
+            });
+          },
+        };
+      }
     }
-  } catch {
+  } catch (error) {
+    if (canonicalRequired) throw error;
     compressor = null;
   }
   try {
@@ -12906,7 +12970,9 @@ async function _settleAutomaticCompaction({
   }
 
   let settlement = null;
-  if (typeof options.onCompaction === "function") {
+  if (stats?.canonicalAlreadySettled === true) {
+    settlement = stats.canonicalReceipt || null;
+  } else if (typeof options.onCompaction === "function") {
     if (options.onCompaction.constructor?.name === "AsyncFunction") {
       throw _compactionSettlementError(
         "CC_COMPACTION_SETTLEMENT_ASYNC",
@@ -13597,7 +13663,10 @@ export async function* agentLoop(messages, options) {
           // the full compaction below is skipped this round — so heavy-tool
           // conversations rarely hit a full summarize. Opt out:
           // autoMicroCompact: false.
-          if (options.autoMicroCompact !== false) {
+          if (
+            options.autoMicroCompact !== false &&
+            compactor.canonicalKernel !== true
+          ) {
             try {
               const { microCompact } = await import("../lib/micro-compact.js");
               const mc = microCompact(messages);
@@ -13670,6 +13739,33 @@ export async function* agentLoop(messages, options) {
                 preserveToolPairs: true,
                 ...pinOpts,
               });
+          if (
+            stats?.canonicalReceipt &&
+            !["committed", "degraded"].includes(
+              stats.canonicalReceipt.status,
+            )
+          ) {
+            automaticCompactionSettlementBlocked = true;
+            yield {
+              type: "compaction-degraded",
+              runId,
+              reason:
+                stats.canonicalReceipt.status === "stale"
+                  ? "session_messages_changed_during_compaction"
+                  : "canonical_compaction_reconciliation_required",
+              summaryMode: "none",
+              code:
+                stats.canonicalReceipt.status === "stale"
+                  ? "SESSION_REVISION_STALE"
+                  : "CC_COMPACTION_RECONCILIATION_REQUIRED",
+              receipt: stats.canonicalReceipt,
+            };
+            await _awaitBackgroundUsageSettlement(
+              backgroundSubAgents,
+              backgroundUsageFailureState,
+            );
+            return;
+          }
           const observerFailure = compactionUsageState.calls.find(
             (call) => call.observerFailed,
           );
@@ -13982,6 +14078,7 @@ export async function* agentLoop(messages, options) {
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
     let callMessages = messages;
+    const contextMemoryTrustedSystemIndexes = [];
     if (!hermeticExecution && typeof options.prepareCall === "function") {
       try {
         const hook = await options.prepareCall({
@@ -13998,6 +14095,7 @@ export async function* agentLoop(messages, options) {
             ...messages,
             { role: "system", content: hook.systemSuffix },
           ];
+          contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
         }
       } catch (_e) {
         // prepareCall failures are non-critical — proceed with original messages
@@ -14010,6 +14108,30 @@ export async function* agentLoop(messages, options) {
     // model request within that turn. Normalized through buildTelemetryAttributes
     // so they get the same charset-sanitized + cardinality-bounded treatment as
     // the run-level ids (turn.id correlates with the agent.iteration counter).
+    let canonicalProviderContext = null;
+    if (options.contextMemorySkipPlanning !== true) {
+      const { prepareCanonicalProviderContext } = await import(
+        "../lib/context-memory-kernel/provider-context.js"
+      );
+      canonicalProviderContext = await prepareCanonicalProviderContext(
+        callMessages,
+        {
+          ...options,
+          contextMemoryToolDefinitions:
+            getEffectiveToolDefinitions(effectiveToolOptions),
+          contextMemoryTrustedSystemIndexes,
+        },
+      );
+      if (canonicalProviderContext.plan) {
+        callMessages = canonicalProviderContext.messages;
+        yield {
+          type: "context.plan.created",
+          plan: canonicalProviderContext.plan,
+          recallDigest: canonicalProviderContext.recall?.digest || null,
+        };
+      }
+    }
+
     const modelIdAttrs = recorder
       ? buildTelemetryAttributes({
           turnId: `${runId}:t${budget.consumed}`,
@@ -14024,9 +14146,18 @@ export async function* agentLoop(messages, options) {
       "model",
       budget.consumed,
     );
-    const providerCallOptions = providerRequestId
-      ? { ...effectiveToolOptions, providerRequestId }
+    const plannedProviderOptions = canonicalProviderContext?.plan
+      ? {
+          ...effectiveToolOptions,
+          contextEngine: null,
+          contextMemoryPreplanned: true,
+          contextMemorySelectedToolNames:
+            canonicalProviderContext.selectedToolNames,
+        }
       : effectiveToolOptions;
+    const providerCallOptions = providerRequestId
+      ? { ...plannedProviderOptions, providerRequestId }
+      : plannedProviderOptions;
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),

@@ -20,6 +20,7 @@ import {
 } from "../../lib/plan-mode.js";
 import { CLIContextEngineering } from "../../lib/cli-context-engineering.js";
 import { CLIPermanentMemory } from "../../lib/permanent-memory.js";
+import { resolveCliContextMemoryCutover } from "../../lib/context-memory-kernel/authority.js";
 import {
   createTrustedMcpServerMap,
   resolveMcpServerPolicy,
@@ -411,6 +412,9 @@ export class WSSessionManager {
       );
     }
     const sessionId = this._generateId();
+    const contextMemoryCutover = resolveCliContextMemoryCutover({
+      scopeKey: `cli:ws-session:${sessionId}`,
+    });
     const requireDurable = options.requireDurable === true;
     if (requireDurable && !this.db) {
       const error = new Error(
@@ -458,15 +462,17 @@ export class WSSessionManager {
     // Create context engine
     let contextEngine = null;
     let permanentMemory = null;
-    try {
-      const memoryDir = path.join(projectRoot, "memory");
-      permanentMemory = new CLIPermanentMemory({
-        db: this.db,
-        memoryDir,
-      });
-      permanentMemory.initialize();
-    } catch (_err) {
-      // Non-critical
+    if (!contextMemoryCutover.canonical) {
+      try {
+        const memoryDir = path.join(projectRoot, "memory");
+        permanentMemory = new CLIPermanentMemory({
+          db: this.db,
+          memoryDir,
+        });
+        permanentMemory.initialize();
+      } catch (_err) {
+        permanentMemory = null;
+      }
     }
 
     try {
@@ -702,18 +708,23 @@ export class WSSessionManager {
         reason: "process_restart",
       });
       const externalTools = this._buildSessionExternalTools();
+      const contextMemoryCutover = resolveCliContextMemoryCutover({
+        scopeKey: `cli:ws-session:${dbSession.id}`,
+      });
       let contextEngine = null;
       let permanentMemory = null;
 
-      try {
-        const memoryDir = path.join(workspace.projectRoot, "memory");
-        permanentMemory = new CLIPermanentMemory({
-          db: this.db,
-          memoryDir,
-        });
-        permanentMemory.initialize();
-      } catch (_err) {
-        // Non-critical
+      if (!contextMemoryCutover.canonical) {
+        try {
+          const memoryDir = path.join(workspace.projectRoot, "memory");
+          permanentMemory = new CLIPermanentMemory({
+            db: this.db,
+            memoryDir,
+          });
+          permanentMemory.initialize();
+        } catch (_err) {
+          permanentMemory = null;
+        }
       }
 
       try {

@@ -4,17 +4,19 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertProtocolCompatible } from "../src/compatibility.mjs";
+import { synchronizeContextMemoryProtocolSchema } from "./context-memory-schema.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "..", "..");
 const schemaPath = resolve(root, "schema", "cc-agent-protocol.schema.json");
 const baselinePath = resolve(root, "schema", "baselines", "v1.json");
+const checkOnly = process.argv.includes("--check");
+const freezeBaseline = process.argv.includes("--freeze-baseline");
+synchronizeContextMemoryProtocolSchema({ checkOnly });
 const schemaText = readFileSync(schemaPath, "utf8");
 const schema = JSON.parse(schemaText);
 const digest = `sha256:${createHash("sha256").update(schemaText).digest("hex")}`;
 const protocol = schema["x-cc-protocol"];
-const checkOnly = process.argv.includes("--check");
-const freezeBaseline = process.argv.includes("--freeze-baseline");
 
 if (freezeBaseline) {
   mkdirSync(dirname(baselinePath), { recursive: true });
@@ -206,6 +208,32 @@ export function isCanonicalAgentStreamEvent(value: unknown): value is CanonicalA
 export function assertCanonicalAgentStreamEvent(value: unknown): asserts value is CanonicalAgentStreamEvent {
   const result = validateCanonicalAgentStreamEvent(value);
   if (!result.ok) throw new TypeError(\`Invalid canonical AgentStreamEvent: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
+export function validateContextItem(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("ContextItem", value);
+}
+
+export function validateMemoryRecord(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("MemoryRecord", value);
+}
+
+export function validateContextPlan(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("ContextPlan", value);
+}
+
+export function validateMemoryDeletionReceipt(value: unknown): ProtocolValidationResult {
+  return validateProtocolDefinition("MemoryDeletionReceipt", value);
+}
+
+export function assertContextItem(value: unknown): asserts value is ContextItem {
+  const result = validateContextItem(value);
+  if (!result.ok) throw new TypeError(\`Invalid ContextItem: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
+}
+
+export function assertMemoryRecord(value: unknown): asserts value is MemoryRecord {
+  const result = validateMemoryRecord(value);
+  if (!result.ok) throw new TypeError(\`Invalid MemoryRecord: \${result.errors.map((error) => \`\${error.path} \${error.message}\`).join("; ")}\`);
 }
 
 export function assertProtocolMessage(value: unknown): asserts value is ClientRequest | ClientResponse | ServerRequest | ServerNotification {
@@ -421,6 +449,18 @@ def validate_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
 def validate_canonical_agent_stream_event(value: object) -> tuple[bool, tuple[str, ...]]:
     return validate_protocol_definition("CanonicalAgentStreamEvent", value)
 
+def validate_context_item(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("ContextItem", value)
+
+def validate_memory_record(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("MemoryRecord", value)
+
+def validate_context_plan(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("ContextPlan", value)
+
+def validate_memory_deletion_receipt(value: object) -> tuple[bool, tuple[str, ...]]:
+    return validate_protocol_definition("MemoryDeletionReceipt", value)
+
 ${aliases}
 
 ${typedDicts}
@@ -634,7 +674,26 @@ const swiftKeywords = new Set([
 
 function modelFieldName(field, language) {
   const keywords = language === "swift" ? swiftKeywords : kotlinKeywords;
-  return keywords.has(field) ? `\`${field}\`` : field;
+  if (language === "kotlin") {
+    return keywords.has(field) || !/^[A-Za-z_][A-Za-z0-9_]*$/u.test(field)
+      ? `\`${field}\``
+      : field;
+  }
+  const identifier = /^[A-Za-z_][A-Za-z0-9_]*$/u.test(field)
+    ? field
+    : field
+        .split(/[^A-Za-z0-9]+/u)
+        .filter(Boolean)
+        .map((part, index) =>
+          index === 0 ? part : `${part[0].toUpperCase()}${part.slice(1)}`,
+        )
+        .join("");
+  const safeIdentifier = /^[A-Za-z_]/u.test(identifier)
+    ? identifier
+    : `_${identifier}`;
+  return keywords.has(safeIdentifier)
+    ? `\`${safeIdentifier}\``
+    : safeIdentifier;
 }
 
 function approvalDecisionVariants() {
@@ -1149,8 +1208,23 @@ function renderSwift() {
         ({ field }) =>
           `        self.${modelFieldName(field, "swift")} = ${modelFieldName(field, "swift")}`,
       );
+      const renamedFields = fields.filter(
+        ({ field }) =>
+          modelFieldName(field, "swift").replaceAll("`", "") !== field,
+      );
+      const codingKeys =
+        renamedFields.length === 0
+          ? ""
+          : `\n\n    private enum CodingKeys: String, CodingKey {\n${fields
+              .map(({ field }) => {
+                const identifier = modelFieldName(field, "swift");
+                return identifier.replaceAll("`", "") === field
+                  ? `        case ${identifier}`
+                  : `        case ${identifier} = ${JSON.stringify(field)}`;
+              })
+              .join("\n")}\n    }`;
       return `public struct ${name}: Codable, Sendable {
-${declarations.join("\n")}
+${declarations.join("\n")}${codingKeys}
 
     public init(
 ${parameters.join(",\n")}

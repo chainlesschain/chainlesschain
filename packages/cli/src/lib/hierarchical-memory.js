@@ -6,6 +6,18 @@
  */
 
 import { escapeLike } from "./sql-like.js";
+import {
+  assertLegacyMutationAllowed,
+  resolveCliContextMemoryCutover,
+} from "./context-memory-kernel/authority.js";
+
+function assertLegacyHierarchicalMemoryMutationAllowed(operation) {
+  assertLegacyMutationAllowed(
+    resolveCliContextMemoryCutover({
+      scopeKey: `cli:legacy-hierarchical-memory:${operation}`,
+    }),
+  );
+}
 
 // ─── Configuration ───────────────────────────────────────────────
 export const MEMORY_CONFIG = {
@@ -123,6 +135,7 @@ function calcRetention(
  * Create persistent memory tables for long-term / core / sharing
  */
 export function ensureMemoryTables(db) {
+  assertLegacyHierarchicalMemoryMutationAllowed("ensure-tables");
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_long_term (
       id TEXT PRIMARY KEY,
@@ -179,6 +192,7 @@ export function ensureMemoryTables(db) {
  * @param {string} [options.namespace] - Namespace for in-memory isolation (default: "global")
  */
 export function storeMemory(db, content, options = {}) {
+  assertLegacyHierarchicalMemoryMutationAllowed("store");
   if (!content || !content.trim()) {
     throw new Error("Memory content cannot be empty");
   }
@@ -258,6 +272,7 @@ export function storeMemory(db, content, options = {}) {
  * the default "global" namespace (backward compatible).
  */
 export function recallMemory(db, query, options = {}) {
+  assertLegacyHierarchicalMemoryMutationAllowed("recall");
   if (!query || !query.trim()) return [];
 
   const limit = Math.max(1, parseInt(options.limit) || 20);
@@ -653,6 +668,7 @@ export function applyForgettingCurve(
  * persisted to the DB — lives alongside the in-memory layer.
  */
 export function attachMetadata(memoryId, metadata, namespace = DEFAULT_NS) {
+  assertLegacyHierarchicalMemoryMutationAllowed("attach-metadata");
   if (!memoryId) throw new Error("memoryId is required");
   if (!metadata || typeof metadata !== "object")
     throw new Error("metadata must be an object");
@@ -682,6 +698,7 @@ function _locateInMemory(memoryId) {
  * Promote a memory one layer up: working → short-term → long-term.
  */
 export function promoteMemoryV2(db, memoryId) {
+  assertLegacyHierarchicalMemoryMutationAllowed("promote");
   if (!memoryId) throw new Error("memoryId is required");
   const loc = _locateInMemory(memoryId);
   if (loc && loc.layer === MEMORY_LAYER.WORKING) {
@@ -728,6 +745,7 @@ export function promoteMemoryV2(db, memoryId) {
  * (long-term/core demotion requires DB round-trip; not exposed here.)
  */
 export function demoteMemoryV2(memoryId) {
+  assertLegacyHierarchicalMemoryMutationAllowed("demote");
   if (!memoryId) throw new Error("memoryId is required");
   for (const [ns, nsMap] of _shortTermNS) {
     if (nsMap.has(memoryId)) {
@@ -790,6 +808,7 @@ export function shareMemoryV2(
 }
 
 export function revokeShare(shareId) {
+  assertLegacyHierarchicalMemoryMutationAllowed("revoke-share");
   const record = _v2Shares.find((s) => s.id === shareId);
   if (!record) throw new Error(`Share not found: ${shareId}`);
   if (record.revokedAt) throw new Error(`Share already revoked`);
@@ -896,6 +915,7 @@ export function searchSemanticV2(db, options = {}) {
  * Delegates to existing consolidateMemory() for promotion logic.
  */
 export function consolidateV2(db, options = {}) {
+  assertLegacyHierarchicalMemoryMutationAllowed("consolidate-v2");
   const id = `consol-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const record = {
     id,
@@ -949,6 +969,7 @@ export function listConsolidations(options = {}) {
  * Prune with per-layer scope + custom threshold.
  */
 export function pruneV2(db, options = {}) {
+  assertLegacyHierarchicalMemoryMutationAllowed("prune-v2");
   const { layer, maxAge = 720, threshold } = options;
   if (layer && !_LAYER_VALUES.has(layer))
     throw new Error(`Invalid layer: ${layer}`);
@@ -1000,6 +1021,7 @@ export function startConsolidationTimer({
   db,
   onTick,
 } = {}) {
+  assertLegacyHierarchicalMemoryMutationAllowed("start-consolidation-timer");
   if (_consolidationTimer) return _consolidationTimer;
   if (!db) throw new Error("db is required for consolidation timer");
   _consolidationTimer = setInterval(() => {

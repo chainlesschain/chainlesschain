@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.context-memory-release-requirements/v1",
+  "version": 1,
+  "requiredPlatforms": ["linux", "windows", "macos"],
+  "requiredChecks": [
+    { "id": "cli-ci", "workflow": "CLI CI", "platforms": ["linux", "windows", "macos"] },
+    { "id": "cli-strict-sandbox", "workflow": "CLI Strict Sandbox", "platforms": ["linux", "windows", "macos"] },
+    { "id": "context-memory-kernel", "workflow": "Context Memory Kernel CI", "platforms": ["linux", "windows", "macos"] },
+    { "id": "desktop-context-memory", "workflow": "Context Memory Kernel CI", "platforms": ["linux", "windows", "macos"] },
+    { "id": "vscode-context-memory", "workflow": "Context Memory Kernel CI", "platforms": ["linux", "windows", "macos"] },
+    { "id": "jetbrains-context-memory", "workflow": "Context Memory Kernel CI", "platforms": ["linux", "windows", "macos"] },
+    { "id": "agent-protocol-codegen", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "typescript-sdk", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "python-sdk", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "migration-dry-run", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "shadow-divergence", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "crash-recovery", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "privacy-deletion", "workflow": "Context Memory Kernel CI", "platforms": ["linux"] },
+    { "id": "long-soak", "workflow": "Context Memory Long Soak", "platforms": ["linux"] }
+  ]
+}

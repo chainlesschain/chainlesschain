@@ -157,6 +157,173 @@
     }
   },
   {
+    "name": "context plan created payload",
+    "valid": true,
+    "value": {
+      "type": "context.plan.created",
+      "plan": {
+        "schema": "chainlesschain.context-plan/v1",
+        "schemaVersion": 1,
+        "sessionHead": "head:1",
+        "memoryRevision": 0,
+        "policyVersion": "policy-1",
+        "modelProfile": "model-1",
+        "sink": "provider.local",
+        "inputBudget": 1,
+        "selectableBudget": 1,
+        "selectedTokens": 0,
+        "partitions": {},
+        "selected": [],
+        "selectedItemIds": [],
+        "dropped": [],
+        "createdAt": "2026-08-29T00:00:00.000Z",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "name": "context plan rejected payload",
+    "valid": true,
+    "value": { "type": "context.plan.rejected", "reason_code": "context_over_budget" }
+  },
+  {
+    "name": "context compaction started payload",
+    "valid": true,
+    "value": { "type": "context.compaction.started", "operation_id": "compact-1" }
+  },
+  {
+    "name": "context compaction committed payload",
+    "valid": true,
+    "value": {
+      "type": "context.compaction.committed",
+      "operation_id": "compact-1",
+      "receipt": {
+        "schema": "chainlesschain.context-compaction/v1",
+        "schemaVersion": 1,
+        "operationId": "compact-1",
+        "sessionId": "session-1",
+        "status": "committed",
+        "contextPlanDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "memoryRevision": 0,
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  {
+    "name": "context compaction aborted payload",
+    "valid": true,
+    "value": {
+      "type": "context.compaction.aborted",
+      "operation_id": "compact-1",
+      "reason_code": "provider_failed"
+    }
+  },
+  {
+    "name": "context compaction reconciliation payload",
+    "valid": true,
+    "value": {
+      "type": "context.compaction.reconciliation_required",
+      "operation_id": "compact-1",
+      "receipt": {
+        "schema": "chainlesschain.context-compaction/v1",
+        "schemaVersion": 1,
+        "operationId": "compact-1",
+        "sessionId": "session-1",
+        "status": "reconciliation_required",
+        "contextPlanDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "memoryRevision": 0,
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    }
+  },
+  {
+    "name": "memory candidate created payload",
+    "valid": true,
+    "value": {
+      "type": "memory.candidate.created",
+      "memory_id": "memory-1",
+      "revision": 1,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory activated payload",
+    "valid": true,
+    "value": {
+      "type": "memory.activated",
+      "memory_id": "memory-1",
+      "revision": 2,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory reinforced payload",
+    "valid": true,
+    "value": {
+      "type": "memory.reinforced",
+      "memory_id": "memory-1",
+      "revision": 3,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory superseded payload",
+    "valid": true,
+    "value": {
+      "type": "memory.superseded",
+      "memory_id": "memory-1",
+      "revision": 4,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory expired payload",
+    "valid": true,
+    "value": {
+      "type": "memory.expired",
+      "memory_id": "memory-1",
+      "revision": 5,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory deleted payload",
+    "valid": true,
+    "value": {
+      "type": "memory.deleted",
+      "memory_id": "memory-1",
+      "revision": 6,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory purged payload",
+    "valid": true,
+    "value": {
+      "type": "memory.purged",
+      "memory_id": "memory-1",
+      "revision": 7,
+      "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  {
+    "name": "memory recalled payload",
+    "valid": true,
+    "value": {
+      "type": "memory.recalled",
+      "result": {
+        "query": "deterministic tests",
+        "sink": "provider.local",
+        "tokenBudget": 100,
+        "usedTokens": 0,
+        "totalCandidates": 0,
+        "results": [],
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "memoryRevision": 0
+      }
+    }
+  },
+  {
     "name": "tool use without a tool is invalid",
     "valid": false,
     "value": {

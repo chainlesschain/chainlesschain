@@ -54,6 +54,9 @@ const {
   relativeToRoots,
 } = require("./workspace-mention-index.js");
 const { buildApprovalResponse } = require("./approval-response.js");
+const {
+  configuredVscodeContextMemoryAuthority,
+} = require("../context-memory-authority.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 // A cold signed macOS Webview can take longer than one second to start its
@@ -1416,6 +1419,7 @@ class ChatViewProvider {
       env: {
         ...process.env,
         ...bridgeEnv,
+        ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
         CC_INTERACTIVE_QUESTIONS: "1",
         CC_TOOL_ADMISSION: JSON.stringify(
           buildIdeToolAdmission("vscode-extension"),
@@ -2139,7 +2143,11 @@ class ChatViewProvider {
         command: this._cliCommand(),
         args,
         cwd,
-        env: { ...process.env, ...bridgeEnv },
+        env: {
+          ...process.env,
+          ...bridgeEnv,
+          ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
+        },
       };
       let result;
       if (typeof this.opts.deps?.runCliResult === "function") {
@@ -2350,7 +2358,11 @@ class ChatViewProvider {
       command: this._cliCommand(),
       args: [name, ...parsed.args],
       cwd,
-      env: { ...process.env, ...bridgeEnv },
+      env: {
+        ...process.env,
+        ...bridgeEnv,
+        ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
+      },
     };
     try {
       let result;
@@ -2529,7 +2541,11 @@ class ChatViewProvider {
         command: this._cliCommand(),
         args,
         cwd,
-        env: { ...process.env, ...bridgeEnv },
+        env: {
+          ...process.env,
+          ...bridgeEnv,
+          ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
+        },
         timeoutMs: 10000,
       }),
     ).then(

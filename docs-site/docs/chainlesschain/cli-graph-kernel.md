@@ -1,6 +1,6 @@
 # Graph Kernel 使用与运维指南
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.7`（精确发布 SHA `19834a1845`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.9`（精确发布 SHA `222396f6a8`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换，`0.166.9` 承接 durable history、retirement 与 quorum HumanTask｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
 
 ## 概述
 
@@ -8,7 +8,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 用户通常不会直接启动名为 `graph-kernel` 的服务。目前公开入口分成两类：
 
-- `cc team plan/run/queue` 提供真实任务 DAG、lease/fence、预算、worktree 与恢复能力；`0.166.7` 的 entry-scoped store 与 cutover ledger 已将受支持 CLI 入口切到 canonical authoritative writer；
+- `cc team plan/run/queue` 提供真实任务 DAG、lease/fence、预算、worktree 与恢复能力；`0.166.7` 的 entry-scoped store 与 cutover ledger 已将受支持 CLI 入口切到 canonical authoritative writer，`0.166.9` 再公开耐久历史、definition migration/retirement evidence 与跨端 single-winner settlement；
 - `cc team graph inspect/diff/eval` 只读取已经存在的 canonical GraphRun 事件账本，用于观测、时间旅行、差异分析和质量门，不创建、恢复或取消 GraphRun。
 
 因此，GraphRun ID 不能用 Team state ID、Thread ID、Turn ID 或 task key 代替。只有已经接入 canonical writer 的 adapter 才会返回可供 `cc team graph` 使用的 GraphRun ID。
@@ -23,6 +23,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 - **实时协作证据**：Message、ACK、Handoff 与 HumanTask 都是耐久状态，不依赖 prompt 快照猜测。
 - **动态扩图受控**：只有持有 producer lease，且通过 expected revision CAS、幂等 request ID、权限和预算复验的显式 append 才能修改 Task Graph。
 - **确定性观测**：Trace reducer 只读重放 append-only 事件，生成拓扑、timeline、blocked root、diff 与 Eval，不反向写运行状态。
+- **耐久历史与退休证据**：definition revision、migration、retirement、quorum HumanTask 与审批决定均绑定 expected revision/CAS；恢复时不能借用旧 generation 或过期授权。
 
 ## 系统架构
 
@@ -42,7 +43,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 ### 当前可用性
 
-| 能力                                        | `0.166.7` 用户口径                                              | 使用边界                                                                                  |
+| 能力                                        | `0.166.9` 用户口径                                              | 使用边界                                                                                  |
 | ------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Team DAG 计划与执行                         | 已公开：`cc team plan/run/queue`                                | 受支持 CLI 入口已 canonical cutover；Desktop/Browser/IDE 等其他产品面仍按各自迁移证据判断 |
 | GraphDefinition v1 compiler/runtime         | 源码核心已发布                                                  | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成                        |
@@ -56,7 +57,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 ### 1. 安装生产推荐版
 
 ```bash
-npm install --global "chainlesschain@0.166.7"
+npm install --global "chainlesschain@0.166.9"
 cc team --help
 ```
 

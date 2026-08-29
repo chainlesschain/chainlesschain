@@ -1,0 +1,78 @@
+name: Context Memory Release Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact release candidate commit; must equal the workflow event SHA
+        required: true
+        type: string
+      cli_ci_run_id:
+        description: Successful exact-SHA CLI CI run ID
+        required: true
+        type: string
+      cli_strict_run_id:
+        description: Successful exact-SHA CLI Strict Sandbox run ID
+        required: true
+        type: string
+      context_memory_run_id:
+        description: Successful exact-SHA Context Memory Kernel CI run ID
+        required: true
+        type: string
+      long_soak_run_id:
+        description: Successful exact-SHA Context Memory Long Soak run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+jobs:
+  assemble:
+    name: Assemble exact-SHA production evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: context-memory-production-evidence
+    steps:
+      - name: Refuse detached or abbreviated candidates
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.commit_sha }}
+        run: |
+          [[ "${CANDIDATE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          test "${CANDIDATE_SHA}" = "${GITHUB_SHA}"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+
+      - name: Read and bind authoritative workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/context-memory-kernel/scripts/assemble-release-evidence.mjs
+          --commit "${{ inputs.commit_sha }}"
+          --repository "${{ github.repository }}"
+          --cli-ci-run "${{ inputs.cli_ci_run_id }}"
+          --cli-strict-run "${{ inputs.cli_strict_run_id }}"
+          --context-memory-run "${{ inputs.context_memory_run_id }}"
+          --long-soak-run "${{ inputs.long_soak_run_id }}"
+          --output "${{ runner.temp }}/context-memory-release-evidence.json"
+
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ runner.temp }}/context-memory-release-evidence.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: context-memory-release-evidence-${{ inputs.commit_sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/context-memory-release-evidence.json
+          if-no-files-found: error
+          retention-days: 365

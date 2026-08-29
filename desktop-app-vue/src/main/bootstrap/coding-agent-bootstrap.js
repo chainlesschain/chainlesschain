@@ -7,6 +7,10 @@ const {
 const {
   DesktopAppServerPilot,
 } = require("../ai-engine/code-agent/app-server-pilot.js");
+const {
+  CONTEXT_MEMORY_STAGES,
+  resolveDesktopContextMemoryCutover,
+} = require("../context-memory/authority.js");
 
 /**
  * Owns the production lifetime of Coding Agent V3.
@@ -31,10 +35,25 @@ function createCodingAgentBootstrap(options = {}) {
       mcpSecurityPolicy: options.mcpSecurityPolicy || null,
       enablePhase5Envelopes: options.enablePhase5Envelopes === true,
     });
+  const contextMemoryEnv = {
+    ...process.env,
+    ...(options.contextMemoryStage === undefined
+      ? {}
+      : {
+          CHAINLESSCHAIN_CONTEXT_MEMORY_DESKTOP_STAGE:
+            options.contextMemoryStage,
+        }),
+  };
+  const contextMemoryCutover = resolveDesktopContextMemoryCutover({
+    env: contextMemoryEnv,
+  });
+  const contextMemoryStage = contextMemoryCutover.stage;
   const appServerPilotEnabled =
     options.appServerPilotEnabled === true ||
     (options.appServerPilotEnabled === undefined &&
       (process.env.CHAINLESSCHAIN_CC_APP_SERVER_PILOT === "1" ||
+        (contextMemoryEnv.CHAINLESSCHAIN_CONTEXT_MEMORY_DESKTOP_STAGE &&
+          CONTEXT_MEMORY_STAGES.includes(contextMemoryStage)) ||
         ["shadow", "canonical"].includes(
           String(process.env.CHAINLESSCHAIN_GRAPH_DESKTOP || "")
             .trim()
@@ -52,6 +71,11 @@ function createCodingAgentBootstrap(options = {}) {
           maxPendingRequests: options.appServerMaxPendingRequests,
           requestTimeoutMs: options.appServerRequestTimeoutMs,
           spawnProcess: options.appServerSpawnProcess,
+          env: contextMemoryStage
+            ? {
+                CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: contextMemoryStage,
+              }
+            : undefined,
         })
       : null);
 

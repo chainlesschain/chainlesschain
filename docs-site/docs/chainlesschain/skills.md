@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **文档快照：2026-08-28 | 146 个内置技能 | Agent Skills 开放标准 | 签名外部执行与能力代理**
+> **文档快照：2026-08-29 | 146 个内置技能 | Agent Skills 开放标准 | 签名外部执行、能力代理与 exact-SHA Desktop qualification**
 
-Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。2026-08-28 的 Desktop 源码为全部内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker；网络、模型、媒体、诊断、shell 进程和环境值访问等高风险宿主表面也改由有界 Broker 执行，秘密、argv 与 adapter 输出不进入审计记录。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。2026-08-29 的 Desktop 源码为全部内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker；网络、模型、媒体、诊断、shell 进程和环境值访问等高风险宿主表面也改由有界 Broker 执行。exact-SHA qualification 已验证候选包的安装、签名、启动与真实 Skill journey，但不等同于公共 native 分发完成。
 
 ## 概述
 
@@ -49,11 +49,11 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
 
 Skill 被发现不代表它已经获得执行权。真正运行前，Desktop 会重新读取 `SKILL.md`、Handler 与 `.skill-lock.json`，核对真实路径、文件大小、SHA-256、Ed25519 签名、可信 key 和 `execution-capabilities`。发现后被替换的文件会以 digest drift 失败闭合。
 
-| Skill 类型 | 当前执行方式 |
-| --- | --- |
-| 应用内置 Handler | 仅在包内真实路径、Handler 摘要与生成能力目录完全一致时进入主进程 |
-| 外部签名 Handler | 捕获已验证源码快照，由 ProcessExecutionBroker 启动一次性隔离 Worker |
-| 无 Handler 的 Markdown Skill | 只作为提示词/说明加载，不获得 Node.js 或宿主能力 |
+| Skill 类型                   | 当前执行方式                                                        |
+| ---------------------------- | ------------------------------------------------------------------- |
+| 应用内置 Handler             | 仅在包内真实路径、Handler 摘要与生成能力目录完全一致时进入主进程    |
+| 外部签名 Handler             | 捕获已验证源码快照，由 ProcessExecutionBroker 启动一次性隔离 Worker |
+| 无 Handler 的 Markdown Skill | 只作为提示词/说明加载，不获得 Node.js 或宿主能力                    |
 
 外部 Worker 不直接持有 Electron、数据库、MCP client、网络模块或 `child_process`。Handler 只能请求清单中已声明、当前 authority 已批准且宿主确实连接的能力端口；请求数、执行时间、协议 frame、stderr 和结果大小都有上限。
 
@@ -1060,6 +1060,7 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 - Read
 - Glob
+
 <!-- 不需要 Write，只分析不修改 -->
 ```
 

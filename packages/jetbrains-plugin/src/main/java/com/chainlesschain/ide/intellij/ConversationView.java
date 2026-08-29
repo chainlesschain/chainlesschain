@@ -5,6 +5,7 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ApprovalGrants;
 import com.chainlesschain.ide.ApprovalSettlementRegistry;
 import com.chainlesschain.ide.ChatEvents;
+import com.chainlesschain.ide.ContextMemoryProjection;
 import com.chainlesschain.ide.ContextStatus;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
@@ -124,6 +125,8 @@ final class ConversationView {
     private final Map<String, ApprovalCard> approvalCards = new LinkedHashMap<>();
     private final ApprovalSettlementRegistry approvalSettlements =
             new ApprovalSettlementRegistry();
+    private final ContextMemoryProjection contextMemoryProjection =
+            new ContextMemoryProjection();
     private JComponent planCard;
     private Map<String, Object> currentPlanUi;
     private File planReviewFile;
@@ -1724,10 +1727,15 @@ final class ConversationView {
         // EVERY turn. Env var, not a CLI flag, so an older `cc` degrades to full
         // memory instead of erroring on an unknown flag. Needs cc >= 0.162.165 to
         // actually shed. Terminal `cc` is untouched (scoped to this child).
+        // JetBrains is a projection-only host. Every child maps the validated
+        // IDE rollout stage to the canonical CLI authority.
+        o.extraEnv.putAll(com.chainlesschain.ide.ContextMemoryAuthority.cliEnvironment(
+                System.getenv()));
         String leanEnv = com.chainlesschain.ide.ProjectMemory.leanContextEnvValue(
                 CcSettings.getInstance().isLeanContextEnabled());
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
+            contextMemoryProjection.accept(event);
             if (event != null
                     && AgentStreamEventType.SYSTEM.getWireValue().equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {

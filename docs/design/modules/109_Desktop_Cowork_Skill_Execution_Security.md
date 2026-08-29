@@ -1,6 +1,6 @@
 # 109. Desktop Cowork Skill 执行安全与能力代理设计
 
-> 状态：2026-08-28 已进入 Desktop 源码主线｜文档证据：`a404dad52c`、`39880afa06`、`c29953ecfd`、`c8a23a92e4`、`83f0c74c39`、`fe1303d927`、`e7c082d535`、`39b393684f`、`2286267dea`｜不属于 `chainlesschain@0.166.7` npm 制品
+> 状态：2026-08-29 已进入 Desktop 源码主线，并在 `222396f6a8` 的 exact-SHA 签名 Desktop Skill qualification 中通过｜核心源码证据：`a404dad52c`—`2286267dea`、`31d5cfc4d8`—`1d8155e4b4`、`0ac5f13b8e`｜Desktop/native 文件不属于 `chainlesschain@0.166.9` npm 包字节
 
 ## 1. 目标与边界
 
@@ -122,9 +122,18 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 5. 固定域名、动态域名、本地服务、网络诊断与环境 Broker 分别覆盖 SSRF、重定向、私网地址、shell 注入、未声明秘密读取和资源上限；
 6. 打包产物中 Worker 路径可解析，且强制隔离不可用时拒绝启动。
 
+2026-08-29 的 qualification producer 进一步把候选安装包身份与运行旅程绑定到 exact SHA：
+
+- macOS 使用明确的 app/inherit entitlements 与 after-sign notarization 钩子；
+- 安装记录、签名记录和启动探针分别产出有界证据，再由 aggregate 复核平台、SHA 与制品身份；
+- 打包后的真实 Skill journey 验证能力目录、Broker、一次性 Worker 与启动后的宿主边界，而不是只跑源码单测；
+- 缺平台、跨 SHA、伪造签名元数据或只提供 build 日志均不满足资格门。
+
+该门只证明候选在受控 CI 的签名/安装/启动旅程中合格。它不能替代公共下载渠道的 fresh install、upgrade、rollback、notarization/updater 回读，也不能把 Desktop 字节归入 npm CLI 制品。
+
 ## 9. 已知边界
 
-- 本设计记录 Desktop Cowork 源码能力，不改变已发布 npm CLI `0.166.7` 的制品内容；
+- 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.9` 的制品内容；
 - Ed25519 签名证明“由可信 key 签署且字节未变”，不证明代码无漏洞；
 - 能力 Broker 只约束迁移后的宿主表面，未迁移或 native 扩展必须单独审计；
 - 网络 declassification 是显式授权证据，不是数据内容自动安全分类；
@@ -142,3 +151,8 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 - `desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-environment-broker.js`
 - `desktop-app-vue/src/main/ai-engine/cowork/skills/bundled-skill-process-broker.js`
 - `desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs`
+- `desktop-app-vue/scripts/create-signed-desktop-skill-evidence.mjs`
+- `desktop-app-vue/scripts/record-signed-desktop-install.mjs`
+- `desktop-app-vue/scripts/record-signed-desktop-signature.mjs`
+- `desktop-app-vue/scripts/signed-desktop-skill-journey.mjs`
+- `desktop-app-vue/src/main/signed-desktop-launch-probe.js`

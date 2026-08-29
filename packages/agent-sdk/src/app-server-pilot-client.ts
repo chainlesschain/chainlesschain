@@ -6,7 +6,19 @@ import {
 } from "./app-server-client.js";
 import type {
   ClientRequest,
+  ContextCompactRequest,
+  ContextCompactionReceipt,
+  ContextPlan,
+  ContextPlanRequest,
   JsonValue,
+  MemoryDecisionRequest,
+  MemoryDeletionReceipt,
+  MemoryDeletionRequest,
+  MemoryMutationReceipt,
+  MemoryProposalRequest,
+  MemoryRecallRequest,
+  MemoryRecallResult,
+  MemoryReconcileRequest,
   ServerNotification,
 } from "./generated/app-protocol.js";
 
@@ -170,6 +182,36 @@ export class AppServerPilotClient extends EventEmitter {
 
   graphReconcile(params: JsonValue): Promise<unknown> {
     return this.call("graph/reconcile", params);
+  }
+
+  contextPlan(params: ContextPlanRequest): Promise<ContextPlan> {
+    return this.call("context/plan", params) as Promise<ContextPlan>;
+  }
+
+  contextCompact(
+    params: ContextCompactRequest,
+  ): Promise<ContextCompactionReceipt> {
+    return this.call("context/compact", params) as Promise<ContextCompactionReceipt>;
+  }
+
+  memoryRecall(params: MemoryRecallRequest): Promise<MemoryRecallResult> {
+    return this.call("memory/recall", params) as Promise<MemoryRecallResult>;
+  }
+
+  memoryPropose(params: MemoryProposalRequest): Promise<MemoryMutationReceipt> {
+    return this.call("memory/propose", params) as Promise<MemoryMutationReceipt>;
+  }
+
+  memoryDecide(params: MemoryDecisionRequest): Promise<MemoryMutationReceipt> {
+    return this.call("memory/decide", params) as Promise<MemoryMutationReceipt>;
+  }
+
+  memoryDelete(params: MemoryDeletionRequest): Promise<MemoryDeletionReceipt> {
+    return this.call("memory/delete", params) as Promise<MemoryDeletionReceipt>;
+  }
+
+  memoryReconcile(params: MemoryReconcileRequest): Promise<JsonValue> {
+    return this.call("memory/reconcile", params) as Promise<JsonValue>;
   }
 
   private async call(

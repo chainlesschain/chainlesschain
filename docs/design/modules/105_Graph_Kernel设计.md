@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；CLI、Team、distributed-team、Cowork、Scheduler 与 App Server 的 authoritative entry cutover 已随完整门禁的 `0.166.7@19834a1845` 发布（2026-08-28）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 等产品面的切换继续独立验收
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；authoritative entry cutover 随 `0.166.7` 发布；耐久历史、HumanTask quorum、definition migration/retirement evidence、Team 公平性与多端 single-winner settlement 已由完整门禁的 `0.166.9@222396f6a8` 公开承接（2026-08-29）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 投影仍只读
 
 ## 1. 定位
 
@@ -13,15 +13,24 @@ Graph Kernel 与 CC App Server 分工明确：
 | CC App Server | 产品接入、Thread/Turn/Item/Approval、协议协商、rollout | Task DAG 调度与多 Agent 资源竞争 |
 | Graph Kernel  | Graph IR、调度、消息、Effect、HumanTask、事件与投影    | UI transport、客户端生命周期协议 |
 
+### 1.1 0.166.9 耐久化增量
+
+- 固定客户端可以读取有界、metadata-only 的 event/snapshot history，用于 blocked-root、revision diff 与 time travel；正文和秘密不进入投影。
+- definition migration 持久化 N-1 备份、旧/新 digest、rollback digest、replay validation 与 exact source evidence。
+- retirement gate 验证 replacement reachability、historical reads 与 legacy writer 零成功观察，拒绝仅靠文字声明完成退役。
+- HumanTask 在等待人工决定时释放 Agent capacity；claim、decision 与 cancel 绑定 exact revision/attempt/operation，并用 CAS 保证 single winner。
+- Android、iOS、Web Panel、Desktop 与 IDE 只提交绑定决定；quorum、职责分离和 grant scope 仍由 canonical runtime 结算。
+- Team 调度加入 dependency/scope aging、priority donation 与 fairness SLO；早到的 aging service 仍必须受 capacity、budget、lease/fence 与 write scope 约束。
+
 ## 2. GraphRun 与三类图
 
 `GraphRun` 是 authority envelope，不是把所有关系混在一起的第四种“万能图”。它绑定 run id、definition/revision digest、trace/correlation、权限、预算与事件 head；三类图共享这些身份，但各自只有一种职责：
 
-| 平面 | 回答的问题 | 权威职责 | 明确不负责 |
-| --- | --- | --- | --- |
-| Task Graph / runtime | 哪些任务何时可以运行？ | 确定性依赖、condition、join、retry、ready frontier、Attempt 与终态 predicate | 表达动态 Agent 父子关系 |
-| Agent Tree | 谁在执行和协作？ | spawn、capacity、AssignmentAttempt、message、handoff、wait/interrupt 与 residency | 定义 Task 依赖；父子关系不自动生成 DAG 边 |
-| Artifact/Trace projection | 发生了什么，证据在哪里？ | 从 append-only 事件确定性生成 provenance、因果、timeline、replay、diff 与 Eval | 作为 scheduler source of truth 或反向写 runtime |
+| 平面                      | 回答的问题               | 权威职责                                                                          | 明确不负责                                      |
+| ------------------------- | ------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Task Graph / runtime      | 哪些任务何时可以运行？   | 确定性依赖、condition、join、retry、ready frontier、Attempt 与终态 predicate      | 表达动态 Agent 父子关系                         |
+| Agent Tree                | 谁在执行和协作？         | spawn、capacity、AssignmentAttempt、message、handoff、wait/interrupt 与 residency | 定义 Task 依赖；父子关系不自动生成 DAG 边       |
+| Artifact/Trace projection | 发生了什么，证据在哪里？ | 从 append-only 事件确定性生成 provenance、因果、timeline、replay、diff 与 Eval    | 作为 scheduler source of truth 或反向写 runtime |
 
 ![GraphRun、Task Graph、Agent Tree 与 Artifact/Trace 投影关系图](/graph-kernel-planes.svg)
 
@@ -64,14 +73,14 @@ GraphEventStore (append-only hash-chained rollout)
 
 Canonical Graph Kernel 不是再造一个平行 scheduler，而是把已有真实能力收敛到上述职责边界：
 
-| 现有执行面 | 复用到 canonical kernel 的能力 | 收敛要求 |
-| --- | --- | --- |
-| CLI Scheduler Kernel | occurrence identity、temporal admission、lease/fence、retry/dead-letter 与 unknown-outcome adjudication | 只负责 Trigger/Occurrence；以 journal 关联唯一逻辑 GraphRun，不计算 Task ready frontier |
-| CLI `cc team` | 依赖 DAG、priority、Task lease/fence、预算、scope、worktree/checkpoint/merge 与分布式恢复 | 收敛为 Task runtime/AssignmentAttempt adapter；补齐 typed contract、revision CAS 和 authoritative event writer |
-| CLI Cowork / Dynamic Workflow | condition、fan-out、loop、retry/timeout、definition digest、Effect/Receipt 与 Artifact lineage | 收敛为 Graph Compiler、structured control 与 Effect adapter；并行写必须进入 scope/worktree 隔离 |
-| Desktop Browser Workflow | condition、nested loop、try/catch/finally 与 sub-workflow | 作为 Region/LoopRegion/SubgraphCall adapter；补 restart hydration、parent binding、cycle/depth guard 与取消级联 |
-| 旧 Workflow/AgentCoordinator/`$team` | designer、UI、模板与兼容状态 | 降级为 designer/simulator 或只读投影，不能继续声明 phantom success |
-| `*V2` governance overlay | profile、容量与策略原型 | feature-gate，或改为耐久事件投影；进程内 `Map` 不能冒充可恢复 runtime |
+| 现有执行面                           | 复用到 canonical kernel 的能力                                                                          | 收敛要求                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| CLI Scheduler Kernel                 | occurrence identity、temporal admission、lease/fence、retry/dead-letter 与 unknown-outcome adjudication | 只负责 Trigger/Occurrence；以 journal 关联唯一逻辑 GraphRun，不计算 Task ready frontier                         |
+| CLI `cc team`                        | 依赖 DAG、priority、Task lease/fence、预算、scope、worktree/checkpoint/merge 与分布式恢复               | 收敛为 Task runtime/AssignmentAttempt adapter；补齐 typed contract、revision CAS 和 authoritative event writer  |
+| CLI Cowork / Dynamic Workflow        | condition、fan-out、loop、retry/timeout、definition digest、Effect/Receipt 与 Artifact lineage          | 收敛为 Graph Compiler、structured control 与 Effect adapter；并行写必须进入 scope/worktree 隔离                 |
+| Desktop Browser Workflow             | condition、nested loop、try/catch/finally 与 sub-workflow                                               | 作为 Region/LoopRegion/SubgraphCall adapter；补 restart hydration、parent binding、cycle/depth guard 与取消级联 |
+| 旧 Workflow/AgentCoordinator/`$team` | designer、UI、模板与兼容状态                                                                            | 降级为 designer/simulator 或只读投影，不能继续声明 phantom success                                              |
+| `*V2` governance overlay             | profile、容量与策略原型                                                                                 | feature-gate，或改为耐久事件投影；进程内 `Map` 不能冒充可恢复 runtime                                           |
 
 收敛完成的判据不是“存在同名类”，而是同一 adapter contract、同一事件账本、唯一 authoritative writer、shadow projection 等价、rollback drill 通过并关闭 legacy write entrypoint。
 
@@ -96,15 +105,15 @@ Canonical Graph Kernel 不是再造一个平行 scheduler，而是把已有真�
 
 Canonical IR 至少包含以下一等实体，不能把它们压回 prompt 字符串或一个宽泛的 `task.status`：
 
-| 实体 | 绑定内容 |
-| --- | --- |
-| `GraphDefinition / GraphRevision` | version、immutable digest、typed node/edge、预算与权限上界 |
-| `GraphRun / TriggerBinding / OccurrenceRef` | 运行身份、revision、authority、correlation、event head 与幂等 admission |
-| `TaskNode / Edge` | capability/role、tools/skills、typed input/output、acceptance、permission、budget、write-set、retry、effect class 与 compensation |
-| `Region / LoopRegion / SubgraphCall / IterationFrame` | 显式 entry/exit、bounded iteration、digest pin、budget slice、cancel/compensation boundary 与 call-cycle/depth guard |
-| `AgentRuntime / AssignmentAttempt` | 真实 executor/participant、capacity slot、role、grant、lease/fence 与 participation status |
-| `Message / Handoff / HumanTask / Decision` | 因果消息、custody 状态机、人工 claim/quorum、operation digest、TTL 与 CAS |
-| `ArtifactRef / Receipt / WaitReason` | 不可变产物、外部 Effect 证据、消费者、retention 与确定性等待根因 |
+| 实体                                                  | 绑定内容                                                                                                                          |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `GraphDefinition / GraphRevision`                     | version、immutable digest、typed node/edge、预算与权限上界                                                                        |
+| `GraphRun / TriggerBinding / OccurrenceRef`           | 运行身份、revision、authority、correlation、event head 与幂等 admission                                                           |
+| `TaskNode / Edge`                                     | capability/role、tools/skills、typed input/output、acceptance、permission、budget、write-set、retry、effect class 与 compensation |
+| `Region / LoopRegion / SubgraphCall / IterationFrame` | 显式 entry/exit、bounded iteration、digest pin、budget slice、cancel/compensation boundary 与 call-cycle/depth guard              |
+| `AgentRuntime / AssignmentAttempt`                    | 真实 executor/participant、capacity slot、role、grant、lease/fence 与 participation status                                        |
+| `Message / Handoff / HumanTask / Decision`            | 因果消息、custody 状态机、人工 claim/quorum、operation digest、TTL 与 CAS                                                         |
+| `ArtifactRef / Receipt / WaitReason`                  | 不可变产物、外部 Effect 证据、消费者、retention 与确定性等待根因                                                                  |
 
 边区分 control、data、message、review、merge 与 compensation，并支持 `success/failure/always/timeout/cancel` 传播；join 支持 `all/any/quorum/race`。Task 依赖保持无环，循环和递归只能通过有界 Region/Subgraph 展开为 `(nodeId, iterationPath, attempt)` 唯一的无环执行尝试。
 
@@ -307,13 +316,13 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 
 已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 进一步完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换、耐久 fencing/recovery 和 legacy mutation containment；这仍不能外推为所有 Desktop/Browser/IDE 产品面已完成切换。
 
-| 层级 | 当前状态 | 对外口径 |
-| --- | --- | --- |
-| Compiler / Runtime / Event Store | 源码核心已发布并有聚焦测试 | 内核能力存在；不等于稳定公共 writer API |
-| `cc team graph` | `inspect/diff/eval` 已公开 | 只读已有 GraphRun，不创建、恢复或取消 |
-| CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.7` 已通过 cutover ledger 解析唯一 writer | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合 |
-| Desktop | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
-| Browser/IDE | claims、pilot、shadow/cutover 机制已有 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated |
+| 层级                                                  | 当前状态                                               | 对外口径                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Compiler / Runtime / Event Store                      | 源码核心已发布并有聚焦测试                             | 内核能力存在；不等于稳定公共 writer API                                                 |
+| `cc team graph`                                       | `inspect/diff/eval` 已公开                             | 只读已有 GraphRun，不创建、恢复或取消                                                   |
+| CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.7` 已通过 cutover ledger 解析唯一 writer        | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合                         |
+| Desktop                                               | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
+| Browser/IDE                                           | claims、pilot、shadow/cutover 机制已有                 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated      |
 
 未关闭：
 
@@ -327,18 +336,18 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 
 ## 17. 关键文件
 
-| 路径                                                   | 说明                                                |
-| ------------------------------------------------------ | --------------------------------------------------- |
-| `packages/cli/src/lib/graph-kernel/compiler.js`        | GraphDefinition 编译、迁移与 digest                 |
-| `packages/cli/src/lib/graph-kernel/runtime.js`         | GraphRun、调度、Effect、Message、Handoff、HumanTask |
-| `packages/cli/src/lib/graph-kernel/event-store.js`     | append-only Graph event store                       |
-| `packages/cli/src/lib/graph-kernel/trace-reducer.js`   | 投影、time travel、diff、blocked root               |
-| `packages/cli/src/lib/graph-kernel/eval.js`            | 指标、threshold 与 suite                            |
-| `packages/cli/src/lib/graph-kernel/adapters.js`        | claims、shadow diff 与 cutover gate                 |
-| `packages/cli/src/lib/graph-kernel/cutover-ledger.js`  | entry/store/writer authority 与耐久切换证据         |
-| `packages/cli/src/lib/graph-kernel/authority.js`       | writer、lease、receipt 与恢复 authority             |
-| `packages/cli/src/lib/graph-kernel/trigger-adapter.js` | Scheduler occurrence → GraphRun dispatch journal    |
-| `packages/cli/src/commands/graph.js`                   | `cc team graph` 只读命令                            |
+| 路径                                                                 | 说明                                                        |
+| -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `packages/cli/src/lib/graph-kernel/compiler.js`                      | GraphDefinition 编译、迁移与 digest                         |
+| `packages/cli/src/lib/graph-kernel/runtime.js`                       | GraphRun、调度、Effect、Message、Handoff、HumanTask         |
+| `packages/cli/src/lib/graph-kernel/event-store.js`                   | append-only Graph event store                               |
+| `packages/cli/src/lib/graph-kernel/trace-reducer.js`                 | 投影、time travel、diff、blocked root                       |
+| `packages/cli/src/lib/graph-kernel/eval.js`                          | 指标、threshold 与 suite                                    |
+| `packages/cli/src/lib/graph-kernel/adapters.js`                      | claims、shadow diff 与 cutover gate                         |
+| `packages/cli/src/lib/graph-kernel/cutover-ledger.js`                | entry/store/writer authority 与耐久切换证据                 |
+| `packages/cli/src/lib/graph-kernel/authority.js`                     | writer、lease、receipt 与恢复 authority                     |
+| `packages/cli/src/lib/graph-kernel/trigger-adapter.js`               | Scheduler occurrence → GraphRun dispatch journal            |
+| `packages/cli/src/commands/graph.js`                                 | `cc team graph` 只读命令                                    |
 | `desktop-app-vue/src/renderer/components/graph/GraphRunDebugger.vue` | Desktop topology/timeline/budget/trace/causality 只读调试器 |
 
 ## 18. 相关文档

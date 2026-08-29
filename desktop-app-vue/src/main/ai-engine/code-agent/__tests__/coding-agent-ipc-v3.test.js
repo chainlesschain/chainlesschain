@@ -1223,6 +1223,13 @@ describe("registerCodingAgentIPCV3", () => {
       threadArchive: vi.fn(),
       turnStart: vi.fn().mockResolvedValue({ turn: { id: "turn-1" } }),
       turnInterrupt: vi.fn(),
+      contextPlan: vi.fn().mockResolvedValue({ planId: "plan-1" }),
+      contextCompact: vi.fn(),
+      memoryRecall: vi.fn().mockResolvedValue({ results: [] }),
+      memoryPropose: vi.fn(),
+      memoryDecide: vi.fn(),
+      memoryDelete: vi.fn(),
+      memoryReconcile: vi.fn(),
       listPendingHumanTasks: vi.fn().mockReturnValue([{ id: "human-task-1" }]),
       respondHumanTask: vi.fn().mockReturnValue({
         accepted: true,
@@ -1261,6 +1268,22 @@ describe("registerCodingAgentIPCV3", () => {
       threadId: "thread-1",
       input: "hello",
     });
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-context-plan"](
+        {},
+        { sessionId: "session-1", items: [] },
+      ),
+    ).toEqual({ success: true, result: { planId: "plan-1" } });
+    expect(appServerPilot.contextPlan).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      items: [],
+    });
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-memory-recall"](
+        {},
+        { query: "release", scopes: ["project"] },
+      ),
+    ).toEqual({ success: true, result: { results: [] } });
     expect(
       await ipcMainMock.handlers["coding-agent:app-server-human-task-list"](),
     ).toEqual({ success: true, result: [{ id: "human-task-1" }] });

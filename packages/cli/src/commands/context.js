@@ -74,7 +74,7 @@ export function registerContextCommand(program) {
     .action(async (id, options) => {
       const { rebuildMessages, getLastSessionId, sessionExists, readEvents } =
         await import("../harness/jsonl-session-store.js");
-      const { estimateTokens, getContextWindow } =
+      const { adaptiveThresholds, estimateTokens, getContextWindow } =
         await import("../harness/prompt-compressor.js");
 
       const sessionId = id || getLastSessionId();
@@ -117,6 +117,61 @@ export function registerContextCommand(program) {
       const model = options.model || recordedModel || null;
       const provider = options.provider || recordedProvider || "ollama";
       const window = getContextWindow(model, provider);
+
+      let canonicalReport = null;
+      try {
+        const { createCliContextMemoryRuntime } =
+          await import("../lib/context-memory-kernel/index.js");
+        const runtime = createCliContextMemoryRuntime({ sessionId });
+        const snapshot = await runtime.sessionPort.readSnapshot(sessionId);
+        const threshold = adaptiveThresholds(window).maxTokens;
+        const reservedOutputTokens = Math.max(
+          1,
+          Math.min(2048, Math.floor(window / 10)),
+        );
+        const safetyMarginTokens = Math.max(
+          0,
+          window - reservedOutputTokens - threshold,
+        );
+        const recoveryReserveTokens = Math.min(
+          256,
+          Math.max(1, Math.floor(threshold * 0.05)),
+        );
+        const plan = await runtime.kernel.planContext({
+          modelWindowTokens: window,
+          reservedOutputTokens,
+          safetyMarginTokens,
+          recoveryReserveTokens,
+          items: snapshot.items,
+          sink: provider,
+          scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
+          policyVersion: "cli-context-policy-v1",
+          modelProfile: model || "default",
+          sessionHead: snapshot.head,
+          memoryRevision: snapshot.memoryRevision,
+        });
+        canonicalReport = {
+          stage: runtime.decision.stage,
+          mode: runtime.decision.mode,
+          shadow: runtime.decision.shadow,
+          planDigest: plan.digest,
+          policyVersion: plan.policyVersion,
+          selectedItems: plan.selected.length,
+          droppedItems: plan.dropped.length,
+          selectedTokens: plan.selectedTokens,
+          inputBudget: plan.inputBudget,
+          selectableBudget: plan.selectableBudget,
+          partitions: plan.partitions,
+          minimumShortfalls: plan.minimumShortfalls,
+          dropped: plan.dropped,
+        };
+      } catch (error) {
+        canonicalReport = {
+          status: "rejected",
+          code: error?.code || "context_plan_failed",
+          message: error?.message || String(error),
+        };
+      }
 
       const { buckets, counts, total } = categorizeContext(
         messages,
@@ -227,6 +282,7 @@ export function registerContextCommand(program) {
               breakdown: buckets,
               counts,
               overflows: total > window,
+              contextMemoryKernel: canonicalReport,
               ...(sourceReport
                 ? {
                     sources: sourceReport.ranked,
@@ -291,6 +347,21 @@ export function registerContextCommand(program) {
           `  headroom      ${String(remaining).padStart(7)} tokens remaining`,
         ),
       );
+      if (canonicalReport?.status === "rejected") {
+        logger.log(
+          chalk.red(
+            `  canonical plan rejected: ${canonicalReport.code} - ${canonicalReport.message}`,
+          ),
+        );
+      } else if (canonicalReport) {
+        logger.log(
+          chalk.gray(
+            `  kernel ${canonicalReport.stage}/${canonicalReport.mode}: ` +
+              `${canonicalReport.selectedItems} selected, ${canonicalReport.droppedItems} dropped, ` +
+              `${canonicalReport.selectedTokens}/${canonicalReport.inputBudget} tokens`,
+          ),
+        );
+      }
       if (total > window) {
         logger.log(
           chalk.red(

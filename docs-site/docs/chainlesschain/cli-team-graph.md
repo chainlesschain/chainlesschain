@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.7`（精确发布 SHA `19834a1845`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.9`（精确发布 SHA `222396f6a8`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -21,11 +21,11 @@
 
 `GraphRun` 是把运行身份、revision、权限、预算和事件序列绑定在一起的 envelope，不是一张包办调度、协作和审计的“万能图”。查看输出时应按下表理解：
 
-| 输出 | 用来回答 | 不能据此推断 |
-| --- | --- | --- |
-| `taskGraph` | 哪些任务存在依赖、当前哪些节点可运行或被阻塞 | Agent 父子关系就是任务依赖 |
-| `agentTree` + `attempts` | 哪个 Agent 以哪次 Attempt 执行任务，谁 spawn/等待/交接给谁 | spawn 一个 child 就修改了 Task DAG |
-| `artifactGraph` / `messageGraph` / `timeline` | 已发生事件的产物来源、消息因果、Effect receipt 与时间线 | 投影能够反向结算任务或触发副作用 |
+| 输出                                          | 用来回答                                                   | 不能据此推断                       |
+| --------------------------------------------- | ---------------------------------------------------------- | ---------------------------------- |
+| `taskGraph`                                   | 哪些任务存在依赖、当前哪些节点可运行或被阻塞               | Agent 父子关系就是任务依赖         |
+| `agentTree` + `attempts`                      | 哪个 Agent 以哪次 Attempt 执行任务，谁 spawn/等待/交接给谁 | spawn 一个 child 就修改了 Task DAG |
+| `artifactGraph` / `messageGraph` / `timeline` | 已发生事件的产物来源、消息因果、Effect receipt 与时间线    | 投影能够反向结算任务或触发副作用   |
 
 ```text
 Occurrence ──start/wake──> GraphRun ──bind revision──> Task runtime
@@ -74,7 +74,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.7"
+npm install --global "chainlesschain@0.166.9"
 
 # 查看完整投影
 cc team graph inspect <run-id>

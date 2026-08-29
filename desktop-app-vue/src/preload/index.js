@@ -583,6 +583,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:app-server-turn-start", payload),
     appServerTurnInterrupt: (payload) =>
       ipcRenderer.invoke("coding-agent:app-server-turn-interrupt", payload),
+    appServerContextPlan: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-context-plan", payload),
+    appServerContextCompact: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-context-compact", payload),
+    appServerMemoryRecall: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-memory-recall", payload),
+    appServerMemoryPropose: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-memory-propose", payload),
+    appServerMemoryDecide: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-memory-decide", payload),
+    appServerMemoryDelete: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-memory-delete", payload),
+    appServerMemoryReconcile: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-memory-reconcile", payload),
     appServerHumanTaskList: () =>
       ipcRenderer.invoke("coding-agent:app-server-human-task-list"),
     appServerHumanTaskDecide: (payload) =>
