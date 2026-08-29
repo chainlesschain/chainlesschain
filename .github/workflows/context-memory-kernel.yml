@@ -82,6 +82,12 @@ jobs:
       - name: Verify canonical Kernel, inventory, privacy, and release evidence
         run: npm --prefix packages/context-memory-kernel test
 
+      - name: Probe canonical and fenced runtime writers
+        run: >-
+          node packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs
+          --candidate-sha "${{ github.sha }}"
+          --output "${{ runner.temp }}/context-memory-writer-probe-${{ matrix.platform }}.json"
+
       - name: Verify CLI migration, shadow, provider, purge, and crash recovery
         run: npm --prefix packages/cli run test:context-memory-kernel
 
@@ -122,11 +128,29 @@ jobs:
       - name: Run bounded quick soak
         run: node packages/context-memory-kernel/scripts/context-memory-soak.mjs --profile quick --candidate-sha "${{ github.sha }}" --output "${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json"
 
+      - name: Run full capacity benchmark (Linux)
+        if: runner.os == 'Linux'
+        run: >-
+          node packages/context-memory-kernel/scripts/context-memory-benchmark.mjs
+          --profile release
+          --candidate-sha "${{ github.sha }}"
+          --output "${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json"
+
+      - name: Run bounded capacity benchmark (Windows/macOS)
+        if: runner.os != 'Linux'
+        run: >-
+          node packages/context-memory-kernel/scripts/context-memory-benchmark.mjs
+          --profile quick
+          --candidate-sha "${{ github.sha }}"
+          --output "${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json"
+
       - uses: actions/upload-artifact@v6
         with:
           name: context-memory-${{ matrix.platform }}-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json
+            ${{ runner.temp }}/context-memory-writer-probe-${{ matrix.platform }}.json
+            ${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json
             packages/jetbrains-plugin/build/test-results/test/
           if-no-files-found: error
           retention-days: 30

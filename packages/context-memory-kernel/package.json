@@ -29,6 +29,9 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "check:inventory": "node scripts/validate-inventory.mjs",
+    "check:writers": "node scripts/context-memory-writer-probe.mjs",
+    "benchmark:quick": "node scripts/context-memory-benchmark.mjs --profile quick",
+    "benchmark:release": "node scripts/context-memory-benchmark.mjs --profile release",
     "test:soak:quick": "node scripts/context-memory-soak.mjs --profile quick",
     "test:soak:release": "node scripts/context-memory-soak.mjs --profile release"
   },

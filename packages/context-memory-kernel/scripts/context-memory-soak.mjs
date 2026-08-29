@@ -1,18 +1,51 @@
 import { execFileSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import {
   ContextMemoryKernel,
   InMemoryMemoryPort,
   InMemoryProjectionPurgePort,
+  InMemorySessionContextPort,
   canonicalDigest,
   normalizeContextItem,
 } from "../index.mjs";
 
-const AT = "2026-08-29T00:00:00.000Z";
+const require = createRequire(import.meta.url);
+const {
+  DesktopAppServerPilot,
+} = require("../../../desktop-app-vue/src/main/ai-engine/code-agent/app-server-pilot.js");
+const {
+  IdeAppServerPilot,
+} = require("../../vscode-extension/src/app-server-pilot.js");
+
+const AT = "2026-08-30T00:00:00.000Z";
 const PROFILES = Object.freeze({
-  quick: { iterations: 250, minimumDurationMs: 0, paceMs: 0 },
-  release: { iterations: 1_800, minimumDurationMs: 30 * 60 * 1_000, paceMs: 1_000 },
+  quick: {
+    iterations: 30,
+    minimumDurationMs: 0,
+    paceMs: 0,
+    restartEvery: 10,
+  },
+  release: {
+    iterations: 1_800,
+    minimumDurationMs: 30 * 60 * 1_000,
+    paceMs: 1_000,
+    restartEvery: 300,
+  },
 });
+const SURFACES = Object.freeze([
+  { id: "cli", hostAdapter: "ContextMemoryKernel direct CLI runtime" },
+  {
+    id: "desktop",
+    hostAdapter: "DesktopAppServerPilot fixed capability",
+  },
+  { id: "vscode", hostAdapter: "IdeAppServerPilot fixed capability" },
+  {
+    id: "jetbrains",
+    hostAdapter: "JetBrains App Server fixed-capability contract",
+  },
+]);
 
 function option(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -21,8 +54,12 @@ function option(name, fallback = null) {
 
 function fullCommitSha() {
   const explicit = option("--candidate-sha", process.env.GITHUB_SHA || "");
-  const value = explicit || execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-  if (!/^[a-f0-9]{40}$/u.test(value)) throw new Error("candidate SHA must be a full commit SHA");
+  const value =
+    explicit ||
+    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  if (!/^[a-f0-9]{40}$/u.test(value)) {
+    throw new Error("candidate SHA must be a full commit SHA");
+  }
   return value;
 }
 
@@ -32,25 +69,120 @@ function platformName() {
   return "linux";
 }
 
-function contextItem(index) {
+class SoakSessionContextPort extends InMemorySessionContextPort {
+  appendItems(sessionId, items) {
+    const state = this.sessions.get(sessionId);
+    if (!state) throw new Error(`unknown soak session ${sessionId}`);
+    const appended = items.map(normalizeContextItem);
+    state.items.push(...appended);
+    state.head = canonicalDigest(
+      {
+        previousHead: state.head,
+        appended: appended.map((item) => item.digest),
+      },
+      "chainlesschain.context-memory-soak-append/v1",
+    );
+  }
+}
+
+class SoakAppServerClient extends EventEmitter {
+  constructor(runtime) {
+    super();
+    this.runtime = runtime;
+    this.status = { running: true, initialized: true };
+  }
+
+  async start() {
+    return { protocolVersion: 1 };
+  }
+
+  async close() {}
+
+  async contextPlan(params) {
+    return this.runtime.kernel.planContext(params);
+  }
+
+  async contextCompact(params) {
+    return this.runtime.kernel.compactContext(params);
+  }
+
+  async memoryRecall(params) {
+    return this.runtime.kernel.recallMemory(params);
+  }
+
+  async memoryPropose(params) {
+    return this.runtime.kernel.proposeMemory(params);
+  }
+
+  async memoryDecide(params) {
+    return this.runtime.kernel.decideMemory(params);
+  }
+
+  async memoryDelete(params) {
+    return this.runtime.kernel.deleteMemory(params);
+  }
+
+  async memoryReconcile(params) {
+    return this.runtime.kernel.reconcile(params.requestId);
+  }
+}
+
+function contextItem(surface, index, overrides = {}) {
+  const sessionId = `soak-${surface}`;
   return normalizeContextItem({
     schemaVersion: 1,
-    itemId: `soak-item-${index}`,
-    kind: index === 0 ? "task-state" : "message",
+    itemId: `${surface}-item-${index}`,
+    kind: "message",
     scope: "session",
-    scopeId: "soak-session",
-    sourceRef: { store: "soak-fixture", id: `source-${index}`, eventSequence: index + 1 },
-    provenance: { source: "soak-fixture", actor: "soak-user", observedAt: AT },
+    scopeId: sessionId,
+    sourceRef: {
+      store: "soak-fixture",
+      id: `${surface}-source-${index}`,
+      eventSequence: Number.isInteger(index) ? index + 1 : undefined,
+    },
+    provenance: {
+      source: "soak-fixture",
+      actor: "soak-user",
+      observedAt: AT,
+    },
     trust: "user",
     sensitivity: "internal",
     allowedSinks: ["provider.local"],
-    tokenEstimate: 12,
-    priority: 100 - index,
-    pinned: index === 0,
+    tokenEstimate: 32,
+    priority: Number.isInteger(index) ? index % 80 : 900,
+    pinned: false,
     createdAt: AT,
-    content: `deterministic context item ${index}`,
-    ...(index === 0 ? { binding: { requiredForRecovery: true } } : {}),
+    content:
+      Number.isInteger(index) && index % 2 === 0
+        ? `持续恢复上下文 ${surface} ${index}`
+        : `long-running recovery context ${surface} ${index}`,
+    ...overrides,
   });
+}
+
+function protectedItems(surface) {
+  return [
+    contextItem(surface, "goal", {
+      kind: "task-state",
+      tokenEstimate: 24,
+      priority: 1_000,
+      pinned: true,
+      binding: { requiredForRecovery: true, taskState: "running" },
+      content: `preserve ${surface} recovery goal`,
+    }),
+    contextItem(surface, "approval", {
+      kind: "task-state",
+      tokenEstimate: 16,
+      binding: { approvalId: `${surface}-pending-approval` },
+      content: `pending approval for ${surface}`,
+    }),
+    contextItem(surface, "question", {
+      kind: "task-state",
+      tokenEstimate: 16,
+      binding: { questionId: `${surface}-pending-question` },
+      content: `pending question for ${surface}`,
+    }),
+  ];
 }
 
 function proposal(index, content = `deterministic memory topic-${index % 8}`) {
@@ -60,7 +192,11 @@ function proposal(index, content = `deterministic memory topic-${index % 8}`) {
     scopeId: "soak-user",
     category: "soak",
     content,
-    provenance: { source: "soak-fixture", actor: "soak-user", observedAt: AT },
+    provenance: {
+      source: "soak-fixture",
+      actor: "soak-user",
+      observedAt: AT,
+    },
     evidenceRefs: [{ store: "soak-fixture", id: `evidence-${index}` }],
     confidence: 0.8,
     importance: 0.7,
@@ -73,28 +209,69 @@ function proposal(index, content = `deterministic memory topic-${index % 8}`) {
   };
 }
 
+function compactionRequest(surface, iteration) {
+  const sessionId = `soak-${surface}`;
+  return {
+    operationId: `soak-${surface}-compact-${iteration}`,
+    sessionId,
+    modelWindowTokens: 512,
+    reservedOutputTokens: 64,
+    safetyMarginTokens: 32,
+    recoveryReserveTokens: 32,
+    sink: "provider.local",
+    scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
+    policyVersion: "soak-policy-v1",
+    modelProfile: "soak-model",
+    now: AT,
+  };
+}
+
 const profileName = option("--profile", "quick");
 const profile = PROFILES[profileName];
 if (!profile) throw new Error(`unknown soak profile ${profileName}`);
 const outputPath = option("--output");
-const rssLimitBytes = Number(option("--rss-growth-limit-bytes", 256 * 1024 * 1024));
+const rssLimitBytes = Number(
+  option("--rss-growth-limit-bytes", 256 * 1024 * 1024),
+);
 let uuidSequence = 0;
+const sessions = new SoakSessionContextPort(
+  SURFACES.map((surface) => ({
+    sessionId: `soak-${surface.id}`,
+    head: `head:soak-${surface.id}`,
+    items: protectedItems(surface.id),
+  })),
+);
 const memoryPort = new InMemoryMemoryPort();
 const purgePort = new InMemoryProjectionPurgePort("soak-projection");
-const kernel = new ContextMemoryKernel({
-  memoryPort,
-  reconciliationPort: memoryPort,
-  purgePorts: [purgePort],
-  clock: () => Date.parse(AT),
-  randomUUID: () => `soak-${++uuidSequence}`,
-});
+const runtime = { kernel: null };
+function restartKernel() {
+  runtime.kernel = new ContextMemoryKernel({
+    sessionPort: sessions,
+    memoryPort,
+    reconciliationPort: memoryPort,
+    purgePorts: [purgePort],
+    clock: () => Date.parse(AT),
+    randomUUID: () => `soak-${++uuidSequence}`,
+  });
+}
+restartKernel();
+
+const appServerClient = new SoakAppServerClient(runtime);
+const desktopPilot = new DesktopAppServerPilot({ client: appServerClient });
+const vscodePilot = new IdeAppServerPilot({ client: appServerClient });
+const routes = new Map([
+  ["cli", (params) => runtime.kernel.compactContext(params)],
+  ["desktop", (params) => desktopPilot.contextCompact(params)],
+  ["vscode", (params) => vscodePilot.contextCompact(params)],
+  ["jetbrains", (params) => appServerClient.contextCompact(params)],
+]);
 
 for (let index = 0; index < 32; index += 1) {
-  await kernel.proposeMemory(proposal(index));
+  await runtime.kernel.proposeMemory(proposal(index));
 }
 const secretMarker = "SOAK_PRIVATE_VALUE_MUST_NOT_SURVIVE";
-const secret = await kernel.proposeMemory(proposal(999, secretMarker));
-const deletion = await kernel.deleteMemory({
+const secret = await runtime.kernel.proposeMemory(proposal(999, secretMarker));
+const deletion = await runtime.kernel.deleteMemory({
   requestId: "soak-delete-secret",
   subject: "soak-user",
   scope: "user",
@@ -105,53 +282,88 @@ const deletion = await kernel.deleteMemory({
   fence: "soak-fence-secret",
   authority: "soak-user-request",
 });
-if (deletion.status !== "purged") throw new Error("soak privacy deletion did not converge");
+if (deletion.status !== "purged") {
+  throw new Error("soak privacy deletion did not converge");
+}
 
-const items = Array.from({ length: 8 }, (_, index) => contextItem(index));
+const surfaceMetrics = Object.fromEntries(
+  SURFACES.map((surface) => [
+    surface.id,
+    {
+      hostAdapter: surface.hostAdapter,
+      compactions: 0,
+      restarts: 0,
+      maxInputItems: 0,
+      maxOutputItems: 0,
+    },
+  ]),
+);
 const startedAt = Date.now();
-const baselineRssBytes = process.memoryUsage.rss();
+const baselineRssBytes = process.memoryUsage().rss;
 let maxRssBytes = baselineRssBytes;
 let iterations = 0;
 let casRaces = 0;
 do {
-  const recalled = await kernel.recallMemory({
+  for (const surface of SURFACES) {
+    const sessionId = `soak-${surface.id}`;
+    sessions.appendItems(
+      sessionId,
+      Array.from({ length: 8 }, (_, offset) =>
+        contextItem(surface.id, iterations * 8 + offset),
+      ),
+    );
+    const before = await sessions.readSnapshot(sessionId);
+    const receipt = await routes.get(surface.id)(
+      compactionRequest(surface.id, iterations),
+    );
+    if (receipt.status !== "committed") {
+      throw new Error(`${surface.id} compaction returned ${receipt.status}`);
+    }
+    const after = await sessions.readSnapshot(sessionId);
+    for (const protectedId of ["goal", "approval", "question"]) {
+      if (
+        !after.items.some(
+          (item) => item.itemId === `${surface.id}-item-${protectedId}`,
+        )
+      ) {
+        throw new Error(`${surface.id} dropped protected ${protectedId} state`);
+      }
+    }
+    surfaceMetrics[surface.id].compactions += 1;
+    surfaceMetrics[surface.id].maxInputItems = Math.max(
+      surfaceMetrics[surface.id].maxInputItems,
+      before.items.length,
+    );
+    surfaceMetrics[surface.id].maxOutputItems = Math.max(
+      surfaceMetrics[surface.id].maxOutputItems,
+      after.items.length,
+    );
+  }
+
+  const recalled = await runtime.kernel.recallMemory({
     query: `topic-${iterations % 8}`,
     sink: "provider.local",
     scopeAdmissions: [{ scope: "user", scopeId: "soak-user" }],
     limit: 8,
     tokenBudget: 2_048,
   });
-  if (recalled.results.length > 8) throw new Error("recall exceeded its configured limit");
+  if (recalled.results.length > 8) {
+    throw new Error("recall exceeded its configured limit");
+  }
   if (recalled.results.some(({ record }) => record.content === secretMarker)) {
     throw new Error("deleted content was recalled");
   }
-  const plan = await kernel.planContext({
-    modelWindowTokens: 2_048,
-    reservedOutputTokens: 256,
-    safetyMarginTokens: 128,
-    recoveryReserveTokens: 128,
-    items,
-    sink: "provider.local",
-    scopeAdmissions: [{ scope: "session", scopeId: "soak-session" }],
-    policyVersion: "soak-policy-v1",
-    modelProfile: "soak-model",
-    sessionHead: "soak-head-1",
-    memoryRevision: recalled.memoryRevision,
-    now: AT,
-  });
-  if (!plan.selectedItemIds.includes("soak-item-0")) {
-    throw new Error("protected recovery item was dropped");
-  }
+
   if (iterations % 100 === 0) {
     const current = await memoryPort.read("soak-memory-0");
     const decisions = await Promise.allSettled([
-      kernel.decideMemory({
+      runtime.kernel.decideMemory({
         memoryId: current.memoryId,
         type: "reinforce",
         expectedRevision: current.revision,
         confidenceDelta: 0.01,
       }),
-      kernel.decideMemory({
+      runtime.kernel.decideMemory({
         memoryId: current.memoryId,
         type: "reinforce",
         expectedRevision: current.revision,
@@ -163,8 +375,13 @@ do {
     }
     casRaces += 1;
   }
+
   iterations += 1;
-  maxRssBytes = Math.max(maxRssBytes, process.memoryUsage.rss());
+  if (iterations % profile.restartEvery === 0) {
+    restartKernel();
+    for (const surface of SURFACES) surfaceMetrics[surface.id].restarts += 1;
+  }
+  maxRssBytes = Math.max(maxRssBytes, process.memoryUsage().rss);
   if (profile.paceMs > 0) {
     await new Promise((resolve) => setTimeout(resolve, profile.paceMs));
   }
@@ -176,7 +393,16 @@ do {
 const durationMs = Date.now() - startedAt;
 const rssGrowthBytes = Math.max(0, maxRssBytes - baselineRssBytes);
 if (rssGrowthBytes > rssLimitBytes) {
-  throw new Error(`RSS growth ${rssGrowthBytes} exceeded limit ${rssLimitBytes}`);
+  throw new Error(
+    `RSS growth ${rssGrowthBytes} exceeded limit ${rssLimitBytes}`,
+  );
+}
+for (const metrics of Object.values(surfaceMetrics)) {
+  if (metrics.compactions < 2 || metrics.restarts < 1) {
+    throw new Error(
+      "each host adapter must survive multiple compactions and a restart",
+    );
+  }
 }
 const durableState = JSON.stringify({
   records: await memoryPort.query(),
@@ -188,8 +414,8 @@ if (durableState.includes(secretMarker)) {
 }
 
 const receipt = {
-  schema: "chainlesschain.context-memory-soak-receipt/v1",
-  schemaVersion: 1,
+  schema: "chainlesschain.context-memory-soak-receipt/v2",
+  schemaVersion: 2,
   candidateSha: fullCommitSha(),
   platform: platformName(),
   architecture: process.arch,
@@ -204,16 +430,24 @@ const receipt = {
   maxRssBytes,
   rssGrowthBytes,
   rssGrowthLimitBytes: rssLimitBytes,
+  surfaces: surfaceMetrics,
   invariants: {
     protectedRecoveryState: true,
+    pendingApprovalAndQuestion: true,
     boundedRecall: true,
     casSingleWinner: true,
+    multiCompaction: true,
+    crashRestartRecovery: true,
     deletionConverged: true,
     deletedContentAbsent: true,
   },
   workloadDigest: canonicalDigest(
-    { profile: profileName, configuration: profile, items },
-    "chainlesschain.context-memory-soak-workload/v1",
+    {
+      profile: profileName,
+      configuration: profile,
+      surfaces: SURFACES,
+    },
+    "chainlesschain.context-memory-soak-workload/v2",
   ),
 };
 receipt.digest = canonicalDigest(receipt, receipt.schema);
