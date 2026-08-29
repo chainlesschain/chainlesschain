@@ -2208,7 +2208,7 @@ function cleanupWindowsTemporaryPath(
       }
       if (
         !expectedIdentity ||
-        !sameWindowsFileIdentity(inspected.identity, expectedIdentity)
+        !sameWindowsFileObjectIdentity(inspected.identity, expectedIdentity)
       ) {
         return false;
       }
@@ -2716,6 +2716,20 @@ function sameWindowsFileIdentity(left, right) {
     left.birthtimeNs === right.birthtimeNs &&
     left.ctimeNs === right.ctimeNs &&
     left.mtimeNs === right.mtimeNs
+  );
+}
+
+// Cleanup is authorized by the stable file-object identity, not by metadata
+// that Windows may settle after the helper closes its last write handle.  The
+// strict identity above remains authoritative while content is read or
+// attested; this cleanup-only comparison still rejects a same-path replacement
+// because that changes the inode/birth identity.
+function sameWindowsFileObjectIdentity(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.mode === right.mode &&
+    left.birthtimeNs === right.birthtimeNs
   );
 }
 

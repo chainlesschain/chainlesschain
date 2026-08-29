@@ -97,6 +97,38 @@ struct PairingHomeView: View {
             if let error = deps.remoteSessionError, !error.isEmpty {
                 Text(error).font(.footnote).foregroundColor(.secondary)
             }
+            ForEach(deps.remoteSessionApprovals) { card in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(card.tool ?? "Approval request").font(.subheadline.bold())
+                    if let detail = card.detail, !detail.isEmpty {
+                        Text(detail).font(.footnote)
+                    }
+                    ForEach(card.requestedPermissionDescriptions, id: \.self) { permission in
+                        Text(permission).font(.caption.monospaced())
+                    }
+                    HStack {
+                        Button("Allow once") {
+                            _ = deps.resolveRemoteApproval(card, choice: .once)
+                        }
+                        Button("Decline", role: .destructive) {
+                            _ = deps.resolveRemoteApproval(card, choice: .decline)
+                        }
+                    }
+                    if !card.requestedPermissions.isEmpty {
+                        HStack {
+                            Button("Allow for turn") {
+                                _ = deps.resolveRemoteApproval(card, choice: .turn)
+                            }
+                            Button("Allow for session") {
+                                _ = deps.resolveRemoteApproval(card, choice: .session)
+                            }
+                        }
+                    }
+                }
+                .padding(8)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .accessibilityIdentifier("remote-approval-\(card.requestId)")
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

@@ -11,10 +11,25 @@ import {
   GraphCutoverLedger,
 } from "../../src/lib/graph-kernel/cutover-ledger.js";
 import { graphStoreEvidenceDigest } from "../../src/lib/graph-kernel/store-cutover-evidence.js";
+import {
+  GRAPH_LEGACY_WRITER_OBSERVATION_SCHEMA,
+  GRAPH_RETIREMENT_EVIDENCE_SCHEMA,
+  graphLegacyWriterObservationDigest,
+  graphRetirementEvidenceDigest,
+} from "../../src/lib/graph-kernel/retirement-evidence.js";
 
 const DIGEST = (character) => `sha256:${character.repeat(64)}`;
 const COMMIT = "a".repeat(40);
 const STORES = ["DesktopGraphRunRegistry", "GraphEventStore"];
+const RETIREMENT_CONTRACT = {
+  rolloutKey: "desktop/desktop-legacy-workflow",
+  replacementEntrypoint:
+    "Desktop WorkflowManager through the fixed CC App Server Graph capability",
+  replacementEntryIds: ["desktop-workflow-manager"],
+  historicalReadFunctions: ["WorkflowEngine.getExecution"],
+  mutationFunctions: ["WorkflowEngine.cancel", "WorkflowEngine.execute"],
+  writerFiles: ["desktop/workflow-engine.js", "desktop/workflow-ipc.js"],
+};
 
 function platformEvidence(commitSha = COMMIT) {
   return GRAPH_CUTOVER_REQUIRED_PLATFORMS.map((platform) => ({
@@ -61,6 +76,96 @@ function storeCoverageEvidence(
     ],
   };
   return { ...unsigned, evidenceDigest: graphStoreEvidenceDigest(unsigned) };
+}
+
+function mutationProbes() {
+  return RETIREMENT_CONTRACT.mutationFunctions.map(
+    (mutationFunction, index) => ({
+      mutationFunction,
+      attemptCount: 2,
+      blockedCount: 2,
+      successCount: 0,
+      errorCode: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
+      evidenceDigest: DIGEST(String(index + 1)),
+    }),
+  );
+}
+
+function retirementEvidence(commitSha = COMMIT) {
+  const unsigned = {
+    schema: GRAPH_RETIREMENT_EVIDENCE_SCHEMA,
+    surface: "desktop",
+    entryId: "desktop-legacy-workflow",
+    rolloutKey: RETIREMENT_CONTRACT.rolloutKey,
+    manifestDigest: DIGEST("0"),
+    commitSha,
+    startedAt: "2030-01-01T00:00:00.000Z",
+    endedAt: "2030-01-01T01:00:00.000Z",
+    durationMs: 3_600_000,
+    observationSampleCount: 24,
+    activeLegacyRunCount: 0,
+    legacyMutationSuccessCount: 0,
+    replacementJourneys: GRAPH_CUTOVER_REQUIRED_PLATFORMS.map((platform) => ({
+      replacementEntryId: "desktop-workflow-manager",
+      productEntrypoint: RETIREMENT_CONTRACT.replacementEntrypoint,
+      platform,
+      commitSha,
+      status: "passed",
+      evidenceDigest: DIGEST(
+        platform === "linux" ? "a" : platform === "macos" ? "b" : "c",
+      ),
+    })).sort((left, right) =>
+      `${left.replacementEntryId}:${left.platform}`.localeCompare(
+        `${right.replacementEntryId}:${right.platform}`,
+      ),
+    ),
+    mutationProbes: mutationProbes(),
+    historicalReadProbes: [
+      {
+        historicalReadFunction: "WorkflowEngine.getExecution",
+        status: "passed",
+        readCount: 2,
+        mutationAttemptCount: 0,
+        evidenceDigest: DIGEST("d"),
+      },
+    ],
+  };
+  return {
+    ...unsigned,
+    evidenceDigest: graphRetirementEvidenceDigest(unsigned),
+  };
+}
+
+function legacyWriterObservation({ notBefore, commitSha = COMMIT } = {}) {
+  const startedAt = new Date(Date.parse(notBefore) + 1_000).toISOString();
+  const endedAt = new Date(Date.parse(notBefore) + 3_601_000).toISOString();
+  const unsigned = {
+    schema: GRAPH_LEGACY_WRITER_OBSERVATION_SCHEMA,
+    surface: "desktop",
+    entryId: "desktop-legacy-workflow",
+    rolloutKey: RETIREMENT_CONTRACT.rolloutKey,
+    manifestDigest: DIGEST("0"),
+    commitSha,
+    startedAt,
+    endedAt,
+    durationMs: 3_600_000,
+    observationSampleCount: 24,
+    activeLegacyRunCount: 0,
+    legacyMutationSuccessCount: 0,
+    writerObservations: RETIREMENT_CONTRACT.writerFiles.map(
+      (writerFile, index) => ({
+        writerFile,
+        observationSampleCount: 12,
+        mutationSuccessCount: 0,
+        evidenceDigest: DIGEST(index === 0 ? "e" : "f"),
+      }),
+    ),
+    mutationProbes: mutationProbes(),
+  };
+  return {
+    ...unsigned,
+    evidenceDigest: graphLegacyWriterObservationDigest(unsigned),
+  };
 }
 
 function evidence(from, to, entry = {}) {
@@ -157,6 +262,7 @@ describe("GraphCutoverLedger", () => {
       manifestDigest: DIGEST("0"),
       stores: [],
       cutoverStrategy: "retire",
+      retirementContract: RETIREMENT_CONTRACT,
     });
     state = ledger.transition(
       "desktop",
@@ -178,7 +284,26 @@ describe("GraphCutoverLedger", () => {
         evidence("canary", "canonical"),
       ),
     ).toThrowError(
-      expect.objectContaining({ code: "CC_GRAPH_CUTOVER_EVIDENCE_INVALID" }),
+      expect.objectContaining({ code: "CC_GRAPH_RETIREMENT_EVIDENCE_INVALID" }),
+    );
+    const incompleteRetirementEvidence = retirementEvidence();
+    incompleteRetirementEvidence.replacementJourneys.pop();
+    incompleteRetirementEvidence.evidenceDigest = graphRetirementEvidenceDigest(
+      incompleteRetirementEvidence,
+    );
+    expect(() =>
+      ledger.transition("desktop", "desktop-legacy-workflow", "canonical", {
+        canaryReportDigest: DIGEST("3"),
+        canaryRunCount: 10,
+        canaryFailureCount: 0,
+        reconciliationCount: 0,
+        retirementEvidence: incompleteRetirementEvidence,
+        platformEvidence: platformEvidence(),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_RETIREMENT_REPLACEMENT_COVERAGE_INCOMPLETE",
+      }),
     );
     state = ledger.transition(
       "desktop",
@@ -189,9 +314,7 @@ describe("GraphCutoverLedger", () => {
         canaryRunCount: 10,
         canaryFailureCount: 0,
         reconciliationCount: 0,
-        retirementProbeDigest: DIGEST("4"),
-        activeLegacyRunCount: 0,
-        legacyMutationSuccessCount: 0,
+        retirementEvidence: retirementEvidence(),
         platformEvidence: platformEvidence(),
       },
     );
@@ -199,7 +322,38 @@ describe("GraphCutoverLedger", () => {
       stage: "canonical",
       cutoverStrategy: "retire",
       stores: [],
+      canonicalCommitSha: COMMIT,
     });
+    const incompleteObservation = legacyWriterObservation({
+      notBefore: state.updatedAt,
+    });
+    incompleteObservation.writerObservations.pop();
+    incompleteObservation.evidenceDigest = graphLegacyWriterObservationDigest(
+      incompleteObservation,
+    );
+    expect(() =>
+      ledger.transition(
+        "desktop",
+        "desktop-legacy-workflow",
+        "legacy_read_only",
+        { legacyWriterObservation: incompleteObservation },
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_GRAPH_RETIREMENT_WRITER_COVERAGE_INCOMPLETE",
+      }),
+    );
+    state = ledger.transition(
+      "desktop",
+      "desktop-legacy-workflow",
+      "legacy_read_only",
+      {
+        legacyWriterObservation: legacyWriterObservation({
+          notBefore: state.updatedAt,
+        }),
+      },
+    );
+    expect(state.stage).toBe("legacy_read_only");
   });
 
   it("keeps disabled non-durable entries outside the rollout ladder", () => {

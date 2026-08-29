@@ -3,6 +3,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 export const PLATFORM_EVIDENCE_SCHEMA =
@@ -28,6 +29,11 @@ const REQUIRED_SKILL_AUTHORITIES = Object.freeze({
   "network-diagnostics": Object.freeze(["network", "process"]),
 });
 const MAX_EVIDENCE_BYTES = 1024 * 1024;
+const RECEIPT_SCHEMAS = Object.freeze({
+  install: "chainlesschain.desktop-signed-skill-install/v1",
+  journey: "chainlesschain.desktop-signed-skill-journey/v1",
+  launch: "chainlesschain.desktop-signed-skill-launch/v1",
+});
 
 function canonicalValue(value) {
   if (Array.isArray(value)) {
@@ -53,6 +59,16 @@ export function evidenceDigest(value) {
     .digest("hex")}`;
 }
 
+export function receiptDigest(value) {
+  const unsigned = { ...value };
+  delete unsigned.receiptDigest;
+  return `sha256:${crypto
+    .createHash("sha256")
+    .update("cc.desktop-signed-skill-receipt/v1\0", "utf8")
+    .update(JSON.stringify(canonicalValue(unsigned)), "utf8")
+    .digest("hex")}`;
+}
+
 function assertion(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -69,6 +85,10 @@ function validateSignature(record) {
   assertion(
     signature?.kind === PLATFORM_SIGNATURES[platform],
     `${platform}: signature kind is not trusted`,
+  );
+  assertion(
+    signature.artifactSha256 === artifact.sha256,
+    `${platform}: signature is bound to a different installer`,
   );
   assertion(
     signature.verified === true && signature.policyVerified === true,
@@ -102,6 +122,25 @@ function validateSignature(record) {
   }
 }
 
+function validateReceiptBinding(receipt, schema, record, label) {
+  assertion(
+    receipt?.schema === schema,
+    `${record.platform}: ${label} schema mismatch`,
+  );
+  assertion(
+    receipt.commitSha === record.commitSha &&
+      receipt.platform === record.platform &&
+      receipt.artifactSha256 === record.artifact.sha256 &&
+      receipt.challengeDigest === record.challengeDigest,
+    `${record.platform}: ${label} binding mismatch`,
+  );
+  assertion(
+    SHA256.test(receipt.receiptDigest || "") &&
+      receiptDigest(receipt) === receipt.receiptDigest,
+    `${record.platform}: ${label} receipt digest mismatch`,
+  );
+}
+
 function validateSkillJourneys(record) {
   assertion(
     Array.isArray(record.skillJourneys),
@@ -121,11 +160,18 @@ function validateSkillJourneys(record) {
   )) {
     const journey = journeys.get(skillId);
     assertion(journey, `${record.platform}: missing ${skillId} journey`);
+    validateReceiptBinding(
+      journey,
+      RECEIPT_SCHEMAS.journey,
+      record,
+      `${skillId} journey`,
+    );
     assertion(
       journey.status === "passed" &&
         journey.approved === true &&
         journey.policyAuthorized === true &&
-        SHA256.test(journey.receiptDigest || ""),
+        journey.handlerSource === "installed-app.asar" &&
+        SHA256.test(journey.resultDigest || ""),
       `${record.platform}: ${skillId} did not produce an authorized terminal receipt`,
     );
     const authorities = new Set(journey.authorityKinds || []);
@@ -164,6 +210,10 @@ export function validatePlatformEvidence(
       `${record.platform}: evidence is bound to a different commit`,
     );
   }
+  assertion(
+    SHA256.test(record.challengeDigest || ""),
+    `${record.platform}: qualification challenge is missing`,
+  );
   assertion(
     record.provenance?.headSha === record.commitSha &&
       Number.isSafeInteger(record.provenance?.runId) &&
@@ -205,18 +255,36 @@ export function validatePlatformEvidence(
     `${record.platform}: installer byte identity is incomplete`,
   );
   validateSignature(record);
+  validateReceiptBinding(
+    record.install,
+    RECEIPT_SCHEMAS.install,
+    record,
+    "install",
+  );
   assertion(
     record.install?.fresh === true &&
       record.install?.installed === true &&
       record.install?.exitCode === 0 &&
-      SHA256.test(record.install?.receiptDigest || ""),
+      Number.isSafeInteger(record.install?.installedExecutableBytes) &&
+      record.install.installedExecutableBytes > 0 &&
+      SHA256.test(record.install?.installedExecutableSha256 || ""),
     `${record.platform}: fresh installation did not complete`,
+  );
+  validateReceiptBinding(
+    record.launch,
+    RECEIPT_SCHEMAS.launch,
+    record,
+    "launch",
   );
   assertion(
     record.launch?.started === true &&
       record.launch?.isPackaged === true &&
       record.launch?.asar === true &&
-      SHA256.test(record.launch?.receiptDigest || ""),
+      Number.isSafeInteger(record.launch?.appAsarBytes) &&
+      record.launch.appAsarBytes > 0 &&
+      SHA256.test(record.launch?.appAsarSha256 || "") &&
+      nonEmptyString(record.launch?.electronVersion) &&
+      nonEmptyString(record.launch?.appVersion),
     `${record.platform}: packaged Desktop launch evidence is incomplete`,
   );
   validateSkillJourneys(record);
@@ -251,6 +319,10 @@ export function validateEvidenceMatrix(records, options = {}) {
   }
   const commitShas = new Set(records.map((record) => record.commitSha));
   assertion(commitShas.size === 1, "Desktop evidence matrix mixes commit SHAs");
+  assertion(
+    new Set(records.map((record) => record.challengeDigest)).size === 1,
+    "Desktop evidence matrix mixes qualification challenges",
+  );
 
   const matrix = {
     schema: MATRIX_EVIDENCE_SCHEMA,
@@ -258,6 +330,7 @@ export function validateEvidenceMatrix(records, options = {}) {
     commitSha: records[0].commitSha,
     repository: options.repository || records[0].provenance.repository,
     workflowRef: options.workflowRef || records[0].provenance.workflowRef,
+    challengeDigest: records[0].challengeDigest,
     platforms: PLATFORMS.map((platform) => {
       const record = byPlatform.get(platform);
       return {

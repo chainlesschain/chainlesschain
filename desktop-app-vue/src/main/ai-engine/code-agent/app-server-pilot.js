@@ -3,8 +3,10 @@ const { AppServerPilotClient } = require("../../vendor/agent-sdk/index.js");
 const {
   spawnWithDesktopBroker,
 } = require("../../process/desktop-process-broker.js");
+const { resolveActorDid } = require("../../permission/current-user-context.js");
 
 const MAX_PARAMS_BYTES = 256 * 1024;
+const MAX_PENDING_HUMAN_TASKS = 128;
 
 function normalizeParams(value) {
   const params = value == null ? {} : value;
@@ -34,14 +36,29 @@ function normalizeParams(value) {
  * Feature-gated Desktop host for the shared Agent SDK App Server client.
  *
  * Every process goes through the Desktop broker and the renderer-facing layer
- * exposes fixed Thread/Turn methods only. Approval server requests retain the
- * SDK's default fail-closed response until a reviewed Desktop UI is wired.
+ * exposes fixed Thread/Turn/Graph methods only. Ordinary tool approvals remain
+ * fail-closed here; durable Graph HumanTasks are routed to a reviewed Desktop
+ * card and the authenticated actor is derived in main, never from renderer IPC.
  */
 class DesktopAppServerPilot extends EventEmitter {
   constructor(options = {}) {
     super();
     const ClientClass = options.ClientClass || AppServerPilotClient;
     const spawnProcess = options.spawnProcess || spawnWithDesktopBroker;
+    const requestTimeoutMs = Math.max(
+      1,
+      Number(options.requestTimeoutMs) || 120_000,
+    );
+    this.pendingHumanTasks = new Map();
+    this.resolveActorDid = options.resolveActorDid || resolveActorDid;
+    this.humanTaskTimeoutMs = Math.max(
+      1,
+      Math.min(
+        Number(options.humanTaskTimeoutMs) ||
+          Math.max(1, requestTimeoutMs - 1_000),
+        Math.max(1, requestTimeoutMs - 1),
+      ),
+    );
     this.client =
       options.client ||
       new ClientClass({
@@ -50,9 +67,10 @@ class DesktopAppServerPilot extends EventEmitter {
         stateDirectory: options.stateDirectory,
         serverQueueCap: options.serverQueueCap ?? 256,
         maxPendingRequests: options.maxPendingRequests ?? 128,
-        requestTimeoutMs: options.requestTimeoutMs ?? 120_000,
+        requestTimeoutMs,
         clientName: "chainlesschain-desktop-app-server-pilot",
         clientVersion: options.clientVersion || "1",
+        onServerRequest: (request) => this._handleServerRequest(request),
         spawn: (command, args, spawnOptions = {}) =>
           spawnProcess(command, args, {
             ...spawnOptions,
@@ -91,7 +109,135 @@ class DesktopAppServerPilot extends EventEmitter {
   }
 
   close() {
+    for (const pending of this.pendingHumanTasks.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("App Server HumanTask host closed"));
+    }
+    this.pendingHumanTasks.clear();
     return this.client.close();
+  }
+
+  _handleServerRequest(request) {
+    if (request?.method !== "humanTask/decide") {
+      return {
+        kind: "decline",
+        reason: "Desktop App Server pilot has no handler for this request",
+      };
+    }
+    const task = normalizeParams(request.params?.task);
+    for (const field of [
+      "id",
+      "runId",
+      "nodeId",
+      "revisionDigest",
+      "operationDigest",
+      "nonce",
+    ]) {
+      if (typeof task[field] !== "string" || !task[field]) {
+        throw new TypeError(`HumanTask ${field} is required`);
+      }
+    }
+    if (!Array.isArray(task.decisions)) {
+      throw new TypeError("HumanTask decisions must be an array");
+    }
+    if (this.pendingHumanTasks.size >= MAX_PENDING_HUMAN_TASKS) {
+      throw new Error("Desktop HumanTask review queue is full");
+    }
+    if (this.pendingHumanTasks.has(task.id)) {
+      throw new Error(`HumanTask is already pending review: ${task.id}`);
+    }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingHumanTasks.delete(task.id);
+        reject(new Error(`Desktop HumanTask review timed out: ${task.id}`));
+      }, this.humanTaskTimeoutMs);
+      timer.unref?.();
+      this.pendingHumanTasks.set(task.id, { task, resolve, reject, timer });
+      this.emit("human-task-requested", task);
+    });
+  }
+
+  respondHumanTask(payload) {
+    const response = normalizeParams(payload);
+    const humanTaskId = String(response.humanTaskId || "").trim();
+    const pending = this.pendingHumanTasks.get(humanTaskId);
+    if (!pending) {
+      throw new Error("HumanTask is no longer pending in this Desktop host");
+    }
+    const { task } = pending;
+    for (const [field, expected] of [
+      ["runId", task.runId],
+      ["revisionDigest", task.revisionDigest],
+      ["operationDigest", task.operationDigest],
+      ["nonce", task.nonce],
+    ]) {
+      if (response[field] !== expected) {
+        throw new Error(`HumanTask response has a stale ${field}`);
+      }
+    }
+    const decision = response.decision;
+    if (
+      !decision ||
+      typeof decision !== "object" ||
+      Array.isArray(decision) ||
+      !["acceptOnce", "decline", "cancel"].includes(decision.kind)
+    ) {
+      throw new TypeError("Desktop HumanTask decision is invalid");
+    }
+    const allowedDecisionFields =
+      decision.kind === "acceptOnce"
+        ? new Set(["kind"])
+        : new Set(["kind", "reason"]);
+    if (
+      Object.keys(decision).some(
+        (field) => !allowedDecisionFields.has(field),
+      ) ||
+      (["decline", "cancel"].includes(decision.kind) &&
+        decision.reason !== undefined &&
+        (typeof decision.reason !== "string" || decision.reason.length > 2_048))
+    ) {
+      throw new TypeError("Desktop HumanTask decision fields are invalid");
+    }
+    const actorId = this.resolveActorDid(null, {
+      channel: "coding-agent:app-server-human-task-decide",
+      field: "actorId",
+    });
+    if (typeof actorId !== "string" || !actorId) {
+      throw new Error("HumanTask review requires an authenticated Desktop DID");
+    }
+    if (
+      task.separationOfDuties === true &&
+      task.decisions.some((entry) => entry.actorId === actorId)
+    ) {
+      throw new Error(
+        "This HumanTask requires a different authenticated reviewer",
+      );
+    }
+    clearTimeout(pending.timer);
+    this.pendingHumanTasks.delete(humanTaskId);
+    const result = {
+      humanTaskId,
+      runId: task.runId,
+      revisionDigest: task.revisionDigest,
+      operationDigest: task.operationDigest,
+      nonce: task.nonce,
+      actorId,
+      decision: JSON.parse(JSON.stringify(decision)),
+    };
+    pending.resolve(result);
+    this.emit("human-task-settled", {
+      humanTaskId,
+      runId: task.runId,
+      actorId,
+      decision: result.decision,
+    });
+    return { accepted: true, humanTaskId, actorId };
+  }
+
+  listPendingHumanTasks() {
+    return [...this.pendingHumanTasks.values()].map(({ task }) =>
+      JSON.parse(JSON.stringify(task)),
+    );
   }
 
   threadStart(params = {}) {
@@ -153,6 +299,7 @@ class DesktopAppServerPilot extends EventEmitter {
 
 module.exports = {
   DesktopAppServerPilot,
+  MAX_PENDING_HUMAN_TASKS,
   MAX_PARAMS_BYTES,
   normalizeParams,
 };

@@ -1,12 +1,15 @@
 package com.chainlesschain.android.remote.session
 
 import com.chainlesschain.agent.protocol.generated.ApprovalDecision
+import com.chainlesschain.agent.protocol.generated.PermissionGrant
 import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -95,11 +98,35 @@ class RemoteSessionClientIdempotencyTest {
                 )
             }
 
+    private fun deliver(host: RemoteSessionCrypto, event: JSONObject) {
+        val fake = sockets.last()
+        listener!!.onMessage(
+            fake,
+            JSONObject()
+                .put("type", "message")
+                .put(
+                    "payload",
+                    JSONObject()
+                        .put("type", "remote-session.encrypted")
+                        .put("envelope", host.encrypt(event).toJson()),
+                )
+                .toString(),
+        )
+    }
+
+    private fun openApproval(host: RemoteSessionCrypto, requestId: String) {
+        deliver(
+            host,
+            JSONObject().put("type", "permission.request").put("requestId", requestId),
+        )
+    }
+
     @Test
     fun `every control event carries a commandId and a monotonic seq`() {
         val host = pair()
         val before = sockets.last().sent.size
         client.sendPrompt("continue")
+        openApproval(host, "req-1")
         client.resolveApproval(
             requestId = "req-1",
             decision = ApprovalDecision.AcceptOnce,
@@ -132,6 +159,7 @@ class RemoteSessionClientIdempotencyTest {
     fun `partial durable approval tuple is rejected before send`() {
         val host = pair()
         val before = sockets.last().sent.size
+        openApproval(host, "req-partial")
         assertTrue(
             !client.resolveApproval(
                 requestId = "req-partial",
@@ -146,6 +174,7 @@ class RemoteSessionClientIdempotencyTest {
     fun `binary remote UI rejects persistent grants before send`() {
         val host = pair()
         val before = sockets.last().sent.size
+        openApproval(host, "req-grant")
         assertTrue(
             !client.resolveApproval(
                 requestId = "req-grant",
@@ -156,14 +185,94 @@ class RemoteSessionClientIdempotencyTest {
     }
 
     @Test
+    fun `reviewed persistent grant echoes the exact host permission list`() {
+        val host = pair()
+        val request = JSONObject()
+            .put("type", "permission.request")
+            .put("requestId", "req-reviewed-grant")
+            .put(
+                "requested_permissions",
+                JSONArray().put(
+                    JSONObject()
+                        .put("capability", "filesystem:write")
+                        .put("scope", "workspace:/reviewed/path")
+                        .put("expiresAt", "2026-08-30T00:00:00.000Z"),
+                ),
+            )
+        deliver(host, request)
+        val permissions = reviewedApprovalPermissions(request)!!
+        assertEquals(
+            listOf(
+                PermissionGrant(
+                    "filesystem:write",
+                    "workspace:/reviewed/path",
+                    "2026-08-30T00:00:00.000Z",
+                ),
+            ),
+            permissions,
+        )
+        val before = sockets.last().sent.size
+
+        assertTrue(
+            client.resolveApproval(
+                requestId = "req-reviewed-grant",
+                decision = ApprovalDecision.AcceptForSession(permissions),
+                reviewedPermissions = permissions,
+            ),
+        )
+        val event = decryptControls(host, before).single()
+        val decision = event.getJSONObject("decision")
+        assertEquals("acceptForSession", decision.getString("kind"))
+        assertEquals(
+            "workspace:/reviewed/path",
+            decision.getJSONArray("permissions").getJSONObject(0).getString("scope"),
+        )
+    }
+
+    @Test
     @Suppress("DEPRECATION")
     fun `N-1 boolean caller is normalized to a canonical decision`() {
         val host = pair()
         val before = sockets.last().sent.size
+        openApproval(host, "req-legacy")
         assertTrue(client.resolveApproval(requestId = "req-legacy", approved = false))
         val event = decryptControls(host, before).single()
         assertEquals("decline", event.getJSONObject("decision").getString("kind"))
         assertTrue(!event.getBoolean("approved"))
+    }
+
+    @Test
+    fun `approval card has one response winner and host resolution removes it`() {
+        val host = pair()
+        openApproval(host, "req-race")
+        val before = sockets.last().sent.size
+
+        assertTrue(
+            client.resolveApproval(
+                requestId = "req-race",
+                decision = ApprovalDecision.AcceptOnce,
+            ),
+        )
+        assertFalse(
+            client.resolveApproval(
+                requestId = "req-race",
+                decision = ApprovalDecision.Decline(),
+            ),
+        )
+        assertEquals(1, decryptControls(host, before).size)
+        assertEquals(1, client.pendingApprovalCount)
+
+        deliver(
+            host,
+            JSONObject().put("type", "permission.resolved").put("requestId", "req-race"),
+        )
+        assertEquals(0, client.pendingApprovalCount)
+        assertFalse(
+            client.resolveApproval(
+                requestId = "req-race",
+                decision = ApprovalDecision.Decline(),
+            ),
+        )
     }
 
     @Test

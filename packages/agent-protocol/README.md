@@ -63,7 +63,7 @@ Public subpath exports:
 - `@chainlesschain/agent-protocol/generated/swift` — generated Swift source.
 
 The package version and the protocol version are separate. The current npm
-package release candidate is `0.1.5`; the embedded wire protocol is version
+package release candidate is `0.1.6`; the embedded wire protocol is version
 `1` and declares its
 minimum compatible protocol version in `x-cc-protocol`.
 

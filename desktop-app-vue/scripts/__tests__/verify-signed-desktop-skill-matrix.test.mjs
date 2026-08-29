@@ -7,12 +7,14 @@ import { fileURLToPath } from "node:url";
 import {
   PLATFORM_EVIDENCE_SCHEMA,
   evidenceDigest,
+  receiptDigest,
   validateEvidenceMatrix,
   verifyEvidenceDirectory,
 } from "../verify-signed-desktop-skill-matrix.mjs";
 
 const COMMIT_SHA = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
+const CHALLENGE = `sha256:${"e".repeat(64)}`;
 const REPOSITORY = "chainlesschain/chainlesschain";
 const WORKFLOW_REF =
   "chainlesschain/chainlesschain/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main";
@@ -35,6 +37,7 @@ const REPOSITORY_ROOT = path.resolve(
 function signature(platform) {
   if (platform === "windows") {
     return {
+      artifactSha256: DIGEST,
       kind: "authenticode",
       verified: true,
       policyVerified: true,
@@ -46,6 +49,7 @@ function signature(platform) {
   }
   if (platform === "macos") {
     return {
+      artifactSha256: DIGEST,
       kind: "codesign+notarized",
       verified: true,
       policyVerified: true,
@@ -56,6 +60,7 @@ function signature(platform) {
     };
   }
   return {
+    artifactSha256: DIGEST,
     kind: "sigstore-keyless",
     verified: true,
     policyVerified: true,
@@ -65,11 +70,24 @@ function signature(platform) {
   };
 }
 
+function boundReceipt(schema, values = {}) {
+  const value = {
+    schema,
+    commitSha: COMMIT_SHA,
+    artifactSha256: DIGEST,
+    challengeDigest: CHALLENGE,
+    ...values,
+  };
+  value.receiptDigest = receiptDigest(value);
+  return value;
+}
+
 function record(platform, overrides = {}) {
   const value = {
     schema: PLATFORM_EVIDENCE_SCHEMA,
     status: "passed",
     commitSha: COMMIT_SHA,
+    challengeDigest: CHALLENGE,
     platform,
     arch: "x64",
     artifact: {
@@ -78,26 +96,36 @@ function record(platform, overrides = {}) {
       sha256: DIGEST,
       signature: signature(platform),
     },
-    install: {
+    install: boundReceipt("chainlesschain.desktop-signed-skill-install/v1", {
+      platform,
       fresh: true,
       installed: true,
       exitCode: 0,
-      receiptDigest: DIGEST,
-    },
-    launch: {
+      installedExecutableBytes: 4096,
+      installedExecutableSha256: DIGEST,
+    }),
+    launch: boundReceipt("chainlesschain.desktop-signed-skill-launch/v1", {
+      platform,
       started: true,
       isPackaged: true,
       asar: true,
-      receiptDigest: DIGEST,
-    },
-    skillJourneys: Object.entries(SKILLS).map(([skillId, authorityKinds]) => ({
-      skillId,
-      status: "passed",
-      approved: true,
-      policyAuthorized: true,
-      authorityKinds,
-      receiptDigest: DIGEST,
-    })),
+      appAsarBytes: 8192,
+      appAsarSha256: DIGEST,
+      electronVersion: "39.2.7",
+      appVersion: "5.0.3-test",
+    }),
+    skillJourneys: Object.entries(SKILLS).map(([skillId, authorityKinds]) =>
+      boundReceipt("chainlesschain.desktop-signed-skill-journey/v1", {
+        platform,
+        skillId,
+        status: "passed",
+        approved: true,
+        policyAuthorized: true,
+        authorityKinds,
+        handlerSource: "installed-app.asar",
+        resultDigest: DIGEST,
+      }),
+    ),
     provenance: {
       repository: REPOSITORY,
       workflowRef: WORKFLOW_REF,
@@ -139,6 +167,14 @@ test("rejects missing platforms and mixed commits", () => {
   const windows = record("windows");
   windows.commitSha = "d".repeat(40);
   windows.provenance.headSha = windows.commitSha;
+  for (const receipt of [
+    windows.install,
+    windows.launch,
+    ...windows.skillJourneys,
+  ]) {
+    receipt.commitSha = windows.commitSha;
+    receipt.receiptDigest = receiptDigest(receipt);
+  }
   windows.evidenceDigest = evidenceDigest(windows);
   assert.throws(
     () =>
@@ -147,6 +183,21 @@ test("rejects missing platforms and mixed commits", () => {
         expectedCommitSha: undefined,
       }),
     /mixes commit SHAs/u,
+  );
+});
+
+test("rejects replayed launch and journey receipts", () => {
+  const linux = record("linux");
+  linux.launch.challengeDigest = `sha256:${"f".repeat(64)}`;
+  linux.launch.receiptDigest = receiptDigest(linux.launch);
+  linux.evidenceDigest = evidenceDigest(linux);
+  assert.throws(
+    () =>
+      validateEvidenceMatrix(
+        [linux, record("macos"), record("windows")],
+        options,
+      ),
+    /launch binding mismatch/u,
   );
 });
 
@@ -234,4 +285,28 @@ test("qualification workflow keeps producer identity and aggregate attestation f
     /desktop-signed-skill-evidence-\*-\$\{\{ inputs\.commit_sha \}\}/u,
   );
   assert.doesNotMatch(workflow, /continue-on-error:\s*true/u);
+
+  const producer = fs.readFileSync(
+    path.join(
+      REPOSITORY_ROOT,
+      ".github",
+      "workflows",
+      "desktop-signed-skill-platform.yml",
+    ),
+    "utf8",
+  );
+  assert.match(producer, /test "\$EXPECTED_SHA" = "\$SOURCE_SHA"/u);
+  assert.match(producer, /environment: desktop-signed-qualification/u);
+  assert.match(producer, /cosign verify-blob/u);
+  assert.match(producer, /Get-AuthenticodeSignature/u);
+  assert.match(producer, /xcrun stapler validate/u);
+  assert.match(producer, /--fresh-install/u);
+  assert.match(producer, /signed-desktop-skill-journey\.mjs/u);
+  assert.match(producer, /Attest exact signed installer bytes/u);
+  assert.match(producer, /actions\/attest-build-provenance@v3/u);
+  assert.match(
+    producer,
+    /uses: \.\/\.github\/workflows\/desktop-signed-skill-qualification\.yml/u,
+  );
+  assert.doesNotMatch(producer, /continue-on-error:\s*true/u);
 });

@@ -481,6 +481,29 @@ export interface CodingAgentArtifactWorkbench {
 }
 
 export interface CodingAgentAPI {
+  appServerHumanTaskList(): Promise<{
+    success: boolean;
+    result?: Array<Record<string, unknown>>;
+    error?: string;
+  }>;
+  appServerHumanTaskDecide(payload: {
+    humanTaskId: string;
+    runId: string;
+    revisionDigest: string;
+    operationDigest: string;
+    nonce: string;
+    decision: { kind: "acceptOnce" | "decline" | "cancel"; reason?: string };
+  }): Promise<{
+    success: boolean;
+    result?: { accepted: boolean; humanTaskId: string; actorId: string };
+    error?: string;
+  }>;
+  onAppServerHumanTask(
+    callback: (task: Record<string, unknown>) => void,
+  ): () => void;
+  onAppServerHumanTaskSettled(
+    callback: (settlement: Record<string, unknown>) => void,
+  ): () => void;
   createSession(options?: any): Promise<any>;
   startSession(options?: any): Promise<any>;
   resumeSession(sessionId: string): Promise<any>;

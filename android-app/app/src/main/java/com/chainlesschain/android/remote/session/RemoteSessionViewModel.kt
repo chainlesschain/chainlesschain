@@ -53,7 +53,7 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         }
         viewModelScope.launch {
             client.events.collect { event ->
-                if (isApprovalRequest(event)) {
+                if (isRemoteApprovalRequest(event)) {
                     notifier.notifyApproval(event)
                 }
                 _uiState.update { it.copy(events = (it.events + event).takeLast(200)) }
@@ -92,7 +92,40 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun approve(request: JSONObject, approved: Boolean) {
-        val requestId = request.optString("requestId", request.optString("approvalId"))
+        respondToApproval(
+            request,
+            if (approved) ApprovalDecision.AcceptOnce else ApprovalDecision.Decline("user-declined"),
+        )
+    }
+
+    fun isApprovalPending(request: JSONObject): Boolean =
+        isRemoteApprovalRequest(request) &&
+            client.isApprovalPending(remoteApprovalRequestId(request))
+
+    fun approveForTurn(request: JSONObject) {
+        val permissions = reviewedApprovalPermissions(request)
+        if (permissions == null) {
+            rejectUnreviewableGrant()
+            return
+        }
+        respondToApproval(request, ApprovalDecision.AcceptForTurn(permissions), permissions)
+    }
+
+    fun approveForSession(request: JSONObject) {
+        val permissions = reviewedApprovalPermissions(request)
+        if (permissions == null) {
+            rejectUnreviewableGrant()
+            return
+        }
+        respondToApproval(request, ApprovalDecision.AcceptForSession(permissions), permissions)
+    }
+
+    private fun respondToApproval(
+        request: JSONObject,
+        decision: ApprovalDecision,
+        reviewedPermissions: List<com.chainlesschain.agent.protocol.generated.PermissionGrant>? = null,
+    ) {
+        val requestId = remoteApprovalRequestId(request)
         if (requestId.isBlank()) return
         val fingerprint = request.optString("fingerprint").takeIf { it.isNotBlank() }
         val binding = request.optString("binding").takeIf { it.isNotBlank() }
@@ -100,14 +133,11 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         if (
             client.resolveApproval(
                 requestId = requestId,
-                decision = if (approved) {
-                    ApprovalDecision.AcceptOnce
-                } else {
-                    ApprovalDecision.Decline(reason = "user-declined")
-                },
+                decision = decision,
                 fingerprint = fingerprint,
                 binding = binding,
                 revision = revision,
+                reviewedPermissions = reviewedPermissions,
             )
         ) {
             notifier.cancel(requestId)
@@ -115,6 +145,12 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
             _uiState.update {
                 it.copy(error = "Approval request binding is incomplete or the session is disconnected")
             }
+        }
+    }
+
+    private fun rejectUnreviewableGrant() {
+        _uiState.update {
+            it.copy(error = "Persistent approval requires a valid, reviewable permission list")
         }
     }
 
@@ -139,9 +175,5 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         // Vendor push token resolution is normally cached + instant; cap it so
         // pairing is never blocked on a slow network.
         const val TOKEN_TIMEOUT_MS = 3_000L
-
-        fun isApprovalRequest(event: JSONObject): Boolean =
-            event.optString("type") == "permission.request" ||
-                event.optString("type").contains("approval")
     }
 }

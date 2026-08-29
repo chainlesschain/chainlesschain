@@ -20,6 +20,8 @@ const APP_SERVER_PILOT_IPC_CHANNELS = [
   "coding-agent:app-server-thread-archive",
   "coding-agent:app-server-turn-start",
   "coding-agent:app-server-turn-interrupt",
+  "coding-agent:app-server-human-task-list",
+  "coding-agent:app-server-human-task-decide",
 ];
 
 const CODING_AGENT_IPC_CHANNELS = [
@@ -159,6 +161,13 @@ function registerCodingAgentIPCV3(options = {}) {
   }));
   ipc.handle("coding-agent:app-server-pilot-start", () => runPilot("start"));
   ipc.handle("coding-agent:app-server-pilot-close", () => runPilot("close"));
+  ipc.handle("coding-agent:app-server-human-task-list", () =>
+    runPilot("listPendingHumanTasks"),
+  );
+  ipc.handle(
+    "coding-agent:app-server-human-task-decide",
+    (_event, payload = {}) => runPilot("respondHumanTask", payload),
+  );
   for (const [channel, operation] of [
     ["coding-agent:app-server-thread-start", "threadStart"],
     ["coding-agent:app-server-thread-resume", "threadResume"],
@@ -171,6 +180,34 @@ function registerCodingAgentIPCV3(options = {}) {
   ]) {
     ipc.handle(channel, (_event, payload = {}) => runPilot(operation, payload));
   }
+  const onHumanTaskRequested = (task) => {
+    const mainWindow = service.mainWindow;
+    if (
+      mainWindow?.webContents &&
+      typeof mainWindow.isDestroyed === "function" &&
+      !mainWindow.isDestroyed()
+    ) {
+      mainWindow.webContents.send(
+        "coding-agent:app-server-human-task-requested",
+        task,
+      );
+    }
+  };
+  const onHumanTaskSettled = (settlement) => {
+    const mainWindow = service.mainWindow;
+    if (
+      mainWindow?.webContents &&
+      typeof mainWindow.isDestroyed === "function" &&
+      !mainWindow.isDestroyed()
+    ) {
+      mainWindow.webContents.send(
+        "coding-agent:app-server-human-task-settled",
+        settlement,
+      );
+    }
+  };
+  appServerPilot?.on?.("human-task-requested", onHumanTaskRequested);
+  appServerPilot?.on?.("human-task-settled", onHumanTaskSettled);
 
   const handleCreateSession = async (_event, payload = {}) => {
     try {
@@ -1061,6 +1098,8 @@ function registerCodingAgentIPCV3(options = {}) {
       return;
     }
     disposed = true;
+    appServerPilot?.off?.("human-task-requested", onHumanTaskRequested);
+    appServerPilot?.off?.("human-task-settled", onHumanTaskSettled);
     if (typeof ipc.removeHandler === "function") {
       CODING_AGENT_IPC_CHANNELS.forEach((channel) =>
         ipc.removeHandler(channel),

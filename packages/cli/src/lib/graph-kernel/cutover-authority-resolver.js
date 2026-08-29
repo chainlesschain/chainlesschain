@@ -9,6 +9,7 @@ import {
   graphRuntimeSurfaceEntry,
   loadGraphRuntimeSurfaceManifest,
 } from "./runtime-surface-manifest.js";
+import { normalizeGraphRetirementContract } from "./retirement-evidence.js";
 
 const AUTHORITY_MODES = new Set(["legacy", "shadow", "canonical"]);
 
@@ -68,6 +69,17 @@ export class GraphCutoverAuthorityResolver {
     this.retirementStores = [...declared.entry.storeDispositions.retire].sort();
     this.rebuildStores = [...declared.entry.storeDispositions.rebuild].sort();
     this.disabledStores = [...declared.entry.storeDispositions.disabled].sort();
+    this.retirementContract =
+      this.cutoverStrategy === "retire"
+        ? normalizeGraphRetirementContract({
+            rolloutKey: declared.entry.rolloutKey,
+            replacementEntrypoint: declared.entry.replacementEntrypoint,
+            replacementEntryIds: declared.entry.replacementEntryIds,
+            historicalReadFunctions: declared.entry.historicalReadFunctions,
+            mutationFunctions: declared.entry.mutationFunctions,
+            writerFiles: declared.entry.writerFiles,
+          })
+        : null;
     this.ledger = ledger;
     this.fallbackMode =
       fallbackMode === undefined
@@ -112,6 +124,19 @@ export class GraphCutoverAuthorityResolver {
         },
       );
     }
+    const stateRetirementContract =
+      this.cutoverStrategy === "retire"
+        ? normalizeGraphRetirementContract(state.retirementContract)
+        : null;
+    if (
+      JSON.stringify(stateRetirementContract) !==
+      JSON.stringify(this.retirementContract)
+    ) {
+      throw resolverError(
+        "CC_GRAPH_CUTOVER_RETIREMENT_CONTRACT_CONFLICT",
+        "cutover authority is bound to a stale retirement contract",
+      );
+    }
     return state;
   }
 
@@ -122,6 +147,7 @@ export class GraphCutoverAuthorityResolver {
       manifestDigest: this.manifestDigest,
       stores: this.stores,
       cutoverStrategy: this.cutoverStrategy,
+      retirementContract: this.retirementContract,
     });
   }
 

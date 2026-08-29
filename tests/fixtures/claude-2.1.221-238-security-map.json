@@ -278,7 +278,7 @@
       "testId": "does not let CC_SANDBOX_DISABLE bypass strict mode",
       "producer": {
         "path": "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js",
-        "sha256": "sha256:c010e4c790a7ccdb94b25b1cab1deec60c7374af79d03bc1bfbfd04d0de39c71"
+        "sha256": "sha256:4cff4bffc0e513b38ace559d5631c128537af4347ae4dc2092d6e52fabdf63a5"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]

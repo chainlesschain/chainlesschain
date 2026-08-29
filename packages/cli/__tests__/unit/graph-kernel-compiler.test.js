@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   GRAPH_DEFINITION_MIN_VERSION,
+  GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA,
   GraphCompileError,
   assertCompiledGraph,
   compileGraphDefinition,
@@ -10,6 +11,7 @@ import {
   isPortSchemaAssignable,
   migrateGraphDefinition,
   restoreGraphDefinitionBackup,
+  validateGraphDefinitionMigrationEvidence,
   writeScopesOverlap,
 } from "../../src/lib/graph-kernel/compiler.js";
 
@@ -576,6 +578,30 @@ describe("typed Graph Compiler", () => {
       );
       expect(legacy).toEqual(before);
       expect(compileGraphDefinition(legacy).migratedFrom).toBe(0);
+      const compiledLegacy = compileGraphDefinition(legacy);
+      expect(compiledLegacy.definitionMigration).toMatchObject({
+        schema: GRAPH_DEFINITION_MIGRATION_EVIDENCE_SCHEMA,
+        fromVersion: 0,
+        toVersion: 1,
+        revisionDigest: compiledLegacy.revisionDigest,
+        backupDefinition: legacy,
+        rollbackDigest: migration.rollbackDigest,
+      });
+      expect(
+        validateGraphDefinitionMigrationEvidence(
+          compiledLegacy.definitionMigration,
+        ),
+      ).toEqual(compiledLegacy.definitionMigration);
+      expect(() =>
+        validateGraphDefinitionMigrationEvidence({
+          ...compiledLegacy.definitionMigration,
+          revisionDigest: `sha256:${"f".repeat(64)}`,
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_GRAPH_MIGRATION_REPLAY_MISMATCH",
+        }),
+      );
       expect(migrateGraphDefinition(expected, { dryRun: true })).toMatchObject({
         fromVersion: 1,
         toVersion: 1,

@@ -583,6 +583,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:app-server-turn-start", payload),
     appServerTurnInterrupt: (payload) =>
       ipcRenderer.invoke("coding-agent:app-server-turn-interrupt", payload),
+    appServerHumanTaskList: () =>
+      ipcRenderer.invoke("coding-agent:app-server-human-task-list"),
+    appServerHumanTaskDecide: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-human-task-decide", payload),
+    onAppServerHumanTask: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:app-server-human-task-requested", handler);
+      return () =>
+        ipcRenderer.removeListener(
+          "coding-agent:app-server-human-task-requested",
+          handler,
+        );
+    },
+    onAppServerHumanTaskSettled: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:app-server-human-task-settled", handler);
+      return () =>
+        ipcRenderer.removeListener(
+          "coding-agent:app-server-human-task-settled",
+          handler,
+        );
+    },
     createSession: (options) =>
       ipcRenderer.invoke("coding-agent:create-session", options),
     startSession: (options) =>

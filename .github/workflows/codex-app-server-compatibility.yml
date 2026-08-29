@@ -1,0 +1,181 @@
+name: Codex App Server Compatibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "packages/cli/src/lib/codex-app-server-adapter.js"
+      - "packages/cli/src/lib/external-agent-adapters.js"
+      - "packages/cli/scripts/codex-app-server-compatibility.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-adapter.test.js"
+      - "packages/cli/__tests__/unit/external-agent-adapters.test.js"
+      - ".github/workflows/codex-app-server-compatibility.yml"
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/codex-app-server-adapter.js"
+      - "packages/cli/src/lib/external-agent-adapters.js"
+      - "packages/cli/scripts/codex-app-server-compatibility.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-adapter.test.js"
+      - "packages/cli/__tests__/unit/external-agent-adapters.test.js"
+      - ".github/workflows/codex-app-server-compatibility.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPAT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  contracts:
+    name: Adapter and fallback contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.COMPAT_SHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${COMPAT_SHA}"
+
+      - name: Run adapter and stable fallback contracts
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/codex-app-server-adapter.test.js
+          packages/cli/__tests__/unit/external-agent-adapters.test.js
+
+  compatibility:
+    name: ${{ matrix.platform }} / Codex ${{ matrix.codex_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux
+          - windows
+          - macos
+        codex_version:
+          - "0.149.0"
+          - "0.150.0"
+          - "0.150.1"
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+          - platform: windows
+            runner: windows-latest
+          - platform: macos
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.COMPAT_SHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${COMPAT_SHA}"
+
+      - name: Install exact upstream Codex CLI
+        shell: bash
+        run: |
+          npm install \
+            --prefix "${RUNNER_TEMP}/codex-install" \
+            --no-package-lock \
+            --no-save \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund \
+            "@openai/codex@${{ matrix.codex_version }}"
+          node -e "const p=require(process.argv[1]); if(p.version!==process.argv[2]) process.exit(1)" \
+            "${RUNNER_TEMP}/codex-install/node_modules/@openai/codex/package.json" \
+            "${{ matrix.codex_version }}"
+
+      - name: Probe real App Server and run removal drill
+        shell: bash
+        run: >-
+          node packages/cli/scripts/codex-app-server-compatibility.mjs
+          --commit-sha "${COMPAT_SHA}"
+          --platform "${{ matrix.platform }}"
+          --version "${{ matrix.codex_version }}"
+          --codex-js "${RUNNER_TEMP}/codex-install/node_modules/@openai/codex/bin/codex.js"
+          --output "${RUNNER_TEMP}/codex-app-server-${{ matrix.platform }}-${{ matrix.codex_version }}.json"
+
+      - name: Upload version-bound evidence
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: codex-app-server-${{ matrix.platform }}-${{ matrix.codex_version }}-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-app-server-${{ matrix.platform }}-${{ matrix.codex_version }}.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  aggregate:
+    name: Exact-SHA three-platform compatibility gate
+    if: always()
+    needs:
+      - contracts
+      - compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Refuse a partial or failed compatibility matrix
+        if: needs.contracts.result != 'success' || needs.compatibility.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Codex App Server compatibility matrix is incomplete"
+          exit 1
+
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.COMPAT_SHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download all compatibility evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: codex-app-server-*-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-app-server-evidence
+          merge-multiple: true
+
+      - name: Verify all versions and platforms
+        run: >-
+          node packages/cli/scripts/codex-app-server-compatibility.mjs
+          --commit-sha "${COMPAT_SHA}"
+          --verify-dir "${RUNNER_TEMP}/codex-app-server-evidence"
+          --output "${RUNNER_TEMP}/codex-app-server-matrix.json"
+
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: codex-app-server-matrix-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-app-server-matrix.json
+          if-no-files-found: error
+          retention-days: 180

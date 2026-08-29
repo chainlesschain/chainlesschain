@@ -374,6 +374,7 @@ function writeDistributedStore(root) {
   const queuePath = path.join(root, "distributed", "queue.json");
   const queue = TeamDistributedQueue.create({
     filePath: queuePath,
+    now: () => Date.parse("2026-08-28T00:00:00.000Z"),
     id: deterministicIds("writer"),
     processId: process.pid,
     isProcessAlive: (pid) => pid === process.pid,
