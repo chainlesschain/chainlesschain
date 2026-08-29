@@ -520,16 +520,17 @@ JSONL、SQLite 和远端同步可以是不同 adapter；任何客户端都不应
 
 ### 6.4 统一上下文压缩与记忆生命周期
 
-> **2026-08-30 实际完成情况：仓库实现差距已关闭，正式 production close 等待外部 exact-SHA 证据。** `packages/context-memory-kernel` 已成为独立 canonical schema/runtime；CLI 与 Desktop 默认 canonical，旧 mutation API 失败关闭，VS Code/JetBrains 为只读 canonical projection。实现提交依次为 `b126f0e7e9`（Kernel/schema/adapters）、`207af1a327`（production default 与 legacy fence）和 `64c7be019e`（物理 purge、崩溃恢复与跨端 conformance），后续发布门与文档属于同一候选分支。仓库完成不等于已获得 GitHub 托管三平台与 30 分钟 soak 的正式发布凭证。
+> **2026-08-30 实际完成情况：仓库实现差距已关闭，正式 production close 等待外部 exact-SHA 证据。** `packages/context-memory-kernel` 已成为独立 canonical schema/runtime；CLI 与 Desktop 默认 canonical，旧 mutation API 失败关闭，VS Code/JetBrains 为只读 canonical projection。实现提交依次包括 `b126f0e7e9`（Kernel/schema/adapters）、`207af1a327`（production default 与 legacy fence）、`64c7be019e`（物理 purge、崩溃恢复）、`9bf4a5168b`（exact-SHA close gate）、`ff4f9a8ed8`（Desktop memory IPC canonical adapter）、`60906fa591`（单一跨端 conformance fixture）和 `a975429dbb`（容量、四宿主 soak 与实际 writer probe）。仓库完成不等于已获得 GitHub 托管三平台与 30 分钟 soak 的正式发布凭证。
 
 | 交付层                | 当前状态                            | 可验证证据                                                                                                                                   | 尚未完成                                                        |
 | --------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 用户文档与信息架构    | **100%** | 用户总览、命令页与模块 108 已更新到 canonical/legacy-fenced 状态 | 最终发布后补 attested run/receipt 链接 |
+| 用户文档与信息架构    | **100% repository** | [`统一上下文与记忆`](features/CONTEXT_MEMORY_KERNEL.md)、CLI 命令说明与模块 108 已更新到 canonical/legacy-fenced 状态 | 最终发布后补 attested run/receipt 链接 |
 | canonical schema/Kernel | **100% repository** | `context-memory-kernel` 提供 schema、planner、compaction、memory reducer、authority、ports、inventory 和属性/负向测试 | 正式包发布不是本任务的前置声明 |
-| CLI/Desktop cutover | **100% repository** | provider 前强制 ContextPlan；canonical durable memory/JSONL compaction；Desktop main 默认 canonical；所有已清点旧 writer 为 `legacy_read_only` | 等待最终候选三平台 Actions |
-| IDE/SDK/App Server | **100% repository** | 固定七个方法、additive lifecycle events、VS/JetBrains bounded projection、TS/Python generated contract，共用单一 TSV fixture | 等待 JetBrains JDK 21 与 SDK CI matrix |
-| 删除/隐私/恢复 | **100% first-party online stores** | 最小 tombstone、旧 SQLite/session-core 物理 purge、显式 purge receipt、partial/reconcile、进程终止重启与离线回灌 fence | 外部备份保留窗口仍由部署 policy 定义 |
-| 发布关闭 | **门已实现，证据待运行** | 26 槽 requirements、三平台 CI、30 分钟 soak、evidence assembler 和 production-close attestation workflow | 必须在最终候选 SHA 上运行，不能用本地结果替代 |
+| CLI/Desktop cutover | **100% repository** | provider 前强制 ContextPlan；canonical durable memory/JSONL compaction；Desktop main 默认 canonical；121 个分类文件无未知 writer；实际探针覆盖 CLI 3 类和 Desktop 7 类旧 mutation，均 fail closed | 等待最终候选三平台 Actions |
+| IDE/SDK/App Server | **100% repository** | 固定七个方法、additive lifecycle events、VS/JetBrains bounded projection、TS/Python generated contract；单一 TSV 固定 14 场景和 7 surface | 等待 JetBrains JDK 21 与 SDK CI matrix |
+| 删除/隐私/恢复 | **100% canonical + registered online projections** | 最小 tombstone、ContentPort/索引/缓存/副本 purge、已迁移旧 SQLite/session-core 物理 purge、显式 receipt、partial/reconcile、进程终止重启与离线回灌 fence | 外部备份和未接入 Kernel 的历史离线文件仍由部署 policy 定义，不包含在在线 purge receipt 中 |
+| 性能/长期运行 | **100% repository gates** | release benchmark 覆盖 10k ContextItem、1k 消息、100 MiB tool result、100k MemoryRecord、CAS 重算及 10k 四存储删除；quick soak 对 CLI/Desktop/VS Code/JetBrains 各执行 30 次压缩和 3 次重启 | 30 分钟 release soak 必须绑定最终候选 SHA |
+| 发布关闭 | **门已实现，证据待运行** | 26 槽 requirements、三平台 CI、容量/writer receipts、30 分钟 soak、evidence assembler 和 production-close attestation workflow | 必须在最终候选 SHA 上运行，不能用本地结果替代 |
 
 因此，本节的正确口径更新为：**“统一仓库实现和默认 authority 切换完成；正式生产关闭待 exact-SHA 外部证据”**。在 evidence/production-close receipt 产生前不得写成已通过三平台发布，但也不得继续沿用“没有共享 Kernel、0/4 cutover”的旧结论。
 
@@ -549,6 +550,10 @@ JSONL、SQLite 和远端同步可以是不同 adapter；任何客户端都不应
 - compaction 本身写入 rollout，可重放、可评估、可回滚。
 - memory 统一 scope、provenance、confidence、retention、deletion 与 privacy。
 - 对同一 fixture，在 CLI/Desktop/IDE 上应得到等价的压缩状态和恢复结果。
+
+上述 fixture 已从仅验证 4 条 projection lifecycle 扩展为同一 TSV 内的 14 个可执行场景，覆盖中英文长会话、多窗口、并行/孤儿工具结果、pending approval/question、四种 scope、provider 正常/失败/unknown/取消、crash/restart、CAS、索引重建、离线回灌和部分删除。canonical parser 会拒绝缺场景、缺 surface、非对象 JSON 或超 64 KiB 单元格。
+
+§18 的容量门也已落地。2026-08-30 本地 Windows release 诊断运行约 29.6 秒，完整执行 10k plan、1k 消息、100 MiB `ContentRef` 工具结果、100k lexical/vector recall 和 10k authority/index/cache/replica 删除；这些毫秒/RSS 数字只作环境诊断，最终发布采用 exact-SHA CI receipt，不把单机值当统一 SLO。三个 receipt 生成器现在还会拒绝脏工作树、缩写 SHA 或与 checkout HEAD 不一致的候选，避免把本地未提交代码伪装成某个提交的证据。
 
 下一步只剩发布证据执行：把最终候选推送到 GitHub，在同一 SHA 上取得 Linux/Windows/macOS `CLI CI`、`CLI Strict Sandbox`、`Context Memory Kernel CI` 和 `Context Memory Long Soak` 成功 run；随后运行 `Context Memory Release Evidence` 与 `Context Memory Production Close`，保存签注 manifest 和关闭 receipt。任一平台、隐私/恢复检查或 30 分钟 soak 缺失都保持 NO-GO。
 

@@ -46,11 +46,20 @@ function option(name, fallback = null) {
 
 function candidateSha() {
   const explicit = option("--candidate-sha", process.env.GITHUB_SHA || "");
-  const value =
-    explicit ||
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const head = execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const value = explicit || head;
   if (!/^[a-f0-9]{40}$/u.test(value)) {
     throw new Error("candidate SHA must be a full commit SHA");
+  }
+  if (value !== head) throw new Error("candidate SHA must equal checkout HEAD");
+  if (
+    execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+      encoding: "utf8",
+    }).trim()
+  ) {
+    throw new Error("capacity receipt requires a clean candidate worktree");
   }
   return value;
 }
@@ -535,12 +544,13 @@ async function benchmarkDeletion(profile) {
 const profileName = option("--profile", "quick");
 const profile = PROFILES[profileName];
 if (!profile) throw new Error(`unknown benchmark profile ${profileName}`);
+const exactCandidateSha = candidateSha();
 const startedAt = new Date().toISOString();
 const started = performance.now();
 const receipt = {
   schema: "chainlesschain.context-memory-capacity-benchmark/v1",
   schemaVersion: 1,
-  candidateSha: candidateSha(),
+  candidateSha: exactCandidateSha,
   platform: platformName(),
   architecture: process.arch,
   nodeVersion: process.version,

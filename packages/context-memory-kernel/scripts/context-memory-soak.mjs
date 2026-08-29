@@ -54,11 +54,20 @@ function option(name, fallback = null) {
 
 function fullCommitSha() {
   const explicit = option("--candidate-sha", process.env.GITHUB_SHA || "");
-  const value =
-    explicit ||
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const head = execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const value = explicit || head;
   if (!/^[a-f0-9]{40}$/u.test(value)) {
     throw new Error("candidate SHA must be a full commit SHA");
+  }
+  if (value !== head) throw new Error("candidate SHA must equal checkout HEAD");
+  if (
+    execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+      encoding: "utf8",
+    }).trim()
+  ) {
+    throw new Error("soak receipt requires a clean candidate worktree");
   }
   return value;
 }
@@ -229,6 +238,7 @@ function compactionRequest(surface, iteration) {
 const profileName = option("--profile", "quick");
 const profile = PROFILES[profileName];
 if (!profile) throw new Error(`unknown soak profile ${profileName}`);
+const exactCandidateSha = fullCommitSha();
 const outputPath = option("--output");
 const rssLimitBytes = Number(
   option("--rss-growth-limit-bytes", 256 * 1024 * 1024),
@@ -416,7 +426,7 @@ if (durableState.includes(secretMarker)) {
 const receipt = {
   schema: "chainlesschain.context-memory-soak-receipt/v2",
   schemaVersion: 2,
-  candidateSha: fullCommitSha(),
+  candidateSha: exactCandidateSha,
   platform: platformName(),
   architecture: process.arch,
   nodeVersion: process.version,

@@ -23,30 +23,6 @@ import { CLIPermanentMemory } from "../../cli/src/lib/permanent-memory.js";
 import { resolveVscodeContextMemoryAuthority } from "../../vscode-extension/src/context-memory-authority.js";
 
 const require = createRequire(import.meta.url);
-const {
-  DesktopCanonicalMemoryAdapter,
-} = require("../../../desktop-app-vue/src/main/context-memory/permanent-memory-adapter.js");
-const {
-  assertDesktopLegacyMutationAllowed,
-} = require("../../../desktop-app-vue/src/main/context-memory/authority.js");
-const {
-  PromptCompressor,
-} = require("../../../desktop-app-vue/src/main/llm/prompt-compressor.js");
-const {
-  PermanentMemoryManager,
-} = require("../../../desktop-app-vue/src/main/llm/permanent-memory-manager.js");
-const {
-  HierarchicalMemory: DesktopHierarchicalMemory,
-} = require("../../../desktop-app-vue/src/main/ai-engine/memory/hierarchical-memory.js");
-const {
-  MemoryHierarchy,
-} = require("../../../desktop-app-vue/src/main/memory/memory-hierarchy.js");
-const {
-  MemGPTCore,
-} = require("../../../desktop-app-vue/src/main/memory/memgpt-core.js");
-const {
-  MemorySyncService,
-} = require("../../../desktop-app-vue/src/main/memory/memory-sync-service.js");
 
 const AT = "2026-08-30T00:00:00.000Z";
 
@@ -57,11 +33,20 @@ function option(name, fallback = null) {
 
 function candidateSha() {
   const explicit = option("--candidate-sha", process.env.GITHUB_SHA || "");
-  const value =
-    explicit ||
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const head = execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const value = explicit || head;
   if (!/^[a-f0-9]{40}$/u.test(value)) {
     throw new Error("candidate SHA must be a full commit SHA");
+  }
+  if (value !== head) throw new Error("candidate SHA must equal checkout HEAD");
+  if (
+    execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+      encoding: "utf8",
+    }).trim()
+  ) {
+    throw new Error("writer probe receipt requires a clean candidate worktree");
   }
   return value;
 }
@@ -92,6 +77,31 @@ async function expectFenceAsync(probe, expectedCode) {
   throw new Error(`legacy writer did not fail closed with ${expectedCode}`);
 }
 
+const exactCandidateSha = candidateSha();
+const {
+  DesktopCanonicalMemoryAdapter,
+} = require("../../../desktop-app-vue/src/main/context-memory/permanent-memory-adapter.js");
+const {
+  assertDesktopLegacyMutationAllowed,
+} = require("../../../desktop-app-vue/src/main/context-memory/authority.js");
+const {
+  PromptCompressor,
+} = require("../../../desktop-app-vue/src/main/llm/prompt-compressor.js");
+const {
+  PermanentMemoryManager,
+} = require("../../../desktop-app-vue/src/main/llm/permanent-memory-manager.js");
+const {
+  HierarchicalMemory: DesktopHierarchicalMemory,
+} = require("../../../desktop-app-vue/src/main/ai-engine/memory/hierarchical-memory.js");
+const {
+  MemoryHierarchy,
+} = require("../../../desktop-app-vue/src/main/memory/memory-hierarchy.js");
+const {
+  MemGPTCore,
+} = require("../../../desktop-app-vue/src/main/memory/memgpt-core.js");
+const {
+  MemorySyncService,
+} = require("../../../desktop-app-vue/src/main/memory/memory-sync-service.js");
 const directory = mkdtempSync(
   join(tmpdir(), "cc-context-memory-writer-probe-"),
 );
@@ -258,7 +268,7 @@ try {
   const receipt = {
     schema: "chainlesschain.context-memory-writer-probe/v1",
     schemaVersion: 1,
-    candidateSha: candidateSha(),
+    candidateSha: exactCandidateSha,
     platform: platformName(),
     status: "passed",
     staticCallGraph: {
