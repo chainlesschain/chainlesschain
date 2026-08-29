@@ -8,7 +8,7 @@ All notable changes to this extension are documented here.
   into chat without granting the Webview independent memory-write authority.
 - Consume the generated Agent SDK `0.2.6` Context/Memory and App Server pilot
   contracts, rejecting stale or malformed authority projections.
-- Pair the candidate with CLI `0.166.11` and require the complete exact-SHA
+- Pair the candidate with CLI `0.166.12` and require the complete exact-SHA
   Linux, Windows, macOS, Remote-SSH, browser, and ARM64 gates before Open VSX
   publication.
 

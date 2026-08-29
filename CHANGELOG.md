@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.11: canonical Context/Memory Kernel
+### Added - cc CLI 0.166.12: durable rollout storage and converged Hooks v2
 
-> `chainlesschain` **0.166.10 -> 0.166.11** (release candidate,
-> 2026-08-30). Coordinated candidates are Context/Memory Kernel `0.1.0`,
+> `chainlesschain` **0.166.10 -> 0.166.12** (release candidate,
+> 2026-08-30). The immutable `0.166.11` candidate was withheld after its npm
+> workflow could not bootstrap the new scoped runtime dependency; its tag is
+> not reused. Coordinated candidates are Context/Memory Kernel `0.1.0`,
 > Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.6`,
 > Python Agent SDK `0.2.7`, VS Code `0.37.74`, and JetBrains `0.4.105`.
 
@@ -25,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Server pilot clients to the generated Agent Protocol, TypeScript SDK, Python
   SDK, VS Code extension, and JetBrains plugin without granting IDE surfaces
   independent write authority.
+- **Durable rollout stores**: converge App Server, WebSocket, and CLI entry
+  points on bounded memory, JSON, or SQLite rollout stores with explicit
+  selection, migration, recovery, and corruption handling.
+- **Hooks v2 convergence**: route CLI, REPL, headless, settings, plugins, and
+  App Server through one trust-aware event runtime with deterministic ordering,
+  audit replay, timeout supervision, and fail-closed decision semantics.
 - **Release integrity**: publish the new fixed CLI runtime dependency before
   the immutable CLI tarball, then verify its registry bytes and npm provenance
   against the exact release tag and commit.

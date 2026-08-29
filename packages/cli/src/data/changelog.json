@@ -3,14 +3,14 @@
   "releases": [
     {
       "productVersion": null,
-      "cliVersion": "0.166.11",
-      "cliVersions": ["0.166.10", "0.166.11"],
+      "cliVersion": "0.166.12",
+      "cliVersions": ["0.166.10", "0.166.12"],
       "date": "2026-08-30",
       "title": "",
       "sections": [
         {
-          "heading": "Added - cc CLI 0.166.11: canonical Context/Memory Kernel",
-          "body": "> `chainlesschain` **0.166.10 -> 0.166.11** (release candidate,\n> 2026-08-30). Coordinated candidates are Context/Memory Kernel `0.1.0`,\n> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.6`,\n> Python Agent SDK `0.2.7`, VS Code `0.37.74`, and JetBrains `0.4.105`.\n\n- **Canonical context planning**: ship deterministic budget allocation,\n  compaction, memory reducers, inventory validation, and cross-surface\n  conformance through `@chainlesschain/context-memory-kernel`.\n- **Durable memory cutover**: route CLI context, compaction, hierarchical\n  memory, App Server, WebSocket, REPL, and session flows through fail-closed\n  authority stages with crash-safe persistence and privacy purge receipts;\n  Session Core `0.3.7` exposes the write guard used to fence legacy writers.\n- **Protocol and SDK projections**: add bounded Context/Memory messages and App\n  Server pilot clients to the generated Agent Protocol, TypeScript SDK, Python\n  SDK, VS Code extension, and JetBrains plugin without granting IDE surfaces\n  independent write authority.\n- **Release integrity**: publish the new fixed CLI runtime dependency before\n  the immutable CLI tarball, then verify its registry bytes and npm provenance\n  against the exact release tag and commit."
+          "heading": "Added - cc CLI 0.166.12: durable rollout storage and converged Hooks v2",
+          "body": "> `chainlesschain` **0.166.10 -> 0.166.12** (release candidate,\n> 2026-08-30). The immutable `0.166.11` candidate was withheld after its npm\n> workflow could not bootstrap the new scoped runtime dependency; its tag is\n> not reused. Coordinated candidates are Context/Memory Kernel `0.1.0`,\n> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.6`,\n> Python Agent SDK `0.2.7`, VS Code `0.37.74`, and JetBrains `0.4.105`.\n\n- **Canonical context planning**: ship deterministic budget allocation,\n  compaction, memory reducers, inventory validation, and cross-surface\n  conformance through `@chainlesschain/context-memory-kernel`.\n- **Durable memory cutover**: route CLI context, compaction, hierarchical\n  memory, App Server, WebSocket, REPL, and session flows through fail-closed\n  authority stages with crash-safe persistence and privacy purge receipts;\n  Session Core `0.3.7` exposes the write guard used to fence legacy writers.\n- **Protocol and SDK projections**: add bounded Context/Memory messages and App\n  Server pilot clients to the generated Agent Protocol, TypeScript SDK, Python\n  SDK, VS Code extension, and JetBrains plugin without granting IDE surfaces\n  independent write authority.\n- **Durable rollout stores**: converge App Server, WebSocket, and CLI entry\n  points on bounded memory, JSON, or SQLite rollout stores with explicit\n  selection, migration, recovery, and corruption handling.\n- **Hooks v2 convergence**: route CLI, REPL, headless, settings, plugins, and\n  App Server through one trust-aware event runtime with deterministic ordering,\n  audit replay, timeout supervision, and fail-closed decision semantics.\n- **Release integrity**: publish the new fixed CLI runtime dependency before\n  the immutable CLI tarball, then verify its registry bytes and npm provenance\n  against the exact release tag and commit."
         }
       ]
     },

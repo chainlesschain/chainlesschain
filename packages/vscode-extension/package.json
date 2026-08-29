@@ -4,7 +4,7 @@
   "description": "ChainlessChain agent workspace for VS Code-compatible editors with streaming chat, inline assistance, governed review, sessions, automation, and a localhost MCP bridge.",
   "version": "0.37.74",
   "chainlesschain": {
-    "recommendedCliVersion": "0.166.11"
+    "recommendedCliVersion": "0.166.12"
   },
   "publisher": "chainlesschain",
   "license": "MIT",

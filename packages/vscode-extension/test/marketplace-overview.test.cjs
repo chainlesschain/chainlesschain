@@ -34,7 +34,7 @@ async function verifier() {
   return import("../scripts/verify-marketplace-overview.mjs");
 }
 
-function manifests({ recommended = "0.166.10", source = "0.166.11" } = {}) {
+function manifests({ recommended = "0.166.10", source = "0.166.12" } = {}) {
   return {
     extensionManifest: {
       name: "chainlesschain-ide",
@@ -54,7 +54,7 @@ test("keeps the public recommendation independent from a newer source candidate"
   });
 
   assert.equal(result.cliVersion, "0.166.10");
-  assert.equal(result.sourceCliVersion, "0.166.11");
+  assert.equal(result.sourceCliVersion, "0.166.12");
 });
 
 test("rejects a recommendation newer than the checked-out source candidate", async () => {
@@ -63,8 +63,8 @@ test("rejects a recommendation newer than the checked-out source candidate", asy
   assert.throws(
     () =>
       verifyMarketplaceOverview({
-        ...manifests({ recommended: "0.166.12", source: "0.166.11" }),
-        readme: overview({ cliVersion: "0.166.12" }),
+        ...manifests({ recommended: "0.166.13", source: "0.166.12" }),
+        readme: overview({ cliVersion: "0.166.13" }),
       }),
     /cannot be newer/u,
   );

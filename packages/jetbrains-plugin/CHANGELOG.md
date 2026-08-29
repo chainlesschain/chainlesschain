@@ -6,7 +6,7 @@
   the native conversation surface without creating an IDE-owned writer.
 - Validate the shared cross-surface Context/Memory fixture and keep stage,
   record, deletion, and projection inputs fail closed.
-- Pair the candidate with CLI `0.166.11` and require the complete exact-SHA
+- Pair the candidate with CLI `0.166.12` and require the complete exact-SHA
   six-host JetBrains, shared IDE, browser, and ARM64 matrices before upload.
 
 ## [0.4.104] - Revision-bound approval settlement (2026-08-29)
