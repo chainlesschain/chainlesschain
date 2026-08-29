@@ -8,18 +8,19 @@ the same Agent Protocol v1 used by `@chainlesschain/agent-sdk`. It starts one
 `cc agent` subprocess, frames its NDJSON stream safely, exposes frozen typed
 events, and performs approval, question, and MCP elicitation round trips.
 
-Version `0.2.5` is the current release candidate for
+Version `0.2.6` is the current release candidate for
 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/). Python 3.10 or
-newer is required. It adds the generated 37-variant Agent stream payload union
-and a strict canonical-event validator while retaining lossless unknown-event
-delivery.
+newer is required. It carries forward the generated 37-variant Agent stream
+payload union and strict canonical-event validator from the unpublished `0.2.5`
+candidate, while correcting install guidance to the latest public CLI. Runtime
+APIs and lossless unknown-event delivery are unchanged.
 
 ## Install
 
 Install the SDK and a compatible `cc` CLI:
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.2.5"
+python -m pip install "chainlesschain-agent-sdk==0.2.6"
 npm install --global "chainlesschain@0.166.7"
 ```
 

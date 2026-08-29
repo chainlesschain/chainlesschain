@@ -146,4 +146,4 @@ __all__ = [
     "validate_canonical_agent_stream_event",
 ]
 
-__version__ = "0.2.5"
+__version__ = "0.2.6"

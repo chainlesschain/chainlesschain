@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates
 
 > `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,
-> 2026-08-29). Agent Protocol and Agent SDK candidate versions remain
-> `0.1.6` and `0.2.5`.
+> 2026-08-29). Agent Protocol and TypeScript Agent SDK candidate versions
+> remain `0.1.6` and `0.2.5`; Python Agent SDK moves to `0.2.6` after the
+> immutable `0.2.5` candidate was withheld from PyPI because its release
+> metadata named an unpublished CLI.
 
 - **Real UI driver**: reviewed Record & Replay drafts can execute the bounded
   `observe/click/type/select/assert` vocabulary in an ephemeral Playwright
@@ -45,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JetBrains real-host gate**: plan-review document access now runs inside
   explicit IntelliJ read/write actions, and the UI journey targets the current
   one-time permission label on every supported host/version pair.
+- **Python release metadata**: the `0.2.6` patch keeps the `0.2.5` runtime API
+  and generated protocol bindings while pointing install guidance at the latest
+  CLI that is actually available from the public npm registry.
 
 ### Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery
 
