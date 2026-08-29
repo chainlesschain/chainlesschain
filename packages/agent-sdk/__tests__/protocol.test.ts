@@ -21,6 +21,33 @@ import {
   validateCanonicalAgentStreamEvent,
 } from "../src/generated/app-protocol.js";
 
+const CONTEXT_MEMORY_CONFORMANCE_SCENARIOS = [
+  "multilingual-window-512",
+  "multilingual-window-4096",
+  "parallel-tools-pending",
+  "orphan-late-tool-result",
+  "overlapping-scopes",
+  "provider-normal",
+  "provider-failure",
+  "provider-usage-unknown",
+  "provider-cancelled",
+  "crash-restart",
+  "cas-race",
+  "index-rebuild",
+  "offline-replica-reinjection",
+  "partial-delete-reconcile",
+] as const;
+
+const CONTEXT_MEMORY_CONFORMANCE_SURFACES = [
+  "cli-js",
+  "desktop-js",
+  "app-server",
+  "typescript-sdk",
+  "python-sdk",
+  "vscode",
+  "jetbrains",
+] as const;
+
 function readContextMemoryProjectionFixture(): Array<{
   method: string;
   type: string;
@@ -28,6 +55,8 @@ function readContextMemoryProjectionFixture(): Array<{
   memoryRevision: number | null;
   recordMemoryId: string;
   expectedMemoryCount: number | null;
+  scenarioId: string;
+  surfaces: string[];
 }> {
   return readFileSync(
     new URL(
@@ -40,8 +69,17 @@ function readContextMemoryProjectionFixture(): Array<{
     .split(/\r?\n/u)
     .slice(1)
     .map((line) => {
-      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
-        line.split("\t");
+      const [
+        method,
+        type,
+        memoryId,
+        memoryRevision,
+        recordMemoryId,
+        expectedMemoryCount,
+        scenarioId,
+        ,
+        surfaces,
+      ] = line.split("\t");
       return {
         method,
         type,
@@ -50,6 +88,8 @@ function readContextMemoryProjectionFixture(): Array<{
         recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
         expectedMemoryCount:
           expectedMemoryCount !== "-" ? Number(expectedMemoryCount) : null,
+        scenarioId,
+        surfaces: surfaces.split(",").filter(Boolean),
       };
     });
 }
@@ -59,7 +99,10 @@ describe("protocol type guards", () => {
     const rows = readContextMemoryProjectionFixture();
     const memories = new Set<string>();
     let memoryRevision = 0;
-    for (const row of rows.filter((entry) => entry.method !== "expected")) {
+    const events = rows.filter((entry) =>
+      ["context/event", "memory/event"].includes(entry.method),
+    );
+    for (const row of events) {
       expect(CC_AGENT_STREAM_EVENT_TYPES, row.type).toContain(row.type);
       if (row.memoryRevision != null) memoryRevision = row.memoryRevision;
       if (row.recordMemoryId) memories.add(row.recordMemoryId);
@@ -68,6 +111,15 @@ describe("protocol type guards", () => {
     const expected = rows.find((row) => row.method === "expected");
     expect(memoryRevision).toBe(expected?.memoryRevision);
     expect(memories.size).toBe(expected?.expectedMemoryCount);
+    const scenarios = rows.filter((row) => row.method === "fixture");
+    expect(scenarios.map((row) => row.scenarioId).sort()).toEqual(
+      [...CONTEXT_MEMORY_CONFORMANCE_SCENARIOS].sort(),
+    );
+    for (const scenario of scenarios) {
+      expect([...scenario.surfaces].sort()).toEqual(
+        [...CONTEXT_MEMORY_CONFORMANCE_SURFACES].sort(),
+      );
+    }
   });
 
   it("validates canonical structured approval decisions from the generated schema", () => {

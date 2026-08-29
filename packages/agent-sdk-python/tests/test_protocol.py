@@ -67,6 +67,31 @@ CONTEXT_MEMORY_PROJECTION_FIXTURE = (
     / "fixtures"
     / "cross-surface-projection-v1.tsv"
 )
+CONTEXT_MEMORY_CONFORMANCE_SCENARIOS = {
+    "multilingual-window-512",
+    "multilingual-window-4096",
+    "parallel-tools-pending",
+    "orphan-late-tool-result",
+    "overlapping-scopes",
+    "provider-normal",
+    "provider-failure",
+    "provider-usage-unknown",
+    "provider-cancelled",
+    "crash-restart",
+    "cas-race",
+    "index-rebuild",
+    "offline-replica-reinjection",
+    "partial-delete-reconcile",
+}
+CONTEXT_MEMORY_CONFORMANCE_SURFACES = {
+    "cli-js",
+    "desktop-js",
+    "app-server",
+    "typescript-sdk",
+    "python-sdk",
+    "vscode",
+    "jetbrains",
+}
 
 
 class ProtocolTests(unittest.TestCase):
@@ -78,8 +103,12 @@ class ProtocolTests(unittest.TestCase):
 
         memories: set[str] = set()
         memory_revision = 0
+        scenarios: dict[str, set[str]] = {}
         for row in rows:
             if row["method"] == "expected":
+                continue
+            if row["method"] == "fixture":
+                scenarios[row["scenario_id"]] = set(row["surfaces"].split(","))
                 continue
             self.assertIn(row["method"], ("context/event", "memory/event"))
             self.assertIn(row["type"], CC_AGENT_STREAM_EVENT_TYPES)
@@ -93,6 +122,9 @@ class ProtocolTests(unittest.TestCase):
         expected = next(row for row in rows if row["method"] == "expected")
         self.assertEqual(memory_revision, int(expected["memory_revision"]))
         self.assertEqual(len(memories), int(expected["expected_memory_count"]))
+        self.assertEqual(set(scenarios), CONTEXT_MEMORY_CONFORMANCE_SCENARIOS)
+        for surfaces in scenarios.values():
+            self.assertEqual(surfaces, CONTEXT_MEMORY_CONFORMANCE_SURFACES)
 
     def test_generated_structured_approval_validator(self) -> None:
         self.assertEqual(validate_approval_decision({"kind": "acceptOnce"}), (True, ()))

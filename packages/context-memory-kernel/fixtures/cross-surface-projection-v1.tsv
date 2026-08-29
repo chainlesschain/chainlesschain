@@ -1,6 +1,20 @@
-method	type	memory_id	memory_revision	record_memory_id	expected_memory_count
-context/event	context.plan.created	-	4	-	-
-memory/event	memory.activated	memory-1	-	memory-1	-
-memory/event	memory.recalled	-	5	-	-
-memory/event	memory.purged	memory-1	-	-	-
-expected	projection	-	5	-	0
+method	type	memory_id	memory_revision	record_memory_id	expected_memory_count	scenario_id	category	surfaces	input_json	expected_json
+context/event	context.plan.created	-	4	-	-	-	projection	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{}	{}
+memory/event	memory.activated	memory-1	-	memory-1	-	-	projection	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{}	{}
+memory/event	memory.recalled	-	5	-	-	-	projection	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{}	{}
+memory/event	memory.purged	memory-1	-	-	-	-	projection	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{}	{}
+fixture	context.plan	-	-	-	-	multilingual-window-512	multilingual-long-session	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"messageCount":100,"languages":["zh-CN","en-US"],"modelWindowTokens":512}	{"protected":["goal","approval","question"],"stableOrder":true}
+fixture	context.plan	-	-	-	-	multilingual-window-4096	multilingual-long-session	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"messageCount":100,"languages":["zh-CN","en-US"],"modelWindowTokens":4096}	{"protected":["goal","approval","question"],"stableOrder":true}
+fixture	context.plan	-	-	-	-	parallel-tools-pending	tool-and-pending-state	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"parallelToolCalls":3,"pendingApproval":true,"pendingQuestion":true}	{"toolPairsIntact":true,"pendingPreserved":true}
+fixture	context.plan	-	-	-	-	orphan-late-tool-result	tool-and-pending-state	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"toolRole":"result","toolOutcome":"succeeded","hasCall":false}	{"error":"invalid_argument"}
+fixture	memory.recall	-	-	-	-	overlapping-scopes	scope-overlap	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"scopes":["session","agent","project","user"],"query":"shared"}	{"admittedCount":4,"crossScopeFallback":false}
+fixture	context.compact	-	-	-	-	provider-normal	provider-outcome	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"outcome":"settled"}	{"status":"committed","strategy":"provider-backed"}
+fixture	context.compact	-	-	-	-	provider-failure	provider-outcome	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"outcome":"failed","allowFallback":false}	{"status":"aborted"}
+fixture	context.compact	-	-	-	-	provider-usage-unknown	provider-outcome	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"outcome":"unknown"}	{"status":"reconciliation_required"}
+fixture	context.compact	-	-	-	-	provider-cancelled	provider-outcome	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"outcome":"cancelled","allowFallback":false}	{"status":"aborted"}
+fixture	recovery	-	-	-	-	crash-restart	recovery	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"cutPoint":"tombstone-committed"}	{"rpo":0,"replayedEffectCount":0}
+fixture	recovery	-	-	-	-	cas-race	recovery	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"writers":2,"expectedRevision":1}	{"winnerCount":1}
+fixture	recovery	-	-	-	-	index-rebuild	recovery	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"projection":"search-index","source":"memory-authority"}	{"sameRecordDigests":true}
+fixture	recovery	-	-	-	-	offline-replica-reinjection	recovery	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"replicaState":"active","authorityState":"deleted"}	{"error":"replica_tombstone_fenced"}
+fixture	recovery	-	-	-	-	partial-delete-reconcile	recovery	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{"firstPurge":"offline","restart":true}	{"initialStatus":"partial","finalStatus":"purged"}
+expected	projection	-	5	-	0	-	projection	cli-js,desktop-js,app-server,typescript-sdk,python-sdk,vscode,jetbrains	{}	{}

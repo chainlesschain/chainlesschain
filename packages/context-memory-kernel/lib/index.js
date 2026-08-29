@@ -12,5 +12,6 @@ module.exports = {
   ...require("./adapters.js"),
   ...require("./schema-validator.js"),
   ...require("./inventory.js"),
+  ...require("./conformance.js"),
   ...require("./runtime.js"),
 };

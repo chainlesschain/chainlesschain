@@ -13,7 +13,9 @@ on:
       - "packages/cli/src/**"
       - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
       - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
-      - "desktop-app-vue/src/main/**"
+      - "desktop-app-vue/package.json"
+      - "desktop-app-vue/src/**"
+      - "desktop-app-vue/vitest.context-memory.config.mjs"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/test/app-server-pilot.test.cjs"
       - "packages/vscode-extension/test/context-memory-authority.test.cjs"
@@ -30,7 +32,9 @@ on:
       - "packages/cli/src/**"
       - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
       - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
-      - "desktop-app-vue/src/main/**"
+      - "desktop-app-vue/package.json"
+      - "desktop-app-vue/src/**"
+      - "desktop-app-vue/vitest.context-memory.config.mjs"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/test/app-server-pilot.test.cjs"
       - "packages/vscode-extension/test/context-memory-authority.test.cjs"
@@ -89,6 +93,9 @@ jobs:
 
       - name: Verify Desktop and VS Code shared projection
         run: node --test packages/context-memory-kernel/test/desktop-surface-conformance.test.js packages/vscode-extension/test/app-server-pilot.test.cjs packages/vscode-extension/test/context-memory-authority.test.cjs
+
+      - name: Verify Desktop canonical memory IPC adapter
+        run: npm --prefix desktop-app-vue run test:context-memory
 
       - name: Verify TypeScript SDK
         run: npm --prefix packages/agent-sdk test

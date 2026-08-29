@@ -12,8 +12,11 @@ import {
   validateProtocolMessage,
 } from "@chainlesschain/agent-protocol";
 import {
+  CONTEXT_MEMORY_CONFORMANCE_SCENARIOS,
+  CONTEXT_MEMORY_CONFORMANCE_SURFACES,
   createMemoryCandidate,
   normalizeContextItem,
+  parseContextMemoryConformanceFixture,
   planContext,
 } from "../../context-memory-kernel/index.mjs";
 import {
@@ -25,29 +28,15 @@ import {
 const AT = "2026-08-29T00:00:00.000Z";
 
 function crossSurfaceProjectionFixture() {
-  return readFileSync(
-    new URL(
-      "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
-      import.meta.url,
+  return parseContextMemoryConformanceFixture(
+    readFileSync(
+      new URL(
+        "../../context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+        import.meta.url,
+      ),
+      "utf8",
     ),
-    "utf8",
-  )
-    .trim()
-    .split(/\r?\n/u)
-    .slice(1)
-    .map((line) => {
-      const [method, type, memoryId, memoryRevision, recordMemoryId, expectedMemoryCount] =
-        line.split("\t");
-      return {
-        method,
-        type,
-        memoryId: memoryId === "-" ? "" : memoryId,
-        memoryRevision: memoryRevision !== "-" ? Number(memoryRevision) : null,
-        recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
-        expectedMemoryCount:
-          expectedMemoryCount !== "-" ? Number(expectedMemoryCount) : null,
-      };
-    });
+  );
 }
 
 function item() {
@@ -90,7 +79,10 @@ function planRequest() {
 test("Agent Protocol embeds the canonical Context/Memory schema without a second hand-written contract", () => {
   const canonical = JSON.parse(
     readFileSync(
-      new URL("../../context-memory-kernel/schema/context-memory-kernel.schema.json", import.meta.url),
+      new URL(
+        "../../context-memory-kernel/schema/context-memory-kernel.schema.json",
+        import.meta.url,
+      ),
       "utf8",
     ),
   );
@@ -100,7 +92,9 @@ test("Agent Protocol embeds the canonical Context/Memory schema without a second
   }
   assert.ok(CC_AGENT_PROTOCOL_FEATURES.includes("context_memory_kernel"));
   assert.deepEqual(
-    Object.keys(CC_AGENT_PROTOCOL_SCHEMA["x-cc-protocol"].contextMemory.methods),
+    Object.keys(
+      CC_AGENT_PROTOCOL_SCHEMA["x-cc-protocol"].contextMemory.methods,
+    ),
     Object.keys(contextMemoryMethods),
   );
 });
@@ -117,7 +111,11 @@ test("fixed Context/Memory methods validate typed params and reject missing para
     true,
   );
   assert.equal(
-    validateProtocolMessage({ jsonrpc: "2.0", id: "request-1", method: "context/plan" }).ok,
+    validateProtocolMessage({
+      jsonrpc: "2.0",
+      id: "request-1",
+      method: "context/plan",
+    }).ok,
     false,
   );
   assert.equal(
@@ -174,13 +172,24 @@ test("Agent stream inventory includes every canonical Context/Memory lifecycle e
 });
 
 test("shared cross-surface projection fixture only uses canonical protocol events", () => {
-  const rows = crossSurfaceProjectionFixture();
-  const expected = rows.find((row) => row.method === "expected");
-  assert.ok(expected);
-  assert.equal(expected.memoryRevision, 5);
-  assert.equal(expected.expectedMemoryCount, 0);
-  for (const row of rows.filter((entry) => entry.method !== "expected")) {
-    assert.ok(["context/event", "memory/event"].includes(row.method), row.method);
+  const fixture = crossSurfaceProjectionFixture();
+  assert.equal(Number(fixture.expected.memory_revision), 5);
+  assert.equal(Number(fixture.expected.expected_memory_count), 0);
+  for (const row of fixture.events) {
+    assert.ok(
+      ["context/event", "memory/event"].includes(row.method),
+      row.method,
+    );
     assert.ok(CC_AGENT_STREAM_EVENT_TYPES.includes(row.type), row.type);
+  }
+  assert.deepEqual(
+    fixture.cases.map((scenario) => scenario.id).sort(),
+    [...CONTEXT_MEMORY_CONFORMANCE_SCENARIOS].sort(),
+  );
+  for (const scenario of fixture.cases) {
+    assert.deepEqual(
+      [...scenario.surfaces].sort(),
+      [...CONTEXT_MEMORY_CONFORMANCE_SURFACES].sort(),
+    );
   }
 });

@@ -1,7 +1,18 @@
-export type ContextScope = "turn" | "session" | "agent" | "project" | "user" | "global";
-export type ContextTrust = "host" | "verified" | "user" | "external" | "untrusted";
-export type Sensitivity = "public" | "internal" | "personal" | "secret" | "restricted";
-export type MemoryState = "candidate" | "active" | "reinforced" | "superseded" | "archived" | "expired" | "deleted" | "purged";
+export type ContextScope =
+  "turn" | "session" | "agent" | "project" | "user" | "global";
+export type ContextTrust =
+  "host" | "verified" | "user" | "external" | "untrusted";
+export type Sensitivity =
+  "public" | "internal" | "personal" | "secret" | "restricted";
+export type MemoryState =
+  | "candidate"
+  | "active"
+  | "reinforced"
+  | "superseded"
+  | "archived"
+  | "expired"
+  | "deleted"
+  | "purged";
 
 export interface SourceRef {
   store: string;
@@ -49,7 +60,16 @@ export interface ContextBinding {
 export interface ContextItem {
   schemaVersion: 1;
   itemId: string;
-  kind: "system-policy" | "tool-schema" | "skill" | "task-state" | "message" | "tool-evidence" | "memory" | "project-rule" | "artifact-ref";
+  kind:
+    | "system-policy"
+    | "tool-schema"
+    | "skill"
+    | "task-state"
+    | "message"
+    | "tool-evidence"
+    | "memory"
+    | "project-rule"
+    | "artifact-ref";
   scope: ContextScope;
   scopeId?: string;
   sourceRef: SourceRef;
@@ -109,7 +129,12 @@ export interface ContextPlan {
   digest: string;
   selected: ContextItem[];
   selectedItemIds: string[];
-  dropped: Array<{ itemId: string; digest: string; reason: string; protected: boolean }>;
+  dropped: Array<{
+    itemId: string;
+    digest: string;
+    reason: string;
+    protected: boolean;
+  }>;
   inputBudget: number;
   selectedTokens: number;
 }
@@ -122,31 +147,92 @@ export class ContextMemoryKernelError extends Error {
 export function canonicalJson(value: unknown): string;
 export function canonicalDigest(value: unknown, domain?: string): string;
 export const CONTEXT_MEMORY_SCHEMA: Readonly<Record<string, unknown>>;
-export interface ContextMemoryValidationError { path: string; message: string }
-export interface ContextMemoryValidationResult { ok: boolean; errors: readonly ContextMemoryValidationError[] }
-export function validateContextMemorySchema(value: unknown): ContextMemoryValidationResult;
-export function validateContextMemoryDefinition(name: string, value: unknown): ContextMemoryValidationResult;
-export function assertContextMemoryDefinition(name: string, value: unknown): void;
+export interface ContextMemoryValidationError {
+  path: string;
+  message: string;
+}
+export interface ContextMemoryValidationResult {
+  ok: boolean;
+  errors: readonly ContextMemoryValidationError[];
+}
+export function validateContextMemorySchema(
+  value: unknown,
+): ContextMemoryValidationResult;
+export function validateContextMemoryDefinition(
+  name: string,
+  value: unknown,
+): ContextMemoryValidationResult;
+export function assertContextMemoryDefinition(
+  name: string,
+  value: unknown,
+): void;
 export const INVENTORY_SCHEMA: "chainlesschain.context-memory-writer-inventory/v1";
 export const INVENTORY_PATH: string;
-export function loadContextMemoryWriterInventory(path?: string): Readonly<Record<string, unknown>>;
-export function discoverUnclassifiedContextMemoryWriters(inventory: Record<string, unknown>, options?: Record<string, unknown>): readonly string[];
-export function validateContextMemoryWriterInventory(inventory: Record<string, unknown>, options?: Record<string, unknown>): Readonly<Record<string, unknown>>;
+export function loadContextMemoryWriterInventory(
+  path?: string,
+): Readonly<Record<string, unknown>>;
+export function discoverUnclassifiedContextMemoryWriters(
+  inventory: Record<string, unknown>,
+  options?: Record<string, unknown>,
+): readonly string[];
+export function validateContextMemoryWriterInventory(
+  inventory: Record<string, unknown>,
+  options?: Record<string, unknown>,
+): Readonly<Record<string, unknown>>;
+export const CONTEXT_MEMORY_CONFORMANCE_SCENARIOS: readonly string[];
+export const CONTEXT_MEMORY_CONFORMANCE_SURFACES: readonly string[];
+export interface ContextMemoryConformanceCase {
+  id: string;
+  category: string;
+  operation: string;
+  surfaces: string[];
+  input: Record<string, unknown>;
+  expected: Record<string, unknown>;
+}
+export function parseContextMemoryConformanceFixture(source: string): Readonly<{
+  events: readonly Record<string, string>[];
+  cases: readonly ContextMemoryConformanceCase[];
+  expected: Readonly<Record<string, string>>;
+}>;
 export function normalizeContextItem(input: unknown): ContextItem;
 export function normalizeMemoryRecord(input: unknown): MemoryRecord;
 export function planContext(request: Record<string, unknown>): ContextPlan;
-export function createMemoryCandidate(request: Record<string, unknown>, options?: Record<string, unknown>): MemoryRecord;
-export function applyMemoryCommand(record: MemoryRecord, command: Record<string, unknown>, options?: Record<string, unknown>): { record: MemoryRecord; event: Record<string, unknown>; receipt: Record<string, unknown> };
-export function mergeReplicaRecord(local: MemoryRecord, incoming: MemoryRecord): MemoryRecord;
+export function createMemoryCandidate(
+  request: Record<string, unknown>,
+  options?: Record<string, unknown>,
+): MemoryRecord;
+export function applyMemoryCommand(
+  record: MemoryRecord,
+  command: Record<string, unknown>,
+  options?: Record<string, unknown>,
+): {
+  record: MemoryRecord;
+  event: Record<string, unknown>;
+  receipt: Record<string, unknown>;
+};
+export function mergeReplicaRecord(
+  local: MemoryRecord,
+  incoming: MemoryRecord,
+): MemoryRecord;
 
 export class ContextMemoryKernel {
   constructor(options?: Record<string, unknown>);
   planContext(request: Record<string, unknown>): Promise<ContextPlan>;
-  compactContext(request: Record<string, unknown>): Promise<Record<string, unknown>>;
-  recallMemory(request: Record<string, unknown>): Promise<Record<string, unknown>>;
-  proposeMemory(request: Record<string, unknown>): Promise<Record<string, unknown>>;
-  decideMemory(command: Record<string, unknown>): Promise<Record<string, unknown>>;
-  deleteMemory(request: Record<string, unknown>): Promise<Record<string, unknown>>;
+  compactContext(
+    request: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+  recallMemory(
+    request: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+  proposeMemory(
+    request: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+  decideMemory(
+    command: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
+  deleteMemory(
+    request: Record<string, unknown>,
+  ): Promise<Record<string, unknown>>;
   reconcile(operationId: string): Promise<Record<string, unknown>>;
   close(): Promise<void>;
 }

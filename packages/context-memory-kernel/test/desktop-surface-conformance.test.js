@@ -18,6 +18,11 @@ const {
 const {
   IdeAppServerPilot,
 } = require("../../vscode-extension/src/app-server-pilot.js");
+const {
+  CONTEXT_MEMORY_CONFORMANCE_SCENARIOS,
+  CONTEXT_MEMORY_CONFORMANCE_SURFACES,
+  parseContextMemoryConformanceFixture,
+} = require("../lib/index.js");
 
 const FIXED_METHODS = Object.freeze([
   "contextPlan",
@@ -46,56 +51,32 @@ class FakePilotClient extends EventEmitter {
 }
 
 function crossSurfaceFixture() {
-  const rows = readFileSync(
-    path.resolve(
-      __dirname,
-      "..",
-      "fixtures",
-      "cross-surface-projection-v1.tsv",
+  const fixture = parseContextMemoryConformanceFixture(
+    readFileSync(
+      path.resolve(
+        __dirname,
+        "..",
+        "fixtures",
+        "cross-surface-projection-v1.tsv",
+      ),
+      "utf8",
     ),
-    "utf8",
-  )
-    .trim()
-    .split(/\r?\n/u)
-    .slice(1)
-    .map((line) => {
-      const [
-        method,
-        type,
-        memoryId,
-        memoryRevision,
-        recordMemoryId,
-        expectedMemoryCount,
-      ] = line.split("\t");
-      return {
-        method,
-        type,
-        memoryId: memoryId === "-" ? "" : memoryId,
-        memoryRevision: memoryRevision !== "-" ? Number(memoryRevision) : null,
-        recordMemoryId: recordMemoryId === "-" ? "" : recordMemoryId,
-        expectedMemoryCount: expectedMemoryCount !== "-"
-          ? Number(expectedMemoryCount)
-          : null,
-      };
-    });
-  const expected = rows.find((row) => row.method === "expected");
-  const notifications = rows
-    .filter((row) => row.method !== "expected")
-    .map((row) => {
-      const params = { type: row.type };
-      if (row.memoryId) params.memory_id = row.memoryId;
-      if (row.recordMemoryId) {
-        params.record = { memoryId: row.recordMemoryId };
-      }
-      if (row.type === "context.plan.created") {
-        params.plan = { memoryRevision: row.memoryRevision };
-      }
-      if (row.type === "memory.recalled") {
-        params.result = { memoryRevision: row.memoryRevision };
-      }
-      return { method: row.method, params };
-    });
-  return { notifications, expected };
+  );
+  const notifications = fixture.events.map((row) => {
+    const params = { type: row.type };
+    if (row.memory_id !== "-") params.memory_id = row.memory_id;
+    if (row.record_memory_id !== "-") {
+      params.record = { memoryId: row.record_memory_id };
+    }
+    if (row.type === "context.plan.created") {
+      params.plan = { memoryRevision: Number(row.memory_revision) };
+    }
+    if (row.type === "memory.recalled") {
+      params.result = { memoryRevision: Number(row.memory_revision) };
+    }
+    return { method: row.method, params };
+  });
+  return { ...fixture, notifications };
 }
 
 test("Desktop exposes only fixed Context/Memory capabilities and bounded projection", async () => {
@@ -165,9 +146,7 @@ test("Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
     true,
   );
   assert.equal(
-    APP_SERVER_PILOT_IPC_CHANNELS.includes(
-      "coding-agent:app-server-request",
-    ),
+    APP_SERVER_PILOT_IPC_CHANNELS.includes("coding-agent:app-server-request"),
     false,
   );
   const result = await handlers.get("coding-agent:app-server-memory-recall")(
@@ -210,17 +189,27 @@ test("Desktop and VS Code consume the same canonical projection fixture", () => 
   const client = new FakePilotClient();
   const desktop = new DesktopAppServerPilot({ client });
   const vscode = new IdeAppServerPilot({ client });
-  const { notifications, expected } = crossSurfaceFixture();
+  const { cases, notifications, expected } = crossSurfaceFixture();
   for (const notification of notifications) {
     client.emit("notification", notification);
   }
   assert.deepEqual(desktop.status.contextMemory, vscode.status.contextMemory);
   assert.equal(
     desktop.status.contextMemory.memoryRevision,
-    expected.memoryRevision,
+    Number(expected.memory_revision),
   );
   assert.equal(
     desktop.status.contextMemory.memories.length,
-    expected.expectedMemoryCount,
+    Number(expected.expected_memory_count),
   );
+  assert.deepEqual(
+    cases.map((scenario) => scenario.id).sort(),
+    [...CONTEXT_MEMORY_CONFORMANCE_SCENARIOS].sort(),
+  );
+  for (const scenario of cases) {
+    assert.deepEqual(
+      [...scenario.surfaces].sort(),
+      [...CONTEXT_MEMORY_CONFORMANCE_SURFACES].sort(),
+    );
+  }
 });

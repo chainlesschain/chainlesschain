@@ -10,9 +10,20 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ContextMemoryProjectionTest {
+    private static final Set<String> CONFORMANCE_SCENARIOS = Set.of(
+            "multilingual-window-512", "multilingual-window-4096",
+            "parallel-tools-pending", "orphan-late-tool-result", "overlapping-scopes",
+            "provider-normal", "provider-failure", "provider-usage-unknown",
+            "provider-cancelled", "crash-restart", "cas-race", "index-rebuild",
+            "offline-replica-reinjection", "partial-delete-reconcile");
+    private static final Set<String> CONFORMANCE_SURFACES = Set.of(
+            "cli-js", "desktop-js", "app-server", "typescript-sdk", "python-sdk",
+            "vscode", "jetbrains");
+
     private static Path fixturePath() {
         Path sibling = Path.of("..", "context-memory-kernel", "fixtures",
                 "cross-surface-projection-v1.tsv");
@@ -57,6 +68,7 @@ class ContextMemoryProjectionTest {
         ContextMemoryProjection projection = new ContextMemoryProjection();
         long expectedRevision = -1L;
         int expectedMemoryCount = -1;
+        Map<String, Set<String>> conformanceCases = new LinkedHashMap<String, Set<String>>();
         List<String> lines = Files.readAllLines(fixturePath(), StandardCharsets.UTF_8);
         for (int index = 1; index < lines.size(); index++) {
             String[] fields = lines.get(index).split("\\t", -1);
@@ -65,6 +77,10 @@ class ContextMemoryProjectionTest {
             if ("expected".equals(method)) {
                 expectedRevision = Long.parseLong(fields[3]);
                 expectedMemoryCount = Integer.parseInt(fields[5]);
+                continue;
+            }
+            if ("fixture".equals(method)) {
+                conformanceCases.put(fields[6], Set.of(fields[8].split(",")));
                 continue;
             }
             Map<String, Object> event = new LinkedHashMap<String, Object>();
@@ -87,5 +103,9 @@ class ContextMemoryProjectionTest {
         assertEquals(Long.valueOf(expectedRevision), snapshot.get("memoryRevision"));
         assertEquals(expectedMemoryCount,
                 ((List<Map<String, Object>>) snapshot.get("memories")).size());
+        assertEquals(CONFORMANCE_SCENARIOS, conformanceCases.keySet());
+        for (Set<String> surfaces : conformanceCases.values()) {
+            assertEquals(CONFORMANCE_SURFACES, surfaces);
+        }
     }
 }
