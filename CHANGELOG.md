@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.10: governed Graph Kernel production cutover evidence
+
+> `chainlesschain` **0.166.9 -> 0.166.10** (release candidate,
+> 2026-08-29).
+
+- **Production evidence aggregate**: `graph:production-evidence` verifies the
+  complete staged Graph Kernel cutover evidence set against the exact protected
+  source commit, producer run, inventory, rollout ledger, and qualification
+  artifacts before it can emit a passing receipt.
+- **Fail-closed coverage**: the verifier requires all 20 durable entries, nine
+  projection classes, three rollback modes, every retired writer and mutation,
+  and all three explicitly disabled Browser/Remote entries; missing, duplicate,
+  stale, cross-run, or digest-mismatched evidence is rejected.
+- **Protected consumption**: the production cutover workflow is bound to
+  reviewed GitHub Environments, downloads artifacts from the selected protected
+  producer run, and publishes a content-free receipt only after recomputing the
+  complete aggregate locally.
+- **Honest rollout boundary**: this release ships the verifier and protected
+  consumer, but does not claim that a production rollout occurred; P1-12 closes
+  only after the real environment supplies a valid staged-rollout artifact for
+  the same exact SHA.
+
 ### Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates
 
 > `chainlesschain` **0.166.8 -> 0.166.9** (release candidate,

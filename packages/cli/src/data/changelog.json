@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.10",
+      "cliVersions": ["0.166.9", "0.166.10"],
+      "date": "2026-08-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.10: governed Graph Kernel production cutover evidence",
+          "body": "> `chainlesschain` **0.166.9 -> 0.166.10** (release candidate,\n> 2026-08-29).\n\n- **Production evidence aggregate**: `graph:production-evidence` verifies the\n  complete staged Graph Kernel cutover evidence set against the exact protected\n  source commit, producer run, inventory, rollout ledger, and qualification\n  artifacts before it can emit a passing receipt.\n- **Fail-closed coverage**: the verifier requires all 20 durable entries, nine\n  projection classes, three rollback modes, every retired writer and mutation,\n  and all three explicitly disabled Browser/Remote entries; missing, duplicate,\n  stale, cross-run, or digest-mismatched evidence is rejected.\n- **Protected consumption**: the production cutover workflow is bound to\n  reviewed GitHub Environments, downloads artifacts from the selected protected\n  producer run, and publishes a content-free receipt only after recomputing the\n  complete aggregate locally.\n- **Honest rollout boundary**: this release ships the verifier and protected\n  consumer, but does not claim that a production rollout occurred; P1-12 closes\n  only after the real environment supplies a valid staged-rollout artifact for\n  the same exact SHA."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.9",
       "cliVersions": ["0.166.8", "0.166.9"],
       "date": "2026-08-29",
