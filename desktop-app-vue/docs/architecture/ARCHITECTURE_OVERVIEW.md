@@ -6,13 +6,13 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 2217 | 28.79 MB |
+| main | 2219 | 28.81 MB |
 | renderer | 87 | 0.36 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 2217
+**Files**: 2219
 
 **Top 10 Largest Files**:
 
@@ -21,7 +21,7 @@
 3. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 4. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
 5. `src/main/vendor/agent-sdk/generated/app-protocol.js` - 116.8 KB
-6. `src/main/index.js` - 113.1 KB
+6. `src/main/index.js` - 113.4 KB
 7. `src/main/skill-tool-system/tools/data-tools.js` - 104.3 KB
 8. `src/main/monitoring/error-monitor.js` - 95.3 KB
 9. `src/main/remote/browser-extension-server.js` - 89.3 KB
