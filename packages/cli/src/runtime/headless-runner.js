@@ -2635,12 +2635,14 @@ async function runAgentHeadlessInWorkspace(
   // --max-budget-usd: a hard USD spend cap (Claude-Code parity). Accumulates
   // per-call cost from token-usage events and stops the loop before the next
   // paid call once the cap is reached. null → no cap (unchanged behavior).
-  const costBudget = options.maxCostUsd
-    ? new CostBudget({
-        limitUsd: options.maxCostUsd,
-        table: options.priceTable,
-      })
-    : null;
+  // Track priced usage even when no hard cap is configured so every machine
+  // readable terminal result can carry authoritative cost evidence.  A null
+  // limit never warns or stops the run; it only accumulates the same estimates
+  // that an enabled --max-budget-usd guard would use.
+  const costBudget = new CostBudget({
+    limitUsd: options.maxCostUsd,
+    table: options.priceTable,
+  });
 
   const startedAt = deps.now ? deps.now() : Date.now();
   const toolCalls = [];
@@ -3901,6 +3903,7 @@ async function runAgentHeadlessInWorkspace(
       num_turns: budget.consumed,
       duration_ms: durationMs,
       usage,
+      total_cost_usd: costBudget.spentUsd,
       ...(compactionDegradations.length
         ? { compaction_degradations: compactionDegradations }
         : {}),
@@ -3916,6 +3919,7 @@ async function runAgentHeadlessInWorkspace(
           sessionId,
           toolCalls,
           usage,
+          totalCostUsd: costBudget.spentUsd,
           numTurns: budget.consumed,
           durationMs,
           denials,
@@ -3976,6 +3980,7 @@ function buildResultEnvelope({
   sessionId,
   toolCalls,
   usage,
+  totalCostUsd,
   numTurns,
   durationMs,
   denials,
@@ -3992,6 +3997,7 @@ function buildResultEnvelope({
     duration_ms: durationMs,
     tool_calls: toolCalls,
     usage,
+    total_cost_usd: totalCostUsd,
   };
   // Only present when something was blocked — keeps the no-denial envelope
   // byte-identical to before (Claude-Code 2.1.193 denial reasons, json mode).
