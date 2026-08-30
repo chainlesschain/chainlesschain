@@ -11,13 +11,6 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  createRecordedSkillDraft,
-  replayRecordedSkill,
-  reviewRecordedSkillDraft,
-} from "../src/lib/record-replay/skill-recorder.js";
-import { launchPlaywrightRecordedSkillDriver } from "../src/lib/record-replay/playwright-ui-driver.js";
-
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const PLATFORMS = Object.freeze(["linux", "macos", "windows"]);
 const FIXTURE_HTML = `<!doctype html>
@@ -93,7 +86,10 @@ function writeJson(path, value) {
   writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function approvedProjectSkill() {
+function approvedProjectSkill({
+  createRecordedSkillDraft,
+  reviewRecordedSkillDraft,
+}) {
   const draft = createRecordedSkillDraft({
     name: "open-project",
     description: "Open a project in a local UI fixture and assert its title",
@@ -123,7 +119,10 @@ function approvedProjectSkill() {
   });
 }
 
-function approvedNetworkAttemptSkill() {
+function approvedNetworkAttemptSkill({
+  createRecordedSkillDraft,
+  reviewRecordedSkillDraft,
+}) {
   const draft = createRecordedSkillDraft({
     name: "network-boundary-probe",
     actions: [{ kind: "click", target: "#network-attempt" }],
@@ -145,7 +144,20 @@ async function runPlatform({ commitSha, platform }) {
   if (exactHead() !== commitSha) {
     throw new Error("checked-out source does not match --commit-sha");
   }
-  const skill = approvedProjectSkill();
+  const [skillRecorder, playwrightDriver] = await Promise.all([
+    import("../src/lib/record-replay/skill-recorder.js"),
+    import("../src/lib/record-replay/playwright-ui-driver.js"),
+  ]);
+  const {
+    createRecordedSkillDraft,
+    replayRecordedSkill,
+    reviewRecordedSkillDraft,
+  } = skillRecorder;
+  const { launchPlaywrightRecordedSkillDriver } = playwrightDriver;
+  const skill = approvedProjectSkill({
+    createRecordedSkillDraft,
+    reviewRecordedSkillDraft,
+  });
   const driver = await launchPlaywrightRecordedSkillDriver({
     html: FIXTURE_HTML,
     settleMs: 50,
@@ -174,7 +186,10 @@ async function runPlatform({ commitSha, platform }) {
     throw new Error("positive recorded UI replay did not close cleanly");
   }
 
-  const boundarySkill = approvedNetworkAttemptSkill();
+  const boundarySkill = approvedNetworkAttemptSkill({
+    createRecordedSkillDraft,
+    reviewRecordedSkillDraft,
+  });
   const boundaryDriver = await launchPlaywrightRecordedSkillDriver({
     html: FIXTURE_HTML,
     settleMs: 100,
