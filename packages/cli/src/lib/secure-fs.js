@@ -605,6 +605,25 @@ export const _deps = {
 // tests and repairPrivatePath() always execute and verify the operation.
 const securedWindowsPaths = new Set();
 const WINDOWS_ACL_BATCH_SIZE = 500;
+const WINDOWS_ACL_TIMEOUT_ENV = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
+const MAX_WINDOWS_ACL_TIMEOUT_MS = 5 * 60_000;
+
+// Windows hosted runners can need more than the normal 15/30 second allowance
+// to cold-start PowerShell and load the access-control types. A trusted harness
+// may raise (but never lower) that allowance; the cap prevents an inherited
+// environment value from wedging owner-only storage initialization forever.
+export function _resolveWindowsAclTimeout(
+  defaultTimeoutMs,
+  environment = process.env,
+) {
+  const fallback = Math.max(1, Math.floor(Number(defaultTimeoutMs) || 1));
+  const configured = Number(environment?.[WINDOWS_ACL_TIMEOUT_ENV]);
+  if (!Number.isFinite(configured) || configured <= 0) return fallback;
+  return Math.min(
+    Math.max(fallback, Math.floor(configured)),
+    MAX_WINDOWS_ACL_TIMEOUT_MS,
+  );
+}
 
 function repairWindowsAclOnce(target, deps, options) {
   const cacheable = !options.deps;
@@ -630,7 +649,11 @@ function windowsAcl(target, operation, deps) {
       target,
       operation,
     ],
-    { encoding: "utf8", windowsHide: true, timeout: 15000 },
+    {
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: _resolveWindowsAclTimeout(15_000),
+    },
   );
   let details = null;
   try {
@@ -675,7 +698,7 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
         ...(expectedKind ? { expectedKind } : {}),
       }),
       windowsHide: true,
-      timeout: 30000,
+      timeout: _resolveWindowsAclTimeout(30_000),
       maxBuffer: 4 * 1024 * 1024,
     },
   );

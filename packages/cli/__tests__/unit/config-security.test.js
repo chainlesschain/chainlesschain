@@ -26,6 +26,7 @@ import {
   redactConfigObject,
 } from "../../src/lib/config-redaction.js";
 import {
+  _resolveWindowsAclTimeout,
   ensurePrivateDirectory,
   ensurePrivateFile,
   inspectPrivatePath,
@@ -390,6 +391,25 @@ describe("secure configuration surfaces", () => {
 });
 
 describe("owner-only filesystem helpers", () => {
+  it("lets a trusted harness raise but not lower the Windows ACL timeout", () => {
+    expect(
+      _resolveWindowsAclTimeout(15_000, {
+        CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000",
+      }),
+    ).toBe(60_000);
+    expect(
+      _resolveWindowsAclTimeout(30_000, {
+        CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "1000",
+      }),
+    ).toBe(30_000);
+    expect(
+      _resolveWindowsAclTimeout(30_000, {
+        CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "900000",
+      }),
+    ).toBe(300_000);
+    expect(_resolveWindowsAclTimeout(15_000, {})).toBe(15_000);
+  });
+
   function fakeFs(initialMode, directory = false) {
     let mode = initialMode;
     return {
