@@ -1586,6 +1586,71 @@ describe("headless-runner — session resume + persistence", () => {
     expect(order.at(-1)).toBe("release");
   });
 
+  it("keeps persisted session lease diagnostics out of stream-json stdout", async () => {
+    const store = makeStore();
+    const { deps, out } = makeDeps(replyText("done"));
+    const lease = {
+      signal: new AbortController().signal,
+      assert: vi.fn(),
+      release: vi.fn(() => {
+        process.stdout.write("[DatabaseManager] host lease released\n");
+      }),
+    };
+    Object.assign(deps, store.deps, {
+      acquireSessionHostLease: vi.fn(() => {
+        process.stdout.write("[AppConfig] Configuration loaded\n");
+        process.stdout.write("[DatabaseManager] Database initialized\n");
+        return lease;
+      }),
+    });
+    const stdout = [];
+    const stderr = [];
+    const stdoutWrite = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk) => {
+        stdout.push(String(chunk));
+        return true;
+      });
+    const stderrWrite = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk) => {
+        stderr.push(String(chunk));
+        return true;
+      });
+
+    try {
+      await runAgentHeadless(
+        {
+          prompt: "persisted teammate turn",
+          resume: "stream-session",
+          outputFormat: "stream-json",
+        },
+        deps,
+      );
+    } finally {
+      stdoutWrite.mockRestore();
+      stderrWrite.mockRestore();
+    }
+
+    expect(stdout.join("")).not.toContain("[AppConfig]");
+    expect(stdout.join("")).not.toContain("[DatabaseManager]");
+    expect(stderr.join("")).toContain("[AppConfig] Configuration loaded");
+    expect(stderr.join("")).toContain("[DatabaseManager] Database initialized");
+    expect(stderr.join("")).toContain("[DatabaseManager] host lease released");
+    expect(
+      out
+        .join("")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line)),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "system", subtype: "init" }),
+        expect.objectContaining({ type: "result", subtype: "success" }),
+      ]),
+    );
+  });
+
   it("loads prior history into the message array on resume", async () => {
     const captured = {};
     const store = makeStore({

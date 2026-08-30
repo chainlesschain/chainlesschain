@@ -30,6 +30,7 @@ import {
   transformBackgroundLaunchArgv,
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
+import { withQuietStdout } from "../runtime/quiet-stdout.js";
 import {
   captureClaudeStorageLaunchEnvironment,
   restoreClaudeStorageLaunchEnvironment,
@@ -1016,26 +1017,32 @@ export function registerAgentCommand(program) {
       // conversation merely because their reader is JSONL-backed.
       const resumeRequested = Boolean(options.session);
       if (resumeRequested && options.session) {
-        const { sessionHasPersistedEvidence } =
-          await import("../harness/jsonl-session-store.js");
-        if (!sessionHasPersistedEvidence(options.session)) {
-          const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
-            await Promise.all([
-              import("../runtime/bootstrap.js"),
-              import("../lib/session-transcript-migration.js"),
-            ]);
-          const context =
-            sessionBootstrapContext ||
-            (await bootstrap({ verbose: program.opts().verbose }));
-          sessionBootstrapContext = context;
-          const database =
-            context.db?.getDatabase?.() || context.db?.getDb?.() || null;
-          const migrated = ensureCanonicalSessionFromDatabase(
-            database,
-            options.session,
-          );
-          if (migrated?.sessionId) options.session = migrated.sessionId;
-        }
+        // Importing the persistent store and falling back to SQLite can lazily
+        // initialize AppConfig/DatabaseManager. Their legacy console.info
+        // diagnostics belong on stderr; stdout may already be reserved for a
+        // JSON/NDJSON protocol selected by this command.
+        await withQuietStdout(async () => {
+          const { sessionHasPersistedEvidence } =
+            await import("../harness/jsonl-session-store.js");
+          if (!sessionHasPersistedEvidence(options.session)) {
+            const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
+              await Promise.all([
+                import("../runtime/bootstrap.js"),
+                import("../lib/session-transcript-migration.js"),
+              ]);
+            const context =
+              sessionBootstrapContext ||
+              (await bootstrap({ verbose: program.opts().verbose }));
+            sessionBootstrapContext = context;
+            const database =
+              context.db?.getDatabase?.() || context.db?.getDb?.() || null;
+            const migrated = ensureCanonicalSessionFromDatabase(
+              database,
+              options.session,
+            );
+            if (migrated?.sessionId) options.session = migrated.sessionId;
+          }
+        });
       }
 
       // --fork-session: branch the resolved session into a NEW id so the
@@ -1630,9 +1637,12 @@ export function registerAgentCommand(program) {
         // contained the requested logical session, warn instead of silently
         // presenting a fresh conversation as a successful resume.
         if (resumeRequested && options.session) {
-          const { sessionHasPersistedEvidence } =
-            await import("../harness/jsonl-session-store.js");
-          if (!sessionHasPersistedEvidence(options.session)) {
+          const hasPersistedEvidence = await withQuietStdout(async () => {
+            const { sessionHasPersistedEvidence } =
+              await import("../harness/jsonl-session-store.js");
+            return sessionHasPersistedEvidence(options.session);
+          });
+          if (!hasPersistedEvidence) {
             process.stderr.write(
               `Note: no persisted transcript for session "${options.session}"; ` +
                 "starting fresh because no readable physical adapter contains it.\n",
