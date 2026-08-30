@@ -110,6 +110,14 @@ const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 const { executeHooksV2Event } =
   await import("../../src/lib/hooks-v2-producers.js");
 
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+
 describe("AGENT_TOOLS", () => {
   it("has 28 tool definitions", () => {
     expect(AGENT_TOOLS).toHaveLength(28);
@@ -313,7 +321,11 @@ describe("git tool — shell-free (no command injection)", () => {
 
 describe("executeTool runtime metadata", () => {
   it("attaches runtime descriptor info when running shell commands", async () => {
-    const result = await executeTool("run_shell", { command: "echo hello" });
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo hello" },
+      { approvalGate: ALLOWING_APPROVAL_GATE },
+    );
     expect(result.toolDescriptor?.name).toBe("shell");
     expect(result.stdout).toBeDefined();
     expect(result.shellCommandPolicy?.decision).toBeDefined();
@@ -806,7 +818,7 @@ describe("executeTool", () => {
     const result = await executeTool(
       "run_shell",
       { command: "echo hello-agent-core" },
-      { cwd: tempDir },
+      { cwd: tempDir, approvalGate: ALLOWING_APPROVAL_GATE },
     );
     expect(result.stdout).toContain("hello-agent-core");
   });
@@ -815,7 +827,7 @@ describe("executeTool", () => {
     const result = await executeTool(
       "run_shell",
       { command: "exit 1" },
-      { cwd: tempDir },
+      { cwd: tempDir, approvalGate: ALLOWING_APPROVAL_GATE },
     );
     expect(result.error).toBeDefined();
     expect(result.exitCode).toBe(1);
