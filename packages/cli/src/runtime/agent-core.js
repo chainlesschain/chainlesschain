@@ -746,14 +746,25 @@ export function reapIdleBackgroundShellTasks(deps = {}) {
 // Foreground (synchronous) run_shell timeout. Configurable per-call via the
 // optional `timeout` arg; defaults to 60s and is hard-capped at 10 min so a
 // synchronous call can never wedge the loop indefinitely (use run_in_background
-// for genuinely long work).
+// for genuinely long work). Trusted harnesses may set a minimum through the
+// parent-process environment so model-generated tool arguments cannot shorten a
+// benchmark's platform-neutral execution allowance. The unset path preserves
+// the public per-call semantics byte-for-byte.
 const DEFAULT_SHELL_TIMEOUT_MS = 60000;
 const MAX_SHELL_TIMEOUT_MS = 600000;
-function _resolveShellTimeout(raw) {
-  if (raw == null) return DEFAULT_SHELL_TIMEOUT_MS;
+export function _resolveShellTimeout(raw, environment = process.env) {
+  const configuredMinimum = Number(environment?.CC_RUN_SHELL_MIN_TIMEOUT_MS);
+  const minimum =
+    Number.isFinite(configuredMinimum) && configuredMinimum > 0
+      ? Math.min(Math.floor(configuredMinimum), MAX_SHELL_TIMEOUT_MS)
+      : 0;
+  if (raw == null) return Math.max(DEFAULT_SHELL_TIMEOUT_MS, minimum);
   const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return DEFAULT_SHELL_TIMEOUT_MS;
-  return Math.min(Math.floor(n), MAX_SHELL_TIMEOUT_MS);
+  const requested =
+    Number.isFinite(n) && n > 0
+      ? Math.min(Math.floor(n), MAX_SHELL_TIMEOUT_MS)
+      : DEFAULT_SHELL_TIMEOUT_MS;
+  return Math.max(requested, minimum);
 }
 
 /**

@@ -64,6 +64,7 @@ describe("formal candidate platform isolation", () => {
       expect(environment).toMatchObject({
         CC_API_KEY: "fixture-key",
         LLM_PROVIDER: "openai",
+        CC_RUN_SHELL_MIN_TIMEOUT_MS: "60000",
         CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
       });
       expect(environment.CHAINLESSCHAIN_HOME).toContain(isolationRoot);
