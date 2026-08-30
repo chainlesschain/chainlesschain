@@ -6,9 +6,22 @@ import path from "node:path";
 import {
   _agentToolProcessDeps,
   _backgroundProcessDeps,
-  executeTool,
+  executeTool as executeToolWithoutGate,
   killAllBackgroundShellTasksSync,
 } from "../../src/runtime/agent-core.js";
+
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+const executeTool = (name, args, context = {}) =>
+  executeToolWithoutGate(name, args, {
+    approvalGate: ALLOWING_APPROVAL_GATE,
+    ...context,
+  });
 import {
   executionBroker,
   SANDBOX_BOUNDARIES,

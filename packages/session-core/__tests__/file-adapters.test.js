@@ -48,7 +48,9 @@ describe("createMemoryFileAdapter", () => {
   });
 
   it("tolerates missing file on load", () => {
-    const adapter = createMemoryFileAdapter(path.join(tmpDir, "does-not-exist.json"));
+    const adapter = createMemoryFileAdapter(
+      path.join(tmpDir, "does-not-exist.json"),
+    );
     expect(adapter.load()).toEqual([]);
   });
 
@@ -117,15 +119,37 @@ describe("createApprovalGateFileAdapter", () => {
   });
 
   it("load() returns empty object when file missing", async () => {
-    const adapter = createApprovalGateFileAdapter(path.join(tmpDir, "nope.json"));
+    const adapter = createApprovalGateFileAdapter(
+      path.join(tmpDir, "nope.json"),
+    );
     expect(await adapter.load()).toEqual({});
   });
 
-  it("ignores corrupted JSON", async () => {
+  it("fails closed when the policy file contains corrupted JSON", async () => {
     const file = path.join(tmpDir, "approval.json");
     fs.writeFileSync(file, "{not json", "utf-8");
     const adapter = createApprovalGateFileAdapter(file);
-    expect(await adapter.load()).toEqual({});
+    await expect(adapter.load()).rejects.toMatchObject({
+      code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+    });
+  });
+
+  it("fails closed when the policy document shape is invalid", async () => {
+    const file = path.join(tmpDir, "approval.json");
+    fs.writeFileSync(file, JSON.stringify({ policies: [] }), "utf-8");
+    const adapter = createApprovalGateFileAdapter(file);
+    await expect(adapter.load()).rejects.toMatchObject({
+      code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+    });
+  });
+
+  it("fails closed when the policy path cannot be read as a file", async () => {
+    const file = path.join(tmpDir, "approval.json");
+    fs.mkdirSync(file);
+    const adapter = createApprovalGateFileAdapter(file);
+    await expect(adapter.load()).rejects.toMatchObject({
+      code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+    });
   });
 });
 
@@ -156,7 +180,9 @@ describe("writeJsonAtomic — concurrency-safe temp files", () => {
   it("leaves no .tmp behind on a successful write", () => {
     const f = path.join(tmpDir, "store.json");
     writeJsonAtomic(f, { a: 1 });
-    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual([]);
+    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual(
+      [],
+    );
   });
 
   it("cleans up — no orphaned .tmp after a failed write/rename", () => {
@@ -164,6 +190,8 @@ describe("writeJsonAtomic — concurrency-safe temp files", () => {
     const target = path.join(tmpDir, "as-dir");
     fs.mkdirSync(target);
     expect(() => writeJsonAtomic(target, { x: 1 })).toThrow();
-    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual([]);
+    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual(
+      [],
+    );
   });
 });

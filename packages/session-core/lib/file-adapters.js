@@ -39,6 +39,49 @@ function readJsonSafe(filePath, fallback) {
   }
 }
 
+function readApprovalPolicies(filePath) {
+  let txt;
+  try {
+    txt = fs.readFileSync(filePath, "utf-8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return {};
+    const wrapped = new Error(
+      `ApprovalGate: policy store unavailable: ${error.message}`,
+    );
+    wrapped.code = "APPROVAL_POLICY_STORE_UNAVAILABLE";
+    wrapped.cause = error;
+    throw wrapped;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(txt);
+  } catch (error) {
+    const wrapped = new Error(
+      `ApprovalGate: policy store is invalid JSON: ${error.message}`,
+    );
+    wrapped.code = "APPROVAL_POLICY_STORE_UNAVAILABLE";
+    wrapped.cause = error;
+    throw wrapped;
+  }
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data) ||
+    !data.policies ||
+    typeof data.policies !== "object" ||
+    Array.isArray(data.policies)
+  ) {
+    const error = new Error(
+      "ApprovalGate: policy store has an invalid policies object",
+    );
+    error.code = "APPROVAL_POLICY_STORE_UNAVAILABLE";
+    throw error;
+  }
+  return data.policies;
+}
+
 function writeJsonAtomic(filePath, data) {
   ensureDirSync(filePath);
   const tmp = _deps.tmpName(filePath);
@@ -126,10 +169,7 @@ function createApprovalGateFileAdapter(filePath) {
   return {
     filePath,
     async load() {
-      const data = readJsonSafe(filePath, { policies: {} });
-      return data.policies && typeof data.policies === "object"
-        ? data.policies
-        : {};
+      return readApprovalPolicies(filePath);
     },
     async save(policies) {
       writeJsonAtomic(filePath, { policies: policies || {} });

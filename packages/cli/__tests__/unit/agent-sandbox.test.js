@@ -82,19 +82,18 @@ describe("agent sandbox", () => {
     expect(sandbox.network).toBe(false);
   });
 
-  it("does not require Docker when no container sandbox was requested", () => {
-    expect(
-      normalizeAgentSandboxMode(undefined, undefined, { cwd: "." }),
-    ).toBeNull();
-  });
-
-  it("still honors settings that explicitly enable a fail-closed sandbox", () => {
+  it("defaults the public sandbox mode to fail-closed workspace-write", () => {
     const sandbox = normalizeAgentSandboxMode(undefined, undefined, {
       cwd: ".",
-      settings: { enabled: true, failIfUnavailable: true },
     });
-    expect(sandbox).toMatchObject({ engine: "docker", network: false });
-    expect(sandbox.policy.failIfUnavailable).toBe(true);
+    expect(sandbox).toMatchObject({
+      mode: "workspace-write",
+      network: false,
+    });
+    expect(sandbox.policy).toMatchObject({
+      failIfUnavailable: true,
+      allowUnsandboxedCommands: false,
+    });
   });
 
   it("clamps an enabled sandbox for safe/auto runs", () => {
@@ -179,6 +178,8 @@ describe("agent sandbox", () => {
       scope: "sandbox",
       policy: "allow",
       shell: false,
+      requirePersistentAudit: true,
+      auditRedactArgIndexes: [args.length - 1],
     });
     expect(opts.timeout).toBe(1000);
   });
@@ -313,11 +314,38 @@ describe("agent sandbox", () => {
     const result = await executeTool(
       "run_shell",
       { command: "echo sandboxed" },
-      { sandbox: normalizeAgentSandbox(true) },
+      {
+        sandbox: normalizeAgentSandbox(true),
+        approvalGate: {
+          decide: async () => ({
+            decision: "allow",
+            via: "policy",
+            policy: "autopilot",
+          }),
+        },
+      },
     );
     expect(result.stdout).toBe("sandboxed\n");
     expect(result.sandbox.network).toBe("disabled");
     expect(result.policyTrace).toEqual(["shell-policy", "approval", "sandbox"]);
+  });
+
+  it("denies the real run_shell path when ApprovalGate is unavailable", async () => {
+    _deps.spawnSync = vi.fn();
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo must-not-run" },
+      { sandbox: normalizeAgentSandbox(true) },
+    );
+
+    expect(result).toMatchObject({
+      approval: {
+        decision: "deny",
+        via: "approval-gate-unavailable",
+      },
+    });
+    expect(result.error).toMatch(/ApprovalGate/);
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
   });
 });
 

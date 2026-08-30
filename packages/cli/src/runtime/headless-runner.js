@@ -1605,7 +1605,8 @@ async function runAgentHeadlessInWorkspace(
       if (approvalGate) {
         approvalGate.setAuthorizationConsumer?.(null);
         if (typeof approvalGate.setSessionPolicy === "function") {
-          approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
+          await approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
+          await approvalGate.awaitPersistence?.();
         }
         if (typeof approvalGate.setConfirmer === "function") {
           approvalGate.setConfirmer(perm.confirmer);

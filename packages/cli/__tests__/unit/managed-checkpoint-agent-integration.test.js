@@ -25,6 +25,14 @@ import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js"
 import { resolveAgentPolicy } from "../../src/runtime/policies/agent-policy.js";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
 
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+
 function scriptedChat(toolName, toolArgs) {
   let turn = 0;
   return async () => {
@@ -354,9 +362,17 @@ describe("managed checkpoint agent integration", () => {
         }));
       let events;
       try {
-        events = await runLoop(workspace, stateDir, "run_shell", {
-          command,
-        });
+        events = await runLoop(
+          workspace,
+          stateDir,
+          "run_shell",
+          {
+            command,
+          },
+          {
+            approvalGate: ALLOWING_APPROVAL_GATE,
+          },
+        );
       } finally {
         sandboxPlan.mockRestore();
       }

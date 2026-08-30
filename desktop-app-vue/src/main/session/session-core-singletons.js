@@ -95,12 +95,13 @@ async function getApprovalGate() {
     return _approvalGate;
   }
   const store = createApprovalGateFileAdapter(getApprovalPoliciesPath());
-  _approvalGate = new ApprovalGate({
+  const gate = new ApprovalGate({
     defaultPolicy: APPROVAL_POLICY.STRICT,
     store,
   });
-  await _approvalGate.load();
-  return _approvalGate;
+  await gate.load();
+  _approvalGate = gate;
+  return gate;
 }
 
 function getParkedSessionsPath() {

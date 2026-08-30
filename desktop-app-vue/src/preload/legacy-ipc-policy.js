@@ -1,17 +1,26 @@
-function legacyGenericIpcEnabled(env = process.env) {
-  return env.CC_ENABLE_LEGACY_GENERIC_IPC === "1";
+const manifest = require("./renderer-ipc-capabilities.json");
+
+const fixedRendererIpcChannels = new Set(manifest.channels);
+const deniedUnregisteredRendererIpcChannels = new Set(
+  manifest.deniedUnregisteredChannels || [],
+);
+
+function isFixedRendererIpcChannel(channel) {
+  return typeof channel === "string" && fixedRendererIpcChannels.has(channel);
 }
 
-function assertLegacyGenericIpcEnabled(env = process.env) {
-  if (legacyGenericIpcEnabled(env)) return;
+function assertFixedRendererIpcChannel(channel) {
+  if (isFixedRendererIpcChannel(channel)) return;
   const error = new Error(
-    "Generic renderer IPC is disabled; use a fixed preload capability API",
+    `Renderer IPC capability is not allowed: ${String(channel)}`,
   );
-  error.code = "LEGACY_GENERIC_IPC_DISABLED";
+  error.code = "RENDERER_IPC_CAPABILITY_DENIED";
   throw error;
 }
 
 module.exports = {
-  legacyGenericIpcEnabled,
-  assertLegacyGenericIpcEnabled,
+  fixedRendererIpcChannels,
+  deniedUnregisteredRendererIpcChannels,
+  isFixedRendererIpcChannel,
+  assertFixedRendererIpcChannel,
 };

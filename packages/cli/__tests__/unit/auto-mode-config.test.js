@@ -261,6 +261,30 @@ describe("createAutoModeApprovalGate", () => {
     expect(typeof medium.reason).toBe("string");
   });
 
+  it("does not let auto-mode bypass a failed policy store", async () => {
+    const inner = {
+      hasPolicyStore: () => true,
+      awaitPersistence: async () => {
+        const error = new Error("disk full");
+        error.code = "APPROVAL_POLICY_STORE_UNAVAILABLE";
+        throw error;
+      },
+      decide: vi.fn(),
+    };
+    const gate = createAutoModeApprovalGate(
+      inner,
+      resolveAutoModeDecisions({ decisions: { low: "allow" } }),
+    );
+
+    await expect(
+      gate.decide({ riskLevel: "low", tool: "run_shell" }),
+    ).resolves.toMatchObject({
+      decision: "deny",
+      via: "policy-store-error",
+    });
+    expect(inner.decide).not.toHaveBeenCalled();
+  });
+
   it("routes ask through the confirmer and fails closed without one", async () => {
     const resolved = resolveAutoModeDecisions({
       decisions: { medium: "ask" },
