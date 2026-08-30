@@ -12,6 +12,7 @@ import {
   candidateCheckpointArgs,
   candidateFailureDetails,
   candidateGraphEvidence,
+  controlFailureDetails,
   createEvaluationModelEnvironment,
   enforceQualityThresholds,
   qualityEvidenceDigest,
@@ -304,12 +305,13 @@ describe("graph collaboration quality evidence", () => {
 
     const controlPrompt = buildControlPrompt({ prompt: "Implement it." }, 101);
     for (const prompt of [candidateTask.prompt, controlPrompt]) {
-      expect(prompt).toContain("Use only the exposed file tools");
-      expect(prompt).toContain("Do not invoke run_shell, run_code, git");
+      expect(prompt).toContain("exposed read, list, search, write, and edit");
       expect(prompt).toContain(
         "evaluation harness validates the task-local result",
       );
-      expect(prompt).toContain("Do not run repository-wide tests");
+      expect(prompt).toContain("No separate validation action is needed");
+      expect(prompt).not.toContain("run_shell");
+      expect(prompt).not.toContain("run_code");
     }
 
     expect(
@@ -333,6 +335,29 @@ describe("graph collaboration quality evidence", () => {
       ],
       summary: { success: false, done: true, executions: 1 },
       stderr: "team failed",
+    });
+
+    expect(
+      controlFailureDetails({
+        status: 3,
+        signal: null,
+        stdout:
+          `${JSON.stringify({ type: "denials_summary", count: 1, denials: [{ reason: "blocked sk-abcd1234efgh5678ijkl" }] })}\n` +
+          `${JSON.stringify({ type: "result", subtype: "error_max_turns", is_error: true, result: "unfinished sk-abcd1234efgh5678ijkl", num_turns: 12 })}\n`,
+        stderr: "diagnostic sk-abcd1234efgh5678ijkl",
+      }),
+    ).toEqual({
+      status: 3,
+      signal: null,
+      terminal: {
+        subtype: "error_max_turns",
+        isError: true,
+        code: null,
+        numTurns: 12,
+        result: "unfinished [REDACTED]",
+      },
+      denials: { count: 1, reasons: ["blocked [REDACTED]"] },
+      stderr: "diagnostic [REDACTED]",
     });
   });
 

@@ -56,10 +56,10 @@ const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
 const CANDIDATE_AGENT_LIMIT = 4;
 const FORMAL_EXECUTION_GUIDANCE =
-  "Use only the exposed file tools. Do not invoke run_shell, run_code, git, " +
-  "plugins, hooks, MCP servers, IDE bridges, or sub-agents; the evaluation " +
-  "harness validates the task-local result after you finish. Do not run " +
-  "repository-wide tests, builds, or linters.";
+  "Inspect and modify only the task files with the exposed read, list, " +
+  "search, write, and edit file tools. After making the required edits, " +
+  "return a concise completion message; the evaluation harness validates " +
+  "the task-local result. No separate validation action is needed.";
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -811,6 +811,45 @@ export function candidateFailureDetails(result) {
   };
 }
 
+export function controlFailureDetails(result) {
+  const events = jsonLines(result?.stdout);
+  const terminal = [...events]
+    .reverse()
+    .find((event) => event?.type === "result");
+  const denials = [...events]
+    .reverse()
+    .find((event) => event?.type === "denials_summary");
+  return {
+    status: Number.isInteger(result?.status) ? result.status : null,
+    signal: result?.signal || null,
+    terminal: terminal
+      ? {
+          subtype: String(terminal.subtype || "").slice(0, 128),
+          isError: terminal.is_error === true,
+          code:
+            terminal.code == null ? null : String(terminal.code).slice(0, 128),
+          numTurns: Number(terminal.num_turns || 0),
+          result: redactSecrets(
+            String(terminal.result || terminal.error || ""),
+          ).slice(-1000),
+        }
+      : null,
+    denials: denials
+      ? {
+          count: Number(denials.count || 0),
+          reasons: Array.isArray(denials.denials)
+            ? denials.denials
+                .slice(-8)
+                .map((entry) =>
+                  redactSecrets(String(entry?.reason || entry?.message || "")),
+                )
+            : [],
+        }
+      : null,
+    stderr: redactSecrets(String(result?.stderr || "")).slice(-1500),
+  };
+}
+
 export function buildCandidateTasks(tasks, seed) {
   return tasks.map((task) => ({
     key: task.id,
@@ -1004,7 +1043,7 @@ async function runControl({
       );
       if (result.status !== 0) {
         throw new Error(
-          `single-agent control failed for ${task.id}: ${String(result.stderr).slice(-1000)}`,
+          `single-agent control failed for ${task.id}: ${JSON.stringify(controlFailureDetails(result))}`,
         );
       }
       const events = jsonLines(result.stdout);
