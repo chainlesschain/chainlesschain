@@ -93,7 +93,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     env:
-      CC_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+      CC_API_KEY: ${{ secrets.CC_P2_3_API_KEY || secrets.CC_LLM_API_KEY }}
       QUALITY_CHALLENGE: ${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
       QUALITY_MODEL: ${{ vars.CC_P2_3_MODEL || vars.CC_LLM_MODEL || 'gpt-5-mini' }}
       QUALITY_PROVIDER: ${{ vars.CC_P2_3_PROVIDER || vars.CC_LLM_PROVIDER || 'openai' }}
@@ -117,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${QUALITY_SHA}"
-          test -n "${CC_API_KEY:-}" || { echo "CC_LLM_API_KEY is not configured" >&2; exit 1; }
+          test -n "${CC_API_KEY:-}" || { echo "CC_P2_3_API_KEY and fallback CC_LLM_API_KEY are not configured" >&2; exit 1; }
           test -n "$QUALITY_PROVIDER"
           test -n "$QUALITY_MODEL"
           node -e "const value=Number(process.env.QUALITY_MAX_TOTAL_COST_USD);if(!(Number.isFinite(value)&&value>0&&value<=10000))process.exit(1)"
