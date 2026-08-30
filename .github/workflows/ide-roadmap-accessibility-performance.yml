@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -64,6 +65,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -193,19 +195,18 @@ jobs:
           set -euo pipefail
           mkdir -p "$CC_P2_ARTIFACT_DIR"
           printf '{"schema":"chainlesschain.accessibility-performance-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$ACCESSIBILITY_PERFORMANCE_COMMIT" "${{ matrix.suffix }}" > "$CC_P2_ARTIFACT_DIR/bootstrap.json"
-      - name: Install focused CLI browser dependencies
-        shell: bash
-        run: |
-          # Vitest 4 loads Rolldown through a platform-specific optional binding.
-          npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
-          npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1
+      - name: Install exact-checkout workspace dependencies
+        # The CLI now depends on unpublished first-party workspaces such as the
+        # context-memory kernel. A standalone --prefix install incorrectly asks
+        # the public registry for those packages, so use the repository lockfile.
+        uses: ./.github/actions/setup-node-deps
       - name: Install exact Playwright Chromium
         shell: pwsh
         run: |
           if ($env:RUNNER_OS -eq "Linux") {
-            & node packages/cli/node_modules/playwright/cli.js install --with-deps chromium
+            & node node_modules/playwright/cli.js install --with-deps chromium
           } else {
-            & node packages/cli/node_modules/playwright/cli.js install chromium
+            & node node_modules/playwright/cli.js install chromium
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Measure canonical CLI and VS Code SESSION-UX product surfaces
@@ -262,7 +263,7 @@ jobs:
         shell: bash
         working-directory: packages/cli
         run: >-
-          node node_modules/vitest/vitest.mjs run
+          node ../../node_modules/vitest/vitest.mjs run
           __tests__/unit/session-workbench-store.test.js
           __tests__/unit/session-projection.test.js
           __tests__/unit/vscode-ext-sessions-workbench.test.js

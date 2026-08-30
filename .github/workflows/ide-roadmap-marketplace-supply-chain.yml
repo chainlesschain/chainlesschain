@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/commands/plugin.js"
       - "packages/cli/src/lib/plugin-runtime/install.js"
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
@@ -25,6 +26,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-marketplace-supply-chain.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/commands/plugin.js"
       - "packages/cli/src/lib/plugin-runtime/install.js"
       - "packages/cli/src/lib/plugin-runtime/marketplace-*.js"
@@ -142,21 +144,21 @@ jobs:
           set -euo pipefail
           mkdir -p "$CC_SC_ARTIFACT_DIR"
           printf '{"schema":"chainlesschain.marketplace-supply-chain-bootstrap.v1","releaseCommit":"%s","cell":"%s"}\n' "$SUPPLY_CHAIN_COMMIT" "${{ matrix.suffix }}" > "$CC_SC_ARTIFACT_DIR/bootstrap.json"
-      - name: Install focused CLI dependencies
-        shell: bash
-        # Vitest 4 loads Rolldown through its platform-specific optional
-        # package, so the policy regressions need optional dependencies.
-        run: npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+      - name: Install exact-checkout workspace dependencies
+        # The CLI now depends on unpublished first-party workspaces; installing
+        # packages/cli as a standalone prefix incorrectly queries the registry.
+        uses: ./.github/actions/setup-node-deps
       - name: Run canonical marketplace policy regressions
         shell: bash
         working-directory: packages/cli
         run: >-
-          node node_modules/vitest/vitest.mjs run
+          node ../../node_modules/vitest/vitest.mjs run
           __tests__/unit/plugin-marketplace-selection-command.test.js
           __tests__/unit/plugin-security.test.js
           __tests__/unit/plugin-runtime-install.test.js
           __tests__/unit/plugin-remote-source-security.test.js
           __tests__/unit/plugin-marketplace-source-cache.test.js
+          --config vitest.config.js
           --testTimeout=30000
       - name: Run authenticated supply-chain campaign
         shell: bash
@@ -194,9 +196,8 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
-      - name: Install verifier dependencies
-        shell: bash
-        run: npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+      - name: Install exact-checkout verifier dependencies
+        uses: ./.github/actions/setup-node-deps
       - name: Download all producer evidence
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:

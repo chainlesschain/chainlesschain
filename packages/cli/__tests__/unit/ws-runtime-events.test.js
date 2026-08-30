@@ -105,6 +105,12 @@ function createServer() {
       db: null,
     },
     _session: session,
+    _sessionBudgetDependencies: {
+      // Unit servers are compatibility-only unless a test explicitly injects
+      // canonical JSONL evidence. Never couple this suite to a developer's
+      // persisted session directory or to another test's durable transcript.
+      readSessionHostResumeState: vi.fn(() => null),
+    },
   };
 }
 
@@ -933,9 +939,12 @@ describe("ws runtime event emission", () => {
   });
 
   it("fails session creation closed when handler bootstrap fails", async () => {
-    const bootstrapError = Object.assign(new Error("handler bootstrap failed"), {
-      code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
-    });
+    const bootstrapError = Object.assign(
+      new Error("handler bootstrap failed"),
+      {
+        code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+      },
+    );
     server._session.mcpClient = {
       setElicitationHandler: vi.fn(() => {
         throw bootstrapError;
@@ -1066,9 +1075,14 @@ describe("ws runtime event emission", () => {
       }),
     };
     server._send.mockClear();
-    await handleSessionResume(server, "req-budget-resume", {}, {
-      sessionId: "sess-1",
-    });
+    await handleSessionResume(
+      server,
+      "req-budget-resume",
+      {},
+      {
+        sessionId: "sess-1",
+      },
+    );
 
     expect(
       server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
@@ -1159,6 +1173,34 @@ describe("ws runtime event emission", () => {
           sessionId: "sess-1",
           history: expect.any(Array),
           record: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
+  it("consults canonical JSONL before a legacy session manager resumes", async () => {
+    const readCanonicalResume = vi.fn(() => ({
+      snapshot: {
+        verified: false,
+        verificationError: "SESSION_HEAD_MISMATCH",
+      },
+    }));
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: readCanonicalResume,
+    };
+
+    await handleSessionResume(server, "req-legacy-canonical", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(readCanonicalResume).toHaveBeenCalledWith("sess-1");
+    expect(server.sessionManager.resumeSession).not.toHaveBeenCalled();
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
         }),
       }),
     );
