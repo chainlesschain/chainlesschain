@@ -85,6 +85,7 @@ describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
     expect(res.exitCode).toBe(4);
     const env = envelope(out);
     expect(env.subtype).toBe("error_max_budget");
+    expect(env.total_cost_usd).toBeGreaterThan(0);
     // stopped before the second call / final response
     expect(env.result).not.toBe("should-not-finish");
   });
@@ -123,6 +124,7 @@ describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
     const env = envelope(out);
     expect(env.subtype).toBe("success");
     expect(env.result).toBe("should-not-finish");
+    expect(env.total_cost_usd).toBeGreaterThan(0);
   });
 
   it("no cap → unchanged completion", async () => {
@@ -132,7 +134,8 @@ describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
       deps,
     );
     expect(res.isError).toBe(false);
-    expect(envelope(out).subtype).toBe("success");
+    expect(envelope(out)).toMatchObject({ subtype: "success" });
+    expect(envelope(out).total_cost_usd).toBeGreaterThan(0);
   });
 
   it("emits a stream cost_budget_exhausted event in stream-json", async () => {
@@ -151,8 +154,44 @@ describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
       .trim()
       .split("\n")
       .map((l) => JSON.parse(l));
-    expect(events.some((e) => e.type === "cost_budget_exhausted")).toBe(true);
+    const exhausted = events.find((e) => e.type === "cost_budget_exhausted");
+    expect(exhausted).toBeTruthy();
     expect(events.at(-1)).toMatchObject({ subtype: "error_max_budget" });
+    expect(events.at(-1).total_cost_usd).toBe(exhausted.spent_usd);
+  });
+
+  it("emits priced DeepSeek V4 cost evidence in the stream result", async () => {
+    async function* deepseekCall() {
+      yield {
+        type: "token-usage",
+        provider: "volcengine",
+        model: "deepseek-v4-flash-260425",
+        usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+      };
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    }
+    const { deps, out } = makeDeps(deepseekCall);
+    await runAgentHeadless(
+      {
+        prompt: "x",
+        outputFormat: "stream-json",
+        maxCostUsd: 10,
+        expandFileRefs: false,
+      },
+      deps,
+    );
+    const events = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+
+    expect(events.at(-1)).toMatchObject({
+      type: "result",
+      subtype: "success",
+    });
+    expect(events.at(-1).total_cost_usd).toBeCloseTo(0.42, 12);
   });
 
   it("warns (cost_warning) when the model is unpriced/free", async () => {
