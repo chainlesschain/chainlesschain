@@ -2807,6 +2807,10 @@ export function registerTeamCommand(program, { logger } = {}) {
             }),
             graphAuthorityMode,
             graphAuthority: graphRuntime?.status() || null,
+            graphTraceProjection:
+              graphRuntime?.status()?.phase === "open"
+                ? null
+                : graphRuntime?.traceProjection() || null,
             graphShadowDivergences: [...shadowDivergences],
           });
         };

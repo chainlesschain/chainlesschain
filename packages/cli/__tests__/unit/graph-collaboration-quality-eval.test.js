@@ -100,7 +100,12 @@ describe("formal candidate Graph projection", () => {
     expect(
       candidateGraphEvidence({
         graphAuthorityMode: "canonical",
-        graphAuthority: canonicalProjection(),
+        graphTraceProjection: canonicalProjection(),
+        graphAuthority: {
+          id: "team:quality-run",
+          phase: "sealed",
+          status: "succeeded",
+        },
         graphProjection: {
           schema: "chainlesschain.team-graph-projection/v1",
         },
@@ -122,13 +127,13 @@ describe("formal candidate Graph projection", () => {
     expect(() =>
       candidateGraphEvidence({
         graphAuthorityMode: "legacy",
-        graphAuthority: canonicalProjection(),
+        graphTraceProjection: canonicalProjection(),
       }),
     ).toThrow(/canonical Graph authority/u);
     expect(() =>
       candidateGraphEvidence({
         graphAuthorityMode: "canonical",
-        graphAuthority: {
+        graphTraceProjection: {
           schema: "chainlesschain.team-graph-projection/v1",
           runId: "team:compatibility-projection",
           projectionDigest: `sha256:${"3".repeat(64)}`,
@@ -138,7 +143,7 @@ describe("formal candidate Graph projection", () => {
     expect(() =>
       candidateGraphEvidence({
         graphAuthorityMode: "canonical",
-        graphAuthority: {
+        graphTraceProjection: {
           ...canonicalProjection(),
           status: "deadlocked",
         },
