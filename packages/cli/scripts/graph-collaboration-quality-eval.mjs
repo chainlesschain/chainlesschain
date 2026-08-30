@@ -701,6 +701,8 @@ export function createEvaluationModelEnvironment(
   environment.CLAUDECODE = "1";
   environment.CC_RUN_SHELL_MIN_TIMEOUT_MS = "60000";
   environment.CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS = "60000";
+  environment.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+  environment.CC_FORMAL_QUALITY_EVAL_PROVIDER = provider;
   if (canonicalGraph) {
     environment.CHAINLESSCHAIN_GRAPH_CLI_TEAM = "canonical";
   }

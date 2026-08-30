@@ -74,6 +74,7 @@ import {
   SecureFileIdentityError,
   withTrustedFileParentSync,
 } from "../lib/secure-file-identity.js";
+import { isFormalQualityHermeticRuntime } from "../lib/formal-quality-eval-runtime.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -1078,6 +1079,7 @@ export function makeShellRunTask() {
 /** Spawn a headless `cc agent -p` for one prompt in `cwd`; resolve on exit 0. */
 function spawnAgentProcess(prompt, cwd, opts = {}) {
   return new Promise((resolve, reject) => {
+    const formalQualityHermetic = isFormalQualityHermeticRuntime(process.env);
     const parser = new TeamAgentStreamParser({
       maxLineBytes: opts.maxStreamLineBytes,
       maxTotalBytes: opts.maxStreamTotalBytes,
@@ -1091,7 +1093,10 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
       "stream-json",
     ];
     if (opts.model) args.push("--model", opts.model);
-    if (opts.sessionId) args.push("--session", opts.sessionId);
+    if (opts.sessionId && !formalQualityHermetic) {
+      args.push("--session", opts.sessionId);
+    }
+    if (formalQualityHermetic) args.push("--ephemeral");
     if (opts.sandboxMode) {
       args.push("--sandbox-mode", opts.sandboxMode);
     }

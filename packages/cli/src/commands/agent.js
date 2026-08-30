@@ -30,6 +30,10 @@ import {
   transformBackgroundLaunchArgv,
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
+import {
+  formalQualityProvider,
+  isFormalQualityHermeticRuntime,
+} from "../lib/formal-quality-eval-runtime.js";
 import { withQuietStdout } from "../runtime/quiet-stdout.js";
 import { resolveCredentialEnvironmentValue } from "../lib/process-execution-broker/credential-transport.js";
 import {
@@ -631,6 +635,28 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      const formalQualityHermetic = isFormalQualityHermeticRuntime(process.env);
+      if (formalQualityHermetic) {
+        const provider = formalQualityProvider(process.env);
+        if (!provider) {
+          process.stderr.write(
+            "Error: formal quality hermetic runtime requires CC_FORMAL_QUALITY_EVAL_PROVIDER.\n",
+          );
+          process.exitCode = 1;
+          return;
+        }
+        if (
+          options.provider &&
+          String(options.provider).trim().toLowerCase() !== provider
+        ) {
+          process.stderr.write(
+            "Error: formal quality provider does not match the evaluated command.\n",
+          );
+          process.exitCode = 1;
+          return;
+        }
+        options.provider = provider;
+      }
       // These variables select canonical config/session storage. Capture and
       // validate them before any project settings file can merge an arbitrary
       // `env` map; settings remain useful for child tools but never acquire
@@ -1195,13 +1221,19 @@ export function registerAgentCommand(program) {
         }
         assertSandboxAvailable(resolvedAgentSandbox);
         if (options.sandboxMode === "off") {
-          appendSecurityAuditEvent("sandbox_mode_off", {
-            details: {
-              command: "agent",
-              permissionMode: options.permissionMode || "default",
-              isolation: "policy-only",
-            },
-          });
+          // The formal quality harness runs in an isolated temporary home and
+          // emits no durable session/config data. Avoid turning its explicit
+          // policy-only sandbox choice into repeated Windows ACL initialization;
+          // the normal user-facing audit path remains unchanged.
+          if (!formalQualityHermetic) {
+            appendSecurityAuditEvent("sandbox_mode_off", {
+              details: {
+                command: "agent",
+                permissionMode: options.permissionMode || "default",
+                isolation: "policy-only",
+              },
+            });
+          }
           process.stderr.write(
             "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n",
           );
@@ -1779,7 +1811,11 @@ export function registerAgentCommand(program) {
           settingsFile: options.settings || null,
           outputStyle: options.outputStyle || null,
           // --ephemeral: no session persistence (resume replay stays read-only)
-          ephemeral: options.ephemeral === true,
+          ephemeral: options.ephemeral === true || formalQualityHermetic,
+          // Formal control and candidate children share the existing hermetic
+          // headless boundary: no config/plugin/DB bootstrap, hooks, MCP
+          // discovery, or ambient external tools.
+          hermeticExecution: formalQualityHermetic,
           // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
           maxCostUsd,
           priceTable,

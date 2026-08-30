@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -24,6 +25,9 @@ import {
 
 const ORIGINAL_SPAWN = _deps.spawn;
 const ORIGINAL_KILL_PROCESS_TREE = _deps.killProcessTree;
+const ORIGINAL_FORMAL_HERMETIC = process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC;
+const ORIGINAL_FORMAL_PROVIDER = process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER;
+const ORIGINAL_CHAINLESSCHAIN_HOME = process.env.CHAINLESSCHAIN_HOME;
 
 function createChild({ stdin = false } = {}) {
   const child = new EventEmitter();
@@ -40,6 +44,21 @@ function createChild({ stdin = false } = {}) {
 afterEach(() => {
   _deps.spawn = ORIGINAL_SPAWN;
   _deps.killProcessTree = ORIGINAL_KILL_PROCESS_TREE;
+  if (ORIGINAL_FORMAL_HERMETIC == null) {
+    delete process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC;
+  } else {
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = ORIGINAL_FORMAL_HERMETIC;
+  }
+  if (ORIGINAL_FORMAL_PROVIDER == null) {
+    delete process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER;
+  } else {
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = ORIGINAL_FORMAL_PROVIDER;
+  }
+  if (ORIGINAL_CHAINLESSCHAIN_HOME == null) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = ORIGINAL_CHAINLESSCHAIN_HOME;
+  }
 });
 
 describe("team durable control dispatch", () => {
@@ -343,6 +362,40 @@ describe("team command process Broker", () => {
       }),
     );
     expect(options.env.CLAUDECODE).toBe("1");
+  });
+
+  it("runs formal quality teammates hermetically without durable sessions", async () => {
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = "volcengine";
+    process.env.CHAINLESSCHAIN_HOME = path.join(
+      os.tmpdir(),
+      "cc-formal-quality-test-home",
+    );
+    const child = createChild({ stdin: true });
+    _deps.spawn = vi.fn(() => child);
+
+    const completed = spawnAgent("formal prompt", "/repo", {
+      sessionId: "session-must-not-persist",
+      model: "formal-model",
+    });
+    child.stdout.write(
+      `${JSON.stringify({
+        type: "token_usage",
+        provider: "volcengine",
+        model: "formal-model",
+        usage: { input_tokens: 1, output_tokens: 1 },
+      })}\n`,
+    );
+    child.stdout.write(`${JSON.stringify({ type: "result" })}\n`);
+    child.emit("close", 0);
+    await expect(completed).resolves.toMatchObject({ code: 0 });
+
+    const [, args, options] = _deps.spawn.mock.calls[0];
+    expect(args).toContain("--ephemeral");
+    expect(args).not.toContain("--session");
+    expect(args).not.toContain("session-must-not-persist");
+    expect(options.env.CC_FORMAL_QUALITY_EVAL_HERMETIC).toBe("1");
+    expect(options.env.CC_FORMAL_QUALITY_EVAL_PROVIDER).toBe("volcengine");
   });
 
   it("mounts and cleans a lease-bound real-time teammate tool bridge", async () => {
