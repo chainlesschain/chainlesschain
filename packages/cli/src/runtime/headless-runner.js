@@ -464,65 +464,86 @@ async function withHeadlessSessionHostLease(options, deps, task) {
       `Invalid --output-format "${outputFormat}". Expected one of: ${VALID_OUTPUT_FORMATS.join(", ")}`,
     );
   }
-  const hasInjectedSessionStore =
-    typeof deps.sessionHasPersistedEvidence === "function" ||
-    typeof deps.sessionExists === "function" ||
-    typeof deps.rebuildMessages === "function" ||
-    typeof deps.appendEvent === "function" ||
-    typeof deps.appendAuthorityEvent === "function" ||
-    typeof deps.readVerifiedEvents === "function";
-  const resolution = resolveHeadlessSession(
-    options,
-    {
-      getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
-      resolveSessionAuthority:
-        deps.resolveSessionAuthority ||
-        (!hasInjectedSessionStore ? jsonlResolveSessionAuthority : undefined),
-    },
-    `headless-${Date.now()}-${process.pid}`,
-  );
-  const authoritySessionId =
-    resolution.resumeId || (resolution.persist ? resolution.sessionId : null);
-  const acquireHostLease =
-    deps.acquireSessionHostLease ||
-    (!hasInjectedSessionStore ? acquireSessionHostLease : null);
+  let resolution = null;
   let lease = null;
   let budgetRoot = null;
+  let scopedOptions = options;
   try {
-    if (authoritySessionId && typeof acquireHostLease === "function") {
-      lease = acquireHostLease(authoritySessionId, { hostKind: "headless" });
-    }
-    let scopedOptions = lease?.signal
-      ? {
-          ...options,
-          signal: options.signal
-            ? AbortSignal.any([options.signal, lease.signal])
-            : lease.signal,
-        }
-      : options;
-    budgetRoot = openProductionSessionBudgetRoot(
-      authoritySessionId,
-      options.sessionBudgetRoot,
-      {
-        persist: resolution.persist,
-        signal: scopedOptions.signal || null,
-        table: options.sessionBudgetRoot?.table,
-        open: deps.openSessionBudget,
-        store: deps.sessionBudgetStore,
-        registry: deps.sessionBudgetRegistry,
-      },
-    );
-    if (budgetRoot.enabled) {
-      scopedOptions = { ...scopedOptions, ...budgetRoot.options };
-    }
+    // Session authority/lease/budget setup can lazily initialize AppConfig and
+    // DatabaseManager. Those legacy diagnostics use console.info (stdout), and
+    // therefore used to precede the first NDJSON event for a persisted
+    // `--output-format stream-json` run. Keep the task itself outside this
+    // scope so only bootstrap chatter is redirected, never protocol payloads.
+    await withQuietStdout(() => {
+      const hasInjectedSessionStore =
+        typeof deps.sessionHasPersistedEvidence === "function" ||
+        typeof deps.sessionExists === "function" ||
+        typeof deps.rebuildMessages === "function" ||
+        typeof deps.appendEvent === "function" ||
+        typeof deps.appendAuthorityEvent === "function" ||
+        typeof deps.readVerifiedEvents === "function";
+      resolution = resolveHeadlessSession(
+        options,
+        {
+          getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+          resolveSessionAuthority:
+            deps.resolveSessionAuthority ||
+            (!hasInjectedSessionStore
+              ? jsonlResolveSessionAuthority
+              : undefined),
+        },
+        `headless-${Date.now()}-${process.pid}`,
+      );
+      const authoritySessionId =
+        resolution.resumeId ||
+        (resolution.persist ? resolution.sessionId : null);
+      const acquireHostLease =
+        deps.acquireSessionHostLease ||
+        (!hasInjectedSessionStore ? acquireSessionHostLease : null);
+      if (authoritySessionId && typeof acquireHostLease === "function") {
+        lease = acquireHostLease(authoritySessionId, {
+          hostKind: "headless",
+        });
+      }
+      scopedOptions = lease?.signal
+        ? {
+            ...options,
+            signal: options.signal
+              ? AbortSignal.any([options.signal, lease.signal])
+              : lease.signal,
+          }
+        : options;
+      budgetRoot = openProductionSessionBudgetRoot(
+        authoritySessionId,
+        options.sessionBudgetRoot,
+        {
+          persist: resolution.persist,
+          signal: scopedOptions.signal || null,
+          table: options.sessionBudgetRoot?.table,
+          open: deps.openSessionBudget,
+          store: deps.sessionBudgetStore,
+          registry: deps.sessionBudgetRegistry,
+        },
+      );
+      if (budgetRoot.enabled) {
+        scopedOptions = { ...scopedOptions, ...budgetRoot.options };
+      }
+    });
     return await task(scopedOptions, {
       ...deps,
       [HEADLESS_SESSION_RESOLUTION]: resolution,
       [HEADLESS_SESSION_HOST_LEASE]: lease,
     });
   } finally {
-    budgetRoot?.close?.();
-    lease?.release?.();
+    // Cleanup can touch the same lazy stores. Keep late diagnostics out of a
+    // completed JSON/NDJSON payload while preserving release-on-close failure.
+    await withQuietStdout(() => {
+      try {
+        budgetRoot?.close?.();
+      } finally {
+        lease?.release?.();
+      }
+    });
   }
 }
 
