@@ -315,6 +315,8 @@ function commonArgs(baseUrl) {
     "reliability-probe",
     "--base-url",
     baseUrl,
+    "--sandbox-mode",
+    "off",
   ];
 }
 
