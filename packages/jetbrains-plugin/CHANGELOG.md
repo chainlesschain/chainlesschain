@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.106] - CLI 0.166.14 Windows startup hotfix (2026-08-31)
+
+- Recommend the fully gated public `chainlesschain@0.166.14` release and align
+  the packaged JetBrains Marketplace description and compatibility metadata.
+- Restore Docker-optional normal agent startup while keeping explicit sandbox
+  and managed-policy requests fail closed; on Windows, resolve native
+  `PATHEXT` executables before Docker Desktop's extensionless POSIX shim.
+- Require the exact CLI release SHA and complete IDE release gates before
+  uploading this plugin candidate.
+
 ## [0.4.105] - Canonical Context/Memory projection (2026-08-30)
 
 - Project CLI-issued Context/Memory authority and canonical memory records in
