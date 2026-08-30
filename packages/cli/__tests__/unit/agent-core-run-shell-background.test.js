@@ -7,6 +7,7 @@ import {
   reapIdleBackgroundShellTasks,
   _backgroundProcessDeps,
   _runBackgroundTaskkill,
+  _resolveShellTimeout,
 } from "../../src/runtime/agent-core.js";
 
 const ALLOWING_APPROVAL_GATE = Object.freeze({
@@ -255,6 +256,20 @@ describe("agent-core run_shell background + check_shell", () => {
 });
 
 describe("agent-core run_shell configurable foreground timeout", () => {
+  it("lets a trusted harness enforce a bounded minimum", () => {
+    expect(
+      _resolveShellTimeout(15000, {
+        CC_RUN_SHELL_MIN_TIMEOUT_MS: "60000",
+      }),
+    ).toBe(60000);
+    expect(_resolveShellTimeout(15000, {})).toBe(15000);
+    expect(
+      _resolveShellTimeout(700000, {
+        CC_RUN_SHELL_MIN_TIMEOUT_MS: "900000",
+      }),
+    ).toBe(600000);
+  });
+
   it("a tiny timeout aborts a slow synchronous command", async () => {
     const res = await executeTool(
       "run_shell",

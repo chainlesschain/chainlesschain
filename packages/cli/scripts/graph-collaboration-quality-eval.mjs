@@ -695,6 +695,7 @@ export function createEvaluationModelEnvironment(
   environment.CC_API_KEY = process.env.CC_API_KEY;
   environment.LLM_PROVIDER = provider;
   environment.CLAUDECODE = "1";
+  environment.CC_RUN_SHELL_MIN_TIMEOUT_MS = "60000";
   if (canonicalGraph) {
     environment.CHAINLESSCHAIN_GRAPH_CLI_TEAM = "canonical";
   }
