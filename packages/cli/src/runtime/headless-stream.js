@@ -2375,7 +2375,8 @@ async function runAgentHeadlessStreamInWorkspace(
     }
     if (approvalGate) {
       approvalGate.setAuthorizationConsumer?.(null);
-      approvalGate.setSessionPolicy?.(sessionId, perm.sessionPolicy);
+      await approvalGate.setSessionPolicy?.(sessionId, perm.sessionPolicy);
+      await approvalGate.awaitPersistence?.();
       approvalGate.setConfirmer?.(
         interactive && perm.allowInteractiveApprovals
           ? interactiveConfirm

@@ -481,7 +481,7 @@ describe("ApprovalGate store persistence", () => {
     expect(store._read()).toEqual({});
   });
 
-  it("swallows store.save errors", async () => {
+  it("fails closed after store.save errors", async () => {
     const store = {
       async load() {
         return {};
@@ -491,7 +491,16 @@ describe("ApprovalGate store persistence", () => {
       },
     };
     const g = new ApprovalGate({ store });
-    expect(() => g.setSessionPolicy("s1", POLICY.TRUSTED)).not.toThrow();
-    await new Promise((r) => setImmediate(r));
+    await g.setSessionPolicy("s1", POLICY.TRUSTED);
+
+    await expect(g.awaitPersistence()).rejects.toMatchObject({
+      code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+    });
+    await expect(
+      g.decide({ sessionId: "s1", riskLevel: RISK.LOW }),
+    ).resolves.toMatchObject({
+      decision: DECISION.DENY,
+      via: "policy-store-error",
+    });
   });
 });

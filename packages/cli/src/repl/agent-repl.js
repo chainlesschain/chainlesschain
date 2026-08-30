@@ -4604,17 +4604,18 @@ async function startAgentReplInWorkspaceOwned(
   // Apply bundle approval policy to this session (after both gate and sessionId are ready)
   if (_bundleResolved?.approvalPolicy?.default && _approvalGate && sessionId) {
     try {
-      _approvalGate.setSessionPolicy(
+      await _approvalGate.setSessionPolicy(
         sessionId,
         _bundleResolved.approvalPolicy.default,
       );
+      await _approvalGate.awaitPersistence?.();
       // Mirror it so Shift+Tab cycling starts from the real tier.
       const applied = parsePermissionTier(
         _bundleResolved.approvalPolicy.default,
       );
       if (applied) _sessionTier = applied;
-    } catch (_err) {
-      // Non-critical — invalid policy value is silently ignored
+    } catch (error) {
+      logger.warn(`Bundle approval policy was not persisted: ${error.message}`);
     }
   }
 
@@ -4627,14 +4628,15 @@ async function startAgentReplInWorkspaceOwned(
     const parsed = parsePermissionModeArg(options.permissionMode);
     if (parsed && typeof _approvalGate.setSessionPolicy === "function") {
       try {
-        _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+        await _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+        await _approvalGate.awaitPersistence?.();
         _sessionTier = parsed.auto
           ? "auto"
           : parsed.dontAsk
             ? "dontAsk"
             : parsed.tier;
-      } catch (_err) {
-        // Non-critical — keep the default tier
+      } catch (error) {
+        logger.warn(`Approval policy was not persisted: ${error.message}`);
       }
     }
   }
@@ -5302,7 +5304,7 @@ async function startAgentReplInWorkspaceOwned(
   let _lastIdleEscAt = 0;
   let _replKeypressHandler = null;
   if (process.stdin.isTTY) {
-    _replKeypressHandler = (_str, key) => {
+    _replKeypressHandler = async (_str, key) => {
       const k = key || {};
       // 1) Turn abort always wins, regardless of vim mode.
       if (k.name === "escape" && !k.meta && _turnAbort) {
@@ -5352,7 +5354,8 @@ async function startAgentReplInWorkspaceOwned(
           // (cycling is also how you exit auto mode without /permissions).
           const next = nextTier(gateTierFor(_sessionTier));
           try {
-            _approvalGate.setSessionPolicy(sessionId, next);
+            await _approvalGate.setSessionPolicy(sessionId, next);
+            await _approvalGate.awaitPersistence?.();
             _sessionTier = next;
             process.stdout.write(
               "\n" +
@@ -8755,7 +8758,8 @@ async function startAgentReplInWorkspaceOwned(
           );
         } else {
           try {
-            _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+            await _approvalGate.setSessionPolicy(sessionId, parsed.tier);
+            await _approvalGate.awaitPersistence?.();
             _sessionTier = parsed.auto
               ? "auto"
               : parsed.dontAsk

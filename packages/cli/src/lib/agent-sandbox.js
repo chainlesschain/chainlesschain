@@ -259,10 +259,14 @@ export function normalizeAgentSandbox(value, options = {}) {
  */
 export function normalizeAgentSandboxMode(mode, value, options = {}) {
   if (mode == null || mode === "") {
-    // Keep the container sandbox opt-in unless CLI/settings policy explicitly
-    // enables it. The process broker still applies its platform boundary, but
-    // starting a normal agent must not require Docker to be installed/running.
-    return normalizeAgentSandbox(value, options);
+    // Public agent execution defaults to a real, fail-closed workspace
+    // sandbox with networking disabled. Bare-host execution remains available
+    // only through the explicit `off` mode below, where managed policy can
+    // prohibit it and the CLI records a high-risk security event.
+    return normalizeAgentSandboxMode("workspace-write", value || true, {
+      ...options,
+      network: false,
+    });
   }
   if (!AGENT_SANDBOX_MODES.includes(mode)) {
     const error = new Error(
@@ -392,6 +396,9 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
     timeout: options.timeout,
     maxBuffer: options.maxBuffer,
     windowsHide: true,
+    requirePersistentAudit: true,
+    auditRedactArgIndexes: [args.length - 1],
+    auditContext: options.auditContext,
   });
   if (result.error) {
     return {
@@ -461,6 +468,9 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
     timeout: options.timeout,
     maxBuffer: options.maxBuffer,
     windowsHide: true,
+    requirePersistentAudit: true,
+    auditRedactArgIndexes: [args.length - 1],
+    auditContext: options.auditContext,
   });
   if (result.error) {
     return {

@@ -77,6 +77,24 @@ describe("session-core-singletons", () => {
     expect(gate2.getSessionPolicy("sess_other")).toBe("strict");
   });
 
+  it("does not cache an ApprovalGate whose policy store failed to load", async () => {
+    const policyFile = path.join(tmpHome, "approval-policies.json");
+    fs.writeFileSync(policyFile, "{broken", "utf8");
+    const mod = await import("../../src/lib/session-core-singletons.js");
+
+    await expect(mod.getApprovalGate()).rejects.toMatchObject({
+      code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+    });
+
+    fs.writeFileSync(
+      policyFile,
+      JSON.stringify({ policies: { recovered: "trusted" } }),
+      "utf8",
+    );
+    const recovered = await mod.getApprovalGate();
+    expect(recovered.getSessionPolicy("recovered")).toBe("trusted");
+  });
+
   it("singleton is stable within a process", async () => {
     const mod = await import("../../src/lib/session-core-singletons.js");
     const a = mod.getMemoryStore();

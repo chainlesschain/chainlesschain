@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const {
-  legacyGenericIpcEnabled,
-  assertLegacyGenericIpcEnabled,
+  fixedRendererIpcChannels,
+  deniedUnregisteredRendererIpcChannels,
+  isFixedRendererIpcChannel,
+  assertFixedRendererIpcChannel,
 } = require("../legacy-ipc-policy.js");
 
 describe("legacy generic IPC policy", () => {
@@ -21,17 +23,59 @@ describe("legacy generic IPC policy", () => {
     expect(requiredModules).toEqual(["electron"]);
   });
 
-  it("is disabled by default", () => {
-    expect(legacyGenericIpcEnabled({})).toBe(false);
-    expect(() => assertLegacyGenericIpcEnabled({})).toThrowError(
-      expect.objectContaining({ code: "LEGACY_GENERIC_IPC_DISABLED" }),
+  it("permits only generated exact channels and has no environment bypass", () => {
+    expect(fixedRendererIpcChannels.size).toBeGreaterThan(0);
+    expect(isFixedRendererIpcChannel("audit:query-logs")).toBe(true);
+    expect(() =>
+      assertFixedRendererIpcChannel("audit:query-logs"),
+    ).not.toThrow();
+    expect(() =>
+      assertFixedRendererIpcChannel("attacker:arbitrary-channel"),
+    ).toThrowError(
+      expect.objectContaining({ code: "RENDERER_IPC_CAPABILITY_DENIED" }),
     );
+    for (const channel of deniedUnregisteredRendererIpcChannels) {
+      expect(fixedRendererIpcChannels.has(channel)).toBe(false);
+      expect(() => assertFixedRendererIpcChannel(channel)).toThrowError(
+        expect.objectContaining({ code: "RENDERER_IPC_CAPABILITY_DENIED" }),
+      );
+    }
+
+    process.env.CC_ENABLE_LEGACY_GENERIC_IPC = "1";
+    try {
+      expect(() =>
+        assertFixedRendererIpcChannel("attacker:arbitrary-channel"),
+      ).toThrowError(
+        expect.objectContaining({ code: "RENDERER_IPC_CAPABILITY_DENIED" }),
+      );
+    } finally {
+      delete process.env.CC_ENABLE_LEGACY_GENERIC_IPC;
+    }
   });
 
-  it("requires the explicit compatibility switch", () => {
-    const env = { CC_ENABLE_LEGACY_GENERIC_IPC: "1" };
-    expect(legacyGenericIpcEnabled(env)).toBe(true);
-    expect(() => assertLegacyGenericIpcEnabled(env)).not.toThrow();
+  it("keeps the generated preload block synchronized with the manifest", () => {
+    const preloadSource = readFileSync(
+      resolve(process.cwd(), "src/preload/index.js"),
+      "utf8",
+    );
+    const start = preloadSource.indexOf(
+      "  // BEGIN GENERATED FIXED RENDERER IPC CHANNELS",
+    );
+    const end = preloadSource.indexOf(
+      "  // END GENERATED FIXED RENDERER IPC CHANNELS",
+    );
+    const generated = preloadSource
+      .slice(start, end)
+      .split("\n")
+      .slice(1)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line.trim().replace(/,$/, "")));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(generated).toEqual([...fixedRendererIpcChannels]);
+    expect(preloadSource).not.toContain("CC_ENABLE_LEGACY_GENERIC_IPC");
+    expect(preloadSource).not.toContain("legacyInvoke");
   });
 
   it("exposes collaboration through a scoped allowlist, not generic renderer IPC", () => {
