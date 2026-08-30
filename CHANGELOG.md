@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure
+
+> `chainlesschain` **0.166.12 -> 0.166.13** and Session Core
+> **0.3.7 -> 0.3.8** (release candidates, 2026-08-30).
+
+- **Fixed renderer IPC capabilities**: remove the environment-controlled
+  generic bridge bypass and generate an exact renderer/main capability
+  manifest that fails the Desktop build when it drifts.
+- **Default sandbox and approval boundary**: restore workspace-write with
+  network disabled as the CLI default, deny shell execution when the approval
+  gate is unavailable, and fail closed when approval policy loading or
+  persistence fails.
+- **Durable process audit**: require a persistent, redacted admission record
+  before high-risk process creation and retain bounded actor, session,
+  authorization, policy, sandbox, and result context.
+- **Release boundary**: these versions identify the source candidates for the
+  security fixes; publication still requires the exact candidate to pass the
+  repository's Linux, Windows, and macOS release matrices.
+
 ### Added - cc CLI 0.166.12: durable rollout storage and converged Hooks v2
 
 > `chainlesschain` **0.166.10 -> 0.166.12** (release candidate,
