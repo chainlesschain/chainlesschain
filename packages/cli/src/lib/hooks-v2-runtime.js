@@ -1056,7 +1056,6 @@ class HooksV2Runtime extends EventEmitter {
           ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
         },
       );
-      child.stdin?.end(payload);
       return new Promise((resolve, reject) => {
         let stdout = "";
         let stderr = "";
@@ -1068,6 +1067,21 @@ class HooksV2Runtime extends EventEmitter {
           settled = true;
           signal.removeEventListener("abort", onAbort);
           callback(value);
+        };
+        const onStdinError = (error) => {
+          // Fast hooks such as `echo` can exit before Node flushes the JSON
+          // payload. The resulting EPIPE belongs to the stdin stream (not the
+          // ChildProcess), so without a listener it becomes an uncaught process
+          // exception even though the hook has a valid exit status. Keep the
+          // listener attached for any late write completion; the exit event
+          // remains authoritative for an already-closed stdin pipe.
+          if (
+            error?.code === "EPIPE" ||
+            error?.code === "ERR_STREAM_DESTROYED"
+          ) {
+            return;
+          }
+          settle(reject, error);
         };
         const onAbort = () => {
           try {
@@ -1089,6 +1103,7 @@ class HooksV2Runtime extends EventEmitter {
           "data",
           (chunk) => (stderr = appendBounded(stderr, chunk)),
         );
+        child.stdin?.on?.("error", onStdinError);
         child.on("error", (error) => settle(reject, error));
         child.on("exit", (code) => {
           if (code === 0 || code === 2) {
@@ -1120,6 +1135,11 @@ class HooksV2Runtime extends EventEmitter {
         });
         if (signal.aborted) onAbort();
         else signal.addEventListener("abort", onAbort, { once: true });
+        try {
+          child.stdin?.end(payload);
+        } catch (error) {
+          onStdinError(error);
+        }
       });
     });
   }
