@@ -1233,10 +1233,10 @@ export function registerAgentCommand(program) {
                 isolation: "policy-only",
               },
             });
+            process.stderr.write(
+              "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n",
+            );
           }
-          process.stderr.write(
-            "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n",
-          );
         }
       } catch (err) {
         process.stderr.write(`Error: ${err.message}\n`);

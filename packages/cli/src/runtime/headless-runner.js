@@ -1712,7 +1712,7 @@ async function runAgentHeadlessInWorkspace(
     : options.skillLoader || new CLISkillLoader();
   const systemContent = hermeticExecution
     ? composeSystemPrompt(
-        "You are a hermetic code fixer. Use only the exposed file tools, work only inside the current worktree, and mutate only the exact paths authorized in the user request. Do not invoke commands, plugins, hooks, IDE bridges, MCP servers, or sub-agents.",
+        "You are a hermetic code fixer. The exposed file tools are the complete tool surface. Inspect and mutate only the exact paths authorized in the user request, then return a concise completion message.",
         { projectMemory: false },
       )
     : composeSystemPrompt(
