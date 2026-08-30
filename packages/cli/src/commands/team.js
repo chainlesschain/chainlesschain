@@ -1092,6 +1092,9 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
     ];
     if (opts.model) args.push("--model", opts.model);
     if (opts.sessionId) args.push("--session", opts.sessionId);
+    if (opts.sandboxMode) {
+      args.push("--sandbox-mode", opts.sandboxMode);
+    }
     if (opts.checkpointRequired === true) args.push("--checkpoint");
     if (Number(opts.maxTurns) > 0) {
       args.push("--max-turns", String(opts.maxTurns));
@@ -1456,6 +1459,7 @@ export function makeAgentRunTask(opts = {}) {
     );
     return spawnAgent(buildTeamAgentPrompt(prompt, { inbox }), process.cwd(), {
       ...effectiveContract,
+      sandboxMode: opts.sandboxMode,
       sessionId: opts.sessionIdForTask?.(key, task) || null,
       signal,
       ...(mailbox && holder
@@ -2001,6 +2005,10 @@ export function registerTeamCommand(program, { logger } = {}) {
     .option("--agent-max-turns <n>", "Per-agent task turn cap")
     .option("--agent-max-budget-usd <amount>", "Per-agent task cost cap")
     .option("--agent-max-tokens <n>", "Per-agent task token cap")
+    .option(
+      "--agent-sandbox-mode <mode>",
+      "Sandbox posture for each --agent task: off | workspace-write | strict",
+    )
     .option(
       "--agent-max-wall <seconds>",
       "Per-agent task wall-clock cap in seconds",
@@ -2919,6 +2927,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                       ? false
                       : contract.checkpointRequired,
                     managedCheckpoint,
+                    sandboxMode: options.agentSandboxMode,
                     sessionId: collaborationUnits.get(
                       sessionTaskKeyFor(key, task),
                     )?.sessionId,
@@ -2961,6 +2970,7 @@ export function registerTeamCommand(program, { logger } = {}) {
               collaborationUnits.get(sessionTaskKeyFor(key, task))?.sessionId,
             onMailboxMutation: persist,
             mailboxDurable: Boolean(options.state),
+            sandboxMode: options.agentSandboxMode,
           });
         else runTask = async () => ({ dryRun: true });
 

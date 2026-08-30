@@ -259,6 +259,7 @@ describe("team command process Broker", () => {
       sessionId: "session-team-task-1",
       maxTurns: 6,
       maxBudgetUsd: 2.5,
+      sandboxMode: "off",
       checkpointRequired: true,
     });
     child.stdout.write(
@@ -324,6 +325,8 @@ describe("team command process Broker", () => {
         "6",
         "--max-budget-usd",
         "2.5",
+        "--sandbox-mode",
+        "off",
         "--checkpoint",
       ]),
     );
