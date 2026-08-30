@@ -1413,6 +1413,8 @@ P1-5 的仓库级剩余项已由 [`TaskLeaseRegistry`](../packages/cli/src/lib/a
 
 项目已经有完整 Skill 体系，但没有看到“用户演示一次稳定桌面/浏览器流程，系统自动生成 Skill 草稿”的产品闭环。Codex 当前 Record & Replay 只支持 macOS 且依赖启用的 Computer Use；因此 ChainlessChain 的 Windows/Linux/多浏览器回放是自研目标，不是直接接入即可获得的 parity。可以先针对本地、低风险、可重复的流程做 POC：
 
+> 独立文档：[用户指南](features/record-replay-skill-user-guide.md)｜[模块 111 设计](design/modules/111-record-replay-skill-design.md)。当前用户入口仍标记为技术预览，不把已完成的回放内核等同于可视化录制产品。
+
 1. 录制操作和必要上下文。
 2. 去除秘密与易变数据。
 3. 合成参数化 Skill 草稿。

@@ -158,6 +158,10 @@ export default defineConfig({
             text: "Agent Platform 发布与证据边界 (110) ⭐NEW",
             link: "/modules/110-agent-platform-release-boundaries",
           },
+          {
+            text: "Record & Replay → Skill 设计 (111) ⭐NEW",
+            link: "/modules/111-record-replay-skill-design",
+          },
         ],
       },
       {
@@ -1040,6 +1044,10 @@ export default defineConfig({
             {
               text: "110 Agent Platform 发布与证据边界 ⭐NEW",
               link: "/modules/110-agent-platform-release-boundaries",
+            },
+            {
+              text: "111 Record & Replay → Skill 设计 ⭐NEW",
+              link: "/modules/111-record-replay-skill-design",
             },
           ],
         },

@@ -574,6 +574,10 @@
     "108_Context_Memory_Kernel设计.md": {
       "docs-site": "108-context-memory-kernel.md",
       "docs-site-design": "m108-context-memory-kernel.md"
+    },
+    "111-record-replay-skill-design.md": {
+      "docs-site": "111-record-replay-skill-design.md",
+      "docs-site-design": "111-record-replay-skill-design.md"
     }
   }
 }

@@ -209,6 +209,10 @@ export default defineConfig({
               link: "/chainlesschain/desktop-graph-skill-security",
             },
             {
+              text: "Record & Replay → Skill（技术预览）⭐NEW",
+              link: "/chainlesschain/record-replay-skill",
+            },
+            {
               text: "Agent Protocol — Schema 与多语言生成 ⭐NEW",
               link: "/chainlesschain/agent-protocol",
             },
@@ -1960,6 +1964,10 @@ export default defineConfig({
             {
               text: "110 Agent Platform 发布与证据边界 ⭐NEW",
               link: "/design/modules/110-agent-platform-release-boundaries",
+            },
+            {
+              text: "111 Record & Replay → Skill 设计 ⭐NEW",
+              link: "/design/modules/111-record-replay-skill-design",
             },
             {
               text: "60b CLI指令技能包 ⭐",
