@@ -2774,9 +2774,8 @@ async function runAgentHeadlessInWorkspace(
   let _asyncStopHandled = false;
   const _settleAsyncStop = async () => {
     if (!settingsHooks || !_hookSupervisor) return { rewakes: [], results: [] };
-    const { dispatchAsyncHooks } =
-      await import("../lib/settings-hook-events.js");
-    dispatchAsyncHooks(
+    const { runObserveHooks } = await import("../lib/settings-hook-events.js");
+    await runObserveHooks(
       settingsHooks,
       "Stop",
       { reason: endReason, cwd, session_id: sessionId },
@@ -3617,7 +3616,7 @@ async function runAgentHeadlessInWorkspace(
     await cleanupDeadline.run("settings-hooks", async () => {
       if (settingsHooks) {
         try {
-          const { runObserveHooks, dispatchAsyncHooks } =
+          const { runObserveHooks } =
             await import("../lib/settings-hook-events.js");
           const stopPayload = {
             reason: pipeState.closed ? "pipe_closed" : endReason,
@@ -3652,10 +3651,6 @@ async function runAgentHeadlessInWorkspace(
           // Skip the async Stop dispatch/settle here if the auto-rewake re-drive
           // loop already fired + drained it this run (avoids double-execution).
           if (_hookSupervisor && !_asyncStopHandled) {
-            dispatchAsyncHooks(settingsHooks, "Stop", stopPayload, {
-              cwd,
-              supervisor: _hookSupervisor,
-            });
             // Bounded settle: wait for in-flight async hooks (Stop + any
             // PostToolUse dispatched during the loop) to finish, capped so a
             // slow/hung check can never stall the run. Default 5s; tunable.

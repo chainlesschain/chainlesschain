@@ -794,6 +794,7 @@ class HooksV2Runtime extends EventEmitter {
         record.status = "error";
         record.error = err.message;
         record.errorCode = err.code || null;
+        record.nonBlockingError = hook.failureMode === "ignore";
         record.decision =
           contract.decisionCapable &&
           !forceObserveOnly &&
@@ -1048,7 +1049,11 @@ class HooksV2Runtime extends EventEmitter {
           },
     );
     return executeWithHookTimeout("command", budget, async (signal) => {
-      const child = await this.executionBroker.spawn(
+      // `spawn()` returns a ChildProcess synchronously. Do not await it: an
+      // immediately failing command can emit `error`/`exit` in the microtask
+      // gap before listeners are attached, leaving the hook pending until its
+      // full timeout budget expires.
+      const child = this.executionBroker.spawn(
         invocation.file,
         invocation.argv,
         {

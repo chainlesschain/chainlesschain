@@ -9,4 +9,7 @@
  * `packages/cli/src/gateways/ws/ws-session-gateway.js` in new code.
  */
 
-export { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
+export {
+  WS_SESSION_ROLLOUT_EVENT,
+  WSSessionManager,
+} from "../gateways/ws/ws-session-gateway.js";
