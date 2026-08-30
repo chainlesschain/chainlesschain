@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.13",
+      "cliVersions": ["0.3.8", "0.166.12", "0.166.13"],
+      "date": "2026-08-30",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure",
+          "body": "> `chainlesschain` **0.166.12 -> 0.166.13** and Session Core\n> **0.3.7 -> 0.3.8** (release candidates, 2026-08-30).\n\n- **Fixed renderer IPC capabilities**: remove the environment-controlled\n  generic bridge bypass and generate an exact renderer/main capability\n  manifest that fails the Desktop build when it drifts.\n- **Default sandbox and approval boundary**: restore workspace-write with\n  network disabled as the CLI default, deny shell execution when the approval\n  gate is unavailable, and fail closed when approval policy loading or\n  persistence fails.\n- **Durable process audit**: require a persistent, redacted admission record\n  before high-risk process creation and retain bounded actor, session,\n  authorization, policy, sandbox, and result context.\n- **Release boundary**: these versions identify the source candidates for the\n  security fixes; publication still requires the exact candidate to pass the\n  repository's Linux, Windows, and macOS release matrices."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.12",
       "cliVersions": ["0.166.10", "0.166.12"],
       "date": "2026-08-30",
