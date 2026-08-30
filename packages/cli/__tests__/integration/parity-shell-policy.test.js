@@ -45,6 +45,14 @@ async function drain(iterable) {
   return out;
 }
 
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+
 /**
  * Build a two-step script: model calls run_shell with `command`, then
  * acknowledges the result in a final text reply. Used by every DENY case
@@ -189,6 +197,7 @@ describe("Phase 7 parity: Shell command policy gate", () => {
         model: "mock-1",
         cwd: workDir,
         chatFn: mock.chatFn,
+        approvalGate: ALLOWING_APPROVAL_GATE,
       }),
     );
 
