@@ -19,14 +19,12 @@ function fail(code, message) {
 }
 
 async function canonicalMemoryService(scopeKey) {
-  const { resolveCliContextMemoryCutover } = await import(
-    "../../lib/context-memory-kernel/authority.js"
-  );
+  const { resolveCliContextMemoryCutover } =
+    await import("../../lib/context-memory-kernel/authority.js");
   const decision = resolveCliContextMemoryCutover({ scopeKey });
   if (!decision.canonical) return null;
-  const { createCliCanonicalMemoryService } = await import(
-    "../../lib/context-memory-kernel/memory-service.js"
-  );
+  const { createCliCanonicalMemoryService } =
+    await import("../../lib/context-memory-kernel/memory-service.js");
   return createCliCanonicalMemoryService();
 }
 
@@ -145,11 +143,11 @@ async function sessionsPolicySet(message) {
   const { getApprovalGate } = await loadSingletons();
   const gate = await getApprovalGate();
   try {
-    gate.setSessionPolicy(message.sessionId, message.policy);
+    await gate.setSessionPolicy(message.sessionId, message.policy);
+    await gate.awaitPersistence?.();
   } catch (e) {
-    return fail("INVALID_POLICY", e.message);
+    return fail(e.code || "INVALID_POLICY", e.message);
   }
-  await new Promise((r) => setImmediate(r));
   return ok({
     sessionId: message.sessionId,
     policy: gate.getSessionPolicy(message.sessionId),

@@ -964,12 +964,19 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxed: 0,
       credFiltered: 0,
     };
-    this._logPath = path.join(
-      os.homedir(),
-      ".chainlesschain",
-      "logs",
-      "process-audit.log",
-    );
+    this._logPath =
+      process.env.NODE_ENV === "test"
+        ? path.join(
+            os.tmpdir(),
+            "chainlesschain-process-audit-tests",
+            `${process.pid}.log`,
+          )
+        : path.join(
+            os.homedir(),
+            ".chainlesschain",
+            "logs",
+            "process-audit.log",
+          );
 
     // P0-1: Platform sandbox functions (applySandbox/postSpawnSandbox imported above)
     // No instance needed — stateless functional API per platform
@@ -998,7 +1005,8 @@ class ProcessExecutionBroker extends EventEmitter {
     try {
       fs.mkdirSync(path.dirname(this._logPath), { recursive: true });
     } catch {
-      // Audit persistence is best-effort; in-memory audit remains available.
+      // Legacy callers may retain in-memory audit. Required-audit executions
+      // independently prove appendability before native spawn and fail closed.
     }
   }
 
@@ -1033,6 +1041,14 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   _recordAudit(entry) {
+    try {
+      fs.appendFileSync(this._logPath, JSON.stringify(entry) + "\n");
+    } catch (cause) {
+      if (entry.persistentAuditRequired === true) {
+        throw this._persistentAuditError(cause, entry);
+      }
+      // Non-sensitive legacy callers retain best-effort persistence.
+    }
     this._auditLog.push(entry);
     if (this._auditLog.length > 10000) this._auditLog.shift();
     this._stats.totalSpawned++;
@@ -1046,12 +1062,54 @@ class ProcessExecutionBroker extends EventEmitter {
     }
     this._stats.byOrigin[entry.origin] =
       (this._stats.byOrigin[entry.origin] || 0) + 1;
-    try {
-      fs.appendFileSync(this._logPath, JSON.stringify(entry) + "\n");
-    } catch {
-      // Audit persistence is best-effort; the in-memory entry is retained.
-    }
     this.emit("spawn", entry);
+  }
+
+  _persistentAuditError(cause, entry) {
+    const error = new Error(
+      `Persistent process audit is unavailable: ${cause.message}`,
+    );
+    error.code = "ERR_PROCESS_AUDIT_UNAVAILABLE";
+    error.auditFailClosed = true;
+    error.cause = cause;
+    error.auditEntry = entry;
+    return error;
+  }
+
+  _requirePersistentAuditAdmission(entry) {
+    const admission = {
+      ...entry,
+      auditPhase: "admission",
+      persistentAuditRequired: true,
+      admittedAt: Date.now(),
+    };
+    try {
+      fs.appendFileSync(this._logPath, JSON.stringify(admission) + "\n");
+    } catch (cause) {
+      throw this._persistentAuditError(cause, entry);
+    }
+    entry.persistentAuditRequired = true;
+    entry.persistentAuditAdmitted = true;
+  }
+
+  _recordRequiredAuditOutcome(entry, auditPhase) {
+    if (entry.persistentAuditRequired !== true) return;
+    try {
+      fs.appendFileSync(
+        this._logPath,
+        JSON.stringify({ ...entry, auditPhase }) + "\n",
+      );
+    } catch (cause) {
+      const error = this._persistentAuditError(cause, entry);
+      entry.persistentAuditFailure = error.message;
+      if (this.listenerCount("audit-error") > 0) {
+        this.emit("audit-error", { auditEntry: entry, error });
+      }
+      process.emitWarning(error.message, {
+        code: error.code,
+        detail: `executionId=${entry.executionId}`,
+      });
+    }
   }
 
   _sanitizeOptions(options) {
@@ -3965,8 +4023,68 @@ class ProcessExecutionBroker extends EventEmitter {
     return sanitized;
   }
 
+  _auditCommand(command, redact = false) {
+    if (!redact) return command;
+    const digest = crypto
+      .createHash("sha256")
+      .update(String(command ?? ""), "utf8")
+      .digest("hex");
+    return `[REDACTED sha256:${digest}]`;
+  }
+
+  _normalizeAuditContext(value, origin) {
+    if (value === undefined || value === null) {
+      return {
+        actor: origin,
+        sessionId: null,
+        authorization: null,
+        policyDigest: null,
+      };
+    }
+    if (typeof value !== "object" || Array.isArray(value)) {
+      throw new TypeError("auditContext must be an object");
+    }
+    const snapshot = ownDataObjectSnapshot(value);
+    if (!snapshot)
+      throw new TypeError("auditContext must contain data properties");
+    const authorization = snapshot.authorization;
+    if (
+      authorization !== undefined &&
+      authorization !== null &&
+      (typeof authorization !== "object" || Array.isArray(authorization))
+    ) {
+      throw new TypeError("auditContext.authorization must be an object");
+    }
+    const authorizationSnapshot = authorization
+      ? ownDataObjectSnapshot(authorization)
+      : null;
+    if (authorization && !authorizationSnapshot) {
+      throw new TypeError(
+        "auditContext.authorization must contain data properties",
+      );
+    }
+    const text = (input, fallback = null) =>
+      typeof input === "string" && input ? input.slice(0, 512) : fallback;
+    return {
+      actor: text(snapshot.actor, origin),
+      sessionId: text(snapshot.sessionId),
+      authorization: authorizationSnapshot
+        ? {
+            decision: text(authorizationSnapshot.decision, "unknown"),
+            via: text(authorizationSnapshot.via, "unknown"),
+            riskLevel: text(authorizationSnapshot.riskLevel),
+            policy: text(authorizationSnapshot.policy),
+          }
+        : null,
+      policyDigest: text(snapshot.policyDigest),
+    };
+  }
+
   _stripAuditControlOptions(options) {
     delete options.auditRedactArgIndexes;
+    delete options.auditRedactCommand;
+    delete options.auditContext;
+    delete options.requirePersistentAudit;
   }
 
   _applyCredentialBoundary(command, args, spawnOptions, origin) {
@@ -4380,12 +4498,20 @@ class ProcessExecutionBroker extends EventEmitter {
     );
 
     const traceCtx = this._getTraceContext();
+    const auditContext = this._normalizeAuditContext(
+      options.auditContext,
+      origin,
+    );
     const auditEntry = {
       executionId,
       traceId: traceCtx?.traceId || null,
       origin,
       scope,
-      command,
+      actor: auditContext.actor,
+      sessionId: auditContext.sessionId,
+      authorization: auditContext.authorization,
+      approvalPolicyDigest: auditContext.policyDigest,
+      command: this._auditCommand(command, options.auditRedactCommand === true),
       args: this._auditArgs(args, auditRedactArgIndexes),
       cwd,
       startTime,
@@ -4531,6 +4657,16 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxPlan.cleanup?.();
       transactionError.auditEntry = auditEntry;
       throw transactionError;
+    }
+
+    if (options.requirePersistentAudit === true) {
+      try {
+        this._requirePersistentAuditAdmission(auditEntry);
+      } catch (auditError) {
+        sandboxPlan.cleanup?.();
+        auditError.auditEntry = auditEntry;
+        throw auditError;
+      }
     }
 
     // Use native spawn from _native (set by patch-child-process.js)
@@ -4680,6 +4816,7 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.signal = signal;
         auditEntry.endTime = endTime;
         auditEntry.durationMs = endTime - startTime;
+        this._recordRequiredAuditOutcome(auditEntry, "completed");
         this._writeRplEntry(auditEntry, "completed");
         this._emitHooksEvent("tool:end", {
           executionId,
@@ -4695,6 +4832,7 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.error = err.message;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._recordRequiredAuditOutcome(auditEntry, "error");
         this._writeRplEntry(auditEntry, "error", err);
         this._emitHooksEvent("tool:end", {
           executionId,
@@ -4743,12 +4881,20 @@ class ProcessExecutionBroker extends EventEmitter {
     );
 
     const traceCtx = this._getTraceContext();
+    const auditContext = this._normalizeAuditContext(
+      options.auditContext,
+      origin,
+    );
     const auditEntry = {
       executionId,
       traceId: traceCtx?.traceId || null,
       origin,
       scope,
-      command,
+      actor: auditContext.actor,
+      sessionId: auditContext.sessionId,
+      authorization: auditContext.authorization,
+      approvalPolicyDigest: auditContext.policyDigest,
+      command: this._auditCommand(command, options.auditRedactCommand === true),
       args: this._auditArgs(args, auditRedactArgIndexes),
       cwd,
       startTime,
@@ -4880,6 +5026,16 @@ class ProcessExecutionBroker extends EventEmitter {
       throw transactionError;
     }
 
+    if (options.requirePersistentAudit === true) {
+      try {
+        this._requirePersistentAuditAdmission(auditEntry);
+      } catch (auditError) {
+        sandboxPlan.cleanup?.();
+        auditError.auditEntry = auditEntry;
+        throw auditError;
+      }
+    }
+
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
       const macPlanBindingDeclared =
@@ -4957,12 +5113,20 @@ class ProcessExecutionBroker extends EventEmitter {
       options.auditRedactArgIndexes,
       Array.isArray(args) ? args.length : 0,
     );
+    const auditContext = this._normalizeAuditContext(
+      options.auditContext,
+      origin,
+    );
     const auditEntry = {
       executionId,
       traceId: this._getTraceContext()?.traceId || null,
       origin,
       scope,
-      command,
+      actor: auditContext.actor,
+      sessionId: auditContext.sessionId,
+      authorization: auditContext.authorization,
+      approvalPolicyDigest: auditContext.policyDigest,
+      command: this._auditCommand(command, options.auditRedactCommand === true),
       args: this._auditArgs(args, auditRedactArgIndexes),
       cwd: options.cwd || process.cwd(),
       startTime,
@@ -5051,6 +5215,9 @@ class ProcessExecutionBroker extends EventEmitter {
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;
       this._prepareWorkspaceTransactionAudit(auditEntry);
+      if (options.requirePersistentAudit === true) {
+        this._requirePersistentAuditAdmission(auditEntry);
+      }
 
       if (sandboxPolicy.requiredBoundaries.length === 0) {
         delete spawnOptions.origin;
@@ -5070,7 +5237,18 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.pid = proc?.pid ?? null;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;
-        this._recordAudit(auditEntry);
+        try {
+          this._recordAudit(auditEntry);
+        } catch (auditError) {
+          try {
+            proc.kill?.();
+          } catch {
+            // Preserve the required-audit failure after requesting teardown.
+          }
+          auditError.spawnedProcess = proc;
+          auditError.processTerminationRequested = true;
+          throw auditError;
+        }
         this._writeRplEntry(auditEntry, "started");
         return proc;
       }
@@ -5216,6 +5394,7 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.signal = signal;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._recordRequiredAuditOutcome(auditEntry, "completed");
         this._writeRplEntry(auditEntry, "completed");
         this.emit("exit", auditEntry);
       });
@@ -5224,13 +5403,26 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.error = error.message;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._recordRequiredAuditOutcome(auditEntry, "error");
         this._writeRplEntry(auditEntry, "error", error);
         if (this.listenerCount("error") > 0) this.emit("error", auditEntry);
       });
       auditEntry.pid = proc?.pid ?? null;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;
-      this._recordAudit(auditEntry);
+      try {
+        this._recordAudit(auditEntry);
+      } catch (auditError) {
+        try {
+          child.kill?.();
+        } catch {
+          // Preserve the required-audit failure after requesting teardown.
+        }
+        releaseTerminal();
+        auditError.spawnedProcess = proc;
+        auditError.processTerminationRequested = true;
+        throw auditError;
+      }
       this._writeRplEntry(auditEntry, "started");
       return proc;
     } catch (error) {

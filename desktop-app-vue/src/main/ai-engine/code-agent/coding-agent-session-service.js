@@ -248,15 +248,19 @@ class CodingAgentSessionService extends EventEmitter {
     // Lazy-loaded so this module remains test-friendly without Electron.
     // Managed Agents parity Phase H.
     this.approvalGate = options.approvalGate || null;
-    if (!this.approvalGate && options.useSessionCoreApprovalGate !== false) {
+    this._requiresSessionCoreApprovalGate =
+      options.useSessionCoreApprovalGate !== false;
+    this._approvalGateLoadError = null;
+    if (!this.approvalGate && this._requiresSessionCoreApprovalGate) {
       try {
-        const {
-          getApprovalGate,
-        } = require("../../session/session-core-singletons.js");
+        const getApprovalGate =
+          options.approvalGateLoader ||
+          require("../../session/session-core-singletons.js").getApprovalGate;
         // Thunk so construction doesn't await here; resolved on first
         // evaluateToolCall that opts into the gate.
         this._approvalGateLoader = getApprovalGate;
       } catch (e) {
+        this._approvalGateLoadError = e;
         logger.warn(
           "[CodingAgentSessionService] session-core ApprovalGate unavailable:",
           e.message,
@@ -320,12 +324,33 @@ class CodingAgentSessionService extends EventEmitter {
       try {
         approvalGate = await this._approvalGateLoader();
         this.approvalGate = approvalGate;
+        this._approvalGateLoadError = null;
       } catch (e) {
+        this._approvalGateLoadError = e;
         logger.warn(
           "[CodingAgentSessionService] failed to load ApprovalGate:",
           e.message,
         );
       }
+    }
+    if (!approvalGate && this._requiresSessionCoreApprovalGate) {
+      const evaluation = this.permissionGate.evaluateToolCall(opts);
+      return {
+        ...evaluation,
+        decision: "deny",
+        allowed: false,
+        requiresConfirmation: false,
+        denyReason: "ApprovalGate denied (policy-store-error)",
+        approvalGate: {
+          decision: "deny",
+          via: "policy-store-error",
+          policy: null,
+          riskLevel: evaluation.riskLevel,
+          errorCode:
+            this._approvalGateLoadError?.code ||
+            "APPROVAL_POLICY_STORE_UNAVAILABLE",
+        },
+      };
     }
     if (!approvalGate) {
       return this.permissionGate.evaluateToolCall(opts);

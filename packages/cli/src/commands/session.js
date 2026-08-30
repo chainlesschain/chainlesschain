@@ -1463,9 +1463,8 @@ export function registerSessionCommand(program) {
           await import("../lib/session-core-singletons.js");
         const gate = await getApprovalGate();
         if (options.set) {
-          gate.setSessionPolicy(id, options.set);
-          // give persistence a tick before the CLI process exits
-          await new Promise((r) => setImmediate(r));
+          await gate.setSessionPolicy(id, options.set);
+          await gate.awaitPersistence?.();
           logger.success(
             `Session ${chalk.gray(id.slice(0, 12))} policy → ${chalk.cyan(options.set)}`,
           );

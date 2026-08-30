@@ -10,9 +10,22 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
-  executeTool,
+  executeTool as executeToolWithoutGate,
   killAllBackgroundShellTasks,
 } from "../../src/runtime/agent-core.js";
+
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+const executeTool = (name, args, context = {}) =>
+  executeToolWithoutGate(name, args, {
+    approvalGate: ALLOWING_APPROVAL_GATE,
+    ...context,
+  });
 
 const NODE = `"${process.execPath}"`;
 let tmp;

@@ -321,6 +321,12 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
     clearSessionPolicy(sessionId) {
       return inner?.clearSessionPolicy?.(sessionId);
     },
+    awaitPersistence() {
+      return inner?.awaitPersistence?.();
+    },
+    hasPolicyStore() {
+      return inner?.hasPolicyStore?.() === true;
+    },
     setConfirmer(fn) {
       confirm = typeof fn === "function" ? fn : null;
       inner?.setConfirmer?.(fn);
@@ -360,6 +366,26 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       return inner?.createAuthorizationBinder?.() || null;
     },
     async decide(ctx = {}) {
+      const shouldCheckPersistence =
+        typeof inner?.awaitPersistence === "function" &&
+        (typeof inner?.hasPolicyStore !== "function" ||
+          inner.hasPolicyStore() === true);
+      if (shouldCheckPersistence) {
+        try {
+          await inner.awaitPersistence();
+        } catch (error) {
+          return {
+            decision: "deny",
+            via: "policy-store-error",
+            base: "deny",
+            policy: "auto-mode",
+            riskLevel: RISK_LEVELS.includes(ctx.riskLevel)
+              ? ctx.riskLevel
+              : "low",
+            error,
+          };
+        }
+      }
       if (!isActive()) return inner.decide(ctx);
       const riskLevel = RISK_LEVELS.includes(ctx.riskLevel)
         ? ctx.riskLevel

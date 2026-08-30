@@ -167,7 +167,8 @@ function registerSessionCoreIpc(ipcMain) {
     }
     try {
       const gate = await getApprovalGate();
-      gate.setSessionPolicy(sessionId, policy);
+      await gate.setSessionPolicy(sessionId, policy);
+      await gate.awaitPersistence?.();
       return ok({ sessionId, policy });
     } catch (e) {
       return err(e.message);
@@ -180,7 +181,9 @@ function registerSessionCoreIpc(ipcMain) {
     }
     try {
       const gate = await getApprovalGate();
-      return ok({ cleared: gate.clearSessionPolicy(sessionId) });
+      const cleared = gate.clearSessionPolicy(sessionId);
+      await gate.awaitPersistence?.();
+      return ok({ cleared });
     } catch (e) {
       return err(e.message);
     }
@@ -324,21 +327,22 @@ function registerSessionCoreIpc(ipcMain) {
       if (opts && opts.consolidate && Array.isArray(opts.events) && handle) {
         if (!contextMemoryCutover.legacyWritable) {
           consolidation = legacyMemoryFenced();
-        } else try {
-          const store = getMemoryStore();
-          const trace = buildTraceStoreFromEvents(sessionId, opts.events);
-          const consolidator = new MemoryConsolidator({
-            memoryStore: store,
-            traceStore: trace,
-            scope: opts.scope || "agent",
-          });
-          consolidation = await consolidator.consolidate(
-            { sessionId, agentId: handle.agentId },
-            { scope: opts.scope, scopeId: opts.scopeId },
-          );
-        } catch (ce) {
-          consolidation = { error: ce.message };
-        }
+        } else
+          try {
+            const store = getMemoryStore();
+            const trace = buildTraceStoreFromEvents(sessionId, opts.events);
+            const consolidator = new MemoryConsolidator({
+              memoryStore: store,
+              traceStore: trace,
+              scope: opts.scope || "agent",
+            });
+            consolidation = await consolidator.consolidate(
+              { sessionId, agentId: handle.agentId },
+              { scope: opts.scope, scopeId: opts.scopeId },
+            );
+          } catch (ce) {
+            consolidation = { error: ce.message };
+          }
       }
       const closed = await mgr.close(sessionId);
       return ok({ closed, consolidation });
@@ -635,12 +639,9 @@ function registerSessionCoreIpc(ipcMain) {
         resolved.approvalPolicy &&
         resolved.approvalPolicy.default
       ) {
-        try {
-          const gate = await getApprovalGate();
-          gate.setSessionPolicy(sessionId, resolved.approvalPolicy.default);
-        } catch (_apErr) {
-          // non-fatal — approval policy application is best-effort
-        }
+        const gate = await getApprovalGate();
+        await gate.setSessionPolicy(sessionId, resolved.approvalPolicy.default);
+        await gate.awaitPersistence?.();
       }
 
       _loadedBundle = {

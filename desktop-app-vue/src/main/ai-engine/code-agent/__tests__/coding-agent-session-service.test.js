@@ -346,6 +346,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
     });
   });
 
@@ -457,6 +458,7 @@ describe("CodingAgentSessionService", () => {
         mainWindow,
         repoRoot: "C:\\code\\chainlesschain",
         projectRoot: "C:\\code\\chainlesschain",
+        useSessionCoreApprovalGate: false,
       });
       for (const event of fixtureCase.events) {
         caseBridge.emit("message", event);
@@ -1033,6 +1035,7 @@ describe("CodingAgentSessionService", () => {
         mainWindow: scenarioWindow,
         repoRoot: "C:\\code\\chainlesschain",
         projectRoot: "C:\\code\\chainlesschain",
+        useSessionCoreApprovalGate: false,
       });
       const requestId = `approval-${scenario.name}`;
       const binding = `ab_${scenario.name}`;
@@ -1296,6 +1299,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
       toolManager: {
         getAllTools: vi.fn().mockResolvedValue([
           {
@@ -1363,6 +1367,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
       mcpSecurityPolicy: {
         validateToolExecution: vi.fn().mockResolvedValue(undefined),
       },
@@ -1428,6 +1433,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
       allowedMcpServerNames: ["github"],
       allowHighRiskMcpServers: true,
       mcpManager: {
@@ -1483,6 +1489,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
       mcpManager: {
         servers: new Map([["weather", { state: "connected" }]]),
         listTools: vi.fn().mockResolvedValue([
@@ -1527,6 +1534,7 @@ describe("CodingAgentSessionService", () => {
       mainWindow,
       repoRoot: "C:\\code\\chainlesschain",
       projectRoot: "C:\\code\\chainlesschain",
+      useSessionCoreApprovalGate: false,
       mcpSecurityPolicy: {
         validateToolExecution: vi.fn().mockResolvedValue(undefined),
       },
@@ -1928,6 +1936,7 @@ describe("CodingAgentSessionService", () => {
         mainWindow: mainWindow2,
         repoRoot: "C:\\code\\chainlesschain",
         projectRoot: "C:\\code\\chainlesschain",
+        useSessionCoreApprovalGate: false,
         enablePhase5Envelopes: true,
       });
 
@@ -1960,6 +1969,46 @@ describe("CodingAgentSessionService", () => {
   // Phase J: ApprovalGate integration for hosted tool execution
   // ────────────────────────────────────────────────────────────────────────
   describe("Phase J — ApprovalGate in _executeHostedTool", () => {
+    it("fails closed when the required ApprovalGate cannot load", async () => {
+      const loadError = Object.assign(new Error("policy file is corrupt"), {
+        code: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+      });
+      const toolDesc = {
+        name: "read_file",
+        description: "Read a file",
+        isReadOnly: true,
+        riskLevel: "LOW",
+        inputSchema: { type: "object", properties: {} },
+      };
+      const hostedService = new CodingAgentSessionService({
+        bridge: new MockBridge(),
+        approvalGateLoader: vi.fn().mockRejectedValue(loadError),
+        toolAdapter: {
+          getToolDescriptorSync: vi.fn().mockReturnValue(toolDesc),
+          listAvailableTools: vi.fn().mockResolvedValue([toolDesc]),
+          buildFunctionToolDefinitions: vi.fn().mockReturnValue([]),
+        },
+      });
+
+      const evaluation = await hostedService.evaluateToolCall({
+        toolName: "read_file",
+        sessionId: "session-policy-error",
+        toolDescriptor: toolDesc,
+      });
+
+      expect(evaluation).toMatchObject({
+        decision: "deny",
+        allowed: false,
+        requiresConfirmation: false,
+        denyReason: "ApprovalGate denied (policy-store-error)",
+        approvalGate: {
+          decision: "deny",
+          via: "policy-store-error",
+          errorCode: "APPROVAL_POLICY_STORE_UNAVAILABLE",
+        },
+      });
+    });
+
     it("_executeHostedTool routes through evaluateToolCall (async ApprovalGate path)", async () => {
       const mockApprovalGate = {
         decide: vi

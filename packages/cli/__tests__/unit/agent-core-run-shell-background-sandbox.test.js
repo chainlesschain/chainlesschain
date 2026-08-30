@@ -17,6 +17,13 @@ let originalBackgroundRun;
 let originalContractIssuer;
 let originalPlatform;
 let nextPid = 71000;
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
 
 function installStrictNodeBin() {
   const root = pluginVersionDir("local", "strict-background-bin", "1.0.0", {
@@ -79,7 +86,7 @@ async function launchGenericBackground(extraArgs = {}, context = { cwd }) {
       run_in_background: true,
       ...extraArgs,
     },
-    context,
+    { approvalGate: ALLOWING_APPROVAL_GATE, ...context },
   );
 }
 

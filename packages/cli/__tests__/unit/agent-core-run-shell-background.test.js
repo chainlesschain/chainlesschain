@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
-  executeTool,
+  executeTool as executeToolWithoutGate,
   listBackgroundShellTasks,
   killAllBackgroundShellTasks,
   killAllBackgroundShellTasksSync,
@@ -8,6 +8,19 @@ import {
   _backgroundProcessDeps,
   _runBackgroundTaskkill,
 } from "../../src/runtime/agent-core.js";
+
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+const executeTool = (name, args, context = {}) =>
+  executeToolWithoutGate(name, args, {
+    approvalGate: ALLOWING_APPROVAL_GATE,
+    ...context,
+  });
 
 // run_shell { run_in_background:true } + check_shell polling pair (Claude-Code
 // style run_in_background + BashOutput). These exercise the real spawn path, so

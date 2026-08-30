@@ -62,15 +62,20 @@ describe("agent-core run_shell + ApprovalGate", () => {
     expect(res.approval?.via).toBe("shell-policy");
   });
 
-  it("no approvalGate → legacy shell-policy-only behavior (no approval field)", async () => {
+  it("no approvalGate → fail-closed before spawning", async () => {
     const res = await executeTool(
       "run_shell",
-      { command: "echo hello-legacy" },
+      { command: "echo must-not-run-without-gate" },
       {},
     );
-    expect(res.error).toBeUndefined();
-    expect(res.approval).toBeFalsy();
-    expect(typeof res.stdout).toBe("string");
+    expect(res.error).toMatch(/\[ApprovalGate\]/);
+    expect(res.approval).toEqual(
+      expect.objectContaining({
+        decision: "deny",
+        via: "approval-gate-unavailable",
+      }),
+    );
+    expect(res.stdout).toBeUndefined();
   });
 
   it("fail-closes unattended publish/push shell actions before spawning", async () => {
@@ -102,7 +107,11 @@ describe("agent-core run_shell + ApprovalGate", () => {
       {
         command: `node -e "console.log('OUT-MARKER'); process.exit(3)"`,
       },
-      {},
+      {
+        approvalGate: new ApprovalGate({
+          defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+        }),
+      },
     );
     expect(res.exitCode).toBe(3);
     expect(typeof res.stdout).toBe("string");

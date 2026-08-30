@@ -5,7 +5,20 @@
  * is covered by every other run_shell test (byte-identical).
  */
 import { describe, it, expect } from "vitest";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { executeTool as executeToolWithoutGate } from "../../src/runtime/agent-core.js";
+
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+const executeTool = (name, args, context = {}) =>
+  executeToolWithoutGate(name, args, {
+    approvalGate: ALLOWING_APPROVAL_GATE,
+    ...context,
+  });
 
 const IS_WIN = process.platform === "win32";
 

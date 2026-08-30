@@ -5666,7 +5666,7 @@ async function executeToolInner(
       // below so an allow rule can never re-enable a blocked unsafe command.
       const requestShellApproval = async (operationArgs) => {
         await shellDispatchPolicyAuthority?.revalidate?.();
-        if (approvalGate && !ruleAllowed) {
+        if (!ruleAllowed) {
           const approvalPolicyVersion = `${shellDispatchPolicyAuthority?.policyVersion || "cc-shell-policy-authority/v1:unobserved"}:shell:${shellPolicy.decision}:${shellPolicy.ruleId || "none"}`;
           const gated = await evaluateShellCommandWithApproval({
             command: args.command,
@@ -6062,6 +6062,43 @@ async function executeToolInner(
       );
       if (approvalDenial) return approvalDenial;
 
+      const createShellProcessAuditContext = () => {
+        const authorization = approvalOutcome || {
+          decision: "allow",
+          via: ruleAllowed ? "settings-rule" : "shell-policy",
+          riskLevel: null,
+          policy: null,
+        };
+        const policyDigest = createHash("sha256")
+          .update(
+            JSON.stringify({
+              authorityVersion:
+                shellDispatchPolicyAuthority?.policyVersion || null,
+              shellDecision: shellPolicy.decision || null,
+              shellRuleId: shellPolicy.ruleId || null,
+              authorization,
+            }),
+            "utf8",
+          )
+          .digest("hex");
+        return Object.freeze({
+          actor: "agent",
+          sessionId: sessionId ? String(sessionId) : null,
+          authorization: Object.freeze({ ...authorization }),
+          policyDigest,
+        });
+      };
+      const shellProcessAuditRedactArgIndexes = () => {
+        const auditArgs = pluginBinInvocation
+          ? executionPlugin?.argv
+          : shellInv.useDefaultShell
+            ? []
+            : shellInv.argv;
+        return Array.isArray(auditArgs)
+          ? auditArgs.map((_, index) => index)
+          : [];
+      };
+
       let shellDispatchAdmitted = false;
       const admitShellDispatch = async () => {
         if (shellDispatchAdmitted) {
@@ -6190,6 +6227,10 @@ async function executeToolInner(
             policy: "allow",
             scope: "agent",
             sandboxPolicy: pluginBinSandboxPolicy,
+            requirePersistentAudit: true,
+            auditRedactCommand: true,
+            auditRedactArgIndexes: [launchArgs.length - 1],
+            auditContext: createShellProcessAuditContext(),
           };
           const issuer =
             _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract;
@@ -6300,6 +6341,10 @@ async function executeToolInner(
                 origin: processOrigin,
                 policy: "allow",
                 scope: "agent",
+                requirePersistentAudit: true,
+                auditRedactCommand: true,
+                auditRedactArgIndexes: shellProcessAuditRedactArgIndexes(),
+                auditContext: createShellProcessAuditContext(),
                 ...processProvenance,
               }
             : null;
@@ -6491,6 +6536,7 @@ async function executeToolInner(
             maxBuffer: 1024 * 1024,
             egressProxy,
             env: sandboxChildEnvironment,
+            auditContext: createShellProcessAuditContext(),
           });
         } finally {
           if (proxyHandle) {
@@ -6550,6 +6596,10 @@ async function executeToolInner(
           origin: processOrigin,
           policy: "allow",
           scope: "agent",
+          requirePersistentAudit: true,
+          auditRedactCommand: true,
+          auditRedactArgIndexes: shellProcessAuditRedactArgIndexes(),
+          auditContext: createShellProcessAuditContext(),
           ...processProvenance,
         };
         if (pluginBinInvocation) {

@@ -92,6 +92,8 @@ class ApprovalGate {
     this._onDecision = onDecision; // (ctx, result) => void
     this._store = store; // { load(), save(policies) } — optional
     this._perSession = new Map(); // sessionId → policy override
+    this._persistenceTail = Promise.resolve();
+    this._persistenceError = null;
   }
 
   async load() {
@@ -106,13 +108,35 @@ class ApprovalGate {
   }
 
   _persist() {
-    if (!this._store?.save) return;
+    if (!this._store?.save) return Promise.resolve();
     const snapshot = Object.fromEntries(this._perSession);
-    Promise.resolve()
-      .then(() => this._store.save(snapshot))
-      .catch(() => {
-        /* swallow — store-error path kept silent; adapters log themselves */
-      });
+    const attempt = this._persistenceTail
+      .catch(() => {})
+      .then(() => this._store.save(snapshot));
+    this._persistenceTail = attempt.then(
+      () => {
+        this._persistenceError = null;
+      },
+      (error) => {
+        this._persistenceError = error;
+      },
+    );
+    return this._persistenceTail;
+  }
+
+  async awaitPersistence() {
+    await this._persistenceTail;
+    if (!this._persistenceError) return;
+    const error = new Error(
+      `ApprovalGate: policy store persistence unavailable: ${this._persistenceError.message}`,
+    );
+    error.code = "APPROVAL_POLICY_STORE_UNAVAILABLE";
+    error.cause = this._persistenceError;
+    throw error;
+  }
+
+  hasPolicyStore() {
+    return typeof this._store?.save === "function";
   }
 
   setSessionPolicy(sessionId, policy) {
@@ -123,7 +147,8 @@ class ApprovalGate {
     }
     const prev = this._perSession.get(sessionId);
     this._perSession.set(sessionId, policy);
-    if (prev !== policy) this._persist();
+    if (prev !== policy || this._persistenceError) return this._persist();
+    return this._persistenceTail;
   }
 
   getSessionPolicy(sessionId) {
@@ -132,7 +157,7 @@ class ApprovalGate {
 
   clearSessionPolicy(sessionId) {
     const existed = this._perSession.delete(sessionId);
-    if (existed) this._persist();
+    if (existed || this._persistenceError) this._persist();
     return existed;
   }
 
@@ -284,6 +309,12 @@ class ApprovalGate {
       clearSessionPolicy(sid) {
         return gate.clearSessionPolicy(sid || scopedSessionId);
       },
+      awaitPersistence() {
+        return gate.awaitPersistence();
+      },
+      hasPolicyStore() {
+        return gate.hasPolicyStore();
+      },
       setConfirmer(fn) {
         validateOptionalFunction(fn, "ApprovalGate.setConfirmer: fn");
         confirm = fn;
@@ -350,6 +381,28 @@ class ApprovalGate {
     const policy =
       ctx.policy ||
       (sessionId ? this.getSessionPolicy(sessionId) : this._default);
+    if (this._store?.save) {
+      try {
+        await this.awaitPersistence();
+      } catch (error) {
+        const result = {
+          decision: DECISION.DENY,
+          via: "policy-store-error",
+          base: DECISION.DENY,
+          policy,
+          riskLevel,
+          error,
+        };
+        if (this._onDecision) {
+          try {
+            this._onDecision(ctx, result);
+          } catch {
+            // The storage failure is already represented by the deny result.
+          }
+        }
+        return result;
+      }
+    }
     const base = baseDecision(policy, riskLevel);
 
     let result;
