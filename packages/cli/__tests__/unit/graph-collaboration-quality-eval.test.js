@@ -26,18 +26,18 @@ const PER_INVOCATION_CEILING_USD =
   (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
 
 describe("formal candidate platform isolation", () => {
-  it("uses worktree plus Agent checkpoint on macOS without claiming process-tree containment", () => {
-    expect(candidateCheckpointArgs("macos")).toEqual([]);
-  });
-
-  it.each(["linux", "windows"])(
-    "keeps managed process checkpoints on %s",
+  it.each(["linux", "macos"])(
+    "uses worktree plus Agent checkpoint on %s without claiming process-tree containment",
     (platform) => {
-      expect(candidateCheckpointArgs(platform)).toEqual([
-        "--managed-checkpoint",
-      ]);
+      expect(candidateCheckpointArgs(platform)).toEqual([]);
     },
   );
+
+  it("keeps the Windows Job-backed managed process checkpoint", () => {
+    expect(candidateCheckpointArgs("windows")).toEqual([
+      "--managed-checkpoint",
+    ]);
+  });
 
   it("rejects non-matrix platform spellings", () => {
     expect(() => candidateCheckpointArgs("darwin")).toThrow(
