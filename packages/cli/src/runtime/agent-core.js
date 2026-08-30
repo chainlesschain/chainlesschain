@@ -788,6 +788,12 @@ async function requestInteractivePermission(
       ? Boolean(await confirm(confirmArgs))
       : false;
   }
+  if (context.planReadOnlyFenceActive === true) {
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    return typeof confirm === "function"
+      ? Boolean(await confirm(confirmArgs))
+      : false;
+  }
   const hooksV2 = await executeHooksV2Event(
     "PermissionRequest",
     {

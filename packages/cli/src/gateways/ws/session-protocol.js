@@ -962,17 +962,18 @@ export async function handleSessionResume(server, id, ws, message) {
   }
 
   const { sessionId } = message;
-  const canonicalStoreEnabled =
-    typeof server.sessionManager.markCanonicalSession === "function" ||
-    typeof server._sessionBudgetDependencies?.readSessionHostResumeState ===
-      "function";
-  let canonicalResume = canonicalStoreEnabled
-    ? wsBudgetDependency(
-        server,
-        "readSessionHostResumeState",
-        readSessionHostResumeState,
-      )(sessionId)
-    : null;
+  // Always consult the canonical transcript before the compatibility store.
+  // A manager without the newer markCanonicalSession() hook may still be
+  // resuming a session that another host already committed to JSONL. Skipping
+  // this read lets stale DB/WS state replace verified history and also bypasses
+  // missing/tampered/rollback refusal. readSessionHostResumeState() returns
+  // null for a genuinely absent transcript, so legacy-only sessions retain
+  // their compatibility fallback without weakening canonical authority.
+  let canonicalResume = wsBudgetDependency(
+    server,
+    "readSessionHostResumeState",
+    readSessionHostResumeState,
+  )(sessionId);
   if (canonicalResume && !canonicalResume.snapshot.verified) {
     server._send(
       ws,

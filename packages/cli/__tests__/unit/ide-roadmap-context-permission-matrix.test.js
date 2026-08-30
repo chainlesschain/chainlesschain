@@ -248,10 +248,11 @@ describe("context/permission Actions matrix", () => {
     expect(workflow).toContain("windows-2025");
     expect(workflow).toContain("ContextCenterTest");
     expect(workflow).toContain("PolicyViewerTest");
-    expect(workflow).toContain(
-      "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",
-    );
-    expect(workflow).not.toMatch(/npm install[^\n]*--omit=optional/u);
+    expect(workflow).toContain("uses: ./.github/actions/setup-node-deps");
+    expect(workflow).not.toMatch(/npm install[^\n]*--prefix packages\/cli/u);
+    expect(workflow).toContain("working-directory: packages/cli");
+    expect(workflow).toContain("node ../../node_modules/vitest/vitest.mjs run");
+    expect(workflow).toContain("--config vitest.config.js");
     expect(workflow).toContain("if: always()");
   });
 

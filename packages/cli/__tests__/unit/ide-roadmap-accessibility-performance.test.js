@@ -469,8 +469,7 @@ afterEach(() => {
 describe("P2-4 accessibility/performance matrix", () => {
   it("binds the executed workflow bytes to the exact release commit", () => {
     const workflowSha = "c".repeat(40);
-    const workflowRef =
-      `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`;
+    const workflowRef = `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`;
     const matchingReader = () => Buffer.from("identical workflow bytes");
 
     expect(
@@ -501,8 +500,7 @@ describe("P2-4 accessibility/performance matrix", () => {
       verifyAccessibilityWorkflowAuthority({
         releaseCommit: COMMIT,
         workflowSha: "c".repeat(40),
-        workflowRef:
-          `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`,
+        workflowRef: `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`,
         required: true,
         githubActions: "false",
         producerReader: () => Buffer.from("same"),
@@ -573,13 +571,16 @@ describe("P2-4 accessibility/performance matrix", () => {
     expect(workflow).toContain("DiagnosticsSnapshotSchedulerTest");
     expect(workflow).toContain("vscode-ext-diagnostics-scheduler.test.js");
     expect(workflow).toContain("host-dom-relay.test.cjs");
+    expect(workflow).toContain("uses: ./.github/actions/setup-node-deps");
+    expect(workflow).not.toMatch(/npm install[^\n]*--prefix packages\/cli/u);
     expect(workflow).toContain(
-      "npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli",
+      "node node_modules/playwright/cli.js install --with-deps chromium",
     );
-    expect(workflow).not.toMatch(/npm install[^\n]*--omit=optional/u);
     expect(workflow).toContain(
-      "npm install --ignore-scripts --no-package-lock --no-save --prefix packages/cli playwright@1.61.1",
+      "node node_modules/playwright/cli.js install chromium",
     );
+    expect(workflow).toContain("node ../../node_modules/vitest/vitest.mjs run");
+    expect(workflow).toContain("--config vitest.config.js");
     expect(workflow).toContain("if: always()");
     expect(workflow).toContain("needs.accessibility-performance.result");
     expect(workflow).toContain("ax-transcript-audit-fragment.mjs");

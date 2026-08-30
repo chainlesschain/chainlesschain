@@ -71,4 +71,79 @@ describe("hooks-v2 producer event projection", () => {
     expect(JSON.stringify(events)).not.toContain("secret hook input");
     expect(JSON.stringify(events)).not.toContain("secret hook output");
   });
+
+  it("does not require workspace identity when no hook can execute", async () => {
+    runtime.executeHooks.mockResolvedValue({
+      blocked: false,
+      decision: "continue",
+      results: [],
+    });
+
+    const outcome = await executeHooksV2Event(
+      "Notification",
+      { session_id: "session-no-hooks" },
+      { cwd: "Z:/cc-definitely-missing-workspace" },
+    );
+
+    expect(outcome.decision).toBe("continue");
+    expect(runtime.executeHooks).toHaveBeenCalledOnce();
+  });
+
+  it("binds settings failures to the caller's authority boundary", async () => {
+    runtime.executeHooks.mockResolvedValue({
+      blocked: false,
+      decision: "continue",
+      results: [],
+    });
+    const settingsHooks = {
+      Stop: [
+        {
+          matcher: null,
+          hooks: [{ type: "command", command: "echo stop" }],
+        },
+      ],
+      PreToolUse: [
+        {
+          matcher: null,
+          hooks: [{ type: "command", command: "echo pre" }],
+        },
+      ],
+    };
+
+    await executeHooksV2Event("Stop", {}, { settingsHooks });
+    await executeHooksV2Event(
+      "PreToolUse",
+      {},
+      {
+        settingsHooks,
+        failClosed: true,
+      },
+    );
+
+    expect(
+      runtime.executeHooks.mock.calls[0][2].additionalHooks[0],
+    ).toMatchObject({ failureMode: "ignore" });
+    expect(
+      runtime.executeHooks.mock.calls[1][2].additionalHooks[0],
+    ).toMatchObject({ failureMode: "fail-closed" });
+  });
+
+  it("fails closed only when the producer declares a real decision gate", async () => {
+    runtime.executeHooks.mockRejectedValue(new Error("runtime unavailable"));
+
+    const observed = await executeHooksV2Event("Stop", {});
+    const gated = await executeHooksV2Event(
+      "PreToolUse",
+      {},
+      {
+        failClosed: true,
+      },
+    );
+
+    expect(observed).toMatchObject({
+      blocked: false,
+      decision: "continue",
+    });
+    expect(gated).toMatchObject({ blocked: true, decision: "block" });
+  });
 });

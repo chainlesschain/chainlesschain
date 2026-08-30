@@ -39,7 +39,7 @@ export function adaptSettingsHookDefinitions(
   settingsHooks,
   event,
   matchTarget = "",
-  { cwd = process.cwd() } = {},
+  { cwd = process.cwd(), failureMode = "fail-closed" } = {},
 ) {
   const authorityErrors = settingsHooks?._authorityErrors;
   if (Array.isArray(authorityErrors) && authorityErrors.length > 0) {
@@ -87,7 +87,7 @@ export function adaptSettingsHookDefinitions(
       pluginId: hook.pluginId || null,
       pluginVersion: hook.pluginVersion || null,
       pluginSource: hook.pluginSource || null,
-      failureMode: "fail-closed",
+      failureMode: failureMode === "ignore" ? "ignore" : "fail-closed",
     };
     definition.definitionDigest = computeHookDefinitionDigest(definition);
     return Object.freeze(definition);
@@ -221,10 +221,13 @@ export function adaptDatabaseHookDefinitions(db, event, context = {}) {
 export function collectCanonicalAdapterHooks(
   event,
   context,
-  { settingsHooks, hookDb, matchTarget, cwd } = {},
+  { settingsHooks, hookDb, matchTarget, cwd, settingsFailureMode } = {},
 ) {
   return [
-    ...adaptSettingsHookDefinitions(settingsHooks, event, matchTarget, { cwd }),
+    ...adaptSettingsHookDefinitions(settingsHooks, event, matchTarget, {
+      cwd,
+      failureMode: settingsFailureMode,
+    }),
     ...adaptDatabaseHookDefinitions(hookDb, event, context),
   ];
 }
