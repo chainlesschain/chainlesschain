@@ -267,15 +267,9 @@ describe("marketplace supply-chain Actions matrix", () => {
       ).toHaveLength(3);
     }
     expect(
-      workflow.match(
-        /npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
-      ),
-    ).toHaveLength(1);
-    expect(
-      workflow.match(
-        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
-      ),
-    ).toHaveLength(1);
+      workflow.match(/uses: \.\/\.github\/actions\/setup-node-deps/gu),
+    ).toHaveLength(2);
+    expect(workflow).not.toMatch(/npm install[^\n]*--prefix packages\/cli/u);
     const focusedStepStart = workflow.indexOf(
       "- name: Run canonical marketplace policy regressions",
     );
@@ -287,6 +281,10 @@ describe("marketplace supply-chain Actions matrix", () => {
     expect(focusedStepEnd).toBeGreaterThan(focusedStepStart);
     const focusedStep = workflow.slice(focusedStepStart, focusedStepEnd);
     expect(focusedStep).toContain("working-directory: packages/cli");
+    expect(focusedStep).toContain(
+      "node ../../node_modules/vitest/vitest.mjs run",
+    );
+    expect(focusedStep).toContain("--config vitest.config.js");
     for (const testFile of [
       "plugin-marketplace-selection-command.test.js",
       "plugin-security.test.js",

@@ -11,7 +11,6 @@
  */
 import { collectCanonicalAdapterHooks } from "./hook-runtime-adapters.js";
 import path from "node:path";
-import { DECISION_EVENTS } from "./hook-runtime-contract.js";
 import { runWithHostHooksV2Workspace } from "./hooks-v2-workspace-context.js";
 
 const sessionObservers = new Map();
@@ -112,6 +111,8 @@ async function dispatchHooksV2Event(eventName, context, options) {
       matchTarget:
         options.matchTarget || context.tool_name || context.tool || "",
       cwd: options.cwd || context.cwd || process.cwd(),
+      settingsFailureMode:
+        options.failClosed === true ? "fail-closed" : "ignore",
     });
     const runtimeOptions = {
       ...options,
@@ -134,12 +135,18 @@ async function dispatchHooksV2Event(eventName, context, options) {
       options.workspaceRoot || options.cwd || process.cwd(),
     );
     delete runtimeOptions.workspaceRoot;
+    const registeredHooks = runtime.hooks?.get?.(eventName);
+    const hasCandidateHooks =
+      (Array.isArray(registeredHooks) && registeredHooks.length > 0) ||
+      runtimeOptions.additionalHooks.length > 0;
+    if (!hasCandidateHooks) {
+      return await runtime.executeHooks(eventName, context, runtimeOptions);
+    }
     return await runWithHostHooksV2Workspace(workspaceRoot, () =>
       runtime.executeHooks(eventName, context, runtimeOptions),
     );
   } catch (error) {
-    const failClosed =
-      options.failClosed === true || DECISION_EVENTS.has(eventName);
+    const failClosed = options.failClosed === true;
     return {
       success: !failClosed,
       blocked: failClosed,

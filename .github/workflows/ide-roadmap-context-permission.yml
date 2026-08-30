@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ide-roadmap-context-permission.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-*.js"
       - "packages/cli/src/lib/permission-*.js"
       - "packages/cli/src/lib/scoped-permission-store.js"
@@ -18,6 +19,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-context-permission.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-*.js"
       - "packages/cli/src/lib/permission-*.js"
       - "packages/cli/src/lib/scoped-permission-store.js"
@@ -90,12 +92,10 @@ jobs:
           set -euo pipefail
           mkdir -p "$CC_CP_ARTIFACT_DIR"
           printf '{"schema":"chainlesschain.context-permission-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$CONTEXT_PERMISSION_COMMIT" "${{ matrix.suffix }}" > "$CC_CP_ARTIFACT_DIR/bootstrap.json"
-      - name: Install focused CLI test dependencies
-        shell: bash
-        # Vitest 4 loads Rolldown through its platform-specific optional
-        # package. Omitting optional dependencies makes the focused suite fail
-        # before test collection on clean Linux/macOS/Windows runners.
-        run: npm install --include=optional --ignore-scripts --no-package-lock --no-save --prefix packages/cli
+      - name: Install exact-checkout workspace dependencies
+        # The CLI now depends on unpublished first-party workspaces; installing
+        # packages/cli as a standalone prefix incorrectly queries the registry.
+        uses: ./.github/actions/setup-node-deps
       - name: Run production concurrency and cross-entry campaign
         shell: bash
         run: >-
@@ -107,12 +107,14 @@ jobs:
           --state-dir "$CC_CP_STATE_DIR"
       - name: Run focused CLI and VS Code regressions
         shell: bash
+        working-directory: packages/cli
         run: >-
-          node packages/cli/node_modules/vitest/vitest.mjs run
-          packages/cli/__tests__/unit/scoped-permission-store.test.js
-          packages/cli/__tests__/unit/permission-side-effect-center.test.js
-          packages/cli/__tests__/unit/vscode-ext-context-center.test.js
-          packages/cli/__tests__/unit/vscode-ext-policy-viewer.test.js
+          node ../../node_modules/vitest/vitest.mjs run
+          __tests__/unit/scoped-permission-store.test.js
+          __tests__/unit/permission-side-effect-center.test.js
+          __tests__/unit/vscode-ext-context-center.test.js
+          __tests__/unit/vscode-ext-policy-viewer.test.js
+          --config vitest.config.js
           --testTimeout=30000
       - name: Run JetBrains contract twins on JDK 21
         shell: pwsh
