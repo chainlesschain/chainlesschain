@@ -8,6 +8,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { BUILTIN_TASKS } from "../src/lib/eval/tasks.js";
+import { evaluateGraphProjection } from "../src/lib/graph-kernel/eval.js";
 import { redactSecrets } from "../src/lib/secret-scan.js";
 
 export const PLATFORM_SCHEMA =
@@ -623,7 +624,40 @@ async function prepareBenchmark(prefix, tasks) {
   return { root, baseline: git(["rev-parse", "HEAD"], root) };
 }
 
-function minimalModelEnvironment(provider) {
+export function createEvaluationModelEnvironment(
+  provider,
+  isolationRoot,
+  { canonicalGraph = false } = {},
+) {
+  const resolvedIsolationRoot = path.resolve(String(isolationRoot || ""));
+  const temporaryRelation = path.relative(
+    path.resolve(os.tmpdir()),
+    resolvedIsolationRoot,
+  );
+  if (
+    !temporaryRelation ||
+    temporaryRelation === ".." ||
+    temporaryRelation.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(temporaryRelation)
+  ) {
+    throw new Error("evaluation isolation root must be below the OS temp root");
+  }
+  const userHome = path.join(resolvedIsolationRoot, "user-home");
+  const configHome = path.join(resolvedIsolationRoot, "chainlesschain-home");
+  const appData = path.join(userHome, "app-data");
+  const localAppData = path.join(userHome, "local-app-data");
+  const xdgConfigHome = path.join(userHome, "xdg-config");
+  const xdgCacheHome = path.join(userHome, "xdg-cache");
+  for (const directory of [
+    userHome,
+    configHome,
+    appData,
+    localAppData,
+    xdgConfigHome,
+    xdgCacheHome,
+  ]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
   const allowed = [
     "PATH",
     "Path",
@@ -631,12 +665,6 @@ function minimalModelEnvironment(provider) {
     "SystemRoot",
     "WINDIR",
     "ComSpec",
-    "HOME",
-    "USERPROFILE",
-    "APPDATA",
-    "LOCALAPPDATA",
-    "XDG_CONFIG_HOME",
-    "XDG_CACHE_HOME",
     "TMP",
     "TEMP",
     "TMPDIR",
@@ -651,10 +679,44 @@ function minimalModelEnvironment(provider) {
       .filter((name) => process.env[name] != null)
       .map((name) => [name, process.env[name]]),
   );
+  environment.HOME = userHome;
+  environment.USERPROFILE = userHome;
+  environment.APPDATA = appData;
+  environment.LOCALAPPDATA = localAppData;
+  environment.XDG_CONFIG_HOME = xdgConfigHome;
+  environment.XDG_CACHE_HOME = xdgCacheHome;
+  environment.CHAINLESSCHAIN_HOME = configHome;
   environment.CC_API_KEY = process.env.CC_API_KEY;
   environment.LLM_PROVIDER = provider;
   environment.CLAUDECODE = "1";
+  if (canonicalGraph) {
+    environment.CHAINLESSCHAIN_GRAPH_CLI_TEAM = "canonical";
+  }
   return environment;
+}
+
+export function candidateGraphEvidence(state) {
+  if (state?.graphAuthorityMode !== "canonical") {
+    throw new Error("Graph candidate did not use canonical Graph authority");
+  }
+  const projection = state?.graphAuthority;
+  if (
+    projection?.schema !== "chainlesschain.graph-trace-projection/v1" ||
+    projection?.status !== "succeeded" ||
+    !projection?.runId ||
+    !SHA256.test(String(projection?.projectionDigest || ""))
+  ) {
+    throw new Error("Graph candidate lacks a successful canonical projection");
+  }
+  const evaluation = evaluateGraphProjection(projection);
+  if (evaluation.metrics.terminalSuccess !== 1) {
+    throw new Error("Graph candidate canonical projection is not successful");
+  }
+  return Object.freeze({
+    graphRunId: projection.runId,
+    graphProjectionDigest: projection.projectionDigest,
+    graphMetrics: evaluation.metrics,
+  });
 }
 
 function runCli(args, options = {}) {
@@ -859,6 +921,9 @@ async function runControl({
   perInvocationCeilingUsd,
 }) {
   const benchmark = await prepareBenchmark("cc-quality-control-", tasks);
+  const support = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-quality-control-state-"),
+  );
   const started = Date.now();
   let tokens = 0;
   let costUsd = 0;
@@ -880,6 +945,8 @@ async function runControl({
           model,
           "--permission-mode",
           "acceptEdits",
+          "--sandbox-mode",
+          "off",
           "--max-turns",
           "12",
           "--max-budget-usd",
@@ -888,7 +955,7 @@ async function runControl({
         ],
         {
           cwd: path.join(benchmark.root, "cases", task.id),
-          env: minimalModelEnvironment(provider),
+          env: createEvaluationModelEnvironment(provider, support),
         },
       );
       if (result.status !== 0) {
@@ -931,6 +998,7 @@ async function runControl({
     };
   } finally {
     safeRemoveTemporary(benchmark.root);
+    safeRemoveTemporary(support);
   }
 }
 
@@ -976,6 +1044,8 @@ async function runCandidate({
         model,
         "--permission-mode",
         "acceptEdits",
+        "--agent-sandbox-mode",
+        "off",
         "--agent-max-turns",
         "12",
         "--agent-max-budget-usd",
@@ -994,7 +1064,9 @@ async function runCandidate({
       ],
       {
         cwd: benchmark.root,
-        env: minimalModelEnvironment(provider),
+        env: createEvaluationModelEnvironment(provider, support, {
+          canonicalGraph: true,
+        }),
         timeoutMs: 35 * 60_000,
       },
     );
@@ -1011,12 +1083,7 @@ async function runCandidate({
       throw new Error("Graph candidate lacks a complete team summary");
     }
     const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
-    if (!state.graphProjection) {
-      throw new Error("Graph candidate lacks a durable Graph projection");
-    }
-    const { evaluateGraphProjection } =
-      await import("../src/lib/graph-kernel/eval.js");
-    const graphEval = evaluateGraphProjection(state.graphProjection);
+    const graphEvidence = candidateGraphEvidence(state);
     const score = await scoreBenchmark(
       benchmark.root,
       benchmark.baseline,
@@ -1032,9 +1099,7 @@ async function runCandidate({
       tokens,
       costUsd,
       durationMs: Date.now() - started,
-      graphRunId: state.graphProjection.runId,
-      graphProjectionDigest: state.graphProjection.projectionDigest,
-      graphMetrics: graphEval.metrics,
+      ...graphEvidence,
     };
   } finally {
     safeRemoveTemporary(benchmark.root);

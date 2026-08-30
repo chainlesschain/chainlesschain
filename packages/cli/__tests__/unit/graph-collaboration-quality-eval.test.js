@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,8 @@ import {
   buildCandidateTasks,
   candidateCheckpointArgs,
   candidateFailureDetails,
+  candidateGraphEvidence,
+  createEvaluationModelEnvironment,
   enforceQualityThresholds,
   qualityEvidenceDigest,
   sealPlatformRecord,
@@ -43,6 +46,104 @@ describe("formal candidate platform isolation", () => {
     expect(() => candidateCheckpointArgs("darwin")).toThrow(
       /unsupported evaluation platform/u,
     );
+  });
+
+  it("uses an isolated model/config home and explicitly enables canonical Graph", () => {
+    const isolationRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-quality-env-"),
+    );
+    const priorKey = process.env.CC_API_KEY;
+    process.env.CC_API_KEY = "fixture-key";
+    try {
+      const environment = createEvaluationModelEnvironment(
+        "openai",
+        isolationRoot,
+        { canonicalGraph: true },
+      );
+      expect(environment).toMatchObject({
+        CC_API_KEY: "fixture-key",
+        LLM_PROVIDER: "openai",
+        CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
+      });
+      expect(environment.CHAINLESSCHAIN_HOME).toContain(isolationRoot);
+      expect(environment.HOME).toContain(isolationRoot);
+      expect(environment.USERPROFILE).toContain(isolationRoot);
+    } finally {
+      if (priorKey == null) delete process.env.CC_API_KEY;
+      else process.env.CC_API_KEY = priorKey;
+      fs.rmSync(isolationRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("formal candidate Graph projection", () => {
+  const canonicalProjection = () => ({
+    schema: "chainlesschain.graph-trace-projection/v1",
+    runId: "team:quality-run",
+    revisionDigest: `sha256:${"1".repeat(64)}`,
+    projectionDigest: `sha256:${"2".repeat(64)}`,
+    status: "succeeded",
+    attempts: [
+      {
+        nodeId: "task-a",
+        status: "accepted",
+        createdAt: "2026-08-30T00:00:00.000Z",
+        updatedAt: "2026-08-30T00:00:01.000Z",
+      },
+    ],
+    messageGraph: { messages: [], edges: [] },
+    handoffs: [],
+    criticalPath: { durationMs: 1000 },
+  });
+
+  it("evaluates the durable canonical authority rather than the Team compatibility projection", () => {
+    expect(
+      candidateGraphEvidence({
+        graphAuthorityMode: "canonical",
+        graphAuthority: canonicalProjection(),
+        graphProjection: {
+          schema: "chainlesschain.team-graph-projection/v1",
+        },
+      }),
+    ).toMatchObject({
+      graphRunId: "team:quality-run",
+      graphProjectionDigest: `sha256:${"2".repeat(64)}`,
+      graphMetrics: {
+        terminalSuccess: 1,
+        deadlocked: 0,
+        reconciliationRequired: 0,
+        messageVisibilityRate: 1,
+        handoffCompletionRate: 1,
+      },
+    });
+  });
+
+  it("rejects a legacy or non-successful candidate authority", () => {
+    expect(() =>
+      candidateGraphEvidence({
+        graphAuthorityMode: "legacy",
+        graphAuthority: canonicalProjection(),
+      }),
+    ).toThrow(/canonical Graph authority/u);
+    expect(() =>
+      candidateGraphEvidence({
+        graphAuthorityMode: "canonical",
+        graphAuthority: {
+          schema: "chainlesschain.team-graph-projection/v1",
+          runId: "team:compatibility-projection",
+          projectionDigest: `sha256:${"3".repeat(64)}`,
+        },
+      }),
+    ).toThrow(/successful canonical projection/u);
+    expect(() =>
+      candidateGraphEvidence({
+        graphAuthorityMode: "canonical",
+        graphAuthority: {
+          ...canonicalProjection(),
+          status: "deadlocked",
+        },
+      }),
+    ).toThrow(/successful canonical projection/u);
   });
 });
 
