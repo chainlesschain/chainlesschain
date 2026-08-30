@@ -699,7 +699,7 @@ export function candidateGraphEvidence(state) {
   if (state?.graphAuthorityMode !== "canonical") {
     throw new Error("Graph candidate did not use canonical Graph authority");
   }
-  const projection = state?.graphAuthority;
+  const projection = state?.graphTraceProjection;
   if (
     projection?.schema !== "chainlesschain.graph-trace-projection/v1" ||
     projection?.status !== "succeeded" ||

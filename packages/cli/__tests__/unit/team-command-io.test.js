@@ -439,6 +439,17 @@ describe(
       expect(snapshot.graphAuthority.eventHead).toMatch(
         /^sha256:[a-f0-9]{64}$/u,
       );
+      expect(snapshot.graphTraceProjection).toMatchObject({
+        schema: "chainlesschain.graph-trace-projection/v1",
+        runId: `team:${snapshot.stateId}`,
+        phase: "sealed",
+        status: "succeeded",
+        authoritySource: "graph_kernel",
+        authorityMode: "canonical",
+      });
+      expect(snapshot.graphTraceProjection.projectionDigest).toMatch(
+        /^sha256:[a-f0-9]{64}$/u,
+      );
       expect(snapshot.registry.tasks.tasks.map((task) => task.status)).toEqual([
         "completed",
         "completed",

@@ -7,6 +7,7 @@ import {
 import { GraphEventStore } from "../graph-kernel/event-store.js";
 import { GraphKernel } from "../graph-kernel/runtime.js";
 import { createGraphAuthorityBinding } from "../graph-kernel/authority.js";
+import { reduceGraphTrace } from "../graph-kernel/trace-reducer.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -1904,6 +1905,11 @@ export class TeamGraphRuntimeAdapter {
   status() {
     if (!this.kernel || !this.runId) return null;
     return this.kernel.getRun(this.runId);
+  }
+
+  traceProjection(options = {}) {
+    if (!this.kernel || !this.runId) return null;
+    return reduceGraphTrace(this.kernel.events(this.runId), options);
   }
 
   events(options = {}) {
