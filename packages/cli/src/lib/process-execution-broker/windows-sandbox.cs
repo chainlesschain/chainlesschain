@@ -1683,8 +1683,12 @@ namespace ChainlessChain.WindowsSandbox
                 string[] configured = pathExt.Split(
                     new[] { ';' },
                     StringSplitOptions.RemoveEmptyEntries);
-                extensions = new string[configured.Length + 1];
-                extensions[0] = String.Empty;
+                // Match Windows command lookup: a bare command name is
+                // resolved through PATHEXT. Trying an extensionless file first
+                // can select Docker's adjacent POSIX `docker` shell script
+                // instead of docker.exe, which CreateProcessAsUser rejects
+                // with ERROR_BAD_EXE_FORMAT (193).
+                extensions = new string[configured.Length];
                 for (int index = 0; index < configured.Length; index++)
                 {
                     string extension = configured[index].Trim();
@@ -1697,7 +1701,7 @@ namespace ChainlessChain.WindowsSandbox
                         throw new InvalidDataException(
                             "Target PATHEXT contains an invalid extension");
                     }
-                    extensions[index + 1] = extension;
+                    extensions[index] = extension;
                 }
             }
 

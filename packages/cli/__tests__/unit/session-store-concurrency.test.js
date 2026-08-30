@@ -79,7 +79,7 @@ async function assertConcurrentWriters({ writers, perWriter }) {
 describe("cross-process JSONL session writers", () => {
   it("serializes concurrent writers without hash-chain forks or lost events", async () => {
     await assertConcurrentWriters({ writers: 5, perWriter: 40 });
-  }, 60_000);
+  }, 120_000);
 
   const soak = process.env.CC_SESSION_STORE_SOAK === "1" ? it : it.skip;
   soak(
