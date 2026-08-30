@@ -734,12 +734,12 @@ export function candidateCheckpointArgs(platform) {
   if (!REQUIRED_PLATFORMS.includes(platform)) {
     throw new Error(`unsupported evaluation platform: ${platform}`);
   }
-  // Generic macOS Seatbelt profiles cannot truthfully guarantee that an
-  // arbitrary Agent child owns its complete descendant process tree. Keep the
-  // Broker fail-closed contract intact: macOS uses the already isolated Git
-  // worktree plus the Agent's own checkpoint, while Linux and Windows retain
-  // the managed process-checkpoint boundary.
-  return platform === "macos" ? [] : ["--managed-checkpoint"];
+  // Generic macOS Seatbelt and Linux bwrap profiles cannot truthfully attest
+  // that an arbitrary Agent child owns its complete descendant process tree.
+  // Keep the Broker fail-closed contract intact: those platforms use the
+  // already isolated Git worktree plus the Agent's own checkpoint, while
+  // Windows retains the managed process-checkpoint boundary backed by a Job.
+  return platform === "windows" ? ["--managed-checkpoint"] : [];
 }
 
 function usageFromEvents(events) {
