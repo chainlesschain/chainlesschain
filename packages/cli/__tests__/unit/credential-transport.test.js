@@ -4,6 +4,7 @@ import {
   CREDENTIAL_ERROR_CODES,
 } from "../../src/lib/process-execution-broker/credential-agent.js";
 import {
+  resolveCredentialEnvironmentValue,
   resolveCredentialRefOverTransport,
   TRANSPORT_VERSION,
 } from "../../src/lib/process-execution-broker/credential-transport.js";
@@ -139,5 +140,66 @@ describe("authenticated credential reference transport", () => {
     } finally {
       executionBroker._platformSandboxEnabled = previousSandboxEnabled;
     }
+  });
+
+  it("lets a real brokered agent bootstrap API and team credentials by reference", async () => {
+    await executionBroker._credentialAgent.waitForTransportReady();
+    const previousSandboxEnabled = executionBroker._platformSandboxEnabled;
+    const transportModuleUrl = new URL(
+      "../../src/lib/process-execution-broker/credential-transport.js",
+      import.meta.url,
+    ).href;
+    const teamToolsModuleUrl = new URL(
+      "../../src/lib/agent-team/team-message-tools.js",
+      import.meta.url,
+    ).href;
+    const childScript = [
+      `import { resolveCredentialEnvironmentValue } from ${JSON.stringify(transportModuleUrl)};`,
+      `import { resolveTeamMessageToolBundle } from ${JSON.stringify(teamToolsModuleUrl)};`,
+      'if (process.env.CC_API_KEY || process.env.CC_TEAM_MESSAGE_BRIDGE_TOKEN) throw new Error("plaintext credential leaked");',
+      'const apiKey = await resolveCredentialEnvironmentValue("CC_API_KEY");',
+      "const bundle = await resolveTeamMessageToolBundle();",
+      'if (!apiKey || !bundle?.externalToolExecutors?.team_send) throw new Error("credential bootstrap failed");',
+      'process.stdout.write("ok");',
+    ].join("\n");
+
+    executionBroker._platformSandboxEnabled = false;
+    try {
+      const result = executionBroker.spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", childScript],
+        {
+          origin: "test:brokered-agent-credential-bootstrap",
+          policy: "allow",
+          cwd: process.cwd(),
+          encoding: "utf8",
+          timeout: 10_000,
+          env: {
+            PATH: process.env.PATH,
+            SYSTEMROOT: process.env.SYSTEMROOT,
+            CC_API_KEY: "agent-api-key-secret",
+            CC_TEAM_MESSAGE_BRIDGE_ENDPOINT: "local-bridge-endpoint",
+            CC_TEAM_MESSAGE_BRIDGE_TOKEN: "b".repeat(64),
+            CC_TEAM_MESSAGE_BRIDGE_PROTOCOL: "1",
+          },
+        },
+      );
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toBe("ok");
+    } finally {
+      executionBroker._platformSandboxEnabled = previousSandboxEnabled;
+    }
+  });
+
+  it("prefers neither plaintext nor a reference when both are present", async () => {
+    await expect(
+      resolveCredentialEnvironmentValue("CC_API_KEY", {
+        env: {
+          CC_API_KEY: "plaintext",
+          CC_CRED_REF_CC_API_KEY: "cc-cred-ambiguous",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "CC_CREDENTIAL_INVALID_REQUEST" });
   });
 });

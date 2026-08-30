@@ -5,6 +5,7 @@ import {
   TEAM_MESSAGE_BRIDGE_MAX_WAIT_MS,
   TEAM_MESSAGE_BRIDGE_PROTOCOL,
 } from "./team-message-bridge.js";
+import { resolveCredentialEnvironmentValue } from "../process-execution-broker/credential-transport.js";
 
 export const TEAM_MESSAGE_TOOL_NAMES = Object.freeze([
   "team_send",
@@ -177,21 +178,38 @@ function descriptor(name) {
   });
 }
 
-export function resolveTeamMessageToolBundle({
+export async function resolveTeamMessageToolBundle({
   env = process.env,
   call = callTeamMessageBridge,
+  resolveCredential = resolveCredentialEnvironmentValue,
 } = {}) {
   const endpoint = env.CC_TEAM_MESSAGE_BRIDGE_ENDPOINT;
-  const token = env.CC_TEAM_MESSAGE_BRIDGE_TOKEN;
+  const tokenReference = env.CC_CRED_REF_CC_TEAM_MESSAGE_BRIDGE_TOKEN;
   const protocol = Number(env.CC_TEAM_MESSAGE_BRIDGE_PROTOCOL);
-  if (!endpoint && !token && !env.CC_TEAM_MESSAGE_BRIDGE_PROTOCOL) return null;
+  if (
+    !endpoint &&
+    !env.CC_TEAM_MESSAGE_BRIDGE_TOKEN &&
+    !tokenReference &&
+    !env.CC_TEAM_MESSAGE_BRIDGE_PROTOCOL
+  ) {
+    return null;
+  }
   if (
     typeof endpoint !== "string" ||
     !endpoint ||
+    protocol !== TEAM_MESSAGE_BRIDGE_PROTOCOL
+  ) {
+    const error = new Error("Team message bridge environment is invalid");
+    error.code = "TEAM_MESSAGE_BRIDGE_CONFIG_INVALID";
+    throw error;
+  }
+  const token = await resolveCredential("CC_TEAM_MESSAGE_BRIDGE_TOKEN", {
+    env,
+  });
+  if (
     typeof token !== "string" ||
     token.length !== 64 ||
-    !/^[a-f0-9]{64}$/u.test(token) ||
-    protocol !== TEAM_MESSAGE_BRIDGE_PROTOCOL
+    !/^[a-f0-9]{64}$/u.test(token)
   ) {
     const error = new Error("Team message bridge environment is invalid");
     error.code = "TEAM_MESSAGE_BRIDGE_CONFIG_INVALID";
