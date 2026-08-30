@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.76] - CLI 0.166.14 Windows startup hotfix (2026-08-31)
+
+- Recommend the fully gated public `chainlesschain@0.166.14` release and align
+  the packaged Open VSX Overview, install command, immutable tag, and direct
+  VSIX links with this compatibility update.
+- Restore Docker-optional normal agent startup while keeping explicit sandbox
+  and managed-policy requests fail closed; on Windows, resolve native
+  `PATHEXT` executables before Docker Desktop's extensionless POSIX shim.
+- Require the exact CLI release SHA to pass CLI CI and Strict Sandbox on Linux,
+  Windows, and macOS before publishing this extension candidate.
+
 ## [0.37.75] - Canonical Context/Memory projection (2026-08-30)
 
 - Project the CLI-owned Context/Memory stage and bounded context-plan changes
