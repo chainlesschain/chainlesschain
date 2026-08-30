@@ -279,6 +279,46 @@ describe("headless-runner — team message tools", () => {
 });
 
 describe("headless-runner — exact delivery fixer authority", () => {
+  it("adopts the isolated formal quality hermetic boundary from launch env", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-headless-formal-quality-"));
+    const prior = {
+      marker: process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC,
+      provider: process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER,
+      home: process.env.CHAINLESSCHAIN_HOME,
+    };
+    const { deps } = makeDeps(replyText("done"));
+    deps.bootstrap = vi.fn(async () => ({ db: null }));
+    let captured = null;
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      captured = loopOptions;
+      yield { type: "response-complete", content: "done" };
+    };
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = "volcengine";
+    process.env.CHAINLESSCHAIN_HOME = dir;
+
+    try {
+      await expect(
+        runAgentHeadless(
+          { prompt: "formal quality", outputFormat: "json", ephemeral: true },
+          deps,
+        ),
+      ).resolves.toMatchObject({ exitCode: 0 });
+      expect(captured).toMatchObject({ hermeticExecution: true });
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+    } finally {
+      for (const [name, value] of [
+        ["CC_FORMAL_QUALITY_EVAL_HERMETIC", prior.marker],
+        ["CC_FORMAL_QUALITY_EVAL_PROVIDER", prior.provider],
+        ["CHAINLESSCHAIN_HOME", prior.home],
+      ]) {
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("forwards the immutable exact tool and file mutation scope to agentLoop", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-headless-mutation-scope-"));
     const worktreeRoot = (realpathSync.native || realpathSync)(dir);

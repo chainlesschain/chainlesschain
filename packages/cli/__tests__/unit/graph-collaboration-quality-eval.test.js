@@ -20,6 +20,10 @@ import {
   validatePlatformRecord,
   verifyQualityMatrix,
 } from "../../scripts/graph-collaboration-quality-eval.mjs";
+import {
+  formalQualityProvider,
+  isFormalQualityHermeticRuntime,
+} from "../../src/lib/formal-quality-eval-runtime.js";
 
 const COMMIT = "a".repeat(40);
 const CHALLENGE = "run-42:1:" + COMMIT;
@@ -66,8 +70,12 @@ describe("formal candidate platform isolation", () => {
         LLM_PROVIDER: "openai",
         CC_RUN_SHELL_MIN_TIMEOUT_MS: "60000",
         CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000",
+        CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+        CC_FORMAL_QUALITY_EVAL_PROVIDER: "openai",
         CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
       });
+      expect(isFormalQualityHermeticRuntime(environment)).toBe(true);
+      expect(formalQualityProvider(environment)).toBe("openai");
       expect(environment.CHAINLESSCHAIN_HOME).toContain(isolationRoot);
       expect(environment.HOME).toContain(isolationRoot);
       expect(environment.USERPROFILE).toContain(isolationRoot);
@@ -76,6 +84,22 @@ describe("formal candidate platform isolation", () => {
       else process.env.CC_API_KEY = priorKey;
       fs.rmSync(isolationRoot, { recursive: true, force: true });
     }
+  });
+
+  it("does not enable the formal boundary for missing or malformed markers", () => {
+    expect(isFormalQualityHermeticRuntime({})).toBe(false);
+    expect(
+      isFormalQualityHermeticRuntime({
+        CC_FORMAL_QUALITY_EVAL_HERMETIC: "true",
+      }),
+    ).toBe(false);
+    expect(
+      isFormalQualityHermeticRuntime({
+        CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+        CHAINLESSCHAIN_HOME: path.resolve(os.tmpdir(), "..", "not-temporary"),
+      }),
+    ).toBe(false);
+    expect(formalQualityProvider({})).toBeNull();
   });
 });
 

@@ -40,6 +40,7 @@ import {
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { HostResourceBudget } from "../lib/host-resource-budget.js";
+import { isFormalQualityHermeticRuntime } from "../lib/formal-quality-eval-runtime.js";
 import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
@@ -850,7 +851,9 @@ async function runAgentHeadlessInWorkspace(
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
-  const hermeticExecution = options.hermeticExecution === true;
+  const hermeticExecution =
+    options.hermeticExecution === true ||
+    isFormalQualityHermeticRuntime(process.env);
   if (
     options.fileMutationScope != null &&
     (options.exactToolNames !== true || !hermeticExecution)
