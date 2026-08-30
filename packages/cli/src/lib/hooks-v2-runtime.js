@@ -1105,7 +1105,11 @@ class HooksV2Runtime extends EventEmitter {
         );
         child.stdin?.on?.("error", onStdinError);
         child.on("error", (error) => settle(reject, error));
-        child.on("exit", (code) => {
+        // `exit` can fire before stdout/stderr have drained (observed with
+        // fast command hooks on macOS). `close` is the child-process event
+        // that guarantees the stdio streams are closed, so parse output only
+        // after it arrives.
+        child.on("close", (code) => {
           if (code === 0 || code === 2) {
             let parsed = {};
             try {

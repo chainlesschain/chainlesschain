@@ -44,7 +44,7 @@ describe("Hooks v2 broker event wiring", () => {
 });
 
 describe("Hooks v2 managed execution policy", () => {
-  it("contains a fast hook stdin EPIPE and lets the exit status decide", async () => {
+  it("contains fast-hook stdin EPIPE and drains stdout before settling", async () => {
     const child = new EventEmitter();
     child.stdin = new EventEmitter();
     child.stdin.end = vi.fn(() => {
@@ -54,6 +54,8 @@ describe("Hooks v2 managed execution policy", () => {
           Object.assign(new Error("write EPIPE"), { code: "EPIPE" }),
         );
         child.emit("exit", 0);
+        child.stdout.emit("data", "FAST_HOOK_OK");
+        child.emit("close", 0);
       });
     });
     child.stdout = new EventEmitter();
@@ -72,7 +74,7 @@ describe("Hooks v2 managed execution policy", () => {
         },
         {},
       ),
-    ).resolves.toMatchObject({ exitCode: 0 });
+    ).resolves.toMatchObject({ exitCode: 0, raw: "FAST_HOOK_OK" });
     expect(child.stdin.end).toHaveBeenCalledOnce();
     expect(child.stdin.listenerCount("error")).toBeGreaterThan(0);
   });
@@ -86,7 +88,7 @@ describe("Hooks v2 managed execution policy", () => {
     const broker = {
       issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => contract),
       spawn: vi.fn(() => {
-        setImmediate(() => child.emit("exit", 0));
+        setImmediate(() => child.emit("close", 0));
         return child;
       }),
     };
@@ -200,7 +202,7 @@ describe("Hooks v2 managed execution policy", () => {
     const broker = {
       issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => contract),
       spawn: vi.fn(() => {
-        setImmediate(() => child.emit("exit", 0));
+        setImmediate(() => child.emit("close", 0));
         return child;
       }),
     };
@@ -421,7 +423,7 @@ describe("Hooks v2 managed execution policy", () => {
         child.stdin = { end: vi.fn() };
         child.stdout = new EventEmitter();
         child.stderr = new EventEmitter();
-        setImmediate(() => child.emit("exit", 0));
+        setImmediate(() => child.emit("close", 0));
         return child;
       }),
     };
