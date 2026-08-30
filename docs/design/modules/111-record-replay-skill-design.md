@@ -1,367 +1,374 @@
 # 111 Record & Replay → Skill 设计
 
-> 状态：P2-4 回放内核与三平台发布边界已关闭；产品入口仍为技术预览
+> 状态：P2-4 回放内核与原三平台发布边界已关闭；CLI 产品化实现已完成，等待最终合并提交的权威矩阵结果
 >
-> 适用范围：`packages/cli/src/lib/record-replay/` 及其测试、发布旅程和后续产品适配器
+> 适用范围：`packages/cli/src/commands/record-replay.js`、`packages/cli/src/lib/record-replay/`、ProcessExecutionBroker 接线、测试与发布旅程
 >
 > 用户文档：[Record & Replay → Skill](../../features/record-replay-skill-user-guide.md)
 
 ## 1. 概述（背景与决策）
 
-ChainlessChain 已有 Skill 加载、审阅、能力控制和隔离执行基础，但“用户演示一次流程，系统生成可复用 Skill”的完整产品闭环需要一个比录屏更严格的中间模型。原始鼠标坐标、按键流和页面内容既脆弱，也容易携带秘密、个人信息和环境偶然值。
+Record & Replay 的目标是把“用户演示一次稳定流程”转换成可审阅、可治理、可撤销的 Skill，而不是录屏或保存任意浏览器脚本。原始鼠标坐标、按键流、页面正文和完整凭据既脆弱，也容易泄露秘密和环境偶然值，因此系统采用有界 action vocabulary、参数化、精确环境绑定和 metadata-only evidence。
 
-本模块采用以下决策：
+当前实现作出以下决策：
 
-1. 录制产物是有界、结构化的 action，不是视频或任意脚本。
-2. action 必须先参数化和扫描，再生成带摘要的 Skill 草稿。
-3. capability、失败条件和环境要求必须由用户精确审阅。
-4. 回放使用临时、断网的 Playwright Chromium context，并逐步产生终态证据。
-5. receipt 只保留 domain-separated digest 和有界元数据，不保存用户内容。
-6. 当前实现定位为回放内核与产品化基础，不把尚未存在的 Desktop/CLI 录制入口声明为完成。
+1. 稳定产品入口是 `cc skill recording`，别名为 `cc skill record-replay`；Desktop 页面不是 CLI 产品化的前置条件。
+2. 真实录制器只捕获受控 DOM 事件并生成稳定 selector，不采集页面正文、截图或任意脚本。
+3. 所有捕获值在创建 draft 前参数化；密码自动标敏，业务字段可人工标敏。
+4. review 必须绑定精确 revision、action、parameter、capability、environment 和 failure condition。
+5. 自包含 HTML 强制断网；URL 目标使用精确 origin allowlist、非秘密身份标签和 storage-state digest。
+6. 回放成功只产生有界 evidence digest；原始 selector、输入值、页面正文、URL 和截图 bytes 不进入报告。
+7. 只有 replay-validated revision 才能安装进现有 Skill loader；安装与撤销使用摘要绑定的可回滚事务。
+8. store、export 和 audit 是版本化边界，每次消费都会重新 canonicalize、重算摘要并拒绝未知字段。
 
 ## 2. 目标与非目标
 
 ### 2.1 目标
 
-- 为低风险、可重复 UI 流程提供确定性的 action vocabulary。
-- 在生成草稿前识别常见 secret、PII 和 volatile value。
-- 把捕获值变成显式参数，而不是隐式模板变量。
-- 将草稿、审阅、环境和回放证据用不同摘要域绑定。
-- 在 capability 不足、环境漂移、selector 歧义、网络逃逸或证据缺失时失败关闭。
-- 为未来 Desktop、CLI、IDE 或浏览器产品入口提供共享内核。
+- 支持 `observe/click/type/select/assert` 五种确定性操作。
+- 真实捕获 click、输入和选择事件，生成不依赖页面文本的 selector。
+- 提供 draft → approved → validated → enabled → revoked 生命周期。
+- 在修改、stale revision、能力扩大、环境漂移、凭据漂移或网络逃逸时失败关闭。
+- 提供 owner-private 持久化、保留期、删除、导入/导出、审计和策略。
+- 把验证通过的记录转换为现有 Skill loader 可发现的项目或全局 Skill。
+- 为 CI 提供结构化 JSON 入口和真实 Chromium 产品 E2E。
 
 ### 2.2 非目标
 
-- 不录制视频、音频或完整页面正文。
-- 不执行任意 JavaScript、Shell、文件操作或网络请求。
-- 不以当前 fixture driver 代替真实浏览器站点自动化产品。
-- 不自动批准或启用生成的 Skill。
-- 不保证正则扫描可以识别所有业务敏感信息。
-- 不在当前阶段冻结公开 npm subpath、持久化文件格式或 CLI 命令。
+- 不录制视频、音频、鼠标坐标、键盘宏或完整页面正文。
+- 不支持任意 JavaScript、Shell、上传、下载、剪贴板或文件系统操作。
+- 不自动批准、自动扩权或静默修改已批准 revision。
+- 不把 storage-state 正文写入 store、export、audit 或生成 Skill。
+- 当前不提供 Desktop 可视化录制页，也不冻结公开 npm SDK subpath。
+- 本地哈希链用于完整性和损坏检测，不宣称抵抗能够重写整个 owner store 的同 UID 攻击者；需要外部不可变审计时应另接 WORM/签名日志。
 
 ## 3. 核心特性
 
-### 3.1 当前能力边界
-
-当前实现包含三个领域操作和一个真实 UI driver：
-
-| 能力 | API | 当前语义 |
-| --- | --- | --- |
-| 创建草稿 | `createRecordedSkillDraft` | 校验 action、参数化捕获值、扫描敏感/易变内容、生成 capability 与 environment digest |
-| 审阅草稿 | `reviewRecordedSkillDraft` | 要求 reviewer、精确 capability 集和失败条件确认，生成 approval digest |
-| 回放 Skill | `replayRecordedSkill` | 校验审批、隔离、环境和 executor capability，顺序执行并汇总 receipt |
-| 启动 UI driver | `launchPlaywrightRecordedSkillDriver` | 在临时 Chromium context 加载自包含 HTML，离线执行有界 action |
-
-这里的“Record”目前表示将调用方提供的结构化操作规范化为 recorded Skill draft。仓库尚无捕获真实用户事件、生成 selector、保存草稿或呈现审阅 UI 的生产入口。
+| 能力       | 入口/API                                           | 语义                                                 |
+| ---------- | -------------------------------------------------- | ---------------------------------------------------- |
+| 真实录制   | `record` / `launchPlaywrightRecordedSkillRecorder` | 捕获事件、生成 selector、参数化并创建 draft          |
+| 审阅       | `show`、`review --approve`                         | 展示精确投影并批准当前 revision                      |
+| 回放       | `replay` / `replayRecordedSkill`                   | 验证审批、环境、隔离和 capability，逐步产生 evidence |
+| 存储       | `RecordedSkillStore`                               | 文件锁、原子写、CAS、schema/digest 重验证和保留期    |
+| Skill 转换 | `enable` / `installRecordedSkillPackage`           | 生成并安装三文件 Skill 包                            |
+| 撤销       | `revoke --approve`                                 | 对精确 package digest 进行 stage/commit/rollback     |
+| 治理       | `policy/audit/prune/export/import/delete`          | 数据生命周期、组织策略输入和 content-free 审计       |
+| 真实目标   | `--url/--allowed-origin/--storage-state`           | HTTPS/loopback、精确来源、身份和凭据摘要绑定         |
 
 ## 4. 系统架构
 
 ```text
-Product Recorder Adapter（未来）
-  Desktop / CLI / IDE / Browser
-                │
-                ▼
-        CapturedAction[]
-                │
-                ▼
-┌──────────────────────────────────────┐
-│ Recorded Skill Domain               │
-│  sanitize → parameterize → scan     │
-│  capability manifest                │
-│  environment binding                │
-│  draft/review/replay digest          │
-└──────────────────────────────────────┘
-                │
-                ▼
-          Reviewed Draft
-                │
-                ▼
-┌──────────────────────────────────────┐
-│ Replay Executor                     │
-│  current: Playwright fixture driver │
-│  ephemeral / offline / bounded      │
-└──────────────────────────────────────┘
-                │
-                ▼
-      Evidence Digest[] + Receipt
-                │
-                ▼
- Skill packaging / installation（未来）
+┌─────────────────────────────────────────────────────────────┐
+│ CLI Product Surface                                         │
+│ record/list/show/review/replay/enable/revoke/export/...     │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+         ┌──────────────▼──────────────┐
+         │ Playwright UI Recorder      │
+         │ event allowlist             │
+         │ stable selector generation  │
+         │ transient captured values   │
+         └──────────────┬──────────────┘
+                        │ parameterize + scan
+         ┌──────────────▼──────────────┐
+         │ Recorded Skill Domain       │
+         │ draft / review / replay     │
+         │ schema + deep freeze        │
+         │ domain-separated digests    │
+         └───────┬─────────────┬───────┘
+                 │             │
+      ┌──────────▼──────┐   ┌──▼──────────────────────────────┐
+      │ Versioned Store │   │ Browser Target Policy          │
+      │ CAS / retention │   │ HTML deny or URL allowlist     │
+      │ export / audit  │   │ identity + storage-state hash  │
+      └──────────┬──────┘   └──┬──────────────────────────────┘
+                 │             │
+                 │       ┌─────▼──────────────────────────────┐
+                 │       │ Playwright Replay Driver          │
+                 │       │ ephemeral context + bounded proof │
+                 │       │ exact Chromium ProcessBroker grant│
+                 │       └─────┬──────────────────────────────┘
+                 │             │ ReplayReport
+         ┌───────▼─────────────▼───────┐
+         │ Skill Package Transaction   │
+         │ install / inspect / revoke  │
+         └─────────────────────────────┘
 ```
 
-领域层不依赖具体 UI。产品适配器负责捕获和展示，executor 负责执行；两者都不能改变领域层已经审阅的能力、环境或 action 顺序。
+Recorder、domain、store、target policy、driver 和 package transaction 分层，避免 CLI 参数解析成为安全 authority。CLI 只负责把显式用户决定传给相应边界。
 
-## 5. 领域模型
+## 5. 领域模型与 schema
 
-### 5.1 RecordedSkillDraft
+### 5.1 Draft
 
-草稿 schema 为 `chainlesschain.recorded-skill-draft/v1`，包含：
+`chainlesschain.recorded-skill-draft/v1` 包含：
 
-- `name`、`description` 和 `status=draft`；
-- 1～256 个带稳定 `action-N` ID 的 action；
-- 不含捕获原值的参数定义；
-- 从 action 计算出的 `capabilityManifest`；
-- 用户需要审阅的 `failureConditions`；
+- `name/description/status=draft`；
+- 1～256 个严格字段集合的 action；
+- 仅保留 name、required、sensitive 的 parameter 定义；
+- 由 action 计算的 capability manifest；
+- failure conditions；
 - canonical environment requirements 与 digest；
-- `cc.record-replay.skill-draft/v1` 摘要域生成的 `draftDigest`。
+- `cc.record-replay.skill-draft/v1` 域生成的 `draftDigest`。
+
+捕获原值只作为创建阶段的 transient binding，替换为 `${parameter.<name>}` 后立即清除。扫描器遍历 description、actions、environment 和 failure conditions 等所有持久字段；finding 只返回 path/category。
 
 ### 5.2 ReviewedRecordedSkill
 
-审阅结果保留草稿内容并增加：
+review 在 Draft 上增加：
 
 - `status=approved`；
-- `reviewerId`；
-- 精确排序后的 `approvedCapabilities`；
+- reviewer ID；
+- 与 manifest 完全相等的 approved capability 集；
 - `acceptedFailureConditions=true`；
-- 绑定 `draftDigest` 的 `approvalDigest`。
+- 绑定 draft digest 的 approval digest。
 
-批准集合必须和草稿 capability manifest 完全一致。审阅方不能少批后继续执行，也不能在同一次审阅里静默扩权。
+消费者对序列化对象重新执行 strict-key schema validation、canonicalization、deep freeze 和摘要重算，不能信任进程内对象身份。
 
 ### 5.3 ReplayReport
 
-回放报告 schema 为 `chainlesschain.recorded-skill-replay/v1`，包含：
+`chainlesschain.recorded-skill-replay/v1` 只包含：
 
-- `skillDigest`；
-- `environmentDigest`；
+- draft/environment digest；
 - `status=succeeded`；
-- 按 action 顺序排列的 `actionId + evidenceDigest`；
-- `cc.record-replay.report/v1` 摘要域生成的 `replayDigest`。
+- 顺序排列的 `actionId + evidenceDigest`；
+- report digest。
 
-只有全部 action 成功才会生成 succeeded report。当前失败通过稳定 error code 和异常返回，不生成伪成功或部分成功报告。
+每步 evidence 序列化后最多 256 KiB。任一步失败、无 `ok=true`、无 evidence、序列化失败或超限时不产生成功 report。
+
+### 5.4 Store 与 export
+
+store schema 为 `chainlesschain.recorded-skill-store/v1`；entry、policy、audit event 和 export 分别有独立 v1 schema 与摘要域。entry 同时绑定 source、skill、last replay 和 installation。export 导入后重新验证全部嵌套 schema/digest，并把 enabled 安装状态降为 validated，避免在另一台机器伪造已安装状态。
 
 ## 6. 生命周期与状态机
 
 ```text
-captured actions
-      │ create + scan
-      ▼
-    DRAFT ───── invalid/sensitive/volatile ───► REJECTED
-      │ exact review
-      ▼
-  APPROVED ─── environment/capability drift ─► DENIED
-      │ isolated replay
-      ├── action/network/evidence failure ───► FAILED
-      ▼
-  SUCCEEDED
+record
+  │
+  ▼
+DRAFT ── review --approve ──► APPROVED
+                                 │
+                                 │ exact target/environment replay
+                                 ▼
+                              VALIDATED
+                                 │
+                                 │ enable --approve
+                                 ▼
+                              ENABLED
+                                 │
+                                 │ revoke --approve
+                                 ▼
+                              REVOKED
 ```
 
-当前对象状态没有持久化 store。未来加入保存、恢复和跨进程传递时，必须定义版本化 envelope、canonical validation、revision CAS、签名或等价完整性保护，以及草稿被修改后的审阅失效规则。
+- 每次 mutation 需要 `expectedRevision`，冲突返回 `CC_RECORD_REVISION_CONFLICT`。
+- 草稿只能批准一次；修改必须产生新 draft/digest/revision，旧 approval 不能复用。
+- approved、validated、enabled 或 revoked 可重新回放；enabled 回放保留当前 installation。
+- 只有 validated 可首次 enable；只有 enabled 可 revoke。
+- enabled 记录不能 delete/prune。
 
-## 7. Action vocabulary
+## 7. Action vocabulary 与录制规则
 
-| kind | capability | 执行语义 | 终态要求 |
-| --- | --- | --- | --- |
-| `observe` | `ui.observe` | 等待唯一目标可见并读取结构状态 | before/after/page/screenshot digest |
-| `assert` | `ui.observe` | 检查可见性，可选比较文本或控件值 | 断言相等并产生证据 |
-| `click` | `ui.interact` | 点击唯一可见目标 | 允许目标在点击后移除 |
-| `type` | `ui.interact` | 使用 locator `fill` 写入值 | 值受长度限制，输出不含正文 |
-| `select` | `ui.interact` | 使用 `selectOption` 选择值 | 值受长度限制，输出不含正文 |
+| kind      | capability    | 捕获/执行                      | 终态要求                            |
+| --------- | ------------- | ------------------------------ | ----------------------------------- |
+| `observe` | `ui.observe`  | CLI 显式追加，等待目标可见     | before/after/page/screenshot digest |
+| `assert`  | `ui.observe`  | CLI JSON 显式追加，可选比较值  | 断言成功并产生 evidence             |
+| `click`   | `ui.interact` | 捕获 click，回放 locator.click | 目标唯一可见；允许点击后 detached   |
+| `type`    | `ui.interact` | 捕获 change，回放 locator.fill | 值参数化；密码自动 sensitive        |
+| `select`  | `ui.interact` | 捕获 change，回放 selectOption | 值参数化，可人工 sensitive          |
 
-不支持坐标点击、键盘宏、拖放、上传、下载、导航、脚本执行或剪贴板访问。新增 action 必须同时定义 capability、输入上限、终态证据、隐私处理、负向测试和三平台发布旅程。
+selector 生成优先级为：`data-testid/data-test/data-cc-record` → 唯一 `id` → 唯一 `name` → 唯一 `aria-label` → 最多 8 层的结构 CSS。任何候选都必须在录制时唯一；不使用 text content。
 
-## 8. 参数化与内容扫描
+## 8. 浏览器目标、身份与凭据
 
-`parameterBindings` 将捕获字符串全量替换为 `${parameter.<name>}`。草稿只保存参数名、`sensitive` 和 `required`，不保存 binding 原值。
+### 8.1 自包含 HTML
 
-扫描器当前识别：
+- 只接受 HTML，不允许同时提供 URL、origin 或 storage state。
+- network policy 固定为 `deny`，context 设为 offline。
+- HTML 内容以 `cc.record-replay.ui-fixture/v1` 摘要绑定。
 
-- 私钥头、Bearer、常见 token/password/secret/API key 形态；
-- 邮箱、中国大陆手机号和美国 SSN 形态；
-- UUID、ISO 时间戳和 tmp/temp 路径。
+### 8.2 URL 目标
 
-扫描发生在参数替换之后，因此调用方应先声明已知敏感值。扫描结果只返回 path 和 category，不回显命中的内容。
+- 生产目标必须 HTTPS；HTTP 只允许 loopback 测试。
+- URL 不能带 username/password。
+- target digest 绑定完整规范化 URL，包括 path/query。
+- origin allowlist 最多 8 项，必须包含 target origin，且每项不能含 path/query/fragment。
+- identity 是非秘密稳定标签；Playwright storage state 只在启动 context 时使用，持久层只保存其 canonical digest。
+- route 对 `file/ws/wss` 和来源外 HTTP(S) 请求失败关闭；redirect 后地址也必须在批准策略内。
 
-当前代码只对 `sanitizedActions` 调用扫描器。`description`、`environment` 和 `failureConditions` 没有进入扫描，而 environment requirements 会原样克隆到草稿；这些字段必须由调用方和审阅界面保证不含秘密、PII 或易变值。`sensitive` 当前只是参数定义元数据，不会自动连接 SecretStore。
+浏览器实际 executable path 通过 AsyncLocalStorage 传给 ProcessExecutionBroker，只临时允许精确绝对命令；其他子进程在同一上下文仍为 deny。
 
-`required:false` 目前只跳过回放前的 required 检查；只要 action 中引用该参数，`expandParameters` 仍会在缺值时返回 `CC_REPLAY_PARAMETER_MISSING`。完整占位符可替换为任意值，嵌入字符串的占位符只接受字符串。未来如需真正的 optional/default 语义，必须升级 schema，而不能改变 v1 的解释。
+## 9. 持久化、审计与数据治理
 
-正则扫描不是数据分类引擎。未来产品适配器必须允许用户手动标记敏感字段，并在可信来源、组织策略和 declassification 规则下追加扫描器；不得把“未命中正则”等价为“内容安全”。
+`RecordedSkillStore` 默认位于 CLI 配置根目录的 `record-replay/state.json`：
 
-## 9. 配置参考
+- owner-only 目录/文件权限；
+- 32 MiB store 上限；
+- fail-closed 文件锁；
+- 私有临时文件、fsync、原子 rename；
+- entry/store/export/audit 独立摘要；
+- revision CAS 和深度不可变返回对象；
+- 最大记录/action/audit 数、能力和全局安装 policy；
+- 默认 90 天保留，只清理过期非 enabled 记录；
+- export/import/delete/prune/policy change 均进入审计链。
 
-### 9.1 Capability 与环境绑定
+审计事件不包含 action、selector、输入、页面、URL 或凭据正文。组织可下发 policy JSON 收紧保留期、容量、能力和全局安装；当前实现是本机 owner authority，不包含远端签名 policy distribution。
 
-action 到 capability 的映射由领域层固定：观察和断言使用 `ui.observe`，交互使用 `ui.interact`。回放 executor 必须显式声明拥有草稿需要的每项能力。
+## 10. Skill 包与现有 loader 接线
 
-环境对象 canonicalize 后以 `cc.record-replay.environment/v1` 域计算 digest。回放时当前环境必须产生完全相同的 digest。环境应只包含稳定、必要、非秘密的条件，例如应用标识、页面契约版本、语言和 feature revision；不应包含 token、Cookie、绝对临时路径或当前时间。
+成功回放后生成：
 
-未来跨设备回放需要区分：
+- `SKILL.md`：Skill metadata、能力和受治理 replay 使用说明；
+- `handler.js`：只作为执行身份 marker，不绕过 CLI authority；
+- `recorded-skill.json`：entry/draft/approval/replay/target/package digest 和参数元数据。
 
-- 必须完全相等的安全约束；
-- 允许集合匹配的平台和浏览器版本；
-- 经审阅的迁移/upcast；
-- 需要重新审阅的语义变化。
+项目安装目标为 `.chainlesschain/skills/<name>`；全局目标为 CLI user-data Skill 层。安装拒绝 symlink traversal、名称碰撞和修改过的目标。撤销先把精确 package stage 到同根临时位置，store 状态成功提交后再删除；失败则 rollback。若已安装文件被手工修改，撤销拒绝自动删除。
 
-在该模型冻结前，当前实现保持精确摘要匹配。
+## 11. CLI 产品面
 
-## 10. Replay driver 与隔离
+`cc skill recording` 注册以下命令：
 
-Playwright driver 创建独立 browser、context 和 page，并执行以下限制：
+`record`、`list`、`show`、`review`、`replay`、`enable`、`revoke`、`export`、`import`、`delete`、`audit`、`prune`、`policy`、`policy-template`。
 
-- `acceptDownloads=false`；
-- `serviceWorkers=block`；
-- context offline；
-- route 层拒绝 `file:`、`http:`、`https:`、`ws:`、`wss:`；
-- fixture 加载期间出现被拒请求即停止；
-- action 期间出现网络或文件请求即停止；
-- selector 必须精确匹配一个元素并可见；
-- 结束时关闭 context 和 browser。
+`show/review` 投影逐项显示 action、parameter、capability、environment digest、failure condition、draft/approval/replay digest 和 installation。`review`、`enable`、`revoke`、`delete`、`prune` 和 policy replacement 的 mutation 都要求显式 `--approve`。主要命令支持 `--json`。
 
-当前 driver 使用 `page.setContent` 加载调用方提供的自包含 HTML。这一设计适合确定性验证，但不能直接推导“可回放任意真实网站或 Desktop 应用”。真实产品 adapter 必须重新定义导航、页面身份、会话状态、凭据和 OS 级隔离边界。
+## 12. 配置参考
 
-## 11. 证据与隐私
+| 配置             | 边界                                     |
+| ---------------- | ---------------------------------------- |
+| action           | 1～256                                   |
+| HTML             | 最多 1,000,000 字符                      |
+| CLI JSON 输入    | 最大 2 MiB、普通文件、非 symlink         |
+| selector         | 最大 1,024 字符                          |
+| type/select      | 最大 8,192 / 1,024 字符                  |
+| viewport         | 320×240～3,840×2,160                     |
+| timeout/settle   | 100～30,000 ms / 0～1,000 ms             |
+| origin allowlist | 1～8 个精确 origin                       |
+| evidence         | 每 action 最大 256 KiB                   |
+| store            | 最大 32 MiB                              |
+| retention        | 1～3,650 天，默认 90                     |
+| records/audit    | 最多 10,000 / 100,000，默认 500 / 20,000 |
 
-每一步证据包含 action kind、capability、目标摘要、前后状态摘要、页面摘要、截图摘要、网络策略和拒绝请求计数。以下内容不得进入报告：
+## 13. 性能指标
 
-- selector 原文；
-- 输入或选择值；
-- 页面正文；
-- URL；
-- screenshot bytes；
-- 参数实际值。
+action 必须串行执行，每步读取结构状态、截图并计算域隔离摘要，吞吐量不是首要目标。2026-08-30 Windows 本地开发基线：
 
-所有摘要使用显式域分离，避免同一字节在不同语义对象之间被误用。摘要只能证明调用方持有的一组字节与 receipt 关联，不能替代访问控制、签名、时间证明或长期审计保留策略。
+- 完整 CLI 产品 E2E（策略审批、录制至导入/审计）：约 19～30 秒；
+- 包含 HTML 和 loopback URL 两类真实 Chromium 的集成组合：约 9～20 秒；
+- 5 步三平台发布旅程保留 action count 与 exact-SHA evidence 聚合。
 
-## 12. 安全考虑
+这些是单机回归观测，不是 SLA。后续若承诺 P50/P95，必须固定硬件、Chromium/Node 版本、冷/热启动定义和样本量。
 
-### 12.1 威胁模型
+## 14. 测试覆盖
 
-| 威胁 | 当前控制 | 剩余风险 |
-| --- | --- | --- |
-| 录制中包含秘密或 PII | 参数化后扫描 action，finding 不回显正文 | 非 action 字段当前不扫描，正则也无法识别所有业务敏感数据 |
-| 未审阅 action 获得执行 | draft/review 状态和 capability 检查 | 当前没有稳定的外部序列化验证边界 |
-| 审阅后内容被修改 | 进程内摘要和冻结顶层对象 | 嵌套对象深冻结、重算和持久签名仍需产品化补齐 |
-| selector 指向错误目标 | 必须唯一且可见 | 页面语义变化仍可能命中错误但唯一的元素 |
-| 网络或文件外传 | offline + scheme route deny | 真实站点 adapter 需要更强 egress broker 和 OS sandbox |
-| 失败被报告为成功 | 每步要求 `ok=true` 和 evidence | 当前失败报告没有持久恢复或补偿状态 |
-| receipt 泄露内容 | metadata-only + domain digest | 小取值空间仍可能被离线枚举，应限制 receipt 访问 |
+### 14.1 聚焦矩阵
 
-因此，外部文件导入、跨进程持久化和不可信调用方当前不属于受支持边界。加入这些入口前，必须在消费边界重新 canonicalize、重算所有 digest、验证 schema/revision，并使任何修改令既有 approval 失效。
+- `record-replay-skill.test.js`：strict schema、全字段扫描、参数、审批、deep freeze、环境/隔离、report 和 evidence 上限。
+- `record-replay-playwright-driver.test.js`：受控 driver 契约、五种执行语义、content-free evidence、关闭和网络逃逸。
+- `record-replay-browser-target-policy.test.js`：URL/origin/协议/凭据摘要和 binding drift。
+- `process-execution-broker-context.test.js`：精确 Chromium command allow、其他 command deny、异步上下文恢复。
+- `record-replay-product-lifecycle.test.js`：三条真实 Chromium 生命周期，覆盖 HTML、URL、Cookie、store、CAS、package、export/import、tamper 和 egress denial。
+- `record-replay-cli.e2e.test.js`：实际 bin 的完整用户旅程。
 
-## 13. 故障排除
+当前聚焦 Vitest 为 23 个用例，另有 1 条完整 CLI E2E。三平台 `record-replay-ui-journey.mjs` 正向覆盖 `observe/click/type/select/assert`，负向覆盖网络逃逸；聚合器拒绝缺平台、混合 SHA、摘要篡改和负向探针失效。
 
-### 13.1 错误与终态语义
+### 14.2 发布门禁
 
-领域错误使用 `CC_REPLAY_*`，UI driver 错误使用 `CC_REPLAY_UI_*`。主要类别包括：
+原 P2-4 replay kernel 已有三平台 exact-SHA 发布证据。此次产品面新增 recorder/store/package/URL target/CLI 后，必须以最终合并 SHA 重新运行适用 CLI CI、CLI Strict Sandbox 和 Record & Replay 三平台旅程；本地绿色不能替代权威门禁。
 
-- 输入、标识符或 action 非法；
-- secret/PII/volatile 内容未参数化；
-- 审阅不完整或草稿未批准；
-- 参数缺失或类型不符；
-- sandbox/network isolation 不满足；
-- 环境漂移或 capability 不足；
-- selector 歧义、断言失败、网络逃逸；
-- driver 不可用、设置失败或 action 无终态证据。
+## 15. 安全考虑
 
-错误消息不应包含 selector、输入值、页面正文或原始 URL。任何未来 telemetry adapter 只能记录错误码、action ID、计数和摘要等有界元数据。
+| 威胁          | 控制                                                          | 剩余边界                                            |
+| ------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| 捕获秘密/PII  | 参数化、密码自动标敏、人工 sensitive、全持久字段扫描          | 正则无法识别所有业务敏感数据，仍需人工 review       |
+| 审批后篡改    | strict keys、deep freeze、domain digest、消费时重算、CAS      | 无外部签名/WORM 时不抵抗完整同 UID store 重写       |
+| selector 漂移 | 稳定属性优先、录制/回放都要求唯一可见                         | 页面语义改变仍可能产生唯一但错误目标，需 assert     |
+| 凭据泄露      | storage state 只临时使用并保存 digest                         | storage-state 文件自身由用户安全管理                |
+| 网络外传      | HTML offline；URL exact-origin route；动作后检查 denied count | 批准 origin 自身的服务器仍属于用户信任边界          |
+| 子进程绕行    | ProcessBroker 精确 executable path ambient grant              | 浏览器自身漏洞与 OS 级强隔离需平台 sandbox 继续防护 |
+| 伪成功        | 每步终态 evidence、报告摘要、全步成功才出 report              | 摘要不是内容真实性或时间戳证明                      |
+| 误删 Skill    | path containment、symlink 拒绝、package digest、staged revoke | 手工修改后需人工处置残留目录                        |
 
-## 14. 性能指标
+## 16. 故障排除
 
-### 14.1 资源边界
+错误按边界分类：
 
-- action 数量：1～256；
-- fixture HTML：最多 1,000,000 字符；
-- selector：最多 1,024 字符；
-- type value：最多 8,192 字符；
-- select value：最多 1,024 字符；
-- viewport：320×240 至 3,840×2,160；
-- 单步 timeout：100～30,000 ms；
-- settle：0～1,000 ms。
+- `CC_RECORD_*`：CLI、store、policy、target、credential、package 或显式批准错误；
+- `CC_REPLAY_*`：draft/review/schema/参数/环境/能力/evidence 错误；
+- `CC_REPLAY_UI_*`：Chromium setup、selector、assertion、network 和 action 错误。
 
-action 串行执行，每步截图并计算多个摘要。该路径优先保证可验证性和隐私边界，不以吞吐量为主要优化目标。任何缓存、并发或截图抽样优化都不能削弱步骤顺序、网络检测和终态证据。
+排查顺序：
 
-## 15. 测试覆盖
+1. `cc skill recording show <name>` 核对 revision、state 和环境摘要。
+2. 检查是否使用原始完整 URL/HTML 和摘要匹配的 storage state。
+3. 确认 selector 唯一，且 action 没有触发来源外请求。
+4. 若 revision conflict，重新读取并审批当前版本，不要重用旧 approval。
+5. 若 store corrupt，保留原文件用于审计，从可信 export 恢复；不要手工改摘要。
+6. 若 install modified，人工确认生成 Skill 目录差异后再决定删除或保留。
 
-### 15.1 测试与发布门禁
+错误正文不得包含 selector、输入值、页面正文、storage state、Cookie 或原始 URL。
 
-#### 单元与驱动契约测试
+## 17. 产品化关闭映射
 
-- `record-replay-skill.test.js` 覆盖草稿、扫描、参数、审阅、能力、环境和回放报告。
-- `record-replay-playwright-driver.test.js` 使用受控 Playwright double 覆盖 click/assert/type/select、证据最小化、资源回收和网络逃逸；该文件自身不启动真实 Chromium。
+| 原未完成项       | 当前实现                                                               |
+| ---------------- | ---------------------------------------------------------------------- |
+| 实际录制 adapter | 真实 Chromium DOM 事件捕获、稳定 selector、无页面正文采集              |
+| 版本化存储       | strict schema、deep immutability、digest 重算、CAS、review binding     |
+| 审阅产品面       | CLI `show/review` 完整投影与显式批准                                   |
+| 稳定执行入口     | `cc skill recording` 与 `record-replay` alias                          |
+| Skill 转换/启用  | 三文件包、现有 loader、项目/全局安装与撤销事务                         |
+| 真实目标 adapter | HTTPS/loopback、身份、storage-state digest、导航和 exact-origin policy |
+| 数据治理         | retention/delete/export/import/audit/policy/manual sensitive           |
+| 产品 E2E         | 真实 Chromium integration、实际 CLI lifecycle、篡改/网络/撤销负向路径  |
 
-#### 三平台真实浏览器旅程
+仓库内功能缺口已关闭；最终发布状态仍以合并 SHA 的权威 CI 结果为准。Desktop 图形入口属于后续独立体验增强，不再阻塞 CLI 产品面。
 
-`record-replay-ui-journey.mjs` 在 Linux、Windows、macOS 执行：
+## 18. 使用示例
 
-1. 正向自包含 fixture 回放；
-2. 主动网络逃逸探针；
-3. receipt 结构和内容最小化检查；
-4. exact-SHA evidence 聚合。
+```bash
+cc skill recording record approve-invoice \
+  --url https://billing.example.com/invoices/next \
+  --allowed-origin https://billing.example.com \
+  --identity billing-operator \
+  --storage-state ./billing-state.json \
+  --automation ./approve-actions.json \
+  --assertions ./approve-assertions.json \
+  --sensitive invoiceId \
+  --failure "审批状态未变为 approved 时停止"
 
-聚合器应拒绝缺平台、混合提交、重复平台、摘要篡改、正向失败或逃逸探针未被拒绝。新版本必须在自己的最终提交上重跑，不能继承旧发布的成功证据。
+cc skill recording review approve-invoice \
+  --reviewer security-reviewer --approve
 
-当前三平台旅程的正向 action 是 `click + assert`，负向 action 是触发网络请求的 `click`。`observe`、`type` 和 `select` 尚未逐项进入真实 Chromium 发布矩阵；在正式用户入口关闭前必须补齐这部分覆盖。
+cc skill recording replay approve-invoice \
+  --url https://billing.example.com/invoices/next \
+  --storage-state ./billing-state.json \
+  --input invoiceId=INV-2026-001
 
-## 16. 产品化路线与稳定门槛
-
-从技术预览升级为正式用户功能前，需要完成：
-
-1. 实际录制适配器：捕获受控事件并生成稳定 selector，不采集无关页面内容。
-2. 版本化草稿存储：schema validation、deep immutability、digest 重算、revision CAS 和审阅失效。
-3. 审阅产品面：逐步展示 action、参数、capability、环境和失败条件。
-4. 稳定执行入口：定义 CLI 命令、Desktop 页面或 SDK public subpath。
-5. Skill 转换与启用：把回放通过的草稿打包为现有 Skill 系统可消费的产物。
-6. 真实目标 adapter：在明确的身份、凭据、导航、sandbox 和 egress policy 下支持浏览器或 Desktop。
-7. 用户数据治理：保留期、删除、导出、审计、组织 policy 和敏感字段人工标注。
-8. 产品级 E2E：录制、审阅、回放、启用、失败修改和撤销的完整旅程。
-
-只有以上入口真实存在并通过发布矩阵后，用户文档才能移除“技术预览”和“无稳定入口”的说明。
-
-## 17. 使用示例
-
-当前集成顺序必须保持为“创建草稿 → 精确审阅 → 创建隔离 executor → 回放 → 关闭 driver”：
-
-```js
-const draft = createRecordedSkillDraft({
-  name: "open-project",
-  actions: [
-    { kind: "click", target: "[data-project='captured-project']" },
-    { kind: "assert", target: "h1", value: "captured-project" },
-  ],
-  parameterBindings: [
-    { name: "projectName", value: "captured-project", required: true },
-  ],
-  environment: {
-    app: "chainlesschain-record-replay-fixture",
-    selectorContract: "record-replay-ui-v1",
-  },
-  failureConditions: ["the selected project title is not visible"],
-});
-
-const approved = reviewRecordedSkillDraft(draft, {
-  reviewerId: "reviewer-1",
-  approvedCapabilities: draft.capabilityManifest,
-  acceptedFailureConditions: true,
-});
-
-const driver = await launchPlaywrightRecordedSkillDriver({ html });
-try {
-  const report = await replayRecordedSkill(approved, {
-    inputs: { projectName: "project-2" },
-    environment: approved.environment.requirements,
-    isolation: { sandboxed: true, network: "deny" },
-    executor: driver.executor,
-  });
-} finally {
-  await driver.close();
-}
+cc skill recording enable approve-invoice --approve
+cc skill recording audit --name approve-invoice
+cc skill recording revoke approve-invoice --approve
 ```
 
-这段代码只展示仓库内部 API 契约。未定义公开 package export 前，产品代码不得依赖深层源码路径作为稳定 SDK。
+## 19. 关键文件
 
-## 18. 关键文件
-
+- `packages/cli/src/commands/record-replay.js`
 - `packages/cli/src/lib/record-replay/skill-recorder.js`
+- `packages/cli/src/lib/record-replay/playwright-ui-recorder.js`
 - `packages/cli/src/lib/record-replay/playwright-ui-driver.js`
-- `packages/cli/src/lib/record-replay/index.js`
-- `packages/cli/__tests__/unit/record-replay-skill.test.js`
-- `packages/cli/__tests__/unit/record-replay-playwright-driver.test.js`
+- `packages/cli/src/lib/record-replay/browser-target-policy.js`
+- `packages/cli/src/lib/record-replay/recorded-skill-store.js`
+- `packages/cli/src/lib/record-replay/recorded-skill-package.js`
+- `packages/cli/src/lib/process-execution-broker/index.js`
+- `packages/cli/__tests__/unit/record-replay-*.test.js`
+- `packages/cli/__tests__/integration/record-replay-product-lifecycle.test.js`
+- `packages/cli/__tests__/e2e/record-replay-cli.e2e.test.js`
 - `packages/cli/scripts/record-replay-ui-journey.mjs`
 - `.github/workflows/record-replay-ui-journey.yml`
 
-## 19. 相关文档
+## 20. 相关文档
 
-- `docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md` §7.3、§12.68。
+- `docs/features/record-replay-skill-user-guide.md`
+- `docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md` §7.3、§12.68 及产品化关闭增量。
 - `docs/design/modules/110-agent-platform-release-boundaries.md` §7。
 - `docs/design/modules/109_Desktop_Cowork_Skill_Execution_Security.md`。
-- `docs/features/record-replay-skill-user-guide.md`。
+- `docs-site/docs/chainlesschain/skills.md`。

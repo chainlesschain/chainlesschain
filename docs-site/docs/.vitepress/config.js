@@ -209,7 +209,7 @@ export default defineConfig({
               link: "/chainlesschain/desktop-graph-skill-security",
             },
             {
-              text: "Record & Replay → Skill（技术预览）⭐NEW",
+              text: "Record & Replay → Skill ⭐NEW",
               link: "/chainlesschain/record-replay-skill",
             },
             {

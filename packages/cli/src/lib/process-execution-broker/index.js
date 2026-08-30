@@ -29,6 +29,7 @@ import path from "node:path";
 import * as fs from "node:fs";
 import * as tty from "node:tty";
 import { createRequire } from "node:module";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 const require = createRequire(import.meta.url);
 
@@ -996,6 +997,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._ptyAdapter = createNativePtyAdapter();
     this._hooksEventSink = null;
     this._workspaceTransactionManagers = new Map();
+    this._ambientProcessContext = new AsyncLocalStorage();
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -1027,6 +1029,76 @@ class ProcessExecutionBroker extends EventEmitter {
     if (this._permissionState.has(wildcard))
       return this._permissionState.get(wildcard);
     return "prompt";
+  }
+
+  _withAmbientProcessContext(command, options = {}) {
+    const context = this._ambientProcessContext.getStore();
+    if (!context) return options;
+    const commandIdentity = (() => {
+      if (typeof command !== "string" || !command) return "";
+      const normalized = path.isAbsolute(command)
+        ? path.resolve(command)
+        : command;
+      return process.platform === "win32"
+        ? normalized.toLowerCase()
+        : normalized;
+    })();
+    const allowed = context.allowedCommands.includes(commandIdentity);
+    return {
+      ...options,
+      origin: context.origin,
+      scope: context.scope,
+      policy: allowed ? context.policy : "deny",
+      auditContext: context.auditContext,
+    };
+  }
+
+  runWithProcessContext(
+    {
+      origin,
+      policy = "allow",
+      scope = "default",
+      allowedCommands = [],
+      auditContext,
+    } = {},
+    operation,
+  ) {
+    const safeOrigin = String(origin || "");
+    if (
+      !/^[A-Za-z][A-Za-z0-9:._-]{0,127}$/u.test(safeOrigin) ||
+      !["allow", "deny", "prompt"].includes(policy) ||
+      typeof operation !== "function" ||
+      !Array.isArray(allowedCommands) ||
+      allowedCommands.length < 1 ||
+      allowedCommands.length > 16
+    ) {
+      const error = new Error("Process execution context is invalid");
+      error.code = "PROCESS_CONTEXT_INVALID";
+      throw error;
+    }
+    const normalizedCommands = allowedCommands.map((command) => {
+      if (typeof command !== "string" || !path.isAbsolute(command)) {
+        const error = new Error(
+          "Process execution context commands must be absolute paths",
+        );
+        error.code = "PROCESS_CONTEXT_INVALID";
+        throw error;
+      }
+      const normalized = path.resolve(command);
+      return process.platform === "win32"
+        ? normalized.toLowerCase()
+        : normalized;
+    });
+    return this._ambientProcessContext.run(
+      Object.freeze({
+        origin: safeOrigin,
+        policy,
+        scope: String(scope || "default").slice(0, 128),
+        allowedCommands: Object.freeze([...new Set(normalizedCommands)]),
+        auditContext,
+      }),
+      operation,
+    );
   }
 
   _isDangerousCommand(command) {
@@ -4470,6 +4542,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawn(command, args, options = {}) {
+    options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";
@@ -4857,6 +4930,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawnSync(command, args, options = {}) {
+    options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";

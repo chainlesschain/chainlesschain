@@ -28,6 +28,13 @@ const FIXTURE_HTML = `<!doctype html>
       <button data-project="project-1" onclick="document.querySelector('h1').textContent=this.dataset.project">Project 1</button>
       <button data-project="project-2" onclick="document.querySelector('h1').textContent=this.dataset.project">Project 2</button>
       <button id="network-attempt" onclick="fetch('https://example.invalid/recorded-skill-probe').catch(() => {})">Network probe</button>
+      <label>Name <input id="name" type="text"></label>
+      <label>Choice
+        <select id="choice">
+          <option value="one">One</option>
+          <option value="captured-choice">Captured choice</option>
+        </select>
+      </label>
       <h1>no-project</h1>
     </main>
   </body>
@@ -91,11 +98,16 @@ function approvedProjectSkill() {
     name: "open-project",
     description: "Open a project in a local UI fixture and assert its title",
     actions: [
+      { kind: "observe", target: "h1" },
       { kind: "click", target: "[data-project='captured-project']" },
+      { kind: "type", target: "#name", value: "captured-name" },
+      { kind: "select", target: "#choice", value: "captured-choice" },
       { kind: "assert", target: "h1", value: "captured-project" },
     ],
     parameterBindings: [
       { name: "projectName", value: "captured-project", required: true },
+      { name: "personName", value: "captured-name", required: true },
+      { name: "choice", value: "captured-choice", required: true },
     ],
     environment: {
       app: "chainlesschain-record-replay-fixture",
@@ -141,7 +153,11 @@ async function runPlatform({ commitSha, platform }) {
   let replay;
   try {
     replay = await replayRecordedSkill(skill, {
-      inputs: { projectName: "project-2" },
+      inputs: {
+        projectName: "project-2",
+        personName: "matrix-user",
+        choice: "captured-choice",
+      },
       environment: skill.environment.requirements,
       isolation: { sandboxed: true, network: "deny" },
       executor: driver.executor,
@@ -152,7 +168,7 @@ async function runPlatform({ commitSha, platform }) {
   const driverSummary = driver.summary();
   if (
     replay.status !== "succeeded" ||
-    driverSummary.actionCount !== 2 ||
+    driverSummary.actionCount !== 5 ||
     driverSummary.deniedRequestCount !== 0
   ) {
     throw new Error("positive recorded UI replay did not close cleanly");
@@ -226,7 +242,9 @@ function verifyMatrix({ commitSha, verifyDir }) {
       `expected ${PLATFORMS.length} platform reports, found ${reports.length}`,
     );
   }
-  const byPlatform = new Map(reports.map((report) => [report.platform, report]));
+  const byPlatform = new Map(
+    reports.map((report) => [report.platform, report]),
+  );
   if (
     byPlatform.size !== PLATFORMS.length ||
     PLATFORMS.some((platform) => !byPlatform.has(platform))
@@ -242,14 +260,16 @@ function verifyMatrix({ commitSha, verifyDir }) {
       report.fixtureDigest !== authority.fixtureDigest ||
       report.draftDigest !== authority.draftDigest ||
       report.approvalDigest !== authority.approvalDigest ||
-      report.driverSummary?.actionCount !== 2 ||
+      report.driverSummary?.actionCount !== 5 ||
       report.driverSummary?.deniedRequestCount !== 0 ||
       report.networkBoundary?.rejected !== true ||
       report.networkBoundary?.code !== "CC_REPLAY_UI_NETWORK_ATTEMPT" ||
       report.networkBoundary?.deniedRequestCount < 1 ||
       !/^sha256:[a-f0-9]{64}$/u.test(String(report.reportDigest || ""))
     ) {
-      throw new Error(`invalid recorded UI replay report for ${report.platform}`);
+      throw new Error(
+        `invalid recorded UI replay report for ${report.platform}`,
+      );
     }
   }
   const platforms = PLATFORMS.map((platform) => {

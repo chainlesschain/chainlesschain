@@ -159,7 +159,7 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "Record & Replay → Skill 设计 (111) ⭐NEW",
+            text: "Record & Replay → Skill 设计 (111) ✅",
             link: "/modules/111-record-replay-skill-design",
           },
         ],
@@ -1046,7 +1046,7 @@ export default defineConfig({
               link: "/modules/110-agent-platform-release-boundaries",
             },
             {
-              text: "111 Record & Replay → Skill 设计 ⭐NEW",
+              text: "111 Record & Replay → Skill 设计 ✅",
               link: "/modules/111-record-replay-skill-design",
             },
           ],
