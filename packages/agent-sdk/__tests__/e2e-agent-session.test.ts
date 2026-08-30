@@ -158,6 +158,11 @@ function newSession(
     extraArgs: [
       "--no-ide",
       "--no-mcp",
+      // This suite validates the SDK stream/approval/resume contract, not the
+      // host sandbox backend. Hosted macOS runners do not provide Docker, so
+      // opt out explicitly instead of weakening the CLI's fail-closed default.
+      "--sandbox-mode",
+      "off",
       "--provider",
       "ollama",
       "--model",
