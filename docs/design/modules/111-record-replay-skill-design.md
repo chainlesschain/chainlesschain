@@ -6,7 +6,7 @@
 >
 > 用户文档：[Record & Replay → Skill](../../features/record-replay-skill-user-guide.md)
 
-## 1. 背景与决策
+## 1. 概述（背景与决策）
 
 ChainlessChain 已有 Skill 加载、审阅、能力控制和隔离执行基础，但“用户演示一次流程，系统生成可复用 Skill”的完整产品闭环需要一个比录屏更严格的中间模型。原始鼠标坐标、按键流和页面内容既脆弱，也容易携带秘密、个人信息和环境偶然值。
 
