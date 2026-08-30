@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TeamMailbox } from "../../src/lib/agent-team/team-mailbox.js";
 import {
   callTeamMessageBridge,
@@ -213,7 +213,7 @@ describe("TeamMessageBridge", () => {
       recipients: ["teammate-1", "teammate-2"],
     });
     const bridge = await bridgeFor(mailbox, "teammate-1");
-    const bundle = resolveTeamMessageToolBundle({
+    const bundle = await resolveTeamMessageToolBundle({
       env: bridge.childEnvironment(),
     });
     expect(
@@ -245,6 +245,32 @@ describe("TeamMessageBridge", () => {
       message: { from: "teammate-1", body: "from real child tool" },
     });
     expect(mailbox.peek("teammate-2")).toHaveLength(1);
+  });
+
+  it("resolves a broker-issued bridge token without restoring plaintext to the environment", async () => {
+    const token = "a".repeat(64);
+    const env = {
+      CC_TEAM_MESSAGE_BRIDGE_ENDPOINT: "local-bridge-endpoint",
+      CC_TEAM_MESSAGE_BRIDGE_PROTOCOL: String(TEAM_MESSAGE_BRIDGE_PROTOCOL),
+      CC_CRED_REF_CC_TEAM_MESSAGE_BRIDGE_TOKEN: "cc-cred-bridge-token",
+    };
+    const resolveCredential = vi.fn(async (key, options) => {
+      expect(key).toBe("CC_TEAM_MESSAGE_BRIDGE_TOKEN");
+      expect(options.env).toBe(env);
+      return token;
+    });
+
+    const bundle = await resolveTeamMessageToolBundle({
+      env,
+      resolveCredential,
+    });
+
+    expect(resolveCredential).toHaveBeenCalledOnce();
+    expect(env.CC_TEAM_MESSAGE_BRIDGE_TOKEN).toBeUndefined();
+    expect(bundle.externalToolExecutors.team_send).toMatchObject({
+      kind: "team-message",
+      operation: "send",
+    });
   });
 
   it("forwards handoff actions with parent-bound authority", async () => {

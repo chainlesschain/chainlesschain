@@ -375,4 +375,35 @@ export async function resolveCredentialRefOverTransport(refId, options = {}) {
   });
 }
 
+/**
+ * Resolve one named environment credential without copying plaintext back into
+ * process.env. Direct launches keep accepting the original environment value;
+ * brokered launches exchange the short-lived, target-bound reference that the
+ * ProcessExecutionBroker placed in CC_CRED_REF_<NAME>.
+ */
+export async function resolveCredentialEnvironmentValue(key, options = {}) {
+  if (!/^[A-Z][A-Z0-9_]*$/u.test(String(key || ""))) {
+    throw transportError(
+      "CC_CREDENTIAL_INVALID_REQUEST",
+      "Credential environment key is invalid",
+    );
+  }
+  const env = options.env || process.env;
+  const value = env[key];
+  const refId = env[`CC_CRED_REF_${key}`];
+  const hasValue = typeof value === "string" && value.length > 0;
+  const hasReference = typeof refId === "string" && refId.length > 0;
+  if (hasValue && hasReference) {
+    throw transportError(
+      "CC_CREDENTIAL_INVALID_REQUEST",
+      "Credential environment contains both plaintext and a broker reference",
+    );
+  }
+  if (hasValue) return value;
+  if (!hasReference) return null;
+  const resolveReference =
+    options.resolveReference || resolveCredentialRefOverTransport;
+  return await resolveReference(refId, { env });
+}
+
 export { TRANSPORT_VERSION };

@@ -31,6 +31,7 @@ import {
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
 import { withQuietStdout } from "../runtime/quiet-stdout.js";
+import { resolveCredentialEnvironmentValue } from "../lib/process-execution-broker/credential-transport.js";
 import {
   captureClaudeStorageLaunchEnvironment,
   restoreClaudeStorageLaunchEnvironment,
@@ -684,8 +685,19 @@ export function registerAgentCommand(program) {
       // scripts) pass the key via the environment instead of argv, where it
       // is visible to every local process (/proc/<pid>/cmdline, Win32_Process).
       // An explicit --api-key still wins.
-      if (!options.apiKey && process.env.CC_API_KEY) {
-        options.apiKey = process.env.CC_API_KEY;
+      if (!options.apiKey) {
+        try {
+          options.apiKey =
+            (await resolveCredentialEnvironmentValue("CC_API_KEY", {
+              env: process.env,
+            })) || undefined;
+        } catch (error) {
+          process.stderr.write(
+            `Error: brokered API credential is unavailable (${error.code || "CC_CREDENTIAL_TRANSPORT_UNAVAILABLE"})\n`,
+          );
+          process.exitCode = 1;
+          return;
+        }
       } else if (
         options.apiKey &&
         containsApiKeyArgument(process.argv) &&

@@ -2027,7 +2027,7 @@ async function runAgentHeadlessInWorkspace(
     : null;
   let teamMessageTools = null;
   try {
-    teamMessageTools = (
+    teamMessageTools = await (
       deps.resolveTeamMessageToolBundle || resolveTeamMessageToolBundle
     )({ env: options.teamMessageEnv || process.env });
   } catch (error) {
