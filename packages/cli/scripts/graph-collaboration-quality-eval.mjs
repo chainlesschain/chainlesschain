@@ -47,6 +47,10 @@ const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = path.dirname(SCRIPT_DIRECTORY);
 const REPOSITORY_ROOT = path.resolve(CLI_ROOT, "..", "..");
 const CLI_BIN = path.join(CLI_ROOT, "bin", "chainlesschain.js");
+const RUNTIME_PREFLIGHT_BIN = path.join(
+  SCRIPT_DIRECTORY,
+  "graph-collaboration-quality-runtime-preflight.mjs",
+);
 const EXACT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
@@ -696,6 +700,7 @@ export function createEvaluationModelEnvironment(
   environment.LLM_PROVIDER = provider;
   environment.CLAUDECODE = "1";
   environment.CC_RUN_SHELL_MIN_TIMEOUT_MS = "60000";
+  environment.CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS = "60000";
   if (canonicalGraph) {
     environment.CHAINLESSCHAIN_GRAPH_CLI_TEAM = "canonical";
   }
@@ -737,6 +742,30 @@ function runCli(args, options = {}) {
   });
   if (result.error) throw result.error;
   return result;
+}
+
+function assertEvaluationRuntimeReady(provider) {
+  const support = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-quality-runtime-preflight-"),
+  );
+  try {
+    const result = spawnSync(process.execPath, [RUNTIME_PREFLIGHT_BIN], {
+      cwd: REPOSITORY_ROOT,
+      env: createEvaluationModelEnvironment(provider, support),
+      encoding: "utf8",
+      timeout: 2 * 60_000,
+      maxBuffer: 1024 * 1024,
+      windowsHide: true,
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(
+        `formal quality runtime preflight failed: ${redactSecrets(String(result.stderr || result.stdout)).slice(-2000)}`,
+      );
+    }
+  } finally {
+    safeRemoveTemporary(support);
+  }
 }
 
 function jsonLines(value) {
@@ -1133,6 +1162,7 @@ async function runPlatformEvaluation(options) {
     throw new Error("CC_API_KEY is required for the real-model quality eval");
   }
   assertExactCleanSource(options.commitSha);
+  assertEvaluationRuntimeReady(options.provider);
   const tasks = selectedTasks();
   const started = Date.now();
   const startedAt = new Date(started).toISOString();

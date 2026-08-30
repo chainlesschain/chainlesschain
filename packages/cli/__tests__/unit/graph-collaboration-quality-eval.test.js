@@ -65,6 +65,7 @@ describe("formal candidate platform isolation", () => {
         CC_API_KEY: "fixture-key",
         LLM_PROVIDER: "openai",
         CC_RUN_SHELL_MIN_TIMEOUT_MS: "60000",
+        CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000",
         CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
       });
       expect(environment.CHAINLESSCHAIN_HOME).toContain(isolationRoot);
