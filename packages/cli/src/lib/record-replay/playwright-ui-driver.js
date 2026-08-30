@@ -1,4 +1,11 @@
 import { createHash } from "node:crypto";
+import { executionBroker } from "../process-execution-broker/index.js";
+import {
+  createRecordedSkillNetworkPolicy,
+  navigationAllowedByRecordedSkillPolicy,
+  prepareRecordedSkillBrowserTarget,
+  requestAllowedByRecordedSkillPolicy,
+} from "./browser-target-policy.js";
 
 const ACTION_CAPABILITIES = Object.freeze({
   observe: "ui.observe",
@@ -7,11 +14,7 @@ const ACTION_CAPABILITIES = Object.freeze({
   type: "ui.interact",
   select: "ui.interact",
 });
-const DRIVER_CAPABILITIES = Object.freeze([
-  "ui.interact",
-  "ui.observe",
-]);
-const DENIED_SCHEMES = new Set(["file:", "http:", "https:", "ws:", "wss:"]);
+const DRIVER_CAPABILITIES = Object.freeze(["ui.interact", "ui.observe"]);
 
 function driverError(code, message, details = {}) {
   const error = new Error(message);
@@ -68,11 +71,17 @@ function requestMetadata(request) {
   }
   return Object.freeze({
     scheme,
-    method: String(request.method?.() || "GET").toUpperCase().slice(0, 16),
+    method: String(request.method?.() || "GET")
+      .toUpperCase()
+      .slice(0, 16),
   });
 }
 
-async function locatorState(locator, timeoutMs, { allowDetached = false } = {}) {
+async function locatorState(
+  locator,
+  timeoutMs,
+  { allowDetached = false } = {},
+) {
   const count = await locator.count();
   if (count !== 1) {
     if (allowDetached && count === 0) {
@@ -136,12 +145,22 @@ async function assertAction(locator, action, timeoutMs) {
  */
 export async function launchPlaywrightRecordedSkillDriver({
   html,
+  url,
+  allowedOrigins = [],
+  storageState,
+  identity = "anonymous",
   playwright,
   timeoutMs = 5_000,
   settleMs = 25,
   viewport = { width: 960, height: 640 },
 } = {}) {
-  const fixtureHtml = boundedString(html, "fixture html", 1_000_000);
+  const target = prepareRecordedSkillBrowserTarget({
+    html,
+    url,
+    allowedOrigins,
+    storageState,
+    identity,
+  });
   if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000) {
     throw driverError(
       "CC_REPLAY_UI_ARGUMENT_INVALID",
@@ -163,11 +182,23 @@ export async function launchPlaywrightRecordedSkillDriver({
     );
   }
 
-  const browser = await runtime.chromium.launch({ headless: true });
+  const executablePath = runtime.chromium.executablePath?.();
+  const browser = executablePath
+    ? await executionBroker.runWithProcessContext(
+        {
+          origin: "record-replay:chromium-driver",
+          policy: "allow",
+          allowedCommands: [executablePath],
+          auditContext: { actor: "record-replay-driver" },
+        },
+        () => runtime.chromium.launch({ headless: true, executablePath }),
+      )
+    : await runtime.chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: safeViewport,
     acceptDownloads: false,
     serviceWorkers: "block",
+    storageState: target.storageState || undefined,
   });
   const deniedRequests = [];
   const receipts = [];
@@ -175,19 +206,32 @@ export async function launchPlaywrightRecordedSkillDriver({
   try {
     await context.route("**/*", async (route) => {
       const metadata = requestMetadata(route.request());
-      if (DENIED_SCHEMES.has(metadata.scheme)) {
+      if (!requestAllowedByRecordedSkillPolicy(route.request().url(), target)) {
         deniedRequests.push(metadata);
         await route.abort("blockedbyclient");
         return;
       }
       await route.continue();
     });
-    await context.setOffline(true);
+    if (target.networkPolicy.mode === "deny") await context.setOffline(true);
     page = await context.newPage();
-    await page.setContent(fixtureHtml, {
-      waitUntil: "domcontentloaded",
-      timeout: timeoutMs,
-    });
+    if (target.adapter === "self-contained-html") {
+      await page.setContent(target.html, {
+        waitUntil: "domcontentloaded",
+        timeout: timeoutMs,
+      });
+    } else {
+      await page.goto(target.url, {
+        waitUntil: "domcontentloaded",
+        timeout: timeoutMs,
+      });
+      if (!navigationAllowedByRecordedSkillPolicy(page.url(), target)) {
+        throw driverError(
+          "CC_REPLAY_UI_NETWORK_ATTEMPT",
+          "recorded UI target redirected outside its reviewed origin policy",
+        );
+      }
+    }
   } catch {
     await browser.close();
     throw driverError(
@@ -199,18 +243,31 @@ export async function launchPlaywrightRecordedSkillDriver({
     await browser.close();
     throw driverError(
       "CC_REPLAY_UI_FIXTURE_NETWORKED",
-      "recorded UI fixture attempted filesystem or network access while loading",
+      "recorded UI target attempted access outside its reviewed network policy while loading",
       { deniedRequestCount: deniedRequests.length },
     );
   }
 
   const executor = Object.freeze({
     capabilities: DRIVER_CAPABILITIES,
+    networkPolicyDigest: target.networkPolicy.digest,
     async execute(action, { isolation, capability } = {}) {
-      if (isolation?.sandboxed !== true || isolation?.network !== "deny") {
+      let replayNetworkPolicy;
+      try {
+        replayNetworkPolicy = createRecordedSkillNetworkPolicy({
+          mode: isolation?.network,
+          allowedOrigins: isolation?.allowedOrigins || [],
+        });
+      } catch {
+        replayNetworkPolicy = null;
+      }
+      if (
+        isolation?.sandboxed !== true ||
+        replayNetworkPolicy?.digest !== target.networkPolicy.digest
+      ) {
         throw driverError(
           "CC_REPLAY_UI_ISOLATION_REQUIRED",
-          "UI replay driver requires an ephemeral network-denied isolation",
+          "UI replay driver requires the exact reviewed browser network policy",
         );
       }
       const kind = String(action?.kind || "");
@@ -278,7 +335,7 @@ export async function launchPlaywrightRecordedSkillDriver({
             screenshot,
             "cc.record-replay.ui-screenshot/v1",
           ),
-          networkPolicy: "deny",
+          networkPolicy: target.networkPolicy.mode,
           deniedRequestCount: 0,
         });
         receipts.push(evidence);
@@ -297,7 +354,13 @@ export async function launchPlaywrightRecordedSkillDriver({
   return Object.freeze({
     executor,
     browserVersion: String(browser.version?.() || "unknown").slice(0, 128),
-    fixtureDigest: digest(fixtureHtml, "cc.record-replay.ui-fixture/v1"),
+    adapter: target.adapter,
+    targetDigest: target.targetDigest,
+    fixtureDigest:
+      target.adapter === "self-contained-html" ? target.targetDigest : null,
+    storageStateDigest: target.storageStateDigest,
+    identity: target.identity,
+    networkPolicy: target.networkPolicy,
     summary() {
       return Object.freeze({
         schema: "chainlesschain.recorded-skill-ui-driver-summary/v1",

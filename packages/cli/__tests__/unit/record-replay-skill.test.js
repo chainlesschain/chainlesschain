@@ -3,6 +3,8 @@ import {
   createRecordedSkillDraft,
   replayRecordedSkill,
   reviewRecordedSkillDraft,
+  validateRecordedSkillDraft,
+  validateReviewedRecordedSkill,
 } from "../../src/lib/record-replay/skill-recorder.js";
 
 function draft(overrides = {}) {
@@ -43,6 +45,43 @@ describe("Record & Replay to Skill prototype", () => {
       capabilityManifest: ["ui.interact", "ui.observe"],
       draftDigest: expect.stringMatching(/^sha256:/),
     });
+    expect(Object.isFrozen(value.actions)).toBe(true);
+    expect(Object.isFrozen(value.actions[0])).toBe(true);
+    expect(Object.isFrozen(value.environment.requirements)).toBe(true);
+  });
+
+  it.each([
+    { description: "contact person@example.com" },
+    { environment: { token: "Bearer secret-token-value" } },
+    { failureConditions: ["path C:/temp/runtime must exist"] },
+  ])("scans every persisted draft field: %j", (overrides) => {
+    expect(() => draft(overrides)).toThrowError(
+      expect.objectContaining({
+        code: "CC_REPLAY_SENSITIVE_OR_VOLATILE_DATA",
+      }),
+    );
+  });
+
+  it("revalidates serialized drafts and approvals instead of trusting object shape", () => {
+    const serializedDraft = JSON.parse(JSON.stringify(draft()));
+    expect(validateRecordedSkillDraft(serializedDraft).draftDigest).toBe(
+      serializedDraft.draftDigest,
+    );
+    serializedDraft.actions[0].target = "#modified-after-review";
+    expect(() => validateRecordedSkillDraft(serializedDraft)).toThrowError(
+      expect.objectContaining({ code: "CC_REPLAY_DRAFT_INTEGRITY" }),
+    );
+
+    const serializedApproval = JSON.parse(JSON.stringify(approve(draft())));
+    expect(
+      validateReviewedRecordedSkill(serializedApproval).approvalDigest,
+    ).toBe(serializedApproval.approvalDigest);
+    serializedApproval.review.approvedCapabilities = ["ui.observe"];
+    expect(() =>
+      validateReviewedRecordedSkill(serializedApproval),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_REPLAY_APPROVAL_INVALID" }),
+    );
   });
 
   it.each([
@@ -122,6 +161,25 @@ describe("Record & Replay to Skill prototype", () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining({ code: "CC_REPLAY_ENVIRONMENT_DRIFT" }),
+    );
+  });
+
+  it("rejects unbounded executor evidence before it enters a receipt digest", async () => {
+    const value = approve(draft());
+    await expect(
+      replayRecordedSkill(value, {
+        inputs: { projectName: "project-2" },
+        environment: value.environment.requirements,
+        executor: {
+          capabilities: value.capabilityManifest,
+          execute: async () => ({
+            ok: true,
+            evidence: { value: "x".repeat(300_000) },
+          }),
+        },
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({ code: "CC_REPLAY_ACTION_FAILED" }),
     );
   });
 });

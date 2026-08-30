@@ -6,14 +6,26 @@ on:
     branches: [main, "feature/**"]
     paths:
       - "packages/cli/src/lib/record-replay/**"
+      - "packages/cli/src/lib/process-execution-broker/index.js"
+      - "packages/cli/src/commands/record-replay.js"
+      - "packages/cli/src/commands/skill.js"
       - "packages/cli/scripts/record-replay-ui-journey.mjs"
       - "packages/cli/__tests__/unit/record-replay-*.test.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-context.test.js"
+      - "packages/cli/__tests__/integration/record-replay-product-lifecycle.test.js"
+      - "packages/cli/__tests__/e2e/record-replay-cli.e2e.test.js"
       - ".github/workflows/record-replay-ui-journey.yml"
   pull_request:
     paths:
       - "packages/cli/src/lib/record-replay/**"
+      - "packages/cli/src/lib/process-execution-broker/index.js"
+      - "packages/cli/src/commands/record-replay.js"
+      - "packages/cli/src/commands/skill.js"
       - "packages/cli/scripts/record-replay-ui-journey.mjs"
       - "packages/cli/__tests__/unit/record-replay-*.test.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-context.test.js"
+      - "packages/cli/__tests__/integration/record-replay-product-lifecycle.test.js"
+      - "packages/cli/__tests__/e2e/record-replay-cli.e2e.test.js"
       - ".github/workflows/record-replay-ui-journey.yml"
 
 permissions:
@@ -25,6 +37,7 @@ concurrency:
 
 env:
   JOURNEY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CC_RECORD_REPLAY_BROWSER_E2E: "1"
 
 jobs:
   replay:
@@ -65,11 +78,21 @@ jobs:
         shell: bash
         run: npx playwright install ${{ matrix.install_args }}
 
-      - name: Run unit contracts
+      - name: Run unit and real-browser product contracts
         run: >-
           npx vitest run
           packages/cli/__tests__/unit/record-replay-skill.test.js
           packages/cli/__tests__/unit/record-replay-playwright-driver.test.js
+          packages/cli/__tests__/unit/record-replay-browser-target-policy.test.js
+          packages/cli/__tests__/unit/process-execution-broker-context.test.js
+          packages/cli/__tests__/integration/record-replay-product-lifecycle.test.js
+
+      - name: Run actual CLI product lifecycle
+        working-directory: packages/cli
+        run: >-
+          npx vitest run
+          --config vitest.e2e.config.js
+          __tests__/e2e/record-replay-cli.e2e.test.js
 
       - name: Replay reviewed Skill through real Chromium
         shell: bash

@@ -58,6 +58,7 @@ import {
   removeCliPacks,
 } from "../lib/skill-packs/generator.js";
 import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
+import { registerRecordReplayCommands } from "./record-replay.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -290,6 +291,8 @@ export function registerSkillCommand(program) {
     );
 
   const loader = new CLISkillLoader();
+
+  registerRecordReplayCommands(skill);
 
   // skill list
   skill
