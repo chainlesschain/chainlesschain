@@ -1974,6 +1974,10 @@ export class TeamWorktreeCoordinator {
           ...(executionResult?.usageRecords
             ? { usageRecords: executionResult.usageRecords }
             : {}),
+          terminalEvidence: {
+            ...(executionResult?.terminalEvidence || {}),
+            commit: commitOid,
+          },
         };
       };
 

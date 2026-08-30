@@ -85,7 +85,11 @@ describe("cc team worktree (real git)", { timeout: 120_000 }, () => {
     expect(aResult).toMatchObject({
       worktreePath: expect.any(String),
       commitOid: expect.stringMatching(/^[a-f0-9]{40,64}$/),
+      terminalEvidence: {
+        commit: expect.stringMatching(/^[a-f0-9]{40,64}$/),
+      },
     });
+    expect(aResult.terminalEvidence.commit).toBe(aResult.commitOid);
     expect(
       readFileSync(
         path.join(consumeResult.worktreePath, "combined.txt"),

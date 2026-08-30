@@ -9,6 +9,7 @@ import {
 import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
 
 const OUTPUT_DIGEST = `sha256:${"a".repeat(64)}`;
+const COMMIT_OID = "b".repeat(40);
 
 class AfterAppendFaultStore {
   constructor(inner) {
@@ -81,6 +82,36 @@ function adapter(now) {
 }
 
 describe("CLI Team canonical Graph runtime adapter", () => {
+  it("accepts a verified worktree commit as immutable terminal evidence", () => {
+    const now = () => 1_800_000_000_000;
+    const source = registry(now);
+    const runtime = adapter(now);
+    runtime.open({
+      registry: source,
+      runId: "team:worktree-commit-evidence",
+      executionMode: "agent-worktree",
+      teammates: 1,
+      authorityMode: "canonical",
+    });
+    runtime.beforeTask({
+      key: "build",
+      holder: "teammate-1",
+      task: source.getTask("build"),
+      lease: { leaseId: "legacy-build", fencingToken: 1 },
+    });
+    runtime.settleTask({
+      key: "build",
+      task: source.getTask("build"),
+      status: "completed",
+      result: { terminalEvidence: { commit: COMMIT_OID } },
+    });
+
+    expect(runtime.status().attempts.at(-1)).toMatchObject({
+      status: "accepted",
+      terminalEvidence: { commit: COMMIT_OID },
+    });
+  });
+
   it("records a shadow projection without claiming canonical authority", () => {
     const now = () => 1_800_000_000_000;
     const source = registry(now);

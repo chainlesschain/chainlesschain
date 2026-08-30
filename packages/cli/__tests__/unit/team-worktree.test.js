@@ -408,6 +408,7 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       worktreePath: "/wt/team-build",
       committed: true,
       commitOid: fakeOid("base"),
+      terminalEvidence: { commit: fakeOid("base") },
     });
     expect(created).toEqual(["team/build"]);
     expect(ran).toEqual([{ cmd: "make", cwd: "/wt/team-build" }]);
@@ -452,6 +453,7 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       worktreePath: "/wt/team-fix",
       committed: true,
       commitOid: fakeOid("team-fix"),
+      terminalEvidence: { commit: fakeOid("team-fix") },
     });
     // The agent ran in the per-task worktree cwd, not process.cwd().
     expect(calls).toEqual([
