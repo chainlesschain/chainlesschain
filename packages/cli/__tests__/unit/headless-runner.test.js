@@ -304,7 +304,19 @@ describe("headless-runner — exact delivery fixer authority", () => {
           deps,
         ),
       ).resolves.toMatchObject({ exitCode: 0 });
-      expect(captured).toMatchObject({ hermeticExecution: true });
+      expect(captured).toMatchObject({
+        hermeticExecution: true,
+        enabledToolNames: [
+          "read_file",
+          "search_files",
+          "list_dir",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+        ],
+      });
+      expect(captured.enabledToolNames).not.toContain("run_shell");
+      expect(captured.enabledToolNames).not.toContain("run_code");
       expect(deps.bootstrap).not.toHaveBeenCalled();
     } finally {
       for (const [name, value] of [

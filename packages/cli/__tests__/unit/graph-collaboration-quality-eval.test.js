@@ -304,10 +304,12 @@ describe("graph collaboration quality evidence", () => {
 
     const controlPrompt = buildControlPrompt({ prompt: "Implement it." }, 101);
     for (const prompt of [candidateTask.prompt, controlPrompt]) {
-      expect(prompt).toContain("default platform shell");
-      expect(prompt).toContain("omit both the shell and timeout fields");
-      expect(prompt).toContain("at least 60000 milliseconds");
-      expect(prompt).toContain("do not run repository-wide tests");
+      expect(prompt).toContain("Use only the exposed file tools");
+      expect(prompt).toContain("Do not invoke run_shell, run_code, git");
+      expect(prompt).toContain(
+        "evaluation harness validates the task-local result",
+      );
+      expect(prompt).toContain("Do not run repository-wide tests");
     }
 
     expect(

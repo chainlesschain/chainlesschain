@@ -187,6 +187,14 @@ const HERMETIC_SKILL_LOADER = Object.freeze({
   getCacheLedger: () => null,
   getLimits: () => null,
 });
+const FORMAL_QUALITY_FILE_TOOLS = Object.freeze([
+  "read_file",
+  "search_files",
+  "list_dir",
+  "write_file",
+  "edit_file",
+  "edit_file_hashed",
+]);
 
 // EPIPE guard for `cc agent -p … | head`. Lives in pipe-safety.js (shared with
 // the stream-json driver + REPL); re-exported here for existing importers.
@@ -851,9 +859,9 @@ async function runAgentHeadlessInWorkspace(
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
+  const formalQualityHermetic = isFormalQualityHermeticRuntime(process.env);
   const hermeticExecution =
-    options.hermeticExecution === true ||
-    isFormalQualityHermeticRuntime(process.env);
+    options.hermeticExecution === true || formalQualityHermetic;
   if (
     options.fileMutationScope != null &&
     (options.exactToolNames !== true || !hermeticExecution)
@@ -1223,12 +1231,14 @@ async function runAgentHeadlessInWorkspace(
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
-  const enabledToolNames = resolveEnabledTools({
-    // An explicit --allowed-tools wins; otherwise a matched command's
-    // `allowed-tools:` frontmatter scopes the run (null when neither applies).
-    allowedTools: options.allowedTools || macroAllowedTools,
-    readOnly: perm.readOnly,
-  });
+  const enabledToolNames = formalQualityHermetic
+    ? [...FORMAL_QUALITY_FILE_TOOLS]
+    : resolveEnabledTools({
+        // An explicit --allowed-tools wins; otherwise a matched command's
+        // `allowed-tools:` frontmatter scopes the run (null when neither applies).
+        allowedTools: options.allowedTools || macroAllowedTools,
+        readOnly: perm.readOnly,
+      });
   const disabledTools = options.disallowedTools || [];
 
   // ── Best-effort runtime bootstrap (DB optional, like startAgentRepl) ───

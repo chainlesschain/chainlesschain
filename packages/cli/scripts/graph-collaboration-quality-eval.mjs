@@ -56,11 +56,10 @@ const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
 const CANDIDATE_AGENT_LIMIT = 4;
 const FORMAL_EXECUTION_GUIDANCE =
-  "Use only the task-local validation named in the prompt; do not run " +
-  "repository-wide tests, builds, or linters. When using run_shell, use a " +
-  "portable Node command through the default platform shell and omit both " +
-  "the shell and timeout fields. If an explicit foreground timeout is " +
-  "unavoidable, it must be at least 60000 milliseconds.";
+  "Use only the exposed file tools. Do not invoke run_shell, run_code, git, " +
+  "plugins, hooks, MCP servers, IDE bridges, or sub-agents; the evaluation " +
+  "harness validates the task-local result after you finish. Do not run " +
+  "repository-wide tests, builds, or linters.";
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
