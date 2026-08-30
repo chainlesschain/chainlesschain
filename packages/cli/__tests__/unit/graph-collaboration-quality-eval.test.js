@@ -7,6 +7,7 @@ import {
   FROZEN_THRESHOLDS,
   PLATFORM_SCHEMA,
   buildCandidateTasks,
+  candidateCheckpointArgs,
   candidateFailureDetails,
   enforceQualityThresholds,
   qualityEvidenceDigest,
@@ -23,6 +24,27 @@ const PLANNED_MAX_ROUNDS = 12;
 const PER_INVOCATION_CEILING_USD =
   MAX_TOTAL_COST_USD /
   (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
+
+describe("formal candidate platform isolation", () => {
+  it.each(["linux", "macos"])(
+    "uses worktree plus Agent checkpoint on %s without claiming process-tree containment",
+    (platform) => {
+      expect(candidateCheckpointArgs(platform)).toEqual([]);
+    },
+  );
+
+  it("keeps the Windows Job-backed managed process checkpoint", () => {
+    expect(candidateCheckpointArgs("windows")).toEqual([
+      "--managed-checkpoint",
+    ]);
+  });
+
+  it("rejects non-matrix platform spellings", () => {
+    expect(() => candidateCheckpointArgs("darwin")).toThrow(
+      /unsupported evaluation platform/u,
+    );
+  });
+});
 
 function round(seed, overrides = {}) {
   const results = (passed, digit) =>

@@ -98,11 +98,11 @@ function flushMicrotasks() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-const ALLOWING_APPROVAL_GATE = Object.freeze({
+const LOW_RISK_APPROVAL_GATE = Object.freeze({
   decide: async ({ riskLevel }) => ({
-    decision: "allow",
-    via: "test-policy",
-    policy: "autopilot",
+    decision: riskLevel === "low" ? "allow" : "deny",
+    via: "policy",
+    policy: "test-low-risk-only",
     riskLevel,
   }),
 });
@@ -155,7 +155,7 @@ describe("Coding agent hosted tool integration", () => {
       projectRoot: "C:\\code\\chainlesschain",
       mcpManager,
       mcpSecurityPolicy,
-      approvalGate: ALLOWING_APPROVAL_GATE,
+      approvalGate: LOW_RISK_APPROVAL_GATE,
     });
 
     registerCodingAgentIPCV3({

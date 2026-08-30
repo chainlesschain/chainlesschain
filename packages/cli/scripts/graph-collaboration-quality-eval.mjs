@@ -718,14 +718,28 @@ export function buildCandidateTasks(tasks, seed) {
     title: task.description,
     dependsOn: [],
     scopePaths: [`cases/${task.id}`],
-    // These benchmark tasks have no external effects and run inside isolated,
-    // managed-checkpoint worktrees. Retrying a failed agent process is safe;
+    // These benchmark tasks have no external effects and run inside isolated
+    // Git worktrees. Linux/Windows add managed process checkpoints; macOS uses
+    // the Agent checkpoint because its generic Seatbelt boundary cannot prove
+    // complete descendant process-tree ownership. Retrying remains safe;
     // incorrect code still exits normally and is measured by the scorer.
     retrySafe: true,
     prompt:
       `Work only in cases/${task.id}. ${task.prompt}\n\n` +
       `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}.`,
   }));
+}
+
+export function candidateCheckpointArgs(platform) {
+  if (!REQUIRED_PLATFORMS.includes(platform)) {
+    throw new Error(`unsupported evaluation platform: ${platform}`);
+  }
+  // Generic macOS Seatbelt and Linux bwrap profiles cannot truthfully attest
+  // that an arbitrary Agent child owns its complete descendant process tree.
+  // Keep the Broker fail-closed contract intact: those platforms use the
+  // already isolated Git worktree plus the Agent's own checkpoint, while
+  // Windows retains the managed process-checkpoint boundary backed by a Job.
+  return platform === "windows" ? ["--managed-checkpoint"] : [];
 }
 
 function usageFromEvents(events) {
@@ -923,6 +937,7 @@ async function runControl({
 async function runCandidate({
   tasks,
   seed,
+  platform,
   provider,
   model,
   perInvocationCeilingUsd,
@@ -952,7 +967,7 @@ async function runCandidate({
         tasksFile,
         "--agent",
         "--worktree",
-        "--managed-checkpoint",
+        ...candidateCheckpointArgs(platform),
         "--merge",
         "--graph-canary-opt-in",
         "--teammates",
