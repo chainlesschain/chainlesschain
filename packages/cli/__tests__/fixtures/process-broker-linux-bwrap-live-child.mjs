@@ -4,7 +4,7 @@ import {
   spawnSync as nativeSpawnSync,
 } from "node:child_process";
 import fs from "node:fs";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { executeTool as executeToolWithoutGate } from "../../src/runtime/agent-core.js";
 import {
   executionBroker,
   SANDBOX_BOUNDARIES,
@@ -14,6 +14,18 @@ import { parseLinuxBwrapDescriptorScrubbedLaunch } from "../../src/lib/process-e
 const [mode, value, extra] = process.argv.slice(2);
 const BWRAP_SUPERVISOR_CHILD_FD = 3;
 const BWRAP_SUPERVISOR_STAGING_PATH = "/run/.chainless-bwrap-supervisor";
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+const executeTool = (name, args, context = {}) =>
+  executeToolWithoutGate(name, args, {
+    approvalGate: ALLOWING_APPROVAL_GATE,
+    ...context,
+  });
 
 function writeResult(result) {
   process.stdout.write(JSON.stringify(result));
