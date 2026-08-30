@@ -21,6 +21,14 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { listCodingAgentToolNames } from "../../src/runtime/coding-agent-contract.js";
 
+const ALLOWING_APPROVAL_GATE = Object.freeze({
+  decide: async () => ({
+    decision: "allow",
+    via: "test-policy",
+    policy: "autopilot",
+  }),
+});
+
 // Mock plan-mode (required by agent-core)
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
@@ -401,7 +409,7 @@ This should NOT be auto-activated.`,
       const result = await executeTool(
         "run_shell",
         { command: "echo persona-open" },
-        { cwd: tempDir },
+        { cwd: tempDir, approvalGate: ALLOWING_APPROVAL_GATE },
       );
       expect(result.stdout).toContain("persona-open");
     });
