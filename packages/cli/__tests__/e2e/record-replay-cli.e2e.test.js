@@ -16,7 +16,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
 const bin = join(cliRoot, "bin", "chainlesschain.js");
 
-describe("E2E: cc skill recording lifecycle", () => {
+// Generic CLI jobs do not install Chromium; the dedicated UI workflow opts in.
+const browserE2E =
+  process.env.CC_RECORD_REPLAY_BROWSER_E2E === "1" ? describe : describe.skip;
+
+browserE2E("E2E: cc skill recording lifecycle", () => {
   let projectRoot;
   let configHome;
   let fixturePath;
