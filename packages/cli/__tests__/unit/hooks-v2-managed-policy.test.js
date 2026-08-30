@@ -44,6 +44,39 @@ describe("Hooks v2 broker event wiring", () => {
 });
 
 describe("Hooks v2 managed execution policy", () => {
+  it("contains a fast hook stdin EPIPE and lets the exit status decide", async () => {
+    const child = new EventEmitter();
+    child.stdin = new EventEmitter();
+    child.stdin.end = vi.fn(() => {
+      setImmediate(() => {
+        child.stdin.emit(
+          "error",
+          Object.assign(new Error("write EPIPE"), { code: "EPIPE" }),
+        );
+        child.emit("exit", 0);
+      });
+    });
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    const runtime = new HooksV2Runtime(undefined, {
+      broker: { spawn: vi.fn(() => child) },
+    });
+
+    await expect(
+      runtime._execCommand(
+        {
+          id: "fast-hook",
+          event: "SessionStart",
+          command: "echo",
+          shell: false,
+        },
+        {},
+      ),
+    ).resolves.toMatchObject({ exitCode: 0 });
+    expect(child.stdin.end).toHaveBeenCalledOnce();
+    expect(child.stdin.listenerCount("error")).toBeGreaterThan(0);
+  });
+
   it("issues a non-shell command authority from the host project root", async () => {
     const child = new EventEmitter();
     child.stdin = { end: vi.fn() };
