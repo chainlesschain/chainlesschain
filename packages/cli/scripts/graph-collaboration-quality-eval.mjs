@@ -51,6 +51,12 @@ const EXACT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
 const CANDIDATE_AGENT_LIMIT = 4;
+const FORMAL_EXECUTION_GUIDANCE =
+  "Use only the task-local validation named in the prompt; do not run " +
+  "repository-wide tests, builds, or linters. When using run_shell, use a " +
+  "portable Node command through the default platform shell and omit both " +
+  "the shell and timeout fields. If an explicit foreground timeout is " +
+  "unavoidable, it must be at least 60000 milliseconds.";
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -788,8 +794,17 @@ export function buildCandidateTasks(tasks, seed) {
     retrySafe: true,
     prompt:
       `Work only in cases/${task.id}. ${task.prompt}\n\n` +
-      `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}.`,
+      `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}. ` +
+      FORMAL_EXECUTION_GUIDANCE,
   }));
+}
+
+export function buildControlPrompt(task, seed) {
+  return (
+    `${task.prompt}\n\nEvaluation seed: ${seed}. ` +
+    "Work only in this directory and do not modify unrelated files. " +
+    FORMAL_EXECUTION_GUIDANCE
+  );
 }
 
 export function candidateCheckpointArgs(platform) {
@@ -929,9 +944,7 @@ async function runControl({
   let costUsd = 0;
   try {
     for (const task of tasks) {
-      const prompt =
-        `${task.prompt}\n\nEvaluation seed: ${seed}. ` +
-        `Work only in this directory and do not modify unrelated files.`;
+      const prompt = buildControlPrompt(task, seed);
       const result = runCli(
         [
           "exec",

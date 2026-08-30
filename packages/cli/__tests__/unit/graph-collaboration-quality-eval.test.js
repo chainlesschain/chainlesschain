@@ -8,6 +8,7 @@ import {
   FROZEN_THRESHOLDS,
   PLATFORM_SCHEMA,
   buildCandidateTasks,
+  buildControlPrompt,
   candidateCheckpointArgs,
   candidateFailureDetails,
   candidateGraphEvidence,
@@ -257,24 +258,31 @@ function platform(platform, index = 0, overrides = {}) {
 
 describe("graph collaboration quality evidence", () => {
   it("keeps isolated candidate tasks retry-safe and reports their root failures", () => {
-    expect(
-      buildCandidateTasks(
-        [
-          {
-            id: "add-function",
-            description: "Add a function",
-            prompt: "Implement it.",
-          },
-        ],
-        101,
-      ),
-    ).toEqual([
+    const [candidateTask] = buildCandidateTasks(
+      [
+        {
+          id: "add-function",
+          description: "Add a function",
+          prompt: "Implement it.",
+        },
+      ],
+      101,
+    );
+    expect(candidateTask).toEqual(
       expect.objectContaining({
         key: "add-function",
         retrySafe: true,
         scopePaths: ["cases/add-function"],
       }),
-    ]);
+    );
+
+    const controlPrompt = buildControlPrompt({ prompt: "Implement it." }, 101);
+    for (const prompt of [candidateTask.prompt, controlPrompt]) {
+      expect(prompt).toContain("default platform shell");
+      expect(prompt).toContain("omit both the shell and timeout fields");
+      expect(prompt).toContain("at least 60000 milliseconds");
+      expect(prompt).toContain("do not run repository-wide tests");
+    }
 
     expect(
       candidateFailureDetails({
