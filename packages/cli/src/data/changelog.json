@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.14",
+      "cliVersions": ["0.166.13", "0.166.14"],
+      "date": "2026-08-30",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows",
+          "body": "> `chainlesschain` **0.166.13 -> 0.166.14** (hotfix candidate, 2026-08-30).\n\n- **Docker remains opt-in**: a normal agent session no longer probes or\n  requires Docker unless the CLI flag, settings, or managed policy explicitly\n  selects container isolation.\n- **Windows executable lookup**: bare commands resolve through `PATHEXT`\n  before launch, so Docker Desktop's POSIX `docker` script cannot shadow\n  `docker.exe` and trigger `CreateProcessAsUser` error 193.\n- **Explicit isolation stays fail-closed**: `workspace-write`, `strict`, and\n  managed sandbox requirements still reject unavailable engines instead of\n  silently degrading."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.13",
       "cliVersions": ["0.3.8", "0.166.12", "0.166.13"],
       "date": "2026-08-30",

@@ -354,11 +354,11 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--sandbox [image]",
-      "Select the sandbox image/engine configuration (workspace-write and network-off are the default posture)",
+      "Run shell commands in an ephemeral Docker sandbox (network disabled by default)",
     )
     .option(
       "--sandbox-mode <mode>",
-      "Sandbox posture: off | workspace-write | strict (default: workspace-write; isolation modes fail closed)",
+      "Sandbox posture: off | workspace-write | strict (explicit isolation modes fail closed)",
     )
     .option("--sandbox-network", "Allow network access inside --sandbox")
     .option(

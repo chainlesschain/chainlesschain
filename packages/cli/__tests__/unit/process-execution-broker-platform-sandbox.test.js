@@ -9804,6 +9804,12 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain(
       "ValidateExistingLocalNonReparsePath(",
     );
+    expect(windowsSandboxSource).toContain(
+      "extensions = new string[configured.Length];",
+    );
+    expect(windowsSandboxSource).not.toContain(
+      "extensions = new string[configured.Length + 1];",
+    );
     expect(windowsSandboxSource).not.toContain("Environment.CurrentDirectory");
     expect(windowsSandboxSource).not.toMatch(
       /SetNamedSecurityInfo|AddAccessAllowedAce|SetEntriesInAcl/,

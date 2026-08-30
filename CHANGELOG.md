@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows
+
+> `chainlesschain` **0.166.13 -> 0.166.14** (hotfix candidate, 2026-08-30).
+
+- **Docker remains opt-in**: a normal agent session no longer probes or
+  requires Docker unless the CLI flag, settings, or managed policy explicitly
+  selects container isolation.
+- **Windows executable lookup**: bare commands resolve through `PATHEXT`
+  before launch, so Docker Desktop's POSIX `docker` script cannot shadow
+  `docker.exe` and trigger `CreateProcessAsUser` error 193.
+- **Explicit isolation stays fail-closed**: `workspace-write`, `strict`, and
+  managed sandbox requirements still reject unavailable engines instead of
+  silently degrading.
+
 ### Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure
 
 > `chainlesschain` **0.166.12 -> 0.166.13** and Session Core
