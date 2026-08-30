@@ -36,6 +36,8 @@ const FIXTURE = `<!doctype html>
 </html>`;
 
 const roots = [];
+// Generic CLI jobs do not install Chromium; the dedicated UI workflow opts in.
+const bt = process.env.CC_RECORD_REPLAY_BROWSER_E2E === "1" ? it : it.skip;
 
 function temporaryRoot(prefix) {
   const root = mkdtempSync(join(tmpdir(), prefix));
@@ -50,7 +52,7 @@ afterEach(() => {
 });
 
 describe("Record & Replay product lifecycle", () => {
-  it("captures real DOM events, validates replay, installs, revokes, exports, and imports", async () => {
+  bt("captures real DOM events, validates replay, installs, revokes, exports, and imports", async () => {
     const recorder = await launchPlaywrightRecordedSkillRecorder({
       html: FIXTURE,
       headless: true,
@@ -215,7 +217,7 @@ describe("Record & Replay product lifecycle", () => {
     ]);
   }, 30_000);
 
-  it("enforces revision CAS across concurrent reviewers", async () => {
+  bt("enforces revision CAS across concurrent reviewers", async () => {
     const root = temporaryRoot("cc-record-cas-");
     const store = new RecordedSkillStore({
       rootDir: join(root, "store"),
@@ -269,7 +271,7 @@ describe("Record & Replay product lifecycle", () => {
     );
   }, 30_000);
 
-  it("records and replays a credential-bound URL while denying network escape", async () => {
+  bt("records and replays a credential-bound URL while denying network escape", async () => {
     const cookieValue = "session-value-that-must-not-persist";
     const server = createServer((request, response) => {
       if (

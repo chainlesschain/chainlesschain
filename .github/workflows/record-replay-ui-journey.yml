@@ -37,6 +37,7 @@ concurrency:
 
 env:
   JOURNEY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CC_RECORD_REPLAY_BROWSER_E2E: "1"
 
 jobs:
   replay:
