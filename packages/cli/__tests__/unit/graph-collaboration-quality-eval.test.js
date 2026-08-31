@@ -507,6 +507,8 @@ describe("graph collaboration quality evidence", () => {
     expect(workflow).toContain('test "$EXPECTED_SHA" = "$SOURCE_SHA"');
     expect(workflow).toContain("--duration-seconds 1800");
     expect(workflow).toContain("--min-rounds 3");
+    expect(workflow).toContain("--max-rounds 24");
+    expect(workflow).not.toContain("--max-rounds 12");
     expect(workflow).toContain(
       "secrets.CC_P2_3_API_KEY || secrets.CC_LLM_API_KEY",
     );
