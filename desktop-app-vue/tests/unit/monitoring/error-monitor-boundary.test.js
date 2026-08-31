@@ -19,6 +19,10 @@ const {
   HARD_ERROR_MONITOR_LIMITS,
   ErrorMonitor,
 } = require("../../../src/main/monitoring/error-monitor.js");
+const {
+  OptionalDockerRuntime,
+  resolveDockerAutoStartEnabled,
+} = require("../../../src/main/monitoring/optional-docker-runtime.js");
 
 const monitors = [];
 const temporaryDirectories = [];
@@ -45,6 +49,55 @@ afterEach(() => {
 });
 
 describe("monitoring ErrorMonitor boundaries", () => {
+  it("keeps Docker recovery disabled by default", async () => {
+    const run = vi.fn();
+    const dockerRuntime = new OptionalDockerRuntime({
+      environment: {},
+      run,
+    });
+    const monitor = createMonitor({ dockerRuntime });
+
+    expect(resolveDockerAutoStartEnabled(undefined, {})).toBe(false);
+    await expect(monitor.restartService("ollama")).resolves.toMatchObject({
+      success: false,
+      skipped: true,
+      reason: "disabled",
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("uses Docker only after opt-in and an availability probe", async () => {
+    const run = vi.fn().mockResolvedValue({ stdout: "27.0.0" });
+    const dockerRuntime = new OptionalDockerRuntime({ enabled: true, run });
+    const monitor = createMonitor({ dockerRuntime });
+
+    await expect(monitor.restartService("qdrant")).resolves.toMatchObject({
+      success: true,
+      container: "chainlesschain-qdrant",
+    });
+    expect(run.mock.calls.map(([args]) => args)).toEqual([
+      ["version", "--format", "{{.Server.Version}}"],
+      ["start", "chainlesschain-qdrant"],
+    ]);
+  });
+
+  it("degrades cleanly when opted in but Docker is unavailable", async () => {
+    const run = vi.fn().mockRejectedValue(
+      Object.assign(new Error("missing"), {
+        code: "ENOENT",
+      }),
+    );
+    const dockerRuntime = new OptionalDockerRuntime({ enabled: true, run });
+    const monitor = createMonitor({ dockerRuntime });
+
+    await expect(monitor.restartService("redis")).resolves.toMatchObject({
+      success: false,
+      skipped: true,
+      reason: "unavailable",
+    });
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it("clamps hostile configuration at immutable hard limits", () => {
     const monitor = createMonitor(
       Object.fromEntries(
@@ -242,9 +295,9 @@ describe("monitoring ErrorMonitor boundaries", () => {
     expect(logFiles.length).toBeLessThanOrEqual(2);
     expect(logFiles.length).toBeGreaterThan(0);
     for (const filename of logFiles) {
-      expect(fs.statSync(path.join(logPath, filename)).size).toBeLessThanOrEqual(
-        monitor.limits.maxLogFileBytes,
-      );
+      expect(
+        fs.statSync(path.join(logPath, filename)).size,
+      ).toBeLessThanOrEqual(monitor.limits.maxLogFileBytes);
     }
   });
 });
