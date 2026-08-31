@@ -21,6 +21,8 @@ on:
       - "packages/cli/scripts/select-graph-production-artifact.mjs"
       - "packages/cli/scripts/verify-graph-production-attestation-certificate.mjs"
       - "packages/cli/scripts/verify-graph-production-source-registry.mjs"
+      - "scripts/verify-github-live-main.mjs"
+      - "scripts/__tests__/verify-github-live-main.test.mjs"
       - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
       - "packages/cli/__tests__/unit/graph-kernel-authority.test.js"
       - ".github/graph-kernel-production-source-registry.json"
@@ -47,6 +49,8 @@ on:
       - "packages/cli/scripts/select-graph-production-artifact.mjs"
       - "packages/cli/scripts/verify-graph-production-attestation-certificate.mjs"
       - "packages/cli/scripts/verify-graph-production-source-registry.mjs"
+      - "scripts/verify-github-live-main.mjs"
+      - "scripts/__tests__/verify-github-live-main.test.mjs"
       - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
       - "packages/cli/__tests__/unit/graph-kernel-authority.test.js"
       - ".github/graph-kernel-production-source-registry.json"
@@ -133,6 +137,8 @@ jobs:
       SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
     steps:
       - name: Refuse a detached or mixed-SHA close
+        env:
+          REF_PROTECTED: ${{ github.ref_protected }}
         shell: bash
         run: |
           if [[ ! "${CUTOVER_SHA}" =~ ^[a-f0-9]{40}$ ]]; then
@@ -145,6 +151,10 @@ jobs:
           fi
           if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
             echo "::error::Production close may only run from protected main"
+            exit 1
+          fi
+          if [[ "${REF_PROTECTED}" != "true" ]]; then
+            echo "::error::refs/heads/main must be protected"
             exit 1
           fi
           if [[ ! "${EVIDENCE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]; then
@@ -168,6 +178,19 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22.12.0
+
+      - name: Verify protected live main after close-environment admission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Verify exact checked-out SHA
         shell: bash
@@ -306,6 +329,19 @@ jobs:
           --selected-artifact "${RUNNER_TEMP}/selected-artifact.json"
           --server-url "${GITHUB_SERVER_URL}"
           --output "${RUNNER_TEMP}/graph-production-cutover-receipt.json"
+
+      - name: Revalidate protected live main before close attestation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Attest the production-close receipt
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3

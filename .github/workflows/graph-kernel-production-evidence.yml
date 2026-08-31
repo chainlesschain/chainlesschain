@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: graph-kernel-production-evidence-${{ inputs.commit_sha }}
-  cancel-in-progress: false
+  group: graph-kernel-production-evidence-authoritative
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -28,6 +28,7 @@ jobs:
     env:
       CUTOVER_SHA: ${{ inputs.commit_sha }}
       SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
+      REF_PROTECTED: ${{ github.ref_protected }}
     steps:
       - name: Refuse detached, non-main, malformed, or unpinned requests
         shell: bash
@@ -38,6 +39,10 @@ jobs:
           fi
           if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
             echo "::error::production evidence may only be produced from protected main"
+            exit 1
+          fi
+          if [[ "${REF_PROTECTED}" != "true" ]]; then
+            echo "::error::refs/heads/main must be protected"
             exit 1
           fi
           if [[ ! "${SOURCE_REGISTRY_DIGEST}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
@@ -53,6 +58,19 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22.12.0
+
+      - name: Verify protected live main before creating a producer challenge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Freeze checked-in trust inputs
         run: >-
@@ -105,6 +123,19 @@ jobs:
         with:
           node-version: 22.12.0
 
+      - name: Verify protected live main after physical-runner admission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - name: Query this exact attempt's current source job identity
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -123,6 +154,19 @@ jobs:
           "${{ runner.temp }}/current-source-job.json"
           .github/graph-kernel-production-source-registry.json
           packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json
+
+      - name: Revalidate protected live main before collector credential access
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Fetch only Linux endpoint-signed raw production receipts
         if: matrix.platform == 'linux'
@@ -203,6 +247,19 @@ jobs:
         with:
           node-version: 22.12.0
 
+      - name: Verify protected live main after aggregate admission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           pattern: graph-production-source-*-${{ github.run_attempt }}
@@ -258,6 +315,19 @@ jobs:
           --expected-registry-digest "${SOURCE_REGISTRY_DIGEST}"
           --jobs-inventory "${RUNNER_TEMP}/jobs.json"
           --output "${RUNNER_TEMP}/graph-production-cutover-producer-receipt.json"
+
+      - name: Revalidate protected live main before aggregate attestation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Attest the aggregate on a GitHub-hosted runner
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
