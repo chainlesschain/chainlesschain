@@ -1336,6 +1336,7 @@ const GUARDED_FILE_MUTATION_TOOLS = new Set([
 ]);
 const EXACT_FILE_MUTATION_SCOPE_TOOL_NAMES = new Set([
   "read_file",
+  "search_files",
   "list_dir",
   "write_file",
   "edit_file",

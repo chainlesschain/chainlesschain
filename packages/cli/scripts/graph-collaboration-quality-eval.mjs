@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 import { BUILTIN_TASKS } from "../src/lib/eval/tasks.js";
 import { evaluateGraphProjection } from "../src/lib/graph-kernel/eval.js";
 import { redactSecrets } from "../src/lib/secret-scan.js";
-import { FORMAL_QUALITY_ALLOWED_FILES_ENV } from "../src/lib/formal-quality-eval-runtime.js";
+import {
+  FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  FORMAL_QUALITY_FILE_TOOLS,
+} from "../src/lib/formal-quality-eval-runtime.js";
 
 export const PLATFORM_SCHEMA =
   "chainlesschain.graph-collaboration-quality-eval/v1";
@@ -57,8 +60,7 @@ const EXACT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
 export const CANDIDATE_AGENT_LIMIT = 6;
-const FORMAL_FILE_TOOLS =
-  "read_file,list_dir,search_files,write_file,edit_file,edit_file_hashed";
+const FORMAL_FILE_TOOLS = FORMAL_QUALITY_FILE_TOOLS.join(",");
 const FORMAL_EXECUTION_GUIDANCE =
   "Inspect and modify only the task files with the exposed read, list, " +
   "search, write, and edit file tools. After making the required edits, " +

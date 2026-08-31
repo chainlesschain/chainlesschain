@@ -5,6 +5,14 @@ export const FORMAL_QUALITY_HERMETIC_ENV = "CC_FORMAL_QUALITY_EVAL_HERMETIC";
 export const FORMAL_QUALITY_PROVIDER_ENV = "CC_FORMAL_QUALITY_EVAL_PROVIDER";
 export const FORMAL_QUALITY_ALLOWED_FILES_ENV =
   "CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES";
+export const FORMAL_QUALITY_FILE_TOOLS = Object.freeze([
+  "read_file",
+  "search_files",
+  "list_dir",
+  "write_file",
+  "edit_file",
+  "edit_file_hashed",
+]);
 
 /**
  * The real-model quality harness opts into the already-supported hermetic

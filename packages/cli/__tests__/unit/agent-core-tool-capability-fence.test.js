@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { agentLoop } from "../../src/runtime/agent-core.js";
+import { FORMAL_QUALITY_FILE_TOOLS } from "../../src/lib/formal-quality-eval-runtime.js";
 
 let tmp;
 
@@ -261,5 +262,33 @@ describe("agent-loop execution-time tool capability fence", () => {
     expect(fs.readFileSync(path.join(tmp, "allowed.txt"), "utf8")).toBe(
       "after",
     );
+  });
+
+  it("accepts the complete formal quality file-tool ceiling", async () => {
+    fs.writeFileSync(path.join(tmp, "allowed.txt"), "allowed", "utf8");
+
+    const events = await drive(
+      {
+        id: "call-formal-read",
+        type: "function",
+        function: {
+          name: "read_file",
+          arguments: JSON.stringify({ path: "allowed.txt" }),
+        },
+      },
+      {
+        enabledToolNames: [...FORMAL_QUALITY_FILE_TOOLS],
+        exactToolNames: true,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: canonicalRealpath(tmp),
+          allowedPaths: ["allowed.txt"],
+        },
+      },
+    );
+
+    const result = events.find((event) => event.type === "tool-result")?.result;
+    expect(result?.error).toBeUndefined();
   });
 });

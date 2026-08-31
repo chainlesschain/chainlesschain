@@ -40,7 +40,10 @@ import {
 import { maybeApplyToolSearch } from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { HostResourceBudget } from "../lib/host-resource-budget.js";
-import { isFormalQualityHermeticRuntime } from "../lib/formal-quality-eval-runtime.js";
+import {
+  FORMAL_QUALITY_FILE_TOOLS,
+  isFormalQualityHermeticRuntime,
+} from "../lib/formal-quality-eval-runtime.js";
 import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
@@ -187,15 +190,6 @@ const HERMETIC_SKILL_LOADER = Object.freeze({
   getCacheLedger: () => null,
   getLimits: () => null,
 });
-const FORMAL_QUALITY_FILE_TOOLS = Object.freeze([
-  "read_file",
-  "search_files",
-  "list_dir",
-  "write_file",
-  "edit_file",
-  "edit_file_hashed",
-]);
-
 // EPIPE guard for `cc agent -p … | head`. Lives in pipe-safety.js (shared with
 // the stream-json driver + REPL); re-exported here for existing importers.
 export { installPipeSafety } from "./pipe-safety.js";
