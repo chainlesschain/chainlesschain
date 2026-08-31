@@ -9,8 +9,8 @@ import {
 import {
   GRAPH_CUTOVER_LEDGER_SCHEMA,
   GRAPH_CUTOVER_REQUIRED_PLATFORMS,
-} from "./cutover-ledger.js";
-import { graphDigest } from "./compiler.js";
+} from "./cutover-contract.js";
+import { graphEvidenceDigest as graphDigest } from "./evidence-digest.js";
 
 export const GRAPH_RUNTIME_SURFACE_MANIFEST_SCHEMA =
   "chainlesschain.graph-runtime-surfaces/v1";
@@ -109,6 +109,71 @@ export function graphRuntimeEntryManifestDigest(
     },
     "cc.graph.runtime-surface-entry/v1",
   );
+}
+
+export function graphRuntimeSurfaceManifestDigest(manifest) {
+  return graphDigest(manifest, "cc.graph.runtime-surface-manifest/v1");
+}
+
+export function assertGraphProductionRuntimeSurfaceManifest(manifest) {
+  const surfaces = Array.isArray(manifest?.surfaces) ? manifest.surfaces : [];
+  const entries = surfaces.flatMap((surface) => surface.entries || []);
+  const counts = {
+    migrate: entries.filter((entry) => entry.cutoverStrategy === "migrate")
+      .length,
+    retire: entries.filter((entry) => entry.cutoverStrategy === "retire")
+      .length,
+    disabled: entries.filter((entry) => entry.cutoverStrategy === "disabled")
+      .length,
+  };
+  const surfaceNames = surfaces.map((surface) => surface.originSurface).sort();
+  const expectedSurfaceNames = [
+    "browser",
+    "cli_team",
+    "cowork",
+    "desktop",
+    "scheduler",
+  ];
+  const expectedLegacyMutationErrorCodes = {
+    browser: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+    cli_team: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+    cowork: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+    desktop: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
+    scheduler: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+  };
+  if (
+    surfaces.length !== 5 ||
+    JSON.stringify(surfaceNames) !== JSON.stringify(expectedSurfaceNames) ||
+    entries.length !== 23 ||
+    counts.migrate !== 7 ||
+    counts.retire !== 13 ||
+    counts.disabled !== 3 ||
+    JSON.stringify(manifest?.cutoverPolicy?.legacyMutationErrorCodes) !==
+      JSON.stringify(expectedLegacyMutationErrorCodes)
+  ) {
+    const error = new Error(
+      "production Graph runtime manifest must freeze exactly 5 surfaces, 23 entries, 20 durable, 7 migrate, 13 retire, and 3 disabled",
+    );
+    error.name = "GraphRuntimeSurfaceManifestError";
+    error.code = "CC_GRAPH_PRODUCTION_MANIFEST_CONTRACT_MISMATCH";
+    error.actual = {
+      surfaceCount: surfaces.length,
+      surfaceNames,
+      entryCount: entries.length,
+      durableEntryCount: counts.migrate + counts.retire,
+      ...counts,
+    };
+    throw error;
+  }
+  return Object.freeze({
+    surfaceCount: 5,
+    entryCount: 23,
+    durableEntryCount: 20,
+    migratableEntryCount: 7,
+    retirementEntryCount: 13,
+    disabledEntryCount: 3,
+    manifestDigest: graphRuntimeSurfaceManifestDigest(manifest),
+  });
 }
 
 function manifestFiles(manifest) {

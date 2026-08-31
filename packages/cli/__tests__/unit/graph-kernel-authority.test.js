@@ -85,6 +85,13 @@ describe("GraphRun authority and writer inventory", () => {
       scope: "entry",
       requiredPlatforms: [...GRAPH_CUTOVER_REQUIRED_PLATFORMS],
       existingCanonicalRunRollback: "retain_authority",
+      legacyMutationErrorCodes: {
+        browser: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+        cli_team: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+        cowork: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+        desktop: "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
+        scheduler: "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+      },
     });
     const entries = manifest.surfaces.flatMap((surface) => surface.entries);
     expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(23);

@@ -8,14 +8,15 @@ import {
   normalizeGraphRetirementEvidence,
 } from "./retirement-evidence.js";
 import { graphStoreEvidenceDigest } from "./store-cutover-evidence.js";
+import {
+  GRAPH_CUTOVER_LEDGER_SCHEMA,
+  GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+} from "./cutover-contract.js";
 
-export const GRAPH_CUTOVER_LEDGER_SCHEMA =
-  "chainlesschain.graph-cutover-ledger/v1";
-export const GRAPH_CUTOVER_REQUIRED_PLATFORMS = Object.freeze([
-  "linux",
-  "windows",
-  "macos",
-]);
+export {
+  GRAPH_CUTOVER_LEDGER_SCHEMA,
+  GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+} from "./cutover-contract.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;

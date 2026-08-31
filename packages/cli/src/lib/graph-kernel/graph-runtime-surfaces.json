@@ -6,7 +6,14 @@
     "ledgerSchema": "chainlesschain.graph-cutover-ledger/v1",
     "scope": "entry",
     "requiredPlatforms": ["linux", "windows", "macos"],
-    "existingCanonicalRunRollback": "retain_authority"
+    "existingCanonicalRunRollback": "retain_authority",
+    "legacyMutationErrorCodes": {
+      "browser": "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+      "cli_team": "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+      "cowork": "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+      "desktop": "CC_DESKTOP_LEGACY_RUNTIME_READ_ONLY",
+      "scheduler": "CC_CLI_LEGACY_RUNTIME_READ_ONLY"
+    }
   },
   "surfaces": [
     {

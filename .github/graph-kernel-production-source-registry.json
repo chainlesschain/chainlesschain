@@ -1,0 +1,10 @@
+{
+  "schema": "chainlesschain.graph-production-source-registry/v1",
+  "repository": "chainlesschain/chainlesschain",
+  "ref": "refs/heads/main",
+  "workflow": ".github/workflows/graph-kernel-production-evidence.yml",
+  "environment": "graph-kernel-production",
+  "manifestDigest": "sha256:4407205fd58db8dfad28a94c365734276b5aeecb246c746e3cde912fdcdd31fc",
+  "sources": [],
+  "registryDigest": "sha256:8d627e03285b3bea9bbbfb4dad7132561d0f51a3da7f4dfd65a7c08c6af626be"
+}
