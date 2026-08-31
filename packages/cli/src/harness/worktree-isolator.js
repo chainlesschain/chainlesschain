@@ -173,7 +173,7 @@ function parseRegisteredWorktrees(output) {
 
 function readRegisteredWorktrees(repoDir) {
   return parseRegisteredWorktrees(
-    gitExec("worktree list --porcelain", repoDir),
+    gitExecArgs(["worktree", "list", "--porcelain"], repoDir),
   );
 }
 
@@ -251,10 +251,16 @@ function assertNoSymlinkAncestors(root, target, label) {
   }
 }
 
+function managedWorktreePathFromContext(context, branchName) {
+  return resolve(context.managedRoot, branchName.replace(/\//g, "-"));
+}
+
 export function managedWorktreePath(repoDir, branchName) {
   assertSafeGitRef(branchName, "branch name");
-  const { managedRoot } = repositoryManagementContext(repoDir);
-  return resolve(managedRoot, branchName.replace(/\//g, "-"));
+  return managedWorktreePathFromContext(
+    repositoryManagementContext(repoDir),
+    branchName,
+  );
 }
 
 /**
@@ -262,10 +268,11 @@ export function managedWorktreePath(repoDir, branchName) {
  * removal. Managed worktrees are direct children of `<repo>/.worktrees` and,
  * when a branch is known, have exactly the deterministic path created for it.
  */
-export function assertManagedWorktreePath(
+function assertManagedWorktreePathWithContext(
   repoDir,
   worktreePath,
   { branchName = null } = {},
+  context,
 ) {
   if (
     typeof repoDir !== "string" ||
@@ -280,7 +287,6 @@ export function assertManagedWorktreePath(
     assertSafeGitRef(branchName, "branch name");
   }
 
-  const context = repositoryManagementContext(repoDir);
   const candidate = resolve(worktreePath);
   const candidatePath = canonicalExistingPrefixPath(candidate);
   const candidateIdentity = normalizeFilesystemPath(candidatePath);
@@ -333,6 +339,19 @@ export function assertManagedWorktreePath(
   assertNotSymlink(candidate, "managed worktree");
   assertNotSymlink(candidatePath, "managed worktree");
   return candidatePath;
+}
+
+export function assertManagedWorktreePath(
+  repoDir,
+  worktreePath,
+  options = {},
+) {
+  return assertManagedWorktreePathWithContext(
+    repoDir,
+    worktreePath,
+    options,
+    repositoryManagementContext(repoDir),
+  );
 }
 
 function pathSeparator() {
@@ -404,10 +423,11 @@ export function createWorktree(repoDir, branchName, baseBranch, options = {}) {
 
   const context = repositoryManagementContext(repoDir);
   ensureManagedWorktreeExcluded(context);
-  const worktreePath = assertManagedWorktreePath(
+  const worktreePath = assertManagedWorktreePathWithContext(
     repoDir,
-    managedWorktreePath(repoDir, branchName),
+    managedWorktreePathFromContext(context, branchName),
     { branchName },
+    context,
   );
 
   if (existsSync(worktreePath)) {
@@ -449,7 +469,12 @@ export function createWorktree(repoDir, branchName, baseBranch, options = {}) {
     )
       .trim()
       .toLowerCase();
-    assertManagedWorktreePath(repoDir, worktreePath, { branchName });
+    assertManagedWorktreePathWithContext(
+      repoDir,
+      worktreePath,
+      { branchName },
+      repositoryManagementContext(repoDir),
+    );
     // Sparse checkout: only materialize the packages this task needs. For a
     // large monorepo this cuts worktree creation time and disk. Cone mode wants
     // directory paths — our sparsePaths are package dirs. Fail-closed on unsafe
@@ -1067,6 +1092,44 @@ export function previewWorktreeMerge(repoDir, branchName, options = {}) {
     throw new Error(`Worktree not found for branch: ${branchName}`);
   }
 
+  // Prefer Git's read-only merge-tree for the overwhelmingly common clean
+  // preview. It computes the same recursive merge result without mutating the
+  // task worktree and then running a second process to abort it. A conflict or
+  // an older Git falls back to the established worktree-based path below so
+  // detailed conflict summaries and compatibility remain unchanged.
+  try {
+    const previewTree = gitExecArgs(
+      ["merge-tree", "--write-tree", baseBranch, branchName],
+      repoDir,
+    )
+      .split(/\r?\n/u)[0]
+      ?.trim();
+    if (/^[a-f0-9]{40,64}$/iu.test(previewTree || "")) {
+      return {
+        success: true,
+        previewOnly: true,
+        strategy,
+        branch: branchName,
+        baseBranch,
+        message: `Merge preview is clean. ${branchName} can be merged into ${baseBranch} without conflicts.`,
+        summary: {
+          conflictedFiles: 0,
+          bothModified: 0,
+          bothAdded: 0,
+          deleteModify: 0,
+        },
+        conflicts: [],
+        suggestions: [
+          `No merge conflicts detected between ${branchName} and ${baseBranch}.`,
+          "You can proceed with the final merge when ready.",
+        ],
+        previewEntrypoints: [],
+      };
+    }
+  } catch {
+    // Conflict/unsupported Git: preserve the detailed compatibility path.
+  }
+
   _abortMergeIfPresent(worktree.path);
 
   let mergeStarted = false;
@@ -1626,7 +1689,9 @@ function _resolveBaseBranchForMerge(repoDir, baseBranch) {
   }
 
   try {
-    return gitExec("rev-parse --abbrev-ref HEAD", repoDir) || "HEAD";
+    return (
+      gitExecArgs(["rev-parse", "--abbrev-ref", "HEAD"], repoDir) || "HEAD"
+    );
   } catch (_e) {
     return "HEAD";
   }

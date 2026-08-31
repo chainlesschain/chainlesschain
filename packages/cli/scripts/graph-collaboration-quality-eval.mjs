@@ -55,12 +55,24 @@ const RUNTIME_PREFLIGHT_BIN = path.join(
 const EXACT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 const MAX_EVIDENCE_BYTES = 16 * 1024 * 1024;
-const CANDIDATE_AGENT_LIMIT = 4;
+export const CANDIDATE_AGENT_LIMIT = 6;
+const FORMAL_FILE_TOOLS =
+  "read_file,list_dir,search_files,write_file,edit_file,edit_file_hashed";
 const FORMAL_EXECUTION_GUIDANCE =
   "Inspect and modify only the task files with the exposed read, list, " +
   "search, write, and edit file tools. After making the required edits, " +
   "return a concise completion message; the evaluation harness validates " +
   "the task-local result. No separate validation action is needed.";
+
+function taskFileBoundary(task) {
+  const allowed = (task.expectedFiles || [])
+    .map((file) => String(file).replaceAll("\\", "/"))
+    .sort();
+  return allowed.length > 0
+    ? `Only modify or create these files: ${allowed.join(", ")}. ` +
+        "Do not create any other file."
+    : "Do not modify or create files outside the explicit task request.";
+}
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -876,8 +888,10 @@ export function buildCandidateTasks(tasks, seed) {
     // incorrect code still exits normally and is measured by the scorer.
     retrySafe: true,
     prompt:
-      `Work only in cases/${task.id}. ${task.prompt}\n\n` +
-      `Evaluation seed: ${seed}. Do not edit files outside cases/${task.id}. ` +
+      `Work only in the current task directory. ${task.prompt}\n\n` +
+      `Evaluation seed: ${seed}. Do not edit files outside this directory. ` +
+      taskFileBoundary(task) +
+      " " +
       FORMAL_EXECUTION_GUIDANCE,
   }));
 }
@@ -886,6 +900,8 @@ export function buildControlPrompt(task, seed) {
   return (
     `${task.prompt}\n\nEvaluation seed: ${seed}. ` +
     "Work only in this directory and do not modify unrelated files. " +
+    taskFileBoundary(task) +
+    " " +
     FORMAL_EXECUTION_GUIDANCE
   );
 }
@@ -902,28 +918,55 @@ export function candidateCheckpointArgs(platform) {
   return platform === "windows" ? ["--managed-checkpoint"] : [];
 }
 
-function usageFromEvents(events) {
+function usageTokenCount(usage) {
+  if (!usage || typeof usage !== "object") return 0;
+  const explicit = Number(usage.total_tokens ?? usage.totalTokens);
+  if (Number.isFinite(explicit)) return explicit;
+  return (
+    Number(usage.input_tokens ?? usage.inputTokens ?? 0) +
+    Number(usage.output_tokens ?? usage.outputTokens ?? 0) +
+    Number(usage.cache_read_input_tokens ?? usage.cacheReadInputTokens ?? 0) +
+    Number(
+      usage.cache_creation_input_tokens ?? usage.cacheCreationInputTokens ?? 0,
+    )
+  );
+}
+
+export function usageFromEvents(events) {
   const terminal = [...events]
     .reverse()
     .find((event) => event?.type === "result");
+  const usageEvents = events.filter(
+    (event) => event?.type === "token_usage" && event.usage,
+  );
   const terminalUsage = terminal?.usage || terminal?.result?.usage;
-  if (terminalUsage && typeof terminalUsage === "object") {
-    const explicit = Number(
-      terminalUsage.total_tokens ?? terminalUsage.totalTokens,
-    );
-    const tokens = Number.isFinite(explicit)
-      ? explicit
-      : Number(terminalUsage.input_tokens ?? terminalUsage.inputTokens ?? 0) +
-        Number(terminalUsage.output_tokens ?? terminalUsage.outputTokens ?? 0);
-    const costUsd = Number(
-      terminal?.total_cost_usd ??
-        terminal?.cost_usd ??
-        terminal?.result?.costUsd ??
-        0,
+  const terminalCostUsd = Number(
+    terminal?.total_cost_usd ??
+      terminal?.cost_usd ??
+      terminal?.result?.costUsd ??
+      0,
+  );
+  if (usageEvents.length > 0) {
+    const tokens = usageEvents.reduce(
+      (total, event) => total + usageTokenCount(event.usage),
+      0,
     );
     return {
       tokens: Number.isFinite(tokens) ? tokens : 0,
-      costUsd: Number.isFinite(costUsd) && costUsd > 0 ? costUsd : 0,
+      costUsd:
+        Number.isFinite(terminalCostUsd) && terminalCostUsd > 0
+          ? terminalCostUsd
+          : 0,
+    };
+  }
+  if (terminalUsage && typeof terminalUsage === "object") {
+    const tokens = usageTokenCount(terminalUsage);
+    return {
+      tokens: Number.isFinite(tokens) ? tokens : 0,
+      costUsd:
+        Number.isFinite(terminalCostUsd) && terminalCostUsd > 0
+          ? terminalCostUsd
+          : 0,
     };
   }
 
@@ -932,11 +975,7 @@ function usageFromEvents(events) {
   for (const event of events) {
     const usage = event?.usage || event?.result?.usage || null;
     if (usage && typeof usage === "object") {
-      const explicit = Number(usage.total_tokens ?? usage.totalTokens);
-      tokens += Number.isFinite(explicit)
-        ? explicit
-        : Number(usage.input_tokens ?? usage.inputTokens ?? 0) +
-          Number(usage.output_tokens ?? usage.outputTokens ?? 0);
+      tokens += usageTokenCount(usage);
     }
     const cost = Number(
       event?.total_cost_usd ?? event?.cost_usd ?? event?.result?.costUsd,
@@ -1048,6 +1087,12 @@ async function runControl({
           "--max-budget-usd",
           String(perInvocationCeilingUsd),
           "--ephemeral",
+          "--bare",
+          "--no-checkpoint",
+          "--output-style",
+          "concise",
+          "--allowed-tools",
+          FORMAL_FILE_TOOLS,
         ],
         {
           cwd: path.join(benchmark.root, "cases", task.id),
@@ -1135,7 +1180,7 @@ async function runCandidate({
         "--merge",
         "--graph-canary-opt-in",
         "--teammates",
-        "3",
+        String(CANDIDATE_AGENT_LIMIT),
         "--model",
         model,
         "--permission-mode",
@@ -1210,7 +1255,7 @@ function behaviorEquivalent(control, candidate) {
   return sameJson(left, right) ? 1 : 0;
 }
 
-async function runPlatformEvaluation(options) {
+export async function runPlatformEvaluation(options) {
   if (!process.env.CC_API_KEY) {
     throw new Error("CC_API_KEY is required for the real-model quality eval");
   }

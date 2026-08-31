@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  CANDIDATE_AGENT_LIMIT,
   FORMAL_PROFILE,
   FROZEN_THRESHOLDS,
   PLATFORM_SCHEMA,
@@ -19,6 +20,7 @@ import {
   qualityEvidenceDigest,
   sealPlatformRecord,
   summarizeQualityRounds,
+  usageFromEvents,
   validatePlatformRecord,
   verifyQualityMatrix,
 } from "../../scripts/graph-collaboration-quality-eval.mjs";
@@ -33,7 +35,8 @@ const MAX_TOTAL_COST_USD = 100;
 const PLANNED_MAX_ROUNDS = 12;
 const PER_INVOCATION_CEILING_USD =
   MAX_TOTAL_COST_USD /
-  (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
+  (PLANNED_MAX_ROUNDS *
+    (FORMAL_PROFILE.taskIds.length + CANDIDATE_AGENT_LIMIT));
 
 describe("formal candidate platform isolation", () => {
   it.each(["linux", "macos"])(
@@ -271,7 +274,7 @@ function platform(platform, index = 0, overrides = {}) {
       perInvocationCeilingUsd: PER_INVOCATION_CEILING_USD,
       plannedMaxRounds: PLANNED_MAX_ROUNDS,
       controlInvocationsPerRound: FORMAL_PROFILE.taskIds.length,
-      candidateAgentLimit: 4,
+      candidateAgentLimit: CANDIDATE_AGENT_LIMIT,
       observedCostUsd: metrics.controlCostUsd + metrics.candidateCostUsd,
     },
     startedAt: "2026-08-29T00:00:00.000Z",
@@ -293,6 +296,7 @@ describe("graph collaboration quality evidence", () => {
           id: "add-function",
           description: "Add a function",
           prompt: "Implement it.",
+          expectedFiles: ["math.js"],
         },
       ],
       101,
@@ -304,13 +308,21 @@ describe("graph collaboration quality evidence", () => {
         scopePaths: ["cases/add-function"],
       }),
     );
+    expect(candidateTask.prompt).toContain(
+      "Work only in the current task directory",
+    );
 
-    const controlPrompt = buildControlPrompt({ prompt: "Implement it." }, 101);
+    const controlPrompt = buildControlPrompt(
+      { prompt: "Implement it.", expectedFiles: ["math.js"] },
+      101,
+    );
     for (const prompt of [candidateTask.prompt, controlPrompt]) {
       expect(prompt).toContain("exposed read, list, search, write, and edit");
       expect(prompt).toContain(
         "evaluation harness validates the task-local result",
       );
+      expect(prompt).toContain("Only modify or create these files: math.js");
+      expect(prompt).toContain("Do not create any other file");
       expect(prompt).toContain("No separate validation action is needed");
       expect(prompt).not.toContain("run_shell");
       expect(prompt).not.toContain("run_code");
@@ -365,6 +377,31 @@ describe("graph collaboration quality evidence", () => {
     });
   });
 
+  it("counts every model-call usage event before the terminal fallback", () => {
+    expect(
+      usageFromEvents([
+        {
+          type: "token_usage",
+          usage: {
+            input_tokens: 10,
+            output_tokens: 2,
+            cache_read_input_tokens: 3,
+            cache_creation_input_tokens: 1,
+          },
+        },
+        {
+          type: "token_usage",
+          usage: { input_tokens: 20, output_tokens: 4 },
+        },
+        {
+          type: "result",
+          usage: { total_tokens: 7 },
+          total_cost_usd: 0.0125,
+        },
+      ]),
+    ).toEqual({ tokens: 40, costUsd: 0.0125 });
+  });
+
   it("recomputes a passing formal platform report", () => {
     const record = platform("linux");
     expect(
@@ -403,7 +440,8 @@ describe("graph collaboration quality evidence", () => {
       }),
     );
     const metrics = summarizeQualityRounds(rounds);
-    expect(enforceQualityThresholds(metrics)).toMatchObject({ passed: false });
+    const gate = enforceQualityThresholds(metrics);
+    expect(gate).toMatchObject({ passed: false });
     const forged = platform("linux", 0, {
       rounds,
       record: {
@@ -454,7 +492,7 @@ describe("graph collaboration quality evidence", () => {
           perInvocationCeilingUsd: PER_INVOCATION_CEILING_USD,
           plannedMaxRounds: PLANNED_MAX_ROUNDS,
           controlInvocationsPerRound: FORMAL_PROFILE.taskIds.length,
-          candidateAgentLimit: 4,
+          candidateAgentLimit: CANDIDATE_AGENT_LIMIT,
           observedCostUsd:
             missingCostMetrics.controlCostUsd +
             missingCostMetrics.candidateCostUsd,

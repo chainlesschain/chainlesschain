@@ -4201,7 +4201,33 @@ class ProcessExecutionBroker extends EventEmitter {
       args: filteredArgs,
       env: filteredEnv,
       report: credentialReport,
+      referenceIds: Object.entries(filteredEnv)
+        .filter(
+          ([key, value]) =>
+            (key.startsWith("CC_CRED_REF_") ||
+              key.startsWith("CC_CRED_ARG_REF_")) &&
+            typeof value === "string" &&
+            value.startsWith("cc-cred-"),
+        )
+        .map(([, value]) => value),
     };
+  }
+
+  _revokeCredentialReferences(referenceIds, reason) {
+    if (
+      !Array.isArray(referenceIds) ||
+      typeof this._credentialAgent.revokeCredentialRef !== "function"
+    ) {
+      return;
+    }
+    for (const refId of new Set(referenceIds)) {
+      try {
+        this._credentialAgent.revokeCredentialRef(refId, reason);
+      } catch {
+        // Credential cleanup must never replace the authoritative process
+        // result. References remain bounded by their issuance TTL.
+      }
+    }
   }
 
   _createCredentialContext(command, options, executionId, decision) {
@@ -4933,6 +4959,7 @@ class ProcessExecutionBroker extends EventEmitter {
     options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
+    let credentialReferenceIds = [];
     const origin = options.origin || "unknown";
     const requestedCwd = options.cwd || process.cwd();
     options = this._withWorkspaceTransactionBoundaries(options, requestedCwd, {
@@ -5055,6 +5082,7 @@ class ProcessExecutionBroker extends EventEmitter {
       );
       spawnOpts.env = credentialBoundary.env;
       args = credentialBoundary.args;
+      credentialReferenceIds = credentialBoundary.referenceIds;
       auditEntry.args = this._auditArgs(args, auditRedactArgIndexes);
       this._recordCredentialReport(auditEntry, credentialBoundary.report);
       this._stripCredentialControlOptions(spawnOpts);
@@ -5159,6 +5187,10 @@ class ProcessExecutionBroker extends EventEmitter {
       throw err;
     } finally {
       sandboxPlan.cleanup?.();
+      this._revokeCredentialReferences(
+        credentialReferenceIds,
+        "sync-process-settled",
+      );
     }
   }
 
