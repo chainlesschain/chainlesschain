@@ -27,6 +27,7 @@ import {
 } from "../../src/lib/config-redaction.js";
 import {
   _resolveWindowsAclTimeout,
+  _windowsAclWorkingDirectory,
   ensurePrivateDirectory,
   ensurePrivateFile,
   inspectPrivatePath,
@@ -391,6 +392,33 @@ describe("secure configuration surfaces", () => {
 });
 
 describe("owner-only filesystem helpers", () => {
+  it("contains formal Windows ACL helper startup below the isolated config root", () => {
+    const isolationRoot = mkdtempSync(join(tmpdir(), "cc-acl-cwd-"));
+    const configHome = join(isolationRoot, "chainlesschain-home");
+    try {
+      writeFileSync(join(isolationRoot, "placeholder"), "fixture");
+      expect(_windowsAclWorkingDirectory({})).toBeNull();
+      expect(
+        _windowsAclWorkingDirectory({
+          CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+          CHAINLESSCHAIN_HOME: configHome,
+        }),
+      ).toBeNull();
+      const fs = fakeFs(0o700, true);
+      expect(
+        _windowsAclWorkingDirectory(
+          {
+            CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+            CHAINLESSCHAIN_HOME: configHome,
+          },
+          fs,
+        ),
+      ).toBe(configHome);
+    } finally {
+      rmSync(isolationRoot, { recursive: true, force: true });
+    }
+  });
+
   it("lets a trusted harness raise but not lower the Windows ACL timeout", () => {
     expect(
       _resolveWindowsAclTimeout(15_000, {
