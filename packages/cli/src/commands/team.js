@@ -74,7 +74,11 @@ import {
   SecureFileIdentityError,
   withTrustedFileParentSync,
 } from "../lib/secure-file-identity.js";
-import { isFormalQualityHermeticRuntime } from "../lib/formal-quality-eval-runtime.js";
+import {
+  FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  formalQualityTaskAllowedFiles,
+  isFormalQualityHermeticRuntime,
+} from "../lib/formal-quality-eval-runtime.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -906,6 +910,19 @@ export function loadRegistry(file, { ttlMs } = {}) {
         `task "${task.key}" scopePaths must be an array of at most 128 paths`,
       );
     }
+    if (
+      task.formalQualityAllowedFiles !== undefined &&
+      (!Array.isArray(task.formalQualityAllowedFiles) ||
+        task.formalQualityAllowedFiles.length === 0 ||
+        task.formalQualityAllowedFiles.length > 16 ||
+        task.formalQualityAllowedFiles.some(
+          (file) => typeof file !== "string" || file.length === 0,
+        ))
+    ) {
+      throw new Error(
+        `task "${task.key}" formalQualityAllowedFiles must be a non-empty array of at most 16 paths`,
+      );
+    }
     for (const field of ["command", "prompt"]) {
       if (task[field] !== undefined && typeof task[field] !== "string") {
         throw new Error(`task "${task.key}" ${field} must be a string`);
@@ -951,6 +968,9 @@ export function loadRegistry(file, { ttlMs } = {}) {
         agent: t.agent || null,
         policy: t.policy || null,
         scopePaths: Array.isArray(t.scopePaths) ? t.scopePaths : [],
+        formalQualityAllowedFiles: Array.isArray(t.formalQualityAllowedFiles)
+          ? t.formalQualityAllowedFiles
+          : [],
         idempotencyKey: t.idempotencyKey || null,
         retrySafe: t.retrySafe === true,
         sparsePaths: t.sparsePaths || null,
@@ -1424,10 +1444,7 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
 }
 
 export function spawnAgent(prompt, cwd, opts = {}) {
-  if (
-    !opts.messageBridge ||
-    isFormalQualityHermeticRuntime(process.env)
-  ) {
+  if (!opts.messageBridge || isFormalQualityHermeticRuntime(process.env)) {
     return spawnAgentProcess(prompt, cwd, opts);
   }
   return (async () => {
@@ -2968,9 +2985,9 @@ export function registerTeamCommand(program, { logger } = {}) {
                   taskContractFor(key, task),
                   budgetReservation,
                 );
-                const agentCwd = formalQualityAgentWorkingDirectory(
-                  cwd,
-                  task,
+                const agentCwd = formalQualityAgentWorkingDirectory(cwd, task);
+                const formalAllowedFiles = formalQualityTaskAllowedFiles(
+                  task.metadata?.formalQualityAllowedFiles,
                 );
                 return spawnAgent(
                   buildTeamAgentPrompt(prompt, { inbox }),
@@ -2985,6 +3002,14 @@ export function registerTeamCommand(program, { logger } = {}) {
                       : contract.checkpointRequired,
                     managedCheckpoint,
                     sandboxMode: options.agentSandboxMode,
+                    ...(formalAllowedFiles
+                      ? {
+                          childEnv: {
+                            [FORMAL_QUALITY_ALLOWED_FILES_ENV]:
+                              JSON.stringify(formalAllowedFiles),
+                          },
+                        }
+                      : {}),
                     sessionId: collaborationUnits.get(
                       sessionTaskKeyFor(key, task),
                     )?.sessionId,

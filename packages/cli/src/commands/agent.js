@@ -31,6 +31,7 @@ import {
 } from "../lib/background-command-argv.js";
 import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
 import {
+  formalQualityAllowedFiles,
   formalQualityProvider,
   isFormalQualityHermeticRuntime,
 } from "../lib/formal-quality-eval-runtime.js";
@@ -1711,6 +1712,12 @@ export function registerAgentCommand(program) {
         const maxTurns = options.maxTurns
           ? parseInt(options.maxTurns, 10)
           : undefined;
+        const formalAllowedFiles = formalQualityAllowedFiles(process.env);
+        const formalWorktreeRoot = formalAllowedFiles
+          ? path.resolve(
+              (fs.realpathSync.native || fs.realpathSync)(process.cwd()),
+            )
+          : null;
         const headlessOptions = {
           prompt,
           images,
@@ -1816,6 +1823,14 @@ export function registerAgentCommand(program) {
           // headless boundary: no config/plugin/DB bootstrap, hooks, MCP
           // discovery, or ambient external tools.
           hermeticExecution: formalQualityHermetic,
+          exactToolNames: formalQualityHermetic,
+          fileMutationScope: formalAllowedFiles
+            ? Object.freeze({
+                exact: true,
+                worktreeRoot: formalWorktreeRoot,
+                allowedPaths: formalAllowedFiles,
+              })
+            : null,
           // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
           maxCostUsd,
           priceTable,
