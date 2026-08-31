@@ -285,6 +285,7 @@ function platform(platform, index = 0, overrides = {}) {
 
 describe("graph collaboration quality evidence", () => {
   it("keeps isolated candidate tasks retry-safe and reports their root failures", () => {
+    expect(FORMAL_PROFILE.maxTurnsPerAgent).toBe(24);
     const [candidateTask] = buildCandidateTasks(
       [
         {
@@ -382,6 +383,13 @@ describe("graph collaboration quality evidence", () => {
         { commitSha: COMMIT },
       ),
     ).toThrow(/digest/u);
+
+    const staleTurnBudget = structuredClone(record);
+    delete staleTurnBudget.evidenceDigest;
+    staleTurnBudget.profile.maxTurnsPerAgent = 12;
+    expect(() =>
+      validatePlatformRecord(sealPlatformRecord(staleTurnBudget)),
+    ).toThrow(/formal profile/u);
   });
 
   it("rejects a threshold regression even when the report claims passed", () => {
