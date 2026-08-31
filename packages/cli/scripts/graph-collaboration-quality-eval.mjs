@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { BUILTIN_TASKS } from "../src/lib/eval/tasks.js";
 import { evaluateGraphProjection } from "../src/lib/graph-kernel/eval.js";
 import { redactSecrets } from "../src/lib/secret-scan.js";
+import { FORMAL_QUALITY_ALLOWED_FILES_ENV } from "../src/lib/formal-quality-eval-runtime.js";
 
 export const PLATFORM_SCHEMA =
   "chainlesschain.graph-collaboration-quality-eval/v1";
@@ -602,11 +603,12 @@ function parseArguments(argv) {
 }
 
 function git(args, cwd, options = {}) {
-  return execFileSync("git", args, {
+  const output = execFileSync("git", args, {
     cwd,
     encoding: "utf8",
     stdio: options.stdio || ["ignore", "pipe", "pipe"],
-  }).trim();
+  });
+  return options.trim === false ? output.replace(/\r?\n$/u, "") : output.trim();
 }
 
 function assertExactCleanSource(commitSha) {
@@ -650,6 +652,13 @@ async function prepareBenchmark(prefix, tasks) {
     const directory = path.join(root, "cases", task.id);
     fs.mkdirSync(directory, { recursive: true });
     if (typeof task.setup === "function") await task.setup(directory);
+    for (const expectedFile of task.expectedFiles || []) {
+      const target = path.join(directory, expectedFile);
+      if (!fs.existsSync(target)) {
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, "", { encoding: "utf8", flag: "wx" });
+      }
+    }
   }
   git(["add", "--all"], root);
   git(["commit", "-m", "test: seed quality evaluation"], root);
@@ -881,6 +890,9 @@ export function buildCandidateTasks(tasks, seed) {
     title: task.description,
     dependsOn: [],
     scopePaths: [`cases/${task.id}`],
+    formalQualityAllowedFiles: (task.expectedFiles || []).map((file) =>
+      String(file).replaceAll("\\", "/"),
+    ),
     // These benchmark tasks have no external effects and run inside isolated
     // Git worktrees. Linux/Windows add managed process checkpoints; macOS uses
     // the Agent checkpoint because its generic Seatbelt boundary cannot prove
@@ -985,14 +997,20 @@ export function usageFromEvents(events) {
   return { tokens, costUsd };
 }
 
+export function parsePorcelainPaths(value) {
+  return String(value || "")
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3).trim());
+}
+
 function changedFiles(root, baseline, includeCommitted) {
   const committed = includeCommitted
     ? git(["diff", "--name-only", `${baseline}..HEAD`], root)
     : "";
-  const working = git(["status", "--porcelain"], root)
-    .split(/\r?\n/u)
-    .filter(Boolean)
-    .map((line) => line.slice(3).trim());
+  const working = parsePorcelainPaths(
+    git(["status", "--porcelain"], root, { trim: false }),
+  );
   return [...new Set([...committed.split(/\r?\n/u), ...working])]
     .filter(Boolean)
     .map((name) => name.replaceAll("\\", "/"))
@@ -1067,6 +1085,10 @@ async function runControl({
   try {
     for (const task of tasks) {
       const prompt = buildControlPrompt(task, seed);
+      const environment = createEvaluationModelEnvironment(provider, support);
+      environment[FORMAL_QUALITY_ALLOWED_FILES_ENV] = JSON.stringify(
+        task.expectedFiles,
+      );
       const result = runCli(
         [
           "exec",
@@ -1096,7 +1118,7 @@ async function runControl({
         ],
         {
           cwd: path.join(benchmark.root, "cases", task.id),
-          env: createEvaluationModelEnvironment(provider, support),
+          env: environment,
         },
       );
       if (result.status !== 0) {

@@ -17,6 +17,7 @@ import {
   controlFailureDetails,
   createEvaluationModelEnvironment,
   enforceQualityThresholds,
+  parsePorcelainPaths,
   qualityEvidenceDigest,
   sealPlatformRecord,
   summarizeQualityRounds,
@@ -25,7 +26,10 @@ import {
   verifyQualityMatrix,
 } from "../../scripts/graph-collaboration-quality-eval.mjs";
 import {
+  FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  formalQualityAllowedFiles,
   formalQualityProvider,
+  formalQualityTaskAllowedFiles,
   isFormalQualityHermeticRuntime,
 } from "../../src/lib/formal-quality-eval-runtime.js";
 
@@ -105,6 +109,29 @@ describe("formal candidate platform isolation", () => {
       }),
     ).toBe(false);
     expect(formalQualityProvider({})).toBeNull();
+  });
+
+  it("binds a portable exact-file allowlist only for formal children", () => {
+    const environment = {
+      CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+      CHAINLESSCHAIN_HOME: path.join(os.tmpdir(), "cc-quality-home"),
+    };
+    expect(formalQualityTaskAllowedFiles(["math.js"], environment)).toEqual([
+      "math.js",
+    ]);
+    expect(formalQualityTaskAllowedFiles([], {})).toBeNull();
+    expect(
+      formalQualityAllowedFiles({
+        ...environment,
+        [FORMAL_QUALITY_ALLOWED_FILES_ENV]: JSON.stringify(["math.js"]),
+      }),
+    ).toEqual(["math.js"]);
+    expect(() =>
+      formalQualityAllowedFiles({
+        ...environment,
+        [FORMAL_QUALITY_ALLOWED_FILES_ENV]: JSON.stringify(["../other.js"]),
+      }),
+    ).toThrow(/allowed-files binding/u);
   });
 });
 
@@ -306,6 +333,7 @@ describe("graph collaboration quality evidence", () => {
         key: "add-function",
         retrySafe: true,
         scopePaths: ["cases/add-function"],
+        formalQualityAllowedFiles: ["math.js"],
       }),
     );
     expect(candidateTask.prompt).toContain(
@@ -400,6 +428,14 @@ describe("graph collaboration quality evidence", () => {
         },
       ]),
     ).toEqual({ tokens: 40, costUsd: 0.0125 });
+  });
+
+  it("preserves the leading porcelain status column when scoring paths", () => {
+    expect(
+      parsePorcelainPaths(
+        " M cases/add-function/math.js\n?? cases/secure-path/Microsoft/\n",
+      ),
+    ).toEqual(["cases/add-function/math.js", "cases/secure-path/Microsoft/"]);
   });
 
   it("recomputes a passing formal platform report", () => {
