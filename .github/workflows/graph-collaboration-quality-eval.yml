@@ -133,7 +133,7 @@ jobs:
           --model "${QUALITY_MODEL}"
           --duration-seconds 1800
           --min-rounds 3
-          --max-rounds 12
+          --max-rounds 24
           --max-total-cost-usd "${QUALITY_MAX_TOTAL_COST_USD}"
           --output "${RUNNER_TEMP}/graph-quality-${{ matrix.platform }}.json"
 
