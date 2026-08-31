@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-31）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.14@ee88125256`；其三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`；Open VSX 为 `0.37.76`，JetBrains Marketplace 为 `0.4.106`。本版公开 Context/Memory 与 Hooks v2 收敛、P0 执行安全关闭和 Windows Docker-optional 启动；`main@0761d4d297` 的 formal Graph quality hardening 与 producer digest 刷新仍按源码边界说明。
+> 当前文档快照（2026-09-01）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.15@22db04f559`；其三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`；Open VSX 为 `0.37.77`，JetBrains Marketplace 为 `0.4.107`。本版承接 Context/Memory、Hooks v2、P0 执行安全和 Windows Docker-optional 启动，并修复 formal Graph quality 的文件工具上限；`main@db53dc2da4` 的 Windows Agent 隔离、审计重试与平台时延阈值仍按源码边界说明，完整三平台 aggregate/OIDC 尚未关闭。
 
 ## 📚 文档内容
 

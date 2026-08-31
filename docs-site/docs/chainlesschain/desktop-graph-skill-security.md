@@ -1,6 +1,6 @@
 # Desktop Graph 调试与 Skill 安全执行
 
-> 适用范围：2026-08-31 Desktop 源码与 exact-SHA qualification 快照。公开 CLI 的生产推荐版仍按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.14`，精确发布 SHA 为 `ee88125256`。
+> 适用范围：2026-09-01 Desktop 源码与 exact-SHA qualification 快照。公开 CLI 的生产推荐版仍按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.15`，精确发布 SHA 为 `22db04f559`。
 
 本页介绍两项最新 Desktop 能力：Graph Run Debugger，以及 Cowork Skill 的签名、隔离和能力代理。两者都会自动工作，普通用户不需要手工配置安全 Broker。
 
@@ -125,7 +125,7 @@ Broker 会拒绝通配符域名、IP 字面量、私网/loopback/link-local/mult
 
 ## 相关文档
 
-公开 CLI `0.166.14@ee88125256` 承接 Graph Kernel authoritative entry cutover、耐久 history/retirement、Context/Memory、Hooks v2、P0 执行安全、真实 UI replay 与 Codex compatibility。Desktop Graph 调试器、Skill 隔离/Broker 和签名 qualification 仍按 Desktop 制品边界说明，不能据此推断 npm 包含这些 Electron 组件，也不能把资格门扩写为公共 native 发行已经完成。
+公开 CLI `0.166.15@22db04f559` 承接 Graph Kernel authoritative entry cutover、耐久 history/retirement、Context/Memory、Hooks v2、P0 执行安全、真实 UI replay 与 Codex compatibility。Desktop Graph 调试器、Skill 隔离/Broker 和签名 qualification 仍按 Desktop 制品边界说明，不能据此推断 npm 包含这些 Electron 组件，也不能把资格门扩写为公共 native 发行已经完成。
 
 相关文档：
 

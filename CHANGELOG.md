@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.15: align the formal quality file-tool ceiling
 
-> `chainlesschain` **0.166.14 -> 0.166.15** (hotfix candidate, 2026-08-31).
+> `chainlesschain` **0.166.14 -> 0.166.15**, published 2026-08-31 from exact
+> commit `22db04f55974d2e5823772c4bae5e87171fa51db` under immutable tag
+> `v-npm-0-166-15`.
 
 - **Formal quality startup restored**: the exact hermetic file-tool ceiling now
   admits the same read, list, search, write, and edit tools exposed by the
@@ -21,9 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **No shell or network widening**: `run_shell`, `run_code`, Git, MCP, plugin,
   IDE, and sub-agent tools remain unavailable; writes are still limited to the
   task's exact allowed files.
-- **Release validation required**: publish only after this exact release commit
-  passes CLI CI and CLI Strict Sandbox on Linux, Windows, and macOS and the
-  protected quality workflow completes its full matrix and OIDC aggregate.
+- **Release and quality boundary**: the exact release commit passed CLI CI and
+  CLI Strict Sandbox on Linux, Windows, and macOS, then completed npm OIDC
+  publication and independent registry/provenance readback. The subsequent
+  protected formal-quality run passed Linux/macOS but not Windows, so P2-3
+  still requires one final-SHA three-platform aggregate and OIDC attestation;
+  that open quality evidence is not rewritten as part of the published tarball.
 
 ### Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows
 
@@ -42,10 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   silently degrading.
 - **Release validation**: the exact release commit passed every configured
   Linux, Windows, and macOS job in `CLI CI` and `CLI Strict Sandbox`, then
-  completed npm Trusted Publishing and public-registry readback. This is the
-  current public CLI baseline; later Graph/Team quality-harness commits on
-  `main` remain source-only until a newer immutable release passes the same
-  gates.
+  completed npm Trusted Publishing and public-registry readback. This was the
+  public CLI baseline and is now superseded by `0.166.15`; later source-only
+  Graph/Team quality evidence retains its own exact-commit boundary.
 
 ### Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure
 

@@ -1,6 +1,6 @@
 # 108 Context/Memory Kernel 设计
 
-> 状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.14`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-08-31
+> 状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.15`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-09-01
 
 ## 1. 定位
 

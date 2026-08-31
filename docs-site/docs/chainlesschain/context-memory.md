@@ -1,6 +1,6 @@
 # 上下文与记忆
 
-> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.14`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
+> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.15`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
 
 ## 概述
 
@@ -12,7 +12,7 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 | 压缩 | 在上下文窗口接近上限时，把较旧历史转换为更小的可继续状态 | 发生在会话内部 |
 | 记忆 | 从会话之外再次取回的持久信息，例如用户偏好、项目约定或长期笔记 | 跨轮次或跨会话 |
 
-公开版本已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已通过 exact-SHA Linux/Windows/macOS 矩阵、30 分钟 soak、证据聚合与 production-close 验签；`main@0761d4d297` 的后续 Graph/Team 质量加固不改变该 Context/Memory 关闭身份。
+公开版本已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已通过 exact-SHA Linux/Windows/macOS 矩阵、30 分钟 soak、证据聚合与 production-close 验签；`main@db53dc2da4` 的后续 Graph/Team 质量加固不改变该 Context/Memory 关闭身份。
 
 ## 核心特性
 

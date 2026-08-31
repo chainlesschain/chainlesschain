@@ -2,7 +2,7 @@
 
 > **文档快照：2026-08-31 | 146 个内置技能 | Agent Skills 开放标准 | 受治理 Record & Replay 生命周期、签名外部执行、能力代理与 exact-SHA Desktop qualification**
 
-Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.14` 已包含受治理 Record & Replay 的录制、审阅、启用、撤销、导入导出、删除与审计生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.15` 已包含受治理 Record & Replay 的录制、审阅、启用、撤销、导入导出、删除与审计生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
 
 ## 概述
 

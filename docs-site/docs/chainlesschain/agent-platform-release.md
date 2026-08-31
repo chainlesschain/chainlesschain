@@ -1,24 +1,24 @@
-# Agent Platform 0.166.14 发布与升级指南
+# Agent Platform 0.166.15 发布与升级指南
 
 ## 概述
 
-Agent Platform `0.166.14` 是 2026-08-31 的完整门禁生产推荐版与 npm `latest`。不可变 tag `v-npm-0-166-14` 指向精确提交 [`ee88125256`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)。
+Agent Platform `0.166.15` 是 2026-09-01 核对的完整门禁生产推荐版与 npm `latest`。CLI、VS Code 和 JetBrains 的不可变标签均指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。
 
 当前公开组合：
 
 | 组件 | 公开版本 | 获取渠道 |
 | --- | --- | --- |
-| CLI | `0.166.14` | npm |
+| CLI | `0.166.15` | npm |
 | Context/Memory Kernel | `0.1.0` | npm |
 | Session Core | `0.3.8` | npm |
 | Agent Protocol | `0.1.7` | npm |
 | TypeScript Agent SDK | `0.2.7` | npm |
 | Python Agent SDK | `0.2.7` | PyPI |
-| VS Code IDE Bridge | `0.37.76` | Open VSX |
-| JetBrains IDE Bridge | `0.4.106` | JetBrains Marketplace |
+| VS Code IDE Bridge | `0.37.77` | Open VSX |
+| JetBrains IDE Bridge | `0.4.107` | JetBrains Marketplace |
 | Personal Data Hub | `0.4.59` | npm |
 
-Open VSX `0.37.76` 已公开并累计超过 3.3 万下载；JetBrains `0.4.106` 已由 Marketplace API 回读为 approved/listed。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
+Open VSX `0.37.77` 与 JetBrains `0.4.107` 均已完成正式发布与公共回读。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
 
 ## 核心特性
 
@@ -28,6 +28,7 @@ Open VSX `0.37.76` 已公开并累计超过 3.3 万下载；JetBrains `0.4.106` 
 - **Windows 无 Docker 启动**：普通 Agent 会话不再探测或要求 Docker；裸命令按 `PATHEXT` 解析，避免 POSIX shim 遮蔽 `docker.exe`。显式 `workspace-write`、`strict` 或 managed sandbox 仍在引擎不可用时拒绝启动。
 - **受治理 Record & Replay**：已审阅草稿可执行 `observe/click/type/select/assert`，完成 review、enable/revoke、export/import、delete 与审计生命周期；回放默认拒绝文件、HTTP(S) 和 WebSocket。
 - **Graph 与 Team**：继续提供耐久 history、definition migration/retirement、HumanTask quorum、Team fairness、temporal messaging 与 single-winner approval settlement。
+- **正式质量评测工具边界热修复**：control 与 Graph candidate 共用冻结的 `read_file`、`search_files`、`list_dir`、`write_file`、`edit_file`、`edit_file_hashed` 工具契约；shell、网络、Git、MCP、插件、IDE 与子 Agent 工具保持禁用，写入仍限于任务声明的精确文件。
 
 ## 系统架构
 
@@ -53,11 +54,11 @@ CLI 拥有执行、Graph、Session 与 Context/Memory 的权威状态；Desktop 
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.14 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.15 --registry https://registry.npmjs.org
 cc --version
 ```
 
-预期输出版本为 `0.166.14`。
+预期输出版本为 `0.166.15`。
 
 ### SDK 与协议
 
@@ -69,9 +70,9 @@ python -m pip install chainlesschain-agent-sdk==0.2.7
 
 ### IDE
 
-- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.76`。
-- 官方 VS Code：下载 [0.37.76 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.76/file/chainlesschain.chainlesschain-ide-0.37.76.vsix)，运行 **Extensions: Install from VSIX...**。
-- JetBrains 2024.2+：在 Marketplace 搜索 **ChainlessChain IDE**，安装 `0.4.106`。
+- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.77`。
+- 官方 VS Code：下载 [0.37.77 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.77/file/chainlesschain.chainlesschain-ide-0.37.77.vsix)，运行 **Extensions: Install from VSIX...**。
+- JetBrains 2024.2+：在 Marketplace 搜索 **ChainlessChain IDE**，安装 `0.4.107`。
 
 IDE 只提交宿主已审阅决定并消费 CLI-owned projection，不直接写 Graph、Session、Context/Memory 或 approval authority。
 
@@ -81,9 +82,9 @@ IDE 只提交宿主已审阅决定并消费 CLI-owned projection，不直接写 
 | --- | --- | --- |
 | 普通本地 Agent | `cc agent` | 默认禁网 `workspace-write`，不探测 Docker |
 | 显式容器隔离 | CLI flag、settings 或 managed policy | 引擎不可用时失败闭合 |
-| 版本确认 | `cc --version` | 生产推荐应为 `0.166.14` |
+| 版本确认 | `cc --version` | 生产推荐应为 `0.166.15` |
 | CLI 帮助 | `cc <command> --help` | 以当前安装包输出为准 |
-| IDE 安装 | Open VSX VSIX / JetBrains Marketplace | VS Code `0.37.76`；JetBrains `0.4.106` |
+| IDE 安装 | Open VSX VSIX / JetBrains Marketplace | VS Code `0.37.77`；JetBrains `0.4.107` |
 | 更新检查 | `npm view chainlesschain version` | 应从官方 npm registry 回读 |
 
 ## 安全考虑
@@ -116,57 +117,53 @@ Get-Command docker.exe -ErrorAction SilentlyContinue
 
 ## 性能指标
 
-本次补丁不新增统一的模型延迟或吞吐承诺。Graph/Team 正式质量评测在后续 `main` 源码中使用至少 30 分钟、至少 3 轮的 hermetic profile，并限制 candidate/control token 比不高于 `2.5`、延迟比不高于 `1.5`；这些是 source-only 门禁阈值，不是 `0.166.14` 的公开运行时 SLO。
+本次补丁不新增统一的模型延迟或吞吐承诺。Graph/Team 正式质量评测使用至少 30 分钟、至少 3 轮的 hermetic profile，并限制 candidate/control token 比不高于 `2.5`。发布后的 `main` 把 Windows 平台时延比上限冻结为 `1.6`，Linux、macOS 与 aggregate 仍为 `1.5`；这些是 source-only 发布门阈值，不是 `0.166.15` 的公开运行时 SLO，也不代表完整矩阵已经通过。
 
 ## 测试覆盖
 
-公开 CLI 与 IDE 分别在自己的精确提交上完成三平台门禁；本地测试只作补充，不能替代下列 GitHub Actions 与公共注册表回读。
+公开 CLI 与 IDE 在同一精确发布提交上完成各自的三平台门禁；本地测试只作补充，不能替代 GitHub Actions 与公共注册表回读。
 
 ### 发布证据
 
-精确 SHA `ee88125256b5de8281be0a8e57157811bb80c105` 的公共门：
+精确 SHA `22db04f55974d2e5823772c4bae5e87171fa51db` 的公共门：
 
 | 门禁 | GitHub Actions run | 状态 |
 | --- | --- | --- |
-| CLI CI（Linux/Windows/macOS） | [`33322714911`](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911) | 成功 |
-| CLI Strict Sandbox（三平台） | [`33322714747`](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747) | 成功 |
-| npm 发布、provenance 与公网回读 | [`33322714744`](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744) | 成功 |
-| Record Replay UI Journey | [`33330041069`](https://github.com/chainlesschain/chainlesschain/actions/runs/33330041069) | 成功 |
-| Desktop Signed Skill Qualification | [`33322714737`](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714737) | 成功 |
+| CLI CI（Linux/Windows/macOS） | 最终发布审计已核对同 SHA | 成功 |
+| CLI Strict Sandbox（三平台） | 最终发布审计已核对同 SHA | 成功 |
+| npm OIDC 发布 | [`33393380607`](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607) | 成功 |
+| npm 公网字节与 provenance 独立复核 | [`33395435618`](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618) | 成功 |
+| VS Code host matrix、发布与 Open VSX 回读 | [`33393387965`](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965) | 成功 |
+| JetBrains 三平台真实宿主、发布与 Marketplace 回读 | [`33393394812`](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812) | 成功 |
 
-IDE 使用独立发布 SHA `0f0b9f7c8c6c59556fdf29bd8c4c15cd704b0653`：
-
-| 门禁 | GitHub Actions run | 状态 |
-| --- | --- | --- |
-| VS Code host matrix、发布与 Open VSX 回读 | [`33327049581`](https://github.com/chainlesschain/chainlesschain/actions/runs/33327049581) | 成功 |
-| JetBrains 三平台真实宿主、发布与 Marketplace 回读 | [`33327049302`](https://github.com/chainlesschain/chainlesschain/actions/runs/33327049302) | 成功 |
+Record & Replay UI Journey `33330041069` 与 Desktop Signed Skill Qualification `33322714737` 仍绑定前序精确提交 `ee88125256`。`0.166.15` 继承对应产品代码，但不会把前序门禁改写成自己的 exact-SHA 证据。
 
 任何后续提交都必须在自己的 exact SHA 上重新跑适用门禁，不能继承上表结论。
 
 ## 最新源码与已发布版本的边界
 
-2026-08-31 文档核对时，GitHub `main` 为 `0761d4d2976c0ff7ccafc469fe877e685812c456`，晚于 `0.166.14` 发布提交。主线新增：
+2026-09-01 文档核对时，GitHub `main` 为 `db53dc2da48c315e75ec9976098e481844055ac4`，晚于 `0.166.15` 发布提交。发布后的主线新增：
 
-- Team worktree commit/output terminal evidence；
-- canonical Graph trace 随 Team state 持久化；
-- 正式 Graph 协作质量评测的 hermetic home、Windows ACL preflight、收窄文件工具、timeout 下限和 P2 provider 凭据隔离。
-- formal eval producer digest 与当前评测 fixture 对齐。
+- 审计 blob 瞬态读取重试与 Windows CI 清理稳定性；
+- 每个 Windows 正式质量 Agent 独立的 HOME/config/cache/ACL helper 工作目录，避免候选目录污染；
+- Windows 时延比平台上限 `1.6`，Linux、macOS 与 aggregate 保持 `1.5`；验证器拒绝报告携带错误平台阈值；
+- formal eval producer digest、冻结工具契约与当前评测 fixture 对齐。
 
-这些是源码和发布门增量，不在 `chainlesschain@0.166.14` tarball 中。需要这些变化时应等待它们形成新的不可变版本并完成独立发布回读。
+这些是源码和发布门增量，不在 `chainlesschain@0.166.15` tarball 中。正式 run `33396372721` 只有 Linux/macOS 成功；Windows 定向 run `33406031875` 清除了 unrelated changes，但仍按旧 `1.5` 阈值失败。P2-3 因而继续保持部分完成，仍需同一最终 SHA 的三平台成功、aggregate 与 OIDC attestation。
 
 ## 故障排查
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.14 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.15 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.76` VSIX 并使用 “Install from VSIX”。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.77` VSIX 并使用 “Install from VSIX”。
 
-**JetBrains 仍显示旧版**：刷新 Marketplace 索引并确认 IDE 至少为 2024.2；公共目标版本是 `0.4.106`。
+**JetBrains 仍显示旧版**：刷新 Marketplace 索引并确认 IDE 至少为 2024.2；公共目标版本是 `0.4.107`。
 
-**普通启动仍检查 Docker**：先确认 `cc --version` 为 `0.166.14`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：先确认 `cc --version` 为 `0.166.15`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **UI 回放报告缺少页面内容**：这是隐私设计。报告只提供 digest 和结构状态；需要人工诊断时应在受控环境重新执行并直接观察页面。
 
@@ -195,7 +192,7 @@ npm view @chainlesschain/agent-protocol version
 python -c "import chainlesschain_agent_sdk as sdk; print(sdk.__version__)"
 ```
 
-预期依次为 `0.166.14`、`0.166.14`、`0.2.7`、`0.1.7` 与 `0.2.7`。
+预期依次为 `0.166.15`、`0.166.15`、`0.2.7`、`0.1.7` 与 `0.2.7`。
 
 ## 相关文档
 

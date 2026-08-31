@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版与 npm `latest` 均为 `0.166.14@ee88125256`（2026-08-31）。`0.166.9` 首次公开 durable history/retirement、quorum HumanTask、Team fairness、temporal messaging 与审批 single-winner CAS；`0.166.14` 继续承接这些能力并加入 Context/Memory、Hooks v2、P0 执行安全与 Windows Docker-optional 边界。`main@0761d4d297` 的 worktree terminal/Graph trace/formal-eval producer evidence 晚于公开 tarball。以下早期实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版与 npm `latest` 均为 `0.166.15@22db04f559`（2026-09-01）。`0.166.9` 首次公开 durable history/retirement、quorum HumanTask、Team fairness、temporal messaging 与审批 single-winner CAS；`0.166.14` 加入 Context/Memory、Hooks v2、P0 执行安全与 Windows Docker-optional 边界，`0.166.15` 继续承接并修复 formal quality 文件工具上限。`main@db53dc2da4` 的 Windows Agent 隔离、审计重试与平台时延阈值晚于公开 tarball；完整三平台 aggregate/OIDC 尚未关闭。以下早期实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)

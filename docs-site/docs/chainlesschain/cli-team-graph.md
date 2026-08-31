@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.14`（精确发布 SHA `ee88125256`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.15`（精确发布 SHA `22db04f559`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -49,7 +49,7 @@ Task/Agent runtime ──durable events──> Event Store ──read-only reduc
 
 ### 公共命令与主线 formal quality gate 的区别
 
-`0.166.14` 用户可以使用本页的 `inspect/diff/eval`。当前 `main@0761d4d297` 还包含面向发布工程的正式 Graph 协作质量 harness 与刷新后的 producer digest，它不是新的公共子命令或用户 SLA：
+`0.166.15` 用户可以使用本页的 `inspect/diff/eval`，发布包还修复 formal quality control/candidate 的冻结文件工具上限。当前 `main@db53dc2da4` 继续包含 Windows 每 Agent 隔离、审计读取重试与平台时延阈值；它们不是新的公共子命令或用户 SLA，且完整三平台 aggregate/OIDC 尚未通过：
 
 - formal profile 至少运行 1,800 秒、3 轮和固定 6 个任务；
 - single-agent control 与 Graph candidate 使用隔离 workspace，candidate 使用独立 worktree；
@@ -86,7 +86,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.14"
+npm install --global "chainlesschain@0.166.15"
 
 # 查看完整投影
 cc team graph inspect <run-id>

@@ -5,9 +5,18 @@
 
 ## [Unreleased]
 
+#### Released — Agent Platform CLI 0.166.15 与 IDE 热修复
+
+> `chainlesschain@0.166.15` 是当前 npm `latest` 与生产推荐版。CLI、VS Code `0.37.77` 和 JetBrains `0.4.107` 的不可变标签共同指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)、[公网字节/provenance 独立复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965)和[JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812)均成功。
+
+- **formal quality 文件工具热修复**：single-Agent control 与 Graph candidate 共用冻结的 `read_file/search_files/list_dir/write_file/edit_file/edit_file_hashed` 契约，避免 preflight 因工具清单漂移而提前失败。
+- **安全边界不扩张**：shell、网络、Git、MCP、插件、IDE 与子 Agent 工具保持禁用；写入继续限制到任务声明的精确文件。
+- **证据与时长**：失败质量运行保留有界证据，formal soak 可以达到规定持续时间。
+- **发布后源码边界**：`main@db53dc2da4` 再增加 Windows 每 Agent HOME/config/cache 隔离、瞬态审计读取重试、CI 清理和 Windows `1.6` 平台时延阈值。现有正式/定向 run 尚未形成同一最终 SHA 的三平台 aggregate 与 OIDC attestation，P2-3 仍为部分完成。
+
 #### Released — Agent Platform CLI 0.166.14、SDK/Protocol 与 IDE 协调发布
 
-> `chainlesschain@0.166.14` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-14` 精确指向 [`ee88125256`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744)、[Record Replay](https://github.com/chainlesschain/chainlesschain/actions/runs/33330041069)与[Desktop signed Skill qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714737)均成功。
+> `chainlesschain@0.166.14` 是 2026-08-31 的完整门禁发布，现已由 `0.166.15` 取代。不可变 tag `v-npm-0-166-14` 精确指向 [`ee88125256`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744)、[Record Replay](https://github.com/chainlesschain/chainlesschain/actions/runs/33330041069)与[Desktop signed Skill qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714737)均成功。
 
 - **Context/Memory 与 Hooks v2**：canonical kernel `0.1.0`、耐久 rollout store、跨端有界消息和统一 hook 信任/排序/超时/审计语义公开。
 - **P0 安全收口**：固定 renderer/main IPC capability manifest；默认禁网 workspace-write；审批/策略持久化失败时拒绝 shell；高风险进程启动前形成持久脱敏 admission record。Session Core `0.3.8` 已公开。
@@ -18,7 +27,7 @@
 
 #### Added — Agent Platform CLI 0.166.9、SDK/Protocol 与 IDE 协调发布
 
-> `chainlesschain@0.166.9` 是 2026-08-29 的完整门禁发布，现已由 `0.166.14` 取代。不可变 tag `v-npm-0-166-9` 精确指向 [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003)；该版本的门禁证据继续作为历史记录保留。
+> `chainlesschain@0.166.9` 是 2026-08-29 的完整门禁发布，现已由 `0.166.15` 取代。不可变 tag `v-npm-0-166-9` 精确指向 [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003)；该版本的门禁证据继续作为历史记录保留。
 
 - **Graph 与协作**：完整承接未单独发布的 `0.166.8` 源码候选，包括 durable history、definition migration/retirement evidence、可恢复 quorum HumanTask、Team fairness、temporal message reliability 与跨端审批 single-winner CAS。
 - **真实 UI replay**：Playwright 旅程只允许审阅后的 observe/click/type/select/assert 词汇；filesystem、HTTP(S) 与 WebSocket escape probe 在 Linux/Windows/macOS 均失败闭合，receipt 不保存用户内容。

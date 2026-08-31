@@ -2,32 +2,32 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.14`（当前完整门禁版与 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.15`（当前完整门禁版与 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.14 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.15 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-31 当前主线 — **v5.0.3.135 / CLI 0.166.14 生产推荐与 npm latest / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
+## 2026-09-01 当前主线 — **v5.0.3.135 / CLI 0.166.15 生产推荐与 npm latest / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.166.14` 是当前完整门禁的生产推荐版与 npm `latest`；不可变 tag `v-npm-0-166-14` 精确指向提交 [`ee88125256`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)。该 SHA 的[三平台 CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747)与[npm Trusted Publishing / provenance / 公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744)均成功。
+> **发布口径**：`chainlesschain@0.166.15` 是当前完整门禁的生产推荐版与 npm `latest`；CLI、VS Code 与 JetBrains 的不可变标签均精确指向提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。该 SHA 已完成 Linux、Windows、macOS CLI CI、CLI Strict Sandbox、OIDC npm 发布与公共 registry/provenance 回读；[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)和[独立公网复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)均成功。
 >
-> **Agent Platform 0.166.14**：在 `0.166.9` 的耐久 Graph、真实 UI replay 与精确 Codex 兼容门之上，公开 canonical Context/Memory Kernel、耐久 rollout store 与 Hooks v2 收敛；`0.166.13` 关闭 renderer IPC、默认 sandbox/审批与进程审计的 P0 绕过，`0.166.14` 恢复 Windows 无 Docker 普通启动，并保持显式隔离要求失败闭合。
+> **Agent Platform 0.166.15**：完整承接 `0.166.14` 的 canonical Context/Memory Kernel、耐久 rollout store、Hooks v2、P0 执行安全与 Windows Docker-optional 启动，并对正式 Graph 质量评测的 hermetic 文件工具上限做热修复。control 与 candidate 共用冻结的 read/list/search/write/edit 契约，shell、网络、Git、MCP、插件、IDE 与子 Agent 工具仍不可用，写入继续限制到任务精确文件。
 >
 > **SDK / Protocol**：npm `@chainlesschain/agent-sdk@0.2.7`、PyPI `chainlesschain-agent-sdk==0.2.7` 与 npm `@chainlesschain/agent-protocol@0.1.7` 已公开；Session Core `0.3.8` 提供失败闭合审批与持久适配器修复。37 类 generated payload union、严格 validator、Context/Memory/App Server 有界消息、跨语言 causal conformance 与未知未来事件无损透传继续保持。
 >
 > **安全与 Windows 运行时**：固定 renderer/main capability manifest 漂移会阻断 Desktop 构建；CLI 默认 `workspace-write` 且禁网，审批 gate 或策略加载/持久化不可用时拒绝 shell；高风险进程必须先形成持久、脱敏的 admission record。普通 Agent 会话不探测 Docker，Windows 裸命令先按 `PATHEXT` 解析，避免 Docker Desktop 的 POSIX 脚本遮蔽 `docker.exe`。
 >
-> **IDE 发布**：Open VSX `0.37.76` 已公开回读，累计下载超过 **3.3 万**；JetBrains Marketplace `0.4.106` 已回读为 approved/listed。两者的不可变标签共同指向 [`0f0b9f7c8c`](https://github.com/chainlesschain/chainlesschain/commit/0f0b9f7c8c6c59556fdf29bd8c4c15cd704b0653)，对应 [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/33327049581)与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/33327049302)均成功；微软 VS Code Marketplace 仍未公开该扩展。
+> **IDE 发布**：Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开回读并推荐 CLI `0.166.15`。两者与 CLI 共用精确发布提交 `22db04f559`，对应 [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965)与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812)均成功；微软 VS Code Marketplace 仍未公开该扩展。
 >
-> **发布与源码边界**：当前 GitHub `main` 为 [`0761d4d297`](https://github.com/chainlesschain/chainlesschain/commit/0761d4d2976c0ff7ccafc469fe877e685812c456)，晚于 `0.166.14` 发布 SHA。主线新增 Team worktree 终态证据、canonical Graph trace 持久化，以及正式 Graph 协作质量评测的 hermetic home、凭据隔离、Windows ACL preflight、工具收窄、超时下限和 producer digest 刷新；这些仍是源码/门禁增量，不继承 `0.166.14` 制品身份。GraphRun 只统一运行身份、权限、预算与 revision；Task Graph、动态 Agent Tree、Artifact/Trace 证据投影仍不得混成同一种图。
+> **发布与源码边界**：当前 GitHub `main` 为 [`db53dc2da4`](https://github.com/chainlesschain/chainlesschain/commit/db53dc2da48c315e75ec9976098e481844055ac4)，晚于 `0.166.15` 发布 SHA。发布后的主线增加审计 blob 瞬态重试、Windows 正式评测 Agent 的 HOME/config/cache 隔离、CI 清理稳定性，以及 Windows `1.6` / 其他平台与 aggregate `1.5` 的冻结时延比上限。现有正式 run 只证明 Linux/macOS 通过，后续 Windows 定向 run 仍按旧阈值失败；因此 P2-3 仍缺同一最终 SHA 的三平台 aggregate 与 OIDC attestation，不能写成已经关闭或属于 `0.166.15` 制品。
 >
-> **发布链闭环**：`0.166.14@ee88125256` 的 tag、Linux/Windows/macOS CLI CI 与 Strict Sandbox、不可变制品、Trusted Publishing、签名 provenance 与独立 registry 回读已闭环；[Record Replay UI Journey](https://github.com/chainlesschain/chainlesschain/actions/runs/33330041069)和[Desktop Signed Skill Qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714737)也在同一精确 SHA 成功。前序长期门只作为对应版本证据；PDH 保持 `0.4.59`（native SQLite 可选，保留 `sql.js` fallback）。
+> **发布链闭环**：`0.166.15/0.37.77/0.4.107@22db04f559` 的标签、三平台 CLI CI 与 Strict Sandbox、不可变制品、Trusted Publishing、签名 provenance、IDE 宿主门与公共渠道回读已闭环。Record & Replay 的三平台旅程和 Desktop Signed Skill qualification 仍分别保留在其精确 `0.166.14@ee88125256` 证据链中；`0.166.15` 继承对应产品代码，但不改写旧证据身份。PDH 保持 `0.4.59`（native SQLite 可选，保留 `sql.js` fallback）。
 >
-> 详见 [Agent Platform 0.166.14 用户指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)、[Agent Platform 发布与运行时边界设计](docs/design/modules/110-agent-platform-release-boundaries.md)及[更新日志](CHANGELOG.md)。
+> 详见 [Agent Platform 0.166.15 用户指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[Agent SDK 用户指南](docs-site/docs/chainlesschain/agent-sdk.md)、[GraphRun 观测与评估](docs-site/docs/chainlesschain/cli-team-graph.md)、[CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Graph Kernel 设计](docs/design/modules/105_Graph_Kernel设计.md)、[Agent Platform 发布与运行时边界设计](docs/design/modules/110-agent-platform-release-boundaries.md)及[更新日志](CHANGELOG.md)。
 
 ## 2026-07-24 历史发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 

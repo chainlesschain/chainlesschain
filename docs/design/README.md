@@ -1,25 +1,25 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-31：完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.14@ee88125256`；CLI CI、Strict Sandbox、Trusted Publishing、provenance 与 npm 公网回读均已闭环。Agent Protocol `0.1.7`、TypeScript/Python Agent SDK `0.2.7`、Session Core `0.3.8`、Open VSX `0.37.76` 与 JetBrains Marketplace `0.4.106` 已公开。`main@0761d4d297` 的 formal Graph quality hardening 与 producer digest 刷新晚于发布制品；Desktop 签名 Skill 资格门也不等于公共 native 安装包发行。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-09-01：完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.15@22db04f559`；CLI CI、Strict Sandbox、Trusted Publishing、provenance 与 npm 公网回读均已闭环。Agent Protocol `0.1.7`、TypeScript/Python Agent SDK `0.2.7`、Session Core `0.3.8`、Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开。`main@db53dc2da4` 的 Windows formal Graph quality 隔离、审计重试与平台时延阈值晚于发布制品，完整三平台 aggregate/OIDC 仍未关闭；Desktop 签名 Skill 资格门也不等于公共 native 安装包发行。
 
 ## 当前重点
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
-- Agent Platform `0.166.5` 首次公开 Schema 生成的 37 类 stream event payload discriminated union、typed envelope 与严格 validator；`0.166.6` 补齐 Agent IPC/legacy transport 容量边界；`0.166.7` 完成 Graph authoritative entry cutover；`0.166.9` 增加耐久 Graph、真实 UI replay 与 exact-version Codex 门；当前 `0.166.14` 再公开 Context/Memory、Hooks v2、P0 执行安全收口与 Windows Docker-optional 启动。
+- Agent Platform `0.166.5` 首次公开 Schema 生成的 37 类 stream event payload discriminated union、typed envelope 与严格 validator；`0.166.6` 补齐 Agent IPC/legacy transport 容量边界；`0.166.7` 完成 Graph authoritative entry cutover；`0.166.9` 增加耐久 Graph、真实 UI replay 与 exact-version Codex 门；`0.166.14` 公开 Context/Memory、Hooks v2、P0 执行安全与 Windows Docker-optional 启动，当前 `0.166.15` 再热修复 formal quality 的冻结文件工具上限。
 - 单一协议 Schema 与多语言 codegen 已提升为独立模块 107：canonical JSON Schema 同源生成 TS/Python/Kotlin/Swift 与 VS Code/Desktop vendor；跨端 causal conformance 固定并行工具交错、审批 binding 与终态投影，未知未来事件仍由 transport 无损透传。
 - 上下文构建、压缩与记忆生命周期已提升为独立模块 108：先冻结 ContextItem、MemoryRecord、compaction rollout 和删除 receipt，再以无副作用 shadow 推进 CLI、Desktop、IDE 的单一 writer 切换；当前仍是提案，不冒充 authoritative cutover 已完成。
 - 前序精确发布 SHA `2f5b0f263a` 的 Protocol、Python SDK、CLI CI、Strict Sandbox、IDE、Android、iOS、Desktop、E2E、Full/Code Quality 与 1,800 秒 App Server overload/RSS soak 均通过；Protocol `0.1.5`、TS/Python SDK `0.2.4`、CLI `0.166.5` 和 Open VSX `0.37.70` 已完成公网回读。该长期 soak 继续作为前序证据，不归因到 `0.166.7@19834a1845`。
 - Desktop 与 VS Code 已接入默认关闭、仅暴露固定 Thread/Turn 方法的 `AppServerPilotClient`；审批 UI 未接入前保持 canonical decline，Desktop 子进程继续经过 Process Broker。
 - App Server 新增实验 WebSocket：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求显式远程授权与 TLS；连接、payload、请求、输出、buffer 和清理时间全部有界。
-- CLI `0.166.14` 完整承接 Graph authoritative cutover、耐久 history/retirement、quorum HumanTask、temporal message reliability 与 dependency/scope fairness；精确 SHA `ee88125256` 已完成三平台 CLI CI、Strict Sandbox、npm 发布和公网回读并成为生产推荐。发布后的 Team terminal/trace evidence 与 formal quality harness 仍按主线源码边界处理。
+- CLI `0.166.15` 完整承接 Graph authoritative cutover、耐久 history/retirement、quorum HumanTask、temporal message reliability 与 dependency/scope fairness；精确 SHA `22db04f559` 已完成三平台 CLI CI、Strict Sandbox、npm 发布和公网回读并成为生产推荐。该版本还冻结 formal quality read/list/search/write/edit 工具契约；发布后的 Windows Agent 隔离与 `1.6` 平台时延阈值仍按主线源码边界处理。
 - Desktop 源码继续提供只读 Graph Run Debugger、外部 Skill Ed25519/摘要/隔离 Worker、内置 Handler 能力目录与网络/文件/环境/进程/凭据 Broker；同一 exact SHA 新增 macOS entitlement/notarization 钩子、签名安装/启动探针与 Desktop Skill qualification producer。这些是 Desktop/native 源码和资格证据，不是 npm CLI 包字节，也不自动证明公共 native 分发完成。
 - Record & Replay 真实 Playwright driver 只执行审阅过的 `observe/click/type/select/assert`，拒绝 filesystem、HTTP(S)、WebSocket 与环境漂移，receipt 不保留 selector、输入值、页面正文、URL 或截图本体；Codex App Server adapter 只允许显式验证过的上游 patch，未知版本在 turn admission 前回退稳定 JSONL 路径。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX 当前公开 `0.37.76`；JetBrains Marketplace 当前公开 `0.4.106`。两端继续保持 CLI-authoritative 只读投影、revision-bound grant 与 single-winner settlement；微软 VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.77`；JetBrains Marketplace 当前公开 `0.4.107`。两端继续保持 CLI-authoritative 只读投影、revision-bound grant 与 single-winner settlement；微软 VS Code Marketplace 仍未发布。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
@@ -28,7 +28,7 @@
 
 ### `cli-runtime-current.md`
 
-- 生产基线与 npm `latest` 已统一为 Agent Platform CLI `0.166.14@ee88125256`；Open VSX `0.37.76`、JetBrains Marketplace `0.4.106`、TS/Python SDK `0.2.7`、Session Core `0.3.8` 与 Protocol `0.1.7` 已分别按公共回读记录。
+- 生产基线与 npm `latest` 已统一为 Agent Platform CLI `0.166.15@22db04f559`；Open VSX `0.37.77`、JetBrains Marketplace `0.4.107`、TS/Python SDK `0.2.7`、Session Core `0.3.8` 与 Protocol `0.1.7` 已分别按公共回读记录。
 - 新增 durable Graph review/recovery、UI replay、Codex compatibility、签名 Desktop Skill qualification 与候选/公开制品边界核对。
 - 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
@@ -91,7 +91,7 @@
 
 ### `modules/98_IDE桥接对标方案.md`
 
-- 当前公开口径已对齐为 Open VSX VS Code `0.37.76` 与 JetBrains Marketplace `0.4.106`；两端基于精确源码 `0f0b9f7c8c6c59556fdf29bd8c4c15cd704b0653` 重新认证 CLI `0.166.14`、Agent Protocol `0.1.7`、Context/Memory lifecycle、Graph authority 与 P0 执行安全边界。Microsoft VS Marketplace 未完成公开回读，不能用 Open VSX 状态替代。
+- 当前公开口径已对齐为 Open VSX VS Code `0.37.77` 与 JetBrains Marketplace `0.4.107`；两端基于精确源码 `22db04f55974d2e5823772c4bae5e87171fa51db` 重新认证 CLI `0.166.15`、Agent Protocol `0.1.7`、Context/Memory lifecycle、Graph authority 与 P0 执行安全边界。Microsoft VS Marketplace 未完成公开回读，不能用 Open VSX 状态替代。
 - 记录 Automation Center、CLI-owned Sessions Workbench、可恢复交付、canonical rewind/branch timeline、VS Code 内联聊天，以及五类 session 的 reply/artifact/PR/重启恢复真实宿主 journey；这些能力已进入公开稳定版。
 - 初版 Phase 0–7、`0.2.x` / `0.1.0` 和当时的 Marketplace 待审状态继续保留为历史首发记录，不再冒充当前版本。
 

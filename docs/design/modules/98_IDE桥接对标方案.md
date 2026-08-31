@@ -2,11 +2,11 @@
 
 > ## 当前发布状态（2026-08-31）
 >
-> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.76** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **3.3 万**；该状态不表示 Microsoft VS Code Marketplace 已发布，后者仍未完成公开回读。
-> - **JetBrains**：`com.chainlesschain.ide` **0.4.106** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 审核通过、listed、非隐藏并公开。
-> - **当前发布能力**：两端消费 Agent Protocol `0.1.7` 的 canonical Schema，并投影 CLI `0.166.14` 的 Context/Memory lifecycle、Graph authority、结构化授权与 P0 执行安全边界；UI 只提交有界意图，不能成为 authority writer。
+> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.77** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **3.3 万**；该状态不表示 Microsoft VS Code Marketplace 已发布，后者仍未完成公开回读。
+> - **JetBrains**：`com.chainlesschain.ide` **0.4.107** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 完成正式发布与公共回读。
+> - **当前发布能力**：两端消费 Agent Protocol `0.1.7` 的 canonical Schema，并投影 CLI `0.166.15` 的 Context/Memory lifecycle、Graph authority、结构化授权与 P0 执行安全边界；UI 只提交有界意图，不能成为 authority writer。
 > - **App Server 边界**：固定能力客户端只暴露允许的 Thread/Turn 与 lifecycle 方法，不提供任意 request；审批 UI 不可用时 canonical decline，IDE 不得绕过 CLI-owned policy、sandbox、audit 或 durable state。
-> - **源码与市场边界**：VS Code **0.37.76** 与 JetBrains **0.4.106** 的精确源码均为 `0f0b9f7c8c6c59556fdf29bd8c4c15cd704b0653`，对应三平台真实宿主发布门成功并完成公共市场回读。源码 tag、工作流成功或上传成功本身仍不能冒充已上架版本。
+> - **源码与市场边界**：VS Code **0.37.77** 与 JetBrains **0.4.107** 的精确源码均为 `22db04f55974d2e5823772c4bae5e87171fa51db`，对应三平台真实宿主发布门成功并完成公共市场回读。源码 tag、工作流成功或上传成功本身仍不能冒充已上架版本。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。

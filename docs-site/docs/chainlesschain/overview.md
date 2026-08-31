@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-31）：v5.0.3.135 | Agent Platform CLI 0.166.14（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | Session Core 0.3.8 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.76 | JetBrains Marketplace 0.4.106 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-09-01）：v5.0.3.135 | Agent Platform CLI 0.166.15（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | Session Core 0.3.8 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.77 | JetBrains Marketplace 0.4.107 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：生产推荐与 npm `latest` CLI `0.166.14` 承接 Graph authoritative cutover、durable history、真实 UI replay 与 Codex exact-version compatibility，并公开 Context/Memory、Hooks v2、P0 执行安全和 Windows Docker-optional 启动。精确提交 `ee88125256` 的三平台 CLI CI、Strict Sandbox、Trusted Publishing、provenance 与公网回读成功；Open VSX `0.37.76` 和 JetBrains `0.4.106` 也已公开。更晚的 `main@0761d4d297` formal Graph quality hardening 与 producer digest 刷新不属于 `0.166.14` 制品。
+> **当前能力与发布边界**：生产推荐与 npm `latest` CLI `0.166.15` 承接 Graph authoritative cutover、durable history、真实 UI replay 与 Codex exact-version compatibility，并公开 Context/Memory、Hooks v2、P0 执行安全、Windows Docker-optional 启动和 formal quality 文件工具热修复。精确提交 `22db04f559` 的三平台 CLI CI、Strict Sandbox、Trusted Publishing、provenance 与公网回读成功；Open VSX `0.37.77` 和 JetBrains `0.4.107` 也已公开。更晚的 `main@db53dc2da4` Windows formal quality 隔离与平台阈值不属于 `0.166.15` 制品，完整三平台 aggregate/OIDC 尚未关闭。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

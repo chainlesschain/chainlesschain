@@ -1,10 +1,10 @@
-# CLI Runtime 当前实现核对（Agent Platform 0.166.14）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.15）
 
-> 更新时间：2026-08-31。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.14`，绑定不可变 tag `v-npm-0-166-14` 的精确 SHA `ee88125256b5de8281be0a8e57157811bb80c105`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、不可变制品、provenance 与独立公网回读均已闭环。TypeScript/Python Agent SDK `0.2.7`、Agent Protocol `0.1.7`、Session Core `0.3.8`、Open VSX `0.37.76` 与 JetBrains Marketplace `0.4.106` 已公开。
+> 更新时间：2026-09-01。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.15`，绑定不可变 tag `v-npm-0-166-15` 的精确 SHA `22db04f55974d2e5823772c4bae5e87171fa51db`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、不可变制品、provenance 与独立公网回读均已闭环。TypeScript/Python Agent SDK `0.2.7`、Agent Protocol `0.1.7`、Session Core `0.3.8`、Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开。
 
 ## 版本与证据边界
 
-- `0.166.14` 是当前生产推荐与 npm `latest`。`v-npm-0-166-14` 精确指向 `ee88125256b5de8281be0a8e57157811bb80c105`；同一发布提交的 `CLI CI` `33322714911`、`CLI Strict Sandbox` `33322714747` 与 npm 发布/provenance/公网回读 `33322714744` 均成功。
+- `0.166.15` 是当前生产推荐与 npm `latest`。`v-npm-0-166-15` 精确指向 `22db04f55974d2e5823772c4bae5e87171fa51db`；同一发布提交的三平台 CLI CI、CLI Strict Sandbox、npm OIDC 发布 `33393380607` 与公网字节/provenance 复核 `33395435618` 均成功。
 - `@chainlesschain/agent-sdk@0.2.7`、`chainlesschain-agent-sdk==0.2.7` 与 `@chainlesschain/agent-protocol@0.1.7` 已公开；SDK 与 Protocol 保持独立安装和发版边界。Session Core `0.3.8` 与 Context/Memory Kernel `0.1.0` 也已完成 npm 回读。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
@@ -23,12 +23,12 @@
 - `0.166.7` 在上述边界上完成 entry-scoped Graph store、cutover ledger、migration/canary gate 与跨平台真实 journey；已切换 CLI 入口的 legacy mutation 失败闭合，authority、revision、lease/fence 与恢复证据由 canonical Graph writer 结算。
 - `0.166.8` 是未单独发布的源码候选，增加耐久 Graph history、quorum HumanTask、definition migration/retirement evidence、Team fairness、temporal message reliability 与跨端审批 single-winner CAS；全部由公开 `0.166.9` 承接。
 - `0.166.9` 新增真实 Playwright UI replay 与三平台 network-escape probe；可选 Codex App Server adapter 改为 exact-version allow-list，未知/预发布版本在 turn admission 前回退 `codex exec --json`。同一 exact SHA 的 Record Replay、Codex compatibility 与 Desktop signed-Skill qualification 专项门均成功。
-- `0.166.12` 公开 Context/Memory Kernel、耐久 rollout store 与 Hooks v2 收敛；`0.166.13` 关闭 renderer IPC、默认 sandbox/审批与高风险进程审计的 P0 绕过；`0.166.14` 恢复 Windows Docker-optional 普通启动并保持显式隔离失败闭合。
-- `main@0761d4d297` 的 Team worktree terminal evidence、canonical Graph trace 持久化和 formal Graph quality hermetic/ACL/tool/credential/producer-digest hardening 晚于 `v-npm-0-166-14`，必须等待自己的发布闭环。
+- `0.166.12` 公开 Context/Memory Kernel、耐久 rollout store 与 Hooks v2 收敛；`0.166.13` 关闭 renderer IPC、默认 sandbox/审批与高风险进程审计的 P0 绕过；`0.166.14` 恢复 Windows Docker-optional 普通启动并保持显式隔离失败闭合；`0.166.15` 再统一 formal quality control/candidate 的冻结文件工具上限，同时保留失败证据与完整 soak 时长。
+- `main@db53dc2da4` 的瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和 Windows `1.6` 平台时延比上限晚于 `v-npm-0-166-15`，必须等待自己的完整三平台 aggregate/OIDC 与发布闭环。
 - `cc serve --app-server` 默认以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。`--app-server-websocket` 是强制 token、远程 TLS 与固定子协议的实验入口。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
-- IDE 当前公开版本为 Open VSX `0.37.76` 与 JetBrains Marketplace `0.4.106`。两者的不可变 tag 指向 `0f0b9f7c8c`，IDE 工作流 `33327049581` / `33327049302` 成功；微软 VS Code Marketplace仍未发布。
-- CLI/SDK/Protocol 当前公开组合为 `0.166.14/0.2.7 TS + 0.2.7 Python/0.1.7`。Desktop 签名/Skill 资格、真实 UI replay 与 Codex compatibility 都有 exact-SHA 专项证据，但公共 native 分发、生产 relay 与真实 provider 验收仍需独立判断。
+- IDE 当前公开版本为 Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107`。两者的不可变 tag 与 CLI 同指 `22db04f559`，IDE 工作流 `33393387965` / `33393394812` 成功；微软 VS Code Marketplace仍未发布。
+- CLI/SDK/Protocol 当前公开组合为 `0.166.15/0.2.7 TS + 0.2.7 Python/0.1.7`。Desktop 签名/Skill 资格、真实 UI replay 与 Codex compatibility 都有自己的 exact-SHA 专项证据，但公共 native 分发、生产 relay 与真实 provider 验收仍需独立判断。
 
 ## 当前边界
 
@@ -342,10 +342,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 公开版 Open VSX `0.37.76` / JetBrains Marketplace `0.4.106` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE 公开版 Open VSX `0.37.77` / JetBrains Marketplace `0.4.107` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.76`；JetBrains Marketplace 当前公开 `0.4.106`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影。Microsoft VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.77`；JetBrains Marketplace 当前公开 `0.4.107`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影。Microsoft VS Code Marketplace 仍未发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -397,9 +397,9 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.14` 的精确正式发布提交为 [`ee88125256b5de8281be0a8e57157811bb80c105`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)。同一提交的 [CLI CI run 33322714911](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911)、[CLI Strict Sandbox run 33322714747](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747)与 [npm release/readback run 33322714744](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744) 均成功；registry tarball、不可变 workflow artifact 与 provenance 身份已交叉核对。Agent Protocol `0.1.7`、TS/Python SDK `0.2.7`、Open VSX `0.37.76` 与 JetBrains `0.4.106` 均已公开回读。
+`0.166.15` 的精确正式发布提交为 [`22db04f55974d2e5823772c4bae5e87171fa51db`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。同一提交的 Linux/Windows/macOS CLI CI 与 Strict Sandbox 均成功，[npm OIDC release run 33393380607](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)和[公网字节/provenance 复核 run 33395435618](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)完成 registry tarball、不可变 workflow artifact 与 provenance 身份交叉核对。Agent Protocol `0.1.7`、TS/Python SDK `0.2.7`、Open VSX `0.37.77` 与 JetBrains `0.4.107` 均已公开回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；GitHub `main@0761d4d297` 的正式协作质量门不能继承 `v-npm-0-166-14` 的发布授权。CLI `ee88125256` 与 IDE `0f0b9f7c8c` 是两个独立制品身份，必须分别按公共回读证据处理。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；GitHub `main@db53dc2da4` 的正式协作质量门不能继承 `v-npm-0-166-15` 的发布授权。CLI 与双 IDE 共用源码提交 `22db04f559`，但 npm tarball、VSIX 与 JetBrains ZIP 仍是三个独立制品身份，必须分别按公共回读证据处理。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
 
