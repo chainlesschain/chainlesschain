@@ -497,7 +497,9 @@ describe("graph collaboration quality evidence", () => {
     expect(workflow).toContain('test "$EXPECTED_SHA" = "$SOURCE_SHA"');
     expect(workflow).toContain("--duration-seconds 1800");
     expect(workflow).toContain("--min-rounds 3");
-    expect(workflow).toContain("CC_LLM_API_KEY");
+    expect(workflow).toContain(
+      "secrets.CC_P2_3_API_KEY || secrets.CC_LLM_API_KEY",
+    );
     expect(workflow).toContain("vars.CC_LLM_PROVIDER");
     expect(workflow).toContain("vars.CC_LLM_MODEL");
     expect(workflow).toContain("vars.CC_P2_3_MAX_TOTAL_COST_USD");
