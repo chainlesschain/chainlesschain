@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.9`（精确发布 SHA `222396f6a8`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.14`（精确发布 SHA `ee88125256`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -47,6 +47,18 @@ Task/Agent runtime ──durable events──> Event Store ──read-only reduc
 - **默认脱敏**：Message 和 HumanTask 正文默认不进入输出，只有显式 `--include-content` 才展开。
 - **只读边界**：三个子命令均不改变 GraphRun 权威状态，也不触发外部副作用。
 
+### 公共命令与主线 formal quality gate 的区别
+
+`0.166.14` 用户可以使用本页的 `inspect/diff/eval`。当前 `main@0761d4d297` 还包含面向发布工程的正式 Graph 协作质量 harness 与刷新后的 producer digest，它不是新的公共子命令或用户 SLA：
+
+- formal profile 至少运行 1,800 秒、3 轮和固定 6 个任务；
+- single-agent control 与 Graph candidate 使用隔离 workspace，candidate 使用独立 worktree；
+- 比较通过率、行为等价、无关改动、死锁/对账、消息/handoff、token、时延与成本；
+- launcher 使用临时目录内的 hermetic home，Windows 先做 ACL preflight，provider 凭据只进入 P2 quality cell；
+- 三平台 evidence 必须绑定 exact SHA、challenge、任务集合和 projection digest，缺平台或阈值失败时不生成通过结论。
+
+Team worktree commit/output terminal evidence 与 canonical Graph trace 持久化也是发布后的主线修复；它们不在 `v-npm-0-166-14` tarball 中，应等待后续版本完成自己的发布闭环。
+
 ## 系统架构
 
 ```text
@@ -74,7 +86,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.9"
+npm install --global "chainlesschain@0.166.14"
 
 # 查看完整投影
 cc team graph inspect <run-id>

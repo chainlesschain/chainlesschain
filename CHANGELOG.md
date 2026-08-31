@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows
 
-> `chainlesschain` **0.166.13 -> 0.166.14** (hotfix candidate, 2026-08-30).
+> `chainlesschain` **0.166.13 -> 0.166.14**, published 2026-08-30 from exact
+> commit `ee88125256b5de8281be0a8e57157811bb80c105` under immutable tag
+> `v-npm-0-166-14`.
 
 - **Docker remains opt-in**: a normal agent session no longer probes or
   requires Docker unless the CLI flag, settings, or managed policy explicitly
@@ -20,11 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit isolation stays fail-closed**: `workspace-write`, `strict`, and
   managed sandbox requirements still reject unavailable engines instead of
   silently degrading.
+- **Release validation**: the exact release commit passed every configured
+  Linux, Windows, and macOS job in `CLI CI` and `CLI Strict Sandbox`, then
+  completed npm Trusted Publishing and public-registry readback. This is the
+  current public CLI baseline; later Graph/Team quality-harness commits on
+  `main` remain source-only until a newer immutable release passes the same
+  gates.
 
 ### Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure
 
 > `chainlesschain` **0.166.12 -> 0.166.13** and Session Core
-> **0.3.7 -> 0.3.8** (release candidates, 2026-08-30).
+> **0.3.7 -> 0.3.8**, published 2026-08-30; the CLI release commit is
+> `d44374e576e5426eb419537bef15ae83385daf05` under immutable tag
+> `v-npm-0-166-13` and is superseded by public CLI `0.166.14`.
 
 - **Fixed renderer IPC capabilities**: remove the environment-controlled
   generic bridge bypass and generate an exact renderer/main capability
@@ -36,14 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Durable process audit**: require a persistent, redacted admission record
   before high-risk process creation and retain bounded actor, session,
   authorization, policy, sandbox, and result context.
-- **Release boundary**: these versions identify the source candidates for the
-  security fixes; publication still requires the exact candidate to pass the
-  repository's Linux, Windows, and macOS release matrices.
+- **Release boundary**: these versions closed the P0 execution-security fixes;
+  CLI `0.166.14` retains the same boundary while adding the Windows
+  Docker-optional startup repair.
 
 ### Added - cc CLI 0.166.12: durable rollout storage and converged Hooks v2
 
-> `chainlesschain` **0.166.10 -> 0.166.12** (release candidate,
-> 2026-08-30). The immutable `0.166.11` candidate was withheld after its npm
+> `chainlesschain` **0.166.10 -> 0.166.12** (2026-08-30 capability baseline,
+> now included in public `0.166.14`). The immutable `0.166.11` candidate was withheld after its npm
 > workflow could not bootstrap the new scoped runtime dependency; its tag is
 > not reused. Coordinated candidates are Context/Memory Kernel `0.1.0`,
 > Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.7`,

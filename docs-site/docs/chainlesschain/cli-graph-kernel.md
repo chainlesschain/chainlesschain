@@ -1,6 +1,6 @@
 # Graph Kernel 使用与运维指南
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.9`（精确发布 SHA `222396f6a8`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换，`0.166.9` 承接 durable history、retirement 与 quorum HumanTask｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.14`（精确发布 SHA `ee88125256`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换，当前版承接 durable history、retirement、quorum HumanTask 与平台安全边界｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
 
 ## 概述
 
@@ -43,7 +43,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 
 ### 当前可用性
 
-| 能力                                        | `0.166.9` 用户口径                                              | 使用边界                                                                                  |
+| 能力                                        | `0.166.14` 用户口径                                             | 使用边界                                                                                  |
 | ------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Team DAG 计划与执行                         | 已公开：`cc team plan/run/queue`                                | 受支持 CLI 入口已 canonical cutover；Desktop/Browser/IDE 等其他产品面仍按各自迁移证据判断 |
 | GraphDefinition v1 compiler/runtime         | 源码核心已发布                                                  | 当前没有稳定的 `cc graph run` 公共 writer CLI；由产品 adapter 集成                        |
@@ -57,7 +57,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 ### 1. 安装生产推荐版
 
 ```bash
-npm install --global "chainlesschain@0.166.9"
+npm install --global "chainlesschain@0.166.14"
 cc team --help
 ```
 

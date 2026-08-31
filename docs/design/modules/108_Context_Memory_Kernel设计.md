@@ -1,6 +1,6 @@
 # 108 Context/Memory Kernel 设计
 
-> 状态：仓库实现与默认切换完成；正式生产关闭等待 exact-SHA 三平台矩阵和 30 分钟 soak｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-08-30
+> 状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.14`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-08-31
 
 ## 1. 定位
 
@@ -39,7 +39,7 @@ Context/Memory Kernel 是 ChainlessChain Agent Platform 的逻辑基础模块，
 - 删除先提交最小 tombstone，再物理清除已注册 ContentPort、索引/缓存/副本和已迁移的旧 SQLite/session-core projection；部分失败持久化 reconciliation，重启后可继续，完成后封存来源引用。离线副本受 fence 阻止回灌。外部备份及未接入 Kernel 的历史离线文件不在在线 purge receipt 内，继续受部署保留政策约束。
 - `writers.v1.json` 的生产状态只有一个 `canonical_runtime`，所有 legacy writer 均为 `legacy_read_only`，静态发现门不允许未分类 writer；`context-memory-writer-probe.mjs` 在运行期验证 CLI/Desktop 旧 mutation fail closed 和 IDE projection-only 边界。
 
-仓库内 canonical authority、已登记迁移、恢复、在线隐私对账、容量门和 quick soak 已完成。生产关闭仍是独立状态：只有最终候选提交的 Linux/Windows/macOS `CLI CI`、`CLI Strict Sandbox`、`Context Memory Kernel CI` 与 Linux 30 分钟 `Context Memory Long Soak` 全绿，经 attested evidence/production-close 工作流验签后，才能写成“正式生产关闭”。
+仓库内 canonical authority、已登记迁移、恢复、在线隐私对账、容量门和 quick soak 已完成。正式生产关闭也已由唯一候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 的 Linux/Windows/macOS `CLI CI`、`CLI Strict Sandbox`、`Context Memory Kernel CI`、Linux 30 分钟 `Context Memory Long Soak` 以及 attested evidence/production-close 工作流完成验签；完整 run、artifact 与 digest 见第 19.3 节。后续发布继承该关闭边界，不把 docs-only 或 source-only 提交改写成新的关闭候选。
 
 ## 3. 设计目标与非目标
 

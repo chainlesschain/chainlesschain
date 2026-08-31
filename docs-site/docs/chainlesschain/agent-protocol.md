@@ -1,8 +1,8 @@
 # Agent Protocol：单一 Schema 与多语言生成绑定
 
-> **更新：2026-08-29｜公开基线：`@chainlesschain/agent-protocol@0.1.6`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
+> **更新：2026-08-31｜公开基线：`@chainlesschain/agent-protocol@0.1.7`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
 >
-> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.6` 已公开 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator，以及 Graph history/retirement、可恢复 HumanTask 与 single-winner approval 所需的跨端契约；公开状态以 npm、不可变标签、CI 和安装回读为准。
+> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.7` 已公开 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator，以及 Context/Memory、App Server pilot、Graph history/retirement、可恢复 HumanTask 与 single-winner approval 所需的有界跨端契约；公开状态以 npm、不可变标签、CI 和安装回读为准。
 
 ## 概述
 

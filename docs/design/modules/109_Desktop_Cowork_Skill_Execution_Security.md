@@ -133,7 +133,7 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 
 ## 9. 已知边界
 
-- 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.9` 的制品内容；
+- 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.14` 的制品内容；
 - Ed25519 签名证明“由可信 key 签署且字节未变”，不证明代码无漏洞；
 - 能力 Broker 只约束迁移后的宿主表面，未迁移或 native 扩展必须单独审计；
 - 网络 declassification 是显式授权证据，不是数据内容自动安全分类；

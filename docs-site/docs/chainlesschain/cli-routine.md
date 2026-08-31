@@ -1,6 +1,6 @@
 # 命名定时/触发任务 — Cron / Once / Webhook / GitHub（`cc routine`）
 
-> **适用版本：CLI 0.166.9（生产推荐与 npm latest 一致）· 更新：2026-08-29 | cron / once / manual / GitHub 均接入统一 Scheduler Kernel | Automation Center + revision CAS | 四种触发 + 运行历史 + 成本汇总**
+> **适用版本：CLI 0.166.14（生产推荐与 npm latest 一致）· 更新：2026-08-31 | cron / once / manual / GitHub 均接入统一 Scheduler Kernel | Automation Center + revision CAS | 四种触发 + 运行历史 + 成本汇总**
 >
 > `cc routine` 是 `cc agenda` 之上的**持久化命名层**：给一个反复要跑的 Agent 任务起个名字、绑一种触发方式、随时启用/停用，并保留一份**只增不改的运行历史**（含每次的输出、token 用量与成本）。
 

@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；authoritative entry cutover 随 `0.166.7` 发布；耐久历史、HumanTask quorum、definition migration/retirement evidence、Team 公平性与多端 single-winner settlement 已由完整门禁的 `0.166.9@222396f6a8` 公开承接（2026-08-29）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 投影仍只读
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；authoritative entry cutover 随 `0.166.7` 发布；耐久历史、HumanTask quorum、definition migration/retirement evidence、Team 公平性与多端 single-winner settlement 已由完整门禁的 `0.166.14@ee88125256` 公开承接（2026-08-31）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 投影仍只读
 
 ## 1. 定位
 
@@ -21,6 +21,17 @@ Graph Kernel 与 CC App Server 分工明确：
 - HumanTask 在等待人工决定时释放 Agent capacity；claim、decision 与 cancel 绑定 exact revision/attempt/operation，并用 CAS 保证 single winner。
 - Android、iOS、Web Panel、Desktop 与 IDE 只提交绑定决定；quorum、职责分离和 grant scope 仍由 canonical runtime 结算。
 - Team 调度加入 dependency/scope aging、priority donation 与 fairness SLO；早到的 aging service 仍必须受 capacity、budget、lease/fence 与 write scope 约束。
+
+### 1.2 0.166.14 公共基线与发布后质量门
+
+公开 `0.166.14` 完整承接上述 Graph 能力，同时加入 Context/Memory Kernel、耐久 rollout store、Hooks v2、默认 sandbox/审批失败闭合和 Windows Docker-optional 启动。这些平台能力改变 Graph adapter 的上下文、持久化和执行边界，但不改变三类图的职责分离。
+
+`v-npm-0-166-14@ee88125256` 之后的主线 `0761d4d297` 进一步补齐两类证据，并刷新 formal eval producer digest：
+
+- Team worktree result 保留 commit/output digest，canonical Graph trace 随 team state 一起持久化，终态不能只依赖进程内 status；
+- formal quality profile 使用真实 control/candidate、独立 worktree、至少 3 轮/1,800 秒、固定 6 个任务和三平台 exact-SHA evidence，比较通过率、行为等价、无关改动、死锁/对账、message/handoff、token、时延与成本。
+
+正式评测还要求临时目录内的 hermetic `CHAINLESSCHAIN_HOME`、provider/凭据隔离、Windows ACL preflight、收窄的文件工具面和 shell timeout 下限。它是后续发布门，不属于 `0.166.14` tarball，也不构成新的公共 SLA。
 
 ## 2. GraphRun 与三类图
 
@@ -314,13 +325,14 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 
 ## 16. 发布状态与未决项
 
-已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 进一步完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换、耐久 fencing/recovery 和 legacy mutation containment；这仍不能外推为所有 Desktop/Browser/IDE 产品面已完成切换。
+已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换；`0.166.14` 是当前完整门禁公共基线。发布后的 worktree/trace 证据与 formal quality hardening 仍在主线，不能倒灌为 `0.166.14` 制品能力，也不能外推为所有 Desktop/Browser/IDE 产品面已完成切换。
 
 | 层级                                                  | 当前状态                                               | 对外口径                                                                                |
 | ----------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | Compiler / Runtime / Event Store                      | 源码核心已发布并有聚焦测试                             | 内核能力存在；不等于稳定公共 writer API                                                 |
 | `cc team graph`                                       | `inspect/diff/eval` 已公开                             | 只读已有 GraphRun，不创建、恢复或取消                                                   |
-| CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.7` 已通过 cutover ledger 解析唯一 writer        | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合                         |
+| CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.14` 公共基线继续通过 cutover ledger 解析唯一 writer | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合                      |
+| Formal collaboration quality gate                    | `0761d4d297` 主线已补 hermetic/ACL/tool/credential/evidence/producer-digest 约束 | 发布前门禁；不是用户 SLA，不属于 `0.166.14` tarball                                |
 | Desktop                                               | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
 | Browser/IDE                                           | claims、pilot、shadow/cutover 机制已有                 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated      |
 
@@ -329,9 +341,8 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 - Desktop/Browser/IDE 的 authoritative 切换；
 - loop/subgraph 完整生产执行语义；
 - 逆依赖补偿执行器和全部 durable cut-point fault matrix；
-- 真实 child Agent message/handoff 长时恢复；
-- 30 分钟 overload/fairness soak；
-- 真实 provider 的 Linux/Windows/macOS Graph Agent journey；
+- 真实 child Agent message/handoff 更长周期恢复与多次故障注入；
+- 当前主线 formal quality matrix 的完整通过、聚合与后续发布绑定；
 - Desktop HumanTask 决策 UI 与 IDE 原生 topology/timeline UI；Desktop 只读 Graph Debugger 已完成。
 
 ## 17. 关键文件
@@ -348,6 +359,9 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 | `packages/cli/src/lib/graph-kernel/authority.js`                     | writer、lease、receipt 与恢复 authority                     |
 | `packages/cli/src/lib/graph-kernel/trigger-adapter.js`               | Scheduler occurrence → GraphRun dispatch journal            |
 | `packages/cli/src/commands/graph.js`                                 | `cc team graph` 只读命令                                    |
+| `packages/cli/src/lib/formal-quality-eval-runtime.js`                | formal quality hermetic home 与 provider binding             |
+| `packages/cli/scripts/graph-collaboration-quality-eval.mjs`          | control/candidate、三平台 evidence 与 threshold aggregate    |
+| `packages/cli/scripts/graph-collaboration-quality-runtime-preflight.mjs` | Windows ACL 与安全运行时 preflight                       |
 | `desktop-app-vue/src/renderer/components/graph/GraphRunDebugger.vue` | Desktop topology/timeline/budget/trace/causality 只读调试器 |
 
 ## 18. 相关文档

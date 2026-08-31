@@ -1,6 +1,6 @@
 # Cowork 多智能体协作系统
 
-> **适用版本：CLI 0.166.9（npm latest、生产推荐一致，精确 SHA `222396f6a8`）| durable Graph history/retirement、quorum HumanTask、Team fairness 与审批 single-winner CAS 已公开 | Cowork Cron 接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
+> **适用版本：CLI 0.166.14（npm latest、生产推荐一致，精确 SHA `ee88125256`）| Context/Memory、Hooks v2、P0 执行安全与 durable Graph 已公开 | Cowork Cron 接入统一 Scheduler Kernel、IANA 时区与 missed-run collapse | P2-16 Agent Teams 发布门已通过**
 >
 > 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 

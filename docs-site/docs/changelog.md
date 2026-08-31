@@ -5,9 +5,20 @@
 
 ## [Unreleased]
 
+#### Released — Agent Platform CLI 0.166.14、SDK/Protocol 与 IDE 协调发布
+
+> `chainlesschain@0.166.14` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-14` 精确指向 [`ee88125256`](https://github.com/chainlesschain/chainlesschain/commit/ee88125256b5de8281be0a8e57157811bb80c105)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714911)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714747)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714744)、[Record Replay](https://github.com/chainlesschain/chainlesschain/actions/runs/33330041069)与[Desktop signed Skill qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33322714737)均成功。
+
+- **Context/Memory 与 Hooks v2**：canonical kernel `0.1.0`、耐久 rollout store、跨端有界消息和统一 hook 信任/排序/超时/审计语义公开。
+- **P0 安全收口**：固定 renderer/main IPC capability manifest；默认禁网 workspace-write；审批/策略持久化失败时拒绝 shell；高风险进程启动前形成持久脱敏 admission record。Session Core `0.3.8` 已公开。
+- **Windows Docker-optional**：普通 Agent 启动不探测 Docker，裸命令按 `PATHEXT` 解析；显式隔离要求仍失败闭合。
+- **公共包**：TypeScript/Python Agent SDK `0.2.7` 与 Agent Protocol `0.1.7` 已完成 npm/PyPI 回读。
+- **IDE**：Open VSX `0.37.76` 已公开并突破 3.3 万下载；JetBrains Marketplace `0.4.106` 已 approved/listed。
+- **源码边界**：`main@0761d4d297` 的 Team terminal/trace evidence 与 formal Graph quality hermetic/ACL/tool/credential/producer-digest hardening 晚于 `0.166.14`，不属于已发布 tarball。
+
 #### Added — Agent Platform CLI 0.166.9、SDK/Protocol 与 IDE 协调发布
 
-> `chainlesschain@0.166.9` 是 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-9` 精确指向 [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796205)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869268)、[npm 发布与公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869286)、[Record Replay](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796228)、[Codex compatibility](https://github.com/chainlesschain/chainlesschain/actions/runs/33228796157)与[Desktop signed Skill qualification](https://github.com/chainlesschain/chainlesschain/actions/runs/33232869336)均成功。
+> `chainlesschain@0.166.9` 是 2026-08-29 的完整门禁发布，现已由 `0.166.14` 取代。不可变 tag `v-npm-0-166-9` 精确指向 [`222396f6a8`](https://github.com/chainlesschain/chainlesschain/commit/222396f6a8429d4b862292a2572067a5cacb1003)；该版本的门禁证据继续作为历史记录保留。
 
 - **Graph 与协作**：完整承接未单独发布的 `0.166.8` 源码候选，包括 durable history、definition migration/retirement evidence、可恢复 quorum HumanTask、Team fairness、temporal message reliability 与跨端审批 single-winner CAS。
 - **真实 UI replay**：Playwright 旅程只允许审阅后的 observe/click/type/select/assert 词汇；filesystem、HTTP(S) 与 WebSocket escape probe 在 Linux/Windows/macOS 均失败闭合，receipt 不保存用户内容。

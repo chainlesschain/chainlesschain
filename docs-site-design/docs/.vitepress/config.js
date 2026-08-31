@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI / npm latest 0.166.9 · Agent SDK TS 0.2.5 / Python 0.2.6 · Open VSX 0.37.73 · JetBrains 公开 0.4.103｜UI Replay · Graph History · Skill Qualification";
+        "v5.0.3.135 · CLI / npm latest 0.166.14 · Agent SDK TS/Python 0.2.7 · Protocol 0.1.7 · Open VSX 0.37.76 · JetBrains 0.4.106｜P0 Security · Context/Memory · Formal Graph Eval";
     }
   },
 
@@ -906,7 +906,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.9) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.14) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {

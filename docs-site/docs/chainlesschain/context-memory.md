@@ -1,6 +1,6 @@
 # 上下文与记忆
 
-> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 仓库实现与默认 authority 切换已完成；正式生产关闭等待 exact-SHA 三平台发布证据
+> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.14`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
 
 ## 概述
 
@@ -12,7 +12,7 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 | 压缩 | 在上下文窗口接近上限时，把较旧历史转换为更小的可继续状态 | 发生在会话内部 |
 | 记忆 | 从会话之外再次取回的持久信息，例如用户偏好、项目约定或长期笔记 | 跨轮次或跨会话 |
 
-当前源码已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。正式发布状态仍以最终候选的 Linux/Windows/macOS Actions 与 30 分钟 soak receipt 为准。
+公开版本已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已通过 exact-SHA Linux/Windows/macOS 矩阵、30 分钟 soak、证据聚合与 production-close 验签；`main@0761d4d297` 的后续 Graph/Team 质量加固不改变该 Context/Memory 关闭身份。
 
 ## 核心特性
 
@@ -20,7 +20,7 @@ ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 - **自动与手动压缩**：headless Agent 可在超阈值时自动压缩，也可以使用 `cc compact` 预览和持久化压缩结果。
 - **任务连续性保护**：压缩路径保留系统信息、近期对话、最后一条用户请求，并修复工具调用与工具结果的配对。
 - **多种持久信息来源**：项目说明文件、`USER.md`、`MEMORY.md`、每日笔记和 scoped memory 分别服务于不同场景。
-- **作用域隔离**：当前 scoped memory 支持 `session`、`agent`、`global`，避免所有 Agent 无差别共享同一批记忆。
+- **作用域隔离**：Kernel 契约支持 `turn`、`session`、`agent`、`project`、`user`、`global`；CLI 的 `memory store/recall` 当前直接暴露 `session`、`agent`、`user`、`global`，入口不能自行扩大作用域。
 - **本地优先管理**：主要会话与记忆数据保存在本机 ChainlessChain 目录；具体位置和安全边界取决于所用能力。
 - **统一生命周期**：来源、可信度、敏感级别、保留、过期、替代、tombstone、物理清除和重启对账使用同一契约。
 - **跨端只读投影**：VS Code 与 JetBrains 只消费 App Server canonical lifecycle，不直接写记忆存储。
@@ -90,7 +90,7 @@ Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel �
 | 恢复部分删除 | `cc memory reconcile <operation-id>` | 重试物理清除并返回可审计 receipt |
 | 查看兼容长期文件 | `cc memory daily` / `cc memory file` | daily append 进入 canonical；`MEMORY.md` 保持只读兼容来源 |
 | 写入作用域记忆 | `cc memory store` | 写入 session-core `MemoryStore` |
-| 召回作用域记忆 | `cc memory recall` | 查询独立的 `memory-store.json` |
+| 召回作用域记忆 | `cc memory recall` | 查询 canonical durable store；首次切换会幂等导入旧 `memory-store.json` |
 | 管理用户画像 | `/profile show|set|clear|path` | 在交互式 Agent 中管理 `USER.md` |
 
 `cc` 与完整命令名 `chainlesschain` 等价。具体选项以当前安装版本的 `cc <command> --help` 为准。
@@ -101,7 +101,8 @@ Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel �
 | --- | --- | --- |
 | 无头会话 | `~/.chainlesschain/sessions/*.jsonl` | 压缩为追加事件，不删除旧事件 |
 | 用户画像 | `~/.chainlesschain/USER.md` | 用户显式维护，支持自定义路径 |
-| scoped memory | `~/.chainlesschain/memory-store.json` | 当前为明文 JSON，不要写入密钥 |
+| canonical memory | `~/.chainlesschain/context-memory/kernel-v1.json` | 当前为本地明文 JSON authority，不要写入密钥 |
+| legacy scoped memory | `~/.chainlesschain/memory-store.json` | 只作受审计导入与删除对账，不再是默认 writer |
 | 长期文件记忆 | `MEMORY.md` 和 daily notes | 与 scoped memory 独立 |
 | 项目记忆 | 项目内 `cc.md`、规则文件及导入文件 | 内容可随项目进入版本控制 |
 
@@ -116,13 +117,11 @@ Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel �
 - scoped memory 当前使用本地关键词、标签和分类匹配，而不是统一向量检索；
 - Desktop 永久记忆、层次化记忆和 CLI MemoryStore 有各自的容量与性能口径。
 
-统一 Kernel 的验收将分别记录上下文构建 P50/P95、压缩耗时、压缩比例、召回耗时、外置结果读取量、缓存命中和恢复成功率，并绑定入口、模型、操作系统和版本。
+统一 Kernel 的容量与 soak 验收记录上下文构建 P50/P95、压缩耗时、压缩比例、召回耗时、外置结果读取量、缓存命中和恢复成功率，并绑定入口、操作系统、提交和证据 digest；机器间数值不作为统一性能承诺。
 
 ## 测试覆盖
 
-现有专项测试分别覆盖 `cc context` 分类、`cc compact` 命令、PromptCompressor 策略、工具配对、自动压缩持久化、CLI scoped memory 命令，以及 Desktop 上下文工程与永久记忆组件。
-
-这些测试证明各自能力可用，但不能证明三个产品入口已经共享同一 Kernel。统一切换的新增发布门至少包括：
+专项测试与跨端 conformance fixture 已覆盖 `cc context` 分类、`cc compact`、PromptCompressor、工具配对、自动压缩持久化、CLI scoped memory、Desktop、App Server、VS Code 与 JetBrains projection。正式关闭还验证了：
 
 - 同一 fixture 在 CLI、Desktop、VS Code 和 JetBrains 得到等价的保留项与恢复结果；
 - 压缩前后的 pending approval、未完成任务和工具调用/结果不丢失；
@@ -133,24 +132,24 @@ Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel �
 ## 安全考虑
 
 - 不要把 API key、密码、私钥、会话 cookie 或恢复码写入 `USER.md`、项目记忆、`MEMORY.md` 或 scoped memory。
-- `memory-store.json` 当前是明文文件；设备或账号被其他人访问时，其中内容可能被读取。
+- canonical `context-memory/kernel-v1.json` 与遗留 `memory-store.json` 都是本地明文文件；设备或账号被其他人访问时，其中内容可能被读取。
 - 项目记忆可能进入 Git。提交前检查是否包含个人信息、内部地址或凭据。
 - 压缩只减少后续送给模型的内容，不会自动删除原始会话事件。
-- `memory delete` 当前只操作传统记忆；它不是跨所有后端的“彻底删除全部记忆”。
+- `memory delete` 通过 canonical lifecycle 删除已登记记录并清理 first-party projection；它不等于清除项目文件、外部备份或法务保留副本。
 - 需要彻底删除时，应先确认数据属于会话、传统记忆、scoped memory、用户画像还是项目文件，并按对应文档处理备份和同步副本。
 - 从网页、工具或外部文件提取的信息不应因为被写入记忆而自动提升为可信指令。
 
-统一 Kernel 将要求敏感级别、允许去向和删除状态随数据派生传播，但在跨端切换完成前仍应按上述当前边界操作。
+统一 Kernel 要求敏感级别、允许去向和删除状态随数据派生传播；外部备份、法务保留与尚未接入的离线副本仍受部署方策略约束，不能仅凭在线 purge receipt 推断它们已经清除。
 
 ## 故障排查
 
 ### AI 在新会话中没有记住上次内容
 
-先判断内容是否真正写入了持久记忆。普通聊天历史、`memory add`、`memory store`、项目记忆和 `USER.md` 是不同来源。当前新会话自动注入 top-K scoped memory 仍未在所有入口统一启用。
+先判断内容是否真正写入了持久记忆。普通聊天历史、`memory add`、`memory store`、项目记忆和 `USER.md` 仍是不同来源；ContextPlan 会按入口能力、作用域、可信度、敏感级别、预算和允许去向筛选召回项，因此“已存储”不表示每轮都会注入。
 
 ### `memory recall` 找不到 `memory add` 的内容
 
-`memory add/search` 使用传统记忆后端，`memory store/recall` 使用 session-core scoped memory。请使用成对的命令，并核对 `scope` 与 `scope-id`。
+两组命令现在都通过 canonical authority，但保留不同的用户语义：`add/search` 面向通用条目，`store/recall` 面向显式 scoped memory。请使用成对的命令，并核对 `scope`、`scope-id`、分类与标签；旧 SQLite/session-core 数据只会幂等导入，不再获得独立写权限。
 
 ### 压缩后仍能在磁盘上看到旧内容
 
@@ -172,7 +171,7 @@ cc memory files --json
 
 ### 想清空所有关于自己的数据
 
-当前没有覆盖全部后端的一键命令。需要分别核对会话、`USER.md`、项目记忆、传统记忆、scoped memory、Desktop 永久/层次化记忆以及可能存在的同步副本。统一 Kernel 的删除编排仍属于目标能力。
+当前没有覆盖外部备份与所有部署后端的一键命令。在线 canonical 删除会先提交 tombstone，再清理已注册的主存储、索引、缓存与副本，并在部分失败时提供 reconciliation；仍需分别核对 `USER.md`、项目文件、法务保留、外部备份与未接入 Kernel 的离线副本。
 
 ## 关键文件
 
@@ -181,6 +180,9 @@ cc memory files --json
 | `packages/cli/src/harness/prompt-compressor.js` | CLI 压缩策略、token 估算和工具配对 |
 | `packages/cli/src/harness/provider-backed-compaction.js` | provider-backed 语义压缩路径 |
 | `packages/cli/src/lib/cli-context-engineering.js` | CLI 上下文构建与压缩摘要注入 |
+| `packages/context-memory-kernel/lib/runtime.js` | 唯一 Context/Memory mutation runtime |
+| `packages/context-memory-kernel/inventory/writers.v1.json` | writer authority 与切换状态清单 |
+| `packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv` | 7 个 surface、14 个场景的 conformance fixture |
 | `packages/session-core/lib/memory-store.js` | session/agent/user/global 作用域记忆原语 |
 | `packages/session-core/lib/memory-consolidator.js` | 从会话 trace 提炼记忆 |
 | `desktop-app-vue/src/main/llm/context-engineering.js` | Desktop 上下文工程实现 |

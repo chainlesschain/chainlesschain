@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.9 推荐 / npm latest · Agent SDK TS 0.2.5 / Python 0.2.6 · Open VSX 0.37.73 · JetBrains 公开 0.4.103｜UI replay · Graph history · signed Skill qualification";
+        "v5.0.3.135 · CLI 0.166.14 推荐 / npm latest · Agent SDK TS/Python 0.2.7 · Protocol 0.1.7 · Open VSX 0.37.76 · JetBrains 0.4.106｜P0 安全收口 · Context/Memory · UI replay";
     }
   },
 
@@ -177,11 +177,11 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.9（推荐）",
+          text: "🧩 Agent Platform 0.166.14（推荐）",
           collapsed: false,
           items: [
             {
-              text: "0.166.9 发布、升级与证据边界 ⭐NEW",
+              text: "0.166.14 发布、升级与证据边界 ⭐NEW",
               link: "/chainlesschain/agent-platform-release",
             },
             {
@@ -266,7 +266,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (推荐 / npm 0.166.9) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (推荐 / npm 0.166.14) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1826,7 +1826,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.9) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.14) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {
