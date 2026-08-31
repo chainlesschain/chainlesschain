@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { P1_10_SCENARIO_CONTRACT_DIGEST } from "./p1-10-scenario-receipts.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDirectory, "..");
@@ -17,14 +18,18 @@ const defaultMatrixPath = path.join(
 
 export const P1_10_MATRIX_SCHEMA = "chainlesschain.p1-10-conformance-matrix/v1";
 export const P1_10_EVIDENCE_SCHEMA =
-  "chainlesschain.p1-10-external-evidence/v1";
+  "chainlesschain.p1-10-external-evidence/v4";
 export const P1_10_RECEIPT_SCHEMA =
-  "chainlesschain.p1-10-external-evidence-receipt/v1";
-export const P1_10_PLATFORM_EVIDENCE_DOMAIN = "cc.p1-10.external-platform/v1";
-export const P1_10_SCENARIO_EVIDENCE_DOMAIN = "cc.p1-10.external-scenario/v1";
-export const P1_10_EVIDENCE_DOMAIN = "cc.p1-10.external-evidence/v1";
+  "chainlesschain.p1-10-external-evidence-receipt/v4";
+export const P1_10_PLATFORM_EVIDENCE_DOMAIN = "cc.p1-10.external-platform/v4";
+export const P1_10_SCENARIO_EVIDENCE_DOMAIN = "cc.p1-10.external-scenario/v4";
+export const P1_10_EVIDENCE_DOMAIN = "cc.p1-10.external-evidence/v4";
 export const P1_10_MATRIX_DOMAIN = "cc.p1-10.conformance-matrix/v1";
-export const P1_10_RECEIPT_DOMAIN = "cc.p1-10.external-receipt/v1";
+export const P1_10_RECEIPT_DOMAIN = "cc.p1-10.external-receipt/v4";
+export const P1_10_CLOSE_IDEMPOTENCY_DOMAIN =
+  "cc.p1-10.external-close-idempotency/v1";
+export const P1_10_HOSTED_VERIFIER_BINDINGS_DOMAIN =
+  "cc.p1-10.hosted-verifier-bindings/v1";
 
 const COMMIT = /^[a-f0-9]{40}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -35,6 +40,8 @@ const PLATFORMS = Object.freeze(["linux", "macos", "windows"]);
 const MAX_JSON_BYTES = 8 * 1024 * 1024;
 const MAX_HOSTS_PER_PLATFORM = 64;
 const MAX_ARTIFACTS_PER_PLATFORM = 64;
+const MAX_EVIDENCE_AGE_MS = 6 * 60 * 60 * 1000;
+const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 
 function fail(message, field = "") {
   const error = new Error(message);
@@ -244,6 +251,10 @@ function normalizeExpected(expected) {
     "runAttempt",
     "environment",
     "challenge",
+    "registryDigest",
+    "harnessDigests",
+    "supervisorDigests",
+    "inputManifestDigests",
   ];
   for (const field of required) {
     if (expected?.[field] == null || expected[field] === "") {
@@ -268,6 +279,48 @@ function normalizeExpected(expected) {
       "expected.challenge",
     );
   }
+  if (
+    !expected.harnessDigests ||
+    typeof expected.harnessDigests !== "object" ||
+    Array.isArray(expected.harnessDigests)
+  ) {
+    fail("expected.harnessDigests is required", "expected.harnessDigests");
+  }
+  exactMembers(
+    Object.keys(expected.harnessDigests),
+    PLATFORMS,
+    "expected.harnessDigests",
+  );
+  if (
+    !expected.supervisorDigests ||
+    typeof expected.supervisorDigests !== "object" ||
+    Array.isArray(expected.supervisorDigests)
+  ) {
+    fail(
+      "expected.supervisorDigests is required",
+      "expected.supervisorDigests",
+    );
+  }
+  exactMembers(
+    Object.keys(expected.supervisorDigests),
+    PLATFORMS,
+    "expected.supervisorDigests",
+  );
+  if (
+    !expected.inputManifestDigests ||
+    typeof expected.inputManifestDigests !== "object" ||
+    Array.isArray(expected.inputManifestDigests)
+  ) {
+    fail(
+      "expected.inputManifestDigests is required",
+      "expected.inputManifestDigests",
+    );
+  }
+  exactMembers(
+    Object.keys(expected.inputManifestDigests),
+    PLATFORMS,
+    "expected.inputManifestDigests",
+  );
   return {
     commitSha: exactCommit(expected.commitSha, "expected.commitSha"),
     repository,
@@ -276,7 +329,79 @@ function normalizeExpected(expected) {
     runAttempt: positiveInteger(expected.runAttempt, "expected.runAttempt"),
     environment: text(expected.environment, "expected.environment", 128),
     challenge,
+    registryDigest: sha256(expected.registryDigest, "expected.registryDigest"),
+    harnessDigests: Object.fromEntries(
+      PLATFORMS.map((platform) => [
+        platform,
+        sha256(
+          expected.harnessDigests[platform],
+          `expected.harnessDigests.${platform}`,
+        ),
+      ]),
+    ),
+    supervisorDigests: Object.fromEntries(
+      PLATFORMS.map((platform) => [
+        platform,
+        sha256(
+          expected.supervisorDigests[platform],
+          `expected.supervisorDigests.${platform}`,
+        ),
+      ]),
+    ),
+    inputManifestDigests: Object.fromEntries(
+      PLATFORMS.map((platform) => [
+        platform,
+        sha256(
+          expected.inputManifestDigests[platform],
+          `expected.inputManifestDigests.${platform}`,
+        ),
+      ]),
+    ),
   };
+}
+
+function normalizeTrust(input, expected, platform, field) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    fail(`${field} must be an object`, field);
+  }
+  exactMembers(
+    Object.keys(input),
+    [
+      "harnessDigest",
+      "registryDigest",
+      "supervisorDigest",
+      "inputManifestDigest",
+      "scenarioContractDigest",
+    ],
+    field,
+  );
+  const normalized = {
+    registryDigest: sha256(input.registryDigest, `${field}.registryDigest`),
+    harnessDigest: sha256(input.harnessDigest, `${field}.harnessDigest`),
+    supervisorDigest: sha256(
+      input.supervisorDigest,
+      `${field}.supervisorDigest`,
+    ),
+    inputManifestDigest: sha256(
+      input.inputManifestDigest,
+      `${field}.inputManifestDigest`,
+    ),
+    scenarioContractDigest: sha256(
+      input.scenarioContractDigest,
+      `${field}.scenarioContractDigest`,
+    ),
+  };
+  if (
+    normalized.registryDigest !== expected.registryDigest ||
+    normalized.harnessDigest !== expected.harnessDigests[platform] ||
+    normalized.supervisorDigest !== expected.supervisorDigests[platform] ||
+    normalized.inputManifestDigest !==
+      expected.inputManifestDigests[platform] ||
+    normalized.scenarioContractDigest !== P1_10_SCENARIO_CONTRACT_DIGEST
+  ) {
+    fail(`${field} does not match protected registry/harness pins`, field);
+  }
+  return normalized;
 }
 
 function normalizeProducer(input, expected) {
@@ -332,7 +457,129 @@ function normalizeMetrics(input, requirement, field) {
   return normalized;
 }
 
-function normalizePlatform(input, requirement, field) {
+function normalizeEvidenceHost(host, expected, field) {
+  if (!host || typeof host !== "object" || Array.isArray(host)) {
+    fail(`${field} must be an object`, field);
+  }
+  exactMembers(
+    Object.keys(host),
+    [
+      "hostClass",
+      "idDigest",
+      "artifactId",
+      "artifactName",
+      "hardwareIdentityDigest",
+      "jobSlot",
+      "runnerName",
+      "runnerRegistrationId",
+      "attesterRequestDigest",
+      "attesterMeasurementDigest",
+      "inputManifestDigest",
+      "bootIdDigest",
+      "signedExecutionReceiptDigest",
+      "reportDigest",
+      "bundleDigest",
+      "sourceJob",
+    ],
+    field,
+  );
+  if (!host.sourceJob || typeof host.sourceJob !== "object") {
+    fail(`${field}.sourceJob must be an object`, `${field}.sourceJob`);
+  }
+  exactMembers(
+    Object.keys(host.sourceJob),
+    [
+      "jobDatabaseId",
+      "jobId",
+      "jobName",
+      "jobSlot",
+      "repository",
+      "runAttempt",
+      "runId",
+      "startedAt",
+      "workflow",
+    ],
+    `${field}.sourceJob`,
+  );
+  const jobSlot = text(host.jobSlot, `${field}.jobSlot`, 8);
+  const sourceJob = {
+    repository: text(
+      host.sourceJob.repository,
+      `${field}.sourceJob.repository`,
+      201,
+    ),
+    workflow: text(host.sourceJob.workflow, `${field}.sourceJob.workflow`, 256),
+    runId: positiveInteger(host.sourceJob.runId, `${field}.sourceJob.runId`),
+    runAttempt: positiveInteger(
+      host.sourceJob.runAttempt,
+      `${field}.sourceJob.runAttempt`,
+    ),
+    jobId: text(host.sourceJob.jobId, `${field}.sourceJob.jobId`, 64),
+    jobName: text(host.sourceJob.jobName, `${field}.sourceJob.jobName`, 256),
+    jobSlot: text(host.sourceJob.jobSlot, `${field}.sourceJob.jobSlot`, 8),
+    jobDatabaseId: positiveInteger(
+      host.sourceJob.jobDatabaseId,
+      `${field}.sourceJob.jobDatabaseId`,
+    ),
+    startedAt: canonicalTimestamp(
+      host.sourceJob.startedAt,
+      `${field}.sourceJob.startedAt`,
+    ).value,
+  };
+  if (
+    host.hostClass !== "physical" ||
+    !["a", "b"].includes(jobSlot) ||
+    sourceJob.jobSlot !== jobSlot ||
+    sourceJob.jobId !== "collect-host" ||
+    sourceJob.repository !== expected.repository ||
+    sourceJob.workflow !== expected.workflow ||
+    sourceJob.runId !== expected.runId ||
+    sourceJob.runAttempt !== expected.runAttempt
+  ) {
+    fail(
+      `${field} is not an independent exact-run physical job identity`,
+      field,
+    );
+  }
+  return {
+    artifactId: positiveInteger(host.artifactId, `${field}.artifactId`),
+    artifactName: text(host.artifactName, `${field}.artifactName`, 256),
+    idDigest: sha256(host.idDigest, `${field}.idDigest`),
+    hardwareIdentityDigest: sha256(
+      host.hardwareIdentityDigest,
+      `${field}.hardwareIdentityDigest`,
+    ),
+    hostClass: "physical",
+    runnerRegistrationId: positiveInteger(
+      host.runnerRegistrationId,
+      `${field}.runnerRegistrationId`,
+    ),
+    runnerName: text(host.runnerName, `${field}.runnerName`, 128),
+    jobSlot,
+    attesterMeasurementDigest: sha256(
+      host.attesterMeasurementDigest,
+      `${field}.attesterMeasurementDigest`,
+    ),
+    inputManifestDigest: sha256(
+      host.inputManifestDigest,
+      `${field}.inputManifestDigest`,
+    ),
+    bootIdDigest: sha256(host.bootIdDigest, `${field}.bootIdDigest`),
+    attesterRequestDigest: sha256(
+      host.attesterRequestDigest,
+      `${field}.attesterRequestDigest`,
+    ),
+    signedExecutionReceiptDigest: sha256(
+      host.signedExecutionReceiptDigest,
+      `${field}.signedExecutionReceiptDigest`,
+    ),
+    reportDigest: sha256(host.reportDigest, `${field}.reportDigest`),
+    bundleDigest: sha256(host.bundleDigest, `${field}.bundleDigest`),
+    sourceJob,
+  };
+}
+
+function normalizePlatform(input, requirement, field, expected) {
   const platform = String(input?.platform || "").toLowerCase();
   if (!requirement.requiredPlatforms.includes(platform)) {
     fail(`${field}.platform is not required`, `${field}.platform`);
@@ -353,22 +600,44 @@ function normalizePlatform(input, requirement, field) {
     );
   }
   const hosts = Array.isArray(input?.hosts)
-    ? input.hosts.map((host, index) => ({
-        idDigest: sha256(host?.idDigest, `${field}.hosts[${index}].idDigest`),
-        hostClass: host?.hostClass,
-      }))
+    ? input.hosts.map((host, index) =>
+        normalizeEvidenceHost(host, expected, `${field}.hosts[${index}]`),
+      )
     : [];
   if (
+    hosts.length !== 2 ||
     hosts.length > MAX_HOSTS_PER_PLATFORM ||
     hosts.length < requirement.minimumDistinctHosts ||
-    hosts.some((host) => host.hostClass !== "physical") ||
-    new Set(hosts.map((host) => host.idDigest)).size !== hosts.length
+    new Set(hosts.map((host) => host.idDigest)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.runnerRegistrationId)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.artifactId)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.artifactName)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.runnerName)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.hardwareIdentityDigest)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.attesterMeasurementDigest)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.bootIdDigest)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.sourceJob.jobDatabaseId)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.signedExecutionReceiptDigest)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.attesterRequestDigest)).size !==
+      hosts.length ||
+    new Set(hosts.map((host) => host.reportDigest)).size !== hosts.length ||
+    new Set(hosts.map((host) => host.bundleDigest)).size !== hosts.length
   ) {
     fail(
-      `${field}.hosts requires ${requirement.minimumDistinctHosts} distinct physical hosts`,
+      `${field}.hosts requires two independent registered physical runner jobs`,
       `${field}.hosts`,
     );
   }
+  exactMembers(
+    hosts.map((host) => host.jobSlot),
+    ["a", "b"],
+    `${field}.hostSlots`,
+  );
   hosts.sort((left, right) => left.idDigest.localeCompare(right.idDigest));
   const artifacts = Array.isArray(input?.artifacts)
     ? input.artifacts.map((artifact, index) =>
@@ -376,8 +645,8 @@ function normalizePlatform(input, requirement, field) {
       )
     : [];
   if (
+    artifacts.length !== 2 ||
     artifacts.length > MAX_ARTIFACTS_PER_PLATFORM ||
-    artifacts.length === 0 ||
     new Set(artifacts.map((artifact) => artifact.digest)).size !==
       artifacts.length
   ) {
@@ -387,6 +656,7 @@ function normalizePlatform(input, requirement, field) {
   const normalized = {
     platform,
     status: "passed",
+    trust: normalizeTrust(input?.trust, expected, platform, `${field}.trust`),
     startedAt: started.value,
     endedAt: ended.value,
     durationMs,
@@ -395,6 +665,17 @@ function normalizePlatform(input, requirement, field) {
     metrics: normalizeMetrics(input?.metrics, requirement, `${field}.metrics`),
     evidenceDigest: String(input?.evidenceDigest || ""),
   };
+  if (
+    normalized.hosts.some(
+      (host) =>
+        host.inputManifestDigest !== normalized.trust.inputManifestDigest,
+    )
+  ) {
+    fail(
+      `${field}.hosts do not bind the platform protected input manifest`,
+      `${field}.hosts`,
+    );
+  }
   normalized.evidenceDigest = verifyDigest(
     input,
     normalized,
@@ -404,7 +685,7 @@ function normalizePlatform(input, requirement, field) {
   return normalized;
 }
 
-function normalizeScenario(input, requirement, field) {
+function normalizeScenario(input, requirement, field, expected) {
   if (
     input?.scenario !== requirement.evidenceScenario ||
     input?.status !== "passed"
@@ -417,6 +698,7 @@ function normalizeScenario(input, requirement, field) {
           platform,
           requirement,
           `${field}.platforms[${index}]`,
+          expected,
         ),
       )
     : [];
@@ -448,7 +730,7 @@ export function validateExternalEvidence(matrix, evidence, expected) {
     evidence?.schema !== P1_10_EVIDENCE_SCHEMA ||
     evidence?.status !== "passed"
   ) {
-    fail("external evidence must use the v1 schema and explicitly pass");
+    fail("external evidence must use the current schema and explicitly pass");
   }
   const commitSha = exactCommit(evidence.commitSha);
   if (commitSha !== expectedContract.commitSha) {
@@ -461,6 +743,138 @@ export function validateExternalEvidence(matrix, evidence, expected) {
     fail("external evidence matrix digest does not match this checkout");
   }
   const producer = normalizeProducer(evidence.producer, expectedContract);
+  if (!evidence.trust || typeof evidence.trust !== "object") {
+    fail("external evidence trust roots are required", "trust");
+  }
+  exactMembers(
+    Object.keys(evidence.trust),
+    [
+      "harnessDigests",
+      "registryDigest",
+      "supervisorDigests",
+      "inputManifestDigests",
+      "scenarioContractDigest",
+    ],
+    "trust",
+  );
+  const registryDigest = sha256(
+    evidence.trust.registryDigest,
+    "trust.registryDigest",
+  );
+  if (registryDigest !== expectedContract.registryDigest) {
+    fail(
+      "external evidence registry digest does not match protected expectation",
+    );
+  }
+  if (
+    !evidence.trust.harnessDigests ||
+    typeof evidence.trust.harnessDigests !== "object"
+  ) {
+    fail(
+      "external evidence harness digests are required",
+      "trust.harnessDigests",
+    );
+  }
+  exactMembers(
+    Object.keys(evidence.trust.harnessDigests),
+    PLATFORMS,
+    "trust.harnessDigests",
+  );
+  const harnessDigests = Object.fromEntries(
+    PLATFORMS.map((platform) => [
+      platform,
+      sha256(
+        evidence.trust.harnessDigests[platform],
+        `trust.harnessDigests.${platform}`,
+      ),
+    ]),
+  );
+  if (
+    JSON.stringify(harnessDigests) !==
+    JSON.stringify(expectedContract.harnessDigests)
+  ) {
+    fail(
+      "external evidence harness digests do not match protected expectation",
+    );
+  }
+  if (
+    !evidence.trust.supervisorDigests ||
+    typeof evidence.trust.supervisorDigests !== "object"
+  ) {
+    fail(
+      "external evidence supervisor digests are required",
+      "trust.supervisorDigests",
+    );
+  }
+  exactMembers(
+    Object.keys(evidence.trust.supervisorDigests),
+    PLATFORMS,
+    "trust.supervisorDigests",
+  );
+  const supervisorDigests = Object.fromEntries(
+    PLATFORMS.map((platform) => [
+      platform,
+      sha256(
+        evidence.trust.supervisorDigests[platform],
+        `trust.supervisorDigests.${platform}`,
+      ),
+    ]),
+  );
+  if (
+    JSON.stringify(supervisorDigests) !==
+    JSON.stringify(expectedContract.supervisorDigests)
+  ) {
+    fail(
+      "external evidence supervisor digests do not match protected expectation",
+    );
+  }
+  if (
+    !evidence.trust.inputManifestDigests ||
+    typeof evidence.trust.inputManifestDigests !== "object"
+  ) {
+    fail(
+      "external evidence input manifest digests are required",
+      "trust.inputManifestDigests",
+    );
+  }
+  exactMembers(
+    Object.keys(evidence.trust.inputManifestDigests),
+    PLATFORMS,
+    "trust.inputManifestDigests",
+  );
+  const inputManifestDigests = Object.fromEntries(
+    PLATFORMS.map((platform) => [
+      platform,
+      sha256(
+        evidence.trust.inputManifestDigests[platform],
+        `trust.inputManifestDigests.${platform}`,
+      ),
+    ]),
+  );
+  if (
+    JSON.stringify(inputManifestDigests) !==
+    JSON.stringify(expectedContract.inputManifestDigests)
+  ) {
+    fail(
+      "external evidence input manifest digests do not match protected expectation",
+    );
+  }
+  const scenarioContractDigest = sha256(
+    evidence.trust.scenarioContractDigest,
+    "trust.scenarioContractDigest",
+  );
+  if (scenarioContractDigest !== P1_10_SCENARIO_CONTRACT_DIGEST) {
+    fail(
+      "external evidence scenario contract digest does not match this checkout",
+    );
+  }
+  const trust = {
+    registryDigest,
+    harnessDigests,
+    supervisorDigests,
+    inputManifestDigests,
+    scenarioContractDigest,
+  };
   const resultsByScenario = new Map();
   for (const [index, result] of (Array.isArray(evidence.results)
     ? evidence.results
@@ -483,9 +897,60 @@ export function validateExternalEvidence(matrix, evidence, expected) {
       entry.result,
       requirement,
       `results[${entry.index}]`,
+      expectedContract,
     );
   });
   results.sort((left, right) => left.scenario.localeCompare(right.scenario));
+  const physicalHosts = new Map();
+  for (const host of results.flatMap((result) =>
+    result.platforms.flatMap((platform) => platform.hosts),
+  )) {
+    const identity = {
+      runnerRegistrationId: host.runnerRegistrationId,
+      runnerName: host.runnerName,
+      hardwareIdentityDigest: host.hardwareIdentityDigest,
+      attesterMeasurementDigest: host.attesterMeasurementDigest,
+      inputManifestDigest: host.inputManifestDigest,
+      bootIdDigest: host.bootIdDigest,
+      attesterRequestDigest: host.attesterRequestDigest,
+      signedExecutionReceiptDigest: host.signedExecutionReceiptDigest,
+      bundleDigest: host.bundleDigest,
+      artifactId: host.artifactId,
+      artifactName: host.artifactName,
+      jobSlot: host.jobSlot,
+      sourceJob: host.sourceJob,
+    };
+    const previous = physicalHosts.get(host.idDigest);
+    if (
+      previous &&
+      JSON.stringify(canonicalValue(previous)) !==
+        JSON.stringify(canonicalValue(identity))
+    ) {
+      fail(
+        "a physical host identity changed between scenario cells",
+        "results.hosts",
+      );
+    }
+    physicalHosts.set(host.idDigest, identity);
+  }
+  if (physicalHosts.size !== 6) {
+    fail("evidence must bind exactly six globally independent physical hosts");
+  }
+  for (const field of [
+    "runnerRegistrationId",
+    "runnerName",
+    "artifactId",
+    "artifactName",
+    "hardwareIdentityDigest",
+    "attesterMeasurementDigest",
+    "bootIdDigest",
+  ]) {
+    if (
+      new Set([...physicalHosts.values()].map((host) => host[field])).size !== 6
+    ) {
+      fail("six physical hosts must have globally unique " + field);
+    }
+  }
   const latestEnd = Math.max(
     ...results.flatMap((result) =>
       result.platforms.map((platform) => Date.parse(platform.endedAt)),
@@ -495,12 +960,26 @@ export function validateExternalEvidence(matrix, evidence, expected) {
   if (issuedAt.milliseconds < latestEnd) {
     fail("issuedAt cannot precede completed platform evidence", "issuedAt");
   }
+  let verifiedAt = null;
+  if (expected?.verifiedAt != null) {
+    verifiedAt = canonicalTimestamp(expected.verifiedAt, "expected.verifiedAt");
+    if (
+      issuedAt.milliseconds > verifiedAt.milliseconds + MAX_FUTURE_SKEW_MS ||
+      verifiedAt.milliseconds - issuedAt.milliseconds > MAX_EVIDENCE_AGE_MS
+    ) {
+      fail(
+        "evidence issuedAt is outside the close verifier skew/TTL window",
+        "issuedAt",
+      );
+    }
+  }
   const normalized = {
     schema: P1_10_EVIDENCE_SCHEMA,
     status: "passed",
     commitSha,
     matrixDigest: matrixContract.matrixDigest,
     producer,
+    trust,
     issuedAt: issuedAt.value,
     results,
     evidenceDigest: String(evidence.evidenceDigest || ""),
@@ -517,7 +996,25 @@ export function validateExternalEvidence(matrix, evidence, expected) {
     commitSha,
     matrixDigest: matrixContract.matrixDigest,
     producer,
+    trust,
     evidenceDigest: normalized.evidenceDigest,
+    verificationModel: "exact-run-hosted-aggregate-verifier",
+    hostVerifierBindingsDigest: digestP110Evidence(
+      [...physicalHosts.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([idDigest, identity]) => ({ idDigest, ...identity })),
+      P1_10_HOSTED_VERIFIER_BINDINGS_DOMAIN,
+    ),
+    idempotencyKey: digestP110Evidence(
+      {
+        repository: producer.repository,
+        runId: producer.runId,
+        runAttempt: producer.runAttempt,
+        evidenceDigest: normalized.evidenceDigest,
+      },
+      P1_10_CLOSE_IDEMPOTENCY_DOMAIN,
+    ),
+    ...(verifiedAt ? { verifiedAt: verifiedAt.value } : {}),
     scenarioCount: results.length,
     platformCount: results.reduce(
       (total, result) => total + result.platforms.length,
@@ -549,6 +1046,16 @@ function usage() {
     "    --expected-repository <owner/repo> --expected-workflow <path> \\",
     "    --expected-run-id <id> --expected-run-attempt <attempt> \\",
     "    --expected-environment <name> --expected-challenge <token> \\",
+    "    --expected-registry-digest <sha256> \\",
+    "    --expected-linux-harness-digest <sha256> \\",
+    "    --expected-macos-harness-digest <sha256> \\",
+    "    --expected-windows-harness-digest <sha256> \\",
+    "    --expected-linux-supervisor-digest <sha256> \\",
+    "    --expected-macos-supervisor-digest <sha256> \\",
+    "    --expected-windows-supervisor-digest <sha256> \\",
+    "    --expected-linux-input-manifest-digest <sha256> \\",
+    "    --expected-macos-input-manifest-digest <sha256> \\",
+    "    --expected-windows-input-manifest-digest <sha256> \\",
     "    [--matrix <file.json>] [--output <receipt.json>]",
     "",
     "This command verifies externally produced evidence. It never fabricates",
@@ -575,6 +1082,17 @@ function parseArguments(argv) {
       "--expected-run-attempt": "runAttempt",
       "--expected-environment": "environment",
       "--expected-challenge": "challenge",
+      "--expected-registry-digest": "registryDigest",
+      "--expected-linux-harness-digest": "linuxHarnessDigest",
+      "--expected-macos-harness-digest": "macosHarnessDigest",
+      "--expected-windows-harness-digest": "windowsHarnessDigest",
+      "--expected-linux-supervisor-digest": "linuxSupervisorDigest",
+      "--expected-macos-supervisor-digest": "macosSupervisorDigest",
+      "--expected-windows-supervisor-digest": "windowsSupervisorDigest",
+      "--expected-linux-input-manifest-digest": "linuxInputManifestDigest",
+      "--expected-macos-input-manifest-digest": "macosInputManifestDigest",
+      "--expected-windows-input-manifest-digest": "windowsInputManifestDigest",
+      "--verified-at": "verifiedAt",
     };
     const field = fields[argument];
     if (!field) fail(`unknown argument: ${argument}`);
@@ -590,17 +1108,51 @@ function parseArguments(argv) {
 
 function readJson(file, field) {
   const resolved = path.resolve(file);
-  if (!fs.existsSync(resolved)) {
-    fail(`${field} is not a file: ${resolved}`, field);
-  }
-  const stat = fs.statSync(resolved);
-  if (!stat.isFile() || stat.size < 1 || stat.size > MAX_JSON_BYTES) {
-    fail(
-      `${field} must be a non-empty JSON file no larger than ${MAX_JSON_BYTES} bytes`,
-      field,
+  let descriptor;
+  try {
+    const before = fs.lstatSync(resolved);
+    if (before.isSymbolicLink()) {
+      fail(`${field} must not be a symbolic link`, field);
+    }
+    descriptor = fs.openSync(
+      resolved,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
     );
+    const opened = fs.fstatSync(descriptor);
+    const sameIdentity = (left, right) =>
+      left.dev === right.dev &&
+      left.ino === right.ino &&
+      left.size === right.size &&
+      left.mtimeMs === right.mtimeMs &&
+      left.ctimeMs === right.ctimeMs &&
+      left.mode === right.mode &&
+      left.nlink === right.nlink;
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.size < 1 ||
+      opened.size > MAX_JSON_BYTES ||
+      !sameIdentity(before, opened)
+    ) {
+      fail(`${field} must be a stable bounded regular file`, field);
+    }
+    const bytes = fs.readFileSync(descriptor);
+    const openedAfter = fs.fstatSync(descriptor);
+    const pathAfter = fs.lstatSync(resolved);
+    if (
+      bytes.length !== opened.size ||
+      !sameIdentity(opened, openedAfter) ||
+      !sameIdentity(opened, pathAfter)
+    ) {
+      fail(`${field} changed while its verified descriptor was open`, field);
+    }
+    return JSON.parse(bytes.toString("utf8"));
+  } catch (error) {
+    if (error?.code === "CC_P1_10_EXTERNAL_EVIDENCE_INVALID") throw error;
+    fail(`${field} cannot be opened as stable JSON: ${error.message}`, field);
+  } finally {
+    if (descriptor != null) fs.closeSync(descriptor);
   }
-  return JSON.parse(fs.readFileSync(resolved, "utf8"));
 }
 
 function writeJson(value, output) {
@@ -630,6 +1182,23 @@ function main() {
     runAttempt: options.runAttempt,
     environment: options.environment,
     challenge: options.challenge,
+    registryDigest: options.registryDigest,
+    harnessDigests: {
+      linux: options.linuxHarnessDigest,
+      macos: options.macosHarnessDigest,
+      windows: options.windowsHarnessDigest,
+    },
+    supervisorDigests: {
+      linux: options.linuxSupervisorDigest,
+      macos: options.macosSupervisorDigest,
+      windows: options.windowsSupervisorDigest,
+    },
+    inputManifestDigests: {
+      linux: options.linuxInputManifestDigest,
+      macos: options.macosInputManifestDigest,
+      windows: options.windowsInputManifestDigest,
+    },
+    verifiedAt: options.verifiedAt || new Date().toISOString(),
   };
   const matrix = readJson(options.matrix || defaultMatrixPath, "--matrix");
   const evidence = readJson(options.evidence, "--evidence");

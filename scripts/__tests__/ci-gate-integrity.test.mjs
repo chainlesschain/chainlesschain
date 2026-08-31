@@ -827,9 +827,22 @@ test("selector maps P1-10 conformance inventory to its repository node gate", ()
   for (const source of [
     "tests/fixtures/p1-10-conformance-matrix.json",
     "scripts/p1-10-external-evidence-gate.mjs",
+    "scripts/p1-10-external-evidence-builder.mjs",
+    "scripts/p1-10-github-trust.mjs",
+    "scripts/p1-10-scenario-receipts.mjs",
+    "scripts/p1-10-owned-process-runner.mjs",
+    "scripts/p1-10-windows-job-supervisor.ps1",
+    ".github/p1-10-physical-host-registry.json",
+    ".github/p1-10-physical-host-registry.md",
     "scripts/__tests__/p1-10-conformance-matrix.test.mjs",
+    "scripts/__tests__/p1-10-external-evidence-builder.test.mjs",
+    "scripts/__tests__/p1-10-github-trust.test.mjs",
+    "scripts/__tests__/p1-10-owned-process-runner.test.mjs",
+    "scripts/__tests__/p1-10-scenario-receipts.test.mjs",
     ".github/workflows/p1-10-external-evidence-contract.yml",
     ".github/workflows/p1-10-external-evidence-close.yml",
+    ".github/workflows/p1-10-external-evidence-producer.yml",
+    ".github/actionlint.yaml",
   ]) {
     const selection = selector.createSelection([source]);
     assert.equal(selection.suite, "ci-gate-integrity");
@@ -839,6 +852,22 @@ test("selector maps P1-10 conformance inventory to its repository node gate", ()
       ),
       `${source} must select the P1-10 conformance matrix gate`,
     );
+    assert.ok(
+      selection.selectedTests.includes(
+        "scripts/__tests__/p1-10-external-evidence-builder.test.mjs",
+      ),
+      `${source} must select the P1-10 external evidence builder gate`,
+    );
+    for (const testPath of [
+      "scripts/__tests__/p1-10-github-trust.test.mjs",
+      "scripts/__tests__/p1-10-owned-process-runner.test.mjs",
+      "scripts/__tests__/p1-10-scenario-receipts.test.mjs",
+    ]) {
+      assert.ok(
+        selection.selectedTests.includes(testPath),
+        `${source} must select ${testPath}`,
+      );
+    }
   }
 });
 

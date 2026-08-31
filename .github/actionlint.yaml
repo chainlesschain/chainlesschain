@@ -1,0 +1,7 @@
+self-hosted-runner:
+  labels:
+    - physical
+    - p1-10-external-conformance
+    - p1-10-host-a
+    - p1-10-host-b
+    - graph-kernel-production
