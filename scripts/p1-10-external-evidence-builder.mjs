@@ -88,6 +88,8 @@ const EXECUTION_ID = /^[A-Za-z0-9_-]{32,128}$/u;
 const PLATFORMS = Object.freeze(["linux", "macos", "windows"]);
 const HOST_SLOTS = Object.freeze(["a", "b"]);
 const MAX_JSON_BYTES = 8 * 1024 * 1024;
+const MAX_GITHUB_API_PAGE_BYTES = 8 * 1024 * 1024;
+const GITHUB_API_REQUEST_TIMEOUT_MS = 60_000;
 const MAX_RECEIPT_BYTES = 8 * 1024 * 1024;
 const MAX_INPUT_MANIFEST_BYTES = 8 * 1024 * 1024;
 const MAX_FIXTURE_BYTES = 64 * 1024 * 1024;
@@ -2159,9 +2161,9 @@ export function runPhysicalHarness(options) {
   return runPhysicalHarnessInternal(options, productionHarnessDependencies);
 }
 
-// Unit tests can exercise 1,800-second validation without sleeping. The CLI
-// never accepts dependency, clock, duration, or process-result overrides and
-// always calls runPhysicalHarness above with the frozen production dependencies.
+// Unit tests can exercise 1,800-second validation and bounded API reads without
+// sleeping or reaching GitHub. The CLI never accepts dependency, clock,
+// duration, process-result, fetch, or response-size overrides.
 export const p110BuilderTestOnly = Object.freeze({
   runPhysicalHarnessWithDependencies(options, dependencies) {
     exactKeys(
@@ -2170,6 +2172,19 @@ export const p110BuilderTestOnly = Object.freeze({
       "testDependencies",
     );
     return runPhysicalHarnessInternal(options, dependencies);
+  },
+  fetchAuthoritativeJobs,
+  fetchAuthoritativeArtifacts,
+  readBoundedGithubApiJson(response, maximumBytes) {
+    if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+      fail("test response byte limit must be a positive integer", "testApi");
+    }
+    return boundedGithubApiJson(
+      response,
+      "GitHub test API",
+      "testApi",
+      maximumBytes,
+    );
   },
 });
 
@@ -3236,7 +3251,111 @@ export function trustedGitHubApiBase(serverUrlValue, apiUrlValue) {
   return api.origin + "/api/v3";
 }
 
-async function fetchAuthoritativeJobs({ token, expected, serverUrl, apiUrl }) {
+async function cancelGithubApiResponse(response, reason) {
+  try {
+    await response?.body?.cancel?.(reason);
+  } catch {
+    // The validation failure remains authoritative if cancellation fails.
+  }
+}
+
+async function boundedGithubApiJson(
+  response,
+  label,
+  field,
+  maximumBytes = MAX_GITHUB_API_PAGE_BYTES,
+) {
+  if (!response || response.ok !== true) {
+    await cancelGithubApiResponse(response, label + " rejected response");
+    fail(label + " returned HTTP " + (response?.status ?? "unknown"), field);
+  }
+  const contentType = response.headers?.get?.("content-type") || "";
+  if (!/^application\/json(?:\s*;|$)/iu.test(contentType)) {
+    await cancelGithubApiResponse(response, label + " returned non-JSON");
+    fail(label + " did not return JSON", field);
+  }
+  const contentLength = response.headers?.get?.("content-length");
+  let declaredLength = null;
+  if (contentLength !== null && contentLength !== undefined) {
+    if (
+      !/^[1-9][0-9]*$/u.test(contentLength) ||
+      !Number.isSafeInteger(Number(contentLength)) ||
+      Number(contentLength) > maximumBytes
+    ) {
+      await cancelGithubApiResponse(
+        response,
+        label + " declared an invalid response size",
+      );
+      fail(label + " response size is invalid", field);
+    }
+    declaredLength = Number(contentLength);
+  }
+  const reader = response.body?.getReader?.();
+  if (!reader) fail(label + " response body stream is unavailable", field);
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch {
+        fail(label + " response body could not be read", field);
+      }
+      if (chunk?.done === true) break;
+      if (!(chunk?.value instanceof Uint8Array)) {
+        try {
+          await reader.cancel(label + " returned an invalid body chunk");
+        } catch {
+          // The body-shape failure remains authoritative.
+        }
+        fail(label + " response body is invalid", field);
+      }
+      total += chunk.value.byteLength;
+      if (total > maximumBytes) {
+        try {
+          await reader.cancel(label + " response exceeded byte limit");
+        } catch {
+          // The byte-limit failure remains authoritative if cancellation fails.
+        }
+        fail(label + " response size is invalid", field);
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    try {
+      reader.releaseLock?.();
+    } catch {
+      // Nothing else should replace the original validation failure.
+    }
+  }
+  if (
+    total < 1 ||
+    total > maximumBytes ||
+    (declaredLength !== null && declaredLength !== total)
+  ) {
+    fail(label + " response size is invalid", field);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    fail(label + " returned invalid JSON", field);
+  }
+}
+
+async function fetchAuthoritativeJobs({
+  token,
+  expected,
+  serverUrl,
+  apiUrl,
+  fetchImpl = globalThis.fetch,
+}) {
   const base = trustedGitHubApiBase(serverUrl, apiUrl);
   const endpointPath = authoritativeJobsEndpointPath(expected);
   const authorization = "Bearer " + boundedText(token, "GITHUB_TOKEN", 4096);
@@ -3246,21 +3365,20 @@ async function fetchAuthoritativeJobs({ token, expected, serverUrl, apiUrl }) {
     const url = new URL(base + endpointPath);
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       headers: {
         Accept: "application/vnd.github+json",
         Authorization: authorization,
         "X-GitHub-Api-Version": "2022-11-28",
       },
       redirect: "error",
+      signal: AbortSignal.timeout(GITHUB_API_REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) {
-      fail(
-        "GitHub jobs API rejected identity lookup: " + response.status,
-        "jobsApi",
-      );
-    }
-    const payload = await response.json();
+    const payload = await boundedGithubApiJson(
+      response,
+      "GitHub jobs API",
+      "jobsApi",
+    );
     if (
       !Number.isSafeInteger(payload?.total_count) ||
       payload.total_count < 1 ||
@@ -3298,6 +3416,7 @@ async function fetchAuthoritativeArtifacts({
   expected,
   serverUrl,
   apiUrl,
+  fetchImpl = globalThis.fetch,
 }) {
   const base = trustedGitHubApiBase(serverUrl, apiUrl);
   const endpointPath =
@@ -3313,21 +3432,20 @@ async function fetchAuthoritativeArtifacts({
     const url = new URL(base + endpointPath);
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       headers: {
         Accept: "application/vnd.github+json",
         Authorization: authorization,
         "X-GitHub-Api-Version": "2022-11-28",
       },
       redirect: "error",
+      signal: AbortSignal.timeout(GITHUB_API_REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) {
-      fail(
-        "GitHub artifacts API rejected lookup: " + response.status,
-        "artifactsApi",
-      );
-    }
-    const payload = await response.json();
+    const payload = await boundedGithubApiJson(
+      response,
+      "GitHub artifacts API",
+      "artifactsApi",
+    );
     if (
       !Number.isSafeInteger(payload?.total_count) ||
       payload.total_count < 1 ||

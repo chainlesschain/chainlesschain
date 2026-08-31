@@ -1699,6 +1699,143 @@ test("GitHub token endpoints are constructed only from trusted API origins", () 
   }
 });
 
+test("GitHub jobs and artifacts pages use bounded chunked JSON reads", async () => {
+  const expected = {
+    repository: "chainlesschain/chainlesschain",
+    commitSha: "a".repeat(40),
+    workflow: P1_10_PRODUCER_WORKFLOW,
+    runId: 123456,
+    runAttempt: 2,
+  };
+  const requests = [];
+  let legacyJsonCalls = 0;
+  function streamedResponse(payload) {
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    const split = Math.max(1, Math.floor(bytes.byteLength / 2));
+    const chunks = [bytes.slice(0, split), bytes.slice(split)];
+    let index = 0;
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      body: {
+        getReader() {
+          return {
+            async read() {
+              if (index >= chunks.length) return { done: true };
+              return { done: false, value: chunks[index++] };
+            },
+            async cancel() {},
+            releaseLock() {},
+          };
+        },
+      },
+      async json() {
+        legacyJsonCalls += 1;
+        throw new Error("response.json() must not be used");
+      },
+    };
+  }
+  const jobs = await p110BuilderTestOnly.fetchAuthoritativeJobs({
+    token: "test-token",
+    expected,
+    serverUrl: "https://github.com",
+    apiUrl: "https://api.github.com",
+    fetchImpl: async (...request) => {
+      requests.push(request);
+      return streamedResponse({ total_count: 1, jobs: [{ id: 11 }] });
+    },
+  });
+  const artifacts = await p110BuilderTestOnly.fetchAuthoritativeArtifacts({
+    token: "test-token",
+    expected,
+    serverUrl: "https://github.com",
+    apiUrl: "https://api.github.com",
+    fetchImpl: async (...request) => {
+      requests.push(request);
+      return streamedResponse({
+        total_count: 1,
+        artifacts: [{ id: 22 }],
+      });
+    },
+  });
+
+  assert.equal(jobs.totalCount, 1);
+  assert.equal(artifacts.totalCount, 1);
+  assert.equal(legacyJsonCalls, 0);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0][1].redirect, "error");
+  assert.equal(requests[0][1].signal.aborted, false);
+  assert.equal(requests[1][1].signal.aborted, false);
+  assert.match(
+    requests[0][0].toString(),
+    /\/actions\/runs\/123456\/attempts\/2\/jobs\?per_page=100&page=1$/u,
+  );
+  assert.match(
+    requests[1][0].toString(),
+    /\/actions\/runs\/123456\/artifacts\?per_page=100&page=1$/u,
+  );
+});
+
+test("bounded GitHub page reads cancel immediately after the byte cap", async () => {
+  let reads = 0;
+  let canceled = false;
+  const chunks = [new Uint8Array(12), new Uint8Array(5), new Uint8Array(20)];
+  const response = {
+    ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "application/json" }),
+    body: {
+      getReader() {
+        return {
+          async read() {
+            reads += 1;
+            if (chunks.length === 0) return { done: true };
+            return { done: false, value: chunks.shift() };
+          },
+          async cancel() {
+            canceled = true;
+          },
+          releaseLock() {},
+        };
+      },
+    },
+  };
+
+  await assert.rejects(
+    p110BuilderTestOnly.readBoundedGithubApiJson(response, 16),
+    /response size is invalid/u,
+  );
+  assert.equal(canceled, true);
+  assert.equal(reads, 2);
+  assert.equal(chunks.length, 1);
+
+  let declaredOversizeCanceled = false;
+  await assert.rejects(
+    p110BuilderTestOnly.readBoundedGithubApiJson(
+      {
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          "content-type": "application/json",
+          "content-length": "17",
+        }),
+        body: {
+          async cancel() {
+            declaredOversizeCanceled = true;
+          },
+          getReader() {
+            throw new Error("oversized declared bodies must not be read");
+          },
+        },
+      },
+      16,
+    ),
+    /response size is invalid/u,
+  );
+  assert.equal(declaredOversizeCanceled, true);
+});
+
 test("producer and close workflows freeze challenge, six slots, trust pins, and hosted attestation", () => {
   const producerWorkflow = fs.readFileSync(
     path.join(
