@@ -1,0 +1,923 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { SkillCandidateRegistry } from "../../src/lib/evolution/skill-candidate-registry.js";
+import {
+  SKILL_MUTATION_NONCE_ACK_SCHEMA,
+  SKILL_MUTATION_PRINCIPAL_SCHEMA,
+  SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+  SKILL_MUTATION_RECEIPT_KINDS,
+  SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+  SKILL_MUTATION_ROLES,
+  SKILL_MUTATION_TARGET_SCOPES,
+  SkillMutationAuthority,
+  buildSkillMutationRequest,
+  digestSkillMutationReceiptEnvelope,
+} from "../../src/lib/evolution/skill-mutation-authority.js";
+import {
+  EMPTY_SKILL_ACTIVE_DIGEST,
+  SkillPromotionController,
+} from "../../src/lib/evolution/skill-promotion-controller.js";
+import {
+  SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SkillReleaseRegistry,
+  SkillReleaseSimulatedCrashError,
+} from "../../src/lib/evolution/skill-release-registry.js";
+
+const digest = (value) =>
+  `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
+const CLI_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+
+function canonicalJson(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+    .join(",")}}`;
+}
+
+function durableWriteJson(filePath, value) {
+  fs.writeFileSync(filePath, `${canonicalJson(value)}\n`, "utf8");
+}
+
+function childSource(value) {
+  return value
+    .toString()
+    .replaceAll("__vite_ssr_import_0__.default", "crypto")
+    .replaceAll("__vite_ssr_import_1__.default", "fs")
+    .replace(/__vite_ssr_import_\d+__\./gu, "");
+}
+
+class StrictTransactionLedger {
+  #records = new Map();
+
+  #sequence = 0;
+
+  #failure = null;
+
+  #queryOverride = null;
+
+  setFailure(value) {
+    this.#failure = value;
+  }
+
+  setQueryOverride(value) {
+    this.#queryOverride = value;
+  }
+
+  prepare(intent) {
+    if (this.#failure === "prepare") throw new Error("prepare failed");
+    if (!Object.isFrozen(intent)) throw new Error("intent is not frozen");
+    const existing = this.#records.get(intent.transactionId);
+    if (existing) {
+      if (existing.intent.intentDigest !== intent.intentDigest) {
+        throw new Error("transaction collision");
+      }
+      return existing.prepare;
+    }
+    this.#sequence += 1;
+    const prepare = Object.freeze({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "prepared",
+      authenticated: true,
+      durable: true,
+      transactionId: intent.transactionId,
+      intentDigest: intent.intentDigest,
+      authorityReceiptDigest: intent.authorityReceiptDigest,
+      ledgerId: "ledger:test",
+      epoch: 1,
+      sequence: this.#sequence,
+      headDigest: digest(`prepare-head:${intent.intentDigest}`),
+      receiptDigest: digest(`prepare-receipt:${intent.intentDigest}`),
+    });
+    this.#records.set(intent.transactionId, {
+      intent: JSON.parse(JSON.stringify(intent)),
+      prepare,
+      committed: null,
+    });
+    return prepare;
+  }
+
+  finalize(input) {
+    if (this.#failure === "finalize") throw new Error("finalize failed");
+    if (!Object.isFrozen(input))
+      throw new Error("finalize input is not frozen");
+    const record = this.#records.get(input.transactionId);
+    if (
+      !record ||
+      record.intent.intentDigest !== input.intentDigest ||
+      record.prepare.receiptDigest !== input.expectedPrepareReceiptDigest
+    ) {
+      throw new Error("finalize binding mismatch");
+    }
+    if (record.committed) return record.committed;
+    this.#sequence += 1;
+    record.committed = Object.freeze({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "committed",
+      authenticated: true,
+      durable: true,
+      transactionId: input.transactionId,
+      intentDigest: input.intentDigest,
+      authorityReceiptDigest: input.authorityReceiptDigest,
+      ledgerId: "ledger:test",
+      epoch: 1,
+      sequence: this.#sequence,
+      headDigest: digest(`commit-head:${input.intentDigest}`),
+      receiptDigest: digest(`commit-receipt:${input.intentDigest}`),
+      current: true,
+      pointerDigest: input.pointerDigest,
+      prepareReceiptDigest: input.expectedPrepareReceiptDigest,
+      revision: input.revision,
+      skillName: input.skillName,
+      stateDigest: input.stateDigest,
+    });
+    return record.committed;
+  }
+
+  query(transactionId) {
+    if (this.#failure === "query") throw new Error("query failed");
+    if (this.#queryOverride) return this.#queryOverride(transactionId);
+    const record = this.#records.get(transactionId);
+    if (!record) {
+      return Object.freeze({
+        schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+        status: "absent",
+        authenticated: true,
+        durable: true,
+        transactionId,
+      });
+    }
+    if (!record.committed) return record.prepare;
+    const latestRevision = Math.max(
+      ...[...this.#records.values()]
+        .filter(
+          (entry) => entry.committed?.skillName === record.committed.skillName,
+        )
+        .map((entry) => entry.committed.revision),
+    );
+    return Object.freeze({
+      ...record.committed,
+      current: record.committed.revision === latestRevision,
+    });
+  }
+
+  records() {
+    return [...this.#records.values()];
+  }
+}
+
+class FileTransactionLedger {
+  #filePath;
+
+  #authenticationKey;
+
+  constructor(filePath, authenticationKey) {
+    this.#filePath = filePath;
+    this.#authenticationKey = authenticationKey;
+    if (!fs.existsSync(filePath)) {
+      this.#save({ sequence: 0, records: {} });
+    }
+  }
+
+  #mac(value) {
+    return crypto
+      .createHmac("sha256", this.#authenticationKey)
+      .update(canonicalJson(value), "utf8")
+      .digest("hex");
+  }
+
+  #load() {
+    const envelope = JSON.parse(fs.readFileSync(this.#filePath, "utf8"));
+    if (
+      !envelope ||
+      typeof envelope !== "object" ||
+      typeof envelope.mac !== "string" ||
+      this.#mac(envelope.payload) !== envelope.mac
+    ) {
+      throw new Error("transaction ledger authentication failed");
+    }
+    return envelope.payload;
+  }
+
+  #save(value) {
+    durableWriteJson(this.#filePath, { payload: value, mac: this.#mac(value) });
+  }
+
+  prepare(intent) {
+    const state = this.#load();
+    const existing = state.records[intent.transactionId];
+    if (existing) return existing.prepare;
+    state.sequence += 1;
+    const prepare = {
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "prepared",
+      authenticated: true,
+      durable: true,
+      transactionId: intent.transactionId,
+      intentDigest: intent.intentDigest,
+      authorityReceiptDigest: intent.authorityReceiptDigest,
+      ledgerId: "ledger:file-test",
+      epoch: 1,
+      sequence: state.sequence,
+      headDigest: digest(`file-prepare-head:${intent.intentDigest}`),
+      receiptDigest: digest(`file-prepare-receipt:${intent.intentDigest}`),
+    };
+    state.records[intent.transactionId] = {
+      intent: JSON.parse(JSON.stringify(intent)),
+      prepare,
+      committed: null,
+    };
+    this.#save(state);
+    return Object.freeze(prepare);
+  }
+
+  finalize(input) {
+    const state = this.#load();
+    const record = state.records[input.transactionId];
+    if (!record || record.intent.intentDigest !== input.intentDigest) {
+      throw new Error("file transaction was not prepared");
+    }
+    if (record.committed) return Object.freeze(record.committed);
+    if (record.prepare.receiptDigest !== input.expectedPrepareReceiptDigest) {
+      throw new Error("file prepare receipt mismatch");
+    }
+    state.sequence += 1;
+    record.committed = {
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "committed",
+      authenticated: true,
+      durable: true,
+      transactionId: input.transactionId,
+      intentDigest: input.intentDigest,
+      authorityReceiptDigest: input.authorityReceiptDigest,
+      ledgerId: "ledger:file-test",
+      epoch: 1,
+      sequence: state.sequence,
+      headDigest: digest(`file-commit-head:${input.intentDigest}`),
+      receiptDigest: digest(`file-commit-receipt:${input.intentDigest}`),
+      current: true,
+      pointerDigest: input.pointerDigest,
+      prepareReceiptDigest: input.expectedPrepareReceiptDigest,
+      revision: input.revision,
+      skillName: input.skillName,
+      stateDigest: input.stateDigest,
+    };
+    this.#save(state);
+    return Object.freeze(record.committed);
+  }
+
+  query(transactionId) {
+    const record = this.#load().records[transactionId];
+    if (!record) {
+      return Object.freeze({
+        schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+        status: "absent",
+        authenticated: true,
+        durable: true,
+        transactionId,
+      });
+    }
+    if (!record.committed) return Object.freeze(record.prepare);
+    const records = Object.values(this.#load().records);
+    const latestRevision = Math.max(
+      ...records
+        .filter(
+          (entry) => entry.committed?.skillName === record.committed.skillName,
+        )
+        .map((entry) => entry.committed.revision),
+    );
+    return Object.freeze({
+      ...record.committed,
+      current: record.committed.revision === latestRevision,
+    });
+  }
+}
+
+function receiptEnvelopes(suffix) {
+  return Object.fromEntries(
+    SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
+      `${kind}Receipt`,
+      `${kind}:signed:${suffix}`,
+    ]),
+  );
+}
+
+function createAuthority() {
+  let auditSequence = 0;
+  let nonceSequence = 0;
+  const claimedNonces = new Set();
+  return new SkillMutationAuthority({
+    principalResolver: {
+      async resolve({ request }) {
+        return {
+          schema: SKILL_MUTATION_PRINCIPAL_SCHEMA,
+          authenticated: true,
+          principalId: "principal:promotion-controller",
+          role: SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER,
+          tenantId: request.tenantId,
+          audience: request.audience,
+          operationId: request.operationId,
+          requestDigest: request.requestDigest,
+          expiresAt: request.expiresAt,
+        };
+      },
+    },
+    receiptVerifier: {
+      async verify({ receipts, request, principal }) {
+        return {
+          schema: SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+          verified: true,
+          bindings: Object.fromEntries(
+            SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
+              kind,
+              {
+                schema: SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+                kind,
+                receiptDigest: digestSkillMutationReceiptEnvelope(
+                  receipts[`${kind}Receipt`],
+                ),
+                principalId: principal.principalId,
+                role: principal.role,
+                ...request,
+              },
+            ]),
+          ),
+        };
+      },
+    },
+    auditSink: {
+      async append(event) {
+        auditSequence += 1;
+        return {
+          persisted: true,
+          auditDigest: event.auditDigest,
+          headDigest: digest(`audit-head:${auditSequence}`),
+          sequence: auditSequence,
+        };
+      },
+    },
+    nonceStore: {
+      async claim(claim) {
+        nonceSequence += 1;
+        const key = `${claim.tenantId}:${claim.audience}:${claim.nonce}`;
+        const claimed = !claimedNonces.has(key);
+        if (claimed) claimedNonces.add(key);
+        return {
+          schema: SKILL_MUTATION_NONCE_ACK_SCHEMA,
+          persisted: true,
+          claimed,
+          claimDigest: claim.claimDigest,
+          expiresAt: claim.expiresAt,
+          headDigest: digest(`nonce-head:${nonceSequence}`),
+          sequence: nonceSequence,
+        };
+      },
+    },
+  });
+}
+
+function candidateInput(parentDigest = null, suffix = "one") {
+  return {
+    skillName: "repair-unit-tests",
+    parentDigest,
+    sourceEvidenceRefs: [
+      {
+        ref: `recording://runs/${suffix}`,
+        digest: digest(`evidence:${suffix}`),
+      },
+    ],
+    derivationMode: "record-replay",
+    wikiRevision: null,
+    proposerModel: null,
+    targetRuntimes: ["cli", "desktop"],
+    requestedCapabilities: ["workspace.read"],
+    evalRunId: null,
+    content: `---\nname: repair-unit-tests\n---\n\nCandidate ${suffix}.\n`,
+  };
+}
+
+function requestFor({ targetDigest, revision, operationId }) {
+  return buildSkillMutationRequest({
+    tenantId: "tenant:test",
+    audience: "worker:promotion",
+    operationId,
+    skillName: "repair-unit-tests",
+    targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
+    expectedTargetDigest: targetDigest,
+    expectedTargetRevision: revision,
+    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    nonce: `nonce_${digest(operationId).slice(7, 39)}`,
+    receipts: receiptEnvelopes(operationId),
+  });
+}
+
+describe("SkillReleaseRegistry authenticated transaction recovery", () => {
+  let tempRoot;
+  let registryRoot;
+  let candidates;
+  let ledger;
+  let releases;
+  let authority;
+  let controller;
+
+  beforeEach(() => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-release-tx-"));
+    registryRoot = path.join(tempRoot, "releases");
+    candidates = new SkillCandidateRegistry({
+      rootDir: path.join(tempRoot, "candidates"),
+      secure: false,
+    });
+    ledger = new StrictTransactionLedger();
+    releases = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+    });
+    authority = createAuthority();
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  async function promote(candidate, revision, targetDigest, operationId) {
+    const request = requestFor({ targetDigest, revision, operationId });
+    const capability = await authority.authorize(request);
+    return controller.promote({
+      candidateId: candidate.candidateId,
+      dependencyLock: { generation: revision + 1 },
+      authorization: { capability, request },
+    });
+  }
+
+  it("keeps immutable releases, LKG/dependency lock, and unforgeable historical pins", async () => {
+    const first = candidates.create(candidateInput()).candidate;
+    const firstResult = await promote(
+      first,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+      "promotion:pin-v1",
+    );
+    const pin = releases.pinActive(first.skillName);
+    const second = candidates.create(
+      candidateInput(first.contentDigest, "two"),
+    ).candidate;
+    const secondResult = await promote(
+      second,
+      1,
+      first.contentDigest,
+      "promotion:pin-v2",
+    );
+
+    expect(releases.readState(first.skillName)).toMatchObject({
+      revision: 2,
+      activeReleaseDigest: secondResult.release.releaseDigest,
+      lastKnownGoodReleaseDigest: firstResult.release.releaseDigest,
+      dependencyLockDigest: secondResult.release.dependencyLockDigest,
+    });
+    expect(releases.readPinned(pin).releaseDigest).toBe(
+      firstResult.release.releaseDigest,
+    );
+    const pointerPath = path.join(
+      registryRoot,
+      "active",
+      `${first.skillName}.json`,
+    );
+    durableWriteJson(pointerPath, firstResult.state);
+    expect(() => releases.readState(first.skillName)).toThrow(/finalized/u);
+    durableWriteJson(pointerPath, secondResult.state);
+    expect(() => releases.readPinned(Object.freeze({}))).toThrow(/forged/u);
+    const reopened = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+    });
+    expect(() => reopened.readPinned(pin)).toThrow(/another registry/u);
+  });
+
+  it("retains prepared evidence on finalize failure and converges idempotently on reopen", async () => {
+    const candidate = candidates.create(candidateInput()).candidate;
+    ledger.setFailure("finalize");
+
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:finalize-recovery",
+      ),
+    ).rejects.toMatchObject({ code: "SKILL_RELEASE_COMMIT_UNKNOWN" });
+
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(1);
+    expect(ledger.records()[0].committed).toBeNull();
+    ledger.setFailure(null);
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    const reopened = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+    });
+
+    expect(reopened.readState(candidate.skillName).revision).toBe(1);
+    expect(ledger.records()[0].committed).not.toBeNull();
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toEqual([]);
+    expect(fs.readdirSync(path.join(registryRoot, "locks"))).toEqual([]);
+  });
+
+  it.each([
+    "after-prepare",
+    "after-staging-fsync",
+    "after-pointer",
+    "after-finalize",
+  ])(
+    "converges the authenticated transaction after a crash at %s",
+    async (crashPhase) => {
+      releases = new SkillReleaseRegistry({
+        rootDir: registryRoot,
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+        crashHook(phase) {
+          if (phase === crashPhase)
+            throw new SkillReleaseSimulatedCrashError(phase);
+        },
+      });
+      controller = new SkillPromotionController({
+        candidateRegistry: candidates,
+        releaseRegistry: releases,
+        authority,
+      });
+      const candidate = candidates.create(candidateInput()).candidate;
+
+      await expect(
+        promote(
+          candidate,
+          0,
+          EMPTY_SKILL_ACTIVE_DIGEST,
+          `promotion:crash-${crashPhase}`,
+        ),
+      ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+      await new Promise((resolve) => setTimeout(resolve, 55));
+      const reopened = new SkillReleaseRegistry({
+        rootDir: registryRoot,
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+      });
+
+      expect(reopened.readState(candidate.skillName).revision).toBe(1);
+      expect(fs.readdirSync(path.join(registryRoot, "journals"))).toEqual([]);
+      expect(fs.readdirSync(path.join(registryRoot, "locks"))).toEqual([]);
+    },
+  );
+
+  it("aborts a crash before authenticated prepare and releases stale ownership", async () => {
+    releases = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+      crashHook(phase) {
+        if (phase === "after-journal") {
+          throw new SkillReleaseSimulatedCrashError(phase);
+        }
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput()).candidate;
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:pre-prepare-crash",
+      ),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+    await new Promise((resolve) => setTimeout(resolve, 55));
+
+    const reopened = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+    });
+    expect(reopened.readState(candidate.skillName).revision).toBe(0);
+    expect(ledger.records()).toEqual([]);
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toEqual([]);
+    expect(fs.readdirSync(path.join(registryRoot, "locks"))).toEqual([]);
+  });
+
+  it("does not activate a self-consistent public-hash journal absent from the trusted ledger", async () => {
+    releases = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+      crashHook(phase) {
+        if (phase === "after-journal")
+          throw new SkillReleaseSimulatedCrashError(phase);
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput()).candidate;
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:forged-journal",
+      ),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+    const journalPath = path.join(
+      registryRoot,
+      "journals",
+      `${candidate.skillName}.json`,
+    );
+    const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    durableWriteJson(
+      path.join(registryRoot, "active", `${candidate.skillName}.json`),
+      journal.nextState,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 55));
+
+    expect(
+      () =>
+        new SkillReleaseRegistry({
+          rootDir: registryRoot,
+          secure: false,
+          leaseTtlMs: 40,
+          transactionLedger: ledger,
+        }),
+    ).toThrow(/cannot authorize pointer replacement/u);
+    expect(ledger.records()).toEqual([]);
+  });
+
+  it("rejects unauthenticated ledger projections, pointer tampering, and symlink releases", async () => {
+    const candidate = candidates.create(candidateInput()).candidate;
+    const result = await promote(
+      candidate,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+      "promotion:tamper",
+    );
+    ledger.setQueryOverride((transactionId) => ({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "committed",
+      authenticated: false,
+      durable: true,
+      transactionId,
+      intentDigest: digest("fake-intent"),
+      authorityReceiptDigest: result.state.authorityReceiptDigest,
+      ledgerId: "ledger:fake",
+      epoch: 1,
+      sequence: 1,
+      headDigest: digest("fake-head"),
+      receiptDigest: digest("fake-receipt"),
+      current: false,
+      pointerDigest: result.state.stateDigest,
+      prepareReceiptDigest: digest("fake-prepare"),
+      revision: result.state.revision,
+      skillName: candidate.skillName,
+      stateDigest: result.state.stateDigest,
+    }));
+    expect(() => releases.readState(candidate.skillName)).toThrow(
+      /authenticated/u,
+    );
+    ledger.setQueryOverride(null);
+
+    expect(() => releases.readRelease("../../active")).toThrow(/sha256/u);
+    const pointerPath = path.join(
+      registryRoot,
+      "active",
+      `${candidate.skillName}.json`,
+    );
+    const pointerBytes = fs.readFileSync(pointerPath);
+    const pointerTarget = path.join(tempRoot, "outside-pointer.json");
+    fs.writeFileSync(pointerTarget, pointerBytes);
+    fs.unlinkSync(pointerPath);
+    let pointerSymlinkCreated = false;
+    try {
+      fs.symlinkSync(pointerTarget, pointerPath, "file");
+      pointerSymlinkCreated = true;
+    } catch (error) {
+      if (!["EACCES", "EPERM"].includes(error?.code)) throw error;
+    }
+    if (pointerSymlinkCreated) {
+      expect(() => releases.readState(candidate.skillName)).toThrow(
+        /non-symlink/u,
+      );
+      fs.unlinkSync(pointerPath);
+      fs.writeFileSync(pointerPath, pointerBytes);
+    }
+
+    const artifact = path.join(
+      registryRoot,
+      "artifacts",
+      `${result.release.releaseDigest.slice(7)}.json`,
+    );
+    fs.writeFileSync(
+      artifact,
+      fs
+        .readFileSync(artifact, "utf8")
+        .replace("Candidate one", "Tampered bytes"),
+      "utf8",
+    );
+    expect(() => releases.readRelease(result.release.releaseDigest)).toThrow(
+      /verification/u,
+    );
+    fs.unlinkSync(artifact);
+    const outside = path.join(tempRoot, "outside.json");
+    fs.writeFileSync(outside, "{}\n", "utf8");
+    try {
+      fs.symlinkSync(outside, artifact, "file");
+    } catch (error) {
+      if (["EACCES", "EPERM"].includes(error?.code)) return;
+      throw error;
+    }
+    expect(() => releases.readRelease(result.release.releaseDigest)).toThrow(
+      /non-symlink/u,
+    );
+  });
+
+  it("reclaims an expired journal-less lease and stale temporary debris", async () => {
+    let clock = Date.now();
+    releases = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      now: () => new Date(clock),
+      transactionLedger: ledger,
+      crashHook(phase) {
+        if (phase === "after-lease")
+          throw new SkillReleaseSimulatedCrashError(phase);
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput()).candidate;
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:orphan-lease",
+      ),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+    const debrisPath = path.join(
+      registryRoot,
+      "staging",
+      ".write-orphan-debris.tmp",
+    );
+    fs.writeFileSync(debrisPath, "{}\n", "utf8");
+    fs.utimesSync(debrisPath, new Date(clock - 100), new Date(clock - 100));
+    clock += 100;
+
+    const reopened = new SkillReleaseRegistry({
+      rootDir: registryRoot,
+      secure: false,
+      leaseTtlMs: 40,
+      now: () => new Date(clock),
+      transactionLedger: ledger,
+    });
+
+    expect(reopened.readState(candidate.skillName).revision).toBe(0);
+    expect(fs.readdirSync(path.join(registryRoot, "locks"))).toEqual([]);
+    expect(fs.existsSync(debrisPath)).toBe(false);
+  });
+
+  it("recovers a real process exit after pointer write through authority -> controller -> registry", async () => {
+    const hardRoot = path.join(tempRoot, "hard-crash");
+    fs.mkdirSync(hardRoot);
+    const ledgerPath = path.join(hardRoot, "transaction-ledger.json");
+    const ledgerAuthenticationKey = crypto.randomBytes(32).toString("hex");
+    const moduleUrls = {
+      candidate: pathToFileURL(
+        path.resolve(CLI_ROOT, "src/lib/evolution/skill-candidate-registry.js"),
+      ).href,
+      authority: pathToFileURL(
+        path.resolve(CLI_ROOT, "src/lib/evolution/skill-mutation-authority.js"),
+      ).href,
+      controller: pathToFileURL(
+        path.resolve(
+          CLI_ROOT,
+          "src/lib/evolution/skill-promotion-controller.js",
+        ),
+      ).href,
+      registry: pathToFileURL(
+        path.resolve(CLI_ROOT, "src/lib/evolution/skill-release-registry.js"),
+      ).href,
+    };
+    const script = `
+      import crypto from "node:crypto";
+      import fs from "node:fs";
+      import path from "node:path";
+      import { SkillCandidateRegistry } from ${JSON.stringify(moduleUrls.candidate)};
+      import {
+        SKILL_MUTATION_NONCE_ACK_SCHEMA,
+        SKILL_MUTATION_PRINCIPAL_SCHEMA,
+        SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+        SKILL_MUTATION_RECEIPT_KINDS,
+        SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+        SKILL_MUTATION_ROLES,
+        SKILL_MUTATION_TARGET_SCOPES,
+        SkillMutationAuthority,
+        buildSkillMutationRequest,
+        digestSkillMutationReceiptEnvelope
+      } from ${JSON.stringify(moduleUrls.authority)};
+      import { EMPTY_SKILL_ACTIVE_DIGEST, SkillPromotionController } from ${JSON.stringify(moduleUrls.controller)};
+      import { SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA, SkillReleaseRegistry } from ${JSON.stringify(moduleUrls.registry)};
+      const digest = ${childSource(digest)};
+      ${childSource(canonicalJson)}
+      ${childSource(durableWriteJson)}
+      ${childSource(FileTransactionLedger)}
+      ${childSource(receiptEnvelopes)}
+      ${childSource(createAuthority)}
+      ${childSource(candidateInput)}
+      ${childSource(requestFor)}
+      const root = ${JSON.stringify(hardRoot)};
+      const ledger = new FileTransactionLedger(${JSON.stringify(ledgerPath)}, ${JSON.stringify(ledgerAuthenticationKey)});
+      const candidates = new SkillCandidateRegistry({ rootDir: path.join(root, "candidates"), secure: false });
+      const releases = new SkillReleaseRegistry({
+        rootDir: path.join(root, "releases"),
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+        crashHook(phase) { if (phase === "after-pointer") process.exit(73); }
+      });
+      const authority = createAuthority();
+      const controller = new SkillPromotionController({ candidateRegistry: candidates, releaseRegistry: releases, authority });
+      const candidate = candidates.create(candidateInput()).candidate;
+      const request = requestFor({ targetDigest: EMPTY_SKILL_ACTIVE_DIGEST, revision: 0, operationId: "promotion:hard-crash" });
+      const capability = await authority.authorize(request);
+      await controller.promote({
+        candidateId: candidate.candidateId,
+        dependencyLock: { generation: 1 },
+        authorization: { capability, request }
+      });
+      process.exit(0);
+    `;
+
+    const child = spawnSync(
+      process.execPath,
+      ["--input-type=module", "-e", script],
+      {
+        cwd: CLI_ROOT,
+        encoding: "utf8",
+        timeout: 20_000,
+      },
+    );
+    expect(child.status, child.stderr).toBe(73);
+    await new Promise((resolve) => setTimeout(resolve, 55));
+
+    const durableLedger = new FileTransactionLedger(
+      ledgerPath,
+      ledgerAuthenticationKey,
+    );
+    const reopened = new SkillReleaseRegistry({
+      rootDir: path.join(hardRoot, "releases"),
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: durableLedger,
+    });
+
+    expect(reopened.readState("repair-unit-tests")).toMatchObject({
+      revision: 1,
+      activeReleaseDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
+    expect(fs.readdirSync(path.join(hardRoot, "releases", "journals"))).toEqual(
+      [],
+    );
+    expect(fs.readdirSync(path.join(hardRoot, "releases", "locks"))).toEqual(
+      [],
+    );
+  });
+});
