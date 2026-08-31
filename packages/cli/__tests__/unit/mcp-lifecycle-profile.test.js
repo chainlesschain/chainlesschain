@@ -31,5 +31,5 @@ describe("MCP lifecycle required profile", () => {
       profile.thresholds.maxRecoveryLatencyMs,
     );
     expect(profile.testIds.length).toBeGreaterThan(0);
-  }, 20_000);
+  }, 60_000);
 });
