@@ -20,7 +20,7 @@ export const FORMAL_PROFILE = Object.freeze({
   name: "formal",
   minimumDurationSeconds: 1800,
   minimumRounds: 3,
-  agentMaxTurns: 24,
+  maxTurnsPerAgent: 24,
   taskIds: Object.freeze([
     "add-function",
     "fix-failing-test",
@@ -61,16 +61,6 @@ const FORMAL_EXECUTION_GUIDANCE =
   "search, write, and edit file tools. After making the required edits, " +
   "return a concise completion message; the evaluation harness validates " +
   "the task-local result. No separate validation action is needed.";
-
-export function formalAgentTurnArgs(surface) {
-  if (surface === "control") {
-    return ["--max-turns", String(FORMAL_PROFILE.agentMaxTurns)];
-  }
-  if (surface === "candidate") {
-    return ["--agent-max-turns", String(FORMAL_PROFILE.agentMaxTurns)];
-  }
-  throw new Error(`unsupported formal agent surface: ${surface}`);
-}
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -335,7 +325,8 @@ export function validatePlatformRecord(record, expected = {}) {
     Number(record.profile?.minimumDurationSeconds) !==
       FORMAL_PROFILE.minimumDurationSeconds ||
     Number(record.profile?.minimumRounds) !== FORMAL_PROFILE.minimumRounds ||
-    Number(record.profile?.agentMaxTurns) !== FORMAL_PROFILE.agentMaxTurns ||
+    Number(record.profile?.maxTurnsPerAgent) !==
+      FORMAL_PROFILE.maxTurnsPerAgent ||
     !sameJson(record.profile?.taskIds, FORMAL_PROFILE.taskIds)
   ) {
     throw new Error("platform evidence did not use the frozen formal profile");
@@ -1044,7 +1035,8 @@ async function runControl({
           "acceptEdits",
           "--sandbox-mode",
           "off",
-          ...formalAgentTurnArgs("control"),
+          "--max-turns",
+          String(FORMAL_PROFILE.maxTurnsPerAgent),
           "--max-budget-usd",
           String(perInvocationCeilingUsd),
           "--ephemeral",
@@ -1142,7 +1134,8 @@ async function runCandidate({
         "acceptEdits",
         "--agent-sandbox-mode",
         "off",
-        ...formalAgentTurnArgs("candidate"),
+        "--agent-max-turns",
+        String(FORMAL_PROFILE.maxTurnsPerAgent),
         "--agent-max-budget-usd",
         String(perInvocationCeilingUsd),
         "--agent-max-wall",

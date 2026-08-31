@@ -15,7 +15,6 @@ import {
   controlFailureDetails,
   createEvaluationModelEnvironment,
   enforceQualityThresholds,
-  formalAgentTurnArgs,
   qualityEvidenceDigest,
   sealPlatformRecord,
   summarizeQualityRounds,
@@ -36,15 +35,6 @@ const PER_INVOCATION_CEILING_USD =
   (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
 
 describe("formal candidate platform isolation", () => {
-  it("uses the same expanded turn budget for control and candidate agents", () => {
-    expect(FORMAL_PROFILE.agentMaxTurns).toBe(24);
-    expect(formalAgentTurnArgs("control")).toEqual(["--max-turns", "24"]);
-    expect(formalAgentTurnArgs("candidate")).toEqual([
-      "--agent-max-turns",
-      "24",
-    ]);
-  });
-
   it.each(["linux", "macos"])(
     "uses worktree plus Agent checkpoint on %s without claiming process-tree containment",
     (platform) => {
@@ -295,6 +285,7 @@ function platform(platform, index = 0, overrides = {}) {
 
 describe("graph collaboration quality evidence", () => {
   it("keeps isolated candidate tasks retry-safe and reports their root failures", () => {
+    expect(FORMAL_PROFILE.maxTurnsPerAgent).toBe(24);
     const [candidateTask] = buildCandidateTasks(
       [
         {
@@ -394,6 +385,13 @@ describe("graph collaboration quality evidence", () => {
         { commitSha: COMMIT },
       ),
     ).toThrow(/digest/u);
+
+    const staleTurnBudget = structuredClone(record);
+    delete staleTurnBudget.evidenceDigest;
+    staleTurnBudget.profile.maxTurnsPerAgent = 12;
+    expect(() =>
+      validatePlatformRecord(sealPlatformRecord(staleTurnBudget)),
+    ).toThrow(/formal profile/u);
   });
 
   it("rejects a threshold regression even when the report claims passed", () => {
