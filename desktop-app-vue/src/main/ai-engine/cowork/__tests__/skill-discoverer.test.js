@@ -261,7 +261,12 @@ describe("SkillDiscoverer", () => {
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeLessThanOrEqual(3);
       for (const s of results) {
-        expect(s).toHaveProperty("source", "keyword-inference");
+        expect(s).toMatchObject({
+          source: "keyword-inference",
+          suggestionType: "marketplace-search-query",
+          installable: false,
+        });
+        expect(s.searchQuery).toBe(s.name);
       }
     });
   });
@@ -300,6 +305,28 @@ describe("SkillDiscoverer", () => {
       const result = sd.suggestInstallation("log-001");
 
       expect(result.recommendation).toContain("No matching skills");
+    });
+
+    it("does not describe keyword inference as an installable Skill", () => {
+      const row = makeLogRow({
+        suggested_skills: JSON.stringify([
+          {
+            name: "audio",
+            searchQuery: "audio",
+            source: "keyword-inference",
+            suggestionType: "marketplace-search-query",
+            installable: false,
+          },
+        ]),
+      });
+      db._prep.get.mockReturnValueOnce(row);
+
+      const result = sd.suggestInstallation("log-001");
+
+      expect(result.recommendation).toContain(
+        "These are keyword suggestions, not verified Skills",
+      );
+      expect(result.recommendation).not.toContain("Consider installing");
     });
   });
 

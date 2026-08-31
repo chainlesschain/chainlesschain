@@ -97,6 +97,12 @@ function saveHistory() {
     fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), "utf-8");
   } catch (err) {
     logger.error("[SelfImprove] Failed to save history:", err.message);
+    const persistenceError = new Error(
+      `Failed to persist self-improving history: ${err.message}`,
+    );
+    persistenceError.code = "SELF_IMPROVE_PERSISTENCE_FAILED";
+    persistenceError.cause = err;
+    throw persistenceError;
   }
 }
 
@@ -122,7 +128,32 @@ function saveLearnings() {
     );
   } catch (err) {
     logger.error("[SelfImprove] Failed to save learnings:", err.message);
+    const persistenceError = new Error(
+      `Failed to persist self-improving learnings: ${err.message}`,
+    );
+    persistenceError.code = "SELF_IMPROVE_PERSISTENCE_FAILED";
+    persistenceError.cause = err;
+    throw persistenceError;
   }
+}
+
+function snapshotState() {
+  return {
+    history: JSON.parse(JSON.stringify(history)),
+    learnings: JSON.parse(JSON.stringify(learnings)),
+  };
+}
+
+function restoreState(snapshot) {
+  if (!snapshot) {
+    return;
+  }
+  history.errors = snapshot.history.errors;
+  history.corrections = snapshot.history.corrections;
+  history.stats = snapshot.history.stats;
+  learnings.instincts = snapshot.learnings.instincts;
+  learnings.skills = snapshot.learnings.skills;
+  learnings.meta = snapshot.learnings.meta;
 }
 
 // ── Confidence Scoring ────────────────────────────
@@ -1013,11 +1044,13 @@ module.exports = {
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
+    let stateBeforeAction = null;
 
     try {
       configureDataDir(context);
       loadHistory();
       loadLearnings();
+      stateBeforeAction = snapshotState();
       switch (parsed.action) {
         case "record-error":
           return handleRecordError(parsed.errorDesc, parsed.fix);
@@ -1059,8 +1092,13 @@ module.exports = {
           };
       }
     } catch (error) {
+      restoreState(stateBeforeAction);
       logger.error("[SelfImprove] Error:", error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        code: error.code || "SELF_IMPROVE_FAILED",
+        error: error.message,
+      };
     }
   },
 };

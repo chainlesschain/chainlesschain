@@ -83,6 +83,33 @@ describe("self-improving-agent handler", () => {
       expect(result.success).toBe(true);
       expect(result.entry.category).toBe("network-error");
     });
+
+    it("fails closed and restores memory when persistence fails", async () => {
+      mockFs.writeFileSync.mockImplementationOnce(() => {
+        throw new Error("disk full");
+      });
+
+      const result = await handler.execute(
+        { input: "record-error TypeError transient" },
+        {},
+        {},
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        code: "SELF_IMPROVE_PERSISTENCE_FAILED",
+      });
+      expect(result.error).toContain(
+        "Failed to persist self-improving history",
+      );
+
+      const showResult = await handler.execute(
+        { input: "show-history" },
+        {},
+        {},
+      );
+      expect(showResult.entries).toEqual([]);
+    });
   });
 
   describe("execute() - analyze-patterns", () => {

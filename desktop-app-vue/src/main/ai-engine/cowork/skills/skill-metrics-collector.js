@@ -12,6 +12,35 @@ const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../../utils/logger.js");
 
+function toNonNegativeNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : 0;
+}
+
+function normalizeExecutionData(data = {}) {
+  const duration = toNonNegativeNumber(
+    data.duration ?? data.durationMs ?? data.executionTime,
+  );
+  const tokensInput = toNonNegativeNumber(data.tokensInput);
+  let tokensOutput = toNonNegativeNumber(data.tokensOutput);
+  const tokensUsed = toNonNegativeNumber(
+    data.tokensUsed ?? data.totalTokens ?? tokensInput + tokensOutput,
+  );
+
+  // The historical pipeline contract only exposed a total. Preserve that
+  // usage instead of silently persisting zero tokens.
+  if (tokensInput === 0 && tokensOutput === 0 && tokensUsed > 0) {
+    tokensOutput = tokensUsed;
+  }
+
+  return {
+    duration,
+    tokensInput,
+    tokensOutput,
+    cost: toNonNegativeNumber(data.cost ?? data.costUsd),
+  };
+}
+
 class SkillMetricsCollector extends EventEmitter {
   /**
    * @param {Object} options
@@ -98,17 +127,18 @@ class SkillMetricsCollector extends EventEmitter {
    * @param {object} data - { duration, tokensUsed, success, pipelineId?, cost? }
    */
   recordExecution(skillId, data = {}) {
+    const normalized = normalizeExecutionData(data);
     const record = {
       id: uuidv4(),
       skillId,
       pipelineId: data.pipelineId || null,
-      startedAt: Date.now() - (data.duration || 0),
+      startedAt: Date.now() - normalized.duration,
       completedAt: Date.now(),
-      durationMs: data.duration || 0,
+      durationMs: normalized.duration,
       success: data.success !== false ? 1 : 0,
-      tokensInput: data.tokensInput || 0,
-      tokensOutput: data.tokensOutput || 0,
-      costUsd: data.cost || 0,
+      tokensInput: normalized.tokensInput,
+      tokensOutput: normalized.tokensOutput,
+      costUsd: normalized.cost,
       errorMessage: data.error || null,
       contextJson: data.context ? JSON.stringify(data.context) : null,
     };
@@ -407,25 +437,47 @@ class SkillMetricsCollector extends EventEmitter {
 
   /** @private */
   _onSkillCompleted(data) {
-    if (data.skillId && data.metrics) {
-      this.recordExecution(data.skillId, {
-        duration: data.metrics.executionTime || 0,
-        success: true,
-        tokensInput: data.metrics.tokensInput || 0,
-        tokensOutput: data.metrics.tokensOutput || 0,
-      });
+    const skillId = data?.skillId || data?.skill;
+    if (!skillId) {
+      return;
     }
+
+    const metrics = data.metrics || data;
+    this.recordExecution(skillId, {
+      duration:
+        metrics.durationMs ?? metrics.executionTime ?? data.executionTime ?? 0,
+      success: true,
+      tokensInput: metrics.tokensInput,
+      tokensOutput: metrics.tokensOutput,
+      tokensUsed: metrics.tokensUsed,
+      cost: metrics.cost ?? metrics.costUsd,
+      pipelineId: data.pipelineId,
+    });
   }
 
   /** @private */
   _onSkillFailed(data) {
-    if (data.skillId) {
-      this.recordExecution(data.skillId, {
-        duration: data.metrics?.executionTime || 0,
-        success: false,
-        error: data.error || "Unknown error",
-      });
+    const skillId = data?.skillId || data?.skill;
+    if (!skillId) {
+      return;
     }
+
+    const metrics = data.metrics || data;
+    this.recordExecution(skillId, {
+      duration:
+        metrics.durationMs ?? metrics.executionTime ?? data.executionTime ?? 0,
+      success: false,
+      tokensInput: metrics.tokensInput,
+      tokensOutput: metrics.tokensOutput,
+      tokensUsed: metrics.tokensUsed,
+      cost: metrics.cost ?? metrics.costUsd,
+      pipelineId: data.pipelineId,
+      error:
+        data.errorMessage ||
+        data.error?.message ||
+        data.error ||
+        "Unknown error",
+    });
   }
 
   /** @private */

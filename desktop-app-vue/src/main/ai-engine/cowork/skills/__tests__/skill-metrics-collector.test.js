@@ -793,9 +793,30 @@ describe("SkillMetricsCollector", () => {
       expect(collector._buffer).toHaveLength(0);
     });
 
-    it("should ignore skill-completed without metrics", () => {
+    it("should record a zero-valued skill-completed event without metrics", () => {
       mockRegistry.emit("skill-completed", { skillId: "no-metrics" });
-      expect(collector._buffer).toHaveLength(0);
+      expect(collector._buffer).toHaveLength(1);
+      expect(collector._buffer[0]).toMatchObject({
+        skillId: "no-metrics",
+        durationMs: 0,
+        success: 1,
+      });
+    });
+
+    it("should accept legacy BaseSkill field aliases", () => {
+      mockRegistry.emit("skill-completed", {
+        skill: "legacy-skill",
+        executionTime: 75,
+        tokensUsed: 9,
+      });
+
+      expect(collector._buffer).toHaveLength(1);
+      expect(collector._buffer[0]).toMatchObject({
+        skillId: "legacy-skill",
+        durationMs: 75,
+        tokensInput: 0,
+        tokensOutput: 9,
+      });
     });
 
     it("should ignore skill-failed without skillId", () => {

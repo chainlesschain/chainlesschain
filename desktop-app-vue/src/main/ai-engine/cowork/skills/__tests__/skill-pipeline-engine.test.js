@@ -441,7 +441,7 @@ describe("SkillPipelineEngine", () => {
       expect(result.error).toContain("SkillRegistry not available");
     });
 
-    it("should record metrics for SKILL steps when metricsCollector is present", async () => {
+    it("should leave SKILL invocation metrics to SkillRegistry events", async () => {
       mockSkillRegistry.executeSkill.mockResolvedValue({ tokensUsed: 150 });
 
       const pipelineId = engine.createPipeline({
@@ -453,14 +453,7 @@ describe("SkillPipelineEngine", () => {
 
       await engine.executePipeline(pipelineId);
 
-      expect(mockMetricsCollector.recordExecution).toHaveBeenCalledWith(
-        "code-review",
-        expect.objectContaining({
-          success: true,
-          tokensUsed: 150,
-          pipelineId,
-        }),
-      );
+      expect(mockMetricsCollector.recordExecution).not.toHaveBeenCalled();
     });
   });
 

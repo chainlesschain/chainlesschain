@@ -7,18 +7,29 @@
  * @version 1.1.0
  */
 
-const { ipcMain } = require("electron");
 const { logger } = require("../../../utils/logger.js");
-
-let metricsCollector = null;
 
 /**
  * Register skill metrics IPC handlers
  * @param {Object} options
  * @param {Object} options.metricsCollector - SkillMetricsCollector instance
+ * @param {Object} [options.ipcMain] - electron ipcMain (injectable for tests)
  */
 function registerSkillMetricsIPC(options = {}) {
-  metricsCollector = options.metricsCollector || null;
+  const metricsCollector = options.metricsCollector;
+  if (
+    !metricsCollector ||
+    typeof metricsCollector.getSkillMetrics !== "function" ||
+    typeof metricsCollector.getPipelineMetrics !== "function"
+  ) {
+    throw new TypeError(
+      "registerSkillMetricsIPC requires a metricsCollector instance",
+    );
+  }
+  const ipcMain = options.ipcMain || require("electron").ipcMain;
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    throw new TypeError("registerSkillMetricsIPC requires ipcMain.handle");
+  }
 
   logger.info("[SkillMetricsIPC] Registering 5 handlers...");
 
