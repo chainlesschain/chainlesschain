@@ -4,16 +4,56 @@ on:
   push:
     branches: [main, "feature/**", "codex/**"]
     paths:
+      - "packages/cli/src/lib/graph-kernel/authority.js"
+      - "packages/cli/src/lib/graph-kernel/cutover-contract.js"
+      - "packages/cli/src/lib/graph-kernel/cutover-ledger.js"
+      - "packages/cli/src/lib/graph-kernel/evidence-digest.js"
       - "packages/cli/src/lib/graph-kernel/production-cutover-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/production-source-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/retirement-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/runtime-surface-manifest.js"
+      - "packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json"
+      - "packages/cli/scripts/assemble-graph-production-cutover-evidence.mjs"
+      - "packages/cli/scripts/collect-graph-production-source-receipts.mjs"
+      - "packages/cli/scripts/freeze-graph-production-inputs.mjs"
       - "packages/cli/scripts/graph-production-cutover-evidence.mjs"
+      - "packages/cli/scripts/query-graph-production-jobs.mjs"
+      - "packages/cli/scripts/select-graph-production-artifact.mjs"
+      - "packages/cli/scripts/verify-graph-production-attestation-certificate.mjs"
+      - "packages/cli/scripts/verify-graph-production-source-registry.mjs"
       - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
+      - "packages/cli/__tests__/unit/graph-kernel-authority.test.js"
+      - ".github/graph-kernel-production-source-registry.json"
+      - ".github/graph-kernel-production-source-registry.md"
+      - ".github/workflows/graph-kernel-production-evidence.yml"
       - ".github/workflows/graph-kernel-production-cutover.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   pull_request:
     paths:
+      - "packages/cli/src/lib/graph-kernel/authority.js"
+      - "packages/cli/src/lib/graph-kernel/cutover-contract.js"
+      - "packages/cli/src/lib/graph-kernel/cutover-ledger.js"
+      - "packages/cli/src/lib/graph-kernel/evidence-digest.js"
       - "packages/cli/src/lib/graph-kernel/production-cutover-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/production-source-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/retirement-evidence.js"
+      - "packages/cli/src/lib/graph-kernel/runtime-surface-manifest.js"
+      - "packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json"
+      - "packages/cli/scripts/assemble-graph-production-cutover-evidence.mjs"
+      - "packages/cli/scripts/collect-graph-production-source-receipts.mjs"
+      - "packages/cli/scripts/freeze-graph-production-inputs.mjs"
       - "packages/cli/scripts/graph-production-cutover-evidence.mjs"
+      - "packages/cli/scripts/query-graph-production-jobs.mjs"
+      - "packages/cli/scripts/select-graph-production-artifact.mjs"
+      - "packages/cli/scripts/verify-graph-production-attestation-certificate.mjs"
+      - "packages/cli/scripts/verify-graph-production-source-registry.mjs"
       - "packages/cli/__tests__/unit/graph-production-cutover-evidence.test.js"
+      - "packages/cli/__tests__/unit/graph-kernel-authority.test.js"
+      - ".github/graph-kernel-production-source-registry.json"
+      - ".github/graph-kernel-production-source-registry.md"
+      - ".github/workflows/graph-kernel-production-evidence.yml"
       - ".github/workflows/graph-kernel-production-cutover.yml"
+      - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -29,15 +69,6 @@ on:
         required: true
         default: "1"
         type: string
-      evidence_workflow:
-        description: Reviewed producer workflow path under .github/workflows
-        required: true
-        type: string
-      evidence_artifact:
-        description: Name of the attested complete rollout evidence artifact
-        required: true
-        default: graph-production-cutover-evidence
-        type: string
 
 permissions:
   contents: read
@@ -50,7 +81,11 @@ jobs:
   contract:
     name: Fail-closed production evidence contract
     if: github.event_name != 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - name: Checkout exact source
@@ -94,7 +129,8 @@ jobs:
       CUTOVER_SHA: ${{ inputs.commit_sha }}
       EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
       EVIDENCE_RUN_ATTEMPT: ${{ inputs.evidence_run_attempt }}
-      EVIDENCE_WORKFLOW: ${{ inputs.evidence_workflow }}
+      EVIDENCE_WORKFLOW: .github/workflows/graph-kernel-production-evidence.yml
+      SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
     steps:
       - name: Refuse a detached or mixed-SHA close
         shell: bash
@@ -107,6 +143,10 @@ jobs:
             echo "::error::Production close may only verify the workflow event commit"
             exit 1
           fi
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::Production close may only run from protected main"
+            exit 1
+          fi
           if [[ ! "${EVIDENCE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]; then
             echo "::error::evidence_run_id must be a positive GitHub Actions run id"
             exit 1
@@ -115,12 +155,8 @@ jobs:
             echo "::error::evidence_run_attempt must be a positive integer"
             exit 1
           fi
-          if [[ ! "${EVIDENCE_WORKFLOW}" =~ ^\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$ ]]; then
-            echo "::error::evidence_workflow must be a workflow path under .github/workflows"
-            exit 1
-          fi
-          if [[ "${EVIDENCE_WORKFLOW}" == ".github/workflows/graph-kernel-production-cutover.yml" ]]; then
-            echo "::error::The close workflow cannot attest its own producer evidence"
+          if [[ ! "${SOURCE_REGISTRY_DIGEST}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "::error::the close environment source registry digest pin is not configured"
             exit 1
           fi
 
@@ -132,23 +168,21 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22.12.0
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - uses: ./.github/actions/setup-node-deps
 
       - name: Verify exact checked-out SHA
         shell: bash
-        run: test "$(git rev-parse HEAD)" = "${CUTOVER_SHA}"
+        run: |
+          test "$(git rev-parse HEAD)" = "${CUTOVER_SHA}"
+          chmod a-w packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json
 
       - name: Verify exact producer run identity
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          run_identity="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${EVIDENCE_RUN_ID}" \
-            --jq '[.head_sha, (.run_attempt | tostring), .path, .conclusion, .event, .head_repository.full_name] | @tsv')"
-          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository <<< "${run_identity}"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${EVIDENCE_RUN_ID}/attempts/${EVIDENCE_RUN_ATTEMPT}" > "${RUNNER_TEMP}/producer-run.json"
+          run_identity="$(jq -r '[.head_sha, (.run_attempt | tostring), .path, .conclusion, .event, .head_repository.full_name, .head_branch] | @tsv' "${RUNNER_TEMP}/producer-run.json")"
+          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository run_head_branch <<< "${run_identity}"
           if [[ "${run_sha}" != "${CUTOVER_SHA}" ]]; then
             echo "::error::Producer run head SHA does not match commit_sha"
             exit 1
@@ -169,11 +203,34 @@ jobs:
             echo "::error::Producer run repository does not match the close repository"
             exit 1
           fi
+          if [[ "${run_head_branch}" != "main" ]]; then
+            echo "::error::Producer run must originate from protected main"
+            exit 1
+          fi
+          chmod a-w "${RUNNER_TEMP}/producer-run.json"
 
-      - name: Download the protected production evidence
+      - name: Select the exact non-expired attempt artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${EVIDENCE_RUN_ID}/artifacts?per_page=100" --paginate --slurp > "${RUNNER_TEMP}/artifact-pages.json"
+          chmod a-w "${RUNNER_TEMP}/artifact-pages.json"
+          node packages/cli/scripts/select-graph-production-artifact.mjs \
+            --artifact-pages "${RUNNER_TEMP}/artifact-pages.json" \
+            --run "${RUNNER_TEMP}/producer-run.json" \
+            --expected-name "graph-production-cutover-evidence-${EVIDENCE_RUN_ATTEMPT}" \
+            --run-id "${EVIDENCE_RUN_ID}" \
+            --run-attempt "${EVIDENCE_RUN_ATTEMPT}" \
+            --metadata-output "${RUNNER_TEMP}/selected-artifact.json" \
+            --commit "${CUTOVER_SHA}"
+          chmod a-w "${RUNNER_TEMP}/selected-artifact.json"
+
+      - name: Download the exact protected production evidence artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ inputs.evidence_artifact }}
+          artifact-ids: ${{ steps.artifact.outputs.id }}
           path: ${{ runner.temp }}/graph-production-evidence
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -188,18 +245,46 @@ jobs:
             echo "::error::Expected exactly one production evidence JSON file; found ${#files[@]}"
             exit 1
           fi
+          chmod a-w "${files[0]}"
           echo "path=${files[0]}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify producer OIDC attestation
+      - name: Verify producer OIDC attestation and exact certificate invocation
         env:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
         shell: bash
+        run: |
+          gh attestation verify "${EVIDENCE_PATH}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${EVIDENCE_WORKFLOW}" \
+            --signer-digest "${CUTOVER_SHA}" \
+            --source-digest "${CUTOVER_SHA}" \
+            --source-ref refs/heads/main \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --deny-self-hosted-runners \
+            --format json > "${RUNNER_TEMP}/attestation-verification.json"
+          chmod a-w "${RUNNER_TEMP}/attestation-verification.json"
+          node packages/cli/scripts/verify-graph-production-attestation-certificate.mjs \
+            --input "${RUNNER_TEMP}/attestation-verification.json" \
+            --run "${RUNNER_TEMP}/producer-run.json" \
+            --artifact "${RUNNER_TEMP}/selected-artifact.json" \
+            --server-url "${GITHUB_SERVER_URL}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --workflow "${EVIDENCE_WORKFLOW}" \
+            --commit "${CUTOVER_SHA}" \
+            --run-id "${EVIDENCE_RUN_ID}" \
+            --run-attempt "${EVIDENCE_RUN_ATTEMPT}"
+
+      - name: Query the complete exact-attempt producer job inventory
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: >-
-          gh attestation verify "${EVIDENCE_PATH}"
-          --repo "${GITHUB_REPOSITORY}"
-          --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${EVIDENCE_WORKFLOW}"
-          --source-digest "${CUTOVER_SHA}"
+          node packages/cli/scripts/query-graph-production-jobs.mjs
+          --repository "${{ github.repository }}"
+          --run-id "${{ inputs.evidence_run_id }}"
+          --run-attempt "${{ inputs.evidence_run_attempt }}"
+          --commit "${{ inputs.commit_sha }}"
+          --output "${{ runner.temp }}/jobs.json"
 
       - name: Require the complete P1-12 evidence contract
         env:
@@ -210,9 +295,16 @@ jobs:
           --evidence "${EVIDENCE_PATH}"
           --expected-commit "${CUTOVER_SHA}"
           --expected-repository "${GITHUB_REPOSITORY}"
+          --expected-workflow .github/workflows/graph-kernel-production-evidence.yml
           --expected-environment graph-kernel-production
           --expected-run-id "${EVIDENCE_RUN_ID}"
           --expected-run-attempt "${EVIDENCE_RUN_ATTEMPT}"
+          --expected-registry-digest "${SOURCE_REGISTRY_DIGEST}"
+          --jobs-inventory "${RUNNER_TEMP}/jobs.json"
+          --attestation-verification "${RUNNER_TEMP}/attestation-verification.json"
+          --producer-run "${RUNNER_TEMP}/producer-run.json"
+          --selected-artifact "${RUNNER_TEMP}/selected-artifact.json"
+          --server-url "${GITHUB_SERVER_URL}"
           --output "${RUNNER_TEMP}/graph-production-cutover-receipt.json"
 
       - name: Attest the production-close receipt
