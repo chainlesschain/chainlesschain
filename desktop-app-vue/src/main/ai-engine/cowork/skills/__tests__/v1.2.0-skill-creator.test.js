@@ -1,7 +1,7 @@
 /**
  * Skill Creator 单元测试 — v1.2.0
  *
- * 覆盖：parseInput、handleCreate、handleTest、handleOptimize（快速）、
+ * 覆盖：parseInput、handleCreate candidate-only contract、handleTest、handleOptimize（快速）、
  *       handleOptimizeDescription（LLM循环）、handleValidate、
  *       handleListTemplates、handleGetTemplate、callLLM / generateEvalQueries /
  *       evaluateDescriptionDetailed / improveDescription（via _deps mock）
@@ -124,6 +124,12 @@ function createMockFs(files = {}) {
     mkdirSync: vi.fn(),
     _store: store,
   };
+}
+
+function snapshotMockStore(mockFs) {
+  return [...mockFs._store.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([filePath, content]) => [filePath, content]);
 }
 
 // ─── Mock spawnSync factories ─────────────────────────────────────────────────
@@ -440,13 +446,20 @@ describe("handleGetTemplate()", () => {
 describe("handleCreate()", () => {
   it("fails when no name provided", async () => {
     const r = await handler.execute({ input: "create" }, {}, {});
-    expect(r.success).toBe(false);
+    expect(r).toMatchObject({
+      success: false,
+      action: "create",
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+    });
     expect(r.error).toBeDefined();
   });
 
-  it("creates new skill files when directory does not exist", async () => {
+  it("returns an in-memory candidate when the active directory does not exist", async () => {
     const mockFs = createMockFs({}); // empty - no existing files
     handler._deps.fs = mockFs;
+    const before = snapshotMockStore(mockFs);
 
     const r = await handler.execute(
       { input: 'create my-brand-new-skill "Does something useful"' },
@@ -456,9 +469,20 @@ describe("handleCreate()", () => {
     expect(r.success).toBe(true);
     expect(r.action).toBe("create");
     expect(r.skillName).toBe("my-brand-new-skill");
-    expect(r.alreadyExists).toBeFalsy();
-    // Should have written SKILL.md and handler.js
-    expect(mockFs.writeFileSync).toHaveBeenCalledTimes(2);
+    expect(r).toMatchObject({
+      status: "candidate-proposed",
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      activeExists: false,
+      alreadyExists: false,
+    });
+    expect(Object.keys(r.proposedFiles)).toEqual(["SKILL.md", "handler.js"]);
+    expect(r.message).toContain("not persisted or active");
+    expect(r.message).not.toMatch(/created at|persisted at|is now active/i);
+    expect(mockFs.mkdirSync).not.toHaveBeenCalled();
+    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+    expect(snapshotMockStore(mockFs)).toEqual(before);
   });
 
   it("returns alreadyExists=true when directory exists", async () => {
@@ -471,7 +495,14 @@ describe("handleCreate()", () => {
     const r = await handler.execute({ input: "create existing-skill" }, {}, {});
     expect(r.success).toBe(true);
     expect(r.alreadyExists).toBe(true);
+    expect(r).toMatchObject({
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      activeExists: true,
+    });
     // Should not write (already exists)
+    expect(mockFs.mkdirSync).not.toHaveBeenCalled();
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
@@ -488,15 +519,12 @@ describe("handleCreate()", () => {
     const mockFs = createMockFs({});
     handler._deps.fs = mockFs;
 
-    await handler.execute(
+    const r = await handler.execute(
       { input: 'create test-unit "A useful skill"' },
       {},
       {},
     );
-    const writeCalls = mockFs.writeFileSync.mock.calls;
-    const skillMdCall = writeCalls.find((c) => c[0].endsWith("SKILL.md"));
-    expect(skillMdCall).toBeDefined();
-    const content = skillMdCall[1];
+    const content = r.proposedFiles["SKILL.md"];
     expect(content).toContain("name: test-unit");
     expect(content).toContain("version: 1.0.0");
     expect(content).toContain("handler: ./handler.js");
@@ -509,14 +537,45 @@ describe("handleCreate()", () => {
     const mockFs = createMockFs({});
     handler._deps.fs = mockFs;
 
-    await handler.execute({ input: "create handler-test-new" }, {}, {});
-    const writeCalls = mockFs.writeFileSync.mock.calls;
-    const handlerCall = writeCalls.find((c) => c[0].endsWith("handler.js"));
-    expect(handlerCall).toBeDefined();
-    const code = handlerCall[1];
+    const r = await handler.execute(
+      { input: "create handler-test-new" },
+      {},
+      {},
+    );
+    const code = r.proposedFiles["handler.js"];
     expect(code).toContain("async init(");
     expect(code).toContain("async execute(");
     expect(code).not.toContain("require(");
+  });
+
+  it("does not change existing active bytes or directory contents", async () => {
+    const activeDir = join(BUILTIN_DIR, "protected-skill");
+    const activeSkillMd = join(activeDir, "SKILL.md");
+    const activeHandler = join(activeDir, "handler.js");
+    const mockFs = createMockFs({
+      [activeDir]: "directory-marker",
+      [activeSkillMd]: "active SKILL bytes",
+      [activeHandler]: "active handler bytes",
+    });
+    handler._deps.fs = mockFs;
+    const before = snapshotMockStore(mockFs);
+
+    const r = await handler.execute(
+      { input: 'create protected-skill "replacement proposal"' },
+      {},
+      {},
+    );
+
+    expect(r).toMatchObject({
+      success: true,
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      activeExists: true,
+    });
+    expect(snapshotMockStore(mockFs)).toEqual(before);
+    expect(mockFs.mkdirSync).not.toHaveBeenCalled();
+    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 });
 
@@ -788,6 +847,36 @@ describe("handleOptimizeDescription() - successful optimization", () => {
     });
   }
 
+  function improvingSpawn(improvedDesc) {
+    const evalQueriesJson = JSON.stringify([
+      ...Array.from({ length: 10 }, (_, i) => ({
+        query: `Should trigger query ${i + 1} with specific details about the skill task`,
+        should_trigger: true,
+      })),
+      ...Array.from({ length: 10 }, (_, i) => ({
+        query: `Should not trigger query ${i + 1} about a near-miss task`,
+        should_trigger: false,
+      })),
+    ]);
+
+    return vi.fn().mockImplementation((_exe, args) => {
+      const prompt = args[2] || "";
+      if (prompt.includes("20 realistic test queries")) {
+        return { status: 0, stdout: evalQueriesJson, error: null };
+      }
+      if (prompt.includes("Improve this skill description")) {
+        return { status: 0, stdout: improvedDesc, error: null };
+      }
+      if (prompt.includes("Would you invoke this skill")) {
+        const shouldTrigger = !prompt.includes("Should not trigger query");
+        const isImproved = prompt.includes(improvedDesc);
+        const trigger = isImproved ? shouldTrigger : !shouldTrigger;
+        return { status: 0, stdout: trigger ? "YES" : "NO", error: null };
+      }
+      return { status: 0, stdout: "NO", error: null };
+    });
+  }
+
   it("returns success=true with eval query count", async () => {
     processAdapter = smartSpawn({
       improvedDesc: "Better description with trigger keywords",
@@ -802,6 +891,11 @@ describe("handleOptimizeDescription() - successful optimization", () => {
     expect(r.success).toBe(true);
     expect(r.action).toBe("optimize-description");
     expect(r.evalQueriesGenerated).toBeGreaterThanOrEqual(4);
+    expect(r).toMatchObject({
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+    });
   });
 
   it("when all queries trigger correctly (perfect score) — no improvement needed", async () => {
@@ -831,28 +925,42 @@ describe("handleOptimizeDescription() - successful optimization", () => {
     expect(r.bestTestScore).toBeLessThanOrEqual(1);
   });
 
-  it("writes improved description back to SKILL.md", async () => {
+  it("returns proposed content and a diff without overwriting active SKILL.md", async () => {
     const improvedDesc =
       "Use specifically for code review and PR analysis tasks";
-    processAdapter = smartSpawn({ triggerYes: false, improvedDesc });
-    // triggerYes=false: should_trigger=true → triggered=false → incorrect
-    //                   should_not_trigger=false → triggered=false → correct
-    // train score = 10/20 = 0.5; failures = 10 should_trigger items
-    // improveDescription called → returns improvedDesc
-    // Then re-evaluate with same mock → same score pattern
+    processAdapter = improvingSpawn(improvedDesc);
     const mockFs = buildMockFs();
     handler._deps.fs = mockFs;
+    const before = snapshotMockStore(mockFs);
 
     const r = await handler.execute(
       { input: "optimize-description code-review --iterations 1" },
       {},
       {},
     );
-    expect(r.success).toBe(true);
-    // Check if SKILL.md was written (either improved or not)
-    // With score tie, bestDesc might or might not change
-    expect(r.skillName).toBe("code-review");
-    expect(r.originalDescription).toBe(originalDesc);
+    expect(r).toMatchObject({
+      success: true,
+      status: "candidate-proposed",
+      skillName: "code-review",
+      originalDescription: originalDesc,
+      bestDescription: improvedDesc,
+      improved: true,
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      diff: {
+        path: "SKILL.md",
+        field: "description",
+        changed: true,
+        before: originalDesc,
+        after: improvedDesc,
+      },
+    });
+    expect(r.proposedContent).toContain(`description: ${improvedDesc}`);
+    expect(r.message).toContain("active SKILL.md is unchanged");
+    expect(mockFs.mkdirSync).not.toHaveBeenCalled();
+    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+    expect(snapshotMockStore(mockFs)).toEqual(before);
   });
 
   it("includes iteration details in result", async () => {
@@ -868,26 +976,35 @@ describe("handleOptimizeDescription() - successful optimization", () => {
     expect(Array.isArray(r.iterationDetails)).toBe(true);
   });
 
-  it("saves results.json to .opt-workspace", async () => {
+  it("returns workspace evidence in-band and never claims it was persisted", async () => {
     processAdapter = smartSpawn({ improvedDesc: "Better version" });
     const mockFs = buildMockFs();
+    mockFs.writeFileSync.mockImplementation(() => {
+      throw new Error("workspace evidence write denied");
+    });
     handler._deps.fs = mockFs;
 
-    await handler.execute(
+    const r = await handler.execute(
       { input: "optimize-description code-review --iterations 1" },
       {},
       {},
     );
 
-    const writeCalls = mockFs.writeFileSync.mock.calls;
-    const resultsCall = writeCalls.find(
-      (c) => typeof c[0] === "string" && c[0].endsWith("results.json"),
-    );
-    expect(resultsCall).toBeDefined();
-    const saved = JSON.parse(resultsCall[1]);
-    expect(saved.skillName).toBe("code-review");
-    expect(Array.isArray(saved.evalQueries)).toBe(true);
-    expect(typeof saved.baselineTestScore).toBe("number");
+    expect(r.success).toBe(true);
+    expect(r).toMatchObject({
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      workspaceEvidence: {
+        persisted: false,
+        reason: "stage-a-mutation-freeze",
+      },
+    });
+    expect(r.workspaceEvidence.payload.skillName).toBe("code-review");
+    expect(Array.isArray(r.workspaceEvidence.payload.evalQueries)).toBe(true);
+    expect(typeof r.workspaceEvidence.payload.baselineTestScore).toBe("number");
+    expect(mockFs.mkdirSync).not.toHaveBeenCalled();
+    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
   it("does not write SKILL.md when description not improved", async () => {
@@ -902,6 +1019,11 @@ describe("handleOptimizeDescription() - successful optimization", () => {
       {},
     );
     expect(r.success).toBe(true);
+    expect(r).toMatchObject({
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+    });
     // If bestDesc === originalDesc, improved = false, writeFileSync not called for SKILL.md
     if (!r.improved) {
       const skillMdWrite = mockFs.writeFileSync.mock.calls.find(
