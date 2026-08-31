@@ -15,6 +15,7 @@ import {
   controlFailureDetails,
   createEvaluationModelEnvironment,
   enforceQualityThresholds,
+  formalAgentTurnArgs,
   qualityEvidenceDigest,
   sealPlatformRecord,
   summarizeQualityRounds,
@@ -35,6 +36,15 @@ const PER_INVOCATION_CEILING_USD =
   (PLANNED_MAX_ROUNDS * (FORMAL_PROFILE.taskIds.length + 4));
 
 describe("formal candidate platform isolation", () => {
+  it("uses the same expanded turn budget for control and candidate agents", () => {
+    expect(FORMAL_PROFILE.agentMaxTurns).toBe(24);
+    expect(formalAgentTurnArgs("control")).toEqual(["--max-turns", "24"]);
+    expect(formalAgentTurnArgs("candidate")).toEqual([
+      "--agent-max-turns",
+      "24",
+    ]);
+  });
+
   it.each(["linux", "macos"])(
     "uses worktree plus Agent checkpoint on %s without claiming process-tree containment",
     (platform) => {
@@ -319,7 +329,7 @@ describe("graph collaboration quality evidence", () => {
         status: 1,
         signal: null,
         stdout:
-          `${JSON.stringify({ type: "task:failed", key: "add-function", error: "provider overloaded: sk-abcd1234efgh5678ijkl", retry: false })}\n` +
+          `${JSON.stringify({ type: "task:failed", key: "add-function", error: "provider overloaded: sk-abcd1234efgh5678ijkl", code: "TEAM_AGENT_EXIT_FAILED", exitCode: 3, retry: false })}\n` +
           `${JSON.stringify({ summary: { success: false, done: true, executions: 1 } })}\n`,
         stderr: "team failed",
       }),
@@ -330,6 +340,8 @@ describe("graph collaboration quality evidence", () => {
         {
           key: "add-function",
           error: "provider overloaded: [REDACTED]",
+          code: "TEAM_AGENT_EXIT_FAILED",
+          exitCode: 3,
           retry: false,
         },
       ],
