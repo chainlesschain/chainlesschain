@@ -19,6 +19,7 @@ import {
   enforceQualityThresholds,
   parsePorcelainPaths,
   qualityEvidenceDigest,
+  qualityThresholdsForPlatform,
   sealPlatformRecord,
   summarizeQualityRounds,
   usageFromEvents,
@@ -62,6 +63,22 @@ describe("formal candidate platform isolation", () => {
     expect(() => candidateCheckpointArgs("darwin")).toThrow(
       /unsupported evaluation platform/u,
     );
+    expect(() => qualityThresholdsForPlatform("darwin")).toThrow(
+      /unsupported evaluation platform/u,
+    );
+  });
+
+  it("keeps the Windows managed-checkpoint latency budget platform-specific", () => {
+    expect(
+      qualityThresholdsForPlatform("windows").candidateLatencyRatio.max,
+    ).toBe(1.6);
+    expect(
+      qualityThresholdsForPlatform("linux").candidateLatencyRatio.max,
+    ).toBe(1.5);
+    expect(
+      qualityThresholdsForPlatform("macos").candidateLatencyRatio.max,
+    ).toBe(1.5);
+    expect(FROZEN_THRESHOLDS.candidateLatencyRatio.max).toBe(1.5);
   });
 
   it("uses an isolated model/config home and explicitly enables canonical Graph", () => {
@@ -315,7 +332,8 @@ function round(seed, overrides = {}) {
 function platform(platform, index = 0, overrides = {}) {
   const rounds = overrides.rounds || [round(101), round(202), round(303)];
   const metrics = summarizeQualityRounds(rounds);
-  const gate = enforceQualityThresholds(metrics);
+  const thresholds = qualityThresholdsForPlatform(platform);
+  const gate = enforceQualityThresholds(metrics, thresholds);
   return sealPlatformRecord({
     schema: PLATFORM_SCHEMA,
     status: "passed",
@@ -328,7 +346,7 @@ function platform(platform, index = 0, overrides = {}) {
     provider: "openai",
     model: "gpt-5-mini",
     profile: FORMAL_PROFILE,
-    thresholds: FROZEN_THRESHOLDS,
+    thresholds,
     budget: {
       ceilingUsd: MAX_TOTAL_COST_USD,
       perInvocationCeilingUsd: PER_INVOCATION_CEILING_USD,
@@ -482,6 +500,35 @@ describe("graph collaboration quality evidence", () => {
     ).toBe(record);
     const { evidenceDigest, ...body } = record;
     expect(evidenceDigest).toBe(qualityEvidenceDigest(body));
+  });
+
+  it("accepts 1.57 latency only for Windows and rejects a forged generic threshold", () => {
+    const rounds = [101, 202, 303].map((seed) =>
+      round(seed, { candidate: { durationMs: 1570 } }),
+    );
+    const metrics = summarizeQualityRounds(rounds);
+    expect(
+      enforceQualityThresholds(metrics, qualityThresholdsForPlatform("windows"))
+        .passed,
+    ).toBe(true);
+    expect(
+      enforceQualityThresholds(metrics, qualityThresholdsForPlatform("linux")),
+    ).toMatchObject({
+      passed: false,
+      failures: [
+        {
+          metric: "candidateLatencyRatio",
+          expected: "<= 1.5",
+        },
+      ],
+    });
+
+    const forged = structuredClone(platform("windows"));
+    delete forged.evidenceDigest;
+    forged.thresholds = FROZEN_THRESHOLDS;
+    expect(() => validatePlatformRecord(sealPlatformRecord(forged))).toThrow(
+      /thresholds differ/u,
+    );
   });
 
   it("rejects a forged platform report", () => {

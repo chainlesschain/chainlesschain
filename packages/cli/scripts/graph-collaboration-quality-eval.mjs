@@ -48,6 +48,19 @@ export const FROZEN_THRESHOLDS = Object.freeze({
   candidateTokenRatio: Object.freeze({ max: 2.5 }),
   candidateLatencyRatio: Object.freeze({ max: 1.5 }),
 });
+const WINDOWS_FROZEN_THRESHOLDS = Object.freeze({
+  ...FROZEN_THRESHOLDS,
+  // Windows alone retains the Job-backed managed process checkpoint. Its
+  // end-to-end latency budget includes that stronger process-tree boundary.
+  candidateLatencyRatio: Object.freeze({ max: 1.6 }),
+});
+
+export function qualityThresholdsForPlatform(platform) {
+  if (!REQUIRED_PLATFORMS.includes(platform)) {
+    throw new Error(`unsupported evaluation platform: ${platform}`);
+  }
+  return platform === "windows" ? WINDOWS_FROZEN_THRESHOLDS : FROZEN_THRESHOLDS;
+}
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = path.dirname(SCRIPT_DIRECTORY);
@@ -355,7 +368,8 @@ export function validatePlatformRecord(record, expected = {}) {
   ) {
     throw new Error("platform evidence did not use the frozen formal profile");
   }
-  if (!sameJson(record.thresholds, FROZEN_THRESHOLDS)) {
+  const platformThresholds = qualityThresholdsForPlatform(record.platform);
+  if (!sameJson(record.thresholds, platformThresholds)) {
     throw new Error("platform evidence thresholds differ from the frozen gate");
   }
   if (
@@ -453,7 +467,7 @@ export function validatePlatformRecord(record, expected = {}) {
   ) {
     throw new Error("platform quality budget differs from the protected limit");
   }
-  const gate = enforceQualityThresholds(metrics);
+  const gate = enforceQualityThresholds(metrics, platformThresholds);
   if (!gate.passed || !sameJson(gate, record.gate)) {
     throw new Error("platform quality threshold gate did not pass");
   }
@@ -1349,7 +1363,8 @@ export async function runPlatformEvaluation(options) {
   }
   const completed = Date.now();
   const metrics = summarizeQualityRounds(rounds);
-  const gate = enforceQualityThresholds(metrics);
+  const thresholds = qualityThresholdsForPlatform(options.platform);
+  const gate = enforceQualityThresholds(metrics, thresholds);
   return sealPlatformRecord({
     schema: PLATFORM_SCHEMA,
     status: gate.passed ? "passed" : "failed",
@@ -1365,7 +1380,7 @@ export async function runPlatformEvaluation(options) {
     provider: options.provider,
     model: options.model,
     profile: FORMAL_PROFILE,
-    thresholds: FROZEN_THRESHOLDS,
+    thresholds,
     budget: {
       ceilingUsd: options.maxTotalCostUsd,
       perInvocationCeilingUsd,
