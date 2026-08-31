@@ -1352,6 +1352,15 @@ describe("Graph producer and close workflow boundary", () => {
     expect(producer).toContain("Generate a hosted current-run challenge");
     expect(producer).toContain("runs-on: ubuntu-latest");
     expect(producer).toContain(
+      "graph-kernel-production-evidence-authoritative",
+    );
+    expect(producer).toContain("cancel-in-progress: true");
+    expect(producer).toContain('--ref-protected "${{ github.ref_protected }}"');
+    expect(
+      (producer.match(/node scripts\/verify-github-live-main\.mjs/gu) || [])
+        .length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(producer).toContain(
       "Collect signed ${{ matrix.platform }} source receipts",
     );
     expect(producer).toContain("graph-kernel-production-source-registry.json");
@@ -1370,9 +1379,20 @@ describe("Graph producer and close workflow boundary", () => {
     expect(sourceJob).not.toContain("shell: bash");
     expect(sourceJob).not.toContain("gh api");
     expect(sourceJob).not.toContain("jq ");
+    expect(sourceJob).toContain(
+      "Revalidate protected live main before collector credential access",
+    );
+    expect(sourceJob.indexOf("verify-github-live-main.mjs")).toBeLessThan(
+      sourceJob.indexOf("GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN"),
+    );
     expect(producer).not.toContain("GRAPH_KERNEL_PRODUCTION_EVIDENCE_ROOT");
     expect(producer).not.toContain("evidence_bundle_id");
     expect(close).toContain("--deny-self-hosted-runners");
+    expect(close).toContain('--ref-protected "${{ github.ref_protected }}"');
+    expect(
+      (close.match(/node scripts\/verify-github-live-main\.mjs/gu) || [])
+        .length,
+    ).toBeGreaterThanOrEqual(2);
     expect(close).toContain("--source-ref refs/heads/main");
     expect(close).toContain('--signer-digest "${CUTOVER_SHA}"');
     expect(close).toContain('--run-attempt "${EVIDENCE_RUN_ATTEMPT}"');
