@@ -14,6 +14,7 @@ import {
   artifactName,
   compareCodePointOrder,
   loadContract,
+  readProducerAtCommit,
   sha256,
   verifyAuditArtifact,
 } from "../../scripts/claude-code-increment-audit.mjs";
@@ -405,6 +406,26 @@ afterEach(() => {
 });
 
 describe("Claude Code increment unified audit", () => {
+  it("retries a transient exact-commit producer blob read", () => {
+    let blobAttempts = 0;
+    const execGit = (_command, args) => {
+      if (args[1] === "-t") return "blob\n";
+      blobAttempts += 1;
+      if (blobAttempts === 1) throw new Error("transient Git read failure");
+      return Buffer.from("producer bytes", "utf8");
+    };
+    const waits = [];
+
+    expect(
+      readProducerAtCommit("repository", "a".repeat(40), "package.json", {
+        execGit,
+        wait: (_array, _index, _expected, timeout) => waits.push(timeout),
+      }),
+    ).toEqual(Buffer.from("producer bytes", "utf8"));
+    expect(blobAttempts).toBe(2);
+    expect(waits).toEqual([25]);
+  });
+
   it("locks the canonical 12-commitment by three-OS contract", () => {
     const contract = loadContract();
     expect(contract.path).toBe(DEFAULT_CONTRACT_PATH);

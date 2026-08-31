@@ -39,6 +39,8 @@ const MAX_JSON_DEPTH = 24;
 const MAX_JSON_NODES = 100_000;
 const MAX_DISCOVERED_FILES = 50_000;
 const MAX_PRODUCER_BYTES = 128 * 1024 * 1024;
+const GIT_BLOB_READ_ATTEMPTS = 3;
+const GIT_BLOB_RETRY_DELAY_MS = 25;
 
 const REQUIRED_COMMITMENTS = Object.freeze([
   "RC-DEFAULT",
@@ -534,11 +536,16 @@ function assertExactHead(releaseCommit, repositoryRoot, verifyGitHead) {
   return normalized;
 }
 
-function readProducerAtCommit(repositoryRoot, releaseCommit, producerPath) {
+function readProducerAtCommit(
+  repositoryRoot,
+  releaseCommit,
+  producerPath,
+  { execGit = execFileSync, wait = Atomics.wait } = {},
+) {
   const objectName = `${releaseCommit}:${producerPath}`;
   let objectType;
   try {
-    objectType = execFileSync("git", ["cat-file", "-t", objectName], {
+    objectType = execGit("git", ["cat-file", "-t", objectName], {
       cwd: repositoryRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
@@ -551,16 +558,28 @@ function readProducerAtCommit(repositoryRoot, releaseCommit, producerPath) {
       `producer ${producerPath} is not a file at exact head ${releaseCommit}`,
     );
   }
-  try {
-    return execFileSync("git", ["cat-file", "blob", objectName], {
-      cwd: repositoryRoot,
-      encoding: null,
-      maxBuffer: MAX_PRODUCER_BYTES,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (error) {
-    fail(`cannot read producer ${producerPath}: ${error.message}`);
+  let lastError;
+  for (let attempt = 1; attempt <= GIT_BLOB_READ_ATTEMPTS; attempt += 1) {
+    try {
+      return execGit("git", ["cat-file", "blob", objectName], {
+        cwd: repositoryRoot,
+        encoding: null,
+        maxBuffer: MAX_PRODUCER_BYTES,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < GIT_BLOB_READ_ATTEMPTS) {
+        wait(
+          new Int32Array(new SharedArrayBuffer(4)),
+          0,
+          0,
+          GIT_BLOB_RETRY_DELAY_MS * attempt,
+        );
+      }
+    }
   }
+  fail(`cannot read producer ${producerPath}: ${lastError.message}`);
 }
 
 function verifyProducerDigests(
@@ -1364,6 +1383,7 @@ export {
   compareCodePointOrder,
   loadContract,
   normalizeFragment,
+  readProducerAtCommit,
   sha256,
   verifyAuditArtifact,
 };
