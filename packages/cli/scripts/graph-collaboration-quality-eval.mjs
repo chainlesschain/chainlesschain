@@ -20,6 +20,7 @@ export const FORMAL_PROFILE = Object.freeze({
   name: "formal",
   minimumDurationSeconds: 1800,
   minimumRounds: 3,
+  maxTurnsPerAgent: 24,
   taskIds: Object.freeze([
     "add-function",
     "fix-failing-test",
@@ -324,6 +325,8 @@ export function validatePlatformRecord(record, expected = {}) {
     Number(record.profile?.minimumDurationSeconds) !==
       FORMAL_PROFILE.minimumDurationSeconds ||
     Number(record.profile?.minimumRounds) !== FORMAL_PROFILE.minimumRounds ||
+    Number(record.profile?.maxTurnsPerAgent) !==
+      FORMAL_PROFILE.maxTurnsPerAgent ||
     !sameJson(record.profile?.taskIds, FORMAL_PROFILE.taskIds)
   ) {
     throw new Error("platform evidence did not use the frozen formal profile");
@@ -1031,7 +1034,7 @@ async function runControl({
           "--sandbox-mode",
           "off",
           "--max-turns",
-          "12",
+          String(FORMAL_PROFILE.maxTurnsPerAgent),
           "--max-budget-usd",
           String(perInvocationCeilingUsd),
           "--ephemeral",
@@ -1130,7 +1133,7 @@ async function runCandidate({
         "--agent-sandbox-mode",
         "off",
         "--agent-max-turns",
-        "12",
+        String(FORMAL_PROFILE.maxTurnsPerAgent),
         "--agent-max-budget-usd",
         String(perInvocationCeilingUsd),
         "--agent-max-wall",
