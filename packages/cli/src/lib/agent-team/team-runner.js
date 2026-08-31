@@ -2785,6 +2785,10 @@ export class TeamRunner {
           key,
           holder,
           error: failure?.message || String(failure),
+          code: failure?.code || null,
+          exitCode: Number.isInteger(failure?.exitCode)
+            ? failure.exitCode
+            : null,
           retry: outcome.retry === true,
           attempts: outcome.attempts,
           interrupted: failure?.code === "TEAM_TASK_HUMAN_INTERRUPTED",

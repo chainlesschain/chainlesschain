@@ -8,13 +8,18 @@ const axios = require("axios");
 const fs = require("fs").promises;
 const path = require("path");
 const { app } = require("electron");
+const { createOptionalDockerRuntime } = require("./optional-docker-runtime.js");
 
 class HealthCheckService {
-  constructor() {
+  constructor(options = {}) {
     this.checks = {};
     this.checkInterval = 60000; // 1分钟检查一次
     this.intervalId = null;
     this.lastResults = {};
+    this.httpClient = options.httpClient || axios;
+    this.dockerRuntime =
+      options.dockerRuntime ||
+      createOptionalDockerRuntime({ enabled: options.enableDockerAutoStart });
     this.setupChecks();
   }
 
@@ -155,7 +160,7 @@ class HealthCheckService {
   async checkOllama() {
     try {
       const ollamaHost = process.env.OLLAMA_HOST || "http://localhost:11434";
-      const response = await axios.get(`${ollamaHost}/api/tags`, {
+      const response = await this.httpClient.get(`${ollamaHost}/api/tags`, {
         timeout: 5000,
       });
 
@@ -169,30 +174,29 @@ class HealthCheckService {
         },
       };
     } catch (error) {
-      return {
+      const result = {
         healthy: false,
         message: `Ollama service unavailable: ${error.message}`,
-        autoFix: async () => {
+      };
+      if (this.dockerRuntime.enabled) {
+        result.autoFix = async () => {
+          const started = await this.dockerRuntime.startContainer(
+            "chainlesschain-ollama",
+          );
+          if (!started.success) return started;
+          await this.sleep(5000);
           try {
-            const { exec } = require("child_process");
-            const util = require("util");
-            const execPromise = util.promisify(exec);
-
-            // 尝试启动Docker容器
-            await execPromise("docker start chainlesschain-ollama");
-            await this.sleep(5000);
-
-            // 验证服务是否启动
-            await axios.get(
+            await this.httpClient.get(
               `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/tags`,
+              { timeout: 5000 },
             );
-
             return { success: true, message: "Ollama service started" };
           } catch (fixError) {
             return { success: false, message: fixError.message };
           }
-        },
-      };
+        };
+      }
+      return result;
     }
   }
 
@@ -202,7 +206,7 @@ class HealthCheckService {
   async checkQdrant() {
     try {
       const qdrantHost = process.env.QDRANT_HOST || "http://localhost:6333";
-      const response = await axios.get(`${qdrantHost}/collections`, {
+      const response = await this.httpClient.get(`${qdrantHost}/collections`, {
         timeout: 5000,
       });
 
@@ -216,28 +220,29 @@ class HealthCheckService {
         },
       };
     } catch (error) {
-      return {
+      const result = {
         healthy: false,
         message: `Qdrant service unavailable: ${error.message}`,
-        autoFix: async () => {
+      };
+      if (this.dockerRuntime.enabled) {
+        result.autoFix = async () => {
+          const started = await this.dockerRuntime.startContainer(
+            "chainlesschain-qdrant",
+          );
+          if (!started.success) return started;
+          await this.sleep(5000);
           try {
-            const { exec } = require("child_process");
-            const util = require("util");
-            const execPromise = util.promisify(exec);
-
-            await execPromise("docker start chainlesschain-qdrant");
-            await this.sleep(5000);
-
-            await axios.get(
+            await this.httpClient.get(
               `${process.env.QDRANT_HOST || "http://localhost:6333"}/collections`,
+              { timeout: 5000 },
             );
-
             return { success: true, message: "Qdrant service started" };
           } catch (fixError) {
             return { success: false, message: fixError.message };
           }
-        },
-      };
+        };
+      }
+      return result;
     }
   }
 
@@ -248,9 +253,12 @@ class HealthCheckService {
     try {
       const serviceUrl =
         process.env.PROJECT_SERVICE_URL || "http://localhost:9090";
-      const response = await axios.get(`${serviceUrl}/actuator/health`, {
-        timeout: 5000,
-      });
+      const response = await this.httpClient.get(
+        `${serviceUrl}/actuator/health`,
+        {
+          timeout: 5000,
+        },
+      );
 
       return {
         healthy: response.data.status === "UP",
@@ -271,7 +279,7 @@ class HealthCheckService {
   async checkAIService() {
     try {
       const serviceUrl = process.env.AI_SERVICE_URL || "http://localhost:8001";
-      const response = await axios.get(`${serviceUrl}/health`, {
+      const response = await this.httpClient.get(`${serviceUrl}/health`, {
         timeout: 5000,
       });
 
@@ -402,7 +410,7 @@ class HealthCheckService {
   async checkNetwork() {
     try {
       // 尝试连接到公共DNS服务器
-      await axios.get("https://dns.google/resolve?name=example.com", {
+      await this.httpClient.get("https://dns.google/resolve?name=example.com", {
         timeout: 5000,
       });
 

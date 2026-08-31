@@ -16,6 +16,7 @@ const SqlSecurity = require("../database/sql-security.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
+const { createOptionalDockerRuntime } = require("./optional-docker-runtime.js");
 
 let electronApp = null;
 let electronLoadError = null;
@@ -206,6 +207,9 @@ class ErrorMonitor extends EventEmitter {
     this.llmManager = options.llmManager || null;
     this.database = options.database || null;
     this.enableAIDiagnosis = options.enableAIDiagnosis !== false;
+    this.dockerRuntime =
+      options.dockerRuntime ||
+      createOptionalDockerRuntime({ enabled: options.enableDockerAutoStart });
 
     this.setupGlobalErrorHandlers();
     this.fixStrategies = this.initFixStrategies();
@@ -840,43 +844,14 @@ class ErrorMonitor extends EventEmitter {
    * 重启Ollama服务
    */
   async restartOllamaService() {
-    try {
-      const { exec } = require("child_process");
-      const util = require("util");
-      const execPromise = util.promisify(exec);
-
-      // 尝试启动Docker容器
-      await execPromise("docker start chainlesschain-ollama");
-      await this.sleep(5000); // 等待服务启动
-
-      return { success: true, message: "Ollama service restarted" };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to restart Ollama: ${error.message}`,
-      };
-    }
+    return this.restartService("ollama");
   }
 
   /**
    * 重启Qdrant服务
    */
   async restartQdrantService() {
-    try {
-      const { exec } = require("child_process");
-      const util = require("util");
-      const execPromise = util.promisify(exec);
-
-      await execPromise("docker start chainlesschain-qdrant");
-      await this.sleep(5000);
-
-      return { success: true, message: "Qdrant service restarted" };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to restart Qdrant: ${error.message}`,
-      };
-    }
+    return this.restartService("qdrant");
   }
 
   /**
@@ -1057,8 +1032,12 @@ class ErrorMonitor extends EventEmitter {
 
       // 3. 清理 .chainlesschain/cache 目录中的临时文件
       try {
+        const userDataPath = electronApp?.getPath?.("userData");
+        if (!userDataPath) {
+          throw new Error("Electron userData path is unavailable");
+        }
         const cacheDir = path.join(
-          app.getPath("userData"),
+          userDataPath,
           "..",
           ".chainlesschain",
           "cache",
@@ -1118,67 +1097,38 @@ class ErrorMonitor extends EventEmitter {
    * 重启 PostgreSQL 服务
    */
   async restartPostgresService() {
-    try {
-      const { exec } = require("child_process");
-      const util = require("util");
-      const execPromise = util.promisify(exec);
-
-      // 尝试启动 Docker 容器
-      await execPromise("docker start chainlesschain-postgres");
-      await this.sleep(5000); // 等待服务启动
-
-      // 验证连接
-      try {
-        await execPromise(
-          "docker exec chainlesschain-postgres pg_isready -U chainlesschain",
-        );
-        return {
-          success: true,
-          message: "PostgreSQL service restarted and ready",
-        };
-      } catch (checkError) {
-        return {
-          success: true,
-          message: "PostgreSQL service started (connection not verified)",
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to restart PostgreSQL: ${error.message}`,
-      };
-    }
+    const started = await this.restartService("postgres");
+    if (!started.success) return started;
+    await this.sleep(5000);
+    const ready = await this.dockerRuntime.execInContainer(
+      "chainlesschain-postgres",
+      ["pg_isready", "-U", "chainlesschain"],
+    );
+    return {
+      ...started,
+      message: ready.success
+        ? "PostgreSQL service restarted and ready"
+        : "PostgreSQL service started (connection not verified)",
+    };
   }
 
   /**
    * 重启 Redis 服务
    */
   async restartRedisService() {
-    try {
-      const { exec } = require("child_process");
-      const util = require("util");
-      const execPromise = util.promisify(exec);
-
-      // 尝试启动 Docker 容器
-      await execPromise("docker start chainlesschain-redis");
-      await this.sleep(3000); // Redis 启动较快
-
-      // 验证连接
-      try {
-        await execPromise("docker exec chainlesschain-redis redis-cli ping");
-        return { success: true, message: "Redis service restarted and ready" };
-      } catch (checkError) {
-        return {
-          success: true,
-          message: "Redis service started (connection not verified)",
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to restart Redis: ${error.message}`,
-      };
-    }
+    const started = await this.restartService("redis");
+    if (!started.success) return started;
+    await this.sleep(3000);
+    const ready = await this.dockerRuntime.execInContainer(
+      "chainlesschain-redis",
+      ["redis-cli", "ping"],
+    );
+    return {
+      ...started,
+      message: ready.success
+        ? "Redis service restarted and ready"
+        : "Redis service started (connection not verified)",
+    };
   }
 
   /**
@@ -1250,9 +1200,7 @@ class ErrorMonitor extends EventEmitter {
     const entries = await fs.readdir(this.logPath, { withFileTypes: true });
     const logFiles = await Promise.all(
       entries
-        .filter(
-          (entry) => entry.isFile() && /^error-.*\.log$/.test(entry.name),
-        )
+        .filter((entry) => entry.isFile() && /^error-.*\.log$/.test(entry.name))
         .map(async (entry) => {
           const filePath = path.join(this.logPath, entry.name);
           const fileStats = await fs.stat(filePath);
@@ -1632,10 +1580,6 @@ class ErrorMonitor extends EventEmitter {
    * @returns {Promise<Object>} 重启结果
    */
   async restartService(service) {
-    const { exec } = require("child_process");
-    const util = require("util");
-    const execPromise = util.promisify(exec);
-
     const containerNames = {
       ollama: "chainlesschain-ollama",
       qdrant: "chainlesschain-qdrant",
@@ -1648,23 +1592,16 @@ class ErrorMonitor extends EventEmitter {
       return { success: false, message: `No container mapping for ${service}` };
     }
 
-    try {
-      // 尝试启动 Docker 容器
-      await execPromise(`docker start ${containerName}`);
+    const result = await this.dockerRuntime.startContainer(containerName);
+    if (result.success) {
       logger.info(`[Auto-Fix] Started Docker container: ${containerName}`);
       return {
-        success: true,
+        ...result,
         message: `${service} container started`,
         container: containerName,
       };
-    } catch (dockerError) {
-      // Docker 失败，可能容器不存在或 Docker 未运行
-      return {
-        success: false,
-        message: `Failed to start ${service}: ${dockerError.message}`,
-        suggestion: "Check if Docker is running and container exists",
-      };
     }
+    return result;
   }
 
   // ============================================================

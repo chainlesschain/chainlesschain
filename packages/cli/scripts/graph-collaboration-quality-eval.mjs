@@ -794,6 +794,8 @@ export function candidateFailureDetails(result) {
     .map((event) => ({
       key: String(event.key || "").slice(0, 256),
       error: redactSecrets(String(event.error || "")).slice(0, 1000),
+      code: event.code ? String(event.code).slice(0, 128) : null,
+      exitCode: Number.isInteger(event.exitCode) ? event.exitCode : null,
       retry: event.retry === true,
     }));
   const summary = [...events]
