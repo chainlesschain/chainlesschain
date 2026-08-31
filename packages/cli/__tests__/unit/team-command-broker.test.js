@@ -9,6 +9,7 @@ import {
   buildTeamControlBindings,
   buildTeamAgentPrompt,
   dispatchTeamControlInterrupt,
+  formalQualityAgentWorkingDirectory,
   MAX_TEAMMATES,
   makeShellRunTask,
   parsePositiveOption,
@@ -377,6 +378,10 @@ describe("team command process Broker", () => {
     const completed = spawnAgent("formal prompt", "/repo", {
       sessionId: "session-must-not-persist",
       model: "formal-model",
+      messageBridge: {
+        mailbox: new TeamMailbox({ recipients: ["formal-worker"] }),
+        holder: "formal-worker",
+      },
     });
     child.stdout.write(
       `${JSON.stringify({
@@ -392,10 +397,48 @@ describe("team command process Broker", () => {
 
     const [, args, options] = _deps.spawn.mock.calls[0];
     expect(args).toContain("--ephemeral");
+    expect(args).toContain("--bare");
+    expect(args).toContain("--no-checkpoint");
+    expect(args).toEqual(
+      expect.arrayContaining(["--output-style", "concise"]),
+    );
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "--allowed-tools",
+        "read_file,list_dir,search_files,write_file,edit_file,edit_file_hashed",
+      ]),
+    );
     expect(args).not.toContain("--session");
     expect(args).not.toContain("session-must-not-persist");
     expect(options.env.CC_FORMAL_QUALITY_EVAL_HERMETIC).toBe("1");
     expect(options.env.CC_FORMAL_QUALITY_EVAL_PROVIDER).toBe("volcengine");
+    expect(options.env.CC_TEAM_MESSAGE_BRIDGE_ENDPOINT).toBeUndefined();
+  });
+
+  it("starts a formal quality teammate inside its sole declared scope", () => {
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = "volcengine";
+    process.env.CHAINLESSCHAIN_HOME = path.join(
+      os.tmpdir(),
+      "cc-formal-quality-scoped-home",
+    );
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-formal-scope-"));
+    const scoped = path.join(root, "cases", "add-function");
+    fs.mkdirSync(scoped, { recursive: true });
+    try {
+      expect(
+        formalQualityAgentWorkingDirectory(root, {
+          metadata: { scopePaths: ["cases/add-function"] },
+        }),
+      ).toBe(path.resolve(scoped));
+      expect(() =>
+        formalQualityAgentWorkingDirectory(root, {
+          metadata: { scopePaths: ["../outside"] },
+        }),
+      ).toThrow(/existing worktree subdirectory/u);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("mounts and cleans a lease-bound real-time teammate tool bridge", async () => {

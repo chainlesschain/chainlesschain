@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { CredentialAgent } from "../../src/lib/process-execution-broker/credential-agent.js";
 
 describe("ProcessExecutionBroker credential boundary", () => {
   let previousNative;
@@ -104,6 +105,30 @@ describe("ProcessExecutionBroker credential boundary", () => {
       credentialArgCount: 1,
     });
     expect(JSON.stringify(audit)).not.toContain(secret);
+  });
+
+  it("revokes sync-process references before repeated launches exhaust capacity", () => {
+    const agent = new CredentialAgent({ env: {}, maxCredentials: 2 });
+    executionBroker._credentialAgent = agent;
+
+    for (let index = 0; index < 12; index += 1) {
+      expect(() =>
+        executionBroker.spawnSync("cc-test-tool", [], {
+          origin: "test:sync-credential-capacity",
+          policy: "allow",
+          env: {
+            SERVICE_SECRET: `secret-${index}`,
+            PATH: "safe",
+          },
+        }),
+      ).not.toThrow();
+    }
+
+    expect(nativeSpawnSync).toHaveBeenCalledTimes(12);
+    expect(agent.getInfo()).toMatchObject({
+      activeCredentials: 0,
+      credentialsTracked: 2,
+    });
   });
 
   it("preserves exact content-free execution-location fences", () => {

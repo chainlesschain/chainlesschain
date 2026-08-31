@@ -789,6 +789,35 @@ export function buildTeamAgentPrompt(prompt, { inbox = [] } = {}) {
   ].join("\n");
 }
 
+export function formalQualityAgentWorkingDirectory(
+  worktreeRoot,
+  task,
+  environment = process.env,
+) {
+  const root = path.resolve(worktreeRoot);
+  if (!isFormalQualityHermeticRuntime(environment)) return root;
+  const scopes = task?.metadata?.scopePaths;
+  if (!Array.isArray(scopes) || scopes.length !== 1) {
+    throw new Error(
+      "Formal quality teammate requires exactly one declared scopePath",
+    );
+  }
+  const scoped = path.resolve(root, String(scopes[0] || ""));
+  const relation = path.relative(root, scoped);
+  if (
+    !relation ||
+    relation === ".." ||
+    relation.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relation) ||
+    !fs.statSync(scoped).isDirectory()
+  ) {
+    throw new Error(
+      "Formal quality teammate scopePath must resolve to an existing worktree subdirectory",
+    );
+  }
+  return scoped;
+}
+
 function normalizePermissionMode(value) {
   const mode = String(value || "acceptEdits");
   const allowed = new Set([
@@ -1096,7 +1125,17 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
     if (opts.sessionId && !formalQualityHermetic) {
       args.push("--session", opts.sessionId);
     }
-    if (formalQualityHermetic) args.push("--ephemeral");
+    if (formalQualityHermetic) {
+      args.push(
+        "--ephemeral",
+        "--bare",
+        "--no-checkpoint",
+        "--output-style",
+        "concise",
+        "--allowed-tools",
+        "read_file,list_dir,search_files,write_file,edit_file,edit_file_hashed",
+      );
+    }
     if (opts.sandboxMode) {
       args.push("--sandbox-mode", opts.sandboxMode);
     }
@@ -1385,7 +1424,12 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
 }
 
 export function spawnAgent(prompt, cwd, opts = {}) {
-  if (!opts.messageBridge) return spawnAgentProcess(prompt, cwd, opts);
+  if (
+    !opts.messageBridge ||
+    isFormalQualityHermeticRuntime(process.env)
+  ) {
+    return spawnAgentProcess(prompt, cwd, opts);
+  }
   return (async () => {
     let bridge;
     try {
@@ -2924,9 +2968,13 @@ export function registerTeamCommand(program, { logger } = {}) {
                   taskContractFor(key, task),
                   budgetReservation,
                 );
+                const agentCwd = formalQualityAgentWorkingDirectory(
+                  cwd,
+                  task,
+                );
                 return spawnAgent(
                   buildTeamAgentPrompt(prompt, { inbox }),
-                  cwd,
+                  agentCwd,
                   {
                     ...contract,
                     // The outer worktree transaction is the workspace
