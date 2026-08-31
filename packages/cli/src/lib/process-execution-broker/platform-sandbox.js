@@ -2719,17 +2719,18 @@ function sameWindowsFileIdentity(left, right) {
   );
 }
 
-// Cleanup is authorized by the stable file-object identity, not by metadata
+// Cleanup is authorized by the stable volume/file identity, not by metadata
 // that Windows may settle after the helper closes its last write handle.  The
 // strict identity above remains authoritative while content is read or
 // attested; this cleanup-only comparison still rejects a same-path replacement
-// because that changes the inode/birth identity.
+// because that changes the inode. Node's Windows birthtime projection can
+// settle together with size/ctime/mtime, so it is metadata rather than part of
+// the deletion authority.
 function sameWindowsFileObjectIdentity(left, right) {
   return (
     left.dev === right.dev &&
     left.ino === right.ino &&
-    left.mode === right.mode &&
-    left.birthtimeNs === right.birthtimeNs
+    left.mode === right.mode
   );
 }
 

@@ -10549,6 +10549,7 @@ describe("platform sandbox adapter contract", () => {
         if (identityStats >= 3) {
           return {
             ...stat,
+            birthtimeNs: stat.birthtimeNs + 1n,
             size: stat.size + 1n,
             ctimeNs: stat.ctimeNs + 1n,
             mtimeNs: stat.mtimeNs + 1n,
