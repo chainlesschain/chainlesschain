@@ -126,11 +126,11 @@ jobs:
           [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "${EVIDENCE_RUN_ID:-$CURRENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
           [[ "${EVIDENCE_RUN_ATTEMPT:-$CURRENT_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
-          case "$EXPECTED_WORKFLOW_REF" in
-            "$EXPECTED_REPOSITORY/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main"|\
-            "$EXPECTED_REPOSITORY/.github/workflows/desktop-signed-skill-platform.yml@refs/tags/v"*) ;;
-            *) echo "untrusted Desktop platform workflow ref" >&2; exit 1 ;;
-          esac
+          test "$EXPECTED_WORKFLOW_REF" = \
+            "$EXPECTED_REPOSITORY/.github/workflows/desktop-signed-skill-platform.yml@refs/heads/main" || {
+            echo "untrusted Desktop platform workflow ref" >&2
+            exit 1
+          }
 
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
