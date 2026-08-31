@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.15: align the formal quality file-tool ceiling
+
+> `chainlesschain` **0.166.14 -> 0.166.15** (hotfix candidate, 2026-08-31).
+
+- **Formal quality startup restored**: the exact hermetic file-tool ceiling now
+  admits the same read, list, search, write, and edit tools exposed by the
+  protected single-Agent and Graph candidate harness, so all platforms can
+  advance past preflight into the real-model evaluation.
+- **One canonical tool contract**: the headless runtime and formal quality
+  producer consume one frozen tool list, while the agent-loop regression proves
+  the complete list remains inside the fail-closed exact mutation boundary.
+- **No shell or network widening**: `run_shell`, `run_code`, Git, MCP, plugin,
+  IDE, and sub-agent tools remain unavailable; writes are still limited to the
+  task's exact allowed files.
+- **Release validation required**: publish only after this exact release commit
+  passes CLI CI and CLI Strict Sandbox on Linux, Windows, and macOS and the
+  protected quality workflow completes its full matrix and OIDC aggregate.
+
 ### Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows
 
 > `chainlesschain` **0.166.13 -> 0.166.14**, published 2026-08-30 from exact

@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.107] - CLI 0.166.15 formal quality hotfix (2026-08-31)
+
+- Recommend the exact-gated `chainlesschain@0.166.15` hotfix and align the
+  packaged JetBrains Marketplace description and compatibility metadata.
+- Keep the IDE bridge behavior unchanged while the CLI restores formal
+  single-Agent/Graph quality evaluation startup without widening shell,
+  network, MCP, plugin, IDE, or sub-agent authority.
+- Publish only after the exact shared release SHA completes CLI, Strict
+  Sandbox, IDE, and protected formal-quality gates.
+
 ## [0.4.106] - CLI 0.166.14 Windows startup hotfix (2026-08-31)
 
 - Recommend the fully gated public `chainlesschain@0.166.14` release and align
