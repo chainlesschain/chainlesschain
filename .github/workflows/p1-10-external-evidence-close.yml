@@ -16,19 +16,6 @@ on:
         required: true
         default: "1"
         type: string
-      producer_workflow:
-        description: Reviewed repository workflow path that signed the evidence
-        required: true
-        type: string
-      evidence_artifact:
-        description: Exact artifact name containing one evidence JSON file
-        required: true
-        default: p1-10-external-evidence
-        type: string
-      challenge:
-        description: Unpredictable challenge bound by the producer evidence
-        required: true
-        type: string
 
 permissions:
   actions: read
@@ -50,31 +37,48 @@ jobs:
       EVIDENCE_SHA: ${{ inputs.commit_sha }}
       PRODUCER_RUN_ID: ${{ inputs.producer_run_id }}
       PRODUCER_RUN_ATTEMPT: ${{ inputs.producer_run_attempt }}
-      PRODUCER_WORKFLOW: ${{ inputs.producer_workflow }}
+      PRODUCER_WORKFLOW: .github/workflows/p1-10-external-evidence-producer.yml
       PRODUCER_ENVIRONMENT: p1-10-external-conformance
-      EVIDENCE_CHALLENGE: ${{ inputs.challenge }}
+      EXPECTED_REGISTRY_DIGEST: ${{ vars.P1_10_PHYSICAL_HOST_REGISTRY_SHA256 }}
+      EXPECTED_LINUX_HARNESS_DIGEST: ${{ vars.P1_10_LINUX_PHYSICAL_HARNESS_SHA256 }}
+      EXPECTED_MACOS_HARNESS_DIGEST: ${{ vars.P1_10_MACOS_PHYSICAL_HARNESS_SHA256 }}
+      EXPECTED_WINDOWS_HARNESS_DIGEST: ${{ vars.P1_10_WINDOWS_PHYSICAL_HARNESS_SHA256 }}
+      EXPECTED_LINUX_SUPERVISOR_DIGEST: ${{ vars.P1_10_LINUX_LOCAL_ATTESTER_SHA256 }}
+      EXPECTED_MACOS_SUPERVISOR_DIGEST: ${{ vars.P1_10_MACOS_LOCAL_ATTESTER_SHA256 }}
+      EXPECTED_WINDOWS_SUPERVISOR_DIGEST: ${{ vars.P1_10_WINDOWS_LOCAL_ATTESTER_SHA256 }}
+      EXPECTED_LINUX_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_LINUX_PROTECTED_INPUT_MANIFEST_SHA256 }}
+      EXPECTED_MACOS_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_MACOS_PROTECTED_INPUT_MANIFEST_SHA256 }}
+      EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_WINDOWS_PROTECTED_INPUT_MANIFEST_SHA256 }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Refuse detached, replayable, or malformed close requests
         shell: bash
         run: |
-          if [[ ! "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]] || [[ "${EVIDENCE_SHA}" != "${GITHUB_SHA}" ]]; then
-            echo "::error::commit_sha must be the workflow event's exact 40-character SHA"
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]] || \
+             [[ ! "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${EVIDENCE_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::commit_sha must be the workflow event's exact protected main SHA"
             exit 1
           fi
           if [[ ! "${PRODUCER_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || [[ ! "${PRODUCER_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]; then
             echo "::error::producer run id and attempt must be positive integers"
             exit 1
           fi
-          if [[ ! "${PRODUCER_WORKFLOW}" =~ ^\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$ ]]; then
-            echo "::error::producer_workflow must be a repository workflow path"
+          for digest in "${EXPECTED_REGISTRY_DIGEST}" "${EXPECTED_LINUX_HARNESS_DIGEST}" "${EXPECTED_MACOS_HARNESS_DIGEST}" "${EXPECTED_WINDOWS_HARNESS_DIGEST}" "${EXPECTED_LINUX_SUPERVISOR_DIGEST}" "${EXPECTED_MACOS_SUPERVISOR_DIGEST}" "${EXPECTED_WINDOWS_SUPERVISOR_DIGEST}" "${EXPECTED_LINUX_INPUT_MANIFEST_DIGEST}" "${EXPECTED_MACOS_INPUT_MANIFEST_DIGEST}" "${EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST}"; do
+            if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+              echo "::error::close requires protected registry and harness digest pins"
+              exit 1
+            fi
+          done
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]]; then
+            echo "::error::main advanced or the close request is detached"
             exit 1
           fi
-          if [[ "${PRODUCER_WORKFLOW}" == ".github/workflows/p1-10-external-evidence-close.yml" ]]; then
-            echo "::error::the close consumer cannot attest itself as the producer"
-            exit 1
-          fi
-          if [[ ! "${EVIDENCE_CHALLENGE}" =~ ^[A-Za-z0-9_-]{32,128}$ ]]; then
-            echo "::error::challenge must be an unpredictable 32-128 character token"
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::live main must still be the exact SHA and branch-protected"
             exit 1
           fi
 
@@ -82,6 +86,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.EVIDENCE_SHA }}
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -94,24 +99,51 @@ jobs:
         shell: bash
         run: |
           test "$(git rev-parse HEAD)" = "${EVIDENCE_SHA}"
-          run_identity="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}" \
-            --jq '[.head_sha, (.run_attempt|tostring), .path, .conclusion, .event, .head_repository.full_name] | @tsv')"
-          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository <<< "${run_identity}"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}" > "${RUNNER_TEMP}/p1-10-producer-run.json"
+          run_identity="$(jq -r '[.head_sha, (.run_attempt|tostring), .path, .conclusion, .event, .head_repository.full_name, .head_branch] | @tsv' "${RUNNER_TEMP}/p1-10-producer-run.json")"
+          IFS=$'\t' read -r run_sha run_attempt run_path run_conclusion run_event run_repository run_branch <<< "${run_identity}"
           if [[ "${run_sha}" != "${EVIDENCE_SHA}" ]] || \
              [[ "${run_attempt}" != "${PRODUCER_RUN_ATTEMPT}" ]] || \
              [[ "${run_path}" != "${PRODUCER_WORKFLOW}" ]] || \
              [[ "${run_conclusion}" != "success" ]] || \
              [[ "${run_event}" != "workflow_dispatch" ]] || \
-             [[ "${run_repository}" != "${GITHUB_REPOSITORY}" ]]; then
+             [[ "${run_repository}" != "${GITHUB_REPOSITORY}" ]] || \
+             [[ "${run_branch}" != "main" ]]; then
             echo "::error::producer run is not the reviewed successful exact-SHA workflow dispatch"
             exit 1
           fi
 
-      - name: Download exact producer evidence
+      - name: Select exact attempt-scoped artifact IDs
+        id: artifacts
+        shell: bash
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100" --paginate --slurp > "${RUNNER_TEMP}/p1-10-artifact-pages.json"
+          node scripts/p1-10-github-trust.mjs select-artifacts \
+            --artifact-pages "${RUNNER_TEMP}/p1-10-artifact-pages.json" \
+            --run "${RUNNER_TEMP}/p1-10-producer-run.json" \
+            --evidence-metadata "${RUNNER_TEMP}/p1-10-evidence-artifact.json" \
+            --challenge-metadata "${RUNNER_TEMP}/p1-10-challenge-artifact.json" \
+            --server-url "${GITHUB_SERVER_URL}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --workflow "${PRODUCER_WORKFLOW}" \
+            --commit "${EVIDENCE_SHA}" \
+            --run-id "${PRODUCER_RUN_ID}" \
+            --run-attempt "${PRODUCER_RUN_ATTEMPT}"
+
+      - name: Download exact producer evidence by artifact ID
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ inputs.evidence_artifact }}
+          artifact-ids: ${{ steps.artifacts.outputs.evidence_id }}
           path: ${{ runner.temp }}/p1-10-external-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.producer_run_id }}
+
+      - name: Download independent hosted challenge by artifact ID
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ steps.artifacts.outputs.challenge_id }}
+          path: ${{ runner.temp }}/p1-10-challenge
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           run-id: ${{ inputs.producer_run_id }}
@@ -127,16 +159,51 @@ jobs:
           fi
           echo "path=${files[0]}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify producer OIDC attestation and source identity
+          mapfile -t challenge_files < <(find "${RUNNER_TEMP}/p1-10-challenge" -type f -name '*.json' -print)
+          if [[ "${#challenge_files[@]}" -ne 1 ]]; then
+            echo "::error::expected exactly one hosted challenge JSON file; found ${#challenge_files[@]}"
+            exit 1
+          fi
+          echo "challenge_path=${challenge_files[0]}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify producer OIDC attestations and exact certificate invocations
+        id: trust
         env:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_PATH: ${{ steps.evidence.outputs.path }}
         shell: bash
-        run: >-
-          gh attestation verify "${EVIDENCE_PATH}"
-          --repo "${GITHUB_REPOSITORY}"
-          --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${PRODUCER_WORKFLOW}"
-          --source-digest "${EVIDENCE_SHA}"
+        run: |
+          gh attestation verify "${EVIDENCE_PATH}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${PRODUCER_WORKFLOW}" \
+            --signer-digest "${EVIDENCE_SHA}" \
+            --source-digest "${EVIDENCE_SHA}" \
+            --source-ref refs/heads/main \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --deny-self-hosted-runners \
+            --format json > "${RUNNER_TEMP}/p1-10-evidence-attestation.json"
+          gh attestation verify "${{ steps.evidence.outputs.challenge_path }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${PRODUCER_WORKFLOW}" \
+            --signer-digest "${EVIDENCE_SHA}" \
+            --source-digest "${EVIDENCE_SHA}" \
+            --source-ref refs/heads/main \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --deny-self-hosted-runners \
+            --format json > "${RUNNER_TEMP}/p1-10-challenge-attestation.json"
+          node scripts/p1-10-github-trust.mjs verify-attestations \
+            --evidence-attestation "${RUNNER_TEMP}/p1-10-evidence-attestation.json" \
+            --challenge-attestation "${RUNNER_TEMP}/p1-10-challenge-attestation.json" \
+            --evidence-metadata "${RUNNER_TEMP}/p1-10-evidence-artifact.json" \
+            --challenge-metadata "${RUNNER_TEMP}/p1-10-challenge-artifact.json" \
+            --challenge "${{ steps.evidence.outputs.challenge_path }}" \
+            --run "${RUNNER_TEMP}/p1-10-producer-run.json" \
+            --server-url "${GITHUB_SERVER_URL}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --workflow "${PRODUCER_WORKFLOW}" \
+            --commit "${EVIDENCE_SHA}" \
+            --run-id "${PRODUCER_RUN_ID}" \
+            --run-attempt "${PRODUCER_RUN_ATTEMPT}"
 
       - name: Require the complete P1-10 external evidence contract
         env:
@@ -151,13 +218,50 @@ jobs:
           --expected-run-id "${PRODUCER_RUN_ID}"
           --expected-run-attempt "${PRODUCER_RUN_ATTEMPT}"
           --expected-environment "${PRODUCER_ENVIRONMENT}"
-          --expected-challenge "${EVIDENCE_CHALLENGE}"
+          --expected-challenge "${{ steps.trust.outputs.challenge }}"
+          --expected-registry-digest "${EXPECTED_REGISTRY_DIGEST}"
+          --expected-linux-harness-digest "${EXPECTED_LINUX_HARNESS_DIGEST}"
+          --expected-macos-harness-digest "${EXPECTED_MACOS_HARNESS_DIGEST}"
+          --expected-windows-harness-digest "${EXPECTED_WINDOWS_HARNESS_DIGEST}"
+          --expected-linux-supervisor-digest "${EXPECTED_LINUX_SUPERVISOR_DIGEST}"
+          --expected-macos-supervisor-digest "${EXPECTED_MACOS_SUPERVISOR_DIGEST}"
+          --expected-windows-supervisor-digest "${EXPECTED_WINDOWS_SUPERVISOR_DIGEST}"
+          --expected-linux-input-manifest-digest "${EXPECTED_LINUX_INPUT_MANIFEST_DIGEST}"
+          --expected-macos-input-manifest-digest "${EXPECTED_MACOS_INPUT_MANIFEST_DIGEST}"
+          --expected-windows-input-manifest-digest "${EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST}"
+          --verified-at "${{ steps.trust.outputs.verified_at }}"
           --output "${RUNNER_TEMP}/p1-10-external-evidence-receipt.json"
+
+      - name: Revalidate live protected main before close attestation
+        shell: bash
+        run: |
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::main advanced or lost branch protection before close attestation"
+            exit 1
+          fi
 
       - name: Attest exact close receipt
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: ${{ runner.temp }}/p1-10-external-evidence-receipt.json
+
+      - name: Refuse publishing a close receipt after main changes
+        shell: bash
+        run: |
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::main changed while the close attestation was being issued"
+            exit 1
+          fi
 
       - name: Upload immutable close receipt
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

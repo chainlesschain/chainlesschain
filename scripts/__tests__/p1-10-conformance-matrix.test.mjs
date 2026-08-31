@@ -13,6 +13,7 @@ import {
   P1_10_SCENARIO_EVIDENCE_DOMAIN,
   validateExternalEvidence,
 } from "../p1-10-external-evidence-gate.mjs";
+import { P1_10_SCENARIO_CONTRACT_DIGEST } from "../p1-10-scenario-receipts.mjs";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -28,12 +29,61 @@ const matrix = JSON.parse(
 const expected = Object.freeze({
   commitSha: "a".repeat(40),
   repository: "chainlesschain/chainlesschain",
-  workflow: ".github/workflows/p1-10-external-producer.yml",
+  workflow: ".github/workflows/p1-10-external-evidence-producer.yml",
   runId: 123456,
   runAttempt: 2,
   environment: "p1-10-external-conformance",
   challenge: "p1_10_external_challenge_0123456789abcdef",
+  verifiedAt: "2026-08-30T02:00:00.000Z",
+  registryDigest: "sha256:" + "9".repeat(64),
+  harnessDigests: Object.freeze({
+    linux: "sha256:" + "1".repeat(64),
+    macos: "sha256:" + "2".repeat(64),
+    windows: "sha256:" + "3".repeat(64),
+  }),
+  supervisorDigests: Object.freeze({
+    linux: "sha256:" + "4".repeat(64),
+    macos: "sha256:" + "5".repeat(64),
+    windows: "sha256:" + "6".repeat(64),
+  }),
+  inputManifestDigests: Object.freeze({
+    linux: "sha256:" + "7".repeat(64),
+    macos: "sha256:" + "8".repeat(64),
+    windows: "sha256:" + "a".repeat(64),
+  }),
 });
+
+function evidenceHost(platform, seed, index) {
+  const slot = index === 0 ? "a" : "b";
+  return {
+    artifactId: seed * 1000 + index + 1,
+    artifactName: `p1-10-raw-host-${platform}-${slot}-${expected.runId}-${expected.runAttempt}`,
+    idDigest: `sha256:${String(seed + index).padStart(64, "0")}`,
+    hostClass: "physical",
+    hardwareIdentityDigest: `sha256:${String(seed + 10 + index).padStart(64, "0")}`,
+    runnerRegistrationId: seed * 10 + index + 1,
+    runnerName: `p1-10-${platform}-${slot}-${seed}`,
+    jobSlot: slot,
+    attesterRequestDigest: `sha256:${String(seed + 20 + index).padStart(64, "0")}`,
+    attesterMeasurementDigest: `sha256:${String(seed + 30 + index).padStart(64, "0")}`,
+    inputManifestDigest: expected.inputManifestDigests[platform],
+    bootIdDigest: `sha256:${String(seed + 35 + index).padStart(64, "0")}`,
+    signedExecutionReceiptDigest: `sha256:${String(seed + 40 + index).padStart(64, "0")}`,
+    reportDigest: `sha256:${String(seed + 60 + index).padStart(64, "0")}`,
+    bundleDigest: `sha256:${String(seed + 80 + index).padStart(64, "0")}`,
+    sourceJob: {
+      repository: expected.repository,
+      workflow: expected.workflow,
+      runId: expected.runId,
+      runAttempt: expected.runAttempt,
+      jobId: "collect-host",
+      jobName: `Collect authenticated host (${platform}/${slot})`,
+      jobSlot: slot,
+      jobDatabaseId: seed * 100 + index + 1,
+      startedAt: "2026-08-29T23:59:59.000Z",
+    },
+  };
+}
 
 function externalRequirements() {
   return matrix.scenarios
@@ -60,18 +110,27 @@ function platformEvidence(requirement, platform, seed) {
     startedAt,
     endedAt,
     durationMs: requirement.minimumDurationMs,
-    hosts: Array.from(
-      { length: requirement.minimumDistinctHosts },
-      (_, index) => ({
-        idDigest: `sha256:${String(seed + index).padStart(64, "0")}`,
-        hostClass: "physical",
-      }),
+    trust: {
+      registryDigest: expected.registryDigest,
+      harnessDigest: expected.harnessDigests[platform],
+      supervisorDigest: expected.supervisorDigests[platform],
+      inputManifestDigest: expected.inputManifestDigests[platform],
+      scenarioContractDigest: P1_10_SCENARIO_CONTRACT_DIGEST,
+    },
+    hosts: Array.from({ length: 2 }, (_, index) =>
+      evidenceHost(platform, seed, index),
     ),
     artifacts: [
       {
         kind: "journey-receipt",
-        name: `${requirement.evidenceScenario}-${platform}.json`,
+        name: `${requirement.evidenceScenario}-${platform}-a.json`,
         digest: `sha256:${String(seed + 100).padStart(64, "0")}`,
+        sizeBytes: 1024,
+      },
+      {
+        kind: "journey-receipt",
+        name: `${requirement.evidenceScenario}-${platform}-b.json`,
+        digest: `sha256:${String(seed + 101).padStart(64, "0")}`,
         sizeBytes: 1024,
       },
     ],
@@ -90,11 +149,7 @@ function scenarioEvidence(requirement, index) {
     platforms: [...requirement.requiredPlatforms]
       .sort()
       .map((platform, platformIndex) =>
-        platformEvidence(
-          requirement,
-          platform,
-          1000 + index * 100 + platformIndex * 10,
-        ),
+        platformEvidence(requirement, platform, 1000 + platformIndex * 100),
       ),
   };
   return {
@@ -116,6 +171,13 @@ function validEvidence() {
       runAttempt: expected.runAttempt,
       environment: expected.environment,
       challenge: expected.challenge,
+    },
+    trust: {
+      registryDigest: expected.registryDigest,
+      harnessDigests: expected.harnessDigests,
+      supervisorDigests: expected.supervisorDigests,
+      inputManifestDigests: expected.inputManifestDigests,
+      scenarioContractDigest: P1_10_SCENARIO_CONTRACT_DIGEST,
     },
     issuedAt: "2026-08-30T01:00:00.000Z",
     results: externalRequirements().map(scenarioEvidence),
@@ -209,6 +271,11 @@ test("valid exact-SHA evidence returns a content-free receipt", () => {
   assert.equal(receipt.scenarioCount, 5);
   assert.equal(receipt.platformCount, 15);
   assert.match(receipt.receiptDigest, /^sha256:[a-f0-9]{64}$/u);
+  assert.match(receipt.idempotencyKey, /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(
+    receipt.idempotencyKey,
+    validateExternalEvidence(matrix, validEvidence(), expected).idempotencyKey,
+  );
   assert.equal(JSON.stringify(receipt).includes("messagesSent"), false);
 });
 
@@ -264,7 +331,7 @@ test("missing, duplicate, short, or single-host external cells fail closed", () 
   singleHost.results[multiHostIndex].platforms[0].hosts.pop();
   assert.throws(
     () => validateExternalEvidence(matrix, singleHost, expected),
-    /distinct physical hosts/,
+    /two independent registered physical runner jobs/,
   );
 });
 
@@ -291,15 +358,12 @@ test("platform host and artifact collections stay bounded", () => {
   const tooManyHosts = validEvidence();
   tooManyHosts.results[0].platforms[0].hosts = Array.from(
     { length: 65 },
-    (_, index) => ({
-      idDigest: `sha256:${String(5000 + index).padStart(64, "0")}`,
-      hostClass: "physical",
-    }),
+    (_, index) => evidenceHost("linux", 5000 + index * 100, index % 2),
   );
   resignPlatform(tooManyHosts, 0, 0);
   assert.throws(
     () => validateExternalEvidence(matrix, tooManyHosts, expected),
-    /distinct physical hosts/,
+    /two independent registered physical runner jobs/,
   );
 
   const tooManyArtifacts = validEvidence();
@@ -334,6 +398,50 @@ test("matrix drift and replay challenge mismatches fail closed", () => {
       }),
     /producer\.challenge does not match/,
   );
+
+  const manifestReplay = validEvidence();
+  manifestReplay.trust.inputManifestDigests = {
+    ...manifestReplay.trust.inputManifestDigests,
+  };
+  manifestReplay.trust.inputManifestDigests.linux = "sha256:" + "f".repeat(64);
+  const manifestReplayBody = { ...manifestReplay };
+  delete manifestReplayBody.evidenceDigest;
+  manifestReplay.evidenceDigest = digestP110Evidence(
+    manifestReplayBody,
+    P1_10_EVIDENCE_DOMAIN,
+  );
+  assert.throws(
+    () => validateExternalEvidence(matrix, manifestReplay, expected),
+    /input manifest digests do not match protected expectation/,
+  );
+
+  const detachedHostManifest = validEvidence();
+  detachedHostManifest.results[0].platforms[0].hosts[0].inputManifestDigest =
+    "sha256:" + "e".repeat(64);
+  resignPlatform(detachedHostManifest, 0, 0);
+  assert.throws(
+    () => validateExternalEvidence(matrix, detachedHostManifest, expected),
+    /hosts do not bind the platform protected input manifest/,
+  );
+});
+
+test("close verifier time rejects stale/future evidence while preserving idempotency", () => {
+  assert.throws(
+    () =>
+      validateExternalEvidence(matrix, validEvidence(), {
+        ...expected,
+        verifiedAt: "2026-08-31T00:00:00.000Z",
+      }),
+    /skew\/TTL window/,
+  );
+  assert.throws(
+    () =>
+      validateExternalEvidence(matrix, validEvidence(), {
+        ...expected,
+        verifiedAt: "2026-08-30T00:50:00.000Z",
+      }),
+    /skew\/TTL window/,
+  );
 });
 
 test("protected close workflow binds the producer run, signer, source, and receipt", () => {
@@ -351,7 +459,11 @@ test("protected close workflow binds the producer run, signer, source, and recei
     "GITHUB_SERVER_URL#*://",
     '--source-digest "${EVIDENCE_SHA}"',
     '--expected-run-attempt "${PRODUCER_RUN_ATTEMPT}"',
-    '--expected-challenge "${EVIDENCE_CHALLENGE}"',
+    '--expected-challenge "${{ steps.trust.outputs.challenge }}"',
+    "artifact-ids: ${{ steps.artifacts.outputs.evidence_id }}",
+    '--run-attempt "${PRODUCER_RUN_ATTEMPT}"',
+    "--deny-self-hosted-runners",
+    "--format json",
     "actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
   ]) {
     assert.ok(workflow.includes(required), required);

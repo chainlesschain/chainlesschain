@@ -23,6 +23,13 @@ const CRITICAL_TESTS = [
 const CI_GATE_INTEGRITY_TEST = "scripts/__tests__/ci-gate-integrity.test.mjs";
 const P1_10_CONFORMANCE_MATRIX_TEST =
   "scripts/__tests__/p1-10-conformance-matrix.test.mjs";
+const P1_10_EXTERNAL_EVIDENCE_BUILDER_TEST =
+  "scripts/__tests__/p1-10-external-evidence-builder.test.mjs";
+const P1_10_GITHUB_TRUST_TEST = "scripts/__tests__/p1-10-github-trust.test.mjs";
+const P1_10_OWNED_PROCESS_RUNNER_TEST =
+  "scripts/__tests__/p1-10-owned-process-runner.test.mjs";
+const P1_10_SCENARIO_RECEIPTS_TEST =
+  "scripts/__tests__/p1-10-scenario-receipts.test.mjs";
 const OPEN_SOURCE_GAP_AUDIT =
   "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
 const CI_GATE_INTEGRITY_TRIGGERS = new Set([
@@ -294,10 +301,32 @@ const REPO_NODE_CONTRACT_TEST_MAPPINGS = new Map(
   [
     "tests/fixtures/p1-10-conformance-matrix.json",
     "scripts/p1-10-external-evidence-gate.mjs",
+    "scripts/p1-10-external-evidence-builder.mjs",
+    "scripts/p1-10-github-trust.mjs",
+    "scripts/p1-10-scenario-receipts.mjs",
+    "scripts/p1-10-owned-process-runner.mjs",
+    "scripts/p1-10-windows-job-supervisor.ps1",
+    ".github/p1-10-physical-host-registry.json",
+    ".github/p1-10-physical-host-registry.md",
     P1_10_CONFORMANCE_MATRIX_TEST,
+    P1_10_EXTERNAL_EVIDENCE_BUILDER_TEST,
+    P1_10_GITHUB_TRUST_TEST,
+    P1_10_OWNED_PROCESS_RUNNER_TEST,
+    P1_10_SCENARIO_RECEIPTS_TEST,
     ".github/workflows/p1-10-external-evidence-contract.yml",
     ".github/workflows/p1-10-external-evidence-close.yml",
-  ].map((source) => [source, [P1_10_CONFORMANCE_MATRIX_TEST]]),
+    ".github/workflows/p1-10-external-evidence-producer.yml",
+    ".github/actionlint.yaml",
+  ].map((source) => [
+    source,
+    [
+      P1_10_CONFORMANCE_MATRIX_TEST,
+      P1_10_EXTERNAL_EVIDENCE_BUILDER_TEST,
+      P1_10_GITHUB_TRUST_TEST,
+      P1_10_OWNED_PROCESS_RUNNER_TEST,
+      P1_10_SCENARIO_RECEIPTS_TEST,
+    ],
+  ]),
 );
 const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
   ["electron-builder.yml", SKILL_SUPPLY_CHAIN_CONTRACT_TESTS],

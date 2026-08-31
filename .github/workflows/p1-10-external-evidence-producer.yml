@@ -1,0 +1,441 @@
+name: P1-10 External Evidence Producer
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected main commit to exercise
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: p1-10-external-producer-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate-request:
+    name: Generate challenge and validate protected pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: p1-10-external-conformance
+    outputs:
+      challenge: ${{ steps.trust.outputs.challenge }}
+      registry_digest: ${{ steps.trust.outputs.registry_digest }}
+      linux_harness_digest: ${{ steps.trust.outputs.linux_harness_digest }}
+      macos_harness_digest: ${{ steps.trust.outputs.macos_harness_digest }}
+      windows_harness_digest: ${{ steps.trust.outputs.windows_harness_digest }}
+      linux_supervisor_digest: ${{ steps.trust.outputs.linux_supervisor_digest }}
+      macos_supervisor_digest: ${{ steps.trust.outputs.macos_supervisor_digest }}
+      windows_supervisor_digest: ${{ steps.trust.outputs.windows_supervisor_digest }}
+      linux_input_manifest_digest: ${{ steps.trust.outputs.linux_input_manifest_digest }}
+      macos_input_manifest_digest: ${{ steps.trust.outputs.macos_input_manifest_digest }}
+      windows_input_manifest_digest: ${{ steps.trust.outputs.windows_input_manifest_digest }}
+    env:
+      EVIDENCE_SHA: ${{ inputs.commit_sha }}
+      GH_TOKEN: ${{ github.token }}
+      REGISTRY_DIGEST: ${{ vars.P1_10_PHYSICAL_HOST_REGISTRY_SHA256 }}
+      LINUX_HARNESS_DIGEST: ${{ vars.P1_10_LINUX_PHYSICAL_HARNESS_SHA256 }}
+      MACOS_HARNESS_DIGEST: ${{ vars.P1_10_MACOS_PHYSICAL_HARNESS_SHA256 }}
+      WINDOWS_HARNESS_DIGEST: ${{ vars.P1_10_WINDOWS_PHYSICAL_HARNESS_SHA256 }}
+      LINUX_SUPERVISOR_DIGEST: ${{ vars.P1_10_LINUX_LOCAL_ATTESTER_SHA256 }}
+      MACOS_SUPERVISOR_DIGEST: ${{ vars.P1_10_MACOS_LOCAL_ATTESTER_SHA256 }}
+      WINDOWS_SUPERVISOR_DIGEST: ${{ vars.P1_10_WINDOWS_LOCAL_ATTESTER_SHA256 }}
+      LINUX_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_LINUX_PROTECTED_INPUT_MANIFEST_SHA256 }}
+      MACOS_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_MACOS_PROTECTED_INPUT_MANIFEST_SHA256 }}
+      WINDOWS_INPUT_MANIFEST_DIGEST: ${{ vars.P1_10_WINDOWS_PROTECTED_INPUT_MANIFEST_SHA256 }}
+    steps:
+      - name: Require current protected main
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]] || \
+             [[ ! "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]] || \
+             [[ "${EVIDENCE_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::P1-10 evidence must target the workflow event's exact protected main SHA"
+            exit 1
+          fi
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]]; then
+            echo "::error::main advanced or the request is detached"
+            exit 1
+          fi
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::live main must still be the exact SHA and branch-protected"
+            exit 1
+          fi
+
+      - name: Generate attempt-scoped challenge and freeze protected trust pins
+        id: trust
+        shell: bash
+        run: |
+          for digest in "${REGISTRY_DIGEST}" "${LINUX_HARNESS_DIGEST}" "${MACOS_HARNESS_DIGEST}" "${WINDOWS_HARNESS_DIGEST}" "${LINUX_SUPERVISOR_DIGEST}" "${MACOS_SUPERVISOR_DIGEST}" "${WINDOWS_SUPERVISOR_DIGEST}" "${LINUX_INPUT_MANIFEST_DIGEST}" "${MACOS_INPUT_MANIFEST_DIGEST}" "${WINDOWS_INPUT_MANIFEST_DIGEST}"; do
+            if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+              echo "::error::all registry and harness digests must be protected lowercase sha256 pins"
+              exit 1
+            fi
+          done
+          challenge="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64url'))")"
+          {
+            echo "challenge=${challenge}"
+            echo "registry_digest=${REGISTRY_DIGEST}"
+            echo "linux_harness_digest=${LINUX_HARNESS_DIGEST}"
+            echo "macos_harness_digest=${MACOS_HARNESS_DIGEST}"
+            echo "windows_harness_digest=${WINDOWS_HARNESS_DIGEST}"
+            echo "linux_supervisor_digest=${LINUX_SUPERVISOR_DIGEST}"
+            echo "macos_supervisor_digest=${MACOS_SUPERVISOR_DIGEST}"
+            echo "windows_supervisor_digest=${WINDOWS_SUPERVISOR_DIGEST}"
+            echo "linux_input_manifest_digest=${LINUX_INPUT_MANIFEST_DIGEST}"
+            echo "macos_input_manifest_digest=${MACOS_INPUT_MANIFEST_DIGEST}"
+            echo "windows_input_manifest_digest=${WINDOWS_INPUT_MANIFEST_DIGEST}"
+          } >> "${GITHUB_OUTPUT}"
+
+          node -e "const fs=require('node:fs');const value={schema:'chainlesschain.p1-10-hosted-challenge/v1',repository:process.env.GITHUB_REPOSITORY,workflow:'.github/workflows/p1-10-external-evidence-producer.yml',commitSha:process.env.EVIDENCE_SHA,runId:Number(process.env.GITHUB_RUN_ID),runAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),challenge:process.argv[1],issuedAt:new Date().toISOString()};fs.writeFileSync(process.env.RUNNER_TEMP+'/p1-10-challenge.json',JSON.stringify(value,null,2)+'\n',{flag:'wx'});" "${challenge}"
+
+      - name: Attest independent attempt challenge on hosted runner
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/p1-10-challenge.json
+
+      - name: Upload independent attempt challenge
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: p1-10-challenge-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p1-10-challenge.json
+          if-no-files-found: error
+          retention-days: 365
+
+  collect-host:
+    name: Collect authenticated host (${{ matrix.platform }}/${{ matrix.host_slot }})
+    needs: validate-request
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner_label: linux
+            host_slot: a
+            slot_label: p1-10-host-a
+            harness_path_var: P1_10_LINUX_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_LINUX_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_LINUX_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_LINUX_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_LINUX_PROTECTED_INPUT_MANIFEST_PATH
+          - platform: linux
+            runner_label: linux
+            host_slot: b
+            slot_label: p1-10-host-b
+            harness_path_var: P1_10_LINUX_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_LINUX_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_LINUX_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_LINUX_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_LINUX_PROTECTED_INPUT_MANIFEST_PATH
+          - platform: windows
+            runner_label: windows
+            host_slot: a
+            slot_label: p1-10-host-a
+            harness_path_var: P1_10_WINDOWS_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_WINDOWS_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_WINDOWS_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_WINDOWS_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_WINDOWS_PROTECTED_INPUT_MANIFEST_PATH
+          - platform: windows
+            runner_label: windows
+            host_slot: b
+            slot_label: p1-10-host-b
+            harness_path_var: P1_10_WINDOWS_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_WINDOWS_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_WINDOWS_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_WINDOWS_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_WINDOWS_PROTECTED_INPUT_MANIFEST_PATH
+          - platform: macos
+            runner_label: macos
+            host_slot: a
+            slot_label: p1-10-host-a
+            harness_path_var: P1_10_MACOS_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_MACOS_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_MACOS_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_MACOS_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_MACOS_PROTECTED_INPUT_MANIFEST_PATH
+          - platform: macos
+            runner_label: macos
+            host_slot: b
+            slot_label: p1-10-host-b
+            harness_path_var: P1_10_MACOS_PHYSICAL_HARNESS_PATH
+            harness_digest_var: P1_10_MACOS_PHYSICAL_HARNESS_SHA256
+            attester_path_var: P1_10_MACOS_LOCAL_ATTESTER_PATH
+            attester_digest_var: P1_10_MACOS_LOCAL_ATTESTER_SHA256
+            input_manifest_path_var: P1_10_MACOS_PROTECTED_INPUT_MANIFEST_PATH
+    runs-on:
+      - self-hosted
+      - physical
+      - p1-10-external-conformance
+      - ${{ matrix.runner_label }}
+      - ${{ matrix.slot_label }}
+    timeout-minutes: 120
+    environment: p1-10-external-conformance
+    env:
+      EVIDENCE_SHA: ${{ inputs.commit_sha }}
+      EVIDENCE_CHALLENGE: ${{ needs.validate-request.outputs.challenge }}
+      EXPECTED_REGISTRY_DIGEST: ${{ needs.validate-request.outputs.registry_digest }}
+      EXPECTED_LINUX_HARNESS_DIGEST: ${{ needs.validate-request.outputs.linux_harness_digest }}
+      EXPECTED_MACOS_HARNESS_DIGEST: ${{ needs.validate-request.outputs.macos_harness_digest }}
+      EXPECTED_WINDOWS_HARNESS_DIGEST: ${{ needs.validate-request.outputs.windows_harness_digest }}
+      EXPECTED_LINUX_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.linux_supervisor_digest }}
+      EXPECTED_MACOS_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.macos_supervisor_digest }}
+      EXPECTED_WINDOWS_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.windows_supervisor_digest }}
+      EXPECTED_LINUX_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.linux_input_manifest_digest }}
+      EXPECTED_MACOS_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.macos_input_manifest_digest }}
+      EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.windows_input_manifest_digest }}
+      P1_10_PHYSICAL_HARNESS_PATH: ${{ vars[matrix.harness_path_var] }}
+      P1_10_PHYSICAL_HARNESS_SHA256: ${{ vars[matrix.harness_digest_var] }}
+      P1_10_LOCAL_ATTESTER_PATH: ${{ vars[matrix.attester_path_var] }}
+      P1_10_LOCAL_ATTESTER_SHA256: ${{ vars[matrix.attester_digest_var] }}
+      P1_10_PROTECTED_INPUT_MANIFEST_PATH: ${{ vars[matrix.input_manifest_path_var] }}
+      P1_10_HOST_SLOT: ${{ matrix.host_slot }}
+    steps:
+      - name: Checkout exact source and checked-in public-key registry
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EVIDENCE_SHA }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Verify exact checkout
+        run: >-
+          node -e "const cp=require('node:child_process');const actual=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();if(actual!==process.env.EVIDENCE_SHA)process.exit(1)"
+
+      - name: Resolve current Actions job and registered runner identity
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs resolve-job
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --output "${{ runner.temp }}/p1-10-job-identity.json"
+
+      - name: Run fixed-digest external physical harness
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs run-harness
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --input-manifest "${{ env.P1_10_PROTECTED_INPUT_MANIFEST_PATH }}"
+          --job-identity "${{ runner.temp }}/p1-10-job-identity.json"
+          --execution-receipt "${{ runner.temp }}/p1-10-harness-execution.json"
+          --output "${{ runner.temp }}/p1-10-raw-reports"
+
+      - name: Reverify local signed receipts and builder runtime bound
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs collect-host
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --input-manifest "${{ env.P1_10_PROTECTED_INPUT_MANIFEST_PATH }}"
+          --job-identity "${{ runner.temp }}/p1-10-job-identity.json"
+          --execution-receipt "${{ runner.temp }}/p1-10-harness-execution.json"
+          --reports "${{ runner.temp }}/p1-10-raw-reports"
+          --output "${{ runner.temp }}/p1-10-host-evidence"
+
+      - name: Upload authenticated host evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: p1-10-raw-host-${{ matrix.platform }}-${{ matrix.host_slot }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p1-10-host-evidence
+          if-no-files-found: error
+          retention-days: 365
+
+  aggregate:
+    name: Aggregate and attest six physical host jobs
+    needs: [validate-request, collect-host]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: p1-10-external-conformance
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    env:
+      EVIDENCE_SHA: ${{ inputs.commit_sha }}
+      EVIDENCE_CHALLENGE: ${{ needs.validate-request.outputs.challenge }}
+      EXPECTED_REGISTRY_DIGEST: ${{ needs.validate-request.outputs.registry_digest }}
+      EXPECTED_LINUX_HARNESS_DIGEST: ${{ needs.validate-request.outputs.linux_harness_digest }}
+      EXPECTED_MACOS_HARNESS_DIGEST: ${{ needs.validate-request.outputs.macos_harness_digest }}
+      EXPECTED_WINDOWS_HARNESS_DIGEST: ${{ needs.validate-request.outputs.windows_harness_digest }}
+      EXPECTED_LINUX_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.linux_supervisor_digest }}
+      EXPECTED_MACOS_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.macos_supervisor_digest }}
+      EXPECTED_WINDOWS_SUPERVISOR_DIGEST: ${{ needs.validate-request.outputs.windows_supervisor_digest }}
+      EXPECTED_LINUX_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.linux_input_manifest_digest }}
+      EXPECTED_MACOS_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.macos_input_manifest_digest }}
+      EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST: ${{ needs.validate-request.outputs.windows_input_manifest_digest }}
+      PRODUCER_WORKFLOW: .github/workflows/p1-10-external-evidence-producer.yml
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact source and checked-in public-key registry
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EVIDENCE_SHA }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Verify exact checkout
+        run: >-
+          node -e "const cp=require('node:child_process');const actual=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();if(actual!==process.env.EVIDENCE_SHA)process.exit(1)"
+
+      - name: Download all six physical host bundles
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: p1-10-raw-host-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p1-10-host-artifacts
+          merge-multiple: false
+
+      - name: Capture authoritative completed Actions job identities
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs capture-jobs
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --output "${{ runner.temp }}/p1-10-authoritative-jobs.json"
+
+      - name: Capture immutable host artifact IDs from this producer attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs capture-artifacts
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --output "${{ runner.temp }}/p1-10-authoritative-artifacts.json"
+
+      - name: Reverify host signatures, job windows, and derived metrics
+        run: >-
+          node scripts/p1-10-external-evidence-builder.mjs aggregate
+          --expected-commit "${{ env.EVIDENCE_SHA }}"
+          --expected-challenge "${{ env.EVIDENCE_CHALLENGE }}"
+          --expected-registry-digest "${{ env.EXPECTED_REGISTRY_DIGEST }}"
+          --expected-linux-harness-digest "${{ env.EXPECTED_LINUX_HARNESS_DIGEST }}"
+          --expected-macos-harness-digest "${{ env.EXPECTED_MACOS_HARNESS_DIGEST }}"
+          --expected-windows-harness-digest "${{ env.EXPECTED_WINDOWS_HARNESS_DIGEST }}"
+          --expected-linux-supervisor-digest "${{ env.EXPECTED_LINUX_SUPERVISOR_DIGEST }}"
+          --expected-macos-supervisor-digest "${{ env.EXPECTED_MACOS_SUPERVISOR_DIGEST }}"
+          --expected-windows-supervisor-digest "${{ env.EXPECTED_WINDOWS_SUPERVISOR_DIGEST }}"
+          --expected-linux-input-manifest-digest "${{ env.EXPECTED_LINUX_INPUT_MANIFEST_DIGEST }}"
+          --expected-macos-input-manifest-digest "${{ env.EXPECTED_MACOS_INPUT_MANIFEST_DIGEST }}"
+          --expected-windows-input-manifest-digest "${{ env.EXPECTED_WINDOWS_INPUT_MANIFEST_DIGEST }}"
+          --platform-artifacts "${{ runner.temp }}/p1-10-host-artifacts"
+          --jobs "${{ runner.temp }}/p1-10-authoritative-jobs.json"
+          --artifacts "${{ runner.temp }}/p1-10-authoritative-artifacts.json"
+          --output "${{ runner.temp }}/p1-10-external-evidence.json"
+
+      - name: Revalidate live protected main after physical execution
+        shell: bash
+        run: |
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::main advanced or lost branch protection during physical execution"
+            exit 1
+          fi
+
+      - name: Attest exact external evidence on hosted aggregate
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/p1-10-external-evidence.json
+
+      - name: Refuse publishing an attestation after main changes
+        shell: bash
+        run: |
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          branch_state="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '[.commit.sha, .protected] | @tsv')"
+          IFS=$'\t' read -r branch_sha branch_protected <<< "${branch_state}"
+          if [[ "${main_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_sha}" != "${EVIDENCE_SHA}" ]] || \
+             [[ "${branch_protected}" != "true" ]]; then
+            echo "::error::main changed while the evidence attestation was being issued"
+            exit 1
+          fi
+
+      - name: Upload attested external evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: p1-10-external-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p1-10-external-evidence.json
+          if-no-files-found: error
+          retention-days: 365
