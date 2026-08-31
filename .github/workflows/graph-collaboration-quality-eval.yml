@@ -7,6 +7,14 @@ on:
         description: Exact protected main/tag commit to evaluate
         required: true
         type: string
+      platform_scope:
+        description: Run the complete gate or an unaggregated Windows retry
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - windows
   pull_request:
     paths:
       - ".github/workflows/graph-collaboration-quality-eval.yml"
@@ -83,13 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: linux
-            runner: ubuntu-latest
-          - platform: windows
-            runner: windows-latest
-          - platform: macos
-            runner: macos-latest
+        include: ${{ fromJSON(inputs.platform_scope == 'windows' && '[{"platform":"windows","runner":"windows-latest"}]' || '[{"platform":"linux","runner":"ubuntu-latest"},{"platform":"windows","runner":"windows-latest"},{"platform":"macos","runner":"macos-latest"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     env:
@@ -147,7 +149,7 @@ jobs:
 
   aggregate:
     name: Exact-SHA real-model quality gate
-    if: always() && github.event_name == 'workflow_dispatch'
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.platform_scope == 'all'
     needs:
       - protected-request
       - real-model-eval

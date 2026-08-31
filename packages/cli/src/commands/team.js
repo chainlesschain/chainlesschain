@@ -76,6 +76,7 @@ import {
 } from "../lib/secure-file-identity.js";
 import {
   FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  formalQualityChildEnvironment,
   formalQualityTaskAllowedFiles,
   isFormalQualityHermeticRuntime,
 } from "../lib/formal-quality-eval-runtime.js";
@@ -2989,6 +2990,9 @@ export function registerTeamCommand(program, { logger } = {}) {
                 const formalAllowedFiles = formalQualityTaskAllowedFiles(
                   task.metadata?.formalQualityAllowedFiles,
                 );
+                const formalChildEnvironment = formalAllowedFiles
+                  ? formalQualityChildEnvironment(key)
+                  : null;
                 return spawnAgent(
                   buildTeamAgentPrompt(prompt, { inbox }),
                   agentCwd,
@@ -3005,6 +3009,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                     ...(formalAllowedFiles
                       ? {
                           childEnv: {
+                            ...formalChildEnvironment,
                             [FORMAL_QUALITY_ALLOWED_FILES_ENV]:
                               JSON.stringify(formalAllowedFiles),
                           },

@@ -9,6 +9,7 @@ import {
   win32,
   posix,
 } from "node:path";
+import { isFormalQualityHermeticRuntime } from "./formal-quality-eval-runtime.js";
 
 export const PRIVATE_DIRECTORY_MODE = 0o700;
 export const PRIVATE_FILE_MODE = 0o600;
@@ -608,6 +609,21 @@ const WINDOWS_ACL_BATCH_SIZE = 500;
 const WINDOWS_ACL_TIMEOUT_ENV = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
 const MAX_WINDOWS_ACL_TIMEOUT_MS = 5 * 60_000;
 
+export function _windowsAclWorkingDirectory(
+  environment = process.env,
+  filesystem = fs,
+) {
+  if (!isFormalQualityHermeticRuntime(environment)) return null;
+  const configuredHome = resolve(String(environment.CHAINLESSCHAIN_HOME));
+  try {
+    const entry = filesystem.lstatSync(configuredHome);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) return null;
+  } catch {
+    return null;
+  }
+  return configuredHome;
+}
+
 // Windows hosted runners can need more than the normal 15/30 second allowance
 // to cold-start PowerShell and load the access-control types. A trusted harness
 // may raise (but never lower) that allowance; the cap prevents an inherited
@@ -636,6 +652,7 @@ function repairWindowsAclOnce(target, deps, options) {
 }
 
 function windowsAcl(target, operation, deps) {
+  const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = deps.spawnSync(
     "powershell.exe",
     [
@@ -653,6 +670,7 @@ function windowsAcl(target, operation, deps) {
       encoding: "utf8",
       windowsHide: true,
       timeout: _resolveWindowsAclTimeout(15_000),
+      ...(workingDirectory ? { cwd: workingDirectory } : {}),
     },
   );
   let details = null;
@@ -679,6 +697,7 @@ function windowsAcl(target, operation, deps) {
 
 function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (targets.length === 0) return [];
+  const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = deps.spawnSync(
     "powershell.exe",
     [
@@ -700,6 +719,7 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
       windowsHide: true,
       timeout: _resolveWindowsAclTimeout(30_000),
       maxBuffer: 4 * 1024 * 1024,
+      ...(workingDirectory ? { cwd: workingDirectory } : {}),
     },
   );
   let details = [];

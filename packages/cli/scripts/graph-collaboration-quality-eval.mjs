@@ -13,6 +13,7 @@ import { redactSecrets } from "../src/lib/secret-scan.js";
 import {
   FORMAL_QUALITY_ALLOWED_FILES_ENV,
   FORMAL_QUALITY_FILE_TOOLS,
+  FORMAL_QUALITY_ISOLATION_ROOT_ENV,
 } from "../src/lib/formal-quality-eval-runtime.js";
 
 export const PLATFORM_SCHEMA =
@@ -691,6 +692,9 @@ export function createEvaluationModelEnvironment(
   const localAppData = path.join(userHome, "local-app-data");
   const xdgConfigHome = path.join(userHome, "xdg-config");
   const xdgCacheHome = path.join(userHome, "xdg-cache");
+  const xdgDataHome = path.join(userHome, "xdg-data");
+  const dotnetHome = path.join(userHome, "dotnet-home");
+  const nugetPackages = path.join(userHome, "nuget-packages");
   for (const directory of [
     userHome,
     configHome,
@@ -698,6 +702,9 @@ export function createEvaluationModelEnvironment(
     localAppData,
     xdgConfigHome,
     xdgCacheHome,
+    xdgDataHome,
+    dotnetHome,
+    nugetPackages,
   ]) {
     fs.mkdirSync(directory, { recursive: true });
   }
@@ -728,7 +735,17 @@ export function createEvaluationModelEnvironment(
   environment.LOCALAPPDATA = localAppData;
   environment.XDG_CONFIG_HOME = xdgConfigHome;
   environment.XDG_CACHE_HOME = xdgCacheHome;
+  environment.XDG_DATA_HOME = xdgDataHome;
   environment.CHAINLESSCHAIN_HOME = configHome;
+  environment.DOTNET_CLI_HOME = dotnetHome;
+  environment.NUGET_PACKAGES = nugetPackages;
+  environment.POWERSHELL_TELEMETRY_OPTOUT = "1";
+  environment.POWERSHELL_UPDATECHECK = "Off";
+  environment[FORMAL_QUALITY_ISOLATION_ROOT_ENV] = resolvedIsolationRoot;
+  if (/^[A-Za-z]:[\\/]/u.test(userHome)) {
+    environment.HOMEDRIVE = userHome.slice(0, 2);
+    environment.HOMEPATH = userHome.slice(2);
+  }
   environment.CC_API_KEY = process.env.CC_API_KEY;
   environment.LLM_PROVIDER = provider;
   environment.CLAUDECODE = "1";
@@ -1011,7 +1028,9 @@ function changedFiles(root, baseline, includeCommitted) {
     ? git(["diff", "--name-only", `${baseline}..HEAD`], root)
     : "";
   const working = parsePorcelainPaths(
-    git(["status", "--porcelain"], root, { trim: false }),
+    git(["status", "--porcelain=v1", "--untracked-files=all"], root, {
+      trim: false,
+    }),
   );
   return [...new Set([...committed.split(/\r?\n/u), ...working])]
     .filter(Boolean)

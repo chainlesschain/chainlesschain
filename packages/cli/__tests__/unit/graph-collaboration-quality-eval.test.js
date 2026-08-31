@@ -27,7 +27,9 @@ import {
 } from "../../scripts/graph-collaboration-quality-eval.mjs";
 import {
   FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  FORMAL_QUALITY_ISOLATION_ROOT_ENV,
   formalQualityAllowedFiles,
+  formalQualityChildEnvironment,
   formalQualityProvider,
   formalQualityTaskAllowedFiles,
   isFormalQualityHermeticRuntime,
@@ -82,12 +84,43 @@ describe("formal candidate platform isolation", () => {
         CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
         CC_FORMAL_QUALITY_EVAL_PROVIDER: "openai",
         CHAINLESSCHAIN_GRAPH_CLI_TEAM: "canonical",
+        POWERSHELL_TELEMETRY_OPTOUT: "1",
+        POWERSHELL_UPDATECHECK: "Off",
       });
       expect(isFormalQualityHermeticRuntime(environment)).toBe(true);
       expect(formalQualityProvider(environment)).toBe("openai");
       expect(environment.CHAINLESSCHAIN_HOME).toContain(isolationRoot);
       expect(environment.HOME).toContain(isolationRoot);
       expect(environment.USERPROFILE).toContain(isolationRoot);
+      expect(environment[FORMAL_QUALITY_ISOLATION_ROOT_ENV]).toBe(
+        isolationRoot,
+      );
+      const firstChild = formalQualityChildEnvironment(
+        "add-function",
+        environment,
+      );
+      const sameChild = formalQualityChildEnvironment(
+        "add-function",
+        environment,
+      );
+      const secondChild = formalQualityChildEnvironment(
+        "secure-path",
+        environment,
+      );
+      expect(sameChild).toEqual(firstChild);
+      expect(secondChild.CHAINLESSCHAIN_HOME).not.toBe(
+        firstChild.CHAINLESSCHAIN_HOME,
+      );
+      for (const childEnvironment of [firstChild, secondChild]) {
+        expect(childEnvironment.CHAINLESSCHAIN_HOME).toContain(
+          path.join(isolationRoot, "agent-homes"),
+        );
+        expect(childEnvironment.DOTNET_CLI_HOME).toContain(isolationRoot);
+        expect(childEnvironment.NUGET_PACKAGES).toContain(isolationRoot);
+        expect(
+          fs.statSync(childEnvironment.CHAINLESSCHAIN_HOME).isDirectory(),
+        ).toBe(true);
+      }
     } finally {
       if (priorKey == null) delete process.env.CC_API_KEY;
       else process.env.CC_API_KEY = priorKey;
@@ -606,6 +639,9 @@ describe("graph collaboration quality evidence", () => {
     );
     expect(workflow).toContain("environment: graph-collaboration-quality");
     expect(workflow).toContain('test "$EXPECTED_SHA" = "$SOURCE_SHA"');
+    expect(workflow).toContain("platform_scope:");
+    expect(workflow).toContain("inputs.platform_scope == 'windows'");
+    expect(workflow).toContain("inputs.platform_scope == 'all'");
     expect(workflow).toContain("--duration-seconds 1800");
     expect(workflow).toContain("--min-rounds 3");
     expect(workflow).toContain("--max-rounds 24");
