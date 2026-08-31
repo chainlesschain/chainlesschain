@@ -135,6 +135,14 @@ export function enforceQualityThresholds(
   });
 }
 
+export function assertQualityGatePassed(gate) {
+  if (!gate?.passed) {
+    throw new Error(
+      `quality thresholds failed: ${canonicalJson(gate?.failures || [])}`,
+    );
+  }
+}
+
 function sumRoundField(rounds, mode, field) {
   return rounds.reduce(
     (total, round) => total + Number(round?.[mode]?.[field] || 0),
@@ -1254,14 +1262,9 @@ async function runPlatformEvaluation(options) {
   const completed = Date.now();
   const metrics = summarizeQualityRounds(rounds);
   const gate = enforceQualityThresholds(metrics);
-  if (!gate.passed) {
-    throw new Error(
-      `quality thresholds failed: ${canonicalJson(gate.failures)}`,
-    );
-  }
   return sealPlatformRecord({
     schema: PLATFORM_SCHEMA,
-    status: "passed",
+    status: gate.passed ? "passed" : "failed",
     commitSha: options.commitSha,
     challenge: options.challenge,
     executionId:
@@ -1315,6 +1318,7 @@ async function main() {
   process.stdout.write(
     `${JSON.stringify({ status: result.status, output, digest: result.evidenceDigest || result.aggregateDigest })}\n`,
   );
+  assertQualityGatePassed(result.gate);
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";

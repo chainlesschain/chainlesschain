@@ -7,6 +7,7 @@ import {
   FORMAL_PROFILE,
   FROZEN_THRESHOLDS,
   PLATFORM_SCHEMA,
+  assertQualityGatePassed,
   buildCandidateTasks,
   buildControlPrompt,
   candidateCheckpointArgs,
@@ -411,6 +412,32 @@ describe("graph collaboration quality evidence", () => {
       },
     });
     expect(() => validatePlatformRecord(forged)).toThrow(/threshold/u);
+  });
+
+  it("reports a failed quality gate after its evidence can be serialized", () => {
+    const rounds = [1, 2, 3].map((seed) =>
+      round(seed, {
+        candidate: { passed: 3 },
+        behaviorEquivalent: 0,
+      }),
+    );
+    const metrics = summarizeQualityRounds(rounds);
+    const gate = enforceQualityThresholds(metrics);
+    const record = sealPlatformRecord({
+      schema: PLATFORM_SCHEMA,
+      status: "failed",
+      metrics,
+      gate,
+      rounds,
+    });
+
+    expect(JSON.parse(JSON.stringify(record))).toMatchObject({
+      status: "failed",
+      gate: { passed: false },
+    });
+    expect(() => assertQualityGatePassed(record.gate)).toThrow(
+      /quality thresholds failed/u,
+    );
   });
 
   it("rejects missing cost evidence and a forged total budget", () => {
