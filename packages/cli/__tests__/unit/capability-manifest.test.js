@@ -17,6 +17,8 @@ import {
   toGateableFieldGate,
   toServerOffer,
   toAgentFeatureFlags,
+  toEvolutionCapabilityDefinitions,
+  buildEvolutionStatus,
   buildCompatFixture,
   capabilityDigest,
   renderBehaviorMatrix,
@@ -32,6 +34,8 @@ import {
   applyNegotiationToGate,
 } from "../../src/lib/capability-negotiation.js";
 import { buildAgentCapabilities } from "../../src/lib/headless-manifest.js";
+
+const EVOLUTION_EVIDENCE_RECEIPT = `sha256:${"a".repeat(64)}`;
 
 describe("drift guard: manifest ⇄ capability-negotiation.js", () => {
   it("protocol version + min match the negotiation constants", () => {
@@ -86,6 +90,154 @@ describe("drift guard: manifest ⇄ headless-manifest.js", () => {
     expect([...CAPABILITY_MANIFEST.outputFormats]).toEqual(caps.output_formats);
     expect([...CAPABILITY_MANIFEST.inputFormats]).toEqual(caps.input_formats);
   });
+
+  it("projects fail-closed evolution status from the same manifest", () => {
+    const caps = buildAgentCapabilities();
+    expect(caps.evolution_status.manifestDigest).toBe(capabilityDigest());
+    expect(caps.evolution_status.capabilities).toHaveLength(
+      CAPABILITY_MANIFEST.evolutionCapabilities.length,
+    );
+    for (const capability of caps.evolution_status.capabilities) {
+      expect(capability.implemented).toBe(true);
+      expect(capability.wired).toBe(false);
+      expect(capability.verified).toBe(false);
+      expect(capability.defaultEnabled).toBe(false);
+      expect(capability.state).toBe("not-wired");
+      expect(capability.lastEvidence).toBeNull();
+    }
+  });
+});
+
+describe("evolution capability status", () => {
+  it("keeps runtime evidence out of the static manifest digest", () => {
+    const before = buildEvolutionStatus();
+    const after = buildEvolutionStatus({
+      evidence: {
+        "skill-improvement": {
+          wired: true,
+          verified: true,
+          defaultEnabled: true,
+          lastEvidence: EVOLUTION_EVIDENCE_RECEIPT,
+        },
+      },
+    });
+
+    expect(after.manifestDigest).toBe(before.manifestDigest);
+    expect(after.evidenceDigest).not.toBe(before.evidenceDigest);
+    expect(
+      after.capabilities.find(
+        (capability) => capability.id === "skill-improvement",
+      ),
+    ).toMatchObject({
+      wired: true,
+      verified: true,
+      defaultEnabled: true,
+      state: "available",
+      lastEvidence: EVOLUTION_EVIDENCE_RECEIPT,
+    });
+  });
+
+  it("does not allow inconsistent evidence to enable a capability", () => {
+    const status = buildEvolutionStatus({
+      evidence: {
+        "learning-synthesis": {
+          wired: false,
+          verified: true,
+          defaultEnabled: true,
+          lastEvidence: EVOLUTION_EVIDENCE_RECEIPT,
+        },
+      },
+    });
+    const synthesis = status.capabilities.find(
+      (capability) => capability.id === "learning-synthesis",
+    );
+    expect(synthesis).toMatchObject({
+      implemented: true,
+      wired: false,
+      verified: true,
+      defaultEnabled: false,
+      state: "not-wired",
+    });
+  });
+
+  it("requires own digest-bound evidence before reporting verification", () => {
+    const inheritedCapability = Object.create({
+      wired: true,
+      verified: true,
+      defaultEnabled: true,
+      lastEvidence: EVOLUTION_EVIDENCE_RECEIPT,
+    });
+    const inheritedEvidence = Object.create({
+      "skill-candidate-registry": {
+        wired: true,
+        verified: true,
+        defaultEnabled: true,
+        lastEvidence: EVOLUTION_EVIDENCE_RECEIPT,
+      },
+    });
+    inheritedEvidence["skill-improvement"] = inheritedCapability;
+    inheritedEvidence["learning-synthesis"] = {
+      wired: true,
+      verified: true,
+      defaultEnabled: true,
+    };
+
+    const status = buildEvolutionStatus({ evidence: inheritedEvidence });
+    expect(
+      status.capabilities.find(
+        (capability) => capability.id === "skill-candidate-registry",
+      ),
+    ).toMatchObject({
+      wired: false,
+      verified: false,
+      defaultEnabled: false,
+      state: "not-wired",
+    });
+    expect(
+      status.capabilities.find(
+        (capability) => capability.id === "skill-improvement",
+      ),
+    ).toMatchObject({
+      wired: false,
+      verified: false,
+      defaultEnabled: false,
+      state: "not-wired",
+    });
+    expect(
+      status.capabilities.find(
+        (capability) => capability.id === "learning-synthesis",
+      ),
+    ).toMatchObject({
+      wired: true,
+      verified: false,
+      defaultEnabled: false,
+      lastEvidence: null,
+      state: "unverified",
+    });
+  });
+
+  it("keeps the evidence digest stable when definitions are reordered", () => {
+    const reorderedManifest = {
+      ...CAPABILITY_MANIFEST,
+      evolutionCapabilities: [
+        ...CAPABILITY_MANIFEST.evolutionCapabilities,
+      ].reverse(),
+    };
+    expect(buildEvolutionStatus({ manifest: reorderedManifest })).toMatchObject(
+      {
+        manifestDigest: buildEvolutionStatus().manifestDigest,
+        evidenceDigest: buildEvolutionStatus().evidenceDigest,
+      },
+    );
+  });
+
+  it("returns defensive copies of static definitions", () => {
+    const definitions = toEvolutionCapabilityDefinitions();
+    definitions[0].gates.push("caller-only-mutation");
+    expect(
+      CAPABILITY_MANIFEST.evolutionCapabilities[0].gates,
+    ).not.toContain("caller-only-mutation");
+  });
 });
 
 describe("buildCompatFixture", () => {
@@ -133,6 +285,19 @@ describe("capabilityDigest", () => {
         feature.key === "permission_decision"
           ? { ...feature, companionFields: ["different_id"] }
           : feature,
+      ),
+    };
+    expect(capabilityDigest(mutated)).not.toBe(capabilityDigest());
+  });
+
+  it("changes when an evolution gate changes", () => {
+    const mutated = {
+      ...CAPABILITY_MANIFEST,
+      evolutionCapabilities: CAPABILITY_MANIFEST.evolutionCapabilities.map(
+        (capability) =>
+          capability.id === "learning-synthesis"
+            ? { ...capability, gates: [...capability.gates, "new-gate"] }
+            : capability,
       ),
     };
     expect(capabilityDigest(mutated)).not.toBe(capabilityDigest());
@@ -219,5 +384,25 @@ describe("diffCapabilities", () => {
     expect(d.changedWireFeatures).toHaveLength(1);
     expect(d.changedWireFeatures[0].feature).toBe("event_seq");
     expect(d.changedWireFeatures[0].to.minVersion).toBe(2);
+  });
+
+  it("detects evolution capability gate changes", () => {
+    const next = {
+      ...CAPABILITY_MANIFEST,
+      evolutionCapabilities: CAPABILITY_MANIFEST.evolutionCapabilities.map(
+        (capability) =>
+          capability.id === "skill-improvement"
+            ? {
+                ...capability,
+                gates: [...capability.gates, "review-receipt"],
+              }
+            : capability,
+      ),
+    };
+    const d = diffCapabilities(CAPABILITY_MANIFEST, next);
+    expect(d.changedEvolutionCapabilities).toHaveLength(1);
+    expect(d.changedEvolutionCapabilities[0].capability).toBe(
+      "skill-improvement",
+    );
   });
 });

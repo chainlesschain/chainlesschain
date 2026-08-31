@@ -210,6 +210,11 @@ describe("learning-loop integration", () => {
         promises: {
           mkdir: vi.fn(async () => {}),
           writeFile: vi.fn(async () => {}),
+          lstat: vi.fn(async () => ({
+            isSymbolicLink: () => false,
+            isDirectory: () => true,
+          })),
+          realpath: vi.fn(async (value) => value),
         },
       };
       synthDeps.path = { join: (...args) => args.join("/") };
@@ -264,7 +269,9 @@ describe("learning-loop integration", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: vi.fn(async () => ({ accepted: true })),
       });
 
       const result = await synthesizer.synthesize();
@@ -280,9 +287,9 @@ describe("learning-loop integration", () => {
 
       // Verify SKILL.md was written
       expect(synthDeps.fs.promises.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining("code-refactor/SKILL.md"),
+        expect.stringContaining("code-refactor/1.0.0/SKILL.md"),
         expect.stringContaining("code-refactor"),
-        "utf-8",
+        { encoding: "utf-8", flag: "wx" },
       );
     });
   });
@@ -317,6 +324,16 @@ Tests pass
           mkdir: vi.fn(async () => {}),
           writeFile: vi.fn(async () => {}),
           readFile: vi.fn(async () => skillContent),
+          lstat: vi.fn(async (value) => {
+            const isFile = String(value).endsWith("SKILL.md");
+            return {
+              size: isFile ? Buffer.byteLength(skillContent, "utf8") : 0,
+              isSymbolicLink: () => false,
+              isFile: () => isFile,
+              isDirectory: () => !isFile,
+            };
+          }),
+          realpath: vi.fn(async (value) => value),
         },
       };
       impDeps.path = { join: (...args) => args.join("/") };
@@ -372,6 +389,7 @@ Tests pass
 
       const improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
       const result = await improver.improveFromBetterTrajectory(
         "code-refactor",
@@ -385,7 +403,9 @@ Tests pass
         },
       );
 
-      expect(result.improved).toBe(true);
+      expect(result.improved).toBe(false);
+      expect(result.candidateCreated).toBe(true);
+      expect(result.status).toBe("candidate");
 
       // Check version was bumped
       const writtenContent = impDeps.fs.promises.writeFile.mock.calls[0][1];
@@ -415,6 +435,7 @@ Tests pass
 
       const improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
       const result = await improver.repairFromError("code-refactor", {
         error: "npm: command not found",
@@ -422,7 +443,8 @@ Tests pass
         userIntent: "refactor code",
       });
 
-      expect(result.improved).toBe(true);
+      expect(result.improved).toBe(false);
+      expect(result.candidateCreated).toBe(true);
       expect(result.reason).toContain("npm install");
     });
   });

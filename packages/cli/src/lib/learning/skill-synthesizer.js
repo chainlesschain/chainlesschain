@@ -12,8 +12,8 @@
  *   1. Find eligible trajectories
  *   2. Check for duplicates (tool chain fingerprint)
  *   3. Send to LLM for pattern extraction
- *   4. Generate SKILL.md
- *   5. Write to workspace skill layer
+ *   4. Generate and evaluate a candidate SKILL.md
+ *   5. Persist the accepted candidate to an isolated candidate registry
  */
 
 import fs from "fs";
@@ -23,6 +23,8 @@ import path from "path";
 // ── _deps for test injection ────────────────────────────
 
 const _deps = { fs, path };
+
+export const SYNTHESIS_UNAVAILABLE_CODE = "LEARNING_SYNTHESIS_UNAVAILABLE";
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -76,6 +78,42 @@ export function generateSkillName(userIntent) {
       .split(/\s+/)
       .slice(0, 4)
       .join("-") || "auto-learned-skill"
+  );
+}
+
+/**
+ * Skill names become path segments in the candidate registry. Keep the
+ * accepted grammar deliberately small so an LLM response cannot escape the
+ * configured registry root.
+ * @param {string} skillName
+ * @returns {boolean}
+ */
+export function isSafeSkillName(skillName) {
+  return (
+    typeof skillName === "string" &&
+    /^[\p{L}\p{N}][\p{L}\p{N}._-]{0,127}$/u.test(skillName) &&
+    skillName !== "." &&
+    skillName !== ".." &&
+    !skillName.includes("..")
+  );
+}
+
+function rootContains(parentRoot, childRoot) {
+  if (!parentRoot || !childRoot) return false;
+  const parent = path.resolve(parentRoot);
+  const child = path.resolve(childRoot);
+  const relative = path.relative(parent, child);
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function rootsOverlap(firstRoot, secondRoot) {
+  return (
+    rootContains(firstRoot, secondRoot) || rootContains(secondRoot, firstRoot)
   );
 }
 
@@ -167,7 +205,7 @@ export class SkillSynthesizer {
    * @param {import("better-sqlite3").Database} db
    * @param {function} llmChat — async (messages) => string (LLM response)
    * @param {import("./trajectory-store.js").TrajectoryStore} trajectoryStore
-   * @param {{minToolCount?:number, minScore?:number, minSimilar?:number, outputDir?:string}} [config]
+   * @param {{minToolCount?:number, minScore?:number, minSimilar?:number, candidateOutputDir?:string, activeSkillsDirs?:string[], evaluateCandidate?:function}} [config]
    */
   constructor(db, llmChat, trajectoryStore, config = {}) {
     this.db = db;
@@ -176,14 +214,80 @@ export class SkillSynthesizer {
     this.minToolCount = config.minToolCount ?? 5;
     this.minScore = config.minScore ?? 0.7;
     this.minSimilar = config.minSimilar ?? 2;
-    this.outputDir = config.outputDir || null;
+    this.candidateOutputDir = config.candidateOutputDir || null;
+    const configuredActiveSkillsDirs = Array.isArray(config.activeSkillsDirs)
+      ? config.activeSkillsDirs
+      : [];
+    this.activeSkillsDirs = configuredActiveSkillsDirs.filter(
+      (root) => typeof root === "string" && root.trim().length > 0,
+    );
+    this.activeSkillsDirsInvalid =
+      configuredActiveSkillsDirs.length !== this.activeSkillsDirs.length;
+    this.evaluateCandidate =
+      typeof config.evaluateCandidate === "function"
+        ? config.evaluateCandidate
+        : null;
+  }
+
+  /**
+   * Report whether this instance can truthfully create persisted candidates.
+   * No trajectory is queried or mutated while the synthesizer is unavailable.
+   * @returns {{available:boolean, missingDependencies:string[], blockers:string[]}}
+   */
+  getAvailability() {
+    const missingDependencies = [];
+    const blockers = [];
+    if (typeof this.llmChat !== "function") missingDependencies.push("llm");
+    if (!this.candidateOutputDir) {
+      missingDependencies.push("candidate-output-registry");
+    }
+    if (typeof this.evaluateCandidate !== "function") {
+      missingDependencies.push("candidate-evaluator");
+    }
+    if (this.activeSkillsDirs.length === 0) {
+      missingDependencies.push("active-skill-registry-roots");
+    }
+    if (this.activeSkillsDirsInvalid) {
+      blockers.push("active-skill-registry-roots-invalid");
+    }
+    if (
+      this.candidateOutputDir &&
+      this.activeSkillsDirs.some((activeRoot) =>
+        rootsOverlap(activeRoot, this.candidateOutputDir),
+      )
+    ) {
+      blockers.push("candidate-output-overlaps-active-skill-tree");
+    }
+    return {
+      available: missingDependencies.length === 0 && blockers.length === 0,
+      missingDependencies,
+      blockers,
+    };
   }
 
   /**
    * Scan for eligible trajectories and synthesize skills.
-   * @returns {Promise<{created: string[], skipped: string[]}>}
+   * @returns {Promise<{status:string, created: string[], skipped: string[], errors?:string[], code?:string, reason?:string, missingDependencies?:string[], blockers?:string[]}>}
    */
   async synthesize() {
+    const availability = this.getAvailability();
+    if (!availability.available) {
+      const issues = [
+        ...availability.missingDependencies.map((item) => `missing ${item}`),
+        ...availability.blockers,
+      ];
+      const reason = `Synthesis unavailable: ${issues.join(", ")}`;
+      return {
+        status: "unavailable",
+        code: SYNTHESIS_UNAVAILABLE_CODE,
+        reason,
+        missingDependencies: availability.missingDependencies,
+        blockers: availability.blockers,
+        created: [],
+        skipped: [],
+      };
+    }
+
     const candidates = this.trajectoryStore.findComplexUnprocessed({
       minToolCount: this.minToolCount,
       minScore: this.minScore,
@@ -192,6 +296,7 @@ export class SkillSynthesizer {
 
     const created = [];
     const skipped = [];
+    const errors = [];
 
     for (const traj of candidates) {
       try {
@@ -225,25 +330,56 @@ export class SkillSynthesizer {
 
         // Generate and persist
         const skillName = pattern.name || generateSkillName(traj.userIntent);
+        if (!isSafeSkillName(skillName)) {
+          skipped.push(`${traj.id}: invalid candidate skill name`);
+          continue;
+        }
         const content = generateSkillMd(
           pattern,
           traj.id,
           traj.outcomeScore || 0.7,
         );
 
-        if (this.outputDir) {
-          await this._persistSkill(skillName, content);
+        const evaluation = await this.evaluateCandidate({
+          skillName,
+          content,
+          pattern,
+          trajectory: traj,
+        });
+        const accepted =
+          evaluation === true ||
+          (evaluation &&
+            typeof evaluation === "object" &&
+            evaluation.accepted === true);
+        if (!accepted) {
+          const evaluationReason =
+            evaluation && typeof evaluation === "object"
+              ? evaluation.reason
+              : null;
+          skipped.push(
+            `${traj.id}: evaluator rejected candidate${evaluationReason ? ` - ${evaluationReason}` : ""}`,
+          );
+          continue;
         }
 
-        // Mark trajectory as synthesized
+        await this._persistSkill(skillName, content);
+
+        // Only durable, evaluated candidates count as synthesized.
         this.trajectoryStore.markSynthesized(traj.id, skillName);
         created.push(skillName);
       } catch (err) {
-        skipped.push(`${traj.id}: error - ${err.message}`);
+        const message = `${traj.id}: error - ${err.message}`;
+        skipped.push(message);
+        errors.push(message);
       }
     }
 
-    return { created, skipped };
+    return {
+      status: errors.length > 0 ? "error" : "completed",
+      created,
+      skipped,
+      errors,
+    };
   }
 
   /**
@@ -297,19 +433,103 @@ export class SkillSynthesizer {
   }
 
   /**
-   * Write SKILL.md to the output directory.
+   * Write SKILL.md to the isolated candidate output registry.
    * @param {string} skillName
    * @param {string} content
    * @returns {Promise<{skillDir:string, skillFile:string}>}
    */
   async _persistSkill(skillName, content) {
-    const skillDir = _deps.path.join(this.outputDir, skillName);
-    const skillFile = _deps.path.join(skillDir, "SKILL.md");
+    if (!this.candidateOutputDir) {
+      throw new Error("candidate output registry is unavailable");
+    }
+    if (!isSafeSkillName(skillName)) {
+      throw new Error("invalid candidate skill name");
+    }
+    const availability = this.getAvailability();
+    if (!availability.available) {
+      throw new Error(
+        `candidate output boundary unavailable: ${[
+          ...availability.missingDependencies,
+          ...availability.blockers,
+        ].join(", ")}`,
+      );
+    }
+    this._assertCandidateFilesystemSupport();
+    const candidateRoot = await this._ensurePrivateDirectory(
+      this.candidateOutputDir,
+      { recursive: true },
+    );
+    await this._assertRealpathIsolation(candidateRoot);
 
-    await _deps.fs.promises.mkdir(skillDir, { recursive: true });
-    await _deps.fs.promises.writeFile(skillFile, content, "utf-8");
+    const skillNamespace = _deps.path.join(this.candidateOutputDir, skillName);
+    const canonicalSkillNamespace =
+      await this._ensurePrivateDirectory(skillNamespace);
+    this._assertPathWithinCandidateRoot(candidateRoot, canonicalSkillNamespace);
+    const skillDir = _deps.path.join(canonicalSkillNamespace, "1.0.0");
+    const canonicalSkillDir = await this._ensurePrivateDirectory(skillDir);
+    this._assertPathWithinCandidateRoot(candidateRoot, canonicalSkillDir);
+    const skillFile = _deps.path.join(canonicalSkillDir, "SKILL.md");
 
-    return { skillDir, skillFile };
+    await _deps.fs.promises.writeFile(skillFile, content, {
+      encoding: "utf-8",
+      flag: "wx",
+    });
+
+    return { skillDir: canonicalSkillDir, skillFile };
+  }
+
+  _assertCandidateFilesystemSupport() {
+    if (
+      typeof _deps.fs.promises.realpath !== "function" ||
+      typeof _deps.fs.promises.lstat !== "function"
+    ) {
+      throw new Error(
+        "candidate filesystem identity support unavailable; refusing write",
+      );
+    }
+  }
+
+  async _ensurePrivateDirectory(directory, options = {}) {
+    let stat;
+    try {
+      stat = await _deps.fs.promises.lstat(directory);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      try {
+        await _deps.fs.promises.mkdir(directory, {
+          recursive: options.recursive === true,
+          mode: 0o700,
+        });
+      } catch (mkdirError) {
+        if (mkdirError?.code !== "EEXIST") throw mkdirError;
+      }
+      stat = await _deps.fs.promises.lstat(directory);
+    }
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(
+        `candidate directory is not a trusted directory: ${directory}`,
+      );
+    }
+    return _deps.fs.promises.realpath(directory);
+  }
+
+  async _assertRealpathIsolation(candidateRoot) {
+    const activeRoots = await Promise.all(
+      this.activeSkillsDirs.map((root) => _deps.fs.promises.realpath(root)),
+    );
+    if (activeRoots.some((root) => rootsOverlap(root, candidateRoot))) {
+      throw new Error(
+        "candidate output resolves into an active skill tree; refusing write",
+      );
+    }
+  }
+
+  _assertPathWithinCandidateRoot(candidateRoot, candidatePath) {
+    if (!rootContains(candidateRoot, candidatePath)) {
+      throw new Error(
+        "candidate parent resolves outside the candidate root; refusing write",
+      );
+    }
   }
 }
 

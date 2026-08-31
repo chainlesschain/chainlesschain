@@ -13,6 +13,7 @@ import {
   bumpVersion,
   parseSkillFrontmatter,
   rebuildSkillMd,
+  isSafeSkillName,
   buildRepairPrompt,
   buildCorrectionPrompt,
   buildImprovementPrompt,
@@ -45,6 +46,19 @@ Curl the health endpoint
 - Trajectory ID: traj-1
 - Confidence: 0.85
 `;
+
+function configureTrustedCandidateFs(promises) {
+  promises.realpath = vi.fn(async (value) => value);
+  promises.lstat = vi.fn(async (value) => {
+    const isFile = String(value).endsWith("SKILL.md");
+    return {
+      size: isFile ? Buffer.byteLength(SAMPLE_SKILL, "utf8") : 0,
+      isSymbolicLink: () => false,
+      isFile: () => isFile,
+      isDirectory: () => !isFile,
+    };
+  });
+}
 
 describe("skill-improver", () => {
   let db;
@@ -117,6 +131,66 @@ describe("skill-improver", () => {
     });
   });
 
+  describe("candidate-only safety boundary", () => {
+    it("accepts Unicode skill names and rejects path traversal", () => {
+      expect(isSafeSkillName("deploy-app")).toBe(true);
+      expect(isSafeSkillName("部署应用")).toBe(true);
+      expect(isSafeSkillName("../deploy-app")).toBe(false);
+      expect(isSafeSkillName("nested/deploy-app")).toBe(false);
+    });
+
+    it("is unavailable by default instead of writing the active tree", async () => {
+      const readFile = vi.fn(async () => SAMPLE_SKILL);
+      const writeFile = vi.fn(async () => {});
+      const llm = vi.fn();
+      impDeps.fs = {
+        promises: { mkdir: vi.fn(async () => {}), readFile, writeFile },
+      };
+      impDeps.path = { join: (...args) => args.join("/") };
+      const improver = new SkillImprover(db, llm, store, {
+        skillsDir: "/skills",
+      });
+
+      const result = await improver.repairFromError("deploy-app", {
+        error: "failed",
+      });
+
+      expect(result).toMatchObject({
+        improved: false,
+        candidateCreated: false,
+        status: "unavailable",
+      });
+      expect(result.reason).toContain("candidate output unavailable");
+      expect(readFile).not.toHaveBeenCalled();
+      expect(llm).not.toHaveBeenCalled();
+      expect(writeFile).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["same root", "/skills"],
+      ["nested candidate root", "/skills/.candidates"],
+      ["candidate parent root", "/"],
+    ])("rejects an overlapping %s", async (_label, candidateOutputDir) => {
+      const llm = vi.fn();
+      const improver = new SkillImprover(db, llm, store, {
+        skillsDir: "/skills",
+        candidateOutputDir,
+      });
+
+      const result = await improver.repairFromError("deploy-app", {
+        error: "failed",
+      });
+
+      expect(result).toMatchObject({
+        improved: false,
+        candidateCreated: false,
+        status: "unavailable",
+      });
+      expect(result.reason).toContain("isolated");
+      expect(llm).not.toHaveBeenCalled();
+    });
+  });
+
   // ── Prompt builders ───────────────────────────────
 
   describe("buildRepairPrompt", () => {
@@ -182,10 +256,15 @@ describe("skill-improver", () => {
       impDeps.fs = mockFs;
       impDeps.path = mockPath;
       vi.clearAllMocks();
+      delete mockFs.promises.realpath;
+      mockFs.promises.mkdir.mockResolvedValue(undefined);
+      mockFs.promises.writeFile.mockResolvedValue(undefined);
       mockFs.promises.readFile.mockResolvedValue(SAMPLE_SKILL);
+      configureTrustedCandidateFs(mockFs.promises);
 
       improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
     });
 
@@ -205,9 +284,18 @@ describe("skill-improver", () => {
         userIntent: "deploy",
       });
 
-      expect(result.improved).toBe(true);
+      expect(result.improved).toBe(false);
+      expect(result.candidateCreated).toBe(true);
+      expect(result.status).toBe("candidate");
+      expect(result.candidatePath).toBe(
+        "/candidates/deploy-app/1.1.0/SKILL.md",
+      );
       expect(result.reason).toContain("npm not installed");
       expect(mockFs.promises.writeFile).toHaveBeenCalled();
+      expect(mockFs.promises.readFile).toHaveBeenCalledWith(
+        "/skills/deploy-app/SKILL.md",
+        "utf-8",
+      );
 
       // Check written content has bumped version
       const writtenContent = mockFs.promises.writeFile.mock.calls[0][1];
@@ -269,6 +357,184 @@ describe("skill-improver", () => {
       expect(log).toBeDefined();
       expect(log.trigger_type).toBe("error_repair");
     });
+
+    it("supports explicit diff-only output without writing any skill tree", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "candidate only",
+          fixedProcedure: ["Safer step"],
+          confidence: 0.9,
+        }),
+      );
+      improver = new SkillImprover(db, mockLLM, store, {
+        skillsDir: "/skills",
+        diffOnly: true,
+      });
+
+      const result = await improver.repairFromError("deploy-app", {
+        error: "err",
+      });
+
+      expect(result).toMatchObject({
+        improved: false,
+        candidateCreated: false,
+        candidateGenerated: true,
+        status: "diff-only",
+      });
+      expect(result.candidate.content).toContain("Safer step");
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+      expect(db.data.get("skill_improvement_log")).toHaveLength(1);
+    });
+
+    it("does not report a candidate when persistence fails", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "persist me",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      mockFs.promises.writeFile.mockRejectedValueOnce(new Error("disk full"));
+
+      await expect(
+        improver.repairFromError("deploy-app", { error: "err" }),
+      ).rejects.toThrow("disk full");
+      expect(db.data.get("skill_improvement_log") || []).toHaveLength(0);
+    });
+
+    it("does not report success when the audit log write fails", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "audit me",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      const originalPrepare = db.prepare.bind(db);
+      vi.spyOn(db, "prepare").mockImplementation((sql) => {
+        if (sql.includes("INSERT INTO skill_improvement_log")) {
+          throw new Error("audit unavailable");
+        }
+        return originalPrepare(sql);
+      });
+
+      await expect(
+        improver.repairFromError("deploy-app", { error: "err" }),
+      ).rejects.toThrow("audit unavailable");
+      expect(mockFs.promises.writeFile).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects a candidate root that resolves to the active tree", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "alias attempt",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      mockFs.promises.realpath = vi.fn(async () => "/skills");
+
+      await expect(
+        improver.repairFromError("deploy-app", { error: "err" }),
+      ).rejects.toThrow("resolves into the active skill tree");
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("rejects a symlink in the candidate skill parent", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "symlink attempt",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      const trustedLstat = mockFs.promises.lstat;
+      mockFs.promises.lstat = vi.fn(async (value) => {
+        if (value === "/candidates/deploy-app") {
+          return {
+            size: 0,
+            isSymbolicLink: () => true,
+            isFile: () => false,
+            isDirectory: () => false,
+          };
+        }
+        return trustedLstat(value);
+      });
+
+      await expect(
+        improver.repairFromError("deploy-app", { error: "err" }),
+      ).rejects.toThrow("not a trusted directory");
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("verifies the final candidate parent remains under the canonical root", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "parent swap",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      mockFs.promises.realpath = vi.fn(async (value) =>
+        value === "/candidates/deploy-app/1.1.0" ? "/skills/deploy-app" : value,
+      );
+
+      await expect(
+        improver.repairFromError("deploy-app", { error: "err" }),
+      ).rejects.toThrow("resolves outside the candidate root");
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("creates candidate directories with private permissions", async () => {
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          diagnosis: "private candidate",
+          fixedProcedure: ["New step"],
+          confidence: 0.9,
+        }),
+      );
+      const created = new Set();
+      mockFs.promises.mkdir.mockImplementation(async (value) => {
+        created.add(value);
+      });
+      mockFs.promises.lstat = vi.fn(async (value) => {
+        if (String(value).endsWith("SKILL.md")) {
+          return {
+            size: Buffer.byteLength(SAMPLE_SKILL, "utf8"),
+            isSymbolicLink: () => false,
+            isFile: () => true,
+            isDirectory: () => false,
+          };
+        }
+        if (!created.has(value)) {
+          throw Object.assign(new Error("missing"), { code: "ENOENT" });
+        }
+        return {
+          size: 0,
+          isSymbolicLink: () => false,
+          isFile: () => false,
+          isDirectory: () => true,
+        };
+      });
+
+      const result = await improver.repairFromError("deploy-app", {
+        error: "err",
+      });
+
+      expect(result.status).toBe("candidate");
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith("/candidates", {
+        recursive: true,
+        mode: 0o700,
+      });
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(
+        "/candidates/deploy-app",
+        { recursive: false, mode: 0o700 },
+      );
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(
+        "/candidates/deploy-app/1.1.0",
+        { recursive: false, mode: 0o700 },
+      );
+    });
   });
 
   // ── SkillImprover.updateFromCorrection ────────────
@@ -291,9 +557,11 @@ describe("skill-improver", () => {
       impDeps.path = mockPath;
       vi.clearAllMocks();
       mockFs.promises.readFile.mockResolvedValue(SAMPLE_SKILL);
+      configureTrustedCandidateFs(mockFs.promises);
 
       improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
     });
 
@@ -315,7 +583,9 @@ describe("skill-improver", () => {
         ],
       });
 
-      expect(result.improved).toBe(true);
+      expect(result.improved).toBe(false);
+      expect(result.candidateCreated).toBe(true);
+      expect(result.status).toBe("candidate");
       expect(result.reason).toContain("pnpm");
 
       const writtenContent = mockFs.promises.writeFile.mock.calls[0][1];
@@ -362,9 +632,11 @@ describe("skill-improver", () => {
       impDeps.path = mockPath;
       vi.clearAllMocks();
       mockFs.promises.readFile.mockResolvedValue(SAMPLE_SKILL);
+      configureTrustedCandidateFs(mockFs.promises);
 
       improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
     });
 
@@ -388,7 +660,9 @@ describe("skill-improver", () => {
         ],
       });
 
-      expect(result.improved).toBe(true);
+      expect(result.improved).toBe(false);
+      expect(result.candidateCreated).toBe(true);
+      expect(result.status).toBe("candidate");
       expect(result.reason).toContain("caching");
 
       const writtenContent = mockFs.promises.writeFile.mock.calls[0][1];
@@ -429,9 +703,11 @@ describe("skill-improver", () => {
       impDeps.path = mockPath;
       vi.clearAllMocks();
       mockFs.promises.readFile.mockResolvedValue(SAMPLE_SKILL);
+      configureTrustedCandidateFs(mockFs.promises);
 
       improver = new SkillImprover(db, mockLLM, store, {
         skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
       });
     });
 
@@ -472,13 +748,19 @@ describe("skill-improver", () => {
       );
 
       const result = await improver.scanForImprovements();
-      expect(result.improved.length).toBeGreaterThanOrEqual(1);
+      expect(result.improved).toEqual([]);
+      expect(result.candidates.length).toBeGreaterThanOrEqual(1);
+      expect(result.candidates[0]).toMatchObject({
+        skillName: "deploy-app",
+        status: "candidate",
+      });
     });
 
     it("returns empty when no improvements available", async () => {
       // No synthesized trajectories
       const result = await improver.scanForImprovements();
       expect(result.improved).toHaveLength(0);
+      expect(result.candidates).toHaveLength(0);
       expect(result.skipped).toHaveLength(0);
     });
   });
@@ -516,9 +798,9 @@ describe("skill-improver", () => {
     });
   });
 
-  // ── _readSkill / _writeSkill ──────────────────────
+  // ── _readSkill / _writeCandidate ──────────────────
 
-  describe("_readSkill / _writeSkill", () => {
+  describe("_readSkill / _writeCandidate", () => {
     it("returns null when skillsDir is not set", async () => {
       const imp = new SkillImprover(db, null, store);
       const result = await imp._readSkill("any");
@@ -554,6 +836,7 @@ describe("skill-improver", () => {
       impDeps.path = { join: (...args) => args.join("/") };
       const imp = new SkillImprover(db, llm, store, {
         skillsDir: "/s",
+        diffOnly: true,
         limits: { maxSkillFileBytes: 256 },
       });
 
@@ -564,13 +847,31 @@ describe("skill-improver", () => {
       expect(llm).not.toHaveBeenCalled();
     });
 
-    it("_writeSkill does nothing without skillsDir", async () => {
+    it("_writeCandidate fails closed without a configured boundary", async () => {
       const mockWrite = vi.fn();
       impDeps.fs = { promises: { mkdir: vi.fn(), writeFile: mockWrite } };
 
       const imp = new SkillImprover(db, null, store);
-      await imp._writeSkill("test", "content");
+      await expect(
+        imp._writeCandidate("test", "1.1.0", "content"),
+      ).rejects.toThrow("source skill registry unavailable");
       expect(mockWrite).not.toHaveBeenCalled();
+    });
+
+    it("_writeCandidate fails closed without realpath and lstat support", async () => {
+      const writeFile = vi.fn();
+      impDeps.fs = {
+        promises: { mkdir: vi.fn(), writeFile },
+      };
+      const imp = new SkillImprover(db, vi.fn(), store, {
+        skillsDir: "/skills",
+        candidateOutputDir: "/candidates",
+      });
+
+      await expect(
+        imp._writeCandidate("test", "1.1.0", "content"),
+      ).rejects.toThrow("filesystem identity support unavailable");
+      expect(writeFile).not.toHaveBeenCalled();
     });
   });
 });

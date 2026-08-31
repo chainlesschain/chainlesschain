@@ -81,6 +81,54 @@ export const CAPABILITY_MANIFEST = Object.freeze({
     "remote_control",
   ]),
 
+  // Static evolution declarations. Runtime evidence is deliberately kept out
+  // of this manifest so timestamps and deployment state cannot churn the
+  // canonical capability digest. `buildEvolutionStatus()` combines these
+  // declarations with explicit runtime receipts.
+  evolutionCapabilities: Object.freeze([
+    Object.freeze({
+      id: "learning-synthesis",
+      implemented: true,
+      dependencies: Object.freeze([
+        "llm",
+        "candidate-registry",
+        "independent-evaluator",
+      ]),
+      gates: Object.freeze([
+        "candidate-only-output",
+        "artifact-persisted",
+        "eval-before-promotion",
+      ]),
+      mutationScope: "candidate-only",
+    }),
+    Object.freeze({
+      id: "skill-improvement",
+      implemented: true,
+      dependencies: Object.freeze([
+        "candidate-registry",
+        "independent-evaluator",
+      ]),
+      gates: Object.freeze([
+        "candidate-only-output",
+        "active-write-denied",
+        "eval-before-promotion",
+      ]),
+      mutationScope: "candidate-only",
+    }),
+    Object.freeze({
+      id: "skill-candidate-registry",
+      implemented: true,
+      dependencies: Object.freeze(["private-storage", "hard-link-cas"]),
+      gates: Object.freeze([
+        "content-addressed-artifact",
+        "digest-bound-lineage",
+        "immutable-publication",
+        "path-and-symlink-defense",
+      ]),
+      mutationScope: "candidate-only",
+    }),
+  ]),
+
   mcpFeatures: Object.freeze([
     "config_file",
     "registry",
@@ -107,6 +155,121 @@ const manifestOr = (m) =>
   m && typeof m === "object" ? m : CAPABILITY_MANIFEST;
 const wireFeaturesOf = (m) =>
   Array.isArray(manifestOr(m).wireFeatures) ? manifestOr(m).wireFeatures : [];
+const evolutionCapabilitiesOf = (m) =>
+  Array.isArray(manifestOr(m).evolutionCapabilities)
+    ? manifestOr(m).evolutionCapabilities
+    : [];
+const EVOLUTION_EVIDENCE_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+
+function compareCanonicalStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function digestJson(value) {
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex")}`;
+}
+
+/**
+ * Static evolution capability definitions. Arrays are copied so consumers
+ * cannot mutate the canonical manifest through the projection.
+ */
+export function toEvolutionCapabilityDefinitions(m = CAPABILITY_MANIFEST) {
+  return evolutionCapabilitiesOf(m).map((capability) => ({
+    id: String(capability.id || ""),
+    implemented: capability.implemented === true,
+    dependencies: [...(capability.dependencies || [])],
+    gates: [...(capability.gates || [])],
+    mutationScope: String(capability.mutationScope || "none"),
+  }));
+}
+
+/**
+ * Combine immutable declarations with explicit runtime evidence. Missing or
+ * inconsistent evidence always degrades availability; it can never turn a
+ * declaration on implicitly. `lastEvidence` is an opaque bounded receipt id or
+ * digest, not a timestamp stored in the static manifest.
+ *
+ * @param {{manifest?:object,evidence?:Record<string,object>}} options
+ */
+export function buildEvolutionStatus({
+  manifest = CAPABILITY_MANIFEST,
+  evidence = {},
+} = {}) {
+  const definitions = toEvolutionCapabilityDefinitions(manifest);
+  const safeEvidence =
+    evidence && typeof evidence === "object" && !Array.isArray(evidence)
+      ? evidence
+      : {};
+  const capabilities = definitions.map((definition) => {
+    const observed =
+      Object.hasOwn(safeEvidence, definition.id) &&
+      safeEvidence[definition.id] &&
+      typeof safeEvidence[definition.id] === "object" &&
+      !Array.isArray(safeEvidence[definition.id])
+        ? safeEvidence[definition.id]
+        : {};
+    const implemented = definition.implemented === true;
+    const lastEvidence =
+      Object.hasOwn(observed, "lastEvidence") &&
+      typeof observed.lastEvidence === "string" &&
+      EVOLUTION_EVIDENCE_DIGEST_PATTERN.test(observed.lastEvidence.trim())
+        ? observed.lastEvidence.trim()
+        : null;
+    const wired =
+      implemented &&
+      Object.hasOwn(observed, "wired") &&
+      observed.wired === true;
+    const verified =
+      implemented &&
+      Object.hasOwn(observed, "verified") &&
+      observed.verified === true &&
+      lastEvidence !== null;
+    const defaultEnabled =
+      implemented &&
+      wired &&
+      verified &&
+      Object.hasOwn(observed, "defaultEnabled") &&
+      observed.defaultEnabled === true;
+    const evidenceState = {
+      wired,
+      verified,
+      defaultEnabled,
+      lastEvidence,
+    };
+    const state = !implemented
+      ? "unavailable"
+      : !wired
+        ? "not-wired"
+        : !verified
+          ? "unverified"
+          : defaultEnabled
+            ? "available"
+            : "available-disabled";
+    return {
+      ...definition,
+      ...evidenceState,
+      state,
+      evidenceDigest: digestJson({ id: definition.id, ...evidenceState }),
+    };
+  });
+  const evidenceProjection = capabilities
+    .map((capability) => ({
+      id: capability.id,
+      wired: capability.wired,
+      verified: capability.verified,
+      defaultEnabled: capability.defaultEnabled,
+      lastEvidence: capability.lastEvidence,
+    }))
+    .sort((left, right) => compareCanonicalStrings(left.id, right.id));
+  return {
+    schemaVersion: 1,
+    manifestDigest: capabilityDigest(manifest),
+    evidenceDigest: digestJson(evidenceProjection),
+    capabilities,
+  };
+}
 
 /**
  * The negotiable wire feature keys, in canonical declared order — the value
@@ -233,6 +396,13 @@ export function capabilityDigest(m = CAPABILITY_MANIFEST) {
       ])
       .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)),
     runtime: [...(mm.runtimeFeatures || [])].sort(),
+    evolution: toEvolutionCapabilityDefinitions(mm)
+      .map((capability) => ({
+        ...capability,
+        dependencies: [...capability.dependencies].sort(),
+        gates: [...capability.gates].sort(),
+      }))
+      .sort((a, b) => compareCanonicalStrings(a.id, b.id)),
     mcp: [...(mm.mcpFeatures || [])].sort(),
     sandbox: [...(mm.sandboxEngines || [])].sort(),
     permissionModes: [...(mm.permissionModes || [])].sort(),
@@ -303,7 +473,10 @@ export function renderProtocolDoc(m = CAPABILITY_MANIFEST) {
  * @returns {{protocolChange:{from:number,to:number}|null,
  *            addedWireFeatures:string[], removedWireFeatures:string[],
  *            changedWireFeatures:Array<{feature:string, from:object, to:object}>,
- *            addedRuntimeFeatures:string[], removedRuntimeFeatures:string[]}}
+ *            addedRuntimeFeatures:string[], removedRuntimeFeatures:string[],
+ *            addedEvolutionCapabilities:string[],
+ *            removedEvolutionCapabilities:string[],
+ *            changedEvolutionCapabilities:Array<{capability:string, from:object, to:object}>}}
  */
 export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
   const wireMap = (m) => {
@@ -318,6 +491,18 @@ export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
     return out;
   };
   const runtimeSet = (m) => new Set(manifestOr(m).runtimeFeatures || []);
+  const evolutionMap = (m) =>
+    new Map(
+      toEvolutionCapabilityDefinitions(m).map((capability) => [
+        capability.id,
+        {
+          implemented: capability.implemented,
+          dependencies: [...capability.dependencies].sort(),
+          gates: [...capability.gates].sort(),
+          mutationScope: capability.mutationScope,
+        },
+      ]),
+    );
 
   const p = wireMap(prev);
   const n = wireMap(next);
@@ -342,6 +527,29 @@ export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
   const addedRuntimeFeatures = [...nr].filter((k) => !pr.has(k)).sort();
   const removedRuntimeFeatures = [...pr].filter((k) => !nr.has(k)).sort();
 
+  const pe = evolutionMap(prev);
+  const ne = evolutionMap(next);
+  const addedEvolutionCapabilities = [...ne.keys()]
+    .filter((key) => !pe.has(key))
+    .sort();
+  const removedEvolutionCapabilities = [...pe.keys()]
+    .filter((key) => !ne.has(key))
+    .sort();
+  const changedEvolutionCapabilities = [];
+  for (const [key, nextDefinition] of ne) {
+    const previousDefinition = pe.get(key);
+    if (
+      previousDefinition &&
+      JSON.stringify(previousDefinition) !== JSON.stringify(nextDefinition)
+    ) {
+      changedEvolutionCapabilities.push({
+        capability: key,
+        from: previousDefinition,
+        to: nextDefinition,
+      });
+    }
+  }
+
   const pVer = Number(manifestOr(prev).protocolVersion) || 1;
   const nVer = Number(manifestOr(next).protocolVersion) || 1;
   const protocolChange = pVer === nVer ? null : { from: pVer, to: nVer };
@@ -353,5 +561,8 @@ export function diffCapabilities(prev, next = CAPABILITY_MANIFEST) {
     changedWireFeatures,
     addedRuntimeFeatures,
     removedRuntimeFeatures,
+    addedEvolutionCapabilities,
+    removedEvolutionCapabilities,
+    changedEvolutionCapabilities,
   };
 }

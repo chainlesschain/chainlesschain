@@ -1,6 +1,6 @@
 /**
- * SkillImprover — Iteratively improves auto-synthesized SKILL.md files
- * based on execution feedback and better trajectories.
+ * SkillImprover — Proposes candidate revisions for auto-synthesized SKILL.md
+ * files based on execution feedback and better trajectories.
  *
  * Three improvement triggers:
  *   1. repairFromError — skill execution failed, patch the procedure
@@ -67,6 +67,41 @@ export function parseSkillFrontmatter(content) {
 export function rebuildSkillMd(meta, body) {
   const lines = Object.entries(meta).map(([k, v]) => `${k}: ${v}`);
   return `---\n${lines.join("\n")}\n---\n${body}`;
+}
+
+/**
+ * A skill name is used as a path segment in both the source and candidate
+ * trees. Reject traversal and ambiguous path-like names before any I/O.
+ * @param {string} skillName
+ * @returns {boolean}
+ */
+export function isSafeSkillName(skillName) {
+  return (
+    typeof skillName === "string" &&
+    /^[\p{L}\p{N}][\p{L}\p{N}._-]{0,127}$/u.test(skillName) &&
+    skillName !== "." &&
+    skillName !== ".." &&
+    !skillName.includes("..")
+  );
+}
+
+function rootContains(parentRoot, childRoot) {
+  if (!parentRoot || !childRoot) return false;
+  const parent = path.resolve(parentRoot);
+  const child = path.resolve(childRoot);
+  const relative = path.relative(parent, child);
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function rootsOverlap(firstRoot, secondRoot) {
+  return (
+    rootContains(firstRoot, secondRoot) || rootContains(secondRoot, firstRoot)
+  );
 }
 
 // ── LLM prompt builders ────────────────────────────────
@@ -188,14 +223,66 @@ export class SkillImprover {
    * @param {import("better-sqlite3").Database} db
    * @param {function} llmChat — async (messages) => string
    * @param {import("./trajectory-store.js").TrajectoryStore} trajectoryStore
-   * @param {{skillsDir?:string, limits?:object}} [config]
+   * @param {{skillsDir?:string, candidateOutputDir?:string, diffOnly?:boolean, limits?:object}} [config]
    */
   constructor(db, llmChat, trajectoryStore, config = {}) {
     this.db = db;
     this.llmChat = llmChat;
     this.trajectoryStore = trajectoryStore;
     this.skillsDir = config.skillsDir || null;
+    this.candidateOutputDir = config.candidateOutputDir || null;
+    this.diffOnly = config.diffOnly === true;
     this.skillLimits = resolveSkillLimits(config.limits);
+  }
+
+  /**
+   * Return the fail-closed mutation boundary for this instance. `skillsDir` is
+   * always read-only; proposals must use an isolated candidate root or
+   * explicitly opt into diff-only output.
+   * @returns {{available:boolean, reason?:string}}
+   */
+  getAvailability() {
+    if (!this.skillsDir) {
+      return { available: false, reason: "source skill registry unavailable" };
+    }
+    if (typeof this.llmChat !== "function") {
+      return { available: false, reason: "LLM unavailable" };
+    }
+    if (this.diffOnly && this.candidateOutputDir) {
+      return {
+        available: false,
+        reason: "configure either candidateOutputDir or diffOnly, not both",
+      };
+    }
+    if (!this.diffOnly && !this.candidateOutputDir) {
+      return {
+        available: false,
+        reason:
+          "candidate output unavailable; configure candidateOutputDir or diffOnly",
+      };
+    }
+    if (
+      this.candidateOutputDir &&
+      rootsOverlap(this.skillsDir, this.candidateOutputDir)
+    ) {
+      return {
+        available: false,
+        reason: "candidate output must be isolated from the active skill tree",
+      };
+    }
+    return { available: true };
+  }
+
+  _unavailableResult() {
+    const availability = this.getAvailability();
+    return availability.available
+      ? null
+      : {
+          improved: false,
+          candidateCreated: false,
+          status: "unavailable",
+          reason: availability.reason,
+        };
   }
 
   /**
@@ -205,6 +292,16 @@ export class SkillImprover {
    * @returns {Promise<{improved:boolean, reason:string}>}
    */
   async repairFromError(skillName, errorContext) {
+    const unavailable = this._unavailableResult();
+    if (unavailable) return unavailable;
+    if (!isSafeSkillName(skillName)) {
+      return {
+        improved: false,
+        candidateCreated: false,
+        status: "error",
+        reason: "invalid skill name",
+      };
+    }
     const skillContent = await this._readSkill(skillName);
     if (!skillContent) {
       return { improved: false, reason: "skill not found" };
@@ -225,10 +322,14 @@ export class SkillImprover {
     meta.version = bumpVersion(meta.version);
 
     const newContent = rebuildSkillMd(meta, newBody);
-    await this._writeSkill(skillName, newContent);
-    this._logImprovement(skillName, "error_repair", suggestion.diagnosis || "");
-
-    return { improved: true, reason: suggestion.diagnosis || "repaired" };
+    return this._finalizeCandidate({
+      skillName,
+      content: newContent,
+      version: meta.version,
+      triggerType: "error_repair",
+      detail: suggestion.diagnosis || "",
+      reason: suggestion.diagnosis || "repair candidate generated",
+    });
   }
 
   /**
@@ -238,6 +339,16 @@ export class SkillImprover {
    * @returns {Promise<{improved:boolean, reason:string}>}
    */
   async updateFromCorrection(skillName, correctionContext) {
+    const unavailable = this._unavailableResult();
+    if (unavailable) return unavailable;
+    if (!isSafeSkillName(skillName)) {
+      return {
+        improved: false,
+        candidateCreated: false,
+        status: "error",
+        reason: "invalid skill name",
+      };
+    }
     const skillContent = await this._readSkill(skillName);
     if (!skillContent) {
       return { improved: false, reason: "skill not found" };
@@ -258,14 +369,14 @@ export class SkillImprover {
     meta.version = bumpVersion(meta.version);
 
     const newContent = rebuildSkillMd(meta, newBody);
-    await this._writeSkill(skillName, newContent);
-    this._logImprovement(
+    return this._finalizeCandidate({
       skillName,
-      "user_correction",
-      suggestion.whatChanged || "",
-    );
-
-    return { improved: true, reason: suggestion.whatChanged || "corrected" };
+      content: newContent,
+      version: meta.version,
+      triggerType: "user_correction",
+      detail: suggestion.whatChanged || "",
+      reason: suggestion.whatChanged || "correction candidate generated",
+    });
   }
 
   /**
@@ -275,6 +386,16 @@ export class SkillImprover {
    * @returns {Promise<{improved:boolean, reason:string}>}
    */
   async improveFromBetterTrajectory(skillName, betterTrajectory) {
+    const unavailable = this._unavailableResult();
+    if (unavailable) return unavailable;
+    if (!isSafeSkillName(skillName)) {
+      return {
+        improved: false,
+        candidateCreated: false,
+        status: "error",
+        reason: "invalid skill name",
+      };
+    }
     const skillContent = await this._readSkill(skillName);
     if (!skillContent) {
       return { improved: false, reason: "skill not found" };
@@ -295,22 +416,34 @@ export class SkillImprover {
     meta.version = bumpVersion(meta.version);
 
     const newContent = rebuildSkillMd(meta, newBody);
-    await this._writeSkill(skillName, newContent);
-    this._logImprovement(
+    return this._finalizeCandidate({
       skillName,
-      "better_trajectory",
-      suggestion.improvements || "",
-    );
-
-    return { improved: true, reason: suggestion.improvements || "improved" };
+      content: newContent,
+      version: meta.version,
+      triggerType: "better_trajectory",
+      detail: suggestion.improvements || "",
+      reason: suggestion.improvements || "improvement candidate generated",
+    });
   }
 
   /**
    * Scan for skills that can be improved from recent high-score trajectories.
-   * @returns {Promise<{improved: string[], skipped: string[]}>}
+   * @returns {Promise<{status:string, improved: string[], candidates: object[], skipped: string[], reason?:string}>}
    */
   async scanForImprovements() {
+    const unavailable = this._unavailableResult();
+    if (unavailable) {
+      return {
+        status: unavailable.status,
+        improved: [],
+        candidates: [],
+        skipped: [],
+        reason: unavailable.reason,
+      };
+    }
+
     const improved = [];
+    const candidates = [];
     const skipped = [];
 
     // Find synthesized trajectories that have higher-scoring siblings
@@ -350,8 +483,12 @@ export class SkillImprover {
             row.synthesized_skill,
             better,
           );
-          if (result.improved) {
-            improved.push(row.synthesized_skill);
+          if (result.candidateCreated || result.status === "diff-only") {
+            candidates.push({
+              skillName: row.synthesized_skill,
+              status: result.status,
+              candidatePath: result.candidatePath || null,
+            });
           } else {
             skipped.push(`${row.synthesized_skill}: ${result.reason}`);
           }
@@ -363,7 +500,7 @@ export class SkillImprover {
       }
     }
 
-    return { improved, skipped };
+    return { status: "completed", improved, candidates, skipped };
   }
 
   // ── Internal ────────────────────────────────────────
@@ -391,7 +528,7 @@ export class SkillImprover {
    * @returns {Promise<string|null>}
    */
   async _readSkill(skillName) {
-    if (!this.skillsDir) return null;
+    if (!this.skillsDir || !isSafeSkillName(skillName)) return null;
     const skillFile = _deps.path.join(this.skillsDir, skillName, "SKILL.md");
     try {
       if (typeof _deps.fs.promises.lstat === "function") {
@@ -413,21 +550,156 @@ export class SkillImprover {
   }
 
   /**
-   * Write updated skill content to disk.
-   * @param {string} skillName
-   * @param {string} content
+   * Persist or return a candidate without mutating the source skill tree.
+   * The audit write is required: callers never receive a successful candidate
+   * result when persistence or logging fails.
+   * @param {{skillName:string, content:string, version:string, triggerType:string, detail:string, reason:string}} candidate
+   * @returns {Promise<object>}
    */
-  async _writeSkill(skillName, content) {
-    if (!this.skillsDir) return;
+  async _finalizeCandidate(candidate) {
+    if (this.diffOnly) {
+      this._logImprovement(
+        candidate.skillName,
+        candidate.triggerType,
+        candidate.detail,
+      );
+      return {
+        improved: false,
+        candidateCreated: false,
+        candidateGenerated: true,
+        status: "diff-only",
+        reason: candidate.reason,
+        candidate: {
+          skillName: candidate.skillName,
+          version: candidate.version,
+          content: candidate.content,
+        },
+      };
+    }
+
+    const persisted = await this._writeCandidate(
+      candidate.skillName,
+      candidate.version,
+      candidate.content,
+    );
+    this._logImprovement(
+      candidate.skillName,
+      candidate.triggerType,
+      candidate.detail,
+    );
+    return {
+      improved: false,
+      candidateCreated: true,
+      candidateGenerated: true,
+      status: "candidate",
+      reason: candidate.reason,
+      candidatePath: persisted.skillFile,
+      candidate: {
+        skillName: candidate.skillName,
+        version: candidate.version,
+      },
+    };
+  }
+
+  /**
+   * Write a versioned candidate to the isolated candidate registry.
+   * @param {string} skillName
+   * @param {string} version
+   * @param {string} content
+   * @returns {Promise<{skillDir:string, skillFile:string}>}
+   */
+  async _writeCandidate(skillName, version, content) {
+    const availability = this.getAvailability();
+    if (!availability.available || this.diffOnly) {
+      throw new Error(
+        availability.reason || "candidate persistence unavailable",
+      );
+    }
+    if (!isSafeSkillName(skillName) || !/^\d+\.\d+\.\d+$/.test(version)) {
+      throw new Error("invalid candidate identity");
+    }
     assertSkillFileSize(
       "SKILL.md",
       Buffer.byteLength(String(content), "utf8"),
       this.skillLimits,
     );
-    const skillDir = _deps.path.join(this.skillsDir, skillName);
-    const skillFile = _deps.path.join(skillDir, "SKILL.md");
-    await _deps.fs.promises.mkdir(skillDir, { recursive: true });
-    await _deps.fs.promises.writeFile(skillFile, content, "utf-8");
+    this._assertCandidateFilesystemSupport();
+    const candidateRoot = await this._ensurePrivateDirectory(
+      this.candidateOutputDir,
+      { recursive: true },
+    );
+    await this._assertRealpathIsolation(candidateRoot);
+
+    const skillNamespacePath = _deps.path.join(
+      this.candidateOutputDir,
+      skillName,
+    );
+    const skillNamespace =
+      await this._ensurePrivateDirectory(skillNamespacePath);
+    this._assertPathWithinCandidateRoot(candidateRoot, skillNamespace);
+
+    const skillDir = _deps.path.join(skillNamespace, version);
+    const canonicalSkillDir = await this._ensurePrivateDirectory(skillDir);
+    this._assertPathWithinCandidateRoot(candidateRoot, canonicalSkillDir);
+
+    const skillFile = _deps.path.join(canonicalSkillDir, "SKILL.md");
+    await _deps.fs.promises.writeFile(skillFile, content, {
+      encoding: "utf-8",
+      flag: "wx",
+    });
+    return { skillDir: canonicalSkillDir, skillFile };
+  }
+
+  _assertCandidateFilesystemSupport() {
+    if (
+      typeof _deps.fs.promises.realpath !== "function" ||
+      typeof _deps.fs.promises.lstat !== "function"
+    ) {
+      throw new Error(
+        "candidate filesystem identity support unavailable; refusing write",
+      );
+    }
+  }
+
+  async _ensurePrivateDirectory(directory, options = {}) {
+    let stat;
+    try {
+      stat = await _deps.fs.promises.lstat(directory);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      try {
+        await _deps.fs.promises.mkdir(directory, {
+          recursive: options.recursive === true,
+          mode: 0o700,
+        });
+      } catch (mkdirError) {
+        if (mkdirError?.code !== "EEXIST") throw mkdirError;
+      }
+      stat = await _deps.fs.promises.lstat(directory);
+    }
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(
+        `candidate directory is not a trusted directory: ${directory}`,
+      );
+    }
+    return _deps.fs.promises.realpath(directory);
+  }
+
+  async _assertRealpathIsolation(candidateRoot) {
+    const sourceRoot = await _deps.fs.promises.realpath(this.skillsDir);
+    if (rootsOverlap(sourceRoot, candidateRoot)) {
+      throw new Error(
+        "candidate output resolves into the active skill tree; refusing write",
+      );
+    }
+  }
+
+  _assertPathWithinCandidateRoot(candidateRoot, candidatePath) {
+    if (!rootContains(candidateRoot, candidatePath)) {
+      throw new Error(
+        "candidate parent resolves outside the candidate root; refusing write",
+      );
+    }
   }
 
   /**
@@ -437,16 +709,12 @@ export class SkillImprover {
    * @param {string} detail
    */
   _logImprovement(skillName, triggerType, detail) {
-    try {
-      this.db
-        .prepare(
-          `INSERT INTO skill_improvement_log (skill_name, trigger_type, detail)
-           VALUES (?, ?, ?)`,
-        )
-        .run(skillName, triggerType, (detail || "").slice(0, 500));
-    } catch {
-      // Non-critical, don't break the flow
-    }
+    this.db
+      .prepare(
+        `INSERT INTO skill_improvement_log (skill_name, trigger_type, detail)
+         VALUES (?, ?, ?)`,
+      )
+      .run(skillName, triggerType, (detail || "").slice(0, 500));
   }
 
   /**

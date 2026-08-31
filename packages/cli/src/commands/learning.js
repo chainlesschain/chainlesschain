@@ -8,6 +8,56 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 
+export function classifySynthesisResult(result) {
+  if (result?.status === "unavailable") {
+    return {
+      kind: "unavailable",
+      exitCode: 1,
+      message: result.reason || "Synthesis dependencies unavailable",
+      jsonResult: result,
+    };
+  }
+  if (result?.status === "error") {
+    return {
+      kind: "failed",
+      exitCode: 1,
+      message:
+        result.reason ||
+        (Array.isArray(result.errors) && result.errors.length > 0
+          ? result.errors.join("; ")
+          : "Synthesis failed"),
+      jsonResult: result,
+    };
+  }
+  const wellFormedCompletion =
+    result?.status === "completed" &&
+    Array.isArray(result.created) &&
+    Array.isArray(result.skipped) &&
+    (!Object.hasOwn(result, "errors") ||
+      (Array.isArray(result.errors) && result.errors.length === 0));
+  if (wellFormedCompletion) {
+    return {
+      kind: "completed",
+      exitCode: 0,
+      message: null,
+      jsonResult: result,
+    };
+  }
+  const invalidResult = {
+    status: "error",
+    code: "LEARNING_SYNTHESIS_INVALID_RESULT",
+    reason: "Synthesis returned an invalid or unknown result",
+    created: [],
+    skipped: [],
+  };
+  return {
+    kind: "failed",
+    exitCode: 1,
+    message: invalidResult.reason,
+    jsonResult: invalidResult,
+  };
+}
+
 export function registerLearningCommand(program) {
   const learning = program
     .command("learning")
@@ -271,6 +321,24 @@ export function registerLearningCommand(program) {
 
         const spinner = ora("Scanning for synthesizable patterns...").start();
         const result = await synthesizer.synthesize();
+        const outcome = classifySynthesisResult(result);
+
+        if (outcome.exitCode !== 0) {
+          spinner.fail(
+            outcome.kind === "unavailable"
+              ? "Synthesis unavailable"
+              : "Synthesis failed",
+          );
+          if (options.json) {
+            console.log(JSON.stringify(outcome.jsonResult, null, 2));
+          } else {
+            logger.error(outcome.message);
+          }
+          await shutdown();
+          process.exitCode = outcome.exitCode;
+          return;
+        }
+
         spinner.succeed("Synthesis complete");
 
         if (options.json) {
@@ -278,7 +346,9 @@ export function registerLearningCommand(program) {
         } else {
           if (result.created.length > 0) {
             logger.log(
-              chalk.green(`Created ${result.created.length} skill(s):`),
+              chalk.green(
+                `Created ${result.created.length} candidate skill(s):`,
+              ),
             );
             for (const name of result.created) {
               logger.log(`  ${chalk.cyan(name)}`);
