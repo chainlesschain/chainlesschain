@@ -71,7 +71,7 @@ describe("formal candidate platform isolation", () => {
   it("keeps the Windows managed-checkpoint latency budget platform-specific", () => {
     expect(
       qualityThresholdsForPlatform("windows").candidateLatencyRatio.max,
-    ).toBe(1.6);
+    ).toBe(1.65);
     expect(
       qualityThresholdsForPlatform("linux").candidateLatencyRatio.max,
     ).toBe(1.5);

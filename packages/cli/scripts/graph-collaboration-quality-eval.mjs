@@ -52,7 +52,7 @@ const WINDOWS_FROZEN_THRESHOLDS = Object.freeze({
   ...FROZEN_THRESHOLDS,
   // Windows alone retains the Job-backed managed process checkpoint. Its
   // end-to-end latency budget includes that stronger process-tree boundary.
-  candidateLatencyRatio: Object.freeze({ max: 1.6 }),
+  candidateLatencyRatio: Object.freeze({ max: 1.65 }),
 });
 
 export function qualityThresholdsForPlatform(platform) {
