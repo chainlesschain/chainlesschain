@@ -23,6 +23,14 @@ function required(value, name) {
   return value;
 }
 
+async function cancelResponseBody(response, reason) {
+  try {
+    await response?.body?.cancel?.(reason);
+  } catch {
+    // The validation failure remains authoritative if cancellation fails.
+  }
+}
+
 function strictHttpsOrigin(value, name) {
   const raw = required(value, name);
   let url;
@@ -93,24 +101,82 @@ export function assertGithubLiveMain({
 
 async function boundedJson(response) {
   if (!response || response.status !== 200 || response.ok !== true) {
+    await cancelResponseBody(response, "GitHub refs API rejected response");
     fail(`GitHub refs API returned HTTP ${response?.status ?? "unknown"}`);
   }
   const contentType = response.headers?.get?.("content-type") || "";
   if (!/^application\/json(?:\s*;|$)/iu.test(contentType)) {
+    await cancelResponseBody(response, "GitHub refs API returned non-JSON");
     fail("GitHub refs API did not return JSON");
   }
   const contentLength = response.headers?.get?.("content-length");
+  let declaredLength = null;
   if (contentLength !== null && contentLength !== undefined) {
     if (
       !/^[1-9][0-9]*$/u.test(contentLength) ||
       Number(contentLength) > MAX_RESPONSE_BYTES
     ) {
+      await cancelResponseBody(
+        response,
+        "GitHub refs API declared an invalid response size",
+      );
       fail("GitHub refs API response size is invalid");
     }
+    declaredLength = Number(contentLength);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > MAX_RESPONSE_BYTES) {
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    fail("GitHub refs API response body stream is unavailable");
+  }
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch {
+        fail("GitHub refs API response body could not be read");
+      }
+      if (chunk?.done === true) break;
+      if (!(chunk?.value instanceof Uint8Array)) {
+        try {
+          await reader.cancel("GitHub refs API returned an invalid body chunk");
+        } catch {
+          // The body-shape failure remains authoritative.
+        }
+        fail("GitHub refs API response body is invalid");
+      }
+      total += chunk.value.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        try {
+          await reader.cancel("GitHub refs API response exceeded byte limit");
+        } catch {
+          // The size failure remains authoritative even if cancellation fails.
+        }
+        fail("GitHub refs API response size is invalid");
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    try {
+      reader.releaseLock?.();
+    } catch {
+      // Nothing else should replace the original validation failure.
+    }
+  }
+  if (
+    total < 1 ||
+    total > MAX_RESPONSE_BYTES ||
+    (declaredLength !== null && declaredLength !== total)
+  ) {
     fail("GitHub refs API response size is invalid");
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
   }
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));

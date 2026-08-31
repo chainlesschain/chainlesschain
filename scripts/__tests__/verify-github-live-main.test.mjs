@@ -25,6 +25,29 @@ function liveRef(sha = SHA) {
 
 function response(value = liveRef(), overrides = {}) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
+  const chunks = overrides.chunks || [bytes];
+  const onCancel = overrides.onCancel;
+  let index = 0;
+  const body =
+    overrides.body === undefined
+      ? {
+          async cancel(reason) {
+            onCancel?.(reason);
+          },
+          getReader() {
+            return {
+              async read() {
+                if (index >= chunks.length) return { done: true };
+                return { done: false, value: chunks[index++] };
+              },
+              async cancel(reason) {
+                onCancel?.(reason);
+              },
+              releaseLock() {},
+            };
+          },
+        }
+      : overrides.body;
   return {
     ok: true,
     status: 200,
@@ -32,8 +55,9 @@ function response(value = liveRef(), overrides = {}) {
       "content-type": "application/json; charset=utf-8",
       "content-length": String(bytes.byteLength),
     }),
+    body,
     async arrayBuffer() {
-      return bytes.buffer;
+      throw new Error("bounded reader must not call arrayBuffer()");
     },
     ...overrides,
   };
@@ -124,6 +148,7 @@ test("requires the canonical GitHub API origin and rejects redirects", async () 
 });
 
 test("fails closed on malformed or oversized refs API responses", async () => {
+  let declaredOversizeCanceled = false;
   for (const result of [
     response({}, { headers: new Headers({ "content-type": "text/html" }) }),
     response(
@@ -133,6 +158,9 @@ test("fails closed on malformed or oversized refs API responses", async () => {
           "content-type": "application/json",
           "content-length": String(300 * 1024),
         }),
+        onCancel() {
+          declaredOversizeCanceled = true;
+        },
       },
     ),
     response(
@@ -156,6 +184,7 @@ test("fails closed on malformed or oversized refs API responses", async () => {
       /did not return JSON|response size is invalid/u,
     );
   }
+  assert.equal(declaredOversizeCanceled, true);
 });
 
 test("accepts bounded chunked JSON without a content-length header", async () => {
@@ -170,4 +199,42 @@ test("accepts bounded chunked JSON without a content-length header", async () =>
       }),
   });
   assert.equal(result.object.sha, SHA);
+});
+
+test("cancels an oversized chunked response before buffering it", async () => {
+  let canceled = false;
+  let reads = 0;
+  const oversized = response(
+    {},
+    {
+      headers: new Headers({ "content-type": "application/json" }),
+      chunks: [new Uint8Array(200 * 1024), new Uint8Array(57 * 1024)],
+      onCancel() {
+        canceled = true;
+      },
+    },
+  );
+  const originalRead = oversized.body.getReader;
+  oversized.body.getReader = () => {
+    const reader = originalRead();
+    const originalReaderRead = reader.read;
+    reader.read = async () => {
+      reads += 1;
+      return originalReaderRead();
+    };
+    return reader;
+  };
+
+  await assert.rejects(
+    fetchGithubLiveMain({
+      serverUrl: "https://github.com",
+      apiUrl: "https://api.github.com",
+      repository: CONTEXT.repository,
+      token: "test-token",
+      fetchImpl: async () => oversized,
+    }),
+    /response size is invalid/u,
+  );
+  assert.equal(canceled, true);
+  assert.equal(reads, 2);
 });
