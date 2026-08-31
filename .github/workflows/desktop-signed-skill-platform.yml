@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: desktop-signed-skill-platform-authoritative
+  cancel-in-progress: true
+
 jobs:
   contract:
     name: Validate protected producer request
@@ -40,11 +44,26 @@ jobs:
           EXPECTED_SHA: ${{ inputs.commit_sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
+      - name: Verify protected live main producer contract
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - name: Run evidence contract tests
         run: |
           node --test \
+            scripts/__tests__/verify-github-live-main.test.mjs \
             desktop-app-vue/scripts/__tests__/verify-signed-desktop-skill-matrix.test.mjs \
-            desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs
+            desktop-app-vue/scripts/__tests__/create-signed-desktop-skill-evidence.test.mjs \
+            desktop-app-vue/scripts/__tests__/verify-signed-desktop-workflow-trust.test.mjs
 
   platform:
     name: Signed install and Skill journey (${{ matrix.platform }})
@@ -53,7 +72,7 @@ jobs:
       attestations: write
       contents: read
       id-token: write
-    environment: desktop-signed-qualification
+    environment: desktop-signed-qualification-v2
     strategy:
       fail-fast: false
       matrix:
@@ -74,13 +93,23 @@ jobs:
       CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
       SKIP_BACKEND_CHECK: "true"
       NODE_OPTIONS: "--max-old-space-size=4096"
-      CC_SKILL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CC_SKILL_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_ID }}
-      CC_SKILL_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_SECRET }}
-      CC_SKILL_GOOGLE_REFRESH_TOKEN: ${{ secrets.DESKTOP_SKILL_GOOGLE_REFRESH_TOKEN }}
-      CC_SKILL_NOTION_API_KEY: ${{ secrets.DESKTOP_SKILL_NOTION_API_KEY }}
-      CC_SKILL_TAVILY_API_KEY: ${{ secrets.DESKTOP_SKILL_TAVILY_API_KEY }}
     steps:
+      - name: Require protected live main before environment access
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SHA" = "$SOURCE_SHA"
+          test "$SOURCE_REF" = "refs/heads/main"
+          test "$REF_PROTECTED" = "true"
+          main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)
+          test "$main_sha" = "$EXPECTED_SHA"
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ inputs.commit_sha }}
@@ -90,17 +119,28 @@ jobs:
         with:
           node-version: "22.12.0"
 
-      - name: Require signing, notarization, and live Skill credentials
+      - name: Revalidate protected live main before credential preflight
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - name: Require common live Skill credentials
         shell: bash
         env:
-          PLATFORM: ${{ matrix.platform }}
-          WINDOWS_CSC_LINK: ${{ secrets.DESKTOP_WINDOWS_CSC_LINK }}
-          WINDOWS_CSC_PASSWORD: ${{ secrets.DESKTOP_WINDOWS_CSC_KEY_PASSWORD }}
-          MAC_CSC_LINK: ${{ secrets.DESKTOP_MAC_CSC_LINK }}
-          MAC_CSC_PASSWORD: ${{ secrets.DESKTOP_MAC_CSC_KEY_PASSWORD }}
-          MAC_APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
-          MAC_APP_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
-          MAC_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+          CC_SKILL_GITHUB_TOKEN: ${{ github.token }}
+          CC_SKILL_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_ID }}
+          CC_SKILL_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_SECRET }}
+          CC_SKILL_GOOGLE_REFRESH_TOKEN: ${{ secrets.DESKTOP_SKILL_GOOGLE_REFRESH_TOKEN }}
+          CC_SKILL_NOTION_API_KEY: ${{ secrets.DESKTOP_SKILL_NOTION_API_KEY }}
+          CC_SKILL_TAVILY_API_KEY: ${{ secrets.DESKTOP_SKILL_TAVILY_API_KEY }}
         run: |
           set -euo pipefail
           for name in \
@@ -112,16 +152,34 @@ jobs:
             CC_SKILL_TAVILY_API_KEY; do
             test -n "${!name:-}" || { echo "$name is not configured" >&2; exit 1; }
           done
-          if [ "$PLATFORM" = windows ]; then
-            test -n "$WINDOWS_CSC_LINK"
-            test -n "$WINDOWS_CSC_PASSWORD"
-          elif [ "$PLATFORM" = macos ]; then
-            test -n "$MAC_CSC_LINK"
-            test -n "$MAC_CSC_PASSWORD"
-            test -n "$MAC_APPLE_ID"
-            test -n "$MAC_APP_PASSWORD"
-            [[ "$MAC_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
-          fi
+
+      - name: Require Windows signing credentials
+        if: matrix.platform == 'windows'
+        shell: bash
+        env:
+          WINDOWS_CSC_LINK: ${{ secrets.DESKTOP_WINDOWS_CSC_LINK }}
+          WINDOWS_CSC_PASSWORD: ${{ secrets.DESKTOP_WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$WINDOWS_CSC_LINK"
+          test -n "$WINDOWS_CSC_PASSWORD"
+
+      - name: Require macOS signing and notarization credentials
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          MAC_CSC_LINK: ${{ secrets.DESKTOP_MAC_CSC_LINK }}
+          MAC_CSC_PASSWORD: ${{ secrets.DESKTOP_MAC_CSC_KEY_PASSWORD }}
+          MAC_APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
+          MAC_APP_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
+          MAC_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$MAC_CSC_LINK"
+          test -n "$MAC_CSC_PASSWORD"
+          test -n "$MAC_APPLE_ID"
+          test -n "$MAC_APP_PASSWORD"
+          [[ "$MAC_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
 
       - name: Install repository dependencies
         uses: ./.github/actions/setup-node-deps
@@ -188,6 +246,19 @@ jobs:
           node desktop-app-vue/scripts/remove-nested-asar-dupes.js
           exit /b 0
 
+      - name: Revalidate protected live main before installer signing
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - name: Package keyless Linux installer
         if: matrix.platform == 'linux'
         working-directory: desktop-app-vue
@@ -216,6 +287,19 @@ jobs:
       - name: Install cosign
         if: matrix.platform == 'linux'
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Revalidate protected live main before signature verification
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Sign and verify Linux installer with GitHub OIDC
         if: matrix.platform == 'linux'
@@ -383,8 +467,28 @@ jobs:
           fi
           test -s "$RUNNER_TEMP/launch.json"
 
+      - name: Revalidate protected live main before live Skill credentials
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - name: Run seven live bundled Skill journeys from installed ASAR
         shell: bash
+        env:
+          CC_SKILL_GITHUB_TOKEN: ${{ github.token }}
+          CC_SKILL_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_ID }}
+          CC_SKILL_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_SKILL_GOOGLE_CLIENT_SECRET }}
+          CC_SKILL_GOOGLE_REFRESH_TOKEN: ${{ secrets.DESKTOP_SKILL_GOOGLE_REFRESH_TOKEN }}
+          CC_SKILL_NOTION_API_KEY: ${{ secrets.DESKTOP_SKILL_NOTION_API_KEY }}
+          CC_SKILL_TAVILY_API_KEY: ${{ secrets.DESKTOP_SKILL_TAVILY_API_KEY }}
         run: |
           set -euo pipefail
           workspace="$RUNNER_TEMP/signed-skill-workspace"
@@ -410,6 +514,19 @@ jobs:
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --output "$RUNNER_TEMP/${{ matrix.platform }}.json"
 
+      - name: Revalidate protected live main before platform evidence attestation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
       - name: Attest exact platform evidence
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
@@ -428,6 +545,19 @@ jobs:
         shell: bash
         run: |
           node -e "const f=require('node:fs'),p=require('node:path');const d=p.join(process.env.RUNNER_TEMP,'signed-installer');f.mkdirSync(d,{recursive:true});const t=p.join(d,p.basename(process.env.CC_INSTALLER_PATH));f.copyFileSync(process.env.CC_INSTALLER_PATH,t);f.appendFileSync(process.env.GITHUB_OUTPUT,'path='+t+'\n');"
+
+      - name: Revalidate protected live main before installer attestation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
 
       - name: Attest exact signed installer bytes
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
