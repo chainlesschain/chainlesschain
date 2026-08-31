@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: Exact protected main/tag commit to qualify
+        description: Exact protected main commit to qualify
         required: true
         type: string
 
@@ -25,10 +25,10 @@ jobs:
           set -euo pipefail
           [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
           test "$EXPECTED_SHA" = "$SOURCE_SHA"
-          case "$SOURCE_REF" in
-            refs/heads/main|refs/tags/v*) ;;
-            *) echo "Desktop signed qualification runs only from protected main or v* tags" >&2; exit 1 ;;
-          esac
+          test "$SOURCE_REF" = "refs/heads/main" || {
+            echo "Desktop signed qualification runs only from protected main" >&2
+            exit 1
+          }
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

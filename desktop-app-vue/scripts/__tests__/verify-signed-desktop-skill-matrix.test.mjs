@@ -349,6 +349,11 @@ test("qualification workflow keeps producer identity and aggregate attestation f
   assert.match(workflow, /--run-attempt "\$SOURCE_RUN_ATTEMPT"/u);
   assert.match(
     workflow,
+    /desktop-signed-skill-platform\.yml@refs\/heads\/main/u,
+  );
+  assert.doesNotMatch(workflow, /refs\/tags\/v/u);
+  assert.match(
+    workflow,
     /actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c/u,
   );
   assert.match(
@@ -371,6 +376,8 @@ test("qualification workflow keeps producer identity and aggregate attestation f
     "utf8",
   );
   assert.match(producer, /test "\$EXPECTED_SHA" = "\$SOURCE_SHA"/u);
+  assert.match(producer, /test "\$SOURCE_REF" = "refs\/heads\/main"/u);
+  assert.doesNotMatch(producer, /refs\/tags\/v/u);
   assert.match(producer, /environment: desktop-signed-qualification/u);
   assert.match(producer, /cosign verify-blob/u);
   assert.match(producer, /Get-AuthenticodeSignature/u);
